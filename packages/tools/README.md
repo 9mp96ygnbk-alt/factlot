@@ -1,7 +1,7 @@
 # @factlot/tools
 
-The FactLot tool catalog: 15 tools (calculators, FactLot IDs, and fact validation), each with
-native definitions for every major AI platform and one dispatcher, `runTool`.
+The FactLot tool catalog: 16 core tools (calculators, rules packs, FactLot IDs, and fact validation), plus 6 registry tools when a registry is configured. Every tool has
+native definitions for every major AI platform, and one dispatcher, `runTool`, runs them all.
 
 ```ts
 import {

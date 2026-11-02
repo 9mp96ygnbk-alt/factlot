@@ -131,6 +131,7 @@ See [docs/business-model.md](docs/business-model.md) and [docs/roadmap.md](docs/
 ## Docs
 
 - [Agent guide: which tool to call when](docs/agents.md) · [llms.txt](llms.txt)
+- [Rules packs](docs/rules.md) · [Lease ingestion](docs/ingest.md) · [Registry](docs/registry/README.md)
 - [FactLot ID specification](docs/id-spec.md)
 - [Fact model: provenance and rights](docs/fact-model.md)
 - [Roadmap](docs/roadmap.md)

@@ -22,6 +22,7 @@ from .calc import (  # noqa: E402
     walt,
 )
 from .facts import validate_fact  # noqa: E402
+from .rules import RULES, texas_holidays, tx_property_tax_protest_deadline  # noqa: E402
 from .ids import (  # noqa: E402
     FactLotId,
     FactLotIdError,
@@ -48,6 +49,7 @@ from .tools import (  # noqa: E402
 __all__ = [
     "CALCULATORS",
     "CalcInputError",
+    "RULES",
     "FactLotId",
     "FactLotIdError",
     "anthropic_tools",
@@ -73,7 +75,9 @@ __all__ = [
     "run_tool",
     "short_id",
     "space_id",
+    "texas_holidays",
     "tool_definitions",
+    "tx_property_tax_protest_deadline",
     "validate_fact",
     "walt",
 ]

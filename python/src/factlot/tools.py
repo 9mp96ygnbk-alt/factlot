@@ -27,6 +27,7 @@ from typing import Any
 from . import __version__
 from ._core import CalcInputError
 from .calc import CALCULATORS
+from .rules import RULES
 from .facts import validate_fact
 from .ids import FactLotIdError, document_id, entity_id, parcel_id, parse, short_id, space_id
 
@@ -234,6 +235,17 @@ def run_tool(name: str, arguments: dict[str, Any] | None) -> dict[str, Any]:
                 "provenance": {
                     "method": "computed",
                     "formula": f"{formula_id}@{version}",
+                    "producer": {"name": "factlot (python)", "version": __version__},
+                    "sources": [],
+                },
+            }
+        if name.startswith("rules_") and name[6:] in RULES:
+            fn, rule_id, version = RULES[name[6:]]
+            return {
+                **fn(args),
+                "provenance": {
+                    "method": "computed",
+                    "formula": f"{rule_id}@{version}",
                     "producer": {"name": "factlot (python)", "version": __version__},
                     "sources": [],
                 },

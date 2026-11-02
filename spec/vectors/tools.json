@@ -177,6 +177,24 @@
         "limit": 0
       },
       "expect_error": "InputError"
+    },
+    {
+      "tool": "rules_tx_property_tax_protest_deadline",
+      "arguments": {
+        "tax_year": 2026,
+        "notice_delivered_date": "2026-05-01"
+      },
+      "expect": {
+        "value.deadline": "2026-06-01",
+        "provenance.formula": "rules.tx.property_tax_protest_deadline@1"
+      }
+    },
+    {
+      "tool": "rules_tx_property_tax_protest_deadline",
+      "arguments": {
+        "tax_year": 1999
+      },
+      "expect_error": "CalcInputError"
     }
   ]
 }

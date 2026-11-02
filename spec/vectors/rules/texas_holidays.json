@@ -1,0 +1,23 @@
+{
+  "description": "Texas legal holidays on actual dates (draft rule calendar). Dates hand-checked; when two holidays share a date the first listed name wins.",
+  "years": {
+    "2026": {
+      "2026-01-01": "New Year's Day",
+      "2026-01-19": "Confederate Heroes Day",
+      "2026-02-16": "Presidents' Day",
+      "2026-03-02": "Texas Independence Day",
+      "2026-04-21": "San Jacinto Day",
+      "2026-05-25": "Memorial Day",
+      "2026-06-19": "Emancipation Day (Juneteenth)",
+      "2026-07-04": "Independence Day",
+      "2026-08-27": "Lyndon Baines Johnson Day",
+      "2026-09-07": "Labor Day",
+      "2026-11-11": "Veterans Day",
+      "2026-11-26": "Thanksgiving Day",
+      "2026-11-27": "Day after Thanksgiving",
+      "2026-12-24": "Christmas Eve",
+      "2026-12-25": "Christmas Day",
+      "2026-12-26": "Day after Christmas"
+    }
+  }
+}

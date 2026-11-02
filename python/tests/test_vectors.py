@@ -93,6 +93,35 @@ class ToolVectors(unittest.TestCase):
                     self.assertEqual(at(out, path), expected)
 
 
+class RuleVectors(unittest.TestCase):
+    def test_rule_vectors(self):
+        from factlot.rules import RULES
+
+        files = [f for f in sorted((SPEC / "rules").glob("*.json")) if f.name != "texas_holidays.json"]
+        self.assertGreater(len(files), 0)
+        for f in files:
+            spec = json.loads(f.read_text("utf-8"))
+            fn, rid, version = RULES[spec["rule"]]
+            self.assertEqual((rid, version), (spec["calculator"], spec["version"]))
+            for case in spec["cases"]:
+                with self.subTest(rule=spec["rule"], case=case["name"]):
+                    if case.get("expect_error"):
+                        with self.assertRaises(CalcInputError):
+                            fn(case["input"])
+                        continue
+                    result = fn(case["input"])
+                    for path, expected in case["expect"].items():
+                        self.assertEqual(at(result, path), expected, path)
+                    self.assertTrue(any("DRAFT" in w for w in result["warnings"]))
+
+    def test_texas_holidays(self):
+        from factlot.rules import texas_holidays
+
+        spec = json.loads((SPEC / "rules" / "texas_holidays.json").read_text("utf-8"))
+        for year, expected in spec["years"].items():
+            self.assertEqual(texas_holidays(int(year)), expected)
+
+
 class Mint(unittest.TestCase):
     def test_mint_is_valid_and_sortable(self):
         a = factlot.mint("building", 1_700_000_000_000)

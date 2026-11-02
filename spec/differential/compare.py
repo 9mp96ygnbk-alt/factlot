@@ -32,8 +32,9 @@ for c, t, y in zip(cases, ts, py):
         if len(t.get("warnings", [])) != len(y.get("warnings", [])):
             diffs.append(("warnings", len(t.get("warnings", [])), len(y.get("warnings", []))))
     if diffs:
-        bad[c["calc"]] += 1
-        examples.setdefault(c["calc"], (c["input"], diffs[:3]))
+        key = c.get("calc") or c["rule"]
+        bad[key] += 1
+        examples.setdefault(key, (c["input"], diffs[:3]))
 print(f"{len(cases)} cases, {sum(bad.values())} mismatched")
 for calc, (inp, diffs) in examples.items():
     print(f"  {calc}: {diffs}\n    input: {json.dumps(inp)[:400]}")

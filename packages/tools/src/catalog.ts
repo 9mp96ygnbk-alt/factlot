@@ -2,7 +2,7 @@
  * The FactLot tool catalog: one list of tools, with identical names, inputs, and
  * outputs on every surface (MCP, REST, OpenAPI, and each AI provider's function calling).
  */
-import { CalcInputError, calculators } from "@factlot/calc";
+import { CalcInputError, calculators, rulePacks } from "@factlot/calc";
 import {
   FactLotIdError,
   documentId,
@@ -70,6 +70,29 @@ const calcTools: ToolSpec[] = Object.entries(calculators).map(([name, c]) => ({
   run: (input: never) => {
     const result = (
       c.run as (i: unknown) => { formula: { id: string; version: number } }
+    )(input);
+    return {
+      ...result,
+      provenance: {
+        method: "computed",
+        formula: `${result.formula.id}@${result.formula.version}`,
+        producer: PRODUCER,
+        sources: [],
+      },
+    };
+  },
+}));
+
+const ruleTools: ToolSpec[] = Object.entries(rulePacks).map(([name, r]) => ({
+  name: `rules_${name}`,
+  title: r.title,
+  description: `${r.description} Verification status: ${r.verification.status}. Cite rule ${r.id}@${r.version} and its statutes.`,
+  input: r.input,
+  path: `/v1/rules/${name}`,
+  formula: { id: r.id, version: r.version },
+  run: (input: never) => {
+    const result = (
+      r.run as (i: unknown) => { formula: { id: string; version: number } }
     )(input);
     return {
       ...result,
@@ -388,6 +411,7 @@ const registryTools: ToolSpec[] = [
 /** Every FactLot tool, in a stable order. */
 export const tools: readonly ToolSpec[] = [
   ...calcTools,
+  ...ruleTools,
   ...idTools,
   ...registryTools,
 ];
@@ -415,7 +439,10 @@ export function runTool(name: string, args: unknown): ToolOutcome {
       path: i.path.join("."),
       message: i.message,
     }));
-    const kind = name.startsWith("calc_") ? "CalcInputError" : "InputError";
+    const kind =
+      name.startsWith("calc_") || name.startsWith("rules_")
+        ? "CalcInputError"
+        : "InputError";
     return {
       ok: false,
       error: {

@@ -1,0 +1,99 @@
+{
+  "calculator": "rules.tx.property_tax_protest_deadline",
+  "rule": "tx_property_tax_protest_deadline",
+  "version": 1,
+  "cases": [
+    {
+      "name": "notice early in the year: May 15 governs",
+      "input": {
+        "tax_year": 2026,
+        "notice_delivered_date": "2026-04-10"
+      },
+      "expect": {
+        "value.deadline": "2026-05-15",
+        "value.unadjusted_deadline": "2026-05-15",
+        "value.governing_basis": "may_15",
+        "value.recommended_file_by": "2026-05-15",
+        "value.skipped_non_business_days": []
+      }
+    },
+    {
+      "name": "30 days after notice lands on a Sunday",
+      "input": {
+        "tax_year": 2026,
+        "notice_delivered_date": "2026-05-01"
+      },
+      "expect": {
+        "value.deadline": "2026-06-01",
+        "value.unadjusted_deadline": "2026-05-31",
+        "value.governing_basis": "30_days_after_notice",
+        "value.recommended_file_by": "2026-05-29"
+      }
+    },
+    {
+      "name": "May 15 on a Saturday, no notice date",
+      "input": {
+        "tax_year": 2027
+      },
+      "expect": {
+        "value.deadline": "2027-05-17",
+        "value.recommended_file_by": "2027-05-14",
+        "value.skipped_non_business_days.0.reason": "Saturday",
+        "value.skipped_non_business_days.1.reason": "Sunday"
+      }
+    },
+    {
+      "name": "Juneteenth then a weekend",
+      "input": {
+        "tax_year": 2026,
+        "notice_delivered_date": "2026-05-20"
+      },
+      "expect": {
+        "value.deadline": "2026-06-22",
+        "value.unadjusted_deadline": "2026-06-19",
+        "value.recommended_file_by": "2026-06-18",
+        "value.skipped_non_business_days.0.date": "2026-06-19"
+      }
+    },
+    {
+      "name": "Memorial Day",
+      "input": {
+        "tax_year": 2026,
+        "notice_delivered_date": "2026-04-25"
+      },
+      "expect": {
+        "value.deadline": "2026-05-26",
+        "value.recommended_file_by": "2026-05-22",
+        "value.skipped_non_business_days.0.reason": "Memorial Day"
+      }
+    },
+    {
+      "name": "rule metadata travels with the result",
+      "input": {
+        "tax_year": 2026
+      },
+      "expect": {
+        "value.rule.id": "rules.tx.property_tax_protest_deadline",
+        "value.rule.verification.status": "draft",
+        "value.rule.citations.0.law": "Tex. Tax Code §41.44(a)(1)",
+        "formula.id": "rules.tx.property_tax_protest_deadline"
+      }
+    },
+    {
+      "name": "notice in a different year is an input error",
+      "input": {
+        "tax_year": 2026,
+        "notice_delivered_date": "2025-12-01"
+      },
+      "expect_error": true
+    },
+    {
+      "name": "impossible date is an input error",
+      "input": {
+        "tax_year": 2026,
+        "notice_delivered_date": "2026-02-30"
+      },
+      "expect_error": true
+    }
+  ]
+}

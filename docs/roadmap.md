@@ -30,7 +30,9 @@ identity layer for commercial real estate.
   - lease-vs-own and renew-vs-relocate analysis
   - prepayment and defeasance
   - hotel RevPAR, ADR, and GOP
-  - NYC LL97 penalty (the first rules-pack prototype)
+  - NYC LL97 penalty (deferred until the law text is reachable; see [rules](rules.md))
+- [x] Rules-pack framework (versioned, cited, verification status) and the first pack: Texas property tax protest deadline (draft)
+- [x] Lease ingestion prototype with deterministic quote verification and amendment supersession ([ingest](ingest.md)); next: accuracy on real leases
 - [x] Build **FactLot Bench**: 14 CRE agent tasks with independent ground truth, a
       runner that compares the model alone with the model plus FactLot tools, and
       strict scoring (`bench/`).

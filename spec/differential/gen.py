@@ -34,4 +34,11 @@ for _ in range(int(sys.argv[2])):
     else:
         n=random.randint(2,40); inp={"cash_flows":[-round(random.uniform(1e5,1e7),2)]+[round(random.uniform(-2e5,2e6),2) for _ in range(n-1)],"periods_per_year":random.choice([1,4,12])}
     cases.append({"calc":k,"input":inp})
+    # rules: random tax years and notice dates (including weekends and holidays)
+    y=random.randint(2000,2100)
+    rinp={"tax_year":y}
+    if random.random()<0.85:
+        from datetime import date as _d, timedelta as _t
+        rinp["notice_delivered_date"]=(_d(y,1,1)+_t(days=random.randint(0,364))).isoformat()
+    cases.append({"rule":"tx_property_tax_protest_deadline","input":rinp})
 json.dump(cases,open(sys.argv[3],"w"))

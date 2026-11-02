@@ -900,6 +900,31 @@
     {
       "type": "function",
       "function": {
+        "name": "rules_tx_property_tax_protest_deadline",
+        "description": "Deadline to file a Texas property tax protest with the appraisal review board: the later of May 15 or 30 days after the notice of appraised value was delivered, rolled past weekends and Texas legal holidays, plus a conservative file-by date. Returns the statute citations and the rule's verification status. Verification status: draft. Cite rule rules.tx.property_tax_protest_deadline@1 and its statutes.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "tax_year": {
+              "type": "integer",
+              "minimum": 2000,
+              "maximum": 2100,
+              "description": "Tax year being protested, e.g. 2026."
+            },
+            "notice_delivered_date": {
+              "description": "Date the appraisal district's notice of appraised value was delivered, YYYY-MM-DD. Omit if unknown (May 15 is then the only basis).",
+              "type": "string",
+              "format": "date",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+            }
+          },
+          "required": ["tax_year"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
         "name": "id_parcel",
         "description": "Deterministic FactLot ID for a parcel from state FIPS, county FIPS, and the assessor's parcel number (APN). The same parcel always yields the same ID, offline. Use it as the join key across systems.",
         "parameters": {
