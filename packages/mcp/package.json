@@ -1,0 +1,45 @@
+{
+  "name": "@factlot/mcp",
+  "version": "0.1.0",
+  "description": "MCP server exposing FactLot calculators and IDs to AI agents.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22.6"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/9mp96ygnbk-alt/factlot.git",
+    "directory": "packages/mcp"
+  },
+  "homepage": "https://factlot.com",
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "src",
+    "!src/**/*.test.ts",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "bin": {
+    "factlot-mcp": "./dist/bin.js"
+  },
+  "dependencies": {
+    "@factlot/calc": "0.1.0",
+    "@factlot/id": "0.1.0",
+    "@factlot/schema": "0.1.0",
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "zod": "^4.6.7"
+  }
+}

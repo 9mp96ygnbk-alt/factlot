@@ -1,0 +1,115 @@
+N = 165 personas from 10 batches
+
+## All personas (n=165)
+opt name                                  mean   %>=4   %=5   %<=1
+I   Doc ingestion -> structured           3.52    48%   24%     4%
+H   Deterministic CRE calculators         3.24    42%   16%     8%
+A   Canonical IDs / entity resolution     3.12    37%   12%     9%
+Q   Provenance/verification layer         2.96    30%    8%     6%
+N   Tax/insurance/climate                 2.79    28%   13%    18%
+M   Verified building specs               2.58    28%   13%    26%
+B   Lease fact layer w/ citations         2.46    33%   15%    35%
+D   Sales comps                           2.35    28%    7%    35%
+F   Zoning/permits                        2.12    25%   14%    45%
+C   Lease comps (agent-licensed)          2.07    16%    5%    39%
+E   Ownership & debt                      2.04    16%    6%    40%
+R   Open CRE ontology/schema              1.98     5%    2%    28%
+G   Tenant credit                         1.70    17%    7%    54%
+J   Listings feed                         1.68    15%    4%    50%
+K   Contacts                              1.62    11%    3%    55%
+O   Action rails                          1.51     6%    1%    54%
+L   Foot traffic/demographics             1.32     6%    1%    62%
+P   Agent-to-agent protocol               0.35     0%    0%    93%
+
+## Top 4 options by role
+- Acquisitions underwriting agent                                        (n=9): I 3.7, N 3.2, D 3.1, H 3.0
+- Appraisal & valuation agent                                            (n=8): D 4.2, Q 3.5, I 3.5, N 3.1
+- CRE lender / debt underwriting agent                                   (n=8): I 4.2, N 3.5, H 3.5, A 3.1
+- Construction, tenant improvement & capex planning agent                (n=8): I 3.8, F 3.5, Q 3.1, M 3.1
+- Corporate occupier / corporate real estate portfolio agent             (n=8): H 4.1, B 4.1, I 3.9, M 3.5
+- Development & land feasibility agent                                   (n=8): F 4.6, A 3.9, D 3.6, N 3.4
+- Due diligence & legal review agent                                     (n=8): Q 3.8, I 3.8, A 3.1, B 2.8
+- ESG, energy benchmarking & building-performance compliance agent       (n=8): H 4.2, A 4.2, M 3.9, I 3.2
+- Insurance underwriting & climate/physical risk agent                   (n=8): N 4.0, M 3.8, A 3.8, I 3.4
+- Landlord / leasing-agent copilot agent                                 (n=8): H 3.6, I 3.2, G 3.2, C 3.0
+- Property management / building operations agent                        (n=9): I 3.3, H 3.2, B 3.0, Q 2.9
+- Property tax appeal & assessment agent                                 (n=8): N 4.9, I 4.0, D 3.9, A 3.6
+- Retail / QSR / healthcare site selection agent                         (n=8): L 3.8, A 3.6, J 3.4, Q 2.9
+- Tenant-representation broker copilot agent                             (n=9): M 3.7, H 3.7, C 3.7, J 3.4
+- asset management agent                                                 (n=9): H 4.0, D 3.4, N 3.2, I 3.1
+- capital_markets_research_analyst_agent                                 (n=8): A 3.6, Q 3.5, I 3.4, H 3.2
+- investment_sales_broker_agent                                          (n=9): D 4.0, I 3.9, E 3.6, K 3.4
+- lease administration agent                                             (n=8): I 4.8, B 4.6, Q 4.0, H 4.0
+- marketing & listing agent                                              (n=8): K 3.4, I 3.2, A 2.9, Q 2.8
+- small owner-operator / private investor / 1031 exchange agent          (n=8): H 3.8, I 3.4, N 3.2, D 3.1
+
+firm_size=institutional (n=51): A 3.6, I 3.5, Q 3.5, H 3.1, B 3.1, M 2.8
+firm_size=mid-market (n=69): I 3.7, H 3.3, A 3.2, Q 3.1, N 2.9, M 2.7
+firm_size=small (n=45): H 3.3, I 3.2, N 2.9, D 2.7, A 2.4, F 2.2
+
+## Breadth: # of roles (of 20) where option ranks top-3: {'I': 14, 'H': 8, 'A': 7, 'D': 6, 'N': 6, 'Q': 5, 'M': 3, 'B': 3, 'F': 2, 'C': 1, 'G': 1, 'E': 1, 'L': 1, 'J': 1, 'K': 1}
+
+## Pricing models: {'subscription': 85, 'per-call': 35, 'usage-tiered': 34, 'free-only': 7, 'per-seat': 3, 'rev-share': 1}
+monthly budget USD: median 2,000, mean 3,841, p25 600, p75 5,000, sum 633,840
+  institutional: median 7,500
+  mid-market: median 2,000
+  small: median 300
+open_source_importance mean 2.42, %>=4 16%, %<=1 19%
+
+## Most common high-score pairs: [('HI', 50), ('BI', 43), ('IQ', 36), ('BH', 30), ('AI', 28), ('BQ', 26), ('DI', 26), ('AH', 24), ('HQ', 24), ('IN', 24)]
+
+## Free-text keyword prevalence (% of personas mentioning)
+  citation/provenance   95%
+  licens                35%
+  PDF                   52%
+  entity/ID             33%
+  stale/freshness       25%
+  API missing           27%
+  math                  51%
+  CAM                    8%
+  estoppel               4%
+  rent roll             15%
+  county/assessor       32%
+  human-in-loop         37%
+
+## Sample dealbreakers (first 40 unique):
+  - licensing terms that bar showing data in client deliverables
+  - per-seat pricing over ~$300/seat
+  - comps older than 12 months presented as current
+  - coverage gaps in secondary logistics markets
+  - no enterprise sso/security review pass
+  - specs scraped from listings without verification flag
+  - enterprise-only pricing
+  - office-only schema that ignores medical specifics
+  - zoning answers without citations (liability)
+  - contact data that violates tcpa/can-spam norms
+  - training on client lease documents
+  - no on-prem/vpc option for confidential leases
+  - abstraction accuracy below ~98% on critical dates
+  - generic office schema
+  - debt data only for cmbs (most lab is balance-sheet/debt-fund financed)
+  - treating data centers as a generic industrial subtype
+  - no coverage of utility/permit data
+  - pricing over a few hundred dollars/month
+  - primary-market-only coverage
+  - ambiguous licensing
+  - vendor retaining our prompts/client names
+  - hallucinated distress signals
+  - requires migrating off vts/yardi
+  - no soc 2
+  - opaque credit scores without drivers
+  - stale tenant data
+  - contacts scraped against tos
+  - hosting our leases in a shared/training pool
+  - missed exclusive (one miss = lawsuit)
+  - any pooled non-public rent data
+  - commercial-only schema
+  - office/industrial-centric product
+  - annual contracts
+  - cloud-only storage of our leases
+  - per-seat enterprise pricing
+  - national-chain-only coverage
+  - no crm write path
+  - read-only
+  - requires owner clients to adopt new software
+  - terms forbidding ai use of data
