@@ -236,6 +236,15 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
+def _attachment_name(disposition: str | None) -> str | None:
+    """File name from a Content-Disposition header: publishers that serve files through a script
+    (Dallas CAD's ViewPDFs.aspx) name the file there, not in the URL."""
+    if not disposition:
+        return None
+    m = re.search(r"filename\*?=(?:UTF-8'')?\"?([^\";]+)", disposition, re.I)
+    return Path(urllib.parse.unquote(m.group(1).strip())).name if m else None
+
+
 def _load_manifest(path: Path) -> list[dict[str, Any]]:
     return [json.loads(line) for line in path.read_text().splitlines() if line.strip()] if path.exists() else []
 
@@ -271,11 +280,12 @@ def snapshot(fetcher: PoliteFetcher, spec: SourceSpec, urls: list[str], out_dir:
                         size += len(chunk)
                 digest = h.hexdigest()
                 rec.update({"etag": resp.headers.get("ETag"), "last_modified": resp.headers.get("Last-Modified")})
+                attachment = _attachment_name(resp.headers.get("Content-Disposition"))
             if previous and previous["sha256"] == digest:
                 tmp.unlink()
                 rec.update({"status": "unchanged", "sha256": digest})
             else:
-                name = Path(urllib.parse.urlsplit(url).path).name or "download"
+                name = attachment or Path(urllib.parse.urlsplit(url).path).name or "download"
                 dest = base / digest[:16] / name
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 tmp.replace(dest)

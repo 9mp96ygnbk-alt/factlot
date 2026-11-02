@@ -22,6 +22,15 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         REQUESTS.append((self.path, self.headers.get("User-Agent", "")))
+        if self.path == "/export?type=3":  # a script that serves a file and names it in a header
+            body = (Path(self.directory) / "files" / "roll_2026.zip").read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/zip")
+            self.send_header("Content-Disposition", 'attachment;filename="ROLL_NAMED.ZIP"')
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
         return super().do_GET()
 
 
@@ -103,6 +112,14 @@ class Collector(unittest.TestCase):
         report = discover(PoliteFetcher(CollectorConfig(contact="t@example.invalid", min_interval=0, timeout=2)), spec)
         self.assertTrue(report["pages"][0]["status"].startswith("unreachable"), report["pages"][0]["status"])
 
+
+    def test_snapshot_names_the_file_from_content_disposition(self):
+        out = Path(tempfile.mkdtemp())
+        spec = SourceSpec("script-cad", "Script CAD", [f"{self.base}/"], ["127.0.0.1"], link_patterns=[r"type=3"])
+        [rec] = snapshot(PoliteFetcher(self.cfg), spec, [f"{self.base}/export?type=3"], out)
+        self.assertEqual(rec["status"], "archived")
+        self.assertTrue(rec["path"].endswith("/ROLL_NAMED.ZIP"), rec["path"])
+        self.assertEqual((out / rec["path"]).read_bytes(), b"synthetic roll v1")
 
     def test_discover_reads_json_listings(self):
         spec = SourceSpec("json-cad", "JSON CAD", [f"{self.base}/downloads.json"], ["127.0.0.1"])
