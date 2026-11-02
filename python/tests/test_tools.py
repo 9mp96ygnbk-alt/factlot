@@ -1,4 +1,5 @@
 import json
+import sys
 import unittest
 from pathlib import Path
 
@@ -53,6 +54,29 @@ class RunTool(unittest.TestCase):
         self.assertEqual(factlot.run_tool("id_parcel", {})["error"], "InputError")
         self.assertEqual(factlot.run_tool("id_document", {"text": "a", "content_base64": "YQ=="})["error"], "InputError")
         self.assertEqual(factlot.run_tool("calc_nope", {})["error"], "UnknownTool")
+
+
+class RegistryTools(unittest.TestCase):
+    def test_registry_tools_against_fixture(self):
+        import subprocess
+        import tempfile
+
+        from factlot.tools import configure_registry
+
+        db = Path(tempfile.mkdtemp()) / "fixture.db"
+        subprocess.run([sys.executable, str(SPEC.parent / "registry" / "build_fixture.py"), str(db)], check=True,
+                       capture_output=True)
+        configure_registry(str(db))
+        try:
+            rec = factlot.run_tool("registry_get", {"urn": "fl:parcel:us-48999:00010000002"})
+            self.assertEqual(rec["status"], "not_in_latest_snapshot")
+            self.assertEqual(rec["facts"], [])
+            owned = factlot.run_tool("registry_owned_by", {"entity_urn": "fl:entity:us-tx:0801111111"})
+            self.assertEqual([r["urn"] for r in owned["results"]], ["fl:parcel:us-48999:00010000001"])
+            self.assertEqual(factlot.run_tool("registry_get", {"urn": "fl:parcel:us-48999:404"})["error"], "NotFound")
+        finally:
+            configure_registry(None)
+        self.assertEqual(factlot.run_tool("registry_get", {"urn": "x"})["error"], "RegistryUnavailable")
 
 
 class Facts(unittest.TestCase):

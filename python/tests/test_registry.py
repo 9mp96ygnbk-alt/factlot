@@ -170,6 +170,29 @@ class RegistryCore(unittest.TestCase):
         history = [f["value"] for f in self.reg.facts(urn, history=True) if f["predicate"] == "ownership.owner_of_record"]
         self.assertEqual(history, ["Lonestar Office Holdings, L.L.C."])
 
+    def test_full_roll_retires_parcels_that_disappear(self):
+        self.reg.ingest_parcels(ROLL_2025, self.snap25, state_fips="48", full_roll=True)
+        snap26 = self.reg.add_snapshot("test-county-roll", write(self.tmp, "roll-2026c.txt", "synthetic 2026c"), as_of="2026-07-25")
+        roll26 = [
+            ParcelRecord("999", "0001-000-0001", "F1", situs_address="100 Main Street, Suite 400", market_value=20_000_000),
+            ParcelRecord("999", "0001-000-0002", "A", situs_address="5 Industrial Boulevard"),  # reclassified out of scope
+            # 0001-000-0004, -0005, -0006 no longer listed (e.g. merged into a new parcel)
+        ]
+        s = self.reg.ingest_parcels(roll26, snap26, state_fips="48", full_roll=True)
+        self.assertEqual(s.retired, 4)
+        kept = self.reg.get(factlot.parcel_id("48", "999", "0001-000-0001").urn)
+        self.assertEqual(kept["status"], "current")
+        gone = self.reg.get(factlot.parcel_id("48", "999", "0001-000-0002").urn)
+        self.assertEqual(gone["status"], "not_in_latest_snapshot")
+        self.assertEqual(gone["facts"], [], "no stale facts are presented as current")
+        self.assertGreater(len(self.reg.facts(gone["urn"], history=True)), 0, "history is kept")
+        again = self.reg.ingest_parcels(roll26, snap26, state_fips="48", full_roll=True)
+        self.assertEqual(again.retired, 0, "retiring is idempotent")
+        snap27 = self.reg.add_snapshot("test-county-roll", write(self.tmp, "roll-2027.txt", "synthetic 2027"), as_of="2027-07-25")
+        self.reg.ingest_parcels([ParcelRecord("999", "0001-000-0002", "F2", situs_address="5 Industrial Boulevard")], snap27,
+                                state_fips="48")
+        self.assertEqual(self.reg.get(gone["urn"])["status"], "current", "a parcel that returns is current again")
+
     def test_search(self):
         self.reg.ingest_parcels(ROLL_2025, self.snap25, state_fips="48")
         self.reg.ingest_entities(ENTITIES, self.ent)

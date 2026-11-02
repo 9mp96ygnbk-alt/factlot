@@ -1037,6 +1037,147 @@
             }
           }
         }
+      },
+      {
+        "toolSpec": {
+          "name": "registry_get",
+          "description": "Everything the FactLot Registry knows about a parcel or legal entity: status, current cited facts (owner of record, situs address, property category, areas, values), ownership links, and external IDs. Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
+          "inputSchema": {
+            "json": {
+              "type": "object",
+              "properties": {
+                "urn": {
+                  "type": "string",
+                  "description": "FactLot URN of a parcel or entity, e.g. fl:parcel:us-48201:0420150000012."
+                },
+                "include_history": {
+                  "default": false,
+                  "description": "Also return superseded facts from earlier snapshots.",
+                  "type": "boolean"
+                }
+              },
+              "required": ["urn"]
+            }
+          }
+        }
+      },
+      {
+        "toolSpec": {
+          "name": "registry_resolve_parcel",
+          "description": "Find a parcel's FactLot URN from state FIPS, county FIPS, and APN, if the registry holds it. Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
+          "inputSchema": {
+            "json": {
+              "type": "object",
+              "properties": {
+                "state_fips": {
+                  "type": "string",
+                  "description": "2-digit state FIPS, e.g. \"48\" for Texas."
+                },
+                "county_fips": {
+                  "type": "string",
+                  "description": "3-digit county FIPS, e.g. \"201\" for Harris County."
+                },
+                "apn": {
+                  "type": "string",
+                  "description": "Parcel or account number as the county prints it."
+                }
+              },
+              "required": ["state_fips", "county_fips", "apn"]
+            }
+          }
+        }
+      },
+      {
+        "toolSpec": {
+          "name": "registry_resolve_external",
+          "description": "Find the FactLot URN for an ID from another system, e.g. system \"tx-harris-cad-account\" or \"us-tx-taxpayer\". Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
+          "inputSchema": {
+            "json": {
+              "type": "object",
+              "properties": {
+                "system": {
+                  "type": "string",
+                  "description": "Crosswalk system name, e.g. \"tx-harris-cad-account\"."
+                },
+                "external_id": {
+                  "type": "string",
+                  "description": "The ID in that system."
+                }
+              },
+              "required": ["system", "external_id"]
+            }
+          }
+        }
+      },
+      {
+        "toolSpec": {
+          "name": "registry_search_address",
+          "description": "Find commercial parcels by situs address (normalized: 'Street' = 'St', 'Suite' = 'Ste'). Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
+          "inputSchema": {
+            "json": {
+              "type": "object",
+              "properties": {
+                "query": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Street address or part of one."
+                },
+                "limit": {
+                  "default": 20,
+                  "description": "Maximum results (1–100).",
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 100
+                }
+              },
+              "required": ["query"]
+            }
+          }
+        }
+      },
+      {
+        "toolSpec": {
+          "name": "registry_search_entities",
+          "description": "Find registered business entities (LLCs, LPs, corporations) by name. Natural persons are not searchable. Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
+          "inputSchema": {
+            "json": {
+              "type": "object",
+              "properties": {
+                "query": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Entity name or part of one."
+                },
+                "limit": {
+                  "default": 20,
+                  "description": "Maximum results (1–100).",
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 100
+                }
+              },
+              "required": ["query"]
+            }
+          }
+        }
+      },
+      {
+        "toolSpec": {
+          "name": "registry_owned_by",
+          "description": "Commercial parcels currently linked to a legal entity as owner of record (inferred links carry a confidence). Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
+          "inputSchema": {
+            "json": {
+              "type": "object",
+              "properties": {
+                "entity_urn": {
+                  "type": "string",
+                  "description": "FactLot entity URN, e.g. fl:entity:us-tx:0801111111."
+                }
+              },
+              "required": ["entity_urn"]
+            }
+          }
+        }
       }
     ]
   }

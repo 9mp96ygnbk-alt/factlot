@@ -76,6 +76,7 @@ CREATE TABLE IF NOT EXISTS coverage (
   source_id   TEXT NOT NULL,
   as_of       TEXT NOT NULL,
   document_id TEXT NOT NULL,
+  present     INTEGER NOT NULL DEFAULT 1,      -- 0: absent from a full snapshot that should have listed it
   PRIMARY KEY (subject, source_id, document_id)
 );
 

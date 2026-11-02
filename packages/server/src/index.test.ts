@@ -38,7 +38,12 @@ test("MCP over Streamable HTTP: list and call tools", async () => {
   );
   const { tools: listed } = await client.listTools();
   const names = listed.map((t) => t.name);
-  for (const t of tools) assert.ok(names.includes(t.name), t.name);
+  for (const t of tools.filter((x) => !x.requires))
+    assert.ok(names.includes(t.name), t.name);
+  assert.ok(
+    !names.includes("registry_get"),
+    "registry tools only when configured",
+  );
   assert.ok(names.includes("search") && names.includes("fetch"));
   const r = (await client.callTool({
     name: "calc_debt_sizing",
@@ -183,7 +188,10 @@ test("optional bearer auth protects MCP and REST but not discovery", async () =>
       requestInit: { headers: { authorization: "Bearer secret" } },
     }),
   );
-  assert.ok((await client.listTools()).tools.length > tools.length);
+  assert.ok(
+    (await client.listTools()).tools.length >
+      tools.filter((x) => !x.requires).length,
+  );
   await client.close();
   await close();
 });
@@ -196,4 +204,77 @@ test("CORS preflight and body limit", async () => {
   const big = await post(`${base}/v1/id/parse`, { urn: "x".repeat(500) });
   assert.equal(big.status, 413);
   await close();
+});
+
+test("registry tools over MCP and REST when a registry is configured", async () => {
+  const { execFileSync } = await import("node:child_process");
+  const { mkdtempSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const { fileURLToPath } = await import("node:url");
+  const { configureRegistry } = await import("@factlot/tools");
+
+  const unconfigured = await start();
+  configureRegistry(undefined);
+  const saved = process.env.FACTLOT_REGISTRY_DB;
+  delete process.env.FACTLOT_REGISTRY_DB;
+  assert.equal(
+    (
+      await post(`${unconfigured.base}/v1/registry/get`, {
+        urn: "fl:parcel:us-48999:1",
+      })
+    ).status,
+    503,
+  );
+  await unconfigured.close();
+
+  const db = join(mkdtempSync(join(tmpdir(), "factlot-server-")), "fixture.db");
+  execFileSync("python3", [
+    fileURLToPath(
+      new URL("../../../spec/registry/build_fixture.py", import.meta.url),
+    ),
+    db,
+  ]);
+  configureRegistry(db);
+  const { base, close } = await start();
+  try {
+    const urn = "fl:parcel:us-48999:00010000001";
+    const got = await post(`${base}/v1/registry/get`, { urn });
+    assert.equal(got.status, 200);
+    const record = (await got.json()) as {
+      status: string;
+      facts: { predicate: string }[];
+    };
+    assert.equal(record.status, "current");
+    assert.ok(
+      record.facts.some((f) => f.predicate === "ownership.owner_of_record"),
+    );
+    assert.equal(
+      (await post(`${base}/v1/registry/get`, { urn: "fl:parcel:us-48999:404" }))
+        .status,
+      404,
+    );
+
+    const client = new Client({ name: "registry-test", version: "0.0.0" });
+    await client.connect(
+      new StreamableHTTPClientTransport(new URL(`${base}/mcp`)),
+    );
+    const names = (await client.listTools()).tools.map((t) => t.name);
+    assert.ok(
+      names.includes("registry_get") && names.includes("registry_owned_by"),
+    );
+    const owned = (await client.callTool({
+      name: "registry_owned_by",
+      arguments: { entity_urn: "fl:entity:us-tx:0801111111" },
+    })) as { structuredContent?: { results: { urn: string }[] } };
+    assert.deepEqual(
+      owned.structuredContent?.results.map((r) => r.urn),
+      [urn],
+    );
+    await client.close();
+  } finally {
+    configureRegistry(undefined);
+    if (saved !== undefined) process.env.FACTLOT_REGISTRY_DB = saved;
+    await close();
+  }
 });

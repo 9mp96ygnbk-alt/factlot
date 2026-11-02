@@ -9,7 +9,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { jsonSchemas } from "@factlot/schema";
-import { runTool, tools } from "@factlot/tools";
+import { registryPath, runTool, tools } from "@factlot/tools";
 import { z } from "zod";
 
 import { fetchDoc, searchCorpus } from "./knowledge.ts";
@@ -37,13 +37,20 @@ const READ_ONLY = {
   destructiveHint: false,
 } as const;
 
-export function createServer(): McpServer {
+export interface CreateServerOptions {
+  /** Register registry_* tools. Default: only when a registry is configured (FACTLOT_REGISTRY_DB). */
+  registry?: boolean;
+}
+
+export function createServer(opts: CreateServerOptions = {}): McpServer {
+  const withRegistry = opts.registry ?? registryPath() !== undefined;
   const server = new McpServer(
     { name: SERVER_NAME, version: SERVER_VERSION },
     { instructions: SERVER_INSTRUCTIONS },
   );
 
   for (const tool of tools) {
+    if (tool.requires === "registry" && !withRegistry) continue;
     server.registerTool(
       tool.name,
       {

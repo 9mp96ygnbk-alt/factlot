@@ -65,6 +65,31 @@ reg.link_owners()
 reg.get(reg.resolve_external("tx-harris-cad-account", "0420150000012"))
 ```
 
+## Agent tools
+
+When a registry file is configured (`FACTLOT_REGISTRY_DB`, or `configureRegistry()` /
+`configure_registry()`), the catalog gains six tools. They are served over MCP and REST, and in
+both SDKs:
+
+- `registry_get`
+- `registry_resolve_parcel`
+- `registry_resolve_external`
+- `registry_search_address`
+- `registry_search_entities`
+- `registry_owned_by`
+
+Without a registry, the MCP server does not list them, REST returns 503, and the SDKs return
+`RegistryUnavailable`.
+
+Python builds the database and both languages read it. A cross-language test runs the same 18
+calls on a synthetic fixture (`spec/registry/`) and requires identical JSON from Python and
+TypeScript.
+
+**Retiring dropped parcels.** Pass `full_roll=True` when a snapshot is a source's complete roll.
+Parcels an earlier roll listed that are now missing or out of scope get status
+`not_in_latest_snapshot`. Their facts move to history, and they become current again if they
+return.
+
 ## Next
 
 1. **Texas adapters.** Harris, then Dallas, then the Comptroller entity data. Each adapter is

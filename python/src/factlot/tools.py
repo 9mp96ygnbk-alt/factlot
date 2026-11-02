@@ -19,6 +19,7 @@ import base64
 import binascii
 import copy
 import json
+import os
 from functools import lru_cache
 from importlib import resources
 from typing import Any
@@ -114,6 +115,99 @@ def _fact_validate(args: dict[str, Any]) -> dict[str, Any]:
     return validate_fact(args["fact"])
 
 
+class _RegistryUnavailable(RuntimeError):
+    pass
+
+
+class _NotFound(LookupError):
+    pass
+
+
+_registry_cache: dict[str, Any] = {}
+
+
+def configure_registry(path: str | None) -> None:
+    """Point registry_* tools at a SQLite file (None: fall back to FACTLOT_REGISTRY_DB)."""
+    _registry_cache.clear()
+    if path is None:
+        _registry_cache.pop("override", None)
+    else:
+        _registry_cache["override"] = path
+
+
+def _registry():
+    path = _registry_cache.get("override") or os.environ.get("FACTLOT_REGISTRY_DB")
+    if not path:
+        raise _RegistryUnavailable("no FactLot Registry configured (set FACTLOT_REGISTRY_DB)")
+    if _registry_cache.get("path") != path:
+        from .registry import Registry
+
+        try:
+            _registry_cache["db"] = Registry.open_readonly(path)
+        except (FileNotFoundError, OSError) as e:
+            raise _RegistryUnavailable(f"cannot open registry at {path}: {e}") from None
+        _registry_cache["path"] = path
+    return _registry_cache["db"]
+
+
+def _limit(args: dict[str, Any]) -> int:
+    v = args.get("limit", 20)
+    if isinstance(v, bool) or not isinstance(v, int) or not 1 <= v <= 100:
+        raise _InputError("limit", "expected integer 1–100")
+    return v
+
+
+def _registry_get(args: dict[str, Any]) -> dict[str, Any]:
+    urn = _str(args, "urn")
+    hist = args.get("include_history", False)
+    if not isinstance(hist, bool):
+        raise _InputError("include_history", "expected boolean")
+    record = _registry().get(urn)
+    if record is None:
+        raise _NotFound(f"no registry record for {urn}")
+    return {**record, "history": _registry().facts(urn, history=True)} if hist is True else record
+
+
+def _nonempty(args: dict[str, Any], key: str) -> str:
+    v = _str(args, key)
+    if not v:
+        raise _InputError(key, "must not be empty")
+    return v
+
+
+def _search(kind: str):
+    def run(args: dict[str, Any]) -> dict[str, Any]:
+        query, limit = _nonempty(args, "query"), _limit(args)  # validate before touching the registry
+        reg = _registry()
+        return {"results": reg.search_address(query, limit) if kind == "address" else reg.search_entities(query, limit)}
+
+    return run
+
+
+def _resolve_parcel(args: dict[str, Any]) -> dict[str, Any]:
+    sf, cf, apn = _str(args, "state_fips"), _str(args, "county_fips"), _str(args, "apn")
+    return {"urn": _registry().resolve_parcel(sf, cf, apn)}
+
+
+def _resolve_external(args: dict[str, Any]) -> dict[str, Any]:
+    system, ext = _str(args, "system"), _str(args, "external_id")
+    return {"urn": _registry().resolve_external(system, ext)}
+
+
+def _owned_by(args: dict[str, Any]) -> dict[str, Any]:
+    urn = _str(args, "entity_urn")
+    return {"results": _registry().parcels_owned_by(urn)}
+
+
+_REGISTRY_TOOLS = {
+    "registry_get": _registry_get,
+    "registry_resolve_parcel": _resolve_parcel,
+    "registry_resolve_external": _resolve_external,
+    "registry_search_address": _search("address"),
+    "registry_search_entities": _search("entities"),
+    "registry_owned_by": _owned_by,
+}
+
 _OTHER_TOOLS = {
     "id_parcel": lambda a: parcel_id(_str(a, "state_fips"), _str(a, "county_fips"), _str(a, "apn")).as_dict(),
     "id_entity": lambda a: entity_id(_str(a, "jurisdiction"), _str(a, "registry_number")).as_dict(),
@@ -146,10 +240,16 @@ def run_tool(name: str, arguments: dict[str, Any] | None) -> dict[str, Any]:
             }
         if name in _OTHER_TOOLS:
             return _OTHER_TOOLS[name](args)
+        if name in _REGISTRY_TOOLS:
+            return _REGISTRY_TOOLS[name](args)
     except CalcInputError as e:
         return {"error": "CalcInputError", "message": str(e), "issues": e.issues}
     except FactLotIdError as e:
         return {"error": "FactLotIdError", "message": str(e), "issues": []}
     except _InputError as e:
         return {"error": "InputError", "message": str(e), "issues": e.issues}
+    except _RegistryUnavailable as e:
+        return {"error": "RegistryUnavailable", "message": str(e), "issues": []}
+    except _NotFound as e:
+        return {"error": "NotFound", "message": str(e), "issues": []}
     return {"error": "UnknownTool", "message": f"no FactLot tool named {name!r}", "issues": []}

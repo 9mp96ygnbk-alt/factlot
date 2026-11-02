@@ -216,7 +216,13 @@ export function createHandler(opts: FactLotServerOptions = {}) {
         }
         const outcome = runTool(tool.name, await readJson(req, limit));
         if (outcome.ok) send(res, 200, outcome.result);
-        else send(res, 400, outcome.error);
+        else {
+          const code =
+            { RegistryUnavailable: 503, NotFound: 404 }[
+              outcome.error.error as string
+            ] ?? 400;
+          send(res, code, outcome.error);
+        }
         return;
       }
 

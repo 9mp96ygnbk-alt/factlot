@@ -10,3 +10,4 @@
  */
 export * from "./catalog.ts";
 export * from "./providers.ts";
+export * from "./registry.ts";

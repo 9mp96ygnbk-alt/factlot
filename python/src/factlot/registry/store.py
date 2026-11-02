@@ -90,6 +90,7 @@ class IngestStats:
     skipped_invalid: int = 0
     owners_person_or_withheld: int = 0
     facts_written: int = 0
+    retired: int = 0
     errors: list[str] = field(default_factory=list)
 
 
@@ -123,6 +124,16 @@ class Registry:
         self.db.executescript(resources.files("factlot.registry").joinpath("schema.sql").read_text("utf-8"))
         self.db.execute("INSERT OR IGNORE INTO meta VALUES ('schema_version', '1')")
         self.db.commit()
+
+    @classmethod
+    def open_readonly(cls, path: str | Path) -> "Registry":
+        """Open an existing registry file for queries only (as the agent tools do)."""
+        if not Path(path).exists():
+            raise FileNotFoundError(f"no registry file at {path}")
+        reg = cls.__new__(cls)
+        reg.db = sqlite3.connect(f"file:{Path(path).resolve()}?mode=ro", uri=True)
+        reg.db.row_factory = sqlite3.Row
+        return reg
 
     def close(self) -> None:
         self.db.close()
@@ -177,7 +188,7 @@ class Registry:
         return cur.rowcount
 
     def _cover(self, subject: str, snap: Snapshot) -> None:
-        self.db.execute("INSERT OR IGNORE INTO coverage VALUES (?,?,?,?)",
+        self.db.execute("INSERT OR REPLACE INTO coverage VALUES (?,?,?,?,1)",
                         (subject, snap.source_id, snap.as_of, snap.document_id))
 
     def ingest_entities(self, records: Iterable[EntityRecord], snap: Snapshot) -> IngestStats:
@@ -211,8 +222,14 @@ class Registry:
         return stats
 
     def ingest_parcels(self, records: Iterable[ParcelRecord], snap: Snapshot, *, state_fips: str,
-                       account_system: str | None = None, include_all_categories: bool = False) -> IngestStats:
-        """Ingest appraisal-roll records. Out-of-scope (non-commercial) parcels are skipped by default."""
+                       account_system: str | None = None, include_all_categories: bool = False,
+                       full_roll: bool = False) -> IngestStats:
+        """Ingest appraisal-roll records. Out-of-scope (non-commercial) parcels are skipped by default.
+
+        With ``full_roll=True`` the snapshot is treated as the complete roll for its source: parcels
+        an earlier snapshot of the same source covered but this one does not list (or lists as out of
+        scope — sold, split, merged, reclassified) are retired, so their facts become history.
+        """
         stats = IngestStats()
         for r in records:
             stats.seen += 1
@@ -252,8 +269,28 @@ class Registry:
             n += self._fact(urn, "ownership.owner_of_record", r.owner_name.strip(), snap, locator=loc)
             n += self._fact(urn, "ownership.owner_mailing_address", r.owner_mailing_address, snap, locator=loc)
             stats.facts_written += n
+        if full_roll:
+            stats.retired = self._retire_absent(snap)
         self.db.commit()
         return stats
+
+    def _retire_absent(self, snap: Snapshot) -> int:
+        """Mark subjects covered by an earlier snapshot of this source, but not by this one, as absent."""
+        cur = self.db.execute(
+            "INSERT OR IGNORE INTO coverage (subject, source_id, as_of, document_id, present) "
+            "SELECT DISTINCT c.subject, c.source_id, ?, ?, 0 FROM coverage c "
+            "WHERE c.source_id = ? AND c.as_of < ? AND c.subject NOT IN "
+            "  (SELECT subject FROM coverage WHERE document_id = ?)",
+            (snap.as_of, snap.document_id, snap.source_id, snap.as_of, snap.document_id),
+        )
+        return cur.rowcount
+
+    def status(self, urn: str) -> str:
+        """'current', or 'not_in_latest_snapshot' when the latest full snapshot of every covering source omitted it."""
+        rows = self.db.execute(
+            "SELECT c.present FROM coverage c WHERE c.subject = ? AND c.as_of = "
+            "(SELECT MAX(as_of) FROM coverage d WHERE d.subject = c.subject AND d.source_id = c.source_id)", (urn,)).fetchall()
+        return "current" if any(r["present"] for r in rows) or not rows else "not_in_latest_snapshot"
 
     def link_owners(self) -> dict[str, int]:
         """Link each parcel's current owner of record to a registered entity, where unambiguous.
@@ -337,7 +374,7 @@ class Registry:
             f"WHERE (from_urn = ? OR to_urn = ?) AND {_CURRENT_LINK} ORDER BY as_of DESC", (urn, urn))]
         xw = [dict(r) for r in self.db.execute("SELECT system, external_id FROM crosswalk WHERE urn = ?", (urn,))]
         return {"urn": urn, "kind": subj["kind"], "short": subj["short"], "label": subj["label"],
-                "facts": self.facts(urn), "relationships": rels, "crosswalk": xw}
+                "status": self.status(urn), "facts": self.facts(urn), "relationships": rels, "crosswalk": xw}
 
     def resolve_parcel(self, state_fips: str, county_fips: str, apn: str) -> str | None:
         urn = parcel_id(state_fips, county_fips, apn).urn

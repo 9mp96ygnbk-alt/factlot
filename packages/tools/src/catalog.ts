@@ -15,6 +15,17 @@ import {
 import { Fact } from "@factlot/schema";
 import { z } from "zod";
 
+import {
+  RegistryUnavailableError,
+  registryFacts,
+  registryGet,
+  registryOwnedBy,
+  registryResolveExternal,
+  registryResolveParcel,
+  registrySearchAddress,
+  registrySearchEntities,
+} from "./registry.ts";
+
 export const CATALOG_VERSION = "0.1.0";
 
 export interface ToolSpec {
@@ -28,10 +39,18 @@ export interface ToolSpec {
   path: string;
   /** Formula identity for calculators. */
   formula?: { id: string; version: number };
+  /** Set for tools that need a FactLot Registry database (hosted, or FACTLOT_REGISTRY_DB). */
+  requires?: "registry";
 }
 
 export interface ToolError {
-  error: "CalcInputError" | "FactLotIdError" | "InputError" | "UnknownTool";
+  error:
+    | "CalcInputError"
+    | "FactLotIdError"
+    | "InputError"
+    | "UnknownTool"
+    | "RegistryUnavailable"
+    | "NotFound";
   message: string;
   issues: { path: string; message: string }[];
 }
@@ -224,8 +243,154 @@ const idTools: ToolSpec[] = [
   },
 ];
 
+class NotFoundError extends Error {
+  override name = "NotFoundError";
+}
+
+const REGISTRY_NOTE =
+  " Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).";
+const Limit = z
+  .number()
+  .int()
+  .min(1)
+  .max(100)
+  .default(20)
+  .describe("Maximum results (1–100).");
+
+const registryTools: ToolSpec[] = [
+  {
+    name: "registry_get",
+    title: "Get a registry record",
+    description:
+      "Everything the FactLot Registry knows about a parcel or legal entity: status, current cited facts (owner of record, situs address, property category, areas, values), ownership links, and external IDs." +
+      REGISTRY_NOTE,
+    input: z.object({
+      urn: z
+        .string()
+        .describe(
+          "FactLot URN of a parcel or entity, e.g. fl:parcel:us-48201:0420150000012.",
+        ),
+      include_history: z
+        .boolean()
+        .default(false)
+        .describe("Also return superseded facts from earlier snapshots."),
+    }),
+    path: "/v1/registry/get",
+    requires: "registry",
+    run: (i: never) => {
+      const { urn, include_history } = i as {
+        urn: string;
+        include_history: boolean;
+      };
+      const record = registryGet(urn);
+      if (!record) throw new NotFoundError(`no registry record for ${urn}`);
+      return include_history
+        ? { ...record, history: registryFacts(urn, true) }
+        : record;
+    },
+  },
+  {
+    name: "registry_resolve_parcel",
+    title: "Resolve a parcel in the registry",
+    description:
+      "Find a parcel's FactLot URN from state FIPS, county FIPS, and APN, if the registry holds it." +
+      REGISTRY_NOTE,
+    input: z.object({
+      state_fips: z
+        .string()
+        .describe('2-digit state FIPS, e.g. "48" for Texas.'),
+      county_fips: z
+        .string()
+        .describe('3-digit county FIPS, e.g. "201" for Harris County.'),
+      apn: z
+        .string()
+        .describe("Parcel or account number as the county prints it."),
+    }),
+    path: "/v1/registry/resolve_parcel",
+    requires: "registry",
+    run: (i: never) => {
+      const v = i as { state_fips: string; county_fips: string; apn: string };
+      return { urn: registryResolveParcel(v.state_fips, v.county_fips, v.apn) };
+    },
+  },
+  {
+    name: "registry_resolve_external",
+    title: "Resolve an external ID",
+    description:
+      'Find the FactLot URN for an ID from another system, e.g. system "tx-harris-cad-account" or "us-tx-taxpayer".' +
+      REGISTRY_NOTE,
+    input: z.object({
+      system: z
+        .string()
+        .describe('Crosswalk system name, e.g. "tx-harris-cad-account".'),
+      external_id: z.string().describe("The ID in that system."),
+    }),
+    path: "/v1/registry/resolve_external",
+    requires: "registry",
+    run: (i: never) => {
+      const v = i as { system: string; external_id: string };
+      return { urn: registryResolveExternal(v.system, v.external_id) };
+    },
+  },
+  {
+    name: "registry_search_address",
+    title: "Search parcels by address",
+    description:
+      "Find commercial parcels by situs address (normalized: 'Street' = 'St', 'Suite' = 'Ste')." +
+      REGISTRY_NOTE,
+    input: z.object({
+      query: z.string().min(1).describe("Street address or part of one."),
+      limit: Limit,
+    }),
+    path: "/v1/registry/search_address",
+    requires: "registry",
+    run: (i: never) => {
+      const v = i as { query: string; limit: number };
+      return { results: registrySearchAddress(v.query, v.limit) };
+    },
+  },
+  {
+    name: "registry_search_entities",
+    title: "Search legal entities by name",
+    description:
+      "Find registered business entities (LLCs, LPs, corporations) by name. Natural persons are not searchable." +
+      REGISTRY_NOTE,
+    input: z.object({
+      query: z.string().min(1).describe("Entity name or part of one."),
+      limit: Limit,
+    }),
+    path: "/v1/registry/search_entities",
+    requires: "registry",
+    run: (i: never) => {
+      const v = i as { query: string; limit: number };
+      return { results: registrySearchEntities(v.query, v.limit) };
+    },
+  },
+  {
+    name: "registry_owned_by",
+    title: "Parcels owned by an entity",
+    description:
+      "Commercial parcels currently linked to a legal entity as owner of record (inferred links carry a confidence)." +
+      REGISTRY_NOTE,
+    input: z.object({
+      entity_urn: z
+        .string()
+        .describe("FactLot entity URN, e.g. fl:entity:us-tx:0801111111."),
+    }),
+    path: "/v1/registry/owned_by",
+    requires: "registry",
+    run: (i: never) => ({
+      results: registryOwnedBy((i as { entity_urn: string }).entity_urn),
+    }),
+  },
+];
+
 /** Every FactLot tool, in a stable order. */
-export const tools: readonly ToolSpec[] = [...calcTools, ...idTools];
+export const tools: readonly ToolSpec[] = [
+  ...calcTools,
+  ...idTools,
+  ...registryTools,
+];
 
 export function getTool(name: string): ToolSpec | undefined {
   return tools.find((t) => t.name === name);
@@ -280,6 +445,22 @@ export function runTool(name: string, args: unknown): ToolOutcome {
       return {
         ok: false,
         error: { error: "FactLotIdError", message: err.message, issues: [] },
+      };
+    }
+    if (err instanceof RegistryUnavailableError) {
+      return {
+        ok: false,
+        error: {
+          error: "RegistryUnavailable",
+          message: err.message,
+          issues: [],
+        },
+      };
+    }
+    if (err instanceof NotFoundError) {
+      return {
+        ok: false,
+        error: { error: "NotFound", message: err.message, issues: [] },
       };
     }
     throw err;

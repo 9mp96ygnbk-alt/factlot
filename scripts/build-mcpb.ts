@@ -79,7 +79,9 @@ const manifest = {
     },
   },
   tools: [
-    ...tools.map((t) => ({ name: t.name, description: t.description })),
+    ...tools
+      .filter((t) => !t.requires)
+      .map((t) => ({ name: t.name, description: t.description })),
     ...extra,
   ],
   compatibility: {

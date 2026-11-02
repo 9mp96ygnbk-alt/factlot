@@ -162,6 +162,21 @@
       "tool": "calc_does_not_exist",
       "arguments": {},
       "expect_error": "UnknownTool"
+    },
+    {
+      "tool": "registry_get",
+      "arguments": {
+        "urn": "fl:parcel:us-48201:1"
+      },
+      "expect_error": "RegistryUnavailable"
+    },
+    {
+      "tool": "registry_search_entities",
+      "arguments": {
+        "query": "x",
+        "limit": 0
+      },
+      "expect_error": "InputError"
     }
   ]
 }

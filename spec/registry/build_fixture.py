@@ -1,0 +1,57 @@
+"""Build a SYNTHETIC registry database for cross-language tests.
+
+Every name, account, and value here is invented. This is not Texas data.
+Usage: python build_fixture.py OUT.db
+"""
+
+import sys
+import tempfile
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "python" / "src"))
+from factlot.registry import EntityRecord, ParcelRecord, Registry, Source  # noqa: E402
+
+out = Path(sys.argv[1])
+out.unlink(missing_ok=True)
+tmp = Path(tempfile.mkdtemp())
+reg = Registry(out)
+reg.add_source(Source("test-roll", "Example County Appraisal District (synthetic)", "Appraisal roll",
+                      "https://example.invalid/roll", "48", county_fips="999", license="Synthetic test data",
+                      ai_use="permitted", redistribution="permitted", terms_reviewed="2026-11-02"))
+reg.add_source(Source("test-entities", "Example Comptroller (synthetic)", "Entity list", "https://example.invalid/entities",
+                      "48", license="Synthetic test data", ai_use="permitted", redistribution="attribution_required",
+                      attribution="Example State"))
+
+
+def snap(source, name, text, as_of):
+    p = tmp / name
+    p.write_text(text)
+    return reg.add_snapshot(source, p, as_of=as_of, retrieved_at=f"{as_of}T12:00:00+00:00")
+
+
+s25 = snap("test-roll", "roll-2025.txt", "synthetic roll 2025", "2025-07-25")
+reg.ingest_parcels([
+    ParcelRecord("999", "0001-000-0001", "F1", account="A1", situs_address="100 Main Street, Suite 400",
+                 owner_name="Lonestar Office Holdings, L.L.C.", land_area_sf=40000, improvement_area_sf=120000,
+                 year_built=1998, market_value=21000000, tax_year=2025),
+    ParcelRecord("999", "0001-000-0002", "F2", account="A2", situs_address="5 Industrial Boulevard",
+                 owner_name="Gulf Logistics LP", market_value=9500000, tax_year=2025),
+    ParcelRecord("999", "0001-000-0004", "B", account="A4", situs_address="200 River Road", owner_name="John Example",
+                 market_value=4000000, tax_year=2025),
+], s25, state_fips="48", account_system="test-account", full_roll=True)
+s26 = snap("test-roll", "roll-2026.txt", "synthetic roll 2026", "2026-07-25")
+reg.ingest_parcels([
+    ParcelRecord("999", "0001-000-0001", "F1", account="A1", situs_address="100 Main Street, Suite 400",
+                 owner_name="Lonestar Office Holdings LLC", market_value=19750000.5, tax_year=2026),
+    ParcelRecord("999", "0001-000-0004", "B", account="A4", situs_address="200 River Road", owner_name="John Example",
+                 market_value=4100000, tax_year=2026),
+], s26, state_fips="48", account_system="test-account", full_roll=True)
+ent = snap("test-entities", "entities.csv", "synthetic entities", "2026-10-01")
+reg.ingest_entities([
+    EntityRecord("LONESTAR OFFICE HOLDINGS LLC", "us-tx", "0801111111", taxpayer_number="32000000001",
+                 state_of_formation="TX", status="ACTIVE"),
+    EntityRecord("Gulf Logistics, L.P.", "us-tx", "0804444444"),
+], ent)
+reg.link_owners()
+reg.close()
+print(out)

@@ -1,0 +1,19 @@
+{
+  "description": "Registry name/address normalization; Python factlot.registry and TS @factlot/tools must agree.",
+  "names": [
+    ["The Acme Properties, L.L.C.", "ACME PROPERTIES LLC"],
+    ["Gulf Logistics, Limited Partnership", "GULF LOGISTICS LP"],
+    ["Smith & Sons Incorporated", "SMITH AND SONS INC"],
+    ["  lone   star  co. ", "LONE STAR CO"],
+    ["Bayou Holdings, L.P.", "BAYOU HOLDINGS LP"],
+    ["River Oaks Limited", "RIVER OAKS LTD"],
+    ["Main St. Corporation", "MAIN ST CORP"],
+    ["THE THE GROUP", "THE GROUP"]
+  ],
+  "addresses": [
+    ["100 Main Street, Suite 400", "100 MAIN ST STE 400"],
+    ["5 Industrial Boulevard", "5 INDUSTRIAL BLVD"],
+    ["1200 North Loop West Freeway", "1200 N LOOP W FWY"],
+    ["  9 commerce  drive ", "9 COMMERCE DR"]
+  ]
+}
