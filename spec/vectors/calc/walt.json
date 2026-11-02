@@ -1,0 +1,51 @@
+{
+  "calculator": "calc.walt",
+  "version": 1,
+  "cases": [
+    {
+      "name": "area-weighted",
+      "input": {
+        "as_of": "2026-01-01",
+        "leases": [
+          {
+            "expiration_date": "2031-01-01",
+            "area_sf": 10000,
+            "annual_rent": 500000
+          },
+          {
+            "expiration_date": "2028-01-01",
+            "area_sf": 30000,
+            "annual_rent": 600000
+          }
+        ]
+      },
+      "expect": {
+        "value.walt_years": 2.7488,
+        "value.total_weight": 40000,
+        "value.expired_count": 0
+      }
+    },
+    {
+      "name": "rent-weighted",
+      "input": {
+        "as_of": "2026-01-01",
+        "weight_by": "rent",
+        "leases": [
+          {
+            "expiration_date": "2031-01-01",
+            "area_sf": 10000,
+            "annual_rent": 500000
+          },
+          {
+            "expiration_date": "2028-01-01",
+            "area_sf": 30000,
+            "annual_rent": 600000
+          }
+        ]
+      },
+      "expect": {
+        "value.walt_years": 3.3626
+      }
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "calculator": "calc.net_effective_rent",
+  "version": 1,
+  "cases": [
+    {
+      "name": "10-year deal, 6 months free, TI and LC, 8% discount",
+      "input": {
+        "schedule": {
+          "commencement_date": "2026-01-01",
+          "term_months": 120,
+          "area_sf": 10000,
+          "starting_rent_psf_annual": 40,
+          "abated_months": [1, 2, 3, 4, 5, 6]
+        },
+        "ti_allowance_psf": 50,
+        "leasing_commissions": 100000,
+        "discount_rate_annual": 0.08
+      },
+      "expect": {
+        "value.total_rent_due": 3799999.62,
+        "value.total_landlord_costs": 600000,
+        "value.effective_rent_psf": 38,
+        "value.net_effective_rent_psf": 32,
+        "value.pv_rent": 2568980.49,
+        "value.discounted_net_effective_rent_psf": 28.4772
+      }
+    }
+  ]
+}

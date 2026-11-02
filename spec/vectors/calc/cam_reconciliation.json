@@ -1,0 +1,247 @@
+{
+  "calculator": "calc.cam_reconciliation",
+  "version": 1,
+  "cases": [
+    {
+      "name": "gross-up, exclusion, compounding_from_base cap",
+      "input": {
+        "year": 2026,
+        "pro_rata_share": 0.1,
+        "expenses": [
+          {
+            "category": "real estate taxes",
+            "amount": 300000,
+            "controllable": false
+          },
+          {
+            "category": "insurance",
+            "amount": 50000,
+            "controllable": false
+          },
+          {
+            "category": "janitorial",
+            "amount": 200000,
+            "variable": true
+          },
+          {
+            "category": "repairs & maintenance",
+            "amount": 150000
+          },
+          {
+            "category": "roof replacement",
+            "amount": 400000,
+            "recoverable": false
+          }
+        ],
+        "gross_up": {
+          "actual_occupancy": 0.8,
+          "target_occupancy": 0.95
+        },
+        "estimates_paid": 60000,
+        "cap": {
+          "method": "compounding_from_base",
+          "rate": 0.05,
+          "reference_amount": 30000,
+          "years_elapsed": 3
+        }
+      },
+      "expect": {
+        "value.recoverable_expenses": 700000,
+        "value.grossed_up_expenses": 737500,
+        "value.tenant_share_controllable": 38750,
+        "value.tenant_share_uncontrollable": 35000,
+        "value.cap_limit": 34728.75,
+        "value.cap_reduction": 4021.25,
+        "value.tenant_charge": 69728.75,
+        "value.balance_due": 9728.75
+      }
+    },
+    {
+      "name": "simple_from_base cap",
+      "input": {
+        "year": 2026,
+        "pro_rata_share": 0.1,
+        "expenses": [
+          {
+            "category": "real estate taxes",
+            "amount": 300000,
+            "controllable": false
+          },
+          {
+            "category": "insurance",
+            "amount": 50000,
+            "controllable": false
+          },
+          {
+            "category": "janitorial",
+            "amount": 200000,
+            "variable": true
+          },
+          {
+            "category": "repairs & maintenance",
+            "amount": 150000
+          },
+          {
+            "category": "roof replacement",
+            "amount": 400000,
+            "recoverable": false
+          }
+        ],
+        "gross_up": {
+          "actual_occupancy": 0.8,
+          "target_occupancy": 0.95
+        },
+        "estimates_paid": 60000,
+        "cap": {
+          "method": "simple_from_base",
+          "rate": 0.05,
+          "reference_amount": 30000,
+          "years_elapsed": 3
+        }
+      },
+      "expect": {
+        "value.cap_limit": 34500,
+        "value.tenant_charge": 69500
+      }
+    },
+    {
+      "name": "year_over_year cap",
+      "input": {
+        "year": 2026,
+        "pro_rata_share": 0.1,
+        "expenses": [
+          {
+            "category": "real estate taxes",
+            "amount": 300000,
+            "controllable": false
+          },
+          {
+            "category": "insurance",
+            "amount": 50000,
+            "controllable": false
+          },
+          {
+            "category": "janitorial",
+            "amount": 200000,
+            "variable": true
+          },
+          {
+            "category": "repairs & maintenance",
+            "amount": 150000
+          },
+          {
+            "category": "roof replacement",
+            "amount": 400000,
+            "recoverable": false
+          }
+        ],
+        "gross_up": {
+          "actual_occupancy": 0.8,
+          "target_occupancy": 0.95
+        },
+        "estimates_paid": 60000,
+        "cap": {
+          "method": "year_over_year",
+          "rate": 0.05,
+          "reference_amount": 33000
+        }
+      },
+      "expect": {
+        "value.cap_limit": 34650,
+        "value.tenant_charge": 69650
+      }
+    },
+    {
+      "name": "base year produces a tenant credit",
+      "input": {
+        "year": 2026,
+        "pro_rata_share": 0.1,
+        "expenses": [
+          {
+            "category": "real estate taxes",
+            "amount": 300000,
+            "controllable": false
+          },
+          {
+            "category": "insurance",
+            "amount": 50000,
+            "controllable": false
+          },
+          {
+            "category": "janitorial",
+            "amount": 200000,
+            "variable": true
+          },
+          {
+            "category": "repairs & maintenance",
+            "amount": 150000
+          },
+          {
+            "category": "roof replacement",
+            "amount": 400000,
+            "recoverable": false
+          }
+        ],
+        "gross_up": {
+          "actual_occupancy": 0.8,
+          "target_occupancy": 0.95
+        },
+        "estimates_paid": 20000,
+        "structure": {
+          "type": "base_year",
+          "base_year_expenses": 650000
+        }
+      },
+      "expect": {
+        "value.cap_limit": null,
+        "value.structure_deduction": 65000,
+        "value.tenant_charge": 8750,
+        "value.balance_due": -11250
+      }
+    },
+    {
+      "name": "from-base cap without years_elapsed is an input error",
+      "input": {
+        "year": 2026,
+        "pro_rata_share": 0.1,
+        "expenses": [
+          {
+            "category": "real estate taxes",
+            "amount": 300000,
+            "controllable": false
+          },
+          {
+            "category": "insurance",
+            "amount": 50000,
+            "controllable": false
+          },
+          {
+            "category": "janitorial",
+            "amount": 200000,
+            "variable": true
+          },
+          {
+            "category": "repairs & maintenance",
+            "amount": 150000
+          },
+          {
+            "category": "roof replacement",
+            "amount": 400000,
+            "recoverable": false
+          }
+        ],
+        "gross_up": {
+          "actual_occupancy": 0.8,
+          "target_occupancy": 0.95
+        },
+        "estimates_paid": 60000,
+        "cap": {
+          "method": "compounding_from_base",
+          "rate": 0.05,
+          "reference_amount": 1
+        }
+      },
+      "expect_error": true
+    }
+  ]
+}

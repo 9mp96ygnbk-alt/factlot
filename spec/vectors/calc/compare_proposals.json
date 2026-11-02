@@ -1,0 +1,146 @@
+{
+  "calculator": "calc.compare_proposals",
+  "version": 1,
+  "cases": [
+    {
+      "name": "tenant perspective with NNN expenses",
+      "input": {
+        "proposals": [
+          {
+            "name": "Park B",
+            "schedule": {
+              "commencement_date": "2027-01-01",
+              "term_months": 84,
+              "area_sf": 5000,
+              "starting_rent_psf_annual": 32,
+              "escalation": {
+                "type": "percent",
+                "rate": 0.03
+              },
+              "abated_months": [1, 2, 3, 4, 5, 6]
+            },
+            "ti_allowance_psf": 60,
+            "leasing_commissions": 45000,
+            "additional_costs_psf_annual": 9,
+            "tenant_upfront_costs": 25000
+          },
+          {
+            "name": "Tower A",
+            "schedule": {
+              "commencement_date": "2027-01-01",
+              "term_months": 60,
+              "area_sf": 5000,
+              "starting_rent_psf_annual": 35,
+              "escalation": {
+                "type": "percent",
+                "rate": 0.03
+              },
+              "abated_months": [1, 2, 3]
+            },
+            "ti_allowance_psf": 40,
+            "leasing_commissions": 30000
+          }
+        ],
+        "discount_rate_annual": 0.08
+      },
+      "expect": {
+        "value.best": "Tower A",
+        "value.ranking.0.name": "Tower A",
+        "value.ranking.0.metric_psf_annual": 25.2203,
+        "value.ranking.0.total_net": 685348.69,
+        "value.ranking.1.name": "Park B",
+        "value.ranking.1.metric_psf_annual": 30.558,
+        "value.ranking.1.total_net": 1185993.82
+      }
+    },
+    {
+      "name": "landlord perspective",
+      "input": {
+        "perspective": "landlord",
+        "proposals": [
+          {
+            "name": "Tower A",
+            "schedule": {
+              "commencement_date": "2027-01-01",
+              "term_months": 60,
+              "area_sf": 5000,
+              "starting_rent_psf_annual": 35,
+              "escalation": {
+                "type": "percent",
+                "rate": 0.03
+              },
+              "abated_months": [1, 2, 3]
+            },
+            "ti_allowance_psf": 40,
+            "leasing_commissions": 30000
+          },
+          {
+            "name": "Park B",
+            "schedule": {
+              "commencement_date": "2027-01-01",
+              "term_months": 84,
+              "area_sf": 5000,
+              "starting_rent_psf_annual": 32,
+              "escalation": {
+                "type": "percent",
+                "rate": 0.03
+              },
+              "abated_months": [1, 2, 3, 4, 5, 6]
+            },
+            "ti_allowance_psf": 60,
+            "leasing_commissions": 45000,
+            "additional_costs_psf_annual": 9,
+            "tenant_upfront_costs": 25000
+          }
+        ]
+      },
+      "expect": {
+        "value.ranking.0.name": "Tower A",
+        "value.ranking.0.metric_psf_annual": 23.7701,
+        "value.ranking.0.total_net": 655348.69,
+        "value.ranking.1.metric_psf_annual": 18.9569,
+        "value.ranking.1.total_net": 800993.82
+      }
+    },
+    {
+      "name": "duplicate names are an input error",
+      "input": {
+        "proposals": [
+          {
+            "name": "Tower A",
+            "schedule": {
+              "commencement_date": "2027-01-01",
+              "term_months": 60,
+              "area_sf": 5000,
+              "starting_rent_psf_annual": 35,
+              "escalation": {
+                "type": "percent",
+                "rate": 0.03
+              },
+              "abated_months": [1, 2, 3]
+            },
+            "ti_allowance_psf": 40,
+            "leasing_commissions": 30000
+          },
+          {
+            "name": "Tower A",
+            "schedule": {
+              "commencement_date": "2027-01-01",
+              "term_months": 60,
+              "area_sf": 5000,
+              "starting_rent_psf_annual": 35,
+              "escalation": {
+                "type": "percent",
+                "rate": 0.03
+              },
+              "abated_months": [1, 2, 3]
+            },
+            "ti_allowance_psf": 40,
+            "leasing_commissions": 30000
+          }
+        ]
+      },
+      "expect_error": true
+    }
+  ]
+}

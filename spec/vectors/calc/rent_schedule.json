@@ -1,0 +1,89 @@
+{
+  "calculator": "calc.rent_schedule",
+  "version": 1,
+  "cases": [
+    {
+      "name": "3% annual bumps, 3 months abated",
+      "input": {
+        "commencement_date": "2026-01-01",
+        "term_months": 60,
+        "area_sf": 10000,
+        "starting_rent_psf_annual": 30,
+        "escalation": {
+          "type": "percent",
+          "rate": 0.03
+        },
+        "abated_months": [1, 2, 3]
+      },
+      "expect": {
+        "value.expiration_date": "2030-12-31",
+        "value.steps.0.monthly_rent": 25000,
+        "value.steps.0.abated_months": 3,
+        "value.steps.1.monthly_rent": 25750,
+        "value.steps.2.monthly_rent": 26522.5,
+        "value.steps.3.monthly_rent": 27318.18,
+        "value.steps.4.monthly_rent": 28137.72,
+        "value.total_scheduled_rent": 1592740.8,
+        "value.total_abatement": 75000,
+        "value.total_rent_due": 1517740.8
+      }
+    },
+    {
+      "name": "fixed $/SF bumps",
+      "input": {
+        "commencement_date": "2026-03-01",
+        "term_months": 24,
+        "area_sf": 1000,
+        "starting_rent_psf_annual": 20,
+        "escalation": {
+          "type": "fixed_psf",
+          "amount": 1
+        }
+      },
+      "expect": {
+        "value.expiration_date": "2028-02-29",
+        "value.steps.0.monthly_rent": 1666.67,
+        "value.steps.1.monthly_rent": 1750,
+        "value.total_rent_due": 41000.04
+      }
+    },
+    {
+      "name": "month-end commencement clamps without drifting",
+      "input": {
+        "commencement_date": "2026-01-31",
+        "term_months": 12,
+        "area_sf": 1200,
+        "starting_rent_psf_annual": 24,
+        "include_monthly": true
+      },
+      "expect": {
+        "value.expiration_date": "2027-01-30",
+        "value.monthly.1.start_date": "2026-02-28",
+        "value.monthly.2.start_date": "2026-03-31",
+        "value.monthly.0.end_date": "2026-02-27",
+        "value.total_rent_due": 28800
+      }
+    },
+    {
+      "name": "abated month beyond term is an input error",
+      "input": {
+        "commencement_date": "2026-01-01",
+        "term_months": 12,
+        "area_sf": 1000,
+        "starting_rent_psf_annual": 20,
+        "abated_months": [13]
+      },
+      "expect_error": true
+    },
+    {
+      "name": "impossible date is an input error",
+      "input": {
+        "commencement_date": "2026-02-30",
+        "term_months": 12,
+        "area_sf": 1000,
+        "starting_rent_psf_annual": 20
+      },
+      "expect_error": true
+    }
+  ]
+}

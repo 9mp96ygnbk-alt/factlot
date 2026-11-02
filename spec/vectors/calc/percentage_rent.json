@@ -1,0 +1,71 @@
+{
+  "calculator": "calc.percentage_rent",
+  "version": 1,
+  "cases": [
+    {
+      "name": "natural breakpoint",
+      "input": {
+        "gross_sales": 5000000,
+        "rate": 0.06,
+        "base_rent_annual": 240000
+      },
+      "expect": {
+        "value.breakpoint": 4000000,
+        "value.percentage_rent": 60000
+      }
+    },
+    {
+      "name": "fixed breakpoint",
+      "input": {
+        "gross_sales": 5000000,
+        "rate": 0.06,
+        "base_rent_annual": 240000,
+        "breakpoint": {
+          "type": "fixed",
+          "amount": 4500000
+        }
+      },
+      "expect": {
+        "value.percentage_rent": 30000
+      }
+    },
+    {
+      "name": "partial year prorates breakpoint",
+      "input": {
+        "gross_sales": 2500000,
+        "rate": 0.06,
+        "base_rent_annual": 240000,
+        "period_fraction": 0.5
+      },
+      "expect": {
+        "value.breakpoint": 2000000,
+        "value.percentage_rent": 30000
+      }
+    },
+    {
+      "name": "exclusions and amounts paid",
+      "input": {
+        "gross_sales": 5000000,
+        "rate": 0.06,
+        "base_rent_annual": 240000,
+        "sales_exclusions": 200000,
+        "percentage_rent_paid": 50000
+      },
+      "expect": {
+        "value.percentage_rent": 48000,
+        "value.balance_due": -2000
+      }
+    },
+    {
+      "name": "below breakpoint",
+      "input": {
+        "gross_sales": 3000000,
+        "rate": 0.06,
+        "base_rent_annual": 240000
+      },
+      "expect": {
+        "value.percentage_rent": 0
+      }
+    }
+  ]
+}

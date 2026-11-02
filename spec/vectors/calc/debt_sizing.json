@@ -1,0 +1,74 @@
+{
+  "calculator": "calc.debt_sizing",
+  "version": 1,
+  "cases": [
+    {
+      "name": "LTV binds",
+      "input": {
+        "noi": 1000000,
+        "rate_annual": 0.06,
+        "amortization_years": 30,
+        "max_ltv": 0.65,
+        "min_dscr": 1.25,
+        "min_debt_yield": 0.09,
+        "value": 15000000
+      },
+      "expect": {
+        "value.binding_constraint": "ltv",
+        "value.max_loan": 9750000,
+        "value.loan_by_constraint.ltv": 9750000,
+        "value.loan_by_constraint.dscr": 11119440.96,
+        "value.loan_by_constraint.debt_yield": 11111111.11
+      }
+    },
+    {
+      "name": "debt yield binds",
+      "input": {
+        "noi": 1000000,
+        "rate_annual": 0.06,
+        "amortization_years": 30,
+        "max_ltv": 0.65,
+        "min_dscr": 1.25,
+        "min_debt_yield": 0.09,
+        "value": 20000000
+      },
+      "expect": {
+        "value.binding_constraint": "debt_yield",
+        "value.max_loan": 11111111
+      }
+    },
+    {
+      "name": "interest-only DSCR sizing",
+      "input": {
+        "noi": 1000000,
+        "rate_annual": 0.06,
+        "amortization_years": 0,
+        "min_dscr": 1.25
+      },
+      "expect": {
+        "value.binding_constraint": "dscr",
+        "value.max_loan": 13333333,
+        "value.annual_constant": 0.06
+      }
+    },
+    {
+      "name": "no constraint is an input error",
+      "input": {
+        "noi": 1,
+        "rate_annual": 0.05,
+        "amortization_years": 0
+      },
+      "expect_error": true
+    },
+    {
+      "name": "LTV without value is an input error",
+      "input": {
+        "noi": 1,
+        "rate_annual": 0.05,
+        "amortization_years": 0,
+        "max_ltv": 0.6
+      },
+      "expect_error": true
+    }
+  ]
+}

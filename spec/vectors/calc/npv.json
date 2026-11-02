@@ -1,0 +1,16 @@
+{
+  "calculator": "calc.npv",
+  "version": 1,
+  "cases": [
+    {
+      "name": "NPV at the IRR is zero",
+      "input": {
+        "cash_flows": [-100, 10, 10, 110],
+        "rate": 0.1
+      },
+      "expect": {
+        "value.npv": 0
+      }
+    }
+  ]
+}

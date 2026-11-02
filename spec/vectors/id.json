@@ -1,0 +1,287 @@
+{
+  "spec": "factlot-id",
+  "version": "0.1",
+  "short_id": "prefix + '_' + first 120 bits of SHA-256(urn) in lowercase Crockford base32",
+  "cases": [
+    {
+      "fn": "parcel",
+      "input": {
+        "state_fips": "06",
+        "county_fips": "037",
+        "apn": "5432-001-012"
+      },
+      "expect": {
+        "urn": "fl:parcel:us-06037:5432001012",
+        "short": "flp_veegwm5gsrn0f56ca7qyj56m"
+      }
+    },
+    {
+      "fn": "parcel",
+      "input": {
+        "state_fips": "06",
+        "county_fips": "037",
+        "apn": " 5432 001 012 "
+      },
+      "expect": {
+        "urn": "fl:parcel:us-06037:5432001012",
+        "short": "flp_veegwm5gsrn0f56ca7qyj56m"
+      }
+    },
+    {
+      "fn": "parcel",
+      "input": {
+        "state_fips": "48",
+        "county_fips": "201",
+        "apn": "0420150000012"
+      },
+      "expect": {
+        "urn": "fl:parcel:us-48201:0420150000012",
+        "short": "flp_38k27p79m9dhvpzacjac1e7j"
+      }
+    },
+    {
+      "fn": "parcel",
+      "input": {
+        "state_fips": "17",
+        "county_fips": "031",
+        "apn": "17-10-318-048-1003"
+      },
+      "expect": {
+        "urn": "fl:parcel:us-17031:17103180481003",
+        "short": "flp_qbevy1mny2pcpyf6y15rn1w1"
+      }
+    },
+    {
+      "fn": "parcel",
+      "input": {
+        "state_fips": "6",
+        "county_fips": "037",
+        "apn": "1"
+      },
+      "expect_error": true
+    },
+    {
+      "fn": "parcel",
+      "input": {
+        "state_fips": "06",
+        "county_fips": "037",
+        "apn": "--"
+      },
+      "expect_error": true
+    },
+    {
+      "fn": "entity",
+      "input": {
+        "jurisdiction": "US-DE",
+        "registry_number": "7654-321"
+      },
+      "expect": {
+        "urn": "fl:entity:us-de:7654321",
+        "short": "fle_fr52kfcv0kyqr2gtsqm51avy"
+      }
+    },
+    {
+      "fn": "entity",
+      "input": {
+        "jurisdiction": "lei",
+        "registry_number": "5493001KJTIIGC8Y1R12"
+      },
+      "expect": {
+        "urn": "fl:entity:lei:5493001kjtiigc8y1r12",
+        "short": "fle_7k31v83pn2v2wmtnegg7vedx"
+      }
+    },
+    {
+      "fn": "entity",
+      "input": {
+        "jurisdiction": "lei",
+        "registry_number": "short"
+      },
+      "expect_error": true
+    },
+    {
+      "fn": "entity",
+      "input": {
+        "jurisdiction": "delaware",
+        "registry_number": "1"
+      },
+      "expect_error": true
+    },
+    {
+      "fn": "document",
+      "input": {
+        "text": "lease text"
+      },
+      "expect": {
+        "urn": "fl:document:sha256-28f0fee39d03764c5294e915f4bd7dcb54e3a1042a21050096898da4cac1119f",
+        "short": "fld_2m9r0gmpktq1rfx1s2xgyp54"
+      }
+    },
+    {
+      "fn": "space",
+      "input": {
+        "building_urn": "fl:building:01jbx3k8q2v7m9c4t6w8y0a2b4",
+        "suite": "Suite 400"
+      },
+      "expect": {
+        "urn": "fl:space:01jbx3k8q2v7m9c4t6w8y0a2b4:400",
+        "short": "fls_zf7jxvd6rd05p5mcp9t54pwk"
+      }
+    },
+    {
+      "fn": "space",
+      "input": {
+        "building_urn": "fl:building:01jbx3k8q2v7m9c4t6w8y0a2b4",
+        "suite": "3rd Floor"
+      },
+      "expect": {
+        "urn": "fl:space:01jbx3k8q2v7m9c4t6w8y0a2b4:f3",
+        "short": "fls_kk31nwyx6r9nb7fv7m8mmq11"
+      }
+    },
+    {
+      "fn": "space",
+      "input": {
+        "building_urn": "fl:parcel:us-06037:1",
+        "suite": "1"
+      },
+      "expect_error": true
+    },
+    {
+      "fn": "normalize_suite",
+      "input": {
+        "suite": "Suite 400"
+      },
+      "expect": {
+        "value": "400"
+      }
+    },
+    {
+      "fn": "normalize_suite",
+      "input": {
+        "suite": "STE. 400"
+      },
+      "expect": {
+        "value": "400"
+      }
+    },
+    {
+      "fn": "normalize_suite",
+      "input": {
+        "suite": "#400"
+      },
+      "expect": {
+        "value": "400"
+      }
+    },
+    {
+      "fn": "normalize_suite",
+      "input": {
+        "suite": "Unit 400"
+      },
+      "expect": {
+        "value": "400"
+      }
+    },
+    {
+      "fn": "normalize_suite",
+      "input": {
+        "suite": "Floor 3"
+      },
+      "expect": {
+        "value": "f3"
+      }
+    },
+    {
+      "fn": "normalize_suite",
+      "input": {
+        "suite": "FL 3"
+      },
+      "expect": {
+        "value": "f3"
+      }
+    },
+    {
+      "fn": "normalize_suite",
+      "input": {
+        "suite": "fl. 03"
+      },
+      "expect": {
+        "value": "f3"
+      }
+    },
+    {
+      "fn": "normalize_suite",
+      "input": {
+        "suite": "Suite 1200-A"
+      },
+      "expect": {
+        "value": "1200a"
+      }
+    },
+    {
+      "fn": "normalize_suite",
+      "input": {
+        "suite": "PH-2"
+      },
+      "expect": {
+        "value": "ph2"
+      }
+    },
+    {
+      "fn": "parse",
+      "input": {
+        "urn": "fl:parcel:us-06037:5432001012"
+      },
+      "expect": {
+        "kind": "parcel",
+        "short": "flp_veegwm5gsrn0f56ca7qyj56m"
+      }
+    },
+    {
+      "fn": "parse",
+      "input": {
+        "urn": "fl:building:01jbx3k8q2v7m9c4t6w8y0a2b4"
+      },
+      "expect": {
+        "kind": "building",
+        "short": "flb_wax0abxb5xtwhk7hpcc815xg"
+      }
+    },
+    {
+      "fn": "parse",
+      "input": {
+        "urn": "fl:parcel:us-48201:ABC"
+      },
+      "expect_error": true
+    },
+    {
+      "fn": "parse",
+      "input": {
+        "urn": "fl:widget:x"
+      },
+      "expect_error": true
+    },
+    {
+      "fn": "parse",
+      "input": {
+        "urn": "urn:x"
+      },
+      "expect_error": true
+    },
+    {
+      "fn": "parse",
+      "input": {
+        "urn": "fl:parcel:us-482:1"
+      },
+      "expect_error": true
+    },
+    {
+      "fn": "parse",
+      "input": {
+        "urn": "fl:building:01jbx3k8q2v7m9c4t6w8y0a2bu"
+      },
+      "expect_error": true
+    }
+  ]
+}

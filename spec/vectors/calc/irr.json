@@ -1,0 +1,45 @@
+{
+  "calculator": "calc.irr",
+  "version": 1,
+  "cases": [
+    {
+      "name": "simple bond-like flows",
+      "input": {
+        "cash_flows": [-100, 10, 10, 110]
+      },
+      "expect": {
+        "value.irr_periodic": 0.1
+      },
+      "tolerance": 1e-8
+    },
+    {
+      "name": "monthly flows annualized",
+      "input": {
+        "cash_flows": [-100, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 101],
+        "periods_per_year": 12
+      },
+      "expect": {
+        "value.irr_annual": 0.12682503
+      },
+      "tolerance": 1e-7
+    },
+    {
+      "name": "multiple IRRs are all reported",
+      "input": {
+        "cash_flows": [-100, 230, -132]
+      },
+      "expect": {
+        "value.roots": [0.1, 0.2],
+        "value.irr_periodic": 0.1
+      },
+      "tolerance": 1e-8
+    },
+    {
+      "name": "no sign change is an input error",
+      "input": {
+        "cash_flows": [100, 10]
+      },
+      "expect_error": true
+    }
+  ]
+}
