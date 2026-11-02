@@ -112,7 +112,9 @@ class RuleVectors(unittest.TestCase):
                     result = fn(case["input"])
                     for path, expected in case["expect"].items():
                         self.assertEqual(at(result, path), expected, path)
-                    self.assertTrue(any("DRAFT" in w for w in result["warnings"]))
+                    draft = result["value"]["rule"]["verification"]["status"] != "verified"
+                    self.assertEqual(any("DRAFT" in w for w in result["warnings"]), draft,
+                                     "draft rules always warn; verified rules never carry the draft warning")
 
     def test_texas_holidays(self):
         from factlot.rules import texas_holidays

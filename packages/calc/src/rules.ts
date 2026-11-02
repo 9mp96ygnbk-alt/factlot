@@ -126,9 +126,11 @@ export const TX_PROTEST_DEADLINE: RuleMeta = {
     },
   ],
   verification: {
-    status: "draft",
+    status: "verified",
+    verified_by: "FactLot maintainers",
+    verified_at: "2026-11-02",
     notes:
-      "Implements the general deadline (later of May 15 or the 30th day after the notice of appraised value was delivered) with weekend/holiday rollover. Not covered: other §41.44 deadlines (e.g. protests of changes after notice, §25.25 corrections), late-protest relief under §41.44(c), and county-specific practice. Needs review against the official statute text.",
+      "Checked against the official text at statutes.capitol.texas.gov on 2026-11-02: §41.44(a)(1) (the later of May 15 and the 30th day after the notice was delivered), §1.06 as amended by H.B. 1392 eff. 2026-01-01 (an act is timely on the next regular business day when the last day is a Saturday, Sunday, or legal state or national holiday), and §662.003(a)-(b) (the holiday list; §662.003(c) optional holidays are not legal holidays). Covers the general deadline only. Not covered: §41.44(a)(2)-(5), §25.25 corrections, late-protest relief under §41.44(b)-(c-3), and county-specific practice. 'Delivered' follows §1.07(c): a mailed notice is presumed delivered when deposited in the mail.",
   },
 };
 
@@ -140,7 +142,7 @@ export const TxProtestDeadlineInput = z.object({
     .max(2100)
     .describe("Tax year being protested, e.g. 2026."),
   notice_delivered_date: IsoDate.optional().describe(
-    "Date the appraisal district's notice of appraised value was delivered, YYYY-MM-DD. Omit if unknown (May 15 is then the only basis).",
+    "Date the appraisal district's notice of appraised value was delivered (Tax Code §25.19), YYYY-MM-DD. A mailed notice is presumed delivered on the day it was deposited in the mail (§1.07(c)). Omit if unknown (May 15 is then the only basis).",
   ),
 });
 export type TxProtestDeadlineInput = z.input<typeof TxProtestDeadlineInput>;

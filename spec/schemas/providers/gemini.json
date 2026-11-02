@@ -810,7 +810,7 @@
         },
         {
           "name": "rules_tx_property_tax_protest_deadline",
-          "description": "Deadline to file a Texas property tax protest with the appraisal review board: the later of May 15 or 30 days after the notice of appraised value was delivered, rolled past weekends and Texas legal holidays, plus a conservative file-by date. Returns the statute citations and the rule's verification status. Verification status: draft. Cite rule rules.tx.property_tax_protest_deadline@1 and its statutes.",
+          "description": "Deadline to file a Texas property tax protest with the appraisal review board: the later of May 15 or 30 days after the notice of appraised value was delivered, rolled past weekends and Texas legal holidays, plus a conservative file-by date. Returns the statute citations and the rule's verification status. Verification status: verified. Cite rule rules.tx.property_tax_protest_deadline@1 and its statutes.",
           "parameters": {
             "type": "object",
             "properties": {
@@ -821,7 +821,7 @@
                 "description": "Tax year being protested, e.g. 2026."
               },
               "notice_delivered_date": {
-                "description": "Date the appraisal district's notice of appraised value was delivered, YYYY-MM-DD. Omit if unknown (May 15 is then the only basis). Format: YYYY-MM-DD.",
+                "description": "Date the appraisal district's notice of appraised value was delivered (Tax Code §25.19), YYYY-MM-DD. A mailed notice is presumed delivered on the day it was deposited in the mail (§1.07(c)). Omit if unknown (May 15 is then the only basis). Format: YYYY-MM-DD.",
                 "type": "string"
               }
             },

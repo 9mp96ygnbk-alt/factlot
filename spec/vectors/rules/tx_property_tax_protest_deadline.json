@@ -74,7 +74,8 @@
       },
       "expect": {
         "value.rule.id": "rules.tx.property_tax_protest_deadline",
-        "value.rule.verification.status": "draft",
+        "value.rule.verification.status": "verified",
+        "value.rule.verification.verified_at": "2026-11-02",
         "value.rule.citations.0.law": "Tex. Tax Code §41.44(a)(1)",
         "formula.id": "rules.tx.property_tax_protest_deadline"
       }

@@ -31,7 +31,7 @@ identity layer for commercial real estate.
   - prepayment and defeasance
   - hotel RevPAR, ADR, and GOP
   - NYC LL97 penalty (deferred until the law text is reachable; see [rules](rules.md))
-- [x] Rules-pack framework (versioned, cited, verification status) and the first pack: Texas property tax protest deadline (draft)
+- [x] Rules-pack framework (versioned, cited, verification status) and the first pack: Texas property tax protest deadline (verified against the official statute text on 2026-11-02)
 - [x] Lease ingestion prototype with deterministic quote verification and amendment supersession ([ingest](ingest.md)); next: accuracy on real leases
 - [x] Build **FactLot Bench**: 14 CRE agent tasks with independent ground truth, a
       runner that compares the model alone with the model plus FactLot tools, and
@@ -54,7 +54,8 @@ Decisions (2026-11-02): $0 data budget, public sources only, obtained ethically 
 
 - [x] Data policy and Texas source catalog
 - [x] Registry core: cited facts, coverage-based currency, commercial-only scope, privacy rules, owner resolution, search (`factlot.registry`)
-- [ ] Texas adapters (Harris → Dallas → Comptroller entities → Travis/Tarrant/Bexar). **Blocked:** source domains must be allowed in the environment's network settings
+- [x] Texas source review: live download links and terms recorded for Harris, Dallas, Travis, Tarrant, Collin, and the Comptroller entity file; the weekly collector archives them (see [texas-sources.md](registry/texas-sources.md)). Bexar publishes no bulk file; TxGIO parcels block automated downloads.
+- [ ] Texas adapters (Harris → Dallas → Comptroller entities → Travis/Tarrant/Collin), each tested on a real snapshot
 
 - [ ] **Registry alpha.** Ingest assessor and recorder data for the top 25 US
       counties by commercial property value, and resolve parcel to owner of record

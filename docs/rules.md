@@ -13,7 +13,7 @@ cost someone a legal deadline, the rule also returns a conservative answer that 
 
 | Pack                                                                                    | Tool                                     | Status                                                                                                                        |
 | --------------------------------------------------------------------------------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| Texas property tax protest deadline (Tax Code §41.44(a)(1), §1.06; Gov't Code §662.003) | `rules_tx_property_tax_protest_deadline` | **draft**                                                                                                                     |
+| Texas property tax protest deadline (Tax Code §41.44(a)(1), §1.06; Gov't Code §662.003) | `rules_tx_property_tax_protest_deadline` | **verified** 2026-11-02 against the official text (§1.06 as amended by H.B. 1392, effective 2026-01-01)                       |
 | NYC Local Law 97 penalties                                                              | none yet                                 | Deferred: the law text (nyc.gov) can't be reached from the development environment, and we don't ship constants we can't cite |
 
 ## Texas protest deadline

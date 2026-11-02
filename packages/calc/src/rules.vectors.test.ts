@@ -41,11 +41,13 @@ for (const file of readdirSync(dir).filter(
       for (const [path, expected] of Object.entries(c.expect ?? {})) {
         assert.deepEqual(at(result, path), expected, `${c.name} → ${path}`);
       }
-      assert.ok(
+      const draft = rule.verification.status !== "verified";
+      assert.equal(
         (result as { warnings: string[] }).warnings.some((w) =>
           w.includes("DRAFT"),
         ),
-        "draft rules always warn",
+        draft,
+        "draft rules always warn; verified rules never carry the draft warning",
       );
     }
   });
