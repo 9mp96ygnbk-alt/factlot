@@ -12,6 +12,8 @@ import type { CalcResult } from "./core.ts";
 import { DebtSizingInput, debtSizing } from "./debt.ts";
 import { IrrInput, NpvInput, irr, npv } from "./finance.ts";
 import { WaltInput, walt } from "./portfolio.ts";
+import { ProposalComparisonInput, compareProposals } from "./proposals.ts";
+import { PercentageRentInput, percentageRent } from "./retail.ts";
 import {
   NetEffectiveRentInput,
   RentScheduleInput,
@@ -25,6 +27,8 @@ export * from "./dates.ts";
 export * from "./debt.ts";
 export * from "./finance.ts";
 export * from "./portfolio.ts";
+export * from "./proposals.ts";
+export * from "./retail.ts";
 export * from "./rent.ts";
 
 export interface Calculator {
@@ -55,6 +59,24 @@ export const calculators = {
       "Compute effective rent, straight-line net effective rent, and discounted net effective rent ($/SF/yr) after free rent, TI allowance, leasing commissions, and other landlord concessions.",
     input: NetEffectiveRentInput,
     run: netEffectiveRent,
+  },
+  compare_proposals: {
+    id: "calc.compare_proposals",
+    version: 1,
+    title: "Compare lease proposals",
+    description:
+      "Rank 2–20 lease proposals with different terms, sizes, free rent, TI, concessions, and expense structures on one discounted $/SF/yr basis: effective occupancy cost (tenant perspective) or discounted net effective rent (landlord perspective).",
+    input: ProposalComparisonInput,
+    run: compareProposals,
+  },
+  percentage_rent: {
+    id: "calc.percentage_rent",
+    version: 1,
+    title: "Retail percentage rent",
+    description:
+      "Percentage (overage) rent for a lease year: net sales after exclusions over a natural or fixed breakpoint, prorated for partial years, less amounts already paid.",
+    input: PercentageRentInput,
+    run: percentageRent,
   },
   cam_reconciliation: {
     id: "calc.cam_reconciliation",
