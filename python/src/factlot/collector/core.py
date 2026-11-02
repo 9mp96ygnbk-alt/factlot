@@ -48,10 +48,16 @@ class SourceSpec:
     publisher: str
     landing_pages: list[str]
     allowed_hosts: list[str]
-    link_patterns: list[str] = field(default_factory=lambda: [r"\.(zip|csv|txt|json|geojson|gdb\.zip)(\?|$)"])
+    link_patterns: list[str] = field(default_factory=lambda: [r"\.(zip|csv|txt|json|geojson|gdb\.zip|xlsx?)(\?|$)"])
     files: list[str] = field(default_factory=list)  # explicit file URLs, once confirmed
     verified: bool = False  # landing pages / files confirmed against the live site
     notes: str = ""
+    # Data-policy §5 review record (mirrored in docs/registry/texas-sources.md).
+    terms_url: str | None = None
+    license: str | None = None
+    ai_use: str | None = None
+    redistribution: str | None = None
+    reviewed: str | None = None  # YYYY-MM-DD of the terms review
 
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> "SourceSpec":
@@ -87,17 +93,28 @@ class PoliteFetcher:
         self._last: dict[str, float] = {}
         self._robots: dict[str, urllib.robotparser.RobotFileParser | None] = {}
         self._unreachable: dict[str, str] = {}
+        self._interval: dict[str, float] = {}  # per host: the larger of min_interval and robots.txt Crawl-delay
         self.log: list[dict[str, Any]] = []
+
+    def interval(self, host: str) -> float:
+        return self._interval.get(host, self.config.min_interval)
+
+    def _apply_robots(self, host: str, rp: urllib.robotparser.RobotFileParser) -> None:
+        """A publisher's Crawl-delay overrides our own interval when it is longer."""
+        crawl_delay = rp.crawl_delay(self.config.user_agent)
+        if crawl_delay is not None:
+            self._interval[host] = max(self.config.min_interval, float(crawl_delay))
 
     def _wait(self, host: str) -> None:
         last = self._last.get(host)
         if last is not None:
-            delay = self.config.min_interval - (time.monotonic() - last)
+            delay = self.interval(host) - (time.monotonic() - last)
             if delay > 0:
                 time.sleep(delay)
         self._last[host] = time.monotonic()
 
     def _request(self, url: str, headers: dict[str, str] | None = None):
+        url = clean_url(url)
         req = urllib.request.Request(url, headers={"User-Agent": self.config.user_agent, **(headers or {})})
         self._wait(urllib.parse.urlsplit(url).netloc)
         return self.opener.open(req, timeout=self.config.timeout)
@@ -111,6 +128,7 @@ class PoliteFetcher:
                 with self._request(f"{root}/robots.txt") as resp:
                     rp.parse(resp.read().decode("utf-8", "replace").splitlines())
                 self._robots[root] = rp
+                self._apply_robots(parts.netloc, rp)
             except urllib.error.HTTPError as e:
                 # 4xx: no robots rules → allowed. 5xx: be conservative and treat the site as unavailable.
                 self._robots[root] = None if 400 <= e.code < 500 else rp
@@ -140,8 +158,38 @@ def _host_ok(url: str, spec: SourceSpec) -> bool:
     return any(host == h or host.endswith("." + h) for h in spec.allowed_hosts)
 
 
+def clean_url(url: str) -> str:
+    """Percent-encode characters a publisher put in a link verbatim (spaces, backslashes) so the
+    URL is sendable; already-encoded sequences are left alone."""
+    return urllib.parse.quote(url, safe=":/?#[]@!$&'()*+,;=%~")
+
+
+_JSON_TEXT_KEYS = ("downloadLinkText", "text", "name", "title", "label")
+
+
+def _json_links(data: Any) -> list[tuple[str, str]]:
+    """Links in a JSON document (an API listing rather than an HTML page): every string that looks
+    like a URL, labelled with a sibling text field when its object has one."""
+    out: list[tuple[str, str]] = []
+    if isinstance(data, dict):
+        label = next((str(data[k]) for k in _JSON_TEXT_KEYS if isinstance(data.get(k), str)), "")
+        for v in data.values():
+            if isinstance(v, str) and re.match(r"^(https?:)?//|^/", v):
+                out.append((v, label))
+            else:
+                out.extend(_json_links(v))
+    elif isinstance(data, list):
+        for v in data:
+            out.extend(_json_links(v))
+    return out
+
+
 def discover(fetcher: PoliteFetcher, spec: SourceSpec) -> dict[str, Any]:
-    """Fetch the source's landing pages and list candidate download links (nothing is downloaded)."""
+    """Fetch the source's landing pages and list candidate download links (nothing is downloaded).
+
+    A landing page is either HTML (anchors are read) or a JSON API response (URL strings are read):
+    several publishers fill their download page from a JSON endpoint.
+    """
     found: list[dict[str, str]] = []
     pages: list[dict[str, Any]] = []
     patterns = [re.compile(p, re.I) for p in spec.link_patterns]
@@ -150,6 +198,7 @@ def discover(fetcher: PoliteFetcher, spec: SourceSpec) -> dict[str, Any]:
         try:
             with fetcher.get(page) as resp:
                 html = resp.read().decode("utf-8", "replace")
+                content_type = resp.headers.get("Content-Type", "")
             entry["status"] = "ok"
         except PermissionError as e:
             entry["status"] = f"robots_disallowed: {e}"
@@ -163,10 +212,18 @@ def discover(fetcher: PoliteFetcher, spec: SourceSpec) -> dict[str, Any]:
             entry["status"] = f"error: {e}"
             pages.append(entry)
             continue
-        parser = _Links()
-        parser.feed(html)
-        for href, text in parser.links:
-            url = urllib.parse.urljoin(page, href)
+        links: list[tuple[str, str]]
+        if "json" in content_type or html.lstrip()[:1] in ("[", "{"):
+            try:
+                links = _json_links(json.loads(html))
+            except ValueError:
+                links = []
+        else:
+            parser = _Links()
+            parser.feed(html)
+            links = parser.links
+        for href, text in links:
+            url = clean_url(urllib.parse.urljoin(page, href))
             if not _host_ok(url, spec) or not any(p.search(url) for p in patterns):
                 continue
             found.append({"url": url, "text": text, "robots_allowed": str(fetcher.allowed(url)).lower()})

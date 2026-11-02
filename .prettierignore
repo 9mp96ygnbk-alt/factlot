@@ -3,3 +3,4 @@ dist
 package-lock.json
 docs/research/**/*.jsonl
 docs/research/**/results.txt
+collected/

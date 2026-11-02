@@ -40,6 +40,11 @@ class Collector(unittest.TestCase):
         cls.server = ThreadingHTTPServer(("127.0.0.1", 0), partial(Handler, directory=str(cls.site)))
         threading.Thread(target=cls.server.serve_forever, daemon=True).start()
         cls.base = f"http://127.0.0.1:{cls.server.server_address[1]}"
+        # A JSON listing, as some publishers' download pages are filled from an API endpoint.
+        (cls.site / "downloads.json").write_text(json.dumps([
+            {"downloadLink": f"{cls.base}/files/roll_2026.zip", "downloadLinkText": "Roll from a JSON listing", "description": "x"},
+            {"downloadLink": "https://elsewhere.example/other.zip", "downloadLinkText": "offsite"},
+        ]))
 
     @classmethod
     def tearDownClass(cls):
@@ -99,8 +104,37 @@ class Collector(unittest.TestCase):
         self.assertTrue(report["pages"][0]["status"].startswith("unreachable"), report["pages"][0]["status"])
 
 
+    def test_discover_reads_json_listings(self):
+        spec = SourceSpec("json-cad", "JSON CAD", [f"{self.base}/downloads.json"], ["127.0.0.1"])
+        report = discover(PoliteFetcher(self.cfg), spec)
+        self.assertEqual(report["pages"][0]["status"], "ok")
+        self.assertEqual([(l["url"], l["text"]) for l in report["links"]],
+                         [(f"{self.base}/files/roll_2026.zip", "Roll from a JSON listing")])
+
+    def test_crawl_delay_from_robots_lengthens_the_interval(self):
+        import urllib.robotparser
+
+        f = PoliteFetcher(CollectorConfig(contact="t@example.invalid", min_interval=0.2, timeout=10))
+        rp = urllib.robotparser.RobotFileParser()
+        rp.parse(["User-agent: *", "Crawl-delay: 1", "Disallow:"])
+        f._apply_robots("slow.example", rp)
+        self.assertEqual(f.interval("slow.example"), 1.0)
+        self.assertEqual(f.interval("other.example"), 0.2)
+        start = time.monotonic()
+        f._wait("slow.example")
+        f._wait("slow.example")
+        self.assertGreaterEqual(time.monotonic() - start, 0.95)
+
+    def test_clean_url_encodes_verbatim_spaces_and_backslashes(self):
+        from factlot.collector.core import clean_url
+
+        raw = r"https://cad.example/View.aspx?type=3&id=\\SRV\DATA PRODUCTS\ROLL.ZIP"
+        self.assertEqual(clean_url(raw), "https://cad.example/View.aspx?type=3&id=%5C%5CSRV%5CDATA%20PRODUCTS%5CROLL.ZIP")
+        self.assertEqual(clean_url(clean_url(raw)), clean_url(raw), "idempotent")
+
+
 class TexasConfig(unittest.TestCase):
-    def test_texas_sources_are_valid_and_unverified(self):
+    def test_texas_sources_are_valid_and_reviewed(self):
         from factlot.collector import load_sources
 
         cfg, sources = load_sources(Path(__file__).resolve().parents[2] / "registry" / "sources" / "texas.json")
@@ -111,7 +145,13 @@ class TexasConfig(unittest.TestCase):
         self.assertIn("tx-harris-cad", ids)
         for s in sources:
             self.assertTrue(s.landing_pages and s.allowed_hosts)
-            self.assertFalse(s.verified, "nothing is verified until discovery runs against the live site")
+            if s.verified:
+                # Data policy §5: a verified source has confirmed files and a recorded terms review.
+                self.assertTrue(s.files, f"{s.source_id}: verified without confirmed files")
+                self.assertTrue(s.reviewed and s.license and s.ai_use and s.redistribution,
+                                f"{s.source_id}: verified without a recorded review")
+            else:
+                self.assertFalse(s.files, f"{s.source_id}: files listed but not verified — the weekly run must not archive them")
 
 
 if __name__ == "__main__":
