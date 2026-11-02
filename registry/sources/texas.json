@@ -1,0 +1,118 @@
+{
+  "description": "Texas sources for the FactLot Registry collector. See docs/registry/data-policy.md and docs/registry/collection.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "tx-harris-cad",
+      "publisher": "Harris Central Appraisal District",
+      "landing_pages": [
+        "https://hcad.org/pdata/pdata-property-downloads.html"
+      ],
+      "allowed_hosts": [
+        "hcad.org"
+      ],
+      "files": [],
+      "verified": false,
+      "notes": "Landing page is a best guess (not reachable from the development environment). Run `discover` to confirm, then record the confirmed file URLs in `files` and set verified=true after reviewing the publisher's terms (data-policy \u00a75)."
+    },
+    {
+      "source_id": "tx-dallas-cad",
+      "publisher": "Dallas Central Appraisal District",
+      "landing_pages": [
+        "https://www.dallascad.org/DataProducts.aspx"
+      ],
+      "allowed_hosts": [
+        "dallascad.org"
+      ],
+      "files": [],
+      "verified": false,
+      "notes": "Landing page is a best guess (not reachable from the development environment). Run `discover` to confirm, then record the confirmed file URLs in `files` and set verified=true after reviewing the publisher's terms (data-policy \u00a75)."
+    },
+    {
+      "source_id": "tx-travis-cad",
+      "publisher": "Travis Central Appraisal District",
+      "landing_pages": [
+        "https://traviscad.org/publicinformation"
+      ],
+      "allowed_hosts": [
+        "traviscad.org"
+      ],
+      "files": [],
+      "verified": false,
+      "notes": "Landing page is a best guess (not reachable from the development environment). Run `discover` to confirm, then record the confirmed file URLs in `files` and set verified=true after reviewing the publisher's terms (data-policy \u00a75)."
+    },
+    {
+      "source_id": "tx-tarrant-ad",
+      "publisher": "Tarrant Appraisal District",
+      "landing_pages": [
+        "https://www.tad.org/resources/data-downloads"
+      ],
+      "allowed_hosts": [
+        "tad.org"
+      ],
+      "files": [],
+      "verified": false,
+      "notes": "Landing page is a best guess (not reachable from the development environment). Run `discover` to confirm, then record the confirmed file URLs in `files` and set verified=true after reviewing the publisher's terms (data-policy \u00a75)."
+    },
+    {
+      "source_id": "tx-bexar-ad",
+      "publisher": "Bexar Appraisal District",
+      "landing_pages": [
+        "https://www.bcad.org/"
+      ],
+      "allowed_hosts": [
+        "bcad.org"
+      ],
+      "files": [],
+      "verified": false,
+      "notes": "Landing page is a best guess (not reachable from the development environment). Run `discover` to confirm, then record the confirmed file URLs in `files` and set verified=true after reviewing the publisher's terms (data-policy \u00a75)."
+    },
+    {
+      "source_id": "tx-collin-cad",
+      "publisher": "Collin Central Appraisal District",
+      "landing_pages": [
+        "https://collincad.org/"
+      ],
+      "allowed_hosts": [
+        "collincad.org"
+      ],
+      "files": [],
+      "verified": false,
+      "notes": "Landing page is a best guess (not reachable from the development environment). Run `discover` to confirm, then record the confirmed file URLs in `files` and set verified=true after reviewing the publisher's terms (data-policy \u00a75)."
+    },
+    {
+      "source_id": "tx-comptroller-franchise",
+      "publisher": "Texas Comptroller of Public Accounts (via Texas Open Data Portal)",
+      "landing_pages": [
+        "https://data.texas.gov/browse?q=franchise%20tax%20permit"
+      ],
+      "allowed_hosts": [
+        "data.texas.gov"
+      ],
+      "link_patterns": [
+        "/(api/views|d)/[a-z0-9]{4}-[a-z0-9]{4}"
+      ],
+      "files": [],
+      "verified": false,
+      "notes": "Landing page is a best guess (not reachable from the development environment). Run `discover` to confirm, then record the confirmed file URLs in `files` and set verified=true after reviewing the publisher's terms (data-policy \u00a75)."
+    },
+    {
+      "source_id": "tx-txgio-parcels",
+      "publisher": "Texas Geographic Information Office (TxGIO)",
+      "landing_pages": [
+        "https://geographic.texas.gov/"
+      ],
+      "allowed_hosts": [
+        "geographic.texas.gov",
+        "tnris.org"
+      ],
+      "files": [],
+      "verified": false,
+      "notes": "Landing page is a best guess (not reachable from the development environment). Run `discover` to confirm, then record the confirmed file URLs in `files` and set verified=true after reviewing the publisher's terms (data-policy \u00a75)."
+    }
+  ]
+}
