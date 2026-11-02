@@ -4,13 +4,13 @@
     {
       "name": "calc_rent_schedule",
       "title": "Lease rent schedule",
-      "description": "Build a base-rent schedule from commencement date, term, area, starting $/SF/yr, escalations (percent or fixed $/SF), and abated months. Returns rent steps, totals, expiration date, and a calculation trace.",
+      "description": "Build a base-rent schedule from commencement date, term, area, starting $/SF/yr, escalations (percent or fixed $/SF), and abated months. Returns rent steps, totals, expiration date, and a calculation trace. Deterministic: use this instead of doing the math yourself; cite formula calc.rent_schedule@1 and the returned steps, and surface any warnings.",
+      "path": "/v1/calc/rent_schedule",
       "formula": {
         "id": "calc.rent_schedule",
         "version": 1
       },
       "input_schema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
           "commencement_date": {
@@ -132,13 +132,13 @@
     {
       "name": "calc_net_effective_rent",
       "title": "Net effective rent (NER)",
-      "description": "Compute effective rent, straight-line net effective rent, and discounted net effective rent ($/SF/yr) after free rent, TI allowance, leasing commissions, and other landlord concessions.",
+      "description": "Compute effective rent, straight-line net effective rent, and discounted net effective rent ($/SF/yr) after free rent, TI allowance, leasing commissions, and other landlord concessions. Deterministic: use this instead of doing the math yourself; cite formula calc.net_effective_rent@1 and the returned steps, and surface any warnings.",
+      "path": "/v1/calc/net_effective_rent",
       "formula": {
         "id": "calc.net_effective_rent",
         "version": 1
       },
       "input_schema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
           "schedule": {
@@ -292,13 +292,13 @@
     {
       "name": "calc_compare_proposals",
       "title": "Compare lease proposals",
-      "description": "Rank 2–20 lease proposals with different terms, sizes, free rent, TI, concessions, and expense structures on one discounted $/SF/yr basis: effective occupancy cost (tenant perspective) or discounted net effective rent (landlord perspective).",
+      "description": "Rank 2–20 lease proposals with different terms, sizes, free rent, TI, concessions, and expense structures on one discounted $/SF/yr basis: effective occupancy cost (tenant perspective) or discounted net effective rent (landlord perspective). Deterministic: use this instead of doing the math yourself; cite formula calc.compare_proposals@1 and the returned steps, and surface any warnings.",
+      "path": "/v1/calc/compare_proposals",
       "formula": {
         "id": "calc.compare_proposals",
         "version": 1
       },
       "input_schema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
           "perspective": {
@@ -487,13 +487,13 @@
     {
       "name": "calc_percentage_rent",
       "title": "Retail percentage rent",
-      "description": "Percentage (overage) rent for a lease year: net sales after exclusions over a natural or fixed breakpoint, prorated for partial years, less amounts already paid.",
+      "description": "Percentage (overage) rent for a lease year: net sales after exclusions over a natural or fixed breakpoint, prorated for partial years, less amounts already paid. Deterministic: use this instead of doing the math yourself; cite formula calc.percentage_rent@1 and the returned steps, and surface any warnings.",
+      "path": "/v1/calc/percentage_rent",
       "formula": {
         "id": "calc.percentage_rent",
         "version": 1
       },
       "input_schema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
           "gross_sales": {
@@ -573,13 +573,13 @@
     {
       "name": "calc_cam_reconciliation",
       "title": "CAM / operating expense reconciliation",
-      "description": "Reconcile a tenant's annual CAM charge: exclusions, occupancy gross-up of variable expenses, pro rata share, controllable-expense caps (compounding_from_base, simple_from_base, year_over_year), base year or expense stop, and estimates paid. Returns balance due and a full trace.",
+      "description": "Reconcile a tenant's annual CAM charge: exclusions, occupancy gross-up of variable expenses, pro rata share, controllable-expense caps (compounding_from_base, simple_from_base, year_over_year), base year or expense stop, and estimates paid. Returns balance due and a full trace. Deterministic: use this instead of doing the math yourself; cite formula calc.cam_reconciliation@1 and the returned steps, and surface any warnings.",
+      "path": "/v1/calc/cam_reconciliation",
       "formula": {
         "id": "calc.cam_reconciliation",
         "version": 1
       },
       "input_schema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
           "year": {
@@ -747,13 +747,13 @@
     {
       "name": "calc_debt_sizing",
       "title": "Loan sizing (LTV / DSCR / debt yield)",
-      "description": "Size the maximum loan under any combination of max LTV, min DSCR, and min debt yield for a given NOI, rate, and amortization. Reports the binding constraint, debt service, and resulting metrics.",
+      "description": "Size the maximum loan under any combination of max LTV, min DSCR, and min debt yield for a given NOI, rate, and amortization. Reports the binding constraint, debt service, and resulting metrics. Deterministic: use this instead of doing the math yourself; cite formula calc.debt_sizing@1 and the returned steps, and surface any warnings.",
+      "path": "/v1/calc/debt_sizing",
       "formula": {
         "id": "calc.debt_sizing",
         "version": 1
       },
       "input_schema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
           "noi": {
@@ -808,13 +808,13 @@
     {
       "name": "calc_walt",
       "title": "Weighted average lease term (WALT)",
-      "description": "Weighted average remaining lease term in years, weighted by area or annual rent, as of a date.",
+      "description": "Weighted average remaining lease term in years, weighted by area or annual rent, as of a date. Deterministic: use this instead of doing the math yourself; cite formula calc.walt@1 and the returned steps, and surface any warnings.",
+      "path": "/v1/calc/walt",
       "formula": {
         "id": "calc.walt",
         "version": 1
       },
       "input_schema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
           "as_of": {
@@ -867,13 +867,13 @@
     {
       "name": "calc_npv",
       "title": "Net present value",
-      "description": "NPV of periodic cash flows (t = 0, 1, 2, ...) at a per-period discount rate.",
+      "description": "NPV of periodic cash flows (t = 0, 1, 2, ...) at a per-period discount rate. Deterministic: use this instead of doing the math yourself; cite formula calc.npv@1 and the returned steps, and surface any warnings.",
+      "path": "/v1/calc/npv",
       "formula": {
         "id": "calc.npv",
         "version": 1
       },
       "input_schema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
           "cash_flows": {
@@ -896,13 +896,13 @@
     {
       "name": "calc_irr",
       "title": "Internal rate of return",
-      "description": "Periodic and annualized IRR of periodic cash flows, solved deterministically; reports every root when cash flows have multiple IRRs.",
+      "description": "Periodic and annualized IRR of periodic cash flows, solved deterministically; reports every root when cash flows have multiple IRRs. Deterministic: use this instead of doing the math yourself; cite formula calc.irr@1 and the returned steps, and surface any warnings.",
+      "path": "/v1/calc/irr",
       "formula": {
         "id": "calc.irr",
         "version": 1
       },
       "input_schema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
           "cash_flows": {
@@ -922,6 +922,125 @@
           }
         },
         "required": ["cash_flows"]
+      }
+    },
+    {
+      "name": "id_parcel",
+      "title": "FactLot parcel ID",
+      "description": "Deterministic FactLot ID for a parcel from state FIPS, county FIPS, and the assessor's parcel number (APN). The same parcel always yields the same ID, offline. Use it as the join key across systems.",
+      "path": "/v1/id/parcel",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "state_fips": {
+            "type": "string",
+            "description": "2-digit state FIPS code, e.g. \"06\" for California."
+          },
+          "county_fips": {
+            "type": "string",
+            "description": "3-digit county FIPS code, e.g. \"037\" for Los Angeles County."
+          },
+          "apn": {
+            "type": "string",
+            "description": "Assessor's parcel number exactly as the county prints it; formatting is normalized."
+          }
+        },
+        "required": ["state_fips", "county_fips", "apn"]
+      }
+    },
+    {
+      "name": "id_entity",
+      "title": "FactLot legal-entity ID",
+      "description": "Deterministic FactLot ID for a legal entity (LLC, LP, corporation, trust) from its registry jurisdiction and file number, or from its LEI.",
+      "path": "/v1/id/entity",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "jurisdiction": {
+            "type": "string",
+            "description": "Registry jurisdiction, e.g. \"us-de\" for Delaware, or \"lei\" for a Legal Entity Identifier."
+          },
+          "registry_number": {
+            "type": "string",
+            "description": "File number issued by that registry, or the 20-character LEI."
+          }
+        },
+        "required": ["jurisdiction", "registry_number"]
+      }
+    },
+    {
+      "name": "id_space",
+      "title": "FactLot space (suite) ID",
+      "description": "FactLot ID for a suite or unit within a building, given the building's FactLot URN. Suite designators are normalized.",
+      "path": "/v1/id/space",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "building_urn": {
+            "type": "string",
+            "description": "FactLot building URN, e.g. fl:building:01jbx3k8q2v7m9c4t6w8y0a2b4."
+          },
+          "suite": {
+            "type": "string",
+            "description": "Suite or unit as written (\"Suite 400\", \"STE 400\", \"#400\", \"3rd Floor\" all normalize)."
+          }
+        },
+        "required": ["building_urn", "suite"]
+      }
+    },
+    {
+      "name": "id_document",
+      "title": "FactLot document ID",
+      "description": "Content-addressed FactLot ID (SHA-256) for a document such as a lease, amendment, or estoppel.",
+      "path": "/v1/id/document",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "content_base64": {
+            "description": "Base64 of the exact file bytes (preferred: every party gets the same ID).",
+            "type": "string"
+          },
+          "text": {
+            "description": "Document text, UTF-8 encoded before hashing. Use only when bytes are unavailable.",
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "name": "id_parse",
+      "title": "Parse a FactLot ID",
+      "description": "Validate a FactLot URN and return its kind, components, and short ID.",
+      "path": "/v1/id/parse",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "urn": {
+            "type": "string",
+            "description": "A FactLot URN to validate, e.g. fl:parcel:us-06037:5432001012."
+          }
+        },
+        "required": ["urn"]
+      }
+    },
+    {
+      "name": "fact_validate",
+      "title": "Validate a FactLot fact",
+      "description": "Check that a fact conforms to the FactLot model (subject ID, dotted predicate, as_of date, provenance with citations, optional AI-use rights). Returns { valid, issues }. Call before storing or sharing extracted facts.",
+      "path": "/v1/facts/validate",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "fact": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {},
+            "description": "A FactLot fact: subject, predicate, value, as_of, provenance (with sources), optional rights."
+          }
+        },
+        "required": ["fact"]
       }
     }
   ]

@@ -40,6 +40,9 @@ test("lists calculator, ID, and schema tools", async () => {
     "id_parse",
     "id_space",
     "schema_get",
+    "search",
+    "fetch",
+    "calc_compare_proposals",
   ]) {
     assert.ok(names.includes(expected), `missing ${expected}`);
   }
@@ -139,5 +142,43 @@ test("fact_validate flags uncited facts", async () => {
     },
   })) as ToolResult;
   assert.equal(r.structuredContent?.valid, false);
+  await client.close();
+});
+
+test("search and fetch follow the ChatGPT deep research contract", async () => {
+  const client = await connect();
+  const s = (await client.callTool({
+    name: "search",
+    arguments: { query: "CAM cap non-cumulative" },
+  })) as {
+    content: { type: string; text: string }[];
+  };
+  const { results } = JSON.parse(s.content[0]?.text ?? "{}") as {
+    results: { id: string; title: string; url: string }[];
+  };
+  assert.ok(results.length > 0);
+  assert.ok(results.some((r) => r.id === "tool:calc_cam_reconciliation"));
+  for (const r of results)
+    assert.ok(r.id && r.title && r.url.startsWith("https://"));
+  const f = (await client.callTool({
+    name: "fetch",
+    arguments: { id: "tool:calc_cam_reconciliation" },
+  })) as {
+    content: { type: string; text: string }[];
+  };
+  const doc = JSON.parse(f.content[0]?.text ?? "{}") as {
+    id: string;
+    text: string;
+    url: string;
+    metadata: Record<string, string>;
+  };
+  assert.equal(doc.id, "tool:calc_cam_reconciliation");
+  assert.match(doc.text, /year_over_year/);
+  assert.equal(doc.metadata.formula, "calc.cam_reconciliation@1");
+  const missing = (await client.callTool({
+    name: "fetch",
+    arguments: { id: "nope" },
+  })) as { isError?: boolean };
+  assert.equal(missing.isError, true);
   await client.close();
 });

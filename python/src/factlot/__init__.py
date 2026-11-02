@@ -3,7 +3,7 @@
 - ``factlot.calc``   deterministic, traceable CRE calculators
 - ``factlot.ids``    FactLot ID: canonical IDs for parcels, entities, spaces, documents
 - ``factlot.facts``  validate FactLot facts (provenance + rights)
-- ``factlot.tools``  calculators as drop-in tool definitions for agent APIs
+- ``factlot.tools``  every tool as native definitions for Claude, OpenAI, Gemini, Bedrock, and more
 """
 
 __version__ = "0.1.0"
@@ -34,7 +34,16 @@ from .ids import (  # noqa: E402
     short_id,
     space_id,
 )
-from .tools import anthropic_tools, openai_tools, run_tool, tool_definitions  # noqa: E402
+from .tools import (  # noqa: E402
+    anthropic_tools,
+    bedrock_tool_config,
+    gemini_tools,
+    openai_responses_tools,
+    openai_tools,
+    openapi,
+    run_tool,
+    tool_definitions,
+)
 
 __all__ = [
     "CALCULATORS",
@@ -42,17 +51,21 @@ __all__ = [
     "FactLotId",
     "FactLotIdError",
     "anthropic_tools",
+    "bedrock_tool_config",
     "cam_reconciliation",
     "compare_proposals",
     "debt_sizing",
     "document_id",
     "entity_id",
+    "gemini_tools",
     "irr",
     "mint",
     "net_effective_rent",
     "normalize_suite",
     "npv",
+    "openai_responses_tools",
     "openai_tools",
+    "openapi",
     "parcel_id",
     "parse",
     "percentage_rent",

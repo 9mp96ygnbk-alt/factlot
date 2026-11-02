@@ -1,0 +1,231 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+
+import {
+  anthropicTools,
+  bedrockConverseToolConfig,
+  geminiTools,
+  openApi30,
+  openApi31,
+  openaiChatTools,
+  openaiResponsesTools,
+  runTool,
+  toGeminiSchema,
+  toOpenApi30Schema,
+  tools,
+} from "./index.ts";
+
+const names = tools.map((t) => t.name);
+
+test("catalog has unique names and REST paths", () => {
+  assert.equal(new Set(names).size, names.length);
+  assert.equal(new Set(tools.map((t) => t.path)).size, tools.length);
+  for (const expected of [
+    "calc_rent_schedule",
+    "calc_compare_proposals",
+    "id_parcel",
+    "id_document",
+    "fact_validate",
+  ]) {
+    assert.ok(names.includes(expected), expected);
+  }
+  for (const t of tools)
+    assert.match(t.name, /^[a-z][a-z0-9_]{0,63}$/, "portable tool name");
+});
+
+test("runTool returns results and errors as data", () => {
+  const ok = runTool("calc_percentage_rent", {
+    gross_sales: 5_000_000,
+    rate: 0.06,
+    base_rent_annual: 240_000,
+  });
+  assert.ok(ok.ok);
+  const v = ok.result as {
+    value: { percentage_rent: number };
+    provenance: { formula: string };
+  };
+  assert.equal(v.value.percentage_rent, 60_000);
+  assert.equal(v.provenance.formula, "calc.percentage_rent@1");
+
+  const parcel = runTool("id_parcel", {
+    state_fips: "06",
+    county_fips: "037",
+    apn: "5432-001-012",
+  });
+  assert.ok(parcel.ok);
+  assert.equal(
+    (parcel.result as { urn: string }).urn,
+    "fl:parcel:us-06037:5432001012",
+  );
+
+  const doc = runTool("id_document", { text: "lease text" });
+  assert.ok(doc.ok);
+  const both = runTool("id_document", { text: "a", content_base64: "YQ==" });
+  assert.equal(both.ok, false);
+
+  const badCalc = runTool("calc_debt_sizing", {
+    noi: 1,
+    rate_annual: 0.05,
+    amortization_years: 0,
+  });
+  assert.equal(!badCalc.ok && badCalc.error.error, "CalcInputError");
+  const badId = runTool("id_parcel", {
+    state_fips: "6",
+    county_fips: "037",
+    apn: "1",
+  });
+  assert.equal(!badId.ok && badId.error.error, "FactLotIdError");
+  const missing = runTool("id_parcel", {});
+  assert.equal(!missing.ok && missing.error.error, "InputError");
+  const unknown = runTool("nope", {});
+  assert.equal(!unknown.ok && unknown.error.error, "UnknownTool");
+
+  const fact = runTool("fact_validate", {
+    fact: {
+      subject: "fl:parcel:us-06037:1",
+      predicate: "parcel.zoning_district",
+      value: "M2",
+      as_of: "2026-11-02",
+      provenance: { method: "extracted", sources: [] },
+    },
+  });
+  assert.ok(fact.ok);
+  assert.equal((fact.result as { valid: boolean }).valid, false);
+});
+
+test("provider formats", () => {
+  const a = anthropicTools();
+  assert.equal(a.length, tools.length);
+  assert.equal((a[0]?.input_schema as { type: string }).type, "object");
+  assert.ok(!("$schema" in (a[0]?.input_schema as object)));
+
+  const chat = openaiChatTools()[0] as {
+    type: string;
+    function: { name: string; parameters: object };
+  };
+  assert.equal(chat.type, "function");
+  assert.equal(chat.function.name, names[0]);
+
+  const resp = openaiResponsesTools()[0] as {
+    type: string;
+    name: string;
+    parameters: object;
+  };
+  assert.equal(resp.type, "function");
+  assert.equal(resp.name, names[0]);
+
+  const bedrock = bedrockConverseToolConfig() as {
+    tools: { toolSpec: { name: string; inputSchema: { json: object } } }[];
+  };
+  assert.equal(bedrock.tools.length, tools.length);
+  assert.ok(bedrock.tools[0]?.toolSpec.inputSchema.json);
+
+  const filtered = anthropicTools((t) => t.name.startsWith("id_"));
+  assert.ok(filtered.every((t) => String(t.name).startsWith("id_")));
+});
+
+const GEMINI_ALLOWED = new Set([
+  "type",
+  "format",
+  "description",
+  "nullable",
+  "enum",
+  "properties",
+  "required",
+  "items",
+  "minItems",
+  "maxItems",
+  "minimum",
+  "maximum",
+  "anyOf",
+]);
+
+function keysDeep(s: unknown, out = new Set<string>()): Set<string> {
+  if (Array.isArray(s)) s.forEach((x) => keysDeep(x, out));
+  else if (s && typeof s === "object") {
+    for (const [k, v] of Object.entries(s)) {
+      if (k === "properties")
+        Object.values(v as object).forEach((x) => keysDeep(x, out));
+      else {
+        out.add(k);
+        keysDeep(v, out);
+      }
+    }
+  }
+  return out;
+}
+
+test("Gemini schemas use only the conservative subset", () => {
+  const g = geminiTools() as {
+    functionDeclarations: { name: string; parameters: object }[];
+  };
+  assert.equal(g.functionDeclarations.length, tools.length);
+  for (const fd of g.functionDeclarations) {
+    for (const key of keysDeep(fd.parameters)) {
+      assert.ok(GEMINI_ALLOWED.has(key), `${fd.name}: unsupported key ${key}`);
+    }
+  }
+  const s = toGeminiSchema({
+    type: "object",
+    properties: {
+      d: { type: "string", format: "date", description: "When." },
+      n: { type: "number", exclusiveMinimum: 0 },
+    },
+    oneOf: [{ type: "object", properties: { t: { const: "x" } } }],
+  });
+  assert.deepEqual((s.properties as Record<string, object>).d, {
+    type: "string",
+    description: "When. Format: YYYY-MM-DD.",
+  });
+  assert.deepEqual((s.properties as Record<string, object>).n, {
+    type: "number",
+    minimum: 0,
+  });
+  assert.ok(Array.isArray(s.anyOf));
+});
+
+test("OpenAPI 3.0 conversion", () => {
+  const s = toOpenApi30Schema({
+    $schema: "x",
+    type: "object",
+    properties: {
+      a: { type: "number", exclusiveMinimum: 0 },
+      b: { const: "k" },
+      c: { type: ["string", "null"] },
+      d: { type: ["string", "number"] },
+    },
+  });
+  assert.ok(!("$schema" in s));
+  const p = s.properties as Record<string, Record<string, unknown>>;
+  assert.deepEqual(p.a, { type: "number", minimum: 0, exclusiveMinimum: true });
+  assert.deepEqual(p.b, { enum: ["k"] });
+  assert.deepEqual(p.c, { type: "string", nullable: true });
+  assert.deepEqual(p.d, { anyOf: [{ type: "string" }, { type: "number" }] });
+});
+
+test("OpenAPI documents have one operation per tool", () => {
+  for (const doc of [
+    openApi31({ serverUrl: "https://api.example.com" }),
+    openApi30(),
+  ]) {
+    const paths = doc.paths as Record<
+      string,
+      { post: { operationId: string } }
+    >;
+    const ops = Object.values(paths)
+      .map((p) => p.post.operationId)
+      .sort();
+    assert.deepEqual(ops, [...names].sort());
+    assert.ok(
+      Object.keys(paths).length <= 30,
+      "Custom GPT Actions allow at most 30 operations",
+    );
+  }
+  assert.equal(openApi30().openapi, "3.0.3");
+  assert.deepEqual(
+    (
+      openApi31({ serverUrl: "https://api.example.com" }).servers as object[]
+    )[0],
+    { url: "https://api.example.com" },
+  );
+});

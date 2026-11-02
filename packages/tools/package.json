@@ -1,0 +1,41 @@
+{
+  "name": "@factlot/tools",
+  "version": "0.1.0",
+  "description": "The FactLot tool catalog with native tool definitions for Claude, OpenAI, Gemini, Amazon Bedrock, Mistral, and OpenAPI-based platforms.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22.6"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/9mp96ygnbk-alt/factlot.git",
+    "directory": "packages/tools"
+  },
+  "homepage": "https://factlot.com",
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "src",
+    "!src/**/*.test.ts",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "dependencies": {
+    "@factlot/calc": "0.1.0",
+    "@factlot/id": "0.1.0",
+    "@factlot/schema": "0.1.0",
+    "zod": "^4.6.7"
+  }
+}

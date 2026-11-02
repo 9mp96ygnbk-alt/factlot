@@ -79,6 +79,20 @@ class IdVectors(unittest.TestCase):
                     self.assertEqual(out[k], v)
 
 
+class ToolVectors(unittest.TestCase):
+    def test_tool_vectors(self):
+        spec = json.loads((SPEC / "tools.json").read_text("utf-8"))
+        for case in spec["cases"]:
+            with self.subTest(tool=case["tool"], arguments=case["arguments"]):
+                out = factlot.run_tool(case["tool"], case["arguments"])
+                if "expect_error" in case:
+                    self.assertEqual(out.get("error"), case["expect_error"])
+                    continue
+                self.assertNotIn("error", out)
+                for path, expected in case["expect"].items():
+                    self.assertEqual(at(out, path), expected)
+
+
 class Mint(unittest.TestCase):
     def test_mint_is_valid_and_sortable(self):
         a = factlot.mint("building", 1_700_000_000_000)

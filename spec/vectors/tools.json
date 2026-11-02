@@ -1,0 +1,167 @@
+{
+  "spec": "factlot-tools",
+  "description": "Tool-level behaviour every SDK and server must share: run_tool(name, arguments) results and error names.",
+  "cases": [
+    {
+      "tool": "id_parcel",
+      "arguments": {
+        "state_fips": "06",
+        "county_fips": "037",
+        "apn": "5432-001-012"
+      },
+      "expect": {
+        "urn": "fl:parcel:us-06037:5432001012",
+        "kind": "parcel"
+      }
+    },
+    {
+      "tool": "id_entity",
+      "arguments": {
+        "jurisdiction": "us-de",
+        "registry_number": "7654-321"
+      },
+      "expect": {
+        "urn": "fl:entity:us-de:7654321"
+      }
+    },
+    {
+      "tool": "id_space",
+      "arguments": {
+        "building_urn": "fl:building:01jbx3k8q2v7m9c4t6w8y0a2b4",
+        "suite": "STE. 400"
+      },
+      "expect": {
+        "urn": "fl:space:01jbx3k8q2v7m9c4t6w8y0a2b4:400"
+      }
+    },
+    {
+      "tool": "id_document",
+      "arguments": {
+        "content_base64": "bGVhc2UgdGV4dA=="
+      },
+      "expect": {
+        "urn": "fl:document:sha256-28f0fee39d03764c5294e915f4bd7dcb54e3a1042a21050096898da4cac1119f"
+      }
+    },
+    {
+      "tool": "id_parse",
+      "arguments": {
+        "urn": "fl:parcel:us-48201:0420150000012"
+      },
+      "expect": {
+        "kind": "parcel",
+        "parts": ["us-48201", "0420150000012"]
+      }
+    },
+    {
+      "tool": "fact_validate",
+      "arguments": {
+        "fact": {
+          "subject": "fl:parcel:us-06037:1",
+          "predicate": "parcel.zoning_district",
+          "value": "M2",
+          "as_of": "2026-11-02",
+          "provenance": {
+            "method": "public_record",
+            "sources": [
+              {
+                "document_id": "zimas"
+              }
+            ]
+          }
+        }
+      },
+      "expect": {
+        "valid": true
+      }
+    },
+    {
+      "tool": "fact_validate",
+      "arguments": {
+        "fact": {
+          "subject": "fl:parcel:us-06037:1",
+          "predicate": "parcel.zoning_district",
+          "value": "M2",
+          "as_of": "2026-11-02",
+          "provenance": {
+            "method": "extracted",
+            "sources": []
+          }
+        }
+      },
+      "expect": {
+        "valid": false
+      }
+    },
+    {
+      "tool": "calc_percentage_rent",
+      "arguments": {
+        "gross_sales": 5000000,
+        "rate": 0.06,
+        "base_rent_annual": 240000
+      },
+      "expect": {
+        "value.percentage_rent": 60000,
+        "provenance.formula": "calc.percentage_rent@1",
+        "provenance.method": "computed"
+      }
+    },
+    {
+      "tool": "calc_debt_sizing",
+      "arguments": {
+        "noi": 1,
+        "rate_annual": 0.05,
+        "amortization_years": 0
+      },
+      "expect_error": "CalcInputError"
+    },
+    {
+      "tool": "calc_rent_schedule",
+      "arguments": {
+        "term_months": 12
+      },
+      "expect_error": "CalcInputError"
+    },
+    {
+      "tool": "id_parcel",
+      "arguments": {
+        "state_fips": "6",
+        "county_fips": "037",
+        "apn": "1"
+      },
+      "expect_error": "FactLotIdError"
+    },
+    {
+      "tool": "id_parse",
+      "arguments": {
+        "urn": "fl:widget:x"
+      },
+      "expect_error": "FactLotIdError"
+    },
+    {
+      "tool": "id_parcel",
+      "arguments": {},
+      "expect_error": "InputError"
+    },
+    {
+      "tool": "id_document",
+      "arguments": {
+        "text": "a",
+        "content_base64": "YQ=="
+      },
+      "expect_error": "InputError"
+    },
+    {
+      "tool": "fact_validate",
+      "arguments": {
+        "fact": "not an object"
+      },
+      "expect_error": "InputError"
+    },
+    {
+      "tool": "calc_does_not_exist",
+      "arguments": {},
+      "expect_error": "UnknownTool"
+    }
+  ]
+}
