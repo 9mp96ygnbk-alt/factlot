@@ -40,6 +40,10 @@ jobs:
         run: npm run test:python
       - name: FactLot Bench offline tests
         run: npm run test:bench
+      - name: Connector tests (Bedrock Agents Lambda)
+        run: npm run test:connectors
+      - name: Build and validate the Claude Desktop extension
+        run: npm run build && npm run build:mcpb
       - name: Generated schemas are up to date
         run: npm run schemas:check
       - name: TypeScript vs Python differential test

@@ -37,6 +37,15 @@ identity layer for commercial real estate.
 - [ ] Run FactLot Bench on current models and publish the results.
 - [ ] Recruit 10 design partners (see [customer discovery](customer-discovery.md)).
 
+## Connectors (done in v0.1)
+
+- [x] Remote connector (`@factlot/server`): Streamable HTTP MCP, REST, OpenAPI 3.1/3.0, optional bearer auth, and Docker
+- [x] Claude: custom connector, Desktop extension (`.mcpb`), Claude Code, and the API MCP connector
+- [x] ChatGPT and OpenAI: developer-mode app, deep research (`search`/`fetch`), Custom GPT Action, Responses API remote MCP, and function calling
+- [x] Gemini, Microsoft Copilot (Copilot Studio MCP and a Swagger connector), Amazon Bedrock (Converse and an Agents Lambda), and OpenAI-compatible providers
+- [ ] Deploy a public endpoint (for example `mcp.factlot.com`) and connect it live in each platform's console
+- [ ] Submit to directories: the Anthropic connector directory, ChatGPT apps, the MCP registry, and Copilot/AppSource
+
 ## Big track (registry)
 
 - [ ] **Registry alpha.** Ingest assessor and recorder data for the top 25 US

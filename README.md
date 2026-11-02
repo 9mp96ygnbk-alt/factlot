@@ -14,6 +14,8 @@ FactLot gives every agent three things it can use by default:
 | [`@factlot/calc`](packages/calc)     | Deterministic CRE calculators: rent schedules, net effective rent, proposal comparison, percentage rent, CAM reconciliation, loan sizing, WALT, IRR/NPV. Every result includes an audit trail and a versioned formula ID. | Apache-2.0 |
 | [`@factlot/id`](packages/id)         | **FactLot ID** gives canonical IDs for parcels, legal entities, buildings, spaces, leases, and documents. IDs are deterministic wherever the world already has a key, so any agent can compute them offline.              | Apache-2.0 |
 | [`@factlot/schema`](packages/schema) | The FactLot data model. A fact is one atomic claim with **provenance** (source document, page, clause, method) and **rights** (whether an AI may use or redistribute it).                                                 | MIT        |
+| [`@factlot/tools`](packages/tools)   | The tool catalog, with native tool definitions for Claude, OpenAI, Gemini, Amazon Bedrock, Mistral, and OpenAPI platforms, plus one `runTool` dispatcher.                                                                 | MIT        |
+| [`@factlot/server`](packages/server) | The remote connector: Streamable HTTP MCP at `/mcp`, REST at `/v1`, and OpenAPI. Runs in Docker.                                                                                                                          | Apache-2.0 |
 | [`@factlot/mcp`](packages/mcp)       | An MCP server that exposes all of the above to Claude and any other MCP-capable agent. It runs locally and needs no API key.                                                                                              | Apache-2.0 |
 
 ## Why
@@ -25,6 +27,19 @@ In a [simulated survey of 165 CRE agent personas](docs/research/2026-11-agent-su
 - Agent-to-agent negotiation scored 0.35/5. Agents want facts they can trust, not more autonomy.
 
 That survey is a hypothesis generator, not market research. The [customer discovery plan](docs/customer-discovery.md) describes how we validate it.
+
+## Connect FactLot to any AI platform
+
+| Platform                                      | How to connect                                                                                                                                                                                |
+| --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Claude**                                    | Add a custom connector with `https://<host>/mcp`, install the one-click Desktop extension (`factlot.mcpb`), use Claude Code, or call it from the Claude API                                   |
+| **ChatGPT and OpenAI**                        | Create a ChatGPT app in developer mode (`search`/`fetch` make deep research work), import `/openapi.json` as a Custom GPT Action, use the Responses API's remote MCP, or use function calling |
+| **Google Gemini**                             | Use Gemini API function declarations, Gemini CLI over MCP, or Vertex AI                                                                                                                       |
+| **Microsoft Copilot**                         | Add an MCP tool in Copilot Studio, use the Power Platform connector, or build a Microsoft 365 API plugin                                                                                      |
+| **Amazon Bedrock**                            | Use the Converse API `toolConfig`, or a Bedrock Agents action group backed by the Lambda handler                                                                                              |
+| **Mistral, xAI, Llama, DeepSeek, and others** | Use OpenAI-compatible function calling or MCP clients                                                                                                                                         |
+
+Every surface serves the same tools, generated from one catalog. See **[connectors/](connectors/README.md)**.
 
 ## Quick start: use FactLot from an agent
 

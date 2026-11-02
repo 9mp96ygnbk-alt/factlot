@@ -20,6 +20,9 @@ npm run schemas        # regenerate spec/schemas from the TS source and copy the
 
 ## Rules that matter here
 
+0. **The catalog is the source of truth.** Tools are defined once in `packages/tools/src/catalog.ts`.
+   MCP, REST, OpenAPI, every provider format, and the Python definitions are generated from it
+   with `npm run schemas`. Never hand-edit `spec/schemas`.
 1. **Both SDKs change together.** Any change to a calculator or ID rule goes into
    `packages/*/src` _and_ `python/src/factlot`. Then run `npm run test:python` and
    `npm run differential`.

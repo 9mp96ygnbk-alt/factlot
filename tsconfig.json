@@ -2,7 +2,7 @@
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "noEmit": true,
-    "customConditions": ["source"]
+    "customConditions": ["factlot-source"]
   },
   "include": ["packages/*/src/**/*.ts", "scripts/**/*.ts"]
 }

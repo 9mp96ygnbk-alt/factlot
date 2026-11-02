@@ -15,7 +15,7 @@
   "homepage": "https://factlot.com",
   "exports": {
     ".": {
-      "source": "./src/index.ts",
+      "factlot-source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     }
