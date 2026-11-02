@@ -19,19 +19,22 @@ identity layer for commercial real estate.
 
 - [ ] Publish the `@factlot/*` packages to npm, list the server in the MCP
       registry, and submit it to agent-framework tool directories.
-- [ ] Release a Python SDK (`factlot` on PyPI) with the same calculators and IDs,
-      checked against the same test vectors.
-- [ ] Publish cross-language test vectors (`spec/vectors/*.json`) for every
+- [x] Python SDK with the same calculators and IDs, checked against the same test
+      vectors and a TypeScript/Python differential test in CI. (Publishing to PyPI is
+      still to do.)
+- [x] Publish cross-language test vectors (`spec/vectors/*.json`) for every
       calculator and ID rule.
 - [ ] Add calculators, starting with those the survey asked for most:
   - ASC 842 lease remeasurement
-  - percentage rent
+  - ~~percentage rent~~ (done), plus tenant/landlord proposal comparison (done)
   - lease-vs-own and renew-vs-relocate analysis
   - prepayment and defeasance
   - hotel RevPAR, ADR, and GOP
   - NYC LL97 penalty (the first rules-pack prototype)
-- [ ] Build **FactLot Bench**: an evaluation harness of real CRE agent tasks, run
-      with and without FactLot. Publish the results.
+- [x] Build **FactLot Bench**: 14 CRE agent tasks with independent ground truth, a
+      runner that compares the model alone with the model plus FactLot tools, and
+      strict scoring (`bench/`).
+- [ ] Run FactLot Bench on current models and publish the results.
 - [ ] Recruit 10 design partners (see [customer discovery](customer-discovery.md)).
 
 ## Big track (registry)

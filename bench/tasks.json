@@ -1,0 +1,641 @@
+{
+  "version": 1,
+  "ground_truth": "computed independently of FactLot (decimal arithmetic); see spec/vectors",
+  "tasks": [
+    {
+      "id": "rent-total-abated",
+      "category": "rent schedule",
+      "prompt": "Lease excerpt: \"Premises: 10,000 rentable square feet. Commencement Date: January 1, 2026. Term: sixty (60) months. Base Rent for the first Lease Year shall be $30.00 per rentable square foot per annum, payable monthly, and shall increase by three percent (3%) on each anniversary of the Commencement Date. Base Rent for the first three (3) full calendar months of the Term shall be abated.\"\nWhat is the total Base Rent payable over the term (after abatement), and what is the expiration date?",
+      "answer": {
+        "total_rent_due": {
+          "type": "number",
+          "value": 1517740.8,
+          "tolerance": 0.01
+        },
+        "expiration_date": {
+          "type": "string",
+          "value": "2030-12-31"
+        }
+      },
+      "reference": [
+        {
+          "tool": "calc_rent_schedule",
+          "input": {
+            "commencement_date": "2026-01-01",
+            "term_months": 60,
+            "area_sf": 10000,
+            "starting_rent_psf_annual": 30,
+            "escalation": {
+              "type": "percent",
+              "rate": 0.03
+            },
+            "abated_months": [1, 2, 3]
+          },
+          "paths": {
+            "total_rent_due": "value.total_rent_due",
+            "expiration_date": "value.expiration_date"
+          }
+        }
+      ],
+      "answer_instruction": "End your reply with one line of JSON: {\"answer\": {\"total_rent_due\", \"expiration_date\"}}. Numbers as plain numbers (no $ or commas), dates as YYYY-MM-DD."
+    },
+    {
+      "id": "rent-month-end",
+      "category": "rent schedule",
+      "prompt": "A 12-month lease of 1,200 RSF at a flat $24.00/RSF/yr commences on January 31, 2026, with monthly rent periods measured from the commencement date. What is the expiration date, and on what date does the second monthly rent period begin?",
+      "answer": {
+        "expiration_date": {
+          "type": "string",
+          "value": "2027-01-30"
+        },
+        "second_period_start": {
+          "type": "string",
+          "value": "2026-02-28"
+        }
+      },
+      "reference": [
+        {
+          "tool": "calc_rent_schedule",
+          "input": {
+            "commencement_date": "2026-01-31",
+            "term_months": 12,
+            "area_sf": 1200,
+            "starting_rent_psf_annual": 24,
+            "include_monthly": true
+          },
+          "paths": {
+            "expiration_date": "value.expiration_date",
+            "second_period_start": "value.monthly.1.start_date"
+          }
+        }
+      ],
+      "answer_instruction": "End your reply with one line of JSON: {\"answer\": {\"expiration_date\", \"second_period_start\"}}. Numbers as plain numbers (no $ or commas), dates as YYYY-MM-DD."
+    },
+    {
+      "id": "rent-rounding",
+      "category": "rent schedule",
+      "prompt": "245,051 RSF at a flat $95.58/RSF/yr for 100 months, no abatement, monthly rent rounded to the cent. What is the monthly rent and the total rent over the term?",
+      "answer": {
+        "monthly_rent": {
+          "type": "number",
+          "value": 1951831.22,
+          "tolerance": 0.005
+        },
+        "total_rent_due": {
+          "type": "number",
+          "value": 195183122.0,
+          "tolerance": 0.5
+        }
+      },
+      "reference": [
+        {
+          "tool": "calc_rent_schedule",
+          "input": {
+            "commencement_date": "2026-01-01",
+            "term_months": 100,
+            "area_sf": 245051,
+            "starting_rent_psf_annual": 95.58
+          },
+          "paths": {
+            "monthly_rent": "value.steps.0.monthly_rent",
+            "total_rent_due": "value.total_rent_due"
+          }
+        }
+      ],
+      "answer_instruction": "End your reply with one line of JSON: {\"answer\": {\"monthly_rent\", \"total_rent_due\"}}. Numbers as plain numbers (no $ or commas), dates as YYYY-MM-DD."
+    },
+    {
+      "id": "ner-discounted",
+      "category": "net effective rent",
+      "prompt": "10-year office lease, 10,000 RSF, flat $40.00/RSF/yr starting January 1, 2026, with the first six months of base rent abated. Landlord provides a $50.00/RSF TI allowance and pays $100,000 in leasing commissions. Rent is paid monthly in advance. Using an 8% annual discount rate (monthly rate = 8%/12), what are the straight-line net effective rent and the discounted net effective rent in $/RSF/yr?",
+      "answer": {
+        "net_effective_rent_psf": {
+          "type": "number",
+          "value": 32.0,
+          "tolerance": 0.005
+        },
+        "discounted_net_effective_rent_psf": {
+          "type": "number",
+          "value": 28.4772,
+          "tolerance": 0.005
+        }
+      },
+      "reference": [
+        {
+          "tool": "calc_net_effective_rent",
+          "input": {
+            "schedule": {
+              "commencement_date": "2026-01-01",
+              "term_months": 120,
+              "area_sf": 10000,
+              "starting_rent_psf_annual": 40,
+              "abated_months": [1, 2, 3, 4, 5, 6]
+            },
+            "ti_allowance_psf": 50,
+            "leasing_commissions": 100000,
+            "discount_rate_annual": 0.08
+          },
+          "paths": {
+            "net_effective_rent_psf": "value.net_effective_rent_psf",
+            "discounted_net_effective_rent_psf": "value.discounted_net_effective_rent_psf"
+          }
+        }
+      ],
+      "answer_instruction": "End your reply with one line of JSON: {\"answer\": {\"net_effective_rent_psf\", \"discounted_net_effective_rent_psf\"}}. Numbers as plain numbers (no $ or commas), dates as YYYY-MM-DD."
+    },
+    {
+      "id": "cam-compounding-cap",
+      "category": "CAM reconciliation",
+      "prompt": "2026 building operating expenses: real estate taxes $300,000; insurance $50,000; janitorial $200,000; repairs & maintenance $150,000; roof replacement $400,000. The tenant's pro rata share is 10%. The building averaged 80% occupancy; the lease grosses up variable expenses (janitorial only) to 95% occupancy. Capital items (the roof) are excluded. Taxes and insurance are uncontrollable; everything else is controllable. The tenant paid $60,000 in CAM estimates during 2026. The lease caps the tenant's share of controllable expenses at 5% per year, cumulative and compounding, over its 2023 base-year share of $30,000 (three years elapsed). What is the tenant's 2026 CAM charge and the balance due (positive = tenant owes)?",
+      "answer": {
+        "tenant_charge": {
+          "type": "number",
+          "value": 69728.75,
+          "tolerance": 0.01
+        },
+        "balance_due": {
+          "type": "number",
+          "value": 9728.75,
+          "tolerance": 0.01
+        }
+      },
+      "reference": [
+        {
+          "tool": "calc_cam_reconciliation",
+          "input": {
+            "year": 2026,
+            "pro_rata_share": 0.1,
+            "expenses": [
+              {
+                "category": "real estate taxes",
+                "amount": 300000,
+                "controllable": false
+              },
+              {
+                "category": "insurance",
+                "amount": 50000,
+                "controllable": false
+              },
+              {
+                "category": "janitorial",
+                "amount": 200000,
+                "variable": true
+              },
+              {
+                "category": "repairs & maintenance",
+                "amount": 150000
+              },
+              {
+                "category": "roof replacement",
+                "amount": 400000,
+                "recoverable": false
+              }
+            ],
+            "gross_up": {
+              "actual_occupancy": 0.8,
+              "target_occupancy": 0.95
+            },
+            "estimates_paid": 60000,
+            "cap": {
+              "method": "compounding_from_base",
+              "rate": 0.05,
+              "reference_amount": 30000,
+              "years_elapsed": 3
+            }
+          },
+          "paths": {
+            "tenant_charge": "value.tenant_charge",
+            "balance_due": "value.balance_due"
+          }
+        }
+      ],
+      "answer_instruction": "End your reply with one line of JSON: {\"answer\": {\"tenant_charge\", \"balance_due\"}}. Numbers as plain numbers (no $ or commas), dates as YYYY-MM-DD."
+    },
+    {
+      "id": "cam-yoy-cap",
+      "category": "CAM reconciliation",
+      "prompt": "2026 building operating expenses: real estate taxes $300,000; insurance $50,000; janitorial $200,000; repairs & maintenance $150,000; roof replacement $400,000. The tenant's pro rata share is 10%. The building averaged 80% occupancy; the lease grosses up variable expenses (janitorial only) to 95% occupancy. Capital items (the roof) are excluded. Taxes and insurance are uncontrollable; everything else is controllable. The tenant paid $60,000 in CAM estimates during 2026. The lease caps increases in the tenant's share of controllable expenses at 5% over the prior year, non-cumulative; the tenant's capped 2025 controllable share was $33,000. What is the tenant's 2026 CAM charge?",
+      "answer": {
+        "tenant_charge": {
+          "type": "number",
+          "value": 69650.0,
+          "tolerance": 0.01
+        }
+      },
+      "reference": [
+        {
+          "tool": "calc_cam_reconciliation",
+          "input": {
+            "year": 2026,
+            "pro_rata_share": 0.1,
+            "expenses": [
+              {
+                "category": "real estate taxes",
+                "amount": 300000,
+                "controllable": false
+              },
+              {
+                "category": "insurance",
+                "amount": 50000,
+                "controllable": false
+              },
+              {
+                "category": "janitorial",
+                "amount": 200000,
+                "variable": true
+              },
+              {
+                "category": "repairs & maintenance",
+                "amount": 150000
+              },
+              {
+                "category": "roof replacement",
+                "amount": 400000,
+                "recoverable": false
+              }
+            ],
+            "gross_up": {
+              "actual_occupancy": 0.8,
+              "target_occupancy": 0.95
+            },
+            "estimates_paid": 60000,
+            "cap": {
+              "method": "year_over_year",
+              "rate": 0.05,
+              "reference_amount": 33000
+            }
+          },
+          "paths": {
+            "tenant_charge": "value.tenant_charge"
+          }
+        }
+      ],
+      "answer_instruction": "End your reply with one line of JSON: {\"answer\": {\"tenant_charge\"}}. Numbers as plain numbers (no $ or commas), dates as YYYY-MM-DD."
+    },
+    {
+      "id": "cam-base-year",
+      "category": "CAM reconciliation",
+      "prompt": "2026 building operating expenses: real estate taxes $300,000; insurance $50,000; janitorial $200,000; repairs & maintenance $150,000; roof replacement $400,000. The tenant's pro rata share is 10%. The building averaged 80% occupancy; the lease grosses up variable expenses (janitorial only) to 95% occupancy. Capital items (the roof) are excluded. Taxes and insurance are uncontrollable; everything else is controllable. The tenant paid $20,000 in CAM estimates during 2026. There is no cap, but the lease is a base-year lease: the tenant pays only its share of the excess over base-year (grossed-up) recoverable expenses of $650,000. What is the tenant's charge and the balance (negative = refund owed to tenant)?",
+      "answer": {
+        "tenant_charge": {
+          "type": "number",
+          "value": 8750.0,
+          "tolerance": 0.01
+        },
+        "balance_due": {
+          "type": "number",
+          "value": -11250.0,
+          "tolerance": 0.01
+        }
+      },
+      "reference": [
+        {
+          "tool": "calc_cam_reconciliation",
+          "input": {
+            "year": 2026,
+            "pro_rata_share": 0.1,
+            "expenses": [
+              {
+                "category": "real estate taxes",
+                "amount": 300000,
+                "controllable": false
+              },
+              {
+                "category": "insurance",
+                "amount": 50000,
+                "controllable": false
+              },
+              {
+                "category": "janitorial",
+                "amount": 200000,
+                "variable": true
+              },
+              {
+                "category": "repairs & maintenance",
+                "amount": 150000
+              },
+              {
+                "category": "roof replacement",
+                "amount": 400000,
+                "recoverable": false
+              }
+            ],
+            "gross_up": {
+              "actual_occupancy": 0.8,
+              "target_occupancy": 0.95
+            },
+            "estimates_paid": 20000,
+            "structure": {
+              "type": "base_year",
+              "base_year_expenses": 650000
+            }
+          },
+          "paths": {
+            "tenant_charge": "value.tenant_charge",
+            "balance_due": "value.balance_due"
+          }
+        }
+      ],
+      "answer_instruction": "End your reply with one line of JSON: {\"answer\": {\"tenant_charge\", \"balance_due\"}}. Numbers as plain numbers (no $ or commas), dates as YYYY-MM-DD."
+    },
+    {
+      "id": "debt-ltv-binds",
+      "category": "loan sizing",
+      "prompt": "A property has NOI of $1,000,000 and an appraised value of $15,000,000. The lender offers 6.00% interest, 30-year amortization with monthly payments, and sizes to the lesser of 65% LTV, 1.25x DSCR, and a 9.0% debt yield. What is the maximum loan (rounded down to the dollar) and which constraint binds?",
+      "answer": {
+        "max_loan": {
+          "type": "number",
+          "value": 9750000,
+          "tolerance": 0.5
+        },
+        "binding_constraint": {
+          "type": "string",
+          "value": "ltv"
+        }
+      },
+      "reference": [
+        {
+          "tool": "calc_debt_sizing",
+          "input": {
+            "noi": 1000000,
+            "rate_annual": 0.06,
+            "amortization_years": 30,
+            "max_ltv": 0.65,
+            "min_dscr": 1.25,
+            "min_debt_yield": 0.09,
+            "value": 15000000
+          },
+          "paths": {
+            "max_loan": "value.max_loan",
+            "binding_constraint": "value.binding_constraint"
+          }
+        }
+      ],
+      "answer_instruction": "End your reply with one line of JSON: {\"answer\": {\"max_loan\", \"binding_constraint\"}}. Numbers as plain numbers (no $ or commas), dates as YYYY-MM-DD."
+    },
+    {
+      "id": "debt-dy-binds",
+      "category": "loan sizing",
+      "prompt": "Same terms as a lender quote of 6.00% interest, 30-year amortization (monthly payments), sized to the lesser of 65% LTV, 1.25x DSCR, and 9.0% debt yield, for a property with NOI of $1,000,000 and an appraised value of $20,000,000. What is the maximum loan rounded down to the dollar, which constraint binds, and what loan amount would the DSCR test alone allow (to the cent)?",
+      "answer": {
+        "max_loan": {
+          "type": "number",
+          "value": 11111111,
+          "tolerance": 0.5
+        },
+        "binding_constraint": {
+          "type": "string",
+          "value": "debt_yield"
+        },
+        "dscr_loan": {
+          "type": "number",
+          "value": 11119440.96,
+          "tolerance": 0.01
+        }
+      },
+      "reference": [
+        {
+          "tool": "calc_debt_sizing",
+          "input": {
+            "noi": 1000000,
+            "rate_annual": 0.06,
+            "amortization_years": 30,
+            "max_ltv": 0.65,
+            "min_dscr": 1.25,
+            "min_debt_yield": 0.09,
+            "value": 20000000
+          },
+          "paths": {
+            "max_loan": "value.max_loan",
+            "binding_constraint": "value.binding_constraint",
+            "dscr_loan": "value.loan_by_constraint.dscr"
+          }
+        }
+      ],
+      "answer_instruction": "End your reply with one line of JSON: {\"answer\": {\"max_loan\", \"binding_constraint\", \"dscr_loan\"}}. Numbers as plain numbers (no $ or commas), dates as YYYY-MM-DD."
+    },
+    {
+      "id": "walt",
+      "category": "portfolio",
+      "prompt": "As of January 1, 2026, a building has two leases: Tenant A, 10,000 SF, $500,000/yr, expiring January 1, 2031; Tenant B, 30,000 SF, $600,000/yr, expiring January 1, 2028. Using actual days \u00f7 365.25, what is the area-weighted WALT and the rent-weighted WALT in years?",
+      "answer": {
+        "walt_area": {
+          "type": "number",
+          "value": 2.7488,
+          "tolerance": 0.0005
+        },
+        "walt_rent": {
+          "type": "number",
+          "value": 3.3626,
+          "tolerance": 0.0005
+        }
+      },
+      "reference": [
+        {
+          "tool": "calc_walt",
+          "input": {
+            "as_of": "2026-01-01",
+            "leases": [
+              {
+                "expiration_date": "2031-01-01",
+                "area_sf": 10000,
+                "annual_rent": 500000
+              },
+              {
+                "expiration_date": "2028-01-01",
+                "area_sf": 30000,
+                "annual_rent": 600000
+              }
+            ]
+          },
+          "paths": {
+            "walt_area": "value.walt_years"
+          }
+        },
+        {
+          "tool": "calc_walt",
+          "input": {
+            "as_of": "2026-01-01",
+            "leases": [
+              {
+                "expiration_date": "2031-01-01",
+                "area_sf": 10000,
+                "annual_rent": 500000
+              },
+              {
+                "expiration_date": "2028-01-01",
+                "area_sf": 30000,
+                "annual_rent": 600000
+              }
+            ],
+            "weight_by": "rent"
+          },
+          "paths": {
+            "walt_rent": "value.walt_years"
+          }
+        }
+      ],
+      "answer_instruction": "End your reply with one line of JSON: {\"answer\": {\"walt_area\", \"walt_rent\"}}. Numbers as plain numbers (no $ or commas), dates as YYYY-MM-DD."
+    },
+    {
+      "id": "proposals-tenant",
+      "category": "proposal comparison",
+      "prompt": "I represent a tenant needing 5,000 RSF from January 1, 2027. Proposal \"Tower A\": full-service gross, 60 months, $35.00/RSF/yr with 3% annual bumps, 3 months free, $40/RSF TI allowance. Proposal \"Park B\": NNN, 84 months, $32.00/RSF/yr with 3% annual bumps, 6 months free, $60/RSF TI allowance; estimated NNN expenses are $9.00/RSF/yr and my client would spend $25,000 out of pocket on Park B. Rent is paid monthly in advance. Using an 8% discount rate (8%/12 monthly), which proposal has the lower effective occupancy cost, and what is each proposal's effective cost in $/RSF/yr (the level monthly payment with the same present value, \u00d712 \u00f7 area)?",
+      "answer": {
+        "best": {
+          "type": "string",
+          "value": "Tower A"
+        },
+        "tower_a_cost_psf": {
+          "type": "number",
+          "value": 25.2203,
+          "tolerance": 0.005
+        },
+        "park_b_cost_psf": {
+          "type": "number",
+          "value": 30.558,
+          "tolerance": 0.005
+        }
+      },
+      "reference": [
+        {
+          "tool": "calc_compare_proposals",
+          "input": {
+            "proposals": [
+              {
+                "name": "Tower A",
+                "schedule": {
+                  "commencement_date": "2027-01-01",
+                  "term_months": 60,
+                  "area_sf": 5000,
+                  "starting_rent_psf_annual": 35,
+                  "escalation": {
+                    "type": "percent",
+                    "rate": 0.03
+                  },
+                  "abated_months": [1, 2, 3]
+                },
+                "ti_allowance_psf": 40,
+                "leasing_commissions": 30000
+              },
+              {
+                "name": "Park B",
+                "schedule": {
+                  "commencement_date": "2027-01-01",
+                  "term_months": 84,
+                  "area_sf": 5000,
+                  "starting_rent_psf_annual": 32,
+                  "escalation": {
+                    "type": "percent",
+                    "rate": 0.03
+                  },
+                  "abated_months": [1, 2, 3, 4, 5, 6]
+                },
+                "ti_allowance_psf": 60,
+                "leasing_commissions": 45000,
+                "additional_costs_psf_annual": 9,
+                "tenant_upfront_costs": 25000
+              }
+            ],
+            "discount_rate_annual": 0.08
+          },
+          "paths": {
+            "best": "value.best",
+            "tower_a_cost_psf": "value.ranking.0.metric_psf_annual",
+            "park_b_cost_psf": "value.ranking.1.metric_psf_annual"
+          }
+        }
+      ],
+      "answer_instruction": "End your reply with one line of JSON: {\"answer\": {\"best\", \"tower_a_cost_psf\", \"park_b_cost_psf\"}}. Numbers as plain numbers (no $ or commas), dates as YYYY-MM-DD."
+    },
+    {
+      "id": "percentage-rent",
+      "category": "percentage rent",
+      "prompt": "A retail tenant reported 2026 gross sales of $5,000,000, of which $200,000 are excluded under the lease. Base rent is $240,000/yr, percentage rent is 6% over the natural breakpoint, and the tenant already paid $50,000 of percentage rent during the year. How much percentage rent is due for the year, and what is the balance (negative = overpaid)?",
+      "answer": {
+        "percentage_rent": {
+          "type": "number",
+          "value": 48000,
+          "tolerance": 0.01
+        },
+        "balance_due": {
+          "type": "number",
+          "value": -2000,
+          "tolerance": 0.01
+        }
+      },
+      "reference": [
+        {
+          "tool": "calc_percentage_rent",
+          "input": {
+            "gross_sales": 5000000,
+            "sales_exclusions": 200000,
+            "rate": 0.06,
+            "base_rent_annual": 240000,
+            "percentage_rent_paid": 50000
+          },
+          "paths": {
+            "percentage_rent": "value.percentage_rent",
+            "balance_due": "value.balance_due"
+          }
+        }
+      ],
+      "answer_instruction": "End your reply with one line of JSON: {\"answer\": {\"percentage_rent\", \"balance_due\"}}. Numbers as plain numbers (no $ or commas), dates as YYYY-MM-DD."
+    },
+    {
+      "id": "irr-monthly",
+      "category": "returns",
+      "prompt": "Monthly cash flows: \u2212$100 at month 0, then +$1 at the end of each of months 1 through 11, and +$101 at month 12. What is the monthly IRR and the annualized IRR ((1 + monthly)^12 \u2212 1), as decimals?",
+      "answer": {
+        "irr_periodic": {
+          "type": "number",
+          "value": 0.01,
+          "tolerance": 1e-6
+        },
+        "irr_annual": {
+          "type": "number",
+          "value": 0.12682503,
+          "tolerance": 1e-6
+        }
+      },
+      "reference": [
+        {
+          "tool": "calc_irr",
+          "input": {
+            "cash_flows": [-100, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 101],
+            "periods_per_year": 12
+          },
+          "paths": {
+            "irr_periodic": "value.irr_periodic",
+            "irr_annual": "value.irr_annual"
+          }
+        }
+      ],
+      "answer_instruction": "End your reply with one line of JSON: {\"answer\": {\"irr_periodic\", \"irr_annual\"}}. Numbers as plain numbers (no $ or commas), dates as YYYY-MM-DD."
+    },
+    {
+      "id": "irr-multiple",
+      "category": "returns",
+      "prompt": "Annual cash flows are \u2212$100, +$230, \u2212$132. List every IRR of these cash flows as decimals, in ascending order.",
+      "answer": {
+        "irr_roots": {
+          "type": "number_list",
+          "value": [0.1, 0.2],
+          "tolerance": 1e-6
+        }
+      },
+      "reference": [
+        {
+          "tool": "calc_irr",
+          "input": {
+            "cash_flows": [-100, 230, -132]
+          },
+          "paths": {
+            "irr_roots": "value.roots"
+          }
+        }
+      ],
+      "answer_instruction": "End your reply with one line of JSON: {\"answer\": {\"irr_roots\"}}. Numbers as plain numbers (no $ or commas), dates as YYYY-MM-DD."
+    }
+  ]
+}

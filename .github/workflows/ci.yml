@@ -38,6 +38,8 @@ jobs:
       - run: npm ci
       - name: Python SDK tests (shared vectors)
         run: npm run test:python
+      - name: FactLot Bench offline tests
+        run: npm run test:bench
       - name: Generated schemas are up to date
         run: npm run schemas:check
       - name: TypeScript vs Python differential test
