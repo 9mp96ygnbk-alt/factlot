@@ -68,8 +68,12 @@ def normalize_address(address: str) -> str:
 def is_commercial(state_category: str | None) -> bool:
     """True for Texas state property categories in the registry's commercial scope.
 
-    Appraisal districts subdivide the Comptroller's categories: Harris codes multifamily as
-    B1–B4 (apartments, duplex, triplex, fourplex), all of which are category B.
+    Appraisal districts subdivide the Comptroller's categories with extra digits: Harris codes
+    multifamily B1–B4, Dallas codes F10, F20, B11, and B12. The letter and first digit decide;
+    every subclass of category B is multifamily.
     """
-    code = (state_category or "").strip().upper()
-    return code in COMMERCIAL_CATEGORIES or (code[:1] == "B" and code[1:].isdigit())
+    m = re.fullmatch(r"([A-Z])(\d*)", (state_category or "").strip().upper())
+    if not m:
+        return False
+    letter, digits = m.groups()
+    return letter == "B" or f"{letter}{digits[:1]}" in COMMERCIAL_CATEGORIES

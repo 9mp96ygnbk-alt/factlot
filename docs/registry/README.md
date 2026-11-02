@@ -4,9 +4,14 @@ The registry is the identity layer behind FactLot IDs. It holds cited public-rec
 **commercial** property: parcels, the legal entities that own them, and the links between them.
 Every fact traces back to a specific downloaded file and record.
 
-**Status:** the core is built and tested, but no real data has been loaded yet. The Texas
-sources are blocked in the development environment's network policy (see
-[texas-sources.md](texas-sources.md)).
+**Status (2026-11-02):** the core is built and tested, and the first real roll is in. The Harris
+CAD adapter (`factlot.registry.adapters.tx_harris`) loaded the 2026 roll from the collector's
+snapshot: 1,628,382 accounts read, 87,717 commercial parcels kept (68,795 F1, 2,466 F2, 16,456
+B1–B4), 880,154 cited facts, 56,796 organisation owners of record, in 42 s. The Dallas CAD
+adapter (`tx_dallas`) loaded the 2026 certified export: 59,645 commercial parcels (F10, F20, B11,
+B12), 537,359 facts, 33,362 organisation owners, in 40 s. The Comptroller adapter
+(`tx_comptroller`) turns the franchise-tax file into entities and links owners of record to them.
+The source review is in [texas-sources.md](texas-sources.md).
 
 | Doc                                  | What it covers                                     |
 | ------------------------------------ | -------------------------------------------------- |
