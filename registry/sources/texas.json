@@ -1,5 +1,5 @@
 {
-  "description": "Texas sources for the FactLot Registry collector. See docs/registry/data-policy.md and docs/registry/collection.md.",
+  "description": "Texas sources for the FactLot Registry collector. See docs/registry/data-policy.md, docs/registry/collection.md, and the review record in docs/registry/texas-sources.md.",
   "collector": {
     "contact": "contact@factlot.com",
     "min_interval": 2.0,
@@ -9,77 +9,151 @@
     {
       "source_id": "tx-harris-cad",
       "publisher": "Harris Central Appraisal District",
-      "landing_pages": ["https://hcad.org/pdata/pdata-property-downloads.html"],
+      "landing_pages": [
+        "https://hcad.org/actions/hcad-pdata/default/get-tax-years",
+        "https://hcad.org/actions/hcad-pdata/default/get-property-downloads?t=2026&c=CAMA&s=Real%20Property",
+        "https://hcad.org/actions/hcad-pdata/default/get-property-downloads?t=2026&c=CAMA&s=Personal%20Property",
+        "https://hcad.org/actions/hcad-pdata/default/get-property-downloads?t=2026&c=CAMA&s=Hearings"
+      ],
       "allowed_hosts": ["hcad.org"],
-      "files": [],
-      "verified": false,
-      "notes": "Landing page is a best guess (not reachable from the development environment). Run `discover` to confirm, then record the confirmed file URLs in `files` and set verified=true after reviewing the publisher's terms (data-policy \u00a75)."
+      "files": [
+        "https://download.hcad.org/data/CAMA/2026/Real_acct_owner.zip",
+        "https://download.hcad.org/data/CAMA/2026/Real_acct_ownership_history.zip",
+        "https://download.hcad.org/data/CAMA/2026/Real_building_land.zip",
+        "https://download.hcad.org/data/CAMA/2026/Real_jur_exempt.zip",
+        "https://download.hcad.org/data/CAMA/2026/Code_description_real.zip",
+        "https://download.hcad.org/data/CAMA/2026/PP_files.zip",
+        "https://download.hcad.org/data/CAMA/2026/Code_description_pp.zip",
+        "https://download.hcad.org/data/CAMA/2026/Hearing_files.zip"
+      ],
+      "verified": true,
+      "terms_url": "https://hcad.org/hcad-privacy-policy",
+      "license": "Public record (Tex. Gov't Code ch. 552); no license or terms of use stated for the downloads",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not addressed by the publisher; public record",
+      "reviewed": "2026-11-02",
+      "notes": "The downloads page (hcad.org/pdata/pdata-property-downloads.html) is filled by the JSON endpoints listed as landing pages; the files live on download.hcad.org. Each tax year has its own folder (data/CAMA/<year>/): update the year in the landing pages and files when the new roll appears (get-tax-years lists them). robots.txt on hcad.org has no active rules; download.hcad.org has none."
     },
     {
       "source_id": "tx-dallas-cad",
       "publisher": "Dallas Central Appraisal District",
       "landing_pages": ["https://www.dallascad.org/DataProducts.aspx"],
       "allowed_hosts": ["dallascad.org"],
-      "files": [],
-      "verified": false,
-      "notes": "Landing page is a best guess (not reachable from the development environment). Run `discover` to confirm, then record the confirmed file URLs in `files` and set verified=true after reviewing the publisher's terms (data-policy \u00a75)."
+      "files": [
+        "https://www.dallascad.org/ViewPDFs.aspx?type=3&id=%5C%5CDCAD.ORG%5CWEB%5CWEBDATA%5CWEBFORMS%5Cdata%20products%5CDCAD2027_CURRENT.zip",
+        "https://www.dallascad.org/ViewPDFs.aspx?type=3&id=%5C%5CDCAD.ORG%5CWEB%5CWEBDATA%5CWEBFORMS%5CDATA%20PRODUCTS%5CDCAD2026_CURRENT.ZIP",
+        "https://www.dallascad.org/ViewPDFs.aspx?type=3&id=%5C%5CDCAD.ORG%5CWEB%5CWEBDATA%5CWEBFORMS%5CDATA%20PRODUCTS%5CDCAD2026_CERTIFIED_07232026.zip"
+      ],
+      "verified": true,
+      "terms_url": "https://www.dallascad.org/DataProducts.aspx",
+      "license": "Public record; no license or terms of use stated. The page only notes that DCAD cannot provide technical support for use of the data",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not addressed by the publisher; public record",
+      "reviewed": "2026-11-02",
+      "notes": "Links are ViewPDFs.aspx with a UNC path in the query string (backslashes and spaces), percent-encoded here. DCAD2027_CURRENT.zip is the most current ownership file; DCAD<year>_CURRENT.ZIP is that year's certified data with supplemental changes; the _CERTIFIED_<date> file is the roll at certification. Each zip ships its own layout documents. robots.txt disallows only staff/test paths and /Acct detail pages."
     },
     {
       "source_id": "tx-travis-cad",
       "publisher": "Travis Central Appraisal District",
       "landing_pages": ["https://traviscad.org/publicinformation"],
       "allowed_hosts": ["traviscad.org"],
-      "files": [],
-      "verified": false,
-      "notes": "Landing page is a best guess (not reachable from the development environment). Run `discover` to confirm, then record the confirmed file URLs in `files` and set verified=true after reviewing the publisher's terms (data-policy \u00a75)."
+      "files": [
+        "https://traviscad.org/wp-content/largefiles/Website_Legacy8.0.33-AppraisalExportLayout_06182026.zip",
+        "https://traviscad.org/wp-content/largefiles/2026%20Certified%20Appraisal%20Export%20Supp%200_07182026.zip",
+        "https://traviscad.org/wp-content/largefiles/travis_SUPP%20335_2026_WEBSITE%20EXPORT_Renamed.zip"
+      ],
+      "verified": true,
+      "terms_url": "https://traviscad.org/privacy-policy/",
+      "license": "Public record; no license or terms of use stated for the exports (the privacy policy covers website use only)",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not addressed by the publisher; public record",
+      "reviewed": "2026-11-02",
+      "notes": "robots.txt sets Crawl-delay: 10, which the collector honours. The certified export is about 557 MB; the supplemental export file name changes with each supplement, so re-run discover to pick up the current one."
     },
     {
       "source_id": "tx-tarrant-ad",
       "publisher": "Tarrant Appraisal District",
       "landing_pages": ["https://www.tad.org/resources/data-downloads"],
       "allowed_hosts": ["tad.org"],
-      "files": [],
-      "verified": false,
-      "notes": "Landing page is a best guess (not reachable from the development environment). Run `discover` to confirm, then record the confirmed file URLs in `files` and set verified=true after reviewing the publisher's terms (data-policy \u00a75)."
+      "files": [
+        "https://www.tad.org/content/data-download/TP_Legacy8.0.33-AppraisalExportLayout.zip",
+        "https://www.tad.org/content/data-download/000_Tarrant_All_Taxing_Units.zip",
+        "https://www.tad.org/content/data-download/PropertyData(Delimited).ZIP",
+        "https://www.tad.org/content/data-download/PropertyData(Delimited)_C.ZIP"
+      ],
+      "verified": true,
+      "terms_url": "https://www.tad.org/robots.txt",
+      "license": "Public record; no license or terms of use stated for the downloads",
+      "ai_use": "robots.txt Content-Signal: search=yes, ai-train=no, use=reference. The publisher reserves rights against AI training; use as reference input is signalled as allowed. The registry does not train models on this data",
+      "redistribution": "Not addressed by the publisher; public record",
+      "reviewed": "2026-11-02",
+      "notes": "robots.txt allows all paths for generic agents and disallows a list of named AI crawlers (the FactLot bot is not among them). PropertyData(Delimited)_C.ZIP is the commercial-only extract; 000_Tarrant_All_Taxing_Units.zip is the full True Prodigy extract. Prior certified years are also published (PropertyData_<year>(Certified).ZIP)."
     },
     {
       "source_id": "tx-bexar-ad",
       "publisher": "Bexar Appraisal District",
-      "landing_pages": ["https://www.bcad.org/"],
+      "landing_pages": ["https://bcad.org/reports/"],
       "allowed_hosts": ["bcad.org"],
       "files": [],
       "verified": false,
-      "notes": "Landing page is a best guess (not reachable from the development environment). Run `discover` to confirm, then record the confirmed file URLs in `files` and set verified=true after reviewing the publisher's terms (data-policy \u00a75)."
+      "reviewed": "2026-11-02",
+      "notes": "No bulk appraisal-roll download was found on bcad.org on 2026-11-02 (home page, reports, taxpayer resources, sitemap). Property search is hosted at hgo.harrisgovern.com, which is not a bulk source. Candidate for a Public Information Act request (docs/registry/public-information-requests.md)."
     },
     {
       "source_id": "tx-collin-cad",
       "publisher": "Collin Central Appraisal District",
-      "landing_pages": ["https://collincad.org/"],
+      "landing_pages": [
+        "https://collincad.org/category/appraisal-data-exports/"
+      ],
       "allowed_hosts": ["collincad.org"],
-      "files": [],
-      "verified": false,
-      "notes": "Landing page is a best guess (not reachable from the development environment). Run `discover` to confirm, then record the confirmed file URLs in `files` and set verified=true after reviewing the publisher's terms (data-policy \u00a75)."
+      "files": [
+        "https://link.collincad.org/public/folder/1j1vp-rhx06rqkh3vz2ipw/AppraisalData/LiteDatabaseCurrent.zip",
+        "https://link.collincad.org/public/folder/1j1vp-rhx06rqkh3vz2ipw/AppraisalData/CodeFileLists.xls"
+      ],
+      "verified": true,
+      "terms_url": "https://collincad.org/open-data-portal/",
+      "license": "Public record; no license or terms of use stated for the exports",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not addressed by the publisher; public record",
+      "reviewed": "2026-11-02",
+      "notes": "Files are served from link.collincad.org (a file-share host; no robots.txt). LiteDatabaseCurrent.zip is about 50 MB. Collin also publishes GIS data on an ArcGIS Hub (open-data-ccad.hub.arcgis.com), not yet catalogued."
     },
     {
       "source_id": "tx-comptroller-franchise",
-      "publisher": "Texas Comptroller of Public Accounts (via Texas Open Data Portal)",
+      "publisher": "Texas Comptroller of Public Accounts (via the Texas Open Data Portal)",
       "landing_pages": [
-        "https://data.texas.gov/browse?q=franchise%20tax%20permit"
+        "https://data.texas.gov/dataset/Active-Franchise-Taxpayers/9cir-efmm",
+        "https://data.texas.gov/api/views/9cir-efmm.json"
       ],
       "allowed_hosts": ["data.texas.gov"],
-      "link_patterns": ["/(api/views|d)/[a-z0-9]{4}-[a-z0-9]{4}"],
-      "files": [],
-      "verified": false,
-      "notes": "Landing page is a best guess (not reachable from the development environment). Run `discover` to confirm, then record the confirmed file URLs in `files` and set verified=true after reviewing the publisher's terms (data-policy \u00a75)."
+      "link_patterns": [
+        "/(api/views|api/v3/views|d|resource)/[a-z0-9]{4}-[a-z0-9]{4}"
+      ],
+      "files": ["https://data.texas.gov/api/v3/views/9cir-efmm/export.csv"],
+      "verified": true,
+      "terms_url": "https://comptroller.texas.gov/about/policies/privacy.php",
+      "license": "Public domain: the Comptroller's policy page states that information on its sites is public domain and may be copied and used as permitted by law. The dataset itself carries no license field on the portal",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Permitted (public domain statement); attribution: Texas Comptroller of Public Accounts",
+      "reviewed": "2026-11-02",
+      "notes": "Dataset 9cir-efmm 'Active Franchise Taxpayers' (Tax Code ch. 171): taxpayer number, legal name, mailing address, organisational type, SOS file number and status, NAICS. Updated about monthly (last 2026-10-31). The classic /api/views/<id>/rows.csv export is marked deprecated by the platform, so the v3 export URL is used. The portal platform's own terms (socrata.com/terms-of-service) could not be read as text and should be reviewed by a person (backlog A11). robots.txt: Crawl-delay 1; /browse?…&q= is disallowed, so the dataset page is used instead of a search."
     },
     {
       "source_id": "tx-txgio-parcels",
       "publisher": "Texas Geographic Information Office (TxGIO)",
-      "landing_pages": ["https://geographic.texas.gov/"],
-      "allowed_hosts": ["geographic.texas.gov", "tnris.org"],
+      "landing_pages": [
+        "https://api.tnris.org/api/v1/collections/1d33dafb-6e9c-40ac-887d-f4577909ed9b",
+        "https://api.tnris.org/api/v1/resources?collection_id=1d33dafb-6e9c-40ac-887d-f4577909ed9b"
+      ],
+      "allowed_hosts": ["api.tnris.org", "data.geographic.texas.gov"],
       "files": [],
       "verified": false,
-      "notes": "Landing page is a best guess (not reachable from the development environment). Run `discover` to confirm, then record the confirmed file URLs in `files` and set verified=true after reviewing the publisher's terms (data-policy \u00a75)."
+      "terms_url": "https://spdx.org/licenses/CC0-1.0.html",
+      "license": "CC0-1.0 (stated by the publisher's API for the 2026 Land Parcels collection)",
+      "ai_use": "Permitted (CC0)",
+      "redistribution": "Permitted (CC0)",
+      "reviewed": "2026-11-02",
+      "notes": "Blocked: data.geographic.texas.gov answers 403 (CloudFront 'Request blocked') to the collector and to plain curl, so the 254 county zips (stratmap26-landparcels_<fips>_lp.zip, GDB/SHP) cannot be downloaded without a browser. The API on api.tnris.org works and lists them. Ask TxGIO for a download route for automated clients before enabling; do not work around the block (data policy §1)."
     }
   ]
 }
