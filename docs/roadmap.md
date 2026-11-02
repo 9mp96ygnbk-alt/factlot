@@ -48,6 +48,12 @@ identity layer for commercial real estate.
 
 ## Big track (registry)
 
+Decisions (2026-11-02): $0 data budget, public sources only, obtained ethically and legally; hybrid model; Texas first. See [docs/registry](registry/README.md).
+
+- [x] Data policy and Texas source catalog
+- [x] Registry core: cited facts, coverage-based currency, commercial-only scope, privacy rules, owner resolution, search (`factlot.registry`)
+- [ ] Texas adapters (Harris → Dallas → Comptroller entities → Travis/Tarrant/Bexar). **Blocked:** source domains must be allowed in the environment's network settings
+
 - [ ] **Registry alpha.** Ingest assessor and recorder data for the top 25 US
       counties by commercial property value, and resolve parcel to owner of record
       to entity. Entity data comes from Secretary of State filings, starting with
