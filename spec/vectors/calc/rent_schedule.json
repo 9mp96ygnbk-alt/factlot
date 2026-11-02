@@ -65,6 +65,19 @@
       }
     },
     {
+      "name": "rounding strips float noise: 95.58 \u00d7 245,051 \u00f7 12 = 1,951,831.215 \u2192 .22",
+      "input": {
+        "commencement_date": "2026-01-01",
+        "term_months": 100,
+        "area_sf": 245051,
+        "starting_rent_psf_annual": 95.58
+      },
+      "expect": {
+        "value.steps.0.monthly_rent": 1951831.22,
+        "value.total_rent_due": 195183122
+      }
+    },
+    {
       "name": "abated month beyond term is an input error",
       "input": {
         "commencement_date": "2026-01-01",

@@ -1,6 +1,13 @@
 import { z } from "zod";
 
-import { NonNegMoney, Trace, fmtMoney, parseInput, round } from "./core.ts";
+import {
+  NonNegMoney,
+  Trace,
+  fmtMoney,
+  parseInput,
+  powInt,
+  round,
+} from "./core.ts";
 import type { CalcResult } from "./core.ts";
 import { RentScheduleInput, buildMonths } from "./rent.ts";
 
@@ -88,7 +95,7 @@ export function compareProposals(
     let annuity = 0;
     let total = 0;
     months.forEach((m, i) => {
-      const df = (1 + r) ** -i;
+      const df = powInt(1 + r, -i);
       const flow = m.rent_due + extraMonthly;
       pv += flow * df;
       annuity += df;

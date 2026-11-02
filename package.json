@@ -20,7 +20,11 @@
     "typecheck": "tsc -p tsconfig.json",
     "test": "node --experimental-strip-types --conditions=source --test \"packages/*/src/**/*.test.ts\"",
     "build": "npm run build --workspaces",
-    "check": "npm run lint && npm run format:check && npm run typecheck && npm test && npm run build"
+    "check": "npm run lint && npm run format:check && npm run typecheck && npm test && npm run build",
+    "schemas": "node --experimental-strip-types --conditions=source scripts/gen-schemas.ts && prettier --write spec/schemas >/dev/null && cp spec/schemas/*.json python/src/factlot/schemas/",
+    "schemas:check": "npm run schemas && git diff --exit-code spec/schemas python/src/factlot/schemas",
+    "test:python": "cd python && PYTHONPATH=src python3 -m unittest discover -s tests",
+    "differential": "npm run build && spec/differential/run.sh"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

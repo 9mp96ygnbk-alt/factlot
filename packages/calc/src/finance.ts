@@ -1,6 +1,13 @@
 import { z } from "zod";
 
-import { CalcInputError, Trace, fmtPct, parseInput, round } from "./core.ts";
+import {
+  CalcInputError,
+  Trace,
+  fmtPct,
+  parseInput,
+  powInt,
+  round,
+} from "./core.ts";
 import type { CalcResult } from "./core.ts";
 
 const CashFlows = z.array(z.number().finite()).min(2);
@@ -14,7 +21,7 @@ export const NpvInput = z.object({
 export type NpvInput = z.input<typeof NpvInput>;
 
 function npvAt(flows: number[], r: number): number {
-  return flows.reduce((acc, cf, t) => acc + cf / (1 + r) ** t, 0);
+  return flows.reduce((acc, cf, t) => acc + cf / powInt(1 + r, t), 0);
 }
 
 export function npv(raw: NpvInput): CalcResult<{ npv: number }> {
@@ -88,7 +95,7 @@ export function irr(
       `Multiple IRRs exist (${unique.map((r) => fmtPct(r, 4)).join(", ")}); returned the one nearest 0%.`,
     );
   }
-  const annual = (1 + periodic) ** input.periods_per_year - 1;
+  const annual = powInt(1 + periodic, input.periods_per_year) - 1;
   t.step(
     "Periodic IRR",
     round(periodic, 8),

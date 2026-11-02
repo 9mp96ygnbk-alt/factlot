@@ -68,19 +68,79 @@ export class Trace {
 }
 
 /**
- * Round half away from zero to `dp` decimals, using decimal-string shifting so that
- * values like 1.005 round as a human expects (1.01), not as binary floats do (1.00).
+ * b^n for integer n by exponentiation by squaring. Uses only IEEE-754 multiplication and
+ * division, which are correctly rounded in every language, so results are bit-identical
+ * across SDKs and platforms (unlike libm/V8 \`pow\`, which may differ in the last place).
+ */
+export function powInt(base: number, n: number): number {
+  if (!Number.isInteger(n))
+    throw new CalcInputError(`powInt requires an integer exponent, got ${n}`);
+  if (n < 0) return 1 / powInt(base, -n);
+  let result = 1;
+  let x = base;
+  let e = n;
+  while (e > 0) {
+    if (e % 2 === 1) result *= x;
+    x *= x;
+    e = Math.floor(e / 2);
+  }
+  return result;
+}
+
+/** Significant digits kept before rounding, as spreadsheets do, to strip binary noise. */
+export const ROUNDING_SIGNIFICANT_DIGITS = 15;
+
+/** Expand a JS exponent-form number string ("1.5e-7", "2e+21") to plain decimal. */
+function toPlainDecimal(s: string): string {
+  const m = /^(\d+)(?:\.(\d+))?e([+-]\d+)$/.exec(s);
+  if (!m) return s;
+  const digits = `${m[1]}${m[2] ?? ""}`;
+  const point = (m[1] ?? "").length + Number(m[3]);
+  if (point <= 0) return `0.${"0".repeat(-point)}${digits}`;
+  if (point >= digits.length) return digits + "0".repeat(point - digits.length);
+  return `${digits.slice(0, point)}.${digits.slice(point)}`;
+}
+
+/** Add one to a non-negative integer held as a digit string. */
+function incrementDigits(d: string): string {
+  const out = d.split("");
+  for (let i = out.length - 1; i >= 0; i--) {
+    if (out[i] !== "9") {
+      out[i] = String(Number(out[i]) + 1);
+      return out.join("");
+    }
+    out[i] = "0";
+  }
+  return `1${out.join("")}`;
+}
+
+/**
+ * Round the way a person with a spreadsheet expects, identically in every FactLot SDK:
+ *
+ * 1. reduce |x| to 15 significant digits (correctly rounded, ties up), which removes
+ *    binary floating-point noise: 95.58 × 245051 ÷ 12 = 1951831.2149999999 → 1951831.21500000;
+ * 2. round that decimal half away from zero to `dp` places: → 1951831.22.
  */
 export function round(x: number, dp = 2): number {
   if (!Number.isFinite(x))
     throw new CalcInputError(`cannot round non-finite value ${x}`);
-  const sign = x < 0 ? -1 : 1;
-  const abs = String(Math.abs(x));
-  // Exponent-shifting only works on plain decimal strings; tiny/huge values use plain math.
-  const shifted = abs.includes("e")
-    ? Math.round(Math.abs(x) * 10 ** dp)
-    : Math.round(Number(`${abs}e${dp}`));
-  return sign * Number(`${shifted}e-${dp}`) || 0;
+  const negative = x < 0;
+  const plain = toPlainDecimal(
+    Math.abs(x).toPrecision(ROUNDING_SIGNIFICANT_DIGITS),
+  );
+  const [int = "0", frac = ""] = plain.split(".");
+  let result: number;
+  if (frac.length <= dp) {
+    result = Number(plain);
+  } else {
+    let digits = int + frac.slice(0, dp);
+    if ((frac[dp] ?? "0") >= "5") digits = incrementDigits(digits);
+    result =
+      dp > 0
+        ? Number(`${digits.slice(0, -dp) || "0"}.${digits.slice(-dp)}`)
+        : Number(digits);
+  }
+  return negative && result !== 0 ? -result : result;
 }
 
 /** Parse input with a zod schema, converting failures into a CalcInputError agents can act on. */

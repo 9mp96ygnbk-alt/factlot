@@ -1,0 +1,816 @@
+{
+  "generated_by": "scripts/gen-schemas.ts",
+  "tools": [
+    {
+      "name": "calc_rent_schedule",
+      "title": "Lease rent schedule",
+      "description": "Build a base-rent schedule from commencement date, term, area, starting $/SF/yr, escalations (percent or fixed $/SF), and abated months. Returns rent steps, totals, expiration date, and a calculation trace.",
+      "formula": {
+        "id": "calc.rent_schedule",
+        "version": 1
+      },
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "commencement_date": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          },
+          "term_months": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 1200
+          },
+          "area_sf": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "starting_rent_psf_annual": {
+            "type": "number",
+            "minimum": 0
+          },
+          "escalation": {
+            "default": {
+              "type": "none"
+            },
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "none"
+                  }
+                },
+                "required": ["type"]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "percent"
+                  },
+                  "rate": {
+                    "type": "number",
+                    "exclusiveMinimum": -1,
+                    "exclusiveMaximum": 10
+                  },
+                  "every_months": {
+                    "default": 12,
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": ["type", "rate"]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "fixed_psf"
+                  },
+                  "amount": {
+                    "type": "number"
+                  },
+                  "every_months": {
+                    "default": 12,
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": ["type", "amount"]
+              }
+            ]
+          },
+          "abated_months": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "round_rate_to_cents": {
+            "default": false,
+            "type": "boolean"
+          },
+          "include_monthly": {
+            "default": false,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "commencement_date",
+          "term_months",
+          "area_sf",
+          "starting_rent_psf_annual"
+        ]
+      }
+    },
+    {
+      "name": "calc_net_effective_rent",
+      "title": "Net effective rent (NER)",
+      "description": "Compute effective rent, straight-line net effective rent, and discounted net effective rent ($/SF/yr) after free rent, TI allowance, leasing commissions, and other landlord concessions.",
+      "formula": {
+        "id": "calc.net_effective_rent",
+        "version": 1
+      },
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "schedule": {
+            "type": "object",
+            "properties": {
+              "commencement_date": {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+              },
+              "term_months": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 1200
+              },
+              "area_sf": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "starting_rent_psf_annual": {
+                "type": "number",
+                "minimum": 0
+              },
+              "escalation": {
+                "default": {
+                  "type": "none"
+                },
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "none"
+                      }
+                    },
+                    "required": ["type"]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "percent"
+                      },
+                      "rate": {
+                        "type": "number",
+                        "exclusiveMinimum": -1,
+                        "exclusiveMaximum": 10
+                      },
+                      "every_months": {
+                        "default": 12,
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": ["type", "rate"]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "fixed_psf"
+                      },
+                      "amount": {
+                        "type": "number"
+                      },
+                      "every_months": {
+                        "default": 12,
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": ["type", "amount"]
+                  }
+                ]
+              },
+              "abated_months": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                }
+              },
+              "round_rate_to_cents": {
+                "default": false,
+                "type": "boolean"
+              },
+              "include_monthly": {
+                "default": false,
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "commencement_date",
+              "term_months",
+              "area_sf",
+              "starting_rent_psf_annual"
+            ]
+          },
+          "ti_allowance_psf": {
+            "default": 0,
+            "type": "number",
+            "minimum": 0
+          },
+          "leasing_commissions": {
+            "default": 0,
+            "type": "number",
+            "minimum": 0
+          },
+          "other_concessions": {
+            "default": 0,
+            "type": "number",
+            "minimum": 0
+          },
+          "discount_rate_annual": {
+            "default": 0,
+            "type": "number",
+            "minimum": 0,
+            "exclusiveMaximum": 1
+          }
+        },
+        "required": ["schedule"]
+      }
+    },
+    {
+      "name": "calc_compare_proposals",
+      "title": "Compare lease proposals",
+      "description": "Rank 2–20 lease proposals with different terms, sizes, free rent, TI, concessions, and expense structures on one discounted $/SF/yr basis: effective occupancy cost (tenant perspective) or discounted net effective rent (landlord perspective).",
+      "formula": {
+        "id": "calc.compare_proposals",
+        "version": 1
+      },
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "perspective": {
+            "default": "tenant",
+            "type": "string",
+            "enum": ["tenant", "landlord"]
+          },
+          "discount_rate_annual": {
+            "default": 0.08,
+            "type": "number",
+            "minimum": 0,
+            "exclusiveMaximum": 1
+          },
+          "proposals": {
+            "minItems": 2,
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "schedule": {
+                  "type": "object",
+                  "properties": {
+                    "commencement_date": {
+                      "type": "string",
+                      "format": "date",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                    },
+                    "term_months": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 1200
+                    },
+                    "area_sf": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "starting_rent_psf_annual": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "escalation": {
+                      "default": {
+                        "type": "none"
+                      },
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "const": "none"
+                            }
+                          },
+                          "required": ["type"]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "const": "percent"
+                            },
+                            "rate": {
+                              "type": "number",
+                              "exclusiveMinimum": -1,
+                              "exclusiveMaximum": 10
+                            },
+                            "every_months": {
+                              "default": 12,
+                              "type": "integer",
+                              "exclusiveMinimum": 0,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": ["type", "rate"]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "const": "fixed_psf"
+                            },
+                            "amount": {
+                              "type": "number"
+                            },
+                            "every_months": {
+                              "default": 12,
+                              "type": "integer",
+                              "exclusiveMinimum": 0,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": ["type", "amount"]
+                        }
+                      ]
+                    },
+                    "abated_months": {
+                      "default": [],
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "round_rate_to_cents": {
+                      "default": false,
+                      "type": "boolean"
+                    },
+                    "include_monthly": {
+                      "default": false,
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "commencement_date",
+                    "term_months",
+                    "area_sf",
+                    "starting_rent_psf_annual"
+                  ]
+                },
+                "ti_allowance_psf": {
+                  "default": 0,
+                  "type": "number",
+                  "minimum": 0
+                },
+                "other_concessions": {
+                  "default": 0,
+                  "type": "number",
+                  "minimum": 0
+                },
+                "leasing_commissions": {
+                  "default": 0,
+                  "type": "number",
+                  "minimum": 0
+                },
+                "additional_costs_psf_annual": {
+                  "default": 0,
+                  "type": "number",
+                  "minimum": 0
+                },
+                "tenant_upfront_costs": {
+                  "default": 0,
+                  "type": "number",
+                  "minimum": 0
+                }
+              },
+              "required": ["name", "schedule"]
+            }
+          }
+        },
+        "required": ["proposals"]
+      }
+    },
+    {
+      "name": "calc_percentage_rent",
+      "title": "Retail percentage rent",
+      "description": "Percentage (overage) rent for a lease year: net sales after exclusions over a natural or fixed breakpoint, prorated for partial years, less amounts already paid.",
+      "formula": {
+        "id": "calc.percentage_rent",
+        "version": 1
+      },
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "gross_sales": {
+            "type": "number",
+            "minimum": 0
+          },
+          "sales_exclusions": {
+            "default": 0,
+            "type": "number",
+            "minimum": 0
+          },
+          "rate": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "exclusiveMaximum": 1
+          },
+          "base_rent_annual": {
+            "type": "number",
+            "minimum": 0
+          },
+          "breakpoint": {
+            "default": {
+              "type": "natural"
+            },
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "natural"
+                  }
+                },
+                "required": ["type"]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "fixed"
+                  },
+                  "amount": {
+                    "type": "number",
+                    "minimum": 0
+                  }
+                },
+                "required": ["type", "amount"]
+              }
+            ]
+          },
+          "period_fraction": {
+            "default": 1,
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "maximum": 1
+          },
+          "percentage_rent_paid": {
+            "default": 0,
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "required": ["gross_sales", "rate", "base_rent_annual"]
+      }
+    },
+    {
+      "name": "calc_cam_reconciliation",
+      "title": "CAM / operating expense reconciliation",
+      "description": "Reconcile a tenant's annual CAM charge: exclusions, occupancy gross-up of variable expenses, pro rata share, controllable-expense caps (compounding_from_base, simple_from_base, year_over_year), base year or expense stop, and estimates paid. Returns balance due and a full trace.",
+      "formula": {
+        "id": "calc.cam_reconciliation",
+        "version": 1
+      },
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "year": {
+            "type": "integer",
+            "minimum": 1900,
+            "maximum": 2200
+          },
+          "pro_rata_share": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "maximum": 1
+          },
+          "expenses": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "category": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "amount": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "controllable": {
+                  "default": true,
+                  "type": "boolean"
+                },
+                "recoverable": {
+                  "default": true,
+                  "type": "boolean"
+                },
+                "variable": {
+                  "default": false,
+                  "type": "boolean"
+                }
+              },
+              "required": ["category", "amount"]
+            }
+          },
+          "gross_up": {
+            "type": "object",
+            "properties": {
+              "actual_occupancy": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 1
+              },
+              "target_occupancy": {
+                "default": 0.95,
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 1
+              }
+            },
+            "required": ["actual_occupancy"]
+          },
+          "structure": {
+            "default": {
+              "type": "net"
+            },
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "net"
+                  }
+                },
+                "required": ["type"]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "base_year"
+                  },
+                  "base_year_expenses": {
+                    "type": "number",
+                    "minimum": 0
+                  }
+                },
+                "required": ["type", "base_year_expenses"]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "expense_stop"
+                  },
+                  "stop_amount": {
+                    "type": "number",
+                    "minimum": 0
+                  }
+                },
+                "required": ["type", "stop_amount"]
+              }
+            ]
+          },
+          "cap": {
+            "type": "object",
+            "properties": {
+              "method": {
+                "type": "string",
+                "enum": [
+                  "compounding_from_base",
+                  "simple_from_base",
+                  "year_over_year"
+                ]
+              },
+              "rate": {
+                "type": "number",
+                "exclusiveMinimum": -1,
+                "exclusiveMaximum": 10
+              },
+              "reference_amount": {
+                "type": "number",
+                "minimum": 0
+              },
+              "years_elapsed": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": ["method", "rate", "reference_amount"]
+          },
+          "estimates_paid": {
+            "default": 0,
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "required": ["year", "pro_rata_share", "expenses"]
+      }
+    },
+    {
+      "name": "calc_debt_sizing",
+      "title": "Loan sizing (LTV / DSCR / debt yield)",
+      "description": "Size the maximum loan under any combination of max LTV, min DSCR, and min debt yield for a given NOI, rate, and amortization. Reports the binding constraint, debt service, and resulting metrics.",
+      "formula": {
+        "id": "calc.debt_sizing",
+        "version": 1
+      },
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "noi": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "value": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "rate_annual": {
+            "type": "number",
+            "minimum": 0,
+            "exclusiveMaximum": 1
+          },
+          "amortization_years": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 50
+          },
+          "max_ltv": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "maximum": 1
+          },
+          "min_dscr": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "min_debt_yield": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "exclusiveMaximum": 1
+          },
+          "round_down_to": {
+            "default": 1,
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
+        },
+        "required": ["noi", "rate_annual", "amortization_years"]
+      }
+    },
+    {
+      "name": "calc_walt",
+      "title": "Weighted average lease term (WALT)",
+      "description": "Weighted average remaining lease term in years, weighted by area or annual rent, as of a date.",
+      "formula": {
+        "id": "calc.walt",
+        "version": 1
+      },
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "as_of": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          },
+          "weight_by": {
+            "default": "area",
+            "type": "string",
+            "enum": ["area", "rent"]
+          },
+          "leases": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "expiration_date": {
+                  "type": "string",
+                  "format": "date",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                },
+                "area_sf": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "annual_rent": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                }
+              },
+              "required": ["expiration_date"]
+            }
+          }
+        },
+        "required": ["as_of", "leases"]
+      }
+    },
+    {
+      "name": "calc_npv",
+      "title": "Net present value",
+      "description": "NPV of periodic cash flows (t = 0, 1, 2, ...) at a per-period discount rate.",
+      "formula": {
+        "id": "calc.npv",
+        "version": 1
+      },
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "cash_flows": {
+            "minItems": 2,
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "rate": {
+            "type": "number",
+            "exclusiveMinimum": -1
+          }
+        },
+        "required": ["cash_flows", "rate"]
+      }
+    },
+    {
+      "name": "calc_irr",
+      "title": "Internal rate of return",
+      "description": "Periodic and annualized IRR of periodic cash flows, solved deterministically; reports every root when cash flows have multiple IRRs.",
+      "formula": {
+        "id": "calc.irr",
+        "version": 1
+      },
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "cash_flows": {
+            "minItems": 2,
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "periods_per_year": {
+            "default": 1,
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": ["cash_flows"]
+      }
+    }
+  ]
+}

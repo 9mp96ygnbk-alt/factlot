@@ -7,4 +7,8 @@ export default tseslint.config(
   eslint.configs.recommended,
   tseslint.configs.recommended,
   eslintConfigPrettier,
+  {
+    files: ["**/*.mjs"],
+    languageOptions: { globals: { process: "readonly", console: "readonly" } },
+  },
 );

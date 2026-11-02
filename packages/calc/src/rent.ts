@@ -9,6 +9,7 @@ import {
   fmtMoney,
   fmtPct,
   parseInput,
+  powInt,
   round,
 } from "./core.ts";
 import type { CalcResult } from "./core.ts";
@@ -95,7 +96,7 @@ export function buildMonths(
     const k = Math.floor((month - 1) / esc.every_months);
     const r =
       esc.type === "percent"
-        ? input.starting_rent_psf_annual * (1 + esc.rate) ** k
+        ? input.starting_rent_psf_annual * powInt(1 + esc.rate, k)
         : input.starting_rent_psf_annual + esc.amount * k;
     return input.round_rate_to_cents ? round(r, 2) : r;
   };
@@ -288,7 +289,7 @@ export function netEffectiveRent(
   let pv = 0;
   let annuity = 0;
   for (let i = 0; i < n; i++) {
-    const df = (1 + r) ** -i;
+    const df = powInt(1 + r, -i);
     pv += (months[i]?.rent_due ?? 0) * df;
     annuity += df;
   }

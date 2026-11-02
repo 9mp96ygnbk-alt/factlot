@@ -9,6 +9,7 @@ import {
   fmtMoney,
   fmtPct,
   parseInput,
+  powInt,
   round,
 } from "./core.ts";
 import type { CalcResult } from "./core.ts";
@@ -176,7 +177,7 @@ export function camReconciliation(
     const [limit, formula] =
       method === "compounding_from_base"
         ? [
-            ref * (1 + rate) ** years,
+            ref * powInt(1 + rate, years),
             `${fmtMoney(ref)} × (1 + ${rate})^${years}`,
           ]
         : method === "simple_from_base"

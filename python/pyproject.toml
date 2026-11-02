@@ -1,0 +1,26 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "factlot"
+version = "0.1.0"
+description = "The open fact layer for commercial real estate AI agents: deterministic calculators, FactLot IDs, and fact validation."
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+dependencies = []
+keywords = ["commercial real estate", "CRE", "AI agents", "MCP", "lease", "CAM", "underwriting"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Topic :: Office/Business :: Financial",
+  "Intended Audience :: Developers",
+]
+
+[project.urls]
+Homepage = "https://factlot.com"
+Source = "https://github.com/9mp96ygnbk-alt/factlot"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/factlot"]

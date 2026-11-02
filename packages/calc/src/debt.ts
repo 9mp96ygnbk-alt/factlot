@@ -6,6 +6,7 @@ import {
   fmtMoney,
   fmtPct,
   parseInput,
+  powInt,
   round,
 } from "./core.ts";
 import type { CalcResult } from "./core.ts";
@@ -61,7 +62,7 @@ export function annualConstant(
   if (amortizationYears === 0) return rateAnnual;
   const n = amortizationYears * 12;
   const r = rateAnnual / 12;
-  return r === 0 ? 12 / n : (12 * r) / (1 - (1 + r) ** -n);
+  return r === 0 ? 12 / n : (12 * r) / (1 - powInt(1 + r, -n));
 }
 
 /** Maximum loan under LTV, DSCR, and debt-yield tests, and which test binds. */

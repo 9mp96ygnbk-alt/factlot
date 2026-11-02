@@ -258,3 +258,15 @@ test("every registered calculator has a matching formula id", () => {
     assert.equal(typeof c.run, "function");
   }
 });
+
+test("round strips binary noise before rounding half away from zero", () => {
+  assert.equal(round((95.58 * 245051) / 12), 1951831.22);
+  assert.equal(round(0.1 + 0.2, 1), 0.3);
+  assert.equal(round(2.675), 2.68);
+  assert.equal(round(-2.675), -2.68);
+  assert.equal(round(1.5e-7, 2), 0);
+  assert.equal(round(0.000155, 4), 0.0002);
+  assert.equal(round(9.995), 10);
+  assert.equal(round(123456789.125, 2), 123456789.13);
+  assert.equal(round(1234.5, 0), 1235);
+});
