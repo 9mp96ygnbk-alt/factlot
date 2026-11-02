@@ -134,6 +134,7 @@ See [docs/business-model.md](docs/business-model.md) and [docs/roadmap.md](docs/
 - [Rules packs](docs/rules.md) · [Lease ingestion](docs/ingest.md) · [Registry](docs/registry/README.md)
 - [FactLot ID specification](docs/id-spec.md)
 - [Fact model: provenance and rights](docs/fact-model.md)
+- [Backlog: everything not finished yet](docs/BACKLOG.md)
 - [Roadmap](docs/roadmap.md)
 - [Business model](docs/business-model.md)
 - [Customer discovery plan](docs/customer-discovery.md)
