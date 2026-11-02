@@ -16,34 +16,75 @@ import type { CalcResult } from "./core.ts";
 import { addDays, addMonths } from "./dates.ts";
 
 export const Escalation = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("none") }),
-  z.object({
-    type: z.literal("percent"),
-    /** e.g. 0.03 for 3% compounding bumps. */
-    rate: Rate,
-    every_months: z.number().int().positive().default(12),
-  }),
-  z.object({
-    type: z.literal("fixed_psf"),
-    /** Dollars per SF per year added at each bump, e.g. 0.50. */
-    amount: z.number().finite(),
-    every_months: z.number().int().positive().default(12),
-  }),
+  z
+    .object({ type: z.literal("none") })
+    .describe("Flat rent for the whole term."),
+  z
+    .object({
+      type: z.literal("percent"),
+      rate: Rate.describe(
+        "Bump as a decimal, e.g. 0.03 for 3%. Bumps compound.",
+      ),
+      every_months: z
+        .number()
+        .int()
+        .positive()
+        .default(12)
+        .describe("Months between bumps (12 = annual)."),
+    })
+    .describe("Percentage bumps: rate_k = starting_rate × (1 + rate)^k."),
+  z
+    .object({
+      type: z.literal("fixed_psf"),
+      amount: z
+        .number()
+        .finite()
+        .describe("Dollars per SF per year added at each bump, e.g. 0.50."),
+      every_months: z
+        .number()
+        .int()
+        .positive()
+        .default(12)
+        .describe("Months between bumps (12 = annual)."),
+    })
+    .describe("Fixed $/SF bumps: rate_k = starting_rate + amount × k."),
 ]);
 
 export const RentScheduleInput = z.object({
-  commencement_date: IsoDate,
-  term_months: z.number().int().positive().max(1200),
-  area_sf: z.number().positive(),
-  /** Year-one base rent in dollars per SF per year. */
-  starting_rent_psf_annual: z.number().finite().nonnegative(),
-  escalation: Escalation.default({ type: "none" }),
-  /** Fully abated months, 1-based (e.g. [1,2,3] for three months free up front). */
-  abated_months: z.array(z.number().int().positive()).default([]),
-  /** Round each step's $/SF/yr to cents, as many lease rent tables do. */
-  round_rate_to_cents: z.boolean().default(false),
-  /** Include a month-by-month table (can be long). */
-  include_monthly: z.boolean().default(false),
+  commencement_date: IsoDate.describe(
+    "Rent commencement date, YYYY-MM-DD. Month n starts on this day-of-month (clamped to month end).",
+  ),
+  term_months: z
+    .number()
+    .int()
+    .positive()
+    .max(1200)
+    .describe("Lease term in months, e.g. 120 for ten years."),
+  area_sf: z.number().positive().describe("Rentable square feet."),
+  starting_rent_psf_annual: z
+    .number()
+    .finite()
+    .nonnegative()
+    .describe("Year-one base rent in dollars per SF per year."),
+  escalation: Escalation.default({ type: "none" }).describe(
+    "How base rent escalates. Omit for flat rent.",
+  ),
+  abated_months: z
+    .array(z.number().int().positive())
+    .default([])
+    .describe(
+      "Fully abated months, 1-based (e.g. [1,2,3] for three months free up front).",
+    ),
+  round_rate_to_cents: z
+    .boolean()
+    .default(false)
+    .describe(
+      "Round each step's $/SF/yr to cents, as many lease rent tables do.",
+    ),
+  include_monthly: z
+    .boolean()
+    .default(false)
+    .describe("Include a month-by-month table (can be long)."),
 });
 export type RentScheduleInput = z.input<typeof RentScheduleInput>;
 
@@ -213,15 +254,27 @@ export function rentSchedule(raw: RentScheduleInput): CalcResult<RentSchedule> {
 }
 
 export const NetEffectiveRentInput = z.object({
-  schedule: RentScheduleInput,
-  /** Landlord-funded tenant improvement allowance, $/SF. */
-  ti_allowance_psf: NonNegMoney.default(0),
-  /** Total leasing commissions paid by landlord, USD. */
-  leasing_commissions: NonNegMoney.default(0),
-  /** Any other landlord concessions paid at commencement (moving allowance, buyout), USD. */
-  other_concessions: NonNegMoney.default(0),
-  /** Annual discount rate; 0 gives the undiscounted (straight-line) NER. */
-  discount_rate_annual: z.number().finite().min(0).lt(1).default(0),
+  schedule: RentScheduleInput.describe(
+    "The lease's base-rent terms (same input as calc_rent_schedule).",
+  ),
+  ti_allowance_psf: NonNegMoney.default(0).describe(
+    "Landlord-funded tenant improvement allowance, $/SF.",
+  ),
+  leasing_commissions: NonNegMoney.default(0).describe(
+    "Total leasing commissions paid by landlord, USD.",
+  ),
+  other_concessions: NonNegMoney.default(0).describe(
+    "Any other landlord concessions paid at commencement (moving allowance, buyout), USD.",
+  ),
+  discount_rate_annual: z
+    .number()
+    .finite()
+    .min(0)
+    .lt(1)
+    .default(0)
+    .describe(
+      "Annual discount rate; 0 gives the undiscounted (straight-line) NER.",
+    ),
 });
 export type NetEffectiveRentInput = z.input<typeof NetEffectiveRentInput>;
 

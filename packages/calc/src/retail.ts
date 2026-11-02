@@ -11,26 +11,49 @@ import {
 import type { CalcResult } from "./core.ts";
 
 export const PercentageRentInput = z.object({
-  /** Gross sales reported for the lease year (or partial year). */
-  gross_sales: NonNegMoney,
-  /** Sales excluded by the lease (returns, sales tax, gift cards, employee sales, …). */
-  sales_exclusions: NonNegMoney.default(0),
-  /** Percentage rent rate, e.g. 0.06 for 6%. */
-  rate: z.number().gt(0).lt(1),
-  /** Annual base rent; used for the natural breakpoint. */
-  base_rent_annual: NonNegMoney,
+  gross_sales: NonNegMoney.describe(
+    "Gross sales reported for the lease year (or partial year).",
+  ),
+  sales_exclusions: NonNegMoney.default(0).describe(
+    "Sales excluded by the lease (returns, sales tax, gift cards, employee sales, …).",
+  ),
+  rate: z
+    .number()
+    .gt(0)
+    .lt(1)
+    .describe("Percentage rent rate, e.g. 0.06 for 6%."),
+  base_rent_annual: NonNegMoney.describe(
+    "Annual base rent; used for the natural breakpoint.",
+  ),
   breakpoint: z
     .discriminatedUnion("type", [
-      /** Natural breakpoint = annual base rent ÷ rate. */
-      z.object({ type: z.literal("natural") }),
-      /** Artificial breakpoint stated in the lease, as an annual sales amount. */
-      z.object({ type: z.literal("fixed"), amount: NonNegMoney }),
+      z
+        .object({ type: z.literal("natural") })
+        .describe("Natural breakpoint = annual base rent ÷ rate."),
+      z
+        .object({
+          type: z.literal("fixed"),
+          amount: NonNegMoney.describe(
+            "Annual sales breakpoint stated in the lease, USD.",
+          ),
+        })
+        .describe("Artificial (fixed) breakpoint stated in the lease."),
     ])
-    .default({ type: "natural" }),
-  /** Fraction of a full lease year covered (e.g. 0.5 for a six-month partial year). Prorates the breakpoint. */
-  period_fraction: z.number().gt(0).lte(1).default(1),
-  /** Percentage rent already paid during the period. */
-  percentage_rent_paid: NonNegMoney.default(0),
+    .default({ type: "natural" })
+    .describe(
+      "Breakpoint above which percentage rent applies. Default: natural.",
+    ),
+  period_fraction: z
+    .number()
+    .gt(0)
+    .lte(1)
+    .default(1)
+    .describe(
+      "Fraction of a full lease year covered (e.g. 0.5 for a six-month partial year). Prorates the breakpoint.",
+    ),
+  percentage_rent_paid: NonNegMoney.default(0).describe(
+    "Percentage rent already paid during the period.",
+  ),
 });
 export type PercentageRentInput = z.input<typeof PercentageRentInput>;
 

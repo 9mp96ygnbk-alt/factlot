@@ -32,56 +32,117 @@ export const CapMethod = z.enum([
 ]);
 
 export const CamReconciliationInput = z.object({
-  year: z.number().int().min(1900).max(2200),
-  /** Tenant's pro rata share, 0 < share ≤ 1 (e.g. 12,000 / 150,000 = 0.08). */
-  pro_rata_share: Share,
+  year: z
+    .number()
+    .int()
+    .min(1900)
+    .max(2200)
+    .describe("Calendar or lease year being reconciled."),
+  pro_rata_share: Share.describe(
+    "Tenant's pro rata share, 0 < share ≤ 1 (e.g. 12,000 / 150,000 = 0.08).",
+  ),
   expenses: z
     .array(
       z.object({
-        category: z.string().min(1),
-        amount: NonNegMoney,
-        /** Subject to the cap. Taxes, insurance, and utilities are typically uncontrollable. */
-        controllable: z.boolean().default(true),
-        /** Excluded expenses (capital items, landlord-only costs) are dropped entirely. */
-        recoverable: z.boolean().default(true),
-        /** Varies with occupancy, so eligible for gross-up (janitorial, utilities, management fee). */
-        variable: z.boolean().default(false),
+        category: z
+          .string()
+          .min(1)
+          .describe(
+            'Expense line as named in the operating statement, e.g. "janitorial".',
+          ),
+        amount: NonNegMoney.describe(
+          "Building-level actual expense for the year, USD.",
+        ),
+        controllable: z
+          .boolean()
+          .default(true)
+          .describe(
+            "Subject to the cap. Taxes, insurance, and utilities are typically uncontrollable.",
+          ),
+        recoverable: z
+          .boolean()
+          .default(true)
+          .describe(
+            "Excluded expenses (capital items, landlord-only costs) are dropped entirely.",
+          ),
+        variable: z
+          .boolean()
+          .default(false)
+          .describe(
+            "Varies with occupancy, so eligible for gross-up (janitorial, utilities, management fee).",
+          ),
       }),
     )
-    .min(1),
+    .min(1)
+    .describe("Building operating expense lines for the year."),
   gross_up: z
     .object({
-      actual_occupancy: Share,
-      target_occupancy: Share.default(0.95),
+      actual_occupancy: Share.describe(
+        "Average occupancy for the year, e.g. 0.82.",
+      ),
+      target_occupancy: Share.default(0.95).describe(
+        "Gross-up occupancy stated in the lease (commonly 0.95 or 1.0).",
+      ),
     })
-    .optional(),
+    .optional()
+    .describe(
+      "Gross up variable expenses to the target occupancy when actual occupancy is lower. Omit if the lease has no gross-up.",
+    ),
   structure: z
     .discriminatedUnion("type", [
-      z.object({ type: z.literal("net") }),
-      /** Tenant pays its share of the excess over base-year expenses (already grossed up). */
-      z.object({
-        type: z.literal("base_year"),
-        base_year_expenses: NonNegMoney,
-      }),
-      /** Tenant pays its share of the excess over a fixed building-level stop. */
-      z.object({ type: z.literal("expense_stop"), stop_amount: NonNegMoney }),
+      z
+        .object({ type: z.literal("net") })
+        .describe(
+          "Tenant pays its full share of recoverable expenses (NNN / net).",
+        ),
+      z
+        .object({
+          type: z.literal("base_year"),
+          base_year_expenses: NonNegMoney.describe(
+            "Total building recoverable expenses in the base year, already grossed up, USD.",
+          ),
+        })
+        .describe(
+          "Tenant pays its share of the excess over base-year expenses.",
+        ),
+      z
+        .object({
+          type: z.literal("expense_stop"),
+          stop_amount: NonNegMoney.describe(
+            "Building-level expense stop, USD per year.",
+          ),
+        })
+        .describe(
+          "Tenant pays its share of the excess over a fixed expense stop.",
+        ),
     ])
-    .default({ type: "net" }),
+    .default({ type: "net" })
+    .describe("Expense structure from the lease. Default: net."),
   cap: z
     .object({
-      method: CapMethod,
-      rate: Rate.refine((r) => r >= 0, "cap rate must be ≥ 0"),
-      /**
-       * Tenant's share of controllable expenses in the reference year: the base year for
-       * `*_from_base`, or the prior year's capped amount for `year_over_year`.
-       */
-      reference_amount: NonNegMoney,
-      /** Years since the base year (required for `*_from_base`). */
-      years_elapsed: z.number().int().nonnegative().optional(),
+      method: CapMethod.describe(
+        "compounding_from_base: reference × (1+rate)^years (often called cumulative, compounding). simple_from_base: reference × (1 + rate × years) (cumulative, non-compounding). year_over_year: prior year's capped amount × (1+rate) (non-cumulative). Map the lease language to one of these explicitly.",
+      ),
+      rate: Rate.refine((r) => r >= 0, "cap rate must be ≥ 0").describe(
+        "Annual cap as a decimal, e.g. 0.05.",
+      ),
+      reference_amount: NonNegMoney.describe(
+        "Tenant's share of controllable expenses in the reference year: the base year for *_from_base, or the prior year's capped amount for year_over_year, USD.",
+      ),
+      years_elapsed: z
+        .number()
+        .int()
+        .nonnegative()
+        .optional()
+        .describe("Years since the base year (required for `*_from_base`)."),
     })
-    .optional(),
-  /** Estimated CAM payments the tenant made during the year. */
-  estimates_paid: NonNegMoney.default(0),
+    .optional()
+    .describe(
+      "Cap on the tenant's share of controllable expenses. Omit if the lease has no cap.",
+    ),
+  estimates_paid: NonNegMoney.default(0).describe(
+    "Estimated CAM payments the tenant made during the year.",
+  ),
 });
 export type CamReconciliationInput = z.input<typeof CamReconciliationInput>;
 

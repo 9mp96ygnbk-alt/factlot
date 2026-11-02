@@ -10,13 +10,17 @@ import {
 } from "./core.ts";
 import type { CalcResult } from "./core.ts";
 
-const CashFlows = z.array(z.number().finite()).min(2);
+const CashFlows = z
+  .array(z.number().finite())
+  .min(2)
+  .describe(
+    "Periodic cash flows at t = 0, 1, 2, …; negative for outflows (e.g. purchase price at t = 0).",
+  );
 
 export const NpvInput = z.object({
   /** Cash flows at t = 0, 1, 2, ... periods. */
   cash_flows: CashFlows,
-  /** Discount rate per period. */
-  rate: z.number().finite().gt(-1),
+  rate: z.number().finite().gt(-1).describe("Discount rate per period."),
 });
 export type NpvInput = z.input<typeof NpvInput>;
 
@@ -37,8 +41,12 @@ export function npv(raw: NpvInput): CalcResult<{ npv: number }> {
 
 export const IrrInput = z.object({
   cash_flows: CashFlows,
-  /** Periods per year, to annualize (12 for monthly flows). */
-  periods_per_year: z.number().int().positive().default(1),
+  periods_per_year: z
+    .number()
+    .int()
+    .positive()
+    .default(1)
+    .describe("Periods per year, to annualize (12 for monthly flows)."),
 });
 export type IrrInput = z.input<typeof IrrInput>;
 

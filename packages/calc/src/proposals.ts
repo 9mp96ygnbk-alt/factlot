@@ -12,32 +12,49 @@ import type { CalcResult } from "./core.ts";
 import { RentScheduleInput, buildMonths } from "./rent.ts";
 
 export const ProposalComparisonInput = z.object({
-  /** Whose economics to rank on. */
-  perspective: z.enum(["tenant", "landlord"]).default("tenant"),
-  /** Annual discount rate applied to every proposal (monthly rate = annual ÷ 12). */
-  discount_rate_annual: z.number().finite().min(0).lt(1).default(0.08),
+  perspective: z
+    .enum(["tenant", "landlord"])
+    .default("tenant")
+    .describe("Whose economics to rank on."),
+  discount_rate_annual: z
+    .number()
+    .finite()
+    .min(0)
+    .lt(1)
+    .default(0.08)
+    .describe(
+      "Annual discount rate applied to every proposal (monthly rate = annual ÷ 12).",
+    ),
   proposals: z
     .array(
       z.object({
-        name: z.string().min(1),
-        schedule: RentScheduleInput,
-        /** TI allowance paid by landlord, $/SF. */
-        ti_allowance_psf: NonNegMoney.default(0),
-        /** Other cash concessions to the tenant at commencement (moving allowance, buyout), USD. */
-        other_concessions: NonNegMoney.default(0),
-        /** Leasing commissions paid by landlord, USD (landlord perspective only). */
-        leasing_commissions: NonNegMoney.default(0),
-        /**
-         * Costs the tenant pays on top of base rent, $/SF/yr — e.g. estimated operating
-         * expenses and taxes on a NNN proposal. Use 0 for full-service gross.
-         */
-        additional_costs_psf_annual: NonNegMoney.default(0),
-        /** Tenant's own costs at commencement not covered by allowances (TI overage, moving), USD. */
-        tenant_upfront_costs: NonNegMoney.default(0),
+        name: z
+          .string()
+          .min(1)
+          .describe("Unique label for the proposal, e.g. building name."),
+        schedule: RentScheduleInput.describe(
+          "Base-rent terms of this proposal (same input as calc_rent_schedule).",
+        ),
+        ti_allowance_psf: NonNegMoney.default(0).describe(
+          "TI allowance paid by landlord, $/SF.",
+        ),
+        other_concessions: NonNegMoney.default(0).describe(
+          "Other cash concessions to the tenant at commencement (moving allowance, buyout), USD.",
+        ),
+        leasing_commissions: NonNegMoney.default(0).describe(
+          "Leasing commissions paid by landlord, USD (landlord perspective only).",
+        ),
+        additional_costs_psf_annual: NonNegMoney.default(0).describe(
+          "Costs the tenant pays on top of base rent, $/SF/yr, e.g. estimated operating expenses and taxes on a NNN proposal. Use 0 for full-service gross.",
+        ),
+        tenant_upfront_costs: NonNegMoney.default(0).describe(
+          "Tenant's own costs at commencement not covered by allowances (TI overage, moving), USD.",
+        ),
       }),
     )
     .min(2)
     .max(20)
+    .describe("2–20 proposals to compare.")
     .refine(
       (ps) => new Set(ps.map((p) => p.name)).size === ps.length,
       "proposal names must be unique",

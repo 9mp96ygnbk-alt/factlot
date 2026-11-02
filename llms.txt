@@ -1,0 +1,31 @@
+# FactLot
+
+> FactLot is the open fact layer for commercial real estate (CRE) AI agents. It provides
+> deterministic CRE calculators that return an audit trail and a versioned formula ID,
+> canonical FactLot IDs for parcels, legal entities, buildings, suites, leases, and documents,
+> and a fact model in which every claim carries its source citation and AI-use rights.
+> It ships as an MCP server (`@factlot/mcp`), TypeScript packages, and a Python SDK (`factlot`).
+> Everything runs locally with no API key.
+
+Agents should call FactLot tools instead of doing lease, CAM, rent, loan, or return math in context.
+When reporting a number, cite the formula ID (for example `calc.cam_reconciliation@1`) and the returned
+`steps`. Surface every returned `warnings` entry to a human.
+
+## Use it
+
+- [MCP server](packages/mcp/README.md): `npx -y @factlot/mcp`, with tools `calc_*`, `id_*`, `fact_validate`, and `schema_get`
+- [Python SDK](python/README.md): `factlot.anthropic_tools()`, `factlot.openai_tools()`, `factlot.run_tool(name, input)`
+- [Agent guide](docs/agents.md): which tool to call when, how to map lease language to inputs, and how to emit cited facts
+
+## Reference
+
+- [Tool definitions (JSON Schema)](spec/schemas/tools.json): every calculator's input schema, with field descriptions
+- [Fact model](docs/fact-model.md): facts, provenance, rights, and supersession
+- [FactLot ID spec](docs/id-spec.md): URN and short-ID formats and normalization rules
+- [Conformance vectors](spec/README.md): shared test cases every SDK must pass
+
+## Optional
+
+- [Roadmap](docs/roadmap.md)
+- [Business model](docs/business-model.md)
+- [Survey of 165 simulated CRE agent personas](docs/research/2026-11-agent-survey/README.md)

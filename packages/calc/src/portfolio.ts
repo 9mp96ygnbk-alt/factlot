@@ -5,18 +5,37 @@ import type { CalcResult } from "./core.ts";
 import { daysBetween } from "./dates.ts";
 
 export const WaltInput = z.object({
-  as_of: IsoDate,
-  weight_by: z.enum(["area", "rent"]).default("area"),
+  as_of: IsoDate.describe("Date to measure remaining term from, YYYY-MM-DD."),
+  weight_by: z
+    .enum(["area", "rent"])
+    .default("area")
+    .describe("Weight each lease by area_sf or annual_rent."),
   leases: z
     .array(
       z.object({
-        id: z.string().optional(),
-        expiration_date: IsoDate,
-        area_sf: z.number().positive().optional(),
-        annual_rent: z.number().positive().optional(),
+        id: z
+          .string()
+          .optional()
+          .describe(
+            "Your identifier for the lease (ideally a FactLot lease ID).",
+          ),
+        expiration_date: IsoDate.describe("Lease expiration date, YYYY-MM-DD."),
+        area_sf: z
+          .number()
+          .positive()
+          .optional()
+          .describe("Leased square feet (required when weight_by is area)."),
+        annual_rent: z
+          .number()
+          .positive()
+          .optional()
+          .describe(
+            "Current annual rent, USD (required when weight_by is rent).",
+          ),
       }),
     )
-    .min(1),
+    .min(1)
+    .describe("Leases in the portfolio or building."),
 });
 export type WaltInput = z.input<typeof WaltInput>;
 

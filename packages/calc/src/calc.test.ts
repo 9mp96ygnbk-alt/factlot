@@ -270,3 +270,31 @@ test("round strips binary noise before rounding half away from zero", () => {
   assert.equal(round(123456789.125, 2), 123456789.13);
   assert.equal(round(1234.5, 0), 1235);
 });
+
+test("every calculator input field is described for agents", async () => {
+  const { z } = await import("zod");
+  const missing: string[] = [];
+  const walk = (s: unknown, path: string): void => {
+    if (!s || typeof s !== "object") return;
+    const o = s as Record<string, unknown>;
+    const props = o.properties as
+      Record<string, Record<string, unknown>> | undefined;
+    for (const [k, v] of Object.entries(props ?? {})) {
+      if (k !== "type" && typeof v.description !== "string")
+        missing.push(`${path}.${k}`);
+      walk(v, `${path}.${k}`);
+    }
+    for (const key of ["items", "oneOf", "anyOf"]) {
+      const sub = o[key];
+      for (const x of Array.isArray(sub) ? sub : sub ? [sub] : [])
+        walk(x, path);
+    }
+  };
+  for (const [name, c] of Object.entries(calculators)) {
+    walk(
+      z.toJSONSchema(c.input, { io: "input", unrepresentable: "any" }),
+      name,
+    );
+  }
+  assert.deepEqual(missing, []);
+});

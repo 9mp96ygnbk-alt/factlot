@@ -9,12 +9,12 @@ another.
 
 FactLot gives every agent three things it can use by default:
 
-| Package                              | What it does                                                                                                                                                                                                 | License    |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- |
-| [`@factlot/calc`](packages/calc)     | Deterministic CRE calculators: rent schedules, net effective rent, CAM reconciliation, loan sizing, WALT, IRR/NPV. Every result includes an audit trail and a versioned formula ID.                          | Apache-2.0 |
-| [`@factlot/id`](packages/id)         | **FactLot ID** gives canonical IDs for parcels, legal entities, buildings, spaces, leases, and documents. IDs are deterministic wherever the world already has a key, so any agent can compute them offline. | Apache-2.0 |
-| [`@factlot/schema`](packages/schema) | The FactLot data model. A fact is one atomic claim with **provenance** (source document, page, clause, method) and **rights** (whether an AI may use or redistribute it).                                    | MIT        |
-| [`@factlot/mcp`](packages/mcp)       | An MCP server that exposes all of the above to Claude and any other MCP-capable agent. It runs locally and needs no API key.                                                                                 | Apache-2.0 |
+| Package                              | What it does                                                                                                                                                                                                              | License    |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| [`@factlot/calc`](packages/calc)     | Deterministic CRE calculators: rent schedules, net effective rent, proposal comparison, percentage rent, CAM reconciliation, loan sizing, WALT, IRR/NPV. Every result includes an audit trail and a versioned formula ID. | Apache-2.0 |
+| [`@factlot/id`](packages/id)         | **FactLot ID** gives canonical IDs for parcels, legal entities, buildings, spaces, leases, and documents. IDs are deterministic wherever the world already has a key, so any agent can compute them offline.              | Apache-2.0 |
+| [`@factlot/schema`](packages/schema) | The FactLot data model. A fact is one atomic claim with **provenance** (source document, page, clause, method) and **rights** (whether an AI may use or redistribute it).                                                 | MIT        |
+| [`@factlot/mcp`](packages/mcp)       | An MCP server that exposes all of the above to Claude and any other MCP-capable agent. It runs locally and needs no API key.                                                                                              | Apache-2.0 |
 
 ## Why
 
@@ -45,12 +45,26 @@ Or in any MCP client config:
 ```
 
 The server provides these tools: `calc_rent_schedule`, `calc_net_effective_rent`,
-`calc_cam_reconciliation`, `calc_debt_sizing`, `calc_walt`, `calc_npv`, `calc_irr`,
+`calc_compare_proposals`, `calc_percentage_rent`, `calc_cam_reconciliation`,
+`calc_debt_sizing`, `calc_walt`, `calc_npv`, `calc_irr`,
 `id_parcel`, `id_entity`, `id_space`, `id_document`, `id_parse`, `fact_validate`,
 and `schema_get`.
 
 > Packages are not yet published to npm. Until they are, build from source (below)
 > and point your client at `node packages/mcp/dist/bin.js`.
+
+## Quick start: Python agents
+
+```python
+import factlot
+
+tools = factlot.anthropic_tools()  # or factlot.openai_tools()
+result = factlot.run_tool("calc_compare_proposals", {...})  # when the model calls a tool
+```
+
+The Python SDK has no dependencies and passes the same [conformance vectors](spec) as the
+TypeScript packages. A differential test runs random inputs through both SDKs in CI and fails on
+any difference, down to the last digit. See [python/README.md](python/README.md).
 
 ## Quick start: use the libraries
 
@@ -101,6 +115,7 @@ See [docs/business-model.md](docs/business-model.md) and [docs/roadmap.md](docs/
 
 ## Docs
 
+- [Agent guide: which tool to call when](docs/agents.md) · [llms.txt](llms.txt)
 - [FactLot ID specification](docs/id-spec.md)
 - [Fact model: provenance and rights](docs/fact-model.md)
 - [Roadmap](docs/roadmap.md)

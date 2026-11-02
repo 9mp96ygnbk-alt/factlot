@@ -43,6 +43,15 @@ test("lists calculator, ID, and schema tools", async () => {
   ]) {
     assert.ok(names.includes(expected), `missing ${expected}`);
   }
+  const cam = tools.find((t) => t.name === "calc_cam_reconciliation");
+  const capProps = (cam?.inputSchema.properties?.cap ?? {}) as {
+    description?: string;
+  };
+  assert.match(
+    capProps.description ?? "",
+    /cap/i,
+    "field descriptions reach agents",
+  );
   const debt = tools.find((t) => t.name === "calc_debt_sizing");
   assert.equal(debt?.inputSchema.type, "object");
   assert.ok(

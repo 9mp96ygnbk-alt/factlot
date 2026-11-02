@@ -13,19 +13,55 @@ import type { CalcResult } from "./core.ts";
 
 export const DebtSizingInput = z
   .object({
-    /** Underwritten net operating income, USD/yr. */
-    noi: z.number().finite().positive(),
-    /** Appraised or underwritten value, USD. Required when max_ltv is set. */
-    value: z.number().finite().positive().optional(),
-    /** Annual interest rate, e.g. 0.065. */
-    rate_annual: z.number().finite().min(0).lt(1),
-    /** Amortization in years; 0 means interest-only. */
-    amortization_years: z.number().int().min(0).max(50),
-    max_ltv: z.number().gt(0).lte(1).optional(),
-    min_dscr: z.number().gt(0).optional(),
-    min_debt_yield: z.number().gt(0).lt(1).optional(),
-    /** Round the final loan amount down to this increment (lenders often use 1,000 or 10,000). */
-    round_down_to: z.number().positive().default(1),
+    noi: z
+      .number()
+      .finite()
+      .positive()
+      .describe("Underwritten net operating income, USD/yr."),
+    value: z
+      .number()
+      .finite()
+      .positive()
+      .optional()
+      .describe(
+        "Appraised or underwritten value, USD. Required when max_ltv is set.",
+      ),
+    rate_annual: z
+      .number()
+      .finite()
+      .min(0)
+      .lt(1)
+      .describe("Annual interest rate, e.g. 0.065."),
+    amortization_years: z
+      .number()
+      .int()
+      .min(0)
+      .max(50)
+      .describe("Amortization in years; 0 means interest-only."),
+    max_ltv: z
+      .number()
+      .gt(0)
+      .lte(1)
+      .optional()
+      .describe("Maximum loan-to-value, e.g. 0.65."),
+    min_dscr: z
+      .number()
+      .gt(0)
+      .optional()
+      .describe("Minimum debt service coverage ratio, e.g. 1.25."),
+    min_debt_yield: z
+      .number()
+      .gt(0)
+      .lt(1)
+      .optional()
+      .describe("Minimum debt yield (NOI ÷ loan), e.g. 0.09."),
+    round_down_to: z
+      .number()
+      .positive()
+      .default(1)
+      .describe(
+        "Round the final loan amount down to this increment (lenders often use 1,000 or 10,000).",
+      ),
   })
   .refine(
     (v) =>
