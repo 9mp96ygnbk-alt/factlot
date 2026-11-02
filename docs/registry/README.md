@@ -94,9 +94,7 @@ return.
 
 1. **Texas adapters.** Harris, then Dallas, then the Comptroller entity data. Each adapter is
    written against the real file layouts once the domains are allowed.
-2. **Retiring dropped parcels.** Handle parcels that disappear from a newer roll, for example
-   through reclassification out of scope, splits, or merges, once real rolls show how each case
-   appears.
-3. **Agent tools.** `registry_get`, `registry_resolve`, `registry_search_address`,
-   `registry_search_entity`, and `registry_owned_by` in the catalog, MCP, and REST, backed by the
-   SQLite file.
+2. **Parcel lineage.** Record splits and merges, linking old parcels to new ones, once real rolls
+   show how each county reports them.
+3. **Hosted registry.** Serve the built database from `@factlot/server` with
+   `FACTLOT_REGISTRY_DB`.
