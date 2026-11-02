@@ -10,8 +10,11 @@ snapshot: 1,628,382 accounts read, 87,717 commercial parcels kept (68,795 F1, 2,
 B1–B4), 880,154 cited facts, 56,796 organisation owners of record, in 42 s. The Dallas CAD
 adapter (`tx_dallas`) loaded the 2026 certified export: 59,645 commercial parcels (F10, F20, B11,
 B12), 537,359 facts, 33,362 organisation owners, in 40 s. The Comptroller adapter
-(`tx_comptroller`) turns the franchise-tax file into entities and links owners of record to them.
-The source review is in [texas-sources.md](texas-sources.md).
+(`tx_comptroller`) loaded 3,272,073 registered Texas entities from the franchise-tax file
+(242,564 rows without an SOS number skipped) in 19 min, and exact-name linking matched 66,132 of
+the 90,158 organisation owners of record (73%): 224 names were ambiguous and 23,802 unmatched,
+which is what fuzzy matching with a review queue (backlog C2) is for. The combined registry file
+is 9.3 GB. The source review is in [texas-sources.md](texas-sources.md).
 
 | Doc                                  | What it covers                                     |
 | ------------------------------------ | -------------------------------------------------- |
