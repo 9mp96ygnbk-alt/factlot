@@ -25,13 +25,14 @@ against a local HTTP server. It enforces the [data policy](data-policy.md):
 - **It identifies itself.** Requests carry the user agent `FactLotRegistryBot/0.1`, which includes
   a contact address.
 - **It obeys robots.txt.** When robots.txt can't be read, it reports the site as _unreachable_
-  rather than pretending the site refused.
+  rather than pretending the site refused. A `Crawl-delay` longer than our own interval wins.
 - **It is rate-limited and avoids repeat downloads.** It enforces a delay per host and uses
   conditional requests.
 - **It stays inside allowed hosts.** It only follows links to hosts allowed for each source.
 - **It discovers before it downloads.** The `discover` step only lists the links on each landing
-  page. The `snapshot` step only archives sources marked `verified: true`, meaning a person has
-  reviewed the publisher's terms and confirmed the file URLs.
+  page, which may be an HTML page or a JSON API response (Harris CAD and TxGIO fill their download
+  pages from one). The `snapshot` step only archives sources marked `verified: true`, meaning a
+  person has reviewed the publisher's terms and confirmed the file URLs.
 - **It records everything in a manifest.** Every decision (archived, unchanged, skipped, refused,
   unreachable, error) is written to `manifest.jsonl`. Archived files are content-addressed
   (`fl:document:sha256-…`), which matches the registry's snapshot citations.
