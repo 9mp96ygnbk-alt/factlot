@@ -17,11 +17,19 @@ const tools = Object.entries(calculators).map(([name, c]) => ({
   title: c.title,
   description: c.description,
   formula: { id: c.id, version: c.version },
-  input_schema: z.toJSONSchema(c.input, { io: "input", unrepresentable: "any" }),
+  input_schema: z.toJSONSchema(c.input, {
+    io: "input",
+    unrepresentable: "any",
+  }),
 }));
 
 const write = (file: string, data: unknown) =>
   writeFileSync(new URL(file, out), `${JSON.stringify(data, null, 2)}\n`);
 write("tools.json", { generated_by: "scripts/gen-schemas.ts", tools });
-write("fact.json", { generated_by: "scripts/gen-schemas.ts", schemas: jsonSchemas() });
-console.log(`wrote ${tools.length} tool schemas and ${Object.keys(jsonSchemas()).length} fact schemas`);
+write("fact.json", {
+  generated_by: "scripts/gen-schemas.ts",
+  schemas: jsonSchemas(),
+});
+console.log(
+  `wrote ${tools.length} tool schemas and ${Object.keys(jsonSchemas()).length} fact schemas`,
+);
