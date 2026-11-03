@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>
+      FactLot: the open fact layer for commercial real estate AI agents
+    </title>
+    <meta
+      name="description"
+      content="FactLot gives commercial real estate AI agents cited facts and deterministic math: 14 calculators with audit trails, canonical IDs, and a public-record registry where every fact cites its source document. Open source."
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+
+    <header class="site-header">
+      <div class="wrap row">
+        <a class="brand" href="#top" aria-label="FactLot home">FactLot</a>
+        <nav aria-label="Page sections">
+          <ul>
+            <li><a href="#layers">Layers</a></li>
+            <li><a href="#how">How it works</a></li>
+            <li><a href="#connect">Connect</a></li>
+            <li><a href="#open-source">Open source</a></li>
+            <li><a href="#principles">Principles</a></li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="hero" id="top" aria-labelledby="hero-title">
+        <div class="wrap">
+          <p class="eyebrow">
+            The open fact layer for commercial real estate AI agents
+          </p>
+          <h1 id="hero-title">
+            AI agents are fluent about commercial real estate, and often wrong
+            about the facts.
+          </h1>
+          <p class="lede">
+            FactLot gives them cited facts and deterministic math they can't get
+            wrong: 14 calculators with audit trails, canonical IDs, and a
+            public-record registry where every fact points at the document it
+            came from.
+          </p>
+          <p class="actions">
+            <a
+              class="button primary"
+              href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/getting-started.md"
+              >Add to your agent</a
+            >
+            <a class="button" href="https://github.com/9mp96ygnbk-alt/factlot"
+              >Read the source</a
+            >
+          </p>
+          <p class="note">
+            Not yet on npm or PyPI: build from source or run the Docker image.
+            The hosted service is not yet public.
+          </p>
+        </div>
+      </section>
+
+      <section id="layers" aria-labelledby="layers-title">
+        <div class="wrap">
+          <h2 id="layers-title">Three layers</h2>
+          <div class="cards">
+            <article class="card">
+              <h3>Tools</h3>
+              <p>
+                14 deterministic calculators: rent schedules, net effective
+                rent, proposal comparison, percentage rent, CAM reconciliation,
+                debt sizing, ASC 842 remeasurement, prepayment and defeasance,
+                WALT, NPV, IRR, lease vs. own, renew vs. relocate, and hotel
+                metrics. Every result carries <code>steps</code> (the audit
+                trail), <code>warnings</code>, and a versioned formula ID such
+                as <code>calc.net_effective_rent@1</code>.
+              </p>
+              <p>
+                Stable FactLot IDs for parcels, legal entities, buildings,
+                spaces, leases, and documents, computable offline. A fact schema
+                in which every claim carries its provenance (document, page,
+                clause, method) and its AI-use rights.
+              </p>
+              <p>
+                <a
+                  href="https://github.com/9mp96ygnbk-alt/factlot/tree/main/packages/calc"
+                  >Calculators</a
+                >
+                ·
+                <a
+                  href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/id-spec.md"
+                  >ID specification</a
+                >
+                ·
+                <a
+                  href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/fact-model.md"
+                  >Fact model</a
+                >
+              </p>
+            </article>
+
+            <article class="card">
+              <h3>Registry</h3>
+              <p>
+                Parcel to owner of record to registered entity, from public
+                records only. Every fact cites the public file it was read from,
+                with the record locator, the publisher's licence, and its AI-use
+                and redistribution status.
+              </p>
+              <dl class="stats">
+                <div>
+                  <dt>Commercial parcels</dt>
+                  <dd>708,538</dd>
+                </div>
+                <div>
+                  <dt>Registered entities</dt>
+                  <dd>12.9 M</dd>
+                </div>
+                <div>
+                  <dt>Verified sources</dt>
+                  <dd>18</dd>
+                </div>
+              </dl>
+              <p class="small">
+                Loaded in full on 2026-11-03 from Texas (Harris, Dallas,
+                Tarrant, Travis, Collin), New York City, Los Angeles, Boston,
+                San Francisco, Denver, Charlotte, Minneapolis, and the District
+                of Columbia, with entity registries from Texas, New York,
+                Colorado, Pennsylvania, and DC. Commercial, industrial, and
+                multifamily parcels only; some public files omit owner names.
+              </p>
+              <p>
+                <a
+                  href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/registry/README.md"
+                  >Registry</a
+                >
+                ·
+                <a
+                  href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/registry/sources/README.md"
+                  >Source catalog</a
+                >
+              </p>
+            </article>
+
+            <article class="card">
+              <h3>Rules and Ingest</h3>
+              <p>
+                Rules packs turn jurisdiction law into code. Each pack cites its
+                statute, carries a version, and stays <code>draft</code> until a
+                named person has checked it against the official text. One pack
+                is verified today: the Texas property-tax protest deadline
+                (checked 2026-11-02).
+              </p>
+              <p>
+                Ingest (a prototype) turns leases and amendments into cited
+                facts. A value is kept only if its verbatim quote appears on the
+                cited page and the numbers, dates, and names in the value are
+                written in that quote. Amendments supersede earlier terms with
+                the history kept; anything uncertain waits for a human.
+              </p>
+              <p>
+                <a
+                  href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/rules.md"
+                  >Rules packs</a
+                >
+                ·
+                <a
+                  href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/ingest.md"
+                  >Lease ingestion</a
+                >
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="how" aria-labelledby="how-title">
+        <div class="wrap">
+          <h2 id="how-title">How it works</h2>
+          <p>
+            An agent calls a tool instead of doing the math in context, then
+            reports the formula and points to the steps. The inputs and values
+            below are the project's shared test vector for net effective rent
+            (<code>spec/vectors/calc/net_effective_rent.json</code>), which both
+            the TypeScript and Python SDKs must reproduce to the last digit. The
+            <code>steps</code> array is elided.
+          </p>
+          <div class="example">
+            <h3>1. The agent calls <code>calc_net_effective_rent</code></h3>
+            <pre><code>{
+  "schedule": {
+    "commencement_date": "2026-01-01",
+    "term_months": 120,
+    "area_sf": 10000,
+    "starting_rent_psf_annual": 40,
+    "abated_months": [1, 2, 3, 4, 5, 6]
+  },
+  "ti_allowance_psf": 50,
+  "leasing_commissions": 100000,
+  "discount_rate_annual": 0.08
+}</code></pre>
+            <h3>
+              2. The tool answers with the value, the formula, and an audit
+              trail
+            </h3>
+            <pre><code>{
+  "value": {
+    "total_rent_due": 3799999.62,
+    "total_landlord_costs": 600000,
+    "effective_rent_psf": 38,
+    "net_effective_rent_psf": 32,
+    "pv_rent": 2568980.49,
+    "discounted_net_effective_rent_psf": 28.4772
+  },
+  "formula": { "id": "calc.net_effective_rent", "version": 1 },
+  "steps": [ … every intermediate value, with its formula … ],
+  "warnings": []
+}</code></pre>
+            <h3>3. A registry lookup comes back cited</h3>
+            <p class="small">
+              Schematic example. This is the documented shape of a registry fact
+              (method, source snapshot, record locator, rights); the owner name
+              is a placeholder and the account number is the one used in the
+              registry documentation.
+            </p>
+            <pre><code>{
+  "subject": "fl:parcel:us-48201:0420150000012",
+  "predicate": "ownership.owner_of_record",
+  "value": "ACME PROPERTIES, L.L.C.",
+  "as_of": "2026-07-25",
+  "provenance": {
+    "method": "public_record",
+    "sources": [
+      {
+        "document_id": "fl:document:sha256-…",
+        "title": "Harris Central Appraisal District: Appraisal roll (real_acct.zip)",
+        "uri": "https://…",
+        "retrieved_at": "2026-11-02T…",
+        "section": "account 0420150000012"
+      }
+    ]
+  },
+  "rights": { "ai_use": "…", "redistribution": "…", "license": "public record" }
+}</code></pre>
+          </div>
+          <p>
+            <a
+              href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/agents.md"
+              >Agent guide: which tool to call when</a
+            >
+          </p>
+        </div>
+      </section>
+
+      <section id="connect" aria-labelledby="connect-title">
+        <div class="wrap">
+          <h2 id="connect-title">Connect</h2>
+          <p>
+            Every platform serves the same tools, generated from one catalog, so
+            a calculation returns the identical answer, steps, and formula ID
+            wherever it was called from.
+          </p>
+          <table>
+            <caption class="visually-hidden">
+              Platforms and their connector guides
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Platform</th>
+                <th scope="col">How to connect</th>
+                <th scope="col">Guide</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Claude</th>
+                <td>
+                  Custom connector (remote MCP), one-click Desktop extension,
+                  Claude Code, Claude API
+                </td>
+                <td>
+                  <a
+                    href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/connectors/claude/README.md"
+                    >Claude guide</a
+                  >
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">ChatGPT and OpenAI</th>
+                <td>
+                  ChatGPT app (developer mode, deep research), Custom GPT
+                  Action, Responses API remote MCP, function calling
+                </td>
+                <td>
+                  <a
+                    href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/connectors/chatgpt/README.md"
+                    >ChatGPT guide</a
+                  >
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Google Gemini</th>
+                <td>
+                  Gemini API function calling, Gemini CLI over MCP, Vertex AI
+                </td>
+                <td>
+                  <a
+                    href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/connectors/gemini/README.md"
+                    >Gemini guide</a
+                  >
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Microsoft Copilot</th>
+                <td>
+                  Copilot Studio (MCP), Power Platform custom connector,
+                  Microsoft 365 Copilot
+                </td>
+                <td>
+                  <a
+                    href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/connectors/microsoft/README.md"
+                    >Copilot guide</a
+                  >
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Amazon Bedrock</th>
+                <td>
+                  Converse API tool config, Bedrock Agents action group (Lambda)
+                </td>
+                <td>
+                  <a
+                    href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/connectors/amazon/README.md"
+                    >Bedrock guide</a
+                  >
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Mistral, xAI, Llama, DeepSeek, and others</th>
+                <td>
+                  OpenAI-compatible function calling, MCP clients, plain HTTP
+                </td>
+                <td>
+                  <a
+                    href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/connectors/others/README.md"
+                    >Others guide</a
+                  >
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="small">
+            Remote platforms need a public HTTPS URL; there is no public
+            endpoint yet, so run the Docker image or the local MCP server. See
+            <a
+              href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/connectors/README.md"
+              >connectors/</a
+            >.
+          </p>
+        </div>
+      </section>
+
+      <section id="open-source" aria-labelledby="os-title">
+        <div class="wrap">
+          <h2 id="os-title">Open source, the Supabase way</h2>
+          <p>
+            The code is free and self-hostable, which matters when leases are
+            confidential. The hosted services that cost real money to run are
+            what we charge for.
+          </p>
+          <ul class="plain">
+            <li>
+              <strong>Schema and SDKs</strong>: <code>@factlot/schema</code> and
+              the client SDKs. MIT, free.
+            </li>
+            <li>
+              <strong>Engine</strong>: calculators, IDs, the MCP server, the
+              remote connector, and the ingest and registry code. Apache-2.0,
+              free, self-hostable.
+            </li>
+            <li>
+              <strong>FactLot Cloud</strong>: the hosted registry, ingest, and
+              rules packs, with SLAs and support. Usage-based with a free tier,
+              no per-seat pricing.
+              <em>Not yet public.</em>
+            </li>
+          </ul>
+          <p>
+            <a
+              href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/business-model.md"
+              >Business model</a
+            >
+            ·
+            <a
+              href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/roadmap.md"
+              >Roadmap</a
+            >
+          </p>
+        </div>
+      </section>
+
+      <section id="principles" aria-labelledby="principles-title">
+        <div class="wrap">
+          <h2 id="principles-title">Principles</h2>
+          <ul class="principles">
+            <li>
+              <strong>Public records only, obtained ethically.</strong> Official
+              bulk downloads, open-data portals, public APIs within their terms,
+              or a records request. No circumventing access controls, no
+              scraping where terms forbid it, no data whose licence forbids
+              redistribution or AI use.
+            </li>
+            <li>
+              <strong>No natural-person names.</strong> The registry keeps
+              commercial parcels and the organisations that own them. A person's
+              name is never stored or indexed, and withheld owner records are
+              never recovered or inferred.
+            </li>
+            <li>
+              <strong>Everything cited.</strong> Uncited facts are rejected.
+              Each fact names its method, its source document and record, and
+              the rights that travel with it.
+            </li>
+            <li>
+              <strong>Deterministic.</strong> The TypeScript and Python SDKs
+              produce the same result, checked by shared test vectors and a
+              differential test that fails on any difference, down to the last
+              digit.
+            </li>
+          </ul>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap">
+        <p>
+          <a href="https://github.com/9mp96ygnbk-alt/factlot">GitHub</a> ·
+          <a href="mailto:contact@factlot.com">contact@factlot.com</a> ·
+          <a href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/LICENSE"
+            >Apache-2.0 (platform) and MIT (schema and SDKs)</a
+          >
+        </p>
+        <p class="small">
+          "FactLot" and the FactLot logo are trademarks of their owner. The
+          open-source licences cover the code, not the name.
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>
