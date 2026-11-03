@@ -5,7 +5,7 @@
 ChatGPT calls connectors "apps". FactLot's MCP server works with ChatGPT in two ways:
 
 - **Developer mode.** Every FactLot tool is available. Open **Settings → Apps → Advanced settings →
-  Developer mode**, create an app, and enter `https://<your-host>/mcp`. Developer mode requires a
+  Developer mode**, create an app, and enter `https://api.factlot.com/mcp`. Developer mode requires a
   paid plan; availability varies by plan.
 - **Deep research and company knowledge.** These only use read-only `search` and `fetch` tools.
   FactLot implements both over its knowledge base (tools, inputs, CRE predicates, and the ID and
@@ -15,7 +15,7 @@ ChatGPT calls connectors "apps". FactLot's MCP server works with ChatGPT in two 
 ## Custom GPT with an Action (OpenAPI)
 
 1. Create a GPT, then go to **Configure → Actions → Create new action**.
-2. Choose **Import from URL** and enter `https://<your-host>/openapi.json`. This is the OpenAPI 3.1
+2. Choose **Import from URL** and enter `https://api.factlot.com/openapi.json`. This is the OpenAPI 3.1
    spec with one operation per tool, 15 in total, under the Actions limit of 30.
 3. Authentication:
    - **None** for an open server.
@@ -36,7 +36,7 @@ from openai import OpenAI
 client = OpenAI()
 response = client.responses.create(
     model=MODEL,
-    tools=[{"type": "mcp", "server_label": "factlot", "server_url": "https://<your-host>/mcp", "require_approval": "never"}],
+    tools=[{"type": "mcp", "server_label": "factlot", "server_url": "https://api.factlot.com/mcp", "require_approval": "never"}],
     input="Compare these two office proposals for my client: ...",
 )
 ```

@@ -4,7 +4,7 @@
 
 1. Deploy the remote connector (see [connectors/README.md](../README.md)) on a public HTTPS URL.
 2. In Claude, open **Settings → Connectors → Add custom connector**.
-3. Enter the URL `https://<your-host>/mcp`. Leave OAuth empty for an open server.
+3. Enter the URL `https://api.factlot.com/mcp`. Leave OAuth empty for an open server.
 4. Enable FactLot in a chat from the tools menu.
 
 Claude connects from Anthropic's cloud, not from your device, so the URL must be publicly reachable.
@@ -29,7 +29,7 @@ no account, no API key, and no network access.
 
 ```bash
 # Remote
-claude mcp add --transport http factlot https://<your-host>/mcp
+claude mcp add --transport http factlot https://api.factlot.com/mcp
 # Local, from a GitHub release (no npm account needed)
 claude mcp add factlot -- npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.1/factlot-mcp-standalone-0.1.1.tgz
 # Local, from a source build
@@ -51,7 +51,7 @@ response = client.beta.messages.create(
     model=MODEL,
     max_tokens=16000,
     betas=["mcp-client-2025-11-20"],
-    mcp_servers=[{"type": "url", "url": "https://<your-host>/mcp", "name": "factlot"}],
+    mcp_servers=[{"type": "url", "url": "https://api.factlot.com/mcp", "name": "factlot"}],
     tools=[{"type": "mcp_toolset", "mcp_server_name": "factlot"}],
     messages=[{"role": "user", "content": "Size a loan: NOI $1.0M, value $15M, 6% / 30-yr, 65% LTV, 1.25x DSCR."}],
 )

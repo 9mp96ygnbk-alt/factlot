@@ -28,7 +28,7 @@ In TypeScript, use `bedrockConverseToolConfig()` from `@factlot/tools`.
 ## Bedrock Agents (action group)
 
 1. Create an action group whose API schema is FactLot's OpenAPI 3.0 document:
-   `https://<your-host>/openapi-3.0.json`, or `factlot.openapi("3.0")` saved to S3.
+   `https://api.factlot.com/openapi-3.0.json`, or `factlot.openapi("3.0")` saved to S3.
 2. For the executor, deploy [`bedrock-agent-lambda/handler.py`](bedrock-agent-lambda/handler.py)
    with the `factlot` package installed beside it (`pip install factlot -t .`). The Lambda runs
    the tools in-process and makes no network calls.

@@ -41,7 +41,7 @@ Add FactLot to `~/.gemini/settings.json`:
 ```json
 {
   "mcpServers": {
-    "factlot": { "httpUrl": "https://<your-host>/mcp" },
+    "factlot": { "httpUrl": "https://api.factlot.com/mcp" },
     "factlot-local": { "command": "npx", "args": ["-y", "@factlot/mcp"] }
   }
 }
@@ -51,4 +51,4 @@ Add FactLot to `~/.gemini/settings.json`:
 
 - **Agent Development Kit and Agent Engine.** Connect to the remote MCP endpoint, or use the
   function declarations above.
-- **OpenAPI-based tools.** Use `https://<your-host>/openapi-3.0.json`.
+- **OpenAPI-based tools.** Use `https://api.factlot.com/openapi-3.0.json`.
