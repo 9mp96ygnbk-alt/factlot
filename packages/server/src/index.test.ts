@@ -6,7 +6,11 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { tools } from "@factlot/tools";
 
-import { createFactLotServer } from "./index.ts";
+import {
+  createFactLotServer,
+  REQUEST_LOG_FIELDS,
+  UsageMeter,
+} from "./index.ts";
 import type { FactLotServerOptions } from "./index.ts";
 
 async function start(opts: FactLotServerOptions = {}) {
@@ -623,4 +627,93 @@ test("no request log unless log is json", async () => {
   await fetch(`${base}/health`);
   await close();
   assert.deepEqual(lines, []);
+});
+
+test("request and usage logs carry metadata only: no body, arguments, or results", async () => {
+  // docs/customer-documents.md, "Logging": document contents never appear in logs. A sentinel
+  // travels in every kind of request body; it must not reach any log line, and the line
+  // schema must have no field that could carry it.
+  const sentinel = "SENTINEL-lease-text-0f3a9c";
+  const { mkdtempSync, readFileSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const file = join(mkdtempSync(join(tmpdir(), "factlot-usage-")), "u.jsonl");
+  const usage = new UsageMeter({ file });
+  const lines: string[] = [];
+  const { base, close } = await start({
+    apiKeys: [{ key: "k-a", name: "tenant-a" }],
+    log: "json",
+    logSink: (l) => lines.push(l),
+    usage,
+  });
+  // REST: a valid call and a rejected one, both with the sentinel in the body.
+  await post(
+    `${base}/v1/calc/percentage_rent`,
+    {
+      gross_sales: 5_000_000,
+      rate: 0.06,
+      base_rent_annual: 240_000,
+      note: sentinel,
+    },
+    { authorization: "Bearer k-a" },
+  );
+  await post(
+    `${base}/v1/id/parse`,
+    { id: sentinel },
+    { authorization: "Bearer k-a" },
+  );
+  // MCP: tool arguments carrying the sentinel.
+  await post(
+    `${base}/mcp`,
+    {
+      jsonrpc: "2.0",
+      id: 1,
+      method: "tools/call",
+      params: { name: "id_parse", arguments: { id: sentinel } },
+    },
+    {
+      authorization: "Bearer k-a",
+      accept: "application/json, text/event-stream",
+    },
+  );
+  // Unauthenticated, with the sentinel as the bearer token and in the body.
+  await post(
+    `${base}/v1/id/parse`,
+    { id: sentinel },
+    { authorization: `Bearer ${sentinel}` },
+  );
+  await close();
+  await usage.flush();
+  const usageLines = readFileSync(file, "utf8").split("\n").filter(Boolean);
+
+  assert.equal(lines.length, 4);
+  const forbidden = [
+    "body",
+    "arguments",
+    "params",
+    "input",
+    "result",
+    "content",
+    "headers",
+    "authorization",
+  ];
+  for (const line of [...lines, ...usageLines]) {
+    assert.ok(
+      !line.includes(sentinel),
+      `log line carries request content: ${line}`,
+    );
+    const keys = Object.keys(JSON.parse(line) as Record<string, unknown>);
+    for (const k of keys) assert.ok(!forbidden.includes(k), `log field ${k}`);
+  }
+  for (const line of lines) {
+    const keys = Object.keys(JSON.parse(line) as Record<string, unknown>);
+    for (const k of keys)
+      assert.ok(
+        (REQUEST_LOG_FIELDS as readonly string[]).includes(k),
+        `unexpected log field ${k}`,
+      );
+  }
+  for (const f of forbidden)
+    assert.ok(!(REQUEST_LOG_FIELDS as readonly string[]).includes(f));
+  assert.ok(usageLines.length >= 3);
 });

@@ -10,6 +10,7 @@ from ..facts import validate_fact
 from ..ids import _base32
 from .documents import LeaseDocument
 from .extract import Candidate, Extractor
+from .retention import DEFAULT_RETENTION_DAYS, redact_report, retention_header
 from .review import ReviewItem, review_id, review_key
 from .verify import CHECK_CONSISTENCY, Verdict, verify
 
@@ -33,6 +34,9 @@ class IngestResult:
     producer: dict[str, str] = field(default_factory=dict)
     rights: dict[str, Any] | None = None
     documents: list[dict[str, Any]] = field(default_factory=list)  # in applied order
+    # Days after ``as_of`` on which a hosted copy of the source documents is deleted
+    # (docs/customer-documents.md). Advisory for self-hosted runs: the files are the user's own.
+    retention_days: int = DEFAULT_RETENTION_DAYS
 
     def summary(self) -> dict[str, int]:
         return {"accepted": len(self.facts), "current": len(self.current), "rejected": len(self.rejected),
@@ -44,23 +48,35 @@ class IngestResult:
     def review_item(self, item_id: str) -> ReviewItem | None:
         return next((r for r in self.review if r.id == item_id), None)
 
-    def to_report(self) -> dict[str, Any]:
-        """The JSON the CLI writes. ``from_report`` reads it back, so review decisions survive runs."""
-        return {"lease_urn": self.lease_urn, "as_of": self.as_of, "producer": self.producer, "rights": self.rights,
-                "documents": self.documents, "summary": self.summary(), "current": self.current, "facts": self.facts,
-                "rejected": [_verdict_record(v) for v in self.rejected],
-                "corrected": [_verdict_record(v) for v in self.corrected],
-                "review": [r.to_dict() for r in self.review]}
+    def to_report(self, *, redact: bool = False) -> dict[str, Any]:
+        """The JSON the CLI writes. ``from_report`` reads it back, so review decisions survive runs.
+
+        The ``retention`` header says when a hosted copy of the source documents is deleted.
+        With ``redact=True`` the report carries document text only as the quotes that are
+        evidence for a fact or a review item (``retention.redact_report``); hosted ingest must
+        persist nothing else. Review decisions survive either way: redaction never touches the
+        review queue.
+        """
+        report = {"lease_urn": self.lease_urn, "as_of": self.as_of,
+                  "retention": retention_header(self.as_of, self.retention_days) if self.as_of else None,
+                  "producer": self.producer, "rights": self.rights,
+                  "documents": self.documents, "summary": self.summary(), "current": self.current, "facts": self.facts,
+                  "rejected": [_verdict_record(v) for v in self.rejected],
+                  "corrected": [_verdict_record(v) for v in self.corrected],
+                  "review": [r.to_dict() for r in self.review]}
+        return redact_report(report) if redact else report
 
     @classmethod
     def from_report(cls, report: dict[str, Any]) -> IngestResult:
+        retention = report.get("retention") or {}
         return cls(facts=list(report.get("facts", [])), current=dict(report.get("current", {})),
                    rejected=[_verdict_from(r) for r in report.get("rejected", [])],
                    corrected=[_verdict_from(r) for r in report.get("corrected", [])],
                    review=[ReviewItem.from_dict(r) for r in report.get("review", [])],
                    lease_urn=report.get("lease_urn", ""), as_of=report.get("as_of", ""),
                    producer=dict(report.get("producer", {})), rights=report.get("rights"),
-                   documents=list(report.get("documents", [])))
+                   documents=list(report.get("documents", [])),
+                   retention_days=int(retention.get("documents_days", DEFAULT_RETENTION_DAYS)))
 
 
 def _verdict_record(v: Verdict) -> dict[str, Any]:
@@ -76,7 +92,8 @@ def _verdict_record(v: Verdict) -> dict[str, Any]:
 
 
 def _verdict_from(d: dict[str, Any]) -> Verdict:
-    cand = Candidate(d["predicate"], d.get("value"), d["quote"], int(d.get("page") or 0))
+    # A redacted report has no quote on a rejected candidate (retention.redact_report).
+    cand = Candidate(d["predicate"], d.get("value"), d.get("quote", ""), int(d.get("page") or 0))
     corrected = "page_found" in d
     return Verdict(cand, corrected and not d.get("check"), d.get("page_found") if corrected else None,
                    d.get("reason"), page_corrected=corrected, check=d.get("check"))
@@ -145,8 +162,12 @@ def place_fact(result: IngestResult, fact: dict[str, Any]) -> None:
 
 def ingest_lease(lease_urn: str, documents: list[LeaseDocument], extractor: Extractor, *, as_of: str,
                  rights: dict[str, Any] | None = None, review: list[ReviewItem] | None = None,
-                 confidence_threshold: float = REVIEW_CONFIDENCE_THRESHOLD) -> IngestResult:
+                 confidence_threshold: float = REVIEW_CONFIDENCE_THRESHOLD,
+                 retention_days: int = DEFAULT_RETENTION_DAYS) -> IngestResult:
     """Extract, verify, and order facts across a lease and its amendments.
+
+    ``retention_days`` sets the report's ``retention.retain_until`` (``as_of`` plus the days): the
+    date after which a hosted copy of the source documents is deleted (docs/customer-documents.md).
 
     Documents are applied in order (original first, then amendments by effective date and
     sequence). A later document's fact for a predicate supersedes the earlier one; the history
@@ -163,7 +184,8 @@ def ingest_lease(lease_urn: str, documents: list[LeaseDocument], extractor: Extr
                           lease_urn=lease_urn, as_of=as_of,
                           producer={"name": extractor.name, "version": extractor.version}, rights=rights,
                           documents=[{"document_id": d.document_id, "title": d.title,
-                                      "effective_date": d.effective_date} for d in order])
+                                      "effective_date": d.effective_date} for d in order],
+                          retention_days=retention_days)
     decided = {r.id: r for r in result.review if r.status != "pending"}
     rejected_pairs = {review_key(r.candidate.predicate, r.candidate.quote)
                       for r in result.review if r.status == "rejected"}
