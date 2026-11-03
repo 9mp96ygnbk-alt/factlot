@@ -71,7 +71,7 @@ cleared.
 - [x] C15 ~~Calculators still on the roadmap: ASC 842 remeasurement, lease-vs-own and renew-vs-relocate, prepayment and defeasance, hotel RevPAR, ADR, and GOP.~~ Done 2026-11-03 (e191020, 0b59e36): five calculators in both SDKs with independently computed vectors; the differential covers them.
 - [x] C16 ~~A release process: versioning, changelog, publishing to npm and PyPI, and signing the `.mcpb` (`mcpb sign`).~~ Done 2026-11-02 (34f9555): `scripts/release/`, `CHANGELOG.md`, `.github/workflows/release.yml`, [release-process.md](release-process.md). Publishing itself waits on the npm and PyPI accounts (A5).
 - [ ] C17 Knowledge-base and documentation links point at `github.com/9mp96ygnbk-alt/factlot`. Update them if the repository lives elsewhere.
-- [ ] C18 A landing page for factlot.com.
+- [x] C18 ~~A landing page for factlot.com.~~ Done 2026-11-03: `site/` (static `index.html` and `styles.css`, no build step; deploy notes in `site/README.md`, verification in `site/CHECKS.md`). Hosting and DNS still to do.
 
 **Business**
 

@@ -18,6 +18,8 @@ from its commit history; nothing was published to npm or PyPI before it.
 
 ### Added
 
+- `site/`: the factlot.com landing page, a static page with no build step, no scripts, and no
+  tracking, with deployment notes and a record of the checks run on it.
 - `calc.lease_remeasurement_asc842@1`: lessee remeasurement of a lease liability and
   right-of-use asset under ASC 842 (modification, lease-term or purchase-option reassessment,
   contingency resolution, residual value guarantee change; index changes warn that they are not
