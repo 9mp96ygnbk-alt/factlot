@@ -27,7 +27,7 @@ import {
 } from "./registry.ts";
 import { INPUT_LIMITS, inputShapeIssue } from "./limits.ts";
 
-export const CATALOG_VERSION = "0.1.0";
+export const CATALOG_VERSION = "0.1.1";
 
 export interface ToolSpec {
   name: string;

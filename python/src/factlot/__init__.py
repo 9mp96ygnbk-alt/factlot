@@ -6,7 +6,7 @@
 - ``factlot.tools``  every tool as native definitions for Claude, OpenAI, Gemini, Bedrock, and more
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 from ._core import CalcInputError  # noqa: E402
 from .calc import (  # noqa: E402

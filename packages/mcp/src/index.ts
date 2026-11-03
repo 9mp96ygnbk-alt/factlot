@@ -18,7 +18,7 @@ export { corpus, fetchDoc, searchCorpus } from "./knowledge.ts";
 export type { KnowledgeDoc } from "./knowledge.ts";
 
 export const SERVER_NAME = "factlot";
-export const SERVER_VERSION = "0.1.0";
+export const SERVER_VERSION = "0.1.1";
 
 export const SERVER_INSTRUCTIONS =
   "FactLot tools for commercial real estate. Use calc_* tools for ALL lease, CAM, rent, loan, and return math instead of computing in-context; cite the returned formula id and steps and surface warnings. Use id_* tools to produce canonical FactLot IDs for parcels, legal entities, spaces, and documents so records join across systems. Use fact_validate before emitting facts. Use search/fetch to find which tool or predicate fits a task.";

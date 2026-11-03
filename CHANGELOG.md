@@ -13,8 +13,13 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-03
+
 ### Added
 
+- Hosted FactLot at `https://api.factlot.com` (`deploy/cloudflare`, a Cloudflare Worker running the unchanged `@factlot/server` handler): remote MCP at `/mcp`, REST and OpenAPI, free with no key at 60 requests a minute per address, and the factlot.com landing page with a pricing section. The MCP Registry entry now lists the remote endpoint.
+- Paid hosted plans through Stripe Checkout: Pro ($49 a month, 600 requests a minute) and Team ($599 a month, 3,000 a minute). Keys are `fl_live_` bearer tokens stored only as hashes and shown once; `/v1/billing/checkout` (agents can start checkout and hand the link to their human), `/v1/billing/portal`, `/v1/billing/rotate`, `/v1/plans`, `/v1/account`, and an optional signed webhook.
+- `registry-sample-dc-2026-11-03`: a downloadable SQLite registry of 18,077 District of Columbia commercial parcels, 5,513 owning entities and 7,908 cited ownership links (CC BY 4.0) for trying the `registry_*` tools.
 - `Registry.purge_person_owners()`: removes owner names that the current person-detection rule reads as natural persons from a registry built under an earlier rule (with their mailing addresses, inferred links and review rows). Run once after upgrading past 0.1.0's tightened `is_organization`.
 - Registry Tier 2 review: 61 more counties (the rest of the US top 100 by population), 28 verified with adapters and tests across 15 states, statewide parcel sources for Wisconsin, Utah, North Carolina, New York, Maryland and Massachusetts, the Connecticut entity registry, and a review record and collector config for every source ([index](docs/registry/tier2/README.md)).
 - Registry statewide loads (2026-11-03): New York outside the city, Maryland, Wisconsin, Massachusetts outside Boston and 23 more Utah counties loaded in full into the scratch registry, 477,121 more commercial parcels in 177 counties (1,008,126 in 207 counties in all, 436,190 with an organisation owner of record); counts per county in each review record.
@@ -230,5 +235,6 @@ From the pre-launch audit ([docs/security/audit-2026-11-03.md](docs/security/aud
   ended (dissolved, revoked, merged, withdrawn), the one still in existence is linked at
   confidence 0.85 (`linked_by_standing`); an unknown status anywhere leaves the name ambiguous.
 
-[Unreleased]: https://github.com/9mp96ygnbk-alt/factlot/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/9mp96ygnbk-alt/factlot/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/9mp96ygnbk-alt/factlot/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/9mp96ygnbk-alt/factlot/releases/tag/v0.1.0
