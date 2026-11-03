@@ -28,7 +28,7 @@ again from it.
 ## What the file contains
 
 31 pages (`returnGeometry=false`, `objectid` order, 2,000 features each; 50,350,777 bytes) of the 60,738 rows of 24 counties whose `useclass1` label is
-one of 41 literal wordings (below). Key columns: `county_pin`, `state_pin`, `owner_name`, `own_add_l1` to `own_add_l4`, address parts (`anumber`, `st_name`,
+one of 25 literal wordings (below). Key columns: `county_pin`, `state_pin`, `owner_name`, `own_add_l1` to `own_add_l4`, address parts (`anumber`, `st_name`,
 `st_pos_typ`, `ctu_name`, `zip`), `emv_land`, `emv_bldg`, `emv_total`, `mkt_year`, `acres_deed`, `acres_poly`, `year_built`, `num_units`, `useclass1`.
 
 `useclass1` is **the county's own text**, different in each county, so the mapping is per label and per county, from the words (the Minnesota property tax
