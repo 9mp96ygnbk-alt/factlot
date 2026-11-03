@@ -1,6 +1,6 @@
 {
   "calculator": "calc.lease_vs_own",
-  "version": 1,
+  "version": 2,
   "notes": "Expected values computed independently with Python decimal (40 significant digits, inputs read as decimal literals, half-up rounding at the same points the formula rounds: cents for money, 4 dp for ratios), in a scratch script outside the repository; FactLot was not run to produce them. Loan balances use the closed-form level-payment formula with monthly payments; break-even residual solves the linear relation between sale price and own-case NPV.",
   "cases": [
     {
@@ -367,6 +367,43 @@
         }
       },
       "expect_error": true
+    },
+    {
+      "name": "loan above cost basis: negative equity warns",
+      "input": {
+        "horizon_years": 1,
+        "discount_rate_annual": 0,
+        "lease": {
+          "rent": {
+            "type": "schedule",
+            "annual_rent": [100000]
+          }
+        },
+        "own": {
+          "purchase_price": 1000000,
+          "loan": {
+            "amount": 1100000,
+            "rate_annual": 0,
+            "amortization_years": 0
+          },
+          "residual": {
+            "type": "value",
+            "amount": 1000000
+          }
+        }
+      },
+      "expect": {
+        "value.lease.npv": 100000,
+        "value.own.npv": 0,
+        "value.own.net_sale_proceeds": -100000,
+        "value.difference_npv": -100000,
+        "value.cheaper": "own",
+        "value.break_even_residual_value": 900000,
+        "warnings": [
+          "Pre-tax comparison: add the tax block to reflect rent deductibility versus interest and depreciation.",
+          "The loan exceeds the purchase price plus closing costs, so equity at closing is negative (cash out at year 0); check the loan amount."
+        ]
+      }
     }
   ]
 }

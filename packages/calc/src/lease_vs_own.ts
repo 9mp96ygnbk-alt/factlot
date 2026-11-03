@@ -572,8 +572,12 @@ export function leaseVsOwn(raw: LeaseVsOwnInput): CalcResult<LeaseVsOwn> {
     t.warn(
       "Break-even residual is more than twice the assumed residual; leasing is strongly favored at these inputs.",
     );
+  if (loan && loan.amount > basis)
+    t.warn(
+      "The loan exceeds the purchase price plus closing costs, so equity at closing is negative (cash out at year 0); check the loan amount.",
+    );
 
-  return t.result("calc.lease_vs_own", 1, {
+  return t.result("calc.lease_vs_own", 2, {
     horizon_years: H,
     after_tax: tax !== undefined,
     lease: { npv: leaseNpv, total_cost: totalLease },

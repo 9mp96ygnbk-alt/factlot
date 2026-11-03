@@ -1212,7 +1212,7 @@
     {
       "name": "calc_irr",
       "title": "Internal rate of return",
-      "description": "Periodic and annualized IRR of periodic cash flows, as decimals (0.085 = 8.5%), solved deterministically; reports every root when cash flows have multiple IRRs. Errors when the flows do not change sign or no root lies between -99.99% and 1000% per period. Deterministic: use this instead of doing the math yourself; cite formula calc.irr@1 and the returned steps, and surface any warnings.",
+      "description": "Periodic and annualized IRR of periodic cash flows, as decimals (0.085 = 8.5%), solved deterministically by scanning a 1-point grid of per-period rates and bisecting each sign change; reports every root it finds when cash flows have multiple IRRs (two roots within one grid step can be missed). Errors when the flows do not change sign or no root lies between -99.99% and 1000% per period. Deterministic: use this instead of doing the math yourself; cite formula calc.irr@1 and the returned steps, and surface any warnings.",
       "path": "/v1/calc/irr",
       "formula": {
         "id": "calc.irr",
@@ -1243,11 +1243,11 @@
     {
       "name": "calc_lease_vs_own",
       "title": "Lease vs. own",
-      "description": "Compare leasing with buying over a fixed horizon: NPV of each case's annual cash costs (rent, free rent, tenant expenses, and move-in costs versus equity, debt service, owner expenses, reserves, and a sale at the horizon by stated value or exit cap rate), optionally after tax, with the year-by-year tables and the break-even residual value at which owning equals leasing. Deterministic: use this instead of doing the math yourself; cite formula calc.lease_vs_own@1 and the returned steps, and surface any warnings.",
+      "description": "Compare leasing with buying over a fixed horizon: NPV of each case's annual cash costs (rent, free rent, tenant expenses, and move-in costs versus equity, debt service, owner expenses, reserves, and a sale at the horizon by stated value or exit cap rate), optionally after tax, with the year-by-year tables and the break-even residual value at which owning equals leasing. Deterministic: use this instead of doing the math yourself; cite formula calc.lease_vs_own@2 and the returned steps, and surface any warnings.",
       "path": "/v1/calc/lease_vs_own",
       "formula": {
         "id": "calc.lease_vs_own",
-        "version": 1
+        "version": 2
       },
       "input_schema": {
         "type": "object",
@@ -1518,11 +1518,11 @@
     {
       "name": "calc_renew_vs_relocate",
       "title": "Renew vs. relocate",
-      "description": "Compare renewing in place with moving over one horizon: NPV and discounted effective rent of each case (rent schedule with free rent, TI net of allowance, fees, moving, downtime, double rent, termination, and disruption costs), the starting rent at which they break even, and year-by-year cash flows. Deterministic: use this instead of doing the math yourself; cite formula calc.renew_vs_relocate@1 and the returned steps, and surface any warnings.",
+      "description": "Compare renewing in place with moving over one horizon: NPV and discounted effective rent of each case (rent schedule with free rent, TI net of allowance, fees, moving, downtime, double rent, termination, and disruption costs), the starting rent at which they break even, and year-by-year cash flows. Deterministic: use this instead of doing the math yourself; cite formula calc.renew_vs_relocate@2 and the returned steps, and surface any warnings.",
       "path": "/v1/calc/renew_vs_relocate",
       "formula": {
         "id": "calc.renew_vs_relocate",
-        "version": 1
+        "version": 2
       },
       "input_schema": {
         "type": "object",

@@ -317,8 +317,16 @@ export function renewVsRelocate(
       "An allowance exceeds the cost it offsets; the excess is treated as not paid out.",
     );
   if (diff === 0) t.warn("The two cases are tied at these inputs.");
+  if (beRelocate !== null && beRelocate < 0)
+    t.warn(
+      "Relocating costs more than renewing even at a $0/SF starting rent (its one-time costs alone exceed the renewal's NPV); the negative break-even relocation rent is not achievable.",
+    );
+  if (beRenew !== null && beRenew < 0)
+    t.warn(
+      "Renewing costs more than relocating even at a $0/SF starting rent (its one-time costs alone exceed the relocation's NPV); the negative break-even renewal rent is not achievable.",
+    );
 
-  return t.result("calc.renew_vs_relocate", 1, {
+  return t.result("calc.renew_vs_relocate", 2, {
     horizon_months: H,
     renew: renewResult,
     relocate: relocateResult,

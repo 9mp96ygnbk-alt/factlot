@@ -131,6 +131,15 @@ from its commit history; nothing was published to npm or PyPI before it.
   digits, so binary noise no longer costs a whole increment (a 57% LTV on $10,000,000 rounded
   to $1,000 returned $5,699,000 instead of $5,700,000). Both SDKs; `reduceNoise` /
   `reduce_noise` added to the core helpers.
+- `calc.renew_vs_relocate@2`: warns when a break-even starting rent is negative (one case's
+  one-time costs alone exceed the other's NPV), instead of reporting an unachievable rent
+  silently.
+- `calc.lease_vs_own@2`: warns when the loan exceeds purchase price plus closing costs (negative
+  equity at closing).
+- Tool descriptions state units, decimal-versus-percent, and periods for every field an agent
+  could misread (NPV rate, one-time TI allowances, `current_rent_monthly`, the first escalation
+  month, hotel `rooms_out_of_order` as off-market room-nights); Gemini definitions spell out
+  exclusive bounds and defaults, which its schema subset drops.
 
 ### Fixed
 
