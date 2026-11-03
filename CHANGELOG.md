@@ -13,6 +13,16 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 
 ## [Unreleased]
 
+### Added
+
+- Claude Code plugin and marketplace (`/plugin marketplace add 9mp96ygnbk-alt/factlot`, then `/plugin install factlot@factlot`): eight CRE skills (loan sizing, lease economics, CAM reconciliation, ASC 842, lease vs own and renewals, investment returns, hotel metrics, Texas protest deadline) that call the hosted FactLot tools and cite formula IDs.
+- `examples/` (curl, Python REST, MCP client, offline SDK, Claude API and OpenAI Responses remote MCP) and `npm run test:hosted`, a live end-to-end check of the hosted service: every conformance vector over REST, every MCP tool against REST, every site page and link, and the checkout paths.
+- Registry Tier 2 expansion: statewide Vermont, Arkansas and Connecticut (CC0 layer) parcels, 24 Minnesota opt-in counties, Montana apartments and industrial parcels, five more North Carolina counties (Guilford, Forsyth, Cumberland, Johnston, New Hanover) and Garfield County, Utah: 228,453 more commercial parcels in 182 counties, with review records and adapters ([expansion notes](docs/registry/tier2/expansion.md)).
+
+### Fixed
+
+- The hosted OpenAPI documents advertised `http://` server URLs; they now advertise `https://api.factlot.com`.
+
 ## [0.1.1] - 2026-11-03
 
 ### Added
