@@ -1,0 +1,28 @@
+{
+  "description": "Montana: commercial, industrial and mixed-use parcels from the Montana State Library statewide Cadastral Framework (Montana Department of Revenue ORION CAMA attributes), for the FactLot Registry collector. See docs/registry/sources/mt-msl-cadastral.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 900
+  },
+  "sources": [
+    {
+      "source_id": "mt-msl-cadastral",
+      "publisher": "Montana State Library, with the Montana Department of Revenue and Flathead, Missoula, Ravalli, Silver Bow and Yellowstone Counties",
+      "landing_pages": [
+        "https://ftpgeoinfo.msl.mt.gov/Data/Spatial/MSDI/Cadastral/Parcels/Statewide/"
+      ],
+      "allowed_hosts": ["ftpgeoinfo.msl.mt.gov"],
+      "files": [
+        "https://ftpgeoinfo.msl.mt.gov/Data/Spatial/MSDI/Cadastral/Parcels/Statewide/MTParcels_SHP.zip"
+      ],
+      "verified": true,
+      "terms_url": "https://mslservices.mt.gov/Geographic_Information/Data/DataList/datalist_Details.aspx?did={b2b3c906-8c40-4a9f-980e-48680a23c165}",
+      "license": "",
+      "ai_use": "",
+      "redistribution": "",
+      "reviewed": "2026-11-03",
+      "notes": ""
+    }
+  ]
+}
