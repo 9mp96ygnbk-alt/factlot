@@ -92,34 +92,15 @@ None. The portal needs no account, login, click-through or fee for the export or
 only blocker on 2026-11-02 was the machine running this review (about 80 KB/s of bandwidth), not
 the publisher.
 
-## Real run
+## Real run (2026-11-03)
 
-Run on 2026-11-02 (US Eastern evening; UTC 2026-11-03). **Sample, not the full file:** the
-machine used for this review had about 80 KB/s of shared bandwidth, so the 1 GB export
-(`.download.part` grew 8 MB in four minutes) was abandoned, and a 50,000-row request ordered by
-`dos_id` was recorded by the collector as `error: The read operation timed out` after 600 s
-without data. The sample that worked is the SODA request
-`https://data.ny.gov/resource/n9v6-gdp6.csv?$limit=20000` (the portal's default row order, DOS
-IDs 1002294 to 999679 as strings), fetched by the collector with a scratch copy of the config
-that lists that URL under the same source id, so the manifest in `collected/ny-dos-entities/`
-records both attempts.
+The full export was archived by the collector (`collected/ny-dos-entities/39ac829345561661/export.csv`, 813,926,983 bytes, document `fl:document:sha256-39ac829345561661814ae84c01c2546609398adb3e706edb2365732d6b74eb11`).
+Command: `python -m factlot.registry.adapters.ny_dos_entities collected/ny-dos-entities/39ac829345561661/export.csv registry.db --as-of 2026-10-30`.
 
-- Collector `discover` on the two landing pages: both `ok`, 0 file links matched (the page is
-  rendered client-side; the export URL is known and confirmed by the download).
-- Snapshot: `collected/ny-dos-entities/735e87aee364acda/n9v6-gdp6.csv`, 4,489,178 bytes,
-  retrieved 2026-11-03T01:33:10+00:00, `Last-Modified: Mon, 02 Nov 2026 12:25:46 GMT`;
-  document id `fl:document:sha256-735e87aee364acda3beccd13b5ac0009c4fa48c48ef2814c678e08f06b5f4cb2`;
-  as-of 2026-10-30 (the last business day of October 2026; the portal shows the dataset updated
-  2026-11-02).
-- `ny_dos_entities.build(..., as_of="2026-10-30")`: rows read 20,000; entities kept 20,000;
-  skipped invalid 0; facts written 99,887; owner links 0 (no parcel data in the test registry);
-  3 seconds. Entity register, so no category split and no organisation-owner count.
-- In the sample: state of formation NY 19,036, DE 717, NJ 52, FL 22, CA 20, unknown 54 (blank
-  or non-US); 19,941 rows with an address (40 of them from the registered agent because the
-  process address was blank), 59 without; entity types LLC 13,935, business corporation 4,398,
-  foreign LLC 745, not-for-profit 505, foreign business corporation 139.
-- Extrapolated: the full 4,309,633-row export would ingest in about 11 minutes at the sample's
-  rate.
+- Rows read 3,631,221; kept 3,631,216; invalid 5; distinct entities in the
+  registry 3,631,216; facts written 18,104,445; 2241 s.
+- After the final linking pass, **82,694 of New York City's 115,733 organisation
+  owners of record resolve to a New York DOS entity** (71%).
 
 ## Known gaps
 
@@ -130,6 +111,5 @@ records both attempts.
 - Initial DOS Filing Date, County, and the principal Location address are not stored (no fields).
 - Non-US jurisdictions of formation (about 650 rows) are left unknown rather than recorded as a
   country.
-- The full export was not archived on this machine (bandwidth); the weekly collector run on a normal
-  connection will fetch it from the confirmed URL. Re-run `discover` monthly: the dataset id is
-  stable but the portal may change the export route again.
+- Re-run `discover` monthly: the dataset id is stable but the portal may change the export route
+  again.

@@ -86,26 +86,26 @@ shared by other collectors; one 10-minute stall produced a read timeout), so the
 needs an unattended run. The feature services page at 1,000 (ITSPE) and 2,000 (CAMA) rows per
 request as an alternative.
 
-## Real run (2026-11-02)
+## Real run (2026-11-03)
 
-The collector's `discover` ran for all three landing pages (one transient
-"Remote end closed connection" on the first request, the other two `ok`; no links, because the
-metadata JSON carries the feature-service URL, not the export URL). The collector's `snapshot` was
-started twice and did not complete the ITSPE export within the session (see Gates); no file was
-archived under `collected/dc-otr-real-property/`.
+This connection drops the Hub's long transfers (five collector attempts: timeouts, truncated
+bodies, and a hang-up on every `Range` request), so the ITSPE export was archived by the weekly
+workflow dispatched for this source (`collect.yml`, run 41576886878, release
+`data-2026-11-03-41576886878`; GitHub's network fetched it in under a minute) and pulled into
+`collected/` with its manifest record: `collected/dc-otr-real-property/e2c6466c4fdcfb1f/ITSPE.csv`, 218,192,664 bytes, document `fl:document:sha256-e2c6466c4fdcfb1f53373b5dd021794496b7eedfd897e95e2e1871b316ca8a37`. The CAMA
+Commercial export (`collected/dc-otr-real-property/8f7bcf285e147592/Computer_Assisted_Mass_Appraisal_-_Commercial.csv`, 3,002,717 bytes, document `fl:document:sha256-8f7bcf285e147592c4901da974a62764bf8bad7597bb2a3fe91ecb158b43135e`) and the use-code table
+(`collected/dc-otr-real-property/d5b4c4278276e48d/Integrated_Tax_System_Property_Use_Codes.csv`, 19,895 bytes, document `fl:document:sha256-d5b4c4278276e48d787a74532b4c030b840ccaf4b5d28e79ffb107924e6c774b`) were archived by the collector here. Command:
 
-Counts below are from a **sample loaded through the official feature services** (same columns,
-same rows as the export) with the collector's user agent and a 2 s interval: the ITSPE rows whose
-`USECODE` is in scope, and the full CAMA Commercial layer. The sample files are in the scratchpad
-(`itspe_commercial_scope.csv`, 4,569,278 bytes; `cama_commercial.csv`, 21,154 rows), not in the repo.
+```
+python -m factlot.registry.adapters.dc_otr collected/dc-otr-real-property/e2c6466c4fdcfb1f/ITSPE.csv registry.db --as-of 2026-11-02 --cama collected/dc-otr-real-property/8f7bcf285e147592/Computer_Assisted_Mass_Appraisal_-_Commercial.csv
+```
 
-- ITSPE in-scope rows read: 18,302; 225 dead SSLs (`DELCODE` Y) skipped; **18,077 parcels kept:
-  F1 9,622, B 8,054, F2 401**; 192,204 facts; 11,607 organisation owners of record (6,470 names were
-  natural persons, not stored); 5.3 s. Most common codes: 025 (3,995), 021 (2,533), 042 (1,689),
-  022 (865), 052 (806), 041 (764), 081 (679), 064 (650).
-- CAMA join: 12,517 parcels got a gross building area and 12,583 a year built.
-- Sample snapshot document id: `fl:document:sha256-a0f0a99f14ad36c8dfe663522529affef0d41b05fe8f1e88dd4b25396334978d`
-  (the sample CSV, not the Hub export; the export's id is recorded by the collector when it completes).
+- In-scope rows read and kept: **18,077** (the same rows the feature-service sample
+  gave on 2026-11-02); facts written 192,206; organisation owners of record
+  11,607; natural persons (not stored) 6,470;
+  invalid 0; 35 s.
+- Owners linked to DC DLCP entities (full file, exact normalized name): **6,922**
+  (59% of organisation owners).
 
 ## Known gaps
 

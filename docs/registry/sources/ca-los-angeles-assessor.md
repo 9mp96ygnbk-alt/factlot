@@ -139,33 +139,28 @@ browse-wrap licence quoted above (the item's `licenseInfo` says users of the RES
 it); nobody clicked anything. Nothing needs the founder, except: the Terms of Use say the County
 may "change, restrict, or discontinue access at any time", so a periodic re-read is advisable.
 
-## Real run
+## Real run (2026-11-03)
 
-**Not completed on 2026-11-02: no full file was archived, so no ingest counts exist yet.** What
-was really run:
+All four use-code exports were archived by the collector once it retried truncated downloads
+(commit 2a1b900; the Azure blob host had reset every earlier attempt), one piece at a time:
 
-- `discover`: both landing pages `ok`; one link found, the FeatureServer URL (robots allowed).
-- `snapshot` (three attempts, `collected/ca-los-angeles-assessor/manifest.jsonl`): the download
-  API resolved correctly every time (302 → 302 → Azure blob, `Content-Length 32,800,230` for the
-  `05%` piece, header and first rows read and matched the layout above), but the network available
-  to this session delivered about 20–30 KB/s to every host tested (including a Cloudflare speed
-  test), and the Azure blob host reset the connection after about 1 MB (`unreachable: [Errno 54]
-Connection reset by peer`, `Remote end closed connection without response`). The `2%` piece
-  answered the 183-byte "Pending" JSON, which the collector archived as
-  `fl:document:sha256-e6d5a5e5916de827296ba2e30d2a7d892a2ead86b6fbfd4a22ba554eb947e78a` (not
-  data). A third attempt was still running when this record was written; re-run
-  `python -m factlot.collector snapshot --config registry/sources/ca/ca-los-angeles-assessor.json --out collected`
-  from a machine with normal bandwidth (about 100 MB in all), then
-  `python -m factlot.registry.adapters.ca_los_angeles collected/ca-los-angeles-assessor/<sha>/csv ... registry.db --as-of 2026-10-14`
-  and fill in: rows read, parcels kept by category, facts, seconds, snapshot document ids.
-- Counts that are real (from `returnCountOnly` / statistics queries against the live service on
-  2026-11-02, UTC 01:08–01:20): 4,856,866 rows in the table, 2,428,433 of them blank; in-scope
-  use-code prefixes `05xx` 70,925 (70,525 R-I + 400 VAC), `1xxx` 69,686 (60,957 C/I + 8,729 VAC),
-  `2xxx` 31,431 (31,096 C/I + 335 VAC), `3xxx` 52,523 (40,601 C/I + 11,922 VAC). Expected kept
-  after the vacant-land exclusion: **B 70,525; F1 92,053; F2 40,601; 203,179 parcels**, all
-  ownerless (0 organisation owners by construction).
-- The synthetic-fixture tests (`python/tests/test_adapter_ca_los_angeles.py`, 4 tests) and the full
-  Python suite (137 tests) pass.
+- `05xx (B)`: `collected/ca-los-angeles-assessor/6bcaa509d390b070/csv`, 32,800,230 bytes, document `fl:document:sha256-6bcaa509d390b070f28c7aed87c3bb0717766869e1134314746c0a8ba64e6095`: rows read 70,525, kept 70,525, invalid 0.
+- `1xxx (F1)`: `collected/ca-los-angeles-assessor/aa55df9d01ebe19c/csv`, 29,954,800 bytes, document `fl:document:sha256-aa55df9d01ebe19cb25d9c1e8d1358318f214f60e469bc73b083ba56cca5130f`: rows read 60,957, kept 60,957, invalid 0.
+- `2xxx (F1)`: `collected/ca-los-angeles-assessor/7112b544c831e2d3/csv`, 14,729,925 bytes, document `fl:document:sha256-7112b544c831e2d3fd4ecec55e36433b43edb22c2ca195d96b69e66dbc03c235`: rows read 31,096, kept 31,096, invalid 0.
+- `3xxx (F2)`: `collected/ca-los-angeles-assessor/13aade2696961c91/csv`, 23,441,992 bytes, document `fl:document:sha256-13aade2696961c9119f12c5836a3b4b3ae635cca0e7a614cfb44d286b78c4253`: rows read 40,601, kept 40,601, invalid 0.
+
+Command (the four pieces in one call, each its own snapshot, `full_roll=False`):
+
+```
+python -m factlot.registry.adapters.ca_los_angeles collected/ca-los-angeles-assessor/<four pieces>/csv registry.db --as-of 2026-10-14
+```
+
+- Parcels kept: **203,179**, exactly the count predicted from the live service's
+  `returnCountOnly` queries on 2026-11-02 (B 70,525; F1 92,053; F2 40,601).
+- Facts written 1,585,362; organisation owners 0 (the public file carries no owner), so no
+  `ownership.*` facts and no entity links.
+- The 183-byte "Pending" placeholder archived on 2026-11-02 is superseded: the collector now
+  recognises an export API's placeholder and records `not_ready` instead of a document.
 
 ## Known gaps
 
@@ -178,8 +173,5 @@ Connection reset by peer`, `Remote end closed connection without response`). The
 - The roll is fetched in four use-code pieces, each its own snapshot and built with
   `full_roll=False`, so parcels that leave the roll are never retired. A full-roll download (1.1 GB)
   would allow retirement; the adapter's `--full` flag supports that file.
-- The Hub download API's "Pending" response (HTTP 200, JSON body) is archived by the collector as
-  if it were data; the manifest for 2026-11-02 holds one such 183-byte document
-  (`fl:document:sha256-e6d5a5e5…`). The collector could recognise `"status":"Pending"` and retry.
 - Only one roll year per item; the `Roll Year` column makes the layout year-agnostic, so the 2027
   roll needs only the new item id in the config and `SOURCE.title`.

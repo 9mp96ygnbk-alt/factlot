@@ -37,6 +37,10 @@ against a local HTTP server. It enforces the [data policy](data-policy.md):
   page, which may be an HTML page or a JSON API response (Harris CAD and TxGIO fill their download
   pages from one). The `snapshot` step only archives sources marked `verified: true`, meaning a
   person has reviewed the publisher's terms and confirmed the file URLs.
+- **It can run from GitHub's network.** The weekly workflow (`collect.yml`) accepts a
+  comma-separated `only` input (`gh workflow run collect.yml -f only=<source ids>`) and publishes
+  what it archives as release assets with manifests. Use it for a file a local connection cannot
+  finish: ArcGIS Hub exports in particular drop long transfers and hang up on `Range` requests.
 - **It records everything in a manifest.** Every decision (archived, unchanged, skipped, refused,
   unreachable, error) is written to `manifest.jsonl`. Archived files are content-addressed
   (`fl:document:sha256-…`), which matches the registry's snapshot citations.

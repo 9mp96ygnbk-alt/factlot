@@ -157,27 +157,23 @@ None for the download: no account, login, click-through, fee or CAPTCHA. For a p
    subclass code definitions; `arl.colorado.gov` and the Legislative Council's PDF archive reset
    or refuse automated connections.
 
-## Real run
+## Real run (2026-11-03)
 
-Sample only (2026-11-02): the shared connection was saturated by twenty collectors, so the full
-hub download through the collector did not finish in the time available. The sample is the first
-4,176,675 bytes of the real commercial export (`…/items/b41d9d86…/csv?layers=49`, fetched with the
-bot's user agent on 2026-11-02 and cut at the last complete line: 10,557 of the 28,213 rows,
-schedule numbers `0003100025000` onward), loaded with
-`python -m factlot.registry.adapters.co_denver commercial-sample.csv co.db --as-of 2026-10-29 --partial`:
+Both exports were archived in full by the collector: commercial `collected/co-denver-assessor/b26caab122d3410d/csv` (11,288,056 bytes,
+document `fl:document:sha256-b26caab122d3410df0fdb730fcf5d2b3dddf2f13f7f857143c259682135ba358`) and residential `collected/co-denver-assessor/1e10868d82885336/csv` (84,771,835 bytes, document `fl:document:sha256-1e10868d8288533611aa02908bfa91bd6167b206def99c04e4c1b6f8cc69f096`). Commands:
 
-- rows read 10,557; kept 3,896 (B 576, F1 3,266, F2 54); out of scope 6,661; invalid 0
-- facts written 36,712; owner-of-record facts 3,232 (organisations); persons or withheld 664 (all
-  persons: the sample has no withheld marker, only `UNKNOWN` placeholders); 1.0 s
-- snapshot document id `fl:document:sha256-206c49ef8e25ab706dba3a6822b9ce441742c7b82e975b56acaf8ca241d16e9d`
-  (the sample file, not the full export)
+```
+python -m factlot.registry.adapters.co_denver collected/co-denver-assessor/b26caab122d3410d/csv registry.db --as-of 2026-10-29
+python -m factlot.registry.adapters.co_denver collected/co-denver-assessor/1e10868d82885336/csv registry.db --as-of 2026-10-29 --partial
+```
 
-The residential export was not loaded. Collector runs the same evening: `discover` on the DCAT feed
-first timed out, then succeeded and listed exactly the two file URLs (`links: 2`); `snapshot`
-recorded "unreachable: Remote end closed connection without response" for both files
-(`collected/co-denver-assessor/manifest.jsonl`). The hub's download API closes the connection on
-the first request for an export it has to regenerate and serves the cached file on the next, so a
-re-run of `snapshot` after a minute is expected to archive both files.
+- Commercial export: rows read 28,213; kept 13,528; out of scope 14,685;
+  invalid 0; facts written 125,453; organisation owners 11,107;
+  natural persons or placeholders 2,421; 3 s.
+- Residential export: rows read 212,870; kept 11 (apartment classes in the residential file);
+  facts written 90; 3 s.
+- Registry total: **13,539 Denver parcels; 11,115 organisation owners; 9,449
+  (85%) linked to Colorado SOS entities** (full file) by exact normalized name.
 
 ## Known gaps
 

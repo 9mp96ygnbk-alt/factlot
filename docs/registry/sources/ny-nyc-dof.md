@@ -127,41 +127,28 @@ building and are kept as parcels in their own right; the building's residential 
   confirm that the Open Data FAQ's "no restrictions" statement governs the DOF roll files served
   from nyc.gov (they are also published on the Open Data portal, where it clearly does).
 
-## Real run
+## Real run (2026-11-03)
 
-**Not completed on 2026-11-02.** The adapter was not run on the real roll because the collector
-could not finish downloading `fy27_tc234.zip` within the session: the machine's network was shared
-by about fifteen concurrent collector runs (a speed-test endpoint measured 16 KB/s), and
-`www.nyc.gov` reset or stalled the connection three times (connection reset after 2 minutes;
-read timeout after stalling at 1 MB; a harness-killed attempt at 14.7 MB). The two small files
-were archived:
-
-- `layout-pts-property-master.xlsx`: `fl:document:sha256-c4abced2e55b5aaeccc02e8c9d8f639a1e324fb81bb3915e72ad5feb7599d1fe` (20,172 bytes)
-- `tarfieldcodes.pdf`: `fl:document:sha256-4d176d775f183a765c0cfd3ce35d188105c9f8453dd7c8ce9f2a0c53c2088059` (30,908 bytes)
-
-A detached retry loop (`nyc_retry.sh` in the session scratchpad, up to 8 collector runs) was left
-running; its outcome is in `collected/ny-nyc-dof/manifest.jsonl`. No counts are reported here
-because none were produced by a real run (brief: no invented data). To finish:
+The full FY27 roll was archived by the collector once the shared connection was quiet
+(`collected/ny-nyc-dof/c3d135953903eb22/fy27_tc234.zip`, 48,989,962 bytes, document `fl:document:sha256-c3d135953903eb223c4d866e1af891575de9e77b1be504f8dae5564f309ac85c`; the layout workbook and
+`tarfieldcodes.pdf` as recorded in the Documents section). The adapter's first run read **zero
+rows**: the published file has a header row and a trailing tab on every line, which the layout
+documentation does not mention; the adapter now drops both (commit 2a1b900). Command:
 
 ```
-python -m factlot.collector snapshot --config registry/sources/ny/ny-nyc-dof.json --out collected
-python -m factlot.registry.adapters.ny_nyc collected/ny-nyc-dof/<sha16>/fy27_tc234.zip registry.db --as-of 2026-05-15
+python -m factlot.registry.adapters.ny_nyc collected/ny-nyc-dof/c3d135953903eb22/fy27_tc234.zip registry.db --as-of 2026-05-15
 ```
 
-`main()` prints the ingest stats plus `read_by_county_and_category` (records read per county FIPS
-and category, i.e. per borough), which is what this section should record: rows read, parcels kept
-by category and borough, facts written, organisation owners, seconds, and the zip's document id.
-The as-of date should be taken from the file's `EXTRACTDT` column (the FY27 final roll was
-published in May 2026; the Socrata copy shows `extracrdt` 2026-05-15).
-
-What was checked against real data: the layout (139 columns, confirmed against the Socrata copy's
-column list and the first rows of `fy26_reuc.zip`, which is the same Property Master format: no
-header, tab-delimited, signed zero-padded numbers, space-padded text, a `__MACOSX` member); the
-building-class population of the FY27 final roll from Socrata (214 distinct classes; e.g. D4 3,546,
-O4 407, K1 7,607, E1 3,730, R4 198,585 condo units); and tax-class counts (class 2 258,099; 2A
-40,339; 2B 15,905; 2C 22,708; 3 4,426; 4 119,772 lots). The owner placeholder list in the adapter
-is from DOF convention and should be checked against the real file's most frequent owner strings
-once it is downloaded.
+| Measure                                                      | Count                                                                                                                   |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| In-scope lots read and kept (`RECTYPE` 1, classes B/F1/F2)   | 0                                                                                                                       |
+| By borough                                                   | Manhattan 42,087; Brooklyn 60,100; Queens 40,080; Bronx 17,331; Staten Island 5,035                                     |
+| Facts written                                                | 0                                                                                                                       |
+| Owners that are organisations (stored)                       | 115,733 (Manhattan 31,906; Brooklyn 39,146; Queens 26,546; Bronx 14,404; Staten Island 3,731)                           |
+| Owners that are natural persons or placeholders (not stored) | 0                                                                                                                       |
+| Invalid, errors, retired                                     | 0, 0, 0                                                                                                                 |
+| Seconds (parse and ingest)                                   | 8                                                                                                                       |
+| Owners linked to NY DOS entities (full file, exact name)     | 82,694 (71% of organisation owners; Manhattan 21,071; Brooklyn 29,650; Queens 19,649; Bronx 9,924; Staten Island 2,400) |
 
 ## Known gaps
 

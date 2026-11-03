@@ -81,30 +81,16 @@ county code and the point are not stored either.
 None. No account, login, click-through, CAPTCHA or fee. The only blocker on 2026-11-02 was the
 review machine's bandwidth (about 60 KB/s), not the publisher.
 
-## Real run
+## Real run (2026-11-03)
 
-Run on 2026-11-02 (US Central evening; UTC 2026-11-03). **Sample, not the full file.** The v3 export
-streamed 16 MB in 18 minutes and the SODA request `?$limit=3000000` about 4 MB per minute, so
-the roughly 400 MB file would have taken well over an hour; both were stopped (the brief's 30-minute
-limit) and a 20,000-row request was archived instead. The sample is the first 20,000 rows in the
-portal's default order, which is alphabetical by business name (it starts at "001care Inc"), so it
-over-represents names beginning with digits and early letters.
+The full export was archived by the collector (`collected/pa-sos-entities/b385eeddf8631368/export.csv`, 402,718,857 bytes, document `fl:document:sha256-b385eeddf8631368472bf1133d806843f9e890be3d6c2f3f12ebea7fe2c10cd9`).
+Command: `python -m factlot.registry.adapters.pa_sos_entities collected/pa-sos-entities/b385eeddf8631368/export.csv registry.db --as-of 2026-10-06`.
 
-- Collector `discover` on the metadata page: `ok`, 0 file links matched (a JSON page; the file URL is
-  known from the portal).
-- Snapshot (via a scratch copy of the config whose `files` lists the SODA sample URL, same source id):
-  `collected/pa-sos-entities/68b25849aa06e515/3urc-uaba.csv`, 3,426,712 bytes, retrieved
-  2026-11-03T01:45:32+00:00, `Last-Modified: Tue, 06 Oct 2026 12:56:05 GMT`; document id
-  `fl:document:sha256-68b25849aa06e5156731985dacb253e731e3cdb5a68b23c02e06b9c86240f267`; as-of 2026-10-06.
-- `pa_sos_entities.build(..., as_of="2026-10-06")`: rows read 20,000; entities kept 20,000; skipped
-  invalid 0; facts written 98,980; owner links 0 (no parcel data in the test registry); 3 seconds.
-  Entity register, so no category split and no organisation-owner count.
-- In the sample: state of formation PA 18,980 (domestic), unknown 1,020 (foreign); every row has a
-  filing number (10 digits) and an address; types Domestic LLC 13,144, Domestic Business Corporation
-  3,173, Domestic LP 1,853, Domestic Nonprofit 805, Foreign LLC 741, Foreign Business Corporation 199,
-  Foreign LP 69, Foreign Nonprofit 10, Domestic Business Trust 3, Domestic GP 2, Foreign LLGP 1.
-- Extrapolated: the full 2.38 million rows would ingest in about six to seven minutes at the
-  sample's rate.
+- Rows read 2,376,248; kept 2,376,248; invalid 0; distinct entities in the
+  registry 2,376,226; facts written 9,504,660; 453 s.
+- Entity register, so no category split and no organisation-owner count. No Pennsylvania
+  parcel source is loaded yet (Philadelphia is gated on terms), so the links made at load time
+  are cross-state exact-name matches (backlog C23).
 
 ## Known gaps
 
@@ -112,7 +98,5 @@ over-represents names beginning with digits and early letters.
   owner to a `listed` entity therefore says only that the name is registered, not that it is in good standing.
 - No entity type, county or officer data is stored. The parent dataset names officers (natural
   persons) and is deliberately not used.
-- The full export was not archived on the review machine; the weekly collector run on a normal
-  connection will fetch it from the confirmed URL. If the export route stalls, page the SODA
-  resource instead. Re-run `discover` monthly.
+- Re-run `discover` monthly; if the export route stalls, page the SODA resource instead.
 - Foreign entities have no state of formation in this dataset.

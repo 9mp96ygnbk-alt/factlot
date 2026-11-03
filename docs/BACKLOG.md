@@ -81,6 +81,15 @@ cleared.
 **The factlease repository**
 
 - [ ] C21 Apply the four fixes from the original code review: typecheck tests, `erasableSyntaxOnly`, nested test glob, and CI. Or retire the STATE skeleton.
+- [ ] C23 Owner linking across states. `link_owners()` links a parcel's owner of record to the
+      one entity anywhere in the registry with the same normalized name. With four state
+      registries loaded, parcels in states with no entity source still got links: Hennepin
+      1,312 and Mecklenburg 1,535 owners "resolved" to entities
+      registered in New York, Colorado, Pennsylvania or DC. Some are real (foreign-registered
+      owners), most are coincidences of common names. Require the entity's state of formation (or
+      a registration in the parcel's state) to match, or the owner's mailing-address state, before
+      an `inferred` link; send the rest to the fuzzy review queue at lower confidence. Re-run the
+      linking pass afterwards and update the catalog's link counts.
 - [x] C22 ~~After FactLot is pushed to its own repository, delete `backups/` from the factlease branch.~~ Done 2026-11-02 (factlease e45b6ad): the bundle is gone and `docs/factlot-backlog.md` there points here.
 
 ## D. Known limitations (by design for now; revisit)
@@ -119,6 +128,8 @@ only the founder can take, grouped by kind:
 - **Human reads of blocked pages:** Florida Sunbiz data-download terms (bot challenge), Illinois
   SOS bulk files (403 to non-browsers), DataSF terms page, Open Data DC terms page, Socrata and
   Esri Hub platform terms (A11).
-- **Full loads to run on a quiet connection:** New York City, Los Angeles, Hennepin, Mecklenburg,
-  Denver, DC, and the New York, Colorado, Pennsylvania, and DC entity files (the reviews loaded
-  samples because twenty collectors shared one link).
+- ~~**Full loads to run on a quiet connection:** New York City, Los Angeles, Hennepin, Mecklenburg,
+  Denver, DC, and the New York, Colorado, Pennsylvania, and DC entity files.~~ Done 2026-11-03:
+  every verified source is loaded in full (counts in the catalog). The three ArcGIS Hub exports
+  came through the weekly workflow (`gh workflow run collect.yml -f only=<ids>`), which is the
+  route to use for any file this connection cannot finish.

@@ -155,43 +155,37 @@ otherwise. The adapter maps by code, so an unlisted code yields no record.
   person may want to confirm with Hennepin County GIS that automated downloads from the Hub are
   welcome (the metadata lists no contact; the Hub site does).
 
-## Real run (2026-11-02)
+## Real run (2026-11-03)
 
 - `discover`: both landing pages `ok`; 0 links found (the Hub page is a JavaScript application and
   the item JSON's `url` points at gis.hennepin.us, which is not an allowed host), so the files
   are listed explicitly.
 - `snapshot`: `metadata.xml` archived, 61,952 bytes, document
   `fl:document:sha256-eb750deb74f18889a24277096aa5d3574edce562cf729d45b8b6783eab1bee12`. The
-  CSV: first attempt `unreachable: Remote end closed connection without response` (recorded in
-  `collected/mn-hennepin-assessor/manifest.jsonl`); second attempt streaming at ~14 KB/s and
-  left running detached (its manifest line will appear when it finishes).
-- **Adapter run on the real sample** (the first 4,194,054 bytes of the stream, 5,141 complete
-  rows, all in Minneapolis and Bloomington; built into a scratch registry, not committed):
+  CSV could not be completed from this connection (truncated at 56 MiB, then a hang-up on every
+  `Range` request; `collected/mn-hennepin-assessor/manifest.jsonl`), so it was archived by the
+  weekly workflow dispatched for this source (run 41576886878, release
+  `data-2026-11-03-41576886878`) and pulled into `collected/` with its manifest record:
+  `collected/mn-hennepin-assessor/7877c3f7393f9c55/County_Parcels.csv`, 362,577,002 bytes, document `fl:document:sha256-7877c3f7393f9c557d5311eb8ffa5ecf497f9a08b042e7ae2f996a58e493da1f`.
+- **Adapter run on the full file** (`python -m factlot.registry.adapters.mn_hennepin collected/mn-hennepin-assessor/7877c3f7393f9c55/County_Parcels.csv registry.db --as-of 2026-10-22`):
 
-  | Measure                                                 | Count                                                                                                                           |
-  | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-  | rows read                                               | 5,141 (5,134 status `0`; 7 status blank, no tax attributes)                                                                     |
-  | parcels kept                                            | 335 = B 108, F1 181, F2 46                                                                                                      |
-  | out of scope (dropped by the adapter)                   | 4,799 (4,012 of them `R` RESIDENTIAL)                                                                                           |
-  | facts written                                           | 3,004                                                                                                                           |
-  | organisation owners (`ownership.owner_of_record` facts) | 242                                                                                                                             |
-  | natural-person owners (name not stored)                 | 93                                                                                                                              |
-  | withheld owners                                         | 0 identifiable (no flag in the file)                                                                                            |
-  | seconds                                                 | 0.33                                                                                                                            |
-  | sample document id                                      | `fl:document:sha256-bf556bb5843270c87916ca4611153023116590add6bb9ad34895611fc71e6789` (the sample file, not the published file) |
+  | Measure                                                 | Count   |
+  | ------------------------------------------------------- | ------- |
+  | in-scope parcels kept (the adapter tallies these only)  | 19,840  |
+  | facts written                                           | 179,630 |
+  | organisation owners (`ownership.owner_of_record` facts) | 15,438  |
+  | natural-person owners (name not stored)                 | 4,402   |
+  | invalid, errors, retired                                | 0, 0, 0 |
+  | seconds                                                 | 49      |
 
-  Other observations on the sample: no duplicate PIDs; every PID 13 digits; 164 rows with
-  `BUILD_YR` `0000`; 143 rows with `MKT_VAL_TOT` 0; `PARCEL_AREA` never 0; owner and taxpayer
-  names agree on 3,033 of 5,141 rows; no placeholder owner names (`UNKNOWN` and the like) seen;
-  124 rows carry a condo unit number.
-
+- Owner linking: there is no Minnesota entity source (purchase gate). 1,312 owners
+  matched an entity registered in New York, Colorado, Pennsylvania or DC by exact name; those are
+  cross-state matches of uncertain value (backlog C23).
 - Unit tests: `python/tests/test_adapter_mn_hennepin.py`, 4 tests, pass with the rest of the
-  Python suite (161 tests).
+  Python suite.
 
 ## Known gaps
 
-- **Sample, not the full roll.** Counts above cover the first 5,141 rows. The full file (about
-  430,000 parcels countywide) has not yet been archived in this run.
 - **Class 4d (LOW INCOME RENTAL, `HL`/`HR`)** is excluded: it is a tax classification that
   covers both apartment buildings and single-unit rentals, so it cannot be mapped to B without
   unit counts. A person may decide to include it. Likewise `NH` MED/CARE FACILITY (nursing homes,

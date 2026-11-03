@@ -52,17 +52,19 @@ None (no account, click-through, fee, or CAPTCHA). The Hub export streams slowly
 record); the collector's first `snapshot` attempt is recorded in
 `collected/dc-dlcp-entities/manifest.jsonl` as `error: The read operation timed out`.
 
-## Real run (2026-11-02)
+## Real run (2026-11-03)
 
-Sample loaded through the feature service (first 100,000 rows by OBJECTID requested; 77,444 rows
-were on disk when the adapter ran), with the collector's user agent and a 2 s interval; the file
-is in the scratchpad (`corporate_registration_sample.csv`), not in the repo.
+The full export was archived by the collector (`collected/dc-dlcp-entities/956587df9b128cef/Corporate_Registration.csv`, 163,355,532 bytes, document `fl:document:sha256-956587df9b128cef68d934a7e1f1d491624d7b3470a2e47e52b46c5c7ece036d`).
+Command: `python -m factlot.registry.adapters.dc_dlcp_entities collected/dc-dlcp-entities/956587df9b128cef/Corporate_Registration.csv registry.db --as-of 2026-11-02`.
 
-- 77,444 rows read, 77,444 entities kept, 0 skipped; 327,197 facts; 16.3 s (including linking).
-- Statuses in the sample: revoked 47,733; active in good standing 18,240; dissolved 5,042;
-  withdrawn 4,817; merged 904; inactive/cancelled 404; terminated 107; domesticated 96.
-- Owner linking against the OTR sample (11,607 organisation owners): 1,203 linked, 1 ambiguous,
-  10,403 unmatched (a 15 % entity sample; expect far more with the full file).
+- Rows read 506,311; kept 506,311; invalid 0; distinct entities in the
+  registry 506,305; facts written 2,140,408; 375 s.
+- Archived by the weekly workflow dispatched for this source (run 41576886878, release
+  `data-2026-11-03-41576886878`) because this connection dropped the Hub's transfer on every
+  attempt; pulled into `collected/` with its manifest record.
+- After the final linking pass over every loaded source, **6,922 of DC's
+  11,607 organisation owners of record resolve to a DLCP entity** by exact
+  normalized name.
 
 ## Known gaps
 

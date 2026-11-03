@@ -96,29 +96,24 @@ Codes seen on the sample but not in the PDF: `AF01`, `AF04`, `AF09`, `AF60`, `C7
 None for access. For a human read before go-live: the "does not support secondary distribution"
 sentence and the stale FGDC access constraints quoted above.
 
-## Real run
+## Real run (2026-11-03)
 
-The host serves about 10–20 KB/s to the collector (3 MB of `Cama_Table.zip` took 313 s), so the
-full 87 MB file takes about two hours; per the brief the adapter was run on a **sample**: the
-first 3,000,001 bytes of `Cama_Table.zip` (HTTP range request, 2026-11-02), inflated to the first
-15,649 complete rows of `Cama_Table.csv` (13,194,730 bytes, document
-`fl:document:sha256-762fb0ab363796c1e3db9d041a84cff2664d28efa94a412738ee3207d0558bd6`), into a
-scratch registry:
+The full `Cama_Table.zip` was archived by the collector on its second sequential attempt
+(`collected/nc-mecklenburg-assessor/cc46ea8721837914/Cama_Table.zip`, 87,620,621 bytes, document `fl:document:sha256-cc46ea87218379144e4d3082fca6bdb7e871c06f86d8b87166bdaa629f883aff`; the first attempt timed out while twenty
+collectors shared the link), together with `OwnerInfo_Table.zip` (`collected/nc-mecklenburg-assessor/bd5e04f936b1af14/OwnerInfo_Table.zip`, 44,333,737 bytes,
+document `fl:document:sha256-bd5e04f936b1af147a2055dd7d2f02951ef7cb1492fba8b4ef5f1ce32b030038`) and the land-use code PDF. Command:
 
-- rows read: 15,649 (15,161 distinct parcels; 195 parcels with more than one building row)
-- parcels kept: 983 (`F1` 590, `F2` 268, `B` 125); top codes `C700` 254, `I600` 201, `O424` 200,
-  `A500` 99, `I647` 59, `O400` 54, `C735` 34, `A562` 17, `AF60` 9
-- with situs 922, with land area 674, with improvement area 768, with year built 769
-- facts written: 10,647; owners stored (organisations): 808; owners that were natural persons: 175;
-  withheld: 0 (the file has no marker); skipped invalid: 0
-- `link_owners()` after loading `nc-sos-entities`: **0 linked, 0 ambiguous, 808 unmatched**,
-  because no North Carolina entity data could be loaded (the SOS file is sold by subscription; see
-  `nc-sos-entities.md`). Linking across the two sources is exercised only by the synthetic test
-  `test_adapter_nc_sos_entities.test_build_links_owners_to_entities`.
-- seconds: 0.8 for the sample (the full file is about 28 times larger)
+```
+python -m factlot.registry.adapters.nc_mecklenburg collected/nc-mecklenburg-assessor/cc46ea8721837914/Cama_Table.zip registry.db --as-of 2026-11-02
+```
 
-The collector's full `snapshot` run was started on 2026-11-02 (`collected/nc-mecklenburg-assessor/`)
-and left running; its manifest records the archived documents when it completes.
+- parcels kept: **23,686**; facts written 257,142; organisation owners
+  19,696; natural persons (not stored) 3,990;
+  withheld 0 (no marker in the file); invalid 0; 30 s.
+- Owner linking: no North Carolina entity source (the SOS file is sold by subscription; see
+  `nc-sos-entities.md`). 1,535 owners matched an entity registered in New York,
+  Colorado, Pennsylvania or DC by exact name; those are cross-state matches of uncertain value
+  (backlog C23).
 
 ## Known gaps
 

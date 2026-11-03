@@ -72,25 +72,15 @@ None for the download: no account, login, click-through, fee or CAPTCHA. A perso
 the platform's own terms (as for every Socrata portal in the registry) and should decide where the
 State's required disclaimer is shown.
 
-## Real run
+## Real run (2026-11-03)
 
-Sample only (2026-11-02): the collector's download of the 3.1-million-row export stalled on a
-saturated shared connection (at 8 MiB for ten minutes, twice), so the first 9,437,018 bytes it had
-archived (`.download.part`, cut at the last complete line: 37,717 rows, the oldest entities in the
-file, 1864 onward) were loaded with
-`python -m factlot.registry.adapters.co_sos_entities entities-sample.csv co.db --as-of 2026-11-02`
-into the scratch registry that already held the Denver commercial sample:
+The full export was archived by the collector (`collected/co-sos-entities/a92bf7fb1236bc86/export.csv`, 819,036,143 bytes, document `fl:document:sha256-a92bf7fb1236bc86cfe080bbfe6f87d4e33650b3187ae67680eddd898eccf074`).
+Command: `python -m factlot.registry.adapters.co_sos_entities collected/co-sos-entities/a92bf7fb1236bc86/export.csv registry.db --as-of 2026-11-02`.
 
-- rows read 37,717; kept 37,717; invalid 0; facts written 183,984; 6.7 s
-- statuses in the sample: good_standing 20,490; voluntarily_dissolved 5,365;
-  administratively_dissolved 4,909; delinquent 3,332; exists 1,135; merged 873; …
-- `link_owners()` over the 3,232 Denver owner-of-record facts: linked 83, ambiguous 0,
-  unmatched 3,149 (the sample holds about 1% of the entities, so most owners have no candidate yet)
-- snapshot document id `fl:document:sha256-77e894593f76a381c5d1aafb2c6f0dce2428d672e268f3294eab4a240ec66867`
-  (the sample file, not the full export)
-
-The collector's `discover` succeeded on both landing pages (`links: 0`: the portal's page links do
-not match the file pattern, which is fine because `files` is explicit).
+- Rows read 3,132,613; kept 3,132,612; invalid 1; distinct entities in the
+  registry 3,132,612; facts written 15,567,366; 1433 s.
+- After the final linking pass, **9,449 of Denver's 11,115
+  organisation owners of record resolve to a Colorado entity** (85%).
 
 ## Known gaps
 
