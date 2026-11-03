@@ -14,7 +14,7 @@ When reporting a number, cite the formula ID (for example `calc.cam_reconciliati
 ## Use it
 
 - [Connectors](connectors/README.md): remote MCP at `https://<host>/mcp` and REST/OpenAPI at `/v1` and `/openapi.json`, with setup for Claude, ChatGPT, Gemini, Copilot, Bedrock, and others
-- [MCP server](packages/mcp/README.md): `npx -y @factlot/mcp`, with tools `calc_*`, `id_*`, `fact_validate`, and `schema_get`
+- [MCP server](packages/mcp/README.md): `npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.0/factlot-mcp-standalone-0.1.0.tgz` (or `npx -y @factlot/mcp` after first publish to npm), with tools `calc_*`, `id_*`, `fact_validate`, and `schema_get`
 - [Python SDK](python/README.md): `factlot.anthropic_tools()`, `factlot.openai_tools()`, `factlot.run_tool(name, input)`
 - [Agent guide](docs/agents.md): which tool to call when, how to map lease language to inputs, and how to emit cited facts
 
