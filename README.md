@@ -25,15 +25,16 @@ allow $10.5 million), with every intermediate step, its formula, and the version
 
 ## Connect your agent
 
-| Client                         | How                                                                                                                                                                                              |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Claude Code                    | `claude mcp add --transport http factlot https://api.factlot.com/mcp`                                                                                                                            |
-| Claude (web and Desktop)       | Settings, Connectors, Add custom connector: `https://api.factlot.com/mcp`. Or open [`factlot-0.1.1.mcpb`](https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.1/factlot-0.1.1.mcpb) |
-| ChatGPT                        | Developer mode app with `https://api.factlot.com/mcp`, or a Custom GPT Action importing `https://api.factlot.com/openapi-3.0.json`                                                               |
-| Cursor, VS Code, other clients | Remote MCP URL `https://api.factlot.com/mcp` ([guides](connectors/README.md))                                                                                                                    |
-| Any MCP client, run locally    | `npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.1/factlot-mcp-standalone-0.1.1.tgz` (Node.js 22.6+, no network calls)                                                   |
-| Python agents                  | `pip install "git+https://github.com/9mp96ygnbk-alt/factlot.git@v0.1.1#subdirectory=python"`                                                                                                     |
-| Self-hosted REST and MCP       | `docker run -p 8787:8787 ghcr.io/9mp96ygnbk-alt/factlot:0.1.1`                                                                                                                                   |
+| Client                         | How                                                                                                                                                                                                                                       |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Claude Code plugin             | `/plugin marketplace add 9mp96ygnbk-alt/factlot`, then `/plugin install factlot@factlot`: eight CRE skills (loan sizing, lease economics, CAM, ASC 842, returns and more) wired to the hosted tools ([plugin](plugins/factlot/README.md)) |
+| Claude Code                    | `claude mcp add --transport http factlot https://api.factlot.com/mcp`                                                                                                                                                                     |
+| Claude (web and Desktop)       | Settings, Connectors, Add custom connector: `https://api.factlot.com/mcp`. Or open [`factlot-0.1.1.mcpb`](https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.1/factlot-0.1.1.mcpb)                                          |
+| ChatGPT                        | Developer mode app with `https://api.factlot.com/mcp`, or a Custom GPT Action importing `https://api.factlot.com/openapi-3.0.json`                                                                                                        |
+| Cursor, VS Code, other clients | Remote MCP URL `https://api.factlot.com/mcp` ([guides](connectors/README.md))                                                                                                                                                             |
+| Any MCP client, run locally    | `npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.1/factlot-mcp-standalone-0.1.1.tgz` (Node.js 22.6+, no network calls)                                                                                            |
+| Python agents                  | `pip install "git+https://github.com/9mp96ygnbk-alt/factlot.git@v0.1.1#subdirectory=python"`                                                                                                                                              |
+| Self-hosted REST and MCP       | `docker run -p 8787:8787 ghcr.io/9mp96ygnbk-alt/factlot:0.1.1`                                                                                                                                                                            |
 
 The hosted endpoint is free with no key at 60 requests a minute. It is listed in the
 [official MCP Registry](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.9mp96ygnbk-alt/factlot)
