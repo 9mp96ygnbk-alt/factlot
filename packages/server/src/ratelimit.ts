@@ -18,10 +18,34 @@ export interface RateLimitDecision {
 
 export class RateLimiter {
   readonly #windowMs: number;
+  readonly #maxEntries: number;
   readonly #windows = new Map<string, { start: number; count: number }>();
 
-  constructor(windowMs = 60_000) {
+  /**
+   * @param maxEntries when more names than this are tracked (per-IP limits see one name per
+   *   client address), windows from earlier minutes are dropped so memory stays bounded.
+   */
+  constructor(windowMs = 60_000, maxEntries = 10_000) {
     this.#windowMs = windowMs;
+    this.#maxEntries = maxEntries;
+  }
+
+  /** Requests already counted for `name` in the window containing `now`. Counts nothing. */
+  count(name: string, now: number): number {
+    const start = Math.floor(now / this.#windowMs) * this.#windowMs;
+    const window = this.#windows.get(name);
+    return window && window.start === start ? window.count : 0;
+  }
+
+  /** Names currently tracked (for tests and monitoring). */
+  get size(): number {
+    return this.#windows.size;
+  }
+
+  #prune(start: number): void {
+    if (this.#windows.size < this.#maxEntries) return;
+    for (const [name, w] of this.#windows)
+      if (w.start !== start) this.#windows.delete(name);
   }
 
   /** Count one request for `name` against `limit` at time `now` (ms since epoch). */
@@ -36,6 +60,7 @@ export class RateLimiter {
     const start = Math.floor(now / this.#windowMs) * this.#windowMs;
     let window = this.#windows.get(name);
     if (!window || window.start !== start) {
+      this.#prune(start);
       window = { start, count: 0 };
       this.#windows.set(name, window);
     }

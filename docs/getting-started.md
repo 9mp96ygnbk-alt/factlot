@@ -42,8 +42,10 @@ Environment variables (pass with `docker run -e`):
 | Variable                                                | Default           | Meaning                                                                         |
 | ------------------------------------------------------- | ----------------- | ------------------------------------------------------------------------------- |
 | `PORT`, `HOST`                                          | `8787`, `0.0.0.0` | Where to listen                                                                 |
-| `FACTLOT_API_KEY`                                       | unset             | If set, `/mcp` and `/v1/*` require `Authorization: Bearer <key>`                |
-| `FACTLOT_PUBLIC_URL`                                    | unset             | Public base URL written into the OpenAPI `servers` list                         |
+| `FACTLOT_API_KEY`                                       | unset (open)      | If set, `/mcp` and `/v1/*` require `Authorization: Bearer <key>`                |
+| `FACTLOT_PUBLIC_URL`                                    | unset             | Public base URL written into the OpenAPI `servers` list; set it in production   |
+| `FACTLOT_TRUST_PROXY`                                   | unset             | `1` = trust `X-Forwarded-*` from your reverse proxy                             |
+| `FACTLOT_RATE_LIMIT_PER_IP_PER_MINUTE`                  | `0` (unlimited)   | Per-client-IP limit on every route, before auth                                 |
 | `FACTLOT_REGISTRY_DB`                                   | unset             | Path to a registry SQLite file; enables the `registry_*` tools                  |
 | `FACTLOT_API_KEYS`, `FACTLOT_API_KEYS_FILE`             | unset             | Named keys (`key:tenant,...` or a JSON file) for per-tenant limits and metering |
 | `FACTLOT_RATE_LIMIT_PER_MINUTE`                         | `0` (unlimited)   | Default per-key limit; over it, 429 with `Retry-After`                          |

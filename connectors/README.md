@@ -30,20 +30,24 @@ docker build -t factlot . && docker run -p 8787:8787 factlot
 npm run build && node packages/server/dist/bin.js
 ```
 
-| Variable                        | Purpose                                                                                                                                  |
-| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `PORT`, `HOST`                  | Listen address. Default `0.0.0.0:8787`.                                                                                                  |
-| `FACTLOT_API_KEY`               | Optional. One shared bearer key (key name `default`). Any configured key makes `/mcp` and `/v1/*` require `Authorization: Bearer <key>`. |
-| `FACTLOT_API_KEYS`              | Optional. Named keys, one per client or engagement: `key1:tenant-a,key2:tenant-b`.                                                       |
-| `FACTLOT_API_KEYS_FILE`         | Optional. JSON keys file (example below), the place for per-key rate limits.                                                             |
-| `FACTLOT_RATE_LIMIT_PER_MINUTE` | Optional. Default requests per minute per key; `0` = unlimited. Over the limit: HTTP 429 with `Retry-After`.                             |
-| `FACTLOT_ADMIN_KEY`             | Optional. Enables `GET /v1/usage?key=<name>`: per-key, per-tool call counts for the current hour and day.                                |
-| `FACTLOT_USAGE_LOG`             | Optional. Append one JSON line per tool call (`time, key, tool, surface, status, duration_ms`) to this file for billing.                 |
-| `FACTLOT_LOG`                   | Optional. `json` for one JSON line per request on stdout.                                                                                |
-| `FACTLOT_PUBLIC_URL`            | Optional. Public base URL written into the OpenAPI `servers` entry. By default it is derived from `X-Forwarded-*` headers.               |
+| Variable                               | Purpose                                                                                                                                         |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PORT`, `HOST`                         | Listen address. Default `0.0.0.0:8787`.                                                                                                         |
+| `FACTLOT_API_KEY`                      | Optional. One shared bearer key (key name `default`). Any configured key makes `/mcp` and `/v1/*` require `Authorization: Bearer <key>`.        |
+| `FACTLOT_API_KEYS`                     | Optional. Named keys, one per client or engagement: `key1:tenant-a,key2:tenant-b`.                                                              |
+| `FACTLOT_API_KEYS_FILE`                | Optional. JSON keys file (example below), the place for per-key rate limits.                                                                    |
+| `FACTLOT_RATE_LIMIT_PER_MINUTE`        | Optional. Default requests per minute per key; `0` = unlimited. Over the limit: HTTP 429 with `Retry-After`.                                    |
+| `FACTLOT_ADMIN_KEY`                    | Optional. Enables `GET /v1/usage?key=<name>`: per-key, per-tool call counts for the current hour and day.                                       |
+| `FACTLOT_USAGE_LOG`                    | Optional. Append one JSON line per tool call (`time, key, tool, surface, status, duration_ms`) to this file for billing.                        |
+| `FACTLOT_LOG`                          | Optional. `json` for one JSON line per request on stdout.                                                                                       |
+| `FACTLOT_PUBLIC_URL`                   | Set it in production: the public `https://` base URL written into the OpenAPI `servers` entry. Without it the URL comes from the `Host` header. |
+| `FACTLOT_TRUST_PROXY`                  | Optional. `1` = trust `X-Forwarded-For/-Proto/-Host` from your reverse proxy (only when all traffic goes through it).                           |
+| `FACTLOT_RATE_LIMIT_PER_IP_PER_MINUTE` | Optional. Per-client-IP limit on every route, counted before auth; `0` = unlimited.                                                             |
 
 Discovery routes (`/`, `/health`, `/openapi*.json`) stay open. With nothing set the server is
-open, unlimited, and quiet, as before. A keys file:
+**open** (no auth; a warning is printed at startup) with no per-key or per-IP limit; body size,
+input shape, timeouts, and rejected-token limits always apply (see the
+[server README](../packages/server/README.md#hardening)). A keys file:
 
 ```json
 [

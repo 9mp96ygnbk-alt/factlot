@@ -21,7 +21,9 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { SERVER_VERSION, createServer as createMcpServer } from "@factlot/mcp";
 import {
   CATALOG_VERSION,
+  INPUT_LIMITS,
   inputJsonSchema,
+  inputShapeIssue,
   openApi30,
   openApi31,
   runTool,
@@ -84,6 +86,20 @@ export interface FactLotServerOptions {
   publicUrl?: string;
   /** Maximum request body in bytes (default 1 MiB). */
   maxBodyBytes?: number;
+  /**
+   * Trust `X-Forwarded-For`, `-Proto` and `-Host` from a reverse proxy in front of this server
+   * (default false). Only set it when every request arrives through that proxy: the headers are
+   * otherwise client-controlled, and they decide the per-IP limit key and the OpenAPI `servers`.
+   */
+  trustProxy?: boolean;
+  /** Requests per minute per client IP on every route, before auth (0 or unset = no limit). */
+  rateLimitPerIpPerMinute?: number;
+  /** Rejected bearer tokens per minute per client IP before further attempts get 429 (default 30, 0 = off). */
+  authFailuresPerIpPerMinute?: number;
+  /** Most JSON-RPC messages in one POST /mcp batch (default 20). */
+  maxMcpBatch?: number;
+  /** Where unexpected errors are reported (default: one JSON line on stderr, error name only). */
+  errorSink?: (line: string) => void;
 }
 
 const toolsByPath = new Map(tools.map((t) => [t.path, t]));
@@ -123,6 +139,37 @@ function send(res: ServerResponse, status: number, body: unknown): void {
   res.end(text);
 }
 
+/**
+ * Every response is JSON for programs, never a page: no sniffing, no framing, no caching (a
+ * shared cache must not keep one caller's result or an OpenAPI document built for one Host).
+ */
+function securityHeaders(res: ServerResponse): void {
+  res.setHeader("x-content-type-options", "nosniff");
+  res.setHeader(
+    "content-security-policy",
+    "default-src 'none'; frame-ancestors 'none'",
+  );
+  res.setHeader("x-frame-options", "DENY");
+  res.setHeader("referrer-policy", "no-referrer");
+  res.setHeader("cache-control", "no-store");
+}
+
+function methodNotAllowed(
+  res: ServerResponse,
+  allow: string,
+  jsonRpc = false,
+): void {
+  res.setHeader("allow", allow);
+  const message = `method not allowed; use ${allow.replace(", OPTIONS", "")}`;
+  send(
+    res,
+    405,
+    jsonRpc
+      ? { jsonrpc: "2.0", error: { code: -32000, message }, id: null }
+      : { error: "MethodNotAllowed", message },
+  );
+}
+
 function cors(res: ServerResponse): void {
   res.setHeader("access-control-allow-origin", "*");
   res.setHeader("access-control-allow-methods", "GET, POST, DELETE, OPTIONS");
@@ -137,6 +184,9 @@ function cors(res: ServerResponse): void {
 }
 
 async function readJson(req: IncomingMessage, limit: number): Promise<unknown> {
+  const declared = Number(req.headers["content-length"]);
+  if (Number.isFinite(declared) && declared > limit)
+    throw new HttpError(413, `request body exceeds ${limit} bytes`);
   const chunks: Buffer[] = [];
   let size = 0;
   for await (const chunk of req) {
@@ -154,16 +204,68 @@ async function readJson(req: IncomingMessage, limit: number): Promise<unknown> {
   }
 }
 
+/** A Host value: a DNS name or bracketed IPv6 literal, optional port. Nothing else is echoed. */
+const HOST_RE =
+  /^(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*|\[[0-9A-Fa-f:.]+\])(?::\d{1,5})?$/;
+
+function firstHeader(value: string | string[] | undefined): string | undefined {
+  const v = Array.isArray(value) ? value[0] : value;
+  return v?.split(",")[0]?.trim() || undefined;
+}
+
 function baseUrl(req: IncomingMessage, opts: FactLotServerOptions): string {
   if (opts.publicUrl) return opts.publicUrl.replace(/\/$/, "");
-  const proto =
-    String(req.headers["x-forwarded-proto"] ?? "http")
-      .split(",")[0]
-      ?.trim() ?? "http";
-  const host = String(
-    req.headers["x-forwarded-host"] ?? req.headers.host ?? "localhost",
-  );
-  return `${proto}://${host}`;
+  const fwdProto = opts.trustProxy
+    ? firstHeader(req.headers["x-forwarded-proto"])
+    : undefined;
+  const proto = fwdProto === "https" ? "https" : "http";
+  const fwdHost = opts.trustProxy
+    ? firstHeader(req.headers["x-forwarded-host"])
+    : undefined;
+  const host = fwdHost ?? req.headers.host ?? "localhost";
+  return `${proto}://${HOST_RE.test(host) ? host : "localhost"}`;
+}
+
+/**
+ * The client address for per-IP limits: the socket peer, or with `trustProxy` the last
+ * `X-Forwarded-For` entry (the one the proxy itself appended; earlier entries are client-supplied).
+ */
+function clientIp(req: IncomingMessage, opts: FactLotServerOptions): string {
+  if (opts.trustProxy) {
+    const xff = req.headers["x-forwarded-for"];
+    const list = (Array.isArray(xff) ? xff.join(",") : (xff ?? ""))
+      .split(",")
+      .map((x) => x.trim())
+      .filter(Boolean);
+    const last = list.at(-1);
+    if (last) return last.slice(0, 64);
+  }
+  return req.socket.remoteAddress ?? "unknown";
+}
+
+function tooManyRequests(
+  res: ServerResponse,
+  jsonRpc: boolean,
+  message: string,
+  retryAfterSeconds: number,
+): void {
+  res.setHeader("retry-after", String(retryAfterSeconds));
+  if (jsonRpc)
+    send(res, 429, {
+      jsonrpc: "2.0",
+      error: {
+        code: -32000,
+        message,
+        data: { error: "RateLimited", retry_after_seconds: retryAfterSeconds },
+      },
+      id: null,
+    });
+  else
+    send(res, 429, {
+      error: "RateLimited",
+      message,
+      retry_after_seconds: retryAfterSeconds,
+    });
 }
 
 function unauthorized(res: ServerResponse): void {
@@ -237,19 +339,35 @@ export function createHandler(opts: FactLotServerOptions = {}) {
   ];
   const authRequired = keys.length > 0;
   const defaultLimit = opts.rateLimitPerMinute ?? 0;
+  const perIpLimit = opts.rateLimitPerIpPerMinute ?? 0;
+  const authFailureLimit = opts.authFailuresPerIpPerMinute ?? 30;
+  const maxBatch = opts.maxMcpBatch ?? 20;
   const limiter = new RateLimiter();
+  const ipLimiter = new RateLimiter();
+  const authFailures = new RateLimiter();
   const usage = opts.usage ?? new UsageMeter({ file: opts.usageLog });
   const now = opts.now ?? Date.now;
   const logSink =
     opts.logSink ?? ((line: string) => void process.stdout.write(`${line}\n`));
+  const errorSink =
+    opts.errorSink ??
+    ((line: string) => void process.stderr.write(`${line}\n`));
   const logJson = opts.log === "json";
+  // The MCP envelope adds up to four levels above the tool arguments: batch, message, params,
+  // arguments. Tool-level limits apply again inside runTool.
+  const envelopeLimits = {
+    ...INPUT_LIMITS,
+    maxDepth: INPUT_LIMITS.maxDepth + 4,
+  };
 
   return async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
     cors(res);
+    securityHeaders(res);
     const startedAt = now();
     const startedTick = performance.now();
     const url = new URL(req.url ?? "/", "http://localhost");
     const path = url.pathname.replace(/\/+$/, "") || "/";
+    const ip = clientIp(req, opts);
     const ctx: {
       key: string | null;
       rejectedPrefix?: string;
@@ -290,12 +408,62 @@ export function createHandler(opts: FactLotServerOptions = {}) {
       }
     });
 
+    /** Bearer check with a per-IP budget for wrong tokens; false when a response was sent. */
+    const authorize = (
+      check: (token: string | undefined) => boolean,
+      jsonRpc: boolean,
+    ): boolean => {
+      if (
+        authFailureLimit > 0 &&
+        authFailures.count(ip, startedAt) >= authFailureLimit
+      ) {
+        const retry = authFailures.check(ip, authFailureLimit, startedAt);
+        tooManyRequests(
+          res,
+          jsonRpc,
+          `too many rejected tokens from this address; retry in ${retry.retryAfterSeconds}s`,
+          retry.retryAfterSeconds,
+        );
+        return false;
+      }
+      const token = bearerToken(req.headers.authorization);
+      if (check(token)) return true;
+      if (token !== undefined) ctx.rejectedPrefix = keyPrefix(token);
+      if (authFailureLimit > 0)
+        authFailures.check(ip, authFailureLimit, startedAt);
+      unauthorized(res);
+      return false;
+    };
+
     try {
       if (req.method === "OPTIONS") {
         res.writeHead(204).end();
         return;
       }
-      if (req.method === "GET" && path === "/") {
+      if (perIpLimit > 0) {
+        const d = ipLimiter.check(ip, perIpLimit, startedAt);
+        if (!d.allowed) {
+          tooManyRequests(
+            res,
+            path === "/mcp",
+            `rate limit of ${d.limit} requests per minute per address exceeded; retry in ${d.retryAfterSeconds}s`,
+            d.retryAfterSeconds,
+          );
+          return;
+        }
+      }
+      const getOnly =
+        path === "/" ||
+        path === "/health" ||
+        path === "/openapi.json" ||
+        path === "/openapi-3.0.json" ||
+        path === "/v1/tools" ||
+        path === "/v1/usage";
+      if (getOnly && req.method !== "GET") {
+        methodNotAllowed(res, "GET, OPTIONS");
+        return;
+      }
+      if (path === "/") {
         const base = baseUrl(req, opts);
         send(res, 200, {
           name: "FactLot",
@@ -310,14 +478,11 @@ export function createHandler(opts: FactLotServerOptions = {}) {
         });
         return;
       }
-      if (req.method === "GET" && path === "/health") {
+      if (path === "/health") {
         send(res, 200, { ok: true, version: SERVER_VERSION });
         return;
       }
-      if (
-        req.method === "GET" &&
-        (path === "/openapi.json" || path === "/openapi-3.0.json")
-      ) {
+      if (path === "/openapi.json" || path === "/openapi-3.0.json") {
         const doc =
           path === "/openapi.json"
             ? openApi31({ serverUrl: baseUrl(req, opts) })
@@ -328,10 +493,6 @@ export function createHandler(opts: FactLotServerOptions = {}) {
       }
 
       if (path === "/v1/usage") {
-        if (req.method !== "GET") {
-          send(res, 405, { error: "MethodNotAllowed", message: "use GET" });
-          return;
-        }
         if (!opts.adminKey) {
           send(res, 404, {
             error: "NotFound",
@@ -339,89 +500,93 @@ export function createHandler(opts: FactLotServerOptions = {}) {
           });
           return;
         }
-        const token = bearerToken(req.headers.authorization);
-        if (token === undefined || !safeEqual(token, opts.adminKey)) {
-          if (token !== undefined) ctx.rejectedPrefix = keyPrefix(token);
-          unauthorized(res);
+        const adminKey = opts.adminKey;
+        if (
+          !authorize(
+            (token) => token !== undefined && safeEqual(token, adminKey),
+            false,
+          )
+        )
           return;
-        }
         ctx.key = "admin";
         send(
           res,
           200,
-          usage.report(startedAt, url.searchParams.get("key") ?? undefined),
+          usage.report(
+            startedAt,
+            url.searchParams.get("key")?.slice(0, 200) ?? undefined,
+          ),
         );
         return;
       }
 
-      if (path === "/mcp" || path.startsWith("/v1/")) {
-        let perMinute = defaultLimit;
-        if (authRequired) {
-          const token = bearerToken(req.headers.authorization);
-          const key = resolveApiKey(token, keys);
-          if (!key) {
-            if (token !== undefined) ctx.rejectedPrefix = keyPrefix(token);
-            unauthorized(res);
-            return;
-          }
-          ctx.key = key.name;
-          perMinute = key.rateLimitPerMinute ?? defaultLimit;
-        }
-        const decision = limiter.check(
-          ctx.key ?? "anonymous",
-          perMinute,
-          startedAt,
+      const tool = toolsByPath.get(path);
+      const known = path === "/mcp" || path === "/v1/tools" || tool;
+      if (!known) {
+        send(res, 404, {
+          error: "NotFound",
+          message: `no route for ${String(req.method).slice(0, 16)} ${path.slice(0, 200)}`,
+        });
+        return;
+      }
+      if (req.method !== "POST" && path !== "/v1/tools") {
+        methodNotAllowed(res, "POST, OPTIONS", path === "/mcp");
+        return;
+      }
+
+      let perMinute = defaultLimit;
+      if (authRequired) {
+        let key: ApiKey | undefined;
+        const ok = authorize((token) => {
+          key = resolveApiKey(token, keys);
+          return key !== undefined;
+        }, path === "/mcp");
+        if (!ok || !key) return;
+        ctx.key = key.name;
+        perMinute = key.rateLimitPerMinute ?? defaultLimit;
+      }
+      const decision = limiter.check(
+        ctx.key ?? "anonymous",
+        perMinute,
+        startedAt,
+      );
+      if (decision.limit > 0) {
+        res.setHeader("x-ratelimit-limit", String(decision.limit));
+        res.setHeader("x-ratelimit-remaining", String(decision.remaining));
+      }
+      if (!decision.allowed) {
+        tooManyRequests(
+          res,
+          path === "/mcp",
+          `rate limit of ${decision.limit} requests per minute exceeded; retry in ${decision.retryAfterSeconds}s`,
+          decision.retryAfterSeconds,
         );
-        if (decision.limit > 0) {
-          res.setHeader("x-ratelimit-limit", String(decision.limit));
-          res.setHeader("x-ratelimit-remaining", String(decision.remaining));
-        }
-        if (!decision.allowed) {
-          res.setHeader("retry-after", String(decision.retryAfterSeconds));
-          const message = `rate limit of ${decision.limit} requests per minute exceeded; retry in ${decision.retryAfterSeconds}s`;
-          if (path === "/mcp")
-            send(res, 429, {
-              jsonrpc: "2.0",
-              error: {
-                code: -32000,
-                message,
-                data: {
-                  error: "RateLimited",
-                  retry_after_seconds: decision.retryAfterSeconds,
-                },
-              },
-              id: null,
-            });
-          else
-            send(res, 429, {
-              error: "RateLimited",
-              message,
-              retry_after_seconds: decision.retryAfterSeconds,
-            });
-          return;
-        }
+        return;
       }
 
       if (path === "/mcp") {
-        if (req.method !== "POST") {
-          send(res, 405, {
+        const body = await readJson(req, limit);
+        const shape = inputShapeIssue(body, envelopeLimits);
+        const tooMany = Array.isArray(body) && body.length > maxBatch;
+        if (shape || tooMany) {
+          send(res, 400, {
             jsonrpc: "2.0",
             error: {
-              code: -32000,
-              message:
-                "Method not allowed: this server is stateless; use POST.",
+              code: -32600,
+              message: tooMany
+                ? `invalid request: a batch may hold at most ${maxBatch} messages`
+                : `invalid request: ${shape?.path || "(root)"}: ${shape?.message}`,
             },
             id: null,
           });
           return;
         }
-        const body = await readJson(req, limit);
         ctx.calls = mcpCalls(body);
         await handleMcp(req, res, body);
         return;
       }
 
-      if (req.method === "GET" && path === "/v1/tools") {
+      if (path === "/v1/tools") {
         send(res, 200, {
           tools: tools.map((t) => ({
             name: t.name,
@@ -434,47 +599,64 @@ export function createHandler(opts: FactLotServerOptions = {}) {
         return;
       }
 
-      const tool = toolsByPath.get(path);
-      if (tool) {
-        if (req.method !== "POST") {
-          send(res, 405, {
-            error: "MethodNotAllowed",
-            message: "use POST with a JSON body",
-          });
-          return;
-        }
-        ctx.calls = [{ tool: tool.name, surface: "rest" }];
-        const outcome = runTool(tool.name, await readJson(req, limit));
-        if (outcome.ok) send(res, 200, outcome.result);
-        else {
-          const code =
-            { RegistryUnavailable: 503, NotFound: 404 }[
-              outcome.error.error as string
-            ] ?? 400;
-          send(res, code, outcome.error);
-        }
-        return;
+      const spec = tool as (typeof tools)[number];
+      ctx.calls = [{ tool: spec.name, surface: "rest" }];
+      const outcome = runTool(spec.name, await readJson(req, limit));
+      if (outcome.ok) send(res, 200, outcome.result);
+      else {
+        const code =
+          { RegistryUnavailable: 503, NotFound: 404 }[
+            outcome.error.error as string
+          ] ?? 400;
+        send(res, code, outcome.error);
       }
-
-      send(res, 404, {
-        error: "NotFound",
-        message: `no route for ${req.method} ${path}`,
-      });
     } catch (err) {
+      if (!(err instanceof HttpError))
+        // The error name and route only: messages and stacks can carry input or paths.
+        errorSink(
+          JSON.stringify({
+            time: new Date(startedAt).toISOString(),
+            msg: "error",
+            method: req.method ?? "",
+            path: path.slice(0, 200),
+            error: err instanceof Error ? err.name : typeof err,
+          }),
+        );
       if (res.headersSent) {
         res.end();
         return;
       }
       if (err instanceof HttpError)
-        send(res, err.status, { error: "BadRequest", message: err.message });
+        send(res, err.status, {
+          error: err.status === 413 ? "PayloadTooLarge" : "BadRequest",
+          message: err.message,
+        });
       else
         send(res, 500, { error: "InternalError", message: "unexpected error" });
     }
   };
 }
 
+/** Request timeouts for the Node server (slow clients cannot hold sockets open indefinitely). */
+export const SERVER_TIMEOUTS = {
+  /** Whole request, headers and body (Node default: 300 s). */
+  requestTimeoutMs: 30_000,
+  /** Request headers (Node default: 60 s). */
+  headersTimeoutMs: 15_000,
+  /** Idle keep-alive connection. */
+  keepAliveTimeoutMs: 5_000,
+} as const;
+
 /** Create a Node HTTP server running the FactLot connector. */
 export function createFactLotServer(opts: FactLotServerOptions = {}): Server {
   const handler = createHandler(opts);
-  return createHttpServer((req, res) => void handler(req, res));
+  const server = createHttpServer(
+    { maxHeaderSize: 16 * 1024 },
+    (req, res) => void handler(req, res),
+  );
+  server.requestTimeout = SERVER_TIMEOUTS.requestTimeoutMs;
+  server.headersTimeout = SERVER_TIMEOUTS.headersTimeoutMs;
+  server.keepAliveTimeout = SERVER_TIMEOUTS.keepAliveTimeoutMs;
+  server.maxHeadersCount = 100;
+  return server;
 }

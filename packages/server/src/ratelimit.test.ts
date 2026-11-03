@@ -40,3 +40,13 @@ test("limit 0 (or negative, or NaN) means unlimited", () => {
   assert.equal(limiter.check("a", Number.NaN, T0).allowed, true);
   assert.equal(limiter.check("a", 0, T0).remaining, Infinity);
 });
+
+test("windows from earlier minutes are dropped once many names are tracked", () => {
+  const rl = new RateLimiter(60_000, 100);
+  for (let i = 0; i < 150; i++) rl.check(`ip-${i}`, 10, 0);
+  assert.equal(rl.size, 150); // all in the current window: nothing is stale yet
+  rl.check("next-minute", 10, 60_000);
+  assert.equal(rl.size, 1);
+  assert.equal(rl.count("ip-1", 0), 0);
+  assert.equal(rl.count("next-minute", 60_000), 1);
+});

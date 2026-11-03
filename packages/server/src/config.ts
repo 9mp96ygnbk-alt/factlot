@@ -9,6 +9,7 @@ import {
   mergeApiKeys,
   parseApiKeysEnv,
   parseApiKeysJson,
+  safeEqual,
   type ApiKey,
 } from "./auth.ts";
 import type { FactLotServerOptions } from "./index.ts";
@@ -41,16 +42,39 @@ export function optionsFromEnv(
   const keys = mergeApiKeys(...sources);
   if (keys.length > 0) opts.apiKeys = keys;
 
-  if (env.FACTLOT_ADMIN_KEY) opts.adminKey = env.FACTLOT_ADMIN_KEY;
+  if (env.FACTLOT_ADMIN_KEY) {
+    if (keys.some((k) => safeEqual(k.key, env.FACTLOT_ADMIN_KEY as string)))
+      throw new Error(
+        "FACTLOT_ADMIN_KEY: must differ from every API key (an API key holder would read all tenants' usage)",
+      );
+    opts.adminKey = env.FACTLOT_ADMIN_KEY;
+  }
 
-  const limit = env.FACTLOT_RATE_LIMIT_PER_MINUTE?.trim();
-  if (limit) {
-    const n = Number(limit);
+  const count = (name: string): number | undefined => {
+    const raw = env[name]?.trim();
+    if (!raw) return undefined;
+    const n = Number(raw);
     if (!Number.isInteger(n) || n < 0)
       throw new Error(
-        `FACTLOT_RATE_LIMIT_PER_MINUTE: expected a non-negative integer (got "${limit}")`,
+        `${name}: expected a non-negative integer (got "${raw.slice(0, 20)}")`,
       );
-    opts.rateLimitPerMinute = n;
+    return n;
+  };
+  const limit = count("FACTLOT_RATE_LIMIT_PER_MINUTE");
+  if (limit !== undefined) opts.rateLimitPerMinute = limit;
+  const perIp = count("FACTLOT_RATE_LIMIT_PER_IP_PER_MINUTE");
+  if (perIp !== undefined) opts.rateLimitPerIpPerMinute = perIp;
+  const authFailures = count("FACTLOT_AUTH_FAILURES_PER_IP_PER_MINUTE");
+  if (authFailures !== undefined)
+    opts.authFailuresPerIpPerMinute = authFailures;
+
+  const trust = env.FACTLOT_TRUST_PROXY?.trim().toLowerCase();
+  if (trust) {
+    if (!["1", "true", "yes", "0", "false", "no"].includes(trust))
+      throw new Error(
+        `FACTLOT_TRUST_PROXY: expected 1/true or 0/false (got "${trust.slice(0, 20)}")`,
+      );
+    opts.trustProxy = ["1", "true", "yes"].includes(trust);
   }
 
   if (env.FACTLOT_USAGE_LOG) opts.usageLog = env.FACTLOT_USAGE_LOG;
@@ -62,6 +86,16 @@ export function optionsFromEnv(
     opts.log = log === "json" ? "json" : "none";
   }
 
-  if (env.FACTLOT_PUBLIC_URL) opts.publicUrl = env.FACTLOT_PUBLIC_URL;
+  if (env.FACTLOT_PUBLIC_URL) {
+    let u: URL;
+    try {
+      u = new URL(env.FACTLOT_PUBLIC_URL);
+    } catch {
+      throw new Error("FACTLOT_PUBLIC_URL: not a valid URL");
+    }
+    if (u.protocol !== "https:" && u.protocol !== "http:")
+      throw new Error("FACTLOT_PUBLIC_URL: expected an http(s) URL");
+    opts.publicUrl = env.FACTLOT_PUBLIC_URL;
+  }
   return opts;
 }
