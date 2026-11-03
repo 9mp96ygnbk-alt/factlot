@@ -79,12 +79,18 @@ jobs:
         env:
           SOURCE_ARGS: ${{ steps.filter.outputs.args }}
         # SOURCE_ARGS is unquoted on purpose: validated "--source <id>" pairs, split into words.
-        run: python -m factlot.collector discover --config registry/sources --out collected $SOURCE_ARGS
+        run: |
+          # SOURCE_ARGS is a validated list of --source flags and must split into words.
+          # shellcheck disable=SC2086
+          python -m factlot.collector discover --config registry/sources --out collected $SOURCE_ARGS
 
       - name: Snapshot verified sources
         env:
           SOURCE_ARGS: ${{ steps.filter.outputs.args }}
-        run: python -m factlot.collector snapshot --config registry/sources --out collected $SOURCE_ARGS
+        run: |
+          # SOURCE_ARGS is a validated list of --source flags and must split into words.
+          # shellcheck disable=SC2086
+          python -m factlot.collector snapshot --config registry/sources --out collected $SOURCE_ARGS
 
       - name: Upload discovery reports
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

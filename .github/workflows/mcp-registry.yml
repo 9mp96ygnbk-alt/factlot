@@ -80,6 +80,27 @@ jobs:
           mv "$RUNNER_TEMP/server.json" server.json
           cat server.json
 
+      # The registry pulls an OCI package anonymously. A GHCR package starts private even when the
+      # repository is public; until someone makes it public in the package settings, publish the
+      # .mcpb package only and say so.
+      - name: Keep the OCI package only if the image is publicly pullable
+        env:
+          REPO: ${{ github.repository }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          token=$(curl --silent "https://ghcr.io/token?scope=repository:${REPO}:pull" | jq -r '.token // empty')
+          code=$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            -H "Authorization: Bearer ${token}" \
+            -H "Accept: application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.list.v2+json" \
+            "https://ghcr.io/v2/${REPO}/manifests/${VERSION}")
+          if [ "$code" != "200" ]; then
+            echo "::warning::ghcr.io/${REPO}:${VERSION} is not publicly pullable (HTTP ${code}); publishing the .mcpb package only. Make the container package public, then publish a new version to add it."
+            jq '.packages |= map(select(.registryType != "oci"))' server.json > "$RUNNER_TEMP/server.json"
+            mv "$RUNNER_TEMP/server.json" server.json
+            cat server.json
+          fi
+
       - name: Install cosign
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
 

@@ -20,6 +20,12 @@ each job declares only the permissions it needs (`contents: read` by default; `c
 only to attach release assets; `packages: write` only to push the image; `pages: write` and
 `id-token: write` only to deploy Pages; `id-token: write` only to log in to the MCP Registry).
 
+> **Before the npm and PyPI accounts exist (backlog A5):** pushing a `vX.Y.Z` tag runs
+> `release.yml`'s checks and builds and then skips npm and PyPI with a notice instead of failing;
+> `release-assets.yml` and `container.yml` still publish the GitHub release assets and the GHCR
+> image. The MCP Registry workflow publishes the `.mcpb` package alone while the GHCR package is
+> still private, and adds the OCI package once it is public.
+
 ## First release without npm or PyPI accounts
 
 What the owner does on launch day, in order. Nothing here creates an account or costs money.

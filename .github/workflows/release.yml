@@ -35,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
-      publish: ${{ steps.mode.outputs.publish }}
+      publish: ${{ steps.creds.outputs.publish || steps.mode.outputs.publish }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -102,9 +102,15 @@ jobs:
             exit 1
           fi
 
+      # Until the npm and PyPI accounts exist (backlog A5), a tag push still runs every check and
+      # build here and publishes nothing to npm or PyPI; the GitHub release assets and the
+      # container image come from release-assets.yml and container.yml. A manual non-dry-run
+      # dispatch without credentials is an error, since someone asked for a publish.
       - name: Publishing credentials are configured (backlog A5)
+        id: creds
         if: steps.mode.outputs.publish == 'true'
         env:
+          EVENT: ${{ github.event_name }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           PYPI_TRUSTED_PUBLISHING: ${{ vars.PYPI_TRUSTED_PUBLISHING }}
         run: |
@@ -112,6 +118,11 @@ jobs:
           [ -n "$NPM_TOKEN" ] || missing="$missing\n  - repository secret NPM_TOKEN (an npm granular access token for the @factlot org)"
           [ "$PYPI_TRUSTED_PUBLISHING" = "ready" ] || missing="$missing\n  - repository variable PYPI_TRUSTED_PUBLISHING=ready (set it once the PyPI trusted publisher for this workflow exists)"
           if [ -n "$missing" ]; then
+            if [ "$EVENT" = "push" ]; then
+              printf '::notice::npm and PyPI publishing skipped: backlog item A5 is not complete. Missing:%b\n' "$missing"
+              echo "publish=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
             printf '::error::Cannot publish: backlog item A5 (create the npm org @factlot and a PyPI account) is not complete. Missing:%b\nSee docs/release-process.md, section Prerequisites.\n' "$missing"
             exit 1
           fi

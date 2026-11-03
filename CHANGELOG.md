@@ -13,6 +13,8 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-03
+
 The first release. Everything below is the work since the repository was created, summarised
 from its commit history; nothing was published to npm or PyPI before it.
 
@@ -222,4 +224,5 @@ From the pre-launch audit ([docs/security/audit-2026-11-03.md](docs/security/aud
   ended (dissolved, revoked, merged, withdrawn), the one still in existence is linked at
   confidence 0.85 (`linked_by_standing`); an unknown status anywhere leaves the name ambiguous.
 
-[Unreleased]: https://github.com/9mp96ygnbk-alt/factlot/commits/main
+[Unreleased]: https://github.com/9mp96ygnbk-alt/factlot/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/9mp96ygnbk-alt/factlot/releases/tag/v0.1.0
