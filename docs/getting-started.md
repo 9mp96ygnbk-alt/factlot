@@ -1,9 +1,11 @@
 # Getting started
 
-Three ways to use FactLot, depending on where your agent runs. All three serve the same tools
-from one catalog: nine calculators, a Texas protest-deadline rule, FactLot IDs, fact validation,
-and `search`/`fetch`/`schema_get` (plus six `registry_*` tools when a registry database is
-configured). For which tool to call when, see [agents.md](agents.md).
+Three ways to use FactLot, depending on where your agent runs. All three serve the same core
+tools from one catalog: fourteen calculators, a Texas protest-deadline rule, FactLot IDs, and fact
+validation. The MCP servers (local and `/mcp`) add `search`/`fetch`/`schema_get` and list the six
+`registry_*` tools only when a registry database is configured (`FACTLOT_REGISTRY_DB`). REST,
+OpenAPI, and the TypeScript and Python tool exports always include the registry tools, which
+return `RegistryUnavailable` until a database is configured. For which tool to call when, see [agents.md](agents.md).
 
 > **Not published yet.** The npm packages and the Python package are not on npm or PyPI until
 > backlog item A5 (accounts) and the first release are done. Each path below gives the
@@ -95,6 +97,8 @@ Claude Desktop can also install the one-click extension: `npm run build:mcpb` wr
 runs locally, needs no API key, and makes no network calls.
 
 ## 3. Python (`pip install factlot`)
+
+Requires Python 3.10 or newer.
 
 ```bash
 pip install factlot            # once published

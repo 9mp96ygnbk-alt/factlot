@@ -9,14 +9,14 @@ another.
 
 FactLot gives every agent three things it can use by default:
 
-| Package                              | What it does                                                                                                                                                                                                                                                                | License    |
-| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
-| [`@factlot/calc`](packages/calc)     | Deterministic CRE calculators: rent schedules, net effective rent, proposal comparison, percentage rent, CAM reconciliation, loan sizing, WALT, IRR/NPV, lease vs. own, renew vs. relocate, hotel metrics. Every result includes an audit trail and a versioned formula ID. | Apache-2.0 |
-| [`@factlot/id`](packages/id)         | **FactLot ID** gives canonical IDs for parcels, legal entities, buildings, spaces, leases, and documents. IDs are deterministic wherever the world already has a key, so any agent can compute them offline.                                                                | Apache-2.0 |
-| [`@factlot/schema`](packages/schema) | The FactLot data model. A fact is one atomic claim with **provenance** (source document, page, clause, method) and **rights** (whether an AI may use or redistribute it).                                                                                                   | MIT        |
-| [`@factlot/tools`](packages/tools)   | The tool catalog, with native tool definitions for Claude, OpenAI, Gemini, Amazon Bedrock, Mistral, and OpenAPI platforms, plus one `runTool` dispatcher.                                                                                                                   | MIT        |
-| [`@factlot/server`](packages/server) | The remote connector: Streamable HTTP MCP at `/mcp`, REST at `/v1`, and OpenAPI. Runs in Docker.                                                                                                                                                                            | Apache-2.0 |
-| [`@factlot/mcp`](packages/mcp)       | An MCP server that exposes all of the above to Claude and any other MCP-capable agent. It runs locally and needs no API key.                                                                                                                                                | Apache-2.0 |
+| Package                              | What it does                                                                                                                                                                                                                                                                                                                        | License    |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| [`@factlot/calc`](packages/calc)     | Deterministic CRE calculators: rent schedules, net effective rent, proposal comparison, percentage rent, CAM reconciliation, loan sizing, ASC 842 lease remeasurement, prepayment and defeasance, WALT, IRR/NPV, lease vs. own, renew vs. relocate, hotel metrics. Every result includes an audit trail and a versioned formula ID. | Apache-2.0 |
+| [`@factlot/id`](packages/id)         | **FactLot ID** gives canonical IDs for parcels, legal entities, buildings, spaces, leases, and documents. IDs are deterministic wherever the world already has a key, so any agent can compute them offline.                                                                                                                        | Apache-2.0 |
+| [`@factlot/schema`](packages/schema) | The FactLot data model. A fact is one atomic claim with **provenance** (source document, page, clause, method) and **rights** (whether an AI may use or redistribute it).                                                                                                                                                           | MIT        |
+| [`@factlot/tools`](packages/tools)   | The tool catalog, with native tool definitions for Claude, OpenAI, Gemini, Amazon Bedrock, Mistral, and OpenAPI platforms, plus one `runTool` dispatcher.                                                                                                                                                                           | MIT        |
+| [`@factlot/server`](packages/server) | The remote connector: Streamable HTTP MCP at `/mcp`, REST at `/v1`, and OpenAPI. Runs in Docker.                                                                                                                                                                                                                                    | Apache-2.0 |
+| [`@factlot/mcp`](packages/mcp)       | An MCP server that exposes all of the above to Claude and any other MCP-capable agent. It runs locally and needs no API key.                                                                                                                                                                                                        | Apache-2.0 |
 
 ## Why
 
@@ -90,7 +90,7 @@ The server provides these tools: `calc_rent_schedule`, `calc_net_effective_rent`
 `calc_renew_vs_relocate`, `calc_hotel_metrics`,
 `rules_tx_property_tax_protest_deadline`,
 `id_parcel`, `id_entity`, `id_space`, `id_document`, `id_parse`, `fact_validate`,
-and `schema_get`, plus the six `registry_*` lookups when a registry database is configured
+`search`, `fetch`, and `schema_get`, plus the six `registry_*` lookups when a registry database is configured
 (`FACTLOT_REGISTRY_DB`).
 
 > Packages are not yet published to npm. Until they are, build from source (below)
@@ -101,8 +101,10 @@ and `schema_get`, plus the six `registry_*` lookups when a registry database is 
 ```python
 import factlot
 
-tools = factlot.anthropic_tools()  # or factlot.openai_tools()
-result = factlot.run_tool("calc_compare_proposals", {...})  # when the model calls a tool
+tools = factlot.anthropic_tools()  # or factlot.openai_tools(); pass these to your model
+# When the model calls a tool, run it by name with the model's arguments:
+result = factlot.run_tool("calc_npv", {"cash_flows": [-1000, 600, 600], "rate": 0.08})
+result["value"]["npv"]  # 69.96
 ```
 
 The Python SDK has no dependencies and passes the same [conformance vectors](spec) as the

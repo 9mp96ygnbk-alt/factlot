@@ -2,7 +2,7 @@
 
 The open fact layer for commercial real estate AI agents. This is a pure-Python, dependency-free
 port of [`@factlot/calc`](../packages/calc) and [`@factlot/id`](../packages/id). It is held to the
-same [conformance vectors](../spec) as the TypeScript packages.
+same [conformance vectors](../spec) as the TypeScript packages. Requires Python 3.10 or newer.
 
 ```python
 import factlot
@@ -22,6 +22,7 @@ result["provenance"]                   # ready to attach to a FactLot computed f
 factlot.parcel_id("06", "037", "5432-001-012").urn  # "fl:parcel:us-06037:5432001012"
 ```
 
-Run the tests with `python -m unittest discover -s tests` (no dependencies needed).
+Run the tests from this directory with `PYTHONPATH=src python3 -m unittest discover -s tests`, or
+`npm run test:python` from the repository root (no dependencies needed).
 
 License: Apache-2.0.

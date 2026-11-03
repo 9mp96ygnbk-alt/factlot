@@ -9,7 +9,8 @@ The remote FactLot connector. It is one stateless HTTP service with three interf
   these with Custom GPT Actions, Bedrock Agents, and Microsoft plugins.
 
 ```bash
-npx -y @factlot/server            # PORT=8787; no auth, no limits, no logging until configured
+npx -y @factlot/server            # once published; PORT=8787; no auth, no limits, no logging until configured
+node packages/server/dist/bin.js  # from a source build until then
 ```
 
 See [connectors/](../../connectors/README.md) for per-platform setup.

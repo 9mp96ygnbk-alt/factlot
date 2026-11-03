@@ -6,9 +6,11 @@ an identifier. This page covers which tool to call, when, and how to report the 
 ## Golden rules
 
 1. **Don't do CRE math in context.** Call a `calc_*` tool for rent, abatement, NER, CAM, percentage
-   rent, loan sizing, WALT, NPV, IRR, lease-versus-own, renew-versus-relocate, and hotel metrics.
+   rent, loan sizing, ASC 842 remeasurement, prepayment and defeasance, WALT, NPV, IRR,
+   lease-versus-own, renew-versus-relocate, and hotel metrics.
    Models drift on compounding, caps, and amortization. The calculators don't.
-2. **Cite the method.** Report `formula` (for example `calc.debt_sizing@2`) and point to `steps`.
+2. **Cite the method.** Report the formula ID (`provenance.formula`, for example
+   `calc.debt_sizing@2`; `formula` holds the same as `{id, version}`) and point to `steps`.
    A human can check every intermediate value without redoing the work.
 3. **Surface warnings.** `warnings` lists assumptions that need a human, such as the order of a
    CAM cap versus the base year, or a prorated breakpoint.
@@ -58,13 +60,16 @@ an identifier. This page covers which tool to call, when, and how to report the 
 
 ## Example: Claude Messages API with the Python SDK
 
+Requires `pip install anthropic` and an `ANTHROPIC_API_KEY`. The loop passes every tool, so the
+model may call a `registry_*` tool; without a registry it gets `RegistryUnavailable` and moves on.
+
 ```python
 import json
 
 import anthropic
 import factlot
 
-MODEL = "..."  # any current Claude model
+MODEL = "claude-..."  # replace with a current Claude model ID
 client = anthropic.Anthropic()
 messages = [{"role": "user", "content": "Compare these two office proposals for my client: ..."}]
 while True:
