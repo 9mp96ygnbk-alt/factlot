@@ -8,6 +8,7 @@ To: Santa Clara County Assessor
 Postal address: NOT CONFIRMED. The bulk-data, subset, and fee-schedule pages returned HTTP 403 on 2026-11-03.
 Email: NOT CONFIRMED.
 URLs for the founder to open:
+
 - https://asr.santaclaracounty.gov/about-us/purchase-data/bulk-data
 - https://asr.santaclaracounty.gov/about-us/purchase-data/bulk-data-by-jurisdiction
 - https://asr.santaclaracounty.gov/about-us/purchase-data/fee-schedule

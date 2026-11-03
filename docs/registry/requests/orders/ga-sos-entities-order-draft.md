@@ -10,13 +10,14 @@ Agreement: https://georgia.gov/document/document/bulk-corporations-data-sales-ag
 The page says to email a signed agreement and a current W-9 to the address encoded as `data-cfemail="187c796c79717676776e796c7177766b587f6c79367f79367f776e"` , which decodes to datainnovations@gta.ga.gov. Phone (404) 463-2300. Fax (404) 463-2390.
 
 Two addresses are printed. Do not collapse them.
+
 - Notices in the agreement: Georgia Technology Authority, 47 Trinity Avenue, Atlanta, GA 30334, 404-463-2300, Attn: Office of Data Sales.
 - Schedule A payment: Office of Data Sales, Georgia Technology Authority, 47 Trinity Avenue, Atlanta, GA 30034.
 - The web page visit line: 47 Trinity Ave SW, Atlanta, GA 30334.
 
 ## Agreement blanks
 
-- Effective date: "this ___ day of ________, 201__". The printed year is "201". The founder completes the day, month, and year. Do not pretend the form says 2026.
+- Effective date: "`this ___ day of ________, 201__`". The printed year is "201". The founder completes the day, month, and year. Do not pretend the form says 2026.
 - CUSTOMER: FactLot
 - Notices for CUSTOMER: Robert Stovall, Founder, FactLot, [FOUNDER MAILING ADDRESS], [CONFIRM SENDER EMAIL], [FOUNDER PHONE]
 - Customer signature, name, title, date: [BLANK until the founder signs]

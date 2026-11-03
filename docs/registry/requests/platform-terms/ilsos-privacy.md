@@ -34,6 +34,6 @@ part:
 The same capture says the bulk-data page it tried, `https://www.ilsos.gov/data/bs_home.html`, answered
 "Not Found"; the review record's URL is `https://www.ilsos.gov/data/bus-serv-home.html` (a different
 path), which this session could not load. If the capture is accurate, the site terms forbid automated
-collection and commercial or derivative use of the *website*, while the disclaimer says the information
+collection and commercial or derivative use of the _website_, while the disclaimer says the information
 "may be distributed or copied"; the bulk files' own Data Transparency Act notice would govern the files
 and has not been read. A person must open both URLs and record the text.

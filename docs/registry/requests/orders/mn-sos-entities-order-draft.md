@@ -28,7 +28,7 @@ The license letterhead names the Secretary. That name is not copied. A header em
 
 ## License fields
 
-- Day and year: [BLANK] "this day of ______, 20__"
+- Day and year: [BLANK] "`this day of ______, 20__`"
 - Licensee: FactLot
 - Licensee notice name, address, contact person, telephone, email: Robert Stovall, [FOUNDER MAILING ADDRESS], [FOUNDER PHONE], [CONFIRM SENDER EMAIL]
 - Minnesota Tax Identification Number: [BLANK — founder]

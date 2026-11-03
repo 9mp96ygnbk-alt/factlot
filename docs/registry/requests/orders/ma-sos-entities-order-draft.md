@@ -10,6 +10,7 @@ Email: NOT CONFIRMED
 Phone: NOT CONFIRMED
 
 URLs for the founder to open:
+
 - https://www.sec.state.ma.us/divisions/corporations/corporations.htm (HTTP 200, Incapsula shell, 212 bytes)
 - https://www.mass.gov/info-details/massachusetts-law-about-corporations (HTTP 403)
 - https://www.mass.gov/regulations/950-CMR-11300 (HTTP 403)

@@ -10,20 +10,20 @@ This memo is research, not legal advice; the founder holds no attorney or real e
 
 ## Filled from the repository (check each one)
 
-| Form field (AcroForm name)               | Value in the draft                                                                                   |
-| ---------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Print Name / Name                        | Robert Stovall                                                                                       |
-| Title                                    | Founder                                                                                              |
-| Company Name                             | FactLot                                                                                              |
-| Nature of Business                       | Open publication of cited commercial-parcel facts. The file is not resold.                           |
-| Inspect / Reproduce                      | Reproduce                                                                                            |
-| Specify the Records Requested 1–3        | Secured Master, Commercial Master, Apartment Master (zip names and ArcGIS item ids from the review record) |
-| Purpose for Requested Records 1–3        | Publish derived, cited facts about commercial parcels; do not resell the file; each fact cites the Assessor file; no natural-person names stored; a hosted service may charge for derived facts, not for the file |
-| Addendum 1 (sale or resale): market, price | "None. The file will not be sold or resold." / "None"                                              |
-| Addendum 2 (document or material)        | Open registry of derived facts, cited to the files; hosted access may be charged; price of these records: none |
-| Addendum 3–4 (solicitation)              | Not soliciting any person named in the records; owner names not used to sell services to those owners |
-| Addendum 5 (other purpose)               | Publication of cited commercial-parcel facts, as in item 2                                           |
-| Amount Not to Exceed                     | 0 (a cap so the office must quote before any charge; **decide** whether to keep it)                  |
+| Form field (AcroForm name)                 | Value in the draft                                                                                                                                                                                                |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Print Name / Name                          | Robert Stovall                                                                                                                                                                                                    |
+| Title                                      | Founder                                                                                                                                                                                                           |
+| Company Name                               | FactLot                                                                                                                                                                                                           |
+| Nature of Business                         | Open publication of cited commercial-parcel facts. The file is not resold.                                                                                                                                        |
+| Inspect / Reproduce                        | Reproduce                                                                                                                                                                                                         |
+| Specify the Records Requested 1–3          | Secured Master, Commercial Master, Apartment Master (zip names and ArcGIS item ids from the review record)                                                                                                        |
+| Purpose for Requested Records 1–3          | Publish derived, cited facts about commercial parcels; do not resell the file; each fact cites the Assessor file; no natural-person names stored; a hosted service may charge for derived facts, not for the file |
+| Addendum 1 (sale or resale): market, price | "None. The file will not be sold or resold." / "None"                                                                                                                                                             |
+| Addendum 2 (document or material)          | Open registry of derived facts, cited to the files; hosted access may be charged; price of these records: none                                                                                                    |
+| Addendum 3–4 (solicitation)                | Not soliciting any person named in the records; owner names not used to sell services to those owners                                                                                                             |
+| Addendum 5 (other purpose)                 | Publication of cited commercial-parcel facts, as in item 2                                                                                                                                                        |
+| Amount Not to Exceed                       | 0 (a cap so the office must quote before any charge; **decide** whether to keep it)                                                                                                                               |
 
 ## The founder must complete
 

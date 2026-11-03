@@ -82,7 +82,7 @@ This memo is research, not legal advice; the founder holds no attorney or real e
 
 **Fee schedule.** https://www.sdarcc.gov/content/dam/arcc/assessor/forms/other-assessor-forms/PUB%20INFO%20FEE%20SCHEDULE.pdf , read 2026-11-03. Address: San Diego County Assessor, Public Information, 1600 Pacific Highway, Suite 103, San Diego, CA 92101, (619) 236-3771.
 
-> Property Characteristic                             $ 1.00 per parcel
+> Property Characteristic $ 1.00 per parcel
 
 That line is a counter copy, not a bulk file. No bulk-roll price is on the schedule. Building records: "No fee at this time." Email on the property page: ARCCHELP@sdcounty.ca.gov. https://www.sdarcc.gov/content/arcc/home/divisions/assessor/property-records.html , read 2026-11-03.
 
@@ -92,9 +92,9 @@ That line is a counter copy, not a bulk file. No bulk-roll price is on the sched
 **ParcelQuest county disclaimer.** https://www.sdarcc.gov/content/arcc/home/divisions/assessor/parcel-quest-disclaimer.html , read 2026-11-03.
 
 > Customers may conduct up to 25 searches in any
->   30-day period free of charge.
+> 30-day period free of charge.
 > Searches in excess of that threshold may require a subscription to
->   ParcelQuest’s data services.
+> ParcelQuest’s data services.
 
 Continue URL https://assr.parcelquest.com/impl/sdxassr redirected to the same ParcelQuest Lite agreement quoted for Orange County. "I Accept" was not clicked. The agreement prohibits publishing the Content. The Lite page's own limit (50 searches and 25 maps per month) does not match the county's 25-searches-in-30-days sentence. Subscription dollars: NOT CONFIRMED.
 

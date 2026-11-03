@@ -148,11 +148,11 @@ This memo is research, not legal advice; the founder holds no attorney or real e
 **Order form, Rev 4-25, Revised 4-2025, Effective 12-3-14.** https://res.cloudinary.com/los-angeles-county-assessor/image/upload/v1628093490/Form/Standard_Order_Form.pdf , read 2026-11-03.
 
 > 3. Duplication and Resale of Assessor Property Records: The Assessor property records provided to the Purchaser are for the exclusive
-> use of the Purchaser only. The Purchaser is prohibited from distributing the Assessor property records in the same or similar format and
-> quantity in which the Assessor provided them to the Purchaser. The Purchaser is prohibited from relinquishing possession of the
-> Assessor’s property records received from the Assessor to any other person or persons, or legal entity, nor may the Purchaser, or its
-> agent or employees, rent, lease, sublease, loan, copy, or otherwise distribute the Assessor property records or allow others to use the
-> Assessor property records in the format in which they were provided by the Assessor.
+>    use of the Purchaser only. The Purchaser is prohibited from distributing the Assessor property records in the same or similar format and
+>    quantity in which the Assessor provided them to the Purchaser. The Purchaser is prohibited from relinquishing possession of the
+>    Assessor’s property records received from the Assessor to any other person or persons, or legal entity, nor may the Purchaser, or its
+>    agent or employees, rent, lease, sublease, loan, copy, or otherwise distribute the Assessor property records or allow others to use the
+>    Assessor property records in the format in which they were provided by the Assessor.
 
 > 6. Payment: Payment of the standard charges, as determined by reference to the Assessor's Property Data Sales Price List
 

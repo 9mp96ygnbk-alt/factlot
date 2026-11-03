@@ -40,9 +40,9 @@ RCW 42.56.070, https://app.leg.wa.gov/rcw/default.aspx?cite=42.56.070 (read 2026
 
 > This chapter shall not be construed as giving authority to any agency, the office of the secretary of the senate, or the office of the chief clerk of the house of representatives to give, sell or provide access to lists of individuals requested for commercial purposes, and agencies, the office of the secretary of the senate, and the office of the chief clerk of the house of representatives shall not do so unless specifically authorized or directed by law:
 
-> PROVIDED FURTHER, That such recognition may be refused only for a good cause pursuant to a hearing under the provisions of chapter  34.05 RCW, the administrative procedure act.
+> PROVIDED FURTHER, That such recognition may be refused only for a good cause pursuant to a hearing under the provisions of chapter 34.05 RCW, the administrative procedure act.
 
-The history line says "Formerly RCW  42.17.260."
+The history line says "Formerly RCW 42.17.260."
 
 Subsection (8) restricts lists of individuals requested for commercial purposes. It is silent on commercial use or redistribution of records that are not such lists. It does not grant permission to republish website data. The registry stores no natural-person names, which matches the subject of (8), and does not answer the Restrictions clause.
 

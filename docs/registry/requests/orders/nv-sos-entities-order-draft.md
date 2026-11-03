@@ -10,6 +10,7 @@ Email: NOT CONFIRMED
 Phone: NOT CONFIRMED
 
 URLs for the founder to open:
+
 - https://www.nvsos.gov/sos/commercial-recordings
 - https://www.nvsos.gov/sos-information/public-records-requests
 - https://www.nvsos.gov/SOSServices/AnonymousAccess/PricingGuide.aspx

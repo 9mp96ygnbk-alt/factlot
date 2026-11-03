@@ -145,7 +145,7 @@ This memo is research, not legal advice; the founder holds no attorney or real e
 
 **Fee schedule, effective July 1, 2024.** https://www.clarkcountynv.gov/adobe/assets/urn:aaid:aem:b0ee0f69-d7f2-4964-9270-62bb255d8bea/original/as/fee-schedule-rev-07-01-24.pdf , read 2026-11-03.
 
-> Monthly Subscription of Assessor Data Files                                                            $300.00 per month
+> Monthly Subscription of Assessor Data Files $300.00 per month
 
 > *Fees may be waived upon request and approval for the following subscribers, providing the data requested will used for
 > non-commercial purposes only:
@@ -163,9 +163,9 @@ The waiver list is a student or faculty member of a college or university, and a
 > employees and/or shareholders.
 
 > 3. In the event any confidential data is inadvertently revealed to the company or
-> individual in connection with furnishing of the records herein specified, the company
-> or individual shall not reveal the same to any person nor utilize said information in
-> any manner.
+>    individual in connection with furnishing of the records herein specified, the company
+>    or individual shall not reveal the same to any person nor utilize said information in
+>    any manner.
 
 Paragraph 5 allocates liability for dissemination. It does not forbid dissemination of public fields.
 

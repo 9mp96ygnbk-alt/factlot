@@ -62,7 +62,6 @@ A completed electronic-data transaction is final and non-refundable. An estimate
 
 ## Appendix: verbatim reads (gates pass)
 
-
 This memo is research, not legal advice; the founder holds no attorney or real estate license.
 
 Preferred form, linked from https://bcad.org/ as "Open Records Request" (read 2026-11-03): https://bcad.org/wp-content/uploads/2026/04/BCAD-Public-Information-Act-Request.pdf (HTTP 200).
@@ -86,4 +85,3 @@ Statute page https://statutes.capitol.texas.gov/Docs/GV/htm/GV.552.htm (HTTP 200
 The draft `out/tx-bexar-ad-request.md` asks for the current certified appraisal roll export, commercial categories F1, F2, and B, in the appraisal data export layout, or the full real-property export if a commercial cut would be a new compilation. It excludes Tax Code §25.025 and sales data. The founder signs, dates, and sends it to the Records Management Officer, 411 North Frio Street, San Antonio, TX 78207, or OpenRecords@bcad.org, and does not accept a non-refundable transaction until an itemized estimate is accepted in writing.
 
 The poster presumes government information is public and does not, in the sentences read, restrict later redistribution. The non-refundable transaction rule restricts taking the file before the founder accepts the price.
-

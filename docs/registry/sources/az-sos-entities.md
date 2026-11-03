@@ -37,9 +37,9 @@ This memo is research, not legal advice; the founder holds no attorney or real e
 
 **Form m027.** https://www.azcc.gov/docs/default-source/corps-files/forms/m027-database-extraction-request4afa009930ae4583a9310593ba4c65ce.pdf?sfvrsn=73637fee_6 , read 2026-11-03.
 
-> CD-Rom or Download of entire database                                           $1,000.00
+> CD-Rom or Download of entire database $1,000.00
 
-> CD-Rom or Electronic Mail File for information extract                             $75.00
+> CD-Rom or Electronic Mail File for information extract $75.00
 
 The entire database is $1,000.00 once. It is not a stated annual subscription. Format: "double-quote delimited, comma-separated ASCII data." Delivery: CD-ROM or email. "no other options."
 
@@ -51,7 +51,7 @@ The general public-records page (https://azcc.gov/public-records-request , effec
 
 **Statute.** A.R.S. § 39-121.03, https://www.azleg.gov/ars/39/00121-03.htm , read 2026-11-03.
 
-> D.  For the purposes of this section, "commercial purpose" means the use of a public record for the purpose of sale or resale or for the purpose of producing a document containing all or part of the copy, printout or photograph for sale or the obtaining of names and addresses from public records for the purpose of solicitation or the sale of names and addresses to another for the purpose of solicitation or for any purpose in which the purchaser can reasonably anticipate the receipt of monetary gain from the direct or indirect use of the public record. Commercial purpose does not mean the use of a public record as evidence or as research for evidence in an action in any judicial or quasi-judicial body.
+> D. For the purposes of this section, "commercial purpose" means the use of a public record for the purpose of sale or resale or for the purpose of producing a document containing all or part of the copy, printout or photograph for sale or the obtaining of names and addresses from public records for the purpose of solicitation or the sale of names and addresses to another for the purpose of solicitation or for any purpose in which the purchaser can reasonably anticipate the receipt of monetary gain from the direct or indirect use of the public record. Commercial purpose does not mean the use of a public record as evidence or as research for evidence in an action in any judicial or quasi-judicial body.
 
 Subsection C makes a different commercial purpose than the one stated a treble-damages misuse. Subsection A is where the statute places the three charge factors. The public-records page cites subsection B for those factors. Both texts are saved.
 
