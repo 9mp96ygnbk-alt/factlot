@@ -25,7 +25,9 @@ formula ID whether it was called from Claude, ChatGPT, Gemini, Copilot, Bedrock,
 ## Run the remote connector
 
 ```bash
-docker build -t factlot . && docker run -p 8787:8787 factlot
+docker build -t factlot .
+docker run --rm -p 8787:8787 --read-only --cap-drop ALL --security-opt no-new-privileges \
+  -e FACTLOT_API_KEY="$(openssl rand -hex 24)" -e FACTLOT_PUBLIC_URL=https://factlot.example.com factlot
 # or, from a source build:
 npm run build && node packages/server/dist/bin.js
 ```
@@ -78,11 +80,11 @@ similar attestation.
 
 ## What has been verified
 
-| Check                                                                                                      | Status                                                                                                                                                                          |
-| ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| MCP over Streamable HTTP with the official MCP SDK client (list, call, auth)                               | Tested in CI (`packages/server`)                                                                                                                                                |
-| Raw JSON-RPC over HTTP, as a remote platform sends it (`initialize`, `tools/list`, `tools/call`, `search`) | Tested by hand against the built server                                                                                                                                         |
-| Docker runtime image (non-root user, auth, MCP, REST)                                                      | Tested by hand. The full multi-stage build could not run in the development sandbox (no registry access from build containers). Its build steps were run separately and passed. |
-| Claude Desktop extension: `mcpb validate`, `mcpb pack`, and a standalone stdio run of the unpacked bundle  | Tested by hand (`npm run build:mcpb`)                                                                                                                                           |
-| Provider tool formats and the Gemini schema subset                                                         | Unit-tested (`packages/tools`, `python/tests`)                                                                                                                                  |
-| Live connection from the claude.ai, ChatGPT, Copilot Studio, Gemini, and Bedrock consoles                  | **Not yet.** This needs a public deployment and accounts on each platform. Steps follow each platform's documentation as of Nov 2026; confirm the menu paths when you connect.  |
+| Check                                                                                                      | Status                                                                                                                                                                                                                          |
+| ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| MCP over Streamable HTTP with the official MCP SDK client (list, call, auth)                               | Tested in CI (`packages/server`)                                                                                                                                                                                                |
+| Raw JSON-RPC over HTTP, as a remote platform sends it (`initialize`, `tools/list`, `tools/call`, `search`) | Tested by hand against the built server                                                                                                                                                                                         |
+| Docker runtime image (non-root user, auth, MCP, REST)                                                      | Built and run in the 2026-11-03 security audit: uid 1000, `--read-only`, `--cap-drop ALL`, healthcheck healthy, open and keyed modes, 413 and input caps, rejected-token limit ([audit](../docs/security/audit-2026-11-03.md)). |
+| Claude Desktop extension: `mcpb validate`, `mcpb pack`, and a standalone stdio run of the unpacked bundle  | Tested by hand (`npm run build:mcpb`)                                                                                                                                                                                           |
+| Provider tool formats and the Gemini schema subset                                                         | Unit-tested (`packages/tools`, `python/tests`)                                                                                                                                                                                  |
+| Live connection from the claude.ai, ChatGPT, Copilot Studio, Gemini, and Bedrock consoles                  | **Not yet.** This needs a public deployment and accounts on each platform. Steps follow each platform's documentation as of Nov 2026; confirm the menu paths when you connect.                                                  |

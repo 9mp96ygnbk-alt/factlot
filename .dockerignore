@@ -2,10 +2,23 @@ node_modules
 **/node_modules
 **/dist
 .git
+.github
 python
 bench
 docs
 spec
+site
+registry
+scripts
 connectors
 *.md
 !packages/*/README.md
+# Never send credentials or local state into the build context.
+**/.env
+**/.env.*
+**/*.pem
+**/*.key
+**/*.p12
+**/*.sqlite
+**/*.db
+**/*.jsonl
