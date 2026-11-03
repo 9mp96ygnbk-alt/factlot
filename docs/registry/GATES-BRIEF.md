@@ -10,7 +10,7 @@ requests, and pages only a person can read.
 You are working for the founder of FactLot, an open-source "fact layer" for commercial real
 estate AI agents (repository `9mp96ygnbk-alt/factlot`, local checkout under `Projects/factlot/core`).
 The registry stores cited facts about commercial parcels and their owners of record, built only
-from public records obtained ethically. Twenty-five sources are loaded. The rest of the Tier 1
+from public records obtained ethically. Eighteen verified sources are loaded in full (thirteen appraisal rolls, five entity registries). The rest of the Tier 1
 list is blocked on actions that need a person's name, signature or money. Your job is to take each
 gate as far as it can go **without** doing any of those things yourself, and to hand the founder
 a decision or a ready-to-sign item for each one.
