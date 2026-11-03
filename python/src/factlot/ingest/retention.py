@@ -47,9 +47,10 @@ def redact_report(report: dict[str, Any]) -> dict[str, Any]:
     """A copy of an ingest report that carries no document text beyond the quotes that are
     evidence: a fact's quote, a review item's quote, a page correction's quote.
 
-    - A rejected candidate keeps its predicate, value, page, check and reason but loses its
-      quote: it is not evidence for anything, and the verifier found it on the page (several
-      pages) or did not find it (model output that may echo the page).
+    - A rejected candidate keeps its predicate, page, check and reason but loses its quote and
+      value: neither is evidence for anything, the quote is either page text or model output
+      that may echo the page, and a value refused by the shape check can be exactly what the
+      check keeps out (a guarantor's home address).
     - Any page-text field (``text``, ``page_text``, ``body``) under a document entry, or under
       an entry of its ``pages`` list, is dropped, whatever put it there.
     - The report is marked ``"redacted": true`` so a reader knows what to expect.
@@ -57,6 +58,7 @@ def redact_report(report: dict[str, Any]) -> dict[str, Any]:
     out = copy.deepcopy(report)
     for entry in out.get("rejected", []):
         entry.pop("quote", None)
+        entry.pop("value", None)
     for doc in out.get("documents", []):
         _strip_page_text(doc)
         pages = doc.get("pages")

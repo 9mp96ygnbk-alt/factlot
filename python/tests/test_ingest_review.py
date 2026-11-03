@@ -229,6 +229,29 @@ class Persistence(unittest.TestCase):
         self.assertEqual(second.current["lease.security_deposit"]["value"], 95000,
                          "the consistent candidate with that quote is unaffected")
 
+    def test_a_rejection_holds_when_the_extractor_becomes_confident(self):
+        first = run()
+        share = by_predicate(review_queue(first))[("lease.pro_rata_share", 0.0825)]
+        decide(first, share.id, False, "bob")
+        script = copy.deepcopy(SCRIPT)
+        c = script["synthetic_lease"][4]
+        script["synthetic_lease"][4] = Candidate(c.predicate, c.value, c.quote, c.page, c.section, confidence=0.99)
+        for second in (run(ScriptedExtractor(script), review=first.review),
+                       run(review=first.review, confidence_threshold=0.1)):
+            self.assertNotIn("lease.pro_rata_share", second.current)
+            self.assertEqual(second.review_item(share.id).status, "rejected")
+
+    def test_two_values_for_one_quote_cannot_both_be_accepted(self):
+        script = copy.deepcopy(SCRIPT)
+        script["synthetic_lease"].append(Candidate("lease.pro_rata_share", 0.825, "Tenant's Share is 8.25%", 2, "4.1"))
+        first = run(ScriptedExtractor(script))
+        q = by_predicate(review_queue(first))
+        decide(first, q[("lease.pro_rata_share", 0.0825)].id, True, "alice")
+        with self.assertRaisesRegex(ValueError, "same predicate and quote was already accepted"):
+            decide(first, q[("lease.pro_rata_share", 0.825)].id, True, "alice")
+        self.assertEqual(review_queue(first, "pending").count(q[("lease.pro_rata_share", 0.825)]), 1,
+                         "the refused item is still pending, to be rejected")
+
     def test_accepted_fact_stands_when_the_candidate_does_not_reappear(self):
         first = self.decided()
         script = copy.deepcopy(SCRIPT)
@@ -336,6 +359,24 @@ class Cli(unittest.TestCase):
             code, _, err = self.run_cli("--reject", "rv_nope", "--by", "x", "--out", str(Path(tmp) / "facts.json"))
             self.assertEqual(code, 2)
             self.assertIn("no review item rv_nope", err)
+
+    def test_amendment_date_is_checked_before_any_model_call(self):
+        with tempfile.TemporaryDirectory() as tmp, \
+                mock.patch.object(cli, "ClaudeExtractor", side_effect=AssertionError("no model call")):
+            for bad in ("2030-1-15", "2030-02-30", "Jan 15 2030"):
+                with self.assertRaises(SystemExit), contextlib.redirect_stderr(io.StringIO()):
+                    cli.main(["--model", "m", "--lease", str(FIX / "synthetic_lease.txt"),
+                              "--amendment", f"{FIX / 'synthetic_first_amendment.txt'}@{bad}",
+                              "--out", str(Path(tmp) / "facts.json")])
+
+    def test_a_decision_on_a_redacted_file_keeps_it_redacted(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "facts.json"
+            self.extract(tmp, "--redact")
+            item = json.loads(out.read_text())["review"][0]["id"]
+            code, _, _ = self.run_cli("--reject", item, "--by", "Bob", "--out", str(out))  # no --redact this time
+            self.assertEqual(code, 0)
+            self.assertIs(json.loads(out.read_text()).get("redacted"), True)
 
 
 if __name__ == "__main__":

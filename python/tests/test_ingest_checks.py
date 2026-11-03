@@ -246,6 +246,12 @@ class ValueShapes(unittest.TestCase):
         self.assertIsNone(check_value("lease.pro_rata_share", 0.0825))
         self.assertEqual(check_value("lease.rofr", ""), "expected non-empty string")
 
+    def test_cam_cap_rate_is_a_fraction(self):
+        self.assertIsNone(check_value("lease.cam_cap", {"method": "compounding_from_base", "rate": 0.05}))
+        for rate in (5, 0, -0.05):  # 5 means 5% written as a number: refused, like pro_rata_share
+            self.assertEqual(check_value("lease.cam_cap", {"method": "year_over_year", "rate": rate}),
+                             "rate must be a fraction in (0, 1], e.g. 0.05 for 5%")
+
 
 class Consistency(unittest.TestCase):
     def test_forms(self):

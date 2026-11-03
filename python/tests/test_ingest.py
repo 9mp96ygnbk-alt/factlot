@@ -144,6 +144,22 @@ class Ingest(unittest.TestCase):
         self.assertEqual(len(d.pages), 3)
 
 
+class DocumentOrder(unittest.TestCase):
+    def test_amendments_by_date_or_by_sequence_when_any_is_undated(self):
+        from factlot.ingest.documents import LeaseDocument
+        from factlot.ingest.pipeline import document_order
+
+        def doc(title, role="amendment", eff=None, seq=0):
+            return LeaseDocument(f"fl:document:sha256-{title}", title, [], role=role, effective_date=eff, sequence=seq)
+
+        lease = doc("lease", "original")
+        a1, a2, a3 = doc("a1", eff="2029-01-01", seq=1), doc("a2", eff="2028-06-01", seq=2), doc("a3", eff="2029-01-01", seq=3)
+        self.assertEqual([d.title for d in document_order([a3, a1, lease, a2])], ["lease", "a2", "a1", "a3"])
+        # An undated amendment given second cannot jump ahead of the dated one given first.
+        b1, b2 = doc("b1", eff="2029-01-01", seq=1), doc("b2", seq=2)
+        self.assertEqual([d.title for d in document_order([b2, lease, b1])], ["lease", "b1", "b2"])
+
+
 class Verifier(unittest.TestCase):
     def test_short_and_ambiguous_quotes(self):
         d = load_document(FIX / "synthetic_lease.txt")

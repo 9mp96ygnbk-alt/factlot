@@ -134,6 +134,22 @@ from its commit history; nothing was published to npm or PyPI before it.
 
 ### Fixed
 
+- Registry privacy: a person's role or initials no longer make an owner name an organisation.
+  "SMITH JOHN CO-TRUSTEE", "DOE JANE CO TRS", "GARCIA MARIA L P" and "JOHN SMITH DBA SMITH
+  PROPERTIES" were stored with their mailing addresses; they are now treated as natural persons
+  ("L.P." with a dot is still a partnership). Re-ingest existing registries to drop them.
+- Registry owner linking: a reviewer's accepted match is the only owner link for that name, so
+  an exact or standing match loaded later no longer gives the parcel a second owner. A negated
+  entity status ("not_in_good_standing", "unregistered") no longer reads as live.
+- Ingest review: a rejected candidate stays rejected when a re-run reports it with higher
+  extractor confidence or a lower threshold (it had become a fact); two values for one
+  (predicate, quote) can no longer both be accepted (the second accept placed nothing); a
+  `lease.cam_cap` rate outside (0, 1] is refused like other ratios (5 for 5% passed).
+- Ingest ordering and CLI: an undated amendment no longer jumps ahead of dated ones (amendments
+  apply in the order given when any is undated); a malformed `--amendment file@date` stops the
+  run before any model call; `--accept`/`--reject` on a redacted report keeps it redacted.
+- Ingest redaction: a rejected candidate's value is dropped with its quote, since a value
+  refused by the shape check can be what the check keeps out (a guarantor's address).
 - Python IDs and fact validation now match TypeScript on unusual input: a trailing newline no
   longer passes `parse` or `validate_fact` (re's `$` matched before it), FIPS codes and floor
   numbers accept ASCII digits only, and suite whitespace follows ECMAScript (a leading

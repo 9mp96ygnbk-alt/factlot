@@ -74,6 +74,8 @@ def check_value(predicate: str, value: Any) -> str | None:
     if predicate == "lease.cam_cap":
         ok = isinstance(value, dict) and value.get("method") in ("compounding_from_base", "simple_from_base",
                                                                   "year_over_year") and _num(value.get("rate"))
+        if ok and not 0 < value["rate"] <= 1:
+            return "rate must be a fraction in (0, 1], e.g. 0.05 for 5%"
         return None if ok else "expected {method, rate} with an explicit cap method"
     if predicate in ("lease.free_rent", "lease.renewal_option", "lease.termination_option"):
         return None if isinstance(value, dict) and value else "expected object"

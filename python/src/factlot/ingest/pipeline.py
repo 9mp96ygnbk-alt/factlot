@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -160,6 +161,19 @@ def place_fact(result: IngestResult, fact: dict[str, Any]) -> None:
     result.current[fact["predicate"]] = fact
 
 
+def document_order(documents: list[LeaseDocument]) -> list[LeaseDocument]:
+    """The order instruments apply in: the original, then amendments by effective date (sequence
+    breaks ties). If any amendment has no effective date, amendments apply in sequence order
+    alone (the order they were given): an undated amendment cannot be placed among dated ones."""
+    originals = sorted((d for d in documents if d.role == "original"), key=lambda d: d.sequence)
+    amendments = [d for d in documents if d.role != "original"]
+    if all(d.effective_date for d in amendments):
+        amendments.sort(key=lambda d: (d.effective_date or "", d.sequence))
+    else:
+        amendments.sort(key=lambda d: d.sequence)
+    return originals + amendments
+
+
 def ingest_lease(lease_urn: str, documents: list[LeaseDocument], extractor: Extractor, *, as_of: str,
                  rights: dict[str, Any] | None = None, review: list[ReviewItem] | None = None,
                  confidence_threshold: float = REVIEW_CONFIDENCE_THRESHOLD,
@@ -169,8 +183,8 @@ def ingest_lease(lease_urn: str, documents: list[LeaseDocument], extractor: Extr
     ``retention_days`` sets the report's ``retention.retain_until`` (``as_of`` plus the days): the
     date after which a hosted copy of the source documents is deleted (docs/customer-documents.md).
 
-    Documents are applied in order (original first, then amendments by effective date and
-    sequence). A later document's fact for a predicate supersedes the earlier one; the history
+    Documents are applied in ``document_order``: the original first, then amendments by
+    effective date and sequence (by sequence alone if any amendment is undated). A later document's fact for a predicate supersedes the earlier one; the history
     is kept and linked through ``supersedes``.
 
     A candidate whose quote verifies but whose value does not follow from it, or whose extractor
@@ -179,7 +193,7 @@ def ingest_lease(lease_urn: str, documents: list[LeaseDocument], extractor: Extr
     earlier run: an accepted item is a fact again, a rejected (predicate, quote) pair is never
     queued again, and pending items keep their place and ID, so re-running is idempotent.
     """
-    order = sorted(documents, key=lambda d: (d.role != "original", d.effective_date or "", d.sequence))
+    order = document_order(documents)
     result = IngestResult(facts=[], current={}, review=[ReviewItem.from_dict(r.to_dict()) for r in review or []],
                           lease_urn=lease_urn, as_of=as_of,
                           producer={"name": extractor.name, "version": extractor.version}, rights=rights,
@@ -207,6 +221,10 @@ def ingest_lease(lease_urn: str, documents: list[LeaseDocument], extractor: Extr
             page = doc.page(v.page)
             ocr = page is not None and page.ocr
             earlier = decided.get(review_id(cand))
+            if earlier is not None and earlier.status == "rejected":
+                # A reviewer rejected this exact (predicate, quote, value): a re-run must not turn it
+                # into a fact because the extractor's confidence or the threshold changed.
+                continue
             if check is None or (earlier is not None and earlier.status == "accepted"):
                 fact = assemble_fact(result, cand, document_id=doc.document_id, title=doc.title, page=v.page,
                                      ocr=ocr, effective_date=doc.effective_date)
@@ -274,6 +292,14 @@ def decide(result: IngestResult, item_id: str, accepted: bool, decided_by: str, 
         raise ValueError(f"no review item {item_id}")
     if item.status != "pending":
         raise ValueError(f"review item {item_id} was already {item.status}")
+    if accepted:
+        key = review_key(item.candidate.predicate, item.candidate.quote)
+        other = next((r for r in result.review if r.status == "accepted" and r.id != item.id
+                      and review_key(r.candidate.predicate, r.candidate.quote) == key), None)
+        if other is not None:
+            # Both would cite the same quote for the same term: only one value can follow from it.
+            raise ValueError(f"review item {other.id} with the same predicate and quote was already accepted "
+                             f"(value {json.dumps(other.candidate.value)}); reject this one instead")
     item.decide(accepted, decided_by.strip(), now=now)
     if accepted:
         fact = assemble_fact(result, item.candidate, document_id=item.document_id, title=item.title, page=item.page,

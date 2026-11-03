@@ -66,8 +66,10 @@ class Redaction(unittest.TestCase):
 
         # The redacted one does not; everything that is evidence stays.
         self.assertTrue(redacted["redacted"])
-        self.assertEqual(redacted["rejected"], [{"predicate": "lease.rofr", "value": "Tenant has a ROFR on Suite 500",
-                                                 "page": 3, "check": "quote", "reason": full["rejected"][0]["reason"]}])
+        # A rejected candidate's value goes too: it is model output, and a value refused by the
+        # shape check can be exactly what the check keeps out (a guarantor's home address).
+        self.assertEqual(redacted["rejected"], [{"predicate": "lease.rofr", "page": 3, "check": "quote",
+                                                 "reason": full["rejected"][0]["reason"]}])
         self.assertEqual({f["provenance"]["sources"][0]["quote"] for f in redacted["facts"]},
                          {"containing 12,500 rentable square feet", DEPOSIT_QUOTE,
                           "the Premises shall contain 15,000 rentable square feet"})
