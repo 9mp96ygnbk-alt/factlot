@@ -725,6 +725,40 @@ class Registry:
             f"WHERE r.from_urn = ? AND r.type = 'owns' AND {_CURRENT_LINK} ORDER BY s.label", (entity_urn,)).fetchall()
         return [dict(r) for r in rows]
 
+    def purge_person_owners(self) -> dict[str, int]:
+        """Remove owner-of-record facts that the current ``is_organization`` rule reads as persons.
+
+        The ingest step stores owner names only for organisations (data policy, "People are not
+        the product"). When that rule is tightened, a registry built earlier can still hold
+        individuals it once read as organisations ("SMITH JOHN CO-TRUSTEE"). This deletes, for
+        each such fact: the owner-of-record fact, the mailing-address fact from the same
+        document, any ownership link inferred from it, and any review-queue rows for that name.
+        The parcel and its other facts stay. Run it once after upgrading; it is idempotent.
+        """
+        result = {"owner_facts": 0, "mailing_facts": 0, "ownership_links": 0, "review_rows": 0}
+        rows = self.db.execute(
+            "SELECT fact_id, subject, value_json, document_id FROM facts WHERE predicate = 'ownership.owner_of_record'"
+        ).fetchall()
+        keys: set[str] = set()
+        for r in rows:
+            name = json.loads(r["value_json"])
+            if isinstance(name, str) and is_organization(name):
+                continue
+            keys.add(normalize_name(name) if isinstance(name, str) else "")
+            result["mailing_facts"] += self.db.execute(
+                "DELETE FROM facts WHERE subject = ? AND document_id = ? AND predicate = 'ownership.owner_mailing_address'",
+                (r["subject"], r["document_id"])).rowcount
+            result["ownership_links"] += self.db.execute(
+                "DELETE FROM relationships WHERE type = 'owns' AND to_urn = ? AND document_id = ?",
+                (r["subject"], r["document_id"])).rowcount
+            result["owner_facts"] += self.db.execute("DELETE FROM facts WHERE fact_id = ?", (r["fact_id"],)).rowcount
+        if keys and self._has_table("owner_match_review"):
+            for k in keys:
+                result["review_rows"] += self.db.execute(
+                    "DELETE FROM owner_match_review WHERE owner_key = ?", (k,)).rowcount
+        self.db.commit()
+        return result
+
     def stats(self) -> dict[str, int]:
         q = lambda sql: self.db.execute(sql).fetchone()[0]  # noqa: E731
         return {

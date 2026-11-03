@@ -15,6 +15,7 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 
 ### Added
 
+- `Registry.purge_person_owners()`: removes owner names that the current person-detection rule reads as natural persons from a registry built under an earlier rule (with their mailing addresses, inferred links and review rows). Run once after upgrading past 0.1.0's tightened `is_organization`.
 - Registry Tier 2 review: 61 more counties (the rest of the US top 100 by population), 28 verified with adapters and tests across 15 states, statewide parcel sources for Wisconsin, Utah, North Carolina, New York, Maryland and Massachusetts, the Connecticut entity registry, and a review record and collector config for every source ([index](docs/registry/tier2/README.md)).
 
 ## [0.1.0] - 2026-11-03

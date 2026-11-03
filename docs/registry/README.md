@@ -69,6 +69,14 @@ is what retires a sold parcel's old owner. Example: an LLC sells to an individua
 lists a person, whose name we never store, so the LLC's ownership fact and link become history
 instead of lingering as current.
 
+## Upgrading a registry after a privacy-rule change
+
+Owner names are stored only for organisations. If the person-detection rule (`is_organization`)
+is tightened, run `Registry(path).purge_person_owners()` once on every registry built before the
+change: it deletes owner-of-record facts the current rule reads as persons, with their
+mailing-address facts, any ownership links inferred from them, and their review-queue rows. The
+parcels and their other facts stay. It is idempotent.
+
 ## Owner resolution
 
 Owner-of-record names on a roll rarely match a registration letter for letter: "ACME

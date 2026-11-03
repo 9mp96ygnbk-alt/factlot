@@ -4,6 +4,7 @@ All records here are SYNTHETIC test fixtures (invented names, accounts, and valu
 to exercise code paths. They are not real Texas data and must never be published as such.
 """
 
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -240,6 +241,33 @@ class RegistryCore(unittest.TestCase):
         self.reg.ingest_entities([EntityRecord("Twin Name Properties, LLC", "us-tx", "0802222222", status="FORFEITED"),
                                   EntityRecord("Twin Name Properties LLC", "us-tx", "0803333333", status=None)], snap3)
         self.assertEqual(self.reg.link_owners()["ambiguous"], 1, "an unknown status is never a tie-breaker")
+
+    def test_purge_person_owners_removes_names_an_older_rule_stored(self):
+        self.reg.ingest_parcels(ROLL_2025, self.snap25, state_fips="48")
+        self.reg.ingest_entities(ENTITIES, self.ent)
+        self.reg.link_owners()
+        parcel = factlot.parcel_id("48", "999", "0001-000-0002").urn
+        # Simulate a registry written under an older, looser rule: a person stored as an owner.
+        self.reg.db.execute(
+            "UPDATE facts SET value_json = ? WHERE subject = ? AND predicate = 'ownership.owner_of_record'",
+            (json.dumps("SMITH JOHN CO-TRUSTEE"), parcel))
+        self.reg.db.execute(
+            "INSERT INTO facts SELECT fact_id || 'm', subject, 'ownership.owner_mailing_address', ?, unit, as_of, method, "
+            "confidence, document_id, locator FROM facts WHERE subject = ? AND predicate = 'ownership.owner_of_record'",
+            (json.dumps("1 Elm St, Example TX"), parcel))
+        self.reg.db.commit()
+        before = self.reg.stats()["facts"]
+        purged = self.reg.purge_person_owners()
+        self.assertEqual((purged["owner_facts"], purged["mailing_facts"]), (1, 1))
+        predicates = {f["predicate"] for f in self.reg.facts(parcel, history=True)}
+        self.assertNotIn("ownership.owner_of_record", predicates)
+        self.assertNotIn("ownership.owner_mailing_address", predicates)
+        self.assertIn("parcel.market_value", predicates, "the parcel and its other facts stay")
+        self.assertNotIn("SMITH", str(self.reg.get(parcel)))
+        self.assertEqual(self.reg.stats()["facts"], before - 2)
+        lonestar = factlot.entity_id("us-tx", "0801111111").urn
+        self.assertEqual(len(self.reg.parcels_owned_by(lonestar)), 1, "organisation owners are untouched")
+        self.assertEqual(self.reg.purge_person_owners()["owner_facts"], 0, "idempotent")
 
     def test_reingest_is_idempotent_and_newer_snapshot_wins(self):
         self.reg.ingest_parcels(ROLL_2025, self.snap25, state_fips="48")
