@@ -22,9 +22,11 @@ _SUFFIXES = [
     (r"\bLIMITED\b", "LTD"),
 ]
 
-# Tokens that mark an organisation rather than a natural person.
+# Tokens that mark an organisation rather than a natural person. "CO" followed by a fiduciary or
+# ownership role is a person's role ("SMITH JOHN CO-TRUSTEE", "DOE JANE CO TRS"), not "Company".
 _ENTITY_TOKENS = re.compile(
-    r"\b(LLC|LLP|LP|INC|CORP|CO|LTD|PLLC|PC|PARTNERS|PARTNERSHIP|PROPERTIES|PROPERTY|HOLDINGS|"
+    r"\b(LLC|LLP|LP|INC|CORP|CO(?! (?:TRUSTEES?|TRS?|TTEES?|OWNERS?|TENANTS?|EXECUTORS?|EXRS?|"
+    r"EXECUTRIX|ADMINISTRATORS?|ADMRS?|PERSONAL REPRESENTATIVES?)\b)|LTD|PLLC|PC|PARTNERS|PARTNERSHIP|PROPERTIES|PROPERTY|HOLDINGS|"
     r"REALTY|INVESTMENTS?|FUND|CAPITAL|VENTURES?|ASSOCIATES|GROUP|BANK|CHURCH|ASSOCIATION|"
     r"FOUNDATION|DISTRICT|AUTHORITY|ISD|COUNTY|CITY|STATE|UNIVERSITY|HOSPITAL|REIT|"
     r"REAL ESTATE INVESTMENT TRUST)\b"
@@ -42,13 +44,28 @@ def normalize_name(name: str) -> str:
     return re.sub(r"\s+", " ", s).strip()
 
 
+# A "doing business as" marker (DBA, D/B/A, D.B.A.): what follows it is a trade name.
+_DBA = re.compile(r"\bD\s*[/.]?\s*B\s*[/.]?\s*A\b")
+# "L.P." written with a dot is a partnership; bare spaced "L P" is usually a person's initials.
+_DOTTED_LP = re.compile(r"\bL\s*\.\s*P\b")
+
+
 def is_organization(name: str) -> bool:
     """Conservative: anything not clearly an organisation is treated as a natural person.
 
     Family and personal trusts ("SMITH FAMILY TRUST") are treated as persons; real estate
-    investment trusts are organisations.
+    investment trusts are organisations. Only the part before a "DBA" counts, since a sole
+    proprietor's trade name ("JOHN SMITH DBA SMITH PROPERTIES") does not make them an
+    organisation. Bare spaced initials "L P" are read as a person's initials ("GARCIA MARIA L P");
+    "L.P." with a dot, "LP", and "Limited Partnership" are partnerships.
     """
-    return bool(_ENTITY_TOKENS.search(normalize_name(name)))
+    raw = _DBA.split(name.upper().replace("&", " AND "), maxsplit=1)[0]
+    s = re.sub(r"\s+", " ", re.sub(r"[^A-Z0-9 ]+", " ", raw)).strip()
+    for pattern, repl in _SUFFIXES:
+        if pattern == r"\bL P\b" and not _DOTTED_LP.search(raw):
+            continue
+        s = re.sub(pattern, repl, s)
+    return bool(_ENTITY_TOKENS.search(s))
 
 
 # --- name similarity (fuzzy owner matching, backlog C2) ---------------------------------------
@@ -204,7 +221,8 @@ _ENDED = re.compile(r"dissol|revoked|withdrawn|merge|converted|consolidated|term
 _LIVE = re.compile(r"active|good_standing|exists|listed|delinquent|noncompliant|current|registered|"
                    r"in_existence|pending|resigned|reinstated|suspended")
 # Texas "forfeited franchise tax": the right to transact business is forfeited, the entity is not.
-_UNDECIDED = re.compile(r"franchise")
+# A negated status ("not_in_good_standing", "unregistered") says nothing reliable either way.
+_UNDECIDED = re.compile(r"franchise|(?:^|_)not_|(?:^|_)un(?!der)")
 
 
 def entity_standing(status: str | None) -> str | None:

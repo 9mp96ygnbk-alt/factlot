@@ -54,6 +54,8 @@ class RunTool(unittest.TestCase):
         self.assertEqual(factlot.run_tool("id_parcel", {})["error"], "InputError")
         self.assertEqual(factlot.run_tool("id_document", {"text": "a", "content_base64": "YQ=="})["error"], "InputError")
         self.assertEqual(factlot.run_tool("calc_nope", {})["error"], "UnknownTool")
+        # Same message as @factlot/tools runTool, so an agent sees one wording on every surface.
+        self.assertEqual(factlot.run_tool("calc_nope", {})["message"], 'no FactLot tool named "calc_nope"')
 
 
 class RegistryTools(unittest.TestCase):

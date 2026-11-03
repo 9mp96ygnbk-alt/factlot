@@ -30,7 +30,9 @@ export const Escalation = z.discriminatedUnion("type", [
         .int()
         .positive()
         .default(12)
-        .describe("Months between bumps (12 = annual)."),
+        .describe(
+          "Months between bumps (12 = annual). The first bump takes effect in month every_months + 1.",
+        ),
     })
     .describe("Percentage bumps: rate_k = starting_rate × (1 + rate)^k."),
   z
@@ -45,7 +47,9 @@ export const Escalation = z.discriminatedUnion("type", [
         .int()
         .positive()
         .default(12)
-        .describe("Months between bumps (12 = annual)."),
+        .describe(
+          "Months between bumps (12 = annual). The first bump takes effect in month every_months + 1.",
+        ),
     })
     .describe("Fixed $/SF bumps: rate_k = starting_rate + amount × k."),
 ]);
@@ -65,7 +69,9 @@ export const RentScheduleInput = z.object({
     .number()
     .finite()
     .nonnegative()
-    .describe("Year-one base rent in dollars per SF per year."),
+    .describe(
+      "Year-one base rent in dollars per SF per year (annual, not monthly), e.g. 42.5.",
+    ),
   escalation: Escalation.default({ type: "none" }).describe(
     "How base rent escalates. Omit for flat rent.",
   ),
@@ -73,7 +79,7 @@ export const RentScheduleInput = z.object({
     .array(z.number().int().positive())
     .default([])
     .describe(
-      "Fully abated months, 1-based (e.g. [1,2,3] for three months free up front).",
+      "Fully abated (free) months, 1-based from commencement (e.g. [1,2,3] for three months free up front). Each listed month's base rent is zero.",
     ),
   round_rate_to_cents: z
     .boolean()
@@ -258,7 +264,7 @@ export const NetEffectiveRentInput = z.object({
     "The lease's base-rent terms (same input as calc_rent_schedule).",
   ),
   ti_allowance_psf: NonNegMoney.default(0).describe(
-    "Landlord-funded tenant improvement allowance, $/SF.",
+    "Landlord-funded tenant improvement allowance, USD per SF, paid once at commencement (not per year).",
   ),
   leasing_commissions: NonNegMoney.default(0).describe(
     "Total leasing commissions paid by landlord, USD.",
@@ -273,7 +279,7 @@ export const NetEffectiveRentInput = z.object({
     .lt(1)
     .default(0)
     .describe(
-      "Annual discount rate; 0 gives the undiscounted (straight-line) NER.",
+      "Annual discount rate as a decimal, e.g. 0.08 (monthly rate = annual ÷ 12); 0 gives the undiscounted (straight-line) NER.",
     ),
 });
 export type NetEffectiveRentInput = z.input<typeof NetEffectiveRentInput>;

@@ -126,7 +126,44 @@ from its commit history; nothing was published to npm or PyPI before it.
 - Documentation for agents (`llms.txt`, `AGENTS.md`, `docs/agents.md`), the ID spec, the fact
   model, the registry, rules, ingestion, and the backlog.
 
+### Changed
+
+- `calc.debt_sizing@2`: the maximum loan is rounded down after reducing it to 15 significant
+  digits, so binary noise no longer costs a whole increment (a 57% LTV on $10,000,000 rounded
+  to $1,000 returned $5,699,000 instead of $5,700,000). Both SDKs; `reduceNoise` /
+  `reduce_noise` added to the core helpers.
+- `calc.renew_vs_relocate@2`: warns when a break-even starting rent is negative (one case's
+  one-time costs alone exceed the other's NPV), instead of reporting an unachievable rent
+  silently.
+- `calc.lease_vs_own@2`: warns when the loan exceeds purchase price plus closing costs (negative
+  equity at closing).
+- Tool descriptions state units, decimal-versus-percent, and periods for every field an agent
+  could misread (NPV rate, one-time TI allowances, `current_rent_monthly`, the first escalation
+  month, hotel `rooms_out_of_order` as off-market room-nights); Gemini definitions spell out
+  exclusive bounds and defaults, which its schema subset drops.
+
 ### Fixed
+
+- Registry privacy: a person's role or initials no longer make an owner name an organisation.
+  "SMITH JOHN CO-TRUSTEE", "DOE JANE CO TRS", "GARCIA MARIA L P" and "JOHN SMITH DBA SMITH
+  PROPERTIES" were stored with their mailing addresses; they are now treated as natural persons
+  ("L.P." with a dot is still a partnership). Re-ingest existing registries to drop them.
+- Registry owner linking: a reviewer's accepted match is the only owner link for that name, so
+  an exact or standing match loaded later no longer gives the parcel a second owner. A negated
+  entity status ("not_in_good_standing", "unregistered") no longer reads as live.
+- Ingest review: a rejected candidate stays rejected when a re-run reports it with higher
+  extractor confidence or a lower threshold (it had become a fact); two values for one
+  (predicate, quote) can no longer both be accepted (the second accept placed nothing); a
+  `lease.cam_cap` rate outside (0, 1] is refused like other ratios (5 for 5% passed).
+- Ingest ordering and CLI: an undated amendment no longer jumps ahead of dated ones (amendments
+  apply in the order given when any is undated); a malformed `--amendment file@date` stops the
+  run before any model call; `--accept`/`--reject` on a redacted report keeps it redacted.
+- Ingest redaction: a rejected candidate's value is dropped with its quote, since a value
+  refused by the shape check can be what the check keeps out (a guarantor's address).
+- Python IDs and fact validation now match TypeScript on unusual input: a trailing newline no
+  longer passes `parse` or `validate_fact` (re's `$` matched before it), FIPS codes and floor
+  numbers accept ASCII digits only, and suite whitespace follows ECMAScript (a leading
+  byte-order mark is trimmed). TypeScript IDs are unchanged; new vectors in `spec/vectors`.
 
 - Python validates registry tool input before opening the registry, matching TypeScript (found
   by the shared vectors).

@@ -100,7 +100,7 @@ export const calculators = {
   },
   debt_sizing: {
     id: "calc.debt_sizing",
-    version: 1,
+    version: 2,
     title: "Loan sizing (LTV / DSCR / debt yield)",
     description:
       "Size the maximum loan under any combination of max LTV, min DSCR, and min debt yield for a given NOI, rate, and amortization. Reports the binding constraint, debt service, and resulting metrics.",
@@ -139,7 +139,7 @@ export const calculators = {
     version: 1,
     title: "Net present value",
     description:
-      "NPV of periodic cash flows (t = 0, 1, 2, ...) at a per-period discount rate.",
+      "NPV of periodic cash flows (t = 0, 1, 2, ...; the t = 0 flow is not discounted) at a per-period discount rate given as a decimal.",
     input: NpvInput,
     run: npv,
   },
@@ -148,13 +148,13 @@ export const calculators = {
     version: 1,
     title: "Internal rate of return",
     description:
-      "Periodic and annualized IRR of periodic cash flows, solved deterministically; reports every root when cash flows have multiple IRRs.",
+      "Periodic and annualized IRR of periodic cash flows, as decimals (0.085 = 8.5%), solved deterministically by scanning a 1-point grid of per-period rates and bisecting each sign change; reports every root it finds when cash flows have multiple IRRs (two roots within one grid step can be missed). Errors when the flows do not change sign or no root lies between -99.99% and 1000% per period.",
     input: IrrInput,
     run: irr,
   },
   lease_vs_own: {
     id: "calc.lease_vs_own",
-    version: 1,
+    version: 2,
     title: "Lease vs. own",
     description:
       "Compare leasing with buying over a fixed horizon: NPV of each case's annual cash costs (rent, free rent, tenant expenses, and move-in costs versus equity, debt service, owner expenses, reserves, and a sale at the horizon by stated value or exit cap rate), optionally after tax, with the year-by-year tables and the break-even residual value at which owning equals leasing.",
@@ -163,7 +163,7 @@ export const calculators = {
   },
   renew_vs_relocate: {
     id: "calc.renew_vs_relocate",
-    version: 1,
+    version: 2,
     title: "Renew vs. relocate",
     description:
       "Compare renewing in place with moving over one horizon: NPV and discounted effective rent of each case (rent schedule with free rent, TI net of allowance, fees, moving, downtime, double rent, termination, and disruption costs), the starting rent at which they break even, and year-by-year cash flows.",

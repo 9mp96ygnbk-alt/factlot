@@ -1,6 +1,6 @@
 {
   "calculator": "calc.debt_sizing",
-  "version": 1,
+  "version": 2,
   "cases": [
     {
       "name": "LTV binds",
@@ -69,6 +69,50 @@
         "max_ltv": 0.6
       },
       "expect_error": true
+    },
+    {
+      "name": "LTV loan with binary noise floors to the right $1,000 (10,000,000 x 0.57)",
+      "input": {
+        "noi": 1000000,
+        "rate_annual": 0.06,
+        "amortization_years": 30,
+        "value": 10000000,
+        "max_ltv": 0.57,
+        "round_down_to": 1000
+      },
+      "expect": {
+        "value.binding_constraint": "ltv",
+        "value.max_loan": 5700000,
+        "value.loan_by_constraint.ltv": 5700000,
+        "value.resulting.ltv": 0.57
+      }
+    },
+    {
+      "name": "LTV loan with binary noise floors to the right dollar (3,000,000 x 0.29)",
+      "input": {
+        "noi": 1000000,
+        "rate_annual": 0.06,
+        "amortization_years": 30,
+        "value": 3000000,
+        "max_ltv": 0.29
+      },
+      "expect": {
+        "value.max_loan": 870000
+      }
+    },
+    {
+      "name": "LTV loan with binary noise floors to the right $10,000 (7,000,000 x 0.58)",
+      "input": {
+        "noi": 1000000,
+        "rate_annual": 0.06,
+        "amortization_years": 30,
+        "value": 7000000,
+        "max_ltv": 0.58,
+        "round_down_to": 10000
+      },
+      "expect": {
+        "value.max_loan": 4060000
+      }
     }
   ]
 }

@@ -26,7 +26,7 @@ export const HotelMetricsInput = z.object({
     .min(0)
     .default(0)
     .describe(
-      "Room-nights removed from inventory in the period (renovation, damage). USALI excludes these from rooms available.",
+      "Room-nights (rooms × nights, not rooms) taken off the market in the period, e.g. 20 rooms closed for a 30-night renovation = 600. Subtracted from rooms × nights to give rooms available. USALI (11th ed.) keeps short-term out-of-order rooms in rooms available; include only rooms formally removed from sale.",
     ),
   rooms_sold: z
     .number()

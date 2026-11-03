@@ -79,6 +79,10 @@ test("runTool returns results and errors as data", () => {
   assert.equal(!missing.ok && missing.error.error, "InputError");
   const unknown = runTool("nope", {});
   assert.equal(!unknown.ok && unknown.error.error, "UnknownTool");
+  assert.equal(
+    !unknown.ok && unknown.error.message,
+    'no FactLot tool named "nope"',
+  );
 
   const fact = runTool("fact_validate", {
     fact: {
@@ -170,6 +174,7 @@ test("Gemini schemas use only the conservative subset", () => {
     properties: {
       d: { type: "string", format: "date", description: "When." },
       n: { type: "number", exclusiveMinimum: 0 },
+      r: { type: "number", minimum: 0, exclusiveMaximum: 1, default: 0.08 },
     },
     oneOf: [{ type: "object", properties: { t: { const: "x" } } }],
   });
@@ -180,6 +185,13 @@ test("Gemini schemas use only the conservative subset", () => {
   assert.deepEqual((s.properties as Record<string, object>).n, {
     type: "number",
     minimum: 0,
+    description: "Must be greater than 0.",
+  });
+  assert.deepEqual((s.properties as Record<string, object>).r, {
+    type: "number",
+    minimum: 0,
+    maximum: 1,
+    description: "Must be less than 1. Default: 0.08.",
   });
   assert.ok(Array.isArray(s.anyOf));
 });

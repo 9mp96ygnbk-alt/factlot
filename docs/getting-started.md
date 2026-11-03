@@ -1,9 +1,11 @@
 # Getting started
 
-Three ways to use FactLot, depending on where your agent runs. All three serve the same tools
-from one catalog: nine calculators, a Texas protest-deadline rule, FactLot IDs, fact validation,
-and `search`/`fetch`/`schema_get` (plus six `registry_*` tools when a registry database is
-configured). For which tool to call when, see [agents.md](agents.md).
+Three ways to use FactLot, depending on where your agent runs. All three serve the same core
+tools from one catalog: fourteen calculators, a Texas protest-deadline rule, FactLot IDs, and fact
+validation. The MCP servers (local and `/mcp`) add `search`/`fetch`/`schema_get` and list the six
+`registry_*` tools only when a registry database is configured (`FACTLOT_REGISTRY_DB`). REST,
+OpenAPI, and the TypeScript and Python tool exports always include the registry tools, which
+return `RegistryUnavailable` until a database is configured. For which tool to call when, see [agents.md](agents.md).
 
 > **What works today.** FactLot is not on npm or PyPI yet (backlog item A5). Each section
 > below lists the commands that work now first: from a clone, from git, or from the files
@@ -118,6 +120,8 @@ claude mcp add factlot -- node "$PWD/packages/mcp/dist/bin.js"
 Settings, Extensions, Install.
 
 **After first publish to npm:**
+
+Requires Python 3.10 or newer.
 
 ```bash
 claude mcp add factlot -- npx -y @factlot/mcp        # Claude Code

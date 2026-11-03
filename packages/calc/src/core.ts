@@ -109,6 +109,17 @@ export function nthRoot(c: number, n: number): number {
 /** Significant digits kept before rounding, as spreadsheets do, to strip binary noise. */
 export const ROUNDING_SIGNIFICANT_DIGITS = 15;
 
+/**
+ * Reduce x to 15 significant digits (ties away from zero), identically in every SDK. Use it
+ * before a floor or comparison so binary noise does not decide the result:
+ * 0.57 × 10,000,000 = 5699999.999999999 → 5700000.
+ */
+export function reduceNoise(x: number): number {
+  if (!Number.isFinite(x))
+    throw new CalcInputError(`cannot reduce non-finite value ${x}`);
+  return Number(x.toPrecision(ROUNDING_SIGNIFICANT_DIGITS));
+}
+
 /** Expand a JS exponent-form number string ("1.5e-7", "2e+21") to plain decimal. */
 function toPlainDecimal(s: string): string {
   const m = /^(\d+)(?:\.(\d+))?e([+-]\d+)$/.exec(s);

@@ -53,6 +53,13 @@ def _make(kind: str, urn: str) -> FactLotId:
     return FactLotId(kind, urn, short_id(urn))
 
 
+# ECMAScript whitespace (what String.prototype.trim and RegExp \s match in @factlot/id). Python's
+# str.strip() and re \s differ: they also match U+001C-U+001F and U+0085 but not U+FEFF, and re
+# \d matches every Unicode digit. Spelling the classes out keeps both SDKs on the same IDs.
+_JS_WS = "\t\n\v\f\r \u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff"
+_JS_WS_CHARS = "".join(chr(c) for c in range(0x2000, 0x200B)) + "\t\n\v\f\r \u00a0\u1680\u2028\u2029\u202f\u205f\u3000\ufeff"
+
+
 def _alnum(s: str) -> str:
     return re.sub(r"[^a-z0-9]", "", s.lower())
 
@@ -66,9 +73,9 @@ def normalize_apn(apn: str) -> str:
 
 def parcel_id(state_fips: str, county_fips: str, apn: str, normalize: Callable[[str], str] | None = None) -> FactLotId:
     """Deterministic parcel ID: ``fl:parcel:us-<SSCCC>:<apn>``."""
-    if not re.fullmatch(r"\d{2}", state_fips):
+    if not re.fullmatch(r"[0-9]{2}", state_fips):
         raise FactLotIdError("state_fips must be 2 digits")
-    if not re.fullmatch(r"\d{3}", county_fips):
+    if not re.fullmatch(r"[0-9]{3}", county_fips):
         raise FactLotIdError("county_fips must be 3 digits")
     n = (normalize or normalize_apn)(apn)
     if not re.fullmatch(r"[a-z0-9]+", n):
@@ -95,12 +102,15 @@ def document_id(content: bytes | str) -> FactLotId:
     return _make("document", f"fl:document:sha256-{hashlib.sha256(data).hexdigest()}")
 
 
-_FLOOR = (re.compile(r"^(\d+)(?:st|nd|rd|th)?\s*(?:floor|fl\.?)$"), re.compile(r"^(?:floor|fl\.?)\s*(\d+)$"))
-_DESIGNATOR = re.compile(r"^(?:suite|ste\.?|unit|space|spc\.?|room|rm\.?|no\.?|#)\s*")
+_FLOOR = (
+    re.compile(rf"^([0-9]+)(?:st|nd|rd|th)?[{_JS_WS}]*(?:floor|fl\.?)$"),
+    re.compile(rf"^(?:floor|fl\.?)[{_JS_WS}]*([0-9]+)$"),
+)
+_DESIGNATOR = re.compile(rf"^(?:suite|ste\.?|unit|space|spc\.?|room|rm\.?|no\.?|#)[{_JS_WS}]*")
 
 
 def normalize_suite(suite: str) -> str:
-    s = suite.strip().lower()
+    s = suite.strip(_JS_WS_CHARS).lower()
     for pattern in _FLOOR:
         m = pattern.match(s)
         if m:
@@ -133,14 +143,15 @@ def mint(kind: str, now_ms: int | None = None) -> FactLotId:
 
 
 _TOKEN = "[0-9a-hjkmnp-tv-z]{26}"
+# Matched with fullmatch: re's `$` also matches before a trailing newline, which @factlot/id rejects.
 _URN_PATTERNS = {
-    "parcel": re.compile(r"^fl:parcel:(us-\d{5}):([a-z0-9]+)$"),
-    "entity": re.compile(r"^fl:entity:([a-z]{2}-[a-z0-9]{1,3}|lei):([a-z0-9]+)$"),
-    "building": re.compile(rf"^fl:building:({_TOKEN})$"),
-    "space": re.compile(rf"^fl:space:({_TOKEN}):([a-z0-9]+)$"),
-    "lease": re.compile(rf"^fl:lease:({_TOKEN})$"),
-    "loan": re.compile(rf"^fl:loan:({_TOKEN})$"),
-    "document": re.compile(r"^fl:document:(sha256-[a-f0-9]{64})$"),
+    "parcel": re.compile(r"fl:parcel:(us-[0-9]{5}):([a-z0-9]+)"),
+    "entity": re.compile(r"fl:entity:([a-z]{2}-[a-z0-9]{1,3}|lei):([a-z0-9]+)"),
+    "building": re.compile(rf"fl:building:({_TOKEN})"),
+    "space": re.compile(rf"fl:space:({_TOKEN}):([a-z0-9]+)"),
+    "lease": re.compile(rf"fl:lease:({_TOKEN})"),
+    "loan": re.compile(rf"fl:loan:({_TOKEN})"),
+    "document": re.compile(r"fl:document:(sha256-[a-f0-9]{64})"),
 }
 
 
@@ -150,7 +161,7 @@ def parse(urn: str) -> tuple[str, list[str]]:
     kind = pieces[1] if len(pieces) > 1 else ""
     if not urn.startswith("fl:") or kind not in _URN_PATTERNS:
         raise FactLotIdError(f'"{urn}" is not a FactLot URN')
-    m = _URN_PATTERNS[kind].match(urn)
+    m = _URN_PATTERNS[kind].fullmatch(urn)
     if not m:
         raise FactLotIdError(f'"{urn}" is not a valid {kind} URN')
     return kind, list(m.groups())

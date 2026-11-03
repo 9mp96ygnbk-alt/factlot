@@ -59,7 +59,7 @@ export const LeaseRemeasurementInput = z
               "Period index counted from the remeasurement date (1 = first remaining period).",
             ),
           amount: NonNegMoney.describe(
-            "Lease payment due in that period after the event, USD: fixed and in-substance fixed payments, less incentives receivable (ASC 842-10-30-5).",
+            "Lease payment due in that period after the event, USD for the period (a monthly amount when periods_per_year is 12, not annualized): fixed and in-substance fixed payments, less incentives receivable (ASC 842-10-30-5).",
           ),
         }),
       )

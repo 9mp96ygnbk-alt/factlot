@@ -34,10 +34,10 @@ export const RenewVsRelocateInput = z.object({
     .lt(1)
     .default(0.08)
     .describe(
-      "Annual discount rate applied to both cases (monthly rate = annual ÷ 12).",
+      "Annual discount rate as a decimal, e.g. 0.08, applied to both cases (monthly rate = annual ÷ 12).",
     ),
   current_rent_monthly: NonNegMoney.default(0).describe(
-    "Monthly rent under the existing lease, USD. Prices the double-rent overlap in the relocate case.",
+    "Total monthly rent under the existing lease, USD per month for the whole premises (not $/SF). Prices the double-rent overlap in the relocate case.",
   ),
   renew: z
     .object({
@@ -317,8 +317,16 @@ export function renewVsRelocate(
       "An allowance exceeds the cost it offsets; the excess is treated as not paid out.",
     );
   if (diff === 0) t.warn("The two cases are tied at these inputs.");
+  if (beRelocate !== null && beRelocate < 0)
+    t.warn(
+      "Relocating costs more than renewing even at a $0/SF starting rent (its one-time costs alone exceed the renewal's NPV); the negative break-even relocation rent is not achievable.",
+    );
+  if (beRenew !== null && beRenew < 0)
+    t.warn(
+      "Renewing costs more than relocating even at a $0/SF starting rent (its one-time costs alone exceed the relocation's NPV); the negative break-even renewal rent is not achievable.",
+    );
 
-  return t.result("calc.renew_vs_relocate", 1, {
+  return t.result("calc.renew_vs_relocate", 2, {
     horizon_months: H,
     renew: renewResult,
     relocate: relocateResult,

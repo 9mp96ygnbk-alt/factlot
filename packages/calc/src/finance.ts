@@ -20,7 +20,13 @@ const CashFlows = z
 export const NpvInput = z.object({
   /** Cash flows at t = 0, 1, 2, ... periods. */
   cash_flows: CashFlows,
-  rate: z.number().finite().gt(-1).describe("Discount rate per period."),
+  rate: z
+    .number()
+    .finite()
+    .gt(-1)
+    .describe(
+      "Discount rate per period as a decimal, e.g. 0.08 for 8%. Match the cash-flow period: for monthly flows pass the monthly rate (e.g. 0.06 ÷ 12 = 0.005).",
+    ),
 });
 export type NpvInput = z.input<typeof NpvInput>;
 
@@ -47,7 +53,9 @@ export const IrrInput = z.object({
     .int()
     .positive()
     .default(1)
-    .describe("Periods per year, to annualize (12 for monthly flows)."),
+    .describe(
+      "Cash-flow periods per year, used only to annualize the result: 1 for annual flows, 4 for quarterly, 12 for monthly.",
+    ),
 });
 export type IrrInput = z.input<typeof IrrInput>;
 

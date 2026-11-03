@@ -197,7 +197,9 @@ python -m factlot.ingest --accept rv_… --by "A. Reviewer"
 You need Claude API credentials. The model is always your choice. `--ocr` is resolved before
 anything else runs, so a missing `tesseract` fails fast with exit code 2. The output file holds
 the facts, the rejections, and the review queue; running the extraction again with the same
-`--out` reuses its lease URN and keeps every review decision.
+`--out` reuses its lease URN and keeps every review decision. Amendments apply by their
+`@YYYY-MM-DD` effective date (a malformed date stops the run before any model call); if any
+amendment has no date, all amendments apply in the order given.
 
 ## Customer documents
 
@@ -211,8 +213,9 @@ keeps, and how a hosted version will store and delete documents are in the
   CLI prints it with the summary.
 - `--redact` (or `IngestResult.to_report(redact=True)`) persists document text only as the quotes
   that are evidence for a fact or a review item: rejected candidates keep their predicate, page
-  and reason but lose their quote, and the report is marked `"redacted": true`. The review queue
-  is untouched, so `--review`, `--accept` and `--reject` work on a redacted file. Hosted ingest
+  and reason but lose their quote and value, and the report is marked `"redacted": true`. The
+  review queue is untouched, so `--review`, `--accept` and `--reject` work on a redacted file,
+  and a decision written to a redacted file keeps it redacted. Hosted ingest
   will always persist the redacted form. Tests: `python/tests/test_ingest_policy.py`.
 
 ## Status

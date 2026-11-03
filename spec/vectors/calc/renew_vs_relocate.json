@@ -1,7 +1,7 @@
 {
   "calculator": "calc.renew_vs_relocate",
-  "version": 1,
-  "notes": "Expected values computed independently with Python decimal (40 significant digits, inputs read as decimal literals, half-up rounding at the same points the formula rounds: cents for money, 4 dp for ratios), in a scratch script outside the repository; FactLot was not run to produce them. Monthly rent follows calc_rent_schedule conventions (rate \u00d7 area \u00f7 12 rounded to cents, rent in advance); break-even rents solve PV(rent) = slope \u00d7 starting rate + intercept over the unabated months.",
+  "version": 2,
+  "notes": "Expected values computed independently with Python decimal (40 significant digits, inputs read as decimal literals, half-up rounding at the same points the formula rounds: cents for money, 4 dp for ratios), in a scratch script outside the repository; FactLot was not run to produce them. Monthly rent follows calc_rent_schedule conventions (rate × area ÷ 12 rounded to cents, rent in advance); break-even rents solve PV(rent) = slope × starting rate + intercept over the unabated months.",
   "cases": [
     {
       "name": "percent vs fixed escalation with move costs",
@@ -338,6 +338,40 @@
         }
       },
       "expect_error": true
+    },
+    {
+      "name": "one-time relocation costs alone exceed the renewal: negative break-even rent warns",
+      "input": {
+        "horizon_months": 12,
+        "discount_rate_annual": 0,
+        "renew": {
+          "schedule": {
+            "commencement_date": "2027-01-01",
+            "area_sf": 12000,
+            "starting_rent_psf_annual": 20
+          }
+        },
+        "relocate": {
+          "schedule": {
+            "commencement_date": "2027-01-01",
+            "area_sf": 12000,
+            "starting_rent_psf_annual": 18
+          },
+          "moving_cost": 300000,
+          "disruption_cost": 10000
+        }
+      },
+      "expect": {
+        "value.renew.npv": 240000,
+        "value.relocate.npv": 526000,
+        "value.difference_npv": 286000,
+        "value.cheaper": "renew",
+        "value.break_even.relocate_starting_rent_psf": -5.8333,
+        "value.break_even.renew_starting_rent_psf": 43.8333,
+        "warnings": [
+          "Relocating costs more than renewing even at a $0/SF starting rent (its one-time costs alone exceed the renewal's NPV); the negative break-even relocation rent is not achievable."
+        ]
+      }
     }
   ]
 }

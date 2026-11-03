@@ -26,6 +26,7 @@ from ._core import (
     number,
     obj,
     pow_int,
+    reduce_noise,
     round_,
     sign,
     string,
@@ -362,12 +363,14 @@ def debt_sizing(raw: Any) -> Result:
             binding, min_loan = c, v
     if min_loan <= 0:
         raise CalcInputError("constraints produce a non-positive loan")
-    loan = t.step("Max loan", math.floor(min_loan / step) * step,
+    # Floor after reducing to 15 significant digits, so binary noise such as
+    # 0.57 * 10_000_000 == 5699999.999999999 does not cost a whole increment.
+    loan = t.step("Max loan", math.floor(reduce_noise(min_loan / step)) * step,
                   "min(" + ", ".join(f"{c} {fmt_money(v)}" for c, v in loans.items()) + f"), rounded down to {num_str(step)}",
                   "USD")
     t.step("Binding constraint", binding)
     ds = round_(loan * k, 2)
-    return t.result("calc.debt_sizing", 1, {
+    return t.result("calc.debt_sizing", 2, {
         "max_loan": loan,
         "binding_constraint": binding,
         "loan_by_constraint": {c: round_(v, 2) for c, v in loans.items()},
@@ -1149,8 +1152,10 @@ def lease_vs_own(raw: Any) -> Result:
         t.warn("Owning costs less than leasing even with a zero sale price; the break-even residual is not meaningful.")
     elif break_even > residual * 2 and residual > 0:
         t.warn("Break-even residual is more than twice the assumed residual; leasing is strongly favored at these inputs.")
+    if loan and loan["amount"] > basis:
+        t.warn("The loan exceeds the purchase price plus closing costs, so equity at closing is negative (cash out at year 0); check the loan amount.")
 
-    return t.result("calc.lease_vs_own", 1, {
+    return t.result("calc.lease_vs_own", 2, {
         "horizon_years": horizon,
         "after_tax": tax is not None,
         "lease": {"npv": lease_npv, "total_cost": total_lease},
@@ -1296,8 +1301,14 @@ def renew_vs_relocate(raw: Any) -> Result:
         t.warn("An allowance exceeds the cost it offsets; the excess is treated as not paid out.")
     if diff == 0:
         t.warn("The two cases are tied at these inputs.")
+    if be_reloc is not None and be_reloc < 0:
+        t.warn("Relocating costs more than renewing even at a $0/SF starting rent (its one-time costs alone exceed t"
+               "he renewal's NPV); the negative break-even relocation rent is not achievable.")
+    if be_renew is not None and be_renew < 0:
+        t.warn("Renewing costs more than relocating even at a $0/SF starting rent (its one-time costs alone exceed t"
+               "he relocation's NPV); the negative break-even renewal rent is not achievable.")
 
-    return t.result("calc.renew_vs_relocate", 1, {
+    return t.result("calc.renew_vs_relocate", 2, {
         "horizon_months": horizon,
         "renew": renew_res,
         "relocate": reloc_res,
@@ -1403,13 +1414,13 @@ CALCULATORS: dict[str, tuple[Callable[[Any], Result], str, int]] = {
     "compare_proposals": (compare_proposals, "calc.compare_proposals", 1),
     "percentage_rent": (percentage_rent, "calc.percentage_rent", 1),
     "cam_reconciliation": (cam_reconciliation, "calc.cam_reconciliation", 1),
-    "debt_sizing": (debt_sizing, "calc.debt_sizing", 1),
+    "debt_sizing": (debt_sizing, "calc.debt_sizing", 2),
     "lease_remeasurement_asc842": (lease_remeasurement_asc842, "calc.lease_remeasurement_asc842", 1),
     "prepayment_and_defeasance": (prepayment_and_defeasance, "calc.prepayment_and_defeasance", 1),
     "walt": (walt, "calc.walt", 1),
     "npv": (npv, "calc.npv", 1),
     "irr": (irr, "calc.irr", 1),
-    "lease_vs_own": (lease_vs_own, "calc.lease_vs_own", 1),
-    "renew_vs_relocate": (renew_vs_relocate, "calc.renew_vs_relocate", 1),
+    "lease_vs_own": (lease_vs_own, "calc.lease_vs_own", 2),
+    "renew_vs_relocate": (renew_vs_relocate, "calc.renew_vs_relocate", 2),
     "hotel_metrics": (hotel_metrics, "calc.hotel_metrics", 1),
 }

@@ -264,4 +264,4 @@ def run_tool(name: str, arguments: dict[str, Any] | None) -> dict[str, Any]:
         return {"error": "RegistryUnavailable", "message": str(e), "issues": []}
     except _NotFound as e:
         return {"error": "NotFound", "message": str(e), "issues": []}
-    return {"error": "UnknownTool", "message": f"no FactLot tool named {name!r}", "issues": []}
+    return {"error": "UnknownTool", "message": f'no FactLot tool named "{name}"', "issues": []}

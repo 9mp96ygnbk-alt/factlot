@@ -27,6 +27,7 @@ again, rejected (predicate, quote) pairs are not re-queued, pending ones keep th
 from __future__ import annotations
 
 import argparse
+import datetime as _dt
 import json
 import sys
 from datetime import date
@@ -107,7 +108,12 @@ def main(argv: list[str] | None = None) -> int:
         except ValueError as e:
             print(f"error: {e}", file=sys.stderr)
             return 2
-        _write_result(out, result, redact=args.redact)
+        # Keep what the file already was: a redacted report stays redacted, and fields this
+        # step does not produce (unreadable_pages, evaluation) are carried over.
+        loaded = json.loads(out.read_text())
+        produced = set(result.to_report()) | {"redacted"}
+        _write_result(out, result, {k: v for k, v in loaded.items() if k not in produced},
+                      redact=args.redact or loaded.get("redacted") is True)
         print(item.describe())
         if item.status == "accepted":
             fact = next(f for f in result.facts if f["predicate"] == item.candidate.predicate
@@ -132,6 +138,12 @@ def main(argv: list[str] | None = None) -> int:
     docs = [load_document(args.lease, ocr=ocr)]
     for i, spec in enumerate(args.amendment, start=1):
         path, _, eff = spec.partition("@")
+        if eff:
+            try:
+                if _dt.date.fromisoformat(eff).isoformat() != eff:
+                    raise ValueError(eff)
+            except ValueError:
+                ap.error(f"--amendment {spec}: the effective date must be YYYY-MM-DD")
         docs.append(load_document(path, role="amendment", effective_date=eff or None, sequence=i, ocr=ocr))
     for doc in docs:
         message = unreadable_pages_message(doc)

@@ -69,7 +69,7 @@ export const LeaseVsOwnInput = z
       .min(0)
       .lt(1)
       .describe(
-        "Annual discount rate applied to both cases' year-end cash flows (year 0 = closing / move-in).",
+        "Annual discount rate as a decimal, e.g. 0.08, applied to both cases' year-end cash flows (year 0 = closing / move-in).",
       ),
     lease: z
       .object({
@@ -572,8 +572,12 @@ export function leaseVsOwn(raw: LeaseVsOwnInput): CalcResult<LeaseVsOwn> {
     t.warn(
       "Break-even residual is more than twice the assumed residual; leasing is strongly favored at these inputs.",
     );
+  if (loan && loan.amount > basis)
+    t.warn(
+      "The loan exceeds the purchase price plus closing costs, so equity at closing is negative (cash out at year 0); check the loan amount.",
+    );
 
-  return t.result("calc.lease_vs_own", 1, {
+  return t.result("calc.lease_vs_own", 2, {
     horizon_years: H,
     after_tax: tax !== undefined,
     lease: { npv: leaseNpv, total_cost: totalLease },
