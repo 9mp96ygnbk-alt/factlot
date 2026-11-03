@@ -39,6 +39,18 @@ Also opened on 2026-11-03 (not in the original list): [etewiah/awesome-real-esta
 - [ ] [needs the repo public] awesome-mcp-servers: open the PR with the text in `submissions/awesome-mcp-servers.md` once the Glama badge URL resolves.
 - [ ] [needs the repo public] Cline marketplace: test that Cline can install from the README alone, then open the issue from `submissions/directories.md`.
 
+## Founder decision: the registry sample
+
+- [ ] [founder posts it] Publish the draft release `registry-sample-dc-2026-11-03` (GitHub,
+      Releases, the draft, "Publish release"; untick "Set as the latest release" so v0.1.0 stays
+      latest). It is a 19.7 MB SQLite registry of 18,077 District of Columbia commercial parcels,
+      5,513 owning entities and 7,908 cited ownership links, built only from Open Data DC files
+      licensed CC BY 4.0 with AI use permitted, organisation owners only, with `ATTRIBUTION.md`.
+      It lets any agent try the six `registry_*` tools today (`FACTLOT_REGISTRY_DB=...`), which is
+      the clearest demonstration of the paid hosted registry. It was staged as a draft because
+      publishing a new public dataset needs your explicit yes. After publishing, add the
+      download line to the README's install block and to `llms.txt`.
+
 ## 12:00 EST: post
 
 - [ ] [founder posts it] Show HN: title and first comment from `posts/show-hn.md`. Post it from the founder's own account; do not ask anyone to upvote.
