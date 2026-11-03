@@ -2,6 +2,7 @@
 
 The scripted extractor stands in for a model so the deterministic parts (verification,
 supersession, provenance) are tested exactly; it includes deliberate errors a real model makes.
+The value–quote consistency check and the OCR hook have their own file, test_ingest_checks.py.
 """
 
 import json
@@ -24,7 +25,8 @@ SCRIPT = {
             {"from": "2026-03-01", "to": "2027-02-28", "annual_rent_psf": 38.0},
             {"from": "2027-03-01", "to": "2028-02-29", "annual_rent_psf": 39.14},
             {"from": "2028-03-01", "to": "2031-02-28", "annual_rent_psf": 40.31}],
-            "March 1, 2026 through February 28, 2027: $38.00", 2, "3.1"),
+            "March 1, 2026 through February 28, 2027: $38.00\nMarch 1, 2027 through February 29, 2028: $39.14\n"
+            "March 1, 2028 through February 28, 2031: $40.31", 2, "3.1"),
         Candidate("lease.free_rent", {"months": 3, "applies_to": "base_rent"},
                   "Base Rent only shall be abated for the first three (3) full calendar months", 2, "3.2"),
         # wrong page cited (it is on page 2): verifier corrects it
@@ -34,20 +36,28 @@ SCRIPT = {
                   "shall not increase by more than five percent (5%) per year over the prior year, on a non-cumulative basis",
                   2, "4.2"),
         Candidate("lease.renewal_option", {"count": 1, "term_months": 60, "notice_months": 12, "rent": "95% of FMV"},
-                  "Tenant shall have one (1) option to extend the Term for sixty (60) months", 3, "5.1"),
+                  "Tenant shall have one (1) option to extend the Term for sixty (60) months by written notice "
+                  "given at least twelve (12) months before expiration", 3, "5.1"),
         Candidate("lease.assignment_sublease", "Landlord consent required, not to be unreasonably withheld",
                   "which shall not be unreasonably withheld", 3, "6"),
         # hallucinated: this text is not in the lease
         Candidate("lease.rofr", "Tenant has a ROFR on Suite 500", "Tenant shall have a right of first refusal on Suite 500", 3),
         # malformed value: verifier rejects the shape even though the quote is real
         Candidate("lease.commencement_date", "March 1, 2026", "The Term shall commence on March 1, 2026", 1),
+        Candidate("lease.landlord", "Example Tower Owner LLC", 'is made between Example Tower Owner LLC ("Landlord")', 1),
+        Candidate("lease.tenant", "Sample Analytics Inc.", 'and Sample Analytics Inc. ("Tenant")', 1),
+        # real quotes whose values do not follow from them: the consistency check rejects each
+        Candidate("lease.security_deposit", 59000, "a security deposit of $95,000", 2, "3.3"),  # transposed digits
+        Candidate("lease.expiration_date", "2031-02-28", "The Term shall commence on March 1, 2026", 1, "2.1"),
+        Candidate("lease.tenant", "Sample Analytics LLC", 'and Sample Analytics Inc. ("Tenant")', 1),
     ],
     "synthetic_first_amendment": [
         Candidate("lease.expiration_date", "2036-02-28", "it shall expire on February 28, 2036", 1, "1"),
         Candidate("lease.rentable_area_sf", 15000, "the Premises shall contain 15,000 rentable square feet", 1, "3"),
         # typographic differences (curly quotes, line breaks) still verify
         Candidate("lease.base_rent_schedule", [{"from": "2031-03-01", "to": "2036-02-28", "annual_rent_psf": 44.0}],
-                  "Base Rent shall be $44.00 per rentable\n square foot per year", 1, "2"),
+                  "Commencing March 1, 2031, Base Rent shall be $44.00 per rentable\n square foot per year through "
+                  "February 28, 2036.", 1, "2"),
     ],
 }
 
@@ -73,9 +83,16 @@ class Ingest(unittest.TestCase):
                                    rights={"ai_use": "permitted", "redistribution": "prohibited"})
 
     def test_verification_rejects_and_corrects(self):
-        self.assertEqual(self.result.summary(), {"accepted": 13, "current": 10, "rejected": 2, "page_corrected": 1})
+        # Hand count: the lease script has 17 candidates, of which 5 are deliberately bad (one hallucinated
+        # quote, one malformed date, three value/quote mismatches); the amendment script has 3 good ones.
+        self.assertEqual(self.result.summary(), {"accepted": 15, "current": 12, "rejected": 5, "page_corrected": 1})
         reasons = sorted(v.reason for v in self.result.rejected)
-        self.assertEqual(reasons, ["expected YYYY-MM-DD date", "quote not found in the document"])
+        self.assertEqual(reasons, ["expected YYYY-MM-DD date", "quote not found in the document",
+                                   'value "2031-02-28" not found in quote',
+                                   'value "Sample Analytics LLC" not found in quote',
+                                   "value 59000 not found in quote"])
+        self.assertEqual(self.result.current["lease.security_deposit"]["value"], 95000,
+                         "the mismatched candidate must not displace the consistent one")
         deposit = self.result.current["lease.security_deposit"]
         self.assertEqual(deposit["provenance"]["sources"][0]["page"], 2)
 

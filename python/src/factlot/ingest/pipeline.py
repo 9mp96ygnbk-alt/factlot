@@ -52,6 +52,11 @@ def ingest_lease(lease_urn: str, documents: list[LeaseDocument], extractor: Extr
                                       "quote": cand.quote}
             if cand.section:
                 source["section"] = cand.section
+            page = doc.page(v.page) if v.page is not None else None
+            if page is not None and page.ocr:
+                # The quote was matched against OCR output, not the document's text layer, so a
+                # reader checking the citation should look at the page image.
+                source["ocr"] = True
             fact: dict[str, Any] = {
                 "id": _fact_id(lease_urn, cand.predicate, doc.document_id, cand.quote),
                 "subject": lease_urn,

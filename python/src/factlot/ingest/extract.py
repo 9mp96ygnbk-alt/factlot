@@ -1,7 +1,8 @@
 """Extractors turn a lease document into candidate facts, each with a verbatim quote and page.
 
 Extractors may be wrong. Nothing an extractor returns is trusted until the verifier
-(`verify.py`) finds its quote on the cited page and checks the value's type.
+(`verify.py`) finds its quote on the cited page, checks the value's type, and checks that the
+numbers, dates, and names in the value are written in the quote.
 """
 
 from __future__ import annotations
@@ -14,6 +15,8 @@ from .documents import LeaseDocument
 
 # Predicates the prototype extracts, with the value shape each expects.
 PREDICATES: dict[str, str] = {
+    "lease.landlord": "string (the landlord's name exactly as written in the document)",
+    "lease.tenant": "string (the tenant's name exactly as written in the document)",
     "lease.commencement_date": "date (YYYY-MM-DD)",
     "lease.expiration_date": "date (YYYY-MM-DD)",
     "lease.rentable_area_sf": "number (square feet)",
