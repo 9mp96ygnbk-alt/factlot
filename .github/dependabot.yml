@@ -1,0 +1,29 @@
+# Weekly dependency updates for the npm workspaces, the Python package, and the Actions used
+# by the workflows. Internal @factlot/* pins are managed by scripts/release/bump.mjs, not here.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      npm-minor-and-patch:
+        update-types: ["minor", "patch"]
+    ignore:
+      - dependency-name: "@factlot/*"
+    labels: ["dependencies"]
+
+  - package-ecosystem: pip
+    directory: /python
+    schedule:
+      interval: weekly
+      day: monday
+    labels: ["dependencies"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    labels: ["dependencies"]

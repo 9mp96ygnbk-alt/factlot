@@ -25,6 +25,25 @@ npm run check
 Tests use `node:test` and run directly on TypeScript source. Use only erasable TypeScript
 syntax: no `enum`, `namespace`, or constructor parameter properties.
 
+## Changelog
+
+Add a line under `## [Unreleased]` in [CHANGELOG.md](CHANGELOG.md) in the same pull request as
+any user-visible change (a new tool, a formula version bump, a fixed result, a new connector).
+The pull request template has the full checklist.
+
+## Releases
+
+Every package shares one version. Maintainers cut a release with
+`node scripts/release/bump.mjs`, `node scripts/release/changelog.mjs release <version>`, and a
+`vX.Y.Z` tag; the Release workflow publishes to npm and PyPI and attaches the Claude Desktop
+extension to a GitHub release. The exact steps, prerequisites, and rollback are in
+[docs/release-process.md](docs/release-process.md).
+
+## Code of conduct
+
+This project follows the [Contributor Covenant](CODE_OF_CONDUCT.md). Report concerns to
+contact@factlot.com.
+
 ## Licensing
 
 By contributing you agree that your contribution is licensed under the license of the package

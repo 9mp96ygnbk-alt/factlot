@@ -1,0 +1,41 @@
+name: Feature or data-source request
+description: A new calculator, tool, connector, or a public data source for the registry.
+title: "[request] "
+labels: ["enhancement"]
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What kind of request?
+      options:
+        - Calculator or tool
+        - Connector or platform support
+        - Registry data source (county, state, or national public data)
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: The job an agent cannot do today
+      description: Describe the task in the user's words, as they would paste it to an agent, and what goes wrong without FactLot.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed tool, inputs, and outputs
+      description: For a calculator, the formula and its conventions (for example which CAM cap method, how to round). For a data source, the official download page, the file format, the licence or terms, and whether the terms allow AI use and redistribution.
+    validations:
+      required: true
+  - type: textarea
+    id: ground_truth
+    attributes:
+      label: Independent expected values or source citations
+      description: At least one worked example with the expected result computed outside FactLot, or for data sources the URL of the terms and a sample record. Cite the standard, statute, or lease convention the logic encodes.
+  - type: checkboxes
+    id: help
+    attributes:
+      label: Contribution
+      options:
+        - label: I can open a pull request for this (see CONTRIBUTING.md)

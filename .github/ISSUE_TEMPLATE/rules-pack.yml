@@ -1,0 +1,53 @@
+name: Rules-pack request
+description: A statute, ordinance, or standard to encode as a versioned, cited rules pack (see docs/rules.md).
+title: "[rules] "
+labels: ["rules-pack"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Rules packs ship only with their official citations. FactLot does not encode constants
+        or deadlines it cannot cite, so the "official text" fields below are required.
+  - type: input
+    id: jurisdiction
+    attributes:
+      label: Jurisdiction and subject
+      placeholder: "Texas, property tax protest deadline"
+    validations:
+      required: true
+  - type: textarea
+    id: citation
+    attributes:
+      label: Official citation(s)
+      description: Statute, code section, or standard, with the official URL for each (the legislature's or agency's own site, not a summary).
+      placeholder: |
+        Tex. Tax Code §41.44(a)(1): https://statutes.capitol.texas.gov/Docs/TX/htm/TX.41.htm#41.44
+    validations:
+      required: true
+  - type: textarea
+    id: official_text
+    attributes:
+      label: Cite the official text
+      description: Paste the exact operative language from the official source (the sentences that set the rule, dates, thresholds, or rates), with the section number next to each quote. A paraphrase is not enough; the verification step compares the implemented rule against this text.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: inputs_outputs
+    attributes:
+      label: Inputs, outputs, and edge cases
+      description: What an agent provides (dates, amounts, property class) and what the rule returns. List edge cases the text decides (weekends, holidays, grace periods, exemptions, effective dates of amendments).
+    validations:
+      required: true
+  - type: textarea
+    id: examples
+    attributes:
+      label: Worked examples with independent expected results
+      description: At least three cases, including an edge case, with results worked out from the official text rather than from any software.
+    validations:
+      required: true
+  - type: input
+    id: effective
+    attributes:
+      label: Effective date and pending amendments
+      description: When the cited text took effect and any amendment already enacted but not yet in force.

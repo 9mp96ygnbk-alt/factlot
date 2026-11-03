@@ -1,0 +1,64 @@
+name: Bug report
+description: A wrong result, a wrong ID, a crash, or a difference between the TypeScript and Python SDKs.
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks. Correctness is the product, so wrong results get fixed first. For a security
+        problem, use the Security tab ("Report a vulnerability") instead of a public issue.
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Where did it happen?
+      multiple: true
+      options:
+        - "@factlot/calc (TypeScript)"
+        - "@factlot/id (TypeScript)"
+        - "@factlot/tools or @factlot/schema"
+        - "@factlot/mcp (local MCP server or .mcpb)"
+        - "@factlot/server (Docker, /mcp, /v1, OpenAPI)"
+        - "factlot (Python)"
+        - "Registry or collector"
+        - "Docs or connector guide"
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The package version (same for every package), or the commit if built from source.
+      placeholder: "0.1.0 or a commit hash"
+    validations:
+      required: true
+  - type: textarea
+    id: input
+    attributes:
+      label: Exact input
+      description: The tool name and the full input, as JSON. Paste what the agent sent, not a paraphrase.
+      render: json
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What FactLot returned
+      description: The full result, including `steps` and any `warnings`.
+      render: json
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What it should have returned, and how you know
+      description: The expected value and how you computed it independently (by hand, spreadsheet, the lease or loan document, a statute). A wrong result without an independent expected value is hard to act on.
+    validations:
+      required: true
+  - type: checkboxes
+    id: both
+    attributes:
+      label: SDK parity
+      options:
+        - label: I checked the other SDK (TypeScript or Python) and it gives the same result
+        - label: I checked the other SDK and it gives a different result

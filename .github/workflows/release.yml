@@ -1,0 +1,348 @@
+# Publishes a tagged release: the six @factlot/* npm packages (in dependency order, with
+# provenance), the factlot Python package (PyPI trusted publishing), and a GitHub release with
+# the Claude Desktop extension (.mcpb) attached and the CHANGELOG section as notes.
+#
+# Trigger: push a tag `vX.Y.Z` that matches the version in every package (see
+# docs/release-process.md). A manual run ("Run workflow") is a dry run by default: it runs every
+# check and build and publishes nothing. Untick "dry run" only when dispatching on a `v*` tag.
+#
+# Required before the first real release (backlog A5): the npm org `@factlot` and a PyPI
+# project with trusted publishing, then the repository secret NPM_TOKEN and the repository
+# variable PYPI_TRUSTED_PUBLISHING=ready. Optional: MCPB_SIGNING_CERT and MCPB_SIGNING_KEY to
+# sign the .mcpb.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run: run every check and build, publish nothing"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    name: Preflight (version, changelog, secrets)
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      publish: ${{ steps.mode.outputs.publish }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Decide whether this run publishes
+        id: mode
+        env:
+          EVENT: ${{ github.event_name }}
+          DRY_RUN_INPUT: ${{ inputs.dry_run }}
+          REF: ${{ github.ref }}
+        run: |
+          if [ "$EVENT" = "workflow_dispatch" ] && [ "$DRY_RUN_INPUT" = "true" ]; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "Dry run: checks and builds only, nothing is published."
+            exit 0
+          fi
+          case "$REF" in
+            refs/tags/v*) ;;
+            *)
+              echo "::error::Publishing runs only from a v* tag (got $REF). Re-run with 'dry run' ticked, or push a tag."
+              exit 1 ;;
+          esac
+          echo "publish=true" >> "$GITHUB_OUTPUT"
+
+      - name: Read the version and check the tag matches
+        id: version
+        env:
+          REF: ${{ github.ref }}
+        run: |
+          pkg=$(node -p "require('./packages/schema/package.json').version")
+          py=$(sed -n 's/^version = "\([^"]*\)"$/\1/p' python/pyproject.toml)
+          for p in id calc tools mcp server; do
+            v=$(node -p "require('./packages/$p/package.json').version")
+            if [ "$v" != "$pkg" ]; then
+              echo "::error::packages/$p is $v but packages/schema is $pkg. Run: node scripts/release/bump.mjs $pkg"
+              exit 1
+            fi
+          done
+          if [ "$py" != "$pkg" ]; then
+            echo "::error::python/pyproject.toml is $py but the npm packages are $pkg. Run: node scripts/release/bump.mjs $pkg"
+            exit 1
+          fi
+          case "$REF" in
+            refs/tags/v*)
+              tag="${REF#refs/tags/v}"
+              if [ "$tag" != "$pkg" ]; then
+                echo "::error::Tag v$tag does not match package version $pkg. Bump first, commit, then tag v$pkg."
+                exit 1
+              fi ;;
+          esac
+          echo "version=$pkg" >> "$GITHUB_OUTPUT"
+          echo "Releasing $pkg"
+
+      - name: The CHANGELOG has a section for this version
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          if ! node scripts/release/changelog.mjs notes "$VERSION" > /dev/null; then
+            echo "::error::CHANGELOG.md has no '## [$VERSION]' section. Run: node scripts/release/changelog.mjs release $VERSION"
+            exit 1
+          fi
+
+      - name: Publishing credentials are configured (backlog A5)
+        if: steps.mode.outputs.publish == 'true'
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          PYPI_TRUSTED_PUBLISHING: ${{ vars.PYPI_TRUSTED_PUBLISHING }}
+        run: |
+          missing=""
+          [ -n "$NPM_TOKEN" ] || missing="$missing\n  - repository secret NPM_TOKEN (an npm granular access token for the @factlot org)"
+          [ "$PYPI_TRUSTED_PUBLISHING" = "ready" ] || missing="$missing\n  - repository variable PYPI_TRUSTED_PUBLISHING=ready (set it once the PyPI trusted publisher for this workflow exists)"
+          if [ -n "$missing" ]; then
+            printf '::error::Cannot publish: backlog item A5 (create the npm org @factlot and a PyPI account) is not complete. Missing:%b\nSee docs/release-process.md, section Prerequisites.\n' "$missing"
+            exit 1
+          fi
+          echo "NPM_TOKEN and PYPI_TRUSTED_PUBLISHING are set."
+
+  # The same checks as ci.yml, so a release never skips what a pull request runs.
+  check:
+    name: Lint, typecheck, test, build (Node ${{ matrix.node }})
+    needs: preflight
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  python-and-differential:
+    name: Python, bench, connectors, schemas, differential
+    needs: preflight
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: npm ci
+      - name: Python SDK tests (shared vectors)
+        run: npm run test:python
+      - name: FactLot Bench offline tests
+        run: npm run test:bench
+      - name: Connector tests (Bedrock Agents Lambda)
+        run: npm run test:connectors
+      - name: Build and validate the Claude Desktop extension
+        run: npm run build && npm run build:mcpb
+      - name: Generated schemas are up to date
+        run: npm run schemas:check
+      - name: TypeScript vs Python differential test
+        run: npm run differential -- 1 3000
+
+  build:
+    name: Build release artifacts
+    needs: [preflight, check, python-and-differential]
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.preflight.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: npm ci
+      - run: npm run build
+
+      - name: Pack the npm tarballs (what `npm publish` would upload)
+        run: |
+          mkdir -p release/npm
+          for p in schema id calc tools mcp server; do
+            npm pack "./packages/$p" --pack-destination release/npm
+          done
+          ls -l release/npm
+
+      - name: Build the Python wheel and sdist
+        run: |
+          python -m pip install --upgrade build
+          python -m build --outdir release/python python
+          ls -l release/python
+
+      - name: Build the Claude Desktop extension
+        run: |
+          npm run build:mcpb
+          mkdir -p release/mcpb
+          cp dist/factlot.mcpb "release/mcpb/factlot-$VERSION.mcpb"
+
+      - name: Sign the extension (when a signing certificate is configured)
+        env:
+          MCPB_SIGNING_CERT: ${{ secrets.MCPB_SIGNING_CERT }}
+          MCPB_SIGNING_KEY: ${{ secrets.MCPB_SIGNING_KEY }}
+        run: |
+          if [ -z "$MCPB_SIGNING_CERT" ] || [ -z "$MCPB_SIGNING_KEY" ]; then
+            echo "::notice::MCPB_SIGNING_CERT / MCPB_SIGNING_KEY are not set; the .mcpb is attached unsigned. See docs/release-process.md, section Signing the extension."
+            exit 0
+          fi
+          printf '%s\n' "$MCPB_SIGNING_CERT" > "$RUNNER_TEMP/cert.pem"
+          printf '%s\n' "$MCPB_SIGNING_KEY" > "$RUNNER_TEMP/key.pem"
+          npx mcpb sign "release/mcpb/factlot-$VERSION.mcpb" --cert "$RUNNER_TEMP/cert.pem" --key "$RUNNER_TEMP/key.pem"
+          npx mcpb verify "release/mcpb/factlot-$VERSION.mcpb"
+          rm -f "$RUNNER_TEMP/cert.pem" "$RUNNER_TEMP/key.pem"
+
+      - name: Write the release notes from CHANGELOG.md
+        run: node scripts/release/changelog.mjs notes "$VERSION" > release/notes.md
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ env.VERSION }}
+          path: release
+          if-no-files-found: error
+          retention-days: 14
+
+  publish-npm:
+    name: Publish to npm
+    needs: [preflight, build]
+    if: needs.preflight.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # npm provenance (Sigstore)
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          registry-url: https://registry.npmjs.org
+      - run: npm ci
+      - run: npm run build
+      - name: Publish in dependency order
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          VERSION: ${{ needs.preflight.outputs.version }}
+        run: |
+          for p in schema id calc tools mcp server; do
+            name="@factlot/$p"
+            if npm view "$name@$VERSION" version > /dev/null 2>&1; then
+              echo "$name@$VERSION is already on npm; skipping (re-run after a partial release)."
+              continue
+            fi
+            echo "Publishing $name@$VERSION"
+            npm publish --workspace "$name" --access public --provenance
+          done
+
+  publish-pypi:
+    name: Publish to PyPI
+    needs: [preflight, build]
+    if: needs.preflight.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/factlot/${{ needs.preflight.outputs.version }}/
+    permissions:
+      contents: read
+      id-token: write # PyPI trusted publishing (OIDC)
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-${{ needs.preflight.outputs.version }}
+          path: release
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: release/python
+          print-hash: true
+
+  github-release:
+    name: GitHub release
+    needs: [preflight, build, publish-npm, publish-pypi]
+    if: needs.preflight.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.preflight.outputs.version }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-${{ needs.preflight.outputs.version }}
+          path: release
+      - name: Create the release with the changelog section as notes
+        run: |
+          if gh release view "v$VERSION" > /dev/null 2>&1; then
+            echo "Release v$VERSION exists; uploading assets with --clobber."
+            gh release upload "v$VERSION" release/mcpb/*.mcpb release/python/* --clobber
+          else
+            gh release create "v$VERSION" \
+              --title "FactLot $VERSION" \
+              --notes-file release/notes.md \
+              --verify-tag \
+              release/mcpb/*.mcpb release/python/*
+          fi
+
+  verify:
+    name: Verify the published packages
+    needs: [preflight, publish-npm, publish-pypi]
+    if: needs.preflight.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.preflight.outputs.version }}
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: npm has every package at this version
+        run: |
+          for p in schema id calc tools mcp server; do
+            for attempt in 1 2 3 4 5 6; do
+              if [ "$(npm view "@factlot/$p@$VERSION" version 2>/dev/null)" = "$VERSION" ]; then
+                echo "@factlot/$p@$VERSION is on npm"; break
+              fi
+              if [ "$attempt" = 6 ]; then echo "::error::@factlot/$p@$VERSION is not visible on npm"; exit 1; fi
+              sleep 30
+            done
+          done
+      - name: The MCP server starts from npx
+        run: |
+          # The stdio server waits for a client; a clean start that is still alive after 10 s is a pass.
+          timeout 10 npx -y "@factlot/mcp@$VERSION" < /dev/null; code=$?
+          if [ "$code" != 124 ] && [ "$code" != 0 ]; then echo "::error::npx -y @factlot/mcp@$VERSION exited with $code"; exit 1; fi
+      - name: pip installs the package and the tools load
+        run: |
+          for attempt in 1 2 3 4 5 6; do
+            if python -m pip install --no-cache-dir "factlot==$VERSION"; then break; fi
+            if [ "$attempt" = 6 ]; then echo "::error::factlot==$VERSION is not installable from PyPI"; exit 1; fi
+            sleep 30
+          done
+          python -c "import factlot; assert factlot.__version__ == '$VERSION', factlot.__version__; print(len(factlot.anthropic_tools()), 'tools')"
