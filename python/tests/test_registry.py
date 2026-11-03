@@ -75,14 +75,21 @@ class Normalization(unittest.TestCase):
                                                        "FORFEITED", "inactive_cancelled", "Admin. Dissolved",
                                                        "active_pending_dissolution")], ["ended"] * 8)
         self.assertEqual([entity_standing(s) for s in ("dead_at_conversion_69", "merger")], ["ended"] * 2)
-        self.assertEqual([entity_standing(s) for s in (None, "", "reserved_name", "unknown", "forfeited_franchise_tax")],
-                         [None] * 5)
+        self.assertEqual([entity_standing(s) for s in (None, "", "reserved_name", "unknown", "forfeited_franchise_tax",
+                                                       "not_in_good_standing", "Not Active", "unregistered")],
+                         [None] * 8)
 
     def test_person_detection_is_conservative(self):
         self.assertTrue(is_organization("Gulf Logistics LP"))
         self.assertTrue(is_organization("Example Real Estate Investment Trust"))
         self.assertFalse(is_organization("Jane Q Example"))
         self.assertFalse(is_organization("Smith Family Trust"))
+        # A person's role or initials are not an organisation word, and a trade name is not the owner.
+        for person in ("SMITH JOHN CO-TRUSTEE", "DOE JANE & JOHN CO TRS", "SMITH JOHN A & CO-OWNER",
+                       "GARCIA MARIA L P", "JOHN SMITH DBA SMITH PROPERTIES", "JOHN SMITH D/B/A SMITH PROPERTIES"):
+            self.assertFalse(is_organization(person), person)
+        for org in ("Gulf Logistics L.P.", "Gulf Logistics, L. P.", "Smith & Co", "Acme LLC DBA The Shops"):
+            self.assertTrue(is_organization(org), org)
 
 
 class RegistryCore(unittest.TestCase):
@@ -187,6 +194,24 @@ class RegistryCore(unittest.TestCase):
         decided = self.reg.decide_owner_match(queue[1]["review_id"], True, "reviewer@example.invalid")
         self.assertEqual(owned("us-ny", "1"), [p("P1")])
         self.assertEqual(self.reg.parcels_owned_by(factlot.entity_id("us-ny", "1").urn)[0]["confidence"], 0.8)
+
+    def test_a_reviewed_link_is_the_only_owner_link_for_that_name(self):
+        de = Source("test-de-entities", "Example DE (synthetic)", "Entities", "https://example.invalid/de", "10",
+                    license="Synthetic test data", ai_use="permitted", redistribution="permitted")
+        self.reg.add_source(de)
+        self.reg.ingest_parcels([ParcelRecord("999", "P-3", "F1", owner_name="Gamma Office LLC")], self.snap25, state_fips="48")
+        self.reg.ingest_entities([EntityRecord("Gamma Office LLC", "us-de", "D9")],
+                                 self.reg.add_snapshot("test-de-entities", write(self.tmp, "de.csv", "synthetic de"), as_of="2026-10-01"))
+        self.reg.link_owners()
+        [q] = self.reg.review_queue()
+        self.reg.decide_owner_match(q["review_id"], True, "reviewer@example.invalid")
+        # The same name is then loaded from the parcel's own state: the reviewer's choice stands.
+        self.reg.ingest_entities([EntityRecord("Gamma Office LLC", "us-tx", "T9")], self.ent)
+        links = self.reg.link_owners()
+        self.assertEqual((links["linked"], links["linked_by_review"]), (0, 1))
+        parcel = factlot.parcel_id("48", "999", "P-3").urn
+        self.assertEqual([(r["from_urn"], r["confidence"]) for r in self.reg.get(parcel)["relationships"]],
+                         [(factlot.entity_id("us-de", "D9").urn, 0.8)])
 
     def test_same_name_entities_resolve_to_the_one_still_in_existence(self):
         self.reg.ingest_parcels(ROLL_2025, self.snap25, state_fips="48")

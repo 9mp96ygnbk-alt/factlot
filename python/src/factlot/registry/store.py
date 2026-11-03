@@ -357,7 +357,9 @@ class Registry:
         entities that could be that owner: registered in the parcel's state, formed in the
         parcel's state, or registered in the state of the owner's mailing address (``inferred``,
         confidence 0.9, the basis naming the rule); or when a reviewer has accepted a candidate
-        for that name (``inferred``, confidence at most 0.8; see ``decide_owner_match``).
+        for that name (``inferred``, confidence at most 0.8; see ``decide_owner_match``). A
+        reviewer's decision takes precedence: a name with an accepted candidate is linked only to
+        that entity, even if an exact match is loaded later, so a parcel never gets two owners.
         Several such entities are ambiguous and stay unlinked, unless exactly one of them still
         exists and every other has ended (dissolved, revoked, merged, withdrawn): then that one is
         linked at confidence 0.85. An exact match that exists only
@@ -385,7 +387,12 @@ class Registry:
             key = normalize_name(name)
             candidates = self._exact_entities(key)
             plausible = self._plausible_entities(candidates, o["subject"], json.loads(o["mailing"]) if o["mailing"] else None)
-            if len(plausible) == 1:
+            if key in accepted:
+                # A reviewer's decision for this name stands; an exact or standing link made as
+                # well would give the parcel a second owner of record.
+                self._link_reviewed(accepted[key], o)
+                result["linked_by_review"] += 1
+            elif len(plausible) == 1:
                 (urn, rule), = plausible.items()
                 self._link(urn, o, EXACT_MATCH_CONFIDENCE, f"{EXACT_MATCH_BASIS} ({rule})")
                 result["linked"] += 1
@@ -397,9 +404,6 @@ class Registry:
                            f"{EXACT_MATCH_BASIS} ({plausible[urn]}; the only one of {len(plausible)} "
                            f"same-name entities still in existence, the others having ended)")
                 result["linked_by_standing"] += 1
-            elif key in accepted:
-                self._link_reviewed(accepted[key], o)
-                result["linked_by_review"] += 1
             elif plausible:
                 result["ambiguous"] += 1
             elif candidates:

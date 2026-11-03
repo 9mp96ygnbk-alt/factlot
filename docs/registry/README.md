@@ -50,7 +50,9 @@ the same file with `node:sqlite`.
 
 **Scope and privacy.** Only Texas state property categories B, F1, and F2 are ingested.
 Owner names that belong to natural persons, and owners withheld under Tax Code §25.025, are never
-stored. Only organisations are searchable by name.
+stored. A name counts as an organisation only if it carries an organisation word (LLC, LP, Inc,
+Properties, Bank, ...) before any "DBA"; a person's role ("CO-TRUSTEE", "CO TRS") or bare spaced
+initials ("L P") do not count. Only organisations are searchable by name.
 
 **Provenance and rights.** Each fact carries:
 
