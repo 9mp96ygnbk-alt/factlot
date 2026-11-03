@@ -15,6 +15,14 @@ Claude Desktop: open [`factlot-0.1.0.mcpb`](https://github.com/9mp96ygnbk-alt/fa
 REST, OpenAPI and remote MCP: `docker run -p 8787:8787 ghcr.io/9mp96ygnbk-alt/factlot:0.1.0`.
 Python: `pip install "git+https://github.com/9mp96ygnbk-alt/factlot.git@v0.1.0#subdirectory=python"`.
 
+**Try the registry tools on real data:** the [DC registry sample](https://github.com/9mp96ygnbk-alt/factlot/releases/tag/registry-sample-dc-2026-11-03) (19.7 MB, CC BY 4.0) holds
+18,077 District of Columbia commercial parcels, 5,513 owning entities and 7,908 cited ownership links.
+
+```bash
+curl -fLO https://github.com/9mp96ygnbk-alt/factlot/releases/download/registry-sample-dc-2026-11-03/factlot-registry-sample-dc-2026-11-03.db.gz && gunzip factlot-registry-sample-dc-2026-11-03.db.gz
+FACTLOT_REGISTRY_DB="$PWD/factlot-registry-sample-dc-2026-11-03.db" npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.0/factlot-mcp-standalone-0.1.0.tgz
+```
+
 **Hosted registry early access:** teams that want cited parcel-to-owner-to-entity lookups without self-hosting can email [contact@factlot.com](mailto:contact@factlot.com?subject=FactLot%20hosted%20registry%20early%20access). The hosted service is not yet public, and early-access teams help set pricing. Questions and bug reports go in [GitHub Discussions](https://github.com/9mp96ygnbk-alt/factlot/discussions) and Issues.
 
 Agents doing CRE work get stuck in the same places. They can't trust their own

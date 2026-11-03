@@ -16,6 +16,8 @@ Or, with no clone, run the release build as a stdio server: `npx -y https://gith
 
 When reporting a number from a calculator, cite its formula ID (for example `calc.cam_reconciliation@1`) and the returned `steps`, and surface every returned `warnings` entry to a human.
 
+Registry sample on real data: download https://github.com/9mp96ygnbk-alt/factlot/releases/download/registry-sample-dc-2026-11-03/factlot-registry-sample-dc-2026-11-03.db.gz (19.7 MB, CC BY 4.0; 18,077 District of Columbia commercial parcels, 5,513 owning entities, 7,908 cited ownership links), gunzip it, and set `FACTLOT_REGISTRY_DB` to its path when starting the MCP server to enable the six `registry_*` tools.
+
 Hosted registry early access: teams that want cited parcel-to-owner-to-entity lookups without self-hosting can email contact@factlot.com; the hosted service is not yet public.
 
 ## Use it
