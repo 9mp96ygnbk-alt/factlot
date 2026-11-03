@@ -106,6 +106,12 @@ None for collection: the downloads are public, unauthenticated and robots-permit
 a person should re-check the site before go-live (backlog A11, common to all Texas sources), and
 confirm the EX/X decision above.
 
+## Quality pass (2026-11-03)
+
+Audited with `python -m factlot.registry.audit --reread`: the adapter yields exactly the 18,035 parcels the registry holds. Ten owner names the current person rule reads as natural persons were stored (partnerships written `L P` with no number or business word in the name, which the rule leaves unread); they were purged and
+the file was loaded into the Texas registry file next to the Comptroller's entities. **13,165 organisation owners are stored and 11,244 (85.4%) link to a registered entity.**
+149 parcels (0.8%) have no situs address in the source.
+
 ## Real run (2026-11-02)
 
 `python -m factlot.registry.adapters.tx_collin collected/tx-collin-cad/2181dacc20ec3c25/LiteDatabaseCurrent.zip registry.db --as-of 2026-11-02 --retrieved-at 2026-11-02T23:56:09+00:00`

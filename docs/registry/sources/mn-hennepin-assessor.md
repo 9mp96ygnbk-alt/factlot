@@ -163,6 +163,12 @@ Esri / ArcGIS Hub. No separate public Hub terms page for downloaders was found. 
 
 Read: E204 and E300 bind Esri's customer (here, the publisher), not an anonymous downloader, and neither restricts redistribution of public records the publisher chooses to publish. The publisher's own terms recorded above still govern. Do not create an Esri account or accept either agreement to download a file.
 
+## Quality pass (2026-11-03)
+
+The adapter yields exactly the 19,840 parcels the registry holds. 15,436 organisation owners are stored (27 partnerships written `L P` that the stricter person rule had
+dropped are read again). There is no Minnesota entity registry in the registry (gated: purchase), so 159 owners link to an entity registered in another state and the rest do not;
+6,346 review candidates are other states' entities for these owners and are mostly noise.
+
 ## Real run (2026-11-03)
 
 - `discover`: both landing pages `ok`; 0 links found (the Hub page is a JavaScript application and

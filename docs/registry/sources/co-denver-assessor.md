@@ -165,6 +165,11 @@ Esri / ArcGIS Hub. No separate public Hub terms page for downloaders was found. 
 
 Read: E204 and E300 bind Esri's customer (here, the publisher), not an anonymous downloader, and neither restricts redistribution of public records the publisher chooses to publish. The publisher's own terms recorded above still govern. Do not create an Esri account or accept either agreement to download a file.
 
+## Quality pass (2026-11-03)
+
+The adapter yields exactly the 11 + 13,528 commercial parcels the registry holds (the residential file's 212,870 rows contribute the 11 `B` parcels). 11,112 organisation owners are stored (three more than before: partnerships written `L P` with a number or business word are read again). After the Colorado entity names lost their appended status history
+(see [co-sos-entities.md](co-sos-entities.md)), **9,529 of them (85.7%) link to a Colorado entity**, 219 of them chosen by standing among same-name entities.
+
 ## Real run (2026-11-03)
 
 Both exports were archived in full by the collector: commercial `collected/co-denver-assessor/b26caab122d3410d/csv` (11,288,056 bytes,

@@ -144,6 +144,11 @@ SignatureDoesNotMatch` (confirmed 2026-11-02 against the occupancy-code PDF: `cu
 2. S3 throughput to this machine was poor on 2026-11-02 (tens of KB/s, with stalls, for the 80 MB
    CSV; a ranged `curl` got an empty reply after 56 s). See Real run for what was loaded.
 
+## Quality pass (2026-11-03)
+
+The adapter yields exactly the 13,296 parcels the registry holds. Re-ingesting dropped the one owner name the current person rule reads as a person (`ONE SIX ASHFORD L P MASS LPS`) and the trust rule's purge removed two personal trusts; 9,255 organisation owners remain. There is no Massachusetts entity registry in the registry (gated: purchase), so no owner links. The audit warns that the snapshot is 671 days old:
+`as_of` is the roll's valuation date (2025-01-01) and FY2026 is the current roll.
+
 ## Real run
 
 Run 2026-11-02 (UTC 2026-11-03 02:00) on the complete FY2026 file, archived at

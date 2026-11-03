@@ -1,0 +1,159 @@
+{
+  "audited_on": "2026-11-03",
+  "database": "registry.db",
+  "entity_registries_by_state": {},
+  "sources": [
+    {
+      "ai_use": "unknown",
+      "citations": {
+        "as_of_differs_from_snapshot": 0,
+        "document_not_a_snapshot": 0,
+        "facts": 339297,
+        "links": 0,
+        "links_document_not_a_snapshot": 0,
+        "links_without_basis": 0,
+        "without_locator": 0,
+        "without_method": 0,
+        "without_valid_as_of": 0
+      },
+      "counties": ["us-48453"],
+      "county_fips": "453",
+      "findings": [
+        {
+          "message": "2 parcels have an implausible year built",
+          "severity": "warning"
+        },
+        {
+          "message": "65 owner-of-record facts read as natural persons",
+          "severity": "violation"
+        }
+      ],
+      "implausible_facts": {
+        "area": 0,
+        "out_of_scope_category": 0,
+        "tax_year": 0,
+        "value": 0,
+        "year_built": 2
+      },
+      "kind": "parcels",
+      "license": "Public record (Tex. Gov't Code ch. 552); no license or terms of use stated for the exports",
+      "links": {
+        "by_confidence": {},
+        "by_rule": {},
+        "entity_registry_loaded_for": [],
+        "link_rate_pct": null,
+        "linked_parcels": 0,
+        "note": "no entity registry is loaded for this state, so owners cannot be linked",
+        "organisation_owner_parcels": 17944
+      },
+      "lookups": {
+        "parcels_with_account_crosswalk": 30551,
+        "parcels_with_address_index": 30551
+      },
+      "owners": {
+        "orphan_mailing_addresses": 0,
+        "owner_facts": 17944,
+        "person_like": 65
+      },
+      "parcels": {
+        "absent_from_latest_snapshot": 0,
+        "conflicting_facts": 0,
+        "count": 30551,
+        "fields": {
+          "apn": {
+            "missing": 0,
+            "parcels": 30551,
+            "pct_present": 100.0
+          },
+          "appraised_value": {
+            "missing": 0,
+            "parcels": 30551,
+            "pct_present": 100.0
+          },
+          "improvement_area_sf": {
+            "missing": 1401,
+            "parcels": 29150,
+            "pct_present": 95.41
+          },
+          "land_area_sf": {
+            "missing": 214,
+            "parcels": 30337,
+            "pct_present": 99.3
+          },
+          "market_value": {
+            "missing": 0,
+            "parcels": 30551,
+            "pct_present": 100.0
+          },
+          "owner_of_record": {
+            "missing": 12607,
+            "parcels": 17944,
+            "pct_present": 58.73
+          },
+          "situs_address": {
+            "missing": 0,
+            "parcels": 30551,
+            "pct_present": 100.0
+          },
+          "state_property_category": {
+            "missing": 0,
+            "parcels": 30551,
+            "pct_present": 100.0
+          },
+          "tax_year": {
+            "missing": 0,
+            "parcels": 30551,
+            "pct_present": 100.0
+          },
+          "year_built": {
+            "missing": 486,
+            "parcels": 30065,
+            "pct_present": 98.41
+          }
+        },
+        "missing_address": 0,
+        "missing_as_of": 0,
+        "no_organisation_owner": 12607
+      },
+      "publisher": "Travis Central Appraisal District",
+      "redistribution": "unknown",
+      "review_queue": {
+        "accepted": 0,
+        "pending": 0,
+        "pending_by_rule": {},
+        "pending_owners": 0,
+        "rejected": 0
+      },
+      "snapshots": [
+        {
+          "age_days": 108,
+          "as_of": "2026-07-18",
+          "bytes": 557228168,
+          "document_id": "fl:document:sha256-62d0d1cd22b03f31db8d3986160eb181c5d00044df98a303fce9e17a44e9aa02",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 339297,
+          "filename": "2026%20Certified%20Appraisal%20Export%20Supp%200_07182026.zip",
+          "parcels": 30551,
+          "retrieved_at": "2026-11-02T23:20:27+00:00"
+        }
+      ],
+      "source_id": "tx-travis-cad",
+      "state_fips": "48",
+      "terms_reviewed": "2026-11-02",
+      "url": "https://traviscad.org/publicinformation"
+    }
+  ],
+  "stats": {
+    "entities": 0,
+    "facts": 339297,
+    "links": 0,
+    "parcels": 30551,
+    "review_pending": 0,
+    "snapshots": 1
+  },
+  "violations": [
+    "tx-travis-cad: 65 owner-of-record facts read as natural persons"
+  ],
+  "warnings": ["tx-travis-cad: 2 parcels have an implausible year built"]
+}

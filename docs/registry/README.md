@@ -6,9 +6,11 @@ Every fact traces back to a specific downloaded file and record.
 
 **Tier 1 (2026-11-02):** 47 sources across 15 states and DC were reviewed in one pass; 18 are
 verified and 33 have adapters with synthetic-fixture tests. Beyond Texas, Boston (13,296
-commercial parcels), San Francisco (19,048), and Philadelphia (77,286) are loaded in full, and
-New York City, Los Angeles, Denver, Hennepin, Mecklenburg, and DC are verified with full loads
-pending. Owner names are missing from several public files (Los Angeles, San Francisco, Fairfax,
+commercial parcels), San Francisco (19,048), and Philadelphia (77,286) are loaded in full, and so
+are New York City (164,633), Los Angeles (203,179), Denver, Hennepin, Mecklenburg, and DC.
+The first audit of those files (2026-11-03) and the fixes it led to are in
+[quality/tier1-2026-11-03.md](quality/tier1-2026-11-03.md); the counts below are the first
+pass's, kept for the record (the Harris and Dallas counts in the status paragraph below, for one). Owner names are missing from several public files (Los Angeles, San Francisco, Fairfax,
 San Bernardino), and most state entity registries outside Texas, New York, Colorado,
 Pennsylvania, and DC are sold rather than published. The per-source review records, gates, and
 counts are in [sources/README.md](sources/README.md).

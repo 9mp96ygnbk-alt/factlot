@@ -116,6 +116,13 @@ None for collection: the downloads are public, unauthenticated and robots-permit
 record: a person should re-read the privacy policy before go-live (backlog A11, common to all Texas
 sources), and decide the F3/F4/F5 question above.
 
+## Quality pass (2026-11-03)
+
+Audited with `python -m factlot.registry.audit --reread`: the adapter yields exactly the parcels the registry holds from each snapshot. The July certified roll held 65 owner
+names the current person rule reads as natural persons (partnerships written `L P` without a number or a business word, and personal trusts); they were purged, and the
+partnerships with evidence (`400 NUECES L P`) are read again. The file was loaded into the Texas registry file with the Comptroller's entities, and **supplement 3
+(run date 2026-10-06, 30,555 parcels) was loaded after supplement 0**, so the current roll is October's. 17,972 organisation owners are stored and 14,082 (78.4%) link to a registered entity.
+
 ## Real run (2026-11-02)
 
 `python -m factlot.registry.adapters.tx_travis collected/tx-travis-cad/62d0d1cd22b03f31/2026%20Certified%20Appraisal%20Export%20Supp%200_07182026.zip registry.db --as-of 2026-07-18 --retrieved-at 2026-11-02T23:20:27+00:00`

@@ -21,10 +21,19 @@ snapshot:
   URL or licence.
 - **Age.** Days between each snapshot's ``as_of`` and the audit date.
 
+- **Implausible figures and lookups.** A year built, area, value, tax year or category outside any
+  plausible range, and parcels with an address or account that the lookup tables do not hold.
+
+Counts, completeness and links are over the facts that are *current* (the latest snapshot of a source
+that covered the parcel), so a certified roll and its supplement count a parcel once and a retired
+parcel is not counted as held. Privacy and citation checks cover history too.
+
 The audit only reads. Every number comes from queries over the registry file, so it can be re-run
-after any rebuild; scans of the fact table use the ``(subject, predicate)`` index, and on a 30 GB
-file the whole audit takes a few minutes. Exit status 1 means a hard violation (a person-like
-owner, an uncited fact, a count that disagrees with the source file).
+after any rebuild. On the 30 GB Tier 1 file the queries take minutes; ``--reread`` runs every adapter
+over its source file again and takes about as long as the ingest did (25 minutes for that file;
+``--all-categories`` doubles it), and ``--entity-names`` adds a pass over every entity name. Exit
+status 1 means a hard violation (a person-like owner, an uncited fact, a count that disagrees with
+the source file).
 """
 
 from __future__ import annotations

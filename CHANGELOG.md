@@ -20,6 +20,18 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 - Registry Tier 2 review: 61 more counties (the rest of the US top 100 by population), 28 verified with adapters and tests across 15 states, statewide parcel sources for Wisconsin, Utah, North Carolina, New York, Maryland and Massachusetts, the Connecticut entity registry, and a review record and collector config for every source ([index](docs/registry/tier2/README.md)).
 - Registry statewide loads (2026-11-03): New York outside the city, Maryland, Wisconsin, Massachusetts outside Boston and 23 more Utah counties loaded in full into the scratch registry, 477,121 more commercial parcels in 177 counties (1,008,126 in 207 counties in all, 436,190 with an organisation owner of record); counts per county in each review record.
 
+### Changed
+
+- Registry owner-name normalization (`normalize_name`, and its TypeScript mirror `normalizeName`): apostrophes are dropped, what a roll appends to an owner (`ET AL`, a `DBA` trade name, a dangling `&` or `THE`) is removed, `NO 1` reads as `1`, consecutive initials run together, and common abbreviations spell one way (`PPTIES`/`PROPERTIES`, `CTR`/`CENTER`, `STREET`/`ST`). Registry files built before this change need `python -m factlot.registry.maintain registry.db --all` (re-keys the name index in place). `is_organization` reads a spaced `L P` as a partnership only with a number or a property or business word in the name, and a trust named for a person (separate property, revocable, life estate) as a person.
+- `Registry.ingest_parcels`: re-ingesting a snapshot now replaces the facts an earlier run wrote for it that the adapter no longer yields, and the links derived from a replaced owner; an unchanged file still writes nothing.
+
+### Fixed
+
+- Colorado entity adapter: the Department's appended status history (`, Delinquent January 1, 2025`) is no longer part of the legal name (1.87 million of 3.13 million names), so owners written as the bare name link.
+- New York City adapter: an owner name wrapped across the two 40-character halves of the `OWNER` field is rejoined when the break fell inside a word.
+- Mecklenburg adapter: `legalacres` holding square feet (139 parcels) and condominium-unit figures (21) no longer produce areas of billions of square feet.
+- `Registry.link_owners` drops pending review candidates for a name that now links.
+
 ## [0.1.0] - 2026-11-03
 
 The first release. Everything below is the work since the repository was created, summarised

@@ -111,8 +111,10 @@ class Mecklenburg(unittest.TestCase):
         self.assertEqual(land({**base, "legalacres": "12536", "gisacres": "0.59212925"}), round(0.59212925 * 43560, 2))
         # a large legal acreage beside a large polygon is a real large parcel
         self.assertEqual(land({**base, "legalacres": "812.5", "gisacres": "810.1"}), round(812.5 * 43560, 2))
-        # a condominium unit does not own the polygon; no legal acreage means no area
+        # a condominium unit does not own the polygon; no legal acreage means no area, and a figure this large is not acres
         self.assertIsNone(land({"parcelid": "U1", "commonpid": "C1", "legalacres": "", "gisacres": "2.5"}))
+        self.assertIsNone(land({"parcelid": "U1", "commonpid": "C1", "legalacres": "12536", "gisacres": "0.59"}))
+        self.assertEqual(land({"parcelid": "U1", "commonpid": "C1", "legalacres": "0.04", "gisacres": "2.5"}), round(0.04 * 43560, 2))
         self.assertEqual(land({**base, "legalacres": "", "gisacres": "2.0"}), 87120.0)
 
     def test_category_mapping(self):
