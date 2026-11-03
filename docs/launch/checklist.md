@@ -12,26 +12,28 @@ The plan and the reasoning are in [`strategy.md`](strategy.md). Nothing here is 
 
 ## Before 09:00 EST: prepare
 
-- [ ] [automatable now] Merge the `launch-kit` branch to `main` after the checks pass (`npm run format:check`).
-- [ ] [automatable now] Read the five install paths in `llms.txt` once on a clean machine and fix any command that fails (clone, `npm install`, `npm run build`, run the stdio server; `docker build`; `pip install` from the Git URL).
-- [ ] [automatable now] Build the extension: `npm run build:mcpb`, then `shasum -a 256 dist/factlot.mcpb`; keep the hash for the MCP Registry entry.
-- [ ] [automatable now] Deploy `site/` (Cloudflare Pages, Vercel or GitHub Pages; see `site/README.md`) and point `factlot.com` at it; confirm `https://factlot.com/llms.txt` returns text and the canonical link matches the final URL.
+- [x] [automatable now] Merge the `launch-kit` branch to `main` after the checks pass (`npm run format:check`). **Status 2026-11-03: done (59800f3).**
+- [x] [automatable now] Read the five install paths in `llms.txt` once on a clean machine and fix any command that fails (clone, `npm install`, `npm run build`, run the stdio server; `docker build`; `pip install` from the Git URL). **Status 2026-11-03: done: npx from the release URL, the GHCR image, pip from the tag and the .mcpb verified from a clean scratch directory with no credentials.**
+- [x] [automatable now] Build the extension: `npm run build:mcpb`, then `shasum -a 256 dist/factlot.mcpb`; keep the hash for the MCP Registry entry. **Status 2026-11-03: done: built and attached by release-assets.yml; SHA-256 in the release's SHA256SUMS.**
+- [x] [automatable now] Deploy `site/` (Cloudflare Pages, Vercel or GitHub Pages; see `site/README.md`) and point `factlot.com` at it; confirm `https://factlot.com/llms.txt` returns text and the canonical link matches the final URL. **Status 2026-11-03: deployed to GitHub Pages (https://9mp96ygnbk-alt.github.io/factlot/); pointing factlot.com at it is the founder's DNS step (factlot.com currently serves the founder's coming-soon page).**
 - [ ] [founder posts it] Confirm the `contact@factlot.com` mailbox receives mail, since the early-access link on the site and in the README depends on it.
 - [ ] [founder posts it] Read the rules page of every subreddit before choosing any in `posts/reddit.md`; Reddit blocked automated reads when this kit was written.
 
 ## 09:00 to 11:30 EST: make the repository public and listable
 
-- [ ] [founder posts it] Make `github.com/9mp96ygnbk-alt/factlot` public (Settings, General, Danger Zone, Change visibility).
-- [ ] [needs the repo public] Apply the description and topics from `github-metadata.md` (Settings, or the gear next to About).
-- [ ] [needs the repo public] Enable Discussions and Issues; create a "Welcome" discussion from `posts/github-discussions.md`; pin it.
-- [ ] [needs the repo public] Open three `good first issue` issues taken from `docs/BACKLOG.md` so a visitor has a place to start.
-- [ ] [needs the repo public] Create release `v0.1.0` with `dist/factlot.mcpb` attached (use `docs/release-process.md`; without npm and PyPI accounts the workflow stops early, so attach the file by hand). Note the asset URL.
-- [ ] [needs the repo public] Check the first-screen README renders: tagline, early-access line, quick start from GitHub.
+- [x] [founder posts it] Make `github.com/9mp96ygnbk-alt/factlot` public (Settings, General, Danger Zone, Change visibility). **Status 2026-11-03: done.**
+- [x] [needs the repo public] Apply the description and topics from `github-metadata.md` (Settings, or the gear next to About). **Status 2026-11-03: done (20 topics).**
+- [x] [needs the repo public] Enable Discussions and Issues; create a "Welcome" discussion from `posts/github-discussions.md`; pin it. **Status 2026-11-03: done; welcome post is discussion #26 (pinning is a founder click).**
+- [x] [needs the repo public] Open three `good first issue` issues taken from `docs/BACKLOG.md` so a visitor has a place to start. **Status 2026-11-03: done (#27, #28, #29).**
+- [x] [needs the repo public] Create release `v0.1.0` with `dist/factlot.mcpb` attached (use `docs/release-process.md`; without npm and PyPI accounts the workflow stops early, so attach the file by hand). Note the asset URL. **Status 2026-11-03: done: https://github.com/9mp96ygnbk-alt/factlot/releases/tag/v0.1.0 (release.yml skips npm/PyPI with a notice until A5).**
+- [x] [needs the repo public] Check the first-screen README renders: tagline, early-access line, quick start from GitHub. **Status 2026-11-03: done: the README now leads with the one-line install.**
 - [ ] [needs the repo public] Upload a social preview image (Settings, General, Social preview) so links look right on LinkedIn and X. The image is not part of this kit.
 
 ## 11:30 to 12:00 EST: registry and lists (these only need a public repo)
 
-- [ ] [needs the repo public] Official MCP Registry, MCPB route: write `server.json` from `submissions/mcp-registry.md` with the asset URL and hash, then `mcp-publisher login github` and `mcp-publisher publish`. Verify: `curl "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.9mp96ygnbk-alt/factlot"`.
+Also opened on 2026-11-03 (not in the original list): [etewiah/awesome-real-estate#120](https://github.com/etewiah/awesome-real-estate/pull/120) and [docker/mcp-registry#6533](https://github.com/docker/mcp-registry/pull/6533) (Docker MCP Catalog). The awesome-mcp-servers PR waits for Glama to index the server.
+
+- [x] [needs the repo public] Official MCP Registry, MCPB route: write `server.json` from `submissions/mcp-registry.md` with the asset URL and hash, then `mcp-publisher login github` and `mcp-publisher publish`. Verify: `curl "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.9mp96ygnbk-alt/factlot"`. **Status 2026-11-03: done: io.github.9mp96ygnbk-alt/factlot 0.1.0 is active with the OCI and MCPB packages.**
 - [ ] [needs the repo public] Glama: add or claim the server at [glama.ai/mcp/servers](https://glama.ai/mcp/servers) (button "Add Server"); wait for the score badge to appear.
 - [ ] [needs the repo public] mcp.so: submit the repository URL at [mcp.so/submit](https://mcp.so/submit) using `submissions/directories.md`.
 - [ ] [needs the repo public] awesome-mcp-servers: open the PR with the text in `submissions/awesome-mcp-servers.md` once the Glama badge URL resolves.
