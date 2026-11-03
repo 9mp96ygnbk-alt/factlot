@@ -5,6 +5,12 @@ copy: [`registry/sources/ct/ct-parcel-cama.json`](../../../registry/sources/ct/c
 (`verified: false`). The statewide dataset covers all 169 towns, so the one review covers the Capitol
 Planning Region and every other planning region.
 
+> **Update 2026-11-03 (tier2-expansion).** The terms gate below is cleared for the same data on the publisher's ArcGIS items: the Connecticut OPM GIS Office
+> sets `licenseInfo` "CC0" on "Connecticut CAMA and Parcel Layer" (item `82a733423a244c43a9d4bf552954cea9`), "Connecticut State Parcel Layer 2023",
+> "Connecticut Public Use Parcels", "Connecticut Vacant Parcels" and the "Parcel Viewer". That layer is the new source
+> [`ct-parcel-cama-layer`](ct-parcel-cama-layer.md) (verified, adapter, real run). This record (the Open Data CT Socrata table `ibe8-9i3q`, no licence
+> field) stays `verified: false` and is superseded by it.
+
 ## Publisher and URLs
 
 - Publisher: Connecticut Office of Policy and Management (OPM), GIS Office. Towns submit a parcel

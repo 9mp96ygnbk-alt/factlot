@@ -45,3 +45,8 @@ archives those. The Pierce tables were archived by the collector (`collected/wa-
 | Utah       | [ut-sos-entities](../sources/ut-sos-entities.md)   | none found              | GRAMA public records; no bulk product found                        | Ask the Division of Corporations for a bulk extract, or file a GRAMA request (Utah Code 63G-2).                                                                                                                                          |
 | Oregon     | [or-sos-entities](../sources/or-sos-entities.md)   | gated: terms            | None stated on the dataset; portal Terms of Service need a sign-in | Read the Terms of Service (personal sign-in) or ask the Corporation Division (503-986-2200) for a statement that the weekly Active Businesses file may be redistributed. Weekly, about 520,000 active entities, one row per association. |
 | Hawaii     | [hi-breg-entities](../sources/hi-breg-entities.md) | none found (free)       | None; the only open file is a 2022 City copy marked out of date    | Write to BREG (breg@dcca.hawaii.gov, 808-586-2727) for the bulk download or subscription product and its terms, or file an HRS 92F request.                                                                                              |
+
+## Update 2026-11-03 (tier2-expansion): Garfield County, Utah
+
+Garfield's LIR layer, which answered `not_ready` when the weekly collector ran, was archived on 2026-11-03 and loaded: 188 commercial parcels (all `F1`), no owner in the file. Utah is now loaded for 26 of its 29 counties
+(76,250 parcels: 19,637 `B`, 52,474 `F1`, 4,188 `F2`). See [ut-ugrc-lir](../sources/ut-ugrc-lir.md). Montana, a Mountain West state, is in [expansion.md](expansion.md).

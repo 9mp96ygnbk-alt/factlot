@@ -77,3 +77,10 @@ cover ten counties; the per-source records are in [`docs/registry/sources/`](../
 - Connecticut parcel use codes need a town-by-town mapping once OPM answers; New Jersey needs the
   MOD-IV class definitions read (4C apartment threshold).
 - Nothing was committed or published; `collected/` output went to a scratch directory.
+
+## Update 2026-11-03 (tier2-expansion): Connecticut statewide
+
+The gate on `ct-parcel-cama` (no licence on the Open Data CT table) is cleared for the same data on the publisher's ArcGIS items, which state CC0: the OPM GIS Office's "Connecticut CAMA and Parcel Layer".
+It is loaded as [`ct-parcel-cama-layer`](../sources/ct-parcel-cama-layer.md) for all 169 towns, mapping each town's own use text (never its code) to commercial, industrial or apartment, with the former
+county in the layer's `FIPS` field as the county code. The Capitol Planning Region (09110) is covered through its towns' former counties (Hartford 003 and Tolland 013). The planning-region code is a decision for the
+founder (see [expansion.md](expansion.md), gate 4).

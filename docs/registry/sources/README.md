@@ -1,6 +1,6 @@
 # Source catalog: Tier 1 (reviewed 2026-11-02)
 
-Tier 2 (61 more counties, reviewed 2026-11-03) has its own index: [../tier2/README.md](../tier2/README.md).
+Tier 2 (61 more counties, reviewed 2026-11-03) has its own index: [../tier2/README.md](../tier2/README.md). The statewide sources added after it (Vermont, Minnesota, Arkansas, Montana, Connecticut, five North Carolina counties) are listed below and in [../tier2/expansion.md](../tier2/expansion.md).
 
 One review record per source lives in this folder; the machine-readable config for the collector
 is under [`registry/sources/<state>/`](../../../registry/sources/). **Verified** means a person
@@ -47,6 +47,18 @@ archived by the collector here. Owner links follow the jurisdiction rule (regist
 | [ca-santa-clara-assessor](ca-santa-clara-assessor.md)       | Santa Clara CA                           | gated: purchase                      | secured master file by order form                                    | none; adapter not written                                      |
 | tx-bexar-ad                                                 | Bexar TX                                 | gated: records request               | no bulk file                                                         | none                                                           |
 | tx-txgio-parcels                                            | Texas parcel geometry                    | gated: host blocks automated clients | CC0                                                                  | none                                                           |
+
+### Added on the tier2-expansion branch (2026-11-03)
+
+| Source                                                      | Counties                                                            | Status                     | Licence                                           | Real run (commercial parcels; organisation owners) |
+| ----------------------------------------------------------- | ------------------------------------------------------------------- | -------------------------- | ------------------------------------------------- | -------------------------------------------------- |
+| [vt-vcgi-parcels](vt-vcgi-parcels.md)                       | all 14 Vermont counties                                             | verified                   | none stated; disclaimer only; "freely available"  | 19,342; 12,357                                     |
+| [mn-opt-in-parcels](mn-opt-in-parcels.md)                   | 24 opt-in Minnesota counties (Ramsey, Dakota, Anoka, St. Louis ...) | verified                   | counties opted in to open data; disclaimer only   | 60,495; 36,373                                     |
+| [ar-gis-parcels](ar-gis-parcels.md)                         | all 75 Arkansas counties                                            | verified (CI and II codes) | none stated; disclaimer only                      | 69,056; 41,144                                     |
+| [mt-msl-cadastral](mt-msl-cadastral.md)                     | 55 Montana counties                                                 | verified, partial          | none stated; disclaimer and a mailing-list notice | 7,546 (apartments and industrial only); 4,241      |
+| [ct-parcel-cama-layer](ct-parcel-cama-layer.md)             | {CT_COUNTIES} Connecticut former counties (169 towns)               | verified                   | CC0 (publisher's ArcGIS item)                     | {CT_TOTAL_SHORT}; {CT_ORG}                         |
+| [nc-onemap-parcels](nc-onemap-parcels.md) (5 more counties) | Guilford, Forsyth, Cumberland, Johnston, New Hanover                | verified                   | NC OneMap free and unrestricted use policy        | 28,436; 20,284                                     |
+| [ut-ugrc-lir](ut-ugrc-lir.md) (Garfield)                    | Garfield UT                                                         | verified                   | CC BY 4.0                                         | 188; none (no owner in the file)                   |
 
 ## Entity registries (owner resolution)
 

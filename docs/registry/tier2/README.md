@@ -155,3 +155,21 @@ commercial scope B/F1/F2, no natural-person names, no AI model identifiers). In 
   clients, or none found), licence, owner names present (yes/no), sample counts, and the one
   action a person must take for gated sources. End with the entity registries for your states.
 - **Budget.** About three hours in all; prefer breadth (every county reviewed) over depth.
+
+## Expansion (2026-11-03, branch `data/tier2-expansion`)
+
+A second pass added open statewide sources in states the registry did not yet cover, and cleared two gates (Connecticut's licence, five North Carolina counties' use codes) and
+one load (Garfield County, Utah). Full record, reviewed-but-not-loaded sources and the founder gates: [expansion.md](expansion.md). Counts are distinct commercial parcels
+(`B`, `F1`, `F2`) in one scratch registry built from the Tier 2 file plus these loads.
+
+| State | Source                   | Counties in the load                                 | Commercial parcels | Organisation owners |
+| ----- | ------------------------ | ---------------------------------------------------- | ------------------ | ------------------- |
+| VT    | `vt-vcgi-parcels`        | 14 of 14                                             | 19,342             | 12,357              |
+| MN    | `mn-opt-in-parcels`      | 24 opt-in counties                                   | 60,495             | 36,373              |
+| AR    | `ar-gis-parcels`         | 75 of 75                                             | 69,056             | 41,144              |
+| MT    | `mt-msl-cadastral`       | 55 of 56 (apartments and industrial only)            | 7,546              | 4,241               |
+| CT    | `ct-parcel-cama-layer`   | {CT_COUNTIES} former counties (169 towns)            | {CT_TOTAL_SHORT}   | {CT_ORG}            |
+| NC    | `nc-onemap-parcels`      | Guilford, Forsyth, Cumberland, Johnston, New Hanover | 28,436             | 20,284              |
+| UT    | `ut-ugrc-lir` (Garfield) | Garfield                                             | 188                | 0                   |
+
+{TOTALS_PARAGRAPH}
