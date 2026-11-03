@@ -14,11 +14,14 @@ can call them without a confirmation step, depending on your settings.
 
 ## Claude Desktop: one-click extension (local, no server)
 
+Download `factlot-X.Y.Z.mcpb` from the
+[latest release](https://github.com/9mp96ygnbk-alt/factlot/releases), or build it from a clone:
+
 ```bash
 npm run build:mcpb    # → dist/factlot.mcpb
 ```
 
-Double-click `factlot.mcpb`, or drag it into **Claude Desktop → Settings → Extensions**. The bundle
+Double-click the `.mcpb` file, or drag it into **Claude Desktop → Settings → Extensions**. The bundle
 is a single self-contained file that is validated with Anthropic's `mcpb` CLI. It runs locally, with
 no account, no API key, and no network access.
 
@@ -27,7 +30,11 @@ no account, no API key, and no network access.
 ```bash
 # Remote
 claude mcp add --transport http factlot https://<your-host>/mcp
-# Local
+# Local, from a GitHub release (no npm account needed)
+claude mcp add factlot -- npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.0/factlot-mcp-standalone-0.1.0.tgz
+# Local, from a source build
+claude mcp add factlot -- node "$PWD/packages/mcp/dist/bin.js"
+# Local, after first publish to npm
 claude mcp add factlot -- npx -y @factlot/mcp
 ```
 

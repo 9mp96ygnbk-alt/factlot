@@ -44,6 +44,16 @@ jobs:
         run: npm run test:connectors
       - name: Build and validate the Claude Desktop extension
         run: npm run build && npm run build:mcpb
+      - name: End-to-end MCP test (stdio, Streamable HTTP, REST, OpenAPI)
+        run: npm run test:e2e
+      - name: End-to-end MCP test of the packed extension
+        run: |
+          npx mcpb unpack dist/factlot.mcpb "$RUNNER_TEMP/mcpb"
+          FACTLOT_E2E_ONLY=stdio FACTLOT_E2E_STDIO="[\"node\",\"$RUNNER_TEMP/mcpb/server/index.mjs\"]" npm run test:e2e
+      - name: OpenAPI documents are valid (Redocly, spec rules only)
+        env:
+          REDOCLY_TELEMETRY: "off"
+        run: npx -y @redocly/cli@2.72.1 lint --extends=spec spec/schemas/openapi-3.1.json spec/schemas/openapi-3.0.json
       - name: Generated schemas are up to date
         run: npm run schemas:check
       - name: TypeScript vs Python differential test

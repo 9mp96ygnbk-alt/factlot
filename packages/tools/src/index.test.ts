@@ -193,6 +193,7 @@ test("OpenAPI 3.0 conversion", () => {
       b: { const: "k" },
       c: { type: ["string", "null"] },
       d: { type: ["string", "number"] },
+      e: { type: "object", propertyNames: { type: "string" } },
     },
   });
   assert.ok(!("$schema" in s));
@@ -201,6 +202,7 @@ test("OpenAPI 3.0 conversion", () => {
   assert.deepEqual(p.b, { enum: ["k"] });
   assert.deepEqual(p.c, { type: "string", nullable: true });
   assert.deepEqual(p.d, { anyOf: [{ type: "string" }, { type: "number" }] });
+  assert.deepEqual(p.e, { type: "object" });
 });
 
 test("OpenAPI documents have one operation per tool", () => {

@@ -1,0 +1,39 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.9mp96ygnbk-alt/factlot",
+  "title": "FactLot",
+  "description": "Deterministic commercial real estate calculators, canonical property IDs, and cited facts.",
+  "version": "0.1.0",
+  "websiteUrl": "https://factlot.com",
+  "repository": {
+    "url": "https://github.com/9mp96ygnbk-alt/factlot",
+    "source": "github",
+    "id": "1443562321"
+  },
+  "packages": [
+    {
+      "registryType": "oci",
+      "identifier": "ghcr.io/9mp96ygnbk-alt/factlot:0.1.0",
+      "runtimeHint": "docker",
+      "transport": { "type": "stdio" },
+      "packageArguments": [
+        {
+          "type": "positional",
+          "value": "node",
+          "description": "Run the stdio MCP server instead of the image's default HTTP server."
+        },
+        {
+          "type": "positional",
+          "value": "packages/mcp/dist/bin.js",
+          "description": "Entry point of the stdio MCP server inside the image."
+        }
+      ]
+    },
+    {
+      "registryType": "mcpb",
+      "identifier": "https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.0/factlot-0.1.0.mcpb",
+      "fileSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "transport": { "type": "stdio" }
+    }
+  ]
+}

@@ -50,9 +50,9 @@ Be clear about scope before adopting it:
   statute text. Other jurisdictions follow only after a person verifies them.
 - **Lease ingestion is a prototype**: deterministic quote-on-page and value-in-quote checks, OCR
   for scanned pages through a pluggable backend, but no published accuracy number yet.
-- **Not yet published** to npm or PyPI (build from source, or run the Docker image), and no hosted
-  public endpoint. The [release process](docs/release-process.md) is ready for when the accounts
-  exist.
+- **Not yet published** to npm or PyPI, and no hosted public endpoint. Install from a GitHub
+  release, from git, from source, or with Docker ([getting started](docs/getting-started.md)).
+  The [release process](docs/release-process.md) is ready for when the accounts exist.
 
 ## Connect FactLot to any AI platform
 
@@ -69,21 +69,41 @@ Every surface serves the same tools, generated from one catalog. See **[connecto
 
 ## Quick start: use FactLot from an agent
 
-Add the MCP server to your client. For example, Claude Code:
+FactLot is not on npm or PyPI yet. These work without either: they run the stdio MCP server
+from a GitHub release, from a clone, or in Docker. Each was run end to end
+([install verification](docs/install-verification.md)).
 
 ```bash
-claude mcp add factlot -- npx -y @factlot/mcp
+# From the GitHub release: one file, dependencies bundled
+claude mcp add factlot -- npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.0/factlot-mcp-standalone-0.1.0.tgz
+
+# From a clone
+git clone https://github.com/9mp96ygnbk-alt/factlot.git && cd factlot
+npm install && npm run build
+claude mcp add factlot -- node "$PWD/packages/mcp/dist/bin.js"
+
+# Remote connector (Streamable HTTP MCP at /mcp, REST at /v1, OpenAPI)
+docker run --rm -p 8787:8787 ghcr.io/9mp96ygnbk-alt/factlot:0.1.0
 ```
 
-Or in any MCP client config:
+Claude Desktop users can install `factlot-0.1.0.mcpb` from the
+[release](https://github.com/9mp96ygnbk-alt/factlot/releases). For any other MCP client, use the
+same command in its config:
 
 ```json
 {
   "mcpServers": {
-    "factlot": { "command": "npx", "args": ["-y", "@factlot/mcp"] }
+    "factlot": {
+      "command": "node",
+      "args": ["/absolute/path/to/factlot/packages/mcp/dist/bin.js"]
+    }
   }
 }
 ```
+
+After first publish to npm: `claude mcp add factlot -- npx -y @factlot/mcp`.
+[Getting started](docs/getting-started.md) has every option, including the TypeScript libraries
+as release tarballs.
 
 The server provides these tools: `calc_rent_schedule`, `calc_net_effective_rent`,
 `calc_compare_proposals`, `calc_percentage_rent`, `calc_cam_reconciliation`,
@@ -95,10 +115,15 @@ The server provides these tools: `calc_rent_schedule`, `calc_net_effective_rent`
 and `schema_get`, plus the six `registry_*` lookups when a registry database is configured
 (`FACTLOT_REGISTRY_DB`).
 
-> Packages are not yet published to npm. Until they are, build from source (below)
-> and point your client at `node packages/mcp/dist/bin.js`.
+> Release files, the GHCR image, and `git+https` installs need the repository to be public and a
+> release (here `v0.1.0`) to exist; from a clone works now.
 
 ## Quick start: Python agents
+
+```bash
+pip install "git+https://github.com/9mp96ygnbk-alt/factlot.git#subdirectory=python"
+# after first publish to PyPI: pip install factlot
+```
 
 ```python
 import factlot

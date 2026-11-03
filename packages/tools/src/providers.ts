@@ -105,6 +105,8 @@ export function toOpenApi30Schema(schema: unknown): Json {
   return mapSchema(schema, (n) => {
     const out: Json = { ...n };
     delete out.$schema;
+    // Not in the OpenAPI 3.0 Schema Object; JSON object keys are strings anyway.
+    delete out.propertyNames;
     if (typeof out.exclusiveMinimum === "number") {
       out.minimum = out.exclusiveMinimum;
       out.exclusiveMinimum = true;

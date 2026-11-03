@@ -6,12 +6,12 @@ formula ID whether it was called from Claude, ChatGPT, Gemini, Copilot, Bedrock,
 
 ## Three ways to connect
 
-| Surface                                      | What it is                                                                                                                                   | Use it from                                                                                                                                       |
-| -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Remote MCP** (`https://<host>/mcp`)        | Streamable HTTP and stateless. Serves 16 tools plus `search`, `fetch`, and `schema_get`, and 6 registry tools when a registry is configured. | Claude custom connectors, ChatGPT apps (developer mode, deep research), Microsoft Copilot Studio, Gemini CLI, Mistral Le Chat, Cursor, VS Code    |
-| **Local MCP** (stdio)                        | `npx -y @factlot/mcp`, or a one-click Claude Desktop extension (`factlot.mcpb`).                                                             | Claude Desktop, Claude Code, Cursor, Windsurf, VS Code, Gemini CLI                                                                                |
-| **REST and OpenAPI** (`https://<host>/v1/…`) | One POST endpoint per tool. `/openapi.json` (3.1) and `/openapi-3.0.json`.                                                                   | Custom GPT Actions, Amazon Bedrock Agents, Microsoft API plugins, Vertex AI, any HTTP client                                                      |
-| **Native function calling**                  | Tool definitions in each provider's own format, plus `run_tool()` in Python and `runTool()` in TypeScript.                                   | Claude API, OpenAI (Chat Completions and Responses), Gemini API, Bedrock Converse, Mistral, xAI, DeepSeek, Groq, and other OpenAI-compatible APIs |
+| Surface                                      | What it is                                                                                                                                                           | Use it from                                                                                                                                       |
+| -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Remote MCP** (`https://<host>/mcp`)        | Streamable HTTP and stateless. Serves 16 tools plus `search`, `fetch`, and `schema_get`, and 6 registry tools when a registry is configured.                         | Claude custom connectors, ChatGPT apps (developer mode, deep research), Microsoft Copilot Studio, Gemini CLI, Mistral Le Chat, Cursor, VS Code    |
+| **Local MCP** (stdio)                        | `npx -y <release URL>/factlot-mcp-standalone-X.Y.Z.tgz` (`npx -y @factlot/mcp` after first publish), or a one-click Claude Desktop extension (`factlot-X.Y.Z.mcpb`). | Claude Desktop, Claude Code, Cursor, Windsurf, VS Code, Gemini CLI                                                                                |
+| **REST and OpenAPI** (`https://<host>/v1/…`) | One POST endpoint per tool. `/openapi.json` (3.1) and `/openapi-3.0.json`.                                                                                           | Custom GPT Actions, Amazon Bedrock Agents, Microsoft API plugins, Vertex AI, any HTTP client                                                      |
+| **Native function calling**                  | Tool definitions in each provider's own format, plus `run_tool()` in Python and `runTool()` in TypeScript.                                                           | Claude API, OpenAI (Chat Completions and Responses), Gemini API, Bedrock Converse, Mistral, xAI, DeepSeek, Groq, and other OpenAI-compatible APIs |
 
 ## Per-platform guides
 
@@ -25,6 +25,8 @@ formula ID whether it was called from Claude, ChatGPT, Gemini, Copilot, Bedrock,
 ## Run the remote connector
 
 ```bash
+docker run -p 8787:8787 ghcr.io/9mp96ygnbk-alt/factlot:0.1.0    # prebuilt image, each release
+# or build the image yourself:
 docker build -t factlot . && docker run -p 8787:8787 factlot
 # or, from a source build:
 npm run build && node packages/server/dist/bin.js
@@ -74,11 +76,11 @@ similar attestation.
 
 ## What has been verified
 
-| Check                                                                                                      | Status                                                                                                                                                                          |
-| ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| MCP over Streamable HTTP with the official MCP SDK client (list, call, auth)                               | Tested in CI (`packages/server`)                                                                                                                                                |
-| Raw JSON-RPC over HTTP, as a remote platform sends it (`initialize`, `tools/list`, `tools/call`, `search`) | Tested by hand against the built server                                                                                                                                         |
-| Docker runtime image (non-root user, auth, MCP, REST)                                                      | Tested by hand. The full multi-stage build could not run in the development sandbox (no registry access from build containers). Its build steps were run separately and passed. |
-| Claude Desktop extension: `mcpb validate`, `mcpb pack`, and a standalone stdio run of the unpacked bundle  | Tested by hand (`npm run build:mcpb`)                                                                                                                                           |
-| Provider tool formats and the Gemini schema subset                                                         | Unit-tested (`packages/tools`, `python/tests`)                                                                                                                                  |
-| Live connection from the claude.ai, ChatGPT, Copilot Studio, Gemini, and Bedrock consoles                  | **Not yet.** This needs a public deployment and accounts on each platform. Steps follow each platform's documentation as of Nov 2026; confirm the menu paths when you connect.  |
+| Check                                                                                                      | Status                                                                                                                                                                         |
+| ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| MCP over Streamable HTTP with the official MCP SDK client (list, call, auth)                               | Tested in CI (`packages/server`)                                                                                                                                               |
+| Raw JSON-RPC over HTTP, as a remote platform sends it (`initialize`, `tools/list`, `tools/call`, `search`) | Tested by hand against the built server                                                                                                                                        |
+| Docker image: full multi-stage build, non-root user, MCP over HTTP and stdio, REST, OpenAPI                | `docker build` and the end-to-end test run by hand ([install verification](../docs/install-verification.md)) and on every release tag (`container.yml`)                        |
+| Claude Desktop extension: `mcpb validate`, `mcpb pack`, and the end-to-end test on the unpacked bundle     | Tested in CI; `npm run build:mcpb` also starts the bundled server and checks `tools/list`                                                                                      |
+| Provider tool formats and the Gemini schema subset                                                         | Unit-tested (`packages/tools`, `python/tests`)                                                                                                                                 |
+| Live connection from the claude.ai, ChatGPT, Copilot Studio, Gemini, and Bedrock consoles                  | **Not yet.** This needs a public deployment and accounts on each platform. Steps follow each platform's documentation as of Nov 2026; confirm the menu paths when you connect. |

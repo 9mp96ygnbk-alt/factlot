@@ -5,6 +5,67 @@ and the `factlot` Python package, a changelog entry, a `vX.Y.Z` tag, and a GitHu
 Claude Desktop extension (`.mcpb`) attached. The workflow that does the publishing is
 [`.github/workflows/release.yml`](../.github/workflows/release.yml).
 
+Four more workflows need **no npm or PyPI account**, only the repository's own `GITHUB_TOKEN` or
+GitHub OIDC. They are what make FactLot installable before backlog item A5 is done:
+
+| Workflow                                                        | Trigger                                 | What it does                                                                                                                                                                                                                                                                      |
+| --------------------------------------------------------------- | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`release-assets.yml`](../.github/workflows/release-assets.yml) | `v*` tag, or by hand on an existing tag | Builds the `.mcpb`, the six npm tarballs, `factlot-mcp-standalone-X.Y.Z.tgz` (for `npx -y <url>`), the Python wheel and sdist; installs and tests each one; attaches them and `SHA256SUMS` to the GitHub release `vX.Y.Z`, creating it with the changelog notes if it is missing. |
+| [`container.yml`](../.github/workflows/container.yml)           | `v*` tag, or by hand on an existing tag | Builds the Dockerfile, runs the end-to-end test against the container (HTTP and stdio), then pushes `ghcr.io/9mp96ygnbk-alt/factlot:X.Y.Z`, `:X.Y`, and `:latest` for linux/amd64 and linux/arm64 with OCI labels and the MCP Registry ownership label.                           |
+| [`pages.yml`](../.github/workflows/pages.yml)                   | Push to `main` that changes `site/**`   | Deploys `site/` (without its `.md` notes) to GitHub Pages with `actions/upload-pages-artifact` and `actions/deploy-pages`.                                                                                                                                                        |
+| [`mcp-registry.yml`](../.github/workflows/mcp-registry.yml)     | By hand only; dry run unless unticked   | Publishes [`server.json`](../server.json) to the official MCP Registry as `io.github.9mp96ygnbk-alt/factlot`, logging in with GitHub OIDC. See [MCP Registry](#mcp-registry).                                                                                                     |
+
+Every action in these workflows is pinned to a full commit SHA with the version in a comment, and
+each job declares only the permissions it needs (`contents: read` by default; `contents: write`
+only to attach release assets; `packages: write` only to push the image; `pages: write` and
+`id-token: write` only to deploy Pages; `id-token: write` only to log in to the MCP Registry).
+
+## First release without npm or PyPI accounts
+
+What the owner does on launch day, in order. Nothing here creates an account or costs money.
+
+1. **Make the repository public** (Settings, General, Danger Zone). Release-asset URLs,
+   `pip install git+https://…`, anonymous GHCR pulls, free GitHub Pages, and MCP Registry
+   validation all need it.
+2. **Enable Pages:** Settings, Pages, Source "GitHub Actions". Then run **Pages** by hand once
+   (Actions, Pages, Run workflow), or push a change under `site/`. For `factlot.com`, add the
+   custom domain on the same settings page and point DNS at GitHub Pages.
+3. **Add a changelog section and tag.** The packages are already at `0.1.0`:
+
+   ```bash
+   git switch main && git pull --ff-only
+   node scripts/release/changelog.mjs release 0.1.0
+   git commit -am "Release 0.1.0"
+   git tag -a v0.1.0 -m "FactLot 0.1.0"
+   git push origin main v0.1.0
+   ```
+
+   The tag starts `release-assets.yml`, `container.yml`, and `release.yml`. **`release.yml`
+   fails in `preflight`** ("backlog item A5 … is not complete") until the npm token and PyPI
+   trusted publisher exist. That is expected and publishes nothing; the other two do not depend
+   on it.
+
+4. **Make the container package public**, once, after `container.yml` first pushes:
+   <https://github.com/users/9mp96ygnbk-alt/packages/container/factlot/settings>, Danger Zone,
+   Change visibility, Public. GHCR creates new packages as private, and the MCP Registry reads the
+   image anonymously.
+5. **Check the release** has `factlot-0.1.0.mcpb`, `factlot-mcp-standalone-0.1.0.tgz`, the six
+   `factlot-*-0.1.0.tgz`, the wheel, the sdist, and `SHA256SUMS`. Then, from any machine:
+
+   ```bash
+   npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.0/factlot-mcp-standalone-0.1.0.tgz < /dev/null
+   pip install "git+https://github.com/9mp96ygnbk-alt/factlot.git@v0.1.0#subdirectory=python"
+   docker run --rm -p 8787:8787 ghcr.io/9mp96ygnbk-alt/factlot:0.1.0
+   ```
+
+6. **Publish to the MCP Registry:** Actions, **MCP Registry**, Run workflow, version `0.1.0`,
+   leave **dry run** ticked first. When it passes (`mcp-publisher validate` and the `.mcpb`
+   checksum), run it again with dry run unticked.
+
+If a workflow fails, fix the cause on `main`, then re-run it by hand with the tag as input
+(`release-assets.yml` and `container.yml` replace what they published before). Do not move or
+re-push a tag that has been released.
+
 ## Prerequisites (once)
 
 These need accounts only the project owner can create (backlog item **A5**). Until they exist
@@ -117,6 +178,75 @@ gh release upload vX.Y.Z dist/factlot.mcpb --clobber
 
 Keep `key.pem` out of the repository (it is not in `.gitignore` by name; store it in a password
 manager).
+
+## MCP Registry
+
+[`server.json`](../server.json) describes FactLot for the official MCP Registry
+(<https://registry.modelcontextprotocol.io>), from which MCP clients and other registries discover
+servers. It lists the packages that exist without npm or PyPI accounts:
+
+- **`oci`**: `ghcr.io/9mp96ygnbk-alt/factlot:X.Y.Z`, run as a stdio server
+  (`docker run -i --rm <image> node packages/mcp/dist/bin.js`). Ownership is proven by the image
+  label `io.modelcontextprotocol.server.name=io.github.9mp96ygnbk-alt/factlot`, which
+  `container.yml` sets; the registry reads the image config anonymously, so the GHCR package
+  must be public. OCI entries must not carry `version`, `registryBaseUrl`, or `fileSha256`.
+- **`mcpb`**: `https://github.com/9mp96ygnbk-alt/factlot/releases/download/vX.Y.Z/factlot-X.Y.Z.mcpb`
+  with its `fileSha256`. The URL must be a GitHub or GitLab release and contain "mcp" (the
+  `.mcpb` extension does). The registry does not check the hash, but clients do before installing.
+
+The committed file holds version `0.1.0` and a placeholder SHA-256 of zeros. `mcp-registry.yml`
+rewrites the version, both identifiers, and `fileSha256` (from the downloaded release asset,
+cross-checked against `SHA256SUMS`) before it validates and publishes, so the file needs no edit
+per release.
+
+**Namespace.** `io.github.<owner>/<name>` requires GitHub authentication as that owner. From
+Actions, `mcp-publisher login github-oidc` with `id-token: write` proves the repository owner
+with no secret. `9mp96ygnbk-alt` is a user account, so this is a personal namespace; publishing
+under an organization namespace would need an org Owner.
+
+**Follow-ups after first publish** (not in `server.json` today, because those packages do not
+exist yet):
+
+- npm: add
+  `{"registryType": "npm", "identifier": "@factlot/mcp", "version": "X.Y.Z", "transport": {"type": "stdio"}}`.
+  The registry checks that the published `package.json` has `"mcpName": "io.github.9mp96ygnbk-alt/factlot"`;
+  `packages/mcp/package.json` already has it. Have `mcp-registry.yml` set `version` with the
+  others.
+- PyPI: none. The Python package is an SDK, not an MCP server. If one is added, its README needs
+  a line `<!-- mcp-name: io.github.9mp96ygnbk-alt/factlot -->`.
+- A `remotes` entry (`{"type": "streamable-http", "url": "https://<host>/mcp"}`) once a hosted
+  endpoint exists (backlog A4).
+
+**Interaction with `release.yml`.** Once A5 is done, `release.yml`'s `github-release` job uploads
+its own `.mcpb` with `--clobber`. That rebuild has a different SHA-256 from the one
+`release-assets.yml` attached and recorded in `SHA256SUMS`, so for a release that has already been
+published to the MCP Registry, either skip that upload or re-run `release-assets.yml` (which
+rewrites the `.mcpb` and `SHA256SUMS` together) **before** running `mcp-registry.yml`. The
+workflow refuses to publish when the asset and `SHA256SUMS` disagree.
+
+Published registry versions are immutable; to withdraw one, use
+`mcp-publisher status --status deprecated --message "…" io.github.9mp96ygnbk-alt/factlot X.Y.Z`
+after `mcp-publisher login github`.
+
+**Sources** (read 2026-11-03, registry repository at commit `a75c727`):
+
+- Publishing with GitHub Actions and OIDC, pinned and Sigstore-verified `mcp-publisher`:
+  <https://github.com/modelcontextprotocol/registry/blob/main/docs/modelcontextprotocol-io/github-actions.mdx>
+- Package types and ownership verification (npm `mcpName`, PyPI `mcp-name:`, OCI label, MCPB URL
+  and `fileSha256`):
+  <https://github.com/modelcontextprotocol/registry/blob/main/docs/modelcontextprotocol-io/package-types.mdx>
+- Namespaces and GitHub authentication:
+  <https://github.com/modelcontextprotocol/registry/blob/main/docs/modelcontextprotocol-io/authentication.mdx>
+- Official registry requirements (allowed registries, `_meta` rules):
+  <https://github.com/modelcontextprotocol/registry/blob/main/docs/reference/server-json/official-registry-requirements.md>
+- `server.json` schema 2025-12-11:
+  <https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json>
+- `mcp-publisher` commands (`validate`, `publish`, `status`):
+  <https://github.com/modelcontextprotocol/registry/blob/main/docs/reference/cli/commands.md>
+- OCI validation source (labels read from the image config, anonymous pull):
+  <https://github.com/modelcontextprotocol/registry/blob/main/internal/validators/registries/oci.go>
+- `mcp-publisher` release `v1.8.7` (latest on 2026-10-30):
+  <https://github.com/modelcontextprotocol/registry/releases/tag/v1.8.7>
 
 ## Rollback
 

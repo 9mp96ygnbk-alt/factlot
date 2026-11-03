@@ -5,9 +5,13 @@ from one catalog: nine calculators, a Texas protest-deadline rule, FactLot IDs, 
 and `search`/`fetch`/`schema_get` (plus six `registry_*` tools when a registry database is
 configured). For which tool to call when, see [agents.md](agents.md).
 
-> **Not published yet.** The npm packages and the Python package are not on npm or PyPI until
-> backlog item A5 (accounts) and the first release are done. Each path below gives the
-> from-source command to use in the meantime.
+> **What works today.** FactLot is not on npm or PyPI yet (backlog item A5). Each section
+> below lists the commands that work now first: from a clone, from git, or from the files
+> attached to each [GitHub release](https://github.com/9mp96ygnbk-alt/factlot/releases). The
+> `npx -y @factlot/mcp` and `pip install factlot` forms are marked **after first publish**.
+> Release files and `git+https` installs need the repository to be public and, for release
+> files, a release such as `v0.1.0` to exist. Every path here was run end to end; see
+> [install-verification.md](install-verification.md).
 
 ## 1. Hosted connector in Docker (remote MCP, REST, OpenAPI)
 
@@ -17,6 +21,16 @@ Build and run the remote connector from the repository root:
 git clone https://github.com/9mp96ygnbk-alt/factlot.git && cd factlot
 docker build -t factlot . && docker run --rm -p 8787:8787 factlot
 ```
+
+Or pull the prebuilt image (linux/amd64 and linux/arm64), published to the GitHub Container
+Registry for each release:
+
+```bash
+docker run --rm -p 8787:8787 ghcr.io/9mp96ygnbk-alt/factlot:0.1.0
+```
+
+The same image also runs the stdio MCP server, for MCP clients that start servers with Docker:
+`docker run --rm -i ghcr.io/9mp96ygnbk-alt/factlot:0.1.0 node packages/mcp/dist/bin.js`.
 
 It listens on port **8787** and serves:
 
@@ -55,23 +69,32 @@ The full configuration reference, including the keys-file format, is in
 Point a public HTTPS URL at it (backlog A4) and follow [connectors/](../connectors/README.md)
 for each platform's setup. Without Docker: `npm install && npm run build && node packages/server/dist/bin.js`.
 
-## 2. Local MCP server for an MCP client (`npx -y @factlot/mcp`)
+## 2. Local MCP server for an MCP client (stdio)
 
-Once published, any MCP client can run the stdio server with no install step:
+The server runs locally, needs no API key, and makes no network calls. Node.js 22.6 or newer.
+
+**From a GitHub release, with `npx` (no clone, no npm account).** Each release attaches
+`factlot-mcp-standalone-X.Y.Z.tgz`, the stdio server in one file with its dependencies bundled:
 
 ```bash
-claude mcp add factlot -- npx -y @factlot/mcp        # Claude Code
+claude mcp add factlot -- npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.0/factlot-mcp-standalone-0.1.0.tgz
 ```
 
 ```json
 {
   "mcpServers": {
-    "factlot": { "command": "npx", "args": ["-y", "@factlot/mcp"] }
+    "factlot": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.0/factlot-mcp-standalone-0.1.0.tgz"
+      ]
+    }
   }
 }
 ```
 
-**Until it is published**, build from source and point the client at the built file:
+**From source:**
 
 ```bash
 git clone https://github.com/9mp96ygnbk-alt/factlot.git && cd factlot
@@ -90,15 +113,55 @@ claude mcp add factlot -- node "$PWD/packages/mcp/dist/bin.js"
 }
 ```
 
-Claude Desktop can also install the one-click extension: `npm run build:mcpb` writes
-`dist/factlot.mcpb`; open it with Claude Desktop (or Settings, Extensions, Install). The server
-runs locally, needs no API key, and makes no network calls.
+**Claude Desktop extension.** Download `factlot-0.1.0.mcpb` from the release (or build it with
+`npm run build:mcpb`, which writes `dist/factlot.mcpb`) and open it with Claude Desktop, or use
+Settings, Extensions, Install.
 
-## 3. Python (`pip install factlot`)
+**After first publish to npm:**
 
 ```bash
-pip install factlot            # once published
-pip install ./python           # from a clone, until then (or: pip install -e ./python)
+claude mcp add factlot -- npx -y @factlot/mcp        # Claude Code
+```
+
+```json
+{
+  "mcpServers": {
+    "factlot": { "command": "npx", "args": ["-y", "@factlot/mcp"] }
+  }
+}
+```
+
+### The TypeScript libraries before npm
+
+The six packages (`@factlot/schema`, `id`, `calc`, `tools`, `mcp`, `server`) are attached to each
+release as the tarballs `npm pack` produces. Install the ones you need **in one command**, because
+each depends on the others at the exact version:
+
+```bash
+base=https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.0
+npm install $base/factlot-schema-0.1.0.tgz $base/factlot-id-0.1.0.tgz \
+  $base/factlot-calc-0.1.0.tgz $base/factlot-tools-0.1.0.tgz
+# add $base/factlot-mcp-0.1.0.tgz and $base/factlot-server-0.1.0.tgz for the servers
+```
+
+`@factlot/schema`, `id`, and `calc` stand alone; `tools` needs those three, and `mcp` and
+`server` need `tools` and its dependencies (`server` also needs `mcp`). Check downloads against the release's
+`SHA256SUMS` (`sha256sum -c SHA256SUMS --ignore-missing`). After first publish:
+`npm install @factlot/calc @factlot/id`.
+
+## 3. Python
+
+```bash
+# From git (once the repository is public):
+pip install "git+https://github.com/9mp96ygnbk-alt/factlot.git#subdirectory=python"
+# Pin a release:
+pip install "factlot @ git+https://github.com/9mp96ygnbk-alt/factlot.git@v0.1.0#subdirectory=python"
+# Or the wheel attached to a release:
+pip install https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.0/factlot-0.1.0-py3-none-any.whl
+# From a clone:
+pip install ./python           # or: pip install -e ./python
+
+pip install factlot            # after first publish to PyPI
 ```
 
 The package has no dependencies. It gives you the calculators and IDs directly, and the tool

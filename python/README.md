@@ -4,6 +4,12 @@ The open fact layer for commercial real estate AI agents. This is a pure-Python,
 port of [`@factlot/calc`](../packages/calc) and [`@factlot/id`](../packages/id). It is held to the
 same [conformance vectors](../spec) as the TypeScript packages.
 
+```bash
+pip install "git+https://github.com/9mp96ygnbk-alt/factlot.git#subdirectory=python"
+# or a release wheel: pip install https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.0/factlot-0.1.0-py3-none-any.whl
+# after first publish to PyPI: pip install factlot
+```
+
 ```python
 import factlot
 
