@@ -56,7 +56,9 @@ Decisions (2026-11-02): $0 data budget, public sources only, obtained ethically 
 - [x] Registry core: cited facts, coverage-based currency, commercial-only scope, privacy rules, owner resolution, search (`factlot.registry`)
 - [x] Texas source review: live download links and terms recorded for Harris, Dallas, Travis, Tarrant, Collin, and the Comptroller entity file; the weekly collector archives them (see [texas-sources.md](registry/texas-sources.md)). Bexar publishes no bulk file; TxGIO parcels block automated downloads.
 - [x] Harris and Dallas adapters, each run on the real 2026 roll (87,717 and 59,645 commercial parcels); Comptroller entity adapter with owner linking
-- [ ] Travis, Tarrant, and Collin adapters; Bexar by records request; TxGIO parcel geometry once its download host admits automated clients
+- [x] Travis, Tarrant, and Collin adapters, run on the real files (30,551, 37,292, and 18,035 commercial parcels)
+- [x] Tier 1 source review: 47 sources across 15 states and DC, 18 verified, 33 adapters; Boston, San Francisco, and Philadelphia loaded in full ([catalog](registry/sources/README.md))
+- [ ] Clear the Tier 1 gates (backlog section E): terms decisions, forms, purchases, records requests; Bexar by records request; TxGIO parcel geometry once its download host admits automated clients
 
 - [ ] **Registry alpha.** Ingest assessor and recorder data for the top 25 US
       counties by commercial property value, and resolve parcel to owner of record
