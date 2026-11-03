@@ -21,6 +21,10 @@ Registered agents are natural persons in most rows and are not read.
 The principal address is the entity's address of record; the mailing address is used when the
 principal address is blank.
 
+``entityname`` carries a status history for entities that are not in good standing ("ACME INC,
+Delinquent January 1, 2025", "ACME INC Reinstated 2004, Dissolved June 29, 2011"); ``legal_name`` strips
+it, because the status column already says it and an owner of record never writes it.
+
 Usage: ``python -m factlot.registry.adapters.co_sos_entities export.csv registry.db --as-of 2026-11-02``
 """
 
@@ -103,6 +107,29 @@ def status(name: str | None) -> str | None:
     return STATUS.get(n) or re.sub(r"[^a-z0-9]+", "_", n.lower()).strip("_")
 
 
+# The Department appends a status history to the name of an entity that is no longer in good standing:
+# "KELLOGG SALES COMPANY, Colorado Authority Terminated December 9, 2002", "ACME INC Reinstated 2004,
+# Delinquent January 1, 2010", "DENVER GAS COMPANY, Dissolved November 30, 1874", sometimes after ">>".
+# It is not part of the legal name (the status column carries it), so an owner of record written as the
+# bare name ("ACME INC") never matched. Real run, 2026-11-02: 1,871,769 of 3,132,613 names carry one.
+_MONTHS = r"(?:January|February|March|April|May|June|July|August|September|October|November|December)"
+_ANNOTATION = re.compile(
+    r"(?:\s*>>|\s*,|\s)\s*(?:Colorado Authority\s+)?"
+    r"(?:Reinstated|Dissolved|Delinquent|Delinquency Cured|Terminated|Withdrawn|Relinquished|Noncompliant|Revoked|"
+    r"Merged|Expired|Converted|Consolidated|Forfeited|Suspended|Surrendered|Resigned)\s+(?:" + _MONTHS
+    + r"\s+\d{1,2},\s+\d{4}|\d{4})\b.*$", re.IGNORECASE)
+
+
+def legal_name(entityname: str | None) -> str:
+    """The entity's name without the Department's appended status history; unchanged when it has none."""
+    name = " ".join((entityname or "").split())
+    m = _ANNOTATION.search(name)
+    return name[: m.start()].rstrip(" ,") if m and name[: m.start()].strip(" ,") else name
+
+
+clean_legal_name = legal_name  # `python -m factlot.registry.maintain --clean-entity-names` re-applies it to a built file
+
+
 def _address(r: dict[str, str], prefix: str) -> str | None:
     lines = [r.get(f"{prefix}address1", "").strip(), r.get(f"{prefix}address2", "").strip()]
     city = r.get(f"{prefix}city", "").strip()
@@ -127,7 +154,7 @@ def read_entities(path: str | Path) -> Iterator[EntityRecord]:
             if entity_id.endswith(".0"):
                 entity_id = entity_id[:-2]
             yield EntityRecord(
-                legal_name=" ".join(r.get("entityname", "").split()),
+                legal_name=legal_name(r.get("entityname")),
                 registry_jurisdiction=JURISDICTION,
                 registry_number=entity_id or None,
                 taxpayer_number=None,

@@ -7,7 +7,7 @@
 #
 #   COLLECTED=/path/to/collected TEXAS_DB=texas.db TIER1_DB=tier1.db scripts/registry/tier1-quality.sh <step>...
 #
-# Steps: texas-ingest  texas-maintain  tier1-maintain  small-ingest  audit
+# Steps: texas-ingest  texas-maintain  tier1-ingest  tier1-maintain  small-ingest  audit
 set -eu
 : ${COLLECTED:?directory the collector writes (collected/<source>/<sha16>/<file>, manifest.jsonl)}
 export PYTHONPATH=${PYTHONPATH:-python/src}
@@ -49,6 +49,16 @@ for step in "$@"; do
     texas-maintain)
       : ${TEXAS_DB:?}
       python3 -m factlot.registry.maintain $TEXAS_DB --all --queue-fuzzy
+      ;;
+    tier1-ingest)  # re-ingest replaces what an earlier run wrote for the same snapshot (adapter fixes, owner rule)
+      : ${TIER1_DB:?}
+      ingest ny_nyc          ny-nyc-dof              c3d135953903eb22 2026-05-15 $TIER1_DB
+      ingest co_denver       co-denver-assessor      b26caab122d3410d 2026-10-29 $TIER1_DB
+      ingest co_denver       co-denver-assessor      1e10868d82885336 2026-10-29 $TIER1_DB --partial
+      cama=$(archived dc-otr-real-property 8f7bcf285e147592); cama=${cama%%$'\t'*}
+      ingest dc_otr          dc-otr-real-property    e2c6466c4fdcfb1f 2026-11-02 $TIER1_DB --cama $cama
+      ingest mn_hennepin     mn-hennepin-assessor    7877c3f7393f9c55 2026-10-22 $TIER1_DB
+      ingest nc_mecklenburg  nc-mecklenburg-assessor cc46ea8721837914 2026-11-02 $TIER1_DB
       ;;
     tier1-maintain)
       : ${TIER1_DB:?}

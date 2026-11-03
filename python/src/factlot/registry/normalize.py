@@ -65,12 +65,30 @@ def _canonical_tokens(s: str) -> str:
     return " ".join(NAME_TOKEN_CANON.get(t, t) for t in s.split())
 
 
+def _join_initials(s: str) -> str:
+    """Run together consecutive single letters: ``W G G PROPERTIES`` (from ``W.G.G.``) is ``WGG PROPERTIES``."""
+    out: list[str] = []
+    run = ""
+    for t in s.split():
+        if len(t) == 1 and "A" <= t <= "Z":
+            run += t
+            continue
+        if run:
+            out.append(run)
+            run = ""
+        out.append(t)
+    if run:
+        out.append(run)
+    return " ".join(out)
+
+
 def normalize_name(name: str) -> str:
     """Comparable key for an organisation name: 'Acme Properties, L.L.C.' -> 'ACME PROPERTIES LLC'.
 
     Besides case, punctuation and entity-type suffixes (LLC, LP, INC, ...), the key drops what a
     roll appends to an owner ("ET AL", a "DBA" trade name, a dangling "&" or "THE"), removes
-    apostrophes, reads "NO 1" as "1", and spells common abbreviations one way (``NAME_TOKEN_CANON``).
+    apostrophes, reads "NO 1" as "1", runs consecutive initials together ("W.G.G." and "WGG"), and
+    spells common abbreviations one way (``NAME_TOKEN_CANON``).
     The TypeScript mirror (``normalizeName`` in packages/tools) must agree; ``spec/registry/normalize.json``
     holds the shared vectors.
     """
@@ -85,7 +103,7 @@ def normalize_name(name: str) -> str:
     while (trimmed := _DANGLING.sub("", s)) != s and trimmed:
         s = trimmed
     s = _NUMBER_WORD.sub("", s)
-    return _canonical_tokens(re.sub(r"\s+", " ", s).strip())
+    return _canonical_tokens(_join_initials(re.sub(r"\s+", " ", s).strip()))
 
 
 # A "doing business as" marker (DBA, D/B/A, D.B.A.): what follows it is a trade name.

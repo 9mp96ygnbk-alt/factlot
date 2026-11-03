@@ -88,6 +88,8 @@ class Normalization(unittest.TestCase):
             ("A AND G DALWORTH PPTIES LP", "A & G Dalworth Properties, LP"),
             ("2606 S LANCASTER ROAD LLC", "2606 S Lancaster Rd LLC"),
             ("CLAY CMBS NO 1 LP", "Clay CMBS 1 LP"),
+            ("W.G.G. PROPERTIES LLC", "WGG Properties, LLC"),
+            ("A J S MANAGEMENT LLC", "AJS Management LLC"),
         ]
         for a, b in same:
             self.assertEqual(normalize_name(a), normalize_name(b), (a, b))
@@ -259,6 +261,9 @@ class RegistryCore(unittest.TestCase):
         done = self.reg.rebuild_name_index()
         self.assertEqual(done["rekeyed"], 2, "REILLY keeps its key; the other two change")
         self.assertEqual(self.reg.rebuild_name_index()["rekeyed"], 0, "idempotent")
+        token_keys = {r[0] for r in self.reg.db.execute("SELECT DISTINCT key FROM name_tokens")}
+        self.assertIn("DALWORTH CENTER HOLDINGS LP", token_keys)
+        self.assertNotIn("DALWORTH CTR HOLDINGS LP", token_keys)
         keys = {r[0] for r in self.reg.db.execute("SELECT key FROM name_index")}
         self.assertEqual(keys, {"REILLY AUTO PROPERTIES LLC", "DALWORTH CENTER HOLDINGS LP", "123 MAIN ST LLC", "EARLIER NAME LLC"})
         links = self.reg.link_owners()
@@ -266,6 +271,31 @@ class RegistryCore(unittest.TestCase):
         linked = {r["to_urn"] for r in self.reg.db.execute("SELECT to_urn FROM relationships WHERE type = 'owns'")}
         p = lambda n: factlot.parcel_id("48", "999", n).urn  # noqa: E731
         self.assertEqual(linked, {p("V1"), p("V2"), p("V3")})
+
+    def test_reingesting_a_snapshot_replaces_its_facts_instead_of_adding_to_them(self):
+        """After an adapter fix, running it again on the same file leaves one value per fact, not the old and the new."""
+        self.reg.ingest_entities([EntityRecord("GULF COAST LOGISTICS LLC", "us-tx", "0901", locator="row 1")], self.ent)
+        first = [ParcelRecord("999", "Q1", "F1", owner_name="Gulf Coast Logistics LLC", situs_address="1 Main St",
+                              market_value=100.0, account="Q1")]
+        self.reg.ingest_parcels(first, self.snap25, state_fips="48", account_system="test-account")
+        self.reg.link_owners()
+        urn = factlot.parcel_id("48", "999", "Q1").urn
+        self.assertEqual(len(self.reg.parcels_owned_by(factlot.entity_id("us-tx", "0901").urn)), 1)
+        # The same file read by a fixed adapter: another owner string and no market value.
+        fixed = [ParcelRecord("999", "Q1", "F1", owner_name="Gulf Coast Logistics LLC ET AL", situs_address="1 Main St",
+                              account="Q1")]
+        self.reg.ingest_parcels(fixed, self.snap25, state_fips="48", account_system="test-account")
+        facts = self.reg.db.execute("SELECT predicate, value_json FROM facts WHERE subject = ? ORDER BY predicate", (urn,)).fetchall()
+        self.assertEqual([tuple(f) for f in facts if f[0] in ("ownership.owner_of_record", "parcel.market_value")],
+                         [("ownership.owner_of_record", '"Gulf Coast Logistics LLC ET AL"')])
+        self.assertEqual(self.reg.db.execute("SELECT COUNT(*) FROM relationships WHERE type = 'owns'").fetchone()[0], 0,
+                         "a link derived from a replaced fact is dropped; link_owners derives it again")
+        self.assertEqual(self.reg.link_owners()["linked"], 1)
+        # A parcel the file lists twice keeps both rows' facts (the audit reports the conflict).
+        twice = [ParcelRecord("999", "Q2", "F1", owner_name="First Owner LLC"), ParcelRecord("999", "Q2", "F1", owner_name="Second Owner LLC")]
+        self.reg.ingest_parcels(twice, self.snap25, state_fips="48")
+        q2 = factlot.parcel_id("48", "999", "Q2").urn
+        self.assertEqual(self.reg.db.execute("SELECT COUNT(*) FROM facts WHERE subject = ? AND predicate = 'ownership.owner_of_record'", (q2,)).fetchone()[0], 2)
 
     def test_a_pending_candidate_is_dropped_once_its_owner_links_exactly(self):
         self.reg.ingest_parcels([ParcelRecord("999", "S1", "F1", owner_name="Gulf Coast Logistics LLC"),

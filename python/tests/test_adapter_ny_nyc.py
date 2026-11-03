@@ -72,6 +72,40 @@ ROWS = [
 ]
 
 
+def wrapped(first: str, rest: str) -> str:
+    """An owner as the publisher writes a long name: a 40-character first half, one space, the rest."""
+    return first.ljust(40)[:40] + " " + rest
+
+
+# Names longer than 40 characters are wrapped, and the break can fall inside a word. The unwrapped
+# rows below are what tells "TRU ST" (a broken word) from "THE CITY" (two words).
+WRAPPED_ROWS = [
+    lot("1000100001", "1", "00010", "0001", "O4", "EXAMPLE TRUST OWNER LLC"),
+    lot("1000100002", "1", "00010", "0002", "O4", "SECOND EXAMPLE TRUST OWNER LLC"),
+    lot("1000100003", "1", "00010", "0003", "O4", "EXAMPLE LIABILITY COMPANY OWNER LLC"),
+    lot("1000100004", "1", "00010", "0004", "O4", "THIRD EXAMPLE LIABILITY COMPANY LLC"),
+    lot("1000100005", "1", "00010", "0005", "O4", "EXAMPLE CITY OF BIGTOWN"),
+    lot("1000100006", "1", "00010", "0006", "O4", "EXAMPLE THE CITY HOLDINGS"),
+    lot("1000100007", "1", "00010", "0007", "O4", wrapped("EXAMPLE REVOCABLE LIVING NYC REALTY TRUS", "T")),
+    lot("1000100008", "1", "00010", "0008", "O4", wrapped("EXAMPLES LEASING LIMITED LIABILITY COMPA", "NY")),
+    lot("1000100009", "1", "00010", "0009", "O4", wrapped("THE EXAMPLE SOCIETY OF GOOD WORKS OF THE", " CITY OF")),
+    lot("1000100010", "1", "00010", "0010", "O4", wrapped("ZEDD EXAMPLE CHARITABLE LEAD TRUST U/A/D", "5/28/08")),
+]
+
+
+class WrappedOwners(unittest.TestCase):
+    def test_a_word_broken_by_the_wrap_is_closed_and_two_words_are_kept_apart(self):
+        tmp = Path(tempfile.mkdtemp())
+        p = tmp / "fy27_tc234.zip"
+        with zipfile.ZipFile(p, "w") as zf:
+            zf.writestr("PROPMAST_TC234_T2027_FIN.TXT", "\r\n".join(["\t".join(ny_nyc.LAYOUT) + "\t", *(r + "\t" for r in WRAPPED_ROWS), ""]))
+        owners = {r.apn: r.owner_name for r in ny_nyc.read_roll(p)}
+        self.assertEqual(owners["1000100007"], "EXAMPLE REVOCABLE LIVING NYC REALTY TRUST")
+        self.assertEqual(owners["1000100008"], "EXAMPLES LEASING LIMITED LIABILITY COMPANY")
+        self.assertEqual(owners["1000100009"], "THE EXAMPLE SOCIETY OF GOOD WORKS OF THE CITY OF")
+        self.assertEqual(owners["1000100010"], "ZEDD EXAMPLE CHARITABLE LEAD TRUST U/A/D 5/28/08", "no word is formed: the space stays")
+
+
 def nyc_zip(tmp: Path) -> Path:
     p = tmp / "fy27_tc234.zip"
     with zipfile.ZipFile(p, "w") as zf:

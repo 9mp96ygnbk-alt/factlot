@@ -133,10 +133,29 @@ export function normalizeName(name: string): string {
     s = trimmed;
   }
   s = s.replace(NUMBER_WORD, "").replace(/\s+/g, " ").trim();
-  return s
+  return joinInitials(s)
     .split(" ")
     .map((t) => NAME_TOKEN_CANON[t] ?? t)
     .join(" ");
+}
+
+// Consecutive single letters run together: "W G G PROPERTIES" (from "W.G.G.") is "WGG PROPERTIES".
+function joinInitials(s: string): string {
+  const out: string[] = [];
+  let run = "";
+  for (const t of s.split(" ")) {
+    if (/^[A-Z]$/.test(t)) {
+      run += t;
+      continue;
+    }
+    if (run) {
+      out.push(run);
+      run = "";
+    }
+    out.push(t);
+  }
+  if (run) out.push(run);
+  return out.join(" ");
 }
 
 const STREET: Record<string, string> = {
