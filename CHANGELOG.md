@@ -13,6 +13,10 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 
 ## [Unreleased]
 
+### Added
+
+- Registry Tier 2 review: 61 more counties (the rest of the US top 100 by population), 28 verified with adapters and tests across 15 states, statewide parcel sources for Wisconsin, Utah, North Carolina, New York, Maryland and Massachusetts, the Connecticut entity registry, and a review record and collector config for every source ([index](docs/registry/tier2/README.md)).
+
 ## [0.1.0] - 2026-11-03
 
 The first release. Everything below is the work since the repository was created, summarised
