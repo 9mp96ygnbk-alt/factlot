@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "factlot": {
+      "type": "http",
+      "url": "https://api.factlot.com/mcp"
+    }
+  }
+}

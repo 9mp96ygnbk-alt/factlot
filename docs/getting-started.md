@@ -196,6 +196,11 @@ model can correct its arguments. A complete Messages API loop is in
 [agents.md](agents.md#example-claude-messages-api-with-the-python-sdk); the package README is at
 [python/README.md](../python/README.md).
 
+## Claude Code plugin
+
+In Claude Code, `/plugin marketplace add 9mp96ygnbk-alt/factlot` then `/plugin install factlot@factlot` adds the hosted
+MCP server plus eight CRE skills that call the calculators. See [plugins/factlot/README.md](../plugins/factlot/README.md).
+
 ## Next
 
 - [connectors/](../connectors/README.md): per-platform setup (Claude, ChatGPT, Gemini, Copilot, Bedrock).
