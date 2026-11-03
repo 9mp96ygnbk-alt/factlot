@@ -66,6 +66,18 @@ class Normalization(unittest.TestCase):
         self.assertEqual(normalize_name("Smith & Sons Incorporated"), "SMITH AND SONS INC")
         self.assertEqual(normalize_address("100 Main Street, Suite 400"), "100 MAIN ST STE 400")
 
+    def test_entity_standing(self):
+        from factlot.registry.normalize import entity_standing
+
+        self.assertEqual([entity_standing(s) for s in ("ACTIVE", "good_standing", "active_in_good_standing", "listed",
+                                                       "exists", "delinquent", "Current-Active")], ["live"] * 7)
+        self.assertEqual([entity_standing(s) for s in ("voluntarily_dissolved", "revoked", "withdrawn", "merged",
+                                                       "FORFEITED", "inactive_cancelled", "Admin. Dissolved",
+                                                       "active_pending_dissolution")], ["ended"] * 8)
+        self.assertEqual([entity_standing(s) for s in ("dead_at_conversion_69", "merger")], ["ended"] * 2)
+        self.assertEqual([entity_standing(s) for s in (None, "", "reserved_name", "unknown", "forfeited_franchise_tax")],
+                         [None] * 5)
+
     def test_person_detection_is_conservative(self):
         self.assertTrue(is_organization("Gulf Logistics LP"))
         self.assertTrue(is_organization("Example Real Estate Investment Trust"))
@@ -119,7 +131,7 @@ class RegistryCore(unittest.TestCase):
         es = self.reg.ingest_entities(ENTITIES, self.ent)
         self.assertEqual((es.kept, es.skipped_invalid), (3, 1))
         links = self.reg.link_owners()
-        self.assertEqual(links, {"linked": 1, "linked_by_review": 0, "ambiguous": 1, "cross_state": 0,
+        self.assertEqual(links, {"linked": 1, "linked_by_standing": 0, "linked_by_review": 0, "ambiguous": 1, "cross_state": 0,
                                  "queued_for_review": 0, "unmatched": 1})
         self.assertEqual(self.reg.link_owners(), links, "linking is idempotent")
         lonestar = factlot.entity_id("us-tx", "0801111111").urn
@@ -155,7 +167,7 @@ class RegistryCore(unittest.TestCase):
         ], ents)
         self.reg.ingest_entities(ENTITIES[:1], self.ent)  # Lonestar, us-tx
         links = self.reg.link_owners()
-        self.assertEqual(links, {"linked": 2, "linked_by_review": 0, "ambiguous": 0, "cross_state": 2,
+        self.assertEqual(links, {"linked": 2, "linked_by_standing": 0, "linked_by_review": 0, "ambiguous": 0, "cross_state": 2,
                                  "queued_for_review": 2, "unmatched": 0})
         p = lambda n: factlot.parcel_id("27", "053", n).urn  # noqa: E731
         owned = lambda j, n: [o["urn"] for o in self.reg.parcels_owned_by(factlot.entity_id(j, n).urn)]  # noqa: E731
@@ -175,6 +187,34 @@ class RegistryCore(unittest.TestCase):
         decided = self.reg.decide_owner_match(queue[1]["review_id"], True, "reviewer@example.invalid")
         self.assertEqual(owned("us-ny", "1"), [p("P1")])
         self.assertEqual(self.reg.parcels_owned_by(factlot.entity_id("us-ny", "1").urn)[0]["confidence"], 0.8)
+
+    def test_same_name_entities_resolve_to_the_one_still_in_existence(self):
+        self.reg.ingest_parcels(ROLL_2025, self.snap25, state_fips="48")
+        # Twin Name Properties: two Texas registrations of the same normalized name (ambiguous above).
+        twins = [EntityRecord("Twin Name Properties, LLC", "us-tx", "0802222222", status="FORFEITED"),
+                 EntityRecord("Twin Name Properties LLC", "us-tx", "0803333333", status="ACTIVE")]
+        self.reg.ingest_entities(twins, self.ent)
+        links = self.reg.link_owners()
+        self.assertEqual((links["linked_by_standing"], links["ambiguous"]), (1, 0))
+        parcel = factlot.parcel_id("48", "999", "0001-000-0006").urn
+        [owned] = self.reg.parcels_owned_by(factlot.entity_id("us-tx", "0803333333").urn)
+        self.assertEqual((owned["urn"], owned["confidence"]), (parcel, 0.85))
+        basis = self.reg.db.execute("SELECT basis FROM relationships WHERE to_urn = ?", (parcel,)).fetchone()[0]
+        self.assertIn("the only one of 2 same-name entities still in existence", basis)
+        self.assertEqual(self.reg.parcels_owned_by(factlot.entity_id("us-tx", "0802222222").urn), [])
+
+        # Both live, or one with an unknown status: no decision.
+        snap = self.reg.add_snapshot("test-entities", write(self.tmp, "entities2.csv", "synthetic entities 2"), as_of="2026-11-01")
+        self.reg.ingest_entities([EntityRecord("Twin Name Properties, LLC", "us-tx", "0802222222", status="ACTIVE"),
+                                  EntityRecord("Twin Name Properties LLC", "us-tx", "0803333333", status="ACTIVE")], snap)
+        links = self.reg.link_owners()
+        self.assertEqual((links["linked_by_standing"], links["ambiguous"]), (0, 1))
+        self.assertEqual(self.reg.parcels_owned_by(factlot.entity_id("us-tx", "0803333333").urn), [],
+                         "re-derived: the earlier standing link is gone once both exist")
+        snap3 = self.reg.add_snapshot("test-entities", write(self.tmp, "entities3.csv", "synthetic entities 3"), as_of="2026-11-02")
+        self.reg.ingest_entities([EntityRecord("Twin Name Properties, LLC", "us-tx", "0802222222", status="FORFEITED"),
+                                  EntityRecord("Twin Name Properties LLC", "us-tx", "0803333333", status=None)], snap3)
+        self.assertEqual(self.reg.link_owners()["ambiguous"], 1, "an unknown status is never a tie-breaker")
 
     def test_reingest_is_idempotent_and_newer_snapshot_wins(self):
         self.reg.ingest_parcels(ROLL_2025, self.snap25, state_fips="48")
@@ -439,7 +479,7 @@ class FuzzyOwnerMatching(unittest.TestCase):
 
         # link_owners() re-applies accepted decisions (e.g. after a newer roll) and stays idempotent.
         links = self.reg.link_owners()
-        self.assertEqual(links, {"linked": 0, "linked_by_review": 3, "ambiguous": 0, "cross_state": 0,
+        self.assertEqual(links, {"linked": 0, "linked_by_standing": 0, "linked_by_review": 3, "ambiguous": 0, "cross_state": 0,
                                  "queued_for_review": 0, "unmatched": 3})
         self.assertEqual(self.reg.stats()["ownership_links"], 3)
         self.assertEqual(self.reg.link_owners(), links)

@@ -193,3 +193,32 @@ def address_state(address: str | None) -> str | None:
     m = _STATE_ZIP.search(s)
     st = m.group(1).lower() if m else None
     return st if st in STATES else None
+
+
+# --- entity standing, for disambiguating same-name entities ------------------------------------
+
+# Status words the adapters write (lower case, underscores), grouped by whether the entity still
+# exists as a legal person. A status that fits neither group is unknown and never used to decide.
+_ENDED = re.compile(r"dissol|revoked|withdrawn|merge|converted|consolidated|terminated|cancel|expired|"
+                    r"forfeit|inactive|surrender|closed|struck|liquidat|effectiveness_prevented|domesticated|dead")
+_LIVE = re.compile(r"active|good_standing|exists|listed|delinquent|noncompliant|current|registered|"
+                   r"in_existence|pending|resigned|reinstated|suspended")
+# Texas "forfeited franchise tax": the right to transact business is forfeited, the entity is not.
+_UNDECIDED = re.compile(r"franchise")
+
+
+def entity_standing(status: str | None) -> str | None:
+    """``"live"`` or ``"ended"`` from an adapter's status word, or None when it says neither.
+
+    Ended wins when both match ("active_pending_dissolution" is ended); "domesticated" counts as
+    ended in the registry that used it (the entity continues under another registration); a
+    Texas franchise-tax forfeiture is neither, since the entity still exists.
+    """
+    if not status:
+        return None
+    s = status.strip().lower().replace(" ", "_").replace("-", "_")
+    if _UNDECIDED.search(s):
+        return None
+    if _ENDED.search(s):
+        return "ended"
+    return "live" if _LIVE.search(s) else None

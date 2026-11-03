@@ -62,7 +62,7 @@ Command: `python -m factlot.registry.adapters.dc_dlcp_entities collected/dc-dlcp
 - Archived by the weekly workflow dispatched for this source (run 41576886878, release
   `data-2026-11-03-41576886878`) because this connection dropped the Hub's transfer on every
   attempt; pulled into `collected/` with its manifest record.
-- After the final linking pass over every loaded source, **7,723 of DC's 11,607 organisation owners of record resolve to a DLCP entity** by exact normalized name in a plausible jurisdiction (C23).
+- After the final linking pass over every loaded source, **7,919 of DC's 11,607 organisation owners of record resolve to a DLCP entity** by exact normalized name in a plausible jurisdiction (C23).
 
 ## Known gaps
 

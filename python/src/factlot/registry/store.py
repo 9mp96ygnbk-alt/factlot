@@ -22,6 +22,7 @@ from .normalize import (
     NAME_RATIO_WEIGHT,
     address_state,
     distinctive_tokens,
+    entity_standing,
     entity_state,
     is_commercial,
     is_organization,
@@ -41,6 +42,9 @@ REVIEWED_MATCH_MAX_CONFIDENCE = 0.8
 # Score given to an exact name match registered only in another state, so it ranks first in the
 # review queue but below the cap for reviewed links.
 CROSS_STATE_EXACT_SCORE = 0.8
+# Confidence of an exact link chosen among same-name entities because the others have ended
+# (dissolved, revoked, merged, ...): one more inference than a plain exact match.
+STANDING_MATCH_CONFIDENCE = 0.85
 EXACT_MATCH_BASIS = "owner of record exactly matches one registered entity's normalized legal name"
 # Defaults for the candidate generator: see Registry.queue_fuzzy_owner_matches.
 FUZZY_THRESHOLD = 0.85
@@ -354,13 +358,15 @@ class Registry:
         parcel's state, or registered in the state of the owner's mailing address (``inferred``,
         confidence 0.9, the basis naming the rule); or when a reviewer has accepted a candidate
         for that name (``inferred``, confidence at most 0.8; see ``decide_owner_match``).
-        Several such entities are ambiguous and stay unlinked. An exact match that exists only
+        Several such entities are ambiguous and stay unlinked, unless exactly one of them still
+        exists and every other has ended (dissolved, revoked, merged, withdrawn): then that one is
+        linked at confidence 0.85. An exact match that exists only
         in some other state is not linked but queued for review (rule ``exact_name_other_state``),
         since a common name is registered in most states; ``queue_fuzzy_owner_matches`` finds
         near-matches for the rest.
         """
-        result = {"linked": 0, "linked_by_review": 0, "ambiguous": 0, "cross_state": 0,
-                  "queued_for_review": 0, "unmatched": 0}
+        result = {"linked": 0, "linked_by_standing": 0, "linked_by_review": 0, "ambiguous": 0,
+                  "cross_state": 0, "queued_for_review": 0, "unmatched": 0}
         # Exact-match links are re-derived on every run, so a registry linked under an earlier
         # rule (or before more entity registries were loaded) ends up with the links the current
         # rule makes. Reviewed links are a person's decision and are left alone.
@@ -383,6 +389,14 @@ class Registry:
                 (urn, rule), = plausible.items()
                 self._link(urn, o, EXACT_MATCH_CONFIDENCE, f"{EXACT_MATCH_BASIS} ({rule})")
                 result["linked"] += 1
+            elif plausible and len(live := self._still_in_existence(plausible)) == 1:
+                # Several same-name entities in the right place, all but one dissolved, revoked,
+                # merged or withdrawn: the one that still exists is the owner, at lower confidence.
+                [urn] = live
+                self._link(urn, o, STANDING_MATCH_CONFIDENCE,
+                           f"{EXACT_MATCH_BASIS} ({plausible[urn]}; the only one of {len(plausible)} "
+                           f"same-name entities still in existence, the others having ended)")
+                result["linked_by_standing"] += 1
             elif key in accepted:
                 self._link_reviewed(accepted[key], o)
                 result["linked_by_review"] += 1
@@ -426,6 +440,24 @@ class Registry:
             elif mail_state and registry == mail_state:
                 out[urn] = "registered in the state of the owner's mailing address"
         return out
+
+    def _still_in_existence(self, candidates: dict[str, str]) -> list[str]:
+        """Candidates whose status says they still exist, when every other candidate's says it ended.
+
+        Returns ``[]`` unless the standings are decisive: an unknown status anywhere means no decision.
+        """
+        standings = {urn: entity_standing(self._status(urn)) for urn in candidates}
+        if None in standings.values():
+            return []
+        live = [urn for urn, st in standings.items() if st == "live"]
+        return live if len(live) == 1 else []
+
+    def _status(self, entity_urn: str) -> str | None:
+        row = self.db.execute(
+            "SELECT value_json FROM current_facts WHERE subject = ? AND predicate = 'entity.status' LIMIT 1",
+            (entity_urn,)).fetchone()
+        v = json.loads(row["value_json"]) if row else None
+        return v if isinstance(v, str) else None
 
     def _state_of_formation(self, entity_urn: str) -> str | None:
         row = self.db.execute(

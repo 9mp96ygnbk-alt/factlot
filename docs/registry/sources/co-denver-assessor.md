@@ -172,7 +172,7 @@ python -m factlot.registry.adapters.co_denver collected/co-denver-assessor/1e108
   natural persons or placeholders 2,421; 3 s.
 - Residential export: rows read 212,870; kept 11 (apartment classes in the residential file);
   facts written 90; 3 s.
-- Registry total: **13,539 Denver parcels; 11,115 organisation owners; 9,318 (83%) linked to Colorado SOS entities** (full file) by exact normalized name in a plausible jurisdiction (9,449 before C23: 131 names that exist only in another state's registry now wait in the review queue).
+- Registry total: **13,539 Denver parcels; 11,115 organisation owners; 9,332 (83%) linked to Colorado SOS entities** (full file) by exact normalized name in a plausible jurisdiction (9,449 before C23: 131 names that exist only in another state's registry now wait in the review queue).
 
 ## Known gaps
 

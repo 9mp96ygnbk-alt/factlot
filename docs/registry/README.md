@@ -79,7 +79,10 @@ legal name _among the entities that could plausibly be that owner_: those regist
 parcel's state, formed in the parcel's state, or registered in the state of the owner's mailing
 address. The link is an `owns` relationship labelled `inferred` with confidence 0.9, and its
 `basis` says which of the three rules applied. Ambiguous names (several such entities) and
-unmatched names stay unlinked. An exact name match that exists only in some other state is not a
+unmatched names stay unlinked, with one exception: when every same-name entity but one has
+ended (dissolved, revoked, merged, withdrawn, forfeited existence) and that one still exists,
+it is linked at confidence 0.85 with a `basis` saying so; an unknown status anywhere means no
+decision. An exact name match that exists only in some other state is not a
 link: it is queued for review (stage 2) with rule `exact_name_other_state`, because with several
 state registries loaded a common name ("MAIN STREET PROPERTIES LLC") exists in most of them.
 

@@ -79,14 +79,15 @@ Command: `python -m factlot.registry.adapters.co_sos_entities collected/co-sos-e
 
 - Rows read 3,132,613; kept 3,132,612; invalid 1; distinct entities in the
   registry 3,132,612; facts written 15,567,366; 1433 s.
-- After the final linking pass, **9,318 of Denver's 11,115 organisation owners of record resolve to a Colorado entity** (83%; C23's jurisdiction rule).
+- After the final linking pass, **9,332 of Denver's 11,115 organisation owners of record resolve to a Colorado entity** (83%; C23's jurisdiction rule).
 
 ## Known gaps
 
 - Every entity ever registered is in the file (1864 onward), most of them delinquent or dissolved.
   The registry's exact-name owner linking treats two entities with the same normalized name as
   ambiguous, so an owner name that matches a live entity and a dissolved one of the same name is
-  left unlinked. Preferring entities in good standing when disambiguating would raise the link rate.
+  left unlinked, unless every one but one has ended: then the surviving entity is linked at
+  confidence 0.85 (registry README, stage 1).
 - `entitytype` and `entityformdate` are not stored because `EntityRecord` has no field for them.
 - The e-learning course that documents the fields could not be read; the column descriptions on the
   portal were used instead.

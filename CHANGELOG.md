@@ -107,5 +107,8 @@ from its commit history; nothing was published to npm or PyPI before it.
   reports `cross_state` and `queued_for_review` counts. With four state registries loaded,
   Minneapolis and Charlotte owners had been "resolved" to New York, Colorado, Pennsylvania and
   DC entities of the same name.
+- Registry owner linking: when several same-name entities are plausible and all but one have
+  ended (dissolved, revoked, merged, withdrawn), the one still in existence is linked at
+  confidence 0.85 (`linked_by_standing`); an unknown status anywhere leaves the name ambiguous.
 
 [Unreleased]: https://github.com/9mp96ygnbk-alt/factlot/commits/main

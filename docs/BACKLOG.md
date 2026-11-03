@@ -84,7 +84,7 @@ cleared.
 - [x] C23 ~~Owner linking across states.~~ Done 2026-11-03: `link_owners()` only links an exact
       name match to an entity registered or formed in the parcel's state, or registered in the
       state of the owner's mailing address; an exact match that exists only elsewhere is queued
-      for review as `exact_name_other_state`. Found when Hennepin and Mecklenburg owners "resolved" to New York, Colorado, Pennsylvania and DC entities with no in-state registry loaded. Re-linking the Tier 1 registry: Hennepin 1,312 → 109, Mecklenburg 1,535 → 157, while New York City rose 82,694 → 84,607 and DC 6,922 → 7,723 because names ambiguous across states resolve within one; 5,112 cross-state candidates queued for review.
+      for review as `exact_name_other_state`. Found when Hennepin and Mecklenburg owners "resolved" to New York, Colorado, Pennsylvania and DC entities with no in-state registry loaded. Re-linking the Tier 1 registry: Hennepin 1,312 → 109, Mecklenburg 1,535 → 157, while New York City rose 82,694 → 84,607 and DC 6,922 → 7,723 because names ambiguous across states resolve within one; 5,112 cross-state candidates queued for review. Same-day follow-up: when every same-name entity but one has ended, the survivor is linked at 0.85 (211 links, ambiguous names 565 → 354; DC 7,723 → 7,919).
 - [x] C22 ~~After FactLot is pushed to its own repository, delete `backups/` from the factlease branch.~~ Done 2026-11-02 (factlease e45b6ad): the bundle is gone and `docs/factlot-backlog.md` there points here.
 
 ## D. Known limitations (by design for now; revisit)

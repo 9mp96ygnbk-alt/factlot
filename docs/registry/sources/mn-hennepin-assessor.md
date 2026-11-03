@@ -178,7 +178,7 @@ otherwise. The adapter maps by code, so an unlisted code yields no record.
   | invalid, errors, retired                                | 0, 0, 0 |
   | seconds                                                 | 49      |
 
-- Owner linking: there is no Minnesota entity source (purchase gate). 109 owners link to an entity registered in another state because the owner's mailing address is in that state or the entity was formed in Minnesota; 1,312 had linked by bare name before the jurisdiction rule (C23), and those exact matches in other states now wait in the review queue.
+- Owner linking: there is no Minnesota entity source (purchase gate). 110 owners link to an entity registered in another state because the owner's mailing address is in that state or the entity was formed in Minnesota; 1,312 had linked by bare name before the jurisdiction rule (C23), and those exact matches in other states now wait in the review queue.
 - Unit tests: `python/tests/test_adapter_mn_hennepin.py`, 4 tests, pass with the rest of the
   Python suite.
 
