@@ -1,0 +1,26 @@
+{
+  "description": "San Diego County Assessor/Recorder/County Clerk (ARCC): access review only. ARCC sells no bulk roll file and refers bulk data to ParcelQuest; SanGIS publishes a parcel layer with assessor attributes under an end-user agreement that a person must read and accept. See docs/registry/sources/ca-san-diego-assessor.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "ca-san-diego-assessor",
+      "publisher": "San Diego County Assessor/Recorder/County Clerk (parcel layer published by SanGIS)",
+      "landing_pages": [
+        "https://www.sangis.org/api/search/v1/collections/all/items?q=parcels&limit=30"
+      ],
+      "allowed_hosts": ["sangis.org"],
+      "files": [],
+      "verified": false,
+      "terms_url": "https://sangis.org/Legal_Notice.htm",
+      "license": "Not read: the SanGIS Legal Notice (GIS Data End User Use Agreement and Disclaimer) returned 404 to the collector and the sdarcc.gov / sandiegocounty.gov hosts drop the collector's connection. Gate: end-user agreement to be accepted by a person",
+      "ai_use": "Not read",
+      "redistribution": "Not read; the SanGIS parcel metadata limits use to regional projects and asks users to acknowledge SanGIS",
+      "reviewed": "2026-11-02",
+      "notes": "Gates: (1) ARCC has no bulk roll product; its fee schedule lists per-page copies and $1.00 per parcel for property characteristics, and it sends bulk users to ParcelQuest (vendor, paid). (2) The free SanGIS parcel layer (assessor attributes: APN, situs, land and improvement value, NUCLEUS_USE_CD use code, unit count, living area; no owner names) is served in public ArcGIS REST form at geo.sandag.org (Hosted/Parcels, 1,089,056 features) and, reportedly, as a Data Warehouse download behind a click-through disclaimer. Nothing was bulk-downloaded: the agreement is not ours to accept and the layer carries no license text. (3) www.sdarcc.gov and www.sandiegocounty.gov accept the browser pane but reset the connection from the collector's user agent; the data policy forbids working around that. Founder: read and accept the SanGIS Legal Notice, then this source can be verified and an adapter written."
+    }
+  ]
+}

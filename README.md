@@ -34,12 +34,16 @@ Be clear about scope before adopting it:
 
 - **Calculators, IDs, and the fact model work anywhere.** They need no data and no API key, and
   they run offline in both SDKs with identical results.
-- **The registry is Texas-first.** Real public-record data is loaded for Harris County (Houston),
-  Dallas County, and Tarrant County (Fort Worth), plus the Texas Comptroller's registered-entity
-  list for owner resolution; the weekly collector also archives Travis and Collin. Nothing outside
-  Texas yet. Commercial, industrial, and multifamily parcels only; no sales prices (Texas is
-  non-disclosure), no tenants, no debt, no zoning, no building specs beyond area and year built.
-  See [the registry](docs/registry/README.md) and the [source review](docs/registry/texas-sources.md).
+- **The registry covers Tier 1 metros, unevenly.** Real public-record rolls are loaded for the
+  five largest Texas counties (Harris, Dallas, Tarrant, Travis, Collin), Boston, San Francisco,
+  and Philadelphia, with the Texas Comptroller's entity list for owner resolution; New York City,
+  Los Angeles, Denver, Hennepin, Mecklenburg, and the District of Columbia are verified and
+  loading, with New York, Colorado, Pennsylvania, and DC entity registries. Cook County, Florida,
+  Fulton, Maricopa, Wayne, Fairfax, King, and most of California have adapters but wait on a
+  licence decision, a form, or a purchase. Commercial, industrial, and multifamily parcels only;
+  several public files omit owner names; no sales prices, tenants, debt, zoning, or building specs
+  beyond area and year built. See [the registry](docs/registry/README.md) and the
+  [source catalog](docs/registry/sources/README.md).
 - **One rules pack**, the Texas property-tax protest deadline, verified against the official
   statute text. Other jurisdictions follow only after a person verifies them.
 - **Lease ingestion is a prototype**: deterministic quote-on-page and value-in-quote checks, OCR

@@ -1,0 +1,24 @@
+{
+  "description": "Virginia State Corporation Commission business entity data (Clerk's Information System) for the FactLot Registry collector. Review record: docs/registry/sources/va-scc-entities.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "va-scc-entities",
+      "publisher": "Virginia State Corporation Commission, Office of the Clerk (Clerk's Information System)",
+      "landing_pages": ["https://cis.scc.virginia.gov/"],
+      "allowed_hosts": ["cis.scc.virginia.gov"],
+      "files": [],
+      "verified": false,
+      "terms_url": "https://www.scc.virginia.gov/businesses/about-the-clerks-office/",
+      "license": "Not established. The terms of the bulk 'Business Entity Data Sales' file could not be read: cis.scc.virginia.gov did not answer the collector (connection timeouts on robots.txt and the home page on 2026-11-02), and www.scc.virginia.gov's robots.txt disallows all paths for generic user agents, so the collector may not read the Clerk's Office pages. The SCC's older purchase page (appspre.scc.virginia.gov/clk/purch.aspx) describes weekly database extractions by FTP for a monthly fee of $1,000 with prepayment required",
+      "ai_use": "Not established",
+      "redistribution": "Not established",
+      "reviewed": "2026-11-02",
+      "notes": "Gate: the only known bulk route is https://cis.scc.virginia.gov/DataSales/DownloadBEDataSalesFile (a ~177 MB zip of eleven weekly CSVs: Corp, LLC, LP, GP, BT, PSA, Amendment, Merger, Officer, NameHistory, ReservedName), documented by the open-source openva/crump parser, which first accepts the site's cookie-consent banner (GET /Cookie/CookieConsent, POST /Cookie/StoreCookieConsent) before the download. Accepting that banner is a click-through the collector will not perform, the 'Data Sales' naming and the SCC purchase page suggest a fee or agreement may apply, and the host was unreachable from the collector's network. A person must confirm the terms, whether the file is free, and whether automated download is permitted before files are added here."
+    }
+  ]
+}

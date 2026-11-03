@@ -1,0 +1,31 @@
+{
+  "description": "Minnesota Secretary of State Business Bulk Data (access review; no-charge for non-commercial users, $710 commercial, both gated) for the FactLot Registry collector. See docs/registry/sources/mn-sos-entities.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "mn-sos-entities",
+      "publisher": "Minnesota Secretary of State, Business Services (MBLS)",
+      "landing_pages": [
+        "https://www.sos.mn.gov/business-liens/business-liens-data/business-data-available/"
+      ],
+      "allowed_hosts": [
+        "www.sos.mn.gov",
+        "sos.mn.gov",
+        "mblsportal.sos.mn.gov"
+      ],
+      "files": [],
+      "verified": false,
+      "gate": "Every route needs a person. (a) Bulk Business Data: a signed order form and a registered online account (mblsportal.sos.mn.gov) to receive the download; commercial users also sign the Electronic Media License Agreement and pay $710; non-commercial users (news media, journalists, researchers) get it free but must certify non-commercial use and 'not sell or publish the entirety of, or any substantial portion of, the database'. (b) Active Business Data (business name and primary address of every active business, CSV): $30 one-time or $30 weekly, needs a registered account. The site also showed the collector a Radware CAPTCHA ('you are a bot') after a few page fetches; the collector was stopped and not retried, and the snapshot and discover steps were not run against this host.",
+      "terms_url": "https://www.sos.mn.gov/media/5125/business-bulk-la.pdf",
+      "license": "Electronic Media License Agreement (commercial): non-exclusive, non-transferable licence to publish and make available 'in the normal course of its business'; the licensee 'may not resell in bulk or repackage in bulk any substantial part of the Records' and may not sub-license without written consent; records stay the OSS's property. Non-commercial users certify they will not sell or publish the whole or any substantial portion",
+      "ai_use": "Not addressed",
+      "redistribution": "Restricted: no bulk resale or repackaging of a substantial part (commercial licence); no publishing of the whole or a substantial portion (non-commercial certification). An open, republished registry would not comply",
+      "reviewed": "2026-11-02",
+      "notes": "Bulk file: monthly CSV in a zip, three main record types (master data, filing data, filing party and address data), layout in the Business Bulk Data Implementation Guide (sos.mn.gov/media/d3skshdo/...). Telephone numbers and type of business are not available. Filing party records include natural persons: an adapter would have to read the master data only. robots.txt on www.sos.mn.gov returns 404. Nothing was ordered, no account created, no form sent."
+    }
+  ]
+}

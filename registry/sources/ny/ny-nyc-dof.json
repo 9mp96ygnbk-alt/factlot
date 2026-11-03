@@ -1,0 +1,32 @@
+{
+  "description": "New York City sources for the FactLot Registry collector. See docs/registry/data-policy.md, docs/registry/collection.md, and the review record in docs/registry/sources/ny-nyc-dof.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "ny-nyc-dof",
+      "publisher": "New York City Department of Finance",
+      "landing_pages": [
+        "https://www.nyc.gov/site/finance/property/property-assessments.page",
+        "https://www.nyc.gov/site/finance/property/property-assessment-roll-archives.page"
+      ],
+      "allowed_hosts": ["www.nyc.gov"],
+      "link_patterns": ["/assets/finance/downloads/tar/.*\\.(zip|xlsx|pdf)$"],
+      "files": [
+        "https://www.nyc.gov/assets/finance/downloads/tar/fy27_tc234.zip",
+        "https://www.nyc.gov/assets/finance/downloads/tar/layout-pts-property-master.xlsx",
+        "https://www.nyc.gov/assets/finance/downloads/tar/tarfieldcodes.pdf"
+      ],
+      "verified": true,
+      "terms_url": "https://www.nyc.gov/opendata/get-started/FAQs",
+      "license": "Public record (N.Y. Real Property Tax Law §516, Public Officers Law art. 6) published under the NYC Open Data Law (Admin. Code §23-502). The NYC Open Data FAQ states: 'Open Data belongs to all New Yorkers. There are no restrictions on the use of Open Data.' The nyc.gov Terms of Use (www.nyc.gov/main/terms-of-use) govern website use and state no data license",
+      "ai_use": "Not addressed by the publisher; the FAQ states there are no restrictions on the use of Open Data",
+      "redistribution": "Permitted: 'no restrictions on the use of Open Data' (FAQ); the Open Data Law requires datasets to be published without license requirement or restrictions on use. Attribution: New York City Department of Finance",
+      "reviewed": "2026-11-02",
+      "notes": "The Final Assessment Roll is published on nyc.gov as tab-delimited text in zips (no header row; the column order is in layout-pts-property-master.xlsx, field codes in tarfieldcodes.pdf). fy<YY>_tc234.zip holds tax classes 2, 3 and 4 (all multifamily, commercial and industrial lots; 45 MB); fy<YY>_tc1.zip the 1-3 family class, fy<YY>_avroll1234.zip all classes (119 MB), fy<YY>_reuc.zip utility sub-idents. The current year is on property-assessments.page (FY27, final roll May 2026); prior years back to FY09 on the archives page. Update the fiscal year in files when the new roll appears (tentative in January, final in May). The same roll is on NYC Open Data as dataset 8y4t-faws (Socrata), but a filtered export of one year from its 11.7 million multi-year rows ran at about 80 rows per second on 2026-11-02, so the nyc.gov zip is the file used. robots.txt on www.nyc.gov disallows only /html/misc/."
+    }
+  ]
+}

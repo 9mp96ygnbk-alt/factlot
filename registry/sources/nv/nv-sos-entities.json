@@ -1,0 +1,25 @@
+{
+  "description": "Nevada Secretary of State Commercial Recordings (SilverFlume) business entity bulk data (access review; paid, nothing confirmed) for the FactLot Registry collector. See docs/registry/sources/nv-sos-entities.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "nv-sos-entities",
+      "publisher": "Nevada Secretary of State, Commercial Recordings Division",
+      "landing_pages": ["https://www.nvsos.gov/sos/commercial-recordings"],
+      "allowed_hosts": ["www.nvsos.gov", "nvsos.gov", "www.nvsilverflume.gov"],
+      "files": [],
+      "verified": false,
+      "gate": "Two gates. (1) The publisher's edge network (Imperva/Incapsula) blocks the collector's user agent: nvsos.gov/robots.txt returned a bot-challenge page, so robots.txt and the terms could not be read. (2) Bulk data is a service of the Secretary of State's online services account system ('Bulk Data Download', listed on the SOS account login page, nvsosuat.nv.gov) that needs a registered account; no price was found on any readable official page. A person must create the account, read the price and terms, and decide whether to pay.",
+      "terms_url": "https://www.nvsos.gov/sos/commercial-recordings",
+      "license": "Unknown; no license or terms read",
+      "ai_use": "Not confirmed",
+      "redistribution": "Not confirmed",
+      "reviewed": "2026-11-02",
+      "notes": "What was found: the SOS online-services login page lists 'Bulk Data Download' as a service for customized reports of raw data from the corporations, UCC, voter registration and notary databases (test-domain copy of a public-records page). Vendor claims, unconfirmed and not relied on: Topograph says Nevada sells bulk data only on a paid subscription; a Global Database blog says a full corporations dump is $125 and unlimited reports $500 a month, and that SilverFlume was switched off on 2026-09-14 and replaced by 'ORION'. Neither could be checked against an official page. The free route is the interactive entity search. Nothing was purchased and no account was created."
+    }
+  ]
+}

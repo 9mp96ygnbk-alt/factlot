@@ -1,0 +1,40 @@
+{
+  "description": "Fairfax County, Virginia (FIPS 51059) real estate assessment tables for the FactLot Registry collector. Review record: docs/registry/sources/va-fairfax-assessor.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "va-fairfax-assessor",
+      "publisher": "Fairfax County Department of Tax Administration (published by the Fairfax County GIS Division on its ArcGIS Hub)",
+      "landing_pages": [
+        "https://data-fairfaxcountygis.opendata.arcgis.com/api/search/v1/collections/dataset/items?q=Tax%20Administration%20Real%20Estate&limit=25",
+        "https://data-fairfaxcountygis.opendata.arcgis.com/datasets/Fairfaxcountygis::tax-administration-real-estate-parcels-data/about"
+      ],
+      "allowed_hosts": [
+        "data-fairfaxcountygis.opendata.arcgis.com",
+        "arcgis.com"
+      ],
+      "link_patterns": [
+        "/api/download/v1/items/[0-9a-f]{32}/csv",
+        "/FeatureServer"
+      ],
+      "files": [
+        "https://data-fairfaxcountygis.opendata.arcgis.com/api/download/v1/items/e336c76bcfef407cbbcf0b3fb053b43f/csv?layers=0",
+        "https://data-fairfaxcountygis.opendata.arcgis.com/api/download/v1/items/9072b5a0c8bb43f5a465d91b528ed255/csv?layers=0",
+        "https://data-fairfaxcountygis.opendata.arcgis.com/api/download/v1/items/3654d54d471e408cb7ac52799650d832/csv?layers=0",
+        "https://data-fairfaxcountygis.opendata.arcgis.com/api/download/v1/items/f706e51c2616437e8f83c2a5822296ab/csv?layers=0",
+        "https://data-fairfaxcountygis.opendata.arcgis.com/api/download/v1/items/b997cdc349e846338070726ef5ce89ec/csv?layers=0"
+      ],
+      "verified": false,
+      "terms_url": "https://www.fairfaxcounty.gov/maps/disclaimer",
+      "license": "Each dataset's license field says only 'Please review the Fairfax County GIS Division disclaimer'. The disclaimer states: 'Copyright by Fairfax County. Except as provided herein, all rights are reserved. Authorization to reproduce material for internal or personal use by any user of this information is granted by Fairfax County, the copyright owner.' The datasets are marked 'Data Accessibility: Publicly Available'. Real estate assessment records are public records in Virginia (Va. Code 58.1-3122.2), but the publisher's statement does not grant redistribution",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not granted by the publisher's statement (reproduction authorised for internal or personal use only); needs a decision by a person before publication",
+      "reviewed": "2026-11-02",
+      "notes": "Not verified because the GIS disclaimer authorises reproduction for 'internal or personal use' only, so redistribution is unclear; a person must decide (or ask the county) before the output is published. Five Hub tables keyed by PARID: Parcels Data (e336c76b: land use description LUC_DESC, livable units), Legal Data (9072b5a0: site address, deeded land area), Assessed Values (3654d54d: APRTOT current-year values, TAXYR), Land Data (f706e51c: land lines SF/ACRES), Commercial Data (b997cdc3: YRBLT, BUSLA per improvement). The download endpoint answers 302 to services1.arcgis.com and then to a time-limited Azure blob URL, so the file name on disk is 'csv' and the adapter identifies each table by its header. The tables carry no owner name at all; the Sales and Dwelling tables are not used. robots.txt on the Hub host sets Crawl-delay 60, which the collector honours (about one minute per request). Hub item ids and the item pages confirmed 2026-11-02; data is refreshed daily from the DTA system."
+    }
+  ]
+}

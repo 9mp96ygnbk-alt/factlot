@@ -1,0 +1,26 @@
+{
+  "description": "Washington sources for the FactLot Registry collector. See docs/registry/data-policy.md and the review record in docs/registry/sources/wa-king-assessor.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "wa-king-assessor",
+      "publisher": "King County Department of Assessments",
+      "landing_pages": [
+        "https://info.kingcounty.gov/assessor/DataDownload/default.aspx"
+      ],
+      "allowed_hosts": ["kingcounty.gov"],
+      "files": [],
+      "verified": false,
+      "terms_url": "https://info.kingcounty.gov/assessor/DataDownload/default.aspx",
+      "license": "Public record (RCW 42.56, Public Records Act). The download page gates the file links behind an acknowledgement of RCW 42.56.070's prohibition on using lists of individuals for commercial purposes; the King County website terms of use (kingcounty.gov/en/shared-topics/about-king-county/website/terms-of-use) state that site content may not be published, displayed, distributed or commercially exploited without King County's prior written permission",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Unclear: the website terms of use require written permission to publish or distribute content; the extracts are public records. Needs a person's decision",
+      "reviewed": "2026-11-02",
+      "notes": "GATED: the download page (an ASP.NET form) shows no file links until a person ticks the checkbox 'I acknowledge and agree to the prohibitions listed in RCW 42.56.070(9) against releasing and/or using lists of individuals for commercial purposes' and the page posts back. The collector found 0 links and nothing was downloaded. The page's hidden view state names the files it would show, all dated 10/30/2026 and served from aqua.kingcounty.gov/extranet/assessor/: 'Real Property Account.zip' (18,331 KB), 'Parcel.zip' (31,206 KB), 'Commercial Building.zip' (3,652 KB), 'Apartment Complex.zip' (324 KB), 'Lookup.zip' (16 KB), plus Residential Building, Condo Complex and Units, Real Property Sales, Value History, Tax Data, Legal, Permit, Notes and others, each with a layout document at info.kingcounty.gov/assessor/datadownload/desc/<name>.doc; a '_tab' (tab-delimited) variant of each exists. None was fetched: doing so would bypass the acknowledgement. Once the founder has accepted the acknowledgement on FactLot's behalf and settled the redistribution question, put those URLs in files and set verified true. robots.txt: info.kingcounty.gov disallows only /about/contact; aqua.kingcounty.gov has none (404); kingcounty.gov disallows unrelated paths. The Socrata portal data.kingcounty.gov does not carry these extracts (catalog searched 2026-11-02); the GIS Hub's 'parcel_address_area' layer joins some of the same fields but has no license, no owner, no building attributes, and its REST service answers HTML to the collector."
+    }
+  ]
+}

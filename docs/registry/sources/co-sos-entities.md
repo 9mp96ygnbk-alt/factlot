@@ -1,0 +1,103 @@
+# co-sos-entities: Colorado business entities (Colorado Department of State)
+
+Review record for the FactLot Registry (data policy §5). Reviewed 2026-11-02. Machine-readable copy:
+[`registry/sources/co/co-sos-entities.json`](../../../registry/sources/co/co-sos-entities.json).
+Adapter: `python/src/factlot/registry/adapters/co_sos_entities.py`; tests:
+`python/tests/test_adapter_co_sos_entities.py`.
+
+## Publisher and URLs
+
+- Publisher: Colorado Department of State (CDOS, the Secretary of State's office), published by the
+  Business Intelligence Center of Colorado on the Colorado Information Marketplace
+  (`data.colorado.gov`, a Socrata portal).
+- Dataset: "Business Entities in Colorado", id `4ykn-tg5h`,
+  <https://data.colorado.gov/Business/Business-Entities-in-Colorado/4ykn-tg5h>. Metadata:
+  <https://data.colorado.gov/api/views/4ykn-tg5h.json>. Dataset description: "Colorado Business
+  Entities (corporations, LLCs, etc.) registered with the Colorado Department of State (CDOS) since
+  1864."
+- Bulk file: <https://data.colorado.gov/api/v3/views/4ykn-tg5h/export.csv> (the classic
+  `rows.csv` export is marked deprecated by the platform). 3,132,613 rows at review (`$select=count(*)`
+  on the SODA endpoint); the portal's custom metadata says it is updated "Every day after midnight".
+- Publisher's documentation: the portal links to a CDOS e-learning course on business filing data
+  (<https://www.sos.state.co.us/pubs/info_center/eLearningCourses/BIC-BusinessFilingData/index.html>),
+  which is a JavaScript application and could not be read as text.
+
+## Terms, license, robots
+
+- License, as the portal records it: `licenseId: PUBLIC_DOMAIN`, license name "Public Domain";
+  attribution "CDOS", attribution link <https://www.sos.state.co.us/>.
+- Terms of Service of the portal, <https://data.colorado.gov/terms>: "By using data made available
+  through this site, the user agrees to all the conditions stated in the following paragraphs as
+  well as the terms and conditions described under the State of Colorado Privacy Policy." The
+  conditions are a warranty disclaimer, a notice that schemas may change, a required disclaimer
+  ("Applications using data supplied by this site must include the following disclaimers on their
+  sites: 'The data made available here has been modified for use from its original source, which is
+  the State of Colorado. THE STATE OF COLORADO MAKES NO REPRESENTATIONS OR WARRANTY AS TO THE
+  COMPLETENESS, ACCURACY, TIMELINESS, OR CONTENT OF ANY DATA MADE AVAILABLE THROUGH THIS SITE. …'"),
+  and a right to discontinue feeds and "to require the termination of any and all displaying,
+  distributing or otherwise using any or all of the data for any reason". Nothing restricts
+  copying, redistribution, commercial use or AI use. The registry must show the State's disclaimer
+  wherever these facts are displayed (the `attribution` field of the source records this).
+- robots.txt (<https://data.colorado.gov/robots.txt>): `User-agent: *`, `Crawl-delay: 1`;
+  disallows `/browse?…&q=` style search pages, `/OData.svc/`, `/api/odata/`, `/login`, `/tiles/`
+  and widget/edit paths. The dataset page, the metadata endpoint and the export are allowed. The
+  collector's 2 s interval exceeds the crawl delay.
+- Platform terms: the Socrata/Tyler platform's own terms (linked from the footer as
+  <https://www.tylertech.com/privacy>) were not read as text; same note as for
+  `tx-comptroller-franchise` (backlog A11).
+
+## What the file contains
+
+One CSV row per registered entity, UTF-8, header row, 35 columns (portal field names):
+
+| Column                                                                                           | Meaning (portal column description)                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `entityid`                                                                                       | "The state assigned identification number (unique) for the business entity." Used as `registry_number`; the entity URN is `fl:entity:us-co:<entityid>`.                                                                                                                                                                                                                                                                                                                                 |
+| `entityname`                                                                                     | "The name of the business entity as selected by the business owner." Dissolved entities often carry a suffix such as ", Dissolved November 30, 1874" in the name itself.                                                                                                                                                                                                                                                                                                                |
+| `principaladdress1/2`, `principalcity`, `principalstate`, `principalzipcode`, `principalcountry` | Principal address (the portal warns it "is not always guaranteed to be the physical location"). Stored as the entity's address; the mailing address is used when it is blank.                                                                                                                                                                                                                                                                                                           |
+| `mailingaddress1/2`, `mailingcity`, `mailingstate`, `mailingzipcode`, `mailingcountry`           | Mailing address.                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `entitystatus`                                                                                   | One of 15 status names (counts at review): Delinquent 1,164,345; Good Standing 1,024,737; Voluntarily Dissolved 603,550; Administratively Dissolved 157,830; Withdrawn 80,750; Noncompliant 33,037; Revoked 20,686; Judicially Dissolved 15,925; Exists 15,658; Merged 10,168; Converted 4,874; Registered Agent Resigned 663; Effectiveness Prevented 228; Dissolved (Term Expired) 144; Consolidated 18. Mapped to snake-case tokens (`good_standing`, …) by `STATUS` in the adapter. |
+| `jurisdictonofformation` (sic)                                                                   | State or country of formation, written inconsistently as a postal code or a name ("DE", "Delaware", "DELAWARE"; 2,856,739 rows are "CO"). Mapped to `state_of_formation` when it names a US state; countries, "United States" and "FC" give `None`.                                                                                                                                                                                                                                     |
+| `entitytype`                                                                                     | CDOS abbreviation: `DLLC` 2,116,937, `DPC` 552,185, `DNC` 129,372, `FLLC` 126,043, `FPC` 120,354, `DLP`, `DLLP`, `FNC`, `DLLLP`, `FLP`, `FO`, `GP`, `DPC-PBC`, … (D = domestic, F = foreign; LLC, PC profit corporation, NC nonprofit corporation, LP, LLP, LLLP, PBC public benefit corporation). Not stored (no field in `EntityRecord`).                                                                                                                                             |
+| `agentfirstname` … `agentmailingcountry`                                                         | Registered agent (mostly natural persons). Not read.                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `entityformdate`                                                                                 | Formation date. Not stored (no field in `EntityRecord`).                                                                                                                                                                                                                                                                                                                                                                                                                                |
+
+`EntityRecord` mapping: `legal_name` = `entityname`, `registry_jurisdiction` = `us-co`,
+`registry_number` = `entityid`, `taxpayer_number` = none (the file has none), `mailing_address` =
+principal address (else mailing address), `status` as above, `locator` = `export.csv entityid <id>`.
+
+## Gates
+
+None for the download: no account, login, click-through, fee or CAPTCHA. A person should still read
+the platform's own terms (as for every Socrata portal in the registry) and should decide where the
+State's required disclaimer is shown.
+
+## Real run
+
+Sample only (2026-11-02): the collector's download of the 3.1-million-row export stalled on a
+saturated shared connection (at 8 MiB for ten minutes, twice), so the first 9,437,018 bytes it had
+archived (`.download.part`, cut at the last complete line: 37,717 rows, the oldest entities in the
+file, 1864 onward) were loaded with
+`python -m factlot.registry.adapters.co_sos_entities entities-sample.csv co.db --as-of 2026-11-02`
+into the scratch registry that already held the Denver commercial sample:
+
+- rows read 37,717; kept 37,717; invalid 0; facts written 183,984; 6.7 s
+- statuses in the sample: good_standing 20,490; voluntarily_dissolved 5,365;
+  administratively_dissolved 4,909; delinquent 3,332; exists 1,135; merged 873; …
+- `link_owners()` over the 3,232 Denver owner-of-record facts: linked 83, ambiguous 0,
+  unmatched 3,149 (the sample holds about 1% of the entities, so most owners have no candidate yet)
+- snapshot document id `fl:document:sha256-77e894593f76a381c5d1aafb2c6f0dce2428d672e268f3294eab4a240ec66867`
+  (the sample file, not the full export)
+
+The collector's `discover` succeeded on both landing pages (`links: 0`: the portal's page links do
+not match the file pattern, which is fine because `files` is explicit).
+
+## Known gaps
+
+- Every entity ever registered is in the file (1864 onward), most of them delinquent or dissolved.
+  The registry's exact-name owner linking treats two entities with the same normalized name as
+  ambiguous, so an owner name that matches a live entity and a dissolved one of the same name is
+  left unlinked. Preferring entities in good standing when disambiguating would raise the link rate.
+- `entitytype` and `entityformdate` are not stored because `EntityRecord` has no field for them.
+- The e-learning course that documents the fields could not be read; the column descriptions on the
+  portal were used instead.

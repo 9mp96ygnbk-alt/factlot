@@ -1,0 +1,35 @@
+{
+  "description": "City and County of Denver, Colorado (FIPS 08031) real property assessment data for the FactLot Registry collector. See docs/registry/data-policy.md and the review record in docs/registry/sources/co-denver-assessor.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "co-denver-assessor",
+      "publisher": "City and County of Denver, Assessor's Office (Denver Open Data Catalog, geospatialDENVER)",
+      "landing_pages": [
+        "https://opendata-geospatialdenver.hub.arcgis.com/api/feed/dcat-us/1.1.json"
+      ],
+      "allowed_hosts": [
+        "opendata-geospatialdenver.hub.arcgis.com",
+        "services1.arcgis.com"
+      ],
+      "link_patterns": [
+        "/api/download/v1/items/(db01da756e144b7490139d553a747bc6|b41d9d86334b44538bb8c7d83c7c2728)/csv\\?layers=\\d+"
+      ],
+      "files": [
+        "https://opendata-geospatialdenver.hub.arcgis.com/api/download/v1/items/b41d9d86334b44538bb8c7d83c7c2728/csv?layers=49",
+        "https://opendata-geospatialdenver.hub.arcgis.com/api/download/v1/items/db01da756e144b7490139d553a747bc6/csv?layers=50"
+      ],
+      "verified": true,
+      "terms_url": "https://www.denvergov.org/Government/Agencies-Departments-Offices/Agencies-Departments-Offices-Directory/Technology-Services/Functions/GIS",
+      "license": "CC BY 3.0: the City's GIS page states that data in the Open Data Catalog may be copied, distributed, transmitted and adapted under the Creative Commons Attribution 3.0 license. Each dataset's own metadata carries only a liability disclaimer ('USE CONSTRAINTS ... provided as is ... NOT FOR ENGINEERING PURPOSES'). Assessor records are public under the Colorado Open Records Act (C.R.S. 24-72-201 et seq.)",
+      "ai_use": "Not addressed by the publisher (CC BY 3.0 does not restrict it)",
+      "redistribution": "Permitted (CC BY 3.0); attribution: City and County of Denver",
+      "reviewed": "2026-11-02",
+      "notes": "The old catalog (denvergov.org/opendata) now redirects to an ArcGIS Hub, opendata-geospatialdenver.hub.arcgis.com. Datasets 'Real Property Apartment and Commercial Characteristics' (item b41d9d86..., layer 49, 28,213 rows) and 'Real Property Residential Characteristics' (item db01da75..., layer 50, 212,870 rows) are feature services; the hub's download API answers with redirects (services1.arcgis.com replica cache, then an Azure blob) to a CSV export. The DCAT feed (landing page) lists every dataset's download URLs. robots.txt on the hub sets Crawl-delay: 60, which the collector honours, so each request to the hub waits a minute. The feature services carry no row-level 'as of' date; use the layer's dataLastEditDate (2026-10-29 for both at review)."
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "description": "Colorado business entities (Colorado Department of State, via the Colorado Information Marketplace) for the FactLot Registry collector. See docs/registry/data-policy.md and the review record in docs/registry/sources/co-sos-entities.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "co-sos-entities",
+      "publisher": "Colorado Department of State (via the Colorado Information Marketplace, data.colorado.gov)",
+      "landing_pages": [
+        "https://data.colorado.gov/Business/Business-Entities-in-Colorado/4ykn-tg5h",
+        "https://data.colorado.gov/api/views/4ykn-tg5h.json"
+      ],
+      "allowed_hosts": ["data.colorado.gov"],
+      "link_patterns": [
+        "/(api/views|api/v3/views|d|resource)/[a-z0-9]{4}-[a-z0-9]{4}"
+      ],
+      "files": ["https://data.colorado.gov/api/v3/views/4ykn-tg5h/export.csv"],
+      "verified": true,
+      "terms_url": "https://data.colorado.gov/terms",
+      "license": "Public domain: the dataset's portal metadata states license 'Public Domain' (licenseId PUBLIC_DOMAIN). The portal's Terms of Service add no restriction on copying; they disclaim warranties and require applications using the data to show the State's disclaimer",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Permitted (public domain); attribution: Colorado Department of State (CDOS), with the State of Colorado disclaimer from data.colorado.gov/terms shown where the data is used",
+      "reviewed": "2026-11-02",
+      "notes": "Dataset 4ykn-tg5h 'Business Entities in Colorado': entity id, name, principal and mailing address, status, jurisdiction of formation, entity type, registered agent, formation date; 3,132,613 rows at review, updated daily after midnight. robots.txt: Crawl-delay 1; /browse?...&q= search pages are disallowed, so the dataset page is used. The portal platform's own terms (socrata.com) still need a human read (same note as tx-comptroller-franchise)."
+    }
+  ]
+}

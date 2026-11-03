@@ -1,0 +1,29 @@
+{
+  "description": "Massachusetts sources for the FactLot Registry collector. See docs/registry/data-policy.md, docs/registry/collection.md, and the review records in docs/registry/sources/.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "ma-boston-assessing",
+      "publisher": "City of Boston Assessing Department (via Analyze Boston)",
+      "landing_pages": ["https://data.boston.gov/dataset/property-assessment"],
+      "allowed_hosts": ["data.boston.gov"],
+      "link_patterns": ["/download/[^/?]+\\.(csv|pdf|txt)(\\?|$)"],
+      "files": [
+        "https://data.boston.gov/dataset/e02c44d2-3c64-459c-8fe2-e1ce5f38a035/resource/ee73430d-96c0-423e-ad21-c4cfb54c8961/download/fy2026-property-assessment-data_rev.csv",
+        "https://data.boston.gov/dataset/e02c44d2-3c64-459c-8fe2-e1ce5f38a035/resource/440f72b7-bb2c-4c37-971f-c1097d155559/download/property-assessment-fy2026-data-key.pdf",
+        "https://data.boston.gov/dataset/e02c44d2-3c64-459c-8fe2-e1ce5f38a035/resource/d6c1268c-cd83-4dc3-a914-bba1ed59da6d/download/propertyoccupancycodes.pdf"
+      ],
+      "verified": true,
+      "terms_url": "https://data.boston.gov/dataset/property-assessment",
+      "license": "Open Data Commons Public Domain Dedication and License (ODC-PDDL), stated on the dataset page (license field 'odc-pddl', https://www.opendefinition.org/licenses/odc-pddl)",
+      "ai_use": "Not addressed by the publisher; PDDL places the data in the public domain without restriction",
+      "redistribution": "Permitted (PDDL); attribution: City of Boston Assessing Department, Analyze Boston",
+      "reviewed": "2026-11-02",
+      "notes": "Dataset 'Property Assessment' (package e02c44d2-3c64-459c-8fe2-e1ce5f38a035) on the city's CKAN portal: one CSV per fiscal year (FY2004-FY2026) plus a data-key PDF and the occupancy-code PDF. FY2026 is 'fy2026-property-assessment-data_rev.csv' (about 80 MB, last modified 2026-05-22). Boston is one of four municipalities in Suffolk County (25025): Chelsea, Revere, and Winthrop assess separately and are not in this file. robots.txt sets Crawl-delay: 10 for all agents (the collector honours it) and disallows /api/ and /datastore/, so the CKAN action API and the datastore are not used: the dataset HTML page is the landing page and the resource download URLs (allowed) are the files. The resource id in each download URL is stable; the file name changes with each fiscal-year release, so re-run discover for a new year."
+    }
+  ]
+}

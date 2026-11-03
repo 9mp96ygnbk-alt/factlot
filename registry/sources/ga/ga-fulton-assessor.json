@@ -1,0 +1,37 @@
+{
+  "description": "Georgia: Fulton County (Atlanta) Board of Assessors tax-digest parcels, published through the county's ArcGIS Hub open-data site. See docs/registry/data-policy.md and the review record in docs/registry/sources/ga-fulton-assessor.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "ga-fulton-assessor",
+      "publisher": "Fulton County Board of Assessors (via Fulton County GIS open data)",
+      "landing_pages": [
+        "https://www.arcgis.com/sharing/rest/content/items/c805da9aa51d4c508440358c00498fcf?f=pjson",
+        "https://www.arcgis.com/sharing/rest/content/items/75e58855b00d40d7873975f22c24ba8f?f=pjson",
+        "https://www.arcgis.com/sharing/rest/content/items/fb12e4ed4fdd4b24bb93010818971261?f=pjson"
+      ],
+      "allowed_hosts": [
+        "gisdata.fultoncountyga.gov",
+        "gis.fultoncountyga.gov",
+        "www.arcgis.com",
+        "hub.arcgis.com"
+      ],
+      "files": [
+        "https://gisdata.fultoncountyga.gov/api/download/v1/items/c805da9aa51d4c508440358c00498fcf/csv?layers=0",
+        "https://gis.fultoncountyga.gov/Data/OpenData/Data/Tax_CAMAData/TXT/Tax_CAMAInfo.zip",
+        "https://gis.fultoncountyga.gov/Data/OpenData/Data/PropertyProfile/TXT/PropertyProfile.zip"
+      ],
+      "verified": false,
+      "terms_url": "https://gisdata.fultoncountyga.gov/datasets/fulcogis::tax-parcels-2025/about",
+      "license": "Public record (Georgia Open Records Act, O.C.G.A. § 50-18-70 et seq.). The open-data site item declares licenseInfo CC-BY-SA and the 'Tax Parcels 2023' item says 'CC BY-SA'; the 'Tax Parcels 2025' item carries only an 'as is' disclaimer, and the Tax_CAMA and Property Profile document items say the data are 'for your personal use \"as is\"'. Not yet confirmed",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "CC-BY-SA at site level (attribution: Fulton County Board of Assessors / Fulton County GIS); the dataset items are silent or say 'personal use'. Not yet confirmed",
+      "reviewed": "2026-11-02",
+      "notes": "verified=false because the licence is unclear: the site says CC-BY-SA, the parcel item says only 'as is', and the two CAMA document items say 'for your personal use'. A person should confirm with Fulton County GIS (contact on gisdata.fultoncountyga.gov) that the Tax Parcels data may be redistributed under CC-BY-SA; then set verified=true. Files: the Hub CSV export of 'Tax Parcels 2025' (item c805da9aa51d4c508440358c00498fcf, the completed 2025 digest with values, owner, class and land-use codes; gisdata.fultoncountyga.gov redirects to hub.arcgis.com, which serves Tax_Parcels_2025.csv). 'Tax Parcels' (e581a072…, the live 2027 work-in-progress layer) and 'Tax Parcels 2026' (b50aaa86…) carry no value columns, so the 2025 item is the roll to load until the county republishes values. Tax_CAMAInfo.zip (63 MB, 2026-02-26; Tax_ParcelSupplement, Tax_Sales, Tax_StructureApartment/Commercial/Residential for tax year 2025) supplies year built and building area through the adapter's --structures option; PropertyProfile.zip (28 MB, 2026-02-26; one tab-delimited table for tax year 2026 with class and land-use descriptions, values blank, text fields cut at 30 characters) is kept only as the description table for the codes. gis.fultoncountyga.gov transfers ran at 25–50 KB/s and stalled twice after 7–9 MB on 2026-11-02 (both zips answer HEAD 200 with Accept-Ranges), so the collector could not archive the zips; retry off-peak. robots.txt: gisdata.fultoncountyga.gov and hub.arcgis.com set Crawl-delay 60 and disallow only /sites/, /admin/, /sessions/, /groups/, /people/, /workspace/; gis.fultoncountyga.gov and gismaps.fultoncountyga.gov have none (404); www.arcgis.com has no rules; services1.arcgis.com answers 403 to robots.txt."
+    }
+  ]
+}

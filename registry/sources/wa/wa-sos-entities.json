@@ -1,0 +1,25 @@
+{
+  "description": "Washington Secretary of State Corporations and Charities Filing System (CCFS) corporation data extract (access review; the free bulk extract was retired) for the FactLot Registry collector. See docs/registry/sources/wa-sos-entities.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "wa-sos-entities",
+      "publisher": "Washington Secretary of State, Corporations and Charities Division (CCFS)",
+      "landing_pages": ["https://data.wa.gov/api/views/f9jk-mm39.json"],
+      "allowed_hosts": ["data.wa.gov", "ccfs.sos.wa.gov", "www.sos.wa.gov"],
+      "files": [],
+      "verified": false,
+      "gate": "No bulk file exists to download. The publisher's own data.wa.gov record (dataset f9jk-mm39, last updated 2024-08-31) states 'The Corporations Data Extract feature is no longer available' and directs users to the CCFS Advanced Search, which lists businesses by type, status, date or registered agent and exports the result list to CSV by hand. That is an interactive search with a manual export, not a bulk file; automating it would be scraping the search application and is not done. Requires a person only if a one-off export of a filtered list is wanted; otherwise ask the Corporations Division (360-725-0377) whether a bulk product is offered.",
+      "terms_url": "https://data.wa.gov/api/views/f9jk-mm39.json",
+      "license": "The data.wa.gov record carries no license field; attribution given as 'Washington Office of the Secretary of State (OSOS), Corporations Division'",
+      "ai_use": "Not addressed",
+      "redistribution": "Not addressed; public record",
+      "reviewed": "2026-11-02",
+      "notes": "Not to be confused with data.wa.gov dataset 4wur-kfnr 'Business Lookup' (Washington Department of Revenue, license 'Public Domain'), which is a pointer to DOR's search for business licenses, excise tax accounts and reseller permits, has no columns in the portal, and is a different publisher and a different register (it carries owners and officers). It is not an SOS entity file and is not archived. The old extract page apps.sos.wa.gov/corps/AllData.aspx now returns 404. robots.txt on www.sos.wa.gov has only the Drupal defaults (no block on data pages). Third-party registries (opencorpdata.com and others) republish a nightly extract from before the retirement; they are not the publisher and are not used."
+    }
+  ]
+}

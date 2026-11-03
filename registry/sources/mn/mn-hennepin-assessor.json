@@ -1,0 +1,39 @@
+{
+  "description": "Minnesota sources for the FactLot Registry collector: Hennepin County (Minneapolis). See docs/registry/data-policy.md and the review record in docs/registry/sources/mn-hennepin-assessor.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "mn-hennepin-assessor",
+      "publisher": "Hennepin County (GIS Open Data; attributes from the county property tax system)",
+      "landing_pages": [
+        "https://gis-hennepin.hub.arcgis.com/datasets/hennepin::county-parcels/about",
+        "https://www.arcgis.com/sharing/rest/content/items/7975aabf6e1e42998a40a4b085ffefdf?f=json"
+      ],
+      "allowed_hosts": [
+        "gis-hennepin.hub.arcgis.com",
+        "hub.arcgis.com",
+        "www.arcgis.com"
+      ],
+      "link_patterns": [
+        "/api/download/v1/items/[0-9a-f]{32}/csv",
+        "/api/v3/datasets/[0-9a-f]{32}_[0-9]+/downloads/data\\?format=csv",
+        "\\.(zip|csv|xml|json)(\\?|$)"
+      ],
+      "files": [
+        "https://gis-hennepin.hub.arcgis.com/api/download/v1/items/7975aabf6e1e42998a40a4b085ffefdf/csv?layers=1",
+        "https://www.arcgis.com/sharing/rest/content/items/7975aabf6e1e42998a40a4b085ffefdf/info/metadata/metadata.xml"
+      ],
+      "verified": true,
+      "terms_url": "https://www.arcgis.com/sharing/rest/content/items/7975aabf6e1e42998a40a4b085ffefdf?f=json",
+      "license": "Public government data (Minn. Stat. ch. 13, the Minnesota Government Data Practices Act; the county's property-information page states the data 'is public information as mandated by the State of Minnesota Data Practices Act'). The item's licenseInfo is a disclaimer only: furnished 'AS IS' with no representation as to completeness or accuracy, no warranty, not suitable for legal, engineering or surveying purposes; the county is not liable for loss resulting from the data. No restriction on copying or redistribution is stated",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not restricted by the publisher; public data. Credit requested in the metadata: Hennepin County GIS, Hennepin County Survey Division, Hennepin County Property Tax",
+      "reviewed": "2026-11-02",
+      "notes": "ArcGIS Hub dataset 'County Parcels' (item 7975aabf6e1e42998a40a4b085ffefdf, layer 1): one row per tax parcel (PID) with attributes from a monthly extract of the property tax system (owner and taxpayer names, situs, property type code and name for up to four subrecords, year built, estimated market values, last sale). The Hub download endpoint on gis-hennepin.hub.arcgis.com redirects to hub.arcgis.com, which serves County_Parcels.csv (about 430 k rows; Last-Modified 2026-10-22). Both hub hosts: robots.txt Crawl-delay 60 (honoured), /sites/ /admin/ /sessions/ /groups/ /people/ /workspace/ disallowed. The county's own GIS server gis.hennepin.us (the live feature service and the attribute-table PDF County Tax Parcels.pdf) has robots.txt 'Disallow: /' for every agent, so the collector never fetches from it; the Hub is the county's published open-data channel. The platform's own terms (Esri ArcGIS Hub) should be read by a person (as for Socrata, backlog A11)."
+    }
+  ]
+}

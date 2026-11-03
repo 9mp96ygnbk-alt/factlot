@@ -1,0 +1,31 @@
+{
+  "description": "Massachusetts Secretary of the Commonwealth, Corporations Division business entity bulk extract (access review; paid by regulation, nothing confirmed) for the FactLot Registry collector. See docs/registry/sources/ma-sos-entities.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "ma-sos-entities",
+      "publisher": "Massachusetts Secretary of the Commonwealth, Corporations Division",
+      "landing_pages": [
+        "https://corp.sec.state.ma.us/corpweb/CorpSearch/CorpSearch.aspx"
+      ],
+      "allowed_hosts": [
+        "corp.sec.state.ma.us",
+        "www.sec.state.ma.us",
+        "www.mass.gov"
+      ],
+      "files": [],
+      "verified": false,
+      "gate": "Paid and by request. 950 CMR 113.15 says a bulk extract of the Corporations Information Management System is available monthly in weekly increments at $4,800 per year or $100 per week, with data elements and file layouts supplied by the filing office on request. The publisher's hosts (sec.state.ma.us redirects the collector; mass.gov returns 403 'Not allowed') did not let the collector read robots.txt or the Corporations Division pages, so the current price and terms could not be confirmed. A person must contact the Corporations Division (cis@sec.state.ma.us, 1-800-392-6090) for the current order form and terms.",
+      "terms_url": "https://www.law.cornell.edu/regulations/massachusetts/department-950-CMR/title-950-CMR-113.00/part-1",
+      "license": "None found; the regulation sets a fee and says nothing on use",
+      "ai_use": "Not addressed in the regulation; order terms not read",
+      "redistribution": "Not addressed in the regulation; order terms not read",
+      "reviewed": "2026-11-02",
+      "notes": "The Department of Revenue's 'Corporations Book' (mass.gov/service-details/the-corporations-book, Division of Local Services) is a different dataset, a list of corporations subject to Massachusetts taxation, downloadable in Excel through an online search; it is not the Corporations Division register, and mass.gov blocked the collector, so it was not read and is not used. The free route is the interactive Corporations Division entity search, which is not scraped. Regulation text read through the Cornell LII and Justia mirrors (current to Register 1538, 2025-01-03)."
+    }
+  ]
+}

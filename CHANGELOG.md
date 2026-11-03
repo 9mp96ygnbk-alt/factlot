@@ -63,6 +63,15 @@ from its commit history; nothing was published to npm or PyPI before it.
   scanned pages with a tesseract backend, and amendment supersession.
 - A simulated product-feedback round: the 165 survey personas reviewed v0.1 as built, and the
   README states what FactLot covers today.
+- Tier 1 expansion: 47 source reviews across 15 states and DC (`docs/registry/sources/`), one
+  collector config per source under `registry/sources/<state>/`, 33 adapters (New York City,
+  Los Angeles, San Francisco, Alameda, Riverside, Boston, Philadelphia, Cook County, Fulton,
+  Maricopa, King, Hennepin, Mecklenburg, Denver, Wayne, Fairfax, DC, Florida DOR, Travis, Collin,
+  and the New York, Colorado, Pennsylvania, DC, Florida, North Carolina, and Virginia entity
+  registries), each with a synthetic-fixture test. Parcels keep the publisher's own use code
+  (`parcel.local_use_code`). The weekly collector workflow covers every state, loads configs
+  recursively, honours `Crawl-delay`, strips explicit default ports from redirect targets, and
+  refuses to archive an export API's "pending" placeholder.
 - Registry owner resolution beyond exact names: deterministic fuzzy candidates
   (`queue_fuzzy_owner_matches`), a review queue, and `decide_owner_match`; nothing is linked
   without a person's accept, and accepted links carry confidence at most 0.8 and the reviewer.

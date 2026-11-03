@@ -1,0 +1,33 @@
+{
+  "description": "North Carolina Secretary of State business registration data for the FactLot Registry collector. See docs/registry/data-policy.md and the review record in docs/registry/sources/nc-sos-entities.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "nc-sos-entities",
+      "publisher": "North Carolina Secretary of State, Business Registration Division",
+      "landing_pages": [
+        "https://www.sosnc.gov/divisions/business_registration/reports_and_listings",
+        "https://www.sosnc.gov/online_services/data_subscriptions/business_registration_data_subscriptions",
+        "https://www.sosnc.gov/online_services/data_subscriptions/about_the_data",
+        "https://www.sosnc.gov/online_services/data_subscriptions/data_dictionaries",
+        "https://www.sosnc.gov/fees/by_title/_data_subscriptions"
+      ],
+      "allowed_hosts": ["www.sosnc.gov", "sosnc.gov"],
+      "link_patterns": [
+        "/webfiles/documents/forms/Data_Subscriptions/.*\\.pdf$"
+      ],
+      "files": [],
+      "verified": false,
+      "terms_url": "https://www.sosnc.gov/Home/Disclaimer",
+      "license": "Public record (N.C. Gen. Stat. ch. 132; the Disclaimer page says information submitted 'may be subject to disclosure under the Public Records Act, Chapter 132'). No license or terms of use are stated for the data files. The bulk files are sold, not published",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not addressed by the publisher; public record",
+      "reviewed": "2026-11-02",
+      "notes": "Gate: the only bulk route is the paid Data Subscription Service (Business Registration Division Master Files Subscription $2,000 per State fiscal year plus a $750 one-time set-up fee, per sosnc.gov/fees/by_title/_data_subscriptions on 2026-11-02), delivered weekly as CSV over an FTP account provided after the subscription is set up (DataSubscriptions@sosnc.gov). No free bulk download exists on sosnc.gov (checked the Business Registration division page, Reports and Listings, Data Subscriptions, About the Data, Data Dictionaries). The online search is not a bulk source, its page says automated or scripted searches are not permitted, and it answers 403 to the collector's user agent. The founder decides whether to subscribe. The public file layout (Business_Registration_layout.pdf, 'North Carolina Corporations System Public Data Export Table Documentation', 2012, rev. 2015) is published without charge and the adapter nc_sos_entities is written to it. robots.txt on www.sosnc.gov answers 404 (no rules)."
+    }
+  ]
+}

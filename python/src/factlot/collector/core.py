@@ -86,10 +86,34 @@ class _Links(HTMLParser):
             self._href = None
 
 
+def strip_default_port(url: str) -> str:
+    """Drop an explicit default port (``https://host:443``): some portals redirect to presigned
+    object-storage URLs written that way, and a ``Host: host:443`` header breaks their signature."""
+    parts = urllib.parse.urlsplit(url)
+    default = {"https": 443, "http": 80}.get(parts.scheme)
+    if parts.port is not None and parts.port == default:
+        host = parts.hostname or ""
+        if ":" in host:  # IPv6 literal
+            host = f"[{host}]"
+        return urllib.parse.urlunsplit((parts.scheme, host, parts.path, parts.query, parts.fragment))
+    return url
+
+
+class _RedirectHandler(urllib.request.HTTPRedirectHandler):
+    """Redirect targets get the same URL hygiene as the URLs we send ourselves."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):  # type: ignore[override]
+        return super().redirect_request(req, fp, code, msg, headers, strip_default_port(clean_url(newurl)))
+
+
+# A small JSON body that an export API returns while it is still preparing the file: not data.
+_NOT_READY = re.compile(r'"status"\s*:\s*"(pending|processing|in_progress|queued)"', re.I)
+
+
 class PoliteFetcher:
     def __init__(self, config: CollectorConfig, opener: urllib.request.OpenerDirector | None = None) -> None:
         self.config = config
-        self.opener = opener or urllib.request.build_opener()
+        self.opener = opener or urllib.request.build_opener(_RedirectHandler)
         self._last: dict[str, float] = {}
         self._robots: dict[str, urllib.robotparser.RobotFileParser | None] = {}
         self._unreachable: dict[str, str] = {}
@@ -114,7 +138,7 @@ class PoliteFetcher:
         self._last[host] = time.monotonic()
 
     def _request(self, url: str, headers: dict[str, str] | None = None):
-        url = clean_url(url)
+        url = strip_default_port(clean_url(url))
         req = urllib.request.Request(url, headers={"User-Agent": self.config.user_agent, **(headers or {})})
         self._wait(urllib.parse.urlsplit(url).netloc)
         return self.opener.open(req, timeout=self.config.timeout)
@@ -281,7 +305,12 @@ def snapshot(fetcher: PoliteFetcher, spec: SourceSpec, urls: list[str], out_dir:
                 digest = h.hexdigest()
                 rec.update({"etag": resp.headers.get("ETag"), "last_modified": resp.headers.get("Last-Modified")})
                 attachment = _attachment_name(resp.headers.get("Content-Disposition"))
-            if previous and previous["sha256"] == digest:
+            if size < 4096 and _NOT_READY.search(tmp.read_text("utf-8", "replace")):
+                # An export API's "still preparing" placeholder (ArcGIS Hub answers 200 with
+                # {"status": "Pending"}); archiving it would cite a non-document. Retry later.
+                tmp.unlink()
+                rec["status"] = "not_ready"
+            elif previous and previous["sha256"] == digest:
                 tmp.unlink()
                 rec.update({"status": "unchanged", "sha256": digest})
             else:

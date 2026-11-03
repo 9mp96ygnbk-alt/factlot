@@ -1,0 +1,36 @@
+{
+  "description": "California sources for the FactLot Registry collector: Los Angeles County. See docs/registry/data-policy.md, docs/registry/collection.md, and the review record in docs/registry/sources/ca-los-angeles-assessor.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "ca-los-angeles-assessor",
+      "publisher": "Los Angeles County Office of the Assessor (via the County of Los Angeles Open Data portal, ArcGIS Hub)",
+      "landing_pages": [
+        "https://www.arcgis.com/sharing/rest/content/items/0d3ac33a76e1495bb7fc522a8085729c?f=json",
+        "https://data.lacounty.gov/datasets/lacounty::assessor-parcel-data-roll-2026/about"
+      ],
+      "allowed_hosts": ["data.lacounty.gov", "arcgis.com"],
+      "link_patterns": [
+        "/api/download/v1/items/[0-9a-f]{32}/csv",
+        "/arcgis/rest/services/Assessor[^\"]*FeatureServer"
+      ],
+      "files": [
+        "https://data.lacounty.gov/api/download/v1/items/0d3ac33a76e1495bb7fc522a8085729c/csv?layers=0&where=UseCode%20LIKE%20%2705%25%27",
+        "https://data.lacounty.gov/api/download/v1/items/0d3ac33a76e1495bb7fc522a8085729c/csv?layers=0&where=UseCode%20LIKE%20%271%25%27",
+        "https://data.lacounty.gov/api/download/v1/items/0d3ac33a76e1495bb7fc522a8085729c/csv?layers=0&where=UseCode%20LIKE%20%272%25%27",
+        "https://data.lacounty.gov/api/download/v1/items/0d3ac33a76e1495bb7fc522a8085729c/csv?layers=0&where=UseCode%20LIKE%20%273%25%27"
+      ],
+      "verified": true,
+      "terms_url": "https://egis-lacounty.hub.arcgis.com/pages/terms-of-use",
+      "license": "County of Los Angeles eGIS Hub Terms of Use: 'you are granted a license to copy, publish, distribute and/or transmit the Data, to adapt the Data and to exploit the Data for commercial and/or personal use'; no ownership transfers; the County may change, restrict, or discontinue access at any time; data provided as is. The item's own licenseInfo binds users of any LA County REST URL to those terms",
+      "ai_use": "Not addressed by the publisher (the license permits adaptation and commercial exploitation; nothing restricts automated or AI use)",
+      "redistribution": "Permitted (license to copy, publish, distribute and transmit). Attribution: the Terms of Use recommend citing 'County of Los Angeles, Office of the Assessor. 2026. Assessor Parcel Data Roll 2026 [dataset]. County of Los Angeles Open Data. Accessed <date>. https://data.lacounty.gov/datasets/lacounty::assessor-parcel-data-roll-2026'",
+      "reviewed": "2026-11-02",
+      "notes": "data.lacounty.gov is an ArcGIS Hub site (not Socrata any more: the Socrata catalog answers 'Domain not found'). Item 0d3ac33a76e1495bb7fc522a8085729c 'Assessor Parcel Data Roll 2026' is a hosted table (FeatureServer/0 'Parcel_Data_2026', Query+Extract, maxRecordCount 1000) published by the Assessor's staff on 2026-10-13; the publisher notes that only CSV downloads are supported because of size. The unfiltered CSV is 1.14 GB (4,856,866 rows, of which 2,428,433 are entirely blank), so the files here use the Hub download API's where filter (confirmed honoured: UseCode LIKE '05%' gives a 32.8 MB file) to fetch only the use-code prefixes in scope: 05 (five or more units), 1 and 2 (commercial), 3 (industrial). The API answers 302 to a cached export on services.arcgis.com, then 302 to a time-limited Azure URL; the first request for a filter not yet cached may fail or answer 202 while the export is built — re-run snapshot. No owner names in the public file. robots.txt on data.lacounty.gov (and *.hub.arcgis.com) sets Crawl-delay: 60, which the collector honours (about four minutes for the four files); services.arcgis.com has no robots.txt (403). The companion item 70d93266f45a4080a97b285a471493cd 'Assessor Parcel Data (Rolls 2021 - 2025)' holds prior years. Update the item id and the 'Roll <year>' title when the 2027 roll appears."
+    }
+  ]
+}

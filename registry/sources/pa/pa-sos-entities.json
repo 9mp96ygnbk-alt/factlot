@@ -1,0 +1,27 @@
+{
+  "description": "Pennsylvania registered business entities (Department of State, Bureau of Corporations and Charitable Organizations, via the Commonwealth open data portal data.pa.gov) for the FactLot Registry collector. See docs/registry/data-policy.md and the review record in docs/registry/sources/pa-sos-entities.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "pa-sos-entities",
+      "publisher": "Pennsylvania Department of State, Bureau of Corporations and Charitable Organizations (via data.pa.gov)",
+      "landing_pages": ["https://data.pa.gov/api/views/3urc-uaba.json"],
+      "allowed_hosts": ["data.pa.gov"],
+      "link_patterns": [
+        "/(api/views|api/v3/views|d|resource)/[a-z0-9]{4}-[a-z0-9]{4}"
+      ],
+      "files": ["https://data.pa.gov/api/v3/views/3urc-uaba/export.csv"],
+      "verified": true,
+      "terms_url": "https://data.pa.gov/data-policy",
+      "license": "Portal license field: 'Public Domain U.S. Government' (terms link usa.gov/government-works). PA Data Policy: 'Data sets available through data.pa.gov are offered free and without restriction'; attribution not required but requested ('Data retrieved from data.pa.gov')",
+      "ai_use": "Not restricted: the data policy imposes no restriction and does not address AI use",
+      "redistribution": "Permitted (data.pa.gov policy: offered free and without restriction); public record. Attribution given anyway: Pennsylvania Department of State, via data.pa.gov",
+      "reviewed": "2026-11-02",
+      "notes": "Dataset 3urc-uaba 'Filtered View - Distinct Registered Businesses in PA Listing Current by County Department of State' is a one-row-per-business view of the parent dataset xvd7-5r2c (which repeats a business once per Governor/Officer, with officer first, middle and last names). The distinct view carries no officer or person-name columns, which is why it is the file archived. Columns: business_name, filing_number, address_line1, address_line2, city, state, zip, typeofbusinessregistration, shortcountyname, county_code, georeferenced_latitude__longitude. There is no status column: the publisher states the data holds 'ALL active business registrations' but warns that, because of statutory limits on removing businesses no longer operating, it 'shows a larger number of active businesses than currently exist'. Update frequency monthly. robots.txt on data.pa.gov: Crawl-delay 1; only /browse?...&q= style search pages and /api/odata are disallowed, not the export. The classic /rows.csv export is deprecated by the platform, so the v3 export URL is used. Size: 2,376,248 rows on 2026-11-02, about 400 MB as CSV. On the review machine (about 60 KB/s) the export streamed 16 MB before it was stopped, so the full file was not archived; the review archived a 20,000-row sample from the SODA route https://data.pa.gov/resource/3urc-uaba.csv?$limit=20000 instead. A production run on a normal connection should use the export URL above."
+    }
+  ]
+}

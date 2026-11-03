@@ -1,0 +1,26 @@
+{
+  "description": "San Francisco County (FIPS 06075) assessor secured roll for the FactLot Registry collector. Review record: docs/registry/sources/ca-san-francisco-assessor.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "ca-san-francisco-assessor",
+      "publisher": "City and County of San Francisco, Office of the Assessor-Recorder (via DataSF)",
+      "landing_pages": ["https://data.sf.gov/api/views/wv5m-vpq2.json"],
+      "allowed_hosts": ["data.sf.gov"],
+      "files": [
+        "https://data.sf.gov/resource/wv5m-vpq2.csv?$select=closed_roll_year,property_location,parcel_number,block,lot,use_code,use_definition,property_class_code,property_class_code_definition,year_property_built,number_of_units,number_of_stories,zoning_code,property_area,lot_area,status_code,current_sales_date,assessed_improvement_value,assessed_land_value,assessed_fixtures_value,assessed_personal_property_value,row_id,data_as_of&$where=closed_roll_year=2025%20AND%20property_class_code%20in('A15','A5','AC','B','BZ','C','C1','CD','CM','CO','CZ','CZEU','DA15','DA5','DCON','DD15','DD5','DF','EC','F15','F2','F5','FA','FA15','FA5','FS15','FS5','G','GC','GG','GZ','GZEU','H','H1','H2','HC','I','IDC','IW','IX','IZ','M','N1','N2','O','O35','OA15','OA5','OAH','OAL','OAM','OAT','OBH','OBL','OBM','OC','OCH','OCL','OCM','OMD','OZ','OZEU','PL','PZ','RH','RH1','S','T','TI15','TIA','TIC5','TIF','XV')&$order=row_id&$limit=300000"
+      ],
+      "verified": true,
+      "terms_url": "https://www.sf.gov/reports--april-2017--datasf-terms-use",
+      "license": "Open Data Commons Public Domain Dedication and License (PDDL 1.0), stated in the dataset's own metadata (licenseId PDDL, termsLink opendatacommons.org/licenses/pddl/1.0/)",
+      "ai_use": "Not restricted: PDDL grants a worldwide, royalty-free licence to Use the Work, and the dataset carries no AI clause",
+      "redistribution": "Permitted (PDDL); attribution not required",
+      "reviewed": "2026-11-02",
+      "notes": "Socrata dataset wv5m-vpq2 'Assessor Historical Secured Property Tax Rolls' (Assessor-Recorder inventory ID ASR-0001), one row per parcel per roll year (closed_roll_year = leading year of the fiscal year), updated annually after the roll closes (rows last updated 2026-06-26). The file is the SODA CSV filtered to one roll year AND to the in-scope property_class_code values listed in ca_san_francisco.py (the full roll is 211,547 rows and the publisher's SODA stream of it kept stalling and dropping, so the collector archives the commercial-class extract, 20,612 rows, 5.5 MB, with a 23-column projection of the 46 columns); it is a partial extract, so ingest it with full_roll off; change closed_roll_year in the URL when the next roll appears (the 2026 roll was not yet published on 2026-11-02; latest was 2025). The file has NO owner names (the Assessor-Recorder publishes none in this dataset). Reference tables: use/class codes pa56-ek2h, exemption codes g77e-ikb4. robots.txt on data.sf.gov: Crawl-delay 1, no rule covering /resource/ or /api/views/. The DataSF terms page on sf.gov answered with an empty HTTP 202 (CDN challenge) to the collector, so its text was not read directly; the licence rests on the dataset metadata and the PDDL 1.0 text."
+    }
+  ]
+}

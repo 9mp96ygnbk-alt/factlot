@@ -1,0 +1,31 @@
+{
+  "description": "Florida sources for the FactLot Registry collector. See docs/registry/data-policy.md, docs/registry/collection.md, and the review record in docs/registry/sources/fl-dos-entities.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "fl-dos-entities",
+      "publisher": "Florida Department of State, Division of Corporations (Sunbiz)",
+      "landing_pages": [
+        "https://dos.fl.gov/sunbiz/other-services/data-downloads/",
+        "https://dos.fl.gov/sunbiz/other-services/data-downloads/quarterly-data/",
+        "https://dos.fl.gov/sunbiz/other-services/data-downloads/daily-data/"
+      ],
+      "allowed_hosts": ["dos.fl.gov", "sftp.floridados.gov"],
+      "files": [
+        "sftp://Public@sftp.floridados.gov/doc/quarterly/cor/cordata.zip",
+        "sftp://Public@sftp.floridados.gov/doc/quarterly/cor/corevent.zip"
+      ],
+      "verified": false,
+      "terms_url": "https://dos.fl.gov/sunbiz/other-services/data-downloads/",
+      "license": "Public record (Fla. Stat. ch. 119). No licence stated; the Division's data-downloads pages say the downloads are offered for informational purposes 'as is' and may be changed, replaced or deleted at any time (read through a search engine's rendering of the page, not directly: see notes)",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not addressed by the publisher; public record",
+      "reviewed": "2026-11-02",
+      "notes": "Not verified because the terms could not be read from the publisher's own page: dos.fl.gov (including /robots.txt) answers every request from the collector, curl and the WebFetch tool with a Cloudflare managed challenge (HTTP 403, 'Just a moment...'), which the data policy forbids working around; a person must read the Data Downloads, Quarterly Data and Daily Data pages and confirm the terms and the published login. The files themselves are on the Division's public SFTP server sftp.floridados.gov, user 'Public' with the password the Division publishes on its Data Downloads page (a published anonymous access route, not an account); the server's banner says the system is for authorized users and that use may be monitored. Confirmed by a real login on 2026-11-02: doc/quarterly/cor/cordata.zip (1,793,034,019 bytes, 2026-10-07; the full corporate data file, regenerated in January, April, July and October) and corevent.zip (195,000,143 bytes); doc/cor/YYYYMMDDc.txt daily files (about 1-4 MB each, back to 2011 in year folders). The collector speaks HTTP(S) only, so snapshot cannot archive these sftp:// URLs (backlog: SFTP support, or a person downloads cordata.zip and registers it with the adapter's --retrieved-at). Layout: 'Corporate File Definitions' at dos.sunbiz.org/data-definitions/cor.html (fixed-length 1440-character records); note that dos.sunbiz.org's robots.txt disallows all paths, so that page must not be fetched by the collector; it was read once by hand for the layout. The older FTP host ftp.dos.state.fl.us named in the SFTP READMEs was not tried."
+    }
+  ]
+}

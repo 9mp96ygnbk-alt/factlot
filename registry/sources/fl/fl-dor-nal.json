@@ -1,0 +1,36 @@
+{
+  "description": "Florida sources for the FactLot Registry collector: the Department of Revenue's statewide NAL (Name-Address-Legal) real property roll files, one per county and year. See docs/registry/data-policy.md and the review record in docs/registry/sources/fl-dor-nal.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "fl-dor-nal",
+      "publisher": "Florida Department of Revenue, Property Tax Oversight",
+      "landing_pages": [
+        "https://floridarevenue.com/property/Pages/DataPortal_RequestAssessmentRollGISData.aspx",
+        "https://floridarevenue.com/property/dataportal/_api/web/GetFolderByServerRelativeUrl('/property/dataportal/Documents/PTO%20Data%20Portal/Tax%20Roll%20Data%20Files/NAL/2026F')/Files?$select=Name,ServerRelativeUrl,Length,TimeLastModified&$top=500"
+      ],
+      "allowed_hosts": ["floridarevenue.com"],
+      "files": [
+        "https://floridarevenue.com/property/dataportal/Documents/PTO%20Data%20Portal/User%20Guides/2026%20Users%20guide%20and%20quick%20reference/2026_NAL_SDF_NAP_Users_Guide.pdf",
+        "https://floridarevenue.com/property/dataportal/Documents/PTO%20Data%20Portal/Tax%20Roll%20Data%20Files/NAL/2026F/Union%2073%20Final%20NAL%202026.zip",
+        "https://floridarevenue.com/property/dataportal/Documents/PTO%20Data%20Portal/Tax%20Roll%20Data%20Files/NAL/2026F/Duval%2026%20Final%20NAL%202026.zip",
+        "https://floridarevenue.com/property/dataportal/Documents/PTO%20Data%20Portal/Tax%20Roll%20Data%20Files/NAL/2026F/Orange%2058%20Final%20NAL%202026.zip",
+        "https://floridarevenue.com/property/dataportal/Documents/PTO%20Data%20Portal/Tax%20Roll%20Data%20Files/NAL/2026F/Hillsborough%2039%20Final%20NAL%202026.zip",
+        "https://floridarevenue.com/property/dataportal/Documents/PTO%20Data%20Portal/Tax%20Roll%20Data%20Files/NAL/2026F/Palm%20Beach%2060%20Final%20NAL%202026.zip",
+        "https://floridarevenue.com/property/dataportal/Documents/PTO%20Data%20Portal/Tax%20Roll%20Data%20Files/NAL/2026F/Broward%2016%20Final%20NAL%202026.zip",
+        "https://floridarevenue.com/property/dataportal/Documents/PTO%20Data%20Portal/Tax%20Roll%20Data%20Files/NAL/2026F/Dade%2023%20Final%20NAL%202026.zip"
+      ],
+      "verified": false,
+      "terms_url": "https://floridarevenue.com/Pages/conditions.aspx",
+      "license": "Public record (ch. 119, F.S.): the data portal states the Department publishes assessment rolls in compliance with chapter 119. The site-wide Conditions of Use page, however, says site material may be downloaded 'for non-commercial use only' and may not be 'copied, reproduced, republished, uploaded, posted, transmitted, or distributed in any way'. Which of the two governs the roll files needs a person's decision",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Unclear: public record under ch. 119 (and Microdecisions, Inc. v. Skinner, 889 So. 2d 871 (Fla. 2d DCA 2004), held a Florida property appraiser cannot restrict commercial use of its roll data absent a statute), but the site's Conditions of Use forbid redistribution of site material",
+      "reviewed": "2026-11-02",
+      "notes": "Files sit in a SharePoint library (Tax Roll Data Files/NAL/<year>F for final rolls, <year>P for preliminary), one zip per county named '<County> <DOR county number> Final NAL <year>.zip'; all 67 counties are published in the same layout, the six largest are listed here. The library page is script-rendered, so discover reads nothing from it; the file list was taken from the library's REST endpoint (second landing page), which returns JSON only with the header 'Accept: application/json;odata=nometadata' (the collector gets Atom XML and finds no links there). Direct file URLs answer 200 with Last-Modified and ETag; robots.txt restricts only the PowerMapper and SortSite agents. The user's guide (layout and DOR land use codes) is archived with the rolls. verified=false until a person decides whether the Conditions of Use apply to ch. 119 records; the real run used --include-unverified."
+    }
+  ]
+}

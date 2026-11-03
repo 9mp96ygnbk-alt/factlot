@@ -1,0 +1,36 @@
+{
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "il-cook-assessor",
+      "publisher": "Cook County Assessor's Office (via the Cook County Open Data portal)",
+      "landing_pages": [
+        "https://datacatalog.cookcountyil.gov/api/views/pabr-t5kh.json",
+        "https://datacatalog.cookcountyil.gov/api/views/uzyt-m557.json",
+        "https://datacatalog.cookcountyil.gov/api/views/3723-97qp.json",
+        "https://datacatalog.cookcountyil.gov/api/views/csik-bsws.json"
+      ],
+      "allowed_hosts": ["datacatalog.cookcountyil.gov"],
+      "link_patterns": [
+        "/(api/views|api/v3/views|d|resource)/[a-z0-9]{4}-[a-z0-9]{4}"
+      ],
+      "files": [
+        "https://datacatalog.cookcountyil.gov/resource/pabr-t5kh.csv?$select=pin,pin10,year,class,triad_name,township_code,township_name,nbhd_code,zip_code&$where=starts_with(class,'3')%20OR%20starts_with(class,'5')%20OR%20starts_with(class,'6')%20OR%20starts_with(class,'7')%20OR%20starts_with(class,'8')%20OR%20starts_with(class,'9')&$limit=500000",
+        "https://datacatalog.cookcountyil.gov/resource/uzyt-m557.csv?$select=pin,year,class,township_code,mailed_tot,certified_tot,board_tot&$where=year=2026%20AND%20(starts_with(class,'3')%20OR%20starts_with(class,'5')%20OR%20starts_with(class,'6')%20OR%20starts_with(class,'7')%20OR%20starts_with(class,'8')%20OR%20starts_with(class,'9'))&$limit=500000",
+        "https://datacatalog.cookcountyil.gov/resource/3723-97qp.csv?$where=year=2026%20AND%20(starts_with(pin,'1603')%20OR%20starts_with(pin,'1612')%20OR%20starts_with(pin,'1705')%20OR%20starts_with(pin,'1707')%20OR%20starts_with(pin,'1708')%20OR%20starts_with(pin,'1709')%20OR%20starts_with(pin,'2919'))&$limit=200000",
+        "https://datacatalog.cookcountyil.gov/resource/csik-bsws.csv?$select=keypin,pins,year,township,class_es,address,property_type_use,bldgsf,gross_building_area,landsf,yearbuilt&$limit=500000"
+      ],
+      "verified": false,
+      "terms_url": "https://www.cookcountyil.gov/terms-use",
+      "license": "None stated for the datasets (no license field on the portal). The portal's Terms of Use link goes to the Cook County website terms, whose section 10 says the content of County websites is copyrighted; the data is public record under the Illinois FOIA (5 ILCS 140) and the Property Tax Code, but no open-data license or public-domain statement was found",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not addressed by the publisher; public record, but the website terms claim copyright over site content",
+      "reviewed": "2026-11-02",
+      "notes": "Socrata portal. Four Assessor datasets make up the roll: pabr-t5kh Parcel Universe (Current) (PIN, class, township; 1,864,469 parcels for 2026), uzyt-m557 Assessed Values (mailed/certified/board total AV by PIN and year, 1999-present; assessed, not market), 3723-97qp Parcel Addresses (situs, taxpayer mailing name/address, owner name/address, 1999-present; owner names intermittently updated and truncated to about 22 characters), csik-bsws Commercial Valuation Data (land/building sf, year built per key PIN for townships reassessed 2021-2025). The SODA /resource/<id>.csv endpoint honours SoQL $select/$where/$limit, so the universe and values files are filtered to classes 3, 5, 6, 7, 8, 9 (multifamily 7+ units, commercial, industrial, and their incentive classes; 116,495 PINs); the v3 export.csv endpoint ignores $where and formats money as '$2,287', so it is not used. Without an app token (which needs an account) the portal streams the two 50-million-row datasets at roughly 100-500 rows per second, so the Parcel Addresses file, which has no class column, is archived as a SAMPLE: tax year 2026 for PIN areas 16-03, 16-12, 17-05, 17-07, 17-08, 17-09 and 29-19 (about 49,000 address rows covering about 7,500 in-scope PINs); the whole year (1.86 M rows) would take hours. Update year=2026 in the values and addresses URLs when the next tax year appears. robots.txt: Crawl-delay 1; /browse?...&q= search pages disallowed, so the dataset metadata endpoints are the landing pages. verified=false until a person confirms the license: no open-data license is attached to the datasets and the County website terms claim copyright over site content (docs/registry/sources/il-cook-assessor.md)."
+    }
+  ]
+}

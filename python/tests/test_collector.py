@@ -31,6 +31,14 @@ class Handler(SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(body)
             return
+        if self.path == "/export?pending=1":  # an export API still preparing the file
+            body = b'{"status":"Pending","progress":0.4}'
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
         return super().do_GET()
 
 
@@ -121,6 +129,22 @@ class Collector(unittest.TestCase):
         self.assertTrue(rec["path"].endswith("/ROLL_NAMED.ZIP"), rec["path"])
         self.assertEqual((out / rec["path"]).read_bytes(), b"synthetic roll v1")
 
+    def test_snapshot_does_not_archive_an_export_placeholder(self):
+        out = Path(tempfile.mkdtemp())
+        spec = SourceSpec("api-cad", "API CAD", [f"{self.base}/"], ["127.0.0.1"], link_patterns=[r"pending"])
+        [rec] = snapshot(PoliteFetcher(self.cfg), spec, [f"{self.base}/export?pending=1"], out)
+        self.assertEqual(rec["status"], "not_ready")
+        self.assertNotIn("document_id", rec)
+        self.assertEqual([p for p in (out / "api-cad").iterdir() if p.is_dir()], [], "nothing archived")
+
+    def test_strip_default_port(self):
+        from factlot.collector.core import strip_default_port
+
+        self.assertEqual(strip_default_port("https://s3.amazonaws.com:443/b/k?X=1"), "https://s3.amazonaws.com/b/k?X=1")
+        self.assertEqual(strip_default_port("http://h:80/p"), "http://h/p")
+        self.assertEqual(strip_default_port("https://h:8443/p"), "https://h:8443/p", "non-default ports stay")
+        self.assertEqual(strip_default_port("https://h/p"), "https://h/p")
+
     def test_discover_reads_json_listings(self):
         spec = SourceSpec("json-cad", "JSON CAD", [f"{self.base}/downloads.json"], ["127.0.0.1"])
         report = discover(PoliteFetcher(self.cfg), spec)
@@ -150,11 +174,11 @@ class Collector(unittest.TestCase):
         self.assertEqual(clean_url(clean_url(raw)), clean_url(raw), "idempotent")
 
 
-class TexasConfig(unittest.TestCase):
-    def test_texas_sources_are_valid_and_reviewed(self):
+class SourceConfigs(unittest.TestCase):
+    def test_every_source_config_is_valid_and_reviewed(self):
         from factlot.collector import load_sources
 
-        cfg, sources = load_sources(Path(__file__).resolve().parents[2] / "registry" / "sources" / "texas.json")
+        cfg, sources = load_sources(Path(__file__).resolve().parents[2] / "registry" / "sources")
         self.assertIn("@", cfg.contact)
         self.assertGreaterEqual(cfg.min_interval, 1.0)
         ids = [s.source_id for s in sources]
@@ -168,7 +192,9 @@ class TexasConfig(unittest.TestCase):
                 self.assertTrue(s.reviewed and s.license and s.ai_use and s.redistribution,
                                 f"{s.source_id}: verified without a recorded review")
             else:
-                self.assertFalse(s.files, f"{s.source_id}: files listed but not verified — the weekly run must not archive them")
+                # Confirmed file URLs may be recorded ahead of the gate; the snapshot command skips
+                # unverified sources, and the notes must say what the gate is.
+                self.assertTrue(s.notes.strip(), f"{s.source_id}: unverified without a note saying why")
 
 
 if __name__ == "__main__":

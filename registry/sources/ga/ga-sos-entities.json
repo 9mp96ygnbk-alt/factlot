@@ -1,0 +1,25 @@
+{
+  "description": "Georgia Secretary of State bulk corporations data, sold by the Georgia Technology Authority (access review; paid, agreement required) for the FactLot Registry collector. See docs/registry/sources/ga-sos-entities.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "ga-sos-entities",
+      "publisher": "Georgia Secretary of State, Corporations Division (sold by the Georgia Technology Authority, Office of Data Sales)",
+      "landing_pages": ["https://georgia.gov/bulk-corporations-data"],
+      "allowed_hosts": ["georgia.gov", "services.georgia.gov"],
+      "files": [],
+      "verified": false,
+      "gate": "Paid and contract-gated: register as a subscriber at services.georgia.gov, sign the GTA Bulk Corporate Data Sales Agreement, pay by check or money order ($100.00 set-up fee plus $500.00 per monthly, bi-weekly or weekly access; or $1,000 one-time for the entire database on FTP, per the page), and receive FTP credentials. Billing-account route needs a signed agreement and a W-9. Requires a person: register, sign, pay.",
+      "terms_url": "https://georgia.gov/document/document/bulk-corporations-data-sales-agreement/download",
+      "license": "GTA Bulk Corporate Data Sales Agreement (contract; one fiscal-year term, auto-renewing): the text read contains no use, resale, redistribution or AI clause, but recites that GTA 'has exclusive authority to sell or execute license agreements for an entire file of public information in any electronic medium or format'",
+      "ai_use": "Not addressed in the agreement text",
+      "redistribution": "Not addressed in the agreement text; GTA asserts exclusive authority to sell or license entire files, so republishing the whole file is a legal question a person must settle first",
+      "reviewed": "2026-11-02",
+      "notes": "Format: plain text, fields separated by tab-plus-space, openable in Excel; the page lists no field names and says there should be no duplicate records. Free access is the interactive eCorp entity search only. robots.txt on georgia.gov has only the Drupal defaults (no block on /bulk-corporations-data). Nothing was purchased, no account created, no agreement signed."
+    }
+  ]
+}

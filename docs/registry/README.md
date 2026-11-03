@@ -4,6 +4,15 @@ The registry is the identity layer behind FactLot IDs. It holds cited public-rec
 **commercial** property: parcels, the legal entities that own them, and the links between them.
 Every fact traces back to a specific downloaded file and record.
 
+**Tier 1 (2026-11-02):** 47 sources across 15 states and DC were reviewed in one pass; 18 are
+verified and 33 have adapters with synthetic-fixture tests. Beyond Texas, Boston (13,296
+commercial parcels), San Francisco (19,048), and Philadelphia (77,286) are loaded in full, and
+New York City, Los Angeles, Denver, Hennepin, Mecklenburg, and DC are verified with full loads
+pending. Owner names are missing from several public files (Los Angeles, San Francisco, Fairfax,
+San Bernardino), and most state entity registries outside Texas, New York, Colorado,
+Pennsylvania, and DC are sold rather than published. The per-source review records, gates, and
+counts are in [sources/README.md](sources/README.md).
+
 **Status (2026-11-02):** the core is built and tested, and the first real roll is in. The Harris
 CAD adapter (`factlot.registry.adapters.tx_harris`) loaded the 2026 roll from the collector's
 snapshot: 1,628,382 accounts read, 87,717 commercial parcels kept (68,795 F1, 2,466 F2, 16,456

@@ -98,3 +98,27 @@ cleared.
 - **Ingestion.** Verification is textual, not semantic (see C9).
 - **Server.** MCP is stateless (no resumable streams), and there is a single shared bearer key.
 - **Evidence.** The 165-agent survey was simulated; it is a source of hypotheses, not market data.
+
+## E. Tier 1 gates (added 2026-11-02; needs you)
+
+The Tier 1 expansion reviewed 47 sources; the per-source records are in
+[registry/sources/README.md](registry/sources/README.md). These are the decisions and actions that
+only the founder can take, grouped by kind:
+
+- **Terms decisions** (the files are open; the website terms do not grant redistribution in so
+  many words; the data are public records): Florida DOR rolls, Cook County, Philadelphia, Fulton,
+  Wayne County, Fairfax, Alameda, Riverside, San Bernardino. Decide, or write to each publisher
+  for a statement.
+- **Forms and signatures:** Maricopa commercial-purpose statement (A.R.S. § 39-121.03, form
+  FOR-025); King County RCW 42.56.070 acknowledgement; Virginia SCC consent banner.
+- **Purchases:** Clark County ($300/month), North Carolina SOS ($750 + $2,000/year), Santa Clara,
+  Orange, San Diego (ParcelQuest), and the Arizona, Georgia, Minnesota, Massachusetts, California,
+  and Nevada entity registries. Several carry use-only or no-resale clauses that may rule out an
+  open registry; settle the legal question before paying.
+- **Records requests:** Bexar; Fairfax owner-of-record file (Virginia FOIA); Michigan entities.
+- **Human reads of blocked pages:** Florida Sunbiz data-download terms (bot challenge), Illinois
+  SOS bulk files (403 to non-browsers), DataSF terms page, Open Data DC terms page, Socrata and
+  Esri Hub platform terms (A11).
+- **Full loads to run on a quiet connection:** New York City, Los Angeles, Hennepin, Mecklenburg,
+  Denver, DC, and the New York, Colorado, Pennsylvania, and DC entity files (the reviews loaded
+  samples because twenty collectors shared one link).

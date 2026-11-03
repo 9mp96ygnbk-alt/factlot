@@ -1,0 +1,31 @@
+{
+  "description": "California Secretary of State business entity bulk data (access review; no free bulk file found) for the FactLot Registry collector. See docs/registry/data-policy.md and docs/registry/sources/ca-sos-entities.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "ca-sos-entities",
+      "publisher": "California Secretary of State, Business Programs Division (bizfile Online)",
+      "landing_pages": [
+        "https://www.sos.ca.gov/business-programs/business-entities/business-entities-records-request"
+      ],
+      "allowed_hosts": [
+        "www.sos.ca.gov",
+        "sos.ca.gov",
+        "bizfileonline.sos.ca.gov"
+      ],
+      "files": [],
+      "verified": false,
+      "gate": "Purchase through a bizfile Online user account (the 'BE & UCC Bulk Orders' link). No free bulk download exists; the free route is the interactive bizfile Online search, one record at a time. The price, the order terms and any order agreement are behind the account and could not be read. Requires a person: create the account, read the order terms, decide whether to pay.",
+      "terms_url": "https://www.sos.ca.gov/business-programs/business-entities/business-entities-records-request",
+      "license": "None stated for the bulk data. The Secretary of State's pages carry only 'Copyright (c) 2026 California Secretary of State'",
+      "ai_use": "Not addressed on any page that could be read; the order terms are behind the account",
+      "redistribution": "Unknown: not addressed on the public pages; the bulk order terms (not readable without an account) may restrict it",
+      "reviewed": "2026-11-02",
+      "notes": "Public pages say bulk orders are placed in bizfile Online under 'BE & UCC Bulk Orders' and arrive as a compressed archive, with no price on the page. A third-party vendor (Kyckr, not the publisher) reports 'Master Unload' text files at $100, images at $800 and the full repository at $900; unconfirmed. Entity fields in the free search: entity name and number, formation date, status, officer/director/member/manager names and addresses, agent for service of process, entity addresses, jurisdiction. The Secretary of State states ownership, telephone, email and affiliate data are not made of record. robots.txt on www.sos.ca.gov is empty (no rules). Nothing was purchased and no account was created."
+    }
+  ]
+}

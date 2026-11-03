@@ -1,0 +1,26 @@
+{
+  "description": "Santa Clara County (FIPS 06085) assessor secured roll for the FactLot Registry collector. NOT VERIFIED: the roll is sold, not published. Review record: docs/registry/sources/ca-santa-clara-assessor.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "ca-santa-clara-assessor",
+      "publisher": "County of Santa Clara, Office of the Assessor",
+      "landing_pages": [
+        "https://asr.santaclaracounty.gov/about-us/purchase-data/bulk-data"
+      ],
+      "allowed_hosts": ["asr.santaclaracounty.gov", "sccassessor.org"],
+      "files": [],
+      "verified": false,
+      "terms_url": "https://asr.santaclaracounty.gov/about-us/purchase-data/bulk-data",
+      "license": "Not a free file. The Assessor sells the Secured Master File (owner names, land and improvement values, exemptions, tax rate areas; with or without Use Codes) on a paid order form. Licence and redistribution terms are in the order form and were not readable (see notes)",
+      "ai_use": "Unknown: terms not read",
+      "redistribution": "Unknown: terms not read; the Assessor's own web portal is described as view-and-print only",
+      "reviewed": "2026-11-02",
+      "notes": "GATES: purchase (price on a dated order form; 2016 schedule listed $2,485 with Use Codes and $495 without, 2021 form says prices change yearly and to call 408-299-5500 for the current form), a written order form with a cheque payable to the Santa Clara County Assessor, and resale/redistribution conditions not yet read. The Assessor site (asr.santaclaracounty.gov, formerly sccassessor.org) answers automated requests with a Cloudflare 'Attention Required' challenge or HTTP 403, including to a plain browser-less fetch; the collector does not attempt to get past it, so no terms text was read directly. Free alternative reviewed: the county GIS hub layer 'Parcels' (maps.santaclaracounty.gov/server/rest/services/opendata/SCCGISHUB/MapServer/116, 504,722 features) has only APN, tax rate area and situs address fields: no use code, no owner, no values, so it cannot yield commercial-scope records."
+    }
+  ]
+}

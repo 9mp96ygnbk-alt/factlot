@@ -1,0 +1,33 @@
+{
+  "description": "Nevada: Clark County Assessor sources for the FactLot Registry collector. See docs/registry/data-policy.md and the review record in docs/registry/sources/nv-clark-assessor.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "nv-clark-assessor",
+      "publisher": "Clark County Assessor's Office (Nevada)",
+      "landing_pages": [
+        "https://www.clarkcountynv.gov/government/assessor/datafiles.php",
+        "https://www.clarkcountynv.gov/government/departments/geographic_info_systems/services/data-for-purchase",
+        "https://www.clarkcountynv.gov/government/departments/geographic_info_systems/services/free-gis-data1"
+      ],
+      "allowed_hosts": [
+        "www.clarkcountynv.gov",
+        "clarkcountynv.gov",
+        "mapsrv.clarkcountynv.gov",
+        "maps.clarkcountynv.gov"
+      ],
+      "files": [],
+      "verified": false,
+      "terms_url": "https://www.clarkcountynv.gov/government/assessor/datafiles.php",
+      "license": "Public record (NRS 239.010) sold by subscription. The Assessor's 'Data Notice' (data-notice.pdf) is a cost-reimbursement and no-warranty notice, not a license; the AOExtract description states 'This information is for assessment use only.' The GIS parcel product is licensed under the GISMO GIS Data Subscriber License Agreement, which permits use 'in its business activity and for no other purpose whatsoever' and forbids giving access to any other person or organization",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not permitted for the GIS subscription product (licence section 2.2(a)); for the Assessor data files, 'may not be resold' per the GIS page and the request letter must state how the data will be used. Unclear until the founder obtains the file and its conditions",
+      "reviewed": "2026-11-02",
+      "notes": "Blocked by a purchase gate, not a technical one. The Secured Tax Roll master file (AOExtract: parcel, tax district, owner, mailing address, situs, legal description, land use code, capacity, construction year, last document, sale, acres, current and prior-year land/improvement/total/exempt values) is available only through the 'Clark County Assessor Data Site' after a signed letter on letterhead (request-for-data.pdf) requesting one-time monthly access or an ongoing subscription; the fee schedule (effective 2024-07-01) lists 'Monthly Subscription of Assessor Data Files $300.00 per month' (waivable for students, faculty and government agencies for non-commercial use). Customer Service: (702) 455-3882. The county GIS office (GISMO) sells the same roll with geometry ('Assessor's Parcel Data', $2,500 for the county or $7,500/yr with weekly updates) under a signed licence agreement, a signed memo that the data 'may not be resold', and a W-9. No parcel layer is on the free GIS download page (mapsrv.clarkcountynv.gov/pub/...: tax districts, zoning, planning land use, contours, centerlines). No county open-data portal (Socrata/ArcGIS Hub) was found. The only public countywide copy found is a City of Las Vegas ArcGIS Online feature service (CC_PARCELS_SHP, item 63173c56a91c448498abe229d0e02a4f, owner OfficeOfGIS_LasVegas, 'derived from AOCCROLL and updated weekly', 841,389 features, Query+Extract, credited to the Assessor, GISMO and the City) with owner, situs, LANDUSE/LUCODE and values, carrying only a no-warranty statement; it is a different publisher and needs its own review and source id before use. The layout and land-use code PDFs on the data files page are public and are transcribed in the review record. robots.txt on www.clarkcountynv.gov: Allow / for all agents; mapsrv.clarkcountynv.gov has none (404); files.clarkcountynv.gov resets connections."
+    }
+  ]
+}

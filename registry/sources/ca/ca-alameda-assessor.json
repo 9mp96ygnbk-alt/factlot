@@ -1,0 +1,26 @@
+{
+  "description": "Alameda County (FIPS 06001) assessor secured roll for the FactLot Registry collector. NOT VERIFIED: a free roll table exists on the county Open Data Hub but states no licence. Review record: docs/registry/sources/ca-alameda-assessor.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "ca-alameda-assessor",
+      "publisher": "Alameda County Assessor (published on the county Open Data Hub, data.acgov.org)",
+      "landing_pages": [
+        "https://data.acgov.org/api/search/v1/collections/dataset/items/54cc3c88fa384b28b5c456df0868fc67"
+      ],
+      "allowed_hosts": ["data.acgov.org"],
+      "files": [],
+      "verified": false,
+      "terms_url": "https://www.acgov.org/government/geospatial.htm",
+      "license": "None stated: the hosted table's metadata has license 'none' and an empty licenseInfo. The Assessor's own fee schedule (effective 2016-01-01) sells the entire assessment roll on CD for $20.00 and the Property Characteristic File for $20,000.00",
+      "ai_use": "Not addressed",
+      "redistribution": "Not addressed; unconfirmed whether the county intends this table as open data (it is unlisted: listed=false)",
+      "reviewed": "2026-11-02",
+      "notes": "A free file DOES exist: hosted feature-service table Assessor_Office_Secured_Tax_Roll_2025_to_2026 (item id 54cc3c88fa384b28b5c456df0868fc67, owner AlamedaCounty.CA.US, access public, 472,690 records, modified 2025-07-07), service https://services5.arcgis.com/ROBnTHSNjoZ2Wm1P/arcgis/rest/services/Assessor_Office_Secured_Tax_Roll_2025_to_2026/FeatureServer/0 (maxRecordCount 2000, capabilities Query only, supported format JSON). Six earlier roll years from 2019-20 are hosted the same way. Fields: parcel (sort and printed), situs, land/improvement/fixtures values, exemptions, owner MAILING address, Use_Code (4-digit). No owner name. Left unverified because (1) no licence or terms are attached, (2) the items are unlisted and show almost no views, so it is unclear the county meant them as open data, (3) the Assessor's site says the roll is a product for sale. The founder should ask the Assessor (510-272-3787) or the county IT department to confirm in writing that the tables may be copied and redistributed. data.acgov.org robots.txt sets Crawl-delay 60; the collector honours it. Once cleared: add the export URL to files (an ArcGIS Hub CSV export, or paged FeatureServer queries of 2,000 rows), set verified true, then python -m factlot.registry.adapters.ca_alameda (already written, tested on a synthetic fixture only)."
+    }
+  ]
+}

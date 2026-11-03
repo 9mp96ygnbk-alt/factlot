@@ -1,0 +1,25 @@
+{
+  "description": "Illinois Secretary of State, Department of Business Services corporation and LLC bulk data sets (Business Data Transparency Act) for the FactLot Registry collector. Access review: the sets are free by statute but the publisher's site denies the collector, so nothing is confirmed. See docs/registry/sources/il-sos-entities.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "il-sos-entities",
+      "publisher": "Illinois Secretary of State, Department of Business Services",
+      "landing_pages": ["https://www.ilsos.gov/data/bus-serv-home.html"],
+      "allowed_hosts": ["www.ilsos.gov", "ilsos.gov", "apps.ilsos.gov"],
+      "files": [],
+      "verified": false,
+      "gate": "ilsos.gov answers the collector's user agent (and plain curl) with HTTP 403 'Access Denied' from its edge network for every path including /robots.txt, so robots.txt, the terms and the file URLs could not be read or confirmed. A person must open the 'Data Transparency Act' page (ilsos.gov/data/bus-serv-home.html) in a browser, record the file URLs and the terms, and either get the collector's user agent allowed or download the files by hand. Do not fall back to the entity search at apps.ilsos.gov/businessentitysearch: its notice prohibits copying or downloading bulk information.",
+      "terms_url": "https://www.ilsos.gov/data/bus-serv-home.html",
+      "license": "Public Act 102-0049 (Business Data Transparency Act) bulk data sets, 'provided for informational purposes only' per search-index snippets of the Data Transparency page; no license text read",
+      "ai_use": "Not confirmed (page not readable)",
+      "redistribution": "Not confirmed. Search-index snippets and press coverage say the Act overturned the earlier restrictions on bulk use, but the page text itself was not read",
+      "reviewed": "2026-11-02",
+      "notes": "Per search-index snippets of ilsos.gov (not read directly): the Data Transparency page offers two free data sets, Corporations (Master, Company Name, Agent, Annual Report, Assumed/Old Names, Stock, Other files) and LLCs (Master, Company Name, Agent, Annual Report, Assumed, Old Names, Managers, Series files), each with a 'download documentation' link; the procedures PDFs (ilsos.gov/content/dam/data/bs/proc_corp_data.pdf and proc_llc_data.pdf, dated 2022-09-29) say the files are regenerated daily and related by file number. OpenCorporates (blog, 2022-11-16) reports ingesting the same bulk files, so a free file very likely exists. The `files` list is empty because no file URL was observed; none was guessed. Manager and member names are natural persons: an adapter must read only the Master and Name files."
+    }
+  ]
+}

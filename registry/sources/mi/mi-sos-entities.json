@@ -1,0 +1,29 @@
+{
+  "description": "Michigan LARA Corporations Division business entity bulk data (access review; no bulk entity file found) for the FactLot Registry collector. See docs/registry/sources/mi-sos-entities.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "mi-sos-entities",
+      "publisher": "Michigan Department of Licensing and Regulatory Affairs (LARA), Corporations Division (MiBusiness Registry Portal)",
+      "landing_pages": ["https://www.michigan.gov/lara/bureau-list/cscl/corps"],
+      "allowed_hosts": [
+        "www.michigan.gov",
+        "michigan.gov",
+        "mibusinessregistry.lara.state.mi.us"
+      ],
+      "files": [],
+      "verified": false,
+      "gate": "No bulk entity product was found on any readable page, free or sold. LARA's CSCL 'License List and Data' request form covers licensees (xlsx by email), not corporate entities; aggregate 'Total Business Entities' counts are published but are counts, not records. michigan.gov (Akamai) answered the collector with HTTP 403 'Access Denied', including /robots.txt, so the Corporations Division pages could not be read directly. A person should ask the Corporations Division (517-241-6470) whether a bulk entity file exists, or file a Michigan FOIA request through LARA.",
+      "terms_url": "https://www.michigan.gov/lara/bureau-list/cscl/corps",
+      "license": "None found",
+      "ai_use": "Not addressed on any page read",
+      "redistribution": "Not addressed on any page read",
+      "reviewed": "2026-11-02",
+      "notes": "The Business Entity Search moved to the MiBusiness Registry Portal in June 2025 (www.michigan.gov/corpentitysearch); it is interactive and is not scraped. A vendor (Topograph) says Michigan publishes no bulk corporate extract; another vendor page claims a 'bulk export to CSV' in its own product, which is not LARA's. Findings come from search-index snippets of michigan.gov pages, not direct reads. Nothing was purchased and no request was sent."
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "description": "District of Columbia business entities (Department of Licensing and Consumer Protection, Corporations Division, via Open Data DC) for the FactLot Registry collector. See docs/registry/data-policy.md and the review record in docs/registry/sources/dc-dlcp-entities.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "dc-dlcp-entities",
+      "publisher": "District of Columbia Department of Licensing and Consumer Protection, Corporations Division (via Open Data DC)",
+      "landing_pages": [
+        "https://opendata.dc.gov/api/v3/datasets/5238c4fd99c843a1bd7679a243747a8c_0"
+      ],
+      "allowed_hosts": [
+        "opendata.dc.gov",
+        "hub.arcgis.com",
+        "maps2.dcgis.dc.gov"
+      ],
+      "link_patterns": [
+        "/api/download/v1/items/[0-9a-f]{32}/csv",
+        "\\.(zip|csv|txt|json|geojson|xlsx?)(\\?|$)"
+      ],
+      "files": [
+        "https://opendata.dc.gov/api/download/v1/items/5238c4fd99c843a1bd7679a243747a8c/csv?layers=0"
+      ],
+      "verified": true,
+      "terms_url": "https://opendata.dc.gov/pages/terms-and-conditions",
+      "license": "CC-BY-4.0 (stated on the dataset page: 'This work is licensed under a Creative Commons Attribution 4.0 International License'); dc.gov's Terms and Conditions of Use defer to Open Data DC's own terms for its data",
+      "ai_use": "Not restricted: CC-BY-4.0 permits any use with attribution; the publisher does not address AI use",
+      "redistribution": "Permitted with attribution (CC-BY-4.0); attribution: District of Columbia Department of Licensing and Consumer Protection, Open Data DC",
+      "reviewed": "2026-11-02",
+      "notes": "Dataset 'Corporate Registration' (DLCP Corporations Division, the Office of Corporate Registrar): one row per business entity with file number, entity status, locale (domestic/foreign), model type, business name and suffix, business and registered-agent addresses, effective date, and report-filing dates; no taxpayer number. The Hub CSV export URL redirects to hub.arcgis.com. The 'Basic Business Licenses' dataset (DLCP, 85bf98d3915f412c8a4de706f2d13513) is licensing, not entity registration, and is not archived. robots.txt on opendata.dc.gov sets Crawl-delay: 60, which the collector honours."
+    }
+  ]
+}

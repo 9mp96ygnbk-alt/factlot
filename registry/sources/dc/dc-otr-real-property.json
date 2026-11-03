@@ -1,0 +1,40 @@
+{
+  "description": "District of Columbia real property (Office of Tax and Revenue via Open Data DC) for the FactLot Registry collector. See docs/registry/data-policy.md and the review record in docs/registry/sources/dc-otr-real-property.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "dc-otr-real-property",
+      "publisher": "District of Columbia Office of Tax and Revenue (via Open Data DC)",
+      "landing_pages": [
+        "https://opendata.dc.gov/api/v3/datasets/7d5e6cabd2304e779c719a4d5515af77_0",
+        "https://opendata.dc.gov/api/v3/datasets/7d1f1b1b1e2d47c4a672cce5c918b9ff_23",
+        "https://opendata.dc.gov/api/v3/datasets/9d8e09cb7403445ca8b4354cac6ae776_54"
+      ],
+      "allowed_hosts": [
+        "opendata.dc.gov",
+        "hub.arcgis.com",
+        "maps2.dcgis.dc.gov"
+      ],
+      "link_patterns": [
+        "/api/download/v1/items/[0-9a-f]{32}/csv",
+        "\\.(zip|csv|txt|json|geojson|xlsx?)(\\?|$)"
+      ],
+      "files": [
+        "https://opendata.dc.gov/api/download/v1/items/7d5e6cabd2304e779c719a4d5515af77/csv?layers=0",
+        "https://opendata.dc.gov/api/download/v1/items/7d1f1b1b1e2d47c4a672cce5c918b9ff/csv?layers=23",
+        "https://opendata.dc.gov/api/download/v1/items/9d8e09cb7403445ca8b4354cac6ae776/csv?layers=54"
+      ],
+      "verified": true,
+      "terms_url": "https://opendata.dc.gov/pages/terms-and-conditions",
+      "license": "CC-BY-4.0 (stated on each dataset page: 'This work is licensed under a Creative Commons Attribution 4.0 International License'); dc.gov's Terms and Conditions of Use defer to Open Data DC's own terms for its data",
+      "ai_use": "Not restricted: CC-BY-4.0 permits any use with attribution; the publisher does not address AI use",
+      "redistribution": "Permitted with attribution (CC-BY-4.0); attribution: District of Columbia Office of Tax and Revenue, Open Data DC",
+      "reviewed": "2026-11-02",
+      "notes": "Open Data DC is an ArcGIS Hub. The confirmed files are the Hub CSV exports: 'Integrated Tax System Public Extract' (ITSPE; the tax assessment roll: SSL, use code, owner, premise and billing addresses, land area, assessment), 'Computer Assisted Mass Appraisal - Commercial' (CAMA: year built, gross building area, units per SSL), and the 'Integrated Tax System Property Use Codes' table (the use-code definitions). Each export URL redirects to hub.arcgis.com. robots.txt on opendata.dc.gov sets Crawl-delay: 60 (the collector honours it: about a minute between requests) and disallows /sites/, /admin/, /sessions/, /groups/, /people/, /workspace/; maps2.dcgis.dc.gov has no robots.txt. The terms page is rendered by JavaScript, so the collector cannot read it as text; the license is read from the dataset metadata. The ITSPE feature service name carries its extract date (ITSPE_08172026) and the datasets are republished daily."
+    }
+  ]
+}

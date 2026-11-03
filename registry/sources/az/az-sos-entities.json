@@ -1,0 +1,29 @@
+{
+  "description": "Arizona Corporation Commission, Corporations Division database extraction (access review; paid public-records product, no free bulk file) for the FactLot Registry collector. See docs/registry/sources/az-sos-entities.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "az-sos-entities",
+      "publisher": "Arizona Corporation Commission, Corporations Division",
+      "landing_pages": ["https://azcc.gov/public-records-request"],
+      "allowed_hosts": [
+        "azcc.gov",
+        "www.azcc.gov",
+        "arizonabusinesscenter.azcc.gov"
+      ],
+      "files": [],
+      "verified": false,
+      "gate": "Paid, form-based public-records product: Public Records Request, Database Extraction form (m027) with a $75.00 partial extraction or a $1,000.00 full database, payable by check (credit cards not accepted), mailed to the Records Section, delivered by CD-ROM or email. The requester must declare commercial or non-commercial purpose, describe the commercial purpose (the Commission may deny a request it considers a misuse), and sign that the records are being sold for the stated use only and 'remain the property of the Arizona Corporation Commission'. Requires a person: decide the purpose statement, pay, sign.",
+      "terms_url": "https://www.azcc.gov/docs/default-source/corps-files/forms/m027-database-extraction-request4afa009930ae4583a9310593ba4c65ce.pdf?sfvrsn=73637fee_6",
+      "license": "Sold public record under A.R.S. 39-121.03; the request form restricts use to the stated purpose and keeps the records the Commission's property",
+      "ai_use": "Not addressed; but the signed form prohibits 'use for any reason other than as stated'",
+      "redistribution": "Restricted by the request form: use limited to the purpose stated, records 'subject to return upon demand'; resale is a 'commercial purpose' that must be declared. Not compatible with open redistribution without the Commission's written agreement",
+      "reviewed": "2026-11-02",
+      "notes": "Fields the Commission says an extraction can include: business name and address, incorporation date, approval date, statutory agent name and address, officer and director names and addresses, name change and merger information, status, domicile by county, zip code or city, and business type. Format: double-quote delimited, comma-separated ASCII. Not available: SIC codes, UCC codes, phone numbers, SSNs, EINs, emails. The free alternative is the Arizona Business Center entity search (arizonabusinesscenter.azcc.gov), interactive only. The Commission's public-records page says electronic delivery of general records is free, but the extraction form's fee is the more specific source. robots.txt: azcc.gov/robots.txt returns 404 (no rules). Nothing was purchased and no request was sent."
+    }
+  ]
+}

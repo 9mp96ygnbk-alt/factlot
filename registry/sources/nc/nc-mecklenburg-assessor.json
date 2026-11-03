@@ -1,0 +1,32 @@
+{
+  "description": "Mecklenburg County, North Carolina (Charlotte; FIPS 37119) tax parcel and CAMA data for the FactLot Registry collector. See docs/registry/data-policy.md and the review record in docs/registry/sources/nc-mecklenburg-assessor.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "nc-mecklenburg-assessor",
+      "publisher": "Mecklenburg County Geospatial Information Services (data from the County Assessor's Office)",
+      "landing_pages": [
+        "https://maps.mecklenburgcountync.gov/opendata/data.json",
+        "https://gis.mecknc.gov/data-center"
+      ],
+      "allowed_hosts": ["maps.mecklenburgcountync.gov", "gis.mecknc.gov"],
+      "link_patterns": ["/opendata/[A-Za-z_]+\\.(zip|pdf)$"],
+      "files": [
+        "https://maps.mecklenburgcountync.gov/opendata/Cama_Table.zip",
+        "https://maps.mecklenburgcountync.gov/opendata/OwnerInfo_Table.zip",
+        "https://maps.mecklenburgcountync.gov/opendata/Parcel_LandUseCodes.pdf"
+      ],
+      "verified": true,
+      "terms_url": "https://gis.mecknc.gov/data-center",
+      "license": "Open data (publisher's statement on gis.mecknc.gov/data-center: the data is accessible to everyone, in open non-proprietary formats, and 'You have the right to redistribute the data' and 'to modify and make derivative data and works'); public record under N.C. Gen. Stat. ch. 132. The same page's liability disclaimer says the County 'does not support secondary distribution of this data' (no support, not a prohibition) and the legacy FGDC metadata (2004) says the data 'cannot be resold in their present form'",
+      "ai_use": "robots.txt on maps.mecklenburgcountync.gov carries a Cloudflare-managed Content-Signal: search=yes, ai-train=no, use=reference. The publisher reserves rights against AI training; use as reference input is signalled as allowed. The registry does not train models on this data",
+      "redistribution": "Permitted (explicit open-data statement); attribution: Mecklenburg County GIS / County Assessor's Office. Not for resale in present form",
+      "reviewed": "2026-11-02",
+      "notes": "The Open Mapping data page (maps.mecklenburgcountync.gov/openmapping/data.html) is a JavaScript app that reads the JSON listing used here as the landing page; file names in the listing are bare names ('csv': 'Cama_Table.zip') relative to https://maps.mecklenburgcountync.gov/opendata/, so discover reports no links and the files are confirmed by hand (HEAD on 2026-11-02: Cama_Table.zip 87,620,621 bytes, OwnerInfo_Table.zip 44,333,737 bytes, Parcel_LandUseCodes.pdf 157,464 bytes). The host serves about 10-20 KB/s to the collector, so a full snapshot takes about two hours. Cama_Table.zip is 'Tax Parcel CAMA Data' (one row per parcel and building, current assessed values, owner, land-use code); OwnerInfo_Table.zip is 'Tax Parcel Ownership Data' (one row per parcel, which the publisher says to use for value summaries); Parcel_LandUseCodes.pdf is the publisher's land-use code table. Both tables are updated weekly (listing shows the update date). Historical parcel data is on mecksusftp001.blob.core.windows.net (Azure blob; not catalogued). The ArcGIS feature services (meckgis.mecklenburgcountync.gov/server/rest/services/TaxParcel_camadata/FeatureServer/0, maxRecordCount 2000) carry the same columns but are not used. robots.txt: Allow / for generic agents with the Content-Signal above; named AI training crawlers are disallowed (the FactLot bot is not among them)."
+    }
+  ]
+}
