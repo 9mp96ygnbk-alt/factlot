@@ -229,6 +229,51 @@ counties first, then the other 20 counties and Baltimore City alphabetically, ea
   Baltimore City ids with a space or a letter, and St. Mary's and Queen Anne's rows, load as distinct
   parcels in the right county.
 
+## Statewide full load (2026-11-03)
+
+Release `data-2026-11-03-41618090881` (draft, maintainers only) of `9mp96ygnbk-alt/factlot`: 21 jurisdiction CSVs (`md-sdat-real-property__<sha16>__ed4q-f8tm.csv`, 18,527,445 bytes in all) and the source's manifest, downloaded with `gh release download` into an empty directory and read as untrusted data (`python3 -I`, scripts kept outside the directory). Each file's sha256 was checked against the manifest (and its byte size and document id), and its first 16 hex characters against the name: 21 of 21 matched. The manifest also lists 3 archived entries that are in the earlier release `data-2026-11-03-41603209834` (the Full load above), not in this one. A file's document id is `fl:document:sha256-` plus its sha256; its first 16 characters are the `sha16` column. Loaded into the same Tier 2 scratch registry as the Full load, after it; `purge_person_owners()` and `link_owners()` were then run once for all five statewide sources together.
+
+Command, once per file (no `--full-roll`):
+
+```
+PYTHONPATH=python/src python3 -m factlot.registry.adapters.md_sdat <jurisdiction csv> registry.db --as-of 2026-10-05 --retrieved-at <manifest checked_at>
+```
+
+- Rows read: 70,158 data rows in the 21 files; 8 accounts with a deletion date are skipped (Baltimore City 5, Anne Arundel 3), which is the whole difference from the publisher's in-scope counts recorded in the statewide extension (Baltimore City 14,837, Anne Arundel 9,049); every other jurisdiction equals its publisher count.
+- Parcels kept: **70,150** distinct commercial parcels in 21 jurisdictions (`B` 6,449, `F1` 55,608, `F2` 8,093).
+- With the three Tier 2 counties the whole state is loaded: 109,245 parcels in 24 jurisdictions (11,752 `B`, 81,510 `F1`, 15,983 `F2`), against the publisher's 109,255 accounts (10 deletions skipped: the 8 above and Montgomery's 2).
+- Facts written: 566,190. Adapter seconds: 82.8. Invalid ids, errors, retired: 0, 0, 0.
+- Organisation owners stored: 0; natural persons or withheld owners not stored: 0. The source carries no owner, so none is stored or counted as withheld.
+- Ownership links to registered entities after `link_owners()`: 0.
+- Baltimore City's ids with a space or a letter loaded as distinct parcels (the 14,832 parcels equal its kept records).
+
+By jurisdiction:
+
+| County (FIPS)          |    Parcels |       `B` |       `F1` |      `F2` | Organisation owners | Ownership links | Asset sha16        |
+| ---------------------- | ---------: | --------: | ---------: | --------: | ------------------: | --------------: | ------------------ |
+| Allegany (24001)       |      3,433 |       385 |      2,703 |       345 |                   0 |               0 | `ae1202c3c38b5778` |
+| Anne Arundel (24003)   |      9,046 |       277 |      7,671 |     1,098 |                   0 |               0 | `a00e23770a65a971` |
+| Calvert (24009)        |      1,042 |        25 |        867 |       150 |                   0 |               0 | `d8051a8ebc382092` |
+| Caroline (24011)       |        891 |        90 |        669 |       132 |                   0 |               0 | `fddc2a6bda1544d1` |
+| Carroll (24013)        |      3,318 |       474 |      2,517 |       327 |                   0 |               0 | `9445b060eb92e0cd` |
+| Cecil (24015)          |      2,605 |       112 |      2,274 |       219 |                   0 |               0 | `1add8195ffc047aa` |
+| Charles (24017)        |      3,044 |        95 |      2,586 |       363 |                   0 |               0 | `6c8c5f2d4c4420ee` |
+| Dorchester (24019)     |      1,131 |        25 |        925 |       181 |                   0 |               0 | `9bd93c07dbef29d8` |
+| Frederick (24021)      |      4,353 |       353 |      3,440 |       560 |                   0 |               0 | `5f2f461fc4d7b47e` |
+| Garrett (24023)        |      1,445 |        46 |      1,377 |        22 |                   0 |               0 | `0ddceaad742803be` |
+| Harford (24025)        |      3,735 |       243 |      3,130 |       362 |                   0 |               0 | `85ca0a47df53a90b` |
+| Howard (24027)         |      4,226 |       198 |      3,238 |       790 |                   0 |               0 | `5473251dac200338` |
+| Kent (24029)           |        676 |        22 |        649 |         5 |                   0 |               0 | `32539cbbb7b390f7` |
+| Queen Anne's (24035)   |      1,528 |        46 |      1,472 |        10 |                   0 |               0 | `0005064ae3fc02a4` |
+| St. Mary's (24037)     |      1,945 |       169 |      1,681 |        95 |                   0 |               0 | `d1022ebf21e56a6a` |
+| Somerset (24039)       |        994 |        46 |        948 |         0 |                   0 |               0 | `e9594a4026b7e06c` |
+| Talbot (24041)         |      1,418 |        89 |      1,260 |        69 |                   0 |               0 | `442ae0fd1b50171b` |
+| Washington (24043)     |      3,690 |       660 |      2,670 |       360 |                   0 |               0 | `66f7a584704e5f46` |
+| Wicomico (24045)       |      3,204 |       303 |      2,452 |       449 |                   0 |               0 | `2ef90ca2527d5bb3` |
+| Worcester (24047)      |      3,594 |       296 |      3,109 |       189 |                   0 |               0 | `09117ee71a92fcc4` |
+| Baltimore City (24510) |     14,832 |     2,495 |      9,970 |     2,367 |                   0 |               0 | `6c4ba70b4ff75d7f` |
+| **All 21 counties**    | **70,150** | **6,449** | **55,608** | **8,093** |               **0** |           **0** |                    |
+
 ## Known gaps
 
 - **No owners.** See Gates. Maryland parcels cannot be linked to entities from this source, so the

@@ -237,6 +237,100 @@ up to the county's count.
   literal `x`, Milwaukee unchanged); county-qualified accounts; the doubled redaction and the `UNKNOWN`
   placeholder; a Brown file loading the two ids as two parcels.
 
+## Statewide full load (2026-11-03)
+
+Release `data-2026-11-03-41618090881` (draft, maintainers only) of `9mp96ygnbk-alt/factlot`: 121 ArcGIS query pages (`wi-statewide-parcels__<sha16>__query`, 92,297,713 bytes in all) and the source's manifest, downloaded with `gh release download` into an empty directory and read as untrusted data (`python3 -I`, scripts kept outside the directory). Each file's sha256 was checked against the manifest (and its byte size and document id), and its first 16 hex characters against the name: 121 of 121 matched. The manifest also lists 9 archived entries that are in the earlier release `data-2026-11-03-41603209834` (the Full load above), not in this one. A file's document id is `fl:document:sha256-` plus its sha256; its first 16 characters are the `sha16` column. The pages are in the manifest's order (county by county, offsets ascending). Loaded into the same Tier 2 scratch registry as the Full load, after it; `purge_person_owners()` and `link_owners()` were then run once for all five statewide sources together.
+
+Command, one call for all 121 pages so that a parcel id repeated across pages is dropped once (the adapter never retires):
+
+```
+PYTHONPATH=python/src python3 -m factlot.registry.adapters.wi_statewide <121 page files in manifest order> registry.db --as-of 2026-06-30 --retrieved-at <manifest checked_at>
+```
+
+- Features read: 169,412 in the 121 pages; 238 repeated parcel ids dropped (the same repeats the statewide extension found in the publisher's data: 169,412 rows for 169,174 distinct parcels).
+- Parcels kept: **169,174** distinct commercial parcels in 71 counties (`F1` 160,109, `F2` 9,065; Wisconsin's classes 2 and 3 map to no `B`). Every county's count equals the distinct-parcel count recorded in the statewide extension.
+- With Milwaukee the whole state is loaded: 185,754 parcels in 72 counties, 124,561 with an organisation owner of record and 427 ownership links.
+- Facts written: 1,528,624. Adapter seconds: 265.2. Invalid ids, errors, retired: 0, 0, 0.
+- Organisation owners stored (parcels with a current owner-of-record fact): 112,797; natural persons or withheld owners not stored (names not kept): 56,353. Dane's and Kenosha's withheld owners are in the second figure.
+- Ownership links to registered entities after `link_owners()`: 401 (the only entity registry in the scratch file is `ct-sos-entities`).
+
+By county (county from `CONAME`, as fixed in the statewide extension):
+
+| County (FIPS)       |   Pages | Features read |     Parcels |        `F1` |      `F2` | Organisation owners | Ownership links |
+| ------------------- | ------: | ------------: | ----------: | ----------: | --------: | ------------------: | --------------: |
+| Adams (55001)       |       1 |           721 |         721 |         699 |        22 |                 457 |               0 |
+| Ashland (55003)     |       1 |           834 |         834 |         796 |        38 |                 496 |               0 |
+| Barron (55005)      |       2 |         2,331 |       2,331 |       2,217 |       114 |               1,396 |               9 |
+| Bayfield (55007)    |       1 |         1,072 |       1,072 |       1,060 |        12 |                 498 |               1 |
+| Brown (55009)       |       4 |         7,212 |       7,212 |       6,745 |       467 |               5,661 |              29 |
+| Buffalo (55011)     |       1 |           765 |         765 |         731 |        34 |                 377 |               0 |
+| Burnett (55013)     |       1 |           799 |         799 |         772 |        27 |                 388 |               0 |
+| Calumet (55015)     |       1 |         1,558 |       1,547 |       1,450 |        97 |               1,140 |               1 |
+| Chippewa (55017)    |       2 |         2,712 |       2,712 |       2,538 |       174 |               1,795 |              14 |
+| Clark (55019)       |       1 |         1,561 |       1,561 |       1,420 |       141 |                 828 |               0 |
+| Columbia (55021)    |       2 |         2,485 |       2,485 |       2,362 |       123 |               1,694 |               3 |
+| Crawford (55023)    |       1 |           916 |         916 |         867 |        49 |                 570 |               0 |
+| Dane (55025)        |       8 |        14,137 |      14,137 |      13,693 |       444 |              11,036 |              45 |
+| Dodge (55027)       |       2 |         2,940 |       2,940 |       2,764 |       176 |               1,952 |               9 |
+| Door (55029)        |       2 |         2,929 |       2,929 |       2,893 |        36 |               1,589 |               0 |
+| Douglas (55031)     |       2 |         2,432 |       2,432 |       2,326 |       106 |               1,670 |               0 |
+| Dunn (55033)        |       1 |         1,504 |       1,504 |       1,427 |        77 |                 956 |               6 |
+| Eau Claire (55035)  |       2 |         3,474 |       3,474 |       3,361 |       113 |               2,612 |               1 |
+| Florence (55037)    |       1 |           272 |         272 |         260 |        12 |                 153 |               0 |
+| Fond Du Lac (55039) |       2 |         3,705 |       3,705 |       3,478 |       227 |               2,559 |              15 |
+| Forest (55041)      |       1 |           631 |         631 |         605 |        26 |                 275 |               0 |
+| Grant (55043)       |       2 |         2,367 |       2,367 |       2,294 |        73 |               1,383 |               0 |
+| Green (55045)       |       1 |         1,482 |       1,482 |       1,412 |        70 |                 875 |               0 |
+| Green Lake (55047)  |       1 |         1,109 |       1,109 |       1,055 |        54 |                 696 |               0 |
+| Iowa (55049)        |       1 |         1,195 |       1,195 |       1,143 |        52 |                 733 |               0 |
+| Iron (55051)        |       1 |           547 |         547 |         529 |        18 |                 256 |               0 |
+| Jackson (55053)     |       1 |           969 |         969 |         911 |        58 |                 571 |               3 |
+| Jefferson (55055)   |       2 |         3,013 |       3,013 |       2,856 |       157 |               2,103 |               9 |
+| Juneau (55057)      |       1 |         1,082 |       1,082 |       1,032 |        50 |                 659 |               0 |
+| Kenosha (55059)     |       3 |         4,031 |       4,031 |       3,878 |       153 |                  13 |               0 |
+| Kewaunee (55061)    |       1 |           839 |         839 |         796 |        43 |                 521 |               1 |
+| La Crosse (55063)   |       3 |         4,068 |       4,068 |       3,885 |       183 |               3,218 |               0 |
+| Lafayette (55065)   |       1 |           903 |         903 |         867 |        36 |                 434 |               0 |
+| Langlade (55067)    |       1 |           962 |         962 |         913 |        49 |                 503 |               2 |
+| Lincoln (55069)     |       1 |         1,169 |       1,169 |       1,114 |        55 |                 710 |               0 |
+| Manitowoc (55071)   |       2 |         2,917 |       2,917 |       2,680 |       237 |               1,921 |               3 |
+| Marathon (55073)    |       3 |         4,711 |       4,711 |       4,292 |       419 |               3,364 |              10 |
+| Marinette (55075)   |       1 |         1,980 |       1,980 |       1,877 |       103 |               1,130 |               0 |
+| Marquette (55077)   |       1 |           610 |         610 |         597 |        13 |                 319 |               1 |
+| Menominee (55078)   |       1 |            15 |          15 |          15 |         0 |                   9 |               0 |
+| Monroe (55081)      |       1 |         1,762 |       1,762 |       1,650 |       112 |               1,118 |               0 |
+| Oconto (55083)      |       1 |         1,700 |       1,700 |       1,596 |       104 |                 851 |               4 |
+| Oneida (55085)      |       2 |         2,393 |       2,393 |       2,342 |        51 |               1,413 |               1 |
+| Outagamie (55087)   |       3 |         5,867 |       5,734 |       5,286 |       448 |               4,233 |              14 |
+| Ozaukee (55089)     |       2 |         2,673 |       2,673 |       2,519 |       154 |               2,050 |               3 |
+| Pepin (55091)       |       1 |           426 |         426 |         405 |        21 |                 237 |               0 |
+| Pierce (55093)      |       1 |         1,260 |       1,260 |       1,227 |        33 |                 748 |               0 |
+| Polk (55095)        |       1 |         1,836 |       1,836 |       1,710 |       126 |               1,072 |               0 |
+| Portage (55097)     |       2 |         2,380 |       2,380 |       2,259 |       121 |               1,733 |               5 |
+| Price (55099)       |       1 |           977 |         977 |         921 |        56 |                 581 |               0 |
+| Racine (55101)      |       3 |         5,164 |       5,095 |       4,811 |       284 |               3,619 |               1 |
+| Richland (55103)    |       1 |           657 |         657 |         627 |        30 |                 367 |               0 |
+| Rock (55105)        |       3 |         4,324 |       4,324 |       4,099 |       225 |               3,082 |              52 |
+| Rusk (55107)        |       1 |           860 |         860 |         818 |        42 |                 411 |               0 |
+| St Croix (55109)    |       2 |         3,057 |       3,057 |       2,908 |       149 |               2,216 |               0 |
+| Sauk (55111)        |       3 |         4,305 |       4,305 |       4,178 |       127 |               2,927 |               4 |
+| Sawyer (55113)      |       1 |         1,721 |       1,721 |       1,697 |        24 |                 918 |               0 |
+| Shawano (55115)     |       1 |         1,721 |       1,696 |       1,615 |        81 |                 918 |               4 |
+| Sheboygan (55117)   |       2 |         3,669 |       3,669 |       3,419 |       250 |               2,667 |              61 |
+| Taylor (55119)      |       1 |           887 |         887 |         844 |        43 |                 516 |               0 |
+| Trempealeau (55121) |       1 |         1,607 |       1,607 |       1,458 |       149 |                 997 |               0 |
+| Vernon (55123)      |       1 |         1,153 |       1,153 |       1,103 |        50 |                 637 |               0 |
+| Vilas (55125)       |       1 |         1,726 |       1,726 |       1,690 |        36 |                 969 |               7 |
+| Walworth (55127)    |       2 |         3,772 |       3,772 |       3,579 |       193 |               2,739 |               1 |
+| Washburn (55129)    |       1 |           930 |         930 |         895 |        35 |                 469 |               0 |
+| Washington (55131)  |       2 |         3,482 |       3,482 |       3,167 |       315 |               2,626 |               5 |
+| Waukesha (55133)    |       5 |         8,981 |       8,981 |       8,195 |       786 |               7,363 |              42 |
+| Waupaca (55135)     |       2 |         2,095 |       2,095 |       1,983 |       112 |               1,290 |               4 |
+| Waushara (55137)    |       1 |         1,107 |       1,107 |       1,080 |        27 |                 590 |               0 |
+| Winnebago (55139)   |       3 |         5,286 |       5,286 |       4,912 |       374 |               4,096 |              27 |
+| Wood (55141)        |       2 |         2,675 |       2,675 |       2,506 |       169 |               1,824 |               4 |
+| **All 71 counties** | **121** |   **169,412** | **169,174** | **160,109** | **9,065** |         **112,797** |         **401** |
+
 ## Known gaps
 
 - Only Milwaukee County has been archived and loaded so far; the other 71 counties' 121 pages are in the config

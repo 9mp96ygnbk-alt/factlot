@@ -243,6 +243,54 @@ Commercial` 301, `MIXED USE` 154, `Multi-Family` 152, `Apartments` 94, `DEFAULT`
   (Sevier and Kane pairs, Salt Lake unchanged) and two Sevier ids loading as two parcels; the command line
   does not retire a county loaded earlier.
 
+## Statewide full load (2026-11-03)
+
+Release `data-2026-11-03-41618090881` (draft, maintainers only) of `9mp96ygnbk-alt/factlot`: 23 county layer CSVs (`ut-ugrc-lir__<sha16>__csv`, 334,569,204 bytes in all) and the source's manifest, downloaded with `gh release download` into an empty directory and read as untrusted data (`python3 -I`, scripts kept outside the directory). Each file's sha256 was checked against the manifest (and its byte size and document id), and its first 16 hex characters against the name: 23 of 23 matched. The manifest also lists 2 archived entries that are in the earlier release `data-2026-11-03-41603209834` (the Full load above), not in this one. A file's document id is `fl:document:sha256-` plus its sha256; its first 16 characters are the `sha16` column. Loaded into the same Tier 2 scratch registry as the Full load, after it; `purge_person_owners()` and `link_owners()` were then run once for all five statewide sources together.
+
+**Garfield was not loaded.** Its layer answered `not_ready` (HTTP 202, "export being generated") when the collector ran, so it is not in this release; the weekly collector archives it next time. Utah is therefore loaded for 25 of its 29 counties: Salt Lake and Utah County (Full load), the 23 below, and not Garfield (197 in-scope rows, 188 parcels expected), Carbon, Emery or San Juan (left out in the statewide extension).
+
+Command, once per county file, with that layer's own `Current As Of` date from the statewide extension table (the as-of column below); no `--full-roll`, which is the default:
+
+```
+PYTHONPATH=python/src python3 -m factlot.registry.adapters.ut_ugrc <county csv> registry.db --as-of <layer's Current As Of> --retrieved-at <manifest checked_at>
+```
+
+- Rows read: 1,009,795 data rows in the 23 files; 20,675 rows with a blank `Parcel ID` are dropped by the reader and 943,269 are out of scope. In-scope rows kept: 45,851 (the publisher's 46,048 for 24 counties less Garfield's 197).
+- Parcels kept: **31,667** distinct commercial parcels in 23 counties (the publisher's 31,855 less Garfield's 188; every county equals its distinct-parcel count in the statewide extension). Category columns count each parcel once per category it has; Davis has 4 parcels with rows in two categories, Washington has 45 parcels with rows in two categories, so the three columns add up to 31,716, 49 more than the parcels.
+- With Salt Lake and Utah County: 76,062 parcels in 25 counties (19,637 `B`, 52,286 `F1`, 4,188 `F2`).
+- Facts written: 239,283. Adapter seconds: 42.8. Invalid ids, errors, retired: 0, 0, 0.
+- Organisation owners stored: 0; natural persons or withheld owners not stored: 0. The LIR schema carries no owner.
+- Ownership links to registered entities after `link_owners()`: 0.
+
+By county:
+
+| County (FIPS)       | As-of      |     Rows read |  Blank ids | In-scope rows | Distinct parcels |       `B` |       `F1` |    `F2` | Organisation owners | Ownership links | Asset sha16        |
+| ------------------- | ---------- | ------------: | ---------: | ------------: | ---------------: | --------: | ---------: | ------: | ------------------: | --------------: | ------------------ |
+| Beaver (49001)      | 2025-10-23 |        11,406 |         97 |           208 |              168 |         0 |        168 |       0 |                   0 |               0 | `76b67f0ad8f3b61a` |
+| Box Elder (49003)   | 2020-07-17 |        46,730 |          0 |         1,019 |            1,019 |         0 |      1,019 |       0 |                   0 |               0 | `b37ea2620209d256` |
+| Cache (49005)       | 2026-10-13 |        76,763 |          0 |         2,759 |            2,092 |         0 |      2,092 |       0 |                   0 |               0 | `e0709938d6899cc6` |
+| Daggett (49009)     | 2024-07-17 |         5,217 |          0 |           229 |               97 |         0 |         97 |       0 |                   0 |               0 | `b99fd55abe8e0d85` |
+| Davis (49011)       | 2025-11-26 |       152,563 |          0 |         6,203 |            2,583 |       582 |      2,004 |       1 |                   0 |               0 | `450b63313a114e78` |
+| Duchesne (49013)    | 2025-10-23 |        46,443 |         33 |           616 |              546 |         0 |        546 |       0 |                   0 |               0 | `58c4f61d499daa6e` |
+| Grand (49019)       | 2025-10-23 |        12,029 |          1 |            74 |               62 |         0 |         62 |       0 |                   0 |               0 | `c40c469ce135c38e` |
+| Iron (49021)        | 2024-07-18 |        68,965 |      1,517 |         7,116 |            6,239 |     3,935 |      2,197 |     107 |                   0 |               0 | `ecb205db5f1eef1c` |
+| Juab (49023)        | 2025-11-26 |        15,259 |      4,222 |           360 |              359 |         0 |        359 |       0 |                   0 |               0 | `fd1e7632d512d0d3` |
+| Kane (49025)        | 2026-10-13 |        29,136 |         96 |           521 |              258 |         0 |        258 |       0 |                   0 |               0 | `339b2f74d2d29336` |
+| Millard (49027)     | 2025-10-23 |        27,255 |          1 |           616 |              368 |         0 |        368 |       0 |                   0 |               0 | `538667ca6d68bc53` |
+| Morgan (49029)      | 2026-10-05 |        14,072 |          0 |           275 |              160 |         0 |        160 |       0 |                   0 |               0 | `ea9244c72452ad15` |
+| Piute (49031)       | 2026-10-13 |         4,851 |         61 |           108 |               66 |         0 |         66 |       0 |                   0 |               0 | `d416e03c47678a15` |
+| Rich (49033)        | 2026-10-13 |        18,027 |        105 |           548 |              281 |         0 |        281 |       0 |                   0 |               0 | `b3dc9c4c2146345c` |
+| Sanpete (49039)     | 2025-10-23 |        12,976 |         70 |            33 |               31 |         0 |         31 |       0 |                   0 |               0 | `513ee587e9b7fdbe` |
+| Sevier (49041)      | 2025-10-23 |        31,819 |          0 |         1,037 |              582 |         0 |        582 |       0 |                   0 |               0 | `388e17efd6951fa6` |
+| Summit (49043)      | 2025-11-26 |        37,294 |      2,426 |         1,169 |            1,169 |         0 |      1,169 |       0 |                   0 |               0 | `5506b183b947ee76` |
+| Tooele (49045)      | 2025-10-23 |        45,656 |         38 |         1,176 |              617 |         0 |        617 |       0 |                   0 |               0 | `18ac7a9b0c7fbf19` |
+| Uintah (49047)      | 2025-10-23 |        24,059 |        391 |         2,016 |            1,937 |     1,144 |        452 |     341 |                   0 |               0 | `abecec0e094119df` |
+| Wasatch (49051)     | 2024-10-31 |        31,843 |          5 |           894 |              887 |         0 |        887 |       0 |                   0 |               0 | `7cf1c0b26a5ed2ab` |
+| Washington (49053)  | 2026-09-30 |       137,523 |     10,595 |        12,704 |            8,400 |     3,896 |      4,549 |       0 |                   0 |               0 | `9eb5ee5453ebe987` |
+| Wayne (49055)       | 2025-10-23 |         6,746 |         88 |           367 |              117 |         0 |        117 |       0 |                   0 |               0 | `d39e94702d7fea5d` |
+| Weber (49057)       | 2026-09-29 |       153,163 |        929 |         5,803 |            3,629 |         0 |      3,629 |       0 |                   0 |               0 | `6ce8e2883a99dc71` |
+| **All 23 counties** |            | **1,009,795** | **20,675** |    **45,851** |       **31,667** | **9,557** | **21,710** | **449** |               **0** |           **0** |                    |
+
 ## Known gaps
 
 - No owner of record. Owner names are on the counties' own web searches (Utah County also exposes a map

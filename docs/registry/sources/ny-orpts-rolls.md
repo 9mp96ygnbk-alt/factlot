@@ -248,6 +248,83 @@ other 52 counties alphabetically, each the same filtered SODA CSV with another `
 - Rockland's in-scope count is dominated by class 411 and 413 (`B` 11,024 of 14,438), like
   Westchester's; see Known gaps.
 
+## Statewide full load (2026-11-03)
+
+Release `data-2026-11-03-41618090881` (draft, maintainers only) of `9mp96ygnbk-alt/factlot`: 52 county CSVs (`ny-orpts-rolls__<sha16>__7vem-aaz7.csv`, 36,036,217 bytes in all) and the source's manifest, downloaded with `gh release download` into an empty directory and read as untrusted data (`python3 -I`, scripts kept outside the directory). Each file's sha256 was checked against the manifest (and its byte size and document id), and its first 16 hex characters against the name: 52 of 52 matched. The manifest also lists 5 archived entries that are in the earlier release `data-2026-11-03-41603209834` (the Full load above), not in this one. A file's document id is `fl:document:sha256-` plus its sha256; its first 16 characters are the `sha16` column. Loaded into the same Tier 2 scratch registry as the Full load, after it; `purge_person_owners()` and `link_owners()` were then run once for all five statewide sources together.
+
+Command, once per county file (no `--full-roll`, because the source is 57 files):
+
+```
+PYTHONPATH=python/src python3 -m factlot.registry.adapters.ny_orpts <county csv> registry.db --as-of 2026-04-24 --tax-year 2025 --retrieved-at <manifest checked_at>
+```
+
+- Rows read: 157,400 data rows in the 52 files (the publisher's class 4xx/7xx count for these counties, as recorded in the statewide extension); the adapter drops classes 410, 412 and the 730-749 range at read time, so its records equal the parcels kept.
+- Parcels kept: **150,008** distinct commercial parcels in 52 counties (`B` 41,576, `F1` 101,063, `F2` 7,369). Every county's count equals the in-scope count recorded in the statewide extension.
+- With the five Tier 2 counties the whole state outside New York City is loaded: 275,995 parcels in 57 counties (88,565 `B`, 173,706 `F1`, 13,724 `F2`), 151,710 with an organisation owner of record and 912 ownership links.
+- Facts written: 1,062,937. Adapter seconds: 123.4. Invalid ids, errors, retired: 0, 0, 0.
+- Organisation owners stored (parcels with a current owner-of-record fact): 82,201; natural persons or withheld owners not stored (names not kept): 67,806.
+- Ownership links to registered entities after `link_owners()`: 585 (the only entity registry in the scratch file is `ct-sos-entities`).
+
+By county (parcels are distinct commercial parcels; organisation owners are parcels with an organisation as owner of record; links are parcels linked to a registered entity):
+
+| County (FIPS)       |     Parcels |        `B` |        `F1` |      `F2` | Organisation owners | Ownership links | Asset sha16        |
+| ------------------- | ----------: | ---------: | ----------: | --------: | ------------------: | --------------: | ------------------ |
+| Albany (36001)      |       8,310 |      2,502 |       5,666 |       142 |               5,106 |              26 | `47916b131d8ec16d` |
+| Allegany (36003)    |       1,138 |        133 |         917 |        88 |                 484 |               2 | `cf7a1140c89765ee` |
+| Broome (36007)      |       5,311 |      1,195 |       3,794 |       322 |               3,454 |              24 | `b708b559bf106f87` |
+| Cattaraugus (36009) |       2,228 |        399 |       1,663 |       166 |               1,085 |               5 | `9a22d645e9d46536` |
+| Cayuga (36011)      |       1,578 |        260 |       1,222 |        96 |                 875 |               3 | `84bc2806d8d731c8` |
+| Chautauqua (36013)  |       4,155 |        555 |       3,296 |       304 |               2,163 |               8 | `c95db8504875c781` |
+| Chemung (36015)     |       2,179 |        380 |       1,656 |       143 |               1,274 |               8 | `acf4f4e55a8c6399` |
+| Chenango (36017)    |       1,303 |        189 |       1,004 |       110 |                 630 |               6 | `235aaab8d07084cb` |
+| Clinton (36019)     |       2,158 |        451 |       1,603 |       104 |               1,203 |               0 | `c240c03b5a5210c0` |
+| Columbia (36021)    |       1,805 |        255 |       1,476 |        74 |               1,139 |              19 | `ea9534b887881a1f` |
+| Cortland (36023)    |       1,406 |        303 |       1,002 |       101 |                 893 |              26 | `bd53e9602fc9b2d2` |
+| Delaware (36025)    |       1,520 |        205 |       1,219 |        96 |                 753 |              13 | `794911d7dee7d76d` |
+| Dutchess (36027)    |       7,530 |      3,515 |       3,855 |       160 |               4,065 |              61 | `d5b24ae242be0a93` |
+| Essex (36031)       |       1,311 |        159 |       1,066 |        86 |                 718 |               0 | `b50c6dff2d4f432d` |
+| Franklin (36033)    |       1,211 |        188 |         958 |        65 |                 602 |               3 | `f1b3e6a44add3021` |
+| Fulton (36035)      |       1,578 |        200 |       1,271 |       107 |                 780 |               6 | `5982c2adcabe510c` |
+| Genesee (36037)     |       1,528 |        185 |       1,196 |       147 |                 988 |               2 | `f3ed25d66a5fa62f` |
+| Greene (36039)      |       2,050 |        725 |       1,275 |        50 |                 986 |               7 | `d9338e92bef4dc72` |
+| Hamilton (36041)    |         276 |         13 |         247 |        16 |                 134 |               1 | `1554a509708c850e` |
+| Herkimer (36043)    |       1,675 |        261 |       1,268 |       146 |                 793 |               7 | `e2b5241693d806a3` |
+| Jefferson (36045)   |       2,872 |        454 |       2,230 |       188 |               1,685 |               6 | `63a30771f4e137c1` |
+| Lewis (36049)       |         567 |         63 |         454 |        50 |                 279 |               2 | `2669a8f73b1b875a` |
+| Livingston (36051)  |       1,403 |        232 |       1,082 |        89 |                 797 |               8 | `c4e41b38ba0be695` |
+| Madison (36053)     |       1,582 |        274 |       1,234 |        74 |                 875 |               7 | `623580039b6a56ed` |
+| Montgomery (36057)  |       1,440 |        305 |       1,027 |       108 |                 747 |               6 | `42432bce16191b78` |
+| Niagara (36063)     |       5,781 |      1,389 |       4,009 |       383 |               3,099 |              24 | `b74ee6238b1d7c64` |
+| Oneida (36065)      |       6,222 |      1,441 |       4,473 |       308 |               3,182 |              21 | `9af99d122858fda4` |
+| Onondaga (36067)    |      11,033 |      2,752 |       7,833 |       448 |               6,997 |              49 | `d290c75eeea65615` |
+| Ontario (36069)     |       2,781 |        635 |       1,938 |       208 |               1,737 |              18 | `da1c1733f5143294` |
+| Orange (36071)      |       7,727 |      1,577 |       5,862 |       288 |               5,207 |              35 | `b51e2f8398aa8fac` |
+| Orleans (36073)     |         827 |        168 |         590 |        69 |                 430 |               0 | `a197a33e26b620d2` |
+| Oswego (36075)      |       2,637 |        368 |       2,086 |       183 |               1,418 |               5 | `dfbc5864a2dd422c` |
+| Otsego (36077)      |       1,637 |        283 |       1,299 |        55 |                 850 |               9 | `ca2a05b0253aed88` |
+| Putnam (36079)      |       1,314 |        147 |       1,128 |        39 |                 987 |              11 | `881f292b972b6312` |
+| Rensselaer (36083)  |       3,649 |      1,079 |       2,447 |       123 |               2,143 |              21 | `821c6f8bab82071e` |
+| Rockland (36087)    |      14,438 |     11,024 |       3,253 |       161 |               4,501 |               7 | `4236cb1446cf5859` |
+| St Lawrence (36089) |       3,096 |        339 |       2,211 |       546 |               1,533 |               3 | `17e6397a2964d0a0` |
+| Saratoga (36091)    |       4,496 |      1,354 |       2,938 |       204 |               2,654 |              19 | `e5027e274cc5ad11` |
+| Schenectady (36093) |       3,164 |        832 |       2,232 |       100 |               1,829 |              11 | `48d62a3c8d746712` |
+| Schoharie (36095)   |         793 |        142 |         585 |        66 |                 408 |               5 | `6f086aea7b633ee3` |
+| Schuyler (36097)    |         464 |         53 |         386 |        25 |                 264 |               1 | `432ebe9c061d8505` |
+| Seneca (36099)      |         774 |         98 |         641 |        35 |                 409 |               1 | `06624bf5c7ef3429` |
+| Steuben (36101)     |       2,344 |        355 |       1,847 |       142 |               1,190 |              20 | `5c40cfb01a3b6839` |
+| Sullivan (36105)    |       3,157 |      1,051 |       2,029 |        77 |               1,646 |               7 | `4616fa024f6cb647` |
+| Tioga (36107)       |       1,076 |        142 |         863 |        71 |                 534 |               7 | `1ab2f4fa4ffaa200` |
+| Tompkins (36109)    |       2,511 |      1,042 |       1,381 |        88 |               1,553 |               8 | `c8eadd2ca0fcc8dd` |
+| Ulster (36111)      |       4,540 |        934 |       3,429 |       177 |               2,836 |              10 | `4290060e45795921` |
+| Warren (36113)      |       2,314 |        315 |       1,916 |        83 |               1,495 |              11 | `a28659e7536b40ba` |
+| Washington (36115)  |       1,486 |        227 |       1,084 |       175 |                 786 |               9 | `a6ef3c08c7de0d43` |
+| Wayne (36117)       |       2,093 |        228 |       1,691 |       174 |               1,206 |              13 | `2f53deae50f38c93` |
+| Wyoming (36121)     |         909 |        111 |         734 |        64 |                 497 |               2 | `8e3097665b919574` |
+| Yates (36123)       |         631 |         89 |         497 |        45 |                 302 |               2 | `5bf973e6d3240b4a` |
+| **All 52 counties** | **150,008** | **41,576** | **101,063** | **7,369** |          **82,201** |         **585** |                    |
+
+- Seconds are the adapter's wall time for the final pass over the 52 files. A first pass over the first six counties was cut short by a closed pipe in the loading wrapper, not by the adapter, and the files were loaded again in full; reloading is idempotent (no duplicate facts or snapshots), and the facts figure above is counted from the registry.
+
 ## Known gaps
 
 - No building area, year built or lot area: the roll has `front` and `depth` only, which are not an

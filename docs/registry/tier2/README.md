@@ -77,19 +77,35 @@ only entity registry loaded; owner linking for the other states waits on their e
 
 Statewide sources found along the way cover far more than the 61 counties. Five of them, already
 verified, were **extended statewide on 2026-11-03** (configuration, adapter fixes and tests; no new
-terms review, since each licence covers the whole state). Each review record has a "Statewide
-extension (2026-11-03)" section with the county list cited from the publisher's own data, the URL
-checks (one small request per new file) and the publisher's counts; the files are archived by the next
-weekly collector run and are not loaded yet. Counts are in-scope commercial parcels (`B`, `F1`, `F2`)
-from the publishers' query services.
+terms review, since each licence covers the whole state) and **loaded in full the same day** from the
+draft release `data-2026-11-03-41618090881`: every file the weekly collector archived for the added
+counties and towns went into the scratch registry of the Full load above, then `purge_person_owners()`
+and `link_owners()` ran once. Each review record has a "Statewide extension (2026-11-03)" section with
+the county list cited from the publisher's own data and a "Statewide full load (2026-11-03)" section with
+the command and a per-county table of counts (MassGIS also per town). Counts are distinct commercial
+parcels (`B`, `F1`, `F2`) in the counties added by the extension; the last column is the whole state
+with the Tier 2 counties loaded earlier.
 
-| Source                  | Files in config                               | Counties added                                                      | In-scope (publisher's counts)                                                 |
-| ----------------------- | --------------------------------------------- | ------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| `ny-orpts-rolls`        | 57 (one per county outside New York City)     | 52                                                                  | 275,995 statewide; 150,008 in the 52 new counties                             |
-| `ma-massgis-parcels`    | 350 town files (every town but Boston)        | 174 towns in the other 10 counties, incl. Chelsea, Revere, Winthrop | no query service; 1,015,459 assessor records (all classes) in the added towns |
-| `ut-ugrc-lir`           | 26 county layers                              | 24 (Carbon, Emery and San Juan left out: no mappable class)         | 95,174 rows; 31,855 distinct parcels in the 24 new counties                   |
-| `wi-statewide-parcels`  | 130 pages (all 72 counties)                   | 71                                                                  | 185,754 parcels statewide; 169,174 in the 71 new counties                     |
-| `md-sdat-real-property` | 24 (every jurisdiction, incl. Baltimore City) | 21                                                                  | 109,255 accounts statewide; 70,158 in the 21 new jurisdictions                |
+| Source                  | Files in config                               | Files loaded | Counties added and loaded                                                                                    | Commercial parcels loaded in the added counties (publisher's count) | Organisation owners (added counties) | Whole state loaded: parcels; organisation owners |
+| ----------------------- | --------------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------- | ------------------------------------ | ------------------------------------------------ |
+| `ny-orpts-rolls`        | 57 (one per county outside New York City)     | 52           | 52 of 52                                                                                                     | 150,008 (150,008)                                                   | 82,201                               | 275,995 in 57 counties; 151,710                  |
+| `ma-massgis-parcels`    | 350 town files (every town but Boston)        | 174          | 174 towns of 174, in the other 10 counties, incl. Chelsea, Revere, Winthrop                                  | 56,122 (no query service; 1,015,459 assessor records, all classes)  | 35,062                               | 127,922 in 14 counties (350 towns); 82,558       |
+| `ut-ugrc-lir`           | 26 county layers                              | 23           | 23 of 24 (Garfield not ready when the collector ran; Carbon, Emery and San Juan left out: no mappable class) | 31,667 (31,855 with Garfield's 188)                                 | 0 (no owner in the file)             | 76,062 in 25 of 29 counties; 0                   |
+| `wi-statewide-parcels`  | 130 pages (all 72 counties)                   | 121          | 71 of 71                                                                                                     | 169,174 (169,174)                                                   | 112,797                              | 185,754 in 72 counties; 124,561                  |
+| `md-sdat-real-property` | 24 (every jurisdiction, incl. Baltimore City) | 21           | 21 of 21                                                                                                     | 70,150 (70,158; the adapter skips 8 deleted accounts)               | 0 (withheld by the publisher)        | 109,245 in 24 jurisdictions; 0                   |
+
+**Statewide totals (2026-11-03):** the five statewide loads added 477,121 commercial parcels
+in 177 counties, 230,060 of them with an organisation owner of record
+(`ny-orpts-rolls` 150,008, `wi-statewide-parcels` 169,174, `md-sdat-real-property`
+70,150, `ma-massgis-parcels` 56,122, `ut-ugrc-lir` 31,667). With the Full-load
+registry the scratch file now holds **1,008,126 distinct commercial parcels in 207 counties**, 436,190 with an
+organisation owner of record, and 1,305,836 Connecticut entities. Natural-person owners are not stored.
+`link_owners()` now shows 3,873 current ownership links (1,926 before), still all to Connecticut
+entities, because that is still the only entity registry loaded (1,947 of the links are in the new
+counties and towns: New York 585, Massachusetts 961, Wisconsin 401). Gaps in this load: Utah's
+Garfield (188 parcels expected) waits for the next collector run, and Carbon, Emery and San Juan have no
+mappable class; Maryland and Utah carry no owner names, so none of their parcels can be linked; Kenosha
+County, Wisconsin, withholds almost every owner (4,011 of 4,031 in-scope parcels).
 
 Adapter fixes made along the way: Wisconsin takes the county from `CONAME` (not the contributing
 county's `PARCELFIPS`, which misfiled Appleton and Menasha parcels in Calumet and Winnebago), escapes

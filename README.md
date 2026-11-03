@@ -57,7 +57,11 @@ Be clear about scope before adopting it:
   verified with adapters (Monroe, Suffolk, Nassau, Westchester and Erie NY; three Maryland
   counties; four Massachusetts counties; Denton, Williamson and Fort Bend; Milwaukee, Marion,
   Oakland, Wake, Davidson, DeKalb, Sacramento, Salt Lake, Utah County, Pierce, Multnomah, and two
-  Pennsylvania counties) and is loaded in full: 517,495 more commercial parcels, 206,130 with an organisation owner of record. Cook County, Florida, Fulton, Maricopa,
+  Pennsylvania counties) and is loaded in full. Five of its sources then covered whole states, and
+  those are loaded too (New York outside the city, Maryland, Wisconsin, Massachusetts outside
+  Boston, and 25 of Utah's 29 counties): 1,008,126 more commercial parcels in 207 counties, 436,190
+  with an organisation owner of record. The Maryland and Utah files carry no owner names, and owner
+  linking reaches only the Connecticut entities loaded so far. Cook County, Florida, Fulton, Maricopa,
   Wayne, Fairfax, King and much of California wait on a licence decision, a form or a purchase.
   Commercial, industrial and multifamily parcels only; several public files omit owner names; no
   sales prices, tenants, debt, zoning, or building specs beyond area and year built. See
