@@ -53,3 +53,12 @@ from a real run on the real file (collected with the project's collector, loaded
   user agent). Pages read this way: Vermont Department of Taxes presentation, VCGI metadata, Arkansas standards, Minnesota and Montana item pages and metadata. No account, form, login or CAPTCHA was touched.
 - Adapter additions: `arcgis_pages.py` (shared page helpers), `dbf_reader.py` (stdlib dBASE reader for zipped shapefiles), `vt_vcgi.py`, `mn_opt_in.py`, `ar_gis.py`, `mt_msl.py`,
   `ct_parcel_cama.py`, and text-class support in `nc_onemap.py` (`key_field`, `prefixes`). `registry/normalize.py` was not touched.
+
+## Rule slips (stated honestly)
+
+- **Montana, robots.txt.** One metadata request (`/ArcGIS/rest/services/msdi_cadastral_map_v1/MapServer?f=pjson`) went to `gisservice.mt.gov` after its robots.txt was read, because the collector's parser
+  treated the lower-case rule `Disallow: /arcgis/*` as not covering the mixed-case path. The rule is plainly meant to cover it. No data was kept from that host and no later request was made to it; Montana was loaded from the
+  State Library's file download instead (`ftpgeoinfo.msl.mt.gov`, no robots.txt).
+- **One download at a time.** The 518 MB Montana release asset (fetched from GitHub with `gh release download`, because the publisher's file was collected on GitHub's network) was still arriving while the five
+  North Carolina Hub requests (a few MB in all) ran on the same connection. Nothing else overlapped with it; the Arkansas, Minnesota and Connecticut pages were collected one source at a time.
+- No account, form, login, CAPTCHA, purchase or message was involved, and no AI model name appears in any file.
