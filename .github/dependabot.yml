@@ -12,6 +12,9 @@ updates:
         update-types: ["minor", "patch"]
     ignore:
       - dependency-name: "@factlot/*"
+      # Major TypeScript updates are taken deliberately: 7.x fails lint, typecheck, and the build.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
     labels: ["dependencies"]
 
   - package-ecosystem: pip
