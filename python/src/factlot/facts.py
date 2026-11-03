@@ -7,12 +7,15 @@ from datetime import date
 from typing import Any
 
 METHODS = ("public_record", "extracted", "human_verified", "computed", "reported", "inferred")
-_SUBJECT = re.compile(r"^fl:[a-z]+:[^\s:]+(?::[^\s]+)?$")
-_PREDICATE = re.compile(r"^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$")
+# Matched with fullmatch (re's `$` also matches before a trailing newline, which @factlot/schema
+# rejects), with \s spelled as ECMAScript whitespace and \d as ASCII digits, as in JavaScript.
+_JS_WS = "\t\n\v\f\r \u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff"
+_SUBJECT = re.compile(rf"fl:[a-z]+:[^{_JS_WS}:]+(?::[^{_JS_WS}]+)?")
+_PREDICATE = re.compile(r"[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+")
 
 
 def _is_date(v: Any) -> bool:
-    if not isinstance(v, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", v):
+    if not isinstance(v, str) or not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", v):
         return False
     try:
         date.fromisoformat(v)
@@ -30,9 +33,9 @@ def validate_fact(fact: Any) -> dict[str, Any]:
 
     if not isinstance(fact, dict):
         return {"valid": False, "issues": [{"path": "", "message": "expected object"}]}
-    if not isinstance(fact.get("subject"), str) or not _SUBJECT.match(fact["subject"]):
+    if not isinstance(fact.get("subject"), str) or not _SUBJECT.fullmatch(fact["subject"]):
         bad("subject", "expected a FactLot URN (fl:<kind>:...)")
-    if not isinstance(fact.get("predicate"), str) or not _PREDICATE.match(fact["predicate"]):
+    if not isinstance(fact.get("predicate"), str) or not _PREDICATE.fullmatch(fact["predicate"]):
         bad("predicate", "dotted lower_snake predicate")
     if "value" not in fact:
         bad("value", "required")

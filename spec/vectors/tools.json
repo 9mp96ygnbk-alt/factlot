@@ -159,6 +159,26 @@
       "expect_error": "InputError"
     },
     {
+      "tool": "fact_validate",
+      "arguments": {
+        "fact": {
+          "subject": "fl:parcel:us-06037:1\n",
+          "predicate": "parcel.zoning_district\n",
+          "value": "M2",
+          "as_of": "2026-11-02",
+          "provenance": {
+            "method": "computed",
+            "sources": []
+          }
+        }
+      },
+      "expect": {
+        "valid": false,
+        "issues.0.path": "subject",
+        "issues.1.path": "predicate"
+      }
+    },
+    {
       "tool": "calc_does_not_exist",
       "arguments": {},
       "expect_error": "UnknownTool"

@@ -229,6 +229,46 @@
       }
     },
     {
+      "fn": "normalize_suite",
+      "note": "U+FEFF (byte-order mark) is ECMAScript whitespace and is trimmed",
+      "input": {
+        "suite": "﻿Suite 400"
+      },
+      "expect": {
+        "value": "400"
+      }
+    },
+    {
+      "fn": "normalize_suite",
+      "note": "a no-break space separates the designator",
+      "input": {
+        "suite": "Suite 400"
+      },
+      "expect": {
+        "value": "400"
+      }
+    },
+    {
+      "fn": "normalize_suite",
+      "note": "U+001C is not ECMAScript whitespace: it is not trimmed, so the designator is not leading",
+      "input": {
+        "suite": "\u001cSTE 400"
+      },
+      "expect": {
+        "value": "ste400"
+      }
+    },
+    {
+      "fn": "normalize_suite",
+      "note": "floor numbers are ASCII digits only; an Arabic-Indic three is dropped",
+      "input": {
+        "suite": "٣rd Floor"
+      },
+      "expect": {
+        "value": "rdfloor"
+      }
+    },
+    {
       "fn": "parse",
       "input": {
         "urn": "fl:parcel:us-06037:5432001012"
@@ -280,6 +320,24 @@
       "fn": "parse",
       "input": {
         "urn": "fl:building:01jbx3k8q2v7m9c4t6w8y0a2bu"
+      },
+      "expect_error": true
+    },
+    {
+      "fn": "parcel",
+      "note": "FIPS codes are ASCII digits only",
+      "input": {
+        "state_fips": "٠٦",
+        "county_fips": "037",
+        "apn": "1"
+      },
+      "expect_error": true
+    },
+    {
+      "fn": "parse",
+      "note": "a trailing newline is not part of a URN",
+      "input": {
+        "urn": "fl:parcel:us-06037:5432001012\n"
       },
       "expect_error": true
     }

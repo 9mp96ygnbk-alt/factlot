@@ -134,6 +134,11 @@ from its commit history; nothing was published to npm or PyPI before it.
 
 ### Fixed
 
+- Python IDs and fact validation now match TypeScript on unusual input: a trailing newline no
+  longer passes `parse` or `validate_fact` (re's `$` matched before it), FIPS codes and floor
+  numbers accept ASCII digits only, and suite whitespace follows ECMAScript (a leading
+  byte-order mark is trimmed). TypeScript IDs are unchanged; new vectors in `spec/vectors`.
+
 - Python validates registry tool input before opening the registry, matching TypeScript (found
   by the shared vectors).
 - When two Texas legal holidays fall on the same date, both SDKs keep the first name.
