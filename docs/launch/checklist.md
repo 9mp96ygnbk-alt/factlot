@@ -27,7 +27,9 @@ The plan and the reasoning are in [`strategy.md`](strategy.md). Nothing here is 
 - [x] [needs the repo public] Open three `good first issue` issues taken from `docs/BACKLOG.md` so a visitor has a place to start. **Status 2026-11-03: done (#27, #28, #29).**
 - [x] [needs the repo public] Create release `v0.1.0` with `dist/factlot.mcpb` attached (use `docs/release-process.md`; without npm and PyPI accounts the workflow stops early, so attach the file by hand). Note the asset URL. **Status 2026-11-03: done: https://github.com/9mp96ygnbk-alt/factlot/releases/tag/v0.1.0 (release.yml skips npm/PyPI with a notice until A5).**
 - [x] [needs the repo public] Check the first-screen README renders: tagline, early-access line, quick start from GitHub. **Status 2026-11-03: done: the README now leads with the one-line install.**
-- [ ] [needs the repo public] Upload a social preview image (Settings, General, Social preview) so links look right on LinkedIn and X. The image is not part of this kit.
+- [ ] [founder posts it] Upload the social preview image (Settings, General, Social preview) so links look right on LinkedIn and X. **Status 2026-11-03: the image is ready at `docs/launch/assets/social-preview.png` (1280x640); GitHub accepts it only through the website.**
+- [ ] [founder posts it] In Cloudflare, turn off Browser Integrity Check for `api.factlot.com` (Security, Settings, or a Configuration Rule for that hostname). **Status 2026-11-03: it returns error 1010 to Python's default `urllib` user agent, which agents commonly use; curl, requests and Node pass.**
+- [ ] [founder posts it] Merge the Dependabot pull requests that bump GitHub Actions (#20, #22, #23, #24, #25; CI passes on each). Close #21 (`@types/node` 26 while the engines field supports Node 22.6+). The agent's merge was blocked by its permission check.
 
 ## 11:30 to 12:00 EST: registry and lists (these only need a public repo)
 

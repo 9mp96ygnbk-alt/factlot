@@ -420,6 +420,8 @@ describe("router", () => {
       null,
       "the key never reaches the inner handler",
     );
+    assert.equal(seen[0]?.headers.get("x-forwarded-proto"), "https");
+    assert.equal(seen[0]?.headers.get("x-forwarded-host"), "api.factlot.com");
     assert.ok((e.RL_TEAM as CountingLimit).seen[0]?.startsWith("key:"));
   });
 

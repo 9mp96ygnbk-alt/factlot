@@ -1,26 +1,44 @@
 # FactLot
 
-**The open fact layer for commercial real estate AI agents.**
+**The open fact layer for commercial real estate AI agents.** Deterministic CRE math with an
+audit trail, canonical property IDs, and public-record facts that cite the document they came
+from. Free to use hosted, free to run yourself, open source.
 
-**Install in one line** (v0.1.1; no API key, no network calls; listed in the
-[official MCP Registry](https://registry.modelcontextprotocol.io/v0.1/servers?search=factlot) as
-`io.github.9mp96ygnbk-alt/factlot`):
+[![CI](https://github.com/9mp96ygnbk-alt/factlot/actions/workflows/ci.yml/badge.svg)](https://github.com/9mp96ygnbk-alt/factlot/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/9mp96ygnbk-alt/factlot?sort=semver)](https://github.com/9mp96ygnbk-alt/factlot/releases/latest)
+[![MCP Registry](https://img.shields.io/badge/MCP%20Registry-io.github.9mp96ygnbk--alt%2Ffactlot-blue)](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.9mp96ygnbk-alt/factlot)
+[![Hosted MCP](https://img.shields.io/badge/hosted%20MCP-api.factlot.com%2Fmcp-brightgreen)](https://api.factlot.com/)
+[![License](https://img.shields.io/badge/license-Apache--2.0%20%2F%20MIT-lightgrey)](LICENSE)
+
+## Try it in ten seconds
+
+No key, no install:
 
 ```bash
-# Any MCP client (stdio). For Claude Code: claude mcp add factlot -- npx -y <this URL>
-npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.1/factlot-mcp-standalone-0.1.1.tgz
+curl -s https://api.factlot.com/v1/calc/debt_sizing -H 'content-type: application/json' \
+  -d '{"noi":1000000,"value":15000000,"rate_annual":0.065,"amortization_years":30,"max_ltv":0.65,"min_dscr":1.25}'
 ```
 
-**Or nothing to install:** the hosted remote MCP server is at `https://api.factlot.com/mcp`, free with no key at 60 requests a minute
-(REST and OpenAPI at [`api.factlot.com/openapi.json`](https://api.factlot.com/openapi.json)).
+The answer is a $9,750,000 maximum loan, bound by loan-to-value (the coverage test alone would
+allow $10.5 million), with every intermediate step, its formula, and the versioned formula ID
+`calc.debt_sizing@2` so an agent can cite exactly how the number was made.
 
-```bash
-claude mcp add --transport http factlot https://api.factlot.com/mcp
-```
+## Connect your agent
 
-Claude Desktop: open [`factlot-0.1.1.mcpb`](https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.1/factlot-0.1.1.mcpb).
-REST, OpenAPI and remote MCP: `docker run -p 8787:8787 ghcr.io/9mp96ygnbk-alt/factlot:0.1.1`.
-Python: `pip install "git+https://github.com/9mp96ygnbk-alt/factlot.git@v0.1.1#subdirectory=python"`.
+| Client                         | How                                                                                                                                                                                              |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Claude Code                    | `claude mcp add --transport http factlot https://api.factlot.com/mcp`                                                                                                                            |
+| Claude (web and Desktop)       | Settings, Connectors, Add custom connector: `https://api.factlot.com/mcp`. Or open [`factlot-0.1.1.mcpb`](https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.1/factlot-0.1.1.mcpb) |
+| ChatGPT                        | Developer mode app with `https://api.factlot.com/mcp`, or a Custom GPT Action importing `https://api.factlot.com/openapi-3.0.json`                                                               |
+| Cursor, VS Code, other clients | Remote MCP URL `https://api.factlot.com/mcp` ([guides](connectors/README.md))                                                                                                                    |
+| Any MCP client, run locally    | `npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.1/factlot-mcp-standalone-0.1.1.tgz` (Node.js 22.6+, no network calls)                                                   |
+| Python agents                  | `pip install "git+https://github.com/9mp96ygnbk-alt/factlot.git@v0.1.1#subdirectory=python"`                                                                                                     |
+| Self-hosted REST and MCP       | `docker run -p 8787:8787 ghcr.io/9mp96ygnbk-alt/factlot:0.1.1`                                                                                                                                   |
+
+The hosted endpoint is free with no key at 60 requests a minute. It is listed in the
+[official MCP Registry](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.9mp96ygnbk-alt/factlot)
+as `io.github.9mp96ygnbk-alt/factlot`. Runnable examples for REST, Python and agent SDKs are in
+[`examples/`](examples/).
 
 **Try the registry tools on real data:** the [DC registry sample](https://github.com/9mp96ygnbk-alt/factlot/releases/tag/registry-sample-dc-2026-11-03) (19.7 MB, CC BY 4.0) holds
 18,077 District of Columbia commercial parcels, 5,513 owning entities and 7,908 cited ownership links.

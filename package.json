@@ -31,7 +31,8 @@
     "test:bench": "python3 -m unittest discover -s bench -p \"test_*.py\"",
     "build:mcpb": "node --experimental-strip-types --conditions=factlot-source scripts/build-mcpb.ts",
     "test:connectors": "python3 -m unittest discover -s connectors/amazon/bedrock-agent-lambda -p \"test_*.py\"",
-    "deploy:cloudflare": "npm run build && rm -rf deploy/cloudflare/public && mkdir -p deploy/cloudflare/public && rsync -a --exclude '*.md' site/ deploy/cloudflare/public/ && cd deploy/cloudflare && npx -y wrangler@4 deploy"
+    "deploy:cloudflare": "npm run build && rm -rf deploy/cloudflare/public && mkdir -p deploy/cloudflare/public && rsync -a --exclude '*.md' site/ deploy/cloudflare/public/ && cd deploy/cloudflare && npx -y wrangler@4 deploy",
+    "test:hosted": "node --experimental-strip-types scripts/e2e/hosted.ts"
   },
   "devDependencies": {
     "@anthropic-ai/mcpb": "^2.1.2",

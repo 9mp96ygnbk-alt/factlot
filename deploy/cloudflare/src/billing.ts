@@ -31,6 +31,8 @@ import { keyPage, messagePage } from "./pages.ts";
 export const RECHECK_MS = 6 * 60 * 60 * 1000;
 const SESSION_RE = /^cs_(live|test)_[A-Za-z0-9]{10,200}$/;
 export const CONTACT = "contact@factlot.com";
+export const DISCUSSIONS =
+  "https://github.com/9mp96ygnbk-alt/factlot/discussions";
 
 export function json(status: number, body: unknown, headers: HeadersInit = {}) {
   return new Response(JSON.stringify(body, null, 2), {
@@ -46,7 +48,7 @@ export function json(status: number, body: unknown, headers: HeadersInit = {}) {
 export function billingClosed(): Response {
   return json(503, {
     error: "BillingNotOpen",
-    message: `Paid plans open shortly. Email ${CONTACT} for early access.`,
+    message: `Paid plans open shortly. Email ${CONTACT} or ask in ${DISCUSSIONS} for early access.`,
   });
 }
 

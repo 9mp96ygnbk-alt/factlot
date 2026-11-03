@@ -45,7 +45,7 @@ export function messagePage(
   return page(
     status,
     title,
-    `<h1>${escapeHtml(title)}</h1><p>${escapeHtml(message)}</p><p><a href="https://factlot.com/">factlot.com</a></p>`,
+    `<h1>${escapeHtml(title)}</h1><p>${escapeHtml(message)}</p><p>Questions: <a href="mailto:contact@factlot.com">contact@factlot.com</a> or <a href="https://github.com/9mp96ygnbk-alt/factlot/discussions">GitHub Discussions</a>.</p><p><a href="https://factlot.com/">factlot.com</a></p>`,
   );
 }
 

@@ -11,6 +11,7 @@
  */
 import {
   CONTACT,
+  DISCUSSIONS,
   billingDeps,
   checkoutRoute,
   handleWebhook,
@@ -91,7 +92,7 @@ function rateLimited(path: string, limit: number, tier: Tier): Response {
 }
 
 function unauthorized(path: string): Response {
-  const message = `invalid or inactive FactLot API key. Free use needs no key; paid keys come from https://factlot.com/#pricing. Help: ${CONTACT}`;
+  const message = `invalid or inactive FactLot API key. Free use needs no key; paid keys come from https://factlot.com/#pricing. Help: ${CONTACT} or ${DISCUSSIONS}`;
   const body =
     path === "/mcp"
       ? { jsonrpc: "2.0", error: { code: -32001, message }, id: null }
@@ -283,6 +284,15 @@ export async function handle(
   // The inner handler runs open (no keys of its own): this layer already decided access.
   const inner = new Request(request);
   inner.headers.delete("authorization");
+  // The inner handler trusts forwarding headers (worker.ts sets trustProxy), so this layer
+  // replaces anything the client sent: the public scheme is always https, the host is the one
+  // Cloudflare routed, and the client address is Cloudflare's. OpenAPI `servers` and the
+  // inner per-address logic then see the real values.
+  for (const h of ["x-forwarded-for", "x-forwarded-proto", "x-forwarded-host"])
+    inner.headers.delete(h);
+  inner.headers.set("x-forwarded-proto", "https");
+  inner.headers.set("x-forwarded-host", host);
+  inner.headers.set("x-forwarded-for", clientAddress(request));
   const res = await api.fetch(inner);
   env.USAGE?.writeDataPoint({
     indexes: [caller.keyId],
