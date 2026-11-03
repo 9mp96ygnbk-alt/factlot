@@ -44,6 +44,11 @@ Not allowed:
 - **People are not the product.** When the owner of record is a natural person, the registry keeps
   the parcel but does not index the person's name for search. It never compiles profiles of
   individuals.
+- **Raw archives stay private.** The collector's archived source files (the evidence each fact
+  cites) are kept as draft releases that only maintainers can see, because complete appraisal
+  rolls name natural-person owners. FactLot publishes the facts and their citations (document
+  hash, publisher URL, record locator), not bulk copies of the rolls; anyone can fetch the same
+  file from the publisher and check the hash.
 - **Confidential owners stay confidential.** Texas Tax Code §25.025 lets certain people (for
   example peace officers, judges, and survivors of family violence) keep their information
   confidential. Appraisal districts withhold those records. The registry never tries to recover,

@@ -2,7 +2,10 @@
 #   discover  — every source: lists download links on its landing pages (downloads nothing)
 #   snapshot  — verified sources only (terms reviewed, files confirmed; data policy §5)
 # Sources are the config files under registry/sources/ (one per state or per source). Archived
-# files are published as release assets with hash manifests, so history accumulates.
+# files are kept as DRAFT release assets with hash manifests, so history accumulates. Drafts are
+# visible only to the repository's maintainers: raw appraisal rolls name natural-person owners,
+# and the public repository must not republish them in bulk (data policy, "People are not the
+# product"). The registry publishes facts with citations to these files, never the files.
 name: Collect public data
 
 on:
@@ -120,6 +123,6 @@ jobs:
           PY
           if ! ls release/*__*__* >/dev/null 2>&1; then echo "No new files archived this run."; exit 0; fi
           day=$(date -u +%Y-%m-%d)
-          gh release create "data-$day-$RUN_ID" release/* \
-            --title "Public data snapshot $day" \
+          gh release create "data-$day-$RUN_ID" release/* --draft \
+            --title "Public data snapshot $day (maintainers only)" \
             --notes "Archived by the FactLot collector. Each source's manifest lists URL, sha256, retrieval time, HTTP validators, and robots status for every file. Sources: the config files under registry/sources/."

@@ -43,7 +43,9 @@ against a local HTTP server. It enforces the [data policy](data-policy.md):
   finish: ArcGIS Hub exports in particular drop long transfers and hang up on `Range` requests.
 - **It records everything in a manifest.** Every decision (archived, unchanged, skipped, refused,
   unreachable, error) is written to `manifest.jsonl`. Archived files are content-addressed
-  (`fl:document:sha256-…`), which matches the registry's snapshot citations.
+  (`fl:document:sha256-…`), which matches the registry's snapshot citations. The weekly workflow
+  keeps them as draft releases visible only to maintainers, since raw rolls name natural-person
+  owners (data policy, "Raw archives stay private").
 
 Sources are configured in [`registry/sources/texas.json`](../../registry/sources/texas.json).
 
