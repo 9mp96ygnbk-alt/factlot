@@ -307,3 +307,14 @@ By county:
 - Carbon, Emery and San Juan are not loaded (statewide extension above). Box Elder's layer dates from
   2020-07-17. Sanpete's layer leaves 9,620 of 12,976 rows without a class, so its 33 commercial parcels
   are a floor.
+
+## Garfield County load (2026-11-03, tier2-expansion)
+
+Garfield's layer (item `0d2f76daf7d540edbefea6df6d7345d8`, 17,861 rows, `Current As Of` 2025-10-23) answered `not_ready` when the weekly collector ran, so it was fetched again with the collector on 2026-11-03 (17:40 UTC): the Hub export was ready, one request, `archived` (5,638,064 bytes, `fl:document:sha256-5d854c85acbb74b898acb0bae00bc6ea673e3af1bdb6c184f98ce4eb6c4af5a0`, matching the 5,638,064 bytes the earlier range probe saw).
+
+```
+python -m factlot.registry.adapters.ut_ugrc <csv> registry.db --as-of 2025-10-23 --retrieved-at 2026-11-03T17:40:36+00:00
+```
+
+- Rows read: 11,239 (6,622 rows with a blank `Parcel ID` are dropped by the reader); in scope 197 rows; **188 distinct commercial parcels kept, all `F1`** (the publisher's 188). Facts written: 1,374. Errors: none. Owners: none (the LIR schema has no owner).
+- Utah is now loaded for 26 of its 29 counties (Salt Lake and Utah County, 23 from the statewide extension, and Garfield): **76,250 parcels** (19,637 `B`, 52,474 `F1`, 4,188 `F2`). Carbon, Emery and San Juan remain out for want of a mappable class.
