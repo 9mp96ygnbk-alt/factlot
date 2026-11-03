@@ -1,0 +1,115 @@
+# Publishes server.json to the official MCP Registry (registry.modelcontextprotocol.io) as
+# io.github.9mp96ygnbk-alt/factlot, authenticating with GitHub Actions OIDC: no secret, no
+# account beyond the GitHub repository itself. Manual only (Actions, MCP Registry, Run workflow).
+#
+# Before running it for version X.Y.Z (see docs/release-process.md, "MCP Registry"):
+#   - the repository is public (the registry fetches the .mcpb release asset anonymously);
+#   - release-assets.yml has attached factlot-X.Y.Z.mcpb to the GitHub release vX.Y.Z;
+#   - container.yml has pushed ghcr.io/9mp96ygnbk-alt/factlot:X.Y.Z and the GHCR package is
+#     public (the registry reads its io.modelcontextprotocol.server.name label anonymously).
+#
+# The job rewrites server.json for the version (package identifiers and the .mcpb SHA-256,
+# computed from the published asset), validates it with mcp-publisher, and publishes only when
+# "dry run" is unticked. Published versions cannot be overwritten; a fix is a new version.
+name: MCP Registry
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Released version to publish, without the v (e.g. 0.1.0)"
+        required: true
+        type: string
+      dry_run:
+        description: "Dry run: prepare and validate server.json, do not publish"
+        type: boolean
+        default: true
+
+permissions: {}
+
+concurrency:
+  group: mcp-registry
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish server.json
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # mcp-publisher login github-oidc
+    env:
+      VERSION: ${{ inputs.version }}
+      DRY_RUN: ${{ inputs.dry_run }}
+      # Pinned deliberately; upgrade by changing this tag (the binary's Sigstore bundle is
+      # verified against the registry's release workflow for this exact tag).
+      MCP_PUBLISHER_VERSION: v1.8.7
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: refs/tags/v${{ inputs.version }}
+          persist-credentials: false
+
+      - name: Prepare server.json for this version
+        env:
+          REPO: ${{ github.repository }}
+        run: |
+          case "$VERSION" in [0-9]*.[0-9]*.[0-9]*) ;; *) echo "::error::'$VERSION' is not X.Y.Z"; exit 1 ;; esac
+          v=$(jq -r .version packages/mcp/package.json)
+          [ "$v" = "$VERSION" ] || { echo "::error::tag v$VERSION has packages/mcp at $v"; exit 1; }
+
+          mcpb_url="https://github.com/$REPO/releases/download/v$VERSION/factlot-$VERSION.mcpb"
+          curl --fail --location --silent --show-error --output "$RUNNER_TEMP/factlot.mcpb" "$mcpb_url" \
+            || { echo "::error::$mcpb_url is not downloadable. Run release-assets.yml for v$VERSION, and make the repository public."; exit 1; }
+          sha=$(sha256sum "$RUNNER_TEMP/factlot.mcpb" | cut -d' ' -f1)
+
+          # The checksum file attached by release-assets.yml must agree with the asset itself.
+          sums_url="https://github.com/$REPO/releases/download/v$VERSION/SHA256SUMS"
+          if curl --fail --location --silent --show-error --output "$RUNNER_TEMP/SHA256SUMS" "$sums_url"; then
+            listed=$(awk -v f="factlot-$VERSION.mcpb" '$2 == f {print $1}' "$RUNNER_TEMP/SHA256SUMS")
+            [ "$listed" = "$sha" ] || { echo "::error::SHA256SUMS lists $listed for the .mcpb but the asset is $sha. Re-run release-assets.yml for v$VERSION."; exit 1; }
+          fi
+
+          jq --arg v "$VERSION" --arg url "$mcpb_url" --arg sha "$sha" --arg img "ghcr.io/$REPO:$VERSION" '
+            .version = $v
+            | .packages |= map(
+                if .registryType == "oci" then .identifier = $img
+                elif .registryType == "mcpb" then .identifier = $url | .fileSha256 = $sha
+                else . end)
+          ' server.json > "$RUNNER_TEMP/server.json"
+          mv "$RUNNER_TEMP/server.json" server.json
+          cat server.json
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+
+      # As in the registry's GitHub Actions guide: a pinned release, verified with Sigstore.
+      - name: Download and verify mcp-publisher
+        run: |
+          set -euo pipefail
+          archive="mcp-publisher_linux_amd64.tar.gz"
+          base_url="https://github.com/modelcontextprotocol/registry/releases/download/${MCP_PUBLISHER_VERSION}"
+          curl --fail --location --silent --show-error --output "$archive" "$base_url/$archive"
+          curl --fail --location --silent --show-error --output "$archive.sigstore.json" "$base_url/$archive.sigstore.json"
+          cosign verify-blob \
+            --bundle "$archive.sigstore.json" \
+            --certificate-identity "https://github.com/modelcontextprotocol/registry/.github/workflows/release.yml@refs/tags/${MCP_PUBLISHER_VERSION}" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+            "$archive"
+          tar xzf "$archive" mcp-publisher
+          rm -f "$archive" "$archive.sigstore.json"
+
+      - name: Validate server.json
+        run: ./mcp-publisher validate server.json
+
+      - name: Log in with GitHub OIDC and publish
+        if: inputs.dry_run == false
+        run: |
+          ./mcp-publisher login github-oidc
+          ./mcp-publisher publish server.json
+
+      - name: Show the registry entry
+        if: inputs.dry_run == false
+        run: |
+          curl --fail --silent --show-error \
+            "https://registry.modelcontextprotocol.io/v0.1/servers/io.github.9mp96ygnbk-alt%2Ffactlot/versions/$VERSION" | jq .

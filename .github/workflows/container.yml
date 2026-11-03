@@ -1,0 +1,138 @@
+# Builds the remote connector image from the Dockerfile, tests it, and pushes it to the GitHub
+# Container Registry as ghcr.io/9mp96ygnbk-alt/factlot:X.Y.Z (plus X.Y and latest for
+# non-prerelease versions), for linux/amd64 and linux/arm64. Uses only GITHUB_TOKEN.
+#
+# The image carries the OCI labels below, including io.modelcontextprotocol.server.name, which
+# the official MCP Registry reads (anonymously, so the package must be public) to verify that
+# server.json's OCI package belongs to this server.
+#
+#   docker run --rm -p 8787:8787 ghcr.io/9mp96ygnbk-alt/factlot:X.Y.Z               # HTTP: /mcp, /v1, /openapi.json
+#   docker run --rm -i ghcr.io/9mp96ygnbk-alt/factlot:X.Y.Z node packages/mcp/dist/bin.js   # stdio MCP
+#
+# Trigger: push a tag vX.Y.Z, or run it by hand on an existing tag.
+name: Container image
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to build and push, e.g. v0.1.0"
+        required: true
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: container-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/9mp96ygnbk-alt/factlot
+  MCP_SERVER_NAME: io.github.9mp96ygnbk-alt/factlot
+
+jobs:
+  image:
+    name: Build, test, and push
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write # push to ghcr.io
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: refs/tags/${{ env.TAG }}
+          persist-credentials: false
+
+      - name: The tag matches the server version
+        id: version
+        run: |
+          case "$TAG" in v[0-9]*) ;; *) echo "::error::$TAG is not a vX.Y.Z tag"; exit 1 ;; esac
+          version="${TAG#v}"
+          v=$(jq -r .version packages/server/package.json)
+          [ "$v" = "$version" ] || { echo "::error::packages/server is $v, tag is $TAG"; exit 1; }
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Tags and OCI labels
+        id: meta
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        with:
+          images: ${{ env.IMAGE }}
+          flavor: latest=false
+          tags: |
+            type=semver,pattern={{version}},value=${{ env.TAG }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ env.TAG }}
+            type=raw,value=latest,enable=${{ !contains(env.TAG, '-') }}
+          labels: |
+            org.opencontainers.image.title=FactLot connector
+            org.opencontainers.image.description=FactLot remote connector: Streamable HTTP MCP at /mcp, REST at /v1, OpenAPI at /openapi.json
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.url=https://factlot.com
+            org.opencontainers.image.documentation=https://github.com/${{ github.repository }}/blob/main/docs/getting-started.md
+            org.opencontainers.image.licenses=Apache-2.0
+            org.opencontainers.image.vendor=FactLot contributors
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}
+            io.modelcontextprotocol.server.name=${{ env.MCP_SERVER_NAME }}
+
+      # Test the image for the runner's own platform before anything is pushed.
+      - name: Build a local test image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          platforms: linux/amd64
+          load: true
+          push: false
+          tags: factlot:test
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Test the image (HTTP and stdio MCP, REST, OpenAPI, labels)
+        run: |
+          label=$(docker image inspect factlot:test --format '{{ index .Config.Labels "io.modelcontextprotocol.server.name" }}')
+          [ "$label" = "$MCP_SERVER_NAME" ] || { echo "::error::label is '$label'"; exit 1; }
+          docker run -d --name factlot-test -p 127.0.0.1:8787:8787 factlot:test
+          FACTLOT_E2E_ONLY=http FACTLOT_E2E_URL=http://127.0.0.1:8787 npm run test:e2e
+          FACTLOT_E2E_ONLY=stdio FACTLOT_E2E_STDIO='["docker","run","-i","--rm","factlot:test","node","packages/mcp/dist/bin.js"]' npm run test:e2e
+          [ "$(docker inspect factlot-test --format '{{.Config.User}}')" = "node" ] || { echo "::error::image does not run as the node user"; exit 1; }
+          docker rm -f factlot-test
+
+      - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Build and push (linux/amd64, linux/arm64)
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          annotations: ${{ steps.meta.outputs.annotations }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: The pushed image carries the MCP Registry label
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          label=$(docker buildx imagetools inspect "$IMAGE:$VERSION" \
+            --format '{{ index (index .Image "linux/amd64").Config.Labels "io.modelcontextprotocol.server.name" }}')
+          [ "$label" = "$MCP_SERVER_NAME" ] || { echo "::error::pushed image label is '$label'"; exit 1; }
+          echo "Pushed $IMAGE:$VERSION with io.modelcontextprotocol.server.name=$label"
+          echo "If this is the first push, make the package public: https://github.com/users/${GITHUB_REPOSITORY_OWNER}/packages/container/factlot/settings" >> "$GITHUB_STEP_SUMMARY"
