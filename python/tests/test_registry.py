@@ -119,7 +119,7 @@ class RegistryCore(unittest.TestCase):
         es = self.reg.ingest_entities(ENTITIES, self.ent)
         self.assertEqual((es.kept, es.skipped_invalid), (3, 1))
         links = self.reg.link_owners()
-        self.assertEqual(links, {"linked": 1, "ambiguous": 1, "unmatched": 1})
+        self.assertEqual(links, {"linked": 1, "linked_by_review": 0, "ambiguous": 1, "unmatched": 1})
         self.assertEqual(self.reg.link_owners(), links, "linking is idempotent")
         lonestar = factlot.entity_id("us-tx", "0801111111").urn
         owned = self.reg.parcels_owned_by(lonestar)
@@ -205,6 +205,246 @@ class RegistryCore(unittest.TestCase):
         same = self.reg.add_snapshot("test-county-roll", write(self.tmp, "copy.txt", "synthetic 2025"), as_of="2025-07-25")
         self.assertEqual(same.document_id, self.snap25.document_id)
         self.assertEqual(same.document_id, factlot.document_id("synthetic 2025").urn)
+
+
+# --- fuzzy owner matching with human review (backlog C2) -----------------------------------------
+# SYNTHETIC fixtures: every name below is invented. Expected scores are worked out by hand in the
+# comments, from the documented rule (0.7 * token-sorted difflib ratio + 0.3 * distinctive-token
+# overlap), not by running the code.
+
+ROLL_FUZZY = [
+    ParcelRecord("999", "0002-000-0001", "F1", account="F1", situs_address="1 Acme Way",
+                 owner_name="ACME PROPERTIES L.L.C.", tax_year=2025),
+    ParcelRecord("999", "0002-000-0002", "F1", account="F2", situs_address="2 Acme Way",
+                 owner_name="Acme Properties LLC", tax_year=2025),  # same owner, second parcel
+    ParcelRecord("999", "0002-000-0003", "F2", account="F3", situs_address="3 Dock Road",
+                 owner_name="Gulf Logistics LP", tax_year=2025),  # transposed words in the registry
+    ParcelRecord("999", "0002-000-0004", "F1", account="F4", situs_address="4 Storage Lane",
+                 owner_name="Bluebonnet Storage Partners LP", tax_year=2025),  # typo in the registry
+    ParcelRecord("999", "0002-000-0005", "B", account="F5", situs_address="5 Skyline Drive",
+                 owner_name="Zenith Towers LP", tax_year=2025),  # shares no distinctive token with anyone
+    ParcelRecord("999", "0002-000-0006", "F1", account="F6", situs_address="6 Twin Street",
+                 owner_name="Twin Name Properties LLC", tax_year=2025),  # exact but ambiguous (two entities)
+]
+
+ENTITIES_FUZZY = [
+    EntityRecord("ACME PROPERTY LLC", "us-tx", "0805000001"),  # singular/plural drift from the owner name
+    EntityRecord("ACME PROPERTIES II LLC", "us-tx", "0805000002"),  # a series entity: must NOT be a candidate
+    EntityRecord("ACME WIDGET MANUFACTURING CORP", "us-tx", "0805000003"),  # shares ACME only: must NOT be one
+    EntityRecord("Logistics Gulf, L.P.", "us-tx", "0805000004"),
+    EntityRecord("BLUEBONET STORAGE PARTNERS LP", "us-tx", "0805000005"),
+    EntityRecord("Twin Name Properties, LLC", "us-tx", "0802222222"),
+    EntityRecord("Twin Name Properties LLC", "us-tx", "0803333333"),
+]
+
+ACME_PROPERTY = factlot.entity_id("us-tx", "0805000001").urn
+ACME_II = factlot.entity_id("us-tx", "0805000002").urn
+ACME_WIDGET = factlot.entity_id("us-tx", "0805000003").urn
+LOGISTICS_GULF = factlot.entity_id("us-tx", "0805000004").urn
+BLUEBONET = factlot.entity_id("us-tx", "0805000005").urn
+TWIN_A = factlot.entity_id("us-tx", "0802222222").urn
+TWIN_B = factlot.entity_id("us-tx", "0803333333").urn
+
+# Hand-computed expectations (sorted-token strings, longest common blocks counted by hand):
+#   "ACME LLC PROPERTIES" (19) vs "ACME LLC PROPERTY" (17): common "ACME LLC PROPERT" = 16 chars
+#     ratio = 2*16/36 = 0.8889; distinctive tokens {ACME} vs {ACME}: overlap 1
+#     score = 0.7*32/36 + 0.3 = 0.9222
+#   "BLUEBONNET LP PARTNERS STORAGE" (30) vs "BLUEBONET LP PARTNERS STORAGE" (29): one deleted N
+#     ratio = 2*29/59 = 0.9831; {BLUEBONNET, STORAGE} vs {BLUEBONET, STORAGE} alike: overlap 1
+#     score = 0.7*58/59 + 0.3 = 0.9881
+#   "GULF LOGISTICS LP" vs "LOGISTICS GULF LP": identical once sorted: ratio 1, overlap 1, score 1
+#   "ACME II LLC PROPERTIES" (22) vs "ACME LLC PROPERTIES" (19): common 19 chars
+#     ratio = 2*19/41 = 0.9268; {ACME, II} vs {ACME}: overlap 1/2
+#     score = 0.7*38/41 + 0.15 = 0.7988  (below the 0.85 threshold)
+ACME_SCORE = 0.9222
+BLUEBONNET_SCORE = 0.9881
+ACME_II_SCORE = 0.7988
+
+
+class FuzzyOwnerMatching(unittest.TestCase):
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        self.path = self.tmp / "registry.db"
+        self.reg = self.build(self.path)
+
+    def build(self, path: Path) -> Registry:
+        reg = Registry(path)
+        reg.add_source(SRC_ROLL)
+        reg.add_source(SRC_ENT)
+        roll = reg.add_snapshot("test-county-roll", write(self.tmp, "roll-fuzzy.txt", "synthetic fuzzy roll"), as_of="2025-07-25")
+        ent = reg.add_snapshot("test-entities", write(self.tmp, "entities-fuzzy.csv", "synthetic fuzzy entities"), as_of="2026-10-01")
+        reg.ingest_parcels(ROLL_FUZZY, roll, state_fips="48", account_system="test-account")
+        reg.ingest_entities(ENTITIES_FUZZY, ent)
+        reg.link_owners()
+        return reg
+
+    def tearDown(self):
+        self.reg.close()
+
+    def parcel(self, account: str) -> str:
+        return self.reg.resolve_external("test-account", account)
+
+    def test_similarity_rule_matches_hand_computation(self):
+        from factlot.registry.normalize import name_similarity
+
+        acme = name_similarity(normalize_name("ACME PROPERTIES L.L.C."), normalize_name("ACME PROPERTY LLC"))
+        self.assertEqual((acme["score"], acme["ratio"], acme["token_overlap"], acme["shared_tokens"]),
+                         (ACME_SCORE, 0.8889, 1.0, ["ACME"]))
+        typo = name_similarity(normalize_name("Bluebonnet Storage Partners LP"), "BLUEBONET STORAGE PARTNERS LP")
+        self.assertEqual((typo["score"], typo["ratio"], typo["token_overlap"]), (BLUEBONNET_SCORE, 0.9831, 1.0))
+        swapped = name_similarity("GULF LOGISTICS LP", normalize_name("Logistics Gulf, L.P."))
+        self.assertEqual((swapped["score"], swapped["ratio"], swapped["token_overlap"]), (1.0, 1.0, 1.0))
+        series = name_similarity("ACME PROPERTIES LLC", "ACME PROPERTIES II LLC")
+        self.assertEqual((series["score"], series["ratio"], series["token_overlap"]), (ACME_II_SCORE, 0.9268, 0.5))
+        self.assertEqual(name_similarity("ACME PROPERTIES LLC", "ACME PROPERTIES LLC")["score"], 1.0)
+        self.assertEqual(acme["rule"], "fuzzy_name_v1")
+
+    def test_candidates_for_near_misses(self):
+        acme = self.reg.fuzzy_owner_candidates("ACME PROPERTIES L.L.C.")
+        self.assertEqual([(c["entity_urn"], c["score"]) for c in acme], [(ACME_PROPERTY, ACME_SCORE)])
+        self.assertEqual(acme[0]["reason"], {"rule": "fuzzy_name_v1", "ratio": 0.8889, "token_overlap": 1.0,
+                                             "shared_tokens": ["ACME"]})
+        swapped = self.reg.fuzzy_owner_candidates("Gulf Logistics LP")
+        self.assertEqual([(c["entity_urn"], c["score"]) for c in swapped], [(LOGISTICS_GULF, 1.0)])
+        typo = self.reg.fuzzy_owner_candidates("Bluebonnet Storage Partners LP")
+        self.assertEqual([(c["entity_urn"], c["score"]) for c in typo], [(BLUEBONET, BLUEBONNET_SCORE)])
+        for c in acme + swapped + typo:
+            self.assertTrue(0.0 <= c["score"] <= 1.0)
+
+    def test_non_candidates(self):
+        acme = {c["entity_urn"] for c in self.reg.fuzzy_owner_candidates("ACME PROPERTIES L.L.C.")}
+        self.assertNotIn(ACME_WIDGET, acme, "sharing one distinctive token is not a match")
+        self.assertNotIn(ACME_II, acme, "a series entity (II) is not a candidate for the parent name")
+        self.assertEqual(self.reg.fuzzy_owner_candidates("Zenith Towers LP"), [], "no shared token: no pool")
+        self.assertEqual(self.reg.fuzzy_owner_candidates("Texas Properties LLC"), [], "stop tokens only: never matched")
+        # A lower threshold admits the series entity, so the threshold is what keeps it out.
+        self.assertIn(ACME_II, {c["entity_urn"] for c in self.reg.fuzzy_owner_candidates("ACME PROPERTIES L.L.C.", threshold=0.75)})
+        # Tokens shared by more entities than the cap are too common to form a pool (ACME: 3 entities).
+        self.assertEqual(self.reg.fuzzy_owner_candidates("ACME PROPERTIES L.L.C.", max_token_frequency=2), [])
+
+    def test_ambiguous_exact_names_are_queued_with_every_match(self):
+        twins = self.reg.fuzzy_owner_candidates("Twin Name Properties LLC")
+        self.assertEqual([(c["entity_urn"], c["score"]) for c in twins], [(TWIN_A, 1.0), (TWIN_B, 1.0)])
+
+    def test_queue_lifecycle(self):
+        before = self.reg.stats()
+        self.assertEqual(before["ownership_links"], 0, "nothing matched exactly and unambiguously")
+        counts = self.reg.queue_fuzzy_owner_matches()
+        # Unlinked owners: ACME, GULF, BLUEBONNET, ZENITH, TWIN. Candidates: 1 + 1 + 1 + 0 + 2.
+        self.assertEqual(counts, {"owners_considered": 5, "owners_with_candidates": 4, "queued": 5, "already_queued": 0})
+        self.assertEqual(self.reg.stats()["ownership_links"], 0, "queueing never links anything")
+        self.assertEqual(self.reg.stats()["owner_matches_pending_review"], 5)
+        pending = self.reg.review_queue()
+        self.assertEqual(len(pending), 5)
+        self.assertTrue(all(r["status"] == "pending" and r["decided_at"] is None for r in pending))
+        acme = next(r for r in pending if r["entity_urn"] == ACME_PROPERTY)
+        self.assertEqual((acme["owner_name"], acme["owner_key"], acme["parcel_count"], acme["score"]),
+                         ("ACME PROPERTIES L.L.C.", "ACME PROPERTIES LLC", 2, ACME_SCORE))
+        self.assertEqual(acme["parcel_urn"], self.parcel("F1"))
+        self.assertEqual(acme["entity_label"], "ACME PROPERTY LLC")
+        self.assertEqual(acme["reason"]["shared_tokens"], ["ACME"])
+
+        # Accept: links every parcel with that owner name, confidence capped at 0.8, note names the reviewer.
+        decision = self.reg.decide_owner_match(acme["review_id"], True, "reviewer-one")
+        self.assertEqual(decision, {"review_id": acme["review_id"], "status": "accepted", "decided_by": "reviewer-one",
+                                    "links_created": 2})
+        owned = self.reg.parcels_owned_by(ACME_PROPERTY)
+        self.assertEqual({o["urn"] for o in owned}, {self.parcel("F1"), self.parcel("F2")})
+        self.assertTrue(all(o["confidence"] == 0.8 for o in owned))
+        rel = self.reg.get(self.parcel("F1"))["relationships"]
+        self.assertEqual(len(rel), 1)
+        self.assertEqual((rel[0]["from_urn"], rel[0]["type"], rel[0]["method"], rel[0]["confidence"]),
+                         (ACME_PROPERTY, "owns", "inferred", 0.8))
+        self.assertLess(rel[0]["confidence"], 0.9, "a reviewed link ranks below an exact match")
+        self.assertIn("reviewer-one", rel[0]["basis"])
+        self.assertIn("fuzzy_name_v1", rel[0]["basis"])
+        self.assertIn(str(ACME_SCORE), rel[0]["basis"])
+        self.assertEqual(self.reg.stats()["ownership_links"], 2)
+        for fact in self.reg.get(self.parcel("F1"))["facts"]:
+            self.assertEqual(factlot.validate_fact(fact)["valid"], True)
+        accepted = self.reg.review_queue(status="accepted")
+        self.assertEqual([(r["review_id"], r["decided_by"]) for r in accepted], [(acme["review_id"], "reviewer-one")])
+        self.assertIsNotNone(accepted[0]["decided_at"])
+
+        # Reject: no link, and the pair is never queued again.
+        gulf = next(r for r in self.reg.review_queue() if r["entity_urn"] == LOGISTICS_GULF)
+        self.assertEqual(self.reg.decide_owner_match(gulf["review_id"], False, "reviewer-two")["links_created"], 0)
+        self.assertEqual(self.reg.parcels_owned_by(LOGISTICS_GULF), [])
+        again = self.reg.queue_fuzzy_owner_matches()
+        self.assertEqual(again["queued"], 0)
+        self.assertEqual(again["owners_considered"], 4, "the accepted owner is no longer considered")
+        self.assertNotIn(LOGISTICS_GULF, {r["entity_urn"] for r in self.reg.review_queue()})
+        self.assertEqual([r["entity_urn"] for r in self.reg.review_queue(status="rejected")], [LOGISTICS_GULF])
+
+        # Choosing one of two ambiguous candidates rejects the other.
+        twin = next(r for r in self.reg.review_queue() if r["entity_urn"] == TWIN_A)
+        self.reg.decide_owner_match(twin["review_id"], True, "reviewer-one")
+        self.assertEqual({r["entity_urn"] for r in self.reg.review_queue(status="rejected")}, {LOGISTICS_GULF, TWIN_B})
+        self.assertEqual([o["urn"] for o in self.reg.parcels_owned_by(TWIN_A)], [self.parcel("F6")])
+        self.assertEqual(self.reg.parcels_owned_by(TWIN_B), [])
+
+        # Decisions are final.
+        with self.assertRaises(ValueError):
+            self.reg.decide_owner_match(acme["review_id"], False, "reviewer-two")
+        with self.assertRaises(ValueError):
+            self.reg.decide_owner_match(twin["review_id"], True, "reviewer-two")
+        with self.assertRaises(ValueError):
+            self.reg.decide_owner_match(999999, True, "reviewer-two")
+        with self.assertRaises(ValueError):
+            self.reg.decide_owner_match(next(r for r in self.reg.review_queue())["review_id"], True, "  ")
+
+        # link_owners() re-applies accepted decisions (e.g. after a newer roll) and stays idempotent.
+        links = self.reg.link_owners()
+        self.assertEqual(links, {"linked": 0, "linked_by_review": 3, "ambiguous": 0, "unmatched": 3})
+        self.assertEqual(self.reg.stats()["ownership_links"], 3)
+        self.assertEqual(self.reg.link_owners(), links)
+        roll26 = self.reg.add_snapshot("test-county-roll", write(self.tmp, "roll-fuzzy-26.txt", "synthetic fuzzy 2026"), as_of="2026-07-25")
+        self.reg.ingest_parcels([ParcelRecord("999", "0002-000-0001", "F1", account="F1", situs_address="1 Acme Way",
+                                              owner_name="Acme Properties, LLC", tax_year=2026)], roll26, state_fips="48")
+        self.reg.link_owners()
+        rel = self.reg.get(self.parcel("F1"))["relationships"]
+        self.assertEqual([(r["from_urn"], r["as_of"], r["confidence"]) for r in rel], [(ACME_PROPERTY, "2026-07-25", 0.8)])
+
+    def test_rejected_pairs_are_never_requeued_even_at_a_lower_threshold(self):
+        self.reg.queue_fuzzy_owner_matches()
+        for row in self.reg.review_queue():
+            self.reg.decide_owner_match(row["review_id"], False, "reviewer-one")
+        self.assertEqual(self.reg.review_queue(), [])
+        counts = self.reg.queue_fuzzy_owner_matches(threshold=0.5, limit_per_owner=10)
+        self.assertEqual(counts["already_queued"], 5, "every rejected pair was found again and skipped")
+        rejected = {(r["owner_key"], r["entity_urn"]) for r in self.reg.review_queue(status="rejected", limit=1000)}
+        pending = {(r["owner_key"], r["entity_urn"]) for r in self.reg.review_queue(limit=1000)}
+        self.assertEqual(rejected & pending, set())
+        self.assertIn(("ACME PROPERTIES LLC", ACME_II), pending, "the lower threshold adds new pairs only")
+        self.assertEqual(self.reg.stats()["ownership_links"], 0)
+
+    def test_candidates_are_deterministic(self):
+        first = self.reg.fuzzy_owner_candidates("ACME PROPERTIES L.L.C.", threshold=0.5)
+        second = self.reg.fuzzy_owner_candidates("ACME PROPERTIES L.L.C.", threshold=0.5)
+        self.assertEqual(first, second)
+        self.assertGreater(len(first), 1)
+        self.assertEqual([c["score"] for c in first], sorted((c["score"] for c in first), reverse=True))
+        other = self.build(self.tmp / "other.db")
+        try:
+            other.queue_fuzzy_owner_matches()
+            self.reg.queue_fuzzy_owner_matches()
+            strip = lambda rows: [(r["owner_key"], r["entity_urn"], r["score"], r["reason"]) for r in rows]  # noqa: E731
+            self.assertEqual(strip(self.reg.review_queue()), strip(other.review_queue()))
+        finally:
+            other.close()
+
+    def test_older_registry_file_is_upgraded_in_place(self):
+        # Simulate a file written before schema version 2: no token index, no review queue.
+        self.reg.db.executescript("DROP TABLE owner_match_review; DROP TABLE name_tokens; "
+                                  "UPDATE meta SET value = '1' WHERE key = 'schema_version';")
+        self.reg.db.commit()
+        self.reg.close()
+        self.reg = Registry(self.path)
+        self.assertEqual(self.reg.db.execute("SELECT value FROM meta WHERE key = 'schema_version'").fetchone()[0], "2")
+        self.assertEqual(self.reg.stats()["entities"], 7, "existing data is untouched")
+        counts = self.reg.queue_fuzzy_owner_matches()
+        self.assertEqual(counts["queued"], 5, "the token index is rebuilt from name_index on demand")
+        self.assertEqual(self.reg.rebuild_name_tokens(), 7)
 
 
 if __name__ == "__main__":

@@ -88,3 +88,34 @@ WHERE f.as_of = (SELECT MAX(c.as_of) FROM coverage c WHERE c.subject = f.subject
 -- Search indexes. Natural persons are never added to name_index (data policy §3).
 CREATE TABLE IF NOT EXISTS name_index (key TEXT NOT NULL, urn TEXT NOT NULL, PRIMARY KEY (key, urn));
 CREATE TABLE IF NOT EXISTS address_index (key TEXT NOT NULL, urn TEXT NOT NULL, PRIMARY KEY (key, urn));
+
+-- Token index over entity names for fuzzy owner matching (schema version 2). One row per
+-- distinctive token (stop tokens such as LLC or PROPERTIES are never indexed); the normalized
+-- key is repeated so a candidate pool can be scored without touching name_index.
+CREATE TABLE IF NOT EXISTS name_tokens (
+  token TEXT NOT NULL,
+  urn   TEXT NOT NULL,
+  key   TEXT NOT NULL,
+  PRIMARY KEY (token, urn)
+);
+
+-- Human review queue for owner-of-record names that did not match exactly one entity.
+-- One row per (owner name, candidate entity). Nothing here links anything: an 'owns'
+-- relationship is written only when a reviewer accepts a row (data policy §4). Rows are never
+-- deleted, so a rejected pair is never queued again.
+CREATE TABLE IF NOT EXISTS owner_match_review (
+  review_id    INTEGER PRIMARY KEY AUTOINCREMENT,
+  owner_name   TEXT NOT NULL,                  -- owner of record as written on the roll
+  owner_key    TEXT NOT NULL,                  -- its normalized name; a decision applies to every parcel with this key
+  parcel_urn   TEXT NOT NULL,                  -- a representative parcel, for context
+  parcel_count INTEGER NOT NULL DEFAULT 1,     -- parcels with this owner of record when queued
+  entity_urn   TEXT NOT NULL,
+  score        REAL NOT NULL,                  -- similarity in [0, 1]
+  reason       TEXT NOT NULL,                  -- JSON: rule, ratio, token_overlap, shared_tokens
+  status       TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'rejected')),
+  queued_at    TEXT NOT NULL,
+  decided_at   TEXT,
+  decided_by   TEXT,
+  UNIQUE (owner_key, entity_urn)
+);
+CREATE INDEX IF NOT EXISTS owner_match_review_status ON owner_match_review(status, score);

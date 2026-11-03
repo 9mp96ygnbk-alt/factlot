@@ -12,9 +12,11 @@ adapter (`tx_dallas`) loaded the 2026 certified export: 59,645 commercial parcel
 B12), 537,359 facts, 33,362 organisation owners, in 40 s. The Comptroller adapter
 (`tx_comptroller`) loaded 3,272,073 registered Texas entities from the franchise-tax file
 (242,564 rows without an SOS number skipped) in 19 min, and exact-name linking matched 66,132 of
-the 90,158 organisation owners of record (73%): 224 names were ambiguous and 23,802 unmatched,
-which is what fuzzy matching with a review queue (backlog C2) is for. The combined registry file
-is 9.3 GB. The source review is in [texas-sources.md](texas-sources.md).
+the 90,158 organisation owners of record (73%): 224 names were ambiguous and 23,802 unmatched.
+For those, fuzzy matching with a human review queue (backlog C2) is now built and tested on
+synthetic data (see [Owner resolution](#owner-resolution)); it has not yet been run on the real
+file, so the 73% figure stands until a reviewer works the queue. The combined registry file is
+9.3 GB. The source review is in [texas-sources.md](texas-sources.md).
 
 | Doc                                  | What it covers                                     |
 | ------------------------------------ | -------------------------------------------------- |
@@ -28,7 +30,9 @@ public file (CAD roll, entity list)
   └─ snapshot: SHA-256 → fl:document:sha256-…, plus source URL, retrieval time, as-of date
        └─ adapter: publisher layout → ParcelRecord / EntityRecord
             └─ registry: scope filter → FactLot IDs → cited facts → crosswalks → indexes
-                 └─ link_owners(): owner of record → registered entity (exact, unambiguous only)
+                 └─ link_owners(): owner of record → registered entity (exact, unambiguous; or reviewed)
+                      └─ queue_fuzzy_owner_matches(): candidates for the rest → owner_match_review
+                           └─ decide_owner_match(): a person accepts or rejects; only accept links
 ```
 
 **Storage.** The registry is a single SQLite file (`factlot.registry`, Python standard library
@@ -54,9 +58,60 @@ is what retires a sold parcel's old owner. Example: an LLC sells to an individua
 lists a person, whose name we never store, so the LLC's ownership fact and link become history
 instead of lingering as current.
 
-**Owner resolution.** A parcel is linked to an entity only when the normalized owner-of-record
-name matches exactly one registered entity. Such links are labelled `inferred` with confidence
-0.9. Ambiguous and unmatched names stay unlinked.
+## Owner resolution
+
+Owner-of-record names on a roll rarely match a registration letter for letter: "ACME
+PROPERTIES, L.L.C." may be registered as "ACME PROPERTY LLC". Resolution happens in two stages,
+and only the first is automatic.
+
+**1. Exact match (automatic).** `link_owners()` links a parcel to an entity when the normalized
+owner-of-record name equals exactly one registered entity's normalized legal name. The link is
+an `owns` relationship labelled `inferred` with confidence 0.9. Ambiguous names (several entities
+with the same normalized name) and unmatched names stay unlinked.
+
+**2. Fuzzy candidates with human review (never automatic).** For every current owner of record
+that has no link, `queue_fuzzy_owner_matches()` proposes candidate entities and writes them to the
+`owner_match_review` table. Nothing is linked at this point. A reviewer calls `review_queue()` to
+see pending rows and `decide_owner_match(review_id, accepted, decided_by)` to accept or reject
+each. On accept, the registry writes an `owns` link for every parcel whose current owner of record
+has that name, labelled `inferred` with confidence `min(score, 0.8)`, so a reviewed link always
+ranks below an exact match, and with a `basis` note naming the rule, the score, the reviewer and
+the review row. On reject, the decision is recorded and that (owner name, entity) pair is never
+queued again. Decisions are final; accepting one candidate rejects the owner's other pending
+candidates, because the review is a choice among them. `link_owners()` re-applies accepted
+decisions when a newer roll restates the same owner name, so a reviewer decides each name once.
+
+The candidate generator is deterministic and uses the standard library only:
+
+- **Pool.** Entity names are indexed by their distinctive tokens (`name_tokens`): normalized
+  tokens minus a stop list of entity-type suffixes and generic words (LLC, LP, INC, PROPERTIES,
+  HOLDINGS, PARTNERS, TEXAS, …). An owner name's pool is every entity sharing one of its
+  distinctive tokens, plus exact-key matches (so ambiguous names get all their matches at score
+  1.0). Tokens shared by more than `max_token_frequency` entities (default 5,000) are ignored, so
+  the pool stays small on millions of entities and a name made only of stop tokens is never
+  matched.
+- **Score**, in [0, 1]: `0.7 × ratio + 0.3 × token_overlap`, where `ratio` is
+  `difflib.SequenceMatcher` over the two names with their tokens sorted (a transposed word costs
+  nothing; a typo or singular/plural drift costs a little) and `token_overlap` is the Jaccard
+  overlap of the distinctive tokens, counting near-equal spellings as the same token. Every row
+  records the rule name (`fuzzy_name_v1`), both components and the shared tokens as its `reason`.
+- **Threshold 0.85, top 5 per owner** (both are parameters). At 0.85, "ACME PROPERTIES LLC" admits
+  "ACME PROPERTY LLC" (0.92), a one-letter typo (0.98), a transposition (1.0) and a different
+  suffix such as INC (0.93), while excluding series entities ("ACME PROPERTIES II LLC", 0.80),
+  "ACME HOLDINGS LLC" (0.61) and anything sharing only one distinctive token (≈0.4). A lower
+  threshold or higher limit only adds pairs; rejected pairs stay rejected.
+
+```python
+reg.link_owners()                                # exact matches, plus earlier accepted decisions
+reg.queue_fuzzy_owner_matches()                  # {'owners_considered': …, 'queued': …, …}
+for row in reg.review_queue(limit=50):           # pending, grouped by owner, best candidate first
+    print(row["review_id"], row["owner_name"], "->", row["entity_label"], row["score"], row["reason"])
+reg.decide_owner_match(row["review_id"], accepted=True, decided_by="reviewer handle")
+```
+
+Registry files written before schema version 2 gain the two new tables when they are next
+opened (every schema statement is `IF NOT EXISTS`); the token index is rebuilt from `name_index`
+the first time the queue runs, or explicitly with `rebuild_name_tokens()`.
 
 ## Using it
 
@@ -97,6 +152,26 @@ TypeScript.
 Parcels an earlier roll listed that are now missing or out of scope get status
 `not_in_latest_snapshot`. Their facts move to history, and they become current again if they
 return.
+
+## Known limitations (by design for now; revisit)
+
+- **Owner links.** Automatic links require an exact normalized name match. Everything else goes
+  through the review queue, and a fuzzy candidate becomes a link only when a person accepts it;
+  there is no auto-accept, whatever the score. The queue has no user interface yet: it is worked
+  through the Python API (or SQL on `owner_match_review`), and it has not been run on the real
+  Harris and Dallas file.
+- **Candidate generator.** The score is a string similarity, not evidence: it cannot tell a
+  renamed company from an unrelated one with a similar name, and it never sees mailing addresses
+  or officers. Series entities ("… II LLC", "… 2 LLC") fall below the default threshold, so a
+  roll that abbreviates one is unmatched rather than mis-queued. An owner name made only of generic
+  words ("TEXAS PROPERTIES LLC") never gets candidates. The stop list is English and
+  Texas-flavoured.
+- **Decisions.** A decision is final: there is no undo, and accepting a candidate rejects the
+  owner's other pending candidates. A wrong accept is corrected by a takedown (data policy §4),
+  not by the queue.
+- **Token index.** `name_tokens` adds roughly two rows per entity (about 500 MB on the 3.3 M
+  Texas entities). Tokens shared by more than 5,000 entities are ignored when building a pool, so
+  an owner whose only distinctive token is that common ("HOUSTON LLC") gets no candidates.
 
 ## Next
 

@@ -17,9 +17,28 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from ..ids import FactLotIdError, _base32, entity_id, parcel_id, short_id
-from .normalize import is_commercial, is_organization, normalize_address, normalize_name
+from .normalize import (
+    NAME_OVERLAP_WEIGHT,
+    NAME_RATIO_WEIGHT,
+    distinctive_tokens,
+    is_commercial,
+    is_organization,
+    name_similarity,
+    normalize_address,
+    normalize_name,
+)
 
 PRODUCER = "factlot.registry"
+SCHEMA_VERSION = "2"
+
+# Owner links: an exact, unambiguous normalized-name match is confidence 0.9; a fuzzy candidate a
+# reviewer accepted is the candidate's score capped below that, so inferred links stay ranked.
+EXACT_MATCH_CONFIDENCE = 0.9
+REVIEWED_MATCH_MAX_CONFIDENCE = 0.8
+# Defaults for the candidate generator: see Registry.queue_fuzzy_owner_matches.
+FUZZY_THRESHOLD = 0.85
+FUZZY_LIMIT_PER_OWNER = 5
+FUZZY_MAX_TOKEN_FREQUENCY = 5000
 
 
 @dataclass(frozen=True)
@@ -121,8 +140,10 @@ class Registry:
     def __init__(self, path: str | Path = ":memory:") -> None:
         self.db = sqlite3.connect(str(path))
         self.db.row_factory = sqlite3.Row
+        # Every statement in schema.sql is IF NOT EXISTS, so opening an older file adds the newer
+        # tables without touching existing ones; the version records which tables to expect.
         self.db.executescript(resources.files("factlot.registry").joinpath("schema.sql").read_text("utf-8"))
-        self.db.execute("INSERT OR IGNORE INTO meta VALUES ('schema_version', '1')")
+        self.db.execute("INSERT OR REPLACE INTO meta VALUES ('schema_version', ?)", (SCHEMA_VERSION,))
         self.db.commit()
 
     @classmethod
@@ -217,9 +238,30 @@ class Registry:
             if r.taxpayer_number:
                 self.db.execute("INSERT OR REPLACE INTO crosswalk VALUES (?,?,?)",
                                 (f"{r.registry_jurisdiction}-taxpayer", r.taxpayer_number, urn))
-            self.db.execute("INSERT OR IGNORE INTO name_index VALUES (?,?)", (normalize_name(r.legal_name), urn))
+            key = normalize_name(r.legal_name)
+            self.db.execute("INSERT OR IGNORE INTO name_index VALUES (?,?)", (key, urn))
+            self._index_name_tokens(key, urn)
         self.db.commit()
         return stats
+
+    def _index_name_tokens(self, key: str, urn: str) -> None:
+        self.db.executemany("INSERT OR IGNORE INTO name_tokens VALUES (?,?,?)",
+                            [(t, urn, key) for t in distinctive_tokens(key)])
+
+    def rebuild_name_tokens(self) -> int:
+        """(Re)build the fuzzy-match token index from name_index; returns the number of entity names indexed.
+
+        Needed once for a registry file built before schema version 2; ingest_entities keeps it current.
+        """
+        self.db.execute("DELETE FROM name_tokens")
+        n = 0
+        rows = self.db.execute(
+            "SELECT n.key, n.urn FROM name_index n JOIN subjects s ON s.urn = n.urn WHERE s.kind = 'entity'").fetchall()
+        for row in rows:
+            self._index_name_tokens(row["key"], row["urn"])
+            n += 1
+        self.db.commit()
+        return n
 
     def ingest_parcels(self, records: Iterable[ParcelRecord], snap: Snapshot, *, state_fips: str,
                        account_system: str | None = None, include_all_categories: bool = False,
@@ -295,33 +337,206 @@ class Registry:
     def link_owners(self) -> dict[str, int]:
         """Link each parcel's current owner of record to a registered entity, where unambiguous.
 
-        Run after any ingest (order of datasets doesn't matter). A link is made only when the
-        normalized owner name equals exactly one entity's normalized legal name; it is labelled
-        ``inferred`` with confidence 0.9. Ambiguous or unmatched names are left unlinked.
+        Run after any ingest (order of datasets doesn't matter). A link is made when the
+        normalized owner name equals exactly one entity's normalized legal name (``inferred``,
+        confidence 0.9), or when a reviewer has accepted a fuzzy candidate for that name
+        (``inferred``, confidence at most 0.8; see ``decide_owner_match``). Ambiguous or
+        unmatched names are left unlinked; ``queue_fuzzy_owner_matches`` finds candidates for them.
         """
-        result = {"linked": 0, "ambiguous": 0, "unmatched": 0}
+        result = {"linked": 0, "linked_by_review": 0, "ambiguous": 0, "unmatched": 0}
+        accepted = self._accepted_decisions()
         owners = self.db.execute(
             "SELECT subject, value_json, as_of, document_id FROM current_facts "
             "WHERE predicate = 'ownership.owner_of_record'"
         ).fetchall()
         for o in owners:
             key = normalize_name(json.loads(o["value_json"]))
-            candidates = [row["urn"] for row in self.db.execute(
-                "SELECT n.urn FROM name_index n JOIN subjects s ON s.urn = n.urn WHERE n.key = ? AND s.kind = 'entity'",
-                (key,))]
+            candidates = self._exact_entities(key)
             if len(candidates) == 1:
-                self.db.execute(
-                    "INSERT OR IGNORE INTO relationships VALUES (?,?,?,?,?,?,?,?)",
-                    (candidates[0], "owns", o["subject"], o["as_of"], "inferred", 0.9, o["document_id"],
-                     "owner of record exactly matches one registered entity's normalized legal name"),
-                )
+                self._link(candidates[0], o, EXACT_MATCH_CONFIDENCE,
+                           "owner of record exactly matches one registered entity's normalized legal name")
                 result["linked"] += 1
+            elif key in accepted:
+                self._link_reviewed(accepted[key], o)
+                result["linked_by_review"] += 1
             elif candidates:
                 result["ambiguous"] += 1
             else:
                 result["unmatched"] += 1
         self.db.commit()
         return result
+
+    def _exact_entities(self, key: str) -> list[str]:
+        return [row["urn"] for row in self.db.execute(
+            "SELECT n.urn FROM name_index n JOIN subjects s ON s.urn = n.urn WHERE n.key = ? AND s.kind = 'entity' "
+            "ORDER BY n.urn", (key,))]
+
+    def _link(self, entity_urn: str, owner_fact: sqlite3.Row, confidence: float, basis: str) -> int:
+        cur = self.db.execute(
+            "INSERT OR IGNORE INTO relationships VALUES (?,?,?,?,?,?,?,?)",
+            (entity_urn, "owns", owner_fact["subject"], owner_fact["as_of"], "inferred", confidence,
+             owner_fact["document_id"], basis),
+        )
+        return cur.rowcount
+
+    def _accepted_decisions(self) -> dict[str, sqlite3.Row]:
+        return {r["owner_key"]: r for r in self.db.execute(
+            "SELECT review_id, owner_key, entity_urn, score, reason, decided_by FROM owner_match_review "
+            "WHERE status = 'accepted' ORDER BY review_id")}
+
+    def _link_reviewed(self, decision: sqlite3.Row, owner_fact: sqlite3.Row) -> int:
+        confidence = min(round(float(decision["score"]), 4), REVIEWED_MATCH_MAX_CONFIDENCE)
+        reason = json.loads(decision["reason"])
+        basis = (f"owner of record fuzzy-matched a registered entity's legal name "
+                 f"(rule {reason.get('rule')}, score {decision['score']}, ratio {reason.get('ratio')}, "
+                 f"token overlap {reason.get('token_overlap')}); accepted by {decision['decided_by']} "
+                 f"in owner_match_review #{decision['review_id']}")
+        return self._link(decision["entity_urn"], owner_fact, confidence, basis)
+
+    # --- fuzzy owner matching with human review (backlog C2) --------------------------------------
+
+    def _common_tokens(self, max_token_frequency: int) -> set[str]:
+        """Tokens indexed for more entities than the cap: too common to narrow a candidate pool."""
+        return {r["token"] for r in self.db.execute(
+            "SELECT token FROM name_tokens GROUP BY token HAVING COUNT(*) > ?", (max_token_frequency,))}
+
+    def fuzzy_owner_candidates(self, owner_name: str, *, threshold: float = FUZZY_THRESHOLD,
+                               limit: int = FUZZY_LIMIT_PER_OWNER,
+                               max_token_frequency: int = FUZZY_MAX_TOKEN_FREQUENCY,
+                               _common: set[str] | None = None) -> list[dict[str, Any]]:
+        """Registered entities whose legal name resembles an owner-of-record name, best first.
+
+        Deterministic and standard-library only. The pool is every entity sharing a distinctive
+        token with the owner name (tokens shared by more than ``max_token_frequency`` entities are
+        ignored, so the pool stays small on millions of entities), plus exact-key matches. Each
+        pool member is scored with ``name_similarity``; the top ``limit`` at or above ``threshold``
+        are returned with the score's reasons. This only proposes: it never writes a link.
+        """
+        key = normalize_name(owner_name)
+        common = self._common_tokens(max_token_frequency) if _common is None else _common
+        tokens = [t for t in distinctive_tokens(key) if t not in common]
+        pool: dict[str, str] = {}
+        if tokens:
+            marks = ",".join("?" * len(tokens))
+            for r in self.db.execute(f"SELECT urn, key FROM name_tokens WHERE token IN ({marks})", tokens):
+                pool[r["urn"]] = r["key"]
+        for urn in self._exact_entities(key):
+            pool[urn] = key
+        # A perfect ratio cannot lift a candidate to the threshold without this much token overlap.
+        min_overlap = max(0.0, (threshold - NAME_RATIO_WEIGHT) / NAME_OVERLAP_WEIGHT)
+        scored: list[tuple[float, str, dict[str, Any]]] = []
+        for urn, entity_key in pool.items():
+            sim = name_similarity(key, entity_key)
+            if sim["token_overlap"] + 1e-9 < min_overlap or sim["score"] + 1e-9 < threshold:
+                continue
+            scored.append((-sim["score"], urn, sim))
+        scored.sort(key=lambda s: (s[0], s[1]))
+        out = []
+        for _neg, urn, sim in scored[:limit]:
+            out.append({"entity_urn": urn, "entity_key": pool[urn], "score": sim["score"],
+                        "reason": {k: sim[k] for k in ("rule", "ratio", "token_overlap", "shared_tokens")}})
+        return out
+
+    def queue_fuzzy_owner_matches(self, *, threshold: float = FUZZY_THRESHOLD,
+                                  limit_per_owner: int = FUZZY_LIMIT_PER_OWNER,
+                                  max_token_frequency: int = FUZZY_MAX_TOKEN_FREQUENCY) -> dict[str, int]:
+        """Find fuzzy candidates for every current owner of record that has no link, and queue them.
+
+        One queue row per (owner name, candidate entity); a pair already in the queue, whatever its
+        status, is never added again, so a rejected candidate stays rejected. Nothing is linked
+        here: links come only from ``decide_owner_match`` (data policy §4). Returns counts.
+        """
+        if self.db.execute("SELECT 1 FROM name_tokens LIMIT 1").fetchone() is None:
+            self.rebuild_name_tokens()
+        common = self._common_tokens(max_token_frequency)
+        accepted = self._accepted_decisions()
+        owners: dict[str, dict[str, Any]] = {}
+        rows = self.db.execute(
+            "SELECT f.subject, f.value_json FROM current_facts f WHERE f.predicate = 'ownership.owner_of_record' "
+            "AND NOT EXISTS (SELECT 1 FROM relationships r WHERE r.to_urn = f.subject AND r.type = 'owns' "
+            "AND r.document_id = f.document_id) ORDER BY f.subject").fetchall()
+        for r in rows:
+            name = json.loads(r["value_json"])
+            key = normalize_name(name)
+            if key in accepted:
+                continue  # already decided; link_owners() applies it
+            o = owners.setdefault(key, {"name": name, "parcel": r["subject"], "count": 0})
+            o["count"] += 1
+        result = {"owners_considered": len(owners), "owners_with_candidates": 0, "queued": 0, "already_queued": 0}
+        now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        for key in sorted(owners):
+            o = owners[key]
+            cands = self.fuzzy_owner_candidates(o["name"], threshold=threshold, limit=limit_per_owner,
+                                                max_token_frequency=max_token_frequency, _common=common)
+            if not cands:
+                continue
+            result["owners_with_candidates"] += 1
+            for c in cands:
+                cur = self.db.execute(
+                    "INSERT OR IGNORE INTO owner_match_review (owner_name, owner_key, parcel_urn, parcel_count, "
+                    "entity_urn, score, reason, status, queued_at) VALUES (?,?,?,?,?,?,?,'pending',?)",
+                    (o["name"], key, o["parcel"], o["count"], c["entity_urn"], c["score"],
+                     json.dumps(c["reason"], sort_keys=True), now))
+                if cur.rowcount:
+                    result["queued"] += 1
+                else:
+                    result["already_queued"] += 1
+        self.db.commit()
+        return result
+
+    def review_queue(self, status: str = "pending", limit: int = 100) -> list[dict[str, Any]]:
+        """Rows of the owner-match review queue with the given status, grouped by owner, best candidate first."""
+        rows = self.db.execute(
+            "SELECT q.*, s.label AS entity_label FROM owner_match_review q LEFT JOIN subjects s ON s.urn = q.entity_urn "
+            "WHERE q.status = ? ORDER BY q.owner_key, q.score DESC, q.entity_urn LIMIT ?", (status, limit)).fetchall()
+        out = []
+        for r in rows:
+            d = {k: r[k] for k in r.keys()}
+            d["reason"] = json.loads(d["reason"])
+            out.append(d)
+        return out
+
+    def decide_owner_match(self, review_id: int, accepted: bool, decided_by: str) -> dict[str, Any]:
+        """Record a reviewer's decision on a queued candidate. Decisions are final.
+
+        Accepting links the entity to every parcel whose current owner of record has that name
+        (``owns``, ``inferred``, confidence ``min(score, 0.8)``, basis naming the rule and the
+        reviewer) and rejects the owner's other pending candidates, since the review is a choice
+        among them. Rejecting only records the decision; the pair is never queued again.
+        """
+        if not decided_by or not decided_by.strip():
+            raise ValueError("decided_by must name the reviewer")
+        reviewer = decided_by.strip()
+        row = self.db.execute("SELECT * FROM owner_match_review WHERE review_id = ?", (review_id,)).fetchone()
+        if row is None:
+            raise ValueError(f"no owner_match_review row {review_id}")
+        if row["status"] != "pending":
+            raise ValueError(f"owner_match_review row {review_id} was already {row['status']}")
+        if accepted:
+            prior = self.db.execute(
+                "SELECT review_id FROM owner_match_review WHERE owner_key = ? AND status = 'accepted'",
+                (row["owner_key"],)).fetchone()
+            if prior:
+                raise ValueError(f"owner name already accepted in owner_match_review row {prior['review_id']}")
+        now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        status = "accepted" if accepted else "rejected"
+        self.db.execute(
+            "UPDATE owner_match_review SET status = ?, decided_at = ?, decided_by = ? WHERE review_id = ?",
+            (status, now, reviewer, review_id))
+        links = 0
+        if accepted:
+            self.db.execute(
+                "UPDATE owner_match_review SET status = 'rejected', decided_at = ?, decided_by = ? "
+                "WHERE owner_key = ? AND status = 'pending'", (now, reviewer, row["owner_key"]))
+            decision = self._accepted_decisions()[row["owner_key"]]
+            owners = self.db.execute(
+                "SELECT subject, value_json, as_of, document_id FROM current_facts "
+                "WHERE predicate = 'ownership.owner_of_record'").fetchall()
+            for o in owners:
+                if normalize_name(json.loads(o["value_json"])) == row["owner_key"]:
+                    links += self._link_reviewed(decision, o)
+        self.db.commit()
+        return {"review_id": review_id, "status": status, "decided_by": reviewer, "links_created": links}
 
     # --- reading ------------------------------------------------------------------------------
 
@@ -413,4 +628,10 @@ class Registry:
             "facts": q("SELECT COUNT(*) FROM facts"),
             "ownership_links": q(f"SELECT COUNT(*) FROM relationships r WHERE type = 'owns' AND {_CURRENT_LINK}"),
             "snapshots": q("SELECT COUNT(*) FROM snapshots"),
+            # A file written before schema version 2 and opened read-only has no review table.
+            "owner_matches_pending_review": q(
+                "SELECT COUNT(*) FROM owner_match_review WHERE status = 'pending'") if self._has_table("owner_match_review") else 0,
         }
+
+    def _has_table(self, name: str) -> bool:
+        return self.db.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", (name,)).fetchone() is not None

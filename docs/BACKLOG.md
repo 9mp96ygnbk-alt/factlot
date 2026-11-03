@@ -46,7 +46,7 @@ cleared.
 **Registry**
 
 - [ ] C1 Parcel lineage: record splits and merges as relationships, once real rolls show how each county reports them.
-- [ ] C2 Owner matching beyond exact names: fuzzy candidates plus a human review queue. Inferred links stay labelled with confidence.
+- [x] C2 ~~Owner matching beyond exact names: fuzzy candidates plus a human review queue. Inferred links stay labelled with confidence.~~ Done 2026-11-02: `queue_fuzzy_owner_matches()` (score = 0.7 × sequence ratio + 0.3 × distinctive-token overlap, threshold 0.85, top 5), `review_queue()`, `decide_owner_match()`; nothing links without an accept, accepted links carry confidence ≤ 0.8 and the reviewer's name.
 - [ ] C3 Beneficial ownership (managing members, registered agents). Texas SOS search is paid, so look for $0 routes such as Comptroller public information reports or records requests.
 - [ ] C4 Debt and loan data (lender, maturity): scope v2, after ownership.
 - [ ] C5 Change webhooks (ownership or value changed), and serving the built registry from `@factlot/server` (`FACTLOT_REGISTRY_DB`) in the hosted deployment.
@@ -59,8 +59,8 @@ cleared.
 
 **Ingestion**
 
-- [ ] C9 A value–quote consistency check. Today the verifier proves the quote exists on the cited page, but not that the value follows from it. For example, the numbers in the value should appear in the quote.
-- [ ] C10 OCR for scanned PDFs, more predicates (percentage rent, co-tenancy, exclusives, critical dates), and a human review queue for low-confidence facts.
+- [x] C9 ~~A value–quote consistency check.~~ Done 2026-11-02 (425b3a1): numbers, ratios, dates, and party names in a value must appear in the quote; textual, not semantic.
+- [ ] C10 ~~OCR for scanned PDFs~~ (done 2026-11-02, 425b3a1: pluggable backend, tesseract shipped, OCR'd pages flagged in provenance), more predicates (percentage rent, co-tenancy, exclusives, critical dates), and a human review queue for low-confidence facts.
 - [ ] C11 Handling customer documents: private storage, no training on them, retention rules.
 
 **Platform and connectors**
@@ -69,7 +69,7 @@ cleared.
 - [ ] C13 Directory submissions: Anthropic connector directory, ChatGPT apps, the MCP registry, Copilot/AppSource.
 - [ ] C14 Run FactLot Bench on current models and publish the results. Add tasks for the registry, rules, and ingestion.
 - [ ] C15 Calculators still on the roadmap: ASC 842 remeasurement, lease-vs-own and renew-vs-relocate, prepayment and defeasance, hotel RevPAR, ADR, and GOP.
-- [ ] C16 A release process: versioning, changelog, publishing to npm and PyPI, and signing the `.mcpb` (`mcpb sign`).
+- [x] C16 ~~A release process: versioning, changelog, publishing to npm and PyPI, and signing the `.mcpb` (`mcpb sign`).~~ Done 2026-11-02 (34f9555): `scripts/release/`, `CHANGELOG.md`, `.github/workflows/release.yml`, [release-process.md](release-process.md). Publishing itself waits on the npm and PyPI accounts (A5).
 - [ ] C17 Knowledge-base and documentation links point at `github.com/9mp96ygnbk-alt/factlot`. Update them if the repository lives elsewhere.
 - [ ] C18 A landing page for factlot.com.
 
@@ -89,7 +89,7 @@ cleared.
   about $10 trillion lose cents.
 - **Registry.**
   - Person-versus-organisation detection is a conservative heuristic.
-  - Owner links require an exact normalized name match.
+  - Automatic owner links require an exact normalized name match; near-matches wait in a review queue for a person.
   - A parcel that leaves commercial scope is retired only when the roll is ingested with
     `full_roll=True`.
 - **Rules.** Holidays use their actual dates only: observed dates and Columbus Day are not
