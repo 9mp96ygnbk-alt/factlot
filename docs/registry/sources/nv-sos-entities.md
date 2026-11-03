@@ -26,6 +26,26 @@ Unknown.
 3. An unknown price and unread terms. Contact: Commercial Recordings, 775-684-5708.
 4. Confirm whether SilverFlume has been replaced and whether the bulk service moved.
 
+### Terms read 2026-11-03 (gates pass)
+
+This memo is research, not legal advice; the founder holds no attorney or real estate license.
+
+No commercial-recordings price, order form, format, frequency, postal address, email, or product clause was readable. Each URL returned HTTP 200 and a 212-byte Incapsula shell. The founder should open:
+
+- https://www.nvsos.gov/sos/commercial-recordings
+- https://www.nvsos.gov/sos-information/public-records-requests
+- https://www.nvsos.gov/SOSServices/AnonymousAccess/PricingGuide.aspx
+- https://www.nvsos.gov/businesses/commercial-recordings/forms-fees
+
+**Statute, not the product contract.** NRS 239.010(1), https://www.leg.state.nv.us/nrs/nrs-239.html , read 2026-11-03.
+
+> Any such copies, abstracts or memoranda may be used
+> to supply the general public with copies, abstracts or memoranda of the records
+
+The section does not use the word commercial. It governs public books. It was not a substitute for the blocked commercial-recordings terms.
+
+Price per year: NOT CONFIRMED. Restrictive product clause: NOT CONFIRMED. Do not load a Nevada SOS bulk file from an unread license. Draft inquiry, with the address marked NOT CONFIRMED: `../requests/orders/nv-sos-entities-order-draft.md`.
+
 ## Real run
 
 None. No adapter.

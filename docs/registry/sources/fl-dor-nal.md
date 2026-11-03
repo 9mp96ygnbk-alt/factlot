@@ -171,6 +171,50 @@ are dropped by the registry at ingest (data policy §3).
   stalled past the collector's 600-second read timeout, so the six target files (262 MB in all,
   Miami-Dade 60 MB alone) take hours, not minutes. The run was therefore done on a sample.
 
+### Terms read 2026-11-03 (gates pass)
+
+**Download Assessment Roll and GIS Data.** https://floridarevenue.com/property/Pages/DataPortal_RequestAssessmentRollGISData.aspx — read 2026-11-03, HTTP 200. The saved page names the file "real property roll (Name – Address – Legal, or NAL)". Opening line of the chapter 119 sentence:
+
+> The Department of Revenue publishes assessment rolls in compliance with
+
+The next line begins "chapter 119, Florida Statutes." The working notes (read 2026-11-02) give that opening as one line: "The Department of Revenue publishes assessment rolls in compliance with chapter 119, Florida". The same notes include "property owners exempt from public records disclosure under section 119.071, Florida Statutes."
+
+Request route on the page read 2026-11-03:
+
+> to PTOTechnology@floridarevenue.com, by fax at 850-488-9482, or by regular mail to PTO's general mailing address (Property Tax Oversight, Florida Department of Revenue, 5050 W. Tennessee St., Tallahassee, FL 32399-0100).
+
+**Conditions of Use.** https://floridarevenue.com/Pages/conditions.aspx — read 2026-11-02. Section I includes:
+
+> No material from MyFlorida.com or any Web site owned, operated, licensed or controlled by THE
+
+> or distributed in any way. Materials may be downloaded on any single personal computer, for
+
+> non-commercial use only providing all copyright and other proprietary notices are kept intact.
+
+**Privacy page.** https://floridarevenue.com/Pages/privacy.aspx — read 2026-11-02.
+
+> Information obtained by Revenue is considered a public record by law, and it must be disclosed
+
+> upon request unless specifically confidential and exempt from disclosure by law.
+
+**Property Tax Oversight contact.** https://floridarevenue.com/property/Pages/contactUs.aspx — read 2026-11-03, HTTP 200. The page lists "Post Office Box 3000" and "Tallahassee, Florida 32315-3000". "Email Your Question" is a form link. No general mailbox is printed there.
+
+**Statute.** Section 119.01(1), Florida Statutes (2026), https://www.leg.state.fl.us/statutes/index.cfm?App_mode=Display_Statute&URL=0100-0199/0119/Sections/0119.01.html — read 2026-11-02.
+
+> It is the policy of this state that all state, county, and municipal records are open for
+
+> personal inspection and copying by any person. Providing access to public records is a duty of
+
+Section 119.07(1)(a), https://www.leg.state.fl.us/statutes/index.cfm?App_mode=Display_Statute&URL=0100-0199/0119/Sections/0119.07.html — read 2026-11-02.
+
+> Every person who has custody of a public record shall permit the record to be inspected and
+
+> and under supervision by the custodian of the public records.
+
+The working notes state that neither section says anything about commercial use or redistribution of records once obtained. On those two sections the statute is silent on commercial use and silent on redistribution after the copy is obtained.
+
+The Conditions of Use restrict copying and distribution of site material and limit a download to non-commercial use on one personal computer. They do not name the assessment rolls. The portal says the rolls are published in compliance with chapter 119. Those two writings do not, together, state a clear right to redistribute the NAL public fields. Leave `verified` false. The founder signs and sends `fl-dor-nal-letter.md`. This lane did not send it.
+
 ## Real run (2026-11-02)
 
 Sample county, because of the throughput above: **Union County (DOR 73, FIPS 12125)**, the

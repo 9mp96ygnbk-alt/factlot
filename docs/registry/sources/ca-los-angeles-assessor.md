@@ -139,6 +139,37 @@ browse-wrap licence quoted above (the item's `licenseInfo` says users of the RES
 it); nobody clicked anything. Nothing needs the founder, except: the Terms of Use say the County
 may "change, restrict, or discontinue access at any time", so a periodic re-read is advisable.
 
+### Terms read 2026-11-03 (gates pass)
+
+This memo is research, not legal advice; the founder holds no attorney or real estate license.
+
+**Blocked.** https://assessor.lacounty.gov/real-estate-toolkit/data-sales — HTTP 200, Incapsula shell, no product text. the saved page. The founder should open that URL for the price list.
+
+**Order form, Rev 4-25, Revised 4-2025, Effective 12-3-14.** https://res.cloudinary.com/los-angeles-county-assessor/image/upload/v1628093490/Form/Standard_Order_Form.pdf , read 2026-11-03.
+
+> 3. Duplication and Resale of Assessor Property Records: The Assessor property records provided to the Purchaser are for the exclusive
+> use of the Purchaser only. The Purchaser is prohibited from distributing the Assessor property records in the same or similar format and
+> quantity in which the Assessor provided them to the Purchaser. The Purchaser is prohibited from relinquishing possession of the
+> Assessor’s property records received from the Assessor to any other person or persons, or legal entity, nor may the Purchaser, or its
+> agent or employees, rent, lease, sublease, loan, copy, or otherwise distribute the Assessor property records or allow others to use the
+> Assessor property records in the format in which they were provided by the Assessor.
+
+> 6. Payment: Payment of the standard charges, as determined by reference to the Assessor's Property Data Sales Price List
+
+Price is NOT CONFIRMED. The PDF's dollar amounts are a $6 mail postage charge and sales-tax rates (9.75% in Los Angeles County except higher-rate cities, 7.25% elsewhere in California, no tax on email, FTP, or out-of-state). Section 2 and Exhibit A (Cal Gov Code § 6254.21 (2010), as reprinted) restrict posting an official's home address or telephone number after a written demand, including removal within 48 hours. Section 5 requires indemnification for dissemination, publication, or other use. Section 4 says property characteristics are maintained solely for assessment purposes and disclaims warranty, citing Revenue and Taxation Code Section 408.3. The form letterhead names an official. That name is not copied.
+
+**Statute.** Leginfo returned HTTP 403 on 2026-11-03. Quotations are from NOTES.md, read 2026-11-02. Gov. Code § 7922.530(a): agencies shall make records promptly available upon payment of direct costs of duplication or a statutory fee. Rev. & Tax. Code § 408.3(a): "property characteristics information maintained by the assessor is a public record and shall be open to public inspection." NOTES.md says neither section addresses commercial use or redistribution. Gov. Code § 7928.205 is NOT CONFIRMED.
+
+The order form, not the statute notes, is what restricts the file: exclusive use, no same-or-similar redistribution, no relinquishing possession. It does not say whether a cited organisation-owner fact, without the file and without a natural-person name, is allowed. The public open-data roll has no owner names (review-record Known gaps). Draft, unsigned: `../requests/orders/ca-los-angeles-assessor-order-draft.md`. Mail: Los Angeles County Assessor, 500 W. Temple Street, Room 304, Los Angeles, CA 90012, Attn: Accounting Department.
+
+### Platform terms read 2026-11-03 (gates pass, Task 5)
+
+Esri / ArcGIS Hub. No separate public Hub terms page for downloaders was found. Esri's Master Agreement (E204CW, <https://www.esri.com/content/dam/esrisites/en-us/media/legal/ma-translations/english.pdf>) and Product-Specific Terms (E300, <https://www.esri.com/content/dam/esrisites/en-us/media/legal/product-specific-terms-of-use/e300.pdf>) were read 2026-11-03 (HTTP 200, not accepted). Full notes: [`../requests/platform-terms/esri-hub.md`](../requests/platform-terms/esri-hub.md), [`esri-e204.md`](../requests/platform-terms/esri-e204.md), [`esri-e300.md`](../requests/platform-terms/esri-e300.md). E300 footnote 85:
+
+> Software licenses and subscriptions included with ArcGIS Hub may only be used to support the community initiatives enabled by ArcGIS Hub.
+
+Read: E204 and E300 bind Esri's customer (here, the publisher), not an anonymous downloader, and neither restricts redistribution of public records the publisher chooses to publish. The publisher's own terms recorded above still govern. Do not create an Esri account or accept either agreement to download a file.
+
 ## Real run (2026-11-03)
 
 All four use-code exports were archived by the collector once it retried truncated downloads

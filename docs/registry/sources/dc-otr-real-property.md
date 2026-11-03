@@ -86,6 +86,24 @@ shared by other collectors; one 10-minute stall produced a read timeout), so the
 needs an unattended run. The feature services page at 1,000 (ITSPE) and 2,000 (CAMA) rows per
 request as an alternative.
 
+### Platform terms read 2026-11-03 (gates pass, Task 5)
+
+Terms and Conditions of Use for District Data, <https://dc.gov/page/terms-and-conditions-use-district-data> (HTTP 200, read 2026-11-03; reached from the Open Data DC footer, since <https://opendata.dc.gov/pages/terms-of-use> shows a sign-in message). Full notes: [`../requests/platform-terms/dc-district-data.md`](../requests/platform-terms/dc-district-data.md).
+
+> Unless otherwise noted, the data on the Sites is public domain and made available with a Creative Commons CC0 1.0 Universal dedication.
+
+> You can copy, modify, distribute, and perform the data, even for commercial purposes, all without asking permission.
+
+Requested attribution: "Data retrieved from Open Data DC catalog (https://opendata.dc.gov)".
+
+Read: no restriction on redistribution of catalog data, including commercial use. Logos and copyrighted or trademarked content are excluded. The dataset-level CC-BY-4.0 tag recorded above asks for attribution, which the registry already carries. The Hub host is Esri's; Esri's customer terms (E204/E300, [`../requests/platform-terms/esri-hub.md`](../requests/platform-terms/esri-hub.md)) bind the District as Esri's customer, not a downloader.
+
+Esri / ArcGIS Hub. No separate public Hub terms page for downloaders was found. Esri's Master Agreement (E204CW, <https://www.esri.com/content/dam/esrisites/en-us/media/legal/ma-translations/english.pdf>) and Product-Specific Terms (E300, <https://www.esri.com/content/dam/esrisites/en-us/media/legal/product-specific-terms-of-use/e300.pdf>) were read 2026-11-03 (HTTP 200, not accepted). Full notes: [`../requests/platform-terms/esri-hub.md`](../requests/platform-terms/esri-hub.md), [`esri-e204.md`](../requests/platform-terms/esri-e204.md), [`esri-e300.md`](../requests/platform-terms/esri-e300.md). E300 footnote 85:
+
+> Software licenses and subscriptions included with ArcGIS Hub may only be used to support the community initiatives enabled by ArcGIS Hub.
+
+Read: E204 and E300 bind Esri's customer (here, the publisher), not an anonymous downloader, and neither restricts redistribution of public records the publisher chooses to publish. The publisher's own terms recorded above still govern. Do not create an Esri account or accept either agreement to download a file.
+
 ## Real run (2026-11-03)
 
 This connection drops the Hub's long transfers (five collector attempts: timeouts, truncated

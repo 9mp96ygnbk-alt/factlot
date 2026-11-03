@@ -26,6 +26,21 @@ Unknown; "available from the filing office upon request".
 2. Pay.
 3. Someone must read the Division pages in a browser, since the collector is blocked.
 
+### Terms read 2026-11-03 (gates pass)
+
+This memo is research, not legal advice; the founder holds no attorney or real estate license.
+
+No price, order form, delivery format, update frequency, postal address, email, or use clause was readable. The founder should open:
+
+- https://www.sec.state.ma.us/divisions/corporations/corporations.htm — HTTP 200, 212-byte Incapsula shell, the saved page
+- https://www.mass.gov/info-details/massachusetts-law-about-corporations — HTTP 403, "Not allowed"
+- https://www.mass.gov/regulations/950-CMR-11300 — HTTP 403, "Not allowed"
+- https://www.law.cornell.edu/regulations/massachusetts/950-CMR-113.15 — HTTP 200, and the saved text has no regulation body. It is not a quotation source for 950 CMR 113.15.
+
+No statute text for this product was saved. Do not invent a section number or a fee. Price per year: NOT CONFIRMED. Restrictive clause: NOT CONFIRMED.
+
+There is nothing to treat as permission to redistribute Massachusetts entity records, and nothing to load. Draft inquiry, with the address marked NOT CONFIRMED: `../requests/orders/ma-sos-entities-order-draft.md`.
+
 ## Real run
 
 None. No adapter.

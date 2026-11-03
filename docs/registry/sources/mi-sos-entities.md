@@ -23,6 +23,36 @@ No file.
 
 A person should (1) ask the Corporations Division (517-241-6470) whether a bulk or custom extract exists and at what price, or (2) file a Michigan FOIA request through LARA for an entity extract (see [public-information-requests.md](../public-information-requests.md) for the pattern). Do not scrape the portal search.
 
+### Terms read 2026-11-03 (gates pass)
+
+This memo is research, not legal advice; the founder holds no attorney or real estate license.
+
+No bulk entity product was named on the pages read.
+
+Corporations Division, https://www.michigan.gov/lara/bureau-list/cscl/corps (read 2026-11-03):
+
+> As of June 23, 2025, the new MiBusiness Registry Portal is live! You can now submit filings online, perform searches, and request
+
+Data-sets index, https://www.michigan.gov/lara/about/reports-data-sets (read 2026-11-03):
+
+> Below is a list of available data sets and reports from bureaus inside LARA.
+
+The Corporations, Securities & Commercial Licensing entries on that index are "CSCL License List and Data" and "Disciplinary Action Reports". The license-list page was not opened.
+
+FOIA procedures, effective September 10, 2024, read 2026-11-03: email LARAFOIAInfo@michigan.gov, mail c/o FOIA Coordinator, Ottawa Bldg., 4th Floor, P.O. Box 30004, Lansing, MI 48909. Portal www.michigan.gov/larafoia was not used.
+
+> estimate exceeds fifty dollars a deposit will be required to initiate processing
+
+Statute, from NOTES.md (read 2026-11-02), MCL 15.233, https://www.legislature.mi.gov/Laws/MCL?objectName=mcl-15-233 :
+
+> the person's agent who is an individual.
+
+> inspect, copy, or receive copies of the requested public record of the public body.
+
+NOTES.md says no section read addresses commercial use or redistribution. The statute as captured is silent on both. It does not require the Department to create a new compilation.
+
+The draft `../requests/mi-sos-entities-request.md` asks for an existing extract of entity id, legal name, status, type, formation date, and organisation address, with no natural-person officer or member names. The founder signs as FactLot's individual agent, fills address, phone, and email, and sends the letter. Do not use the portal. Do not accept a deposit until the founder agrees in writing.
+
 ## Real run
 
 None. No adapter.

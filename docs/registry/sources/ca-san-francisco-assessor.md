@@ -104,6 +104,18 @@ class definition). Mapping used:
 None for the data. One housekeeping item: read the DataSF terms page on sf.gov in a browser (it refused
 the collector), per data policy §5.
 
+### Platform terms read 2026-11-03 (gates pass, Task 5)
+
+DataSF terms of use, <https://www.sf.gov/reports--april-2017--datasf-terms-use> (HTTP 200, read 2026-11-03; matches the browser capture in the gates working file). Full notes: [`../requests/platform-terms/datasf.md`](../requests/platform-terms/datasf.md).
+
+> Except where otherwise stated in the file containing such Data or on the page from which such Data is accessed, including its metadata, Data is made available under the Public Domain Dedication and License v1.0 whose full text can be found at: http://www.opendatacommons.org/licenses/pddl/1.0/
+
+> You hereby understand and agree that You will not take any measures to re-identify the Data or to contact individuals whose information is represented by the Data.
+
+Section II.A says downloading or using the Data or a Derivative Work is treated "as an acceptance of the Terms of Use from that point forward", and section VII.B requires indemnity for use "including without limitation Your use of the Data in a Derivative Work."
+
+Read: the terms do not restrict redistribution. The data are dedicated under PDDL v1.0 unless the file or its page says otherwise (none was seen for `wv5m-vpq2`). The binding conditions are no re-identification and no contacting individuals (the registry keeps no natural-person names and this dataset has no owner names) and an indemnity. This clears the housekeeping item above; the founder should note that downloading counts as acceptance under II.A.
+
 ## Real run
 
 - `discover` (landing page `https://data.sf.gov/api/views/wv5m-vpq2.json`): `ok`, 0 links (the file URL

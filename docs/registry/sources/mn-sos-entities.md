@@ -29,6 +29,45 @@ Bulk Business Data: a monthly CSV in a zip, with three main record types (master
 3. Pay $710 or $30 (not paid).
 4. Clear the CAPTCHA block with the Office if page access is needed.
 
+### Terms read 2026-11-03 (gates pass)
+
+This memo is research, not legal advice; the founder holds no attorney or real estate license.
+
+**Blocked HTML.** https://www.sos.mn.gov/business-liens/business-liens-data/business-data-available/ returned a Radware captcha (HTTP 200 on the challenge URL). Any price that lived only on that page is NOT CONFIRMED. The founder should open the URL.
+
+**Commercial order, revised 5/22/2024.** https://www.sos.mn.gov/media/5124/bulkrequestcorp_commercialusers.pdf , read 2026-11-03.
+
+> Bulk Business Data Order Fee: $710
+
+> Data is purchased in bulk as a one-time set of records.
+
+CSV in a zip. File created at the beginning of each month. Delivery email must be a registered account at mblsportal.sos.mn.gov. No account was created. $710 is not a yearly subscription. Mail: Minnesota Secretary of State - Business Services, First National Bank Building, 332 Minnesota Street, Suite N201, St Paul, MN 55101.
+
+**Noncommercial form, revised 5/23/2024.** Do not use it for FactLot.
+
+> I agree that I will not sell or publish the entirety of, or any substantial portion of, the database.
+
+**License, BusinessBulkLARev5/5/2026.** https://www.sos.mn.gov/media/5125/business-bulk-la.pdf , read 2026-11-03. The letterhead names the Secretary. That name is not copied.
+
+> OSS GRANTS TO THE Licensee a non-exclusive, non-transferable license to publish and make
+> available in the normal course of its business to its customers, subject to paragraph C1
+
+> Nothing in this agreement prohibits
+> Licensee from charging its customers a fee for access to the Records.
+
+> This agreement does not provide for any updates of the Records.
+
+> Notwithstanding the Minnesota Government Data Practices Act, Minnesota Statutes chapter 13,
+> Licensee shall be allowed to use the Records only in the normal course of its business, except that
+> Licensee may not resell in bulk or repackage in bulk any substantial part of the Records. Licensee
+> shall not sub-license the Records without the express written consent of OSS.
+
+> Records cannot be presented by a User as the "Official" Records of OSS.
+
+Records remain the sole property of OSS. A header email in the text extract, "secretary.state.@state.mn.us", is not relied on. Use business.services@state.mn.us.
+
+**Statute.** Minn. Stat. § 13.03, subd. 3, https://www.revisor.mn.gov/statutes/cite/13.03 , read 2026-11-03. Subd. 3(a) permits inspection and copying of public government data. Subd. 3(d) allows a fee for a commercially valuable database built with significant public funds. Subd. 3(e) requires an electronic copy in the format maintained. The section does not forbid republication after receipt. The license applies "Notwithstanding" chapter 13 and then bars bulk resale or bulk repackaging of a substantial part, and bars sublicensing. Publishing one cited entity name, status, and file number is what paragraph A.1 seems to allow, and it is also the point paragraph C.1 does not expressly decide. Do not load an open dump of the file. Draft, unsigned: `../requests/orders/mn-sos-entities-order-draft.md`.
+
 ## Real run
 
 None. No adapter.

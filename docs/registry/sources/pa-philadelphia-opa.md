@@ -132,6 +132,40 @@ Mapping rules (`pa_philadelphia.state_category`):
   want to read the data dictionary there to confirm the column notes above (the code tables here
   come from the data's own description columns, which is the publisher's text).
 
+### Terms read 2026-11-03 (gates pass)
+
+**Dataset page.** https://opendataphilly.org/datasets/philadelphia-properties-and-assessment-history/ — read 2026-11-03, HTTP 200. The page is titled "Philadelphia Properties and Assessment History". The saved HTML links https://opendata-downloads.s3.amazonaws.com/opa_properties_public.csv.
+
+**City terms.** https://metadata.phila.gov/#help/help-faqs/what-are-the-terms-of-use/ — read 2026-11-02.
+
+> Browsing City data on this site, on opendataphilly.org, or on any other repository that
+
+> The City of Philadelphia reserves all rights in the database and any data contained therein,
+
+> receive, any title or interest in the database or any other City data.
+
+The same capture says browsing constitutes acceptance of the license. The sentences grant no redistribution right.
+
+**OpenDataPhilly terms.** https://opendataphilly.org/about/ — read 2026-11-03, HTTP 200.
+
+> The creator of the data sets, applications, and APIs retain any copyright or intellectual property restrictions they have placed on the data sets, applications, or APIs.
+
+> By using data linked to on OpenDataPhilly, the user also agrees to any additional terms of use or conditions defined by the organization or individual who created the data set, application, or API.
+
+**Office address.** Working notes, read 2026-11-02, https://www.phila.gov/departments/office-of-property-assessment/: "601 Walnut St., Suite 300 W., Philadelphia, PA 19106" and opadata@phila.gov. City Open Records Policy, https://www.phila.gov/open-records-policy/ — read 2026-11-03, HTTP 200. The Office of Property Assessment block lists "601 Walnut St, Ste 300 West, Philadelphia, PA 19106" and "RighttoKnowOPA@phila.gov". The Law Department Open Records Officer block lists "1515 Arch St., 15th Fl, Philadelphia, PA 19102" and "RightToKnowLaw@phila.gov".
+
+**Statute.** Right-to-Know Law, Act 3 of 2008, https://www.legis.state.pa.us/WU01/LI/LI/US/PDF/2008/0/0003..PDF — fetched 2026-11-02; this lane read the text already saved with the repository and did not re-fetch it. Section 302(b) in that text:
+
+> A local agency may not deny a requester
+
+> access to a public record due to the intended use of the public
+
+> record by the requester unless otherwise provided by law.
+
+Section 703 in the working notes (read 2026-11-02): "A written request need not include any explanation of the requester's reason for" and "requesting or intended use of the records unless otherwise required by law." Section 701(a) in the notes: "record shall be accessible for inspection and duplication in accordance with this act. A record". Section 1308(2) in the saved text: "A requirement to disclose the purpose or motive in". The notes state: "Nothing in the act restricts commercial use or redistribution of records obtained under it."
+
+The City terms reserve all rights in the database and do not grant redistribution. The sections of the Right-to-Know Law read here are silent on redistribution after the record is obtained, and section 302(b) says a local agency may not deny access because of intended use unless another law says so. Leave `verified` false. The founder signs and sends `pa-philadelphia-opa-letter.md`. This lane did not send it.
+
 ## Real run
 
 Run of 2026-11-02 (23:36-01:58 UTC) on the real data, archived with the collector

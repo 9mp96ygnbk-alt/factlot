@@ -135,6 +135,58 @@ the only published source of the class and land-use descriptions above.
 4. The Assessors' own site (fultonassessor.org) refuses the collector's user agent (403). Nothing was fetched
    from it; if its "property data downloads" are needed, a person should look.
 
+### Terms read 2026-11-03 (gates pass)
+
+**ArcGIS licenseInfo, read 2026-11-02** (working notes; this lane did not re-fetch the item JSON).
+
+Site item "Fulton County, Georgia - Open Data", https://www.arcgis.com/sharing/rest/content/items/9a3d1c28277b43ef99acf5c790302e49?f=json — licenseInfo is exactly "CC-BY-SA". No Creative Commons deed URL was in that field. This lane did not fetch the Creative Commons legal text. Share-alike and attribution duties are NOT CONFIRMED from a license deed.
+
+Tax Parcels 2025, https://www.arcgis.com/sharing/rest/content/items/c805da9aa51d4c508440358c00498fcf?f=json:
+
+> Fulton County provides the data within these pages "as is".
+
+Tax_CAMA, https://www.arcgis.com/sharing/rest/content/items/75e58855b00d40d7873975f22c24ba8f?f=json, licenseInfo starts:
+
+> Fulton County provides the data within these pages for your personal use
+
+The notes then continue with a quoted as-is, broken across the line end.
+
+**Board of Assessors.** https://www.fultoncountyga.gov/boardofassessors — read 2026-11-03, HTTP 200. "235 Peachtree Street, NE", "Suite 1400", "Atlanta, GA 30303", "boa@fultoncountyga.gov".
+
+**Open records page.** https://www.fultoncountyga.gov/Inside-Fulton-County/Fulton-County-Departments/Office-of-the-County-Attorney/Open-Records-Requests — read 2026-11-03, HTTP 200. "Official Custodian of Records" at "141 Pryor Street, S.W., Suite 4038", "Atlanta, Georgia 30303", "orr@fultoncountyga.gov".
+
+**Statute, read 2026-11-03.** Current text: 2025 supplement, https://www.legis.ga.gov/api/document/docs/default-source/joint-features-document-library/t50-ch13-40-%28v38a%29-pdf.pdf (HTTP 200). Older compilation: https://law.georgia.gov/document/here-3/download (HTTP 200), the same bytes as https://agr.georgia.gov/sites/default/files/documents/assets/AG-872100-v1-OPENGOV__Open_Records_Act_March_2016%20%282%29.pdf and as https://www.fultoncountyga.gov/-/media/Files/Open-Records-Act-October-2024.pdf (HTTP 200).
+
+O.C.G.A. § 50-18-70 (2025 supplement) includes "presumption that public records should be made available for public" and "computer based or generated information,". The History note includes "added paragraph (b)(1.1)."
+
+O.C.G.A. § 50-18-71(a)(1) (2025 supplement):
+
+> All public records shall be open for personal inspection and
+
+> copying, except those which by order of a court of this state or by law
+
+Fees in that 2025 text:
+
+> records shall not exceed the prorated hourly salary of the lowest paid
+
+> not to exceed 10¢ per page for letter or legal size documents or, in the
+
+> the media on which the records or data are produced.
+
+The Attorney General compilation says "no charge shall be made for the first quarter" and "not to exceed 10 cent(s) per page for letter or". No line of § 50-18-70 or § 50-18-71 in either file contains the word commercial. Both sections are silent on redistribution after the copy is obtained.
+
+**Blocked.** One guessed file URL returned HTTP 403 and a Cloudflare "Just a moment..." page. Exact URL for the founder: https://law.georgia.gov/sites/law.georgia.gov/files/AG-%23872100-v1-OPENGOV__Open_Records_Act_March_2016.pdf. The statute text above was read from the URLs that returned HTTP 200. LexisNexis was not opened.
+
+The three publisher statements (CC-BY-SA, an as-is disclaimer, and personal use on Tax_CAMA) do not say the same thing. The Open Records Act sections read here do not supply a commercial-purpose certification and do not forbid redistribution after access. Leave `verified` false. The founder signs and sends `ga-fulton-assessor-letter.md`. This lane did not send it.
+
+### Platform terms read 2026-11-03 (gates pass, Task 5)
+
+Esri / ArcGIS Hub. No separate public Hub terms page for downloaders was found. Esri's Master Agreement (E204CW, <https://www.esri.com/content/dam/esrisites/en-us/media/legal/ma-translations/english.pdf>) and Product-Specific Terms (E300, <https://www.esri.com/content/dam/esrisites/en-us/media/legal/product-specific-terms-of-use/e300.pdf>) were read 2026-11-03 (HTTP 200, not accepted). Full notes: [`../requests/platform-terms/esri-hub.md`](../requests/platform-terms/esri-hub.md), [`esri-e204.md`](../requests/platform-terms/esri-e204.md), [`esri-e300.md`](../requests/platform-terms/esri-e300.md). E300 footnote 85:
+
+> Software licenses and subscriptions included with ArcGIS Hub may only be used to support the community initiatives enabled by ArcGIS Hub.
+
+Read: E204 and E300 bind Esri's customer (here, the publisher), not an anonymous downloader, and neither restricts redistribution of public records the publisher chooses to publish. The publisher's own terms recorded above still govern. Do not create an Esri account or accept either agreement to download a file.
+
 ## Real run
 
 **Not yet run on a real file.** On 2026-11-02 the shared connection was saturated and

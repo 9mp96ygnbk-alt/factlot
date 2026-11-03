@@ -104,6 +104,52 @@ Officers and registered agents are not read: the type flag shows most are natura
 - No account, fee, form or click-through is involved in the SFTP route; the login is the one the
   Division publishes for the public.
 
+### Terms read 2026-11-03 (gates pass)
+
+The three data-download pages rendered on a plain GET. Each was HTTP 200 and was the Division's HTML, not a Cloudflare challenge. An earlier capture (`fl.hdr` / `fl.txt`) is the same Data Downloads page, also HTTP 200.
+
+**Data Downloads.** https://dos.fl.gov/sunbiz/other-services/data-downloads/ — read 2026-11-03.
+
+> The Division of Corporations offers free data downloads for informational purposes. Downloads are offered as is and may be changed, replaced or deleted at any time.
+
+> Quarterly files are generated quarterly in January, April, July, and October and contain all active data at the time the file is generated.
+
+> Host: https://sftp.floridados.gov
+
+> Username: Public
+
+A password is printed on the page. It is not copied here. Nothing was logged in.
+
+**Quarterly data.** https://dos.fl.gov/sunbiz/other-services/data-downloads/quarterly-data/ — read 2026-11-03.
+
+> They contain all data on record at the time the file is generated.
+
+> Corporate data includes corporations, limited liability companies and limited partnerships.
+
+Quarterly corporate filings are listed as "cordata.zip" at "doc > quarterly > cor".
+
+**Daily data.** https://dos.fl.gov/sunbiz/other-services/data-downloads/daily-data/ — read 2026-11-03. Daily corporate filings are "yyyymmddc.txt" at "doc > cor".
+
+**Data Usage Guide.** https://dos.fl.gov/sunbiz/other-services/data-downloads/data-usage-guide/ — read 2026-11-03, HTTP 200.
+
+> We provide our data as-is.
+
+The footer on these pages is "Copyright © 2026 State of Florida, Florida Department of State." That line states no terms for the data files. AI use is not addressed. The pages do not forbid commercial use and do not forbid redistribution, and they do not grant a license.
+
+**Address.** https://dos.fl.gov/sunbiz/contact/address-phone-numbers/ — read 2026-11-03, HTTP 200 (the dos.myflorida.com URL redirected to this page). "2415 N. Monroe Street, Suite 810", "The Centre of Tallahassee", mail "P.O. Box 6327" for the "Public Access Account" and other listed sections. Decoding the saved markup for the "Internet Support Section" row yields corphelp@dos.fl.gov.
+
+**Statute.** Section 15.16, Florida Statutes (2026), https://www.leg.state.fl.us/Statutes/index.cfm?App_mode=Display_Statute&URL=0000-0099/0015/Sections/0015.16.html — read 2026-11-03. The title on the page is "Reproduction of records; admissibility in evidence; electronic receipt and transmission of records; certification; acknowledgment."
+
+> E-mail addresses collected by the Department of State pursuant to this subsection are exempt from s. 119.07(1) and s. 24(a), Art. I of the State Constitution.
+
+Section 607.0120, https://www.leg.state.fl.us/statutes/index.cfm?App_mode=Display_Statute&URL=0600-0699/0607/Sections/0607.0120.html — read 2026-11-03. The heading includes "Filing requirements."
+
+> A document must satisfy the requirements of this section and of any other section that adds to or varies these requirements to be entitled to filing by the department.
+
+Chapter 119, sections 119.01(1) and 119.07(1)(a), read 2026-11-02 and quoted in `fl-dor-nal-GATES-addendum.md`, are silent on commercial use and silent on redistribution after the copy is obtained. Section 15.16 and section 607.0120, as read, are also silent on commercial use of the corporate data file and silent on redistribution of it.
+
+The download pages offer the files free, for informational purposes, as is. They do not restrict redistribution of the public fields. The founder decides whether that, with chapter 119, is enough to load the corporate files. `fl-dos-entities-letter.md` is optional and was not sent. This lane does not recommend leaving the source unloaded on the words that were read.
+
 ## Real run
 
 Run on 2026-11-02 (US Eastern evening; UTC 2026-11-03). **Sample, not the full file:** the

@@ -123,6 +123,34 @@ to single spaces, `0072 01 0021A`). Counts from the live services on 2026-11-02:
    owner file is available (Virginia FOIA request; owner names are public assessment information
    under § 58.1-3122.2) or accept a roll without owners.
 
+### Terms read 2026-11-03 (gates pass)
+
+GIS Division disclaimer, <https://www.fairfaxcounty.gov/maps/disclaimer> (read 2026-11-02, NOTES.md). Each Tax Administration dataset's license field points here and nowhere else:
+
+> Copyright by Fairfax County. Except as provided herein, all rights are reserved. Authorization to reproduce material for internal or personal use by any user of this information is granted by Fairfax County, the copyright owner.
+
+The same page says the layers are "provided as a public resource" and that Fairfax County "makes no warranties, expressed or implied, concerning the accuracy, completeness or suitability of its data". A Section 54.1-402 paragraph says depictions of improvements or boundaries "shall not be used for the design, modification, or construction of improvements to real property or for flood plain determination." AI use is not addressed.
+
+Va. Code § 2.2-3704(A), <https://law.lis.virginia.gov/vacode/title2.2/chapter37/section2.2-3704/> (read 2026-11-02):
+
+> Except as otherwise specifically provided by law, all public records shall be open to citizens of the Commonwealth, representatives of newspapers and magazines with circulation in the Commonwealth, and representatives of radio and television stations broadcasting in or into the Commonwealth during the regular office hours of the custodian of such records.
+
+The statutory right runs to Virginia citizens and in-state print and broadcast media. A requester outside that list relies on county discretion. Subsection (F): "The public body shall provide the requester with a cost estimate if requested." Subsection (G) covers electronic databases and email delivery. Commercial use: silent. Redistribution after receipt: silent.
+
+Va. Code § 2.2-3700(B), <https://law.lis.virginia.gov/vacode/title2.2/chapter37/section2.2-3700/> (read 2026-11-02): public records "shall be presumed open". Va. Code § 58.1-3122.2, <https://law.lis.virginia.gov/vacode/title58.1/chapter32/section58.1-3122.2/> (read 2026-11-02): the commissioner "may provide remote access, including access through the Internet, to all nonconfidential public records maintained by his office, subject to such limitations as may be imposed by applicable law." That sentence is silent on commercial use and on redistribution by a recipient.
+
+Recipient for the letter and the owner-file request, <https://www.fairfaxcounty.gov/publicaffairs/foia/> (read 2026-11-02): Countywide FOIA Officer, Office of Public Affairs, 12000 Government Center Parkway, Suite 551, Fairfax, VA 22035, FOIA@fairfaxcounty.gov. Department of Tax Administration, Real Estate Division, by title. The published Hub tables have no owner column. The owner-file draft is `va-fairfax-assessor-request.md`.
+
+The disclaimer grants reproduction for internal or personal use and reserves every other right. It restricts redistribution of the assessment tables. Do not publish facts from them until the county answers `va-fairfax-assessor-letter.md`. The owner file is a separate FOIA request, and § 2.2-3704(A) has to be faced in that request before it is sent.
+
+### Platform terms read 2026-11-03 (gates pass, Task 5)
+
+Esri / ArcGIS Hub. No separate public Hub terms page for downloaders was found. Esri's Master Agreement (E204CW, <https://www.esri.com/content/dam/esrisites/en-us/media/legal/ma-translations/english.pdf>) and Product-Specific Terms (E300, <https://www.esri.com/content/dam/esrisites/en-us/media/legal/product-specific-terms-of-use/e300.pdf>) were read 2026-11-03 (HTTP 200, not accepted). Full notes: [`../requests/platform-terms/esri-hub.md`](../requests/platform-terms/esri-hub.md), [`esri-e204.md`](../requests/platform-terms/esri-e204.md), [`esri-e300.md`](../requests/platform-terms/esri-e300.md). E300 footnote 85:
+
+> Software licenses and subscriptions included with ArcGIS Hub may only be used to support the community initiatives enabled by ArcGIS Hub.
+
+Read: E204 and E300 bind Esri's customer (here, the publisher), not an anonymous downloader, and neither restricts redistribution of public records the publisher chooses to publish. The publisher's own terms recorded above still govern. Do not create an Esri account or accept either agreement to download a file.
+
 ## Real run
 
 **Not completed at the time of this record.** On 2026-11-02 the collector's `discover` read both
