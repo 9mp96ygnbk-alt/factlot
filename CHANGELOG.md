@@ -125,6 +125,13 @@ from its commit history; nothing was published to npm or PyPI before it.
 - Documentation for agents (`llms.txt`, `AGENTS.md`, `docs/agents.md`), the ID spec, the fact
   model, the registry, rules, ingestion, and the backlog.
 
+### Changed
+
+- `calc.debt_sizing@2`: the maximum loan is rounded down after reducing it to 15 significant
+  digits, so binary noise no longer costs a whole increment (a 57% LTV on $10,000,000 rounded
+  to $1,000 returned $5,699,000 instead of $5,700,000). Both SDKs; `reduceNoise` /
+  `reduce_noise` added to the core helpers.
+
 ### Fixed
 
 - Python validates registry tool input before opening the registry, matching TypeScript (found

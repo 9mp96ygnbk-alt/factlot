@@ -7,6 +7,7 @@ import {
   fmtPct,
   parseInput,
   powInt,
+  reduceNoise,
   round,
 } from "./core.ts";
 import type { CalcResult } from "./core.ts";
@@ -143,16 +144,19 @@ export function debtSizing(raw: DebtSizingInput): CalcResult<DebtSizing> {
   const [binding, minLoan] = entries.reduce((a, b) => (b[1] < a[1] ? b : a));
   if (minLoan <= 0)
     throw new CalcInputError("constraints produce a non-positive loan");
+  // Floor after reducing to 15 significant digits, so binary noise such as
+  // 0.57 × 10,000,000 = 5699999.999999999 does not cost a whole increment.
   const loan = t.step(
     "Max loan",
-    Math.floor(minLoan / input.round_down_to) * input.round_down_to,
+    Math.floor(reduceNoise(minLoan / input.round_down_to)) *
+      input.round_down_to,
     `min(${entries.map(([c, v]) => `${c} ${fmtMoney(v)}`).join(", ")}), rounded down to ${input.round_down_to}`,
     "USD",
   );
   t.step("Binding constraint", binding);
   const ds = round(loan * k, 2);
 
-  return t.result("calc.debt_sizing", 1, {
+  return t.result("calc.debt_sizing", 2, {
     max_loan: loan,
     binding_constraint: binding,
     loan_by_constraint: Object.fromEntries(

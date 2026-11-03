@@ -127,7 +127,7 @@ const loan = debtSizing({
 loan.value.max_loan; // 9750000
 loan.value.binding_constraint; // "ltv"
 loan.steps; // every intermediate value, with formulas
-loan.formula; // { id: "calc.debt_sizing", version: 1 }
+loan.formula; // { id: "calc.debt_sizing", version: 2 }
 
 parcelId({ stateFips: "06", countyFips: "037", apn: "5432-001-012" });
 // { kind: "parcel", urn: "fl:parcel:us-06037:5432001012", short: "flp_..." }

@@ -8,7 +8,7 @@ an identifier. This page covers which tool to call, when, and how to report the 
 1. **Don't do CRE math in context.** Call a `calc_*` tool for rent, abatement, NER, CAM, percentage
    rent, loan sizing, WALT, NPV, IRR, lease-versus-own, renew-versus-relocate, and hotel metrics.
    Models drift on compounding, caps, and amortization. The calculators don't.
-2. **Cite the method.** Report `formula` (for example `calc.debt_sizing@1`) and point to `steps`.
+2. **Cite the method.** Report `formula` (for example `calc.debt_sizing@2`) and point to `steps`.
    A human can check every intermediate value without redoing the work.
 3. **Surface warnings.** `warnings` lists assumptions that need a human, such as the order of a
    CAM cap versus the base year, or a prorated breakpoint.

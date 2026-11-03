@@ -86,7 +86,7 @@ test("calc tool returns value, trace, and computed provenance", async () => {
     steps: unknown[];
   };
   assert.equal(sc.value.max_loan, 9_750_000);
-  assert.equal(sc.provenance.formula, "calc.debt_sizing@1");
+  assert.equal(sc.provenance.formula, "calc.debt_sizing@2");
   assert.ok(sc.steps.length > 0);
   await client.close();
 });

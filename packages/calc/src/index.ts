@@ -100,7 +100,7 @@ export const calculators = {
   },
   debt_sizing: {
     id: "calc.debt_sizing",
-    version: 1,
+    version: 2,
     title: "Loan sizing (LTV / DSCR / debt yield)",
     description:
       "Size the maximum loan under any combination of max LTV, min DSCR, and min debt yield for a given NOI, rate, and amortization. Reports the binding constraint, debt service, and resulting metrics.",

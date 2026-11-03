@@ -26,6 +26,7 @@ from ._core import (
     number,
     obj,
     pow_int,
+    reduce_noise,
     round_,
     sign,
     string,
@@ -362,12 +363,14 @@ def debt_sizing(raw: Any) -> Result:
             binding, min_loan = c, v
     if min_loan <= 0:
         raise CalcInputError("constraints produce a non-positive loan")
-    loan = t.step("Max loan", math.floor(min_loan / step) * step,
+    # Floor after reducing to 15 significant digits, so binary noise such as
+    # 0.57 * 10_000_000 == 5699999.999999999 does not cost a whole increment.
+    loan = t.step("Max loan", math.floor(reduce_noise(min_loan / step)) * step,
                   "min(" + ", ".join(f"{c} {fmt_money(v)}" for c, v in loans.items()) + f"), rounded down to {num_str(step)}",
                   "USD")
     t.step("Binding constraint", binding)
     ds = round_(loan * k, 2)
-    return t.result("calc.debt_sizing", 1, {
+    return t.result("calc.debt_sizing", 2, {
         "max_loan": loan,
         "binding_constraint": binding,
         "loan_by_constraint": {c: round_(v, 2) for c, v in loans.items()},
@@ -1403,7 +1406,7 @@ CALCULATORS: dict[str, tuple[Callable[[Any], Result], str, int]] = {
     "compare_proposals": (compare_proposals, "calc.compare_proposals", 1),
     "percentage_rent": (percentage_rent, "calc.percentage_rent", 1),
     "cam_reconciliation": (cam_reconciliation, "calc.cam_reconciliation", 1),
-    "debt_sizing": (debt_sizing, "calc.debt_sizing", 1),
+    "debt_sizing": (debt_sizing, "calc.debt_sizing", 2),
     "lease_remeasurement_asc842": (lease_remeasurement_asc842, "calc.lease_remeasurement_asc842", 1),
     "prepayment_and_defeasance": (prepayment_and_defeasance, "calc.prepayment_and_defeasance", 1),
     "walt": (walt, "calc.walt", 1),

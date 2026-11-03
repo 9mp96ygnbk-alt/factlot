@@ -747,11 +747,11 @@
     {
       "name": "calc_debt_sizing",
       "title": "Loan sizing (LTV / DSCR / debt yield)",
-      "description": "Size the maximum loan under any combination of max LTV, min DSCR, and min debt yield for a given NOI, rate, and amortization. Reports the binding constraint, debt service, and resulting metrics. Deterministic: use this instead of doing the math yourself; cite formula calc.debt_sizing@1 and the returned steps, and surface any warnings.",
+      "description": "Size the maximum loan under any combination of max LTV, min DSCR, and min debt yield for a given NOI, rate, and amortization. Reports the binding constraint, debt service, and resulting metrics. Deterministic: use this instead of doing the math yourself; cite formula calc.debt_sizing@2 and the returned steps, and surface any warnings.",
       "path": "/v1/calc/debt_sizing",
       "formula": {
         "id": "calc.debt_sizing",
-        "version": 1
+        "version": 2
       },
       "input_schema": {
         "type": "object",

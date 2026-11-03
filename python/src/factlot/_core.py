@@ -38,6 +38,16 @@ def round_(x: float, dp: int = 2) -> float:
     return -r if x < 0 and r != 0 else r
 
 
+def reduce_noise(x: float) -> float:
+    """Reduce x to 15 significant digits, ties away from zero (identical to @factlot/calc ``reduceNoise``).
+
+    Use before a floor or comparison: 0.57 * 10_000_000 == 5699999.999999999 -> 5700000.0
+    """
+    if not math.isfinite(x):
+        raise CalcInputError(f"cannot reduce non-finite value {x}")
+    return float(_SIG.plus(Decimal(float(x))))
+
+
 def pow_int(base: float, n: int) -> float:
     """base**n for integer n by exponentiation by squaring (identical to @factlot/calc ``powInt``).
 
