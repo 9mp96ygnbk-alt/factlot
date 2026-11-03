@@ -103,8 +103,13 @@
             >
           </p>
           <p class="note">
-            Not yet on npm or PyPI: build from source or run the Docker image.
-            The hosted service is not yet public.
+            One line for any MCP client, no API key:
+            <code
+              >npx -y
+              https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.0/factlot-mcp-standalone-0.1.0.tgz</code
+            >. Listed in the official MCP Registry as
+            <code>io.github.9mp96ygnbk-alt/factlot</code>. The hosted service is
+            not yet public.
           </p>
         </div>
       </section>
@@ -460,11 +465,17 @@
             database is configured.
           </p>
           <p class="small">
-            Install today from GitHub (not yet on npm or PyPI):
-            <code>git clone https://github.com/9mp96ygnbk-alt/factlot.git</code
-            >, then <code>npm install</code> and <code>npm run build</code>, and
-            run <code>node packages/mcp/dist/bin.js</code> (Node.js 22.6 or
-            newer). It needs no API key.
+            Install v0.1.0 (not yet on npm or PyPI): any MCP client runs
+            <code
+              >npx -y
+              https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.0/factlot-mcp-standalone-0.1.0.tgz</code
+            >
+            (Node.js 22.6 or newer); Claude Desktop opens
+            <a
+              href="https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.0/factlot-0.1.0.mcpb"
+              >factlot-0.1.0.mcpb</a
+            >; Docker runs <code>ghcr.io/9mp96ygnbk-alt/factlot:0.1.0</code>;
+            Python installs from git. It needs no API key.
           </p>
         </div>
       </section>

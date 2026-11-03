@@ -2,6 +2,19 @@
 
 **The open fact layer for commercial real estate AI agents.**
 
+**Install in one line** (v0.1.0; no API key, no network calls; listed in the
+[official MCP Registry](https://registry.modelcontextprotocol.io/v0.1/servers?search=factlot) as
+`io.github.9mp96ygnbk-alt/factlot`):
+
+```bash
+# Any MCP client (stdio). For Claude Code: claude mcp add factlot -- npx -y <this URL>
+npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.0/factlot-mcp-standalone-0.1.0.tgz
+```
+
+Claude Desktop: open [`factlot-0.1.0.mcpb`](https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.0/factlot-0.1.0.mcpb).
+REST, OpenAPI and remote MCP: `docker run -p 8787:8787 ghcr.io/9mp96ygnbk-alt/factlot:0.1.0`.
+Python: `pip install "git+https://github.com/9mp96ygnbk-alt/factlot.git@v0.1.0#subdirectory=python"`.
+
 **Hosted registry early access:** teams that want cited parcel-to-owner-to-entity lookups without self-hosting can email [contact@factlot.com](mailto:contact@factlot.com?subject=FactLot%20hosted%20registry%20early%20access). The hosted service is not yet public, and early-access teams help set pricing. Questions and bug reports go in [GitHub Discussions](https://github.com/9mp96ygnbk-alt/factlot/discussions) and Issues.
 
 Agents doing CRE work get stuck in the same places. They can't trust their own
@@ -36,23 +49,27 @@ Be clear about scope before adopting it:
 
 - **Calculators, IDs, and the fact model work anywhere.** They need no data and no API key, and
   they run offline in both SDKs with identical results.
-- **The registry covers Tier 1 metros, unevenly.** Real public-record rolls are loaded for the
-  five largest Texas counties (Harris, Dallas, Tarrant, Travis, Collin), Boston, San Francisco,
-  and Philadelphia, with the Texas Comptroller's entity list for owner resolution; New York City,
-  Los Angeles, Denver, Hennepin, Mecklenburg, and the District of Columbia are verified and
-  loading, with New York, Colorado, Pennsylvania, and DC entity registries. Cook County, Florida,
-  Fulton, Maricopa, Wayne, Fairfax, King, and most of California have adapters but wait on a
-  licence decision, a form, or a purchase. Commercial, industrial, and multifamily parcels only;
-  several public files omit owner names; no sales prices, tenants, debt, zoning, or building specs
-  beyond area and year built. See [the registry](docs/registry/README.md) and the
-  [source catalog](docs/registry/sources/README.md).
+- **The registry covers the largest metros, unevenly.** Real public-record rolls are loaded for
+  Harris, Dallas, Tarrant, Travis and Collin (Texas), New York City, Los Angeles, Boston, San
+  Francisco, Denver, Charlotte, Minneapolis and the District of Columbia: 708,538 commercial,
+  industrial and multifamily parcels, with 12.9 million registered entities from Texas, New York,
+  Colorado, Pennsylvania and DC for owner resolution. A second tier of 28 more counties is
+  verified with adapters (Monroe, Suffolk, Nassau, Westchester and Erie NY; three Maryland
+  counties; four Massachusetts counties; Denton, Williamson and Fort Bend; Milwaukee, Marion,
+  Oakland, Wake, Davidson, DeKalb, Sacramento, Salt Lake, Utah County, Pierce, Multnomah, and two
+  Pennsylvania counties) and loads through the collector. Cook County, Florida, Fulton, Maricopa,
+  Wayne, Fairfax, King and much of California wait on a licence decision, a form or a purchase.
+  Commercial, industrial and multifamily parcels only; several public files omit owner names; no
+  sales prices, tenants, debt, zoning, or building specs beyond area and year built. See
+  [the registry](docs/registry/README.md), the [Tier 1 catalog](docs/registry/sources/README.md)
+  and the [Tier 2 index](docs/registry/tier2/README.md).
 - **One rules pack**, the Texas property-tax protest deadline, verified against the official
   statute text. Other jurisdictions follow only after a person verifies them.
 - **Lease ingestion is a prototype**: deterministic quote-on-page and value-in-quote checks, OCR
   for scanned pages through a pluggable backend, but no published accuracy number yet.
-- **Not yet published** to npm or PyPI, and no hosted public endpoint. Install from a GitHub
-  release, from git, from source, or with Docker ([getting started](docs/getting-started.md)).
-  The [release process](docs/release-process.md) is ready for when the accounts exist.
+- **Not yet on npm or PyPI**, and no hosted public endpoint. Install from the
+  [v0.1.0 release](https://github.com/9mp96ygnbk-alt/factlot/releases/tag/v0.1.0), from git, from
+  source, or with Docker ([getting started](docs/getting-started.md)).
 
 ## Connect FactLot to any AI platform
 
