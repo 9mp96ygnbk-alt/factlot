@@ -34,6 +34,10 @@ from its commit history; nothing was published to npm or PyPI before it.
   convention), step-down, flat percentage, or defeasance (replacement securities cost from a flat
   yield or a stepped curve, plus stated costs). Both calculators ship in TypeScript and Python
   with shared vectors and differential-test generators.
+- Business documents under `docs/business/`: a business plan, a bottom-up 36-month financial
+  model (`model.md` with its monthly lines in `model.csv`, three scenarios), and a market-sizing
+  study with cited firm counts, a competition deep dive, and a pricing comparison (backlog C19
+  and C20).
 - `@factlot/schema` (MIT): the fact data model with provenance and AI-use rights, exported as
   JSON Schema.
 - `@factlot/id`: FactLot ID v0.1, deterministic identifiers for parcels, legal entities,

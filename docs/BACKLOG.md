@@ -75,8 +75,8 @@ cleared.
 
 **Business**
 
-- [ ] C19 A business plan and a bottom-up financial model (revenue drivers, costs, runway). This was offered but not yet written.
-- [ ] C20 Market sizing from real firm counts, a competition deep dive, and validated pricing.
+- [x] C19 ~~A business plan and a bottom-up financial model (revenue drivers, costs, runway).~~ Done 2026-11-03: [business/plan.md](business/plan.md) and [business/model.md](business/model.md) with the monthly lines in [business/model.csv](business/model.csv) (three scenarios, every assumption in one table).
+- [x] C20 ~~Market sizing from real firm counts, a competition deep dive, and validated pricing.~~ Done 2026-11-03: [business/market.md](business/market.md), with a cited count for every segment, a competition deep dive, and a pricing comparison against public price lists. Pricing is proposed, not validated: validation waits on the interviews (A8).
 
 **The factlease repository**
 
