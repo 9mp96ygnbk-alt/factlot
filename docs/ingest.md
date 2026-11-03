@@ -199,6 +199,22 @@ anything else runs, so a missing `tesseract` fails fast with exit code 2. The ou
 the facts, the rejections, and the review queue; running the extraction again with the same
 `--out` reuses its lease URN and keeps every review decision.
 
+## Customer documents
+
+What leaves your machine (the page text sent to the model, and nothing else), what the report
+keeps, and how a hosted version will store and delete documents are in the
+[customer documents policy](customer-documents.md). Two controls from it are in the pipeline:
+
+- Every report has a `retention` header naming the policy and its version, `documents_days`,
+  and `retain_until`: the run date plus `--retain-days` (default 30, `DEFAULT_RETENTION_DAYS`),
+  the date a hosted copy of the source documents is deleted. Self-hosted, nothing acts on it. The
+  CLI prints it with the summary.
+- `--redact` (or `IngestResult.to_report(redact=True)`) persists document text only as the quotes
+  that are evidence for a fact or a review item: rejected candidates keep their predicate, page
+  and reason but lose their quote, and the report is marked `"redacted": true`. The review queue
+  is untouched, so `--review`, `--accept` and `--reject` work on a redacted file. Hosted ingest
+  will always persist the redacted form. Tests: `python/tests/test_ingest_policy.py`.
+
 ## Status
 
 - The pipeline, verifier, supersession, CLI, and the Claude extractor's request and parsing are

@@ -88,6 +88,24 @@ export interface FactLotServerOptions {
 
 const toolsByPath = new Map(tools.map((t) => [t.path, t]));
 
+/**
+ * Every field a request log line may carry, in order. This is the whole schema: the log never
+ * includes a request body, tool arguments, tool results, headers, or a bearer key, and no
+ * future endpoint may add them, because customer documents must never appear in logs
+ * (docs/customer-documents.md, "Logging"). A test holds this list to what the logger writes.
+ */
+export const REQUEST_LOG_FIELDS = [
+  "time",
+  "msg",
+  "method",
+  "path",
+  "tool",
+  "key",
+  "key_prefix",
+  "status",
+  "duration_ms",
+] as const;
+
 class HttpError extends Error {
   readonly status: number;
   constructor(status: number, message: string) {
@@ -251,6 +269,9 @@ export function createHandler(opts: FactLotServerOptions = {}) {
           durationMs,
         });
       if (logJson) {
+        // Metadata only. Never add the body, tool arguments, results, or headers here: a
+        // document-carrying endpoint would put customer documents in the log. The fields
+        // are the ones in REQUEST_LOG_FIELDS; see docs/customer-documents.md, "Logging".
         const names = ctx.calls.map((c) => c.tool);
         logSink(
           JSON.stringify({

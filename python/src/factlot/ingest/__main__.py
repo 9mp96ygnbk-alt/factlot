@@ -37,6 +37,7 @@ from .documents import load_document, unreadable_pages_message
 from .extract import ClaudeExtractor
 from .ocr import OCR_BACKENDS, ocr_backend
 from .pipeline import REVIEW_CONFIDENCE_THRESHOLD, IngestResult, decide, evaluate, ingest_lease, review_queue
+from .retention import DEFAULT_RETENTION_DAYS
 
 
 def _load_result(path: Path) -> IngestResult | None:
@@ -45,8 +46,8 @@ def _load_result(path: Path) -> IngestResult | None:
     return IngestResult.from_report(json.loads(path.read_text()))
 
 
-def _write_result(path: Path, result: IngestResult, extra: dict | None = None) -> dict:
-    report = result.to_report() | (extra or {})
+def _write_result(path: Path, result: IngestResult, extra: dict | None = None, *, redact: bool = False) -> dict:
+    report = result.to_report(redact=redact) | (extra or {})
     path.write_text(json.dumps(report, indent=2))
     return report
 
@@ -65,6 +66,14 @@ def main(argv: list[str] | None = None) -> int:
                     help="extractor confidence below this is queued for review (default %(default)s)")
     ap.add_argument("--gold", help="JSON of expected current values, for scoring")
     ap.add_argument("--out", default="lease-facts.json", help="facts and review queue (read back on later runs)")
+    policy = ap.add_argument_group("customer documents (docs/customer-documents.md)")
+    policy.add_argument("--redact", action="store_true",
+                        help="persist document text only as the quotes that are evidence for a fact or a "
+                             "review item (hosted ingest always does)")
+    policy.add_argument("--retain-days", type=int, default=DEFAULT_RETENTION_DAYS, metavar="N",
+                        help="days after the run on which a hosted copy of the source documents is deleted "
+                             "(default %(default)s; 0 = as soon as the report is written); written to the "
+                             "report's retention.retain_until")
     queue = ap.add_argument_group("review queue (no model call; reads and updates --out)")
     queue.add_argument("--review", action="store_true", help="list the items waiting for a decision")
     queue.add_argument("--accept", metavar="ID", help="accept a queued item: it becomes a fact")
@@ -98,7 +107,7 @@ def main(argv: list[str] | None = None) -> int:
         except ValueError as e:
             print(f"error: {e}", file=sys.stderr)
             return 2
-        _write_result(out, result)
+        _write_result(out, result, redact=args.redact)
         print(item.describe())
         if item.status == "accepted":
             fact = next(f for f in result.facts if f["predicate"] == item.candidate.predicate
@@ -110,6 +119,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if not args.model or not args.lease:
         ap.error("--model and --lease are required to extract (or use --review/--accept/--reject)")
+    if args.retain_days < 0:
+        ap.error("--retain-days must be 0 or more")
     ocr = None
     if args.ocr:
         try:
@@ -129,13 +140,16 @@ def main(argv: list[str] | None = None) -> int:
     previous = _load_result(out)
     urn = args.lease_urn or (previous.lease_urn if previous and previous.lease_urn else mint("lease").urn)
     result = ingest_lease(urn, docs, ClaudeExtractor(args.model, effort=args.effort), as_of=date.today().isoformat(),
-                          review=previous.review if previous else None, confidence_threshold=args.confidence_threshold)
+                          review=previous.review if previous else None, confidence_threshold=args.confidence_threshold,
+                          retention_days=args.retain_days)
     extra = {"unreadable_pages": {d.title: d.metadata["pages_without_text"] for d in docs
                                   if "pages_without_text" in d.metadata}}
     if args.gold:
         extra["evaluation"] = evaluate(result, json.loads(Path(args.gold).read_text()))
-    report = _write_result(out, result, extra)
-    shown = {k: report[k] for k in ("lease_urn", "summary")}
+    report = _write_result(out, result, extra, redact=args.redact)
+    shown = {k: report[k] for k in ("lease_urn", "summary", "retention")}
+    if args.redact:
+        shown["redacted"] = True
     if "evaluation" in report:
         shown["evaluation"] = report["evaluation"]
     if report["summary"]["review_pending"]:

@@ -18,6 +18,7 @@ from its commit history; nothing was published to npm or PyPI before it.
 
 ### Added
 
+- Customer documents policy (`docs/customer-documents.md`) and hosted-ingest launch checklist, with controls in code: every ingest report carries a `retention` header (`retain_until`, default 30 days, `--retain-days`), `--redact` / `IngestResult.to_report(redact=True)` persists document text only as the quotes that are evidence, and the server's request log schema is fixed to metadata (`REQUEST_LOG_FIELDS`) with a test that no request body, tool argument, or bearer token reaches a log line.
 - `calc.lease_remeasurement_asc842@1`: lessee remeasurement of a lease liability and
   right-of-use asset under ASC 842 (modification, lease-term or purchase-option reassessment,
   contingency resolution, residual value guarantee change; index changes warn that they are not

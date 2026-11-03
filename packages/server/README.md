@@ -168,6 +168,12 @@ unauthenticated and rejected requests, `admin` for `/v1/usage`. A rejected beare
 `key_prefix` (a few leading characters). Startup emits one `{"msg":"listening",…}` line listing
 key names and prefixes.
 
+These fields are the whole schema (`REQUEST_LOG_FIELDS` in `src/index.ts`). Neither log ever
+carries a request body, tool arguments, results, headers, or a key, and no future endpoint may
+add them: see the [customer documents policy](../../docs/customer-documents.md), "Logging". A
+test sends a sentinel through REST bodies, MCP arguments, and a bearer token and checks that it
+reaches no log line.
+
 ## Programmatic use
 
 ```ts
