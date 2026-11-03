@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Privacy · FactLot</title>
+    <meta
+      name="description"
+      content="How FactLot handles data on factlot.com, the hosted API and paid plans."
+    />
+    <link rel="canonical" href="https://factlot.com/privacy" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="wrap row">
+        <a class="brand" href="https://factlot.com/">FactLot</a>
+      </div>
+    </header>
+    <main id="main">
+      <section>
+        <div class="wrap">
+          <h1>Privacy</h1>
+          <p class="small">Effective 3 November 2026.</p>
+          <p>
+            FactLot collects as little as it can. This page covers factlot.com,
+            the hosted API at api.factlot.com, and paid plans. The open-source
+            packages you run yourself make no network calls and send FactLot
+            nothing.
+          </p>
+          <h2>The website</h2>
+          <p>
+            factlot.com sets no cookies, runs no scripts, and uses no analytics
+            or tracking. Cloudflare, which hosts it, processes your IP address
+            to deliver the page and protect it from abuse.
+          </p>
+          <h2>The hosted API</h2>
+          <ul>
+            <li>
+              <strong>Not logged:</strong> request bodies, tool arguments,
+              results, and headers. Documents you send are processed in memory
+              to answer the request and are not stored.
+            </li>
+            <li>
+              <strong>Metered:</strong> for each request, the time, path, plan
+              tier, response status, and the first 16 characters of a one-way
+              hash of your API key (never the key). This is kept for usage
+              reporting and abuse prevention.
+            </li>
+            <li>
+              <strong>Rate limits:</strong> free-tier requests are counted per
+              IP address for one minute, in memory, then discarded.
+            </li>
+          </ul>
+          <h2>Paid plans</h2>
+          <p>
+            Stripe processes payments; FactLot never sees your card number.
+            FactLot stores your Stripe customer and subscription IDs, your plan,
+            and a SHA-256 hash of your API key. Stripe's privacy policy covers
+            what Stripe collects.
+          </p>
+          <h2>Registry data</h2>
+          <p>
+            The FactLot Registry holds public records about commercial property.
+            It stores owner names only for organisations and never for natural
+            persons. If you believe a record names you as a person, or is wrong,
+            email contact@factlot.com and we will review and remove it.
+          </p>
+          <h2>Email</h2>
+          <p>
+            If you write to contact@factlot.com, we keep your message to answer
+            it. Please do not send confidential leases or personal data by
+            email.
+          </p>
+          <h2>Sharing and your rights</h2>
+          <p>
+            FactLot does not sell or share personal data, and does not use your
+            API requests to train models. You can ask what we hold about you, or
+            ask us to delete it, at contact@factlot.com. We will update this
+            page and its date when practices change.
+          </p>
+        </div>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="wrap">
+        <p>
+          <a href="https://factlot.com/">Home</a> ·
+          <a href="https://factlot.com/privacy">Privacy</a> ·
+          <a href="https://factlot.com/terms">Terms</a> ·
+          <a href="mailto:contact@factlot.com">contact@factlot.com</a>
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>
