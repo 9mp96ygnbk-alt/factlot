@@ -83,6 +83,14 @@ class Handler(SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(body if len(TRUNCATE) > 1 else body[:5])
             return
+        if self.path == "/export?paging=1":  # ArcGIS Hub's later export stage, also HTTP 200
+            body = b'{"status":"PagingData","recordCount":5135}'
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
         if self.path == "/export?pending=1":  # an export API still preparing the file
             body = b'{"status":"Pending","progress":0.4}'
             self.send_response(200)
@@ -235,6 +243,13 @@ class Collector(unittest.TestCase):
         self.assertEqual(rec["retries"], 2, "truncated, hung up on Range, then whole")
         self.assertNotIn("resumed_from", rec)
         self.assertEqual((out / rec["path"]).read_bytes(), b"synthetic roll v1")
+
+    def test_snapshot_does_not_archive_a_hub_paging_status(self):
+        out = Path(tempfile.mkdtemp())
+        spec = SourceSpec("hub-cad", "Hub CAD", [f"{self.base}/"], ["127.0.0.1"], link_patterns=[r"paging"])
+        [rec] = snapshot(PoliteFetcher(self.cfg), spec, [f"{self.base}/export?paging=1"], out)
+        self.assertEqual(rec["status"], "not_ready")
+        self.assertNotIn("document_id", rec)
 
     def test_strip_default_port(self):
         from factlot.collector.core import strip_default_port
