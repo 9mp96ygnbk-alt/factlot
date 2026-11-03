@@ -57,3 +57,9 @@ Configs: `registry/sources/nc/nc-wake-parcels.json`, `registry/sources/tn/tn-dav
 `ok/ok-oklahoma-assessor.json`, `ok/ok-tulsa-assessor.json`, `ok/ok-sos-entities.json` (unverified, `files` empty).
 Adapters: `nc_wake.py`, `tn_davidson.py`, `ga_dekalb.py`. Tests: `test_adapter_nc_wake.py`, `test_adapter_tn_davidson.py`,
 `test_adapter_ga_dekalb.py`. Review records: one `docs/registry/sources/<id>.md` for each of the twelve sources above.
+
+## Update 2026-11-03 (tier2-expansion): five more North Carolina counties
+
+The nine counties that the NC OneMap review left out for want of a use-code table were revisited: five publish their class as plain words in `parusedesc` and are now loaded on that basis
+(Guilford 9,782, Forsyth 5,005, Cumberland 6,150, Johnston 2,975, New Hanover 4,524 parcels; 28,436 in all, 20,284 with an organisation owner). Durham, Union, Cabarrus and Onslow stay out.
+See [nc-onemap-parcels](../sources/nc-onemap-parcels.md), section "Text-class counties", and [expansion.md](expansion.md). Arkansas (a Southeast state) is in [expansion.md](expansion.md) too.

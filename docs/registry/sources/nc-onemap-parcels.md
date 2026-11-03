@@ -1,9 +1,10 @@
 # nc-onemap-parcels: North Carolina counties beyond Wake and Mecklenburg, from the NC OneMap statewide layer
 
-Reviewed 2026-11-03. Status: **verified** for three counties (Buncombe, Gaston, Iredell), under NC OneMap's free and
-unrestricted use policy; the other nine of the twelve most populous counties after Wake and Mecklenburg are left out
-for the reasons below. Config: [`registry/sources/nc/nc-onemap-parcels.json`](../../../registry/sources/nc/nc-onemap-parcels.json)
-(one source per county: `nc-onemap-buncombe`, `nc-onemap-gaston`, `nc-onemap-iredell`); adapter
+Reviewed 2026-11-03. Status: **verified** for eight counties (Buncombe, Gaston, Iredell, and since the tier2-expansion branch Guilford, Forsyth,
+Cumberland, Johnston and New Hanover), under NC OneMap's free and unrestricted use policy; Durham, Union, Cabarrus and Onslow are left out for
+the reasons below (see "Text-class counties" for the five added later). Config: [`registry/sources/nc/nc-onemap-parcels.json`](../../../registry/sources/nc/nc-onemap-parcels.json)
+(one source per county: `nc-onemap-buncombe`, `nc-onemap-gaston`, `nc-onemap-iredell`, `nc-onemap-guilford`, `nc-onemap-forsyth`, `nc-onemap-cumberland`,
+`nc-onemap-johnston`, `nc-onemap-newhanover`); adapter
 `python/src/factlot/registry/adapters/nc_onemap.py`; tests `python/tests/test_adapter_nc_onemap.py`.
 
 ## Relation to the Wake source
@@ -284,3 +285,43 @@ roll or a records request is the only source.
   scope as for Wake.
 - The Hub API's 200 "PagingData" status answer is archived by the collector as if it were the file (shared code, not
   changed here).
+
+## Text-class counties: Guilford, Forsyth, Cumberland, Johnston, New Hanover (tier2-expansion, 2026-11-03)
+
+Five of the nine counties left out above publish their class **as words in `parusedesc`** (the layer's `parusecode` is blank for them) and no code
+table to cite. The earlier review treated the text as "not a definition" and mapped nothing. The text, however, names itself (`APART`, `COMM`, `IND`,
+`2.02-Com Services`, `Garden Apartment`, `Commercial`), and a county's own description of its class is as much a definition as a table that restates
+it; the adapter now keys these counties on `parusedesc` (`CountyMap.key_field`) and maps only the values whose own words say commercial, retail,
+office, hotel, industrial or apartment. The same basis is used for Minnesota's opt-in counties
+([mn-opt-in-parcels](mn-opt-in-parcels.md)). `local_use_code` keeps the county's text. Because the words do not separate vacant land, a parcel counts only
+with a value for improvements (`improvval` > 0), as for Iredell; the publisher's counts below are for the mapped values with that test.
+
+| County (rank)    | FIPS  | Values mapped (the county's own text)                                                                                                                                                                                                                                                     | Left out                                                                                                          | Publisher's count | Loaded (B / F1 / F2)        |
+| ---------------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ----------------- | --------------------------- |
+| Guilford (3)     | 37081 | `APART`, `MULTI-FAMILY5>` -> B; `COMM`, `OFFICE`, `RETAIL`, `HOTEL/MOTEL`, `PETROL/GAS` -> F1; `IND` -> F2                                                                                                                                                                                | `MULTI-FAMILY<4`, `TOWNHOUSE`, `CONDO`, `VACANT`, `INSTITUTIONAL`, `GOV OWNED`, `ASSIST LIV/SKILLCARE`            | 9,783             | 9,782 (784 / 5,565 / 3,433) |
+| Forsyth (4)      | 37067 | `1.07-Apt Buildings` -> B; `2.01-Com Retail-WS`, `2.02-Com Services`, `2.03-Hotels-Lodging`, `7.02-Office Park`, `7.03-Shopp Cntr-Mall` -> F1; `4.01-Light Manuf`, `4.02-Heavy Manuf`, `7.01-Industrial Park` -> F2                                                                       | `1.06-MF Dwellings`, `1.04-Quadraplex`, `3.xx` institutional, `9x.xx` vacant classes                              | 5,005             | 5,005 (513 / 4,307 / 185)   |
+| Cumberland (6)   | 37051 | by the letter of `<letter><3 digits>-<text>`: `A` APART -> B; `C` (COMMERC, AUTOMOT, FOOD/BV, MISCELL, OFFICE, CM COND, SHOP/RE, SPORT/H, STORAGE) and `H` HOTEL/M -> F1; `I` INDUSTR -> F2                                                                                               | `R`, `F`, `E`, `U` and `M` (manufactured-home park) values; the x100 land codes (no improvements)                 | 6,592             | 6,150 (1,036 / 5,011 / 103) |
+| Johnston (9)     | 37101 | `Garden Apartment`, `High Rise Apartment` -> B; 32 retail, office, restaurant, bank, medical, hotel, auto and service classes -> F1; `Industrial`, `Light/Heavy Manufacturing`, `Warehouse`, `Prefab Warehouse`, `Office/Warehouse`, `Cold Storage/Freezer`, `Packing Plnt/Food Pr` -> F2 | `Townhouse Apartment`, `Duplex/Triplex`, `Mobile Home Park`, `Homes for Aged`, `Churches`, `Vacant`, clubs, camps | 2,977             | 2,975 (207 / 2,130 / 638)   |
+| New Hanover (12) | 37129 | `Apartment` -> B; `Commercial` -> F1; `Industrial` -> F2                                                                                                                                                                                                                                  | `Residential`, `Homeowners Association`, `Exempt ...`, `Use Value`, `State Appraised`, `Farm`                     | 4,524             | 4,524 (195 / 3,548 / 781)   |
+
+The earlier note that New Hanover's classes were `RES`, `COM`, `IND`, `APT`, `HOA`, `GOV`, `REL` no longer matches the layer: on 2026-11-03 its
+`parusedesc` holds `Residential`, `Commercial`, `Industrial`, `Apartment`, `Homeowners Association` and the `Exempt ...` classes, so the letter-ambiguity
+objection no longer applies. Johnston's County PDF code list is on a robots-disallowed path and was not read; the layer's own text was used instead.
+Cumberland's 442 repeated parcel numbers and one repeated parcel in Guilford and two in Johnston collapse to the first row. Counts were taken from the
+Hub export of each county's filtered request (`collector snapshot`, one source at a time; the first request of each answered `not_ready` while the export was
+built, the second returned the CSV): Guilford 4,923,395 bytes (`fl:document:sha256-83028520...`, `--as-of` 2026-05-14), Forsyth 2,130,529 bytes
+(`fl:document:sha256-ab604df3...`, 2026-03-24), Cumberland 2,762,015 bytes (`fl:document:sha256-9dcf1006...`, 2026-05-13), Johnston 1,305,572 bytes
+(`fl:document:sha256-84b94204...`, 2026-05-15), New Hanover 2,306,900 bytes (`fl:document:sha256-b8cdb4ae...`, 2026-05-26). Each file has one county and every row
+passed the adapter (apart from the repeated parcel numbers).
+
+| County      | Rows read | Kept  | Facts written | Organisation owners stored | Person owners not stored | Errors |
+| ----------- | --------- | ----- | ------------- | -------------------------- | ------------------------ | ------ |
+| Guilford    | 9,782     | 9,782 | 72,756        | 7,273                      | 2,509                    | none   |
+| Forsyth     | 5,005     | 5,005 | 37,140        | 3,686                      | 1,319                    | none   |
+| Cumberland  | 6,150     | 6,150 | 45,347        | 3,929                      | 2,221                    | none   |
+| Johnston    | 2,975     | 2,975 | 24,558        | 1,867                      | 1,108                    | none   |
+| New Hanover | 4,524     | 4,524 | 34,197        | 3,529                      | 995                      | none   |
+
+Total **28,436 parcels** in five counties (B 2,735, F1 20,561, F2 5,140), 20,284 with an organisation owner. Still left out: **Durham** (the County's land use
+spreadsheet is on a robots-disallowed path and the layer's `parusecode` holds the zoning district), **Union** (`COM` and `IND` only, no improvement values in
+the layer to drop vacant land, no apartments; its site returns 403 to bots), **Cabarrus** and **Onslow** (no use class in the layer).

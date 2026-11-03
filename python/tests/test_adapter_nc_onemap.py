@@ -21,7 +21,8 @@ HEADER = (
 )
 COLUMNS = HEADER.split(",")
 
-COUNTY = {"021": "Buncombe", "071": "Gaston", "097": "Iredell", "183": "Wake"}
+COUNTY = {"021": "Buncombe", "071": "Gaston", "097": "Iredell", "183": "Wake", "081": "Guilford", "067": "Forsyth",
+          "051": "Cumberland", "101": "Johnston", "129": "New Hanover"}
 
 
 def row(fips: str, **kw: str) -> str:
@@ -234,9 +235,62 @@ class Wake(Fixtures):
         self.assertEqual(rec.local_use_code, "COM/34", "Wake keeps the main-building code in the local code")
 
 
+# --- Counties whose class is text in parusedesc (parusecode blank): Guilford, Forsyth, Cumberland, Johnston, New Hanover ------
+def trow(fips, n, desc, improv="500000", **kw):
+    return row(fips, objectid=str(n), parno=f"9{fips}{n:05d}", altparno=f"A{fips}{n:05d}", ownname=kw.pop("ownname", "EXAMPLE HOLDINGS LLC"),
+               improvval=improv, parval="900000", siteadd=f"{n} SAMPLE ST", gisacres="1.5", parusecode="", parusedesc=desc, **kw)
+
+
+class TextClasses(Fixtures):
+    def cats(self, fips, descs, **kw):
+        rows = [trow(fips, i, d, **kw) for i, d in enumerate(descs, 1)]
+        return {r.local_use_code: r.state_category for r in nc_onemap.read_roll(write(self.tmp, f"{fips}.csv", rows), fips)}
+
+    def test_guilford(self):
+        got = self.cats("081", ["COMM", "OFFICE", "RETAIL", "HOTEL/MOTEL", "PETROL/GAS", "IND", "APART", "MULTI-FAMILY5>",
+                                "MULTI-FAMILY<4", "RESIDENTIAL", "VACANT", "INSTITUTIONAL", "GOV OWNED", ""])
+        self.assertEqual(got, {"COMM": "F1", "OFFICE": "F1", "RETAIL": "F1", "HOTEL/MOTEL": "F1", "PETROL/GAS": "F1",
+                               "IND": "F2", "APART": "B", "MULTI-FAMILY5>": "B"})
+
+    def test_forsyth(self):
+        got = self.cats("067", ["2.01-Com Retail-WS", "2.02-Com Services", "2.03-Hotels-Lodging", "7.02-Office Park",
+                                "7.03-Shopp Cntr-Mall", "4.01-Light Manuf", "4.02-Heavy Manuf", "7.01-Industrial Park",
+                                "1.07-Apt Buildings", "1.06-MF Dwellings", "1.04-Quadraplex", "93.00-Vacant Com",
+                                "3.04-Medical-HCFac", "1.01-SFD Dwelling"])
+        self.assertEqual(sorted(got), sorted(x.upper() for x in ("1.07-Apt Buildings", "2.01-Com Retail-WS", "2.02-Com Services",
+                                                                  "2.03-Hotels-Lodging", "4.01-Light Manuf", "4.02-Heavy Manuf",
+                                                                  "7.01-Industrial Park", "7.02-Office Park", "7.03-Shopp Cntr-Mall")))
+        self.assertEqual((got["1.07-APT BUILDINGS"], got["4.02-HEAVY MANUF"], got["7.02-OFFICE PARK"]), ("B", "F2", "F1"))
+
+    def test_cumberland_prefixes(self):
+        got = self.cats("051", ["A101-APART", "C101-COMMERC", "C300-OFFICE", "C358-SHOP/RE", "C454-STORAGE", "H104-HOTEL/M",
+                                "I100-INDUSTR", "R101-RES", "F100-RURAL", "E100-EXEMPT", "M101-MH PARK", "U102-COMMUNI", ""])
+        self.assertEqual(got, {"A101-APART": "B", "C101-COMMERC": "F1", "C300-OFFICE": "F1", "C358-SHOP/RE": "F1",
+                               "C454-STORAGE": "F1", "H104-HOTEL/M": "F1", "I100-INDUSTR": "F2"})
+
+    def test_johnston(self):
+        got = self.cats("101", ["Commercial", "Office", "Warehouse", "Mini-Warehouses", "Light Manufacturing", "Garden Apartment",
+                                "Restaurants", "Churches", "Vacant", "Single Family Residential", "Townhouse Apartment",
+                                "Mobile Home Park", "Homes for Aged", "Duplex/Triplex"])
+        self.assertEqual(got, {"COMMERCIAL": "F1", "OFFICE": "F1", "WAREHOUSE": "F2", "MINI-WAREHOUSES": "F1",
+                               "LIGHT MANUFACTURING": "F2", "GARDEN APARTMENT": "B", "RESTAURANTS": "F1"})
+
+    def test_new_hanover_and_the_improvement_test(self):
+        got = self.cats("129", ["Commercial", "Industrial", "Apartment", "Residential", "Exempt Governmental", "Homeowners Association"])
+        self.assertEqual(got, {"COMMERCIAL": "F1", "INDUSTRIAL": "F2", "APARTMENT": "B"})
+        self.assertEqual(self.cats("129", ["Commercial", "Apartment"], improv="0"), {}, "land only: dropped")
+
+    def test_record_fields(self):
+        rows = [trow("081", 1, "APART", mailadd="1 OWNER WAY", mcity="GREENSBORO", mstate="NC", mzip="27401")]
+        (rec,) = nc_onemap.read_roll(write(self.tmp, "g.csv", rows), "081")
+        self.assertEqual((rec.county_fips, rec.apn, rec.account, rec.state_category), ("081", "908100001", "A08100001", "B"))
+        self.assertEqual(rec.owner_mailing_address, "1 OWNER WAY, GREENSBORO, NC 27401")
+        self.assertEqual(nc_onemap.source("081").source_id, "nc-onemap-guilford")
+
+
 class Table(unittest.TestCase):
     def test_counties_and_source_ids(self):
-        self.assertEqual(sorted(nc_onemap.COUNTIES), ["021", "071", "097", "183"])
+        self.assertEqual(sorted(nc_onemap.COUNTIES), ["021", "051", "067", "071", "081", "097", "101", "129", "183"])
         ids = [c.source_id for c in nc_onemap.COUNTIES.values()]
         self.assertEqual(len(ids), len(set(ids)))
         self.assertEqual(nc_onemap.COUNTIES["183"].source_id, "nc-wake-parcels", "Wake keeps its own source id")
@@ -245,7 +299,7 @@ class Table(unittest.TestCase):
             self.assertTrue(set(c.categories.values()) <= {"B", "F1", "F2"}, c.name)
 
     def test_counties_without_a_table(self):
-        for fips in ("119", "063", "081", "067", "051", "179", "101", "025", "129", "133"):
+        for fips in ("119", "063", "179", "025", "133"):
             with self.assertRaises(KeyError, msg=fips):
                 nc_onemap.state_category(fips, "COM")
         self.assertEqual(nc_onemap.county_map("37021").name, "Buncombe", "5-digit codes are accepted")
@@ -257,6 +311,11 @@ class Table(unittest.TestCase):
         self.assertNotIn("'2000'", w)
         self.assertNotIn("improvval", w)
         self.assertTrue(nc_onemap.COUNTIES["097"].where().endswith(" AND improvval>0"))
+        guilford = nc_onemap.COUNTIES["081"].where()
+        self.assertTrue(guilford.startswith("cntyfips='081' AND parusedesc IN ('APART',"), guilford)
+        self.assertEqual(nc_onemap.COUNTIES["051"].where(),
+                         "cntyfips='051' AND (parusedesc LIKE 'A%' OR parusedesc LIKE 'C%' OR parusedesc LIKE 'H%' OR "
+                         "parusedesc LIKE 'I%') AND improvval>0")
         url = nc_onemap.COUNTIES["021"].hub_url()
         self.assertTrue(url.startswith(nc_onemap.HUB_DOWNLOAD))
         self.assertEqual(unquote(url[len(nc_onemap.HUB_DOWNLOAD):]), nc_onemap.COUNTIES["021"].where())

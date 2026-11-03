@@ -1,5 +1,5 @@
 {
-  "description": "North Carolina counties other than Wake and Mecklenburg (Buncombe, Gaston, Iredell), commercial, industrial and multifamily parcels from the NC OneMap statewide parcel layer (county assessor attributes), one source per county slice. See docs/registry/data-policy.md and the review record in docs/registry/sources/nc-onemap-parcels.md. Wake County keeps its own config (nc-wake-parcels.json); Mecklenburg is nc-mecklenburg-assessor.",
+  "description": "North Carolina counties other than Wake and Mecklenburg (Buncombe, Gaston, Iredell, Guilford, Forsyth, Cumberland, Johnston, New Hanover), commercial, industrial and multifamily parcels from the NC OneMap statewide parcel layer (county assessor attributes), one source per county slice. See docs/registry/data-policy.md and the review record in docs/registry/sources/nc-onemap-parcels.md. Wake County keeps its own config (nc-wake-parcels.json); Mecklenburg is nc-mecklenburg-assessor.",
   "collector": {
     "contact": "contact@factlot.com",
     "min_interval": 2.0,
@@ -77,6 +77,126 @@
       "redistribution": "Permitted (free and unrestricted use; no release agreement). Citation requested: NC OneMap, NC Department of Information Technology, Government Data Analytics Center, Center for Geographic Information and Analysis; source counties are the data stewards",
       "reviewed": "2026-11-03",
       "notes": "Iredell County (FIPS 37097), 109,254 parcels in the layer, source agent 'Iredell County Assessor', transfdate 2026-05-24. Use codes from 'Land Use Codes' in the 2019 Reappraisal Uniform Schedule of Values, Land Appraisal Procedures chapter (https://iredellcountync.gov/DocumentCenter/View/11850/2019-Chapter-04-Land-Appraisal-Procedures, pp. 4-29 to 4-33, read 2026-11-03): the MULTI-FAMILY group 05xx (not 0501 common area or 0562 duplex/triplex) -> B; OFFICE 04xx and COMMERCIAL 07xx -> F1; INDUSTRIAL 06xx -> F2. The table classifies land and has no vacant code, so the filter adds improvval>0 (land-only parcels coded commercial or multi-family are left out: 6,531 parcels carry these codes, 4,840 have improvements). File 2,341,974 bytes, 4,840 rows. Statewide layer 'North Carolina Parcels (Polygons)' (item 1de3d7d828ce4813b838ddf055b40317, FeatureServer layer 1, 5,938,804 parcels for 100 counties on 2026-11-03). The Hub download API builds a CSV for a filtered request; while it builds, the first calls answer HTTP 200 with a small JSON status ('PagingData', not a 202), which the collector archives as a file, so a snapshot is only valid once the archived file is the CSV (the 228-byte status files from the first run were discarded). The URL filters to the county and the use codes its own published table places in the commercial, industrial or multifamily class. Use codes are county-specific: see docs/registry/sources/nc-onemap-parcels.md for the table, the definitions URL and the codes left out. robots.txt: www.nconemap.gov and hub.arcgis.com set Crawl-delay 60 and disallow only /sites/, /admin/, /sessions/, /groups/, /people/, /workspace/; services.nconemap.gov has none (404). Wake County is nc-wake-parcels (own config); Mecklenburg is nc-mecklenburg-assessor."
+    },
+    {
+      "source_id": "nc-onemap-guilford",
+      "publisher": "NC OneMap (NC Center for Geographic Information and Analysis), from the Guilford County Assessor",
+      "landing_pages": [
+        "https://www.arcgis.com/sharing/rest/content/items/1de3d7d828ce4813b838ddf055b40317?f=pjson",
+        "https://www.arcgis.com/sharing/rest/content/items/e60514c3b78542ef9902e3d7f7a671c1/data?f=json"
+      ],
+      "allowed_hosts": [
+        "www.nconemap.gov",
+        "hub.arcgis.com",
+        "www.arcgis.com",
+        "services.nconemap.gov"
+      ],
+      "files": [
+        "https://www.nconemap.gov/api/download/v1/items/1de3d7d828ce4813b838ddf055b40317/csv?layers=1&where=cntyfips%3D%27081%27%20AND%20parusedesc%20IN%20%28%27APART%27%2C%27COMM%27%2C%27HOTEL%2FMOTEL%27%2C%27IND%27%2C%27MULTI-FAMILY5%3E%27%2C%27OFFICE%27%2C%27PETROL%2FGAS%27%2C%27RETAIL%27%29%20AND%20improvval%3E0"
+      ],
+      "verified": true,
+      "terms_url": "https://www.nconemap.gov/pages/terms",
+      "license": "NC OneMap free and unrestricted use policy (Terms page: partner organizations share content 'at no charge' under 'this free and unrestricted use policy'; 'Written release agreements to authorize use of the geospatial data ... are not required and will not be issued'; 'Any sale of this data must not violate applicable state laws or regulations'). The dataset item's licenseInfo points to that page. Underlying records are public records under N.C. Gen. Stat. ch. 132",
+      "ai_use": "Not addressed by the publisher; no restriction found (the Terms page and the dataset item are silent on AI use)",
+      "redistribution": "Permitted (free and unrestricted use; no release agreement). Citation requested: NC OneMap, NC Department of Information Technology, Government Data Analytics Center, Center for Geographic Information and Analysis; source counties are the data stewards",
+      "reviewed": "2026-11-03",
+      "notes": "Guilford County (FIPS 37081), 222,443 parcels in the layer, source agent 'Guilford County Assessor' as in the layer. The county leaves parusecode blank and publishes its class as text in parusedesc. Mapped on the county's own words: APART and MULTI-FAMILY5> -> B; COMM, OFFICE, RETAIL, HOTEL/MOTEL, PETROL/GAS -> F1; IND -> F2 (not MULTI-FAMILY<4, TOWNHOUSE, CONDO, VACANT, INSTITUTIONAL, GOV OWNED, ASSIST LIV/SKILLCARE and the rest). The Hub download filters to the county and the mapped class values and to improvval>0 (publisher's count 2026-11-03: 9,783). Statewide layer 'North Carolina Parcels (Polygons)' (item 1de3d7d828ce4813b838ddf055b40317, FeatureServer layer 1). No separate code table is published for these classes: the county's own class text is the definition (see docs/registry/sources/nc-onemap-parcels.md, 'Text-class counties'). The Hub download API builds a CSV for a filtered request; while it builds, the first calls answer HTTP 200 with a small JSON status ('PagingData'), which the collector archives as a file, so a snapshot is only valid once the archived file is the CSV. robots.txt: www.nconemap.gov and hub.arcgis.com set Crawl-delay 60 and disallow only /sites/, /admin/, /sessions/, /groups/, /people/, /workspace/; services.nconemap.gov has none (404)."
+    },
+    {
+      "source_id": "nc-onemap-forsyth",
+      "publisher": "NC OneMap (NC Center for Geographic Information and Analysis), from the Forsyth County Tax Administration",
+      "landing_pages": [
+        "https://www.arcgis.com/sharing/rest/content/items/1de3d7d828ce4813b838ddf055b40317?f=pjson",
+        "https://www.arcgis.com/sharing/rest/content/items/e60514c3b78542ef9902e3d7f7a671c1/data?f=json"
+      ],
+      "allowed_hosts": [
+        "www.nconemap.gov",
+        "hub.arcgis.com",
+        "www.arcgis.com",
+        "services.nconemap.gov"
+      ],
+      "files": [
+        "https://www.nconemap.gov/api/download/v1/items/1de3d7d828ce4813b838ddf055b40317/csv?layers=1&where=cntyfips%3D%27067%27%20AND%20parusedesc%20IN%20%28%271.07-Apt%20Buildings%27%2C%272.01-Com%20Retail-WS%27%2C%272.02-Com%20Services%27%2C%272.03-Hotels-Lodging%27%2C%274.01-Light%20Manuf%27%2C%274.02-Heavy%20Manuf%27%2C%277.01-Industrial%20Park%27%2C%277.02-Office%20Park%27%2C%277.03-Shopp%20Cntr-Mall%27%29%20AND%20improvval%3E0"
+      ],
+      "verified": true,
+      "terms_url": "https://www.nconemap.gov/pages/terms",
+      "license": "NC OneMap free and unrestricted use policy (Terms page: partner organizations share content 'at no charge' under 'this free and unrestricted use policy'; 'Written release agreements to authorize use of the geospatial data ... are not required and will not be issued'; 'Any sale of this data must not violate applicable state laws or regulations'). The dataset item's licenseInfo points to that page. Underlying records are public records under N.C. Gen. Stat. ch. 132",
+      "ai_use": "Not addressed by the publisher; no restriction found (the Terms page and the dataset item are silent on AI use)",
+      "redistribution": "Permitted (free and unrestricted use; no release agreement). Citation requested: NC OneMap, NC Department of Information Technology, Government Data Analytics Center, Center for Geographic Information and Analysis; source counties are the data stewards",
+      "reviewed": "2026-11-03",
+      "notes": "Forsyth County (FIPS 37067), 166,755 parcels in the layer. parusecode is blank; parusedesc is '<class>-<text>'. Mapped on the county's own words: 1.07-Apt Buildings -> B; 2.01-Com Retail-WS, 2.02-Com Services, 2.03-Hotels-Lodging, 7.02-Office Park, 7.03-Shopp Cntr-Mall -> F1; 4.01-Light Manuf, 4.02-Heavy Manuf, 7.01-Industrial Park -> F2 (not 1.06-MF Dwellings, 1.04-Quadraplex, 3.xx institutional, the 9x.xx vacant classes). The Hub download filters to the county and the mapped class values and to improvval>0 (publisher's count 2026-11-03: 5,005). Statewide layer 'North Carolina Parcels (Polygons)' (item 1de3d7d828ce4813b838ddf055b40317, FeatureServer layer 1). No separate code table is published for these classes: the county's own class text is the definition (see docs/registry/sources/nc-onemap-parcels.md, 'Text-class counties'). The Hub download API builds a CSV for a filtered request; while it builds, the first calls answer HTTP 200 with a small JSON status ('PagingData'), which the collector archives as a file, so a snapshot is only valid once the archived file is the CSV. robots.txt: www.nconemap.gov and hub.arcgis.com set Crawl-delay 60 and disallow only /sites/, /admin/, /sessions/, /groups/, /people/, /workspace/; services.nconemap.gov has none (404)."
+    },
+    {
+      "source_id": "nc-onemap-cumberland",
+      "publisher": "NC OneMap (NC Center for Geographic Information and Analysis), from the Cumberland County Tax Administration",
+      "landing_pages": [
+        "https://www.arcgis.com/sharing/rest/content/items/1de3d7d828ce4813b838ddf055b40317?f=pjson",
+        "https://www.arcgis.com/sharing/rest/content/items/e60514c3b78542ef9902e3d7f7a671c1/data?f=json"
+      ],
+      "allowed_hosts": [
+        "www.nconemap.gov",
+        "hub.arcgis.com",
+        "www.arcgis.com",
+        "services.nconemap.gov"
+      ],
+      "files": [
+        "https://www.nconemap.gov/api/download/v1/items/1de3d7d828ce4813b838ddf055b40317/csv?layers=1&where=cntyfips%3D%27051%27%20AND%20%28parusedesc%20LIKE%20%27A%25%27%20OR%20parusedesc%20LIKE%20%27C%25%27%20OR%20parusedesc%20LIKE%20%27H%25%27%20OR%20parusedesc%20LIKE%20%27I%25%27%29%20AND%20improvval%3E0"
+      ],
+      "verified": true,
+      "terms_url": "https://www.nconemap.gov/pages/terms",
+      "license": "NC OneMap free and unrestricted use policy (Terms page: partner organizations share content 'at no charge' under 'this free and unrestricted use policy'; 'Written release agreements to authorize use of the geospatial data ... are not required and will not be issued'; 'Any sale of this data must not violate applicable state laws or regulations'). The dataset item's licenseInfo points to that page. Underlying records are public records under N.C. Gen. Stat. ch. 132",
+      "ai_use": "Not addressed by the publisher; no restriction found (the Terms page and the dataset item are silent on AI use)",
+      "redistribution": "Permitted (free and unrestricted use; no release agreement). Citation requested: NC OneMap, NC Department of Information Technology, Government Data Analytics Center, Center for Geographic Information and Analysis; source counties are the data stewards",
+      "reviewed": "2026-11-03",
+      "notes": "Cumberland County (FIPS 37051), 140,513 parcels in the layer. parusecode is blank; parusedesc is '<letter><3 digits>-<8-letter text>'. Mapped by the letter: A (APART) -> B; C (COMMERC, AUTOMOT, FOOD/BV, MISCELL, OFFICE, CM COND, SHOP/RE, SPORT/H, STORAGE) and H (HOTEL/M) -> F1; I (INDUSTR) -> F2 (not R residential, F rural, E exempt, U utility, M manufactured-home park). The x100 land codes have almost no improvement value, so the filter adds improvval>0. The Hub download filters to the county and the mapped class values and to improvval>0 (publisher's count 2026-11-03: 6,592). Statewide layer 'North Carolina Parcels (Polygons)' (item 1de3d7d828ce4813b838ddf055b40317, FeatureServer layer 1). No separate code table is published for these classes: the county's own class text is the definition (see docs/registry/sources/nc-onemap-parcels.md, 'Text-class counties'). The Hub download API builds a CSV for a filtered request; while it builds, the first calls answer HTTP 200 with a small JSON status ('PagingData'), which the collector archives as a file, so a snapshot is only valid once the archived file is the CSV. robots.txt: www.nconemap.gov and hub.arcgis.com set Crawl-delay 60 and disallow only /sites/, /admin/, /sessions/, /groups/, /people/, /workspace/; services.nconemap.gov has none (404)."
+    },
+    {
+      "source_id": "nc-onemap-johnston",
+      "publisher": "NC OneMap (NC Center for Geographic Information and Analysis), from the Johnston County Tax Office",
+      "landing_pages": [
+        "https://www.arcgis.com/sharing/rest/content/items/1de3d7d828ce4813b838ddf055b40317?f=pjson",
+        "https://www.arcgis.com/sharing/rest/content/items/e60514c3b78542ef9902e3d7f7a671c1/data?f=json"
+      ],
+      "allowed_hosts": [
+        "www.nconemap.gov",
+        "hub.arcgis.com",
+        "www.arcgis.com",
+        "services.nconemap.gov"
+      ],
+      "files": [
+        "https://www.nconemap.gov/api/download/v1/items/1de3d7d828ce4813b838ddf055b40317/csv?layers=1&where=cntyfips%3D%27101%27%20AND%20parusedesc%20IN%20%28%27Auto%20Sales%20and%20Service%27%2C%27Banks%27%2C%27Bowl%20Alley%2FArena%27%2C%27Car%20Wash%27%2C%27Cold%20Storage%2FFreezer%27%2C%27Comm.%20Condominium%27%2C%27Comm%2FService%27%2C%27Commercial%27%2C%27Convenience%20Store%27%2C%27Day%20Care%20Center%27%2C%27Department%20Store%27%2C%27Fast%20Foods%27%2C%27Furn%20Show%20Room%27%2C%27Garden%20Apartment%27%2C%27Heavy%20Manufacturing%27%2C%27High%20Rise%20Apartment%27%2C%27Hotel%2FMotel%203%20Floors%20or%20Less%27%2C%27Hotel%2FMotel%20High%20Rise%3E3%27%2C%27Industrial%27%2C%27Light%20Manufacturing%27%2C%27Lounge%2FNight%20Club%27%2C%27Lumber%20Yard%27%2C%27Medical%20Building%27%2C%27Medical%20Condo%27%2C%27Mini-Warehouses%27%2C%27Office%27%2C%27Office%20Condo%27%2C%27Office%20High%20Rise%3E4%27%2C%27Office%2FWarehouse%27%2C%27Packing%20Plnt%2FFood%20Pr%27%2C%27Prefab%20Warehouse%27%2C%27Restaurants%27%2C%27Retail%20Warehouse%27%2C%27Service%20Garage%27%2C%27Service%20Station%27%2C%27Shopping%20Center-Mall%27%2C%27Shopping%20Center-Strip%27%2C%27Super%20Market%27%2C%27Theaters%27%2C%27Veterinarians%20Office%27%2C%27Warehouse%27%29%20AND%20improvval%3E0"
+      ],
+      "verified": true,
+      "terms_url": "https://www.nconemap.gov/pages/terms",
+      "license": "NC OneMap free and unrestricted use policy (Terms page: partner organizations share content 'at no charge' under 'this free and unrestricted use policy'; 'Written release agreements to authorize use of the geospatial data ... are not required and will not be issued'; 'Any sale of this data must not violate applicable state laws or regulations'). The dataset item's licenseInfo points to that page. Underlying records are public records under N.C. Gen. Stat. ch. 132",
+      "ai_use": "Not addressed by the publisher; no restriction found (the Terms page and the dataset item are silent on AI use)",
+      "redistribution": "Permitted (free and unrestricted use; no release agreement). Citation requested: NC OneMap, NC Department of Information Technology, Government Data Analytics Center, Center for Geographic Information and Analysis; source counties are the data stewards",
+      "reviewed": "2026-11-03",
+      "notes": "Johnston County (FIPS 37101), 125,583 parcels in the layer. parusecode is blank; parusedesc is the improvement use text. Mapped on the county's own words (Garden Apartment and High Rise Apartment -> B; retail, office, restaurant, bank, medical, hotel, auto and service classes -> F1; Industrial, Light and Heavy Manufacturing, Warehouse, Prefab Warehouse, Office/Warehouse, Cold Storage/Freezer, Packing Plant -> F2); the County's own code list is a PDF under /files/, which its robots.txt disallows, so it was not read. The Hub download filters to the county and the mapped class values and to improvval>0 (publisher's count 2026-11-03: 2,977). Statewide layer 'North Carolina Parcels (Polygons)' (item 1de3d7d828ce4813b838ddf055b40317, FeatureServer layer 1). No separate code table is published for these classes: the county's own class text is the definition (see docs/registry/sources/nc-onemap-parcels.md, 'Text-class counties'). The Hub download API builds a CSV for a filtered request; while it builds, the first calls answer HTTP 200 with a small JSON status ('PagingData'), which the collector archives as a file, so a snapshot is only valid once the archived file is the CSV. robots.txt: www.nconemap.gov and hub.arcgis.com set Crawl-delay 60 and disallow only /sites/, /admin/, /sessions/, /groups/, /people/, /workspace/; services.nconemap.gov has none (404)."
+    },
+    {
+      "source_id": "nc-onemap-newhanover",
+      "publisher": "NC OneMap (NC Center for Geographic Information and Analysis), from the New Hanover County Tax Department",
+      "landing_pages": [
+        "https://www.arcgis.com/sharing/rest/content/items/1de3d7d828ce4813b838ddf055b40317?f=pjson",
+        "https://www.arcgis.com/sharing/rest/content/items/e60514c3b78542ef9902e3d7f7a671c1/data?f=json"
+      ],
+      "allowed_hosts": [
+        "www.nconemap.gov",
+        "hub.arcgis.com",
+        "www.arcgis.com",
+        "services.nconemap.gov"
+      ],
+      "files": [
+        "https://www.nconemap.gov/api/download/v1/items/1de3d7d828ce4813b838ddf055b40317/csv?layers=1&where=cntyfips%3D%27129%27%20AND%20parusedesc%20IN%20%28%27Apartment%27%2C%27Commercial%27%2C%27Industrial%27%29%20AND%20improvval%3E0"
+      ],
+      "verified": true,
+      "terms_url": "https://www.nconemap.gov/pages/terms",
+      "license": "NC OneMap free and unrestricted use policy (Terms page: partner organizations share content 'at no charge' under 'this free and unrestricted use policy'; 'Written release agreements to authorize use of the geospatial data ... are not required and will not be issued'; 'Any sale of this data must not violate applicable state laws or regulations'). The dataset item's licenseInfo points to that page. Underlying records are public records under N.C. Gen. Stat. ch. 132",
+      "ai_use": "Not addressed by the publisher; no restriction found (the Terms page and the dataset item are silent on AI use)",
+      "redistribution": "Permitted (free and unrestricted use; no release agreement). Citation requested: NC OneMap, NC Department of Information Technology, Government Data Analytics Center, Center for Geographic Information and Analysis; source counties are the data stewards",
+      "reviewed": "2026-11-03",
+      "notes": "New Hanover County (FIPS 37129), 103,489 parcels in the layer. parusecode is blank; parusedesc is plain class text. Mapped: Apartment -> B; Commercial -> F1; Industrial -> F2 (not Residential, Homeowners Association, Exempt classes, Use Value, State Appraised, Farm). The Hub download filters to the county and the mapped class values and to improvval>0 (publisher's count 2026-11-03: 4,524). Statewide layer 'North Carolina Parcels (Polygons)' (item 1de3d7d828ce4813b838ddf055b40317, FeatureServer layer 1). No separate code table is published for these classes: the county's own class text is the definition (see docs/registry/sources/nc-onemap-parcels.md, 'Text-class counties'). The Hub download API builds a CSV for a filtered request; while it builds, the first calls answer HTTP 200 with a small JSON status ('PagingData'), which the collector archives as a file, so a snapshot is only valid once the archived file is the CSV. robots.txt: www.nconemap.gov and hub.arcgis.com set Crawl-delay 60 and disallow only /sites/, /admin/, /sessions/, /groups/, /people/, /workspace/; services.nconemap.gov has none (404)."
     }
   ]
 }

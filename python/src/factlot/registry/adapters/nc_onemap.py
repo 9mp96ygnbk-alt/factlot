@@ -41,7 +41,7 @@ import csv
 import json
 import re
 from collections.abc import Iterable, Iterator
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from urllib.parse import quote
 
@@ -82,14 +82,34 @@ class CountyMap:
     # The county's code has no vacant-land split (Iredell's land use codes classify the land), so a parcel
     # counts only when it carries a value for improvements.
     require_improvement: bool = False
+    # The layer column that holds the county's class. ``parusecode`` for most counties; Guilford, Forsyth, Cumberland,
+    # Johnston and New Hanover leave it blank and put the county's own class text in ``parusedesc``.
+    key_field: str = "parusecode"
+    # Text classes only: a value that starts with one of these prefixes (Cumberland: ``C100-COMMERC``) has the category.
+    prefixes: dict[str, str] = field(default_factory=dict)
     title: str = ""
     attribution: str = ""
 
+    def category_of(self, value: str | None) -> str | None:
+        """The category of a class value (exact match, then prefix), compared without regard to case."""
+        v = _squeeze(value).upper()
+        for k, cat in self.categories.items():
+            if k.upper() == v:
+                return cat
+        for pre, cat in self.prefixes.items():
+            if v.startswith(pre.upper()):
+                return cat
+        return None
+
     def where(self) -> str:
         """ArcGIS ``where`` clause that selects this county's in-scope parcels (for the query service or Hub export)."""
-        in_list = ",".join(f"'{c}'" for c in sorted(self.categories))
+        parts = []
+        if self.categories:
+            parts.append(f"{self.key_field} IN ({','.join(repr(c) for c in sorted(self.categories))})")
+        parts += [f"{self.key_field} LIKE '{p}%'" for p in sorted(self.prefixes)]
         improved = " AND improvval>0" if self.require_improvement else ""
-        return f"cntyfips='{self.fips}' AND parusecode IN ({in_list}){improved}"
+        cond = parts[0] if len(parts) == 1 else f"({' OR '.join(parts)})"
+        return f"cntyfips='{self.fips}' AND {cond}{improved}"
 
     def hub_url(self) -> str:
         return HUB_DOWNLOAD + quote(self.where(), safe="")
@@ -179,7 +199,95 @@ _IREDELL = CountyMap(
                 "data steward Iredell County",
 )
 
-COUNTIES: dict[str, CountyMap] = {c.fips: c for c in (_WAKE, _BUNCOMBE, _GASTON, _IREDELL)}
+# --- Counties whose layer carries the county's own class *text* in ``parusedesc`` (``parusecode`` is blank) ---------------
+# For these five there is no code table to cite: the county publishes the class as words and the words are the definition
+# (the same basis as the Minnesota opt-in counties). Only classes whose own words say commercial, retail, office, hotel,
+# industrial or apartment are mapped; everything else yields no record. The layer has no vacant-land split inside those
+# words, so a parcel counts only with a value for improvements (``improvval`` > 0), as for Iredell.
+_ATTR = ("NC OneMap, NC Department of Information Technology, Center for Geographic Information and Analysis; "
+         "data steward {name} County")
+
+# --- Guilford (081): ``parusedesc`` is the Tax Department's class text ---------------------------------------------------
+_GUILFORD = CountyMap(
+    fips="081", name="Guilford", steward="Guilford County Assessor", source_id="nc-onemap-guilford",
+    account_system="guilford_altparno", key_field="parusedesc", require_improvement=True,
+    categories={"APART": "B", "MULTI-FAMILY5>": "B", "COMM": "F1", "OFFICE": "F1", "RETAIL": "F1", "HOTEL/MOTEL": "F1",
+                "PETROL/GAS": "F1", "IND": "F2"},
+    definitions_title="The class text of the layer's parusedesc field (no separate code table is published)",
+    definitions_url="https://services.nconemap.gov/secure/rest/services/NC1Map_Parcels/FeatureServer/1",
+    definitions_read="2026-11-03",
+    title="North Carolina Parcels (Polygons), Guilford County slice",
+    attribution=_ATTR.format(name="Guilford"),
+)
+
+# --- Forsyth (067): ``parusedesc`` is ``<class>-<text>`` (``2.02-Com Services``) ------------------------------------------
+_FORSYTH = CountyMap(
+    fips="067", name="Forsyth", steward="Forsyth County Tax Administration", source_id="nc-onemap-forsyth",
+    account_system="forsyth_altparno", key_field="parusedesc", require_improvement=True,
+    categories={"1.07-Apt Buildings": "B", "2.01-Com Retail-WS": "F1", "2.02-Com Services": "F1",
+                "2.03-Hotels-Lodging": "F1", "7.02-Office Park": "F1", "7.03-Shopp Cntr-Mall": "F1",
+                "4.01-Light Manuf": "F2", "4.02-Heavy Manuf": "F2", "7.01-Industrial Park": "F2"},
+    definitions_title="The class text of the layer's parusedesc field (no separate code table is published)",
+    definitions_url="https://services.nconemap.gov/secure/rest/services/NC1Map_Parcels/FeatureServer/1",
+    definitions_read="2026-11-03",
+    title="North Carolina Parcels (Polygons), Forsyth County slice",
+    attribution=_ATTR.format(name="Forsyth"),
+)
+
+# --- Cumberland (051): ``parusedesc`` is ``<letter><3 digits>-<8-letter text>`` ------------------------------------------
+# A = APART, C = COMMERC / AUTOMOT / FOOD/BV / MISCELL / OFFICE / CM COND / SHOP/RE / SPORT/H / STORAGE, H = HOTEL/M,
+# I = INDUSTR; every value that starts with those letters was read on 2026-11-03 (R residential, F rural, E exempt,
+# U utility and M manufactured-home-park values are not mapped). The x100 land codes carry almost no improvement value
+# (C100-COMMERC: 2,743 parcels, $9.2 million), so the improvement test drops them.
+_CUMBERLAND = CountyMap(
+    fips="051", name="Cumberland", steward="Cumberland County Tax Administration", source_id="nc-onemap-cumberland",
+    account_system="cumberland_altparno", key_field="parusedesc", require_improvement=True,
+    categories={}, prefixes={"A": "B", "C": "F1", "H": "F1", "I": "F2"},
+    definitions_title="The class text of the layer's parusedesc field (no separate code table is published)",
+    definitions_url="https://services.nconemap.gov/secure/rest/services/NC1Map_Parcels/FeatureServer/1",
+    definitions_read="2026-11-03",
+    title="North Carolina Parcels (Polygons), Cumberland County slice",
+    attribution=_ATTR.format(name="Cumberland"),
+)
+
+# --- Johnston (101): ``parusedesc`` is the improvement use text ---------------------------------------------------------
+_JOHNSTON = CountyMap(
+    fips="101", name="Johnston", steward="Johnston County Tax Office", source_id="nc-onemap-johnston",
+    account_system="johnston_altparno", key_field="parusedesc", require_improvement=True,
+    categories={
+        "High Rise Apartment": "B", "Garden Apartment": "B",
+        "Commercial": "F1", "Comm/Service": "F1", "Comm. Condominium": "F1", "Office": "F1", "Office Condo": "F1",
+        "Office High Rise>4": "F1", "Medical Building": "F1", "Medical Condo": "F1", "Banks": "F1",
+        "Shopping Center-Strip": "F1", "Shopping Center-Mall": "F1", "Department Store": "F1", "Super Market": "F1",
+        "Convenience Store": "F1", "Furn Show Room": "F1", "Retail Warehouse": "F1", "Mini-Warehouses": "F1",
+        "Fast Foods": "F1", "Restaurants": "F1", "Lounge/Night Club": "F1", "Theaters": "F1", "Bowl Alley/Arena": "F1",
+        "Day Care Center": "F1", "Veterinarians Office": "F1", "Car Wash": "F1", "Auto Sales and Service": "F1",
+        "Service Station": "F1", "Service Garage": "F1", "Lumber Yard": "F1",
+        "Hotel/Motel 3 Floors or Less": "F1", "Hotel/Motel High Rise>3": "F1",
+        "Industrial": "F2", "Light Manufacturing": "F2", "Heavy Manufacturing": "F2", "Packing Plnt/Food Pr": "F2",
+        "Warehouse": "F2", "Prefab Warehouse": "F2", "Office/Warehouse": "F2", "Cold Storage/Freezer": "F2",
+    },
+    definitions_title="The class text of the layer's parusedesc field (the County's PDF code list is on a robots-disallowed path)",
+    definitions_url="https://services.nconemap.gov/secure/rest/services/NC1Map_Parcels/FeatureServer/1",
+    definitions_read="2026-11-03",
+    title="North Carolina Parcels (Polygons), Johnston County slice",
+    attribution=_ATTR.format(name="Johnston"),
+)
+
+# --- New Hanover (129): ``parusedesc`` is plain class text (Residential, Commercial, Industrial, Apartment, ...) ---------
+_NEW_HANOVER = CountyMap(
+    fips="129", name="New Hanover", steward="New Hanover County Tax Department", source_id="nc-onemap-newhanover",
+    account_system="newhanover_altparno", key_field="parusedesc", require_improvement=True,
+    categories={"Apartment": "B", "Commercial": "F1", "Industrial": "F2"},
+    definitions_title="The class text of the layer's parusedesc field (no separate code table is published)",
+    definitions_url="https://services.nconemap.gov/secure/rest/services/NC1Map_Parcels/FeatureServer/1",
+    definitions_read="2026-11-03",
+    title="North Carolina Parcels (Polygons), New Hanover County slice",
+    attribution=_ATTR.format(name="New Hanover"),
+)
+
+COUNTIES: dict[str, CountyMap] = {c.fips: c for c in (_WAKE, _BUNCOMBE, _GASTON, _IREDELL, _GUILFORD, _FORSYTH,
+                                                       _CUMBERLAND, _JOHNSTON, _NEW_HANOVER)}
 
 
 def _squeeze(s: str | None) -> str:
@@ -221,7 +329,7 @@ def state_category(county_fips: str, parusecode: str | None, parusecd2: str | No
     a table raises ``KeyError``.
     """
     c = county_map(county_fips)
-    category = c.categories.get(_squeeze(parusecode).upper())
+    category = c.category_of(parusecode)
     if category == "B" and _squeeze(parusecd2) in c.b_not_when_cd2:
         return None
     return category
@@ -286,7 +394,7 @@ def read_roll(path: str | Path, county_fips: str, *,
             continue
         if _squeeze(r.get("cntyfips")) not in ("", c.fips):
             continue  # the statewide layer: only this county's rows belong in this source
-        category = state_category(c.fips, r.get("parusecode"), r.get("parusecd2"))
+        category = state_category(c.fips, r.get(c.key_field), r.get("parusecd2"))
         if category and c.require_improvement and not _positive(r.get("improvval")):
             category = None  # land only: the county's code does not separate vacant land
         if not keep(category or ""):
@@ -297,9 +405,9 @@ def read_roll(path: str | Path, county_fips: str, *,
         year = _positive(r.get("structyear"))
         value = _positive(r.get("parval"))
         if c.local_code_with_cd2:
-            use = "/".join(x for x in (_squeeze(r.get("parusecode")).upper(), _squeeze(r.get("parusecd2"))) if x)
+            use = "/".join(x for x in (_squeeze(r.get(c.key_field)).upper(), _squeeze(r.get("parusecd2"))) if x)
         else:
-            use = _squeeze(r.get("parusecode")).upper()
+            use = _squeeze(r.get(c.key_field)).upper()
         yield ParcelRecord(
             county_fips=c.fips,
             apn=pid,
