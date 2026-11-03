@@ -130,3 +130,14 @@ price tables) without signing, paying or sending anything:
   every verified source is loaded in full (counts in the catalog). The three ArcGIS Hub exports
   came through the weekly workflow (`gh workflow run collect.yml -f only=<ids>`), which is the
   route to use for any file this connection cannot finish.
+
+## F. Tier 2 gates (added 2026-11-03; needs you)
+
+Tier 2 reviewed the next 61 counties by population ([registry/tier2/README.md](registry/tier2/README.md)):
+28 verified with adapters, 33 gated. Each region file ends with a table of the gated sources and the
+one action each needs (a terms question to the publisher, a records request, or a purchase):
+[texas](registry/tier2/texas.md), [ny-nj-ct](registry/tier2/ny-nj-ct.md),
+[md-pa-ma](registry/tier2/md-pa-ma.md), [midwest](registry/tier2/midwest.md),
+[southeast](registry/tier2/southeast.md), [california](registry/tier2/california.md),
+[west](registry/tier2/west.md). Licence decisions to make first: MassGIS's no-fee clause, RLIS
+share-alike, and Fort Bend's indemnity clause (see the Results section of the Tier 2 index).

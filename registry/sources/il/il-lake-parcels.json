@@ -1,0 +1,30 @@
+{
+  "description": "Lake County, Illinois (FIPS 17097) tax parcels and Data Extract (access review) for the FactLot Registry collector. See docs/registry/sources/il-lake-parcels.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "il-lake-parcels",
+      "publisher": "Lake County, Illinois: GIS Division and the Supervisor of Assessments (Data Extract)",
+      "landing_pages": ["https://www.lakecountyil.gov/3942/Data-Extract"],
+      "allowed_hosts": [
+        "www.lakecountyil.gov",
+        "lakecountyil.gov",
+        "services3.arcgis.com",
+        "data-lakecountyil.opendata.arcgis.com"
+      ],
+      "files": [],
+      "verified": false,
+      "gate": "(1) www.lakecountyil.gov (including /robots.txt and the Data Extract page) answers non-browser clients with a Cloudflare 'Just a moment' challenge (HTTP 403), so the assessment extract (land use code, characteristics, tax information) could not be read; the block was not worked around. (2) The tax parcel layer that is reachable (ArcGIS Online item 318e616ff0d14efe83927d8dd3bc1e12, 279,079 parcels) has PIN, situs and taxpayer name and address but no class, use code or value, so no parcel can be scoped to B, F1 or F2 from it alone, and it carries no licence text. A person must open the Data Extract page in a browser, record its file URL, layout and terms, and ask the GIS Division (gis@lakecountyil.gov) whether FactLotRegistryBot may be allowed through the challenge.",
+      "terms_url": "https://www.lakecountyil.gov/3942/Data-Extract",
+      "license": "Not read (page blocked). The parcel layer's item has no licenseInfo; the catalog text says the boundaries are for tax and administrative purposes and not a survey",
+      "ai_use": "Not addressed",
+      "redistribution": "Not addressed",
+      "reviewed": "2026-11-03",
+      "notes": "Layer https://services3.arcgis.com/HESxeTbDliKKvec2/arcgis/rest/services/OpenData_ParcelPolygons/FeatureServer/0 (LakeCountyParcels: PIN, legdesc1-3, situs_addr_*, taxpayer_name and taxpayer_addr_*; maxRecordCount 2000; count 279,079). Per search-index text (unverified), the Data Extract lists land_use_code and tax fields, and since 2019 six townships (Cuba, Ela, Grant, Libertyville, Shields, Vernon) no longer report detailed characteristics to the county. Nothing was archived."
+    }
+  ]
+}

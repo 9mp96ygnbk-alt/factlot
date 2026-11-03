@@ -1,0 +1,29 @@
+{
+  "description": "Fort Bend Central Appraisal District Orion exports (certified roll and supplements). See docs/registry/sources/tx-fortbend-cad.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "tx-fortbend-cad",
+      "publisher": "Fort Bend Central Appraisal District",
+      "landing_pages": [
+        "https://www.fbcad.org/certified-and-supplements-reports/"
+      ],
+      "allowed_hosts": ["fbcad.org"],
+      "files": [
+        "https://www.fbcad.org/wp-content/uploads/2026/08/2026_07_07_1746-Orion-2026-Certified-Export-Redacted.zip",
+        "https://www.fbcad.org/wp-content/uploads/2026/10/2026_10_23_1427-Orion-2026-Supplement-4-Export-_Redacted.zip"
+      ],
+      "verified": true,
+      "terms_url": "https://www.fbcad.org/gis-data/",
+      "license": "Public record (Tex. Gov't Code ch. 552); no license stated. The GIS data page (the only disclaimer found, applied by the district to its data files) provides them 'as is' and says the user shall hold harmless, indemnify and defend the district against claims arising from the request for or use of the data files. The certified-and-supplements page has no terms",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not addressed by the publisher; public record. Confidential (Tax Code 25.025) owners are redacted from these exports",
+      "reviewed": "2026-11-03",
+      "notes": "The Orion Appraisal Export zips: PropertyExport, OwnerExport, ExemptionExport, EntityExport, MobileHomeExport, AgentExport and the layout workbook. Certified roll (released 2026-07-07, 58,776,333 bytes, over the 50 MB research limit) is the complete roll; each monthly supplement is a delta holding only changed accounts (load with --partial); a new supplement file name appears each month (Supplement 4: 1,959,232 bytes, 2026-10-23), so re-run discover. The 'Property Data Export' zips (163 MB, October 2026) use a layout not read and are not listed. Commercial Segments (xlsx, 20 MB) hold building areas and are not read. robots.txt: Disallow /wp-admin/ only. A person should decide whether the hold-harmless clause on the data-file disclaimer is acceptable before the weekly run archives these files."
+    }
+  ]
+}

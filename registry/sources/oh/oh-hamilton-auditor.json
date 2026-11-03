@@ -1,0 +1,29 @@
+{
+  "description": "Hamilton County, Ohio (Cincinnati; FIPS 39061) Auditor real estate exports (access review) for the FactLot Registry collector. See docs/registry/sources/oh-hamilton-auditor.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "oh-hamilton-auditor",
+      "publisher": "Hamilton County Auditor, Ohio",
+      "landing_pages": ["https://hcauditor.org/revalue.asp"],
+      "allowed_hosts": [
+        "hcauditor.org",
+        "www.hcauditor.org",
+        "public.hcauditor.org"
+      ],
+      "files": [],
+      "verified": false,
+      "gate": "robots.txt on hcauditor.org disallows /download/ (and /menu_downloads.asp, /prr_download_instructions.asp, /transfer_downloads.asp) for all user agents, and every export file lives under /download/revalue/, so the collector may not fetch them and none was downloaded. A person must ask the Auditor to allow the FactLotRegistryBot user agent on /download/revalue/ (or confirm in writing that automated retrieval of the public-records exports is permitted), or use the Auditor's public-records download menu (public.hcauditor.org/MainPRRMenuPage.aspx) by hand and record its terms. The Auditor's contact: (513) 946-4000.",
+      "terms_url": "https://hcauditor.org/revalue.asp",
+      "license": "Not read: the export pages state none; robots.txt disallows the download directory",
+      "ai_use": "Not addressed",
+      "redistribution": "Not addressed",
+      "reviewed": "2026-11-03",
+      "notes": "hcauditor.org/revalue.asp (Real Estate Valuation) links 'Current Tax Year Information File current as of 10/31/2026' (/download/revalue/Monthly_tax_information.xlsx, HEAD 200, 119,984,324 bytes, Last-Modified 2026-11-02), Building Information (/download/revalue/bldginfo.xlsx, 12,822,509 bytes), Historic Sales Export (HistoricSalesExport.xlsx), New Construction exports, and prior Tax Year exports TaxYear<YYYY>Pay<YYYY+1>Export.xlsx back to 2002, plus a Land Use Codes page. The Auditor's FAQ says all active parcels are in the data. Only HEAD requests (no body) were sent to /download/ before robots.txt was read; no file was downloaded. Layout (columns, owner names) therefore not confirmed."
+    }
+  ]
+}

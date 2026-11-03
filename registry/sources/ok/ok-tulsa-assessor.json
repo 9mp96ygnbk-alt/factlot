@@ -1,0 +1,32 @@
+{
+  "description": "Oklahoma: Tulsa County (FIPS 40143) Assessor parcels as published by INCOG. No licence stated. See docs/registry/sources/ok-tulsa-assessor.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "ok-tulsa-assessor",
+      "publisher": "Tulsa County Assessor (parcel layer hosted by INCOG, the Indian Nations Council of Governments)",
+      "landing_pages": [
+        "https://www.arcgis.com/sharing/rest/content/items/6bba0af6689642dfaa884abcf3b3efe4?f=pjson",
+        "https://assessor.tulsacounty.org/Resources/PublicData"
+      ],
+      "allowed_hosts": [
+        "map11.incog.org",
+        "www.arcgis.com",
+        "assessor.tulsacounty.org"
+      ],
+      "files": [],
+      "verified": false,
+      "gate": "Terms not stated. The INCOG layer 'Tulsa County Parcels (INCOG)' (owner, use code, occupancy, values, building area) has an empty licenseInfo and no terms; the Assessor's Public Data page offers no data file and its Open Records Request form asks for a purpose ('Commercial', 'Personal', 'Public Interest') and may charge cost recovery. Requires a person: submit the Assessor Record Request form at assessor.tulsacounty.org/Resources/DataRequest for the bulk property file (purpose Commercial) and ask in writing whether the INCOG layer may be republished as facts.",
+      "terms_url": "https://assessor.tulsacounty.org/Resources/DataRequest",
+      "license": "None stated on the dataset (licenseInfo empty; copyright text on the layer: 'Tulsa County Assessor'). The Assessor's site disclaimer says the data was 'developed and collected only for the purpose of establishing Fair Cash Value (Market) for ad valorem taxation'. Public records under the Oklahoma Open Records Act (51 O.S. 24A.1 et seq.)",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Unknown",
+      "reviewed": "2026-11-03",
+      "notes": "Layer map11.incog.org/arcgis11wa/rest/services/Parcels_TulsaCo/FeatureServer/0 (284,813 parcels on 2026-11-03; maxRecordCount 2000; item 6bba0af6689642dfaa884abcf3b3efe4, modified 2026-04-20). Fields include AccountNo, ParcelNo, AcctType (Residential 238,916; Commercial 18,840; Exempt 11,629; Exempt Com 4,431; Agricultural 4,495; Comm Res 212; Comm Ag 67), UseCode (e.g. Retail, MHP), OccCode, PropertyType, Owner, Name1-2, Address1-2/City/State/ZIPCode (mailing), PropertyAddress/City/ZIP, YearBuilt, GrossSF, GrossAcre, UnitsTotal, TotalImpValue, TotalLandValue, TotalAcctValue, SalePrice. So the layer would map to F1, F2 and B (UnitsTotal, OccCode) once permitted. The Assessor's own ArcGIS server (asps0305.tulsacounty.org) did not resolve. robots.txt: map11.incog.org and assessor.tulsacounty.org answer 404 (no rules)."
+    }
+  ]
+}

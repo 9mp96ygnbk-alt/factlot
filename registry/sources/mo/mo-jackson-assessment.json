@@ -1,0 +1,31 @@
+{
+  "description": "Jackson County, Missouri (Kansas City, Independence; FIPS 29095) Assessment Department real property data (access review) for the FactLot Registry collector. See docs/registry/sources/mo-jackson-assessment.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "mo-jackson-assessment",
+      "publisher": "Jackson County, Missouri: Assessment Department and GIS",
+      "landing_pages": [
+        "https://www.jacksongov.org/Government/Departments/Assessment/Real-Property-Accounts"
+      ],
+      "allowed_hosts": [
+        "www.jacksongov.org",
+        "jcgis.jacksongov.org",
+        "publicaccess.jacksongov.org"
+      ],
+      "files": [],
+      "verified": false,
+      "gate": "No bulk file or open-data layer was found on jacksongov.org; the county offers a property search portal (publicaccess.jacksongov.org), a Real Estate Sales Search (Certificates of Value since 2007) and a parcel viewer (jcgis.jacksongov.org, which timed out twice for the collector; its notice says the information is provided 'pursuant to Section 610.011, RSMo'). A person must submit an Open Records Request (Missouri Sunshine Law, RSMo ch. 610) through the county's online Open Records Request portal asking for the real property assessment file (parcel number, owner of record, mailing address, situs, class, land use, assessed and appraised values, acreage, building area, year built), in electronic form, and ask for the cost estimate before agreeing to pay.",
+      "terms_url": "https://www.jacksongov.org/Government/Departments/Assessment",
+      "license": "None found; records are public under RSMo ch. 610",
+      "ai_use": "Not addressed",
+      "redistribution": "Not addressed",
+      "reviewed": "2026-11-03",
+      "notes": "jacksongov.org/robots.txt disallows only named content pages. Commercial resellers list about 312,000 Jackson County parcels; not used. Nothing was archived and no request was sent. Kansas City (MO) open data was not checked for a parcel layer that covers the Jackson County part of the city."
+    }
+  ]
+}

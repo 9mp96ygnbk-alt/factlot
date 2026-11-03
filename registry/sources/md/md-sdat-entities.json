@@ -1,0 +1,25 @@
+{
+  "description": "Maryland State Department of Assessments and Taxation (SDAT) corporate charter file (business entity register), sold through the contractor SpecPrint, Inc. (access review; purchase, nothing confirmed) for the FactLot Registry collector. See docs/registry/sources/md-sdat-entities.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "md-sdat-entities",
+      "publisher": "Maryland State Department of Assessments and Taxation (SDAT), Charter Division, through SpecPrint, Inc.",
+      "landing_pages": ["https://dat.maryland.gov/Pages/Services.aspx"],
+      "allowed_hosts": ["dat.maryland.gov", "www.specprint.com"],
+      "files": [],
+      "verified": false,
+      "gate": "Purchase. SDAT's Services page (read 2026-11-03) says: 'The Department's public release files are available for sale through a contractor, SpecPrint, Inc.' The 'Corporate File' lists corporations, limited partnerships, limited liability companies, limited liability partnerships and trade names, foreign and domestic, with principal office, resident agent and resident agent address and amendment dates; the Corporate Master File is created monthly and a weekly subscription is offered. No price, order form, file layout or licence terms are published, and SpecPrint's site (www.specprint.com, subscriber FTP behind a login) shows none. A person must contact SpecPrint, Inc., 7 Aylesbury Road, Timonium, MD 21093, (410) 561-9600, sales@specprint.com, for the current price, order form, file layout, and the licence terms, and in particular ask whether the file may be redistributed and used by AI agents; then record the answer here. The free Maryland Business Express / SDAT business entity search is interactive and is not scraped. No Maryland entity dataset exists on opendata.maryland.gov (the portal catalog was searched for business entity, charter and SDAT on 2026-11-03).",
+      "terms_url": "https://dat.maryland.gov/Pages/Services.aspx",
+      "license": "None found; the file is sold and its licence terms are not published",
+      "ai_use": "Not addressed on the pages read; order terms not read",
+      "redistribution": "Not addressed on the pages read; order terms not read",
+      "reviewed": "2026-11-03",
+      "notes": "Entity registry for Maryland. The Maryland real property source (md-sdat-real-property) publishes no owner names, so this file would mainly link Maryland-registered companies that own parcels in other states (by name match on owner of record). robots.txt on dat.maryland.gov: Disallow /_vti_bin/, /_layouts/, /_catalogs/ only; www.specprint.com has no robots.txt (404)."
+    }
+  ]
+}

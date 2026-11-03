@@ -1,0 +1,25 @@
+{
+  "description": "Indiana Secretary of State business entity bulk data (INBiz; access review) for the FactLot Registry collector. See docs/registry/sources/in-sos-entities.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "in-sos-entities",
+      "publisher": "Indiana Secretary of State, Business Services Division (INBiz)",
+      "landing_pages": ["https://inbiz.in.gov/Inbiz/BulkDataServices/Index"],
+      "allowed_hosts": ["inbiz.in.gov"],
+      "files": [],
+      "verified": false,
+      "gate": "Purchase and account. The Secretary's Enhanced Access fee schedule (Regulatory Analysis, LSA Document #25-155, OMB 2025-01R) lists: one-time bulk download $8,000.00 (all registered businesses as of the end of the prior month, delivered on a portable storage device), bulk download with monthly updates $9,500.00, monthly update $500.00, and the Monthly Listing of New Businesses $35.00; the INBiz bulk page says an INBiz account is required to purchase and download. A person must decide whether to buy, create the INBiz account, accept the order terms and pay; none of that was done. Also: inbiz.in.gov answers the collector's robots.txt request with 403 AccessDenied, and the license and AI-use terms of the product are unread.",
+      "terms_url": "https://inbiz.in.gov/Inbiz/BulkDataServices/Index",
+      "license": "Not read; sold product (order terms unknown)",
+      "ai_use": "Not addressed on any page read",
+      "redistribution": "Unknown; the regulatory analysis says bulk data purchases are 'typically ordered for commercial purposes' and that the public can search the same data free online",
+      "reviewed": "2026-11-03",
+      "notes": "Fee schedule source: https://www.in.gov/sos/business/files/Regulatory-Analysis-Business-Entity-Bulk-Data-Fees-LSA-25-155-OMB-2025-01R.pdf (read 2026-11-03). The INBiz bulk page is a JavaScript page (11 KB, no text readable by the collector). The free route is the interactive INBiz business search, which is not scraped. in.gov/robots.txt allows all."
+    }
+  ]
+}

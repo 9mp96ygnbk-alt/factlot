@@ -1,0 +1,30 @@
+{
+  "description": "Macomb County, Michigan (FIPS 26099) open-data tax parcels (access review) for the FactLot Registry collector. See docs/registry/sources/mi-macomb-parcels.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "mi-macomb-parcels",
+      "publisher": "Macomb County, Michigan (Macomb County Open Data Portal, MCMAP)",
+      "landing_pages": [
+        "https://macomb-county-open-data-portal-mcmap.hub.arcgis.com/api/feed/dcat-us/1.1.json"
+      ],
+      "allowed_hosts": [
+        "services6.arcgis.com",
+        "macomb-county-open-data-portal-mcmap.hub.arcgis.com"
+      ],
+      "files": [],
+      "verified": false,
+      "gate": "The free layer has owner name (ownername1), situs and SEV/taxable value but no property class or use code, so no parcel can be scoped to B, F1 or F2 (its 'zoning' column is municipal zoning, not the assessor's class). It carries no licence or terms text (licenseInfo empty; the DetroitData catalog says 'No License Provided'). A person must ask Macomb County Equalization (macombgov.org/equalization) for the parcel-level real property file with the Michigan class code, its price and its terms, or a FOIA request (see public-information-requests.md).",
+      "terms_url": "https://macomb-county-open-data-portal-mcmap.hub.arcgis.com/",
+      "license": "None stated (empty licenseInfo; 'No License Provided' in the DetroitData catalog)",
+      "ai_use": "Not addressed",
+      "redistribution": "Not addressed",
+      "reviewed": "2026-11-03",
+      "notes": "Hub dataset 'Macomb County Parcel Data' (item e073e8402b3544628d684719c5cd79d1) = services6.arcgis.com/K0qS4r8AEJxrE8em/arcgis/rest/services/Macomb_County_Parcel_Data/FeatureServer/10 'Macomb County Tax Parcels' (332,993 parcels; fields TAX_ID, ADDRESS, TAX_TYPE, CVT_NAME, BSA_ID, LEGAL, propstreetcombined, propertyCityStateZip, ownername1, zoning, mborsev_0, mbortax). The older item Macomb_County_Tax_Parcels (FeatureServer/1) and the Hub /api/download/v1 CSV endpoint answer 400 'Invalid URL'. Hub robots.txt: Crawl-delay 60. Unlike Oakland (explicit open-data terms) and Wayne (personal, non-commercial portal terms), Macomb states no terms. Nothing was archived beyond a 3-row layout probe and a zoning count."
+    }
+  ]
+}

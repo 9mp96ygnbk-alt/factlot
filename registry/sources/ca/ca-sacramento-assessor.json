@@ -1,0 +1,32 @@
+{
+  "description": "Sacramento County (FIPS 06067) parcel land-use layer for the FactLot Registry collector. Open data (Creative Commons zero / public-domain dedication on the item); the file has situs, land-use class and lot size but no assessed values and no owner names. Review record: docs/registry/sources/ca-sacramento-assessor.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "ca-sacramento-assessor",
+      "publisher": "Sacramento County GIS (parcel layer carrying Assessor land-use classes; published on the Sacramento County GIS Open Data site, ArcGIS Hub)",
+      "landing_pages": [
+        "https://www.arcgis.com/sharing/rest/content/items/8d011b99aebc46d48060b2e5bdd7f4a0?f=json",
+        "https://data.saccounty.gov/api/search/v1/collections/all/items/8d011b99aebc46d48060b2e5bdd7f4a0"
+      ],
+      "allowed_hosts": ["data.saccounty.gov", "arcgis.com"],
+      "link_patterns": ["/api/download/v1/items/[0-9a-f]{32}/csv"],
+      "files": [
+        "https://data.saccounty.gov/api/download/v1/items/8d011b99aebc46d48060b2e5bdd7f4a0/csv?layers=0&where=LU_GENERAL%20IN%20%28%27Retail%20%2F%20Commercial%27%2C%27Office%27%2C%27Industrial%27%29",
+        "https://data.saccounty.gov/api/download/v1/items/8d011b99aebc46d48060b2e5bdd7f4a0/csv?layers=0&where=LU_GENERAL%20%3D%20%27Residential%27%20AND%20LU_SPECIF%20IN%20%28%27Low%20Rise%20Apartment%27%2C%27High%20Rise%20Apartment%27%2C%27Hotel%27%2C%27Motel%27%2C%27Mobile%20Home%20Park%27%29",
+        "https://data.saccounty.gov/api/download/v1/items/8d011b99aebc46d48060b2e5bdd7f4a0/csv?layers=0&where=LU_GENERAL%20IN%20%28%27Care%20%2F%20Health%27%2C%27Recreational%27%29"
+      ],
+      "verified": true,
+      "terms_url": "https://data.saccounty.gov/",
+      "license": "Creative Commons CC0 1.0 Public Domain Dedication, stated in the item's licenseInfo ('This work is licensed under a Creative Commons Public Domain Dedication License', link https://creativecommons.org/publicdomain/zero/1.0/); the Hub search record tags the same item 'CC-BY-4.0' because the badge's outer link points to the CC-BY page. Either permits copying and redistribution",
+      "ai_use": "Not addressed by the publisher (CC0 / CC-BY place no restriction on automated or AI use)",
+      "redistribution": "Permitted. Attribution is not required under CC0 but is given anyway: 'Sacramento County GIS, Parcels (Sacramento County GIS Open Data), https://data.saccounty.gov'",
+      "reviewed": "2026-11-03",
+      "notes": "Item 8d011b99aebc46d48060b2e5bdd7f4a0 'Parcels' (owner SCGISAdmin, hosted feature layer, 502,447 parcels, modified 2026-11-01). Fields: APN (14 digits), situs, lot size, a land-use classification (Landuse code, General, Specific, Detail). NO assessed values, NO owner names, NO year built or building area. The Hub download API honours a where filter on the field names; the three files fetch only the in-scope classes (Retail / Commercial, Office, Industrial; apartments, hotels, motels and mobile home parks under Residential; Care / Health; Recreational) instead of all 502k rows. The export answers 302 to services1.arcgis.com/.../replicafilescache/*.csv; the item is 466 MB with geometry, so the unfiltered export was not requested. robots.txt on data.saccounty.gov sets Crawl-delay: 60, which the collector honours. The Assessor sells nothing here: its fee schedule gives the secured roll in electronic form 'at no charge' on e-mail request to assessor@saccounty.gov (values and owner names would come that way; that is a person's action, not done)."
+    }
+  ]
+}

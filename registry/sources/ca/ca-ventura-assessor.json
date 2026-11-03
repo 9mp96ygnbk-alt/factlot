@@ -1,0 +1,27 @@
+{
+  "description": "Ventura County (FIPS 06111): Assessor attribute data needs a public records request and a signed public information agreement; the county web hosts block automated clients. NOT VERIFIED. Review record: docs/registry/sources/ca-ventura-assessor.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "ca-ventura-assessor",
+      "publisher": "Ventura County Assessor; Ventura County GIS (GISVentura)",
+      "landing_pages": [
+        "https://assessor.venturacounty.gov/assessor-data/public-records-request/",
+        "https://www.arcgis.com/sharing/rest/content/items/e0721a09a7214788be60dc7f0834ea91?f=json"
+      ],
+      "allowed_hosts": ["assessor.venturacounty.gov", "arcgis.com"],
+      "terms_url": "https://www.arcgis.com/sharing/rest/content/items/e0721a09a7214788be60dc7f0834ea91?f=json",
+      "license": "None for the free layer (the item's licenseInfo is a disclaimer: maps and data 'are to be used for reference purposes only'). Assessor data: 'make a public records request and fill out a public info agreement contract' (item description). Gate: records request and agreement",
+      "ai_use": "Not addressed",
+      "redistribution": "Not addressed for the layer; the county's Address Points metadata says not for redistribution",
+      "notes": "Gate: records request, and the Assessor's host assessor.venturacounty.gov and the county GIS host maps.ventura.org answer 403 to automated clients (F5 firewall, robots.txt included). Free file: item e0721a09a7214788be60dc7f0834ea91 'Parcels Monthly' (owner GISVentura, 268,134 parcels, modified 2026-10-05) has only APN, APN10 and centroid lat/lon: no use code, situs or values. The item description itself says assessor attribute data must be requested from the Assessor. Next step for the founder: submit the Assessor's public records request for the secured roll with use codes and sign the public information agreement; or telephone (805) 654-2181.",
+      "files": [],
+      "verified": false,
+      "reviewed": "2026-11-03"
+    }
+  ]
+}

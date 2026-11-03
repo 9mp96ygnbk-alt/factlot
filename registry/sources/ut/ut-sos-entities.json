@@ -1,0 +1,25 @@
+{
+  "description": "Utah Division of Corporations and Commercial Code business entity registry (access review; no bulk file found) for the FactLot Registry collector. See docs/registry/sources/ut-sos-entities.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "ut-sos-entities",
+      "publisher": "Utah Department of Commerce, Division of Corporations and Commercial Code",
+      "landing_pages": ["https://commerce.utah.gov/?p=32972"],
+      "allowed_hosts": ["commerce.utah.gov", "businessregistration.utah.gov"],
+      "files": [],
+      "verified": false,
+      "terms_url": "https://commerce.utah.gov/?p=32972",
+      "license": "Public records: the Division's 'Public Disclosure of Information' page (read 2026-11-03) says 'Information about a business that registers with the Division is public information' and that its registration records 'are classified as public records pursuant to GRAMA' (Utah Code 63G-2-201(2): a record is public unless a statute says otherwise). The page says nothing about bulk data, lists or downloads and refers readers to the Department of Commerce's Access to Government Records page",
+      "ai_use": "Not addressed",
+      "redistribution": "Not addressed",
+      "reviewed": "2026-11-03",
+      "gate": "Records request: no free bulk file was found (the old open data portal address opendata.utah.gov answers \"Domain Decommissioned\"). A person must ask the Division of Corporations whether a bulk extract is sold, or file a GRAMA request (Utah Code 63G-2) for the registry data.",
+      "notes": "Only an interactive Business Entity Search and a 'Business Entity List' builder were found, both per search results; automating either is scraping an application and is not done. Nothing was downloaded."
+    }
+  ]
+}

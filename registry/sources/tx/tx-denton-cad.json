@@ -1,0 +1,34 @@
+{
+  "description": "Denton Central Appraisal District roll as published by Denton County GIS (ArcGIS REST layer Parcels_FC). See docs/registry/sources/tx-denton-cad.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "tx-denton-cad",
+      "publisher": "Denton Central Appraisal District (published by Denton County GIS)",
+      "landing_pages": [
+        "https://gis.dentoncounty.gov/arcgis/rest/services/Parcels_FC/MapServer/0?f=pjson"
+      ],
+      "allowed_hosts": ["gis.dentoncounty.gov"],
+      "files": [
+        "https://gis.dentoncounty.gov/arcgis/rest/services/Parcels_FC/MapServer/0/query?where=stateCodes%20like%20%27%25B%25%27%20OR%20stateCodes%20like%20%27%25F%25%27&outFields=pid%2CpYear%2Cname%2CpropType%2CstateCodes%2Csitus_street_address%2CsitusCity%2CsitusState%2CsitusZip%2Cconfidential%2CaddrDeliveryLine%2CaddrUnitDesignator%2CaddrFreeForm3%2ClandTotalSqft%2Cland_sqft%2ClegalAcreage%2CimprvActualYearBuilt%2CimprvMainArea%2CimprvTotalArea%2CownerMarketValue%2CownerAppraisedValue%2Cdba%2CgeoID%2ClegalDescription&returnGeometry=false&orderByFields=OBJECTID&resultOffset=0&resultRecordCount=2000&f=json",
+        "https://gis.dentoncounty.gov/arcgis/rest/services/Parcels_FC/MapServer/0/query?where=stateCodes%20like%20%27%25B%25%27%20OR%20stateCodes%20like%20%27%25F%25%27&outFields=pid%2CpYear%2Cname%2CpropType%2CstateCodes%2Csitus_street_address%2CsitusCity%2CsitusState%2CsitusZip%2Cconfidential%2CaddrDeliveryLine%2CaddrUnitDesignator%2CaddrFreeForm3%2ClandTotalSqft%2Cland_sqft%2ClegalAcreage%2CimprvActualYearBuilt%2CimprvMainArea%2CimprvTotalArea%2CownerMarketValue%2CownerAppraisedValue%2Cdba%2CgeoID%2ClegalDescription&returnGeometry=false&orderByFields=OBJECTID&resultOffset=2000&resultRecordCount=2000&f=json",
+        "https://gis.dentoncounty.gov/arcgis/rest/services/Parcels_FC/MapServer/0/query?where=stateCodes%20like%20%27%25B%25%27%20OR%20stateCodes%20like%20%27%25F%25%27&outFields=pid%2CpYear%2Cname%2CpropType%2CstateCodes%2Csitus_street_address%2CsitusCity%2CsitusState%2CsitusZip%2Cconfidential%2CaddrDeliveryLine%2CaddrUnitDesignator%2CaddrFreeForm3%2ClandTotalSqft%2Cland_sqft%2ClegalAcreage%2CimprvActualYearBuilt%2CimprvMainArea%2CimprvTotalArea%2CownerMarketValue%2CownerAppraisedValue%2Cdba%2CgeoID%2ClegalDescription&returnGeometry=false&orderByFields=OBJECTID&resultOffset=4000&resultRecordCount=2000&f=json",
+        "https://gis.dentoncounty.gov/arcgis/rest/services/Parcels_FC/MapServer/0/query?where=stateCodes%20like%20%27%25B%25%27%20OR%20stateCodes%20like%20%27%25F%25%27&outFields=pid%2CpYear%2Cname%2CpropType%2CstateCodes%2Csitus_street_address%2CsitusCity%2CsitusState%2CsitusZip%2Cconfidential%2CaddrDeliveryLine%2CaddrUnitDesignator%2CaddrFreeForm3%2ClandTotalSqft%2Cland_sqft%2ClegalAcreage%2CimprvActualYearBuilt%2CimprvMainArea%2CimprvTotalArea%2CownerMarketValue%2CownerAppraisedValue%2Cdba%2CgeoID%2ClegalDescription&returnGeometry=false&orderByFields=OBJECTID&resultOffset=6000&resultRecordCount=2000&f=json",
+        "https://gis.dentoncounty.gov/arcgis/rest/services/Parcels_FC/MapServer/0/query?where=stateCodes%20like%20%27%25B%25%27%20OR%20stateCodes%20like%20%27%25F%25%27&outFields=pid%2CpYear%2Cname%2CpropType%2CstateCodes%2Csitus_street_address%2CsitusCity%2CsitusState%2CsitusZip%2Cconfidential%2CaddrDeliveryLine%2CaddrUnitDesignator%2CaddrFreeForm3%2ClandTotalSqft%2Cland_sqft%2ClegalAcreage%2CimprvActualYearBuilt%2CimprvMainArea%2CimprvTotalArea%2CownerMarketValue%2CownerAppraisedValue%2Cdba%2CgeoID%2ClegalDescription&returnGeometry=false&orderByFields=OBJECTID&resultOffset=8000&resultRecordCount=2000&f=json",
+        "https://gis.dentoncounty.gov/arcgis/rest/services/Parcels_FC/MapServer/0/query?where=stateCodes%20like%20%27%25B%25%27%20OR%20stateCodes%20like%20%27%25F%25%27&outFields=pid%2CpYear%2Cname%2CpropType%2CstateCodes%2Csitus_street_address%2CsitusCity%2CsitusState%2CsitusZip%2Cconfidential%2CaddrDeliveryLine%2CaddrUnitDesignator%2CaddrFreeForm3%2ClandTotalSqft%2Cland_sqft%2ClegalAcreage%2CimprvActualYearBuilt%2CimprvMainArea%2CimprvTotalArea%2CownerMarketValue%2CownerAppraisedValue%2Cdba%2CgeoID%2ClegalDescription&returnGeometry=false&orderByFields=OBJECTID&resultOffset=10000&resultRecordCount=2000&f=json",
+        "https://gis.dentoncounty.gov/arcgis/rest/services/Parcels_FC/MapServer/0/query?where=stateCodes%20like%20%27%25B%25%27%20OR%20stateCodes%20like%20%27%25F%25%27&outFields=pid%2CpYear%2Cname%2CpropType%2CstateCodes%2Csitus_street_address%2CsitusCity%2CsitusState%2CsitusZip%2Cconfidential%2CaddrDeliveryLine%2CaddrUnitDesignator%2CaddrFreeForm3%2ClandTotalSqft%2Cland_sqft%2ClegalAcreage%2CimprvActualYearBuilt%2CimprvMainArea%2CimprvTotalArea%2CownerMarketValue%2CownerAppraisedValue%2Cdba%2CgeoID%2ClegalDescription&returnGeometry=false&orderByFields=OBJECTID&resultOffset=12000&resultRecordCount=2000&f=json"
+      ],
+      "verified": true,
+      "terms_url": "https://data-dentoncounty.hub.arcgis.com/api/search/v1/collections/all/items?q=parcel&limit=20",
+      "license": "Public record (Tex. Gov't Code ch. 552); the county GIS Hub item 'Parcels' (tag Open Data, access public) has an empty licenseInfo and no terms of use. DCAD's own Data Extracts page (dentoncad.com/?p=2815) was not retrievable and was not read",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not addressed by the publisher; public record",
+      "reviewed": "2026-11-03",
+      "notes": "Query pages of the ArcGIS layer Parcels_FC (72 attributes; 384,308 parcels in all). The where clause keeps accounts whose stateCodes list contains a B or F code (13,732 on 2026-11-03: about 7 pages of 2,000, resultOffset paging ordered by OBJECTID); the adapter maps F1, F2 and B* and ignores the rest. Geometry is not requested. gis.dentoncounty.gov has no robots.txt (404). Extend the file list if the count passes 14,000 (the pages beyond the last return no features). The district's own weekly Data Extracts (file geodatabase and CSV, dentoncad.com/?p=2815) are the official bulk route; dentoncad.com no longer resolves (www.dentoncad.com serves the True Prodigy portal, which is client-rendered), so a person should find the current Data Extracts page and, if it has a stated licence, record it here."
+    }
+  ]
+}

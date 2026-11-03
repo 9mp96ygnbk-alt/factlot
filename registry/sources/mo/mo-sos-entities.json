@@ -1,0 +1,25 @@
+{
+  "description": "Missouri Secretary of State business entity data (access review; no bulk file found) for the FactLot Registry collector. See docs/registry/sources/mo-sos-entities.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "mo-sos-entities",
+      "publisher": "Missouri Secretary of State, Business Services Division (Corporations)",
+      "landing_pages": ["https://www.sos.mo.gov/business/corporations"],
+      "allowed_hosts": ["www.sos.mo.gov", "bsd.sos.mo.gov", "data.mo.gov"],
+      "files": [],
+      "verified": false,
+      "gate": "No bulk entity file was found: data.mo.gov (Socrata) has no business-entity dataset (its Secretary of State datasets are the office's payroll and accounting), and the Secretary's pages describe only the free interactive search (bsd.sos.mo.gov) and a $5 abstract of a single entity under RSMo 351.657. www.sos.mo.gov/robots.txt disallows /BusinessEntity/ (the search application) for all agents. A person should ask the Business Services Division whether an entity extract exists and at what price, or file a Missouri Sunshine Law request (RSMo ch. 610; see public-information-requests.md). Do not scrape the search.",
+      "terms_url": "https://www.sos.mo.gov/business/corporations",
+      "license": "None found",
+      "ai_use": "Not addressed",
+      "redistribution": "Not addressed",
+      "reviewed": "2026-11-03",
+      "notes": "data.mo.gov catalog search (Socrata catalog API, robots Crawl-delay 1) for 'business entities' and 'secretary of state' returned no entity register. bsd.sos.mo.gov has no robots.txt (404). The UCC bulk-records rule (15 CSR 30-90) provides bulk UCC data under a written agreement; that is not the corporate register. Nothing was purchased or requested."
+    }
+  ]
+}

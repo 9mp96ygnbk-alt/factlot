@@ -1,0 +1,32 @@
+{
+  "description": "Allegheny County, Pennsylvania property assessment roll (Office of Property Assessments, via the Western Pennsylvania Regional Data Center) for the FactLot Registry collector. See docs/registry/data-policy.md and the review record in docs/registry/sources/pa-allegheny-assessments.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "pa-allegheny-assessments",
+      "publisher": "Allegheny County Office of Property Assessments, via the Western Pennsylvania Regional Data Center (WPRDC)",
+      "landing_pages": ["https://data.wprdc.org/dataset/property-assessments"],
+      "allowed_hosts": ["data.wprdc.org"],
+      "link_patterns": [
+        "/download/data\\.csv(\\?|$)",
+        "/download/data-dictionary-open-data\\.csv(\\?|$)",
+        "/download/allegheny-county-property-assessment-data-user-guide\\.pdf(\\?|$)"
+      ],
+      "files": [
+        "https://data.wprdc.org/dataset/2b3df818-601e-4f06-b150-643557229491/resource/9a1c60bd-f9f7-4aba-aeb7-af8c3aaa44e5/download/data.csv",
+        "https://data.wprdc.org/dataset/2b3df818-601e-4f06-b150-643557229491/resource/c665470c-ee72-4f0d-b772-4f09c2145f2a/download/data-dictionary-open-data.csv"
+      ],
+      "verified": true,
+      "terms_url": "https://data.wprdc.org/dataset/property-assessments",
+      "license": "Creative Commons CCZero (license_id 'cc-zero', http://www.opendefinition.org/licenses/cc-zero), the dataset's license field on data.wprdc.org",
+      "ai_use": "Not addressed by the publisher; CC0 places the data in the public domain without restriction",
+      "redistribution": "Permitted (CC0); attribution given anyway: Allegheny County Office of Property Assessments, via WPRDC",
+      "reviewed": "2026-11-03",
+      "notes": "CKAN dataset 'property-assessments' (package 2b3df818-601e-4f06-b150-643557229491), refreshed monthly (metadata_modified 2026-11-02). The file is the 'for downloads' CSV, data.csv: 312,706,781 bytes (over the 50 MB review limit, so only three 3 MB ranged samples were read; the weekly collector fetches the whole file), one row per parcel, 86 columns, integer columns sometimes written as floats. THE COUNTY EXCLUDES OWNER NAMES AND CONTACT INFORMATION as required by Ordinance 3478-07 (dataset description); the file carries only OWNERCODE/OWNERDESC (owner type) and a change-notice mailing address, which the adapter does not copy. robots.txt on data.wprdc.org: Crawl-delay 10; it disallows /api/ and /datastore/dump/ but says so only to deter crawlers and invites script use of them; this config does not use them: the resource download URL (/dataset/.../download/data.csv) is allowed. The CKAN action API (package_show) was read once to find the resource ids. Resource ids are stable; the API-optimised twin resource 65855e14-549e-4992-b5be-d629afc676fa is not used. Base-year note: Allegheny values are a 2012 base year, so FAIRMARKETTOTAL is a 2012 appraisal."
+    }
+  ]
+}

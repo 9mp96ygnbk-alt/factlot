@@ -1,0 +1,32 @@
+{
+  "description": "Oklahoma: Oklahoma County (FIPS 40109) Assessor tax parcels from the Oklahoma County GIS Hub. No licence stated. See docs/registry/sources/ok-oklahoma-assessor.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "ok-oklahoma-assessor",
+      "publisher": "Oklahoma County Assessor (Oklahoma County GIS Hub)",
+      "landing_pages": [
+        "https://www.arcgis.com/sharing/rest/content/items/244ff1c03cf34c459092e10142b13b01?f=pjson"
+      ],
+      "allowed_hosts": [
+        "ok-county-gis-hub-ok-co.hub.arcgis.com",
+        "hub.arcgis.com",
+        "www.arcgis.com",
+        "services8.arcgis.com"
+      ],
+      "files": [],
+      "verified": false,
+      "gate": "Terms not stated. The Hub dataset 'Tax Parcels Public' (owner names, values, account type) has an empty licenseInfo and no terms page; the Assessor's Records Reproduction Policy (2012) sells the 'Complete Assessment Roll' and 'Ownership File' for $50 each on two weeks' written notice and says nothing about republication. Requires a person: ask the Oklahoma County Assessor (Data Services) in writing whether the Hub layer and the Assessment Roll may be republished as facts, or buy the Complete Assessment Roll ($50 per the 2012 policy; confirm current fee).",
+      "terms_url": "https://www.oklahomacounty.org/elected-offices/assessor",
+      "license": "None stated on the dataset (licenseInfo empty). Public records under the Oklahoma Open Records Act (51 O.S. 24A.1 et seq.)",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Unknown",
+      "reviewed": "2026-11-03",
+      "notes": "Layer services8.arcgis.com/euhkr1dAJeQBIjV0/arcgis/rest/services/TaxParcelsPublics_view/FeatureServer/0 (item 244ff1c03cf34c459092e10142b13b01, owner account 'artimcon'; 337,709 rows on 2026-11-03; maxRecordCount 2000; item modified 2025-03-13). Fields: accountno, accttype (Residential 296,507; Commercial 16,738; Exempt 12,442; Industrial 6,554; Agricultural 3,151; Public Servi 553; Comm Res 276; Partial Exem 184), name1-3, mailing address, currentmarket, currentassessed, landvalue, location (situs), acres, subdivision/legal, nbhd, saledate/SalePrice. There is no use code: Oklahoma classes apartments with commercial, so only F1 and F2 could be mapped (from accttype). The Hub page says 'Click the link to download Tax Parcel Data' (also 'Assessment Rolls'). robots.txt: ok-county-gis-hub-ok-co.hub.arcgis.com Crawl-delay 60 (disallow /sites/, /admin/ etc.); services8.arcgis.com not read; www.oklahomacounty.org standard DNN rules."
+    }
+  ]
+}

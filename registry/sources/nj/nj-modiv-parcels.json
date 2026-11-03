@@ -1,0 +1,38 @@
+{
+  "description": "New Jersey statewide parcel and MOD-IV source (NJOGIS) for the FactLot Registry collector. UNVERIFIED: see docs/registry/sources/nj-modiv-parcels.md for the gate.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "nj-modiv-parcels",
+      "publisher": "New Jersey Office of Information Technology, Office of GIS (NJOGIS), with the Division of Taxation MOD-IV tax list",
+      "landing_pages": [
+        "https://nj.gov/njgin/edata/parcels/",
+        "https://njogis-newjersey.opendata.arcgis.com/"
+      ],
+      "allowed_hosts": [
+        "nj.gov",
+        "services2.arcgis.com",
+        "njogis-newjersey.opendata.arcgis.com",
+        "geoapps.nj.gov"
+      ],
+      "link_patterns": [],
+      "files": [
+        "https://services2.arcgis.com/XVOqAjTOJ5P6ngMu/ArcGIS/rest/services/Parcels_Composite_NJ_WM/FeatureServer/0/query?where=COUNTY%3D%27BERGEN%27%20AND%20PROP_CLASS%20IN%20%28%274A%27%2C%274B%27%2C%274C%27%29&outFields=PAMS_PIN,PCL_MUN,PCLBLOCK,PCLLOT,PCLQCODE,CD_CODE,PROP_CLASS,COUNTY,MUN_NAME,PROP_LOC,OWNER_NAME,ST_ADDRESS,CITY_STATE,ZIP_CODE,LAND_VAL,IMPRVT_VAL,NET_VALUE,LAST_YR_TX,BLDG_DESC,LAND_DESC,CALC_ACRE,PROP_USE,BLDG_CLASS,DEED_DATE,YR_CONSTR,SALE_PRICE,DWELL,COMM_DWELL,PCL_PBDATE&returnGeometry=false&orderByFields=OBJECTID&resultOffset=0&resultRecordCount=2000&f=json",
+        "https://services2.arcgis.com/XVOqAjTOJ5P6ngMu/ArcGIS/rest/services/Parcels_Composite_NJ_WM/FeatureServer/0/query?where=COUNTY%3D%27ESSEX%27%20AND%20PROP_CLASS%20IN%20%28%274A%27%2C%274B%27%2C%274C%27%29&outFields=PAMS_PIN,PCL_MUN,PCLBLOCK,PCLLOT,PCLQCODE,CD_CODE,PROP_CLASS,COUNTY,MUN_NAME,PROP_LOC,OWNER_NAME,ST_ADDRESS,CITY_STATE,ZIP_CODE,LAND_VAL,IMPRVT_VAL,NET_VALUE,LAST_YR_TX,BLDG_DESC,LAND_DESC,CALC_ACRE,PROP_USE,BLDG_CLASS,DEED_DATE,YR_CONSTR,SALE_PRICE,DWELL,COMM_DWELL,PCL_PBDATE&returnGeometry=false&orderByFields=OBJECTID&resultOffset=0&resultRecordCount=2000&f=json",
+        "https://services2.arcgis.com/XVOqAjTOJ5P6ngMu/ArcGIS/rest/services/Parcels_Composite_NJ_WM/FeatureServer/0/query?where=COUNTY%3D%27MIDDLESEX%27%20AND%20PROP_CLASS%20IN%20%28%274A%27%2C%274B%27%2C%274C%27%29&outFields=PAMS_PIN,PCL_MUN,PCLBLOCK,PCLLOT,PCLQCODE,CD_CODE,PROP_CLASS,COUNTY,MUN_NAME,PROP_LOC,OWNER_NAME,ST_ADDRESS,CITY_STATE,ZIP_CODE,LAND_VAL,IMPRVT_VAL,NET_VALUE,LAST_YR_TX,BLDG_DESC,LAND_DESC,CALC_ACRE,PROP_USE,BLDG_CLASS,DEED_DATE,YR_CONSTR,SALE_PRICE,DWELL,COMM_DWELL,PCL_PBDATE&returnGeometry=false&orderByFields=OBJECTID&resultOffset=0&resultRecordCount=2000&f=json",
+        "https://services2.arcgis.com/XVOqAjTOJ5P6ngMu/ArcGIS/rest/services/Parcels_Composite_NJ_WM/FeatureServer/0/query?where=COUNTY%3D%27HUDSON%27%20AND%20PROP_CLASS%20IN%20%28%274A%27%2C%274B%27%2C%274C%27%29&outFields=PAMS_PIN,PCL_MUN,PCLBLOCK,PCLLOT,PCLQCODE,CD_CODE,PROP_CLASS,COUNTY,MUN_NAME,PROP_LOC,OWNER_NAME,ST_ADDRESS,CITY_STATE,ZIP_CODE,LAND_VAL,IMPRVT_VAL,NET_VALUE,LAST_YR_TX,BLDG_DESC,LAND_DESC,CALC_ACRE,PROP_USE,BLDG_CLASS,DEED_DATE,YR_CONSTR,SALE_PRICE,DWELL,COMM_DWELL,PCL_PBDATE&returnGeometry=false&orderByFields=OBJECTID&resultOffset=0&resultRecordCount=2000&f=json"
+      ],
+      "verified": false,
+      "terms_url": "https://www.nj.gov/nj/legal.shtml",
+      "license": "None stated for the data. The service metadata says 'Acknowledgement of the service provider, NJ Office of Information Technology, Office of GIS (NJOGIS), is requested', disclaims warranty ('as is'), and makes distribution 'subject to the Conditions of Use for State of New Jersey executive branch web sites' (nj.gov/nj/legal.shtml), which are disclaimers and carry no licence or redistribution grant. Owner names are redacted by the publisher under Daniel's Law (P.L. 2020, c. 125)",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Unclear: no licence or redistribution statement; acknowledgement requested. Daniel's Law (N.J.S.A. 56:8-166.1) bars disclosing the home address of a covered person once notified, which bears on the ST_ADDRESS (owner mailing address) column",
+      "reviewed": "2026-11-03",
+      "notes": "Feature layer 'Cad_parcel_mod4' (service Parcels_Composite_NJ_WM, Web Mercator copy of the statewide Parcels and MOD-IV composite), 3,481,240 parcels; maxRecordCount 2000, so a county needs offset paging (resultOffset=0,2000,...; the files listed are page 0 only). Class 4A/4B/4C counts: Bergen 11,108/2,394/1,789; Essex 10,754/1,918/2,638; Hudson 10,269/1,299/4,220; Middlesex 7,684/2,022/922. OWNER_NAME is blank in every row (redacted); the owner mailing street/city/ZIP (ST_ADDRESS, CITY_STATE, ZIP_CODE) is present. The same data downloads as file geodatabases and county shapefiles from nj.gov/njgin/edata/parcels (Hub document pages on njogis-newjersey.opendata.arcgis.com, robots.txt Crawl-delay 60) and the statewide MOD-IV table as a file geodatabase. The full-service download size was not measured. robots.txt on nj.gov disallows only /Support/, /cgi-bin/... and document folders; services2.arcgis.com serves no robots.txt (the response is the text 'Invalid URL'). Not collected (verified false)."
+    }
+  ]
+}

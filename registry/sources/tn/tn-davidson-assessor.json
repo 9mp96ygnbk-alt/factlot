@@ -1,0 +1,36 @@
+{
+  "description": "Tennessee: Nashville and Davidson County (FIPS 47037) Parcels from the Metro Open Data Portal (Assessor of Property attributes). See docs/registry/data-policy.md and the review record in docs/registry/sources/tn-davidson-assessor.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "tn-davidson-assessor",
+      "publisher": "Metropolitan Government of Nashville and Davidson County (Planning Department; Assessor of Property), via the Nashville Open Data Portal",
+      "landing_pages": [
+        "https://www.arcgis.com/sharing/rest/content/items/fa26cd9326c446179be059e00449cb1f?f=pjson",
+        "https://www.nashville.gov/departments/government/terms-service"
+      ],
+      "allowed_hosts": [
+        "data.nashville.gov",
+        "datanashvillegov-nashville.hub.arcgis.com",
+        "hub.arcgis.com",
+        "www.arcgis.com",
+        "services2.arcgis.com",
+        "www.nashville.gov"
+      ],
+      "files": [
+        "https://data.nashville.gov/api/download/v1/items/fa26cd9326c446179be059e00449cb1f/csv?layers=0&where=LUCode+%3E+%27020%27+AND+LUCode+%3C+%27080%27"
+      ],
+      "verified": true,
+      "terms_url": "https://www.nashville.gov/departments/government/terms-service",
+      "license": "Metro Nashville Open Data Portal data. Nashville.gov Terms of Service: copyright is retained and commercial use of site materials is prohibited without written permission, 'Excluding publicly available data on Metro's Open Data Portal', so portal data is outside that prohibition. Executive Order 18 (2024-01-17) governs the portal: no named licence and no commercial-use restriction; data 'should be used for informational purposes only', the user should 'reflect the date upon which the Data was retrieved', may not claim Metro's approval, 'as is' without warranty. Underlying records are public records (Tennessee Public Records Act, T.C.A. 10-7-503)",
+      "ai_use": "Not addressed by the publisher; no restriction found",
+      "redistribution": "Permitted for portal data (excluded from the commercial-use prohibition; no redistribution clause); retrieval date must be shown, no implied Metro endorsement",
+      "reviewed": "2026-11-03",
+      "notes": "Item fa26cd9326c446179be059e00449cb1f 'Parcels' (Feature Service services2.arcgis.com/HdTo6HJqh92wn4D8/arcgis/rest/services/Parcels_view/FeatureServer/0; 287,827 features on 2026-11-03; data last edited 2026-11-02; 'updated daily'). The Hub download API answers 302 to a CSV in the service's replicafilescache; the URL here filters to land-use codes 021-079 (retail, office, apartments, hotels, parking, storage, industrial; about 13,600 rows) instead of the full file. The CSV header uses the portal's field aliases ('Assessor Parcel Number', 'Owner Name', ...), not the field names; the adapter accepts both. Metadata PDF: nashville.maps.arcgis.com/sharing/rest/content/items/691604512e634cb88615773d388d4379/data (not fetched). robots.txt: data.nashville.gov and the Hub host set Crawl-delay 60 and disallow only /sites/, /admin/, /sessions/, /groups/, /people/, /workspace/; services2.arcgis.com answers 403 to robots.txt (no rules readable); www.nashville.gov has the standard Drupal rules."
+    }
+  ]
+}

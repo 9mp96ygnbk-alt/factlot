@@ -1,0 +1,32 @@
+{
+  "description": "Connecticut business entities (Secretary of the State, via Open Data CT) for the FactLot Registry collector. See docs/registry/data-policy.md and the review record in docs/registry/sources/ct-sos-entities.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "ct-sos-entities",
+      "publisher": "Connecticut Secretary of the State, Business Services Division (via Open Data CT, data.ct.gov)",
+      "landing_pages": [
+        "https://data.ct.gov/Business/Connecticut-Business-Registry-Business-Master/n7gp-d28j",
+        "https://data.ct.gov/api/views/n7gp-d28j.json"
+      ],
+      "allowed_hosts": ["data.ct.gov"],
+      "link_patterns": [
+        "/(api/views|api/v3/views|d|resource)/[a-z0-9]{4}-[a-z0-9]{4}"
+      ],
+      "files": [
+        "https://data.ct.gov/resource/n7gp-d28j.csv?$select=name,business_type,status,sub_status,accountnumber,billingstreet,billing_unit,billingcity,billingcountry,billingpostalcode,billingstate,citizenship,state_or_territory_formation,formation_place,date_registration,dissolution_date,mailing_address&$order=accountnumber,name&$limit=1500000"
+      ],
+      "verified": true,
+      "terms_url": "https://data.ct.gov/terms",
+      "license": "Public Domain: the dataset's portal metadata states license 'Public Domain' (licenseId PUBLIC_DOMAIN). The portal's Terms of Use add disclaimers (data provided 'as is', no warranty, the State may discontinue content at any time) and no restriction on use",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Permitted (public domain); attribution given anyway: Connecticut Secretary of the State",
+      "reviewed": "2026-11-03",
+      "notes": "Dataset n7gp-d28j 'Connecticut Business Registry - Business Master': 1,305,856 rows on 2026-11-03 (464,123 Active; the rest Forfeited, Dissolved, Withdrawn, Revoked, Cancelled, Merged and others), updated daily. The file is a filtered SODA CSV of 17 of 57 columns (name, type, status, accountnumber, business address, citizenship and state of formation, dates, mailing address); the business email address and the Salesforce id are not selected. About 209 bytes a row, so roughly 270 MB in all: over the 50 MB limit for a local run, so the full load runs from GitHub's network (a 20,000-row sample is 4.2 MB). Businesses of type 'Unauthorized' carry the placeholder account number 0000000. Principals (ka36-64k6) and agents (qh2m-n44y) are separate datasets, mostly natural persons, and are not collected. robots.txt: Crawl-delay 1; /browse search pages disallowed, /resource/ and /api/ allowed. The portal platform's own terms (socrata.com) still need a human read (same note as ny-dos-entities and co-sos-entities)."
+    }
+  ]
+}

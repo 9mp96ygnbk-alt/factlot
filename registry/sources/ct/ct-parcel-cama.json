@@ -1,0 +1,33 @@
+{
+  "description": "Connecticut statewide parcel and CAMA data (Office of Policy and Management GIS Office, via Open Data CT), Capitol Planning Region towns. UNVERIFIED: see docs/registry/sources/ct-parcel-cama.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "ct-parcel-cama",
+      "publisher": "Connecticut Office of Policy and Management, GIS Office (data collected from municipalities through the Councils of Governments; via Open Data CT, data.ct.gov)",
+      "landing_pages": [
+        "https://data.ct.gov/Local-Government/2026-Connecticut-Parcel-and-CAMA-Data/ibe8-9i3q",
+        "https://data.ct.gov/api/views/ibe8-9i3q.json",
+        "https://portal.ct.gov/datapolicy/gis-office/parcel-and-cama"
+      ],
+      "allowed_hosts": ["data.ct.gov", "portal.ct.gov"],
+      "link_patterns": [
+        "/(api/views|api/v3/views|d|resource)/[a-z0-9]{4}-[a-z0-9]{4}"
+      ],
+      "files": [
+        "https://data.ct.gov/resource/ibe8-9i3q.csv?$select=pid,account_number,town_id,location,property_city,property_zip,owner,co_owner,mailing_address,mailing_city,mailing_state,mailing_zip,assessed_total,appraised_total,valuation_year,land_acres,state_use,state_use_description,ayb,gross_area_of_primary_building,living_area,number_of_buildings,number_of_units,condo_main_id,sale_price,sale_date&$where=upper%28property_city%29%20in%28%27ANDOVER%27%2C%27AVON%27%2C%27BERLIN%27%2C%27BLOOMFIELD%27%2C%27BOLTON%27%2C%27CANTON%27%2C%27COLUMBIA%27%2C%27COVENTRY%27%2C%27EAST%20GRANBY%27%2C%27EAST%20HARTFORD%27%2C%27EAST%20WINDSOR%27%2C%27ELLINGTON%27%2C%27ENFIELD%27%2C%27FARMINGTON%27%2C%27GLASTONBURY%27%2C%27GRANBY%27%2C%27HARTFORD%27%2C%27HEBRON%27%2C%27MANCHESTER%27%2C%27MANSFIELD%27%2C%27MARLBOROUGH%27%2C%27NEW%20BRITAIN%27%2C%27NEWINGTON%27%2C%27PLAINVILLE%27%2C%27ROCKY%20HILL%27%2C%27SIMSBURY%27%2C%27SOMERS%27%2C%27SOUTH%20WINDSOR%27%2C%27SOUTHINGTON%27%2C%27STAFFORD%27%2C%27SUFFIELD%27%2C%27TOLLAND%27%2C%27VERNON%27%2C%27WEST%20HARTFORD%27%2C%27WETHERSFIELD%27%2C%27WILLINGTON%27%2C%27WINDSOR%27%2C%27WINDSOR%20LOCKS%27%29&$order=town_id,pid&$limit=400000"
+      ],
+      "verified": false,
+      "terms_url": "https://data.ct.gov/terms",
+      "license": "None stated for the dataset (no license field on the portal). The portal's Terms of Use say publishable data is provided 'as is' with no warranty and that the State may discontinue content at any time; they grant no licence and impose no restriction. The data is a public record collected under C.G.S. \u00a77-100l (grand lists are open to public inspection, C.G.S. \u00a712-55)",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Unclear: no licence statement. No statute restricting commercial use of grand-list or assessment data was found; C.G.S. \u00a71-217 (residential addresses of certain public officials) and the towns' own suppression of protected records apply to owner data",
+      "reviewed": "2026-11-03",
+      "notes": "Dataset ibe8-9i3q '2026 Connecticut Parcel and CAMA Data': 1,359,259 rows for all 169 towns (publisher: 'Not updated (historical data)'; the 2025 and 2024 editions are rny9-6ak2 and pqrn-qghw). The file is the Capitol Planning Region (Census planning region 09110, 38 towns that replaced the Hartford and Tolland county memberships in 2022): 352,547 rows, 26 of 131 columns, about 243 bytes a row (about 86 MB), so the full load runs from GitHub's network. Owner and co-owner names and the owner mailing address are present. state_use is NOT a standard code: each town reports its own CAMA scheme (Hartford 801.0 APARTMENT, West Hartford 802 Comm Apts, Manchester 800C Apartments 94, others 4-digit Vision codes), so commercial scope needs a per-town mapping from state_use_description. The planning region has no data.ct.gov column of its own; the 38 towns are listed in docs/registry/tier2/ny-nj-ct.md. robots.txt: Crawl-delay 1; /browse search pages disallowed, /resource/ and /api/ allowed. Not collected (verified false)."
+    }
+  ]
+}

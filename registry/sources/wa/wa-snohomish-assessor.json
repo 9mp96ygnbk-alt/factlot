@@ -1,0 +1,29 @@
+{
+  "description": "Washington: Snohomish County Assessor roll on the county open data portal, for the FactLot Registry collector. See docs/registry/sources/wa-snohomish-assessor.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "wa-snohomish-assessor",
+      "publisher": "Snohomish County Assessor's Office (Snohomish County Open Data Portal)",
+      "landing_pages": ["https://www.snohomishcountywa.gov/6206/GIS-Open-Data"],
+      "allowed_hosts": [
+        "www.snohomishcountywa.gov",
+        "snohomishcountywa.gov",
+        "snohomish-county-open-data-portal-snoco-gis.hub.arcgis.com"
+      ],
+      "files": [],
+      "verified": false,
+      "terms_url": "https://snohomish-county-open-data-portal-snoco-gis.hub.arcgis.com/datasets/assessor-roll-csv-collection/about",
+      "license": "Public record (RCW 42.56). The item's Terms of Use and Data Disclaimer: 'Washington State Law, RCW 42.56.070(8) prohibits state and local agencies from providing access to lists of individuals intended for use for commercial purposes. A commercial purpose includes any business activity intended to generate profits. By proceeding and accessing this data, you agree and represent that you will not use any lists of individuals, or data from which such lists may be compiled, for any commercial purpose.'",
+      "ai_use": "Not addressed",
+      "redistribution": "Not addressed beyond the commercial-purpose representation",
+      "reviewed": "2026-11-03",
+      "gate": "Terms: accessing the data is itself an agreement not to use lists of individuals, or data from which they can be compiled, for any commercial purpose. The roll's NameAddr table carries every owner of record, including natural persons. A person must decide whether FactLot can truthfully make that representation (the registry drops natural-person names, but the file is still a list of individuals), and if so accept the terms on FactLot's behalf; otherwise ask the Assessor for written permission. Nothing was downloaded.",
+      "notes": "The file: ArcGIS Hub item 'Assessor Roll CSV Collection' (id ee76dfa5905947cc9af1605a25cf216a, name Assessor_Roll_csv.zip, 33,407,634 bytes, modified 2026-11-02 per the hub search API; also an Excel edition, id 62fda600cf1f4c6d8b8761fa044431f0). It holds five tables, MainData, NameAddr, SegMerge, Exemptions and LegalDescr, related by PropId or parcel_number; the snippet is the only layout information read. County GIS Open Data page lists 'Assessment roll - CSV Version - Updated three times per week'. robots.txt: snohomishcountywa.gov disallows only admin/search paths; the Hub host has Crawl-delay 60 and disallows /sites/ /admin/ etc. The Washington statewide parcel layer (wa-state-parcels) covers Snohomish's land use and values without owners."
+    }
+  ]
+}

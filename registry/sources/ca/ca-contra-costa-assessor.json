@@ -1,0 +1,27 @@
+{
+  "description": "Contra Costa County (FIPS 06013): free parcel file has only APN and situs (no use code, no values), so commercial scope cannot be derived. Review record: docs/registry/sources/ca-contra-costa-assessor.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "ca-contra-costa-assessor",
+      "publisher": "Contra Costa County Assessor and Department of Information Technology GIS (gis.cccounty.us downloads)",
+      "landing_pages": [
+        "https://gis.cccounty.us/Downloads/Assessor/",
+        "https://www.contracosta.ca.gov/552/Maps-Property-Information"
+      ],
+      "allowed_hosts": ["gis.cccounty.us", "contracosta.ca.gov"],
+      "terms_url": "https://gis.cccounty.us/Downloads/Assessor/Data%20Disclaimer.pdf",
+      "license": "None stated beyond a liability disclaimer (Contra Costa County Disclaimer of Liability and Warranties); no grant or restriction on redistribution",
+      "ai_use": "Not addressed",
+      "redistribution": "Not addressed",
+      "notes": "Gate: no usable file. The free monthly file https://gis.cccounty.us/Downloads/Assessor/Parcels_Public_September2026.zip (42,044,982 bytes, modified 2026-10-02; shapefile of 387,936 parcels) carries only APN, APN check digit and situs components (S_STR_NM, S_STR_SUF, S_STR_NBR, S_FRAC, S_APT_NBR, S_CTY_ABBR, S_ZIP, S_ZIP_EXT): no use code, no values, no owner. Read in full on 2026-11-03. Property characteristics are not posted; contracosta.ca.gov (the Assessor's site) answers 403 to automated clients (Cloudflare challenge, robots.txt included). gis.cccounty.us/robots.txt disallows only /arcgis/* and /portal/*. Next step for the founder: ask the Assessor (contracosta.ca.gov/assessor) for the secured roll with use codes and its price and terms.",
+      "files": [],
+      "verified": false,
+      "reviewed": "2026-11-03"
+    }
+  ]
+}

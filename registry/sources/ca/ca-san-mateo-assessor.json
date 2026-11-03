@@ -1,0 +1,27 @@
+{
+  "description": "San Mateo County (FIPS 06081): the open parcel layer (public domain) has situs and land area but no use code or values; the secured roll is sold for $305. Review record: docs/registry/sources/ca-san-mateo-assessor.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "ca-san-mateo-assessor",
+      "publisher": "San Mateo County (Socrata open data portal data.smcgov.org); San Mateo County Assessor-County Clerk-Recorder and Elections (ACRE)",
+      "landing_pages": [
+        "https://data.smcgov.org/api/views/nr6j-72z7.json",
+        "https://smcacre.gov/assessor/assessment-data-fees"
+      ],
+      "allowed_hosts": ["data.smcgov.org", "smcacre.gov"],
+      "terms_url": "https://smcacre.gov/assessor/assessment-data-fees",
+      "license": "Open parcel layer: Public Domain (Socrata licenseId PUBLIC_DOMAIN). Assessor roll: sold, Secured Assessment Roll Master $305.00 (pipe-delimited CSV), Secured Master File $305.00, Property Characteristics $305.00, Property Sales History $305.00. Gate: purchase",
+      "ai_use": "Not addressed",
+      "redistribution": "Parcel layer: permitted (public domain). Purchased roll: terms not published",
+      "notes": "Gate: purchase. Free file: Socrata dataset nr6j-72z7 'Parcels' (Active Parcels for the County of San Mateo, rows updated 2024-08-14, Public Domain) has objectid, apn, situs parts, uninc (incorporated or not), landarea and polygon geometry: no assessor use code and no values, so the commercial scope cannot be derived and nothing was archived. Nothing else on data.smcgov.org carries assessor attributes (catalog searched for assessor, parcel, property). Next step for the founder: e-mail Secured-Support@smcacre.gov (the Assessor's data inquiries address) to order the Secured Assessment Roll Master ($305) and Property Characteristics ($305) and ask whether the files may be republished. robots.txt on smcacre.gov and data.smcgov.org (Crawl-delay 1) allow the pages read.",
+      "files": [],
+      "verified": false,
+      "reviewed": "2026-11-03"
+    }
+  ]
+}

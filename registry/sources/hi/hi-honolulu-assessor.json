@@ -1,0 +1,27 @@
+{
+  "description": "Hawaii: City and County of Honolulu Real Property Assessment tables on the HoLIS ArcGIS service (CadastralTables) for the FactLot Registry collector. See docs/registry/sources/hi-honolulu-assessor.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "hi-honolulu-assessor",
+      "publisher": "City and County of Honolulu, Honolulu Land Information System (HoLIS), tables loaded weekly from the Department of Budget and Fiscal Services, Real Property Assessment Division",
+      "landing_pages": [
+        "https://www.arcgis.com/sharing/rest/content/items/fb6c49f86f474b2782e954b339655060?f=json"
+      ],
+      "allowed_hosts": ["services.arcgis.com", "www.arcgis.com"],
+      "files": [],
+      "verified": false,
+      "terms_url": "https://www.arcgis.com/sharing/rest/content/items/fb6c49f86f474b2782e954b339655060?f=json",
+      "license": "No licence. Item licenseInfo: 'Information contained in these files is derived from public records that are constantly undergoing change. The City and County of Honolulu does not guarantee the positional or thematic accuracy of the data ... Any implied warranties ... shall be expressly excluded'",
+      "ai_use": "Not addressed",
+      "redistribution": "Not addressed; public record (HRS ch. 92F)",
+      "reviewed": "2026-11-03",
+      "gate": "Terms and a missing class code: (1) no licence or terms of use is stated; a person must ask gis@honolulu.gov (the item's contact) whether the tables may be redistributed. (2) The published tables carry owners and values but no property class or use: taxratecode and ovrclass are blank in all 325,559 ASMTGIS rows, so the commercial scope cannot be applied. The only use field is FACILITIES.facilitycode (building type: Retail, Office, Apartment, Hotel ...), joined to parcels through SEPARATIONS and POI, which was not worked out. A person should ask the Real Property Assessment Division for its tax class by TMK.",
+      "notes": "Service https://services.arcgis.com/tNJpAOha4mODLkXz/arcgis/rest/services/CadastralTables/FeatureServer (item ea6585c4...; tables OWNALL (5; 588,562 rows: parid, tmk, own1, own2, owntype1-4, paddr1-3, taxyr 2027), OWNDAT (6), OWNERTYPE (7), OWNMLT (8), ASMTGIS (9; 325,559 rows: parid, tmk, buildingvalue, landvalue, buildingexemption, landexemption, tnettaxval, taxyr 2026), ASMTPITT (10), LEGDAT (11; totacres, totsqft), FACILITIES (13; 205,295 rows), SEPARATIONS (14)). Tax parcel geometry: Cadastral_2020/FeatureServer/1 (171,982 parcels, no attributes beyond TMK and area). Query JSON only: no keyed access. The TMK (tax map key) is the parcel key. Many OWNALL owners are natural persons; the registry would drop them. robots.txt: honolulu-ccnl.opendata.arcgis.com (the HoLIS Hub named in the state's metadata) answers 'Site does not exist'; services.arcgis.com has none."
+    }
+  ]
+}

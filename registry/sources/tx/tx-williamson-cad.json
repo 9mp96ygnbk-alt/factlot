@@ -1,0 +1,35 @@
+{
+  "description": "Williamson Central Appraisal District open data portal (Socrata, data.wcad.org). See docs/registry/sources/tx-williamson-cad.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "tx-williamson-cad",
+      "publisher": "Williamson Central Appraisal District",
+      "landing_pages": [
+        "https://api.us.socrata.com/api/catalog/v1?domains=data.wcad.org&limit=100"
+      ],
+      "allowed_hosts": ["data.wcad.org", "api.us.socrata.com"],
+      "files": [
+        "https://data.wcad.org/resource/2huh-jk3y.csv?$select=propertyid,fsptb,fdescription,fimptype,vtsgimp_comtotbldarea,feffyear,vtsgimp_sequencenumber&$where=fsptb%20in(%27F1%27,%27F2%27,%27B1%27,%27B2%27,%27B3%27,%27B4%27)&$order=propertyid,vtsgimp_sequencenumber&$limit=60000",
+        "https://data.wcad.org/resource/absk-uy9g.csv?$select=propertyid,tax_year,quickrefid,propertynumber,situsaddress,acres,propertytypecode,totallandmktvalue,totalimpmktvalue,totalpropmktvalue,totalassessedvalue,totalsqftlivingarea,primaryowner,fullname,mailingaddress,issecured,dba,datadate&$order=:id&$limit=50000&$offset=0",
+        "https://data.wcad.org/resource/absk-uy9g.csv?$select=propertyid,tax_year,quickrefid,propertynumber,situsaddress,acres,propertytypecode,totallandmktvalue,totalimpmktvalue,totalpropmktvalue,totalassessedvalue,totalsqftlivingarea,primaryowner,fullname,mailingaddress,issecured,dba,datadate&$order=:id&$limit=50000&$offset=50000",
+        "https://data.wcad.org/resource/absk-uy9g.csv?$select=propertyid,tax_year,quickrefid,propertynumber,situsaddress,acres,propertytypecode,totallandmktvalue,totalimpmktvalue,totalpropmktvalue,totalassessedvalue,totalsqftlivingarea,primaryowner,fullname,mailingaddress,issecured,dba,datadate&$order=:id&$limit=50000&$offset=100000",
+        "https://data.wcad.org/resource/absk-uy9g.csv?$select=propertyid,tax_year,quickrefid,propertynumber,situsaddress,acres,propertytypecode,totallandmktvalue,totalimpmktvalue,totalpropmktvalue,totalassessedvalue,totalsqftlivingarea,primaryowner,fullname,mailingaddress,issecured,dba,datadate&$order=:id&$limit=50000&$offset=150000",
+        "https://data.wcad.org/resource/absk-uy9g.csv?$select=propertyid,tax_year,quickrefid,propertynumber,situsaddress,acres,propertytypecode,totallandmktvalue,totalimpmktvalue,totalpropmktvalue,totalassessedvalue,totalsqftlivingarea,primaryowner,fullname,mailingaddress,issecured,dba,datadate&$order=:id&$limit=50000&$offset=200000",
+        "https://data.wcad.org/resource/absk-uy9g.csv?$select=propertyid,tax_year,quickrefid,propertynumber,situsaddress,acres,propertytypecode,totallandmktvalue,totalimpmktvalue,totalpropmktvalue,totalassessedvalue,totalsqftlivingarea,primaryowner,fullname,mailingaddress,issecured,dba,datadate&$order=:id&$limit=50000&$offset=250000",
+        "https://data.wcad.org/resource/absk-uy9g.csv?$select=propertyid,tax_year,quickrefid,propertynumber,situsaddress,acres,propertytypecode,totallandmktvalue,totalimpmktvalue,totalpropmktvalue,totalassessedvalue,totalsqftlivingarea,primaryowner,fullname,mailingaddress,issecured,dba,datadate&$order=:id&$limit=50000&$offset=300000"
+      ],
+      "verified": true,
+      "terms_url": "https://www.tylertech.com/terms",
+      "license": "Public record (Tex. Gov't Code ch. 552); no dataset on data.wcad.org carries a license or attribution field and WCAD states none. The portal footer links to Tyler Technologies' terms (website use), which were not read as text",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not addressed by the publisher; public record",
+      "reviewed": "2026-11-03",
+      "notes": "Two datasets, joined on propertyid. 2huh-jk3y (Improvement Real Property - Certified) filtered to the in-scope state codes (F1, F2, B1-B4: 14,087 improvement rows for 11,758 properties on 2026-11-03) gives the state category and building area; absk-uy9g (PropOwner, 326,008 rows, about 330 bytes a row) gives situs, owner, mailing address and values, paged 50,000 rows at a time with $order=:id (7 pages, about 16 MB each). robots.txt on data.wcad.org: Crawl-delay 1, disallows only browse/search query strings, /api/odata/ and /login; /resource/ is allowed. Extend the page list if PropOwner passes 350,000 rows. Other datasets (Property Cama - Certified, Final Values, Sale history, Parcels shapefile, Building Permits) exist and are not read. The Socrata terms for the portal platform should be read by a person (backlog A11), as for the Comptroller portal."
+    }
+  ]
+}
