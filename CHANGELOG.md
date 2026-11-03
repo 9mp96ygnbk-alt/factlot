@@ -23,11 +23,13 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 ### Changed
 
 - Registry owner-name normalization (`normalize_name`, and its TypeScript mirror `normalizeName`): apostrophes are dropped, what a roll appends to an owner (`ET AL`, a `DBA` trade name, a dangling `&` or `THE`) is removed, `NO 1` reads as `1`, consecutive initials run together, and common abbreviations spell one way (`PPTIES`/`PROPERTIES`, `CTR`/`CENTER`, `STREET`/`ST`). Registry files built before this change need `python -m factlot.registry.maintain registry.db --all` (re-keys the name index in place). `is_organization` reads a spaced `L P` as a partnership only with a number or a property or business word in the name, and a trust named for a person (separate property, revocable, life estate) as a person.
+- Entity name search (`registry_search_entities`, `Registry.search_entities`) uses the name keys the file was built with: a file without `name_key_version` 2 in its `meta` table (such as `registry-sample-dc-2026-11-03`) is searched with the earlier keys until `maintain --all` re-keys it. New files record version 2.
 - `Registry.ingest_parcels`: re-ingesting a snapshot now replaces the facts an earlier run wrote for it that the adapter no longer yields, and the links derived from a replaced owner; an unchanged file still writes nothing.
 
 ### Fixed
 
 - The hosted OpenAPI documents advertised `http://` server URLs; they now advertise `https://api.factlot.com`.
+- The registry parcel total on factlot.com and in `llms.txt` is 1,953,805, not 1,945,117: it had counted 37,292 Tarrant parcels where the full set is 45,976, and Travis gained 4 with supplement 3.
 - Colorado entity adapter: the Department's appended status history (`, Delinquent January 1, 2025`) is no longer part of the legal name (1.87 million of 3.13 million names), so owners written as the bare name link.
 - New York City adapter: an owner name wrapped across the two 40-character halves of the `OWNER` field is rejoined when the break fell inside a word.
 - Mecklenburg adapter: `legalacres` holding square feet (139 parcels) and condominium-unit figures (21) no longer produce areas of billions of square feet.

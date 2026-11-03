@@ -19,7 +19,7 @@ from a real run on the real file (collected with the project's collector, loaded
 
 The expansion added 228,453 distinct commercial parcels in 182 counties (148,421 with an organisation owner of record) and four states. After `link_owners()` and `purge_person_owners()` on the scratch registry:
 1,236,579 parcels in 389 counties of 20 states; combined with the lead's figures (1,716,664 parcels, 223 counties, 17 states and DC, 37 verified sources) the branch brings the totals to **1,945,117 parcels,
-405 counties, 21 states and DC, 47 verified sources**. Details and the link counts: [README.md](README.md), section "Expansion".
+405 counties, 21 states and DC, 47 verified sources**. Details and the link counts: [README.md](README.md), section "Expansion". The Tier 1 quality pass later corrected the total to 1,953,805: Tarrant's full set is 45,976 parcels, not the 37,292 in the lead's figures, and Travis supplement 3 added 4 ([quality report](../quality/tier1-2026-11-03.md)).
 
 ## What was reviewed and not loaded
 
@@ -68,3 +68,13 @@ The expansion added 228,453 distinct commercial parcels in 182 counties (148,421
 - **One download at a time.** The 518 MB Montana release asset (fetched from GitHub with `gh release download`, because the publisher's file was collected on GitHub's network) was still arriving while the five
   North Carolina Hub requests (a few MB in all) ran on the same connection. Nothing else overlapped with it; the Arkansas, Minnesota and Connecticut pages were collected one source at a time.
 - No account, form, login, CAPTCHA, purchase or message was involved, and no AI model name appears in any file.
+
+## Maintenance after the Tier 1 quality pass (2026-11-03)
+
+`python -m factlot.registry.maintain expansion-registry.db --all` on the scratch registry, after the owner-name
+normalization and personal-trust rule changed:
+
+- 115 owner names the personal-trust rule now reads as persons were purged (with 100 mailing facts); no links or
+  review rows depended on them.
+- 143,692 of 1,305,836 entity name keys were re-keyed; 944 review rows re-keyed.
+- Ownership links: 33,575 (was 31,770); 17,252 owner matches pending review. Parcels unchanged at 1,236,579.

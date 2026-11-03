@@ -162,7 +162,16 @@ class Registry:
         self._tracking = False
         self.db.executescript(resources.files("factlot.registry").joinpath("schema.sql").read_text("utf-8"))
         self.db.execute("INSERT OR REPLACE INTO meta VALUES ('schema_version', ?)", (SCHEMA_VERSION,))
+        # A file with no name keys yet is keyed by the current rules from the start; a file built
+        # before name_key_version existed keeps reading as version 1 until ``rebuild_name_index``.
+        if not self.db.execute("SELECT 1 FROM name_index LIMIT 1").fetchone():
+            self.db.execute("INSERT OR IGNORE INTO meta VALUES ('name_key_version', ?)", (NAME_KEY_VERSION,))
         self.db.commit()
+
+    def _name_search_key(self, name: str) -> str:
+        """The key ``name`` has under the rules this file's name index was built with."""
+        row = self.db.execute("SELECT value FROM meta WHERE key = 'name_key_version'").fetchone()
+        return normalize_name(name) if row and row[0] == NAME_KEY_VERSION else legacy_name_key(name)
 
     @classmethod
     def open_readonly(cls, path: str | Path) -> "Registry":
@@ -855,7 +864,7 @@ class Registry:
         return row["urn"] if row else None
 
     def search_entities(self, name: str, limit: int = 20) -> list[dict[str, Any]]:
-        key = normalize_name(name)
+        key = self._name_search_key(name)
         rows = self.db.execute(
             "SELECT DISTINCT s.urn, s.label FROM name_index n JOIN subjects s ON s.urn = n.urn "
             "WHERE s.kind = 'entity' AND n.key LIKE ? ORDER BY (n.key = ?) DESC, s.label LIMIT ?",

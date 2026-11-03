@@ -179,4 +179,4 @@ same-name entities because the others have ended (31,770 current ownership links
 review); **27,513 of the links are on the new Connecticut parcels**, because Connecticut is the only entity registry loaded; Vermont 110, Minnesota 124, Arkansas 66 and North Carolina 84 link to Connecticut
 entities of the same name. `purge_person_owners()` removed nothing (0 owner facts, 0 mailing facts, 0 links): every new adapter stores organisations only. Against the lead's combined figures (1,716,664
 parcels, 223 counties, 17 states and the District of Columbia, 37 verified sources) the branch brings the totals to **1,945,117 parcels, 405 counties, 21 states and the District of Columbia, 47 verified sources**
-(five new sources, five North Carolina county sources; Garfield is an existing source).
+(five new sources, five North Carolina county sources; Garfield is an existing source). The Tier 1 quality pass later corrected the total to 1,953,805: Tarrant's full set is 45,976 parcels, not the 37,292 in the lead's figures, and Travis supplement 3 added 4 ([quality report](../quality/tier1-2026-11-03.md)).

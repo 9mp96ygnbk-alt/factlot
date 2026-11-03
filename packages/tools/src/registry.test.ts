@@ -2,6 +2,7 @@
 // TypeScript then answer the same tool calls and must return identical JSON.
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
+import { createRequire } from "node:module";
 import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -10,6 +11,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   configureRegistry,
+  legacyNormalizeName,
   normalizeAddress,
   normalizeName,
   runTool,
@@ -68,4 +70,55 @@ test("name and address normalization match the Python vectors", () => {
     assert.equal(normalizeName(input), expected, input);
   for (const [input, expected] of v.addresses)
     assert.equal(normalizeAddress(input), expected, input);
+});
+
+test("entity search uses the name keys the file was built with", () => {
+  const db = join(mkdtempSync(join(tmpdir(), "factlot-registry-")), "keys.db");
+  execFileSync("python3", [join(spec, "build_fixture.py"), db]);
+  const { DatabaseSync } = createRequire(import.meta.url)("node:sqlite") as {
+    DatabaseSync: new (p: string) => {
+      exec(sql: string): void;
+      prepare(sql: string): { get(...a: unknown[]): Record<string, unknown> };
+    };
+  };
+  const w = new DatabaseSync(db);
+  const urn = String(
+    w.prepare("SELECT urn FROM subjects WHERE kind = 'entity' LIMIT 1").get()
+      .urn,
+  );
+  // A key only the earlier rules make ("W G G"); the current rules make "WGG".
+  w.exec(
+    `INSERT INTO name_index VALUES ('W G G PROPERTIES LLC', '${urn}'); ` +
+      "DELETE FROM meta WHERE key = 'name_key_version'",
+  );
+  const search = () => {
+    const r = runTool("registry_search_entities", {
+      query: "W.G.G. Properties LLC",
+    });
+    assert.ok(r.ok);
+    return (r.result as { results: { urn: string }[] }).results.map(
+      (x) => x.urn,
+    );
+  };
+  configureRegistry(db);
+  try {
+    assert.deepEqual(
+      search(),
+      [urn],
+      "a version 1 file is searched by version 1 keys",
+    );
+    w.exec("INSERT INTO meta VALUES ('name_key_version', '2')");
+    configureRegistry(db);
+    assert.deepEqual(
+      search(),
+      [],
+      "a re-keyed file is searched by current keys",
+    );
+    assert.equal(
+      legacyNormalizeName("W.G.G. Properties LLC"),
+      "W G G PROPERTIES LLC",
+    );
+  } finally {
+    configureRegistry(undefined);
+  }
 });

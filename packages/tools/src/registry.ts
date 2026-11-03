@@ -315,9 +315,35 @@ export function registryResolveExternal(
   return row ? String(row.urn) : null;
 }
 
+// Files built before 2026-11-03 carry no name_key_version and keep the earlier keys until
+// `python -m factlot.registry.maintain <db> --all` re-keys them; search them with the earlier rules.
+const NAME_KEY_VERSION = "2";
+
+/** The key `normalizeName` made before 2026-11-03 (name key version 1; `legacy_name_key` in Python). */
+export function legacyNormalizeName(name: string): string {
+  let s = name.toUpperCase().replaceAll("&", " AND ");
+  s = s
+    .replace(/[^A-Z0-9 ]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  for (const [pattern, repl] of SUFFIXES) s = s.replace(pattern, repl);
+  s = s.replace(/^THE /, "");
+  return s.replace(/\s+/g, " ").trim();
+}
+
+function nameSearchKey(d: Database, name: string): string {
+  const row = d
+    .prepare("SELECT value FROM meta WHERE key = 'name_key_version'")
+    .get();
+  return row && String(row.value) === NAME_KEY_VERSION
+    ? normalizeName(name)
+    : legacyNormalizeName(name);
+}
+
 export function registrySearchEntities(name: string, limit = 20): Row[] {
-  const key = normalizeName(name);
-  return open()
+  const d = open();
+  const key = nameSearchKey(d, name);
+  return d
     .prepare(
       "SELECT DISTINCT s.urn, s.label FROM name_index n JOIN subjects s ON s.urn = n.urn " +
         "WHERE s.kind = 'entity' AND n.key LIKE ? ORDER BY (n.key = ?) DESC, s.label LIMIT ?",

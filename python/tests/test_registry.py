@@ -476,6 +476,18 @@ class RegistryCore(unittest.TestCase):
         self.assertEqual(len(self.reg.search_entities("twin name properties")), 2)
         self.assertEqual(self.reg.search_entities("John Example"), [], "people are not searchable")
 
+    def test_entity_search_uses_the_name_keys_the_file_was_built_with(self):
+        self.reg.ingest_entities(ENTITIES, self.ent)
+        urn = self.reg.db.execute("SELECT urn FROM subjects WHERE kind = 'entity' LIMIT 1").fetchone()[0]
+        self.assertEqual(self.reg.db.execute("SELECT value FROM meta WHERE key = 'name_key_version'").fetchone()[0], "2",
+                         "a new file is keyed by the current rules")
+        # A file built before name_key_version existed holds keys only the earlier rules make ("W G G").
+        self.reg.db.execute("INSERT INTO name_index VALUES ('W G G PROPERTIES LLC', ?)", (urn,))
+        self.reg.db.execute("DELETE FROM meta WHERE key = 'name_key_version'")
+        self.assertEqual([r["urn"] for r in self.reg.search_entities("W.G.G. Properties LLC")], [urn])
+        self.reg.db.execute("INSERT INTO meta VALUES ('name_key_version', '2')")
+        self.assertEqual(self.reg.search_entities("W.G.G. Properties LLC"), [])
+
     def test_snapshot_ids_are_content_addressed(self):
         same = self.reg.add_snapshot("test-county-roll", write(self.tmp, "copy.txt", "synthetic 2025"), as_of="2025-07-25")
         self.assertEqual(same.document_id, self.snap25.document_id)
