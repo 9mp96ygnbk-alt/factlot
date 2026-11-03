@@ -278,3 +278,349 @@ test("registry tools over MCP and REST when a registry is configured", async () 
     await close();
   }
 });
+
+test("named API keys resolve to a key name and unknown keys are rejected", async () => {
+  const lines: string[] = [];
+  const { base, close } = await start({
+    apiKey: "legacy",
+    apiKeys: [
+      { key: "k-a", name: "tenant-a" },
+      { key: "k-b", name: "tenant-b" },
+    ],
+    log: "json",
+    logSink: (l) => lines.push(l),
+  });
+  const body = { urn: "fl:parcel:us-06037:1" };
+  for (const [token, status] of [
+    ["legacy", 200],
+    ["k-a", 200],
+    ["k-b", 200],
+    ["k-", 401],
+    ["K-A", 401],
+  ] as const) {
+    const r = await post(`${base}/v1/id/parse`, body, {
+      authorization: `Bearer ${token}`,
+    });
+    assert.equal(r.status, status, token);
+    if (status === 401)
+      assert.equal(r.headers.get("www-authenticate"), 'Bearer realm="factlot"');
+  }
+  assert.equal((await post(`${base}/mcp`, {})).status, 401);
+  assert.equal(
+    (await post(`${base}/mcp`, {}, { authorization: "Basic k-a" })).status,
+    401,
+  );
+  await close();
+  const logged = lines.map((l) => JSON.parse(l) as Record<string, unknown>);
+  assert.deepEqual(
+    logged.map((l) => l.key),
+    ["default", "tenant-a", "tenant-b", null, null, null, null],
+  );
+  assert.ok(
+    !lines.some((l) => l.includes("k-a") || l.includes("legacy")),
+    "full keys are never logged",
+  );
+  assert.equal(logged[3]?.key_prefix, "…", "rejected tokens log a prefix only");
+});
+
+test("per-key rate limit returns 429 with Retry-After on REST and MCP", async () => {
+  let clock = Date.UTC(2026, 10, 2, 14, 0, 0) + 5_000;
+  const { base, close } = await start({
+    apiKeys: [
+      { key: "k-a", name: "tenant-a", rateLimitPerMinute: 2 },
+      { key: "k-b", name: "tenant-b" },
+    ],
+    rateLimitPerMinute: 3,
+    now: () => clock,
+  });
+  const call = (token: string, path = "/v1/id/parse") =>
+    post(
+      `${base}${path}`,
+      { urn: "fl:parcel:us-06037:1" },
+      {
+        authorization: `Bearer ${token}`,
+      },
+    );
+
+  const first = await call("k-a");
+  assert.equal(first.status, 200);
+  assert.equal(first.headers.get("x-ratelimit-limit"), "2");
+  assert.equal(first.headers.get("x-ratelimit-remaining"), "1");
+  assert.equal((await call("k-a")).status, 200);
+  const limited = await call("k-a");
+  assert.equal(limited.status, 429);
+  assert.equal(limited.headers.get("retry-after"), "55");
+  assert.deepEqual(await limited.json(), {
+    error: "RateLimited",
+    message: "rate limit of 2 requests per minute exceeded; retry in 55s",
+    retry_after_seconds: 55,
+  });
+
+  // The same key over /mcp shares the window and gets a JSON-RPC error body.
+  const mcp = await post(
+    `${base}/mcp`,
+    { jsonrpc: "2.0", id: 1, method: "tools/list" },
+    { authorization: "Bearer k-a" },
+  );
+  assert.equal(mcp.status, 429);
+  assert.equal(mcp.headers.get("retry-after"), "55");
+  const rpc = (await mcp.json()) as {
+    jsonrpc: string;
+    error: { code: number; data: { retry_after_seconds: number } };
+    id: null;
+  };
+  assert.equal(rpc.jsonrpc, "2.0");
+  assert.equal(rpc.error.code, -32000);
+  assert.equal(rpc.error.data.retry_after_seconds, 55);
+  assert.equal(rpc.id, null);
+
+  // Another key uses the server default (3) and its own window.
+  for (let i = 0; i < 3; i++) assert.equal((await call("k-b")).status, 200);
+  assert.equal((await call("k-b")).status, 429);
+
+  // Discovery is never rate limited; the next minute resets the window.
+  assert.equal((await fetch(`${base}/health`)).status, 200);
+  clock += 60_000;
+  assert.equal((await call("k-a")).status, 200);
+  await close();
+});
+
+test("rate limit without keys buckets everyone as anonymous", async () => {
+  const { base, close } = await start({ rateLimitPerMinute: 1 });
+  assert.equal(
+    (await post(`${base}/v1/id/parse`, { urn: "fl:parcel:us-06037:1" })).status,
+    200,
+  );
+  const r = await post(`${base}/v1/id/parse`, { urn: "fl:parcel:us-06037:1" });
+  assert.equal(r.status, 429);
+  assert.ok(Number(r.headers.get("retry-after")) >= 1);
+  await close();
+});
+
+test("usage metering counts REST and MCP tool calls per key and serves /v1/usage", async () => {
+  const { mkdtempSync, readFileSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const file = join(mkdtempSync(join(tmpdir(), "factlot-usage-")), "u.jsonl");
+  const { UsageMeter } = await import("./usage.ts");
+  const usage = new UsageMeter({ file });
+  const { base, close } = await start({
+    apiKeys: [
+      { key: "k-a", name: "tenant-a" },
+      { key: "k-b", name: "tenant-b" },
+    ],
+    adminKey: "admin-secret",
+    usage,
+  });
+  const auth = (token: string) => ({ authorization: `Bearer ${token}` });
+
+  assert.equal(
+    (
+      await post(
+        `${base}/v1/calc/percentage_rent`,
+        { gross_sales: 5_000_000, rate: 0.06, base_rent_annual: 240_000 },
+        auth("k-a"),
+      )
+    ).status,
+    200,
+  );
+  assert.equal(
+    (
+      await post(
+        `${base}/v1/calc/percentage_rent`,
+        { gross_sales: -1 },
+        auth("k-a"),
+      )
+    ).status,
+    400,
+  );
+  assert.equal(
+    (
+      await post(
+        `${base}/v1/id/parse`,
+        { urn: "fl:parcel:us-06037:1" },
+        auth("k-b"),
+      )
+    ).status,
+    200,
+  );
+  // Rejected and rate-limited requests are not metered; neither are non-tool routes.
+  assert.equal(
+    (await post(`${base}/v1/id/parse`, {}, auth("nope"))).status,
+    401,
+  );
+  assert.equal(
+    (await fetch(`${base}/v1/tools`, { headers: auth("k-a") })).status,
+    200,
+  );
+
+  const client = new Client({ name: "usage-test", version: "0.0.0" });
+  await client.connect(
+    new StreamableHTTPClientTransport(new URL(`${base}/mcp`), {
+      requestInit: { headers: auth("k-b") },
+    }),
+  );
+  await client.listTools();
+  await client.callTool({
+    name: "id_parse",
+    arguments: { urn: "fl:parcel:us-06037:1" },
+  });
+  await client.close();
+
+  // Admin endpoint: disabled without a key, 401 with the wrong one, data with the right one.
+  assert.equal((await fetch(`${base}/v1/usage`)).status, 401);
+  assert.equal(
+    (await fetch(`${base}/v1/usage`, { headers: auth("k-a") })).status,
+    401,
+    "an API key is not an admin key",
+  );
+  assert.equal(
+    (
+      await fetch(`${base}/v1/usage`, {
+        method: "POST",
+        headers: auth("admin-secret"),
+      })
+    ).status,
+    405,
+  );
+  const report = (await (
+    await fetch(`${base}/v1/usage`, { headers: auth("admin-secret") })
+  ).json()) as {
+    key: null;
+    hour: {
+      keys: Record<
+        string,
+        {
+          calls: number;
+          errors: number;
+          tools: Record<
+            string,
+            { calls: number; errors: number; duration_ms: number }
+          >;
+        }
+      >;
+    };
+    day: { keys: Record<string, { calls: number }> };
+  };
+  assert.equal(report.key, null);
+  assert.deepEqual(report.hour.keys["tenant-a"]?.tools, {
+    calc_percentage_rent: {
+      calls: 2,
+      errors: 1,
+      duration_ms:
+        report.hour.keys["tenant-a"]?.tools.calc_percentage_rent?.duration_ms,
+    },
+  });
+  assert.equal(report.hour.keys["tenant-a"]?.calls, 2);
+  assert.equal(report.hour.keys["tenant-a"]?.errors, 1);
+  const b = report.hour.keys["tenant-b"];
+  assert.equal(
+    b?.tools.id_parse?.calls,
+    2,
+    "REST + MCP calls of the same tool",
+  );
+  assert.equal(b?.tools["mcp:tools/list"]?.calls, 1);
+  assert.equal(b?.tools["mcp:initialize"]?.calls, 1);
+  assert.equal(b?.tools["mcp:notifications/initialized"], undefined);
+  assert.equal(report.day.keys["tenant-b"]?.calls, b?.calls);
+  assert.equal(report.hour.keys.anonymous, undefined);
+
+  const filtered = (await (
+    await fetch(`${base}/v1/usage?key=tenant-a`, {
+      headers: auth("admin-secret"),
+    })
+  ).json()) as { key: string; hour: { keys: Record<string, unknown> } };
+  assert.equal(filtered.key, "tenant-a");
+  assert.deepEqual(Object.keys(filtered.hour.keys), ["tenant-a"]);
+
+  await close();
+  await usage.flush();
+  const lines = readFileSync(file, "utf8")
+    .trim()
+    .split("\n")
+    .map((l) => JSON.parse(l) as Record<string, unknown>);
+  assert.equal(lines.length, 6);
+  assert.deepEqual(Object.keys(lines[0] ?? {}), [
+    "time",
+    "key",
+    "tool",
+    "surface",
+    "status",
+    "duration_ms",
+  ]);
+  assert.deepEqual(
+    lines.map((l) => [l.key, l.tool, l.surface, l.status]),
+    [
+      ["tenant-a", "calc_percentage_rent", "rest", 200],
+      ["tenant-a", "calc_percentage_rent", "rest", 400],
+      ["tenant-b", "id_parse", "rest", 200],
+      ["tenant-b", "mcp:initialize", "mcp", 200],
+      ["tenant-b", "mcp:tools/list", "mcp", 200],
+      ["tenant-b", "id_parse", "mcp", 200],
+    ],
+  );
+
+  const disabled = await start({ apiKeys: [{ key: "k", name: "k" }] });
+  assert.equal(
+    (await fetch(`${disabled.base}/v1/usage`, { headers: auth("k") })).status,
+    404,
+  );
+  await disabled.close();
+});
+
+test("FACTLOT_LOG=json writes one JSON line per request", async () => {
+  const lines: string[] = [];
+  const { base, close } = await start({
+    apiKeys: [{ key: "k-a", name: "tenant-a" }],
+    log: "json",
+    logSink: (l) => lines.push(l),
+    now: () => Date.UTC(2026, 10, 2, 14, 3, 7, 412),
+  });
+  await post(
+    `${base}/v1/calc/percentage_rent`,
+    { gross_sales: 5_000_000, rate: 0.06, base_rent_annual: 240_000 },
+    { authorization: "Bearer k-a" },
+  );
+  await fetch(`${base}/health`);
+  await post(`${base}/v1/id/parse`, {});
+  await close();
+  assert.equal(lines.length, 3);
+  const [tool, health, denied] = lines.map(
+    (l) => JSON.parse(l) as Record<string, unknown>,
+  );
+  assert.deepEqual(tool, {
+    time: "2026-11-02T14:03:07.412Z",
+    msg: "request",
+    method: "POST",
+    path: "/v1/calc/percentage_rent",
+    tool: "calc_percentage_rent",
+    key: "tenant-a",
+    status: 200,
+    duration_ms: tool?.duration_ms,
+  });
+  assert.equal(typeof tool?.duration_ms, "number");
+  assert.deepEqual(
+    { ...health, duration_ms: 0 },
+    {
+      time: "2026-11-02T14:03:07.412Z",
+      msg: "request",
+      method: "GET",
+      path: "/health",
+      tool: null,
+      key: null,
+      status: 200,
+      duration_ms: 0,
+    },
+  );
+  assert.equal(denied?.status, 401);
+  assert.equal(denied?.key, null);
+  assert.equal(denied?.tool, null);
+});
+
+test("no request log unless log is json", async () => {
+  const lines: string[] = [];
+  const { base, close } = await start({ logSink: (l) => lines.push(l) });
+  await fetch(`${base}/health`);
+  await close();
+  assert.deepEqual(lines, []);
+});

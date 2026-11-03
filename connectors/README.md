@@ -30,15 +30,47 @@ docker build -t factlot . && docker run -p 8787:8787 factlot
 npm run build && node packages/server/dist/bin.js
 ```
 
-| Variable             | Purpose                                                                                                                                |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `PORT`, `HOST`       | Listen address. Default `0.0.0.0:8787`.                                                                                                |
-| `FACTLOT_API_KEY`    | Optional. Requires `Authorization: Bearer <key>` on `/mcp` and `/v1/*`. Discovery routes (`/`, `/health`, `/openapi*.json`) stay open. |
-| `FACTLOT_PUBLIC_URL` | Optional. Public base URL written into the OpenAPI `servers` entry. By default it is derived from `X-Forwarded-*` headers.             |
+| Variable                        | Purpose                                                                                                                                  |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `PORT`, `HOST`                  | Listen address. Default `0.0.0.0:8787`.                                                                                                  |
+| `FACTLOT_API_KEY`               | Optional. One shared bearer key (key name `default`). Any configured key makes `/mcp` and `/v1/*` require `Authorization: Bearer <key>`. |
+| `FACTLOT_API_KEYS`              | Optional. Named keys, one per client or engagement: `key1:tenant-a,key2:tenant-b`.                                                       |
+| `FACTLOT_API_KEYS_FILE`         | Optional. JSON keys file (example below), the place for per-key rate limits.                                                             |
+| `FACTLOT_RATE_LIMIT_PER_MINUTE` | Optional. Default requests per minute per key; `0` = unlimited. Over the limit: HTTP 429 with `Retry-After`.                             |
+| `FACTLOT_ADMIN_KEY`             | Optional. Enables `GET /v1/usage?key=<name>`: per-key, per-tool call counts for the current hour and day.                                |
+| `FACTLOT_USAGE_LOG`             | Optional. Append one JSON line per tool call (`time, key, tool, surface, status, duration_ms`) to this file for billing.                 |
+| `FACTLOT_LOG`                   | Optional. `json` for one JSON line per request on stdout.                                                                                |
+| `FACTLOT_PUBLIC_URL`            | Optional. Public base URL written into the OpenAPI `servers` entry. By default it is derived from `X-Forwarded-*` headers.               |
 
-The tools are pure computation, so the server stores nothing, needs no database, and scales
-horizontally behind any load balancer. Remote platforms connect from their own cloud, so the
+Discovery routes (`/`, `/health`, `/openapi*.json`) stay open. With nothing set the server is
+open, unlimited, and quiet, as before. A keys file:
+
+```json
+[
+  {
+    "key": "fl_live_8f3a…",
+    "name": "acme-engagement-2026",
+    "rate_limit_per_minute": 600
+  },
+  { "key": "fl_live_77e2…", "name": "internal-eval" }
+]
+```
+
+Two keys may share a `name` (that is how you rotate without a gap); the name is what rate
+limits, the usage endpoint, the usage log, and the request log report, so make it the thing you
+bill: a client, an engagement, a team. Full keys are never logged. Field-by-field formats for the
+usage log, `/v1/usage`, and the request log are in
+[packages/server/README.md](../packages/server/README.md).
+
+The tools are pure computation, so the server needs no database and scales horizontally behind
+any load balancer; rate-limit windows and usage counts are per instance and in memory, and the
+usage log file is the durable record. Remote platforms connect from their own cloud, so the
 server must be reachable on a public HTTPS URL.
+
+**Not provided yet:** OAuth 2.1 / SSO for the MCP endpoint (bearer keys only; put an OAuth
+gateway in front if a platform or a security review requires it), runtime key issuance or
+revocation (keys are static config), shared or persistent rate-limit state, and any SOC 2 or
+similar attestation.
 
 ## What has been verified
 
