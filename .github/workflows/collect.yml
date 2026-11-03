@@ -1,38 +1,44 @@
-# Weekly archive of Texas public property data for the FactLot Registry.
+# Weekly archive of public property and entity data for the FactLot Registry, every state.
 #   discover  — every source: lists download links on its landing pages (downloads nothing)
 #   snapshot  — verified sources only (terms reviewed, files confirmed; data policy §5)
-# Archived files are published as release assets with hash manifests, so history accumulates.
-name: Collect Texas public data
+# Sources are the config files under registry/sources/ (one per state or per source). Archived
+# files are published as release assets with hash manifests, so history accumulates.
+name: Collect public data
 
 on:
   schedule:
     - cron: "17 9 * * 1" # Mondays 09:17 UTC
   workflow_dispatch:
+    inputs:
+      only:
+        description: "Limit to these source ids (comma-separated); empty = all"
+        required: false
+        default: ""
 
 permissions:
   contents: write
 
 concurrency:
-  group: collect-texas
+  group: collect
   cancel-in-progress: false
 
 jobs:
   collect:
     runs-on: ubuntu-latest
-    timeout-minutes: 240
+    timeout-minutes: 300
     env:
       GH_TOKEN: ${{ github.token }}
       PYTHONPATH: python/src
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
       - name: Restore previous manifests (for conditional requests)
         run: |
           mkdir -p collected
-          latest=$(gh release list --limit 50 --json tagName --jq '[.[] | select(.tagName | startswith("data-tx-"))][0].tagName // empty')
+          latest=$(gh release list --limit 100 --json tagName --jq '[.[] | select(.tagName | startswith("data-"))][0].tagName // empty')
           if [ -n "$latest" ]; then
             gh release download "$latest" --pattern '*__manifest.jsonl' --dir restore || true
             for f in restore/*__manifest.jsonl; do
@@ -42,14 +48,22 @@ jobs:
             done
           fi
 
+      - name: Source filter
+        id: filter
+        run: |
+          args=""
+          IFS=',' read -ra ids <<< "${{ github.event.inputs.only }}"
+          for id in "${ids[@]}"; do id=$(echo "$id" | xargs); [ -n "$id" ] && args="$args --source $id"; done
+          echo "args=$args" >> "$GITHUB_OUTPUT"
+
       - name: Discover download links (no downloads)
-        run: python -m factlot.collector discover --config registry/sources/texas.json --out collected
+        run: python -m factlot.collector discover --config registry/sources --out collected ${{ steps.filter.outputs.args }}
 
       - name: Snapshot verified sources
-        run: python -m factlot.collector snapshot --config registry/sources/texas.json --out collected
+        run: python -m factlot.collector snapshot --config registry/sources --out collected ${{ steps.filter.outputs.args }}
 
       - name: Upload discovery reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: discovery-${{ github.run_id }}
           path: collected/*/discovered.json
@@ -73,6 +87,6 @@ jobs:
           PY
           if ! ls release/*__*__* >/dev/null 2>&1; then echo "No new files archived this run."; exit 0; fi
           day=$(date -u +%Y-%m-%d)
-          gh release create "data-tx-$day-${{ github.run_id }}" release/* \
-            --title "Texas public data snapshot $day" \
-            --notes "Archived by the FactLot collector. Each source's manifest lists URL, sha256, retrieval time, HTTP validators, and robots status for every file."
+          gh release create "data-$day-${{ github.run_id }}" release/* \
+            --title "Public data snapshot $day" \
+            --notes "Archived by the FactLot collector. Each source's manifest lists URL, sha256, retrieval time, HTTP validators, and robots status for every file. Sources: the config files under registry/sources/."

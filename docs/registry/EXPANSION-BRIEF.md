@@ -46,7 +46,7 @@ forbid AI use. If any of that is unclear, `verified: false` with the reason.
    `python -m factlot.collector discover --config registry/sources/<state>/<id>.json --out collected`
    and then `snapshot` for verified sources. Keep `collected/` out of git (it already is).
 2. `python/src/factlot/registry/adapters/<module>.py` (module name `<state>_<county or
-   publisher>`, e.g. `il_cook.py`, `fl_dor.py`, `ny_dos_entities.py`): `SOURCE`, `read_roll(path)`
+publisher>`, e.g. `il_cook.py`, `fl_dor.py`, `ny_dos_entities.py`): `SOURCE`, `read_roll(path)`
    yielding `ParcelRecord` (or `read_entities(path)` yielding `EntityRecord`), `build(...)`, and
    `main()`, modelled on the Texas adapters. Use the correct 5-digit FIPS (state + county). The
    account system name is `<id>-account` style, e.g. `cook_pin`, `la_ain`, `nyc_bbl`.

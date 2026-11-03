@@ -313,10 +313,10 @@ def _append(manifest_path: Path, rec: dict[str, Any]) -> None:
 
 
 def load_sources(path: str | Path) -> tuple[CollectorConfig, list[SourceSpec]]:
-    """Load one config file, or every ``*.json`` file in a directory (sorted; the first file's
-    ``collector`` block applies to all, so every file must agree on it)."""
+    """Load one config file, or every ``*.json`` file under a directory, recursively (sorted; the
+    first file's ``collector`` block applies to all, so every file must agree on it)."""
     p = Path(path)
-    files = sorted(p.glob("*.json")) if p.is_dir() else [p]
+    files = sorted(p.rglob("*.json")) if p.is_dir() else [p]
     if not files:
         raise FileNotFoundError(f"no source config files in {p}")
     cfg: CollectorConfig | None = None
