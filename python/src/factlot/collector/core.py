@@ -313,6 +313,21 @@ def _append(manifest_path: Path, rec: dict[str, Any]) -> None:
 
 
 def load_sources(path: str | Path) -> tuple[CollectorConfig, list[SourceSpec]]:
-    data = json.loads(Path(path).read_text())
-    cfg = CollectorConfig(**data["collector"])
-    return cfg, [SourceSpec.from_dict(s) for s in data["sources"]]
+    """Load one config file, or every ``*.json`` file in a directory (sorted; the first file's
+    ``collector`` block applies to all, so every file must agree on it)."""
+    p = Path(path)
+    files = sorted(p.glob("*.json")) if p.is_dir() else [p]
+    if not files:
+        raise FileNotFoundError(f"no source config files in {p}")
+    cfg: CollectorConfig | None = None
+    sources: list[SourceSpec] = []
+    for f in files:
+        data = json.loads(f.read_text())
+        file_cfg = CollectorConfig(**data["collector"])
+        if cfg is None:
+            cfg = file_cfg
+        elif file_cfg != cfg:
+            raise ValueError(f"{f}: collector settings differ from {files[0]}")
+        sources.extend(SourceSpec.from_dict(s) for s in data["sources"])
+    assert cfg is not None
+    return cfg, sources

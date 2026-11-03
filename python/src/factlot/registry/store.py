@@ -85,6 +85,9 @@ class ParcelRecord:
     appraised_value: float | None = None
     tax_year: int | None = None
     locator: str | None = None
+    # The publisher's own use/class code (e.g. Cook County "5-17", LA County "2100"), kept verbatim
+    # next to the normalized state_category so the mapping can be audited.
+    local_use_code: str | None = None
 
 
 @dataclass
@@ -297,6 +300,7 @@ class Registry:
             n += self._fact(urn, "parcel.market_value", r.market_value, snap, unit="USD", locator=loc)
             n += self._fact(urn, "parcel.appraised_value", r.appraised_value, snap, unit="USD", locator=loc)
             n += self._fact(urn, "parcel.tax_year", r.tax_year, snap, locator=loc)
+            n += self._fact(urn, "parcel.local_use_code", r.local_use_code, snap, locator=loc)
             if account_system and r.account:
                 self.db.execute("INSERT OR REPLACE INTO crosswalk VALUES (?,?,?)", (account_system, r.account, urn))
             if r.situs_address:
