@@ -1,0 +1,34 @@
+{
+  "description": "Franklin County, Ohio (Columbus; FIPS 39049) Auditor Parcel CSV for the FactLot Registry collector. See docs/registry/sources/oh-franklin-auditor.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "oh-franklin-auditor",
+      "publisher": "Franklin County Auditor's Office, Ohio",
+      "landing_pages": [
+        "https://auditor.franklincountyohio.gov/Auditor/FTP",
+        "https://apps.franklincountyauditor.com/"
+      ],
+      "allowed_hosts": [
+        "apps.franklincountyauditor.com",
+        "auditor.franklincountyohio.gov"
+      ],
+      "link_patterns": ["Parcel_CSV/\\d{4}/\\d{2}/Parcel\\.csv"],
+      "files": [
+        "https://apps.franklincountyauditor.com/Parcel_CSV/2025/07/Parcel.csv"
+      ],
+      "verified": false,
+      "gate": "No licence or terms of use is stated for the downloads (the Auditor's Disclaimer page disclaims accuracy and liability only; there is no robots.txt on either host and no click-through in front of the open directory). A person must decide whether a public record (Ohio R.C. 149.43) offered as a free direct download with no terms can be redistributed, or ask the Auditor (AuditorStinziano@franklincountyohio.gov, 614-525-4663) to confirm. The Parcel.csv is 262 MB, above the 50 MB research limit, so the full file was not downloaded; the layout and the sample counts come from a ranged request for the first 3,000,001 bytes (5,719 rows).",
+      "terms_url": "https://auditor.franklincountyohio.gov/Auditor/Disclaimer",
+      "license": "Public record (Ohio R.C. 149.43); no licence stated for the downloads. Disclaimer page: 'as is', no warranties, no liability",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not addressed; public record. A person must decide",
+      "reviewed": "2026-11-03",
+      "notes": "Open directory https://apps.franklincountyauditor.com/ (IIS listing, no login): Parcel_CSV/<year>/<month>/Parcel.csv (latest listed 2025/07; the file's Last-Modified is 2026-10-28, 262,544,041 bytes, accept-ranges bytes), Outside_User_Files/<year>/<date> Appraisal and Tax Accounting (CSV/XLSX sets: Parcel, Land, Build, Dwelling, Improvement, Sales, Permit, Tax Detail, Transfer, ...; the 2026-10-15 Appraisal Tab-Delimited.zip is 78 MB, Excel.zip 254 MB), GIS_Shapefiles/Current_Extracts (updated every weeknight). Field documentation: parcel-csv-description-of-fields.pdf and the Outside User Files label-name workbooks on the Auditor's FTP page. Parcel.csv has 67 columns (PARCEL ID, appraised and exempt values, LANDUSE, PCLASS C/E/F/I/M/R/U, NAME1-3, OWNER_ADD1-2, tax-bill MAILAD1-4, situs, ACREA, AREA_A, YEARBLT, PRICE, TRANYR, ...). The Auditor's Open Data portal is auditor-fca.opendata.arcgis.com (ArcGIS Hub; not read). adapter oh_franklin."
+    }
+  ]
+}

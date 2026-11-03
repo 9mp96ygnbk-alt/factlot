@@ -1,0 +1,28 @@
+{
+  "description": "Colorado: El Paso County Assessor weekly parcel data file for the FactLot Registry collector. See docs/registry/sources/co-elpaso-assessor.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "co-elpaso-assessor",
+      "publisher": "El Paso County Assessor's Office (Colorado)",
+      "landing_pages": ["https://assessor.elpasoco.com/assessordata/"],
+      "allowed_hosts": ["assessor.elpasoco.com", "epc-assets.elpasoco.com"],
+      "link_patterns": ["/Data/EPC-Parcel-Data-\\d{8}\\.zip"],
+      "files": [
+        "https://epc-assets.elpasoco.com/wp-content/uploads/sites/4/Data/EPC-Parcel-Data-20261027.zip"
+      ],
+      "verified": false,
+      "terms_url": "https://www.elpasoco.com/general-disclaimer/",
+      "license": "Public record (Colorado Open Records Act, C.R.S. 24-72-201 et seq.). The Assessor Data page says only 'The Assessor data below is provided as a public courtesy ... should be considered only as best information available'. The County's General Disclaimer adds: 'All content included on this site, such as text, graphics, logos, button icons, images, audio clips, digital downloads, data compilations, and software, is the property of El Paso County, Colorado ... and is protected by United States and international copyright laws'",
+      "ai_use": "Not addressed",
+      "redistribution": "Unclear: no licence or permission statement for the data compilations; a general copyright claim over 'digital downloads' and 'data compilations'",
+      "reviewed": "2026-11-03",
+      "gate": "Terms: a person must ask the Assessor's Office (719-520-6600, asrweb@elpasoco.com) for written confirmation that the weekly parcel file may be redistributed as open data, or decide that the CORA public-record status of the facts is enough; also confirm C.R.S. 24-72-205.5 (statement required for records requested for direct solicitation) does not apply to a download that needs no request. The download itself needs no account, click-through or fee.",
+      "notes": "Confirmed by a real download on 2026-11-03: EPC-Parcel-Data-20261027.zip, 20,348,962 bytes (Last-Modified 2026-10-28), one member 'EPC Parcel Data.txt' (120,470,661 bytes, tab-delimited with a header row, 278,233 lines: a header, 278,178 regular rows and 54 rows with a different field count). The file name changes weekly (date suffix): the landing page and link_patterns find the current one. Layout PDF: https://assessor.elpasoco.com/wp-content/uploads/Data/EPC-Parcel-Layout.pdf (differs slightly from the header: ASSESSEDVALUE_NONSCHOOL/_SCHOOL, SALEDATE/SALEPRICE, assignedto). Owner names (OWNER1-3) and mailing addresses are present. Land and improvement use codes are the Colorado Division of Property Taxation abstract subclass codes, identical to the Denver mapping in co_denver.py. robots.txt: assessor.elpasoco.com and www.elpasoco.com allow everything; epc-assets.elpasoco.com/robots.txt answers HTTP 403 (no rules readable). The download was slow (about 100 KB/s, two connection resets, resumed with Range)."
+    }
+  ]
+}

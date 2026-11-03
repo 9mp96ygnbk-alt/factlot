@@ -1,0 +1,27 @@
+{
+  "description": "Kern County (FIPS 06029): Assessor GIS data is sold; the county web host blocks automated clients; the only free copy is a partial City of Shafter re-host under a data-sharing disclaimer. NOT VERIFIED. Review record: docs/registry/sources/ca-kern-assessor.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "ca-kern-assessor",
+      "publisher": "Kern County Assessor-Recorder (Mapping and GIS); free partial copy hosted by the City of Shafter",
+      "landing_pages": [
+        "https://www.kerncounty.com/government/departments/assessor-recorder/property/mapping-gis/gis-data",
+        "https://www.arcgis.com/sharing/rest/content/items/b5758bf53b3d40bd824eb606057f7389?f=json"
+      ],
+      "allowed_hosts": ["kerncounty.com", "www.kerncounty.com", "arcgis.com"],
+      "terms_url": "https://www.arcgis.com/sharing/rest/content/items/b5758bf53b3d40bd824eb606057f7389?f=json",
+      "license": "The Kern GEONET data-sharing disclaimer (item licenseInfo): data 'as is', recipient indemnifies the data providers, and may give no copy of the data to any party 'without disclosing' its origin and 'attaching the Disclaimer'. The county's own GIS product is sold (price list not retrieved: kerncounty.com answers 403 to automated clients)",
+      "ai_use": "Not addressed",
+      "redistribution": "Conditional: only with the disclaimer attached; no licence granted",
+      "notes": "Gate: host blocks automated clients (kerncounty.com answers 403 'Access Denied' from Akamai, including robots.txt) and the GIS database is sold. Per a search-engine summary of the Assessor's GIS data page, the sold database holds parcel numbers, tax rate areas, assessee names, use codes and assessed values, 'as is'. Free partial copy: item b5758bf53b3d40bd824eb606057f7389 'Parcels Public' (owner jdelgadillo_shafter, City of Shafter; modified 2023-09-21) service https://services2.arcgis.com/LukbLC9Gps89zZa7/ArcGIS/rest/services/Parcels_Public/FeatureServer/1 has USE_CODE, USE_CODE_DESC, situs and values but only 37,628 parcels (the Shafter area, not the 400,000-plus county) and is a copy credited to the Assessor, Kern COG, Bakersfield and Shafter. It is not archived because it is partial, 3 years old and carries an indemnity agreement. Next step for the founder: open the Assessor's GIS data page in a browser, get the price list and order form, and ask whether the sold database may be republished.",
+      "files": [],
+      "verified": false,
+      "reviewed": "2026-11-03"
+    }
+  ]
+}

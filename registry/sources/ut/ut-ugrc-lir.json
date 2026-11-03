@@ -1,0 +1,33 @@
+{
+  "description": "Utah: UGRC statewide land information record (LIR) parcels for the FactLot Registry collector. See docs/registry/data-policy.md and the review record in docs/registry/sources/ut-ugrc-lir.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "ut-ugrc-lir",
+      "publisher": "Utah Geospatial Resource Center (UGRC), State Geographic Information Database (SGID), with the county assessors",
+      "landing_pages": ["https://gis.utah.gov/products/sgid/cadastre/parcels/"],
+      "allowed_hosts": [
+        "gis.utah.gov",
+        "opendata.gis.utah.gov",
+        "services1.arcgis.com",
+        "www.arcgis.com",
+        "stg-arcgisazurecdataprod1.az.arcgis.com"
+      ],
+      "files": [
+        "https://opendata.gis.utah.gov/api/download/v1/items/6f900727e16d4ce1a83f2a1ec1d82e60/csv?layers=0",
+        "https://opendata.gis.utah.gov/api/download/v1/items/69477c1143924bc9990cdb930b033fb5/csv?layers=0"
+      ],
+      "verified": true,
+      "terms_url": "https://gis.utah.gov/products/sgid/cadastre/parcels/",
+      "license": "Creative Commons Attribution 4.0 International: the ArcGIS item licenseInfo of the LIR layers ends 'This work is licensed under a Creative Commons Attribution 4.0 International License'; the UGRC product page says 'There are no constraints or warranties with regard to the use of this dataset. Users are encouraged to attribute content to: State of Utah, SGID.' The items add a warranty disclaimer and an indemnity clause ('You agree to hold the State of Utah harmless')",
+      "ai_use": "Not addressed by the publisher (CC BY 4.0 does not restrict it)",
+      "redistribution": "Permitted (CC BY 4.0); attribution: State of Utah, SGID",
+      "reviewed": "2026-11-03",
+      "notes": "Statewide source: one review covers all 29 counties' LIR layers (Parcels_<County>_LIR on services1.arcgis.com/99lidPhWCzftIe9K); this config lists the two Tier 2 counties, Salt Lake (item 6f900727..., 399,432 features, CSV about 164 MB) and Utah (item 69477c11..., 289,858 features). Add other counties by item id (serviceItemId of the layer). The Hub download API (opendata.gis.utah.gov/api/download/v1/items/<id>/csv?layers=0) answers 302 to services1.arcgis.com/.../replicafilescache/<name>.csv then 302 to a signed Azure blob; it honours Range requests (the review used 30 MB and 25 MB prefixes). The CSV header is the field aliases ('Parcel ID', 'Property Class'); the feature service uses field names. The LIR schema has NO owner column. The layers are updated by the counties yearly or more often (CURRENT_ASOF 2026-09-29 for Salt Lake, 2026-09-30 for Utah County at review). robots.txt: gis.utah.gov 'Allow: *' Crawl-delay 1; opendata.gis.utah.gov Crawl-delay 60, disallows /sites/ /admin/ /sessions/ /groups/ /people/ /workspace/ (not the download API); services1.arcgis.com has no robots.txt (HTTP 403 'Invalid URL'). Full files exceed the 50 MB review limit, so no full snapshot was taken; the weekly workflow archives them."
+    }
+  ]
+}

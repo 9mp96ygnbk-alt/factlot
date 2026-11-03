@@ -1,0 +1,29 @@
+{
+  "description": "Hawaii Department of Commerce and Consumer Affairs, Business Registration Division (access review; no current free bulk file) for the FactLot Registry collector. See docs/registry/sources/hi-breg-entities.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "hi-breg-entities",
+      "publisher": "Hawaii Department of Commerce and Consumer Affairs, Business Registration Division (BREG)",
+      "landing_pages": ["https://data.honolulu.gov/api/views/9k54-ztb8.json"],
+      "allowed_hosts": [
+        "data.honolulu.gov",
+        "cca.hawaii.gov",
+        "hbe.dcca.hawaii.gov"
+      ],
+      "files": [],
+      "verified": false,
+      "terms_url": "https://data.honolulu.gov/api/views/9k54-ztb8.json",
+      "license": "None stated. The only open file is a City and County of Honolulu Socrata copy (dataset 9k54-ztb8, 'Hawaii Business Registration'), last updated 2022-06-08, with the note 'This dataset is out of date. Current business registration can be viewed at the Hawaii Department of Commerce and Consumer Affairs at https://hbe.dcca.hawaii.gov/'",
+      "ai_use": "Not addressed",
+      "redistribution": "Not addressed",
+      "reviewed": "2026-11-03",
+      "gate": "Purchase or records request: BREG says it offers 'bulk downloads of information through its online services' and special subscriptions, but no product name, price or file format was found (breg@dcca.hawaii.gov, 808-586-2727). A person must ask BREG for the bulk product and its terms. The Honolulu copy is four years old, is not the publisher's file, and is not used.",
+      "notes": "The stale copy has 32 text columns (File No., Name, Master Name, Business Type, Status, Place Incorporated, Registration Date, Mailing Address, Agent Name, ...). Not archived. robots.txt: data.honolulu.gov Crawl-delay none, Socrata defaults. BREG's contact page says a new online portal launches 2026-07-06; the search tool in use is Hawaii Business Express (hbe.dcca.hawaii.gov), an interactive search that is not automated."
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "description": "Montgomery Central Appraisal District. No bulk file URL could be retrieved. See docs/registry/sources/tx-montgomery-cad.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "tx-montgomery-cad",
+      "publisher": "Montgomery Central Appraisal District",
+      "landing_pages": ["https://mcad-tx.org/appraisal-data-exports"],
+      "allowed_hosts": ["mcad-tx.org"],
+      "files": [],
+      "verified": false,
+      "terms_url": "https://mcad-tx.org/appraisal-data-exports",
+      "reviewed": "2026-11-03",
+      "notes": "mcad-tx.org is the same True Prodigy 'Public Portal' single-page app as hidalgoad.org and www.dentoncad.com: an empty shell without JavaScript, no robots.txt rules. A search index lists mcad-tx.org/appraisal-data-exports (certified roll zips for 2019 to 2026, a 2026 certified roll in JSON, a 2026 preliminary roll, export layouts as PDF, spreadsheet and JSON) and mcad-tx.org/gis-data (parcels, ownership, subdivisions via the Montgomery County Open Data site), but no file URL was seen and no terms were readable. A City of Houston ArcGIS service (geohwp.houstontx.gov Parcels_Current layer 3 'Current MCAD Parcels', fields STATECLASS, OWNER, ADDRESS, YEAR_BUILT, IMPR_SQ_FT) mirrors MCAD parcels but was last updated 2025-03-27 and is a third-party copy, so it was not used."
+    }
+  ]
+}

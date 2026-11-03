@@ -1,0 +1,27 @@
+{
+  "description": "Arizona: Pima County parcels with assessor attributes and mailing names on the county Geospatial Data Portal (access review) for the FactLot Registry collector. See docs/registry/sources/az-pima-assessor.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "az-pima-assessor",
+      "publisher": "Pima County Information Technology Department, Geographic Information Systems (with the Pima County Assessor)",
+      "landing_pages": [
+        "https://gisopendata.pima.gov/api/search/v1/collections/all/items?q=parcel&limit=20"
+      ],
+      "allowed_hosts": ["gisopendata.pima.gov", "gisdata.pima.gov"],
+      "files": [],
+      "verified": false,
+      "terms_url": "https://www.pima.gov/itd-gis-disclaimer-use-restrictions",
+      "license": "No licence. The ITD GIS Disclaimer & Use Restrictions say all Products 'shall remain the property of Pima County'; the open-data item's licenseInfo says 'this Open Data version of the dataset is intended for use either as a Shapefile download, or as a service within a map or private application. It is not intended for use as a service within another public-facing application' and cites A.R.S. 37-178 (no liability for shared geospatial data). Commercial use of Arizona public records needs a stated commercial purpose (A.R.S. 39-121.03), the same statute that gates az-maricopa-assessor",
+      "ai_use": "Not addressed",
+      "redistribution": "Not permitted as a public-facing service per the item's licenseInfo; ownership claimed by the County",
+      "reviewed": "2026-11-03",
+      "gate": "Terms: a person must ask Pima County GIS (contact form on https://www.pima.gov/acquire-gis-data) and the Assessor whether an open-data redistribution of the parcel layer with owner mailing names is allowed (the registry's API is a public-facing service), and, as for Maricopa, file the commercial-purpose statement under A.R.S. 39-121.03 if the Assessor requires one. The Assessor's own site (www.asr.pima.gov) has 'User-agent: * Disallow: /' in robots.txt, so no automated access is made to it.",
+      "notes": "Technically open: 'Parcels - Regional' (item 564d8eabf5c7450d9d20510cc8a7c6a2) is MapServer layer 12 at https://gisdata.pima.gov/arcgis1/rest/services/GISOpenData/LandRecords/MapServer/12 (448,712 parcels, maxRecordCount 2000, metadata https://gis.pima.gov/data/contents/metadet.cfm?name=paregion). Fields include PARCEL, PARCEL_USE (Pima Assessor four-digit property use code), ADDRESS_OL (situs), MAIL1-MAIL5 (owner of record on MAIL1 and the mailing address), TAXYR, FCV (full cash value), LIMNET (limited property value), LEGAL1-5, ZIP, GISACRES, LANDMEAS; no building area or year built. Owner names are therefore present (organisations and natural persons in MAIL1). Only metadata, a 6-row sample and a group-by of PARCEL_USE were requested. robots.txt: gisopendata.pima.gov Crawl-delay 60 (disallows /sites/ etc.); gis.pima.gov disallows /data/datalib/ /maps/detail.cfm etc.; gisdata.pima.gov none (404). A real run also needs the Pima use-code table (PARCEL_USE definitions), which this review did not find."
+    }
+  ]
+}

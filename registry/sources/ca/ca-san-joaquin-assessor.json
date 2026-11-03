@@ -1,0 +1,31 @@
+{
+  "description": "San Joaquin County (FIPS 06077) parcel layer with Assessor use codes and values for the FactLot Registry collector. NOT VERIFIED: the layer states no licence and the county's GIS terms require written authorization for reuse. Review record: docs/registry/sources/ca-san-joaquin-assessor.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "ca-san-joaquin-assessor",
+      "publisher": "San Joaquin County Department of Public Works GIS (layer credited to the San Joaquin County Assessor's Office), San Joaquin County Open Data and ArcGIS Hub",
+      "landing_pages": [
+        "https://opendata.sjgov.org/dataset/parcels",
+        "https://www.arcgis.com/sharing/rest/content/items/03f97b03d2614a6b8505dd16962a0922?f=json"
+      ],
+      "allowed_hosts": [
+        "opendata.sjgov.org",
+        "san-joaquin-county-public-works-sjc-gis.hub.arcgis.com",
+        "arcgis.com"
+      ],
+      "terms_url": "https://sjmap.org/files/SjcGisAgreementP2.pdf",
+      "license": "None stated: the CKAN record says 'No License Provided' and the ArcGIS item has no licenseInfo. The county's GIS Product Terms and Conditions of Use (sjmap.org) bind 'any use of this data', disclaim all warranty, require the user to indemnify the county for 'modification, misrepresentation, misuse or reuse by others', except use 'authorized, in writing, by the County'",
+      "ai_use": "Not addressed",
+      "redistribution": "Not granted: the GIS terms contemplate reuse by others only with the county's written authorization",
+      "notes": "A complete free roll exists: item 03f97b03d2614a6b8505dd16962a0922 'Parcels' (owner SanJoaquinCountyPW, copyright text 'San Joaquin County Assessor's Office', 253,428 parcels, modified 2026-10-12, roll year 2026), service https://services2.arcgis.com/GQhSReJEO6f7tsvy/arcgis/rest/services/Parcels/FeatureServer/0 (Query only, maxRecordCount 2000). CSV export (listed on the CKAN record): https://san-joaquin-county-public-works-sjc-gis.hub.arcgis.com/api/download/v1/items/03f97b03d2614a6b8505dd16962a0922/csv?layers=0 (add a where filter on CATEGORY to fetch only COMMERCIAL, INDUSTRIAL and the 41-47 residential use codes). Fields include USECODES and DESCRIPTION (the Assessor's three-digit use code and its text), CATEGORY, land, structure, fixed-equipment and personal-property values, year built, living area, units, situs and the owner MAILING address plus a CAREOF name that can be a person; no owner-of-record name. Left unverified because no licence is attached and the county terms require written authorization for reuse. No adapter written (brief: verified sources only); the layout is mapped in the review record so one can be added in about an hour once cleared. robots.txt: opendata.sjgov.org disallows /api/ for all agents; the Hub site sets Crawl-delay 60; sjmap.org disallows /arcgis/, /portal/, /server/.",
+      "files": [],
+      "verified": false,
+      "reviewed": "2026-11-03"
+    }
+  ]
+}

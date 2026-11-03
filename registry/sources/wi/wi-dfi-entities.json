@@ -1,0 +1,27 @@
+{
+  "description": "Wisconsin Department of Financial Institutions corporate database (access review) for the FactLot Registry collector. See docs/registry/sources/wi-dfi-entities.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "wi-dfi-entities",
+      "publisher": "Wisconsin Department of Financial Institutions, Division of Corporate and Consumer Services",
+      "landing_pages": [
+        "https://dfi.wi.gov/Pages/BusinessServices/BusinessEntities/CorpDataServices.aspx"
+      ],
+      "allowed_hosts": ["dfi.wi.gov"],
+      "files": [],
+      "verified": false,
+      "gate": "Purchase by mail. DFI sells the complete corporate database (a .txt file delivered by ShareFile; weekly files go out each Tuesday, monthly subscriptions on the second Tuesday) at $40.00 per file and a monthly file of new formations at $5.00 per file (.txt and .xlsx by e-mail), ordered with Form 51 'Commercial Bulk Data Request' (revised August 2024) mailed with a check or money order payable to WDFI to Corporations Bureau, PO Box 7846, Madison, WI 53707. A person must complete Form 51 (name, email for the ShareFile account, contact details), pay and accept any terms attached to the ShareFile account. The form and the page state no use, resale or AI restrictions; the order terms are unread. Nothing was ordered or paid.",
+      "terms_url": "https://dfi.wi.gov/Pages/BusinessServices/BusinessEntities/CorpDataServices.aspx",
+      "license": "Not stated on the page or Form 51; sold public record",
+      "ai_use": "Not addressed",
+      "redistribution": "Not addressed on the page or the form; unknown",
+      "reviewed": "2026-11-03",
+      "notes": "Per the DFI page the files contain legal entity name, registered agent and office address, entity type, date of formation or registration, current status and a numeric indicator of the most recent annual report; DFI holds no owners or LLC members, and officer and director data are not in the database file. Form 51: https://dfi.wi.gov/Documents/BusinessServices/BusinessEntities/Forms/CORP51.pdf. DFI also sells UCC data ($250 per weekly file; not relevant). dfi.wi.gov serves no robots.txt (404)."
+    }
+  ]
+}

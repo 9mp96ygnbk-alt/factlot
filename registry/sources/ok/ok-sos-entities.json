@@ -1,0 +1,27 @@
+{
+  "description": "Oklahoma Secretary of State business entity bulk orders (paid). Gated on purchase and robots.txt. See docs/registry/sources/ok-sos-entities.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "ok-sos-entities",
+      "publisher": "Oklahoma Secretary of State, Business Filing Department",
+      "landing_pages": [
+        "https://www.sos.ok.gov/corp/bulkorder/bulkDefault.aspx"
+      ],
+      "allowed_hosts": ["www.sos.ok.gov", "sos.ok.gov"],
+      "files": [],
+      "verified": false,
+      "gate": "Purchase, and robots.txt blocks automation. 'Bulk Order Fee Schedule': Master Download $500.00, Weekly Filing Update $150.00, custom lists $1 per 40 records, ordered through the Secretary of State's shopping cart (login required). https://www.sos.ok.gov/robots.txt is 'User-agent: *' 'Disallow: /', so the collector may not fetch any page or file there. Requires a person: place the $500 Master Download order, download it by hand, read the order terms, and place it in collected/ok-sos-entities/.",
+      "terms_url": "https://www.sos.ok.gov/corp/bulkorder/bulkDefault.aspx",
+      "license": "Not read beyond the order page (no licence text on it); the order terms are shown in the cart. Public records under the Oklahoma Open Records Act (51 O.S. 24A.1 et seq.)",
+      "ai_use": "Unknown",
+      "redistribution": "Unknown",
+      "reviewed": "2026-11-03",
+      "notes": "The page describes the monthly export as 'our complete database in a tilde(~)-delimited text file' with 19 relational tables, about 600 MB unzipped; weekly updates have the same structure. A layout file and a sample weekly file are linked from the page; they were not fetched because of robots.txt. The research agent opened the order page once, by hand, before reading robots.txt; nothing else on the host was fetched. Natural-person names (agents, officers) must not be stored."
+    }
+  ]
+}

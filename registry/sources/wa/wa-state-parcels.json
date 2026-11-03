@@ -1,0 +1,27 @@
+{
+  "description": "Washington: statewide parcel layer (no ownership) on the Washington Geoportal, for the FactLot Registry collector. See docs/registry/sources/wa-state-parcels.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "wa-state-parcels",
+      "publisher": "Washington Technology Solutions (WaTech), Office of the Chief Information Officer, Geospatial Program Office (WA Geoportal)",
+      "landing_pages": [
+        "https://geo.wa.gov/api/search/v1/collections/all/items?q=%22Current%20Parcels%22&limit=5"
+      ],
+      "allowed_hosts": ["geo.wa.gov", "services.arcgis.com", "www.arcgis.com"],
+      "files": [],
+      "verified": false,
+      "terms_url": "https://watech.wa.gov/sites/default/files/2023-11/Washington%20State%20Data%20Disclaimer%202016.pdf",
+      "license": "No license field (item license 'custom' = a warranty disclaimer). The OCIO 'Washington State Data Disclaimer' (2016) says 'all data created by the state, using government funds, is in the public domain but commercial use and licensing of state data is prohibited'",
+      "ai_use": "Not addressed",
+      "redistribution": "Unclear: public-domain statement and a commercial-use prohibition in the same sentence; the layer is an amalgam of county data ('Each county does data stewardship to their own standards')",
+      "reviewed": "2026-11-03",
+      "gate": "A person must decide whether the OCIO disclaimer's 'commercial use ... of state data is prohibited' reaches this layer (county-sourced, published for the public on the Geoportal) and, if in doubt, ask WaTech's Geospatial Program Office (the item's contact) for a written statement that redistribution of the Current Parcels attributes is allowed. No account, form or fee is involved in the download itself.",
+      "notes": "Technically open: FeatureServer https://services.arcgis.com/jsIt88o09Q0r1j8h/arcgis/rest/services/Current_Parcels/FeatureServer/0 (item 2b603a599a0842a3b2284c04c8927f35, maxRecordCount 2000, item modified 2026-10-19 per the ArcGIS item) answers JSON queries with no key. Fields: FIPS_NR, COUNTY_NM, PARCEL_ID_NR, ORIG_PARCEL_ID, SITUS_ADDRESS, SUB_ADDRESS, SITUS_CITY_NM, SITUS_ZIP_NR, LANDUSE_CD (WA Department of Revenue land use code), ORIG_LANDUSE_CD (county code), VALUE_LAND, VALUE_BLDG, DATA_LINK. NO owner names (the 'Parcels without ownership' edition; the ownership edition is restricted to State business by some counties), no building area, no year built. Covers all 39 counties, including King (635,192 parcels), Pierce (339,590) and Snohomish (318,594). Not downloaded beyond metadata and group-by statistics. robots.txt: geo.wa.gov Crawl-delay 60, disallows /sites/ /admin/ etc.; services.arcgis.com none."
+    }
+  ]
+}

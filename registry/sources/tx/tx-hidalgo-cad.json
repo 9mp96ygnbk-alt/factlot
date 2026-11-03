@@ -1,0 +1,21 @@
+{
+  "description": "Hidalgo County Appraisal District. No bulk file URL could be retrieved. See docs/registry/sources/tx-hidalgo-cad.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "tx-hidalgo-cad",
+      "publisher": "Hidalgo County Appraisal District",
+      "landing_pages": ["https://www.hidalgoad.org/data-downloads"],
+      "allowed_hosts": ["hidalgoad.org"],
+      "files": [],
+      "verified": false,
+      "terms_url": "https://www.hidalgoad.org/data-downloads",
+      "reviewed": "2026-11-03",
+      "notes": "The district's site (hidalgoad.org) is a True Prodigy 'Public Portal' single-page app. Fetched without JavaScript it returns an empty shell (title 'Public Portal'); in a desktop browser pane it rendered blank at /data-downloads and /. robots.txt returns the app shell, so there are no rules. A search index lists www.hidalgoad.org/data-downloads as 'Data Downloads' (shapefiles and GIS data, parcel data joined to appraisal data monthly as a DBF table, certified exports including a TYP mineral export), but no file URL was seen. The portal's content comes from a vendor API (prod-container.trueprodigyapi.com) that identifies the district by the requesting origin; reaching it by presenting another site's origin headers would be circumvention and was not done. Needs a person to open the page and copy the file URLs."
+    }
+  ]
+}

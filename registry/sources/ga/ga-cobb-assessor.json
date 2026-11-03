@@ -1,0 +1,32 @@
+{
+  "description": "Georgia: Cobb County (FIPS 13067) tax assessor parcel and ownership data. Gated on purchase and terms. See docs/registry/sources/ga-cobb-assessor.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "ga-cobb-assessor",
+      "publisher": "Cobb County GIS and Cobb County Board of Tax Assessors",
+      "landing_pages": [
+        "https://www.arcgis.com/sharing/rest/content/items/9e9f789d5b2d4a26bbf091a50230d4d8/data?f=json"
+      ],
+      "allowed_hosts": [
+        "geo-cobbcountyga.hub.arcgis.com",
+        "hub.arcgis.com",
+        "www.arcgis.com",
+        "gis.cobbcounty.gov"
+      ],
+      "files": [],
+      "verified": false,
+      "gate": "Purchase and terms. Cobb sells the Tax Assessor GIS parcel polygon data (published each August with the state-approved tax digest) and says 'Tabular Data (Ownership, Appraisal, Tax Bill, Etc.) available by request'; the GIS Data terms forbid sale, trade, sub-licensing and derivative works without written permission. The Tax Assessor's website (cobbassessor.org) returns 403 to the collector. Requires a person: request the tabular digest and written permission to republish facts from the Cobb Tax Assessor and Cobb GIS.",
+      "terms_url": "https://geo-cobbcountyga.hub.arcgis.com/pages/get-data",
+      "license": "Cobb County GIS data licence on the 'Get Data' page: GIS data 'are protected by United States copyright laws'; 'You may not loan, rent, lease, sub-license or pledge Cobb County GIS data'; 'You may not sell, trade, or bargain any computer files containing any of the GIS data'; 'You may not reverse engineer, decompile, disassemble, or create derivative works without the express written permission of the Cobb County Government'. Public records under the Georgia Open Records Act",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Forbidden without written permission",
+      "reviewed": "2026-11-03",
+      "notes": "No free parcel or ownership table found: the Cobb GIS Hub (geo-cobbcountyga.hub.arcgis.com, item f0b894fb12444f26a0925ff41daed8b8) lists roads, subdivisions, land lots, facilities and future land use, plus a Parcel Viewer web app, but no parcel download; the 'Get Data' page prices 'Tax Assessor GIS Parcel Polygon Data' (county parcels and subdivisions) in a '$54' to '$22,000' range depending on delivery. A City of Smyrna copy of the 2023 parcels (services2.arcgis.com/hE9igMm8RoNeQRbh/arcgis/rest/services/Cobb_Parcels/FeatureServer) exists but is third-party and was not reviewed. robots.txt: geo-cobbcountyga.hub.arcgis.com Crawl-delay 60; gis.cobbcounty.gov has none (404); www.cobbassessor.org serves Cloudflare content signals and answered 403 to the collector."
+    }
+  ]
+}

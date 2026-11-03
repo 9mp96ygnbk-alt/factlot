@@ -1,0 +1,32 @@
+{
+  "description": "Will County, Illinois (FIPS 17197) tax map parcels (access review) for the FactLot Registry collector. See docs/registry/sources/il-will-parcels.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "il-will-parcels",
+      "publisher": "Will County, Illinois: GIS Department with the County Clerk Tax Extension; Supervisor of Assessments",
+      "landing_pages": [
+        "https://willcounty.gov/County-Offices/Administration/GIS-Division/Data/Vector",
+        "https://www.willcountysoa.com/PropertySearchPortal"
+      ],
+      "allowed_hosts": [
+        "willcounty.gov",
+        "gis.willcountyillinois.com",
+        "www.willcountysoa.com"
+      ],
+      "files": [],
+      "verified": false,
+      "gate": "The Tax Map Parcels service's item description says: 'Under no circumstances may the data be redistributed or made available over a network without explicit permission from the Will County GIS Department', requires the citation 'Source Will County Tax Map Parcels', and says a custom request needs a written request stating the intended applications, after which the data 'may be used only for the purposes explicitly stated in the written request.' Separately, the free layer is geometry plus PIN only (no owner, class or value), and the Supervisor of Assessments publishes a property search portal with no bulk export found. A person must write to gis@willcountyillinois.com (GIS) and the Supervisor of Assessments asking for permission and for an assessment roll file with class, owner and values.",
+      "terms_url": "https://gis.willcountyillinois.com/server/rest/services/Basemap/Parcels_20/MapServer/0/iteminfo?f=pjson",
+      "license": "No redistribution or network availability without explicit permission of the Will County GIS Department; citation 'Source Will County Tax Map Parcels' required",
+      "ai_use": "Not addressed; use limited to purposes in a written request where one is granted",
+      "redistribution": "Not permitted without explicit permission",
+      "reviewed": "2026-11-03",
+      "notes": "Layer gis.willcountyillinois.com/server/rest/services/Basemap/Parcels_20/MapServer/0 ('Parcels_20', 276,644 parcels; fields PIN, SUBTYPE, PREVIOUS_PIN, ParcelID, edit-tracking fields; no owner, class or value). robots.txt: none (404). Nothing was archived. The county vector data page lists shapefile downloads 'freely available', including Parcels (SOA, Summer 2025); not opened (willcounty.gov was not fetched)."
+    }
+  ]
+}

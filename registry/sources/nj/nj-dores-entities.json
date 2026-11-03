@@ -1,0 +1,28 @@
+{
+  "description": "New Jersey business entities (Division of Revenue and Enterprise Services) for the FactLot Registry collector. UNVERIFIED: a paid, account-based service; see docs/registry/sources/nj-dores-entities.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "nj-dores-entities",
+      "publisher": "New Jersey Department of the Treasury, Division of Revenue and Enterprise Services (DORES)",
+      "landing_pages": [
+        "https://www.njportal.com/DOR/BusinessRecords",
+        "https://www.nj.gov/treasury/revenue/fees.shtml"
+      ],
+      "allowed_hosts": ["www.njportal.com", "www.nj.gov"],
+      "link_patterns": [],
+      "files": [],
+      "verified": false,
+      "terms_url": "https://www.njportal.com/errorpages/disclaimer.aspx",
+      "license": "None found. The Business Records Service lets a user 'download lists or abstracts of businesses on file with the State' through a search form (Business Entity Lists), and the statutory fee schedule prices 'Bulk Access Status Reports' at $0.0185 per record (N.J.S.A. 14A:15-3(16), 15A:15-2, 42:2A-68, 42:2C), with output on magnetic disk or by electronic transmission. No licence, redistribution or AI-use terms were found; the portal's disclaimer is the State's standard warranty disclaimer",
+      "ai_use": "Not addressed",
+      "redistribution": "Unknown; the bulk product is a paid service and its terms were not available without an account",
+      "reviewed": "2026-11-03",
+      "notes": "No open-data portal dataset exists (data.nj.gov holds only certified-business and incentive lists). The only bulk route is the paid Bulk Access Status Report (fee schedule at nj.gov/treasury/revenue/fees.shtml: entity name, legal status, registered agent/office, annual report filing dates, business addresses and associated names; selection by filing date and entity type; capacity limitations may apply). The online Business Entity Lists form (njportal.com/DOR/BusinessRecords/EntityDocs/BusinessList.aspx) searches by filing-date range, business name, principal name, registered agent or associated name and delivers through a cart; it was not submitted. njportal.com serves no robots.txt (404). No files listed because none can be fetched without a person."
+    }
+  ]
+}

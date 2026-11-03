@@ -1,0 +1,28 @@
+{
+  "description": "DuPage County, Illinois (FIPS 17043) parcels with the County Clerk real estate database (access review) for the FactLot Registry collector. See docs/registry/sources/il-dupage-parcels.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "il-dupage-parcels",
+      "publisher": "DuPage County, Illinois: Information Technology Department GIS Division, with the County Clerk (Supervisor of Assessments data)",
+      "landing_pages": ["https://gisdata-dupage.opendata.arcgis.com/"],
+      "allowed_hosts": [
+        "gis.dupageco.org",
+        "gisdata-dupage.opendata.arcgis.com"
+      ],
+      "files": [],
+      "verified": false,
+      "gate": "The ArcGIS item's licenseInfo (County Clerk's Office Real Estate Database Disclaimer) says: 'you are not entitled or permitted to repackage, resell or distribute this information without the written permission through the Public Information Office of the County of DuPage, at 421 N. County Farm Rd., Wheaton, Illinois 60187.' A person must request that written permission (Public Information Office), stating the use, before any of the data is archived or redistributed. Only a count and the field list were read from the service; no records were archived.",
+      "terms_url": "https://www.arcgis.com/home/item.html?id=b47d0bd9cef14b2fbeec45bc0df50935",
+      "license": "County Clerk's Office Real Estate Database Disclaimer: as-is, no reliance; no repackaging, resale or distribution without written permission of the DuPage Public Information Office",
+      "ai_use": "Not addressed; redistribution is barred without written permission",
+      "redistribution": "Not permitted without written permission of the DuPage County Public Information Office",
+      "reviewed": "2026-11-03",
+      "notes": "Public ArcGIS REST layer gis.dupageco.org/arcgis/rest/services/Tyler/ParcelsRealEstateCCWGS84SR4326/MapServer/0 (337,346 parcels, maxRecordCount 2000, weekly join of the Clerk's real estate file to the assessment parcels): PIN, OWNERSHIP_TYPE, MAJOR_PROPERTY_OWNER, BILLNAME and billing address, PROPNAME and situs, PROPCLASS and GIS_Prop_Class (Illinois property class), FCVLAND/FCVIMP/FCVTOTAL (fair cash value), BILLVALUE, ACREAGE. The open-data hub (gisdata-dupage.opendata.arcgis.com) has robots Crawl-delay 60; gis.dupageco.org serves none. If permission is granted the layer can be archived like the Oakland and Marion layers (class filter on PROPCLASS)."
+    }
+  ]
+}

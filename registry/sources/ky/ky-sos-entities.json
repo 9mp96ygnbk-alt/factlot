@@ -1,0 +1,28 @@
+{
+  "description": "Kentucky Secretary of State Bulk Data Service (business entities). Gated on a subscriber agreement and a monthly fee. See docs/registry/sources/ky-sos-entities.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "ky-sos-entities",
+      "publisher": "Kentucky Secretary of State (service operated through Kentucky.gov)",
+      "landing_pages": [
+        "https://www.sos.ky.gov/bus/Pages/Bulk-Data-Service.aspx",
+        "https://www.sos.ky.gov/bus/Pages/File-Descriptions.aspx"
+      ],
+      "allowed_hosts": ["www.sos.ky.gov", "sos.ky.gov"],
+      "files": [],
+      "verified": false,
+      "gate": "Subscription and fee. 'To subscribe, please register with Kentucky.gov and complete the Subscriber Agreement.' 'Subscribers using this service for commercial purposes will be charged a monthly subscription fee ... Business Records - $2,000 per month'; non-commercial users pay nothing but 'the appropriate fee will change if the purpose of use changes to commercial'. Downloads are behind a login (secure.kentucky.gov/sos/bulkdata). Requires a person: register on Kentucky.gov, sign the Subscriber Agreement, choose the fee tier, and download the monthly 'All Companies' file.",
+      "terms_url": "https://www.sos.ky.gov/bus/Pages/Bulk-Data-Service.aspx",
+      "license": "Subscriber Agreement (not read: it is on kentucky.gov/register and needs the sign-up). Public records under the Kentucky Open Records Act (KRS 61.870 et seq.)",
+      "ai_use": "Unknown (agreement not read)",
+      "redistribution": "Unknown (agreement not read)",
+      "reviewed": "2026-11-03",
+      "notes": "Files (tab-delimited): All Companies (monthly), All Initial Officers, All Officers, New Companies (daily and weekly), Company Changes (daily), plus UCC files. Layout spreadsheet (free): sos.ky.gov/bus/Documents/Business%20Entity%20Data%20File%20Formats.xls (readable fields include ID, comptype, compseq, Name, Standing, Status, Country, State, registered agent name and address, principal office address parts, filedate, orgdate, profit). Officer files hold natural persons and must not be stored. robots.txt on www.sos.ky.gov answers 404 (no rules)."
+    }
+  ]
+}

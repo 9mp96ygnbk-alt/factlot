@@ -1,0 +1,30 @@
+{
+  "description": "Montgomery County, Pennsylvania parcel layer with assessment attributes and owner of record (county GIS portal, ArcGIS Hub) for the FactLot Registry collector. See docs/registry/data-policy.md and the review record in docs/registry/sources/pa-montgomery-parcels.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "pa-montgomery-parcels",
+      "publisher": "Montgomery County, Pennsylvania (Board of Assessment Appeals; Data & Mapping Services), via its ArcGIS Hub",
+      "landing_pages": [
+        "https://gis-montcopa.hub.arcgis.com/datasets/montcopa::montgomery-county-parcels"
+      ],
+      "allowed_hosts": ["gis-montcopa.hub.arcgis.com", "hub.arcgis.com"],
+      "files": [
+        "https://gis-montcopa.hub.arcgis.com/api/download/v1/items/228cad7975554088a350bee4caf3ca45/csv?layers=6&where=CLASS%3D%27A%27",
+        "https://gis-montcopa.hub.arcgis.com/api/download/v1/items/228cad7975554088a350bee4caf3ca45/csv?layers=6&where=CLASS%3D%27C%27",
+        "https://gis-montcopa.hub.arcgis.com/api/download/v1/items/228cad7975554088a350bee4caf3ca45/csv?layers=6&where=CLASS%3D%27I%27"
+      ],
+      "verified": true,
+      "terms_url": "https://gis-montcopa.hub.arcgis.com/datasets/montcopa::montgomery-county-parcels",
+      "license": "Custom license on the county's Hub item: 'Montgomery County provides this data as a free and open resource. While every reasonable effort is made to ensure the accuracy and completeness of the data, Montgomery County makes no representations about the suitability of this data for any purpose. All data is provided \"as is\" without warranties of any kind, either express or implied, and it should not be construed or used as a legal description.' The county's Board of Assessment Appeals page says the datasets are available 'at no charge through the County's Open Data Portal'; the county's catalog record on data.pa.gov (u6n2-nimu) shows 'Public Domain U.S. Government'",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not restricted: offered as a free and open resource, public record (no redistribution clause); attribution given anyway: Montgomery County, Pennsylvania",
+      "reviewed": "2026-11-03",
+      "notes": "Item 228cad7975554088a350bee4caf3ca45, layer 6 'Montgomery County Parcels' (feature service https://services1.arcgis.com/kOChldNuKsox8qZD/arcgis/rest/services/Montgomery_County_Parcels/FeatureServer/6, 310,132 features, 122 columns, updated monthly: 2026 dates on the county's Parcels page). The county's own portal pages are gis.montcopa.org/opendata and www.montgomerycountypa.gov/departments/data-mapping-services/core-datasets/parcels. OWNER NAMES ARE PRESENT (OWN1, OWN2, CAREOF, ADDR1-3). One file per county CLASS, filtered with the Hub download API's where parameter: A apartment (692 parcels, five or more families), C commercial (12,393), I industrial (2,705) on 2026-11-03. The Hub download is generated on first request (HTTP 202, body 'Up to date download file is being generated'): run the request once, wait a few minutes, then snapshot; a 202 body must not be archived. It then answers 302 to hub.arcgis.com/api/v3/datasets/<item>_6/downloads/data?format=csv&where=... (hence both hosts in allowed_hosts). robots.txt on both Hub hosts: Crawl-delay 60 (the collector honours it, so three files take several minutes); Disallow /sites/, /admin/, /sessions/, /groups/, /people/, /workspace/. services1.arcgis.com/robots.txt answers 403 (no rules). Parcel features can repeat (several polygons for one TAXPIN), so rows are de-duplicated by TAXPIN. A separate 'Montgomery County Assesment Table' item (28b14b8c2b594b5d9a813bef53b81e96) holds all assessment records without geometry but was not needed. Code tables: the county's 'Parcel Codes' PDF (montcopa.maps.arcgis.com item c47e63a20eba41f69d370e6f4498bdbb)."
+    }
+  ]
+}

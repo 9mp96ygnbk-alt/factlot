@@ -1,0 +1,32 @@
+{
+  "description": "Georgia: Gwinnett County (FIPS 13135) Tax Master Table and Parcels from the county's ArcGIS Hub open-data site. Gated on terms. See docs/registry/sources/ga-gwinnett-assessor.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "ga-gwinnett-assessor",
+      "publisher": "Gwinnett County GIS (data from the Gwinnett County Tax Assessors Office)",
+      "landing_pages": [
+        "https://www.arcgis.com/sharing/rest/content/items/c76183c341cd4e0495c4faa781f9f270?f=pjson"
+      ],
+      "allowed_hosts": [
+        "gcgis-gwinnettcountyga.hub.arcgis.com",
+        "hub.arcgis.com",
+        "www.arcgis.com",
+        "services3.arcgis.com"
+      ],
+      "files": [],
+      "verified": false,
+      "gate": "Terms forbid redistribution: the dataset licenseInfo says the data is copyrighted by Gwinnett County and 'shall be used for internal purposes by recipient only and may not be distributed or sold in any way to any person or entity'. Requires a person: obtain Gwinnett County's written permission to republish facts from the Tax Master Table (or an Open Records Act request to the Tax Assessors Office stating the intended use), then set verified=true and add the file URL.",
+      "terms_url": "https://www.arcgis.com/sharing/rest/content/items/c76183c341cd4e0495c4faa781f9f270?f=json",
+      "license": "Gwinnett County copyright, internal use only: 'All data access via this map, program, website or file distribution is under the copyright of Gwinnett County, Georgia. So as not to conflict or interfere with the data sales of Gwinnett County government, the copyrighted data shall be used for internal purposes by recipient only and may not be distributed or sold in any way to any person or entity.' Provided 'AS IS'. Public records under the Georgia Open Records Act (O.C.G.A. 50-18-70 et seq.)",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Forbidden by the item licence text (internal purposes only)",
+      "reviewed": "2026-11-03",
+      "notes": "Candidate once permitted: Tax Master Table, ArcGIS layer services3.arcgis.com/RfpmnkSAQleRbndX/arcgis/rest/services/Property_and_Tax/FeatureServer/3 (316,086 rows on 2026-11-03; maxRecordCount 2000). Columns: LRSN, RPIN, PIN, LOCADDR, LOCCITY, LOCZIP, OWNER1, OWNER2, MAILADDR, MAILCITY, MAILSTAT, MAILZIP, LEGALAC, ZONING, DWLGVAL1, LANDVAL1, TOTVAL1, TAXTOT1, PROPCLAS, PCDESC, ZONEDESC, LEGAL1, DISTNUM, grantors and deed references. PROPCLAS is the county's property class (101 residential SFR ... 211 apartments (3 stories or under), 212 apartments high rise, 214 LIHTC apartments, 252-257 hotels/motels, 3xx commercial, 396-399 warehouse, 401 manufacturing; 100 distinct values) and PCDESC its description, so the file maps cleanly to B/F1/F2 (about 445 apartment rows and about 9,450 commercial and industrial rows by class counts; not loaded). Also in the service: Parcels (layer 0, 309,585 polygons), Tax Owner Address Table (4), Property Improvements Table (8), Land Value Table (10). Hub site gcgis-gwinnettcountyga.hub.arcgis.com: robots.txt Crawl-delay 60, disallow /sites/, /admin/, /sessions/, /groups/, /people/, /workspace/; services3.arcgis.com answers 403 to robots.txt."
+    }
+  ]
+}

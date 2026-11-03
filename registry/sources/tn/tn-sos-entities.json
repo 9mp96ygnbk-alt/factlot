@@ -1,0 +1,28 @@
+{
+  "description": "Tennessee Secretary of State business entity database download (paid). Gated on purchase. See docs/registry/sources/tn-sos-entities.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "tn-sos-entities",
+      "publisher": "Tennessee Secretary of State, Division of Business Services (Business Services Online)",
+      "landing_pages": [
+        "https://tnbear.tn.gov/Ecommerce/DBDownloadWizard.aspx",
+        "https://sos.tn.gov/businesses/services"
+      ],
+      "allowed_hosts": ["tnbear.tn.gov", "sos.tn.gov"],
+      "files": [],
+      "verified": false,
+      "gate": "Purchase. The Secretary of State sells the full business entity database through the Business Services Online shopping cart (tnbear.tn.gov, 'Database Download'): $50.00 plus any service fee for a .zip of four tab-separated files regenerated each Sunday night (entity information with mailing address, assumed names, registered agents, annual report history), per the page's description in a search listing. The collector cannot read the page (tnbear.tn.gov resets the connection; sos.tn.gov answers 403 to robots.txt). Requires a person: buy the download, read the terms shown at checkout, and place the zip in collected/tn-sos-entities/.",
+      "terms_url": "https://tnbear.tn.gov/Ecommerce/DBDownloadWizard.aspx",
+      "license": "Not read (the page is unreachable from the collector). Business filings are public records under the Tennessee Public Records Act (T.C.A. 10-7-503); the sale terms are shown at checkout",
+      "ai_use": "Unknown",
+      "redistribution": "Unknown",
+      "reviewed": "2026-11-03",
+      "notes": "Do not store the natural-person names in registered agent and officer fields. The layout of the four files is not published on a page the collector could reach; an adapter waits for the bought file."
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "description": "El Paso Central Appraisal District. The host blocks automated clients. See docs/registry/sources/tx-elpaso-cad.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "tx-elpaso-cad",
+      "publisher": "El Paso Central Appraisal District",
+      "landing_pages": ["https://epcad.org/OpenGovernment"],
+      "allowed_hosts": [
+        "epcad.org",
+        "export.epcad.org",
+        "blob.epcad.org",
+        "propertysearch.blob.core.windows.net"
+      ],
+      "files": [
+        "https://export.epcad.org/datasets/2026_Certified_Export_Files.zip",
+        "https://export.epcad.org/datasets/REAL_ESTATE.zip",
+        "https://export.epcad.org/datasets/APPRAISAL_ROLL.zip",
+        "https://export.epcad.org/datasets/Appraisal%20Export%20Layout%20-%208.0.34.zip",
+        "https://export.epcad.org/datasets/2026_Codes.zip",
+        "https://propertysearch.blob.core.windows.net/abepublicfiles/Properties2027Dump.zip",
+        "https://propertysearch.blob.core.windows.net/abepublicfiles/Owners2027Dump.zip",
+        "https://propertysearch.blob.core.windows.net/abepublicfiles/Schemas.txt"
+      ],
+      "verified": false,
+      "terms_url": "https://epcad.org/AcceptableUsePolicy",
+      "reviewed": "2026-11-03",
+      "ai_use": "Restricted: the AUP lists AI training data collection among prohibited activities; robots.txt Content-Signal: search=yes, ai-train=no, use=reference; a list of named AI crawlers is disallowed, the FactLot bot is not named. The registry does not train models on source data",
+      "notes": "Gated on terms; nothing was downloaded. epcad.org/OpenGovernment lists (read by the collector on 2026-11-03; plain curl gets a Cloudflare challenge, the collector's identified client does not): 2026 Certified Export Files (export.epcad.org, 408,260,829 bytes, 2026-10-13) in the True Automation Appraisal Export Layout 8.0.34 (layout zip 92,947 bytes; the family Travis and Tarrant use, so the tx_travis adapter will probably read it, unconfirmed); REAL_ESTATE.zip (168,080,334 bytes), APPRAISAL_ROLL.zip (122,338,947), PERSONAL_PROPERTY.zip; weekly Property Search dumps on propertysearch.blob.core.windows.net (Properties2027Dump.zip 21,830,459 bytes, Owners2027Dump.zip 15,301,442, plus Deeds, Improvements, Lands, Rolls, TaxJurisdictions, Values; tilde-delimited flat files with a Schemas.txt of 3,365 bytes); GIS parcels2026.zip (86,532,772 bytes, attributes without values). The AUP also forbids excessive or automated Property Search queries, which the collector does not make. robots.txt: Allow / for generic agents, Disallow /Account /Search /Property/ /Kiosk/ /Iaao/. Action: a person decides whether weekly downloads of the official export files fall under AUP section 2.2, or asks EPCAD (webmaster listed on the site) for written authorization; then set verified true.",
+      "license": "Public record. The EPCAD disclaimer says all information is 'considered in the public domain' and is distributed without warranty. Website Acceptable Use Policy (epcad.org/AcceptableUsePolicy) section 1.2 prohibits bots, crawlers and scrapers, 'AI training data collection' and bulk extraction without prior written authorization; section 2.2 says users who need bulk data should use the official datasets and export files on the Open Government page",
+      "redistribution": "Not addressed beyond 'public domain'; confidential owners are not identified in what was read"
+    }
+  ]
+}

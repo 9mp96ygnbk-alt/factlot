@@ -1,0 +1,27 @@
+{
+  "description": "Oregon Secretary of State Corporation Division active business entities (data.oregon.gov dataset tckn-sxa6) for the FactLot Registry collector. See docs/registry/sources/or-sos-entities.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "or-sos-entities",
+      "publisher": "Oregon Secretary of State, Corporation Division",
+      "landing_pages": ["https://data.oregon.gov/api/views/tckn-sxa6.json"],
+      "allowed_hosts": ["data.oregon.gov"],
+      "files": [
+        "https://data.oregon.gov/api/views/tckn-sxa6/rows.csv?accessType=DOWNLOAD"
+      ],
+      "verified": false,
+      "terms_url": "https://data.oregon.gov/api/views/tckn-sxa6",
+      "license": "No licence field on the dataset (provenance 'official', category 'business', tags 'business registry'). The portal's Terms of Service page (data.oregon.gov/stories/s/Terms-of-Use) is behind a sign-in",
+      "ai_use": "Not addressed",
+      "redistribution": "Not addressed",
+      "reviewed": "2026-11-03",
+      "gate": "Terms: no licence is stated on the dataset and the portal's terms page needs a login. A person must read the Terms of Service (sign in at data.oregon.gov with a personal account, which the collector never does) or ask the Corporation Division (503-986-2200) for a statement that the weekly Active Businesses file may be redistributed; then set verified true. The adapter is not written: the layout below is from the portal's column metadata and a 20,000-row sample.",
+      "notes": "Socrata dataset 'Active Businesses - ALL' (tckn-sxa6), rows updated 2026-10-27, weekly; one row per (entity, association): registry_number, business_name, entity_type, registry_date, associated_name_type (PRINCIPAL PLACE OF BUSINESS, MAILING ADDRESS, REGISTERED AGENT, AUTHORIZED REPRESENTATIVE), first/middle/last name and suffix (natural persons for agents and representatives), not_of_record_entity, entity_of_record_reg_number, entity_of_record_name, address, address_continued, city, state, zip, jurisdiction, business_details (link). Active entities only: no status column. Sample ($limit=20000): 6,746 distinct entities in 20,000 rows. CSV export (rows.csv) was over 43 MB when a test download was cut off at 90 s; the full file is much larger, so a full load belongs to the weekly workflow. robots.txt: Crawl-delay 1, disallows /api/odata/ and /api/collocate*. DNS for data.oregon.gov failed for the first twenty minutes of the review and then resolved."
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "description": "Ohio Secretary of State business filing reports (access review) for the FactLot Registry collector. See docs/registry/sources/oh-sos-entities.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "oh-sos-entities",
+      "publisher": "Ohio Secretary of State, Business Services Division",
+      "landing_pages": ["https://www.ohiosos.gov/businesses/business-reports/"],
+      "allowed_hosts": ["www.ohiosos.gov", "ohiosos.gov"],
+      "files": [],
+      "verified": false,
+      "gate": "www.ohiosos.gov (including /robots.txt and the business-reports pages) answers the collector with HTTP 403 and a JavaScript security-check page, so robots.txt, the terms and the file URLs could not be read; the block was not worked around. Per search-index text (unverified), the Secretary offers free monthly Business Reports (new business filings, subsequent filings, trademarks and service marks, and lists of debarred or dissolved entities), generated on the second Saturday of each month, that are new and changed filings only, not the whole register; no whole-register bulk product or price was found. A person must (1) open https://www.ohiosos.gov/businesses/business-reports/ in a browser and record the file URLs, layout and terms, (2) ask the Business Services Division (877-767-6446) whether a full-register extract exists and at what price, or whether FactLotRegistryBot may be allowed through the security check.",
+      "terms_url": "https://www.ohiosos.gov/businesses/business-reports/",
+      "license": "Not read (site blocked)",
+      "ai_use": "Not addressed on any page read",
+      "redistribution": "Not addressed on any page read",
+      "reviewed": "2026-11-03",
+      "notes": "Search-index text: the new-business report lists charter number, corporation name, statutory agent, filer name, document number, filed date, date of incorporation and type; phone numbers and email addresses are not in the reports; the office offers no list of trade names. R.C. 111.23 lets the Secretary set fees for bulk filing services, without amounts. Ohio's entity search is businesssearch.ohiosos.gov (interactive; not scraped). Nothing was downloaded."
+    }
+  ]
+}

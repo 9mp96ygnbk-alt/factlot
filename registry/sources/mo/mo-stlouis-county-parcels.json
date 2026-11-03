@@ -1,0 +1,25 @@
+{
+  "description": "St. Louis County, Missouri (FIPS 29189) Assessor tax parcels (access review) for the FactLot Registry collector. See docs/registry/sources/mo-stlouis-county-parcels.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "mo-stlouis-county-parcels",
+      "publisher": "St. Louis County, Missouri: Assessor's Office and GIS Service Center",
+      "landing_pages": ["https://gis.stlouiscountymo.gov/"],
+      "allowed_hosts": ["maps.stlouisco.com", "gis.stlouiscountymo.gov"],
+      "files": [],
+      "verified": false,
+      "gate": "The county's open-data licence text (the same for every dataset on gis.stlouiscountymo.gov, which is a Geospatial Data Center hub) ends 'Please direct all requests for St. Louis County GIS data to the GIS Service Center: 314-615-4GIS (4447) or gis@stlouisco.com. Copyright 2026 St. Louis County. All rights reserved.' It grants no licence to copy or redistribute. The county website www.stlouiscountymo.gov (including /robots.txt) is behind a Cloudflare challenge that blocks automated clients. A person must write to the GIS Service Center asking for permission to archive and redistribute the Tax Parcels layer (or file a Missouri Sunshine Law request, RSMo ch. 610, with the Assessor for the real property file).",
+      "terms_url": "https://gis.stlouiscountymo.gov/",
+      "license": "'Copyright 2026 St. Louis County. All rights reserved.' with a no-warranty disclaimer and a direction to send data requests to the GIS Service Center",
+      "ai_use": "Not addressed",
+      "redistribution": "Not granted (all rights reserved); ask the GIS Service Center",
+      "reviewed": "2026-11-03",
+      "notes": "Public ArcGIS REST layer maps.stlouisco.com/hosting/rest/services/Maps/AGS_OpenData/MapServer/7 'Tax Parcels' (401,631 parcels, maxRecordCount 2000, copyright 'St. Louis County GIS Service Center'): LOCATOR, TAXYR, OWNER_NAME, PROP_ADD, OWN_ADD/OWN_CITY/OWN_STATE/OWN_ZIP, CAREOF, ASSTLANDVAL/ASSTIMPVAL/TOTASSMT (assessed), APPLANDVAL/APPIMPVAL/TOTAPVAL (appraised), PROPCLASS (R 381,573; C 17,446; A 857; X 658; W 548; Y 99; Z 21; blank 429), LUC and LUCODE (land use), LIVUNIT, YEARBLT, RESQFT, COMSTRUC, ACRES. Owner names are present. A second planning layer (STLCO_STC_Parcels_IND) has no owner names. maps.stlouisco.com serves no robots.txt (404); the hub robots.txt has Crawl-delay 60. Only a count, statistics and a field list were read; nothing was archived. Whether multi-unit apartment buildings are PROPCLASS R or C was not checked; multifamily (B) would be read from LUC."
+    }
+  ]
+}

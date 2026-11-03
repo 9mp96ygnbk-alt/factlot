@@ -1,0 +1,34 @@
+{
+  "description": "Kentucky: Jefferson County (Louisville; FIPS 21111) PVA parcels from LOJIC / Louisville Metro Open Data. The free layer has no owner, class or value. See docs/registry/sources/ky-jefferson-pva.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "ky-jefferson-pva",
+      "publisher": "Jefferson County Property Valuation Administrator (via LOJIC and Louisville Metro Open Data)",
+      "landing_pages": [
+        "https://www.arcgis.com/sharing/rest/content/items/47085b87ac754d60942ea324a3b0f54f?f=pjson",
+        "https://www.arcgis.com/sharing/rest/content/items/d71a5507a1d04a679c7c49861d52a9eb/data?f=json"
+      ],
+      "allowed_hosts": [
+        "data.louisvilleky.gov",
+        "louisville-metro-opendata-lojic.hub.arcgis.com",
+        "hub.arcgis.com",
+        "www.arcgis.com",
+        "gis.lojic.org"
+      ],
+      "files": [],
+      "verified": false,
+      "gate": "Purchase. The free open-data layer 'Jefferson County KY Parcels' has only PARCELID, PARCEL_TYPE, LRSN and PIN (no owner, class, use or value), so it yields no commercial fact. Owner, mailing address, land and improvement values, property class and sales are sold by subscription on the PVA Online Search Service (jeffersonpva.ky.gov). Requires a person: ask the Jefferson County PVA for a bulk assessment-roll licence (or an open records request under KRS 61.870 et seq.) that allows republication of facts.",
+      "terms_url": "https://louisville-metro-opendata-lojic.hub.arcgis.com/pages/terms-of-use-and-license",
+      "license": "Open Data Commons Public Domain Dedication and License (PDDL) for Louisville Metro open datasets (Terms of Use page: 'You are free to: Share ... Create: produce works or sell services/products from the data ... Adapt'; no attribution requirement). The parcel item's own licenseInfo is a LOJIC limitation-of-liability notice. Datasets 'are provided for informational purposes'",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Permitted (PDDL), but the layer carries no owner or class",
+      "reviewed": "2026-11-03",
+      "notes": "Layer: gis.lojic.org/maps/rest/services/LojicSolutions/OpenDataPVA/MapServer/1 (293,467 parcels on 2026-11-03; maxRecordCount 2000; item 47085b87ac754d60942ea324a3b0f54f, 'updated daily'). The PVA subscription page says non-subscribers get owner, parcel ID, assessed value, acreage and neighborhood one parcel at a time; 'Owner', 'Legal' and 'Sales' searches, mailing address, land and improvement values, property class, sketches and tax data are paid. robots.txt: data.louisvilleky.gov Crawl-delay 60 (disallow /sites/, /admin/, /sessions/, /groups/, /people/, /workspace/); gis.lojic.org has none (404). There is no Kentucky statewide parcel or assessment download (Kentucky parcels are held by each county's PVA)."
+    }
+  ]
+}

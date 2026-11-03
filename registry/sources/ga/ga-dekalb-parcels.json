@@ -1,0 +1,33 @@
+{
+  "description": "Georgia: DeKalb County (FIPS 13089) 'Tax Parcels Current' open-data layer (CC0), with owner, class and appraised value. See docs/registry/data-policy.md and the review record in docs/registry/sources/ga-dekalb-parcels.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "ga-dekalb-parcels",
+      "publisher": "DeKalb County GIS Division (data from the DeKalb County Tax Commissioner and Board of Assessors CAMA and tax systems)",
+      "landing_pages": [
+        "https://www.arcgis.com/sharing/rest/content/items/e383e80264c24402b5d5711b671acb56?f=pjson"
+      ],
+      "allowed_hosts": [
+        "dcgis-dekalbgis.hub.arcgis.com",
+        "hub.arcgis.com",
+        "www.arcgis.com",
+        "services2.arcgis.com"
+      ],
+      "files": [
+        "https://dcgis-dekalbgis.hub.arcgis.com/api/download/v1/items/e383e80264c24402b5d5711b671acb56/csv?layers=0&where=CLASSDSCRP+LIKE+%27C%25%27+OR+CLASSDSCRP+LIKE+%27I%25%27"
+      ],
+      "verified": true,
+      "terms_url": "https://dcgis-dekalbgis.hub.arcgis.com/datasets/DeKalbGIS::tax-parcels-current/about",
+      "license": "CC0 1.0 (the dataset item's licenseInfo is 'CC0' and the Hub search record's licence is CC0-1.0); the item is 'derived from production tax parcels to be used in distributed collaboration for Open Data'. Public records under the Georgia Open Records Act (O.C.G.A. 50-18-70 et seq.). The older yearly items 'Tax Parcels 2021'-'2025' carry other or no licence text ('informational purposes only') and are not used",
+      "ai_use": "Not addressed by the publisher; CC0 places no condition on use",
+      "redistribution": "Permitted (CC0); no attribution required",
+      "reviewed": "2026-11-03",
+      "notes": "Item e383e80264c24402b5d5711b671acb56 'Tax Parcels Current' (Feature Service services2.arcgis.com/IxVN2oUE9EYLSnPE/arcgis/rest/services/TaxParcelsOD/FeatureServer/0; 246,494 rows on 2026-11-03; item modified 2026-09-16; data last edited 2026-11-01). One row per tax parcel or condominium unit. The Hub download API builds the CSV on request (HTTP 202 'ExportingData' until ready; repeat the snapshot); the URL filters to Georgia classes C (commercial) and I (industrial), 11,352 rows on 2026-11-03, instead of the full roll. The file has no land-use code (USECD and USEDSCRP are empty for every row), so apartments, which Georgia places in class C, cannot be told apart and are reported as F1. The class sits in CLASSDSCRP (CLASSCD is empty). gis.dekalbcountyga.gov (the county's ArcGIS Server) failed TLS validation (expired certificate) on 2026-11-03 and is not used. robots.txt: dcgis-dekalbgis.hub.arcgis.com and hub.arcgis.com set Crawl-delay 60 and disallow only /sites/, /admin/, /sessions/, /groups/, /people/, /workspace/; services2.arcgis.com answers 403 to robots.txt (no rules readable)."
+    }
+  ]
+}

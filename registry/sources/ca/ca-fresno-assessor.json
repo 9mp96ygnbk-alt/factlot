@@ -1,0 +1,26 @@
+{
+  "description": "Fresno County (FIPS 06019): free secured roll is a PDF with values but no use code or situs; use codes are sold only. Review record: docs/registry/sources/ca-fresno-assessor.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "ca-fresno-assessor",
+      "publisher": "Fresno County Assessor (Data for Sale and Free to Download)",
+      "landing_pages": [
+        "https://www.fresnocountyca.gov/Departments/Assessor/Assessment-Roll"
+      ],
+      "allowed_hosts": ["fresnocountyca.gov", "www.fresnocountyca.gov"],
+      "terms_url": "https://www.fresnocountyca.gov/Departments/Assessor/Assessment-Roll",
+      "license": "No licence on the free PDF. The Assessor sells the roll: Secured Assessment Roll with owners' names $48.70, Property Characteristics (has Use Code) $0.05 per parcel = $15,491.85 for 309,837 parcels, Situs Index $29.21. Gate: purchase by written request and cheque",
+      "ai_use": "Not addressed",
+      "redistribution": "Not addressed",
+      "notes": "Free to Download: Secured Roll File 2026 (PDF, 53 MB), 2025 (17 MB) ... 2022; assessee names omitted 'to comply with' Gov. Code 6254.21. The PDF lists APN, assessed value, land, improvements, trade fixtures, personal property, exemptions, net total and tax rate area only: no situs, no use code. The county GIS 'REGIONAL_PARCELS_VW' layer on the County of Fresno Data Sharing hub (315,734 parcels; APN, agency code, roll year) has no use code either and no licence. Use codes are in the paid Property Characteristics file (record layout: Use Code X(7), Assessors Use X(9), Number of Units, Area, Effective Year). 'We do not sell pieces of files', and files are sent after payment: written request to Fresno County Assessor, Attention: Data Sales, P.O. Box 1146, Fresno CA 93715 with a cheque payable to 'Fresno County Treasurer'. No file was bought.",
+      "files": [],
+      "verified": false,
+      "reviewed": "2026-11-03"
+    }
+  ]
+}

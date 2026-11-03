@@ -1,0 +1,31 @@
+{
+  "description": "Tennessee: Shelby County (Memphis; FIPS 47157) Assessor of Property certified parcels. Gated: the county's hosts block automated clients and no terms were readable. See docs/registry/sources/tn-shelby-assessor.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "tn-shelby-assessor",
+      "publisher": "Shelby County Assessor of Property (GIS)",
+      "landing_pages": [
+        "https://scgis.shelbycountytn.gov/serverhigh/rest/services/Parcel/CERTParcel/MapServer/0?f=pjson"
+      ],
+      "allowed_hosts": [
+        "scgis.shelbycountytn.gov",
+        "data.shelbycountytn.gov",
+        "www.assessor.shelbycountytn.gov"
+      ],
+      "files": [],
+      "verified": false,
+      "gate": "Host blocks automated clients and no terms are readable. data.shelbycountytn.gov (the county's open-data portal) answers 403 with a Cloudflare challenge page and its robots.txt carries content signals ai-train=no, use=reference; www.assessor.shelbycountytn.gov answers 403 to robots.txt and pages; the ArcGIS Server at scgis.shelbycountytn.gov answers queries but states no licence and its robots.txt request returned 504. Requires a person: ask the Shelby County Assessor of Property (GIS manager) for the licence terms and a bulk extract of the Certified Parcels (with owner, class and land use).",
+      "terms_url": "https://www.assessor.shelbycountytn.gov/gis",
+      "license": "Not read: the Assessor's GIS and terms pages return 403 to the collector. The ArcGIS layer carries only the copyright line 'Shelby County Assessor of Property, Memphis, TN'. Public records under the Tennessee Public Records Act (T.C.A. 10-7-503)",
+      "ai_use": "data.shelbycountytn.gov robots.txt: Content-Signal search=yes, ai-train=no, use=reference (and named AI crawlers disallowed)",
+      "redistribution": "Unknown",
+      "reviewed": "2026-11-03",
+      "notes": "The Comptroller's statewide parcel download does not cover Shelby (its page lists Chester, Davidson, Hamilton, Hickman, Knox, Montgomery, Rutherford, Shelby and Williamson as 'NOT MAINTAINED BY THE TENNESSEE OFFICE OF THE COMPTROLLER'). Candidate layer: scgis.shelbycountytn.gov/serverhigh/rest/services/Parcel/CERTParcel/MapServer/0 ('Shelby County Assessor of Property Parcels', 'Certified parcel data'; 353,334 parcels on 2026-11-03; maxRecordCount 1000; TAXYR 2026). Fields: PARID, OWNER (40 characters), OWNER_EXT, owner mailing parts OWN_*, PAR_ADDR1 (situs), PAR_ZIP, MUNI, CLASS (R 308,788; C 21,747; I 4,109; E 15,892; F 2,791), LUC (land-use code) and LANDUSE, LIVUNIT, PROPERTY ids, Latitude and Longitude. It has no values, building area or year built. LANDUSE (text) splits the commercial classes: class C MULTI-FAMILY 7,917, COMMERCIAL 6,317, OFFICE 2,893, VACANT 2,495, PARKING 929; class I INDUSTRIAL 2,636; LUC 251 and 252 are SINGLE-FAMILY and 059 is MULTI-FAMILY. Not loaded. The collector's discover run on 2026-11-03 could not reach scgis.shelbycountytn.gov: Python's TLS stack refused the server ('UNSAFE_LEGACY_RENEGOTIATION_DISABLED'), although a curl request succeeded, so a snapshot would fail until the county updates its TLS configuration."
+    }
+  ]
+}

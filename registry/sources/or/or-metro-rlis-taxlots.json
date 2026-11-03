@@ -1,0 +1,33 @@
+{
+  "description": "Oregon: Metro RLIS Taxlots (Public) for Clackamas, Multnomah and Washington Counties, for the FactLot Registry collector. See docs/registry/sources/or-metro-rlis-taxlots.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "or-metro-rlis-taxlots",
+      "publisher": "Metro (Oregon), Data Resource Center, Regional Land Information System (RLIS)",
+      "landing_pages": [
+        "https://www.arcgis.com/sharing/rest/content/items/b3cabe5845ec47eab61c54e0c631313c?f=json"
+      ],
+      "allowed_hosts": [
+        "rlisdiscovery.oregonmetro.gov",
+        "hub.arcgis.com",
+        "www.arcgis.com",
+        "services2.arcgis.com"
+      ],
+      "files": [
+        "https://rlisdiscovery.oregonmetro.gov/api/download/v1/items/b3cabe5845ec47eab61c54e0c631313c/csv?layers=3"
+      ],
+      "verified": true,
+      "terms_url": "https://rlisdiscovery.oregonmetro.gov/pages/open-database-license",
+      "license": "RLIS Open Database End User License Agreement (item licenseInfo: 'This database and GIS data are made available under the RLIS Open Database End User License Agreement'); Metro's metadata record names the Open Database License (ODbL) v1.0, which requires attribution and share-alike for derived databases. Ownership information is excluded from the open data by Metro ('excluding ownership information') and sold separately",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Permitted under ODbL (attribution, share-alike)",
+      "reviewed": "2026-11-03",
+      "notes": "Statewide? No: tri-county (Clackamas, Multnomah, Washington), 647,192 tax lots in the live layer, updated 2026-07-17 (layer 3 of FeatureServer Taxlots_(Public) on services2.arcgis.com/McQ0OlIABe29rJJy). The Hub export (rlisdiscovery -> 302 -> hub.arcgis.com/api/v3/datasets/b3cabe58..._3/downloads/data?format=csv&spatialRefId=2913&where=1%3D1) answers 200 text/csv, chunked, without Content-Length, and rejects Range requests; its Last-Modified was 2026-02-19 on 2026-11-03, i.e. an export cached before the layer's July update, so check Last-Modified before relying on it. The review took the first 30 MB of the stream (118,956 tax lots) and queried the live layer for totals. The CSV header is the field names. Multnomah County sells owner and detail files on a fee schedule (see the review record). robots.txt: rlisdiscovery.oregonmetro.gov and hub.arcgis.com both Crawl-delay 60, disallow /sites/ /admin/ /sessions/ /groups/ /people/ /workspace/ (not the download API); services2.arcgis.com none. Full export is over 50 MB, so no snapshot was taken here."
+    }
+  ]
+}

@@ -1,5 +1,7 @@
 # Source catalog: Tier 1 (reviewed 2026-11-02)
 
+Tier 2 (61 more counties, reviewed 2026-11-03) has its own index: [../tier2/README.md](../tier2/README.md).
+
 One review record per source lives in this folder; the machine-readable config for the collector
 is under [`registry/sources/<state>/`](../../../registry/sources/). **Verified** means a person
 can rely on the recorded terms, the file URLs were confirmed by a real download, and the licence

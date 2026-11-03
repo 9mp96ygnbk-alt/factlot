@@ -1,0 +1,34 @@
+{
+  "description": "Washington: Pierce County Assessor-Treasurer Data Mart extracts for the FactLot Registry collector. See docs/registry/sources/wa-pierce-assessor.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "wa-pierce-assessor",
+      "publisher": "Pierce County Assessor-Treasurer",
+      "landing_pages": [
+        "https://online.co.pierce.wa.us/cfapps/atr/datamart/downloads.cfm"
+      ],
+      "allowed_hosts": ["online.co.pierce.wa.us", "www.piercecountywa.gov"],
+      "files": [
+        "https://online.co.pierce.wa.us/datamart/tax_account.zip",
+        "https://online.co.pierce.wa.us/datamart/appraisal_account.zip",
+        "https://online.co.pierce.wa.us/datamart/improvement.zip",
+        "https://online.co.pierce.wa.us/datamart/improvement_builtas.zip"
+      ],
+      "verified": true,
+      "terms_url": "https://www.piercecountywa.gov/736/Data-Downloads",
+      "license": "Public record (RCW 42.56); no license or terms of use stated for the downloads. The Data Downloads page carries only a disclaimer: 'Neither Pierce County nor the Assessor-Treasurer's Office makes any warranty, express or implied, with regard to the accuracy, reliability or timeliness of this data, and shall not be held liable for losses caused by its use. Data is provided for informational purposes only, and may be incomplete for determination of value.' The files hold no owner names, so RCW 42.56.070(9) (lists of individuals) is not engaged by them",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not addressed by the publisher; public record",
+      "reviewed": "2026-11-03",
+      "notes": "The Data Downloads page (www.piercecountywa.gov/736/Data-Downloads) frames https://online.co.pierce.wa.us/cfapps/atr/datamart/downloads.cfm, which lists nine zipped pipe-delimited tables with their extract date (10/30/2026 at review) and size: appraisal_account 6.1 MB, improvement 3.8 MB, improvement_builtas 4.4 MB, improvement_detail 9.8 MB, land_attribute 2.0 MB, sale 19.9 MB, seg_merge 0.7 MB, tax_account 8.7 MB, tax_description 9.8 MB; each has a PDF table description at cfapps/atr/datamart/metadata/<table>.pdf. Confirmed by real downloads on 2026-11-03: tax_account.zip 9,134,574 bytes, appraisal_account.zip 6,369,100, improvement.zip 4,026,113, improvement_builtas.zip 4,621,943, land_attribute.zip 2,093,826 (all Last-Modified 2026-10-30). No account, login, click-through or fee. The extracts have NO owner names (no ownership table) and no header row. IMPORTANT: curl was answered with a Cloudflare 'Just a moment...' 403 on www.piercecountywa.gov, while Python urllib (the collector's client) with the same user agent got 200; the collector is not blocked. robots.txt: www.piercecountywa.gov disallows only /activedit /admin /search etc.; online.co.pierce.wa.us/robots.txt answers 404 (allowed). The county's Copyright Notices page (/site/copyright) renders its text with JavaScript and could not be read; a person should read it.",
+      "link_patterns": [
+        "/datamart/(tax_account|appraisal_account|improvement|improvement_builtas)\\.zip"
+      ]
+    }
+  ]
+}
