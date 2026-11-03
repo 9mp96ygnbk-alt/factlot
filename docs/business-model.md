@@ -4,6 +4,12 @@
 comparable companies. They are not validated. Each one is a target for
 [customer discovery](customer-discovery.md).
 
+The worked-out version of this model is under `docs/business/`: the
+[business plan](business/plan.md), the [36-month financial model](business/model.md) (monthly
+lines in [model.csv](business/model.csv)), and the
+[market sizing, competition, and pricing study](business/market.md), which replaces the ranges
+below with proposed prices compared against public price lists.
+
 ## The model: open core with a hosted cloud (like Supabase)
 
 Supabase licenses its platform under Apache-2.0 and its client SDKs under MIT, and
