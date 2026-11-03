@@ -29,6 +29,7 @@ The plan and the reasoning are in [`strategy.md`](strategy.md). Nothing here is 
 - [x] [needs the repo public] Check the first-screen README renders: tagline, early-access line, quick start from GitHub. **Status 2026-11-03: done: the README now leads with the one-line install.**
 - [ ] [founder posts it] Upload the social preview image (Settings, General, Social preview) so links look right on LinkedIn and X. **Status 2026-11-03: the image is ready at `docs/launch/assets/social-preview.png` (1280x640); GitHub accepts it only through the website.**
 - [ ] [founder posts it] In Cloudflare, turn off Browser Integrity Check for `api.factlot.com` (Security, Settings, or a Configuration Rule for that hostname). **Status 2026-11-03: it returns error 1010 to Python's default `urllib` user agent, which agents commonly use; curl, requests and Node pass.**
+- [ ] [founder posts it] Submit the Claude Code plugin to Anthropic's plugin directory through its web form, https://clau.de/plugin-directory-submission (PRs to anthropics/claude-plugins-community are closed automatically). Plugin: `plugins/factlot`; marketplace: `9mp96ygnbk-alt/factlot`.
 - [ ] [founder posts it] Merge the Dependabot pull requests that bump GitHub Actions (#20, #22, #23, #24, #25; CI passes on each). Close #21 (`@types/node` 26 while the engines field supports Node 22.6+). The agent's merge was blocked by its permission check.
 
 ## 11:30 to 12:00 EST: registry and lists (these only need a public repo)
