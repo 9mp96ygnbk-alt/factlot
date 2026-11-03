@@ -7,11 +7,13 @@
  */
 import type { z } from "zod";
 
+import { LeaseRemeasurementInput, leaseRemeasurementAsc842 } from "./asc842.ts";
 import { CamReconciliationInput, camReconciliation } from "./cam.ts";
 import type { CalcResult } from "./core.ts";
 import { DebtSizingInput, debtSizing } from "./debt.ts";
 import { IrrInput, NpvInput, irr, npv } from "./finance.ts";
 import { WaltInput, walt } from "./portfolio.ts";
+import { PrepaymentInput, prepaymentAndDefeasance } from "./prepayment.ts";
 import { ProposalComparisonInput, compareProposals } from "./proposals.ts";
 import { PercentageRentInput, percentageRent } from "./retail.ts";
 import {
@@ -21,12 +23,14 @@ import {
   rentSchedule,
 } from "./rent.ts";
 
+export * from "./asc842.ts";
 export * from "./cam.ts";
 export * from "./core.ts";
 export * from "./dates.ts";
 export * from "./debt.ts";
 export * from "./finance.ts";
 export * from "./portfolio.ts";
+export * from "./prepayment.ts";
 export * from "./proposals.ts";
 export * from "./retail.ts";
 export * from "./rules.ts";
@@ -96,6 +100,24 @@ export const calculators = {
       "Size the maximum loan under any combination of max LTV, min DSCR, and min debt yield for a given NOI, rate, and amortization. Reports the binding constraint, debt service, and resulting metrics.",
     input: DebtSizingInput,
     run: debtSizing,
+  },
+  lease_remeasurement_asc842: {
+    id: "calc.lease_remeasurement_asc842",
+    version: 1,
+    title: "Lease remeasurement (ASC 842, lessee)",
+    description:
+      "Remeasure a lessee's lease liability and right-of-use asset under ASC 842 after a modification, lease-term reassessment, contingency resolution, or residual value guarantee change: new liability (PV of remaining payments), liability and ROU adjustments with any gain (ASC 842-20-35-4), and the per-period amortization table (operating: straight-line single lease cost; finance: interest plus amortization). Warns where judgment is needed.",
+    input: LeaseRemeasurementInput,
+    run: leaseRemeasurementAsc842,
+  },
+  prepayment_and_defeasance: {
+    id: "calc.prepayment_and_defeasance",
+    version: 1,
+    title: "Loan prepayment premium and defeasance",
+    description:
+      "Prepayment premium, total payoff, and cost as a share of balance for a fixed-rate amortizing or interest-only loan under yield maintenance (PV of remaining payments or rate differential, with a minimum and an explicit discounting convention), a step-down schedule, a flat percentage, or defeasance (cost of the securities portfolio that funds the remaining payments plus stated costs).",
+    input: PrepaymentInput,
+    run: prepaymentAndDefeasance,
   },
   walt: {
     id: "calc.walt",

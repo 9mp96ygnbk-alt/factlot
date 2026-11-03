@@ -85,7 +85,8 @@ Or in any MCP client config:
 
 The server provides these tools: `calc_rent_schedule`, `calc_net_effective_rent`,
 `calc_compare_proposals`, `calc_percentage_rent`, `calc_cam_reconciliation`,
-`calc_debt_sizing`, `calc_walt`, `calc_npv`, `calc_irr`,
+`calc_debt_sizing`, `calc_lease_remeasurement_asc842`, `calc_prepayment_and_defeasance`,
+`calc_walt`, `calc_npv`, `calc_irr`,
 `rules_tx_property_tax_protest_deadline`,
 `id_parcel`, `id_entity`, `id_space`, `id_document`, `id_parse`, `fact_validate`,
 and `schema_get`, plus the six `registry_*` lookups when a registry database is configured

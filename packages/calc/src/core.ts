@@ -87,6 +87,25 @@ export function powInt(base: number, n: number): number {
   return result;
 }
 
+/**
+ * The positive n-th root of c > 0 by Newton's method, using only IEEE-754 +, −, ×, ÷ and
+ * `powInt`, so every SDK lands on the same bits. Iteration starts at or above the root and
+ * stops at the first step that fails to decrease, which is the floating-point fixed point.
+ */
+export function nthRoot(c: number, n: number): number {
+  if (!(c > 0) || !Number.isInteger(n) || n < 1)
+    throw new CalcInputError(
+      `nthRoot requires c > 0 and integer n ≥ 1, got ${c}, ${n}`,
+    );
+  let x = c >= 1 ? c : 1;
+  for (let i = 0; i < 200; i++) {
+    const next = x - (powInt(x, n) - c) / (n * powInt(x, n - 1));
+    if (!(next < x)) break;
+    x = next;
+  }
+  return x;
+}
+
 /** Significant digits kept before rounding, as spreadsheets do, to strip binary noise. */
 export const ROUNDING_SIGNIFICANT_DIGITS = 15;
 

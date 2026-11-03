@@ -13,7 +13,7 @@ def sched():
             "escalation":esc,"abated_months":sorted(random.sample(range(1,term+1),min(term,random.randint(0,12)))),"round_rate_to_cents":random.random()<0.3}
 cases=[]
 for _ in range(int(sys.argv[2])):
-    k=random.choice(["rent_schedule","net_effective_rent","compare_proposals","percentage_rent","cam_reconciliation","debt_sizing","walt","npv","irr"])
+    k=random.choice(["rent_schedule","net_effective_rent","compare_proposals","percentage_rent","cam_reconciliation","debt_sizing","walt","npv","irr","lease_remeasurement_asc842","prepayment_and_defeasance"])
     if k=="rent_schedule": inp=sched()
     elif k=="net_effective_rent": inp={"schedule":sched(),"ti_allowance_psf":round(random.uniform(0,150),2),"leasing_commissions":round(random.uniform(0,500000),2),"discount_rate_annual":round(random.uniform(0,0.15),4)}
     elif k=="compare_proposals": inp={"perspective":random.choice(["tenant","landlord"]),"discount_rate_annual":round(random.uniform(0,0.15),4),"proposals":[{"name":f"P{i}","schedule":sched(),"ti_allowance_psf":round(random.uniform(0,100),2),"additional_costs_psf_annual":round(random.uniform(0,20),2),"tenant_upfront_costs":round(random.uniform(0,1e5),2),"leasing_commissions":round(random.uniform(0,1e5),2)} for i in range(random.randint(2,5))]}
@@ -30,6 +30,32 @@ for _ in range(int(sys.argv[2])):
             if random.random()<0.7: inp[c]=v
         if not any(c in inp for c in ("max_ltv","min_dscr","min_debt_yield")): inp["min_dscr"]=1.25
     elif k=="walt": inp={"as_of":"2026-06-30","weight_by":random.choice(["area","rent"]),"leases":[{"expiration_date":f"20{random.randint(24,45)}-{random.randint(1,12):02d}-{random.randint(1,28):02d}","area_sf":round(random.uniform(500,1e5),0),"annual_rent":round(random.uniform(1e4,5e6),2)} for _ in range(random.randint(1,20))]}
+    elif k=="lease_remeasurement_asc842":
+        n=random.randint(1,120); periods=sorted(random.sample(range(1,n+1),random.randint(1,n)))
+        inp={"classification":random.choice(["operating","finance"]),"payments":[{"period":m,"amount":round(random.uniform(0,5e4),2)} for m in periods],
+             "payment_timing":random.choice(["begin","end"]),"discount_rate_annual":random.choice([0,round(random.uniform(0.005,0.15),4)]),
+             "periods_per_year":random.choice([12,12,4,1]),"discount_rate_updated":random.random()<0.5,"liability_before":round(random.uniform(0,3e6),2),
+             "rou_asset_before":round(random.uniform(0,3e6),2),
+             "event":random.choice(["modification_extend_term","modification_shorten_term","modification_change_in_payments","reassessment_of_term_or_option","contingency_resolved","residual_value_guarantee_change","index_or_rate_change"])}
+        if random.random()<0.3: inp["remaining_periods"]=n
+    elif k=="prepayment_and_defeasance":
+        n=random.randint(1,240)
+        inp={"balance":round(random.uniform(1e5,1e8),2),"note_rate_annual":round(random.uniform(0,0.12),4),"remaining_term_months":n,
+             "amortization_months":random.choice([0,n,n+random.randint(0,420)]),"accrued_interest":random.choice([0,round(random.uniform(0,2e5),2)])}
+        kind=random.choice(["yield_maintenance","step_down","fixed_pct","defeasance"])
+        conv=random.choice(["monthly","semiannual"])
+        if kind=="yield_maintenance":
+            inp["prepayment"]={"type":kind,"treasury_rate_annual":round(random.uniform(0,0.08),4),"spread_annual":random.choice([0,0.005,round(random.uniform(0,0.02),4)]),
+                               "minimum_pct":random.choice([0,0.01,round(random.uniform(0,0.03),4)]),"basis":random.choice(["pv_of_payments","rate_differential"]),"discount_convention":conv}
+        elif kind=="step_down":
+            steps=sorted(random.sample(range(1,121),random.randint(1,6)))
+            inp["prepayment"]={"type":kind,"loan_month":random.randint(1,130),"schedule":[{"through_month":m,"pct":round(random.uniform(0,0.06),4)} for m in steps]}
+        elif kind=="fixed_pct": inp["prepayment"]={"type":kind,"pct":round(random.uniform(0,0.05),4)}
+        else:
+            if random.random()<0.5: ry=round(random.uniform(0,0.1),4)
+            else:
+                months=sorted(random.sample(range(1,n+1),random.randint(1,min(n,5)))); ry=[{"months":m,"rate":round(random.uniform(0,0.1),4)} for m in months]
+            inp["prepayment"]={"type":kind,"replacement_yield":ry,"costs":round(random.uniform(0,2e5),2),"discount_convention":conv}
     elif k=="npv": inp={"cash_flows":[round(random.uniform(-1e6,1e6),2) for _ in range(random.randint(2,30))],"rate":round(random.uniform(-0.5,0.5),4)}
     else:
         n=random.randint(2,40); inp={"cash_flows":[-round(random.uniform(1e5,1e7),2)]+[round(random.uniform(-2e5,2e6),2) for _ in range(n-1)],"periods_per_year":random.choice([1,4,12])}

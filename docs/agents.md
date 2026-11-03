@@ -29,6 +29,8 @@ an identifier. This page covers which tool to call, when, and how to report the 
 | "What does the tenant owe in percentage rent?"                              | `calc_percentage_rent`                              |
 | "Reconcile CAM / opex for 2026" or "check this CAM statement"               | `calc_cam_reconciliation`                           |
 | "How big a loan can this support?" or "which constraint binds?"             | `calc_debt_sizing`                                  |
+| "Remeasure this lease under ASC 842" after an amendment or reassessment     | `calc_lease_remeasurement_asc842`                   |
+| "What does it cost to prepay or defease this loan?"                         | `calc_prepayment_and_defeasance`                    |
 | "What's the WALT?"                                                          | `calc_walt`                                         |
 | "NPV / IRR of these cash flows"                                             | `calc_npv`, `calc_irr`                              |
 | You have a county parcel number, a state LLC file number, a suite, or a PDF | `id_parcel`, `id_entity`, `id_space`, `id_document` |
