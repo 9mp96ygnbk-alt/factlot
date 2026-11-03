@@ -99,6 +99,32 @@ Collector `snapshot` on 2026-11-03 (7 files, 8,925,795 bytes, about 53 s at 2 s 
   withheld owners not stored: 3,806. Owner linking to the Comptroller entity file was not run on
   the scratch registry.
 
+## Full load (2026-11-03)
+
+Release `data-2026-11-03-41603209834` (draft, maintainers only) of `9mp96ygnbk-alt/factlot`. Each asset's sha256 was checked against the manifest and its first 16 hex characters against the name. Loaded into the Tier 2 scratch registry (one SQLite file shared by every Tier 2 source, `ct-sos-entities` first).
+
+Assets (document id from the manifest):
+
+- `tx-denton-cad__889b5c652a003358__query` (1,305,886 bytes): `fl:document:sha256-889b5c652a0033583839d7226875872de44d48ff12d537e16fb74458d2455235`
+- `tx-denton-cad__ac76d1ea9dd0024d__query` (1,300,167 bytes): `fl:document:sha256-ac76d1ea9dd0024d55515a11bbd01b56a7b48cebb2e277f41becec68619588ec`
+- `tx-denton-cad__999764effd26afcd__query` (1,295,949 bytes): `fl:document:sha256-999764effd26afcdedae6e60f7499167a4c3973277b0a1d7f8e147b675e84b5c`
+- `tx-denton-cad__3021872ed5e04dc3__query` (1,290,725 bytes): `fl:document:sha256-3021872ed5e04dc3f8f8198c3333140348a0679ae5ae546c1a29d5322cecbcda`
+- `tx-denton-cad__2c5f5ca0d193e64a__query` (1,302,715 bytes): `fl:document:sha256-2c5f5ca0d193e64aed0cd2b13faa5d0415abea7101931c5c8353ef9449eb18a6`
+- `tx-denton-cad__513eb3bb2a4ef524__query` (1,307,350 bytes): `fl:document:sha256-513eb3bb2a4ef5240101daa9de7f6d713695710b2ec13c40833eac9275d46e65`
+- `tx-denton-cad__1e9392f818acf752__query` (1,123,003 bytes): `fl:document:sha256-1e9392f818acf7526d9b6a134efe417b840dfc5c68bb75fa006488301927f48c`
+
+Command:
+
+```
+PYTHONPATH=python/src python3 -m factlot.registry.adapters.tx_denton registry.db <7 query page files in manifest order> --as-of 2026-11-03 --retrieved-at <manifest checked_at>
+```
+
+- Rows read: 13,732 features in 7 pages (13,446 distinct accounts); 142 accounts whose codes match the `where` clause but map to no B/F1/F2 are dropped.
+- Parcels kept: **13,304** distinct commercial parcels (`B` 4,143, `F1` 9,088, `F2` 73).
+- Facts written: 150,757. Seconds: 15.2. Invalid ids, errors, retired: 0, 0, 0.
+- Organisation owners stored (current owner-of-record facts): 9,484; natural persons or withheld owners not stored (names not kept): 3,820.
+- Ownership links to registered entities after `link_owners()`: 14 (the only entity registry in the scratch file is `ct-sos-entities`).
+
 ## Known gaps
 
 - `F3`, `F4`, `F010` accounts (about 140) are out of scope until DCAD's code table is read; the

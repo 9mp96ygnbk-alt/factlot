@@ -77,6 +77,34 @@ Milwaukee County (`CONAME='MILWAUKEE'`, `PROPCLASS` containing 2 or 3), collecto
   not stored: 4,810.
 - Fact counts: situs 16,551; market value 16,536; assessed value 16,465; land area 16,574; owner mailing address 11,689.
 
+## Full load (2026-11-03)
+
+Release `data-2026-11-03-41603209834` (draft, maintainers only) of `9mp96ygnbk-alt/factlot`. Each asset's sha256 was checked against the manifest and its first 16 hex characters against the name. Loaded into the Tier 2 scratch registry (one SQLite file shared by every Tier 2 source, `ct-sos-entities` first).
+
+Assets (document id from the manifest):
+
+- `wi-statewide-parcels__34c856ac2bda2291__query` (1,098,087 bytes): `fl:document:sha256-34c856ac2bda2291cba9496d81d613d3b07cccfc1b4f85eeb12bdc58565ef740`
+- `wi-statewide-parcels__2858f4144f5928b4__query` (1,093,118 bytes): `fl:document:sha256-2858f4144f5928b4ce36f8540e79b7c1545a660c9b626f30dc96c8b032cfbc45`
+- `wi-statewide-parcels__575b70a24365083e__query` (1,090,314 bytes): `fl:document:sha256-575b70a24365083ec258db1743c2ce29967da675b39e400d7444edc5fd55cf99`
+- `wi-statewide-parcels__6c7578effbbd1c65__query` (1,096,083 bytes): `fl:document:sha256-6c7578effbbd1c655739d2bfc88893cd4601dd259b575b497f957c19f2bbc5b1`
+- `wi-statewide-parcels__f2652f60f257d375__query` (1,094,405 bytes): `fl:document:sha256-f2652f60f257d3755bf87eb0b51e9774d1cd73372a63b88dae556c8d1ce84e4b`
+- `wi-statewide-parcels__db623c24ec04fe94__query` (1,093,381 bytes): `fl:document:sha256-db623c24ec04fe9486895d803a966cc56e3f7379764c3b6e9cfe42b3de97ed09`
+- `wi-statewide-parcels__0c9e2b376c6933c3__query` (1,096,591 bytes): `fl:document:sha256-0c9e2b376c6933c314de2941847c3346303c8d0172b0cb514c7c5665e37a9d66`
+- `wi-statewide-parcels__1e755d7b5b901ec5__query` (1,097,191 bytes): `fl:document:sha256-1e755d7b5b901ec5c5d6ebf85b60a977aa64726b672e793eaaa1d2d16db904b8`
+- `wi-statewide-parcels__acfe2428505f589f__query` (321,804 bytes): `fl:document:sha256-acfe2428505f589faa004f69a21b494f0f42393b38a666c39fc9c66824d38b89`
+
+Command:
+
+```
+PYTHONPATH=python/src python3 -m factlot.registry.adapters.wi_statewide <9 page files in manifest order> registry.db --as-of 2026-06-30 --retrieved-at <manifest checked_at>
+```
+
+- Rows read: 16,582 features in 9 pages; two repeated parcel ids dropped.
+- Parcels kept: **16,580** distinct commercial parcels (`B` 0, `F1` 15,726, `F2` 854).
+- Facts written: 155,893. Seconds: 17.1. Invalid ids, errors, retired: 0, 0, 0.
+- Organisation owners stored (current owner-of-record facts): 11,764; natural persons or withheld owners not stored (names not kept): 4,816.
+- Ownership links to registered entities after `link_owners()`: 26 (the only entity registry in the scratch file is `ct-sos-entities`).
+
 ## Known gaps
 
 - Only Milwaukee County was archived; the other 71 counties are the same query with another `CONAME` (185,994 commercial or

@@ -105,6 +105,28 @@ Totals: **20,053 parcels, 99,110 facts**, 0 invalid, 0 out of scope at ingest, 0
 parcel: APN and local use code 20,053; category 20,053; situs 20,032 (21 parcels without a street name); land area
 18,919 (condominium sub-parcels have none). No value, year-built or area facts exist.
 
+## Full load (2026-11-03)
+
+Release `data-2026-11-03-41603209834` (draft, maintainers only) of `9mp96ygnbk-alt/factlot`. Each asset's sha256 was checked against the manifest and its first 16 hex characters against the name. Loaded into the Tier 2 scratch registry (one SQLite file shared by every Tier 2 source, `ct-sos-entities` first).
+
+Assets (document id from the manifest):
+
+- `ca-sacramento-assessor__f5eae423cfcf6ac4__csv` (3,158,262 bytes): `fl:document:sha256-f5eae423cfcf6ac481f7afd0118504d5671579e0ddf2a1391db7d99da1436253`
+- `ca-sacramento-assessor__aab0eafb2b4c28b5__csv` (752,896 bytes): `fl:document:sha256-aab0eafb2b4c28b5c2cb1ed9bc0088309218232130c750ee93f6b9dc77f7b466`
+- `ca-sacramento-assessor__8ecb4cc96dcce4ee__csv` (177,629 bytes): `fl:document:sha256-8ecb4cc96dcce4eec70b2d0746d4cdcd7c9827a547729071b387a6108584ccbf`
+
+Command:
+
+```
+PYTHONPATH=python/src python3 -m factlot.registry.adapters.ca_sacramento <retail-office-industrial csv> <apartment-hotel csv> <care-recreational csv> registry.db --as-of 2026-11-01 --retrieved-at <manifest checked_at>
+```
+
+- Rows read: 20,942 data rows in the three exports (16,004 + 4,013 + 925).
+- Parcels kept: **20,053** distinct commercial parcels (`B` 3,664, `F1` 11,764, `F2` 4,625).
+- Facts written: 99,110. Seconds: 6.4. Invalid ids, errors, retired: 0, 0, 0.
+- Organisation owners stored (current owner-of-record facts): 0; natural persons or withheld owners not stored (names not kept): 0.
+- Ownership links to registered entities after `link_owners()`: 0 (the only entity registry in the scratch file is `ct-sos-entities`).
+
 ## Known gaps
 
 - No assessed values, no owner names (so no organisation owner links), no year built, no building area: the Assessor's

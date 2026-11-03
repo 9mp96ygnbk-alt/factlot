@@ -111,6 +111,28 @@ python -m factlot.registry.adapters.pa_allegheny allegheny_sample.csv registry.d
 The full file was not loaded (rule: no download over 50 MB). The first load will come from GitHub's
 network through the weekly collector workflow; the adapter streams the CSV row by row.
 
+## Full load (2026-11-03)
+
+Release `data-2026-11-03-41603209834` (draft, maintainers only) of `9mp96ygnbk-alt/factlot`. Each asset's sha256 was checked against the manifest and its first 16 hex characters against the name. Loaded into the Tier 2 scratch registry (one SQLite file shared by every Tier 2 source, `ct-sos-entities` first).
+
+Assets (document id from the manifest):
+
+- `pa-allegheny-assessments__acd7d834c5da1af1__data.csv` (312,706,781 bytes): `fl:document:sha256-acd7d834c5da1af1213dd36bf1c2d61e43fa3a85cf3b1488e28f402239fca413`
+- `pa-allegheny-assessments__1a847c070b1a94ec__data-dictionary-open-data.csv` (20,293 bytes): `fl:document:sha256-1a847c070b1a94ec80de53db992050ef53121050af74de165778ad6b4c1346ca`
+
+Command:
+
+```
+PYTHONPATH=python/src python3 -m factlot.registry.adapters.pa_allegheny <data.csv> registry.db --as-of 2026-11-02 --retrieved-at <manifest checked_at>
+```
+
+- Rows read: 584,995 data rows (the whole county assessment file).
+- Parcels kept: **35,302** distinct commercial parcels (`B` 3,695, `F1` 28,130, `F2` 3,477).
+- Facts written: 281,761. Seconds: 18.5. Invalid ids, errors, retired: 0, 0, 0.
+- Organisation owners stored (current owner-of-record facts): 0; natural persons or withheld owners not stored (names not kept): 0. The source carries no owner.
+- Ownership links to registered entities after `link_owners()`: 0 (the only entity registry in the scratch file is `ct-sos-entities`).
+- The data dictionary asset (`data-dictionary-open-data.csv`) was archived with it and is not loaded.
+
 ## Known gaps
 
 - **No owners.** See above. Allegheny parcels cannot be linked to registered entities from this source.

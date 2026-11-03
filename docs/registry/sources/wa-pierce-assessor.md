@@ -112,6 +112,29 @@ python -m factlot.registry.adapters.wa_pierce collected/wa-pierce-assessor/2a5d5
 - Of the kept parcels: situs address 12,530; market value 12,528; land area 12,525; building area 10,230; year built 10,229.
 - No entity linking is possible from this source (no owner names).
 
+## Full load (2026-11-03)
+
+Release `data-2026-11-03-41603209834` (draft, maintainers only) of `9mp96ygnbk-alt/factlot`. Each asset's sha256 was checked against the manifest and its first 16 hex characters against the name. Loaded into the Tier 2 scratch registry (one SQLite file shared by every Tier 2 source, `ct-sos-entities` first).
+
+Assets (document id from the manifest):
+
+- `wa-pierce-assessor__2a5d532998f4b078__tax_account.zip` (9,134,574 bytes): `fl:document:sha256-2a5d532998f4b078dc6d0d475b8e16c908c91fa85b7826792480fe5069ad3514`
+- `wa-pierce-assessor__d7a954726b54885b__appraisal_account.zip` (6,369,100 bytes): `fl:document:sha256-d7a954726b54885bd2c211b6fba13ac0d3d6fe42d8877e01da175e1c8ca64223`
+- `wa-pierce-assessor__c76c917a195b78af__improvement.zip` (4,026,113 bytes): `fl:document:sha256-c76c917a195b78afc7bf2fc2aa7f83944a0a7c2a418ebf7bea0d7b06ecc70832`
+- `wa-pierce-assessor__807a8ea43c805c18__improvement_builtas.zip` (4,621,943 bytes): `fl:document:sha256-807a8ea43c805c18c7163138530f5ebecf5ca30c3cdf12d85f2d34ac6c31fc05`
+
+Command:
+
+```
+PYTHONPATH=python/src python3 -m factlot.registry.adapters.wa_pierce <tax_account.zip> registry.db --as-of 2026-10-30 --appraisal <appraisal_account.zip> --improvement <improvement.zip> --builtas <improvement_builtas.zip> --retrieved-at <manifest checked_at>
+```
+
+- Rows read: 354,188 rows in `tax_account.zip` (the whole county); out of scope 341,658.
+- Parcels kept: **12,530** distinct commercial parcels (`B` 2,288, `F1` 9,745, `F2` 497).
+- Facts written: 120,668. Seconds: 10.3. Invalid ids, errors, retired: 0, 0, 0.
+- Organisation owners stored (current owner-of-record facts): 0; natural persons or withheld owners not stored (names not kept): 0. The tables carry no owner.
+- Ownership links to registered entities after `link_owners()`: 0 (the only entity registry in the scratch file is `ct-sos-entities`).
+
 ## Known gaps
 
 - No owner of record, so Pierce parcels cannot be linked to Washington entities from this source. Owners are on the

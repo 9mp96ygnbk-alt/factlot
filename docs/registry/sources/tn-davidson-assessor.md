@@ -91,6 +91,26 @@ None. (The founder may want written confirmation from `opendata@nashville.gov`; 
 - Facts written 94,950. Organisation owners stored 8,573; natural-person owners skipped 4,538. Seconds: 2.6.
   Errors: none.
 
+## Full load (2026-11-03)
+
+Release `data-2026-11-03-41603209834` (draft, maintainers only) of `9mp96ygnbk-alt/factlot`. Each asset's sha256 was checked against the manifest and its first 16 hex characters against the name. Loaded into the Tier 2 scratch registry (one SQLite file shared by every Tier 2 source, `ct-sos-entities` first).
+
+Assets (document id from the manifest):
+
+- `tn-davidson-assessor__53b25baeeea770bf__csv` (5,824,645 bytes): `fl:document:sha256-53b25baeeea770bf2606bad6d0be334d18551b947dc08ed7a184df524990b62b`
+
+Command:
+
+```
+PYTHONPATH=python/src python3 -m factlot.registry.adapters.tn_davidson <csv> registry.db --as-of 2026-11-02 --retrieved-at <manifest checked_at>
+```
+
+- Rows read: 13,627 data rows (516 vacant-land and greenhouse rows dropped).
+- Parcels kept: **13,111** distinct commercial parcels (`B` 973, `F1` 10,766, `F2` 1,372).
+- Facts written: 94,918. Seconds: 6.3. Invalid ids, errors, retired: 0, 0, 0.
+- Organisation owners stored (current owner-of-record facts): 8,557; natural persons or withheld owners not stored (names not kept): 4,554.
+- Ownership links to registered entities after `link_owners()`: 37 (the only entity registry in the scratch file is `ct-sos-entities`).
+
 ## Known gaps
 
 - No building area, year built or tax year in the file; land area is blank for condominium units (0 acres).

@@ -133,6 +133,32 @@ each loaded with `python -m factlot.registry.adapters.md_sdat <file> registry.db
   `b8c5022b78753b6c…`, Prince George's `6d2b09239ae981be…`, Baltimore County `7fca9ba1d85d6008…`; the full
   ids are in the collector manifest (`manifest.jsonl`) and in the scratch registry's `snapshots` table.
 
+## Full load (2026-11-03)
+
+Release `data-2026-11-03-41603209834` (draft, maintainers only) of `9mp96ygnbk-alt/factlot`. Each asset's sha256 was checked against the manifest and its first 16 hex characters against the name. Loaded into the Tier 2 scratch registry (one SQLite file shared by every Tier 2 source, `ct-sos-entities` first).
+
+Assets (document id from the manifest):
+
+- `md-sdat-real-property__b8c5022b78753b6c__ed4q-f8tm.csv` (3,204,693 bytes): `fl:document:sha256-b8c5022b78753b6c2b7ac89907a69ed7c1ff47b9342f699fde7346619fc5c980`
+- `md-sdat-real-property__6d2b09239ae981be__ed4q-f8tm.csv` (3,656,990 bytes): `fl:document:sha256-6d2b09239ae981beb2bc61eaf3d0bd6fa8bf8550d4b299f1f2a240f9d7970d5d`
+- `md-sdat-real-property__7fca9ba1d85d6008__ed4q-f8tm.csv` (3,774,152 bytes): `fl:document:sha256-7fca9ba1d85d6008f21cb191cc6c35382f4e4f8b50129ccef6277b20763bae8e`
+
+Command:
+
+```
+PYTHONPATH=python/src python3 -m factlot.registry.adapters.md_sdat <county csv> registry.db --as-of 2026-10-05 --retrieved-at <manifest checked_at>   # once per file, no --full-roll
+```
+
+- Rows read: 11,580 (Montgomery) + 13,023 (Prince George's) + 14,494 (Baltimore County) = 39,097 data rows; the two Montgomery accounts with a deletion date are skipped.
+- Parcels kept: **39,095** distinct commercial parcels (`B` 5,303, `F1` 25,902, `F2` 7,890).
+- By county:
+  - Montgomery (MD) (FIPS 24031): 11,578 parcels (`B` 1,282, `F1` 8,826, `F2` 1,470); organisation owners 0; ownership links 0.
+  - Prince George's (FIPS 24033): 13,023 parcels (`B` 1,139, `F1` 8,615, `F2` 3,269); organisation owners 0; ownership links 0.
+  - Baltimore County (FIPS 24005): 14,494 parcels (`B` 2,882, `F1` 8,461, `F2` 3,151); organisation owners 0; ownership links 0.
+- Facts written: 312,319. Seconds: 16.3. Invalid ids, errors, retired: 0, 0, 0.
+- Organisation owners stored (current owner-of-record facts): 0; natural persons or withheld owners not stored (names not kept): 0. The source carries no owner, so none is stored or counted as withheld.
+- Ownership links to registered entities after `link_owners()`: 0 (the only entity registry in the scratch file is `ct-sos-entities`).
+
 ## Known gaps
 
 - **No owners.** See Gates. Maryland parcels cannot be linked to entities from this source, so the

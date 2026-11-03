@@ -103,6 +103,26 @@ None for the loaded source. Notes for a person:
 - Facts written 84,188. Organisation owners stored 8,378; natural-person owners skipped 1,256 (no owner was blank).
   Seconds: 2.4. Errors: none.
 
+## Full load (2026-11-03)
+
+Release `data-2026-11-03-41603209834` (draft, maintainers only) of `9mp96ygnbk-alt/factlot`. Each asset's sha256 was checked against the manifest and its first 16 hex characters against the name. Loaded into the Tier 2 scratch registry (one SQLite file shared by every Tier 2 source, `ct-sos-entities` first).
+
+Assets (document id from the manifest):
+
+- `nc-wake-parcels__5afadddd9253fb82__North_Carolina_Parcels_.Polygons.csv` (4,930,961 bytes): `fl:document:sha256-5afadddd9253fb82cce064cac710d99cfc0b4457feae206c85fa7298942e805e`
+
+Command:
+
+```
+PYTHONPATH=python/src python3 -m factlot.registry.adapters.nc_wake <csv> registry.db --as-of 2026-05-17 --retrieved-at <manifest checked_at>
+```
+
+- Rows read: 9,722 data rows (88 apartment-class parcels with a one- to four-family main building dropped).
+- Parcels kept: **9,634** distinct commercial parcels (`B` 961, `F1` 6,515, `F2` 2,158).
+- Facts written: 84,176. Seconds: 6.1. Invalid ids, errors, retired: 0, 0, 0.
+- Organisation owners stored (current owner-of-record facts): 8,372; natural persons or withheld owners not stored (names not kept): 1,262.
+- Ownership links to registered entities after `link_owners()`: 87 (the only entity registry in the scratch file is `ct-sos-entities`).
+
 ## Known gaps
 
 - No building area and no tax year in the layer; year built is `structyear` (set for 9,628 of 9,634 parcels).

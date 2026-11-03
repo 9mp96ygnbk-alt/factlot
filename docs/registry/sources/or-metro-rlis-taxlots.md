@@ -100,6 +100,31 @@ python -m factlot.registry.adapters.or_metro_rlis or_rlis_prefix.csv scratch.db 
   facts written 57,304; organisation owners 0 (no owner column); 2 s.
 - Expected size of a full Multnomah load: 20,627 parcels (live-layer counts above).
 
+## Full load (2026-11-03)
+
+Release `data-2026-11-03-41603209834` (draft, maintainers only) of `9mp96ygnbk-alt/factlot`. Each asset's sha256 was checked against the manifest and its first 16 hex characters against the name. Loaded into the Tier 2 scratch registry (one SQLite file shared by every Tier 2 source, `ct-sos-entities` first).
+
+Assets (document id from the manifest):
+
+- `or-metro-rlis-taxlots__650b169684cc2530__Taxlots__.Public.csv` (162,431,724 bytes): `fl:document:sha256-650b169684cc25302a65245e0186d8bc9e54cac64936054ad1705cdfe054139d`
+
+Command:
+
+```
+PYTHONPATH=python/src python3 -m factlot.registry.adapters.or_metro_rlis <csv> registry.db --as-of 2026-07-17 --retrieved-at <manifest checked_at>
+```
+
+- Rows read: 645,882 data rows (the whole three-county Portland metro layer, 644,742 with an account number); out of scope 610,614.
+- Parcels kept: **34,128** distinct commercial parcels (`B` 6,388, `F1` 26,087, `F2` 1,653).
+- By county:
+  - Multnomah (FIPS 41051): 20,618 parcels (`B` 4,331, `F1` 16,210, `F2` 77); organisation owners 0; ownership links 0.
+  - Clackamas (FIPS 41005): 6,085 parcels (`B` 911, `F1` 3,707, `F2` 1,467); organisation owners 0; ownership links 0.
+  - Washington (OR) (FIPS 41067): 7,425 parcels (`B` 1,146, `F1` 6,170, `F2` 109); organisation owners 0; ownership links 0.
+- Facts written: 261,146. Seconds: 17.3. Invalid ids, errors, retired: 0, 0, 0.
+- Organisation owners stored (current owner-of-record facts): 0; natural persons or withheld owners not stored (names not kept): 0. The layer has no owner column.
+- Ownership links to registered entities after `link_owners()`: 0 (the only entity registry in the scratch file is `ct-sos-entities`).
+- Tier 2 covers Multnomah only; Clackamas and Washington parcels come with the same file and are loaded and counted above (ODbL share-alike applies to all of them; see Terms).
+
 ## Known gaps
 
 - No owner of record, so no entity linking for Multnomah (or any RLIS county) without a purchased owner file.

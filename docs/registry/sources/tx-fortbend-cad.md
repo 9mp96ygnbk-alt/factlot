@@ -102,6 +102,29 @@ rule; `F2` stays. Of the accounts with no improvement, 291 carry land code `F1` 
   property; the parcel counts are the whole roll's and the owner counts are partial.
 - The sample is not a collector snapshot (a ranged read), so no manifest document id exists for it.
 
+## Full load (2026-11-03)
+
+Release `data-2026-11-03-41603209834` (draft, maintainers only) of `9mp96ygnbk-alt/factlot`. Each asset's sha256 was checked against the manifest and its first 16 hex characters against the name. Loaded into the Tier 2 scratch registry (one SQLite file shared by every Tier 2 source, `ct-sos-entities` first).
+
+Assets (document id from the manifest):
+
+- `tx-fortbend-cad__9ab49abdc2baaa75__2026_07_07_1746-Orion-2026-Certified-Export-Redacted.zip` (58,776,333 bytes): `fl:document:sha256-9ab49abdc2baaa75bb2fd89ffecc316ae948f231db54f6740807e52b07758254`
+- `tx-fortbend-cad__b7b25d401181f672__2026_10_23_1427-Orion-2026-Supplement-4-Export-_Redacted.zip` (1,959,232 bytes): `fl:document:sha256-b7b25d401181f67224f40d4f02c8b7c3c4cac488e7aebb55b577cbd8ebd17598`
+
+Command:
+
+```
+PYTHONPATH=python/src python3 -m factlot.registry.adapters.tx_fortbend <certified zip> registry.db --as-of 2026-07-07 --retrieved-at <manifest checked_at>
+PYTHONPATH=python/src python3 -m factlot.registry.adapters.tx_fortbend <supplement 4 zip> registry.db --as-of 2026-10-23 --partial --retrieved-at <manifest checked_at>
+```
+
+- Rows read: 440,798 property rows in the certified roll (the whole roll, property and owner members both complete) + 4,837 in Supplement 4.
+- Parcels kept: **9,698** distinct commercial parcels (`B` 924, `F1` 8,570, `F2` 204); the adapter reported 9,818 kept records (120 repeated parcel ids).
+- Facts written: 80,511. Seconds: 13.1. Invalid ids, errors, retired: 0, 0, 0.
+- Organisation owners stored (current owner-of-record facts): 7,386; natural persons or withheld owners not stored (names not kept): 2,327. The owner member is now read in full (the review run above had only its first third): 7,386 of the 9,698 certified commercial parcels carry an organisation owner.
+- Ownership links to registered entities after `link_owners()`: 21 (the only entity registry in the scratch file is `ct-sos-entities`).
+- Category detail kept in the registry: `B1` 245, `B2` 617, `B3` 62 (folded into `B` above); Supplement 4 re-states 120 parcels, which replace their certified facts as the later as-of.
+
 ## Known gaps
 
 - No building area, year built or capped (appraised) value: the Orion export has none. The

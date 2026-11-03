@@ -118,6 +118,37 @@ Monroe County, the complete 2025 commercial and industrial extract, archived by 
   of Nassau's 29,138, 21,793 of Westchester's 37,533, 25,394 of Erie's 25,800 and 13,632 of Monroe's
   13,641.
 
+## Full load (2026-11-03)
+
+Release `data-2026-11-03-41603209834` (draft, maintainers only) of `9mp96ygnbk-alt/factlot`. Each asset's sha256 was checked against the manifest and its first 16 hex characters against the name. Loaded into the Tier 2 scratch registry (one SQLite file shared by every Tier 2 source, `ct-sos-entities` first).
+
+Assets (document id from the manifest):
+
+- `ny-orpts-rolls__1e1010c25009dd71__7vem-aaz7.csv` (9,655,351 bytes): `fl:document:sha256-1e1010c25009dd71daee640b5e73920a59ff35db9a89551222c36beb7d303c72`
+- `ny-orpts-rolls__8c7c38ccbbd2f56d__7vem-aaz7.csv` (6,838,782 bytes): `fl:document:sha256-8c7c38ccbbd2f56d81596317aec14143812401d4693f11178c3fd0a7936b80bd`
+- `ny-orpts-rolls__4cc95600e3af42ea__7vem-aaz7.csv` (8,409,239 bytes): `fl:document:sha256-4cc95600e3af42ea36edacfa88a72ddd91bd96a7fde3327bf69035b6d2f17fcf`
+- `ny-orpts-rolls__beceb1fbccf335d3__7vem-aaz7.csv` (5,880,903 bytes): `fl:document:sha256-beceb1fbccf335d3b1958f0ab588d756b6a5ad2218c0d8346b52155ff4773cc1`
+- `ny-orpts-rolls__b38f57c130565485__7vem-aaz7.csv` (3,208,024 bytes): `fl:document:sha256-b38f57c1305654853edfbb09c7821f4a9707d1930492f18557782128ac3c76c8`
+
+Command:
+
+```
+PYTHONPATH=python/src python3 -m factlot.registry.adapters.ny_orpts <county csv> registry.db --as-of 2026-04-24 --tax-year 2025 --retrieved-at <manifest checked_at>   # once per county file, no --full-roll
+```
+
+- Rows read: 148,821 data rows in the five county files (Suffolk 42,709, Nassau 29,138, Westchester 37,533, Erie 25,800, Monroe 13,641); the adapter drops classes 410, 412 and the 730-749 range at read time, so its records equal the parcels kept.
+- Parcels kept: **125,987** distinct commercial parcels (`B` 46,989, `F1` 72,643, `F2` 6,355).
+- By county:
+  - Monroe (FIPS 36055): 13,601 parcels (`B` 2,972, `F1` 9,755, `F2` 874); organisation owners 9,468; ownership links 70.
+  - Suffolk (FIPS 36103): 27,373 parcels (`B` 6,933, `F1` 17,806, `F2` 2,634); organisation owners 16,841; ownership links 53.
+  - Nassau (FIPS 36059): 23,449 parcels (`B` 3,428, `F1` 18,871, `F2` 1,150); organisation owners 17,341; ownership links 48.
+  - Westchester (FIPS 36119): 37,456 parcels (`B` 26,053, `F1` 10,870, `F2` 533); organisation owners 12,848; ownership links 110.
+  - Erie (FIPS 36029): 24,108 parcels (`B` 7,603, `F1` 15,341, `F2` 1,164); organisation owners 13,011; ownership links 46.
+- Facts written: 860,268. Seconds: 46.5. Invalid ids, errors, retired: 0, 0, 0.
+- Organisation owners stored (current owner-of-record facts): 69,509; natural persons or withheld owners not stored (names not kept): 56,471.
+- Ownership links to registered entities after `link_owners()`: 327 (the only entity registry in the scratch file is `ct-sos-entities`).
+- Suffolk's roll holds many class-410 seasonal homes that are out of scope; the figures above are in-scope classes only. The counts equal the SODA class counts recorded in the review run above (Suffolk 27,373; Nassau 23,449; Westchester 37,456; Erie 24,108; Monroe 13,601).
+
 ## Known gaps
 
 - No building area, year built or lot area: the roll has `front` and `depth` only, which are not an
