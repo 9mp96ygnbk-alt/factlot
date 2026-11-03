@@ -1166,6 +1166,436 @@
         }
       }
     },
+    "/v1/calc/lease_remeasurement_asc842": {
+      "post": {
+        "operationId": "calc_lease_remeasurement_asc842",
+        "summary": "Lease remeasurement (ASC 842, lessee)",
+        "description": "Remeasure a lessee's lease liability and right-of-use asset under ASC 842 after a modification, lease-term reassessment, contingency resolution, or residual value guarantee change: new liability (PV of remaining payments), liability and ROU adjustments with any gain (ASC 842-20-35-4), and the per-period amortization table (operating: straight-line single lease cost; finance: interest plus amortization). Warns where judgment is needed. Deterministic: use this instead of doing the math yourself; cite formula calc.lease_remeasurement_asc842@1 and the returned steps, and surface any warnings.",
+        "x-openai-isConsequential": false,
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "classification": {
+                    "type": "string",
+                    "enum": ["operating", "finance"],
+                    "description": "Lessee classification (ASC 842-10-25-2): operating (single straight-line lease cost) or finance (interest on the liability plus straight-line ROU amortization)."
+                  },
+                  "payments": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "period": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 1200,
+                          "description": "Period index counted from the remeasurement date (1 = first remaining period)."
+                        },
+                        "amount": {
+                          "type": "number",
+                          "minimum": 0,
+                          "description": "Lease payment due in that period after the event, USD: fixed and in-substance fixed payments, less incentives receivable (ASC 842-10-30-5)."
+                        }
+                      },
+                      "required": ["period", "amount"]
+                    },
+                    "description": "Remaining lease payments after the event, in ascending period order. Periods not listed carry no payment (rent-free)."
+                  },
+                  "remaining_periods": {
+                    "description": "Remaining lease term in periods after the event. Defaults to the last period index in payments; set it higher when the final periods are rent-free.",
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1200
+                  },
+                  "payment_timing": {
+                    "default": "end",
+                    "description": "Whether each payment falls at the beginning (in advance) or end (in arrears) of its period.",
+                    "type": "string",
+                    "enum": ["begin", "end"]
+                  },
+                  "discount_rate_annual": {
+                    "type": "number",
+                    "minimum": 0,
+                    "exclusiveMaximum": true,
+                    "description": "Annual discount rate applied to the remaining payments, e.g. 0.06. Nominal: the periodic rate is this ÷ periods_per_year.",
+                    "maximum": 1
+                  },
+                  "periods_per_year": {
+                    "default": 12,
+                    "description": "Payment periods per year (12 for monthly, 4 for quarterly).",
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 365
+                  },
+                  "discount_rate_updated": {
+                    "type": "boolean",
+                    "description": "True when discount_rate_annual was determined at the remeasurement date (ASC 842-10-35-5: required for modifications and lease-term or purchase-option reassessments); false when it is the rate from commencement (kept for contingency resolutions and residual value guarantee changes)."
+                  },
+                  "liability_before": {
+                    "type": "number",
+                    "minimum": 0,
+                    "description": "Carrying amount of the lease liability immediately before the remeasurement, USD."
+                  },
+                  "rou_asset_before": {
+                    "type": "number",
+                    "minimum": 0,
+                    "description": "Carrying amount of the right-of-use asset immediately before the remeasurement, USD (after any impairment)."
+                  },
+                  "event": {
+                    "type": "string",
+                    "enum": [
+                      "modification_extend_term",
+                      "modification_shorten_term",
+                      "modification_change_in_payments",
+                      "reassessment_of_term_or_option",
+                      "contingency_resolved",
+                      "residual_value_guarantee_change",
+                      "index_or_rate_change"
+                    ],
+                    "description": "What triggered the remeasurement: modification_extend_term / modification_shorten_term / modification_change_in_payments (a modification not accounted for as a separate contract, ASC 842-10-25-8 and 25-11), reassessment_of_term_or_option (ASC 842-10-35-1 and 35-4(c)), contingency_resolved (variable payments became fixed, ASC 842-10-35-4(b)), residual_value_guarantee_change (ASC 842-10-35-4(c)(3)), or index_or_rate_change (ASC 842-10-35-4: not a remeasurement trigger by itself; computed as if remeasured for another reason)."
+                  }
+                },
+                "required": [
+                  "classification",
+                  "payments",
+                  "discount_rate_annual",
+                  "discount_rate_updated",
+                  "liability_before",
+                  "rou_asset_before",
+                  "event"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Result: { value, formula, steps, warnings, provenance }.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input; read `issues`, fix the arguments, and retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "CalcInputError, FactLotIdError, InputError, or UnknownTool"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "issues": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "path": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error", "message"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/calc/prepayment_and_defeasance": {
+      "post": {
+        "operationId": "calc_prepayment_and_defeasance",
+        "summary": "Loan prepayment premium and defeasance",
+        "description": "Prepayment premium, total payoff, and cost as a share of balance for a fixed-rate amortizing or interest-only loan under yield maintenance (PV of remaining payments or rate differential, with a minimum and an explicit discounting convention), a step-down schedule, a flat percentage, or defeasance (cost of the securities portfolio that funds the remaining payments plus stated costs). Deterministic: use this instead of doing the math yourself; cite formula calc.prepayment_and_defeasance@1 and the returned steps, and surface any warnings.",
+        "x-openai-isConsequential": false,
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "balance": {
+                    "type": "number",
+                    "exclusiveMinimum": true,
+                    "description": "Outstanding principal balance at the payoff date, USD.",
+                    "minimum": 0
+                  },
+                  "note_rate_annual": {
+                    "type": "number",
+                    "minimum": 0,
+                    "exclusiveMaximum": true,
+                    "description": "Fixed annual note rate, e.g. 0.055.",
+                    "maximum": 1
+                  },
+                  "remaining_term_months": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 600,
+                    "description": "Months from the payoff date to the loan's maturity date (the balloon is due with the final payment)."
+                  },
+                  "amortization_months": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 720,
+                    "description": "Remaining amortization basis in months at the payoff date (e.g. 300 for a 30-year schedule with 5 years elapsed); 0 for interest-only. Must be at least remaining_term_months."
+                  },
+                  "accrued_interest": {
+                    "default": 0,
+                    "description": "Accrued but unpaid interest to the payoff date, USD; added to the total payoff.",
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "prepayment": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "enum": ["yield_maintenance"]
+                          },
+                          "treasury_rate_annual": {
+                            "type": "number",
+                            "minimum": 0,
+                            "exclusiveMaximum": true,
+                            "description": "Yield on the reference Treasury (usually the one maturing closest to the loan's maturity), e.g. 0.041.",
+                            "maximum": 1
+                          },
+                          "spread_annual": {
+                            "default": 0,
+                            "description": "Spread added to the Treasury yield for discounting, e.g. 0.005 when the note says 'Treasury plus 50 basis points'. Default 0 (Treasury flat).",
+                            "type": "number",
+                            "minimum": 0,
+                            "exclusiveMaximum": true,
+                            "maximum": 1
+                          },
+                          "minimum_pct": {
+                            "default": 0.01,
+                            "description": "Minimum premium as a fraction of the balance, e.g. 0.01 for a 1% floor (default). 0 for no floor.",
+                            "type": "number",
+                            "minimum": 0,
+                            "exclusiveMaximum": true,
+                            "maximum": 1
+                          },
+                          "basis": {
+                            "default": "pv_of_payments",
+                            "description": "pv_of_payments (default): premium = PV of the remaining scheduled payments at the discount rate − balance. rate_differential: premium = PV of (note rate − discount rate) ÷ 12 × scheduled balance for each remaining month.",
+                            "type": "string",
+                            "enum": ["pv_of_payments", "rate_differential"]
+                          },
+                          "discount_convention": {
+                            "default": "monthly",
+                            "description": "Compounding convention for the discount rate. monthly (default): monthly rate = annual ÷ 12. semiannual: annual is a bond-equivalent yield, monthly rate = (1 + annual ÷ 2)^(1/6) − 1. Lenders differ; read the note.",
+                            "type": "string",
+                            "enum": ["monthly", "semiannual"]
+                          }
+                        },
+                        "required": ["type", "treasury_rate_annual"],
+                        "description": "Yield maintenance."
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "enum": ["step_down"]
+                          },
+                          "loan_month": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 9007199254740991,
+                            "description": "Loan month (1 = first month after origination) in which the payoff occurs."
+                          },
+                          "schedule": {
+                            "minItems": 1,
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "through_month": {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 9007199254740991,
+                                  "description": "Last loan month in which this percentage applies."
+                                },
+                                "pct": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "exclusiveMaximum": true,
+                                  "description": "Premium as a fraction of the balance, e.g. 0.05 for 5%.",
+                                  "maximum": 1
+                                }
+                              },
+                              "required": ["through_month", "pct"]
+                            },
+                            "description": "Step-down schedule in ascending through_month order, e.g. 5-4-3-2-1. After the last through_month the loan is open (0%)."
+                          }
+                        },
+                        "required": ["type", "loan_month", "schedule"],
+                        "description": "Step-down (declining percentage) premium."
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "enum": ["fixed_pct"]
+                          },
+                          "pct": {
+                            "type": "number",
+                            "minimum": 0,
+                            "exclusiveMaximum": true,
+                            "description": "Premium as a fraction of the balance, e.g. 0.02.",
+                            "maximum": 1
+                          }
+                        },
+                        "required": ["type", "pct"],
+                        "description": "Flat percentage premium."
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "enum": ["defeasance"]
+                          },
+                          "replacement_yield": {
+                            "anyOf": [
+                              {
+                                "type": "number",
+                                "minimum": 0,
+                                "exclusiveMaximum": true,
+                                "description": "One flat annual yield for all replacement securities.",
+                                "maximum": 1
+                              },
+                              {
+                                "minItems": 1,
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "months": {
+                                      "type": "integer",
+                                      "minimum": 1,
+                                      "maximum": 9007199254740991,
+                                      "description": "Months from the payoff date up to and including which this yield applies; points in ascending order."
+                                    },
+                                    "rate": {
+                                      "type": "number",
+                                      "minimum": 0,
+                                      "exclusiveMaximum": true,
+                                      "description": "Annual yield on replacement securities maturing at or before that month, e.g. 0.042.",
+                                      "maximum": 1
+                                    }
+                                  },
+                                  "required": ["months", "rate"]
+                                },
+                                "description": "Yield curve as a step function: each payment uses the first point whose months ≥ its month; beyond the last point, the last rate."
+                              }
+                            ],
+                            "description": "Yield on the government securities bought to fund the remaining payments: a flat annual rate, or a list of {months, rate} points."
+                          },
+                          "costs": {
+                            "default": 0,
+                            "description": "Stated transaction costs, USD: defeasance consultant, legal, accountant, rating agency, servicer and custodian fees.",
+                            "type": "number",
+                            "minimum": 0
+                          },
+                          "discount_convention": {
+                            "default": "monthly",
+                            "description": "Compounding convention for the discount rate. monthly (default): monthly rate = annual ÷ 12. semiannual: annual is a bond-equivalent yield, monthly rate = (1 + annual ÷ 2)^(1/6) − 1. Lenders differ; read the note.",
+                            "type": "string",
+                            "enum": ["monthly", "semiannual"]
+                          }
+                        },
+                        "required": ["type", "replacement_yield"],
+                        "description": "Defeasance: buy securities that replicate the remaining payments."
+                      }
+                    ],
+                    "description": "Prepayment provision from the note."
+                  }
+                },
+                "required": [
+                  "balance",
+                  "note_rate_annual",
+                  "remaining_term_months",
+                  "amortization_months",
+                  "prepayment"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Result: { value, formula, steps, warnings, provenance }.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input; read `issues`, fix the arguments, and retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "CalcInputError, FactLotIdError, InputError, or UnknownTool"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "issues": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "path": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error", "message"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/calc/walt": {
       "post": {
         "operationId": "calc_walt",

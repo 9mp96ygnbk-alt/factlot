@@ -56,6 +56,23 @@ def pow_int(base: float, n: int) -> float:
     return result
 
 
+def nth_root(c: float, n: int) -> float:
+    """Positive n-th root of c > 0 by Newton's method (identical to @factlot/calc ``nthRoot``).
+
+    Only IEEE-754 +, -, *, / and ``pow_int`` are used; iteration starts at or above the root and
+    stops at the first step that fails to decrease, so every SDK lands on the same bits.
+    """
+    if not c > 0 or n < 1:
+        raise CalcInputError(f"nth_root requires c > 0 and integer n >= 1, got {c}, {n}")
+    x = float(c) if c >= 1 else 1.0
+    for _ in range(200):
+        nxt = x - (pow_int(x, n) - c) / (n * pow_int(x, n - 1))
+        if not nxt < x:
+            break
+        x = nxt
+    return x
+
+
 def sign(x: float) -> int:
     return (x > 0) - (x < 0)
 

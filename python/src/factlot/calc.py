@@ -21,6 +21,7 @@ from ._core import (
     fmt_pct,
     iso_date,
     join,
+    nth_root,
     num_str,
     number,
     obj,
@@ -380,6 +381,352 @@ def debt_sizing(raw: Any) -> Result:
     })
 
 
+# --- ASC 842 lease remeasurement (lessee) -----------------------------------------------------
+
+REMEASUREMENT_EVENTS = (
+    "modification_extend_term",
+    "modification_shorten_term",
+    "modification_change_in_payments",
+    "reassessment_of_term_or_option",
+    "contingency_resolved",
+    "residual_value_guarantee_change",
+    "index_or_rate_change",
+)
+_RATE_UPDATE_EVENTS = REMEASUREMENT_EVENTS[:4]
+_RATE_KEEP_EVENTS = ("contingency_resolved", "residual_value_guarantee_change")
+_EVENT_CITATION = {
+    "modification_extend_term": "ASC 842-10-25-8 and 25-11: modification not accounted for as a separate contract; remeasure and reallocate at the effective date",
+    "modification_shorten_term": "ASC 842-10-25-8 and 25-11: modification not accounted for as a separate contract; remeasure and reallocate at the effective date",
+    "modification_change_in_payments": "ASC 842-10-25-8 and 25-11: modification not accounted for as a separate contract; remeasure and reallocate at the effective date",
+    "reassessment_of_term_or_option": "ASC 842-10-35-1 and 35-4(c)(1)-(2): change in lease term or purchase-option assessment",
+    "contingency_resolved": "ASC 842-10-35-4(b): contingency resolved so variable payments now meet the definition of lease payments",
+    "residual_value_guarantee_change": "ASC 842-10-35-4(c)(3): change in amounts probable of being owed under a residual value guarantee",
+    "index_or_rate_change": "ASC 842-10-35-4: index or rate changes update payments only when remeasuring for another reason",
+}
+
+
+def lease_remeasurement_asc842(raw: Any) -> Result:
+    d = obj(raw)
+    classification = enum(d, "classification", ("operating", "finance"))
+    payments = []
+    last = 0
+    for i, p_raw in enumerate(array(d, "payments", min_len=1)):
+        p = join("payments", i)
+        pd = obj(p_raw, p)
+        period = number(pd, "period", p, integer=True, ge=1, le=1200)
+        amount = number(pd, "amount", p, ge=0)
+        if period <= last:
+            fail(join(p, "period"), "periods must be strictly increasing")
+        last = period
+        payments.append((period, amount))
+    remaining = number(d, "remaining_periods", optional=True, integer=True, ge=1, le=1200)
+    if remaining is not None and remaining < last:
+        fail("remaining_periods", "remaining_periods must be at least the last payment period")
+    timing = enum(d, "payment_timing", ("begin", "end"), default="end")
+    rate_annual = number(d, "discount_rate_annual", ge=0, lt=1)
+    ppy = number(d, "periods_per_year", default=12, integer=True, ge=1, le=365)
+    updated = d.get("discount_rate_updated")
+    if not isinstance(updated, bool):
+        fail("discount_rate_updated", "required" if updated is None else "expected boolean")
+    liability_before = number(d, "liability_before", ge=0)
+    rou_before = number(d, "rou_asset_before", ge=0)
+    event = enum(d, "event", REMEASUREMENT_EVENTS)
+
+    n = last if remaining is None else remaining
+    by_period = dict(payments)
+    in_advance = timing == "begin"
+    t = Trace()
+    t.step("Event", event, _EVENT_CITATION[event])
+    t.step("Remaining term", n, "periods after the remeasurement date")
+    r = t.step("Periodic discount rate", rate_annual / ppy,
+               f"{fmt_pct(rate_annual, 4)} ÷ {ppy}"
+               + (" (rate updated at remeasurement, ASC 842-10-35-5)" if updated else " (original rate retained)"))
+    total = 0.0
+    pv = 0.0
+    for k in range(1, n + 1):
+        p = by_period.get(k, 0)
+        total += p
+        pv += p * pow_int(1 + r, -(k - 1) if in_advance else -k)
+    total_payments = t.step("Remaining lease payments", round_(total, 2), "Σ payment_k, k = 1..n", "USD")
+    new_liability = t.step(
+        "New lease liability", round_(pv, 2),
+        f"ASC 842-10-35-4 and 842-20-35-3: Σ payment_k ÷ (1 + r)^{'(k − 1)' if in_advance else 'k'}, "
+        f"r = {num_str(round_(r, 8))}, payments in {'advance' if in_advance else 'arrears'}", "USD")
+    liability_adj = t.step("Liability adjustment", round_(new_liability - liability_before, 2),
+                           f"{fmt_money(new_liability)} − {fmt_money(liability_before)} carrying amount", "USD")
+    rou_adj = t.step("ROU asset adjustment", round_(max(liability_adj, -rou_before), 2),
+                     f"ASC 842-20-35-4: liability change adjusts the ROU asset, floored at −{fmt_money(rou_before)} "
+                     "so the asset is not reduced below zero", "USD")
+    gain = t.step("Gain recognized", round_(rou_adj - liability_adj, 2),
+                  "ASC 842-20-35-4: remeasurement in excess of the ROU asset carrying amount goes to profit or loss", "USD")
+    new_rou = t.step("New ROU asset", round_(rou_before + rou_adj, 2), f"{fmt_money(rou_before)} + {fmt_money(rou_adj)}", "USD")
+
+    operating = classification == "operating"
+    sl_cost = 0.0
+    amort_per = 0.0
+    if operating:
+        sl_cost = t.step("Straight-line lease cost", round_((total + new_rou - new_liability) / n, 2),
+                         f"ASC 842-20-25-6: (remaining payments {fmt_money(total)} + ROU {fmt_money(new_rou)} − "
+                         f"liability {fmt_money(new_liability)}) ÷ {n}", "USD/period")
+    else:
+        amort_per = t.step("ROU amortization per period", round_(new_rou / n, 2),
+                           f"ASC 842-20-35-7: {fmt_money(new_rou)} ÷ {n} straight-line over the remaining term", "USD/period")
+    t.step("Schedule",
+           "ASC 842-20-25-6 and 842-20-35-3: interest = opening liability × r; ROU amortization = straight-line cost − interest"
+           if operating else
+           "ASC 842-20-25-5 and 842-20-35-1: interest = opening liability × r; lease cost = interest + amortization",
+           "payment in advance: interest accrues on (opening liability − payment)" if in_advance
+           else "payment in arrears: interest accrues on the opening liability")
+
+    schedule = []
+    liability = new_liability
+    rou = new_rou
+    sum_interest = 0.0
+    sum_amort = 0.0
+    sl_unrounded = (total + new_rou - new_liability) / n
+    amort_unrounded = new_rou / n
+    for k in range(1, n + 1):
+        opening = liability
+        p = by_period.get(k, 0)
+        interest = (opening - p if in_advance else opening) * r
+        closing = opening + interest - p
+        amort = sl_unrounded - interest if operating else amort_unrounded
+        cost = sl_unrounded if operating else interest + amort
+        rou -= amort
+        sum_interest += interest
+        sum_amort += amort
+        schedule.append({
+            "period": k,
+            "opening_liability": round_(opening, 2),
+            "payment": round_(p, 2),
+            "interest": round_(interest, 2),
+            "closing_liability": round_(closing, 2),
+            "amortization": round_(amort, 2),
+            "closing_rou_asset": round_(rou, 2),
+            "lease_cost": round_(cost, 2),
+        })
+        liability = closing
+
+    if not updated and event in _RATE_UPDATE_EVENTS:
+        t.warn("ASC 842-10-35-5 (and 842-10-25-11 for modifications) require a discount rate determined at the "
+               "remeasurement date for this event; discount_rate_updated is false.")
+    if updated and event in _RATE_KEEP_EVENTS:
+        t.warn("ASC 842-10-35-5(b)-(c): the discount rate is not updated for a contingency resolution or a change in "
+               "amounts probable under a residual value guarantee; discount_rate_updated is true.")
+    if event == "index_or_rate_change":
+        t.warn("ASC 842-10-35-4: a change in an index or rate alone does not remeasure the liability; payments are "
+               "updated for the index only when the liability is remeasured for another reason. Otherwise the "
+               "difference is variable lease cost in the period incurred.")
+    if event == "modification_shorten_term":
+        t.warn("ASC 842-10-25-13: a modification that fully or partially terminates the lease requires a proportionate "
+               "reduction of the ROU asset with a gain or loss. This result applies the ASC 842-20-35-4 "
+               "liability-change adjustment only; decide whether the shortened term is a partial termination.")
+    if gain > 0:
+        t.warn("The liability decrease exceeded the ROU asset carrying amount; the excess is recognized in profit or "
+               "loss (ASC 842-20-35-4).")
+    if not operating:
+        t.warn("Finance-lease amortization runs straight-line over the remaining lease term; use the remaining useful "
+               "life instead when ownership transfers or a purchase option is reasonably certain (ASC 842-20-35-8).")
+
+    return t.result("calc.lease_remeasurement_asc842", 1, {
+        "classification": classification,
+        "remaining_periods": n,
+        "periodic_rate": round_(r, 8),
+        "total_remaining_payments": total_payments,
+        "new_lease_liability": new_liability,
+        "liability_adjustment": liability_adj,
+        "rou_asset_adjustment": rou_adj,
+        "gain_recognized": gain,
+        "new_rou_asset": new_rou,
+        "straight_line_lease_cost": sl_cost if operating else None,
+        "periodic_amortization": None if operating else amort_per,
+        "total_interest": round_(sum_interest, 2),
+        "total_amortization": round_(sum_amort, 2),
+        "schedule": schedule,
+    })
+
+
+# --- prepayment and defeasance ----------------------------------------------------------------
+
+
+def monthly_rate(annual: float, convention: str) -> float:
+    """Monthly rate for an annual rate under a discount convention (identical to @factlot/calc ``monthlyRate``)."""
+    return annual / 12 if convention == "monthly" else nth_root(1 + annual / 2, 6) - 1
+
+
+def _rate(d: dict[str, Any], key: str, path: str = "", **kw: Any) -> Any:
+    return number(d, key, path, ge=0, lt=1, **kw)
+
+
+def prepayment_and_defeasance(raw: Any) -> Result:
+    d = obj(raw)
+    B = number(d, "balance", gt=0)
+    note_rate = _rate(d, "note_rate_annual")
+    n = number(d, "remaining_term_months", integer=True, ge=1, le=600)
+    A = number(d, "amortization_months", integer=True, ge=0, le=720)
+    accrued = number(d, "accrued_interest", default=0, ge=0)
+    pp = obj(d.get("prepayment"), "prepayment")
+    kind = enum(pp, "type", ("yield_maintenance", "step_down", "fixed_pct", "defeasance"), "prepayment")
+    if kind == "yield_maintenance":
+        p = {
+            "treasury_rate_annual": _rate(pp, "treasury_rate_annual", "prepayment"),
+            "spread_annual": _rate(pp, "spread_annual", "prepayment", default=0),
+            "minimum_pct": _rate(pp, "minimum_pct", "prepayment", default=0.01),
+            "basis": enum(pp, "basis", ("pv_of_payments", "rate_differential"), "prepayment", default="pv_of_payments"),
+            "discount_convention": enum(pp, "discount_convention", ("monthly", "semiannual"), "prepayment", default="monthly"),
+        }
+    elif kind == "step_down":
+        schedule = []
+        last = 0
+        for i, s_raw in enumerate(array(pp, "schedule", "prepayment", min_len=1)):
+            sp = join(join("prepayment", "schedule"), i)
+            sd = obj(s_raw, sp)
+            through = number(sd, "through_month", sp, integer=True, ge=1)
+            pct = _rate(sd, "pct", sp)
+            if through <= last:
+                fail(join(sp, "through_month"), "through_month must be strictly increasing")
+            last = through
+            schedule.append((through, pct))
+        p = {"loan_month": number(pp, "loan_month", "prepayment", integer=True, ge=1), "schedule": schedule}
+    elif kind == "fixed_pct":
+        p = {"pct": _rate(pp, "pct", "prepayment")}
+    else:
+        ry = pp.get("replacement_yield")
+        ry_path = join("prepayment", "replacement_yield")
+        if isinstance(ry, list):
+            curve = []
+            last = 0
+            for i, y_raw in enumerate(array(pp, "replacement_yield", "prepayment", min_len=1)):
+                yp = join(ry_path, i)
+                yd = obj(y_raw, yp)
+                months = number(yd, "months", yp, integer=True, ge=1)
+                rate = _rate(yd, "rate", yp)
+                if months <= last:
+                    fail(join(yp, "months"), "months must be strictly increasing")
+                last = months
+                curve.append((months, rate))
+            flat = None
+        else:
+            flat = _rate(pp, "replacement_yield", "prepayment")
+            curve = [(n, flat)]
+        p = {
+            "flat": flat,
+            "curve": curve,
+            "costs": number(pp, "costs", "prepayment", default=0, ge=0),
+            "discount_convention": enum(pp, "discount_convention", ("monthly", "semiannual"), "prepayment", default="monthly"),
+        }
+    if A != 0 and A < n:
+        fail("amortization_months", "amortization_months must be 0 (interest-only) or at least remaining_term_months")
+
+    t = Trace()
+    i = note_rate / 12
+    payment = B * i if A == 0 else (B / A if i == 0 else (B * i) / (1 - pow_int(1 + i, -A)))
+    pmt = t.step("Monthly payment", round_(payment, 2),
+                 f"interest-only: {fmt_money(B)} × {fmt_pct(note_rate, 4)} ÷ 12" if A == 0
+                 else f"{fmt_money(B)} × i ÷ (1 − (1 + i)^−{A}), i = {fmt_pct(note_rate, 4)} ÷ 12", "USD")
+    openings = []
+    bal = B
+    for _k in range(1, n + 1):
+        openings.append(bal)
+        bal = bal + bal * i - payment
+    balloon_raw = max(0, bal)
+    balloon = t.step("Balloon at maturity", round_(balloon_raw, 2), f"scheduled balance after {n} payments", "USD")
+    pays = [payment + balloon_raw if idx == n - 1 else payment for idx in range(n)]
+    total_pay = 0.0
+    for v in pays:
+        total_pay += v
+    total_payments = t.step("Remaining scheduled payments", round_(total_pay, 2), f"{n} × {fmt_money(payment)} + balloon", "USD")
+
+    detail: dict[str, Any] = {}
+    if kind == "yield_maintenance":
+        dr = p["treasury_rate_annual"] + p["spread_annual"]
+        m = monthly_rate(dr, p["discount_convention"])
+        t.step("Discount rate", round_(m, 10),
+               f"({fmt_pct(p['treasury_rate_annual'], 4)} Treasury + {fmt_pct(p['spread_annual'], 4)} spread) → monthly, "
+               f"{p['discount_convention']} convention")
+        if p["basis"] == "pv_of_payments":
+            pv = 0.0
+            for k in range(1, n + 1):
+                pv += pays[k - 1] * pow_int(1 + m, -k)
+            pv_rounded = t.step("PV of remaining payments", round_(pv, 2),
+                                f"Σ payment_k ÷ (1 + {num_str(round_(m, 8))})^k, k = 1..{n}", "USD")
+            computed = t.step("Yield maintenance (before floor)", round_(pv - B, 2),
+                              f"{fmt_money(pv_rounded)} − {fmt_money(B)} balance", "USD")
+            detail["pv_of_remaining_payments"] = pv_rounded
+        else:
+            diff = (note_rate - dr) / 12
+            pv = 0.0
+            for k in range(1, n + 1):
+                pv += diff * openings[k - 1] * pow_int(1 + m, -k)
+            computed = t.step("Yield maintenance (before floor)", round_(pv, 2),
+                              f"Σ ({fmt_pct(note_rate, 4)} − {fmt_pct(dr, 4)}) ÷ 12 × balance_(k−1) ÷ "
+                              f"(1 + {num_str(round_(m, 8))})^k, k = 1..{n}", "USD")
+        floor = t.step("Minimum premium", round_(B * p["minimum_pct"], 2), f"{fmt_money(B)} × {fmt_pct(p['minimum_pct'], 4)}", "USD")
+        premium = t.step("Prepayment premium", max(computed, floor), "max(yield maintenance, minimum)", "USD")
+        detail["basis"] = p["basis"]
+        detail["discount_rate_annual"] = round_(dr, 8)
+        detail["discount_rate_monthly"] = round_(m, 10)
+        detail["computed_premium"] = computed
+        detail["minimum_premium"] = floor
+        t.warn(f"Yield maintenance computed on the {p['basis']} basis, discounting {p['discount_convention']} at "
+               f"Treasury{' plus spread' if p['spread_annual'] > 0 else ' flat'}; notes differ on all three, so match "
+               "them to the loan documents.")
+    elif kind == "step_down":
+        tier = next((s for s in p["schedule"] if p["loan_month"] <= s[0]), None)
+        pct = tier[1] if tier else 0
+        t.step("Applicable percentage", pct,
+               f"loan month {p['loan_month']} ≤ {tier[0]}" if tier
+               else f"loan month {p['loan_month']} is after the last step (open)")
+        premium = t.step("Prepayment premium", round_(B * pct, 2), f"{fmt_money(B)} × {fmt_pct(pct, 4)}", "USD")
+        detail["applied_pct"] = pct
+        detail["loan_month"] = p["loan_month"]
+        t.warn("Lockout periods are not modeled: if the note is locked out in this loan month, it cannot be prepaid at any premium.")
+    elif kind == "fixed_pct":
+        premium = t.step("Prepayment premium", round_(B * p["pct"], 2), f"{fmt_money(B)} × {fmt_pct(p['pct'], 4)}", "USD")
+        detail["applied_pct"] = p["pct"]
+    else:
+        curve = p["curve"]
+        last_rate = curve[-1][1]
+
+        def yield_for(k: int) -> float:
+            return next((rate for months, rate in curve if k <= months), last_rate)
+
+        cost = 0.0
+        for k in range(1, n + 1):
+            m = monthly_rate(yield_for(k), p["discount_convention"])
+            cost += pays[k - 1] * pow_int(1 + m, -k)
+        securities = t.step("Cost of replacement securities", round_(cost, 2),
+                            f"Σ payment_k ÷ (1 + y)^k at {fmt_pct(p['flat'], 4)} ({p['discount_convention']})" if p["flat"] is not None
+                            else f"Σ payment_k ÷ (1 + y_k)^k with y_k from the {len(curve)}-point curve ({p['discount_convention']})",
+                            "USD")
+        costs = t.step("Defeasance costs", round_(p["costs"], 2), "as stated", "USD")
+        premium = t.step("Prepayment premium", round_(securities + costs - B, 2),
+                         f"{fmt_money(securities)} + {fmt_money(costs)} − {fmt_money(B)} balance", "USD")
+        detail["securities_cost"] = securities
+        detail["stated_costs"] = costs
+        t.warn("Securities cost approximates the defeasance portfolio by discounting each payment at the stated yield; "
+               "the actual portfolio is priced from specific Treasury or agency securities and may leave a residual "
+               "(float) value. Get a consultant's quote before relying on it.")
+        if premium < 0:
+            t.warn("Replacement yields exceed the note rate, so the securities cost less than the balance; whether the "
+                   "borrower keeps that benefit depends on the loan documents.")
+
+    payoff = t.step("Total payoff", round_(B + premium + accrued, 2),
+                    f"{fmt_money(B)} balance + {fmt_money(premium)} premium + {fmt_money(accrued)} accrued interest", "USD")
+    ratio = t.step("Effective cost", round_(premium / B, 6),
+                   f"{fmt_money(premium)} ÷ {fmt_money(B)} = {fmt_pct(premium / B, 3)} of balance")
+    return t.result("calc.prepayment_and_defeasance", 1, {
+        "prepayment_type": kind,
+        "monthly_payment": pmt,
+        "balloon_at_maturity": balloon,
+        "total_remaining_payments": total_payments,
+        "prepayment_premium": premium,
+        "total_payoff": payoff,
+        "effective_cost_ratio": ratio,
+        "detail": detail,
+    })
+
+
 # --- portfolio --------------------------------------------------------------------------------
 
 
@@ -601,6 +948,8 @@ CALCULATORS: dict[str, tuple[Callable[[Any], Result], str, int]] = {
     "percentage_rent": (percentage_rent, "calc.percentage_rent", 1),
     "cam_reconciliation": (cam_reconciliation, "calc.cam_reconciliation", 1),
     "debt_sizing": (debt_sizing, "calc.debt_sizing", 1),
+    "lease_remeasurement_asc842": (lease_remeasurement_asc842, "calc.lease_remeasurement_asc842", 1),
+    "prepayment_and_defeasance": (prepayment_and_defeasance, "calc.prepayment_and_defeasance", 1),
     "walt": (walt, "calc.walt", 1),
     "npv": (npv, "calc.npv", 1),
     "irr": (irr, "calc.irr", 1),

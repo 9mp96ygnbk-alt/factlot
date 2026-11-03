@@ -18,6 +18,19 @@ from its commit history; nothing was published to npm or PyPI before it.
 
 ### Added
 
+- `calc.lease_remeasurement_asc842@1`: lessee remeasurement of a lease liability and
+  right-of-use asset under ASC 842 (modification, lease-term or purchase-option reassessment,
+  contingency resolution, residual value guarantee change; index changes warn that they are not
+  a trigger on their own), with the ASC 842-20-35-4 asset adjustment and gain floor and a
+  per-period table (operating: straight-line single lease cost; finance: interest plus
+  amortization). Steps cite the ASC paragraphs; judgment points (partial termination, discount
+  rate updates) are warnings.
+- `calc.prepayment_and_defeasance@1`: prepayment premium, total payoff, and cost as a share of
+  balance for a fixed-rate loan under yield maintenance (PV-of-payments or rate-differential
+  basis, Treasury plus spread, minimum, and an explicit monthly or semiannual discounting
+  convention), step-down, flat percentage, or defeasance (replacement securities cost from a flat
+  yield or a stepped curve, plus stated costs). Both calculators ship in TypeScript and Python
+  with shared vectors and differential-test generators.
 - `@factlot/schema` (MIT): the fact data model with provenance and AI-use rights, exported as
   JSON Schema.
 - `@factlot/id`: FactLot ID v0.1, deterministic identifiers for parcels, legal entities,

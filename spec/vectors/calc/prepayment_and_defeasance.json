@@ -1,0 +1,346 @@
+{
+  "calculator": "calc.prepayment_and_defeasance",
+  "version": 1,
+  "cases": [
+    {
+      "name": "yield maintenance on an interest-only loan, PV of payments at Treasury flat",
+      "input": {
+        "balance": 10000000,
+        "note_rate_annual": 0.06,
+        "remaining_term_months": 36,
+        "amortization_months": 0,
+        "prepayment": {
+          "type": "yield_maintenance",
+          "treasury_rate_annual": 0.04
+        }
+      },
+      "expect": {
+        "value.prepayment_type": "yield_maintenance",
+        "value.monthly_payment": 50000.0,
+        "value.balloon_at_maturity": 10000000.0,
+        "value.total_remaining_payments": 11800000.0,
+        "value.prepayment_premium": 564512.77,
+        "value.total_payoff": 10564512.77,
+        "value.effective_cost_ratio": 0.056451,
+        "value.detail.pv_of_remaining_payments": 10564512.77,
+        "value.detail.computed_premium": 564512.77,
+        "value.detail.minimum_premium": 100000.0,
+        "value.detail.discount_rate_monthly": 0.0033333333,
+        "value.detail.basis": "pv_of_payments"
+      },
+      "notes": "Payments 50,000 × 35 then 10,050,000; PV = Σ payment_k × (1 + 0.04/12)^−k at 50-digit decimal; premium = PV − balance, above the 1% floor."
+    },
+    {
+      "name": "yield maintenance, rate differential on scheduled balances, Treasury plus 50 bps",
+      "input": {
+        "balance": 5000000,
+        "note_rate_annual": 0.055,
+        "remaining_term_months": 60,
+        "amortization_months": 300,
+        "prepayment": {
+          "type": "yield_maintenance",
+          "treasury_rate_annual": 0.038,
+          "spread_annual": 0.005,
+          "basis": "rate_differential"
+        }
+      },
+      "expect": {
+        "value.prepayment_type": "yield_maintenance",
+        "value.monthly_payment": 30704.37,
+        "value.balloon_at_maturity": 4463576.27,
+        "value.total_remaining_payments": 6305838.74,
+        "value.prepayment_premium": 256467.77,
+        "value.total_payoff": 5256467.77,
+        "value.effective_cost_ratio": 0.051294,
+        "value.detail.computed_premium": 256467.77,
+        "value.detail.minimum_premium": 50000.0,
+        "value.detail.discount_rate_monthly": 0.0035833333,
+        "value.detail.basis": "rate_differential"
+      },
+      "notes": "Payment = B × i ÷ (1 − (1 + i)^−300); balances rolled forward monthly; premium = Σ (0.055 − 0.043) ÷ 12 × balance_(k−1) × (1 + 0.043/12)^−k."
+    },
+    {
+      "name": "yield maintenance floors at the 1% minimum when Treasuries exceed the note rate",
+      "input": {
+        "balance": 2000000,
+        "note_rate_annual": 0.045,
+        "remaining_term_months": 24,
+        "amortization_months": 0,
+        "prepayment": {
+          "type": "yield_maintenance",
+          "treasury_rate_annual": 0.05
+        }
+      },
+      "expect": {
+        "value.prepayment_type": "yield_maintenance",
+        "value.monthly_payment": 7500.0,
+        "value.balloon_at_maturity": 2000000.0,
+        "value.total_remaining_payments": 2180000.0,
+        "value.prepayment_premium": 20000.0,
+        "value.total_payoff": 2020000.0,
+        "value.effective_cost_ratio": 0.01,
+        "value.detail.pv_of_remaining_payments": 1981005.08,
+        "value.detail.computed_premium": -18994.92,
+        "value.detail.minimum_premium": 20000.0,
+        "value.detail.discount_rate_monthly": 0.0041666667,
+        "value.detail.basis": "pv_of_payments"
+      },
+      "notes": "PV at 5% of a 4.5% coupon stream is below par, so the computed premium is negative and the 1% floor (20,000) applies."
+    },
+    {
+      "name": "yield maintenance with the semiannual bond-equivalent convention",
+      "input": {
+        "balance": 1000000,
+        "note_rate_annual": 0.06,
+        "remaining_term_months": 12,
+        "amortization_months": 0,
+        "prepayment": {
+          "type": "yield_maintenance",
+          "treasury_rate_annual": 0.04,
+          "minimum_pct": 0,
+          "discount_convention": "semiannual"
+        }
+      },
+      "expect": {
+        "value.prepayment_type": "yield_maintenance",
+        "value.monthly_payment": 5000.0,
+        "value.balloon_at_maturity": 1000000.0,
+        "value.total_remaining_payments": 1060000.0,
+        "value.prepayment_premium": 19899.13,
+        "value.total_payoff": 1019899.13,
+        "value.effective_cost_ratio": 0.019899,
+        "value.detail.pv_of_remaining_payments": 1019899.13,
+        "value.detail.computed_premium": 19899.13,
+        "value.detail.minimum_premium": 0.0,
+        "value.detail.discount_rate_monthly": 0.0033058903,
+        "value.detail.basis": "pv_of_payments"
+      },
+      "notes": "Monthly discount rate = 1.02^(1/6) − 1 computed with decimal power at 50 digits; PV = Σ payment_k × (1 + m)^−k."
+    },
+    {
+      "name": "step-down schedule picks the tier for the loan month",
+      "input": {
+        "balance": 5000000,
+        "note_rate_annual": 0.055,
+        "remaining_term_months": 60,
+        "amortization_months": 300,
+        "prepayment": {
+          "type": "step_down",
+          "loan_month": 30,
+          "schedule": [
+            {
+              "through_month": 12,
+              "pct": 0.05
+            },
+            {
+              "through_month": 24,
+              "pct": 0.04
+            },
+            {
+              "through_month": 36,
+              "pct": 0.03
+            }
+          ]
+        }
+      },
+      "expect": {
+        "value.prepayment_type": "step_down",
+        "value.monthly_payment": 30704.37,
+        "value.balloon_at_maturity": 4463576.27,
+        "value.total_remaining_payments": 6305838.74,
+        "value.prepayment_premium": 150000.0,
+        "value.total_payoff": 5150000.0,
+        "value.effective_cost_ratio": 0.03,
+        "value.detail.applied_pct": 0.03
+      },
+      "notes": "Loan month 30 falls in the 25–36 tier: 3% × 5,000,000."
+    },
+    {
+      "name": "step-down after the last tier is open (no premium)",
+      "input": {
+        "balance": 5000000,
+        "note_rate_annual": 0.055,
+        "remaining_term_months": 60,
+        "amortization_months": 300,
+        "prepayment": {
+          "type": "step_down",
+          "loan_month": 40,
+          "schedule": [
+            {
+              "through_month": 12,
+              "pct": 0.05
+            },
+            {
+              "through_month": 24,
+              "pct": 0.04
+            },
+            {
+              "through_month": 36,
+              "pct": 0.03
+            }
+          ]
+        }
+      },
+      "expect": {
+        "value.prepayment_type": "step_down",
+        "value.monthly_payment": 30704.37,
+        "value.balloon_at_maturity": 4463576.27,
+        "value.total_remaining_payments": 6305838.74,
+        "value.prepayment_premium": 0.0,
+        "value.total_payoff": 5000000.0,
+        "value.effective_cost_ratio": 0.0,
+        "value.detail.applied_pct": 0.0
+      },
+      "notes": "Loan month 40 is past through_month 36."
+    },
+    {
+      "name": "flat percentage with accrued interest in the payoff",
+      "input": {
+        "balance": 3250000,
+        "note_rate_annual": 0.0625,
+        "remaining_term_months": 84,
+        "amortization_months": 360,
+        "accrued_interest": 12345.67,
+        "prepayment": {
+          "type": "fixed_pct",
+          "pct": 0.02
+        }
+      },
+      "expect": {
+        "value.prepayment_type": "fixed_pct",
+        "value.monthly_payment": 20010.81,
+        "value.balloon_at_maturity": 2926091.7,
+        "value.total_remaining_payments": 4606999.66,
+        "value.prepayment_premium": 65000.0,
+        "value.total_payoff": 3327345.67,
+        "value.effective_cost_ratio": 0.02,
+        "value.detail.applied_pct": 0.02
+      },
+      "notes": "Premium = 2% × 3,250,000; payoff = balance + premium + accrued interest."
+    },
+    {
+      "name": "defeasance with a flat replacement yield and stated costs",
+      "input": {
+        "balance": 5000000,
+        "note_rate_annual": 0.055,
+        "remaining_term_months": 60,
+        "amortization_months": 300,
+        "prepayment": {
+          "type": "defeasance",
+          "replacement_yield": 0.042,
+          "costs": 75000
+        }
+      },
+      "expect": {
+        "value.prepayment_type": "defeasance",
+        "value.monthly_payment": 30704.37,
+        "value.balloon_at_maturity": 4463576.27,
+        "value.total_remaining_payments": 6305838.74,
+        "value.prepayment_premium": 353507.22,
+        "value.total_payoff": 5353507.22,
+        "value.effective_cost_ratio": 0.070701,
+        "value.detail.securities_cost": 5278507.22,
+        "value.detail.stated_costs": 75000.0
+      },
+      "notes": "Securities cost = Σ payment_k × (1 + 0.042/12)^−k; premium = securities cost + 75,000 − balance."
+    },
+    {
+      "name": "defeasance with a stepped yield curve",
+      "input": {
+        "balance": 5000000,
+        "note_rate_annual": 0.055,
+        "remaining_term_months": 60,
+        "amortization_months": 300,
+        "prepayment": {
+          "type": "defeasance",
+          "replacement_yield": [
+            {
+              "months": 12,
+              "rate": 0.04
+            },
+            {
+              "months": 36,
+              "rate": 0.043
+            }
+          ]
+        }
+      },
+      "expect": {
+        "value.prepayment_type": "defeasance",
+        "value.monthly_payment": 30704.37,
+        "value.balloon_at_maturity": 4463576.27,
+        "value.total_remaining_payments": 6305838.74,
+        "value.prepayment_premium": 257047.55,
+        "value.total_payoff": 5257047.55,
+        "value.effective_cost_ratio": 0.05141,
+        "value.detail.securities_cost": 5257047.55,
+        "value.detail.stated_costs": 0.0
+      },
+      "notes": "Months 1–12 discount at 4.0%, months 13–36 at 4.3%, months 37–60 at the last point (4.3%)."
+    },
+    {
+      "name": "defeasance when replacement yields exceed the note rate costs less than par",
+      "input": {
+        "balance": 1000000,
+        "note_rate_annual": 0.04,
+        "remaining_term_months": 24,
+        "amortization_months": 0,
+        "prepayment": {
+          "type": "defeasance",
+          "replacement_yield": 0.06
+        }
+      },
+      "expect": {
+        "value.prepayment_type": "defeasance",
+        "value.monthly_payment": 3333.33,
+        "value.balloon_at_maturity": 1000000.0,
+        "value.total_remaining_payments": 1080000.0,
+        "value.prepayment_premium": -37604.78,
+        "value.total_payoff": 962395.22,
+        "value.effective_cost_ratio": -0.037605,
+        "value.detail.securities_cost": 962395.22,
+        "value.detail.stated_costs": 0.0,
+        "warnings.1": "Replacement yields exceed the note rate, so the securities cost less than the balance; whether the borrower keeps that benefit depends on the loan documents."
+      },
+      "notes": "At 6% the 4% coupon stream is worth less than par, so the premium is negative and a second warning is raised."
+    },
+    {
+      "name": "amortization shorter than the remaining term is an input error",
+      "input": {
+        "balance": 1000000,
+        "note_rate_annual": 0.05,
+        "remaining_term_months": 60,
+        "amortization_months": 59,
+        "prepayment": {
+          "type": "fixed_pct",
+          "pct": 0.01
+        }
+      },
+      "expect_error": true
+    },
+    {
+      "name": "step-down months must increase",
+      "input": {
+        "balance": 1000000,
+        "note_rate_annual": 0.05,
+        "remaining_term_months": 60,
+        "amortization_months": 0,
+        "prepayment": {
+          "type": "step_down",
+          "loan_month": 1,
+          "schedule": [
+            {
+              "through_month": 24,
+              "pct": 0.05
+            },
+            {
+              "through_month": 12,
+              "pct": 0.04
+            }
+          ]
+        }
+      },
+      "expect_error": true
+    }
+  ]
+}
