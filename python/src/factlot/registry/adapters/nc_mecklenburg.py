@@ -180,9 +180,25 @@ def _improvement_area(rows: list[dict[str, str]]) -> float | None:
 
 
 def _land_area(r: dict[str, str]) -> float | None:
-    acres = _positive(r.get("legalacres"))
-    if acres is None and r.get("commonpid", "").strip() == r.get("parcelid", "").strip():
-        acres = _positive(r.get("gisacres"))  # the polygon; for a condominium unit it is the whole complex
+    """Land area in square feet from ``legalacres`` (acres), with its two known faults handled.
+
+    The Assessor's legal acreage is blank for condominium units, where the polygon (``gisacres``) is the
+    whole complex, so it is used only for a parcel that owns its polygon. On 139 parcels in scope the
+    "acres" figure is plainly square feet (37,330.92 "acres" beside a 0.858-acre polygon: 1.6 billion square
+    feet): when it is over 50 times the polygon and at least 500, it is read as square feet if that agrees
+    with the polygon to 10%, and replaced by the polygon otherwise. A condominium unit with a figure of 500 or
+    more has none (21 units).
+    """
+    legal, polygon = _positive(r.get("legalacres")), _positive(r.get("gisacres"))
+    own_polygon = r.get("commonpid", "").strip() == r.get("parcelid", "").strip()
+    if legal and legal >= 500:
+        if not own_polygon:
+            return None  # a condominium unit's figure this large is not an acreage (21 units read as billions of square feet)
+        if polygon and legal > 50 * polygon:
+            if abs(legal / _SQFT_PER_ACRE - polygon) <= 0.1 * polygon:
+                return round(legal, 2)
+            return round(polygon * _SQFT_PER_ACRE, 2)
+    acres = legal if legal is not None else (polygon if own_polygon else None)
     return round(acres * _SQFT_PER_ACRE, 2) if acres else None
 
 

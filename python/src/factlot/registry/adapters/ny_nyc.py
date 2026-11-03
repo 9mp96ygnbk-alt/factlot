@@ -15,7 +15,11 @@ industrial lot); ``fy<YY>_tc1.zip`` the 1–3 family class; ``fy<YY>_avroll1234.
 - ``BORO`` 1 Manhattan, 2 Bronx, 3 Brooklyn, 4 Queens, 5 Staten Island → county FIPS below.
 - ``BLDG_CLASS`` — DOF's two-character building class (letter group + digit), the use code mapped
   to the FactLot category by ``_CATEGORY``; ``FINTAXCLASS`` the NYS tax class (1, 2, 2A–2C, 3, 4).
-- ``OWNER`` — owner of record (80 characters; no mailing address and no confidentiality flag).
+- ``OWNER`` — owner of record (80 characters; no mailing address and no confidentiality flag). A name
+  longer than 40 characters is wrapped into two 40-character halves joined by one space, and the break
+  often falls inside a word (``... LIABILITY COMPA NY``, ``... REVOCABLE LIVING TRU ST``: 9,436 of
+  461,249 FY27 rows). ``_owner`` closes the break when the two fragments make a word that the
+  unwrapped names of the same file use more often than the first fragment alone.
 - Situs: ``HOUSENUM_LO``, ``HOUSENUM_HI``, ``STREET_NAME``, ``ZIP_CODE`` (no city column; the
   borough gives it).
 - ``LAND_AREA`` and ``GROSS_SQFT`` (square feet), ``YRBUILT``, ``UNITS``; ``FINMKTTOT`` is the final
@@ -211,8 +215,33 @@ def _situs(f: list[str]) -> str | None:
     return f"{line}, {rest}"
 
 
-def _owner(name: str | None) -> str | None:
-    n = _squeeze(name)
+_OWNER_HALF = 40
+
+
+def _wrapped(raw: str) -> bool:
+    """A 40-character first half that runs on into a second half: the break may be inside a word."""
+    return len(raw) > _OWNER_HALF + 1 and raw[_OWNER_HALF - 1] != " " and raw[_OWNER_HALF] == " " \
+        and raw[_OWNER_HALF + 1] != " "
+
+
+def owner_vocabulary(rows: Iterable[list[str]]) -> Counter:
+    """Words of the owner names that were not wrapped, to tell a broken word from two words."""
+    vocab: Counter = Counter()
+    for f in rows:
+        raw = f[_COL["OWNER"]]
+        if not _wrapped(raw):
+            vocab.update(raw.split())
+    return vocab
+
+
+def _owner(raw: str | None, vocab: Counter | None = None) -> str | None:
+    raw = raw or ""
+    if vocab is not None and _wrapped(raw):
+        first, second = raw[:_OWNER_HALF].split(), raw[_OWNER_HALF + 1:].split()
+        joined = first[-1] + second[0]
+        if vocab[joined] >= 2 and vocab[joined] >= vocab[first[-1]]:
+            raw = raw[:_OWNER_HALF] + raw[_OWNER_HALF + 1:]
+    n = _squeeze(raw)
     return None if n.upper() in _PLACEHOLDER_OWNERS else n
 
 
@@ -232,6 +261,7 @@ def read_roll(path: str | Path, *, categories: Iterable[str] | None = COMMERCIAL
     classes. Rows with the wrong column count and utility idents (``RECTYPE`` 2 and 3) are skipped.
     """
     wanted = None if categories is None else frozenset(c.upper() for c in categories)
+    vocab = owner_vocabulary(f for _m, _n, f in _rows(path) if len(f) == len(LAYOUT))
     for member, line, f in _rows(path):
         if len(f) != len(LAYOUT):
             continue
@@ -252,7 +282,7 @@ def read_roll(path: str | Path, *, categories: Iterable[str] | None = COMMERCIAL
             state_category=cat,
             account=bbl,
             situs_address=_situs(f),
-            owner_name=_owner(f[_COL["OWNER"]]),
+            owner_name=_owner(f[_COL["OWNER"]], vocab),
             owner_mailing_address=None,  # the roll carries no mailing address
             owner_confidential=False,  # the roll carries no confidentiality marker
             land_area_sf=_positive(f[_COL["LAND_AREA"]]),

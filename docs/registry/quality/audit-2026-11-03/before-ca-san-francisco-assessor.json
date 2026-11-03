@@ -1,0 +1,144 @@
+{
+  "audited_on": "2026-11-03",
+  "database": "registry.db",
+  "entity_registries_by_state": {},
+  "sources": [
+    {
+      "ai_use": "permitted",
+      "citations": {
+        "as_of_differs_from_snapshot": 0,
+        "document_not_a_snapshot": 0,
+        "facts": 165677,
+        "links": 0,
+        "links_document_not_a_snapshot": 0,
+        "links_without_basis": 0,
+        "without_locator": 0,
+        "without_method": 0,
+        "without_valid_as_of": 0
+      },
+      "counties": ["us-06075"],
+      "county_fips": "075",
+      "findings": [],
+      "implausible_facts": {
+        "area": 0,
+        "out_of_scope_category": 0,
+        "tax_year": 0,
+        "value": 0,
+        "year_built": 0
+      },
+      "kind": "parcels",
+      "license": "Open Data Commons Public Domain Dedication and License (PDDL 1.0)",
+      "links": {
+        "by_confidence": {},
+        "by_rule": {},
+        "entity_registry_loaded_for": [],
+        "link_rate_pct": null,
+        "linked_parcels": 0,
+        "note": "no entity registry is loaded for this state, so owners cannot be linked",
+        "organisation_owner_parcels": 0
+      },
+      "owners": {
+        "orphan_mailing_addresses": 0,
+        "owner_facts": 0,
+        "person_like": 0
+      },
+      "parcels": {
+        "absent_from_latest_snapshot": 0,
+        "conflicting_facts": 0,
+        "count": 19048,
+        "fields": {
+          "apn": {
+            "missing": 0,
+            "parcels": 19048,
+            "pct_present": 100.0
+          },
+          "appraised_value": {
+            "missing": 13,
+            "parcels": 19035,
+            "pct_present": 99.93
+          },
+          "improvement_area_sf": {
+            "missing": 2228,
+            "parcels": 16820,
+            "pct_present": 88.3
+          },
+          "land_area_sf": {
+            "missing": 2558,
+            "parcels": 16490,
+            "pct_present": 86.57
+          },
+          "market_value": {
+            "missing": 19048,
+            "parcels": 0,
+            "pct_present": 0.0
+          },
+          "owner_of_record": {
+            "missing": 19048,
+            "parcels": 0,
+            "pct_present": 0.0
+          },
+          "situs_address": {
+            "missing": 0,
+            "parcels": 19048,
+            "pct_present": 100.0
+          },
+          "state_property_category": {
+            "missing": 0,
+            "parcels": 19048,
+            "pct_present": 100.0
+          },
+          "tax_year": {
+            "missing": 0,
+            "parcels": 19048,
+            "pct_present": 100.0
+          },
+          "year_built": {
+            "missing": 956,
+            "parcels": 18092,
+            "pct_present": 94.98
+          }
+        },
+        "missing_address": 0,
+        "missing_as_of": 0,
+        "no_organisation_owner": 19048
+      },
+      "publisher": "City and County of San Francisco, Office of the Assessor-Recorder (via DataSF)",
+      "redistribution": "permitted",
+      "review_queue": {
+        "accepted": 0,
+        "pending": 0,
+        "pending_by_rule": {},
+        "pending_owners": 0,
+        "rejected": 0
+      },
+      "snapshots": [
+        {
+          "age_days": 130,
+          "as_of": "2026-06-26",
+          "bytes": 5459319,
+          "document_id": "fl:document:sha256-cfc5b9425b25ef2be1038e3b606d15da221360fef4721da26c7f66d720bd8124",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 165677,
+          "filename": "wv5m-vpq2.csv",
+          "parcels": 19048,
+          "retrieved_at": "2026-11-03T01:48:05+00:00"
+        }
+      ],
+      "source_id": "ca-san-francisco-assessor",
+      "state_fips": "06",
+      "terms_reviewed": "2026-11-02",
+      "url": "https://data.sf.gov/d/wv5m-vpq2"
+    }
+  ],
+  "stats": {
+    "entities": 0,
+    "facts": 165677,
+    "links": 0,
+    "parcels": 19048,
+    "review_pending": 0,
+    "snapshots": 1
+  },
+  "violations": [],
+  "warnings": []
+}

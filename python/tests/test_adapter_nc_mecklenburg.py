@@ -100,6 +100,23 @@ class Mecklenburg(unittest.TestCase):
         self.tmp = Path(tempfile.mkdtemp())
         self.zip = cama_zip(self.tmp)
 
+    def test_legal_acres_written_in_square_feet_are_not_multiplied_again(self):
+        """On 139 real parcels `legalacres` holds square feet: 37,330.92 "acres" beside a 0.858-acre polygon."""
+        land = nc_mecklenburg._land_area
+        base = {"parcelid": "P1", "commonpid": "P1"}
+        self.assertEqual(land({**base, "legalacres": "0.918", "gisacres": "0.92"}), 39988.08)
+        # square feet that agree with the polygon: used as they are
+        self.assertEqual(land({**base, "legalacres": "37330.92", "gisacres": "0.858277950"}), 37330.92)
+        # square feet that do not agree with the polygon: the polygon
+        self.assertEqual(land({**base, "legalacres": "12536", "gisacres": "0.59212925"}), round(0.59212925 * 43560, 2))
+        # a large legal acreage beside a large polygon is a real large parcel
+        self.assertEqual(land({**base, "legalacres": "812.5", "gisacres": "810.1"}), round(812.5 * 43560, 2))
+        # a condominium unit does not own the polygon; no legal acreage means no area, and a figure this large is not acres
+        self.assertIsNone(land({"parcelid": "U1", "commonpid": "C1", "legalacres": "", "gisacres": "2.5"}))
+        self.assertIsNone(land({"parcelid": "U1", "commonpid": "C1", "legalacres": "12536", "gisacres": "0.59"}))
+        self.assertEqual(land({"parcelid": "U1", "commonpid": "C1", "legalacres": "0.04", "gisacres": "2.5"}), round(0.04 * 43560, 2))
+        self.assertEqual(land({**base, "legalacres": "", "gisacres": "2.0"}), 87120.0)
+
     def test_category_mapping(self):
         sc = nc_mecklenburg.state_category
         self.assertEqual((sc("A500"), sc("A562"), sc("AF60")), ("B", "B", "B"))

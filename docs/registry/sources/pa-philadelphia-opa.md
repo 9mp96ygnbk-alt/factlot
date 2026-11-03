@@ -166,6 +166,12 @@ Section 703 in the working notes (read 2026-11-02): "A written request need not 
 
 The City terms reserve all rights in the database and do not grant redistribution. The sections of the Right-to-Know Law read here are silent on redistribution after the record is obtained, and section 302(b) says a local agency may not deny access because of intended use unless another law says so. Leave `verified` false. The founder signs and sends `pa-philadelphia-opa-letter.md`. This lane did not send it.
 
+## Quality pass (2026-11-03)
+
+This source is gated on terms and was not touched beyond a purge. The file held 114 owner names the current person rule reads as natural persons (partnerships written `L P`, which
+the rule now reads as partnerships only with a number or a business word); they were removed in place, leaving 27,090 organisation owners over the same 77,286 parcels. The adapter
+yields exactly those parcels from each of the 30 archived pieces. Nothing was re-ingested or linked.
+
 ## Real run
 
 Run of 2026-11-02 (23:36-01:58 UTC) on the real data, archived with the collector

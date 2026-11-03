@@ -18,10 +18,20 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 - Claude Code plugin and marketplace (`/plugin marketplace add 9mp96ygnbk-alt/factlot`, then `/plugin install factlot@factlot`): eight CRE skills (loan sizing, lease economics, CAM reconciliation, ASC 842, lease vs own and renewals, investment returns, hotel metrics, Texas protest deadline) that call the hosted FactLot tools and cite formula IDs.
 - `examples/` (curl, Python REST, MCP client, offline SDK, Claude API and OpenAI Responses remote MCP) and `npm run test:hosted`, a live end-to-end check of the hosted service: every conformance vector over REST, every MCP tool against REST, every site page and link, and the checkout paths.
 - Registry Tier 2 expansion: statewide Vermont, Arkansas and Connecticut (CC0 layer) parcels, 24 Minnesota opt-in counties, Montana apartments and industrial parcels, five more North Carolina counties (Guilford, Forsyth, Cumberland, Johnston, New Hanover) and Garfield County, Utah: 228,453 more commercial parcels in 182 counties, with review records and adapters ([expansion notes](docs/registry/tier2/expansion.md)).
+- Registry quality audit (`python -m factlot.registry.audit`): per source and snapshot, parcel and entity counts, field completeness, conflicting and implausible facts, person-like owner names (policy: zero), owner link rate by confidence and rule with the reasons the rest are unlinked, review queue, snapshot age and citation gaps; `--reread` runs each adapter on its archived file and compares counts. `python -m factlot.registry.maintain` re-applies the person rule, re-keys the name index and review queue, relinks and queues fuzzy candidates on a built file. The Tier 1 audit is in `docs/registry/quality/tier1-2026-11-03.md`.
+
+### Changed
+
+- Registry owner-name normalization (`normalize_name`, and its TypeScript mirror `normalizeName`): apostrophes are dropped, what a roll appends to an owner (`ET AL`, a `DBA` trade name, a dangling `&` or `THE`) is removed, `NO 1` reads as `1`, consecutive initials run together, and common abbreviations spell one way (`PPTIES`/`PROPERTIES`, `CTR`/`CENTER`, `STREET`/`ST`). Registry files built before this change need `python -m factlot.registry.maintain registry.db --all` (re-keys the name index in place). `is_organization` reads a spaced `L P` as a partnership only with a number or a property or business word in the name, and a trust named for a person (separate property, revocable, life estate) as a person.
+- `Registry.ingest_parcels`: re-ingesting a snapshot now replaces the facts an earlier run wrote for it that the adapter no longer yields, and the links derived from a replaced owner; an unchanged file still writes nothing.
 
 ### Fixed
 
 - The hosted OpenAPI documents advertised `http://` server URLs; they now advertise `https://api.factlot.com`.
+- Colorado entity adapter: the Department's appended status history (`, Delinquent January 1, 2025`) is no longer part of the legal name (1.87 million of 3.13 million names), so owners written as the bare name link.
+- New York City adapter: an owner name wrapped across the two 40-character halves of the `OWNER` field is rejoined when the break fell inside a word.
+- Mecklenburg adapter: `legalacres` holding square feet (139 parcels) and condominium-unit figures (21) no longer produce areas of billions of square feet.
+- `Registry.link_owners` drops pending review candidates for a name that now links.
 
 ## [0.1.1] - 2026-11-03
 

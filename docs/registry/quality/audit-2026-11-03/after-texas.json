@@ -1,0 +1,909 @@
+{
+  "audited_on": "2026-11-03",
+  "database": "harris-registry.db",
+  "entity_registries_by_state": {
+    "tx": 3272057
+  },
+  "sources": [
+    {
+      "ai_use": "unknown",
+      "citations": {
+        "as_of_differs_from_snapshot": 0,
+        "document_not_a_snapshot": 0,
+        "facts": 200157,
+        "links": 11244,
+        "links_document_not_a_snapshot": 0,
+        "links_without_basis": 0,
+        "without_locator": 0,
+        "without_method": 0,
+        "without_valid_as_of": 0
+      },
+      "counties": ["us-48085"],
+      "county_fips": "085",
+      "findings": [],
+      "implausible_facts": {
+        "area": 0,
+        "out_of_scope_category": 0,
+        "tax_year": 0,
+        "value": 0,
+        "year_built": 0
+      },
+      "kind": "parcels",
+      "license": "Public record (Tex. Gov't Code ch. 552); no license or terms of use stated for the exports",
+      "links": {
+        "by_confidence": {
+          "0.90+": 11244
+        },
+        "by_rule": {
+          "exact_name_registered_in_parcel_state": 11244
+        },
+        "entity_registry_loaded_for": ["tx"],
+        "link_rate_pct": 85.41,
+        "linked_parcels": 11244,
+        "organisation_owner_parcels": 13165,
+        "unlinked": {
+          "fuzzy_candidates_queued": 506,
+          "no_exact_name": 1342,
+          "public_body_not_registered": 73
+        }
+      },
+      "lookups": {
+        "parcels_with_account_crosswalk": 18035,
+        "parcels_with_address_index": 17886
+      },
+      "owners": {
+        "orphan_mailing_addresses": 0,
+        "owner_facts": 13165,
+        "person_like": 0
+      },
+      "parcels": {
+        "absent_from_latest_snapshot": 0,
+        "conflicting_facts": 0,
+        "count": 18035,
+        "fields": {
+          "apn": {
+            "missing": 0,
+            "parcels": 18035,
+            "pct_present": 100.0
+          },
+          "appraised_value": {
+            "missing": 240,
+            "parcels": 17795,
+            "pct_present": 98.67
+          },
+          "improvement_area_sf": {
+            "missing": 910,
+            "parcels": 17125,
+            "pct_present": 94.95
+          },
+          "land_area_sf": {
+            "missing": 3830,
+            "parcels": 14205,
+            "pct_present": 78.76
+          },
+          "market_value": {
+            "missing": 240,
+            "parcels": 17795,
+            "pct_present": 98.67
+          },
+          "owner_of_record": {
+            "missing": 4870,
+            "parcels": 13165,
+            "pct_present": 73.0
+          },
+          "situs_address": {
+            "missing": 149,
+            "parcels": 17886,
+            "pct_present": 99.17
+          },
+          "state_property_category": {
+            "missing": 0,
+            "parcels": 18035,
+            "pct_present": 100.0
+          },
+          "tax_year": {
+            "missing": 240,
+            "parcels": 17795,
+            "pct_present": 98.67
+          },
+          "year_built": {
+            "missing": 914,
+            "parcels": 17121,
+            "pct_present": 94.93
+          }
+        },
+        "missing_address": 149,
+        "missing_as_of": 0,
+        "no_organisation_owner": 4870
+      },
+      "publisher": "Collin Central Appraisal District",
+      "redistribution": "unknown",
+      "review_queue": {
+        "accepted": 0,
+        "pending": 431,
+        "pending_by_rule": {
+          "fuzzy_name_v1": 431
+        },
+        "pending_owners": 317,
+        "rejected": 0
+      },
+      "snapshots": [
+        {
+          "age_days": 1,
+          "as_of": "2026-11-02",
+          "bytes": 85252802,
+          "document_id": "fl:document:sha256-2181dacc20ec3c25d0233dbc7fad71563d22bec0213b02532709dde4f1450cff",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 200157,
+          "filename": "LiteDatabaseCurrent.zip",
+          "parcels": 18035,
+          "retrieved_at": "2026-11-02T23:56:09+00:00"
+        }
+      ],
+      "source_file": [
+        {
+          "distinct_apns": 18035,
+          "distinct_parcel_ids": 18035,
+          "document_id": "dde4f1450cff",
+          "file": "LiteDatabaseCurrent.zip",
+          "header_like_apns": [],
+          "invalid_apns": 0,
+          "matches_registry": true,
+          "org_owner_records": 13165,
+          "records_in_scope": 18035,
+          "records_read": 18035,
+          "registry_parcels": 18035
+        }
+      ],
+      "source_id": "tx-collin-cad",
+      "state_fips": "48",
+      "terms_reviewed": "2026-11-02",
+      "url": "https://collincad.org/category/appraisal-data-exports/"
+    },
+    {
+      "ai_use": "unknown",
+      "citations": {
+        "as_of_differs_from_snapshot": 0,
+        "document_not_a_snapshot": 0,
+        "facts": 16083908,
+        "links": 0,
+        "links_document_not_a_snapshot": 0,
+        "links_without_basis": 0,
+        "without_locator": 0,
+        "without_method": 0,
+        "without_valid_as_of": 0
+      },
+      "county_fips": null,
+      "entities": {
+        "count": 3272057,
+        "names_read_as_persons": 117357
+      },
+      "findings": [],
+      "kind": "entities",
+      "license": "Public domain (Comptroller policy: information on its sites is public domain and may be copied and used as permitted by law)",
+      "publisher": "Texas Comptroller of Public Accounts",
+      "redistribution": "attribution_required",
+      "snapshots": [
+        {
+          "age_days": 3,
+          "as_of": "2026-10-31",
+          "bytes": 575806107,
+          "document_id": "fl:document:sha256-2dcdc23ede0f86cce0c0219a6e5b6d47f27b3b08d7b38dda410b5a0f87c6b516",
+          "document_id_is_sha256": true,
+          "entities": 3272057,
+          "facts": 16083908,
+          "filename": "export.csv",
+          "parcels": 0,
+          "retrieved_at": "2026-11-02T23:18:39+00:00"
+        }
+      ],
+      "source_file": [
+        {
+          "distinct_entity_ids": 3272057,
+          "distinct_parcel_ids": 3272057,
+          "document_id": "5a0f87c6b516",
+          "file": "export.csv",
+          "matches_registry": true,
+          "records_in_scope": 3514637,
+          "registry_parcels": 3272057,
+          "skipped_without_registry_number": 242564
+        }
+      ],
+      "source_id": "tx-comptroller-franchise",
+      "state_fips": "48",
+      "terms_reviewed": "2026-11-02",
+      "url": "https://data.texas.gov/dataset/Active-Franchise-Taxpayers/9cir-efmm"
+    },
+    {
+      "ai_use": "unknown",
+      "citations": {
+        "as_of_differs_from_snapshot": 0,
+        "document_not_a_snapshot": 0,
+        "facts": 537407,
+        "links": 23894,
+        "links_document_not_a_snapshot": 0,
+        "links_without_basis": 0,
+        "without_locator": 0,
+        "without_method": 0,
+        "without_valid_as_of": 0
+      },
+      "counties": ["us-48113"],
+      "county_fips": "113",
+      "findings": [
+        {
+          "message": "5 parcels have an implausible year built",
+          "severity": "warning"
+        }
+      ],
+      "implausible_facts": {
+        "area": 0,
+        "out_of_scope_category": 0,
+        "tax_year": 0,
+        "value": 0,
+        "year_built": 5
+      },
+      "kind": "parcels",
+      "license": "Public record (Tex. Gov't Code ch. 552); no license or terms of use stated",
+      "links": {
+        "by_confidence": {
+          "0.85-0.89": 1,
+          "0.90+": 23893
+        },
+        "by_rule": {
+          "exact_name_registered_in_parcel_state": 23893,
+          "exact_name_standing": 1
+        },
+        "entity_registry_loaded_for": ["tx"],
+        "link_rate_pct": 71.57,
+        "linked_parcels": 23894,
+        "organisation_owner_parcels": 33386,
+        "unlinked": {
+          "fuzzy_candidates_queued": 2614,
+          "no_exact_name": 5248,
+          "public_body_not_registered": 1630
+        }
+      },
+      "lookups": {
+        "parcels_with_account_crosswalk": 59645,
+        "parcels_with_address_index": 59645
+      },
+      "owners": {
+        "orphan_mailing_addresses": 0,
+        "owner_facts": 33386,
+        "person_like": 0
+      },
+      "parcels": {
+        "absent_from_latest_snapshot": 0,
+        "conflicting_facts": 0,
+        "count": 59645,
+        "fields": {
+          "apn": {
+            "missing": 0,
+            "parcels": 59645,
+            "pct_present": 100.0
+          },
+          "appraised_value": {
+            "missing": 59645,
+            "parcels": 0,
+            "pct_present": 0.0
+          },
+          "improvement_area_sf": {
+            "missing": 353,
+            "parcels": 59292,
+            "pct_present": 99.41
+          },
+          "land_area_sf": {
+            "missing": 5706,
+            "parcels": 53939,
+            "pct_present": 90.43
+          },
+          "market_value": {
+            "missing": 0,
+            "parcels": 59645,
+            "pct_present": 100.0
+          },
+          "owner_of_record": {
+            "missing": 26259,
+            "parcels": 33386,
+            "pct_present": 55.97
+          },
+          "situs_address": {
+            "missing": 0,
+            "parcels": 59645,
+            "pct_present": 100.0
+          },
+          "state_property_category": {
+            "missing": 0,
+            "parcels": 59645,
+            "pct_present": 100.0
+          },
+          "tax_year": {
+            "missing": 0,
+            "parcels": 59645,
+            "pct_present": 100.0
+          },
+          "year_built": {
+            "missing": 466,
+            "parcels": 59179,
+            "pct_present": 99.22
+          }
+        },
+        "missing_address": 0,
+        "missing_as_of": 0,
+        "no_organisation_owner": 26259
+      },
+      "publisher": "Dallas Central Appraisal District",
+      "redistribution": "unknown",
+      "review_queue": {
+        "accepted": 0,
+        "pending": 2328,
+        "pending_by_rule": {
+          "fuzzy_name_v1": 2328
+        },
+        "pending_owners": 1878,
+        "rejected": 0
+      },
+      "snapshots": [
+        {
+          "age_days": 22,
+          "as_of": "2026-10-12",
+          "bytes": 202819084,
+          "document_id": "fl:document:sha256-b5d6913e4e69fb8ee36c1f8307d0fc893778213e05842dd58244822e36df0c42",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 537407,
+          "filename": "ViewPDFs.aspx",
+          "parcels": 59645,
+          "retrieved_at": "2026-11-02T23:15:54+00:00"
+        }
+      ],
+      "source_file": [
+        {
+          "distinct_apns": 59645,
+          "distinct_parcel_ids": 59645,
+          "document_id": "822e36df0c42",
+          "file": "ViewPDFs.aspx",
+          "header_like_apns": [],
+          "invalid_apns": 0,
+          "matches_registry": true,
+          "org_owner_records": 33386,
+          "records_in_scope": 59645,
+          "records_read": 59645,
+          "registry_parcels": 59645
+        }
+      ],
+      "source_id": "tx-dallas-cad",
+      "state_fips": "48",
+      "terms_reviewed": "2026-11-02",
+      "url": "https://www.dallascad.org/DataProducts.aspx"
+    },
+    {
+      "ai_use": "unknown",
+      "citations": {
+        "as_of_differs_from_snapshot": 0,
+        "document_not_a_snapshot": 0,
+        "facts": 880146,
+        "links": 45259,
+        "links_document_not_a_snapshot": 0,
+        "links_without_basis": 0,
+        "without_locator": 0,
+        "without_method": 0,
+        "without_valid_as_of": 0
+      },
+      "counties": ["us-48201"],
+      "county_fips": "201",
+      "findings": [
+        {
+          "message": "1 parcels have an implausible year built",
+          "severity": "warning"
+        }
+      ],
+      "implausible_facts": {
+        "area": 0,
+        "out_of_scope_category": 0,
+        "tax_year": 0,
+        "value": 0,
+        "year_built": 1
+      },
+      "kind": "parcels",
+      "license": "Public record (Tex. Gov't Code ch. 552); no license or terms of use stated",
+      "links": {
+        "by_confidence": {
+          "0.85-0.89": 4,
+          "0.90+": 45255
+        },
+        "by_rule": {
+          "exact_name_registered_in_parcel_state": 45255,
+          "exact_name_standing": 4
+        },
+        "entity_registry_loaded_for": ["tx"],
+        "link_rate_pct": 79.69,
+        "linked_parcels": 45259,
+        "organisation_owner_parcels": 56792,
+        "unlinked": {
+          "fuzzy_candidates_queued": 3949,
+          "no_exact_name": 7560,
+          "public_body_not_registered": 24
+        }
+      },
+      "lookups": {
+        "parcels_with_account_crosswalk": 87717,
+        "parcels_with_address_index": 87717
+      },
+      "owners": {
+        "orphan_mailing_addresses": 0,
+        "owner_facts": 56792,
+        "person_like": 0
+      },
+      "parcels": {
+        "absent_from_latest_snapshot": 0,
+        "conflicting_facts": 0,
+        "count": 87717,
+        "fields": {
+          "apn": {
+            "missing": 0,
+            "parcels": 87717,
+            "pct_present": 100.0
+          },
+          "appraised_value": {
+            "missing": 255,
+            "parcels": 87462,
+            "pct_present": 99.71
+          },
+          "improvement_area_sf": {
+            "missing": 11921,
+            "parcels": 75796,
+            "pct_present": 86.41
+          },
+          "land_area_sf": {
+            "missing": 1134,
+            "parcels": 86583,
+            "pct_present": 98.71
+          },
+          "market_value": {
+            "missing": 255,
+            "parcels": 87462,
+            "pct_present": 99.71
+          },
+          "owner_of_record": {
+            "missing": 30925,
+            "parcels": 56792,
+            "pct_present": 64.74
+          },
+          "situs_address": {
+            "missing": 0,
+            "parcels": 87717,
+            "pct_present": 100.0
+          },
+          "state_property_category": {
+            "missing": 0,
+            "parcels": 87717,
+            "pct_present": 100.0
+          },
+          "tax_year": {
+            "missing": 0,
+            "parcels": 87717,
+            "pct_present": 100.0
+          },
+          "year_built": {
+            "missing": 9326,
+            "parcels": 78391,
+            "pct_present": 89.37
+          }
+        },
+        "missing_address": 0,
+        "missing_as_of": 0,
+        "no_organisation_owner": 30925
+      },
+      "publisher": "Harris Central Appraisal District",
+      "redistribution": "unknown",
+      "review_queue": {
+        "accepted": 0,
+        "pending": 3153,
+        "pending_by_rule": {
+          "fuzzy_name_v1": 3153
+        },
+        "pending_owners": 2633,
+        "rejected": 0
+      },
+      "snapshots": [
+        {
+          "age_days": 2,
+          "as_of": "2026-11-01",
+          "bytes": 212021338,
+          "document_id": "fl:document:sha256-b74be6977d4f078d0302652e86533885326deb4daa220f0e63dc05f548611506",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 880146,
+          "filename": "Real_acct_owner.zip",
+          "parcels": 87717,
+          "retrieved_at": "2026-11-02T23:07:43+00:00"
+        }
+      ],
+      "source_file": [
+        {
+          "distinct_apns": 87717,
+          "distinct_parcel_ids": 87717,
+          "document_id": "05f548611506",
+          "file": "Real_acct_owner.zip",
+          "header_like_apns": [],
+          "invalid_apns": 0,
+          "matches_registry": true,
+          "org_owner_records": 56792,
+          "records_in_scope": 87717,
+          "records_read": 87717,
+          "registry_parcels": 87717
+        }
+      ],
+      "source_id": "tx-harris-cad",
+      "state_fips": "48",
+      "terms_reviewed": "2026-11-02",
+      "url": "https://hcad.org/pdata/pdata-property-downloads.html"
+    },
+    {
+      "ai_use": "unknown",
+      "citations": {
+        "as_of_differs_from_snapshot": 0,
+        "document_not_a_snapshot": 0,
+        "facts": 462126,
+        "links": 22011,
+        "links_document_not_a_snapshot": 0,
+        "links_without_basis": 0,
+        "without_locator": 0,
+        "without_method": 0,
+        "without_valid_as_of": 0
+      },
+      "counties": ["us-48439"],
+      "county_fips": "439",
+      "findings": [
+        {
+          "message": "1 parcels have an implausible year built",
+          "severity": "warning"
+        }
+      ],
+      "implausible_facts": {
+        "area": 0,
+        "out_of_scope_category": 0,
+        "tax_year": 0,
+        "value": 0,
+        "year_built": 1
+      },
+      "kind": "parcels",
+      "license": "Public record (Tex. Gov't Code ch. 552); no license or terms of use stated. robots.txt Content-Signal: search=yes, ai-train=no, use=reference",
+      "links": {
+        "by_confidence": {
+          "0.85-0.89": 1,
+          "0.90+": 22010
+        },
+        "by_rule": {
+          "exact_name_registered_in_parcel_state": 22010,
+          "exact_name_standing": 1
+        },
+        "entity_registry_loaded_for": ["tx"],
+        "link_rate_pct": 71.61,
+        "linked_parcels": 22011,
+        "organisation_owner_parcels": 30736,
+        "unlinked": {
+          "fuzzy_candidates_queued": 1783,
+          "no_exact_name": 4925,
+          "public_body_not_registered": 2017
+        }
+      },
+      "lookups": {
+        "parcels_with_account_crosswalk": 45976,
+        "parcels_with_address_index": 45975
+      },
+      "owners": {
+        "orphan_mailing_addresses": 0,
+        "owner_facts": 30736,
+        "person_like": 0
+      },
+      "parcels": {
+        "absent_from_latest_snapshot": 0,
+        "conflicting_facts": 0,
+        "count": 45976,
+        "fields": {
+          "apn": {
+            "missing": 0,
+            "parcels": 45976,
+            "pct_present": 100.0
+          },
+          "appraised_value": {
+            "missing": 1042,
+            "parcels": 44934,
+            "pct_present": 97.73
+          },
+          "improvement_area_sf": {
+            "missing": 6341,
+            "parcels": 39635,
+            "pct_present": 86.21
+          },
+          "land_area_sf": {
+            "missing": 774,
+            "parcels": 45202,
+            "pct_present": 98.32
+          },
+          "market_value": {
+            "missing": 1042,
+            "parcels": 44934,
+            "pct_present": 97.73
+          },
+          "owner_of_record": {
+            "missing": 15240,
+            "parcels": 30736,
+            "pct_present": 66.85
+          },
+          "situs_address": {
+            "missing": 1,
+            "parcels": 45975,
+            "pct_present": 100.0
+          },
+          "state_property_category": {
+            "missing": 0,
+            "parcels": 45976,
+            "pct_present": 100.0
+          },
+          "tax_year": {
+            "missing": 0,
+            "parcels": 45976,
+            "pct_present": 100.0
+          },
+          "year_built": {
+            "missing": 3860,
+            "parcels": 42116,
+            "pct_present": 91.6
+          }
+        },
+        "missing_address": 1,
+        "missing_as_of": 0,
+        "no_organisation_owner": 15240
+      },
+      "publisher": "Tarrant Appraisal District",
+      "redistribution": "unknown",
+      "review_queue": {
+        "accepted": 0,
+        "pending": 1355,
+        "pending_by_rule": {
+          "fuzzy_name_v1": 1355
+        },
+        "pending_owners": 1104,
+        "rejected": 0
+      },
+      "snapshots": [
+        {
+          "age_days": 1,
+          "as_of": "2026-11-02",
+          "bytes": 102400459,
+          "document_id": "fl:document:sha256-f887ad16a673c071076f00c2007f62ace2b9a83bdfc388ca80fe8cb0f5ea34ab",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 462126,
+          "filename": "PropertyData(Delimited).ZIP",
+          "parcels": 45976,
+          "retrieved_at": "2026-11-02T23:54:16+00:00"
+        }
+      ],
+      "source_file": [
+        {
+          "distinct_apns": 45976,
+          "distinct_parcel_ids": 45976,
+          "document_id": "8cb0f5ea34ab",
+          "file": "PropertyData(Delimited).ZIP",
+          "header_like_apns": [],
+          "invalid_apns": 0,
+          "matches_registry": true,
+          "org_owner_records": 30738,
+          "records_in_scope": 45976,
+          "records_read": 45976,
+          "registry_parcels": 45976
+        }
+      ],
+      "source_id": "tx-tarrant-ad",
+      "state_fips": "48",
+      "terms_reviewed": "2026-11-02",
+      "url": "https://www.tad.org/resources/data-downloads"
+    },
+    {
+      "ai_use": "unknown",
+      "citations": {
+        "as_of_differs_from_snapshot": 0,
+        "document_not_a_snapshot": 0,
+        "facts": 678552,
+        "links": 14082,
+        "links_document_not_a_snapshot": 0,
+        "links_without_basis": 0,
+        "without_locator": 0,
+        "without_method": 0,
+        "without_valid_as_of": 0
+      },
+      "counties": ["us-48453"],
+      "county_fips": "453",
+      "findings": [
+        {
+          "message": "4 parcels have an implausible year built",
+          "severity": "warning"
+        }
+      ],
+      "implausible_facts": {
+        "area": 0,
+        "out_of_scope_category": 0,
+        "tax_year": 0,
+        "value": 0,
+        "year_built": 4
+      },
+      "kind": "parcels",
+      "license": "Public record (Tex. Gov't Code ch. 552); no license or terms of use stated for the exports",
+      "links": {
+        "by_confidence": {
+          "0.90+": 14082
+        },
+        "by_rule": {
+          "exact_name_registered_in_parcel_state": 14082
+        },
+        "entity_registry_loaded_for": ["tx"],
+        "link_rate_pct": 78.36,
+        "linked_parcels": 14082,
+        "organisation_owner_parcels": 17972,
+        "unlinked": {
+          "fuzzy_candidates_queued": 993,
+          "no_exact_name": 2134,
+          "public_body_not_registered": 763
+        }
+      },
+      "lookups": {
+        "parcels_with_account_crosswalk": 30556,
+        "parcels_with_address_index": 30556
+      },
+      "owners": {
+        "orphan_mailing_addresses": 0,
+        "owner_facts": 35851,
+        "person_like": 0
+      },
+      "parcels": {
+        "absent_from_latest_snapshot": 1,
+        "conflicting_facts": 0,
+        "count": 30555,
+        "fields": {
+          "apn": {
+            "missing": 0,
+            "parcels": 30555,
+            "pct_present": 100.0
+          },
+          "appraised_value": {
+            "missing": 0,
+            "parcels": 30555,
+            "pct_present": 100.0
+          },
+          "improvement_area_sf": {
+            "missing": 1405,
+            "parcels": 29150,
+            "pct_present": 95.4
+          },
+          "land_area_sf": {
+            "missing": 214,
+            "parcels": 30341,
+            "pct_present": 99.3
+          },
+          "market_value": {
+            "missing": 0,
+            "parcels": 30555,
+            "pct_present": 100.0
+          },
+          "owner_of_record": {
+            "missing": 12583,
+            "parcels": 17972,
+            "pct_present": 58.82
+          },
+          "situs_address": {
+            "missing": 0,
+            "parcels": 30555,
+            "pct_present": 100.0
+          },
+          "state_property_category": {
+            "missing": 0,
+            "parcels": 30555,
+            "pct_present": 100.0
+          },
+          "tax_year": {
+            "missing": 0,
+            "parcels": 30555,
+            "pct_present": 100.0
+          },
+          "year_built": {
+            "missing": 490,
+            "parcels": 30065,
+            "pct_present": 98.4
+          }
+        },
+        "missing_address": 0,
+        "missing_as_of": 0,
+        "no_organisation_owner": 12583
+      },
+      "publisher": "Travis Central Appraisal District",
+      "redistribution": "unknown",
+      "review_queue": {
+        "accepted": 0,
+        "pending": 719,
+        "pending_by_rule": {
+          "fuzzy_name_v1": 719
+        },
+        "pending_owners": 570,
+        "rejected": 0
+      },
+      "snapshots": [
+        {
+          "age_days": 108,
+          "as_of": "2026-07-18",
+          "bytes": 557228168,
+          "document_id": "fl:document:sha256-62d0d1cd22b03f31db8d3986160eb181c5d00044df98a303fce9e17a44e9aa02",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 339167,
+          "filename": "2026%20Certified%20Appraisal%20Export%20Supp%200_07182026.zip",
+          "parcels": 30551,
+          "retrieved_at": "2026-11-02T23:20:27+00:00"
+        },
+        {
+          "age_days": 28,
+          "as_of": "2026-10-06",
+          "bytes": 511099040,
+          "document_id": "fl:document:sha256-63da76773f8a8652dffeb7432525a739205027ace4aeab1c0f2d9ac0f31388eb",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 339385,
+          "filename": "travis_SUPP%20335_2026_WEBSITE%20EXPORT_Renamed.zip",
+          "parcels": 30555,
+          "retrieved_at": "2026-11-02T23:32:20+00:00"
+        }
+      ],
+      "source_file": [
+        {
+          "distinct_apns": 30551,
+          "distinct_parcel_ids": 30551,
+          "document_id": "e17a44e9aa02",
+          "file": "2026%20Certified%20Appraisal%20Export%20Supp%200_07182026.zip",
+          "header_like_apns": [],
+          "invalid_apns": 0,
+          "matches_registry": true,
+          "org_owner_records": 17879,
+          "records_in_scope": 30551,
+          "records_read": 30551,
+          "registry_parcels": 30551
+        },
+        {
+          "distinct_apns": 30555,
+          "distinct_parcel_ids": 30555,
+          "document_id": "9ac0f31388eb",
+          "file": "travis_SUPP%20335_2026_WEBSITE%20EXPORT_Renamed.zip",
+          "header_like_apns": [],
+          "invalid_apns": 0,
+          "matches_registry": true,
+          "org_owner_records": 17972,
+          "records_in_scope": 30555,
+          "records_read": 30555,
+          "registry_parcels": 30555
+        }
+      ],
+      "source_id": "tx-travis-cad",
+      "state_fips": "48",
+      "terms_reviewed": "2026-11-02",
+      "url": "https://traviscad.org/publicinformation"
+    }
+  ],
+  "stats": {
+    "entities": 3272057,
+    "facts": 18842296,
+    "links": 116490,
+    "parcels": 241929,
+    "review_pending": 7986,
+    "snapshots": 7
+  },
+  "violations": [],
+  "warnings": [
+    "tx-dallas-cad: 5 parcels have an implausible year built",
+    "tx-harris-cad: 1 parcels have an implausible year built",
+    "tx-tarrant-ad: 1 parcels have an implausible year built",
+    "tx-travis-cad: 4 parcels have an implausible year built"
+  ]
+}

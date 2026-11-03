@@ -1,0 +1,157 @@
+{
+  "audited_on": "2026-11-03",
+  "database": "registry.db",
+  "entity_registries_by_state": {},
+  "sources": [
+    {
+      "ai_use": "unknown",
+      "citations": {
+        "as_of_differs_from_snapshot": 0,
+        "document_not_a_snapshot": 0,
+        "facts": 129983,
+        "links": 0,
+        "links_document_not_a_snapshot": 0,
+        "links_without_basis": 0,
+        "without_locator": 0,
+        "without_method": 0,
+        "without_valid_as_of": 0
+      },
+      "counties": ["us-25025"],
+      "county_fips": "025",
+      "findings": [
+        {
+          "message": "snapshot 041791fa is 671 days old (as_of 2025-01-01)",
+          "severity": "warning"
+        },
+        {
+          "message": "1 owner-of-record facts read as natural persons",
+          "severity": "violation"
+        }
+      ],
+      "implausible_facts": {
+        "area": 0,
+        "out_of_scope_category": 0,
+        "tax_year": 0,
+        "value": 0,
+        "year_built": 0
+      },
+      "kind": "parcels",
+      "license": "Open Data Commons Public Domain Dedication and License (ODC-PDDL), stated on the dataset page",
+      "links": {
+        "by_confidence": {},
+        "by_rule": {},
+        "entity_registry_loaded_for": [],
+        "link_rate_pct": null,
+        "linked_parcels": 0,
+        "note": "no entity registry is loaded for this state, so owners cannot be linked",
+        "organisation_owner_parcels": 9254
+      },
+      "owners": {
+        "orphan_mailing_addresses": 0,
+        "owner_facts": 9254,
+        "person_like": 1
+      },
+      "parcels": {
+        "absent_from_latest_snapshot": 0,
+        "conflicting_facts": 0,
+        "count": 13296,
+        "fields": {
+          "apn": {
+            "missing": 0,
+            "parcels": 13296,
+            "pct_present": 100.0
+          },
+          "appraised_value": {
+            "missing": 13296,
+            "parcels": 0,
+            "pct_present": 0.0
+          },
+          "improvement_area_sf": {
+            "missing": 3411,
+            "parcels": 9885,
+            "pct_present": 74.35
+          },
+          "land_area_sf": {
+            "missing": 397,
+            "parcels": 12899,
+            "pct_present": 97.01
+          },
+          "market_value": {
+            "missing": 2,
+            "parcels": 13294,
+            "pct_present": 99.98
+          },
+          "owner_of_record": {
+            "missing": 4042,
+            "parcels": 9254,
+            "pct_present": 69.6
+          },
+          "situs_address": {
+            "missing": 0,
+            "parcels": 13296,
+            "pct_present": 100.0
+          },
+          "state_property_category": {
+            "missing": 0,
+            "parcels": 13296,
+            "pct_present": 100.0
+          },
+          "tax_year": {
+            "missing": 0,
+            "parcels": 13296,
+            "pct_present": 100.0
+          },
+          "year_built": {
+            "missing": 4379,
+            "parcels": 8917,
+            "pct_present": 67.07
+          }
+        },
+        "missing_address": 0,
+        "missing_as_of": 0,
+        "no_organisation_owner": 4042
+      },
+      "publisher": "City of Boston Assessing Department",
+      "redistribution": "permitted",
+      "review_queue": {
+        "accepted": 0,
+        "pending": 0,
+        "pending_by_rule": {},
+        "pending_owners": 0,
+        "rejected": 0
+      },
+      "snapshots": [
+        {
+          "age_days": 671,
+          "as_of": "2025-01-01",
+          "bytes": 80191023,
+          "document_id": "fl:document:sha256-d0b656f516162c56a92782a255c731b967bd551b3e26cf412e080fdf041791fa",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 129983,
+          "filename": "fy2026-property-assessment-data_rev.csv",
+          "parcels": 13296,
+          "retrieved_at": "2026-11-03T01:57:00+00:00"
+        }
+      ],
+      "source_id": "ma-boston-assessing",
+      "state_fips": "25",
+      "terms_reviewed": "2026-11-02",
+      "url": "https://data.boston.gov/dataset/property-assessment"
+    }
+  ],
+  "stats": {
+    "entities": 0,
+    "facts": 129983,
+    "links": 0,
+    "parcels": 13296,
+    "review_pending": 0,
+    "snapshots": 1
+  },
+  "violations": [
+    "ma-boston-assessing: 1 owner-of-record facts read as natural persons"
+  ],
+  "warnings": [
+    "ma-boston-assessing: snapshot 041791fa is 671 days old (as_of 2025-01-01)"
+  ]
+}

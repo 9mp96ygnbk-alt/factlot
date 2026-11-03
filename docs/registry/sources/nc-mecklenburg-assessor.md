@@ -96,6 +96,17 @@ Codes seen on the sample but not in the PDF: `AF01`, `AF04`, `AF09`, `AF60`, `C7
 None for access. For a human read before go-live: the "does not support secondary distribution"
 sentence and the stale FGDC access constraints quoted above.
 
+## Quality pass (2026-11-03)
+
+- **`legalacres` is square feet on 139 parcels.** On 37 of the 23,686 parcels in scope the land area read
+  over 500 million square feet: the Assessor's "acres" figure was a square-foot figure (parcel 00925410: `legalacres`
+  37,330.92 beside a polygon of 0.858 acres, so 1.6 billion square feet after the conversion). The adapter now reads a
+  figure that is over 50 times the polygon and at least 500 as square feet when it agrees with the polygon to 10%
+  (27 parcels), and uses the polygon otherwise (112 parcels). A condominium unit (its polygon is the whole complex) with a
+  figure of 500 or more, where the field holds a unit's square footage, gets no land area (21 units).
+- 2,921 of 23,686 parcels (12%) have no situs address: the publisher leaves `address` blank (vacant land,
+  apartments under construction, parcels it has not addressed); nothing is inferred.
+
 ## Real run (2026-11-03)
 
 The full `Cama_Table.zip` was archived by the collector on its second sequential attempt

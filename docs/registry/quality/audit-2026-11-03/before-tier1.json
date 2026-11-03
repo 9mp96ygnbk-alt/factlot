@@ -1,0 +1,1316 @@
+{
+  "audited_on": "2026-11-03",
+  "database": "tier1-registry.db",
+  "entity_registries_by_state": {
+    "co": 3132612,
+    "dc": 506305,
+    "ny": 3631216,
+    "pa": 2376226
+  },
+  "sources": [
+    {
+      "ai_use": "unknown",
+      "citations": {
+        "as_of_differs_from_snapshot": 0,
+        "document_not_a_snapshot": 0,
+        "facts": 1585362,
+        "links": 0,
+        "links_document_not_a_snapshot": 0,
+        "links_without_basis": 0,
+        "without_locator": 0,
+        "without_method": 0,
+        "without_valid_as_of": 0
+      },
+      "counties": ["us-06037"],
+      "county_fips": "037",
+      "findings": [
+        {
+          "message": "10223 of 203179 parcels have no situs address",
+          "severity": "warning"
+        }
+      ],
+      "implausible_facts": {
+        "area": 0,
+        "out_of_scope_category": 0,
+        "tax_year": 0,
+        "value": 0,
+        "year_built": 0
+      },
+      "kind": "parcels",
+      "license": "County of Los Angeles eGIS Hub Terms of Use: license to copy, publish, distribute, transmit, adapt and exploit the data for commercial and/or personal use; provided as is",
+      "links": {
+        "by_confidence": {},
+        "by_rule": {},
+        "entity_registry_loaded_for": [],
+        "link_rate_pct": null,
+        "linked_parcels": 0,
+        "note": "no entity registry is loaded for this state, so owners cannot be linked",
+        "organisation_owner_parcels": 0
+      },
+      "lookups": {
+        "parcels_with_account_crosswalk": 203179,
+        "parcels_with_address_index": 192956
+      },
+      "owners": {
+        "orphan_mailing_addresses": 0,
+        "owner_facts": 0,
+        "person_like": 0
+      },
+      "parcels": {
+        "absent_from_latest_snapshot": 0,
+        "conflicting_facts": 0,
+        "count": 203179,
+        "fields": {
+          "apn": {
+            "missing": 0,
+            "parcels": 203179,
+            "pct_present": 100.0
+          },
+          "appraised_value": {
+            "missing": 0,
+            "parcels": 203179,
+            "pct_present": 100.0
+          },
+          "improvement_area_sf": {
+            "missing": 19702,
+            "parcels": 183477,
+            "pct_present": 90.3
+          },
+          "land_area_sf": {
+            "missing": 203179,
+            "parcels": 0,
+            "pct_present": 0.0
+          },
+          "market_value": {
+            "missing": 203179,
+            "parcels": 0,
+            "pct_present": 0.0
+          },
+          "owner_of_record": {
+            "missing": 203179,
+            "parcels": 0,
+            "pct_present": 0.0
+          },
+          "situs_address": {
+            "missing": 10223,
+            "parcels": 192956,
+            "pct_present": 94.97
+          },
+          "state_property_category": {
+            "missing": 0,
+            "parcels": 203179,
+            "pct_present": 100.0
+          },
+          "tax_year": {
+            "missing": 0,
+            "parcels": 203179,
+            "pct_present": 100.0
+          },
+          "year_built": {
+            "missing": 10145,
+            "parcels": 193034,
+            "pct_present": 95.01
+          }
+        },
+        "missing_address": 10223,
+        "missing_as_of": 0,
+        "no_organisation_owner": 203179
+      },
+      "publisher": "Los Angeles County Office of the Assessor",
+      "redistribution": "permitted",
+      "review_queue": {
+        "accepted": 0,
+        "pending": 0,
+        "pending_by_rule": {},
+        "pending_owners": 0,
+        "rejected": 0
+      },
+      "snapshots": [
+        {
+          "age_days": 20,
+          "as_of": "2026-10-14",
+          "bytes": 23441992,
+          "document_id": "fl:document:sha256-13aade2696961c9119f12c5836a3b4b3ae635cca0e7a614cfb44d286b78c4253",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 316082,
+          "filename": "csv",
+          "parcels": 40601,
+          "retrieved_at": "2026-11-03T04:46:00+00:00"
+        },
+        {
+          "age_days": 20,
+          "as_of": "2026-10-14",
+          "bytes": 32800230,
+          "document_id": "fl:document:sha256-6bcaa509d390b070f28c7aed87c3bb0717766869e1134314746c0a8ba64e6095",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 560758,
+          "filename": "csv",
+          "parcels": 70525,
+          "retrieved_at": "2026-11-03T04:44:06+00:00"
+        },
+        {
+          "age_days": 20,
+          "as_of": "2026-10-14",
+          "bytes": 14729925,
+          "document_id": "fl:document:sha256-7112b544c831e2d3fd4ecec55e36433b43edb22c2ca195d96b69e66dbc03c235",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 226451,
+          "filename": "csv",
+          "parcels": 31096,
+          "retrieved_at": "2026-11-03T04:45:37+00:00"
+        },
+        {
+          "age_days": 20,
+          "as_of": "2026-10-14",
+          "bytes": 29954800,
+          "document_id": "fl:document:sha256-aa55df9d01ebe19cb25d9c1e8d1358318f214f60e469bc73b083ba56cca5130f",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 482071,
+          "filename": "csv",
+          "parcels": 60957,
+          "retrieved_at": "2026-11-03T04:44:54+00:00"
+        }
+      ],
+      "source_file": [
+        {
+          "distinct_apns": 40601,
+          "distinct_parcel_ids": 40601,
+          "document_id": "d286b78c4253",
+          "file": "csv",
+          "header_like_apns": [],
+          "invalid_apns": 0,
+          "matches_registry": true,
+          "org_owner_records": 0,
+          "records_all_categories": 52523,
+          "records_in_scope": 40601,
+          "records_read": 40601,
+          "registry_parcels": 40601
+        },
+        {
+          "distinct_apns": 70525,
+          "distinct_parcel_ids": 70525,
+          "document_id": "0a8ba64e6095",
+          "file": "csv",
+          "header_like_apns": [],
+          "invalid_apns": 0,
+          "matches_registry": true,
+          "org_owner_records": 0,
+          "records_all_categories": 70925,
+          "records_in_scope": 70525,
+          "records_read": 70525,
+          "registry_parcels": 70525
+        },
+        {
+          "distinct_apns": 31096,
+          "distinct_parcel_ids": 31096,
+          "document_id": "e66dbc03c235",
+          "file": "csv",
+          "header_like_apns": [],
+          "invalid_apns": 0,
+          "matches_registry": true,
+          "org_owner_records": 0,
+          "records_all_categories": 31431,
+          "records_in_scope": 31096,
+          "records_read": 31096,
+          "registry_parcels": 31096
+        },
+        {
+          "distinct_apns": 60957,
+          "distinct_parcel_ids": 60957,
+          "document_id": "ba56cca5130f",
+          "file": "csv",
+          "header_like_apns": [],
+          "invalid_apns": 0,
+          "matches_registry": true,
+          "org_owner_records": 0,
+          "records_all_categories": 69686,
+          "records_in_scope": 60957,
+          "records_read": 60957,
+          "registry_parcels": 60957
+        }
+      ],
+      "source_id": "ca-los-angeles-assessor",
+      "state_fips": "06",
+      "terms_reviewed": "2026-11-02",
+      "url": "https://data.lacounty.gov/datasets/lacounty::assessor-parcel-data-roll-2026/about"
+    },
+    {
+      "ai_use": "unknown",
+      "citations": {
+        "as_of_differs_from_snapshot": 0,
+        "document_not_a_snapshot": 0,
+        "facts": 125531,
+        "links": 9329,
+        "links_document_not_a_snapshot": 0,
+        "links_without_basis": 0,
+        "without_locator": 0,
+        "without_method": 0,
+        "without_valid_as_of": 0
+      },
+      "counties": ["us-08031"],
+      "county_fips": "031",
+      "findings": [],
+      "implausible_facts": {
+        "area": 0,
+        "out_of_scope_category": 0,
+        "tax_year": 0,
+        "value": 0,
+        "year_built": 0
+      },
+      "kind": "parcels",
+      "license": "CC BY 3.0 (City and County of Denver open data catalog); public record under the Colorado Open Records Act",
+      "links": {
+        "by_confidence": {
+          "0.85-0.89": 14,
+          "0.90+": 9315
+        },
+        "by_rule": {
+          "exact_name_registered_in_mailing_state": 4,
+          "exact_name_registered_in_parcel_state": 9311,
+          "exact_name_standing": 14
+        },
+        "entity_registry_loaded_for": ["co"],
+        "link_rate_pct": 83.98,
+        "linked_parcels": 9329,
+        "organisation_owner_parcels": 11109,
+        "unlinked": {
+          "exact_name_ambiguous_or_unplausible": 161,
+          "exact_name_in_another_state_queued": 96,
+          "no_exact_name": 1509,
+          "public_body_not_registered": 14
+        }
+      },
+      "lookups": {
+        "parcels_with_account_crosswalk": 13539,
+        "parcels_with_address_index": 13539
+      },
+      "owners": {
+        "orphan_mailing_addresses": 0,
+        "owner_facts": 11109,
+        "person_like": 0
+      },
+      "parcels": {
+        "absent_from_latest_snapshot": 0,
+        "conflicting_facts": 0,
+        "count": 13539,
+        "fields": {
+          "apn": {
+            "missing": 0,
+            "parcels": 13539,
+            "pct_present": 100.0
+          },
+          "appraised_value": {
+            "missing": 0,
+            "parcels": 13539,
+            "pct_present": 100.0
+          },
+          "improvement_area_sf": {
+            "missing": 2310,
+            "parcels": 11229,
+            "pct_present": 82.94
+          },
+          "land_area_sf": {
+            "missing": 13531,
+            "parcels": 8,
+            "pct_present": 0.06
+          },
+          "market_value": {
+            "missing": 0,
+            "parcels": 13539,
+            "pct_present": 100.0
+          },
+          "owner_of_record": {
+            "missing": 2430,
+            "parcels": 11109,
+            "pct_present": 82.05
+          },
+          "situs_address": {
+            "missing": 0,
+            "parcels": 13539,
+            "pct_present": 100.0
+          },
+          "state_property_category": {
+            "missing": 0,
+            "parcels": 13539,
+            "pct_present": 100.0
+          },
+          "tax_year": {
+            "missing": 13539,
+            "parcels": 0,
+            "pct_present": 0.0
+          },
+          "year_built": {
+            "missing": 2697,
+            "parcels": 10842,
+            "pct_present": 80.08
+          }
+        },
+        "missing_address": 0,
+        "missing_as_of": 0,
+        "no_organisation_owner": 2430
+      },
+      "publisher": "City and County of Denver, Assessor's Office",
+      "redistribution": "attribution_required",
+      "review_queue": {
+        "accepted": 0,
+        "pending": 90,
+        "pending_by_rule": {
+          "exact_name_other_state": 90
+        },
+        "pending_owners": 71,
+        "rejected": 0
+      },
+      "snapshots": [
+        {
+          "age_days": 5,
+          "as_of": "2026-10-29",
+          "bytes": 84771835,
+          "document_id": "fl:document:sha256-1e10868d8288533611aa02908bfa91bd6167b206def99c04e4c1b6f8cc69f096",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 90,
+          "filename": "csv",
+          "parcels": 11,
+          "retrieved_at": "2026-11-03T03:32:24+00:00"
+        },
+        {
+          "age_days": 5,
+          "as_of": "2026-10-29",
+          "bytes": 11288056,
+          "document_id": "fl:document:sha256-b26caab122d3410df0fdb730fcf5d2b3dddf2f13f7f857143c259682135ba358",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 125441,
+          "filename": "csv",
+          "parcels": 13528,
+          "retrieved_at": "2026-11-03T03:32:21+00:00"
+        }
+      ],
+      "source_file": [
+        {
+          "distinct_apns": 11,
+          "distinct_parcel_ids": 11,
+          "document_id": "b6f8cc69f096",
+          "file": "csv",
+          "header_like_apns": [],
+          "invalid_apns": 0,
+          "matches_registry": true,
+          "org_owner_records": 8,
+          "records_all_categories": 212870,
+          "records_in_scope": 11,
+          "records_read": 212870,
+          "registry_parcels": 11
+        },
+        {
+          "distinct_apns": 13528,
+          "distinct_parcel_ids": 13528,
+          "document_id": "9682135ba358",
+          "file": "csv",
+          "header_like_apns": [],
+          "invalid_apns": 0,
+          "matches_registry": true,
+          "org_owner_records": 11106,
+          "records_all_categories": 28213,
+          "records_in_scope": 13528,
+          "records_read": 28213,
+          "registry_parcels": 13528
+        }
+      ],
+      "source_id": "co-denver-assessor",
+      "state_fips": "08",
+      "terms_reviewed": "2026-11-02",
+      "url": "https://opendata-geospatialdenver.hub.arcgis.com/datasets/geospatialDenver::real-property-apartment-and-commercial-characteristics"
+    },
+    {
+      "ai_use": "unknown",
+      "citations": {
+        "as_of_differs_from_snapshot": 0,
+        "document_not_a_snapshot": 0,
+        "facts": 15567366,
+        "links": 0,
+        "links_document_not_a_snapshot": 0,
+        "links_without_basis": 0,
+        "without_locator": 0,
+        "without_method": 0,
+        "without_valid_as_of": 0
+      },
+      "county_fips": null,
+      "entities": {
+        "count": 3132612,
+        "names_read_as_persons": 228485
+      },
+      "findings": [],
+      "kind": "entities",
+      "license": "Public domain (dataset license on data.colorado.gov); the portal's Terms of Service require the State of Colorado disclaimer where the data is used",
+      "publisher": "Colorado Department of State",
+      "redistribution": "attribution_required",
+      "snapshots": [
+        {
+          "age_days": 1,
+          "as_of": "2026-11-02",
+          "bytes": 819036143,
+          "document_id": "fl:document:sha256-a92bf7fb1236bc86cfe080bbfe6f87d4e33650b3187ae67680eddd898eccf074",
+          "document_id_is_sha256": true,
+          "entities": 3132612,
+          "facts": 15567366,
+          "filename": "export.csv",
+          "parcels": 0,
+          "retrieved_at": "2026-11-03T03:40:00+00:00"
+        }
+      ],
+      "source_file": [
+        {
+          "distinct_entity_ids": 3132612,
+          "distinct_parcel_ids": 3132612,
+          "document_id": "dd898eccf074",
+          "file": "export.csv",
+          "matches_registry": true,
+          "records_in_scope": 3132613,
+          "registry_parcels": 3132612,
+          "skipped_without_registry_number": 1
+        }
+      ],
+      "source_id": "co-sos-entities",
+      "state_fips": "08",
+      "terms_reviewed": "2026-11-02",
+      "url": "https://data.colorado.gov/Business/Business-Entities-in-Colorado/4ykn-tg5h"
+    },
+    {
+      "ai_use": "permitted",
+      "citations": {
+        "as_of_differs_from_snapshot": 0,
+        "document_not_a_snapshot": 0,
+        "facts": 2140408,
+        "links": 0,
+        "links_document_not_a_snapshot": 0,
+        "links_without_basis": 0,
+        "without_locator": 0,
+        "without_method": 0,
+        "without_valid_as_of": 0
+      },
+      "county_fips": null,
+      "entities": {
+        "count": 506305,
+        "names_read_as_persons": 41310
+      },
+      "findings": [],
+      "kind": "entities",
+      "license": "CC-BY-4.0 (stated on the dataset page); District data policy (Mayor's Order 2017-115) classes open data as public domain, CC0, attribution requested",
+      "publisher": "District of Columbia Department of Licensing and Consumer Protection, Corporations Division",
+      "redistribution": "attribution_required",
+      "snapshots": [
+        {
+          "age_days": 1,
+          "as_of": "2026-11-02",
+          "bytes": 163355532,
+          "document_id": "fl:document:sha256-956587df9b128cef68d934a7e1f1d491624d7b3470a2e47e52b46c5c7ece036d",
+          "document_id_is_sha256": true,
+          "entities": 506305,
+          "facts": 2140408,
+          "filename": "Corporate_Registration.csv",
+          "parcels": 0,
+          "retrieved_at": "2026-11-03T04:46:30+00:00"
+        }
+      ],
+      "source_file": [
+        {
+          "distinct_entity_ids": 506305,
+          "distinct_parcel_ids": 506305,
+          "document_id": "6c5c7ece036d",
+          "file": "Corporate_Registration.csv",
+          "matches_registry": true,
+          "records_in_scope": 506311,
+          "registry_parcels": 506305,
+          "skipped_without_registry_number": 0
+        }
+      ],
+      "source_id": "dc-dlcp-entities",
+      "state_fips": "11",
+      "terms_reviewed": "2026-11-02",
+      "url": "https://opendata.dc.gov/datasets/DCGIS::corporate-registration"
+    },
+    {
+      "ai_use": "permitted",
+      "citations": {
+        "as_of_differs_from_snapshot": 0,
+        "document_not_a_snapshot": 0,
+        "facts": 192128,
+        "links": 7913,
+        "links_document_not_a_snapshot": 0,
+        "links_without_basis": 0,
+        "without_locator": 0,
+        "without_method": 0,
+        "without_valid_as_of": 0
+      },
+      "counties": ["us-11001"],
+      "county_fips": "001",
+      "findings": [
+        {
+          "message": "1 parcels have an implausible year built",
+          "severity": "warning"
+        }
+      ],
+      "implausible_facts": {
+        "area": 0,
+        "out_of_scope_category": 0,
+        "tax_year": 0,
+        "value": 0,
+        "year_built": 1
+      },
+      "kind": "parcels",
+      "license": "CC-BY-4.0 (stated on the dataset pages); District data policy (Mayor's Order 2017-115) classes open data as public domain, CC0, attribution requested",
+      "links": {
+        "by_confidence": {
+          "0.85-0.89": 196,
+          "0.90+": 7717
+        },
+        "by_rule": {
+          "exact_name_formed_in_parcel_state": 53,
+          "exact_name_registered_in_mailing_state": 3,
+          "exact_name_registered_in_parcel_state": 7661,
+          "exact_name_standing": 196
+        },
+        "entity_registry_loaded_for": ["dc"],
+        "link_rate_pct": 68.4,
+        "linked_parcels": 7913,
+        "organisation_owner_parcels": 11568,
+        "unlinked": {
+          "exact_name_ambiguous_or_unplausible": 137,
+          "exact_name_in_another_state_queued": 160,
+          "no_exact_name": 2326,
+          "public_body_not_registered": 1032
+        }
+      },
+      "lookups": {
+        "parcels_with_account_crosswalk": 18077,
+        "parcels_with_address_index": 18077
+      },
+      "owners": {
+        "orphan_mailing_addresses": 0,
+        "owner_facts": 11568,
+        "person_like": 0
+      },
+      "parcels": {
+        "absent_from_latest_snapshot": 0,
+        "conflicting_facts": 0,
+        "count": 18077,
+        "fields": {
+          "apn": {
+            "missing": 0,
+            "parcels": 18077,
+            "pct_present": 100.0
+          },
+          "appraised_value": {
+            "missing": 0,
+            "parcels": 18077,
+            "pct_present": 100.0
+          },
+          "improvement_area_sf": {
+            "missing": 5559,
+            "parcels": 12518,
+            "pct_present": 69.25
+          },
+          "land_area_sf": {
+            "missing": 604,
+            "parcels": 17473,
+            "pct_present": 96.66
+          },
+          "market_value": {
+            "missing": 0,
+            "parcels": 18077,
+            "pct_present": 100.0
+          },
+          "owner_of_record": {
+            "missing": 6509,
+            "parcels": 11568,
+            "pct_present": 63.99
+          },
+          "situs_address": {
+            "missing": 0,
+            "parcels": 18077,
+            "pct_present": 100.0
+          },
+          "state_property_category": {
+            "missing": 0,
+            "parcels": 18077,
+            "pct_present": 100.0
+          },
+          "tax_year": {
+            "missing": 0,
+            "parcels": 18077,
+            "pct_present": 100.0
+          },
+          "year_built": {
+            "missing": 5493,
+            "parcels": 12584,
+            "pct_present": 69.61
+          }
+        },
+        "missing_address": 0,
+        "missing_as_of": 0,
+        "no_organisation_owner": 6509
+      },
+      "publisher": "District of Columbia Office of Tax and Revenue",
+      "redistribution": "attribution_required",
+      "review_queue": {
+        "accepted": 0,
+        "pending": 143,
+        "pending_by_rule": {
+          "exact_name_other_state": 143
+        },
+        "pending_owners": 106,
+        "rejected": 0
+      },
+      "snapshots": [
+        {
+          "age_days": 1,
+          "as_of": "2026-11-02",
+          "bytes": 218192664,
+          "document_id": "fl:document:sha256-e2c6466c4fdcfb1f53373b5dd021794496b7eedfd897e95e2e1871b316ca8a37",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 192128,
+          "filename": "ITSPE.csv",
+          "parcels": 18077,
+          "retrieved_at": "2026-11-03T04:54:00+00:00"
+        }
+      ],
+      "source_file": [
+        {
+          "distinct_apns": 18077,
+          "distinct_parcel_ids": 18077,
+          "document_id": "71b316ca8a37",
+          "file": "ITSPE.csv",
+          "header_like_apns": [],
+          "invalid_apns": 0,
+          "matches_registry": true,
+          "org_owner_records": 11572,
+          "records_all_categories": 215968,
+          "records_in_scope": 18077,
+          "records_read": 18077,
+          "registry_parcels": 18077
+        }
+      ],
+      "source_id": "dc-otr-real-property",
+      "state_fips": "11",
+      "terms_reviewed": "2026-11-02",
+      "url": "https://opendata.dc.gov/datasets/DCGIS::integrated-tax-system-public-extract"
+    },
+    {
+      "ai_use": "unknown",
+      "citations": {
+        "as_of_differs_from_snapshot": 0,
+        "document_not_a_snapshot": 0,
+        "facts": 179586,
+        "links": 110,
+        "links_document_not_a_snapshot": 0,
+        "links_without_basis": 0,
+        "without_locator": 0,
+        "without_method": 0,
+        "without_valid_as_of": 0
+      },
+      "counties": ["us-27053"],
+      "county_fips": "053",
+      "findings": [],
+      "implausible_facts": {
+        "area": 0,
+        "out_of_scope_category": 0,
+        "tax_year": 0,
+        "value": 0,
+        "year_built": 0
+      },
+      "kind": "parcels",
+      "license": "Public government data (Minn. Stat. ch. 13); furnished AS IS, no warranty, not suitable for legal, engineering or surveying purposes",
+      "links": {
+        "by_confidence": {
+          "0.85-0.89": 1,
+          "0.90+": 109
+        },
+        "by_rule": {
+          "exact_name_formed_in_parcel_state": 69,
+          "exact_name_registered_in_mailing_state": 40,
+          "exact_name_standing": 1
+        },
+        "entity_registry_loaded_for": [],
+        "link_rate_pct": null,
+        "linked_parcels": 110,
+        "note": "no entity registry is loaded for this state, so owners cannot be linked",
+        "organisation_owner_parcels": 15409
+      },
+      "lookups": {
+        "parcels_with_account_crosswalk": 19840,
+        "parcels_with_address_index": 19840
+      },
+      "owners": {
+        "orphan_mailing_addresses": 0,
+        "owner_facts": 15409,
+        "person_like": 0
+      },
+      "parcels": {
+        "absent_from_latest_snapshot": 0,
+        "conflicting_facts": 0,
+        "count": 19840,
+        "fields": {
+          "apn": {
+            "missing": 0,
+            "parcels": 19840,
+            "pct_present": 100.0
+          },
+          "appraised_value": {
+            "missing": 3193,
+            "parcels": 16647,
+            "pct_present": 83.91
+          },
+          "improvement_area_sf": {
+            "missing": 19840,
+            "parcels": 0,
+            "pct_present": 0.0
+          },
+          "land_area_sf": {
+            "missing": 0,
+            "parcels": 19840,
+            "pct_present": 100.0
+          },
+          "market_value": {
+            "missing": 3193,
+            "parcels": 16647,
+            "pct_present": 83.91
+          },
+          "owner_of_record": {
+            "missing": 4431,
+            "parcels": 15409,
+            "pct_present": 77.67
+          },
+          "situs_address": {
+            "missing": 0,
+            "parcels": 19840,
+            "pct_present": 100.0
+          },
+          "state_property_category": {
+            "missing": 0,
+            "parcels": 19840,
+            "pct_present": 100.0
+          },
+          "tax_year": {
+            "missing": 19840,
+            "parcels": 0,
+            "pct_present": 0.0
+          },
+          "year_built": {
+            "missing": 276,
+            "parcels": 19564,
+            "pct_present": 98.61
+          }
+        },
+        "missing_address": 0,
+        "missing_as_of": 0,
+        "no_organisation_owner": 4431
+      },
+      "publisher": "Hennepin County",
+      "redistribution": "unknown",
+      "review_queue": {
+        "accepted": 0,
+        "pending": 2193,
+        "pending_by_rule": {
+          "exact_name_other_state": 2193
+        },
+        "pending_owners": 1366,
+        "rejected": 0
+      },
+      "snapshots": [
+        {
+          "age_days": 12,
+          "as_of": "2026-10-22",
+          "bytes": 362577002,
+          "document_id": "fl:document:sha256-7877c3f7393f9c557d5311eb8ffa5ecf497f9a08b042e7ae2f996a58e493da1f",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 179586,
+          "filename": "County_Parcels.csv",
+          "parcels": 19840,
+          "retrieved_at": "2026-11-03T04:52:45+00:00"
+        }
+      ],
+      "source_file": [
+        {
+          "distinct_apns": 19840,
+          "distinct_parcel_ids": 19840,
+          "document_id": "6a58e493da1f",
+          "file": "County_Parcels.csv",
+          "header_like_apns": [],
+          "invalid_apns": 0,
+          "matches_registry": true,
+          "org_owner_records": 15436,
+          "records_all_categories": 443496,
+          "records_in_scope": 19840,
+          "records_read": 19840,
+          "registry_parcels": 19840
+        }
+      ],
+      "source_id": "mn-hennepin-assessor",
+      "state_fips": "27",
+      "terms_reviewed": "2026-11-02",
+      "url": "https://gis-hennepin.hub.arcgis.com/datasets/hennepin::county-parcels/about"
+    },
+    {
+      "ai_use": "unknown",
+      "citations": {
+        "as_of_differs_from_snapshot": 0,
+        "document_not_a_snapshot": 0,
+        "facts": 257078,
+        "links": 157,
+        "links_document_not_a_snapshot": 0,
+        "links_without_basis": 0,
+        "without_locator": 0,
+        "without_method": 0,
+        "without_valid_as_of": 0
+      },
+      "counties": ["us-37119"],
+      "county_fips": "119",
+      "findings": [
+        {
+          "message": "37 parcels have an implausible area",
+          "severity": "warning"
+        },
+        {
+          "message": "2921 of 23686 parcels have no situs address",
+          "severity": "warning"
+        }
+      ],
+      "implausible_facts": {
+        "area": 37,
+        "out_of_scope_category": 0,
+        "tax_year": 0,
+        "value": 0,
+        "year_built": 0
+      },
+      "kind": "parcels",
+      "license": "Open data (gis.mecknc.gov/data-center: 'You have the right to redistribute the data' and to make derivative works); public record (N.C. Gen. Stat. ch. 132). robots.txt Content-Signal: search=yes, ai-train=no, use=reference",
+      "links": {
+        "by_confidence": {
+          "0.90+": 157
+        },
+        "by_rule": {
+          "exact_name_formed_in_parcel_state": 59,
+          "exact_name_registered_in_mailing_state": 98
+        },
+        "entity_registry_loaded_for": [],
+        "link_rate_pct": null,
+        "linked_parcels": 157,
+        "note": "no entity registry is loaded for this state, so owners cannot be linked",
+        "organisation_owner_parcels": 19664
+      },
+      "lookups": {
+        "parcels_with_account_crosswalk": 23686,
+        "parcels_with_address_index": 20765
+      },
+      "owners": {
+        "orphan_mailing_addresses": 0,
+        "owner_facts": 19664,
+        "person_like": 0
+      },
+      "parcels": {
+        "absent_from_latest_snapshot": 0,
+        "conflicting_facts": 0,
+        "count": 23686,
+        "fields": {
+          "apn": {
+            "missing": 0,
+            "parcels": 23686,
+            "pct_present": 100.0
+          },
+          "appraised_value": {
+            "missing": 3,
+            "parcels": 23683,
+            "pct_present": 99.99
+          },
+          "improvement_area_sf": {
+            "missing": 6213,
+            "parcels": 17473,
+            "pct_present": 73.77
+          },
+          "land_area_sf": {
+            "missing": 3759,
+            "parcels": 19927,
+            "pct_present": 84.13
+          },
+          "market_value": {
+            "missing": 3,
+            "parcels": 23683,
+            "pct_present": 99.99
+          },
+          "owner_of_record": {
+            "missing": 4022,
+            "parcels": 19664,
+            "pct_present": 83.02
+          },
+          "situs_address": {
+            "missing": 2921,
+            "parcels": 20765,
+            "pct_present": 87.67
+          },
+          "state_property_category": {
+            "missing": 0,
+            "parcels": 23686,
+            "pct_present": 100.0
+          },
+          "tax_year": {
+            "missing": 0,
+            "parcels": 23686,
+            "pct_present": 100.0
+          },
+          "year_built": {
+            "missing": 6211,
+            "parcels": 17475,
+            "pct_present": 73.78
+          }
+        },
+        "missing_address": 2921,
+        "missing_as_of": 0,
+        "no_organisation_owner": 4022
+      },
+      "publisher": "Mecklenburg County Geospatial Information Services (County Assessor's Office data)",
+      "redistribution": "attribution_required",
+      "review_queue": {
+        "accepted": 0,
+        "pending": 1925,
+        "pending_by_rule": {
+          "exact_name_other_state": 1925
+        },
+        "pending_owners": 1242,
+        "rejected": 0
+      },
+      "snapshots": [
+        {
+          "age_days": 1,
+          "as_of": "2026-11-02",
+          "bytes": 87620621,
+          "document_id": "fl:document:sha256-cc46ea87218379144e4d3082fca6bdb7e871c06f86d8b87166bdaa629f883aff",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 257078,
+          "filename": "Cama_Table.zip",
+          "parcels": 23686,
+          "retrieved_at": "2026-11-03T04:43:32+00:00"
+        }
+      ],
+      "source_file": [
+        {
+          "distinct_apns": 23686,
+          "distinct_parcel_ids": 23686,
+          "document_id": "aa629f883aff",
+          "file": "Cama_Table.zip",
+          "header_like_apns": [],
+          "invalid_apns": 0,
+          "matches_registry": true,
+          "org_owner_records": 19676,
+          "records_all_categories": 429920,
+          "records_in_scope": 23686,
+          "records_read": 23686,
+          "registry_parcels": 23686
+        }
+      ],
+      "source_id": "nc-mecklenburg-assessor",
+      "state_fips": "37",
+      "terms_reviewed": "2026-11-02",
+      "url": "https://maps.mecklenburgcountync.gov/openmapping/data.html"
+    },
+    {
+      "ai_use": "unknown",
+      "citations": {
+        "as_of_differs_from_snapshot": 0,
+        "document_not_a_snapshot": 0,
+        "facts": 18104445,
+        "links": 0,
+        "links_document_not_a_snapshot": 0,
+        "links_without_basis": 0,
+        "without_locator": 0,
+        "without_method": 0,
+        "without_valid_as_of": 0
+      },
+      "county_fips": null,
+      "entities": {
+        "count": 3631216,
+        "names_read_as_persons": 71890
+      },
+      "findings": [],
+      "kind": "entities",
+      "license": "OPEN-NY Terms of Use (non-exclusive, revocable licence; no attribution, share-alike or pre-approval requirement; lawful use only)",
+      "publisher": "New York State Department of State, Division of Corporations",
+      "redistribution": "permitted",
+      "snapshots": [
+        {
+          "age_days": 4,
+          "as_of": "2026-10-30",
+          "bytes": 813926983,
+          "document_id": "fl:document:sha256-39ac829345561661814ae84c01c2546609398adb3e706edb2365732d6b74eb11",
+          "document_id_is_sha256": true,
+          "entities": 3631216,
+          "facts": 18104445,
+          "filename": "export.csv",
+          "parcels": 0,
+          "retrieved_at": "2026-11-03T04:03:53+00:00"
+        }
+      ],
+      "source_file": [
+        {
+          "distinct_entity_ids": 3631216,
+          "distinct_parcel_ids": 3631216,
+          "document_id": "732d6b74eb11",
+          "file": "export.csv",
+          "matches_registry": true,
+          "records_in_scope": 3631221,
+          "registry_parcels": 3631216,
+          "skipped_without_registry_number": 5
+        }
+      ],
+      "source_id": "ny-dos-entities",
+      "state_fips": "36",
+      "terms_reviewed": "2026-11-02",
+      "url": "https://data.ny.gov/Economic-Development/Active-Corporations-Beginning-1800/n9v6-gdp6"
+    },
+    {
+      "ai_use": "unknown",
+      "citations": {
+        "as_of_differs_from_snapshot": 0,
+        "document_not_a_snapshot": 0,
+        "facts": 1710008,
+        "links": 84595,
+        "links_document_not_a_snapshot": 0,
+        "links_without_basis": 0,
+        "without_locator": 0,
+        "without_method": 0,
+        "without_valid_as_of": 0
+      },
+      "counties": ["us-36005", "us-36047", "us-36061", "us-36081", "us-36085"],
+      "county_fips": null,
+      "findings": [
+        {
+          "message": "1 parcels have an implausible year built",
+          "severity": "warning"
+        },
+        {
+          "message": "1 parcels have an implausible area",
+          "severity": "warning"
+        }
+      ],
+      "implausible_facts": {
+        "area": 1,
+        "out_of_scope_category": 0,
+        "tax_year": 0,
+        "value": 0,
+        "year_built": 1
+      },
+      "kind": "parcels",
+      "license": "Public record (N.Y. RPTL \u00a7516; FOIL) published under the NYC Open Data Law (Admin. Code \u00a723-502). NYC Open Data FAQ: 'Open Data belongs to all New Yorkers. There are no restrictions on the use of Open Data.'",
+      "links": {
+        "by_confidence": {
+          "0.90+": 84595
+        },
+        "by_rule": {
+          "exact_name_formed_in_parcel_state": 129,
+          "exact_name_registered_in_parcel_state": 84466
+        },
+        "entity_registry_loaded_for": ["ny"],
+        "link_rate_pct": 73.17,
+        "linked_parcels": 84595,
+        "organisation_owner_parcels": 115618,
+        "unlinked": {
+          "exact_name_ambiguous_or_unplausible": 847,
+          "exact_name_in_another_state_queued": 848,
+          "no_exact_name": 28357,
+          "public_body_not_registered": 971
+        }
+      },
+      "lookups": {
+        "parcels_with_account_crosswalk": 164633,
+        "parcels_with_address_index": 164625
+      },
+      "owners": {
+        "orphan_mailing_addresses": 0,
+        "owner_facts": 115618,
+        "person_like": 0
+      },
+      "parcels": {
+        "absent_from_latest_snapshot": 0,
+        "conflicting_facts": 0,
+        "count": 164633,
+        "fields": {
+          "apn": {
+            "missing": 0,
+            "parcels": 164633,
+            "pct_present": 100.0
+          },
+          "appraised_value": {
+            "missing": 0,
+            "parcels": 164633,
+            "pct_present": 100.0
+          },
+          "improvement_area_sf": {
+            "missing": 11568,
+            "parcels": 153065,
+            "pct_present": 92.97
+          },
+          "land_area_sf": {
+            "missing": 23745,
+            "parcels": 140888,
+            "pct_present": 85.58
+          },
+          "market_value": {
+            "missing": 0,
+            "parcels": 164633,
+            "pct_present": 100.0
+          },
+          "owner_of_record": {
+            "missing": 49015,
+            "parcels": 115618,
+            "pct_present": 70.23
+          },
+          "situs_address": {
+            "missing": 8,
+            "parcels": 164625,
+            "pct_present": 100.0
+          },
+          "state_property_category": {
+            "missing": 0,
+            "parcels": 164633,
+            "pct_present": 100.0
+          },
+          "tax_year": {
+            "missing": 0,
+            "parcels": 164633,
+            "pct_present": 100.0
+          },
+          "year_built": {
+            "missing": 16619,
+            "parcels": 148014,
+            "pct_present": 89.91
+          }
+        },
+        "missing_address": 8,
+        "missing_as_of": 0,
+        "no_organisation_owner": 49015
+      },
+      "publisher": "New York City Department of Finance",
+      "redistribution": "permitted",
+      "review_queue": {
+        "accepted": 0,
+        "pending": 744,
+        "pending_by_rule": {
+          "exact_name_other_state": 744
+        },
+        "pending_owners": 568,
+        "rejected": 0
+      },
+      "snapshots": [
+        {
+          "age_days": 172,
+          "as_of": "2026-05-15",
+          "bytes": 48989962,
+          "document_id": "fl:document:sha256-c3d135953903eb223c4d866e1af891575de9e77b1be504f8dae5564f309ac85c",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 1710008,
+          "filename": "fy27_tc234.zip",
+          "parcels": 164633,
+          "retrieved_at": "2026-11-03T03:32:13+00:00"
+        }
+      ],
+      "source_file": [
+        {
+          "distinct_apns": 164633,
+          "distinct_parcel_ids": 164633,
+          "document_id": "564f309ac85c",
+          "file": "fy27_tc234.zip",
+          "header_like_apns": [],
+          "invalid_apns": 0,
+          "matches_registry": true,
+          "org_owner_records": 115822,
+          "records_all_categories": 461249,
+          "records_in_scope": 164633,
+          "records_read": 164633,
+          "registry_parcels": 164633
+        }
+      ],
+      "source_id": "ny-nyc-dof",
+      "state_fips": "36",
+      "terms_reviewed": "2026-11-02",
+      "url": "https://www.nyc.gov/site/finance/property/property-assessments.page"
+    },
+    {
+      "ai_use": "permitted",
+      "citations": {
+        "as_of_differs_from_snapshot": 0,
+        "document_not_a_snapshot": 0,
+        "facts": 9504660,
+        "links": 0,
+        "links_document_not_a_snapshot": 0,
+        "links_without_basis": 0,
+        "without_locator": 0,
+        "without_method": 0,
+        "without_valid_as_of": 0
+      },
+      "county_fips": null,
+      "entities": {
+        "count": 2376226,
+        "names_read_as_persons": 88669
+      },
+      "findings": [],
+      "kind": "entities",
+      "license": "Public Domain U.S. Government (portal license field); PA Data Policy: data sets are offered free and without restriction",
+      "publisher": "Pennsylvania Department of State, Bureau of Corporations and Charitable Organizations",
+      "redistribution": "permitted",
+      "snapshots": [
+        {
+          "age_days": 28,
+          "as_of": "2026-10-06",
+          "bytes": 402718857,
+          "document_id": "fl:document:sha256-b385eeddf8631368472bf1133d806843f9e890be3d6c2f3f12ebea7fe2c10cd9",
+          "document_id_is_sha256": true,
+          "entities": 2376226,
+          "facts": 9504660,
+          "filename": "export.csv",
+          "parcels": 0,
+          "retrieved_at": "2026-11-03T03:32:27+00:00"
+        }
+      ],
+      "source_file": [
+        {
+          "distinct_entity_ids": 2376226,
+          "distinct_parcel_ids": 2376226,
+          "document_id": "ea7fe2c10cd9",
+          "file": "export.csv",
+          "matches_registry": true,
+          "records_in_scope": 2376248,
+          "registry_parcels": 2376226,
+          "skipped_without_registry_number": 0
+        }
+      ],
+      "source_id": "pa-sos-entities",
+      "state_fips": "42",
+      "terms_reviewed": "2026-11-02",
+      "url": "https://data.pa.gov/Licenses-Certificates/Filtered-View-Distinct-Registered-Businesses-in-PA/3urc-uaba"
+    }
+  ],
+  "stats": {
+    "entities": 9646359,
+    "facts": 49366572,
+    "links": 102104,
+    "parcels": 442954,
+    "review_pending": 5095,
+    "snapshots": 14
+  },
+  "violations": [],
+  "warnings": [
+    "ca-los-angeles-assessor: 10223 of 203179 parcels have no situs address",
+    "dc-otr-real-property: 1 parcels have an implausible year built",
+    "nc-mecklenburg-assessor: 37 parcels have an implausible area",
+    "nc-mecklenburg-assessor: 2921 of 23686 parcels have no situs address",
+    "ny-nyc-dof: 1 parcels have an implausible year built",
+    "ny-nyc-dof: 1 parcels have an implausible area"
+  ]
+}

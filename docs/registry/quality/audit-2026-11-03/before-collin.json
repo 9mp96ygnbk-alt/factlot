@@ -1,0 +1,155 @@
+{
+  "audited_on": "2026-11-03",
+  "database": "registry.db",
+  "entity_registries_by_state": {},
+  "sources": [
+    {
+      "ai_use": "unknown",
+      "citations": {
+        "as_of_differs_from_snapshot": 0,
+        "document_not_a_snapshot": 0,
+        "facts": 200175,
+        "links": 0,
+        "links_document_not_a_snapshot": 0,
+        "links_without_basis": 0,
+        "without_locator": 0,
+        "without_method": 0,
+        "without_valid_as_of": 0
+      },
+      "counties": ["us-48085"],
+      "county_fips": "085",
+      "findings": [
+        {
+          "message": "10 owner-of-record facts read as natural persons",
+          "severity": "violation"
+        }
+      ],
+      "implausible_facts": {
+        "area": 0,
+        "out_of_scope_category": 0,
+        "tax_year": 0,
+        "value": 0,
+        "year_built": 0
+      },
+      "kind": "parcels",
+      "license": "Public record (Tex. Gov't Code ch. 552); no license or terms of use stated for the exports",
+      "links": {
+        "by_confidence": {},
+        "by_rule": {},
+        "entity_registry_loaded_for": [],
+        "link_rate_pct": null,
+        "linked_parcels": 0,
+        "note": "no entity registry is loaded for this state, so owners cannot be linked",
+        "organisation_owner_parcels": 13174
+      },
+      "lookups": {
+        "parcels_with_account_crosswalk": 18035,
+        "parcels_with_address_index": 17886
+      },
+      "owners": {
+        "orphan_mailing_addresses": 0,
+        "owner_facts": 13174,
+        "person_like": 10
+      },
+      "parcels": {
+        "absent_from_latest_snapshot": 0,
+        "conflicting_facts": 0,
+        "count": 18035,
+        "fields": {
+          "apn": {
+            "missing": 0,
+            "parcels": 18035,
+            "pct_present": 100.0
+          },
+          "appraised_value": {
+            "missing": 240,
+            "parcels": 17795,
+            "pct_present": 98.67
+          },
+          "improvement_area_sf": {
+            "missing": 910,
+            "parcels": 17125,
+            "pct_present": 94.95
+          },
+          "land_area_sf": {
+            "missing": 3830,
+            "parcels": 14205,
+            "pct_present": 78.76
+          },
+          "market_value": {
+            "missing": 240,
+            "parcels": 17795,
+            "pct_present": 98.67
+          },
+          "owner_of_record": {
+            "missing": 4861,
+            "parcels": 13174,
+            "pct_present": 73.05
+          },
+          "situs_address": {
+            "missing": 149,
+            "parcels": 17886,
+            "pct_present": 99.17
+          },
+          "state_property_category": {
+            "missing": 0,
+            "parcels": 18035,
+            "pct_present": 100.0
+          },
+          "tax_year": {
+            "missing": 240,
+            "parcels": 17795,
+            "pct_present": 98.67
+          },
+          "year_built": {
+            "missing": 914,
+            "parcels": 17121,
+            "pct_present": 94.93
+          }
+        },
+        "missing_address": 149,
+        "missing_as_of": 0,
+        "no_organisation_owner": 4861
+      },
+      "publisher": "Collin Central Appraisal District",
+      "redistribution": "unknown",
+      "review_queue": {
+        "accepted": 0,
+        "pending": 0,
+        "pending_by_rule": {},
+        "pending_owners": 0,
+        "rejected": 0
+      },
+      "snapshots": [
+        {
+          "age_days": 1,
+          "as_of": "2026-11-02",
+          "bytes": 85252802,
+          "document_id": "fl:document:sha256-2181dacc20ec3c25d0233dbc7fad71563d22bec0213b02532709dde4f1450cff",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 200175,
+          "filename": "LiteDatabaseCurrent.zip",
+          "parcels": 18035,
+          "retrieved_at": "2026-11-02T23:56:09+00:00"
+        }
+      ],
+      "source_id": "tx-collin-cad",
+      "state_fips": "48",
+      "terms_reviewed": "2026-11-02",
+      "url": "https://collincad.org/category/appraisal-data-exports/"
+    }
+  ],
+  "stats": {
+    "entities": 0,
+    "facts": 200175,
+    "links": 0,
+    "parcels": 18035,
+    "review_pending": 0,
+    "snapshots": 1
+  },
+  "violations": [
+    "tx-collin-cad: 10 owner-of-record facts read as natural persons"
+  ],
+  "warnings": []
+}

@@ -14,10 +14,11 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from importlib import resources
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable
 
 from ..ids import FactLotIdError, _base32, entity_id, parcel_id, short_id
 from .normalize import (
+    NAME_KEY_VERSION,
     NAME_OVERLAP_WEIGHT,
     NAME_RATIO_WEIGHT,
     address_state,
@@ -26,6 +27,7 @@ from .normalize import (
     entity_state,
     is_commercial,
     is_organization,
+    legacy_name_key,
     name_similarity,
     normalize_address,
     normalize_name,
@@ -156,6 +158,8 @@ class Registry:
         self.db.row_factory = sqlite3.Row
         # Every statement in schema.sql is IF NOT EXISTS, so opening an older file adds the newer
         # tables without touching existing ones; the version records which tables to expect.
+        self._written: set[str] = set()  # fact IDs the parcel being ingested produced (see ingest_parcels)
+        self._tracking = False
         self.db.executescript(resources.files("factlot.registry").joinpath("schema.sql").read_text("utf-8"))
         self.db.execute("INSERT OR REPLACE INTO meta VALUES ('schema_version', ?)", (SCHEMA_VERSION,))
         self.db.commit()
@@ -216,12 +220,25 @@ class Registry:
         if value is None or value == "":
             return 0
         value_json = json.dumps(value, sort_keys=True)
+        fact_id = _fact_id(subject, predicate, value_json, snap.document_id)
+        if self._tracking:
+            self._written.add(fact_id)
         cur = self.db.execute(
             "INSERT OR IGNORE INTO facts VALUES (?,?,?,?,?,?,?,?,?,?)",
-            (_fact_id(subject, predicate, value_json, snap.document_id), subject, predicate, value_json,
-             unit, snap.as_of, method, confidence, snap.document_id, locator),
+            (fact_id, subject, predicate, value_json, unit, snap.as_of, method, confidence, snap.document_id, locator),
         )
         return cur.rowcount
+
+    def _drop_stale(self, urn: str, snap: Snapshot, old_ids: set[str] | None) -> None:
+        """Delete facts a previous ingest of this document wrote for ``urn`` that this run did not write."""
+        if not old_ids:
+            return
+        for fact_id in old_ids - self._written:
+            predicate = self.db.execute("SELECT predicate FROM facts WHERE fact_id = ?", (fact_id,)).fetchone()
+            self.db.execute("DELETE FROM facts WHERE fact_id = ?", (fact_id,))
+            if predicate and predicate[0] == "ownership.owner_of_record":
+                self.db.execute("DELETE FROM relationships WHERE to_urn = ? AND type = 'owns' AND document_id = ?",
+                                (urn, snap.document_id))
 
     def _cover(self, subject: str, snap: Snapshot) -> None:
         self.db.execute("INSERT OR REPLACE INTO coverage VALUES (?,?,?,?,1)",
@@ -259,6 +276,11 @@ class Registry:
         self.db.commit()
         return stats
 
+    def _unindex_name_tokens(self, key: str, urn: str) -> None:
+        """Remove the token rows of one name key, by primary key (``name_tokens`` has no index on the entity)."""
+        self.db.executemany("DELETE FROM name_tokens WHERE token = ? AND urn = ? AND key = ?",
+                            [(t, urn, key) for t in distinctive_tokens(key)])
+
     def _index_name_tokens(self, key: str, urn: str) -> None:
         self.db.executemany("INSERT OR IGNORE INTO name_tokens VALUES (?,?,?)",
                             [(t, urn, key) for t in distinctive_tokens(key)])
@@ -278,6 +300,97 @@ class Registry:
         self.db.commit()
         return n
 
+    def rebuild_name_index(self) -> dict[str, int]:
+        """Re-key the entity name index after a change to ``normalize_name``; idempotent.
+
+        A stored key is rewritten only when it is exactly what the previous normalization made of
+        the entity's current legal name, so keys from an entity's earlier names are left as they
+        are. Token-index rows follow. Returns ``{"scanned": …, "rekeyed": …}``; run
+        ``rebuild_review_keys`` afterwards on a registry with a review queue.
+        """
+        # One sequential pass over the entities, then a point lookup only for those whose key changed.
+        changed: list[tuple[str, str, str]] = []
+        scanned = 0
+        for row in self.db.execute("SELECT urn, label FROM subjects WHERE kind = 'entity' AND label IS NOT NULL"):
+            scanned += 1
+            new, old = normalize_name(row["label"]), legacy_name_key(row["label"])
+            if new != old:
+                changed.append((old, new, row["urn"]))
+        has_tokens = self._has_table("name_tokens")
+        rekeyed = 0
+        for old, new, urn in changed:
+            if self.db.execute("DELETE FROM name_index WHERE key = ? AND urn = ?", (old, urn)).rowcount:
+                rekeyed += 1
+                self.db.execute("INSERT OR IGNORE INTO name_index VALUES (?,?)", (new, urn))
+                if has_tokens:
+                    self._unindex_name_tokens(old, urn)
+                    self._index_name_tokens(new, urn)
+        self.db.execute("INSERT OR REPLACE INTO meta VALUES ('name_key_version', ?)", (NAME_KEY_VERSION,))
+        self.db.commit()
+        return {"scanned": scanned, "rekeyed": rekeyed}
+
+    def rewrite_entity_names(self, source_id: str, clean: Callable[[str], str]) -> dict[str, int]:
+        """Re-derive entity legal names after an adapter fix, in place; idempotent.
+
+        ``clean`` maps a stored legal name to the name the fixed adapter now writes. For every
+        entity of the source whose name changes, the ``entity.legal_name`` fact is rewritten (same
+        document and locator; the fact ID follows its value), the subject's label, and its keys in
+        the name and token indexes. Ingesting the same snapshot again with the fixed adapter then
+        adds nothing. Run ``link_owners`` afterwards.
+        """
+        changes: list[tuple[str, str, str, str, str]] = []
+        for r in self.db.execute(
+                "SELECT f.fact_id, f.subject, f.value_json, f.document_id FROM facts f "
+                "JOIN snapshots s ON s.document_id = f.document_id "
+                "WHERE s.source_id = ? AND f.predicate = 'entity.legal_name'", (source_id,)):
+            old = json.loads(r["value_json"])
+            new = clean(old) if isinstance(old, str) else old
+            if isinstance(new, str) and new and new != old:
+                changes.append((r["fact_id"], r["subject"], old, new, r["document_id"]))
+        merged = 0
+        has_tokens = self._has_table("name_tokens")
+        for fact_id, urn, old, new, doc in changes:
+            value_json = json.dumps(new, sort_keys=True)
+            cur = self.db.execute("UPDATE OR IGNORE facts SET value_json = ?, fact_id = ? WHERE fact_id = ?",
+                                  (value_json, _fact_id(urn, "entity.legal_name", value_json, doc), fact_id))
+            if cur.rowcount == 0:  # the cleaned fact is already there
+                self.db.execute("DELETE FROM facts WHERE fact_id = ?", (fact_id,))
+                merged += 1
+            self.db.execute("UPDATE subjects SET label = ? WHERE urn = ? AND label = ?", (new, urn, old))
+            old_keys = {normalize_name(old), legacy_name_key(old)} - {normalize_name(new)}
+            for key in old_keys:
+                self.db.execute("DELETE FROM name_index WHERE key = ? AND urn = ?", (key, urn))
+                if has_tokens:
+                    self._unindex_name_tokens(key, urn)
+            self.db.execute("INSERT OR IGNORE INTO name_index VALUES (?,?)", (normalize_name(new), urn))
+            if has_tokens:
+                self._index_name_tokens(normalize_name(new), urn)
+        self.db.commit()
+        return {"rewritten": len(changes), "already_present": merged}
+
+    def rebuild_review_keys(self) -> dict[str, int]:
+        """Recompute ``owner_key`` of every review row from its owner name after a normalization change.
+
+        A pending row whose new key collides with an existing row for the same entity is dropped
+        (the pair is already queued under that key); a decided row is never dropped.
+        """
+        moved = dropped = 0
+        for row in self.db.execute("SELECT review_id, owner_name, owner_key, entity_urn, status FROM owner_match_review").fetchall():
+            new = normalize_name(row["owner_name"])
+            if new == row["owner_key"]:
+                continue
+            clash = self.db.execute("SELECT 1 FROM owner_match_review WHERE owner_key = ? AND entity_urn = ?",
+                                    (new, row["entity_urn"])).fetchone()
+            if clash:
+                if row["status"] == "pending":
+                    self.db.execute("DELETE FROM owner_match_review WHERE review_id = ?", (row["review_id"],))
+                    dropped += 1
+                continue
+            self.db.execute("UPDATE owner_match_review SET owner_key = ? WHERE review_id = ?", (new, row["review_id"]))
+            moved += 1
+        self.db.commit()
+        return {"rekeyed": moved, "dropped_duplicates": dropped}
+
     def ingest_parcels(self, records: Iterable[ParcelRecord], snap: Snapshot, *, state_fips: str,
                        account_system: str | None = None, include_all_categories: bool = False,
                        full_roll: bool = False) -> IngestStats:
@@ -288,6 +401,17 @@ class Registry:
         scope — sold, split, merged, reclassified) are retired, so their facts become history.
         """
         stats = IngestStats()
+        replaced: set[str] = set()
+        self._tracking = True
+        try:
+            return self._ingest_parcels(records, snap, stats, replaced, state_fips, account_system,
+                                        include_all_categories, full_roll)
+        finally:
+            self._tracking = False
+
+    def _ingest_parcels(self, records: Iterable[ParcelRecord], snap: Snapshot, stats: IngestStats, replaced: set[str],
+                        state_fips: str, account_system: str | None, include_all_categories: bool,
+                        full_roll: bool) -> IngestStats:
         for r in records:
             stats.seen += 1
             if not include_all_categories and not is_commercial(r.state_category):
@@ -300,6 +424,17 @@ class Registry:
                 stats.errors.append(f"{r.locator or r.apn}: {e}")
                 continue
             stats.kept += 1
+            # Re-ingesting a snapshot makes the registry hold what the adapter yields now: facts an earlier
+            # run wrote for this parcel from this document that the adapter no longer yields are dropped
+            # (with the links derived from a dropped owner), so an adapter fix does not leave the old
+            # values beside the new ones. Identical facts are untouched, so re-ingesting an unchanged
+            # file writes nothing. A parcel a file lists twice keeps the facts of both rows.
+            old_ids: set[str] | None = None
+            if urn not in replaced:
+                replaced.add(urn)
+                old_ids = {row[0] for row in self.db.execute(
+                    "SELECT fact_id FROM facts WHERE subject = ? AND document_id = ?", (urn, snap.document_id))}
+                self._written = set()
             loc = r.locator or (f"account {r.account}" if r.account else f"apn {r.apn}")
             self._subject(urn, "parcel", r.situs_address)
             self._cover(urn, snap)
@@ -323,10 +458,12 @@ class Registry:
                 if r.owner_name or r.owner_confidential:
                     stats.owners_person_or_withheld += 1
                 stats.facts_written += n
+                self._drop_stale(urn, snap, old_ids)
                 continue
             n += self._fact(urn, "ownership.owner_of_record", r.owner_name.strip(), snap, locator=loc)
             n += self._fact(urn, "ownership.owner_mailing_address", r.owner_mailing_address, snap, locator=loc)
             stats.facts_written += n
+            self._drop_stale(urn, snap, old_ids)
         if full_roll:
             stats.retired = self._retire_absent(snap)
         self.db.commit()
@@ -369,7 +506,8 @@ class Registry:
         near-matches for the rest.
         """
         result = {"linked": 0, "linked_by_standing": 0, "linked_by_review": 0, "ambiguous": 0,
-                  "cross_state": 0, "queued_for_review": 0, "unmatched": 0}
+                  "cross_state": 0, "queued_for_review": 0, "unmatched": 0, "review_rows_superseded": 0}
+        linked_keys: set[str] = set()
         # Exact-match links are re-derived on every run, so a registry linked under an earlier
         # rule (or before more entity registries were loaded) ends up with the links the current
         # rule makes. Reviewed links are a person's decision and are left alone.
@@ -393,10 +531,12 @@ class Registry:
                 # well would give the parcel a second owner of record.
                 self._link_reviewed(accepted[key], o)
                 result["linked_by_review"] += 1
+                linked_keys.add(key)
             elif len(plausible) == 1:
                 (urn, rule), = plausible.items()
                 self._link(urn, o, EXACT_MATCH_CONFIDENCE, f"{EXACT_MATCH_BASIS} ({rule})")
                 result["linked"] += 1
+                linked_keys.add(key)
             elif plausible and len(live := self._still_in_existence(plausible)) == 1:
                 # Several same-name entities in the right place, all but one dissolved, revoked,
                 # merged or withdrawn: the one that still exists is the owner, at lower confidence.
@@ -405,6 +545,7 @@ class Registry:
                            f"{EXACT_MATCH_BASIS} ({plausible[urn]}; the only one of {len(plausible)} "
                            f"same-name entities still in existence, the others having ended)")
                 result["linked_by_standing"] += 1
+                linked_keys.add(key)
             elif plausible:
                 result["ambiguous"] += 1
             elif candidates:
@@ -413,6 +554,15 @@ class Registry:
                 c["count"] += 1
             else:
                 result["unmatched"] += 1
+        # A pending candidate for a name that now links is moot (a decided row is never touched; it
+        # keeps a rejected pair from coming back). A name still unlinked on other parcels is queued again below.
+        if linked_keys and self._has_table("owner_match_review"):
+            ordered = sorted(linked_keys)
+            for i in range(0, len(ordered), 500):
+                chunk = ordered[i:i + 500]
+                result["review_rows_superseded"] += self.db.execute(
+                    f"DELETE FROM owner_match_review WHERE status = 'pending' AND owner_key IN ({','.join('?' * len(chunk))})",
+                    chunk).rowcount
         now = datetime.now(timezone.utc).isoformat(timespec="seconds")
         for key in sorted(cross_state):
             c = cross_state[key]

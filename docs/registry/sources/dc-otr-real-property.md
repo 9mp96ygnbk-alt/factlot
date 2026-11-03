@@ -104,6 +104,11 @@ Esri / ArcGIS Hub. No separate public Hub terms page for downloaders was found. 
 
 Read: E204 and E300 bind Esri's customer (here, the publisher), not an anonymous downloader, and neither restricts redistribution of public records the publisher chooses to publish. The publisher's own terms recorded above still govern. Do not create an Esri account or accept either agreement to download a file.
 
+## Quality pass (2026-11-03)
+
+The adapter yields exactly the 18,077 parcels the registry holds. 11,572 organisation owners are stored; **8,377 (72.4%) link to a DC DLCP entity** (was 7,913, 68.4%), 322 of them
+chosen by standing among same-name entities. One parcel has a year built outside 1700 to 2028 in the source.
+
 ## Real run (2026-11-03)
 
 This connection drops the Hub's long transfers (five collector attempts: timeouts, truncated

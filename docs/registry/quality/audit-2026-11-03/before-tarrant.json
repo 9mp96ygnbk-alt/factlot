@@ -1,0 +1,159 @@
+{
+  "audited_on": "2026-11-03",
+  "database": "tarrant-full-registry.db",
+  "entity_registries_by_state": {},
+  "sources": [
+    {
+      "ai_use": "unknown",
+      "citations": {
+        "as_of_differs_from_snapshot": 0,
+        "document_not_a_snapshot": 0,
+        "facts": 462118,
+        "links": 0,
+        "links_document_not_a_snapshot": 0,
+        "links_without_basis": 0,
+        "without_locator": 0,
+        "without_method": 0,
+        "without_valid_as_of": 0
+      },
+      "counties": ["us-48439"],
+      "county_fips": "439",
+      "findings": [
+        {
+          "message": "1 parcels have an implausible year built",
+          "severity": "warning"
+        },
+        {
+          "message": "5 owner-of-record facts read as natural persons",
+          "severity": "violation"
+        }
+      ],
+      "implausible_facts": {
+        "area": 0,
+        "out_of_scope_category": 0,
+        "tax_year": 0,
+        "value": 0,
+        "year_built": 1
+      },
+      "kind": "parcels",
+      "license": "Public record (Tex. Gov't Code ch. 552); no license or terms of use stated. robots.txt Content-Signal: search=yes, ai-train=no, use=reference",
+      "links": {
+        "by_confidence": {},
+        "by_rule": {},
+        "entity_registry_loaded_for": [],
+        "link_rate_pct": null,
+        "linked_parcels": 0,
+        "note": "no entity registry is loaded for this state, so owners cannot be linked",
+        "organisation_owner_parcels": 30732
+      },
+      "lookups": {
+        "parcels_with_account_crosswalk": 45976,
+        "parcels_with_address_index": 45975
+      },
+      "owners": {
+        "orphan_mailing_addresses": 0,
+        "owner_facts": 30732,
+        "person_like": 5
+      },
+      "parcels": {
+        "absent_from_latest_snapshot": 0,
+        "conflicting_facts": 0,
+        "count": 45976,
+        "fields": {
+          "apn": {
+            "missing": 0,
+            "parcels": 45976,
+            "pct_present": 100.0
+          },
+          "appraised_value": {
+            "missing": 1042,
+            "parcels": 44934,
+            "pct_present": 97.73
+          },
+          "improvement_area_sf": {
+            "missing": 6341,
+            "parcels": 39635,
+            "pct_present": 86.21
+          },
+          "land_area_sf": {
+            "missing": 774,
+            "parcels": 45202,
+            "pct_present": 98.32
+          },
+          "market_value": {
+            "missing": 1042,
+            "parcels": 44934,
+            "pct_present": 97.73
+          },
+          "owner_of_record": {
+            "missing": 15244,
+            "parcels": 30732,
+            "pct_present": 66.84
+          },
+          "situs_address": {
+            "missing": 1,
+            "parcels": 45975,
+            "pct_present": 100.0
+          },
+          "state_property_category": {
+            "missing": 0,
+            "parcels": 45976,
+            "pct_present": 100.0
+          },
+          "tax_year": {
+            "missing": 0,
+            "parcels": 45976,
+            "pct_present": 100.0
+          },
+          "year_built": {
+            "missing": 3860,
+            "parcels": 42116,
+            "pct_present": 91.6
+          }
+        },
+        "missing_address": 1,
+        "missing_as_of": 0,
+        "no_organisation_owner": 15244
+      },
+      "publisher": "Tarrant Appraisal District",
+      "redistribution": "unknown",
+      "review_queue": {
+        "accepted": 0,
+        "pending": 0,
+        "pending_by_rule": {},
+        "pending_owners": 0,
+        "rejected": 0
+      },
+      "snapshots": [
+        {
+          "age_days": 1,
+          "as_of": "2026-11-02",
+          "bytes": 102400459,
+          "document_id": "fl:document:sha256-f887ad16a673c071076f00c2007f62ace2b9a83bdfc388ca80fe8cb0f5ea34ab",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 462118,
+          "filename": "PropertyData(Delimited).ZIP",
+          "parcels": 45976,
+          "retrieved_at": "2026-11-02T23:54:16+00:00"
+        }
+      ],
+      "source_id": "tx-tarrant-ad",
+      "state_fips": "48",
+      "terms_reviewed": "2026-11-02",
+      "url": "https://www.tad.org/resources/data-downloads"
+    }
+  ],
+  "stats": {
+    "entities": 0,
+    "facts": 462118,
+    "links": 0,
+    "parcels": 45976,
+    "review_pending": 0,
+    "snapshots": 1
+  },
+  "violations": [
+    "tx-tarrant-ad: 5 owner-of-record facts read as natural persons"
+  ],
+  "warnings": ["tx-tarrant-ad: 1 parcels have an implausible year built"]
+}
