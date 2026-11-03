@@ -364,11 +364,11 @@
       ],
       "verified": true,
       "terms_url": "https://gis.arkansas.gov/metadata/HTML/asdi.planning_cadastre.PARCEL_POLYGON_CAMP_export.html",
-      "license": "",
-      "ai_use": "",
-      "redistribution": "",
+      "license": "No licence. The statewide layer's metadata ('Use constraints' and 'Distribution liability') is a warranty disclaimer: the data 'are provided \"as is\" without warranty of any kind'; the Arkansas GIS Board accepts no liability. The dataset is published under Arkansas Code 15-21-502 as 'a statewide resource for digital cadastral data'. No login, form, click-through or fee",
+      "ai_use": "Not addressed by the publisher; no restriction found",
+      "redistribution": "Not restricted: free public download, disclaimer only. Attribution not required; credit the Arkansas Geographic Information Systems Office and the county assessors",
       "reviewed": "2026-11-03",
-      "notes": ""
+      "notes": "Statewide parcel publication of the Arkansas GIS Office (AGISO), 75 counties, populated from each county assessor's CAMA system under the Arkansas Digital Cadastral Mapping Standard (2019 revision; table of property type codes in the 2004 standard SS-40). Layer 0 'PARCEL_CENTROID_CAMP' of FEATURESERVICES/Planning_Cadastre/FeatureServer (maxRecordCount 200; the polygon layer 6 has the same attributes), 2,149,448 records (the sum of the layer's parceltype counts) of which 69,331 have parceltype CI or II on 2026-11-03 (CI 67,309; II 2,022; 75 counties). The files are 347 pages of 200 (objectid order, geometry off). parceltype: the 2004 standard defines CI 'Commercial Improved' and II 'Industrial Improved' (also CM, CV, IM, IV, ... not mapped); the layer also carries CR, CG, CA, CP, CB, IF, IA, IG, IB, I9 that no published table defines, so they are not mapped. Apartments have no code of their own. The 2019 standard says the approved code list is held by the Arkansas Assessment Coordination Department (ACD, 501-324-9240) and county-specific. The layer has no owner mailing address. robots.txt: gis.arkansas.gov/robots.txt answers HTTP 200 with the site's HTML page (no rules), so nothing is disallowed; requests are 2 s apart."
     }
   ]
 }

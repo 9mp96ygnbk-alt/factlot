@@ -48,11 +48,11 @@
       ],
       "verified": true,
       "terms_url": "https://gisdata.mn.gov/dataset/plan-parcels-open",
-      "license": "",
-      "ai_use": "",
-      "redistribution": "",
+      "license": "No licence. The compiled layer contains only the parcel data of counties that opted in to open data (its 'gac_open_approval' attribute and the item description: 'counties that have opted-in for their parcel data to be included'). Item description: 'The State of Minnesota makes no representation or warranties, express or implied, with respect to the use or reuse of data provided herewith ... THE DATA IS PROVIDED \"AS IS\"'. No login, form, click-through or fee",
+      "ai_use": "Not addressed by the publisher; no restriction found",
+      "redistribution": "Not restricted: the counties opted in to open data; no attribution requirement stated (credit MnGeo and the counties)",
       "reviewed": "2026-11-03",
-      "notes": ""
+      "notes": "MnGeo compilation 'Parcels, Compiled from Opt-In Open Data Counties, Minnesota' (ArcGIS Online item 69148d3959194a05a23964cc60f6517b; feature service enterprise.gisdata.mn.gov/aghost/rest/services/us_mn_state_mngeo/plan_parcels_open/FeatureServer, layer 1 'Plan Parcels Open', maxRecordCount 2,000), 59 counties and 2,710,201 parcels on 2026-11-03, updated quarterly, attributes mapped to the Geospatial Advisory Council parcel standard. useclass1 is the county's own text, different in each county, so the adapter maps 41 exact labels in 24 counties whose labels were read in full (Aitkin, Anoka, Becker, Carver, Cass, Chippewa, Chisago, Cook, Dakota, Fillmore, Lake, McLeod, Mower, Olmsted, Otter Tail, Pipestone, Ramsey, Renville, St. Louis, Scott, Sherburne, Stearns, Waseca, Wright). Hennepin is in the compilation but is loaded from mn-hennepin-assessor and excluded; Washington (numeric codes), Isanti, Morrison and Rice (combined commercial/industrial/public utility class), Clay (mixed multi-use strings) and the other counties are not mapped. The files are 31 pages of 2,000 (objectid order, geometry off) of the 60,738 rows of those 24 counties with a mapped label. robots.txt: enterprise.gisdata.mn.gov serves none (the collector records the status in the manifest)."
     }
   ]
 }
