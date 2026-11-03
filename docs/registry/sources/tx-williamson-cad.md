@@ -91,6 +91,33 @@ then `tx_williamson.build` into a scratch registry (about 3 s):
   (`issecured`) 0. Facts written: 114,318. Owners that are organisations stored as owner of record: **8,151**; persons and
   withheld not stored: 3,548.
 
+## Full load (2026-11-03)
+
+Release `data-2026-11-03-41603209834` (draft, maintainers only) of `9mp96ygnbk-alt/factlot`. Each asset's sha256 was checked against the manifest and its first 16 hex characters against the name. Loaded into the Tier 2 scratch registry (one SQLite file shared by every Tier 2 source, `ct-sos-entities` first).
+
+Assets (document id from the manifest):
+
+- `tx-williamson-cad__75d5ed79c6e9abb7__2huh-jk3y.csv` (844,813 bytes): `fl:document:sha256-75d5ed79c6e9abb73887fcd9b3b9a0bdede0c86430f17e52ae741199891e392a`
+- `tx-williamson-cad__03d635b7513a8431__absk-uy9g.csv` (13,973,153 bytes): `fl:document:sha256-03d635b7513a84319fb7433584cb74da16e2a2b84ca0d8bc61a2601006cffff2`
+- `tx-williamson-cad__c3062a2b2cf4a1c8__absk-uy9g.csv` (14,268,698 bytes): `fl:document:sha256-c3062a2b2cf4a1c87d82e0260affe75dbf8ddad63dcc3fc1fcae05fd89b87b25`
+- `tx-williamson-cad__4b1662072b093741__absk-uy9g.csv` (14,243,626 bytes): `fl:document:sha256-4b1662072b093741f765d14e11fec45a54ddbe93759c669ca8eae2b212eb3cb5`
+- `tx-williamson-cad__24ca84bbebdd9c8b__absk-uy9g.csv` (14,192,872 bytes): `fl:document:sha256-24ca84bbebdd9c8bcd982dfe45b75120ebb8e6b5c6ab0aaa3bd6b0dfbbbb1824`
+- `tx-williamson-cad__5c170890503de8fd__absk-uy9g.csv` (14,124,361 bytes): `fl:document:sha256-5c170890503de8fdfb1532dc3eed24c6b019ec5d4432c372fa4b4ac1bbda4b69`
+- `tx-williamson-cad__a998066ff220934a__absk-uy9g.csv` (13,465,898 bytes): `fl:document:sha256-a998066ff220934a570a3142e6b884f0eb789f4a4714159f87c2f58f7ba19c8b`
+- `tx-williamson-cad__15ddae8c1f710680__absk-uy9g.csv` (5,638,403 bytes): `fl:document:sha256-15ddae8c1f7106806ba405f74785e33d66a87d864b9433f5bbe168e836cc46dc`
+
+Command:
+
+```
+PYTHONPATH=python/src python3 -m factlot.registry.adapters.tx_williamson registry.db <7 PropOwner page csv files in manifest order> --improvements <improvement csv> --as-of 2026-11-03 --retrieved-at <manifest checked_at>
+```
+
+- Rows read: 14,087 improvement rows (11,758 properties) and 326,008 PropOwner rows in 7 pages (offsets 0 to 300,000 at 50,000 rows).
+- Parcels kept: **11,699** distinct commercial parcels (`B` 2,720, `F1` 8,734, `F2` 245).
+- Facts written: 114,244. Seconds: 14.5. Invalid ids, errors, retired: 0, 0, 0.
+- Organisation owners stored (current owner-of-record facts): 8,114; natural persons or withheld owners not stored (names not kept): 3,585.
+- Ownership links to registered entities after `link_owners()`: 12 (the only entity registry in the scratch file is `ct-sos-entities`).
+
 ## Known gaps
 
 - No year built. The commercial segment dataset (`wwak-u4ps`, `fActYear`) has it and could be

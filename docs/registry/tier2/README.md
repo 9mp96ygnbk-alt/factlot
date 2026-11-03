@@ -37,32 +37,43 @@ MO, Arlington VA, Alexandria VA, Richmond VA, Orleans Parish LA, Jefferson AL (1
 
 28 of the 61 counties are **verified** (licence permits redistribution; files confirmed by a real
 request) and have adapters; 33 are gated on something only a person can do, listed with the one
-action each needs in its region file. Counts below are real runs into scratch registries, on
-full files where the file was under the 50 MB launch-day cap and on samples otherwise; full loads
-run through the weekly collector workflow from GitHub's network. "In scope" counts are the
-publisher's own query-service totals.
+action each needs in its region file. Counts below are **full loads** (2026-11-03): every
+file the weekly collector archived from GitHub's network (draft release
+`data-2026-11-03-41603209834`) was loaded in full into one scratch registry, entity registry first,
+then `purge_person_owners()` and `link_owners()` once. Each source's review record has a "Full load
+(2026-11-03)" section with the assets, document ids, command and counts. The one exception to the
+release is `ga-dekalb-parcels`, whose export was still building when the collector ran
+(`not_ready`); it was archived again with the collector the same day. Parcel counts are distinct
+commercial parcels (`B`, `F1`, `F2`).
 
-| State | Verified source                                         | Counties                                          | Commercial parcels (loaded; in scope)                         | Owner names                        |
-| ----- | ------------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------- | ---------------------------------- |
-| TX    | `tx-denton-cad`, `tx-williamson-cad`, `tx-fortbend-cad` | Denton, Williamson, Fort Bend                     | 13,304; 11,699; 9,698                                         | yes (Fort Bend owner file sampled) |
-| NY    | `ny-orpts-rolls` (statewide, OPEN-NY)                   | Monroe (full), Suffolk, Nassau, Westchester, Erie | Monroe 13,601 loaded; in scope 27,373, 23,449, 37,456, 24,108 | yes                                |
-| MD    | `md-sdat-real-property` (statewide)                     | Montgomery, Prince George's, Baltimore County     | 11,578; 13,023; 14,494 (full county files)                    | no (withheld by the publisher)     |
-| PA    | `pa-montgomery-parcels`, `pa-allegheny-assessments`     | Montgomery, Allegheny                             | 15,584 (full); Allegheny sample 1,437                         | Montgomery yes; Allegheny no       |
-| MA    | `ma-massgis-parcels` (statewide, 176 town files)        | Middlesex, Worcester, Essex, Norfolk              | 10 towns loaded: 16,924                                       | yes                                |
-| WI    | `wi-statewide-parcels` (all 72 counties)                | Milwaukee                                         | 16,580                                                        | yes                                |
-| IN    | `in-marion-parcels`                                     | Marion                                            | 20,630                                                        | yes                                |
-| MI    | `mi-oakland-parcels`                                    | Oakland                                           | 26,124                                                        | no (blank in the file)             |
-| NC    | `nc-wake-parcels` (NC OneMap statewide)                 | Wake                                              | 9,634                                                         | yes                                |
-| TN    | `tn-davidson-assessor`                                  | Davidson                                          | 13,111                                                        | yes                                |
-| GA    | `ga-dekalb-parcels`                                     | DeKalb                                            | 11,351                                                        | yes                                |
-| CA    | `ca-sacramento-assessor`                                | Sacramento                                        | 20,053                                                        | no                                 |
-| UT    | `ut-ugrc-lir` (statewide, all 29 counties)              | Salt Lake, Utah County                            | samples 8,777 and 8,118; in scope about 31,994 and 18,255     | no                                 |
-| WA    | `wa-pierce-assessor`                                    | Pierce                                            | 12,530 (full)                                                 | no                                 |
-| OR    | `or-metro-rlis-taxlots` (Portland metro)                | Multnomah                                         | sample 4,391; in scope 20,627                                 | no                                 |
+| State | Verified source                                         | Counties                                      | Commercial parcels (full load)                                                          | Owner names                    |
+| ----- | ------------------------------------------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------- | ------------------------------ |
+| TX    | `tx-denton-cad`, `tx-williamson-cad`, `tx-fortbend-cad` | Denton, Williamson, Fort Bend                 | 13,304; 11,699; 9,698                                                                   | yes                            |
+| NY    | `ny-orpts-rolls` (statewide, OPEN-NY)                   | Monroe, Suffolk, Nassau, Westchester, Erie    | Monroe 13,601; Suffolk 27,373; Nassau 23,449; Westchester 37,456; Erie 24,108 (125,987) | yes                            |
+| MD    | `md-sdat-real-property` (statewide)                     | Montgomery, Prince George's, Baltimore County | 11,578; 13,023; 14,494 (full county files)                                              | no (withheld by the publisher) |
+| PA    | `pa-montgomery-parcels`, `pa-allegheny-assessments`     | Montgomery, Allegheny                         | Montgomery 15,584; Allegheny 35,302                                                     | Montgomery yes; Allegheny no   |
+| MA    | `ma-massgis-parcels` (statewide, 176 town files)        | Middlesex, Worcester, Essex, Norfolk          | 176 towns: 71,800 (Middlesex 26,930; Worcester 18,081; Essex 14,950; Norfolk 11,839)    | yes                            |
+| WI    | `wi-statewide-parcels` (all 72 counties)                | Milwaukee                                     | 16,580                                                                                  | yes                            |
+| IN    | `in-marion-parcels`                                     | Marion                                        | 20,630                                                                                  | yes                            |
+| MI    | `mi-oakland-parcels`                                    | Oakland                                       | 26,124                                                                                  | no (blank in the file)         |
+| NC    | `nc-wake-parcels` (NC OneMap statewide)                 | Wake                                          | 9,634                                                                                   | yes                            |
+| TN    | `tn-davidson-assessor`                                  | Davidson                                      | 13,111                                                                                  | yes                            |
+| GA    | `ga-dekalb-parcels`                                     | DeKalb                                        | 11,351                                                                                  | yes                            |
+| CA    | `ca-sacramento-assessor`                                | Sacramento                                    | 20,053                                                                                  | no                             |
+| UT    | `ut-ugrc-lir` (statewide, all 29 counties)              | Salt Lake, Utah County                        | Salt Lake 30,756; Utah County 13,639                                                    | no                             |
+| WA    | `wa-pierce-assessor`                                    | Pierce                                        | 12,530                                                                                  | no                             |
+| OR    | `or-metro-rlis-taxlots` (Portland metro)                | Multnomah                                     | Multnomah 20,618 (the layer's Clackamas 6,085 and Washington 7,425 loaded too)          | no                             |
 
-New entity registry: `ct-sos-entities` (Connecticut, public domain, 1,305,856 entities; 20,000
-loaded as a sample). Every other new state's entity register is sold or not published; prices and
+New entity registry: `ct-sos-entities` (Connecticut, public domain, 1,305,856 rows; full load:
+1,305,836 entities kept, 20 skipped for a placeholder account number). Every other new state's entity register is sold or not published; prices and
 order routes are in the region files.
+
+**Full-load totals** (all 19 sources, one scratch registry): 531,005 distinct commercial parcels in
+30 counties (the 28 verified Tier 2 counties, 517,495 parcels, plus Clackamas and Washington,
+Oregon, which share the Portland metro file), 206,130 of them with an organisation owner of record,
+and 1,305,836 Connecticut entities. Natural-person owners are not stored.
+`link_owners()` made 1,926 current ownership links, all to Connecticut entities because that is the
+only entity registry loaded; owner linking for the other states waits on their entity registers.
 
 Statewide sources found along the way cover far more than the 61 counties: Wisconsin (72
 counties), Utah (29), North Carolina OneMap (100, county use codes to map), New York ORPTS (every

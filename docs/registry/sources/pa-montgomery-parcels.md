@@ -125,6 +125,28 @@ each loaded with `python -m factlot.registry.adapters.pa_montgomery <file> regis
 - Snapshot document ids (`fl:document:sha256-` plus the file's sha256): `14b606a871eba761…` (A),
   `23caa211dc4bd7ad…` (C), `2a208007c010b7d5…` (I); full ids in the collector manifest.
 
+## Full load (2026-11-03)
+
+Release `data-2026-11-03-41603209834` (draft, maintainers only) of `9mp96ygnbk-alt/factlot`. Each asset's sha256 was checked against the manifest and its first 16 hex characters against the name. Loaded into the Tier 2 scratch registry (one SQLite file shared by every Tier 2 source, `ct-sos-entities` first).
+
+Assets (document id from the manifest):
+
+- `pa-montgomery-parcels__14b606a871eba761__Montgomery_County_Parcels.csv` (554,924 bytes): `fl:document:sha256-14b606a871eba7619cbeec7017f6c9f3bda1d062a510e79ae2685f9c3d979a61`
+- `pa-montgomery-parcels__23caa211dc4bd7ad__Montgomery_County_Parcels.csv` (9,664,071 bytes): `fl:document:sha256-23caa211dc4bd7ad3c29da88118e89f5b9d7b23611a1ec340fe9d2ddbb2f4708`
+- `pa-montgomery-parcels__2a208007c010b7d5__Montgomery_County_Parcels.csv` (2,109,102 bytes): `fl:document:sha256-2a208007c010b7d50b9f6852e0b1216c5178340ce01b5cbf40eb7ad93016ddae`
+
+Command:
+
+```
+PYTHONPATH=python/src python3 -m factlot.registry.adapters.pa_montgomery <class csv> registry.db --as-of 2026-10-05 --retrieved-at <manifest checked_at>   # once per class file (A, C, I), no --full-roll
+```
+
+- Rows read: 15,790 data rows (class `A` 692, `C` 12,393, `I` 2,705); 15,584 distinct `TAXPIN`s.
+- Parcels kept: **15,584** distinct commercial parcels (`B` 678, `F1` 12,244, `F2` 2,662).
+- Facts written: 153,780. Seconds: 10.4. Invalid ids, errors, retired: 0, 0, 0.
+- Organisation owners stored (current owner-of-record facts): 10,199; natural persons or withheld owners not stored (names not kept): 5,385.
+- Ownership links to registered entities after `link_owners()`: 51 (the only entity registry in the scratch file is `ct-sos-entities`).
+
 ## Known gaps
 
 - **Common-area and private-road parcels** are kept when the county classes them `A`/`C`/`I`; they carry

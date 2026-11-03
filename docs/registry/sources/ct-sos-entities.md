@@ -74,6 +74,27 @@ forfeited 8,734, dissolved 6,961, active 1,366, revoked 1,127, withdrawn 968, me
 17,720, DE 864, NY 504, MA 220, NJ 120; 19,693 with an address. A full-file run was not made (about 270
 MB).
 
+## Full load (2026-11-03)
+
+Release `data-2026-11-03-41603209834` (draft, maintainers only) of `9mp96ygnbk-alt/factlot`. The asset's sha256 was checked against the manifest and its first 16 hex characters against the name. This is the first source loaded into the Tier 2 scratch registry.
+
+Asset (document id from the manifest):
+
+- `ct-sos-entities__af36325e01b0e6b3__n7gp-d28j.csv` (295,208,099 bytes): `fl:document:sha256-af36325e01b0e6b3e32615d8ef7d6da4adc7e15d4d74b0085b0dee18b7771f90`
+
+Command:
+
+```
+PYTHONPATH=python/src python3 -m factlot.registry.adapters.ct_sos_entities <csv> registry.db --as-of 2026-11-03 --no-link --retrieved-at 2026-11-03T08:31:48+00:00
+```
+
+Owner linking was run once for the whole scratch registry afterwards (`purge_person_owners()` removed 0 facts; `link_owners()` result below), not per source.
+
+- Rows read: 1,305,856 (the whole dataset, `$limit=1500000`).
+- Entities kept: **1,305,836**; skipped 20 (placeholder account number); facts written 6,439,761; seconds 250.1. Errors and retired: 0, 0.
+- Status (current facts): active 464,117, forfeited 359,318, dissolved 320,811, withdrawn 54,114, revoked 46,636, cancelled 18,823. Formed in: CT 1,096,449, DE 85,512, NY 26,002, MA 11,817, CA 6,767. 1,233,186 entities have a mailing address.
+- Owner linking over the whole scratch registry (all 531,005 parcels of the 19 Tier 2 sources against these entities): `linked` 1,881, `linked_by_standing` 45, `ambiguous` 19, `cross_state` 10,435, `queued_for_review` 5,833, `unmatched` 193,757. 1,926 ownership links are current, all on parcels in other states whose owner of record is a Connecticut-registered entity (no Connecticut parcel source is loaded).
+
 ## Known gaps
 
 - Only the registered legal name and addresses are kept; the Division's principals and agents are

@@ -127,6 +127,32 @@ python -m factlot.registry.adapters.ut_ugrc ut_utah_lir_prefix.csv     scratch.d
 These sample documents are partial files and are not archived by the collector; the registry facts of the
 scratch run are not published.
 
+## Full load (2026-11-03)
+
+Release `data-2026-11-03-41603209834` (draft, maintainers only) of `9mp96ygnbk-alt/factlot`. Each asset's sha256 was checked against the manifest and its first 16 hex characters against the name. Loaded into the Tier 2 scratch registry (one SQLite file shared by every Tier 2 source, `ct-sos-entities` first).
+
+Assets (document id from the manifest):
+
+- `ut-ugrc-lir__1c68bdd434a16b1f__csv` (163,852,405 bytes): `fl:document:sha256-1c68bdd434a16b1f7f08db2083df6cfe69ccb5c3745e597a262342ccf587c877`
+- `ut-ugrc-lir__1ce0bbc78d389e32__csv` (88,971,898 bytes): `fl:document:sha256-1ce0bbc78d389e3264e66297866978935ef615f4fc40bc6dcb7db8b18df94a44`
+
+Command:
+
+```
+PYTHONPATH=python/src python3 -m factlot.registry.adapters.ut_ugrc <Salt Lake csv> registry.db --as-of 2026-09-29 --partial --retrieved-at <manifest checked_at>
+PYTHONPATH=python/src python3 -m factlot.registry.adapters.ut_ugrc <Utah County csv> registry.db --as-of 2026-09-30 --partial --retrieved-at <manifest checked_at>
+```
+
+- Rows read: 399,432 (Salt Lake) + 289,858 (Utah County) = 689,290 data rows; out of scope 640,164.
+- Parcels kept: **44,395** distinct commercial parcels (`B` 10,080, `F1` 30,576, `F2` 3,739); the adapter reported 49,126 kept records (4,731 repeated parcel ids).
+- By county:
+  - Salt Lake (FIPS 49035): 30,756 parcels (`B` 6,399, `F1` 20,618, `F2` 3,739); organisation owners 0; ownership links 0.
+  - Utah County (FIPS 49049): 13,639 parcels (`B` 3,681, `F1` 9,958, `F2` 0); organisation owners 0; ownership links 0.
+- Facts written: 336,753. Seconds: 27.1. Invalid ids, errors, retired: 0, 0, 0.
+- Organisation owners stored (current owner-of-record facts): 0; natural persons or withheld owners not stored (names not kept): 0. The LIR schema carries no owner.
+- Ownership links to registered entities after `link_owners()`: 0 (the only entity registry in the scratch file is `ct-sos-entities`).
+- The LIR file has several rows for one `Parcel ID` where a parcel has more than one building or part: Salt Lake 30,877 in-scope rows for 30,756 parcels, Utah County 18,249 rows for 13,639 parcels (an in-scope parcel with several rows gets one fact per distinct value). Parcel counts above are distinct parcels.
+
 ## Known gaps
 
 - No owner of record. Owner names are on the counties' own web searches (Utah County also exposes a map
