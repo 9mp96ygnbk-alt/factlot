@@ -94,5 +94,11 @@ from its commit history; nothing was published to npm or PyPI before it.
 - When two Texas legal holidays fall on the same date, both SDKs keep the first name.
 - Collector: skipped URLs are recorded in the manifest, and network failures are no longer
   reported as `robots.txt` refusals.
+- Collector: a download that times out, stops short of its announced length, or loses the
+  connection is retried (`retries`, default 2) with a `Range` request where the host honours
+  one, and a plain request where it hangs up on `Range` (ArcGIS Hub); a partial file is never
+  archived, and a short body on a sized response is no longer archived silently.
+- NYC Department of Finance adapter: the published roll has a header row and a trailing tab on
+  every line, which the adapter now drops (it read zero rows from the real FY27 file).
 
 [Unreleased]: https://github.com/9mp96ygnbk-alt/factlot/commits/main

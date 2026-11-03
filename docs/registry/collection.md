@@ -28,6 +28,10 @@ against a local HTTP server. It enforces the [data policy](data-policy.md):
   rather than pretending the site refused. A `Crawl-delay` longer than our own interval wins.
 - **It is rate-limited and avoids repeat downloads.** It enforces a delay per host and uses
   conditional requests.
+- **It never archives a partial file.** A download that times out or stops short of the
+  announced length is retried (`retries`, two by default, each after the host's full interval),
+  asking for the rest with a `Range` request where the host honours one; if it still fails, the
+  manifest records `error: incomplete read` and nothing is kept.
 - **It stays inside allowed hosts.** It only follows links to hosts allowed for each source.
 - **It discovers before it downloads.** The `discover` step only lists the links on each landing
   page, which may be an HTML page or a JSON API response (Harris CAD and TxGIO fill their download

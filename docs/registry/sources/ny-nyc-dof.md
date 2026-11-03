@@ -72,8 +72,10 @@ an easement).
 ## What the file contains
 
 `fy27_tc234.zip` holds one tab-delimited text file, `PROPMAST_TC234_T2027_FIN.TXT` (the member name
-is confirmed in the Real run section), with no header row, CRLF line endings, Latin-1 bytes and 139
-columns in the order of `layout-pts-property-master.xlsx` (transcribed as `ny_nyc.LAYOUT`). Numbers
+is confirmed in the Real run section), with a header row of column names, CRLF line endings,
+Latin-1 bytes, a trailing tab on every line, and 139 columns in the order of
+`layout-pts-property-master.xlsx` (transcribed as `ny_nyc.LAYOUT`; the real file's header matches
+it column for column). Numbers
 are signed and zero-padded (`+00185249000`); text columns are space-padded. The zip also carries a
 `__MACOSX/._*` resource fork, which the adapter ignores.
 

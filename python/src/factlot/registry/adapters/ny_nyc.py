@@ -2,9 +2,10 @@
 
 Layout (confirmed on the FY27 final roll, 2026-11-02): each zip from
 ``nyc.gov/assets/finance/downloads/tar/`` holds one tab-delimited text file
-(``PROPMAST_*_T<year>_FIN.TXT``) with **no header row**, CRLF line endings and Latin-1 bytes, 139
-columns in the order of the publisher's ``layout-pts-property-master.xlsx`` (transcribed in
-``LAYOUT`` below; the same columns, lower-cased, make up NYC Open Data dataset ``8y4t-faws``).
+(``PROPMAST_*_T<year>_FIN.TXT``) with a header row of column names, CRLF line endings, Latin-1
+bytes, a trailing tab on every line, and 139 columns in the order of the publisher's
+``layout-pts-property-master.xlsx`` (transcribed in ``LAYOUT`` below, and checked against the
+header; the same columns, lower-cased, make up NYC Open Data dataset ``8y4t-faws``).
 ``fy<YY>_tc234.zip`` is the roll for tax classes 2, 3 and 4 (every apartment, utility, commercial and
 industrial lot); ``fy<YY>_tc1.zip`` the 1–3 family class; ``fy<YY>_avroll1234.zip`` all four.
 
@@ -138,14 +139,16 @@ def category(bldg_class: str | None, units: float | None = None) -> str | None:
 
 def _rows(path: str | Path) -> Iterator[tuple[str, int, list[str]]]:
     """Stream ``(member name, line number, fields)`` from the zip's text member(s), or from an
-    unpacked directory. The file has no header row."""
+    unpacked directory. The header row is dropped, and so is the empty field after each line's
+    trailing tab."""
     csv.field_size_limit(1 << 30)
     p = Path(path)
     if p.is_dir():
         for member in sorted(p.glob("*.TXT")) + sorted(p.glob("*.txt")):
             with open(member, newline="", encoding="latin-1") as f:
                 for n, fields in enumerate(csv.reader(f, delimiter="\t", quoting=csv.QUOTE_NONE), 1):
-                    yield member.name, n, fields
+                    if (fields := _data_fields(fields)) is not None:
+                        yield member.name, n, fields
         return
     with zipfile.ZipFile(p) as zf:
         for name in zf.namelist():
@@ -155,7 +158,17 @@ def _rows(path: str | Path) -> Iterator[tuple[str, int, list[str]]]:
             with zf.open(name) as raw:
                 text = io.TextIOWrapper(raw, encoding="latin-1", newline="")
                 for n, fields in enumerate(csv.reader(text, delimiter="\t", quoting=csv.QUOTE_NONE), 1):
-                    yield base, n, fields
+                    if (fields := _data_fields(fields)) is not None:
+                        yield base, n, fields
+
+
+def _data_fields(fields: list[str]) -> list[str] | None:
+    """``None`` for the header row; otherwise the fields without the trailing tab's empty field."""
+    if fields[:1] == ["PARID"]:
+        return None
+    if len(fields) == len(LAYOUT) + 1 and fields[-1] == "":
+        return fields[:-1]
+    return fields
 
 
 def _num(s: str | None) -> float | None:

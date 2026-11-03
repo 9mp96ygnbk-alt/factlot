@@ -14,6 +14,7 @@ URL, retrieval time, size, HTTP validators, and robots status. Re-running is ide
 from __future__ import annotations
 
 import hashlib
+import http.client
 import json
 import re
 import time
@@ -35,6 +36,7 @@ class CollectorConfig:
     contact: str  # e.g. "registry@factlot.com"
     min_interval: float = 1.0
     timeout: float = 120.0
+    retries: int = 2  # extra attempts after a timeout or a truncated body, each after a full interval
     user_agent_product: str = "FactLotRegistryBot"
 
     @property
@@ -269,6 +271,12 @@ def _attachment_name(disposition: str | None) -> str | None:
     return Path(urllib.parse.unquote(m.group(1).strip())).name if m else None
 
 
+def _range_start(content_range: str | None) -> int | None:
+    """First byte offset of a 206 response (``Content-Range: bytes 1048576-2097151/2097152``)."""
+    m = re.match(r"bytes (\d+)-", content_range or "")
+    return int(m.group(1)) if m else None
+
+
 def _load_manifest(path: Path) -> list[dict[str, Any]]:
     return [json.loads(line) for line in path.read_text().splitlines() if line.strip()] if path.exists() else []
 
@@ -293,18 +301,45 @@ def snapshot(fetcher: PoliteFetcher, spec: SourceSpec, urls: list[str], out_dir:
             headers["If-None-Match"] = previous["etag"]
         if previous and previous.get("last_modified"):
             headers["If-Modified-Since"] = previous["last_modified"]
+        tmp = base / ".download.part"
+        h, size = hashlib.sha256(), 0
         try:
-            with fetcher.get(url, headers) as resp:
-                tmp = base / ".download.part"
-                h, size = hashlib.sha256(), 0
-                with open(tmp, "wb") as f:
-                    for chunk in iter(lambda: resp.read(1 << 20), b""):
-                        h.update(chunk)
-                        f.write(chunk)
-                        size += len(chunk)
-                digest = h.hexdigest()
-                rec.update({"etag": resp.headers.get("ETag"), "last_modified": resp.headers.get("Last-Modified")})
-                attachment = _attachment_name(resp.headers.get("Content-Disposition"))
+            for attempt in range(fetcher.config.retries + 1):
+                try:
+                    attempt_headers = {**headers, "Range": f"bytes={size}-"} if size else headers
+                    with fetcher.get(url, attempt_headers) as resp:
+                        if size and resp.status == 206 and _range_start(resp.headers.get("Content-Range")) == size:
+                            mode, start = "ab", size  # the host resumes: keep what was read
+                            rec["resumed_from"] = size
+                        else:
+                            h, size, mode, start = hashlib.sha256(), 0, "wb", 0
+                        with open(tmp, mode) as f:
+                            for chunk in iter(lambda: resp.read(1 << 20), b""):
+                                h.update(chunk)
+                                f.write(chunk)
+                                size += len(chunk)
+                        expected = resp.headers.get("Content-Length")
+                        if expected and expected.isdigit() and size - start < int(expected):
+                            # http.client returns a short body silently when the connection drops
+                            # on a sized (non-chunked) response.
+                            raise http.client.IncompleteRead(b"", int(expected) - (size - start))
+                        digest = h.hexdigest()
+                        rec.update({"etag": resp.headers.get("ETag"), "last_modified": resp.headers.get("Last-Modified")})
+                        attachment = _attachment_name(resp.headers.get("Content-Disposition"))
+                    break
+                except (TimeoutError, ConnectionError, http.client.IncompleteRead) as e:
+                    # A slow or flaky link drops large files part-way, or drops the connection
+                    # before the host answers. The next attempt, after the host's full interval,
+                    # asks for the rest with a Range header; a host that ignores it answers 200 and
+                    # the file starts over, and a host that hangs up on a Range request (ArcGIS Hub)
+                    # gets a plain request next. A partial file is never archived.
+                    if attempt == fetcher.config.retries:
+                        tmp.unlink(missing_ok=True)
+                        raise
+                    if "Range" in attempt_headers and isinstance(e, ConnectionError):
+                        tmp.unlink(missing_ok=True)
+                        h, size = hashlib.sha256(), 0
+                    rec["retries"] = attempt + 1
             if size < 4096 and _NOT_READY.search(tmp.read_text("utf-8", "replace")):
                 # An export API's "still preparing" placeholder (ArcGIS Hub answers 200 with
                 # {"status": "Pending"}); archiving it would cite a non-document. Retry later.
@@ -328,7 +363,9 @@ def snapshot(fetcher: PoliteFetcher, spec: SourceSpec, urls: list[str], out_dir:
             rec["status"] = f"robots_disallowed: {e}"
         except ConnectionError as e:
             rec["status"] = f"unreachable: {e}"
-        except (urllib.error.URLError, TimeoutError, OSError) as e:
+        except http.client.IncompleteRead:
+            rec["status"] = f"error: incomplete read ({size} bytes)"
+        except (urllib.error.URLError, TimeoutError, OSError, http.client.HTTPException) as e:
             rec["status"] = f"error: {e}"
         results.append(rec)
         _append(manifest_path, rec)

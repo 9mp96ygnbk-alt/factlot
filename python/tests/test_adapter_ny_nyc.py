@@ -75,7 +75,8 @@ ROWS = [
 def nyc_zip(tmp: Path) -> Path:
     p = tmp / "fy27_tc234.zip"
     with zipfile.ZipFile(p, "w") as zf:
-        zf.writestr("PROPMAST_TC234_T2027_FIN.TXT", "\r\n".join([*ROWS, ""]))
+        # As published: a header row of the layout's names and a trailing tab on every line.
+        zf.writestr("PROPMAST_TC234_T2027_FIN.TXT", "\r\n".join(["\t".join(ny_nyc.LAYOUT) + "\t", *(r + "\t" for r in ROWS), ""]))
         zf.writestr("__MACOSX/._PROPMAST_TC234_T2027_FIN.TXT", "Mac OS X resource fork, not data")
     return p
 
@@ -118,7 +119,7 @@ class Nyc(unittest.TestCase):
         self.assertFalse(tower.owner_confidential)
         self.assertEqual((tower.land_area_sf, tower.improvement_area_sf, tower.year_built), (29481, 692431, 1970))
         self.assertEqual((tower.market_value, tower.appraised_value, tower.tax_year), (185249000, 83362050, 2027))
-        self.assertEqual(tower.locator, "PROPMAST_TC234_T2027_FIN.TXT line 1 PARID 1000090001")
+        self.assertEqual(tower.locator, "PROPMAST_TC234_T2027_FIN.TXT line 2 PARID 1000090001")
         easement = recs["1000090001A"]
         self.assertEqual(easement.county_fips, "061")
         self.assertEqual(easement.market_value, 100000, "the easement is its own record")
