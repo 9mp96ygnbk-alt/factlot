@@ -21,6 +21,7 @@
     "format:check": "prettier --check .",
     "typecheck": "tsc -p tsconfig.json",
     "test": "node --experimental-strip-types --conditions=factlot-source --test \"packages/*/src/**/*.test.ts\"",
+    "test:e2e": "node --experimental-strip-types --test-reporter=spec scripts/e2e/run.ts",
     "build": "npm run build --workspaces",
     "check": "npm run lint && npm run format:check && npm run typecheck && npm test && npm run build",
     "schemas": "node --experimental-strip-types --conditions=factlot-source scripts/gen-schemas.ts && prettier --write spec/schemas >/dev/null && rm -rf python/src/factlot/schemas && cp -r spec/schemas python/src/factlot/schemas",
