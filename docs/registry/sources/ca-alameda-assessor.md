@@ -125,6 +125,26 @@ headings are the publisher's). Codes mapped by the adapter:
    `FeatureServer/0/query` requests of 2,000 rows, about 237 for the 2025-26 table; the collector
    archives one file per URL, so the paged route needs a merge step or an adapter reading several files).
 
+### Terms read 2026-11-03 (gates pass)
+
+ArcGIS item `54cc3c88fa384b28b5c456df0868fc67`, "Assessor_Office_Secured_Tax_Roll_2025_to_2026", <https://www.arcgis.com/sharing/rest/content/items/54cc3c88fa384b28b5c456df0868fc67?f=json> (read 2026-11-02, NOTES.md): `licenseInfo` is an empty string, `accessInformation` is an empty string, `description` is an empty string, `access` is "public", `listed` is false. No terms are attached to the item. AI use and redistribution are not addressed there.
+
+Fee schedule, <https://www.acgov.org/forms/assessor/feeschedule.pdf> (read 2026-11-03): effective January 1, 2016. Letterhead: "1221 Oak St., Room 145, County Administration Building", "Oakland, California 94612-4288", "(510) 272-3787". Price line: "Entire Assessment Roll (Secured & Unsecured)" at $20.00, and "Entire Property Characteristic File" at $20,000.00. The schedule does not mention the hosted table and does not grant redistribution.
+
+Blocked on 2026-11-03: <https://www.acassessor.org/about-us/visit-or-contact-us/> (HTTP 403) and <https://www.acgov.org/assessor/>, which ended at <https://assessorprd.wpengine.com/> (HTTP 403). Founder: open the contact page and confirm the room before mailing.
+
+Gov. Code § 7922.530(a) (read 2026-11-02, NOTES.md; <https://leginfo.legislature.ca.gov>): the agency "shall make the records promptly available to any person upon payment of fees covering direct costs of duplication, or a statutory fee if applicable." Rev. & Tax. Code § 408.3(a) (read 2026-11-02): "property characteristics information maintained by the assessor is a public record and shall be open to public inspection." Section 408(a) (read 2026-11-02) withholds records "not required by law to be kept or prepared by the assessor". Commercial use: silent. Redistribution: silent. Gov. Code § 7921.000 was not read: <https://leginfo.legislature.ca.gov/faces/codes_displaySection.xhtml?lawCode=GOV&sectionNum=7921.000.> returned HTTP 403, Cloudflare "Just a moment..." on 2026-11-03. Founder can open that URL. The section is NOT CONFIRMED.
+
+An empty licence does not grant redistribution, and the office publishes a price for the entire assessment roll. The statutes read create an access right and a possible fee. They do not authorize republication. Leave the source unverified until the Assessor answers `ca-alameda-assessor-letter.md`.
+
+### Platform terms read 2026-11-03 (gates pass, Task 5)
+
+Esri / ArcGIS Hub. No separate public Hub terms page for downloaders was found. Esri's Master Agreement (E204CW, <https://www.esri.com/content/dam/esrisites/en-us/media/legal/ma-translations/english.pdf>) and Product-Specific Terms (E300, <https://www.esri.com/content/dam/esrisites/en-us/media/legal/product-specific-terms-of-use/e300.pdf>) were read 2026-11-03 (HTTP 200, not accepted). Full notes: [`../requests/platform-terms/esri-hub.md`](../requests/platform-terms/esri-hub.md), [`esri-e204.md`](../requests/platform-terms/esri-e204.md), [`esri-e300.md`](../requests/platform-terms/esri-e300.md). E300 footnote 85:
+
+> Software licenses and subscriptions included with ArcGIS Hub may only be used to support the community initiatives enabled by ArcGIS Hub.
+
+Read: E204 and E300 bind Esri's customer (here, the publisher), not an anonymous downloader, and neither restricts redistribution of public records the publisher chooses to publish. The publisher's own terms recorded above still govern. Do not create an Esri account or accept either agreement to download a file.
+
 ## Real run
 
 None, by design. The collector's `discover` ran against the item record (status `ok`, 0 file links). The

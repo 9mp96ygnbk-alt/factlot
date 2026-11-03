@@ -145,6 +145,36 @@ connection without response`, `SSL: UNEXPECTED_EOF_WHILE_READING`). The weekly G
    per-municipality zips (listed by `discover`) are the same export in smaller pieces and can be put
    in `files` instead.
 
+### Terms read 2026-11-03 (gates pass)
+
+Portal terms, <https://www.waynecountymi.gov/Government/About-Wayne-County/Privacy-Policy>, section "Wayne County Terms of Use and Linking Policy" (read 2026-11-02, NOTES.md):
+
+> The use of the content, images and logos on the Wayne County web portal on any other web site or networked computer environment is prohibited.
+
+> Some of the materials on the web portal may be saved on any single personal computer for personal, non-commercial use only.
+
+> Modification of the materials or use of the materials for purposes not granted by the Wayne County is a violation of Wayne County's copyright and other proprietary rights.
+
+The same page opens with: "The use, dissemination, distribution, publication or action in reliance on any of the information contained in this communication is strictly prohibited." It cites "the Freedom of Information Act. MCL 15.231, et seq." Bulk data, automated access, and AI use are not addressed.
+
+Statute, MCL 15.231(2), <https://www.legislature.mi.gov/Laws/MCL?objectName=mcl-15-231> (read 2026-11-02):
+
+> It is the public policy of this state that all persons, except those persons incarcerated in state or local correctional facilities, are entitled to full and complete information regarding the affairs of government and the official acts of those who represent them as public officials and public employees, consistent with this act.
+
+MCL 15.233(1), <https://www.legislature.mi.gov/Laws/MCL?objectName=mcl-15-233> (read 2026-11-02): "upon providing a public body's FOIA coordinator with a written request that describes a public record sufficiently to enable the public body to find the public record, a person has a right to inspect, copy, or receive copies of the requested public record of the public body." Commercial use: silent. Redistribution: silent.
+
+Blocked on 2026-11-03 (founder should open these): <https://www.waynecountymi.gov/Services/Records/FOIA-Request-Form-General> (HTTP 403, Access Denied); the FOIA procedures PDF at <https://www.waynecountymi.gov/files/assets/mainsite/v/1/clerk/documents/records/summary_of_foia_procedures_and_guidelines.pdf> (HTTP 403); <https://waynecountymi.nextrequest.com/> (HTTP 204, empty body). The FOIA coordinator's postal address is NOT CONFIRMED from those fetches. The review record (reviewed 2026-11-02) states the publishing division, Department of Management and Budget, Division of Assessment and Equalization, at 500 Griswold, Suite 2650, Detroit, and equalization@waynecountymi.gov, with no ZIP.
+
+The terms restrict saving materials to personal, non-commercial use and prohibit using portal content on any other website. They do not grant redistribution of the annual assessment zip. Michigan FOIA, as read, gives a right to inspect and copy and says nothing about commercial reuse. Do not treat the export as cleared for the open registry until the county answers the letter in `mi-wayne-parcels-letter.md`.
+
+### Platform terms read 2026-11-03 (gates pass, Task 5)
+
+Esri / ArcGIS Hub. No separate public Hub terms page for downloaders was found. Esri's Master Agreement (E204CW, <https://www.esri.com/content/dam/esrisites/en-us/media/legal/ma-translations/english.pdf>) and Product-Specific Terms (E300, <https://www.esri.com/content/dam/esrisites/en-us/media/legal/product-specific-terms-of-use/e300.pdf>) were read 2026-11-03 (HTTP 200, not accepted). Full notes: [`../requests/platform-terms/esri-hub.md`](../requests/platform-terms/esri-hub.md), [`esri-e204.md`](../requests/platform-terms/esri-e204.md), [`esri-e300.md`](../requests/platform-terms/esri-e300.md). E300 footnote 85:
+
+> Software licenses and subscriptions included with ArcGIS Hub may only be used to support the community initiatives enabled by ArcGIS Hub.
+
+Read: E204 and E300 bind Esri's customer (here, the publisher), not an anonymous downloader, and neither restricts redistribution of public records the publisher chooses to publish. The publisher's own terms recorded above still govern. Do not create an Esri account or accept either agreement to download a file.
+
 ## Real run
 
 Per-municipality zips of the 2026 export, archived with the collector (manifest

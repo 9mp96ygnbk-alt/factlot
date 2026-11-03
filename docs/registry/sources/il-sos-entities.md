@@ -29,6 +29,14 @@ Per the snippets above: file number, company names (current, assumed, prior), st
 1. Edge-network denial of non-browser clients, including robots.txt. A person must (a) open the Data Transparency page in a browser, (b) copy the exact file URLs, the license wording and the documentation links, (c) check whether the files are served from a host that allows the collector (or ask the Department of Business Services, 217-782-6961, to allow `FactLotRegistryBot`), and (d) read the usage notice.
 2. Confirm no click-through agreement sits in front of the downloads.
 
+### Platform terms read 2026-11-03 (gates pass, Task 5)
+
+Illinois SOS pages tried once on 2026-11-03: <https://www.ilsos.gov/data/bus-serv-home.html> (HTTP/2 stream error, then timeout, zero bytes), <https://www.ilsos.gov/privacypolicy.html> and <https://www.ilsos.gov/departments/business-services.html> (timeouts). Not bypassed. Notes: [`../requests/platform-terms/ilsos-data.md`](../requests/platform-terms/ilsos-data.md), [`ilsos-privacy.md`](../requests/platform-terms/ilsos-privacy.md).
+
+Another session's browser capture of the site Terms of Use (not re-verifiable from here, so not relied on) reads: "This license does not include any resale, commercial use, or derivative use of this site or its contents. The use of data mining, scraping, harvesting, robots, spiders, crawlers, and/or similar data gathering or extraction tools is strictly prohibited." and "Information presented on the Secretary of State's website is considered public information and may be distributed or copied." That capture found no bulk-data page at `/data/bs_home.html` (404), a different path from the one above.
+
+Read: if accurate, the website terms forbid automated collection and commercial or derivative use of the website, while saying its information may be distributed; the bulk files' own Data Transparency Act notice would govern the files and is unread. A person must open <https://www.ilsos.gov/data/bus-serv-home.html> and the procedure PDFs <https://www.ilsos.gov/content/dam/data/bs/proc_corp_data.pdf> and <https://www.ilsos.gov/content/dam/data/bs/proc_llc_data.pdf>, and record the terms.
+
 ## Real run
 
 None. No file URL was observed, so `files` is empty; none was guessed. No adapter.

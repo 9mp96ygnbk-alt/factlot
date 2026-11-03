@@ -92,6 +92,32 @@ them as `skipped_invalid`.
 5. **Layout check.** On the first real file, compare the headers with the list above and fix the
    adapter before trusting its output.
 
+### Terms read 2026-11-03 (gates pass)
+
+This memo is research, not legal advice; the founder holds no attorney or real estate license.
+
+These three URLs did not load (curl 35, no HTTP status, read 2026-11-03). Consent banner and price list are NOT CONFIRMED. A person must open them:
+
+- https://cis.scc.virginia.gov/
+- https://cis.scc.virginia.gov/Cookie/CookieConsent
+- https://appspre.scc.virginia.gov/clk/purch.aspx
+
+The page that loaded, https://www.scc.virginia.gov/businesses/about-the-clerks-office/ (HTTP 200, read 2026-11-03):
+
+> Business entity, Uniform Commercial Code and SCC case documents and information on file in the Office of the Clerk are in most instances open to public examination.
+
+> The Clerk's Office operates under the Code of Virginia.
+
+No bulk licence, price, or redistribution term was on that page. No letter was drafted. Do not load.
+
+Statute text was not fetched on 2026-11-03. NOTES.md (read 2026-11-02) quotes Va. Code § 2.2-3700(B) and § 2.2-3704, https://law.lis.virginia.gov/vacode/title2.2/chapter37/section2.2-3700/ and https://law.lis.virginia.gov/vacode/title2.2/chapter37/section2.2-3704/ . Contiguous pieces:
+
+> available for inspection and copying upon request.
+
+> a public body may make reasonable charges not to exceed its actual cost incurred in
+
+As read in NOTES.md, those sections are silent on commercial use and on redistribution of an entity extract. They are not a price list for the Clerk's data file.
+
 ## Real run
 
 None. No file was downloaded (gates above). The adapter's tests run on a synthetic fixture only

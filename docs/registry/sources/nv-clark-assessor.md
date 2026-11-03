@@ -133,6 +133,53 @@ excluded by default; `7-30` "minor improvements with a commercial use" is exclud
 
 Nothing was requested, bought, or signed; no account was created.
 
+### Terms read 2026-11-03 (gates pass)
+
+This memo is research, not legal advice; the founder holds no attorney or real estate license.
+
+**Data files page.** https://www.clarkcountynv.gov/government/assessor/datafiles , read 2026-11-03.
+
+> The files are updated each weekend and are a complete replacement extraction of each file.
+
+> Customers interested in obtaining this information will need to submit a signed letter requesting one time access during a calendar month or an ongoing subscription to access the Clark County Assessor Data Site.
+
+**Fee schedule, effective July 1, 2024.** https://www.clarkcountynv.gov/adobe/assets/urn:aaid:aem:b0ee0f69-d7f2-4964-9270-62bb255d8bea/original/as/fee-schedule-rev-07-01-24.pdf , read 2026-11-03.
+
+> Monthly Subscription of Assessor Data Files                                                            $300.00 per month
+
+> *Fees may be waived upon request and approval for the following subscribers, providing the data requested will used for
+> non-commercial purposes only:
+
+The waiver list is a student or faculty member of a college or university, and a government agency. $300.00 per month x 12 = $3,600 per year.
+
+**AOExtract description.** https://www.clarkcountynv.gov/adobe/assets/urn:aaid:aem:97e18ac2-17dd-4389-a037-7f92214d53f9/original/as/aoextract-description.pdf , read 2026-11-03.
+
+> NOTE: This information is for assessment use only. No liability is assumed as to the
+> accuracy of the data delineated hereon.
+
+**Data Notice.** https://www.clarkcountynv.gov/adobe/assets/urn:aaid:aem:0f43eec9-ecbe-4d85-aa6c-5a19a1edd6f4/original/as/data-notice.pdf , read 2026-11-03.
+
+> information contained in public record for the use of its customers, subscribers,
+> employees and/or shareholders.
+
+> 3. In the event any confidential data is inadvertently revealed to the company or
+> individual in connection with furnishing of the records herein specified, the company
+> or individual shall not reveal the same to any person nor utilize said information in
+> any manner.
+
+Paragraph 5 allocates liability for dissemination. It does not forbid dissemination of public fields.
+
+**Request-letter requirements.** https://www.clarkcountynv.gov/adobe/assets/urn:aaid:aem:abd79829-9f33-4654-9bd3-6f4f715ce4e4/original/as/request-for-data.pdf , read 2026-11-03. Draft at `../requests/orders/nv-clark-assessor-order-draft.md`.
+
+**Statute.** NRS 239.010(1), https://www.leg.state.nv.us/nrs/nrs-239.html , read 2026-11-03.
+
+> Any such copies, abstracts or memoranda may be used
+> to supply the general public with copies, abstracts or memoranda of the records
+
+The section does not use the word commercial.
+
+The Data Notice and NRS 239.010 allow public data to be copied and used for customers. The AOExtract note says the information is for assessment use only, and the fee-waiver sentence limits a waiver to non-commercial use by students, faculty, and government. Nothing read flatly forbids publishing a cited commercial-parcel fact while withholding the file. That conflict is unresolved until the Assessor answers the draft letter. Recipient: Clark County Assessor, 500 S. Grand Central Pkwy., Las Vegas, NV 89155, AOPDSTITLE@CLARKCOUNTYNV.GOV. The data-request form names an official on the letterhead. That name is not copied.
+
 ## Real run
 
 - `python -m factlot.collector discover --config registry/sources/nv/nv-clark-assessor.json --out collected`

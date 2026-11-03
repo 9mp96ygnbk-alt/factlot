@@ -29,6 +29,35 @@ Unknown (the order page is behind the account). The free search shows: entity na
 
 Do not scrape bizfile Online search: it is an interactive application, and no bulk-use permission was found.
 
+### Terms read 2026-11-03 (gates pass)
+
+This memo is research, not legal advice; the founder holds no attorney or real estate license.
+
+**Bulk-order page.** https://www.sos.ca.gov/administration/public-records-act-requests/business-entity-records , read 2026-11-03.
+
+> Through bizfile Online, users have the ability to order bulk data through the BE & UCC Bulk Orders link available in the Information & Resources column. Users can uncompress and extract the data with standard software such as PKZIP, WinZip, or MacZip for use in their own systems or software for searching. Additional information is available through the "? Help" link on the side bar of the bizfile online main page at pages 132-134.
+
+> Collect ownership information for business entities and would not have records of this information.
+
+The second quotation is the first item under "the Secretary of State does not." Phone (916) 653-6814. The information-requests URL resolved to the same host page and does not restate a bulk price. The Secretary's name in the chrome is not copied.
+
+**Portal manual, April 2022, Version 1.03.** https://bpd.cdn.sos.ca.gov/ucc/ucc-online-help.pdf , read 2026-11-03. Page 8: "Master Unloads for UCC or BE are $100 each, Weekly Data Unloads are free." Section 19.1:
+
+> 3. BE Bulk Order Master Unload of Data ($100 per Unload)
+> 4. BE Bulk Order – Weekly Data & Images (Free Data)
+
+Weekly BE data is $0 per year on that sentence. A master unload is $100 per unload, not per year. The 2026 HTML page cites help pages 132–134 and does not restate the dollar amount. The user must be logged in. No account was created and no order checkbox was accepted. UCC image rules in later subsections were not applied to BE.
+
+**bizfile hub.** https://www.sos.ca.gov/business-programs/bizfile , read 2026-11-03. New corporations, LLCs, and LPs use a 12-character id that starts with "B". "If you are a requestor of Bulk data, the new entity numbers will be reflected in the files."
+
+**Terms, Copyright © 2026.** https://www.sos.ca.gov/business-programs/bizfile/privacy-warning-terms-and-conditions-use , read 2026-11-03.
+
+> There is no restriction placed on the use of such filing data by the California Secretary of State, although certain information and names contained in the data may be owned by third parties and may be protected under applicable copyright, trademark, and other proprietary and intellectual property rights of those third parties.
+
+The prohibited-uses list also says: "Post, transmit, or in any way exploit any information, software, or other material for advertising or commercial purposes;" and, separately, "create derivative works from, or sublicense any proprietary software." The derivative-works bullet is about software. The filing-data sentence is the one that speaks to the records.
+
+Filing data (entity name, number, status) is the product the terms describe as unrestricted by the Secretary of State, with a third-party trademark caveat. The website commercial-purposes bullet is still on the page, so the draft letter asks the office to confirm the cited-fact use. Do not store natural-person names. Draft: `../requests/orders/ca-sos-entities-order-draft.md`.
+
 ## Real run
 
 None. No file obtained. No adapter.

@@ -76,6 +76,39 @@ found, so no category mapping was written.
    to `geo.sandag.org`).
 3. Nothing was purchased and no account was created.
 
+### Terms read 2026-11-03 (gates pass)
+
+This memo is research, not legal advice; the founder holds no attorney or real estate license.
+
+**Fee schedule.** https://www.sdarcc.gov/content/dam/arcc/assessor/forms/other-assessor-forms/PUB%20INFO%20FEE%20SCHEDULE.pdf , read 2026-11-03. Address: San Diego County Assessor, Public Information, 1600 Pacific Highway, Suite 103, San Diego, CA 92101, (619) 236-3771.
+
+> Property Characteristic                             $ 1.00 per parcel
+
+That line is a counter copy, not a bulk file. No bulk-roll price is on the schedule. Building records: "No fee at this time." Email on the property page: ARCCHELP@sdcounty.ca.gov. https://www.sdarcc.gov/content/arcc/home/divisions/assessor/property-records.html , read 2026-11-03.
+
+> Are street addresses and ownership shown on Assessor's maps?
+> No.
+
+**ParcelQuest county disclaimer.** https://www.sdarcc.gov/content/arcc/home/divisions/assessor/parcel-quest-disclaimer.html , read 2026-11-03.
+
+> Customers may conduct up to 25 searches in any
+>   30-day period free of charge.
+> Searches in excess of that threshold may require a subscription to
+>   ParcelQuest’s data services.
+
+Continue URL https://assr.parcelquest.com/impl/sdxassr redirected to the same ParcelQuest Lite agreement quoted for Orange County. "I Accept" was not clicked. The agreement prohibits publishing the Content. The Lite page's own limit (50 searches and 25 maps per month) does not match the county's 25-searches-in-30-days sentence. Subscription dollars: NOT CONFIRMED.
+
+**SanGIS.** Price list, effective September 1, 2022, https://gis.sangis.org/Documents/services/PriceList.pdf , read 2026-11-03.
+
+> Every three months SanGIS creates an 8GB Flash Drive containing the most requested public layers in ready
+> to use shape file format (not zipped) for $75.
+
+$75 x 4 = $300 per year if the drive is bought each quarter. Custom extracts are $100 an hour with a $100 minimum. No use or resale clause is in the price list. It is not the assessor roll. These URLs were not usable: https://www.sangis.org/ (JS shell), https://www.sangis.org/pages/download-data (JS shell), https://www.sangis.org/Legal_Notice.htm (HTTP 404, 0 bytes), https://sangis.org/privacy.html (HTTP 404, 0 bytes). The founder should open the legal-notice URL.
+
+**Statute.** NOTES.md, read 2026-11-02. Same silence on commercial use and redistribution as the other California assessor notes. Gov. Code § 7928.205 is NOT CONFIRMED.
+
+No ARCC bulk license was read, so there is no file to treat as cleared for the registry. ParcelQuest Content is restricted. Draft: `../requests/orders/ca-san-diego-assessor-order-draft.md`.
+
 ## Real run
 
 None. No file was downloaded, so there are no row counts and no snapshot.

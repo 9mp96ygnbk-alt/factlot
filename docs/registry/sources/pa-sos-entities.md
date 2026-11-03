@@ -81,6 +81,16 @@ county code and the point are not stored either.
 None. No account, login, click-through, CAPTCHA or fee. The only blocker on 2026-11-02 was the
 review machine's bandwidth (about 60 KB/s), not the publisher.
 
+### Platform terms read 2026-11-03 (gates pass, Task 5)
+
+Tyler Technologies Terms of Use (served at <https://www.tylertech.com/terms/socrata-terms-of-service>, "Effective April 29, 2024"; HTTP 200, read 2026-11-03; matches the browser capture). Full notes: [`../requests/platform-terms/socrata.md`](../requests/platform-terms/socrata.md). Under "Restrictions on Use" the user may not:
+
+> Use any computer code, data mining software, "robot," "bot," "spider," "scraper" or other automatic device, or program, algorithm or methodology having similar processes or functionality, or any manual process, to monitor or copy any of the Web pages, data or content found or accessed through the Services;
+
+> Display, distribute, license, perform, publish, reproduce, duplicate, copy, create derivative works from, modify, sell, resell, exploit, transfer, or transmit for any commercial purposes, all or any portion of the Services
+
+Read: these are Tyler's generic terms for its own "Services". The page refers to "the terms specific to a particular Service as applicable" and does not address a public agency's own dataset licence. Read literally, the scraper clause covers copying "data ... accessed through the Services", which is in tension with the collector's export downloads; the publisher's own dataset licence (recorded above) is what grants rights in the data. Decision for the founder: rely on the agency licence and treat the Tyler page as platform boilerplate, or ask the agency (not Tyler) to confirm that its licence governs bulk exports. Nothing was accepted.
+
 ## Real run (2026-11-03)
 
 The full export was archived by the collector (`collected/pa-sos-entities/b385eeddf8631368/export.csv`, 402,718,857 bytes, document `fl:document:sha256-b385eeddf8631368472bf1133d806843f9e890be3d6c2f3f12ebea7fe2c10cd9`).

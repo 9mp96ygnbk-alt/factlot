@@ -64,6 +64,47 @@ collector, so it was not read directly).
    contract-licensed product whose license would have to be read before any use.
 3. Nothing was purchased, no form was sent, and no account was created.
 
+### Terms read 2026-11-03 (gates pass)
+
+This memo is research, not legal advice; the founder holds no attorney or real estate license.
+
+**Roll products.** https://www.ocassessor.gov/page/assessor-roll-products , revised 8/09/2021, read 2026-11-03.
+
+> Assessor roll products are ONLY AVAILABLE in-person at our Public Service Center or by written request
+> Please call (714) 834-2727 for pricing and more information
+
+Electronic price, format, and frequency: NOT CONFIRMED. Paper prices on that page are not a countywide file. Comp sales cannot be mailed.
+
+**Public records.** https://www.ocassessor.gov/contact-us/assessor-public-records , read 2026-11-03.
+
+> In accordance with the California Public Records Act (PRA), Cal. Gov. Code § 7920 et seq. and Revenue and Taxation Code §§ 408, 451 and 481, the Office of the Assessor maintains public property records for assessment purpose.
+
+Mail: Orange County Assessor, 500 S. Main Street, Suite 103, Orange, CA 92868, Attn: Quality Assurance. Fax (714) 834-3199.
+
+**Privacy.** https://www.ocassessor.gov/news-information/privacy-statement , read 2026-11-03. "The assessment roll is by law a public document."
+
+**ParcelQuest handoff.** https://www.ocassessor.gov/page/property-information-and-parcel-maps , read 2026-11-03. Linking "does not constitute an endorsement by the Orange County Assessor or a warranty." Counter: 500 S. Main, 2nd Floor, Orange. Continue URL https://assr.parcelquest.com/impl/ORGASSR redirected to the user-agreement shell. "I Accept" was not clicked.
+
+**ParcelQuest Lite user agreement.** https://assr.parcelquest.com/Home/Disclaimer?iframe=2 , read 2026-11-03.
+
+> You are strictly prohibited from redistributing, selling, or publishing the Content of the Website, from performing automated searches of the Content, and from downloading any Content for use with any other commercial application(s) for sale or distribution.
+
+> No part of the Website (including Content) or any property report or its contents may be sold, licensed, leased, duplicated, transferred or in any other manner commercially exploited except with the express written consent of ParcelQuest.
+
+Lite limits on the same page: 50 searches and 25 parcel maps per month. Subscription price: NOT CONFIRMED.
+
+**Statute.** NOTES.md, read 2026-11-02 (leginfo HTTP 403 on 2026-11-03). Gov. Code § 7922.530(a) and Rev. & Tax. Code §§ 408 and 408.3, as quoted there, are silent on commercial use and redistribution after receipt. Gov. Code § 7928.205 is NOT CONFIRMED.
+
+The county pages do not publish an electronic-roll license. ParcelQuest's agreement does restrict redistribution, and it forbids publishing the website Content. A county written request is a different product from ParcelQuest Lite. Do not load ParcelQuest Content into the registry. Draft to Quality Assurance: `../requests/orders/ca-orange-assessor-order-draft.md`.
+
+### Platform terms read 2026-11-03 (gates pass, Task 5)
+
+Esri / ArcGIS Hub. No separate public Hub terms page for downloaders was found. Esri's Master Agreement (E204CW, <https://www.esri.com/content/dam/esrisites/en-us/media/legal/ma-translations/english.pdf>) and Product-Specific Terms (E300, <https://www.esri.com/content/dam/esrisites/en-us/media/legal/product-specific-terms-of-use/e300.pdf>) were read 2026-11-03 (HTTP 200, not accepted). Full notes: [`../requests/platform-terms/esri-hub.md`](../requests/platform-terms/esri-hub.md), [`esri-e204.md`](../requests/platform-terms/esri-e204.md), [`esri-e300.md`](../requests/platform-terms/esri-e300.md). E300 footnote 85:
+
+> Software licenses and subscriptions included with ArcGIS Hub may only be used to support the community initiatives enabled by ArcGIS Hub.
+
+Read: E204 and E300 bind Esri's customer (here, the publisher), not an anonymous downloader, and neither restricts redistribution of public records the publisher chooses to publish. The publisher's own terms recorded above still govern. Do not create an Esri account or accept either agreement to download a file.
+
 ## Real run
 
 None: nothing to download. The `discover` run confirmed the three Assessor pages respond (HTTP 200

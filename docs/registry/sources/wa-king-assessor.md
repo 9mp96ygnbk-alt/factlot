@@ -120,6 +120,30 @@ ones no rule recognises, and should be read before the first load.
    `--check-lookup` and confirm the column names in "What the file contains" against the real
    headers (and whether a taxpayer-name column exists at all).
 
+### Terms read 2026-11-03 (gates pass)
+
+This memo is research, not legal advice; the founder holds no attorney or real estate license.
+
+Download acknowledgement, https://info.kingcounty.gov/assessor/DataDownload/default.aspx (read 2026-11-03). The box was not ticked.
+
+> I understand that Washington State law, RCW 42.56.070(9), prohibits the use
+
+> of lists of individuals for "commercial purposes."
+
+> I acknowledge and agree to the prohibitions listed in RCW 42.56.070(9) against releasing
+
+Website terms, https://kingcounty.gov/en/shared-topics/about-king-county/website/terms-of-use (read 2026-11-03):
+
+> The content of King County’s websites, and apps including all text, graphics, compilations, data, and other documentation, is the property of King County and is protected by intellectual property law. You may not publish, display, distribute or commercially exploit any of the the website or app or the content therein without the prior written permission of King County.
+
+Statute, RCW 42.56.070, https://app.leg.wa.gov/rcw/default.aspx?cite=42.56.070 (read 2026-11-03). Current numbering is (8), not the (9) printed on the acknowledgement.
+
+> This chapter shall not be construed as giving authority to any agency, the office of the secretary of the senate, or the office of the chief clerk of the house of representatives to give, sell or provide access to lists of individuals requested for commercial purposes, and agencies, the office of the secretary of the senate, and the office of the chief clerk of the house of representatives shall not do so unless specifically authorized or directed by law:
+
+Subsection (8) restricts lists of individuals requested for commercial purposes and is silent on other records. The website clause is not silent: it forbids publishing, displaying, distributing, or commercially exploiting website content, including data, without prior written permission. That is not compatible, on its face, with an open registry.
+
+Letter: `../requests/wa-king-assessor-letter.md`, to the Public Records Officer at KSC-AS-0708, 201 S. Jackson St., Seattle, Washington 98104, email Assessor.Info@KingCounty.gov. The founder signs and sends it. Do not tick the box and do not download until the County answers.
+
 ## Real run
 
 None. No file was downloaded (gate 1), so there are no counts, no facts, no organisation owners

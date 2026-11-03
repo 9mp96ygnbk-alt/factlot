@@ -31,6 +31,32 @@ From the form: business name and address, incorporation date, approval date, sta
 
 Nothing was purchased and no request was sent.
 
+### Terms read 2026-11-03 (gates pass)
+
+This memo is research, not legal advice; the founder holds no attorney or real estate license.
+
+**Form m027.** https://www.azcc.gov/docs/default-source/corps-files/forms/m027-database-extraction-request4afa009930ae4583a9310593ba4c65ce.pdf?sfvrsn=73637fee_6 , read 2026-11-03.
+
+> CD-Rom or Download of entire database                                           $1,000.00
+
+> CD-Rom or Electronic Mail File for information extract                             $75.00
+
+The entire database is $1,000.00 once. It is not a stated annual subscription. Format: "double-quote delimited, comma-separated ASCII data." Delivery: CD-ROM or email. "no other options."
+
+> I am being sold the use of the public records referred to herein and that I am prohibited from their use for any reason other than as stated above; that at all times these records remain the property of the Arizona Corporation Commission and are subject to return upon demand.
+
+The form says the Commission may deny a commercial request it believes is a misuse, citing A.R.S. § 39-121.03(B). Commercial purpose on the form includes sale or resale and "any purpose in which the purchaser can reasonably anticipate the receipt of monetary gain." Available fields include officer and director names and addresses. Do not store those natural-person names. Mail: Arizona Corporation Commission, Records Section, 1300 West Washington, Room 101, Phoenix, AZ 85007.
+
+The general public-records page (https://azcc.gov/public-records-request , effective January 1, 2026, read 2026-11-03) is a labor-and-copy schedule, including commercial labor at $30/hour. It is not the database-extract price. Contact on that page: OGC@azcc.gov. Mail: c/o Legal Division, 1200 West Washington Street, Phoenix, Arizona 85007.
+
+**Statute.** A.R.S. § 39-121.03, https://www.azleg.gov/ars/39/00121-03.htm , read 2026-11-03.
+
+> D.  For the purposes of this section, "commercial purpose" means the use of a public record for the purpose of sale or resale or for the purpose of producing a document containing all or part of the copy, printout or photograph for sale or the obtaining of names and addresses from public records for the purpose of solicitation or the sale of names and addresses to another for the purpose of solicitation or for any purpose in which the purchaser can reasonably anticipate the receipt of monetary gain from the direct or indirect use of the public record. Commercial purpose does not mean the use of a public record as evidence or as research for evidence in an action in any judicial or quasi-judicial body.
+
+Subsection C makes a different commercial purpose than the one stated a treble-damages misuse. Subsection A is where the statute places the three charge factors. The public-records page cites subsection B for those factors. Both texts are saved.
+
+The form sells a use, keeps ownership with the Commission, and requires the purpose to match the use. Publishing the file is not what the draft purpose asks for. Publishing cited entity name, status, and id is still a commercial purpose under subsection D, so it has to be written on the form and accepted. It is not cleared by silence. Draft, unsigned: `../requests/orders/az-sos-entities-order-draft.md`.
+
 ## Real run
 
 None. No adapter.

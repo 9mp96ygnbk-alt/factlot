@@ -84,6 +84,42 @@ and have no `Corporations` row, so they are never yielded. Rows without a legal 
 - **Alternative:** a public records request to the Secretary of State for the same export
   (N.C. Gen. Stat. §132-6.2 lets an agency charge for the actual cost of a database copy).
 
+### Terms read 2026-11-03 (gates pass)
+
+This memo is research, not legal advice; the founder holds no attorney or real estate license.
+
+**Fees.** https://www.sosnc.gov/fees/by_title/_data_subscriptions , read 2026-11-03.
+
+> One time set-up fee
+> $750.00
+>
+> Business Registration Division Master Files Subscription
+> $2,000 per State fiscal year
+
+Year 1 is $750.00 + $2,000 = $2,750. Each later State fiscal year is $2,000. Do not add the UCC, notary, trademark, or charitable lines.
+
+**Subscription page.** https://www.sosnc.gov/online_services/data_subscriptions/business_registration_data_subscriptions , read 2026-11-03.
+
+> Various terms apply to the contract based on the type of frequency.
+
+> With the exception of assuring that the data is available for download, no ‘technical support’ is offered with any subscription.
+
+The contract text is not published. Subscribe token in the saved HTML decodes to DataSubscriptions@sosnc.gov.
+
+**About the data.** https://www.sosnc.gov/online_services/data_subscriptions/about_the_data , read 2026-11-03.
+
+> All data is updated weekly. The FTP server contains a data dictionary detailing the table structures. The data format is CSV (comma separated values).
+
+The business-registration paragraph includes officers, partners, directors, and company officials. Those natural-person names are not to be stored.
+
+**Statute.** G.S. 132-1(b), https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_132/GS_132-1.html , read 2026-11-03.
+
+> The public records and public information compiled by the agencies of North Carolina government or its subdivisions are the property of the people.
+
+G.S. 132-6.2, same site, chapter 132, GS_132-6.2.html, read 2026-11-03, limits copy fees to actual cost, with a special service charge for extensive information-technology use. Neither section says anything about commercial use or redistribution after receipt.
+
+The published pages sell a weekly CSV and say the contract's terms vary by frequency. They do not themselves forbid publishing a cited entity name, status, and id. Until the contract is read, redistribution of the file and publication of derived facts are both unresolved. Draft: `../requests/orders/nc-sos-entities-order-draft.md`. Address: Department of the Secretary of State, P.O. Box 29622, Raleigh, NC 27626-0622. Phone 919-814-5400. The Secretary's name in the page chrome is not copied.
+
 ## Real run
 
 None. No file could be obtained without purchase, so no counts are reported. The collector's

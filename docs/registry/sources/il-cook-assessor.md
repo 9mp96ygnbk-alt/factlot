@@ -162,6 +162,53 @@ the brief leaves out of scope.
 - Tyler/Socrata platform terms: same open item as the Texas Comptroller source (backlog A11).
 - No account, login, click-through, CAPTCHA, fee or records request is needed for the downloads.
 
+### Terms read 2026-11-03 (gates pass)
+
+**View metadata, read 2026-11-03, HTTP 200.** No key named license appears in any of the four files. Each includes:
+
+> "attribution" : "Cook County Assessor's Office",
+
+> "rights" : [ "read" ],
+
+- "Assessor - Parcel Universe (Current)" — https://datacatalog.cookcountyil.gov/api/views/pabr-t5kh.json
+- "Assessor - Assessed Values" — https://datacatalog.cookcountyil.gov/api/views/uzyt-m557.json
+- "Assessor - Parcel Addresses" — https://datacatalog.cookcountyil.gov/api/views/3723-97qp.json
+- "Assessor - Commercial Valuation Data" — https://datacatalog.cookcountyil.gov/api/views/csik-bsws.json
+
+The `rights` value "read" is the permission flag in the metadata. It is not a copyright or redistribution clause.
+
+**County terms.** https://www.cookcountyil.gov/terms-use — read 2026-11-02. Section 7 includes "system. By use of this system and any data contained therein, you agree that your use shall". Section 10 includes:
+
+> The content of County websites is copyrighted and may contain some third party content that is
+
+> images/graphics from this website.
+
+The notes state: "Nothing in the ten sections addresses redistribution of datasets, automated access or AI use."
+
+**FOIA page.** https://www.cookcountyassessoril.gov/foia-freedom-information — read 2026-11-03, HTTP 200. Requests go to "CCAO Freedom of Information Officer", "118 North Clark Street", "Chicago, Illinois 60602", fax "(312) 603-3616". The page says "file FOIA requests via the GovQA platform". No public email is printed. The page includes "reasonable fee established by the custodian" as its quotation of Property Tax Code section 9-20. The full text of 35 ILCS 200/9-20 and 9-25 was NOT READ (TLS failure, curl error 60, twice; not a bot challenge). Founder URL: https://www.ilga.gov/legislation/ILCS/details?ActID=596&ChapAct=35+ILCS+200%2F&SeqStart=12100000&SeqEnd=13500000.
+
+**Statute, read 2026-11-02.** 5 ILCS 140/3(a), https://www.ilga.gov/Documents/legislation/ilcs/documents/000501400K3.htm:
+
+> or otherwise, the exclusive right to access and disseminate any public record as defined in
+
+5 ILCS 140/3(c) includes "except to determine whether the records are requested for a commercial purpose or whether to". 5 ILCS 140/3.1, https://www.ilga.gov/Documents/legislation/ilcs/documents/000501400K3.1.htm:
+
+> commercial purpose without disclosing that it is for a commercial purpose, if requested to do so
+
+5 ILCS 140/1, https://www.ilga.gov/Documents/legislation/ilcs/documents/000501400K1.htm, includes "commercial enterprise to unduly burden public resources". The sections read are silent on redistribution of a record once obtained. Section 3.1 is a disclosure rule when a public body asks the purpose of a request.
+
+County section 10, in the words read, is about images and graphics. It does not state a redistribution rule for these four datasets, and the datasets carry no license field. Leave `verified` false. The founder signs and sends `il-cook-assessor-letter.md`, which discloses the commercial purpose. This lane did not send it.
+
+### Platform terms read 2026-11-03 (gates pass, Task 5)
+
+Tyler Technologies Terms of Use (served at <https://www.tylertech.com/terms/socrata-terms-of-service>, "Effective April 29, 2024"; HTTP 200, read 2026-11-03; matches the browser capture). Full notes: [`../requests/platform-terms/socrata.md`](../requests/platform-terms/socrata.md). Under "Restrictions on Use" the user may not:
+
+> Use any computer code, data mining software, "robot," "bot," "spider," "scraper" or other automatic device, or program, algorithm or methodology having similar processes or functionality, or any manual process, to monitor or copy any of the Web pages, data or content found or accessed through the Services;
+
+> Display, distribute, license, perform, publish, reproduce, duplicate, copy, create derivative works from, modify, sell, resell, exploit, transfer, or transmit for any commercial purposes, all or any portion of the Services
+
+Read: these are Tyler's generic terms for its own "Services". The page refers to "the terms specific to a particular Service as applicable" and does not address a public agency's own dataset licence. Read literally, the scraper clause covers copying "data ... accessed through the Services", which is in tension with the collector's export downloads; the publisher's own dataset licence (recorded above) is what grants rights in the data. Decision for the founder: rely on the agency licence and treat the Tyler page as platform boilerplate, or ask the agency (not Tyler) to confirm that its licence governs bulk exports. Nothing was accepted.
+
 ## Real run
 
 The full collector run was **not completed**: it was started on 2026-11-03 01:30 UTC over a shared

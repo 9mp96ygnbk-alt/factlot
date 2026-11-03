@@ -66,6 +66,24 @@ another source; it is not catalogued as a source.
    and Taxation Code §408 and §408.3 govern what the Assessor must disclose and may charge. These were
    not researched in this pass.
 
+### Terms read 2026-11-03 (gates pass)
+
+This memo is research, not legal advice; the founder holds no attorney or real estate license.
+
+No terms, price, layout, or address were readable. Each URL returned HTTP 403 (Cloudflare). The founder should open:
+
+- https://asr.santaclaracounty.gov/about-us/purchase-data/bulk-data
+- https://asr.santaclaracounty.gov/about-us/purchase-data/bulk-data-by-jurisdiction
+- https://asr.santaclaracounty.gov/about-us/purchase-data/fee-schedule
+- https://www.sccassessor.org/edocman/Data%20File%20Order%20Form%202021.pdf (final URL on this pass was https://asr.santaclaracounty.gov/ , HTTP 403)
+- https://files.santaclaracounty.gov/exjcpb1531/2026-02/fy-2025-2026-countywide-master-fee-schedule.pdf?VersionId=JJDcTGki15sFK.2nqOtSbbYc05LtUa7j (HTTP 403)
+
+Price per year: NOT CONFIRMED. Restrictive clause: NOT CONFIRMED. No search-indexed fee is quoted here.
+
+**Statute.** Same NOTES.md capture as the other California assessors, read 2026-11-02, because leginfo returned HTTP 403 on 2026-11-03. Gov. Code § 7922.530(a) and Rev. & Tax. Code §§ 408(a) and 408.3(a)–(d), as quoted in NOTES.md, do not address commercial use or redistribution. Gov. Code § 7928.205 is NOT CONFIRMED. A county contract, if one exists, was not read and can still restrict the file.
+
+Until the Assessor sends the current form, there is nothing to treat as a license and nothing to load. Draft inquiry, with no dollar amount: `../requests/orders/ca-santa-clara-assessor-order-draft.md`.
+
 ## Real run
 
 None. No file was downloaded and no adapter was written. `discover` on the order page was attempted and

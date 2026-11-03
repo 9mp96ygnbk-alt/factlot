@@ -161,6 +161,36 @@ used for scope because a rented house is also class 4.2 and a motel can be class
 2. Nothing else: no CAPTCHA, no agreement, no fee for the Data Downloads files (fees apply only to
    custom and mailed requests on the Service Fees page).
 
+### Terms read 2026-11-03 (gates pass)
+
+This memo is research, not legal advice; the founder holds no attorney or real estate license.
+
+Form FOR-025 is fillable. The unsigned draft is `out/az-maricopa-FOR-025-draft.pdf`. NOTES.md (read 2026-11-02) said the PDF was flat. pypdf found an AcroForm. Nothing was submitted or signed.
+
+Statute: A.R.S. § 39-121.03, https://www.azleg.gov/ars/39/00121-03.htm (read 2026-11-03).
+
+> When a person requests copies, printouts or photographs of public records for a commercial purpose, the person shall provide a statement setting forth the commercial purpose for which the copies, printouts or photographs will be used.
+
+> Commercial purpose does not mean the use of a public record as evidence or as research for evidence in an action in any judicial or quasi-judicial body.
+
+The form's own bullet (local text of the repository PDF) is narrower than that statute and omits the evidence exception:
+
+> For any purpose in which the purchaser can reasonably anticipate the receipt of monetary gain from
+
+The draft names Secured_Master.zip (item 936bbba512bf4c368618cc6e79e64668), Commercial_Master.zip (item 12ce08cf4d264f9d97bb7ef4d6eb9944), and Apartment_Master.zip (item 0b5770a1b73f4637b8f92f088465890b). It states cited commercial-parcel facts, no resale of the file, no natural-person names, and a possible hosted charge for derived facts. Amount not to exceed is 0. The Data Downloads price was not re-fetched, so "free" is NOT CONFIRMED on 2026-11-03.
+
+The statute is not silent on commercial purpose. It requires the statement and allows fees, a governor bar, and treble damages. It does not itself ban redistribution after the purpose is stated and any fee is paid.
+
+Founder must still: replace [FOUNDER MAILING ADDRESS], [CONFIRM SENDER EMAIL], and [CONFIRM SENDER PHONE]; sign and date the certification and the pricing worksheet; leave the receipt signature blank; tick the not-to-exceed box only if a cap of 0 is acceptable. The payment boxes are not AcroForm fields. Leave the deposit box blank unless the office quotes a fee. Do not load until the signed statement is sent.
+
+### Platform terms read 2026-11-03 (gates pass, Task 5)
+
+Esri / ArcGIS Hub. No separate public Hub terms page for downloaders was found. Esri's Master Agreement (E204CW, <https://www.esri.com/content/dam/esrisites/en-us/media/legal/ma-translations/english.pdf>) and Product-Specific Terms (E300, <https://www.esri.com/content/dam/esrisites/en-us/media/legal/product-specific-terms-of-use/e300.pdf>) were read 2026-11-03 (HTTP 200, not accepted). Full notes: [`../requests/platform-terms/esri-hub.md`](../requests/platform-terms/esri-hub.md), [`esri-e204.md`](../requests/platform-terms/esri-e204.md), [`esri-e300.md`](../requests/platform-terms/esri-e300.md). E300 footnote 85:
+
+> Software licenses and subscriptions included with ArcGIS Hub may only be used to support the community initiatives enabled by ArcGIS Hub.
+
+Read: E204 and E300 bind Esri's customer (here, the publisher), not an anonymous downloader, and neither restricts redistribution of public records the publisher chooses to publish. The publisher's own terms recorded above still govern. Do not create an Esri account or accept either agreement to download a file.
+
 ## Real run
 
 Full download not completed. The collector (`snapshot --include-unverified`, 2026-11-02, manifest
