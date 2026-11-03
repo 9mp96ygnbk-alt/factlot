@@ -128,6 +128,7 @@ export const PrepaymentInput = z
                 }),
               )
               .min(1)
+              .max(1200)
               .describe(
                 "Step-down schedule in ascending through_month order, e.g. 5-4-3-2-1. After the last through_month the loan is open (0%).",
               ),
@@ -155,6 +156,7 @@ export const PrepaymentInput = z
                 z
                   .array(YieldPoint)
                   .min(1)
+                  .max(1200)
                   .describe(
                     "Yield curve as a step function: each payment uses the first point whose months ≥ its month; beyond the last point, the last rate.",
                   ),

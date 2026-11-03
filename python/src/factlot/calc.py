@@ -19,6 +19,7 @@ from ._core import (
     fail,
     fmt_money,
     fmt_pct,
+    ieee_div,
     iso_date,
     join,
     nth_root,
@@ -57,7 +58,7 @@ def _schedule_input(raw: Any, path: str = "") -> dict[str, Any]:
         }
     else:
         esc = {"type": "none"}
-    abated = array(d, "abated_months", path, default=[])
+    abated = array(d, "abated_months", path, default=[], max_len=1200)
     for i, m in enumerate(abated):
         number({"m": m}, "m", join(join(path, "abated_months"), i), integer=True, gt=0)
     return {
@@ -222,11 +223,11 @@ def cam_reconciliation(raw: Any) -> Result:
     number(d, "year", integer=True, ge=1900, le=2200)
     share = number(d, "pro_rata_share", gt=0, le=1)
     expenses = []
-    for i, e in enumerate(array(d, "expenses", min_len=1)):
+    for i, e in enumerate(array(d, "expenses", min_len=1, max_len=1000)):
         p = join("expenses", i)
         e = obj(e, p)
         expenses.append({
-            "category": string(e, "category", p, min_len=1),
+            "category": string(e, "category", p, min_len=1, max_len=200),
             "amount": number(e, "amount", p, ge=0),
             "controllable": boolean(e, "controllable", p, default=True),
             "recoverable": boolean(e, "recoverable", p, default=True),
@@ -352,10 +353,15 @@ def debt_sizing(raw: Any) -> Result:
     if max_ltv is not None:
         loans["ltv"] = t.step("Loan at max LTV", value * max_ltv, f"{fmt_money(value)} × {num_str(max_ltv)}", "USD")
     if min_dscr is not None:
-        loans["dscr"] = t.step("Loan at min DSCR", noi / min_dscr / k,
+        loans["dscr"] = t.step("Loan at min DSCR", ieee_div(noi / min_dscr, k),
                                f"({fmt_money(noi)} ÷ {num_str(min_dscr)}) ÷ {num_str(round_(k, 6))}", "USD")
     if min_dy is not None:
         loans["debt_yield"] = t.step("Loan at min debt yield", noi / min_dy, f"{fmt_money(noi)} ÷ {num_str(min_dy)}", "USD")
+    for v in loans.values():
+        if not math.isfinite(v):
+            # A 0% interest-only loan has a zero annual constant; TypeScript fails rounding the
+            # infinite DSCR loan, and so do we (Python's math.floor would raise OverflowError).
+            raise CalcInputError(f"cannot round non-finite value {v}")
     binding, min_loan = None, math.inf
     for c, v in loans.items():
         if binding is None or v < min_loan:
@@ -410,7 +416,7 @@ def lease_remeasurement_asc842(raw: Any) -> Result:
     classification = enum(d, "classification", ("operating", "finance"))
     payments = []
     last = 0
-    for i, p_raw in enumerate(array(d, "payments", min_len=1)):
+    for i, p_raw in enumerate(array(d, "payments", min_len=1, max_len=1200)):
         p = join("payments", i)
         pd = obj(p_raw, p)
         period = number(pd, "period", p, integer=True, ge=1, le=1200)
@@ -578,7 +584,7 @@ def prepayment_and_defeasance(raw: Any) -> Result:
     elif kind == "step_down":
         schedule = []
         last = 0
-        for i, s_raw in enumerate(array(pp, "schedule", "prepayment", min_len=1)):
+        for i, s_raw in enumerate(array(pp, "schedule", "prepayment", min_len=1, max_len=1200)):
             sp = join(join("prepayment", "schedule"), i)
             sd = obj(s_raw, sp)
             through = number(sd, "through_month", sp, integer=True, ge=1)
@@ -596,7 +602,7 @@ def prepayment_and_defeasance(raw: Any) -> Result:
         if isinstance(ry, list):
             curve = []
             last = 0
-            for i, y_raw in enumerate(array(pp, "replacement_yield", "prepayment", min_len=1)):
+            for i, y_raw in enumerate(array(pp, "replacement_yield", "prepayment", min_len=1, max_len=1200)):
                 yp = join(ry_path, i)
                 yd = obj(y_raw, yp)
                 months = number(yd, "months", yp, integer=True, ge=1)
@@ -736,9 +742,10 @@ def walt(raw: Any) -> Result:
     weight_by = enum(d, "weight_by", ("area", "rent"), default="area")
     key = "area_sf" if weight_by == "area" else "annual_rent"
     leases = []
-    for i, lease in enumerate(array(d, "leases", min_len=1)):
+    for i, lease in enumerate(array(d, "leases", min_len=1, max_len=10000)):
         p = join("leases", i)
         lease = obj(lease, p)
+        string(lease, "id", p, optional=True, max_len=200)  # not used in the math; validated as in TypeScript
         leases.append({
             "expiration_date": iso_date(lease, "expiration_date", p),
             "area_sf": number(lease, "area_sf", p, optional=True, gt=0),
@@ -766,8 +773,12 @@ def walt(raw: Any) -> Result:
 # --- finance --------------------------------------------------------------------------------
 
 
-def _cash_flows(d: dict[str, Any]) -> list[float]:
-    flows = array(d, "cash_flows", min_len=2)
+MAX_NPV_CASH_FLOWS = 10_000  # linear cost
+MAX_IRR_CASH_FLOWS = 1_200  # 100 years monthly; the root scan evaluates the NPV ~1,100 times
+
+
+def _cash_flows(d: dict[str, Any], max_len: int) -> list[float]:
+    flows = array(d, "cash_flows", min_len=2, max_len=max_len)
     for i, cf in enumerate(flows):
         number({"cf": cf}, "cf", join("cash_flows", i))
     return flows
@@ -776,13 +787,13 @@ def _cash_flows(d: dict[str, Any]) -> list[float]:
 def _npv_at(flows: list[float], r: float) -> float:
     acc = 0.0
     for i, cf in enumerate(flows):
-        acc += cf / pow_int(1 + r, i)
+        acc += ieee_div(cf, pow_int(1 + r, i))
     return acc
 
 
 def npv(raw: Any) -> Result:
     d = obj(raw)
-    flows = _cash_flows(d)
+    flows = _cash_flows(d, MAX_NPV_CASH_FLOWS)
     rate = number(d, "rate", gt=-1)
     t = Trace()
     v = t.step("NPV", round_(_npv_at(flows, rate), 2), f"Σ CF_t ÷ (1 + {num_str(rate)})^t")
@@ -791,7 +802,7 @@ def npv(raw: Any) -> Result:
 
 def irr(raw: Any) -> Result:
     d = obj(raw)
-    flows = _cash_flows(d)
+    flows = _cash_flows(d, MAX_IRR_CASH_FLOWS)
     ppy = number(d, "periods_per_year", default=1, integer=True, gt=0)
     if not any(c > 0 for c in flows) or not any(c < 0 for c in flows):
         raise CalcInputError("IRR needs at least one positive and one negative cash flow")
@@ -802,6 +813,10 @@ def irr(raw: Any) -> Result:
         lo, hi = grid[i - 1], grid[i]
         f_lo = _npv_at(flows, lo)
         f_hi = _npv_at(flows, hi)
+        if not (math.isfinite(f_lo) and math.isfinite(f_hi)):
+            # Near -100% a long series underflows (1 + r)^t to 0 and the NPV is ±inf or nan:
+            # no sign to bracket, so no root is reported there (calc.irr@2).
+            continue
         if f_lo == 0:
             roots.append(lo)
             continue
@@ -829,7 +844,7 @@ def irr(raw: Any) -> Result:
     annual = pow_int(1 + periodic, ppy) - 1
     t.step("Periodic IRR", round_(periodic, 8), "r such that Σ CF_t ÷ (1 + r)^t = 0")
     t.step("Annualized IRR", round_(annual, 8), f"(1 + r)^{ppy} − 1 = {fmt_pct(annual, 3)}")
-    return t.result("calc.irr", 1, {
+    return t.result("calc.irr", 2, {
         "irr_periodic": round_(periodic, 8),
         "irr_annual": round_(annual, 8),
         "roots": [round_(r, 8) for r in unique],
@@ -848,7 +863,7 @@ def compare_proposals(raw: Any) -> Result:
         p = join("proposals", i)
         pd = obj(p_raw, p)
         proposals.append({
-            "name": string(pd, "name", p, min_len=1),
+            "name": string(pd, "name", p, min_len=1, max_len=200),
             "schedule": _schedule_input(pd.get("schedule"), join(p, "schedule")),
             "ti_allowance_psf": _money(pd, "ti_allowance_psf", p),
             "other_concessions": _money(pd, "other_concessions", p),
@@ -1408,7 +1423,7 @@ CALCULATORS: dict[str, tuple[Callable[[Any], Result], str, int]] = {
     "prepayment_and_defeasance": (prepayment_and_defeasance, "calc.prepayment_and_defeasance", 1),
     "walt": (walt, "calc.walt", 1),
     "npv": (npv, "calc.npv", 1),
-    "irr": (irr, "calc.irr", 1),
+    "irr": (irr, "calc.irr", 2),
     "lease_vs_own": (lease_vs_own, "calc.lease_vs_own", 1),
     "renew_vs_relocate": (renew_vs_relocate, "calc.renew_vs_relocate", 1),
     "hotel_metrics": (hotel_metrics, "calc.hotel_metrics", 1),

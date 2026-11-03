@@ -75,9 +75,12 @@ for _ in range(int(sys.argv[2])):
     elif k=="hotel_metrics":
         nights=random.choice([1,7,28,30,31,90,365]); rooms=random.randint(1,800); avail=rooms*nights; ooo=random.randint(0,min(avail,50)) if random.random()<0.3 else 0
         inp={"nights":nights,"rooms":rooms,"rooms_out_of_order":ooo,"rooms_sold":random.randint(0,max(0,avail-ooo)+ (5 if random.random()<0.05 else 0)),"room_revenue":round(random.uniform(0,5e7),2),"fb_revenue":round(random.uniform(0,2e7),2),"other_revenue":round(random.uniform(0,5e6),2),"departmental_expenses":round(random.uniform(0,3e7),2),"undistributed_expenses":round(random.uniform(0,2e7),2),"management_fee_rate":round(random.uniform(0,0.05),4),"management_fee_fixed":round(random.uniform(0,5e5),2),"non_operating_expenses":round(random.uniform(0,5e6),2),"ffe_reserve_rate":random.choice([0,0.03,0.04,0.05])}
-    elif k=="npv": inp={"cash_flows":[round(random.uniform(-1e6,1e6),2) for _ in range(random.randint(2,30))],"rate":round(random.uniform(-0.5,0.5),4)}
+    elif k=="npv":
+        # Long series at a rate near -100% underflow (1 + r)^t to 0: both SDKs must agree (inf/nan).
+        long=random.random()<0.15
+        inp={"cash_flows":[round(random.uniform(-1e6,1e6),2) for _ in range(random.randint(80,240) if long else random.randint(2,30))],"rate":-0.9999 if long and random.random()<0.5 else round(random.uniform(-0.5,0.5),4)}
     else:
-        n=random.randint(2,40); inp={"cash_flows":[-round(random.uniform(1e5,1e7),2)]+[round(random.uniform(-2e5,2e6),2) for _ in range(n-1)],"periods_per_year":random.choice([1,4,12])}
+        n=random.randint(80,240) if random.random()<0.15 else random.randint(2,40); inp={"cash_flows":[-round(random.uniform(1e5,1e7),2)]+[round(random.uniform(-2e5,2e6),2) for _ in range(n-1)],"periods_per_year":random.choice([1,4,12])}
     cases.append({"calc":k,"input":inp})
     # rules: random tax years and notice dates (including weekends and holidays)
     y=random.randint(2000,2100)

@@ -31,6 +31,7 @@ export const ProposalComparisonInput = z.object({
         name: z
           .string()
           .min(1)
+          .max(200)
           .describe("Unique label for the proposal, e.g. building name."),
         schedule: RentScheduleInput.describe(
           "Base-rent terms of this proposal (same input as calc_rent_schedule).",

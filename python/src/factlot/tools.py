@@ -25,7 +25,7 @@ from importlib import resources
 from typing import Any
 
 from . import __version__
-from ._core import CalcInputError
+from ._core import CalcInputError, input_shape_issue
 from .calc import CALCULATORS
 from .rules import RULES
 from .facts import validate_fact
@@ -84,10 +84,21 @@ class _InputError(ValueError):
         self.issues = [{"path": path, "message": message}]
 
 
+# Length caps on identifier and query strings (the same .max() values as the TypeScript catalog).
+_STRING_CAPS = {
+    "state_fips": 16, "county_fips": 16, "apn": 200, "jurisdiction": 64, "registry_number": 200,
+    "building_urn": 500, "suite": 200, "urn": 500, "system": 100, "external_id": 200,
+    "entity_urn": 500, "query": 500,
+}
+
+
 def _str(args: dict[str, Any], key: str) -> str:
     v = args.get(key)
     if not isinstance(v, str):
         raise _InputError(key, "expected string")
+    cap = _STRING_CAPS.get(key)
+    if cap is not None and len(v) > cap:
+        raise _InputError(key, f"expected at most {cap} characters")
     return v
 
 
@@ -145,8 +156,9 @@ def _registry():
 
         try:
             _registry_cache["db"] = Registry.open_readonly(path)
-        except (FileNotFoundError, OSError) as e:
-            raise _RegistryUnavailable(f"cannot open registry at {path}: {e}") from None
+        except (FileNotFoundError, OSError):
+            # No path or OS message: agents and remote callers see this text (same as TypeScript).
+            raise _RegistryUnavailable("cannot open the FactLot Registry configured in FACTLOT_REGISTRY_DB") from None
         _registry_cache["path"] = path
     return _registry_cache["db"]
 
@@ -226,7 +238,22 @@ def run_tool(name: str, arguments: dict[str, Any] | None) -> dict[str, Any]:
     ``computed`` fact. Invalid input returns ``{"error", "message", "issues"}`` instead of
     raising, so the model can read the problem and retry.
     """
-    args = arguments if isinstance(arguments, dict) else {}
+    if not isinstance(name, str):
+        return {"error": "UnknownTool", "message": f"no FactLot tool named {name!r}", "issues": []}
+    known = ((name.startswith("calc_") and name[5:] in CALCULATORS) or (name.startswith("rules_") and name[6:] in RULES)
+             or name in _OTHER_TOOLS or name in _REGISTRY_TOOLS)
+    if not known:
+        return {"error": "UnknownTool", "message": f"no FactLot tool named {name!r}", "issues": []}
+    kind = "CalcInputError" if name.startswith(("calc_", "rules_")) else "InputError"
+    args: Any = {} if arguments is None else arguments
+    # Structural caps first, as in TypeScript: agents can send any JSON.
+    shape = input_shape_issue(args)
+    if shape is not None:
+        return {"error": kind, "message": f"invalid input: {shape['path'] or '(root)'}: {shape['message']}",
+                "issues": [shape]}
+    if not isinstance(args, dict):
+        return {"error": kind, "message": "invalid input: (root): expected object",
+                "issues": [{"path": "", "message": "expected object"}]}
     try:
         if name.startswith("calc_") and name[5:] in CALCULATORS:
             fn, formula_id, version = CALCULATORS[name[5:]]

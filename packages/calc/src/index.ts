@@ -145,7 +145,7 @@ export const calculators = {
   },
   irr: {
     id: "calc.irr",
-    version: 1,
+    version: 2,
     title: "Internal rate of return",
     description:
       "Periodic and annualized IRR of periodic cash flows, solved deterministically; reports every root when cash flows have multiple IRRs.",

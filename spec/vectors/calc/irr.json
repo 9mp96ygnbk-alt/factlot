@@ -1,6 +1,6 @@
 {
   "calculator": "calc.irr",
-  "version": 1,
+  "version": 2,
   "cases": [
     {
       "name": "simple bond-like flows",

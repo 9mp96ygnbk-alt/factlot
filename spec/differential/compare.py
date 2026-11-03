@@ -17,6 +17,11 @@ def walk(a, b, path, out):
             return
         for i, (x, y) in enumerate(zip(a, b)):
             walk(x, y, f"{path}.{i}", out)
+    elif isinstance(a, (int, float)) and isinstance(b, (int, float)) and not isinstance(a, bool) and not isinstance(b, bool):
+        # JavaScript writes doubles below 1e21 without an exponent, so json.load reads a large
+        # TypeScript result as an exact int; compare both as doubles.
+        if float(a) != float(b):
+            out.append((path, a, b))
     elif a != b:
         out.append((path, a, b))
 

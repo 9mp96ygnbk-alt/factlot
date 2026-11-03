@@ -34,7 +34,9 @@ def round_(x: float, dp: int = 2) -> float:
     if not math.isfinite(x):
         raise CalcInputError(f"cannot round non-finite value {x}")
     d = _SIG.plus(Decimal(abs(float(x))))
-    r = float(d.quantize(Decimal(1).scaleb(-dp), rounding=ROUND_HALF_UP))
+    # A value with no more than dp decimals at 15 significant digits is already rounded (TypeScript
+    # returns it as is). quantize would need more than the context's 28 digits for |x| >= 1e26.
+    r = float(d) if d.as_tuple().exponent >= -dp else float(d.quantize(Decimal(1).scaleb(-dp), rounding=ROUND_HALF_UP))
     return -r if x < 0 and r != 0 else r
 
 
@@ -44,7 +46,7 @@ def pow_int(base: float, n: int) -> float:
     Only IEEE-754 multiply/divide are used, so results are bit-identical across SDKs and platforms.
     """
     if n < 0:
-        return 1 / pow_int(base, -n)
+        return ieee_div(1.0, pow_int(base, -n))
     result = 1.0
     x = float(base)
     e = n
@@ -54,6 +56,20 @@ def pow_int(base: float, n: int) -> float:
         x *= x
         e //= 2
     return result
+
+
+def ieee_div(a: float, b: float) -> float:
+    """a / b with IEEE-754 semantics, as in TypeScript: x / ±0 is ±inf (nan for 0 / 0 or nan / 0).
+
+    Python raises ``ZeroDivisionError`` instead, for example when ``pow_int`` underflows to 0.0
+    near a rate of -100%; every division that can see such a value goes through here.
+    """
+    try:
+        return a / b
+    except ZeroDivisionError:
+        if a == 0 or math.isnan(a):
+            return math.nan
+        return math.copysign(math.inf, a) * math.copysign(1.0, b)
 
 
 def nth_root(c: float, n: int) -> float:
@@ -180,7 +196,8 @@ def boolean(d: dict[str, Any], key: str, path: str = "", *, default: bool) -> bo
     return d[key]
 
 
-def string(d: dict[str, Any], key: str, path: str = "", *, optional: bool = False, min_len: int = 0) -> Any:
+def string(d: dict[str, Any], key: str, path: str = "", *, optional: bool = False, min_len: int = 0,
+           max_len: int | None = None) -> Any:
     p = _join(path, key)
     if key not in d or d[key] is None:
         if optional:
@@ -188,6 +205,8 @@ def string(d: dict[str, Any], key: str, path: str = "", *, optional: bool = Fals
         fail(p, "required")
     if not isinstance(d[key], str) or len(d[key]) < min_len:
         fail(p, "expected non-empty string" if min_len else "expected string")
+    if max_len is not None and len(d[key]) > max_len:
+        fail(p, f"expected at most {max_len} characters")
     return d[key]
 
 
@@ -233,3 +252,47 @@ def array(d: dict[str, Any], key: str, path: str = "", *, default: Any = _MISSIN
 
 def join(path: str, key: str | int) -> str:
     return _join(path, key)
+
+
+# --- structural input limits (identical to @factlot/tools INPUT_LIMITS / inputShapeIssue) -------
+
+INPUT_LIMITS = {
+    "max_depth": 32,  # deepest nesting of objects and arrays; the arguments object is level 1
+    "max_nodes": 200_000,  # values of any kind in one call's arguments
+    "max_array_items": 10_000,  # items in any one array
+    "max_string_length": 16 * 1024 * 1024,  # characters in any one string (code points here)
+}
+
+
+def input_shape_issue(value: Any, limits: dict[str, int] | None = None) -> dict[str, str] | None:
+    """The first structural limit ``value`` breaks as ``{path, message}``, or None.
+
+    Iterative, keys in sorted order, items in order, stopping at the first problem: the same walk
+    as TypeScript, so both SDKs report the same issue.
+    """
+    lim = limits or INPUT_LIMITS
+    stack: list[tuple[Any, str, int]] = [(value, "", 1)]
+    nodes = 0
+    while stack:
+        v, path, depth = stack.pop()
+        nodes += 1
+        if nodes > lim["max_nodes"]:
+            return {"path": "", "message": f"more than {lim['max_nodes']} values"}
+        if isinstance(v, str):
+            if len(v) > lim["max_string_length"]:
+                return {"path": path, "message": f"string longer than {lim['max_string_length']} characters"}
+            continue
+        if not isinstance(v, (dict, list, tuple)):
+            continue
+        if depth > lim["max_depth"]:
+            return {"path": path, "message": f"nested deeper than {lim['max_depth']} levels"}
+        if isinstance(v, (list, tuple)):
+            if len(v) > lim["max_array_items"]:
+                return {"path": path, "message": f"more than {lim['max_array_items']} items"}
+            for i in range(len(v) - 1, -1, -1):
+                stack.append((v[i], _join(path, i), depth + 1))
+            continue
+        keys = sorted(str(k) for k in v)
+        for k in reversed(keys):
+            stack.append((v[k] if k in v else None, _join(path, k), depth + 1))
+    return None

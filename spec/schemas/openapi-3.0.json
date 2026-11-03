@@ -120,6 +120,7 @@
                   "abated_months": {
                     "default": [],
                     "description": "Fully abated months, 1-based (e.g. [1,2,3] for three months free up front).",
+                    "maxItems": 1200,
                     "type": "array",
                     "items": {
                       "type": "integer",
@@ -310,6 +311,7 @@
                       "abated_months": {
                         "default": [],
                         "description": "Fully abated months, 1-based (e.g. [1,2,3] for three months free up front).",
+                        "maxItems": 1200,
                         "type": "array",
                         "items": {
                           "type": "integer",
@@ -455,6 +457,7 @@
                         "name": {
                           "type": "string",
                           "minLength": 1,
+                          "maxLength": 200,
                           "description": "Unique label for the proposal, e.g. building name."
                         },
                         "schedule": {
@@ -556,6 +559,7 @@
                             "abated_months": {
                               "default": [],
                               "description": "Fully abated months, 1-based (e.g. [1,2,3] for three months free up front).",
+                              "maxItems": 1200,
                               "type": "array",
                               "items": {
                                 "type": "integer",
@@ -842,6 +846,7 @@
                   },
                   "expenses": {
                     "minItems": 1,
+                    "maxItems": 1000,
                     "type": "array",
                     "items": {
                       "type": "object",
@@ -849,6 +854,7 @@
                         "category": {
                           "type": "string",
                           "minLength": 1,
+                          "maxLength": 200,
                           "description": "Expense line as named in the operating statement, e.g. \"janitorial\"."
                         },
                         "amount": {
@@ -1186,6 +1192,7 @@
                   },
                   "payments": {
                     "minItems": 1,
+                    "maxItems": 1200,
                     "type": "array",
                     "items": {
                       "type": "object",
@@ -1429,6 +1436,7 @@
                           },
                           "schedule": {
                             "minItems": 1,
+                            "maxItems": 1200,
                             "type": "array",
                             "items": {
                               "type": "object",
@@ -1491,6 +1499,7 @@
                               },
                               {
                                 "minItems": 1,
+                                "maxItems": 1200,
                                 "type": "array",
                                 "items": {
                                   "type": "object",
@@ -1623,13 +1632,15 @@
                   },
                   "leases": {
                     "minItems": 1,
+                    "maxItems": 10000,
                     "type": "array",
                     "items": {
                       "type": "object",
                       "properties": {
                         "id": {
                           "description": "Your identifier for the lease (ideally a FactLot lease ID).",
-                          "type": "string"
+                          "type": "string",
+                          "maxLength": 200
                         },
                         "expiration_date": {
                           "type": "string",
@@ -1724,11 +1735,12 @@
                 "properties": {
                   "cash_flows": {
                     "minItems": 2,
+                    "maxItems": 10000,
                     "type": "array",
                     "items": {
                       "type": "number"
                     },
-                    "description": "Periodic cash flows at t = 0, 1, 2, …; negative for outflows (e.g. purchase price at t = 0)."
+                    "description": "Periodic cash flows at t = 0, 1, 2, …; negative for outflows (e.g. purchase price at t = 0). At most 10000."
                   },
                   "rate": {
                     "type": "number",
@@ -1795,7 +1807,7 @@
       "post": {
         "operationId": "calc_irr",
         "summary": "Internal rate of return",
-        "description": "Periodic and annualized IRR of periodic cash flows, solved deterministically; reports every root when cash flows have multiple IRRs. Deterministic: use this instead of doing the math yourself; cite formula calc.irr@1 and the returned steps, and surface any warnings.",
+        "description": "Periodic and annualized IRR of periodic cash flows, solved deterministically; reports every root when cash flows have multiple IRRs. Deterministic: use this instead of doing the math yourself; cite formula calc.irr@2 and the returned steps, and surface any warnings.",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,
@@ -1806,11 +1818,12 @@
                 "properties": {
                   "cash_flows": {
                     "minItems": 2,
+                    "maxItems": 1200,
                     "type": "array",
                     "items": {
                       "type": "number"
                     },
-                    "description": "Periodic cash flows at t = 0, 1, 2, …; negative for outflows (e.g. purchase price at t = 0)."
+                    "description": "Periodic cash flows at t = 0, 1, 2, …; negative for outflows (e.g. purchase price at t = 0). At most 1200."
                   },
                   "periods_per_year": {
                     "default": 1,
@@ -2350,6 +2363,7 @@
                           "abated_months": {
                             "default": [],
                             "description": "Fully abated months, 1-based (e.g. [1,2,3] for three months free up front).",
+                            "maxItems": 1200,
                             "type": "array",
                             "items": {
                               "type": "integer",
@@ -2488,6 +2502,7 @@
                           "abated_months": {
                             "default": [],
                             "description": "Fully abated months, 1-based (e.g. [1,2,3] for three months free up front).",
+                            "maxItems": 1200,
                             "type": "array",
                             "items": {
                               "type": "integer",
@@ -2865,14 +2880,17 @@
                 "properties": {
                   "state_fips": {
                     "type": "string",
+                    "maxLength": 16,
                     "description": "2-digit state FIPS code, e.g. \"06\" for California."
                   },
                   "county_fips": {
                     "type": "string",
+                    "maxLength": 16,
                     "description": "3-digit county FIPS code, e.g. \"037\" for Los Angeles County."
                   },
                   "apn": {
                     "type": "string",
+                    "maxLength": 200,
                     "description": "Assessor's parcel number exactly as the county prints it; formatting is normalized."
                   }
                 },
@@ -2945,10 +2963,12 @@
                 "properties": {
                   "jurisdiction": {
                     "type": "string",
+                    "maxLength": 64,
                     "description": "Registry jurisdiction, e.g. \"us-de\" for Delaware, or \"lei\" for a Legal Entity Identifier."
                   },
                   "registry_number": {
                     "type": "string",
+                    "maxLength": 200,
                     "description": "File number issued by that registry, or the 20-character LEI."
                   }
                 },
@@ -3021,10 +3041,12 @@
                 "properties": {
                   "building_urn": {
                     "type": "string",
+                    "maxLength": 500,
                     "description": "FactLot building URN, e.g. fl:building:01jbx3k8q2v7m9c4t6w8y0a2b4."
                   },
                   "suite": {
                     "type": "string",
+                    "maxLength": 200,
                     "description": "Suite or unit as written (\"Suite 400\", \"STE 400\", \"#400\", \"3rd Floor\" all normalize)."
                   }
                 },
@@ -3172,6 +3194,7 @@
                 "properties": {
                   "urn": {
                     "type": "string",
+                    "maxLength": 500,
                     "description": "A FactLot URN to validate, e.g. fl:parcel:us-06037:5432001012."
                   }
                 },
@@ -3320,6 +3343,7 @@
                 "properties": {
                   "urn": {
                     "type": "string",
+                    "maxLength": 500,
                     "description": "FactLot URN of a parcel or entity, e.g. fl:parcel:us-48201:0420150000012."
                   },
                   "include_history": {
@@ -3397,14 +3421,17 @@
                 "properties": {
                   "state_fips": {
                     "type": "string",
+                    "maxLength": 16,
                     "description": "2-digit state FIPS, e.g. \"48\" for Texas."
                   },
                   "county_fips": {
                     "type": "string",
+                    "maxLength": 16,
                     "description": "3-digit county FIPS, e.g. \"201\" for Harris County."
                   },
                   "apn": {
                     "type": "string",
+                    "maxLength": 200,
                     "description": "Parcel or account number as the county prints it."
                   }
                 },
@@ -3477,10 +3504,12 @@
                 "properties": {
                   "system": {
                     "type": "string",
+                    "maxLength": 100,
                     "description": "Crosswalk system name, e.g. \"tx-harris-cad-account\"."
                   },
                   "external_id": {
                     "type": "string",
+                    "maxLength": 200,
                     "description": "The ID in that system."
                   }
                 },
@@ -3554,6 +3583,7 @@
                   "query": {
                     "type": "string",
                     "minLength": 1,
+                    "maxLength": 500,
                     "description": "Street address or part of one."
                   },
                   "limit": {
@@ -3634,6 +3664,7 @@
                   "query": {
                     "type": "string",
                     "minLength": 1,
+                    "maxLength": 500,
                     "description": "Entity name or part of one."
                   },
                   "limit": {
@@ -3713,6 +3744,7 @@
                 "properties": {
                   "entity_urn": {
                     "type": "string",
+                    "maxLength": 500,
                     "description": "FactLot entity URN, e.g. fl:entity:us-tx:0801111111."
                   }
                 },
