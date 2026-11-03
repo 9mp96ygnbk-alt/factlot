@@ -7,8 +7,9 @@ tests: `python/tests/test_adapter_ny_orpts.py`.
 
 One statewide dataset covers every New York county outside New York City, so one review clears
 Suffolk (36103), Nassau (36059), Westchester (36119), Erie (36029) and Monroe (36055), and every
-other upstate and Long Island county the same way (the adapter knows all 57 county FIPS codes;
-the five boroughs are `ny-nyc-dof`).
+other upstate and Long Island county the same way. Since the statewide extension of 2026-11-03 the
+config lists one file for each of the 57 counties (see that section below); the five boroughs are
+never loaded from this source (they are `ny-nyc-dof`).
 
 ## Publisher and URLs
 
@@ -149,6 +150,104 @@ PYTHONPATH=python/src python3 -m factlot.registry.adapters.ny_orpts <county csv>
 - Ownership links to registered entities after `link_owners()`: 327 (the only entity registry in the scratch file is `ct-sos-entities`).
 - Suffolk's roll holds many class-410 seasonal homes that are out of scope; the figures above are in-scope classes only. The counts equal the SODA class counts recorded in the review run above (Suffolk 27,373; Nassau 23,449; Westchester 37,456; Erie 24,108; Monroe 13,601).
 
+## Statewide extension (2026-11-03)
+
+The licence review above is statewide (the OPEN-NY terms cover the whole dataset), so the extension is
+configuration and testing only. The config now lists 57 files: the five Tier 2 counties first, then the
+other 52 counties alphabetically, each the same filtered SODA CSV with another `county_name`.
+
+- **County list, from the publisher's own data.** SoQL `$select=roll_year,county_name,count(*)&$group=roll_year,county_name`
+  on `7vem-aaz7` returns 57 `county_name` values, each with roll years 2021 to 2025 (plus one stray
+  Steuben row with roll year `23`, outside the 2025 filter). None is a New York City borough. The names
+  are spelled as in the config URLs (`St Lawrence` without a period). Every name maps to a county FIPS in
+  the adapter's `COUNTY_FIPS`, which already held all 57; New York City's five county codes (005, 047,
+  061, 081, 085) are not in it, so a borough row would be skipped even if one appeared.
+- **Counties added (52):** Albany, Allegany, Broome, Cattaraugus, Cayuga, Chautauqua, Chemung, Chenango,
+  Clinton, Columbia, Cortland, Delaware, Dutchess, Essex, Franklin, Fulton, Genesee, Greene, Hamilton,
+  Herkimer, Jefferson, Lewis, Livingston, Madison, Montgomery, Niagara, Oneida, Onondaga, Ontario, Orange,
+  Orleans, Oswego, Otsego, Putnam, Rensselaer, Rockland, St Lawrence, Saratoga, Schenectady, Schoharie,
+  Schuyler, Seneca, Steuben, Sullivan, Tioga, Tompkins, Ulster, Warren, Washington, Wayne, Wyoming, Yates.
+- **Codes.** SoQL group-by `county_name,property_class` for roll year 2025: every county uses the ORPTS
+  three-digit classes; the only other values are blank (Suffolk 289, Oneida 19, Orleans 4, Westchester 2,
+  Onondaga 1) and `0` (Westchester 40), which are out of scope. No county-specific mapping is needed.
+- **URL check.** One request per new county file with `$limit=100000` replaced by `$limit=5`, sent
+  through the collector's `PoliteFetcher` (its user agent, robots.txt read, `Crawl-delay: 1` and the
+  2-second interval): all 52 answered HTTP 200 with the 31-column header and 5 rows of the right county.
+  No full file was downloaded; the weekly collector workflow archives them.
+- **In-scope counts** (SoQL `count(*)` grouped by county and class for roll year 2025, mapped with
+  `ny_orpts.category()`; no download). The 52 new counties hold 157,400 class 4xx/7xx rows and
+  **150,008** in-scope parcels (`B` 41,576, `F1` 101,063, `F2` 7,369); the state outside New York City
+  275,995. The largest file (Suffolk, 42,709 rows) is well under the URL's `$limit=100000`.
+
+| County (FIPS)       | Class 4xx/7xx rows |    In scope |        `B` |        `F1` |       `F2` | URL check (`$limit=5`)  |
+| ------------------- | -----------------: | ----------: | ---------: | ----------: | ---------: | ----------------------- |
+| Albany (36001)      |              8,320 |       8,310 |      2,502 |       5,666 |        142 | HTTP 200, 5 rows        |
+| Allegany (36003)    |              1,326 |       1,138 |        133 |         917 |         88 | HTTP 200, 5 rows        |
+| Broome (36007)      |              5,357 |       5,311 |      1,195 |       3,794 |        322 | HTTP 200, 5 rows        |
+| Cattaraugus (36009) |              3,018 |       2,228 |        399 |       1,663 |        166 | HTTP 200, 5 rows        |
+| Cayuga (36011)      |              1,602 |       1,578 |        260 |       1,222 |         96 | HTTP 200, 5 rows        |
+| Chautauqua (36013)  |              8,216 |       4,155 |        555 |       3,296 |        304 | HTTP 200, 5 rows        |
+| Chemung (36015)     |              2,249 |       2,179 |        380 |       1,656 |        143 | HTTP 200, 5 rows        |
+| Chenango (36017)    |              1,373 |       1,303 |        189 |       1,004 |        110 | HTTP 200, 5 rows        |
+| Clinton (36019)     |              2,158 |       2,158 |        451 |       1,603 |        104 | HTTP 200, 5 rows        |
+| Columbia (36021)    |              1,812 |       1,805 |        255 |       1,476 |         74 | HTTP 200, 5 rows        |
+| Cortland (36023)    |              1,422 |       1,406 |        303 |       1,002 |        101 | HTTP 200, 5 rows        |
+| Delaware (36025)    |              1,526 |       1,520 |        205 |       1,219 |         96 | HTTP 200, 5 rows        |
+| Dutchess (36027)    |              7,536 |       7,530 |      3,515 |       3,855 |        160 | HTTP 200, 5 rows        |
+| Erie (36029)        |             25,800 |      24,108 |      7,603 |      15,341 |      1,164 | Tier 2 (already loaded) |
+| Essex (36031)       |              1,312 |       1,311 |        159 |       1,066 |         86 | HTTP 200, 5 rows        |
+| Franklin (36033)    |              1,359 |       1,211 |        188 |         958 |         65 | HTTP 200, 5 rows        |
+| Fulton (36035)      |              1,588 |       1,578 |        200 |       1,271 |        107 | HTTP 200, 5 rows        |
+| Genesee (36037)     |              2,067 |       1,528 |        185 |       1,196 |        147 | HTTP 200, 5 rows        |
+| Greene (36039)      |              2,053 |       2,050 |        725 |       1,275 |         50 | HTTP 200, 5 rows        |
+| Hamilton (36041)    |                276 |         276 |         13 |         247 |         16 | HTTP 200, 5 rows        |
+| Herkimer (36043)    |              1,678 |       1,675 |        261 |       1,268 |        146 | HTTP 200, 5 rows        |
+| Jefferson (36045)   |              2,878 |       2,872 |        454 |       2,230 |        188 | HTTP 200, 5 rows        |
+| Lewis (36049)       |                572 |         567 |         63 |         454 |         50 | HTTP 200, 5 rows        |
+| Livingston (36051)  |              1,548 |       1,403 |        232 |       1,082 |         89 | HTTP 200, 5 rows        |
+| Madison (36053)     |              1,652 |       1,582 |        274 |       1,234 |         74 | HTTP 200, 5 rows        |
+| Monroe (36055)      |             13,641 |      13,601 |      2,972 |       9,755 |        874 | Tier 2 (already loaded) |
+| Montgomery (36057)  |              1,445 |       1,440 |        305 |       1,027 |        108 | HTTP 200, 5 rows        |
+| Nassau (36059)      |             29,138 |      23,449 |      3,428 |      18,871 |      1,150 | Tier 2 (already loaded) |
+| Niagara (36063)     |              5,834 |       5,781 |      1,389 |       4,009 |        383 | HTTP 200, 5 rows        |
+| Oneida (36065)      |              6,240 |       6,222 |      1,441 |       4,473 |        308 | HTTP 200, 5 rows        |
+| Onondaga (36067)    |             11,069 |      11,033 |      2,752 |       7,833 |        448 | HTTP 200, 5 rows        |
+| Ontario (36069)     |              2,867 |       2,781 |        635 |       1,938 |        208 | HTTP 200, 5 rows        |
+| Orange (36071)      |              7,756 |       7,727 |      1,577 |       5,862 |        288 | HTTP 200, 5 rows        |
+| Orleans (36073)     |                831 |         827 |        168 |         590 |         69 | HTTP 200, 5 rows        |
+| Oswego (36075)      |              2,641 |       2,637 |        368 |       2,086 |        183 | HTTP 200, 5 rows        |
+| Otsego (36077)      |              1,644 |       1,637 |        283 |       1,299 |         55 | HTTP 200, 5 rows        |
+| Putnam (36079)      |              1,321 |       1,314 |        147 |       1,128 |         39 | HTTP 200, 5 rows        |
+| Rensselaer (36083)  |              3,669 |       3,649 |      1,079 |       2,447 |        123 | HTTP 200, 5 rows        |
+| Rockland (36087)    |             14,444 |      14,438 |     11,024 |       3,253 |        161 | HTTP 200, 5 rows        |
+| Saratoga (36091)    |              4,505 |       4,496 |      1,354 |       2,938 |        204 | HTTP 200, 5 rows        |
+| Schenectady (36093) |              3,167 |       3,164 |        832 |       2,232 |        100 | HTTP 200, 5 rows        |
+| Schoharie (36095)   |                793 |         793 |        142 |         585 |         66 | HTTP 200, 5 rows        |
+| Schuyler (36097)    |                507 |         464 |         53 |         386 |         25 | HTTP 200, 5 rows        |
+| Seneca (36099)      |                945 |         774 |         98 |         641 |         35 | HTTP 200, 5 rows        |
+| St Lawrence (36089) |              3,104 |       3,096 |        339 |       2,211 |        546 | HTTP 200, 5 rows        |
+| Steuben (36101)     |              2,534 |       2,344 |        355 |       1,847 |        142 | HTTP 200, 5 rows        |
+| Suffolk (36103)     |             42,709 |      27,373 |      6,933 |      17,806 |      2,634 | Tier 2 (already loaded) |
+| Sullivan (36105)    |              3,168 |       3,157 |      1,051 |       2,029 |         77 | HTTP 200, 5 rows        |
+| Tioga (36107)       |              1,101 |       1,076 |        142 |         863 |         71 | HTTP 200, 5 rows        |
+| Tompkins (36109)    |              2,531 |       2,511 |      1,042 |       1,381 |         88 | HTTP 200, 5 rows        |
+| Ulster (36111)      |              4,553 |       4,540 |        934 |       3,429 |        177 | HTTP 200, 5 rows        |
+| Warren (36113)      |              2,320 |       2,314 |        315 |       1,916 |         83 | HTTP 200, 5 rows        |
+| Washington (36115)  |              1,486 |       1,486 |        227 |       1,084 |        175 | HTTP 200, 5 rows        |
+| Wayne (36117)       |              2,113 |       2,093 |        228 |       1,691 |        174 | HTTP 200, 5 rows        |
+| Westchester (36119) |             37,533 |      37,456 |     26,053 |      10,870 |        533 | Tier 2 (already loaded) |
+| Wyoming (36121)     |              1,269 |         909 |        111 |         734 |         64 | HTTP 200, 5 rows        |
+| Yates (36123)       |                645 |         631 |         89 |         497 |         45 | HTTP 200, 5 rows        |
+| **All 57 counties** |        **306,221** | **275,995** | **88,565** | **173,706** | **13,724** |                         |
+
+- **Multi-file loading.** Each county file is loaded without `--full-roll` (the adapter's default), so no
+  county retires another's parcels (`test_county_files_do_not_retire_each_other`).
+- **Tests added** (`python/tests/test_adapter_ny_orpts.py`): all 57 county names as the publisher spells
+  them map to their FIPS codes and nothing else is in the table; borough names and codes never map; a
+  borough row in a file is skipped while an upstate row loads.
+- Rockland's in-scope count is dominated by class 411 and 413 (`B` 11,024 of 14,438), like
+  Westchester's; see Known gaps.
+
 ## Known gaps
 
 - No building area, year built or lot area: the roll has `front` and `depth` only, which are not an
@@ -157,7 +256,8 @@ PYTHONPATH=python/src python3 -m factlot.registry.adapters.ny_orpts <county csv>
   no figure, not as zero. `assessment_total` is a fractional assessed value and is not stored.
 - Class 411 has no unit count, so a small walk-up counts as multifamily; Westchester's 26,053 class
   411 and 413 parcels look high for apartment buildings and may include co-operative and condominium units.
-  Check against an independent count before relying on Westchester's multifamily total.
+  Check against an independent count before relying on Westchester's multifamily total. Rockland
+  (11,024 class 411 and 413 parcels) has the same question.
 - Situs has no ZIP and uses the assessing city or town (a village address carries the town name).
 - Villages that assess separately and the five New York City boroughs are not in this dataset.
 - Only the primary owner is read. Print-key equivalence across roll years is not checked.

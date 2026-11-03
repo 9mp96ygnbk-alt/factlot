@@ -170,6 +170,53 @@ class MarylandSdat(unittest.TestCase):
         self.assertNotIn("990100000012", apns, "unknown jurisdiction")
         self.assertEqual(len(apns), 12)
 
+    def test_every_jurisdiction(self):
+        # The 24 county_name_mdp_field_cntyname values (SoQL group-by on ed4q-f8tm, 2026-11-03), spelled as the
+        # portal writes them, with their Census county FIPS codes.
+        expected = {
+            "Allegany": "001", "Anne Arundel": "003", "Baltimore": "005", "Calvert": "009", "Caroline": "011",
+            "Carroll": "013", "Cecil": "015", "Charles": "017", "Dorchester": "019", "Frederick": "021",
+            "Garrett": "023", "Harford": "025", "Howard": "027", "Kent": "029", "Montgomery": "031",
+            "Prince George's": "033", "Queen Anne's": "035", "St. Mary's": "037", "Somerset": "039", "Talbot": "041",
+            "Washington": "043", "Wicomico": "045", "Worcester": "047", "Baltimore City": "510",
+        }
+        self.assertEqual({c: md_sdat.COUNTY_FIPS.get(c.upper()) for c in expected}, expected)
+        self.assertEqual(len(md_sdat.COUNTY_FIPS), 24)
+
+    def test_new_jurisdictions_and_baltimore_city_accounts(self):
+        # Baltimore City account ids carry a space or a letter in the block and lot (synthetic ids in the real shapes
+        # 9999999999 999, 9999999999A999, 9999999999 999A); they must stay distinct parcels.
+        p = self.tmp / "more.csv"
+        p.write_text("\n".join([",".join(COLUMNS),
+                                row(acct="0301011738 001", county="Baltimore City", num="00100", name="EXAMPLE", type="ST",
+                                    city="BALTIMORE", zip="21201", lu="Commercial (C)", land="100", impr="100"),
+                                row(acct="0301011738A001", county="Baltimore City", num="00102", name="EXAMPLE", type="ST",
+                                    city="BALTIMORE", zip="21201", lu="Apartments (M)", land="100", impr="100"),
+                                row(acct="0301011738 001A", county="Baltimore City", num="00104", name="EXAMPLE", type="ST",
+                                    city="BALTIMORE", zip="21201", lu="Commercial Condominium (CC)", land="100", impr="100"),
+                                row(acct="1901000099", county="St. Mary's", num="22000", name="SAMPLE", type="RD",
+                                    city="LEXINGTON PARK", zip="20653", lu="Industrial (I)", land="5", impr="5"),
+                                row(acct="1801000099", county="Queen Anne's", num="00010", name="SAMPLE", type="LN",
+                                    city="GRASONVILLE", zip="21638", lu="Commercial (C)", land="5", impr="5"),
+                                row(acct="020100000099999", county="Anne Arundel", num="00001", name="SAMPLE", type="BLVD",
+                                    city="ANNAPOLIS", zip="21401", lu="Exempt (E)", land="5", impr="5"),
+                                ""]), encoding="utf-8")
+        recs = list(md_sdat.read_roll(p))
+        self.assertEqual([(r.account, r.county_fips, r.state_category) for r in recs],
+                         [("0301011738 001", "510", "F1"), ("0301011738A001", "510", "B"), ("0301011738 001A", "510", "F1"),
+                          ("1901000099", "037", "F2"), ("1801000099", "035", "F1")], "exempt Anne Arundel is out of scope")
+        db = self.tmp / "more.db"
+        stats = md_sdat.build(p, db, as_of="2026-10-05")
+        self.assertEqual((stats.kept, stats.skipped_invalid), (5, 0))
+        reg = Registry.open_readonly(db)
+        try:
+            urns = [u for (u,) in reg.db.execute("SELECT urn FROM crosswalk WHERE system = 'sdat_account' ORDER BY external_id")]
+            self.assertEqual(len(set(urns)), 5, "the space and the letters keep the three Baltimore City accounts apart")
+            self.assertIn("fl:parcel:us-24510:0301011738001", urns)
+            self.assertIn("fl:parcel:us-24037:1901000099", urns)
+        finally:
+            reg.close()
+
     def test_all_categories(self):
         every = list(md_sdat.read_roll(self.csv, categories=None))
         self.assertEqual([r.apn for r in every if r.state_category is None],

@@ -187,10 +187,40 @@ class MassGis(unittest.TestCase):
             reg.close()
 
     def test_town_table(self):
-        self.assertEqual(len(ma_massgis.TOWN_COUNTY), 176)
+        # Every MassGIS town id (1-351) but Boston (35). Towns per county as the publisher's town layer
+        # (TOWNS_POLYM.dbf, FIPS_STCO) gives them, which are also the Census county subdivision counts.
+        self.assertEqual(len(ma_massgis.TOWN_COUNTY), 350)
+        self.assertEqual(set(ma_massgis.TOWN_COUNTY) | set(ma_massgis.EXCLUDED_TOWNS), set(range(1, 352)))
         counts = {c: sum(1 for v in ma_massgis.TOWN_COUNTY.values() if v == c) for c in set(ma_massgis.TOWN_COUNTY.values())}
-        self.assertEqual(counts, {"017": 54, "027": 60, "009": 34, "021": 28}, "Middlesex, Worcester, Essex, Norfolk")
+        self.assertEqual(counts, {"001": 15, "003": 32, "005": 20, "007": 7, "009": 34, "011": 26, "013": 23, "015": 20,
+                                  "017": 54, "019": 1, "021": 28, "023": 27, "025": 3, "027": 60},
+                         "Barnstable through Worcester; Suffolk is Chelsea, Revere and Winthrop without Boston")
         self.assertEqual(ma_massgis.TOWN_COUNTY[49], "017", "Cambridge is in Middlesex")
+        expected = {57: "025", 248: "025", 346: "025", 20: "001", 236: "003", 201: "005", 89: "007", 114: "011",
+                    281: "013", 214: "015", 197: "019", 44: "023"}
+        self.assertEqual({t: ma_massgis.TOWN_COUNTY[t] for t in expected}, expected,
+                         "Chelsea, Revere, Winthrop, Barnstable, Pittsfield, New Bedford, Edgartown, Greenfield, "
+                         "Springfield, Northampton, Nantucket, Brockton")
+
+    def test_boston_is_never_loaded_here(self):
+        self.assertNotIn(35, ma_massgis.TOWN_COUNTY)
+        boston = town_zip(self.tmp, [row(PROP_ID="0100001000", USE_CODE="3400", TOWN_ID="35")],
+                          name="L3_SHP_M035_BOSTON.zip", member="L3_SHP_M035_Boston/M035Assess_CY25_FY26.dbf")
+        for kw in ({}, {"county_fips": "025"}):
+            with self.assertRaisesRegex(ValueError, "ma-boston-assessing"):
+                list(ma_massgis.read_roll(boston, **kw))
+
+    def test_new_towns_load_with_their_county(self):
+        chelsea = town_zip(self.tmp, [row(PROP_ID="12-34", USE_CODE="3400", TOWN_ID="57", SITE_ADDR="1 EXAMPLE ST",
+                                          CITY="CHELSEA", OWNER1="EXAMPLE OFFICE LLC")],
+                           name="L3_SHP_M057_CHELSEA.zip", member="L3_SHP_M057_Chelsea/M057Assess_CY25_FY26.dbf")
+        springfield = town_zip(self.tmp, [row(PROP_ID="01234-0001", USE_CODE="1120", TOWN_ID="281",
+                                              SITE_ADDR="5 SAMPLE AVE", CITY="SPRINGFIELD", OWNER1="SAMPLE APTS LLC")],
+                               name="L3_SHP_M281_SPRINGFIELD.zip",
+                               member="L3_SHP_M281_Springfield/M281Assess_CY25_FY26.dbf")
+        recs = list(ma_massgis.read_roll(chelsea)) + list(ma_massgis.read_roll(springfield))
+        self.assertEqual([(r.county_fips, r.account, r.apn, r.state_category) for r in recs],
+                         [("025", "M057:12-34", "05712x2dx34", "F1"), ("013", "M281:01234-0001", "28101234x2dx0001", "B")])
 
     def test_build(self):
         db = self.tmp / "registry.db"

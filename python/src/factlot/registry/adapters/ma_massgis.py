@@ -1,10 +1,13 @@
-"""MassGIS Level 3 standardized assessors' parcels, "Assess" table → ``ParcelRecord`` (four Massachusetts counties).
+"""MassGIS Level 3 standardized assessors' parcels, "Assess" table → ``ParcelRecord`` (every Massachusetts town but Boston).
 
 MassGIS publishes, for every Massachusetts municipality, the town's assessor database as a standardized
-table (``M###Assess``) next to its digital parcel map. This adapter reads that table for the towns of
-Middlesex (FIPS 25017), Worcester (25027), Essex (25009), and Norfolk (25021) counties; Suffolk County
-is covered by ``ma_boston`` (Boston only). The table carries the owner of record (``OWNER1``) and the
-owner's mailing address, so owner names are present.
+table (``M###Assess``) next to its digital parcel map. This adapter reads that table for all 351
+municipalities in all 14 counties except Boston, which is covered by ``ma_boston`` (``ma-boston-assessing``)
+and refused here (``EXCLUDED_TOWNS``); Suffolk County's other towns, Chelsea, Revere and Winthrop, load from
+this source. ``TOWN_COUNTY`` maps the MassGIS town id to the county from the publisher's own town layer.
+The table carries the owner of record (``OWNER1``) and the owner's mailing address, so owner names are
+present. (The source began with the four Tier 2 counties, Middlesex 25017, Worcester 25027, Essex 25009
+and Norfolk 25021, and was extended statewide on 2026-11-03.)
 
 Layout (confirmed 2026-11-03 on ``L3_SHP_M049_Cambridge`` FY2026 and other towns): the per-town
 download ``shapefiles/l3parcels/L3_SHP_M###_NAME.zip`` holds ``M###Assess_CY##_FY##.dbf`` (dBase III,
@@ -60,7 +63,7 @@ SOURCE = Source(
     title="Level 3 standardized assessors' parcels, Assess table, by municipality",
     url="https://www.mass.gov/info-details/massgis-data-property-tax-parcels",
     state_fips=STATE_FIPS,
-    county_fips=None,  # four counties; each record carries its own
+    county_fips=None,  # statewide; each record carries its own
     license="Public domain, stated in the layer metadata ('This parcel data is in the public domain and should not be "
             "redistributed for a fee beyond reproduction costs')",
     ai_use="unknown",  # not addressed by the publisher
@@ -69,91 +72,182 @@ SOURCE = Source(
     terms_reviewed="2026-11-03",
 )
 
-# MassGIS town id → county FIPS (without the state), for the municipalities of Middlesex 017, Worcester 027,
-# Essex 009 and Norfolk 021 counties (176 towns; the comment is the name in the download file name).
+# MassGIS town id → county FIPS (without the state) for every municipality except Boston: 350 towns. From the
+# publisher's own town layer (shapefiles/state/towns.zip, TOWNS_POLYM.dbf, fields TOWN_ID and FIPS_STCO, read
+# 2026-11-03); the comment is the name in the download file name.
 TOWN_COUNTY = {
+    1: "023",  # ABINGTON
     2: "017",  # ACTON
+    3: "005",  # ACUSHNET
+    4: "003",  # ADAMS
+    5: "013",  # AGAWAM
+    6: "003",  # ALFORD
     7: "009",  # AMESBURY
+    8: "015",  # AMHERST
     9: "009",  # ANDOVER
     10: "017",  # ARLINGTON
     11: "027",  # ASHBURNHAM
     12: "017",  # ASHBY
+    13: "011",  # ASHFIELD
     14: "017",  # ASHLAND
     15: "027",  # ATHOL
+    16: "005",  # ATTLEBORO
     17: "027",  # AUBURN
     18: "021",  # AVON
     19: "017",  # AYER
+    20: "001",  # BARNSTABLE
     21: "027",  # BARRE
+    22: "003",  # BECKET
     23: "017",  # BEDFORD
+    24: "015",  # BELCHERTOWN
     25: "021",  # BELLINGHAM
     26: "017",  # BELMONT
+    27: "005",  # BERKLEY
     28: "027",  # BERLIN
+    29: "011",  # BERNARDSTON
     30: "009",  # BEVERLY
     31: "017",  # BILLERICA
     32: "027",  # BLACKSTONE
+    33: "013",  # BLANDFORD
     34: "027",  # BOLTON
+    36: "001",  # BOURNE
     37: "017",  # BOXBOROUGH
     38: "009",  # BOXFORD
     39: "027",  # BOYLSTON
     40: "021",  # BRAINTREE
+    41: "001",  # BREWSTER
+    42: "023",  # BRIDGEWATER
+    43: "013",  # BRIMFIELD
+    44: "023",  # BROCKTON
     45: "027",  # BROOKFIELD
     46: "021",  # BROOKLINE
+    47: "011",  # BUCKLAND
     48: "017",  # BURLINGTON
     49: "017",  # CAMBRIDGE
     50: "021",  # CANTON
     51: "017",  # CARLISLE
+    52: "023",  # CARVER
+    53: "011",  # CHARLEMONT
     54: "027",  # CHARLTON
+    55: "001",  # CHATHAM
     56: "017",  # CHELMSFORD
+    57: "025",  # CHELSEA
+    58: "003",  # CHESHIRE
+    59: "013",  # CHESTER
+    60: "015",  # CHESTERFIELD
+    61: "013",  # CHICOPEE
+    62: "007",  # CHILMARK
+    63: "003",  # CLARKSBURG
     64: "027",  # CLINTON
     65: "021",  # COHASSET
+    66: "011",  # COLRAIN
     67: "017",  # CONCORD
+    68: "011",  # CONWAY
+    69: "015",  # CUMMINGTON
+    70: "003",  # DALTON
     71: "009",  # DANVERS
+    72: "005",  # DARTMOUTH
     73: "021",  # DEDHAM
+    74: "011",  # DEERFIELD
+    75: "001",  # DENNIS
+    76: "005",  # DIGHTON
     77: "027",  # DOUGLAS
     78: "021",  # DOVER
     79: "017",  # DRACUT
     80: "027",  # DUDLEY
     81: "017",  # DUNSTABLE
+    82: "023",  # DUXBURY
+    83: "023",  # EASTBRIDGEWATER
     84: "027",  # EASTBROOKFIELD
+    85: "013",  # EASTLONGMEADOW
+    86: "001",  # EASTHAM
+    87: "015",  # EASTHAMPTON
+    88: "005",  # EASTON
+    89: "007",  # EDGARTOWN
+    90: "003",  # EGREMONT
+    91: "011",  # ERVING
     92: "009",  # ESSEX
     93: "017",  # EVERETT
+    94: "005",  # FAIRHAVEN
+    95: "005",  # FALLRIVER
+    96: "001",  # FALMOUTH
     97: "027",  # FITCHBURG
+    98: "003",  # FLORIDA
     99: "021",  # FOXBOROUGH
     100: "017",  # FRAMINGHAM
     101: "021",  # FRANKLIN
+    102: "005",  # FREETOWN
     103: "027",  # GARDNER
+    104: "007",  # AQUINNAH
     105: "009",  # GEORGETOWN
+    106: "011",  # GILL
     107: "009",  # GLOUCESTER
+    108: "015",  # GOSHEN
+    109: "007",  # GOSNOLD
     110: "027",  # GRAFTON
+    111: "015",  # GRANBY
+    112: "013",  # GRANVILLE
+    113: "003",  # GREATBARRINGTON
+    114: "011",  # GREENFIELD
     115: "017",  # GROTON
     116: "009",  # GROVELAND
+    117: "015",  # HADLEY
+    118: "023",  # HALIFAX
     119: "009",  # HAMILTON
+    120: "013",  # HAMPDEN
+    121: "003",  # HANCOCK
+    122: "023",  # HANOVER
+    123: "023",  # HANSON
     124: "027",  # HARDWICK
     125: "027",  # HARVARD
+    126: "001",  # HARWICH
+    127: "015",  # HATFIELD
     128: "009",  # HAVERHILL
+    129: "011",  # HAWLEY
+    130: "011",  # HEATH
+    131: "023",  # HINGHAM
+    132: "003",  # HINSDALE
     133: "021",  # HOLBROOK
     134: "027",  # HOLDEN
+    135: "013",  # HOLLAND
     136: "017",  # HOLLISTON
+    137: "013",  # HOLYOKE
     138: "027",  # HOPEDALE
     139: "017",  # HOPKINTON
     140: "027",  # HUBBARDSTON
     141: "017",  # HUDSON
+    142: "023",  # HULL
+    143: "015",  # HUNTINGTON
     144: "009",  # IPSWICH
+    145: "023",  # KINGSTON
+    146: "023",  # LAKEVILLE
     147: "027",  # LANCASTER
+    148: "003",  # LANESBOROUGH
     149: "009",  # LAWRENCE
+    150: "003",  # LEE
     151: "027",  # LEICESTER
+    152: "003",  # LENOX
     153: "027",  # LEOMINSTER
+    154: "011",  # LEVERETT
     155: "017",  # LEXINGTON
+    156: "011",  # LEYDEN
     157: "017",  # LINCOLN
     158: "017",  # LITTLETON
+    159: "013",  # LONGMEADOW
     160: "017",  # LOWELL
+    161: "013",  # LUDLOW
     162: "027",  # LUNENBURG
     163: "009",  # LYNN
     164: "009",  # LYNNFIELD
     165: "017",  # MALDEN
     166: "009",  # MANCHESTER
+    167: "005",  # MANSFIELD
     168: "009",  # MARBLEHEAD
+    169: "023",  # MARION
     170: "017",  # MARLBOROUGH
+    171: "023",  # MARSHFIELD
+    172: "001",  # MASHPEE
+    173: "023",  # MATTAPOISETT
     174: "017",  # MAYNARD
     175: "021",  # MEDFIELD
     176: "017",  # MEDFORD
@@ -162,93 +256,181 @@ TOWN_COUNTY = {
     179: "027",  # MENDON
     180: "009",  # MERRIMAC
     181: "009",  # METHUEN
+    182: "023",  # MIDDLEBOROUGH
+    183: "015",  # MIDDLEFIELD
     184: "009",  # MIDDLETON
     185: "027",  # MILFORD
     186: "027",  # MILLBURY
     187: "021",  # MILLIS
     188: "027",  # MILLVILLE
     189: "021",  # MILTON
+    190: "011",  # MONROE
+    191: "013",  # MONSON
+    192: "011",  # MONTAGUE
+    193: "003",  # MONTEREY
+    194: "013",  # MONTGOMERY
+    195: "003",  # MOUNTWASHINGTON
     196: "009",  # NAHANT
+    197: "019",  # NANTUCKET
     198: "017",  # NATICK
     199: "021",  # NEEDHAM
+    200: "003",  # NEWASHFORD
+    201: "005",  # NEWBEDFORD
     202: "027",  # NEWBRAINTREE
+    203: "003",  # NEWMARLBOROUGH
+    204: "011",  # NEWSALEM
     205: "009",  # NEWBURY
     206: "009",  # NEWBURYPORT
     207: "017",  # NEWTON
     208: "021",  # NORFOLK
+    209: "003",  # NORTHADAMS
     210: "009",  # NORTHANDOVER
+    211: "005",  # NORTHATTLEBOROUGH
     212: "027",  # NORTHBROOKFIELD
     213: "017",  # NORTHREADING
+    214: "015",  # NORTHAMPTON
     215: "027",  # NORTHBOROUGH
     216: "027",  # NORTHBRIDGE
+    217: "011",  # NORTHFIELD
+    218: "005",  # NORTON
+    219: "023",  # NORWELL
     220: "021",  # NORWOOD
+    221: "007",  # OAKBLUFFS
     222: "027",  # OAKHAM
+    223: "011",  # ORANGE
+    224: "001",  # ORLEANS
+    225: "003",  # OTIS
     226: "027",  # OXFORD
+    227: "013",  # PALMER
     228: "027",  # PAXTON
     229: "009",  # PEABODY
+    230: "015",  # PELHAM
+    231: "023",  # PEMBROKE
     232: "017",  # PEPPERELL
+    233: "003",  # PERU
     234: "027",  # PETERSHAM
     235: "027",  # PHILLIPSTON
+    236: "003",  # PITTSFIELD
+    237: "015",  # PLAINFIELD
     238: "021",  # PLAINVILLE
+    239: "023",  # PLYMOUTH
+    240: "023",  # PLYMPTON
     241: "027",  # PRINCETON
+    242: "001",  # PROVINCETOWN
     243: "021",  # QUINCY
     244: "021",  # RANDOLPH
+    245: "005",  # RAYNHAM
     246: "017",  # READING
+    247: "005",  # REHOBOTH
+    248: "025",  # REVERE
+    249: "003",  # RICHMOND
+    250: "023",  # ROCHESTER
+    251: "023",  # ROCKLAND
     252: "009",  # ROCKPORT
+    253: "011",  # ROWE
     254: "009",  # ROWLEY
     255: "027",  # ROYALSTON
+    256: "013",  # RUSSELL
     257: "027",  # RUTLAND
     258: "009",  # SALEM
     259: "009",  # SALISBURY
+    260: "003",  # SANDISFIELD
+    261: "001",  # SANDWICH
     262: "009",  # SAUGUS
+    263: "003",  # SAVOY
+    264: "023",  # SCITUATE
+    265: "005",  # SEEKONK
     266: "021",  # SHARON
+    267: "003",  # SHEFFIELD
+    268: "011",  # SHELBURNE
     269: "017",  # SHERBORN
     270: "017",  # SHIRLEY
     271: "027",  # SHREWSBURY
+    272: "011",  # SHUTESBURY
+    273: "005",  # SOMERSET
     274: "017",  # SOMERVILLE
+    275: "015",  # SOUTHHADLEY
+    276: "015",  # SOUTHAMPTON
     277: "027",  # SOUTHBOROUGH
     278: "027",  # SOUTHBRIDGE
+    279: "013",  # SOUTHWICK
     280: "027",  # SPENCER
+    281: "013",  # SPRINGFIELD
     282: "027",  # STERLING
+    283: "003",  # STOCKBRIDGE
     284: "017",  # STONEHAM
     285: "021",  # STOUGHTON
     286: "017",  # STOW
     287: "027",  # STURBRIDGE
     288: "017",  # SUDBURY
+    289: "011",  # SUNDERLAND
     290: "027",  # SUTTON
     291: "009",  # SWAMPSCOTT
+    292: "005",  # SWANSEA
+    293: "005",  # TAUNTON
     294: "027",  # TEMPLETON
     295: "017",  # TEWKSBURY
+    296: "007",  # TISBURY
+    297: "013",  # TOLLAND
     298: "009",  # TOPSFIELD
     299: "017",  # TOWNSEND
+    300: "001",  # TRURO
     301: "017",  # TYNGSBOROUGH
+    302: "003",  # TYRINGHAM
     303: "027",  # UPTON
     304: "027",  # UXBRIDGE
     305: "017",  # WAKEFIELD
+    306: "013",  # WALES
     307: "021",  # WALPOLE
     308: "017",  # WALTHAM
+    309: "015",  # WARE
+    310: "023",  # WAREHAM
     311: "027",  # WARREN
+    312: "011",  # WARWICK
+    313: "003",  # WASHINGTON
     314: "017",  # WATERTOWN
     315: "017",  # WAYLAND
     316: "027",  # WEBSTER
     317: "021",  # WELLESLEY
+    318: "001",  # WELLFLEET
+    319: "011",  # WENDELL
     320: "009",  # WENHAM
     321: "027",  # WESTBOYLSTON
+    322: "023",  # WESTBRIDGEWATER
     323: "027",  # WESTBROOKFIELD
     324: "009",  # WESTNEWBURY
+    325: "013",  # WESTSPRINGFIELD
+    326: "003",  # WESTSTOCKBRIDGE
+    327: "007",  # WESTTISBURY
     328: "027",  # WESTBOROUGH
+    329: "013",  # WESTFIELD
     330: "017",  # WESTFORD
+    331: "015",  # WESTHAMPTON
     332: "027",  # WESTMINSTER
     333: "017",  # WESTON
+    334: "005",  # WESTPORT
     335: "021",  # WESTWOOD
     336: "021",  # WEYMOUTH
+    337: "011",  # WHATELY
+    338: "023",  # WHITMAN
+    339: "013",  # WILBRAHAM
+    340: "015",  # WILLIAMSBURG
+    341: "003",  # WILLIAMSTOWN
     342: "017",  # WILMINGTON
     343: "027",  # WINCHENDON
     344: "017",  # WINCHESTER
+    345: "003",  # WINDSOR
+    346: "025",  # WINTHROP
     347: "017",  # WOBURN
     348: "027",  # WORCESTER
+    349: "015",  # WORTHINGTON
     350: "021",  # WRENTHAM
+    351: "001",  # YARMOUTH
 }
+
+# Towns this source never loads: Boston (Suffolk County) is loaded from ma-boston-assessing, whose parcel keys
+# differ, so loading Boston's MassGIS file too would make every Boston parcel twice.
+EXCLUDED_TOWNS = {35: "BOSTON: loaded from ma-boston-assessing"}
 
 # Massachusetts DOR state use codes (first three characters of USE_CODE) that are apartment buildings.
 MULTIFAMILY_CODES = frozenset({"111", "112", "114"})
@@ -417,6 +599,8 @@ def read_roll(path: str | Path, *, categories: Iterable[str] | None = COMMERCIAL
     with stream:
         for r in read_dbf(stream):
             town = int(_num(r.get("TOWN_ID")) or name_town or 0)
+            if town in EXCLUDED_TOWNS:
+                raise ValueError(f"{label}: town id {town} is not loaded from this source ({EXCLUDED_TOWNS[town]})")
             county = county_fips or TOWN_COUNTY.get(town)
             if county is None:
                 raise ValueError(f"{label}: town id {town} is not in TOWN_COUNTY; pass county_fips")

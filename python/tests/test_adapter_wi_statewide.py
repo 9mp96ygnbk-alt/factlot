@@ -116,8 +116,70 @@ class WiStatewideTests(unittest.TestCase):
         self.assertEqual((person.market_value, person.appraised_value, person.land_area_sf), (None, None, None),
                          "zeros are not figures")
         other = recs["0000009000"]
-        self.assertEqual(other.county_fips, "025", "a 5-digit PARCELFIPS loses the state prefix")
+        self.assertEqual(other.county_fips, "025", "Dane, from CONAME")
+        self.assertEqual(shop.account, "079:0000001000", "the account names the county: PARCELIDs repeat across counties")
         self.assertEqual(other.situs_address, "9 MENDOTA CT, MADISON WI 53200")
+
+    def test_county_is_where_the_parcel_is(self):
+        # CONAME is the county the parcel is part of; PARCELFIPS the county that contributed it (V12: Appleton's
+        # parcels in Calumet and Winnebago carry Outagamie's 087, Menasha's in Calumet carry Winnebago's 139).
+        cf = wi_statewide.county_fips
+        self.assertEqual(cf({"CONAME": "CALUMET", "PARCELFIPS": "087", "STATEID": "087311234500"}), "015")
+        self.assertEqual(cf({"CONAME": "CALUMET", "PARCELFIPS": "139", "STATEID": "1397012345"}), "015")
+        self.assertEqual(cf({"CONAME": "WINNEBAGO", "PARCELFIPS": "087", "STATEID": "087319876500"}), "139")
+        self.assertEqual(cf({"CONAME": "ST CROIX", "PARCELFIPS": "109"}), "109")
+        self.assertEqual(cf({"CONAME": "St. Croix"}), "109")
+        self.assertEqual(cf({"CONAME": "FOND DU LAC", "PARCELFIPS": "039"}), "039")
+        self.assertEqual(cf({"CONAME": "MENOMINEE", "PARCELFIPS": "078"}), "078", "the one even county FIPS")
+        self.assertEqual(cf({"CONAME": "", "PARCELFIPS": "55025"}), "025", "no name: a 5-digit PARCELFIPS loses 55")
+        self.assertEqual(cf({"CONAME": None, "PARCELFIPS": None, "STATEID": "0790000001000"}), "079")
+        self.assertIsNone(cf({"CONAME": "MENOMONIE", "PARCELFIPS": "999"}), "V12's one stray row names no county")
+        self.assertEqual(len(wi_statewide.COUNTY_FIPS), 72)
+
+    def test_apn_keeps_punctuation_differences(self):
+        apn = wi_statewide.apn_for
+        self.assertEqual(apn("0000001000"), "0000001000", "Milwaukee tax keys are unchanged")
+        self.assertEqual(apn("11-109"), "11x2dx109")
+        self.assertNotEqual(apn("11-109"), apn("1-1109"), "two Brown County parcels")
+        self.assertNotEqual(apn("21-161-4"), apn("21-16-1-4"))
+        self.assertNotEqual(apn("010-0640.01"), apn("0100-640.01"))
+        self.assertEqual(apn("VH-747-E-28"), "vhx2dx747x2dxex2dx28")
+        self.assertNotEqual(apn("A-X"), apn("ax"), "a literal x is escaped")
+        self.assertEqual(apn(" 12 34 "), "12x20x34", "outer spaces are trimmed, inner ones kept")
+
+    def test_brown_county_ids_stay_apart(self):
+        page = {"features": [
+            feature(STATEID="00911-109", PARCELID="11-109", CONAME="BROWN", PARCELFIPS="009", PROPCLASS="2",
+                    OWNERNME1="EXAMPLE ONE LLC", SITEADRESS="1 MAIN ST", PLACENAME="CITY OF GREEN BAY"),
+            feature(STATEID="0091-1109", PARCELID="1-1109", CONAME="BROWN", PARCELFIPS="009", PROPCLASS="3",
+                    OWNERNME1="EXAMPLE TWO INC", SITEADRESS="2 MAIN ST", PLACENAME="CITY OF GREEN BAY"),
+            # Jackson County writes the redaction twice; a placeholder owner is no owner.
+            feature(STATEID="053000123", PARCELID="000123", CONAME="JACKSON", PARCELFIPS="053", PROPCLASS="2",
+                    OWNERNME1="NOT AVAILABLE NOT AVAILABLE", PSTLADRESS="1 ELM ST"),
+            feature(STATEID="073000456", PARCELID="000456", CONAME="MARATHON", PARCELFIPS="073", PROPCLASS="2",
+                    OWNERNME1="UNKNOWN", PSTLADRESS="1 ELM ST"),
+            # Kenosha redacts every owner.
+            feature(STATEID="05912-3-456", PARCELID="12-3-456", CONAME="KENOSHA", PARCELFIPS="059", PROPCLASS="2",
+                    OWNERNME1="NOT AVAILABLE"),
+        ]}
+        f = self.tmp / "brown.json"
+        f.write_text(json.dumps(page), encoding="utf-8")
+        recs = list(wi_statewide.read_roll(f))
+        self.assertEqual([(r.county_fips, r.apn, r.account, r.state_category) for r in recs],
+                         [("009", "11x2dx109", "009:11-109", "F1"), ("009", "1x2dx1109", "009:1-1109", "F2"),
+                          ("053", "000123", "053:000123", "F1"), ("073", "000456", "073:000456", "F1"),
+                          ("059", "12x2dx3x2dx456", "059:12-3-456", "F1")])
+        self.assertEqual([(r.owner_name, r.owner_confidential) for r in recs[2:]],
+                         [(None, True), (None, False), (None, True)])
+        db = self.tmp / "brown.db"
+        stats = wi_statewide.build(f, db, as_of="2026-06-30")
+        self.assertEqual((stats.kept, stats.skipped_invalid), (5, 0))
+        reg = Registry.open_readonly(db)
+        try:
+            self.assertEqual(reg.resolve_external("wi_parcelid", "009:11-109"), "fl:parcel:us-55009:11x2dx109")
+            self.assertEqual(reg.resolve_external("wi_parcelid", "009:1-1109"), "fl:parcel:us-55009:1x2dx1109")
+        finally:
+            reg.close()
 
     def test_all_categories(self):
         everything = list(wi_statewide.read_roll(self.tmp, categories=None))
@@ -132,8 +194,8 @@ class WiStatewideTests(unittest.TestCase):
         reg = Registry.open_readonly(db)
         try:
             urn = reg.db.execute(
-                "SELECT urn FROM crosswalk WHERE system = 'wi_parcelid' AND external_id = '0000001000'").fetchone()[0]
-            self.assertEqual(urn, "fl:parcel:us-55079:0000001000")
+                "SELECT urn FROM crosswalk WHERE system = 'wi_parcelid' AND external_id = '079:0000001000'").fetchone()[0]
+            self.assertEqual(urn, "fl:parcel:us-55079:0000001000", "a Milwaukee tax key is its own APN")
             owners = sorted(json.loads(r[0]) for r in reg.db.execute(
                 "SELECT value_json FROM current_facts WHERE predicate = 'ownership.owner_of_record'"))
             self.assertEqual(owners, ["DANE EXAMPLE LLC", "EXAMPLE SHOPS LLC", "MIXED USE PROPERTIES LLC",

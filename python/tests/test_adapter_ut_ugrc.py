@@ -5,6 +5,7 @@ data. The header is the real alias header of the Hub CSV export (2026-11-03); th
 feature service's field names and the Utah County layer's shorter column list.
 """
 
+import contextlib
 import csv
 import io
 import tempfile
@@ -115,6 +116,89 @@ class UtahLir(unittest.TestCase):
         self.assertEqual(ut_ugrc.county_fips("29"), "057", "Weber")
         for bad in ("0", "30", "", None, "x"):
             self.assertIsNone(ut_ugrc.county_fips(bad))
+
+    def test_every_county_id(self):
+        # COUNTY_ID and COUNTY_NAME as the 29 LIR layers carry them (group-by statistics, 2026-11-03), with the
+        # Census county FIPS codes.
+        layers = {
+            1: ("Beaver", "001"), 2: ("Box Elder", "003"), 3: ("Cache", "005"), 4: ("Carbon", "007"),
+            5: ("Daggett", "009"), 6: ("Davis", "011"), 7: ("Duchesne", "013"), 8: ("Emery", "015"),
+            9: ("Garfield", "017"), 10: ("Grand", "019"), 11: ("Iron", "021"), 12: ("Juab", "023"),
+            13: ("Kane", "025"), 14: ("Millard", "027"), 15: ("Morgan", "029"), 16: ("Piute", "031"),
+            17: ("Rich", "033"), 18: ("Salt Lake", "035"), 19: ("San Juan", "037"), 20: ("Sanpete", "039"),
+            21: ("Sevier", "041"), 22: ("Summit", "043"), 23: ("Tooele", "045"), 24: ("Uintah", "047"),
+            25: ("Utah", "049"), 26: ("Wasatch", "051"), 27: ("Washington", "053"), 28: ("Wayne", "055"),
+            29: ("Weber", "057"),
+        }
+        self.assertEqual({n: ut_ugrc.county_fips(str(n)) for n in layers}, {n: f for n, (_, f) in layers.items()})
+
+    def test_other_counties_classes(self):
+        # Class values seen in the other counties' layers (group-by statistics, 2026-11-03).
+        self.assertEqual(ut_ugrc.category("Commercial", None, "057"), "F1", "Weber")
+        self.assertEqual(ut_ugrc.category("Commercial - Office Space", None, "021"), "F1", "Iron")
+        self.assertEqual(ut_ugrc.category("Commercial - Industrial", None, "047"), "F2", "Uintah")
+        self.assertEqual(ut_ugrc.category("Commercial - Apartment & Condo", None, "011"), "B", "Davis")
+        for exempt in ("Unknown", "UNKNOWN"):
+            self.assertEqual(ut_ugrc.category("Commercial", exempt, "041"), "F1",
+                             "eleven counties write Unknown (Millard UNKNOWN) as the exempt type of every commercial row")
+        self.assertIsNone(ut_ugrc.category("Commercial", "State Government", "049"), "Utah County's exempt owners drop")
+        for cls in ("NON-FAA", "FAA Mkt", "Vacant - Commercial", "Vacant - Agricultural", "Centrally Assessed",
+                    "Mixed Use", "Personal Property", "Privilege Tax", "Greenbelt", "Tax Exempt - Other", "Unknown",
+                    "Undeveloped", "Recreational", "New"):
+            self.assertIsNone(ut_ugrc.category(cls, None, "003"), cls)
+
+    def test_apn_keeps_punctuation_differences(self):
+        apn = ut_ugrc.apn_for
+        self.assertEqual(apn("08153760150001"), "08153760150001", "Salt Lake's digit ids are unchanged")
+        self.assertNotEqual(apn("1-2-23"), apn("1-22-3"), "two Sevier parcels")
+        self.assertNotEqual(apn("2-J11-6"), apn("2-J1-16"))
+        self.assertNotEqual(apn("K-3-11-ANNEX"), apn("K-3-1-1-ANNEX"), "two Kane parcels")
+        self.assertEqual(apn("1-2-23"), "1x2dx2x2dx23")
+        self.assertEqual(apn("A-0001-0002-0003"), "ax2dx0001x2dx0002x2dx0003")
+        self.assertNotEqual(apn("A-X1"), apn("ax1"), "a literal x is escaped")
+        sevier = write_csv(self.tmp / "sevier.csv", SERVICE_HEADER, [
+            {"OBJECTID": "1", "COUNTY_ID": "21", "PARCEL_ID": "1-2-23", "PROP_CLASS": "Commercial", "PARCEL_ADD": "1 N Main"},
+            {"OBJECTID": "2", "COUNTY_ID": "21", "PARCEL_ID": "1-22-3", "PROP_CLASS": "Commercial", "PARCEL_ADD": "2 N Main"},
+        ])
+        db = self.tmp / "sevier.db"
+        stats = ut_ugrc.build(sevier, db, as_of="2025-10-23")
+        self.assertEqual(stats.kept, 2)
+        reg = Registry.open_readonly(db)
+        try:
+            self.assertEqual(reg.resolve_external("ugrc_lir", "041:1-2-23"), "fl:parcel:us-49041:1x2dx2x2dx23")
+            self.assertEqual(reg.resolve_external("ugrc_lir", "041:1-22-3"), "fl:parcel:us-49041:1x2dx22x2dx3")
+        finally:
+            reg.close()
+
+    def test_carbon_classes_are_not_mapped(self):
+        self.assertIn("007", ut_ugrc.UNMAPPED_COUNTIES)
+        for cls in ("Commercial", "Apartments", "Multi-Family", "Subsidized Housing", "Vacant Commercial"):
+            self.assertIsNone(ut_ugrc.category(cls, None, "007"), cls)
+        carbon = write_csv(self.tmp / "carbon.csv", SERVICE_HEADER, [
+            {"OBJECTID": "1", "COUNTY_NAME": "Carbon County", "COUNTY_ID": "4", "PARCEL_ID": "01-0001-0000",
+             "PARCEL_ADD": "1 E Main St", "PARCEL_CITY": "Price", "PROP_CLASS": "Commercial"},
+            {"OBJECTID": "2", "COUNTY_NAME": "Weber County", "COUNTY_ID": "29", "PARCEL_ID": "010010001",
+             "PARCEL_ADD": "1 Washington Blvd", "PARCEL_CITY": "Ogden", "PROP_CLASS": "Commercial",
+             "TOTAL_MKT_VALUE": "750000"},
+        ])
+        recs = list(ut_ugrc.read_roll(carbon))
+        self.assertEqual([(r.county_fips, r.state_category, r.local_use_code) for r in recs],
+                         [("007", None, "Commercial"), ("057", "F1", "Commercial")],
+                         "Carbon is read but kept out of scope; Weber's Commercial loads")
+        self.assertEqual(recs[1].situs_address, "1 WASHINGTON BLVD, OGDEN UT")
+
+    def test_command_line_never_retires_by_default(self):
+        db = self.tmp / "cli.db"
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(ut_ugrc.main([str(self.hub), str(db), "--as-of", "2026-09-29"]), 0)
+            self.assertEqual(ut_ugrc.main([str(self.service), str(db), "--as-of", "2026-09-30"]), 0)
+            self.assertEqual(ut_ugrc.main([str(self.service), str(db), "--as-of", "2026-09-30", "--partial"]), 0)
+        reg = Registry.open_readonly(db)
+        try:
+            self.assertEqual(reg.status("fl:parcel:us-49035:08153760150005"), "current",
+                             "a second county file run without flags does not retire the first county")
+        finally:
+            reg.close()
 
     def test_addresses_and_values(self):
         recs = {r.apn: r for r in ut_ugrc.read_roll(self.hub)}
