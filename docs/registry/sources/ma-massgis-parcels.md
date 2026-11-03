@@ -582,6 +582,218 @@ Added towns (bucket date, Assess member, dBase record count):
 | Worthington (M349)       | Hampshire  |    620,732 | 2026-03-31  | `M349Assess_CY26_FY26.dbf` |     878 |
 | Yarmouth (M351)          | Barnstable |  7,913,619 | 2026-05-22  | `M351Assess_CY26_FY26.dbf` |  18,086 |
 
+## Statewide full load (2026-11-03)
+
+Release `data-2026-11-03-41618090881` (draft, maintainers only) of `9mp96ygnbk-alt/factlot`: 174 town zips (`ma-massgis-parcels__<sha16>__L3_SHP_M###_NAME.zip`, 388,562,456 bytes in all) and the source's manifest, downloaded with `gh release download` into an empty directory and read as untrusted data (`python3 -I`, scripts kept outside the directory). Each file's sha256 was checked against the manifest (and its byte size and document id), and its first 16 hex characters against the name: 174 of 174 matched. The manifest also lists 176 archived entries that are in the earlier release `data-2026-11-03-41603209834` (the Full load above), not in this one. A file's document id is `fl:document:sha256-` plus its sha256; its first 16 characters are the `sha16` column. Loaded into the same Tier 2 scratch registry as the Full load, after it; `purge_person_owners()` and `link_owners()` were then run once for all five statewide sources together.
+
+Command, once per town zip (the as-of date comes from each file's fiscal year, so a town on FY2026 is dated 2025-01-01; no `--full-roll`, because the source is 350 files):
+
+```
+PYTHONPATH=python/src python3 -m factlot.registry.adapters.ma_massgis <town zip> registry.db --retrieved-at <manifest checked_at>
+```
+
+- Records read: 56,124 assessor records (parcels and condominium units) of the 1,015,459 in the 174 towns' Assess tables (all classes, per the statewide extension); in-scope records kept 56,124, which are **56,122** distinct parcels (`B` 10,316, `F1` 36,319, `F2` 9,487); 2 records repeat a `PROP_ID` already loaded (the later replaces the earlier).
+- With the four Tier 2 counties every town but Boston is loaded: 127,922 parcels in 14 counties (26,189 `B`, 77,681 `F1`, 24,054 `F2`), 82,558 with an organisation owner of record and 2,079 ownership links. Boston is loaded from its own Tier 1 source and is refused by this adapter.
+- As-of dates by town: 2017-01-01 1 town, 2018-01-01 1 town, 2021-01-01 2 towns, 2023-01-01 5 towns, 2024-01-01 26 towns, 2025-01-01 109 towns, 2026-01-01 30 towns.
+- Facts written: 537,254. Adapter seconds: 99.0. Invalid ids, errors, retired: 0, 0, 0.
+- Organisation owners stored (parcels with a current owner-of-record fact): 35,062; natural persons or withheld owners not stored (names not kept): 21,049.
+- Ownership links to registered entities after `link_owners()`: 961 (the only entity registry in the scratch file is `ct-sos-entities`).
+
+Essex, Middlesex, Norfolk and Worcester gained no towns (their 176 towns are in the Full load above). By county for the ten counties that gained towns (Suffolk is only Chelsea, Revere and Winthrop):
+
+| County (FIPS)       | Towns loaded |    Records |    Parcels |        `B` |       `F1` |      `F2` | Organisation owners | Ownership links |
+| ------------------- | -----------: | ---------: | ---------: | ---------: | ---------: | --------: | ------------------: | --------------: |
+| Barnstable (25001)  |           15 |      8,600 |      8,600 |        365 |      7,331 |       904 |               5,082 |              72 |
+| Berkshire (25003)   |           32 |      3,990 |      3,990 |        904 |      2,298 |       788 |               2,570 |              44 |
+| Bristol (25005)     |           20 |     13,148 |     13,148 |      4,087 |      6,966 |     2,095 |               7,548 |             257 |
+| Dukes (25007)       |            7 |      1,024 |      1,024 |         19 |        954 |        51 |                 543 |               6 |
+| Franklin (25011)    |           26 |      2,443 |      2,443 |        368 |      1,333 |       742 |               1,540 |             100 |
+| Hampden (25013)     |           23 |     10,140 |     10,140 |      1,948 |      6,258 |     1,934 |               7,160 |             326 |
+| Hampshire (25015)   |           20 |      3,675 |      3,673 |        594 |      2,458 |       621 |               2,178 |              76 |
+| Nantucket (25019)   |            1 |        686 |        686 |         35 |        625 |        26 |                 505 |               0 |
+| Plymouth (25023)    |           27 |     10,313 |     10,313 |      1,188 |      6,971 |     2,154 |               6,609 |              78 |
+| Suffolk (25025)     |            3 |      2,105 |      2,105 |        808 |      1,125 |       172 |               1,327 |               2 |
+| **All 10 counties** |      **174** | **56,124** | **56,122** | **10,316** | **36,319** | **9,487** |          **35,062** |         **961** |
+
+By town (`County` is the 3-digit county FIPS; `Kept` is in-scope records):
+
+| Town (MassGIS id)        | County | As-of      | Records |  Kept | Asset sha16        |
+| ------------------------ | ------ | ---------- | ------: | ----: | ------------------ |
+| Abington (M001)          | 023    | 2025-01-01 |     329 |   329 | `0a8fa003102d5a39` |
+| Acushnet (M003)          | 005    | 2026-01-01 |     113 |   113 | `9aef79150fe1ecbc` |
+| Adams (M004)             | 003    | 2025-01-01 |     328 |   328 | `c315aad625c8fb37` |
+| Agawam (M005)            | 013    | 2025-01-01 |     543 |   543 | `34836b3fe0f4a40c` |
+| Alford (M006)            | 003    | 2026-01-01 |       1 |     1 | `81b7739a725877ef` |
+| Amherst (M008)           | 015    | 2025-01-01 |     351 |   351 | `1ac11cd6b10693cb` |
+| Ashfield (M013)          | 011    | 2023-01-01 |      23 |    23 | `5dbcbb2743056930` |
+| Attleboro (M016)         | 005    | 2025-01-01 |     967 |   967 | `426decc97a9daf0d` |
+| Barnstable (M020)        | 001    | 2025-01-01 |   1,844 | 1,844 | `be4956a9a43e9764` |
+| Becket (M022)            | 003    | 2025-01-01 |      23 |    23 | `0dcaf4def8ff7f2e` |
+| Belchertown (M024)       | 015    | 2025-01-01 |     179 |   179 | `5d013d7112bcac49` |
+| Berkley (M027)           | 005    | 2025-01-01 |      50 |    50 | `1a0dd0e6e1f19046` |
+| Bernardston (M029)       | 011    | 2025-01-01 |      52 |    52 | `96cb11a65f66ad46` |
+| Blandford (M033)         | 013    | 2026-01-01 |      10 |    10 | `4ea09caf3cd20002` |
+| Bourne (M036)            | 001    | 2023-01-01 |     728 |   728 | `776f5fedff3fa14e` |
+| Brewster (M041)          | 001    | 2026-01-01 |     212 |   212 | `0711afef42ee2d3e` |
+| Bridgewater (M042)       | 023    | 2025-01-01 |     437 |   437 | `2b985efaa3a71ca7` |
+| Brimfield (M043)         | 013    | 2025-01-01 |      89 |    89 | `d2ccd49595ff9560` |
+| Brockton (M044)          | 023    | 2024-01-01 |   2,072 | 2,072 | `c5ae50b98b8312b0` |
+| Buckland (M047)          | 011    | 2025-01-01 |      54 |    54 | `f412c2802a12417f` |
+| Carver (M052)            | 023    | 2024-01-01 |     228 |   228 | `e6a8f8da502b280a` |
+| Charlemont (M053)        | 011    | 2025-01-01 |      36 |    36 | `c090b33bfdc60b31` |
+| Chatham (M055)           | 001    | 2017-01-01 |     454 |   454 | `8f329d3f2fbb1639` |
+| Chelsea (M057)           | 025    | 2025-01-01 |     875 |   875 | `8d97fb5745f3ca39` |
+| Cheshire (M058)          | 003    | 2025-01-01 |      48 |    48 | `2d3f1b5f1eb007c0` |
+| Chester (M059)           | 013    | 2026-01-01 |      28 |    28 | `35335f95555660cf` |
+| Chesterfield (M060)      | 015    | 2025-01-01 |      11 |    11 | `df3528e6533ae2b5` |
+| Chicopee (M061)          | 013    | 2025-01-01 |   1,378 | 1,378 | `3bba4a64240babd7` |
+| Chilmark (M062)          | 007    | 2025-01-01 |      22 |    22 | `571805c606f58ab0` |
+| Clarksburg (M063)        | 003    | 2024-01-01 |      14 |    14 | `16c7b34e994333b2` |
+| Colrain (M066)           | 011    | 2025-01-01 |      30 |    30 | `3b9b4443e5efc830` |
+| Conway (M068)            | 011    | 2025-01-01 |      30 |    30 | `419fea6c60eca978` |
+| Cummington (M069)        | 015    | 2025-01-01 |      18 |    18 | `dfae61e0200368c6` |
+| Dalton (M070)            | 003    | 2025-01-01 |     131 |   131 | `5e19b377ec5b8742` |
+| Dartmouth (M072)         | 005    | 2025-01-01 |     682 |   682 | `efed977e018402c1` |
+| Deerfield (M074)         | 011    | 2025-01-01 |     247 |   247 | `bf1a2fff1d20bc5a` |
+| Dennis (M075)            | 001    | 2025-01-01 |     746 |   746 | `b62f4c9d2325ec67` |
+| Dighton (M076)           | 005    | 2024-01-01 |     105 |   105 | `7d1a46294e6930e0` |
+| Duxbury (M082)           | 023    | 2025-01-01 |     124 |   124 | `9c66f6e5011f5f08` |
+| Eastbridgewater (M083)   | 023    | 2025-01-01 |     304 |   304 | `0c6a5aeaf5a3fd0b` |
+| Eastlongmeadow (M085)    | 013    | 2025-01-01 |     373 |   373 | `45210bd54c2ac51a` |
+| Eastham (M086)           | 001    | 2023-01-01 |     176 |   176 | `8539b267756d32e7` |
+| Easthampton (M087)       | 015    | 2025-01-01 |     439 |   439 | `3f7fb654adf23f79` |
+| Easton (M088)            | 005    | 2025-01-01 |     429 |   429 | `49c10d310b18cfa6` |
+| Edgartown (M089)         | 007    | 2026-01-01 |     383 |   383 | `76abe33bcbe9ecf0` |
+| Egremont (M090)          | 003    | 2024-01-01 |      16 |    16 | `36042f7f64c6af2c` |
+| Erving (M091)            | 011    | 2025-01-01 |      94 |    94 | `6f495c4288a03770` |
+| Fairhaven (M094)         | 005    | 2024-01-01 |     346 |   346 | `d57326de58ccd4e5` |
+| Fallriver (M095)         | 005    | 2025-01-01 |   3,168 | 3,168 | `6667667ea81b5b55` |
+| Falmouth (M096)          | 001    | 2021-01-01 |     846 |   846 | `3f34b7813c555f6b` |
+| Florida (M098)           | 003    | 2024-01-01 |      21 |    21 | `fd5faffb3f9fdc94` |
+| Freetown (M102)          | 005    | 2025-01-01 |     147 |   147 | `8b8691cc0126ef97` |
+| Aquinnah (M104)          | 007    | 2024-01-01 |      18 |    18 | `f45b1208d03d89d5` |
+| Gill (M106)              | 011    | 2025-01-01 |      75 |    75 | `a08e9df08b684812` |
+| Goshen (M108)            | 015    | 2025-01-01 |      22 |    22 | `04746722bc3596f9` |
+| Gosnold (M109)           | 007    | 2025-01-01 |       5 |     5 | `2a1c04614e79d070` |
+| Granby (M111)            | 015    | 2025-01-01 |      96 |    96 | `ca0d46925dcabd0e` |
+| Granville (M112)         | 013    | 2024-01-01 |      27 |    27 | `5af90dcec62951cc` |
+| Greatbarrington (M113)   | 003    | 2026-01-01 |     346 |   346 | `a6b4095b417a3d22` |
+| Greenfield (M114)        | 011    | 2026-01-01 |     641 |   641 | `0e863b8d6c42665d` |
+| Hadley (M117)            | 015    | 2025-01-01 |     379 |   379 | `199869889e7fc842` |
+| Halifax (M118)           | 023    | 2025-01-01 |      88 |    88 | `17b0028f885d0c8e` |
+| Hampden (M120)           | 013    | 2025-01-01 |      62 |    62 | `f1e3642a630de05e` |
+| Hancock (M121)           | 003    | 2025-01-01 |      40 |    40 | `95a1f2a8968f8713` |
+| Hanover (M122)           | 023    | 2024-01-01 |     431 |   431 | `360f014c1ff8efc0` |
+| Hanson (M123)            | 023    | 2025-01-01 |     148 |   148 | `9c83ffbc30e64e2e` |
+| Harwich (M126)           | 001    | 2025-01-01 |     411 |   411 | `6ce32f5b07018122` |
+| Hatfield (M127)          | 015    | 2026-01-01 |     268 |   268 | `e3a0e1c6fc254058` |
+| Hawley (M129)            | 011    | 2025-01-01 |       0 |     0 | `3c695e1a27dc479a` |
+| Heath (M130)             | 011    | 2025-01-01 |       6 |     6 | `bc5cc91252e67bfd` |
+| Hingham (M131)           | 023    | 2026-01-01 |     404 |   404 | `e6e935995e69518a` |
+| Hinsdale (M132)          | 003    | 2025-01-01 |      64 |    64 | `684c17f7d0d0789d` |
+| Holland (M135)           | 013    | 2025-01-01 |      21 |    21 | `00c547bfc8f82aec` |
+| Holyoke (M137)           | 013    | 2025-01-01 |   1,176 | 1,176 | `d43f304ac6a6c1cf` |
+| Hull (M142)              | 023    | 2026-01-01 |     133 |   133 | `0fa87c6877a01cef` |
+| Huntington (M143)        | 015    | 2025-01-01 |      31 |    31 | `9138c9cc9d3db93d` |
+| Kingston (M145)          | 023    | 2025-01-01 |     250 |   250 | `462d0a35024e9179` |
+| Lakeville (M146)         | 023    | 2026-01-01 |     154 |   154 | `2453fbcbd81d15d5` |
+| Lanesborough (M148)      | 003    | 2025-01-01 |     104 |   104 | `68f1b4912ad5a1d6` |
+| Lee (M150)               | 003    | 2025-01-01 |     248 |   248 | `3ff267ed4c2e6ed4` |
+| Lenox (M152)             | 003    | 2025-01-01 |     166 |   166 | `cfe183832f0ef986` |
+| Leverett (M154)          | 011    | 2025-01-01 |      16 |    16 | `6ea73c66965a1165` |
+| Leyden (M156)            | 011    | 2024-01-01 |       4 |     4 | `be422bac7b04299f` |
+| Longmeadow (M159)        | 013    | 2025-01-01 |      39 |    39 | `d95590f46a6115b8` |
+| Ludlow (M161)            | 013    | 2025-01-01 |     470 |   470 | `7d85cc1845cd104a` |
+| Mansfield (M167)         | 005    | 2025-01-01 |     402 |   402 | `0a052cf78a9c8619` |
+| Marion (M169)            | 023    | 2025-01-01 |     150 |   150 | `077f326c265a864e` |
+| Marshfield (M171)        | 023    | 2025-01-01 |     424 |   424 | `ffb2263eebd177d5` |
+| Mashpee (M172)           | 001    | 2026-01-01 |     470 |   470 | `49ec81dd4682aaa8` |
+| Mattapoisett (M173)      | 023    | 2026-01-01 |     166 |   166 | `e542fb0bd1adb2b0` |
+| Middleborough (M182)     | 023    | 2025-01-01 |     681 |   681 | `2f07ffcab8b54aae` |
+| Middlefield (M183)       | 015    | 2025-01-01 |       7 |     7 | `bf54ed9b242cd680` |
+| Monroe (M190)            | 011    | 2024-01-01 |      14 |    14 | `227b12c2f51a29c8` |
+| Monson (M191)            | 013    | 2025-01-01 |     156 |   156 | `5c25043b819fbffb` |
+| Montague (M192)          | 011    | 2025-01-01 |     393 |   393 | `9af3ce6425f2ad19` |
+| Monterey (M193)          | 003    | 2025-01-01 |      10 |    10 | `7dd19811f22027cf` |
+| Montgomery (M194)        | 013    | 2024-01-01 |       5 |     5 | `560d407fe2397cd8` |
+| Mountwashington (M195)   | 003    | 2021-01-01 |       2 |     2 | `dd24c2c92a15867d` |
+| Nantucket (M197)         | 019    | 2025-01-01 |     686 |   686 | `afc1ac0dd9a04c62` |
+| Newashford (M200)        | 003    | 2025-01-01 |       7 |     7 | `1afd0b0332d1c3d7` |
+| Newbedford (M201)        | 005    | 2026-01-01 |   2,820 | 2,820 | `6463e481ec2aa7bc` |
+| Newmarlborough (M203)    | 003    | 2024-01-01 |      34 |    34 | `5b4370ca95211891` |
+| Newsalem (M204)          | 011    | 2026-01-01 |      10 |    10 | `c3460747b853a9da` |
+| Northadams (M209)        | 003    | 2024-01-01 |     495 |   495 | `65b4b5df64bbf284` |
+| Northattleborough (M211) | 005    | 2026-01-01 |     625 |   625 | `bdb35d8cf97c5748` |
+| Northampton (M214)       | 015    | 2025-01-01 |   1,104 | 1,104 | `c8009b81f1595f62` |
+| Northfield (M217)        | 011    | 2024-01-01 |     106 |   106 | `60df509d95bb5226` |
+| Norton (M218)            | 005    | 2025-01-01 |     326 |   326 | `c74e4a45a86ab203` |
+| Norwell (M219)           | 023    | 2025-01-01 |     290 |   290 | `66a0ca72384d0da6` |
+| Oakbluffs (M221)         | 007    | 2025-01-01 |     183 |   183 | `08344ac200e19cf9` |
+| Orange (M223)            | 011    | 2026-01-01 |     256 |   256 | `a1a1dd1044dd0ef9` |
+| Orleans (M224)           | 001    | 2026-01-01 |     485 |   485 | `887a09a6cc801018` |
+| Otis (M225)              | 003    | 2024-01-01 |      48 |    48 | `237c38748d194017` |
+| Palmer (M227)            | 013    | 2025-01-01 |     475 |   475 | `c560688d0e796d14` |
+| Pelham (M230)            | 015    | 2018-01-01 |      16 |    16 | `74d9f4cbcf63edec` |
+| Pembroke (M231)          | 023    | 2025-01-01 |     285 |   285 | `69f777083bc890c3` |
+| Peru (M233)              | 003    | 2025-01-01 |       3 |     3 | `760cbdbf2b60e942` |
+| Pittsfield (M236)        | 003    | 2024-01-01 |   1,405 | 1,405 | `99da5deba47c50b3` |
+| Plainfield (M237)        | 015    | 2024-01-01 |      30 |    30 | `6b9faa8d491aad39` |
+| Plymouth (M239)          | 023    | 2025-01-01 |   1,192 | 1,192 | `3fdf6378c1cec4d0` |
+| Plympton (M240)          | 023    | 2024-01-01 |      59 |    59 | `ae7ba1093df275eb` |
+| Provincetown (M242)      | 001    | 2025-01-01 |     431 |   431 | `9cf54e9b4e26c6e1` |
+| Raynham (M245)           | 005    | 2025-01-01 |     313 |   313 | `cf1e1cadd6192adb` |
+| Rehoboth (M247)          | 005    | 2026-01-01 |     137 |   137 | `0cb6556c050d9247` |
+| Revere (M248)            | 025    | 2025-01-01 |     942 |   942 | `12b763147d8d727e` |
+| Richmond (M249)          | 003    | 2025-01-01 |      14 |    14 | `3584d528fe57841c` |
+| Rochester (M250)         | 023    | 2025-01-01 |      88 |    88 | `26cbc84b2caa49ea` |
+| Rockland (M251)          | 023    | 2025-01-01 |     419 |   419 | `0a8f7b6ef3cf0654` |
+| Rowe (M253)              | 011    | 2025-01-01 |      83 |    83 | `cbc4d1ea9bf2dfbe` |
+| Russell (M256)           | 013    | 2025-01-01 |      54 |    54 | `a819cc01e96cc781` |
+| Sandisfield (M260)       | 003    | 2025-01-01 |      11 |    11 | `712aeaa1a09e3ff9` |
+| Sandwich (M261)          | 001    | 2025-01-01 |     483 |   483 | `e4e32c4989d561ee` |
+| Savoy (M263)             | 003    | 2024-01-01 |       1 |     1 | `d3ca5713fb545dd8` |
+| Scituate (M264)          | 023    | 2025-01-01 |     163 |   163 | `6a573d9242031cde` |
+| Seekonk (M265)           | 005    | 2026-01-01 |     451 |   451 | `1dbb42dd7e4555f4` |
+| Sheffield (M267)         | 003    | 2025-01-01 |     134 |   134 | `9bcb70c646ddd529` |
+| Shelburne (M268)         | 011    | 2025-01-01 |      94 |    94 | `0114fdfae7e96a26` |
+| Shutesbury (M272)        | 011    | 2025-01-01 |       9 |     9 | `5963d4acb1cc4ffd` |
+| Somerset (M273)          | 005    | 2026-01-01 |     258 |   258 | `4be730917fe10543` |
+| Southhadley (M275)       | 015    | 2025-01-01 |     291 |   291 | `88830a32dee24682` |
+| Southampton (M276)       | 015    | 2025-01-01 |      81 |    81 | `b1238bb1a96fbcdc` |
+| Southwick (M279)         | 013    | 2024-01-01 |     175 |   175 | `60d956bc68972f92` |
+| Springfield (M281)       | 013    | 2025-01-01 |   3,017 | 3,017 | `9a9ab6d63c3644f2` |
+| Stockbridge (M283)       | 003    | 2025-01-01 |      51 |    51 | `a50acb1c240f3052` |
+| Sunderland (M289)        | 011    | 2025-01-01 |      87 |    87 | `f7e90dbe5c57324a` |
+| Swansea (M292)           | 005    | 2025-01-01 |     306 |   306 | `bcdf7bf400034b36` |
+| Taunton (M293)           | 005    | 2025-01-01 |   1,166 | 1,166 | `c4979bab548f86c6` |
+| Tisbury (M296)           | 007    | 2024-01-01 |     337 |   337 | `7510f739a6f237fd` |
+| Tolland (M297)           | 013    | 2025-01-01 |      15 |    15 | `c5ca52f47162f1a5` |
+| Truro (M300)             | 001    | 2026-01-01 |      90 |    90 | `4ab2e1fa63ff66d0` |
+| Tyringham (M302)         | 003    | 2024-01-01 |       1 |     1 | `b63d45a01a3931e7` |
+| Wales (M306)             | 013    | 2024-01-01 |      11 |    11 | `f5febe05b3e12f74` |
+| Ware (M309)              | 015    | 2026-01-01 |     275 |   275 | `e61c17ecac8bb5c5` |
+| Wareham (M310)           | 023    | 2026-01-01 |     682 |   682 | `2b2d99300c93d4b1` |
+| Warwick (M312)           | 011    | 2026-01-01 |       1 |     1 | `241e60b86c881a1e` |
+| Washington (M313)        | 003    | 2025-01-01 |      10 |    10 | `56de891d80eb3cde` |
+| Wellfleet (M318)         | 001    | 2026-01-01 |     104 |   104 | `97f29055175c886f` |
+| Wendell (M319)           | 011    | 2026-01-01 |      15 |    15 | `f78642a31b0275af` |
+| Westbridgewater (M322)   | 023    | 2026-01-01 |     310 |   310 | `9cc390c9b9e75252` |
+| Westspringfield (M325)   | 013    | 2023-01-01 |     918 |   918 | `5f2dac64bb55cb0e` |
+| Weststockbridge (M326)   | 003    | 2025-01-01 |      55 |    55 | `5d5243fe48818a85` |
+| Westtisbury (M327)       | 007    | 2026-01-01 |      76 |    76 | `8bb7a4efaca0ef4e` |
+| Westfield (M329)         | 013    | 2024-01-01 |     863 |   863 | `d0a3037dee8d3275` |
+| Westhampton (M331)       | 015    | 2023-01-01 |      17 |    17 | `b71d19f5ae29cc0b` |
+| Westport (M334)          | 005    | 2025-01-01 |     337 |   337 | `670cf96c7d5d1297` |
+| Whately (M337)           | 011    | 2025-01-01 |      67 |    67 | `1aa32ed8b66f72d6` |
+| Whitman (M338)           | 023    | 2025-01-01 |     302 |   302 | `83fa5fddc4f5f240` |
+| Wilbraham (M339)         | 013    | 2025-01-01 |     235 |   235 | `aebcbd2ef426a0ef` |
+| Williamsburg (M340)      | 015    | 2025-01-01 |      55 |    55 | `1f0424e74e90ef21` |
+| Williamstown (M341)      | 003    | 2025-01-01 |     140 |   140 | `d7d08d79645abc5c` |
+| Windsor (M345)           | 003    | 2025-01-01 |      19 |    19 | `456723e1ad2cb31f` |
+| Winthrop (M346)          | 025    | 2025-01-01 |     288 |   288 | `b66a173d2a080e33` |
+| Worthington (M349)       | 015    | 2025-01-01 |       5 |     5 | `2d4645c3eefb2ba9` |
+| Yarmouth (M351)          | 001    | 2025-01-01 |   1,120 | 1,120 | `e3c8cf47115e822d` |
+
 ## Known gaps
 
 - **The 174 towns added on 2026-11-03 are not loaded yet**; they are in the config and follow the same
