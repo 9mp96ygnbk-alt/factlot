@@ -1,0 +1,28 @@
+{
+  "description": "Tennessee: Comptroller of the Treasury statewide parcel shapefile plus Assessment_Data_##.dbf table (86 of 95 counties; not Chester, Davidson, Hamilton, Hickman, Knox, Montgomery, Rutherford, Shelby or Williamson). Gated: the download is behind a request form with a click-through acknowledgment and a CAPTCHA. See docs/registry/sources/tn-comptroller-assessment.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "tn-comptroller-assessment",
+      "publisher": "Tennessee Comptroller of the Treasury, Division of Property Assessments, Geographic Services",
+      "landing_pages": [
+        "https://comptroller.tn.gov/office-functions/pa/gisredistricting/redistricting-and-land-use-maps/parcel-data.html",
+        "https://comptroller.tn.gov/office-functions/pa/gisredistricting/land-use-data.html"
+      ],
+      "allowed_hosts": ["comptroller.tn.gov"],
+      "files": [],
+      "verified": false,
+      "gate": "The parcel and Assessment_Data download is not a file link: it is requested through an embedded Formstack form ('parcel data', comptrollertn.formstack.com form 4763356) whose required fields are Name, Address, one or more counties, the Attestation checkbox ('I attest to the best of my knowledge and belief that the information I have provided on this form is true and correct.') and the Acknowledgment checkbox ('I acknowledge that I have read and understand the disclaimer above and agree to be bound by it.'); the form also loads an invisible CAPTCHA (reCAPTCHA). The page says 'We do not offer historical downloads, nor any recurring extracts or other automated downloads of the data hosted on our website.' That is a click-through agreement, personal data entry, a CAPTCHA and a ban on automated downloads: requires a person. The founder must decide whether to submit the form (and who signs the attestation) and whether FactLot may then republish facts from the delivered files; ask GIS.Data@cot.tn.gov to confirm in writing that recurring collection and republication of the Assessment_Data facts is permitted.",
+      "terms_url": "https://comptroller.tn.gov/office-functions/pa/gisredistricting/redistricting-and-land-use-maps/parcel-data.html",
+      "license": "No licence named. Page text: 'The shapefile data can be used in a commercial application.' (about the parcel shapefile; the Assessment_Data table is not mentioned in that sentence). The form's disclaimer (accepted by checkbox) is a no-warranty, graphical-reference-only disclaimer. Comptroller site Disclaimer (comptroller.tn.gov/disclaimer.html): information is provided 'for the convenience of our customers' with no liability. Underlying records are public records under the Tennessee Public Records Act (T.C.A. 10-7-503)",
+      "ai_use": "Not addressed on the pages read; no restriction found",
+      "redistribution": "Unclear: commercial use of the shapefile is stated; redistribution of the Assessment_Data owner and value facts is not addressed; the form's disclaimer binds the requester",
+      "reviewed": "2026-11-03",
+      "notes": "Coverage: 86 counties are offered on the form (Anderson through Wilson, in four checkbox groups). Excluded and 'NOT MAINTAINED BY THE TENNESSEE OFFICE OF THE COMPTROLLER': Chester, Davidson, Hamilton, Hickman, Knox, Montgomery, Rutherford, Shelby, Williamson (they do not participate in the state's IMPACT CAMA system). Knox, Hamilton and Rutherford are therefore not available here. The page says each county's downloaded folder holds the parcel shapefile, a table 'Assessment_Data_##.dbf' joined to the parcels layer by 'GISLINK' (owner, property, building, land use and assessment information) and an Excel field dictionary; data updated weekly. None of these files was downloaded, so the layout and counts are unconfirmed. Published land-use class definitions (modelled land use, revised 7/10/2018): comptroller.tn.gov/content/dam/cot/pa/documents/landuse/COTLandUseCodes.pdf (04 multi-family; 11 general commercial; 12 office; 13 motel/hotel; 14 commercial-residential split; 15 golf course; 16 nursing home; 21 light industrial/warehousing; 22 heavy industrial). robots.txt on comptroller.tn.gov: 'User-agent: *' 'Allow: /'. Two pages linked from the site (quick-links/tn-property-assessment-data.html and the stewardship 'Real Estate Assessment Data' page) answer 302/404 to the collector and lead to the on-line assessment look-up, which is not a bulk source. Nothing was submitted."
+    }
+  ]
+}
