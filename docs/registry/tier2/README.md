@@ -168,8 +168,15 @@ one load (Garfield County, Utah). Full record, reviewed-but-not-loaded sources a
 | MN    | `mn-opt-in-parcels`      | 24 opt-in counties                                   | 60,495             | 36,373              |
 | AR    | `ar-gis-parcels`         | 75 of 75                                             | 69,056             | 41,144              |
 | MT    | `mt-msl-cadastral`       | 55 of 56 (apartments and industrial only)            | 7,546              | 4,241               |
-| CT    | `ct-parcel-cama-layer`   | {CT_COUNTIES} former counties (169 towns)            | {CT_TOTAL_SHORT}   | {CT_ORG}            |
+| CT    | `ct-parcel-cama-layer`   | 8 former counties (169 towns)                        | 43,390             | 34,022              |
 | NC    | `nc-onemap-parcels`      | Guilford, Forsyth, Cumberland, Johnston, New Hanover | 28,436             | 20,284              |
 | UT    | `ut-ugrc-lir` (Garfield) | Garfield                                             | 188                | 0                   |
 
-{TOTALS_PARAGRAPH}
+**Totals (2026-11-03).** The expansion added **228,453 distinct commercial parcels in 182 counties** (24,956 `B`, 173,729 `F1`, 29,773 `F2` counted once per category; five Connecticut parcels carry
+two), 148,421 of them with an organisation owner of record, and four new states (Vermont, Arkansas, Montana, Connecticut). The scratch registry now holds **1,236,579 commercial parcels in 389 counties of 20 states**
+(1,008,126 in 207 counties before), 1,305,836 Connecticut entities and no natural-person owner. `link_owners()` then `purge_person_owners()` ran on the whole file: 30,420 exact links plus 1,350 chosen among
+same-name entities because the others have ended (31,770 current ownership links, 3,873 before; 289 ambiguous, 33,298 owners whose exact match exists only in another state, 3,526 of them newly queued for
+review); **27,513 of the links are on the new Connecticut parcels**, because Connecticut is the only entity registry loaded; Vermont 110, Minnesota 124, Arkansas 66 and North Carolina 84 link to Connecticut
+entities of the same name. `purge_person_owners()` removed nothing (0 owner facts, 0 mailing facts, 0 links): every new adapter stores organisations only. Against the lead's combined figures (1,716,664
+parcels, 223 counties, 17 states and the District of Columbia, 37 verified sources) the branch brings the totals to **1,945,117 parcels, 405 counties, 21 states and the District of Columbia, 47 verified sources**
+(five new sources, five North Carolina county sources; Garfield is an existing source).

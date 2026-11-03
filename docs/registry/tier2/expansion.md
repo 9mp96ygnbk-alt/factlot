@@ -5,15 +5,21 @@ from a real run on the real file (collected with the project's collector, loaded
 
 ## Results
 
-| State | Source id                                                                  | Counties in the load                                 | Commercial parcels (B / F1 / F2)                     | Owner names        | Licence basis                                                     |
-| ----- | -------------------------------------------------------------------------- | ---------------------------------------------------- | ---------------------------------------------------- | ------------------ | ----------------------------------------------------------------- |
-| VT    | [`vt-vcgi-parcels`](../sources/vt-vcgi-parcels.md)                         | 14 of 14 (all)                                       | 19,342 (2,304 / 16,191 / 847)                        | yes (12,357 org)   | none stated; disclaimer only; "freely available" (Parcel Program) |
-| MN    | [`mn-opt-in-parcels`](../sources/mn-opt-in-parcels.md)                     | 24 of the 59 opt-in counties                         | 60,495 (9,017 / 38,316 / 13,162)                     | yes (36,373 org)   | counties opted in to open data; disclaimer only                   |
-| AR    | [`ar-gis-parcels`](../sources/ar-gis-parcels.md)                           | 75 of 75 (all)                                       | 69,056 (0 / 67,049 / 2,007)                          | yes (41,144 org)   | none stated; disclaimer only                                      |
-| MT    | [`mt-msl-cadastral`](../sources/mt-msl-cadastral.md)                       | 55 of 56                                             | 7,546 (6,060 / 0 / 1,486) (commercial not separable) | yes (4,241 org)    | none stated; disclaimer and a mailing-list notice                 |
-| CT    | [`ct-parcel-cama-layer`](../sources/ct-parcel-cama-layer.md)               | {CT_COUNTIES} former counties                        | {CT_TOTAL}                                           | yes ({CT_ORG} org) | CC0 (publisher's ArcGIS item)                                     |
-| NC    | [`nc-onemap-parcels`](../sources/nc-onemap-parcels.md) (five new counties) | Guilford, Forsyth, Cumberland, Johnston, New Hanover | 28,436 (2,735 / 20,561 / 5,140)                      | yes (20,284 org)   | NC OneMap free and unrestricted use policy                        |
-| UT    | [`ut-ugrc-lir`](../sources/ut-ugrc-lir.md) (Garfield)                      | Garfield                                             | 188 (0 / 188 / 0)                                    | no                 | CC BY 4.0                                                         |
+| State | Source id                                                                  | Counties in the load                                 | Commercial parcels (B / F1 / F2)                     | Owner names      | Licence basis                                                     |
+| ----- | -------------------------------------------------------------------------- | ---------------------------------------------------- | ---------------------------------------------------- | ---------------- | ----------------------------------------------------------------- |
+| VT    | [`vt-vcgi-parcels`](../sources/vt-vcgi-parcels.md)                         | 14 of 14 (all)                                       | 19,342 (2,304 / 16,191 / 847)                        | yes (12,357 org) | none stated; disclaimer only; "freely available" (Parcel Program) |
+| MN    | [`mn-opt-in-parcels`](../sources/mn-opt-in-parcels.md)                     | 24 of the 59 opt-in counties                         | 60,495 (9,017 / 38,316 / 13,162)                     | yes (36,373 org) | counties opted in to open data; disclaimer only                   |
+| AR    | [`ar-gis-parcels`](../sources/ar-gis-parcels.md)                           | 75 of 75 (all)                                       | 69,056 (0 / 67,049 / 2,007)                          | yes (41,144 org) | none stated; disclaimer only                                      |
+| MT    | [`mt-msl-cadastral`](../sources/mt-msl-cadastral.md)                       | 55 of 56                                             | 7,546 (6,060 / 0 / 1,486) (commercial not separable) | yes (4,241 org)  | none stated; disclaimer and a mailing-list notice                 |
+| CT    | [`ct-parcel-cama-layer`](../sources/ct-parcel-cama-layer.md)               | 8 former counties                                    | 43,390 (4,840 / 31,424 / 7,131)                      | yes (34,022 org) | CC0 (publisher's ArcGIS item)                                     |
+| NC    | [`nc-onemap-parcels`](../sources/nc-onemap-parcels.md) (five new counties) | Guilford, Forsyth, Cumberland, Johnston, New Hanover | 28,436 (2,735 / 20,561 / 5,140)                      | yes (20,284 org) | NC OneMap free and unrestricted use policy                        |
+| UT    | [`ut-ugrc-lir`](../sources/ut-ugrc-lir.md) (Garfield)                      | Garfield                                             | 188 (0 / 188 / 0)                                    | no               | CC BY 4.0                                                         |
+
+## Totals
+
+The expansion added 228,453 distinct commercial parcels in 182 counties (148,421 with an organisation owner of record) and four states. After `link_owners()` and `purge_person_owners()` on the scratch registry:
+1,236,579 parcels in 389 counties of 20 states; combined with the lead's figures (1,716,664 parcels, 223 counties, 17 states and DC, 37 verified sources) the branch brings the totals to **1,945,117 parcels,
+405 counties, 21 states and DC, 47 verified sources**. Details and the link counts: [README.md](README.md), section "Expansion".
 
 ## What was reviewed and not loaded
 

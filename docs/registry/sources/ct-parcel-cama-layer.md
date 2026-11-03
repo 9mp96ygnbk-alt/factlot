@@ -54,7 +54,13 @@ None for the load. Decision for the founder: planning-region or former-county co
 python -m factlot.registry.adapters.ct_parcel_cama collected/ct-parcel-cama-layer registry.db --as-of 2026-11-03
 ```
 
-{CT_RUN}
+- Pages: 29, 38,572,259 bytes archived (first page `fl:document:sha256-1f7ef2df98709a7070333a8fe8f51368b7c1965b2c59977bc9ab73dec7b789ef`); 57,855 rows, the publisher's count. One page (offset 46,000) first came back as an
+  ArcGIS error body (`Cannot perform query. Invalid query parameters.`, HTTP 200, 151 bytes); it was removed from the scratch manifest and fetched again, and the same URL answered normally.
+- Rows read: 43,398 CAMA records in scope after the building-value test and the label mapping. Parcels stored: **43,390** in 8 former counties: `B` 4,840, `F1` 31,424, `F2` 7,131 (the registry keys on letters and digits only, so 8 records whose `CAMA_Link` values differ only by punctuation share a key).
+- Facts written: 394,018. Errors: none.
+- Organisation owners stored: 34,022; natural persons or blank owners not stored: 9,375.
+- Per former county (B / F1 / F2; parcels): Fairfield 001 1,111/6,420/1,073 (8,602); Hartford 003 1,547/7,203/2,817 (11,567); Litchfield 005 49/2,680/551 (3,280); Middlesex 007 177/1,790/498 (2,464);
+  New Haven 009 1,035/8,660/1,589 (11,282); New London 011 426/2,309/227 (2,962); Tolland 013 168/1,077/206 (1,451); Windham 015 327/1,285/170 (1,782).
 
 ## Known gaps
 
