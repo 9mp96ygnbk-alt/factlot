@@ -3244,9 +3244,6 @@
                 "properties": {
                   "fact": {
                     "type": "object",
-                    "propertyNames": {
-                      "type": "string"
-                    },
                     "additionalProperties": true,
                     "description": "A FactLot fact: subject, predicate, value, as_of, provenance (with sources), optional rights."
                   }
