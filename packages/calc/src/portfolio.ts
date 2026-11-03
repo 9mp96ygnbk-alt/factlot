@@ -15,6 +15,7 @@ export const WaltInput = z.object({
       z.object({
         id: z
           .string()
+          .max(200)
           .optional()
           .describe(
             "Your identifier for the lease (ideally a FactLot lease ID).",
@@ -35,6 +36,7 @@ export const WaltInput = z.object({
       }),
     )
     .min(1)
+    .max(10000)
     .describe("Leases in the portfolio or building."),
 });
 export type WaltInput = z.input<typeof WaltInput>;

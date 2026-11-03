@@ -77,6 +77,7 @@ export const RentScheduleInput = z.object({
   ),
   abated_months: z
     .array(z.number().int().positive())
+    .max(1200)
     .default([])
     .describe(
       "Fully abated (free) months, 1-based from commencement (e.g. [1,2,3] for three months free up front). Each listed month's base rent is zero.",

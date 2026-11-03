@@ -26,26 +26,32 @@ formula ID whether it was called from Claude, ChatGPT, Gemini, Copilot, Bedrock,
 
 ```bash
 docker run -p 8787:8787 ghcr.io/9mp96ygnbk-alt/factlot:0.1.0    # prebuilt image, each release
-# or build the image yourself:
-docker build -t factlot . && docker run -p 8787:8787 factlot
+# or build the image yourself, and in production run it hardened:
+docker build -t factlot .
+docker run --rm -p 8787:8787 --read-only --cap-drop ALL --security-opt no-new-privileges \
+  -e FACTLOT_API_KEY="$(openssl rand -hex 24)" -e FACTLOT_PUBLIC_URL=https://factlot.example.com factlot
 # or, from a source build:
 npm run build && node packages/server/dist/bin.js
 ```
 
-| Variable                        | Purpose                                                                                                                                  |
-| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `PORT`, `HOST`                  | Listen address. Default `0.0.0.0:8787`.                                                                                                  |
-| `FACTLOT_API_KEY`               | Optional. One shared bearer key (key name `default`). Any configured key makes `/mcp` and `/v1/*` require `Authorization: Bearer <key>`. |
-| `FACTLOT_API_KEYS`              | Optional. Named keys, one per client or engagement: `key1:tenant-a,key2:tenant-b`.                                                       |
-| `FACTLOT_API_KEYS_FILE`         | Optional. JSON keys file (example below), the place for per-key rate limits.                                                             |
-| `FACTLOT_RATE_LIMIT_PER_MINUTE` | Optional. Default requests per minute per key; `0` = unlimited. Over the limit: HTTP 429 with `Retry-After`.                             |
-| `FACTLOT_ADMIN_KEY`             | Optional. Enables `GET /v1/usage?key=<name>`: per-key, per-tool call counts for the current hour and day.                                |
-| `FACTLOT_USAGE_LOG`             | Optional. Append one JSON line per tool call (`time, key, tool, surface, status, duration_ms`) to this file for billing.                 |
-| `FACTLOT_LOG`                   | Optional. `json` for one JSON line per request on stdout.                                                                                |
-| `FACTLOT_PUBLIC_URL`            | Optional. Public base URL written into the OpenAPI `servers` entry. By default it is derived from `X-Forwarded-*` headers.               |
+| Variable                               | Purpose                                                                                                                                         |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PORT`, `HOST`                         | Listen address. Default `0.0.0.0:8787`.                                                                                                         |
+| `FACTLOT_API_KEY`                      | Optional. One shared bearer key (key name `default`). Any configured key makes `/mcp` and `/v1/*` require `Authorization: Bearer <key>`.        |
+| `FACTLOT_API_KEYS`                     | Optional. Named keys, one per client or engagement: `key1:tenant-a,key2:tenant-b`.                                                              |
+| `FACTLOT_API_KEYS_FILE`                | Optional. JSON keys file (example below), the place for per-key rate limits.                                                                    |
+| `FACTLOT_RATE_LIMIT_PER_MINUTE`        | Optional. Default requests per minute per key; `0` = unlimited. Over the limit: HTTP 429 with `Retry-After`.                                    |
+| `FACTLOT_ADMIN_KEY`                    | Optional. Enables `GET /v1/usage?key=<name>`: per-key, per-tool call counts for the current hour and day.                                       |
+| `FACTLOT_USAGE_LOG`                    | Optional. Append one JSON line per tool call (`time, key, tool, surface, status, duration_ms`) to this file for billing.                        |
+| `FACTLOT_LOG`                          | Optional. `json` for one JSON line per request on stdout.                                                                                       |
+| `FACTLOT_PUBLIC_URL`                   | Set it in production: the public `https://` base URL written into the OpenAPI `servers` entry. Without it the URL comes from the `Host` header. |
+| `FACTLOT_TRUST_PROXY`                  | Optional. `1` = trust `X-Forwarded-For/-Proto/-Host` from your reverse proxy (only when all traffic goes through it).                           |
+| `FACTLOT_RATE_LIMIT_PER_IP_PER_MINUTE` | Optional. Per-client-IP limit on every route, counted before auth; `0` = unlimited.                                                             |
 
 Discovery routes (`/`, `/health`, `/openapi*.json`) stay open. With nothing set the server is
-open, unlimited, and quiet, as before. A keys file:
+**open** (no auth; a warning is printed at startup) with no per-key or per-IP limit; body size,
+input shape, timeouts, and rejected-token limits always apply (see the
+[server README](../packages/server/README.md#hardening)). A keys file:
 
 ```json
 [
@@ -76,11 +82,12 @@ similar attestation.
 
 ## What has been verified
 
-| Check                                                                                                      | Status                                                                                                                                                                         |
-| ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| MCP over Streamable HTTP with the official MCP SDK client (list, call, auth)                               | Tested in CI (`packages/server`)                                                                                                                                               |
-| Raw JSON-RPC over HTTP, as a remote platform sends it (`initialize`, `tools/list`, `tools/call`, `search`) | Tested by hand against the built server                                                                                                                                        |
-| Docker image: full multi-stage build, non-root user, MCP over HTTP and stdio, REST, OpenAPI                | `docker build` and the end-to-end test run by hand ([install verification](../docs/install-verification.md)) and on every release tag (`container.yml`)                        |
-| Claude Desktop extension: `mcpb validate`, `mcpb pack`, and the end-to-end test on the unpacked bundle     | Tested in CI; `npm run build:mcpb` also starts the bundled server and checks `tools/list`                                                                                      |
-| Provider tool formats and the Gemini schema subset                                                         | Unit-tested (`packages/tools`, `python/tests`)                                                                                                                                 |
-| Live connection from the claude.ai, ChatGPT, Copilot Studio, Gemini, and Bedrock consoles                  | **Not yet.** This needs a public deployment and accounts on each platform. Steps follow each platform's documentation as of Nov 2026; confirm the menu paths when you connect. |
+| Check                                                                                                      | Status                                                                                                                                                                                                                          |
+| ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| MCP over Streamable HTTP with the official MCP SDK client (list, call, auth)                               | Tested in CI (`packages/server`)                                                                                                                                                                                                |
+| Raw JSON-RPC over HTTP, as a remote platform sends it (`initialize`, `tools/list`, `tools/call`, `search`) | Tested by hand against the built server                                                                                                                                                                                         |
+| Docker image: full multi-stage build, non-root user, MCP over HTTP and stdio, REST, OpenAPI                | `docker build` and the end-to-end test run by hand ([install verification](../docs/install-verification.md)) and on every release tag (`container.yml`)                                                                         |
+| Docker runtime image (non-root user, auth, MCP, REST)                                                      | Built and run in the 2026-11-03 security audit: uid 1000, `--read-only`, `--cap-drop ALL`, healthcheck healthy, open and keyed modes, 413 and input caps, rejected-token limit ([audit](../docs/security/audit-2026-11-03.md)). |
+| Claude Desktop extension: `mcpb validate`, `mcpb pack`, and the end-to-end test on the unpacked bundle     | Tested in CI; `npm run build:mcpb` also starts the bundled server and checks `tools/list`                                                                                                                                       |
+| Provider tool formats and the Gemini schema subset                                                         | Unit-tested (`packages/tools`, `python/tests`)                                                                                                                                                                                  |
+| Live connection from the claude.ai, ChatGPT, Copilot Studio, Gemini, and Bedrock consoles                  | **Not yet.** This needs a public deployment and accounts on each platform. Steps follow each platform's documentation as of Nov 2026; confirm the menu paths when you connect.                                                  |

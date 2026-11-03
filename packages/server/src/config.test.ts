@@ -77,3 +77,41 @@ test("malformed values refuse to start", () => {
     0,
   );
 });
+
+test("per-IP limits, auth-failure budget, and proxy trust come from the environment", () => {
+  assert.deepEqual(
+    optionsFromEnv({
+      FACTLOT_RATE_LIMIT_PER_IP_PER_MINUTE: "300",
+      FACTLOT_AUTH_FAILURES_PER_IP_PER_MINUTE: "0",
+      FACTLOT_TRUST_PROXY: "true",
+    }),
+    {
+      rateLimitPerIpPerMinute: 300,
+      authFailuresPerIpPerMinute: 0,
+      trustProxy: true,
+    },
+  );
+  assert.throws(
+    () => optionsFromEnv({ FACTLOT_TRUST_PROXY: "maybe" }),
+    /FACTLOT_TRUST_PROXY/,
+  );
+  assert.throws(
+    () => optionsFromEnv({ FACTLOT_RATE_LIMIT_PER_IP_PER_MINUTE: "-1" }),
+    /FACTLOT_RATE_LIMIT_PER_IP_PER_MINUTE/,
+  );
+});
+
+test("the admin key may not equal an API key, and the public URL must be http(s)", () => {
+  assert.throws(
+    () =>
+      optionsFromEnv({
+        FACTLOT_API_KEYS: "same-key:tenant",
+        FACTLOT_ADMIN_KEY: "same-key",
+      }),
+    /FACTLOT_ADMIN_KEY: must differ/,
+  );
+  assert.throws(
+    () => optionsFromEnv({ FACTLOT_PUBLIC_URL: "javascript:alert(1)" }),
+    /FACTLOT_PUBLIC_URL/,
+  );
+});

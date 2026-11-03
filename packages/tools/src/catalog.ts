@@ -25,6 +25,7 @@ import {
   registrySearchAddress,
   registrySearchEntities,
 } from "./registry.ts";
+import { INPUT_LIMITS, inputShapeIssue } from "./limits.ts";
 
 export const CATALOG_VERSION = "0.1.0";
 
@@ -109,12 +110,15 @@ const ruleTools: ToolSpec[] = Object.entries(rulePacks).map(([name, r]) => ({
 const ParcelInput = z.object({
   state_fips: z
     .string()
+    .max(16)
     .describe('2-digit state FIPS code, e.g. "06" for California.'),
   county_fips: z
     .string()
+    .max(16)
     .describe('3-digit county FIPS code, e.g. "037" for Los Angeles County.'),
   apn: z
     .string()
+    .max(200)
     .describe(
       "Assessor's parcel number exactly as the county prints it; formatting is normalized.",
     ),
@@ -122,21 +126,25 @@ const ParcelInput = z.object({
 const EntityInput = z.object({
   jurisdiction: z
     .string()
+    .max(64)
     .describe(
       'Registry jurisdiction, e.g. "us-de" for Delaware, or "lei" for a Legal Entity Identifier.',
     ),
   registry_number: z
     .string()
+    .max(200)
     .describe("File number issued by that registry, or the 20-character LEI."),
 });
 const SpaceInput = z.object({
   building_urn: z
     .string()
+    .max(500)
     .describe(
       "FactLot building URN, e.g. fl:building:01jbx3k8q2v7m9c4t6w8y0a2b4.",
     ),
   suite: z
     .string()
+    .max(200)
     .describe(
       'Suite or unit as written ("Suite 400", "STE 400", "#400", "3rd Floor" all normalize).',
     ),
@@ -162,6 +170,7 @@ const DocumentInput = z
 const ParseInput = z.object({
   urn: z
     .string()
+    .max(500)
     .describe("A FactLot URN to validate, e.g. fl:parcel:us-06037:5432001012."),
 });
 const FactValidateInput = z.object({
@@ -290,6 +299,7 @@ const registryTools: ToolSpec[] = [
     input: z.object({
       urn: z
         .string()
+        .max(500)
         .describe(
           "FactLot URN of a parcel or entity, e.g. fl:parcel:us-48201:0420150000012.",
         ),
@@ -321,12 +331,15 @@ const registryTools: ToolSpec[] = [
     input: z.object({
       state_fips: z
         .string()
+        .max(16)
         .describe('2-digit state FIPS, e.g. "48" for Texas.'),
       county_fips: z
         .string()
+        .max(16)
         .describe('3-digit county FIPS, e.g. "201" for Harris County.'),
       apn: z
         .string()
+        .max(200)
         .describe("Parcel or account number as the county prints it."),
     }),
     path: "/v1/registry/resolve_parcel",
@@ -345,8 +358,9 @@ const registryTools: ToolSpec[] = [
     input: z.object({
       system: z
         .string()
+        .max(100)
         .describe('Crosswalk system name, e.g. "tx-harris-cad-account".'),
-      external_id: z.string().describe("The ID in that system."),
+      external_id: z.string().max(200).describe("The ID in that system."),
     }),
     path: "/v1/registry/resolve_external",
     requires: "registry",
@@ -362,7 +376,11 @@ const registryTools: ToolSpec[] = [
       "Find commercial parcels by situs address (normalized: 'Street' = 'St', 'Suite' = 'Ste')." +
       REGISTRY_NOTE,
     input: z.object({
-      query: z.string().min(1).describe("Street address or part of one."),
+      query: z
+        .string()
+        .min(1)
+        .max(500)
+        .describe("Street address or part of one."),
       limit: Limit,
     }),
     path: "/v1/registry/search_address",
@@ -379,7 +397,7 @@ const registryTools: ToolSpec[] = [
       "Find registered business entities (LLCs, LPs, corporations) by name. Natural persons are not searchable." +
       REGISTRY_NOTE,
     input: z.object({
-      query: z.string().min(1).describe("Entity name or part of one."),
+      query: z.string().min(1).max(500).describe("Entity name or part of one."),
       limit: Limit,
     }),
     path: "/v1/registry/search_entities",
@@ -398,6 +416,7 @@ const registryTools: ToolSpec[] = [
     input: z.object({
       entity_urn: z
         .string()
+        .max(500)
         .describe("FactLot entity URN, e.g. fl:entity:us-tx:0801111111."),
     }),
     path: "/v1/registry/owned_by",
@@ -433,21 +452,39 @@ export function runTool(name: string, args: unknown): ToolOutcome {
       },
     };
   }
-  const parsed = tool.input.safeParse(args ?? {});
-  if (!parsed.success) {
-    const issues = parsed.error.issues.map((i) => ({
-      path: i.path.join("."),
-      message: i.message,
-    }));
-    const kind =
-      name.startsWith("calc_") || name.startsWith("rules_")
-        ? "CalcInputError"
-        : "InputError";
+  const kind =
+    name.startsWith("calc_") || name.startsWith("rules_")
+      ? "CalcInputError"
+      : "InputError";
+  // Structural caps first: an agent can send any JSON, and schema validation of a huge or
+  // deeply nested value is itself the cost to avoid.
+  const shape = inputShapeIssue(args ?? {});
+  if (shape) {
     return {
       ok: false,
       error: {
         error: kind,
-        message: `invalid input: ${issues.map((i) => `${i.path || "(root)"}: ${i.message}`).join("; ")}`,
+        message: `invalid input: ${shape.path || "(root)"}: ${shape.message}`,
+        issues: [shape],
+      },
+    };
+  }
+  const parsed = tool.input.safeParse(args ?? {});
+  if (!parsed.success) {
+    const all = parsed.error.issues;
+    const issues = all.slice(0, INPUT_LIMITS.maxIssues).map((i) => ({
+      path: i.path.join("."),
+      message: i.message,
+    }));
+    const more =
+      all.length > issues.length
+        ? `; and ${all.length - issues.length} more`
+        : "";
+    return {
+      ok: false,
+      error: {
+        error: kind,
+        message: `invalid input: ${issues.map((i) => `${i.path || "(root)"}: ${i.message}`).join("; ")}${more}`,
         issues,
       },
     };

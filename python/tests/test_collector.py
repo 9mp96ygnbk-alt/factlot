@@ -121,7 +121,7 @@ class Collector(unittest.TestCase):
 
     def setUp(self):
         REQUESTS.clear()
-        self.cfg = CollectorConfig(contact="test@example.invalid", min_interval=0.2, timeout=10)
+        self.cfg = CollectorConfig(contact="test@example.invalid", min_interval=0.2, timeout=10, allow_private_addresses=True)
         self.spec = SourceSpec("test-cad", "Test CAD", [f"{self.base}/downloads.html"], ["127.0.0.1"])
 
     def test_discover_obeys_robots_and_hosts(self):
@@ -159,7 +159,7 @@ class Collector(unittest.TestCase):
         (self.site / "files" / "roll_2026.zip").write_bytes(b"synthetic roll v1")
 
     def test_rate_limit_per_host(self):
-        f = PoliteFetcher(CollectorConfig(contact="t@example.invalid", min_interval=0.3, timeout=10))
+        f = PoliteFetcher(CollectorConfig(contact="t@example.invalid", min_interval=0.3, timeout=10, allow_private_addresses=True))
         start = time.monotonic()
         for _ in range(3):
             with f.get(f"{self.base}/downloads.html") as r:
@@ -169,7 +169,7 @@ class Collector(unittest.TestCase):
 
     def test_unreachable_site_is_reported_not_raised(self):
         spec = SourceSpec("down", "Down", ["http://127.0.0.1:9/nothing.html"], ["127.0.0.1"])
-        report = discover(PoliteFetcher(CollectorConfig(contact="t@example.invalid", min_interval=0, timeout=2)), spec)
+        report = discover(PoliteFetcher(CollectorConfig(contact="t@example.invalid", min_interval=0, timeout=2, allow_private_addresses=True)), spec)
         self.assertTrue(report["pages"][0]["status"].startswith("unreachable"), report["pages"][0]["status"])
 
 
@@ -200,7 +200,7 @@ class Collector(unittest.TestCase):
         self.assertFalse((out / "flaky-cad" / ".download.part").exists())
 
         TRUNCATE.clear()
-        cfg = CollectorConfig(contact="t@example.invalid", min_interval=0.1, timeout=10, retries=0)
+        cfg = CollectorConfig(contact="t@example.invalid", min_interval=0.1, timeout=10, retries=0, allow_private_addresses=True)
         [rec] = snapshot(PoliteFetcher(cfg), spec, [f"{self.base}/export?truncated=1"], Path(tempfile.mkdtemp()))
         self.assertTrue(rec["status"].startswith("error: incomplete read"), rec["status"])
         self.assertNotIn("document_id", rec)
@@ -254,7 +254,7 @@ class Collector(unittest.TestCase):
     def test_crawl_delay_from_robots_lengthens_the_interval(self):
         import urllib.robotparser
 
-        f = PoliteFetcher(CollectorConfig(contact="t@example.invalid", min_interval=0.2, timeout=10))
+        f = PoliteFetcher(CollectorConfig(contact="t@example.invalid", min_interval=0.2, timeout=10, allow_private_addresses=True))
         rp = urllib.robotparser.RobotFileParser()
         rp.parse(["User-agent: *", "Crawl-delay: 1", "Disallow:"])
         f._apply_robots("slow.example", rp)

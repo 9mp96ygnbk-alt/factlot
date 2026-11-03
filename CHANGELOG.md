@@ -141,6 +141,38 @@ from its commit history; nothing was published to npm or PyPI before it.
   could misread (NPV rate, one-time TI allowances, `current_rent_monthly`, the first escalation
   month, hotel `rooms_out_of_order` as off-market room-nights); Gemini definitions spell out
   exclusive bounds and defaults, which its schema subset drops.
+- `calc.irr@2`: on long cash-flow series the NPV near -100% overflows or underflows to infinity
+  or NaN, and `calc.irr@1` bracketed those values and reported spurious roots at -99.99%, -99%
+  and -98% (with a "multiple IRRs" warning). Brackets with a non-finite end are now skipped. A
+  series whose NPV is finite at every grid rate (for example up to 70 periods of flows below
+  $10^12) gives the same result as before.
+
+### Security
+
+From the pre-launch audit ([docs/security/audit-2026-11-03.md](docs/security/audit-2026-11-03.md)):
+
+- Tool input limits in both SDKs: nesting depth 32, 200,000 values, 10,000 items per array,
+  16 MiB per string, checked before schema validation; per-field caps in the input schemas
+  (1,200 IRR cash flows, 10,000 NPV cash flows and WALT leases, 1,200 abated months, ASC 842
+  payments, step-down rows and yield-curve points, 1,000 CAM expense lines, lengths on names,
+  IDs and registry queries). They refuse only inputs far beyond real use; results within them
+  are unchanged.
+- Hosted server: per-IP rate limit on every route (`FACTLOT_RATE_LIMIT_PER_IP_PER_MINUTE`), a
+  per-IP budget for rejected bearer tokens (`FACTLOT_AUTH_FAILURES_PER_IP_PER_MINUTE`, default
+  30), `X-Forwarded-*` trusted only with `FACTLOT_TRUST_PROXY`, a validated Host for the OpenAPI
+  `servers` URL, security headers and `Cache-Control: no-store`, 413 from `Content-Length`, MCP
+  envelope and batch limits, request/header/keep-alive timeouts, 405 with `Allow`, error
+  responses and logs without messages or stacks, and an admin key that must differ from every
+  API key. Startup warns when no key is configured (the server is open).
+- Collector: no requests to loopback, private, link-local (169.254.169.254) or other non-public
+  addresses, including redirect targets and the connected peer; file names from URLs and
+  `Content-Disposition` cannot leave the snapshot directory; downloads are capped at 2 GiB and
+  pages at 32 MiB.
+- Workflows: actions pinned to commit SHAs, explicit least-privilege tokens, no persisted
+  checkout credentials, and the `collect.yml` dispatch input no longer interpolated into a shell.
+- Docker: base image pinned by digest; documented to run `--read-only` with all capabilities
+  dropped.
+- Registry errors no longer include the database path.
 
 ### Fixed
 
@@ -164,7 +196,10 @@ from its commit history; nothing was published to npm or PyPI before it.
   longer passes `parse` or `validate_fact` (re's `$` matched before it), FIPS codes and floor
   numbers accept ASCII digits only, and suite whitespace follows ECMAScript (a leading
   byte-order mark is trimmed). TypeScript IDs are unchanged; new vectors in `spec/vectors`.
-
+- Python raised `ZeroDivisionError` or `decimal.InvalidOperation` where TypeScript returned a
+  value or a `CalcInputError`: NPV and IRR on long series, `round_` of values of 1e26 and above,
+  and debt sizing with a 0% interest-only loan and a DSCR constraint. Python `run_tool` now
+  rejects non-object arguments, and validates the WALT lease `id`, as TypeScript does.
 - Python validates registry tool input before opening the registry, matching TypeScript (found
   by the shared vectors).
 - When two Texas legal holidays fall on the same date, both SDKs keep the first name.

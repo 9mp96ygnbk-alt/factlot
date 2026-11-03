@@ -47,6 +47,7 @@ export const CamReconciliationInput = z.object({
         category: z
           .string()
           .min(1)
+          .max(200)
           .describe(
             'Expense line as named in the operating statement, e.g. "janitorial".',
           ),
@@ -74,6 +75,7 @@ export const CamReconciliationInput = z.object({
       }),
     )
     .min(1)
+    .max(1000)
     .describe("Building operating expense lines for the year."),
   gross_up: z
     .object({

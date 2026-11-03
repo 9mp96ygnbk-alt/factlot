@@ -298,3 +298,16 @@ test("every calculator input field is described for agents", async () => {
   }
   assert.deepEqual(missing, []);
 });
+
+test("irr@2: a long series reports no spurious roots near -100%", () => {
+  // 200 alternating flows: (1 + r)^t underflows to 0 for r near -1 and the NPV there is NaN.
+  // calc.irr@1 bracketed those NaN values and reported roots at -99.99%, -99% and -98%.
+  const flows = Array.from(
+    { length: 200 },
+    (_, i) => (i % 2 ? 1 : -1) * (1 + (i % 7)),
+  );
+  const r = irr({ cash_flows: flows });
+  assert.equal(r.formula.version, 2);
+  assert.ok(r.value.roots.every((x) => x > -0.9));
+  assert.deepEqual(r.warnings, []);
+});

@@ -166,7 +166,8 @@ class Registry:
         if not Path(path).exists():
             raise FileNotFoundError(f"no registry file at {path}")
         reg = cls.__new__(cls)
-        reg.db = sqlite3.connect(f"file:{Path(path).resolve()}?mode=ro", uri=True)
+        # as_uri() percent-encodes the path, so a "?" or "#" in it cannot add URI parameters.
+        reg.db = sqlite3.connect(f"{Path(path).resolve().as_uri()}?mode=ro", uri=True)
         reg.db.row_factory = sqlite3.Row
         return reg
 

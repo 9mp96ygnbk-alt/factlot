@@ -54,7 +54,8 @@ class TesseractOcr:
         self.binary, self.lang, self.extra_args, self.timeout = binary, lang, tuple(extra_args), timeout
 
     def _run(self, image: Path) -> str:
-        cmd = [self.binary, str(image), "stdout"]
+        # An absolute path never starts with "-", so a file name cannot be read as an option.
+        cmd = [self.binary, str(image.resolve()), "stdout"]
         if self.lang:
             cmd += ["-l", self.lang]
         cmd += list(self.extra_args)
@@ -73,8 +74,9 @@ class TesseractOcr:
         texts = []
         with tempfile.TemporaryDirectory(prefix="factlot-ocr-") as tmp:
             for i, image in enumerate(images):
-                suffix = Path(getattr(image, "name", "") or "").suffix or ".png"
-                path = Path(tmp) / f"image-{i}{suffix}"
+                # The embedded image's name comes from the PDF: keep only a known image suffix.
+                suffix = Path(getattr(image, "name", "") or "").suffix.lower()
+                path = Path(tmp) / f"image-{i}{suffix if suffix in _IMAGE_SUFFIXES else '.png'}"
                 path.write_bytes(image.data)
                 texts.append(self._run(path))
         return "\n".join(t for t in texts if t.strip())

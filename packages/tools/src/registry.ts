@@ -50,9 +50,11 @@ function open(): Database {
   };
   try {
     db = new DatabaseSync(path, { readOnly: true });
-  } catch (e) {
+  } catch {
+    // The path and the driver's message stay out of the error: agents and remote callers see
+    // this text, and a filesystem path is server detail they do not need.
     throw new RegistryUnavailableError(
-      `cannot open registry at ${path}: ${(e as Error).message}`,
+      "cannot open the FactLot Registry configured in FACTLOT_REGISTRY_DB",
     );
   }
   dbPath = path;

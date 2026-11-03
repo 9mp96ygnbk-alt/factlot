@@ -145,7 +145,7 @@ export const calculators = {
   },
   irr: {
     id: "calc.irr",
-    version: 1,
+    version: 2,
     title: "Internal rate of return",
     description:
       "Periodic and annualized IRR of periodic cash flows, as decimals (0.085 = 8.5%), solved deterministically by scanning a 1-point grid of per-period rates and bisecting each sign change; reports every root it finds when cash flows have multiple IRRs (two roots within one grid step can be missed). Errors when the flows do not change sign or no root lies between -99.99% and 1000% per period.",

@@ -60,7 +60,24 @@ export function createServer(opts: CreateServerOptions = {}): McpServer {
         annotations: { ...READ_ONLY, title: tool.title },
       },
       (args: unknown): CallToolResult => {
-        const outcome = runTool(tool.name, args);
+        let outcome: ReturnType<typeof runTool>;
+        try {
+          outcome = runTool(tool.name, args);
+        } catch {
+          // A bug, not bad input: report it without the message, which can carry internals.
+          return {
+            isError: true,
+            content: [
+              {
+                type: "text",
+                text: JSON.stringify({
+                  error: "InternalError",
+                  message: "unexpected error",
+                }),
+              },
+            ],
+          };
+        }
         if (outcome.ok) return json(outcome.result);
         return {
           isError: true,
@@ -82,6 +99,7 @@ export function createServer(opts: CreateServerOptions = {}): McpServer {
       inputSchema: {
         query: z
           .string()
+          .max(500)
           .describe(
             "What you are looking for, e.g. 'CAM cap non-cumulative' or 'loan sizing DSCR'.",
           ),
@@ -113,6 +131,7 @@ export function createServer(opts: CreateServerOptions = {}): McpServer {
       inputSchema: {
         id: z
           .string()
+          .max(200)
           .describe(
             "Document id from search, e.g. tool:calc_cam_reconciliation.",
           ),

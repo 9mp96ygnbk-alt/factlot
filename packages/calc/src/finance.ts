@@ -10,16 +10,23 @@ import {
 } from "./core.ts";
 import type { CalcResult } from "./core.ts";
 
-const CashFlows = z
-  .array(z.number().finite())
-  .min(2)
-  .describe(
-    "Periodic cash flows at t = 0, 1, 2, …; negative for outflows (e.g. purchase price at t = 0).",
-  );
+/** Cash-flow caps: 10,000 periods for NPV (linear cost), 1,200 for IRR (100 years monthly; the
+ * root scan evaluates the NPV about 1,100 times plus bisection, so cost grows with the count). */
+export const MAX_NPV_CASH_FLOWS = 10_000;
+export const MAX_IRR_CASH_FLOWS = 1_200;
+
+const cashFlows = (max: number) =>
+  z
+    .array(z.number().finite())
+    .min(2)
+    .max(max)
+    .describe(
+      `Periodic cash flows at t = 0, 1, 2, …; negative for outflows (e.g. purchase price at t = 0). At most ${max}.`,
+    );
 
 export const NpvInput = z.object({
   /** Cash flows at t = 0, 1, 2, ... periods. */
-  cash_flows: CashFlows,
+  cash_flows: cashFlows(MAX_NPV_CASH_FLOWS),
   rate: z
     .number()
     .finite()
@@ -47,7 +54,7 @@ export function npv(raw: NpvInput): CalcResult<{ npv: number }> {
 }
 
 export const IrrInput = z.object({
-  cash_flows: CashFlows,
+  cash_flows: cashFlows(MAX_IRR_CASH_FLOWS),
   periods_per_year: z
     .number()
     .int()
@@ -84,6 +91,9 @@ export function irr(
     let hi = grid[i] as number;
     let fLo = npvAt(flows, lo);
     const fHi = npvAt(flows, hi);
+    // Near -100% a long series underflows (1 + r)^t to 0 and the NPV is ±Infinity or NaN: no
+    // sign to bracket, so no root is reported there (calc.irr@2; @1 reported spurious roots).
+    if (!Number.isFinite(fLo) || !Number.isFinite(fHi)) continue;
     if (fLo === 0) {
       roots.push(lo);
       continue;
@@ -123,7 +133,7 @@ export function irr(
     round(annual, 8),
     `(1 + r)^${input.periods_per_year} − 1 = ${fmtPct(annual, 3)}`,
   );
-  return t.result("calc.irr", 1, {
+  return t.result("calc.irr", 2, {
     irr_periodic: round(periodic, 8),
     irr_annual: round(annual, 8),
     roots: unique.map((r) => round(r, 8)),

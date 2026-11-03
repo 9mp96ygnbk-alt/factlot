@@ -64,6 +64,7 @@ export const LeaseRemeasurementInput = z
         }),
       )
       .min(1)
+      .max(1200)
       .describe(
         "Remaining lease payments after the event, in ascending period order. Periods not listed carry no payment (rent-free).",
       ),

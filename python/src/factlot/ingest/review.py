@@ -98,14 +98,20 @@ class ReviewItem:
                    d.get("decided_by"), d.get("decided_at"))
 
     def describe(self) -> str:
-        """One block of text for the CLI listing."""
+        """One block of text for the CLI listing. Text that came from a document or a queue file
+        is printed with control characters escaped, so it cannot drive the terminal."""
         c = self.candidate
-        lines = [f"{self.id}  {c.predicate}  [{self.status}]",
+        lines = [f"{_safe(self.id)}  {_safe(c.predicate)}  [{self.status}]",
                  f"  value:   {json.dumps(c.value)}",
-                 f"  failed:  {self.check} ({self.reason})",
-                 f"  cited:   {self.title}, page {self.page}" + (f", section {c.section}" if c.section else "")
+                 f"  failed:  {_safe(self.check)} ({_safe(self.reason)})",
+                 f"  cited:   {_safe(self.title)}, page {self.page}" + (f", section {_safe(c.section)}" if c.section else "")
                  + (" (OCR)" if self.ocr else ""),
                  f"  quote:   {c.quote!r}"]
         if self.status != "pending":
-            lines.append(f"  decided: {self.status} by {self.decided_by} at {self.decided_at}")
+            lines.append(f"  decided: {self.status} by {_safe(self.decided_by)} at {_safe(self.decided_at)}")
         return "\n".join(lines)
+
+
+def _safe(text: Any) -> str:
+    """Printable characters as they are; anything else (ESC, CR, BEL, ...) as an escape."""
+    return "".join(ch if ch.isprintable() else repr(ch)[1:-1] for ch in str(text))

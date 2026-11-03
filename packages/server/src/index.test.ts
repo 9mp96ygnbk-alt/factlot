@@ -9,6 +9,7 @@ import { tools } from "@factlot/tools";
 import {
   createFactLotServer,
   REQUEST_LOG_FIELDS,
+  SERVER_TIMEOUTS,
   UsageMeter,
 } from "./index.ts";
 import type { FactLotServerOptions } from "./index.ts";
@@ -124,7 +125,7 @@ test("REST endpoints and errors", async () => {
 });
 
 test("OpenAPI documents point at this server", async () => {
-  const { base, close } = await start();
+  const { base, close } = await start({ trustProxy: true });
   const doc31 = (await (await fetch(`${base}/openapi.json`)).json()) as {
     openapi: string;
     servers: { url: string }[];
@@ -716,4 +717,229 @@ test("request and usage logs carry metadata only: no body, arguments, or results
   for (const f of forbidden)
     assert.ok(!(REQUEST_LOG_FIELDS as readonly string[]).includes(f));
   assert.ok(usageLines.length >= 3);
+});
+
+test("forwarded headers are ignored unless trustProxy is set, and Host is validated", async () => {
+  const { base, close } = await start();
+  try {
+    const doc = (await (
+      await fetch(`${base}/openapi.json`, {
+        headers: {
+          "x-forwarded-proto": "https",
+          "x-forwarded-host": "evil.example",
+        },
+      })
+    ).json()) as { servers: { url: string }[] };
+    assert.equal(doc.servers[0]?.url, base);
+  } finally {
+    await close();
+  }
+  const proxied = await start({ trustProxy: true });
+  try {
+    const doc = (await (
+      await fetch(`${proxied.base}/openapi.json`, {
+        headers: { "x-forwarded-host": "evil.example/x?y=<script>" },
+      })
+    ).json()) as { servers: { url: string }[] };
+    assert.equal(doc.servers[0]?.url, "http://localhost");
+  } finally {
+    await proxied.close();
+  }
+});
+
+test("every response carries security headers and no-store", async () => {
+  const { base, close } = await start();
+  try {
+    for (const r of [
+      await fetch(`${base}/health`),
+      await fetch(`${base}/openapi.json`),
+      await post(`${base}/v1/calc/npv`, { cash_flows: [-1, 2], rate: 0.1 }),
+      await fetch(`${base}/nope`),
+    ]) {
+      assert.equal(r.headers.get("x-content-type-options"), "nosniff");
+      assert.equal(r.headers.get("cache-control"), "no-store");
+      assert.equal(r.headers.get("x-frame-options"), "DENY");
+      assert.match(
+        r.headers.get("content-security-policy") ?? "",
+        /default-src 'none'/,
+      );
+      await r.arrayBuffer();
+    }
+  } finally {
+    await close();
+  }
+});
+
+test("wrong methods get 405 with Allow; unknown routes 404 without echoing long paths", async () => {
+  const { base, close } = await start();
+  try {
+    const put = await fetch(`${base}/health`, { method: "PUT" });
+    assert.equal(put.status, 405);
+    assert.equal(put.headers.get("allow"), "GET, OPTIONS");
+    const get = await fetch(`${base}/v1/calc/irr`);
+    assert.equal(get.status, 405);
+    assert.equal(get.headers.get("allow"), "POST, OPTIONS");
+    const del = await fetch(`${base}/mcp`, { method: "DELETE" });
+    assert.equal(del.status, 405);
+    const long = await fetch(`${base}/${"a".repeat(5000)}`);
+    assert.equal(long.status, 404);
+    const body = (await long.json()) as { message: string };
+    assert.ok(body.message.length < 300);
+  } finally {
+    await close();
+  }
+});
+
+test("per-IP limit applies to every route, before auth", async () => {
+  const { base, close } = await start({
+    rateLimitPerIpPerMinute: 2,
+    apiKeys: [{ key: "k".repeat(24), name: "a" }],
+    now: () => 1_000_000,
+  });
+  try {
+    assert.equal((await fetch(`${base}/health`)).status, 200);
+    assert.equal((await post(`${base}/v1/id/parse`, {})).status, 401);
+    const third = await fetch(`${base}/health`);
+    assert.equal(third.status, 429);
+    assert.ok(Number(third.headers.get("retry-after")) >= 1);
+  } finally {
+    await close();
+  }
+});
+
+test("rejected tokens are limited per IP, on tool routes and /v1/usage", async () => {
+  const good = "g".repeat(24);
+  const { base, close } = await start({
+    apiKeys: [{ key: good, name: "a" }],
+    adminKey: "a".repeat(24),
+    authFailuresPerIpPerMinute: 3,
+    now: () => 1_000_000,
+  });
+  const auth = (k: string) => ({ authorization: `Bearer ${k}` });
+  try {
+    assert.equal(
+      (await post(`${base}/v1/id/parse`, { urn: "x" }, auth(good))).status,
+      400,
+    );
+    for (let i = 0; i < 2; i++)
+      assert.equal(
+        (await post(`${base}/v1/id/parse`, {}, auth(`wrong${i}`))).status,
+        401,
+      );
+    assert.equal(
+      (await fetch(`${base}/v1/usage`, { headers: auth("nope") })).status,
+      401,
+    );
+    // Budget spent: even the right key waits, so guessing gets no answer.
+    const blocked = await post(`${base}/v1/id/parse`, { urn: "x" }, auth(good));
+    assert.equal(blocked.status, 429);
+    const mcp = await post(`${base}/mcp`, {}, auth(good));
+    assert.equal(mcp.status, 429);
+    assert.equal(((await mcp.json()) as { jsonrpc: string }).jsonrpc, "2.0");
+  } finally {
+    await close();
+  }
+});
+
+test("oversized and over-deep bodies are refused before any tool runs", async () => {
+  const { base, close } = await start();
+  try {
+    const declared = await fetch(`${base}/v1/calc/npv`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "[" + "1,".repeat(600_000) + "1]",
+    });
+    assert.equal(declared.status, 413);
+    assert.equal(
+      ((await declared.json()) as { error: string }).error,
+      "PayloadTooLarge",
+    );
+
+    const huge = await post(`${base}/v1/calc/irr`, {
+      cash_flows: [-1, ...new Array(20_000).fill(1)],
+    });
+    assert.equal(huge.status, 400);
+    assert.equal(
+      ((await huge.json()) as { error: string }).error,
+      "CalcInputError",
+    );
+
+    let deep: unknown = 1;
+    for (let i = 0; i < 100; i++) deep = [deep];
+    const mcpDeep = await post(`${base}/mcp`, {
+      jsonrpc: "2.0",
+      id: 1,
+      method: "tools/call",
+      params: { name: "fact_validate", arguments: { fact: { v: deep } } },
+    });
+    assert.equal(mcpDeep.status, 400);
+    assert.match(
+      ((await mcpDeep.json()) as { error: { message: string } }).error.message,
+      /nested deeper/,
+    );
+
+    const batch = await post(
+      `${base}/mcp`,
+      Array.from({ length: 21 }, (_, i) => ({
+        jsonrpc: "2.0",
+        id: i,
+        method: "tools/list",
+      })),
+      { accept: "application/json, text/event-stream" },
+    );
+    assert.equal(batch.status, 400);
+    await batch.arrayBuffer();
+  } finally {
+    await close();
+  }
+});
+
+test("the Node server sets request, header and keep-alive timeouts", () => {
+  const server = createFactLotServer();
+  assert.equal(server.requestTimeout, SERVER_TIMEOUTS.requestTimeoutMs);
+  assert.equal(server.headersTimeout, SERVER_TIMEOUTS.headersTimeoutMs);
+  assert.equal(server.keepAliveTimeout, SERVER_TIMEOUTS.keepAliveTimeoutMs);
+});
+
+test("unexpected errors answer 500 (REST) or InternalError (MCP) without detail, and log only the name", async () => {
+  const lines: string[] = [];
+  const spec = tools.find((t) => t.name === "calc_npv");
+  assert.ok(spec);
+  const original = spec.run;
+  spec.run = () => {
+    throw new TypeError("secret /internal/path detail");
+  };
+  const { base, close } = await start({ errorSink: (l) => lines.push(l) });
+  try {
+    const r = await post(`${base}/v1/calc/npv`, {
+      cash_flows: [-1, 2],
+      rate: 0.1,
+    });
+    assert.equal(r.status, 500);
+    assert.doesNotMatch(await r.text(), /secret|internal/);
+    assert.equal(lines.length, 1);
+    assert.deepEqual(Object.keys(JSON.parse(lines[0] as string)), [
+      "time",
+      "msg",
+      "method",
+      "path",
+      "error",
+    ]);
+    assert.doesNotMatch(lines[0] as string, /secret|internal/);
+
+    const client = new Client({ name: "err-test", version: "0.0.0" });
+    await client.connect(
+      new StreamableHTTPClientTransport(new URL(`${base}/mcp`)),
+    );
+    const m = (await client.callTool({
+      name: "calc_npv",
+      arguments: { cash_flows: [-1, 2], rate: 0.1 },
+    })) as { isError?: boolean; content: { text: string }[] };
+    assert.equal(m.isError, true);
+    assert.doesNotMatch(m.content[0]?.text ?? "", /secret|internal/);
+    await client.close();
+  } finally {
+    spec.run = original;
+    await close();
+  }
 });
