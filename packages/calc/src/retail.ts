@@ -12,10 +12,10 @@ import type { CalcResult } from "./core.ts";
 
 export const PercentageRentInput = z.object({
   gross_sales: NonNegMoney.describe(
-    "Gross sales reported for the lease year (or partial year).",
+    "Gross sales reported for the lease year (or partial year), USD.",
   ),
   sales_exclusions: NonNegMoney.default(0).describe(
-    "Sales excluded by the lease (returns, sales tax, gift cards, employee sales, …).",
+    "Sales excluded by the lease (returns, sales tax, gift cards, employee sales, …), USD.",
   ),
   rate: z
     .number()
@@ -23,7 +23,7 @@ export const PercentageRentInput = z.object({
     .lt(1)
     .describe("Percentage rent rate, e.g. 0.06 for 6%."),
   base_rent_annual: NonNegMoney.describe(
-    "Annual base rent; used for the natural breakpoint.",
+    "Annual base rent, USD per year (a full lease year, even for a partial period); used for the natural breakpoint.",
   ),
   breakpoint: z
     .discriminatedUnion("type", [
@@ -52,7 +52,7 @@ export const PercentageRentInput = z.object({
       "Fraction of a full lease year covered (e.g. 0.5 for a six-month partial year). Prorates the breakpoint.",
     ),
   percentage_rent_paid: NonNegMoney.default(0).describe(
-    "Percentage rent already paid during the period.",
+    "Percentage rent already paid during the period, USD.",
   ),
 });
 export type PercentageRentInput = z.input<typeof PercentageRentInput>;

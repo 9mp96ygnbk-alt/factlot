@@ -34,10 +34,10 @@ export const RenewVsRelocateInput = z.object({
     .lt(1)
     .default(0.08)
     .describe(
-      "Annual discount rate applied to both cases (monthly rate = annual ÷ 12).",
+      "Annual discount rate as a decimal, e.g. 0.08, applied to both cases (monthly rate = annual ÷ 12).",
     ),
   current_rent_monthly: NonNegMoney.default(0).describe(
-    "Monthly rent under the existing lease, USD. Prices the double-rent overlap in the relocate case.",
+    "Total monthly rent under the existing lease, USD per month for the whole premises (not $/SF). Prices the double-rent overlap in the relocate case.",
   ),
   renew: z
     .object({

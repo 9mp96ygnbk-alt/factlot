@@ -141,7 +141,7 @@ export const CamReconciliationInput = z.object({
       "Cap on the tenant's share of controllable expenses. Omit if the lease has no cap.",
     ),
   estimates_paid: NonNegMoney.default(0).describe(
-    "Estimated CAM payments the tenant made during the year.",
+    "Estimated CAM payments the tenant made during the year, USD (total for the year, not monthly).",
   ),
 });
 export type CamReconciliationInput = z.input<typeof CamReconciliationInput>;

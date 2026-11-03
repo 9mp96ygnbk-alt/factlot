@@ -23,7 +23,7 @@ export const ProposalComparisonInput = z.object({
     .lt(1)
     .default(0.08)
     .describe(
-      "Annual discount rate applied to every proposal (monthly rate = annual ÷ 12).",
+      "Annual discount rate as a decimal, e.g. 0.08, applied to every proposal (monthly rate = annual ÷ 12).",
     ),
   proposals: z
     .array(
@@ -36,7 +36,7 @@ export const ProposalComparisonInput = z.object({
           "Base-rent terms of this proposal (same input as calc_rent_schedule).",
         ),
         ti_allowance_psf: NonNegMoney.default(0).describe(
-          "TI allowance paid by landlord, $/SF.",
+          "TI allowance paid by the landlord, USD per SF, once at commencement (not per year).",
         ),
         other_concessions: NonNegMoney.default(0).describe(
           "Other cash concessions to the tenant at commencement (moving allowance, buyout), USD.",

@@ -179,6 +179,17 @@ export function toGeminiSchema(schema: unknown): Json {
       }
       delete out.format;
     }
+    // Gemini keeps only inclusive bounds and drops defaults, so say what was lost in words:
+    // otherwise a rate "< 1" reads as "maximum 1" and the model never learns a default.
+    const notes: string[] = [];
+    if (n.exclusiveMinimum === true && typeof n.minimum === "number")
+      notes.push(`Must be greater than ${n.minimum}.`);
+    if (n.exclusiveMaximum === true && typeof n.maximum === "number")
+      notes.push(`Must be less than ${n.maximum}.`);
+    if (n.default !== undefined)
+      notes.push(`Default: ${JSON.stringify(n.default)}.`);
+    if (notes.length)
+      out.description = [out.description, ...notes].filter(Boolean).join(" ");
     if (out.type === "object" && !out.properties) {
       // Free-form objects (e.g. fact_validate.fact) need at least a type in Gemini.
       out.description = [out.description, "Free-form JSON object."]

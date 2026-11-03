@@ -69,7 +69,7 @@ export const LeaseVsOwnInput = z
       .min(0)
       .lt(1)
       .describe(
-        "Annual discount rate applied to both cases' year-end cash flows (year 0 = closing / move-in).",
+        "Annual discount rate as a decimal, e.g. 0.08, applied to both cases' year-end cash flows (year 0 = closing / move-in).",
       ),
     lease: z
       .object({

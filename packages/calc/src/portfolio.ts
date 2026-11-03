@@ -30,7 +30,7 @@ export const WaltInput = z.object({
           .positive()
           .optional()
           .describe(
-            "Current annual rent, USD (required when weight_by is rent).",
+            "Current annual rent, USD per year (required when weight_by is rent).",
           ),
       }),
     )

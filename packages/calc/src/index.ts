@@ -139,7 +139,7 @@ export const calculators = {
     version: 1,
     title: "Net present value",
     description:
-      "NPV of periodic cash flows (t = 0, 1, 2, ...) at a per-period discount rate.",
+      "NPV of periodic cash flows (t = 0, 1, 2, ...; the t = 0 flow is not discounted) at a per-period discount rate given as a decimal.",
     input: NpvInput,
     run: npv,
   },
@@ -148,7 +148,7 @@ export const calculators = {
     version: 1,
     title: "Internal rate of return",
     description:
-      "Periodic and annualized IRR of periodic cash flows, solved deterministically; reports every root when cash flows have multiple IRRs.",
+      "Periodic and annualized IRR of periodic cash flows, as decimals (0.085 = 8.5%), solved deterministically; reports every root when cash flows have multiple IRRs. Errors when the flows do not change sign or no root lies between -99.99% and 1000% per period.",
     input: IrrInput,
     run: irr,
   },
