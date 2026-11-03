@@ -46,7 +46,7 @@ cleared.
 **Registry**
 
 - [ ] C1 Parcel lineage: record splits and merges as relationships, once real rolls show how each county reports them.
-- [x] C2 ~~Owner matching beyond exact names: fuzzy candidates plus a human review queue. Inferred links stay labelled with confidence.~~ Done 2026-11-02: `queue_fuzzy_owner_matches()` (score = 0.7 × sequence ratio + 0.3 × distinctive-token overlap, threshold 0.85, top 5), `review_queue()`, `decide_owner_match()`; nothing links without an accept, accepted links carry confidence ≤ 0.8 and the reviewer's name.
+- [x] C2 ~~Owner matching beyond exact names: fuzzy candidates plus a human review queue. Inferred links stay labelled with confidence.~~ Done 2026-11-02: `queue_fuzzy_owner_matches()` (score = 0.7 × sequence ratio + 0.3 × distinctive-token overlap, threshold 0.85, top 5), `review_queue()`, `decide_owner_match()`; nothing links without an accept, accepted links carry confidence ≤ 0.8 and the reviewer's name. On the real Harris + Dallas registry: 15,888 unmatched owner names considered, 5,195 got candidates, 6,149 review rows queued in 20 min (the queue shows why review is needed: "10850 HARRY HINES LLC" scores 0.97 against "10815 HARRY HINES, LLC").
 - [ ] C3 Beneficial ownership (managing members, registered agents). Texas SOS search is paid, so look for $0 routes such as Comptroller public information reports or records requests.
 - [ ] C4 Debt and loan data (lender, maturity): scope v2, after ownership.
 - [ ] C5 Change webhooks (ownership or value changed), and serving the built registry from `@factlot/server` (`FACTLOT_REGISTRY_DB`) in the hosted deployment.

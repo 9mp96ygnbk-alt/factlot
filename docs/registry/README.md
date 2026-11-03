@@ -100,6 +100,12 @@ The candidate generator is deterministic and uses the standard library only:
   suffix such as INC (0.93), while excluding series entities ("ACME PROPERTIES II LLC", 0.80),
   "ACME HOLDINGS LLC" (0.61) and anything sharing only one distinctive token (≈0.4). A lower
   threshold or higher limit only adds pairs; rejected pairs stay rejected.
+- **On the real data** (Harris + Dallas owners against 3.27 million Texas entities, 2026-11-02):
+  15,888 unmatched owner names considered, 5,195 with at least one candidate, 6,149 review rows
+  queued, in 20 minutes (the token index over 3.27 million names took 113 s to build). The queue
+  shows both the wins ("1012 KATY STREET PPTY LLC" → "1012 KATY STREET PROPERTY LLC", 0.87) and
+  why a person decides: "10850 HARRY HINES LLC" scores 0.97 against "10815 HARRY HINES, LLC", a
+  different building.
 
 ```python
 reg.link_owners()                                # exact matches, plus earlier accepted decisions
