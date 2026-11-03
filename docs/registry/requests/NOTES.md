@@ -114,7 +114,7 @@ No memo, letter, request or report has been written; the forms the brief names a
   by the public body."
 
 - Recipient: <https://www.cookcountyassessoril.gov/foia-freedom-information>, "CCAO Freedom of
-  Information Department", FOIA Officer Michael Beaver; "CCAO Freedom of Information Officer, 118
+  Information Department", FOIA Officer (named on the page; not copied); "CCAO Freedom of Information Officer, 118
   North Clark Street, Chicago, Illinois 60602"; fax (312) 603-3616; the preferred route is the
   GovQA online form linked from that page. Fees cited there: Property Tax Code 14-30 (35 cents per
   page) and 9-20 (reasonable fee for property record cards).
@@ -302,11 +302,11 @@ No memo, letter, request or report has been written; the forms the brief names a
   the public should contact the agency, department or entity that may have the records sought."
   Tax Administration is not in the page's agency table, so the page's fallback applies: "Requests
   for records of agencies or entities not listed above should use the Countywide FOIA Form or be
-  directed to: Office of Public Affairs, Countywide FOIA Officer: Molly Shannon, 12000 Government
+  directed to: Office of Public Affairs, Countywide FOIA Officer: [name omitted], 12000 Government
   Center Parkway, Suite 551, Fairfax, VA 22035, 703-324-7052, TTY 711, Email:
   FOIA@fairfaxcounty.gov". Department of Tax Administration contacts
-  (<https://www.fairfaxcounty.gov/taxes/contact-us>): 703-222-8234; Director Jay Doshi; Real
-  Estate Assessments deputy director Vladimir Jadrijevic; website questions
+  (<https://www.fairfaxcounty.gov/taxes/contact-us>): 703-222-8234; the Director and the Real
+  Estate Assessments deputy director (named on the page; not copied); website questions
   `DTA-Tech@fairfaxcounty.gov`.
 
 ## ca-alameda-assessor, ca-riverside-assessor, ca-san-bernardino-assessor
