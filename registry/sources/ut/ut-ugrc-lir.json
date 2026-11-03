@@ -19,7 +19,31 @@
       ],
       "files": [
         "https://opendata.gis.utah.gov/api/download/v1/items/6f900727e16d4ce1a83f2a1ec1d82e60/csv?layers=0",
-        "https://opendata.gis.utah.gov/api/download/v1/items/69477c1143924bc9990cdb930b033fb5/csv?layers=0"
+        "https://opendata.gis.utah.gov/api/download/v1/items/69477c1143924bc9990cdb930b033fb5/csv?layers=0",
+        "https://opendata.gis.utah.gov/api/download/v1/items/fcd55deadaed4fa4bf0cb119b8631b12/csv?layers=0",
+        "https://opendata.gis.utah.gov/api/download/v1/items/bfda12ed550a4586916faf0db3e2a8a0/csv?layers=0",
+        "https://opendata.gis.utah.gov/api/download/v1/items/c3f1604c134043348437d8cd04b9afb2/csv?layers=0",
+        "https://opendata.gis.utah.gov/api/download/v1/items/a1e2f3dc1619413f9ba98283940413a9/csv?layers=0",
+        "https://opendata.gis.utah.gov/api/download/v1/items/a6e9c713822249129e060c4a26e1fb85/csv?layers=0",
+        "https://opendata.gis.utah.gov/api/download/v1/items/581761d051924e97afdd67715f917d83/csv?layers=0",
+        "https://opendata.gis.utah.gov/api/download/v1/items/0d2f76daf7d540edbefea6df6d7345d8/csv?layers=0",
+        "https://opendata.gis.utah.gov/api/download/v1/items/b99abea67a144872bb16109f047b447c/csv?layers=0",
+        "https://opendata.gis.utah.gov/api/download/v1/items/555d3282b06d44a1a1a2fb7571e200a1/csv?layers=0",
+        "https://opendata.gis.utah.gov/api/download/v1/items/58eea1dc738f4c389890cf17effd10bf/csv?layers=0",
+        "https://opendata.gis.utah.gov/api/download/v1/items/957c4cf3469040a996a8dc34eca0a49a/csv?layers=0",
+        "https://opendata.gis.utah.gov/api/download/v1/items/ec382a8a177d4509867d8f920baa1237/csv?layers=0",
+        "https://opendata.gis.utah.gov/api/download/v1/items/c42241c8c58b425a8a971b4772dbcf61/csv?layers=0",
+        "https://opendata.gis.utah.gov/api/download/v1/items/d75188a6edcc4af2a128001c89522b32/csv?layers=0",
+        "https://opendata.gis.utah.gov/api/download/v1/items/d4b01011ef674732a8787825a14c1a61/csv?layers=0",
+        "https://opendata.gis.utah.gov/api/download/v1/items/33e4b5432ba641de92a9e9446ca72d18/csv?layers=0",
+        "https://opendata.gis.utah.gov/api/download/v1/items/ed39f70f6c054ccf85a1e6947b52fec2/csv?layers=0",
+        "https://opendata.gis.utah.gov/api/download/v1/items/517326aa554244baabee9e1083086278/csv?layers=0",
+        "https://opendata.gis.utah.gov/api/download/v1/items/7e7839f486d14ff681a8755009d9e2b1/csv?layers=0",
+        "https://opendata.gis.utah.gov/api/download/v1/items/8d60384263fc4335a955a042091f3d89/csv?layers=0",
+        "https://opendata.gis.utah.gov/api/download/v1/items/f6e1e6e25c304d31948b896d1ca8b980/csv?layers=0",
+        "https://opendata.gis.utah.gov/api/download/v1/items/3685a5539be649079d6d4d3f229972c4/csv?layers=0",
+        "https://opendata.gis.utah.gov/api/download/v1/items/260da57dd7694c70bd795a6f1457dc12/csv?layers=0",
+        "https://opendata.gis.utah.gov/api/download/v1/items/9d7e4ec3b1a64f6d8b5e7ad76339e703/csv?layers=0"
       ],
       "verified": true,
       "terms_url": "https://gis.utah.gov/products/sgid/cadastre/parcels/",
@@ -27,7 +51,7 @@
       "ai_use": "Not addressed by the publisher (CC BY 4.0 does not restrict it)",
       "redistribution": "Permitted (CC BY 4.0); attribution: State of Utah, SGID",
       "reviewed": "2026-11-03",
-      "notes": "Statewide source: one review covers all 29 counties' LIR layers (Parcels_<County>_LIR on services1.arcgis.com/99lidPhWCzftIe9K); this config lists the two Tier 2 counties, Salt Lake (item 6f900727..., 399,432 features, CSV about 164 MB) and Utah (item 69477c11..., 289,858 features). Add other counties by item id (serviceItemId of the layer). The Hub download API (opendata.gis.utah.gov/api/download/v1/items/<id>/csv?layers=0) answers 302 to services1.arcgis.com/.../replicafilescache/<name>.csv then 302 to a signed Azure blob; it honours Range requests (the review used 30 MB and 25 MB prefixes). The CSV header is the field aliases ('Parcel ID', 'Property Class'); the feature service uses field names. The LIR schema has NO owner column. The layers are updated by the counties yearly or more often (CURRENT_ASOF 2026-09-29 for Salt Lake, 2026-09-30 for Utah County at review). robots.txt: gis.utah.gov 'Allow: *' Crawl-delay 1; opendata.gis.utah.gov Crawl-delay 60, disallows /sites/ /admin/ /sessions/ /groups/ /people/ /workspace/ (not the download API); services1.arcgis.com has no robots.txt (HTTP 403 'Invalid URL'). Full files exceed the 50 MB review limit, so no full snapshot was taken; the weekly workflow archives them."
+      "notes": "Statewide source: one review covers all 29 counties' LIR layers (Parcels_<County>_LIR on services1.arcgis.com/99lidPhWCzftIe9K). This config lists 26 county files: the two Tier 2 counties first, Salt Lake (item 6f900727..., 399,432 features, CSV about 164 MB) and Utah (item 69477c11..., 289,858 features), then, from the statewide extension of 2026-11-03, 24 more counties alphabetically by layer name (Beaver to Weber), each the Hub CSV of the layer's serviceItemId. Left out: Carbon (its own class vocabulary with no published definitions; the adapter does not map it), Emery and San Juan (no property class: every row Unknown or blank). Box Elder's layer is dated 2020-07-17 (CURRENT_ASOF). The Hub download API (opendata.gis.utah.gov/api/download/v1/items/<id>/csv?layers=0) answers 302 to services1.arcgis.com/.../replicafilescache/<name>.csv then 302 to a signed Azure blob; it honours Range requests (the review used 30 MB and 25 MB prefixes). The CSV header is the field aliases ('Parcel ID', 'Property Class'); the feature service uses field names. The LIR schema has NO owner column. The layers are updated by the counties yearly or more often (CURRENT_ASOF 2026-09-29 for Salt Lake, 2026-09-30 for Utah County at review). robots.txt: gis.utah.gov 'Allow: *' Crawl-delay 1; opendata.gis.utah.gov Crawl-delay 60, disallows /sites/ /admin/ /sessions/ /groups/ /people/ /workspace/ (not the download API); services1.arcgis.com has no robots.txt (HTTP 403 'Invalid URL'). Full files exceed the 50 MB review limit, so no full snapshot was taken; the weekly workflow archives them."
     }
   ]
 }

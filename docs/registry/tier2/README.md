@@ -75,10 +75,29 @@ and 1,305,836 Connecticut entities. Natural-person owners are not stored.
 `link_owners()` made 1,926 current ownership links, all to Connecticut entities because that is the
 only entity registry loaded; owner linking for the other states waits on their entity registers.
 
-Statewide sources found along the way cover far more than the 61 counties: Wisconsin (72
-counties), Utah (29), North Carolina OneMap (100, county use codes to map), New York ORPTS (every
-county outside New York City), Maryland SDAT (24 jurisdictions, no owners), MassGIS (351 towns),
-and the Tennessee Comptroller (86 of 95 counties, not yet reviewed in full).
+Statewide sources found along the way cover far more than the 61 counties. Five of them, already
+verified, were **extended statewide on 2026-11-03** (configuration, adapter fixes and tests; no new
+terms review, since each licence covers the whole state). Each review record has a "Statewide
+extension (2026-11-03)" section with the county list cited from the publisher's own data, the URL
+checks (one small request per new file) and the publisher's counts; the files are archived by the next
+weekly collector run and are not loaded yet. Counts are in-scope commercial parcels (`B`, `F1`, `F2`)
+from the publishers' query services.
+
+| Source                  | Files in config                               | Counties added                                                      | In-scope (publisher's counts)                                                 |
+| ----------------------- | --------------------------------------------- | ------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `ny-orpts-rolls`        | 57 (one per county outside New York City)     | 52                                                                  | 275,995 statewide; 150,008 in the 52 new counties                             |
+| `ma-massgis-parcels`    | 350 town files (every town but Boston)        | 174 towns in the other 10 counties, incl. Chelsea, Revere, Winthrop | no query service; 1,015,459 assessor records (all classes) in the added towns |
+| `ut-ugrc-lir`           | 26 county layers                              | 24 (Carbon, Emery and San Juan left out: no mappable class)         | 95,174 rows; 31,855 distinct parcels in the 24 new counties                   |
+| `wi-statewide-parcels`  | 130 pages (all 72 counties)                   | 71                                                                  | 185,754 parcels statewide; 169,174 in the 71 new counties                     |
+| `md-sdat-real-property` | 24 (every jurisdiction, incl. Baltimore City) | 21                                                                  | 109,255 accounts statewide; 70,158 in the 21 new jurisdictions                |
+
+Adapter fixes made along the way: Wisconsin takes the county from `CONAME` (not the contributing
+county's `PARCELFIPS`, which misfiled Appleton and Menasha parcels in Calumet and Winnebago), escapes
+punctuation in parcel ids (74 Brown, Vilas, Kewaunee and Oneida pairs would have merged) and
+county-qualifies its accounts; Utah escapes punctuation in parcel ids (Sevier, Kane) and its command
+line no longer retires parcels by default; MassGIS covers all 350 towns and refuses Boston. Still
+statewide but not extended: North Carolina OneMap (100 counties, county use codes to map) and the
+Tennessee Comptroller (86 of 95 counties, not yet reviewed in full).
 
 **Licence points for the founder** (also in each record): MassGIS asks that its data not be
 redistributed "for a fee beyond reproduction costs"; the Portland metro RLIS data is ODbL

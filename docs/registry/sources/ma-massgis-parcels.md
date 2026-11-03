@@ -1,4 +1,4 @@
-# ma-massgis-parcels: MassGIS Level 3 assessors' parcels, Assess table (Middlesex, Worcester, Essex, Norfolk)
+# ma-massgis-parcels: MassGIS Level 3 assessors' parcels, Assess table (every town but Boston)
 
 Review record for the source `ma-massgis-parcels` (data policy §5). Reviewed 2026-11-03. Machine-readable
 copy: [`registry/sources/ma/ma-massgis-parcels.json`](../../../registry/sources/ma/ma-massgis-parcels.json).
@@ -9,8 +9,8 @@ tests: `python/tests/test_adapter_ma_massgis.py`.
 25009, Norfolk 25021: 176 municipalities, 54 + 60 + 34 + 28). **Owner names are present** (`OWNER1`,
 with the owner's mailing address). The same MassGIS release covers the other 175 towns, including
 Suffolk County's Boston, Chelsea, Revere and Winthrop; Boston keeps its own source
-([ma-boston-assessing](ma-boston-assessing.md)) and the other towns can be added by extending
-`TOWN_COUNTY` in the adapter and the file list in the config.
+([ma-boston-assessing](ma-boston-assessing.md)). Since the statewide extension of 2026-11-03 the config
+lists all 350 towns except Boston (see that section).
 
 ## Publisher and URLs
 
@@ -340,10 +340,253 @@ PYTHONPATH=python/src python3 -m factlot.registry.adapters.ma_massgis <town zip>
 | Worcester (M348)       | 027    | 2025-01-01 | 47,675  | 4,038 | `8f92b7d358cd90dc` |
 | Wrentham (M350)        | 021    | 2025-01-01 | 4,872   | 218   | `8c0165aa6dec98dc` |
 
+## Statewide extension (2026-11-03)
+
+The licence (the public-domain statement in every town's layer metadata) is the same for every town, so
+the extension is configuration, adapter generalisation and testing. The config now lists **350 town
+files**, every municipality but Boston, in MassGIS town-id order (`M001` Abington to `M351` Yarmouth): the
+176 Tier 2 towns and **174 added towns** in the other ten counties, including Suffolk County's Chelsea
+(`M057`), Revere (`M248`) and Winthrop (`M346`).
+
+- **Town list, from the publisher's bucket listing.** `?list-type=2&prefix=shapefiles/l3parcels/L3_SHP_M` on
+  the public bucket (one page, `IsTruncated` false) lists exactly 351 zips, one for each town id 1 to 351,
+  934,157,232 bytes in all (dates 2021-09-08 to 2026-10-30). The 350 files in the config are 903,134,135
+  bytes; the 174 added are 388,562,456.
+- **Town to county, from the publisher's town layer.** MassGIS's `shapefiles/state/towns.zip` (2,031,500
+  bytes, downloaded once) holds `TOWNS_POLYM.dbf`: 351 rows with `TOWN_ID`, `TOWN` and `FIPS_STCO`. Its
+  names match every bucket file name, and its counties match all 176 entries of the old `TOWN_COUNTY`.
+  `TOWN_COUNTY` now holds all 350 towns from that table; Boston (35) is in `EXCLUDED_TOWNS`, and the
+  adapter raises an error for a Boston file (even with `--county-fips`), so Boston is never loaded twice.
+- **Layout and codes, from the files themselves (ranged reads, no full download).** For each added town:
+  one `Range: bytes=-65536` request for the zip's central directory, one ranged read of the `M###UC_LUT`
+  use-code table, and one ranged read of the first 48 KB of the `M###Assess` table (its dBase header and
+  first records). All 174 answered HTTP 206. Every town has one Assess table with the same 37 fields as the
+  Tier 2 towns, a `TOWN_ID` equal to its file's id, and a use-code table (`TOWN_ID`, `USE_CODE`,
+  `USE_DESC`) whose local codes are the three-digit DOR code plus a local character, as the adapter
+  expects; the DOR rows (`TOWN_ID` 0) are the same statewide table. Fiscal years in the Assess file names:
+  FY2026 109 towns, FY2027 30, FY2025 26, FY2024 5, FY2022 2; Chatham (`M055`, FY2018) and Pelham (`M230`,
+  FY2019) are 2021 files whose table names carry no year. No town needed a mapping change. A few local
+  codes sit outside the DOR scheme and stay out of scope: `110` in eleven towns (trailer or mobile-home
+  park in most; "APT 4-8 RES" in Middleborough, "Residence, multiunit" in Lanesborough and North Adams),
+  `109C` (multiple houses; "Multiple Commercial Apartments on one parcel" in Stockbridge), `1132` "MULTI USE
+  COMMERCIAL" in Dennis; and one is inside it: Abington's `302M` "Mixed Use - Store with Single Family
+  Home" loads as `F1` (DOR 302, inns and resorts).
+- **URL check.** The ranged reads above are the check: every added file answered (206, with a
+  `Content-Range` total equal to the listed size), through the collector's `PoliteFetcher` (user agent;
+  the S3 endpoint answers `/robots.txt` with 403, which the collector reads as no rules; 2-second
+  interval). 523 ranged requests read 21.9 MB in all; no file was read in full.
+- **Counts.** The bucket offers no query service, so no in-scope count can be had without the files. The
+  Assess tables' dBase headers give the record counts (parcels and condominium units, all classes):
+  **1,015,459 records in the 174 added towns**. In-scope counts come with the first full load.
+
+| County (FIPS)      | Towns in config | Towns added |     Bytes added | Assessor records added |
+| ------------------ | --------------: | ----------: | --------------: | ---------------------: |
+| Barnstable (25001) |              15 |          15 |      72,733,196 |                182,804 |
+| Berkshire (25003)  |              32 |          32 |      31,479,849 |                 76,063 |
+| Bristol (25005)    |              20 |          20 |      74,783,456 |                202,894 |
+| Dukes (25007)      |               7 |           7 |      12,447,520 |                 21,889 |
+| Essex (25009)      |              34 |           0 |               0 |                      0 |
+| Franklin (25011)   |              26 |          26 |      20,768,455 |                 42,341 |
+| Hampden (25013)    |              23 |          23 |      52,887,797 |                165,449 |
+| Hampshire (25015)  |              20 |          20 |      24,437,359 |                 65,702 |
+| Middlesex (25017)  |              54 |           0 |               0 |                      0 |
+| Nantucket (25019)  |               1 |           1 |       3,854,563 |                 14,367 |
+| Norfolk (25021)    |              28 |           0 |               0 |                      0 |
+| Plymouth (25023)   |              27 |          27 |      88,165,580 |                215,720 |
+| Suffolk (25025)    |               3 |           3 |       7,004,681 |                 28,230 |
+| Worcester (25027)  |              60 |           0 |               0 |                      0 |
+| **All**            |         **350** |     **174** | **388,562,456** |          **1,015,459** |
+
+- **Multi-file loading.** Each town file is loaded without `--full-roll` (the adapter's default), so no
+  town retires another's parcels.
+- **Tests added** (`python/tests/test_adapter_ma_massgis.py`): the table has all 350 towns and the 14
+  counties' town counts; sample towns in every county map to the right FIPS (Chelsea, Revere, Winthrop to
+  25025); a Boston file is refused; Chelsea and Springfield files load with their counties.
+
+Added towns (bucket date, Assess member, dBase record count):
+
+| Town (MassGIS id)        | County     | File bytes | Bucket date | Assess table               | Records |
+| ------------------------ | ---------- | ---------: | ----------- | -------------------------- | ------: |
+| Abington (M001)          | Plymouth   |  1,655,640 | 2026-06-25  | `M001Assess_CY26_FY26.dbf` |   5,877 |
+| Acushnet (M003)          | Bristol    |  2,139,339 | 2026-08-27  | `M003Assess_CY26_FY27.dbf` |   4,685 |
+| Adams (M004)             | Berkshire  |  1,200,061 | 2026-06-25  | `M004Assess_CY26_FY26.dbf` |   3,654 |
+| Agawam (M005)            | Hampden    |  3,558,864 | 2026-05-22  | `M005Assess_CY26_FY26.dbf` |  11,589 |
+| Alford (M006)            | Berkshire  |    297,883 | 2026-07-22  | `M006Assess_CY26_FY27.dbf` |     537 |
+| Amherst (M008)           | Hampshire  |  3,612,549 | 2026-05-22  | `M008Assess_CY26_FY26.dbf` |   7,317 |
+| Ashfield (M013)          | Franklin   |    835,381 | 2025-03-25  | `M013Assess_CY25_FY24.dbf` |   1,334 |
+| Attleboro (M016)         | Bristol    |  5,916,622 | 2026-07-22  | `M016Assess_CY26_FY26.dbf` |  15,875 |
+| Barnstable (M020)        | Barnstable | 10,526,434 | 2026-03-31  | `M020Assess_CY26_FY26.dbf` |  29,262 |
+| Becket (M022)            | Berkshire  |  1,720,424 | 2025-08-19  | `M022Assess_CY25_FY26.dbf` |   4,064 |
+| Belchertown (M024)       | Hampshire  |  2,510,215 | 2026-01-29  | `M024Assess_CY26_FY26.dbf` |   6,802 |
+| Berkley (M027)           | Bristol    |  1,762,089 | 2025-12-24  | `M027Assess_CY25_FY26.dbf` |   2,920 |
+| Bernardston (M029)       | Franklin   |    619,724 | 2026-06-25  | `M029Assess_CY26_FY26.dbf` |   1,365 |
+| Blandford (M033)         | Hampden    |    647,496 | 2026-07-22  | `M033Assess_CY26_FY27.dbf` |   1,156 |
+| Bourne (M036)            | Barnstable |  4,059,772 | 2025-03-25  | `M036Assess_CY24_FY24.dbf` |  11,879 |
+| Brewster (M041)          | Barnstable |  5,103,629 | 2026-10-30  | `M041Assess_CY26_FY27.dbf` |   9,069 |
+| Bridgewater (M042)       | Plymouth   |  3,706,755 | 2026-05-22  | `M042Assess_CY26_FY26.dbf` |   9,038 |
+| Brimfield (M043)         | Hampden    |  1,188,080 | 2026-05-22  | `M043Assess_CY26_FY26.dbf` |   2,311 |
+| Brockton (M044)          | Plymouth   |  7,395,434 | 2025-08-19  | `M044Assess_CY25_FY25.dbf` |  27,085 |
+| Buckland (M047)          | Franklin   |    698,528 | 2026-06-25  | `M047Assess_CY26_FY26.dbf` |   1,131 |
+| Carver (M052)            | Plymouth   |  1,886,735 | 2025-07-28  | `M052Assess_CY25_FY25.dbf` |   4,724 |
+| Charlemont (M053)        | Franklin   |    702,968 | 2026-05-22  | `M053Assess_CY26_FY26.dbf` |     983 |
+| Chatham (M055)           | Barnstable |  2,855,409 | 2021-09-08  | `M055Assess.dbf`           |   8,389 |
+| Chelsea (M057)           | Suffolk    |  1,408,845 | 2026-09-29  | `M057Assess_CY26_FY26.dbf` |   6,942 |
+| Cheshire (M058)          | Berkshire  |    990,788 | 2026-05-22  | `M058Assess_CY26_FY26.dbf` |   1,737 |
+| Chester (M059)           | Hampden    |    667,150 | 2026-08-27  | `M059Assess_CY26_FY27.dbf` |   1,154 |
+| Chesterfield (M060)      | Hampshire  |    623,333 | 2026-05-22  | `M060Assess_CY26_FY26.dbf` |     972 |
+| Chicopee (M061)          | Hampden    |  5,254,544 | 2026-04-28  | `M061Assess_CY26_FY26.dbf` |  18,533 |
+| Chilmark (M062)          | Dukes      |  1,865,177 | 2026-05-22  | `M062Assess_CY26_FY26.dbf` |   2,392 |
+| Clarksburg (M063)        | Berkshire  |    415,786 | 2025-05-30  | `M063Assess_CY25_FY25.dbf` |     854 |
+| Colrain (M066)           | Franklin   |  1,053,352 | 2026-03-31  | `M066Assess_CY26_FY26.dbf` |   1,474 |
+| Conway (M068)            | Franklin   |    853,467 | 2025-11-24  | `M068Assess_CY25_FY26.dbf` |   1,415 |
+| Cummington (M069)        | Hampshire  |    565,190 | 2026-04-28  | `M069Assess_CY26_FY26.dbf` |     838 |
+| Dalton (M070)            | Berkshire  |    836,024 | 2026-02-27  | `M070Assess_CY26_FY26.dbf` |   2,783 |
+| Dartmouth (M072)         | Bristol    |  6,705,435 | 2025-10-22  | `M072Assess_CY25_FY26.dbf` |  14,681 |
+| Deerfield (M074)         | Franklin   |  1,191,278 | 2026-03-31  | `M074Assess_CY26_FY26.dbf` |   3,266 |
+| Dennis (M075)            | Barnstable |  4,266,208 | 2026-09-29  | `M075Assess_CY26_FY26.dbf` |  17,478 |
+| Dighton (M076)           | Bristol    |  1,379,027 | 2026-06-25  | `M076Assess_CY26_FY25.dbf` |   3,699 |
+| Duxbury (M082)           | Plymouth   |  5,530,630 | 2026-05-22  | `M082Assess_CY26_FY26.dbf` |   6,770 |
+| Eastbridgewater (M083)   | Plymouth   |  5,234,101 | 2026-05-22  | `M083Assess_CY26_FY26.dbf` |   5,750 |
+| Eastlongmeadow (M085)    | Hampden    |  2,622,308 | 2025-07-28  | `M085Assess_CY25_FY26.dbf` |   6,935 |
+| Eastham (M086)           | Barnstable |  6,819,385 | 2026-10-30  | `M086Assess_CY23_FY24.dbf` |   6,765 |
+| Easthampton (M087)       | Hampshire  |  2,042,703 | 2026-05-22  | `M087Assess_CY26_FY26.dbf` |   6,373 |
+| Easton (M088)            | Bristol    |  3,676,367 | 2026-04-28  | `M088Assess_CY26_FY26.dbf` |   9,385 |
+| Edgartown (M089)         | Dukes      |  4,199,085 | 2026-09-29  | `M089Assess_CY26_FY27.dbf` |   6,685 |
+| Egremont (M090)          | Berkshire  |    493,071 | 2025-02-28  | `M090Assess_CY25_FY25.dbf` |   1,289 |
+| Erving (M091)            | Franklin   |    478,013 | 2026-04-28  | `M091Assess_CY26_FY26.dbf` |     953 |
+| Fairhaven (M094)         | Bristol    |  2,928,079 | 2025-02-28  | `M094Assess_CY25_FY25.dbf` |   7,981 |
+| Fallriver (M095)         | Bristol    |  5,330,159 | 2026-01-29  | `M095Assess_CY25_FY26.dbf` |  22,060 |
+| Falmouth (M096)          | Barnstable | 10,826,754 | 2026-08-17  | `M096Assess_CY22_FY22.dbf` |  24,989 |
+| Florida (M098)           | Berkshire  |    575,160 | 2025-11-24  | `M098Assess_CY25_FY25.dbf` |     710 |
+| Freetown (M102)          | Bristol    |  1,640,954 | 2026-03-31  | `M102Assess_CY26_FY26.dbf` |   4,188 |
+| Aquinnah (M104)          | Dukes      |    580,926 | 2025-05-30  | `M104Assess_CY25_FY25.dbf` |     990 |
+| Gill (M106)              | Franklin   |  1,199,542 | 2026-09-29  | `M106Assess_CY26_FY26.dbf` |     879 |
+| Goshen (M108)            | Hampshire  |    458,046 | 2025-11-24  | `M108Assess_CY25_FY26.dbf` |   1,036 |
+| Gosnold (M109)           | Dukes      |    216,380 | 2026-03-31  | `M109Assess_CY26_FY26.dbf` |     275 |
+| Granby (M111)            | Hampshire  |  1,330,677 | 2026-06-25  | `M111Assess_CY26_FY26.dbf` |   3,340 |
+| Granville (M112)         | Hampden    |    720,459 | 2025-07-28  | `M112Assess_CY25_FY25.dbf` |   1,001 |
+| Greatbarrington (M113)   | Berkshire  |  1,292,799 | 2026-07-22  | `M113Assess_CY26_FY27.dbf` |   4,199 |
+| Greenfield (M114)        | Franklin   |  2,126,657 | 2026-08-27  | `M114Assess_CY26_FY27.dbf` |   7,028 |
+| Hadley (M117)            | Hampshire  |  1,165,375 | 2026-07-22  | `M117Assess_CY26_FY26.dbf` |   3,146 |
+| Halifax (M118)           | Plymouth   |  1,809,540 | 2026-09-29  | `M118Assess_CY26_FY26.dbf` |   3,346 |
+| Hampden (M120)           | Hampden    |  1,125,389 | 2026-05-22  | `M120Assess_CY26_FY26.dbf` |   2,400 |
+| Hancock (M121)           | Berkshire  |    341,698 | 2026-03-31  | `M121Assess_CY26_FY26.dbf` |   1,003 |
+| Hanover (M122)           | Plymouth   |  3,144,341 | 2024-11-26  | `M122Assess_CY24_FY25.dbf` |   5,592 |
+| Hanson (M123)            | Plymouth   |  1,676,870 | 2026-08-27  | `M123Assess_CY26_FY26.dbf` |   4,505 |
+| Harwich (M126)           | Barnstable |  4,037,553 | 2026-06-25  | `M126Assess_CY25_FY26.dbf` |  12,354 |
+| Hatfield (M127)          | Hampshire  |    904,800 | 2026-08-27  | `M127Assess_CY26_FY27.dbf` |   2,182 |
+| Hawley (M129)            | Franklin   |    500,171 | 2025-11-24  | `M129Assess_CY25_FY26.dbf` |     357 |
+| Heath (M130)             | Franklin   |    581,974 | 2026-04-28  | `M130Assess_CY26_FY26.dbf` |   1,167 |
+| Hingham (M131)           | Plymouth   |  5,977,262 | 2026-08-27  | `M131Assess_CY26_FY27.dbf` |   8,886 |
+| Hinsdale (M132)          | Berkshire  |    776,988 | 2026-05-22  | `M132Assess_CY26_FY26.dbf` |   1,606 |
+| Holland (M135)           | Hampden    |    903,074 | 2026-05-22  | `M135Assess_CY26_FY26.dbf` |   2,346 |
+| Holyoke (M137)           | Hampden    |  2,225,745 | 2026-04-28  | `M137Assess_CY26_FY26.dbf` |  10,523 |
+| Hull (M142)              | Plymouth   |  1,470,277 | 2026-07-22  | `M142Assess_CY26_FY27.dbf` |   5,683 |
+| Huntington (M143)        | Hampshire  |    553,464 | 2026-02-27  | `M143Assess_CY26_FY26.dbf` |   1,459 |
+| Kingston (M145)          | Plymouth   |  2,344,780 | 2026-08-27  | `M145Assess_CY26_FY26.dbf` |   5,692 |
+| Lakeville (M146)         | Plymouth   |  2,277,703 | 2026-08-27  | `M146Assess_CY26_FY27.dbf` |   5,424 |
+| Lanesborough (M148)      | Berkshire  |    827,476 | 2026-04-28  | `M148Assess_CY26_FY26.dbf` |   2,037 |
+| Lee (M150)               | Berkshire  |  1,208,780 | 2026-05-22  | `M150Assess_CY26_FY26.dbf` |   3,075 |
+| Lenox (M152)             | Berkshire  |  1,128,909 | 2026-04-28  | `M152Assess_CY26_FY26.dbf` |   2,974 |
+| Leverett (M154)          | Franklin   |    536,905 | 2026-06-25  | `M154Assess_CY26_FY26.dbf` |   1,214 |
+| Leyden (M156)            | Franklin   |    349,399 | 2024-11-26  | `M156Assess_CY24_FY25.dbf` |     704 |
+| Longmeadow (M159)        | Hampden    |  1,627,288 | 2026-08-31  | `M159Assess_CY26_FY26.dbf` |   5,885 |
+| Ludlow (M161)            | Hampden    |  2,475,413 | 2026-06-25  | `M161Assess_CY26_FY26.dbf` |   9,148 |
+| Mansfield (M167)         | Bristol    |  3,267,358 | 2026-02-27  | `M167Assess_CY26_FY26.dbf` |   8,124 |
+| Marion (M169)            | Plymouth   |  1,267,349 | 2026-01-29  | `M169Assess_CY25_FY26.dbf` |   3,523 |
+| Marshfield (M171)        | Plymouth   |  3,823,711 | 2025-09-18  | `M171Assess_CY25_FY26.dbf` |  12,659 |
+| Mashpee (M172)           | Barnstable |  3,551,265 | 2026-10-30  | `M172Assess_CY26_FY27.dbf` |  12,531 |
+| Mattapoisett (M173)      | Plymouth   |  1,591,972 | 2026-09-29  | `M173Assess_CY26_FY27.dbf` |   4,661 |
+| Middleborough (M182)     | Plymouth   |  3,063,288 | 2026-05-22  | `M182Assess_CY26_FY26.dbf` |   9,882 |
+| Middlefield (M183)       | Hampshire  |    433,407 | 2025-11-24  | `M183Assess_CY25_FY26.dbf` |     588 |
+| Monroe (M190)            | Franklin   |    189,757 | 2025-04-28  | `M190Assess_CY25_FY25.dbf` |     196 |
+| Monson (M191)            | Hampden    |  1,391,568 | 2026-02-27  | `M191Assess_CY26_FY26.dbf` |   4,058 |
+| Montague (M192)          | Franklin   |  1,242,321 | 2026-03-31  | `M192Assess_CY26_FY26.dbf` |   4,476 |
+| Monterey (M193)          | Berkshire  |    671,011 | 2026-06-25  | `M193Assess_CY26_FY26.dbf` |   1,308 |
+| Montgomery (M194)        | Hampden    |    384,285 | 2024-09-19  | `M194Assess_CY24_FY25.dbf` |     521 |
+| Mountwashington (M195)   | Berkshire  |    344,350 | 2022-04-24  | `M195Assess_CY22_FY22.dbf` |     291 |
+| Nantucket (M197)         | Nantucket  |  3,854,563 | 2026-06-25  | `M197Assess_CY26_FY26.dbf` |  14,367 |
+| Newashford (M200)        | Berkshire  |    213,432 | 2026-05-22  | `M200Assess_CY26_FY26.dbf` |     194 |
+| Newbedford (M201)        | Bristol    |  6,655,548 | 2026-09-29  | `M201Assess_CY26_FY27.dbf` |  26,677 |
+| Newmarlborough (M203)    | Berkshire  |    859,479 | 2025-06-24  | `M203Assess_CY25_FY25.dbf` |   1,931 |
+| Newsalem (M204)          | Franklin   |    753,280 | 2026-10-30  | `M204Assess_CY26_FY27.dbf` |     842 |
+| Northadams (M209)        | Berkshire  |  1,487,081 | 2025-06-24  | `M209Assess_CY25_FY25.dbf` |   5,402 |
+| Northattleborough (M211) | Bristol    |  5,087,874 | 2026-08-28  | `M211Assess_CY26_FY27.dbf` |  11,096 |
+| Northampton (M214)       | Hampshire  |  2,976,457 | 2026-02-27  | `M214Assess_CY26_FY26.dbf` |  11,415 |
+| Northfield (M217)        | Franklin   |  1,170,610 | 2025-04-28  | `M217Assess_CY25_FY25.dbf` |   2,259 |
+| Norton (M218)            | Bristol    |  3,754,917 | 2026-07-22  | `M218Assess_CY26_FY26.dbf` |   7,653 |
+| Norwell (M219)           | Plymouth   |  1,685,614 | 2025-08-19  | `M219Assess_CY25_FY26.dbf` |   4,782 |
+| Oakbluffs (M221)         | Dukes      |  1,792,075 | 2026-06-25  | `M221Assess_CY26_FY26.dbf` |   5,189 |
+| Orange (M223)            | Franklin   |  1,287,528 | 2026-10-30  | `M223Assess_CY26_FY27.dbf` |   3,743 |
+| Orleans (M224)           | Barnstable |  2,548,317 | 2026-09-29  | `M224Assess_CY26_FY27.dbf` |   6,367 |
+| Otis (M225)              | Berkshire  |  1,312,235 | 2025-09-18  | `M225Assess_CY25_FY25.dbf` |   3,049 |
+| Palmer (M227)            | Hampden    |  1,459,948 | 2026-05-22  | `M227Assess_CY26_FY26.dbf` |   5,823 |
+| Pelham (M230)            | Hampshire  |    337,964 | 2021-09-08  | `M230Assess.dbf`           |     768 |
+| Pembroke (M231)          | Plymouth   |  2,374,124 | 2026-05-22  | `M231Assess_CY26_FY26.dbf` |   7,242 |
+| Peru (M233)              | Berkshire  |    367,784 | 2026-07-22  | `M233Assess_CY26_FY26.dbf` |     810 |
+| Pittsfield (M236)        | Berkshire  |  6,005,685 | 2025-11-24  | `M236Assess_CY25_FY25.dbf` |  18,341 |
+| Plainfield (M237)        | Hampshire  |    456,914 | 2025-11-24  | `M237Assess_CY25_FY25.dbf` |     703 |
+| Plymouth (M239)          | Plymouth   | 12,192,403 | 2026-03-31  | `M239Assess_CY26_FY26.dbf` |  30,903 |
+| Plympton (M240)          | Plymouth   |  2,971,562 | 2025-07-28  | `M240Assess_CY25_FY25.dbf` |   1,446 |
+| Provincetown (M242)      | Barnstable |  1,188,034 | 2026-05-22  | `M242Assess_CY26_FY26.dbf` |   4,984 |
+| Raynham (M245)           | Bristol    |  3,067,926 | 2026-01-29  | `M245Assess_CY26_FY26.dbf` |   5,639 |
+| Rehoboth (M247)          | Bristol    |  3,583,827 | 2026-09-29  | `M247Assess_CY26_FY27.dbf` |   6,201 |
+| Revere (M248)            | Suffolk    |  4,015,583 | 2026-03-31  | `M248Assess_CY26_FY26.dbf` |  15,305 |
+| Richmond (M249)          | Berkshire  |    560,358 | 2026-03-31  | `M249Assess_CY26_FY26.dbf` |   1,260 |
+| Rochester (M250)         | Plymouth   |  1,057,826 | 2026-04-28  | `M250Assess_CY26_FY26.dbf` |   3,010 |
+| Rockland (M251)          | Plymouth   |  1,499,532 | 2026-08-27  | `M251Assess_CY26_FY26.dbf` |   6,182 |
+| Rowe (M253)              | Franklin   |    473,296 | 2026-02-27  | `M253Assess_CY26_FY26.dbf` |     675 |
+| Russell (M256)           | Hampden    |    725,467 | 2026-08-27  | `M256Assess_CY26_FY26.dbf` |     842 |
+| Sandisfield (M260)       | Berkshire  |    651,234 | 2026-04-28  | `M260Assess_CY26_FY26.dbf` |   1,299 |
+| Sandwich (M261)          | Barnstable |  3,739,057 | 2026-06-25  | `M261Assess_CY26_FY26.dbf` |  11,353 |
+| Savoy (M263)             | Berkshire  |    531,327 | 2025-04-28  | `M263Assess_CY25_FY25.dbf` |     590 |
+| Scituate (M264)          | Plymouth   |  3,192,446 | 2025-11-24  | `M264Assess_CY25_FY26.dbf` |   9,471 |
+| Seekonk (M265)           | Bristol    |  3,454,261 | 2026-07-22  | `M265Assess_CY26_FY27.dbf` |   6,636 |
+| Sheffield (M267)         | Berkshire  |  1,570,812 | 2026-03-31  | `M267Assess_CY26_FY26.dbf` |   2,826 |
+| Shelburne (M268)         | Franklin   |    731,914 | 2026-06-25  | `M268Assess_CY26_FY26.dbf` |   1,145 |
+| Shutesbury (M272)        | Franklin   |    669,460 | 2026-06-25  | `M272Assess_CY26_FY26.dbf` |   1,374 |
+| Somerset (M273)          | Bristol    |  1,924,453 | 2026-09-29  | `M273Assess_CY26_FY27.dbf` |   7,287 |
+| Southhadley (M275)       | Hampshire  |  1,896,592 | 2026-04-28  | `M275Assess_CY26_FY26.dbf` |   7,608 |
+| Southampton (M276)       | Hampshire  |  1,139,596 | 2026-05-22  | `M276Assess_CY26_FY26.dbf` |   3,085 |
+| Southwick (M279)         | Hampden    |  1,426,930 | 2025-04-28  | `M279Assess_CY25_FY25.dbf` |   4,522 |
+| Springfield (M281)       | Hampden    | 13,385,348 | 2026-01-29  | `M281Assess_CY26_FY26.dbf` |  44,319 |
+| Stockbridge (M283)       | Berkshire  |  1,009,204 | 2026-06-25  | `M283Assess_CY26_FY26.dbf` |   1,958 |
+| Sunderland (M289)        | Franklin   |    591,224 | 2025-09-18  | `M289Assess_CY25_FY26.dbf` |   1,536 |
+| Swansea (M292)           | Bristol    |  2,181,782 | 2026-09-29  | `M292Assess_CY26_FY26.dbf` |   7,992 |
+| Taunton (M293)           | Bristol    |  6,305,719 | 2025-11-24  | `M293Assess_CY25_FY26.dbf` |  20,923 |
+| Tisbury (M296)           | Dukes      |  1,154,069 | 2025-05-30  | `M296Assess_CY25_FY25.dbf` |   3,556 |
+| Tolland (M297)           | Hampden    |    630,218 | 2026-02-27  | `M297Assess_CY26_FY26.dbf` |   1,121 |
+| Truro (M300)             | Barnstable |  2,211,628 | 2026-10-30  | `M300Assess_CY26_FY27.dbf` |   3,966 |
+| Tyringham (M302)         | Berkshire  |    354,133 | 2025-10-22  | `M302Assess_CY25_FY25.dbf` |     574 |
+| Wales (M306)             | Hampden    |    467,531 | 2025-04-28  | `M306Assess_CY25_FY25.dbf` |   1,232 |
+| Ware (M309)              | Hampshire  |  1,594,374 | 2026-08-27  | `M309Assess_CY26_FY27.dbf` |   4,573 |
+| Wareham (M310)           | Plymouth   |  6,631,364 | 2026-08-27  | `M310Assess_CY26_FY27.dbf` |  14,902 |
+| Warwick (M312)           | Franklin   |    462,171 | 2026-08-27  | `M312Assess_CY26_FY27.dbf` |     786 |
+| Washington (M313)        | Berkshire  |    711,872 | 2026-04-28  | `M313Assess_CY26_FY26.dbf` |     603 |
+| Wellfleet (M318)         | Barnstable |  3,086,132 | 2026-08-27  | `M318Assess_CY26_FY27.dbf` |   5,332 |
+| Wendell (M319)           | Franklin   |    684,153 | 2026-10-30  | `M319Assess_CY26_FY27.dbf` |     847 |
+| Westbridgewater (M322)   | Plymouth   |  1,289,747 | 2026-08-27  | `M322Assess_CY26_FY27.dbf` |   3,320 |
+| Westspringfield (M325)   | Hampden    |  3,458,386 | 2026-08-27  | `M325Assess_CY23_FY24.dbf` |   9,724 |
+| Weststockbridge (M326)   | Berkshire  |    617,951 | 2026-05-22  | `M326Assess_CY26_FY26.dbf` |   1,148 |
+| Westtisbury (M327)       | Dukes      |  2,639,808 | 2026-09-29  | `M327Assess_CY26_FY27.dbf` |   2,802 |
+| Westfield (M329)         | Hampden    |  3,949,195 | 2025-11-24  | `M329Assess_CY25_FY25.dbf` |  14,108 |
+| Westhampton (M331)       | Hampshire  |    492,597 | 2024-05-21  | `M331Assess_CY24_FY24.dbf` |   1,239 |
+| Westport (M334)          | Bristol    |  4,021,720 | 2026-01-29  | `M334Assess_CY26_FY26.dbf` |   9,192 |
+| Whately (M337)           | Franklin   |    785,382 | 2025-12-24  | `M337Assess_CY25_FY26.dbf` |   1,192 |
+| Whitman (M338)           | Plymouth   |  1,414,574 | 2025-08-19  | `M338Assess_CY25_FY26.dbf` |   5,365 |
+| Wilbraham (M339)         | Hampden    |  2,593,111 | 2025-11-24  | `M339Assess_CY25_FY26.dbf` |   6,198 |
+| Williamsburg (M340)      | Hampshire  |    722,374 | 2026-09-03  | `M340Assess_CY26_FY26.dbf` |   1,380 |
+| Williamstown (M341)      | Berkshire  |  1,519,589 | 2026-04-28  | `M341Assess_CY26_FY26.dbf` |   3,080 |
+| Windsor (M345)           | Berkshire  |    586,465 | 2026-04-28  | `M345Assess_CY26_FY26.dbf` |     877 |
+| Winthrop (M346)          | Suffolk    |  1,580,253 | 2026-06-25  | `M346Assess_CY26_FY26.dbf` |   5,983 |
+| Worthington (M349)       | Hampshire  |    620,732 | 2026-03-31  | `M349Assess_CY26_FY26.dbf` |     878 |
+| Yarmouth (M351)          | Barnstable |  7,913,619 | 2026-05-22  | `M351Assess_CY26_FY26.dbf` |  18,086 |
+
 ## Known gaps
 
-- **166 more towns were not loaded**; they are in the config and follow the same layout. Their counts
-  are unknown (the 10 loaded towns range from 787 to 4,038 records).
+- **The 174 towns added on 2026-11-03 are not loaded yet**; they are in the config and follow the same
+  layout. Their in-scope counts are unknown until the collector archives them. Chatham and Pelham's files
+  date from 2021 (FY2018, FY2019).
 - **Towns update on their own schedules**: file dates in the bucket run from 2021 to 2026, and a town's
   fiscal year may be a year behind (Framingham is FY2025). Each snapshot carries its own as-of date; no
   statewide "current" date exists.
@@ -357,5 +600,7 @@ PYTHONPATH=python/src python3 -m factlot.registry.adapters.ma_massgis <town zip>
   `, `); trusts are kept as organisations by the registry's own rule.
 - **Only `TOTAL_VAL`** is used; there is no separate appraised value. `tax_year` is the town's `FY`.
 - The geodatabase edition is not read (it would need GDAL); the town zips already hold the same table.
-- `TOWN_COUNTY` covers only the four counties; an unlisted town raises an error unless `--county-fips` is
-  given.
+- `TOWN_COUNTY` covers every town but Boston; Boston raises an error (it is `ma-boston-assessing`), and a
+  town id outside 1-351 raises one unless `--county-fips` is given.
+- Local codes outside the DOR scheme (`110`, `109C`, `1132`; see the statewide extension) stay out of scope,
+  including Middleborough's "APT 4-8 RES".

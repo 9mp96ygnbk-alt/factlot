@@ -124,6 +124,43 @@ class OrptsRolls(unittest.TestCase):
         self.assertIsNone(ny_orpts.county_fips("Kings"), "New York City is in ny_nyc")
         self.assertIsNone(ny_orpts.county_fips(""))
 
+    def test_every_county_outside_new_york_city(self):
+        # The 57 county_name values of roll year 2025 (SODA group-by on 7vem-aaz7, 2026-11-03), spelled as the
+        # publisher writes them, with their Census county FIPS codes.
+        expected = {
+            "Albany": "001", "Allegany": "003", "Broome": "007", "Cattaraugus": "009", "Cayuga": "011",
+            "Chautauqua": "013", "Chemung": "015", "Chenango": "017", "Clinton": "019", "Columbia": "021",
+            "Cortland": "023", "Delaware": "025", "Dutchess": "027", "Erie": "029", "Essex": "031", "Franklin": "033",
+            "Fulton": "035", "Genesee": "037", "Greene": "039", "Hamilton": "041", "Herkimer": "043",
+            "Jefferson": "045", "Lewis": "049", "Livingston": "051", "Madison": "053", "Monroe": "055",
+            "Montgomery": "057", "Nassau": "059", "Niagara": "063", "Oneida": "065", "Onondaga": "067",
+            "Ontario": "069", "Orange": "071", "Orleans": "073", "Oswego": "075", "Otsego": "077", "Putnam": "079",
+            "Rensselaer": "083", "Rockland": "087", "St Lawrence": "089", "Saratoga": "091", "Schenectady": "093",
+            "Schoharie": "095", "Schuyler": "097", "Seneca": "099", "Steuben": "101", "Suffolk": "103",
+            "Sullivan": "105", "Tioga": "107", "Tompkins": "109", "Ulster": "111", "Warren": "113",
+            "Washington": "115", "Wayne": "117", "Westchester": "119", "Wyoming": "121", "Yates": "123",
+        }
+        self.assertEqual(len(expected), 57)
+        self.assertEqual({c: ny_orpts.county_fips(c) for c in expected}, expected)
+        self.assertEqual(len(ny_orpts.COUNTY_FIPS), 57, "no county outside the dataset's 57")
+        for borough in ("Bronx", "Kings", "New York", "Queens", "Richmond", "Brooklyn", "Manhattan", "Staten Island"):
+            self.assertIsNone(ny_orpts.county_fips(borough), f"{borough}: New York City is loaded from ny-nyc-dof")
+        self.assertFalse({"005", "047", "061", "081", "085"} & set(ny_orpts.COUNTY_FIPS.values()))
+
+    def test_new_york_city_rows_are_never_loaded(self):
+        nyc = self.tmp / "nyc.csv"
+        nyc.write_text("\n".join([HEADER, row(roll_year="2025", county_name="Kings", municipality_name="Brooklyn",
+                                              swis_code="301000", property_class="411", print_key_code="1-1-1",
+                                              primary_owner_last_name="EXAMPLE LLC"),
+                                  row(roll_year="2025", county_name="Tompkins", municipality_name="Ithaca",
+                                      swis_code="500700", property_class="464", print_key_code="70.-1-1",
+                                      parcel_address_number="1", parcel_address_street="STATE", parcel_address_suff="ST",
+                                      primary_owner_last_name="EXAMPLE OFFICE LLC"), ""]), encoding="utf-8")
+        recs = list(ny_orpts.read_roll(nyc, categories=None))
+        self.assertEqual([(r.county_fips, r.state_category) for r in recs], [("109", "F1")],
+                         "a borough row is skipped even if one appears; an upstate county loads")
+        self.assertEqual(recs[0].situs_address, "1 STATE ST, ITHACA NY")
+
     def test_mapping(self):
         recs = {r.account: r for r in ny_orpts.read_roll(self.csv)}
         self.assertEqual(sorted(recs), ["140200-101.27-6-1.2", "261400-047.30-1-24", "261400-047.301-24", "261800-12.-1-3",

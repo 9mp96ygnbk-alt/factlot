@@ -11,8 +11,18 @@ manufacturing parcels; each archived file is one ``f=json`` page (``{"features":
 
 Columns read (all text unless noted):
 
-- ``PARCELID`` — the county's parcel id (the tax key); ``STATEID`` is ``<3-digit county FIPS><PARCELID>``;
-  ``PARCELFIPS`` is the 3-digit county FIPS (``079`` for Milwaukee), ``CONAME`` the county name.
+- ``PARCELID`` — the county's parcel id (the tax key); ``STATEID`` is ``<PARCELFIPS><PARCELID>``. Ids carry
+  dashes, periods, slashes and spaces in 31 counties, and differ by punctuation alone in some (Brown
+  ``11-109`` and ``1-1109``), so the APN is ``apn_for(PARCELID)``, which escapes them (a Milwaukee tax key is
+  unchanged). The same PARCELID occurs in more than one county, so the account (crosswalk ``wi_parcelid``)
+  is ``<county FIPS>:<PARCELID>``.
+- ``CONAME`` — "the name of the county which the parcel is administratively part of", spelled as the
+  schema's Table B-1 ("County Naming and FIPS Codes"); ``PARCELFIPS`` — "the 3-digit FIPS code of the
+  county (the contributing jurisdiction of the parcel dataset)". The two differ where a city that spans a
+  county line supplies its own parcels: in V12, 5,258 Calumet County parcels carry Outagamie's (Appleton)
+  or Winnebago's (Menasha) PARCELFIPS, and 172 Winnebago parcels carry Outagamie's. The county of a record
+  is therefore ``CONAME`` through Table B-1 (``COUNTY_FIPS``); ``PARCELFIPS`` is used only when ``CONAME``
+  is not a Wisconsin county name.
 - ``PROPCLASS`` — the statutory class of property (Wis. Stat. 70.32(2)(a)): ``1`` residential,
   ``2`` commercial, ``3`` manufacturing, ``4`` agricultural, ``5`` undeveloped, ``5M`` agricultural
   forest, ``6`` productive forest land, ``7`` other. A parcel with several classes lists them comma
@@ -20,8 +30,9 @@ Columns read (all text unless noted):
   has no multifamily class: apartment buildings are class 2, so they map to F1 here and the
   registry cannot tell them from other commercial property.
 - ``OWNERNME1`` / ``OWNERNME2`` — owner names (the first is used). Counties that redact owners write
-  ``NOT AVAILABLE`` (Kenosha County entirely; eight counties in part); that becomes
-  ``owner_confidential``. Milwaukee County truncates names to about 28 characters.
+  ``NOT AVAILABLE`` (Kenosha County entirely; eight counties in part; Jackson writes it twice); that
+  becomes ``owner_confidential``. ``UNKNOWN`` and ``UNKNOWN OWNER`` (a few rows in Columbia, Marathon,
+  Racine and Dane) are no owner. Milwaukee County truncates names to about 28 characters.
 - ``PSTLADRESS`` — the owner's mailing address on one line; ``SITEADRESS``, ``PLACENAME``
   (``CITY OF MILWAUKEE``), ``ZIPCODE`` — the situs.
 - ``CNTASSDVALUE`` total assessed value, ``ESTFMKVALUE`` estimated fair market value (dollars),
@@ -61,8 +72,28 @@ SOURCE = Source(
     terms_reviewed="2026-11-03",
 )
 
+# Schema Table B-1, "County Naming and FIPS Codes" (V12 schema documentation): CONAME → county FIPS.
+COUNTY_FIPS = {
+    "ADAMS": "001", "ASHLAND": "003", "BARRON": "005", "BAYFIELD": "007", "BROWN": "009", "BUFFALO": "011",
+    "BURNETT": "013", "CALUMET": "015", "CHIPPEWA": "017", "CLARK": "019", "COLUMBIA": "021", "CRAWFORD": "023",
+    "DANE": "025", "DODGE": "027", "DOOR": "029", "DOUGLAS": "031", "DUNN": "033", "EAU CLAIRE": "035",
+    "FLORENCE": "037", "FOND DU LAC": "039", "FOREST": "041", "GRANT": "043", "GREEN": "045", "GREEN LAKE": "047",
+    "IOWA": "049", "IRON": "051", "JACKSON": "053", "JEFFERSON": "055", "JUNEAU": "057", "KENOSHA": "059",
+    "KEWAUNEE": "061", "LA CROSSE": "063", "LAFAYETTE": "065", "LANGLADE": "067", "LINCOLN": "069",
+    "MANITOWOC": "071", "MARATHON": "073", "MARINETTE": "075", "MARQUETTE": "077", "MENOMINEE": "078",
+    "MILWAUKEE": "079", "MONROE": "081", "OCONTO": "083", "ONEIDA": "085", "OUTAGAMIE": "087", "OZAUKEE": "089",
+    "PEPIN": "091", "PIERCE": "093", "POLK": "095", "PORTAGE": "097", "PRICE": "099", "RACINE": "101",
+    "RICHLAND": "103", "ROCK": "105", "RUSK": "107", "ST CROIX": "109", "SAUK": "111", "SAWYER": "113",
+    "SHAWANO": "115", "SHEBOYGAN": "117", "TAYLOR": "119", "TREMPEALEAU": "121", "VERNON": "123", "VILAS": "125",
+    "WALWORTH": "127", "WASHBURN": "129", "WASHINGTON": "131", "WAUKESHA": "133", "WAUPACA": "135",
+    "WAUSHARA": "137", "WINNEBAGO": "139", "WOOD": "141",
+}
+_WI_FIPS = frozenset(COUNTY_FIPS.values())
+
 # Owner values the counties write where an owner is redacted (schema documentation: "NOT AVAILABLE").
 _WITHHELD_OWNERS = frozenset({"NOT AVAILABLE", "NOT AVAIL", "REDACTED", "CONFIDENTIAL"})
+# Owner values that say only that the county has no owner of record (V12: Columbia, Marathon, Racine, Dane).
+_PLACEHOLDER_OWNERS = frozenset({"UNKNOWN", "UNKNOWN OWNER", "OWNER UNKNOWN", "N/A", "NONE"})
 _SQFT_PER_ACRE = 43560
 _PLACE_PREFIX = re.compile(r"^(CITY|TOWN|VILLAGE) OF\s+", re.I)
 
@@ -102,14 +133,20 @@ def state_category(code: object) -> str | None:
 
 
 def county_fips(a: dict) -> str | None:
-    """The 3-digit county FIPS (``PARCELFIPS``; a 5-digit value loses its ``55`` prefix)."""
+    """The 3-digit FIPS of the county the parcel is part of: ``CONAME`` through Table B-1, else
+    ``PARCELFIPS`` (the contributing county; a 5-digit value loses its ``55`` prefix), else ``STATEID``.
+    ``None`` when none of them names a Wisconsin county (V12 has one such row: ``MENOMONIE``, ``999``)."""
+    name = re.sub(r"[^A-Z ]+", " ", _squeeze(a.get("CONAME")).upper())
+    by_name = COUNTY_FIPS.get(" ".join(name.split()))
+    if by_name:
+        return by_name
     f = re.sub(r"\D", "", _squeeze(a.get("PARCELFIPS")))
     if len(f) == 5 and f.startswith(STATE_FIPS):
         f = f[2:]
-    if len(f) == 3:
-        return f
-    sid = re.sub(r"\D", "", _squeeze(a.get("STATEID")))
-    return sid[:3] if len(sid) >= 3 else None
+    if len(f) != 3:
+        sid = re.sub(r"\D", "", _squeeze(a.get("STATEID")))
+        f = sid[:3]
+    return f if f in _WI_FIPS else None
 
 
 def _situs(a: dict) -> str | None:
@@ -122,13 +159,40 @@ def _situs(a: dict) -> str | None:
 
 
 def _owner(a: dict) -> tuple[str | None, bool]:
-    """``(owner name, withheld)``: a redacted owner is withheld, never a name."""
+    """``(owner name, withheld)``: a redacted owner is withheld, never a name; a placeholder is no owner.
+
+    Jackson County writes the redaction twice (``NOT AVAILABLE NOT AVAILABLE``), so a name made only of
+    the redaction phrase is withheld too.
+    """
     n = _squeeze(a.get("OWNERNME1"))
     if not n:
         return None, False
-    if n.upper() in _WITHHELD_OWNERS:
+    up = n.upper()
+    if up in _WITHHELD_OWNERS or not re.sub(r"\bNOT AVAILABLE\b", "", up).strip(" ,;"):
         return None, True
+    if up in _PLACEHOLDER_OWNERS:
+        return None, False
     return n, False
+
+
+def apn_for(parcel_id: str) -> str:
+    """Registry APN for a ``PARCELID``: lower case, every character that is not a letter or digit written
+    ``x<hex>x`` and a literal ``x`` written ``xx``.
+
+    The registry reduces an APN to letters and digits, and Wisconsin parcel ids differ by punctuation
+    alone: in V12, 74 pairs of commercial parcels in Brown, Vilas, Kewaunee and Oneida counties
+    (Brown ``11-109`` and ``1-1109``) would otherwise be one parcel. Ids made only of letters and digits
+    without an ``x`` (every Milwaukee tax key) are unchanged. ``11-109`` is ``11x2dx109``.
+    """
+    out = []
+    for ch in _squeeze(parcel_id).lower():
+        if ch == "x":
+            out.append("xx")
+        elif ch.isascii() and ch.isalnum():
+            out.append(ch)
+        else:
+            out.append(f"x{ord(ch):x}x")
+    return "".join(out)
 
 
 def pages(path: str | Path | Iterable[str | Path]) -> list[Path]:
@@ -186,9 +250,9 @@ def read_page(page: str | Path, *, categories: Iterable[str] | None = COMMERCIAL
         year = _squeeze(a.get("TAXROLLYEAR"))
         yield ParcelRecord(
             county_fips=county,
-            apn=pid,
+            apn=apn_for(pid),
             state_category=category,
-            account=pid,
+            account=f"{county}:{pid}",  # PARCELIDs repeat across counties (344 in V12's commercial set)
             situs_address=_situs(a),
             owner_name=owner_name,
             owner_mailing_address=_squeeze(a.get("PSTLADRESS")) or None if owner_name else None,

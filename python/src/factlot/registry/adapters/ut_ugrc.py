@@ -20,6 +20,9 @@ both spellings are read. The Utah County layer has no ``Property Type`` column. 
 **no owner field**, so every record has ``owner_name=None`` and nothing here is "withheld": the
 publisher simply does not carry owners (they are on each county's own web search).
 
+``Parcel ID`` is the county's own id; the APN escapes its punctuation (``apn_for``), because Sevier and Kane
+ids differ by punctuation alone, and the account is ``<county FIPS>:<Parcel ID>``.
+
 ``County ID`` is the alphabetical county number (Beaver 1 … Weber 29); the county FIPS code is
 ``49`` + ``2 * id - 1`` (Salt Lake 18 → 035, Utah 25 → 049).
 
@@ -33,8 +36,18 @@ publisher's class is kept verbatim in ``local_use_code``). Utah County has only 
 Residential, Vacant, Greenbelt, Recreational, Undeveloped, Unknown and every ``Tax Exempt*`` class are
 out of scope, as are commercial classes whose ``Tax Exempt Type`` says government or non-profit.
 
-Usage: ``python -m factlot.registry.adapters.ut_ugrc <county>.csv registry.db --as-of 2026-09-29 --partial``
-(one file per county; every run is ``--partial`` unless the file is known to be the whole state).
+Counties (statewide extension, 2026-11-03): UGRC publishes an LIR layer for all 29 counties. The other
+counties' layers use the same vocabulary (Iron, Uintah and Davis use Salt Lake's ``Commercial - …``
+subclasses; the rest use plain ``Commercial``), so the same table maps them. Three counties yield no
+commercial record: Emery and San Juan carry no class at all (every row ``Unknown`` or blank), and Carbon
+uses its own vocabulary (``Single Family``, ``Multi-Family``, ``Apartments``, ``Subsidized Housing``,
+``Vacant Commercial``, ``Land``, ``DEFAULT``) with no published definitions, and its ``Commercial`` holds 24%
+of the county's rows. Carbon's classes are therefore not mapped (``UNMAPPED_COUNTIES``): its rows are read
+but every one is out of scope, and the config does not list its file.
+
+Usage: ``python -m factlot.registry.adapters.ut_ugrc <county>.csv registry.db --as-of 2026-09-29``
+(one file per county; nothing is retired unless ``--full-roll`` is given, which is right only for a file
+that holds every county loaded before).
 """
 
 from __future__ import annotations
@@ -73,6 +86,10 @@ _CATEGORY = {
     "industrial": "F2",
     "commercial - apartment & condo": "B",
 }
+
+# County FIPS codes whose class vocabulary is not the LIR one and has no published definitions: no class of
+# theirs is mapped, so none of their rows is in scope. 007 Carbon: see the module docstring.
+UNMAPPED_COUNTIES = frozenset({"007"})
 
 # Tax Exempt Type values that mean the owner is a government or a non-profit (not a taxable commercial owner).
 _EXEMPT_OWNERS = ("local government", "state government", "federal government", "non profit")
@@ -129,13 +146,37 @@ def county_fips(county_id: str | None) -> str | None:
     return f"{2 * n - 1:03d}" if 1 <= n <= 29 else None
 
 
-def category(prop_class: str | None, exempt_type: str | None = None) -> str | None:
-    """FactLot category for a county class; ``None`` when out of the commercial scope."""
+def category(prop_class: str | None, exempt_type: str | None = None, county: str | None = None) -> str | None:
+    """FactLot category for a county class; ``None`` when out of the commercial scope.
+
+    ``county`` (three-digit FIPS) turns every class of a county in ``UNMAPPED_COUNTIES`` into ``None``.
+    """
+    if county in UNMAPPED_COUNTIES:
+        return None
     cls = " ".join((prop_class or "").lower().split())
     cat = _CATEGORY.get(cls)
     if cat and (exempt_type or "").strip().lower().startswith(_EXEMPT_OWNERS):
         return None
     return cat
+
+
+def apn_for(parcel_id: str) -> str:
+    """Registry APN for a county ``Parcel ID``: lower case, every character that is not a letter or digit
+    written ``x<hex>x`` and a literal ``x`` written ``xx``.
+
+    The registry reduces an APN to letters and digits, and some counties' ids differ by punctuation alone
+    (Sevier ``1-2-23`` and ``1-22-3``, Kane ``K-3-11-ANNEX`` and ``K-3-1-1-ANNEX``), which would merge two
+    parcels. Ids made only of digits (Salt Lake, Utah, Davis, Weber, Box Elder, Uintah, Beaver) are unchanged.
+    """
+    out = []
+    for ch in parcel_id.strip().lower():
+        if ch == "x":
+            out.append("xx")
+        elif ch.isascii() and ch.isalnum():
+            out.append(ch)
+        else:
+            out.append(f"x{ord(ch):x}x")
+    return "".join(out)
 
 
 def _situs(r: dict[str, str]) -> str | None:
@@ -162,8 +203,8 @@ def read_roll(path: str | Path) -> Iterator[ParcelRecord]:
         year = _positive(r.get("year_built"))
         yield ParcelRecord(
             county_fips=fips,
-            apn=parcel,
-            state_category=category(prop_class, r.get("exempt")),
+            apn=apn_for(parcel),
+            state_category=category(prop_class, r.get("exempt"), fips),
             account=f"{fips}:{parcel}",
             situs_address=_situs(r),
             owner_name=None,  # the LIR schema carries no owner
@@ -201,10 +242,14 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("db", help="registry SQLite file to create or update")
     ap.add_argument("--as-of", required=True, help="the layer's 'Current As Of' date, YYYY-MM-DD")
     ap.add_argument("--retrieved-at", help="ISO timestamp from the collector manifest")
+    ap.add_argument("--full-roll", action="store_true",
+                    help="retire parcels missing from this file (only for a file that holds every county loaded before)")
     ap.add_argument("--partial", action="store_true",
-                    help="do not retire parcels missing from this file (use for every county file)")
+                    help="accepted for older commands; county files are always loaded without retiring (the default)")
     args = ap.parse_args(argv)
-    stats = build(args.snapshot, args.db, as_of=args.as_of, retrieved_at=args.retrieved_at, full_roll=not args.partial)
+    if args.full_roll and args.partial:
+        ap.error("--full-roll and --partial contradict each other")
+    stats = build(args.snapshot, args.db, as_of=args.as_of, retrieved_at=args.retrieved_at, full_roll=args.full_roll)
     print(json.dumps(asdict(stats), indent=2))
     return 0
 

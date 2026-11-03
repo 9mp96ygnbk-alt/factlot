@@ -8,7 +8,7 @@ Adapter: `python/src/factlot/registry/adapters/md_sdat.py` (account system `sdat
 
 **One statewide dataset covers all three Tier 2 Maryland counties** (Montgomery 24031, Prince
 George's 24033, Baltimore County 24005) and the other 21 jurisdictions, including Baltimore City
-(24510). **The publisher withholds owner names**: the dataset is titled "Hidden Property Owner Names",
+(24510); since the statewide extension of 2026-11-03 the config lists all 24. **The publisher withholds owner names**: the dataset is titled "Hidden Property Owner Names",
 and none of its 223 columns carries an owner name or an owner address. Every parcel this source
 loads has no owner of record.
 
@@ -158,6 +158,76 @@ PYTHONPATH=python/src python3 -m factlot.registry.adapters.md_sdat <county csv> 
 - Facts written: 312,319. Seconds: 16.3. Invalid ids, errors, retired: 0, 0, 0.
 - Organisation owners stored (current owner-of-record facts): 0; natural persons or withheld owners not stored (names not kept): 0. The source carries no owner, so none is stored or counted as withheld.
 - Ownership links to registered entities after `link_owners()`: 0 (the only entity registry in the scratch file is `ct-sos-entities`).
+
+## Statewide extension (2026-11-03)
+
+The licence (public domain, portal licence field) covers the whole statewide dataset, so the extension is
+configuration and testing only. The config now lists 24 files, one per jurisdiction: the three Tier 2
+counties first, then the other 20 counties and Baltimore City alphabetically, each the same SoQL CSV
+(land use C, CC, I, M; the same 33 columns) with another `county_name_mdp_field_cntyname`.
+
+- **Jurisdiction list, from the publisher's own data.** SoQL `count(*)` grouped by
+  `county_name_mdp_field_cntyname`, `jurisdiction_code_mdp_field_jurscode` and land use on `ed4q-f8tm`
+  returns 24 names, each with one four-letter MDP jurisdiction code (`ALLE`, `ANNE`, `BACO`, `BACI`, …,
+  `WORC`). The portal spells them `Prince George's`, `Queen Anne's`, `St. Mary's`, `Baltimore` (the
+  county) and `Baltimore City`; all 24 map to their FIPS codes in the adapter's `COUNTY_FIPS`, which
+  already held every jurisdiction. Every row carries the same record-update date (`20261005`).
+- **Jurisdictions added (21):** Allegany, Anne Arundel, Baltimore City, Calvert, Caroline, Carroll, Cecil,
+  Charles, Dorchester, Frederick, Garrett, Harford, Howard, Kent, Queen Anne's, Somerset, St. Mary's,
+  Talbot, Washington, Wicomico, Worcester.
+- **Codes.** The land use field uses the same SDAT values in every jurisdiction (`Commercial (C)` …
+  `Marsh Land (MA)`; one account statewide has none). No jurisdiction-specific mapping is needed.
+- **Account ids.** The in-scope account ids of every jurisdiction were read (`$select` of the account and
+  county only, 3.07 MB) to check that the registry's alphanumeric APN keeps them apart. Twenty-three
+  jurisdictions use digits only, in one fixed length each (10 digits; Anne Arundel 15, Baltimore County
+  14, Montgomery 12, Prince George's 11). Baltimore City's ids carry a space or a letter in the block and
+  lot (`9999999999 999` 10,721; `9999999999A999` 2,367; `9999999999 999A` 1,291; `9999999999A999A`
+  453; `999999AAA9 999` 5). Dropping the space leaves 0 collisions among the 109,255 in-scope accounts, so
+  the adapter keeps the account id as the APN; the raw id (with its space) is the crosswalk value.
+- **URL check.** One request per new file with `%24limit=200000` replaced by `%24limit=5`, through the
+  collector's `PoliteFetcher` (user agent, robots.txt, `Crawl-delay: 1`, 2-second interval): all 21
+  answered HTTP 200 with the 33-column header and 5 rows of the right jurisdiction. A separate count query
+  that used `IS NOT NULL` was answered with a Cloudflare block page (HTTP 403, "Sorry, you have been
+  blocked"); it was not retried in another form, and its figure (deleted accounts per county) is not
+  needed. No full file was downloaded.
+- **In-scope counts** (SoQL `count(*)` by jurisdiction and land use, 2026-11-03; no download; the counts
+  include accounts with a deletion date, which the adapter skips, e.g. Montgomery's two). The 21 new
+  jurisdictions hold **70,158** in-scope accounts (`B` 6,449, `F1` 55,613, `F2` 8,096); the state 109,255.
+  The largest file is Baltimore City's (14,837 rows).
+
+| Jurisdiction (FIPS)      |  All accounts |    In scope |        `B` |       `F1` |       `F2` | URL check (`$limit=5`)  |
+| ------------------------ | ------------: | ----------: | ---------: | ---------: | ---------: | ----------------------- |
+| Allegany (24001)         |        41,474 |       3,433 |        385 |      2,703 |        345 | HTTP 200, 5 rows        |
+| Anne Arundel (24003)     |       229,245 |       9,049 |        277 |      7,672 |      1,100 | HTTP 200, 5 rows        |
+| Baltimore County (24005) |       306,537 |      14,494 |      2,882 |      8,461 |      3,151 | Tier 2 (already loaded) |
+| Baltimore City (24510)   |       241,663 |      14,837 |      2,495 |      9,974 |      2,368 | HTTP 200, 5 rows        |
+| Calvert (24009)          |        43,332 |       1,042 |         25 |        867 |        150 | HTTP 200, 5 rows        |
+| Caroline (24011)         |        16,708 |         891 |         90 |        669 |        132 | HTTP 200, 5 rows        |
+| Carroll (24013)          |        69,323 |       3,318 |        474 |      2,517 |        327 | HTTP 200, 5 rows        |
+| Cecil (24015)            |        48,466 |       2,605 |        112 |      2,274 |        219 | HTTP 200, 5 rows        |
+| Charles (24017)          |        75,796 |       3,044 |         95 |      2,586 |        363 | HTTP 200, 5 rows        |
+| Dorchester (24019)       |        22,818 |       1,131 |         25 |        925 |        181 | HTTP 200, 5 rows        |
+| Frederick (24021)        |       112,759 |       4,353 |        353 |      3,440 |        560 | HTTP 200, 5 rows        |
+| Garrett (24023)          |        30,637 |       1,445 |         46 |      1,377 |         22 | HTTP 200, 5 rows        |
+| Harford (24025)          |       103,496 |       3,735 |        243 |      3,130 |        362 | HTTP 200, 5 rows        |
+| Howard (24027)           |       112,796 |       4,226 |        198 |      3,238 |        790 | HTTP 200, 5 rows        |
+| Kent (24029)             |        13,622 |         676 |         22 |        649 |          5 | HTTP 200, 5 rows        |
+| Montgomery (24031)       |       355,455 |      11,580 |      1,282 |      8,826 |      1,472 | Tier 2 (already loaded) |
+| Prince George's (24033)  |       315,543 |      13,023 |      1,139 |      8,615 |      3,269 | Tier 2 (already loaded) |
+| Queen Anne's (24035)     |        27,776 |       1,528 |         46 |      1,472 |         10 | HTTP 200, 5 rows        |
+| Somerset (24039)         |        16,890 |         994 |         46 |        948 |          0 | HTTP 200, 5 rows        |
+| St. Mary's (24037)       |        51,187 |       1,945 |        169 |      1,681 |         95 | HTTP 200, 5 rows        |
+| Talbot (24041)           |        22,177 |       1,418 |         89 |      1,260 |         69 | HTTP 200, 5 rows        |
+| Washington (24043)       |        61,110 |       3,690 |        660 |      2,670 |        360 | HTTP 200, 5 rows        |
+| Wicomico (24045)         |        48,470 |       3,204 |        303 |      2,452 |        449 | HTTP 200, 5 rows        |
+| Worcester (24047)        |        66,725 |       3,594 |        296 |      3,109 |        189 | HTTP 200, 5 rows        |
+| **All 24 jurisdictions** | **2,434,005** | **109,255** | **11,752** | **81,515** | **15,988** |                         |
+
+- **Multi-file loading.** Each file is loaded without `--full-roll` (the adapter's default), so no
+  jurisdiction retires another's accounts.
+- **Tests added** (`python/tests/test_adapter_md_sdat.py`): all 24 portal names map to their FIPS codes;
+  Baltimore City ids with a space or a letter, and St. Mary's and Queen Anne's rows, load as distinct
+  parcels in the right county.
 
 ## Known gaps
 
