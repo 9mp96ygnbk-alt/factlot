@@ -2,13 +2,13 @@
 
 **The open fact layer for commercial real estate AI agents.**
 
-**Install in one line** (v0.1.0; no API key, no network calls; listed in the
+**Install in one line** (v0.1.1; no API key, no network calls; listed in the
 [official MCP Registry](https://registry.modelcontextprotocol.io/v0.1/servers?search=factlot) as
 `io.github.9mp96ygnbk-alt/factlot`):
 
 ```bash
 # Any MCP client (stdio). For Claude Code: claude mcp add factlot -- npx -y <this URL>
-npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.0/factlot-mcp-standalone-0.1.0.tgz
+npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.1/factlot-mcp-standalone-0.1.1.tgz
 ```
 
 **Or nothing to install:** the hosted remote MCP server is at `https://api.factlot.com/mcp`, free with no key at 60 requests a minute
@@ -18,16 +18,16 @@ npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.0/factlo
 claude mcp add --transport http factlot https://api.factlot.com/mcp
 ```
 
-Claude Desktop: open [`factlot-0.1.0.mcpb`](https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.0/factlot-0.1.0.mcpb).
-REST, OpenAPI and remote MCP: `docker run -p 8787:8787 ghcr.io/9mp96ygnbk-alt/factlot:0.1.0`.
-Python: `pip install "git+https://github.com/9mp96ygnbk-alt/factlot.git@v0.1.0#subdirectory=python"`.
+Claude Desktop: open [`factlot-0.1.1.mcpb`](https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.1/factlot-0.1.1.mcpb).
+REST, OpenAPI and remote MCP: `docker run -p 8787:8787 ghcr.io/9mp96ygnbk-alt/factlot:0.1.1`.
+Python: `pip install "git+https://github.com/9mp96ygnbk-alt/factlot.git@v0.1.1#subdirectory=python"`.
 
 **Try the registry tools on real data:** the [DC registry sample](https://github.com/9mp96ygnbk-alt/factlot/releases/tag/registry-sample-dc-2026-11-03) (19.7 MB, CC BY 4.0) holds
 18,077 District of Columbia commercial parcels, 5,513 owning entities and 7,908 cited ownership links.
 
 ```bash
 curl -fLO https://github.com/9mp96ygnbk-alt/factlot/releases/download/registry-sample-dc-2026-11-03/factlot-registry-sample-dc-2026-11-03.db.gz && gunzip factlot-registry-sample-dc-2026-11-03.db.gz
-FACTLOT_REGISTRY_DB="$PWD/factlot-registry-sample-dc-2026-11-03.db" npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.0/factlot-mcp-standalone-0.1.0.tgz
+FACTLOT_REGISTRY_DB="$PWD/factlot-registry-sample-dc-2026-11-03.db" npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.1/factlot-mcp-standalone-0.1.1.tgz
 ```
 
 **Paid plans:** [Pro $49 a month and Team $599 a month](https://factlot.com/#pricing) raise the hosted limits and include hosted registry lookups as each region opens. Enterprise and private deployments: [contact@factlot.com](mailto:contact@factlot.com?subject=FactLot%20hosted%20registry%20early%20access). Questions and bug reports go in [GitHub Discussions](https://github.com/9mp96ygnbk-alt/factlot/discussions) and Issues.
@@ -87,7 +87,7 @@ Be clear about scope before adopting it:
 - **Lease ingestion is a prototype**: deterministic quote-on-page and value-in-quote checks, OCR
   for scanned pages through a pluggable backend, but no published accuracy number yet.
 - **Not yet on npm or PyPI**, and no hosted public endpoint. Install from the
-  [v0.1.0 release](https://github.com/9mp96ygnbk-alt/factlot/releases/tag/v0.1.0), from git, from
+  [v0.1.1 release](https://github.com/9mp96ygnbk-alt/factlot/releases/tag/v0.1.1), from git, from
   source, or with Docker ([getting started](docs/getting-started.md)).
 
 ## Connect FactLot to any AI platform
@@ -111,7 +111,7 @@ from a GitHub release, from a clone, or in Docker. Each was run end to end
 
 ```bash
 # From the GitHub release: one file, dependencies bundled
-claude mcp add factlot -- npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.0/factlot-mcp-standalone-0.1.0.tgz
+claude mcp add factlot -- npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.1/factlot-mcp-standalone-0.1.1.tgz
 
 # From a clone
 git clone https://github.com/9mp96ygnbk-alt/factlot.git && cd factlot
@@ -119,10 +119,10 @@ npm install && npm run build
 claude mcp add factlot -- node "$PWD/packages/mcp/dist/bin.js"
 
 # Remote connector (Streamable HTTP MCP at /mcp, REST at /v1, OpenAPI)
-docker run --rm -p 8787:8787 ghcr.io/9mp96ygnbk-alt/factlot:0.1.0
+docker run --rm -p 8787:8787 ghcr.io/9mp96ygnbk-alt/factlot:0.1.1
 ```
 
-Claude Desktop users can install `factlot-0.1.0.mcpb` from the
+Claude Desktop users can install `factlot-0.1.1.mcpb` from the
 [release](https://github.com/9mp96ygnbk-alt/factlot/releases). For any other MCP client, use the
 same command in its config:
 
@@ -150,9 +150,6 @@ The server provides these tools: `calc_rent_schedule`, `calc_net_effective_rent`
 `id_parcel`, `id_entity`, `id_space`, `id_document`, `id_parse`, `fact_validate`,
 `search`, `fetch`, and `schema_get`, plus the six `registry_*` lookups when a registry database is configured
 (`FACTLOT_REGISTRY_DB`).
-
-> Release files, the GHCR image, and `git+https` installs need the repository to be public and a
-> release (here `v0.1.0`) to exist; from a clone works now.
 
 ## Quick start: Python agents
 

@@ -8,19 +8,19 @@ Part of [FactLot](https://github.com/9mp96ygnbk-alt/factlot): the open fact laye
 
 ```bash
 # From a GitHub release (no npm account needed): the server in one file, dependencies bundled
-npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.0/factlot-mcp-standalone-0.1.0.tgz
+npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.1/factlot-mcp-standalone-0.1.1.tgz
 
 # From a source build
 node packages/mcp/dist/bin.js
 
 # In Docker
-docker run --rm -i ghcr.io/9mp96ygnbk-alt/factlot:0.1.0 node packages/mcp/dist/bin.js
+docker run --rm -i ghcr.io/9mp96ygnbk-alt/factlot:0.1.1 node packages/mcp/dist/bin.js
 
 # After first publish to npm
 npx -y @factlot/mcp
 ```
 
-Claude Desktop: install `factlot-0.1.0.mcpb` from the
+Claude Desktop: install `factlot-0.1.1.mcpb` from the
 [release](https://github.com/9mp96ygnbk-alt/factlot/releases). MCP client configuration and the
 other install options are in [getting started](../../docs/getting-started.md).
 

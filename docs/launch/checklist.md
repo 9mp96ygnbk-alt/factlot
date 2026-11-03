@@ -16,7 +16,7 @@ The plan and the reasoning are in [`strategy.md`](strategy.md). Nothing here is 
 - [x] [automatable now] Read the five install paths in `llms.txt` once on a clean machine and fix any command that fails (clone, `npm install`, `npm run build`, run the stdio server; `docker build`; `pip install` from the Git URL). **Status 2026-11-03: done: npx from the release URL, the GHCR image, pip from the tag and the .mcpb verified from a clean scratch directory with no credentials.**
 - [x] [automatable now] Build the extension: `npm run build:mcpb`, then `shasum -a 256 dist/factlot.mcpb`; keep the hash for the MCP Registry entry. **Status 2026-11-03: done: built and attached by release-assets.yml; SHA-256 in the release's SHA256SUMS.**
 - [x] [automatable now] Deploy `site/` (Cloudflare Pages, Vercel or GitHub Pages; see `site/README.md`) and point `factlot.com` at it; confirm `https://factlot.com/llms.txt` returns text and the canonical link matches the final URL. **Status 2026-11-03: deployed to GitHub Pages (https://9mp96ygnbk-alt.github.io/factlot/); pointing factlot.com at it is the founder's DNS step (factlot.com currently serves the founder's coming-soon page).**
-- [ ] [founder posts it] Confirm the `contact@factlot.com` mailbox receives mail, since the early-access link on the site and in the README depends on it.
+- [ ] [founder posts it] Confirm the `contact@factlot.com` mailbox receives mail. **Status 2026-11-03: it cannot: factlot.com publishes a null MX (`0 .`) and `v=spf1 -all`, and Cloudflare Email Routing is off for the zone. Turn on Email Routing for factlot.com (Cloudflare dashboard, Email, Email Routing) and route contact@ to the founder's inbox.**
 - [ ] [founder posts it] Read the rules page of every subreddit before choosing any in `posts/reddit.md`; Reddit blocked automated reads when this kit was written.
 
 ## 09:00 to 11:30 EST: make the repository public and listable
@@ -74,14 +74,14 @@ Also opened on 2026-11-03 (not in the original list): [etewiah/awesome-real-esta
 
 ### Needs a hosted endpoint (backlog A4, plus A7 for legal pages)
 
-- [ ] [needs a hosted endpoint] Deploy the Docker image behind HTTPS (for example `mcp.factlot.com`); set `FACTLOT_PUBLIC_URL`.
-- [ ] [needs a hosted endpoint] Publish privacy policy and terms pages (A7), needed by the Anthropic and OpenAI directories.
+- [x] [needs a hosted endpoint] Deploy behind HTTPS. **Status 2026-11-03: done: `https://api.factlot.com` (Cloudflare Worker, `deploy/cloudflare`), free tier 60 requests a minute per address, paid keys through Stripe once `STRIPE_SECRET_KEY` is set; factlot.com now serves the landing page from the same Worker.**
+- [x] [needs a hosted endpoint] Publish privacy policy and terms pages (A7). **Status 2026-11-03: done: https://factlot.com/privacy and https://factlot.com/terms. The founder should read both (and have counsel review the terms) before the first paid customer.**
 - [ ] [needs a hosted endpoint] Connect in the Claude custom connector UI, ChatGPT developer mode, Copilot Studio, Gemini CLI and a Bedrock agent, and record the dated results in `connectors/README.md`.
 - [ ] [needs a hosted endpoint] Anthropic Connectors Directory submission (`submissions/platform-directories.md`).
 - [ ] [needs a hosted endpoint] ChatGPT apps directory submission (same file).
 - [ ] [needs a hosted endpoint] Smithery remote entry at [smithery.ai/new](https://smithery.ai/new).
 - [ ] [needs a hosted endpoint] Microsoft Copilot Studio certification (Partner Center), only after the above.
-- [ ] [needs a hosted endpoint] Replace "no hosted endpoint" on the site, README and `llms.txt`, and remove or change the early-access call to action only if the hosted registry is actually open.
+- [x] [needs a hosted endpoint] Replace "no hosted endpoint" on the site, README and `llms.txt`. **Status 2026-11-03: done; the hosted registry is not open yet (it needs Workers Paid for the database writes), and the pricing copy says registry regions open over time.**
 
 ### Needs model spend (backlog A3)
 

@@ -25,7 +25,7 @@ formula ID whether it was called from Claude, ChatGPT, Gemini, Copilot, Bedrock,
 ## Run the remote connector
 
 ```bash
-docker run -p 8787:8787 ghcr.io/9mp96ygnbk-alt/factlot:0.1.0    # prebuilt image, each release
+docker run -p 8787:8787 ghcr.io/9mp96ygnbk-alt/factlot:0.1.1    # prebuilt image, each release
 # or build the image yourself, and in production run it hardened:
 docker build -t factlot .
 docker run --rm -p 8787:8787 --read-only --cap-drop ALL --security-opt no-new-privileges \

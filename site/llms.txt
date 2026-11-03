@@ -16,7 +16,7 @@ npm install && npm run build
 claude mcp add factlot -- node "$PWD/packages/mcp/dist/bin.js"
 ```
 
-Or, with no clone, run the release build as a stdio server: `npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.0/factlot-mcp-standalone-0.1.0.tgz` (for Claude Code: `claude mcp add factlot -- npx -y <that URL>`). For any other MCP client, run `node packages/mcp/dist/bin.js` as a stdio server. For Python: `pip install "git+https://github.com/9mp96ygnbk-alt/factlot.git#subdirectory=python"`, then use `factlot.anthropic_tools()`, `factlot.openai_tools()`, and `factlot.run_tool(name, input)`. For REST, OpenAPI, and remote MCP: `docker build -t factlot . && docker run -p 8787:8787 factlot`. Licenses: Apache-2.0 and MIT.
+Or, with no clone, run the release build as a stdio server: `npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.1/factlot-mcp-standalone-0.1.1.tgz` (for Claude Code: `claude mcp add factlot -- npx -y <that URL>`). For any other MCP client, run `node packages/mcp/dist/bin.js` as a stdio server. For Python: `pip install "git+https://github.com/9mp96ygnbk-alt/factlot.git#subdirectory=python"`, then use `factlot.anthropic_tools()`, `factlot.openai_tools()`, and `factlot.run_tool(name, input)`. For REST, OpenAPI, and remote MCP: `docker build -t factlot . && docker run -p 8787:8787 factlot`. Licenses: Apache-2.0 and MIT.
 
 When reporting a number from a calculator, cite its formula ID (for example `calc.cam_reconciliation@1`) and the returned `steps`, and surface every returned `warnings` entry to a human.
 
@@ -27,7 +27,7 @@ Hosted registry regions, enterprise terms, and private deployments: email contac
 ## Use it
 
 - [Connectors](https://github.com/9mp96ygnbk-alt/factlot/blob/main/connectors/README.md): remote MCP at `https://<host>/mcp` and REST/OpenAPI at `/v1` and `/openapi.json`, with setup for Claude, ChatGPT, Gemini, Copilot, Bedrock, and others
-- [MCP server](https://github.com/9mp96ygnbk-alt/factlot/blob/main/packages/mcp/README.md): `npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.0/factlot-mcp-standalone-0.1.0.tgz` (or `npx -y @factlot/mcp` after first publish to npm), with tools `calc_*`, `id_*`, `rules_*`, `fact_validate`, `search`, `fetch`, and `schema_get`
+- [MCP server](https://github.com/9mp96ygnbk-alt/factlot/blob/main/packages/mcp/README.md): `npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.1/factlot-mcp-standalone-0.1.1.tgz` (or `npx -y @factlot/mcp` after first publish to npm), with tools `calc_*`, `id_*`, `rules_*`, `fact_validate`, `search`, `fetch`, and `schema_get`
 - [Python SDK](https://github.com/9mp96ygnbk-alt/factlot/blob/main/python/README.md): `factlot.anthropic_tools()`, `factlot.openai_tools()`, `factlot.run_tool(name, input)`
 - [Agent guide](https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/agents.md): which tool to call when, how to map lease language to inputs, and how to emit cited facts
 
