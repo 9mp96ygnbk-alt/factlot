@@ -1,7 +1,10 @@
 # factlot.com landing page
 
-A single static page: `index.html` and `styles.css`. No JavaScript, no framework, no build
-step, no external scripts or fonts, no tracking. Every number on the page comes from the
+A single static page: `index.html` and `styles.css`, plus `llms.txt` (a copy of the repository's
+`llms.txt`, served at the site root; refresh it whenever the root file changes). No JavaScript, no
+framework, no build step, no external scripts or fonts, no tracking. The only `<script>` element is
+a `application/ld+json` block (schema.org `SoftwareApplication` data), which the browser does not
+execute. Every number on the page comes from the
 repository's docs (`README.md`, `docs/roadmap.md`, `docs/registry/sources/README.md`,
 `packages/calc/README.md`); update the page when those change.
 

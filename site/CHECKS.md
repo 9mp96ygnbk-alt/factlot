@@ -18,3 +18,7 @@ What was verified on `index.html` and `styles.css` before they were committed, a
 
 Not verified: a screen reader pass, and the page in Safari and Firefox (only the desktop app's
 Chromium-based pane was used).
+
+## Added 2026-11-03 (launch kit)
+
+`index.html` gained a canonical link, Open Graph and Twitter card tags (no image, so the card type is `summary`), a schema.org `SoftwareApplication` JSON-LD block, a "For AI agents" section, and a "Hosted registry early access" section with a `mailto:` link (no form, no tracking). `llms.txt` was copied to `site/llms.txt`. Rechecked: still no executable script (the one `<script>` is `type="application/ld+json"` data), no external requests, `index.html` under 60 KB, `npm run format:check` passes. Not rechecked in a browser or on a phone: run the checks above again after deploying. The JSON-LD was parsed as JSON, not run through a structured-data validator. The `mailto:` link was not tested in a mail client.
