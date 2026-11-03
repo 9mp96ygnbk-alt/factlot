@@ -132,3 +132,9 @@ PYTHONPATH=python/src python3 -m factlot.registry.adapters.nc_wake <csv> registr
   classes of the individual condominium units were not reviewed.
 - Class `D` includes some kennels and stables (type-and-use 93, 97), kept as `F2` because the county classes them industrial.
 - Only the three commercial classes were downloaded; the other 425,658 Wake parcels were not.
+
+## Statewide follow-up (2026-11-03)
+
+`nc_wake.py` is now a thin wrapper over `nc_onemap.py` (the per-county mapping table for the NC OneMap layer), with the
+same source id, account system, config and tests. The other North Carolina counties taken from the same layer are in
+[nc-onemap-parcels](nc-onemap-parcels.md).
