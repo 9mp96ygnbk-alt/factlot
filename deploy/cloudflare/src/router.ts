@@ -146,9 +146,18 @@ export async function handle(
       301,
     );
 
-  // Billing pages for people (any host).
-  if (path === "/billing/checkout") return checkoutRoute(env, request, url);
-  if (path === "/billing/success") return successRoute(env, url);
+  // Billing pages for people (any host). Both reach Stripe, so both count against the
+  // per-address free-tier budget: a crawler following "Start Pro" cannot open sessions in bulk.
+  if (path === "/billing/checkout" || path === "/billing/success") {
+    const ok = await env.RL_ANON.limit({
+      key: `billing:${clientAddress(request)}`,
+    });
+    if (!ok.success)
+      return rateLimited(path, ANONYMOUS_REQUESTS_PER_MINUTE, "anonymous");
+    return path === "/billing/checkout"
+      ? checkoutRoute(env, request, url)
+      : successRoute(env, url);
+  }
   if (path === "/v1/billing/webhook") {
     if (request.method !== "POST")
       return json(405, { error: "MethodNotAllowed" }, { allow: "POST" });
