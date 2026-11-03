@@ -150,7 +150,11 @@ sources), and decide the F3/F4/F5 question above.
   coded F1, lots with only paving or fences).
 - TCAD reports F3/F4/F5 as F2; see the code table. `COMMERCIAL RES CONVERSION` (F5, 1,287 parcels)
   and commercial condos (F4, 2,892) therefore count as industrial in category totals.
-- The supplemental export (a full roll as of a later supplement) can be loaded with the same
-  adapter as a later snapshot; it was archived but not loaded. Nothing in it is a delta.
+- The supplemental export (a full roll as of a later supplement) loads with the same adapter as a
+  later snapshot. Supplement 3 (`travis_SUPP 335_2026_WEBSITE EXPORT_Renamed.zip`, run date 2026-10-06,
+  archived 2026-11-02) was archived but not loaded in the first pass; the 2026-11-03 quality pass
+  loaded it after supplement 0, so the registry holds both: facts of the certified roll are history,
+  and the October roll is current (30,556 parcels; the five supplement-0 parcels it no longer lists
+  are retired). Nothing in a supplement is a delta.
 - `PROP_ENT.TXT` (9.8 GB, taxing entities per property), `IMP_ATR.TXT`, `SKETCH_INFO.TXT`, `SB12.TXT`
   and the ARB, lawsuit, agent, deferral and mobile-home files are not read.

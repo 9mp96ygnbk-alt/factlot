@@ -103,6 +103,15 @@ class Normalization(unittest.TestCase):
         self.assertEqual(normalize_name("SMITH LLC DBA"), "SMITH LLC")
         self.assertEqual(normalize_name("ET AL"), "ET AL", "a name is never reduced to nothing")
 
+    def test_a_trust_named_for_a_person_is_a_person_even_with_property_in_its_name(self):
+        for person in ("AKEL COURTNEY LEIGH SEPARATE PROPERTY TRUST", "BREIHAN DANIEL J SEPARATE PROPERTY TRUST THE &",
+                       "KEILIN CAROLYN B REVOCABLE REALTY", "GEORGE FAITH A REVOCABLE PROPERTY MANAGEMENT TRUST",
+                       "ESTATE OF JOHN SMITH PROPERTIES", "DOE JANE LIFE ESTATE PROPERTY", "SMITH HEIRS REALTY"):
+            self.assertFalse(is_organization(person), person)
+        for org in ("CAMDEN PROPERTY TRUST", "SMITH REVOCABLE HOLDINGS LLC", "SEPARATE PROPERTY INVESTORS LP",
+                    "SHELBY ST REALTY TRUST", "GOOD LIVING PROPERTIES INC"):
+            self.assertTrue(is_organization(org), org)
+
     def test_spaced_lp_is_a_partnership_only_on_evidence(self):
         for org in ("400 NUECES L P", "BROAD PLAZA L P", "REGENCY OFFICE CENTER L P", "24 HR TX L P", "ACME PPTIES"):
             self.assertTrue(is_organization(org), org)

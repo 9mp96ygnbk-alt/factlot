@@ -107,6 +107,23 @@ class AuditTests(unittest.TestCase):
         self.assertEqual(s["review_queue"]["pending"], 1)
         self.assertEqual(s["review_queue"]["pending_by_rule"], {"exact_name_other_state": 1})
 
+    def test_a_later_snapshot_of_the_same_source_counts_each_parcel_once_and_retires_the_missing_one(self):
+        # A supplement lists the same roll without one parcel and with a changed owner.
+        later = write_roll(self.tmp, "fy2026-supp.csv", [r.replace("EXAMPLE APARTMENTS LP", "RENAMED APARTMENTS LP")
+                                                         for r in ROWS if not r.startswith("0300050000")])
+        ma_boston.build(later, self.db, as_of="2025-06-01", retrieved_at="2026-11-03T00:00:00+00:00")
+        reg = Registry(self.db)
+        reg.link_owners()
+        reg.close()
+        report = audit_mod.audit_db(self.db, today=TODAY, files={"ma-boston-assessing": [str(later)]}, reread=True)
+        s = self.source(report)
+        self.assertEqual(s["parcels"]["count"], 3, "the retired parcel is not current")
+        self.assertEqual(s["parcels"]["absent_from_latest_snapshot"], 1)
+        self.assertEqual([x["parcels"] for x in s["snapshots"]], [4, 3], "the retired parcel is not counted for the later snapshot")
+        self.assertEqual(s["links"]["organisation_owner_parcels"], 2)
+        self.assertEqual(s["parcels"]["conflicting_facts"], 0, "the earlier snapshot's owner is history, not a conflict")
+        self.assertEqual(report["violations"], [])
+
     def test_a_city_or_district_owner_is_counted_apart_from_real_gaps(self):
         grown = write_roll(self.tmp, "fy2026-more.csv", [*ROWS, "0300070000,1,CITY ST,BOSTON,02118,345,EXAMPLE CITY OF,,,,,,,1,"])
         ma_boston.build(grown, self.db, as_of="2025-01-01", retrieved_at="2026-11-03T00:00:00+00:00")
@@ -171,9 +188,11 @@ class AuditTests(unittest.TestCase):
     def test_reread_matches_registry_and_detects_a_stale_database(self):
         collected = self.tmp / "collected"
         files = {"ma-boston-assessing": [str(self.csv)]}
-        report = audit_mod.audit_db(self.db, today=TODAY, files=files, reread=True)
+        report = audit_mod.audit_db(self.db, today=TODAY, files=files, reread=True, all_categories=True)
         f = self.source(report)["source_file"][0]
         self.assertEqual((f["records_in_scope"], f["distinct_parcel_ids"], f["records_all_categories"]), (4, 4, 5))
+        light = self.source(audit_mod.audit_db(self.db, today=TODAY, files=files, reread=True))["source_file"][0]
+        self.assertNotIn("records_all_categories", light)
         self.assertTrue(f["matches_registry"])
         # The publisher's file gained a commercial parcel the registry does not hold.
         grown = write_roll(self.tmp, "fy2026.csv", [*ROWS, "0300060000,3,ELM ST,BOSTON,02119,112,ELM HOLDINGS LLC,,,,,,,1,"])

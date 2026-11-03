@@ -137,6 +137,15 @@ Tyler Technologies Terms of Use (served at <https://www.tylertech.com/terms/socr
 
 Read: these are Tyler's generic terms for its own "Services". The page refers to "the terms specific to a particular Service as applicable" and does not address a public agency's own dataset licence. Read literally, the scraper clause covers copying "data ... accessed through the Services", which is in tension with the collector's export downloads; the publisher's own dataset licence (recorded above) is what grants rights in the data. Decision for the founder: rely on the agency licence and treat the Tyler page as platform boilerplate, or ask the agency (not Tyler) to confirm that its licence governs bulk exports. Nothing was accepted.
 
+## Quality pass (2026-11-03)
+
+The `OWNER` field holds a name of up to 80 characters as two 40-character halves joined by one space, and
+the break falls inside a word when the name is longer than 40 characters: `BUILDERS LEASING LIMITED LIABILITY COMPA NY`,
+`WEI WEI AND JIN CUI REVOCABLE LIVING TRU ST` (9,436 of 461,249 rows). An organisation written that way never matched
+the entity registry (`... COMPA NY` is not `... COMPANY`). The adapter closes the break when the two fragments form a
+word the unwrapped names of the same file use more often than the first fragment (`_owner`); where they do not (`U/A/D`
+and `5/28/08`) the space stays. See [the Tier 1 quality report](../quality/tier1-2026-11-03.md) for the effect on the link rate.
+
 ## Real run (2026-11-03)
 
 The full FY27 roll was archived by the collector once the shared connection was quiet

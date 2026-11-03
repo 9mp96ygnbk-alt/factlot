@@ -190,8 +190,12 @@ def locate_snapshot_file(collected: str | Path, source_id: str, document_id: str
     return files[0] if len(files) == 1 else None
 
 
-def reread_source_file(mod: Any, path: Path) -> dict[str, Any]:
-    """Run an adapter's reader on a snapshot file and describe what it yields."""
+def reread_source_file(mod: Any, path: Path, *, all_categories: bool = False) -> dict[str, Any]:
+    """Run an adapter's reader on a snapshot file and describe what it yields.
+
+    ``all_categories`` also counts every row the reader reaches, before the commercial filter; it reads
+    the file a second time, which takes minutes on the largest (Access database, 17 GB of fixed-width text).
+    """
     reader: Callable[..., Iterable[Any]] | None = getattr(mod, "read_roll", None)
     entity_reader = getattr(mod, "read_entities", None)
     if reader is None and entity_reader is not None:
@@ -244,12 +248,12 @@ def reread_source_file(mod: Any, path: Path) -> dict[str, Any]:
         "header_like_apns": header_like,
     }
     # Every row the reader reaches, in or out of the commercial scope, when the adapter can filter at the source.
-    if yielded == in_scope:
+    if yielded == in_scope and all_categories:
         try:
             out["records_all_categories"] = sum(1 for _ in reader(path, categories=None))
         except TypeError:
             pass
-    else:
+    elif yielded != in_scope:
         out["records_all_categories"] = yielded
     return out
 
@@ -259,7 +263,7 @@ def reread_source_file(mod: Any, path: Path) -> dict[str, Any]:
 
 def audit_db(path: str | Path, *, today: date | None = None, collected: str | Path | None = None,
              files: dict[str, list[str]] | None = None, reread: bool = False,
-             entity_names: bool = False) -> dict[str, Any]:
+             entity_names: bool = False, all_categories: bool = False) -> dict[str, Any]:
     """Audit one registry file; returns a JSON-serialisable report.
 
     ``entity_names=True`` also counts registered entities whose legal name reads as a person (slow on
@@ -270,13 +274,14 @@ def audit_db(path: str | Path, *, today: date | None = None, collected: str | Pa
     today = today or datetime.now(timezone.utc).date()
     db = _connect(path)
     try:
-        return _audit(db, Path(path), today, collected, files or {}, reread, entity_names)
+        return _audit(db, Path(path), today, collected, files or {}, reread, entity_names, all_categories)
     finally:
         db.close()
 
 
 def _audit(db: sqlite3.Connection, path: Path, today: date, collected: str | Path | None,
-           files: dict[str, list[str]], reread: bool, entity_names: bool = False) -> dict[str, Any]:
+           files: dict[str, list[str]], reread: bool, entity_names: bool = False,
+           all_categories: bool = False) -> dict[str, Any]:
     q = lambda sql, *a: db.execute(sql, a).fetchall()  # noqa: E731
     one = lambda sql, *a: db.execute(sql, a).fetchone()[0]  # noqa: E731
 
@@ -288,20 +293,23 @@ def _audit(db: sqlite3.Connection, path: Path, today: date, collected: str | Pat
     cover: dict[str, dict[str, int]] = defaultdict(lambda: {"parcels": 0, "entities": 0, "absent": 0})
     for r in q("SELECT document_id, COUNT(*) n, SUM(present = 0) absent FROM coverage "
                "WHERE subject >= ? AND subject < ? GROUP BY document_id", *_PARCEL):
-        cover[r["document_id"]]["parcels"] = r["n"]
         cover[r["document_id"]]["absent"] = r["absent"] or 0
+        cover[r["document_id"]]["parcels"] = r["n"] - cover[r["document_id"]]["absent"]
     for r in q("SELECT document_id, COUNT(*) n FROM coverage WHERE subject >= ? AND subject < ? GROUP BY document_id",
                *_ENTITY):
         cover[r["document_id"]]["entities"] = r["n"]
 
-    # Per document and predicate: facts, distinct parcels, facts without a locator or a valid date.
+    # Per source and predicate, over the facts that are current (the latest snapshot of the source that
+    # covered the parcel): facts, and distinct parcels. A source with several snapshots of one parcel
+    # (a certified roll and its supplement) counts the parcel once.
     pred: dict[str, dict[str, dict[str, int]]] = defaultdict(dict)
     bad_loc_parcels: dict[str, int] = {}
     bad_date_parcels: dict[str, int] = {}
     for r in q(
-        "SELECT document_id, predicate, COUNT(*) n, COUNT(DISTINCT subject) subjects FROM facts "
-        "WHERE subject >= ? AND subject < ? GROUP BY document_id, predicate", *_PARCEL):
-        pred[r["document_id"]][r["predicate"]] = {"facts": r["n"], "parcels": r["subjects"]}
+        "SELECT s.source_id AS sid, f.predicate AS predicate, COUNT(*) n, COUNT(DISTINCT f.subject) subjects "
+        "FROM current_facts f JOIN snapshots s ON s.document_id = f.document_id "
+        "WHERE f.subject >= ? AND f.subject < ? GROUP BY 1, 2", *_PARCEL):
+        pred[r["sid"]][r["predicate"]] = {"facts": r["n"], "parcels": r["subjects"]}
     for r in q(
         "SELECT document_id, COUNT(DISTINCT CASE WHEN locator IS NULL OR TRIM(locator) = '' THEN subject END) loc, "
         f"COUNT(DISTINCT CASE WHEN as_of IS NULL OR as_of NOT GLOB '{_ISO_GLOB}' THEN subject END) dt "
@@ -370,13 +378,15 @@ def _audit(db: sqlite3.Connection, path: Path, today: date, collected: str | Pat
             d["no_snapshot"] += r["n"]
         d["by_rule"][_link_rule(r["basis"])] += r["n"]
         d["by_confidence"][_confidence_bucket(r["confidence"])] += r["n"]
-    linked_current = {r["document_id"]: r["n"] for r in q(
-        "SELECT r.document_id AS document_id, COUNT(DISTINCT r.to_urn) n FROM relationships r "
+    linked_current = {r["sid"]: r["n"] for r in q(
+        "SELECT s.source_id AS sid, COUNT(DISTINCT r.to_urn) n FROM relationships r "
+        "JOIN snapshots s ON s.document_id = r.document_id "
         "WHERE r.type = 'owns' AND EXISTS (SELECT 1 FROM current_facts cf WHERE cf.subject = r.to_urn "
         "AND cf.predicate = 'ownership.owner_of_record' AND cf.document_id = r.document_id) GROUP BY 1")}
-    org_current = {r["document_id"]: r["n"] for r in q(
-        "SELECT document_id, COUNT(DISTINCT subject) n FROM current_facts WHERE subject >= ? AND subject < ? "
-        "AND predicate = 'ownership.owner_of_record' GROUP BY document_id", *_PARCEL)}
+    org_current = {r["sid"]: r["n"] for r in q(
+        "SELECT s.source_id AS sid, COUNT(DISTINCT cf.subject) n FROM current_facts cf "
+        "JOIN snapshots s ON s.document_id = cf.document_id WHERE cf.subject >= ? AND cf.subject < ? "
+        "AND cf.predicate = 'ownership.owner_of_record' GROUP BY 1", *_PARCEL)}
 
     person_named_entities: dict[str, int] = {}
     if entity_names:
@@ -482,20 +492,18 @@ def _audit(db: sqlite3.Connection, path: Path, today: date, collected: str | Pat
             totals["orphan_mailing"] += orphan_mailing.get(doc, 0)
             totals["persons"] += persons.get(doc, {}).get("person_like", 0)
             totals["owner_facts"] += persons.get(doc, {}).get("owner_facts", 0)
-            totals["org_current_parcels"] += org_current.get(doc, 0)
-            totals["linked_current_parcels"] += linked_current.get(doc, 0)
             totals["links"] += links.get(doc, {}).get("links", 0)
             totals["links_no_basis"] += links.get(doc, {}).get("no_basis", 0)
             totals["links_no_snapshot"] += links.get(doc, {}).get("no_snapshot", 0)
 
         if kind == "parcels":
-            p = totals["parcels"]
+            current = pred.get(source_id, {})
+            p = current.get("parcel.apn", {}).get("parcels", 0)
             fields: dict[str, Any] = {}
             conflicting = 0
             for name, predicate in PARCEL_FIELDS.items():
-                have = sum(pred[s["document_id"]].get(predicate, {}).get("parcels", 0) for s in docs)
-                extra = sum(pred[s["document_id"]].get(predicate, {}).get("facts", 0)
-                            - pred[s["document_id"]].get(predicate, {}).get("parcels", 0) for s in docs)
+                have = current.get(predicate, {}).get("parcels", 0)
+                extra = current.get(predicate, {}).get("facts", 0) - have
                 fields[name] = {"parcels": have, "missing": p - have, "pct_present": _pct(have, p)}
                 conflicting += extra
             entry["parcels"] = {
@@ -542,8 +550,8 @@ def _audit(db: sqlite3.Connection, path: Path, today: date, collected: str | Pat
             # Owner links.
             states = {STATE_BY_FIPS.get(c[3:5]) for c in counties}
             have_registry = sorted(st for st in states if st in entity_states)
-            org = totals["org_current_parcels"]
-            linked = totals["linked_current_parcels"]
+            org = org_current.get(source_id, 0)
+            linked = linked_current.get(source_id, 0)
             lk: dict[str, Any] = {
                 "organisation_owner_parcels": org,
                 "linked_parcels": linked,
@@ -597,7 +605,7 @@ def _audit(db: sqlite3.Connection, path: Path, today: date, collected: str | Pat
                 find.append(("violation", f"{totals[key]} {label}"))
 
         if reread:
-            entry["source_file"] = _reread(source_id, docs, cover, collected, files)
+            entry["source_file"] = _reread(source_id, docs, cover, collected, files, all_categories)
             for r in entry["source_file"]:
                 if r.get("matches_registry") is False:
                     find.append(("violation", f"{r['file']}: the adapter yields {r['records_in_scope']} in-scope "
@@ -694,7 +702,7 @@ def _unlinked_breakdown(db: sqlite3.Connection, docs: list[str]) -> dict[str, in
 
 
 def _reread(source_id: str, docs: list[dict[str, Any]], cover: dict[str, dict[str, int]],
-            collected: str | Path | None, files: dict[str, list[str]]) -> list[dict[str, Any]]:
+            collected: str | Path | None, files: dict[str, list[str]], all_categories: bool) -> list[dict[str, Any]]:
     mod = adapter_for(source_id)
     out: list[dict[str, Any]] = []
     explicit = {Path(p).name: Path(p) for p in files.get(source_id, [])}
@@ -709,7 +717,7 @@ def _reread(source_id: str, docs: list[dict[str, Any]], cover: dict[str, dict[st
             entry["error"] = "archived file not found"
         else:
             try:
-                entry.update(reread_source_file(mod, path))
+                entry.update(reread_source_file(mod, path, all_categories=all_categories))
             except Exception as e:  # report, do not abort the audit
                 entry["error"] = f"{type(e).__name__}: {e}"
             held = cover[s["document_id"]]["parcels"] or cover[s["document_id"]]["entities"]
@@ -761,6 +769,8 @@ def main(argv: list[str] | None = None) -> int:
                                         "snapshot files are found there")
     ap.add_argument("--reread", action="store_true",
                     help="re-run each source's adapter on its archived file and compare counts (slow on large files)")
+    ap.add_argument("--all-categories", action="store_true",
+                    help="with --reread, also count every row before the commercial filter (reads each file twice)")
     ap.add_argument("--files", help="JSON file mapping source_id to a list of archived file paths (overrides --collected)")
     ap.add_argument("--entity-names", action="store_true",
                     help="also count registered entities whose legal name reads as a person (slow; informational)")
@@ -770,7 +780,7 @@ def main(argv: list[str] | None = None) -> int:
     today = date.fromisoformat(args.today) if args.today else None
     files = json.loads(Path(args.files).read_text()) if args.files else None
     reports = [audit_db(p, today=today, collected=args.collected, files=files, reread=args.reread,
-                        entity_names=args.entity_names) for p in args.db]
+                        entity_names=args.entity_names, all_categories=args.all_categories) for p in args.db]
     body = json.dumps(reports if len(reports) > 1 else reports[0], indent=2, sort_keys=True) if args.format == "json" \
         else "\n".join(render_markdown(r) for r in reports)
     if args.out:

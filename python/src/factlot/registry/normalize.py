@@ -124,6 +124,17 @@ _LP_CONTEXT = frozenset(
 _SPACED_LP = re.compile(r"\bL P\b")
 
 
+# A trust named for a person ("DOE JANE SEPARATE PROPERTY TRUST", "SMITH JOHN A REVOCABLE REALTY") is that
+# person's holding, and the words PROPERTY and REALTY in it do not make it a business. Without a word
+# that makes the owner a company (below), such a name is read as a person.
+_PERSONAL_TRUST = re.compile(
+    r"\b(?:SEPARATE PROPERTY|COMMUNITY PROPERTY|REVOCABLE|IRREVOCABLE|LIVING TRUST|LIFE ESTATE|ESTATE OF|HEIRS|"
+    r"DECEASED|TESTAMENTARY|BYPASS TRUST|SURVIVORS? TRUST)\b")
+_COMPANY_WORD = re.compile(
+    r"\b(?:LLC|LLP|LP|INC|CORP|LTD|PLLC|PC|BANK|CHURCH|FUND|ASSOCIATION|FOUNDATION|REIT|COMPANY|PARTNERSHIP|"
+    r"PARTNERS|VENTURES?|CAPITAL|GROUP)\b")
+
+
 def _spaced_lp_is_partnership(s: str) -> bool:
     """Whether the last bare ``L P`` in a cleaned name is "L.P." written without dots.
 
@@ -161,7 +172,10 @@ def is_organization(name: str) -> bool:
         if pattern == r"\bL P\b" and not (_DOTTED_LP.search(raw) or spaced_lp):
             continue
         s = re.sub(pattern, repl, s)
-    return bool(_ENTITY_TOKENS.search(_canonical_tokens(s)))
+    s = _canonical_tokens(s)
+    if _PERSONAL_TRUST.search(s) and not _COMPANY_WORD.search(s):
+        return False
+    return bool(_ENTITY_TOKENS.search(s))
 
 
 def legacy_name_key(name: str) -> str:
