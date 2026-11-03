@@ -103,7 +103,7 @@ def _mdb_export(mdb: Path) -> Iterator[dict[str, str]]:
     if not exe:
         raise RuntimeError("reading AD_Public.mdb needs mdb-export from mdbtools (brew install mdbtools); "
                            "or pass a CSV exported from it")
-    cmd = [exe, "-D", "%Y-%m-%d", "-T", "%Y-%m-%d %H:%M:%S", str(mdb), TABLE]
+    cmd = [exe, "-D", "%Y-%m-%d", "-T", "%Y-%m-%d %H:%M:%S", str(mdb.resolve()), TABLE]  # absolute: never an option
     with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
         assert proc.stdout is not None and proc.stderr is not None
         with io.TextIOWrapper(proc.stdout, encoding="utf-8", errors="replace", newline="") as out:
