@@ -19,9 +19,10 @@ def _fields(f: IO[bytes]) -> tuple[int, int, list[tuple[str, str, int, int]]]:
     if len(head) < 32:
         raise ValueError("not a dBASE file: header too short")
     nrec, hlen, rlen = struct.unpack("<IHH", head[4:12])
+    descriptors = f.read(max(hlen - 32, 0))  # every descriptor, the 0x0D terminator and any padding up to the first record
     fields: list[tuple[str, str, int, int]] = []
-    while True:
-        d = f.read(32)
+    for pos in range(0, len(descriptors), 32):
+        d = descriptors[pos:pos + 32]
         if not d or d[0] == 0x0D:
             break
         name = d[:11].split(b"\0", 1)[0].decode("ascii", "replace")
