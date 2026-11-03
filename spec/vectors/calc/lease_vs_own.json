@@ -1,0 +1,372 @@
+{
+  "calculator": "calc.lease_vs_own",
+  "version": 1,
+  "notes": "Expected values computed independently with Python decimal (40 significant digits, inputs read as decimal literals, half-up rounding at the same points the formula rounds: cents for money, 4 dp for ratios), in a scratch script outside the repository; FactLot was not run to produce them. Loan balances use the closed-form level-payment formula with monthly payments; break-even residual solves the linear relation between sale price and own-case NPV.",
+  "cases": [
+    {
+      "name": "pre tax amortizing loan exit cap",
+      "input": {
+        "horizon_years": 5,
+        "discount_rate_annual": 0.08,
+        "lease": {
+          "rent": {
+            "type": "escalating",
+            "base_rent_annual": 240000,
+            "escalation_rate_annual": 0.03
+          },
+          "free_rent_months": 3,
+          "operating_expenses_annual": 60000,
+          "expense_growth_rate_annual": 0.02,
+          "upfront_costs": 50000
+        },
+        "own": {
+          "purchase_price": 3000000,
+          "closing_costs": 60000,
+          "loan": {
+            "amount": 2100000,
+            "rate_annual": 0.065,
+            "amortization_years": 25
+          },
+          "operating_expenses_annual": 45000,
+          "capex_reserve_annual": 15000,
+          "property_taxes_annual": 50000,
+          "insurance_annual": 12000,
+          "expense_growth_rate_annual": 0.02,
+          "residual": {
+            "type": "exit_cap",
+            "cap_rate": 0.07,
+            "stabilized_noi": 230000
+          },
+          "selling_costs_rate": 0.03
+        }
+      },
+      "expect": {
+        "value.lease.npv": 1255909.81,
+        "value.lease.total_cost": 1576435.0,
+        "value.own.npv": 1270037.7,
+        "value.own.total_cost": 1160316.48,
+        "value.own.residual_value": 3285714.29,
+        "value.own.loan_balance_at_horizon": 1901805.43,
+        "value.own.net_sale_proceeds": 1285337.43,
+        "value.difference_npv": 14127.89,
+        "value.cheaper": "lease",
+        "value.break_even_residual_value": 3307114.81,
+        "value.after_tax": false,
+        "value.cash_flows.own.0.equity": 960000.0,
+        "value.cash_flows.lease.1.rent": 240000.0,
+        "value.cash_flows.lease.1.free_rent": 60000.0,
+        "value.cash_flows.lease.1.tax_savings": 0.0,
+        "value.cash_flows.lease.1.net": 240000.0,
+        "value.cash_flows.lease.5.net": 335068.04,
+        "value.cash_flows.own.1.debt_service": 170152.2,
+        "value.cash_flows.own.1.interest": 135479.12,
+        "value.cash_flows.own.1.principal": 34673.08,
+        "value.cash_flows.own.1.depreciation": 0.0,
+        "value.cash_flows.own.1.tax_savings": 0.0,
+        "value.cash_flows.own.1.net": 292152.2,
+        "value.cash_flows.own.5.sale_proceeds": 1285337.43,
+        "value.cash_flows.own.5.net": -983128.5,
+        "value.cash_flows.lease.2.free_rent": 0.0,
+        "value.cash_flows.own.5.debt_service": 170152.2,
+        "value.cash_flows.own.5.depreciation": 0.0
+      }
+    },
+    {
+      "name": "after tax amortizing loan exit cap",
+      "input": {
+        "horizon_years": 5,
+        "discount_rate_annual": 0.08,
+        "lease": {
+          "rent": {
+            "type": "escalating",
+            "base_rent_annual": 240000,
+            "escalation_rate_annual": 0.03
+          },
+          "free_rent_months": 3,
+          "operating_expenses_annual": 60000,
+          "expense_growth_rate_annual": 0.02,
+          "upfront_costs": 50000
+        },
+        "own": {
+          "purchase_price": 3000000,
+          "closing_costs": 60000,
+          "loan": {
+            "amount": 2100000,
+            "rate_annual": 0.065,
+            "amortization_years": 25
+          },
+          "operating_expenses_annual": 45000,
+          "capex_reserve_annual": 15000,
+          "property_taxes_annual": 50000,
+          "insurance_annual": 12000,
+          "expense_growth_rate_annual": 0.02,
+          "residual": {
+            "type": "exit_cap",
+            "cap_rate": 0.07,
+            "stabilized_noi": 230000
+          },
+          "selling_costs_rate": 0.03,
+          "tax": {
+            "marginal_tax_rate": 0.26
+          }
+        }
+      },
+      "expect": {
+        "value.lease.npv": 942373.26,
+        "value.lease.total_cost": 1179561.9,
+        "value.own.npv": 1031757.07,
+        "value.own.total_cost": 878929.95,
+        "value.own.residual_value": 3285714.29,
+        "value.own.loan_balance_at_horizon": 1901805.43,
+        "value.own.net_sale_proceeds": 1170680.29,
+        "value.difference_npv": 89383.81,
+        "value.cheaper": "lease",
+        "value.break_even_residual_value": 3468681.9,
+        "value.after_tax": true,
+        "value.cash_flows.own.0.equity": 960000.0,
+        "value.cash_flows.lease.1.rent": 240000.0,
+        "value.cash_flows.lease.1.free_rent": 60000.0,
+        "value.cash_flows.lease.1.tax_savings": 62400.0,
+        "value.cash_flows.lease.1.net": 177600.0,
+        "value.cash_flows.lease.5.net": 247950.35,
+        "value.cash_flows.own.1.debt_service": 170152.2,
+        "value.cash_flows.own.1.interest": 135479.12,
+        "value.cash_flows.own.1.principal": 34673.08,
+        "value.cash_flows.own.1.depreciation": 62769.23,
+        "value.cash_flows.own.1.tax_savings": 79364.57,
+        "value.cash_flows.own.1.net": 212787.63,
+        "value.cash_flows.own.5.sale_proceeds": 1170680.29,
+        "value.cash_flows.own.5.net": -947460.57,
+        "value.cash_flows.lease.2.free_rent": 0.0,
+        "value.cash_flows.own.5.debt_service": 170152.2,
+        "value.cash_flows.own.5.depreciation": 62769.23
+      }
+    },
+    {
+      "name": "all cash schedule stated residual",
+      "input": {
+        "horizon_years": 3,
+        "discount_rate_annual": 0.1,
+        "lease": {
+          "rent": {
+            "type": "schedule",
+            "annual_rent": [100000, 100000, 110000]
+          },
+          "operating_expenses_annual": 20000
+        },
+        "own": {
+          "purchase_price": 1000000,
+          "operating_expenses_annual": 30000,
+          "property_taxes_annual": 15000,
+          "residual": {
+            "type": "value",
+            "amount": 1100000
+          },
+          "selling_costs_rate": 0.05
+        }
+      },
+      "expect": {
+        "value.lease.npv": 305935.39,
+        "value.lease.total_cost": 370000.0,
+        "value.own.npv": 326784.37,
+        "value.own.total_cost": 90000.0,
+        "value.own.residual_value": 1100000.0,
+        "value.own.loan_balance_at_horizon": 0.0,
+        "value.own.net_sale_proceeds": 1045000.0,
+        "value.difference_npv": 20848.98,
+        "value.cheaper": "lease",
+        "value.break_even_residual_value": 1129210.53,
+        "value.after_tax": false,
+        "value.cash_flows.own.0.equity": 1000000.0,
+        "value.cash_flows.lease.1.rent": 100000.0,
+        "value.cash_flows.lease.1.free_rent": 0.0,
+        "value.cash_flows.lease.1.tax_savings": 0.0,
+        "value.cash_flows.lease.1.net": 120000.0,
+        "value.cash_flows.lease.3.net": 130000.0,
+        "value.cash_flows.own.1.debt_service": 0.0,
+        "value.cash_flows.own.1.interest": 0.0,
+        "value.cash_flows.own.1.principal": 0.0,
+        "value.cash_flows.own.1.depreciation": 0.0,
+        "value.cash_flows.own.1.tax_savings": 0.0,
+        "value.cash_flows.own.1.net": 45000.0,
+        "value.cash_flows.own.3.sale_proceeds": 1045000.0,
+        "value.cash_flows.own.3.net": -1000000.0,
+        "value.cash_flows.lease.2.free_rent": 0.0,
+        "value.cash_flows.own.3.debt_service": 0.0,
+        "value.cash_flows.own.3.depreciation": 0.0
+      }
+    },
+    {
+      "name": "interest only long free rent short depreciation",
+      "input": {
+        "horizon_years": 7,
+        "discount_rate_annual": 0.07,
+        "lease": {
+          "rent": {
+            "type": "escalating",
+            "base_rent_annual": 500000,
+            "escalation_rate_annual": 0.025
+          },
+          "free_rent_months": 15,
+          "operating_expenses_annual": 80000,
+          "upfront_costs": 120000
+        },
+        "own": {
+          "purchase_price": 6000000,
+          "closing_costs": 90000,
+          "loan": {
+            "amount": 3600000,
+            "rate_annual": 0.06,
+            "amortization_years": 0
+          },
+          "operating_expenses_annual": 70000,
+          "capex_reserve_annual": 25000,
+          "property_taxes_annual": 95000,
+          "insurance_annual": 18000,
+          "expense_growth_rate_annual": 0.03,
+          "residual": {
+            "type": "value",
+            "amount": 6900000
+          },
+          "selling_costs_rate": 0.04,
+          "tax": {
+            "marginal_tax_rate": 0.3,
+            "depreciation_life_years": 5,
+            "land_share": 0.25,
+            "rent_deductible": false
+          }
+        }
+      },
+      "expect": {
+        "value.lease.npv": 2728670.64,
+        "value.lease.total_cost": 3657590.08,
+        "value.own.npv": 2147097.43,
+        "value.own.total_cost": 1857722.97,
+        "value.own.residual_value": 6900000.0,
+        "value.own.loan_balance_at_horizon": 3600000.0,
+        "value.own.net_sale_proceeds": 1493550.0,
+        "value.difference_npv": -581573.21,
+        "value.cheaper": "own",
+        "value.break_even_residual_value": 5510298.38,
+        "value.after_tax": true,
+        "value.cash_flows.own.0.equity": 2490000.0,
+        "value.cash_flows.lease.1.rent": 500000.0,
+        "value.cash_flows.lease.1.free_rent": 500000.0,
+        "value.cash_flows.lease.1.tax_savings": 24000.0,
+        "value.cash_flows.lease.1.net": 56000.0,
+        "value.cash_flows.lease.7.net": 635846.71,
+        "value.cash_flows.own.1.debt_service": 216000.0,
+        "value.cash_flows.own.1.interest": 216000.0,
+        "value.cash_flows.own.1.principal": 0.0,
+        "value.cash_flows.own.1.depreciation": 913500.0,
+        "value.cash_flows.own.1.tax_savings": 393750.0,
+        "value.cash_flows.own.1.net": 30250.0,
+        "value.cash_flows.own.7.sale_proceeds": 1493550.0,
+        "value.cash_flows.own.7.net": -1159540.59,
+        "value.cash_flows.lease.2.free_rent": 128125.0,
+        "value.cash_flows.own.7.debt_service": 216000.0,
+        "value.cash_flows.own.7.depreciation": 0.0
+      }
+    },
+    {
+      "name": "horizon past zero rate amortization",
+      "input": {
+        "horizon_years": 5,
+        "discount_rate_annual": 0.05,
+        "lease": {
+          "rent": {
+            "type": "schedule",
+            "annual_rent": [60000, 61000, 62000, 63000, 64000]
+          }
+        },
+        "own": {
+          "purchase_price": 500000,
+          "closing_costs": 10000,
+          "loan": {
+            "amount": 300000,
+            "rate_annual": 0,
+            "amortization_years": 3
+          },
+          "operating_expenses_annual": 12000,
+          "residual": {
+            "type": "value",
+            "amount": 450000
+          }
+        }
+      },
+      "expect": {
+        "value.lease.npv": 268005.52,
+        "value.lease.total_cost": 310000.0,
+        "value.own.npv": 181691.75,
+        "value.own.total_cost": 120000.0,
+        "value.own.residual_value": 450000.0,
+        "value.own.loan_balance_at_horizon": 0.0,
+        "value.own.net_sale_proceeds": 450000.0,
+        "value.difference_npv": -86313.77,
+        "value.cheaper": "own",
+        "value.break_even_residual_value": 339839.33,
+        "value.after_tax": false,
+        "value.cash_flows.own.0.equity": 210000.0,
+        "value.cash_flows.lease.1.rent": 60000.0,
+        "value.cash_flows.lease.1.free_rent": 0.0,
+        "value.cash_flows.lease.1.tax_savings": 0.0,
+        "value.cash_flows.lease.1.net": 60000.0,
+        "value.cash_flows.lease.5.net": 64000.0,
+        "value.cash_flows.own.1.debt_service": 100000.0,
+        "value.cash_flows.own.1.interest": 0.0,
+        "value.cash_flows.own.1.principal": 100000.0,
+        "value.cash_flows.own.1.depreciation": 0.0,
+        "value.cash_flows.own.1.tax_savings": 0.0,
+        "value.cash_flows.own.1.net": 112000.0,
+        "value.cash_flows.own.5.sale_proceeds": 450000.0,
+        "value.cash_flows.own.5.net": -438000.0,
+        "value.cash_flows.lease.2.free_rent": 0.0,
+        "value.cash_flows.own.5.debt_service": 0.0,
+        "value.cash_flows.own.5.depreciation": 0.0
+      }
+    },
+    {
+      "name": "schedule length must equal the horizon",
+      "input": {
+        "horizon_years": 3,
+        "discount_rate_annual": 0.08,
+        "lease": {
+          "rent": {
+            "type": "schedule",
+            "annual_rent": [100000, 100000]
+          }
+        },
+        "own": {
+          "purchase_price": 1000000,
+          "residual": {
+            "type": "value",
+            "amount": 1000000
+          }
+        }
+      },
+      "expect_error": true
+    },
+    {
+      "name": "free rent cannot exceed the horizon",
+      "input": {
+        "horizon_years": 1,
+        "discount_rate_annual": 0.08,
+        "lease": {
+          "rent": {
+            "type": "escalating",
+            "base_rent_annual": 100000
+          },
+          "free_rent_months": 13
+        },
+        "own": {
+          "purchase_price": 1000000,
+          "residual": {
+            "type": "value",
+            "amount": 1000000
+          }
+        }
+      },
+      "expect_error": true
+    }
+  ]
+}

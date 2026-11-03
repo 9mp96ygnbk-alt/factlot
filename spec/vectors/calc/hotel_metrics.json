@@ -1,0 +1,190 @@
+{
+  "calculator": "calc.hotel_metrics",
+  "version": 1,
+  "notes": "Expected values computed independently with Python decimal (40 significant digits, inputs read as decimal literals, half-up rounding at the same points the formula rounds: cents for money, 4 dp for ratios), in a scratch script outside the repository; FactLot was not run to produce them. Labels follow USALI 11th edition: Total Departmental Profit, Gross Operating Profit, Management Fees, Income Before Non-Operating Income and Expenses, EBITDA, Replacement Reserve, EBITDA Less Replacement Reserve (NOI).",
+  "cases": [
+    {
+      "name": "full year statement",
+      "input": {
+        "nights": 365,
+        "rooms": 150,
+        "rooms_out_of_order": 200,
+        "rooms_sold": 39000,
+        "room_revenue": 7020000,
+        "fb_revenue": 2100000,
+        "other_revenue": 380000,
+        "departmental_expenses": 3800000,
+        "undistributed_expenses": 2600000,
+        "management_fee_rate": 0.03,
+        "non_operating_expenses": 520000,
+        "ffe_reserve_rate": 0.04
+      },
+      "expect": {
+        "value.rooms_available": 54550,
+        "value.occupancy": 0.7149,
+        "value.adr": 180.0,
+        "value.revpar": 128.69,
+        "value.trevpar": 174.15,
+        "value.total_revenue": 9500000.0,
+        "value.departmental_profit": 5700000.0,
+        "value.gop": 3100000.0,
+        "value.gop_margin": 0.3263,
+        "value.goppar": 56.83,
+        "value.management_fee": 285000.0,
+        "value.income_before_non_operating": 2815000.0,
+        "value.ebitda": 2295000.0,
+        "value.ffe_reserve": 380000.0,
+        "value.noi": 1915000.0,
+        "value.noi_margin": 0.2016
+      }
+    },
+    {
+      "name": "month revenue only",
+      "input": {
+        "nights": 30,
+        "rooms": 80,
+        "rooms_sold": 1680,
+        "room_revenue": 302400
+      },
+      "expect": {
+        "value.rooms_available": 2400,
+        "value.occupancy": 0.7,
+        "value.adr": 180.0,
+        "value.revpar": 126.0,
+        "value.trevpar": 126.0,
+        "value.total_revenue": 302400.0,
+        "value.departmental_profit": 302400.0,
+        "value.gop": 302400.0,
+        "value.gop_margin": 1.0,
+        "value.goppar": 126.0,
+        "value.management_fee": 0.0,
+        "value.income_before_non_operating": 302400.0,
+        "value.ebitda": 302400.0,
+        "value.ffe_reserve": 0.0,
+        "value.noi": 302400.0,
+        "value.noi_margin": 1.0
+      }
+    },
+    {
+      "name": "no rooms sold",
+      "input": {
+        "nights": 7,
+        "rooms": 20,
+        "rooms_sold": 0,
+        "room_revenue": 0,
+        "fb_revenue": 1500,
+        "departmental_expenses": 900,
+        "undistributed_expenses": 2000,
+        "non_operating_expenses": 700
+      },
+      "expect": {
+        "value.rooms_available": 140,
+        "value.occupancy": 0.0,
+        "value.adr": null,
+        "value.revpar": 0.0,
+        "value.trevpar": 10.71,
+        "value.total_revenue": 1500.0,
+        "value.departmental_profit": 600.0,
+        "value.gop": -1400.0,
+        "value.gop_margin": -0.9333,
+        "value.goppar": -10.0,
+        "value.management_fee": 0.0,
+        "value.income_before_non_operating": -1400.0,
+        "value.ebitda": -2100.0,
+        "value.ffe_reserve": 0.0,
+        "value.noi": -2100.0,
+        "value.noi_margin": -1.4
+      }
+    },
+    {
+      "name": "fixed plus percent fee and out of order",
+      "input": {
+        "nights": 31,
+        "rooms": 220,
+        "rooms_out_of_order": 93,
+        "rooms_sold": 5123,
+        "room_revenue": 1178290,
+        "fb_revenue": 401233.5,
+        "other_revenue": 27777.77,
+        "departmental_expenses": 611000.25,
+        "undistributed_expenses": 388888.88,
+        "management_fee_rate": 0.025,
+        "management_fee_fixed": 12500,
+        "non_operating_expenses": 90000,
+        "ffe_reserve_rate": 0.05
+      },
+      "expect": {
+        "value.rooms_available": 6727,
+        "value.occupancy": 0.7616,
+        "value.adr": 230.0,
+        "value.revpar": 175.16,
+        "value.trevpar": 238.93,
+        "value.total_revenue": 1607301.27,
+        "value.departmental_profit": 996301.02,
+        "value.gop": 607412.14,
+        "value.gop_margin": 0.3779,
+        "value.goppar": 90.29,
+        "value.management_fee": 52682.53,
+        "value.income_before_non_operating": 554729.61,
+        "value.ebitda": 464729.61,
+        "value.ffe_reserve": 80365.06,
+        "value.noi": 384364.55,
+        "value.noi_margin": 0.2391
+      }
+    },
+    {
+      "name": "select service quarter",
+      "input": {
+        "nights": 90,
+        "rooms": 120,
+        "rooms_sold": 8100,
+        "room_revenue": 1053000,
+        "other_revenue": 15000,
+        "departmental_expenses": 280000,
+        "undistributed_expenses": 330000,
+        "management_fee_rate": 0.03,
+        "non_operating_expenses": 115000,
+        "ffe_reserve_rate": 0.04
+      },
+      "expect": {
+        "value.rooms_available": 10800,
+        "value.occupancy": 0.75,
+        "value.adr": 130.0,
+        "value.revpar": 97.5,
+        "value.trevpar": 98.89,
+        "value.total_revenue": 1068000.0,
+        "value.departmental_profit": 788000.0,
+        "value.gop": 458000.0,
+        "value.gop_margin": 0.4288,
+        "value.goppar": 42.41,
+        "value.management_fee": 32040.0,
+        "value.income_before_non_operating": 425960.0,
+        "value.ebitda": 310960.0,
+        "value.ffe_reserve": 42720.0,
+        "value.noi": 268240.0,
+        "value.noi_margin": 0.2512
+      }
+    },
+    {
+      "name": "rooms sold cannot exceed rooms available",
+      "input": {
+        "nights": 30,
+        "rooms": 10,
+        "rooms_sold": 301,
+        "room_revenue": 1000
+      },
+      "expect_error": true
+    },
+    {
+      "name": "out-of-order room-nights cannot consume the whole inventory",
+      "input": {
+        "nights": 2,
+        "rooms": 3,
+        "rooms_out_of_order": 6,
+        "rooms_sold": 0,
+        "room_revenue": 0
+      },
+      "expect_error": true
+    }
+  ]
+}

@@ -38,6 +38,14 @@ from its commit history; nothing was published to npm or PyPI before it.
 - `@factlot/calc`: deterministic calculators with step-by-step audit trails and versioned
   formulas: rent schedule, net effective rent, proposal comparison, CAM reconciliation,
   percentage rent, debt sizing, WALT, NPV, and IRR.
+- `@factlot/calc` and `factlot`: `calc.lease_vs_own@1` (NPV of leasing versus buying over a
+  horizon with financing, residual by value or exit cap, optional after-tax treatment, year-by-year
+  tables, and the break-even residual value), `calc.renew_vs_relocate@1` (NPV, discounted effective
+  rent, break-even starting rent, and cash-flow tables for renewing in place versus moving, including
+  TI net of allowance, moving, downtime, double rent, termination, and disruption costs), and
+  `calc.hotel_metrics@1` (occupancy, ADR, RevPAR, TRevPAR, and a USALI-style ladder from departmental
+  profit through GOP, management fees, EBITDA, FF&E reserve, and NOI), with conformance vectors and
+  differential-test generators; `@factlot/calc` also exports `npvAt`.
 - `@factlot/tools` (MIT): one tool catalog (calculators, IDs, fact validation) generating
   native tool definitions for the Claude Messages API, OpenAI Chat Completions and Responses,
   Gemini, Amazon Bedrock Converse, and OpenAPI 3.1 and 3.0; `runTool` returns input errors as

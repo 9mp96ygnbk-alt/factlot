@@ -49,7 +49,7 @@ function buildCorpus(): KnowledgeDoc[] {
       title: "How AI agents should use FactLot",
       url: `${REPO}/docs/agents.md`,
       text: [
-        "1. Do not do commercial real estate math in context. Call a calc_* tool for rent schedules, abatement, net effective rent, proposal comparison, CAM reconciliation, percentage rent, loan sizing, ASC 842 lease remeasurement, loan prepayment and defeasance, WALT, NPV, and IRR.",
+        "1. Do not do commercial real estate math in context. Call a calc_* tool for rent schedules, abatement, net effective rent, proposal comparison, CAM reconciliation, percentage rent, loan sizing, ASC 842 lease remeasurement, loan prepayment and defeasance, WALT, NPV, IRR, lease-versus-own, renew-versus-relocate, and hotel operating metrics.",
         "2. Cite the method: report the formula id (e.g. calc.debt_sizing@1) and point to the returned steps.",
         "3. Surface every returned warning to a human.",
         "4. Use FactLot IDs (id_parcel, id_entity, id_space, id_document) as join keys across systems; they are deterministic and computed offline.",

@@ -6,8 +6,8 @@ an identifier. This page covers which tool to call, when, and how to report the 
 ## Golden rules
 
 1. **Don't do CRE math in context.** Call a `calc_*` tool for rent, abatement, NER, CAM, percentage
-   rent, loan sizing, WALT, NPV, and IRR. Models drift on compounding, caps, and amortization.
-   The calculators don't.
+   rent, loan sizing, WALT, NPV, IRR, lease-versus-own, renew-versus-relocate, and hotel metrics.
+   Models drift on compounding, caps, and amortization. The calculators don't.
 2. **Cite the method.** Report `formula` (for example `calc.debt_sizing@1`) and point to `steps`.
    A human can check every intermediate value without redoing the work.
 3. **Surface warnings.** `warnings` lists assumptions that need a human, such as the order of a
@@ -33,6 +33,9 @@ an identifier. This page covers which tool to call, when, and how to report the 
 | "What does it cost to prepay or defease this loan?"                         | `calc_prepayment_and_defeasance`                    |
 | "What's the WALT?"                                                          | `calc_walt`                                         |
 | "NPV / IRR of these cash flows"                                             | `calc_npv`, `calc_irr`                              |
+| "Should we buy the building or keep leasing?"                               | `calc_lease_vs_own`                                 |
+| "Should we renew or move?" or "what rent makes moving worth it?"            | `calc_renew_vs_relocate`                            |
+| "What's the occupancy / ADR / RevPAR / GOP / NOI of this hotel?"            | `calc_hotel_metrics`                                |
 | You have a county parcel number, a state LLC file number, a suite, or a PDF | `id_parcel`, `id_entity`, `id_space`, `id_document` |
 | You extracted a fact and want to store or share it                          | `fact_validate`                                     |
 

@@ -24,7 +24,8 @@ export const NpvInput = z.object({
 });
 export type NpvInput = z.input<typeof NpvInput>;
 
-function npvAt(flows: number[], r: number): number {
+/** Σ CF_t ÷ (1 + r)^t for t = 0, 1, 2, …, summed in order. Shared by every discounting calculator. */
+export function npvAt(flows: number[], r: number): number {
   return flows.reduce((acc, cf, t) => acc + cf / powInt(1 + r, t), 0);
 }
 
