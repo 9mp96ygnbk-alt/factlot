@@ -119,7 +119,8 @@ class RegistryCore(unittest.TestCase):
         es = self.reg.ingest_entities(ENTITIES, self.ent)
         self.assertEqual((es.kept, es.skipped_invalid), (3, 1))
         links = self.reg.link_owners()
-        self.assertEqual(links, {"linked": 1, "linked_by_review": 0, "ambiguous": 1, "unmatched": 1})
+        self.assertEqual(links, {"linked": 1, "linked_by_review": 0, "ambiguous": 1, "cross_state": 0,
+                                 "queued_for_review": 0, "unmatched": 1})
         self.assertEqual(self.reg.link_owners(), links, "linking is idempotent")
         lonestar = factlot.entity_id("us-tx", "0801111111").urn
         owned = self.reg.parcels_owned_by(lonestar)
@@ -131,6 +132,49 @@ class RegistryCore(unittest.TestCase):
         ent_fact = next(f for f in self.reg.get(lonestar)["facts"] if f["predicate"] == "entity.legal_name")
         self.assertEqual(ent_fact["rights"]["redistribution"], "attribution_required")
         self.assertEqual(ent_fact["rights"]["attribution"], "Example State")
+
+    def test_exact_match_links_only_within_a_plausible_jurisdiction(self):
+        # Minnesota parcels; the only entity registry loaded is New York's, plus one Texas entity.
+        mn_roll = Source("test-mn-roll", "Example County (synthetic)", "Roll", "https://example.invalid/mn", "27",
+                         county_fips="053", license="Synthetic test data", ai_use="permitted", redistribution="permitted")
+        ny_ent = Source("test-ny-entities", "Example DOS (synthetic)", "Entities", "https://example.invalid/ny", "36",
+                        license="Synthetic test data", ai_use="permitted", redistribution="permitted")
+        self.reg.add_source(mn_roll); self.reg.add_source(ny_ent)
+        roll = self.reg.add_snapshot("test-mn-roll", write(self.tmp, "mn.txt", "synthetic mn"), as_of="2026-10-22")
+        ents = self.reg.add_snapshot("test-ny-entities", write(self.tmp, "ny.csv", "synthetic ny"), as_of="2026-10-30")
+        self.reg.ingest_parcels([
+            ParcelRecord("053", "P1", "F1", owner_name="Main Street Properties LLC", owner_mailing_address="1 MAIN ST, MINNEAPOLIS MN 55401"),
+            ParcelRecord("053", "P2", "F1", owner_name="Gotham Holdings LLC", owner_mailing_address="100 BROADWAY, NEW YORK NY 10004"),
+            ParcelRecord("053", "P3", "F1", owner_name="Northstar Formed Here Inc"),
+            ParcelRecord("053", "P4", "F1", owner_name="Lonestar Office Holdings LLC"),
+        ], roll, state_fips="27")
+        self.reg.ingest_entities([
+            EntityRecord("MAIN STREET PROPERTIES LLC", "us-ny", "1"),  # same name, another state: not this owner
+            EntityRecord("GOTHAM HOLDINGS LLC", "us-ny", "2"),  # the owner's mailing address is in New York
+            EntityRecord("NORTHSTAR FORMED HERE INC", "us-ny", "3", state_of_formation="MN"),  # foreign registration of a MN entity
+        ], ents)
+        self.reg.ingest_entities(ENTITIES[:1], self.ent)  # Lonestar, us-tx
+        links = self.reg.link_owners()
+        self.assertEqual(links, {"linked": 2, "linked_by_review": 0, "ambiguous": 0, "cross_state": 2,
+                                 "queued_for_review": 2, "unmatched": 0})
+        p = lambda n: factlot.parcel_id("27", "053", n).urn  # noqa: E731
+        owned = lambda j, n: [o["urn"] for o in self.reg.parcels_owned_by(factlot.entity_id(j, n).urn)]  # noqa: E731
+        self.assertEqual(owned("us-ny", "1"), [], "an exact name in another state is not a link")
+        self.assertEqual(owned("us-ny", "2"), [p("P2")])
+        self.assertEqual(owned("us-ny", "3"), [p("P3")])
+        self.assertEqual(owned("us-tx", "0801111111"), [])
+        bases = {r["to_urn"]: r["basis"] for r in self.reg.db.execute("SELECT to_urn, basis FROM relationships")}
+        self.assertIn("state of the owner's mailing address", bases[p("P2")])
+        self.assertIn("formed in the parcel's state", bases[p("P3")])
+        queue = self.reg.review_queue()
+        self.assertEqual([(q["owner_key"], q["reason"]["rule"], q["reason"]["parcel_state"], q["reason"]["entity_state"]) for q in queue],
+                         [("LONESTAR OFFICE HOLDINGS LLC", "exact_name_other_state", "mn", "tx"),
+                          ("MAIN STREET PROPERTIES LLC", "exact_name_other_state", "mn", "ny")])
+        self.assertEqual(self.reg.link_owners()["queued_for_review"], 0, "queued once")
+        # A reviewer can still accept the cross-state match; the link then ranks below an exact one.
+        decided = self.reg.decide_owner_match(queue[1]["review_id"], True, "reviewer@example.invalid")
+        self.assertEqual(owned("us-ny", "1"), [p("P1")])
+        self.assertEqual(self.reg.parcels_owned_by(factlot.entity_id("us-ny", "1").urn)[0]["confidence"], 0.8)
 
     def test_reingest_is_idempotent_and_newer_snapshot_wins(self):
         self.reg.ingest_parcels(ROLL_2025, self.snap25, state_fips="48")
@@ -395,7 +439,8 @@ class FuzzyOwnerMatching(unittest.TestCase):
 
         # link_owners() re-applies accepted decisions (e.g. after a newer roll) and stays idempotent.
         links = self.reg.link_owners()
-        self.assertEqual(links, {"linked": 0, "linked_by_review": 3, "ambiguous": 0, "unmatched": 3})
+        self.assertEqual(links, {"linked": 0, "linked_by_review": 3, "ambiguous": 0, "cross_state": 0,
+                                 "queued_for_review": 0, "unmatched": 3})
         self.assertEqual(self.reg.stats()["ownership_links"], 3)
         self.assertEqual(self.reg.link_owners(), links)
         roll26 = self.reg.add_snapshot("test-county-roll", write(self.tmp, "roll-fuzzy-26.txt", "synthetic fuzzy 2026"), as_of="2026-07-25")

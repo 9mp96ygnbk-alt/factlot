@@ -99,8 +99,7 @@ Command: `python -m factlot.registry.adapters.ny_dos_entities collected/ny-dos-e
 
 - Rows read 3,631,221; kept 3,631,216; invalid 5; distinct entities in the
   registry 3,631,216; facts written 18,104,445; 2241 s.
-- After the final linking pass, **82,694 of New York City's 115,733 organisation
-  owners of record resolve to a New York DOS entity** (71%).
+- After the final linking pass, **84,607 of New York City's 115,733 organisation owners of record resolve to a New York DOS entity** (73%; C23's jurisdiction rule).
 
 ## Known gaps
 

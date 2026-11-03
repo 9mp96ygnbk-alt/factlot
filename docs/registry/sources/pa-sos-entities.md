@@ -89,8 +89,7 @@ Command: `python -m factlot.registry.adapters.pa_sos_entities collected/pa-sos-e
 - Rows read 2,376,248; kept 2,376,248; invalid 0; distinct entities in the
   registry 2,376,226; facts written 9,504,660; 453 s.
 - Entity register, so no category split and no organisation-owner count. No Pennsylvania
-  parcel source is loaded yet (Philadelphia is gated on terms), so the links made at load time
-  are cross-state exact-name matches (backlog C23).
+  parcel source is loaded yet (Philadelphia is gated on terms), so no Pennsylvania-registered owner links yet; an exact name match to a parcel in another state is queued for review, not linked (C23).
 
 ## Known gaps
 

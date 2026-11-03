@@ -81,15 +81,10 @@ cleared.
 **The factlease repository**
 
 - [ ] C21 Apply the four fixes from the original code review: typecheck tests, `erasableSyntaxOnly`, nested test glob, and CI. Or retire the STATE skeleton.
-- [ ] C23 Owner linking across states. `link_owners()` links a parcel's owner of record to the
-      one entity anywhere in the registry with the same normalized name. With four state
-      registries loaded, parcels in states with no entity source still got links: Hennepin
-      1,312 and Mecklenburg 1,535 owners "resolved" to entities
-      registered in New York, Colorado, Pennsylvania or DC. Some are real (foreign-registered
-      owners), most are coincidences of common names. Require the entity's state of formation (or
-      a registration in the parcel's state) to match, or the owner's mailing-address state, before
-      an `inferred` link; send the rest to the fuzzy review queue at lower confidence. Re-run the
-      linking pass afterwards and update the catalog's link counts.
+- [x] C23 ~~Owner linking across states.~~ Done 2026-11-03: `link_owners()` only links an exact
+      name match to an entity registered or formed in the parcel's state, or registered in the
+      state of the owner's mailing address; an exact match that exists only elsewhere is queued
+      for review as `exact_name_other_state`. Found when Hennepin and Mecklenburg owners "resolved" to New York, Colorado, Pennsylvania and DC entities with no in-state registry loaded. Re-linking the Tier 1 registry: Hennepin 1,312 → 109, Mecklenburg 1,535 → 157, while New York City rose 82,694 → 84,607 and DC 6,922 → 7,723 because names ambiguous across states resolve within one; 5,112 cross-state candidates queued for review.
 - [x] C22 ~~After FactLot is pushed to its own repository, delete `backups/` from the factlease branch.~~ Done 2026-11-02 (factlease e45b6ad): the bundle is gone and `docs/factlot-backlog.md` there points here.
 
 ## D. Known limitations (by design for now; revisit)
@@ -112,7 +107,9 @@ cleared.
 
 The Tier 1 expansion reviewed 47 sources; the per-source records are in
 [registry/sources/README.md](registry/sources/README.md). These are the decisions and actions that
-only the founder can take, grouped by kind:
+only the founder can take, grouped by kind. [registry/GATES-BRIEF.md](registry/GATES-BRIEF.md)
+is a ready-to-paste brief for an assistant to prepare every one of them (memos, letters, forms,
+price tables) without signing, paying or sending anything:
 
 - **Terms decisions** (the files are open; the website terms do not grant redistribution in so
   many words; the data are public records): Florida DOR rolls, Cook County, Philadelphia, Fulton,

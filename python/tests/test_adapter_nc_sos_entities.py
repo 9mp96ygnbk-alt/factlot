@@ -152,7 +152,9 @@ class NcSosEntities(unittest.TestCase):
         stats, links = nc_sos_entities.build(export_zip(self.tmp), db, as_of="2026-11-02")
         self.assertEqual((stats.seen, stats.kept, stats.skipped_invalid), (5, 3, 2),
                          "the nameless entity and the one without a PItemId are skipped")
-        self.assertEqual(links.get("linked"), 1, links)
+        # The synthetic parcel is in Texas and the entity is registered in North Carolina: an exact
+        # name in another state is queued for a reviewer, not linked (registry README, stage 1).
+        self.assertEqual((links.get("linked"), links.get("cross_state"), links.get("queued_for_review")), (0, 1, 1), links)
         reg = Registry.open_readonly(db)
         try:
             src = reg.db.execute("SELECT * FROM sources WHERE source_id = 'nc-sos-entities'").fetchone()
@@ -162,7 +164,10 @@ class NcSosEntities(unittest.TestCase):
             self.assertIn("EXAMPLE TOWER LLC", name[0])
             owned = reg.db.execute(
                 "SELECT to_urn FROM relationships WHERE type = 'owns' AND from_urn = 'fl:entity:us-nc:7000001'").fetchall()
-            self.assertEqual([r[0] for r in owned], ["fl:parcel:us-48201:0010010000001"])
+            self.assertEqual(owned, [])
+            queued = reg.db.execute(
+                "SELECT parcel_urn, status FROM owner_match_review WHERE entity_urn = 'fl:entity:us-nc:7000001'").fetchall()
+            self.assertEqual([tuple(q) for q in queued], [("fl:parcel:us-48201:0010010000001", "pending")])
         finally:
             reg.close()
 

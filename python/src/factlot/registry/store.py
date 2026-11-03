@@ -20,12 +20,15 @@ from ..ids import FactLotIdError, _base32, entity_id, parcel_id, short_id
 from .normalize import (
     NAME_OVERLAP_WEIGHT,
     NAME_RATIO_WEIGHT,
+    address_state,
     distinctive_tokens,
+    entity_state,
     is_commercial,
     is_organization,
     name_similarity,
     normalize_address,
     normalize_name,
+    parcel_state,
 )
 
 PRODUCER = "factlot.registry"
@@ -35,6 +38,10 @@ SCHEMA_VERSION = "2"
 # reviewer accepted is the candidate's score capped below that, so inferred links stay ranked.
 EXACT_MATCH_CONFIDENCE = 0.9
 REVIEWED_MATCH_MAX_CONFIDENCE = 0.8
+# Score given to an exact name match registered only in another state, so it ranks first in the
+# review queue but below the cap for reviewed links.
+CROSS_STATE_EXACT_SCORE = 0.8
+EXACT_MATCH_BASIS = "owner of record exactly matches one registered entity's normalized legal name"
 # Defaults for the candidate generator: see Registry.queue_fuzzy_owner_matches.
 FUZZY_THRESHOLD = 0.85
 FUZZY_LIMIT_PER_OWNER = 5
@@ -342,33 +349,90 @@ class Registry:
         """Link each parcel's current owner of record to a registered entity, where unambiguous.
 
         Run after any ingest (order of datasets doesn't matter). A link is made when the
-        normalized owner name equals exactly one entity's normalized legal name (``inferred``,
-        confidence 0.9), or when a reviewer has accepted a fuzzy candidate for that name
-        (``inferred``, confidence at most 0.8; see ``decide_owner_match``). Ambiguous or
-        unmatched names are left unlinked; ``queue_fuzzy_owner_matches`` finds candidates for them.
+        normalized owner name equals exactly one entity's normalized legal name among the
+        entities that could be that owner: registered in the parcel's state, formed in the
+        parcel's state, or registered in the state of the owner's mailing address (``inferred``,
+        confidence 0.9, the basis naming the rule); or when a reviewer has accepted a candidate
+        for that name (``inferred``, confidence at most 0.8; see ``decide_owner_match``).
+        Several such entities are ambiguous and stay unlinked. An exact match that exists only
+        in some other state is not linked but queued for review (rule ``exact_name_other_state``),
+        since a common name is registered in most states; ``queue_fuzzy_owner_matches`` finds
+        near-matches for the rest.
         """
-        result = {"linked": 0, "linked_by_review": 0, "ambiguous": 0, "unmatched": 0}
+        result = {"linked": 0, "linked_by_review": 0, "ambiguous": 0, "cross_state": 0,
+                  "queued_for_review": 0, "unmatched": 0}
+        # Exact-match links are re-derived on every run, so a registry linked under an earlier
+        # rule (or before more entity registries were loaded) ends up with the links the current
+        # rule makes. Reviewed links are a person's decision and are left alone.
+        self.db.execute("DELETE FROM relationships WHERE type = 'owns' AND method = 'inferred' AND basis LIKE ?",
+                        (f"{EXACT_MATCH_BASIS}%",))
         accepted = self._accepted_decisions()
         owners = self.db.execute(
-            "SELECT subject, value_json, as_of, document_id FROM current_facts "
-            "WHERE predicate = 'ownership.owner_of_record'"
+            "SELECT f.subject, f.value_json, f.as_of, f.document_id, "
+            "(SELECT m.value_json FROM current_facts m WHERE m.subject = f.subject AND m.document_id = f.document_id "
+            " AND m.predicate = 'ownership.owner_mailing_address') AS mailing "
+            "FROM current_facts f WHERE f.predicate = 'ownership.owner_of_record'"
         ).fetchall()
+        cross_state: dict[str, dict[str, Any]] = {}
         for o in owners:
-            key = normalize_name(json.loads(o["value_json"]))
+            name = json.loads(o["value_json"])
+            key = normalize_name(name)
             candidates = self._exact_entities(key)
-            if len(candidates) == 1:
-                self._link(candidates[0], o, EXACT_MATCH_CONFIDENCE,
-                           "owner of record exactly matches one registered entity's normalized legal name")
+            plausible = self._plausible_entities(candidates, o["subject"], json.loads(o["mailing"]) if o["mailing"] else None)
+            if len(plausible) == 1:
+                (urn, rule), = plausible.items()
+                self._link(urn, o, EXACT_MATCH_CONFIDENCE, f"{EXACT_MATCH_BASIS} ({rule})")
                 result["linked"] += 1
             elif key in accepted:
                 self._link_reviewed(accepted[key], o)
                 result["linked_by_review"] += 1
-            elif candidates:
+            elif plausible:
                 result["ambiguous"] += 1
+            elif candidates:
+                result["cross_state"] += 1
+                c = cross_state.setdefault(key, {"name": name, "parcel": o["subject"], "count": 0, "entities": candidates})
+                c["count"] += 1
             else:
                 result["unmatched"] += 1
+        now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        for key in sorted(cross_state):
+            c = cross_state[key]
+            state = parcel_state(c["parcel"])
+            for urn in c["entities"]:
+                reason = {"rule": "exact_name_other_state", "ratio": 1.0, "token_overlap": 1.0, "shared_tokens": [],
+                          "parcel_state": state, "entity_state": entity_state(urn)}
+                cur = self.db.execute(
+                    "INSERT OR IGNORE INTO owner_match_review (owner_name, owner_key, parcel_urn, parcel_count, "
+                    "entity_urn, score, reason, status, queued_at) VALUES (?,?,?,?,?,?,?,'pending',?)",
+                    (c["name"], key, c["parcel"], c["count"], urn, CROSS_STATE_EXACT_SCORE,
+                     json.dumps(reason, sort_keys=True), now))
+                result["queued_for_review"] += cur.rowcount
         self.db.commit()
         return result
+
+    def _plausible_entities(self, candidates: list[str], parcel_urn: str, mailing: str | None) -> dict[str, str]:
+        """The candidate entities that could be this parcel's owner, each with the rule that admits it."""
+        if not candidates:
+            return {}
+        state = parcel_state(parcel_urn)
+        mail_state = address_state(mailing)
+        out: dict[str, str] = {}
+        for urn in candidates:
+            registry = entity_state(urn)
+            if state and registry == state:
+                out[urn] = "registered in the parcel's state"
+            elif state and self._state_of_formation(urn) == state:
+                out[urn] = "formed in the parcel's state"
+            elif mail_state and registry == mail_state:
+                out[urn] = "registered in the state of the owner's mailing address"
+        return out
+
+    def _state_of_formation(self, entity_urn: str) -> str | None:
+        row = self.db.execute(
+            "SELECT value_json FROM current_facts WHERE subject = ? AND predicate = 'entity.state_of_formation' LIMIT 1",
+            (entity_urn,)).fetchone()
+        v = json.loads(row["value_json"]) if row else None
+        return v.strip().lower() if isinstance(v, str) and v.strip() else None
 
     def _exact_entities(self, key: str) -> list[str]:
         return [row["urn"] for row in self.db.execute(

@@ -100,5 +100,12 @@ from its commit history; nothing was published to npm or PyPI before it.
   archived, and a short body on a sized response is no longer archived silently.
 - NYC Department of Finance adapter: the published roll has a header row and a trailing tab on
   every line, which the adapter now drops (it read zero rows from the real FY27 file).
+- Registry owner linking: an exact name match is linked only to an entity registered or formed
+  in the parcel's state, or registered in the state of the owner's mailing address; an exact
+  match that exists only in another state is queued for review (`exact_name_other_state`,
+  score 0.8) instead of linked. `link_owners()` re-derives exact-match links on every run and
+  reports `cross_state` and `queued_for_review` counts. With four state registries loaded,
+  Minneapolis and Charlotte owners had been "resolved" to New York, Colorado, Pennsylvania and
+  DC entities of the same name.
 
 [Unreleased]: https://github.com/9mp96ygnbk-alt/factlot/commits/main

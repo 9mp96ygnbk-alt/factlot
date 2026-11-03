@@ -79,8 +79,7 @@ Command: `python -m factlot.registry.adapters.co_sos_entities collected/co-sos-e
 
 - Rows read 3,132,613; kept 3,132,612; invalid 1; distinct entities in the
   registry 3,132,612; facts written 15,567,366; 1433 s.
-- After the final linking pass, **9,449 of Denver's 11,115
-  organisation owners of record resolve to a Colorado entity** (85%).
+- After the final linking pass, **9,318 of Denver's 11,115 organisation owners of record resolve to a Colorado entity** (83%; C23's jurisdiction rule).
 
 ## Known gaps
 

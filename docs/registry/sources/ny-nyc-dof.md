@@ -139,16 +139,16 @@ documentation does not mention; the adapter now drops both (commit 2a1b900). Com
 python -m factlot.registry.adapters.ny_nyc collected/ny-nyc-dof/c3d135953903eb22/fy27_tc234.zip registry.db --as-of 2026-05-15
 ```
 
-| Measure                                                      | Count                                                                                                                   |
-| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
-| In-scope lots read and kept (`RECTYPE` 1, classes B/F1/F2)   | 0                                                                                                                       |
-| By borough                                                   | Manhattan 42,087; Brooklyn 60,100; Queens 40,080; Bronx 17,331; Staten Island 5,035                                     |
-| Facts written                                                | 0                                                                                                                       |
-| Owners that are organisations (stored)                       | 115,733 (Manhattan 31,906; Brooklyn 39,146; Queens 26,546; Bronx 14,404; Staten Island 3,731)                           |
-| Owners that are natural persons or placeholders (not stored) | 0                                                                                                                       |
-| Invalid, errors, retired                                     | 0, 0, 0                                                                                                                 |
-| Seconds (parse and ingest)                                   | 8                                                                                                                       |
-| Owners linked to NY DOS entities (full file, exact name)     | 82,694 (71% of organisation owners; Manhattan 21,071; Brooklyn 29,650; Queens 19,649; Bronx 9,924; Staten Island 2,400) |
+| Measure                                                                              | Count                                                                                                                                                                                                                             |
+| ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| In-scope lots read and kept (`RECTYPE` 1, classes B/F1/F2)                           | 0                                                                                                                                                                                                                                 |
+| By borough                                                                           | Manhattan 42,087; Brooklyn 60,100; Queens 40,080; Bronx 17,331; Staten Island 5,035                                                                                                                                               |
+| Facts written                                                                        | 0                                                                                                                                                                                                                                 |
+| Owners that are organisations (stored)                                               | 115,733 (Manhattan 31,906; Brooklyn 39,146; Queens 26,546; Bronx 14,404; Staten Island 3,731)                                                                                                                                     |
+| Owners that are natural persons or placeholders (not stored)                         | 0                                                                                                                                                                                                                                 |
+| Invalid, errors, retired                                                             | 0, 0, 0                                                                                                                                                                                                                           |
+| Seconds (parse and ingest)                                                           | 8                                                                                                                                                                                                                                 |
+| Owners linked to NY DOS entities (full file, exact name in a plausible jurisdiction) | 84,607 (73% of organisation owners; Manhattan 21,515; Brooklyn 30,215; Queens 20,224; Bronx 10,161; Staten Island 2,492; 82,694 before the jurisdiction rule of C23, which also resolved names that were ambiguous across states) |
 
 ## Known gaps
 

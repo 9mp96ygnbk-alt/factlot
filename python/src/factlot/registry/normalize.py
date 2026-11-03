@@ -156,3 +156,40 @@ def is_commercial(state_category: str | None) -> bool:
         return False
     letter, digits = m.groups()
     return letter == "B" or f"{letter}{digits[:1]}" in COMMERCIAL_CATEGORIES
+
+
+# --- US states, for owner linking across jurisdictions ------------------------------------------
+
+STATE_BY_FIPS = {
+    "01": "al", "02": "ak", "04": "az", "05": "ar", "06": "ca", "08": "co", "09": "ct", "10": "de",
+    "11": "dc", "12": "fl", "13": "ga", "15": "hi", "16": "id", "17": "il", "18": "in", "19": "ia",
+    "20": "ks", "21": "ky", "22": "la", "23": "me", "24": "md", "25": "ma", "26": "mi", "27": "mn",
+    "28": "ms", "29": "mo", "30": "mt", "31": "ne", "32": "nv", "33": "nh", "34": "nj", "35": "nm",
+    "36": "ny", "37": "nc", "38": "nd", "39": "oh", "40": "ok", "41": "or", "42": "pa", "44": "ri",
+    "45": "sc", "46": "sd", "47": "tn", "48": "tx", "49": "ut", "50": "vt", "51": "va", "53": "wa",
+    "54": "wv", "55": "wi", "56": "wy", "72": "pr",
+}
+STATES = frozenset(STATE_BY_FIPS.values())
+_STATE_ZIP = re.compile(r"\b([A-Z]{2})(?:\s+\d{5}(?:\s?-?\s?\d{4})?)?\s*$")
+
+
+def parcel_state(parcel_urn: str) -> str | None:
+    """Two-letter state of a parcel URN (``fl:parcel:us-48201:…`` → ``tx``), or None."""
+    m = re.match(r"fl:parcel:us-(\d{2})\d{3}:", parcel_urn)
+    return STATE_BY_FIPS.get(m.group(1)) if m else None
+
+
+def entity_state(entity_urn: str) -> str | None:
+    """Registry state of an entity URN (``fl:entity:us-ny:…`` → ``ny``), or None (e.g. ``lei``)."""
+    m = re.match(r"fl:entity:us-([a-z]{2}):", entity_urn)
+    return m.group(1) if m and m.group(1) in STATES else None
+
+
+def address_state(address: str | None) -> str | None:
+    """State at the end of a US mailing address (``PO BOX 1, HOUSTON, TX 77002-1234`` → ``tx``), or None."""
+    if not address:
+        return None
+    s = re.sub(r"[^A-Z0-9 ]+", " ", address.upper()).strip()
+    m = _STATE_ZIP.search(s)
+    st = m.group(1).lower() if m else None
+    return st if st in STATES else None

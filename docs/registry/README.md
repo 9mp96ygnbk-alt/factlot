@@ -73,10 +73,15 @@ Owner-of-record names on a roll rarely match a registration letter for letter: "
 PROPERTIES, L.L.C." may be registered as "ACME PROPERTY LLC". Resolution happens in two stages,
 and only the first is automatic.
 
-**1. Exact match (automatic).** `link_owners()` links a parcel to an entity when the normalized
-owner-of-record name equals exactly one registered entity's normalized legal name. The link is
-an `owns` relationship labelled `inferred` with confidence 0.9. Ambiguous names (several entities
-with the same normalized name) and unmatched names stay unlinked.
+**1. Exact match in the right jurisdiction (automatic).** `link_owners()` links a parcel to an
+entity when the normalized owner-of-record name equals exactly one registered entity's normalized
+legal name _among the entities that could plausibly be that owner_: those registered in the
+parcel's state, formed in the parcel's state, or registered in the state of the owner's mailing
+address. The link is an `owns` relationship labelled `inferred` with confidence 0.9, and its
+`basis` says which of the three rules applied. Ambiguous names (several such entities) and
+unmatched names stay unlinked. An exact name match that exists only in some other state is not a
+link: it is queued for review (stage 2) with rule `exact_name_other_state`, because with several
+state registries loaded a common name ("MAIN STREET PROPERTIES LLC") exists in most of them.
 
 **2. Fuzzy candidates with human review (never automatic).** For every current owner of record
 that has no link, `queue_fuzzy_owner_matches()` proposes candidate entities and writes them to the

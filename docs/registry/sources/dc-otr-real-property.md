@@ -104,8 +104,7 @@ python -m factlot.registry.adapters.dc_otr collected/dc-otr-real-property/e2c646
   gave on 2026-11-02); facts written 192,206; organisation owners of record
   11,607; natural persons (not stored) 6,470;
   invalid 0; 35 s.
-- Owners linked to DC DLCP entities (full file, exact normalized name): **6,922**
-  (59% of organisation owners).
+- Owners linked to DC DLCP entities (full file, exact normalized name in a plausible jurisdiction): **7,723** (66% of organisation owners; 6,922 before C23, whose jurisdiction rule also resolved names that were ambiguous between DC and another state's registry).
 
 ## Known gaps
 

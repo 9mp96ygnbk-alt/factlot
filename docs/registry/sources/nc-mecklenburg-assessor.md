@@ -111,9 +111,7 @@ python -m factlot.registry.adapters.nc_mecklenburg collected/nc-mecklenburg-asse
   19,696; natural persons (not stored) 3,990;
   withheld 0 (no marker in the file); invalid 0; 30 s.
 - Owner linking: no North Carolina entity source (the SOS file is sold by subscription; see
-  `nc-sos-entities.md`). 1,535 owners matched an entity registered in New York,
-  Colorado, Pennsylvania or DC by exact name; those are cross-state matches of uncertain value
-  (backlog C23).
+  `nc-sos-entities.md`). 157 owners link to an entity registered in another state because the owner's mailing address is in that state; 1,535 had linked by bare name before the jurisdiction rule (C23), and those exact matches in other states now wait in the review queue.
 
 ## Known gaps
 
