@@ -24,13 +24,13 @@ identity layer for commercial real estate.
       still to do.)
 - [x] Publish cross-language test vectors (`spec/vectors/*.json`) for every
       calculator and ID rule.
-- [ ] Add calculators, starting with those the survey asked for most:
-  - ASC 842 lease remeasurement
-  - ~~percentage rent~~ (done), plus tenant/landlord proposal comparison (done)
-  - lease-vs-own and renew-vs-relocate analysis
-  - prepayment and defeasance
-  - hotel RevPAR, ADR, and GOP
-  - NYC LL97 penalty (deferred until the law text is reachable; see [rules](rules.md))
+- [x] Add calculators, starting with those the survey asked for most (all done 2026-11-03, 14 in the catalog):
+  - ~~ASC 842 lease remeasurement~~
+  - ~~percentage rent~~, plus tenant/landlord proposal comparison
+  - ~~lease-vs-own and renew-vs-relocate analysis~~
+  - ~~prepayment and defeasance~~
+  - ~~hotel RevPAR, ADR, and GOP~~
+  - NYC LL97 penalty (still deferred until the law text is reachable; see [rules](rules.md))
 - [x] Rules-pack framework (versioned, cited, verification status) and the first pack: Texas property tax protest deadline (verified against the official statute text on 2026-11-02)
 - [x] Lease ingestion prototype with deterministic quote verification and amendment supersession ([ingest](ingest.md)); next: accuracy on real leases
 - [x] Build **FactLot Bench**: 14 CRE agent tasks with independent ground truth, a

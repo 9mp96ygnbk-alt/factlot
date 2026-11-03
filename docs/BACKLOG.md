@@ -68,7 +68,7 @@ cleared.
 - [ ] C12 ~~Hosted server hardening: per-key rate limits, usage metering (the business model is usage-based), logging and observability~~ (done 2026-11-02: named API keys from env or file, per-key per-minute limits with 429 and `Retry-After`, per-key per-tool metering with a jsonl record and `GET /v1/usage`, JSON request logs; see `packages/server/README.md`), and OAuth 2.1 / SSO if directories require it. Rate-limit and usage state is per process; the jsonl file is the durable record.
 - [ ] C13 Directory submissions: Anthropic connector directory, ChatGPT apps, the MCP registry, Copilot/AppSource.
 - [ ] C14 Run FactLot Bench on current models and publish the results. Add tasks for the registry, rules, and ingestion.
-- [ ] C15 Calculators still on the roadmap: ASC 842 remeasurement, lease-vs-own and renew-vs-relocate, prepayment and defeasance, hotel RevPAR, ADR, and GOP.
+- [x] C15 ~~Calculators still on the roadmap: ASC 842 remeasurement, lease-vs-own and renew-vs-relocate, prepayment and defeasance, hotel RevPAR, ADR, and GOP.~~ Done 2026-11-03 (e191020, 0b59e36): five calculators in both SDKs with independently computed vectors; the differential covers them.
 - [x] C16 ~~A release process: versioning, changelog, publishing to npm and PyPI, and signing the `.mcpb` (`mcpb sign`).~~ Done 2026-11-02 (34f9555): `scripts/release/`, `CHANGELOG.md`, `.github/workflows/release.yml`, [release-process.md](release-process.md). Publishing itself waits on the npm and PyPI accounts (A5).
 - [ ] C17 Knowledge-base and documentation links point at `github.com/9mp96ygnbk-alt/factlot`. Update them if the repository lives elsewhere.
 - [ ] C18 A landing page for factlot.com.
