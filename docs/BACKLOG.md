@@ -60,7 +60,7 @@ cleared.
 **Ingestion**
 
 - [x] C9 ~~A value–quote consistency check.~~ Done 2026-11-02 (425b3a1): numbers, ratios, dates, and party names in a value must appear in the quote; textual, not semantic.
-- [ ] C10 ~~OCR for scanned PDFs~~ (done 2026-11-02, 425b3a1: pluggable backend, tesseract shipped, OCR'd pages flagged in provenance), more predicates (percentage rent, co-tenancy, exclusives, critical dates), and a human review queue for low-confidence facts.
+- [x] C10 ~~OCR for scanned PDFs~~ (done 2026-11-02, 425b3a1: pluggable backend, tesseract shipped, OCR'd pages flagged in provenance), ~~more predicates (percentage rent, co-tenancy, exclusives, critical dates)~~ (done 2026-11-03: percentage rent, co-tenancy, four dated notice deadlines and the rent commencement date, operating-expense base year, parking, guaranty; exclusives were already `lease.exclusive_use`), and ~~a human review queue for low-confidence facts~~ (done 2026-11-03: consistency failures and low-confidence candidates wait in a queue persisted in the CLI output; `--review`, `--accept`, `--reject`; see [ingest.md](ingest.md)). Still open: the Claude extractor does not report a confidence, so the threshold only applies to extractors that do.
 - [ ] C11 Handling customer documents: private storage, no training on them, retention rules.
 
 **Platform and connectors**

@@ -61,6 +61,16 @@ from its commit history; nothing was published to npm or PyPI before it.
   extracted value against a verbatim quote on the cited page, a value-in-quote consistency check
   (numbers, ratios, dates, and party names must appear in the quote), a pluggable OCR step for
   scanned pages with a tesseract backend, and amendment supersession.
+- Ingest predicates for percentage rent, co-tenancy, the renewal, termination and expansion
+  notice deadlines, the rent commencement date, the operating-expense base year, parking, and
+  the guaranty (name only; a value that reads as an address is refused), each with a value shape
+  and the same consistency checks as the existing ones.
+- An ingest review queue: a candidate whose quote is on the page but whose value is not written
+  in it, or whose extractor confidence is below a threshold, waits for a named reviewer instead
+  of being dropped or accepted (`review_queue`, `decide`; CLI `--review`, `--accept`,
+  `--reject`, `--by`). The queue lives in the CLI's output file; an accepted item becomes an
+  `extracted` fact whose provenance names the reviewer and the failed check, a rejected
+  (predicate, quote) pair is never queued again, and re-running keeps every decision.
 - A simulated product-feedback round: the 165 survey personas reviewed v0.1 as built, and the
   README states what FactLot covers today.
 - Tier 1 expansion: 47 source reviews across 15 states and DC (`docs/registry/sources/`), one

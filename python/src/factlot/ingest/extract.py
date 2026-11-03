@@ -31,6 +31,19 @@ PREDICATES: dict[str, str] = {
     "lease.rofo": "string (summary of the right of first offer)",
     "lease.exclusive_use": "string (the protected use)",
     "lease.assignment_sublease": "string (summary of consent requirements)",
+    "lease.percentage_rent": ('object {"rate": number between 0 and 1, "breakpoint": {"type": "natural" | "fixed", '
+                              '"amount": number (annual sales in USD; required when type is fixed)}, '
+                              '"sales_exclusions": string (optional summary of sales excluded from gross sales)}'),
+    "lease.co_tenancy": ('object {"trigger": string (the co-tenancy condition), "remedy": string (what Tenant may do '
+                         'when it fails), "cure_period_months": number (optional)}'),
+    "lease.renewal_notice_deadline": "date (YYYY-MM-DD; the last day to exercise a renewal option)",
+    "lease.termination_notice_deadline": "date (YYYY-MM-DD; the last day to give notice of early termination)",
+    "lease.rent_commencement_date": "date (YYYY-MM-DD; the day rent starts, when it differs from commencement)",
+    "lease.expansion_option_deadline": "date (YYYY-MM-DD; the last day to exercise an expansion option)",
+    "lease.operating_expense_base_year": "integer (the operating-expense base year, e.g. 2026)",
+    "lease.parking": 'object {"spaces": number, "rate_monthly": number (optional, USD per space per month)}',
+    "lease.guaranty": ('object {"guarantor": string (the guarantor\'s name exactly as written: the name only, never '
+                       'an address), "cap": number (optional, USD)}'),
 }
 
 

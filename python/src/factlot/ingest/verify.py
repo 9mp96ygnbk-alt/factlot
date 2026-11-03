@@ -20,6 +20,14 @@ from .documents import LeaseDocument
 from .extract import PREDICATES, Candidate
 
 _DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+_DATE_PREDICATES = ("lease.commencement_date", "lease.expiration_date", "lease.renewal_notice_deadline",
+                    "lease.termination_notice_deadline", "lease.rent_commencement_date",
+                    "lease.expansion_option_deadline")
+# A guarantor is a name. Anything that reads as a street address or a postal code is rejected, so a
+# natural person's address never becomes a fact (the same rule the registry applies to owners).
+_ADDRESS = re.compile(r"\b\d+[a-z]?\s+[\w.'-]+(\s+[\w.'-]+)*\s+(street|st|avenue|ave|road|rd|drive|dr|lane|ln|"
+                      r"boulevard|blvd|court|ct|place|pl|way|terrace|ter|circle|cir|highway|hwy|parkway|pkwy|"
+                      r"suite|ste|apt|apartment|unit|floor|fl)\b\.?|\b\d{5}(-\d{4})?\b|\bp\.?o\.? box\b", re.I)
 _QUOTE_CHARS = str.maketrans({"‘": "'", "’": "'", "“": '"', "”": '"', "–": "-", "—": "-",
                               " ": " "})
 
@@ -47,7 +55,7 @@ def check_value(predicate: str, value: Any) -> str | None:
     """Return a reason the value has the wrong shape, or None if it is acceptable."""
     if predicate not in PREDICATES:
         return f"unknown predicate {predicate}"
-    if predicate in ("lease.commencement_date", "lease.expiration_date"):
+    if predicate in _DATE_PREDICATES:
         return None if _is_date(value) else "expected YYYY-MM-DD date"
     if predicate in ("lease.rentable_area_sf", "lease.security_deposit"):
         return None if _num(value) and value > 0 else "expected positive number"
@@ -69,7 +77,48 @@ def check_value(predicate: str, value: Any) -> str | None:
         return None if ok else "expected {method, rate} with an explicit cap method"
     if predicate in ("lease.free_rent", "lease.renewal_option", "lease.termination_option"):
         return None if isinstance(value, dict) and value else "expected object"
-    return None if isinstance(value, str) and value.strip() else "expected non-empty string"
+    if predicate == "lease.percentage_rent":
+        if not isinstance(value, dict) or not (_num(value.get("rate")) and 0 < value["rate"] <= 1):
+            return "expected {rate, breakpoint} with rate in (0, 1]"
+        bp = value.get("breakpoint")
+        if not isinstance(bp, dict) or bp.get("type") not in ("natural", "fixed"):
+            return "expected breakpoint {type: natural | fixed, amount?}"
+        if bp["type"] == "fixed" and not (_num(bp.get("amount")) and bp["amount"] > 0):
+            return "a fixed breakpoint needs a positive amount"
+        if "amount" in bp and not (_num(bp["amount"]) and bp["amount"] > 0):
+            return "breakpoint amount must be a positive number"
+        if "sales_exclusions" in value and not (isinstance(value["sales_exclusions"], str)
+                                                and value["sales_exclusions"].strip()):
+            return "sales_exclusions must be a non-empty string"
+        return None
+    if predicate == "lease.co_tenancy":
+        if not isinstance(value, dict) or not all(_text(value.get(k)) for k in ("trigger", "remedy")):
+            return "expected {trigger, remedy} as non-empty strings"
+        if "cure_period_months" in value and not (_num(value["cure_period_months"]) and value["cure_period_months"] > 0):
+            return "cure_period_months must be a positive number"
+        return None
+    if predicate == "lease.operating_expense_base_year":
+        ok = isinstance(value, int) and not isinstance(value, bool) and 1900 <= value <= 2200
+        return None if ok else "expected a four-digit integer year"
+    if predicate == "lease.parking":
+        if not isinstance(value, dict) or not (_num(value.get("spaces")) and value["spaces"] > 0):
+            return "expected {spaces, rate_monthly?} with a positive number of spaces"
+        if "rate_monthly" in value and not (_num(value["rate_monthly"]) and value["rate_monthly"] >= 0):
+            return "rate_monthly must be a non-negative number"
+        return None
+    if predicate == "lease.guaranty":
+        if not isinstance(value, dict) or not _text(value.get("guarantor")):
+            return "expected {guarantor, cap?} with the guarantor's name"
+        if _ADDRESS.search(value["guarantor"]):
+            return "guarantor must be a name, not an address"
+        if "cap" in value and not (_num(value["cap"]) and value["cap"] > 0):
+            return "cap must be a positive number"
+        return None
+    return None if _text(value) else "expected non-empty string"
+
+
+def _text(v: Any) -> bool:
+    return isinstance(v, str) and bool(v.strip())
 
 
 # ---------------------------------------------------------------------------------------------
@@ -98,6 +147,15 @@ _CONSISTENCY: dict[str, Any] = {
     "lease.termination_option": {"effective_date": "date", "notice_months": "number"},
     "lease.landlord": "string",
     "lease.tenant": "string",
+    "lease.percentage_rent": {"rate": "ratio", "breakpoint": {"amount": "number"}},
+    "lease.co_tenancy": {"cure_period_months": "number"},
+    "lease.renewal_notice_deadline": "date",
+    "lease.termination_notice_deadline": "date",
+    "lease.rent_commencement_date": "date",
+    "lease.expansion_option_deadline": "date",
+    "lease.operating_expense_base_year": "number",
+    "lease.parking": {"spaces": "number", "rate_monthly": "number"},
+    "lease.guaranty": {"guarantor": "string", "cap": "number"},
 }
 
 _MONTHS = {m: i for i, m in enumerate(("january", "february", "march", "april", "may", "june", "july", "august",
@@ -230,37 +288,46 @@ def check_consistency(predicate: str, value: Any, quote: str) -> str | None:
     return _walk(spec, value, _norm(quote), "")
 
 
+# Names of the checks, in the order ``verify`` runs them. A verdict names the one that failed.
+CHECK_VALUE, CHECK_QUOTE, CHECK_CONSISTENCY = "value", "quote", "consistency"
+
+
 @dataclass
 class Verdict:
     candidate: Candidate
     accepted: bool
-    page: int | None  # verified page (may differ from the candidate's claim)
+    page: int | None  # page the quote was found on (may differ from the candidate's claim)
     reason: str | None = None
     page_corrected: bool = False
+    check: str | None = None  # the check that failed: "value", "quote", or "consistency"
 
 
 def verify(doc: LeaseDocument, c: Candidate, min_quote_chars: int = 12) -> Verdict:
     """Accept a candidate only if its quote appears verbatim (modulo whitespace/typography) in the
-    document and its value follows from the quote (``check_consistency``)."""
+    document and its value follows from the quote (``check_consistency``).
+
+    A rejected verdict names the failing check. A consistency failure still reports the page
+    the quote was found on, since the quote itself verified; the review queue uses that."""
     shape = check_value(c.predicate, c.value)
     if shape:
-        return Verdict(c, False, None, shape)
+        return Verdict(c, False, None, shape, check=CHECK_VALUE)
     quote = _norm(c.quote)
     if len(quote) < min_quote_chars:
-        return Verdict(c, False, None, f"quote shorter than {min_quote_chars} characters")
+        return Verdict(c, False, None, f"quote shorter than {min_quote_chars} characters", check=CHECK_QUOTE)
     claimed = doc.page(c.page)
     if claimed and quote in _norm(claimed.text):
         page, corrected = c.page, False
     else:
         hits = [p.number for p in doc.pages if quote in _norm(p.text)]
         if len(hits) > 1:
-            return Verdict(c, False, None, f"quote appears on several pages {hits}; cannot cite a single page")
+            return Verdict(c, False, None, f"quote appears on several pages {hits}; cannot cite a single page",
+                           check=CHECK_QUOTE)
         if not hits:
-            return Verdict(c, False, None, "quote not found in the document")
+            return Verdict(c, False, None, "quote not found in the document", check=CHECK_QUOTE)
         page, corrected = hits[0], True
     mismatch = check_consistency(c.predicate, c.value, c.quote)
     if mismatch:
-        return Verdict(c, False, None, mismatch)
+        return Verdict(c, False, page, mismatch, page_corrected=corrected, check=CHECK_CONSISTENCY)
     if corrected:
         return Verdict(c, True, page, f"quote found on page {page}, not {c.page}", page_corrected=True)
     return Verdict(c, True, page)

@@ -85,12 +85,15 @@ class Ingest(unittest.TestCase):
     def test_verification_rejects_and_corrects(self):
         # Hand count: the lease script has 17 candidates, of which 5 are deliberately bad (one hallucinated
         # quote, one malformed date, three value/quote mismatches); the amendment script has 3 good ones.
-        self.assertEqual(self.result.summary(), {"accepted": 15, "current": 12, "rejected": 5, "page_corrected": 1})
+        # The two with no usable quote are rejected; the three mismatches have a real quote, so they
+        # wait in the review queue instead (test_ingest_review.py).
+        self.assertEqual(self.result.summary(), {"accepted": 15, "current": 12, "rejected": 2, "page_corrected": 1,
+                                                 "review_pending": 3, "review_accepted": 0, "review_rejected": 0})
         reasons = sorted(v.reason for v in self.result.rejected)
-        self.assertEqual(reasons, ["expected YYYY-MM-DD date", "quote not found in the document",
-                                   'value "2031-02-28" not found in quote',
-                                   'value "Sample Analytics LLC" not found in quote',
-                                   "value 59000 not found in quote"])
+        self.assertEqual(reasons, ["expected YYYY-MM-DD date", "quote not found in the document"])
+        self.assertEqual(sorted(r.reason for r in self.result.review),
+                         ['value "2031-02-28" not found in quote', 'value "Sample Analytics LLC" not found in quote',
+                          "value 59000 not found in quote"])
         self.assertEqual(self.result.current["lease.security_deposit"]["value"], 95000,
                          "the mismatched candidate must not displace the consistent one")
         deposit = self.result.current["lease.security_deposit"]

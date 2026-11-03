@@ -20,8 +20,8 @@ from types import SimpleNamespace
 from unittest import mock
 
 import factlot
-from factlot.ingest import (Candidate, TesseractOcr, check_consistency, ingest_lease, load_document, ocr_backend,
-                            unreadable_pages_message, verify)
+from factlot.ingest import (PREDICATES, Candidate, TesseractOcr, check_consistency, check_value, ingest_lease,
+                            load_document, ocr_backend, unreadable_pages_message, verify)
 from factlot.ingest.__main__ import main as cli_main
 try:
     from test_ingest import FIX, LEASE_URN, ScriptedExtractor  # `unittest discover -s tests`
@@ -102,7 +102,149 @@ CONSISTENCY_CASES = [
     ("lease.assignment_sublease", "consent required", "shall not be unreasonably withheld", True),
     ("lease.exclusive_use", "medical", "no other tenant may operate a clinic", True),
     ("not.a.predicate", 42, "nothing here", True),
+    # --- predicates added for C10 (all synthetic) ---
+    # percentage rent: the rate is a ratio, the fixed breakpoint a number, the exclusions free text
+    ("lease.percentage_rent", {"rate": 0.06, "breakpoint": {"type": "natural"}},
+     "six percent (6%) of Gross Sales in excess of the natural breakpoint", True),
+    ("lease.percentage_rent", {"rate": 0.06, "breakpoint": {"type": "natural"}}, "6% of Gross Sales above", True),
+    ("lease.percentage_rent", {"rate": 0.06, "breakpoint": {"type": "natural"}}, "0.06 of Gross Sales above", True),
+    ("lease.percentage_rent", {"rate": 0.06, "breakpoint": {"type": "natural"}},
+     "five percent (5%) of Gross Sales in excess of the natural breakpoint", False),
+    ("lease.percentage_rent", {"rate": 0.06, "breakpoint": {"type": "natural"}}, "6 of Gross Sales above", False),
+    ("lease.percentage_rent", {"rate": 0.06, "breakpoint": {"type": "fixed", "amount": 2000000}},
+     "6% of Gross Sales exceeding $2,000,000 per Lease Year", True),
+    ("lease.percentage_rent", {"rate": 0.06, "breakpoint": {"type": "fixed", "amount": 2000000}},
+     "6% of Gross Sales exceeding Two Million Dollars ($2,000,000.00) per Lease Year", True),
+    ("lease.percentage_rent", {"rate": 0.06, "breakpoint": {"type": "fixed", "amount": 2500000}},
+     "6% of Gross Sales exceeding $2,000,000 per Lease Year", False),
+    ("lease.percentage_rent", {"rate": 0.06, "breakpoint": {"type": "fixed", "amount": 2000000},
+                               "sales_exclusions": "sales taxes and returns"},
+     "6% of Gross Sales exceeding $2,000,000, excluding sales taxes, refunds and credits", True),  # free text
+    # co-tenancy: only the cure period is checkable
+    ("lease.co_tenancy", {"trigger": "fewer than 70% of the GLA is open", "remedy": "pay 50% of Base Rent",
+                          "cure_period_months": 6},
+     "if less than seventy percent (70%) of the gross leasable area is open for six (6) months", True),
+    ("lease.co_tenancy", {"trigger": "x", "remedy": "y", "cure_period_months": 6},
+     "a cure period of ninety (90) days", False),
+    ("lease.co_tenancy", {"trigger": "x", "remedy": "y"}, "any remedy at all", True),  # nothing checkable
+    # critical dates, in every accepted written form
+    ("lease.renewal_notice_deadline", "2030-08-31", "exercised on or before August 31, 2030", True),
+    ("lease.renewal_notice_deadline", "2030-08-31", "exercised on or before 8/31/2030", True),
+    ("lease.renewal_notice_deadline", "2030-08-31", "exercised on or before 31 August 2030", True),
+    ("lease.renewal_notice_deadline", "2030-08-31", "exercised no later than the thirty-first day of August, 2030", True),
+    ("lease.renewal_notice_deadline", "2030-08-31", "exercised on or before August 30, 2030", False),
+    ("lease.renewal_notice_deadline", "2030-08-31", "exercised on or before August 31, 2031", False),
+    ("lease.renewal_notice_deadline", "2030-08-31", "twelve months before the Expiration Date", False),
+    ("lease.termination_notice_deadline", "2029-09-30", "written notice given by September 30, 2029", True),
+    ("lease.termination_notice_deadline", "2029-09-30", "written notice given by Sept. 30, 2029", True),
+    ("lease.termination_notice_deadline", "2029-09-30", "written notice given by 2029-09-30", True),
+    ("lease.termination_notice_deadline", "2029-09-30", "written notice given by October 30, 2029", False),
+    ("lease.rent_commencement_date", "2026-06-01", "Rent shall commence on June 1, 2026", True),
+    ("lease.rent_commencement_date", "2026-06-01", "Rent shall commence on the 1st day of June, 2026", True),
+    ("lease.rent_commencement_date", "2026-06-01", "Rent shall commence on 1.6.2026", True),  # day-first reading
+    ("lease.rent_commencement_date", "2026-06-01", "Rent shall commence on the Rent Commencement Date", False),
+    ("lease.expansion_option_deadline", "2028-02-29", "exercised by February 29, 2028", True),
+    ("lease.expansion_option_deadline", "2028-02-29", "exercised by 02/29/2028", True),
+    ("lease.expansion_option_deadline", "2028-02-29", "exercised by Feb. 28, 2028", False),
+    # base year: a year is a number written in the quote
+    ("lease.operating_expense_base_year", 2026, "Base Year means calendar year 2026", True),
+    ("lease.operating_expense_base_year", 2026, "Base Year means the calendar year ending December 31, 2026", True),
+    ("lease.operating_expense_base_year", 2026, "Base Year means calendar year 2025", False),
+    ("lease.operating_expense_base_year", 2026, "Base Year means the year of the Commencement Date", False),
+    # parking: spaces and the monthly rate
+    ("lease.parking", {"spaces": 40, "rate_monthly": 125},
+     "forty (40) unreserved parking spaces at $125.00 per space per month", True),
+    ("lease.parking", {"spaces": 40, "rate_monthly": 125}, "forty (40) spaces at $150.00 per space per month", False),
+    ("lease.parking", {"spaces": 40}, "forty unreserved parking spaces at no charge", True),
+    ("lease.parking", {"spaces": 40}, "fifty (50) unreserved parking spaces", False),
+    # guaranty: the guarantor's name verbatim, the cap a number
+    ("lease.guaranty", {"guarantor": "Sample Analytics Holdings LLC", "cap": 500000},
+     'guaranteed by Sample Analytics Holdings LLC ("Guarantor"), capped at $500,000.00', True),
+    ("lease.guaranty", {"guarantor": "Sample Analytics Holdings LLC"},
+     'guaranteed by SAMPLE ANALYTICS HOLDINGS LLC ("Guarantor")', True),
+    ("lease.guaranty", {"guarantor": "Sample Analytics Holdings LLC", "cap": 500000},
+     'guaranteed by Sample Analytics Holdings LLC ("Guarantor"), capped at $250,000.00', False),
+    ("lease.guaranty", {"guarantor": "Sample Holdings LLC"}, 'guaranteed by Sample Analytics Holdings LLC', False),
 ]
+
+# (predicate, value, reason or None) — synthetic value shapes for the C10 predicates, decided by hand.
+VALUE_CASES = [
+    ("lease.percentage_rent", {"rate": 0.06, "breakpoint": {"type": "natural"}}, None),
+    ("lease.percentage_rent", {"rate": 0.06, "breakpoint": {"type": "natural", "amount": 1500000}}, None),
+    ("lease.percentage_rent", {"rate": 0.06, "breakpoint": {"type": "fixed", "amount": 2000000},
+                               "sales_exclusions": "sales taxes and returns"}, None),
+    ("lease.percentage_rent", {"rate": 6, "breakpoint": {"type": "natural"}},
+     "expected {rate, breakpoint} with rate in (0, 1]"),
+    ("lease.percentage_rent", {"rate": 0.06}, "expected breakpoint {type: natural | fixed, amount?}"),
+    ("lease.percentage_rent", {"rate": 0.06, "breakpoint": {"type": "artificial"}},
+     "expected breakpoint {type: natural | fixed, amount?}"),
+    ("lease.percentage_rent", {"rate": 0.06, "breakpoint": {"type": "fixed"}}, "a fixed breakpoint needs a positive amount"),
+    ("lease.percentage_rent", {"rate": 0.06, "breakpoint": {"type": "natural", "amount": -1}},
+     "breakpoint amount must be a positive number"),
+    ("lease.percentage_rent", {"rate": 0.06, "breakpoint": {"type": "natural"}, "sales_exclusions": " "},
+     "sales_exclusions must be a non-empty string"),
+    ("lease.percentage_rent", "6% over breakpoint", "expected {rate, breakpoint} with rate in (0, 1]"),
+    ("lease.co_tenancy", {"trigger": "fewer than 70% of the GLA is open", "remedy": "pay 50% of Base Rent"}, None),
+    ("lease.co_tenancy", {"trigger": "x", "remedy": "y", "cure_period_months": 6}, None),
+    ("lease.co_tenancy", {"trigger": "x"}, "expected {trigger, remedy} as non-empty strings"),
+    ("lease.co_tenancy", {"trigger": "x", "remedy": ""}, "expected {trigger, remedy} as non-empty strings"),
+    ("lease.co_tenancy", {"trigger": "x", "remedy": "y", "cure_period_months": 0},
+     "cure_period_months must be a positive number"),
+    ("lease.co_tenancy", {"trigger": "x", "remedy": "y", "cure_period_months": "six"},
+     "cure_period_months must be a positive number"),
+    ("lease.renewal_notice_deadline", "2030-08-31", None),
+    ("lease.renewal_notice_deadline", "August 31, 2030", "expected YYYY-MM-DD date"),
+    ("lease.termination_notice_deadline", "2029-09-30", None),
+    ("lease.termination_notice_deadline", "2029-09-31", "expected YYYY-MM-DD date"),
+    ("lease.rent_commencement_date", "2026-06-01", None),
+    ("lease.rent_commencement_date", 20260601, "expected YYYY-MM-DD date"),
+    ("lease.expansion_option_deadline", "2028-02-29", None),
+    ("lease.expansion_option_deadline", "2027-02-29", "expected YYYY-MM-DD date"),
+    ("lease.operating_expense_base_year", 2026, None),
+    ("lease.operating_expense_base_year", 2026.0, "expected a four-digit integer year"),
+    ("lease.operating_expense_base_year", "2026", "expected a four-digit integer year"),
+    ("lease.operating_expense_base_year", True, "expected a four-digit integer year"),
+    ("lease.operating_expense_base_year", 26, "expected a four-digit integer year"),
+    ("lease.parking", {"spaces": 40}, None),
+    ("lease.parking", {"spaces": 40, "rate_monthly": 0}, None),
+    ("lease.parking", {"spaces": 40, "rate_monthly": 125.5}, None),
+    ("lease.parking", {"spaces": 0}, "expected {spaces, rate_monthly?} with a positive number of spaces"),
+    ("lease.parking", {"rate_monthly": 125}, "expected {spaces, rate_monthly?} with a positive number of spaces"),
+    ("lease.parking", {"spaces": 40, "rate_monthly": -5}, "rate_monthly must be a non-negative number"),
+    ("lease.guaranty", {"guarantor": "Sample Analytics Holdings LLC"}, None),
+    ("lease.guaranty", {"guarantor": "Sample Analytics Holdings LLC", "cap": 500000}, None),
+    ("lease.guaranty", {"guarantor": ""}, "expected {guarantor, cap?} with the guarantor's name"),
+    ("lease.guaranty", {"cap": 500000}, "expected {guarantor, cap?} with the guarantor's name"),
+    ("lease.guaranty", {"guarantor": "Sample Analytics Holdings LLC", "cap": 0}, "cap must be a positive number"),
+    # a natural person's address is never a fact: anything that reads as an address is refused
+    ("lease.guaranty", {"guarantor": "Jane Doe, 123 Main Street, Austin, Texas 78701"},
+     "guarantor must be a name, not an address"),
+    ("lease.guaranty", {"guarantor": "Jane Doe, 45 Oak Lane"}, "guarantor must be a name, not an address"),
+    ("lease.guaranty", {"guarantor": "Jane Doe, Apt 4B, 9 Elm St."}, "guarantor must be a name, not an address"),
+    ("lease.guaranty", {"guarantor": "Jane Doe 78701"}, "guarantor must be a name, not an address"),
+    ("lease.guaranty", {"guarantor": "Jane Doe, P.O. Box 12"}, "guarantor must be a name, not an address"),
+]
+
+
+class ValueShapes(unittest.TestCase):
+    def test_new_predicates_are_listed_for_the_extractor(self):
+        for predicate in ("lease.percentage_rent", "lease.co_tenancy", "lease.renewal_notice_deadline",
+                          "lease.termination_notice_deadline", "lease.rent_commencement_date",
+                          "lease.expansion_option_deadline", "lease.operating_expense_base_year", "lease.parking",
+                          "lease.guaranty"):
+            self.assertIn(predicate, PREDICATES)
+        self.assertEqual(len(PREDICATES), 25, "16 original predicates plus 9")
+
+    def test_shapes(self):
+        for predicate, value, reason in VALUE_CASES:
+            with self.subTest(predicate=predicate, value=value):
+                self.assertEqual(check_value(predicate, value), reason)
+
+    def test_existing_predicates_unchanged(self):
+        self.assertIsNone(check_value("lease.commencement_date", "2026-03-01"))
+        self.assertEqual(check_value("lease.commencement_date", "March 1, 2026"), "expected YYYY-MM-DD date")
+        self.assertIsNone(check_value("lease.pro_rata_share", 0.0825))
+        self.assertEqual(check_value("lease.rofr", ""), "expected non-empty string")
 
 
 class Consistency(unittest.TestCase):
@@ -125,14 +267,26 @@ class Consistency(unittest.TestCase):
                                            [{"from": "2026-03-01", "to": "2027-02-28", "annual_rent_psf": 38.0}],
                                            "March 1, 2026 through February 28, 2028: $38.00"),
                          'value "2027-02-28" (to) not found in quote')
+        # nested shapes report the path to the field
+        self.assertEqual(check_consistency("lease.percentage_rent",
+                                           {"rate": 0.06, "breakpoint": {"type": "fixed", "amount": 2500000}},
+                                           "6% of Gross Sales exceeding $2,000,000"),
+                         "value 2500000 (breakpoint.amount) not found in quote")
+        self.assertEqual(check_consistency("lease.guaranty", {"guarantor": "Sample Holdings LLC"},
+                                           "guaranteed by Sample Analytics Holdings LLC"),
+                         'value "Sample Holdings LLC" (guarantor) not found in quote')
 
     def test_verify_runs_it_after_locating_the_quote(self):
         d = load_document(FIX / "synthetic_lease.txt")
         v = verify(d, Candidate("lease.security_deposit", 59000, "a security deposit of $95,000", 2))
-        self.assertEqual((v.accepted, v.page, v.reason), (False, None, "value 59000 not found in quote"))
+        # the quote verified on page 2, so the verdict keeps the page and names the failing check
+        self.assertEqual((v.accepted, v.page, v.reason, v.check),
+                         (False, 2, "value 59000 not found in quote", "consistency"))
         # a hallucinated quote is reported as such, not as a mismatch
         v = verify(d, Candidate("lease.security_deposit", 59000, "a security deposit of $59,000", 2))
-        self.assertEqual(v.reason, "quote not found in the document")
+        self.assertEqual((v.reason, v.check), ("quote not found in the document", "quote"))
+        self.assertEqual(verify(d, Candidate("lease.security_deposit", "95,000", "a security deposit of $95,000", 2)).check,
+                         "value")
         # a corrected page is still corrected when the value is consistent
         v = verify(d, Candidate("lease.security_deposit", 95000, "a security deposit of $95,000", 3))
         self.assertEqual((v.accepted, v.page, v.page_corrected), (True, 2, True))
@@ -192,8 +346,13 @@ class Ocr(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp, fake_pypdf():
             doc = load_document(scanned_lease_pdf(tmp), ocr=fake_backend)
         result = ingest_lease(LEASE_URN, [doc], ScriptedExtractor(), as_of="2026-11-02")
-        # same outcome as the text-layer lease: 12 accepted (17 candidates, 5 deliberately bad), 1 page corrected
-        self.assertEqual(result.summary(), {"accepted": 12, "current": 12, "rejected": 5, "page_corrected": 1})
+        # same outcome as the text-layer lease: 12 accepted (17 candidates, 5 deliberately bad: 2 rejected,
+        # 3 queued for review), 1 page corrected
+        self.assertEqual(result.summary(), {"accepted": 12, "current": 12, "rejected": 2, "page_corrected": 1,
+                                            "review_pending": 3, "review_accepted": 0, "review_rejected": 0})
+        queued = {r.candidate.predicate: r for r in result.review}
+        self.assertTrue(queued["lease.security_deposit"].ocr, "a queued item from an OCR page says so")
+        self.assertFalse(queued["lease.expiration_date"].ocr, "page 1 has a text layer")
         by_pred = result.current
         self.assertNotIn("ocr", by_pred["lease.commencement_date"]["provenance"]["sources"][0], "page 1 has a text layer")
         for pred in ("lease.security_deposit", "lease.pro_rata_share", "lease.renewal_option"):
