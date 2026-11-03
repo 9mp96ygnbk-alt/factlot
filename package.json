@@ -20,7 +20,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc -p tsconfig.json",
-    "test": "node --experimental-strip-types --conditions=factlot-source --test \"packages/*/src/**/*.test.ts\"",
+    "test": "node --experimental-strip-types --conditions=factlot-source --test \"packages/*/src/**/*.test.ts\" \"deploy/cloudflare/src/**/*.test.ts\"",
     "test:e2e": "node --experimental-strip-types --test-reporter=spec scripts/e2e/run.ts",
     "build": "npm run build --workspaces",
     "check": "npm run lint && npm run format:check && npm run typecheck && npm test && npm run build",
@@ -30,7 +30,8 @@
     "differential": "npm run build && spec/differential/run.sh",
     "test:bench": "python3 -m unittest discover -s bench -p \"test_*.py\"",
     "build:mcpb": "node --experimental-strip-types --conditions=factlot-source scripts/build-mcpb.ts",
-    "test:connectors": "python3 -m unittest discover -s connectors/amazon/bedrock-agent-lambda -p \"test_*.py\""
+    "test:connectors": "python3 -m unittest discover -s connectors/amazon/bedrock-agent-lambda -p \"test_*.py\"",
+    "deploy:cloudflare": "npm run build && rm -rf deploy/cloudflare/public && mkdir -p deploy/cloudflare/public && rsync -a --exclude '*.md' site/ deploy/cloudflare/public/ && cd deploy/cloudflare && npx -y wrangler@4 deploy"
   },
   "devDependencies": {
     "@anthropic-ai/mcpb": "^2.1.2",

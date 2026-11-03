@@ -11,6 +11,13 @@
 npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.0/factlot-mcp-standalone-0.1.0.tgz
 ```
 
+**Or nothing to install:** the hosted remote MCP server is at `https://api.factlot.com/mcp`, free with no key at 60 requests a minute
+(REST and OpenAPI at [`api.factlot.com/openapi.json`](https://api.factlot.com/openapi.json)).
+
+```bash
+claude mcp add --transport http factlot https://api.factlot.com/mcp
+```
+
 Claude Desktop: open [`factlot-0.1.0.mcpb`](https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.0/factlot-0.1.0.mcpb).
 REST, OpenAPI and remote MCP: `docker run -p 8787:8787 ghcr.io/9mp96ygnbk-alt/factlot:0.1.0`.
 Python: `pip install "git+https://github.com/9mp96ygnbk-alt/factlot.git@v0.1.0#subdirectory=python"`.
@@ -23,7 +30,7 @@ curl -fLO https://github.com/9mp96ygnbk-alt/factlot/releases/download/registry-s
 FACTLOT_REGISTRY_DB="$PWD/factlot-registry-sample-dc-2026-11-03.db" npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.0/factlot-mcp-standalone-0.1.0.tgz
 ```
 
-**Hosted registry early access:** teams that want cited parcel-to-owner-to-entity lookups without self-hosting can email [contact@factlot.com](mailto:contact@factlot.com?subject=FactLot%20hosted%20registry%20early%20access). The hosted service is not yet public, and early-access teams help set pricing. Questions and bug reports go in [GitHub Discussions](https://github.com/9mp96ygnbk-alt/factlot/discussions) and Issues.
+**Paid plans:** [Pro $49 a month and Team $599 a month](https://factlot.com/#pricing) raise the hosted limits and include hosted registry lookups as each region opens. Enterprise and private deployments: [contact@factlot.com](mailto:contact@factlot.com?subject=FactLot%20hosted%20registry%20early%20access). Questions and bug reports go in [GitHub Discussions](https://github.com/9mp96ygnbk-alt/factlot/discussions) and Issues.
 
 Agents doing CRE work get stuck in the same places. They can't trust their own
 arithmetic, they can't cite where a number came from, and they can't tell that

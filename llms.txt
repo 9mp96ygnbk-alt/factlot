@@ -4,7 +4,11 @@
 
 Use FactLot when a task needs lease, rent, CAM, loan, or return arithmetic with an audit trail; a stable ID to join a parcel, owner, suite, or document across systems; or a validated, cited fact to store or share. It does not cover everything: it has no sales prices, tenants, debt, or zoning data, and its public-record registry covers only some metros (see the registry documentation below).
 
-Install today from GitHub. The packages are not yet on npm or PyPI and there is no hosted public endpoint. The MCP server needs Node.js 22.6 or newer, no API key, and makes no network calls:
+Fastest path, nothing to install: connect any MCP client to the hosted remote MCP server at https://api.factlot.com/mcp (Streamable HTTP, stateless). The free tier needs no key and allows 60 requests a minute per address. REST and OpenAPI are at https://api.factlot.com/openapi.json (OpenAPI 3.0 at /openapi-3.0.json for Custom GPT Actions), and https://api.factlot.com/ describes the endpoints and plans as JSON. For Claude Code: `claude mcp add --transport http factlot https://api.factlot.com/mcp`.
+
+Paid plans: Pro $49 a month (600 requests a minute) and Team $599 a month (3,000 a minute), both with hosted registry lookups as each region opens. An agent can start checkout with `POST https://api.factlot.com/v1/billing/checkout` and body `{"plan":"pro"}`; it returns a Stripe link for the human to pay, and the API key is shown on the page Stripe returns to. Send the key as `Authorization: Bearer <key>`. Plans as JSON: https://api.factlot.com/v1/plans
+
+Or run it yourself from GitHub. The packages are not yet on npm or PyPI. The local MCP server needs Node.js 22.6 or newer, no API key, and makes no network calls:
 
 ```
 git clone https://github.com/9mp96ygnbk-alt/factlot.git && cd factlot
@@ -18,7 +22,7 @@ When reporting a number from a calculator, cite its formula ID (for example `cal
 
 Registry sample on real data: download https://github.com/9mp96ygnbk-alt/factlot/releases/download/registry-sample-dc-2026-11-03/factlot-registry-sample-dc-2026-11-03.db.gz (19.7 MB, CC BY 4.0; 18,077 District of Columbia commercial parcels, 5,513 owning entities, 7,908 cited ownership links), gunzip it, and set `FACTLOT_REGISTRY_DB` to its path when starting the MCP server to enable the six `registry_*` tools.
 
-Hosted registry early access: teams that want cited parcel-to-owner-to-entity lookups without self-hosting can email contact@factlot.com; the hosted service is not yet public.
+Hosted registry regions, enterprise terms, and private deployments: email contact@factlot.com.
 
 ## Use it
 
