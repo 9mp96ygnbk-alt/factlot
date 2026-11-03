@@ -33,8 +33,125 @@ _ENTITY_TOKENS = re.compile(
 )
 
 
+# Apostrophes are dropped, not turned into spaces: rolls write "OREILLY" and "CHILDRENS" where the
+# registration says "O'REILLY" and "CHILDREN'S".
+_APOSTROPHES = re.compile("['\u2018\u2019`\u00b4]")
+
+# What follows the owner on a roll but is not part of the owner's name: a "doing business as" trade
+# name, "ET AL" (other co-owners are listed elsewhere), and a connector left dangling when the
+# publisher truncated the line ("ACME HOLDINGS LLC &", "SMITH FAMILY LP THE").
+_NAME_TAIL = re.compile(r"\s(?:DBA|D B A|ET AL|ETAL|ET UX|ETUX|ET VIR|ETVIR)\b.*$")
+_DANGLING = re.compile(r"\s(?:AND|THE)$")
+# "NO 1" and "1" name the same series entity.
+_NUMBER_WORD = re.compile(r"\b(?:NO|NUMBER)\s+(?=\d)")
+
+# One spelling per abbreviation that publishers use inconsistently, applied to whole tokens on both
+# sides of a comparison (so the choice of spelling does not matter, only that it is single). Words
+# whose abbreviation is ambiguous (ASSOC: associates or association; INV: investment or
+# investments) and words that are also initials (directions) are left alone.
+NAME_TOKEN_CANON = {
+    "PPTY": "PROPERTY", "PPTIES": "PROPERTIES", "PPRTIES": "PROPERTIES", "PPTYS": "PROPERTIES",
+    "CTR": "CENTER", "CTRS": "CENTERS", "PTNR": "PARTNER", "PTNRS": "PARTNERS", "PRTNRS": "PARTNERS",
+    "PTNRSHP": "PARTNERSHIP", "PTNRSHIP": "PARTNERSHIP", "PRTNRSHP": "PARTNERSHIP", "APTS": "APARTMENTS",
+    "MGMT": "MANAGEMENT", "MGT": "MANAGEMENT", "DEVEL": "DEVELOPMENT", "BLDG": "BUILDING",
+    "BLDGS": "BUILDINGS", "INTL": "INTERNATIONAL", "HLDGS": "HOLDINGS", "HLDG": "HOLDING", "RLTY": "REALTY",
+    # street types, to the short form addresses use ("123 MAIN STREET LLC" is "123 MAIN ST LLC")
+    "STREET": "ST", "AVENUE": "AVE", "ROAD": "RD", "DRIVE": "DR", "BOULEVARD": "BLVD", "PARKWAY": "PKWY",
+    "HIGHWAY": "HWY",
+}
+
+
+def _canonical_tokens(s: str) -> str:
+    return " ".join(NAME_TOKEN_CANON.get(t, t) for t in s.split())
+
+
 def normalize_name(name: str) -> str:
-    """Comparable key for an organisation name: 'Acme Properties, L.L.C.' -> 'ACME PROPERTIES LLC'."""
+    """Comparable key for an organisation name: 'Acme Properties, L.L.C.' -> 'ACME PROPERTIES LLC'.
+
+    Besides case, punctuation and entity-type suffixes (LLC, LP, INC, ...), the key drops what a
+    roll appends to an owner ("ET AL", a "DBA" trade name, a dangling "&" or "THE"), removes
+    apostrophes, reads "NO 1" as "1", and spells common abbreviations one way (``NAME_TOKEN_CANON``).
+    The TypeScript mirror (``normalizeName`` in packages/tools) must agree; ``spec/registry/normalize.json``
+    holds the shared vectors.
+    """
+    s = _APOSTROPHES.sub("", name.upper()).replace("&", " AND ")
+    s = re.sub(r"[^A-Z0-9 ]+", " ", s)
+    s = re.sub(r"\s+", " ", s).strip()
+    for pattern, repl in _SUFFIXES:
+        s = re.sub(pattern, repl, s)
+    s = re.sub(r"^THE ", "", s)
+    if (tail := _NAME_TAIL.sub("", s)):  # never reduce a name to nothing
+        s = tail
+    while (trimmed := _DANGLING.sub("", s)) != s and trimmed:
+        s = trimmed
+    s = _NUMBER_WORD.sub("", s)
+    return _canonical_tokens(re.sub(r"\s+", " ", s).strip())
+
+
+# A "doing business as" marker (DBA, D/B/A, D.B.A.): what follows it is a trade name.
+_DBA = re.compile(r"\bD\s*[/.]?\s*B\s*[/.]?\s*A\b")
+# "L.P." written with a dot is a partnership; bare spaced "L P" is usually a person's initials.
+_DOTTED_LP = re.compile(r"\bL\s*\.\s*P\b")
+
+
+# Words that mark a spaced "L P" as a partnership rather than a person's two middle initials when
+# the name has no number ("BROAD PLAZA L P"). Only words a surname is unlikely to be belong here.
+_LP_CONTEXT = frozenset(
+    "PLAZA CENTER CENTERS TOWER TOWERS ENTERPRISES ENTERPRISE ASSOC ASSOCS ASSOCIATES INVESTORS INTERESTS "
+    "APARTMENTS APARTMENT APTS APT STREET ST AVENUE AVE ROAD RD VILLAGE COMMONS TERRACE GARDENS MANOR HOUSING "
+    "SENIORS OPERATING OPERATIONS MANAGEMENT DEVELOPMENT ACQUISITIONS ACQUISITION MEDICAL OFFICE BUILDING "
+    "BUILDINGS TELEVISION VIDEO PIPELINE LANDFILL STABLES MARINA HOMES TOWNHOMES CAPITAL RESIDENCE HOTEL "
+    "RETAIL INDUSTRIAL WAREHOUSE STORAGE PARKING".split()
+)
+_SPACED_LP = re.compile(r"\bL P\b")
+
+
+def _spaced_lp_is_partnership(s: str) -> bool:
+    """Whether the last bare ``L P`` in a cleaned name is "L.P." written without dots.
+
+    A person's roll entry can end in two middle initials ("GARCIA MARIA L P", "LOPEZ MARIA ELENA L P"),
+    so the name is read as a partnership only on evidence: a number ("400 NUECES L P") or a word
+    that names a property or a business ("BROAD PLAZA L P"). A name with neither ("GSGB L P") stays
+    unread, which loses a partnership's owner name but never stores a person's.
+    """
+    matches = list(_SPACED_LP.finditer(s))
+    if not matches:
+        return False
+    head = s[: matches[-1].start()].split()
+    if not head:
+        return False
+    if any(any(c.isdigit() for c in t) for t in head):
+        return True
+    return any(t in _LP_CONTEXT for t in head)
+
+
+def is_organization(name: str) -> bool:
+    """Conservative: anything not clearly an organisation is treated as a natural person.
+
+    Family and personal trusts ("SMITH FAMILY TRUST") are treated as persons; real estate
+    investment trusts are organisations. Only the part before a "DBA" counts, since a sole
+    proprietor's trade name ("JOHN SMITH DBA SMITH PROPERTIES") does not make them an
+    organisation. An apostrophe separates words here ("OWNERS'CORP" ends in CORP), unlike in
+    ``normalize_name``, where it is dropped. "L.P." with a dot, "LP", and "Limited Partnership" are partnerships. A bare spaced
+    "L P" is a partnership only with evidence (``_spaced_lp_is_partnership``), because it is also
+    how a roll writes a person's initials ("GARCIA MARIA L P").
+    """
+    raw = _DBA.split(name.upper().replace("&", " AND "), maxsplit=1)[0]
+    s = re.sub(r"\s+", " ", re.sub(r"[^A-Z0-9 ]+", " ", raw)).strip()
+    spaced_lp = bool(_SPACED_LP.search(s)) and not _DOTTED_LP.search(raw) and _spaced_lp_is_partnership(s)
+    for pattern, repl in _SUFFIXES:
+        if pattern == r"\bL P\b" and not (_DOTTED_LP.search(raw) or spaced_lp):
+            continue
+        s = re.sub(pattern, repl, s)
+    return bool(_ENTITY_TOKENS.search(_canonical_tokens(s)))
+
+
+def legacy_name_key(name: str) -> str:
+    """The key ``normalize_name`` made before 2026-11-03 (name key version 1).
+
+    Kept so a registry built under it can be re-keyed in place (``Registry.rebuild_name_index``):
+    a stored key is rewritten only if it is this function's output for the entity's current name.
+    """
     s = name.upper().replace("&", " AND ")
     s = re.sub(r"[^A-Z0-9 ]+", " ", s)
     s = re.sub(r"\s+", " ", s).strip()
@@ -44,28 +161,7 @@ def normalize_name(name: str) -> str:
     return re.sub(r"\s+", " ", s).strip()
 
 
-# A "doing business as" marker (DBA, D/B/A, D.B.A.): what follows it is a trade name.
-_DBA = re.compile(r"\bD\s*[/.]?\s*B\s*[/.]?\s*A\b")
-# "L.P." written with a dot is a partnership; bare spaced "L P" is usually a person's initials.
-_DOTTED_LP = re.compile(r"\bL\s*\.\s*P\b")
-
-
-def is_organization(name: str) -> bool:
-    """Conservative: anything not clearly an organisation is treated as a natural person.
-
-    Family and personal trusts ("SMITH FAMILY TRUST") are treated as persons; real estate
-    investment trusts are organisations. Only the part before a "DBA" counts, since a sole
-    proprietor's trade name ("JOHN SMITH DBA SMITH PROPERTIES") does not make them an
-    organisation. Bare spaced initials "L P" are read as a person's initials ("GARCIA MARIA L P");
-    "L.P." with a dot, "LP", and "Limited Partnership" are partnerships.
-    """
-    raw = _DBA.split(name.upper().replace("&", " AND "), maxsplit=1)[0]
-    s = re.sub(r"\s+", " ", re.sub(r"[^A-Z0-9 ]+", " ", raw)).strip()
-    for pattern, repl in _SUFFIXES:
-        if pattern == r"\bL P\b" and not _DOTTED_LP.search(raw):
-            continue
-        s = re.sub(pattern, repl, s)
-    return bool(_ENTITY_TOKENS.search(s))
+NAME_KEY_VERSION = "2"
 
 
 # --- name similarity (fuzzy owner matching, backlog C2) ---------------------------------------

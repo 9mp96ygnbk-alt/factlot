@@ -10,6 +10,7 @@ import unittest
 from pathlib import Path
 
 import factlot
+from factlot.registry.normalize import legacy_name_key
 from factlot.registry import (
     EntityRecord,
     ParcelRecord,
@@ -67,6 +68,45 @@ class Normalization(unittest.TestCase):
         self.assertEqual(normalize_name("Smith & Sons Incorporated"), "SMITH AND SONS INC")
         self.assertEqual(normalize_address("100 Main Street, Suite 400"), "100 MAIN ST STE 400")
 
+    def test_name_normalization_matches_the_shared_vectors(self):
+        """The same vectors run against the TypeScript mirror (packages/tools/src/registry.test.ts)."""
+        spec = Path(__file__).resolve().parents[2] / "spec" / "registry" / "normalize.json"
+        vectors = json.loads(spec.read_text("utf-8"))
+        for raw, expected in vectors["names"]:
+            self.assertEqual(normalize_name(raw), expected, raw)
+        for raw, expected in vectors["addresses"]:
+            self.assertEqual(normalize_address(raw), expected, raw)
+
+    def test_owner_tails_apostrophes_and_abbreviations_share_one_key(self):
+        same = [
+            ("BAY2209 LLC ET AL", "Bay2209, L.L.C."),
+            ("EASTGROUP PROPERTIES LP ETAL", "EastGroup Properties, L.P."),
+            ("KELL PROPERTIES LLC &", "Kell Properties LLC"),
+            ("EGYPTIAN BOYS LLC THE", "Egyptian Boys, LLC"),
+            ("STMS INC DBA SOUTH TEXAS", "STMS Inc."),
+            ("OREILLY AUTO ENTERPRISES LLC", "O'Reilly Auto Enterprises, LLC"),
+            ("A AND G DALWORTH PPTIES LP", "A & G Dalworth Properties, LP"),
+            ("2606 S LANCASTER ROAD LLC", "2606 S Lancaster Rd LLC"),
+            ("CLAY CMBS NO 1 LP", "Clay CMBS 1 LP"),
+        ]
+        for a, b in same:
+            self.assertEqual(normalize_name(a), normalize_name(b), (a, b))
+        different = [
+            ("ACME PROPERTIES LLC", "ACME PROPERTY LLC"),  # a near match is the review queue's business
+            ("ACME HOLDINGS LLC", "ACME HOLDINGS II LLC"),
+            ("ACME ASSOC INC", "ACME ASSOCIATES INC"),  # ambiguous abbreviation: left alone
+        ]
+        for a, b in different:
+            self.assertNotEqual(normalize_name(a), normalize_name(b), (a, b))
+        self.assertEqual(normalize_name("SMITH LLC DBA"), "SMITH LLC")
+        self.assertEqual(normalize_name("ET AL"), "ET AL", "a name is never reduced to nothing")
+
+    def test_spaced_lp_is_a_partnership_only_on_evidence(self):
+        for org in ("400 NUECES L P", "BROAD PLAZA L P", "REGENCY OFFICE CENTER L P", "24 HR TX L P", "ACME PPTIES"):
+            self.assertTrue(is_organization(org), org)
+        for person in ("GARCIA MARIA L P", "LOPEZ MARIA ELENA L P", "SMITH JOHN A L P", "JOHN SMITH L P", "GSGB L P"):
+            self.assertFalse(is_organization(person), person)
+
     def test_entity_standing(self):
         from factlot.registry.normalize import entity_standing
 
@@ -89,7 +129,8 @@ class Normalization(unittest.TestCase):
         for person in ("SMITH JOHN CO-TRUSTEE", "DOE JANE & JOHN CO TRS", "SMITH JOHN A & CO-OWNER",
                        "GARCIA MARIA L P", "JOHN SMITH DBA SMITH PROPERTIES", "JOHN SMITH D/B/A SMITH PROPERTIES"):
             self.assertFalse(is_organization(person), person)
-        for org in ("Gulf Logistics L.P.", "Gulf Logistics, L. P.", "Smith & Co", "Acme LLC DBA The Shops"):
+        for org in ("Gulf Logistics L.P.", "Gulf Logistics, L. P.", "Smith & Co", "Acme LLC DBA The Shops",
+                    "PRESIDENTIAL OWNERS'CORP"):
             self.assertTrue(is_organization(org), org)
 
 
@@ -140,7 +181,7 @@ class RegistryCore(unittest.TestCase):
         self.assertEqual((es.kept, es.skipped_invalid), (3, 1))
         links = self.reg.link_owners()
         self.assertEqual(links, {"linked": 1, "linked_by_standing": 0, "linked_by_review": 0, "ambiguous": 1, "cross_state": 0,
-                                 "queued_for_review": 0, "unmatched": 1})
+                                 "queued_for_review": 0, "unmatched": 1, "review_rows_superseded": 0})
         self.assertEqual(self.reg.link_owners(), links, "linking is idempotent")
         lonestar = factlot.entity_id("us-tx", "0801111111").urn
         owned = self.reg.parcels_owned_by(lonestar)
@@ -176,7 +217,7 @@ class RegistryCore(unittest.TestCase):
         self.reg.ingest_entities(ENTITIES[:1], self.ent)  # Lonestar, us-tx
         links = self.reg.link_owners()
         self.assertEqual(links, {"linked": 2, "linked_by_standing": 0, "linked_by_review": 0, "ambiguous": 0, "cross_state": 2,
-                                 "queued_for_review": 2, "unmatched": 0})
+                                 "queued_for_review": 2, "unmatched": 0, "review_rows_superseded": 0})
         p = lambda n: factlot.parcel_id("27", "053", n).urn  # noqa: E731
         owned = lambda j, n: [o["urn"] for o in self.reg.parcels_owned_by(factlot.entity_id(j, n).urn)]  # noqa: E731
         self.assertEqual(owned("us-ny", "1"), [], "an exact name in another state is not a link")
@@ -189,12 +230,70 @@ class RegistryCore(unittest.TestCase):
         queue = self.reg.review_queue()
         self.assertEqual([(q["owner_key"], q["reason"]["rule"], q["reason"]["parcel_state"], q["reason"]["entity_state"]) for q in queue],
                          [("LONESTAR OFFICE HOLDINGS LLC", "exact_name_other_state", "mn", "tx"),
-                          ("MAIN STREET PROPERTIES LLC", "exact_name_other_state", "mn", "ny")])
+                          ("MAIN ST PROPERTIES LLC", "exact_name_other_state", "mn", "ny")])  # "STREET" and "ST" are one key
         self.assertEqual(self.reg.link_owners()["queued_for_review"], 0, "queued once")
         # A reviewer can still accept the cross-state match; the link then ranks below an exact one.
         decided = self.reg.decide_owner_match(queue[1]["review_id"], True, "reviewer@example.invalid")
         self.assertEqual(owned("us-ny", "1"), [p("P1")])
         self.assertEqual(self.reg.parcels_owned_by(factlot.entity_id("us-ny", "1").urn)[0]["confidence"], 0.8)
+
+    def test_owner_name_variants_link_and_old_keys_are_rebuilt(self):
+        """A roll's abbreviations and tails link to the registered name; a registry keyed the old way is re-keyed."""
+        self.reg.ingest_parcels([
+            ParcelRecord("999", "V1", "F1", owner_name="Reilly Auto Pptys LLC ET AL"),
+            ParcelRecord("999", "V2", "F1", owner_name="Dalworth Center Holdings LP &"),
+            ParcelRecord("999", "V3", "F1", owner_name="123 Main St LLC"),
+            ParcelRecord("999", "V4", "F1", owner_name="Nobody Matches This LLC"),
+        ], self.snap25, state_fips="48")
+        self.reg.ingest_entities([
+            EntityRecord("REILLY AUTO PROPERTIES LLC", "us-tx", "0801", locator="row 1"),
+            EntityRecord("DALWORTH CTR HOLDINGS, L.P.", "us-tx", "0802", locator="row 2"),
+            EntityRecord("123 MAIN STREET LLC", "us-tx", "0803", locator="row 3"),
+        ], self.ent)
+        # A file built before the normalization changed holds the old keys, plus a key from an earlier name.
+        self.reg.db.execute("DELETE FROM name_index")
+        for urn, label in self.reg.db.execute("SELECT urn, label FROM subjects WHERE kind = 'entity'").fetchall():
+            self.reg.db.execute("INSERT INTO name_index VALUES (?,?)", (legacy_name_key(label), urn))
+        self.reg.db.execute("INSERT INTO name_index VALUES ('EARLIER NAME LLC', ?)", (factlot.entity_id("us-tx", "0802").urn,))
+        self.reg.db.commit()
+        done = self.reg.rebuild_name_index()
+        self.assertEqual(done["rekeyed"], 2, "REILLY keeps its key; the other two change")
+        self.assertEqual(self.reg.rebuild_name_index()["rekeyed"], 0, "idempotent")
+        keys = {r[0] for r in self.reg.db.execute("SELECT key FROM name_index")}
+        self.assertEqual(keys, {"REILLY AUTO PROPERTIES LLC", "DALWORTH CENTER HOLDINGS LP", "123 MAIN ST LLC", "EARLIER NAME LLC"})
+        links = self.reg.link_owners()
+        self.assertEqual((links["linked"], links["unmatched"]), (3, 1), links)
+        linked = {r["to_urn"] for r in self.reg.db.execute("SELECT to_urn FROM relationships WHERE type = 'owns'")}
+        p = lambda n: factlot.parcel_id("48", "999", n).urn  # noqa: E731
+        self.assertEqual(linked, {p("V1"), p("V2"), p("V3")})
+
+    def test_a_pending_candidate_is_dropped_once_its_owner_links_exactly(self):
+        self.reg.ingest_parcels([ParcelRecord("999", "S1", "F1", owner_name="Gulf Coast Logistics LLC"),
+                                 ParcelRecord("999", "S2", "F1", owner_name="Gulf Coast Logistic LLC")],
+                                self.snap25, state_fips="48")
+        self.reg.ingest_entities([EntityRecord("GULF COAST LOGISTICS LLC", "us-tx", "0901", locator="row 1")], self.ent)
+        self.reg.link_owners()
+        self.reg.queue_fuzzy_owner_matches()
+        self.assertEqual([q["owner_key"] for q in self.reg.review_queue()], ["GULF COAST LOGISTIC LLC"])
+        # The registry later gains an entity named exactly as the other owner writes it.
+        self.reg.db.execute("INSERT INTO owner_match_review (owner_name, owner_key, parcel_urn, parcel_count, entity_urn, "
+                            "score, reason, status, queued_at) SELECT 'Gulf Coast Logistics LLC', 'GULF COAST LOGISTICS LLC', "
+                            "parcel_urn, 1, entity_urn, 0.8, '{}', 'pending', '2026-11-03' FROM owner_match_review")
+        self.reg.db.commit()
+        result = self.reg.link_owners()
+        self.assertEqual(result["review_rows_superseded"], 1)
+        self.assertEqual([q["owner_key"] for q in self.reg.review_queue()], ["GULF COAST LOGISTIC LLC"])
+
+    def test_review_keys_follow_the_normalization(self):
+        self.reg.ingest_parcels([ParcelRecord("999", "R1", "F1", owner_name="Acme Pptys LLC")], self.snap25, state_fips="48")
+        self.reg.db.execute(
+            "INSERT INTO owner_match_review (owner_name, owner_key, parcel_urn, parcel_count, entity_urn, score, reason, "
+            "status, queued_at) VALUES ('ACME PPTYS LLC', 'ACME PPTYS LLC', 'fl:parcel:us-48999:r1', 1, 'fl:entity:us-tx:1', "
+            "0.9, '{}', 'pending', '2026-11-03')")
+        self.reg.db.commit()
+        self.assertEqual(self.reg.rebuild_review_keys(), {"rekeyed": 1, "dropped_duplicates": 0})
+        self.assertEqual(self.reg.db.execute("SELECT owner_key FROM owner_match_review").fetchone()[0], "ACME PROPERTIES LLC")
+        self.assertEqual(self.reg.rebuild_review_keys(), {"rekeyed": 0, "dropped_duplicates": 0})
 
     def test_a_reviewed_link_is_the_only_owner_link_for_that_name(self):
         de = Source("test-de-entities", "Example DE (synthetic)", "Entities", "https://example.invalid/de", "10",
@@ -533,7 +632,7 @@ class FuzzyOwnerMatching(unittest.TestCase):
         # link_owners() re-applies accepted decisions (e.g. after a newer roll) and stays idempotent.
         links = self.reg.link_owners()
         self.assertEqual(links, {"linked": 0, "linked_by_standing": 0, "linked_by_review": 3, "ambiguous": 0, "cross_state": 0,
-                                 "queued_for_review": 0, "unmatched": 3})
+                                 "queued_for_review": 0, "unmatched": 3, "review_rows_superseded": 0})
         self.assertEqual(self.reg.stats()["ownership_links"], 3)
         self.assertEqual(self.reg.link_owners(), links)
         roll26 = self.reg.add_snapshot("test-county-roll", write(self.tmp, "roll-fuzzy-26.txt", "synthetic fuzzy 2026"), as_of="2026-07-25")

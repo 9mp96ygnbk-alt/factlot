@@ -69,13 +69,33 @@ is what retires a sold parcel's old owner. Example: an LLC sells to an individua
 lists a person, whose name we never store, so the LLC's ownership fact and link become history
 instead of lingering as current.
 
-## Upgrading a registry after a privacy-rule change
+## Upgrading a registry after a rule change
 
 Owner names are stored only for organisations. If the person-detection rule (`is_organization`)
 is tightened, run `Registry(path).purge_person_owners()` once on every registry built before the
 change: it deletes owner-of-record facts the current rule reads as persons, with their
 mailing-address facts, any ownership links inferred from them, and their review-queue rows. The
-parcels and their other facts stay. It is idempotent.
+parcels and their other facts stay. It is idempotent. If the rule is loosened (a name that was
+dropped as a possible person is now read as an organisation), re-ingest the snapshot: facts are
+keyed by content, so only the newly readable owners are added.
+
+If `normalize_name` changes, the entity name index holds keys made by the old rule. Run
+`Registry(path).rebuild_name_index()` (it rewrites a key only when it is exactly the old rule's
+output for the entity's current name) and `rebuild_review_keys()`, then `link_owners()`.
+`python -m factlot.registry.maintain registry.db --all` runs all four steps in order, and
+`python -m factlot.registry.audit registry.db` measures the result (see [Quality](#quality)).
+
+## Quality
+
+`python -m factlot.registry.audit registry.db` reads a registry file and reports, per source and
+snapshot: parcel and entity counts, field completeness, parcels with no situs address or no
+organisation owner, conflicting facts, implausible figures, owner-of-record facts that read as
+natural persons (policy: zero), the owner link rate by confidence and rule with the reasons the
+rest are unlinked, the review queue, snapshot age, and every fact or link whose citation is
+incomplete. With `--reread --collected <dir>` it also runs each source's adapter on the archived
+file and checks that the registry holds exactly what the adapter yields, which is how an adapter
+that misses a header row or a record type is caught. It exits 1 on a hard violation. The audit of
+the Tier 1 files is in [quality/tier1-2026-11-03.md](quality/tier1-2026-11-03.md).
 
 ## Owner resolution
 
@@ -85,7 +105,10 @@ and only the first is automatic.
 
 **1. Exact match in the right jurisdiction (automatic).** `link_owners()` links a parcel to an
 entity when the normalized owner-of-record name equals exactly one registered entity's normalized
-legal name _among the entities that could plausibly be that owner_: those registered in the
+legal name (`normalize_name`: case, punctuation, entity-type suffixes such as L.L.C. and Limited
+Partnership, apostrophes dropped, what a roll appends to an owner removed ("ET AL", a "DBA" trade
+name, a dangling "&" or "THE"), "NO 1" read as "1", and common abbreviations spelled one way:
+PPTIES and PROPERTIES, CTR and CENTER, STREET and ST) _among the entities that could plausibly be that owner_: those registered in the
 parcel's state, formed in the parcel's state, or registered in the state of the owner's mailing
 address. The link is an `owns` relationship labelled `inferred` with confidence 0.9, and its
 `basis` says which of the three rules applied. Ambiguous names (several such entities) and

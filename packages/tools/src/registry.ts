@@ -76,15 +76,67 @@ const SUFFIXES: [RegExp, string][] = [
   [/\bLIMITED\b/g, "LTD"],
 ];
 
+// Apostrophes are dropped, not spaced: rolls write "OREILLY" where the registration says "O'REILLY".
+const APOSTROPHES = /['\u2018\u2019`\u00b4]/g;
+// What a roll appends to an owner but is not part of the name: a trade name ("DBA"), "ET AL", and
+// a connector left dangling by a truncated line.
+const NAME_TAIL = /\s(?:DBA|D B A|ET AL|ETAL|ET UX|ETUX|ET VIR|ETVIR)\b.*$/;
+const DANGLING = /\s(?:AND|THE)$/;
+const NUMBER_WORD = /\b(?:NO|NUMBER)\s+(?=\d)/g;
+
+// One spelling per inconsistently abbreviated word (must match NAME_TOKEN_CANON in normalize.py).
+const NAME_TOKEN_CANON: Record<string, string> = {
+  PPTY: "PROPERTY",
+  PPTIES: "PROPERTIES",
+  PPRTIES: "PROPERTIES",
+  PPTYS: "PROPERTIES",
+  CTR: "CENTER",
+  CTRS: "CENTERS",
+  PTNR: "PARTNER",
+  PTNRS: "PARTNERS",
+  PRTNRS: "PARTNERS",
+  PTNRSHP: "PARTNERSHIP",
+  PTNRSHIP: "PARTNERSHIP",
+  PRTNRSHP: "PARTNERSHIP",
+  APTS: "APARTMENTS",
+  MGMT: "MANAGEMENT",
+  MGT: "MANAGEMENT",
+  DEVEL: "DEVELOPMENT",
+  BLDG: "BUILDING",
+  BLDGS: "BUILDINGS",
+  INTL: "INTERNATIONAL",
+  HLDGS: "HOLDINGS",
+  HLDG: "HOLDING",
+  RLTY: "REALTY",
+  STREET: "ST",
+  AVENUE: "AVE",
+  ROAD: "RD",
+  DRIVE: "DR",
+  BOULEVARD: "BLVD",
+  PARKWAY: "PKWY",
+  HIGHWAY: "HWY",
+};
+
 export function normalizeName(name: string): string {
-  let s = name.toUpperCase().replaceAll("&", " AND ");
+  let s = name.toUpperCase().replace(APOSTROPHES, "").replaceAll("&", " AND ");
   s = s
     .replace(/[^A-Z0-9 ]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
   for (const [pattern, repl] of SUFFIXES) s = s.replace(pattern, repl);
   s = s.replace(/^THE /, "");
-  return s.replace(/\s+/g, " ").trim();
+  const tail = s.replace(NAME_TAIL, "");
+  if (tail) s = tail;
+  for (;;) {
+    const trimmed = s.replace(DANGLING, "");
+    if (trimmed === s || !trimmed) break;
+    s = trimmed;
+  }
+  s = s.replace(NUMBER_WORD, "").replace(/\s+/g, " ").trim();
+  return s
+    .split(" ")
+    .map((t) => NAME_TOKEN_CANON[t] ?? t)
+    .join(" ");
 }
 
 const STREET: Record<string, string> = {
