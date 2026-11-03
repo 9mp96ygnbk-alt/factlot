@@ -79,6 +79,10 @@ test("runTool returns results and errors as data", () => {
   assert.equal(!missing.ok && missing.error.error, "InputError");
   const unknown = runTool("nope", {});
   assert.equal(!unknown.ok && unknown.error.error, "UnknownTool");
+  assert.equal(
+    !unknown.ok && unknown.error.message,
+    'no FactLot tool named "nope"',
+  );
 
   const fact = runTool("fact_validate", {
     fact: {
