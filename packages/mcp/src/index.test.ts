@@ -43,6 +43,9 @@ test("lists calculator, ID, and schema tools", async () => {
     "search",
     "fetch",
     "calc_compare_proposals",
+    "calc_lease_vs_own",
+    "calc_renew_vs_relocate",
+    "calc_hotel_metrics",
   ]) {
     assert.ok(names.includes(expected), `missing ${expected}`);
   }

@@ -871,6 +871,690 @@
       }
     },
     {
+      "name": "calc_lease_vs_own",
+      "description": "Compare leasing with buying over a fixed horizon: NPV of each case's annual cash costs (rent, free rent, tenant expenses, and move-in costs versus equity, debt service, owner expenses, reserves, and a sale at the horizon by stated value or exit cap rate), optionally after tax, with the year-by-year tables and the break-even residual value at which owning equals leasing. Deterministic: use this instead of doing the math yourself; cite formula calc.lease_vs_own@1 and the returned steps, and surface any warnings.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "horizon_years": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50,
+            "description": "Analysis horizon in years. Both cases are compared over this period; the own case sells at the end of it."
+          },
+          "discount_rate_annual": {
+            "type": "number",
+            "minimum": 0,
+            "exclusiveMaximum": 1,
+            "description": "Annual discount rate applied to both cases' year-end cash flows (year 0 = closing / move-in)."
+          },
+          "lease": {
+            "type": "object",
+            "properties": {
+              "rent": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "schedule"
+                      },
+                      "annual_rent": {
+                        "minItems": 1,
+                        "maxItems": 50,
+                        "type": "array",
+                        "items": {
+                          "type": "number",
+                          "minimum": 0
+                        },
+                        "description": "Rent due in each year of the horizon, USD, year 1 first. Must have exactly horizon_years entries."
+                      }
+                    },
+                    "required": ["type", "annual_rent"],
+                    "description": "Explicit rent per year."
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "escalating"
+                      },
+                      "base_rent_annual": {
+                        "type": "number",
+                        "minimum": 0,
+                        "description": "Year-1 rent, USD per year."
+                      },
+                      "escalation_rate_annual": {
+                        "default": 0,
+                        "description": "Compounding annual bump, e.g. 0.03: rent_k = base × (1 + e)^(k − 1).",
+                        "type": "number",
+                        "minimum": 0,
+                        "exclusiveMaximum": 1
+                      }
+                    },
+                    "required": ["type", "base_rent_annual"],
+                    "description": "Base rent with a compounding annual escalation."
+                  }
+                ],
+                "description": "Annual rent, as an explicit schedule or base rent with escalation."
+              },
+              "free_rent_months": {
+                "default": 0,
+                "description": "Rent-free months at the start of the lease, abated from year 1 (and year 2 if more than 12). Must not exceed the horizon.",
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "operating_expenses_annual": {
+                "default": 0,
+                "description": "Year-1 operating expenses borne by the tenant on top of rent (NNN charges, utilities), USD per year.",
+                "type": "number",
+                "minimum": 0
+              },
+              "expense_growth_rate_annual": {
+                "default": 0,
+                "description": "Annual growth applied to expenses after year 1, e.g. 0.03 (year k = year-1 amount × (1 + g)^(k − 1)).",
+                "type": "number",
+                "minimum": 0,
+                "exclusiveMaximum": 1
+              },
+              "upfront_costs": {
+                "default": 0,
+                "description": "Tenant's one-time costs at move-in not covered by allowances: TI overage, moving, security deposit treated as cost, USD.",
+                "type": "number",
+                "minimum": 0
+              }
+            },
+            "required": ["rent"],
+            "description": "The lease alternative."
+          },
+          "own": {
+            "type": "object",
+            "properties": {
+              "purchase_price": {
+                "type": "number",
+                "minimum": 0,
+                "description": "Purchase price, USD."
+              },
+              "closing_costs": {
+                "default": 0,
+                "description": "Acquisition closing costs, USD (added to the purchase price for cash and for depreciable basis).",
+                "type": "number",
+                "minimum": 0
+              },
+              "loan": {
+                "description": "Acquisition financing. Omit for an all-cash purchase.",
+                "type": "object",
+                "properties": {
+                  "amount": {
+                    "type": "number",
+                    "minimum": 0,
+                    "description": "Loan principal at closing, USD."
+                  },
+                  "rate_annual": {
+                    "type": "number",
+                    "minimum": 0,
+                    "exclusiveMaximum": 1,
+                    "description": "Annual interest rate, e.g. 0.065."
+                  },
+                  "amortization_years": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 50,
+                    "description": "Amortization in years with monthly payments; 0 means interest-only. Any balance outstanding at the horizon is repaid from sale proceeds."
+                  }
+                },
+                "required": ["amount", "rate_annual", "amortization_years"]
+              },
+              "operating_expenses_annual": {
+                "default": 0,
+                "description": "Year-1 operating expenses borne by the owner (utilities, repairs, management), USD per year.",
+                "type": "number",
+                "minimum": 0
+              },
+              "capex_reserve_annual": {
+                "default": 0,
+                "description": "Year-1 capital reserve, USD per year. Treated as a cash cost; not tax-deductible.",
+                "type": "number",
+                "minimum": 0
+              },
+              "property_taxes_annual": {
+                "default": 0,
+                "description": "Year-1 property taxes, USD per year.",
+                "type": "number",
+                "minimum": 0
+              },
+              "insurance_annual": {
+                "default": 0,
+                "description": "Year-1 property insurance, USD per year.",
+                "type": "number",
+                "minimum": 0
+              },
+              "expense_growth_rate_annual": {
+                "default": 0,
+                "description": "Annual growth applied to expenses after year 1, e.g. 0.03 (year k = year-1 amount × (1 + g)^(k − 1)).",
+                "type": "number",
+                "minimum": 0,
+                "exclusiveMaximum": 1
+              },
+              "residual": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "value"
+                      },
+                      "amount": {
+                        "type": "number",
+                        "minimum": 0,
+                        "description": "Expected gross sale price at the end of the horizon, USD."
+                      }
+                    },
+                    "required": ["type", "amount"],
+                    "description": "A stated residual value."
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "exit_cap"
+                      },
+                      "cap_rate": {
+                        "type": "number",
+                        "exclusiveMinimum": 0,
+                        "exclusiveMaximum": 1,
+                        "description": "Exit capitalization rate, e.g. 0.07."
+                      },
+                      "stabilized_noi": {
+                        "type": "number",
+                        "minimum": 0,
+                        "description": "Stabilized NOI the property would earn if leased at market in the year after the horizon, USD per year."
+                      }
+                    },
+                    "required": ["type", "cap_rate", "stabilized_noi"],
+                    "description": "Residual = stabilized NOI ÷ exit cap rate (direct capitalization)."
+                  }
+                ],
+                "description": "How the sale price at the horizon is set."
+              },
+              "selling_costs_rate": {
+                "default": 0,
+                "description": "Brokerage and closing costs on sale as a share of the sale price, e.g. 0.03.",
+                "type": "number",
+                "minimum": 0,
+                "exclusiveMaximum": 1
+              },
+              "tax": {
+                "description": "Optional after-tax comparison. When omitted (the default), both cases are compared pre-tax. Operating expenses, property taxes, and insurance are always deductible when this block is present; the gain on sale is taxed at the marginal rate (no separate recapture rate).",
+                "type": "object",
+                "properties": {
+                  "marginal_tax_rate": {
+                    "type": "number",
+                    "minimum": 0,
+                    "exclusiveMaximum": 1,
+                    "description": "Combined marginal income tax rate applied to deductions and to the gain on sale, e.g. 0.26."
+                  },
+                  "depreciation_life_years": {
+                    "default": 39,
+                    "description": "Straight-line depreciation life for the building (39 for US non-residential real property). No mid-month convention.",
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100
+                  },
+                  "land_share": {
+                    "default": 0.2,
+                    "description": "Share of purchase price plus closing costs allocated to land, which is not depreciated.",
+                    "type": "number",
+                    "minimum": 0,
+                    "exclusiveMaximum": 1
+                  },
+                  "rent_deductible": {
+                    "default": true,
+                    "description": "Whether rent paid in the lease case is deductible (true for an operating business).",
+                    "type": "boolean"
+                  },
+                  "interest_deductible": {
+                    "default": true,
+                    "description": "Whether loan interest in the own case is deductible.",
+                    "type": "boolean"
+                  },
+                  "depreciation_deductible": {
+                    "default": true,
+                    "description": "Whether depreciation in the own case is deductible.",
+                    "type": "boolean"
+                  }
+                },
+                "required": ["marginal_tax_rate"]
+              }
+            },
+            "required": ["purchase_price", "residual"],
+            "description": "The purchase alternative."
+          }
+        },
+        "required": ["horizon_years", "discount_rate_annual", "lease", "own"]
+      }
+    },
+    {
+      "name": "calc_renew_vs_relocate",
+      "description": "Compare renewing in place with moving over one horizon: NPV and discounted effective rent of each case (rent schedule with free rent, TI net of allowance, fees, moving, downtime, double rent, termination, and disruption costs), the starting rent at which they break even, and year-by-year cash flows. Deterministic: use this instead of doing the math yourself; cite formula calc.renew_vs_relocate@1 and the returned steps, and surface any warnings.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "horizon_months": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 600,
+            "description": "Analysis horizon in months; both cases run for this term (e.g. 120 for a ten-year renewal versus a ten-year new lease)."
+          },
+          "discount_rate_annual": {
+            "default": 0.08,
+            "description": "Annual discount rate applied to both cases (monthly rate = annual ÷ 12).",
+            "type": "number",
+            "minimum": 0,
+            "exclusiveMaximum": 1
+          },
+          "current_rent_monthly": {
+            "default": 0,
+            "description": "Monthly rent under the existing lease, USD. Prices the double-rent overlap in the relocate case.",
+            "type": "number",
+            "minimum": 0
+          },
+          "renew": {
+            "type": "object",
+            "properties": {
+              "schedule": {
+                "type": "object",
+                "properties": {
+                  "commencement_date": {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                    "description": "Rent commencement date, YYYY-MM-DD. Month n starts on this day-of-month (clamped to month end)."
+                  },
+                  "area_sf": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "description": "Rentable square feet."
+                  },
+                  "starting_rent_psf_annual": {
+                    "type": "number",
+                    "minimum": 0,
+                    "description": "Year-one base rent in dollars per SF per year."
+                  },
+                  "escalation": {
+                    "default": {
+                      "type": "none"
+                    },
+                    "description": "How base rent escalates. Omit for flat rent.",
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "const": "none"
+                          }
+                        },
+                        "required": ["type"],
+                        "description": "Flat rent for the whole term."
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "const": "percent"
+                          },
+                          "rate": {
+                            "type": "number",
+                            "exclusiveMinimum": -1,
+                            "exclusiveMaximum": 10,
+                            "description": "Bump as a decimal, e.g. 0.03 for 3%. Bumps compound."
+                          },
+                          "every_months": {
+                            "default": 12,
+                            "description": "Months between bumps (12 = annual).",
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": ["type", "rate"],
+                        "description": "Percentage bumps: rate_k = starting_rate × (1 + rate)^k."
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "const": "fixed_psf"
+                          },
+                          "amount": {
+                            "type": "number",
+                            "description": "Dollars per SF per year added at each bump, e.g. 0.50."
+                          },
+                          "every_months": {
+                            "default": 12,
+                            "description": "Months between bumps (12 = annual).",
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": ["type", "amount"],
+                        "description": "Fixed $/SF bumps: rate_k = starting_rate + amount × k."
+                      }
+                    ]
+                  },
+                  "abated_months": {
+                    "default": [],
+                    "description": "Fully abated months, 1-based (e.g. [1,2,3] for three months free up front).",
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "round_rate_to_cents": {
+                    "default": false,
+                    "description": "Round each step's $/SF/yr to cents, as many lease rent tables do.",
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "commencement_date",
+                  "area_sf",
+                  "starting_rent_psf_annual"
+                ],
+                "description": "Renewal rent terms: commencement date, area, starting $/SF/yr, escalation, and abated (free) months. The term is horizon_months."
+              },
+              "ti_cost": {
+                "default": 0,
+                "description": "Refurbishment or TI the tenant would spend on the current premises at renewal, USD, before any allowance.",
+                "type": "number",
+                "minimum": 0
+              },
+              "ti_allowance": {
+                "default": 0,
+                "description": "Landlord renewal allowance, USD. Offsets ti_cost; any excess is not paid out.",
+                "type": "number",
+                "minimum": 0
+              },
+              "renewal_fee": {
+                "default": 0,
+                "description": "Fees to renew (legal, brokerage paid by tenant), USD.",
+                "type": "number",
+                "minimum": 0
+              }
+            },
+            "required": ["schedule"],
+            "description": "Stay and renew the existing lease."
+          },
+          "relocate": {
+            "type": "object",
+            "properties": {
+              "schedule": {
+                "type": "object",
+                "properties": {
+                  "commencement_date": {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                    "description": "Rent commencement date, YYYY-MM-DD. Month n starts on this day-of-month (clamped to month end)."
+                  },
+                  "area_sf": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "description": "Rentable square feet."
+                  },
+                  "starting_rent_psf_annual": {
+                    "type": "number",
+                    "minimum": 0,
+                    "description": "Year-one base rent in dollars per SF per year."
+                  },
+                  "escalation": {
+                    "default": {
+                      "type": "none"
+                    },
+                    "description": "How base rent escalates. Omit for flat rent.",
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "const": "none"
+                          }
+                        },
+                        "required": ["type"],
+                        "description": "Flat rent for the whole term."
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "const": "percent"
+                          },
+                          "rate": {
+                            "type": "number",
+                            "exclusiveMinimum": -1,
+                            "exclusiveMaximum": 10,
+                            "description": "Bump as a decimal, e.g. 0.03 for 3%. Bumps compound."
+                          },
+                          "every_months": {
+                            "default": 12,
+                            "description": "Months between bumps (12 = annual).",
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": ["type", "rate"],
+                        "description": "Percentage bumps: rate_k = starting_rate × (1 + rate)^k."
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "const": "fixed_psf"
+                          },
+                          "amount": {
+                            "type": "number",
+                            "description": "Dollars per SF per year added at each bump, e.g. 0.50."
+                          },
+                          "every_months": {
+                            "default": 12,
+                            "description": "Months between bumps (12 = annual).",
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": ["type", "amount"],
+                        "description": "Fixed $/SF bumps: rate_k = starting_rate + amount × k."
+                      }
+                    ]
+                  },
+                  "abated_months": {
+                    "default": [],
+                    "description": "Fully abated months, 1-based (e.g. [1,2,3] for three months free up front).",
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "round_rate_to_cents": {
+                    "default": false,
+                    "description": "Round each step's $/SF/yr to cents, as many lease rent tables do.",
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "commencement_date",
+                  "area_sf",
+                  "starting_rent_psf_annual"
+                ],
+                "description": "New-premises rent terms: commencement date, area, starting $/SF/yr, escalation, and abated (free) months. The term is horizon_months."
+              },
+              "buildout_cost": {
+                "default": 0,
+                "description": "Total cost to build out the new premises, USD, before any allowance.",
+                "type": "number",
+                "minimum": 0
+              },
+              "ti_allowance": {
+                "default": 0,
+                "description": "Landlord TI allowance at the new premises, USD. Offsets buildout_cost; any excess is not paid out.",
+                "type": "number",
+                "minimum": 0
+              },
+              "moving_cost": {
+                "default": 0,
+                "description": "Moving, IT, cabling, signage, and stationery costs, USD.",
+                "type": "number",
+                "minimum": 0
+              },
+              "downtime_months": {
+                "default": 0,
+                "description": "Months the business runs at reduced capacity around the move.",
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "downtime_cost_monthly": {
+                "default": 0,
+                "description": "Cost of a month of downtime (lost margin, temporary space), USD per month. Multiplied by downtime_months.",
+                "type": "number",
+                "minimum": 0
+              },
+              "overlap_months": {
+                "default": 0,
+                "description": "Months of double rent: the old premises are still paid (at current_rent_monthly) after the new lease starts.",
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "termination_cost": {
+                "default": 0,
+                "description": "Early termination fee, holdover premium, or restoration obligation at the old premises, USD.",
+                "type": "number",
+                "minimum": 0
+              },
+              "disruption_cost": {
+                "default": 0,
+                "description": "Explicit one-time cost of business disruption beyond rent and downtime (lost customers, staff turnover), USD.",
+                "type": "number",
+                "minimum": 0
+              }
+            },
+            "required": ["schedule"],
+            "description": "Move to new premises."
+          }
+        },
+        "required": ["horizon_months", "renew", "relocate"]
+      }
+    },
+    {
+      "name": "calc_hotel_metrics",
+      "description": "Occupancy, ADR, RevPAR, TRevPAR, and a USALI-style profit ladder for a period: departmental profit, GOP and margin, GOPPAR, management fees, EBITDA, FF&E reserve, and NOI (EBITDA less replacement reserve). Deterministic: use this instead of doing the math yourself; cite formula calc.hotel_metrics@1 and the returned steps, and surface any warnings.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "nights": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Nights in the period, e.g. 365 for a year or 30 for a month."
+          },
+          "rooms": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Rooms in inventory (keys)."
+          },
+          "rooms_out_of_order": {
+            "default": 0,
+            "description": "Room-nights removed from inventory in the period (renovation, damage). USALI excludes these from rooms available.",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "rooms_sold": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Room-nights occupied by paying guests in the period (USALI: rooms sold, excluding complimentary rooms)."
+          },
+          "room_revenue": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Rooms revenue for the period, USD (USALI Rooms department revenue, net of taxes and allowances)."
+          },
+          "fb_revenue": {
+            "default": 0,
+            "description": "Food and beverage revenue, USD (USALI Food and Beverage department revenue).",
+            "type": "number",
+            "minimum": 0
+          },
+          "other_revenue": {
+            "default": 0,
+            "description": "Other operated departments plus miscellaneous income, USD (USALI Other Operated Departments and Miscellaneous Income).",
+            "type": "number",
+            "minimum": 0
+          },
+          "departmental_expenses": {
+            "default": 0,
+            "description": "Total departmental expenses, USD: rooms, F&B, and other operated departments (USALI Total Departmental Expenses).",
+            "type": "number",
+            "minimum": 0
+          },
+          "undistributed_expenses": {
+            "default": 0,
+            "description": "Total undistributed operating expenses, USD: administrative and general, information and telecommunications, sales and marketing, property operation and maintenance, utilities (USALI Total Undistributed Operating Expenses).",
+            "type": "number",
+            "minimum": 0
+          },
+          "management_fee_rate": {
+            "default": 0,
+            "description": "Base management fee as a share of total operating revenue, e.g. 0.03 (USALI Management Fees).",
+            "type": "number",
+            "minimum": 0,
+            "exclusiveMaximum": 1
+          },
+          "management_fee_fixed": {
+            "default": 0,
+            "description": "Fixed or incentive management fee for the period, USD, added to the percentage fee (USALI Management Fees).",
+            "type": "number",
+            "minimum": 0
+          },
+          "non_operating_expenses": {
+            "default": 0,
+            "description": "Property taxes, insurance, ground rent, and other non-operating expenses, USD (USALI Non-Operating Income and Expenses).",
+            "type": "number",
+            "minimum": 0
+          },
+          "ffe_reserve_rate": {
+            "default": 0,
+            "description": "FF&E replacement reserve as a share of total operating revenue, e.g. 0.04 (USALI Replacement Reserve, below EBITDA).",
+            "type": "number",
+            "minimum": 0,
+            "exclusiveMaximum": 1
+          }
+        },
+        "required": ["nights", "rooms", "rooms_sold", "room_revenue"]
+      }
+    },
+    {
       "name": "rules_tx_property_tax_protest_deadline",
       "description": "Deadline to file a Texas property tax protest with the appraisal review board: the later of May 15 or 30 days after the notice of appraised value was delivered, rolled past weekends and Texas legal holidays, plus a conservative file-by date. Returns the statute citations and the rule's verification status. Verification status: verified. Cite rule rules.tx.property_tax_protest_deadline@1 and its statutes.",
       "input_schema": {

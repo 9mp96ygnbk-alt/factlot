@@ -11,8 +11,11 @@ import { CamReconciliationInput, camReconciliation } from "./cam.ts";
 import type { CalcResult } from "./core.ts";
 import { DebtSizingInput, debtSizing } from "./debt.ts";
 import { IrrInput, NpvInput, irr, npv } from "./finance.ts";
+import { HotelMetricsInput, hotelMetrics } from "./hotel.ts";
+import { LeaseVsOwnInput, leaseVsOwn } from "./lease_vs_own.ts";
 import { WaltInput, walt } from "./portfolio.ts";
 import { ProposalComparisonInput, compareProposals } from "./proposals.ts";
+import { RenewVsRelocateInput, renewVsRelocate } from "./renew_vs_relocate.ts";
 import { PercentageRentInput, percentageRent } from "./retail.ts";
 import {
   NetEffectiveRentInput,
@@ -26,8 +29,11 @@ export * from "./core.ts";
 export * from "./dates.ts";
 export * from "./debt.ts";
 export * from "./finance.ts";
+export * from "./hotel.ts";
+export * from "./lease_vs_own.ts";
 export * from "./portfolio.ts";
 export * from "./proposals.ts";
+export * from "./renew_vs_relocate.ts";
 export * from "./retail.ts";
 export * from "./rules.ts";
 export * from "./rent.ts";
@@ -123,5 +129,32 @@ export const calculators = {
       "Periodic and annualized IRR of periodic cash flows, solved deterministically; reports every root when cash flows have multiple IRRs.",
     input: IrrInput,
     run: irr,
+  },
+  lease_vs_own: {
+    id: "calc.lease_vs_own",
+    version: 1,
+    title: "Lease vs. own",
+    description:
+      "Compare leasing with buying over a fixed horizon: NPV of each case's annual cash costs (rent, free rent, tenant expenses, and move-in costs versus equity, debt service, owner expenses, reserves, and a sale at the horizon by stated value or exit cap rate), optionally after tax, with the year-by-year tables and the break-even residual value at which owning equals leasing.",
+    input: LeaseVsOwnInput,
+    run: leaseVsOwn,
+  },
+  renew_vs_relocate: {
+    id: "calc.renew_vs_relocate",
+    version: 1,
+    title: "Renew vs. relocate",
+    description:
+      "Compare renewing in place with moving over one horizon: NPV and discounted effective rent of each case (rent schedule with free rent, TI net of allowance, fees, moving, downtime, double rent, termination, and disruption costs), the starting rent at which they break even, and year-by-year cash flows.",
+    input: RenewVsRelocateInput,
+    run: renewVsRelocate,
+  },
+  hotel_metrics: {
+    id: "calc.hotel_metrics",
+    version: 1,
+    title: "Hotel operating metrics (USALI)",
+    description:
+      "Occupancy, ADR, RevPAR, TRevPAR, and a USALI-style profit ladder for a period: departmental profit, GOP and margin, GOPPAR, management fees, EBITDA, FF&E reserve, and NOI (EBITDA less replacement reserve).",
+    input: HotelMetricsInput,
+    run: hotelMetrics,
   },
 } as const satisfies Record<string, Calculator>;

@@ -13,7 +13,7 @@ def sched():
             "escalation":esc,"abated_months":sorted(random.sample(range(1,term+1),min(term,random.randint(0,12)))),"round_rate_to_cents":random.random()<0.3}
 cases=[]
 for _ in range(int(sys.argv[2])):
-    k=random.choice(["rent_schedule","net_effective_rent","compare_proposals","percentage_rent","cam_reconciliation","debt_sizing","walt","npv","irr"])
+    k=random.choice(["rent_schedule","net_effective_rent","compare_proposals","percentage_rent","cam_reconciliation","debt_sizing","walt","npv","irr","lease_vs_own","renew_vs_relocate","hotel_metrics"])
     if k=="rent_schedule": inp=sched()
     elif k=="net_effective_rent": inp={"schedule":sched(),"ti_allowance_psf":round(random.uniform(0,150),2),"leasing_commissions":round(random.uniform(0,500000),2),"discount_rate_annual":round(random.uniform(0,0.15),4)}
     elif k=="compare_proposals": inp={"perspective":random.choice(["tenant","landlord"]),"discount_rate_annual":round(random.uniform(0,0.15),4),"proposals":[{"name":f"P{i}","schedule":sched(),"ti_allowance_psf":round(random.uniform(0,100),2),"additional_costs_psf_annual":round(random.uniform(0,20),2),"tenant_upfront_costs":round(random.uniform(0,1e5),2),"leasing_commissions":round(random.uniform(0,1e5),2)} for i in range(random.randint(2,5))]}
@@ -30,6 +30,25 @@ for _ in range(int(sys.argv[2])):
             if random.random()<0.7: inp[c]=v
         if not any(c in inp for c in ("max_ltv","min_dscr","min_debt_yield")): inp["min_dscr"]=1.25
     elif k=="walt": inp={"as_of":"2026-06-30","weight_by":random.choice(["area","rent"]),"leases":[{"expiration_date":f"20{random.randint(24,45)}-{random.randint(1,12):02d}-{random.randint(1,28):02d}","area_sf":round(random.uniform(500,1e5),0),"annual_rent":round(random.uniform(1e4,5e6),2)} for _ in range(random.randint(1,20))]}
+    elif k=="lease_vs_own":
+        h=random.randint(1,30)
+        rent=random.choice([{"type":"schedule","annual_rent":[round(random.uniform(0,2e6),2) for _ in range(h if random.random()<0.9 else random.randint(1,50))]},{"type":"escalating","base_rent_annual":round(random.uniform(0,2e6),2),"escalation_rate_annual":round(random.uniform(0,0.06),4)}])
+        price=round(random.uniform(1e5,5e7),2)
+        own={"purchase_price":price,"closing_costs":round(random.uniform(0,5e5),2),"operating_expenses_annual":round(random.uniform(0,5e5),2),"capex_reserve_annual":round(random.uniform(0,1e5),2),"property_taxes_annual":round(random.uniform(0,5e5),2),"insurance_annual":round(random.uniform(0,1e5),2),"expense_growth_rate_annual":round(random.uniform(0,0.05),4),
+             "residual":random.choice([{"type":"value","amount":round(random.uniform(0,6e7),2)},{"type":"exit_cap","cap_rate":round(random.uniform(0.04,0.12),4),"stabilized_noi":round(random.uniform(0,4e6),2)}]),"selling_costs_rate":round(random.uniform(0,0.08),4)}
+        if random.random()<0.75: own["loan"]={"amount":round(random.uniform(0,price),2),"rate_annual":random.choice([0,round(random.uniform(0.02,0.1),4)]),"amortization_years":random.choice([0,10,20,25,30])}
+        if random.random()<0.5: own["tax"]={"marginal_tax_rate":round(random.uniform(0,0.45),3),"depreciation_life_years":random.choice([27,39,random.randint(1,60)]),"land_share":round(random.uniform(0,0.5),3),"rent_deductible":random.random()<0.8,"interest_deductible":random.random()<0.8,"depreciation_deductible":random.random()<0.8}
+        inp={"horizon_years":h,"discount_rate_annual":round(random.uniform(0,0.15),4),"lease":{"rent":rent,"free_rent_months":random.randint(0,15),"operating_expenses_annual":round(random.uniform(0,5e5),2),"expense_growth_rate_annual":round(random.uniform(0,0.05),4),"upfront_costs":round(random.uniform(0,1e6),2)},"own":own}
+    elif k=="renew_vs_relocate":
+        h=random.randint(1,180)
+        def case():
+            s=sched(); s.pop("term_months"); s["abated_months"]=sorted(random.sample(range(1,h+1),min(h,random.randint(0,12)))); return s
+        inp={"horizon_months":h,"discount_rate_annual":round(random.uniform(0,0.15),4),"current_rent_monthly":round(random.uniform(0,1e5),2),
+             "renew":{"schedule":case(),"ti_cost":round(random.uniform(0,1e6),2),"ti_allowance":round(random.uniform(0,1e6),2),"renewal_fee":round(random.uniform(0,5e4),2)},
+             "relocate":{"schedule":case(),"buildout_cost":round(random.uniform(0,3e6),2),"ti_allowance":round(random.uniform(0,3e6),2),"moving_cost":round(random.uniform(0,5e5),2),"downtime_months":random.randint(0,6),"downtime_cost_monthly":round(random.uniform(0,2e5),2),"overlap_months":random.randint(0,6),"termination_cost":round(random.uniform(0,5e5),2),"disruption_cost":round(random.uniform(0,5e5),2)}}
+    elif k=="hotel_metrics":
+        nights=random.choice([1,7,28,30,31,90,365]); rooms=random.randint(1,800); avail=rooms*nights; ooo=random.randint(0,min(avail,50)) if random.random()<0.3 else 0
+        inp={"nights":nights,"rooms":rooms,"rooms_out_of_order":ooo,"rooms_sold":random.randint(0,max(0,avail-ooo)+ (5 if random.random()<0.05 else 0)),"room_revenue":round(random.uniform(0,5e7),2),"fb_revenue":round(random.uniform(0,2e7),2),"other_revenue":round(random.uniform(0,5e6),2),"departmental_expenses":round(random.uniform(0,3e7),2),"undistributed_expenses":round(random.uniform(0,2e7),2),"management_fee_rate":round(random.uniform(0,0.05),4),"management_fee_fixed":round(random.uniform(0,5e5),2),"non_operating_expenses":round(random.uniform(0,5e6),2),"ffe_reserve_rate":random.choice([0,0.03,0.04,0.05])}
     elif k=="npv": inp={"cash_flows":[round(random.uniform(-1e6,1e6),2) for _ in range(random.randint(2,30))],"rate":round(random.uniform(-0.5,0.5),4)}
     else:
         n=random.randint(2,40); inp={"cash_flows":[-round(random.uniform(1e5,1e7),2)]+[round(random.uniform(-2e5,2e6),2) for _ in range(n-1)],"periods_per_year":random.choice([1,4,12])}

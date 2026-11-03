@@ -591,6 +591,462 @@ def percentage_rent(raw: Any) -> Result:
     })
 
 
+# --- lease vs. own ----------------------------------------------------------------------
+
+
+def _growth_rate(d: dict[str, Any], path: str) -> float:
+    return number(d, "expense_growth_rate_annual", path, default=0, ge=0, lt=1)
+
+
+def _loan_balance(amount: float, rate_annual: float, amortization_years: int, n: int) -> float:
+    """Outstanding principal after ``n`` monthly payments on a level-payment loan."""
+    if amortization_years == 0:
+        return amount
+    big_n = amortization_years * 12
+    if n >= big_n:
+        return 0.0
+    r = rate_annual / 12
+    if r == 0:
+        return amount * (1 - n / big_n)
+    p_n = pow_int(1 + r, big_n)
+    return (amount * (p_n - pow_int(1 + r, n))) / (p_n - 1)
+
+
+def lease_vs_own(raw: Any) -> Result:
+    d = obj(raw)
+    horizon = number(d, "horizon_years", integer=True, ge=1, le=50)
+    disc = number(d, "discount_rate_annual", ge=0, lt=1)
+    lease = obj(d.get("lease"), "lease")
+    rent_raw = obj(lease.get("rent"), "lease.rent")
+    rent_type = enum(rent_raw, "type", ("schedule", "escalating"), "lease.rent")
+    if rent_type == "schedule":
+        schedule = array(rent_raw, "annual_rent", "lease.rent", min_len=1, max_len=50)
+        for i, v in enumerate(schedule):
+            number({"v": v}, "v", join("lease.rent.annual_rent", i), ge=0)
+        if len(schedule) != horizon:
+            fail("lease.rent.annual_rent", f"must have exactly horizon_years ({horizon}) entries")
+        rent = {"type": "schedule", "annual_rent": schedule}
+    else:
+        rent = {
+            "type": "escalating",
+            "base_rent_annual": number(rent_raw, "base_rent_annual", "lease.rent", ge=0),
+            "escalation_rate_annual": number(rent_raw, "escalation_rate_annual", "lease.rent", default=0, ge=0, lt=1),
+        }
+    free_months = number(lease, "free_rent_months", "lease", default=0, integer=True, ge=0)
+    if free_months > horizon * 12:
+        fail("lease.free_rent_months", "must not exceed the horizon")
+    lease_opex = _money(lease, "operating_expenses_annual", "lease")
+    lease_growth = _growth_rate(lease, "lease")
+    upfront = _money(lease, "upfront_costs", "lease")
+
+    own = obj(d.get("own"), "own")
+    price = number(own, "purchase_price", "own", ge=0)
+    closing = _money(own, "closing_costs", "own")
+    loan = None
+    if own.get("loan") is not None:
+        lo = obj(own["loan"], "own.loan")
+        loan = {
+            "amount": number(lo, "amount", "own.loan", ge=0),
+            "rate_annual": number(lo, "rate_annual", "own.loan", ge=0, lt=1),
+            "amortization_years": number(lo, "amortization_years", "own.loan", integer=True, ge=0, le=50),
+        }
+    own_opex = _money(own, "operating_expenses_annual", "own")
+    capex = _money(own, "capex_reserve_annual", "own")
+    prop_taxes = _money(own, "property_taxes_annual", "own")
+    insurance_base = _money(own, "insurance_annual", "own")
+    own_growth = _growth_rate(own, "own")
+    res_raw = obj(own.get("residual"), "own.residual")
+    res_type = enum(res_raw, "type", ("value", "exit_cap"), "own.residual")
+    if res_type == "value":
+        residual_amount = number(res_raw, "amount", "own.residual", ge=0)
+        cap_rate = stabilized_noi = None
+    else:
+        residual_amount = None
+        cap_rate = number(res_raw, "cap_rate", "own.residual", gt=0, lt=1)
+        stabilized_noi = number(res_raw, "stabilized_noi", "own.residual", ge=0)
+    selling_rate = number(own, "selling_costs_rate", "own", default=0, ge=0, lt=1)
+    tax = None
+    if own.get("tax") is not None:
+        tx = obj(own["tax"], "own.tax")
+        tax = {
+            "marginal_tax_rate": number(tx, "marginal_tax_rate", "own.tax", ge=0, lt=1),
+            "depreciation_life_years": number(tx, "depreciation_life_years", "own.tax", default=39, integer=True, ge=1, le=100),
+            "land_share": number(tx, "land_share", "own.tax", default=0.2, ge=0, lt=1),
+            "rent_deductible": boolean(tx, "rent_deductible", "own.tax", default=True),
+            "interest_deductible": boolean(tx, "interest_deductible", "own.tax", default=True),
+            "depreciation_deductible": boolean(tx, "depreciation_deductible", "own.tax", default=True),
+        }
+    tax_rate = tax["marginal_tax_rate"] if tax else 0
+
+    t = Trace()
+    t.step("Method",
+           "cost NPV = Σ net cost_t ÷ (1 + r)^t, t = 0..H; year 0 = move-in / closing, year H includes the sale",
+           "after tax" if tax else "pre-tax (no tax block supplied)")
+
+    # --- lease case
+    def rent_for(k: int) -> float:
+        if rent["type"] == "schedule":
+            return rent["annual_rent"][k - 1]
+        return round_(rent["base_rent_annual"] * pow_int(1 + rent["escalation_rate_annual"], k - 1), 2)
+
+    lease_years = [{"year": 0, "rent": 0, "free_rent": 0, "operating_expenses": 0, "upfront_costs": upfront,
+                    "tax_savings": 0, "net": upfront}]
+    for k in range(1, horizon + 1):
+        rent_k = rent_for(k)
+        free_k_months = min(12, max(0, free_months - 12 * (k - 1)))
+        free = round_((rent_k * free_k_months) / 12, 2)
+        opex = round_(lease_opex * pow_int(1 + lease_growth, k - 1), 2)
+        deductible = ((rent_k - free) if tax and tax["rent_deductible"] else 0) + opex
+        savings = round_(tax_rate * deductible, 2) if tax else 0
+        lease_years.append({"year": k, "rent": rent_k, "free_rent": free, "operating_expenses": opex,
+                            "upfront_costs": 0, "tax_savings": savings,
+                            "net": round_(rent_k - free + opex - savings, 2)})
+    lease_nets = [y["net"] for y in lease_years]
+    lease_npv_raw = _npv_at(lease_nets, disc)
+    lease_npv = t.step("Lease NPV", round_(lease_npv_raw, 2),
+                       f"Σ (rent − free rent + expenses − tax savings)_t ÷ (1 + {num_str(disc)})^t, t = 0..{horizon}; "
+                       f"{free_months} free months", "USD")
+
+    # --- own case
+    basis = price + closing
+    loan_amount = loan["amount"] if loan else 0
+    equity = round_(basis - loan_amount, 2)
+    t.step("Equity at closing", equity,
+           f"{fmt_money(price)} + {fmt_money(closing)} closing − {fmt_money(loan_amount)} loan", "USD")
+    annual_ds = round_(loan["amount"] * annual_constant(loan["rate_annual"], loan["amortization_years"]), 2) \
+        if loan and loan["amount"] > 0 else 0
+    if loan and loan["amount"] > 0:
+        t.step("Annual debt service", annual_ds,
+               f"interest-only: {fmt_money(loan['amount'])} × {fmt_pct(loan['rate_annual'], 3)}"
+               if loan["amortization_years"] == 0 else
+               f"{fmt_money(loan['amount'])} × annual constant at {fmt_pct(loan['rate_annual'], 3)} over "
+               f"{loan['amortization_years']} years", "USD")
+
+    def balance_at(months: int) -> float:
+        return _loan_balance(loan["amount"], loan["rate_annual"], loan["amortization_years"], months) if loan else 0.0
+
+    depreciable = basis * (1 - tax["land_share"]) if tax else 0
+    annual_dep = round_(depreciable / tax["depreciation_life_years"], 2) if tax else 0
+    if tax:
+        t.step("Annual depreciation", annual_dep,
+               f"({fmt_money(basis)} × (1 − {num_str(tax['land_share'])})) ÷ {tax['depreciation_life_years']} years, straight-line",
+               "USD")
+
+    own_years = [{"year": 0, "equity": equity, "debt_service": 0, "interest": 0, "principal": 0,
+                  "operating_expenses": 0, "capex_reserve": 0, "property_taxes": 0, "insurance": 0,
+                  "depreciation": 0, "tax_savings": 0, "sale_proceeds": 0, "net": equity}]
+    accumulated_dep = 0.0
+    for k in range(1, horizon + 1):
+        grow = pow_int(1 + own_growth, k - 1)
+        ds = annual_ds if loan and (loan["amortization_years"] == 0 or k <= loan["amortization_years"]) else 0
+        principal = round_(balance_at(12 * (k - 1)) - balance_at(12 * k), 2)
+        interest = round_(ds - principal, 2)
+        opex = round_(own_opex * grow, 2)
+        capex_k = round_(capex * grow, 2)
+        taxes = round_(prop_taxes * grow, 2)
+        insurance = round_(insurance_base * grow, 2)
+        dep = annual_dep if tax and k <= tax["depreciation_life_years"] else 0
+        accumulated_dep += dep
+        deductible = ((interest if tax and tax["interest_deductible"] else 0)
+                      + (dep if tax and tax["depreciation_deductible"] else 0)
+                      + opex + taxes + insurance)
+        savings = round_(tax_rate * deductible, 2) if tax else 0
+        own_years.append({"year": k, "equity": 0, "debt_service": ds, "interest": interest, "principal": principal,
+                          "operating_expenses": opex, "capex_reserve": capex_k, "property_taxes": taxes,
+                          "insurance": insurance, "depreciation": dep, "tax_savings": savings, "sale_proceeds": 0,
+                          "net": round_(ds + opex + capex_k + taxes + insurance - savings, 2)})
+
+    residual = residual_amount if res_type == "value" else round_(stabilized_noi / cap_rate, 2)
+    t.step("Residual value", residual,
+           "stated" if res_type == "value" else f"{fmt_money(stabilized_noi)} NOI ÷ {fmt_pct(cap_rate)} exit cap", "USD")
+    selling_costs = round_(residual * selling_rate, 2)
+    balance_h = round_(balance_at(12 * horizon), 2)
+    adjusted_basis = round_(basis - accumulated_dep, 2)
+    gain = round_(residual - selling_costs - adjusted_basis, 2)
+    tax_on_sale = round_(gain * tax_rate, 2) if tax else 0
+    proceeds = round_(residual - selling_costs - balance_h - tax_on_sale, 2)
+    t.step("Net sale proceeds", proceeds,
+           f"{fmt_money(residual)} − {fmt_money(selling_costs)} selling costs − {fmt_money(balance_h)} loan payoff"
+           + (f" − {fmt_money(tax_on_sale)} tax on gain ({fmt_money(gain)} × {num_str(tax_rate)})" if tax else ""),
+           "USD")
+    own_nets_ex_sale = [y["net"] for y in own_years]
+    last = own_years[horizon]
+    last["sale_proceeds"] = proceeds
+    last["net"] = round_(last["net"] - proceeds, 2)
+    own_nets = [y["net"] for y in own_years]
+    own_npv = t.step("Own NPV", round_(_npv_at(own_nets, disc), 2),
+                     f"Σ (equity + debt service + expenses − tax savings − sale proceeds)_t ÷ (1 + {num_str(disc)})^t, "
+                     f"t = 0..{horizon}", "USD")
+    diff = t.step("Difference", round_(own_npv - lease_npv, 2),
+                  f"own NPV − lease NPV = {fmt_money(own_npv)} − {fmt_money(lease_npv)}", "USD")
+    cheaper = "own" if diff < 0 else "lease" if diff > 0 else "equal"
+    t.step("Cheaper", cheaper, "lower NPV of cost")
+
+    npv_own_ex_sale = _npv_at(own_nets_ex_sale, disc)
+    needed = (npv_own_ex_sale - lease_npv_raw) * pow_int(1 + disc, horizon)
+    break_even = t.step("Break-even residual value",
+                        round_((needed + balance_h - tax_rate * adjusted_basis) / ((1 - selling_rate) * (1 - tax_rate)), 2),
+                        "sale price R with (R × (1 − selling costs) − loan payoff − tax on gain) ÷ (1 + r)^H = "
+                        "own NPV before sale − lease NPV", "USD")
+    total_lease = round_(_sum(lease_nets), 2)
+    total_own = round_(_sum(own_nets), 2)
+
+    if not tax:
+        t.warn("Pre-tax comparison: add the tax block to reflect rent deductibility versus interest and depreciation.")
+    if tax:
+        t.warn("Tax treatment is simplified: straight-line depreciation without a mid-month convention and one marginal "
+               "rate on the gain (no depreciation recapture rate).")
+    if res_type == "exit_cap":
+        t.warn("Residual value is capitalized from an assumed stabilized NOI; the comparison is sensitive to the exit cap rate.")
+    if break_even <= 0:
+        t.warn("Owning costs less than leasing even with a zero sale price; the break-even residual is not meaningful.")
+    elif break_even > residual * 2 and residual > 0:
+        t.warn("Break-even residual is more than twice the assumed residual; leasing is strongly favored at these inputs.")
+
+    return t.result("calc.lease_vs_own", 1, {
+        "horizon_years": horizon,
+        "after_tax": tax is not None,
+        "lease": {"npv": lease_npv, "total_cost": total_lease},
+        "own": {
+            "npv": own_npv,
+            "total_cost": total_own,
+            "residual_value": residual,
+            "loan_balance_at_horizon": balance_h,
+            "net_sale_proceeds": proceeds,
+        },
+        "difference_npv": diff,
+        "cheaper": cheaper,
+        "break_even_residual_value": break_even,
+        "cash_flows": {"lease": lease_years, "own": own_years},
+    })
+
+
+# --- renew vs. relocate -----------------------------------------------------------------
+
+
+def _case_schedule(raw: Any, horizon: int, path: str) -> dict[str, Any]:
+    d = obj(raw, path)
+    return _schedule_input({**d, "term_months": horizon, "include_monthly": False}, path)
+
+
+def renew_vs_relocate(raw: Any) -> Result:
+    d = obj(raw)
+    horizon = number(d, "horizon_months", integer=True, gt=0, le=600)
+    disc = number(d, "discount_rate_annual", default=0.08, ge=0, lt=1)
+    current_rent = _money(d, "current_rent_monthly")
+    rn = obj(d.get("renew"), "renew")
+    renew_in = {
+        "schedule": _case_schedule(rn.get("schedule"), horizon, "renew.schedule"),
+        "ti_cost": _money(rn, "ti_cost", "renew"),
+        "ti_allowance": _money(rn, "ti_allowance", "renew"),
+        "renewal_fee": _money(rn, "renewal_fee", "renew"),
+    }
+    rl = obj(d.get("relocate"), "relocate")
+    reloc_in = {
+        "schedule": _case_schedule(rl.get("schedule"), horizon, "relocate.schedule"),
+        "buildout_cost": _money(rl, "buildout_cost", "relocate"),
+        "ti_allowance": _money(rl, "ti_allowance", "relocate"),
+        "moving_cost": _money(rl, "moving_cost", "relocate"),
+        "downtime_months": number(rl, "downtime_months", "relocate", default=0, integer=True, ge=0),
+        "downtime_cost_monthly": _money(rl, "downtime_cost_monthly", "relocate"),
+        "overlap_months": number(rl, "overlap_months", "relocate", default=0, integer=True, ge=0),
+        "termination_cost": _money(rl, "termination_cost", "relocate"),
+        "disruption_cost": _money(rl, "disruption_cost", "relocate"),
+    }
+
+    t = Trace()
+    r = disc / 12
+    t.step("Method",
+           "cost NPV = Σ rent_due_t ÷ (1 + r)^t (rent in advance, t = 0..H−1) + one-time costs at t = 0; "
+           "effective rent = level monthly payment with that PV × 12 ÷ area")
+
+    def case_math(s: dict[str, Any], one_time: float) -> dict[str, Any]:
+        months = _build_months(s)
+        esc = s["escalation"]
+        pv = annuity = total = slope = intercept = 0.0
+        for i, m in enumerate(months):
+            df = pow_int(1 + r, -i)
+            pv += m["rent_due"] * df
+            annuity += df
+            total += m["rent_due"]
+            if not m["abated"]:
+                k = 0 if esc["type"] == "none" else (m["month"] - 1) // esc["every_months"]
+                unit = (s["area_sf"] / 12) * df
+                slope += unit * pow_int(1 + esc["rate"], k) if esc["type"] == "percent" else unit
+                if esc["type"] == "fixed_psf":
+                    intercept += unit * esc["amount"] * k
+        return {"months": months, "pv": pv, "annuity": annuity, "total": total, "one_time": one_time,
+                "slope": slope, "intercept": intercept}
+
+    R, M = renew_in, reloc_in
+    renew_one_time = round_(max(0, R["ti_cost"] - R["ti_allowance"]) + R["renewal_fee"], 2)
+    t.step("Renew one-time costs", renew_one_time,
+           f"max(0, {fmt_money(R['ti_cost'])} TI − {fmt_money(R['ti_allowance'])} allowance) + "
+           f"{fmt_money(R['renewal_fee'])} fees", "USD")
+    downtime = round_(M["downtime_months"] * M["downtime_cost_monthly"], 2)
+    overlap = round_(M["overlap_months"] * current_rent, 2)
+    reloc_one_time = round_(max(0, M["buildout_cost"] - M["ti_allowance"]) + M["moving_cost"] + downtime + overlap
+                            + M["termination_cost"] + M["disruption_cost"], 2)
+    t.step("Relocate one-time costs", reloc_one_time,
+           f"max(0, {fmt_money(M['buildout_cost'])} buildout − {fmt_money(M['ti_allowance'])} allowance) + "
+           f"{fmt_money(M['moving_cost'])} moving + {fmt_money(downtime)} downtime ({M['downtime_months']} mo) + "
+           f"{fmt_money(overlap)} double rent ({M['overlap_months']} mo) + {fmt_money(M['termination_cost'])} termination + "
+           f"{fmt_money(M['disruption_cost'])} disruption", "USD")
+
+    renew = case_math(R["schedule"], renew_one_time)
+    relocate = case_math(M["schedule"], reloc_one_time)
+
+    def summarize(label: str, c: dict[str, Any], area: float) -> dict[str, Any]:
+        npv_v = t.step(f"{label} NPV", round_(c["pv"] + c["one_time"], 2),
+                       f"PV of rent {fmt_money(c['pv'])} + {fmt_money(c['one_time'])} one-time", "USD")
+        ner = t.step(f"{label} effective rent", round_((((c["pv"] + c["one_time"]) / c["annuity"]) * 12) / area, 4),
+                     f"({fmt_money(c['pv'] + c['one_time'])} ÷ Σ(1+r)^−t) × 12 ÷ {num_str(area)} SF", "USD/sf/yr")
+        return {"npv": npv_v, "total_cost": round_(c["total"] + c["one_time"], 2), "total_rent": round_(c["total"], 2),
+                "one_time_costs": c["one_time"], "net_effective_rent_psf_annual": ner, "area_sf": area}
+
+    renew_res = summarize("Renew", renew, R["schedule"]["area_sf"])
+    reloc_res = summarize("Relocate", relocate, M["schedule"]["area_sf"])
+    diff = t.step("Difference", round_(reloc_res["npv"] - renew_res["npv"], 2),
+                  f"relocate NPV − renew NPV = {fmt_money(reloc_res['npv'])} − {fmt_money(renew_res['npv'])}", "USD")
+    cheaper = "relocate" if diff < 0 else "renew" if diff > 0 else "equal"
+    t.step("Cheaper", cheaper, "lower NPV of cost")
+
+    def break_even_rate(target: float, c: dict[str, Any]) -> float | None:
+        if c["slope"] == 0:
+            return None
+        return round_((target - c["one_time"] - c["intercept"]) / c["slope"], 4)
+
+    be_reloc = break_even_rate(renew["pv"] + renew["one_time"], relocate)
+    be_renew = break_even_rate(relocate["pv"] + relocate["one_time"], renew)
+    t.step("Break-even relocation rent", "n/a" if be_reloc is None else be_reloc,
+           "starting $/SF/yr for the new premises (same escalation and free rent) with relocate NPV = renew NPV",
+           "USD/sf/yr")
+    t.step("Break-even renewal rent", "n/a" if be_renew is None else be_renew,
+           "starting $/SF/yr for the renewal (same escalation and free rent) with renew NPV = relocate NPV",
+           "USD/sf/yr")
+
+    years = -(-horizon // 12)
+    cash_flows = []
+    for y in range(1, years + 1):
+        def sum_year(c: dict[str, Any]) -> float:
+            s = 0.0
+            for m in range(12 * (y - 1), min(12 * y, horizon)):
+                s += c["months"][m]["rent_due"]
+            return round_(s, 2)
+
+        rr, mr = sum_year(renew), sum_year(relocate)
+        ro = renew_one_time if y == 1 else 0
+        mo = reloc_one_time if y == 1 else 0
+        cash_flows.append({"year": y, "renew_rent": rr, "renew_one_time": ro, "renew_total": round_(rr + ro, 2),
+                           "relocate_rent": mr, "relocate_one_time": mo, "relocate_total": round_(mr + mo, 2)})
+
+    if R["schedule"]["area_sf"] != M["schedule"]["area_sf"]:
+        t.warn("The two premises differ in area; NPV compares total cost, while $/SF/yr normalizes size but not the "
+               "value of the space.")
+    if M["disruption_cost"] == 0 and M["downtime_cost_monthly"] == 0:
+        t.warn("No disruption or downtime cost supplied for relocating; the comparison counts only rent and hard costs.")
+    if R["ti_allowance"] > R["ti_cost"] or M["ti_allowance"] > M["buildout_cost"]:
+        t.warn("An allowance exceeds the cost it offsets; the excess is treated as not paid out.")
+    if diff == 0:
+        t.warn("The two cases are tied at these inputs.")
+
+    return t.result("calc.renew_vs_relocate", 1, {
+        "horizon_months": horizon,
+        "renew": renew_res,
+        "relocate": reloc_res,
+        "difference_npv": diff,
+        "cheaper": cheaper,
+        "break_even": {"relocate_starting_rent_psf": be_reloc, "renew_starting_rent_psf": be_renew},
+        "cash_flows": cash_flows,
+    })
+
+
+# --- hotel ------------------------------------------------------------------------------
+
+
+def hotel_metrics(raw: Any) -> Result:
+    d = obj(raw)
+    nights = number(d, "nights", integer=True, gt=0)
+    rooms = number(d, "rooms", integer=True, gt=0)
+    ooo = number(d, "rooms_out_of_order", default=0, integer=True, ge=0)
+    sold = number(d, "rooms_sold", integer=True, ge=0)
+    room_rev = number(d, "room_revenue", ge=0)
+    fb = _money(d, "fb_revenue")
+    other = _money(d, "other_revenue")
+    dept = _money(d, "departmental_expenses")
+    undist = _money(d, "undistributed_expenses")
+    fee_rate = number(d, "management_fee_rate", default=0, ge=0, lt=1)
+    fee_fixed = _money(d, "management_fee_fixed")
+    non_op = _money(d, "non_operating_expenses")
+    ffe_rate = number(d, "ffe_reserve_rate", default=0, ge=0, lt=1)
+
+    t = Trace()
+    available = rooms * nights - ooo
+    if available <= 0:
+        raise CalcInputError("rooms_out_of_order leaves no rooms available in the period")
+    if sold > available:
+        raise CalcInputError(f"rooms_sold ({sold}) exceeds rooms available ({available})")
+    t.step("Rooms available", available, f"{rooms} rooms × {nights} nights − {ooo} out of order", "room-nights")
+    occupancy = t.step("Occupancy", round_(sold / available, 4),
+                       f"{sold} sold ÷ {available} available = {fmt_pct(sold / available)}")
+    adr = round_(room_rev / sold, 2) if sold > 0 else None
+    t.step("ADR", "n/a" if adr is None else adr,
+           "no rooms sold" if adr is None else f"{fmt_money(room_rev)} rooms revenue ÷ {sold} rooms sold", "USD")
+    revpar = t.step("RevPAR", round_(room_rev / available, 2),
+                    f"{fmt_money(room_rev)} ÷ {available} available (= occupancy × ADR)", "USD")
+    total_rev = t.step("Total operating revenue", round_(room_rev + fb + other, 2),
+                       f"{fmt_money(room_rev)} rooms + {fmt_money(fb)} F&B + {fmt_money(other)} other", "USD")
+    trevpar = t.step("TRevPAR", round_(total_rev / available, 2), f"{fmt_money(total_rev)} ÷ {available} available", "USD")
+    dept_profit = t.step("Departmental profit", round_(total_rev - dept, 2),
+                         f"{fmt_money(total_rev)} − {fmt_money(dept)} departmental expenses (USALI Total Departmental Profit)",
+                         "USD")
+    gop = t.step("GOP", round_(dept_profit - undist, 2),
+                 f"{fmt_money(dept_profit)} − {fmt_money(undist)} undistributed expenses (USALI Gross Operating Profit)", "USD")
+    gop_margin = t.step("GOP margin", round_(gop / total_rev, 4) if total_rev > 0 else 0, "GOP ÷ total operating revenue")
+    goppar = t.step("GOPPAR", round_(gop / available, 2), f"{fmt_money(gop)} ÷ {available} available", "USD")
+    fee = t.step("Management fee", round_(total_rev * fee_rate + fee_fixed, 2),
+                 f"{fmt_money(total_rev)} × {fmt_pct(fee_rate)} + {fmt_money(fee_fixed)} fixed (USALI Management Fees)", "USD")
+    ibnoie = t.step("Income before non-operating", round_(gop - fee, 2),
+                    f"{fmt_money(gop)} − {fmt_money(fee)} (USALI Income Before Non-Operating Income and Expenses)", "USD")
+    ebitda = t.step("EBITDA", round_(ibnoie - non_op, 2),
+                    f"{fmt_money(ibnoie)} − {fmt_money(non_op)} property taxes, insurance, other non-operating (USALI EBITDA)",
+                    "USD")
+    reserve = t.step("FF&E reserve", round_(total_rev * ffe_rate, 2),
+                     f"{fmt_money(total_rev)} × {fmt_pct(ffe_rate)} (USALI Replacement Reserve)", "USD")
+    noi = t.step("NOI", round_(ebitda - reserve, 2),
+                 f"{fmt_money(ebitda)} − {fmt_money(reserve)} (USALI EBITDA Less Replacement Reserve)", "USD")
+    noi_margin = t.step("NOI margin", round_(noi / total_rev, 4) if total_rev > 0 else 0, "NOI ÷ total operating revenue")
+
+    if adr is None:
+        t.warn("No rooms sold in the period; ADR is undefined.")
+    if dept == 0 and undist == 0:
+        t.warn("No expenses supplied; GOP and NOI equal revenue. Add departmental and undistributed expenses for a profit view.")
+    if ffe_rate == 0:
+        t.warn("No FF&E reserve; lenders and appraisers typically deduct 3–5% of revenue before NOI.")
+    if non_op == 0:
+        t.warn("No property taxes or insurance supplied; NOI is before those non-operating expenses.")
+
+    return t.result("calc.hotel_metrics", 1, {
+        "rooms_available": available,
+        "rooms_sold": sold,
+        "occupancy": occupancy,
+        "adr": adr,
+        "revpar": revpar,
+        "trevpar": trevpar,
+        "total_revenue": total_rev,
+        "departmental_profit": dept_profit,
+        "gop": gop,
+        "gop_margin": gop_margin,
+        "goppar": goppar,
+        "management_fee": fee,
+        "income_before_non_operating": ibnoie,
+        "ebitda": ebitda,
+        "ffe_reserve": reserve,
+        "noi": noi,
+        "noi_margin": noi_margin,
+    })
+
+
 # --- registry -------------------------------------------------------------------------------------
 
 #: name -> (function, formula id, formula version). Names match the MCP/TypeScript registry.
@@ -604,4 +1060,7 @@ CALCULATORS: dict[str, tuple[Callable[[Any], Result], str, int]] = {
     "walt": (walt, "calc.walt", 1),
     "npv": (npv, "calc.npv", 1),
     "irr": (irr, "calc.irr", 1),
+    "lease_vs_own": (lease_vs_own, "calc.lease_vs_own", 1),
+    "renew_vs_relocate": (renew_vs_relocate, "calc.renew_vs_relocate", 1),
+    "hotel_metrics": (hotel_metrics, "calc.hotel_metrics", 1),
 }

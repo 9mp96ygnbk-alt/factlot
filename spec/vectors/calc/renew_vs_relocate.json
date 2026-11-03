@@ -1,0 +1,343 @@
+{
+  "calculator": "calc.renew_vs_relocate",
+  "version": 1,
+  "notes": "Expected values computed independently with Python decimal (40 significant digits, inputs read as decimal literals, half-up rounding at the same points the formula rounds: cents for money, 4 dp for ratios), in a scratch script outside the repository; FactLot was not run to produce them. Monthly rent follows calc_rent_schedule conventions (rate \u00d7 area \u00f7 12 rounded to cents, rent in advance); break-even rents solve PV(rent) = slope \u00d7 starting rate + intercept over the unabated months.",
+  "cases": [
+    {
+      "name": "percent vs fixed escalation with move costs",
+      "input": {
+        "horizon_months": 60,
+        "discount_rate_annual": 0.08,
+        "current_rent_monthly": 20000,
+        "renew": {
+          "schedule": {
+            "commencement_date": "2027-01-01",
+            "area_sf": 10000,
+            "starting_rent_psf_annual": 30,
+            "escalation": {
+              "type": "percent",
+              "rate": 0.03
+            },
+            "abated_months": [1, 2]
+          },
+          "ti_cost": 150000,
+          "ti_allowance": 100000,
+          "renewal_fee": 5000
+        },
+        "relocate": {
+          "schedule": {
+            "commencement_date": "2027-01-01",
+            "area_sf": 10000,
+            "starting_rent_psf_annual": 27,
+            "escalation": {
+              "type": "fixed_psf",
+              "amount": 0.75
+            },
+            "abated_months": [1, 2, 3, 4]
+          },
+          "buildout_cost": 600000,
+          "ti_allowance": 500000,
+          "moving_cost": 80000,
+          "downtime_months": 1,
+          "downtime_cost_monthly": 40000,
+          "overlap_months": 2,
+          "disruption_cost": 25000
+        }
+      },
+      "expect": {
+        "value.horizon_months": 60,
+        "value.cheaper": "renew",
+        "value.difference_npv": 53179.93,
+        "value.renew.npv": 1316897.05,
+        "value.renew.total_cost": 1597740.8,
+        "value.renew.total_rent": 1542740.8,
+        "value.renew.one_time_costs": 55000.0,
+        "value.renew.net_effective_rent_psf_annual": 31.8301,
+        "value.relocate.npv": 1370076.98,
+        "value.relocate.total_cost": 1620000.0,
+        "value.relocate.total_rent": 1335000.0,
+        "value.relocate.one_time_costs": 285000.0,
+        "value.relocate.net_effective_rent_psf_annual": 33.1155,
+        "value.break_even.relocate_starting_rent_psf": 25.6032,
+        "value.break_even.renew_starting_rent_psf": 31.2643,
+        "value.cash_flows.0.renew_rent": 250000.0,
+        "value.cash_flows.0.renew_one_time": 55000.0,
+        "value.cash_flows.0.relocate_rent": 180000.0,
+        "value.cash_flows.0.relocate_one_time": 285000.0,
+        "value.cash_flows.0.relocate_total": 465000.0,
+        "value.cash_flows.4.year": 5,
+        "value.cash_flows.4.renew_rent": 337652.64,
+        "value.cash_flows.4.relocate_rent": 300000.0
+      }
+    },
+    {
+      "name": "flat rents zero discount",
+      "input": {
+        "horizon_months": 36,
+        "discount_rate_annual": 0,
+        "current_rent_monthly": 10000,
+        "renew": {
+          "schedule": {
+            "commencement_date": "2026-07-01",
+            "area_sf": 4000,
+            "starting_rent_psf_annual": 30
+          },
+          "ti_cost": 20000
+        },
+        "relocate": {
+          "schedule": {
+            "commencement_date": "2026-07-01",
+            "area_sf": 4000,
+            "starting_rent_psf_annual": 26
+          },
+          "buildout_cost": 200000,
+          "ti_allowance": 160000,
+          "moving_cost": 15000,
+          "overlap_months": 1,
+          "termination_cost": 12000
+        }
+      },
+      "expect": {
+        "value.horizon_months": 36,
+        "value.cheaper": "renew",
+        "value.difference_npv": 9000.12,
+        "value.renew.npv": 380000.0,
+        "value.renew.total_cost": 380000.0,
+        "value.renew.total_rent": 360000.0,
+        "value.renew.one_time_costs": 20000.0,
+        "value.renew.net_effective_rent_psf_annual": 31.6667,
+        "value.relocate.npv": 389000.12,
+        "value.relocate.total_cost": 389000.12,
+        "value.relocate.total_rent": 312000.12,
+        "value.relocate.one_time_costs": 77000.0,
+        "value.relocate.net_effective_rent_psf_annual": 32.4167,
+        "value.break_even.relocate_starting_rent_psf": 25.25,
+        "value.break_even.renew_starting_rent_psf": 30.75,
+        "value.cash_flows.0.renew_rent": 120000.0,
+        "value.cash_flows.0.renew_one_time": 20000.0,
+        "value.cash_flows.0.relocate_rent": 104000.04,
+        "value.cash_flows.0.relocate_one_time": 77000.0,
+        "value.cash_flows.0.relocate_total": 181000.04,
+        "value.cash_flows.2.year": 3,
+        "value.cash_flows.2.renew_rent": 120000.0,
+        "value.cash_flows.2.relocate_rent": 104000.04
+      }
+    },
+    {
+      "name": "different areas rounded rates partial year",
+      "input": {
+        "horizon_months": 37,
+        "discount_rate_annual": 0.09,
+        "current_rent_monthly": 31250,
+        "renew": {
+          "schedule": {
+            "commencement_date": "2027-04-01",
+            "area_sf": 12500,
+            "starting_rent_psf_annual": 29.5,
+            "escalation": {
+              "type": "percent",
+              "rate": 0.0275
+            },
+            "round_rate_to_cents": true,
+            "abated_months": [1]
+          },
+          "ti_cost": 60000,
+          "ti_allowance": 75000
+        },
+        "relocate": {
+          "schedule": {
+            "commencement_date": "2027-04-01",
+            "area_sf": 9800,
+            "starting_rent_psf_annual": 33,
+            "escalation": {
+              "type": "percent",
+              "rate": 0.03,
+              "every_months": 24
+            },
+            "round_rate_to_cents": true,
+            "abated_months": [1, 2, 3]
+          },
+          "buildout_cost": 490000,
+          "ti_allowance": 392000,
+          "moving_cost": 45000,
+          "downtime_months": 2,
+          "downtime_cost_monthly": 30000,
+          "overlap_months": 1,
+          "disruption_cost": 50000
+        }
+      },
+      "expect": {
+        "value.horizon_months": 37,
+        "value.cheaper": "renew",
+        "value.difference_npv": 93183.71,
+        "value.renew.npv": 993661.2,
+        "value.renew.total_cost": 1139479.24,
+        "value.renew.total_rent": 1139479.24,
+        "value.renew.one_time_costs": 0.0,
+        "value.renew.net_effective_rent_psf_annual": 29.3993,
+        "value.relocate.npv": 1086844.91,
+        "value.relocate.total_cost": 1211060.5,
+        "value.relocate.total_rent": 926810.5,
+        "value.relocate.one_time_costs": 284250.0,
+        "value.relocate.net_effective_rent_psf_annual": 41.0158,
+        "value.break_even.relocate_starting_rent_psf": 29.1686,
+        "value.break_even.renew_starting_rent_psf": 32.2644,
+        "value.cash_flows.0.renew_rent": 338020.87,
+        "value.cash_flows.0.renew_one_time": 0.0,
+        "value.cash_flows.0.relocate_rent": 242550.0,
+        "value.cash_flows.0.relocate_one_time": 284250.0,
+        "value.cash_flows.0.relocate_total": 526800.0,
+        "value.cash_flows.3.year": 4,
+        "value.cash_flows.3.renew_rent": 33333.33,
+        "value.cash_flows.3.relocate_rent": 27758.5
+      }
+    },
+    {
+      "name": "fully abated relocation has no break even",
+      "input": {
+        "horizon_months": 3,
+        "discount_rate_annual": 0.08,
+        "current_rent_monthly": 5000,
+        "renew": {
+          "schedule": {
+            "commencement_date": "2027-01-01",
+            "area_sf": 2000,
+            "starting_rent_psf_annual": 24
+          }
+        },
+        "relocate": {
+          "schedule": {
+            "commencement_date": "2027-01-01",
+            "area_sf": 2000,
+            "starting_rent_psf_annual": 24,
+            "abated_months": [1, 2, 3]
+          },
+          "moving_cost": 9000
+        }
+      },
+      "expect": {
+        "value.horizon_months": 3,
+        "value.cheaper": "relocate",
+        "value.difference_npv": -2920.71,
+        "value.renew.npv": 11920.71,
+        "value.renew.total_cost": 12000.0,
+        "value.renew.total_rent": 12000.0,
+        "value.renew.one_time_costs": 0.0,
+        "value.renew.net_effective_rent_psf_annual": 24.0,
+        "value.relocate.npv": 9000.0,
+        "value.relocate.total_cost": 9000.0,
+        "value.relocate.total_rent": 0.0,
+        "value.relocate.one_time_costs": 9000.0,
+        "value.relocate.net_effective_rent_psf_annual": 18.1197,
+        "value.break_even.relocate_starting_rent_psf": null,
+        "value.break_even.renew_starting_rent_psf": 18.1197,
+        "value.cash_flows.0.renew_rent": 12000.0,
+        "value.cash_flows.0.renew_one_time": 0.0,
+        "value.cash_flows.0.relocate_rent": 0.0,
+        "value.cash_flows.0.relocate_one_time": 9000.0,
+        "value.cash_flows.0.relocate_total": 9000.0,
+        "value.cash_flows.0.year": 1
+      }
+    },
+    {
+      "name": "identical cases tie",
+      "input": {
+        "horizon_months": 24,
+        "discount_rate_annual": 0.06,
+        "current_rent_monthly": 0,
+        "renew": {
+          "schedule": {
+            "commencement_date": "2027-01-01",
+            "area_sf": 3000,
+            "starting_rent_psf_annual": 40,
+            "escalation": {
+              "type": "percent",
+              "rate": 0.03
+            }
+          },
+          "ti_cost": 30000
+        },
+        "relocate": {
+          "schedule": {
+            "commencement_date": "2027-01-01",
+            "area_sf": 3000,
+            "starting_rent_psf_annual": 40,
+            "escalation": {
+              "type": "percent",
+              "rate": 0.03
+            }
+          },
+          "buildout_cost": 30000
+        }
+      },
+      "expect": {
+        "value.horizon_months": 24,
+        "value.cheaper": "equal",
+        "value.difference_npv": 0.0,
+        "value.renew.npv": 260056.4,
+        "value.renew.total_cost": 273600.0,
+        "value.renew.total_rent": 243600.0,
+        "value.renew.one_time_costs": 30000.0,
+        "value.renew.net_effective_rent_psf_annual": 45.8741,
+        "value.relocate.npv": 260056.4,
+        "value.relocate.total_cost": 273600.0,
+        "value.relocate.total_rent": 243600.0,
+        "value.relocate.one_time_costs": 30000.0,
+        "value.relocate.net_effective_rent_psf_annual": 45.8741,
+        "value.break_even.relocate_starting_rent_psf": 40.0,
+        "value.break_even.renew_starting_rent_psf": 40.0,
+        "value.cash_flows.0.renew_rent": 120000.0,
+        "value.cash_flows.0.renew_one_time": 30000.0,
+        "value.cash_flows.0.relocate_rent": 120000.0,
+        "value.cash_flows.0.relocate_one_time": 30000.0,
+        "value.cash_flows.0.relocate_total": 150000.0,
+        "value.cash_flows.1.year": 2,
+        "value.cash_flows.1.renew_rent": 123600.0,
+        "value.cash_flows.1.relocate_rent": 123600.0
+      }
+    },
+    {
+      "name": "horizon must be positive",
+      "input": {
+        "horizon_months": 0,
+        "renew": {
+          "schedule": {
+            "commencement_date": "2027-01-01",
+            "area_sf": 1000,
+            "starting_rent_psf_annual": 20
+          }
+        },
+        "relocate": {
+          "schedule": {
+            "commencement_date": "2027-01-01",
+            "area_sf": 1000,
+            "starting_rent_psf_annual": 20
+          }
+        }
+      },
+      "expect_error": true
+    },
+    {
+      "name": "abated month beyond the horizon is an input error",
+      "input": {
+        "horizon_months": 12,
+        "renew": {
+          "schedule": {
+            "commencement_date": "2027-01-01",
+            "area_sf": 1000,
+            "starting_rent_psf_annual": 20,
+            "abated_months": [13]
+          }
+        },
+        "relocate": {
+          "schedule": {
+            "commencement_date": "2027-01-01",
+            "area_sf": 1000,
+            "starting_rent_psf_annual": 20
+          }
+        }
+      },
+      "expect_error": true
+    }
+  ]
+}
