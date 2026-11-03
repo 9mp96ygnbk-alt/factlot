@@ -81,7 +81,7 @@ cleared.
 **The factlease repository**
 
 - [ ] C21 Apply the four fixes from the original code review: typecheck tests, `erasableSyntaxOnly`, nested test glob, and CI. Or retire the STATE skeleton.
-- [ ] C22 After FactLot is pushed to its own repository, delete `backups/` from the factlease branch.
+- [x] C22 ~~After FactLot is pushed to its own repository, delete `backups/` from the factlease branch.~~ Done 2026-11-02 (factlease e45b6ad): the bundle is gone and `docs/factlot-backlog.md` there points here.
 
 ## D. Known limitations (by design for now; revisit)
 
