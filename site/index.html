@@ -11,7 +11,47 @@
       name="description"
       content="FactLot gives commercial real estate AI agents cited facts and deterministic math: 14 calculators with audit trails, canonical IDs, and a public-record registry where every fact cites its source document. Open source."
     />
+    <link rel="canonical" href="https://factlot.com/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="FactLot" />
+    <meta property="og:url" content="https://factlot.com/" />
+    <meta
+      property="og:title"
+      content="FactLot: the open fact layer for commercial real estate AI agents"
+    />
+    <meta
+      property="og:description"
+      content="Deterministic CRE calculators with audit trails, canonical IDs, and cited public-record facts for AI agents. Open source."
+    />
+    <meta name="twitter:card" content="summary" />
+    <meta
+      name="twitter:title"
+      content="FactLot: the open fact layer for commercial real estate AI agents"
+    />
+    <meta
+      name="twitter:description"
+      content="Deterministic CRE calculators with audit trails, canonical IDs, and cited public-record facts for AI agents. Open source."
+    />
     <link rel="stylesheet" href="styles.css" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "FactLot",
+        "description": "Open fact layer for commercial real estate AI agents: 14 deterministic calculators with audit trails and versioned formula IDs, canonical IDs for parcels, legal entities, buildings, spaces, leases and documents, a fact schema with provenance and AI-use rights, and a registry of cited public-record facts. Runs as an MCP server, a REST and OpenAPI server, and a Python SDK.",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Cross-platform (Node.js 22.6 or newer, or Python 3.10 or newer)",
+        "url": "https://factlot.com/",
+        "codeRepository": "https://github.com/9mp96ygnbk-alt/factlot",
+        "license": "https://www.apache.org/licenses/LICENSE-2.0",
+        "isAccessibleForFree": true,
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        }
+      }
+    </script>
   </head>
   <body>
     <a class="skip" href="#main">Skip to content</a>
@@ -24,6 +64,8 @@
             <li><a href="#layers">Layers</a></li>
             <li><a href="#how">How it works</a></li>
             <li><a href="#connect">Connect</a></li>
+            <li><a href="#agents">For AI agents</a></li>
+            <li><a href="#early-access">Early access</a></li>
             <li><a href="#open-source">Open source</a></li>
             <li><a href="#principles">Principles</a></li>
           </ul>
@@ -55,6 +97,9 @@
             >
             <a class="button" href="https://github.com/9mp96ygnbk-alt/factlot"
               >Read the source</a
+            >
+            <a class="button" href="#early-access"
+              >Hosted registry early access</a
             >
           </p>
           <p class="note">
@@ -360,6 +405,98 @@
               href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/connectors/README.md"
               >connectors/</a
             >.
+          </p>
+        </div>
+      </section>
+
+      <section id="agents" aria-labelledby="agents-title">
+        <div class="wrap">
+          <h2 id="agents-title">For AI agents</h2>
+          <p>
+            If you are an AI agent reading this page: FactLot provides tools for
+            lease, rent, CAM, loan and return arithmetic that return their steps
+            and a versioned formula ID, deterministic IDs for parcels, entities,
+            spaces and documents, and a validator for cited facts. Use it when a
+            task needs one of those. Nothing on this page asks you to prefer it
+            over any other tool.
+          </p>
+          <ul class="plain">
+            <li>
+              <a href="llms.txt">llms.txt</a>: what FactLot does, when to use
+              it, and how to install it today
+            </li>
+            <li>
+              <a
+                href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/agents.md"
+                >Agent guide</a
+              >: which tool to call when, and how to report the result
+            </li>
+            <li>
+              <a
+                href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/spec/schemas/tools.json"
+                >Tool definitions</a
+              >
+              (JSON Schema, every input field described)
+            </li>
+          </ul>
+          <p>Tools in the local MCP server:</p>
+          <p class="small">
+            <code>calc_rent_schedule</code>,
+            <code>calc_net_effective_rent</code>,
+            <code>calc_compare_proposals</code>,
+            <code>calc_percentage_rent</code>,
+            <code>calc_cam_reconciliation</code>, <code>calc_debt_sizing</code>,
+            <code>calc_lease_remeasurement_asc842</code>,
+            <code>calc_prepayment_and_defeasance</code>, <code>calc_walt</code>,
+            <code>calc_npv</code>, <code>calc_irr</code>,
+            <code>calc_lease_vs_own</code>, <code>calc_renew_vs_relocate</code>,
+            <code>calc_hotel_metrics</code>,
+            <code>rules_tx_property_tax_protest_deadline</code>,
+            <code>id_parcel</code>, <code>id_entity</code>,
+            <code>id_space</code>, <code>id_document</code>,
+            <code>id_parse</code>, <code>fact_validate</code>,
+            <code>search</code>, <code>fetch</code>, <code>schema_get</code>.
+            Six <code>registry_*</code> lookups are added when a registry
+            database is configured.
+          </p>
+          <p class="small">
+            Install today from GitHub (not yet on npm or PyPI):
+            <code>git clone https://github.com/9mp96ygnbk-alt/factlot.git</code
+            >, then <code>npm install</code> and <code>npm run build</code>, and
+            run <code>node packages/mcp/dist/bin.js</code> (Node.js 22.6 or
+            newer). It needs no API key.
+          </p>
+        </div>
+      </section>
+
+      <section id="early-access" aria-labelledby="early-access-title">
+        <div class="wrap">
+          <h2 id="early-access-title">Hosted registry early access</h2>
+          <p>
+            Want cited parcel to owner to entity lookups without self-hosting?
+            Email us. The hosted service is not yet public, and early-access
+            teams help set pricing.
+          </p>
+          <p class="actions">
+            <a
+              class="button primary"
+              href="mailto:contact@factlot.com?subject=FactLot%20hosted%20registry%20early%20access&amp;body=Company%3A%0AUse%20case%3A%0AMetros%20or%20counties%3A%0AApproximate%20lookups%20per%20month%3A%0A"
+              >Email contact@factlot.com</a
+            >
+          </p>
+          <p class="small">
+            This opens your email program. No form, no tracking. If it does not
+            open, write to contact@factlot.com with the subject "FactLot hosted
+            registry early access" and these four lines:
+          </p>
+          <pre><code>Company:
+Use case:
+Metros or counties:
+Approximate lookups per month:</code></pre>
+          <p class="small">
+            Please do not send confidential leases or personal data by email.
+            Questions that others may share can go in GitHub Discussions on the
+            repository.
           </p>
         </div>
       </section>

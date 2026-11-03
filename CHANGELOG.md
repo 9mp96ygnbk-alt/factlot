@@ -18,6 +18,7 @@ from its commit history; nothing was published to npm or PyPI before it.
 
 ### Added
 
+- Launch kit under `docs/launch/`: zero-dollar go-to-market strategy, launch-day checklist, ready-to-post drafts, directory and awesome-list submission text, GitHub metadata suggestions, and an early-access reply template. `site/` gained schema.org JSON-LD, Open Graph and Twitter tags, a canonical link, a "For AI agents" section, a hosted-registry early-access call to action, and `site/llms.txt`; `llms.txt` now opens with what FactLot does, when to use it, and how to install it today.
 - `site/`: the factlot.com landing page, a static page with no build step, no scripts, and no
   tracking, with deployment notes and a record of the checks run on it.
 - Customer documents policy (`docs/customer-documents.md`) and hosted-ingest launch checklist, with controls in code: every ingest report carries a `retention` header (`retain_until`, default 30 days, `--retain-days`), `--redact` / `IngestResult.to_report(redact=True)` persists document text only as the quotes that are evidence, and the server's request log schema is fixed to metadata (`REQUEST_LOG_FIELDS`) with a test that no request body, tool argument, or bearer token reaches a log line.

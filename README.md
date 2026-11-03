@@ -2,6 +2,8 @@
 
 **The open fact layer for commercial real estate AI agents.**
 
+**Hosted registry early access:** teams that want cited parcel-to-owner-to-entity lookups without self-hosting can email [contact@factlot.com](mailto:contact@factlot.com?subject=FactLot%20hosted%20registry%20early%20access). The hosted service is not yet public, and early-access teams help set pricing. Questions and bug reports go in [GitHub Discussions](https://github.com/9mp96ygnbk-alt/factlot/discussions) and Issues.
+
 Agents doing CRE work get stuck in the same places. They can't trust their own
 arithmetic, they can't cite where a number came from, and they can't tell that
 "Suite 400, 123 Main LLC" in one system is the same thing as a parcel number in
