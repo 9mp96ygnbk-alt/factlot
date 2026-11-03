@@ -39,12 +39,18 @@ curl -s localhost:8787/v1/calc/debt_sizing -H 'content-type: application/json' -
 
 Environment variables (pass with `docker run -e`):
 
-| Variable              | Default           | Meaning                                                          |
-| --------------------- | ----------------- | ---------------------------------------------------------------- |
-| `PORT`, `HOST`        | `8787`, `0.0.0.0` | Where to listen                                                  |
-| `FACTLOT_API_KEY`     | unset             | If set, `/mcp` and `/v1/*` require `Authorization: Bearer <key>` |
-| `FACTLOT_PUBLIC_URL`  | unset             | Public base URL written into the OpenAPI `servers` list          |
-| `FACTLOT_REGISTRY_DB` | unset             | Path to a registry SQLite file; enables the `registry_*` tools   |
+| Variable                                                | Default           | Meaning                                                                         |
+| ------------------------------------------------------- | ----------------- | ------------------------------------------------------------------------------- |
+| `PORT`, `HOST`                                          | `8787`, `0.0.0.0` | Where to listen                                                                 |
+| `FACTLOT_API_KEY`                                       | unset             | If set, `/mcp` and `/v1/*` require `Authorization: Bearer <key>`                |
+| `FACTLOT_PUBLIC_URL`                                    | unset             | Public base URL written into the OpenAPI `servers` list                         |
+| `FACTLOT_REGISTRY_DB`                                   | unset             | Path to a registry SQLite file; enables the `registry_*` tools                  |
+| `FACTLOT_API_KEYS`, `FACTLOT_API_KEYS_FILE`             | unset             | Named keys (`key:tenant,...` or a JSON file) for per-tenant limits and metering |
+| `FACTLOT_RATE_LIMIT_PER_MINUTE`                         | `0` (unlimited)   | Default per-key limit; over it, 429 with `Retry-After`                          |
+| `FACTLOT_ADMIN_KEY`, `FACTLOT_USAGE_LOG`, `FACTLOT_LOG` | unset             | Enable `GET /v1/usage`, a jsonl usage record, and JSON request logs             |
+
+The full configuration reference, including the keys-file format, is in
+[packages/server/README.md](../packages/server/README.md).
 
 Point a public HTTPS URL at it (backlog A4) and follow [connectors/](../connectors/README.md)
 for each platform's setup. Without Docker: `npm install && npm run build && node packages/server/dist/bin.js`.

@@ -26,7 +26,27 @@ In a [simulated survey of 165 CRE agent personas](docs/research/2026-11-agent-su
 - 95% asked for citations, 51% reported that LLM math was wrong, and 35% said data licensing stops them using data they already pay for.
 - Agent-to-agent negotiation scored 0.35/5. Agents want facts they can trust, not more autonomy.
 
-That survey is a hypothesis generator, not market research. The [customer discovery plan](docs/customer-discovery.md) describes how we validate it.
+That survey is a hypothesis generator, not market research. The [customer discovery plan](docs/customer-discovery.md) describes how we validate it. The same personas later [reviewed v0.1 as built](docs/research/2026-11-product-feedback) (also simulated): the calculators, IDs, and the quote-on-page verifier were praised wherever they applied, and most personas were blocked by coverage, which is what the section below is honest about.
+
+## What FactLot covers today
+
+Be clear about scope before adopting it:
+
+- **Calculators, IDs, and the fact model work anywhere.** They need no data and no API key, and
+  they run offline in both SDKs with identical results.
+- **The registry is Texas-first.** Real public-record data is loaded for Harris County (Houston),
+  Dallas County, and Tarrant County (Fort Worth), plus the Texas Comptroller's registered-entity
+  list for owner resolution; the weekly collector also archives Travis and Collin. Nothing outside
+  Texas yet. Commercial, industrial, and multifamily parcels only; no sales prices (Texas is
+  non-disclosure), no tenants, no debt, no zoning, no building specs beyond area and year built.
+  See [the registry](docs/registry/README.md) and the [source review](docs/registry/texas-sources.md).
+- **One rules pack**, the Texas property-tax protest deadline, verified against the official
+  statute text. Other jurisdictions follow only after a person verifies them.
+- **Lease ingestion is a prototype**: deterministic quote-on-page and value-in-quote checks, OCR
+  for scanned pages through a pluggable backend, but no published accuracy number yet.
+- **Not yet published** to npm or PyPI (build from source, or run the Docker image), and no hosted
+  public endpoint. The [release process](docs/release-process.md) is ready for when the accounts
+  exist.
 
 ## Connect FactLot to any AI platform
 
@@ -62,8 +82,10 @@ Or in any MCP client config:
 The server provides these tools: `calc_rent_schedule`, `calc_net_effective_rent`,
 `calc_compare_proposals`, `calc_percentage_rent`, `calc_cam_reconciliation`,
 `calc_debt_sizing`, `calc_walt`, `calc_npv`, `calc_irr`,
+`rules_tx_property_tax_protest_deadline`,
 `id_parcel`, `id_entity`, `id_space`, `id_document`, `id_parse`, `fact_validate`,
-and `schema_get`.
+and `schema_get`, plus the six `registry_*` lookups when a registry database is configured
+(`FACTLOT_REGISTRY_DB`).
 
 > Packages are not yet published to npm. Until they are, build from source (below)
 > and point your client at `node packages/mcp/dist/bin.js`.

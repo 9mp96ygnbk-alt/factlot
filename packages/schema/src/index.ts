@@ -36,6 +36,8 @@ export const SourceRef = z.object({
   section: z.string().optional(),
   /** Verbatim supporting text. */
   quote: z.string().optional(),
+  /** True when the cited page's text came from OCR of a scanned image, so a reviewer checks the scan, not a text layer. */
+  ocr: z.boolean().optional(),
   /** Character offsets of `quote` within the document's extracted text. */
   span: z
     .object({

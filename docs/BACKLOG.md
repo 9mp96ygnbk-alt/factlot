@@ -65,7 +65,7 @@ cleared.
 
 **Platform and connectors**
 
-- [ ] C12 Hosted server hardening: per-key rate limits, usage metering (the business model is usage-based), logging and observability, and OAuth if directories require it.
+- [ ] C12 ~~Hosted server hardening: per-key rate limits, usage metering (the business model is usage-based), logging and observability~~ (done 2026-11-02: named API keys from env or file, per-key per-minute limits with 429 and `Retry-After`, per-key per-tool metering with a jsonl record and `GET /v1/usage`, JSON request logs; see `packages/server/README.md`), and OAuth 2.1 / SSO if directories require it. Rate-limit and usage state is per process; the jsonl file is the durable record.
 - [ ] C13 Directory submissions: Anthropic connector directory, ChatGPT apps, the MCP registry, Copilot/AppSource.
 - [ ] C14 Run FactLot Bench on current models and publish the results. Add tasks for the registry, rules, and ingestion.
 - [ ] C15 Calculators still on the roadmap: ASC 842 remeasurement, lease-vs-own and renew-vs-relocate, prepayment and defeasance, hotel RevPAR, ADR, and GOP.

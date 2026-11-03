@@ -53,10 +53,26 @@ from its commit history; nothing was published to npm or PyPI before it.
   including `Crawl-delay`, rate-limits per host, reads JSON download listings, names archived
   files from `Content-Disposition`, and records every decision in a manifest; a weekly GitHub
   Actions workflow archives verified Texas sources as release assets.
-- Adapters for the Harris CAD and Dallas CAD appraisal rolls and the Texas Comptroller
-  franchise-tax entity file, run on the real 2026 files.
+- Adapters for the Harris CAD, Dallas CAD, and Tarrant AD appraisal rolls and the Texas
+  Comptroller franchise-tax entity file, run on the real 2026 files (87,717, 59,645, and 37,292
+  commercial parcels; 3.27 million registered entities; 73% of organisation owners linked by
+  exact name).
 - A lease-ingestion prototype (`factlot.ingest`) with deterministic verification of every
-  extracted value against a verbatim quote on the cited page, and amendment supersession.
+  extracted value against a verbatim quote on the cited page, a value-in-quote consistency check
+  (numbers, ratios, dates, and party names must appear in the quote), a pluggable OCR step for
+  scanned pages with a tesseract backend, and amendment supersession.
+- A simulated product-feedback round: the 165 survey personas reviewed v0.1 as built, and the
+  README states what FactLot covers today.
+- Registry owner resolution beyond exact names: deterministic fuzzy candidates
+  (`queue_fuzzy_owner_matches`), a review queue, and `decide_owner_match`; nothing is linked
+  without a person's accept, and accepted links carry confidence at most 0.8 and the reviewer.
+- `@factlot/server`: named API keys from an environment variable or a JSON file, per-key rate
+  limits (429 with `Retry-After`), per-key per-tool usage metering with a jsonl record and an
+  admin `GET /v1/usage`, and JSON request logging (`FACTLOT_API_KEYS`, `FACTLOT_API_KEYS_FILE`,
+  `FACTLOT_RATE_LIMIT_PER_MINUTE`, `FACTLOT_ADMIN_KEY`, `FACTLOT_USAGE_LOG`, `FACTLOT_LOG`).
+- A release process: one shared version, `scripts/release/`, this changelog, a tag-driven
+  publish workflow for npm, PyPI, and the `.mcpb`, issue and pull-request templates, CODEOWNERS,
+  Dependabot, a code of conduct, and a getting-started guide.
 - FactLot Bench: fourteen CRE agent tasks with independently computed ground truth, a runner,
   and a scorer.
 - Documentation for agents (`llms.txt`, `AGENTS.md`, `docs/agents.md`), the ID spec, the fact

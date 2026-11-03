@@ -27,6 +27,9 @@
         "quote": {
           "type": "string"
         },
+        "ocr": {
+          "type": "boolean"
+        },
         "span": {
           "type": "object",
           "properties": {
@@ -98,6 +101,9 @@
               },
               "quote": {
                 "type": "string"
+              },
+              "ocr": {
+                "type": "boolean"
               },
               "span": {
                 "type": "object",
@@ -267,6 +273,9 @@
                   },
                   "quote": {
                     "type": "string"
+                  },
+                  "ocr": {
+                    "type": "boolean"
                   },
                   "span": {
                     "type": "object",
@@ -491,6 +500,9 @@
                   },
                   "quote": {
                     "type": "string"
+                  },
+                  "ocr": {
+                    "type": "boolean"
                   },
                   "span": {
                     "type": "object",
