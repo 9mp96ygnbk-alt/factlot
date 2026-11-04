@@ -272,6 +272,8 @@ def claim_case(r, pages, statements):
         claim = {"text": r.choice([f"The {pred.split('.')[1].replace('_', ' ')} is {value}",
                                    f"It says {r.randint(1, 99)} days from {MONTHS[r.randint(0, 11)]} {r.randint(1, 28)}, {r.randint(2025, 2040)}",
                                    "No numbers in this claim at all", quote, quote.upper().replace("FIVE", "6")])}
+        if len(claim["text"]) % 3 == 0:  # a bare sentence string is read as {text}
+            claim = claim["text"]
     else:
         claim = r.choice([{"predicate": pred}, {"predicate": pred, "value": value, "text": "both"}, {}])
     return {"tool": "doc_verify_claim", "arguments": {"document": {"pages": pages}, "claim": claim,

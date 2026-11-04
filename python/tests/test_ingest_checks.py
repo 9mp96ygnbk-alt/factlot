@@ -100,7 +100,9 @@ CONSISTENCY_CASES = [
     # summaries and enums are not checkable, so they never fail
     ("lease.rofr", "Tenant has a ROFR on Suite 500", "a right of first refusal on any space on the 5th floor", True),
     ("lease.assignment_sublease", "consent required", "shall not be unreasonably withheld", True),
-    ("lease.exclusive_use", "medical", "no other tenant may operate a clinic", True),
+    # ... but a protected use is the lease's own words, so it must be written in the quote
+    ("lease.exclusive_use", "medical", "no other tenant may operate a clinic", False),
+    ("lease.exclusive_use", "medical office", "no other tenant may operate a Medical-Office", True),
     ("not.a.predicate", 42, "nothing here", True),
     # --- predicates added for C10 (all synthetic) ---
     # percentage rent: the rate is a ratio, the fixed breakpoint a number, the exclusions free text

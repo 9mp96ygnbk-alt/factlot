@@ -34,6 +34,37 @@
     ],
     "exceptions_statement": [
       "SAMPLE COURT APARTMENTS (SYNTHETIC TEST DOCUMENT - NOT A REAL PROPERTY) - 2025 Operating Statement\nRental Income 500,000\nParking Lot Repairs 4,000\nTotal Repairs 9,000\nPool Service 2,500\nInsurance 20,000\nTotal Expenses 30,500\nNet Operating Income 469,500\nWater Utility Credit (300)"
+    ],
+    "strip_center_lease": [
+      "SHOPPING CENTER LEASE - Westwood Strip Plaza\nLandlord: Sepulveda Plaza Partners LP. Tenant: Golden Crumb Bakery Inc. Dated as of September 1, 2024.\nSection 1.3 Premises. Approximately 3,200 rentable square feet in the Shopping Center.\nSection 2.1 Term. The Term begins on December 1, 2024 and ends on the thirtieth day of November, 2029.",
+      "Section 3.1 Base Rent. Tenant shall pay Base Rent at the annual rate of $48.00 per square foot from December 1, 2024 through November 30, 2025, $49.44 per square foot from December 1, 2025 through November 30, 2026, and $50.92 per square foot from December 1, 2026 through November 30, 2027.\nSection 3.4 Percentage Rent. In addition to Base Rent, Tenant shall pay Percentage Rent equal to five percent (5%) of Gross Sales in excess of the natural breakpoint.\nSection 5.2 Exclusive. Landlord shall not permit any other premises in the Shopping Center to be used for the primary purpose of the sale of baked goods, coffee or tea, except that\n(a) a grocery store may sell packaged baked goods, and (b) incidental sales in up to 10% of floor area shall not violate this Section.",
+      "Section 5.3 Prohibited Uses. No portion of the Shopping Center shall be used for a dry cleaner, a nightclub, a massage parlor or a cannabis dispensary.\nSection 7.1 Co-Tenancy. If Pro-\nportionate occupancy of the Shopping Center falls below seventy percent (70%) for more than ninety (90) days, Tenant may pay alternate rent of three percent (3%) of Gross Sales."
+    ],
+    "anchor_lease": [
+      "ANCHOR LEASE - Lakeshore Commons, Chicago, Illinois\nLandlord: Lakeshore Commons Owner LLC. Tenant: Prairie Fresh Markets, Inc.\nSection 1.2 The Premises contain 48,000 rentable square feet. The Commencement Date is August 1, 2022.",
+      "Section 6.1 Exclusive. During the Term Landlord shall not lease or permit any other premises in the Center to be used for the operation of a supermarket or grocery store, other than a specialty store of fewer than 5,000 square feet devoted to the sale of ethnic or organic foods.\nSection 6.2 Kick-Out. If Tenant's Gross Sales for the third Lease Year are less than $18,000,000, Tenant may terminate this Lease on one hundred eighty (180) days' written notice.",
+      "Section 9.1 Co-Tenancy. If less than seventy percent (70%) of the in-line floor area of the Center is open for business, or if Lakeshore Pharmacy is not open, and such failure continues for one hundred twenty (120) days, Tenant shall pay Alternate Rent equal to three percent (3%) of Gross Sales until cured.\nSection 9.4 Radius. Tenant shall not operate another supermarket within three (3) miles of the Premises during the Term.\nSection 9.6 Go Dark. Tenant is not required to continuously operate."
+    ],
+    "lab_amendment": [
+      "FIRST AMENDMENT TO LEASE\n1. Extension. The Term of the Lease is extended and shall now expire on February 28, 2034.\n2. Area. The Premises are expanded to approximately 22,300 rentable square feet effective January 1, 2028.\n3. Security Deposit. The security deposit is increased to $290,000.00."
+    ],
+    "lab_lease": [
+      "LABORATORY LEASE AGREEMENT\nThis Lease is made as of January 15, 2025, between Lone Star Lab Holdings LLC (\"Landlord\") and Cedar Assay Therapeutics, Inc. (\"Tenant\").\n1.1 Premises. Suite 210 of the building, containing approximately 18,450 rentable square feet (the \"Premises\").",
+      "3.1 Term. The Term shall be eighty-four (84) months commencing on March 1, 2025 (the \"Commencement Date\") and expiring on February 29, 2032.\n4.1 Base Rent. Annual Base Rent shall be $52.00 per rentable square foot, triple net, increasing three percent (3%) on each anniversary of the Commencement Date. Base Rent for the first three (3) months of the Term is abated.\n4.4 Tenant's Proportionate Share is 41.2% of the Building.",
+      "7.2 Security Deposit. Tenant shall deliver a security deposit of $240,000.00 in the form of a letter of credit.\n12.1 Renewal. Tenant has two (2) options to renew for five (5) years each at ninety-five percent (95%) of Fair Market Rent."
+    ],
+    "deli_lease": [
+      "COMMERCIAL LEASE between Hudson Realty Owner LLC (Landlord) and Greenmarket Deli Inc. (Tenant), dated January 15, 2020\nSection 1. Premises: approximately 2,100 rentable square feet on the ground floor of 412 West 56th Street.\nSection 2. Term: The Term shall commence on January 1, 2021 and shall expire on December 31, 2030.\nSection 3. Base Rent per rentable square foot per annum: Lease Years 1-5 (01/01/2021 - 12/31/2025): $62.00; Lease Years 6-10 (01/01/2026 - 12/31/2030): $68.00.\nSection 4. Security Deposit: Tenant has deposited $75,000 with Landlord.",
+      "Section 5. Proportionate Share. Tenant's share of Real Estate Taxes is 8%.\nSection 6. Renewal. Tenant shall have one (1) option to renew for five (5) years upon twelve (12) months' prior written notice, at fair market rent."
+    ],
+    "deli_amendment": [
+      "FIRST AMENDMENT TO LEASE effective March 1, 2024\n1. The Term is extended, and the Expiration Date is amended to be December 31, 2035.\n2. Base Rent per rentable square foot per annum is amended as follows: 01/01/2026 - 12/31/2030: $70.00; 01/01/2031 - 12/31/2035: $77.00."
+    ],
+    "rent_amendment": [
+      "SECOND AMENDMENT TO LEASE (SYNTHETIC TEST DOCUMENT)\nEffective January 1, 2028.\n1. Base Rent. From January 1, 2028 through December 31, 2030, Base Rent shall be $72.00 per rentable square foot per annum."
+    ],
+    "concessions": [
+      "RETAIL LEASE RIDER (SYNTHETIC TEST DOCUMENT)\n1. Abatement. Tenant shall not pay Base Rent for the first three (3) months of the Term.\n2. Percentage Rent. Tenant shall pay six percent (6%) of Gross Sales above the natural breakpoint.\n3. Inducement. Tenant shall receive two (2) months of free rent."
     ]
   },
   "consistency": [
@@ -286,7 +317,7 @@
       "predicate": "lease.exclusive_use",
       "value": "coffee, except in 10% of floor area",
       "quote": "the exclusive right to sell coffee",
-      "expect": null
+      "expect": "number 10 in value \"coffee, except in 10% of floor area\" not found in quote"
     },
     {
       "predicate": "lease.exclusive_use",
@@ -295,7 +326,7 @@
         "carve_outs": ["up to ten percent of floor area"]
       },
       "quote": "the exclusive right to sell coffee",
-      "expect": null
+      "expect": "value \"up to ten percent of floor area\" (carve_outs) not found in quote"
     },
     {
       "predicate": "lease.kick_out",
@@ -350,6 +381,41 @@
         "radius_miles": 3
       },
       "quote": "within three (3) miles of the Center",
+      "expect": null
+    },
+    {
+      "predicate": "lease.prohibited_uses",
+      "value": ["dry cleaner", "vape shop"],
+      "quote": "for a dry cleaner, a nightclub, a massage parlor or a cannabis dispensary",
+      "expect": "value \"vape shop\" not found in quote"
+    },
+    {
+      "predicate": "lease.prohibited_uses",
+      "value": ["Dry-Cleaner", "massage parlor"],
+      "quote": "for a dry cleaner, a nightclub, a massage\nparlor or a cannabis dispensary",
+      "expect": null
+    },
+    {
+      "predicate": "lease.exclusive_use",
+      "value": {
+        "protected_use": "proportionate occupancy"
+      },
+      "quote": "If Pro- portionate occupancy of the Shopping Center falls",
+      "expect": null
+    },
+    {
+      "predicate": "lease.prohibited_uses",
+      "value": ["bar"],
+      "quote": "a barber shop or a nightclub",
+      "expect": "value \"bar\" not found in quote"
+    },
+    {
+      "predicate": "lease.co_tenancy",
+      "value": {
+        "trigger": "paraphrased trigger",
+        "remedy": "y"
+      },
+      "quote": "if fewer than 70% of the GLA is open",
       "expect": null
     }
   ],
@@ -510,8 +576,8 @@
         },
         "summary": {
           "candidates": 19,
-          "verified": 11,
-          "needs_review": 3,
+          "verified": 9,
+          "needs_review": 5,
           "rejected": 5
         },
         "verified.0.candidate": 0,
@@ -551,61 +617,26 @@
           "start": 637,
           "end": 676
         },
-        "verified.5.candidate": 6,
-        "verified.5.checked": [
-          {
-            "path": "value.rate",
-            "as": "ratio"
-          }
-        ],
-        "verified.5.not_checked": ["value.method"],
-        "verified.6.candidate": 8,
-        "verified.6.checked": [
-          {
-            "path": "value.0.from",
-            "as": "date"
-          },
-          {
-            "path": "value.0.to",
-            "as": "date"
-          },
-          {
-            "path": "value.0.annual_rent_psf",
-            "as": "number"
-          },
-          {
-            "path": "value.1.from",
-            "as": "date"
-          },
-          {
-            "path": "value.1.to",
-            "as": "date"
-          },
-          {
-            "path": "value.1.annual_rent_psf",
-            "as": "number"
-          }
-        ],
-        "verified.7.candidate": 9,
-        "verified.7.fact.provenance.sources.0.page": 1,
-        "verified.7.notes": ["quote found on page 1, not 2"],
-        "verified.8.candidate": 10,
-        "verified.8.checked": [
-          {
-            "path": "value",
-            "as": "string"
-          }
-        ],
-        "verified.9.candidate": 11,
-        "verified.9.not_checked": ["value.rent"],
-        "verified.10.candidate": 12,
-        "verified.10.checked": [
-          {
-            "path": "value",
-            "as": "number"
-          }
-        ],
         "needs_review": [
+          {
+            "candidate": 6,
+            "predicate": "lease.cam_cap",
+            "value": {
+              "method": "compounding_from_base",
+              "rate": 0.05
+            },
+            "quote": "shall not increase by more than five percent (5%) per year on a cumulative, compounding basis",
+            "page": 2,
+            "check": "coverage",
+            "reason": "value.method (string) is not checked against the quote; confirm it",
+            "checked": [
+              {
+                "path": "value.rate",
+                "as": "ratio"
+              }
+            ],
+            "not_checked": ["value.method"]
+          },
           {
             "candidate": 7,
             "predicate": "lease.expiration_date",
@@ -614,6 +645,35 @@
             "page": 1,
             "check": "consistency",
             "reason": "value \"2033-06-30\" not found in quote"
+          },
+          {
+            "candidate": 11,
+            "predicate": "lease.renewal_option",
+            "value": {
+              "count": 1,
+              "term_months": 60,
+              "notice_months": 12,
+              "rent": "not stated"
+            },
+            "quote": "Tenant shall have one (1) option to extend the Term for sixty (60) months by notice given not less than twelve (12) months before expiration",
+            "page": 3,
+            "check": "coverage",
+            "reason": "value.rent (text not written in the quote) is not checked against the quote; confirm it",
+            "checked": [
+              {
+                "path": "value.count",
+                "as": "number"
+              },
+              {
+                "path": "value.term_months",
+                "as": "number"
+              },
+              {
+                "path": "value.notice_months",
+                "as": "number"
+              }
+            ],
+            "not_checked": ["value.rent"]
           },
           {
             "candidate": 13,
@@ -675,7 +735,52 @@
             "check": "quote",
             "reason": "quote not found in the document"
           }
-        ]
+        ],
+        "verified.5.candidate": 8,
+        "verified.5.checked": [
+          {
+            "path": "value.0.from",
+            "as": "date"
+          },
+          {
+            "path": "value.0.to",
+            "as": "date"
+          },
+          {
+            "path": "value.0.annual_rent_psf",
+            "as": "number"
+          },
+          {
+            "path": "value.1.from",
+            "as": "date"
+          },
+          {
+            "path": "value.1.to",
+            "as": "date"
+          },
+          {
+            "path": "value.1.annual_rent_psf",
+            "as": "number"
+          }
+        ],
+        "verified.6.candidate": 9,
+        "verified.6.fact.provenance.sources.0.page": 1,
+        "verified.6.notes": ["quote found on page 1, not 2"],
+        "verified.7.candidate": 10,
+        "verified.7.checked": [
+          {
+            "path": "value",
+            "as": "string"
+          }
+        ],
+        "verified.8.candidate": 12,
+        "verified.8.checked": [
+          {
+            "path": "value",
+            "as": "number"
+          }
+        ],
+        "verified.8.not_checked": []
       }
     },
     {
@@ -845,7 +950,7 @@
       "name": "abstract: amendments apply by effective date; later controls, history kept",
       "tool": "doc_abstract_lease",
       "arguments": {
-        "as_of": "2026-11-03",
+        "as_of": "2030-06-01",
         "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
         "documents": [
           {
@@ -1021,7 +1126,8 @@
           "facts": 7,
           "needs_review": 1,
           "rejected": 0,
-          "conflicts": 0
+          "conflicts": 0,
+          "pending": 0
         }
       }
     },
@@ -1115,7 +1221,7 @@
       "expect_error": "InputError"
     },
     {
-      "name": "abstract: amendments without dates apply in the order given",
+      "name": "abstract: two or more amendments need effective dates; input order is never used",
       "tool": "doc_abstract_lease",
       "arguments": {
         "as_of": "2026-11-03",
@@ -1200,14 +1306,13 @@
           }
         ]
       },
-      "expect": {
-        "documents.1.document": 1,
-        "documents.2.document": 2,
-        "fields.0.value": "2033-06-30",
-        "fields.0.history.1.value": "2034-06-30",
-        "fields.1.value": 14000,
-        "fields.1.open_items": null
-      }
+      "expect_error": "InputError",
+      "expect_issues": [
+        {
+          "path": "documents.1.effective_date",
+          "message": "this amendment has no effective_date; with 2 amendments FactLot applies them in effective-date order, never input order, so give each amendment its effective_date (YYYY-MM-DD)"
+        }
+      ]
     },
     {
       "name": "abstract: one document stating two values is a conflict",
@@ -1262,7 +1367,7 @@
       "name": "abstract: facts without pages are taken with quote_on_page false",
       "tool": "doc_abstract_lease",
       "arguments": {
-        "as_of": "2026-11-03",
+        "as_of": "2030-06-01",
         "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
         "documents": [
           {
@@ -1333,7 +1438,7 @@
       "name": "abstract: a fact whose value its quote does not state is rejected",
       "tool": "doc_abstract_lease",
       "arguments": {
-        "as_of": "2026-11-03",
+        "as_of": "2030-06-01",
         "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
         "documents": [
           {
@@ -1540,7 +1645,7 @@
           },
           {
             "predicate": "lease.security_deposit",
-            "value": 1250000.0
+            "value": 1250000
           }
         ]
       },
@@ -1948,7 +2053,7 @@
       }
     },
     {
-      "name": "claim with nothing checkable: unverifiable",
+      "name": "claim: an exclusive use the quote does not write is unverifiable",
       "tool": "doc_verify_claim",
       "arguments": {
         "document": {
@@ -1965,7 +2070,16 @@
       },
       "expect": {
         "status": "unverifiable",
-        "not_checked": ["value"]
+        "reason": "\"medical office\" is not written in the quote",
+        "checked": [
+          {
+            "path": "value",
+            "as": "words",
+            "value": "medical office",
+            "found": false
+          }
+        ],
+        "not_checked": null
       }
     },
     {
@@ -2555,29 +2669,82 @@
       "expect": {
         "summary": {
           "candidates": 14,
-          "verified": 9,
-          "needs_review": 3,
+          "verified": 4,
+          "needs_review": 8,
           "rejected": 2
         },
+        "rejected.0.reason": "expected {operating_covenant, recapture_right?, dark_period_days?} with operating_covenant true or false",
+        "rejected.1.reason": "notice_days must be a positive number",
         "verified.0.fact.predicate": "lease.exclusive_use",
         "verified.0.checked": [
           {
+            "path": "value.protected_use",
+            "as": "words"
+          },
+          {
+            "path": "value.carve_outs.0",
+            "as": "words"
+          },
+          {
             "path": "value.carve_outs.1",
-            "as": "text"
+            "as": "words"
+          },
+          {
+            "path": "value.applies_to",
+            "as": "words"
           }
         ],
-        "verified.0.not_checked": [
-          "value.protected_use",
-          "value.carve_outs.0",
-          "value.applies_to"
-        ],
+        "verified.0.not_checked": [],
         "verified.1.fact.value": [
           "a bar or tavern",
           "a massage parlor",
           "a pawn shop",
           "a bowling alley"
         ],
+        "verified.1.checked": [
+          {
+            "path": "value.0",
+            "as": "words"
+          },
+          {
+            "path": "value.1",
+            "as": "words"
+          },
+          {
+            "path": "value.2",
+            "as": "words"
+          },
+          {
+            "path": "value.3",
+            "as": "words"
+          }
+        ],
+        "verified.2.candidate": 4,
         "verified.2.checked": [
+          {
+            "path": "value.radius_miles",
+            "as": "number"
+          },
+          {
+            "path": "value.duration",
+            "as": "words"
+          }
+        ],
+        "verified.3.candidate": 7,
+        "verified.3.checked": [
+          {
+            "path": "value.consent_standard",
+            "as": "phrase"
+          },
+          {
+            "path": "value.profit_share",
+            "as": "ratio"
+          }
+        ],
+        "needs_review.0.candidate": 2,
+        "needs_review.0.check": "coverage",
+        "needs_review.0.reason": "value.trigger (text not written in the quote), value.remedy (text not written in the quote), value.remedy_type (string) are not checked against the quote; confirm them",
+        "needs_review.0.checked": [
           {
             "path": "value.cure_period_months",
             "as": "number"
@@ -2591,49 +2758,39 @@
             "as": "string"
           }
         ],
-        "verified.3.checked": [
+        "needs_review.1.candidate": 3,
+        "needs_review.1.reason": "value.operating_covenant (boolean), value.recapture_right (boolean) are not checked against the quote; confirm them",
+        "needs_review.1.checked": [
           {
             "path": "value.dark_period_days",
             "as": "number"
           }
         ],
-        "verified.6.checked": [
-          {
-            "path": "value.sales_threshold",
-            "as": "number"
-          },
-          {
-            "path": "value.notice_days",
-            "as": "number"
-          }
+        "needs_review.1.not_checked": [
+          "value.operating_covenant",
+          "value.recapture_right"
         ],
-        "verified.7.checked": [
-          {
-            "path": "value.consent_standard",
-            "as": "phrase"
-          },
-          {
-            "path": "value.profit_share",
-            "as": "ratio"
-          }
-        ],
-        "verified.8.checked": [
+        "needs_review.2.candidate": 5,
+        "needs_review.2.reason": "value.landlord_pays_costs (boolean) is not checked against the quote; confirm it",
+        "needs_review.3.candidate": 6,
+        "needs_review.3.reason": "value.party (string) is not checked against the quote; confirm it",
+        "needs_review.4.candidate": 8,
+        "needs_review.4.reason": "value.applies_to (string) is not checked against the quote; confirm it",
+        "needs_review.4.checked": [
           {
             "path": "value.description",
-            "as": "text"
+            "as": "words"
           },
           {
             "path": "value.response_days",
             "as": "number"
           }
         ],
-        "verified.8.fact.provenance.sources.0.section": "8.2",
-        "needs_review.0.candidate": 9,
-        "needs_review.0.reason": "value \"sole_discretion\" (consent_standard) not found in quote",
-        "needs_review.1.reason": "number 15 in value \"incidental sales of bottled coffee drinks in up to 15% of its floor area\" (carve_outs) not found in quote",
-        "needs_review.2.reason": "value 5 (radius_miles) not found in quote",
-        "rejected.0.reason": "expected {operating_covenant, recapture_right?, dark_period_days?} with operating_covenant true or false",
-        "rejected.1.reason": "notice_days must be a positive number"
+        "needs_review.5.candidate": 9,
+        "needs_review.5.check": "consistency",
+        "needs_review.5.reason": "value \"sole_discretion\" (consent_standard) not found in quote",
+        "needs_review.6.reason": "number 15 in value \"incidental sales of bottled coffee drinks in up to 15% of its floor area\" (carve_outs) not found in quote",
+        "needs_review.7.reason": "value 5 (radius_miles) not found in quote"
       }
     },
     {
@@ -4157,7 +4314,18 @@
           "on_page": 3,
           "problems": [],
           "documents_not_supplied": []
-        }
+        },
+        "values_not_checked": [],
+        "checks_run": [
+          "integrity: each fact's hash, the Merkle root and the digest, recomputed from the content",
+          "signature: Ed25519, against the public_key given",
+          "facts: fact_validate on each fact (schema and citations; for Ingest predicates, the value's shape and that its numbers, dates, names and as-written text appear in each source quote)",
+          "quotes: each quote citing a supplied document is on its cited page"
+        ],
+        "checks_not_run": [
+          "files: whether the pages given came from the files their sha256 names",
+          "meaning: a quote that states the right number for a different term passes"
+        ]
       }
     },
     {
@@ -4368,7 +4536,8 @@
         "signature.status": "matches_embedded_key",
         "quotes.documents_not_supplied": [
           "fl:document:sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
-        ]
+        ],
+        "checks_run.1": "signature: Ed25519, against the key inside the package only; pass public_key to check who signed"
       }
     },
     {
@@ -4924,6 +5093,1407 @@
         "lines.3.status": "excluded",
         "lines.3.reason": "the label matches no category in the chart; give a category"
       }
+    },
+    {
+      "name": "verify: an invented prohibited use is not verified (hosted review H15-P04)",
+      "tool": "doc_verify_facts",
+      "arguments": {
+        "document": {
+          "pages": {
+            "$pages": "strip_center_lease"
+          },
+          "title": "Shopping Center Lease (synthetic)"
+        },
+        "as_of": "2026-11-04",
+        "candidates": [
+          {
+            "predicate": "lease.prohibited_uses",
+            "value": [
+              "dry cleaner",
+              "nightclub",
+              "massage parlor",
+              "cannabis dispensary",
+              "vape shop"
+            ],
+            "quote": "for a dry cleaner, a nightclub, a massage parlor or a cannabis dispensary",
+            "page": 3
+          },
+          {
+            "predicate": "lease.prohibited_uses",
+            "value": [
+              "dry cleaner",
+              "nightclub",
+              "massage parlor",
+              "cannabis dispensary"
+            ],
+            "quote": "for a dry cleaner, a nightclub, a massage parlor or a cannabis dispensary",
+            "page": 3
+          }
+        ]
+      },
+      "expect": {
+        "summary": {
+          "candidates": 2,
+          "verified": 1,
+          "needs_review": 1,
+          "rejected": 0
+        },
+        "needs_review.0.candidate": 0,
+        "needs_review.0.check": "consistency",
+        "needs_review.0.reason": "value \"vape shop\" not found in quote",
+        "verified.0.candidate": 1,
+        "verified.0.checked": [
+          {
+            "path": "value.0",
+            "as": "words"
+          },
+          {
+            "path": "value.1",
+            "as": "words"
+          },
+          {
+            "path": "value.2",
+            "as": "words"
+          },
+          {
+            "path": "value.3",
+            "as": "words"
+          }
+        ],
+        "verified.0.not_checked": []
+      }
+    },
+    {
+      "name": "verify: an exclusive use with a carve-out its quote does not state is held for review (H15-P04)",
+      "tool": "doc_verify_facts",
+      "arguments": {
+        "document": {
+          "pages": {
+            "$pages": "strip_center_lease"
+          }
+        },
+        "as_of": "2026-11-04",
+        "candidates": [
+          {
+            "predicate": "lease.exclusive_use",
+            "value": {
+              "protected_use": "primary purpose of the sale of baked goods, coffee or tea",
+              "carve_outs": [
+                "a grocery store may sell packaged baked goods",
+                "incidental sales in up to 10% of floor area"
+              ],
+              "applies_to": "the Shopping Center"
+            },
+            "quote": "Landlord shall not permit any other premises in the Shopping Center to be used for the primary purpose of the sale of baked goods, coffee or tea, except that",
+            "page": 2
+          }
+        ]
+      },
+      "expect": {
+        "summary": {
+          "candidates": 1,
+          "verified": 0,
+          "needs_review": 1,
+          "rejected": 0
+        },
+        "needs_review.0.check": "consistency",
+        "needs_review.0.reason": "value \"a grocery store may sell packaged baked goods\" (carve_outs) not found in quote"
+      }
+    },
+    {
+      "name": "verify: a true/false value is never verified by its quote (go-dark, H15-P07)",
+      "tool": "doc_verify_facts",
+      "arguments": {
+        "document": {
+          "pages": {
+            "$pages": "anchor_lease"
+          }
+        },
+        "as_of": "2026-11-04",
+        "candidates": [
+          {
+            "predicate": "lease.go_dark",
+            "value": {
+              "operating_covenant": true
+            },
+            "quote": "Tenant is not required to continuously operate",
+            "page": 3
+          },
+          {
+            "predicate": "lease.kick_out",
+            "value": {
+              "party": "tenant",
+              "sales_threshold": 18000000,
+              "test_period": "the third Lease Year",
+              "notice_days": 180
+            },
+            "quote": "If Tenant's Gross Sales for the third Lease Year are less than $18,000,000, Tenant may terminate this Lease on one hundred eighty (180) days' written notice",
+            "page": 2
+          }
+        ]
+      },
+      "expect": {
+        "summary": {
+          "candidates": 2,
+          "verified": 0,
+          "needs_review": 2,
+          "rejected": 0
+        },
+        "needs_review.0.candidate": 0,
+        "needs_review.0.check": "coverage",
+        "needs_review.0.reason": "value.operating_covenant (boolean) is not checked against the quote; confirm it",
+        "needs_review.0.checked": [],
+        "needs_review.0.not_checked": ["value.operating_covenant"],
+        "needs_review.1.candidate": 1,
+        "needs_review.1.check": "coverage",
+        "needs_review.1.reason": "value.party (string) is not checked against the quote; confirm it",
+        "needs_review.1.checked": [
+          {
+            "path": "value.sales_threshold",
+            "as": "number"
+          },
+          {
+            "path": "value.test_period",
+            "as": "words"
+          },
+          {
+            "path": "value.notice_days",
+            "as": "number"
+          }
+        ]
+      }
+    },
+    {
+      "name": "abstract: amendment first and the lease without a role; the lease is inferred as the original (H13-P01)",
+      "tool": "doc_abstract_lease",
+      "arguments": {
+        "documents": [
+          {
+            "role": "amendment",
+            "effective_date": "2028-01-01",
+            "title": "First Amendment to Lease",
+            "candidates": [
+              {
+                "predicate": "lease.expiration_date",
+                "value": "2034-02-28",
+                "quote": "shall now expire on February 28, 2034",
+                "page": 1
+              },
+              {
+                "predicate": "lease.area_sf",
+                "value": 22300,
+                "quote": "approximately 22,300 rentable square feet",
+                "page": 1
+              },
+              {
+                "predicate": "lease.security_deposit",
+                "value": 290000,
+                "quote": "increased to $290,000.00",
+                "page": 1
+              }
+            ],
+            "pages": {
+              "$pages": "lab_amendment"
+            }
+          },
+          {
+            "title": "Laboratory Lease Agreement",
+            "candidates": [
+              {
+                "predicate": "lease.expiration_date",
+                "value": "2032-02-29",
+                "quote": "expiring on February 29, 2032",
+                "page": 2,
+                "section": "3.1"
+              },
+              {
+                "predicate": "lease.commencement_date",
+                "value": "2025-03-01",
+                "quote": "commencing on March 1, 2025",
+                "page": 2
+              },
+              {
+                "predicate": "lease.area_sf",
+                "value": 18450,
+                "quote": "approximately 18,450 rentable square feet",
+                "page": 1
+              },
+              {
+                "predicate": "lease.security_deposit",
+                "value": 240000,
+                "quote": "security deposit of $240,000.00",
+                "page": 3
+              },
+              {
+                "predicate": "lease.landlord",
+                "value": "Lone Star Lab Holdings LLC",
+                "quote": "between Lone Star Lab Holdings LLC (\"Landlord\")",
+                "page": 1
+              },
+              {
+                "predicate": "lease.tenant",
+                "value": "Cedar Assay Therapeutics, Inc.",
+                "quote": "Cedar Assay Therapeutics, Inc. (\"Tenant\")",
+                "page": 1
+              },
+              {
+                "predicate": "lease.renewal_option_count",
+                "value": 2,
+                "quote": "two (2) options to renew for five (5) years each",
+                "page": 2
+              },
+              {
+                "predicate": "lease.base_rent_annual_psf",
+                "value": 52,
+                "quote": "Annual Base Rent shall be $52.00 per rentable square foot",
+                "page": 2
+              }
+            ],
+            "pages": {
+              "$pages": "lab_lease"
+            }
+          }
+        ],
+        "as_of": "2028-06-01"
+      },
+      "expect": {
+        "documents.0.document": 1,
+        "documents.0.role": "original",
+        "documents.0.role_inferred": true,
+        "documents.0.applied": 1,
+        "documents.1.document": 0,
+        "documents.1.applied": 2,
+        "fields.0.predicate": "lease.expiration_date",
+        "fields.0.value": "2034-02-28",
+        "fields.0.history.0.value": "2032-02-29",
+        "fields.2.predicate": "lease.area_sf",
+        "fields.2.value": 22300,
+        "fields.3.predicate": "lease.security_deposit",
+        "fields.3.value": 290000,
+        "summary": {
+          "documents": 2,
+          "fields": 8,
+          "facts": 11,
+          "pending": 0,
+          "needs_review": 0,
+          "rejected": 0,
+          "conflicts": 0
+        }
+      }
+    },
+    {
+      "name": "abstract: the same documents with roles and in the other order give the same abstract",
+      "tool": "doc_abstract_lease",
+      "arguments": {
+        "documents": [
+          {
+            "title": "Laboratory Lease Agreement",
+            "candidates": [
+              {
+                "predicate": "lease.expiration_date",
+                "value": "2032-02-29",
+                "quote": "expiring on February 29, 2032",
+                "page": 2,
+                "section": "3.1"
+              },
+              {
+                "predicate": "lease.commencement_date",
+                "value": "2025-03-01",
+                "quote": "commencing on March 1, 2025",
+                "page": 2
+              },
+              {
+                "predicate": "lease.area_sf",
+                "value": 18450,
+                "quote": "approximately 18,450 rentable square feet",
+                "page": 1
+              },
+              {
+                "predicate": "lease.security_deposit",
+                "value": 240000,
+                "quote": "security deposit of $240,000.00",
+                "page": 3
+              },
+              {
+                "predicate": "lease.landlord",
+                "value": "Lone Star Lab Holdings LLC",
+                "quote": "between Lone Star Lab Holdings LLC (\"Landlord\")",
+                "page": 1
+              },
+              {
+                "predicate": "lease.tenant",
+                "value": "Cedar Assay Therapeutics, Inc.",
+                "quote": "Cedar Assay Therapeutics, Inc. (\"Tenant\")",
+                "page": 1
+              },
+              {
+                "predicate": "lease.renewal_option_count",
+                "value": 2,
+                "quote": "two (2) options to renew for five (5) years each",
+                "page": 2
+              },
+              {
+                "predicate": "lease.base_rent_annual_psf",
+                "value": 52,
+                "quote": "Annual Base Rent shall be $52.00 per rentable square foot",
+                "page": 2
+              }
+            ],
+            "role": "original",
+            "pages": {
+              "$pages": "lab_lease"
+            }
+          },
+          {
+            "role": "amendment",
+            "effective_date": "2028-01-01",
+            "title": "First Amendment to Lease",
+            "candidates": [
+              {
+                "predicate": "lease.expiration_date",
+                "value": "2034-02-28",
+                "quote": "shall now expire on February 28, 2034",
+                "page": 1
+              },
+              {
+                "predicate": "lease.area_sf",
+                "value": 22300,
+                "quote": "approximately 22,300 rentable square feet",
+                "page": 1
+              },
+              {
+                "predicate": "lease.security_deposit",
+                "value": 290000,
+                "quote": "increased to $290,000.00",
+                "page": 1
+              }
+            ],
+            "pages": {
+              "$pages": "lab_amendment"
+            }
+          }
+        ],
+        "as_of": "2028-06-01"
+      },
+      "expect": {
+        "documents.0.document": 0,
+        "documents.0.role": "original",
+        "documents.0.role_inferred": null,
+        "documents.1.document": 1,
+        "fields.0.predicate": "lease.expiration_date",
+        "fields.0.value": "2034-02-28",
+        "fields.0.history.0.value": "2032-02-29",
+        "fields.2.predicate": "lease.area_sf",
+        "fields.2.value": 22300,
+        "fields.3.predicate": "lease.security_deposit",
+        "fields.3.value": 290000,
+        "summary": {
+          "documents": 2,
+          "fields": 8,
+          "facts": 11,
+          "pending": 0,
+          "needs_review": 0,
+          "rejected": 0,
+          "conflicts": 0
+        }
+      }
+    },
+    {
+      "name": "abstract: an amendment effective after as_of is pending and does not control (H13-P01)",
+      "tool": "doc_abstract_lease",
+      "arguments": {
+        "documents": [
+          {
+            "role": "amendment",
+            "effective_date": "2028-01-01",
+            "title": "First Amendment to Lease",
+            "candidates": [
+              {
+                "predicate": "lease.expiration_date",
+                "value": "2034-02-28",
+                "quote": "shall now expire on February 28, 2034",
+                "page": 1
+              },
+              {
+                "predicate": "lease.area_sf",
+                "value": 22300,
+                "quote": "approximately 22,300 rentable square feet",
+                "page": 1
+              },
+              {
+                "predicate": "lease.security_deposit",
+                "value": 290000,
+                "quote": "increased to $290,000.00",
+                "page": 1
+              }
+            ],
+            "pages": {
+              "$pages": "lab_amendment"
+            }
+          },
+          {
+            "title": "Laboratory Lease Agreement",
+            "candidates": [
+              {
+                "predicate": "lease.expiration_date",
+                "value": "2032-02-29",
+                "quote": "expiring on February 29, 2032",
+                "page": 2,
+                "section": "3.1"
+              },
+              {
+                "predicate": "lease.commencement_date",
+                "value": "2025-03-01",
+                "quote": "commencing on March 1, 2025",
+                "page": 2
+              },
+              {
+                "predicate": "lease.area_sf",
+                "value": 18450,
+                "quote": "approximately 18,450 rentable square feet",
+                "page": 1
+              },
+              {
+                "predicate": "lease.security_deposit",
+                "value": 240000,
+                "quote": "security deposit of $240,000.00",
+                "page": 3
+              },
+              {
+                "predicate": "lease.landlord",
+                "value": "Lone Star Lab Holdings LLC",
+                "quote": "between Lone Star Lab Holdings LLC (\"Landlord\")",
+                "page": 1
+              },
+              {
+                "predicate": "lease.tenant",
+                "value": "Cedar Assay Therapeutics, Inc.",
+                "quote": "Cedar Assay Therapeutics, Inc. (\"Tenant\")",
+                "page": 1
+              },
+              {
+                "predicate": "lease.renewal_option_count",
+                "value": 2,
+                "quote": "two (2) options to renew for five (5) years each",
+                "page": 2
+              },
+              {
+                "predicate": "lease.base_rent_annual_psf",
+                "value": 52,
+                "quote": "Annual Base Rent shall be $52.00 per rentable square foot",
+                "page": 2
+              }
+            ],
+            "pages": {
+              "$pages": "lab_lease"
+            }
+          }
+        ],
+        "as_of": "2026-11-04"
+      },
+      "expect": {
+        "documents.1.document": 0,
+        "documents.1.pending": true,
+        "documents.1.applied": null,
+        "fields.0.predicate": "lease.expiration_date",
+        "fields.0.value": "2032-02-29",
+        "fields.0.history": [],
+        "fields.0.pending.0.value": "2034-02-28",
+        "fields.0.pending.0.effective_date": "2028-01-01",
+        "fields.0.pending.0.document": 0,
+        "fields.2.value": 18450,
+        "fields.3.value": 240000,
+        "warnings": [
+          "documents.0 (First Amendment to Lease) takes effect on 2028-01-01, after as_of 2026-11-04: its 3 verified values are listed under pending and do not control the current abstract"
+        ],
+        "summary": {
+          "documents": 2,
+          "fields": 8,
+          "facts": 8,
+          "pending": 3,
+          "needs_review": 0,
+          "rejected": 0,
+          "conflicts": 0
+        },
+        "pending.1.predicate": "lease.area_sf",
+        "pending.1.value": 22300,
+        "pending.1.effective_date": "2028-01-01"
+      }
+    },
+    {
+      "name": "abstract: two amendments not yet in effect as of 2026-11-03 are both pending",
+      "tool": "doc_abstract_lease",
+      "arguments": {
+        "as_of": "2026-11-03",
+        "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+        "documents": [
+          {
+            "role": "amendment",
+            "effective_date": "2030-03-01",
+            "title": "Second Amendment",
+            "pages": {
+              "$pages": "second_amendment"
+            },
+            "candidates": [
+              {
+                "predicate": "lease.expiration_date",
+                "value": "2034-06-30",
+                "quote": "is hereby extended to 6/30/2034",
+                "page": 1
+              },
+              {
+                "predicate": "lease.rentable_area_sf",
+                "value": 15000,
+                "quote": "The Premises contain 14,500 rentable square feet",
+                "page": 1
+              }
+            ]
+          },
+          {
+            "role": "original",
+            "title": "Office Lease",
+            "pages": {
+              "$pages": "lease"
+            },
+            "candidates": [
+              {
+                "predicate": "lease.expiration_date",
+                "value": "2031-06-30",
+                "quote": "shall expire on June 30, 2031",
+                "page": 1,
+                "section": "1.2"
+              },
+              {
+                "predicate": "lease.rentable_area_sf",
+                "value": 12500,
+                "quote": "containing approximately 12,500 rentable square feet",
+                "page": 1
+              },
+              {
+                "predicate": "lease.pro_rata_share",
+                "value": 0.0425,
+                "quote": "Tenant's Pro-\nportionate Share is 4.25%",
+                "page": 2
+              }
+            ]
+          },
+          {
+            "role": "amendment",
+            "effective_date": "2028-01-15",
+            "title": "First Amendment",
+            "pages": {
+              "$pages": "first_amendment"
+            },
+            "candidates": [
+              {
+                "predicate": "lease.expiration_date",
+                "value": "2033-06-30",
+                "quote": "is hereby extended to the thirtieth day of June, 2033",
+                "page": 1
+              },
+              {
+                "predicate": "lease.rentable_area_sf",
+                "value": 14000,
+                "quote": "the Premises contain 14,000 rentable square feet",
+                "page": 1
+              },
+              {
+                "predicate": "lease.pro_rata_share",
+                "value": 0.0476,
+                "quote": "Proportionate Share is hereby changed to 4.76%",
+                "page": 1
+              }
+            ]
+          }
+        ]
+      },
+      "expect": {
+        "fields.0.value": "2031-06-30",
+        "fields.0.history": [],
+        "fields.0.pending.0.value": "2033-06-30",
+        "fields.0.pending.1.value": "2034-06-30",
+        "fields.1.value": 12500,
+        "fields.2.value": 0.0425,
+        "facts.0.supersedes": null,
+        "pending_facts.0.valid_from": "2028-01-15",
+        "pending_facts.0.supersedes": null
+      }
+    },
+    {
+      "name": "abstract: an amendment restating the rent from 2026 keeps the lease's earlier steps (H05-P11)",
+      "tool": "doc_abstract_lease",
+      "arguments": {
+        "documents": [
+          {
+            "role": "original",
+            "title": "Commercial Lease (synthetic)",
+            "candidates": [
+              {
+                "predicate": "lease.expiration_date",
+                "value": "2030-12-31",
+                "quote": "shall expire on December 31, 2030",
+                "page": 1,
+                "section": "2"
+              },
+              {
+                "predicate": "lease.rentable_area_sf",
+                "value": 2100,
+                "quote": "approximately 2,100 rentable square feet",
+                "page": 1,
+                "section": "1"
+              },
+              {
+                "predicate": "lease.base_rent_schedule",
+                "value": [
+                  {
+                    "from": "2021-01-01",
+                    "to": "2025-12-31",
+                    "annual_rent_psf": 62
+                  },
+                  {
+                    "from": "2026-01-01",
+                    "to": "2030-12-31",
+                    "annual_rent_psf": 68
+                  }
+                ],
+                "quote": "Lease Years 1-5 (01/01/2021 - 12/31/2025): $62.00; Lease Years 6-10 (01/01/2026 - 12/31/2030): $68.00",
+                "page": 1,
+                "section": "3"
+              },
+              {
+                "predicate": "lease.security_deposit",
+                "value": 75000,
+                "quote": "Tenant has deposited $75,000 with Landlord",
+                "page": 1,
+                "section": "4"
+              },
+              {
+                "predicate": "lease.pro_rata_share",
+                "value": 8,
+                "quote": "Tenant's share of Real Estate Taxes is 8%",
+                "page": 2,
+                "section": "5"
+              },
+              {
+                "predicate": "lease.renewal_option",
+                "value": {
+                  "count": 1,
+                  "term_months": 60,
+                  "notice_months": 12,
+                  "rent": "fair market rent"
+                },
+                "quote": "one (1) option to renew for five (5) years upon twelve (12) months' prior written notice, at fair market rent",
+                "page": 2,
+                "section": "6"
+              }
+            ],
+            "pages": {
+              "$pages": "deli_lease"
+            }
+          },
+          {
+            "role": "amendment",
+            "effective_date": "2024-03-01",
+            "title": "First Amendment (synthetic)",
+            "candidates": [
+              {
+                "predicate": "lease.expiration_date",
+                "value": "2035-12-31",
+                "quote": "Expiration Date is amended to be December 31, 2035",
+                "page": 1,
+                "section": "1"
+              },
+              {
+                "predicate": "lease.base_rent_schedule",
+                "value": [
+                  {
+                    "from": "2026-01-01",
+                    "to": "2030-12-31",
+                    "annual_rent_psf": 70
+                  },
+                  {
+                    "from": "2031-01-01",
+                    "to": "2035-12-31",
+                    "annual_rent_psf": 77
+                  }
+                ],
+                "quote": "01/01/2026 - 12/31/2030: $70.00; 01/01/2031 - 12/31/2035: $77.00",
+                "page": 1,
+                "section": "2"
+              }
+            ],
+            "pages": {
+              "$pages": "deli_amendment"
+            }
+          }
+        ],
+        "as_of": "2026-11-04"
+      },
+      "expect": {
+        "fields.2.predicate": "lease.base_rent_schedule",
+        "fields.2.value": [
+          {
+            "from": "2021-01-01",
+            "to": "2025-12-31",
+            "annual_rent_psf": 62
+          },
+          {
+            "from": "2026-01-01",
+            "to": "2030-12-31",
+            "annual_rent_psf": 70
+          },
+          {
+            "from": "2031-01-01",
+            "to": "2035-12-31",
+            "annual_rent_psf": 77
+          }
+        ],
+        "fields.2.source.document": 1,
+        "fields.2.carried_forward.0.steps": [
+          {
+            "from": "2021-01-01",
+            "to": "2025-12-31",
+            "annual_rent_psf": 62
+          }
+        ],
+        "fields.2.carried_forward.0.document": 0,
+        "fields.2.history.0.document": 0,
+        "fields.2.notes": null
+      }
+    },
+    {
+      "name": "abstract: a restated rent step that starts inside an earlier step ends that step the day before",
+      "tool": "doc_abstract_lease",
+      "arguments": {
+        "documents": [
+          {
+            "role": "original",
+            "title": "Commercial Lease (synthetic)",
+            "candidates": [
+              {
+                "predicate": "lease.expiration_date",
+                "value": "2030-12-31",
+                "quote": "shall expire on December 31, 2030",
+                "page": 1,
+                "section": "2"
+              },
+              {
+                "predicate": "lease.rentable_area_sf",
+                "value": 2100,
+                "quote": "approximately 2,100 rentable square feet",
+                "page": 1,
+                "section": "1"
+              },
+              {
+                "predicate": "lease.base_rent_schedule",
+                "value": [
+                  {
+                    "from": "2021-01-01",
+                    "to": "2025-12-31",
+                    "annual_rent_psf": 62
+                  },
+                  {
+                    "from": "2026-01-01",
+                    "to": "2030-12-31",
+                    "annual_rent_psf": 68
+                  }
+                ],
+                "quote": "Lease Years 1-5 (01/01/2021 - 12/31/2025): $62.00; Lease Years 6-10 (01/01/2026 - 12/31/2030): $68.00",
+                "page": 1,
+                "section": "3"
+              },
+              {
+                "predicate": "lease.security_deposit",
+                "value": 75000,
+                "quote": "Tenant has deposited $75,000 with Landlord",
+                "page": 1,
+                "section": "4"
+              },
+              {
+                "predicate": "lease.pro_rata_share",
+                "value": 8,
+                "quote": "Tenant's share of Real Estate Taxes is 8%",
+                "page": 2,
+                "section": "5"
+              },
+              {
+                "predicate": "lease.renewal_option",
+                "value": {
+                  "count": 1,
+                  "term_months": 60,
+                  "notice_months": 12,
+                  "rent": "fair market rent"
+                },
+                "quote": "one (1) option to renew for five (5) years upon twelve (12) months' prior written notice, at fair market rent",
+                "page": 2,
+                "section": "6"
+              }
+            ],
+            "pages": {
+              "$pages": "deli_lease"
+            }
+          },
+          {
+            "role": "amendment",
+            "effective_date": "2028-01-01",
+            "title": "Second Amendment (synthetic)",
+            "pages": {
+              "$pages": "rent_amendment"
+            },
+            "candidates": [
+              {
+                "predicate": "lease.base_rent_schedule",
+                "value": [
+                  {
+                    "from": "2028-01-01",
+                    "to": "2030-12-31",
+                    "annual_rent_psf": 72
+                  }
+                ],
+                "quote": "From January 1, 2028 through December 31, 2030, Base Rent shall be $72.00",
+                "page": 1
+              }
+            ]
+          }
+        ],
+        "as_of": "2028-06-01"
+      },
+      "expect": {
+        "fields.2.predicate": "lease.base_rent_schedule",
+        "fields.2.value": [
+          {
+            "from": "2021-01-01",
+            "to": "2025-12-31",
+            "annual_rent_psf": 62
+          },
+          {
+            "from": "2026-01-01",
+            "to": "2027-12-31",
+            "annual_rent_psf": 68
+          },
+          {
+            "from": "2028-01-01",
+            "to": "2030-12-31",
+            "annual_rent_psf": 72
+          }
+        ],
+        "fields.2.carried_forward.0.steps": [
+          {
+            "from": "2021-01-01",
+            "to": "2025-12-31",
+            "annual_rent_psf": 62
+          },
+          {
+            "from": "2026-01-01",
+            "to": "2027-12-31",
+            "annual_rent_psf": 68
+          }
+        ],
+        "fields.2.notes": [
+          "the step from 2026-01-01 to 2030-12-31 (document 0) is shown ending 2027-12-31, the day before document 1's schedule starts"
+        ],
+        "fields.2.history.0.value": [
+          {
+            "from": "2021-01-01",
+            "to": "2025-12-31",
+            "annual_rent_psf": 62
+          },
+          {
+            "from": "2026-01-01",
+            "to": "2030-12-31",
+            "annual_rent_psf": 68
+          }
+        ]
+      }
+    },
+    {
+      "name": "abstract: two documents without a role or a date are ambiguous; FactLot asks for role",
+      "tool": "doc_abstract_lease",
+      "arguments": {
+        "documents": [
+          {
+            "pages": {
+              "$pages": "lab_amendment"
+            },
+            "candidates": [
+              {
+                "predicate": "lease.expiration_date",
+                "value": "2034-02-28",
+                "quote": "shall now expire on February 28, 2034",
+                "page": 1
+              },
+              {
+                "predicate": "lease.area_sf",
+                "value": 22300,
+                "quote": "approximately 22,300 rentable square feet",
+                "page": 1
+              },
+              {
+                "predicate": "lease.security_deposit",
+                "value": 290000,
+                "quote": "increased to $290,000.00",
+                "page": 1
+              }
+            ]
+          },
+          {
+            "pages": {
+              "$pages": "lab_lease"
+            },
+            "candidates": [
+              {
+                "predicate": "lease.expiration_date",
+                "value": "2032-02-29",
+                "quote": "expiring on February 29, 2032",
+                "page": 2,
+                "section": "3.1"
+              },
+              {
+                "predicate": "lease.commencement_date",
+                "value": "2025-03-01",
+                "quote": "commencing on March 1, 2025",
+                "page": 2
+              },
+              {
+                "predicate": "lease.area_sf",
+                "value": 18450,
+                "quote": "approximately 18,450 rentable square feet",
+                "page": 1
+              },
+              {
+                "predicate": "lease.security_deposit",
+                "value": 240000,
+                "quote": "security deposit of $240,000.00",
+                "page": 3
+              },
+              {
+                "predicate": "lease.landlord",
+                "value": "Lone Star Lab Holdings LLC",
+                "quote": "between Lone Star Lab Holdings LLC (\"Landlord\")",
+                "page": 1
+              },
+              {
+                "predicate": "lease.tenant",
+                "value": "Cedar Assay Therapeutics, Inc.",
+                "quote": "Cedar Assay Therapeutics, Inc. (\"Tenant\")",
+                "page": 1
+              },
+              {
+                "predicate": "lease.renewal_option_count",
+                "value": 2,
+                "quote": "two (2) options to renew for five (5) years each",
+                "page": 2
+              },
+              {
+                "predicate": "lease.base_rent_annual_psf",
+                "value": 52,
+                "quote": "Annual Base Rent shall be $52.00 per rentable square foot",
+                "page": 2
+              }
+            ]
+          }
+        ],
+        "as_of": "2026-11-04"
+      },
+      "expect_error": "InputError",
+      "expect_issues": [
+        {
+          "path": "documents",
+          "message": "cannot tell which document is the original lease: documents 0, 1 have no role and no effective_date. Give the lease role \"original\" and each amendment role \"amendment\" with its effective_date; FactLot does not take the first document to be the lease, because documents may come in any order"
+        }
+      ]
+    },
+    {
+      "name": "claim: a bare string is read as the claim text",
+      "tool": "doc_verify_claim",
+      "arguments": {
+        "document": {
+          "pages": {
+            "$pages": "lease"
+          }
+        },
+        "claim": "The lease expires on June 30, 2031",
+        "quote": "shall expire on June 30, 2031",
+        "page": 1
+      },
+      "expect": {
+        "status": "supported",
+        "checked": [
+          {
+            "as": "date",
+            "value": "2031-06-30",
+            "found": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "claim: a true/false value has nothing to check",
+      "tool": "doc_verify_claim",
+      "arguments": {
+        "document": {
+          "pages": {
+            "$pages": "anchor_lease"
+          }
+        },
+        "claim": {
+          "predicate": "lease.go_dark",
+          "value": {
+            "operating_covenant": true
+          }
+        },
+        "quote": "Tenant is not required to continuously operate",
+        "page": 3
+      },
+      "expect": {
+        "status": "unverifiable",
+        "not_checked": ["value.operating_covenant"]
+      }
+    },
+    {
+      "name": "compare: a match against a lease fact whose true/false value no quote confirms says so",
+      "tool": "doc_compare",
+      "arguments": {
+        "lease_facts": [
+          {
+            "id": "flf_go_dark",
+            "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+            "predicate": "lease.go_dark",
+            "value": {
+              "operating_covenant": true
+            },
+            "as_of": "2026-11-04",
+            "provenance": {
+              "method": "extracted",
+              "sources": [
+                {
+                  "document_id": "fl:document:sha256-99375ee9a22bde91725da6b6518e93aef13598d92cc1a35d366a0a4eb32383ba",
+                  "page": 3,
+                  "quote": "Tenant is not required to continuously operate"
+                }
+              ]
+            }
+          },
+          {
+            "id": "flf_area",
+            "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+            "predicate": "lease.rentable_area_sf",
+            "value": 48000,
+            "as_of": "2026-11-04",
+            "provenance": {
+              "method": "extracted",
+              "sources": [
+                {
+                  "document_id": "fl:document:sha256-99375ee9a22bde91725da6b6518e93aef13598d92cc1a35d366a0a4eb32383ba",
+                  "page": 1,
+                  "quote": "The Premises contain 48,000 rentable square feet"
+                }
+              ]
+            }
+          }
+        ],
+        "asserted": [
+          {
+            "predicate": "lease.go_dark",
+            "value": {
+              "operating_covenant": true
+            },
+            "label": "Estoppel 7"
+          },
+          {
+            "predicate": "lease.rentable_area_sf",
+            "value": 48000
+          }
+        ]
+      },
+      "expect": {
+        "results.0.status": "match",
+        "results.0.lease_not_checked": ["value.operating_covenant (boolean)"],
+        "results.1.status": "match",
+        "results.1.lease_not_checked": null
+      }
+    },
+    {
+      "name": "compare: a person-confirmed fact is not flagged",
+      "tool": "doc_compare",
+      "arguments": {
+        "lease_facts": [
+          {
+            "id": "flf_go_dark_confirmed",
+            "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+            "predicate": "lease.go_dark",
+            "value": {
+              "operating_covenant": true
+            },
+            "as_of": "2026-11-04",
+            "provenance": {
+              "method": "human_verified",
+              "sources": [
+                {
+                  "document_id": "fl:document:sha256-99375ee9a22bde91725da6b6518e93aef13598d92cc1a35d366a0a4eb32383ba",
+                  "page": 3,
+                  "quote": "Tenant is not required to continuously operate"
+                }
+              ],
+              "verified_by": "A. Reviewer (synthetic)"
+            }
+          }
+        ],
+        "asserted": [
+          {
+            "predicate": "lease.go_dark",
+            "value": {
+              "operating_covenant": true
+            }
+          }
+        ]
+      },
+      "expect": {
+        "results.0.status": "match",
+        "results.0.lease_not_checked": null
+      }
+    },
+    {
+      "name": "abstract: a fact given without pages whose true/false value no quote confirms is held for review",
+      "tool": "doc_abstract_lease",
+      "arguments": {
+        "documents": [
+          {
+            "role": "original",
+            "facts": [
+              {
+                "id": "flf_go_dark",
+                "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+                "predicate": "lease.go_dark",
+                "value": {
+                  "operating_covenant": true
+                },
+                "as_of": "2026-11-04",
+                "provenance": {
+                  "method": "extracted",
+                  "sources": [
+                    {
+                      "document_id": "fl:document:sha256-99375ee9a22bde91725da6b6518e93aef13598d92cc1a35d366a0a4eb32383ba",
+                      "page": 3,
+                      "quote": "Tenant is not required to continuously operate"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "flf_area",
+                "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+                "predicate": "lease.rentable_area_sf",
+                "value": 48000,
+                "as_of": "2026-11-04",
+                "provenance": {
+                  "method": "extracted",
+                  "sources": [
+                    {
+                      "document_id": "fl:document:sha256-99375ee9a22bde91725da6b6518e93aef13598d92cc1a35d366a0a4eb32383ba",
+                      "page": 1,
+                      "quote": "The Premises contain 48,000 rentable square feet"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ],
+        "as_of": "2026-11-04",
+        "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4"
+      },
+      "expect": {
+        "fields.0.predicate": "lease.rentable_area_sf",
+        "fields.1": null,
+        "needs_review": [
+          {
+            "document": 0,
+            "fact": 0,
+            "predicate": "lease.go_dark",
+            "value": {
+              "operating_covenant": true
+            },
+            "quote": "Tenant is not required to continuously operate",
+            "page": 3,
+            "check": "coverage",
+            "reason": "value.operating_covenant (boolean) is not checked against the quote; confirm it",
+            "checked": [],
+            "not_checked": ["value.operating_covenant"]
+          }
+        ]
+      }
+    },
+    {
+      "name": "verify package: says which checks ran and which value parts no quote confirms (H01-P09)",
+      "tool": "fact_package_verify",
+      "arguments": {
+        "package": {
+          "format": "factlot.fact_package",
+          "version": 1,
+          "title": "Synthetic package",
+          "created_at": "2026-11-04T09:00:00Z",
+          "documents": [
+            {
+              "document_id": "fl:document:sha256-99375ee9a22bde91725da6b6518e93aef13598d92cc1a35d366a0a4eb32383ba",
+              "sha256": "99375ee9a22bde91725da6b6518e93aef13598d92cc1a35d366a0a4eb32383ba"
+            }
+          ],
+          "facts": [
+            {
+              "id": "flf_go_dark",
+              "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+              "predicate": "lease.go_dark",
+              "value": {
+                "operating_covenant": true
+              },
+              "as_of": "2026-11-04",
+              "provenance": {
+                "method": "extracted",
+                "sources": [
+                  {
+                    "document_id": "fl:document:sha256-99375ee9a22bde91725da6b6518e93aef13598d92cc1a35d366a0a4eb32383ba",
+                    "page": 3,
+                    "quote": "Tenant is not required to continuously operate"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "flf_area",
+              "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+              "predicate": "lease.rentable_area_sf",
+              "value": 48000,
+              "as_of": "2026-11-04",
+              "provenance": {
+                "method": "extracted",
+                "sources": [
+                  {
+                    "document_id": "fl:document:sha256-99375ee9a22bde91725da6b6518e93aef13598d92cc1a35d366a0a4eb32383ba",
+                    "page": 1,
+                    "quote": "The Premises contain 48,000 rentable square feet"
+                  }
+                ]
+              }
+            }
+          ],
+          "integrity": {
+            "hash": "sha256",
+            "canonicalization": "RFC 8785 (JCS)",
+            "tree": "RFC 6962 Merkle tree hash",
+            "leaf_hashes": [
+              "fff1a037e09b77d3ae8d47c41d91bb7adef7ed1aae6483ed0814bea4c413c530",
+              "506d26a7a70269b38e1a6ba2378e2489e4c4bdebea525dddef6bef61da36617b"
+            ],
+            "merkle_root": "8742a514c587726928c23bdab2702e11d880e5cf1cc20c4f24a8b75c5327a5ad",
+            "digest": "5703149f9fae4fbec1b42c3943d961765f871d0596f882567323dd5fe3946930"
+          }
+        }
+      },
+      "expect": {
+        "valid": true,
+        "values_not_checked": [
+          {
+            "fact": 0,
+            "fact_id": "flf_go_dark",
+            "predicate": "lease.go_dark",
+            "not_checked": ["value.operating_covenant (boolean)"]
+          }
+        ],
+        "checks_run": [
+          "integrity: each fact's hash, the Merkle root and the digest, recomputed from the content",
+          "signature: none to check (the package is not signed)",
+          "facts: fact_validate on each fact (schema and citations; for Ingest predicates, the value's shape and that its numbers, dates, names and as-written text appear in each source quote)"
+        ],
+        "checks_not_run": [
+          "values: the parts in values_not_checked are not confirmed by their quotes (booleans, enums, free text not written in the quote, or a generic predicate's value the quote does not state)",
+          "quotes: quotes citing the documents in quotes.documents_not_supplied were not looked for, because their pages were not given",
+          "files: whether the pages given came from the files their sha256 names",
+          "meaning: a quote that states the right number for a different term passes"
+        ]
+      }
+    },
+    {
+      "name": "verify: an enum counts as checked only when the quote words it (free rent on base rent, a natural breakpoint)",
+      "tool": "doc_verify_facts",
+      "arguments": {
+        "document": {
+          "pages": {
+            "$pages": "concessions"
+          }
+        },
+        "as_of": "2026-11-04",
+        "candidates": [
+          {
+            "predicate": "lease.free_rent",
+            "value": {
+              "months": 3,
+              "applies_to": "base_rent"
+            },
+            "quote": "Tenant shall not pay Base Rent for the first three (3) months of the Term",
+            "page": 1
+          },
+          {
+            "predicate": "lease.percentage_rent",
+            "value": {
+              "rate": 0.06,
+              "breakpoint": {
+                "type": "natural"
+              }
+            },
+            "quote": "six percent (6%) of Gross Sales above the natural breakpoint",
+            "page": 1
+          },
+          {
+            "predicate": "lease.free_rent",
+            "value": {
+              "months": 2,
+              "applies_to": "base_rent"
+            },
+            "quote": "Tenant shall receive two (2) months of free rent",
+            "page": 1
+          },
+          {
+            "predicate": "lease.free_rent",
+            "value": {
+              "months": 2,
+              "applies_to": "gross_rent"
+            },
+            "quote": "Tenant shall receive two (2) months of free rent",
+            "page": 1
+          }
+        ]
+      },
+      "expect": {
+        "summary": {
+          "candidates": 4,
+          "verified": 2,
+          "needs_review": 2,
+          "rejected": 0
+        },
+        "verified.0.checked": [
+          {
+            "path": "value.months",
+            "as": "number"
+          },
+          {
+            "path": "value.applies_to",
+            "as": "phrase"
+          }
+        ],
+        "verified.1.checked": [
+          {
+            "path": "value.rate",
+            "as": "ratio"
+          },
+          {
+            "path": "value.breakpoint.type",
+            "as": "phrase"
+          }
+        ],
+        "needs_review.0.reason": "value.applies_to (not worded in the quote as FactLot recognises it) is not checked against the quote; confirm it",
+        "needs_review.1.reason": "value.applies_to (string) is not checked against the quote; confirm it"
+      }
     }
   ],
   "canonical_json": [
@@ -4937,7 +6507,7 @@
     },
     {
       "value": {
-        "n": [0, -0.0, 1e21, 1e-7, 0.1, 100, 2026.0, 123456789012345680000]
+        "n": [0, 0, 1e21, 1e-7, 0.1, 100, 2026, 123456789012345680000]
       },
       "expect": "{\"n\":[0,0,1e+21,1e-7,0.1,100,2026,123456789012345680000]}"
     },

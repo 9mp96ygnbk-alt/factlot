@@ -7,18 +7,18 @@ returns facts it can cite, items a person should look at, and rejections, each w
 agent can act on. FactLot runs no model, so a verification costs no model spend and gives the
 same answer every time.
 
-| Tool                        | Input                                                                           | Output                                                                                                    |
-| --------------------------- | ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `doc_verify_facts`          | one document's pages, and candidates `{predicate, value, quote, page}`          | `verified` facts, `needs_review`, `rejected`, each with a reason                                          |
-| `doc_abstract_lease`        | a lease and its amendments, each with candidates or verified facts              | the current-state abstract: each term's value, controlling citation, and history                          |
-| `doc_compare`               | values another document asserts (estoppel, rent roll), and lease facts          | per value: `match`, `mismatch`, `not_in_lease` or `ambiguous_in_lease`, with the citation                 |
-| `doc_verify_claim`          | one claim (`{predicate, value}` or a sentence), its quote and page              | `supported`, `contradicted` or `unverifiable`, with the evidence                                          |
-| `doc_spread_statement`      | a T-12 or operating statement's pages, and lines `{label, amount, quote, page}` | the statement on a standard chart of accounts (NOI, EBITDA, ...), each line cited, footing and exceptions |
-| `doc_check_use_conflict`    | verified exclusive-use and prohibited-use facts, and a proposed use             | each potential conflict with the controlling quote, labelled for human review                             |
-| `fact_package_create`       | facts                                                                           | a canonical, hash-chained package and the message its holder signs                                        |
-| `fact_package_verify`       | a package, optionally the signer's public key and the source pages              | whether hashes, signature, facts and quotes check out, with details                                       |
-| `doc_read_pdf` (local)      | a PDF file on this machine                                                      | the `document` input above: page text, sha256, OCR pages                                                  |
-| `fact_package_sign` (local) | a package; the key comes from `FACTLOT_SIGNING_KEY_FILE`                        | the package with its Ed25519 signature                                                                    |
+| Tool                        | Input                                                                                      | Output                                                                                                    |
+| --------------------------- | ------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
+| `doc_verify_facts`          | one document's pages, candidates `{predicate, value, quote, page}`, and `as_of` (required) | `verified` facts, `needs_review`, `rejected`, each with a reason                                          |
+| `doc_abstract_lease`        | a lease and its amendments, each with candidates or verified facts, and `as_of` (required) | the current-state abstract: each term's value, controlling citation, history and pending amendments       |
+| `doc_compare`               | values another document asserts (estoppel, rent roll), and lease facts                     | per value: `match`, `mismatch`, `not_in_lease` or `ambiguous_in_lease`, with the citation                 |
+| `doc_verify_claim`          | one claim (`{predicate, value}`, `{text}` or a bare sentence string), its quote and page   | `supported`, `contradicted` or `unverifiable`, with the evidence                                          |
+| `doc_spread_statement`      | a T-12 or operating statement's pages, and lines `{label, amount, quote, page}`            | the statement on a standard chart of accounts (NOI, EBITDA, ...), each line cited, footing and exceptions |
+| `doc_check_use_conflict`    | verified exclusive-use and prohibited-use facts, and a proposed use                        | each potential conflict with the controlling quote, labelled for human review                             |
+| `fact_package_create`       | facts                                                                                      | a canonical, hash-chained package and the message its holder signs                                        |
+| `fact_package_verify`       | a package, optionally the signer's public key and the source pages                         | whether hashes, signature, facts and quotes check out, with details and the checks it did not run         |
+| `doc_read_pdf` (local)      | a PDF file on this machine                                                                 | the `document` input above: page text, sha256, OCR pages                                                  |
+| `fact_package_sign` (local) | a package; the key comes from `FACTLOT_SIGNING_KEY_FILE`                                   | the package with its Ed25519 signature                                                                    |
 
 The first eight are in the MCP server, the REST API (`/v1/doc/verify_facts`,
 `/v1/doc/abstract_lease`, `/v1/doc/compare`, `/v1/doc/verify_claim`, `/v1/doc/spread_statement`,
@@ -59,9 +59,14 @@ example with a synthetic lease, amendment and estoppel is in
      Expiration Date"
    - party names (`lease.landlord`, `lease.tenant`, the guarantor) must appear verbatim, ignoring
      case, whitespace and typographic quotes
+   - text the lease states as written (each prohibited use, an exclusive's protected use and each
+     carve-out, a ROFR or ROFO description) must be written in the quote as whole words, ignoring
+     case, whitespace, punctuation and a word hyphenated at a line break: `"dry cleaner"` matches
+     `a dry-cleaner`, `"vape shop"` does not match a list that does not name it, and `"bar"` does
+     not match `barber shop`
    - every step of a rent schedule is checked
    - for a generic predicate, every number, ratio (a number in (0, 1]) and date anywhere in the
-     value is checked; other strings are not
+     value is checked
 
    Failure: `needs_review`, check `consistency`, with a reason such as
    `value "2033-06-30" not found in quote`. The quote is real, so a person can decide whether the
@@ -69,14 +74,32 @@ example with a synthetic lease, amendment and estoppel is in
 
 4. **Confidence.** A candidate that passes everything but carries a `confidence` below 0.8 goes to
    `needs_review`, check `confidence`.
+5. **Every part confirmed.** `verified` means every part of the value was found in the quote. A
+   part no rule can check, or one the quote does not confirm, holds the candidate for a person:
+   - a true/false value (`lease.go_dark` `operating_covenant`, a relocation right's
+     `landlord_pays_costs`): a quote cannot prove `true` by containing words, and "Tenant is not
+     required to continuously operate" contains "continuously operate";
+   - an enum, unless the quote words it the way FactLot recognises (`free_rent.applies_to`
+     `base_rent` needs "base rent", "basic rent", "fixed rent" or "minimum rent"; a percentage
+     rent `natural` breakpoint needs "natural breakpoint"; consent standards as in the table
+     below); a CAM cap method, a kick-out party or a ROFR's `applies_to` is never confirmed;
+   - a summary an agent may paraphrase (a co-tenancy trigger or remedy, a renewal rent, a radius
+     duration, a kick-out test period, a generic predicate's text), unless it is written in the
+     quote as words.
+
+   Failure: `needs_review`, check `coverage`, with `checked`, `not_checked` and a reason naming
+   each part, such as `value.operating_covenant (boolean) is not checked against the quote; confirm
+it`. A person who has read the clause decides; FactLot does not issue a cited fact for a value
+   it could not confirm.
 
 A verified fact has `provenance.method: "extracted"` and one source: `document_id`, `page`,
 `section` (if given), the `quote` as sent, and `span`, the code-point offsets of the matching
 text in the document (all pages joined by form feeds), so `text[start:end]` is the passage as it
 appears on the page. `span` is left out in the rare case where it cannot be computed exactly
 (for example a Greek final sigma that lowercases differently letter by letter). Each verified
-item also lists which parts of the value were `checked` and as what, and which were
-`not_checked` (enums such as a cap method, free-text summaries such as a renewal rent).
+item also lists which parts of the value were `checked` and as what (`number`, `ratio`, `date`,
+`string` for a name, `words` for written text, `phrase` for a worded enum); its `not_checked` is
+always empty, because a value with an unchecked part is held for review instead.
 
 ### Words hyphenated across a line
 
@@ -108,14 +131,33 @@ returned for it. Facts sent with their pages are checked again in full; facts se
 (to stay under the request size limit) are checked against their own quotes only and marked
 `quote_on_page: false` in the abstract.
 
-- **Order.** The original applies first (`role`, default original for the first document and
-  amendment for the rest), then amendments by `effective_date`, input order breaking ties. If any
-  amendment has no date, amendments apply in the order given.
+- **Roles.** Give the lease `role: "original"` and each amendment `role: "amendment"`. The input
+  order is never used. A document without a role is taken to be the original only when no
+  document is marked original and it is the only one without a role, or the only one without a
+  role and an `effective_date`; the abstract marks it `role_inferred: true`. Otherwise, for
+  example two documents with neither, the call is an `InputError` asking for `role`.
+- **Order.** The original applies first, then amendments by `effective_date`. With two or more
+  amendments every amendment needs its `effective_date` (an `InputError` names the one without);
+  a single amendment may have none.
 - **Precedence.** For each predicate, the latest document that states it controls. The earlier
   values move to `history`, and the controlling fact lists the one it replaces in `supersedes`.
   Amendment facts carry the amendment's `effective_date` as `valid_from`.
+- **Pending amendments.** An amendment whose `effective_date` is after `as_of` does not control
+  the current abstract. Its values are listed under the field's `pending` and the top-level
+  `pending` (value, effective date and citation), its facts under `pending_facts` rather than
+  `facts`, and `warnings` names the document. The document is listed with `pending: true`
+  instead of an `applied` number. Run the abstract again with a later `as_of` once it takes
+  effect.
+- **Rent schedules.** An amendment that restates `lease.base_rent_schedule` from a later date
+  keeps the earlier steps before that date: the field's `value` is the merged schedule, and
+  `carried_forward` cites the document each kept step came from. A kept step that runs past the
+  new schedule's first day is shown ending the day before, with a note. The amendment's own fact
+  still states only its own steps.
 - **Conflicts.** When one document states two different values for a predicate, the first
-  controls and the other is listed under `conflicts`.
+  controls and the other is listed under `conflicts`. Two documents of the same rank (two
+  originals, or two amendments effective the same day) do not supersede each other: a different
+  value from the second is a conflict, and the document IDs, not the input order, decide which is
+  listed first.
 - **Open items.** When the controlling document or a later one has a candidate for the same
   predicate that needs review or was rejected, the field lists it under `open_items`: the
   answer may change once a person looks.
@@ -133,19 +175,25 @@ shaped like lease values (`YYYY-MM-DD`, plain numbers, decimal rates), and the l
 ignored. Values compare exactly as JSON: numbers by value (`95000` equals `95000.0`), strings
 exactly, so a name written differently is a `mismatch` for a person to judge, and for an object
 only the fields you assert. Every lease fact must pass `fact_validate`; FactLot does not re-read
-the lease here.
+the lease here. When the lease fact is an `extracted` fact whose quote does not confirm part of
+its value (a true/false value, an enum, a paraphrased summary: facts that `doc_verify_facts` would
+hold for review), the result lists those parts in `lease_not_checked`, so a `match` against them
+is not read as a verified match.
 
 ## Checking one claim
 
-`doc_verify_claim` takes a claim as `{predicate, value}` or as a short sentence, plus the quote
-and page it rests on. The quote must be on the page, by the same rules as above.
+`doc_verify_claim` takes a claim as `{predicate, value}` or as a short sentence, either
+`{"text": "…"}` or the sentence itself as a string, plus the quote and page it rests on. The quote
+must be on the page, by the same rules as above.
 
-- `supported`: every checked number, date and name is written in the quote.
+- `supported`: every checked number, date, name and as-written text is written in the quote;
+  parts that cannot be checked are listed in `not_checked`.
 - `contradicted`: the quote states numbers or dates of the same kind, but not the claimed one;
   `quote_states` lists what it does state. FactLot cannot tell whether those numbers are about the
   same term, so read them.
-- `unverifiable`: the quote is not on the page, nothing in the claim can be checked (an enum or
-  free text), the quote states no value of that kind, or a name is not in the quote.
+- `unverifiable`: the quote is not on the page, nothing in the claim can be checked (a
+  true/false value, an enum, a summary the quote does not write out), the quote states no value
+  of that kind, or a name or as-written text is not in the quote.
 
 For a sentence, only its dates and numbers are compared (a date such as "June 30, 2031" counts
 once, not also as the numbers 30 and 2031); FactLot does not read what the sentence means.
@@ -175,18 +223,23 @@ with the pages for the first, and `doc_verify_claim` for a generic predicate.
 - **The file.** The doc tools see text, not the PDF (locally, `read_pdf` and `doc_read_pdf`
   extract that text for you). Page text from OCR carries OCR errors, and a
   quote copied from a misrecognised page verifies against the misrecognition.
-- **Enums and summaries.** A CAM cap method, what free rent applies to, and summary strings
-  (a ROFR or assignment summary, a protected use without numbers) are type-checked only; a consent
-  standard is checked only for its wording.
+- **True/false values, enums and summaries.** They are never proven by a quote. A value that has
+  one goes to `needs_review` (check `coverage`) unless the quote words the enum or writes out the
+  summary; a consent standard, `free_rent.applies_to: base_rent` and a `natural` breakpoint are
+  checked for their wording.
 
 ## Clause-level lease terms
 
 Exclusive use with its carve-outs, prohibited uses, co-tenancy, go-dark, radius restrictions,
 relocation rights, kick-outs, the assignment and sublet consent standard, and ROFR/ROFO details
 are Ingest predicates with structured values ([predicate table](ingest.md#predicates)), checked
-like every other candidate. Free text inside them (a carve-out, a description) is checked for the
-numbers it writes in digits, so "incidental sales in up to 10% of floor area" needs 10 or "ten" in
-the quote. The consent standard is checked for its wording:
+like every other candidate. Text they state as written (each prohibited use, a protected use given
+as a string or as `protected_use`, each carve-out, a ROFR or ROFO description) must be written in
+the quote; when it is not and it carries a number, the reason names the number, so "incidental
+sales in up to 15% of floor area" against a quote saying 10% fails on 15. Summaries (a co-tenancy
+trigger or remedy, where an exclusive applies, a radius duration or remedy, a kick-out test period
+or fee) and true/false fields are held for review unless the quote confirms them (step 5 above).
+The consent standard is checked for its wording:
 
 | `consent_standard`                                 | The quote must contain                             |
 | -------------------------------------------------- | -------------------------------------------------- |
@@ -339,6 +392,16 @@ proves nothing about who signed. Given the source documents' pages (with `sha256
 cite the file's hash), it checks each quote is on its cited page. `valid` is true when all of
 that checks out (and, when you pass a key, the signature verifies with it). In Python without
 `cryptography`, the signature is reported `unavailable` and everything else is still checked.
+
+The result says what it covered: `checks_run` lists the checks above as they ran (with or without
+a trusted key, with or without pages), and `checks_not_run` what was not checked: quotes of
+documents whose pages were not given, whether the pages came from the files their sha256 names,
+and meaning. `fact_validate` compares each Ingest fact's numbers, dates, names and as-written text
+with its quotes, but a package can carry values no quote confirms (a true/false value, an enum, a
+paraphrased summary, or a generic predicate's value). For `extracted` facts those parts are listed
+in `values_not_checked` and named in `checks_not_run`. They do not make `valid` false: a package
+may carry facts a person confirmed (`human_verified`), and verifying the package is about whether
+it is intact and correctly cited, not a second judgement of each value.
 
 ## Limits
 

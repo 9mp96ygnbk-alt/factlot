@@ -425,12 +425,26 @@ export function checkAnyValue(
 
 // --- value–quote consistency ----------------------------------------------------------------
 
-export type Kind = "number" | "ratio" | "date" | "string" | "text" | "phrase";
+export type Kind =
+  | "number"
+  | "ratio"
+  | "date"
+  | "string"
+  | "text"
+  | "phrase"
+  | "words"
+  | "summary"
+  | "enum";
 type Spec = Kind | readonly [Spec] | { readonly [k: string]: Spec };
 
 // Which parts of each predicate's value are checked against the quote, and how (Python
 // `_CONSISTENCY`). A list spec applies to each element; dict keys that are not listed (enums,
-// free-text summaries) are not checked; predicates not listed are never failed by this check.
+// booleans) are not checked; predicates not listed are never failed by this check. "words": text
+// the lease states as written (a prohibited use, a carve-out), which must be written in the quote.
+// "summary": free text an agent may paraphrase (a co-tenancy trigger, a renewal rent); it never
+// fails this check, and counts as checked only when it is written in the quote. "enum": a value
+// from a fixed list that never fails this check either, and counts as checked only when the quote
+// words it as PHRASES lists (other enums are never checked).
 const CONSISTENCY: Readonly<Record<string, Spec>> = {
   "lease.commencement_date": "date",
   "lease.expiration_date": "date",
@@ -440,21 +454,29 @@ const CONSISTENCY: Readonly<Record<string, Spec>> = {
   "lease.base_rent_schedule": [
     { from: "date", to: "date", annual_rent_psf: "number" },
   ],
-  "lease.free_rent": { months: "number" },
+  "lease.free_rent": { months: "number", applies_to: "enum" },
   "lease.cam_cap": { rate: "ratio" },
   "lease.renewal_option": {
     count: "number",
     term_months: "number",
     notice_months: "number",
+    rent: "summary",
   },
   "lease.termination_option": {
     effective_date: "date",
     notice_months: "number",
+    fee: "summary",
   },
   "lease.landlord": "string",
   "lease.tenant": "string",
-  "lease.percentage_rent": { rate: "ratio", breakpoint: { amount: "number" } },
+  "lease.percentage_rent": {
+    rate: "ratio",
+    breakpoint: { type: "enum", amount: "number" },
+    sales_exclusions: "summary",
+  },
   "lease.co_tenancy": {
+    trigger: "summary",
+    remedy: "summary",
     cure_period_months: "number",
     required_occupancy: "ratio",
     named_tenants: ["string"],
@@ -466,32 +488,50 @@ const CONSISTENCY: Readonly<Record<string, Spec>> = {
   "lease.operating_expense_base_year": "number",
   "lease.parking": { spaces: "number", rate_monthly: "number" },
   "lease.guaranty": { guarantor: "string", cap: "number" },
-  "lease.rofr": { description: "text", response_days: "number" },
-  "lease.rofo": { description: "text", response_days: "number" },
+  "lease.rofr": { description: "words", response_days: "number" },
+  "lease.rofo": { description: "words", response_days: "number" },
   "lease.exclusive_use": {
-    protected_use: "text",
-    carve_outs: ["text"],
-    applies_to: "text",
+    protected_use: "words",
+    carve_outs: ["words"],
+    applies_to: "summary",
   },
   "lease.assignment_sublease": {
     consent_standard: "phrase",
     permitted_transfers: "text",
     profit_share: "ratio",
   },
-  "lease.prohibited_uses": ["text"],
+  "lease.prohibited_uses": ["words"],
   "lease.go_dark": { dark_period_days: "number" },
-  "lease.radius_restriction": { radius_miles: "number" },
-  "lease.relocation_right": { notice_days: "number" },
+  "lease.radius_restriction": {
+    radius_miles: "number",
+    duration: "summary",
+    remedy: "summary",
+  },
+  "lease.relocation_right": {
+    notice_days: "number",
+    replacement_premises: "summary",
+  },
   "lease.kick_out": {
     sales_threshold: "number",
+    test_period: "summary",
     notice_days: "number",
     effective_date: "date",
+    fee: "summary",
   },
 };
 
+/** How a predicate that also accepts a plain string is checked when given one (Python `_STRING_FORMS`). */
+const STRING_FORMS: Readonly<Record<string, Kind>> = {
+  "lease.exclusive_use": "words",
+  "lease.rofr": "summary",
+  "lease.rofo": "summary",
+  "lease.assignment_sublease": "summary",
+};
+
 /**
- * "phrase": an enum value the quote must word in one of these ways (Python `PHRASES`). Every group
- * needs one of its alternatives in the normalized quote. Values not listed are not checked.
+ * "phrase" and "enum": an enum value the quote must word in one of these ways (Python `PHRASES`).
+ * Every group needs one of its alternatives in the normalized quote. Values not listed are not
+ * checked.
  */
 export const PHRASES: Readonly<Record<string, readonly (readonly string[])[]>> =
   {
@@ -507,6 +547,9 @@ export const PHRASES: Readonly<Record<string, readonly (readonly string[])[]>> =
       ["unreasonably withh"],
       ["delay", "conditioned"],
     ],
+    // lease.free_rent applies_to; lease.percentage_rent breakpoint type
+    base_rent: [["base rent", "basic rent", "fixed rent", "minimum rent"]],
+    natural: [["natural breakpoint", "natural break point"]],
   };
 
 /** True when the predicate has value parts the consistency check compares with the quote. */
@@ -743,28 +786,48 @@ export function missingReason(
   quote: string,
 ): string {
   const where = path ? ` (${path})` : "";
-  if (kind === "text")
+  if (
+    kind === "text" ||
+    (kind === "words" &&
+      textNumberMissing(value as string, quote) !== undefined)
+  )
     return `number ${textNumberMissing(value as string, quote)} in value ${showValue(value)}${where} not found in quote`;
   return `value ${showValue(value)}${where} not found in quote`;
 }
 
+/** Letters and digits only, every other run of characters one space (Python `_fold`). */
+function fold(normalized: string): string {
+  return normalized.replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+}
+
+/**
+ * True when the text is written in the normalized quote as whole words: case, whitespace,
+ * typographic quotes and dashes, punctuation, and a word hyphenated at a line break ("pro-
+ * portionate") are forgiven, nothing else (Python `written_in`).
+ */
+export function writtenIn(text: unknown, quote: string): boolean {
+  if (typeof text !== "string") return false;
+  const v = fold(norm(text));
+  if (!v) return false;
+  return [quote, quote.replace(/([a-z])- ([a-z])/g, "$1$2")].some((q) =>
+    ` ${fold(q)} `.includes(` ${v} `),
+  );
+}
+
 /** True when `value` of the given kind cannot be found in the normalized quote (Python `_missing`). */
 export function missing(kind: Kind, value: unknown, quote: string): boolean {
+  if (kind === "summary" || kind === "enum") return false; // see coverage
+  if (kind === "words")
+    return (
+      typeof value === "string" &&
+      (textNumberMissing(value, quote) !== undefined ||
+        !writtenIn(value, quote))
+    );
   if (kind === "text")
     return (
       typeof value === "string" && textNumberMissing(value, quote) !== undefined
     );
-  if (kind === "phrase") {
-    const groups =
-      typeof value === "string" && Object.hasOwn(PHRASES, value)
-        ? PHRASES[value]
-        : undefined;
-    return (
-      !!groups &&
-      groups.length > 0 &&
-      !groups.every((g) => g.some((alt) => quote.includes(alt)))
-    );
-  }
+  if (kind === "phrase") return !worded(value, quote);
   if (kind === "string") {
     const v = typeof value === "string" ? norm(value) : "";
     return !(v && quote.includes(v));
@@ -786,6 +849,19 @@ export function missing(kind: Kind, value: unknown, quote: string): boolean {
   return true;
 }
 
+/** True when the normalized quote words an enum value as PHRASES lists it (or it is not listed). */
+export function worded(value: unknown, quote: string): boolean {
+  const groups =
+    typeof value === "string" && Object.hasOwn(PHRASES, value)
+      ? PHRASES[value]
+      : undefined;
+  return (
+    !groups ||
+    groups.length === 0 ||
+    groups.every((g) => g.some((alt) => quote.includes(alt)))
+  );
+}
+
 /** A value part the consistency check compares with the quote, or one it leaves alone. */
 export interface Part {
   path: string;
@@ -798,17 +874,20 @@ function checkable(kind: Kind, value: unknown): boolean {
   // A text is checked for the numbers written in digits in it; one without digits is not checked.
   if (kind === "text")
     return typeof value === "string" && /[0-9]/.test(norm(value));
-  if (kind === "phrase")
+  if (kind === "phrase" || kind === "enum")
     return typeof value === "string" && Object.hasOwn(PHRASES, value);
   if (kind === "string") return typeof value === "string";
+  if (kind === "words" || kind === "summary")
+    return typeof value === "string" && fold(norm(value)) !== "";
   if (kind === "date") return isDate(value);
   return isNum(value);
 }
 
-/** The kind generic predicates check a scalar as: dates, numbers, ratios (0 < x ≤ 1). */
+/** The kind generic predicates check a scalar as: dates, numbers, ratios (0 < x ≤ 1), other text as a summary. */
 function genericKind(value: unknown): Kind | undefined {
   if (isNum(value)) return value > 0 && value <= 1 ? "ratio" : "number";
   if (isDate(value)) return "date";
+  if (checkable("summary", value)) return "summary";
   return undefined;
 }
 
@@ -845,6 +924,14 @@ export function valueParts(
     if (typeof spec === "string") {
       if (checkable(spec, v))
         out.push({ path: path || "value", as: spec, value: v, reasonPath: rp });
+      // Free text without digits has no number to check; it can still be found written out.
+      else if (spec === "text" && checkable("summary", v))
+        out.push({
+          path: path || "value",
+          as: "summary",
+          value: v,
+          reasonPath: rp,
+        });
       else leaves(v, path, rp);
       return;
     }
@@ -876,12 +963,79 @@ export function valueParts(
     });
   };
   if (isIngestPredicate(predicate))
-    known(CONSISTENCY[predicate], value, "", "");
+    known(
+      typeof value === "string" && Object.hasOwn(STRING_FORMS, predicate)
+        ? STRING_FORMS[predicate]
+        : CONSISTENCY[predicate],
+      value,
+      "",
+      "",
+    );
   else generic(value, "");
   return out.map((p) => ({
     ...p,
     path: p.path === "value" ? "value" : `value.${p.path}`,
   }));
+}
+
+/** A JSON type name for a value part FactLot does not check. */
+function typeName(v: unknown): string {
+  if (v === null) return "null";
+  if (Array.isArray(v)) return "array";
+  return typeof v === "object" ? "object" : typeof v;
+}
+
+/**
+ * Which parts of the value were checked against the quote, and which were not (Python
+ * `coverage`): enums, booleans and other parts no rule checks, free text ("summary", or "text"
+ * whose numbers were checked) that is not written in the quote as it stands, and any other part
+ * the quote does not state (none, for a value that passed checkConsistency). `gaps` says why
+ * each one was not confirmed, for a reason a person can act on.
+ */
+export function coverage(
+  predicate: string,
+  value: unknown,
+  quote: string,
+): {
+  checked: { path: string; as: Kind }[];
+  not_checked: string[];
+  gaps: string[];
+} {
+  const q = norm(quote);
+  const checked: { path: string; as: Kind }[] = [];
+  const notChecked: string[] = [];
+  const gaps: string[] = [];
+  for (const p of valueParts(predicate, value)) {
+    if (p.as === "enum") {
+      if (worded(p.value, q)) checked.push({ path: p.path, as: "phrase" });
+      else {
+        notChecked.push(p.path);
+        gaps.push(
+          `${p.path} (not worded in the quote as FactLot recognises it)`,
+        );
+      }
+    } else if (p.as === "summary" || p.as === "text") {
+      if (writtenIn(p.value, q)) checked.push({ path: p.path, as: "words" });
+      else {
+        notChecked.push(p.path);
+        gaps.push(`${p.path} (text not written in the quote)`);
+      }
+    } else if (p.as && missing(p.as, p.value, q)) {
+      notChecked.push(p.path);
+      gaps.push(`${p.path} (not found in the quote)`);
+    } else if (p.as) checked.push({ path: p.path, as: p.as });
+    else {
+      notChecked.push(p.path);
+      gaps.push(`${p.path} (${typeName(p.value)})`);
+    }
+  }
+  return { checked, not_checked: notChecked, gaps };
+}
+
+/** The needs_review reason for value parts the quote does not confirm (Python `coverage_reason`). */
+export function coverageReason(gaps: readonly string[]): string {
+  const many = gaps.length > 1;
+  return `${gaps.join(", ")} ${many ? "are" : "is"} not checked against the quote; confirm ${many ? "them" : "it"}`;
 }
 
 /**

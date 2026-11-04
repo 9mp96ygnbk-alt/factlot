@@ -164,11 +164,12 @@ class Verifier(unittest.TestCase):
     def test_short_and_ambiguous_quotes(self):
         d = load_document(FIX / "synthetic_lease.txt")
         self.assertEqual(verify(d, Candidate("lease.rofr", "x", "Tenant", 1)).reason, "quote shorter than 12 characters")
-        v = verify(d, Candidate("lease.exclusive_use", "x", "SYNTHETIC TEST DOCUMENT", 1))
+        # A ROFR summary string is never compared with its quote, so only the quote is tested here.
+        v = verify(d, Candidate("lease.rofr", "x", "SYNTHETIC TEST DOCUMENT", 1))
         self.assertTrue(v.accepted)
-        moved = verify(d, Candidate("lease.exclusive_use", "x", "rentable square foot", 1))
+        moved = verify(d, Candidate("lease.rofr", "x", "rentable square foot", 1))
         self.assertEqual((moved.accepted, moved.page, moved.page_corrected), (True, 2, True))
-        multi = verify(d, Candidate("lease.exclusive_use", "x", "Tenant shall", 1))  # on pages 2 and 3
+        multi = verify(d, Candidate("lease.rofr", "x", "Tenant shall", 1))  # on pages 2 and 3
         self.assertFalse(multi.accepted)
         self.assertIn("several pages", multi.reason)
 

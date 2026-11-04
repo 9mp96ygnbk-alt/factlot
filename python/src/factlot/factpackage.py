@@ -20,7 +20,7 @@ from typing import Any
 
 from ._core import js_number_str
 from .docverify import DOC_LIMITS, DocInputError, _cap_characters, _characters, _load_document, locate_quote, \
-    validate_fact_full
+    unconfirmed, validate_fact_full
 
 PACKAGE_FORMAT = "factlot.fact_package"
 PACKAGE_VERSION = 1
@@ -325,6 +325,21 @@ def verify_fact_package(args: dict[str, Any]) -> dict[str, Any]:
             else:
                 quote_problems.append({**where, "status": "not_found", "reason": loc["reason"]})
 
+    # Value parts no quote confirms. They do not affect ``valid``: a package may carry facts a
+    # person confirmed, and FactLot reports what it could not check rather than judging them.
+    invalid = {x["fact"] for x in fact_issues}
+    values_not_checked = []
+    for i, f in enumerate(facts):
+        if i in invalid:
+            continue
+        gaps = unconfirmed(f)
+        if gaps:
+            item: dict[str, Any] = {"fact": i}
+            if isinstance(f.get("id"), str):
+                item["fact_id"] = f["id"]
+            item.update({"predicate": f.get("predicate"), "not_checked": gaps})
+            values_not_checked.append(item)
+
     integrity_ok = not r["problems"]
     if "public_key" in args:
         signature_ok = signature["status"] == "verified"
@@ -341,6 +356,25 @@ def verify_fact_package(args: dict[str, Any]) -> dict[str, Any]:
         "facts": {"count": len(facts), "invalid": fact_issues},
         "quotes": {"checked": checked, "on_page": on_page, "problems": quote_problems,
                    "documents_not_supplied": not_supplied},
+        "values_not_checked": values_not_checked,
+        "checks_run": [
+            "integrity: each fact's hash, the Merkle root and the digest, recomputed from the content",
+            "signature: none to check (the package is not signed)" if signature["status"] == "absent" else
+            "signature: Ed25519, against the public_key given" if "public_key" in args else
+            "signature: Ed25519, against the key inside the package only; pass public_key to check who signed",
+            "facts: fact_validate on each fact (schema and citations; for Ingest predicates, the value's shape and "
+            "that its numbers, dates, names and as-written text appear in each source quote)",
+            *(["quotes: each quote citing a supplied document is on its cited page"] if docs else []),
+        ],
+        "checks_not_run": [
+            *(["values: the parts in values_not_checked are not confirmed by their quotes (booleans, enums, free "
+               "text not written in the quote, or a generic predicate's value the quote does not state)"]
+              if values_not_checked else []),
+            *(["quotes: quotes citing the documents in quotes.documents_not_supplied were not looked for, because "
+               "their pages were not given"] if not_supplied else []),
+            "files: whether the pages given came from the files their sha256 names",
+            "meaning: a quote that states the right number for a different term passes",
+        ],
     }
 
 

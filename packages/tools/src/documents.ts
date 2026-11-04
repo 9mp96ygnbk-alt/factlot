@@ -18,6 +18,8 @@ import {
   checkAnyValue,
   checkConsistency,
   checkValue,
+  coverage,
+  coverageReason,
   dateRanges,
   datesIn,
   hasConsistencyRule,
@@ -30,6 +32,8 @@ import {
   showValue,
   textNumberMissing,
   valueParts,
+  worded,
+  writtenIn,
 } from "./quotes.ts";
 import type { Kind } from "./quotes.ts";
 
@@ -169,10 +173,10 @@ const AbstractDocument = z.object({
     .enum(["original", "amendment"])
     .optional()
     .describe(
-      'Default: "original" for the first document, "amendment" for the rest.',
+      "Give it. Without one, a document is the original only when no document is marked original and it is the only one without a role (or without a role and an effective_date); otherwise it is an amendment, and input that leaves the original unclear is an error. Input order is never used.",
     ),
   effective_date: IsoDate.optional().describe(
-    "Amendment effective date (YYYY-MM-DD). Amendments apply in date order when every amendment has one, otherwise in the order given. Becomes valid_from on its facts.",
+    "Amendment effective date (YYYY-MM-DD), required when there are two or more amendments: they apply in date order, and amendments effective the same day do not supersede each other (a different value is a conflict). An amendment effective after as_of is pending: its values are listed under pending and do not control the current abstract. Becomes valid_from on its facts.",
   ),
   title: Title.optional(),
   sha256: Sha256.optional(),
@@ -239,28 +243,37 @@ export const CompareInput = z.object({
 
 export const VerifyClaimInput = z.object({
   document: DocumentInput.describe("The document the quote is from."),
-  claim: z
-    .object({
-      predicate: z
-        .string()
-        .min(1)
-        .max(200)
-        .optional()
-        .describe("Predicate of the claim, with value."),
-      value: z
-        .unknown()
-        .optional()
-        .describe("Claimed value in the predicate's shape, with predicate."),
-      text: z
-        .string()
-        .min(1)
-        .max(2_000)
-        .optional()
-        .describe(
-          "Or a short claim sentence instead of predicate and value; its numbers and dates are checked.",
-        ),
-    })
-    .describe("Either {predicate, value} or {text}."),
+  claim: z.union([
+    z
+      .string()
+      .min(1)
+      .max(2_000)
+      .describe(
+        "A short claim sentence, read as {text: the sentence}; its numbers and dates are checked.",
+      ),
+    z
+      .object({
+        predicate: z
+          .string()
+          .min(1)
+          .max(200)
+          .optional()
+          .describe("Predicate of the claim, with value."),
+        value: z
+          .unknown()
+          .optional()
+          .describe("Claimed value in the predicate's shape, with predicate."),
+        text: z
+          .string()
+          .min(1)
+          .max(2_000)
+          .optional()
+          .describe(
+            "Or a short claim sentence instead of predicate and value; its numbers and dates are checked.",
+          ),
+      })
+      .describe("Either {predicate, value} or {text}."),
+  ]),
   quote: z
     .string()
     .max(DOC_LIMITS.quoteCharacters)
@@ -371,14 +384,6 @@ function predicateNote(predicate: string): string | undefined {
     : undefined;
 }
 
-function coverage(predicate: string, value: unknown): Json {
-  const parts = valueParts(predicate, value);
-  return {
-    checked: parts.filter((p) => p.as).map((p) => ({ path: p.path, as: p.as })),
-    not_checked: parts.filter((p) => !p.as).map((p) => p.path),
-  };
-}
-
 interface Context {
   subject: string;
   asOf: string;
@@ -429,7 +434,7 @@ function verifyCandidate(
     notes.push(`quote found on page ${loc.page}, not ${c.page}`);
   const note = predicateNote(c.predicate);
   if (note) notes.push(note);
-  const review = (check: string, reason: string): void => {
+  const review = (check: string, reason: string, extra: Json = {}): void => {
     out.needs_review.push({
       ...base,
       value: c.value,
@@ -438,6 +443,7 @@ function verifyCandidate(
       ...(c.section !== undefined ? { section: c.section } : {}),
       check,
       reason,
+      ...extra,
       ...(notes.length ? { notes } : {}),
     });
   };
@@ -448,6 +454,14 @@ function verifyCandidate(
       "confidence",
       `extractor confidence ${showValue(c.confidence)} is below ${REVIEW_CONFIDENCE_THRESHOLD}`,
     );
+  // Verified means every part of the value was found in the quote: a part no rule can check (a
+  // boolean, an enum) or free text the quote does not contain holds the candidate for a person.
+  const cov = coverage(c.predicate, c.value, c.quote);
+  if (cov.gaps.length)
+    return review("coverage", coverageReason(cov.gaps), {
+      checked: cov.checked,
+      not_checked: cov.not_checked,
+    });
   const span = doc.text.span(loc.page, loc.q);
   const source: Json = {
     document_id: doc.id,
@@ -469,7 +483,8 @@ function verifyCandidate(
   out.verified.push({
     ...label,
     fact,
-    ...coverage(c.predicate, c.value),
+    checked: cov.checked,
+    not_checked: cov.not_checked,
     ...(notes.length ? { notes } : {}),
   });
 }
@@ -625,26 +640,94 @@ export function jsonEqual(a: unknown, b: unknown): boolean {
 
 type AbstractDoc = z.output<typeof AbstractDocument>;
 
-/** Original first, then amendments by effective date (input order breaks ties), or in input order if any is undated. */
-function applyOrder(docs: AbstractDoc[]): number[] {
-  const role = (i: number): string =>
-    docs[i]!.role ?? (i === 0 ? "original" : "amendment");
+/** Where each document applies; none of it depends on the order the documents were given in. */
+interface Plan {
+  /** Document indexes in application order. */
+  order: number[];
+  role: ("original" | "amendment")[];
+  inferred: boolean[];
+  /** Originals 0, amendments 1, 2, ... by effective date; documents of one rank do not supersede each other. */
+  rank: number[];
+  /** Amendments that take effect after as_of: they do not control the current abstract. */
+  pending: boolean[];
+}
+
+/**
+ * Roles, ranks and order (Python `_plan`). A document without a role is the original when no
+ * document is marked original and it is the only one without a role, or the only one without a
+ * role and an effective_date; otherwise it is an amendment. Anything else is ambiguous and an
+ * input error, as are two or more amendments without effective dates: FactLot never falls back
+ * to input order. Within a rank, documents are ordered by document ID, then input order.
+ */
+function planAbstract(
+  docs: AbstractDoc[],
+  ids: (string | null)[],
+  asOf: string,
+): Plan {
   const idx = docs.map((_, i) => i);
-  const originals = idx.filter((i) => role(i) === "original");
-  const amendments = idx.filter((i) => role(i) !== "original");
-  if (amendments.every((i) => docs[i]!.effective_date))
-    amendments.sort((a, b) => {
-      const da = docs[a]!.effective_date!;
-      const db = docs[b]!.effective_date!;
-      return da < db ? -1 : da > db ? 1 : a - b;
-    });
-  return [...originals, ...amendments];
+  const unroled = idx.filter((i) => docs[i]!.role === undefined);
+  const explicitOriginal = idx.some((i) => docs[i]!.role === "original");
+  let original: number | undefined;
+  if (!explicitOriginal && unroled.length === 1) original = unroled[0];
+  else if (!explicitOriginal && unroled.length > 1) {
+    const undated = unroled.filter(
+      (i) => docs[i]!.effective_date === undefined,
+    );
+    if (undated.length !== 1)
+      throw new ToolInputError([
+        {
+          path: "documents",
+          message: `cannot tell which document is the original lease: documents ${unroled.join(", ")} have no role${undated.length > 1 ? " and no effective_date" : ""}. Give the lease role "original" and each amendment role "amendment" with its effective_date; FactLot does not take the first document to be the lease, because documents may come in any order`,
+        },
+      ]);
+    original = undated[0];
+  }
+  const role = idx.map(
+    (i) => docs[i]!.role ?? (i === original ? "original" : "amendment"),
+  );
+  const amendments = idx.filter((i) => role[i] === "amendment");
+  const undatedAmendment = amendments.find(
+    (i) => docs[i]!.effective_date === undefined,
+  );
+  if (amendments.length > 1 && undatedAmendment !== undefined)
+    throw new ToolInputError([
+      {
+        path: `documents.${undatedAmendment}.effective_date`,
+        message: `this amendment has no effective_date; with ${amendments.length} amendments FactLot applies them in effective-date order, never input order, so give each amendment its effective_date (YYYY-MM-DD)`,
+      },
+    ]);
+  const dates = [
+    ...new Set(amendments.map((i) => docs[i]!.effective_date ?? "")),
+  ].sort();
+  const rank = idx.map((i) =>
+    role[i] === "original"
+      ? 0
+      : dates.indexOf(docs[i]!.effective_date ?? "") + 1,
+  );
+  const order = [...idx].sort((a, b) => {
+    if (rank[a] !== rank[b]) return rank[a]! - rank[b]!;
+    const ia = ids[a] ?? "";
+    const ib = ids[b] ?? "";
+    return ia < ib ? -1 : ia > ib ? 1 : a - b;
+  });
+  return {
+    order,
+    role,
+    inferred: idx.map((i) => docs[i]!.role === undefined),
+    rank,
+    pending: idx.map(
+      (i) =>
+        role[i] === "amendment" &&
+        docs[i]!.effective_date !== undefined &&
+        docs[i]!.effective_date! > asOf,
+    ),
+  };
 }
 
 interface Statement {
   fact: Json;
   document: number;
-  order: number;
+  rank: number;
   quoteOnPage: boolean;
 }
 
@@ -669,6 +752,44 @@ function firstIssue(issues: { path: string; message: string }[]): string {
   const [i] = issues;
   const more = issues.length > 1 ? ` (and ${issues.length - 1} more)` : "";
   return `not a valid fact: ${i!.path || "(root)"}: ${i!.message}${more}`;
+}
+
+/** The day before a YYYY-MM-DD date. */
+function dayBefore(iso: string): string {
+  const d = new Date(`${iso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
+type Step = Record<string, unknown> & { from: string; to: string };
+interface HeldStep {
+  step: Step;
+  from: Statement;
+}
+
+/**
+ * A rent schedule restated from some date on keeps the earlier document's steps before that date
+ * (Python `_merge_steps`). A step that runs past it ends the day before, with a note.
+ */
+function mergeSteps(
+  held: HeldStep[],
+  s: Statement,
+  notes: string[],
+): HeldStep[] {
+  const steps = s.fact.value as Step[];
+  const start = steps.map((x) => x.from).sort()[0]!;
+  const kept: HeldStep[] = [];
+  for (const h of held) {
+    if (h.step.to < start) kept.push(h);
+    else if (h.step.from < start) {
+      const to = dayBefore(start);
+      notes.push(
+        `the step from ${h.step.from} to ${h.step.to} (document ${h.from.document}) is shown ending ${to}, the day before document ${s.document}'s schedule starts`,
+      );
+      kept.push({ step: { ...h.step, to }, from: h.from });
+    }
+  }
+  return [...kept, ...steps.map((step) => ({ step, from: s }))];
 }
 
 export function abstractLease(
@@ -712,7 +833,6 @@ export function abstractLease(
       },
     ]);
 
-  const order = applyOrder(docs);
   const loaded = docs.map((d, i) =>
     d.pages
       ? loadDocument({ ...d, pages: d.pages }, `documents.${i}`)
@@ -736,6 +856,8 @@ export function abstractLease(
     }
     return null;
   });
+  const plan = planAbstract(docs, ids, input.as_of);
+  const order = plan.order;
   const subject =
     input.subject ?? ids[order[0]!] ?? ids.find((x) => x !== null) ?? undefined;
   if (
@@ -752,11 +874,15 @@ export function abstractLease(
     ]);
 
   const facts: Json[] = [];
+  const pendingFacts: Json[] = [];
   const needsReview: Json[] = [];
   const rejected: Json[] = [];
   const statements: Statement[] = [];
+  const pendingStatements: Statement[] = [];
   const documents: Json[] = [];
-  order.forEach((di, o) => {
+  const warnings: string[] = [];
+  let applied = 0;
+  for (const di of order) {
     const d = docs[di]!;
     const doc = loaded[di];
     const ctx: Context = {
@@ -820,6 +946,22 @@ export function abstractLease(
         const reason = checkConsistency(predicate, f.value, src.quote);
         if (reason) return reject(`value not supported by quote: ${reason}`);
       }
+      const cov = coverage(predicate, f.value, src.quote);
+      if (cov.gaps.length) {
+        out.needs_review.push({
+          ...label,
+          predicate,
+          value: f.value,
+          quote: src.quote,
+          page: src.page,
+          ...(typeof src.section === "string" ? { section: src.section } : {}),
+          check: "coverage",
+          reason: coverageReason(cov.gaps),
+          checked: cov.checked,
+          not_checked: cov.not_checked,
+        });
+        return;
+      }
       const fact = buildFact(
         ctx,
         predicate,
@@ -834,21 +976,27 @@ export function abstractLease(
       ...out.facts.map((fact) => ({ fact, quoteOnPage: true })),
       ...placed,
     ];
+    const pending = plan.pending[di]!;
     for (const p of ordered) {
-      facts.push(p.fact);
-      statements.push({
+      (pending ? pendingFacts : facts).push(p.fact);
+      (pending ? pendingStatements : statements).push({
         fact: p.fact,
         document: di,
-        order: o,
+        rank: plan.rank[di]!,
         quoteOnPage: p.quoteOnPage,
       });
     }
     needsReview.push(...out.needs_review);
     rejected.push(...out.rejected);
+    if (pending)
+      warnings.push(
+        `documents.${di}${d.title !== undefined ? ` (${d.title})` : ""} takes effect on ${d.effective_date}, after as_of ${input.as_of}: its ${ordered.length} verified value${ordered.length === 1 ? " is" : "s are"} listed under pending and do${ordered.length === 1 ? "es" : ""} not control the current abstract`,
+      );
     documents.push({
       document: di,
-      applied: o + 1,
-      role: d.role ?? (di === 0 ? "original" : "amendment"),
+      ...(pending ? { pending: true } : { applied: ++applied }),
+      role: plan.role[di],
+      ...(plan.inferred[di] ? { role_inferred: true } : {}),
       ...(d.effective_date !== undefined
         ? { effective_date: d.effective_date }
         : {}),
@@ -863,15 +1011,20 @@ export function abstractLease(
       needs_review: out.needs_review.length,
       rejected: out.rejected.length,
     });
-  });
+  }
 
-  // Supersession: a later document's statement of a predicate controls; earlier ones are history.
+  // Supersession: a later-ranked document's statement of a predicate controls; earlier ones are
+  // history. Two documents of one rank (two originals, or amendments effective the same day) do
+  // not supersede each other: a different value is a conflict.
   interface Field {
     predicate: string;
     current: Statement;
     history: Statement[];
     conflicts: Statement[];
+    steps?: HeldStep[];
+    notes: string[];
   }
+  const RENT = "lease.base_rent_schedule";
   const fields = new Map<string, Field>();
   for (const s of statements) {
     const predicate = s.fact.predicate as string;
@@ -882,10 +1035,19 @@ export function abstractLease(
         current: s,
         history: [],
         conflicts: [],
+        ...(predicate === RENT
+          ? {
+              steps: (s.fact.value as Step[]).map((step) => ({
+                step,
+                from: s,
+              })),
+            }
+          : {}),
+        notes: [],
       });
       continue;
     }
-    if (f.current.order === s.order) {
+    if (f.current.rank === s.rank) {
       if (
         !jsonEqual(f.current.fact.value, s.fact.value) &&
         !f.conflicts.some((c) => jsonEqual(c.fact.value, s.fact.value))
@@ -895,10 +1057,19 @@ export function abstractLease(
     }
     s.fact.supersedes = [f.current.fact.id];
     f.history.push(f.current, ...f.conflicts);
+    if (f.steps) f.steps = mergeSteps(f.steps, s, f.notes);
     f.current = s;
     f.conflicts = [];
   }
-  const orderOf = new Map(order.map((di, o) => [di, o]));
+  const short = (s: Statement): Json => ({
+    value: s.fact.value,
+    ...citation(s),
+  });
+  const pendingOf = (s: Statement): Json => ({
+    value: s.fact.value,
+    effective_date: docs[s.document]!.effective_date,
+    ...citation(s),
+  });
   const open: Json[] = [
     ...needsReview.map((x) => ({ ...x, status: "needs_review" })),
     ...rejected.map((x) => ({ ...x, status: "rejected" })),
@@ -909,7 +1080,8 @@ export function abstractLease(
       .filter(
         (x) =>
           x.predicate === f.predicate &&
-          orderOf.get(x.document as number)! >= f.current.order,
+          !plan.pending[x.document as number] &&
+          plan.rank[x.document as number]! >= f.current.rank,
       )
       .map((x) => ({
         document: x.document,
@@ -920,17 +1092,29 @@ export function abstractLease(
         check: x.check,
         reason: x.reason,
       }));
-    const short = (s: Statement): Json => ({
-      value: s.fact.value,
-      ...citation(s),
-    });
+    const carried = (f.steps ?? []).filter((h) => h.from !== f.current);
+    const groups: Json[] = [];
+    for (const h of carried) {
+      const last = groups[groups.length - 1];
+      if (last && last.fact_id === h.from.fact.id)
+        (last.steps as Step[]).push(h.step);
+      else groups.push({ steps: [h.step], ...citation(h.from) });
+    }
+    const later = pendingStatements.filter(
+      (s) => s.fact.predicate === f.predicate,
+    );
     out.push({
       predicate: f.predicate,
-      value: f.current.fact.value,
+      value: carried.length
+        ? f.steps!.map((h) => h.step)
+        : f.current.fact.value,
       source: citation(f.current),
+      ...(groups.length ? { carried_forward: groups } : {}),
       history: f.history.map(short),
       ...(f.conflicts.length ? { conflicts: f.conflicts.map(short) } : {}),
+      ...(later.length ? { pending: later.map(pendingOf) } : {}),
       ...(items.length ? { open_items: items } : {}),
+      ...(f.notes.length ? { notes: f.notes } : {}),
     });
   }
   return {
@@ -939,12 +1123,19 @@ export function abstractLease(
     documents,
     fields: out,
     facts,
+    pending: pendingStatements.map((s) => ({
+      predicate: s.fact.predicate,
+      ...pendingOf(s),
+    })),
+    pending_facts: pendingFacts,
     needs_review: needsReview,
     rejected,
+    warnings,
     summary: {
       documents: docs.length,
       fields: out.length,
       facts: facts.length,
+      pending: pendingFacts.length,
       needs_review: needsReview.length,
       rejected: rejected.length,
       conflicts: out.filter((f) => f.conflicts).length,
@@ -953,6 +1144,19 @@ export function abstractLease(
 }
 
 // --- doc_compare --------------------------------------------------------------------------------
+
+/**
+ * Parts of an extracted fact's value that its first quote does not confirm (booleans, enums, free
+ * text not written in it): the fact is not verified in those parts, whatever produced it.
+ */
+export function unconfirmed(f: Json): string[] {
+  const prov = f.provenance;
+  if (!isPlainObject(prov) || prov.method !== "extracted") return [];
+  const src = Array.isArray(prov.sources) ? (prov.sources[0] as unknown) : {};
+  if (!isPlainObject(src) || typeof src.quote !== "string") return [];
+  if (typeof f.predicate !== "string") return [];
+  return coverage(f.predicate, f.value, src.quote).gaps;
+}
 
 function differences(a: unknown, l: unknown, path: string, out: Json[]): void {
   if (out.length >= 20) return;
@@ -1047,12 +1251,14 @@ export function compare(input: z.output<typeof CompareInput>): Json {
     differences(a.value, f.value, "value", diffs);
     const status = diffs.length ? "mismatch" : "match";
     summary[status]++;
+    const gaps = unconfirmed(f);
     return {
       ...base,
       status,
       lease_value: f.value,
       ...(diffs.length ? { differences: diffs } : {}),
       citation: cite(f),
+      ...(gaps.length ? { lease_not_checked: gaps } : {}),
     };
   });
   return { results, summary };
@@ -1081,7 +1287,8 @@ function quoteStates(q: string): Json {
 
 export function verifyClaim(input: z.output<typeof VerifyClaimInput>): Json {
   capCharacters(characters(input.document.pages));
-  const { claim } = input;
+  const claim =
+    typeof input.claim === "string" ? { text: input.claim } : input.claim;
   const byValue = claim.predicate !== undefined || claim.value !== undefined;
   if (
     byValue === (claim.text !== undefined) ||
@@ -1127,13 +1334,22 @@ export function verifyClaim(input: z.output<typeof VerifyClaimInput>): Json {
   const states = quoteStates(q);
 
   let parts: { path?: string; as: Kind; value: unknown }[];
-  let notChecked: string[] = [];
+  const notChecked: string[] = [];
   if (byValue) {
-    const all = valueParts(claim.predicate!, claim.value);
-    parts = all
-      .filter((p) => p.as)
-      .map((p) => ({ path: p.path, as: p.as!, value: p.value }));
-    notChecked = all.filter((p) => !p.as).map((p) => p.path);
+    // Free text an agent may paraphrase counts as checked only when the quote writes it out.
+    parts = [];
+    for (const p of valueParts(claim.predicate!, claim.value)) {
+      if (!p.as) notChecked.push(p.path);
+      else if (p.as === "enum") {
+        if (worded(p.value, q))
+          parts.push({ path: p.path, as: "phrase", value: p.value });
+        else notChecked.push(p.path);
+      } else if (p.as !== "summary")
+        parts.push({ path: p.path, as: p.as, value: p.value });
+      else if (writtenIn(p.value, q))
+        parts.push({ path: p.path, as: "words", value: p.value });
+      else notChecked.push(p.path);
+    }
   } else {
     // Dates first; numbers are read from the rest of the sentence, so "June 30, 2031" is one date
     // and not also the numbers 30 and 2031.
@@ -1167,17 +1383,21 @@ export function verifyClaim(input: z.output<typeof VerifyClaimInput>): Json {
     found: !missing(p.as, p.value, q),
   }));
   const absent = checked.filter((p) => !p.found);
-  const stated = (kind: Kind): unknown[] =>
-    kind === "date"
+  // A text whose missing part is a number written in digits reads as a number claim.
+  const numeric = (p: { as: Kind; value: unknown }): boolean =>
+    p.as === "text" ||
+    (p.as === "words" && textNumberMissing(p.value as string, q) !== undefined);
+  const stated = (p: { as: Kind; value: unknown }): unknown[] =>
+    p.as === "date"
       ? (states.dates as unknown[])
-      : kind === "string" || kind === "phrase"
-        ? []
-        : (states.numbers as unknown[]);
+      : numeric(p) || p.as === "number" || p.as === "ratio"
+        ? (states.numbers as unknown[])
+        : [];
   const shown = (p: { as: Kind; value: unknown }): string =>
-    p.as === "text"
+    numeric(p)
       ? `number ${textNumberMissing(p.value as string, q)} in ${showValue(p.value)}`
       : showValue(p.value);
-  const contradicting = absent.find((p) => stated(p.as).length > 0);
+  const contradicting = absent.find((p) => stated(p).length > 0);
   const where = (p: { path?: string }): string =>
     p.path && p.path !== "value" ? ` (${p.path.slice("value.".length)})` : "";
   let status: string;
@@ -1190,16 +1410,18 @@ export function verifyClaim(input: z.output<typeof VerifyClaimInput>): Json {
   } else if (contradicting) {
     status = "contradicted";
     const kind = contradicting.as === "date" ? "dates" : "numbers";
-    reason = `${shown(contradicting)}${where(contradicting)} is not written in the quote; the quote states ${kind}: ${stated(contradicting.as).map(String).join(", ")}`;
+    reason = `${shown(contradicting)}${where(contradicting)} is not written in the quote; the quote states ${kind}: ${stated(contradicting).map(String).join(", ")}`;
   } else {
     status = "unverifiable";
     const p = absent[0]!;
     reason =
       p.as === "string"
         ? `${showValue(p.value)}${where(p)} is not written in the quote; FactLot cannot tell whether the quote names someone else`
-        : p.as === "phrase"
-          ? `${showValue(p.value)}${where(p)} is not worded in the quote as FactLot recognises it (docs/document-verification.md lists the phrases); read the quote`
-          : `${showValue(p.value)}${where(p)} is not written in the quote, and the quote states no ${p.as === "date" ? "date" : "number"} to compare it with`;
+        : p.as === "words"
+          ? `${showValue(p.value)}${where(p)} is not written in the quote`
+          : p.as === "phrase"
+            ? `${showValue(p.value)}${where(p)} is not worded in the quote as FactLot recognises it (docs/document-verification.md lists the phrases); read the quote`
+            : `${showValue(p.value)}${where(p)} is not written in the quote, and the quote states no ${p.as === "date" ? "date" : "number"} to compare it with`;
   }
   return {
     status,

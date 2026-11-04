@@ -14,6 +14,7 @@ from __future__ import annotations
 import hashlib
 import re
 import unicodedata
+from datetime import date, timedelta
 from decimal import Decimal
 from typing import Any
 
@@ -24,6 +25,8 @@ from .ingest.extract import PREDICATES
 from .ingest.verify import (
     _CONSISTENCY,
     _DATE_PATTERNS,
+    _STRING_FORMS,
+    _fold,
     _dates_in,
     _is_date,
     _missing,
@@ -35,6 +38,8 @@ from .ingest.verify import (
     missing_reason,
     show_value,
     text_number_missing,
+    worded,
+    written_in,
 )
 
 DOC_LIMITS = {
@@ -109,10 +114,12 @@ def _checkable(kind: str, value: Any) -> bool:
     if kind == "text":
         # A text is checked for the numbers written in digits in it; one without digits is not checked.
         return isinstance(value, str) and any(c in "0123456789" for c in _norm(value))
-    if kind == "phrase":
+    if kind in ("phrase", "enum"):
         return isinstance(value, str) and value in PHRASES
     if kind == "string":
         return isinstance(value, str)
+    if kind in ("words", "summary"):
+        return isinstance(value, str) and _fold(_norm(value)) != ""
     if kind == "date":
         return _is_date(value)
     return _num(value)
@@ -123,6 +130,8 @@ def _generic_kind(value: Any) -> str | None:
         return "ratio" if 0 < value <= 1 else "number"
     if _is_date(value):
         return "date"
+    if _checkable("summary", value):
+        return "summary"
     return None
 
 
@@ -149,6 +158,9 @@ def value_parts(predicate: str, value: Any) -> list[dict[str, Any]]:
         if isinstance(spec, str):
             if _checkable(spec, v):
                 out.append({"path": path, "as": spec, "value": v, "reason_path": rp})
+            elif spec == "text" and _checkable("summary", v):
+                # Free text without digits has no number to check; it can still be found written out.
+                out.append({"path": path, "as": "summary", "value": v, "reason_path": rp})
             else:
                 leaves(v, path, rp)
         elif isinstance(spec, list):
@@ -183,12 +195,67 @@ def value_parts(predicate: str, value: Any) -> list[dict[str, Any]]:
             out.append(part)
 
     if is_ingest_predicate(predicate):
-        known(_CONSISTENCY.get(predicate), value, "", "")
+        spec = _STRING_FORMS[predicate] if isinstance(value, str) and predicate in _STRING_FORMS \
+            else _CONSISTENCY.get(predicate)
+        known(spec, value, "", "")
     else:
         generic(value, "")
     for p in out:
         p["path"] = "value" if not p["path"] else f"value.{p['path']}"
     return out
+
+
+def _type_name(v: Any) -> str:
+    if v is None:
+        return "null"
+    if isinstance(v, bool):
+        return "boolean"
+    if isinstance(v, (int, float)):
+        return "number"
+    if isinstance(v, str):
+        return "string"
+    return "array" if isinstance(v, list) else "object"
+
+
+def coverage(predicate: str, value: Any, quote: str) -> dict[str, Any]:
+    """Which parts of the value were checked against the quote, and which were not
+    (quotes.ts ``coverage``): enums, booleans and other parts no rule checks, free text ("summary",
+    or "text" whose numbers were checked) not written in the quote as it stands, and any other part
+    the quote does not state (none, for a value that passed the consistency check). ``gaps`` says
+    why each one was not confirmed."""
+    q = _norm(quote)
+    checked: list[dict[str, Any]] = []
+    not_checked: list[str] = []
+    gaps: list[str] = []
+    for p in value_parts(predicate, value):
+        kind = p.get("as")
+        if kind == "enum":
+            if worded(p["value"], q):
+                checked.append({"path": p["path"], "as": "phrase"})
+            else:
+                not_checked.append(p["path"])
+                gaps.append(f"{p['path']} (not worded in the quote as FactLot recognises it)")
+        elif kind in ("summary", "text"):
+            if written_in(p["value"], q):
+                checked.append({"path": p["path"], "as": "words"})
+            else:
+                not_checked.append(p["path"])
+                gaps.append(f"{p['path']} (text not written in the quote)")
+        elif kind and _missing(kind, p["value"], q):
+            not_checked.append(p["path"])
+            gaps.append(f"{p['path']} (not found in the quote)")
+        elif kind:
+            checked.append({"path": p["path"], "as": kind})
+        else:
+            not_checked.append(p["path"])
+            gaps.append(f"{p['path']} ({_type_name(p['value'])})")
+    return {"checked": checked, "not_checked": not_checked, "gaps": gaps}
+
+
+def coverage_reason(gaps: list[str]) -> str:
+    """The needs_review reason for value parts the quote does not confirm."""
+    many = len(gaps) > 1
+    return f"{', '.join(gaps)} {'are' if many else 'is'} not checked against the quote; confirm {'them' if many else 'it'}"
 
 
 def check_consistency_any(predicate: str, value: Any, quote: str) -> str | None:
@@ -361,12 +428,6 @@ def _predicate_note(predicate: str) -> str | None:
             "checked with the generic rules")
 
 
-def _coverage(predicate: str, value: Any) -> dict[str, Any]:
-    parts = value_parts(predicate, value)
-    return {"checked": [{"path": p["path"], "as": p["as"]} for p in parts if p.get("as")],
-            "not_checked": [p["path"] for p in parts if not p.get("as")]}
-
-
 def _build_fact(ctx: dict[str, Any], predicate: str, value: Any, document: str, quote: str,
                 provenance: dict[str, Any]) -> dict[str, Any]:
     fact: dict[str, Any] = {"id": fact_id(ctx["subject"], predicate, document, quote), "subject": ctx["subject"],
@@ -401,11 +462,11 @@ def _verify_candidate(doc: dict[str, Any], c: dict[str, Any], ctx: dict[str, Any
     if note:
         notes.append(note)
 
-    def review(check: str, reason: str) -> None:
+    def review(check: str, reason: str, extra: dict[str, Any] | None = None) -> None:
         item = {**base, "value": value, "quote": c["quote"], "page": loc["page"]}
         if "section" in c:
             item["section"] = c["section"]
-        item.update({"check": check, "reason": reason})
+        item.update({"check": check, "reason": reason, **(extra or {})})
         if notes:
             item["notes"] = notes
         out["needs_review"].append(item)
@@ -416,6 +477,12 @@ def _verify_candidate(doc: dict[str, Any], c: dict[str, Any], ctx: dict[str, Any
     if c.get("confidence") is not None and c["confidence"] < REVIEW_CONFIDENCE_THRESHOLD:
         return review("confidence", f"extractor confidence {show_value(c['confidence'])} is below "
                                     f"{js_number_str(REVIEW_CONFIDENCE_THRESHOLD)}")
+    # Verified means every part of the value was found in the quote: a part no rule can check (a
+    # boolean, an enum) or free text the quote does not contain holds the candidate for a person.
+    cov = coverage(c["predicate"], value, c["quote"])
+    if cov["gaps"]:
+        return review("coverage", coverage_reason(cov["gaps"]),
+                      {"checked": cov["checked"], "not_checked": cov["not_checked"]})
     span = doc["text"].span(loc["page"], loc["q"])
     source: dict[str, Any] = {"document_id": doc["id"]}
     if "title" in doc:
@@ -435,7 +502,7 @@ def _verify_candidate(doc: dict[str, Any], c: dict[str, Any], ctx: dict[str, Any
         provenance["confidence"] = c["confidence"]
     fact = _build_fact(ctx, c["predicate"], value, doc["id"], c["quote"], provenance)
     out["facts"].append(fact)
-    item = {**label, "fact": fact, **_coverage(c["predicate"], value)}
+    item = {**label, "fact": fact, "checked": cov["checked"], "not_checked": cov["not_checked"]}
     if notes:
         item["notes"] = notes
     out["verified"].append(item)
@@ -514,18 +581,41 @@ def json_equal(a: Any, b: Any) -> bool:
     return type(a) is type(b) and a == b
 
 
-def _role(docs: list[dict[str, Any]], i: int) -> str:
-    return docs[i].get("role") or ("original" if i == 0 else "amendment")
-
-
-def _apply_order(docs: list[dict[str, Any]]) -> list[int]:
-    """Original first, then amendments by effective date (input order breaks ties), or in input
-    order if any amendment is undated (``factlot.ingest.pipeline.document_order``)."""
-    originals = [i for i in range(len(docs)) if _role(docs, i) == "original"]
-    amendments = [i for i in range(len(docs)) if _role(docs, i) != "original"]
-    if all(docs[i].get("effective_date") for i in amendments):
-        amendments.sort(key=lambda i: (docs[i]["effective_date"], i))
-    return originals + amendments
+def _plan(docs: list[dict[str, Any]], ids: list[str | None], as_of: str) -> dict[str, list[Any]]:
+    """Roles, ranks and order, none of it from input order (documents.ts ``planAbstract``). A
+    document without a role is the original when no document is marked original and it is the only
+    one without a role, or the only one without a role and an effective_date; otherwise it is an
+    amendment. Anything else is ambiguous and an input error, as are two or more amendments without
+    effective dates. Originals rank 0, amendments 1, 2, ... by effective date; within a rank,
+    documents are ordered by document ID, then input order."""
+    idx = list(range(len(docs)))
+    unroled = [i for i in idx if docs[i].get("role") is None]
+    explicit_original = any(docs[i].get("role") == "original" for i in idx)
+    original = None
+    if not explicit_original and len(unroled) == 1:
+        original = unroled[0]
+    elif not explicit_original and len(unroled) > 1:
+        undated = [i for i in unroled if docs[i].get("effective_date") is None]
+        if len(undated) != 1:
+            raise DocInputError([{"path": "documents", "message": (
+                f"cannot tell which document is the original lease: documents {', '.join(map(str, unroled))} have no "
+                f"role{' and no effective_date' if len(undated) > 1 else ''}. Give the lease role \"original\" and each "
+                "amendment role \"amendment\" with its effective_date; FactLot does not take the first document to be "
+                "the lease, because documents may come in any order")}])
+        original = undated[0]
+    role = [docs[i].get("role") or ("original" if i == original else "amendment") for i in idx]
+    amendments = [i for i in idx if role[i] == "amendment"]
+    undated_amendment = next((i for i in amendments if docs[i].get("effective_date") is None), None)
+    if len(amendments) > 1 and undated_amendment is not None:
+        raise DocInputError([{"path": f"documents.{undated_amendment}.effective_date", "message": (
+            f"this amendment has no effective_date; with {len(amendments)} amendments FactLot applies them in "
+            "effective-date order, never input order, so give each amendment its effective_date (YYYY-MM-DD)")}])
+    dates = sorted({docs[i].get("effective_date") or "" for i in amendments})
+    rank = [0 if role[i] == "original" else dates.index(docs[i].get("effective_date") or "") + 1 for i in idx]
+    order = sorted(idx, key=lambda i: (rank[i], ids[i] or "", i))
+    return {"order": order, "role": role, "inferred": [docs[i].get("role") is None for i in idx], "rank": rank,
+            "pending": [role[i] == "amendment" and docs[i].get("effective_date") is not None
+                        and docs[i]["effective_date"] > as_of for i in idx]}
 
 
 def _citation(s: dict[str, Any]) -> dict[str, Any]:
@@ -543,6 +633,27 @@ def _first_issue(issues: list[dict[str, str]]) -> str:
     i = issues[0]
     more = f" (and {len(issues) - 1} more)" if len(issues) > 1 else ""
     return f"not a valid fact: {i['path'] or '(root)'}: {i['message']}{more}"
+
+
+def _day_before(iso: str) -> str:
+    return (date.fromisoformat(iso) - timedelta(days=1)).isoformat()
+
+
+def _merge_steps(held: list[dict[str, Any]], s: dict[str, Any], notes: list[str]) -> list[dict[str, Any]]:
+    """A rent schedule restated from some date on keeps the earlier document's steps before that
+    date (documents.ts ``mergeSteps``). A step that runs past it ends the day before, with a note."""
+    steps = s["fact"]["value"]
+    start = min(x["from"] for x in steps)
+    kept = []
+    for h in held:
+        if h["step"]["to"] < start:
+            kept.append(h)
+        elif h["step"]["from"] < start:
+            to = _day_before(start)
+            notes.append(f"the step from {h['step']['from']} to {h['step']['to']} (document {h['from']['document']}) "
+                         f"is shown ending {to}, the day before document {s['document']}'s schedule starts")
+            kept.append({"step": {**h["step"], "to": to}, "from": h["from"]})
+    return kept + [{"step": step, "from": s} for step in steps]
 
 
 def abstract_lease(args: dict[str, Any], producer: dict[str, str]) -> dict[str, Any]:
@@ -563,7 +674,6 @@ def abstract_lease(args: dict[str, Any], producer: dict[str, str]) -> dict[str, 
         raise DocInputError([{"path": "documents", "message": (
             f"{candidates} candidates and facts in all; the limit is {DOC_LIMITS['candidates_per_call']} per call")}])
 
-    order = _apply_order(docs)
     loaded = [_load_document(d, f"documents.{i}") if "pages" in d else None for i, d in enumerate(docs)]
 
     def doc_id(i: int) -> str | None:
@@ -580,6 +690,8 @@ def abstract_lease(args: dict[str, Any], producer: dict[str, str]) -> dict[str, 
         return None
 
     ids = [doc_id(i) for i in range(len(docs))]
+    plan = _plan(docs, ids, args["as_of"])
+    order = plan["order"]
     subject = args.get("subject")
     if subject is None:
         subject = ids[order[0]] or next((x for x in ids if x is not None), None)
@@ -588,11 +700,15 @@ def abstract_lease(args: dict[str, Any], producer: dict[str, str]) -> dict[str, 
             "no FactLot document ID to use as the subject; pass subject (your lease's fl:lease:… URN)")}])
 
     facts: list[dict[str, Any]] = []
+    pending_facts: list[dict[str, Any]] = []
     needs_review: list[dict[str, Any]] = []
     rejected: list[dict[str, Any]] = []
     statements: list[dict[str, Any]] = []
+    pending_statements: list[dict[str, Any]] = []
     documents: list[dict[str, Any]] = []
-    for o, di in enumerate(order):
+    warnings: list[str] = []
+    applied = 0
+    for di in order:
         d, doc = docs[di], loaded[di]
         ctx = {"subject": subject, "as_of": args["as_of"], "valid_from": d.get("effective_date"), "producer": producer}
         out = _outcome()
@@ -633,15 +749,40 @@ def abstract_lease(args: dict[str, Any], producer: dict[str, str]) -> dict[str, 
                 if reason:
                     reject(f"value not supported by quote: {reason}")
                     continue
+            cov = coverage(predicate, f["value"], src["quote"])
+            if cov["gaps"]:
+                item: dict[str, Any] = {**label, "predicate": predicate, "value": f["value"], "quote": src["quote"],
+                                        "page": src["page"]}
+                if isinstance(src.get("section"), str):
+                    item["section"] = src["section"]
+                item.update({"check": "coverage", "reason": coverage_reason(cov["gaps"]), "checked": cov["checked"],
+                             "not_checked": cov["not_checked"]})
+                out["needs_review"].append(item)
+                continue
             fact = _build_fact(ctx, predicate, f["value"], ids[di], src["quote"], dict(prov))
             placed.append({"fact": fact, "quote_on_page": False})
         ordered = [{"fact": fact, "quote_on_page": True} for fact in out["facts"]] + placed
+        pending = plan["pending"][di]
         for p in ordered:
-            facts.append(p["fact"])
-            statements.append({**p, "document": di, "order": o})
+            (pending_facts if pending else facts).append(p["fact"])
+            (pending_statements if pending else statements).append({**p, "document": di, "rank": plan["rank"][di]})
         needs_review.extend(out["needs_review"])
         rejected.extend(out["rejected"])
-        entry: dict[str, Any] = {"document": di, "applied": o + 1, "role": _role(docs, di)}
+        n = len(ordered)
+        if pending:
+            title = f" ({d['title']})" if "title" in d else ""
+            warnings.append(f"documents.{di}{title} takes effect on {d['effective_date']}, after as_of {args['as_of']}: "
+                            f"its {n} verified value{' is' if n == 1 else 's are'} listed under pending and "
+                            f"do{'es' if n == 1 else ''} not control the current abstract")
+        entry: dict[str, Any] = {"document": di}
+        if pending:
+            entry["pending"] = True
+        else:
+            applied += 1
+            entry["applied"] = applied
+        entry["role"] = plan["role"][di]
+        if plan["inferred"][di]:
+            entry["role_inferred"] = True
         if d.get("effective_date") is not None:
             entry["effective_date"] = d["effective_date"]
         if doc is not None:
@@ -650,59 +791,98 @@ def abstract_lease(args: dict[str, Any], producer: dict[str, str]) -> dict[str, 
             entry.update({"document_id": ids[di], "document_id_basis": "sha256" if d.get("sha256") else "facts"})
             if "title" in d:
                 entry["title"] = d["title"]
-        entry.update({"verified": len(ordered), "needs_review": len(out["needs_review"]),
-                      "rejected": len(out["rejected"])})
+        entry.update({"verified": n, "needs_review": len(out["needs_review"]), "rejected": len(out["rejected"])})
         documents.append(entry)
 
-    # Supersession: a later document's statement of a predicate controls; earlier ones are history.
+    # Supersession: a later-ranked document's statement of a predicate controls; earlier ones are
+    # history. Two documents of one rank (two originals, or amendments effective the same day) do
+    # not supersede each other: a different value is a conflict.
+    rent = "lease.base_rent_schedule"
     fields: dict[str, dict[str, Any]] = {}
     for s in statements:
         predicate = s["fact"]["predicate"]
         f = fields.get(predicate)
         if f is None:
-            fields[predicate] = {"current": s, "history": [], "conflicts": []}
+            fields[predicate] = {"current": s, "history": [], "conflicts": [], "notes": [],
+                                 "steps": [{"step": step, "from": s} for step in s["fact"]["value"]]
+                                 if predicate == rent else None}
             continue
-        if f["current"]["order"] == s["order"]:
+        if f["current"]["rank"] == s["rank"]:
             if not json_equal(f["current"]["fact"]["value"], s["fact"]["value"]) and not any(
                     json_equal(c["fact"]["value"], s["fact"]["value"]) for c in f["conflicts"]):
                 f["conflicts"].append(s)
             continue
         s["fact"]["supersedes"] = [f["current"]["fact"]["id"]]
         f["history"].extend([f["current"], *f["conflicts"]])
+        if f["steps"] is not None:
+            f["steps"] = _merge_steps(f["steps"], s, f["notes"])
         f["current"], f["conflicts"] = s, []
-    order_of = {di: o for o, di in enumerate(order)}
+
+    def short(s: dict[str, Any]) -> dict[str, Any]:
+        return {"value": s["fact"]["value"], **_citation(s)}
+
+    def pending_of(s: dict[str, Any]) -> dict[str, Any]:
+        return {"value": s["fact"]["value"], "effective_date": docs[s["document"]].get("effective_date"),
+                **_citation(s)}
+
     open_items = [{**x, "status": "needs_review"} for x in needs_review] + [{**x, "status": "rejected"} for x in rejected]
     result_fields = []
     for predicate, f in fields.items():
         items = []
         for x in open_items:
-            if x["predicate"] == predicate and order_of[x["document"]] >= f["current"]["order"]:
-                item: dict[str, Any] = {"document": x["document"]}
+            if x["predicate"] == predicate and not plan["pending"][x["document"]] \
+                    and plan["rank"][x["document"]] >= f["current"]["rank"]:
+                item = {"document": x["document"]}
                 if "candidate" in x:
                     item["candidate"] = x["candidate"]
                 else:
                     item["fact"] = x["fact"]
                 item.update({"status": x["status"], "check": x["check"], "reason": x["reason"]})
                 items.append(item)
-
-        def short(s: dict[str, Any]) -> dict[str, Any]:
-            return {"value": s["fact"]["value"], **_citation(s)}
-
-        field: dict[str, Any] = {"predicate": predicate, "value": f["current"]["fact"]["value"],
-                                 "source": _citation(f["current"]), "history": [short(s) for s in f["history"]]}
+        carried = [h for h in (f["steps"] or []) if h["from"] is not f["current"]]
+        groups: list[dict[str, Any]] = []
+        for h in carried:
+            if groups and groups[-1]["fact_id"] == h["from"]["fact"]["id"]:
+                groups[-1]["steps"].append(h["step"])
+            else:
+                groups.append({"steps": [h["step"]], **_citation(h["from"])})
+        later = [s for s in pending_statements if s["fact"]["predicate"] == predicate]
+        field: dict[str, Any] = {"predicate": predicate,
+                                 "value": [h["step"] for h in f["steps"]] if carried else f["current"]["fact"]["value"],
+                                 "source": _citation(f["current"])}
+        if groups:
+            field["carried_forward"] = groups
+        field["history"] = [short(s) for s in f["history"]]
         if f["conflicts"]:
             field["conflicts"] = [short(s) for s in f["conflicts"]]
+        if later:
+            field["pending"] = [pending_of(s) for s in later]
         if items:
             field["open_items"] = items
+        if f["notes"]:
+            field["notes"] = f["notes"]
         result_fields.append(field)
     return {"subject": subject, "as_of": args["as_of"], "documents": documents, "fields": result_fields,
-            "facts": facts, "needs_review": needs_review, "rejected": rejected,
+            "facts": facts, "pending": [{"predicate": s["fact"]["predicate"], **pending_of(s)} for s in pending_statements],
+            "pending_facts": pending_facts, "needs_review": needs_review, "rejected": rejected, "warnings": warnings,
             "summary": {"documents": len(docs), "fields": len(result_fields), "facts": len(facts),
-                        "needs_review": len(needs_review), "rejected": len(rejected),
+                        "pending": len(pending_facts), "needs_review": len(needs_review), "rejected": len(rejected),
                         "conflicts": sum(1 for f in result_fields if "conflicts" in f)}}
 
 
 # --- doc_compare -------------------------------------------------------------------------------------
+
+
+def unconfirmed(f: dict[str, Any]) -> list[str]:
+    """Parts of an extracted fact's value that its first quote does not confirm (booleans, enums,
+    free text not written in it): the fact is not verified in those parts (documents.ts ``unconfirmed``)."""
+    prov = f.get("provenance")
+    if not isinstance(prov, dict) or prov.get("method") != "extracted":
+        return []
+    src = prov["sources"][0] if isinstance(prov.get("sources"), list) and prov["sources"] else {}
+    if not isinstance(src, dict) or not isinstance(src.get("quote"), str) or not isinstance(f.get("predicate"), str):
+        return []
+    return coverage(f["predicate"], f.get("value"), src["quote"])["gaps"]
 
 
 def _differences(a: Any, lease: Any, path: str, out: list[dict[str, Any]]) -> None:
@@ -781,6 +961,9 @@ def compare(args: dict[str, Any]) -> dict[str, Any]:
         if diffs:
             item["differences"] = diffs
         item["citation"] = cite(f)
+        gaps = unconfirmed(f)
+        if gaps:
+            item["lease_not_checked"] = gaps
         results.append(item)
     return {"results": results, "summary": summary}
 
@@ -815,7 +998,7 @@ def _sorted_numbers(found: set[Decimal]) -> list[int | float]:
 
 def verify_claim(args: dict[str, Any]) -> dict[str, Any]:
     _cap_characters(_characters(args["document"]["pages"]))
-    claim = args["claim"]
+    claim = {"text": args["claim"]} if isinstance(args["claim"], str) else args["claim"]
     by_value = "predicate" in claim or "value" in claim
     if by_value == ("text" in claim) or (by_value and ("predicate" not in claim or "value" not in claim)):
         raise DocInputError([{"path": "claim", "message": "give either predicate and value, or text"}])
@@ -843,9 +1026,22 @@ def verify_claim(args: dict[str, Any]) -> dict[str, Any]:
 
     not_checked: list[str] = []
     if by_value:
-        every = value_parts(claim["predicate"], claim["value"])
-        parts = [{"path": p["path"], "as": p["as"], "value": p["value"]} for p in every if p.get("as")]
-        not_checked = [p["path"] for p in every if not p.get("as")]
+        # Free text an agent may paraphrase counts as checked only when the quote writes it out.
+        parts = []
+        for p in value_parts(claim["predicate"], claim["value"]):
+            if not p.get("as"):
+                not_checked.append(p["path"])
+            elif p["as"] == "enum":
+                if worded(p["value"], q):
+                    parts.append({"path": p["path"], "as": "phrase", "value": p["value"]})
+                else:
+                    not_checked.append(p["path"])
+            elif p["as"] != "summary":
+                parts.append({"path": p["path"], "as": p["as"], "value": p["value"]})
+            elif written_in(p["value"], q):
+                parts.append({"path": p["path"], "as": "words", "value": p["value"]})
+            else:
+                not_checked.append(p["path"])
     else:
         # Dates first; numbers are read from the rest of the sentence, so "June 30, 2031" is one
         # date and not also the numbers 30 and 2031.
@@ -869,18 +1065,24 @@ def verify_claim(args: dict[str, Any]) -> dict[str, Any]:
     checked = [{**p, "found": not _missing(p["as"], p["value"], q)} for p in parts]
     absent = [p for p in checked if not p["found"]]
 
-    def stated(kind: str) -> list[Any]:
-        return states["dates"] if kind == "date" else [] if kind in ("string", "phrase") else states["numbers"]
+    def numeric(p: dict[str, Any]) -> bool:
+        # A text whose missing part is a number written in digits reads as a number claim.
+        return p["as"] == "text" or (p["as"] == "words" and text_number_missing(p["value"], q) is not None)
+
+    def stated(p: dict[str, Any]) -> list[Any]:
+        if p["as"] == "date":
+            return states["dates"]
+        return states["numbers"] if numeric(p) or p["as"] in ("number", "ratio") else []
 
     def shown(p: dict[str, Any]) -> str:
-        if p["as"] == "text":
+        if numeric(p):
             return f"number {text_number_missing(p['value'], q)} in {show_value(p['value'])}"
         return show_value(p["value"])
 
     def where(p: dict[str, Any]) -> str:
         return f" ({p['path'][len('value.'):]})" if p.get("path") and p["path"] != "value" else ""
 
-    contradicting = next((p for p in absent if stated(p["as"])), None)
+    contradicting = next((p for p in absent if stated(p)), None)
     if not absent:
         status = "supported"
         reason = ("every checked part of the value is written in the quote, and the quote is on the page" if by_value
@@ -889,7 +1091,7 @@ def verify_claim(args: dict[str, Any]) -> dict[str, Any]:
     elif contradicting is not None:
         status = "contradicted"
         kind = "dates" if contradicting["as"] == "date" else "numbers"
-        listed = ", ".join(js_number_str(v) if _num(v) else str(v) for v in stated(contradicting["as"]))
+        listed = ", ".join(js_number_str(v) if _num(v) else str(v) for v in stated(contradicting))
         reason = f"{shown(contradicting)}{where(contradicting)} is not written in the quote; the quote states {kind}: {listed}"
     else:
         status = "unverifiable"
@@ -897,6 +1099,8 @@ def verify_claim(args: dict[str, Any]) -> dict[str, Any]:
         if p["as"] == "string":
             reason = (f"{show_value(p['value'])}{where(p)} is not written in the quote; FactLot cannot tell whether the "
                       "quote names someone else")
+        elif p["as"] == "words":
+            reason = f"{show_value(p['value'])}{where(p)} is not written in the quote"
         elif p["as"] == "phrase":
             reason = (f"{show_value(p['value'])}{where(p)} is not worded in the quote as FactLot recognises it "
                       "(docs/document-verification.md lists the phrases); read the quote")

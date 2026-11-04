@@ -20,6 +20,7 @@ import {
   capCharacters,
   characters,
   loadDocument,
+  unconfirmed,
   validateFact,
 } from "./documents.ts";
 import type { Doc, Json } from "./documents.ts";
@@ -544,6 +545,21 @@ export async function verifyFactPackage(
     });
   });
 
+  // Value parts no quote confirms. They do not affect `valid`: a package may carry facts a
+  // person confirmed, and FactLot reports what it could not check rather than judging them.
+  const valuesNotChecked: Json[] = [];
+  (facts as Json[]).forEach((f, i) => {
+    if (factIssues.some((x) => x.fact === i)) return;
+    const gaps = unconfirmed(f);
+    if (gaps.length)
+      valuesNotChecked.push({
+        fact: i,
+        ...(typeof f.id === "string" ? { fact_id: f.id } : {}),
+        predicate: f.predicate,
+        not_checked: gaps,
+      });
+  });
+
   const integrityOk = r.problems.length === 0;
   const signatureOk =
     input.public_key !== undefined
@@ -573,6 +589,33 @@ export async function verifyFactPackage(
       problems: quoteProblems,
       documents_not_supplied: notSupplied,
     },
+    values_not_checked: valuesNotChecked,
+    checks_run: [
+      "integrity: each fact's hash, the Merkle root and the digest, recomputed from the content",
+      signature.status === "absent"
+        ? "signature: none to check (the package is not signed)"
+        : input.public_key !== undefined
+          ? "signature: Ed25519, against the public_key given"
+          : "signature: Ed25519, against the key inside the package only; pass public_key to check who signed",
+      "facts: fact_validate on each fact (schema and citations; for Ingest predicates, the value's shape and that its numbers, dates, names and as-written text appear in each source quote)",
+      ...(docs.size
+        ? ["quotes: each quote citing a supplied document is on its cited page"]
+        : []),
+    ],
+    checks_not_run: [
+      ...(valuesNotChecked.length
+        ? [
+            "values: the parts in values_not_checked are not confirmed by their quotes (booleans, enums, free text not written in the quote, or a generic predicate's value the quote does not state)",
+          ]
+        : []),
+      ...(notSupplied.length
+        ? [
+            "quotes: quotes citing the documents in quotes.documents_not_supplied were not looked for, because their pages were not given",
+          ]
+        : []),
+      "files: whether the pages given came from the files their sha256 names",
+      "meaning: a quote that states the right number for a different term passes",
+    ],
   };
 }
 
