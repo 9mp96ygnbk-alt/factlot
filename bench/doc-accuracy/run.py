@@ -8,7 +8,8 @@ Subcommands (run from the repository root or this directory):
   pages          split each cached document into pages (the same rule every other step uses)
   check-labels   confirm every label's quote is on its page (run before freezing labels)
   verify         run doc_verify_facts (python/src, offline) on candidates/*.json
-  score          score the verifier outcomes against labels/*.json, with Wilson intervals
+  plant          write planted-error copies to planted/ (value rule from PLAN.md; seeded quote-digit variant)
+  score          score the verifier outcomes and planted copies against labels/*.json, with Wilson intervals
   test           run the unit tests (synthetic data only)
 
 Nothing here needs an API key. Only ``fetch`` touches the network, and only sec.gov.
@@ -42,6 +43,8 @@ USER_AGENT = os.environ.get("FACTLOT_BENCH_USER_AGENT", "FactLot doc-accuracy be
 MIN_INTERVAL_S = 0.5  # at most 2 requests per second, one at a time
 CACHE = Path(os.environ.get("FACTLOT_BENCH_CACHE", "/workspace/factlot-bench-cache"))
 AS_OF = "2026-11-03"
+# The label commit named in labels/FROZEN.md (the freeze commit f76cad4 adds only FROZEN.md).
+LABELS_FROZEN_AT = "a978b85766f5c7e911fc9fe2175dbea0289079a1"
 
 # Predicates whose value is only type-checked by the verifier (nothing compared with the quote).
 SUMMARY_PREDICATES = {"lease.rofr", "lease.rofo", "lease.exclusive_use", "lease.assignment_sublease"}
@@ -221,6 +224,9 @@ def _num(x: Any) -> bool:
 
 
 def _eq(a: Any, b: Any) -> bool:
+    if isinstance(a, bool) or isinstance(b, bool):
+        # A boolean is not a number (PLAN section 9): True must not equal 1.
+        return isinstance(a, bool) and isinstance(b, bool) and a == b
     if _num(a) and _num(b):
         return abs(a - b) <= 1e-9 * max(1.0, abs(a), abs(b)) or round(a, 2) == round(b, 2)
     if isinstance(a, str) and isinstance(b, str):
@@ -232,17 +238,24 @@ def _eq(a: Any, b: Any) -> bool:
     return a == b
 
 
-def values_match(predicate: str, cand: Any, label: Any) -> bool:
-    """Is the candidate value the labelled value? Free-text fields are ignored; summaries match on presence."""
+def values_match(predicate: str, cand: Any, label: Any, strip_descriptors: bool = False) -> bool:
+    """Is the candidate value the labelled value? Free-text fields are ignored; summaries match on presence.
+    strip_descriptors is the post-hoc party-name sensitivity, off for the primary scores."""
     if predicate in SUMMARY_PREDICATES:
         return True
+    if strip_descriptors and predicate in NAME_PREDICATES:
+        return _eq(_strip_descriptor(cand), _strip_descriptor(label))
     fields = SCORED_FIELDS.get(predicate)
     if fields and isinstance(cand, dict) and isinstance(label, dict):
+        if strip_descriptors and predicate == "lease.guaranty":
+            cand = {**cand, "guarantor": _strip_descriptor(cand.get("guarantor"))}
+            label = {**label, "guarantor": _strip_descriptor(label.get("guarantor"))}
         return all(_eq(cand.get(f), label.get(f)) for f in fields)
     return _eq(cand, label)
 
 
-def classify(doc_candidates: list[dict[str, Any]], doc_labels: list[dict[str, Any]]) -> list[str]:
+def classify(doc_candidates: list[dict[str, Any]], doc_labels: list[dict[str, Any]],
+             strip_descriptors: bool = False) -> list[str]:
     """Per candidate: 'correct', 'wrong', 'unlabeled' (no label for its predicate) or 'summary'."""
     by_pred: dict[str, list[Any]] = {}
     for lab in doc_labels:
@@ -254,7 +267,7 @@ def classify(doc_candidates: list[dict[str, Any]], doc_labels: list[dict[str, An
             out.append("summary")
         elif p not in by_pred:
             out.append("unlabeled")
-        elif any(values_match(p, c.get("value"), v) for v in by_pred[p]):
+        elif any(values_match(p, c.get("value"), v, strip_descriptors) for v in by_pred[p]):
             out.append("correct")
         else:
             out.append("wrong")
@@ -354,6 +367,42 @@ def load_pages(doc: dict[str, Any]) -> list[str]:
     return split_pages(raw, _ext(doc["url"]))
 
 
+def checked_pages(doc: dict[str, Any]) -> list[str]:
+    """Pages for a scored call; stops when they differ from the manifest's text_sha256."""
+    pages = load_pages(doc)
+    if doc.get("text_sha256") and text_sha256(pages) != doc["text_sha256"]:
+        raise SystemExit(f"{doc['id']}: page text differs from the manifest; re-run fetch/pages")
+    return pages
+
+
+def _git(*args: str) -> str:
+    import subprocess
+
+    try:
+        return subprocess.run(["git", "-C", str(REPO), *args], capture_output=True, text=True, check=True).stdout.strip()
+    except Exception:  # noqa: BLE001 - metadata only
+        return ""
+
+
+def run_meta(step: str) -> dict[str, Any]:
+    """What ran: the command, the repository revision (and whether the tree was dirty), the factlot
+    version and the last commit that touched python/src, as_of, and the label freeze."""
+    import factlot
+
+    return {
+        "step": step,
+        "command": "python3 bench/doc-accuracy/run.py " + " ".join(sys.argv[1:] or [step]),
+        "repo_head": _git("rev-parse", "HEAD"),
+        "worktree_dirty": bool(_git("status", "--porcelain", "--", "python/src", "bench/doc-accuracy/run.py",
+                                    "bench/doc-accuracy/labels", "bench/doc-accuracy/candidates")),
+        "factlot_version": getattr(factlot, "__version__", None),
+        "factlot_src_commit": _git("log", "-1", "--format=%H", "--", "python/src"),
+        "as_of": AS_OF,
+        "labels_frozen_at": LABELS_FROZEN_AT,
+        "python": sys.version.split()[0],
+    }
+
+
 def cmd_pages(args: argparse.Namespace) -> int:
     m = load_manifest()
     bad = 0
@@ -409,20 +458,23 @@ def cmd_verify(args: argparse.Namespace) -> int:
     m = load_manifest()
     outdir = HERE / "results"
     outdir.mkdir(exist_ok=True)
-    allres = {}
+    allres: dict[str, Any] = {"_meta": run_meta("verify")}
     for d in m["documents"]:
         path = HERE / "candidates" / f"{d['id']}.json"
         if not path.exists():
             continue
         cands = json.loads(path.read_text())["candidates"]
         if not cands:
+            # Kept in the results: the extractor proposed nothing, so every label here is a coverage miss.
+            allres[d["id"]] = {"outcomes": [], "reasons": {}, "summary": None, "note": "no candidates"}
             continue
-        pages = load_pages(d)
-        if d.get("text_sha256") and text_sha256(pages) != d["text_sha256"]:
-            raise SystemExit(f"{d['id']}: page text differs from the manifest; re-run fetch/pages")
+        pages = checked_pages(d)
         res = _verify(pages, cands, d.get("sha256"))
         if "error" in res:
-            raise SystemExit(f"{d['id']}: {res['message']}")
+            # PLAN section 9: a document over a tool limit is an error in the results, not dropped.
+            allres[d["id"]] = {"error": res.get("message", res["error"])}
+            print(f"{d['id']}: verifier error {allres[d['id']]['error']}")
+            continue
         allres[d["id"]] = {"outcomes": outcomes(res, len(cands)),
                            "reasons": {str(i["candidate"]): f"{i['check']}: {i['reason']}"
                                        for k in ("needs_review", "rejected") for i in res[k]},
@@ -432,106 +484,343 @@ def cmd_verify(args: argparse.Namespace) -> int:
     return 0
 
 
-def score(docs: dict[str, dict[str, Any]]) -> dict[str, Any]:
-    """docs: id -> {labels, candidates, outcomes, planted: [{outcome, original_outcome}]}. Pure; tested."""
-    rows = []
-    for doc_id, d in docs.items():
-        kinds = classify(d["candidates"], d["labels"])
-        for c, k, o in zip(d["candidates"], kinds, d["outcomes"]):
-            rows.append({"doc": doc_id, "predicate": c["predicate"], "kind": k, "outcome": o})
+_DESCRIPTOR = re.compile(r",\s*an?\s+[^,]*\b(company|corporation|partnership|trust|association)\s*$")
+
+
+def _strip_descriptor(name: Any) -> Any:
+    """'Acme LLC, a Delaware limited liability company' -> 'acme llc' (post-hoc sensitivity only)."""
+    return _DESCRIPTOR.sub("", _norm_name(name)).strip() if isinstance(name, str) else name
+
+
+def metric(k: int, n: int) -> dict[str, Any]:
+    ci = wilson(k, n)
+    return {"k": k, "n": n, "rate": (k / n if n else None), "wilson95": ci}
+
+
+def _rates(rows: list[dict[str, Any]], labels_scored: list[dict[str, Any]]) -> dict[str, Any]:
     main = [r for r in rows if r["kind"] in ("correct", "wrong")]
     ver = [r for r in main if r["outcome"] == "verified"]
     correct = [r for r in main if r["kind"] == "correct"]
     wrong = [r for r in main if r["kind"] == "wrong"]
-
-    def metric(k: int, n: int) -> dict[str, Any]:
-        ci = wilson(k, n)
-        return {"k": k, "n": n, "rate": (k / n if n else None), "wilson95": ci}
-
-    labels_scored = []
-    for doc_id, d in docs.items():
-        kinds = classify(d["candidates"], d["labels"])
-        seen: list[tuple[str, Any]] = []
-        for lab in d["labels"]:
-            if lab["predicate"] in SUMMARY_PREDICATES:
-                continue
-            # Coverage counts distinct (predicate, value) labels: the same value labelled twice is one fact.
-            if any(p == lab["predicate"] and values_match(p, v, lab["value"]) for p, v in seen):
-                continue
-            seen.append((lab["predicate"], lab["value"]))
-            hit = any(c["predicate"] == lab["predicate"] and k == "correct" and o == "verified"
-                      and values_match(lab["predicate"], c["value"], lab["value"])
-                      for c, k, o in zip(d["candidates"], kinds, d["outcomes"]))
-            labels_scored.append(hit)
-    planted = [p for d in docs.values() for p in d.get("planted", [])]
-    planted_base = [p for p in planted if p["original_outcome"] == "verified"]
-    unl = [r for r in rows if r["kind"] == "unlabeled"]
-    out = {
-        "candidates": len(rows),
-        "by_kind": {k: sum(r["kind"] == k for r in rows) for k in ("correct", "wrong", "unlabeled", "summary")},
+    return {
         "precision_of_verified": metric(sum(r["kind"] == "correct" for r in ver), len(ver)),
         "catch_rate": metric(sum(r["outcome"] != "verified" for r in wrong), len(wrong)),
         "false_rejection_rate": metric(sum(r["outcome"] != "verified" for r in correct), len(correct)),
-        "false_rejection_split": {o: sum(r["outcome"] == o for r in correct) for o in ("needs_review", "rejected")},
-        "wrong_split": {o: sum(r["outcome"] == o for r in wrong) for o in ("verified", "needs_review", "rejected")},
-        "coverage": metric(sum(labels_scored), len(labels_scored)),
-        "planted_catch_rate": metric(sum(p["outcome"] != "verified" for p in planted_base), len(planted_base)),
-        "planted_catch_rate_all": metric(sum(p["outcome"] != "verified" for p in planted), len(planted)),
-        "unlabeled": {o: sum(r["outcome"] == o for r in unl) for o in ("verified", "needs_review", "rejected")},
-        "summary_predicates": {o: sum(r["outcome"] == o for r in rows if r["kind"] == "summary")
-                               for o in ("verified", "needs_review", "rejected")},
-        # Sensitivity: count unlabeled candidates as wrong.
-        "precision_of_verified_unlabeled_as_wrong": metric(
-            sum(r["kind"] == "correct" for r in ver), len(ver) + sum(r["outcome"] == "verified" for r in unl)),
+        "false_rejection_needs_review": metric(sum(r["outcome"] == "needs_review" for r in correct), len(correct)),
+        "false_rejection_rejected": metric(sum(r["outcome"] == "rejected" for r in correct), len(correct)),
+        "coverage": metric(sum(x["status"] == "verified_match" for x in labels_scored), len(labels_scored)),
+        "counts": {
+            "correct_verified": sum(r["kind"] == "correct" and r["outcome"] == "verified" for r in main),
+            "correct_needs_review": sum(r["kind"] == "correct" and r["outcome"] == "needs_review" for r in main),
+            "correct_rejected": sum(r["kind"] == "correct" and r["outcome"] == "rejected" for r in main),
+            "wrong_verified": sum(r["kind"] == "wrong" and r["outcome"] == "verified" for r in main),
+            "wrong_needs_review": sum(r["kind"] == "wrong" and r["outcome"] == "needs_review" for r in main),
+            "wrong_rejected": sum(r["kind"] == "wrong" and r["outcome"] == "rejected" for r in main),
+            "unlabeled": sum(r["kind"] == "unlabeled" for r in rows),
+            "summary": sum(r["kind"] == "summary" for r in rows),
+        },
     }
-    per_pred: dict[str, dict[str, int]] = {}
-    for r in main:
-        s = per_pred.setdefault(r["predicate"], {"correct_verified": 0, "correct_not_verified": 0,
-                                                 "wrong_verified": 0, "wrong_not_verified": 0})
-        s[f"{r['kind']}_{'verified' if r['outcome'] == 'verified' else 'not_verified'}"] += 1
-    out["per_predicate"] = dict(sorted(per_pred.items()))
+
+
+def _planted_rates(planted: list[dict[str, Any]]) -> dict[str, Any]:
+    base = [p for p in planted if p["original_outcome"] == "verified"]
+    return {"catch_rate": metric(sum(p["outcome"] != "verified" for p in base), len(base)),
+            "catch_rate_all": metric(sum(p["outcome"] != "verified" for p in planted), len(planted)),
+            "outcomes_when_original_verified": {o: sum(p["outcome"] == o for p in base)
+                                                for o in ("verified", "needs_review", "rejected")}}
+
+
+def score(docs: dict[str, dict[str, Any]], strip_descriptors: bool = False) -> dict[str, Any]:
+    """docs: id -> {labels, candidates, outcomes, planted: [{outcome, original_outcome, variant?, type?...}]}.
+    A document with no candidates has empty candidates and outcomes; its labels still count toward
+    coverage. Pure; tested."""
+    rows = []
+    labels_scored: list[dict[str, Any]] = []
+    for doc_id, d in docs.items():
+        kinds = classify(d["candidates"], d["labels"], strip_descriptors)
+        for c, k, o in zip(d["candidates"], kinds, d["outcomes"]):
+            rows.append({"doc": doc_id, "predicate": c["predicate"], "kind": k, "outcome": o})
+        seen: list[tuple[str, Any]] = []
+        for lab in d["labels"]:
+            p = lab["predicate"]
+            if p in SUMMARY_PREDICATES:
+                continue
+            # Coverage counts distinct (predicate, value) labels: the same value labelled twice is one fact.
+            if any(sp == p and values_match(p, v, lab["value"], strip_descriptors) for sp, v in seen):
+                continue
+            seen.append((p, lab["value"]))
+            same = [(c, k, o) for c, k, o in zip(d["candidates"], kinds, d["outcomes"]) if c["predicate"] == p]
+            match = [(c, k, o) for c, k, o in same if values_match(p, c.get("value"), lab["value"], strip_descriptors)]
+            if any(o == "verified" for _, _, o in match):
+                status = "verified_match"
+            elif match:
+                status = "proposed_correct_not_verified"
+            elif same:
+                status = "proposed_other_value_only"
+            else:
+                status = "not_proposed"
+            labels_scored.append({"doc": doc_id, "predicate": p, "status": status,
+                                  "doc_has_no_candidates": not d["candidates"]})
+    out: dict[str, Any] = {"candidates": len(rows),
+                           "by_kind": {k: sum(r["kind"] == k for r in rows) for k in ("correct", "wrong", "unlabeled", "summary")}}
+    out.update(_rates(rows, labels_scored))
+    # Backward-compatible split names.
+    out["false_rejection_split"] = {o: out["counts"][f"correct_{o}"] for o in ("needs_review", "rejected")}
+    out["wrong_split"] = {o: out["counts"][f"wrong_{o}"] for o in ("verified", "needs_review", "rejected")}
+    out["coverage_detail"] = {s: sum(x["status"] == s for x in labels_scored) for s in
+                              ("verified_match", "proposed_correct_not_verified", "proposed_other_value_only", "not_proposed")}
+    out["coverage_detail"]["in_documents_with_no_candidates"] = sum(x["doc_has_no_candidates"] for x in labels_scored)
+    out["coverage_without_empty_documents"] = metric(
+        sum(x["status"] == "verified_match" for x in labels_scored if not x["doc_has_no_candidates"]),
+        sum(not x["doc_has_no_candidates"] for x in labels_scored))
+    planted = [p for d in docs.values() for p in d.get("planted", [])]
+    pv = [p for p in planted if p.get("variant", "value") == "value"]
+    pr = _planted_rates(pv)
+    out["planted_catch_rate"] = pr["catch_rate"]
+    out["planted_catch_rate_all"] = pr["catch_rate_all"]
+    out["planted"] = {}
+    for variant in sorted({p.get("variant", "value") for p in planted}):
+        sub = [p for p in planted if p.get("variant", "value") == variant]
+        entry = _planted_rates(sub)
+        for dim in ("leaf_kind", "error_type", "planted_value_in_quote"):
+            vals = sorted({str(p[dim]) for p in sub if dim in p})
+            if vals:
+                entry[f"by_{dim}"] = {v: _planted_rates([p for p in sub if str(p.get(dim)) == v]) for v in vals}
+        preds = sorted({p["predicate"] for p in sub if "predicate" in p})
+        if preds:
+            entry["by_predicate"] = {v: _planted_rates([p for p in sub if p.get("predicate") == v]) for v in preds}
+        out["planted"][variant] = entry
+    unl = [r for r in rows if r["kind"] == "unlabeled"]
+    out["unlabeled"] = {o: sum(r["outcome"] == o for r in unl) for o in ("verified", "needs_review", "rejected")}
+    out["summary_predicates"] = {o: sum(r["outcome"] == o for r in rows if r["kind"] == "summary")
+                                 for o in ("verified", "needs_review", "rejected")}
+    ver = [r for r in rows if r["kind"] in ("correct", "wrong") and r["outcome"] == "verified"]
+    # Sensitivity: count unlabeled verified candidates as wrong.
+    out["precision_of_verified_unlabeled_as_wrong"] = metric(
+        sum(r["kind"] == "correct" for r in ver), len(ver) + sum(r["outcome"] == "verified" for r in unl))
+    per_pred: dict[str, Any] = {}
+    preds = sorted({r["predicate"] for r in rows if r["kind"] in ("correct", "wrong", "unlabeled")}
+                   | {x["predicate"] for x in labels_scored})
+    for p in preds:
+        pr_rows = [r for r in rows if r["predicate"] == p]
+        e = _rates(pr_rows, [x for x in labels_scored if x["predicate"] == p])
+        e["unlabeled"] = {o: sum(r["kind"] == "unlabeled" and r["outcome"] == o for r in pr_rows)
+                          for o in ("verified", "needs_review", "rejected")}
+        e["labels"] = sum(x["predicate"] == p for x in labels_scored)
+        per_pred[p] = e
+    out["per_predicate"] = per_pred
+    out["rows"] = rows
+    out["labels_scored"] = labels_scored
     return out
 
 
-def cmd_score(args: argparse.Namespace) -> int:
-    m = load_manifest()
-    vo = json.loads((HERE / "results" / "verifier-outcomes.json").read_text())
-    docs = {}
-    planted_detail = []
-    for d in m["documents"]:
-        if d["id"] not in vo:
-            continue
-        labels = json.loads((HERE / "labels" / f"{d['id']}.json").read_text())["labels"]
-        cands = json.loads((HERE / "candidates" / f"{d['id']}.json").read_text())["candidates"]
-        outs = vo[d["id"]]["outcomes"]
-        kinds = classify(cands, labels)
-        planted_cands, origin = [], []
+# --- planted-error copies -----------------------------------------------------------------------
+
+PLANT_SEED = 20261103  # default seed for the quote-digit variant; recorded in planted/quote_digit.json
+
+
+def _leaf_kind(x: Any) -> str:
+    if isinstance(x, str):
+        return "date"
+    if 0 < x <= 1 and not float(x).is_integer():
+        return "ratio"
+    if float(x).is_integer():
+        return "integer_lt_100" if x < 100 else "integer_ge_100"
+    return "other_number"
+
+
+def _get_path(value: Any, path: str) -> Any:
+    v = value
+    for part in re.findall(r"\[(\d+)\]|\.([^.\[]+)", path[len("value"):]):
+        v = v[int(part[0])] if part[0] else v[part[1]]
+    return v
+
+
+def _quote_status(predicate: str, value: Any, path: str, quote: str) -> tuple[bool, bool | None]:
+    """(is the altered leaf compared with the quote by the verifier, is that leaf's value in the quote)."""
+    from factlot.docverify import value_parts
+    from factlot.ingest.verify import _missing, _norm
+
+    dotted = re.sub(r"\[(\d+)\]", r".\1", path)
+    for part in value_parts(predicate, value):
+        if part["path"] == dotted:
+            if part.get("as"):
+                return True, not _missing(part["as"], part["value"], _norm(quote))
+            return False, None
+    return False, None
+
+
+def build_value_plants(cands_by_doc: dict[str, list[dict[str, Any]]], labels_by_doc: dict[str, list[dict[str, Any]]]) -> list[dict[str, Any]]:
+    """PLAN section 9 planted errors: one copy per correct candidate with a number or date; the first
+    number or date changes by the fixed rule. No randomness."""
+    recs = []
+    for doc_id, cands in cands_by_doc.items():
+        kinds = classify(cands, labels_by_doc[doc_id])
         for i, (c, k) in enumerate(zip(cands, kinds)):
             if k != "correct":
                 continue
             r = plant_error(c["predicate"], c["value"])
-            if r:
-                planted_cands.append({**c, "value": r[0]})
-                origin.append((i, r[1]))
+            if not r:
+                continue
+            new, path = r
+            orig_leaf, new_leaf = _get_path(c["value"], path), _get_path(new, path)
+            compared, orig_in_q = _quote_status(c["predicate"], c["value"], path, c["quote"])
+            _, new_in_q = _quote_status(c["predicate"], new, path, c["quote"])
+            recs.append({"doc": doc_id, "candidate": i, "predicate": c["predicate"], "path": path,
+                         "original_part": orig_leaf, "planted_part": new_leaf, "planted_value": new,
+                         "leaf_kind": _leaf_kind(orig_leaf),
+                         # number_in_quote: the verifier compares this part with the quote and the original
+                         # value is written there. value_only: the part is not compared, or not in the quote.
+                         "error_type": "number_in_quote" if compared and orig_in_q else "value_only",
+                         "compared_with_quote": compared, "original_part_in_quote": orig_in_q,
+                         "planted_value_in_quote": bool(new_in_q)})
+    return recs
+
+
+def build_quote_plants(cands_by_doc: dict[str, list[dict[str, Any]]], labels_by_doc: dict[str, list[dict[str, Any]]],
+                       seed: int) -> list[dict[str, Any]]:
+    """Exploratory variant (not in PLAN): the value stays as emitted and one digit of one number in
+    the quote changes (seeded choice of number, digit position and new digit). Stored as offsets, so no
+    lease text is written."""
+    import random
+
+    recs = []
+    for doc_id, cands in cands_by_doc.items():
+        kinds = classify(cands, labels_by_doc[doc_id])
+        for i, (c, k) in enumerate(zip(cands, kinds)):
+            if k != "correct":
+                continue
+            runs = [m for m in re.finditer(r"\d+", c["quote"])]
+            if not runs:
+                continue
+            rng = random.Random(f"{seed}:{doc_id}:{i}")
+            m = rng.choice(runs)
+            off = m.start() + rng.randrange(len(m.group()))
+            old = c["quote"][off]
+            new = rng.choice([d for d in "0123456789" if d != old])
+            recs.append({"doc": doc_id, "candidate": i, "predicate": c["predicate"], "offset": off,
+                         "original_digit": old, "planted_digit": new})
+    return recs
+
+
+def apply_plant(c: dict[str, Any], rec: dict[str, Any]) -> dict[str, Any]:
+    if "planted_value" in rec:
+        return {**c, "value": rec["planted_value"]}
+    q = c["quote"]
+    if q[rec["offset"]] != rec["original_digit"]:
+        raise ValueError(f"{rec['doc']} #{rec['candidate']}: quote digit at {rec['offset']} is not {rec['original_digit']}")
+    return {**c, "quote": q[:rec["offset"]] + rec["planted_digit"] + q[rec["offset"] + 1:]}
+
+
+def _load_set() -> tuple[dict[str, Any], dict[str, list[dict[str, Any]]], dict[str, list[dict[str, Any]]]]:
+    m = load_manifest()
+    labels, cands = {}, {}
+    for d in m["documents"]:
+        labels[d["id"]] = json.loads((HERE / "labels" / f"{d['id']}.json").read_text())["labels"]
+        cp = HERE / "candidates" / f"{d['id']}.json"
+        cands[d["id"]] = json.loads(cp.read_text())["candidates"] if cp.exists() else []
+    return m, labels, cands
+
+
+def cmd_plant(args: argparse.Namespace) -> int:
+    m, labels, cands = _load_set()
+    outdir = HERE / "planted"
+    outdir.mkdir(exist_ok=True)
+    v = build_value_plants(cands, labels)
+    q = build_quote_plants(cands, labels, args.seed)
+    meta = run_meta("plant")
+    (outdir / "value.json").write_text(json.dumps(
+        {"_meta": {**meta, "rule": "PLAN.md section 9 (deterministic; no seed)"}, "copies": v}, indent=1) + "\n")
+    (outdir / "quote_digit.json").write_text(json.dumps(
+        {"_meta": {**meta, "seed": args.seed, "rule": "one digit of one number in the quote changes; value unchanged; "
+                   "random.Random(f'{seed}:{doc}:{candidate}') picks the number, the digit and the new digit"},
+         "copies": q}, indent=1) + "\n")
+    print(f"wrote {len(v)} value copies and {len(q)} quote-digit copies (seed {args.seed}) to {outdir}")
+    return 0
+
+
+def cmd_score(args: argparse.Namespace) -> int:
+    m, labels, cands = _load_set()
+    vo = json.loads((HERE / "results" / "verifier-outcomes.json").read_text())
+    plants = {name: json.loads((HERE / "planted" / f"{name}.json").read_text())
+              for name in ("value", "quote_digit") if (HERE / "planted" / f"{name}.json").exists()}
+    # The planted files must be what the rule produces from the current candidates.
+    if "value" in plants and plants["value"]["copies"] != json.loads(json.dumps(build_value_plants(cands, labels))):
+        raise SystemExit("planted/value.json differs from what the rule gives; re-run plant")
+    if "quote_digit" in plants:
+        seed = plants["quote_digit"]["_meta"]["seed"]
+        if plants["quote_digit"]["copies"] != build_quote_plants(cands, labels, seed):
+            raise SystemExit("planted/quote_digit.json differs from what its seed gives; re-run plant")
+    docs = {}
+    planted_detail = []
+    errors = {}
+    for d in m["documents"]:
+        doc_id = d["id"]
+        entry = vo.get(doc_id)
+        if entry is None:
+            raise SystemExit(f"{doc_id}: missing from verifier-outcomes.json; re-run verify")
+        cs = cands[doc_id]
+        if "error" in entry:
+            errors[doc_id] = entry["error"]
+            outs = ["error"] * len(cs)
+        else:
+            outs = entry["outcomes"]
         planted = []
-        if planted_cands:
-            res = _verify(load_pages(d), planted_cands, d.get("sha256"))
-            pouts = outcomes(res, len(planted_cands))
-            for (i, path), po, pc in zip(origin, pouts, planted_cands):
-                planted.append({"outcome": po, "original_outcome": outs[i]})
-                planted_detail.append({"doc": d["id"], "candidate": i, "predicate": pc["predicate"], "path": path,
-                                       "original": cands[i]["value"], "planted": pc["value"],
-                                       "original_outcome": outs[i], "outcome": po})
-        docs[d["id"]] = {"labels": labels, "candidates": cands, "outcomes": outs, "planted": planted}
+        for variant, data in plants.items():
+            recs = [r for r in data["copies"] if r["doc"] == doc_id]
+            if not recs or "error" in entry:
+                continue
+            copies = [apply_plant(cs[r["candidate"]], r) for r in recs]
+            res = _verify(checked_pages(d), copies, d.get("sha256"))
+            if "error" in res:
+                raise SystemExit(f"{doc_id}: verifier error on planted copies: {res.get('message')}")
+            pouts = outcomes(res, len(copies))
+            reasons = {i["candidate"]: f"{i['check']}: {i['reason']}" for k in ("needs_review", "rejected") for i in res[k]}
+            for j, (r, po) in enumerate(zip(recs, pouts)):
+                item = {**{k: r[k] for k in r if k not in ("planted_value",)}, "variant": variant,
+                        "original_outcome": outs[r["candidate"]], "outcome": po, "reason": reasons.get(j)}
+                planted.append(item)
+                planted_detail.append(item)
+        docs[doc_id] = {"labels": labels[doc_id], "candidates": cs, "outcomes": outs, "planted": planted}
     s = score(docs)
-    (HERE / "results" / "scores.json").write_text(json.dumps(s, indent=1) + "\n")
-    (HERE / "results" / "planted.json").write_text(json.dumps(planted_detail, indent=1) + "\n")
-    for k in ("precision_of_verified", "catch_rate", "false_rejection_rate", "coverage", "planted_catch_rate"):
-        v = s[k]
+    sens = score(docs, strip_descriptors=True)
+    meta = run_meta("score")
+    meta["verify_meta"] = vo.get("_meta")
+    meta["planted_meta"] = {k: v["_meta"] for k, v in plants.items()}
+    meta["documents_with_verifier_error"] = errors
+    meta["documents_with_no_candidates"] = [k for k, v in docs.items() if not v["candidates"]]
+    rows, labs = s.pop("rows"), s.pop("labels_scored")
+    sens.pop("rows"), sens.pop("labels_scored")
+    for k in ("planted", "planted_catch_rate", "planted_catch_rate_all"):
+        sens.pop(k)
+    out = {"_meta": meta, "primary": s,
+           "sensitivity_party_name_descriptor_stripped": {
+               "note": "Post-hoc, not in PLAN.md: lease.landlord, lease.tenant and the guaranty guarantor match after "
+                       "dropping a trailing ', a <jurisdiction> <entity type>' descriptor on both sides.",
+               **sens}}
+    rdir = HERE / "results"
+    (rdir / "scores.json").write_text(json.dumps(out, indent=1) + "\n")
+    (rdir / "candidate-rows.json").write_text(json.dumps({"_meta": meta, "rows": rows, "labels": labs}, indent=1) + "\n")
+    (rdir / "planted-outcomes.json").write_text(json.dumps({"_meta": meta, "copies": planted_detail}, indent=1) + "\n")
+    old = rdir / "planted.json"
+    if old.exists():
+        old.unlink()
+
+    def line(name: str, v: dict[str, Any]) -> None:
         ci = v["wilson95"]
         rate = "n/a" if v["rate"] is None else f"{v['rate']:.3f}"
-        print(f"{k:24s} {v['k']}/{v['n']} = {rate}  95% CI {('n/a' if ci is None else f'[{ci[0]:.3f}, {ci[1]:.3f}]')}")
-    print(json.dumps({k: s[k] for k in ("by_kind", "false_rejection_split", "wrong_split", "unlabeled", "summary_predicates")}))
+        print(f"{name:40s} {v['k']}/{v['n']} = {rate}  95% CI {('n/a' if ci is None else f'[{ci[0]:.3f}, {ci[1]:.3f}]')}")
+
+    for k in ("precision_of_verified", "precision_of_verified_unlabeled_as_wrong", "catch_rate", "false_rejection_rate",
+              "false_rejection_needs_review", "false_rejection_rejected", "coverage", "coverage_without_empty_documents"):
+        line(k, s[k])
+    for variant, e in s["planted"].items():
+        line(f"planted[{variant}] catch (orig verified)", e["catch_rate"])
+        line(f"planted[{variant}] catch (all copies)", e["catch_rate_all"])
+    print("sensitivity (party-name descriptor stripped):")
+    for k in ("precision_of_verified", "catch_rate", "false_rejection_rate", "coverage"):
+        line("  " + k, sens[k])
+    print(json.dumps({k: s[k] for k in ("by_kind", "counts", "coverage_detail", "unlabeled", "summary_predicates")}))
     return 0
 
 
@@ -547,11 +836,13 @@ def main(argv: list[str] | None = None) -> int:
     sub = ap.add_subparsers(dest="cmd", required=True)
     for name in ("fetch", "pages", "verify", "score", "test"):
         sub.add_parser(name)
+    pl = sub.add_parser("plant")
+    pl.add_argument("--seed", type=int, default=PLANT_SEED)
     cl = sub.add_parser("check-labels")
     cl.add_argument("-v", "--verbose", action="store_true")
     a = ap.parse_args(argv)
     return {"fetch": cmd_fetch, "pages": cmd_pages, "check-labels": cmd_check_labels, "verify": cmd_verify,
-            "score": cmd_score, "test": cmd_test}[a.cmd](a)
+            "plant": cmd_plant, "score": cmd_score, "test": cmd_test}[a.cmd](a)
 
 
 if __name__ == "__main__":

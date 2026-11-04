@@ -41,6 +41,48 @@ class Matching(unittest.TestCase):
         self.assertEqual(run.classify(cands, labels), ["correct", "wrong", "unlabeled", "summary"])
 
 
+class HarnessFixes(unittest.TestCase):
+    def test_boolean_is_not_a_number(self):
+        self.assertFalse(run.values_match("lease.rentable_area_sf", True, 1))
+        self.assertFalse(run.values_match("lease.rentable_area_sf", 1, True))
+        self.assertTrue(run.values_match("x.flag", True, True))
+
+    def test_empty_document_counts_toward_coverage(self):
+        labels = [{"predicate": "lease.expiration_date", "value": "2030-03-31"}]
+        s = run.score({"S1": {"labels": labels, "candidates": [], "outcomes": []}})
+        self.assertEqual((s["coverage"]["k"], s["coverage"]["n"]), (0, 1))
+        self.assertEqual(s["coverage_detail"]["in_documents_with_no_candidates"], 1)
+        self.assertEqual(s["coverage_without_empty_documents"]["n"], 0)
+
+    def test_descriptor_sensitivity(self):
+        c, lab = "Synthetic Co., Inc., a Delaware corporation", "SYNTHETIC CO., INC."
+        self.assertFalse(run.values_match("lease.tenant", c, lab))
+        self.assertTrue(run.values_match("lease.tenant", c, lab, strip_descriptors=True))
+        self.assertTrue(run.values_match("lease.landlord", "Synth LLC, a Delaware limited liability company",
+                                         "Synth LLC", strip_descriptors=True))
+        self.assertFalse(run.values_match("lease.landlord", "Other LLC, a Delaware limited liability company",
+                                          "Synth LLC", strip_descriptors=True))
+
+    def test_quote_plants_are_seeded(self):
+        cands = {"S1": [{"predicate": "lease.rentable_area_sf", "value": 10000,
+                         "quote": "contain 10,000 rentable square feet", "page": 1}]}
+        labels = {"S1": [{"predicate": "lease.rentable_area_sf", "value": 10000}]}
+        a = run.build_quote_plants(cands, labels, 7)
+        self.assertEqual(a, run.build_quote_plants(cands, labels, 7))
+        self.assertEqual(len(a), 1)
+        copy = run.apply_plant(cands["S1"][0], a[0])
+        self.assertNotEqual(copy["quote"], cands["S1"][0]["quote"])
+        self.assertEqual(copy["value"], 10000)
+        self.assertEqual(sum(x != y for x, y in zip(copy["quote"], cands["S1"][0]["quote"])), 1)
+
+    def test_value_plant_error_type(self):
+        cands = {"S1": [{"predicate": "lease.rentable_area_sf", "value": 10000,
+                         "quote": "contain 10,000 rentable square feet", "page": 1}]}
+        labels = {"S1": [{"predicate": "lease.rentable_area_sf", "value": 10000}]}
+        (r,) = run.build_value_plants(cands, labels)
+        self.assertEqual((r["planted_part"], r["error_type"], r["leaf_kind"]), (11000, "number_in_quote", "integer_ge_100"))
+
+
 class Planting(unittest.TestCase):
     def test_alterations(self):
         self.assertEqual(run.plant_error("lease.expiration_date", "2030-03-31"), ("2030-04-01", "value"))
