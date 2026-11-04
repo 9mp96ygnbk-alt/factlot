@@ -35,6 +35,22 @@ from .normalize import (
 )
 
 PRODUCER = "factlot.registry"
+# Predicates a parcel may hold many of at once (one fact per sale). Every other predicate is
+# single-valued: when two current sources disagree, the newest fact is returned.
+MULTI_VALUED_PREDICATES = frozenset({"transaction.sale"})
+# Coverage marker (``coverage.present``) for a source that adds facts to parcels another source created.
+COVERED_BY_ENRICHMENT = 2
+# The predicates the registry writes (the TypeScript starter vocabulary, `Predicates` in @factlot/schema,
+# lists the same names; tests keep the two in step).
+ENRICHMENT_PREDICATES = frozenset({
+    "zoning.district", "zoning.district_description", "zoning.other_districts", "zoning.split_zone",
+    "zoning.commercial_overlay", "zoning.special_district", "zoning.limited_height_district",
+    "zoning.e_designation", "zoning.max_far_residential", "zoning.max_far_commercial",
+    "zoning.max_far_facility", "zoning.max_far_manufacturing", "zoning.max_far_affordable_residential",
+    "parcel.built_far", "parcel.num_buildings", "parcel.num_floors", "parcel.units_residential",
+    "parcel.units_total", "parcel.area_by_use_sf", "parcel.land_use_code", "parcel.year_altered",
+    "parcel.historic_district", "parcel.landmark_designated", "transaction.sale",
+})
 SCHEMA_VERSION = "2"
 
 # Owner links: an exact, unambiguous normalized-name match is confidence 0.9; a fuzzy candidate a
@@ -101,6 +117,28 @@ class ParcelRecord:
     # The publisher's own use/class code (e.g. Cook County "5-17", LA County "2100"), kept verbatim
     # next to the normalized state_category so the mapping can be audited.
     local_use_code: str | None = None
+    # Sales the same file records for the parcel, each a ``transaction.sale`` value (see docs/fact-model.md).
+    sales: list[dict[str, Any]] = field(default_factory=list)
+
+
+@dataclass
+class ParcelFacts:
+    """Facts about a parcel the registry already holds, from a source that is not its roll.
+
+    Zoning files, sales files and the like describe parcels the appraisal rolls created; they add
+    facts to those parcels (matched by county and APN) and never create one. ``facts`` is a list of
+    ``(predicate, value, unit)``; empty and null values are skipped.
+    """
+
+    county_fips: str
+    apn: str
+    facts: list[tuple[str, Any, str | None]]
+    locator: str | None = None
+    # How the facts were obtained: ``public_record`` for values read from the file, ``inferred``
+    # (with a confidence) for values FactLot derived, such as a zoning district found by overlaying
+    # a lot polygon on a zoning map. They apply to every fact of the record.
+    method: str = "public_record"
+    confidence: float | None = None
 
 
 @dataclass
@@ -145,6 +183,20 @@ _CURRENT_LINK = (
     "(r.type != 'owns' OR EXISTS (SELECT 1 FROM current_facts cf WHERE cf.subject = r.to_urn "
     "AND cf.predicate = 'ownership.owner_of_record' AND cf.document_id = r.document_id))"
 )
+
+
+def _newest_first(facts: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Order the facts of a many-valued predicate (sales) newest first, in the slots they occupy."""
+    slots = [i for i, f in enumerate(facts) if f["predicate"] in MULTI_VALUED_PREDICATES]
+    if len(slots) > 1:
+        def key(f: dict[str, Any]) -> tuple[str, float, str]:
+            v = f["value"] if isinstance(f["value"], dict) else {}
+            price = v.get("price_usd")
+            return (str(v.get("date") or ""), float(price) if isinstance(price, (int, float)) else -1.0, f["id"])
+        ordered = sorted((facts[i] for i in slots), key=key, reverse=True)
+        for i, f in zip(slots, ordered):
+            facts[i] = f
+    return facts
 
 
 def _fact_id(subject: str, predicate: str, value_json: str, document_id: str) -> str:
@@ -249,9 +301,9 @@ class Registry:
                 self.db.execute("DELETE FROM relationships WHERE to_urn = ? AND type = 'owns' AND document_id = ?",
                                 (urn, snap.document_id))
 
-    def _cover(self, subject: str, snap: Snapshot) -> None:
-        self.db.execute("INSERT OR REPLACE INTO coverage VALUES (?,?,?,?,1)",
-                        (subject, snap.source_id, snap.as_of, snap.document_id))
+    def _cover(self, subject: str, snap: Snapshot, present: int = 1) -> None:
+        self.db.execute("INSERT OR REPLACE INTO coverage VALUES (?,?,?,?,?)",
+                        (subject, snap.source_id, snap.as_of, snap.document_id, present))
 
     def ingest_entities(self, records: Iterable[EntityRecord], snap: Snapshot) -> IngestStats:
         stats = IngestStats()
@@ -457,6 +509,8 @@ class Registry:
             n += self._fact(urn, "parcel.appraised_value", r.appraised_value, snap, unit="USD", locator=loc)
             n += self._fact(urn, "parcel.tax_year", r.tax_year, snap, locator=loc)
             n += self._fact(urn, "parcel.local_use_code", r.local_use_code, snap, locator=loc)
+            for sale in r.sales:
+                n += self._fact(urn, "transaction.sale", sale, snap, locator=loc)
             if account_system and r.account:
                 self.db.execute("INSERT OR REPLACE INTO crosswalk VALUES (?,?,?)", (account_system, r.account, urn))
             if r.situs_address:
@@ -478,6 +532,51 @@ class Registry:
         self.db.commit()
         return stats
 
+    def ingest_parcel_facts(self, records: Iterable[ParcelFacts], snap: Snapshot, *, state_fips: str,
+                            full_roll: bool = False) -> IngestStats:
+        """Add facts from a non-roll source (zoning, sales, ...) to parcels the registry already holds.
+
+        A record whose parcel is not in the registry is counted in ``skipped_out_of_scope`` and
+        dropped: the appraisal roll decides which parcels are in scope, and these sources do not
+        widen it. Like ``ingest_parcels``, re-ingesting a document makes the registry hold what the
+        records yield now, and ``full_roll=True`` retires parcels an earlier snapshot of this source
+        covered that this one does not list.
+        """
+        stats = IngestStats()
+        replaced: set[str] = set()
+        self._tracking = True
+        try:
+            for r in records:
+                stats.seen += 1
+                try:
+                    urn = parcel_id(state_fips, r.county_fips, r.apn).urn
+                except FactLotIdError as e:
+                    stats.skipped_invalid += 1
+                    stats.errors.append(f"{r.locator or r.apn}: {e}")
+                    continue
+                if not self.db.execute("SELECT 1 FROM subjects WHERE urn = ? AND kind = 'parcel'", (urn,)).fetchone():
+                    stats.skipped_out_of_scope += 1
+                    continue
+                stats.kept += 1
+                old_ids: set[str] | None = None
+                if urn not in replaced:
+                    replaced.add(urn)
+                    old_ids = {row[0] for row in self.db.execute(
+                        "SELECT fact_id FROM facts WHERE subject = ? AND document_id = ?", (urn, snap.document_id))}
+                    self._written = set()
+                loc = r.locator or f"apn {r.apn}"
+                self._cover(urn, snap, COVERED_BY_ENRICHMENT)
+                for predicate, value, unit in r.facts:
+                    stats.facts_written += self._fact(urn, predicate, value, snap, unit=unit, method=r.method,
+                                                       confidence=r.confidence, locator=loc)
+                self._drop_stale(urn, snap, old_ids)
+            if full_roll:
+                stats.retired = self._retire_absent(snap)
+            self.db.commit()
+            return stats
+        finally:
+            self._tracking = False
+
     def _retire_absent(self, snap: Snapshot) -> int:
         """Mark subjects covered by an earlier snapshot of this source, but not by this one, as absent."""
         cur = self.db.execute(
@@ -494,7 +593,7 @@ class Registry:
         rows = self.db.execute(
             "SELECT c.present FROM coverage c WHERE c.subject = ? AND c.as_of = "
             "(SELECT MAX(as_of) FROM coverage d WHERE d.subject = c.subject AND d.source_id = c.source_id)", (urn,)).fetchall()
-        return "current" if any(r["present"] for r in rows) or not rows else "not_in_latest_snapshot"
+        return "current" if any(r["present"] == 1 for r in rows) or not rows else "not_in_latest_snapshot"
 
     def link_owners(self) -> dict[str, int]:
         """Link each parcel's current owner of record to a registered entity, where unambiguous.
@@ -822,7 +921,8 @@ class Registry:
             f"SELECT * FROM {table} WHERE subject = ? ORDER BY predicate, as_of DESC, fact_id", (urn,)).fetchall()
         out, seen = [], set()
         for f in rows:
-            if not history and f["predicate"] in seen:  # two current sources disagree: keep the newest
+            # Two current sources disagree: keep the newest (a predicate that holds many facts keeps them all).
+            if not history and f["predicate"] in seen and f["predicate"] not in MULTI_VALUED_PREDICATES:
                 continue
             seen.add(f["predicate"])
             source, rights = self._rights(f["document_id"])
@@ -842,7 +942,7 @@ class Registry:
             if f["confidence"] is not None:
                 fact["provenance"]["confidence"] = f["confidence"]
             out.append(fact)
-        return out
+        return _newest_first(out)
 
     def get(self, urn: str) -> dict[str, Any] | None:
         subj = self.db.execute("SELECT * FROM subjects WHERE urn = ?", (urn,)).fetchone()

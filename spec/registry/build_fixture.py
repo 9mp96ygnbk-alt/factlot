@@ -9,7 +9,7 @@ import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "python" / "src"))
-from factlot.registry import EntityRecord, ParcelRecord, Registry, Source  # noqa: E402
+from factlot.registry import EntityRecord, ParcelFacts, ParcelRecord, Registry, Source  # noqa: E402
 
 out = Path(sys.argv[1])
 out.unlink(missing_ok=True)
@@ -46,6 +46,31 @@ reg.ingest_parcels([
     ParcelRecord("999", "0001-000-0004", "B", account="A4", situs_address="200 River Road", owner_name="John Example",
                  market_value=4100000, tax_year=2026),
 ], s26, state_fips="48", account_system="test-account", full_roll=True)
+# Enrichment sources add facts to parcels the roll holds: zoning (one value per predicate) and sales
+# (a predicate that holds many facts, returned newest first).
+reg.add_source(Source("test-zoning", "Example City Planning (synthetic)", "Zoning", "https://example.invalid/zoning", "48",
+                      county_fips="999", license="Synthetic test data", ai_use="permitted",
+                      redistribution="attribution_required", attribution="Example City"))
+reg.add_source(Source("test-sales", "Example City Finance (synthetic)", "Sales", "https://example.invalid/sales", "48",
+                      county_fips="999", license="Synthetic test data", ai_use="unknown", redistribution="permitted"))
+zon = snap("test-zoning", "zoning.csv", "synthetic zoning", "2026-08-24")
+reg.ingest_parcel_facts([
+    ParcelFacts("999", "0001-000-0001", [("zoning.district", "C5-3", None), ("zoning.other_districts", ["C6-4.5"], None),
+                                         ("zoning.max_far_commercial", 15, None), ("parcel.num_floors", 40, None),
+                                         ("parcel.area_by_use_sf", {"office": 450000, "retail": 50000}, "sf")],
+                locator="line 2"),
+    ParcelFacts("999", "0001-000-0004", [("zoning.district", "M1-1", None)], method="inferred", confidence=0.8,
+                locator="line 3"),
+    ParcelFacts("999", "0009-000-0009", [("zoning.district", "R1", None)]),  # not a parcel in the registry: skipped
+], zon, state_fips="48", full_roll=True)
+sales = snap("test-sales", "sales.xlsx", "synthetic sales", "2026-09-30")
+reg.ingest_parcel_facts([
+    ParcelFacts("999", "0001-000-0001", [
+        ("transaction.sale", {"date": "2024-06-01", "price_usd": 0, "nominal_consideration": True}, None),
+        ("transaction.sale", {"date": "2025-03-14", "price_usd": 12500000, "building_class": "O4"}, None),
+        ("transaction.sale", {"date": "2025-03-14", "price_usd": 9000000}, None),
+    ], locator="row 5 (+2 more)"),
+], sales, state_fips="48")
 ent = snap("test-entities", "entities.csv", "synthetic entities", "2026-10-01")
 reg.ingest_entities([
     EntityRecord("LONESTAR OFFICE HOLDINGS LLC", "us-tx", "0801111111", taxpayer_number="32000000001",
