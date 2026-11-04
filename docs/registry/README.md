@@ -58,6 +58,16 @@ stored. A name counts as an organisation only if it carries an organisation word
 Properties, Bank, ...) before any "DBA"; a person's role ("CO-TRUSTEE", "CO TRS") or bare spaced
 initials ("L P") do not count. Only organisations are searchable by name.
 
+The rule also reads organisations that have no such word but a legal form no person's name has:
+credit unions ("... CREDIT UNION", "FCU"), federal savings banks ("FSB"), national banks written with
+"N.A." after a bank word ("CITIBANK, N.A."), government bodies ("CITY OF ...", "SECRETARY OF ...",
+"DEPARTMENT OF ...", "BOARD OF MANAGERS"), condominiums and housing development fund corporations,
+securitization trusts ("... MORTGAGE LOAN TRUST 2006-1", "PASS THROUGH CERTIFICATES"), MERS, Fannie Mae
+and Freddie Mac under their legal names, and foreign "GMBH" and "PLC". A surname that is also an
+organisation word does not make a person an organisation: "JOHN BANK", "CHURCH, MARY" and "ANNA
+COUNTY" are persons. Forms that a person's name can look like are left out on purpose (a bare "NV",
+"SA", "BV" or "AG", "NA", "FANNIE MAE"). The shared vectors are `spec/registry/organizations.json`.
+
 **Provenance and rights.** Each fact carries:
 
 - its method: `public_record` for facts read from a file, `inferred` with a confidence for
