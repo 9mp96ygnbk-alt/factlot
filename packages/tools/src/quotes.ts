@@ -31,14 +31,18 @@ export const PREDICATES: Readonly<Record<string, string>> = {
     'object {"count": number, "term_months": number, "notice_months": number, "rent": string}',
   "lease.termination_option":
     'object {"effective_date": "YYYY-MM-DD", "notice_months": number, "fee": string}',
-  "lease.rofr": "string (summary of the right of first refusal)",
-  "lease.rofo": "string (summary of the right of first offer)",
-  "lease.exclusive_use": "string (the protected use)",
-  "lease.assignment_sublease": "string (summary of consent requirements)",
+  "lease.rofr":
+    'string (summary of the right of first refusal), or object {"applies_to": "space" | "purchase", "description": string (what it covers, as written), "response_days": number (optional; days to respond)}',
+  "lease.rofo":
+    'string (summary of the right of first offer), or object {"applies_to": "space" | "purchase", "description": string (what it covers, as written), "response_days": number (optional; days to respond)}',
+  "lease.exclusive_use":
+    'string (the protected use), or object {"protected_use": string (as written), "carve_outs": array of strings (optional; exceptions as written), "applies_to": string (optional; where it applies, e.g. "the Shopping Center")}',
+  "lease.assignment_sublease":
+    'string (summary of consent requirements), or object {"consent_standard": "prohibited" | "sole_discretion" | "not_unreasonably_withheld" | "not_unreasonably_withheld_conditioned_or_delayed" | "no_consent_required", "permitted_transfers": string (optional; transfers allowed without consent), "recapture_right": boolean (optional), "profit_share": number between 0 and 1 (optional; Landlord\'s share of transfer profit)}',
   "lease.percentage_rent":
     'object {"rate": number between 0 and 1, "breakpoint": {"type": "natural" | "fixed", "amount": number (annual sales in USD; required when type is fixed)}, "sales_exclusions": string (optional summary of sales excluded from gross sales)}',
   "lease.co_tenancy":
-    'object {"trigger": string (the co-tenancy condition), "remedy": string (what Tenant may do when it fails), "cure_period_months": number (optional)}',
+    'object {"trigger": string (the co-tenancy condition), "remedy": string (what Tenant may do when it fails), "cure_period_months": number (optional), "required_occupancy": number between 0 and 1 (optional; share of the center that must be open), "named_tenants": array of strings (optional; required co-tenants as written), "remedy_type": "alternate_rent" | "termination" | "alternate_rent_then_termination" | "other" (optional)}',
   "lease.renewal_notice_deadline":
     "date (YYYY-MM-DD; the last day to exercise a renewal option)",
   "lease.termination_notice_deadline":
@@ -53,6 +57,16 @@ export const PREDICATES: Readonly<Record<string, string>> = {
     'object {"spaces": number, "rate_monthly": number (optional, USD per space per month)}',
   "lease.guaranty":
     'object {"guarantor": string (the guarantor\'s name exactly as written: the name only, never an address), "cap": number (optional, USD)}',
+  "lease.prohibited_uses":
+    "array of strings (each use the lease prohibits, as written)",
+  "lease.go_dark":
+    'object {"operating_covenant": boolean (true when Tenant must keep operating), "recapture_right": boolean (optional; Landlord may recapture or terminate if Tenant stops operating), "dark_period_days": number (optional; days dark before that right arises)}',
+  "lease.radius_restriction":
+    'object {"radius_miles": number, "duration": string (optional, e.g. "during the Term"), "remedy": string (optional)}',
+  "lease.relocation_right":
+    'object {"notice_days": number (optional), "landlord_pays_costs": boolean (optional), "tenant_may_terminate": boolean (optional), "replacement_premises": string (optional, e.g. "substantially similar size")}, at least one field',
+  "lease.kick_out":
+    'object {"party": "landlord" | "tenant", "sales_threshold": number (optional; annual gross sales in USD), "test_period": string (optional, e.g. "the third Lease Year"), "notice_days": number (optional), "effective_date": "YYYY-MM-DD" (optional), "fee": string (optional)}',
 };
 
 export function isIngestPredicate(predicate: string): boolean {
@@ -215,19 +229,6 @@ export function checkValue(
       return "sales_exclusions must be a non-empty string";
     return undefined;
   }
-  if (predicate === "lease.co_tenancy") {
-    if (
-      !isPlainObject(value) ||
-      !(isText(value.trigger) && isText(value.remedy))
-    )
-      return "expected {trigger, remedy} as non-empty strings";
-    if (
-      has(value, "cure_period_months") &&
-      !(isNum(value.cure_period_months) && value.cure_period_months > 0)
-    )
-      return "cure_period_months must be a positive number";
-    return undefined;
-  }
   if (predicate === "lease.operating_expense_base_year")
     return isNum(value) &&
       Number.isInteger(value) &&
@@ -254,7 +255,153 @@ export function checkValue(
       return "cap must be a positive number";
     return undefined;
   }
+  if (Object.hasOwn(CLAUSES, predicate)) return checkClause(predicate, value);
   return isText(value) ? undefined : "expected non-empty string";
+}
+
+// Clause predicates: which fields an object value may carry and the test each must pass, in the
+// order they are checked (Python `_CLAUSES`). `stringOk` predicates also accept a plain summary
+// string, the shape they had before clause objects. A test is a check or a list of enum values.
+type FieldCheck = "text" | "texts" | "positive" | "fraction" | "bool" | "date";
+type FieldTest = FieldCheck | readonly string[];
+interface ClauseRule {
+  expected: string;
+  stringOk?: boolean;
+  arrayOfText?: boolean;
+  nonEmpty?: boolean;
+  required?: Readonly<Record<string, FieldTest>>;
+  optional?: Readonly<Record<string, FieldTest>>;
+}
+const FIELD_REASONS: Record<FieldCheck, string> = {
+  text: "must be a non-empty string",
+  texts: "must be a non-empty array of non-empty strings",
+  positive: "must be a positive number",
+  fraction: "must be a number in (0, 1]",
+  bool: "must be true or false",
+  date: "must be a YYYY-MM-DD date",
+};
+const isTexts = (v: unknown): boolean =>
+  Array.isArray(v) && v.length > 0 && v.every(isText);
+const FIELD_CHECKS: Record<FieldCheck, (v: unknown) => boolean> = {
+  text: isText,
+  texts: isTexts,
+  positive: (v) => isNum(v) && v > 0,
+  fraction: (v) => isNum(v) && v > 0 && v <= 1,
+  bool: (v) => typeof v === "boolean",
+  date: isDate,
+};
+const ROFR: ClauseRule = {
+  stringOk: true,
+  expected:
+    "expected a summary string, or {applies_to: space | purchase, description, response_days?}",
+  required: { applies_to: ["space", "purchase"], description: "text" },
+  optional: { response_days: "positive" },
+};
+const CLAUSES: Readonly<Record<string, ClauseRule>> = {
+  "lease.rofr": ROFR,
+  "lease.rofo": ROFR,
+  "lease.exclusive_use": {
+    stringOk: true,
+    expected:
+      "expected the protected use as a string, or {protected_use, carve_outs?, applies_to?}",
+    required: { protected_use: "text" },
+    optional: { carve_outs: "texts", applies_to: "text" },
+  },
+  "lease.assignment_sublease": {
+    stringOk: true,
+    expected:
+      "expected a summary string, or {consent_standard, permitted_transfers?, recapture_right?, profit_share?}",
+    required: {
+      consent_standard: [
+        "prohibited",
+        "sole_discretion",
+        "not_unreasonably_withheld",
+        "not_unreasonably_withheld_conditioned_or_delayed",
+        "no_consent_required",
+      ],
+    },
+    optional: {
+      permitted_transfers: "text",
+      recapture_right: "bool",
+      profit_share: "fraction",
+    },
+  },
+  "lease.co_tenancy": {
+    expected: "expected {trigger, remedy} as non-empty strings",
+    required: { trigger: "text", remedy: "text" },
+    optional: {
+      cure_period_months: "positive",
+      required_occupancy: "fraction",
+      named_tenants: "texts",
+      remedy_type: [
+        "alternate_rent",
+        "termination",
+        "alternate_rent_then_termination",
+        "other",
+      ],
+    },
+  },
+  "lease.prohibited_uses": {
+    arrayOfText: true,
+    expected: "expected a non-empty array of prohibited uses as strings",
+  },
+  "lease.go_dark": {
+    expected:
+      "expected {operating_covenant, recapture_right?, dark_period_days?} with operating_covenant true or false",
+    required: { operating_covenant: "bool" },
+    optional: { recapture_right: "bool", dark_period_days: "positive" },
+  },
+  "lease.radius_restriction": {
+    expected:
+      "expected {radius_miles, duration?, remedy?} with a positive radius in miles",
+    required: { radius_miles: "positive" },
+    optional: { duration: "text", remedy: "text" },
+  },
+  "lease.relocation_right": {
+    expected:
+      "expected an object with at least one of notice_days, landlord_pays_costs, tenant_may_terminate, replacement_premises",
+    nonEmpty: true,
+    optional: {
+      notice_days: "positive",
+      landlord_pays_costs: "bool",
+      tenant_may_terminate: "bool",
+      replacement_premises: "text",
+    },
+  },
+  "lease.kick_out": {
+    expected:
+      "expected {party: landlord | tenant, sales_threshold?, test_period?, notice_days?, effective_date?, fee?}",
+    required: { party: ["landlord", "tenant"] },
+    optional: {
+      sales_threshold: "positive",
+      test_period: "text",
+      notice_days: "positive",
+      effective_date: "date",
+      fee: "text",
+    },
+  },
+};
+
+const fieldOk = (test: FieldTest, v: unknown): boolean =>
+  typeof test === "string" ? FIELD_CHECKS[test](v) : test.includes(v as string);
+
+function checkClause(predicate: string, value: unknown): string | undefined {
+  const rule = CLAUSES[predicate]!;
+  if (rule.arrayOfText) return isTexts(value) ? undefined : rule.expected;
+  if (!isPlainObject(value)) {
+    if (rule.stringOk)
+      return isText(value) ? undefined : "expected non-empty string";
+    return rule.expected;
+  }
+  for (const [k, t] of Object.entries(rule.required ?? {}))
+    if (!(has(value, k) && fieldOk(t, value[k]))) return rule.expected;
+  if (rule.nonEmpty && Object.keys(value).length === 0) return rule.expected;
+  for (const [k, t] of Object.entries(rule.optional ?? {}))
+    if (has(value, k) && !fieldOk(t, value[k]))
+      return typeof t === "string"
+        ? `${k} ${FIELD_REASONS[t]}`
+        : `${k} must be one of ${t.join(", ")}`;
+  return undefined;
 }
 
 export const PREDICATE_PATTERN = /^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/;
@@ -278,7 +425,7 @@ export function checkAnyValue(
 
 // --- value–quote consistency ----------------------------------------------------------------
 
-export type Kind = "number" | "ratio" | "date" | "string";
+export type Kind = "number" | "ratio" | "date" | "string" | "text" | "phrase";
 type Spec = Kind | readonly [Spec] | { readonly [k: string]: Spec };
 
 // Which parts of each predicate's value are checked against the quote, and how (Python
@@ -307,7 +454,11 @@ const CONSISTENCY: Readonly<Record<string, Spec>> = {
   "lease.landlord": "string",
   "lease.tenant": "string",
   "lease.percentage_rent": { rate: "ratio", breakpoint: { amount: "number" } },
-  "lease.co_tenancy": { cure_period_months: "number" },
+  "lease.co_tenancy": {
+    cure_period_months: "number",
+    required_occupancy: "ratio",
+    named_tenants: ["string"],
+  },
   "lease.renewal_notice_deadline": "date",
   "lease.termination_notice_deadline": "date",
   "lease.rent_commencement_date": "date",
@@ -315,7 +466,48 @@ const CONSISTENCY: Readonly<Record<string, Spec>> = {
   "lease.operating_expense_base_year": "number",
   "lease.parking": { spaces: "number", rate_monthly: "number" },
   "lease.guaranty": { guarantor: "string", cap: "number" },
+  "lease.rofr": { description: "text", response_days: "number" },
+  "lease.rofo": { description: "text", response_days: "number" },
+  "lease.exclusive_use": {
+    protected_use: "text",
+    carve_outs: ["text"],
+    applies_to: "text",
+  },
+  "lease.assignment_sublease": {
+    consent_standard: "phrase",
+    permitted_transfers: "text",
+    profit_share: "ratio",
+  },
+  "lease.prohibited_uses": ["text"],
+  "lease.go_dark": { dark_period_days: "number" },
+  "lease.radius_restriction": { radius_miles: "number" },
+  "lease.relocation_right": { notice_days: "number" },
+  "lease.kick_out": {
+    sales_threshold: "number",
+    notice_days: "number",
+    effective_date: "date",
+  },
 };
+
+/**
+ * "phrase": an enum value the quote must word in one of these ways (Python `PHRASES`). Every group
+ * needs one of its alternatives in the normalized quote. Values not listed are not checked.
+ */
+export const PHRASES: Readonly<Record<string, readonly (readonly string[])[]>> =
+  {
+    sole_discretion: [
+      [
+        "sole discretion",
+        "absolute discretion",
+        "sole and absolute discretion",
+      ],
+    ],
+    not_unreasonably_withheld: [["unreasonably withh"]],
+    not_unreasonably_withheld_conditioned_or_delayed: [
+      ["unreasonably withh"],
+      ["delay", "conditioned"],
+    ],
+  };
 
 /** True when the predicate has value parts the consistency check compares with the quote. */
 export function hasConsistencyRule(predicate: string): boolean {
@@ -401,7 +593,7 @@ const ORDINALS: Record<string, number> = {
 const TENS_RE = Object.keys(TENS).join("|");
 const UNITS_RE = UNITS.join("|");
 const ORDINAL_RE = byLength(Object.keys(ORDINALS));
-const NUMBER_TOKEN = /(?<![\d.])(\d[\d,]*(?:\.\d+)?|\.\d+)/g;
+export const NUMBER_TOKEN = /(?<![\d.])(\d[\d,]*(?:\.\d+)?|\.\d+)/g;
 const NUMBER_WORD = new RegExp(
   `\\b(?:(${TENS_RE})(?:[ -](${UNITS_RE}))?|(${UNITS_RE}))\\b`,
   "g",
@@ -526,8 +718,53 @@ export function showValue(value: unknown): string {
   return isNum(value) ? String(value) : JSON.stringify(value);
 }
 
+/**
+ * The first number written in digits in a free-text value that the normalized quote does not
+ * state, as written without commas, or undefined (Python `text_number_missing`).
+ */
+export function textNumberMissing(
+  text: string,
+  quote: string,
+): string | undefined {
+  const numbers = numbersIn(quote);
+  for (const m of norm(text).matchAll(NUMBER_TOKEN)) {
+    const written = m[1]!.replaceAll(",", "").replace(/\.+$/, "");
+    const k = decimalKey(written);
+    if (k !== undefined && !numbers.has(k)) return written;
+  }
+  return undefined;
+}
+
+/** The reason a value part of the given kind was not found in the normalized quote (Python `missing_reason`). */
+export function missingReason(
+  kind: Kind,
+  value: unknown,
+  path: string,
+  quote: string,
+): string {
+  const where = path ? ` (${path})` : "";
+  if (kind === "text")
+    return `number ${textNumberMissing(value as string, quote)} in value ${showValue(value)}${where} not found in quote`;
+  return `value ${showValue(value)}${where} not found in quote`;
+}
+
 /** True when `value` of the given kind cannot be found in the normalized quote (Python `_missing`). */
 export function missing(kind: Kind, value: unknown, quote: string): boolean {
+  if (kind === "text")
+    return (
+      typeof value === "string" && textNumberMissing(value, quote) !== undefined
+    );
+  if (kind === "phrase") {
+    const groups =
+      typeof value === "string" && Object.hasOwn(PHRASES, value)
+        ? PHRASES[value]
+        : undefined;
+    return (
+      !!groups &&
+      groups.length > 0 &&
+      !groups.every((g) => g.some((alt) => quote.includes(alt)))
+    );
+  }
   if (kind === "string") {
     const v = typeof value === "string" ? norm(value) : "";
     return !(v && quote.includes(v));
@@ -558,6 +795,11 @@ export interface Part {
 
 /** Whether a value can be checked as the given kind (malformed parts are left to the shape check). */
 function checkable(kind: Kind, value: unknown): boolean {
+  // A text is checked for the numbers written in digits in it; one without digits is not checked.
+  if (kind === "text")
+    return typeof value === "string" && /[0-9]/.test(norm(value));
+  if (kind === "phrase")
+    return typeof value === "string" && Object.hasOwn(PHRASES, value);
   if (kind === "string") return typeof value === "string";
   if (kind === "date") return isDate(value);
   return isNum(value);
@@ -655,7 +897,7 @@ export function checkConsistency(
   const q = norm(quote);
   for (const p of valueParts(predicate, value)) {
     if (p.as && missing(p.as, p.value, q))
-      return `value ${showValue(p.value)}${p.reasonPath ? ` (${p.reasonPath})` : ""} not found in quote`;
+      return missingReason(p.as, p.value, p.reasonPath, q);
   }
   return undefined;
 }
@@ -670,6 +912,7 @@ export class PageText {
   readonly normalized: readonly string[];
   private hyphenated?: string[][];
   private maps = new Map<number, SpanMap | null>();
+  private offsets?: number[];
 
   constructor(pages: readonly string[]) {
     this.pages = pages;
@@ -694,8 +937,15 @@ export class PageText {
     if (!map || map.text !== this.normalized[page - 1]) return undefined;
     const at = map.text.indexOf(q);
     if (at < 0) return undefined;
-    let offset = 0;
-    for (let i = 0; i < page - 1; i++) offset += codePoints(this.pages[i]!) + 1;
+    if (!this.offsets) {
+      // Where each page starts in the pages joined by \f, in code points (computed once).
+      this.offsets = [0];
+      for (const p of this.pages)
+        this.offsets.push(
+          this.offsets[this.offsets.length - 1]! + codePoints(p) + 1,
+        );
+    }
+    const offset = this.offsets[page - 1]!;
     return {
       start: offset + map.start[at]!,
       end: offset + map.end[at + q.length - 1]!,
@@ -734,7 +984,49 @@ interface SpanMap {
  * the whole page at once (rare: context-dependent case mapping or composition across pieces),
  * the caller gives no span rather than a wrong one.
  */
-function spanMap(page: string): SpanMap {
+export function spanMap(page: string): SpanMap {
+  if (!NON_ASCII.test(page)) return asciiSpanMap(page);
+  return generalSpanMap(page);
+}
+
+// Any character above U+007F (the page is ASCII when there is none).
+const NON_ASCII = /[^\p{ASCII}]/u;
+
+/**
+ * spanMap for an ASCII page, without the per-character Unicode work (most page text is ASCII,
+ * and this is the hot path on long documents). For ASCII, NFKC and the typographic replacements
+ * change nothing and lower-casing maps one character to one, so the result is generalSpanMap's.
+ */
+function asciiSpanMap(page: string): SpanMap {
+  const chars: string[] = [];
+  const start: number[] = [];
+  const end: number[] = [];
+  let lastWs = false;
+  for (let i = 0; i < page.length; i++) {
+    const c = page.charCodeAt(i);
+    // Python's whitespace within ASCII: \t \n \v \f \r, \x1c-\x1f and space.
+    const ws = (c >= 9 && c <= 13) || (c >= 0x1c && c <= 0x1f) || c === 32;
+    if (!ws) {
+      chars.push(c >= 65 && c <= 90 ? String.fromCharCode(c + 32) : page[i]!);
+      start.push(i);
+      end.push(i + 1);
+    } else if (lastWs) end[end.length - 1] = i + 1;
+    else if (chars.length) {
+      chars.push(" ");
+      start.push(i);
+      end.push(i + 1);
+    }
+    lastWs = ws && chars.length > 0;
+  }
+  if (lastWs) {
+    chars.pop();
+    start.pop();
+    end.pop();
+  }
+  return { text: chars.join(""), start, end };
+}
+
+export function generalSpanMap(page: string): SpanMap {
   const clusters: { text: string; s: number; e: number }[] = [];
   let cp = 0;
   for (const ch of page) {

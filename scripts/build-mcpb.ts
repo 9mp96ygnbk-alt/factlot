@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 
 import { build } from "esbuild";
 
-import { SERVER_VERSION } from "@factlot/mcp";
+import { LOCAL_TOOLS, SERVER_VERSION } from "@factlot/mcp";
 import { tools } from "@factlot/tools";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
@@ -85,6 +85,7 @@ const manifest = {
     ...tools
       .filter((t) => !t.requires)
       .map((t) => ({ name: t.name, description: t.description })),
+    ...LOCAL_TOOLS,
     ...extra,
   ],
   compatibility: {

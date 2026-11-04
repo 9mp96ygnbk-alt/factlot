@@ -1,0 +1,934 @@
+{
+  "generated_by": "scripts/gen-schemas.ts",
+  "id": "factlot.use_categories",
+  "version": 1,
+  "naics_edition": "2022",
+  "description": "Use categories for doc_check_use_conflict. A use matches a category when one of its keywords appears as whole words (after normalization: lower case, accents removed, punctuation as spaces, simple plurals folded); the longest overlapping keyword wins. NAICS codes (2022) are listed only where a code clearly covers the category. Stopwords are left out when two use descriptions are compared word by word.",
+  "stopwords": [
+    "a",
+    "about",
+    "all",
+    "also",
+    "an",
+    "and",
+    "any",
+    "are",
+    "area",
+    "as",
+    "at",
+    "be",
+    "building",
+    "business",
+    "but",
+    "by",
+    "center",
+    "centre",
+    "each",
+    "either",
+    "except",
+    "exception",
+    "feet",
+    "floor",
+    "for",
+    "from",
+    "goods",
+    "gross",
+    "however",
+    "if",
+    "in",
+    "incidental",
+    "ancillary",
+    "include",
+    "including",
+    "is",
+    "it",
+    "item",
+    "its",
+    "kind",
+    "landlord",
+    "less",
+    "limited",
+    "may",
+    "merchandise",
+    "more",
+    "no",
+    "nor",
+    "not",
+    "of",
+    "on",
+    "operate",
+    "operating",
+    "operation",
+    "or",
+    "other",
+    "over",
+    "percent",
+    "per",
+    "premise",
+    "primary",
+    "product",
+    "property",
+    "provided",
+    "purpose",
+    "related",
+    "retail",
+    "sale",
+    "sell",
+    "selling",
+    "service",
+    "shall",
+    "shop",
+    "shopping",
+    "similar",
+    "sold",
+    "space",
+    "square",
+    "store",
+    "such",
+    "tenant",
+    "than",
+    "that",
+    "the",
+    "their",
+    "this",
+    "to",
+    "type",
+    "under",
+    "unless",
+    "up",
+    "use",
+    "used",
+    "using",
+    "which",
+    "whether",
+    "with",
+    "within",
+    "without"
+  ],
+  "categories": [
+    {
+      "id": "coffee",
+      "label": "Coffee, tea and espresso bar",
+      "keywords": [
+        "coffee",
+        "espresso",
+        "cappuccino",
+        "latte",
+        "coffee house",
+        "coffeehouse",
+        "coffee bar",
+        "espresso bar",
+        "tea bar",
+        "tea house",
+        "teahouse",
+        "tea room",
+        "cafe"
+      ],
+      "naics": ["722515"]
+    },
+    {
+      "id": "ice_cream_frozen_dessert",
+      "label": "Ice cream, frozen yogurt and frozen desserts",
+      "keywords": [
+        "ice cream",
+        "frozen yogurt",
+        "gelato",
+        "frozen dessert",
+        "frozen custard",
+        "yogurt shop",
+        "yogurt bar"
+      ],
+      "naics": ["722515"]
+    },
+    {
+      "id": "juice_smoothie",
+      "label": "Juice and smoothie bar",
+      "keywords": ["juice", "juice bar", "smoothie", "smoothie bar"],
+      "naics": ["722515"]
+    },
+    {
+      "id": "donut_bagel",
+      "label": "Donut and bagel shop",
+      "keywords": ["donut", "doughnut", "bagel"],
+      "naics": ["722515"]
+    },
+    {
+      "id": "bakery",
+      "label": "Bakery",
+      "keywords": [
+        "bakery",
+        "baked goods",
+        "pastry",
+        "cake",
+        "cupcake",
+        "cookie"
+      ],
+      "naics": ["311811", "445291"]
+    },
+    {
+      "id": "restaurant_full_service",
+      "label": "Full-service (sit-down) restaurant",
+      "keywords": [
+        "restaurant",
+        "full service restaurant",
+        "sit down restaurant",
+        "dining",
+        "bistro",
+        "steakhouse",
+        "diner"
+      ],
+      "naics": ["722511"]
+    },
+    {
+      "id": "restaurant_limited_service",
+      "label": "Fast-food and limited-service restaurant",
+      "keywords": [
+        "fast food",
+        "quick service",
+        "quick serve",
+        "fast casual",
+        "limited service restaurant",
+        "drive through",
+        "drive thru",
+        "take out",
+        "takeout",
+        "carry out",
+        "salad bar"
+      ],
+      "naics": ["722513"]
+    },
+    {
+      "id": "pizza",
+      "label": "Pizza",
+      "keywords": ["pizza", "pizzeria"]
+    },
+    {
+      "id": "sandwich_deli",
+      "label": "Sandwich shop and delicatessen",
+      "keywords": [
+        "sandwich",
+        "submarine sandwich",
+        "sub shop",
+        "hoagie",
+        "deli",
+        "delicatessen"
+      ]
+    },
+    {
+      "id": "burger",
+      "label": "Hamburger restaurant",
+      "keywords": ["hamburger", "burger"]
+    },
+    {
+      "id": "chicken",
+      "label": "Chicken restaurant",
+      "keywords": [
+        "fried chicken",
+        "chicken wing",
+        "chicken tender",
+        "rotisserie chicken"
+      ]
+    },
+    {
+      "id": "mexican_food",
+      "label": "Mexican and Tex-Mex food",
+      "keywords": ["mexican", "taco", "burrito", "tex mex", "taqueria"]
+    },
+    {
+      "id": "asian_food",
+      "label": "Asian food",
+      "keywords": [
+        "asian",
+        "chinese",
+        "japanese",
+        "sushi",
+        "thai",
+        "vietnamese",
+        "pho",
+        "korean",
+        "ramen",
+        "sushi bar"
+      ]
+    },
+    {
+      "id": "bar_nightclub",
+      "label": "Bar, tavern and nightclub",
+      "keywords": [
+        "bar",
+        "tavern",
+        "pub",
+        "brewpub",
+        "wine bar",
+        "nightclub",
+        "night club",
+        "lounge",
+        "cocktail",
+        "on premises consumption"
+      ],
+      "naics": ["722410"]
+    },
+    {
+      "id": "alcohol_retail",
+      "label": "Beer, wine and liquor store",
+      "keywords": [
+        "liquor",
+        "liquor store",
+        "package store",
+        "wine shop",
+        "wine and spirits",
+        "spirits",
+        "beer store",
+        "off premises consumption"
+      ],
+      "naics": ["445320"]
+    },
+    {
+      "id": "grocery",
+      "label": "Grocery store and supermarket",
+      "keywords": [
+        "grocery",
+        "supermarket",
+        "food store",
+        "fresh produce",
+        "fresh food",
+        "fresh meat"
+      ],
+      "naics": ["445110"]
+    },
+    {
+      "id": "convenience",
+      "label": "Convenience store",
+      "keywords": ["convenience store", "convenience"],
+      "naics": ["445131"]
+    },
+    {
+      "id": "specialty_food",
+      "label": "Specialty food (butcher, seafood, candy)",
+      "keywords": [
+        "butcher",
+        "meat market",
+        "seafood market",
+        "fish market",
+        "candy",
+        "confectionery",
+        "chocolate",
+        "specialty food",
+        "gourmet food"
+      ],
+      "naics": ["445240", "445250", "445292", "445298"]
+    },
+    {
+      "id": "pharmacy",
+      "label": "Pharmacy and drugstore",
+      "keywords": [
+        "pharmacy",
+        "drugstore",
+        "drug store",
+        "prescription",
+        "prescription drug",
+        "apothecary"
+      ],
+      "naics": ["456110"]
+    },
+    {
+      "id": "beauty_retail",
+      "label": "Cosmetics, beauty supply and perfume",
+      "keywords": [
+        "cosmetic",
+        "beauty supply",
+        "beauty supplies",
+        "perfume",
+        "fragrance",
+        "skin care product"
+      ],
+      "naics": ["456120"]
+    },
+    {
+      "id": "optical",
+      "label": "Optical goods and optometry",
+      "keywords": [
+        "optical",
+        "optometrist",
+        "optometry",
+        "optician",
+        "eyewear",
+        "eyeglass",
+        "eye care",
+        "contact lens"
+      ],
+      "naics": ["456130", "621320"]
+    },
+    {
+      "id": "hair_salon_barber",
+      "label": "Hair salon and barber",
+      "keywords": [
+        "hair salon",
+        "beauty salon",
+        "salon",
+        "barber",
+        "barbershop",
+        "haircut",
+        "hair cutting",
+        "blow dry",
+        "blow dry bar",
+        "blowout"
+      ],
+      "naics": ["812111", "812112"]
+    },
+    {
+      "id": "nail_salon",
+      "label": "Nail salon",
+      "keywords": ["nail salon", "nail bar", "nail", "manicure", "pedicure"],
+      "naics": ["812113"]
+    },
+    {
+      "id": "spa_massage",
+      "label": "Spa, massage, waxing and tanning",
+      "keywords": [
+        "spa",
+        "day spa",
+        "med spa",
+        "massage",
+        "waxing",
+        "facial",
+        "tanning",
+        "threading"
+      ],
+      "naics": ["812199"]
+    },
+    {
+      "id": "tattoo_piercing",
+      "label": "Tattoo and piercing",
+      "keywords": ["tattoo", "piercing", "body art"]
+    },
+    {
+      "id": "fitness",
+      "label": "Gym, fitness and exercise studio",
+      "keywords": [
+        "fitness",
+        "gym",
+        "health club",
+        "exercise",
+        "yoga",
+        "pilates",
+        "martial art",
+        "boxing",
+        "crossfit",
+        "personal training",
+        "cycling studio",
+        "spin studio",
+        "barre"
+      ],
+      "naics": ["713940"]
+    },
+    {
+      "id": "medical_office",
+      "label": "Medical office and clinic",
+      "keywords": [
+        "medical",
+        "medical office",
+        "physician",
+        "doctor",
+        "clinic",
+        "urgent care",
+        "health care",
+        "healthcare",
+        "chiropractic",
+        "chiropractor",
+        "physical therapy",
+        "dialysis",
+        "imaging"
+      ],
+      "naics": ["621111", "621310", "621340"]
+    },
+    {
+      "id": "dental",
+      "label": "Dental office",
+      "keywords": [
+        "dental",
+        "dentist",
+        "dentistry",
+        "orthodontist",
+        "orthodontic"
+      ],
+      "naics": ["621210"]
+    },
+    {
+      "id": "veterinary_pet",
+      "label": "Veterinary, pet supply and pet grooming",
+      "keywords": [
+        "veterinary",
+        "veterinarian",
+        "animal hospital",
+        "animal clinic",
+        "pet",
+        "pet supply",
+        "pet supplies",
+        "pet grooming",
+        "grooming",
+        "kennel"
+      ],
+      "naics": ["541940", "812910", "459910"]
+    },
+    {
+      "id": "bank_financial",
+      "label": "Bank and credit union",
+      "keywords": [
+        "bank",
+        "banking",
+        "credit union",
+        "financial institution",
+        "savings and loan",
+        "atm"
+      ],
+      "naics": ["522110", "522130"]
+    },
+    {
+      "id": "check_cashing_pawn",
+      "label": "Check cashing, payday loan and pawn",
+      "keywords": [
+        "check cashing",
+        "payday loan",
+        "title loan",
+        "pawn",
+        "pawnshop",
+        "pawn shop",
+        "cash advance"
+      ],
+      "naics": ["522390"]
+    },
+    {
+      "id": "tax_insurance_office",
+      "label": "Tax preparation and insurance agency",
+      "keywords": [
+        "tax preparation",
+        "tax service",
+        "tax preparer",
+        "insurance agency",
+        "insurance office"
+      ],
+      "naics": ["541213", "524210"]
+    },
+    {
+      "id": "mobile_phone",
+      "label": "Mobile phone and wireless store",
+      "keywords": [
+        "cellular",
+        "cell phone",
+        "mobile phone",
+        "wireless",
+        "wireless communication",
+        "phone store"
+      ],
+      "naics": ["449210"]
+    },
+    {
+      "id": "electronics",
+      "label": "Electronics, computers and appliances",
+      "keywords": ["electronics", "computer store", "computer", "appliance"],
+      "naics": ["449210"]
+    },
+    {
+      "id": "apparel",
+      "label": "Clothing and accessories",
+      "keywords": [
+        "apparel",
+        "clothing",
+        "fashion",
+        "boutique",
+        "garment",
+        "lingerie"
+      ],
+      "naics": ["458110"]
+    },
+    {
+      "id": "shoes",
+      "label": "Shoes",
+      "keywords": ["shoe", "footwear", "sneaker"],
+      "naics": ["458210"]
+    },
+    {
+      "id": "jewelry",
+      "label": "Jewelry",
+      "keywords": ["jewelry", "jewellery", "jeweler", "jeweller"],
+      "naics": ["458310"]
+    },
+    {
+      "id": "books_cards_gifts",
+      "label": "Books, cards, gifts and party supplies",
+      "keywords": [
+        "book",
+        "bookstore",
+        "greeting card",
+        "card shop",
+        "gift",
+        "gift shop",
+        "stationery",
+        "party supply",
+        "party supplies",
+        "souvenir"
+      ],
+      "naics": ["459210", "459420"]
+    },
+    {
+      "id": "toys_games_hobby",
+      "label": "Toys, games, hobby and crafts",
+      "keywords": [
+        "toy",
+        "game store",
+        "video game",
+        "hobby",
+        "hobby shop",
+        "craft store",
+        "craft supplies",
+        "arts and crafts",
+        "comic"
+      ],
+      "naics": ["459120"]
+    },
+    {
+      "id": "sporting_goods",
+      "label": "Sporting goods",
+      "keywords": [
+        "sporting goods",
+        "sports equipment",
+        "athletic equipment",
+        "bicycle",
+        "golf equipment",
+        "outdoor equipment"
+      ],
+      "naics": ["459110"]
+    },
+    {
+      "id": "home_furnishings",
+      "label": "Furniture and home furnishings",
+      "keywords": [
+        "furniture",
+        "mattress",
+        "home furnishings",
+        "home decor",
+        "rug",
+        "carpet",
+        "flooring",
+        "bedding",
+        "housewares",
+        "kitchenware",
+        "window treatment"
+      ],
+      "naics": ["449110", "449121", "449122", "449129"]
+    },
+    {
+      "id": "hardware_home_improvement",
+      "label": "Hardware, paint, home improvement and garden",
+      "keywords": [
+        "hardware",
+        "home improvement",
+        "home center",
+        "lumber",
+        "paint store",
+        "garden center",
+        "plant nursery"
+      ],
+      "naics": ["444110", "444120", "444140", "444240"]
+    },
+    {
+      "id": "florist",
+      "label": "Florist",
+      "keywords": ["florist", "flower"],
+      "naics": ["459310"]
+    },
+    {
+      "id": "general_merchandise",
+      "label": "Department, discount, dollar and warehouse club stores",
+      "keywords": [
+        "department store",
+        "discount store",
+        "dollar store",
+        "variety store",
+        "general merchandise",
+        "warehouse club",
+        "supercenter",
+        "off price"
+      ],
+      "naics": ["455110", "455211", "455219"]
+    },
+    {
+      "id": "thrift_secondhand",
+      "label": "Thrift, consignment and used goods",
+      "keywords": [
+        "thrift",
+        "secondhand",
+        "second hand",
+        "used merchandise",
+        "used goods",
+        "consignment",
+        "resale"
+      ],
+      "naics": ["459510"]
+    },
+    {
+      "id": "tobacco_vape",
+      "label": "Tobacco, vape and smoke shop",
+      "keywords": [
+        "tobacco",
+        "smoke shop",
+        "vape",
+        "vaping",
+        "e cigarette",
+        "cigar",
+        "hookah",
+        "head shop"
+      ],
+      "naics": ["459991"]
+    },
+    {
+      "id": "cannabis",
+      "label": "Cannabis and CBD",
+      "keywords": ["cannabis", "marijuana", "dispensary", "cbd"]
+    },
+    {
+      "id": "adult",
+      "label": "Adult entertainment and adult products",
+      "keywords": [
+        "adult book",
+        "adult bookstore",
+        "adult entertainment",
+        "adult video",
+        "adult novelty",
+        "adult use",
+        "sexually oriented",
+        "strip club",
+        "topless",
+        "nude",
+        "x rated",
+        "pornographic"
+      ]
+    },
+    {
+      "id": "gaming_gambling",
+      "label": "Gambling, casino and bingo",
+      "keywords": [
+        "bingo",
+        "casino",
+        "gambling",
+        "gaming",
+        "off track betting",
+        "slot machine",
+        "betting"
+      ],
+      "naics": ["713210", "713290"]
+    },
+    {
+      "id": "amusement_recreation",
+      "label": "Arcade, bowling and other indoor recreation",
+      "keywords": [
+        "arcade",
+        "amusement",
+        "game room",
+        "family entertainment",
+        "bowling",
+        "bowling alley",
+        "skating rink",
+        "roller rink",
+        "ice rink",
+        "billiard",
+        "pool hall",
+        "trampoline",
+        "laser tag"
+      ],
+      "naics": ["713120", "713950", "713990"]
+    },
+    {
+      "id": "movie_theater",
+      "label": "Movie theater",
+      "keywords": [
+        "movie theater",
+        "movie theatre",
+        "cinema",
+        "motion picture",
+        "theater",
+        "theatre"
+      ],
+      "naics": ["512131"]
+    },
+    {
+      "id": "laundry_dry_cleaning",
+      "label": "Laundromat and dry cleaning",
+      "keywords": [
+        "laundromat",
+        "laundry",
+        "coin operated laundry",
+        "dry cleaning",
+        "dry cleaner",
+        "drycleaning"
+      ],
+      "naics": ["812310", "812320"]
+    },
+    {
+      "id": "funeral",
+      "label": "Funeral home",
+      "keywords": ["funeral", "mortuary", "crematory", "cremation"],
+      "naics": ["812210"]
+    },
+    {
+      "id": "auto_service",
+      "label": "Automotive repair, tires and oil change",
+      "keywords": [
+        "auto repair",
+        "automotive repair",
+        "automotive service",
+        "car repair",
+        "auto body",
+        "body shop",
+        "oil change",
+        "lube",
+        "tire",
+        "muffler",
+        "collision repair"
+      ],
+      "naics": ["811111", "811121", "811191"]
+    },
+    {
+      "id": "car_wash",
+      "label": "Car wash",
+      "keywords": ["car wash", "carwash", "auto detailing"],
+      "naics": ["811192"]
+    },
+    {
+      "id": "gas_station",
+      "label": "Gas station and fuel",
+      "keywords": [
+        "gas station",
+        "gasoline",
+        "service station",
+        "filling station",
+        "fuel",
+        "fueling"
+      ],
+      "naics": ["457110", "457120"]
+    },
+    {
+      "id": "auto_sales_rental",
+      "label": "Car sales and rental",
+      "keywords": [
+        "car dealership",
+        "auto dealership",
+        "automobile dealership",
+        "used car",
+        "car rental",
+        "truck rental",
+        "automobile sales"
+      ],
+      "naics": ["441110", "441120", "532111"]
+    },
+    {
+      "id": "childcare",
+      "label": "Child care and preschool",
+      "keywords": [
+        "child care",
+        "childcare",
+        "day care",
+        "daycare",
+        "preschool",
+        "nursery school"
+      ],
+      "naics": ["624410"]
+    },
+    {
+      "id": "education",
+      "label": "School, tutoring and training",
+      "keywords": [
+        "school",
+        "tutoring",
+        "test preparation",
+        "learning center",
+        "education",
+        "educational",
+        "training center",
+        "driving school"
+      ],
+      "naics": ["611691"]
+    },
+    {
+      "id": "religious",
+      "label": "Place of worship",
+      "keywords": [
+        "church",
+        "religious",
+        "place of worship",
+        "worship",
+        "mosque",
+        "synagogue",
+        "temple"
+      ],
+      "naics": ["813110"]
+    },
+    {
+      "id": "social_services",
+      "label": "Government, social service and treatment facilities",
+      "keywords": [
+        "government office",
+        "social service",
+        "probation",
+        "parole",
+        "halfway house",
+        "drug treatment",
+        "methadone",
+        "rehabilitation center",
+        "unemployment office"
+      ]
+    },
+    {
+      "id": "residential",
+      "label": "Residential and lodging",
+      "keywords": [
+        "residential",
+        "apartment",
+        "dwelling",
+        "housing",
+        "hotel",
+        "motel",
+        "lodging"
+      ]
+    },
+    {
+      "id": "warehouse_industrial",
+      "label": "Warehouse, storage and industrial",
+      "keywords": [
+        "warehouse",
+        "warehousing",
+        "self storage",
+        "mini storage",
+        "storage unit",
+        "manufacturing",
+        "industrial",
+        "distribution center"
+      ],
+      "naics": ["531130"]
+    },
+    {
+      "id": "firearms",
+      "label": "Firearms and shooting range",
+      "keywords": ["firearm", "gun", "ammunition", "shooting range"]
+    },
+    {
+      "id": "flea_market_auction",
+      "label": "Flea market and auction house",
+      "keywords": ["flea market", "swap meet", "auction"]
+    },
+    {
+      "id": "shipping_printing",
+      "label": "Shipping, mailbox and print shop",
+      "keywords": [
+        "shipping store",
+        "pack and ship",
+        "mailbox rental",
+        "postal",
+        "copy center",
+        "print shop",
+        "printing"
+      ],
+      "naics": ["561431"]
+    }
+  ]
+}

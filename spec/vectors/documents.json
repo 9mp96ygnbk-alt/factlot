@@ -1,6 +1,6 @@
 {
   "spec": "factlot-documents",
-  "description": "Document verification tools (doc_*) and fact_validate: results every SDK must share. Expected values are written by hand from the rules in docs/document-verification.md; document IDs, fact IDs and spans follow their published definitions (SHA-256 of the pages joined by form feeds; flf_ + Crockford base32 of SHA-256(subject, predicate, document_id, quote joined by U+001F); code-point offsets in that joined text). In arguments, {\"$pages\": name} stands for documents[name]. An expected value of null means the path is absent.",
+  "description": "Document verification tools (doc_*) and fact_validate: results every SDK must share. Expected values are written by hand from the rules in docs/document-verification.md; document IDs, fact IDs and spans follow their published definitions (SHA-256 of the pages joined by form feeds; flf_ + Crockford base32 of SHA-256(subject, predicate, document_id, quote joined by U+001F); code-point offsets in that joined text). In arguments, {\"$pages\": name} stands for documents[name]. An expected value of null means the path is absent. canonical_json pins RFC 8785 serialization for fact packages. A case with \"requires\": \"signing\" needs Ed25519 (the cryptography package in Python) and is skipped without it.",
   "synthetic": "Every document here is synthetic test text written for these vectors; none is a real lease.",
   "documents": {
     "lease": [
@@ -13,6 +13,27 @@
     ],
     "second_amendment": [
       "SECOND AMENDMENT TO OFFICE LEASE (SYNTHETIC TEST DOCUMENT)\nEffective March 1, 2030.\n1. Extension. The expiration date of the Lease is hereby extended to 6/30/2034.\n2. Area. The Premises contain 14,500 rentable square feet."
+    ],
+    "retail_lease": [
+      "RETAIL LEASE (SYNTHETIC TEST DOCUMENT - NOT A REAL LEASE)\n\nSection 6.1 Exclusive Use. Landlord shall not lease space in the Shopping Center to another tenant for the sale of coffee, espresso and espresso-based beverages, except (a) a full-service restaurant may sell coffee with meals, and (b) any tenant may make incidental sales of bottled coffee drinks in up to 10% of its floor area.\nSection 6.2 Prohibited Uses. No part of the Shopping Center shall be used for a bar or tavern, a massage parlor, a pawn shop, or a bowling alley.\nSection 6.3 Co-Tenancy. If fewer than 70% of the gross leasable area of the Shopping Center is open for business, or if Anchor Grocer, Inc. ceases to operate, Tenant may pay 50% of Base Rent in lieu of Base Rent, and if the failure continues for twelve (12) months, Tenant may terminate this Lease.",
+      "Section 7.1 Operation. Tenant shall continuously operate in the Premises. If Tenant ceases operating for more than 180 consecutive days, Landlord may recapture the Premises.\nSection 7.2 Radius. During the Term, Tenant shall not operate another coffee shop within 3 miles of the Shopping Center.\nSection 7.3 Relocation. Landlord may relocate Tenant to substantially similar premises on 90 days' notice, at Landlord's cost.\nSection 7.4 Kick-Out. If Gross Sales in the third Lease Year are less than $600,000, Tenant may terminate this Lease on 120 days' notice.\nSection 8.1 Assignment. Tenant shall not assign this Lease without Landlord's consent, which shall not be unreasonably withheld, conditioned or delayed; Landlord shall receive 50% of any transfer profit.\nSection 8.2 Right of First Refusal. Tenant shall have a right of first refusal on the adjacent Suite 105, exercisable within 10 business days of Landlord's notice."
+    ],
+    "t12": [
+      "SAMPLE GARDENS APARTMENTS (SYNTHETIC TEST DOCUMENT - NOT A REAL PROPERTY)\nTrailing 12 Months ending September 30, 2026\nINCOME\nGross Potential Rent 2,400,000\nLoss to Lease (36,000)\nVacancy Loss (120,000)\nConcessions 18,500\nBad Debt (9,500)\nUtility Reimbursements 84,000\nOther Income 41,000\nEffective Gross Income 2,341,000",
+      "OPERATING EXPENSES\nReal Estate Taxes 245,000\nReal Estate Tax Refund (4,000)\nInsurance 62,000\nElectric 31,000\nWater & Sewer 58,000\nTotal Utilities 89,000\nRepairs & Maintenance 74,000\nPayroll 210,000\nManagement Fee 70,230\nGeneral & Administrative 25,000\nTotal Operating Expenses 771,230\nNet Operating Income 1,569,770\nReplacement Reserves 75,000\nUnits 240\nOccupancy 95%"
+    ],
+    "hotel_statement": [
+      "SAMPLE INN (SYNTHETIC TEST DOCUMENT - NOT A REAL HOTEL) - Summary Operating Statement, Year 2025\nOperating Revenue: Rooms 3,200,000; Food and Beverage 1,100,000; Other Operated Departments 150,000; Miscellaneous Income 50,000\nTotal Operating Revenue 4,500,000\nDepartmental Expenses: Rooms 800,000; Food and Beverage 820,000; Other Operated Departments 90,000\nTotal Departmental Expenses 1,710,000\nTotal Departmental Profit 2,790,000\nUndistributed Operating Expenses: A&G 360,000; Information and Telecommunications Systems 60,000; Sales and Marketing 330,000; Property Operation and Maintenance 210,000; Utilities 160,000\nTotal Undistributed Operating Expenses 1,120,000\nGross Operating Profit 1,670,000\nManagement Fees 135,000\nIncome Before Non-Operating Income and Expenses 1,535,000\nNon-Operating: Property and Other Taxes 140,000; Insurance 55,000\nTotal Non-Operating Income and Expenses 195,000\nEBITDA 1,340,000\nReplacement Reserve 180,000\nEBITDA less Replacement Reserve 1,160,000\nStatistics: Rooms Available 36,500; Rooms Sold 27,375; ADR 116.89"
+    ],
+    "office_history": [
+      "SAMPLE PLAZA (SYNTHETIC TEST DOCUMENT - NOT A REAL PROPERTY) - Operating History\nBase Rent: 2024 900,000 | 2025 945,000\nExpense Reimbursements: 2024 210,000 | 2025 220,000\nMisc. Adjustments: 2024 3,000\nReal Estate Taxes: 2024 150,000 | 2025 155,000\nNet Operating Income: 2024 960,000 | 2025 1,010,000"
+    ],
+    "package_lease": [
+      "SYNTHETIC LEASE - NOT A REAL LEASE. The Term shall expire on June 30, 2031.",
+      "Tenant shall not operate another coffee shop within 3 miles. Tenant shall pay a security deposit of $50,000."
+    ],
+    "exceptions_statement": [
+      "SAMPLE COURT APARTMENTS (SYNTHETIC TEST DOCUMENT - NOT A REAL PROPERTY) - 2025 Operating Statement\nRental Income 500,000\nParking Lot Repairs 4,000\nTotal Repairs 9,000\nPool Service 2,500\nInsurance 20,000\nTotal Expenses 30,500\nNet Operating Income 469,500\nWater Utility Credit (300)"
     ]
   },
   "consistency": [
@@ -206,6 +227,129 @@
       "predicate": "lease.rofr",
       "value": "a right of first refusal on Suite 500",
       "quote": "no such words here",
+      "expect": null
+    },
+    {
+      "predicate": "lease.assignment_sublease",
+      "value": "consent required, not to be unreasonably withheld",
+      "quote": "anything at all, no consent words",
+      "expect": null
+    },
+    {
+      "predicate": "lease.assignment_sublease",
+      "value": {
+        "consent_standard": "sole_discretion"
+      },
+      "quote": "with Landlord's consent, in its sole and absolute discretion",
+      "expect": null
+    },
+    {
+      "predicate": "lease.assignment_sublease",
+      "value": {
+        "consent_standard": "not_unreasonably_withheld"
+      },
+      "quote": "Landlord shall not unreasonably withhold its consent",
+      "expect": null
+    },
+    {
+      "predicate": "lease.assignment_sublease",
+      "value": {
+        "consent_standard": "not_unreasonably_withheld_conditioned_or_delayed"
+      },
+      "quote": "consent shall not be unreasonably withheld or delayed",
+      "expect": null
+    },
+    {
+      "predicate": "lease.assignment_sublease",
+      "value": {
+        "consent_standard": "not_unreasonably_withheld_conditioned_or_delayed"
+      },
+      "quote": "consent shall not be unreasonably withheld",
+      "expect": "value \"not_unreasonably_withheld_conditioned_or_delayed\" (consent_standard) not found in quote"
+    },
+    {
+      "predicate": "lease.assignment_sublease",
+      "value": {
+        "consent_standard": "prohibited",
+        "profit_share": 0.5
+      },
+      "quote": "Tenant shall not assign; Landlord takes 50% of any profit",
+      "expect": null
+    },
+    {
+      "predicate": "lease.prohibited_uses",
+      "value": ["a bowling alley with 12 lanes"],
+      "quote": "no part shall be used for a bowling alley",
+      "expect": "number 12 in value \"a bowling alley with 12 lanes\" not found in quote"
+    },
+    {
+      "predicate": "lease.exclusive_use",
+      "value": "coffee, except in 10% of floor area",
+      "quote": "the exclusive right to sell coffee",
+      "expect": null
+    },
+    {
+      "predicate": "lease.exclusive_use",
+      "value": {
+        "protected_use": "coffee",
+        "carve_outs": ["up to ten percent of floor area"]
+      },
+      "quote": "the exclusive right to sell coffee",
+      "expect": null
+    },
+    {
+      "predicate": "lease.kick_out",
+      "value": {
+        "party": "tenant",
+        "effective_date": "2029-02-28"
+      },
+      "quote": "Tenant may terminate effective February 28, 2029",
+      "expect": null
+    },
+    {
+      "predicate": "lease.kick_out",
+      "value": {
+        "party": "tenant",
+        "effective_date": "2029-02-28"
+      },
+      "quote": "Tenant may terminate effective March 1, 2029",
+      "expect": "value \"2029-02-28\" (effective_date) not found in quote"
+    },
+    {
+      "predicate": "lease.rofr",
+      "value": {
+        "applies_to": "space",
+        "description": "Suite 105"
+      },
+      "quote": "a right of first refusal on Suite 150",
+      "expect": "number 105 in value \"Suite 105\" (description) not found in quote"
+    },
+    {
+      "predicate": "lease.co_tenancy",
+      "value": {
+        "trigger": "x",
+        "remedy": "y",
+        "named_tenants": ["Anchor Grocer, Inc."]
+      },
+      "quote": "if Big Box Stores LLC ceases to operate",
+      "expect": "value \"Anchor Grocer, Inc.\" (named_tenants) not found in quote"
+    },
+    {
+      "predicate": "lease.co_tenancy",
+      "value": {
+        "trigger": "x",
+        "remedy": "y",
+        "required_occupancy": 0.7
+      },
+      "quote": "if fewer than 70% of the GLA is open",
+      "expect": null
+    },
+    {
+      "predicate": "lease.radius_restriction",
+      "value": {
+        "radius_miles": 3
+      },
+      "quote": "within three (3) miles of the Center",
       "expect": null
     }
   ],
@@ -2244,6 +2388,2571 @@
         "valid": true,
         "issues": []
       }
+    },
+    {
+      "name": "clause predicates: exclusive use with carve-outs, prohibited uses, co-tenancy, go-dark, radius, relocation, kick-out, consent standard, ROFR",
+      "tool": "doc_verify_facts",
+      "arguments": {
+        "document": {
+          "pages": {
+            "$pages": "retail_lease"
+          },
+          "title": "Synthetic retail lease"
+        },
+        "as_of": "2026-11-04",
+        "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+        "candidates": [
+          {
+            "predicate": "lease.exclusive_use",
+            "value": {
+              "protected_use": "the sale of coffee, espresso and espresso-based beverages",
+              "carve_outs": [
+                "a full-service restaurant may sell coffee with meals",
+                "incidental sales of bottled coffee drinks in up to 10% of its floor area"
+              ],
+              "applies_to": "the Shopping Center"
+            },
+            "quote": "Landlord shall not lease space in the Shopping Center to another tenant for the sale of coffee, espresso and espresso-based beverages, except (a) a full-service restaurant may sell coffee with meals, and (b) any tenant may make incidental sales of bottled coffee drinks in up to 10% of its floor area",
+            "page": 1,
+            "section": "6.1"
+          },
+          {
+            "predicate": "lease.prohibited_uses",
+            "value": [
+              "a bar or tavern",
+              "a massage parlor",
+              "a pawn shop",
+              "a bowling alley"
+            ],
+            "quote": "No part of the Shopping Center shall be used for a bar or tavern, a massage parlor, a pawn shop, or a bowling alley",
+            "page": 1,
+            "section": "6.2"
+          },
+          {
+            "predicate": "lease.co_tenancy",
+            "value": {
+              "trigger": "fewer than 70% of the gross leasable area is open, or Anchor Grocer, Inc. ceases to operate",
+              "remedy": "pay 50% of Base Rent; terminate if the failure continues for 12 months",
+              "cure_period_months": 12,
+              "required_occupancy": 0.7,
+              "named_tenants": ["Anchor Grocer, Inc."],
+              "remedy_type": "alternate_rent_then_termination"
+            },
+            "quote": "If fewer than 70% of the gross leasable area of the Shopping Center is open for business, or if Anchor Grocer, Inc. ceases to operate, Tenant may pay 50% of Base Rent in lieu of Base Rent, and if the failure continues for twelve (12) months, Tenant may terminate this Lease",
+            "page": 1,
+            "section": "6.3"
+          },
+          {
+            "predicate": "lease.go_dark",
+            "value": {
+              "operating_covenant": true,
+              "recapture_right": true,
+              "dark_period_days": 180
+            },
+            "quote": "Tenant shall continuously operate in the Premises. If Tenant ceases operating for more than 180 consecutive days, Landlord may recapture the Premises",
+            "page": 2,
+            "section": "7.1"
+          },
+          {
+            "predicate": "lease.radius_restriction",
+            "value": {
+              "radius_miles": 3,
+              "duration": "during the Term"
+            },
+            "quote": "During the Term, Tenant shall not operate another coffee shop within 3 miles of the Shopping Center",
+            "page": 2
+          },
+          {
+            "predicate": "lease.relocation_right",
+            "value": {
+              "notice_days": 90,
+              "landlord_pays_costs": true,
+              "replacement_premises": "substantially similar premises"
+            },
+            "quote": "Landlord may relocate Tenant to substantially similar premises on 90 days' notice, at Landlord's cost",
+            "page": 2
+          },
+          {
+            "predicate": "lease.kick_out",
+            "value": {
+              "party": "tenant",
+              "sales_threshold": 600000,
+              "test_period": "the third Lease Year",
+              "notice_days": 120
+            },
+            "quote": "If Gross Sales in the third Lease Year are less than $600,000, Tenant may terminate this Lease on 120 days' notice",
+            "page": 2
+          },
+          {
+            "predicate": "lease.assignment_sublease",
+            "value": {
+              "consent_standard": "not_unreasonably_withheld_conditioned_or_delayed",
+              "profit_share": 0.5
+            },
+            "quote": "Tenant shall not assign this Lease without Landlord's consent, which shall not be unreasonably withheld, conditioned or delayed; Landlord shall receive 50% of any transfer profit",
+            "page": 2,
+            "section": "8.1"
+          },
+          {
+            "predicate": "lease.rofr",
+            "value": {
+              "applies_to": "space",
+              "description": "the adjacent Suite 105",
+              "response_days": 10
+            },
+            "quote": "Tenant shall have a right of first refusal on the adjacent Suite 105, exercisable within 10 business days of Landlord's notice",
+            "page": 2,
+            "section": "8.2"
+          },
+          {
+            "predicate": "lease.assignment_sublease",
+            "value": {
+              "consent_standard": "sole_discretion"
+            },
+            "quote": "Tenant shall not assign this Lease without Landlord's consent, which shall not be unreasonably withheld, conditioned or delayed; Landlord shall receive 50% of any transfer profit",
+            "page": 2
+          },
+          {
+            "predicate": "lease.exclusive_use",
+            "value": {
+              "protected_use": "the sale of coffee, espresso and espresso-based beverages",
+              "carve_outs": [
+                "a full-service restaurant may sell coffee with meals",
+                "incidental sales of bottled coffee drinks in up to 15% of its floor area"
+              ],
+              "applies_to": "the Shopping Center"
+            },
+            "quote": "Landlord shall not lease space in the Shopping Center to another tenant for the sale of coffee, espresso and espresso-based beverages, except (a) a full-service restaurant may sell coffee with meals, and (b) any tenant may make incidental sales of bottled coffee drinks in up to 10% of its floor area",
+            "page": 1
+          },
+          {
+            "predicate": "lease.go_dark",
+            "value": {
+              "recapture_right": true
+            },
+            "quote": "If Tenant ceases operating for more than 180 consecutive days, Landlord may recapture the Premises",
+            "page": 2
+          },
+          {
+            "predicate": "lease.kick_out",
+            "value": {
+              "party": "landlord",
+              "notice_days": -5
+            },
+            "quote": "Tenant may terminate this Lease on 120 days' notice",
+            "page": 2
+          },
+          {
+            "predicate": "lease.radius_restriction",
+            "value": {
+              "radius_miles": 5
+            },
+            "quote": "During the Term, Tenant shall not operate another coffee shop within 3 miles of the Shopping Center",
+            "page": 2
+          }
+        ]
+      },
+      "expect": {
+        "summary": {
+          "candidates": 14,
+          "verified": 9,
+          "needs_review": 3,
+          "rejected": 2
+        },
+        "verified.0.fact.predicate": "lease.exclusive_use",
+        "verified.0.checked": [
+          {
+            "path": "value.carve_outs.1",
+            "as": "text"
+          }
+        ],
+        "verified.0.not_checked": [
+          "value.protected_use",
+          "value.carve_outs.0",
+          "value.applies_to"
+        ],
+        "verified.1.fact.value": [
+          "a bar or tavern",
+          "a massage parlor",
+          "a pawn shop",
+          "a bowling alley"
+        ],
+        "verified.2.checked": [
+          {
+            "path": "value.cure_period_months",
+            "as": "number"
+          },
+          {
+            "path": "value.required_occupancy",
+            "as": "ratio"
+          },
+          {
+            "path": "value.named_tenants.0",
+            "as": "string"
+          }
+        ],
+        "verified.3.checked": [
+          {
+            "path": "value.dark_period_days",
+            "as": "number"
+          }
+        ],
+        "verified.6.checked": [
+          {
+            "path": "value.sales_threshold",
+            "as": "number"
+          },
+          {
+            "path": "value.notice_days",
+            "as": "number"
+          }
+        ],
+        "verified.7.checked": [
+          {
+            "path": "value.consent_standard",
+            "as": "phrase"
+          },
+          {
+            "path": "value.profit_share",
+            "as": "ratio"
+          }
+        ],
+        "verified.8.checked": [
+          {
+            "path": "value.description",
+            "as": "text"
+          },
+          {
+            "path": "value.response_days",
+            "as": "number"
+          }
+        ],
+        "verified.8.fact.provenance.sources.0.section": "8.2",
+        "needs_review.0.candidate": 9,
+        "needs_review.0.reason": "value \"sole_discretion\" (consent_standard) not found in quote",
+        "needs_review.1.reason": "number 15 in value \"incidental sales of bottled coffee drinks in up to 15% of its floor area\" (carve_outs) not found in quote",
+        "needs_review.2.reason": "value 5 (radius_miles) not found in quote",
+        "rejected.0.reason": "expected {operating_covenant, recapture_right?, dark_period_days?} with operating_covenant true or false",
+        "rejected.1.reason": "notice_days must be a positive number"
+      }
+    },
+    {
+      "name": "claim: a consent standard the quote does not word is unverifiable",
+      "tool": "doc_verify_claim",
+      "arguments": {
+        "document": {
+          "pages": {
+            "$pages": "retail_lease"
+          }
+        },
+        "claim": {
+          "predicate": "lease.assignment_sublease",
+          "value": {
+            "consent_standard": "sole_discretion"
+          }
+        },
+        "quote": "Tenant shall not assign this Lease without Landlord's consent, which shall not be unreasonably withheld, conditioned or delayed; Landlord shall receive 50% of any transfer profit",
+        "page": 2
+      },
+      "expect": {
+        "status": "unverifiable",
+        "reason": "\"sole_discretion\" (consent_standard) is not worded in the quote as FactLot recognises it (docs/document-verification.md lists the phrases); read the quote",
+        "checked.0.as": "phrase"
+      }
+    },
+    {
+      "name": "claim: a number in a clause description the quote does not state is contradicted",
+      "tool": "doc_verify_claim",
+      "arguments": {
+        "document": {
+          "pages": {
+            "$pages": "retail_lease"
+          }
+        },
+        "claim": {
+          "predicate": "lease.rofr",
+          "value": {
+            "applies_to": "space",
+            "description": "the adjacent Suite 107",
+            "response_days": 10
+          }
+        },
+        "quote": "Tenant shall have a right of first refusal on the adjacent Suite 105, exercisable within 10 business days of Landlord's notice",
+        "page": 2
+      },
+      "expect": {
+        "status": "contradicted",
+        "reason": "number 107 in \"the adjacent Suite 107\" (description) is not written in the quote; the quote states numbers: 10, 105",
+        "quote_states.numbers": [10, 105]
+      }
+    },
+    {
+      "name": "use conflict: a coffee bar against a coffee exclusive (carve-outs flagged) and prohibited uses",
+      "tool": "doc_check_use_conflict",
+      "arguments": {
+        "facts": [
+          {
+            "id": "flf_excl",
+            "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+            "predicate": "lease.exclusive_use",
+            "value": {
+              "protected_use": "the sale of coffee, espresso and espresso-based beverages",
+              "carve_outs": [
+                "a full-service restaurant may sell coffee with meals",
+                "incidental sales of bottled coffee drinks in up to 10% of its floor area"
+              ],
+              "applies_to": "the Shopping Center"
+            },
+            "as_of": "2026-11-04",
+            "provenance": {
+              "method": "extracted",
+              "sources": [
+                {
+                  "document_id": "fl:document:sha256-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                  "title": "Synthetic retail lease",
+                  "page": 1,
+                  "quote": "Landlord shall not lease space in the Shopping Center to another tenant for the sale of coffee, espresso and espresso-based beverages, except (a) a full-service restaurant may sell coffee with meals, and (b) any tenant may make incidental sales of bottled coffee drinks in up to 10% of its floor area",
+                  "section": "6.1"
+                }
+              ]
+            }
+          },
+          {
+            "id": "flf_proh",
+            "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+            "predicate": "lease.prohibited_uses",
+            "value": [
+              "a bar or tavern",
+              "a massage parlor",
+              "a pawn shop",
+              "a bowling alley"
+            ],
+            "as_of": "2026-11-04",
+            "provenance": {
+              "method": "extracted",
+              "sources": [
+                {
+                  "document_id": "fl:document:sha256-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                  "title": "Synthetic retail lease",
+                  "page": 1,
+                  "quote": "No part of the Shopping Center shall be used for a bar or tavern, a massage parlor, a pawn shop, or a bowling alley",
+                  "section": "6.2"
+                }
+              ]
+            }
+          },
+          {
+            "id": "flf_old",
+            "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b5",
+            "predicate": "lease.exclusive_use",
+            "value": "the sale of pizza",
+            "as_of": "2026-11-04",
+            "provenance": {
+              "method": "extracted",
+              "sources": [
+                {
+                  "document_id": "fl:document:sha256-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                  "title": "Synthetic retail lease",
+                  "page": 3,
+                  "quote": "Tenant shall have the exclusive right to the sale of pizza in the Shopping Center"
+                }
+              ]
+            }
+          },
+          {
+            "id": "flf_new",
+            "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b5",
+            "predicate": "lease.exclusive_use",
+            "value": "the sale of pizza and calzones",
+            "as_of": "2026-11-04",
+            "provenance": {
+              "method": "extracted",
+              "sources": [
+                {
+                  "document_id": "fl:document:sha256-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "title": "Synthetic retail lease",
+                  "page": 1,
+                  "quote": "Tenant shall have the exclusive right to the sale of pizza and calzones in the Shopping Center"
+                }
+              ]
+            },
+            "supersedes": ["flf_old"]
+          },
+          {
+            "id": "flf_area",
+            "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+            "predicate": "lease.rentable_area_sf",
+            "value": 1800,
+            "as_of": "2026-11-04",
+            "provenance": {
+              "method": "extracted",
+              "sources": [
+                {
+                  "document_id": "fl:document:sha256-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                  "title": "Synthetic retail lease",
+                  "page": 1,
+                  "quote": "approximately 1,800 rentable square feet"
+                }
+              ]
+            }
+          }
+        ],
+        "proposed_use": {
+          "text": "Coffee bar serving espresso drinks and pastries"
+        }
+      },
+      "expect": {
+        "proposed_use.categories": [
+          {
+            "id": "coffee",
+            "label": "Coffee, tea and espresso bar",
+            "basis": ["keyword \"coffee bar\"", "keyword \"espresso\""]
+          },
+          {
+            "id": "bakery",
+            "label": "Bakery",
+            "basis": ["keyword \"pastry\""]
+          }
+        ],
+        "summary": {
+          "potential_conflicts": 1
+        },
+        "checked": {
+          "exclusive_use": 2,
+          "prohibited_uses": 4,
+          "ignored": 2
+        },
+        "potential_conflicts.0.label": "potential conflict — needs human review",
+        "potential_conflicts.0.restriction": "exclusive_use",
+        "potential_conflicts.0.fact_id": "flf_excl",
+        "potential_conflicts.0.matched_categories": [
+          {
+            "id": "coffee",
+            "label": "Coffee, tea and espresso bar"
+          }
+        ],
+        "potential_conflicts.0.shared_words": ["coffee", "espresso"],
+        "potential_conflicts.0.carve_outs_that_may_apply": [
+          "a full-service restaurant may sell coffee with meals",
+          "incidental sales of bottled coffee drinks in up to 10% of its floor area"
+        ],
+        "potential_conflicts.0.citation": {
+          "document_id": "fl:document:sha256-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "title": "Synthetic retail lease",
+          "page": 1,
+          "section": "6.1",
+          "quote": "Landlord shall not lease space in the Shopping Center to another tenant for the sale of coffee, espresso and espresso-based beverages, except (a) a full-service restaurant may sell coffee with meals, and (b) any tenant may make incidental sales of bottled coffee drinks in up to 10% of its floor area"
+        }
+      }
+    },
+    {
+      "name": "use conflict: a restaurant with a wine bar hits the bar prohibition, not the coffee exclusive",
+      "tool": "doc_check_use_conflict",
+      "arguments": {
+        "facts": [
+          {
+            "id": "flf_excl",
+            "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+            "predicate": "lease.exclusive_use",
+            "value": {
+              "protected_use": "the sale of coffee, espresso and espresso-based beverages",
+              "carve_outs": [
+                "a full-service restaurant may sell coffee with meals",
+                "incidental sales of bottled coffee drinks in up to 10% of its floor area"
+              ],
+              "applies_to": "the Shopping Center"
+            },
+            "as_of": "2026-11-04",
+            "provenance": {
+              "method": "extracted",
+              "sources": [
+                {
+                  "document_id": "fl:document:sha256-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                  "title": "Synthetic retail lease",
+                  "page": 1,
+                  "quote": "Landlord shall not lease space in the Shopping Center to another tenant for the sale of coffee, espresso and espresso-based beverages, except (a) a full-service restaurant may sell coffee with meals, and (b) any tenant may make incidental sales of bottled coffee drinks in up to 10% of its floor area",
+                  "section": "6.1"
+                }
+              ]
+            }
+          },
+          {
+            "id": "flf_proh",
+            "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+            "predicate": "lease.prohibited_uses",
+            "value": [
+              "a bar or tavern",
+              "a massage parlor",
+              "a pawn shop",
+              "a bowling alley"
+            ],
+            "as_of": "2026-11-04",
+            "provenance": {
+              "method": "extracted",
+              "sources": [
+                {
+                  "document_id": "fl:document:sha256-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                  "title": "Synthetic retail lease",
+                  "page": 1,
+                  "quote": "No part of the Shopping Center shall be used for a bar or tavern, a massage parlor, a pawn shop, or a bowling alley",
+                  "section": "6.2"
+                }
+              ]
+            }
+          },
+          {
+            "id": "flf_old",
+            "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b5",
+            "predicate": "lease.exclusive_use",
+            "value": "the sale of pizza",
+            "as_of": "2026-11-04",
+            "provenance": {
+              "method": "extracted",
+              "sources": [
+                {
+                  "document_id": "fl:document:sha256-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                  "title": "Synthetic retail lease",
+                  "page": 3,
+                  "quote": "Tenant shall have the exclusive right to the sale of pizza in the Shopping Center"
+                }
+              ]
+            }
+          },
+          {
+            "id": "flf_new",
+            "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b5",
+            "predicate": "lease.exclusive_use",
+            "value": "the sale of pizza and calzones",
+            "as_of": "2026-11-04",
+            "provenance": {
+              "method": "extracted",
+              "sources": [
+                {
+                  "document_id": "fl:document:sha256-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "title": "Synthetic retail lease",
+                  "page": 1,
+                  "quote": "Tenant shall have the exclusive right to the sale of pizza and calzones in the Shopping Center"
+                }
+              ]
+            },
+            "supersedes": ["flf_old"]
+          },
+          {
+            "id": "flf_area",
+            "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+            "predicate": "lease.rentable_area_sf",
+            "value": 1800,
+            "as_of": "2026-11-04",
+            "provenance": {
+              "method": "extracted",
+              "sources": [
+                {
+                  "document_id": "fl:document:sha256-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                  "title": "Synthetic retail lease",
+                  "page": 1,
+                  "quote": "approximately 1,800 rentable square feet"
+                }
+              ]
+            }
+          }
+        ],
+        "proposed_use": {
+          "text": "Full-service Italian restaurant with a wine bar",
+          "naics": "722511"
+        }
+      },
+      "expect": {
+        "proposed_use.categories.0.basis": [
+          "NAICS 722511",
+          "keyword \"restaurant\""
+        ],
+        "proposed_use.categories.1.id": "bar_nightclub",
+        "summary": {
+          "potential_conflicts": 1
+        },
+        "potential_conflicts.0.restriction": "prohibited_use",
+        "potential_conflicts.0.restricted_use": "a bar or tavern",
+        "potential_conflicts.0.matched_categories": [
+          {
+            "id": "bar_nightclub",
+            "label": "Bar, tavern and nightclub"
+          }
+        ],
+        "potential_conflicts.0.citation.section": "6.2"
+      }
+    },
+    {
+      "name": "use conflict: a superseded exclusive is ignored; the amended one controls",
+      "tool": "doc_check_use_conflict",
+      "arguments": {
+        "facts": [
+          {
+            "id": "flf_excl",
+            "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+            "predicate": "lease.exclusive_use",
+            "value": {
+              "protected_use": "the sale of coffee, espresso and espresso-based beverages",
+              "carve_outs": [
+                "a full-service restaurant may sell coffee with meals",
+                "incidental sales of bottled coffee drinks in up to 10% of its floor area"
+              ],
+              "applies_to": "the Shopping Center"
+            },
+            "as_of": "2026-11-04",
+            "provenance": {
+              "method": "extracted",
+              "sources": [
+                {
+                  "document_id": "fl:document:sha256-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                  "title": "Synthetic retail lease",
+                  "page": 1,
+                  "quote": "Landlord shall not lease space in the Shopping Center to another tenant for the sale of coffee, espresso and espresso-based beverages, except (a) a full-service restaurant may sell coffee with meals, and (b) any tenant may make incidental sales of bottled coffee drinks in up to 10% of its floor area",
+                  "section": "6.1"
+                }
+              ]
+            }
+          },
+          {
+            "id": "flf_proh",
+            "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+            "predicate": "lease.prohibited_uses",
+            "value": [
+              "a bar or tavern",
+              "a massage parlor",
+              "a pawn shop",
+              "a bowling alley"
+            ],
+            "as_of": "2026-11-04",
+            "provenance": {
+              "method": "extracted",
+              "sources": [
+                {
+                  "document_id": "fl:document:sha256-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                  "title": "Synthetic retail lease",
+                  "page": 1,
+                  "quote": "No part of the Shopping Center shall be used for a bar or tavern, a massage parlor, a pawn shop, or a bowling alley",
+                  "section": "6.2"
+                }
+              ]
+            }
+          },
+          {
+            "id": "flf_old",
+            "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b5",
+            "predicate": "lease.exclusive_use",
+            "value": "the sale of pizza",
+            "as_of": "2026-11-04",
+            "provenance": {
+              "method": "extracted",
+              "sources": [
+                {
+                  "document_id": "fl:document:sha256-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                  "title": "Synthetic retail lease",
+                  "page": 3,
+                  "quote": "Tenant shall have the exclusive right to the sale of pizza in the Shopping Center"
+                }
+              ]
+            }
+          },
+          {
+            "id": "flf_new",
+            "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b5",
+            "predicate": "lease.exclusive_use",
+            "value": "the sale of pizza and calzones",
+            "as_of": "2026-11-04",
+            "provenance": {
+              "method": "extracted",
+              "sources": [
+                {
+                  "document_id": "fl:document:sha256-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "title": "Synthetic retail lease",
+                  "page": 1,
+                  "quote": "Tenant shall have the exclusive right to the sale of pizza and calzones in the Shopping Center"
+                }
+              ]
+            },
+            "supersedes": ["flf_old"]
+          },
+          {
+            "id": "flf_area",
+            "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+            "predicate": "lease.rentable_area_sf",
+            "value": 1800,
+            "as_of": "2026-11-04",
+            "provenance": {
+              "method": "extracted",
+              "sources": [
+                {
+                  "document_id": "fl:document:sha256-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                  "title": "Synthetic retail lease",
+                  "page": 1,
+                  "quote": "approximately 1,800 rentable square feet"
+                }
+              ]
+            }
+          }
+        ],
+        "proposed_use": {
+          "text": "Neapolitan pizzeria",
+          "category": "pizza"
+        }
+      },
+      "expect": {
+        "summary": {
+          "potential_conflicts": 1
+        },
+        "potential_conflicts.0.fact_id": "flf_new",
+        "potential_conflicts.0.restricted_use": "the sale of pizza and calzones",
+        "potential_conflicts.0.matched_categories": [
+          {
+            "id": "pizza",
+            "label": "Pizza"
+          }
+        ],
+        "potential_conflicts.0.citation.document_id": "fl:document:sha256-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      }
+    },
+    {
+      "name": "use conflict: an unknown use category is an input error with a suggestion",
+      "tool": "doc_check_use_conflict",
+      "arguments": {
+        "facts": [
+          {
+            "id": "flf_excl",
+            "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+            "predicate": "lease.exclusive_use",
+            "value": {
+              "protected_use": "the sale of coffee, espresso and espresso-based beverages",
+              "carve_outs": [
+                "a full-service restaurant may sell coffee with meals",
+                "incidental sales of bottled coffee drinks in up to 10% of its floor area"
+              ],
+              "applies_to": "the Shopping Center"
+            },
+            "as_of": "2026-11-04",
+            "provenance": {
+              "method": "extracted",
+              "sources": [
+                {
+                  "document_id": "fl:document:sha256-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                  "title": "Synthetic retail lease",
+                  "page": 1,
+                  "quote": "Landlord shall not lease space in the Shopping Center to another tenant for the sale of coffee, espresso and espresso-based beverages, except (a) a full-service restaurant may sell coffee with meals, and (b) any tenant may make incidental sales of bottled coffee drinks in up to 10% of its floor area",
+                  "section": "6.1"
+                }
+              ]
+            }
+          },
+          {
+            "id": "flf_proh",
+            "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+            "predicate": "lease.prohibited_uses",
+            "value": [
+              "a bar or tavern",
+              "a massage parlor",
+              "a pawn shop",
+              "a bowling alley"
+            ],
+            "as_of": "2026-11-04",
+            "provenance": {
+              "method": "extracted",
+              "sources": [
+                {
+                  "document_id": "fl:document:sha256-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                  "title": "Synthetic retail lease",
+                  "page": 1,
+                  "quote": "No part of the Shopping Center shall be used for a bar or tavern, a massage parlor, a pawn shop, or a bowling alley",
+                  "section": "6.2"
+                }
+              ]
+            }
+          },
+          {
+            "id": "flf_old",
+            "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b5",
+            "predicate": "lease.exclusive_use",
+            "value": "the sale of pizza",
+            "as_of": "2026-11-04",
+            "provenance": {
+              "method": "extracted",
+              "sources": [
+                {
+                  "document_id": "fl:document:sha256-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                  "title": "Synthetic retail lease",
+                  "page": 3,
+                  "quote": "Tenant shall have the exclusive right to the sale of pizza in the Shopping Center"
+                }
+              ]
+            }
+          },
+          {
+            "id": "flf_new",
+            "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b5",
+            "predicate": "lease.exclusive_use",
+            "value": "the sale of pizza and calzones",
+            "as_of": "2026-11-04",
+            "provenance": {
+              "method": "extracted",
+              "sources": [
+                {
+                  "document_id": "fl:document:sha256-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "title": "Synthetic retail lease",
+                  "page": 1,
+                  "quote": "Tenant shall have the exclusive right to the sale of pizza and calzones in the Shopping Center"
+                }
+              ]
+            },
+            "supersedes": ["flf_old"]
+          },
+          {
+            "id": "flf_area",
+            "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+            "predicate": "lease.rentable_area_sf",
+            "value": 1800,
+            "as_of": "2026-11-04",
+            "provenance": {
+              "method": "extracted",
+              "sources": [
+                {
+                  "document_id": "fl:document:sha256-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                  "title": "Synthetic retail lease",
+                  "page": 1,
+                  "quote": "approximately 1,800 rentable square feet"
+                }
+              ]
+            }
+          }
+        ],
+        "proposed_use": {
+          "text": "coffee",
+          "category": "cofee"
+        }
+      },
+      "expect_error": "InputError",
+      "expect_issues": [
+        {
+          "path": "proposed_use.category",
+          "message": "unknown use category (did you mean \"coffee\"?); see spec/schemas/vocabularies/use-categories.json"
+        }
+      ]
+    },
+    {
+      "name": "spread a multifamily T-12: contra lines subtract, a written negative is spread negative, totals and a subtotal foot",
+      "tool": "doc_spread_statement",
+      "arguments": {
+        "document": {
+          "pages": {
+            "$pages": "t12"
+          },
+          "title": "Synthetic T-12"
+        },
+        "property_type": "multifamily",
+        "statement_type": "t12",
+        "period": "T-12 ending 2026-09-30",
+        "lines": [
+          {
+            "label": "Gross Potential Rent",
+            "amount": 2400000,
+            "quote": "Gross Potential Rent 2,400,000",
+            "page": 1
+          },
+          {
+            "label": "Loss to Lease",
+            "amount": 36000,
+            "quote": "Loss to Lease (36,000)",
+            "page": 1
+          },
+          {
+            "label": "Vacancy Loss",
+            "amount": -120000,
+            "quote": "Vacancy Loss (120,000)",
+            "page": 1
+          },
+          {
+            "label": "Concessions",
+            "amount": 18500,
+            "quote": "Concessions 18,500",
+            "page": 1
+          },
+          {
+            "label": "Bad Debt",
+            "amount": 9500,
+            "quote": "Bad Debt (9,500)",
+            "page": 1
+          },
+          {
+            "label": "Utility Reimbursements",
+            "amount": 84000,
+            "quote": "Utility Reimbursements 84,000",
+            "page": 1
+          },
+          {
+            "label": "Other Income",
+            "amount": 41000,
+            "quote": "Other Income 41,000",
+            "page": 1
+          },
+          {
+            "label": "Effective Gross Income",
+            "amount": 2341000,
+            "quote": "Effective Gross Income 2,341,000",
+            "page": 1
+          },
+          {
+            "label": "Real Estate Taxes",
+            "amount": 245000,
+            "quote": "Real Estate Taxes 245,000",
+            "page": 2
+          },
+          {
+            "label": "Real Estate Tax Refund",
+            "amount": 4000,
+            "quote": "Real Estate Tax Refund (4,000)",
+            "page": 2
+          },
+          {
+            "label": "Insurance",
+            "amount": 62000,
+            "quote": "Insurance 62,000",
+            "page": 2,
+            "category": "insurance"
+          },
+          {
+            "label": "Electric",
+            "amount": 31000,
+            "quote": "Electric 31,000",
+            "page": 2
+          },
+          {
+            "label": "Water & Sewer",
+            "amount": 58000,
+            "quote": "Water & Sewer 58,000",
+            "page": 2
+          },
+          {
+            "label": "Total Utilities",
+            "amount": 89000,
+            "quote": "Total Utilities 89,000",
+            "page": 2,
+            "sums": [11, 12]
+          },
+          {
+            "label": "Repairs & Maintenance",
+            "amount": 74000,
+            "quote": "Repairs & Maintenance 74,000",
+            "page": 2,
+            "category": "turnover"
+          },
+          {
+            "label": "Payroll",
+            "amount": 210000,
+            "quote": "Payroll 210,000",
+            "page": 2
+          },
+          {
+            "label": "Management Fee",
+            "amount": 70230,
+            "quote": "Management Fee 70,230",
+            "page": 2
+          },
+          {
+            "label": "General & Administrative",
+            "amount": 25000,
+            "quote": "General & Administrative 25,000",
+            "page": 2
+          },
+          {
+            "label": "Total Operating Expenses",
+            "amount": 771230,
+            "quote": "Total Operating Expenses 771,230",
+            "page": 2
+          },
+          {
+            "label": "Net Operating Income",
+            "amount": 1569770,
+            "quote": "Net Operating Income 1,569,770",
+            "page": 2,
+            "category": "net_operating_income"
+          },
+          {
+            "label": "Replacement Reserves",
+            "amount": 75000,
+            "quote": "Replacement Reserves 75,000",
+            "page": 2
+          },
+          {
+            "label": "Units",
+            "amount": 240,
+            "quote": "Replacement Reserves 75,000\nUnits 240",
+            "page": 2
+          },
+          {
+            "label": "Occupancy",
+            "amount": 0.95,
+            "quote": "Occupancy 95%",
+            "page": 2
+          },
+          {
+            "label": "Marketing",
+            "amount": 5000,
+            "quote": "Marketing 5,000 for the year",
+            "page": 2
+          }
+        ]
+      },
+      "expect": {
+        "chart": "factlot.chart_of_accounts@1",
+        "summary": {
+          "lines": 24,
+          "included": 17,
+          "totals": 3,
+          "subtotals": 1,
+          "memo": 2,
+          "excluded": 1,
+          "exceptions": 3,
+          "foots": true
+        },
+        "periods.0.period": "T-12 ending 2026-09-30",
+        "periods.0.sections.0.amount": 2341000,
+        "periods.0.sections.1.amount": 771230,
+        "periods.0.totals.0.stated": [
+          {
+            "line": 7,
+            "amount": 2341000,
+            "difference": 0,
+            "tolerance": 3.5,
+            "foots": true
+          }
+        ],
+        "periods.0.totals.1.stated": [
+          {
+            "line": 18,
+            "amount": 771230,
+            "difference": 0,
+            "tolerance": 4.5,
+            "foots": true
+          }
+        ],
+        "periods.0.totals.2.id": "net_operating_income",
+        "periods.0.totals.2.amount": 1569770,
+        "periods.0.totals.4.id": "net_cash_flow",
+        "periods.0.totals.4.amount": 1494770,
+        "periods.0.subtotals": [
+          {
+            "line": 13,
+            "label": "Total Utilities",
+            "amount": 89000,
+            "sums": [11, 12],
+            "computed": 89000,
+            "difference": 0,
+            "tolerance": 1,
+            "foots": true
+          }
+        ],
+        "periods.0.memo": [
+          {
+            "line": 21,
+            "category": "units",
+            "label": "Units (memo)",
+            "value": 240
+          },
+          {
+            "line": 22,
+            "category": "occupancy_rate",
+            "label": "Occupancy (memo)",
+            "value": 0.95
+          }
+        ],
+        "lines.1.spread_amount": -36000,
+        "lines.2.spread_amount": -120000,
+        "lines.3.spread_amount": -18500,
+        "lines.9.category": "real_estate_taxes",
+        "lines.9.spread_amount": -4000,
+        "lines.14.category": "turnover",
+        "lines.0.citation": {
+          "document_id": "fl:document:sha256-51fd79b3471476af828c18aacf371cbba8f0f4de86057b9b5b9f4aae47d87c02",
+          "title": "Synthetic T-12",
+          "page": 1,
+          "quote": "Gross Potential Rent 2,400,000",
+          "span": {
+            "start": 126,
+            "end": 156
+          }
+        },
+        "lines.23.status": "excluded",
+        "exceptions": [
+          {
+            "line": 9,
+            "kind": "sign",
+            "message": "the quote writes 4000 as negative; it is spread as -4000"
+          },
+          {
+            "line": 14,
+            "kind": "category_review",
+            "message": "the label maps to repairs_maintenance in the chart, not turnover; turnover was used, review it",
+            "dictionary": ["repairs_maintenance"]
+          },
+          {
+            "line": 23,
+            "kind": "quote",
+            "message": "quote not found in the document"
+          }
+        ]
+      }
+    },
+    {
+      "name": "spread a hotel statement (USALI summary): every stated total foots, OCR pages are marked",
+      "tool": "doc_spread_statement",
+      "arguments": {
+        "document": {
+          "pages": {
+            "$pages": "hotel_statement"
+          },
+          "ocr_pages": [1]
+        },
+        "property_type": "hotel",
+        "lines": [
+          {
+            "label": "Rooms",
+            "amount": 3200000,
+            "quote": "Rooms 3,200,000",
+            "page": 1,
+            "category": "rooms_revenue"
+          },
+          {
+            "label": "Food and Beverage",
+            "amount": 1100000,
+            "quote": "Food and Beverage 1,100,000",
+            "page": 1,
+            "category": "food_and_beverage_revenue"
+          },
+          {
+            "label": "Other Operated Departments",
+            "amount": 150000,
+            "quote": "Other Operated Departments 150,000",
+            "page": 1,
+            "category": "other_operated_departments_revenue"
+          },
+          {
+            "label": "Miscellaneous Income",
+            "amount": 50000,
+            "quote": "Miscellaneous Income 50,000",
+            "page": 1
+          },
+          {
+            "label": "Total Operating Revenue",
+            "amount": 4500000,
+            "quote": "Total Operating Revenue 4,500,000",
+            "page": 1
+          },
+          {
+            "label": "Rooms",
+            "amount": 800000,
+            "quote": "Rooms 800,000",
+            "page": 1,
+            "category": "rooms_expense"
+          },
+          {
+            "label": "Food and Beverage",
+            "amount": 820000,
+            "quote": "Food and Beverage 820,000",
+            "page": 1,
+            "category": "food_and_beverage_expense"
+          },
+          {
+            "label": "Other Operated Departments",
+            "amount": 90000,
+            "quote": "Other Operated Departments 90,000",
+            "page": 1,
+            "category": "other_operated_departments_expense"
+          },
+          {
+            "label": "Total Departmental Expenses",
+            "amount": 1710000,
+            "quote": "Total Departmental Expenses 1,710,000",
+            "page": 1
+          },
+          {
+            "label": "Total Departmental Profit",
+            "amount": 2790000,
+            "quote": "Total Departmental Profit 2,790,000",
+            "page": 1
+          },
+          {
+            "label": "A&G",
+            "amount": 360000,
+            "quote": "A&G 360,000; Information",
+            "page": 1
+          },
+          {
+            "label": "Information and Telecommunications Systems",
+            "amount": 60000,
+            "quote": "Information and Telecommunications Systems 60,000",
+            "page": 1
+          },
+          {
+            "label": "Sales and Marketing",
+            "amount": 330000,
+            "quote": "Sales and Marketing 330,000",
+            "page": 1
+          },
+          {
+            "label": "Property Operation and Maintenance",
+            "amount": 210000,
+            "quote": "Property Operation and Maintenance 210,000",
+            "page": 1
+          },
+          {
+            "label": "Utilities",
+            "amount": 160000,
+            "quote": "Utilities 160,000",
+            "page": 1
+          },
+          {
+            "label": "Total Undistributed Operating Expenses",
+            "amount": 1120000,
+            "quote": "Total Undistributed Operating Expenses 1,120,000",
+            "page": 1
+          },
+          {
+            "label": "Gross Operating Profit",
+            "amount": 1670000,
+            "quote": "Gross Operating Profit 1,670,000",
+            "page": 1
+          },
+          {
+            "label": "Management Fees",
+            "amount": 135000,
+            "quote": "Management Fees 135,000",
+            "page": 1
+          },
+          {
+            "label": "Income Before Non-Operating Income and Expenses",
+            "amount": 1535000,
+            "quote": "Income Before Non-Operating Income and Expenses 1,535,000",
+            "page": 1
+          },
+          {
+            "label": "Property and Other Taxes",
+            "amount": 140000,
+            "quote": "Property and Other Taxes 140,000",
+            "page": 1
+          },
+          {
+            "label": "Insurance",
+            "amount": 55000,
+            "quote": "Insurance 55,000",
+            "page": 1
+          },
+          {
+            "label": "Total Non-Operating Income and Expenses",
+            "amount": 195000,
+            "quote": "Total Non-Operating Income and Expenses 195,000",
+            "page": 1
+          },
+          {
+            "label": "EBITDA",
+            "amount": 1340000,
+            "quote": "EBITDA 1,340,000",
+            "page": 1
+          },
+          {
+            "label": "Replacement Reserve",
+            "amount": 180000,
+            "quote": "Replacement Reserve 180,000",
+            "page": 1
+          },
+          {
+            "label": "EBITDA less Replacement Reserve",
+            "amount": 1160000,
+            "quote": "EBITDA less Replacement Reserve 1,160,000",
+            "page": 1
+          },
+          {
+            "label": "Rooms Available",
+            "amount": 36500,
+            "quote": "Rooms Available 36,500",
+            "page": 1
+          },
+          {
+            "label": "Rooms Sold",
+            "amount": 27375,
+            "quote": "Rooms Sold 27,375",
+            "page": 1
+          },
+          {
+            "label": "ADR",
+            "amount": 116.89,
+            "quote": "Rooms Sold 27,375; ADR 116.89",
+            "page": 1
+          }
+        ]
+      },
+      "expect": {
+        "summary": {
+          "lines": 28,
+          "included": 16,
+          "totals": 9,
+          "subtotals": 0,
+          "memo": 3,
+          "excluded": 0,
+          "exceptions": 0,
+          "foots": true
+        },
+        "document.ocr_pages": [1],
+        "periods.0.period": null,
+        "periods.0.totals.4.id": "gross_operating_profit",
+        "periods.0.totals.4.amount": 1670000,
+        "periods.0.totals.8.id": "ebitda",
+        "periods.0.totals.8.amount": 1340000,
+        "periods.0.totals.10.id": "net_operating_income",
+        "periods.0.totals.10.amount": 1160000,
+        "periods.0.totals.10.stated.0.foots": true,
+        "lines.0.category": "rooms_revenue",
+        "lines.5.category": "rooms_expense",
+        "lines.10.category": "administrative_and_general",
+        "lines.0.citation.ocr": true,
+        "periods.0.memo.2": {
+          "line": 27,
+          "category": "average_daily_rate",
+          "label": "Average daily rate (memo)",
+          "value": 116.89
+        }
+      }
+    },
+    {
+      "name": "spread two periods of a commercial history; an unmapped label is excluded with a reason",
+      "tool": "doc_spread_statement",
+      "arguments": {
+        "document": {
+          "pages": {
+            "$pages": "office_history"
+          }
+        },
+        "property_type": "commercial",
+        "lines": [
+          {
+            "label": "Base Rent",
+            "amount": 900000,
+            "quote": "Base Rent: 2024 900,000 | 2025 945,000",
+            "page": 1,
+            "period": "2024"
+          },
+          {
+            "label": "Base Rent",
+            "amount": 945000,
+            "quote": "Base Rent: 2024 900,000 | 2025 945,000",
+            "page": 1,
+            "period": "2025"
+          },
+          {
+            "label": "Expense Reimbursements",
+            "amount": 210000,
+            "quote": "Expense Reimbursements: 2024 210,000",
+            "page": 1,
+            "period": "2024"
+          },
+          {
+            "label": "Expense Reimbursements",
+            "amount": 220000,
+            "quote": "Expense Reimbursements: 2024 210,000 | 2025 220,000",
+            "page": 1,
+            "period": "2025"
+          },
+          {
+            "label": "Misc. Adjustments",
+            "amount": 3000,
+            "quote": "Misc. Adjustments: 2024 3,000",
+            "page": 1,
+            "period": "2024"
+          },
+          {
+            "label": "Real Estate Taxes",
+            "amount": 150000,
+            "quote": "Real Estate Taxes: 2024 150,000",
+            "page": 1,
+            "period": "2024"
+          },
+          {
+            "label": "Real Estate Taxes",
+            "amount": 155000,
+            "quote": "Real Estate Taxes: 2024 150,000 | 2025 155,000",
+            "page": 1,
+            "period": "2025"
+          },
+          {
+            "label": "Net Operating Income",
+            "amount": 960000,
+            "quote": "Net Operating Income: 2024 960,000",
+            "page": 1,
+            "period": "2024"
+          },
+          {
+            "label": "Net Operating Income",
+            "amount": 1010000,
+            "quote": "Net Operating Income: 2024 960,000 | 2025 1,010,000",
+            "page": 1,
+            "period": "2025"
+          }
+        ]
+      },
+      "expect": {
+        "summary": {
+          "lines": 9,
+          "included": 6,
+          "totals": 2,
+          "subtotals": 0,
+          "memo": 0,
+          "excluded": 1,
+          "exceptions": 1,
+          "foots": true
+        },
+        "periods.0.period": "2024",
+        "periods.0.totals.2.amount": 960000,
+        "periods.1.period": "2025",
+        "periods.1.totals.2.amount": 1010000,
+        "periods.1.totals.2.stated.0.foots": true,
+        "lines.4.status": "excluded",
+        "lines.4.reason": "the label matches no category in the chart; give a category"
+      }
+    },
+    {
+      "name": "spread: a subtotal that adds itself or a missing line is an input error",
+      "tool": "doc_spread_statement",
+      "arguments": {
+        "document": {
+          "pages": {
+            "$pages": "office_history"
+          }
+        },
+        "property_type": "commercial",
+        "lines": [
+          {
+            "label": "Base Rent",
+            "amount": 900000,
+            "quote": "Base Rent: 2024 900,000",
+            "page": 1,
+            "period": "2024",
+            "sums": [0, 7]
+          }
+        ]
+      },
+      "expect_error": "InputError",
+      "expect_issues": [
+        {
+          "path": "lines.0.sums.0",
+          "message": "a subtotal cannot add up itself"
+        },
+        {
+          "path": "lines.0.sums.1",
+          "message": "there is no line 7"
+        }
+      ]
+    },
+    {
+      "name": "ocr_pages: facts on an OCR page carry ocr true",
+      "tool": "doc_verify_facts",
+      "arguments": {
+        "document": {
+          "pages": {
+            "$pages": "lease"
+          },
+          "ocr_pages": [2]
+        },
+        "as_of": "2026-11-04",
+        "candidates": [
+          {
+            "predicate": "lease.expiration_date",
+            "value": "2031-06-30",
+            "quote": "shall expire on June 30, 2031",
+            "page": 1
+          },
+          {
+            "predicate": "lease.pro_rata_share",
+            "value": 0.0425,
+            "quote": "TENANT’S PRO- PORTIONATE SHARE IS 4.25%",
+            "page": 2
+          }
+        ]
+      },
+      "expect": {
+        "document.ocr_pages": [2],
+        "verified.0.fact.provenance.sources.0.ocr": null,
+        "verified.1.fact.provenance.sources.0.ocr": true
+      }
+    },
+    {
+      "name": "ocr_pages beyond the document is an input error",
+      "tool": "doc_verify_facts",
+      "arguments": {
+        "document": {
+          "pages": {
+            "$pages": "lease"
+          },
+          "ocr_pages": [9]
+        },
+        "as_of": "2026-11-04",
+        "candidates": [
+          {
+            "predicate": "lease.expiration_date",
+            "value": "2031-06-30",
+            "quote": "shall expire on June 30, 2031",
+            "page": 1
+          }
+        ]
+      },
+      "expect_error": "InputError",
+      "expect_issues": [
+        {
+          "path": "document.ocr_pages",
+          "message": "page 9 is listed as OCR, but the document has 3 pages"
+        }
+      ]
+    },
+    {
+      "name": "fact package: canonical facts, RFC 6962 Merkle root and digest",
+      "tool": "fact_package_create",
+      "arguments": {
+        "facts": [
+          {
+            "id": "flf_pkg_a",
+            "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+            "predicate": "lease.expiration_date",
+            "value": "2031-06-30",
+            "as_of": "2026-11-04",
+            "provenance": {
+              "method": "extracted",
+              "sources": [
+                {
+                  "document_id": "fl:document:sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "title": "Synthetic lease",
+                  "page": 1,
+                  "quote": "shall expire on June 30, 2031"
+                }
+              ]
+            }
+          },
+          {
+            "id": "flf_pkg_b",
+            "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+            "predicate": "lease.radius_restriction",
+            "value": {
+              "radius_miles": 3
+            },
+            "as_of": "2026-11-04",
+            "provenance": {
+              "method": "extracted",
+              "sources": [
+                {
+                  "document_id": "fl:document:sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "title": "Synthetic lease",
+                  "page": 2,
+                  "quote": "shall not operate another coffee shop within 3 miles"
+                }
+              ]
+            }
+          },
+          {
+            "id": "flf_pkg_c",
+            "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+            "predicate": "lease.security_deposit",
+            "value": 50000,
+            "as_of": "2026-11-04",
+            "provenance": {
+              "method": "extracted",
+              "sources": [
+                {
+                  "document_id": "fl:document:sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "page": 2,
+                  "quote": "a security deposit of $50,000"
+                }
+              ]
+            }
+          }
+        ],
+        "title": "Synthetic package",
+        "created_at": "2026-11-04T09:00:00Z",
+        "created_by": "Example Fund LP"
+      },
+      "expect": {
+        "digest": "725fb009e032feb816bc13619a692974a26a1bab2ea56bb5d1a49b7d0fe30bda",
+        "signing_message": "factlot.fact_package.v1:725fb009e032feb816bc13619a692974a26a1bab2ea56bb5d1a49b7d0fe30bda",
+        "package.documents": [
+          {
+            "document_id": "fl:document:sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "title": "Synthetic lease"
+          }
+        ],
+        "package.integrity": {
+          "hash": "sha256",
+          "canonicalization": "RFC 8785 (JCS)",
+          "tree": "RFC 6962 Merkle tree hash",
+          "leaf_hashes": [
+            "4db4454bb2ed77f0784236b3d1125be2ea74e3eb5fbdf1d2f1d9ade1487d1e4c",
+            "ddda3d96a8bf81daf95406a293c411520853fb84c7f5c730d3668ee6738cc91a",
+            "ff15d5042ac5c4c087ff5ab1b9cc758b9e01abbbd6e2c2d49a4cb2db802b53e3"
+          ],
+          "merkle_root": "4837dc241f4d308cf1fc2ab630ba446f429b500686c81bb0480d4681d1491feb",
+          "digest": "725fb009e032feb816bc13619a692974a26a1bab2ea56bb5d1a49b7d0fe30bda"
+        },
+        "package.signature": null
+      }
+    },
+    {
+      "name": "fact package: a fact its quote does not support is an input error",
+      "tool": "fact_package_create",
+      "arguments": {
+        "facts": [
+          {
+            "id": "flf_pkg_c",
+            "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+            "predicate": "lease.security_deposit",
+            "value": 60000,
+            "as_of": "2026-11-04",
+            "provenance": {
+              "method": "extracted",
+              "sources": [
+                {
+                  "document_id": "fl:document:sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "page": 2,
+                  "quote": "a security deposit of $50,000"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "expect_error": "InputError",
+      "expect_issues": [
+        {
+          "path": "facts.0.provenance.sources.0.quote",
+          "message": "value not supported by quote: value 60000 not found in quote"
+        }
+      ]
+    },
+    {
+      "name": "verify a signed package with the signer's key and the source pages",
+      "tool": "fact_package_verify",
+      "arguments": {
+        "package": {
+          "format": "factlot.fact_package",
+          "version": 1,
+          "title": "Synthetic package",
+          "created_at": "2026-11-04T09:00:00Z",
+          "created_by": "Example Fund LP",
+          "documents": [
+            {
+              "document_id": "fl:document:sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "title": "Synthetic lease"
+            }
+          ],
+          "facts": [
+            {
+              "id": "flf_pkg_a",
+              "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+              "predicate": "lease.expiration_date",
+              "value": "2031-06-30",
+              "as_of": "2026-11-04",
+              "provenance": {
+                "method": "extracted",
+                "sources": [
+                  {
+                    "document_id": "fl:document:sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                    "title": "Synthetic lease",
+                    "page": 1,
+                    "quote": "shall expire on June 30, 2031"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "flf_pkg_b",
+              "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+              "predicate": "lease.radius_restriction",
+              "value": {
+                "radius_miles": 3
+              },
+              "as_of": "2026-11-04",
+              "provenance": {
+                "method": "extracted",
+                "sources": [
+                  {
+                    "document_id": "fl:document:sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                    "title": "Synthetic lease",
+                    "page": 2,
+                    "quote": "shall not operate another coffee shop within 3 miles"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "flf_pkg_c",
+              "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+              "predicate": "lease.security_deposit",
+              "value": 50000,
+              "as_of": "2026-11-04",
+              "provenance": {
+                "method": "extracted",
+                "sources": [
+                  {
+                    "document_id": "fl:document:sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                    "page": 2,
+                    "quote": "a security deposit of $50,000"
+                  }
+                ]
+              }
+            }
+          ],
+          "integrity": {
+            "hash": "sha256",
+            "canonicalization": "RFC 8785 (JCS)",
+            "tree": "RFC 6962 Merkle tree hash",
+            "leaf_hashes": [
+              "4db4454bb2ed77f0784236b3d1125be2ea74e3eb5fbdf1d2f1d9ade1487d1e4c",
+              "ddda3d96a8bf81daf95406a293c411520853fb84c7f5c730d3668ee6738cc91a",
+              "ff15d5042ac5c4c087ff5ab1b9cc758b9e01abbbd6e2c2d49a4cb2db802b53e3"
+            ],
+            "merkle_root": "4837dc241f4d308cf1fc2ab630ba446f429b500686c81bb0480d4681d1491feb",
+            "digest": "725fb009e032feb816bc13619a692974a26a1bab2ea56bb5d1a49b7d0fe30bda"
+          },
+          "signature": {
+            "algorithm": "Ed25519",
+            "public_key": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo",
+            "key_id": "rfc8032-test-vector-1",
+            "value": "ftxAY7NZaysDavsRqfKzBq0nhUdod5fNQWSeFNkmEETGieAP8AL-q4Wcx5wWIZfH2OlZ1Hv_6FKyWqFa6WNpCQ"
+          }
+        },
+        "public_key": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo",
+        "documents": [
+          {
+            "pages": {
+              "$pages": "package_lease"
+            },
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          }
+        ]
+      },
+      "requires": "signing",
+      "expect": {
+        "valid": true,
+        "integrity": {
+          "status": "ok",
+          "merkle_root": "4837dc241f4d308cf1fc2ab630ba446f429b500686c81bb0480d4681d1491feb",
+          "digest": "725fb009e032feb816bc13619a692974a26a1bab2ea56bb5d1a49b7d0fe30bda"
+        },
+        "signature": {
+          "public_key": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo",
+          "key_id": "rfc8032-test-vector-1",
+          "status": "verified",
+          "reason": "signed by the public key given"
+        },
+        "facts": {
+          "count": 3,
+          "invalid": []
+        },
+        "quotes": {
+          "checked": 3,
+          "on_page": 3,
+          "problems": [],
+          "documents_not_supplied": []
+        }
+      }
+    },
+    {
+      "name": "verify: a changed fact breaks the hashes and the signature",
+      "tool": "fact_package_verify",
+      "arguments": {
+        "package": {
+          "format": "factlot.fact_package",
+          "version": 1,
+          "title": "Synthetic package",
+          "created_at": "2026-11-04T09:00:00Z",
+          "created_by": "Example Fund LP",
+          "documents": [
+            {
+              "document_id": "fl:document:sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "title": "Synthetic lease"
+            }
+          ],
+          "facts": [
+            {
+              "id": "flf_pkg_a",
+              "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+              "predicate": "lease.expiration_date",
+              "value": "2031-06-30",
+              "as_of": "2026-11-04",
+              "provenance": {
+                "method": "extracted",
+                "sources": [
+                  {
+                    "document_id": "fl:document:sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                    "title": "Synthetic lease",
+                    "page": 1,
+                    "quote": "shall expire on June 30, 2031"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "flf_pkg_b",
+              "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+              "predicate": "lease.radius_restriction",
+              "value": {
+                "radius_miles": 3
+              },
+              "as_of": "2026-11-04",
+              "provenance": {
+                "method": "extracted",
+                "sources": [
+                  {
+                    "document_id": "fl:document:sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                    "title": "Synthetic lease",
+                    "page": 2,
+                    "quote": "shall not operate another coffee shop within 3 miles"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "flf_pkg_c",
+              "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+              "predicate": "lease.security_deposit",
+              "value": 60000,
+              "as_of": "2026-11-04",
+              "provenance": {
+                "method": "extracted",
+                "sources": [
+                  {
+                    "document_id": "fl:document:sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                    "page": 2,
+                    "quote": "a security deposit of $50,000"
+                  }
+                ]
+              }
+            }
+          ],
+          "integrity": {
+            "hash": "sha256",
+            "canonicalization": "RFC 8785 (JCS)",
+            "tree": "RFC 6962 Merkle tree hash",
+            "leaf_hashes": [
+              "4db4454bb2ed77f0784236b3d1125be2ea74e3eb5fbdf1d2f1d9ade1487d1e4c",
+              "ddda3d96a8bf81daf95406a293c411520853fb84c7f5c730d3668ee6738cc91a",
+              "ff15d5042ac5c4c087ff5ab1b9cc758b9e01abbbd6e2c2d49a4cb2db802b53e3"
+            ],
+            "merkle_root": "4837dc241f4d308cf1fc2ab630ba446f429b500686c81bb0480d4681d1491feb",
+            "digest": "725fb009e032feb816bc13619a692974a26a1bab2ea56bb5d1a49b7d0fe30bda"
+          },
+          "signature": {
+            "algorithm": "Ed25519",
+            "public_key": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo",
+            "key_id": "rfc8032-test-vector-1",
+            "value": "ftxAY7NZaysDavsRqfKzBq0nhUdod5fNQWSeFNkmEETGieAP8AL-q4Wcx5wWIZfH2OlZ1Hv_6FKyWqFa6WNpCQ"
+          }
+        },
+        "public_key": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+      },
+      "requires": "signing",
+      "expect": {
+        "valid": false,
+        "integrity.status": "mismatch",
+        "integrity.problems": [
+          "facts 2 do not match their leaf hashes",
+          "integrity.merkle_root does not match the facts",
+          "integrity.digest does not match the package (title, dates, documents or facts changed)"
+        ],
+        "signature.status": "invalid",
+        "facts.invalid.0.fact": 2
+      }
+    },
+    {
+      "name": "verify: without a trusted key the signature only matches the key inside the package",
+      "tool": "fact_package_verify",
+      "arguments": {
+        "package": {
+          "format": "factlot.fact_package",
+          "version": 1,
+          "title": "Synthetic package",
+          "created_at": "2026-11-04T09:00:00Z",
+          "created_by": "Example Fund LP",
+          "documents": [
+            {
+              "document_id": "fl:document:sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "title": "Synthetic lease"
+            }
+          ],
+          "facts": [
+            {
+              "id": "flf_pkg_a",
+              "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+              "predicate": "lease.expiration_date",
+              "value": "2031-06-30",
+              "as_of": "2026-11-04",
+              "provenance": {
+                "method": "extracted",
+                "sources": [
+                  {
+                    "document_id": "fl:document:sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                    "title": "Synthetic lease",
+                    "page": 1,
+                    "quote": "shall expire on June 30, 2031"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "flf_pkg_b",
+              "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+              "predicate": "lease.radius_restriction",
+              "value": {
+                "radius_miles": 3
+              },
+              "as_of": "2026-11-04",
+              "provenance": {
+                "method": "extracted",
+                "sources": [
+                  {
+                    "document_id": "fl:document:sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                    "title": "Synthetic lease",
+                    "page": 2,
+                    "quote": "shall not operate another coffee shop within 3 miles"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "flf_pkg_c",
+              "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+              "predicate": "lease.security_deposit",
+              "value": 50000,
+              "as_of": "2026-11-04",
+              "provenance": {
+                "method": "extracted",
+                "sources": [
+                  {
+                    "document_id": "fl:document:sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                    "page": 2,
+                    "quote": "a security deposit of $50,000"
+                  }
+                ]
+              }
+            }
+          ],
+          "integrity": {
+            "hash": "sha256",
+            "canonicalization": "RFC 8785 (JCS)",
+            "tree": "RFC 6962 Merkle tree hash",
+            "leaf_hashes": [
+              "4db4454bb2ed77f0784236b3d1125be2ea74e3eb5fbdf1d2f1d9ade1487d1e4c",
+              "ddda3d96a8bf81daf95406a293c411520853fb84c7f5c730d3668ee6738cc91a",
+              "ff15d5042ac5c4c087ff5ab1b9cc758b9e01abbbd6e2c2d49a4cb2db802b53e3"
+            ],
+            "merkle_root": "4837dc241f4d308cf1fc2ab630ba446f429b500686c81bb0480d4681d1491feb",
+            "digest": "725fb009e032feb816bc13619a692974a26a1bab2ea56bb5d1a49b7d0fe30bda"
+          },
+          "signature": {
+            "algorithm": "Ed25519",
+            "public_key": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo",
+            "key_id": "rfc8032-test-vector-1",
+            "value": "ftxAY7NZaysDavsRqfKzBq0nhUdod5fNQWSeFNkmEETGieAP8AL-q4Wcx5wWIZfH2OlZ1Hv_6FKyWqFa6WNpCQ"
+          }
+        }
+      },
+      "requires": "signing",
+      "expect": {
+        "valid": true,
+        "signature.status": "matches_embedded_key",
+        "quotes.documents_not_supplied": [
+          "fl:document:sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        ]
+      }
+    },
+    {
+      "name": "verify: a package signed by another key",
+      "tool": "fact_package_verify",
+      "arguments": {
+        "package": {
+          "format": "factlot.fact_package",
+          "version": 1,
+          "title": "Synthetic package",
+          "created_at": "2026-11-04T09:00:00Z",
+          "created_by": "Example Fund LP",
+          "documents": [
+            {
+              "document_id": "fl:document:sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "title": "Synthetic lease"
+            }
+          ],
+          "facts": [
+            {
+              "id": "flf_pkg_a",
+              "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+              "predicate": "lease.expiration_date",
+              "value": "2031-06-30",
+              "as_of": "2026-11-04",
+              "provenance": {
+                "method": "extracted",
+                "sources": [
+                  {
+                    "document_id": "fl:document:sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                    "title": "Synthetic lease",
+                    "page": 1,
+                    "quote": "shall expire on June 30, 2031"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "flf_pkg_b",
+              "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+              "predicate": "lease.radius_restriction",
+              "value": {
+                "radius_miles": 3
+              },
+              "as_of": "2026-11-04",
+              "provenance": {
+                "method": "extracted",
+                "sources": [
+                  {
+                    "document_id": "fl:document:sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                    "title": "Synthetic lease",
+                    "page": 2,
+                    "quote": "shall not operate another coffee shop within 3 miles"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "flf_pkg_c",
+              "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+              "predicate": "lease.security_deposit",
+              "value": 50000,
+              "as_of": "2026-11-04",
+              "provenance": {
+                "method": "extracted",
+                "sources": [
+                  {
+                    "document_id": "fl:document:sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                    "page": 2,
+                    "quote": "a security deposit of $50,000"
+                  }
+                ]
+              }
+            }
+          ],
+          "integrity": {
+            "hash": "sha256",
+            "canonicalization": "RFC 8785 (JCS)",
+            "tree": "RFC 6962 Merkle tree hash",
+            "leaf_hashes": [
+              "4db4454bb2ed77f0784236b3d1125be2ea74e3eb5fbdf1d2f1d9ade1487d1e4c",
+              "ddda3d96a8bf81daf95406a293c411520853fb84c7f5c730d3668ee6738cc91a",
+              "ff15d5042ac5c4c087ff5ab1b9cc758b9e01abbbd6e2c2d49a4cb2db802b53e3"
+            ],
+            "merkle_root": "4837dc241f4d308cf1fc2ab630ba446f429b500686c81bb0480d4681d1491feb",
+            "digest": "725fb009e032feb816bc13619a692974a26a1bab2ea56bb5d1a49b7d0fe30bda"
+          },
+          "signature": {
+            "algorithm": "Ed25519",
+            "public_key": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo",
+            "key_id": "rfc8032-test-vector-1",
+            "value": "ftxAY7NZaysDavsRqfKzBq0nhUdod5fNQWSeFNkmEETGieAP8AL-q4Wcx5wWIZfH2OlZ1Hv_6FKyWqFa6WNpCQ"
+          }
+        },
+        "public_key": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+      },
+      "expect": {
+        "valid": false,
+        "signature.status": "key_mismatch"
+      }
+    },
+    {
+      "name": "verify: an unsigned package when a key is expected",
+      "tool": "fact_package_verify",
+      "arguments": {
+        "package": {
+          "format": "factlot.fact_package",
+          "version": 1,
+          "title": "Synthetic package",
+          "created_at": "2026-11-04T09:00:00Z",
+          "created_by": "Example Fund LP",
+          "documents": [
+            {
+              "document_id": "fl:document:sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "title": "Synthetic lease"
+            }
+          ],
+          "facts": [
+            {
+              "id": "flf_pkg_a",
+              "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+              "predicate": "lease.expiration_date",
+              "value": "2031-06-30",
+              "as_of": "2026-11-04",
+              "provenance": {
+                "method": "extracted",
+                "sources": [
+                  {
+                    "document_id": "fl:document:sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                    "title": "Synthetic lease",
+                    "page": 1,
+                    "quote": "shall expire on June 30, 2031"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "flf_pkg_b",
+              "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+              "predicate": "lease.radius_restriction",
+              "value": {
+                "radius_miles": 3
+              },
+              "as_of": "2026-11-04",
+              "provenance": {
+                "method": "extracted",
+                "sources": [
+                  {
+                    "document_id": "fl:document:sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                    "title": "Synthetic lease",
+                    "page": 2,
+                    "quote": "shall not operate another coffee shop within 3 miles"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "flf_pkg_c",
+              "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+              "predicate": "lease.security_deposit",
+              "value": 50000,
+              "as_of": "2026-11-04",
+              "provenance": {
+                "method": "extracted",
+                "sources": [
+                  {
+                    "document_id": "fl:document:sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                    "page": 2,
+                    "quote": "a security deposit of $50,000"
+                  }
+                ]
+              }
+            }
+          ],
+          "integrity": {
+            "hash": "sha256",
+            "canonicalization": "RFC 8785 (JCS)",
+            "tree": "RFC 6962 Merkle tree hash",
+            "leaf_hashes": [
+              "4db4454bb2ed77f0784236b3d1125be2ea74e3eb5fbdf1d2f1d9ade1487d1e4c",
+              "ddda3d96a8bf81daf95406a293c411520853fb84c7f5c730d3668ee6738cc91a",
+              "ff15d5042ac5c4c087ff5ab1b9cc758b9e01abbbd6e2c2d49a4cb2db802b53e3"
+            ],
+            "merkle_root": "4837dc241f4d308cf1fc2ab630ba446f429b500686c81bb0480d4681d1491feb",
+            "digest": "725fb009e032feb816bc13619a692974a26a1bab2ea56bb5d1a49b7d0fe30bda"
+          }
+        },
+        "public_key": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+      },
+      "expect": {
+        "valid": false,
+        "integrity.status": "ok",
+        "signature": {
+          "status": "absent",
+          "reason": "the package is not signed, but a public key was given"
+        }
+      }
+    },
+    {
+      "name": "verify: a quote on another page than cited is a problem",
+      "tool": "fact_package_verify",
+      "arguments": {
+        "package": {
+          "format": "factlot.fact_package",
+          "version": 1,
+          "title": "Synthetic package",
+          "created_at": "2026-11-04T09:00:00Z",
+          "created_by": "Example Fund LP",
+          "documents": [
+            {
+              "document_id": "fl:document:sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "title": "Synthetic lease"
+            }
+          ],
+          "facts": [
+            {
+              "id": "flf_pkg_a",
+              "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+              "predicate": "lease.expiration_date",
+              "value": "2031-06-30",
+              "as_of": "2026-11-04",
+              "provenance": {
+                "method": "extracted",
+                "sources": [
+                  {
+                    "document_id": "fl:document:sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                    "title": "Synthetic lease",
+                    "page": 1,
+                    "quote": "shall expire on June 30, 2031"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "flf_pkg_b",
+              "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+              "predicate": "lease.radius_restriction",
+              "value": {
+                "radius_miles": 3
+              },
+              "as_of": "2026-11-04",
+              "provenance": {
+                "method": "extracted",
+                "sources": [
+                  {
+                    "document_id": "fl:document:sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                    "title": "Synthetic lease",
+                    "page": 2,
+                    "quote": "shall not operate another coffee shop within 3 miles"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "flf_pkg_c",
+              "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+              "predicate": "lease.security_deposit",
+              "value": 50000,
+              "as_of": "2026-11-04",
+              "provenance": {
+                "method": "extracted",
+                "sources": [
+                  {
+                    "document_id": "fl:document:sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                    "page": 2,
+                    "quote": "a security deposit of $50,000"
+                  }
+                ]
+              }
+            }
+          ],
+          "integrity": {
+            "hash": "sha256",
+            "canonicalization": "RFC 8785 (JCS)",
+            "tree": "RFC 6962 Merkle tree hash",
+            "leaf_hashes": [
+              "4db4454bb2ed77f0784236b3d1125be2ea74e3eb5fbdf1d2f1d9ade1487d1e4c",
+              "ddda3d96a8bf81daf95406a293c411520853fb84c7f5c730d3668ee6738cc91a",
+              "ff15d5042ac5c4c087ff5ab1b9cc758b9e01abbbd6e2c2d49a4cb2db802b53e3"
+            ],
+            "merkle_root": "4837dc241f4d308cf1fc2ab630ba446f429b500686c81bb0480d4681d1491feb",
+            "digest": "725fb009e032feb816bc13619a692974a26a1bab2ea56bb5d1a49b7d0fe30bda"
+          }
+        },
+        "documents": [
+          {
+            "pages": [
+              "Tenant shall not operate another coffee shop within 3 miles. Tenant shall pay a security deposit of $50,000.",
+              "SYNTHETIC LEASE - NOT A REAL LEASE. The Term shall expire on June 30, 2031."
+            ],
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          }
+        ]
+      },
+      "expect": {
+        "valid": false,
+        "quotes.checked": 3,
+        "quotes.on_page": 0,
+        "quotes.problems.0": {
+          "fact": 0,
+          "source": 0,
+          "document_id": "fl:document:sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "page": 1,
+          "status": "other_page",
+          "reason": "quote found on page 2, not 1"
+        }
+      }
+    },
+    {
+      "name": "verify: a public key that is not 32 bytes of base64url is an input error",
+      "tool": "fact_package_verify",
+      "arguments": {
+        "package": {
+          "format": "factlot.fact_package",
+          "version": 1,
+          "title": "Synthetic package",
+          "created_at": "2026-11-04T09:00:00Z",
+          "created_by": "Example Fund LP",
+          "documents": [
+            {
+              "document_id": "fl:document:sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "title": "Synthetic lease"
+            }
+          ],
+          "facts": [
+            {
+              "id": "flf_pkg_a",
+              "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+              "predicate": "lease.expiration_date",
+              "value": "2031-06-30",
+              "as_of": "2026-11-04",
+              "provenance": {
+                "method": "extracted",
+                "sources": [
+                  {
+                    "document_id": "fl:document:sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                    "title": "Synthetic lease",
+                    "page": 1,
+                    "quote": "shall expire on June 30, 2031"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "flf_pkg_b",
+              "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+              "predicate": "lease.radius_restriction",
+              "value": {
+                "radius_miles": 3
+              },
+              "as_of": "2026-11-04",
+              "provenance": {
+                "method": "extracted",
+                "sources": [
+                  {
+                    "document_id": "fl:document:sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                    "title": "Synthetic lease",
+                    "page": 2,
+                    "quote": "shall not operate another coffee shop within 3 miles"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "flf_pkg_c",
+              "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+              "predicate": "lease.security_deposit",
+              "value": 50000,
+              "as_of": "2026-11-04",
+              "provenance": {
+                "method": "extracted",
+                "sources": [
+                  {
+                    "document_id": "fl:document:sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                    "page": 2,
+                    "quote": "a security deposit of $50,000"
+                  }
+                ]
+              }
+            }
+          ],
+          "integrity": {
+            "hash": "sha256",
+            "canonicalization": "RFC 8785 (JCS)",
+            "tree": "RFC 6962 Merkle tree hash",
+            "leaf_hashes": [
+              "4db4454bb2ed77f0784236b3d1125be2ea74e3eb5fbdf1d2f1d9ade1487d1e4c",
+              "ddda3d96a8bf81daf95406a293c411520853fb84c7f5c730d3668ee6738cc91a",
+              "ff15d5042ac5c4c087ff5ab1b9cc758b9e01abbbd6e2c2d49a4cb2db802b53e3"
+            ],
+            "merkle_root": "4837dc241f4d308cf1fc2ab630ba446f429b500686c81bb0480d4681d1491feb",
+            "digest": "725fb009e032feb816bc13619a692974a26a1bab2ea56bb5d1a49b7d0fe30bda"
+          },
+          "signature": {
+            "algorithm": "Ed25519",
+            "public_key": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo",
+            "key_id": "rfc8032-test-vector-1",
+            "value": "ftxAY7NZaysDavsRqfKzBq0nhUdod5fNQWSeFNkmEETGieAP8AL-q4Wcx5wWIZfH2OlZ1Hv_6FKyWqFa6WNpCQ"
+          }
+        },
+        "public_key": "not-a-key"
+      },
+      "expect_error": "InputError",
+      "expect_issues": [
+        {
+          "path": "public_key",
+          "message": "expected an Ed25519 public key: 32 bytes as base64url"
+        }
+      ]
+    },
+    {
+      "name": "verify: something that is not a fact package is an input error",
+      "tool": "fact_package_verify",
+      "arguments": {
+        "package": {
+          "facts": []
+        }
+      },
+      "expect_error": "InputError"
+    },
+    {
+      "name": "spread exceptions: an ambiguous label, an unknown category with an unmapped label, a total read as a line, a sum over a total, zero tolerance",
+      "tool": "doc_spread_statement",
+      "arguments": {
+        "document": {
+          "pages": {
+            "$pages": "exceptions_statement"
+          }
+        },
+        "property_type": "multifamily",
+        "period": "2025",
+        "tolerance": 0,
+        "lines": [
+          {
+            "label": "Rental Income",
+            "amount": 500000,
+            "quote": "Rental Income 500,000",
+            "page": 1
+          },
+          {
+            "label": "Parking Lot Repairs",
+            "amount": 4000,
+            "quote": "Parking Lot Repairs 4,000",
+            "page": 1
+          },
+          {
+            "label": "Total Repairs",
+            "amount": 9000,
+            "quote": "Total Repairs 9,000",
+            "page": 1
+          },
+          {
+            "label": "Pool Service",
+            "amount": 2500,
+            "quote": "Pool Service 2,500",
+            "page": 1,
+            "category": "pool"
+          },
+          {
+            "label": "Insurance",
+            "amount": 20000,
+            "quote": "Insurance 20,000",
+            "page": 1
+          },
+          {
+            "label": "Total Expenses",
+            "amount": 30500,
+            "quote": "Total Expenses 30,500",
+            "page": 1
+          },
+          {
+            "label": "Net Operating Income",
+            "amount": 469500,
+            "quote": "Net Operating Income 469,500",
+            "page": 1
+          },
+          {
+            "label": "Water Utility Credit",
+            "amount": -300,
+            "quote": "Water Utility Credit (300)",
+            "page": 1
+          },
+          {
+            "label": "Insurance",
+            "amount": 20000,
+            "quote": "Insurance 20,000",
+            "page": 1,
+            "sums": [5]
+          }
+        ]
+      },
+      "expect": {
+        "summary": {
+          "lines": 9,
+          "included": 4,
+          "totals": 2,
+          "subtotals": 1,
+          "memo": 0,
+          "excluded": 2,
+          "exceptions": 7,
+          "foots": false
+        },
+        "lines.1.status": "excluded",
+        "lines.1.reason": "the label could be parking_income or repairs_maintenance; give a category",
+        "lines.2.category": "repairs_maintenance",
+        "lines.7.spread_amount": -300,
+        "periods.0.sections.1.amount": 28700,
+        "exceptions": [
+          {
+            "line": 1,
+            "kind": "unmapped",
+            "message": "the label could be parking_income or repairs_maintenance; give a category",
+            "dictionary": ["parking_income", "repairs_maintenance"]
+          },
+          {
+            "line": 2,
+            "kind": "possible_subtotal",
+            "message": "\"Total Repairs\" reads as a subtotal but is spread as a repairs_maintenance line; if its parts are listed too, give it sums so it is not counted twice"
+          },
+          {
+            "line": 3,
+            "kind": "unknown_category",
+            "message": "\"pool\" is not in the multifamily chart; the label was mapped instead"
+          },
+          {
+            "line": 3,
+            "kind": "unmapped",
+            "message": "the label matches no category in the chart; give a category"
+          },
+          {
+            "line": 5,
+            "period": "2025",
+            "kind": "does_not_foot",
+            "message": "Total Expenses is 30500 on the statement; the lines spread here give 28700 (difference 1800, tolerance 0)"
+          },
+          {
+            "line": 6,
+            "period": "2025",
+            "kind": "does_not_foot",
+            "message": "Net Operating Income is 469500 on the statement; the lines spread here give 471300 (difference -1800, tolerance 0)"
+          },
+          {
+            "line": 8,
+            "period": "2025",
+            "kind": "sums",
+            "message": "line 5 is a total; a subtotal adds up lines of its own period"
+          }
+        ],
+        "lines.3.status": "excluded",
+        "lines.3.reason": "the label matches no category in the chart; give a category"
+      }
+    }
+  ],
+  "canonical_json": [
+    {
+      "value": {
+        "b": 1,
+        "a": [true, false, null],
+        "A": "x"
+      },
+      "expect": "{\"A\":\"x\",\"a\":[true,false,null],\"b\":1}"
+    },
+    {
+      "value": {
+        "n": [0, -0.0, 1e21, 1e-7, 0.1, 100, 2026.0, 123456789012345680000]
+      },
+      "expect": "{\"n\":[0,0,1e+21,1e-7,0.1,100,2026,123456789012345680000]}"
+    },
+    {
+      "value": "line\nbreak\ttab \u0001 \u001f \"quoted\" back\\slash é € 🏢  ",
+      "expect": "\"line\\nbreak\\ttab \\u0001 \\u001f \\\"quoted\\\" back\\\\slash é € 🏢  \""
+    },
+    {
+      "value": {
+        "€": 1,
+        "🏢": 2,
+        "ﬁ": 3,
+        "z": 4
+      },
+      "expect": "{\"z\":4,\"€\":1,\"🏢\":2,\"ﬁ\":3}"
     }
   ]
 }

@@ -28,6 +28,14 @@ import {
   verifyClaim,
   verifyFacts,
 } from "./documents.ts";
+import {
+  FactPackageCreateInput,
+  FactPackageVerifyInput,
+  createFactPackage,
+  verifyFactPackage,
+} from "./packages.ts";
+import { SpreadStatementInput, spreadStatement } from "./statements.ts";
+import { UseConflictInput, checkUseConflict } from "./uses.ts";
 
 import {
   RegistryUnavailableError,
@@ -64,6 +72,8 @@ export interface ToolSpec {
   formula?: { id: string; version: number };
   /** Set for tools that need a FactLot Registry database (hosted, or FACTLOT_REGISTRY_DB). */
   requires?: "registry";
+  /** Set for tools whose run returns a Promise (WebCrypto); call them through runToolAsync. */
+  async?: true;
 }
 
 export interface ToolError {
@@ -371,6 +381,49 @@ const docTools: ToolSpec[] = [
     path: "/v1/doc/verify_claim",
     run: (i: never) => verifyClaim(i as z.output<typeof VerifyClaimInput>),
   },
+  {
+    name: "doc_spread_statement",
+    title: "Spread an operating statement",
+    description:
+      "Spread a T-12, operating statement, budget or rent roll summary YOU read, onto FactLot's published chart of accounts (multifamily, commercial, or hotel after the USALI summary), deterministically; FactLot runs no model. Send the pages as text and one line per item: {label, amount, quote, page}, optionally your category, a period column, and for a subtotal the indexes of the lines it sums; give the statement's own totals (effective_gross_income, total_operating_expenses, net_operating_income, ebitda, ...) as lines with that total as category. Each line is checked: the quote is on the page, the amount (as a number, any common written form; (1,200) and -1,200 read as negative) and the label are written in it; a line that fails is excluded with the reason. The label is mapped to the chart by keywords: your category is used when it is in the chart, and an exception flags it for review when the dictionary maps the label elsewhere; an ambiguous or unknown label without a category is excluded. Vacancy, concessions, credit loss and other contra lines are always subtracted. Returns per period the sections, the computed totals (EGI, operating expenses, NOI, capital items, net cash flow; for hotels departmental profit, GOP, EBITDA and NOI after the replacement reserve), whether each total and subtotal the statement states foots (within 0.5 per line added, or your tolerance), every line with its citation (document, page, quote, span) and status, statistics (units, occupancy, ADR), and exceptions to review. Not checked: whether the agent missed lines, and meaning beyond the written amount and label.",
+    input: SpreadStatementInput,
+    path: "/v1/doc/spread_statement",
+    run: (i: never) =>
+      spreadStatement(i as z.output<typeof SpreadStatementInput>),
+  },
+  {
+    name: "doc_check_use_conflict",
+    title: "Check a proposed use against exclusives",
+    description:
+      "Check a proposed use (a description, plus an optional use category or 2022 NAICS code) against a center's verified lease.exclusive_use and lease.prohibited_uses facts (from doc_verify_facts or doc_abstract_lease; each must pass fact_validate). Deterministic and textual: a restriction is a potential conflict when it shares a use category with the proposed use (FactLot's published use-category vocabulary, matched on keywords, the category given and NAICS codes) or shares words with it (two or more, or every significant word of the restriction). Each hit is labelled \"potential conflict — needs human review\" and returns the controlling quote and citation, the categories and words that matched, and the exclusive's carve-outs, flagging those that mention the proposed use. FactLot does not interpret the lease, decide whether a carve-out applies, or give legal conclusions; an empty result does not mean there is no conflict. Superseded facts are ignored.",
+    input: UseConflictInput,
+    path: "/v1/doc/check_use_conflict",
+    run: (i: never) => checkUseConflict(i as z.output<typeof UseConflictInput>),
+  },
+];
+
+const packageTools: ToolSpec[] = [
+  {
+    name: "fact_package_create",
+    title: "Create a fact package",
+    description:
+      "Bundle FactLot facts (each must pass fact_validate) into a fact package a counterparty can verify: canonical JSON (RFC 8785) of every fact, an RFC 6962 Merkle tree over the facts, the source documents the facts cite with their sha256 where known, and a digest over all of it. Returns the unsigned package, its digest, and signing_message, the exact text to sign. FactLot never holds private keys: to sign, the holder signs signing_message with their own Ed25519 key on their own machine (factlot.sign_fact_package in Python, signFactPackage in @factlot/tools, or fact_package_sign in the local MCP server). Deterministic: no clock time is added (pass created_at), and the same facts always give the same digest.",
+    input: FactPackageCreateInput,
+    path: "/v1/facts/package",
+    run: (i: never) =>
+      createFactPackage(i as z.output<typeof FactPackageCreateInput>),
+  },
+  {
+    name: "fact_package_verify",
+    title: "Verify a fact package",
+    description:
+      "Verify a fact package from fact_package_create: recompute every fact's hash, the Merkle root and the digest from the content (any changed fact, title, date or document list shows as a mismatch); check each fact against fact_validate; check the Ed25519 signature, against the public_key you pass (base64url, the signer's key you trust) or, without one, only against the key inside the package (which proves nothing about who signed); and, given the source documents' pages, check every quote is on its cited page. Returns valid plus each check's details. Not checked: that the pages you pass are the original files (pass sha256 to tie them to the file hash), or what the facts mean.",
+    input: FactPackageVerifyInput,
+    path: "/v1/facts/package/verify",
+    async: true,
+    run: (i: never) =>
+      verifyFactPackage(i as z.output<typeof FactPackageVerifyInput>),
+  },
 ];
 
 const compTools: ToolSpec[] = [
@@ -573,6 +626,7 @@ export const tools: readonly ToolSpec[] = [
   ...ruleTools,
   ...idTools,
   ...docTools,
+  ...packageTools,
   ...compTools,
   ...registryTools,
 ];
@@ -581,16 +635,20 @@ export function getTool(name: string): ToolSpec | undefined {
   return tools.find((t) => t.name === name);
 }
 
-/** Validate input and run a tool. Never throws for bad input: returns errors as data agents can act on. */
-export function runTool(name: string, args: unknown): ToolOutcome {
+type Checked = { tool: ToolSpec; data: unknown } | { error: ToolOutcome };
+
+/** Structural caps, unknown fields and schema validation, in that order (runTool, runToolAsync). */
+function checkInput(name: string, args: unknown): Checked {
   const tool = getTool(name);
   if (!tool) {
     return {
-      ok: false,
       error: {
-        error: "UnknownTool",
-        message: `no FactLot tool named "${name}"`,
-        issues: [],
+        ok: false,
+        error: {
+          error: "UnknownTool",
+          message: `no FactLot tool named "${name}"`,
+          issues: [],
+        },
       },
     };
   }
@@ -603,11 +661,13 @@ export function runTool(name: string, args: unknown): ToolOutcome {
   const shape = inputShapeIssue(args ?? {});
   if (shape) {
     return {
-      ok: false,
       error: {
-        error: kind,
-        message: `invalid input: ${shape.path || "(root)"}: ${shape.message}`,
-        issues: [shape],
+        ok: false,
+        error: {
+          error: kind,
+          message: `invalid input: ${shape.path || "(root)"}: ${shape.message}`,
+          issues: [shape],
+        },
       },
     };
   }
@@ -619,11 +679,13 @@ export function runTool(name: string, args: unknown): ToolOutcome {
   );
   if (unknown.length) {
     return {
-      ok: false,
       error: {
-        error: kind,
-        message: `invalid input: ${unknown.map((i) => `${i.path}: ${i.message}`).join("; ")}`,
-        issues: unknown,
+        ok: false,
+        error: {
+          error: kind,
+          message: `invalid input: ${unknown.map((i) => `${i.path}: ${i.message}`).join("; ")}`,
+          issues: unknown,
+        },
       },
     };
   }
@@ -642,67 +704,115 @@ export function runTool(name: string, args: unknown): ToolOutcome {
         ? `; and ${all.length - issues.length} more`
         : "";
     return {
-      ok: false,
       error: {
-        error: kind,
-        message: `invalid input: ${issues.map((i) => `${i.path || "(root)"}: ${i.message}`).join("; ")}${more}`,
-        issues,
+        ok: false,
+        error: {
+          error: kind,
+          message: `invalid input: ${issues.map((i) => `${i.path || "(root)"}: ${i.message}`).join("; ")}${more}`,
+          issues,
+        },
       },
     };
   }
-  try {
-    const result = (tool.run as (i: unknown) => unknown)(parsed.data);
-    const warnings = (result as { warnings?: unknown } | null)?.warnings;
-    if (name.startsWith("calc_") && Array.isArray(warnings))
-      warnings.push(...implausibleInputWarnings(args));
-    return { ok: true, result };
-  } catch (err) {
-    if (err instanceof CalcInputError) {
-      return {
-        ok: false,
-        error: {
-          error: "CalcInputError",
-          message: err.message,
-          issues: err.issues,
-        },
-      };
-    }
-    if (err instanceof FactLotIdError) {
-      return {
-        ok: false,
-        error: { error: "FactLotIdError", message: err.message, issues: [] },
-      };
-    }
-    if (err instanceof RegistryUnavailableError) {
-      return {
-        ok: false,
-        error: {
-          error: "RegistryUnavailable",
-          message: err.message,
-          issues: [],
-        },
-      };
-    }
-    if (err instanceof ToolInputError) {
-      return {
-        ok: false,
-        error: {
-          error: "InputError",
-          message: err.message,
-          issues: err.issues,
-        },
-      };
-    }
-    if (err instanceof NotFoundError) {
-      const error: ToolError = {
-        error: "NotFound",
+  return { tool, data: parsed.data };
+}
+
+/** A thrown domain error as an outcome; anything else is a bug and is rethrown. */
+function errorOutcome(err: unknown): ToolOutcome {
+  if (err instanceof CalcInputError) {
+    return {
+      ok: false,
+      error: {
+        error: "CalcInputError",
+        message: err.message,
+        issues: err.issues,
+      },
+    };
+  }
+  if (err instanceof FactLotIdError) {
+    return {
+      ok: false,
+      error: { error: "FactLotIdError", message: err.message, issues: [] },
+    };
+  }
+  if (err instanceof RegistryUnavailableError) {
+    return {
+      ok: false,
+      error: {
+        error: "RegistryUnavailable",
         message: err.message,
         issues: [],
-      };
-      if (err.coverage !== undefined) error.coverage = err.coverage;
-      return { ok: false, error };
-    }
-    throw err;
+      },
+    };
+  }
+  if (err instanceof ToolInputError) {
+    return {
+      ok: false,
+      error: {
+        error: "InputError",
+        message: err.message,
+        issues: err.issues,
+      },
+    };
+  }
+  if (err instanceof NotFoundError) {
+    const error: ToolError = {
+      error: "NotFound",
+      message: err.message,
+      issues: [],
+    };
+    if (err.coverage !== undefined) error.coverage = err.coverage;
+    return { ok: false, error };
+  }
+  throw err;
+}
+
+function finish(name: string, args: unknown, result: unknown): ToolOutcome {
+  const warnings = (result as { warnings?: unknown } | null)?.warnings;
+  if (name.startsWith("calc_") && Array.isArray(warnings))
+    warnings.push(...implausibleInputWarnings(args));
+  return { ok: true, result };
+}
+
+/**
+ * Validate input and run a tool. Never throws for bad input: returns errors as data agents can act
+ * on. Tools marked `async` (fact_package_verify, which checks Ed25519 signatures with WebCrypto)
+ * need runToolAsync; every other tool runs here.
+ */
+export function runTool(name: string, args: unknown): ToolOutcome {
+  const c = checkInput(name, args);
+  if ("error" in c) return c.error;
+  if (c.tool.async)
+    return {
+      ok: false,
+      error: {
+        error: "InputError",
+        message: `${name} runs asynchronously (it verifies signatures with WebCrypto); call runToolAsync`,
+        issues: [],
+      },
+    };
+  try {
+    return finish(name, args, (c.tool.run as (i: unknown) => unknown)(c.data));
+  } catch (err) {
+    return errorOutcome(err);
+  }
+}
+
+/** runTool for every tool, including asynchronous ones. The MCP server and REST API use this. */
+export async function runToolAsync(
+  name: string,
+  args: unknown,
+): Promise<ToolOutcome> {
+  const c = checkInput(name, args);
+  if ("error" in c) return c.error;
+  try {
+    return finish(
+      name,
+      args,
+      await (c.tool.run as (i: unknown) => unknown)(c.data),
+    );
+  } catch (err) {
+    return errorOutcome(err);
   }
 }
 

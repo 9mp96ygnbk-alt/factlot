@@ -123,7 +123,7 @@ for _ in range(int(sys.argv[2])):
     cases.append({"rule":"tx_property_tax_protest_deadline","input":rinp})
 # document tools and fact_validate: their own random stream, so the cases above stay as they were
 sys.path.insert(0, __import__("os").path.dirname(__file__))
-from gen_docs import doc_cases
+from gen_docs import doc_cases, round2_cases
 cases.extend(doc_cases(int(sys.argv[1]), int(sys.argv[2])))
 # valuation calculators: also their own random stream
 from gen_valuation import valuation_cases
@@ -137,4 +137,6 @@ cases.extend(operation_cases(int(sys.argv[1]), int(sys.argv[2]) // 2, sched))
 # lease_comp_validate: its own stream as well
 from gen_comps import comp_cases
 cases.extend(comp_cases(int(sys.argv[1]), int(sys.argv[2])))
+# round-2 document tools (clauses, statements, use conflicts, fact packages): their own stream
+cases.extend(round2_cases(int(sys.argv[1]), int(sys.argv[2]) // 2))
 json.dump(cases,open(sys.argv[3],"w"))

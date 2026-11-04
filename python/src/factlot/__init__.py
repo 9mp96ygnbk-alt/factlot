@@ -4,6 +4,8 @@
 - ``factlot.ids``    FactLot ID: canonical IDs for parcels, entities, spaces, documents
 - ``factlot.facts``  validate FactLot facts (provenance + rights)
 - ``factlot.tools``  every tool as native definitions for Claude, OpenAI, Gemini, Bedrock, and more
+- ``factlot.pdf``    read a PDF (text layer, OCR for scanned pages) into the document tools' input
+- ``factlot.factpackage``  sign and verify fact packages (Ed25519 with ``factlot[signing]``)
 """
 
 __version__ = "0.2.0"
@@ -35,6 +37,8 @@ from .calc import (  # noqa: E402
     walt,
 )
 from .facts import validate_fact  # noqa: E402
+from .factpackage import sign_fact_package  # noqa: E402
+from .pdf import read_pdf  # noqa: E402
 from .rules import RULES, texas_holidays, tx_property_tax_protest_deadline  # noqa: E402
 from .rules_drafts import DRAFT_RULES, DRAFT_WARNING, run_draft_rule  # noqa: E402
 from .ids import (  # noqa: E402
@@ -107,11 +111,13 @@ __all__ = [
     "parse",
     "percentage_rent",
     "prepayment_and_defeasance",
+    "read_pdf",
     "renew_vs_relocate",
     "rent_schedule",
     "run_draft_rule",
     "run_tool",
     "short_id",
+    "sign_fact_package",
     "space_id",
     "texas_holidays",
     "tool_definitions",

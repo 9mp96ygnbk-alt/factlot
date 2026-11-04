@@ -18,6 +18,12 @@ classifiers = [
   "Intended Audience :: Developers",
 ]
 
+[project.optional-dependencies]
+# Reading PDF files locally (factlot.read_pdf, the local MCP server's doc_read_pdf): pypdf, BSD-3-Clause.
+pdf = ["pypdf>=5"]
+# Signing and checking Ed25519 signatures on fact packages: cryptography, Apache-2.0 or BSD-3-Clause.
+signing = ["cryptography>=42"]
+
 [project.urls]
 Homepage = "https://factlot.com"
 Source = "https://github.com/9mp96ygnbk-alt/factlot"

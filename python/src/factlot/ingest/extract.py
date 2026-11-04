@@ -27,15 +27,29 @@ PREDICATES: dict[str, str] = {
     "lease.cam_cap": 'object {"method": "compounding_from_base" | "simple_from_base" | "year_over_year", "rate": number}',
     "lease.renewal_option": 'object {"count": number, "term_months": number, "notice_months": number, "rent": string}',
     "lease.termination_option": 'object {"effective_date": "YYYY-MM-DD", "notice_months": number, "fee": string}',
-    "lease.rofr": "string (summary of the right of first refusal)",
-    "lease.rofo": "string (summary of the right of first offer)",
-    "lease.exclusive_use": "string (the protected use)",
-    "lease.assignment_sublease": "string (summary of consent requirements)",
+    "lease.rofr": ('string (summary of the right of first refusal), or object {"applies_to": "space" | '
+                   '"purchase", "description": string (what it covers, as written), "response_days": number '
+                   "(optional; days to respond)}"),
+    "lease.rofo": ('string (summary of the right of first offer), or object {"applies_to": "space" | '
+                   '"purchase", "description": string (what it covers, as written), "response_days": number '
+                   "(optional; days to respond)}"),
+    "lease.exclusive_use": ('string (the protected use), or object {"protected_use": string (as written), "carve_outs": '
+                            'array of strings (optional; exceptions as written), "applies_to": string (optional; where '
+                            'it applies, e.g. "the Shopping Center")}'),
+    "lease.assignment_sublease": ('string (summary of consent requirements), or object {"consent_standard": "prohibited" | '
+                                  '"sole_discretion" | "not_unreasonably_withheld" | '
+                                  '"not_unreasonably_withheld_conditioned_or_delayed" | "no_consent_required", '
+                                  '"permitted_transfers": string (optional; transfers allowed without consent), '
+                                  '"recapture_right": boolean (optional), "profit_share": number between 0 and 1 (optional; '
+                                  "Landlord's share of transfer profit)}"),
     "lease.percentage_rent": ('object {"rate": number between 0 and 1, "breakpoint": {"type": "natural" | "fixed", '
                               '"amount": number (annual sales in USD; required when type is fixed)}, '
                               '"sales_exclusions": string (optional summary of sales excluded from gross sales)}'),
     "lease.co_tenancy": ('object {"trigger": string (the co-tenancy condition), "remedy": string (what Tenant may do '
-                         'when it fails), "cure_period_months": number (optional)}'),
+                         'when it fails), "cure_period_months": number (optional), "required_occupancy": number '
+                         'between 0 and 1 (optional; share of the center that must be open), "named_tenants": array '
+                         'of strings (optional; required co-tenants as written), "remedy_type": "alternate_rent" | '
+                         '"termination" | "alternate_rent_then_termination" | "other" (optional)}'),
     "lease.renewal_notice_deadline": "date (YYYY-MM-DD; the last day to exercise a renewal option)",
     "lease.termination_notice_deadline": "date (YYYY-MM-DD; the last day to give notice of early termination)",
     "lease.rent_commencement_date": "date (YYYY-MM-DD; the day rent starts, when it differs from commencement)",
@@ -44,6 +58,19 @@ PREDICATES: dict[str, str] = {
     "lease.parking": 'object {"spaces": number, "rate_monthly": number (optional, USD per space per month)}',
     "lease.guaranty": ('object {"guarantor": string (the guarantor\'s name exactly as written: the name only, never '
                        'an address), "cap": number (optional, USD)}'),
+    "lease.prohibited_uses": "array of strings (each use the lease prohibits, as written)",
+    "lease.go_dark": ('object {"operating_covenant": boolean (true when Tenant must keep operating), '
+                      '"recapture_right": boolean (optional; Landlord may recapture or terminate if Tenant stops '
+                      'operating), "dark_period_days": number (optional; days dark before that right arises)}'),
+    "lease.radius_restriction": ('object {"radius_miles": number, "duration": string (optional, e.g. "during the Term"), '
+                                 '"remedy": string (optional)}'),
+    "lease.relocation_right": ('object {"notice_days": number (optional), "landlord_pays_costs": boolean (optional), '
+                               '"tenant_may_terminate": boolean (optional), "replacement_premises": string (optional, e.g. '
+                               '"substantially similar size")}, at least one field'),
+    "lease.kick_out": ('object {"party": "landlord" | "tenant", "sales_threshold": number (optional; annual gross '
+                       'sales in USD), "test_period": string (optional, e.g. "the third Lease Year"), '
+                       '"notice_days": number (optional), "effective_date": "YYYY-MM-DD" (optional), "fee": string '
+                       "(optional)}"),
 }
 
 
