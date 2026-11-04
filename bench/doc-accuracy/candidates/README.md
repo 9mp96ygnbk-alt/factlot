@@ -42,14 +42,46 @@ One extraction, `candidates/L01.json` … `L20.json`, produced by `candidates/ex
   `docs/document-verification.md`.
 - Raw CLI output is kept outside git (`candidates/.logs/`, ignored).
 
-## Per-lease notes
+## Script versions
 
-- L06: CLI JSON parse failed (concatenated objects); facts decoded by the fallback above.
-- L07: CLI JSON parse failed (concatenated objects); facts decoded by the fallback above.
-- L12: CLI JSON parse failed (concatenated objects); facts decoded by the fallback above.
-- L13: CLI JSON parse failed (concatenated objects); facts decoded by the fallback above.
-- L14: CLI JSON parse failed (concatenated objects); facts decoded by the fallback above.
-- L15: CLI JSON parse failed (concatenated objects); facts decoded by the fallback above.
-- L17: CLI JSON parse failed (concatenated objects); facts decoded by the fallback above.
-- L18: CLI JSON parse failed (concatenated objects); facts decoded by the fallback above.
-- L19: CLI JSON parse failed (concatenated objects); facts decoded by the fallback above.
+`extract.py` changed once during the run, in commit `69c9ff9` (parsing fallback and timeout
+above). Prompt, schema, model, CLI flags and sandbox were the same for every lease.
+
+- Version 1 (commit `3871a78`): L01–L05. The CLI parsed all five itself, so the fallback would not
+  have applied; re-parsing their saved outputs with version 2 gives identical files.
+- Version 2 (commit `69c9ff9`): L06 (built from its version-1 run's saved output with `--reparse`,
+  no second model call) and L07–L20 (extracted with version 2).
+
+## Per-lease results
+
+One CLI run each. "Fallback" means the CLI's own JSON parse failed because the output had several
+`{"facts": [...]}` objects back to back, and `extract.py` decoded and concatenated them.
+
+| Lease | Candidates | Parsed by |
+| --- | --- | --- |
+| L01 | 8 | CLI |
+| L02 | 12 | CLI |
+| L03 | 9 | CLI |
+| L04 | 8 | CLI |
+| L05 | 5 | CLI |
+| L06 | 10 | fallback (14 objects) |
+| L07 | 6 | fallback (6 objects) |
+| L08 | 10 | CLI |
+| L09 | 8 | CLI |
+| L10 | 10 | CLI |
+| L11 | 0 | CLI (model returned `{"facts": []}`) |
+| L12 | 7 | fallback (3 objects) |
+| L13 | 0 | fallback (3 objects, all empty) |
+| L14 | 12 | fallback (8 objects) |
+| L15 | 8 | fallback (5 objects) |
+| L16 | 13 | CLI |
+| L17 | 6 | fallback (9 objects) |
+| L18 | 14 | fallback (4 objects) |
+| L19 | 5 | fallback (5 objects) |
+| L20 | 7 | CLI |
+
+Total: 158 candidates. L11 and L13 have none. The model returned no facts in its single
+pass, and they were not re-run, since a re-run would be a second extraction. Their labels
+therefore all count as extractor misses. Every cited page is within the document's page
+range. Commit `06d32bd`, titled for L07, also contains L08.json: L08 finished before that commit
+was made.
