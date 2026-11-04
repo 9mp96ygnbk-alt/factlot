@@ -59,6 +59,20 @@ test("registry tools: TypeScript matches Python on the shared fixture", () => {
         assert.deepEqual(JSON.parse(JSON.stringify(ts)), py, label);
       }
     });
+    // A parcel holds many sales: all current ones are returned, newest first (price breaks a date tie).
+    const parcel = python[0] as {
+      facts: { predicate: string; value: unknown }[];
+    };
+    assert.deepEqual(
+      parcel.facts
+        .filter((f) => f.predicate === "transaction.sale")
+        .map((f) => (f.value as { price_usd: number }).price_usd),
+      [12500000, 9000000, 0],
+    );
+    assert.equal(
+      parcel.facts.filter((f) => f.predicate === "zoning.district").length,
+      1,
+    );
   } finally {
     configureRegistry(undefined);
   }

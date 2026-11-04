@@ -102,8 +102,8 @@ Be clear about scope before adopting it:
   **What you can query today** is the downloadable District of Columbia sample (18,077 parcels)
   on a self-hosted FactLot; hosted registry lookups are not open yet. Cook County, Florida, Fulton,
   Maricopa, Wayne, Fairfax, King and much of California wait on a licence decision, a form or a
-  purchase. Several public files omit owner names (Maryland, Utah, Los Angeles, San Francisco); no
-  sales prices, tenants, debt, zoning, or building specs beyond area and year built. See
+  purchase. Several public files omit owner names (Maryland, Utah, Los Angeles, San Francisco); zoning, floor-area
+  ratios, floors and recorded sales only for New York City and DC parcels; no tenants or debt. See
   [the registry](docs/registry/README.md), the [Tier 1 catalog](docs/registry/sources/README.md)
   and the [Tier 2 index](docs/registry/tier2/README.md).
 - **One rules pack**, the Texas property-tax protest deadline, verified against the official

@@ -288,7 +288,37 @@ export const Predicates = {
     "parcel.tax_amount",
     "parcel.flood_zone",
     "parcel.last_sale",
+    // Lot-level building facts the registry writes (the lot's buildings taken together).
+    "parcel.built_far",
+    "parcel.num_buildings",
+    "parcel.num_floors",
+    "parcel.units_residential",
+    "parcel.units_total",
+    "parcel.area_by_use_sf",
+    "parcel.land_use_code",
+    "parcel.year_altered",
+    "parcel.historic_district",
+    "parcel.landmark_designated",
   ],
+  // Zoning as the registry writes it. `zoning.district` is the registry's name for what the
+  // starter list called `parcel.zoning_district`, which the registry does not write.
+  zoning: [
+    "zoning.district",
+    "zoning.district_description",
+    "zoning.other_districts",
+    "zoning.split_zone",
+    "zoning.commercial_overlay",
+    "zoning.special_district",
+    "zoning.limited_height_district",
+    "zoning.e_designation",
+    "zoning.max_far_residential",
+    "zoning.max_far_commercial",
+    "zoning.max_far_facility",
+    "zoning.max_far_manufacturing",
+    "zoning.max_far_affordable_residential",
+  ],
+  // One fact per sale; a parcel may hold many (see MULTI_VALUED_PREDICATES in @factlot/tools).
+  transaction: ["transaction.sale"],
   ownership: [
     "ownership.owner_of_record",
     "ownership.beneficial_owner",

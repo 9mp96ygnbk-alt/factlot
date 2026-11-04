@@ -76,7 +76,9 @@ CREATE TABLE IF NOT EXISTS coverage (
   source_id   TEXT NOT NULL,
   as_of       TEXT NOT NULL,
   document_id TEXT NOT NULL,
-  present     INTEGER NOT NULL DEFAULT 1,      -- 0: absent from a full snapshot that should have listed it
+  present     INTEGER NOT NULL DEFAULT 1,      -- 0: absent from a full snapshot that should have listed it; 2: an enrichment source
+                                               -- (zoning, sales) added facts to a parcel another source created: its facts follow the
+                                               -- usual currency rule, but it does not keep a retired parcel 'current'
   PRIMARY KEY (subject, source_id, document_id)
 );
 

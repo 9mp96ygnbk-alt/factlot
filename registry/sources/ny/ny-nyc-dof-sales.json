@@ -1,0 +1,46 @@
+{
+  "description": "New York City Department of Finance sales files for the FactLot Registry collector. See docs/registry/data-policy.md, docs/registry/collection.md, and the review record in docs/registry/sources/ny-nyc-dof-sales.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "ny-nyc-dof-sales",
+      "publisher": "New York City Department of Finance",
+      "landing_pages": [
+        "https://www.nyc.gov/site/finance/property/property-rolling-sales-data.page",
+        "https://www.nyc.gov/site/finance/property/property-annualized-sales-update.page"
+      ],
+      "allowed_hosts": ["www.nyc.gov"],
+      "link_patterns": [
+        "/assets/finance/downloads/pdf/rolling_sales/.*\\.xlsx$"
+      ],
+      "files": [
+        "https://www.nyc.gov/assets/finance/downloads/pdf/rolling_sales/rollingsales_manhattan.xlsx",
+        "https://www.nyc.gov/assets/finance/downloads/pdf/rolling_sales/rollingsales_bronx.xlsx",
+        "https://www.nyc.gov/assets/finance/downloads/pdf/rolling_sales/rollingsales_brooklyn.xlsx",
+        "https://www.nyc.gov/assets/finance/downloads/pdf/rolling_sales/rollingsales_queens.xlsx",
+        "https://www.nyc.gov/assets/finance/downloads/pdf/rolling_sales/rollingsales_statenisland.xlsx",
+        "https://www.nyc.gov/assets/finance/downloads/pdf/rolling_sales/annualized-sales/2025/2025_manhattan.xlsx",
+        "https://www.nyc.gov/assets/finance/downloads/pdf/rolling_sales/annualized-sales/2025/2025_bronx.xlsx",
+        "https://www.nyc.gov/assets/finance/downloads/pdf/rolling_sales/annualized-sales/2025/2025_brooklyn.xlsx",
+        "https://www.nyc.gov/assets/finance/downloads/pdf/rolling_sales/annualized-sales/2025/2025_queens.xlsx",
+        "https://www.nyc.gov/assets/finance/downloads/pdf/rolling_sales/annualized-sales/2025/2025_staten_island.xlsx",
+        "https://www.nyc.gov/assets/finance/downloads/pdf/rolling_sales/annualized-sales/2024/2024_manhattan.xlsx",
+        "https://www.nyc.gov/assets/finance/downloads/pdf/rolling_sales/annualized-sales/2024/2024_bronx.xlsx",
+        "https://www.nyc.gov/assets/finance/downloads/pdf/rolling_sales/annualized-sales/2024/2024_brooklyn.xlsx",
+        "https://www.nyc.gov/assets/finance/downloads/pdf/rolling_sales/annualized-sales/2024/2024_queens.xlsx",
+        "https://www.nyc.gov/assets/finance/downloads/pdf/rolling_sales/annualized-sales/2024/2024_staten_island.xlsx"
+      ],
+      "verified": true,
+      "terms_url": "https://www.nyc.gov/opendata/get-started/FAQs",
+      "license": "Public record published by DOF on nyc.gov and on NYC Open Data (usep-8jbt rolling, w2pb-icbu annualized) under the NYC Open Data Law (Admin. Code \u00a723-502). The NYC Open Data FAQ states: 'Open Data belongs to all New Yorkers. There are no restrictions on the use of Open Data.' The nyc.gov Terms of Use govern website use and state no data license",
+      "ai_use": "Not addressed by the publisher; the FAQ states there are no restrictions on the use of Open Data",
+      "redistribution": "Permitted: 'no restrictions on the use of Open Data' (FAQ). Attribution: New York City Department of Finance",
+      "reviewed": "2026-11-04",
+      "notes": "Rolling sales (tax classes 1, 2 and 4, the last twelve months: October 2025 - September 2026 on 2026-11-04) and the annualized calendar-year files for 2025 and 2024, one workbook per borough; earlier years back to 2003 are on the annualized page (the 2023 URLs follow the same pattern). The files name no buyer, seller or other party and give no arm's-length flag. Load the rolling files with --since 2026-01-01 so the October-December 2025 sales are not loaded twice. robots.txt on www.nyc.gov disallows only /html/misc/."
+    }
+  ]
+}

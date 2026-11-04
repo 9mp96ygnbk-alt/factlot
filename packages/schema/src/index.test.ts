@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { Fact, jsonSchemas } from "./index.ts";
+import { Fact, jsonSchemas, Predicates } from "./index.ts";
 
 const base = {
   subject: "fl:lease:us-06037:abc123",
@@ -133,4 +133,27 @@ test("an inferred fact cites its evidence; a computed one names its formula", ()
     }).success,
     true,
   );
+});
+
+test("every starter predicate is a valid dotted lower_snake name in its namespace", () => {
+  for (const [namespace, names] of Object.entries(Predicates)) {
+    for (const predicate of names) {
+      assert.ok(predicate.startsWith(`${namespace}.`), predicate);
+      assert.equal(
+        Fact.shape.predicate.safeParse(predicate).success,
+        true,
+        predicate,
+      );
+    }
+  }
+  const all: string[] = Object.values(Predicates).flat();
+  assert.equal(new Set(all).size, all.length, "no duplicates");
+  for (const p of [
+    "zoning.district",
+    "zoning.max_far_commercial",
+    "transaction.sale",
+    "parcel.num_floors",
+  ]) {
+    assert.ok(all.includes(p), p);
+  }
 });

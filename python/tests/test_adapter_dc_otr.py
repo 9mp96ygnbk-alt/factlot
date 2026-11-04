@@ -178,5 +178,42 @@ class Roll(unittest.TestCase):
             reg.close()
 
 
+class Sales(unittest.TestCase):
+    """The most recent sale ITSPE records on an SSL becomes a transaction.sale fact; no parties, no arm's-length claim."""
+
+    def test_sale_of(self):
+        row = {"SALEPRICE": "25000000", "SALEDATE": "2019/06/01 00:00:00+00", "ACCEPTCODE": "Market Sale",
+               "SALETYPE": "Improved"}
+        self.assertEqual(dc_otr.sale_of(row), {"date": "2019-06-01", "price_usd": 25_000_000,
+                                               "acceptance_code": "Market Sale", "sale_type": "Improved"})
+        # The publisher's code is kept verbatim; nothing is called arm's length.
+        self.assertNotIn("arms_length", dc_otr.sale_of(row))
+        self.assertEqual(dc_otr.sale_of({"SALEPRICE": "0", "SALEDATE": "2021/05/04", "ACCEPTCODE": "Buyer = Seller"}),
+                         {"date": "2021-05-04", "price_usd": 0, "acceptance_code": "Buyer = Seller"})
+
+    def test_blank_and_placeholder_sales_are_not_facts(self):
+        self.assertIsNone(dc_otr.sale_of({"SALEPRICE": "", "SALEDATE": ""}))
+        self.assertIsNone(dc_otr.sale_of({"SALEPRICE": "500000", "SALEDATE": "1900/01/01 05:00:00+00"}))
+        self.assertIsNone(dc_otr.sale_of({"SALEPRICE": "", "SALEDATE": "2020/01/01"}))
+        self.assertIsNone(dc_otr.sale_of({"SALEPRICE": "100", "SALEDATE": "2020/13/45"}))
+        self.assertIsNone(dc_otr.sale_of({"SALEPRICE": "-5", "SALEDATE": "2020/01/01"}))
+
+    def test_roll_ingest_writes_the_sale_with_the_roll_citation(self):
+        with tempfile.TemporaryDirectory() as d:
+            itspe, cama = write_fixture(Path(d))
+            db = Path(d) / "r.db"
+            dc_otr.build(itspe, db, as_of="2026-11-02", cama_path=cama)
+            reg = Registry.open_readonly(db)
+            try:
+                sales = [f for f in reg.facts("fl:parcel:us-11001:01000010") if f["predicate"] == "transaction.sale"]
+                self.assertEqual(len(sales), 1)
+                self.assertEqual(sales[0]["value"], {"date": "2019-06-01", "price_usd": 25_000_000})
+                self.assertEqual(sales[0]["provenance"]["sources"][0]["section"], "ITSPE SSL 0100 0010")
+                self.assertEqual(sales[0]["provenance"]["method"], "public_record")
+                self.assertEqual(sales[0]["rights"]["redistribution"], "attribution_required")
+            finally:
+                reg.close()
+
+
 if __name__ == "__main__":
     unittest.main()

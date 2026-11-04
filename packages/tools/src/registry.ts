@@ -231,6 +231,41 @@ function rights(d: Database, documentId: string): { source: Row; rights: Row } {
   return { source, rights: r };
 }
 
+/**
+ * Predicates a parcel may hold many of at once (one fact per sale). Every other predicate is
+ * single-valued: when two current sources disagree, the newest fact is returned.
+ */
+export const MULTI_VALUED_PREDICATES: ReadonlySet<string> = new Set([
+  "transaction.sale",
+]);
+
+/** Order the facts of a many-valued predicate (sales) newest first, in the slots they occupy. */
+function newestFirst(facts: Row[]): Row[] {
+  const slots: number[] = [];
+  facts.forEach((f, i) => {
+    if (MULTI_VALUED_PREDICATES.has(String(f.predicate))) slots.push(i);
+  });
+  if (slots.length < 2) return facts;
+  const key = (f: Row): [string, number, string] => {
+    const v = (f.value ?? {}) as Row;
+    const price = typeof v.price_usd === "number" ? v.price_usd : -1;
+    return [typeof v.date === "string" ? v.date : "", price, String(f.id)];
+  };
+  const ordered = slots
+    .map((i) => facts[i]!)
+    .sort((a, b) => {
+      const [da, pa, ia] = key(a);
+      const [db, pb, ib] = key(b);
+      if (da !== db) return da < db ? 1 : -1;
+      if (pa !== pb) return pa < pb ? 1 : -1;
+      return ia < ib ? 1 : ia > ib ? -1 : 0;
+    });
+  slots.forEach((i, n) => {
+    facts[i] = ordered[n]!;
+  });
+  return facts;
+}
+
 export function registryFacts(urn: string, history = false): Row[] {
   const d = open();
   const table = history ? "facts" : "current_facts";
@@ -242,7 +277,12 @@ export function registryFacts(urn: string, history = false): Row[] {
   const out: Row[] = [];
   const seen = new Set<unknown>();
   for (const f of rows) {
-    if (!history && seen.has(f.predicate)) continue;
+    if (
+      !history &&
+      seen.has(f.predicate) &&
+      !MULTI_VALUED_PREDICATES.has(String(f.predicate))
+    )
+      continue;
     seen.add(f.predicate);
     const { source, rights: r } = rights(d, String(f.document_id));
     if (f.locator) source.section = f.locator;
@@ -265,7 +305,7 @@ export function registryFacts(urn: string, history = false): Row[] {
       provenance.confidence = f.confidence;
     out.push(fact);
   }
-  return out;
+  return newestFirst(out);
 }
 
 function status(d: Database, urn: string): string {
