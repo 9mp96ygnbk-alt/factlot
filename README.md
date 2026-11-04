@@ -35,6 +35,11 @@ numbers with a difference column of 0.00 (synthetic inputs; ARGUS parity is unte
 claimed). What the registry holds, county by county, and the licence and AI-use rights of every
 source: [coverage](docs/registry/coverage.md) and [rights](docs/registry/rights.md).
 
+**Lease comps, free:** 6,994 federal (GSA) lease comps as cited public-record facts, and an open
+format with `lease_comp_validate` so firms can share comps with each other, each with stated rights,
+no names, and a derived net effective rent ([lease comps](docs/lease-comps.md)). GSA leases are
+government-tenant leases, not market comps for every use.
+
 ## Connect your agent
 
 | Client                         | How                                                                                                                                                                                                                                        |
@@ -109,8 +114,8 @@ Be clear about scope before adopting it:
   **What you can query today** is the downloadable District of Columbia sample (18,077 parcels)
   on a self-hosted FactLot; hosted registry lookups are not open yet. Cook County, Florida, Fulton,
   Maricopa, Wayne, Fairfax, King and much of California wait on a licence decision, a form or a
-  purchase. Several public files omit owner names (Maryland, Utah, Los Angeles, San Francisco); zoning, floor-area
-  ratios, floors and recorded sales only for New York City and DC parcels; no tenants or debt. See
+  purchase. Several public files omit owner names (Maryland, Utah, Los Angeles, San Francisco); zoning, recorded sales, deeds and mortgages,
+  energy benchmarks and CMBS loan data only for some metros ([coverage](docs/registry/coverage.md)); no tenant rosters. See
   [the registry](docs/registry/README.md), the [Tier 1 catalog](docs/registry/sources/README.md)
   and the [Tier 2 index](docs/registry/tier2/README.md).
 - **One rules pack**, the Texas property-tax protest deadline, verified against the official
