@@ -289,6 +289,31 @@ async function main(): Promise<void> {
       restArgs.set(tool, c.arguments);
     }
   }
+  // Lease-comp vectors (spec/vectors/lease_comps.json): same case shape as tools.json.
+  const compSpec = readJson("spec/vectors/lease_comps.json") as {
+    cases: Case[];
+  };
+  for (const c of compSpec.cases) {
+    vectorCount++;
+    const tool = c.tool!;
+    const label = `${tool} ${JSON.stringify(c.arguments).slice(0, 80)}`;
+    const path = pathOf.get(tool);
+    if (!path) {
+      ok(false, `${label}: no REST route`);
+      continue;
+    }
+    const { status, json } = await post(path, c.arguments);
+    ok(status === 200, `${label}: HTTP ${status}`);
+    for (const [k, v] of Object.entries(c.expect ?? {}))
+      ok(
+        same(at(json, k), v),
+        `${label} ${k}: got ${JSON.stringify(at(json, k))}`,
+      );
+    if (status === 200 && !restResults.has(tool)) {
+      restResults.set(tool, json);
+      restArgs.set(tool, c.arguments);
+    }
+  }
   // Document-verification vectors: pages are written once under `documents` and referenced as
   // {"$pages": name}; resolve them the way packages/tools/src/documents.test.ts does.
   const docSpec = readJson("spec/vectors/documents.json") as {
