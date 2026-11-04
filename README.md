@@ -35,7 +35,7 @@ numbers with a difference column of 0.00 (synthetic inputs; ARGUS parity is unte
 claimed). What the registry holds, county by county, and the licence and AI-use rights of every
 source: [coverage](docs/registry/coverage.md) and [rights](docs/registry/rights.md).
 
-**Lease comps, free:** 6,994 federal (GSA) lease comps as cited public-record facts, and an open
+**Lease comps, free:** [6,994 federal (GSA) lease comps](https://github.com/9mp96ygnbk-alt/factlot/releases/tag/lease-comps-gsa-2026-11-04) (5.3 MB, public domain) as cited public-record facts, and an open
 format with `lease_comp_validate` so firms can share comps with each other, each with stated rights,
 no names, and a derived net effective rent ([lease comps](docs/lease-comps.md)). GSA leases are
 government-tenant leases, not market comps for every use.
