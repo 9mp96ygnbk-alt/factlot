@@ -1,0 +1,524 @@
+{
+  "rule": "wa_cbps_eui_target",
+  "calculator": "rules.wa.cbps_eui_target",
+  "version": 1,
+  "status": "draft",
+  "note": "Expected values computed by spec/vectors/rules/drafts/reference.py in exact decimal arithmetic from the reference tables in this directory, not by either SDK.",
+  "cases": [
+    {
+      "name": "single office at 50 hours, WNEUI equal to the target",
+      "input": {
+        "climate_zone": "4C",
+        "spaces": [
+          {
+            "activity": 69,
+            "floor_area_sf": 100000,
+            "weekly_operating_hours": 50
+          }
+        ],
+        "weather_normalized_eui": 50.4
+      },
+      "expect": {
+        "value.status": "draft",
+        "value.rule.verification.status": "draft",
+        "formula.id": "rules.wa.cbps_eui_target",
+        "value.climate_zone_used": "4C",
+        "value.eui_target_before_recent_reduction": 50.4,
+        "value.eui_target": 50.4,
+        "value.meets_target": true,
+        "value.tier": null,
+        "value.initial_compliance_date": null
+      }
+    },
+    {
+      "name": "office with a recent retail addition, 5C mapped to 4C, Tier 1 cohort 2027",
+      "input": {
+        "climate_zone": "5C",
+        "spaces": [
+          {
+            "activity": 69,
+            "floor_area_sf": 80000,
+            "weekly_operating_hours": 60
+          },
+          {
+            "activity": 94,
+            "floor_area_sf": 20000,
+            "weekly_operating_hours": 40,
+            "more_recently_built": true
+          }
+        ],
+        "weather_normalized_eui": 60,
+        "coverage": {
+          "nonresidential_hotel_motel_dormitory_sf": 100000,
+          "multifamily_residential_sf": 0,
+          "gross_floor_area_sf": 100000
+        }
+      },
+      "expect": {
+        "value.status": "draft",
+        "value.rule.verification.status": "draft",
+        "formula.id": "rules.wa.cbps_eui_target",
+        "value.climate_zone_used": "4C",
+        "value.eui_target_before_recent_reduction": 58.56,
+        "value.eui_target": 57.34,
+        "value.meets_target": false,
+        "value.tier": "tier1",
+        "value.initial_compliance_date": "2027-06-01"
+      }
+    },
+    {
+      "name": "hospital around the clock, 6B mapped to 5B",
+      "input": {
+        "climate_zone": "6B",
+        "spaces": [
+          {
+            "activity": 51,
+            "floor_area_sf": 300000,
+            "weekly_operating_hours": 168
+          }
+        ],
+        "weather_normalized_eui": 214.9,
+        "coverage": {
+          "nonresidential_hotel_motel_dormitory_sf": 300000,
+          "multifamily_residential_sf": 0,
+          "gross_floor_area_sf": 300000
+        }
+      },
+      "expect": {
+        "value.status": "draft",
+        "value.rule.verification.status": "draft",
+        "formula.id": "rules.wa.cbps_eui_target",
+        "value.climate_zone_used": "5B",
+        "value.eui_target_before_recent_reduction": 215.0,
+        "value.eui_target": 215.0,
+        "value.meets_target": true,
+        "value.tier": "tier1",
+        "value.initial_compliance_date": "2026-06-01"
+      }
+    },
+    {
+      "name": "recently built office misses the reduced target but not the unreduced one",
+      "input": {
+        "climate_zone": "4C",
+        "spaces": [
+          {
+            "activity": 73,
+            "floor_area_sf": 60000,
+            "weekly_operating_hours": 55,
+            "more_recently_built": true
+          }
+        ],
+        "weather_normalized_eui": 60
+      },
+      "expect": {
+        "value.status": "draft",
+        "value.rule.verification.status": "draft",
+        "formula.id": "rules.wa.cbps_eui_target",
+        "value.climate_zone_used": "4C",
+        "value.eui_target_before_recent_reduction": 66.0,
+        "value.eui_target": 56.1,
+        "value.meets_target": false,
+        "value.tier": null,
+        "value.initial_compliance_date": null
+      }
+    },
+    {
+      "name": "weekly hours at 51 and 167 use the middle column",
+      "input": {
+        "climate_zone": "5B",
+        "spaces": [
+          {
+            "activity": 94,
+            "floor_area_sf": 30000,
+            "weekly_operating_hours": 51
+          },
+          {
+            "activity": 47,
+            "floor_area_sf": 30000,
+            "weekly_operating_hours": 167
+          },
+          {
+            "activity": 110,
+            "floor_area_sf": 40000,
+            "weekly_operating_hours": 0
+          }
+        ]
+      },
+      "expect": {
+        "value.status": "draft",
+        "value.rule.verification.status": "draft",
+        "formula.id": "rules.wa.cbps_eui_target",
+        "value.climate_zone_used": "5B",
+        "value.eui_target_before_recent_reduction": 90.04,
+        "value.eui_target": 90.04,
+        "value.meets_target": null,
+        "value.tier": null,
+        "value.initial_compliance_date": null
+      }
+    },
+    {
+      "name": "three-way mix with uneven areas",
+      "input": {
+        "climate_zone": "4C",
+        "spaces": [
+          {
+            "activity": 61,
+            "floor_area_sf": 123456.7,
+            "weekly_operating_hours": 168
+          },
+          {
+            "activity": 44,
+            "floor_area_sf": 7000.3,
+            "weekly_operating_hours": 80
+          },
+          {
+            "activity": 112,
+            "floor_area_sf": 25000,
+            "weekly_operating_hours": 45
+          }
+        ],
+        "weather_normalized_eui": 40.0
+      },
+      "expect": {
+        "value.status": "draft",
+        "value.rule.verification.status": "draft",
+        "formula.id": "rules.wa.cbps_eui_target",
+        "value.climate_zone_used": "4C",
+        "value.eui_target_before_recent_reduction": 47.93,
+        "value.eui_target": 47.93,
+        "value.meets_target": true,
+        "value.tier": null,
+        "value.initial_compliance_date": null
+      }
+    },
+    {
+      "name": "Tier 1 at exactly 220,000 gsf falls in the 2027 cohort",
+      "input": {
+        "climate_zone": "4C",
+        "spaces": [
+          {
+            "activity": 69,
+            "floor_area_sf": 220000,
+            "weekly_operating_hours": 50
+          }
+        ],
+        "coverage": {
+          "nonresidential_hotel_motel_dormitory_sf": 220000,
+          "multifamily_residential_sf": 0,
+          "gross_floor_area_sf": 220000
+        }
+      },
+      "expect": {
+        "value.status": "draft",
+        "value.rule.verification.status": "draft",
+        "formula.id": "rules.wa.cbps_eui_target",
+        "value.climate_zone_used": "4C",
+        "value.eui_target_before_recent_reduction": 50.4,
+        "value.eui_target": 50.4,
+        "value.meets_target": null,
+        "value.tier": "tier1",
+        "value.initial_compliance_date": "2027-06-01"
+      }
+    },
+    {
+      "name": "Tier 1 just over 220,000 gsf falls in the 2026 cohort",
+      "input": {
+        "climate_zone": "4C",
+        "spaces": [
+          {
+            "activity": 69,
+            "floor_area_sf": 220001,
+            "weekly_operating_hours": 50
+          }
+        ],
+        "coverage": {
+          "nonresidential_hotel_motel_dormitory_sf": 220001,
+          "multifamily_residential_sf": 0,
+          "gross_floor_area_sf": 220001
+        }
+      },
+      "expect": {
+        "value.status": "draft",
+        "value.rule.verification.status": "draft",
+        "formula.id": "rules.wa.cbps_eui_target",
+        "value.climate_zone_used": "4C",
+        "value.eui_target_before_recent_reduction": 50.4,
+        "value.eui_target": 50.4,
+        "value.meets_target": null,
+        "value.tier": "tier1",
+        "value.initial_compliance_date": "2026-06-01"
+      }
+    },
+    {
+      "name": "Tier 1 at exactly 90,000 gsf falls in the 2028 cohort",
+      "input": {
+        "climate_zone": "4C",
+        "spaces": [
+          {
+            "activity": 69,
+            "floor_area_sf": 90000,
+            "weekly_operating_hours": 50
+          }
+        ],
+        "coverage": {
+          "nonresidential_hotel_motel_dormitory_sf": 90000,
+          "multifamily_residential_sf": 0,
+          "gross_floor_area_sf": 90000
+        }
+      },
+      "expect": {
+        "value.status": "draft",
+        "value.rule.verification.status": "draft",
+        "formula.id": "rules.wa.cbps_eui_target",
+        "value.climate_zone_used": "4C",
+        "value.eui_target_before_recent_reduction": 50.4,
+        "value.eui_target": 50.4,
+        "value.meets_target": null,
+        "value.tier": "tier1",
+        "value.initial_compliance_date": "2028-06-01"
+      }
+    },
+    {
+      "name": "Tier 2 by size",
+      "input": {
+        "climate_zone": "4C",
+        "spaces": [
+          {
+            "activity": 94,
+            "floor_area_sf": 30000,
+            "weekly_operating_hours": 60
+          }
+        ],
+        "coverage": {
+          "nonresidential_hotel_motel_dormitory_sf": 30000,
+          "multifamily_residential_sf": 0,
+          "gross_floor_area_sf": 30000
+        }
+      },
+      "expect": {
+        "value.status": "draft",
+        "value.rule.verification.status": "draft",
+        "formula.id": "rules.wa.cbps_eui_target",
+        "value.climate_zone_used": "4C",
+        "value.eui_target_before_recent_reduction": 68.0,
+        "value.eui_target": 68.0,
+        "value.meets_target": null,
+        "value.tier": "tier2",
+        "value.initial_compliance_date": "2027-07-01"
+      }
+    },
+    {
+      "name": "large multifamily building is Tier 2",
+      "input": {
+        "climate_zone": "4C",
+        "spaces": [
+          {
+            "activity": 61,
+            "floor_area_sf": 80000,
+            "weekly_operating_hours": 168
+          }
+        ],
+        "coverage": {
+          "nonresidential_hotel_motel_dormitory_sf": 0,
+          "multifamily_residential_sf": 80000,
+          "gross_floor_area_sf": 80000
+        }
+      },
+      "expect": {
+        "value.status": "draft",
+        "value.rule.verification.status": "draft",
+        "formula.id": "rules.wa.cbps_eui_target",
+        "value.climate_zone_used": "4C",
+        "value.eui_target_before_recent_reduction": 32.0,
+        "value.eui_target": 32.0,
+        "value.meets_target": null,
+        "value.tier": "tier2",
+        "value.initial_compliance_date": "2027-07-01"
+      }
+    },
+    {
+      "name": "20,000 sf is not covered",
+      "input": {
+        "climate_zone": "4C",
+        "spaces": [
+          {
+            "activity": 94,
+            "floor_area_sf": 20000,
+            "weekly_operating_hours": 60
+          }
+        ],
+        "coverage": {
+          "nonresidential_hotel_motel_dormitory_sf": 20000,
+          "multifamily_residential_sf": 0,
+          "gross_floor_area_sf": 20000
+        }
+      },
+      "expect": {
+        "value.status": "draft",
+        "value.rule.verification.status": "draft",
+        "formula.id": "rules.wa.cbps_eui_target",
+        "value.climate_zone_used": "4C",
+        "value.eui_target_before_recent_reduction": 68.0,
+        "value.eui_target": 68.0,
+        "value.meets_target": null,
+        "value.tier": "not_covered",
+        "value.initial_compliance_date": null
+      }
+    },
+    {
+      "name": "mixed 40,000 nonresidential and 30,000 multifamily is not settled by the definitions",
+      "input": {
+        "climate_zone": "4C",
+        "spaces": [
+          {
+            "activity": 94,
+            "floor_area_sf": 40000,
+            "weekly_operating_hours": 60
+          },
+          {
+            "activity": 61,
+            "floor_area_sf": 30000,
+            "weekly_operating_hours": 168
+          }
+        ],
+        "coverage": {
+          "nonresidential_hotel_motel_dormitory_sf": 40000,
+          "multifamily_residential_sf": 30000,
+          "gross_floor_area_sf": 70000
+        }
+      },
+      "expect": {
+        "value.status": "draft",
+        "value.rule.verification.status": "draft",
+        "formula.id": "rules.wa.cbps_eui_target",
+        "value.climate_zone_used": "4C",
+        "value.eui_target_before_recent_reduction": 52.57,
+        "value.eui_target": 52.57,
+        "value.meets_target": null,
+        "value.tier": "undetermined",
+        "value.initial_compliance_date": null
+      }
+    },
+    {
+      "name": "medical office row 52 has no target",
+      "input": {
+        "climate_zone": "4C",
+        "spaces": [
+          {
+            "activity": 52,
+            "floor_area_sf": 1000,
+            "weekly_operating_hours": 40
+          }
+        ]
+      },
+      "expect_error": true
+    },
+    {
+      "name": "data center has no target",
+      "input": {
+        "climate_zone": "4C",
+        "spaces": [
+          {
+            "activity": 100,
+            "floor_area_sf": 1000,
+            "weekly_operating_hours": 168
+          }
+        ]
+      },
+      "expect_error": true
+    },
+    {
+      "name": "activity 0",
+      "input": {
+        "climate_zone": "4C",
+        "spaces": [
+          {
+            "activity": 0,
+            "floor_area_sf": 1000,
+            "weekly_operating_hours": 40
+          }
+        ]
+      },
+      "expect_error": true
+    },
+    {
+      "name": "activity 114",
+      "input": {
+        "climate_zone": "4C",
+        "spaces": [
+          {
+            "activity": 114,
+            "floor_area_sf": 1000,
+            "weekly_operating_hours": 40
+          }
+        ]
+      },
+      "expect_error": true
+    },
+    {
+      "name": "169 weekly hours",
+      "input": {
+        "climate_zone": "4C",
+        "spaces": [
+          {
+            "activity": 69,
+            "floor_area_sf": 1000,
+            "weekly_operating_hours": 169
+          }
+        ]
+      },
+      "expect_error": true
+    },
+    {
+      "name": "fractional weekly hours",
+      "input": {
+        "climate_zone": "4C",
+        "spaces": [
+          {
+            "activity": 69,
+            "floor_area_sf": 1000,
+            "weekly_operating_hours": 50.5
+          }
+        ]
+      },
+      "expect_error": true
+    },
+    {
+      "name": "climate zone not used in Washington",
+      "input": {
+        "climate_zone": "4A",
+        "spaces": [
+          {
+            "activity": 69,
+            "floor_area_sf": 1000,
+            "weekly_operating_hours": 40
+          }
+        ]
+      },
+      "expect_error": true
+    },
+    {
+      "name": "misspelled field",
+      "input": {
+        "climate_zone": "4C",
+        "spaces": [
+          {
+            "activity": 69,
+            "floor_area_sf": 1000,
+            "weekly_operating_hours": 40
+          }
+        ],
+        "wneui": 50
+      },
+      "expect_error": true
+    },
+    {
+      "name": "no spaces",
+      "input": {
+        "climate_zone": "4C",
+        "spaces": []
+      },
+      "expect_error": true
+    }
+  ]
+}

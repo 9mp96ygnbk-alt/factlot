@@ -128,4 +128,7 @@ cases.extend(doc_cases(int(sys.argv[1]), int(sys.argv[2])))
 # valuation calculators: also their own random stream
 from gen_valuation import valuation_cases
 cases.extend(valuation_cases(int(sys.argv[1]), int(sys.argv[2])))
+# draft rules packs: also their own random stream
+from gen_drafts import draft_cases
+cases.extend(draft_cases(int(sys.argv[1]), int(sys.argv[2])))
 json.dump(cases,open(sys.argv[3],"w"))
