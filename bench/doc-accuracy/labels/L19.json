@@ -1,0 +1,49 @@
+{
+ "doc": "L19",
+ "labels": [
+  {
+   "predicate": "lease.landlord",
+   "value": "LG Tallahassee Market Square, LLC",
+   "page": 3,
+   "quote": "LG Tallahassee Market Square, LLC, a Texas limited liability company (“Landlord”)"
+  },
+  {
+   "predicate": "lease.tenant",
+   "value": "Prime Meridian Bank",
+   "page": 3,
+   "quote": "Prime Meridian Bank, a Florida banking corporation (“Tenant”)",
+   "note": "Filer is Prime Meridian Holding Co; the lease names its bank subsidiary as Tenant. Section 1 states 'Guarantor: N/A'."
+  },
+  {
+   "predicate": "lease.rentable_area_sf",
+   "value": 14727,
+   "page": 3,
+   "quote": "Approximately 14,727 square foot building",
+   "note": "Ambiguity: the stated rents imply about 14,700 square feet ($294,000 / $20.00 PSF), not 14,727. Rent Commencement Date is 120 days after the Delivery Date, which depends on Landlord's Work and a lot line adjustment (Sections 2(b), 2(d), 4(a)), so commencement, expiration and dated rent steps are not labeled. Minimum Annual Rent is $20.00/$22.00/$24.20 PSF for Lease Years 1-5/6-10/11-15."
+  },
+  {
+   "predicate": "lease.renewal_option",
+   "value": {
+    "count": 4,
+    "term_months": 60,
+    "notice_months": 6,
+    "rent": "110% of the Minimum Annual Rent of the last Lease Year or Renewal Term"
+   },
+   "page": 6,
+   "quote": "to renew the Term of the Lease for four (4) consecutive Five (5) year renewal terms (each a “Renewal Term”)",
+   "note": "Notice at least 180 days before expiration, recorded as 6 months. Only valid while the original Tenant (or a merger/branch-asset successor) occupies the premises."
+  },
+  {
+   "predicate": "lease.exclusive_use",
+   "value": "While Tenant is open and not in default, Landlord will not enter into a new lease in adjacent Landlord- or affiliate-controlled property to a banking institution with a branch; excludes drugstores, convenience, department or grocery stores offering ancillary services, in-store ATMs, and Existing Tenants.",
+   "page": 10,
+   "quote": "Landlord will not enter into a new lease in any adjacent property controlled by Landlord or an affiliate of Landlord at such time to any person or entity which is a banking institution that includes a branch"
+  },
+  {
+   "predicate": "lease.assignment_sublease",
+   "value": "Any Transfer or sublease requires Landlord's prior written consent, not to be withheld unreasonably; 60 days' notice with Transferee details and a Transfer Fee; Landlord responds within 30 business days.",
+   "page": 25,
+   "quote": "without the prior written consent of Landlord, which consent shall not be withheld unreasonably by Landlord"
+  }
+ ]
+}
