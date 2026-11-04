@@ -1,0 +1,87 @@
+{
+ "doc": "L14",
+ "labels": [
+  {
+   "predicate": "lease.landlord",
+   "value": "USCIF Pinnacle Building B LLC",
+   "page": 3,
+   "quote": "USCIF Pinnacle Building B LLC,\n\na Delaware limited liability company",
+   "note": "The cover page spells the landlord 'USCIF PINNACE BUILDING B LLC'; Basic Lease Provisions Item 2 spells it 'Pinnacle'. The Item 2 spelling is used."
+  },
+  {
+   "predicate": "lease.tenant",
+   "value": "SOW Good Inc.",
+   "page": 3,
+   "quote": "SOW Good Inc., a Delaware corporation"
+  },
+  {
+   "predicate": "lease.commencement_date",
+   "value": "2024-05-22",
+   "page": 6,
+   "quote": "commencing on May 22, 2024 (the “Commencement Date”)"
+  },
+  {
+   "predicate": "lease.expiration_date",
+   "value": "2029-06-30",
+   "page": 3,
+   "quote": "Expiration Date (Paragraph 1):\n\nJune 30, 2029",
+   "note": "Item 7 says the Initial Term is 62 Lease Months ending on the last day of the 62nd Lease Month, and Paragraph 2(a) defines a Lease Month as each full calendar month; counting from June 2024 that ends July 31, 2029, which conflicts with the stated June 30, 2029. The stated date is labeled. Because of the conflict, the Item 10 rent table (Lease Months 1-12 $4.53 ... 61-62 $11.01 per SF) is not converted to dated steps."
+  },
+  {
+   "predicate": "lease.rentable_area_sf",
+   "value": 324000,
+   "page": 3,
+   "quote": "containing approximately 324,000 rentable square feet (“Rentable Area”)"
+  },
+  {
+   "predicate": "lease.free_rent",
+   "value": {
+    "months": 2,
+    "applies_to": "gross_rent"
+   },
+   "page": 4,
+   "quote": "*Base Rent for Lease Months 13 and 14 shall be abated, subject to the provisions of Paragraph 33(w).",
+   "note": "Operating Expenses for Lease Months 13 and 14 are also abated (next footnote), so applies_to is gross_rent. Separately, Paragraph 1(c) defers Base Rent during Early Possession until Tenant commences operations; not counted."
+  },
+  {
+   "predicate": "lease.pro_rata_share",
+   "value": 1,
+   "page": 4,
+   "quote": "Building: 100.00% (324,000/324,000)"
+  },
+  {
+   "predicate": "lease.security_deposit",
+   "value": 1000000,
+   "page": 4,
+   "quote": "$1,000,000.00, in the form of a letter of credit.",
+   "note": "Letter of credit; may reduce to $0 ninety days after an EBITDA-based Reduction Condition (Paragraph 2(b)(iii))."
+  },
+  {
+   "predicate": "lease.cam_cap",
+   "value": {
+    "method": "compounding_from_base",
+    "rate": 0.07
+   },
+   "page": 12,
+   "quote": "shall be limited to 7% per calendar year on a cumulative, compounded basis",
+   "note": "Applies to Controllable Operating Expenses for each calendar year after 2025; unrecovered increases carry forward (Paragraph 3(c)(v))."
+  },
+  {
+   "predicate": "lease.renewal_option",
+   "value": {
+    "count": 1,
+    "term_months": 60,
+    "rent": "Fixed schedule in Exhibit G: $11.01 rising to $12.88 per SF over Lease Months 63-122"
+   },
+   "page": 50,
+   "quote": "Tenant may renew this Lease for one (1) additional period of five (5) years (the “Renewal Term”), by delivering written notice of the exercise thereof to Landlord between Lease Months 31 and 34 (or earlier).",
+   "note": "Notice is due during Lease Months 31-34 (or earlier), measured from the start of the term, not before expiration; given the Lease Month count conflict noted on expiration_date, notice_months is omitted. The option ends on any assignment or sublease."
+  },
+  {
+   "predicate": "lease.assignment_sublease",
+   "value": "Assignment, subletting or encumbrance requires Landlord's prior written consent, not to be unreasonably withheld, conditioned or delayed; certain merger, asset-sale and affiliate assignments are allowed without consent on 15 business days' notice.",
+   "page": 17,
+   "quote": "Tenant shall not directly or indirectly, by operation of law or otherwise, assign, sublet, mortgage, hypothecate or otherwise encumber all or any portion of its interest in this Lease or in the Premises or grant any license in any person other than Tenant or its employees to use or occupy the Premises or any part thereof without obtaining the prior written consent of Landlord, which consent shall not be unreasonably withheld, conditioned, or delayed."
+  }
+ ]
+}
