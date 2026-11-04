@@ -47,3 +47,4 @@ One extraction, `candidates/L01.json` … `L20.json`, produced by `candidates/ex
 - L06: CLI JSON parse failed (concatenated objects); facts decoded by the fallback above.
 - L07: CLI JSON parse failed (concatenated objects); facts decoded by the fallback above.
 - L12: CLI JSON parse failed (concatenated objects); facts decoded by the fallback above.
+- L13: CLI JSON parse failed (concatenated objects); facts decoded by the fallback above.
