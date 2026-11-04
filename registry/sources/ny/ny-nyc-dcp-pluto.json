@@ -1,0 +1,29 @@
+{
+  "description": "NYC Department of City Planning PLUTO for the FactLot Registry collector. See docs/registry/data-policy.md, docs/registry/collection.md, and the review record in docs/registry/sources/ny-nyc-dcp-pluto.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "ny-nyc-dcp-pluto",
+      "publisher": "New York City Department of City Planning (via NYC Open Data)",
+      "landing_pages": [
+        "https://data.cityofnewyork.us/api/views/64uk-42ks.json"
+      ],
+      "allowed_hosts": ["data.cityofnewyork.us"],
+      "link_patterns": ["/(api/views|resource)/64uk-42ks"],
+      "files": [
+        "https://data.cityofnewyork.us/resource/64uk-42ks.csv?$select=bbl,zonedist1,zonedist2,zonedist3,zonedist4,overlay1,overlay2,spdist1,spdist2,spdist3,ltdheight,splitzone,landuse,comarea,resarea,officearea,retailarea,garagearea,strgearea,factryarea,otherarea,numbldgs,numfloors,unitsres,unitstotal,yearalter1,yearalter2,histdist,landmark,builtfar,residfar,commfar,facilfar,mnffar,affresfar,edesignum,version,zoningdate&$where=starts_with(bldgclass,'C')%20OR%20starts_with(bldgclass,'D')%20OR%20starts_with(bldgclass,'E')%20OR%20starts_with(bldgclass,'F')%20OR%20starts_with(bldgclass,'G')%20OR%20starts_with(bldgclass,'H')%20OR%20starts_with(bldgclass,'I')%20OR%20starts_with(bldgclass,'J')%20OR%20starts_with(bldgclass,'K')%20OR%20starts_with(bldgclass,'L')%20OR%20starts_with(bldgclass,'O')%20OR%20starts_with(bldgclass,'R')%20OR%20starts_with(bldgclass,'S')&$order=bbl&$limit=500000"
+      ],
+      "verified": true,
+      "terms_url": "https://www.nyc.gov/opendata/get-started/FAQs",
+      "license": "Published on NYC Open Data under the NYC Open Data Law (Admin. Code §23-502). NYC Open Data FAQ: 'Open Data belongs to all New Yorkers. There are no restrictions on the use of Open Data.' DCP provides PLUTO for informational purposes only and does not warrant its completeness, accuracy or fitness for any purpose.",
+      "ai_use": "Not addressed by the publisher; the FAQ states there are no restrictions on the use of Open Data",
+      "redistribution": "Permitted: 'no restrictions on the use of Open Data' (FAQ). Attribution: New York City Department of City Planning (DCP), PLUTO",
+      "reviewed": "2026-11-03",
+      "notes": "PLUTO version 26v2, NYC Open Data dataset 64uk-42ks (858,284 lots), data last updated 2026-08-24. One SODA request with a $select of the columns the adapter reads (no owner name, no lot polygon) and a $where limited to building-class letters that can hold commercial, industrial or multifamily lots (C, D, E, F, G, H, I, J, K, L, O, R, S: 245,602 lots); the adapter then keeps only lots the DOF roll (ny-nyc-dof) already holds. DCP's own copy (Bytes of the Big Apple on nyc.gov) is rendered by JavaScript and its file links could not be read; the db-pluto DigitalOcean Spaces mirror answers 403, so it was not used. data.cityofnewyork.us robots.txt: Crawl-delay 1; only /browse search pages disallowed. The Tyler/Socrata platform terms are in tension with bulk export (see ny-nyc-dof and docs/registry/requests/platform-terms/socrata.md); the agency licence is relied on."
+    }
+  ]
+}

@@ -34,7 +34,8 @@ an easement).
   `yjxr-fw8i` "Property Valuation and Assessment Data" is historical (last updated 2020).
 - PLUTO (Department of City Planning, dataset `64uk-42ks`, 26v2) was not loaded: the DOF roll already
   carries land area, gross building area, units, year built, building class and owner, so PLUTO
-  would add zoning, land-use and floor-area detail only. Candidate for a later source.
+  would add zoning, land-use and floor-area detail only. It is now loaded as an enrichment source: see
+  [ny-nyc-dcp-pluto](ny-nyc-dcp-pluto.md); the sales files as [ny-nyc-dof-sales](ny-nyc-dof-sales.md).
 - Building class definitions: <https://www.nyc.gov/assets/finance/jump/hlpbldgcode.html>
   ("NYC Building Classifications", read 2026-11-02).
 
@@ -179,6 +180,6 @@ python -m factlot.registry.adapters.ny_nyc collected/ny-nyc-dof/c3d135953903eb22
   record in scope, and its commercial units are separate parcels.
 - The tax class 1 file (`fy27_tc1.zip`) is not loaded: it contains no `B`, `F1` or `F2` classes
   except mixed-use 1–2 family stores (S0–S2), which are out of scope.
-- PLUTO (zoning, land use, floor-area ratios, geometry) is not loaded.
+- PLUTO's zoning, land use and floor-area ratios are loaded separately ([ny-nyc-dcp-pluto](ny-nyc-dcp-pluto.md); geometry is not).
 - The roll is annual (tentative in January, final in May); the Socrata copy adds change-by-notice
   and current values but is slow to export.
