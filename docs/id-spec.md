@@ -193,7 +193,7 @@ v0.3 has none, keeps rule 1, and `registry_resolve_parcel` resolves an APN in it
 
 An APN whose rule 1 and rule 2 IDs differ is one written with separators outside the counties
 above, or an unpadded NYC BBL. Measured on the raw APNs of the registry files built so far
-(about 1.97 million parcels, 2026-11-04): about 218,000 parcels (11%) in 113 counties, all of
+(1,921,462 parcels, 2026-11-04): 223,181 parcels (12%) in 113 counties, all of
 them in the 389-county expansion build: 72 Arkansas counties, all 8 Connecticut and 14 Vermont
 counties, 11 Minnesota and 5 North Carolina counties, DeKalb (GA), Marion (IN) and Baltimore
 City (MD). The DC sample, Los Angeles, Denver, Hennepin, Mecklenburg, the five New York City
