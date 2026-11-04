@@ -1,6 +1,6 @@
 {
   "calculator": "calc.lease_remeasurement_asc842",
-  "version": 1,
+  "version": 2,
   "cases": [
     {
       "name": "operating lease, term extended, monthly payments in arrears, rate updated",
@@ -134,18 +134,20 @@
         "value.schedule.1.opening_liability": 216756.8,
         "value.schedule.1.payment": 10000.0,
         "value.schedule.1.interest": 1083.78,
-        "value.schedule.1.closing_liability": 207840.59,
+        "value.schedule.1.closing_liability": 207840.58,
         "value.schedule.1.amortization": 8499.55,
         "value.schedule.1.closing_rou_asset": 198673.92,
         "value.schedule.1.lease_cost": 9583.33,
         "value.schedule.23.period": 24,
-        "value.schedule.23.opening_liability": 9950.25,
+        "value.schedule.23.opening_liability": 9950.23,
         "value.schedule.23.payment": 10000.0,
-        "value.schedule.23.interest": 49.75,
+        "value.schedule.23.interest": 49.77,
         "value.schedule.23.closing_liability": 0.0,
-        "value.schedule.23.amortization": 9533.58,
+        "value.schedule.23.amortization": 9533.64,
         "value.schedule.23.closing_rou_asset": 0.0,
-        "value.schedule.23.lease_cost": 9583.33
+        "value.schedule.23.lease_cost": 9583.41,
+        "value.total_lease_cost": 230000,
+        "value.total_amortization": 215628.66
       },
       "notes": "PV = 10,000 × (1 − 1.005^−24) ÷ 0.005 at 50-digit decimal; straight-line cost = (240,000 + new ROU − new liability) ÷ 24; schedule rows re-derived period by period."
     },
@@ -216,14 +218,16 @@
         "value.schedule.0.closing_rou_asset": 137199.81,
         "value.schedule.0.lease_cost": 22835.97,
         "value.schedule.7.period": 8,
-        "value.schedule.7.opening_liability": 25000.0,
+        "value.schedule.7.opening_liability": 25000.01,
         "value.schedule.7.payment": 25000.0,
-        "value.schedule.7.interest": 0.0,
+        "value.schedule.7.interest": -0.01,
         "value.schedule.7.closing_liability": 0.0,
-        "value.schedule.7.amortization": 19599.97,
+        "value.schedule.7.amortization": 19599.99,
         "value.schedule.7.closing_rou_asset": 0.0,
-        "value.schedule.7.lease_cost": 19599.97,
-        "warnings.0": "Finance-lease amortization runs straight-line over the remaining lease term; use the remaining useful life instead when ownership transfers or a purchase option is reasonably certain (ASC 842-20-35-8)."
+        "value.schedule.7.lease_cost": 19599.98,
+        "warnings.0": "Finance-lease amortization runs straight-line over the remaining lease term; use the remaining useful life instead when ownership transfers or a purchase option is reasonably certain (ASC 842-20-35-8).",
+        "value.total_lease_cost": 170000,
+        "value.total_amortization": 156799.78
       },
       "notes": "Annuity due: 25,000 × Σ 1.02^−(k−1), k = 1..8. Interest in period k accrues on (opening liability − payment). Amortization = new ROU ÷ 8."
     },
@@ -275,7 +279,11 @@
         "value.straight_line_lease_cost": 28.85,
         "value.periodic_amortization": null,
         "value.total_interest": 173.07,
-        "warnings.0": "The liability decrease exceeded the ROU asset carrying amount; the excess is recognized in profit or loss (ASC 842-20-35-4)."
+        "warnings.0": "The liability decrease exceeded the ROU asset carrying amount; the excess is recognized in profit or loss (ASC 842-20-35-4).",
+        "value.schedule.5.closing_liability": 0,
+        "value.schedule.5.closing_rou_asset": 0,
+        "value.total_lease_cost": 173.07,
+        "value.total_amortization": 0
       },
       "notes": "ROU adjustment = max(liability adjustment, −5,000); gain = ROU adjustment − liability adjustment (ASC 842-20-35-4)."
     },
@@ -316,7 +324,11 @@
         "value.periodic_amortization": null,
         "value.total_interest": 29.75,
         "warnings.0": "ASC 842-10-35-5 (and 842-10-25-11 for modifications) require a discount rate determined at the remeasurement date for this event; discount_rate_updated is false.",
-        "warnings.1": "ASC 842-10-25-13: a modification that fully or partially terminates the lease requires a proportionate reduction of the ROU asset with a gain or loss. This result applies the ASC 842-20-35-4 liability-change adjustment only; decide whether the shortened term is a partial termination."
+        "warnings.1": "ASC 842-10-25-13: a modification that fully or partially terminates the lease requires a proportionate reduction of the ROU asset with a gain or loss. This result applies the ASC 842-20-35-4 liability-change adjustment only; decide whether the shortened term is a partial termination.",
+        "value.schedule.2.closing_liability": 0,
+        "value.schedule.2.closing_rou_asset": 0,
+        "value.total_lease_cost": 2800,
+        "value.total_amortization": 2770.25
       },
       "notes": "PV = 1,000 × Σ 1.005^−k, k = 1..3."
     },
@@ -368,7 +380,9 @@
         "value.schedule.3.closing_liability": 0.0,
         "value.schedule.3.amortization": 500.0,
         "value.schedule.3.closing_rou_asset": 0.0,
-        "value.schedule.3.lease_cost": 500.0
+        "value.schedule.3.lease_cost": 500.0,
+        "value.total_lease_cost": 2000,
+        "value.total_amortization": 2000
       },
       "notes": "At r = 0 the liability equals the undiscounted payments; straight-line cost = 2,000 ÷ 4 = 500 per period."
     },
@@ -455,13 +469,15 @@
         "value.schedule.11.period": 12,
         "value.schedule.11.opening_liability": 12427.5,
         "value.schedule.11.payment": 12500.0,
-        "value.schedule.11.interest": 72.49,
+        "value.schedule.11.interest": 72.5,
         "value.schedule.11.closing_liability": 0.0,
         "value.schedule.11.amortization": 10372.0,
         "value.schedule.11.closing_rou_asset": 0.0,
-        "value.schedule.11.lease_cost": 10444.49,
+        "value.schedule.11.lease_cost": 10444.5,
         "warnings.0": "ASC 842-10-35-4: a change in an index or rate alone does not remeasure the liability; payments are updated for the index only when the liability is remeasured for another reason. Otherwise the difference is variable lease cost in the period incurred.",
-        "warnings.1": "Finance-lease amortization runs straight-line over the remaining lease term; use the remaining useful life instead when ownership transfers or a purchase option is reasonably certain (ASC 842-20-35-8)."
+        "warnings.1": "Finance-lease amortization runs straight-line over the remaining lease term; use the remaining useful life instead when ownership transfers or a purchase option is reasonably certain (ASC 842-20-35-8).",
+        "value.total_lease_cost": 130000,
+        "value.total_amortization": 124464
       },
       "notes": "PV = 12,500 × Σ (1 + 0.07/12)^−k, k = 1..12; finance schedule: interest = opening × r, amortization = new ROU ÷ 12."
     },
@@ -513,9 +529,376 @@
         "value.straight_line_lease_cost": 3833.33,
         "value.periodic_amortization": null,
         "value.total_interest": 726.26,
-        "warnings.0": "ASC 842-10-35-5(b)-(c): the discount rate is not updated for a contingency resolution or a change in amounts probable under a residual value guarantee; discount_rate_updated is true."
+        "warnings.0": "ASC 842-10-35-5(b)-(c): the discount rate is not updated for a contingency resolution or a change in amounts probable under a residual value guarantee; discount_rate_updated is true.",
+        "value.schedule.5.closing_liability": 0,
+        "value.schedule.5.closing_rou_asset": 0,
+        "value.total_lease_cost": 23000,
+        "value.total_amortization": 22273.74
       },
       "notes": "Final payment includes the 6,000 now probable under the residual value guarantee."
+    },
+    {
+      "name": "schedule foots to the cent (review case B04-P10): abated months 1-4, payments in advance, 60 rows, final period trues up to zero",
+      "input": {
+        "classification": "operating",
+        "payments": [
+          {
+            "period": 5,
+            "amount": 88000
+          },
+          {
+            "period": 6,
+            "amount": 88000
+          },
+          {
+            "period": 7,
+            "amount": 88000
+          },
+          {
+            "period": 8,
+            "amount": 88000
+          },
+          {
+            "period": 9,
+            "amount": 88000
+          },
+          {
+            "period": 10,
+            "amount": 88000
+          },
+          {
+            "period": 11,
+            "amount": 88000
+          },
+          {
+            "period": 12,
+            "amount": 88000
+          },
+          {
+            "period": 13,
+            "amount": 88000
+          },
+          {
+            "period": 14,
+            "amount": 88000
+          },
+          {
+            "period": 15,
+            "amount": 88000
+          },
+          {
+            "period": 16,
+            "amount": 88000
+          },
+          {
+            "period": 17,
+            "amount": 88000
+          },
+          {
+            "period": 18,
+            "amount": 88000
+          },
+          {
+            "period": 19,
+            "amount": 88000
+          },
+          {
+            "period": 20,
+            "amount": 88000
+          },
+          {
+            "period": 21,
+            "amount": 88000
+          },
+          {
+            "period": 22,
+            "amount": 88000
+          },
+          {
+            "period": 23,
+            "amount": 88000
+          },
+          {
+            "period": 24,
+            "amount": 88000
+          },
+          {
+            "period": 25,
+            "amount": 88000
+          },
+          {
+            "period": 26,
+            "amount": 88000
+          },
+          {
+            "period": 27,
+            "amount": 88000
+          },
+          {
+            "period": 28,
+            "amount": 88000
+          },
+          {
+            "period": 29,
+            "amount": 88000
+          },
+          {
+            "period": 30,
+            "amount": 88000
+          },
+          {
+            "period": 31,
+            "amount": 88000
+          },
+          {
+            "period": 32,
+            "amount": 88000
+          },
+          {
+            "period": 33,
+            "amount": 88000
+          },
+          {
+            "period": 34,
+            "amount": 88000
+          },
+          {
+            "period": 35,
+            "amount": 88000
+          },
+          {
+            "period": 36,
+            "amount": 88000
+          },
+          {
+            "period": 37,
+            "amount": 91520
+          },
+          {
+            "period": 38,
+            "amount": 91520
+          },
+          {
+            "period": 39,
+            "amount": 91520
+          },
+          {
+            "period": 40,
+            "amount": 91520
+          },
+          {
+            "period": 41,
+            "amount": 91520
+          },
+          {
+            "period": 42,
+            "amount": 91520
+          },
+          {
+            "period": 43,
+            "amount": 91520
+          },
+          {
+            "period": 44,
+            "amount": 91520
+          },
+          {
+            "period": 45,
+            "amount": 91520
+          },
+          {
+            "period": 46,
+            "amount": 91520
+          },
+          {
+            "period": 47,
+            "amount": 91520
+          },
+          {
+            "period": 48,
+            "amount": 91520
+          },
+          {
+            "period": 49,
+            "amount": 91520
+          },
+          {
+            "period": 50,
+            "amount": 91520
+          },
+          {
+            "period": 51,
+            "amount": 91520
+          },
+          {
+            "period": 52,
+            "amount": 91520
+          },
+          {
+            "period": 53,
+            "amount": 91520
+          },
+          {
+            "period": 54,
+            "amount": 91520
+          },
+          {
+            "period": 55,
+            "amount": 91520
+          },
+          {
+            "period": 56,
+            "amount": 91520
+          },
+          {
+            "period": 57,
+            "amount": 91520
+          },
+          {
+            "period": 58,
+            "amount": 91520
+          },
+          {
+            "period": 59,
+            "amount": 91520
+          },
+          {
+            "period": 60,
+            "amount": 91520
+          }
+        ],
+        "remaining_periods": 60,
+        "payment_timing": "begin",
+        "discount_rate_annual": 0.068,
+        "periods_per_year": 12,
+        "discount_rate_updated": true,
+        "liability_before": 3200000,
+        "rou_asset_before": 2950000,
+        "event": "modification_extend_term"
+      },
+      "expect": {
+        "value.new_lease_liability": 4206334.82,
+        "value.new_rou_asset": 3956334.82,
+        "value.straight_line_lease_cost": 79374.67,
+        "value.total_interest": 806145.18,
+        "value.total_amortization": 3956334.82,
+        "value.total_lease_cost": 4762480,
+        "value.schedule.0.opening_liability": 4206334.82,
+        "value.schedule.0.payment": 0,
+        "value.schedule.0.interest": 23835.9,
+        "value.schedule.0.closing_liability": 4230170.72,
+        "value.schedule.0.amortization": 55538.77,
+        "value.schedule.0.closing_rou_asset": 3900796.05,
+        "value.schedule.0.lease_cost": 79374.67,
+        "value.schedule.4.opening_liability": 4302491.9,
+        "value.schedule.4.payment": 88000,
+        "value.schedule.4.interest": 23882.12,
+        "value.schedule.4.closing_liability": 4238374.02,
+        "value.schedule.4.amortization": 55492.55,
+        "value.schedule.4.closing_rou_asset": 3679500.67,
+        "value.schedule.4.lease_cost": 79374.67,
+        "value.schedule.36.opening_liability": 2059860.45,
+        "value.schedule.36.payment": 91520,
+        "value.schedule.36.interest": 11153.93,
+        "value.schedule.36.closing_liability": 1979494.38,
+        "value.schedule.36.amortization": 68220.74,
+        "value.schedule.36.closing_rou_asset": 1700151.59,
+        "value.schedule.36.lease_cost": 79374.67,
+        "value.schedule.58.opening_liability": 182524.36,
+        "value.schedule.58.payment": 91520,
+        "value.schedule.58.interest": 515.69,
+        "value.schedule.58.closing_liability": 91520.05,
+        "value.schedule.58.amortization": 78858.98,
+        "value.schedule.58.closing_rou_asset": 79374.52,
+        "value.schedule.58.lease_cost": 79374.67,
+        "value.schedule.59.opening_liability": 91520.05,
+        "value.schedule.59.payment": 91520,
+        "value.schedule.59.interest": -0.05,
+        "value.schedule.59.closing_liability": 0,
+        "value.schedule.59.amortization": 79374.52,
+        "value.schedule.59.closing_rou_asset": 0,
+        "value.schedule.59.lease_cost": 79374.47
+      }
+    },
+    {
+      "name": "finance lease in arrears with a rent-free tail at a positive rate: rows foot, final period closes liability and ROU at zero",
+      "input": {
+        "classification": "finance",
+        "payments": [
+          {
+            "period": 1,
+            "amount": 25000
+          },
+          {
+            "period": 2,
+            "amount": 25000
+          },
+          {
+            "period": 3,
+            "amount": 25000
+          },
+          {
+            "period": 4,
+            "amount": 25000
+          },
+          {
+            "period": 5,
+            "amount": 25000
+          },
+          {
+            "period": 6,
+            "amount": 25000
+          },
+          {
+            "period": 7,
+            "amount": 25000
+          },
+          {
+            "period": 8,
+            "amount": 25000
+          }
+        ],
+        "remaining_periods": 12,
+        "payment_timing": "end",
+        "discount_rate_annual": 0.09,
+        "periods_per_year": 4,
+        "discount_rate_updated": true,
+        "liability_before": 150000,
+        "rou_asset_before": 140000,
+        "event": "reassessment_of_term_or_option"
+      },
+      "expect": {
+        "value.new_lease_liability": 181179.62,
+        "value.new_rou_asset": 171179.62,
+        "value.periodic_amortization": 14264.97,
+        "value.total_interest": 18820.38,
+        "value.total_amortization": 171179.62,
+        "value.total_lease_cost": 190000,
+        "value.schedule.0.opening_liability": 181179.62,
+        "value.schedule.0.interest": 4076.54,
+        "value.schedule.0.closing_liability": 160256.16,
+        "value.schedule.0.amortization": 14264.97,
+        "value.schedule.0.closing_rou_asset": 156914.65,
+        "value.schedule.0.lease_cost": 18341.51,
+        "value.schedule.7.opening_liability": 24449.88,
+        "value.schedule.7.interest": 550.12,
+        "value.schedule.7.closing_liability": 0,
+        "value.schedule.7.amortization": 14264.97,
+        "value.schedule.7.closing_rou_asset": 57059.86,
+        "value.schedule.7.lease_cost": 14815.09,
+        "value.schedule.8.opening_liability": 0,
+        "value.schedule.8.interest": 0,
+        "value.schedule.8.closing_liability": 0,
+        "value.schedule.8.amortization": 14264.97,
+        "value.schedule.8.closing_rou_asset": 42794.89,
+        "value.schedule.8.lease_cost": 14264.97,
+        "value.schedule.11.opening_liability": 0,
+        "value.schedule.11.interest": 0,
+        "value.schedule.11.closing_liability": 0,
+        "value.schedule.11.amortization": 14264.95,
+        "value.schedule.11.closing_rou_asset": 0,
+        "value.schedule.11.lease_cost": 14264.95
+      }
     },
     {
       "name": "duplicate periods are an input error",

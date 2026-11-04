@@ -24,6 +24,36 @@
         "value.pv_rent": 2568980.49,
         "value.discounted_net_effective_rent_psf": 28.4772
       }
+    },
+    {
+      "name": "mid-month commencement warns that months run from the commencement day without calendar proration",
+      "input": {
+        "schedule": {
+          "commencement_date": "2023-03-15",
+          "term_months": 60,
+          "area_sf": 3000,
+          "starting_rent_psf_annual": 14.5,
+          "escalation": {
+            "type": "fixed_psf",
+            "amount": 0.5
+          },
+          "abated_months": [1, 2]
+        },
+        "ti_allowance_psf": 10,
+        "leasing_commissions": 9000,
+        "discount_rate_annual": 0.07
+      },
+      "expect": {
+        "value.total_rent_due": 225250.0,
+        "value.total_landlord_costs": 39000.0,
+        "value.effective_rent_psf": 15.0167,
+        "value.net_effective_rent_psf": 12.4167,
+        "value.pv_rent": 188723.31,
+        "value.discounted_net_effective_rent_psf": 11.79,
+        "warnings": [
+          "Commencement 2023-03-15 is mid-month: each lease month runs from day 15 to the day before it in the next month (clamped to month end), and rent is not prorated to calendar months; if rent is billed by calendar month, the first and last partial months need proration outside this result."
+        ]
+      }
     }
   ]
 }

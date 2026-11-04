@@ -65,7 +65,7 @@
       }
     },
     {
-      "name": "rounding strips float noise: 95.58 \u00d7 245,051 \u00f7 12 = 1,951,831.215 \u2192 .22",
+      "name": "rounding strips float noise: 95.58 × 245,051 ÷ 12 = 1,951,831.215 → .22",
       "input": {
         "commencement_date": "2026-01-01",
         "term_months": 100,
@@ -75,6 +75,29 @@
       "expect": {
         "value.steps.0.monthly_rent": 1951831.22,
         "value.total_rent_due": 195183122
+      }
+    },
+    {
+      "name": "mid-month commencement warns that months run from the 15th without calendar proration (review case B04-P04)",
+      "input": {
+        "commencement_date": "2023-03-15",
+        "term_months": 60,
+        "area_sf": 3000,
+        "starting_rent_psf_annual": 14.5,
+        "escalation": {
+          "type": "fixed_psf",
+          "amount": 0.5
+        }
+      },
+      "expect": {
+        "value.expiration_date": "2028-03-14",
+        "value.steps.1.start_date": "2024-03-15",
+        "value.steps.0.monthly_rent": 3625,
+        "value.steps.4.monthly_rent": 4125,
+        "value.total_rent_due": 232500,
+        "warnings": [
+          "Commencement 2023-03-15 is mid-month: each lease month runs from day 15 to the day before it in the next month (clamped to month end), and rent is not prorated to calendar months; if rent is billed by calendar month, the first and last partial months need proration outside this result."
+        ]
       }
     },
     {

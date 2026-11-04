@@ -1,6 +1,6 @@
 ---
 name: cre-loan-sizing
-description: Size a commercial real estate loan. Use when the user asks how much debt a property can support, for maximum loan proceeds, or to test or compare LTV, DSCR, and debt yield constraints, find the binding constraint, or run interest-only versus amortizing sizing. Calls the FactLot calc_debt_sizing tool (calc.debt_sizing@2) instead of computing proceeds in-context.
+description: Size a commercial real estate loan. Use when the user asks how much debt a property can support, for maximum loan proceeds, or to test or compare LTV, DSCR, and debt yield constraints, find the binding constraint, or run interest-only versus amortizing sizing, stress-test proceeds under NOI, rate, and value shocks, or find the refinance gap against an existing loan. Calls the FactLot calc_debt_sizing tool (calc.debt_sizing@3) instead of computing proceeds in-context.
 ---
 
 # CRE loan sizing
@@ -9,18 +9,22 @@ Maximum loan under any mix of max LTV, min DSCR, and min debt yield, with the bi
 
 ## Gather these inputs
 
-| Argument             | Meaning and unit                                                   |
-| -------------------- | ------------------------------------------------------------------ |
-| `noi`                | Underwritten NOI, USD per **year** (not monthly)                   |
-| `rate_annual`        | Interest rate as a decimal (6.5% = `0.065`)                        |
-| `amortization_years` | Integer years; `0` = interest-only                                 |
-| `max_ltv`            | Decimal (65% = `0.65`). Needs `value`                              |
-| `value`              | Appraised or underwritten value, USD. Required if `max_ltv` is set |
-| `min_dscr`           | Ratio, not a percent (1.25x = `1.25`)                              |
-| `min_debt_yield`     | Decimal (9% = `0.09`)                                              |
-| `round_down_to`      | Optional USD increment lenders round to (`10000`)                  |
+| Argument                | Meaning and unit                                                                      |
+| ----------------------- | ------------------------------------------------------------------------------------- |
+| `noi`                   | Underwritten NOI, USD per **year** (not monthly)                                      |
+| `rate_annual`           | Interest rate as a decimal (6.5% = `0.065`)                                           |
+| `amortization_years`    | Integer years; `0` = interest-only                                                    |
+| `max_ltv`               | Decimal (65% = `0.65`). Needs `value`                                                 |
+| `value`                 | Appraised or underwritten value, USD. Required if `max_ltv` is set                    |
+| `min_dscr`              | Ratio, not a percent (1.25x = `1.25`)                                                 |
+| `min_debt_yield`        | Decimal (9% = `0.09`)                                                                 |
+| `round_down_to`         | Optional USD increment lenders round to (`10000`)                                     |
+| `existing_loan_balance` | Optional balance being refinanced, USD: adds `refinance` (shortfall, excess proceeds) |
+| `stress`                | Optional `{noi_shocks, rate_shocks, value_shocks, value_moves_with_noi}` (see below)  |
 
-Set at least one of `max_ltv`, `min_dscr`, `min_debt_yield`. Ask for the rate and the lender's constraints; if the user gives none, say which assumptions you are using and run the tool with them. For sensitivities, call the tool once per scenario and tabulate the returned values.
+Set at least one of `max_ltv`, `min_dscr`, `min_debt_yield`. Ask for the rate and the lender's constraints; if the user gives none, say which assumptions you are using and run the tool with them.
+
+For sensitivities, pass `stress` instead of calling once per scenario. `noi_shocks` and `value_shocks` are relative changes as decimals (`[-0.05, -0.1]` = down 5% and 10%); `rate_shocks` are added to `rate_annual` (`[0.01]` = +100 bp). Every combination is sized under the same constraints and rounding, and `value.stress` lists, per scenario, the stressed NOI, rate and value, `max_loan`, `binding_constraint`, debt service, LTV, DSCR, debt yield, and `refinance_shortfall` when `existing_loan_balance` is given. Value stays fixed under NOI shocks unless `value_moves_with_noi` is true (constant cap rate). Without `stress` and `existing_loan_balance` the result is the same as before.
 
 ## Call
 
@@ -42,14 +46,16 @@ Returned: `max_loan` 9,750,000, `binding_constraint` `ltv`. Loan by constraint: 
 
 Interest-only sizing, `{"noi": 1000000, "rate_annual": 0.06, "amortization_years": 0, "min_dscr": 1.25}`, returns `max_loan` 13,333,333 with `binding_constraint` `dscr`.
 
+Stress example (vector "stress table on an interest-only bridge loan"): NOI 2,450,000, value 38,000,000, interest-only at 8.75%, max LTV 0.72, min DSCR 1.15, min debt yield 0.085, rounded down to 50,000, `existing_loan_balance` 24,000,000 and `"stress": {"noi_shocks": [-0.05, -0.1, -0.2], "rate_shocks": [0, 0.01]}`. Base `max_loan` 24,300,000 (DSCR binds). NOI −5% gives 23,100,000 (shortfall 900,000); NOI −20% at +100 bp gives 17,450,000 (shortfall 6,550,000).
+
 ## Report
 
-State the maximum loan, which constraint binds, and the loan each constraint would allow on its own, so the user sees how much slack the other tests have. Include debt service and the resulting LTV, DSCR, and debt yield.
+State the maximum loan, which constraint binds, and the loan each constraint would allow on its own, so the user sees how much slack the other tests have. Include debt service and the resulting LTV, DSCR, and debt yield. For a stress table, show each scenario's max loan and binding constraint, and the refinance shortfall when there is an existing loan.
 
 ## Rules
 
 - Never compute these figures in-context; report the tool's values as returned.
-- Cite the formula ID from `provenance.formula` (`calc.debt_sizing@2`) beside the figures.
+- Cite the formula ID from `provenance.formula` (`calc.debt_sizing@3`) beside the figures.
 - Surface every entry in `warnings`.
 - On an input error (no constraint set, or `max_ltv` without `value`), fix the arguments or ask the user. Do not estimate instead.
 - If the FactLot MCP tools are unavailable, POST the same arguments to `https://api.factlot.com/v1/calc/debt_sizing`.

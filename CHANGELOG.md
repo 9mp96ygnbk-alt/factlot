@@ -22,6 +22,11 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 
 ### Changed
 
+- `calc.lease_remeasurement_asc842@2`: the amortization schedule foots to the cent. Every row rolls forward exactly, the final period trues up the liability and ROU asset to zero (shown as a step), `total_interest`, `total_amortization` and the new `total_lease_cost` are row sums, and the rounding rule is stated in the steps. Some schedule cells move by cents; headline figures are unchanged.
+- `calc.compare_proposals@2`: `area_basis` (rentable or usable, via `usable_sf` or `load_factor`) and per-proposal `operating_expenses` (gross, nnn, base_year, expense_stop with growth), so mixed gross and NNN proposals compare like for like; landlord `downtime_months`; the discounting convention is stated in the steps; warnings when the usable-SF ranking differs and when terms differ by 12 months or more.
+- `calc.cam_reconciliation@2`: `admin_fee` (rate, before or after the cap, capped or not, per-line `admin_fee_applies`) and `occupancy` (move-in and move-out prorate share, cap and base-year or stop deduction by days), with order-of-operations warnings for the fee.
+- `calc.debt_sizing@3`: optional `stress` table (NOI, rate and value shocks; max loan, binding constraint, LTV, DSCR and debt yield per scenario) and `existing_loan_balance` refinance shortfall. Results without them are unchanged.
+- `calc_rent_schedule` and `calc_net_effective_rent` warn when commencement is mid-month (months run from the commencement day, no calendar proration).
 - Tool input: a field the tool does not define is now an input error naming the field and the nearest known name (`expenses.0.controlable: unknown field (did you mean "controllable"?)`) instead of being ignored, which silently changed answers. Rate fields above 1 and a `min_dscr` above 10 add a warning that the value looks like a whole-number percent, and a rate rejected as too big says rates are decimals. Date errors name the `YYYY-MM-DD` format.
 - `calc.renew_vs_relocate` warns when `relocate.overlap_months` is set but `current_rent_monthly` is 0 or missing (double rent priced at $0); `calc.compare_proposals` warns when proposals commence on different dates; `calc.walt` states its day count (actual days ÷ 365.25) in the steps.
 - `/v1/tools` lists registry tools only when a registry is loaded, like MCP `tools/list`, and the registry-unavailable message says how to get a registry instead of naming a server setting. Paid plan text says no hosted registry region is open yet.
@@ -31,6 +36,7 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 
 ### Fixed
 
+- `calc_walt`'s `weight_by` description named `area_sf` and `annual_rent`; it now names the accepted values `area` and `rent`, and the tool description states the day count.
 - `calc.debt_sizing`: constraints that allow less than one rounding increment (for example `value: 1`) are an input error instead of a crash on an infinite debt yield.
 - Hosted billing: a checkout paid by bank transfer (complete, payment still processing) now says the payment is processing and the page will show the key once it clears, instead of asking the customer to reload in a minute.
 - Hosted billing: a key whose subscription Stripe does not know (for example a sandbox purchase re-checked with a live key) now stops working at its next check instead of staying active.

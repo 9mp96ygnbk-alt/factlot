@@ -9,7 +9,9 @@ export const WaltInput = z.object({
   weight_by: z
     .enum(["area", "rent"])
     .default("area")
-    .describe("Weight each lease by area_sf or annual_rent."),
+    .describe(
+      'How each lease is weighted: "area" uses its area_sf, "rent" its annual_rent (that field is then required on every lease). Default "area".',
+    ),
   leases: z
     .array(
       z.object({

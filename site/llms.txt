@@ -18,7 +18,7 @@ claude mcp add factlot -- node "$PWD/packages/mcp/dist/bin.js"
 
 Or, with no clone, run the release build as a stdio server: `npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.1/factlot-mcp-standalone-0.1.1.tgz` (for Claude Code: `claude mcp add factlot -- npx -y <that URL>`). For any other MCP client, run `node packages/mcp/dist/bin.js` as a stdio server. For Python: `pip install "git+https://github.com/9mp96ygnbk-alt/factlot.git#subdirectory=python"`, then use `factlot.anthropic_tools()`, `factlot.openai_tools()`, and `factlot.run_tool(name, input)`. For REST, OpenAPI, and remote MCP: `docker build -t factlot . && docker run -p 8787:8787 factlot`. Licenses: Apache-2.0 and MIT.
 
-When reporting a number from a calculator, cite its formula ID (for example `calc.cam_reconciliation@1`) and the returned `steps`, and surface every returned `warnings` entry to a human.
+When reporting a number from a calculator, cite its formula ID (for example `calc.cam_reconciliation@2`) and the returned `steps`, and surface every returned `warnings` entry to a human.
 
 Registry sample on real data: download https://github.com/9mp96ygnbk-alt/factlot/releases/download/registry-sample-dc-2026-11-03/factlot-registry-sample-dc-2026-11-03.db.gz (19.7 MB, CC BY 4.0; 18,077 District of Columbia commercial parcels, 5,513 owning entities, 7,908 cited ownership links), gunzip it, and set `FACTLOT_REGISTRY_DB` to its path when starting the MCP server to enable the six `registry_*` tools.
 

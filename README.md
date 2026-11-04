@@ -21,7 +21,7 @@ curl -s https://api.factlot.com/v1/calc/debt_sizing -H 'content-type: applicatio
 
 The answer is a $9,750,000 maximum loan, bound by loan-to-value (the coverage test alone would
 allow $10.5 million), with every intermediate step, its formula, and the versioned formula ID
-`calc.debt_sizing@2` so an agent can cite exactly how the number was made.
+`calc.debt_sizing@3` so an agent can cite exactly how the number was made.
 
 ## Connect your agent
 

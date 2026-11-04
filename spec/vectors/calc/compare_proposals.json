@@ -1,6 +1,6 @@
 {
   "calculator": "calc.compare_proposals",
-  "version": 1,
+  "version": 2,
   "cases": [
     {
       "name": "tenant perspective with NNN expenses",
@@ -103,6 +103,411 @@
       }
     },
     {
+      "name": "rentable basis with load factors: the usable-SF ranking picks a different proposal and a warning says so (review case B07-P13)",
+      "input": {
+        "discount_rate_annual": 0.08,
+        "area_basis": "rentable",
+        "proposals": [
+          {
+            "name": "C Creek",
+            "schedule": {
+              "commencement_date": "2027-01-01",
+              "term_months": 120,
+              "escalation": {
+                "type": "percent",
+                "rate": 0.03
+              },
+              "abated_months": [1, 2, 3, 4, 5, 6],
+              "area_sf": 53100,
+              "starting_rent_psf_annual": 28
+            },
+            "load_factor": 1.18,
+            "ti_allowance_psf": 50,
+            "tenant_upfront_costs": 150000
+          },
+          {
+            "name": "B Midrise",
+            "schedule": {
+              "commencement_date": "2027-01-01",
+              "term_months": 120,
+              "escalation": {
+                "type": "percent",
+                "rate": 0.03
+              },
+              "abated_months": [1, 2, 3, 4, 5, 6],
+              "area_sf": 50400,
+              "starting_rent_psf_annual": 29
+            },
+            "load_factor": 1.12,
+            "ti_allowance_psf": 50,
+            "tenant_upfront_costs": 150000
+          }
+        ]
+      },
+      "expect": {
+        "value.area_basis": "rentable",
+        "value.best": "C Creek",
+        "value.ranking.0.name": "C Creek",
+        "value.ranking.0.metric_psf_annual": 22.6701,
+        "value.ranking.0.total_net": 13796095.8,
+        "value.ranking.0.load_factor": 1.18,
+        "value.ranking.0.usable_sf": 45000,
+        "value.ranking.0.basis_area_sf": 53100,
+        "value.ranking.1.name": "B Midrise",
+        "value.ranking.1.metric_psf_annual": 23.7453,
+        "value.ranking.1.total_net": 13654806,
+        "value.ranking.1.load_factor": 1.12,
+        "value.ranking.1.usable_sf": 45000,
+        "value.ranking.1.basis_area_sf": 50400,
+        "warnings": [
+          "Proposals differ in area; $/SF/yr normalizes size but not the value of the space itself.",
+          "Ranked on rentable SF; per usable SF the best is B Midrise (26.5947 $/USF/yr), not C Creek. Set area_basis to usable if the tenant needs a fixed usable area.",
+          "No operating_expenses or additional costs supplied; if any proposal is net (NNN, base year, expense stop), add its operating_expenses for a fair comparison."
+        ]
+      }
+    },
+    {
+      "name": "usable basis (area ÷ load factor): the same proposals rank per usable SF",
+      "input": {
+        "discount_rate_annual": 0.08,
+        "area_basis": "usable",
+        "proposals": [
+          {
+            "name": "C Creek",
+            "schedule": {
+              "commencement_date": "2027-01-01",
+              "term_months": 120,
+              "escalation": {
+                "type": "percent",
+                "rate": 0.03
+              },
+              "abated_months": [1, 2, 3, 4, 5, 6],
+              "area_sf": 53100,
+              "starting_rent_psf_annual": 28
+            },
+            "load_factor": 1.18,
+            "ti_allowance_psf": 50,
+            "tenant_upfront_costs": 150000
+          },
+          {
+            "name": "B Midrise",
+            "schedule": {
+              "commencement_date": "2027-01-01",
+              "term_months": 120,
+              "escalation": {
+                "type": "percent",
+                "rate": 0.03
+              },
+              "abated_months": [1, 2, 3, 4, 5, 6],
+              "area_sf": 50400,
+              "starting_rent_psf_annual": 29
+            },
+            "load_factor": 1.12,
+            "ti_allowance_psf": 50,
+            "tenant_upfront_costs": 150000
+          }
+        ]
+      },
+      "expect": {
+        "value.area_basis": "usable",
+        "value.best": "B Midrise",
+        "value.ranking.0.name": "B Midrise",
+        "value.ranking.0.metric_psf_annual": 26.5947,
+        "value.ranking.0.total_net": 13654806,
+        "value.ranking.0.load_factor": 1.12,
+        "value.ranking.0.usable_sf": 45000,
+        "value.ranking.0.basis_area_sf": 45000,
+        "value.ranking.1.name": "C Creek",
+        "value.ranking.1.metric_psf_annual": 26.7507,
+        "value.ranking.1.total_net": 13796095.8,
+        "value.ranking.1.load_factor": 1.18,
+        "value.ranking.1.usable_sf": 45000,
+        "value.ranking.1.basis_area_sf": 45000,
+        "warnings": [
+          "No operating_expenses or additional costs supplied; if any proposal is net (NNN, base year, expense stop), add its operating_expenses for a fair comparison."
+        ]
+      }
+    },
+    {
+      "name": "tenant perspective: gross, NNN, base year and expense stop with opex growth compared like for like",
+      "input": {
+        "perspective": "tenant",
+        "discount_rate_annual": 0.07,
+        "proposals": [
+          {
+            "name": "Gross Tower",
+            "schedule": {
+              "commencement_date": "2027-03-01",
+              "term_months": 84,
+              "area_sf": 10000,
+              "escalation": {
+                "type": "percent",
+                "rate": 0.025
+              },
+              "abated_months": [1, 2, 3, 4],
+              "starting_rent_psf_annual": 42
+            },
+            "operating_expenses": {
+              "type": "gross",
+              "expense_psf_annual": 13.5,
+              "growth_rate_annual": 0.03
+            },
+            "ti_allowance_psf": 60
+          },
+          {
+            "name": "NNN Plaza",
+            "schedule": {
+              "commencement_date": "2027-03-01",
+              "term_months": 84,
+              "area_sf": 10000,
+              "escalation": {
+                "type": "percent",
+                "rate": 0.025
+              },
+              "abated_months": [1, 2, 3, 4],
+              "starting_rent_psf_annual": 28
+            },
+            "operating_expenses": {
+              "type": "nnn",
+              "expense_psf_annual": 13.5,
+              "growth_rate_annual": 0.03
+            },
+            "ti_allowance_psf": 55
+          },
+          {
+            "name": "Base Year Center",
+            "schedule": {
+              "commencement_date": "2027-03-01",
+              "term_months": 84,
+              "area_sf": 10000,
+              "escalation": {
+                "type": "percent",
+                "rate": 0.025
+              },
+              "abated_months": [1, 2, 3, 4],
+              "starting_rent_psf_annual": 40
+            },
+            "operating_expenses": {
+              "type": "base_year",
+              "expense_psf_annual": 13.5,
+              "growth_rate_annual": 0.04
+            },
+            "ti_allowance_psf": 60
+          },
+          {
+            "name": "Stop Park",
+            "schedule": {
+              "commencement_date": "2027-03-01",
+              "term_months": 84,
+              "area_sf": 10000,
+              "escalation": {
+                "type": "percent",
+                "rate": 0.025
+              },
+              "abated_months": [1, 2, 3, 4],
+              "starting_rent_psf_annual": 39
+            },
+            "operating_expenses": {
+              "type": "expense_stop",
+              "expense_psf_annual": 13.5,
+              "stop_psf_annual": 11,
+              "growth_rate_annual": 0.03
+            },
+            "ti_allowance_psf": 60
+          }
+        ]
+      },
+      "expect": {
+        "value.best": "Base Year Center",
+        "value.ranking.0.name": "Base Year Center",
+        "value.ranking.0.metric_psf_annual": 31.2157,
+        "value.ranking.0.total_net": 2406908.52,
+        "value.ranking.1.name": "Gross Tower",
+        "value.ranking.1.metric_psf_annual": 31.6715,
+        "value.ranking.1.total_net": 2429920.72,
+        "value.ranking.2.name": "Stop Park",
+        "value.ranking.2.metric_psf_annual": 32.294,
+        "value.ranking.2.total_net": 2477930.24,
+        "value.ranking.3.name": "NNN Plaza",
+        "value.ranking.3.metric_psf_annual": 33.0698,
+        "value.ranking.3.total_net": 2504379.36,
+        "value.ranking.0.opex_structure": "base_year",
+        "warnings": []
+      }
+    },
+    {
+      "name": "landlord perspective: landlord-borne operating expenses are deducted, so NNN ranks first",
+      "input": {
+        "perspective": "landlord",
+        "discount_rate_annual": 0.07,
+        "proposals": [
+          {
+            "name": "Gross Tower",
+            "schedule": {
+              "commencement_date": "2027-03-01",
+              "term_months": 84,
+              "area_sf": 10000,
+              "escalation": {
+                "type": "percent",
+                "rate": 0.025
+              },
+              "abated_months": [1, 2, 3, 4],
+              "starting_rent_psf_annual": 42
+            },
+            "operating_expenses": {
+              "type": "gross",
+              "expense_psf_annual": 13.5,
+              "growth_rate_annual": 0.03
+            },
+            "ti_allowance_psf": 60
+          },
+          {
+            "name": "NNN Plaza",
+            "schedule": {
+              "commencement_date": "2027-03-01",
+              "term_months": 84,
+              "area_sf": 10000,
+              "escalation": {
+                "type": "percent",
+                "rate": 0.025
+              },
+              "abated_months": [1, 2, 3, 4],
+              "starting_rent_psf_annual": 28
+            },
+            "operating_expenses": {
+              "type": "nnn",
+              "expense_psf_annual": 13.5,
+              "growth_rate_annual": 0.03
+            },
+            "ti_allowance_psf": 55
+          },
+          {
+            "name": "Base Year Center",
+            "schedule": {
+              "commencement_date": "2027-03-01",
+              "term_months": 84,
+              "area_sf": 10000,
+              "escalation": {
+                "type": "percent",
+                "rate": 0.025
+              },
+              "abated_months": [1, 2, 3, 4],
+              "starting_rent_psf_annual": 40
+            },
+            "operating_expenses": {
+              "type": "base_year",
+              "expense_psf_annual": 13.5,
+              "growth_rate_annual": 0.04
+            },
+            "ti_allowance_psf": 60
+          },
+          {
+            "name": "Stop Park",
+            "schedule": {
+              "commencement_date": "2027-03-01",
+              "term_months": 84,
+              "area_sf": 10000,
+              "escalation": {
+                "type": "percent",
+                "rate": 0.025
+              },
+              "abated_months": [1, 2, 3, 4],
+              "starting_rent_psf_annual": 39
+            },
+            "operating_expenses": {
+              "type": "expense_stop",
+              "expense_psf_annual": 13.5,
+              "stop_psf_annual": 11,
+              "growth_rate_annual": 0.03
+            },
+            "ti_allowance_psf": 60
+          }
+        ]
+      },
+      "expect": {
+        "value.best": "NNN Plaza",
+        "value.ranking.0.name": "NNN Plaza",
+        "value.ranking.0.metric_psf_annual": 18.4134,
+        "value.ranking.0.total_net": 1469946.96,
+        "value.ranking.1.name": "Stop Park",
+        "value.ranking.1.metric_psf_annual": 17.6375,
+        "value.ranking.1.total_net": 1443497.84,
+        "value.ranking.2.name": "Gross Tower",
+        "value.ranking.2.metric_psf_annual": 17.0151,
+        "value.ranking.2.total_net": 1395488.32,
+        "value.ranking.3.name": "Base Year Center",
+        "value.ranking.3.metric_psf_annual": 16.1489,
+        "value.ranking.3.total_net": 1340638.68,
+        "value.ranking.0.opex_structure": "nnn",
+        "warnings": []
+      }
+    },
+    {
+      "name": "landlord perspective with downtime before commencement: vacant months carry opex and the level amount runs over downtime plus term",
+      "input": {
+        "perspective": "landlord",
+        "discount_rate_annual": 0.08,
+        "proposals": [
+          {
+            "name": "Quick Gross",
+            "schedule": {
+              "commencement_date": "2027-03-01",
+              "term_months": 60,
+              "area_sf": 10000,
+              "escalation": {
+                "type": "percent",
+                "rate": 0.025
+              },
+              "abated_months": [1, 2, 3, 4],
+              "starting_rent_psf_annual": 40
+            },
+            "operating_expenses": {
+              "type": "gross",
+              "expense_psf_annual": 12,
+              "growth_rate_annual": 0.03
+            },
+            "downtime_months": 3,
+            "ti_allowance_psf": 40,
+            "leasing_commissions": 90000
+          },
+          {
+            "name": "Slow NNN",
+            "schedule": {
+              "commencement_date": "2027-03-01",
+              "term_months": 60,
+              "area_sf": 10000,
+              "escalation": {
+                "type": "percent",
+                "rate": 0.025
+              },
+              "abated_months": [1, 2, 3, 4],
+              "starting_rent_psf_annual": 29
+            },
+            "operating_expenses": {
+              "type": "nnn",
+              "expense_psf_annual": 12,
+              "growth_rate_annual": 0.03
+            },
+            "downtime_months": 9,
+            "ti_allowance_psf": 35,
+            "leasing_commissions": 70000
+          }
+        ]
+      },
+      "expect": {
+        "value.best": "Slow NNN",
+        "value.ranking.0.name": "Slow NNN",
+        "value.ranking.0.metric_psf_annual": 13.1822,
+        "value.ranking.0.total_net": 917668.6,
+        "value.ranking.0.downtime_months": 9,
+        "value.ranking.1.name": "Quick Gross",
+        "value.ranking.1.metric_psf_annual": 12.6591,
+        "value.ranking.1.total_net": 812101.64,
+        "value.ranking.1.downtime_months": 3,
+        "warnings": []
+      }
+    },
+    {
       "name": "duplicate names are an input error",
       "input": {
         "proposals": [
@@ -137,6 +542,133 @@
             },
             "ti_allowance_psf": 40,
             "leasing_commissions": 30000
+          }
+        ]
+      },
+      "expect_error": true
+    },
+    {
+      "name": "usable_sf and load_factor together are an input error",
+      "input": {
+        "proposals": [
+          {
+            "name": "C Creek",
+            "schedule": {
+              "commencement_date": "2027-01-01",
+              "term_months": 120,
+              "escalation": {
+                "type": "percent",
+                "rate": 0.03
+              },
+              "abated_months": [1, 2, 3, 4, 5, 6],
+              "area_sf": 53100,
+              "starting_rent_psf_annual": 28
+            },
+            "load_factor": 1.18,
+            "ti_allowance_psf": 50,
+            "tenant_upfront_costs": 150000,
+            "usable_sf": 45000
+          },
+          {
+            "name": "B Midrise",
+            "schedule": {
+              "commencement_date": "2027-01-01",
+              "term_months": 120,
+              "escalation": {
+                "type": "percent",
+                "rate": 0.03
+              },
+              "abated_months": [1, 2, 3, 4, 5, 6],
+              "area_sf": 50400,
+              "starting_rent_psf_annual": 29
+            },
+            "load_factor": 1.12,
+            "ti_allowance_psf": 50,
+            "tenant_upfront_costs": 150000
+          }
+        ]
+      },
+      "expect_error": true
+    },
+    {
+      "name": "area_basis usable without usable_sf or load_factor is an input error",
+      "input": {
+        "area_basis": "usable",
+        "proposals": [
+          {
+            "name": "C Creek",
+            "schedule": {
+              "commencement_date": "2027-01-01",
+              "term_months": 120,
+              "escalation": {
+                "type": "percent",
+                "rate": 0.03
+              },
+              "abated_months": [1, 2, 3, 4, 5, 6],
+              "area_sf": 53100,
+              "starting_rent_psf_annual": 28
+            },
+            "load_factor": 1.18,
+            "ti_allowance_psf": 50,
+            "tenant_upfront_costs": 150000
+          },
+          {
+            "name": "B Midrise",
+            "schedule": {
+              "commencement_date": "2027-01-01",
+              "term_months": 120,
+              "escalation": {
+                "type": "percent",
+                "rate": 0.03
+              },
+              "abated_months": [1, 2, 3, 4, 5, 6],
+              "area_sf": 50400,
+              "starting_rent_psf_annual": 29
+            },
+            "ti_allowance_psf": 50,
+            "tenant_upfront_costs": 150000
+          }
+        ]
+      },
+      "expect_error": true
+    },
+    {
+      "name": "usable_sf above the rentable area is an input error",
+      "input": {
+        "proposals": [
+          {
+            "name": "C Creek",
+            "schedule": {
+              "commencement_date": "2027-01-01",
+              "term_months": 120,
+              "escalation": {
+                "type": "percent",
+                "rate": 0.03
+              },
+              "abated_months": [1, 2, 3, 4, 5, 6],
+              "area_sf": 53100,
+              "starting_rent_psf_annual": 28
+            },
+            "ti_allowance_psf": 50,
+            "tenant_upfront_costs": 150000,
+            "usable_sf": 60000
+          },
+          {
+            "name": "B Midrise",
+            "schedule": {
+              "commencement_date": "2027-01-01",
+              "term_months": 120,
+              "escalation": {
+                "type": "percent",
+                "rate": 0.03
+              },
+              "abated_months": [1, 2, 3, 4, 5, 6],
+              "area_sf": 50400,
+              "starting_rent_psf_annual": 29
+            },
+            "load_factor": 1.12,
+            "ti_allowance_psf": 50,
+            "tenant_upfront_costs": 150000
           }
         ]
       },

@@ -15,7 +15,7 @@
       "post": {
         "operationId": "calc_rent_schedule",
         "summary": "Lease rent schedule",
-        "description": "Build a base-rent schedule from commencement date, term, area, starting $/SF/yr, escalations (percent or fixed $/SF), and abated months. Returns rent steps, totals, expiration date, and a calculation trace. Deterministic: use this instead of doing the math yourself; cite formula calc.rent_schedule@1 and the returned steps, and surface any warnings.",
+        "description": "Build a base-rent schedule from commencement date, term, area, starting $/SF/yr, escalations (percent or fixed $/SF), and abated months. Lease months run from the commencement day-of-month with no calendar proration (warns when commencement is mid-month). Returns rent steps, totals, expiration date, and a calculation trace. Deterministic: use this instead of doing the math yourself; cite formula calc.rent_schedule@1 and the returned steps, and surface any warnings.",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,
@@ -203,7 +203,7 @@
       "post": {
         "operationId": "calc_net_effective_rent",
         "summary": "Net effective rent (NER)",
-        "description": "Compute effective rent, straight-line net effective rent, and discounted net effective rent ($/SF/yr) after free rent, TI allowance, leasing commissions, and other landlord concessions. Deterministic: use this instead of doing the math yourself; cite formula calc.net_effective_rent@1 and the returned steps, and surface any warnings.",
+        "description": "Compute effective rent, straight-line net effective rent, and discounted net effective rent ($/SF/yr) after free rent, TI allowance, leasing commissions, and other landlord concessions. Rent is monthly in advance from the commencement day (no calendar proration), discounted at annual rate ÷ 12. Deterministic: use this instead of doing the math yourself; cite formula calc.net_effective_rent@1 and the returned steps, and surface any warnings.",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,
@@ -424,7 +424,7 @@
       "post": {
         "operationId": "calc_compare_proposals",
         "summary": "Compare lease proposals",
-        "description": "Rank 2–20 lease proposals with different terms, sizes, free rent, TI, concessions, and expense structures on one discounted $/SF/yr basis: effective occupancy cost (tenant perspective) or discounted net effective rent (landlord perspective). Deterministic: use this instead of doing the math yourself; cite formula calc.compare_proposals@1 and the returned steps, and surface any warnings.",
+        "description": "Rank 2–20 lease proposals with different terms, sizes, free rent, TI, concessions, and operating-expense structures (gross, NNN, base year, expense stop, with opex growth) on one discounted $/SF/yr basis, per rentable or usable SF (load factor): effective occupancy cost (tenant perspective) or discounted net effective rent after landlord-borne opex and optional pre-commencement downtime (landlord perspective). Cash flows monthly in advance at annual rate ÷ 12; warns when the usable-SF ranking differs and when terms differ. Deterministic: use this instead of doing the math yourself; cite formula calc.compare_proposals@2 and the returned steps, and surface any warnings.",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,
@@ -435,17 +435,23 @@
                 "properties": {
                   "perspective": {
                     "default": "tenant",
-                    "description": "Whose economics to rank on.",
+                    "description": "Whose economics to rank on: tenant (effective occupancy cost, lower is better) or landlord (discounted net effective rent, higher is better).",
                     "type": "string",
                     "enum": ["tenant", "landlord"]
                   },
                   "discount_rate_annual": {
                     "default": 0.08,
-                    "description": "Annual discount rate as a decimal, e.g. 0.08, applied to every proposal (monthly rate = annual ÷ 12).",
+                    "description": "Annual discount rate as a decimal, e.g. 0.08, applied to every proposal (monthly rate = annual ÷ 12, cash flows at the start of each month).",
                     "type": "number",
                     "minimum": 0,
                     "exclusiveMaximum": true,
                     "maximum": 1
+                  },
+                  "area_basis": {
+                    "default": "rentable",
+                    "description": "Area the $/SF/yr metric is divided by: rentable (schedule.area_sf, the default) or usable (each proposal's usable_sf, or area_sf ÷ load_factor). Rents and expenses stay quoted per rentable SF; use usable when proposals have different load factors and the tenant needs a fixed usable area.",
+                    "type": "string",
+                    "enum": ["rentable", "usable"]
                   },
                   "proposals": {
                     "minItems": 2,
@@ -585,11 +591,23 @@
                             "area_sf",
                             "starting_rent_psf_annual"
                           ],
-                          "description": "Base-rent terms of this proposal (same input as calc_rent_schedule)."
+                          "description": "Base-rent terms of this proposal (same input as calc_rent_schedule); schedule.area_sf is the rentable area."
+                        },
+                        "usable_sf": {
+                          "description": "Usable square feet of this proposal (at most schedule.area_sf). Give this or load_factor, not both; required for area_basis usable.",
+                          "type": "number",
+                          "exclusiveMinimum": true,
+                          "minimum": 0
+                        },
+                        "load_factor": {
+                          "description": "Rentable ÷ usable area, e.g. 1.15 (usable_sf = area_sf ÷ load_factor). Give this or usable_sf, not both.",
+                          "type": "number",
+                          "minimum": 1,
+                          "maximum": 3
                         },
                         "ti_allowance_psf": {
                           "default": 0,
-                          "description": "TI allowance paid by the landlord, USD per SF, once at commencement (not per year).",
+                          "description": "TI allowance paid by the landlord, USD per rentable SF, once at commencement (not per year).",
                           "type": "number",
                           "minimum": 0
                         },
@@ -601,13 +619,133 @@
                         },
                         "leasing_commissions": {
                           "default": 0,
-                          "description": "Leasing commissions paid by landlord, USD (landlord perspective only).",
+                          "description": "Leasing commissions paid by landlord at commencement, USD (landlord perspective only).",
                           "type": "number",
                           "minimum": 0
                         },
+                        "operating_expenses": {
+                          "description": "Operating-expense structure of this proposal: gross, nnn, base_year, or expense_stop, with a lease-year-1 estimate and growth. Tenant perspective adds what the tenant pays; landlord perspective deducts what the landlord bears. Omit to price no operating expenses (as before).",
+                          "oneOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": ["gross"]
+                                },
+                                "expense_psf_annual": {
+                                  "default": 0,
+                                  "description": "Estimated operating expenses the landlord pays, $/SF/yr in lease year 1 (used in the landlord perspective; the tenant pays none).",
+                                  "type": "number",
+                                  "minimum": 0
+                                },
+                                "growth_rate_annual": {
+                                  "default": 0,
+                                  "description": "Annual growth of operating expenses as a decimal, e.g. 0.03, compounding each lease year from commencement (lease year 1 is expense_psf_annual).",
+                                  "type": "number",
+                                  "exclusiveMinimum": true,
+                                  "exclusiveMaximum": true,
+                                  "minimum": -1,
+                                  "maximum": 10
+                                }
+                              },
+                              "required": ["type"],
+                              "description": "Full-service gross: the landlord pays all operating expenses; the tenant pays none beyond base rent."
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": ["nnn"]
+                                },
+                                "expense_psf_annual": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "description": "Estimated operating expenses (CAM, taxes, insurance) for lease year 1, $/SF/yr on rentable area."
+                                },
+                                "growth_rate_annual": {
+                                  "default": 0,
+                                  "description": "Annual growth of operating expenses as a decimal, e.g. 0.03, compounding each lease year from commencement (lease year 1 is expense_psf_annual).",
+                                  "type": "number",
+                                  "exclusiveMinimum": true,
+                                  "exclusiveMaximum": true,
+                                  "minimum": -1,
+                                  "maximum": 10
+                                }
+                              },
+                              "required": ["type", "expense_psf_annual"],
+                              "description": "Net (NNN): the tenant pays all operating expenses, estimated at expense_psf_annual in lease year 1."
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": ["base_year"]
+                                },
+                                "expense_psf_annual": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "description": "Estimated operating expenses (CAM, taxes, insurance) for lease year 1, $/SF/yr on rentable area."
+                                },
+                                "base_year_psf_annual": {
+                                  "description": "Base-year operating expenses, $/SF/yr. Defaults to expense_psf_annual (the base year is lease year 1).",
+                                  "type": "number",
+                                  "minimum": 0
+                                },
+                                "growth_rate_annual": {
+                                  "default": 0,
+                                  "description": "Annual growth of operating expenses as a decimal, e.g. 0.03, compounding each lease year from commencement (lease year 1 is expense_psf_annual).",
+                                  "type": "number",
+                                  "exclusiveMinimum": true,
+                                  "exclusiveMaximum": true,
+                                  "minimum": -1,
+                                  "maximum": 10
+                                }
+                              },
+                              "required": ["type", "expense_psf_annual"],
+                              "description": "Gross with a base year: the tenant pays operating expenses above the base-year amount."
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": ["expense_stop"]
+                                },
+                                "expense_psf_annual": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "description": "Estimated operating expenses (CAM, taxes, insurance) for lease year 1, $/SF/yr on rentable area."
+                                },
+                                "stop_psf_annual": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "description": "Expense stop, $/SF/yr: the tenant pays operating expenses above this fixed amount."
+                                },
+                                "growth_rate_annual": {
+                                  "default": 0,
+                                  "description": "Annual growth of operating expenses as a decimal, e.g. 0.03, compounding each lease year from commencement (lease year 1 is expense_psf_annual).",
+                                  "type": "number",
+                                  "exclusiveMinimum": true,
+                                  "exclusiveMaximum": true,
+                                  "minimum": -1,
+                                  "maximum": 10
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "expense_psf_annual",
+                                "stop_psf_annual"
+                              ],
+                              "description": "Gross with an expense stop: the tenant pays operating expenses above a fixed $/SF/yr stop."
+                            }
+                          ]
+                        },
                         "additional_costs_psf_annual": {
                           "default": 0,
-                          "description": "Costs the tenant pays on top of base rent, $/SF/yr, e.g. estimated operating expenses and taxes on a NNN proposal. Use 0 for full-service gross.",
+                          "description": "Other costs the tenant pays on top of base rent, flat $/SF/yr on rentable area (tenant perspective only), e.g. parking. Prefer operating_expenses for opex pass-throughs, which can grow and follow a base year or stop.",
                           "type": "number",
                           "minimum": 0
                         },
@@ -616,6 +754,13 @@
                           "description": "Tenant's own costs at commencement not covered by allowances (TI overage, moving), USD.",
                           "type": "number",
                           "minimum": 0
+                        },
+                        "downtime_months": {
+                          "default": 0,
+                          "description": "Landlord perspective: vacant months before this proposal commences (no rent; the landlord carries lease-year-1 operating expenses if operating_expenses is given). The metric is then the level monthly amount over downtime plus term. Ignored for the tenant.",
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 120
                         }
                       },
                       "required": ["name", "schedule"]
@@ -822,7 +967,7 @@
       "post": {
         "operationId": "calc_cam_reconciliation",
         "summary": "CAM / operating expense reconciliation",
-        "description": "Reconcile a tenant's annual CAM charge: exclusions, occupancy gross-up of variable expenses, pro rata share, controllable-expense caps (compounding_from_base, simple_from_base, year_over_year), base year or expense stop, and estimates paid. Returns balance due and a full trace. Deterministic: use this instead of doing the math yourself; cite formula calc.cam_reconciliation@1 and the returned steps, and surface any warnings.",
+        "description": "Reconcile a tenant's annual CAM charge: exclusions, occupancy gross-up of variable expenses, pro rata share, controllable-expense caps (compounding_from_base, simple_from_base, year_over_year), an admin fee (before or after the cap, inside or outside it, with per-line exclusions), base year or expense stop, partial-year occupancy (move-in/move-out prorates share, cap, and base by days), and estimates paid. Returns balance due and a full trace with order-of-operations warnings. Deterministic: use this instead of doing the math yourself; cite formula calc.cam_reconciliation@2 and the returned steps, and surface any warnings.",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,
@@ -875,6 +1020,11 @@
                         "variable": {
                           "default": false,
                           "description": "Varies with occupancy, so eligible for gross-up (janitorial, utilities, management fee).",
+                          "type": "boolean"
+                        },
+                        "admin_fee_applies": {
+                          "default": true,
+                          "description": "Included in the admin_fee base. Set false for lines the lease excludes from the fee (often taxes, insurance, utilities, or a management fee already charged).",
                           "type": "boolean"
                         }
                       },
@@ -990,6 +1140,62 @@
                     },
                     "required": ["method", "rate", "reference_amount"]
                   },
+                  "admin_fee": {
+                    "description": "Administrative fee the lease adds to the tenant's share. Omit if the lease has none.",
+                    "type": "object",
+                    "properties": {
+                      "rate": {
+                        "type": "number",
+                        "exclusiveMinimum": true,
+                        "exclusiveMaximum": true,
+                        "description": "Administrative or management fee as a decimal of the fee base, e.g. 0.15 for 15%. The base is the tenant's share of recoverable lines with admin_fee_applies (after gross-up).",
+                        "minimum": -1,
+                        "maximum": 10
+                      },
+                      "applied": {
+                        "default": "after_cap",
+                        "description": "Fee on controllable lines computed on the tenant's share before the cap (before_cap) or on the capped amount (after_cap). Fees on uncontrollable lines are never capped. Irrelevant without a cap.",
+                        "type": "string",
+                        "enum": ["before_cap", "after_cap"]
+                      },
+                      "capped": {
+                        "default": false,
+                        "description": "True when the fee on controllable lines counts toward the controllable cap (controllable share plus fee may not exceed the cap limit); false adds it outside the cap.",
+                        "type": "boolean"
+                      }
+                    },
+                    "required": ["rate"]
+                  },
+                  "occupancy": {
+                    "description": "Partial-year occupancy: the tenant's share, cap limit, and base-year or stop deduction are prorated by occupied days ÷ period days (both inclusive), so a full-year cap and base are not applied to a part year. Omit for a full year.",
+                    "type": "object",
+                    "properties": {
+                      "move_in_date": {
+                        "description": "Date the tenant's share starts within the reconciliation period, YYYY-MM-DD (inclusive). Defaults to period_start_date.",
+                        "type": "string",
+                        "format": "date",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                      },
+                      "move_out_date": {
+                        "description": "Last day of the tenant's share within the period, YYYY-MM-DD (inclusive). Defaults to period_end_date.",
+                        "type": "string",
+                        "format": "date",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                      },
+                      "period_start_date": {
+                        "description": "First day of the reconciliation period, YYYY-MM-DD. Defaults to January 1 of year; set it for a lease year.",
+                        "type": "string",
+                        "format": "date",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                      },
+                      "period_end_date": {
+                        "description": "Last day of the reconciliation period, YYYY-MM-DD (at most 366 days after the start). Defaults to December 31 of year.",
+                        "type": "string",
+                        "format": "date",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                      }
+                    }
+                  },
                   "estimates_paid": {
                     "default": 0,
                     "description": "Estimated CAM payments the tenant made during the year, USD (total for the year, not monthly).",
@@ -1055,7 +1261,7 @@
       "post": {
         "operationId": "calc_debt_sizing",
         "summary": "Loan sizing (LTV / DSCR / debt yield)",
-        "description": "Size the maximum loan under any combination of max LTV, min DSCR, and min debt yield for a given NOI, rate, and amortization. Reports the binding constraint, debt service, and resulting metrics. Deterministic: use this instead of doing the math yourself; cite formula calc.debt_sizing@2 and the returned steps, and surface any warnings.",
+        "description": "Size the maximum loan under any combination of max LTV, min DSCR, and min debt yield for a given NOI, rate, and amortization. Reports the binding constraint, debt service, and resulting metrics; optionally a stress table over NOI, rate, and value shocks (max loan, binding constraint, LTV, DSCR, debt yield per scenario) and the refinance shortfall against an existing loan balance. Deterministic: use this instead of doing the math yourself; cite formula calc.debt_sizing@3 and the returned steps, and surface any warnings.",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,
@@ -1116,6 +1322,62 @@
                     "type": "number",
                     "exclusiveMinimum": true,
                     "minimum": 0
+                  },
+                  "existing_loan_balance": {
+                    "description": "Balance of the loan being refinanced, USD. Adds a refinance result (shortfall or excess proceeds against the max loan) and a shortfall per stress scenario.",
+                    "type": "number",
+                    "exclusiveMinimum": true,
+                    "minimum": 0
+                  },
+                  "stress": {
+                    "description": "Stress table: every combination of the NOI, rate, and value shocks (up to 1,000 scenarios), each sized under the same constraints and rounding. The base result is unchanged.",
+                    "type": "object",
+                    "properties": {
+                      "noi_shocks": {
+                        "description": "Relative NOI changes as decimals, e.g. [-0.05, -0.1, -0.2] for NOI down 5%, 10%, 20%. Omit for no NOI shock.",
+                        "minItems": 1,
+                        "maxItems": 10,
+                        "type": "array",
+                        "items": {
+                          "type": "number",
+                          "exclusiveMinimum": true,
+                          "exclusiveMaximum": true,
+                          "minimum": -1,
+                          "maximum": 10
+                        }
+                      },
+                      "rate_shocks": {
+                        "description": "Absolute changes to rate_annual as decimals, e.g. [0.005, 0.01] for +50 and +100 bp. The stressed rate must stay at or above 0 and below 1. Omit for no rate shock.",
+                        "minItems": 1,
+                        "maxItems": 10,
+                        "type": "array",
+                        "items": {
+                          "type": "number",
+                          "exclusiveMinimum": true,
+                          "exclusiveMaximum": true,
+                          "minimum": -1,
+                          "maximum": 1
+                        }
+                      },
+                      "value_shocks": {
+                        "description": "Relative value changes as decimals, e.g. [-0.1, -0.2]; requires value. Omit for no value shock.",
+                        "minItems": 1,
+                        "maxItems": 10,
+                        "type": "array",
+                        "items": {
+                          "type": "number",
+                          "exclusiveMinimum": true,
+                          "exclusiveMaximum": true,
+                          "minimum": -1,
+                          "maximum": 10
+                        }
+                      },
+                      "value_moves_with_noi": {
+                        "default": false,
+                        "description": "Also scale value by each NOI shock (value × (1 + noi_shock), a constant cap rate), as a lender repricing value on stressed NOI would.",
+                        "type": "boolean"
+                      }
+                    }
                   }
                 },
                 "required": ["noi", "rate_annual", "amortization_years"]
@@ -1176,7 +1438,7 @@
       "post": {
         "operationId": "calc_lease_remeasurement_asc842",
         "summary": "Lease remeasurement (ASC 842, lessee)",
-        "description": "Remeasure a lessee's lease liability and right-of-use asset under ASC 842 after a modification, lease-term reassessment, contingency resolution, or residual value guarantee change: new liability (PV of remaining payments), liability and ROU adjustments with any gain (ASC 842-20-35-4), and the per-period amortization table (operating: straight-line single lease cost; finance: interest plus amortization). Warns where judgment is needed. Deterministic: use this instead of doing the math yourself; cite formula calc.lease_remeasurement_asc842@1 and the returned steps, and surface any warnings.",
+        "description": "Remeasure a lessee's lease liability and right-of-use asset under ASC 842 after a modification, lease-term reassessment, contingency resolution, or residual value guarantee change: new liability (PV of remaining payments), liability and ROU adjustments with any gain (ASC 842-20-35-4), and the per-period amortization table (operating: straight-line single lease cost; finance: interest plus amortization) in cents that foots: every row rolls forward exactly, totals are the row sums, and the final period trues up liability and ROU asset to zero. Warns where judgment is needed. Deterministic: use this instead of doing the math yourself; cite formula calc.lease_remeasurement_asc842@2 and the returned steps, and surface any warnings.",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,
@@ -1609,7 +1871,7 @@
       "post": {
         "operationId": "calc_walt",
         "summary": "Weighted average lease term (WALT)",
-        "description": "Weighted average remaining lease term in years, weighted by area or annual rent, as of a date. Deterministic: use this instead of doing the math yourself; cite formula calc.walt@1 and the returned steps, and surface any warnings.",
+        "description": "Weighted average remaining lease term in years as of a date (actual days ÷ 365.25), weighted by each lease's area_sf (weight_by \"area\") or annual_rent (weight_by \"rent\"). Deterministic: use this instead of doing the math yourself; cite formula calc.walt@1 and the returned steps, and surface any warnings.",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,
@@ -1626,7 +1888,7 @@
                   },
                   "weight_by": {
                     "default": "area",
-                    "description": "Weight each lease by area_sf or annual_rent.",
+                    "description": "How each lease is weighted: \"area\" uses its area_sf, \"rent\" its annual_rent (that field is then required on every lease). Default \"area\".",
                     "type": "string",
                     "enum": ["area", "rent"]
                   },

@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import {
   CalcInputError,
+  IsoDate,
   NonNegMoney,
   Rate,
   Share,
@@ -13,6 +14,7 @@ import {
   round,
 } from "./core.ts";
 import type { CalcResult } from "./core.ts";
+import { daysBetween } from "./dates.ts";
 
 /**
  * CAM cap methods, named for what they compute rather than the ambiguous lease
@@ -71,6 +73,12 @@ export const CamReconciliationInput = z.object({
           .default(false)
           .describe(
             "Varies with occupancy, so eligible for gross-up (janitorial, utilities, management fee).",
+          ),
+        admin_fee_applies: z
+          .boolean()
+          .default(true)
+          .describe(
+            "Included in the admin_fee base. Set false for lines the lease excludes from the fee (often taxes, insurance, utilities, or a management fee already charged).",
           ),
       }),
     )
@@ -142,6 +150,47 @@ export const CamReconciliationInput = z.object({
     .describe(
       "Cap on the tenant's share of controllable expenses. Omit if the lease has no cap.",
     ),
+  admin_fee: z
+    .object({
+      rate: Rate.refine((r) => r >= 0, "admin fee rate must be ≥ 0").describe(
+        "Administrative or management fee as a decimal of the fee base, e.g. 0.15 for 15%. The base is the tenant's share of recoverable lines with admin_fee_applies (after gross-up).",
+      ),
+      applied: z
+        .enum(["before_cap", "after_cap"])
+        .default("after_cap")
+        .describe(
+          "Fee on controllable lines computed on the tenant's share before the cap (before_cap) or on the capped amount (after_cap). Fees on uncontrollable lines are never capped. Irrelevant without a cap.",
+        ),
+      capped: z
+        .boolean()
+        .default(false)
+        .describe(
+          "True when the fee on controllable lines counts toward the controllable cap (controllable share plus fee may not exceed the cap limit); false adds it outside the cap.",
+        ),
+    })
+    .optional()
+    .describe(
+      "Administrative fee the lease adds to the tenant's share. Omit if the lease has none.",
+    ),
+  occupancy: z
+    .object({
+      move_in_date: IsoDate.optional().describe(
+        "Date the tenant's share starts within the reconciliation period, YYYY-MM-DD (inclusive). Defaults to period_start_date.",
+      ),
+      move_out_date: IsoDate.optional().describe(
+        "Last day of the tenant's share within the period, YYYY-MM-DD (inclusive). Defaults to period_end_date.",
+      ),
+      period_start_date: IsoDate.optional().describe(
+        "First day of the reconciliation period, YYYY-MM-DD. Defaults to January 1 of year; set it for a lease year.",
+      ),
+      period_end_date: IsoDate.optional().describe(
+        "Last day of the reconciliation period, YYYY-MM-DD (at most 366 days after the start). Defaults to December 31 of year.",
+      ),
+    })
+    .optional()
+    .describe(
+      "Partial-year occupancy: the tenant's share, cap limit, and base-year or stop deduction are prorated by occupied days ÷ period days (both inclusive), so a full-year cap and base are not applied to a part year. Omit for a full year.",
+    ),
   estimates_paid: NonNegMoney.default(0).describe(
     "Estimated CAM payments the tenant made during the year, USD (total for the year, not monthly).",
   ),
@@ -155,11 +204,56 @@ export interface CamReconciliation {
   tenant_share_uncontrollable: number;
   cap_limit: number | null;
   cap_reduction: number;
+  /** Admin fee computed on the fee base (before any cut by a cap that it counts toward), USD. */
+  admin_fee: number;
+  /** Occupied days ÷ period days; 1 for a full year. */
+  occupancy_fraction: number;
   structure_deduction: number;
   tenant_charge: number;
   estimates_paid: number;
   /** Positive: tenant owes. Negative: landlord owes a credit/refund. */
   balance_due: number;
+}
+
+/** Occupied days ÷ period days for `occupancy`, validated against the reconciliation period. */
+function occupancyFraction(
+  input: z.output<typeof CamReconciliationInput>,
+  t: Trace,
+): number {
+  const o = input.occupancy;
+  if (!o) return 1;
+  const start = o.period_start_date ?? `${input.year}-01-01`;
+  const end = o.period_end_date ?? `${input.year}-12-31`;
+  const from = o.move_in_date ?? start;
+  const to = o.move_out_date ?? end;
+  const bad = (path: string, message: string): never => {
+    throw new CalcInputError(`invalid input: occupancy.${path}: ${message}`, [
+      { path: `occupancy.${path}`, message },
+    ]);
+  };
+  const periodDays = daysBetween(start, end) + 1;
+  if (periodDays < 1)
+    bad("period_end_date", "must be on or after period_start_date");
+  if (periodDays > 366)
+    bad("period_end_date", "the period is longer than 366 days");
+  if (daysBetween(start, from) < 0)
+    bad("move_in_date", "must be within the reconciliation period");
+  if (daysBetween(to, end) < 0)
+    bad("move_out_date", "must be within the reconciliation period");
+  const occupiedDays = daysBetween(from, to) + 1;
+  if (occupiedDays < 1)
+    bad("move_out_date", "must be on or after move_in_date");
+  const f = occupiedDays / periodDays;
+  t.step(
+    "Occupancy fraction",
+    round(f, 6),
+    `${occupiedDays} occupied days (${from} to ${to}) ÷ ${periodDays} days in the period (${start} to ${end})`,
+  );
+  if (f < 1)
+    t.warn(
+      `Prorated for partial occupancy (${occupiedDays} of ${periodDays} days): the tenant's share, the cap limit, and any base-year or stop deduction are each scaled by the same fraction; confirm the lease prorates by days and that cap.reference_amount is a full-year amount.`,
+    );
+  return f;
 }
 
 export function camReconciliation(
@@ -168,6 +262,9 @@ export function camReconciliation(
   const input = parseInput(CamReconciliationInput, raw);
   const t = new Trace();
   const share = input.pro_rata_share;
+  const f = occupancyFraction(input, t);
+  const prorated = f < 1;
+  const shareText = prorated ? `${share} × ${round(f, 6)}` : `${share}`;
 
   const recoverable = input.expenses.filter((e) => e.recoverable);
   const excluded = input.expenses.filter((e) => !e.recoverable);
@@ -210,27 +307,47 @@ export function camReconciliation(
     "USD",
   );
 
-  const ctrlTotal = adjusted
-    .filter((e) => e.controllable)
-    .reduce((a, e) => a + e.amount, 0);
-  const unctrlTotal = adjusted
-    .filter((e) => !e.controllable)
-    .reduce((a, e) => a + e.amount, 0);
+  const sumOf = (keep: (e: (typeof adjusted)[number]) => boolean): number =>
+    adjusted.filter(keep).reduce((a, e) => a + e.amount, 0);
+  const ctrlTotal = sumOf((e) => e.controllable);
+  const unctrlTotal = sumOf((e) => !e.controllable);
   const ctrlShare = t.step(
     "Tenant share of controllable",
-    round(ctrlTotal * share, 2),
-    `${fmtMoney(ctrlTotal)} × ${share}`,
+    round(ctrlTotal * share * f, 2),
+    `${fmtMoney(ctrlTotal)} × ${shareText}`,
     "USD",
   );
   const unctrlShare = t.step(
     "Tenant share of uncontrollable",
-    round(unctrlTotal * share, 2),
-    `${fmtMoney(unctrlTotal)} × ${share}`,
+    round(unctrlTotal * share * f, 2),
+    `${fmtMoney(unctrlTotal)} × ${shareText}`,
     "USD",
   );
 
+  const fee = input.admin_fee;
+  let ctrlFeeBase = 0;
+  let feeUnctrl = 0;
+  if (fee) {
+    ctrlFeeBase = round(
+      sumOf((e) => e.controllable && e.admin_fee_applies) * share * f,
+      2,
+    );
+    const unctrlFeeBase = round(
+      sumOf((e) => !e.controllable && e.admin_fee_applies) * share * f,
+      2,
+    );
+    feeUnctrl = t.step(
+      "Admin fee on uncontrollable",
+      round(fee.rate * unctrlFeeBase, 2),
+      `${fee.rate} × ${fmtMoney(unctrlFeeBase)} fee-eligible uncontrollable share (never capped)`,
+      "USD",
+    );
+  }
+
   let capLimit: number | null = null;
   let cappedCtrl = ctrlShare;
+  let feeCtrl = 0;
+  let feeInCap = false;
   if (input.cap) {
     const { method, rate, reference_amount: ref, years_elapsed: n } = input.cap;
     if (method !== "year_over_year" && n === undefined) {
@@ -250,22 +367,91 @@ export function camReconciliation(
             ]
           : [ref * (1 + rate), `${fmtMoney(ref)} × (1 + ${rate})`];
     capLimit = t.step(`Cap limit (${method})`, round(limit, 2), formula, "USD");
-    cappedCtrl = t.step(
-      "Controllable after cap",
-      Math.min(ctrlShare, capLimit),
-      "min(tenant controllable, cap limit)",
+    if (prorated)
+      capLimit = t.step(
+        "Cap limit prorated for occupancy",
+        round(capLimit * f, 2),
+        `${fmtMoney(capLimit)} × ${round(f, 6)}`,
+        "USD",
+      );
+    const limitNow = capLimit;
+    if (fee && fee.applied === "before_cap") {
+      feeCtrl = t.step(
+        "Admin fee on controllable (before cap)",
+        round(fee.rate * ctrlFeeBase, 2),
+        `${fee.rate} × ${fmtMoney(ctrlFeeBase)} fee-eligible controllable share`,
+        "USD",
+      );
+      feeInCap = fee.capped;
+      cappedCtrl = t.step(
+        "Controllable after cap",
+        Math.min(
+          feeInCap ? round(ctrlShare + feeCtrl, 2) : ctrlShare,
+          limitNow,
+        ),
+        feeInCap
+          ? "min(tenant controllable + admin fee on it, cap limit)"
+          : "min(tenant controllable, cap limit); admin fee added outside the cap",
+        "USD",
+      );
+    } else {
+      const base = t.step(
+        "Controllable after cap",
+        Math.min(ctrlShare, limitNow),
+        "min(tenant controllable, cap limit)",
+        "USD",
+      );
+      cappedCtrl = base;
+      if (fee) {
+        // The cap reduction is spread over controllable lines in proportion to their amounts.
+        const eligible = ctrlShare > 0 ? (base * ctrlFeeBase) / ctrlShare : 0;
+        feeCtrl = t.step(
+          "Admin fee on controllable (after cap)",
+          round(fee.rate * eligible, 2),
+          `${fee.rate} × ${fmtMoney(base)} capped × ${fmtMoney(ctrlFeeBase)} fee-eligible ÷ ${fmtMoney(ctrlShare)} controllable`,
+          "USD",
+        );
+        feeInCap = fee.capped;
+        if (feeInCap)
+          cappedCtrl = t.step(
+            "Controllable with admin fee, capped",
+            Math.min(round(base + feeCtrl, 2), limitNow),
+            "min(capped controllable + admin fee on it, cap limit)",
+            "USD",
+          );
+      }
+    }
+  } else if (fee) {
+    feeCtrl = t.step(
+      "Admin fee on controllable",
+      round(fee.rate * ctrlFeeBase, 2),
+      `${fee.rate} × ${fmtMoney(ctrlFeeBase)} fee-eligible controllable share (no cap)`,
       "USD",
     );
   }
-  const capReduction = round(ctrlShare - cappedCtrl, 2);
+  const capReduction = round(
+    (feeInCap ? round(ctrlShare + feeCtrl, 2) : ctrlShare) - cappedCtrl,
+    2,
+  );
+  const feeOutside = feeInCap ? 0 : feeCtrl;
+  const adminFee = fee
+    ? t.step(
+        "Admin fee",
+        round(feeCtrl + feeUnctrl, 2),
+        feeInCap
+          ? "fee on controllable (subject to the cap) + fee on uncontrollable"
+          : "fee on controllable + fee on uncontrollable",
+        "USD",
+      )
+    : 0;
 
   let deduction = 0;
   const s = input.structure;
   if (s.type === "base_year") {
     deduction = t.step(
       "Base-year deduction",
-      round(s.base_year_expenses * share, 2),
-      `${fmtMoney(s.base_year_expenses)} × ${share}`,
+      round(s.base_year_expenses * share * f, 2),
+      `${fmtMoney(s.base_year_expenses)} × ${shareText}`,
       "USD",
     );
     if (input.cap)
@@ -275,8 +461,8 @@ export function camReconciliation(
   } else if (s.type === "expense_stop") {
     deduction = t.step(
       "Expense-stop deduction",
-      round(s.stop_amount * share, 2),
-      `${fmtMoney(s.stop_amount)} × ${share}`,
+      round(s.stop_amount * share * f, 2),
+      `${fmtMoney(s.stop_amount)} × ${shareText}`,
       "USD",
     );
     if (input.cap)
@@ -284,11 +470,40 @@ export function camReconciliation(
         "Cap applied before the expense-stop deduction; confirm the lease's order of operations.",
       );
   }
+  if (fee) {
+    if (input.cap)
+      t.warn(
+        `Admin fee on controllable lines computed ${fee.applied === "before_cap" ? "before" : "after"} the cap and ${fee.capped ? "counted within" : "added outside"} it; confirm the lease's order of operations.`,
+      );
+    if (s.type !== "net")
+      t.warn(
+        `Admin fee added to the current-year share before the ${s.type === "base_year" ? "base-year" : "expense-stop"} deduction; confirm whether ${s.type === "base_year" ? "base_year_expenses" : "stop_amount"} already includes a fee.`,
+      );
+    const onFee = adjusted.filter(
+      (e) => e.admin_fee_applies && /admin|manag/i.test(e.category),
+    );
+    if (onFee.length)
+      t.warn(
+        `Admin fee charged on ${onFee.map((e) => e.category).join(", ")}; confirm the lease allows a fee on a fee, or set admin_fee_applies false on those lines.`,
+      );
+    if (adjusted.some((e) => !e.controllable && e.admin_fee_applies))
+      t.warn(
+        "Admin fee base includes uncontrollable lines; many leases exclude taxes, insurance, and utilities from the fee. Set admin_fee_applies false on lines the lease excludes.",
+      );
+  }
 
   const charge = t.step(
     "Tenant CAM charge",
-    round(Math.max(0, cappedCtrl + unctrlShare - deduction), 2),
-    `max(0, ${fmtMoney(cappedCtrl)} + ${fmtMoney(unctrlShare)} − ${fmtMoney(deduction)})`,
+    round(
+      Math.max(
+        0,
+        cappedCtrl + feeOutside + unctrlShare + feeUnctrl - deduction,
+      ),
+      2,
+    ),
+    fee
+      ? `max(0, ${fmtMoney(cappedCtrl)} + ${fmtMoney(feeOutside)} fee + ${fmtMoney(unctrlShare)} + ${fmtMoney(feeUnctrl)} fee − ${fmtMoney(deduction)})`
+      : `max(0, ${fmtMoney(cappedCtrl)} + ${fmtMoney(unctrlShare)} − ${fmtMoney(deduction)})`,
     "USD",
   );
   const balance = t.step(
@@ -297,15 +512,21 @@ export function camReconciliation(
     `${fmtMoney(charge)} − ${fmtMoney(input.estimates_paid)} estimates paid`,
     "USD",
   );
+  t.step(
+    "Rounding",
+    "each tenant share, fee, cap limit, and deduction is rounded to the cent half away from zero before it is combined",
+  );
   if (!input.cap) t.warn("No CAM cap supplied; confirm the lease has none.");
 
-  return t.result("calc.cam_reconciliation", 1, {
+  return t.result("calc.cam_reconciliation", 2, {
     recoverable_expenses: recoverableTotal,
     grossed_up_expenses: grossed,
     tenant_share_controllable: ctrlShare,
     tenant_share_uncontrollable: unctrlShare,
     cap_limit: capLimit,
     cap_reduction: capReduction,
+    admin_fee: adminFee,
+    occupancy_fraction: round(f, 6),
     structure_deduction: deduction,
     tenant_charge: charge,
     estimates_paid: input.estimates_paid,

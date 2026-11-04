@@ -8,6 +8,7 @@ Both implementations are held to the shared vectors in ``spec/vectors``.
 from __future__ import annotations
 
 import math
+import re
 from typing import Any, Callable
 
 from ._core import (
@@ -116,6 +117,15 @@ def _build_months(s: dict[str, Any], t: Trace | None = None) -> list[dict[str, A
     return months
 
 
+def _warn_mid_month(commencement: str, t: Trace) -> None:
+    """Warn when commencement is not the first of a month (identical to @factlot/calc ``warnMidMonth``)."""
+    day = int(commencement[8:10])
+    if day != 1:
+        t.warn(f"Commencement {commencement} is mid-month: each lease month runs from day {day} to the day before it in "
+               "the next month (clamped to month end), and rent is not prorated to calendar months; if rent is billed "
+               "by calendar month, the first and last partial months need proration outside this result.")
+
+
 def _sum(values: list[float]) -> float:
     total = 0.0
     for v in values:
@@ -156,6 +166,7 @@ def rent_schedule(raw: Any) -> Result:
     t.step("Total rent due", total_due, f"{fmt_money(total_sched)} − {fmt_money(total_abate)}", "USD")
     if not s["round_rate_to_cents"] and s["escalation"]["type"] == "percent":
         t.warn("Escalated $/SF rates are not rounded per step; set round_rate_to_cents if the lease table rounds.")
+    _warn_mid_month(s["commencement_date"], t)
     value: dict[str, Any] = {
         "expiration_date": months[-1]["end_date"],
         "steps": steps,
@@ -204,6 +215,7 @@ def net_effective_rent(raw: Any) -> Result:
                   "((PV rent − costs) ÷ Σ(1+r)^−t) × 12 ÷ area", "USD/sf/yr")
     if disc == 0:
         t.warn("discount_rate_annual is 0, so discounted NER equals straight-line NER.")
+    _warn_mid_month(s["commencement_date"], t)
     return t.result("calc.net_effective_rent", 1, {
         "effective_rent_psf": eff,
         "net_effective_rent_psf": ner,
@@ -217,11 +229,45 @@ def net_effective_rent(raw: Any) -> Result:
 # --- CAM ----------------------------------------------------------------------------------
 
 CAP_METHODS = ("compounding_from_base", "simple_from_base", "year_over_year")
+_FEE_LINE = re.compile(r"admin|manag", re.IGNORECASE)
+
+
+def _occupancy_fraction(d: dict[str, Any], year: int, t: Trace) -> float:
+    """Occupied days ÷ period days for ``occupancy``, validated against the reconciliation period."""
+    if d.get("occupancy") is None:
+        return 1
+    o = obj(d["occupancy"], "occupancy")
+    dates = {k: iso_date(o, k, "occupancy") if o.get(k) is not None else None
+             for k in ("move_in_date", "move_out_date", "period_start_date", "period_end_date")}
+    start = dates["period_start_date"] or f"{year:04d}-01-01"
+    end = dates["period_end_date"] or f"{year:04d}-12-31"
+    frm = dates["move_in_date"] or start
+    to = dates["move_out_date"] or end
+    period_days = days_between(start, end) + 1
+    if period_days < 1:
+        fail("occupancy.period_end_date", "must be on or after period_start_date")
+    if period_days > 366:
+        fail("occupancy.period_end_date", "the period is longer than 366 days")
+    if days_between(start, frm) < 0:
+        fail("occupancy.move_in_date", "must be within the reconciliation period")
+    if days_between(to, end) < 0:
+        fail("occupancy.move_out_date", "must be within the reconciliation period")
+    occupied = days_between(frm, to) + 1
+    if occupied < 1:
+        fail("occupancy.move_out_date", "must be on or after move_in_date")
+    f = occupied / period_days
+    t.step("Occupancy fraction", round_(f, 6),
+           f"{occupied} occupied days ({frm} to {to}) ÷ {period_days} days in the period ({start} to {end})")
+    if f < 1:
+        t.warn(f"Prorated for partial occupancy ({occupied} of {period_days} days): the tenant's share, the cap limit, "
+               "and any base-year or stop deduction are each scaled by the same fraction; confirm the lease prorates "
+               "by days and that cap.reference_amount is a full-year amount.")
+    return f
 
 
 def cam_reconciliation(raw: Any) -> Result:
     d = obj(raw)
-    number(d, "year", integer=True, ge=1900, le=2200)
+    year = number(d, "year", integer=True, ge=1900, le=2200)
     share = number(d, "pro_rata_share", gt=0, le=1)
     expenses = []
     for i, e in enumerate(array(d, "expenses", min_len=1, max_len=1000)):
@@ -233,6 +279,7 @@ def cam_reconciliation(raw: Any) -> Result:
             "controllable": boolean(e, "controllable", p, default=True),
             "recoverable": boolean(e, "recoverable", p, default=True),
             "variable": boolean(e, "variable", p, default=False),
+            "admin_fee_applies": boolean(e, "admin_fee_applies", p, default=True),
         })
     gross_up = None
     if d.get("gross_up") is not None:
@@ -250,9 +297,24 @@ def cam_reconciliation(raw: Any) -> Result:
             "reference_amount": number(c, "reference_amount", "cap", ge=0),
             "years_elapsed": number(c, "years_elapsed", "cap", optional=True, integer=True, ge=0),
         }
+    fee = None
+    if d.get("admin_fee") is not None:
+        a = obj(d["admin_fee"], "admin_fee")
+        fee = {
+            "rate": number(a, "rate", "admin_fee", ge=0, lt=10),
+            "applied": enum(a, "applied", ("before_cap", "after_cap"), "admin_fee", default="after_cap"),
+            "capped": boolean(a, "capped", "admin_fee", default=False),
+        }
     estimates = _money(d, "estimates_paid")
+    if st_type == "base_year":
+        base = number(st, "base_year_expenses", "structure", ge=0)
+    elif st_type == "expense_stop":
+        stop = number(st, "stop_amount", "structure", ge=0)
 
     t = Trace()
+    f = _occupancy_fraction(d, year, t)
+    prorated = f < 1
+    share_text = f"{num_str(share)} × {num_str(round_(f, 6))}" if prorated else num_str(share)
     recoverable = [e for e in expenses if e["recoverable"]]
     excluded = [e for e in expenses if not e["recoverable"]]
     rec_total = t.step("Recoverable expenses", round_(_sum([e["amount"] for e in recoverable]), 2),
@@ -266,14 +328,28 @@ def cam_reconciliation(raw: Any) -> Result:
                f"{fmt_pct(target)} target ÷ {fmt_pct(actual)} actual" if actual < target else "occupancy ≥ target; no gross-up")
     adjusted = [{**e, "amount": e["amount"] * factor if e["variable"] else e["amount"]} for e in recoverable]
     grossed = t.step("Recoverable expenses after gross-up", round_(_sum([e["amount"] for e in adjusted]), 2), None, "USD")
-    ctrl_total = _sum([e["amount"] for e in adjusted if e["controllable"]])
-    unctrl_total = _sum([e["amount"] for e in adjusted if not e["controllable"]])
-    ctrl_share = t.step("Tenant share of controllable", round_(ctrl_total * share, 2),
-                        f"{fmt_money(ctrl_total)} × {num_str(share)}", "USD")
-    unctrl_share = t.step("Tenant share of uncontrollable", round_(unctrl_total * share, 2),
-                          f"{fmt_money(unctrl_total)} × {num_str(share)}", "USD")
+
+    def sum_of(keep: Callable[[dict[str, Any]], bool]) -> float:
+        return _sum([e["amount"] for e in adjusted if keep(e)])
+
+    ctrl_total = sum_of(lambda e: e["controllable"])
+    unctrl_total = sum_of(lambda e: not e["controllable"])
+    ctrl_share = t.step("Tenant share of controllable", round_(ctrl_total * share * f, 2),
+                        f"{fmt_money(ctrl_total)} × {share_text}", "USD")
+    unctrl_share = t.step("Tenant share of uncontrollable", round_(unctrl_total * share * f, 2),
+                          f"{fmt_money(unctrl_total)} × {share_text}", "USD")
+    ctrl_fee_base = 0.0
+    fee_unctrl = 0.0
+    if fee:
+        ctrl_fee_base = round_(sum_of(lambda e: e["controllable"] and e["admin_fee_applies"]) * share * f, 2)
+        unctrl_fee_base = round_(sum_of(lambda e: not e["controllable"] and e["admin_fee_applies"]) * share * f, 2)
+        fee_unctrl = t.step("Admin fee on uncontrollable", round_(fee["rate"] * unctrl_fee_base, 2),
+                            f"{num_str(fee['rate'])} × {fmt_money(unctrl_fee_base)} fee-eligible uncontrollable share "
+                            "(never capped)", "USD")
     cap_limit = None
     capped = ctrl_share
+    fee_ctrl = 0.0
+    fee_in_cap = False
     if cap:
         method, rate, ref, n = cap["method"], cap["rate"], cap["reference_amount"], cap["years_elapsed"]
         if method != "year_over_year" and n is None:
@@ -286,32 +362,82 @@ def cam_reconciliation(raw: Any) -> Result:
         else:
             limit, formula = ref * (1 + rate), f"{fmt_money(ref)} × (1 + {num_str(rate)})"
         cap_limit = t.step(f"Cap limit ({method})", round_(limit, 2), formula, "USD")
-        capped = t.step("Controllable after cap", min(ctrl_share, cap_limit), "min(tenant controllable, cap limit)", "USD")
-    cap_reduction = round_(ctrl_share - capped, 2)
+        if prorated:
+            cap_limit = t.step("Cap limit prorated for occupancy", round_(cap_limit * f, 2),
+                               f"{fmt_money(cap_limit)} × {num_str(round_(f, 6))}", "USD")
+        if fee and fee["applied"] == "before_cap":
+            fee_ctrl = t.step("Admin fee on controllable (before cap)", round_(fee["rate"] * ctrl_fee_base, 2),
+                              f"{num_str(fee['rate'])} × {fmt_money(ctrl_fee_base)} fee-eligible controllable share", "USD")
+            fee_in_cap = fee["capped"]
+            capped = t.step("Controllable after cap",
+                            min(round_(ctrl_share + fee_ctrl, 2) if fee_in_cap else ctrl_share, cap_limit),
+                            "min(tenant controllable + admin fee on it, cap limit)" if fee_in_cap
+                            else "min(tenant controllable, cap limit); admin fee added outside the cap", "USD")
+        else:
+            base_capped = t.step("Controllable after cap", min(ctrl_share, cap_limit), "min(tenant controllable, cap limit)", "USD")
+            capped = base_capped
+            if fee:
+                # The cap reduction is spread over controllable lines in proportion to their amounts.
+                eligible = base_capped * ctrl_fee_base / ctrl_share if ctrl_share > 0 else 0
+                fee_ctrl = t.step("Admin fee on controllable (after cap)", round_(fee["rate"] * eligible, 2),
+                                  f"{num_str(fee['rate'])} × {fmt_money(base_capped)} capped × {fmt_money(ctrl_fee_base)} "
+                                  f"fee-eligible ÷ {fmt_money(ctrl_share)} controllable", "USD")
+                fee_in_cap = fee["capped"]
+                if fee_in_cap:
+                    capped = t.step("Controllable with admin fee, capped", min(round_(base_capped + fee_ctrl, 2), cap_limit),
+                                    "min(capped controllable + admin fee on it, cap limit)", "USD")
+    elif fee:
+        fee_ctrl = t.step("Admin fee on controllable", round_(fee["rate"] * ctrl_fee_base, 2),
+                          f"{num_str(fee['rate'])} × {fmt_money(ctrl_fee_base)} fee-eligible controllable share (no cap)", "USD")
+    cap_reduction = round_((round_(ctrl_share + fee_ctrl, 2) if fee_in_cap else ctrl_share) - capped, 2)
+    fee_outside = 0 if fee_in_cap else fee_ctrl
+    admin_fee = t.step("Admin fee", round_(fee_ctrl + fee_unctrl, 2),
+                       "fee on controllable (subject to the cap) + fee on uncontrollable" if fee_in_cap
+                       else "fee on controllable + fee on uncontrollable", "USD") if fee else 0
     deduction = 0.0
     if st_type == "base_year":
-        base = number(st, "base_year_expenses", "structure", ge=0)
-        deduction = t.step("Base-year deduction", round_(base * share, 2), f"{fmt_money(base)} × {num_str(share)}", "USD")
+        deduction = t.step("Base-year deduction", round_(base * share * f, 2), f"{fmt_money(base)} × {share_text}", "USD")
         if cap:
             t.warn("Cap applied before the base-year deduction; confirm the lease's order of operations.")
     elif st_type == "expense_stop":
-        stop = number(st, "stop_amount", "structure", ge=0)
-        deduction = t.step("Expense-stop deduction", round_(stop * share, 2), f"{fmt_money(stop)} × {num_str(share)}", "USD")
+        deduction = t.step("Expense-stop deduction", round_(stop * share * f, 2), f"{fmt_money(stop)} × {share_text}", "USD")
         if cap:
             t.warn("Cap applied before the expense-stop deduction; confirm the lease's order of operations.")
-    charge = t.step("Tenant CAM charge", round_(max(0, capped + unctrl_share - deduction), 2),
+    if fee:
+        if cap:
+            t.warn(f"Admin fee on controllable lines computed {'before' if fee['applied'] == 'before_cap' else 'after'} "
+                   f"the cap and {'counted within' if fee['capped'] else 'added outside'} it; confirm the lease's order "
+                   "of operations.")
+        if st_type != "net":
+            t.warn(f"Admin fee added to the current-year share before the "
+                   f"{'base-year' if st_type == 'base_year' else 'expense-stop'} deduction; confirm whether "
+                   f"{'base_year_expenses' if st_type == 'base_year' else 'stop_amount'} already includes a fee.")
+        on_fee = [e["category"] for e in adjusted if e["admin_fee_applies"] and _FEE_LINE.search(e["category"])]
+        if on_fee:
+            t.warn(f"Admin fee charged on {', '.join(on_fee)}; confirm the lease allows a fee on a fee, or set "
+                   "admin_fee_applies false on those lines.")
+        if any(not e["controllable"] and e["admin_fee_applies"] for e in adjusted):
+            t.warn("Admin fee base includes uncontrollable lines; many leases exclude taxes, insurance, and utilities "
+                   "from the fee. Set admin_fee_applies false on lines the lease excludes.")
+    charge = t.step("Tenant CAM charge", round_(max(0, capped + fee_outside + unctrl_share + fee_unctrl - deduction), 2),
+                    f"max(0, {fmt_money(capped)} + {fmt_money(fee_outside)} fee + {fmt_money(unctrl_share)} + "
+                    f"{fmt_money(fee_unctrl)} fee − {fmt_money(deduction)})" if fee else
                     f"max(0, {fmt_money(capped)} + {fmt_money(unctrl_share)} − {fmt_money(deduction)})", "USD")
     balance = t.step("Balance due", round_(charge - estimates, 2),
                      f"{fmt_money(charge)} − {fmt_money(estimates)} estimates paid", "USD")
+    t.step("Rounding", "each tenant share, fee, cap limit, and deduction is rounded to the cent half away from zero "
+           "before it is combined")
     if not cap:
         t.warn("No CAM cap supplied; confirm the lease has none.")
-    return t.result("calc.cam_reconciliation", 1, {
+    return t.result("calc.cam_reconciliation", 2, {
         "recoverable_expenses": rec_total,
         "grossed_up_expenses": grossed,
         "tenant_share_controllable": ctrl_share,
         "tenant_share_uncontrollable": unctrl_share,
         "cap_limit": cap_limit,
         "cap_reduction": cap_reduction,
+        "admin_fee": admin_fee,
+        "occupancy_fraction": round_(f, 6),
         "structure_deduction": deduction,
         "tenant_charge": charge,
         "estimates_paid": estimates,
@@ -331,6 +457,35 @@ def annual_constant(rate_annual: float, amortization_years: int) -> float:
     return 12 / n if r == 0 else (12 * r) / (1 - pow_int(1 + r, -n))
 
 
+def _size_loan(noi: float, value: float | None, rate: float, amort: int, max_ltv: float | None,
+               min_dscr: float | None, min_dy: float | None, step: float) -> dict[str, Any]:
+    """The constraint loans and the rounded max loan for one set of NOI, value and rate."""
+    k = annual_constant(rate, amort)
+    loans: dict[str, float] = {}
+    if max_ltv is not None and value is not None:
+        loans["ltv"] = value * max_ltv
+    if min_dscr is not None:
+        loans["dscr"] = ieee_div(noi / min_dscr, k)
+    if min_dy is not None:
+        loans["debt_yield"] = noi / min_dy
+    binding, min_loan = None, math.inf
+    for c, v in loans.items():
+        if binding is None or v < min_loan:
+            binding, min_loan = c, v
+    # Floor after reducing to 15 significant digits, so binary noise such as
+    # 0.57 * 10_000_000 == 5699999.999999999 does not cost a whole increment.
+    loan = math.floor(reduce_noise(min_loan / step)) * step if 0 < min_loan < math.inf else min_loan
+    return {"k": k, "loans": loans, "binding": binding, "min_loan": min_loan, "loan": loan}
+
+
+def _shocks(st: dict[str, Any], key: str, gt: float, lt: float) -> list[float] | None:
+    if st.get(key) is None:
+        return None
+    path = join("stress", key)
+    values = array(st, key, "stress", min_len=1, max_len=10)
+    return [number({"v": v}, "v", join(path, i), gt=gt, lt=lt) for i, v in enumerate(values)]
+
+
 def debt_sizing(raw: Any) -> Result:
     d = obj(raw)
     noi = number(d, "noi", gt=0)
@@ -341,37 +496,51 @@ def debt_sizing(raw: Any) -> Result:
     min_dscr = number(d, "min_dscr", optional=True, gt=0)
     min_dy = number(d, "min_debt_yield", optional=True, gt=0, lt=1)
     step = number(d, "round_down_to", default=1, gt=0)
+    existing = number(d, "existing_loan_balance", optional=True, gt=0)
     if max_ltv is None and min_dscr is None and min_dy is None:
         fail("", "provide at least one of max_ltv, min_dscr, min_debt_yield")
     if max_ltv is not None and value is None:
         fail("value", "value is required when max_ltv is set")
+    st = None
+    if d.get("stress") is not None:
+        sd = obj(d["stress"], "stress")
+        st = {
+            "noi_shocks": _shocks(sd, "noi_shocks", -1, 10),
+            "rate_shocks": _shocks(sd, "rate_shocks", -1, 1),
+            "value_shocks": _shocks(sd, "value_shocks", -1, 10),
+            "value_moves_with_noi": boolean(sd, "value_moves_with_noi", "stress", default=False),
+        }
+        if st["noi_shocks"] is None and st["rate_shocks"] is None and st["value_shocks"] is None:
+            fail("stress", "give at least one of noi_shocks, rate_shocks, value_shocks")
+        if (st["value_shocks"] is not None or st["value_moves_with_noi"]) and value is None:
+            fail("value", "value is required for value_shocks or value_moves_with_noi")
+        for i, dr in enumerate(st["rate_shocks"] or []):
+            r = rate + dr
+            if not (r >= 0 and r < 1):
+                fail(f"stress.rate_shocks.{i}", f"stressed rate {num_str(r)} must be at least 0 and below 1")
 
     t = Trace()
-    k = t.step("Annual constant", annual_constant(rate, amort),
+    base = _size_loan(noi, value, rate, amort, max_ltv, min_dscr, min_dy, step)
+    k = t.step("Annual constant", base["k"],
                f"interest-only: {fmt_pct(rate, 3)}" if amort == 0
                else f"12 × r ÷ (1 − (1 + r)^−n), r = {num_str(rate)}/12, n = {amort * 12}")
-    loans: dict[str, float] = {}
-    if max_ltv is not None:
-        loans["ltv"] = t.step("Loan at max LTV", value * max_ltv, f"{fmt_money(value)} × {num_str(max_ltv)}", "USD")
-    if min_dscr is not None:
-        loans["dscr"] = t.step("Loan at min DSCR", ieee_div(noi / min_dscr, k),
-                               f"({fmt_money(noi)} ÷ {num_str(min_dscr)}) ÷ {num_str(round_(k, 6))}", "USD")
-    if min_dy is not None:
-        loans["debt_yield"] = t.step("Loan at min debt yield", noi / min_dy, f"{fmt_money(noi)} ÷ {num_str(min_dy)}", "USD")
+    loans = base["loans"]
+    if "ltv" in loans:
+        t.step("Loan at max LTV", loans["ltv"], f"{fmt_money(value)} × {num_str(max_ltv)}", "USD")
+    if "dscr" in loans:
+        t.step("Loan at min DSCR", loans["dscr"],
+               f"({fmt_money(noi)} ÷ {num_str(min_dscr)}) ÷ {num_str(round_(k, 6))}", "USD")
+    if "debt_yield" in loans:
+        t.step("Loan at min debt yield", loans["debt_yield"], f"{fmt_money(noi)} ÷ {num_str(min_dy)}", "USD")
     for v in loans.values():
         if not math.isfinite(v):
             # A 0% interest-only loan has a zero annual constant; TypeScript fails rounding the
             # infinite DSCR loan, and so do we (Python's math.floor would raise OverflowError).
             raise CalcInputError(f"cannot round non-finite value {v}")
-    binding, min_loan = None, math.inf
-    for c, v in loans.items():
-        if binding is None or v < min_loan:
-            binding, min_loan = c, v
+    binding, min_loan = base["binding"], base["min_loan"]
     if min_loan <= 0:
         raise CalcInputError("constraints produce a non-positive loan")
-    # Floor after reducing to 15 significant digits, so binary noise such as
-    # 0.57 * 10_000_000 == 5699999.999999999 does not cost a whole increment.
-    loan = t.step("Max loan", math.floor(reduce_noise(min_loan / step)) * step,
+    loan = t.step("Max loan", base["loan"],
                   "min(" + ", ".join(f"{c} {fmt_money(v)}" for c, v in loans.items()) + f"), rounded down to {num_str(step)}",
                   "USD")
     if loan <= 0:
@@ -379,7 +548,7 @@ def debt_sizing(raw: Any) -> Result:
                              f"(round_down_to {num_str(step)}); check value and noi")
     t.step("Binding constraint", binding)
     ds = round_(loan * k, 2)
-    return t.result("calc.debt_sizing", 2, {
+    out: dict[str, Any] = {
         "max_loan": loan,
         "binding_constraint": binding,
         "loan_by_constraint": {c: round_(v, 2) for c, v in loans.items()},
@@ -390,7 +559,72 @@ def debt_sizing(raw: Any) -> Result:
             "dscr": round_(noi / ds, 4),
             "debt_yield": round_(noi / loan, 4),
         },
-    })
+    }
+    if existing is not None:
+        shortfall = round_(max(0, existing - loan), 2)
+        out["refinance"] = {
+            "existing_loan_balance": existing,
+            "shortfall": t.step("Refinance shortfall", shortfall,
+                                f"max(0, existing {fmt_money(existing)} − max loan {fmt_money(loan)})", "USD"),
+            "excess_proceeds": round_(max(0, loan - existing), 2),
+        }
+        if shortfall > 0:
+            t.warn(f"The max loan is {fmt_money(shortfall)} short of the existing {fmt_money(existing)} balance; "
+                   "the refinance needs that much equity or a paydown.")
+    if st is not None:
+        noi_shocks = st["noi_shocks"] or [0]
+        rate_shocks = st["rate_shocks"] or [0]
+        value_shocks = st["value_shocks"] or [0]
+        rows = []
+        for dn in noi_shocks:
+            for dr in rate_shocks:
+                for dv in value_shocks:
+                    s_noi = noi * (1 + dn)
+                    s_rate = rate + dr
+                    s_value = None if value is None else value * ((1 + dn) if st["value_moves_with_noi"] else 1) * (1 + dv)
+                    sz = _size_loan(s_noi, s_value, s_rate, amort, max_ltv, min_dscr, min_dy, step)
+                    if any(not math.isfinite(x) for x in sz["loans"].values()):
+                        raise CalcInputError(f"stress scenario at rate {num_str(s_rate)} gives an unbounded DSCR loan "
+                                             "(a 0% interest-only rate); use rate_shocks that keep the rate above 0")
+                    ok = sz["loan"] > 0 and math.isfinite(sz["loan"])
+                    m = sz["loan"] if ok else 0
+                    sds = round_(m * sz["k"], 2)
+                    row: dict[str, Any] = {
+                        "noi_shock": dn,
+                        "rate_shock": dr,
+                        "value_shock": dv,
+                        "noi": round_(s_noi, 2),
+                        "rate_annual": round_(s_rate, 8),
+                        "value": None if s_value is None else round_(s_value, 2),
+                        "max_loan": m,
+                        "binding_constraint": sz["binding"],
+                        "annual_debt_service": sds,
+                        "ltv": round_(m / s_value, 4) if ok and s_value is not None else None,
+                        "dscr": round_(s_noi / sds, 4) if ok and sds > 0 else None,
+                        "debt_yield": round_(s_noi / m, 4) if ok else None,
+                    }
+                    if existing is not None:
+                        row["refinance_shortfall"] = round_(max(0, existing - m), 2)
+                    rows.append(row)
+        out["stress"] = rows
+        worst = rows[0]
+        for row in rows[1:]:
+            if row["max_loan"] < worst["max_loan"]:
+                worst = row
+        t.step("Stress scenarios", len(rows),
+               f"{len(noi_shocks)} NOI × {len(rate_shocks)} rate × {len(value_shocks)} value shocks; NOI × (1 + shock), "
+               f"rate + shock, value × {'(1 + NOI shock) × ' if st['value_moves_with_noi'] else ''}(1 + shock); "
+               "same constraints and rounding as the base")
+        t.step("Lowest stressed max loan", worst["max_loan"],
+               f"NOI shock {num_str(worst['noi_shock'])}, rate shock {num_str(worst['rate_shock'])}, value shock "
+               f"{num_str(worst['value_shock'])}; binding {worst['binding_constraint']}", "USD")
+        if any(row["max_loan"] == 0 for row in rows):
+            t.warn("In at least one stress scenario the constraints allow less than one rounding increment; its "
+                   "max_loan is 0 and its metrics are null.")
+        if st["noi_shocks"] is not None and not st["value_moves_with_noi"] and max_ltv is not None:
+            t.warn("Value is held fixed under the NOI shocks, so the LTV test ignores them; set value_moves_with_noi "
+                   "or add value_shocks if the lender reprices value on stressed NOI.")
+    return t.result("calc.debt_sizing", 3, out)
 
 
 # --- ASC 842 lease remeasurement (lessee) -----------------------------------------------------
@@ -455,8 +689,12 @@ def lease_remeasurement_asc842(raw: Any) -> Result:
                + (" (rate updated at remeasurement, ASC 842-10-35-5)" if updated else " (original rate retained)"))
     total = 0.0
     pv = 0.0
+    # Payments are taken to the cent, so every schedule row is in whole cents.
+    def pay(k: int) -> float:
+        return round_(by_period.get(k, 0), 2)
+
     for k in range(1, n + 1):
-        p = by_period.get(k, 0)
+        p = pay(k)
         total += p
         pv += p * pow_int(1 + r, -(k - 1) if in_advance else -k)
     total_payments = t.step("Remaining lease payments", round_(total, 2), "Σ payment_k, k = 1..n", "USD")
@@ -474,11 +712,14 @@ def lease_remeasurement_asc842(raw: Any) -> Result:
     new_rou = t.step("New ROU asset", round_(rou_before + rou_adj, 2), f"{fmt_money(rou_before)} + {fmt_money(rou_adj)}", "USD")
 
     operating = classification == "operating"
+    # Operating: the total lease cost over the remaining term is fixed in cents; every period
+    # takes the straight-line amount and the last takes what is left (ASC 842-20-25-6).
+    total_cost = round_(total_payments + new_rou - new_liability, 2)
     sl_cost = 0.0
     amort_per = 0.0
     if operating:
-        sl_cost = t.step("Straight-line lease cost", round_((total + new_rou - new_liability) / n, 2),
-                         f"ASC 842-20-25-6: (remaining payments {fmt_money(total)} + ROU {fmt_money(new_rou)} − "
+        sl_cost = t.step("Straight-line lease cost", round_(total_cost / n, 2),
+                         f"ASC 842-20-25-6: (remaining payments {fmt_money(total_payments)} + ROU {fmt_money(new_rou)} − "
                          f"liability {fmt_money(new_liability)}) ÷ {n}", "USD/period")
     else:
         amort_per = t.step("ROU amortization per period", round_(new_rou / n, 2),
@@ -489,35 +730,56 @@ def lease_remeasurement_asc842(raw: Any) -> Result:
            "ASC 842-20-25-5 and 842-20-35-1: interest = opening liability × r; lease cost = interest + amortization",
            "payment in advance: interest accrues on (opening liability − payment)" if in_advance
            else "payment in arrears: interest accrues on the opening liability")
+    t.step("Rounding",
+           "every row is in cents and rolls forward exactly: closing liability = opening − payment + interest, "
+           "closing ROU = opening ROU − amortization; interest is rounded to the cent half away from zero each period; "
+           "the final period's interest is the amount that closes the liability at 0.00, "
+           + ("and its lease cost is total lease cost less the earlier periods, so the ROU asset also closes at 0.00"
+              if operating else "and its amortization is the ROU asset left, so the ROU asset also closes at 0.00")
+           + "; totals are the sums of the rows")
 
     schedule = []
     liability = new_liability
     rou = new_rou
-    sum_interest = 0.0
-    sum_amort = 0.0
-    sl_unrounded = (total + new_rou - new_liability) / n
-    amort_unrounded = new_rou / n
+    sum_interest = sum_amort = sum_cost = true_up = 0.0
     for k in range(1, n + 1):
+        last = k == n
         opening = liability
-        p = by_period.get(k, 0)
-        interest = (opening - p if in_advance else opening) * r
-        closing = opening + interest - p
-        amort = sl_unrounded - interest if operating else amort_unrounded
-        cost = sl_unrounded if operating else interest + amort
-        rou -= amort
-        sum_interest += interest
-        sum_amort += amort
+        p = pay(k)
+        accrued = round_((opening - p if in_advance else opening) * r, 2)
+        interest = round_(p - opening, 2) if last else accrued
+        if last:
+            true_up = round_(interest - accrued, 2)
+        closing = round_(opening - p + interest, 2)
+        if operating:
+            cost = round_(total_cost - sum_cost, 2) if last else sl_cost
+            amort = round_(cost - interest, 2)
+        else:
+            amort = round_(new_rou - sum_amort, 2) if last else amort_per
+            cost = round_(interest + amort, 2)
+        rou = round_(rou - amort, 2)
+        sum_interest = round_(sum_interest + interest, 2)
+        sum_amort = round_(sum_amort + amort, 2)
+        sum_cost = round_(sum_cost + cost, 2)
         schedule.append({
             "period": k,
-            "opening_liability": round_(opening, 2),
-            "payment": round_(p, 2),
-            "interest": round_(interest, 2),
-            "closing_liability": round_(closing, 2),
-            "amortization": round_(amort, 2),
-            "closing_rou_asset": round_(rou, 2),
-            "lease_cost": round_(cost, 2),
+            "opening_liability": opening,
+            "payment": p,
+            "interest": interest,
+            "closing_liability": closing,
+            "amortization": amort,
+            "closing_rou_asset": rou,
+            "lease_cost": cost,
         })
         liability = closing
+    last_interest = schedule[n - 1]["interest"]
+    t.step("Final-period interest true-up", true_up,
+           f"period {n} interest {fmt_money(last_interest)} versus {fmt_money(round_(last_interest - true_up, 2))} "
+           "at opening liability × r: the cents left by rounding each period", "USD")
+    t.step("Total interest", sum_interest, "Σ row interest = remaining payments − new lease liability", "USD")
+    t.step("Total lease cost", sum_cost,
+           "Σ row lease cost = remaining payments + new ROU asset − new lease liability" if operating
+           else "Σ row lease cost = total interest + new ROU asset", "USD")
 
     if not updated and event in _RATE_UPDATE_EVENTS:
         t.warn("ASC 842-10-35-5 (and 842-10-25-11 for modifications) require a discount rate determined at the "
@@ -540,7 +802,7 @@ def lease_remeasurement_asc842(raw: Any) -> Result:
         t.warn("Finance-lease amortization runs straight-line over the remaining lease term; use the remaining useful "
                "life instead when ownership transfers or a purchase option is reasonably certain (ASC 842-20-35-8).")
 
-    return t.result("calc.lease_remeasurement_asc842", 1, {
+    return t.result("calc.lease_remeasurement_asc842", 2, {
         "classification": classification,
         "remaining_periods": n,
         "periodic_rate": round_(r, 8),
@@ -552,8 +814,9 @@ def lease_remeasurement_asc842(raw: Any) -> Result:
         "new_rou_asset": new_rou,
         "straight_line_lease_cost": sl_cost if operating else None,
         "periodic_amortization": None if operating else amort_per,
-        "total_interest": round_(sum_interest, 2),
-        "total_amortization": round_(sum_amort, 2),
+        "total_interest": sum_interest,
+        "total_amortization": sum_amort,
+        "total_lease_cost": sum_cost,
         "schedule": schedule,
     })
 
@@ -860,71 +1123,188 @@ def irr(raw: Any) -> Result:
 # --- proposals & retail ---------------------------------------------------------------------------
 
 
+OPEX_TYPES = ("gross", "nnn", "base_year", "expense_stop")
+
+
+def _proposal_opex(raw: Any, path: str) -> dict[str, Any] | None:
+    if raw is None:
+        return None
+    o = obj(raw, path)
+    kind = enum(o, "type", OPEX_TYPES, path)
+    out = {
+        "type": kind,
+        "expense_psf_annual": number(o, "expense_psf_annual", path, ge=0, **({"default": 0} if kind == "gross" else {})),
+        "growth_rate_annual": number(o, "growth_rate_annual", path, default=0, gt=-1, lt=10),
+    }
+    if kind == "base_year":
+        out["base_year_psf_annual"] = number(o, "base_year_psf_annual", path, optional=True, ge=0)
+    elif kind == "expense_stop":
+        out["stop_psf_annual"] = number(o, "stop_psf_annual", path, ge=0)
+    return out
+
+
+def _opex_psf(o: dict[str, Any], year: int) -> tuple[float, float]:
+    """Operating expenses in lease year ``year`` (0 = first): (total $/SF/yr, tenant-paid $/SF/yr)."""
+    total = o["expense_psf_annual"] * pow_int(1 + o["growth_rate_annual"], year)
+    if o["type"] == "gross":
+        return total, 0
+    if o["type"] == "nnn":
+        return total, total
+    if o["type"] == "base_year":
+        base = o["base_year_psf_annual"]
+        return total, max(0, total - (o["expense_psf_annual"] if base is None else base))
+    return total, max(0, total - o["stop_psf_annual"])
+
+
 def compare_proposals(raw: Any) -> Result:
     d = obj(raw)
     perspective = enum(d, "perspective", ("tenant", "landlord"), default="tenant")
     disc = number(d, "discount_rate_annual", default=0.08, ge=0, lt=1)
+    area_basis = enum(d, "area_basis", ("rentable", "usable"), default="rentable")
     proposals = []
     for i, p_raw in enumerate(array(d, "proposals", min_len=2, max_len=20)):
         p = join("proposals", i)
         pd = obj(p_raw, p)
+        sched = _schedule_input(pd.get("schedule"), join(p, "schedule"))
+        usf = number(pd, "usable_sf", p, optional=True, gt=0)
+        load = number(pd, "load_factor", p, optional=True, ge=1, le=3)
+        if usf is not None and load is not None:
+            fail(join(p, "load_factor"), "give usable_sf or load_factor, not both")
+        if usf is not None and usf > sched["area_sf"]:
+            fail(join(p, "usable_sf"), "usable_sf cannot exceed schedule.area_sf (rentable)")
+        if area_basis == "usable" and usf is None and load is None:
+            fail(join(p, "usable_sf"), "area_basis usable needs usable_sf or load_factor")
         proposals.append({
             "name": string(pd, "name", p, min_len=1, max_len=200),
-            "schedule": _schedule_input(pd.get("schedule"), join(p, "schedule")),
+            "schedule": sched,
+            "usable_sf": usf,
+            "load_factor": load,
             "ti_allowance_psf": _money(pd, "ti_allowance_psf", p),
             "other_concessions": _money(pd, "other_concessions", p),
             "leasing_commissions": _money(pd, "leasing_commissions", p),
+            "operating_expenses": _proposal_opex(pd.get("operating_expenses"), join(p, "operating_expenses")),
             "additional_costs_psf_annual": _money(pd, "additional_costs_psf_annual", p),
             "tenant_upfront_costs": _money(pd, "tenant_upfront_costs", p),
+            "downtime_months": number(pd, "downtime_months", p, default=0, integer=True, ge=0, le=120),
         })
     if len({p["name"] for p in proposals}) != len(proposals):
         fail("proposals", "proposal names must be unique")
 
     t = Trace()
     tenant = perspective == "tenant"
+    usable = area_basis == "usable"
     r = disc / 12
     t.step("Method",
-           "effective cost = level monthly payment with PV of (rent + additional costs + upfront − TI − concessions), × 12 ÷ area"
+           "effective cost = level monthly payment with PV of (rent + tenant-paid operating expenses + additional costs "
+           "+ upfront − TI − concessions), × 12 ÷ area"
            if tenant else
-           "discounted NER = level monthly payment with PV of (rent − TI − commissions − concessions), × 12 ÷ area")
+           "discounted NER = level monthly payment with PV of (rent − landlord-borne operating expenses − TI − "
+           "commissions − concessions), × 12 ÷ area")
+    t.step("Discounting",
+           f"monthly cash flows at the start of each month (annuity due), monthly rate r = {num_str(disc)} ÷ 12 = "
+           f"{num_str(round_(r, 8))}; one-time items at commencement" + ("" if tenant else "; t = 0 is the start of any downtime"),
+           "level amount = (PV of flows + PV of one-time items) ÷ Σ (1 + r)^−t")
+    t.step("Lease months",
+           "each month runs from the commencement day-of-month; rent is not prorated to calendar months; "
+           "operating expenses grow each lease year from commencement")
+    t.step("Area basis",
+           "usable SF: usable_sf, or area_sf ÷ load_factor; rents, TI and expenses are per rentable SF" if usable
+           else "rentable SF (schedule.area_sf)")
     rows = []
     for p in proposals:
         s = p["schedule"]
+        rsf = s["area_sf"]
         months = _build_months(s)
-        extra = round_(p["additional_costs_psf_annual"] * s["area_sf"] / 12, 2) if tenant else 0
+        usf = p["usable_sf"] if p["usable_sf"] is not None else (
+            rsf / p["load_factor"] if p["load_factor"] is not None else None)
+        load = p["load_factor"] if p["load_factor"] is not None else (
+            rsf / p["usable_sf"] if p["usable_sf"] is not None else None)
+        basis = (rsf if usf is None else usf) if usable else rsf
+        downtime = 0 if tenant else p["downtime_months"]
+        opex = p["operating_expenses"]
+        extra = round_(p["additional_costs_psf_annual"] * rsf / 12, 2) if tenant else 0
         pv = annuity = total = 0.0
+        # Landlord downtime: no rent; the landlord carries lease-year-1 operating expenses.
+        carry = round_(opex["expense_psf_annual"] * rsf / 12, 2) if opex else 0
+        for j in range(downtime):
+            df = pow_int(1 + r, -j)
+            pv -= carry * df
+            annuity += df
+            total -= carry
         for i, m in enumerate(months):
-            df = pow_int(1 + r, -i)
-            flow = m["rent_due"] + extra
+            df = pow_int(1 + r, -(i + downtime))
+            if opex:
+                all_psf, paid = _opex_psf(opex, i // 12)
+                tenant_opex = round_(paid * rsf / 12, 2)
+                flow = (m["rent_due"] + extra + tenant_opex if tenant
+                        else m["rent_due"] - round_(round_(all_psf * rsf / 12, 2) - tenant_opex, 2))
+            else:
+                flow = m["rent_due"] + extra
             pv += flow * df
             annuity += df
             total += flow
-        ti = p["ti_allowance_psf"] * s["area_sf"]
+        ti = p["ti_allowance_psf"] * rsf
         upfront = (p["tenant_upfront_costs"] - ti - p["other_concessions"]) if tenant \
             else -(ti + p["leasing_commissions"] + p["other_concessions"])
-        metric = round_(((pv + upfront) / annuity) * 12 / s["area_sf"], 4)
+        upfront_pv = upfront * pow_int(1 + r, -downtime)
+        level = (pv + upfront_pv) / annuity
+        metric = round_(level * 12 / basis, 4)
         t.step(p["name"], metric,
-               f"PV {fmt_money(pv)} {'−' if upfront < 0 else '+'} {fmt_money(abs(upfront))} one-time; "
-               f"{len(months)} months; {num_str(s['area_sf'])} SF", "USD/sf/yr")
-        rows.append({"name": p["name"], "metric_psf_annual": metric, "total_net": round_(total + upfront, 2),
-                     "term_months": s["term_months"], "area_sf": s["area_sf"]})
-    rows.sort(key=lambda row: row["metric_psf_annual"] if tenant else -row["metric_psf_annual"])
-    ranking = [{"rank": i + 1, **row} for i, row in enumerate(rows)]
+               f"PV {fmt_money(pv)} {'−' if upfront_pv < 0 else '+'} {fmt_money(abs(upfront_pv))} one-time; "
+               + (f"{downtime} downtime + " if downtime else "") + f"{len(months)} months; "
+               + (f"{opex['type']} opex; " if opex else "")
+               + f"÷ {num_str(round_(basis, 2))} {'usable' if usable else 'rentable'} SF", "USD/sf/yr")
+        rows.append(({
+            "name": p["name"], "metric_psf_annual": metric, "total_net": round_(total + upfront, 2),
+            "term_months": s["term_months"], "area_sf": rsf,
+            "usable_sf": None if usf is None else round_(usf, 2),
+            "load_factor": None if load is None else round_(load, 4),
+            "basis_area_sf": round_(basis, 2),
+            "opex_structure": opex["type"] if opex else None,
+            "downtime_months": downtime,
+        }, None if usf is None else round_(level * 12 / usf, 4)))
+
+    def key(v: float) -> float:
+        return v if tenant else -v
+
+    ranked = sorted(rows, key=lambda x: key(x[0]["metric_psf_annual"]))
+    ranking = [{"rank": i + 1, **row} for i, (row, _) in enumerate(ranked)]
     best = ranking[0]["name"]
     t.step("Best", best, "lowest effective occupancy cost" if tenant else "highest discounted NER")
-    if len({p["schedule"]["area_sf"] for p in proposals}) > 1:
+    if len({row["basis_area_sf"] for row, _ in rows}) > 1:
         t.warn("Proposals differ in area; $/SF/yr normalizes size but not the value of the space itself.")
-    if tenant and all(p["additional_costs_psf_annual"] == 0 for p in proposals):
-        t.warn("No additional costs supplied; if any proposal is net (NNN/modified gross), add its expenses for a fair comparison.")
+    if not usable and all(u is not None for _, u in rows):
+        row_u, best_u = sorted(rows, key=lambda x: key(x[1]))[0]
+        if row_u["name"] != best:
+            t.warn(f"Ranked on rentable SF; per usable SF the best is {row_u['name']} ({num_str(best_u)} $/USF/yr), "
+                   f"not {best}. Set area_basis to usable if the tenant needs a fixed usable area.")
+    with_opex = [p for p in proposals if p["operating_expenses"]]
+    if tenant and not with_opex and all(p["additional_costs_psf_annual"] == 0 for p in proposals):
+        t.warn("No operating_expenses or additional costs supplied; if any proposal is net (NNN, base year, expense stop), add its operating_expenses for a fair comparison.")
+    if 0 < len(with_opex) < len(proposals):
+        t.warn(f"No operating_expenses for {', '.join(p['name'] for p in proposals if not p['operating_expenses'])}: "
+               "priced as if no operating expenses are paid beyond base rent" + (" and additional costs" if tenant else "") + ".")
+    flat_base = [p["name"] for p in with_opex
+                 if p["operating_expenses"]["type"] == "base_year" and p["operating_expenses"]["growth_rate_annual"] == 0]
+    if flat_base:
+        t.warn(f"Base-year proposal(s) {', '.join(flat_base)} have growth_rate_annual 0, so no expense increases over "
+               "the base year are priced.")
+    if tenant and any(p["downtime_months"] > 0 for p in proposals):
+        t.warn("downtime_months applies to the landlord perspective only; ignored for the tenant.")
+    terms = [p["schedule"]["term_months"] for p in proposals]
+    if max(terms) - min(terms) >= 12:
+        t.warn(f"Terms differ ({min(terms)} to {max(terms)} months); annualizing compares cost per year but does not "
+               "price the re-leasing, renewal, or relocation risk after the shorter term ends.")
     starts = sorted({p["schedule"]["commencement_date"] for p in proposals})
     if len(starts) > 1:
         t.warn(f"Proposals commence on different dates ({', '.join(starts)}); each is valued as of its own commencement, "
                "so the ranking ignores the timing difference.")
     if len(ranking) > 1 and ranking[0]["metric_psf_annual"] == ranking[1]["metric_psf_annual"]:
         t.warn(f"Top proposals are tied at {num_str(ranking[0]['metric_psf_annual'])} $/SF/yr.")
-    return t.result("calc.compare_proposals", 1, {
+    return t.result("calc.compare_proposals", 2, {
         "perspective": perspective,
         "metric": "effective_occupancy_cost_psf" if tenant else "discounted_net_effective_rent_psf",
+        "area_basis": area_basis,
         "ranking": ranking,
         "best": best,
     })
@@ -1436,11 +1816,11 @@ def hotel_metrics(raw: Any) -> Result:
 CALCULATORS: dict[str, tuple[Callable[[Any], Result], str, int]] = {
     "rent_schedule": (rent_schedule, "calc.rent_schedule", 1),
     "net_effective_rent": (net_effective_rent, "calc.net_effective_rent", 1),
-    "compare_proposals": (compare_proposals, "calc.compare_proposals", 1),
+    "compare_proposals": (compare_proposals, "calc.compare_proposals", 2),
     "percentage_rent": (percentage_rent, "calc.percentage_rent", 1),
-    "cam_reconciliation": (cam_reconciliation, "calc.cam_reconciliation", 1),
-    "debt_sizing": (debt_sizing, "calc.debt_sizing", 2),
-    "lease_remeasurement_asc842": (lease_remeasurement_asc842, "calc.lease_remeasurement_asc842", 1),
+    "cam_reconciliation": (cam_reconciliation, "calc.cam_reconciliation", 2),
+    "debt_sizing": (debt_sizing, "calc.debt_sizing", 3),
+    "lease_remeasurement_asc842": (lease_remeasurement_asc842, "calc.lease_remeasurement_asc842", 2),
     "prepayment_and_defeasance": (prepayment_and_defeasance, "calc.prepayment_and_defeasance", 1),
     "walt": (walt, "calc.walt", 1),
     "npv": (npv, "calc.npv", 1),

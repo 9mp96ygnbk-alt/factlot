@@ -1,6 +1,6 @@
 {
   "calculator": "calc.cam_reconciliation",
-  "version": 1,
+  "version": 2,
   "cases": [
     {
       "name": "gross-up, exclusion, compounding_from_base cap",
@@ -200,6 +200,364 @@
       }
     },
     {
+      "name": "mid-year move-in prorates share and cap by days: annualize-then-prorate result (review case B04-P04)",
+      "input": {
+        "year": 2025,
+        "pro_rata_share": 0.04285714285714286,
+        "expenses": [
+          {
+            "category": "common area maintenance",
+            "amount": 50000
+          },
+          {
+            "category": "real estate taxes",
+            "amount": 62000,
+            "controllable": false
+          },
+          {
+            "category": "insurance",
+            "amount": 20000,
+            "controllable": false
+          }
+        ],
+        "cap": {
+          "method": "year_over_year",
+          "rate": 0.04,
+          "reference_amount": 1500
+        },
+        "occupancy": {
+          "move_in_date": "2025-07-01"
+        }
+      },
+      "expect": {
+        "value.tenant_share_controllable": 1080.23,
+        "value.tenant_share_uncontrollable": 1771.59,
+        "value.cap_limit": 786.41,
+        "value.cap_reduction": 293.82,
+        "value.admin_fee": 0,
+        "value.structure_deduction": 0,
+        "value.tenant_charge": 2558,
+        "value.balance_due": 2558,
+        "value.occupancy_fraction": 0.50411,
+        "warnings.0": "Prorated for partial occupancy (184 of 365 days): the tenant's share, the cap limit, and any base-year or stop deduction are each scaled by the same fraction; confirm the lease prorates by days and that cap.reference_amount is a full-year amount."
+      }
+    },
+    {
+      "name": "admin fee 15% after the cap, outside it (default), taxes and insurance excluded from the fee base",
+      "input": {
+        "year": 2026,
+        "pro_rata_share": 0.1,
+        "expenses": [
+          {
+            "category": "real estate taxes",
+            "amount": 300000,
+            "controllable": false,
+            "admin_fee_applies": false
+          },
+          {
+            "category": "insurance",
+            "amount": 50000,
+            "controllable": false,
+            "admin_fee_applies": false
+          },
+          {
+            "category": "utilities",
+            "amount": 90000,
+            "controllable": false
+          },
+          {
+            "category": "janitorial",
+            "amount": 200000,
+            "variable": true
+          },
+          {
+            "category": "repairs & maintenance",
+            "amount": 150000
+          },
+          {
+            "category": "roof replacement",
+            "amount": 400000,
+            "recoverable": false
+          }
+        ],
+        "gross_up": {
+          "actual_occupancy": 0.8,
+          "target_occupancy": 0.95
+        },
+        "cap": {
+          "method": "compounding_from_base",
+          "rate": 0.05,
+          "reference_amount": 30000,
+          "years_elapsed": 3
+        },
+        "estimates_paid": 70000,
+        "admin_fee": {
+          "rate": 0.15
+        }
+      },
+      "expect": {
+        "value.tenant_share_controllable": 38750,
+        "value.tenant_share_uncontrollable": 44000,
+        "value.cap_limit": 34728.75,
+        "value.cap_reduction": 4021.25,
+        "value.admin_fee": 6559.31,
+        "value.structure_deduction": 0,
+        "value.tenant_charge": 85288.06,
+        "value.balance_due": 15288.06,
+        "value.occupancy_fraction": 1,
+        "warnings.0": "Admin fee on controllable lines computed after the cap and added outside it; confirm the lease's order of operations."
+      }
+    },
+    {
+      "name": "admin fee before the cap and counted within it",
+      "input": {
+        "year": 2026,
+        "pro_rata_share": 0.1,
+        "expenses": [
+          {
+            "category": "real estate taxes",
+            "amount": 300000,
+            "controllable": false,
+            "admin_fee_applies": false
+          },
+          {
+            "category": "insurance",
+            "amount": 50000,
+            "controllable": false,
+            "admin_fee_applies": false
+          },
+          {
+            "category": "utilities",
+            "amount": 90000,
+            "controllable": false
+          },
+          {
+            "category": "janitorial",
+            "amount": 200000,
+            "variable": true
+          },
+          {
+            "category": "repairs & maintenance",
+            "amount": 150000
+          },
+          {
+            "category": "roof replacement",
+            "amount": 400000,
+            "recoverable": false
+          }
+        ],
+        "gross_up": {
+          "actual_occupancy": 0.8,
+          "target_occupancy": 0.95
+        },
+        "cap": {
+          "method": "compounding_from_base",
+          "rate": 0.05,
+          "reference_amount": 30000,
+          "years_elapsed": 3
+        },
+        "estimates_paid": 70000,
+        "admin_fee": {
+          "rate": 0.15,
+          "applied": "before_cap",
+          "capped": true
+        }
+      },
+      "expect": {
+        "value.tenant_share_controllable": 38750,
+        "value.tenant_share_uncontrollable": 44000,
+        "value.cap_limit": 34728.75,
+        "value.cap_reduction": 9833.75,
+        "value.admin_fee": 7162.5,
+        "value.structure_deduction": 0,
+        "value.tenant_charge": 80078.75,
+        "value.balance_due": 10078.75,
+        "value.occupancy_fraction": 1
+      }
+    },
+    {
+      "name": "admin fee after the cap and counted within it",
+      "input": {
+        "year": 2026,
+        "pro_rata_share": 0.1,
+        "expenses": [
+          {
+            "category": "real estate taxes",
+            "amount": 300000,
+            "controllable": false,
+            "admin_fee_applies": false
+          },
+          {
+            "category": "insurance",
+            "amount": 50000,
+            "controllable": false,
+            "admin_fee_applies": false
+          },
+          {
+            "category": "utilities",
+            "amount": 90000,
+            "controllable": false
+          },
+          {
+            "category": "janitorial",
+            "amount": 200000,
+            "variable": true
+          },
+          {
+            "category": "repairs & maintenance",
+            "amount": 150000
+          },
+          {
+            "category": "roof replacement",
+            "amount": 400000,
+            "recoverable": false
+          }
+        ],
+        "gross_up": {
+          "actual_occupancy": 0.8,
+          "target_occupancy": 0.95
+        },
+        "cap": {
+          "method": "compounding_from_base",
+          "rate": 0.05,
+          "reference_amount": 30000,
+          "years_elapsed": 3
+        },
+        "estimates_paid": 70000,
+        "admin_fee": {
+          "rate": 0.15,
+          "applied": "after_cap",
+          "capped": true
+        }
+      },
+      "expect": {
+        "value.tenant_share_controllable": 38750,
+        "value.tenant_share_uncontrollable": 44000,
+        "value.cap_limit": 34728.75,
+        "value.cap_reduction": 9230.56,
+        "value.admin_fee": 6559.31,
+        "value.structure_deduction": 0,
+        "value.tenant_charge": 80078.75,
+        "value.balance_due": 10078.75,
+        "value.occupancy_fraction": 1
+      }
+    },
+    {
+      "name": "admin fee before the cap, outside it",
+      "input": {
+        "year": 2026,
+        "pro_rata_share": 0.1,
+        "expenses": [
+          {
+            "category": "real estate taxes",
+            "amount": 300000,
+            "controllable": false,
+            "admin_fee_applies": false
+          },
+          {
+            "category": "insurance",
+            "amount": 50000,
+            "controllable": false,
+            "admin_fee_applies": false
+          },
+          {
+            "category": "utilities",
+            "amount": 90000,
+            "controllable": false
+          },
+          {
+            "category": "janitorial",
+            "amount": 200000,
+            "variable": true
+          },
+          {
+            "category": "repairs & maintenance",
+            "amount": 150000
+          },
+          {
+            "category": "roof replacement",
+            "amount": 400000,
+            "recoverable": false
+          }
+        ],
+        "gross_up": {
+          "actual_occupancy": 0.8,
+          "target_occupancy": 0.95
+        },
+        "cap": {
+          "method": "compounding_from_base",
+          "rate": 0.05,
+          "reference_amount": 30000,
+          "years_elapsed": 3
+        },
+        "estimates_paid": 70000,
+        "admin_fee": {
+          "rate": 0.15,
+          "applied": "before_cap",
+          "capped": false
+        }
+      },
+      "expect": {
+        "value.tenant_share_controllable": 38750,
+        "value.tenant_share_uncontrollable": 44000,
+        "value.cap_limit": 34728.75,
+        "value.cap_reduction": 4021.25,
+        "value.admin_fee": 7162.5,
+        "value.structure_deduction": 0,
+        "value.tenant_charge": 85891.25,
+        "value.balance_due": 15891.25,
+        "value.occupancy_fraction": 1
+      }
+    },
+    {
+      "name": "lease-year period with a move-out: base year prorated by days, admin fee without a cap",
+      "input": {
+        "year": 2025,
+        "pro_rata_share": 0.0625,
+        "expenses": [
+          {
+            "category": "cam",
+            "amount": 240000
+          },
+          {
+            "category": "management fee",
+            "amount": 36000
+          },
+          {
+            "category": "taxes",
+            "amount": 180000,
+            "controllable": false,
+            "admin_fee_applies": false
+          }
+        ],
+        "structure": {
+          "type": "base_year",
+          "base_year_expenses": 410000
+        },
+        "admin_fee": {
+          "rate": 0.1
+        },
+        "occupancy": {
+          "period_start_date": "2025-04-01",
+          "period_end_date": "2026-03-31",
+          "move_out_date": "2025-12-15"
+        },
+        "estimates_paid": 2500
+      },
+      "expect": {
+        "value.tenant_share_controllable": 12240.41,
+        "value.tenant_share_uncontrollable": 7982.88,
+        "value.cap_limit": null,
+        "value.cap_reduction": 0,
+        "value.admin_fee": 1224.04,
+        "value.structure_deduction": 18183.22,
+        "value.tenant_charge": 3264.11,
+        "value.balance_due": 764.11,
+        "value.occupancy_fraction": 0.709589,
+        "warnings.2": "Admin fee charged on management fee; confirm the lease allows a fee on a fee, or set admin_fee_applies false on those lines."
+      }
+    },
+    {
       "name": "from-base cap without years_elapsed is an input error",
       "input": {
         "year": 2026,
@@ -239,6 +597,104 @@
           "method": "compounding_from_base",
           "rate": 0.05,
           "reference_amount": 1
+        }
+      },
+      "expect_error": true
+    },
+    {
+      "name": "move-in before the reconciliation period is an input error",
+      "input": {
+        "year": 2025,
+        "pro_rata_share": 0.04285714285714286,
+        "expenses": [
+          {
+            "category": "common area maintenance",
+            "amount": 50000
+          },
+          {
+            "category": "real estate taxes",
+            "amount": 62000,
+            "controllable": false
+          },
+          {
+            "category": "insurance",
+            "amount": 20000,
+            "controllable": false
+          }
+        ],
+        "cap": {
+          "method": "year_over_year",
+          "rate": 0.04,
+          "reference_amount": 1500
+        },
+        "occupancy": {
+          "move_in_date": "2024-12-31"
+        }
+      },
+      "expect_error": true
+    },
+    {
+      "name": "move-out before move-in is an input error",
+      "input": {
+        "year": 2025,
+        "pro_rata_share": 0.04285714285714286,
+        "expenses": [
+          {
+            "category": "common area maintenance",
+            "amount": 50000
+          },
+          {
+            "category": "real estate taxes",
+            "amount": 62000,
+            "controllable": false
+          },
+          {
+            "category": "insurance",
+            "amount": 20000,
+            "controllable": false
+          }
+        ],
+        "cap": {
+          "method": "year_over_year",
+          "rate": 0.04,
+          "reference_amount": 1500
+        },
+        "occupancy": {
+          "move_in_date": "2025-07-01",
+          "move_out_date": "2025-06-30"
+        }
+      },
+      "expect_error": true
+    },
+    {
+      "name": "a reconciliation period longer than 366 days is an input error",
+      "input": {
+        "year": 2025,
+        "pro_rata_share": 0.04285714285714286,
+        "expenses": [
+          {
+            "category": "common area maintenance",
+            "amount": 50000
+          },
+          {
+            "category": "real estate taxes",
+            "amount": 62000,
+            "controllable": false
+          },
+          {
+            "category": "insurance",
+            "amount": 20000,
+            "controllable": false
+          }
+        ],
+        "cap": {
+          "method": "year_over_year",
+          "rate": 0.04,
+          "reference_amount": 1500
+        },
+        "occupancy": {
+          "period_start_date": "2025-01-01",
+          "period_end_date": "2026-01-02"
         }
       },
       "expect_error": true

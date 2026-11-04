@@ -101,3 +101,10 @@ test("percentage rent: natural, fixed, partial year, exclusions", () => {
     0,
   );
 });
+
+test("compare_proposals@2 states its discounting convention in the steps", () => {
+  const r = compareProposals({ proposals: [A, B] });
+  const step = r.steps.find((s) => s.label === "Discounting");
+  assert.ok(String(step?.value).includes("start of each month"));
+  assert.ok(r.warnings.some((w) => w.startsWith("Terms differ (60 to 84")));
+});

@@ -10,7 +10,7 @@ an identifier. This page covers which tool to call, when, and how to report the 
    lease-versus-own, renew-versus-relocate, and hotel metrics.
    Models drift on compounding, caps, and amortization. The calculators don't.
 2. **Cite the method.** Report the formula ID (`provenance.formula`, for example
-   `calc.debt_sizing@2`; `formula` holds the same as `{id, version}`) and point to `steps`.
+   `calc.debt_sizing@3`; `formula` holds the same as `{id, version}`) and point to `steps`.
    A human can check every intermediate value without redoing the work.
 3. **Surface warnings.** `warnings` lists assumptions that need a human, such as the order of a
    CAM cap versus the base year, or a prorated breakpoint.
