@@ -1,7 +1,7 @@
 # ny-nyc-dof-sales: New York City Department of Finance, Rolling and Annualized Sales
 
-Review record for the sources `ny-nyc-dof-sales-rolling`, `ny-nyc-dof-sales-2025` and `ny-nyc-dof-sales-2024` (data
-policy §5), one source per DOF publication. Reviewed 2026-11-04. Machine-readable copy:
+Review record for the sources `ny-nyc-dof-sales-rolling` and `ny-nyc-dof-sales-<year>` for 2007 to 2025 (data
+policy §5), one source per DOF publication. Reviewed 2026-11-04; the years 2007 to 2023 added in round 2 the same day. Machine-readable copy:
 [`registry/sources/ny/ny-nyc-dof-sales.json`](../../../registry/sources/ny/ny-nyc-dof-sales.json) (collector source
 `ny-nyc-dof-sales`). Adapter: `python/src/factlot/registry/adapters/ny_sales.py` (workbook reader:
 `xlsx_reader.py`); tests: `python/tests/test_adapter_ny_sales.py`.
@@ -93,10 +93,42 @@ K 2,192, G 1,363, D 1,280, O 915, S 700, E 622, F 400, H 145, I 98, R 36, J 13. 
 the scratch file: no violation and no citation gap. Each series is its own source, because a registry fact is current
 only while the latest snapshot of its source covers the parcel: one source would hide 2024 sales behind a 2026 file.
 
+## Earlier years (round 2, 2026-11-04)
+
+The annualized files linked from DOF's page go back to **2007**, not 2003 (the page lists 2007 and 2008 under
+`downloads/excel/rolling_sales/sales_2007_<borough>.xls` and `downloads/pdf/09pdf/rolling_sales/sales_2008_<borough>.xls`,
+2009 under `…/annualized-sales/2009_<borough>.xls`, and 2010 onward under `…/annualized-sales/<year>/<year>_<borough>.xls`;
+the format changes to `.xlsx` with 2018). 2018 to 2023 are workbooks like 2024 and 2025 and needed only the config lines
+(30 files; the borough name is `statenisland` in 2007-2019 and `staten_island` from 2020). **2007 to 2017 are legacy `.xls`
+(Excel 97-2003) workbooks, which the adapter could not read: `xls_reader.py` is a new standard-library BIFF8 reader
+(OLE2 compound file, shared strings with CONTINUE records, `NUMBER`, `RK`, `MULRK`, `LABELSST`, `FORMULA`), tested on a
+synthetic workbook built in the test and run on the real 2007, 2008, 2009 and 2017 files before the rest.** The columns
+are the same in every year, the 2007 and 2008 files pad borough and neighborhood names with spaces, and from 2009 on the
+tax class and building class columns say "AT PRESENT" or "AS OF FINAL ROLL 17/18" (matched by prefix, as before). 85 further
+files (55 `.xls` for 2007-2017, 30 `.xlsx` for 2018-2023), 340 MB, archived 2026-11-04. The multi-lot flag (`lots_sharing_price_and_date`) works
+per workbook as before.
+
+| Series | Sales stored | Parcels | Series       | Sales stored | Parcels |
+| ------ | -----------: | ------: | ------------ | -----------: | ------: |
+| 2007   |        6,999 |   5,881 | 2017         |        4,903 |   4,582 |
+| 2008   |        6,341 |   4,748 | 2018         |        4,545 |   4,255 |
+| 2009   |        5,318 |   3,547 | 2019         |        4,270 |   4,055 |
+| 2010   |        5,648 |   3,708 | 2020         |        3,378 |   3,206 |
+| 2011   |        5,509 |   4,069 | 2021         |        4,786 |   4,488 |
+| 2012   |        6,997 |   5,309 | 2022         |        4,903 |   4,505 |
+| 2013   |        7,189 |   5,485 | 2023         |        4,200 |   3,813 |
+| 2014   |        7,004 |   5,577 | 2024         |        4,234 |   3,883 |
+| 2015   |        6,602 |   5,457 | 2025         |        4,675 |   4,400 |
+| 2016   |        6,053 |   5,120 | rolling 2026 |        3,536 |   3,394 |
+
+Total in the scratch registry: **107,090 sales on 59,104 parcels** (2007 to September 2026), 62,636 priced above $0, 44,454
+at $0 (`nominal_consideration`), 9,093 with `lots_sharing_price_and_date`. Parcel counts per series are lots with an
+in-scope sale that the registry holds (the sum across series is larger than the 59,104 distinct parcels).
+
 ## Known gaps
 
-- Only the last three periods are loaded (2024, 2025, 2026 to September); the annualized files go back to 2003 and
-  are a one-line config change.
+- Annualized sales are loaded from 2007 to September 2026; DOF's page links nothing earlier, so 2003 to 2006 would need
+  another source (the City Register's ACRIS deeds, [ny-nyc-dof-acris](ny-nyc-dof-acris.md), go back further).
 - A sale in the files is a recorded deed, not a verified market transaction: $0 and nominal sales, related-party
   transfers and multi-lot deeds are in it, unflagged beyond the two flags above.
 - Sales of lots the roll no longer lists as commercial (changed class, merged or subdivided since) are skipped (307
