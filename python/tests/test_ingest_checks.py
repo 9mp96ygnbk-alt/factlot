@@ -235,7 +235,10 @@ class ValueShapes(unittest.TestCase):
                           "lease.expansion_option_deadline", "lease.operating_expense_base_year", "lease.parking",
                           "lease.guaranty"):
             self.assertIn(predicate, PREDICATES)
-        self.assertEqual(len(PREDICATES), 25, "16 original predicates plus 9")
+        for predicate in ("lease.prohibited_uses", "lease.go_dark", "lease.radius_restriction",
+                          "lease.relocation_right", "lease.kick_out"):
+            self.assertIn(predicate, PREDICATES)
+        self.assertEqual(len(PREDICATES), 30, "16 original predicates plus 9, plus 5 clause predicates")
 
     def test_shapes(self):
         for predicate, value, reason in VALUE_CASES:

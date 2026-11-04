@@ -29,7 +29,7 @@ from . import __version__
 from ._core import CalcInputError, input_shape_issue, num_str
 from .calc import CALCULATORS
 from .rules import RULES
-from . import docverify
+from . import docverify, factpackage, statements, uses
 from .ids import FactLotIdError, building_id, document_id, entity_id, parcel_id, parse, short_id, space_id
 
 
@@ -356,6 +356,10 @@ _DOC_TOOLS = {
     "doc_abstract_lease": lambda a: docverify.abstract_lease(a, _PRODUCER),
     "doc_compare": docverify.compare,
     "doc_verify_claim": docverify.verify_claim,
+    "doc_spread_statement": lambda a: statements.spread_statement(a),
+    "doc_check_use_conflict": lambda a: uses.check_use_conflict(a),
+    "fact_package_create": lambda a: factpackage.create_fact_package(a),
+    "fact_package_verify": lambda a: factpackage.verify_fact_package(a),
 }
 
 

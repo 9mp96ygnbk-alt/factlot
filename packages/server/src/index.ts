@@ -26,7 +26,7 @@ import {
   inputShapeIssue,
   openApi30,
   openApi31,
-  runTool,
+  runToolAsync,
   registryPath,
   tools,
 } from "@factlot/tools";
@@ -609,7 +609,7 @@ export function createHandler(opts: FactLotServerOptions = {}) {
 
       const spec = tool as (typeof tools)[number];
       ctx.calls = [{ tool: spec.name, surface: "rest" }];
-      const outcome = runTool(spec.name, await readJson(req, limit));
+      const outcome = await runToolAsync(spec.name, await readJson(req, limit));
       if (outcome.ok) send(res, 200, outcome.result);
       else {
         const code =

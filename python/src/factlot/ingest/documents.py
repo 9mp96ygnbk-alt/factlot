@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 from ..registry.store import file_document_id
 from .ocr import OcrBackend, is_image_file
@@ -34,10 +35,32 @@ class LeaseDocument:
         return next((p for p in self.pages if p.number == number), None)
 
 
+def pdf_reader() -> Any:
+    """pypdf's ``PdfReader`` (pypdf is BSD-3-Clause; ``pip install 'factlot[pdf]'``)."""
+    try:
+        from pypdf import PdfReader  # optional dependency
+    except ImportError as e:  # pragma: no cover - environment dependent
+        raise RuntimeError("reading PDFs requires pypdf: `pip install 'factlot[pdf]'` (or provide extracted text)") from e
+    return PdfReader
+
+
+def pdf_pages(reader: Any, ocr: OcrBackend | None = None) -> list[Page]:
+    """The text layer of each page of a pypdf reader; a page with no text goes through ``ocr``, if
+    given, and is marked ``ocr=True``."""
+    pages: list[Page] = []
+    for i, pdf_page in enumerate(reader.pages):
+        text = pdf_page.extract_text() or ""
+        if text.strip() or ocr is None:
+            pages.append(Page(i + 1, text))
+        else:
+            pages.append(Page(i + 1, ocr(pdf_page) or "", ocr=True))
+    return pages
+
+
 def load_document(path: str | Path, *, title: str | None = None, role: str = "original",
                   effective_date: str | None = None, sequence: int = 0,
                   ocr: OcrBackend | None = None) -> LeaseDocument:
-    """Load a lease instrument. Text files split pages on form feeds; PDFs need `pip install pypdf`;
+    """Load a lease instrument. Text files split pages on form feeds; PDFs need pypdf (`factlot[pdf]`);
     image files (.png, .jpg, .tif, ...) are one page each and need an OCR backend.
 
     ``ocr`` is called for every PDF page whose text layer is empty or whitespace (with the pypdf
@@ -48,16 +71,7 @@ def load_document(path: str | Path, *, title: str | None = None, role: str = "or
     doc_id, _ = file_document_id(path)
     pages: list[Page] = []
     if path.suffix.lower() == ".pdf":
-        try:
-            from pypdf import PdfReader  # optional dependency
-        except ImportError as e:  # pragma: no cover - environment dependent
-            raise RuntimeError("reading PDFs requires `pip install pypdf` (or provide extracted text)") from e
-        for i, pdf_page in enumerate(PdfReader(str(path)).pages):
-            text = pdf_page.extract_text() or ""
-            if text.strip() or ocr is None:
-                pages.append(Page(i + 1, text))
-            else:
-                pages.append(Page(i + 1, ocr(pdf_page) or "", ocr=True))
+        pages = pdf_pages(pdf_reader()(str(path)), ocr)
     elif is_image_file(path):
         pages.append(Page(1, ocr(path) or "", ocr=True) if ocr is not None else Page(1, ""))
     else:

@@ -9,10 +9,11 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { jsonSchemas } from "@factlot/schema";
-import { registryPath, runTool, tools } from "@factlot/tools";
+import { registryPath, runToolAsync, tools } from "@factlot/tools";
 import { z } from "zod";
 
 import { fetchDoc, searchCorpus } from "./knowledge.ts";
+import { registerLocalTools } from "./local.ts";
 
 export { corpus, fetchDoc, searchCorpus } from "./knowledge.ts";
 export type { KnowledgeDoc } from "./knowledge.ts";
@@ -21,7 +22,7 @@ export const SERVER_NAME = "factlot";
 export const SERVER_VERSION = "0.2.0";
 
 export const SERVER_INSTRUCTIONS =
-  "FactLot tools for commercial real estate. Use calc_* tools for ALL lease, CAM, rent, loan, and return math instead of computing in-context; cite the returned formula id and steps and surface warnings. Use id_* tools to produce canonical FactLot IDs for parcels, legal entities, spaces, and documents so records join across systems. To read a lease or other document, extract the values yourself and pass the page text with each value and its verbatim quote to doc_verify_facts (or doc_abstract_lease for a lease and its amendments); FactLot checks each value against its quote and page and returns cited facts. Use doc_compare for an estoppel or rent roll against the lease and doc_verify_claim to check one claim. Use fact_validate before emitting facts. Use search/fetch to find which tool or predicate fits a task.";
+  "FactLot tools for commercial real estate. Use calc_* tools for ALL lease, CAM, rent, loan, and return math instead of computing in-context; cite the returned formula id and steps and surface warnings. Use id_* tools to produce canonical FactLot IDs for parcels, legal entities, spaces, and documents so records join across systems. To read a lease or other document, extract the values yourself and pass the page text with each value and its verbatim quote to doc_verify_facts (or doc_abstract_lease for a lease and its amendments); FactLot checks each value against its quote and page and returns cited facts. Use doc_compare for an estoppel or rent roll against the lease and doc_verify_claim to check one claim. Use doc_spread_statement to spread a T-12 or operating statement onto the chart of accounts with every line cited, doc_check_use_conflict to check a proposed use against verified exclusives and prohibited uses, and fact_package_create / fact_package_verify to hand facts to a counterparty as a hash-chained, optionally signed package. Use fact_validate before emitting facts. Use search/fetch to find which tool or predicate fits a task.";
 
 function json(data: unknown): CallToolResult {
   return {
@@ -40,6 +41,11 @@ const READ_ONLY = {
 export interface CreateServerOptions {
   /** Register registry_* tools. Default: only when a registry is configured (FACTLOT_REGISTRY_DB). */
   registry?: boolean;
+  /**
+   * Register the tools that read files on this machine (doc_read_pdf, fact_package_sign). Only the
+   * local stdio server sets this; a remote server never reads its own files for a caller.
+   */
+  localFiles?: boolean;
 }
 
 export function createServer(opts: CreateServerOptions = {}): McpServer {
@@ -59,10 +65,10 @@ export function createServer(opts: CreateServerOptions = {}): McpServer {
         inputSchema: tool.input,
         annotations: { ...READ_ONLY, title: tool.title },
       },
-      (args: unknown): CallToolResult => {
-        let outcome: ReturnType<typeof runTool>;
+      async (args: unknown): Promise<CallToolResult> => {
+        let outcome: Awaited<ReturnType<typeof runToolAsync>>;
         try {
-          outcome = runTool(tool.name, args);
+          outcome = await runToolAsync(tool.name, args);
         } catch {
           // A bug, not bad input: report it without the message, which can carry internals.
           return {
@@ -88,6 +94,8 @@ export function createServer(opts: CreateServerOptions = {}): McpServer {
       },
     );
   }
+
+  if (opts.localFiles) registerLocalTools(server);
 
   // ChatGPT deep research / company knowledge contract: results as a JSON string in one text item.
   server.registerTool(

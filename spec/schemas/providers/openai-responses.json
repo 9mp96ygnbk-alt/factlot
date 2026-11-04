@@ -2358,6 +2358,16 @@
                 "type": "string",
                 "maxLength": 500,
                 "description": "Document title for citations, e.g. \"First Amendment to Lease\"."
+              },
+              "ocr_pages": {
+                "maxItems": 2000,
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 100000
+                },
+                "description": "Optional: pages (1-based) whose text came from OCR rather than the file's text layer (doc_read_pdf and factlot.read_pdf report them). Facts and citations on these pages carry ocr: true, so a reviewer checks the scan."
               }
             },
             "required": ["pages"],
@@ -2468,6 +2478,16 @@
                     "description": "The text of one page, exactly as extracted."
                   },
                   "description": "The document's text, one string per page in order: pages[0] is page 1. Send the text as extracted (from the PDF text layer or OCR), not a summary; quotes are matched against it."
+                },
+                "ocr_pages": {
+                  "maxItems": 2000,
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100000
+                  },
+                  "description": "Optional: pages (1-based) whose text came from OCR rather than the file's text layer (doc_read_pdf and factlot.read_pdf report them). Facts and citations on these pages carry ocr: true, so a reviewer checks the scan."
                 },
                 "candidates": {
                   "maxItems": 500,
@@ -2627,6 +2647,16 @@
                 "type": "string",
                 "maxLength": 500,
                 "description": "Document title for citations, e.g. \"First Amendment to Lease\"."
+              },
+              "ocr_pages": {
+                "maxItems": 2000,
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 100000
+                },
+                "description": "Optional: pages (1-based) whose text came from OCR rather than the file's text layer (doc_read_pdf and factlot.read_pdf report them). Facts and citations on these pages carry ocr: true, so a reviewer checks the scan."
               }
             },
             "required": ["pages"],
@@ -2666,6 +2696,321 @@
           }
         },
         "required": ["document", "claim", "quote", "page"]
+      },
+      "strict": false
+    },
+    {
+      "type": "function",
+      "name": "doc_spread_statement",
+      "description": "Spread a T-12, operating statement, budget or rent roll summary YOU read, onto FactLot's published chart of accounts (multifamily, commercial, or hotel after the USALI summary), deterministically; FactLot runs no model. Send the pages as text and one line per item: {label, amount, quote, page}, optionally your category, a period column, and for a subtotal the indexes of the lines it sums; give the statement's own totals (effective_gross_income, total_operating_expenses, net_operating_income, ebitda, ...) as lines with that total as category. Each line is checked: the quote is on the page, the amount (as a number, any common written form; (1,200) and -1,200 read as negative) and the label are written in it; a line that fails is excluded with the reason. The label is mapped to the chart by keywords: your category is used when it is in the chart, and an exception flags it for review when the dictionary maps the label elsewhere; an ambiguous or unknown label without a category is excluded. Vacancy, concessions, credit loss and other contra lines are always subtracted. Returns per period the sections, the computed totals (EGI, operating expenses, NOI, capital items, net cash flow; for hotels departmental profit, GOP, EBITDA and NOI after the replacement reserve), whether each total and subtotal the statement states foots (within 0.5 per line added, or your tolerance), every line with its citation (document, page, quote, span) and status, statistics (units, occupancy, ADR), and exceptions to review. Not checked: whether the agent missed lines, and meaning beyond the written amount and label.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "document": {
+            "type": "object",
+            "properties": {
+              "pages": {
+                "minItems": 1,
+                "maxItems": 2000,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "maxLength": 100000,
+                  "description": "The text of one page, exactly as extracted."
+                },
+                "description": "The document's text, one string per page in order: pages[0] is page 1. Send the text as extracted (from the PDF text layer or OCR), not a summary; quotes are matched against it."
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$",
+                "description": "Optional SHA-256 (lowercase hex) of the original file. When given, document_id is fl:document:sha256-<this>, the same ID id_document gives the file; FactLot cannot check that the pages came from that file. Without it, document_id is the SHA-256 of the pages joined by form feeds (\\f)."
+              },
+              "title": {
+                "type": "string",
+                "maxLength": 500,
+                "description": "Document title for citations, e.g. \"First Amendment to Lease\"."
+              },
+              "ocr_pages": {
+                "maxItems": 2000,
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 100000
+                },
+                "description": "Optional: pages (1-based) whose text came from OCR rather than the file's text layer (doc_read_pdf and factlot.read_pdf report them). Facts and citations on these pages carry ocr: true, so a reviewer checks the scan."
+              }
+            },
+            "required": ["pages"],
+            "description": "The statement's pages."
+          },
+          "property_type": {
+            "type": "string",
+            "enum": ["multifamily", "commercial", "hotel"],
+            "description": "Which chart of accounts to use: multifamily, commercial (office, retail, industrial), or hotel (USALI summary)."
+          },
+          "statement_type": {
+            "description": "What the document is; echoed back.",
+            "type": "string",
+            "enum": [
+              "t12",
+              "operating_statement",
+              "budget",
+              "rent_roll_summary",
+              "other"
+            ]
+          },
+          "period": {
+            "description": "Default period label for lines that give none.",
+            "type": "string",
+            "maxLength": 100
+          },
+          "lines": {
+            "minItems": 1,
+            "maxItems": 1000,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 300,
+                  "description": "The line's label exactly as the statement writes it, e.g. \"Real Estate Taxes\". It must appear in the quote."
+                },
+                "amount": {
+                  "type": "number",
+                  "description": "The amount as a plain number (245000, not \"$245K\"). Write a deduction as the statement shows it; vacancy, concessions and other contra lines are always subtracted."
+                },
+                "quote": {
+                  "type": "string",
+                  "maxLength": 5000,
+                  "description": "Verbatim text from the page with the label and the amount, e.g. \"Real Estate Taxes 245,000\"."
+                },
+                "page": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 100000,
+                  "description": "1-based page the quote is on."
+                },
+                "category": {
+                  "description": "Your proposed category from the chart for property_type (spec/schemas/vocabularies/chart-of-accounts.json), e.g. real_estate_taxes, or a total such as net_operating_income for a total line. Without it, FactLot maps the label itself.",
+                  "type": "string",
+                  "maxLength": 100
+                },
+                "period": {
+                  "description": "Period column the amount is from, e.g. \"T-12 Sep 2026\" or \"2025\". Lines are spread per period. Default: the statement's period.",
+                  "type": "string",
+                  "maxLength": 100
+                },
+                "sums": {
+                  "description": "For a subtotal the statement prints (\"Total Utilities\"): the indexes (0-based) of the lines it adds up. FactLot checks that it foots.",
+                  "minItems": 1,
+                  "maxItems": 1000,
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 999
+                  }
+                }
+              },
+              "required": ["label", "amount", "quote", "page"]
+            },
+            "description": "The statement's lines as you read them: every income, expense and capital line, the statement's own subtotals (with sums) and totals (with a total category), and statistics such as units or occupancy."
+          },
+          "tolerance": {
+            "description": "Largest difference, in the statement's units, at which a subtotal or total still foots. Default: 0.5 for each line added (rounding).",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1000000000
+          }
+        },
+        "required": ["document", "property_type", "lines"]
+      },
+      "strict": false
+    },
+    {
+      "type": "function",
+      "name": "doc_check_use_conflict",
+      "description": "Check a proposed use (a description, plus an optional use category or 2022 NAICS code) against a center's verified lease.exclusive_use and lease.prohibited_uses facts (from doc_verify_facts or doc_abstract_lease; each must pass fact_validate). Deterministic and textual: a restriction is a potential conflict when it shares a use category with the proposed use (FactLot's published use-category vocabulary, matched on keywords, the category given and NAICS codes) or shares words with it (two or more, or every significant word of the restriction). Each hit is labelled \"potential conflict — needs human review\" and returns the controlling quote and citation, the categories and words that matched, and the exclusive's carve-outs, flagging those that mention the proposed use. FactLot does not interpret the lease, decide whether a carve-out applies, or give legal conclusions; an empty result does not mean there is no conflict. Superseded facts are ignored.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "facts": {
+            "minItems": 1,
+            "maxItems": 2000,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {},
+              "description": "A FactLot fact, as doc_verify_facts or doc_abstract_lease returned it."
+            },
+            "description": "Verified lease.exclusive_use and lease.prohibited_uses facts for the center, from doc_verify_facts or doc_abstract_lease (each must pass fact_validate). Facts another fact supersedes are ignored; other predicates are skipped."
+          },
+          "proposed_use": {
+            "type": "object",
+            "properties": {
+              "text": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "The proposed use as described, e.g. \"coffee shop selling espresso drinks and pastries\"."
+              },
+              "category": {
+                "description": "Optional use category id from FactLot's vocabulary (spec/schemas/vocabularies/use-categories.json), e.g. coffee.",
+                "type": "string",
+                "maxLength": 100
+              },
+              "naics": {
+                "description": "Optional 2022 NAICS code, 2 to 6 digits; a shorter code matches every category under it (7225 matches restaurants and coffee shops).",
+                "type": "string",
+                "pattern": "^[0-9]{2,6}$"
+              }
+            },
+            "required": ["text"],
+            "description": "The use to check."
+          }
+        },
+        "required": ["facts", "proposed_use"]
+      },
+      "strict": false
+    },
+    {
+      "type": "function",
+      "name": "fact_package_create",
+      "description": "Bundle FactLot facts (each must pass fact_validate) into a fact package a counterparty can verify: canonical JSON (RFC 8785) of every fact, an RFC 6962 Merkle tree over the facts, the source documents the facts cite with their sha256 where known, and a digest over all of it. Returns the unsigned package, its digest, and signing_message, the exact text to sign. FactLot never holds private keys: to sign, the holder signs signing_message with their own Ed25519 key on their own machine (factlot.sign_fact_package in Python, signFactPackage in @factlot/tools, or fact_package_sign in the local MCP server). Deterministic: no clock time is added (pass created_at), and the same facts always give the same digest.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "facts": {
+            "minItems": 1,
+            "maxItems": 2000,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {},
+              "description": "A FactLot fact (it must pass fact_validate)."
+            },
+            "description": "The facts to package, in order: verified facts from the doc_* tools or any facts that pass fact_validate."
+          },
+          "title": {
+            "description": "A title for the package.",
+            "type": "string",
+            "maxLength": 500
+          },
+          "created_at": {
+            "description": "When the package was made (ISO 8601 with offset). FactLot adds no clock time, so the same input always gives the same package.",
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "created_by": {
+            "description": "The organization making the package.",
+            "type": "string",
+            "maxLength": 200
+          },
+          "documents": {
+            "description": "Source documents to describe beyond what the facts cite (a title, the file's sha256). Every document a fact cites is listed automatically.",
+            "maxItems": 50,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "document_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 500,
+                  "description": "The document's ID as the facts cite it."
+                },
+                "sha256": {
+                  "description": "SHA-256 of the exact file, when known.",
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "title": {
+                  "type": "string",
+                  "maxLength": 500
+                }
+              },
+              "required": ["document_id"]
+            }
+          }
+        },
+        "required": ["facts"]
+      },
+      "strict": false
+    },
+    {
+      "type": "function",
+      "name": "fact_package_verify",
+      "description": "Verify a fact package from fact_package_create: recompute every fact's hash, the Merkle root and the digest from the content (any changed fact, title, date or document list shows as a mismatch); check each fact against fact_validate; check the Ed25519 signature, against the public_key you pass (base64url, the signer's key you trust) or, without one, only against the key inside the package (which proves nothing about who signed); and, given the source documents' pages, check every quote is on its cited page. Returns valid plus each check's details. Not checked: that the pages you pass are the original files (pass sha256 to tie them to the file hash), or what the facts mean.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "package": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {},
+            "description": "A fact package from fact_package_create, signed or not."
+          },
+          "public_key": {
+            "description": "The signer's Ed25519 public key you trust: 32 bytes as base64url (a JWK's x). With it the signature must verify for the package to be valid.",
+            "type": "string",
+            "maxLength": 200
+          },
+          "documents": {
+            "description": "Optional: the source documents' pages (with sha256 when the facts cite the file's hash). Each fact's quote is then checked on its cited page.",
+            "maxItems": 50,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "pages": {
+                  "minItems": 1,
+                  "maxItems": 2000,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "maxLength": 100000,
+                    "description": "The text of one page, exactly as extracted."
+                  },
+                  "description": "The document's text, one string per page in order: pages[0] is page 1. Send the text as extracted (from the PDF text layer or OCR), not a summary; quotes are matched against it."
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$",
+                  "description": "Optional SHA-256 (lowercase hex) of the original file. When given, document_id is fl:document:sha256-<this>, the same ID id_document gives the file; FactLot cannot check that the pages came from that file. Without it, document_id is the SHA-256 of the pages joined by form feeds (\\f)."
+                },
+                "title": {
+                  "type": "string",
+                  "maxLength": 500,
+                  "description": "Document title for citations, e.g. \"First Amendment to Lease\"."
+                },
+                "ocr_pages": {
+                  "maxItems": 2000,
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100000
+                  },
+                  "description": "Optional: pages (1-based) whose text came from OCR rather than the file's text layer (doc_read_pdf and factlot.read_pdf report them). Facts and citations on these pages carry ocr: true, so a reviewer checks the scan."
+                }
+              },
+              "required": ["pages"]
+            }
+          }
+        },
+        "required": ["package"]
       },
       "strict": false
     },

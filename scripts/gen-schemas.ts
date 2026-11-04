@@ -4,6 +4,7 @@
 //   providers/<platform>.json  native tool definitions for each AI platform
 //   openapi-3.1.json           Custom GPT Actions and most API gateways
 //   openapi-3.0.json           Amazon Bedrock Agents, Microsoft API plugins, Vertex AI
+//   vocabularies/<name>.json   use categories and the chart of accounts the document tools match on
 // Run: npm run schemas   (CI fails if the committed files are stale)
 import { mkdirSync, writeFileSync } from "node:fs";
 
@@ -18,10 +19,12 @@ import {
   openaiChatTools,
   openaiResponsesTools,
   tools,
+  vocabularyDocuments,
 } from "@factlot/tools";
 
 const out = new URL("../spec/schemas/", import.meta.url);
 mkdirSync(new URL("providers/", out), { recursive: true });
+mkdirSync(new URL("vocabularies/", out), { recursive: true });
 
 const write = (file: string, data: unknown) =>
   writeFileSync(new URL(file, out), `${JSON.stringify(data, null, 2)}\n`);
@@ -50,6 +53,8 @@ write("providers/bedrock-converse.json", {
   generated_by,
   toolConfig: bedrockConverseToolConfig(),
 });
+for (const [file, data] of Object.entries(vocabularyDocuments()))
+  write(`vocabularies/${file}`, { generated_by, ...(data as object) });
 write("openapi-3.1.json", openApi31());
 write("openapi-3.0.json", openApi30());
 console.log(
