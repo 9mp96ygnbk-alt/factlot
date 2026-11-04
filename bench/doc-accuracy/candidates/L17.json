@@ -1,0 +1,45 @@
+{
+ "doc": "L17",
+ "candidates": [
+  {
+   "predicate": "lease.landlord",
+   "value": "TOYS “R” US - DELAWARE, INC.",
+   "quote": "LEASE dated February 27, 2006 between TOYS “R” US - DELAWARE, INC., a Delaware corporation, whose address is One Geoffrey Way, Wayne, New Jersey 07470 (“Landlord”)",
+   "page": 1
+  },
+  {
+   "predicate": "lease.tenant",
+   "value": "BEST BUY STORES, L.P.",
+   "quote": "and BEST BUY STORES, L.P., a Virginia limited partnership, 7601 Penn Avenue South, Richfield, Minnesota 55423 (“Tenant”).",
+   "page": 1
+  },
+  {
+   "predicate": "lease.rentable_area_sf",
+   "value": 30701,
+   "quote": "The building leased to Tenant consists of approximately 30,701 square feet of floor area",
+   "page": 1,
+   "section": "1.01"
+  },
+  {
+   "predicate": "lease.security_deposit",
+   "value": 0,
+   "quote": "Security: None.",
+   "page": 2,
+   "section": "1.07"
+  },
+  {
+   "predicate": "lease.pro_rata_share",
+   "value": 1,
+   "quote": "Means one hundred (100%) percent.",
+   "page": 4,
+   "section": "2.12"
+  },
+  {
+   "predicate": "lease.assignment_sublease",
+   "value": "Tenant may not sublet any part of the Demised Premises, or assign, mortgage, hypothecate, or otherwise encumber the Lease or grant concessions or licenses, without Landlord's prior written consent, which shall not be unreasonably conditioned, delayed, or withheld. An attempted transfer without that consent is void, and no assignment or subletting relieves Tenant. Consent is not required to assign or sublet to a parent, affiliate, or subsidiary of Best Buy Stores, L.P. or Best Buy Co., Inc., or to a successor by merger, consolidation, reorganization, or purchase of substantially all assets, or to a purchaser of all stores, if a transaction under Section 10.01(e)(ii) or (iii) includes at least 75 similarly operated locations, Tenant is not in default, an assumption is delivered, and Tenant remains liable.",
+   "quote": "Tenant shall not sublet the Demised Premises or any part thereof, or assign, mortgage or hypothecate, or otherwise encumber this Lease or any interest therein nor grant concessions or licenses for the occupancy of the Demised Premises or any part thereof, without Landlord’s prior written consent, which consent shall not be unreasonably conditioned, delayed or withheld.",
+   "page": 19,
+   "section": "10.01"
+  }
+ ]
+}
