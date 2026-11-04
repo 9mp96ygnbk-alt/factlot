@@ -1,0 +1,35 @@
+Must-have levers, n = 165 (keyword-tagged; one lever can carry several themes)
+   53 (32%)  Cited extraction from leases/documents as a callable tool (abstracts, T-12/rent roll, estoppel, verify)
+   43 (26%)  Comps and transactions (lease comps, sales, deeds, CMBS and debt)
+   41 (25%)  Zoning, entitlements, permits and jurisdiction rules packs
+   35 (21%)  Registry coverage in the persona's own geography
+   30 (18%)  Calculator extensions (opex structures, admin fee, occupancy, stress, multifamily, ARGUS parity, DCF)
+   24 (15%)  Building-level facts and a building ID
+   16 (10%)  Entity, tenant, sponsor and parent resolution
+  untagged: ['B01-P11', 'B01-P12', 'B03-P08', 'B03-P12', 'B04-P16', 'B05-P03', 'B06-P14', 'B07-P03', 'B07-P09', 'B09-P13', 'B10-P10']
+
+Marketing: unclear or unconvincing (personas mentioning, n = 165; keyword-tagged)
+   80 (48%)  Hosted endpoint: 'no public endpoint' text vs api.factlot.com as live
+   76 (46%)  Registry headline (1.95M parcels, 405 counties) vs what a user can reach (DC sample; no hosted region)
+   76 (46%)  What paid plans buy (only rate limits today)
+   45 (27%)  Inconsistent counts across pages (708,538 / 1,716,664 / 1,953,805)
+   32 (19%)  Security, SOC 2, indemnity, terms
+   27 (16%)  Ingest / quote-on-page check described but not callable
+   14 (8%)  Texas-heavy or one rules pack
+    5 (3%)  Scope too broad / not clear what it is for my role
+
+Marketing: missing proof (personas mentioning, n = 165; keyword-tagged)
+   48 (29%)  Coverage proof for my market
+   38 (23%)  Published accuracy / benchmark numbers (extraction, critical dates, matching)
+   25 (15%)  Reconciliation to industry tools (ARGUS, Excel, VTS, Yardi) or worked examples for my asset class
+   21 (13%)  Licence / AI-use rights per source
+   18 (11%)  Security attestations (SOC 2), SLA, uptime, indemnity
+    2 (1%)  Customer references / who uses it
+
+Where I would look for it (personas mentioning, n = 165; keyword-tagged)
+  124 (75%)  MCP registries and agent marketplaces (MCP Registry, Claude/ChatGPT connectors, plugin lists)
+   47 (28%)  Industry associations, conferences, publications (NAIOP, ICSC, CREFC, BOMA, MBA, AAPL…)
+   37 (22%)  Peers, LinkedIn, communities, word of mouth
+   35 (21%)  GitHub / open-source search
+   32 (19%)  Vendor integrations and app marketplaces (Yardi, VTS, ARGUS, Salesforce, CoStar)
+   22 (13%)  Search / AI assistant answers

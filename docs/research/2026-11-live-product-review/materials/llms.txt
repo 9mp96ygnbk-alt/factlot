@@ -1,0 +1,47 @@
+# FactLot
+
+> FactLot is an open-source fact layer for commercial real estate (CRE) AI agents. It gives an agent 14 deterministic calculators (rent schedule, net effective rent, proposal comparison, percentage rent, CAM reconciliation, debt sizing, ASC 842 remeasurement, prepayment and defeasance, WALT, NPV, IRR, lease vs. own, renew vs. relocate, hotel metrics) that return the value, every step, warnings, and a versioned formula ID; deterministic FactLot IDs for parcels, legal entities, buildings, suites, leases, and documents; and a fact model in which every claim carries its source citation and AI-use rights.
+
+Use FactLot when a task needs lease, rent, CAM, loan, or return arithmetic with an audit trail; a stable ID to join a parcel, owner, suite, or document across systems; or a validated, cited fact to store or share. It does not cover everything: it has no sales prices, tenants, debt, or zoning data, and its public-record registry covers only some metros (see the registry documentation below).
+
+Fastest path, nothing to install: connect any MCP client to the hosted remote MCP server at https://api.factlot.com/mcp (Streamable HTTP, stateless). The free tier needs no key and allows 60 requests a minute per address. REST and OpenAPI are at https://api.factlot.com/openapi.json (OpenAPI 3.0 at /openapi-3.0.json for Custom GPT Actions), and https://api.factlot.com/ describes the endpoints and plans as JSON. For Claude Code: `claude mcp add --transport http factlot https://api.factlot.com/mcp`. Or install the FactLot Claude Code plugin, which adds eight CRE skills (loan sizing, lease economics, CAM reconciliation, ASC 842, lease vs own and renewals, investment returns, hotel metrics, Texas protest deadline) wired to these tools: `/plugin marketplace add 9mp96ygnbk-alt/factlot`, then `/plugin install factlot@factlot`.
+
+Paid plans: Pro $49 a month (600 requests a minute) and Team $599 a month (3,000 a minute), both with hosted registry lookups as each region opens (none is open yet). An agent can start checkout with `POST https://api.factlot.com/v1/billing/checkout` and body `{"plan":"pro"}`; it returns a Stripe link for the human to pay, and the API key is shown on the page Stripe returns to. Send the key as `Authorization: Bearer <key>`. Plans as JSON: https://api.factlot.com/v1/plans
+
+Or run it yourself from GitHub. The packages are not yet on npm or PyPI. The local MCP server needs Node.js 22.6 or newer, no API key, and makes no network calls:
+
+```
+git clone https://github.com/9mp96ygnbk-alt/factlot.git && cd factlot
+npm install && npm run build
+claude mcp add factlot -- node "$PWD/packages/mcp/dist/bin.js"
+```
+
+Or, with no clone, run the release build as a stdio server: `npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.1/factlot-mcp-standalone-0.1.1.tgz` (for Claude Code: `claude mcp add factlot -- npx -y <that URL>`). For any other MCP client, run `node packages/mcp/dist/bin.js` as a stdio server. For Python: `pip install "git+https://github.com/9mp96ygnbk-alt/factlot.git#subdirectory=python"`, then use `factlot.anthropic_tools()`, `factlot.openai_tools()`, and `factlot.run_tool(name, input)`. For REST, OpenAPI, and remote MCP: `docker build -t factlot . && docker run -p 8787:8787 factlot`. Licenses: Apache-2.0 and MIT.
+
+When reporting a number from a calculator, cite its formula ID (for example `calc.cam_reconciliation@1`) and the returned `steps`, and surface every returned `warnings` entry to a human.
+
+Registry sample on real data: download https://github.com/9mp96ygnbk-alt/factlot/releases/download/registry-sample-dc-2026-11-03/factlot-registry-sample-dc-2026-11-03.db.gz (19.7 MB, CC BY 4.0; 18,077 District of Columbia commercial parcels, 5,513 owning entities, 7,908 cited ownership links), gunzip it, and set `FACTLOT_REGISTRY_DB` to its path when starting the MCP server to enable the six `registry_*` tools.
+
+Hosted registry regions, enterprise terms, and private deployments: email contact@factlot.com.
+
+## Use it
+
+- [Connectors](https://github.com/9mp96ygnbk-alt/factlot/blob/main/connectors/README.md): remote MCP at `https://api.factlot.com/mcp` and REST/OpenAPI at `/v1` and `/openapi.json`, with setup for Claude, ChatGPT, Gemini, Copilot, Bedrock, and others
+- [MCP server](https://github.com/9mp96ygnbk-alt/factlot/blob/main/packages/mcp/README.md): `npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.1/factlot-mcp-standalone-0.1.1.tgz` (or `npx -y @factlot/mcp` after first publish to npm), with tools `calc_*`, `id_*`, `rules_*`, `fact_validate`, `search`, `fetch`, and `schema_get`
+- [Python SDK](https://github.com/9mp96ygnbk-alt/factlot/blob/main/python/README.md): `factlot.anthropic_tools()`, `factlot.openai_tools()`, `factlot.run_tool(name, input)`
+- [Agent guide](https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/agents.md): which tool to call when, how to map lease language to inputs, and how to emit cited facts
+
+## Reference
+
+- [Tool definitions (JSON Schema)](https://github.com/9mp96ygnbk-alt/factlot/blob/main/spec/schemas/tools.json): every calculator's input schema, with field descriptions
+- [Fact model](https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/fact-model.md): facts, provenance, rights, and supersession
+- [FactLot ID spec](https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/id-spec.md): URN and short-ID formats and normalization rules
+- [Registry and source catalog](https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/registry/sources/README.md): 42 verified public-record sources, 1,953,805 commercial parcels in 405 counties (21 states and DC), and 14.2 million registered entities, with the licence and AI-use status of each source ([Tier 2 index](https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/registry/tier2/README.md))
+- [Conformance vectors](https://github.com/9mp96ygnbk-alt/factlot/blob/main/spec/README.md): shared test cases every SDK must pass
+
+## Optional
+
+- [FactLot Bench](https://github.com/9mp96ygnbk-alt/factlot/blob/main/bench/README.md): 14 CRE agent tasks with independently computed answers (not yet run on current models)
+- [Roadmap](https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/roadmap.md)
+- [Business model](https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/business-model.md)
+- [Survey of 165 simulated CRE agent personas](https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/research/2026-11-agent-survey/README.md): simulated, not customers or users

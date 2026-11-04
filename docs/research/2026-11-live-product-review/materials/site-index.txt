@@ -1,0 +1,393 @@
+FactLot: the open fact layer for commercial real estate AI agents
+
+ [link: #main] Skip to content
+
+ [link: #top] FactLot
+
+ [link: #layers] Layers
+
+ [link: #how] How it works
+
+ [link: #connect] Connect
+
+ [link: #agents] For AI agents
+
+ [link: #pricing] Pricing
+
+ [link: #open-source] Open source
+
+ [link: #principles] Principles
+
+ The open fact layer for commercial real estate AI agents
+
+ AI agents are fluent about commercial real estate, and often wrong
+ about the facts.
+
+ FactLot gives them cited facts and deterministic math they can't get
+ wrong: 14 calculators with audit trails, canonical IDs, and a
+ public-record registry where every fact points at the document it
+ came from.
+
+ [link: https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/getting-started.md] Add to your agent
+ [link: https://github.com/9mp96ygnbk-alt/factlot] Read the source
+ [link: #pricing] Pricing
+
+ One line for any MCP client, no API key:
+ npx -y
+ https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.1/factlot-mcp-standalone-0.1.1.tgz. Or connect with no install: remote MCP at
+ https://api.factlot.com/mcp, free at 60 requests a
+ minute. Claude Code users can install the plugin with eight CRE
+ skills: /plugin marketplace add 9mp96ygnbk-alt/factlot.
+ Listed in the official MCP Registry as
+ io.github.9mp96ygnbk-alt/factlot.
+
+Three layers
+
+Tools
+
+ 14 deterministic calculators: rent schedules, net effective
+ rent, proposal comparison, percentage rent, CAM reconciliation,
+ debt sizing, ASC 842 remeasurement, prepayment and defeasance,
+ WALT, NPV, IRR, lease vs. own, renew vs. relocate, and hotel
+ metrics. Every result carries steps (the audit
+ trail), warnings, and a versioned formula ID such
+ as calc.net_effective_rent@1.
+
+ Stable FactLot IDs for parcels, legal entities, buildings,
+ spaces, leases, and documents, computable offline. A fact schema
+ in which every claim carries its provenance (document, page,
+ clause, method) and its AI-use rights.
+
+ [link: https://github.com/9mp96ygnbk-alt/factlot/tree/main/packages/calc] Calculators
+ ·
+ [link: https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/id-spec.md] ID specification
+ ·
+ [link: https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/fact-model.md] Fact model
+
+Registry
+
+ Parcel to owner of record to registered entity, from public
+ records only. Every fact cites the public file it was read from,
+ with the record locator, the publisher's licence, and its AI-use
+ and redistribution status.
+
+Commercial parcels
+
+1,953,805
+
+Registered entities
+
+14.2 M
+
+Verified sources
+
+42
+
+ Loaded in full on 2026-11-03 across 405 counties in 21 states
+ and the District of Columbia: the largest metros (Harris,
+ Dallas, Tarrant, Travis, New York City, Los Angeles, Boston, San
+ Francisco, Denver, Charlotte, Minneapolis, DC), the rest of the
+ top 100 counties where the licence allows, and every county of
+ New York State, Maryland, Wisconsin, Massachusetts, Vermont,
+ Arkansas and Connecticut, most of Utah, 24 Minnesota counties,
+ and Montana's apartments and industrial parcels. Entity
+ registries from Texas, New York, Colorado, Pennsylvania, DC and
+ Connecticut. Commercial, industrial, and multifamily parcels
+ only; some public files omit owner names.
+
+ [link: https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/registry/README.md] Registry
+ ·
+ [link: https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/registry/sources/README.md] Source catalog
+ ·
+ [link: https://github.com/9mp96ygnbk-alt/factlot/releases/tag/registry-sample-dc-2026-11-03] Try it: DC sample (19.7 MB)
+
+Rules and Ingest
+
+ Rules packs turn jurisdiction law into code. Each pack cites its
+ statute, carries a version, and stays draft until a
+ named person has checked it against the official text. One pack
+ is verified today: the Texas property-tax protest deadline
+ (checked 2026-11-02).
+
+ Ingest (a prototype) turns leases and amendments into cited
+ facts. A value is kept only if its verbatim quote appears on the
+ cited page and the numbers, dates, and names in the value are
+ written in that quote. Amendments supersede earlier terms with
+ the history kept; anything uncertain waits for a human.
+
+ [link: https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/rules.md] Rules packs
+ ·
+ [link: https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/ingest.md] Lease ingestion
+
+How it works
+
+ An agent calls a tool instead of doing the math in context, then
+ reports the formula and points to the steps. The inputs and values
+ below are the project's shared test vector for net effective rent
+ (spec/vectors/calc/net_effective_rent.json), which both
+ the TypeScript and Python SDKs must reproduce to the last digit. The
+ steps array is elided.
+
+1. The agent calls calc_net_effective_rent
+ {
+ "schedule": {
+ "commencement_date": "2026-01-01",
+ "term_months": 120,
+ "area_sf": 10000,
+ "starting_rent_psf_annual": 40,
+ "abated_months": [1, 2, 3, 4, 5, 6]
+ },
+ "ti_allowance_psf": 50,
+ "leasing_commissions": 100000,
+ "discount_rate_annual": 0.08
+}
+
+ 2. The tool answers with the value, the formula, and an audit
+ trail
+
+ {
+ "value": {
+ "total_rent_due": 3799999.62,
+ "total_landlord_costs": 600000,
+ "effective_rent_psf": 38,
+ "net_effective_rent_psf": 32,
+ "pv_rent": 2568980.49,
+ "discounted_net_effective_rent_psf": 28.4772
+ },
+ "formula": { "id": "calc.net_effective_rent", "version": 1 },
+ "steps": [ … every intermediate value, with its formula … ],
+ "warnings": []
+}
+
+3. A registry lookup comes back cited
+
+ Schematic example. This is the documented shape of a registry fact
+ (method, source snapshot, record locator, rights); the owner name
+ is a placeholder and the account number is the one used in the
+ registry documentation.
+
+ {
+ "subject": "fl:parcel:us-48201:0420150000012",
+ "predicate": "ownership.owner_of_record",
+ "value": "ACME PROPERTIES, L.L.C.",
+ "as_of": "2026-07-25",
+ "provenance": {
+ "method": "public_record",
+ "sources": [
+ {
+ "document_id": "fl:document:sha256-…",
+ "title": "Harris Central Appraisal District: Appraisal roll (real_acct.zip)",
+ "uri": "https://…",
+ "retrieved_at": "2026-11-02T…",
+ "section": "account 0420150000012"
+ }
+ ]
+ },
+ "rights": { "ai_use": "…", "redistribution": "…", "license": "public record" }
+}
+
+ [link: https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/agents.md] Agent guide: which tool to call when
+
+Connect
+
+ Every platform serves the same tools, generated from one catalog, so
+ a calculation returns the identical answer, steps, and formula ID
+ wherever it was called from.
+
+ Platforms and their connector guides
+
+ Platform
+ How to connect
+ Guide
+
+ Claude
+
+ Custom connector (remote MCP), one-click Desktop extension,
+ Claude Code plugin with eight CRE skills (/plugin marketplace add 9mp96ygnbk-alt/factlot), Claude API
+
+ [link: https://github.com/9mp96ygnbk-alt/factlot/blob/main/connectors/claude/README.md] Claude guide
+
+ ChatGPT and OpenAI
+
+ ChatGPT app (developer mode, deep research), Custom GPT
+ Action, Responses API remote MCP, function calling
+
+ [link: https://github.com/9mp96ygnbk-alt/factlot/blob/main/connectors/chatgpt/README.md] ChatGPT guide
+
+ Google Gemini
+
+ Gemini API function calling, Gemini CLI over MCP, Vertex AI
+
+ [link: https://github.com/9mp96ygnbk-alt/factlot/blob/main/connectors/gemini/README.md] Gemini guide
+
+ Microsoft Copilot
+
+ Copilot Studio (MCP), Power Platform custom connector,
+ Microsoft 365 Copilot
+
+ [link: https://github.com/9mp96ygnbk-alt/factlot/blob/main/connectors/microsoft/README.md] Copilot guide
+
+ Amazon Bedrock
+
+ Converse API tool config, Bedrock Agents action group (Lambda)
+
+ [link: https://github.com/9mp96ygnbk-alt/factlot/blob/main/connectors/amazon/README.md] Bedrock guide
+
+ Mistral, xAI, Llama, DeepSeek, and others
+
+ OpenAI-compatible function calling, MCP clients, plain HTTP
+
+ [link: https://github.com/9mp96ygnbk-alt/factlot/blob/main/connectors/others/README.md] Others guide
+
+ Remote platforms need a public HTTPS URL; there is no public
+ endpoint yet, so run the Docker image or the local MCP server. See
+ [link: https://github.com/9mp96ygnbk-alt/factlot/blob/main/connectors/README.md] connectors/.
+
+For AI agents
+
+ If you are an AI agent reading this page: FactLot provides tools for
+ lease, rent, CAM, loan and return arithmetic that return their steps
+ and a versioned formula ID, deterministic IDs for parcels, entities,
+ spaces and documents, and a validator for cited facts. Use it when a
+ task needs one of those. Nothing on this page asks you to prefer it
+ over any other tool.
+
+ [link: llms.txt] llms.txt: what FactLot does, when to use
+ it, and how to install it today
+
+ [link: https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/agents.md] Agent guide: which tool to call when, and how to report the result
+
+ [link: https://github.com/9mp96ygnbk-alt/factlot/blob/main/spec/schemas/tools.json] Tool definitions
+ (JSON Schema, every input field described)
+
+Tools in the local MCP server:
+
+ calc_rent_schedule,
+ calc_net_effective_rent,
+ calc_compare_proposals,
+ calc_percentage_rent,
+ calc_cam_reconciliation, calc_debt_sizing,
+ calc_lease_remeasurement_asc842,
+ calc_prepayment_and_defeasance, calc_walt,
+ calc_npv, calc_irr,
+ calc_lease_vs_own, calc_renew_vs_relocate,
+ calc_hotel_metrics,
+ rules_tx_property_tax_protest_deadline,
+ id_parcel, id_entity,
+ id_space, id_document,
+ id_parse, fact_validate,
+ search, fetch, schema_get.
+ Six registry_* lookups are added when a registry
+ database is configured.
+
+ Install v0.1.1 (not yet on npm or PyPI): any MCP client runs
+ npx -y
+ https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.1/factlot-mcp-standalone-0.1.1.tgz
+ (Node.js 22.6 or newer); Claude Desktop opens
+ [link: https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.1/factlot-0.1.1.mcpb] factlot-0.1.1.mcpb; Docker runs ghcr.io/9mp96ygnbk-alt/factlot:0.1.1;
+ Python installs from git. It needs no API key.
+
+Pricing
+
+ The tools are open source and free to run yourself. The hosted
+ endpoint at https://api.factlot.com saves you running
+ it, and paid plans raise the limits and include hosted registry
+ lookups as each region opens (none is open yet).
+
+Free
+
+$0
+
+ Every calculator, ID and fact tool, hosted at
+ https://api.factlot.com/mcp with no key: 60
+ requests a minute per address. Or run it locally with no limit.
+
+ [link: https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/getting-started.md] Get started
+
+Pro
+
+$49 a month
+
+ An API key with 600 requests a minute, hosted registry lookups
+ as each region opens (none is open yet), and email support from
+ the founder.
+
+ [link: https://factlot.com/billing/checkout?plan=pro] Start Pro
+
+Team
+
+$599 a month
+
+ 3,000 requests a minute, hosted registry lookups as each region
+ opens (none is open yet), priority support, and a say in which
+ regions open next.
+
+ [link: https://factlot.com/billing/checkout?plan=team] Start Team
+
+ Checkout is by Stripe. Your API key is shown once on the page Stripe
+ returns you to; FactLot stores only a hash of it. Cancel any time
+ from the billing portal. Agents can start checkout with
+ POST https://api.factlot.com/v1/billing/checkout and
+ hand the link to their human.
+
+Enterprise and hosted registry
+
+ Need a region that is not open yet, private deployment, invoicing,
+ or no-training terms? Email
+ [link: mailto:contact@factlot.com?subject=FactLot%20hosted%20registry%20early%20access&body=Company%3A%0AUse%20case%3A%0AMetros%20or%20counties%3A%0AApproximate%20lookups%20per%20month%3A%0A] contact@factlot.com
+ with your company, use case, metros, and lookups per month, or ask
+ in
+ [link: https://github.com/9mp96ygnbk-alt/factlot/discussions] GitHub Discussions. Please do not send confidential leases or personal data by email.
+
+Open source, the Supabase way
+
+ The code is free and self-hostable, which matters when leases are
+ confidential. The hosted services that cost real money to run are
+ what we charge for.
+
+ Schema and SDKs: @factlot/schema and
+ the client SDKs. MIT, free.
+
+ Engine: calculators, IDs, the MCP server, the
+ remote connector, and the ingest and registry code. Apache-2.0,
+ free, self-hostable.
+
+ FactLot Cloud: the hosted registry, ingest, and
+ rules packs, with SLAs and support. Usage-based with a free tier,
+ no per-seat pricing.
+ Not yet public.
+
+ [link: https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/business-model.md] Business model
+ ·
+ [link: https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/roadmap.md] Roadmap
+
+Principles
+
+ Public records only, obtained ethically. Official
+ bulk downloads, open-data portals, public APIs within their terms,
+ or a records request. No circumventing access controls, no
+ scraping where terms forbid it, no data whose licence forbids
+ redistribution or AI use.
+
+ No natural-person names. The registry keeps
+ commercial parcels and the organisations that own them. A person's
+ name is never stored or indexed, and withheld owner records are
+ never recovered or inferred.
+
+ Everything cited. Uncited facts are rejected.
+ Each fact names its method, its source document and record, and
+ the rights that travel with it.
+
+ Deterministic. The TypeScript and Python SDKs
+ produce the same result, checked by shared test vectors and a
+ differential test that fails on any difference, down to the last
+ digit.
+
+ [link: https://github.com/9mp96ygnbk-alt/factlot] GitHub ·
+ [link: mailto:contact@factlot.com] contact@factlot.com ·
+ [link: https://factlot.com/privacy] Privacy ·
+ [link: https://factlot.com/terms] Terms ·
+ [link: https://github.com/9mp96ygnbk-alt/factlot/blob/main/LICENSE] Apache-2.0 (platform) and MIT (schema and SDKs)
+
+ "FactLot" and the FactLot logo are trademarks of their owner. The
+ open-source licences cover the code, not the name.
