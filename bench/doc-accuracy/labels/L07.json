@@ -1,0 +1,70 @@
+{
+ "doc": "L07",
+ "labels": [
+  {
+   "predicate": "lease.landlord",
+   "value": "HCP LS REDWOOD CITY, LLC",
+   "page": 1,
+   "quote": "HCP LS REDWOOD CITY, LLC, a Delaware limited liability company (\"Landlord\")"
+  },
+  {
+   "predicate": "lease.tenant",
+   "value": "ADVERUM BIOTECHNOLOGIES, INC.",
+   "page": 1,
+   "quote": "ADVERUM BIOTECHNOLOGIES, INC., a Delaware corporation (\"Tenant\")",
+   "note": "Lease Commencement Date is the later of March 1, 2019 and six months after delivery of the 900 Building, and expiration is the day before the tenth anniversary of it, so commencement, expiration and dated rent steps are not stated as dates and are not labeled."
+  },
+  {
+   "predicate": "lease.rentable_area_sf",
+   "value": 81412,
+   "page": 1,
+   "quote": "Approximately 81,412 rentable square feet of space (\"RSF\")"
+  },
+  {
+   "predicate": "lease.rentable_area_sf",
+   "value": 41445,
+   "page": 1,
+   "quote": "800 Building (containing 41,445 RSF)",
+   "note": "The Premises is all of the 800 Building."
+  },
+  {
+   "predicate": "lease.rentable_area_sf",
+   "value": 39967,
+   "page": 1,
+   "quote": "900 Building (containing 39,967 RSF)",
+   "note": "The Premises is all of the 900 Building."
+  },
+  {
+   "predicate": "lease.pro_rata_share",
+   "value": 1,
+   "page": 2,
+   "quote": "One hundred percent (100%).",
+   "note": "Tenant's Share (Summary section 6)."
+  },
+  {
+   "predicate": "lease.security_deposit",
+   "value": 998501.9,
+   "page": 2,
+   "quote": "$998,501.90.",
+   "note": "Summary section 8, Amount of Security Deposit or Letter of Credit; Section 21.5 says the L-C is not a security deposit under the security deposit laws."
+  },
+  {
+   "predicate": "lease.renewal_option",
+   "value": {
+    "count": 2,
+    "term_months": 84,
+    "notice_months": 9,
+    "rent": "Fair Rental Value"
+   },
+   "page": 6,
+   "quote": "two (2) options to extend the Lease Term for a period of seven (7) years (each, an \"Option Term\")",
+   "note": "Each option is exercised not more than 12 nor less than 9 months before the end of the then-current term; notice_months is the 9-month minimum. Option Rent is Fair Rental Value (Section 2.2.2)."
+  },
+  {
+   "predicate": "lease.assignment_sublease",
+   "value": "Transfers require Landlord's consent, not to be unreasonably withheld or delayed, with a response within 30 days; Tenant pays 50% of any Transfer Premium; Landlord may recapture for large, long transfers; transfers to affiliates, asset acquirers or merger successors are Permitted Transferees not requiring consent.",
+   "page": 26,
+   "quote": "Landlord shall not unreasonably withhold or delay its consent to any proposed Transfer of the Subject Space to the Transferee on the terms specified in the Transfer Notice and shall respond to Tenant's consent request within thirty (30) days."
+  }
+ ]
+}
