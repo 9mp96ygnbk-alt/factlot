@@ -233,8 +233,16 @@ def _check_clause(predicate: str, value: Any) -> str | None:
 # Value–quote consistency
 #
 # Which parts of each predicate's value can be checked against the quote, and how:
-#   "text"    a free-text field (a carve-out, a description): every number written in digits in it is
-#             written in the quote (as for "number"); a text with no digits is not checked;
+#   "words"   text the lease states as written (a prohibited use, a carve-out, a protected use): it is
+#             written in the quote as whole words, forgiving case, whitespace, punctuation and a word
+#             hyphenated at a line break (``written_in``);
+#   "summary" free text an agent may paraphrase (a co-tenancy trigger, a renewal rent): never a
+#             failure here; the document tools count it as checked only when it is written in the
+#             quote, and otherwise hold the candidate for a person;
+#   "text"    a free-text summary with numbers (permitted transfers): every number written in digits
+#             in it is written in the quote (as for "number"); otherwise as "summary";
+#   "enum"    a value from a fixed list: never a failure here; the document tools count it as checked
+#             only when the quote words it as ``PHRASES`` lists;
 #   "phrase"  an enum the quote must word (``PHRASES``: "sole_discretion" needs "sole discretion" or
 #             "absolute discretion");
 #   "number"  the number is written in the quote (24.5, 24.50, $24.50, 24.50/SF, 1,250,000, or
@@ -244,8 +252,7 @@ def _check_clause(predicate: str, value: Any) -> str | None:
 #             1st day of March, 2027, first day of March, 2027); "string" the text appears in the
 #             quote case-insensitively.
 # A list spec applies to each element; dict keys that are not listed (enums such as a cap
-# method, free-text summaries such as a renewal rent) are not checked. Predicates not listed
-# here (free-text summaries) are never rejected by this check.
+# method, booleans) are not checked. Predicates not listed here are never rejected by this check.
 _CONSISTENCY: dict[str, Any] = {
     "lease.commencement_date": "date",
     "lease.expiration_date": "date",
@@ -253,14 +260,16 @@ _CONSISTENCY: dict[str, Any] = {
     "lease.security_deposit": "number",
     "lease.pro_rata_share": "ratio",
     "lease.base_rent_schedule": [{"from": "date", "to": "date", "annual_rent_psf": "number"}],
-    "lease.free_rent": {"months": "number"},
+    "lease.free_rent": {"months": "number", "applies_to": "enum"},
     "lease.cam_cap": {"rate": "ratio"},
-    "lease.renewal_option": {"count": "number", "term_months": "number", "notice_months": "number"},
-    "lease.termination_option": {"effective_date": "date", "notice_months": "number"},
+    "lease.renewal_option": {"count": "number", "term_months": "number", "notice_months": "number", "rent": "summary"},
+    "lease.termination_option": {"effective_date": "date", "notice_months": "number", "fee": "summary"},
     "lease.landlord": "string",
     "lease.tenant": "string",
-    "lease.percentage_rent": {"rate": "ratio", "breakpoint": {"amount": "number"}},
-    "lease.co_tenancy": {"cure_period_months": "number", "required_occupancy": "ratio", "named_tenants": ["string"]},
+    "lease.percentage_rent": {"rate": "ratio", "breakpoint": {"type": "enum", "amount": "number"},
+                              "sales_exclusions": "summary"},
+    "lease.co_tenancy": {"trigger": "summary", "remedy": "summary", "cure_period_months": "number",
+                         "required_occupancy": "ratio", "named_tenants": ["string"]},
     "lease.renewal_notice_deadline": "date",
     "lease.termination_notice_deadline": "date",
     "lease.rent_commencement_date": "date",
@@ -268,24 +277,36 @@ _CONSISTENCY: dict[str, Any] = {
     "lease.operating_expense_base_year": "number",
     "lease.parking": {"spaces": "number", "rate_monthly": "number"},
     "lease.guaranty": {"guarantor": "string", "cap": "number"},
-    "lease.rofr": {"description": "text", "response_days": "number"},
-    "lease.rofo": {"description": "text", "response_days": "number"},
-    "lease.exclusive_use": {"protected_use": "text", "carve_outs": ["text"], "applies_to": "text"},
+    "lease.rofr": {"description": "words", "response_days": "number"},
+    "lease.rofo": {"description": "words", "response_days": "number"},
+    "lease.exclusive_use": {"protected_use": "words", "carve_outs": ["words"], "applies_to": "summary"},
     "lease.assignment_sublease": {"consent_standard": "phrase", "permitted_transfers": "text", "profit_share": "ratio"},
-    "lease.prohibited_uses": ["text"],
+    "lease.prohibited_uses": ["words"],
     "lease.go_dark": {"dark_period_days": "number"},
-    "lease.radius_restriction": {"radius_miles": "number"},
-    "lease.relocation_right": {"notice_days": "number"},
-    "lease.kick_out": {"sales_threshold": "number", "notice_days": "number", "effective_date": "date"},
+    "lease.radius_restriction": {"radius_miles": "number", "duration": "summary", "remedy": "summary"},
+    "lease.relocation_right": {"notice_days": "number", "replacement_premises": "summary"},
+    "lease.kick_out": {"sales_threshold": "number", "test_period": "summary", "notice_days": "number",
+                       "effective_date": "date", "fee": "summary"},
 }
 
-# "phrase": an enum value the quote must word in one of these ways. Each inner tuple is a group of
+# How a predicate that also accepts a plain string is checked when given one.
+_STRING_FORMS: dict[str, str] = {
+    "lease.exclusive_use": "words",
+    "lease.rofr": "summary",
+    "lease.rofo": "summary",
+    "lease.assignment_sublease": "summary",
+}
+
+# "phrase" and "enum": an enum value the quote must word in one of these ways. Each inner tuple is a group of
 # alternatives, and every group needs one of its alternatives in the (normalized) quote. Values
 # not listed here (a consent standard of "prohibited", say) are not checked.
 PHRASES: dict[str, tuple[tuple[str, ...], ...]] = {
     "sole_discretion": (("sole discretion", "absolute discretion", "sole and absolute discretion"),),
     "not_unreasonably_withheld": (("unreasonably withh",),),
     "not_unreasonably_withheld_conditioned_or_delayed": (("unreasonably withh",), ("delay", "conditioned")),
+    # lease.free_rent applies_to; lease.percentage_rent breakpoint type
+    "base_rent": (("base rent", "basic rent", "fixed rent", "minimum rent"),),
+    "natural": (("natural breakpoint", "natural break point"),),
 }
 
 _MONTHS = {m: i for i, m in enumerate(("january", "february", "march", "april", "may", "june", "july", "august",
@@ -373,18 +394,48 @@ def text_number_missing(text: str, quote: str) -> str | None:
 def missing_reason(kind: str, value: Any, path: str, quote: str) -> str:
     """The reason a value part of the given kind was not found in the (normalized) quote."""
     where = f" ({path})" if path else ""
-    if kind == "text":
+    if kind == "text" or (kind == "words" and text_number_missing(value, quote) is not None):
         return f"number {text_number_missing(value, quote)} in value {show_value(value)}{where} not found in quote"
     return f"value {show_value(value)}{where} not found in quote"
 
 
+def _fold(normalized: str) -> str:
+    """Letters and digits only, every other run of characters one space (quotes.ts ``fold``)."""
+    out = "".join(c if unicodedata.category(c)[0] in "LN" else " " for c in normalized)
+    return re.sub(" +", " ", out).strip(" ")
+
+
+_HYPHEN_BREAK = re.compile(r"([a-z])- ([a-z])")
+
+
+def written_in(text: Any, quote: str) -> bool:
+    """True when the text is written in the normalized quote as whole words: case, whitespace,
+    typographic quotes and dashes, punctuation, and a word hyphenated at a line break ("pro-
+    portionate") are forgiven, nothing else (quotes.ts ``writtenIn``)."""
+    if not isinstance(text, str):
+        return False
+    v = _fold(_norm(text))
+    if not v:
+        return False
+    return any(f" {v} " in f" {_fold(q)} " for q in (quote, _HYPHEN_BREAK.sub(r"\1\2", quote)))
+
+
+def worded(value: Any, quote: str) -> bool:
+    """True when the normalized quote words an enum value as ``PHRASES`` lists it (or it is not listed)."""
+    groups = PHRASES.get(value) if isinstance(value, str) else None
+    return not groups or all(any(alt in quote for alt in group) for group in groups)
+
+
 def _missing(kind: str, value: Any, quote: str) -> bool:
     """True when ``value`` of the given kind cannot be found in the normalized quote."""
+    if kind in ("summary", "enum"):
+        return False  # see docverify.coverage
+    if kind == "words":
+        return isinstance(value, str) and (text_number_missing(value, quote) is not None or not written_in(value, quote))
     if kind == "text":
         return isinstance(value, str) and text_number_missing(value, quote) is not None
     if kind == "phrase":
-        groups = PHRASES.get(value) if isinstance(value, str) else None
-        return bool(groups) and not all(any(alt in quote for alt in group) for group in groups)
+        return not worded(value, quote)
     if kind == "string":
         return not (isinstance(value, str) and _norm(value) and _norm(value) in quote)
     if kind == "date":
@@ -442,6 +493,8 @@ def check_consistency(predicate: str, value: Any, quote: str) -> str | None:
     free-text summaries, unknown predicates) passes.
     """
     spec = _CONSISTENCY.get(predicate)
+    if isinstance(value, str) and predicate in _STRING_FORMS:
+        spec = _STRING_FORMS[predicate]
     if spec is None:
         return None
     return _walk(spec, value, _norm(quote), "")

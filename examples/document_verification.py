@@ -51,13 +51,15 @@ print("verified:", [v["fact"]["predicate"] for v in checked["verified"]])
 for item in checked["needs_review"]:
     print("needs review:", item["predicate"], "-", item["reason"])
 
-# 2. The lease and its amendment: the current-state abstract, amendment precedence applied.
+# 2. The lease and its amendment: the current-state abstract, amendment precedence applied, as of a
+# day after the amendment takes effect. As of an earlier day the amendment's values would be listed
+# under "pending" instead, with a warning, and the lease's values would stay current.
 abstract = factlot.run_tool("doc_abstract_lease", {
-    "as_of": "2026-11-03",
+    "as_of": "2028-02-01",
     "documents": [
-        {"title": "Office Lease (synthetic)", "pages": LEASE, "candidates": lease_candidates},
-        {"title": "First Amendment (synthetic)", "effective_date": "2028-01-15", "pages": AMENDMENT,
-         "candidates": amendment_candidates},
+        {"role": "original", "title": "Office Lease (synthetic)", "pages": LEASE, "candidates": lease_candidates},
+        {"role": "amendment", "title": "First Amendment (synthetic)", "effective_date": "2028-01-15",
+         "pages": AMENDMENT, "candidates": amendment_candidates},
     ],
 })
 for field in abstract["fields"]:

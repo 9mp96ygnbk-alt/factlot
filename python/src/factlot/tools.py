@@ -340,6 +340,17 @@ def input_schema_issues(schema: dict[str, Any], value: Any, path: str = "") -> l
     def bad(message: str) -> list[dict[str, str]]:
         return [{"path": path, "message": message}]
 
+    if "anyOf" in schema:
+        # As zod's union: valid if one branch is; else the issues of the one branch that fails only
+        # on lengths, counts, bounds or format, if there is exactly one; else one issue here.
+        tried = [input_schema_issues(b, value, path) for b in schema["anyOf"]]
+        if any(not x for x in tried):
+            return []
+        soft = [x for x in tried if all(i["message"].startswith(("expected at least", "expected at most",
+                                                                     "expected more than", "invalid format"))
+                                        for i in x)]
+        return soft[0] if len(soft) == 1 else bad("Invalid input")
+
     t = schema.get("type")
     is_num = isinstance(value, (int, float)) and not isinstance(value, bool)
     if t == "object":

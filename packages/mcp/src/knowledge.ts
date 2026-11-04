@@ -60,7 +60,7 @@ function buildCorpus(): KnowledgeDoc[] {
         "3. Surface every returned warning to a human.",
         "4. Use FactLot IDs (id_parcel, id_entity, id_building, id_space, id_document) as join keys across systems; they are deterministic and computed offline.",
         "5. Emit facts with provenance (document, page, section, quote) and check them with fact_validate. Uncited facts are rejected.",
-        "6. Reading documents: you extract, FactLot verifies. Send the page text and, for each value, a verbatim quote and page to doc_verify_facts (doc_abstract_lease for a lease with amendments). FactLot runs no model: it checks the value's shape, that the quote is on the page, and that the quote states the value's numbers, dates and names, and returns cited facts, items for review and rejections with reasons.",
+        "6. Reading documents: you extract, FactLot verifies. Send the page text and, for each value, a verbatim quote and page to doc_verify_facts (doc_abstract_lease for a lease with amendments). FactLot runs no model: it checks the value's shape, that the quote is on the page, and that the quote states the value's numbers, dates, names and as-written text, and returns cited facts (only when every part of the value is found in the quote; a true/false value or an enum it cannot confirm goes to review), items for review and rejections with reasons.",
         "CAM caps: 'cumulative, compounding' → compounding_from_base; 'cumulative, non-compounding' → simple_from_base; 'non-cumulative' (each year over the prior year) → year_over_year.",
         "Free rent → abated_months (1-based). NNN proposals → put estimated expenses in additional_costs_psf_annual.",
       ].join("\n"),

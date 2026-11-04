@@ -3755,7 +3755,7 @@
     {
       "type": "function",
       "name": "doc_verify_facts",
-      "description": "Check values YOU extracted from a document against its text, deterministically; FactLot runs no model. Send the pages as text and one candidate per value: {predicate, value, quote, page}. Each candidate is checked in order: (1) the value's shape (Ingest predicates such as lease.expiration_date YYYY-MM-DD, lease.pro_rata_share in (0, 1], ordered lease.base_rent_schedule steps; any other dotted predicate needs a non-empty value); (2) the quote, at least 12 characters, is on the cited page, where only whitespace, line breaks, letter case and typographic quotes and dashes may differ (a word hyphenated across a line must keep its hyphen; a quote found on exactly one other page is accepted with the page corrected); (3) every number, date and party name in the value is written in the quote, in any common form: 1250000 matches \"$1,250,000.00\", 0.03 matches \"3%\" or \"three percent\", 2031-06-30 matches \"June 30, 2031\" or \"6/30/2031\"; (4) a confidence you give below 0.8 holds it for review. Returns verified (FactLot facts: method extracted, citing document_id, page, quote and character span, plus which value parts were and were not checked), needs_review (the quote is on the page but does not state the value, or low confidence) and rejected (wrong shape; quote missing, too short, or on several pages), each with a reason to act on. Not checked: enums and free-text summaries, meaning (a quote stating the number in another context passes), and whether the pages came from the file whose sha256 you give.",
+      "description": "Check values YOU extracted from a document against its text, deterministically; FactLot runs no model. Send the pages as text and one candidate per value: {predicate, value, quote, page}. Each candidate is checked in order: (1) the value's shape (Ingest predicates such as lease.expiration_date YYYY-MM-DD, lease.pro_rata_share in (0, 1], ordered lease.base_rent_schedule steps; any other dotted predicate needs a non-empty value); (2) the quote, at least 12 characters, is on the cited page, where only whitespace, line breaks, letter case and typographic quotes and dashes may differ (a word hyphenated across a line must keep its hyphen; a quote found on exactly one other page is accepted with the page corrected); (3) every number, date and party name in the value is written in the quote, in any common form: 1250000 matches \"$1,250,000.00\", 0.03 matches \"3%\" or \"three percent\", 2031-06-30 matches \"June 30, 2031\" or \"6/30/2031\"; text the lease states as written (a prohibited use, a carve-out, a protected use) is written in it as words, ignoring case, punctuation and line breaks; (4) a confidence you give below 0.8 holds it for review; (5) every other part of the value must be confirmed by the quote too: a true/false value, an enum or a summary not written in the quote holds the candidate for review, named in the reason. Verified means every part of the value was found in the quote. Returns verified (FactLot facts: method extracted, citing document_id, page, quote and character span, plus which value parts were checked and as what), needs_review (the quote is on the page but does not state the value: check consistency; low confidence: confidence; a part FactLot cannot confirm from the quote, such as a boolean: coverage) and rejected (wrong shape; quote missing, too short, or on several pages), each with a reason to act on. Not checked: meaning (a quote stating the number in another context passes), and whether the pages came from the file whose sha256 you give.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -3860,7 +3860,7 @@
     {
       "type": "function",
       "name": "doc_abstract_lease",
-      "description": "Current-state lease abstract from a lease and its amendments, with amendment precedence. Give each document's pages with the candidates you extracted (checked exactly as doc_verify_facts checks them), or the facts doc_verify_facts already returned for it (without pages only the value against its quote is rechecked, marked quote_on_page: false). The original applies first, then amendments by effective_date (in the order given if any is undated); a later document's value for a predicate controls, and the earlier one moves to history and is linked through supersedes. Each field gives its value, the controlling document, page, quote and fact, the superseded history, conflicts (one document stating two different values) and open_items (a candidate for that predicate in the controlling or a later document that needs review or was rejected, so the value may not be final). FactLot only orders what you extracted: it does not find terms you missed, and an amendment that changes a term without restating it (\"extended by 24 months\") needs the resulting value extracted with that sentence as its quote, which the quote check will hold for review if the date is not written there.",
+      "description": "Current-state lease abstract from a lease and its amendments, with amendment precedence, as of as_of. Give each document's pages with the candidates you extracted (checked exactly as doc_verify_facts checks them), or the facts doc_verify_facts already returned for it (without pages only the value against its quote is rechecked, marked quote_on_page: false). Documents may come in any order: give the lease role original and each amendment role amendment with its effective_date (without a role the lease is inferred only when that is unambiguous, otherwise it is an input error; two or more amendments need effective dates). The original applies first, then amendments by effective_date; a later document's value for a predicate controls, and the earlier one moves to history and is linked through supersedes. An amendment effective after as_of is pending: its values are listed under pending and pending_facts with a warning and do not control. A rent schedule restated from a later date keeps the earlier steps before it (carried_forward). Each field gives its value, the controlling document, page, quote and fact, the superseded history, conflicts (two different values from one document, or from two documents of the same rank), pending values and open_items (a candidate for that predicate in the controlling or a later document that needs review or was rejected, so the value may not be final). FactLot only orders what you extracted: it does not find terms you missed, and an amendment that changes a term without restating it (\"extended by 24 months\") needs the resulting value extracted with that sentence as its quote, which the quote check will hold for review if the date is not written there.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -3872,12 +3872,12 @@
               "type": "object",
               "properties": {
                 "role": {
-                  "description": "Default: \"original\" for the first document, \"amendment\" for the rest.",
+                  "description": "Give it. Without one, a document is the original only when no document is marked original and it is the only one without a role (or without a role and an effective_date); otherwise it is an amendment, and input that leaves the original unclear is an error. Input order is never used.",
                   "type": "string",
                   "enum": ["original", "amendment"]
                 },
                 "effective_date": {
-                  "description": "Amendment effective date (YYYY-MM-DD). Amendments apply in date order when every amendment has one, otherwise in the order given. Becomes valid_from on its facts.",
+                  "description": "Amendment effective date (YYYY-MM-DD), required when there are two or more amendments: they apply in date order, and amendments effective the same day do not supersede each other (a different value is a conflict). An amendment effective after as_of is pending: its values are listed under pending and do not control the current abstract. Becomes valid_from on its facts.",
                   "type": "string",
                   "format": "date",
                   "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
@@ -3992,7 +3992,7 @@
     {
       "type": "function",
       "name": "doc_compare",
-      "description": "Compare values another document asserts (an estoppel, rent roll or offering memo, mapped by you to predicates) with verified lease facts from doc_abstract_lease or doc_verify_facts. Each asserted value comes back match, mismatch (with the differing fields), not_in_lease, or ambiguous_in_lease (two current lease facts disagree), with the controlling lease citation (document, page, quote). Values compare exactly as JSON: numbers by value, strings exactly (a name written differently is a mismatch), and for an object only the fields you assert. Facts another fact supersedes are ignored. The lease facts must pass fact_validate; FactLot does not re-read the lease, so pass the facts its document tools returned.",
+      "description": "Compare values another document asserts (an estoppel, rent roll or offering memo, mapped by you to predicates) with verified lease facts from doc_abstract_lease or doc_verify_facts. Each asserted value comes back match, mismatch (with the differing fields), not_in_lease, or ambiguous_in_lease (two current lease facts disagree), with the controlling lease citation (document, page, quote). Values compare exactly as JSON: numbers by value, strings exactly (a name written differently is a mismatch), and for an object only the fields you assert. Facts another fact supersedes are ignored. When the lease fact is an extracted fact whose quote does not confirm part of its value (a true/false value, an enum), the result lists those parts in lease_not_checked. The lease facts must pass fact_validate; FactLot does not re-read the lease, so pass the facts its document tools returned.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -4044,7 +4044,7 @@
     {
       "type": "function",
       "name": "doc_verify_claim",
-      "description": "Check one claim against a document page: {predicate, value} (anything doc_verify_facts accepts) or a short claim sentence, plus the verbatim quote and page it rests on. Returns supported (the quote is on the page and every checked number, date and name in the claim is written in it), contradicted (the quote is on the page and states other numbers or dates of the same kind, listed in quote_states), or unverifiable (the quote is not on the page, nothing in the claim can be checked, or the quote states no value of that kind), with the evidence (document_id, page, quote, span) and each part checked. Textual, not semantic: for a sentence only its numbers and dates are compared, never its meaning, and a quote that mentions the right number for a different term still supports it.",
+      "description": "Check one claim against a document page: {predicate, value} (anything doc_verify_facts accepts) or a short claim sentence ({text} or a bare string), plus the verbatim quote and page it rests on. Returns supported (the quote is on the page and every checked number, date and name in the claim is written in it), contradicted (the quote is on the page and states other numbers or dates of the same kind, listed in quote_states), or unverifiable (the quote is not on the page, nothing in the claim can be checked, or the quote states no value of that kind), with the evidence (document_id, page, quote, span) and each part checked. Textual, not semantic: for a sentence only its numbers and dates are compared, never its meaning, and a quote that mentions the right number for a different term still supports it.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -4087,25 +4087,35 @@
             "description": "The document the quote is from."
           },
           "claim": {
-            "type": "object",
-            "properties": {
-              "predicate": {
-                "description": "Predicate of the claim, with value.",
+            "anyOf": [
+              {
                 "type": "string",
                 "minLength": 1,
-                "maxLength": 200
+                "maxLength": 2000,
+                "description": "A short claim sentence, read as {text: the sentence}; its numbers and dates are checked."
               },
-              "value": {
-                "description": "Claimed value in the predicate's shape, with predicate."
-              },
-              "text": {
-                "description": "Or a short claim sentence instead of predicate and value; its numbers and dates are checked.",
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 2000
+              {
+                "type": "object",
+                "properties": {
+                  "predicate": {
+                    "description": "Predicate of the claim, with value.",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "value": {
+                    "description": "Claimed value in the predicate's shape, with predicate."
+                  },
+                  "text": {
+                    "description": "Or a short claim sentence instead of predicate and value; its numbers and dates are checked.",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  }
+                },
+                "description": "Either {predicate, value} or {text}."
               }
-            },
-            "description": "Either {predicate, value} or {text}."
+            ]
           },
           "quote": {
             "type": "string",
@@ -4374,7 +4384,7 @@
     {
       "type": "function",
       "name": "fact_package_verify",
-      "description": "Verify a fact package from fact_package_create: recompute every fact's hash, the Merkle root and the digest from the content (any changed fact, title, date or document list shows as a mismatch); check each fact against fact_validate; check the Ed25519 signature, against the public_key you pass (base64url, the signer's key you trust) or, without one, only against the key inside the package (which proves nothing about who signed); and, given the source documents' pages, check every quote is on its cited page. Returns valid plus each check's details. Not checked: that the pages you pass are the original files (pass sha256 to tie them to the file hash), or what the facts mean.",
+      "description": "Verify a fact package from fact_package_create: recompute every fact's hash, the Merkle root and the digest from the content (any changed fact, title, date or document list shows as a mismatch); check each fact against fact_validate; check the Ed25519 signature, against the public_key you pass (base64url, the signer's key you trust) or, without one, only against the key inside the package (which proves nothing about who signed); and, given the source documents' pages, check every quote is on its cited page. Returns valid plus each check's details, checks_run and checks_not_run (what was and was not checked), and values_not_checked: the parts of extracted facts' values that their quotes do not confirm (a true/false value, an enum, a summary), which do not change valid. Not checked: that the pages you pass are the original files (pass sha256 to tie them to the file hash), or what the facts mean.",
       "parameters": {
         "type": "object",
         "properties": {
