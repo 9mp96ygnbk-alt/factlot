@@ -45,13 +45,28 @@ reg.ingest_parcels([
                  owner_name="Lonestar Office Holdings LLC", market_value=19750000.5, tax_year=2026),
     ParcelRecord("999", "0001-000-0004", "B", account="A4", situs_address="200 River Road", owner_name="John Example",
                  market_value=4100000, tax_year=2026),
+    # Three condominium units and the common lot of one building (rolled up by its street address).
+    ParcelRecord("999", "0002-000-1000", "F1", account="A10", situs_address="300 Harbor Drive, Example City TX 77999",
+                 owner_name="Harbor Point Condominium Association", market_value=1000, tax_year=2026),
+    ParcelRecord("999", "0002-000-1001", "F1", account="A11", situs_address="300 Harbor Dr Unit 101, Example City TX 77999",
+                 owner_name="Harbor Office Condos LLC", market_value=850000, tax_year=2026),
+    ParcelRecord("999", "0002-000-1002", "F1", account="A12", situs_address="300 Harbor Dr Ste 102, Example City TX 77999-1234",
+                 owner_name="Harbor Office Condos LLC", market_value=900000, tax_year=2026),
+    ParcelRecord("999", "0002-000-1003", "F1", account="A13", situs_address="300 Harbor Drive #103, Example City TX 77999",
+                 owner_name="Harbor Office Condos LLC", market_value=910000, tax_year=2026),
+    ParcelRecord("999", "0003-000-0001", "F2", account="A20", situs_address="9 Northwest Industrial Way, Example City TX 77999",
+                 owner_name="Gulf Logistics LP", market_value=3000000, tax_year=2026),
 ], s26, state_fips="48", account_system="test-account", full_roll=True)
 ent = snap("test-entities", "entities.csv", "synthetic entities", "2026-10-01")
 reg.ingest_entities([
     EntityRecord("LONESTAR OFFICE HOLDINGS LLC", "us-tx", "0801111111", taxpayer_number="32000000001",
                  state_of_formation="TX", status="ACTIVE"),
     EntityRecord("Gulf Logistics, L.P.", "us-tx", "0804444444"),
+    EntityRecord("Harbor Office Condos LLC", "us-tx", "0805555555", status="ACTIVE"),
+    EntityRecord("Quiet Holdings LLC", "us-tx", "0806666666", status="ACTIVE"),
 ], ent)
 reg.link_owners()
+reg.rollup_buildings()
+reg.refresh_coverage()
 reg.close()
 print(out)

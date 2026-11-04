@@ -113,5 +113,139 @@
     "arguments": {
       "entity_urn": "fl:entity:us-tx:0804444444"
     }
+  },
+  {
+    "tool": "registry_coverage",
+    "arguments": {}
+  },
+  {
+    "tool": "registry_get",
+    "arguments": {
+      "urn": "fl:building:us-48999:77999:300-harbor-dr"
+    }
+  },
+  {
+    "tool": "registry_get",
+    "arguments": {
+      "urn": "fl:parcel:us-48999:00020001002"
+    }
+  },
+  {
+    "tool": "registry_get",
+    "arguments": {
+      "urn": "fl:building:us-48999:77999:1-nowhere-rd"
+    }
+  },
+  {
+    "tool": "registry_get",
+    "arguments": {
+      "urn": "fl:parcel:us-04021:50101001"
+    }
+  },
+  {
+    "tool": "registry_get",
+    "arguments": {
+      "urn": "fl:entity:us-az:12345"
+    }
+  },
+  {
+    "tool": "registry_get",
+    "arguments": {
+      "urn": "fl:entity:us-tx:9999999999"
+    }
+  },
+  {
+    "tool": "registry_get",
+    "arguments": {
+      "urn": "fl:space:01jbx3k8q2v7m9c4t6w8y0a2b4:400"
+    }
+  },
+  {
+    "tool": "registry_get",
+    "arguments": {
+      "urn": "fl:parcel:us-04021"
+    }
+  },
+  {
+    "tool": "registry_resolve_parcel",
+    "arguments": {
+      "state_fips": "04",
+      "county_fips": "021",
+      "apn": "501-01-001"
+    }
+  },
+  {
+    "tool": "registry_resolve_external",
+    "arguments": {
+      "system": "nyc_bbl",
+      "external_id": "1000090001"
+    }
+  },
+  {
+    "tool": "registry_resolve_external",
+    "arguments": {
+      "system": "test-account",
+      "external_id": "A999"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "9 Northwest Industrial Way"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "9 N.W. Industrial Way"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "300 Harbor Drive Suite 102"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "1 Nowhere Rd, Casa Grande, AZ 85122"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "1 Nowhere Rd"
+    }
+  },
+  {
+    "tool": "registry_search_entities",
+    "arguments": {
+      "query": "no such entity anywhere"
+    }
+  },
+  {
+    "tool": "registry_owned_by",
+    "arguments": {
+      "entity_urn": "fl:entity:us-tx:0805555555"
+    }
+  },
+  {
+    "tool": "registry_owned_by",
+    "arguments": {
+      "entity_urn": "fl:entity:us-tx:0806666666"
+    }
+  },
+  {
+    "tool": "registry_owned_by",
+    "arguments": {
+      "entity_urn": "fl:entity:us-az:12345"
+    }
+  },
+  {
+    "tool": "registry_owned_by",
+    "arguments": {
+      "entity_urn": "fl:parcel:us-48999:00010000001"
+    }
   }
 ]

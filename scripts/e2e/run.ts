@@ -41,6 +41,7 @@ const REQUIRED_TOOLS = [
   "id_parcel",
   "id_entity",
   "id_space",
+  "id_building",
   "id_document",
   "id_parse",
   "fact_validate",

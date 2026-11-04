@@ -11,6 +11,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   configureRegistry,
+  legacyNormalizeAddress,
   legacyNormalizeName,
   normalizeAddress,
   normalizeName,
@@ -50,7 +51,9 @@ test("registry tools: TypeScript matches Python on the shared fixture", () => {
       const ts = outcome.ok ? outcome.result : outcome.error;
       const py = python[i] as Record<string, unknown>;
       const label = `${c.tool} ${JSON.stringify(c.arguments)}`;
-      if ("error" in py) {
+      // A NotFound carries a message and coverage both languages must word alike; other errors
+      // (input validation) are compared by kind only.
+      if ("error" in py && py.error !== "NotFound") {
         assert.equal((ts as { error: string }).error, py.error, label);
       } else {
         assert.deepEqual(JSON.parse(JSON.stringify(ts)), py, label);
@@ -65,11 +68,14 @@ test("name and address normalization match the Python vectors", () => {
   const v = JSON.parse(readFileSync(join(spec, "normalize.json"), "utf8")) as {
     names: [string, string][];
     addresses: [string, string][];
+    legacy_addresses: [string, string][];
   };
   for (const [input, expected] of v.names)
     assert.equal(normalizeName(input), expected, input);
   for (const [input, expected] of v.addresses)
     assert.equal(normalizeAddress(input), expected, input);
+  for (const [input, expected] of v.legacy_addresses)
+    assert.equal(legacyNormalizeAddress(input), expected, input);
 });
 
 test("entity search uses the name keys the file was built with", () => {
@@ -118,6 +124,73 @@ test("entity search uses the name keys the file was built with", () => {
       legacyNormalizeName("W.G.G. Properties LLC"),
       "W G G PROPERTIES LLC",
     );
+  } finally {
+    configureRegistry(undefined);
+  }
+});
+
+function fixtureDb(name: string): {
+  path: string;
+  exec(sql: string): void;
+} {
+  const path = join(mkdtempSync(join(tmpdir(), "factlot-registry-")), name);
+  execFileSync("python3", [join(spec, "build_fixture.py"), path]);
+  const { DatabaseSync } = createRequire(import.meta.url)("node:sqlite") as {
+    DatabaseSync: new (p: string) => { exec(sql: string): void };
+  };
+  const w = new DatabaseSync(path);
+  return { path, exec: (sql) => w.exec(sql) };
+}
+
+test("address search uses the address keys the file was built with", () => {
+  const db = fixtureDb("addresses.db");
+  // A file built before address key version 2 spells directionals out in its keys.
+  db.exec(
+    "DELETE FROM address_index; DELETE FROM meta WHERE key = 'address_key_version'; " +
+      "INSERT INTO address_index VALUES ('9 NORTHWEST INDUSTRIAL WAY EXAMPLE CITY TX 77999', 'fl:parcel:us-48999:00030000001')",
+  );
+  const search = (query: string) => {
+    const r = runTool("registry_search_address", { query });
+    assert.ok(r.ok);
+    return (r.result as { results: { urn: string }[] }).results.map(
+      (x) => x.urn,
+    );
+  };
+  configureRegistry(db.path);
+  try {
+    assert.deepEqual(search("9 Northwest Industrial Way"), [
+      "fl:parcel:us-48999:00030000001",
+    ]);
+    assert.deepEqual(search("9 NW Industrial Way"), []);
+    db.exec("INSERT INTO meta VALUES ('address_key_version', '2')");
+    configureRegistry(db.path);
+    assert.deepEqual(
+      search("9 Northwest Industrial Way"),
+      [],
+      "a re-keyed file is searched by current keys only",
+    );
+  } finally {
+    configureRegistry(undefined);
+  }
+});
+
+test("coverage computed on read equals the stored summary, and a stale one is recomputed", () => {
+  const db = fixtureDb("coverage.db");
+  const coverage = () => {
+    configureRegistry(db.path);
+    const r = runTool("registry_coverage", {});
+    assert.ok(r.ok);
+    return r.result as { totals: { parcels: number } };
+  };
+  try {
+    const stored = coverage();
+    db.exec("DELETE FROM meta WHERE key = 'coverage'");
+    assert.deepEqual(coverage(), stored);
+    // A stored summary whose stamp no longer matches the file is ignored.
+    db.exec(
+      `INSERT INTO meta VALUES ('coverage', '${JSON.stringify({ stamp: { snapshots: 1, subjects_max_rowid: 1 }, summary: { ...stored, totals: { parcels: -1 } } })}')`,
+    );
+    assert.equal(coverage().totals.parcels, stored.totals.parcels);
   } finally {
     configureRegistry(undefined);
   }

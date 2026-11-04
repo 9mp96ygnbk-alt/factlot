@@ -5,6 +5,8 @@ from __future__ import annotations
 import re
 from difflib import SequenceMatcher
 
+from ..ids import address_tokens
+
 # Texas State Property Tax Code categories kept by default (data policy §3):
 # B multifamily, F1 commercial real property, F2 industrial/manufacturing real property.
 COMMERCIAL_CATEGORIES = frozenset({"B", "F1", "F2"})
@@ -274,6 +276,11 @@ def name_similarity(key_a: str, key_b: str) -> dict:
     }
 
 
+# Address search keys. Version 2 (2026-11-03) reads directionals and drops a unit, suite, "#" or
+# floor designator with its value (``address_tokens`` in factlot.ids, shared with building IDs);
+# a file built before keeps version 1 keys until ``Registry.rebuild_address_index`` re-keys it.
+ADDRESS_KEY_VERSION = "2"
+
 _STREET = {
     "STREET": "ST", "AVENUE": "AVE", "ROAD": "RD", "DRIVE": "DR", "BOULEVARD": "BLVD",
     "LANE": "LN", "PARKWAY": "PKWY", "HIGHWAY": "HWY", "FREEWAY": "FWY", "COURT": "CT",
@@ -283,10 +290,68 @@ _STREET = {
 
 
 def normalize_address(address: str) -> str:
-    """Comparable key for a street address: '1200 Main Street, Suite 400' -> '1200 MAIN ST STE 400'."""
+    """Comparable key for a street address: '1200 Main Street NW, Suite 400' -> '1200 MAIN ST NW'.
+
+    "Northwest", "North West" and "N.W." are "NW" (all eight directionals, before or after the
+    street); a unit, suite, apartment, "#" or floor designator and its value are dropped. The
+    TypeScript mirror (``normalizeAddress`` in packages/tools) must agree; ``spec/registry/normalize.json``
+    holds the shared vectors.
+    """
+    return " ".join(address_tokens(address))
+
+
+def legacy_address_key(address: str) -> str:
+    """The key ``normalize_address`` made before 2026-11-03 (address key version 1)."""
     s = re.sub(r"[^A-Z0-9 ]+", " ", address.upper())
-    words = [_STREET.get(w, w) for w in s.split()]
-    return " ".join(words)
+    return " ".join(_STREET.get(w, w) for w in s.split())
+
+
+# --- building roll-up: the street line and ZIP code of a situs address --------------------------
+
+# Street types that end a street name, for situs lines written without a comma before the city.
+_STREET_TYPES = frozenset("ST AVE RD DR BLVD LN PKWY HWY FWY EXPY CT PL CIR TRL TER SQ PLZ ALY WAY".split())
+_DIRECTIONALS = frozenset("N S E W NE NW SE SW".split())
+_ZIP_AFTER_COMMA = re.compile(r"\b([0-9]{5})(?:[- ]?[0-9]{1,4})?\s*$")
+_STATE_ZIP_TAIL = re.compile(r"\s([A-Z]{2})\s+([0-9]{5}(?:[- ]?[0-9]{1,4})?|[0-9]{1,4})\s*$")
+
+
+def situs_street_and_zip(situs: str | None) -> tuple[str, str, str] | None:
+    """``(street line, ZIP code, how the street line was found)`` of a situs address, or None.
+
+    With a comma, the street line is what precedes the first comma (``"before_comma"``). Without
+    one ("208 MASSACHUSETTS AVE NE # E WASHINGTON DC 20002"), the line must end in a state and ZIP
+    code, and the street is taken to end at the first street type after the street name, with a
+    directional right after it (``"street_type_end"``): an inference, labelled as such. The ZIP
+    code is its first five digits; where the publisher cut the line short inside the ZIP code
+    ("... WASHINGTON DC 2003") it is the one to four digits left, which the building roll-up may
+    complete from other parcels at the same street line. A situs with no ZIP digits, or no street
+    type to end on, gives None.
+    """
+    if not situs:
+        return None
+    s = situs.upper()
+    if "," in s:
+        street, rest = s.split(",", 1)
+        m = _ZIP_AFTER_COMMA.search(rest)
+        return (street.strip(), m.group(1), "before_comma") if m else None
+    m = _STATE_ZIP_TAIL.search(s)
+    if not m or m.group(1).lower() not in STATES:
+        return None
+    tokens = address_tokens(s[:m.start()])
+    end = next((i for i in range(2, len(tokens)) if tokens[i] in _STREET_TYPES), None)
+    if end is None or not tokens[0][:1].isdigit():
+        return None
+    if end + 1 < len(tokens) and tokens[end + 1] in _DIRECTIONALS:
+        end += 1
+    return " ".join(tokens[:end + 1]), m.group(2)[:5], "street_type_end"
+
+
+_UNIT_MARK = re.compile(r"(?:^|\s)(?:#|STE|SUITE|UNIT|APT|APARTMENT)(?:\s|\.|$)")
+
+
+def situs_names_unit(situs: str | None) -> bool:
+    """True when a situs address carries a unit, suite, apartment or "#" designator."""
+    return bool(situs) and bool(_UNIT_MARK.search(situs.upper().replace("#", " # ")))
 
 
 def is_commercial(state_category: str | None) -> bool:

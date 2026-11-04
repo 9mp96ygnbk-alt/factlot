@@ -52,7 +52,7 @@ function buildCorpus(): KnowledgeDoc[] {
         "1. Do not do commercial real estate math in context. Call a calc_* tool for rent schedules, abatement, net effective rent, proposal comparison, CAM reconciliation, percentage rent, loan sizing, ASC 842 lease remeasurement, loan prepayment and defeasance, WALT, NPV, IRR, lease-versus-own, renew-versus-relocate, and hotel operating metrics.",
         "2. Cite the method: report the formula id (e.g. calc.debt_sizing@2) and point to the returned steps.",
         "3. Surface every returned warning to a human.",
-        "4. Use FactLot IDs (id_parcel, id_entity, id_space, id_document) as join keys across systems; they are deterministic and computed offline.",
+        "4. Use FactLot IDs (id_parcel, id_entity, id_building, id_space, id_document) as join keys across systems; they are deterministic and computed offline.",
         "5. Emit facts with provenance (document, page, section, quote) and check them with fact_validate. Uncited facts are rejected.",
         "CAM caps: 'cumulative, compounding' → compounding_from_base; 'cumulative, non-compounding' → simple_from_base; 'non-cumulative' (each year over the prior year) → year_over_year.",
         "Free rent → abated_months (1-based). NNN proposals → put estimated expenses in additional_costs_psf_annual.",
@@ -61,12 +61,13 @@ function buildCorpus(): KnowledgeDoc[] {
     },
     {
       id: "spec:factlot-id",
-      title: "FactLot ID specification (v0.1)",
+      title: "FactLot ID specification (v0.2)",
       url: `${REPO}/docs/id-spec.md`,
       text: [
         "FactLot IDs are canonical identifiers for commercial real estate. Deterministic where a natural key exists; registry-minted otherwise.",
         "Parcel: fl:parcel:us-<state FIPS><county FIPS>:<normalized APN>. Entity: fl:entity:<jurisdiction>:<file number> or fl:entity:lei:<LEI>.",
-        "Document: fl:document:sha256-<hex of the file bytes>. Building, lease, loan: minted 26-character time-sortable tokens. Space: fl:space:<building token>:<normalized suite>.",
+        "Building: fl:building:us-<state FIPS><county FIPS>:<5-digit ZIP>:<street key> from the street address (units, suites and floors ignored; Northwest = NW), so every condominium unit of a building shares it; a minted 26-character token for a building with no street address.",
+        "Document: fl:document:sha256-<hex of the file bytes>. Lease, loan: minted 26-character time-sortable tokens. Space: fl:space:<building>:<normalized suite> (Suite 100 = Ste 100 = #100; 1-20 and 120 differ).",
         `Short IDs: <prefix>_<24 chars of SHA-256(urn) in Crockford base32>. Prefixes: ${Object.entries(
           SHORT_PREFIX,
         )

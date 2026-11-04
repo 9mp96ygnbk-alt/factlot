@@ -1,5 +1,5 @@
 {
-  "description": "Registry name/address normalization; Python factlot.registry and TS @factlot/tools must agree.",
+  "description": "Registry name/address normalization; Python factlot.registry and TS @factlot/tools must agree. 'addresses' is address key version 2 (2026-11-03); 'legacy_addresses' version 1, which files built earlier keep until re-keyed.",
   "names": [
     ["The Acme Properties, L.L.C.", "ACME PROPERTIES LLC"],
     ["Gulf Logistics, Limited Partnership", "GULF LOGISTICS LP"],
@@ -33,6 +33,31 @@
     ["U.S. One LLC", "US ONE LLC"]
   ],
   "addresses": [
+    ["100 Main Street, Suite 400", "100 MAIN ST"],
+    ["5 Industrial Boulevard", "5 INDUSTRIAL BLVD"],
+    ["1200 North Loop West Freeway", "1200 N LOOP W FWY"],
+    ["  9 commerce  drive ", "9 COMMERCE DR"],
+    ["1722 6th Street Northwest", "1722 6TH ST NW"],
+    ["1722 6th St. N.W.", "1722 6TH ST NW"],
+    ["1722 6th Street North West", "1722 6TH ST NW"],
+    ["Northeast 2nd Avenue", "NE 2ND AVE"],
+    ["200 South West 8th St", "200 SW 8TH ST"],
+    ["200 Southeast 8th St", "200 SE 8TH ST"],
+    [
+      "208 MASSACHUSETTS AVE NE # E WASHINGTON DC 20002",
+      "208 MASSACHUSETTS AVE NE WASHINGTON DC 20002"
+    ],
+    ["100 Main St Ste. #12", "100 MAIN ST"],
+    ["100 Main St Unit 4B, Houston TX 77002", "100 MAIN ST HOUSTON TX 77002"],
+    ["100 Main St Apt 3", "100 MAIN ST"],
+    ["100 Main St 3rd Floor", "100 MAIN ST"],
+    ["100 Main St Floor 12", "100 MAIN ST"],
+    ["100 Ocean Dr, Miami FL 33139", "100 OCEAN DR MIAMI FL 33139"],
+    ["12345 RM 620 N", "12345 RM 620 N"],
+    ["500 Fifth Avenue", "500 5TH AVE"],
+    ["1300 N St NW", "1300 N ST NW"]
+  ],
+  "legacy_addresses": [
     ["100 Main Street, Suite 400", "100 MAIN ST STE 400"],
     ["5 Industrial Boulevard", "5 INDUSTRIAL BLVD"],
     ["1200 North Loop West Freeway", "1200 N LOOP W FWY"],

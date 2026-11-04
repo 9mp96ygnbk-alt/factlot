@@ -5,6 +5,7 @@
 import { CalcInputError, calculators, rulePacks } from "@factlot/calc";
 import {
   FactLotIdError,
+  buildingId,
   documentId,
   entityId,
   parcelId,
@@ -17,13 +18,15 @@ import { z } from "zod";
 
 import {
   RegistryUnavailableError,
+  registryCoverage,
   registryFacts,
   registryGet,
-  registryOwnedBy,
-  registryResolveExternal,
-  registryResolveParcel,
-  registrySearchAddress,
-  registrySearchEntities,
+  registryOwnedByResult,
+  registryRecordMiss,
+  registryResolveExternalResult,
+  registryResolveParcelResult,
+  registrySearchAddressResult,
+  registrySearchEntitiesResult,
 } from "./registry.ts";
 import {
   INPUT_LIMITS,
@@ -60,6 +63,8 @@ export interface ToolError {
     | "NotFound";
   message: string;
   issues: { path: string; message: string }[];
+  /** On a registry NotFound: whether the region or registry asked about is loaded in this file. */
+  coverage?: unknown;
 }
 
 export type ToolOutcome =
@@ -146,13 +151,37 @@ const SpaceInput = z.object({
     .string()
     .max(500)
     .describe(
-      "FactLot building URN, e.g. fl:building:01jbx3k8q2v7m9c4t6w8y0a2b4.",
+      "FactLot building URN from id_building, e.g. fl:building:us-11001:20002:208-massachusetts-ave-ne (a minted fl:building:<26-character token> also works).",
     ),
   suite: z
     .string()
     .max(200)
     .describe(
       'Suite or unit as written ("Suite 400", "STE 400", "#400", "3rd Floor" all normalize).',
+    ),
+});
+const BuildingInput = z.object({
+  state_fips: z
+    .string()
+    .max(16)
+    .describe(
+      '2-digit state FIPS code, e.g. "11" for the District of Columbia.',
+    ),
+  county_fips: z
+    .string()
+    .max(16)
+    .describe('3-digit county FIPS code, e.g. "001".'),
+  zip: z
+    .string()
+    .max(16)
+    .describe(
+      '5-digit ZIP code of the address, e.g. "20002" (ZIP+4 accepted).',
+    ),
+  street: z
+    .string()
+    .max(300)
+    .describe(
+      'Street line: house number and street, e.g. "208 Massachusetts Ave NE". A suite, unit or floor is ignored, and so is anything after a comma (city, state).',
     ),
 });
 const DocumentInput = z
@@ -223,12 +252,29 @@ const idTools: ToolSpec[] = [
     name: "id_space",
     title: "FactLot space (suite) ID",
     description:
-      "FactLot ID for a suite or unit within a building, given the building's FactLot URN. Suite designators are normalized.",
+      'FactLot ID for a suite or unit within a building, given the building\'s FactLot URN (from id_building). Suite designators are normalized: "Suite 100", "Ste 100" and "#100" agree, while "1-20" and "120" stay distinct.',
     input: SpaceInput,
     path: "/v1/id/space",
     run: (i: never) => {
       const v = i as z.output<typeof SpaceInput>;
       return spaceId(v.building_urn, v.suite);
+    },
+  },
+  {
+    name: "id_building",
+    title: "FactLot building ID",
+    description:
+      "Deterministic FactLot ID for a building from its street address: county FIPS, ZIP code, and street line. Every condominium unit, suite, and floor at the address gets the same building ID, offline. Pass it to id_space for a suite, or to registry_get to see the building's parcels.",
+    input: BuildingInput,
+    path: "/v1/id/building",
+    run: (i: never) => {
+      const v = i as z.output<typeof BuildingInput>;
+      return buildingId({
+        stateFips: v.state_fips,
+        countyFips: v.county_fips,
+        zip: v.zip,
+        street: v.street,
+      });
     },
   },
   {
@@ -283,6 +329,11 @@ const idTools: ToolSpec[] = [
 
 class NotFoundError extends Error {
   override name = "NotFoundError";
+  coverage: unknown;
+  constructor(message: string, coverage?: unknown) {
+    super(message);
+    this.coverage = coverage;
+  }
 }
 
 const REGISTRY_NOTE =
@@ -300,14 +351,14 @@ const registryTools: ToolSpec[] = [
     name: "registry_get",
     title: "Get a registry record",
     description:
-      "Everything the FactLot Registry knows about a parcel or legal entity: status, current cited facts (owner of record, situs address, property category, areas, values), ownership links, and external IDs." +
+      "Everything the FactLot Registry knows about a parcel, legal entity, or building: status, current cited facts (owner of record, situs address, property category, areas, values), ownership links, external IDs, and for a parcel the building it belongs to (condominium units roll up into one building). A miss says whether the county or entity registry is loaded." +
       REGISTRY_NOTE,
     input: z.object({
       urn: z
         .string()
         .max(500)
         .describe(
-          "FactLot URN of a parcel or entity, e.g. fl:parcel:us-48201:0420150000012.",
+          "FactLot URN of a parcel, entity, or building, e.g. fl:parcel:us-48201:0420150000012.",
         ),
       include_history: z
         .boolean()
@@ -322,7 +373,13 @@ const registryTools: ToolSpec[] = [
         include_history: boolean;
       };
       const record = registryGet(urn);
-      if (!record) throw new NotFoundError(`no registry record for ${urn}`);
+      if (!record) {
+        const coverage = registryRecordMiss(urn);
+        throw new NotFoundError(
+          `no registry record for ${urn}: ${String(coverage.message)}`,
+          coverage,
+        );
+      }
       return include_history
         ? { ...record, history: registryFacts(urn, true) }
         : record;
@@ -332,7 +389,7 @@ const registryTools: ToolSpec[] = [
     name: "registry_resolve_parcel",
     title: "Resolve a parcel in the registry",
     description:
-      "Find a parcel's FactLot URN from state FIPS, county FIPS, and APN, if the registry holds it." +
+      "Find a parcel's FactLot URN from state FIPS, county FIPS, and APN, if the registry holds it. A miss returns urn null with coverage: whether that county is loaded in this registry." +
       REGISTRY_NOTE,
     input: z.object({
       state_fips: z
@@ -352,7 +409,7 @@ const registryTools: ToolSpec[] = [
     requires: "registry",
     run: (i: never) => {
       const v = i as { state_fips: string; county_fips: string; apn: string };
-      return { urn: registryResolveParcel(v.state_fips, v.county_fips, v.apn) };
+      return registryResolveParcelResult(v.state_fips, v.county_fips, v.apn);
     },
   },
   {
@@ -372,14 +429,14 @@ const registryTools: ToolSpec[] = [
     requires: "registry",
     run: (i: never) => {
       const v = i as { system: string; external_id: string };
-      return { urn: registryResolveExternal(v.system, v.external_id) };
+      return registryResolveExternalResult(v.system, v.external_id);
     },
   },
   {
     name: "registry_search_address",
     title: "Search parcels by address",
     description:
-      "Find commercial parcels by situs address (normalized: 'Street' = 'St', 'Suite' = 'Ste')." +
+      "Find commercial parcels by situs address (normalized: 'Street' = 'St', 'Northwest' = 'N.W.' = 'NW'; a suite, unit, '#' or floor is ignored). No match returns coverage: what this registry holds." +
       REGISTRY_NOTE,
     input: z.object({
       query: z
@@ -393,7 +450,7 @@ const registryTools: ToolSpec[] = [
     requires: "registry",
     run: (i: never) => {
       const v = i as { query: string; limit: number };
-      return { results: registrySearchAddress(v.query, v.limit) };
+      return registrySearchAddressResult(v.query, v.limit);
     },
   },
   {
@@ -410,14 +467,14 @@ const registryTools: ToolSpec[] = [
     requires: "registry",
     run: (i: never) => {
       const v = i as { query: string; limit: number };
-      return { results: registrySearchEntities(v.query, v.limit) };
+      return registrySearchEntitiesResult(v.query, v.limit);
     },
   },
   {
     name: "registry_owned_by",
     title: "Parcels owned by an entity",
     description:
-      "Commercial parcels currently linked to a legal entity as owner of record (inferred links carry a confidence)." +
+      "Commercial parcels currently linked to a legal entity as owner of record (inferred links carry a confidence), each with the building it belongs to, plus a per-building summary so condominium units count once per building." +
       REGISTRY_NOTE,
     input: z.object({
       entity_urn: z
@@ -427,9 +484,19 @@ const registryTools: ToolSpec[] = [
     }),
     path: "/v1/registry/owned_by",
     requires: "registry",
-    run: (i: never) => ({
-      results: registryOwnedBy((i as { entity_urn: string }).entity_urn),
-    }),
+    run: (i: never) =>
+      registryOwnedByResult((i as { entity_urn: string }).entity_urn),
+  },
+  {
+    name: "registry_coverage",
+    title: "What the registry holds",
+    description:
+      "The counties (with parcel and building counts), entity registries, and crosswalk systems this FactLot Registry file holds, each with its sources and as-of dates. Call it before concluding that a parcel or entity does not exist: a miss outside these regions means not loaded, not absent." +
+      REGISTRY_NOTE,
+    input: z.object({}),
+    path: "/v1/registry/coverage",
+    requires: "registry",
+    run: () => registryCoverage(),
   },
 ];
 
@@ -548,10 +615,13 @@ export function runTool(name: string, args: unknown): ToolOutcome {
       };
     }
     if (err instanceof NotFoundError) {
-      return {
-        ok: false,
-        error: { error: "NotFound", message: err.message, issues: [] },
+      const error: ToolError = {
+        error: "NotFound",
+        message: err.message,
+        issues: [],
       };
+      if (err.coverage !== undefined) error.coverage = err.coverage;
+      return { ok: false, error };
     }
     throw err;
   }

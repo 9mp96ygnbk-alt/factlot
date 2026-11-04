@@ -30,7 +30,7 @@ from ._core import CalcInputError, input_shape_issue, num_str
 from .calc import CALCULATORS
 from .rules import RULES
 from .facts import validate_fact
-from .ids import FactLotIdError, document_id, entity_id, parcel_id, parse, short_id, space_id
+from .ids import FactLotIdError, building_id, document_id, entity_id, parcel_id, parse, short_id, space_id
 
 
 @lru_cache(maxsize=None)
@@ -223,7 +223,7 @@ class _InputError(ValueError):
 _STRING_CAPS = {
     "state_fips": 16, "county_fips": 16, "apn": 200, "jurisdiction": 64, "registry_number": 200,
     "building_urn": 500, "suite": 200, "urn": 500, "system": 100, "external_id": 200,
-    "entity_urn": 500, "query": 500,
+    "entity_urn": 500, "query": 500, "zip": 16, "street": 300,
 }
 
 
@@ -267,7 +267,9 @@ class _RegistryUnavailable(RuntimeError):
 
 
 class _NotFound(LookupError):
-    pass
+    def __init__(self, message: str, coverage: dict[str, Any] | None = None) -> None:
+        super().__init__(message)
+        self.coverage = coverage
 
 
 _registry_cache: dict[str, Any] = {}
@@ -307,15 +309,33 @@ def _limit(args: dict[str, Any]) -> int:
     return v
 
 
+def _record_miss(reg: Any, urn: str) -> dict[str, Any]:
+    """The ``coverage`` object of a ``registry_get`` miss for a well-formed URN."""
+    from .registry import coverage
+
+    kind, parts = parse(urn)
+    cov = reg.coverage()
+    if kind == "parcel":
+        return coverage.parcel_miss(cov, parts[0][3:5], parts[0][5:8])
+    if kind == "entity":
+        return coverage.entity_miss(cov, parts[0], False)
+    if kind == "building" and len(parts) == 3:
+        return coverage.building_miss(cov, parts[0][3:5], parts[0][5:8])
+    return coverage.other_kind_miss(kind)
+
+
 def _registry_get(args: dict[str, Any]) -> dict[str, Any]:
     urn = _str(args, "urn")
     hist = args.get("include_history", False)
     if not isinstance(hist, bool):
         raise _InputError("include_history", "expected boolean")
-    record = _registry().get(urn)
+    reg = _registry()
+    parse(urn)  # a malformed URN is a format error, not a miss
+    record = reg.get(urn)
     if record is None:
-        raise _NotFound(f"no registry record for {urn}")
-    return {**record, "history": _registry().facts(urn, history=True)} if hist is True else record
+        cov = _record_miss(reg, urn)
+        raise _NotFound(f"no registry record for {urn}: {cov['message']}", cov)
+    return {**record, "history": reg.facts(urn, history=True)} if hist is True else record
 
 
 def _nonempty(args: dict[str, Any], key: str) -> str:
@@ -327,26 +347,58 @@ def _nonempty(args: dict[str, Any], key: str) -> str:
 
 def _search(kind: str):
     def run(args: dict[str, Any]) -> dict[str, Any]:
+        from .registry import coverage
+
         query, limit = _nonempty(args, "query"), _limit(args)  # validate before touching the registry
         reg = _registry()
-        return {"results": reg.search_address(query, limit) if kind == "address" else reg.search_entities(query, limit)}
+        results = reg.search_address(query, limit) if kind == "address" else reg.search_entities(query, limit)
+        if results:
+            return {"results": results}
+        cov = coverage.address_miss(reg.coverage(), query) if kind == "address" else coverage.entities_miss(reg.coverage())
+        return {"results": results, "coverage": cov}
 
     return run
 
 
 def _resolve_parcel(args: dict[str, Any]) -> dict[str, Any]:
+    from .registry import coverage
+
     sf, cf, apn = _str(args, "state_fips"), _str(args, "county_fips"), _str(args, "apn")
-    return {"urn": _registry().resolve_parcel(sf, cf, apn)}
+    reg = _registry()
+    urn = reg.resolve_parcel(sf, cf, apn)
+    return {"urn": urn} if urn else {"urn": None, "coverage": coverage.parcel_miss(reg.coverage(), sf, cf)}
 
 
 def _resolve_external(args: dict[str, Any]) -> dict[str, Any]:
+    from .registry import coverage
+
     system, ext = _str(args, "system"), _str(args, "external_id")
-    return {"urn": _registry().resolve_external(system, ext)}
+    reg = _registry()
+    urn = reg.resolve_external(system, ext)
+    return {"urn": urn} if urn else {"urn": None, "coverage": coverage.external_miss(reg.coverage(), system, ext)}
 
 
 def _owned_by(args: dict[str, Any]) -> dict[str, Any]:
+    from .registry import buildings, coverage
+
     urn = _str(args, "entity_urn")
-    return {"results": _registry().parcels_owned_by(urn)}
+    reg = _registry()
+    kind, parts = parse(urn)
+    if kind != "entity":
+        raise FactLotIdError(f'"{urn}" is a {kind} URN; registry_owned_by needs an entity URN')
+    results = reg.parcels_owned_by(urn)
+    out: dict[str, Any] = {"results": results, "buildings": buildings.owned_buildings(reg.db, results)}
+    if not results:
+        known = reg.db.execute("SELECT 1 FROM subjects WHERE urn = ?", (urn,)).fetchone() is not None
+        out["coverage"] = coverage.entity_miss(reg.coverage(), parts[0], known)
+    return out
+
+
+def _registry_coverage(args: dict[str, Any]) -> dict[str, Any]:
+    from .registry import coverage
+
+    reg = _registry()
+    return coverage.tool_result(reg.db, reg.coverage())
 
 
 _REGISTRY_TOOLS = {
@@ -356,12 +408,15 @@ _REGISTRY_TOOLS = {
     "registry_search_address": _search("address"),
     "registry_search_entities": _search("entities"),
     "registry_owned_by": _owned_by,
+    "registry_coverage": _registry_coverage,
 }
 
 _OTHER_TOOLS = {
     "id_parcel": lambda a: parcel_id(_str(a, "state_fips"), _str(a, "county_fips"), _str(a, "apn")).as_dict(),
     "id_entity": lambda a: entity_id(_str(a, "jurisdiction"), _str(a, "registry_number")).as_dict(),
     "id_space": lambda a: space_id(_str(a, "building_urn"), _str(a, "suite")).as_dict(),
+    "id_building": lambda a: building_id(_str(a, "state_fips"), _str(a, "county_fips"), _str(a, "zip"),
+                                         _str(a, "street")).as_dict(),
     "id_document": _id_document,
     "id_parse": _id_parse,
     "fact_validate": _fact_validate,
@@ -441,5 +496,8 @@ def run_tool(name: str, arguments: dict[str, Any] | None) -> dict[str, Any]:
     except _RegistryUnavailable as e:
         return {"error": "RegistryUnavailable", "message": str(e), "issues": []}
     except _NotFound as e:
-        return {"error": "NotFound", "message": str(e), "issues": []}
+        out = {"error": "NotFound", "message": str(e), "issues": []}
+        if e.coverage is not None:
+            out["coverage"] = e.coverage
+        return out
     return {"error": "UnknownTool", "message": f'no FactLot tool named "{name}"', "issues": []}

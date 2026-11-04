@@ -119,3 +119,19 @@ CREATE TABLE IF NOT EXISTS owner_match_review (
   UNIQUE (owner_key, entity_urn)
 );
 CREATE INDEX IF NOT EXISTS owner_match_review_status ON owner_match_review(status, score);
+
+-- Building roll-up (Registry.rollup_buildings): parcels whose current situs addresses share a street
+-- line and ZIP code, such as the condominium units of one building, grouped under a building
+-- subject whose deterministic URN is fl:building:us-<SSCCC>:<zip5>:<street key> (docs/id-spec.md).
+-- Rebuilt from scratch on every run; every row says how its parcel was placed.
+CREATE TABLE IF NOT EXISTS building_members (
+  building_urn TEXT NOT NULL,
+  parcel_urn   TEXT NOT NULL,
+  rule         TEXT NOT NULL,                  -- dc_condo_lot | nyc_condo_unit_lot | nyc_condo_billing_lot | same_street_address
+  is_unit      INTEGER NOT NULL,               -- 1: a condominium unit (by lot numbering, or a unit designator in the situs)
+  street_found TEXT NOT NULL,                  -- before_comma | street_type_end: how the street line was read from the situs
+  zip_found    TEXT NOT NULL,                  -- situs | other_parcels: the ZIP code was cut short and completed from the building's other parcels
+  document_id  TEXT NOT NULL,                  -- the snapshot whose situs address placed the parcel
+  PRIMARY KEY (building_urn, parcel_urn)
+);
+CREATE INDEX IF NOT EXISTS building_members_parcel ON building_members(parcel_urn);
