@@ -252,7 +252,7 @@ test("registry tools over MCP and REST when a registry is configured", async () 
   configureRegistry(db);
   const { base, close } = await start();
   try {
-    const urn = "fl:parcel:us-48999:00010000001";
+    const urn = "fl:parcel:us-48999:0001-000-0001";
     const got = await post(`${base}/v1/registry/get`, { urn });
     assert.equal(got.status, 200);
     const record = (await got.json()) as {
@@ -288,6 +288,36 @@ test("registry tools over MCP and REST when a registry is configured", async () 
     assert.deepEqual(
       owned.structuredContent?.results.map((r) => r.urn),
       [urn],
+    );
+    // fetch of a registry fact's source document_id returns that snapshot's metadata.
+    const cited = (
+      record.facts[0] as unknown as {
+        provenance: { sources: { document_id: string }[] };
+      }
+    ).provenance.sources[0]?.document_id;
+    const snap = (await client.callTool({
+      name: "fetch",
+      arguments: { id: cited },
+    })) as { isError?: boolean; content: { text: string }[] };
+    assert.notEqual(snap.isError, true);
+    const doc = JSON.parse(snap.content[0]?.text ?? "{}") as {
+      id: string;
+      url: string;
+      metadata: Record<string, string>;
+    };
+    assert.equal(doc.id, cited);
+    assert.equal(doc.url, "https://example.invalid/roll");
+    assert.equal(doc.metadata.license, "Synthetic test data");
+    assert.equal(doc.metadata.kind, "source_snapshot");
+    assert.ok(Number(doc.metadata.bytes) > 0 && doc.metadata.retrieved_at);
+    const unknown = (await client.callTool({
+      name: "fetch",
+      arguments: { id: `fl:document:sha256-${"0".repeat(64)}` },
+    })) as { isError?: boolean; content: { text: string }[] };
+    assert.equal(unknown.isError, true);
+    assert.equal(
+      (JSON.parse(unknown.content[0]?.text ?? "{}") as { error: string }).error,
+      "NotFound",
     );
     await client.close();
   } finally {
