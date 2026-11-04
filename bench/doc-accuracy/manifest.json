@@ -1,0 +1,7 @@
+{
+  "benchmark": "factlot doc_verify_facts accuracy",
+  "user_agent": "FactLot doc-accuracy benchmark contact@factlot.com",
+  "search": {"endpoint": "https://efts.sec.gov/LATEST/search-index", "queries": [], "forms": ["8-K", "10-K", "10-Q"],
+             "filed_from": "2018-01-01", "filed_to": "2025-12-31", "searched_on": null, "skipped": []},
+  "documents": []
+}
