@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import {
+  GPT_ACTIONS_MAX_OPERATIONS,
+  GPT_ACTIONS_TOOLS,
   anthropicTools,
   bedrockConverseToolConfig,
   geminiTools,
@@ -217,35 +220,63 @@ test("OpenAPI 3.0 conversion", () => {
   assert.deepEqual(p.e, { type: "object" });
 });
 
-test("OpenAPI documents have one operation per tool", () => {
-  for (const doc of [
-    openApi31({ serverUrl: "https://api.example.com" }),
-    openApi30(),
-  ]) {
-    const paths = doc.paths as Record<
-      string,
-      { post: { operationId: string } }
-    >;
-    const ops = Object.values(paths)
-      .map((p) => p.post.operationId)
-      .sort();
-    // registry_* operations need a registry; a server with one lists them itself.
-    assert.deepEqual(
-      ops,
-      [...names].filter((n) => !n.startsWith("registry_")).sort(),
-    );
-    assert.ok(
-      Object.keys(paths).length <= 30,
-      "Custom GPT Actions allow at most 30 operations",
-    );
-  }
-  assert.equal(openApi30().openapi, "3.0.3");
+test("OpenAPI 3.1 has one operation per tool", () => {
+  const doc = openApi31({ serverUrl: "https://api.example.com" });
+  const paths = doc.paths as Record<string, { post: { operationId: string } }>;
+  const ops = Object.values(paths)
+    .map((p) => p.post.operationId)
+    .sort();
+  // registry_* operations need a registry; a server with one lists them itself.
   assert.deepEqual(
-    (
-      openApi31({ serverUrl: "https://api.example.com" }).servers as object[]
-    )[0],
-    { url: "https://api.example.com" },
+    ops,
+    [...names].filter((n) => !n.startsWith("registry_")).sort(),
   );
+  assert.deepEqual((doc.servers as object[])[0], {
+    url: "https://api.example.com",
+  });
+  const all30 = openApi30({ operations: "all" }).paths as object;
+  assert.equal(Object.keys(all30).length, ops.length, "3.0 with every tool");
+});
+
+test("OpenAPI 3.0 is the curated Custom GPT Actions subset, at most 30 operations", () => {
+  assert.ok(
+    GPT_ACTIONS_TOOLS.length <= GPT_ACTIONS_MAX_OPERATIONS,
+    `GPT_ACTIONS_TOOLS has ${GPT_ACTIONS_TOOLS.length} names; Custom GPT Actions allow at most ${GPT_ACTIONS_MAX_OPERATIONS} operations`,
+  );
+  assert.equal(new Set(GPT_ACTIONS_TOOLS).size, GPT_ACTIONS_TOOLS.length);
+  for (const n of GPT_ACTIONS_TOOLS)
+    assert.ok(names.includes(n), `${n} is a tool`);
+  const opsOf = (doc: Record<string, unknown>) =>
+    Object.values(
+      doc.paths as Record<string, { post: { operationId: string } }>,
+    ).map((p) => p.post.operationId);
+  // Default: no registry, catalog order.
+  const doc = openApi30();
+  assert.equal(doc.openapi, "3.0.3");
+  assert.deepEqual(
+    opsOf(doc),
+    names.filter(
+      (n) => GPT_ACTIONS_TOOLS.includes(n) && !n.startsWith("registry_"),
+    ),
+  );
+  // A server with a registry loaded still stays within the limit.
+  const withRegistry = opsOf(openApi30({ filter: () => true }));
+  assert.ok(withRegistry.length <= GPT_ACTIONS_MAX_OPERATIONS);
+  assert.deepEqual([...withRegistry].sort(), [...GPT_ACTIONS_TOOLS].sort());
+  assert.match(
+    (doc.info as { description: string }).description,
+    /curated Custom GPT Actions subset.*\/openapi\.json.*\/mcp/,
+  );
+  // The connector guide lists the subset, so a GPT builder knows what is in it.
+  const guide = readFileSync(
+    new URL("../../../connectors/chatgpt/README.md", import.meta.url),
+    "utf8",
+  );
+  for (const n of GPT_ACTIONS_TOOLS)
+    assert.ok(
+      guide.includes(`\`${n}\``),
+      `connectors/chatgpt/README.md lists ${n}`,
+    );
 });
 
 test("a rate rejected as too big says rates are decimals", () => {

@@ -153,9 +153,19 @@ test("OpenAPI documents point at this server", async () => {
   ).json()) as {
     openapi: string;
     servers: { url: string }[];
+    paths: object;
   };
   assert.equal(doc30.openapi, "3.0.3");
   assert.equal(doc30.servers[0]?.url, "https://api.example.com");
+  // The 3.0 document is the Custom GPT Actions subset; ?operations=all gives every tool.
+  assert.ok(Object.keys(doc30.paths).length <= 30);
+  const all30 = (await (
+    await fetch(`${base}/openapi-3.0.json?operations=all`)
+  ).json()) as { paths: object };
+  assert.equal(
+    Object.keys(all30.paths).length,
+    Object.keys(doc31.paths).length,
+  );
   await close();
 });
 

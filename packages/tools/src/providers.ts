@@ -209,11 +209,57 @@ export interface OpenApiOptions {
   serverUrl?: string;
   /**
    * Tools to include. Default: every tool except registry_* ones, which work only on a server
-   * with a registry loaded (a server with one passes its own filter). This also keeps the
-   * document within Custom GPT Actions' 30 operations.
+   * with a registry loaded (a server with one passes its own filter).
    */
   filter?: (t: ToolSpec) => boolean;
+  /**
+   * "gpt_actions": only the tools in GPT_ACTIONS_TOOLS (at most 30 operations, the Custom GPT
+   * Actions limit), still subject to `filter`. "all": every tool `filter` keeps.
+   * Default: "gpt_actions" for openApi30, "all" for openApi31.
+   */
+  operations?: "gpt_actions" | "all";
 }
+
+/** Custom GPT Actions accept at most this many operations in one OpenAPI document. */
+export const GPT_ACTIONS_MAX_OPERATIONS = 30;
+
+/**
+ * The curated Custom GPT Actions subset, which the OpenAPI 3.0 document lists by default: the
+ * most-used tools (live review usage, 2026-11) and the valuation calculators, with registry
+ * lookups that appear only on a server with a registry. Every other tool stays in the OpenAPI
+ * 3.1 document and over MCP. Keep at most GPT_ACTIONS_MAX_OPERATIONS names (a test enforces it,
+ * and that connectors/chatgpt/README.md lists them); adding one means dropping one.
+ */
+export const GPT_ACTIONS_TOOLS: readonly string[] = [
+  "calc_rent_schedule",
+  "calc_net_effective_rent",
+  "calc_compare_proposals",
+  "calc_percentage_rent",
+  "calc_cam_reconciliation",
+  "calc_debt_sizing",
+  "calc_lease_remeasurement_asc842",
+  "calc_walt",
+  "calc_npv",
+  "calc_irr",
+  "calc_renew_vs_relocate",
+  "calc_hotel_metrics",
+  "calc_dcf_pro_forma",
+  "calc_direct_cap",
+  "calc_amortization_schedule",
+  "calc_equity_waterfall",
+  "calc_exchange_1031",
+  "rules_tx_property_tax_protest_deadline",
+  "id_parcel",
+  "id_space",
+  "id_document",
+  "fact_validate",
+  "doc_verify_facts",
+  "doc_abstract_lease",
+  "registry_search_address",
+  "registry_get",
+  "registry_search_entities",
+  "registry_resolve_parcel",
+];
 
 const withoutRegistry = (t: ToolSpec): boolean => t.requires !== "registry";
 
@@ -236,10 +282,19 @@ const ERROR_SCHEMA: Json = {
   required: ["error", "message"],
 };
 
-function openApi(version: "3.1.0" | "3.0.3", opts: OpenApiOptions): Json {
+function openApi(
+  version: "3.1.0" | "3.0.3",
+  opts: OpenApiOptions,
+  defaultOperations: "gpt_actions" | "all",
+): Json {
   const convert = version === "3.0.3" ? toOpenApi30Schema : (s: Json) => s;
+  const subset = (opts.operations ?? defaultOperations) === "gpt_actions";
+  const filter = opts.filter ?? withoutRegistry;
+  const included = list(
+    (t) => filter(t) && (!subset || GPT_ACTIONS_TOOLS.includes(t.name)),
+  );
   const paths: Json = {};
-  for (const t of list(opts.filter ?? withoutRegistry)) {
+  for (const t of included) {
     paths[t.path] = {
       post: {
         operationId: t.name,
@@ -272,13 +327,21 @@ function openApi(version: "3.1.0" | "3.0.3", opts: OpenApiOptions): Json {
       },
     };
   }
+  const base = opts.serverUrl?.replace(/\/+$/, "") ?? "";
+  const description = [
+    "The open fact layer for commercial real estate AI agents: deterministic CRE calculators with audit trails, canonical FactLot IDs, and cited-fact validation. Call these operations instead of doing lease, CAM, rent, loan, or return math yourself.",
+    ...(subset
+      ? [
+          `This document is the curated Custom GPT Actions subset: ${included.length} of the ${list(filter).length} operations (Actions accept at most ${GPT_ACTIONS_MAX_OPERATIONS}). Every tool is in the OpenAPI 3.1 document (${base}/openapi.json) and over MCP (${base}/mcp); ${base}/openapi-3.0.json?operations=all is the complete OpenAPI 3.0 document.`,
+        ]
+      : []),
+  ].join(" ");
   return {
     openapi: version,
     info: {
       title: "FactLot",
       version: CATALOG_VERSION,
-      description:
-        "The open fact layer for commercial real estate AI agents: deterministic CRE calculators with audit trails, canonical FactLot IDs, and cited-fact validation. Call these operations instead of doing lease, CAM, rent, loan, or return math yourself.",
+      description,
     },
     servers: [{ url: opts.serverUrl ?? "https://YOUR-FACTLOT-SERVER" }],
     paths,
@@ -294,12 +357,16 @@ function openApi(version: "3.1.0" | "3.0.3", opts: OpenApiOptions): Json {
   };
 }
 
-/** OpenAPI 3.1 — Custom GPT Actions, most API gateways. */
+/** OpenAPI 3.1, every tool — API gateways, HTTP clients, and anything without an operation limit. */
 export function openApi31(opts: OpenApiOptions = {}): Json {
-  return openApi("3.1.0", opts);
+  return openApi("3.1.0", opts, "all");
 }
 
-/** OpenAPI 3.0 — Amazon Bedrock Agents action groups, Microsoft API plugins, Vertex AI extensions. */
+/**
+ * OpenAPI 3.0. By default the curated GPT Actions subset (GPT_ACTIONS_TOOLS, at most 30
+ * operations) for Custom GPT Actions; pass `operations: "all"` for every tool, e.g. for Amazon
+ * Bedrock Agents action groups, Microsoft API plugins, or Vertex AI extensions.
+ */
 export function openApi30(opts: OpenApiOptions = {}): Json {
-  return openApi("3.0.3", opts);
+  return openApi("3.0.3", opts, "gpt_actions");
 }

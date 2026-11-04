@@ -7,10 +7,17 @@
  */
 import type { z } from "zod";
 
+import {
+  AmortizationScheduleInput,
+  amortizationSchedule,
+} from "./amortization.ts";
 import { LeaseRemeasurementInput, leaseRemeasurementAsc842 } from "./asc842.ts";
 import { CamReconciliationInput, camReconciliation } from "./cam.ts";
 import type { CalcResult } from "./core.ts";
+import { DcfProFormaInput, dcfProForma } from "./dcf.ts";
 import { DebtSizingInput, debtSizing } from "./debt.ts";
+import { DirectCapInput, directCap } from "./direct_cap.ts";
+import { Exchange1031Input, exchange1031 } from "./exchange_1031.ts";
 import { IrrInput, NpvInput, irr, npv } from "./finance.ts";
 import { HotelMetricsInput, hotelMetrics } from "./hotel.ts";
 import { LeaseVsOwnInput, leaseVsOwn } from "./lease_vs_own.ts";
@@ -25,12 +32,17 @@ import {
   netEffectiveRent,
   rentSchedule,
 } from "./rent.ts";
+import { EquityWaterfallInput, equityWaterfall } from "./waterfall.ts";
 
+export * from "./amortization.ts";
 export * from "./asc842.ts";
 export * from "./cam.ts";
 export * from "./core.ts";
 export * from "./dates.ts";
+export * from "./dcf.ts";
 export * from "./debt.ts";
+export * from "./direct_cap.ts";
+export * from "./exchange_1031.ts";
 export * from "./finance.ts";
 export * from "./hotel.ts";
 export * from "./lease_vs_own.ts";
@@ -41,6 +53,7 @@ export * from "./renew_vs_relocate.ts";
 export * from "./retail.ts";
 export * from "./rules.ts";
 export * from "./rent.ts";
+export * from "./waterfall.ts";
 
 export interface Calculator {
   id: string;
@@ -178,5 +191,50 @@ export const calculators = {
       "Occupancy, ADR, RevPAR, TRevPAR, and a USALI-style profit ladder for a period: departmental profit, GOP and margin, GOPPAR, management fees, EBITDA, FF&E reserve, and NOI (EBITDA less replacement reserve).",
     input: HotelMetricsInput,
     run: hotelMetrics,
+  },
+  dcf_pro_forma: {
+    id: "calc.dcf_pro_forma",
+    version: 1,
+    title: "Property DCF from a rent roll",
+    description:
+      "Property-level discounted cash flow from an in-place rent roll: each lease's rent, escalations, remaining term, and expense recovery (NNN, gross, base year), then at expiration one blended lease weighted by the renewal probability (renewal vs new-tenant rent, free rent, TI, leasing commissions, and new-tenant downtime, rounded to whole months); market rent growth, general vacancy and credit loss, operating expenses, management fee, and capital reserves. Returns the annual cash-flow table (NOI and cash flow before debt) for the hold plus one year, the exit value at a cap rate on forward (or trailing) NOI less selling costs, the value (PV at the discount rate, end-of-year or mid-year), and with a purchase price the NPV, unlevered IRR, and equity multiple, with every lease event and convention stated.",
+    input: DcfProFormaInput,
+    run: dcfProForma,
+  },
+  direct_cap: {
+    id: "calc.direct_cap",
+    version: 1,
+    title: "Direct capitalization value and implied cap rate",
+    description:
+      "Value by direct capitalization: (NOI − capital reserve) ÷ cap rate, then below-the-line deductions for lease-up costs, free-rent burn-off, and other adjustments to an as-is value (optionally rounded); and the cap rate a price implies, before and after reserves and all-in after the below-the-line costs. Records the NOI basis (trailing, forward, stabilized).",
+    input: DirectCapInput,
+    run: directCap,
+  },
+  amortization_schedule: {
+    id: "calc.amortization_schedule",
+    version: 1,
+    title: "Loan amortization schedule",
+    description:
+      "Period-by-period schedule of a fixed-rate loan, monthly or quarterly: an optional interest-only period, then level payments on an amortization term that can run past maturity (balloon), with 30/360, actual/360, or actual/365 interest (the payment on a 30/360 basis). Rows are in cents that foot: interest is rounded each period, the final payment repays the whole balance, and the totals are the row sums.",
+    input: AmortizationScheduleInput,
+    run: amortizationSchedule,
+  },
+  equity_waterfall: {
+    id: "calc.equity_waterfall",
+    version: 1,
+    title: "LP/GP equity distribution waterfall",
+    description:
+      "Split periodic project equity cash flows between LP and GP: preferred return (compounding or simple) and return of capital pro rata to capital in either order, an optional GP catch-up, IRR-hurdle tiers with promote splits measured on the LP's IRR, and a residual split. Returns per-period LP and GP contributions and distributions (with the GP's promote) that foot to the cent, and LP, GP, and project IRRs and multiples, with the conventions to confirm against the operating agreement.",
+    input: EquityWaterfallInput,
+    run: equityWaterfall,
+  },
+  exchange_1031: {
+    id: "calc.exchange_1031",
+    version: 1,
+    title: "1031 exchange deadlines, identification, and boot",
+    description:
+      "Not tax advice: arithmetic only. The 45-day identification and 180-day exchange deadlines of IRC §1031(a)(3) (the exchange period ends earlier at a given tax-return due date), the three-property, 200%, and 95% identification tests of Treas. Reg. §1.1031(k)-1(c)(4), and the cash boot, mortgage boot, debt replacement, and trade-down of an exchange, with the boot-limited gain when the basis is given.",
+    input: Exchange1031Input,
+    run: exchange1031,
   },
 } as const satisfies Record<string, Calculator>;

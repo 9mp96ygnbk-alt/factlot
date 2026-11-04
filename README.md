@@ -128,14 +128,14 @@ Be clear about scope before adopting it:
 
 ## Connect FactLot to any AI platform
 
-| Platform                                      | How to connect                                                                                                                                                                                |
-| --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Claude**                                    | Add a custom connector with `https://api.factlot.com/mcp`, install the one-click Desktop extension (`factlot.mcpb`), use Claude Code, or call it from the Claude API                          |
-| **ChatGPT and OpenAI**                        | Create a ChatGPT app in developer mode (`search`/`fetch` make deep research work), import `/openapi.json` as a Custom GPT Action, use the Responses API's remote MCP, or use function calling |
-| **Google Gemini**                             | Use Gemini API function declarations, Gemini CLI over MCP, or Vertex AI                                                                                                                       |
-| **Microsoft Copilot**                         | Add an MCP tool in Copilot Studio, use the Power Platform connector, or build a Microsoft 365 API plugin                                                                                      |
-| **Amazon Bedrock**                            | Use the Converse API `toolConfig`, or a Bedrock Agents action group backed by the Lambda handler                                                                                              |
-| **Mistral, xAI, Llama, DeepSeek, and others** | Use OpenAI-compatible function calling or MCP clients                                                                                                                                         |
+| Platform                                      | How to connect                                                                                                                                                                                                                                  |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Claude**                                    | Add a custom connector with `https://api.factlot.com/mcp`, install the one-click Desktop extension (`factlot.mcpb`), use Claude Code, or call it from the Claude API                                                                            |
+| **ChatGPT and OpenAI**                        | Create a ChatGPT app in developer mode (`search`/`fetch` make deep research work), import `/openapi-3.0.json` (the curated subset of at most 30 operations) as a Custom GPT Action, use the Responses API's remote MCP, or use function calling |
+| **Google Gemini**                             | Use Gemini API function declarations, Gemini CLI over MCP, or Vertex AI                                                                                                                                                                         |
+| **Microsoft Copilot**                         | Add an MCP tool in Copilot Studio, use the Power Platform connector, or build a Microsoft 365 API plugin                                                                                                                                        |
+| **Amazon Bedrock**                            | Use the Converse API `toolConfig`, or a Bedrock Agents action group backed by the Lambda handler                                                                                                                                                |
+| **Mistral, xAI, Llama, DeepSeek, and others** | Use OpenAI-compatible function calling or MCP clients                                                                                                                                                                                           |
 
 Every surface serves the same tools, generated from one catalog. See **[connectors/](connectors/README.md)**.
 

@@ -1,0 +1,83 @@
+{
+  "calculator": "calc.direct_cap",
+  "version": 1,
+  "cases": [
+    {
+      "name": "value with reserves and below-the-line adjustments, and the cap rate the price implies (hand check: 975,000 ÷ 6.5% = 15,000,000)",
+      "input": {
+        "noi": 1000000,
+        "noi_basis": "forward_12",
+        "cap_rate": 0.065,
+        "price": 15000000,
+        "capex_reserve_annual": 25000,
+        "lease_up_costs": 300000,
+        "free_rent_burn_off": 100000,
+        "other_adjustments": [
+          {
+            "label": "excess land",
+            "amount": 50000
+          }
+        ],
+        "area_sf": 100000,
+        "round_value_to": 100000
+      },
+      "expect": {
+        "value.capitalized_income": 975000,
+        "value.stabilized_value": 15000000,
+        "value.total_deductions": 350000,
+        "value.as_is_value": 14650000,
+        "value.as_is_value_rounded": 14700000,
+        "value.value_per_sf": 146.5,
+        "value.implied_cap_rate": 0.065,
+        "value.implied_cap_rate_before_reserves": 0.066667,
+        "value.implied_cap_rate_all_in": 0.063518,
+        "value.price_per_sf": 150,
+        "warnings": []
+      }
+    },
+    {
+      "name": "implied cap rate from a price only (review case B02-P02: 208,000 ÷ 3,200,000 = 6.5%)",
+      "input": {
+        "noi": 208000,
+        "price": 3200000,
+        "noi_basis": "trailing_12"
+      },
+      "expect": {
+        "value.implied_cap_rate": 0.065,
+        "value.stabilized_value": null,
+        "value.as_is_value": null
+      }
+    },
+    {
+      "name": "cap rate only, cents carried through",
+      "input": {
+        "noi": 2450000.55,
+        "cap_rate": 0.0575,
+        "capex_reserve_annual": 61250.25,
+        "noi_basis": "stabilized"
+      },
+      "expect": {
+        "value.capitalized_income": 2388750.3,
+        "value.stabilized_value": 41543483.48,
+        "value.as_is_value": 41543483.48,
+        "value.implied_cap_rate": null
+      }
+    },
+    {
+      "name": "needs a cap rate or a price",
+      "input": {
+        "noi": 100000
+      },
+      "expect_error": true
+    },
+    {
+      "name": "reserve at or above NOI leaves nothing to capitalize",
+      "input": {
+        "noi": 100000,
+        "cap_rate": 0.07,
+        "capex_reserve_annual": 100000
+      },
+      "expect_error": true
+    }
+  ]
+}

@@ -28,7 +28,9 @@ In TypeScript, use `bedrockConverseToolConfig()` from `@factlot/tools`.
 ## Bedrock Agents (action group)
 
 1. Create an action group whose API schema is FactLot's OpenAPI 3.0 document:
-   `https://api.factlot.com/openapi-3.0.json`, or `factlot.openapi("3.0")` saved to S3.
+   `https://api.factlot.com/openapi-3.0.json?operations=all` for every tool, or
+   `https://api.factlot.com/openapi-3.0.json` (also `factlot.openapi("3.0")`, which you can save to
+   S3) for the curated subset of at most 30 operations that Custom GPT Actions use.
 2. For the executor, deploy [`bedrock-agent-lambda/handler.py`](bedrock-agent-lambda/handler.py)
    with the `factlot` package installed beside it (`pip install factlot -t .`). The Lambda runs
    the tools in-process and makes no network calls.
@@ -39,7 +41,7 @@ If your agent needs fewer operations, or your account limits the number of APIs 
 group, generate a filtered spec in TypeScript:
 
 ```ts
-openApi30({ filter: (t) => t.name.startsWith("calc_") });
+openApi30({ filter: (t) => t.name.startsWith("calc_"), operations: "all" });
 ```
 
 Bedrock's managed agent runtimes that support MCP can also use the remote `/mcp` endpoint directly.
