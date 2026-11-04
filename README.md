@@ -35,12 +35,12 @@ nothing is stored.
 | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Claude Code plugin             | `/plugin marketplace add 9mp96ygnbk-alt/factlot`, then `/plugin install factlot@factlot`: eight CRE skills (loan sizing, lease economics, CAM, ASC 842, returns and more) wired to the hosted tools ([plugin](plugins/factlot/README.md)) |
 | Claude Code                    | `claude mcp add --transport http factlot https://api.factlot.com/mcp`                                                                                                                                                                     |
-| Claude (web and Desktop)       | Settings, Connectors, Add custom connector: `https://api.factlot.com/mcp`. Or open [`factlot-0.1.1.mcpb`](https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.1/factlot-0.1.1.mcpb)                                          |
+| Claude (web and Desktop)       | Settings, Connectors, Add custom connector: `https://api.factlot.com/mcp`. Or open [`factlot-0.2.0.mcpb`](https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.2.0/factlot-0.2.0.mcpb)                                          |
 | ChatGPT                        | Developer mode app with `https://api.factlot.com/mcp`, or a Custom GPT Action importing `https://api.factlot.com/openapi-3.0.json`                                                                                                        |
 | Cursor, VS Code, other clients | Remote MCP URL `https://api.factlot.com/mcp` ([guides](connectors/README.md))                                                                                                                                                             |
-| Any MCP client, run locally    | `npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.1/factlot-mcp-standalone-0.1.1.tgz` (Node.js 22.6+, no network calls)                                                                                            |
-| Python agents                  | `pip install "git+https://github.com/9mp96ygnbk-alt/factlot.git@v0.1.1#subdirectory=python"`                                                                                                                                              |
-| Self-hosted REST and MCP       | `docker run -p 8787:8787 ghcr.io/9mp96ygnbk-alt/factlot:0.1.1`                                                                                                                                                                            |
+| Any MCP client, run locally    | `npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.2.0/factlot-mcp-standalone-0.2.0.tgz` (Node.js 22.6+, no network calls)                                                                                            |
+| Python agents                  | `pip install "git+https://github.com/9mp96ygnbk-alt/factlot.git@v0.2.0#subdirectory=python"`                                                                                                                                              |
+| Self-hosted REST and MCP       | `docker run -p 8787:8787 ghcr.io/9mp96ygnbk-alt/factlot:0.2.0`                                                                                                                                                                            |
 
 The hosted endpoint is free with no key at 60 requests a minute. It is listed in the
 [official MCP Registry](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.9mp96ygnbk-alt/factlot)
@@ -52,7 +52,7 @@ as `io.github.9mp96ygnbk-alt/factlot`. Runnable examples for REST, Python and ag
 
 ```bash
 curl -fLO https://github.com/9mp96ygnbk-alt/factlot/releases/download/registry-sample-dc-2026-11-03/factlot-registry-sample-dc-2026-11-03.db.gz && gunzip factlot-registry-sample-dc-2026-11-03.db.gz
-FACTLOT_REGISTRY_DB="$PWD/factlot-registry-sample-dc-2026-11-03.db" npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.1/factlot-mcp-standalone-0.1.1.tgz
+FACTLOT_REGISTRY_DB="$PWD/factlot-registry-sample-dc-2026-11-03.db" npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.2.0/factlot-mcp-standalone-0.2.0.tgz
 ```
 
 **Paid plans:** [Pro $49 a month and Team $599 a month](https://factlot.com/#pricing) raise the hosted limits and include hosted registry lookups as each region opens (none is open yet). Enterprise and private deployments: [contact@factlot.com](mailto:contact@factlot.com?subject=FactLot%20hosted%20registry%20early%20access). Questions and bug reports go in [GitHub Discussions](https://github.com/9mp96ygnbk-alt/factlot/discussions) and Issues.
@@ -116,7 +116,7 @@ Be clear about scope before adopting it:
 - **Hosted, but not yet on npm or PyPI.** The hosted endpoint at `https://api.factlot.com` serves
   the calculators, IDs and fact tools (free at 60 requests a minute); registry tools need a
   self-hosted copy with a registry file. To run it yourself, install from the
-  [v0.1.1 release](https://github.com/9mp96ygnbk-alt/factlot/releases/tag/v0.1.1), from git, from
+  [v0.2.0 release](https://github.com/9mp96ygnbk-alt/factlot/releases/tag/v0.2.0), from git, from
   source, or with Docker ([getting started](docs/getting-started.md)).
 
 ## Connect FactLot to any AI platform
@@ -140,7 +140,7 @@ from a GitHub release, from a clone, or in Docker. Each was run end to end
 
 ```bash
 # From the GitHub release: one file, dependencies bundled
-claude mcp add factlot -- npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.1/factlot-mcp-standalone-0.1.1.tgz
+claude mcp add factlot -- npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.2.0/factlot-mcp-standalone-0.2.0.tgz
 
 # From a clone
 git clone https://github.com/9mp96ygnbk-alt/factlot.git && cd factlot
@@ -148,10 +148,10 @@ npm install && npm run build
 claude mcp add factlot -- node "$PWD/packages/mcp/dist/bin.js"
 
 # Remote connector (Streamable HTTP MCP at /mcp, REST at /v1, OpenAPI)
-docker run --rm -p 8787:8787 ghcr.io/9mp96ygnbk-alt/factlot:0.1.1
+docker run --rm -p 8787:8787 ghcr.io/9mp96ygnbk-alt/factlot:0.2.0
 ```
 
-Claude Desktop users can install `factlot-0.1.1.mcpb` from the
+Claude Desktop users can install `factlot-0.2.0.mcpb` from the
 [release](https://github.com/9mp96ygnbk-alt/factlot/releases). For any other MCP client, use the
 same command in its config:
 

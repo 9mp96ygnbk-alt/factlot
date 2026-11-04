@@ -1,6 +1,6 @@
 {
   "name": "@factlot/id",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "FactLot ID: canonical, deterministic identifiers for commercial real estate parcels, entities, buildings, spaces, and leases.",
   "license": "Apache-2.0",
   "type": "module",

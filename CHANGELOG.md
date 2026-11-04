@@ -13,6 +13,8 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-04
+
 ### Added
 
 - Registry zoning, building and sale facts on parcels. NYC PLUTO adds zoning district, overlays, special districts, maximum floor-area ratios, built FAR, buildings, floors, units and area by use for 116,887 New York City parcels. DC zoning districts (`inferred`, with a confidence, from each lot's polygon sampled against the zoning map) cover 16,648 of 18,077 DC parcels. `transaction.sale` facts come from NYC Department of Finance sales (12,445 sales, 2024 through September 2026) and the DC tax extract (latest sale per parcel), with no party names and arm's length not stated; $0 transfers and prices repeated across several lots are flagged. A parcel can hold many sales, newest first.
@@ -279,6 +281,7 @@ From the pre-launch audit ([docs/security/audit-2026-11-03.md](docs/security/aud
   ended (dissolved, revoked, merged, withdrawn), the one still in existence is linked at
   confidence 0.85 (`linked_by_standing`); an unknown status anywhere leaves the name ambiguous.
 
-[Unreleased]: https://github.com/9mp96ygnbk-alt/factlot/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/9mp96ygnbk-alt/factlot/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/9mp96ygnbk-alt/factlot/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/9mp96ygnbk-alt/factlot/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/9mp96ygnbk-alt/factlot/releases/tag/v0.1.0

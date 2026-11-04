@@ -1,6 +1,6 @@
 {
   "name": "@factlot/schema",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Open fact, provenance, rights, and entity data model for commercial real estate agents.",
   "license": "MIT",
   "type": "module",

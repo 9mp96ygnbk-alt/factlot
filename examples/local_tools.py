@@ -1,6 +1,6 @@
 """The FactLot Python SDK, fully offline: give a model the tool definitions, run its calls locally.
 
-    pip install "git+https://github.com/9mp96ygnbk-alt/factlot.git@v0.1.1#subdirectory=python"
+    pip install "git+https://github.com/9mp96ygnbk-alt/factlot.git@v0.2.0#subdirectory=python"
     python3 examples/local_tools.py
 """
 
