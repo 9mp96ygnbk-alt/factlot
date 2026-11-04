@@ -1,0 +1,94 @@
+{
+ "doc": "L16",
+ "labels": [
+  {
+   "predicate": "lease.landlord",
+   "value": "SY Arden Way LLC",
+   "page": 2,
+   "quote": "SY Arden way llc, a California limited liability company (“Landlord”)",
+   "note": "Name is set in small caps in the source, so the text layer has mixed case ('SY Arden way llc', 'sy arden way llc'). Syufy Enterprises joins only as Existing Landlord for Article 22."
+  },
+  {
+   "predicate": "lease.tenant",
+   "value": "Century Theatres, Inc.",
+   "page": 2,
+   "quote": "Century Theatres, Inc., a California corporation (“Tenant”)",
+   "note": "Filer is Cinemark Holdings, Inc.; the lease names Century Theatres, Inc. as Tenant."
+  },
+  {
+   "predicate": "lease.rentable_area_sf",
+   "value": 65219,
+   "page": 2,
+   "quote": "Floor Area of Premises:\n\nApproximately 65,219 square feet.",
+   "note": "Tenant builds the Building on the Demised Land; final Floor Area is measured after Tenant's Work and must be 99%-101% of 65,219 square feet (Section 3.1). Commencement Date depends on the end of Tenant's Work Period and Commencement Date Conditions (Section 3.1), so commencement, expiration and dated rent steps are not labeled; Base Rent is $27.00/$28.50/$30.00 per square foot for Lease Years 1-5/6-10/11-15."
+  },
+  {
+   "predicate": "lease.percentage_rent",
+   "value": {
+    "rate": 0.08,
+    "breakpoint": {
+     "type": "fixed",
+     "amount": 13000000
+    }
+   },
+   "page": 3,
+   "quote": "Percentage Rent Years 1-5, $13,000,000.00",
+   "note": "Rate is 8% of Gross Sales over the Percentage Rent Breakpoint (Section 1.1 and Section 4.2). The fixed breakpoint steps up: Years 1-5 $13,000,000.00; 6-10 $13,722,221.00; 11-15 $14,444,443.00; higher in each Extension Term. The first-period breakpoint is labeled."
+  },
+  {
+   "predicate": "lease.cam_cap",
+   "value": {
+    "method": "year_over_year",
+    "rate": 0.03
+   },
+   "page": 3,
+   "quote": "every calendar year thereafter shall not exceed one hundred and three percent (103%) of the Common Area Expenses for the prior calendar year on an annualized basis",
+   "note": "Through the CAM Base Year, Tenant's share is capped at $2.50 per square foot of Floor Area; Common Area utility and insurance cost increases are outside the cap."
+  },
+  {
+   "predicate": "lease.renewal_option",
+   "value": {
+    "count": 4,
+    "term_months": 60,
+    "notice_months": 6,
+    "rent": "Fixed: $31.50, $33.00, $34.50 and $36.00 per square foot of Floor Area for the first through fourth Extension Terms"
+   },
+   "page": 20,
+   "quote": "the first three (3) of which shall each be five (5) Lease Years in duration and the last of which shall be four (4) Lease Years and eleven (11) months in duration.",
+   "note": "Four options: three of 60 months and a fourth of 59 months (4 Lease Years and 11 months); term_months records the first three. Notice is at least 180 days before the end of the then-current Term, recorded as 6 months; the option is not forfeited until 30 days after a Landlord reminder notice if later (Section 3.3(a)). Section 3.4 also allows a short partial extension through a Seasonal Period."
+  },
+  {
+   "predicate": "lease.co_tenancy",
+   "value": {
+    "trigger": "Co-Tenancy Condition not met: Co-Tenancy Level below 50% of Center gross leasable area, no open sit-down restaurant of at least 5,000 sq ft, or Center not operated as a First Class Center",
+    "remedy": "Alternate Rent (lesser of 7.5% of Gross Sales or Base Rent) in lieu of Base Rent and Additional Rent other than taxes; Tenant may terminate if the failure lasts 24 consecutive months (Section 3.5)",
+    "cure_period_months": 6
+   },
+   "page": 22,
+   "quote": "the Co-Tenancy Condition remains unsatisfied for one hundred eighty (180) consecutive days or more",
+   "note": "After initial satisfaction, Alternate Rent starts once the failure has lasted 180 consecutive days (recorded as 6 months); if the condition is not met on the Commencement Date, Alternate Rent applies immediately (Section 4.7)."
+  },
+  {
+   "predicate": "lease.exclusive_use",
+   "value": "Motion picture theater or commercial exhibition of motion pictures, films, videos or images (including specialty theaters) and sale of tickets to other motion picture theaters, within the Center, the Project and adjoining Landlord-controlled land.",
+   "page": 42,
+   "quote": "for use as a motion picture theater or for the commercial exhibition of motion pictures, films, videos or images including, without limitation, so-called specialty theaters"
+  },
+  {
+   "predicate": "lease.parking",
+   "value": {
+    "spaces": 471,
+    "rate_monthly": 0
+   },
+   "page": 4,
+   "quote": "With respect to the Priority Parking Area, no less than four hundred seventy-one (471) parking spaces.",
+   "note": "Premises Minimum Free Parking Spaces in the Priority Parking Area, unreserved and free of charge (Section 12.3); the Center-wide minimum is set by Exhibit A or Applicable Laws and has no stated count."
+  },
+  {
+   "predicate": "lease.assignment_sublease",
+   "value": "Transfers require Landlord's prior written consent, not to be unreasonably withheld, delayed or conditioned; Landlord is deemed to consent if it does not respond within 30 days; Section 14.2 Permitted Transfers and Four Wall Deals need no consent; disputes go to arbitration.",
+   "page": 44,
+   "quote": "Tenant shall not assign this Lease or any interest herein nor sublet the Premises or any portion thereof (singularly, a “Transfer” and collectively, “Transfers”) without obtaining the prior written consent of Landlord, which consent shall not be unreasonably withheld, delayed or conditioned."
+  }
+ ]
+}
