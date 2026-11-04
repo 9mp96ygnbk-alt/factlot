@@ -29,6 +29,12 @@ returns cited facts or the reason it could not
 ([document verification](docs/document-verification.md)). No model runs on FactLot's side and
 nothing is stored.
 
+**Check us against your own spreadsheet:** [seven Excel workbooks](examples/reconciliation/) (office,
+industrial, retail, hotel, lender, lease accounting and more) put live Excel formulas beside FactLot's
+numbers with a difference column of 0.00 (synthetic inputs; ARGUS parity is untested and not
+claimed). What the registry holds, county by county, and the licence and AI-use rights of every
+source: [coverage](docs/registry/coverage.md) and [rights](docs/registry/rights.md).
+
 ## Connect your agent
 
 | Client                         | How                                                                                                                                                                                                                                       |
