@@ -89,3 +89,16 @@ grant redistribution in so many words (Florida, Cook County, Philadelphia, Fulto
 Alameda, Riverside, San Bernardino). The data are public records in each state, and the registry
 stores no natural-person names; the decision is whether that is enough, or whether to ask each
 publisher for a statement first. The purchase and click-through gates need money or a signature.
+
+## Enrichment sources (zoning, building and sale facts)
+
+These add cited facts to parcels an appraisal roll above already created and never create a parcel (the
+predicates are listed in [../../fact-model.md](../../fact-model.md)). Real runs of 2026-11-04 into scratch
+registries.
+
+| Source                                                          | Adds to                   | Status   | Licence                        | Real run                                                                                                                                                                                                                                      |
+| --------------------------------------------------------------- | ------------------------- | -------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [ny-nyc-dcp-pluto](ny-nyc-dcp-pluto.md)                         | ny-nyc-dof lots           | verified | NYC Open Data: no restrictions | 245,596 PLUTO lots read, 116,887 matched (71% of the 164,633 registry lots; the gap is condominium unit lots), 1,349,335 facts: zoning districts, overlays, special districts, maximum FARs, built FAR, buildings, floors, units, area by use |
+| [dc-dcgis-zoning](dc-dcgis-zoning.md)                           | dc-otr-real-property lots | verified | CC BY 4.0                      | 16,648 of 18,077 parcels (92.1%) with a zoning district by lot-polygon overlay (`inferred`, mean confidence 0.94; 378 split lots; 2,232 in overlays), 36,183 facts                                                                            |
+| [ny-nyc-dof-sales](ny-nyc-dof-sales.md)                         | ny-nyc-dof lots           | verified | NYC Open Data: no restrictions | 12,445 sales (2024, 2025, 2026 to September) on 11,072 parcels; 8,262 priced above $0; no parties in the source; arm's length not stated, not marked                                                                                          |
+| [dc-otr-real-property](dc-otr-real-property.md) (sales section) | itself                    | verified | CC BY 4.0                      | 12,594 of 18,077 parcels carry the latest sale; acceptance code kept verbatim, no arm's-length claim                                                                                                                                          |

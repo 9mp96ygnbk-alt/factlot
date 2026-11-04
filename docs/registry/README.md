@@ -171,6 +171,19 @@ Registry files written before schema version 2 gain the two new tables when they
 opened (every schema statement is `IF NOT EXISTS`); the token index is rebuilt from `name_index`
 the first time the queue runs, or explicitly with `rebuild_name_tokens()`.
 
+## Enrichment sources
+
+Some sources do not list parcels; they describe parcels an appraisal roll already put in the registry: NYC PLUTO
+(zoning, floor-area ratios, buildings, floors, units), the District's zoning map (joined to lots by polygon overlay)
+and the NYC and DC sales files. `Registry.ingest_parcel_facts` writes their facts to parcels that exist (a record
+for an unknown parcel is counted and dropped, so the roll alone decides what is in scope), cites the source file and
+record, and covers the parcel with a marker (`coverage.present = 2`) that makes its facts follow the usual currency
+rule but does not keep a parcel current that the roll has retired. A derived fact (a zoning district found by
+overlay) is `inferred` with a confidence. `transaction.sale` is the one many-valued predicate: a parcel holds one
+fact per sale and readers return them all, newest first. Source review records:
+[sources/README.md](sources/README.md#enrichment-sources-zoning-building-and-sale-facts); the predicates are in
+[../fact-model.md](../fact-model.md).
+
 ## Using it
 
 ```python
