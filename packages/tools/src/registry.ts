@@ -232,11 +232,14 @@ function rights(d: Database, documentId: string): { source: Row; rights: Row } {
 }
 
 /**
- * Predicates a parcel may hold many of at once (one fact per sale). Every other predicate is
+ * Predicates a parcel may hold many of at once (one fact per sale, deed, mortgage or satisfaction). Every other predicate is
  * single-valued: when two current sources disagree, the newest fact is returned.
  */
 export const MULTI_VALUED_PREDICATES: ReadonlySet<string> = new Set([
   "transaction.sale",
+  "transaction.deed",
+  "debt.mortgage_recorded",
+  "debt.mortgage_satisfaction_recorded",
 ]);
 
 /** Order the facts of a many-valued predicate (sales) newest first, in the slots they occupy. */

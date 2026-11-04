@@ -316,9 +316,24 @@ export const Predicates = {
     "zoning.max_far_facility",
     "zoning.max_far_manufacturing",
     "zoning.max_far_affordable_residential",
+    "zoning.max_far_nonresidential",
+    "zoning.max_height_ft",
   ],
-  // One fact per sale; a parcel may hold many (see MULTI_VALUED_PREDICATES in @factlot/tools).
-  transaction: ["transaction.sale"],
+  // Building energy benchmarking disclosures (NYC Local Law 84, DC): the newest usable report of the property.
+  energy: [
+    "energy.reporting_year",
+    "energy.property_type",
+    "energy.site_eui",
+    "energy.weather_normalized_site_eui",
+    "energy.source_eui",
+    "energy.energy_star_score",
+    "energy.ghg_emissions",
+    "energy.ghg_intensity",
+    "energy.floor_area_sf",
+    "energy.property_lot_count",
+  ],
+  // One fact per sale or recorded deed; a parcel may hold many (see MULTI_VALUED_PREDICATES in @factlot/tools).
+  transaction: ["transaction.sale", "transaction.deed"],
   ownership: [
     "ownership.owner_of_record",
     "ownership.beneficial_owner",
@@ -330,6 +345,9 @@ export const Predicates = {
     "debt.maturity_date",
     "debt.rate",
     "debt.special_servicing",
+    // Recorded mortgages and satisfactions as the registry writes them (many per parcel, organisations only).
+    "debt.mortgage_recorded",
+    "debt.mortgage_satisfaction_recorded",
   ],
 } as const;
 

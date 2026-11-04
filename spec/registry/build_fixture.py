@@ -82,6 +82,30 @@ reg.ingest_parcel_facts([
         ("transaction.sale", {"date": "2025-03-14", "price_usd": 9000000}, None),
     ], locator="row 5 (+2 more)"),
 ], sales, state_fips="48")
+# Recorded documents (deeds, mortgages, satisfactions) and building energy reports: more many-valued and single-valued
+# predicates the readers in both languages must order and select alike. Synthetic; organisations only.
+reg.add_source(Source("test-recorded", "Example City Register (synthetic)", "Recorded documents", "https://example.invalid/recorded", "48",
+                      county_fips="999", license="Synthetic test data", ai_use="unknown", redistribution="permitted"))
+recorded = snap("test-recorded", "recorded.csv", "synthetic recorded documents", "2026-09-30")
+reg.ingest_parcel_facts([
+    ParcelFacts("999", "0001-000-0001", [
+        ("transaction.deed", {"date": "2025-03-14", "doc_type": "DEED", "amount_usd": 12500000, "grantees": ["LONESTAR OFFICE HOLDINGS LLC"],
+                              "organizations_only": True}, None),
+        ("transaction.deed", {"date": "2021-07-02", "doc_type": "DEED", "amount_usd": 0, "organizations_only": True}, None),
+        ("debt.mortgage_recorded", {"date": "2025-03-20", "doc_type": "MTGE", "amount_usd": 8000000, "lenders": ["EXAMPLE TEST BANK, N.A."],
+                                    "organizations_only": True}, None),
+        ("debt.mortgage_recorded", {"date": "2025-03-20", "doc_type": "MTGE", "amount_usd": 500000, "organizations_only": True}, None),
+        ("debt.mortgage_satisfaction_recorded", {"date": "2024-11-05", "doc_type": "SAT", "organizations_only": True}, None),
+    ], locator="document 1"),
+], recorded, state_fips="48")
+reg.add_source(Source("test-energy", "Example City Buildings (synthetic)", "Energy benchmarking", "https://example.invalid/energy", "48",
+                      county_fips="999", license="Synthetic test data", ai_use="permitted", redistribution="attribution_required",
+                      attribution="Example City"))
+energy = snap("test-energy", "energy.csv", "synthetic energy report", "2026-10-15")
+reg.ingest_parcel_facts([
+    ParcelFacts("999", "0001-000-0001", [("energy.reporting_year", 2024, None), ("energy.site_eui", 61.5, "kBtu/ft2"),
+                                         ("energy.property_type", "Office", None)], locator="report 1"),
+], energy, state_fips="48")
 ent = snap("test-entities", "entities.csv", "synthetic entities", "2026-10-01")
 reg.ingest_entities([
     EntityRecord("LONESTAR OFFICE HOLDINGS LLC", "us-tx", "0801111111", taxpayer_number="32000000001",
