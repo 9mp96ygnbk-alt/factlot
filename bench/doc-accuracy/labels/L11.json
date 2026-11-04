@@ -1,0 +1,74 @@
+{
+ "doc": "L11",
+ "labels": [
+  {
+   "predicate": "lease.landlord",
+   "value": "Core5 at Laughman Farms Phase 1, LLC",
+   "page": 3,
+   "quote": "Core5 at Laughman Farms Phase 1, LLC, a Delaware limited liability company (\"Landlord\")"
+  },
+  {
+   "predicate": "lease.tenant",
+   "value": "ORASURE TECHNOLOGIES, INC.",
+   "page": 3,
+   "quote": "ORASURE TECHNOLOGIES, INC., a Delaware corporation (\"Tenant\")"
+  },
+  {
+   "predicate": "lease.rentable_area_sf",
+   "value": 96010,
+   "page": 3,
+   "quote": "containing approximately 96,010 square feet and commonly known as 222 Morgan Lane, Building C, York, Pennsylvania.",
+   "note": "Premises area. The Building is approximately 182,410 square feet (Section 1(b)); not labeled as premises area. Lease Commencement Date is Base Building Substantial Completion (estimated March 1, 2022), so commencement, rent commencement, expiration and dated rent steps are not labeled. The Section 1(d) rent table runs by lease month (months 5-16 $6.50 psf ... months 113-124 $8.48 psf) with no calendar dates."
+  },
+  {
+   "predicate": "lease.free_rent",
+   "value": {
+    "months": 4,
+    "applies_to": "base_rent"
+   },
+   "page": 3,
+   "quote": "Tenant shall be conditionally excused of its obligation for the payment of Base Rent for the initial four (4) months of the Primary Term",
+   "note": "Other charges remain payable during the four months, so applies_to is base_rent."
+  },
+  {
+   "predicate": "lease.pro_rata_share",
+   "value": 0.5263,
+   "page": 4,
+   "quote": "Tenant's Percentage Share: 52.63%"
+  },
+  {
+   "predicate": "lease.security_deposit",
+   "value": 52005.42,
+   "page": 4,
+   "quote": "Security Deposit: $52,005.42"
+  },
+  {
+   "predicate": "lease.cam_cap",
+   "value": {
+    "method": "year_over_year",
+    "rate": 0.05
+   },
+   "page": 7,
+   "quote": "exceeds the amount attributable to Controllable Expenses for the Building during the immediately preceding calendar year by more than five percent (5%) (the “Cap”)",
+   "note": "Cap applies to Controllable Expenses only, measured against the immediately preceding calendar year (Section 6(c)); taxes, insurance, utilities, snow removal and the other listed items are excluded from the cap."
+  },
+  {
+   "predicate": "lease.renewal_option",
+   "value": {
+    "count": 2,
+    "term_months": 60,
+    "notice_months": 9,
+    "rent": "Greater of market rate or the Annual Base Rent in effect immediately before the option period; Tenant may dispute via Prevailing Market Rate appraisal"
+   },
+   "page": 31,
+   "quote": "Landlord hereby grants to Tenant two (2) options to extend the Term for a period of five (5) years each",
+   "note": "Notice window is at least 270 days and not more than 365 days before expiration (Exhibit C section 1(a)); 270 days recorded as notice_months 9 (approximate)."
+  },
+  {
+   "predicate": "lease.assignment_sublease",
+   "value": "Transfers require Landlord's prior written consent, not to be unreasonably withheld, conditioned or delayed; Tenant gives 30 days' notice; a Change in Control is governed separately by Section 27(b).",
+   "page": 20,
+   "quote": "No Transfer shall be permitted without the prior written consent of Landlord, which consent Landlord shall not unreasonably withhold, condition, or delay."
+  }
+ ]
+}
