@@ -29,10 +29,12 @@ synthetic data (see [Owner resolution](#owner-resolution)); it has not yet been 
 file, so the 73% figure stands until a reviewer works the queue. The combined registry file is
 9.3 GB. The source review is in [texas-sources.md](texas-sources.md).
 
-| Doc                                  | What it covers                                     |
-| ------------------------------------ | -------------------------------------------------- |
-| [data-policy.md](data-policy.md)     | What we may collect, how, and what we never keep   |
-| [texas-sources.md](texas-sources.md) | The Texas pilot sources and the domains each needs |
+| Doc                                  | What it covers                                                                |
+| ------------------------------------ | ----------------------------------------------------------------------------- |
+| [data-policy.md](data-policy.md)     | What we may collect, how, and what we never keep                              |
+| [texas-sources.md](texas-sources.md) | The Texas pilot sources and the domains each needs                            |
+| [coverage.md](coverage.md)           | What is loaded per state and county, and what is queryable today (generated)  |
+| [rights.md](rights.md)               | Licence, AI-use status, redistribution and attribution per source (generated) |
 
 ## How it works
 
