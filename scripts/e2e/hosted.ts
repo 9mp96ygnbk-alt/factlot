@@ -204,9 +204,10 @@ async function main(): Promise<void> {
   const restResults = new Map<string, unknown>(); // first successful result per tool, for MCP parity
   const restArgs = new Map<string, unknown>();
   const vectorFiles: [string, string][] = [
-    ...readdirSync(`${root}/spec/vectors/calc`).map(
-      (f) => ["calc", `spec/vectors/calc/${f}`] as [string, string],
-    ),
+    // Vector files only: the folder also holds a reference implementation's subfolder.
+    ...readdirSync(`${root}/spec/vectors/calc`)
+      .filter((f) => f.endsWith(".json"))
+      .map((f) => ["calc", `spec/vectors/calc/${f}`] as [string, string]),
     ["rules", "spec/vectors/rules/tx_property_tax_protest_deadline.json"],
   ];
   let vectorCount = 0;
