@@ -153,6 +153,10 @@ export function debtSizing(raw: DebtSizingInput): CalcResult<DebtSizing> {
     `min(${entries.map(([c, v]) => `${c} ${fmtMoney(v)}`).join(", ")}), rounded down to ${input.round_down_to}`,
     "USD",
   );
+  if (loan <= 0)
+    throw new CalcInputError(
+      `the constraints allow ${fmtMoney(minLoan)}, less than one rounding increment (round_down_to ${input.round_down_to}); check value and noi`,
+    );
   t.step("Binding constraint", binding);
   const ds = round(loan * k, 2);
 

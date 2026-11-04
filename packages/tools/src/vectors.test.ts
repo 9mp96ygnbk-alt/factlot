@@ -16,6 +16,7 @@ const spec = JSON.parse(
     arguments: unknown;
     expect?: Record<string, unknown>;
     expect_error?: string;
+    expect_issues?: { path: string; message: string }[];
   }[];
 };
 
@@ -33,7 +34,11 @@ test("vectors: factlot-tools", () => {
     const outcome = runTool(c.tool, c.arguments);
     if (c.expect_error) {
       assert.equal(outcome.ok, false, label);
-      if (!outcome.ok) assert.equal(outcome.error.error, c.expect_error, label);
+      if (!outcome.ok) {
+        assert.equal(outcome.error.error, c.expect_error, label);
+        if (c.expect_issues)
+          assert.deepEqual(outcome.error.issues, c.expect_issues, label);
+      }
       continue;
     }
     assert.ok(outcome.ok, label);

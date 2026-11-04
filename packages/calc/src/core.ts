@@ -190,7 +190,9 @@ export function parseInput<S extends z.ZodType>(
   );
 }
 
-export const IsoDate = z.iso.date();
+export const IsoDate = z.iso.date({
+  message: "expected a valid YYYY-MM-DD date",
+});
 export const Money = z.number().finite();
 export const NonNegMoney = z.number().finite().nonnegative();
 export const Rate = z.number().finite().gt(-1).lt(10);

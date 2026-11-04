@@ -22,12 +22,16 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 
 ### Changed
 
+- Tool input: a field the tool does not define is now an input error naming the field and the nearest known name (`expenses.0.controlable: unknown field (did you mean "controllable"?)`) instead of being ignored, which silently changed answers. Rate fields above 1 and a `min_dscr` above 10 add a warning that the value looks like a whole-number percent, and a rate rejected as too big says rates are decimals. Date errors name the `YYYY-MM-DD` format.
+- `calc.renew_vs_relocate` warns when `relocate.overlap_months` is set but `current_rent_monthly` is 0 or missing (double rent priced at $0); `calc.compare_proposals` warns when proposals commence on different dates; `calc.walt` states its day count (actual days ÷ 365.25) in the steps.
+- `/v1/tools` lists registry tools only when a registry is loaded, like MCP `tools/list`, and the registry-unavailable message says how to get a registry instead of naming a server setting. Paid plan text says no hosted registry region is open yet.
 - Registry owner-name normalization (`normalize_name`, and its TypeScript mirror `normalizeName`): apostrophes are dropped, what a roll appends to an owner (`ET AL`, a `DBA` trade name, a dangling `&` or `THE`) is removed, `NO 1` reads as `1`, consecutive initials run together, and common abbreviations spell one way (`PPTIES`/`PROPERTIES`, `CTR`/`CENTER`, `STREET`/`ST`). Registry files built before this change need `python -m factlot.registry.maintain registry.db --all` (re-keys the name index in place). `is_organization` reads a spaced `L P` as a partnership only with a number or a property or business word in the name, and a trust named for a person (separate property, revocable, life estate) as a person.
 - Entity name search (`registry_search_entities`, `Registry.search_entities`) uses the name keys the file was built with: a file without `name_key_version` 2 in its `meta` table (such as `registry-sample-dc-2026-11-03`) is searched with the earlier keys until `maintain --all` re-keys it. New files record version 2.
 - `Registry.ingest_parcels`: re-ingesting a snapshot now replaces the facts an earlier run wrote for it that the adapter no longer yields, and the links derived from a replaced owner; an unchanged file still writes nothing.
 
 ### Fixed
 
+- `calc.debt_sizing`: constraints that allow less than one rounding increment (for example `value: 1`) are an input error instead of a crash on an infinite debt yield.
 - Hosted billing: a checkout paid by bank transfer (complete, payment still processing) now says the payment is processing and the page will show the key once it clears, instead of asking the customer to reload in a minute.
 - Hosted billing: a key whose subscription Stripe does not know (for example a sandbox purchase re-checked with a live key) now stops working at its next check instead of staying active.
 - The hosted OpenAPI documents advertised `http://` server URLs; they now advertise `https://api.factlot.com`.

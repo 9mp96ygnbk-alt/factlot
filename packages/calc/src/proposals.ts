@@ -166,6 +166,13 @@ export function compareProposals(
       "No additional costs supplied; if any proposal is net (NNN/modified gross), add its expenses for a fair comparison.",
     );
   }
+  const starts = [
+    ...new Set(input.proposals.map((p) => p.schedule.commencement_date)),
+  ].sort();
+  if (starts.length > 1)
+    t.warn(
+      `Proposals commence on different dates (${starts.join(", ")}); each is valued as of its own commencement, so the ranking ignores the timing difference.`,
+    );
   const tied =
     ranking.length > 1 &&
     ranking[0]?.metric_psf_annual === ranking[1]?.metric_psf_annual;

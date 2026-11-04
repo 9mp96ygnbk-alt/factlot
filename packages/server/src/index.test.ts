@@ -116,7 +116,12 @@ test("REST endpoints and errors", async () => {
   const catalog = (await (await fetch(`${base}/v1/tools`)).json()) as {
     tools: { name: string }[];
   };
-  assert.equal(catalog.tools.length, tools.length);
+  // Without a registry, /v1/tools lists what MCP lists: no registry tools.
+  assert.equal(
+    catalog.tools.length,
+    tools.filter((t) => t.requires !== "registry").length,
+  );
+  assert.ok(!catalog.tools.some((t) => t.name.startsWith("registry_")));
   const health = (await (await fetch(`${base}/health`)).json()) as {
     ok: boolean;
   };
@@ -268,6 +273,10 @@ test("registry tools over MCP and REST when a registry is configured", async () 
     assert.ok(
       names.includes("registry_get") && names.includes("registry_owned_by"),
     );
+    const listed = (await (await fetch(`${base}/v1/tools`)).json()) as {
+      tools: { name: string }[];
+    };
+    assert.equal(listed.tools.length, tools.length, "REST lists them too");
     const owned = (await client.callTool({
       name: "registry_owned_by",
       arguments: { entity_urn: "fl:entity:us-tx:0801111111" },

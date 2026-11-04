@@ -87,6 +87,8 @@ class ToolVectors(unittest.TestCase):
                 out = factlot.run_tool(case["tool"], case["arguments"])
                 if "expect_error" in case:
                     self.assertEqual(out.get("error"), case["expect_error"])
+                    if "expect_issues" in case:
+                        self.assertEqual(out.get("issues"), case["expect_issues"])
                     continue
                 self.assertNotIn("error", out)
                 for path, expected in case["expect"].items():

@@ -95,5 +95,14 @@ class Facts(unittest.TestCase):
         self.assertFalse(factlot.validate_fact({**fact, "predicate": "Zoning"})["valid"])
 
 
+class RateHints(unittest.TestCase):
+    def test_a_rate_rejected_as_too_big_says_rates_are_decimals(self):
+        out = factlot.run_tool("calc_debt_sizing", {"noi": 1000000, "value": 15000000, "rate_annual": 6.5,
+                                                    "amortization_years": 30, "max_ltv": 0.65})
+        self.assertEqual(out["error"], "CalcInputError")
+        self.assertIn("rates are decimals: pass 0.065 for 6.5%", out["message"])
+        self.assertIn("rates are decimals", out["issues"][0]["message"])
+
+
 if __name__ == "__main__":
     unittest.main()

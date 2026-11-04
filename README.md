@@ -49,7 +49,7 @@ curl -fLO https://github.com/9mp96ygnbk-alt/factlot/releases/download/registry-s
 FACTLOT_REGISTRY_DB="$PWD/factlot-registry-sample-dc-2026-11-03.db" npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.1/factlot-mcp-standalone-0.1.1.tgz
 ```
 
-**Paid plans:** [Pro $49 a month and Team $599 a month](https://factlot.com/#pricing) raise the hosted limits and include hosted registry lookups as each region opens. Enterprise and private deployments: [contact@factlot.com](mailto:contact@factlot.com?subject=FactLot%20hosted%20registry%20early%20access). Questions and bug reports go in [GitHub Discussions](https://github.com/9mp96ygnbk-alt/factlot/discussions) and Issues.
+**Paid plans:** [Pro $49 a month and Team $599 a month](https://factlot.com/#pricing) raise the hosted limits and include hosted registry lookups as each region opens (none is open yet). Enterprise and private deployments: [contact@factlot.com](mailto:contact@factlot.com?subject=FactLot%20hosted%20registry%20early%20access). Questions and bug reports go in [GitHub Discussions](https://github.com/9mp96ygnbk-alt/factlot/discussions) and Issues.
 
 Agents doing CRE work get stuck in the same places. They can't trust their own
 arithmetic, they can't cite where a number came from, and they can't tell that

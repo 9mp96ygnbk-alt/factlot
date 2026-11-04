@@ -25,7 +25,13 @@ import {
   registrySearchAddress,
   registrySearchEntities,
 } from "./registry.ts";
-import { INPUT_LIMITS, inputShapeIssue } from "./limits.ts";
+import {
+  INPUT_LIMITS,
+  implausibleInputWarnings,
+  inputShapeIssue,
+  unknownFields,
+  withRateHints,
+} from "./limits.ts";
 
 export const CATALOG_VERSION = "0.1.1";
 
@@ -469,13 +475,32 @@ export function runTool(name: string, args: unknown): ToolOutcome {
       },
     };
   }
+  // Unknown fields next: validation would drop them silently, so a misspelled optional field
+  // would change the answer with no sign.
+  const unknown = unknownFields(schemaOf(tool), args ?? {}).slice(
+    0,
+    INPUT_LIMITS.maxIssues,
+  );
+  if (unknown.length) {
+    return {
+      ok: false,
+      error: {
+        error: kind,
+        message: `invalid input: ${unknown.map((i) => `${i.path}: ${i.message}`).join("; ")}`,
+        issues: unknown,
+      },
+    };
+  }
   const parsed = tool.input.safeParse(args ?? {});
   if (!parsed.success) {
     const all = parsed.error.issues;
-    const issues = all.slice(0, INPUT_LIMITS.maxIssues).map((i) => ({
-      path: i.path.join("."),
-      message: i.message,
-    }));
+    const issues = withRateHints(
+      args,
+      all.slice(0, INPUT_LIMITS.maxIssues).map((i) => ({
+        path: i.path.join("."),
+        message: i.message,
+      })),
+    );
     const more =
       all.length > issues.length
         ? `; and ${all.length - issues.length} more`
@@ -490,10 +515,11 @@ export function runTool(name: string, args: unknown): ToolOutcome {
     };
   }
   try {
-    return {
-      ok: true,
-      result: (tool.run as (i: unknown) => unknown)(parsed.data),
-    };
+    const result = (tool.run as (i: unknown) => unknown)(parsed.data);
+    const warnings = (result as { warnings?: unknown } | null)?.warnings;
+    if (name.startsWith("calc_") && Array.isArray(warnings))
+      warnings.push(...implausibleInputWarnings(args));
+    return { ok: true, result };
   } catch (err) {
     if (err instanceof CalcInputError) {
       return {
@@ -529,6 +555,13 @@ export function runTool(name: string, args: unknown): ToolOutcome {
     }
     throw err;
   }
+}
+
+const schemaCache = new WeakMap<ToolSpec, Record<string, unknown>>();
+function schemaOf(tool: ToolSpec): Record<string, unknown> {
+  let s = schemaCache.get(tool);
+  if (!s) schemaCache.set(tool, (s = inputJsonSchema(tool)));
+  return s;
 }
 
 /** JSON Schema (draft 2020-12) of a tool's input, without the `$schema` key. */

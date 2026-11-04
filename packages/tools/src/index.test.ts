@@ -243,3 +243,18 @@ test("OpenAPI documents have one operation per tool", () => {
     { url: "https://api.example.com" },
   );
 });
+
+test("a rate rejected as too big says rates are decimals", () => {
+  const r = runTool("calc_debt_sizing", {
+    noi: 1000000,
+    value: 15000000,
+    rate_annual: 6.5,
+    amortization_years: 30,
+    max_ltv: 0.65,
+  });
+  assert.ok(!r.ok);
+  if (!r.ok) {
+    assert.match(r.error.message, /rates are decimals: pass 0\.065 for 6\.5%/);
+    assert.match(r.error.issues[0]!.message, /rates are decimals/);
+  }
+});

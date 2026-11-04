@@ -215,6 +215,229 @@
         "tax_year": 1999
       },
       "expect_error": "CalcInputError"
+    },
+    {
+      "tool": "calc_cam_reconciliation",
+      "arguments": {
+        "year": 2026,
+        "pro_rata_share": 0.1,
+        "expenses": [
+          {
+            "category": "taxes",
+            "amount": 1000000,
+            "controlable": false
+          },
+          {
+            "category": "janitorial",
+            "amount": 200000
+          }
+        ],
+        "cap": {
+          "method": "simple_from_base",
+          "rate": 0.03,
+          "reference_amount": 20000,
+          "years_elapsed": 2
+        }
+      },
+      "expect_error": "CalcInputError",
+      "expect_issues": [
+        {
+          "path": "expenses.0.controlable",
+          "message": "unknown field (did you mean \"controllable\"?); known fields here: category, amount, controllable, recoverable, variable"
+        }
+      ]
+    },
+    {
+      "tool": "calc_rent_schedule",
+      "arguments": {
+        "commencement_date": "2027-01-01",
+        "term_months": 24,
+        "area_sf": 10000,
+        "starting_rent_psf_annual": 30,
+        "abated_month": [1]
+      },
+      "expect_error": "CalcInputError",
+      "expect_issues": [
+        {
+          "path": "abated_month",
+          "message": "unknown field (did you mean \"abated_months\"?); known fields here: commencement_date, term_months, area_sf, starting_rent_psf_annual, escalation, abated_months, round_rate_to_cents, include_monthly"
+        }
+      ]
+    },
+    {
+      "tool": "calc_rent_schedule",
+      "arguments": {
+        "commencement_date": "2027-01-01",
+        "term_months": 24,
+        "area_sf": 10000,
+        "starting_rent_psf_annual": 30,
+        "escalation": {
+          "type": "percent",
+          "rate": 0.03,
+          "evry": 12
+        }
+      },
+      "expect_error": "CalcInputError",
+      "expect_issues": [
+        {
+          "path": "escalation.evry",
+          "message": "unknown field; known fields here: type, rate, every_months, amount"
+        }
+      ]
+    },
+    {
+      "tool": "calc_debt_sizing",
+      "arguments": {
+        "noi": 2000000,
+        "value": 1,
+        "rate_annual": 0.065,
+        "amortization_years": 30,
+        "max_ltv": 0.65,
+        "min_dscr": 1.25
+      },
+      "expect_error": "CalcInputError",
+      "expect_issues": []
+    },
+    {
+      "tool": "calc_npv",
+      "arguments": {
+        "cash_flows": [-100, 10, 10, 110],
+        "rate": 8
+      },
+      "expect": {
+        "warnings": [
+          "rate is 8: FactLot reads rates as decimals (0.03 = 3%). If you meant 8%, pass 0.08."
+        ]
+      }
+    },
+    {
+      "tool": "calc_debt_sizing",
+      "arguments": {
+        "noi": 1000000,
+        "rate_annual": 0.06,
+        "amortization_years": 30,
+        "max_ltv": 0.65,
+        "min_dscr": 125,
+        "min_debt_yield": 0.09,
+        "value": 15000000
+      },
+      "expect": {
+        "warnings": [
+          "min_dscr is 125: DSCR is a ratio (1.25 = 1.25x coverage). If you meant 1.25x, pass 1.25."
+        ]
+      }
+    },
+    {
+      "tool": "calc_rent_schedule",
+      "arguments": {
+        "commencement_date": "2027-01-01",
+        "term_months": 24,
+        "area_sf": 10000,
+        "starting_rent_psf_annual": 30,
+        "escalation": {
+          "type": "percent",
+          "rate": 3
+        }
+      },
+      "expect": {
+        "warnings": [
+          "Escalated $/SF rates are not rounded per step; set round_rate_to_cents if the lease table rounds.",
+          "escalation.rate is 3: FactLot reads rates as decimals (0.03 = 3%). If you meant 3%, pass 0.03."
+        ]
+      }
+    },
+    {
+      "tool": "calc_renew_vs_relocate",
+      "arguments": {
+        "horizon_months": 60,
+        "discount_rate_annual": 0.08,
+        "renew": {
+          "schedule": {
+            "commencement_date": "2027-01-01",
+            "area_sf": 10000,
+            "starting_rent_psf_annual": 30,
+            "escalation": {
+              "type": "percent",
+              "rate": 0.03
+            },
+            "abated_months": [1, 2]
+          },
+          "ti_cost": 150000,
+          "ti_allowance": 100000,
+          "renewal_fee": 5000
+        },
+        "relocate": {
+          "schedule": {
+            "commencement_date": "2027-01-01",
+            "area_sf": 10000,
+            "starting_rent_psf_annual": 27,
+            "escalation": {
+              "type": "fixed_psf",
+              "amount": 0.75
+            },
+            "abated_months": [1, 2, 3, 4]
+          },
+          "buildout_cost": 600000,
+          "ti_allowance": 500000,
+          "moving_cost": 80000,
+          "downtime_months": 1,
+          "downtime_cost_monthly": 40000,
+          "overlap_months": 2,
+          "disruption_cost": 25000
+        }
+      },
+      "expect": {
+        "warnings": [
+          "relocate.overlap_months is 2 but current_rent_monthly is 0 (or not given), so the double rent during the overlap counts as $0; pass the existing lease's total monthly rent."
+        ]
+      }
+    },
+    {
+      "tool": "calc_compare_proposals",
+      "arguments": {
+        "proposals": [
+          {
+            "name": "Park B",
+            "schedule": {
+              "commencement_date": "2027-01-01",
+              "term_months": 84,
+              "area_sf": 5000,
+              "starting_rent_psf_annual": 32,
+              "escalation": {
+                "type": "percent",
+                "rate": 0.03
+              },
+              "abated_months": [1, 2, 3, 4, 5, 6]
+            },
+            "ti_allowance_psf": 60,
+            "leasing_commissions": 45000,
+            "additional_costs_psf_annual": 9,
+            "tenant_upfront_costs": 25000
+          },
+          {
+            "name": "Tower A",
+            "schedule": {
+              "commencement_date": "2030-01-01",
+              "term_months": 60,
+              "area_sf": 5000,
+              "starting_rent_psf_annual": 35,
+              "escalation": {
+                "type": "percent",
+                "rate": 0.03
+              },
+              "abated_months": [1, 2, 3]
+            },
+            "ti_allowance_psf": 40,
+            "leasing_commissions": 30000
+          }
+        ],
+        "discount_rate_annual": 0.08
+      },
+      "expect": {
+        "warnings": [
+          "Proposals commence on different dates (2027-01-01, 2030-01-01); each is valued as of its own commencement, so the ranking ignores the timing difference."
+        ]
+      }
     }
   ]
 }

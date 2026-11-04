@@ -316,6 +316,10 @@ export function renewVsRelocate(
     t.warn(
       "An allowance exceeds the cost it offsets; the excess is treated as not paid out.",
     );
+  if (M.overlap_months > 0 && input.current_rent_monthly === 0)
+    t.warn(
+      `relocate.overlap_months is ${M.overlap_months} but current_rent_monthly is 0 (or not given), so the double rent during the overlap counts as $0; pass the existing lease's total monthly rent.`,
+    );
   if (diff === 0) t.warn("The two cases are tied at these inputs.");
   if (beRelocate !== null && beRelocate < 0)
     t.warn(

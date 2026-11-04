@@ -26,7 +26,7 @@ export const PLANS: Record<PlanId, Plan> = {
     lookupKey: "factlot_pro_monthly_v1",
     requestsPerMinute: 600,
     summary:
-      "Hosted FactLot API key: 600 requests per minute, hosted registry lookups as each region opens, email support from the founder.",
+      "Hosted FactLot API key: 600 requests per minute, hosted registry lookups as each region opens (none is open yet), email support from the founder.",
   },
   team: {
     id: "team",
@@ -35,7 +35,7 @@ export const PLANS: Record<PlanId, Plan> = {
     lookupKey: "factlot_team_monthly_v1",
     requestsPerMinute: 3000,
     summary:
-      "Hosted FactLot API key for a team: 3,000 requests per minute, hosted registry lookups as each region opens, priority support and a say in which regions open next.",
+      "Hosted FactLot API key for a team: 3,000 requests per minute, hosted registry lookups as each region opens (none is open yet), priority support and a say in which regions open next.",
   },
 };
 

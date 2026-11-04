@@ -76,7 +76,7 @@ export function walt(raw: WaltInput): CalcResult<Walt> {
   const result = t.step(
     "WALT",
     round(weighted / total, 4),
-    `Σ(${key} × years remaining) ÷ Σ ${key}`,
+    `Σ(${key} × years remaining) ÷ Σ ${key}; years remaining = actual days ÷ 365.25`,
     "years",
   );
   if (expired)

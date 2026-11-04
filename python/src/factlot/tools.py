@@ -20,12 +20,13 @@ import binascii
 import copy
 import json
 import os
+import re
 from functools import lru_cache
 from importlib import resources
 from typing import Any
 
 from . import __version__
-from ._core import CalcInputError, input_shape_issue
+from ._core import CalcInputError, input_shape_issue, num_str
 from .calc import CALCULATORS
 from .rules import RULES
 from .facts import validate_fact
@@ -35,6 +36,140 @@ from .ids import FactLotIdError, document_id, entity_id, parcel_id, parse, short
 @lru_cache(maxsize=None)
 def _load(path: str) -> Any:
     return json.loads(resources.files("factlot").joinpath(f"schemas/{path}").read_text("utf-8"))
+
+
+def _edit_distance(a: str, b: str) -> int:
+    row = list(range(len(b) + 1))
+    for i in range(1, len(a) + 1):
+        prev, row[0] = row[0], i
+        for j in range(1, len(b) + 1):
+            cur = row[j]
+            row[j] = min(row[j] + 1, row[j - 1] + 1, prev + (a[i - 1] != b[j - 1]))
+            prev = cur
+    return row[len(b)]
+
+
+def _suggest(key: str, known: list[str]) -> str | None:
+    best, best_d = None, None
+    for k in known:
+        d = _edit_distance(key.lower(), k.lower())
+        if best_d is None or d < best_d:
+            best, best_d = k, d
+    return best if best is not None and best_d is not None and best_d <= max(2, len(key) // 3) else None
+
+
+def _object_branches(schema: dict[str, Any]) -> list[dict[str, Any]]:
+    union = schema.get("oneOf", schema.get("anyOf"))
+    if union is None:
+        return [schema] if "properties" in schema else []
+    return [b for s in union for b in _object_branches(s)]
+
+
+def unknown_fields(schema: dict[str, Any], value: Any, path: str = "") -> list[dict[str, str]]:
+    """Fields in ``value`` that the tool's input schema does not define, with the nearest known name.
+
+    Validation would otherwise ignore them, so a misspelled optional field ("controlable") changes
+    the answer without any sign. Must match ``unknownFields`` in packages/tools/src/limits.ts.
+    """
+    if isinstance(value, list):
+        items = schema.get("items")
+        if not isinstance(items, dict):
+            return []
+        return [u for i, v in enumerate(value) for u in unknown_fields(items, v, f"{path}.{i}" if path else str(i))]
+    if not isinstance(value, dict):
+        return []
+    branches = _object_branches(schema)
+    if not branches:
+        return []
+    known: list[str] = []
+    open_ = False
+    for b in branches:
+        for k in b["properties"]:
+            if k not in known:
+                known.append(k)
+        if b.get("additionalProperties", False) is not False:
+            open_ = True
+    out: list[dict[str, str]] = []
+    for k, v in value.items():
+        at = f"{path}.{k}" if path else k
+        if k not in known:
+            if open_:
+                continue
+            near = _suggest(k, known)
+            out.append({"path": at, "message": "unknown field" + (f' (did you mean "{near}"?)' if near else "")
+                        + "; known fields here: " + ", ".join(known)})
+            continue
+        fewest: list[dict[str, str]] | None = None
+        for b in branches:
+            sub = b["properties"].get(k)
+            if sub is None:
+                continue
+            found = unknown_fields(sub, v, at)
+            if fewest is None or len(found) < len(fewest):
+                fewest = found
+            if not found:
+                break
+        if fewest:
+            out.extend(fewest)
+    return out
+
+
+_RATE_KEY = re.compile(r"^(?:rate|rate_annual|.+_rate|.+_rate_annual)$")
+
+
+def implausible_input_warnings(value: Any, path: str = "") -> list[str]:
+    """Warnings for valid inputs that are almost certainly a unit slip (rate > 1, min_dscr > 10).
+
+    Must match ``implausibleInputWarnings`` in packages/tools/src/limits.ts.
+    """
+    if isinstance(value, list):
+        return [w for i, v in enumerate(value) for w in implausible_input_warnings(v, f"{path}.{i}" if path else str(i))]
+    if not isinstance(value, dict):
+        return []
+    out: list[str] = []
+    for k, v in value.items():
+        at = f"{path}.{k}" if path else k
+        if isinstance(v, (int, float)) and not isinstance(v, bool):
+            if _RATE_KEY.match(k) and abs(v) > 1:
+                out.append(f"{at} is {num_str(v)}: FactLot reads rates as decimals (0.03 = 3%). "
+                           f"If you meant {num_str(v)}%, pass {num_str(v / 100)}.")
+            elif k == "min_dscr" and v > 10:
+                out.append(f"{at} is {num_str(v)}: DSCR is a ratio (1.25 = 1.25x coverage). "
+                           f"If you meant {num_str(v / 100)}x, pass {num_str(v / 100)}.")
+        else:
+            out.extend(implausible_input_warnings(v, at))
+    return out
+
+
+_RATE_HINT = " (rates are decimals: pass 0.065 for 6.5%)"
+
+
+def rate_hints(args: Any, issues: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Adds a hint to issues on rate fields whose value is above 1 (usually a whole-number percent).
+
+    Must match ``withRateHints`` in packages/tools/src/limits.ts.
+    """
+    out = []
+    for issue in issues:
+        v: Any = args
+        for part in str(issue.get("path", "")).split("."):
+            if isinstance(v, list) and part.isdigit() and int(part) < len(v):
+                v = v[int(part)]
+            elif isinstance(v, dict):
+                v = v.get(part)
+            else:
+                v = None
+                break
+        key = str(issue.get("path", "")).split(".")[-1]
+        if _RATE_KEY.match(key) and isinstance(v, (int, float)) and not isinstance(v, bool) and abs(v) > 1:
+            issue = {**issue, "message": issue["message"] + _RATE_HINT}
+        out.append(issue)
+    return out
+
+
+@lru_cache(maxsize=None)
+def _input_schemas() -> dict[str, dict[str, Any]]:
+    return {t["name"]: t["input_schema"] for t in _load("tools.json")["tools"]}
 
 
 def tool_definitions() -> list[dict[str, Any]]:
@@ -150,7 +285,9 @@ def configure_registry(path: str | None) -> None:
 def _registry():
     path = _registry_cache.get("override") or os.environ.get("FACTLOT_REGISTRY_DB")
     if not path:
-        raise _RegistryUnavailable("no FactLot Registry configured (set FACTLOT_REGISTRY_DB)")
+        raise _RegistryUnavailable(
+            "this FactLot server has no registry loaded. Registry tools read a registry file: download one (sample: https://github.com/9mp96ygnbk-alt/fac"
+            "tlot/releases/tag/registry-sample-dc-2026-11-03) and run FactLot yourself with FACTLOT_REGISTRY_DB pointing at it. The hosted API does not serve the registry yet.")
     if _registry_cache.get("path") != path:
         from .registry import Registry
 
@@ -254,11 +391,21 @@ def run_tool(name: str, arguments: dict[str, Any] | None) -> dict[str, Any]:
     if not isinstance(args, dict):
         return {"error": kind, "message": "invalid input: (root): expected object",
                 "issues": [{"path": "", "message": "expected object"}]}
+    # Unknown fields next (at most 20, as maxIssues in TypeScript): validation would ignore them, so a misspelled optional field would
+    # change the answer with no sign.
+    schema = _input_schemas().get(name)
+    unknown = unknown_fields(schema, args)[:20] if schema is not None else []
+    if unknown:
+        return {"error": kind, "message": "invalid input: " + "; ".join(f"{u['path']}: {u['message']}" for u in unknown),
+                "issues": unknown}
     try:
         if name.startswith("calc_") and name[5:] in CALCULATORS:
             fn, formula_id, version = CALCULATORS[name[5:]]
+            out = fn(args)
+            if isinstance(out.get("warnings"), list):
+                out["warnings"].extend(implausible_input_warnings(args))
             return {
-                **fn(args),
+                **out,
                 "provenance": {
                     "method": "computed",
                     "formula": f"{formula_id}@{version}",
@@ -282,7 +429,11 @@ def run_tool(name: str, arguments: dict[str, Any] | None) -> dict[str, Any]:
         if name in _REGISTRY_TOOLS:
             return _REGISTRY_TOOLS[name](args)
     except CalcInputError as e:
-        return {"error": "CalcInputError", "message": str(e), "issues": e.issues}
+        issues = rate_hints(args, e.issues)
+        message = str(e)
+        if issues != e.issues:
+            message = "invalid input: " + "; ".join(f"{i['path']}: {i['message']}" for i in issues)
+        return {"error": "CalcInputError", "message": message, "issues": issues}
     except FactLotIdError as e:
         return {"error": "FactLotIdError", "message": str(e), "issues": []}
     except _InputError as e:

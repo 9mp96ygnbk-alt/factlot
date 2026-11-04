@@ -374,6 +374,9 @@ def debt_sizing(raw: Any) -> Result:
     loan = t.step("Max loan", math.floor(reduce_noise(min_loan / step)) * step,
                   "min(" + ", ".join(f"{c} {fmt_money(v)}" for c, v in loans.items()) + f"), rounded down to {num_str(step)}",
                   "USD")
+    if loan <= 0:
+        raise CalcInputError(f"the constraints allow {fmt_money(min_loan)}, less than one rounding increment "
+                             f"(round_down_to {num_str(step)}); check value and noi")
     t.step("Binding constraint", binding)
     ds = round_(loan * k, 2)
     return t.result("calc.debt_sizing", 2, {
@@ -767,7 +770,7 @@ def walt(raw: Any) -> Result:
         weighted += w * years
         total += w
     t.step("Total weight", round_(total, 2), f"Σ {key}")
-    result = t.step("WALT", round_(weighted / total, 4), f"Σ({key} × years remaining) ÷ Σ {key}", "years")
+    result = t.step("WALT", round_(weighted / total, 4), f"Σ({key} × years remaining) ÷ Σ {key}; years remaining = actual days ÷ 365.25", "years")
     if expired:
         t.warn(f"{expired} lease(s) expired on or before {as_of}; counted as 0 years remaining.")
     return t.result("calc.walt", 1, {"walt_years": result, "total_weight": round_(total, 2), "expired_count": expired})
@@ -913,6 +916,10 @@ def compare_proposals(raw: Any) -> Result:
         t.warn("Proposals differ in area; $/SF/yr normalizes size but not the value of the space itself.")
     if tenant and all(p["additional_costs_psf_annual"] == 0 for p in proposals):
         t.warn("No additional costs supplied; if any proposal is net (NNN/modified gross), add its expenses for a fair comparison.")
+    starts = sorted({p["schedule"]["commencement_date"] for p in proposals})
+    if len(starts) > 1:
+        t.warn(f"Proposals commence on different dates ({', '.join(starts)}); each is valued as of its own commencement, "
+               "so the ranking ignores the timing difference.")
     if len(ranking) > 1 and ranking[0]["metric_psf_annual"] == ranking[1]["metric_psf_annual"]:
         t.warn(f"Top proposals are tied at {num_str(ranking[0]['metric_psf_annual'])} $/SF/yr.")
     return t.result("calc.compare_proposals", 1, {
@@ -1314,6 +1321,9 @@ def renew_vs_relocate(raw: Any) -> Result:
         t.warn("No disruption or downtime cost supplied for relocating; the comparison counts only rent and hard costs.")
     if R["ti_allowance"] > R["ti_cost"] or M["ti_allowance"] > M["buildout_cost"]:
         t.warn("An allowance exceeds the cost it offsets; the excess is treated as not paid out.")
+    if M["overlap_months"] > 0 and current_rent == 0:
+        t.warn(f"relocate.overlap_months is {M['overlap_months']} but current_rent_monthly is 0 (or not given), so the double "
+               "rent during the overlap counts as $0; pass the existing lease's total monthly rent.")
     if diff == 0:
         t.warn("The two cases are tied at these inputs.")
     if be_reloc is not None and be_reloc < 0:
