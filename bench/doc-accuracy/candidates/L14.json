@@ -1,0 +1,130 @@
+{
+ "doc": "L14",
+ "candidates": [
+  {
+   "predicate": "lease.landlord",
+   "value": "USCIF Pinnacle Building B LLC, a Delaware limited liability company",
+   "quote": "USCIF Pinnacle Building B LLC,\na Delaware limited liability company",
+   "page": 3,
+   "section": "2"
+  },
+  {
+   "predicate": "lease.tenant",
+   "value": "SOW Good Inc., a Delaware corporation",
+   "quote": "SOW Good Inc., a Delaware corporation",
+   "page": 3,
+   "section": "1"
+  },
+  {
+   "predicate": "lease.commencement_date",
+   "value": "2024-05-22",
+   "quote": "commencing on May 22, 2024 (the “Commencement Date”)",
+   "page": 6,
+   "section": "1(a)"
+  },
+  {
+   "predicate": "lease.expiration_date",
+   "value": "2029-06-30",
+   "quote": "June 30, 2029",
+   "page": 3,
+   "section": "9"
+  },
+  {
+   "predicate": "lease.rentable_area_sf",
+   "value": 324000,
+   "quote": "containing approximately 324,000 rentable square feet (“Rentable Area”)",
+   "page": 3,
+   "section": "3"
+  },
+  {
+   "predicate": "lease.base_rent_schedule",
+   "value": [
+    {
+     "from": "2024-05-22",
+     "to": "2025-04-30",
+     "annual_rent_psf": 4.53
+    },
+    {
+     "from": "2025-05-01",
+     "to": "2026-04-30",
+     "annual_rent_psf": 9.41
+    },
+    {
+     "from": "2026-05-01",
+     "to": "2027-04-30",
+     "annual_rent_psf": 9.79
+    },
+    {
+     "from": "2027-05-01",
+     "to": "2028-04-30",
+     "annual_rent_psf": 10.18
+    },
+    {
+     "from": "2028-05-01",
+     "to": "2029-04-30",
+     "annual_rent_psf": 10.59
+    },
+    {
+     "from": "2029-05-01",
+     "to": "2029-06-30",
+     "annual_rent_psf": 11.01
+    }
+   ],
+   "quote": "1 through 12, inclusive\n\n$4.53 NNN\n\n$122,175.00\n\n13 through 24, inclusive\n\n$9.41 NNN\n\n$254,124.00*+\n\n25 through 36, inclusive\n\n$9.79 NNN\n\n$264,288.96\n\n37 through 48, inclusive\n\n$10.18 NNN\n\n$274,860.52",
+   "page": 3,
+   "section": "10"
+  },
+  {
+   "predicate": "lease.free_rent",
+   "value": {
+    "months": 2,
+    "applies_to": "gross_rent"
+   },
+   "quote": "*Base Rent for Lease Months 13 and 14 shall be abated, subject to the provisions of Paragraph 33(w).\n\n+Operating Expenses for Lease Months 13 and 14 shall be abated, subject to the provisions of Paragraph 33(w).",
+   "page": 4,
+   "section": "10"
+  },
+  {
+   "predicate": "lease.security_deposit",
+   "value": 1000000,
+   "quote": "$1,000,000.00, in the form of a letter of credit.",
+   "page": 4,
+   "section": "14"
+  },
+  {
+   "predicate": "lease.pro_rata_share",
+   "value": 1,
+   "quote": "Building: 100.00% (324,000/324,000)",
+   "page": 4,
+   "section": "12"
+  },
+  {
+   "predicate": "lease.cam_cap",
+   "value": {
+    "method": "compounding_from_base",
+    "rate": 0.07
+   },
+   "quote": "the maximum increase in the amount of Controllable Operating Expenses (defined below) that may be included in calculating Tenant's Pro Rata Share of Operating Expenses for each calendar year after 2025 shall be limited to 7% per calendar year on a cumulative, compounded basis.",
+   "page": 12,
+   "section": "3(c)(v)"
+  },
+  {
+   "predicate": "lease.renewal_option",
+   "value": {
+    "count": 1,
+    "term_months": 60,
+    "notice_months": 28,
+    "rent": "Fixed annual rates of $11.01, $11.45, $11.91, $12.38, and $12.88 per rentable square foot for successive 12-month periods"
+   },
+   "quote": "Tenant may renew this Lease for one (1) additional period of five (5) years (the “Renewal Term”), by delivering written notice of the exercise thereof to Landlord between Lease Months 31 and 34 (or earlier).",
+   "page": 50
+  },
+  {
+   "predicate": "lease.assignment_sublease",
+   "value": "Landlord prior written consent is required to assign, sublet, encumber, or license occupancy, not to be unreasonably withheld, conditioned, or delayed. Consent is not required, upon 15 business days' prior written notice and if no monetary default exists, for an assignment to a merger or consolidation successor, a transferee of substantially all assets, or a commonly controlled entity, if the transfer is for a good business purpose and the successor's tangible net worth is at least equal to Tenant's. Landlord may terminate the Lease as to the space in lieu of consenting to an assignment or a sublease of substantially all of the Premises for substantially all of the remaining term.",
+   "quote": "Tenant shall not directly or indirectly, by operation of law or otherwise, assign, sublet, mortgage, hypothecate or otherwise encumber all or any portion of its interest in this Lease or in the Premises or grant any license in any person other than Tenant or its employees to use or occupy the Premises or any part thereof without obtaining the prior written consent of Landlord, which consent shall not be unreasonably withheld, conditioned, or delayed.",
+   "page": 17,
+   "section": "11(a)"
+  }
+ ]
+}
