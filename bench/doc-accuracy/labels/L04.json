@@ -1,0 +1,107 @@
+{
+ "doc": "L04",
+ "labels": [
+  {
+   "predicate": "lease.landlord",
+   "value": "BRE RS GREG PARK OWNER LLC",
+   "page": 1,
+   "quote": "BRE RS GREG PARK OWNER LLC, a Delaware limited liability company (“Landlord”)"
+  },
+  {
+   "predicate": "lease.tenant",
+   "value": "DRAGONFLY ENERGY CORP.",
+   "page": 1,
+   "quote": "DRAGONFLY ENERGY CORP., a Nevada corporation (“Tenant”)"
+  },
+  {
+   "predicate": "lease.expiration_date",
+   "value": "2024-04-30",
+   "page": 2,
+   "quote": "shall expire on April 30, 2024 (the “Current Premises Expiration Date”)"
+  },
+  {
+   "predicate": "lease.expiration_date",
+   "value": "2025-07-31",
+   "page": 2,
+   "quote": "shall terminate on July 31, 2025 (the “Suite 104 Expiration Date”)"
+  },
+  {
+   "predicate": "lease.rentable_area_sf",
+   "value": 20225,
+   "page": 1,
+   "quote": "consisting of approximately 20,225 square feet"
+  },
+  {
+   "predicate": "lease.rentable_area_sf",
+   "value": 4800,
+   "page": 1,
+   "quote": "consisting of approximately 4,800 square feet"
+  },
+  {
+   "predicate": "lease.rentable_area_sf",
+   "value": 25025,
+   "page": 2,
+   "quote": "approximately 25,025 square feet"
+  },
+  {
+   "predicate": "lease.security_deposit",
+   "value": 24795.81,
+   "page": 4,
+   "quote": "($24,795.81), the increased amount of the Security Deposit"
+  },
+  {
+   "predicate": "lease.pro_rata_share",
+   "value": 0.0791,
+   "page": 2,
+   "quote": "Proportionate Share of Building B shall be 7.91%"
+  },
+  {
+   "predicate": "lease.rent_commencement_date",
+   "value": "2020-08-01",
+   "page": 2,
+   "quote": "commencing on August 1, 2020 (the “Suite 104 Expansion Date”)"
+  },
+  {
+   "predicate": "lease.parking",
+   "value": {
+    "spaces": 5
+   },
+   "page": 4,
+   "quote": "an additional five (5) unreserved parking spaces"
+  },
+  {
+   "predicate": "lease.base_rent_schedule",
+   "value": [
+    {
+     "from": "2020-08-01",
+     "to": "2021-07-31",
+     "annual_rent_psf": 11.16
+    },
+    {
+     "from": "2021-08-01",
+     "to": "2022-07-31",
+     "annual_rent_psf": 11.49
+    },
+    {
+     "from": "2022-08-01",
+     "to": "2023-07-31",
+     "annual_rent_psf": 11.84
+    },
+    {
+     "from": "2023-08-01",
+     "to": "2024-07-31",
+     "annual_rent_psf": 12.19
+    },
+    {
+     "from": "2024-08-01",
+     "to": "2025-07-31",
+     "annual_rent_psf": 12.56
+    }
+   ],
+   "page": 2,
+   "quote": "Period Monthly Base Rent August 1, 2020 – July 31, 2021 $ 4,464.00 August 1, 2021 – July 31, 2022 $ 4,597.92 August 1, 2022 – July 31, 2023 $ 4,735.86 August 1, 2023 – July 31, 2024 $ 4,877.93 August 1, 2024 – July 31, 2025 $ 5,024.27",
+   "derived": true,
+   "note": "Suite 104 (4,800 sf). Monthly base rent x 12 / 4,800, rounded to cents. Added by reviewer; the draft omitted it."
+  }
+ ]
+}

@@ -1,0 +1,68 @@
+{
+ "doc": "L01",
+ "labels": [
+  {
+   "predicate": "lease.landlord",
+   "value": "HUDSON 1455 MARKET STREET, LLC",
+   "page": 1,
+   "quote": "HUDSON 1455 MARKET STREET, LLC"
+  },
+  {
+   "predicate": "lease.tenant",
+   "value": "SQUARE, INC.",
+   "page": 1,
+   "quote": "SQUARE, INC."
+  },
+  {
+   "predicate": "lease.expiration_date",
+   "value": "2023-09-27",
+   "page": 2,
+   "quote": "on September 27, 2023"
+  },
+  {
+   "predicate": "lease.rentable_area_sf",
+   "value": 442952,
+   "page": 1,
+   "quote": "approximately 442,952 aggregate rentable square feet"
+  },
+  {
+   "predicate": "lease.rentable_area_sf",
+   "value": 26104,
+   "page": 1,
+   "quote": "approximately 26,104 rentable square feet"
+  },
+  {
+   "predicate": "lease.rentable_area_sf",
+   "value": 469056,
+   "page": 2,
+   "quote": "469,056 rentable square feet of space"
+  },
+  {
+   "predicate": "lease.pro_rata_share",
+   "value": 0.0258,
+   "page": 3,
+   "quote": "Suite 2100 shall be 2.58%"
+  },
+  {
+   "predicate": "lease.operating_expense_base_year",
+   "value": 2019,
+   "page": 3,
+   "quote": "the Base Year shall be the calendar year 2019"
+  },
+  {
+   "predicate": "lease.parking",
+   "value": {
+    "spaces": 5,
+    "rate_monthly": 275
+   },
+   "page": 4,
+   "quote": "up to five (5) unreserved parking passes"
+  },
+  {
+   "predicate": "lease.rofo",
+   "value": "Upon the Suite 2100 Lease Commencement Date, any right of first offer with respect to the 21st floor is deleted and of no further force or effect.",
+   "page": 4,
+   "quote": "rights of first offer with respect to the 21st floor shall be deleted in their entirety and of no further force or effect"
+  }
+ ]
+}
