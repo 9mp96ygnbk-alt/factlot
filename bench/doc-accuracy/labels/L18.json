@@ -1,0 +1,64 @@
+{
+ "doc": "L18",
+ "labels": [
+  {
+   "predicate": "lease.landlord",
+   "value": "CHALET PROPERTIES OF PUEBLO, LLC",
+   "page": 2,
+   "quote": "CHALET PROPERTIES OF PUEBLO, LLC, a Colorado limited liability company (hereinafter called “Landlord”)"
+  },
+  {
+   "predicate": "lease.tenant",
+   "value": "VITAMIN COTTAGE NATURAL FOOD MARKETS, INC.",
+   "page": 2,
+   "quote": "VITAMIN COTTAGE NATURAL FOOD MARKETS, INC., a Colorado corporation (hereinafter called “Tenant”)"
+  },
+  {
+   "predicate": "lease.rentable_area_sf",
+   "value": 17955,
+   "page": 2,
+   "quote": "the premises to include approximately seventeen thousand nine hundred fifty-five (17,955) square feet of interior Leasable Floor Area",
+   "note": "Term starts on the Rent Commencement Date, the earlier of 9 months after the Ready for Occupancy Date (itself the later of permits, possession or June 1, 2025) or opening (Article 5), so commencement, expiration and dated rent steps are not labeled. Fixed Rent is $13,000/month for Lease Years 1-5 and $14,000/month for Lease Years 6-10."
+  },
+  {
+   "predicate": "lease.pro_rata_share",
+   "value": 0.359,
+   "page": 3,
+   "quote": "is deemed to be 35.9%, such percentage being determined by dividing the Leasable Floor Area of the Leased Premises by the Leasable Floor Area of the Shopping Center"
+  },
+  {
+   "predicate": "lease.cam_cap",
+   "value": {
+    "method": "year_over_year",
+    "rate": 0.03
+   },
+   "page": 12,
+   "quote": "one hundred three percent (103%) of Tenant’s Pro-Rata Share of Controllable Common Area Costs of the previous calendar year",
+   "note": "For the first partial and first full calendar year, Tenant's share of Controllable Common Area Costs is capped at $1.45 per square foot (excluding the Common Area Management Fee). Controllable Common Area Costs exclude Real Estate Taxes, Landlord's Insurance and snow removal."
+  },
+  {
+   "predicate": "lease.renewal_option",
+   "value": {
+    "count": 4,
+    "term_months": 60,
+    "notice_months": 3,
+    "rent": "Fixed monthly Fixed Rent: $15,000, $16,000, $17,000 and $18,000 for the first through fourth Extended Lease Terms"
+   },
+   "page": 5,
+   "quote": "Tenant shall have the option to extend the Term for four (4) additional periods of five (5) years each",
+   "note": "Notice window is not less than 3 nor more than 24 months before expiration; notice_months records the 3-month deadline. A missed deadline triggers a Landlord notice and a 10-day cure (Article 2.d). Article 2.e also allows a short extension to January 31 when the Term ends in October-December."
+  },
+  {
+   "predicate": "lease.exclusive_use",
+   "value": "No other Landlord-controlled property in the Shopping Center may be used for a primary use as a grocery store (more than 10% of gross sales from supplements/vitamins or packaged natural or organic foods), excluding pre-acquisition leases and uses; remedy is half Fixed Rent, then a termination right after 18 months.",
+   "page": 14,
+   "quote": "will be granted the right by Landlord to be used for a primary use as a grocery store"
+  },
+  {
+   "predicate": "lease.assignment_sublease",
+   "value": "Tenant may assign or sublet without Landlord's consent and remains liable, but is released if the successor's net worth is at least $50,000,000; Tenant keeps all sublease and assignment consideration.",
+   "page": 19,
+   "quote": "Tenant shall have the right to assign this Lease and to sublet all or any portion of the Leased Premises without Landlord’s consent"
+  }
+ ]
+}
