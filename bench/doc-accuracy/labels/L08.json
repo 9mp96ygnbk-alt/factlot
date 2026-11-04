@@ -1,0 +1,120 @@
+{
+ "doc": "L08",
+ "labels": [
+  {
+   "predicate": "lease.landlord",
+   "value": "BCSP CROSSROADS PROPERTY LLC",
+   "page": 1,
+   "quote": "BCSP CROSSROADS PROPERTY LLC, a Delaware limited liability company (\"Landlord\")"
+  },
+  {
+   "predicate": "lease.tenant",
+   "value": "HEALTHEQUITY, INC.",
+   "page": 1,
+   "quote": "HEALTHEQUITY, INC., a Delaware corporation (\"Tenant\")"
+  },
+  {
+   "predicate": "lease.commencement_date",
+   "value": "2020-03-01",
+   "page": 1,
+   "quote": "3.2 Lease Commencement March 1, 2020."
+  },
+  {
+   "predicate": "lease.expiration_date",
+   "value": "2023-03-31",
+   "page": 1,
+   "quote": "3.3 Lease Expiration Date: The last day of the thirty-seventh (37th) full calendar month of the Lease Term.",
+   "derived": true,
+   "note": "Lease Commencement Date is March 1, 2020, so the 37th full calendar month is March 2023."
+  },
+  {
+   "predicate": "lease.rentable_area_sf",
+   "value": 7614,
+   "page": 1,
+   "quote": "Approximately 7,614 rentable square feet of space located on the seventh (7th) floor of the Building"
+  },
+  {
+   "predicate": "lease.rentable_area_sf",
+   "value": 3437,
+   "page": 4,
+   "quote": "Tenant shall lease approximately 3,437 rentable square feet of space located on the seventh (7th) floor of the Building",
+   "note": "Temporary Premises (Suite 700), leased from February 18, 2020 until the earliest of three events, at latest April 30, 2020."
+  },
+  {
+   "predicate": "lease.base_rent_schedule",
+   "value": [
+    {
+     "from": "2020-03-01",
+     "to": "2021-02-28",
+     "annual_rent_psf": 54.6
+    },
+    {
+     "from": "2021-03-01",
+     "to": "2022-02-28",
+     "annual_rent_psf": 56.24
+    },
+    {
+     "from": "2022-03-01",
+     "to": "2023-02-28",
+     "annual_rent_psf": 57.93
+    },
+    {
+     "from": "2023-03-01",
+     "to": "2023-03-31",
+     "annual_rent_psf": 59.66
+    }
+   ],
+   "page": 1,
+   "quote": "Lease Months 1-12 $415,724.40 $34,643.70* $4.55 Lease Months 13-24 $428,196.12 $35,683.01 $4.69 Lease Months 25-36 $441,042.00 $36,753.50 $4.83 Lease Month 37 N/A $37,856.11 $4.97",
+   "derived": true,
+   "note": "Dates derived from the March 1, 2020 Lease Commencement Date. The table prints MONTHLY rent per RSF rounded to cents; annual_rent_psf here is annualized base rent / 7,614 (month 37: monthly installment x 12 / 7,614), rounded to cents. Twelve times the printed monthly rate gives slightly different values (54.60, 56.28, 57.96, 59.64), so steps 2-4 are sensitive to which reading is used."
+  },
+  {
+   "predicate": "lease.free_rent",
+   "value": {
+    "months": 1,
+    "applies_to": "base_rent"
+   },
+   "page": 7,
+   "quote": "Tenant shall not be obligated to pay the Base Rent otherwise attributable to the Premises (the \"Rent Abatement\") during the first full calendar month of the Lease Term",
+   "note": "Abatement amount stated as $34,643.70; conditioned on no default."
+  },
+  {
+   "predicate": "lease.pro_rata_share",
+   "value": 0.047304,
+   "page": 2,
+   "quote": "Tenant's Share (Article 4): Approximately 4.7304%."
+  },
+  {
+   "predicate": "lease.pro_rata_share",
+   "value": 0.021353,
+   "page": 4,
+   "quote": "Tenant's Share of the Temporary Premises shall be equal to 2.1353%",
+   "note": "Temporary Premises only."
+  },
+  {
+   "predicate": "lease.security_deposit",
+   "value": 41366.39,
+   "page": 2,
+   "quote": "7. Security Deposit (Article 21): $41,366.39."
+  },
+  {
+   "predicate": "lease.renewal_option",
+   "value": {
+    "count": 1,
+    "term_months": 36,
+    "notice_months": 9,
+    "rent": "Fair Market Rent"
+   },
+   "page": 5,
+   "quote": "one (1) option to extend the Lease Term for a period of three (3) years (the \"Option Term\")",
+   "note": "Option Interest Notice is due not more than 12 nor less than 9 months before expiration of the initial term (Section 2.2.3, page 6); notice_months is the 9-month minimum. Parking is a ratio (3.3 passes per 1,000 RSF, free in the initial term) with no stated count, so lease.parking is not labeled."
+  },
+  {
+   "predicate": "lease.assignment_sublease",
+   "value": "Assignment, subletting or other Transfer requires Landlord's prior written consent, not to be unreasonably withheld or delayed; affiliate transfers are permitted without consent under Section 14.8 (Non-Transfers).",
+   "page": 22,
+   "quote": "Landlord shall not unreasonably withhold or delay its consent to any proposed Transfer of the Subject Space to the Transferee on the terms specified in the Transfer Notice."
+  }
+ ]
+}
