@@ -125,4 +125,7 @@ for _ in range(int(sys.argv[2])):
 sys.path.insert(0, __import__("os").path.dirname(__file__))
 from gen_docs import doc_cases
 cases.extend(doc_cases(int(sys.argv[1]), int(sys.argv[2])))
+# draft rules packs: also their own random stream
+from gen_drafts import draft_cases
+cases.extend(draft_cases(int(sys.argv[1]), int(sys.argv[2])))
 json.dump(cases,open(sys.argv[3],"w"))

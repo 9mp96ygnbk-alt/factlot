@@ -1,0 +1,1669 @@
+{
+  "_about": "Reference copy of WAC 194-50-150 Section Z7 Tables 7-2a (I-P units) and 7-3, parsed from the Code Reviser's HTML https://lawfilesext.leg.wa.gov/law/WAC/WAC%20194%20%20TITLE/WAC%20194%20-%2050%20%20CHAPTER/WAC%20194%20-%2050%20-150.htm and cross-checked against the certified chapter PDF (certified 2026-08-12); both retrieved 2026-11-03. null where the table gives no energy target. Both SDKs' tables must equal this file, and reference.py computes the vectors from it.",
+  "activities": [
+    {
+      "no": 1,
+      "type": "Banking/financial services",
+      "subtype": "Bank Branch",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "69",
+        "5B": "71"
+      },
+      "shift_factor": {
+        "50_or_less": "0.8",
+        "51_to_167": "1.0",
+        "168": "1.5"
+      }
+    },
+    {
+      "no": 2,
+      "type": "Banking/financial services",
+      "subtype": "Financial Office",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "69",
+        "5B": "71"
+      },
+      "shift_factor": {
+        "50_or_less": "0.8",
+        "51_to_167": "1.0",
+        "168": "1.5"
+      }
+    },
+    {
+      "no": 3,
+      "type": "Education",
+      "subtype": "Adult Education",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "49",
+        "5B": "51"
+      },
+      "shift_factor": {
+        "50_or_less": "0.9",
+        "51_to_167": "1.1",
+        "168": "1.9"
+      }
+    },
+    {
+      "no": 4,
+      "type": "Education",
+      "subtype": "College/University",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "102",
+        "5B": "102"
+      },
+      "shift_factor": {
+        "50_or_less": "0.9",
+        "51_to_167": "1.1",
+        "168": "1.9"
+      }
+    },
+    {
+      "no": 5,
+      "type": "Education",
+      "subtype": "K-12 School",
+      "detail": "Elementary/middle school",
+      "eui_target_1": {
+        "4C": "49",
+        "5B": "50"
+      },
+      "shift_factor": {
+        "50_or_less": "0.9",
+        "51_to_167": "1.1",
+        "168": "1.9"
+      }
+    },
+    {
+      "no": 6,
+      "type": "Education",
+      "subtype": "K-12 School",
+      "detail": "High school",
+      "eui_target_1": {
+        "4C": "48",
+        "5B": "49"
+      },
+      "shift_factor": {
+        "50_or_less": "0.9",
+        "51_to_167": "1.1",
+        "168": "1.9"
+      }
+    },
+    {
+      "no": 7,
+      "type": "Education",
+      "subtype": "Preschool/Daycare",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "59",
+        "5B": "59"
+      },
+      "shift_factor": {
+        "50_or_less": "0.9",
+        "51_to_167": "1.1",
+        "168": "1.9"
+      }
+    },
+    {
+      "no": 8,
+      "type": "Education",
+      "subtype": "Vocational School",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "49",
+        "5B": "51"
+      },
+      "shift_factor": {
+        "50_or_less": "0.9",
+        "51_to_167": "1.1",
+        "168": "1.9"
+      }
+    },
+    {
+      "no": 9,
+      "type": "Education",
+      "subtype": "Other - Education",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "49",
+        "5B": "51"
+      },
+      "shift_factor": {
+        "50_or_less": "0.9",
+        "51_to_167": "1.1",
+        "168": "1.9"
+      }
+    },
+    {
+      "no": 10,
+      "type": "Entertainment/public assembly",
+      "subtype": "Aquarium",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "55",
+        "5B": "59"
+      },
+      "shift_factor": {
+        "50_or_less": "0.6",
+        "51_to_167": "1.1",
+        "168": "1.6"
+      }
+    },
+    {
+      "no": 11,
+      "type": "Entertainment/public assembly",
+      "subtype": "Bar/Nightclub",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "55",
+        "5B": "59"
+      },
+      "shift_factor": {
+        "50_or_less": "0.6",
+        "51_to_167": "1.1",
+        "168": "1.6"
+      }
+    },
+    {
+      "no": 12,
+      "type": "Entertainment/public assembly",
+      "subtype": "Bowling Alley",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "73",
+        "5B": "78"
+      },
+      "shift_factor": {
+        "50_or_less": "0.6",
+        "51_to_167": "1.1",
+        "168": "1.6"
+      }
+    },
+    {
+      "no": 13,
+      "type": "Entertainment/public assembly",
+      "subtype": "Casino",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "55",
+        "5B": "59"
+      },
+      "shift_factor": {
+        "50_or_less": "0.6",
+        "51_to_167": "1.1",
+        "168": "1.6"
+      }
+    },
+    {
+      "no": 14,
+      "type": "Entertainment/public assembly",
+      "subtype": "Convention Center",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "50",
+        "5B": "52"
+      },
+      "shift_factor": {
+        "50_or_less": "0.6",
+        "51_to_167": "1.1",
+        "168": "1.6"
+      }
+    },
+    {
+      "no": 15,
+      "type": "Entertainment/public assembly",
+      "subtype": "Fitness Center/Health Club/Gym",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "73",
+        "5B": "78"
+      },
+      "shift_factor": {
+        "50_or_less": "0.6",
+        "51_to_167": "1.1",
+        "168": "1.6"
+      }
+    },
+    {
+      "no": 16,
+      "type": "Entertainment/public assembly",
+      "subtype": "Ice/Curling Rink",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "73",
+        "5B": "78"
+      },
+      "shift_factor": {
+        "50_or_less": "0.6",
+        "51_to_167": "1.1",
+        "168": "1.6"
+      }
+    },
+    {
+      "no": 17,
+      "type": "Entertainment/public assembly",
+      "subtype": "Indoor Arena",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "67",
+        "5B": "70"
+      },
+      "shift_factor": {
+        "50_or_less": "0.6",
+        "51_to_167": "1.1",
+        "168": "1.6"
+      }
+    },
+    {
+      "no": 18,
+      "type": "Entertainment/public assembly",
+      "subtype": "Movie Theater",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "67",
+        "5B": "70"
+      },
+      "shift_factor": {
+        "50_or_less": "0.6",
+        "51_to_167": "1.1",
+        "168": "1.6"
+      }
+    },
+    {
+      "no": 19,
+      "type": "Entertainment/public assembly",
+      "subtype": "Museum",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "67",
+        "5B": "70"
+      },
+      "shift_factor": {
+        "50_or_less": "0.6",
+        "51_to_167": "1.1",
+        "168": "1.6"
+      }
+    },
+    {
+      "no": 20,
+      "type": "Entertainment/public assembly",
+      "subtype": "Performing Arts",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "55",
+        "5B": "59"
+      },
+      "shift_factor": {
+        "50_or_less": "0.6",
+        "51_to_167": "1.1",
+        "168": "1.6"
+      }
+    },
+    {
+      "no": 21,
+      "type": "Entertainment/public assembly",
+      "subtype": "Race Track",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "67",
+        "5B": "70"
+      },
+      "shift_factor": {
+        "50_or_less": "0.6",
+        "51_to_167": "1.1",
+        "168": "1.6"
+      }
+    },
+    {
+      "no": 22,
+      "type": "Entertainment/public assembly",
+      "subtype": "Roller Rink",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "73",
+        "5B": "78"
+      },
+      "shift_factor": {
+        "50_or_less": "0.6",
+        "51_to_167": "1.1",
+        "168": "1.6"
+      }
+    },
+    {
+      "no": 23,
+      "type": "Entertainment/public assembly",
+      "subtype": "Social/Meeting Hall",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "50",
+        "5B": "52"
+      },
+      "shift_factor": {
+        "50_or_less": "0.6",
+        "51_to_167": "1.1",
+        "168": "1.6"
+      }
+    },
+    {
+      "no": 24,
+      "type": "Entertainment/public assembly",
+      "subtype": "Stadium (Closed)",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "67",
+        "5B": "70"
+      },
+      "shift_factor": {
+        "50_or_less": "0.6",
+        "51_to_167": "1.1",
+        "168": "1.6"
+      }
+    },
+    {
+      "no": 25,
+      "type": "Entertainment/public assembly",
+      "subtype": "Stadium (Open)",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "67",
+        "5B": "70"
+      },
+      "shift_factor": {
+        "50_or_less": "0.6",
+        "51_to_167": "1.1",
+        "168": "1.6"
+      }
+    },
+    {
+      "no": 26,
+      "type": "Entertainment/public assembly",
+      "subtype": "Swimming Pool",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "73",
+        "5B": "78"
+      },
+      "shift_factor": {
+        "50_or_less": "0.6",
+        "51_to_167": "1.1",
+        "168": "1.6"
+      }
+    },
+    {
+      "no": 27,
+      "type": "Entertainment/public assembly",
+      "subtype": "Zoo",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "55",
+        "5B": "59"
+      },
+      "shift_factor": {
+        "50_or_less": "0.6",
+        "51_to_167": "1.1",
+        "168": "1.6"
+      }
+    },
+    {
+      "no": 28,
+      "type": "Entertainment/public assembly",
+      "subtype": "Other - Entertainment/Public Assembly",
+      "detail": "Entertainment/culture",
+      "eui_target_1": {
+        "4C": "67",
+        "5B": "70"
+      },
+      "shift_factor": {
+        "50_or_less": "0.6",
+        "51_to_167": "1.1",
+        "168": "1.6"
+      }
+    },
+    {
+      "no": 29,
+      "type": "Entertainment/public assembly",
+      "subtype": "Other - Entertainment/Public Assembly",
+      "detail": "Library",
+      "eui_target_1": {
+        "4C": "56",
+        "5B": "59"
+      },
+      "shift_factor": {
+        "50_or_less": "0.6",
+        "51_to_167": "1.1",
+        "168": "1.6"
+      }
+    },
+    {
+      "no": 30,
+      "type": "Entertainment/public assembly",
+      "subtype": "Other - Entertainment/Public Assembly",
+      "detail": "Other public assembly",
+      "eui_target_1": {
+        "4C": "55",
+        "5B": "59"
+      },
+      "shift_factor": {
+        "50_or_less": "0.6",
+        "51_to_167": "1.1",
+        "168": "1.6"
+      }
+    },
+    {
+      "no": 31,
+      "type": "Entertainment/public assembly",
+      "subtype": "Other - Entertainment/Public Assembly",
+      "detail": "Recreation",
+      "eui_target_1": {
+        "4C": "73",
+        "5B": "78"
+      },
+      "shift_factor": {
+        "50_or_less": "0.6",
+        "51_to_167": "1.1",
+        "168": "1.6"
+      }
+    },
+    {
+      "no": 32,
+      "type": "Entertainment/public assembly",
+      "subtype": "Other - Entertainment/Public Assembly",
+      "detail": "Social/meeting",
+      "eui_target_1": {
+        "4C": "50",
+        "5B": "52"
+      },
+      "shift_factor": {
+        "50_or_less": "0.6",
+        "51_to_167": "1.1",
+        "168": "1.6"
+      }
+    },
+    {
+      "no": 33,
+      "type": "Entertainment/public assembly",
+      "subtype": "Other - Recreation",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "73",
+        "5B": "78"
+      },
+      "shift_factor": {
+        "50_or_less": "0.6",
+        "51_to_167": "1.1",
+        "168": "1.6"
+      }
+    },
+    {
+      "no": 34,
+      "type": "Entertainment/public assembly",
+      "subtype": "Other - Stadium",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "67",
+        "5B": "70"
+      },
+      "shift_factor": {
+        "50_or_less": "0.6",
+        "51_to_167": "1.1",
+        "168": "1.6"
+      }
+    },
+    {
+      "no": 35,
+      "type": "Food sales and service",
+      "subtype": "Bar/Nightclub",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "361",
+        "5B": "378"
+      },
+      "shift_factor": {
+        "50_or_less": "0.6",
+        "51_to_167": "1.1",
+        "168": "1.5"
+      }
+    },
+    {
+      "no": 36,
+      "type": "Food sales and service",
+      "subtype": "Convenience Store with Gas Station",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "260",
+        "5B": "269"
+      },
+      "shift_factor": {
+        "50_or_less": "0.5",
+        "51_to_167": "0.9",
+        "168": "1.3"
+      }
+    },
+    {
+      "no": 37,
+      "type": "Food sales and service",
+      "subtype": "Convenience Store without Gas Station",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "244",
+        "5B": "253"
+      },
+      "shift_factor": {
+        "50_or_less": "0.5",
+        "51_to_167": "0.9",
+        "168": "1.3"
+      }
+    },
+    {
+      "no": 38,
+      "type": "Food sales and service",
+      "subtype": "Fast Food Restaurant",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "427",
+        "5B": "454"
+      },
+      "shift_factor": {
+        "50_or_less": "0.6",
+        "51_to_167": "1.1",
+        "168": "1.5"
+      }
+    },
+    {
+      "no": 39,
+      "type": "Food sales and service",
+      "subtype": "Food Sales",
+      "detail": "Grocery/food market",
+      "eui_target_1": {
+        "4C": "191",
+        "5B": "198"
+      },
+      "shift_factor": {
+        "50_or_less": "0.5",
+        "51_to_167": "0.9",
+        "168": "1.3"
+      }
+    },
+    {
+      "no": 40,
+      "type": "Food sales and service",
+      "subtype": "Food Sales",
+      "detail": "Convenience store with gas",
+      "eui_target_1": {
+        "4C": "260",
+        "5B": "269"
+      },
+      "shift_factor": {
+        "50_or_less": "0.5",
+        "51_to_167": "0.9",
+        "168": "1.3"
+      }
+    },
+    {
+      "no": 41,
+      "type": "Food sales and service",
+      "subtype": "Food Sales",
+      "detail": "Convenience store",
+      "eui_target_1": {
+        "4C": "244",
+        "5B": "253"
+      },
+      "shift_factor": {
+        "50_or_less": "0.5",
+        "51_to_167": "0.9",
+        "168": "1.3"
+      }
+    },
+    {
+      "no": 42,
+      "type": "Food sales and service",
+      "subtype": "Food Sales",
+      "detail": "Other food sales",
+      "eui_target_1": {
+        "4C": "184",
+        "5B": "189"
+      },
+      "shift_factor": {
+        "50_or_less": "0.5",
+        "51_to_167": "0.9",
+        "168": "1.3"
+      }
+    },
+    {
+      "no": 43,
+      "type": "Food sales and service",
+      "subtype": "Food Service",
+      "detail": "Fast food",
+      "eui_target_1": {
+        "4C": "427",
+        "5B": "454"
+      },
+      "shift_factor": {
+        "50_or_less": "0.6",
+        "51_to_167": "1.1",
+        "168": "1.5"
+      }
+    },
+    {
+      "no": 44,
+      "type": "Food sales and service",
+      "subtype": "Food Service",
+      "detail": "Restaurant/cafeteria",
+      "eui_target_1": {
+        "4C": "361",
+        "5B": "378"
+      },
+      "shift_factor": {
+        "50_or_less": "0.6",
+        "51_to_167": "1.1",
+        "168": "1.5"
+      }
+    },
+    {
+      "no": 45,
+      "type": "Food sales and service",
+      "subtype": "Food Service",
+      "detail": "Other food service",
+      "eui_target_1": {
+        "4C": "293",
+        "5B": "308"
+      },
+      "shift_factor": {
+        "50_or_less": "0.6",
+        "51_to_167": "1.1",
+        "168": "1.5"
+      }
+    },
+    {
+      "no": 46,
+      "type": "Food sales and service",
+      "subtype": "Restaurant",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "361",
+        "5B": "378"
+      },
+      "shift_factor": {
+        "50_or_less": "0.6",
+        "51_to_167": "1.1",
+        "168": "1.5"
+      }
+    },
+    {
+      "no": 47,
+      "type": "Food sales and service",
+      "subtype": "Supermarket/Grocery Store",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "191",
+        "5B": "198"
+      },
+      "shift_factor": {
+        "50_or_less": "0.5",
+        "51_to_167": "0.9",
+        "168": "1.3"
+      }
+    },
+    {
+      "no": 48,
+      "type": "Food sales and service",
+      "subtype": "Wholesale Club/Supercenter",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "68",
+        "5B": "75"
+      },
+      "shift_factor": {
+        "50_or_less": "0.6",
+        "51_to_167": "1.0",
+        "168": "1.5"
+      }
+    },
+    {
+      "no": 49,
+      "type": "Food sales and service",
+      "subtype": "Other - Restaurant/Bar",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "361",
+        "5B": "378"
+      },
+      "shift_factor": {
+        "50_or_less": "0.6",
+        "51_to_167": "1.1",
+        "168": "1.5"
+      }
+    },
+    {
+      "no": 50,
+      "type": "Healthcare",
+      "subtype": "Ambulatory Surgical Center",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "90",
+        "5B": "96"
+      },
+      "shift_factor": {
+        "50_or_less": "0.8",
+        "51_to_167": "1.1",
+        "168": "1.3"
+      }
+    },
+    {
+      "no": 51,
+      "type": "Healthcare",
+      "subtype": "Hospital (General Medical & Surgical)",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "215",
+        "5B": "215"
+      },
+      "shift_factor": {
+        "50_or_less": "1.0",
+        "51_to_167": "1.0",
+        "168": "1.0"
+      }
+    },
+    {
+      "no": 52,
+      "type": "Healthcare",
+      "subtype": "Medical Office",
+      "detail": "",
+      "eui_target_1": {
+        "4C": null,
+        "5B": null
+      },
+      "shift_factor": null
+    },
+    {
+      "no": 53,
+      "type": "Healthcare",
+      "subtype": "Outpatient Rehabilitation/Physical Therapy",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "90",
+        "5B": "96"
+      },
+      "shift_factor": {
+        "50_or_less": "0.8",
+        "51_to_167": "1.1",
+        "168": "1.3"
+      }
+    },
+    {
+      "no": 54,
+      "type": "Healthcare",
+      "subtype": "Residential Care Facility",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "78",
+        "5B": "82"
+      },
+      "shift_factor": {
+        "50_or_less": "1.0",
+        "51_to_167": "1.0",
+        "168": "1.0"
+      }
+    },
+    {
+      "no": 55,
+      "type": "Healthcare",
+      "subtype": "Senior Care Community",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "78",
+        "5B": "82"
+      },
+      "shift_factor": {
+        "50_or_less": "1.0",
+        "51_to_167": "1.0",
+        "168": "1.0"
+      }
+    },
+    {
+      "no": 56,
+      "type": "Healthcare",
+      "subtype": "Urgent Care/Clinic/Other Outpatient",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "90",
+        "5B": "96"
+      },
+      "shift_factor": {
+        "50_or_less": "0.8",
+        "51_to_167": "1.1",
+        "168": "1.3"
+      }
+    },
+    {
+      "no": 57,
+      "type": "Healthcare",
+      "subtype": "Other - Specialty Hospital",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "196",
+        "5B": "196"
+      },
+      "shift_factor": {
+        "50_or_less": "1.0",
+        "51_to_167": "1.0",
+        "168": "1.0"
+      }
+    },
+    {
+      "no": 58,
+      "type": "Lodging/residential",
+      "subtype": "Barracks",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "88",
+        "5B": "90"
+      },
+      "shift_factor": {
+        "50_or_less": "1.0",
+        "51_to_167": "1.0",
+        "168": "1.0"
+      }
+    },
+    {
+      "no": 59,
+      "type": "Lodging/residential",
+      "subtype": "Hotel",
+      "detail": "Hotel",
+      "eui_target_1": {
+        "4C": "68",
+        "5B": "72"
+      },
+      "shift_factor": {
+        "50_or_less": "1.0",
+        "51_to_167": "1.0",
+        "168": "1.0"
+      }
+    },
+    {
+      "no": 60,
+      "type": "Lodging/residential",
+      "subtype": "Hotel",
+      "detail": "Motel or inn",
+      "eui_target_1": {
+        "4C": "74",
+        "5B": "77"
+      },
+      "shift_factor": {
+        "50_or_less": "1.0",
+        "51_to_167": "1.0",
+        "168": "1.0"
+      }
+    },
+    {
+      "no": 61,
+      "type": "Lodging/residential",
+      "subtype": "Multifamily Housing",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "32",
+        "5B": "33"
+      },
+      "shift_factor": {
+        "50_or_less": "1.0",
+        "51_to_167": "1.0",
+        "168": "1.0"
+      }
+    },
+    {
+      "no": 62,
+      "type": "Lodging/residential",
+      "subtype": "Prison/Incarceration",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "101",
+        "5B": "106"
+      },
+      "shift_factor": {
+        "50_or_less": "1.0",
+        "51_to_167": "1.0",
+        "168": "1.0"
+      }
+    },
+    {
+      "no": 63,
+      "type": "Lodging/residential",
+      "subtype": "Residence Hall/Dormitory",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "88",
+        "5B": "90"
+      },
+      "shift_factor": {
+        "50_or_less": "1.0",
+        "51_to_167": "1.0",
+        "168": "1.0"
+      }
+    },
+    {
+      "no": 64,
+      "type": "Lodging/residential",
+      "subtype": "Residential Care Facility",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "78",
+        "5B": "82"
+      },
+      "shift_factor": {
+        "50_or_less": "1.0",
+        "51_to_167": "1.0",
+        "168": "1.0"
+      }
+    },
+    {
+      "no": 65,
+      "type": "Lodging/residential",
+      "subtype": "Senior Care Community",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "78",
+        "5B": "82"
+      },
+      "shift_factor": {
+        "50_or_less": "1.0",
+        "51_to_167": "1.0",
+        "168": "1.0"
+      }
+    },
+    {
+      "no": 66,
+      "type": "Lodging/residential",
+      "subtype": "Other - Lodging/Residential",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "71",
+        "5B": "74"
+      },
+      "shift_factor": {
+        "50_or_less": "1.0",
+        "51_to_167": "1.0",
+        "168": "1.0"
+      }
+    },
+    {
+      "no": 67,
+      "type": "Mixed use",
+      "subtype": "Mixed Use Property",
+      "detail": "",
+      "eui_target_1": {
+        "4C": null,
+        "5B": null
+      },
+      "shift_factor": null
+    },
+    {
+      "no": 68,
+      "type": "Office",
+      "subtype": "Medical Office",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "60",
+        "5B": "65"
+      },
+      "shift_factor": {
+        "50_or_less": "0.8",
+        "51_to_167": "1.1",
+        "168": "1.3"
+      }
+    },
+    {
+      "no": 69,
+      "type": "Office",
+      "subtype": "Office",
+      "detail": "Admin/professional office",
+      "eui_target_1": {
+        "4C": "63",
+        "5B": "66"
+      },
+      "shift_factor": {
+        "50_or_less": "0.8",
+        "51_to_167": "1.0",
+        "168": "1.5"
+      }
+    },
+    {
+      "no": 70,
+      "type": "Office",
+      "subtype": "Office",
+      "detail": "Bank/other financial",
+      "eui_target_1": {
+        "4C": "69",
+        "5B": "71"
+      },
+      "shift_factor": {
+        "50_or_less": "0.8",
+        "51_to_167": "1.0",
+        "168": "1.5"
+      }
+    },
+    {
+      "no": 71,
+      "type": "Office",
+      "subtype": "Office",
+      "detail": "Government office",
+      "eui_target_1": {
+        "4C": "66",
+        "5B": "69"
+      },
+      "shift_factor": {
+        "50_or_less": "0.8",
+        "51_to_167": "1.0",
+        "168": "1.5"
+      }
+    },
+    {
+      "no": 72,
+      "type": "Office",
+      "subtype": "Office",
+      "detail": "Medical office (diagnostic)",
+      "eui_target_1": {
+        "4C": "60",
+        "5B": "65"
+      },
+      "shift_factor": {
+        "50_or_less": "0.8",
+        "51_to_167": "1.1",
+        "168": "1.3"
+      }
+    },
+    {
+      "no": 73,
+      "type": "Office",
+      "subtype": "Office",
+      "detail": "Other office",
+      "eui_target_1": {
+        "4C": "66",
+        "5B": "68"
+      },
+      "shift_factor": {
+        "50_or_less": "0.8",
+        "51_to_167": "1.0",
+        "168": "1.5"
+      }
+    },
+    {
+      "no": 74,
+      "type": "Office",
+      "subtype": "Veterinary Office",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "90",
+        "5B": "96"
+      },
+      "shift_factor": {
+        "50_or_less": "0.8",
+        "51_to_167": "1.1",
+        "168": "1.3"
+      }
+    },
+    {
+      "no": 75,
+      "type": "Office",
+      "subtype": "Other - Office",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "66",
+        "5B": "68"
+      },
+      "shift_factor": {
+        "50_or_less": "0.8",
+        "51_to_167": "1.0",
+        "168": "1.5"
+      }
+    },
+    {
+      "no": 76,
+      "type": "Public services",
+      "subtype": "Courthouse",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "101",
+        "5B": "106"
+      },
+      "shift_factor": {
+        "50_or_less": "0.8",
+        "51_to_167": "0.8",
+        "168": "1.1"
+      }
+    },
+    {
+      "no": 77,
+      "type": "Public services",
+      "subtype": "Fire Station",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "65",
+        "5B": "68"
+      },
+      "shift_factor": {
+        "50_or_less": "0.8",
+        "51_to_167": "0.8",
+        "168": "1.1"
+      }
+    },
+    {
+      "no": 78,
+      "type": "Public services",
+      "subtype": "Library",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "56",
+        "5B": "59"
+      },
+      "shift_factor": {
+        "50_or_less": "0.6",
+        "51_to_167": "1.1",
+        "168": "1.6"
+      }
+    },
+    {
+      "no": 79,
+      "type": "Public services",
+      "subtype": "Mailing Center/Post Office",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "51",
+        "5B": "54"
+      },
+      "shift_factor": {
+        "50_or_less": "0.8",
+        "51_to_167": "1.2",
+        "168": "1.3"
+      }
+    },
+    {
+      "no": 80,
+      "type": "Public services",
+      "subtype": "Police Station",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "65",
+        "5B": "68"
+      },
+      "shift_factor": {
+        "50_or_less": "0.8",
+        "51_to_167": "0.8",
+        "168": "1.1"
+      }
+    },
+    {
+      "no": 81,
+      "type": "Public services",
+      "subtype": "Prison/Incarceration",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "101",
+        "5B": "106"
+      },
+      "shift_factor": {
+        "50_or_less": "1.0",
+        "51_to_167": "1.0",
+        "168": "1.0"
+      }
+    },
+    {
+      "no": 82,
+      "type": "Public services",
+      "subtype": "Social/Meeting Hall",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "50",
+        "5B": "52"
+      },
+      "shift_factor": {
+        "50_or_less": "0.6",
+        "51_to_167": "1.1",
+        "168": "1.6"
+      }
+    },
+    {
+      "no": 83,
+      "type": "Public services",
+      "subtype": "Transportation Terminal/Station",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "55",
+        "5B": "59"
+      },
+      "shift_factor": {
+        "50_or_less": "0.6",
+        "51_to_167": "1.1",
+        "168": "1.6"
+      }
+    },
+    {
+      "no": 84,
+      "type": "Public services",
+      "subtype": "Other - Public Service",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "66",
+        "5B": "69"
+      },
+      "shift_factor": {
+        "50_or_less": "0.8",
+        "51_to_167": "1.2",
+        "168": "1.3"
+      }
+    },
+    {
+      "no": 85,
+      "type": "Religious worship",
+      "subtype": "Worship Facility",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "39",
+        "5B": "42"
+      },
+      "shift_factor": {
+        "50_or_less": "0.9",
+        "51_to_167": "1.7",
+        "168": "1.7"
+      }
+    },
+    {
+      "no": 86,
+      "type": "Retail",
+      "subtype": "Automobile Dealership",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "59",
+        "5B": "66"
+      },
+      "shift_factor": {
+        "50_or_less": "0.6",
+        "51_to_167": "1.0",
+        "168": "1.5"
+      }
+    },
+    {
+      "no": 87,
+      "type": "Retail",
+      "subtype": "Convenience Store with Gas Station",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "260",
+        "5B": "269"
+      },
+      "shift_factor": {
+        "50_or_less": "0.5",
+        "51_to_167": "0.9",
+        "168": "1.3"
+      }
+    },
+    {
+      "no": 88,
+      "type": "Retail",
+      "subtype": "Convenience Store without Gas Station",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "244",
+        "5B": "253"
+      },
+      "shift_factor": {
+        "50_or_less": "0.5",
+        "51_to_167": "0.9",
+        "168": "1.3"
+      }
+    },
+    {
+      "no": 89,
+      "type": "Retail",
+      "subtype": "Enclosed Mall",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "58",
+        "5B": "64"
+      },
+      "shift_factor": {
+        "50_or_less": "0.6",
+        "51_to_167": "1.0",
+        "168": "1.5"
+      }
+    },
+    {
+      "no": 90,
+      "type": "Retail",
+      "subtype": "Lifestyle Center",
+      "detail": "Enclosed mall",
+      "eui_target_1": {
+        "4C": "58",
+        "5B": "64"
+      },
+      "shift_factor": {
+        "50_or_less": "0.6",
+        "51_to_167": "1.0",
+        "168": "1.5"
+      }
+    },
+    {
+      "no": 91,
+      "type": "Retail",
+      "subtype": "Lifestyle Center",
+      "detail": "Other retail",
+      "eui_target_1": {
+        "4C": "55",
+        "5B": "62"
+      },
+      "shift_factor": {
+        "50_or_less": "0.6",
+        "51_to_167": "1.0",
+        "168": "1.5"
+      }
+    },
+    {
+      "no": 92,
+      "type": "Retail",
+      "subtype": "Lifestyle Center",
+      "detail": "Retail store",
+      "eui_target_1": {
+        "4C": "68",
+        "5B": "75"
+      },
+      "shift_factor": {
+        "50_or_less": "0.6",
+        "51_to_167": "1.0",
+        "168": "1.5"
+      }
+    },
+    {
+      "no": 93,
+      "type": "Retail",
+      "subtype": "Lifestyle Center",
+      "detail": "",
+      "eui_target_1": {
+        "4C": null,
+        "5B": null
+      },
+      "shift_factor": null
+    },
+    {
+      "no": 94,
+      "type": "Retail",
+      "subtype": "Retail Store",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "68",
+        "5B": "75"
+      },
+      "shift_factor": {
+        "50_or_less": "0.6",
+        "51_to_167": "1.0",
+        "168": "1.5"
+      }
+    },
+    {
+      "no": 95,
+      "type": "Retail",
+      "subtype": "Strip Mall",
+      "detail": "",
+      "eui_target_1": {
+        "4C": null,
+        "5B": null
+      },
+      "shift_factor": null
+    },
+    {
+      "no": 96,
+      "type": "Retail",
+      "subtype": "Supermarket/Grocery Store",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "191",
+        "5B": "198"
+      },
+      "shift_factor": {
+        "50_or_less": "0.5",
+        "51_to_167": "0.9",
+        "168": "1.3"
+      }
+    },
+    {
+      "no": 97,
+      "type": "Retail",
+      "subtype": "Wholesale Club/Supercenter",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "68",
+        "5B": "75"
+      },
+      "shift_factor": {
+        "50_or_less": "0.6",
+        "51_to_167": "1.0",
+        "168": "1.5"
+      }
+    },
+    {
+      "no": 98,
+      "type": "Retail",
+      "subtype": "Other - Retail/Mall",
+      "detail": "Enclosed mall",
+      "eui_target_1": {
+        "4C": "58",
+        "5B": "64"
+      },
+      "shift_factor": {
+        "50_or_less": "0.6",
+        "51_to_167": "1.0",
+        "168": "1.5"
+      }
+    },
+    {
+      "no": 99,
+      "type": "Retail",
+      "subtype": "Other - Retail/Mall",
+      "detail": "",
+      "eui_target_1": {
+        "4C": null,
+        "5B": null
+      },
+      "shift_factor": null
+    },
+    {
+      "no": 100,
+      "type": "Technology/science",
+      "subtype": "Data Center",
+      "detail": "",
+      "eui_target_1": {
+        "4C": null,
+        "5B": null
+      },
+      "shift_factor": null
+    },
+    {
+      "no": 101,
+      "type": "Technology/science",
+      "subtype": "Laboratory",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "237",
+        "5B": "249"
+      },
+      "shift_factor": {
+        "50_or_less": "1.0",
+        "51_to_167": "1.0",
+        "168": "1.0"
+      }
+    },
+    {
+      "no": 102,
+      "type": "Technology/science",
+      "subtype": "Other - Technology/Science",
+      "detail": "Other service",
+      "eui_target_1": {
+        "4C": "66",
+        "5B": "69"
+      },
+      "shift_factor": {
+        "50_or_less": "0.8",
+        "51_to_167": "1.2",
+        "168": "1.3"
+      }
+    },
+    {
+      "no": 103,
+      "type": "Services",
+      "subtype": "Personal Services (Health/Beauty, Dry Cleaning, etc.)",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "66",
+        "5B": "69"
+      },
+      "shift_factor": {
+        "50_or_less": "0.8",
+        "51_to_167": "1.2",
+        "168": "1.3"
+      }
+    },
+    {
+      "no": 104,
+      "type": "Services",
+      "subtype": "Repair Services (Vehicle, Shoe, Locksmith, etc.)",
+      "detail": "Repair shop",
+      "eui_target_1": {
+        "4C": "36",
+        "5B": "39"
+      },
+      "shift_factor": {
+        "50_or_less": "0.8",
+        "51_to_167": "1.2",
+        "168": "1.3"
+      }
+    },
+    {
+      "no": 105,
+      "type": "Services",
+      "subtype": "Repair Services (Vehicle, Shoe, Locksmith, etc.)",
+      "detail": "Vehicle service/repair shop",
+      "eui_target_1": {
+        "4C": "60",
+        "5B": "64"
+      },
+      "shift_factor": {
+        "50_or_less": "0.8",
+        "51_to_167": "1.2",
+        "168": "1.3"
+      }
+    },
+    {
+      "no": 106,
+      "type": "Services",
+      "subtype": "Repair Services (Vehicle, Shoe, Locksmith, etc.)",
+      "detail": "Vehicle storage/maintenance",
+      "eui_target_1": {
+        "4C": "41",
+        "5B": "44"
+      },
+      "shift_factor": {
+        "50_or_less": "0.8",
+        "51_to_167": "1.2",
+        "168": "1.3"
+      }
+    },
+    {
+      "no": 107,
+      "type": "Services",
+      "subtype": "Other - Services",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "66",
+        "5B": "69"
+      },
+      "shift_factor": {
+        "50_or_less": "0.8",
+        "51_to_167": "1.2",
+        "168": "1.3"
+      }
+    },
+    {
+      "no": 108,
+      "type": "Utility",
+      "subtype": "Energy/Power Station",
+      "detail": "",
+      "eui_target_1": {
+        "4C": null,
+        "5B": null
+      },
+      "shift_factor": null
+    },
+    {
+      "no": 109,
+      "type": "Utility",
+      "subtype": "Other - Utility",
+      "detail": "",
+      "eui_target_1": {
+        "4C": null,
+        "5B": null
+      },
+      "shift_factor": null
+    },
+    {
+      "no": 110,
+      "type": "Warehouse/storage",
+      "subtype": "Self-Storage Facility",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "36",
+        "5B": "44"
+      },
+      "shift_factor": {
+        "50_or_less": "0.8",
+        "51_to_167": "1.0",
+        "168": "1.4"
+      }
+    },
+    {
+      "no": 111,
+      "type": "Warehouse/storage",
+      "subtype": "Distribution Center",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "36",
+        "5B": "44"
+      },
+      "shift_factor": {
+        "50_or_less": "0.8",
+        "51_to_167": "1.0",
+        "168": "1.4"
+      }
+    },
+    {
+      "no": 112,
+      "type": "Warehouse/storage",
+      "subtype": "Nonrefrigerated Warehouse",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "36",
+        "5B": "44"
+      },
+      "shift_factor": {
+        "50_or_less": "0.8",
+        "51_to_167": "1.0",
+        "168": "1.4"
+      }
+    },
+    {
+      "no": 113,
+      "type": "Warehouse/storage",
+      "subtype": "Refrigerated Warehouse",
+      "detail": "",
+      "eui_target_1": {
+        "4C": "121",
+        "5B": "126"
+      },
+      "shift_factor": {
+        "50_or_less": "1.0",
+        "51_to_167": "1.0",
+        "168": "1.4"
+      }
+    }
+  ],
+  "recent_construction_factor": "0.85"
+}

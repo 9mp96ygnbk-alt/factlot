@@ -1,0 +1,420 @@
+{
+  "_about": "Reference copy of the NYC LL97 tables, transcribed from the Notices of Adoption in https://www.nyc.gov/assets/buildings/rules/1_RCNY_103-14_prom_details_date.pdf (pdftotext -raw) and cross-checked against the DOB compilation https://www.nyc.gov/assets/buildings/rules/1_RCNY_103-14.pdf (pdftotext -layout); both retrieved 2026-11-03. Values are the decimal strings printed in the rule. Both SDKs' tables must equal this file, and reference.py computes the vectors from it.",
+  "emissions_factors_tco2e_per_sf": [
+    {
+      "property_type": "Adult Education",
+      "2024-2029": "0.00758",
+      "2030-2034": "0.003565528"
+    },
+    {
+      "property_type": "Ambulatory Surgical Center",
+      "2024-2029": "0.01181",
+      "2030-2034": "0.008980612"
+    },
+    {
+      "property_type": "Automobile Dealership",
+      "2024-2029": "0.00675",
+      "2030-2034": "0.002824097"
+    },
+    {
+      "property_type": "Bank Branch",
+      "2024-2029": "0.00987",
+      "2030-2034": "0.004036172"
+    },
+    {
+      "property_type": "Bowling Alley",
+      "2024-2029": "0.00574",
+      "2030-2034": "0.003103815"
+    },
+    {
+      "property_type": "College/University",
+      "2024-2029": "0.00987",
+      "2030-2034": "0.002099748"
+    },
+    {
+      "property_type": "Convenience Store without Gas Station",
+      "2024-2029": "0.00675",
+      "2030-2034": "0.003540032"
+    },
+    {
+      "property_type": "Courthouse",
+      "2024-2029": "0.00426",
+      "2030-2034": "0.001480533"
+    },
+    {
+      "property_type": "Data Center",
+      "2024-2029": "0.02381",
+      "2030-2034": "0.014791131"
+    },
+    {
+      "property_type": "Distribution Center",
+      "2024-2029": "0.00574",
+      "2030-2034": "0.000991600"
+    },
+    {
+      "property_type": "Enclosed Mall",
+      "2024-2029": "0.01074",
+      "2030-2034": "0.003983803"
+    },
+    {
+      "property_type": "Financial Office",
+      "2024-2029": "0.00846",
+      "2030-2034": "0.003697004"
+    },
+    {
+      "property_type": "Fitness Center/Health Club/Gym",
+      "2024-2029": "0.00987",
+      "2030-2034": "0.003946728"
+    },
+    {
+      "property_type": "Food Sales",
+      "2024-2029": "0.01181",
+      "2030-2034": "0.005208880"
+    },
+    {
+      "property_type": "Food Service",
+      "2024-2029": "0.01181",
+      "2030-2034": "0.007749414"
+    },
+    {
+      "property_type": "Hospital (General Medical & Surgical)",
+      "2024-2029": "0.02381",
+      "2030-2034": "0.007335204"
+    },
+    {
+      "property_type": "Hotel",
+      "2024-2029": "0.00987",
+      "2030-2034": "0.003850668"
+    },
+    {
+      "property_type": "K-12 School",
+      "2024-2029": "0.00675",
+      "2030-2034": "0.002230588"
+    },
+    {
+      "property_type": "Laboratory",
+      "2024-2029": "0.02381",
+      "2030-2034": "0.026029868"
+    },
+    {
+      "property_type": "Library",
+      "2024-2029": "0.00675",
+      "2030-2034": "0.002218412"
+    },
+    {
+      "property_type": "Lifestyle Center",
+      "2024-2029": "0.00846",
+      "2030-2034": "0.004705850"
+    },
+    {
+      "property_type": "Mailing Center/Post Office",
+      "2024-2029": "0.00426",
+      "2030-2034": "0.001980440"
+    },
+    {
+      "property_type": "Manufacturing/Industrial Plant",
+      "2024-2029": "0.00758",
+      "2030-2034": "0.001417030"
+    },
+    {
+      "property_type": "Medical Office",
+      "2024-2029": "0.01074",
+      "2030-2034": "0.002912778"
+    },
+    {
+      "property_type": "Movie Theater",
+      "2024-2029": "0.01181",
+      "2030-2034": "0.005395268"
+    },
+    {
+      "property_type": "Multifamily Housing",
+      "2024-2029": "0.00675",
+      "2030-2034": "0.003346640"
+    },
+    {
+      "property_type": "Museum",
+      "2024-2029": "0.01181",
+      "2030-2034": "0.005395800"
+    },
+    {
+      "property_type": "Non-Refrigerated Warehouse",
+      "2024-2029": "0.00426",
+      "2030-2034": "0.000883187"
+    },
+    {
+      "property_type": "Office",
+      "2024-2029": "0.00758",
+      "2030-2034": "0.002690852"
+    },
+    {
+      "property_type": "Other - Education",
+      "2024-2029": "0.00846",
+      "2030-2034": "0.002934006"
+    },
+    {
+      "property_type": "Other - Entertainment/Public Assembly",
+      "2024-2029": "0.00987",
+      "2030-2034": "0.002956738"
+    },
+    {
+      "property_type": "Other - Lodging/Residential",
+      "2024-2029": "0.00758",
+      "2030-2034": "0.001901982"
+    },
+    {
+      "property_type": "Other - Mall",
+      "2024-2029": "0.01074",
+      "2030-2034": "0.001928226"
+    },
+    {
+      "property_type": "Other - Public Services",
+      "2024-2029": "0.00758",
+      "2030-2034": "0.003808033"
+    },
+    {
+      "property_type": "Other - Recreation",
+      "2024-2029": "0.00987",
+      "2030-2034": "0.004479570"
+    },
+    {
+      "property_type": "Other - Restaurant/Bar",
+      "2024-2029": "0.02381",
+      "2030-2034": "0.008505075"
+    },
+    {
+      "property_type": "Other - Services",
+      "2024-2029": "0.01074",
+      "2030-2034": "0.001823381"
+    },
+    {
+      "property_type": "Other - Specialty Hospital",
+      "2024-2029": "0.02381",
+      "2030-2034": "0.006321819"
+    },
+    {
+      "property_type": "Other - Technology/Science",
+      "2024-2029": "0.02381",
+      "2030-2034": "0.010446456"
+    },
+    {
+      "property_type": "Outpatient Rehabilitation/Physical Therapy",
+      "2024-2029": "0.01181",
+      "2030-2034": "0.006018323"
+    },
+    {
+      "property_type": "Parking",
+      "2024-2029": "0.00426",
+      "2030-2034": "0.000214421"
+    },
+    {
+      "property_type": "Performing Arts",
+      "2024-2029": "0.00846",
+      "2030-2034": "0.002472539"
+    },
+    {
+      "property_type": "Personal Services (Health/Beauty, Dry Cleaning, etc.)",
+      "2024-2029": "0.00574",
+      "2030-2034": "0.004843037"
+    },
+    {
+      "property_type": "Pre-school/Daycare",
+      "2024-2029": "0.00675",
+      "2030-2034": "0.002362874"
+    },
+    {
+      "property_type": "Refrigerated Warehouse",
+      "2024-2029": "0.00987",
+      "2030-2034": "0.002852131"
+    },
+    {
+      "property_type": "Repair Services (Vehicle, Shoe, Locksmith, etc.)",
+      "2024-2029": "0.00426",
+      "2030-2034": "0.002210699"
+    },
+    {
+      "property_type": "Residence Hall/Dormitory",
+      "2024-2029": "0.00758",
+      "2030-2034": "0.002464089"
+    },
+    {
+      "property_type": "Residential Care Facility",
+      "2024-2029": "0.01138",
+      "2030-2034": "0.004893124"
+    },
+    {
+      "property_type": "Restaurant",
+      "2024-2029": "0.01181",
+      "2030-2034": "0.004038374"
+    },
+    {
+      "property_type": "Retail Store",
+      "2024-2029": "0.00758",
+      "2030-2034": "0.002104490"
+    },
+    {
+      "property_type": "Self-Storage Facility",
+      "2024-2029": "0.00426",
+      "2030-2034": "0.000611830"
+    },
+    {
+      "property_type": "Senior Care Community",
+      "2024-2029": "0.01138",
+      "2030-2034": "0.004410123"
+    },
+    {
+      "property_type": "Social/Meeting Hall",
+      "2024-2029": "0.00987",
+      "2030-2034": "0.003833108"
+    },
+    {
+      "property_type": "Strip Mall",
+      "2024-2029": "0.01181",
+      "2030-2034": "0.001361842"
+    },
+    {
+      "property_type": "Supermarket/Grocery Store",
+      "2024-2029": "0.02381",
+      "2030-2034": "0.006755190"
+    },
+    {
+      "property_type": "Transportation Terminal/Station",
+      "2024-2029": "0.00426",
+      "2030-2034": "0.000571669"
+    },
+    {
+      "property_type": "Urgent Care/Clinic/Other Outpatient",
+      "2024-2029": "0.01181",
+      "2030-2034": "0.005772375"
+    },
+    {
+      "property_type": "Vocational School",
+      "2024-2029": "0.00574",
+      "2030-2034": "0.004613122"
+    },
+    {
+      "property_type": "Wholesale Club/Supercenter",
+      "2024-2029": "0.01138",
+      "2030-2034": "0.004264962"
+    },
+    {
+      "property_type": "Worship Facility",
+      "2024-2029": "0.00574",
+      "2030-2034": "0.001230602"
+    }
+  ],
+  "other_fuels_tco2e_per_kbtu": [
+    {
+      "fuel": "butane",
+      "label": "Butane",
+      "2024-2034": "0.00006502"
+    },
+    {
+      "fuel": "butylene",
+      "label": "Butylene",
+      "2024-2034": "0.00006897"
+    },
+    {
+      "fuel": "diesel",
+      "label": "Diesel",
+      "2024-2034": "0.00007421"
+    },
+    {
+      "fuel": "distillate_fuel_oil_no_1",
+      "label": "Distillate Fuel Oil No. 1",
+      "2024-2034": "0.00007350"
+    },
+    {
+      "fuel": "ethane",
+      "label": "Ethane",
+      "2024-2034": "0.00005985"
+    },
+    {
+      "fuel": "ethylene",
+      "label": "Ethylene",
+      "2024-2034": "0.00006621"
+    },
+    {
+      "fuel": "gasoline",
+      "label": "Gasoline",
+      "2024-2034": "0.00007047"
+    },
+    {
+      "fuel": "isobutane",
+      "label": "Isobutane",
+      "2024-2034": "0.00006519"
+    },
+    {
+      "fuel": "isobutylene",
+      "label": "Isobutylene",
+      "2024-2034": "0.00006911"
+    },
+    {
+      "fuel": "kerosene",
+      "label": "Kerosene",
+      "2024-2034": "0.00007769"
+    },
+    {
+      "fuel": "naphtha_below_401f",
+      "label": "Naphtha (< 401 deg F)",
+      "2024-2034": "0.00006827"
+    },
+    {
+      "fuel": "other_oil_above_401f",
+      "label": "Other Oil (> 401 deg F)",
+      "2024-2034": "0.00007647"
+    },
+    {
+      "fuel": "pentanes_plus",
+      "label": "Pentanes Plus",
+      "2024-2034": "0.00007027"
+    },
+    {
+      "fuel": "propane",
+      "label": "Propane",
+      "2024-2034": "0.00006425"
+    },
+    {
+      "fuel": "propylene",
+      "label": "Propylene",
+      "2024-2034": "0.00006802"
+    },
+    {
+      "fuel": "special_naphtha",
+      "label": "Special Naphtha",
+      "2024-2034": "0.00007259"
+    },
+    {
+      "fuel": "coke_oven_gas",
+      "label": "Coke Oven Gas",
+      "2024-2034": "0.00004689"
+    },
+    {
+      "fuel": "fuel_gas",
+      "label": "Fuel Gas",
+      "2024-2034": "0.00005925"
+    },
+    {
+      "fuel": "biofuel",
+      "label": "Biofuel",
+      "2024-2034": "0.00007389"
+    }
+  ],
+  "coefficients": {
+    "_source": "2024-2029: Admin. Code §28-320.3.1.1 items 1-5 (L.L. 147 of 2019); 2030-2034: 1 RCNY §103-14(d)(3)(i)(b) and (d)(3)(ii)",
+    "2024-2029": {
+      "utility_electricity_kwh": "0.000288962",
+      "natural_gas_kbtu": "0.00005311",
+      "fuel_oil_2_kbtu": "0.00007421",
+      "fuel_oil_4_kbtu": "0.00007529",
+      "district_steam_kbtu": "0.00004493"
+    },
+    "2030-2034": {
+      "utility_electricity_kwh": "0.000145",
+      "natural_gas_kbtu": "0.00005311",
+      "fuel_oil_2_kbtu": "0.00007421",
+      "fuel_oil_4_kbtu": "0.00007529",
+      "district_steam_kbtu": "0.0000432"
+    }
+  },
+  "penalty_usd_per_tco2e": "268"
+}

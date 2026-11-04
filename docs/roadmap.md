@@ -30,7 +30,7 @@ identity layer for commercial real estate.
   - ~~lease-vs-own and renew-vs-relocate analysis~~
   - ~~prepayment and defeasance~~
   - ~~hotel RevPAR, ADR, and GOP~~
-  - NYC LL97 penalty (still deferred until the law text is reachable; see [rules](rules.md))
+  - NYC LL97 penalty: drafted (not yet verified); see [rules](rules.md#draft-packs)
 - [x] Rules-pack framework (versioned, cited, verification status) and the first pack: Texas property tax protest deadline (verified against the official statute text on 2026-11-02)
 - [x] Lease ingestion prototype with deterministic quote verification and amendment supersession ([ingest](ingest.md)); next: accuracy on real leases
 - [x] Build **FactLot Bench**: 14 CRE agent tasks with independent ground truth, a

@@ -40,6 +40,7 @@ export * from "./proposals.ts";
 export * from "./renew_vs_relocate.ts";
 export * from "./retail.ts";
 export * from "./rules.ts";
+export * from "./rules-drafts/index.ts";
 export * from "./rent.ts";
 
 export interface Calculator {

@@ -1,0 +1,417 @@
+{
+  "rule": "nyc_ll97_building_emissions",
+  "calculator": "rules.nyc.ll97_building_emissions",
+  "version": 1,
+  "status": "draft",
+  "note": "Expected values computed by spec/vectors/rules/drafts/reference.py in exact decimal arithmetic from the reference tables in this directory, not by either SDK.",
+  "cases": [
+    {
+      "name": "office, 2024: electricity and gas over the limit",
+      "input": {
+        "calendar_year": 2024,
+        "spaces": [
+          {
+            "property_type": "Office",
+            "floor_area_sf": 100000
+          }
+        ],
+        "energy": {
+          "utility_electricity_kwh": 2000000,
+          "natural_gas_kbtu": 5000000
+        }
+      },
+      "expect": {
+        "value.status": "draft",
+        "value.rule.verification.status": "draft",
+        "formula.id": "rules.nyc.ll97_building_emissions",
+        "value.compliance_period": "2024-2029",
+        "value.gross_floor_area_sf": 100000.0,
+        "value.exceeds_25000_gsf": true,
+        "value.emissions_limit_tco2e": 758.0,
+        "value.building_emissions_tco2e": 843.474,
+        "value.excess_emissions_tco2e": 85.474,
+        "value.within_limit": false,
+        "value.penalty_usd": 22907.03
+      }
+    },
+    {
+      "name": "same office, 2030: lower factor and electricity coefficient",
+      "input": {
+        "calendar_year": 2030,
+        "spaces": [
+          {
+            "property_type": "Office",
+            "floor_area_sf": 100000
+          }
+        ],
+        "energy": {
+          "utility_electricity_kwh": 2000000,
+          "natural_gas_kbtu": 5000000
+        }
+      },
+      "expect": {
+        "value.status": "draft",
+        "value.rule.verification.status": "draft",
+        "formula.id": "rules.nyc.ll97_building_emissions",
+        "value.compliance_period": "2030-2034",
+        "value.gross_floor_area_sf": 100000.0,
+        "value.exceeds_25000_gsf": true,
+        "value.emissions_limit_tco2e": 269.0852,
+        "value.building_emissions_tco2e": 555.55,
+        "value.excess_emissions_tco2e": 286.4648,
+        "value.within_limit": false,
+        "value.penalty_usd": 76772.57
+      }
+    },
+    {
+      "name": "mixed multifamily, retail and parking, 2027, with #2 oil",
+      "input": {
+        "calendar_year": 2027,
+        "spaces": [
+          {
+            "property_type": "Multifamily Housing",
+            "floor_area_sf": 80000
+          },
+          {
+            "property_type": "Retail Store",
+            "floor_area_sf": 15000
+          },
+          {
+            "property_type": "Parking",
+            "floor_area_sf": 20000
+          }
+        ],
+        "energy": {
+          "utility_electricity_kwh": 900000,
+          "natural_gas_kbtu": 3000000,
+          "fuel_oil_2_kbtu": 500000,
+          "district_steam_kbtu": 0
+        }
+      },
+      "expect": {
+        "value.status": "draft",
+        "value.rule.verification.status": "draft",
+        "formula.id": "rules.nyc.ll97_building_emissions",
+        "value.compliance_period": "2024-2029",
+        "value.gross_floor_area_sf": 115000.0,
+        "value.exceeds_25000_gsf": true,
+        "value.emissions_limit_tco2e": 738.9,
+        "value.building_emissions_tco2e": 456.5008,
+        "value.excess_emissions_tco2e": 0.0,
+        "value.within_limit": true,
+        "value.penalty_usd": 0.0
+      }
+    },
+    {
+      "name": "hotel with restaurant, 2032, other fuels",
+      "input": {
+        "calendar_year": 2032,
+        "spaces": [
+          {
+            "property_type": "Hotel",
+            "floor_area_sf": 60000
+          },
+          {
+            "property_type": "Restaurant",
+            "floor_area_sf": 5000
+          }
+        ],
+        "energy": {
+          "utility_electricity_kwh": 1500000,
+          "natural_gas_kbtu": 4000000,
+          "other_fuels": [
+            {
+              "fuel": "propane",
+              "kbtu": 200000
+            },
+            {
+              "fuel": "diesel",
+              "kbtu": 10000
+            },
+            {
+              "fuel": "biofuel",
+              "kbtu": 50000
+            }
+          ]
+        }
+      },
+      "expect": {
+        "value.status": "draft",
+        "value.rule.verification.status": "draft",
+        "formula.id": "rules.nyc.ll97_building_emissions",
+        "value.compliance_period": "2030-2034",
+        "value.gross_floor_area_sf": 65000.0,
+        "value.exceeds_25000_gsf": true,
+        "value.emissions_limit_tco2e": 251.232,
+        "value.building_emissions_tco2e": 447.2266,
+        "value.excess_emissions_tco2e": 195.9946,
+        "value.within_limit": false,
+        "value.penalty_usd": 52526.55
+      }
+    },
+    {
+      "name": "school within the limit, 2025",
+      "input": {
+        "calendar_year": 2025,
+        "spaces": [
+          {
+            "property_type": "K-12 School",
+            "floor_area_sf": 30000
+          }
+        ],
+        "energy": {
+          "utility_electricity_kwh": 300000,
+          "natural_gas_kbtu": 1000000
+        }
+      },
+      "expect": {
+        "value.status": "draft",
+        "value.rule.verification.status": "draft",
+        "formula.id": "rules.nyc.ll97_building_emissions",
+        "value.compliance_period": "2024-2029",
+        "value.gross_floor_area_sf": 30000.0,
+        "value.exceeds_25000_gsf": true,
+        "value.emissions_limit_tco2e": 202.5,
+        "value.building_emissions_tco2e": 139.7986,
+        "value.excess_emissions_tco2e": 0.0,
+        "value.within_limit": true,
+        "value.penalty_usd": 0.0
+      }
+    },
+    {
+      "name": "office with #4 oil and district steam, 2034",
+      "input": {
+        "calendar_year": 2034,
+        "spaces": [
+          {
+            "property_type": "Financial Office",
+            "floor_area_sf": 250000.5
+          }
+        ],
+        "energy": {
+          "utility_electricity_kwh": 4100000.25,
+          "fuel_oil_4_kbtu": 1200000,
+          "district_steam_kbtu": 9000000
+        }
+      },
+      "expect": {
+        "value.status": "draft",
+        "value.rule.verification.status": "draft",
+        "formula.id": "rules.nyc.ll97_building_emissions",
+        "value.compliance_period": "2030-2034",
+        "value.gross_floor_area_sf": 250000.5,
+        "value.exceeds_25000_gsf": true,
+        "value.emissions_limit_tco2e": 924.2528,
+        "value.building_emissions_tco2e": 1073.648,
+        "value.excess_emissions_tco2e": 149.3952,
+        "value.within_limit": false,
+        "value.penalty_usd": 40037.91
+      }
+    },
+    {
+      "name": "small building, no energy reported",
+      "input": {
+        "calendar_year": 2026,
+        "spaces": [
+          {
+            "property_type": "Self-Storage Facility",
+            "floor_area_sf": 20000
+          }
+        ],
+        "energy": {}
+      },
+      "expect": {
+        "value.status": "draft",
+        "value.rule.verification.status": "draft",
+        "formula.id": "rules.nyc.ll97_building_emissions",
+        "value.compliance_period": "2024-2029",
+        "value.gross_floor_area_sf": 20000.0,
+        "value.exceeds_25000_gsf": false,
+        "value.emissions_limit_tco2e": 85.2,
+        "value.building_emissions_tco2e": 0.0,
+        "value.excess_emissions_tco2e": 0.0,
+        "value.within_limit": true,
+        "value.penalty_usd": 0.0
+      }
+    },
+    {
+      "name": "data center, 2029, last year of the first period",
+      "input": {
+        "calendar_year": 2029,
+        "spaces": [
+          {
+            "property_type": "Data Center",
+            "floor_area_sf": 40000
+          },
+          {
+            "property_type": "Office",
+            "floor_area_sf": 10000
+          }
+        ],
+        "energy": {
+          "utility_electricity_kwh": 9000000
+        }
+      },
+      "expect": {
+        "value.status": "draft",
+        "value.rule.verification.status": "draft",
+        "formula.id": "rules.nyc.ll97_building_emissions",
+        "value.compliance_period": "2024-2029",
+        "value.gross_floor_area_sf": 50000.0,
+        "value.exceeds_25000_gsf": true,
+        "value.emissions_limit_tco2e": 1028.2,
+        "value.building_emissions_tco2e": 2600.658,
+        "value.excess_emissions_tco2e": 1572.458,
+        "value.within_limit": false,
+        "value.penalty_usd": 421418.74
+      }
+    },
+    {
+      "name": "year after 2034",
+      "input": {
+        "calendar_year": 2035,
+        "spaces": [
+          {
+            "property_type": "Office",
+            "floor_area_sf": 1
+          }
+        ],
+        "energy": {}
+      },
+      "expect_error": true
+    },
+    {
+      "name": "year before 2024",
+      "input": {
+        "calendar_year": 2023,
+        "spaces": [
+          {
+            "property_type": "Office",
+            "floor_area_sf": 1
+          }
+        ],
+        "energy": {}
+      },
+      "expect_error": true
+    },
+    {
+      "name": "'Other' is not an allowed property type",
+      "input": {
+        "calendar_year": 2024,
+        "spaces": [
+          {
+            "property_type": "Other",
+            "floor_area_sf": 1
+          }
+        ],
+        "energy": {}
+      },
+      "expect_error": true
+    },
+    {
+      "name": "no spaces",
+      "input": {
+        "calendar_year": 2024,
+        "spaces": [],
+        "energy": {}
+      },
+      "expect_error": true
+    },
+    {
+      "name": "zero floor area",
+      "input": {
+        "calendar_year": 2024,
+        "spaces": [
+          {
+            "property_type": "Office",
+            "floor_area_sf": 0
+          }
+        ],
+        "energy": {}
+      },
+      "expect_error": true
+    },
+    {
+      "name": "negative energy",
+      "input": {
+        "calendar_year": 2024,
+        "spaces": [
+          {
+            "property_type": "Office",
+            "floor_area_sf": 1
+          }
+        ],
+        "energy": {
+          "natural_gas_kbtu": -1
+        }
+      },
+      "expect_error": true
+    },
+    {
+      "name": "misspelled energy field",
+      "input": {
+        "calendar_year": 2024,
+        "spaces": [
+          {
+            "property_type": "Office",
+            "floor_area_sf": 1
+          }
+        ],
+        "energy": {
+          "electricity_kwh": 100
+        }
+      },
+      "expect_error": true
+    },
+    {
+      "name": "unknown fuel",
+      "input": {
+        "calendar_year": 2024,
+        "spaces": [
+          {
+            "property_type": "Office",
+            "floor_area_sf": 1
+          }
+        ],
+        "energy": {
+          "other_fuels": [
+            {
+              "fuel": "coal",
+              "kbtu": 1
+            }
+          ]
+        }
+      },
+      "expect_error": true
+    },
+    {
+      "name": "null energy value",
+      "input": {
+        "calendar_year": 2024,
+        "spaces": [
+          {
+            "property_type": "Office",
+            "floor_area_sf": 1
+          }
+        ],
+        "energy": {
+          "natural_gas_kbtu": null
+        }
+      },
+      "expect_error": true
+    },
+    {
+      "name": "energy missing",
+      "input": {
+        "calendar_year": 2024,
+        "spaces": [
+          {
+            "property_type": "Office",
+            "floor_area_sf": 1
+          }
+        ]
+      },
+      "expect_error": true
+    }
+  ]
+}
