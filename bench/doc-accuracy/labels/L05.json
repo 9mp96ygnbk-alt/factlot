@@ -1,0 +1,48 @@
+{
+ "doc": "L05",
+ "labels": [
+  {
+   "predicate": "lease.landlord",
+   "value": "IGX BRUSHY CREEK, LLC",
+   "page": 1,
+   "quote": "IGX BRUSHY CREEK, LLC, a Texas limited liability company (\"Landlord\")"
+  },
+  {
+   "predicate": "lease.tenant",
+   "value": "HYLIION INC.",
+   "page": 1,
+   "quote": "HYLIION INC., a Delaware corporation (\"Tenant\")"
+  },
+  {
+   "predicate": "lease.expiration_date",
+   "value": "2027-04-30",
+   "page": 2,
+   "quote": "the Term of the Lease for the entire Premises shall be amended to expire on April 30, 2027",
+   "note": "Takes effect upon the Third Expansion Commencement Date. That commencement date (earlier of June 1, 2022 or substantial completion of Tenant's Work) is conditional, so lease.commencement_date and lease.rent_commencement_date are not labeled. Exhibit B (base rent schedule) is not in the filed exhibit."
+  },
+  {
+   "predicate": "lease.rentable_area_sf",
+   "value": 124780,
+   "page": 1,
+   "quote": "certain premises consisting of approximately 124,780 square feet of space"
+  },
+  {
+   "predicate": "lease.rentable_area_sf",
+   "value": 26908,
+   "page": 2,
+   "quote": "the parties agree contain in the aggregate 26,908 square feet of space"
+  },
+  {
+   "predicate": "lease.pro_rata_share",
+   "value": 1,
+   "page": 2,
+   "quote": "Tenant's pro rata share shall be (i) 100% of all Additional Expenses relating solely to Building 2"
+  },
+  {
+   "predicate": "lease.pro_rata_share",
+   "value": 0.253,
+   "page": 2,
+   "quote": "(ii) 25.3% of all Additional Expenses relating solely to Building 1"
+  }
+ ]
+}
