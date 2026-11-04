@@ -1,6 +1,6 @@
 {
   "calculator": "calc.debt_sizing",
-  "version": 2,
+  "version": 3,
   "cases": [
     {
       "name": "LTV binds",
@@ -49,6 +49,141 @@
         "value.binding_constraint": "dscr",
         "value.max_loan": 13333333,
         "value.annual_constant": 0.06
+      }
+    },
+    {
+      "name": "no stress or existing loan: the base result is unchanged",
+      "input": {
+        "noi": 2450000,
+        "value": 38000000,
+        "rate_annual": 0.0875,
+        "amortization_years": 0,
+        "max_ltv": 0.72,
+        "min_dscr": 1.15,
+        "min_debt_yield": 0.085,
+        "round_down_to": 50000
+      },
+      "expect": {
+        "value.max_loan": 24300000,
+        "value.binding_constraint": "dscr",
+        "warnings": []
+      }
+    },
+    {
+      "name": "stress table on an interest-only bridge loan: NOI and rate shocks with a refinance shortfall per scenario (review case B03-P14)",
+      "input": {
+        "noi": 2450000,
+        "value": 38000000,
+        "rate_annual": 0.0875,
+        "amortization_years": 0,
+        "max_ltv": 0.72,
+        "min_dscr": 1.15,
+        "min_debt_yield": 0.085,
+        "round_down_to": 50000,
+        "existing_loan_balance": 24000000,
+        "stress": {
+          "noi_shocks": [-0.05, -0.1, -0.2],
+          "rate_shocks": [0, 0.01]
+        }
+      },
+      "expect": {
+        "value.max_loan": 24300000,
+        "value.binding_constraint": "dscr",
+        "value.stress.0.max_loan": 23100000,
+        "value.stress.0.binding_constraint": "dscr",
+        "value.stress.0.annual_debt_service": 2021250,
+        "value.stress.0.ltv": 0.6079,
+        "value.stress.0.dscr": 1.1515,
+        "value.stress.0.debt_yield": 0.1008,
+        "value.stress.0.refinance_shortfall": 900000,
+        "value.stress.0.value": 38000000,
+        "value.stress.1.max_loan": 20750000,
+        "value.stress.1.binding_constraint": "dscr",
+        "value.stress.1.annual_debt_service": 2023125,
+        "value.stress.1.ltv": 0.5461,
+        "value.stress.1.dscr": 1.1504,
+        "value.stress.1.debt_yield": 0.1122,
+        "value.stress.1.refinance_shortfall": 3250000,
+        "value.stress.1.value": 38000000,
+        "value.stress.2.max_loan": 21900000,
+        "value.stress.2.binding_constraint": "dscr",
+        "value.stress.2.annual_debt_service": 1916250,
+        "value.stress.2.ltv": 0.5763,
+        "value.stress.2.dscr": 1.1507,
+        "value.stress.2.debt_yield": 0.1007,
+        "value.stress.2.refinance_shortfall": 2100000,
+        "value.stress.2.value": 38000000,
+        "value.stress.3.max_loan": 19650000,
+        "value.stress.3.binding_constraint": "dscr",
+        "value.stress.3.annual_debt_service": 1915875,
+        "value.stress.3.ltv": 0.5171,
+        "value.stress.3.dscr": 1.1509,
+        "value.stress.3.debt_yield": 0.1122,
+        "value.stress.3.refinance_shortfall": 4350000,
+        "value.stress.3.value": 38000000,
+        "value.stress.4.max_loan": 19450000,
+        "value.stress.4.binding_constraint": "dscr",
+        "value.stress.4.annual_debt_service": 1701875,
+        "value.stress.4.ltv": 0.5118,
+        "value.stress.4.dscr": 1.1517,
+        "value.stress.4.debt_yield": 0.1008,
+        "value.stress.4.refinance_shortfall": 4550000,
+        "value.stress.4.value": 38000000,
+        "value.stress.5.max_loan": 17450000,
+        "value.stress.5.binding_constraint": "dscr",
+        "value.stress.5.annual_debt_service": 1701375,
+        "value.stress.5.ltv": 0.4592,
+        "value.stress.5.dscr": 1.152,
+        "value.stress.5.debt_yield": 0.1123,
+        "value.stress.5.refinance_shortfall": 6550000,
+        "value.stress.5.value": 38000000,
+        "value.refinance.shortfall": 0,
+        "value.refinance.excess_proceeds": 300000,
+        "warnings": [
+          "Value is held fixed under the NOI shocks, so the LTV test ignores them; set value_moves_with_noi or add value_shocks if the lender reprices value on stressed NOI."
+        ],
+        "value.stress.5.rate_annual": 0.0975
+      }
+    },
+    {
+      "name": "stress table with value repriced on stressed NOI plus a value shock; refinance shortfall at base",
+      "input": {
+        "noi": 2205000,
+        "value": 36000000,
+        "rate_annual": 0.0625,
+        "amortization_years": 30,
+        "max_ltv": 0.7,
+        "min_dscr": 1.25,
+        "min_debt_yield": 0.085,
+        "round_down_to": 1000,
+        "existing_loan_balance": 26500000,
+        "stress": {
+          "noi_shocks": [-0.1],
+          "value_shocks": [0, -0.15],
+          "value_moves_with_noi": true
+        }
+      },
+      "expect": {
+        "value.max_loan": 23874000,
+        "value.binding_constraint": "dscr",
+        "value.stress.0.max_loan": 21487000,
+        "value.stress.0.binding_constraint": "dscr",
+        "value.stress.0.annual_debt_service": 1587589.86,
+        "value.stress.0.ltv": 0.6632,
+        "value.stress.0.dscr": 1.25,
+        "value.stress.0.debt_yield": 0.0924,
+        "value.stress.0.refinance_shortfall": 5013000,
+        "value.stress.0.value": 32400000,
+        "value.stress.1.max_loan": 19278000,
+        "value.stress.1.binding_constraint": "ltv",
+        "value.stress.1.annual_debt_service": 1424375.54,
+        "value.stress.1.ltv": 0.7,
+        "value.stress.1.dscr": 1.3932,
+        "value.stress.1.debt_yield": 0.1029,
+        "value.stress.1.refinance_shortfall": 7222000,
+        "value.stress.1.value": 27540000,
+        "value.refinance.shortfall": 2626000,
+        "value.refinance.excess_proceeds": 0
       }
     },
     {
@@ -113,6 +248,51 @@
       "expect": {
         "value.max_loan": 4060000
       }
+    },
+    {
+      "name": "value_shocks without value is an input error",
+      "input": {
+        "noi": 1000000,
+        "rate_annual": 0.06,
+        "amortization_years": 30,
+        "min_dscr": 1.25,
+        "stress": {
+          "value_shocks": [-0.1]
+        }
+      },
+      "expect_error": true
+    },
+    {
+      "name": "a rate shock that makes the rate negative is an input error",
+      "input": {
+        "noi": 2450000,
+        "value": 38000000,
+        "rate_annual": 0.0875,
+        "amortization_years": 0,
+        "max_ltv": 0.72,
+        "min_dscr": 1.15,
+        "min_debt_yield": 0.085,
+        "round_down_to": 50000,
+        "stress": {
+          "rate_shocks": [-0.1]
+        }
+      },
+      "expect_error": true
+    },
+    {
+      "name": "a stress object with no shocks is an input error",
+      "input": {
+        "noi": 2450000,
+        "value": 38000000,
+        "rate_annual": 0.0875,
+        "amortization_years": 0,
+        "max_ltv": 0.72,
+        "min_dscr": 1.15,
+        "min_debt_yield": 0.085,
+        "round_down_to": 50000,
+        "stress": {}
+      },
+      "expect_error": true
     }
   ]
 }

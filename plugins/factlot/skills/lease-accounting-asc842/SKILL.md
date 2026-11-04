@@ -1,11 +1,13 @@
 ---
 name: lease-accounting-asc842
-description: Lessee lease remeasurement under ASC 842. Use when a lease is modified, the term or a purchase option is reassessed, a contingency resolves, or a residual value guarantee changes, and the user needs the new lease liability, the ROU asset adjustment and any gain, and the amortization schedule for an operating or finance lease. Calls FactLot calc_lease_remeasurement_asc842 (calc.lease_remeasurement_asc842@1) instead of computing present values in-context.
+description: Lessee lease remeasurement under ASC 842. Use when a lease is modified, the term or a purchase option is reassessed, a contingency resolves, or a residual value guarantee changes, and the user needs the new lease liability, the ROU asset adjustment and any gain, and the amortization schedule for an operating or finance lease. Calls FactLot calc_lease_remeasurement_asc842 (calc.lease_remeasurement_asc842@2) instead of computing present values in-context.
 ---
 
 # ASC 842 lease remeasurement
 
 New liability = PV of the remaining payments; the ROU asset moves by the liability change, with any excess decrease recognized as a gain (ASC 842-20-35-4). The tool returns the per-period schedule: single straight-line lease cost for operating leases, interest plus straight-line amortization for finance leases.
+
+The schedule foots to the cent: every row is in cents and rolls forward exactly (closing liability = opening − payment + interest; closing ROU = opening − amortization), interest is rounded half away from zero each period, the final period's interest is whatever closes the liability at 0.00 (the "Final-period interest true-up" step shows those cents), the final period's lease cost (operating) or amortization (finance) takes the remainder so the ROU asset closes at 0.00, and `total_interest`, `total_amortization` and `total_lease_cost` are the sums of the rows. The "Rounding" step states this rule; quote it when an auditor asks.
 
 ## Gather these inputs
 
@@ -48,12 +50,12 @@ Tool: `calc_lease_remeasurement_asc842`. Worked example (vector "finance lease, 
 }
 ```
 
-Returned: `periodic_rate` 0.02, `total_remaining_payments` 200,000, `new_lease_liability` 186,799.78, `liability_adjustment` and `rou_asset_adjustment` 6,799.78, `gain_recognized` 0, `new_rou_asset` 156,799.78, `periodic_amortization` 19,599.97, `total_interest` 13,200.22. Period 1: interest 3,236, closing liability 165,035.78. The tool also returns a warning that finance-lease amortization is straight-line over the remaining term (use remaining useful life when ownership transfers or a purchase option is reasonably certain, ASC 842-20-35-8); relay it.
+Returned: `periodic_rate` 0.02, `total_remaining_payments` 200,000, `new_lease_liability` 186,799.78, `liability_adjustment` and `rou_asset_adjustment` 6,799.78, `gain_recognized` 0, `new_rou_asset` 156,799.78, `periodic_amortization` 19,599.97, `total_interest` 13,200.22. Period 1: interest 3,236, closing liability 165,035.78. Period 8 (the last) carries the rounding true-up: interest −0.01 and amortization 19,599.99, so liability and ROU asset both close at 0. The tool also returns a warning that finance-lease amortization is straight-line over the remaining term (use remaining useful life when ownership transfers or a purchase option is reasonably certain, ASC 842-20-35-8); relay it.
 
 ## Rules
 
 - Never compute these figures in-context; report the tool's values as returned.
-- Cite the formula ID from `provenance.formula` (`calc.lease_remeasurement_asc842@1`) and the ASC paragraph the tool cites.
+- Cite the formula ID from `provenance.formula` (`calc.lease_remeasurement_asc842@2`) and the ASC paragraph the tool cites.
 - Surface every entry in `warnings`; they flag judgment calls (rate choice, `index_or_rate_change` alone is not a trigger, floored ROU asset).
 - Present results as calculations for the user's accountants to review, not as an accounting conclusion.
 - If the FactLot MCP tools are unavailable, POST the same arguments to `https://api.factlot.com/v1/calc/lease_remeasurement_asc842`.

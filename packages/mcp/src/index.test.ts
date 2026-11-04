@@ -86,7 +86,7 @@ test("calc tool returns value, trace, and computed provenance", async () => {
     steps: unknown[];
   };
   assert.equal(sc.value.max_loan, 9_750_000);
-  assert.equal(sc.provenance.formula, "calc.debt_sizing@2");
+  assert.equal(sc.provenance.formula, "calc.debt_sizing@3");
   assert.ok(sc.steps.length > 0);
   await client.close();
 });
@@ -177,7 +177,7 @@ test("search and fetch follow the ChatGPT deep research contract", async () => {
   };
   assert.equal(doc.id, "tool:calc_cam_reconciliation");
   assert.match(doc.text, /year_over_year/);
-  assert.equal(doc.metadata.formula, "calc.cam_reconciliation@1");
+  assert.equal(doc.metadata.formula, "calc.cam_reconciliation@2");
   const missing = (await client.callTool({
     name: "fetch",
     arguments: { id: "nope" },

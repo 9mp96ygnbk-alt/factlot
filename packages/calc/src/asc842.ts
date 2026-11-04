@@ -158,8 +158,10 @@ export interface LeaseRemeasurement {
   straight_line_lease_cost: number | null;
   /** Finance leases: straight-line ROU amortization per period (ASC 842-20-35-7). */
   periodic_amortization: number | null;
+  /** Σ schedule interest (the schedule foots: every total is the sum of its rows, in cents). */
   total_interest: number;
   total_amortization: number;
+  total_lease_cost: number;
   schedule: RemeasurementPeriod[];
 }
 
@@ -176,7 +178,8 @@ export function leaseRemeasurementAsc842(
   const lastPeriod = input.payments[input.payments.length - 1]?.period ?? 1;
   const n = input.remaining_periods ?? lastPeriod;
   const byPeriod = new Map(input.payments.map((p) => [p.period, p.amount]));
-  const pay = (k: number): number => byPeriod.get(k) ?? 0;
+  // Payments are taken to the cent, so every schedule row is in whole cents.
+  const pay = (k: number): number => round(byPeriod.get(k) ?? 0, 2);
   const inAdvance = input.payment_timing === "begin";
 
   t.step("Event", input.event, eventCitation(input.event));
@@ -232,13 +235,16 @@ export function leaseRemeasurementAsc842(
   );
 
   const operating = input.classification === "operating";
+  // Operating: the total lease cost over the remaining term is fixed in cents; every period
+  // takes the straight-line amount and the last takes what is left (ASC 842-20-25-6).
+  const totalCost = round(totalPayments + newRou - newLiability, 2);
   let slCost = 0;
   let amortPer = 0;
   if (operating) {
     slCost = t.step(
       "Straight-line lease cost",
-      round((total + newRou - newLiability) / n, 2),
-      `ASC 842-20-25-6: (remaining payments ${fmtMoney(total)} + ROU ${fmtMoney(newRou)} − liability ${fmtMoney(newLiability)}) ÷ ${n}`,
+      round(totalCost / n, 2),
+      `ASC 842-20-25-6: (remaining payments ${fmtMoney(totalPayments)} + ROU ${fmtMoney(newRou)} − liability ${fmtMoney(newLiability)}) ÷ ${n}`,
       "USD/period",
     );
   } else {
@@ -258,36 +264,71 @@ export function leaseRemeasurementAsc842(
       ? "payment in advance: interest accrues on (opening liability − payment)"
       : "payment in arrears: interest accrues on the opening liability",
   );
+  t.step(
+    "Rounding",
+    `every row is in cents and rolls forward exactly: closing liability = opening − payment + interest, closing ROU = opening ROU − amortization; interest is rounded to the cent half away from zero each period; the final period's interest is the amount that closes the liability at 0.00, ${operating ? "and its lease cost is total lease cost less the earlier periods, so the ROU asset also closes at 0.00" : "and its amortization is the ROU asset left, so the ROU asset also closes at 0.00"}; totals are the sums of the rows`,
+  );
 
   const schedule: RemeasurementPeriod[] = [];
   let liability = newLiability;
   let rou = newRou;
   let sumInterest = 0;
   let sumAmort = 0;
-  const slUnrounded = (total + newRou - newLiability) / n;
-  const amortUnrounded = newRou / n;
+  let sumCost = 0;
+  let trueUp = 0;
   for (let k = 1; k <= n; k++) {
+    const last = k === n;
     const opening = liability;
     const p = pay(k);
-    const interest = (inAdvance ? opening - p : opening) * r;
-    const closing = opening + interest - p;
-    const amort = operating ? slUnrounded - interest : amortUnrounded;
-    const cost = operating ? slUnrounded : interest + amort;
-    rou -= amort;
-    sumInterest += interest;
-    sumAmort += amort;
+    const accrued = round((inAdvance ? opening - p : opening) * r, 2);
+    const interest = last ? round(p - opening, 2) : accrued;
+    if (last) trueUp = round(interest - accrued, 2);
+    const closing = round(opening - p + interest, 2);
+    let amort: number;
+    let cost: number;
+    if (operating) {
+      cost = last ? round(totalCost - sumCost, 2) : slCost;
+      amort = round(cost - interest, 2);
+    } else {
+      amort = last ? round(newRou - sumAmort, 2) : amortPer;
+      cost = round(interest + amort, 2);
+    }
+    rou = round(rou - amort, 2);
+    sumInterest = round(sumInterest + interest, 2);
+    sumAmort = round(sumAmort + amort, 2);
+    sumCost = round(sumCost + cost, 2);
     schedule.push({
       period: k,
-      opening_liability: round(opening, 2),
-      payment: round(p, 2),
-      interest: round(interest, 2),
-      closing_liability: round(closing, 2),
-      amortization: round(amort, 2),
-      closing_rou_asset: round(rou, 2),
-      lease_cost: round(cost, 2),
+      opening_liability: opening,
+      payment: p,
+      interest,
+      closing_liability: closing,
+      amortization: amort,
+      closing_rou_asset: rou,
+      lease_cost: cost,
     });
     liability = closing;
   }
+  t.step(
+    "Final-period interest true-up",
+    trueUp,
+    `period ${n} interest ${fmtMoney(schedule[n - 1]?.interest ?? 0)} versus ${fmtMoney(round((schedule[n - 1]?.interest ?? 0) - trueUp, 2))} at opening liability × r: the cents left by rounding each period`,
+    "USD",
+  );
+  t.step(
+    "Total interest",
+    sumInterest,
+    "Σ row interest = remaining payments − new lease liability",
+    "USD",
+  );
+  t.step(
+    "Total lease cost",
+    sumCost,
+    operating
+      ? "Σ row lease cost = remaining payments + new ROU asset − new lease liability"
+      : "Σ row lease cost = total interest + new ROU asset",
+    "USD",
+  );
 
   if (!input.discount_rate_updated && RATE_UPDATE_EVENTS.includes(input.event))
     t.warn(
@@ -314,7 +355,7 @@ export function leaseRemeasurementAsc842(
       "Finance-lease amortization runs straight-line over the remaining lease term; use the remaining useful life instead when ownership transfers or a purchase option is reasonably certain (ASC 842-20-35-8).",
     );
 
-  return t.result("calc.lease_remeasurement_asc842", 1, {
+  return t.result("calc.lease_remeasurement_asc842", 2, {
     classification: input.classification,
     remaining_periods: n,
     periodic_rate: round(r, 8),
@@ -326,8 +367,9 @@ export function leaseRemeasurementAsc842(
     new_rou_asset: newRou,
     straight_line_lease_cost: operating ? slCost : null,
     periodic_amortization: operating ? null : amortPer,
-    total_interest: round(sumInterest, 2),
-    total_amortization: round(sumAmort, 2),
+    total_interest: sumInterest,
+    total_amortization: sumAmort,
+    total_lease_cost: sumCost,
     schedule,
   });
 }

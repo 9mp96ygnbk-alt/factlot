@@ -26,7 +26,7 @@ From a shell: `claude plugin marketplace add 9mp96ygnbk-alt/factlot` then `claud
 | `hotel-metrics`             | Occupancy, ADR, RevPAR, GOP, EBITDA, NOI (USALI style)                | `calc_hotel_metrics`                                                      |
 | `tx-property-tax-protest`   | Texas ARB protest filing deadline                                     | `rules_tx_property_tax_protest_deadline`                                  |
 
-Every skill follows the same rules: never compute the figures in-context, report the tool's value as returned, cite the formula ID (for example `calc.debt_sizing@2`), and surface every warning. The MCP server also exposes the ID tools (`id_parcel`, `id_entity`, `id_space`, `id_document`, `id_parse`), `fact_validate`, `search`, `fetch`, and `schema_get`.
+Every skill follows the same rules: never compute the figures in-context, report the tool's value as returned, cite the formula ID (for example `calc.debt_sizing@3`), and surface every warning. The MCP server also exposes the ID tools (`id_parcel`, `id_entity`, `id_space`, `id_document`, `id_parse`), `fact_validate`, `search`, `fetch`, and `schema_get`.
 
 ## How it connects
 

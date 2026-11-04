@@ -125,6 +125,18 @@ export interface RentSchedule {
   monthly?: RentMonth[];
 }
 
+/**
+ * Warn when commencement is not the first of a month: lease months then run from the
+ * commencement day, and nothing is prorated to calendar months.
+ */
+export function warnMidMonth(commencement: string, t: Trace): void {
+  const day = Number(commencement.slice(8, 10));
+  if (day !== 1)
+    t.warn(
+      `Commencement ${commencement} is mid-month: each lease month runs from day ${day} to the day before it in the next month (clamped to month end), and rent is not prorated to calendar months; if rent is billed by calendar month, the first and last partial months need proration outside this result.`,
+    );
+}
+
 /** Month-by-month schedule; shared by rent-schedule and NER. */
 export function buildMonths(
   input: z.output<typeof RentScheduleInput>,
@@ -247,6 +259,7 @@ export function rentSchedule(raw: RentScheduleInput): CalcResult<RentSchedule> {
       "Escalated $/SF rates are not rounded per step; set round_rate_to_cents if the lease table rounds.",
     );
   }
+  warnMidMonth(input.commencement_date, t);
 
   const expiration_date = months.at(-1)?.end_date ?? input.commencement_date;
   const value: RentSchedule = {
@@ -370,6 +383,7 @@ export function netEffectiveRent(
     t.warn(
       "discount_rate_annual is 0, so discounted NER equals straight-line NER.",
     );
+  warnMidMonth(s.commencement_date, t);
 
   return t.result("calc.net_effective_rent", 1, {
     effective_rent_psf: effective,

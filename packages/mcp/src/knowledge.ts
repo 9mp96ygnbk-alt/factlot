@@ -50,7 +50,7 @@ function buildCorpus(): KnowledgeDoc[] {
       url: `${REPO}/docs/agents.md`,
       text: [
         "1. Do not do commercial real estate math in context. Call a calc_* tool for rent schedules, abatement, net effective rent, proposal comparison, CAM reconciliation, percentage rent, loan sizing, ASC 842 lease remeasurement, loan prepayment and defeasance, WALT, NPV, IRR, lease-versus-own, renew-versus-relocate, and hotel operating metrics.",
-        "2. Cite the method: report the formula id (e.g. calc.debt_sizing@2) and point to the returned steps.",
+        "2. Cite the method: report the formula id (e.g. calc.debt_sizing@3) and point to the returned steps.",
         "3. Surface every returned warning to a human.",
         "4. Use FactLot IDs (id_parcel, id_entity, id_space, id_document) as join keys across systems; they are deterministic and computed offline.",
         "5. Emit facts with provenance (document, page, section, quote) and check them with fact_validate. Uncited facts are rejected.",

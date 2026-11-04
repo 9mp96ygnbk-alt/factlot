@@ -58,7 +58,7 @@ export const calculators = {
     version: 1,
     title: "Lease rent schedule",
     description:
-      "Build a base-rent schedule from commencement date, term, area, starting $/SF/yr, escalations (percent or fixed $/SF), and abated months. Returns rent steps, totals, expiration date, and a calculation trace.",
+      "Build a base-rent schedule from commencement date, term, area, starting $/SF/yr, escalations (percent or fixed $/SF), and abated months. Lease months run from the commencement day-of-month with no calendar proration (warns when commencement is mid-month). Returns rent steps, totals, expiration date, and a calculation trace.",
     input: RentScheduleInput,
     run: rentSchedule,
   },
@@ -67,16 +67,16 @@ export const calculators = {
     version: 1,
     title: "Net effective rent (NER)",
     description:
-      "Compute effective rent, straight-line net effective rent, and discounted net effective rent ($/SF/yr) after free rent, TI allowance, leasing commissions, and other landlord concessions.",
+      "Compute effective rent, straight-line net effective rent, and discounted net effective rent ($/SF/yr) after free rent, TI allowance, leasing commissions, and other landlord concessions. Rent is monthly in advance from the commencement day (no calendar proration), discounted at annual rate ÷ 12.",
     input: NetEffectiveRentInput,
     run: netEffectiveRent,
   },
   compare_proposals: {
     id: "calc.compare_proposals",
-    version: 1,
+    version: 2,
     title: "Compare lease proposals",
     description:
-      "Rank 2–20 lease proposals with different terms, sizes, free rent, TI, concessions, and expense structures on one discounted $/SF/yr basis: effective occupancy cost (tenant perspective) or discounted net effective rent (landlord perspective).",
+      "Rank 2–20 lease proposals with different terms, sizes, free rent, TI, concessions, and operating-expense structures (gross, NNN, base year, expense stop, with opex growth) on one discounted $/SF/yr basis, per rentable or usable SF (load factor): effective occupancy cost (tenant perspective) or discounted net effective rent after landlord-borne opex and optional pre-commencement downtime (landlord perspective). Cash flows monthly in advance at annual rate ÷ 12; warns when the usable-SF ranking differs and when terms differ.",
     input: ProposalComparisonInput,
     run: compareProposals,
   },
@@ -91,28 +91,28 @@ export const calculators = {
   },
   cam_reconciliation: {
     id: "calc.cam_reconciliation",
-    version: 1,
+    version: 2,
     title: "CAM / operating expense reconciliation",
     description:
-      "Reconcile a tenant's annual CAM charge: exclusions, occupancy gross-up of variable expenses, pro rata share, controllable-expense caps (compounding_from_base, simple_from_base, year_over_year), base year or expense stop, and estimates paid. Returns balance due and a full trace.",
+      "Reconcile a tenant's annual CAM charge: exclusions, occupancy gross-up of variable expenses, pro rata share, controllable-expense caps (compounding_from_base, simple_from_base, year_over_year), an admin fee (before or after the cap, inside or outside it, with per-line exclusions), base year or expense stop, partial-year occupancy (move-in/move-out prorates share, cap, and base by days), and estimates paid. Returns balance due and a full trace with order-of-operations warnings.",
     input: CamReconciliationInput,
     run: camReconciliation,
   },
   debt_sizing: {
     id: "calc.debt_sizing",
-    version: 2,
+    version: 3,
     title: "Loan sizing (LTV / DSCR / debt yield)",
     description:
-      "Size the maximum loan under any combination of max LTV, min DSCR, and min debt yield for a given NOI, rate, and amortization. Reports the binding constraint, debt service, and resulting metrics.",
+      "Size the maximum loan under any combination of max LTV, min DSCR, and min debt yield for a given NOI, rate, and amortization. Reports the binding constraint, debt service, and resulting metrics; optionally a stress table over NOI, rate, and value shocks (max loan, binding constraint, LTV, DSCR, debt yield per scenario) and the refinance shortfall against an existing loan balance.",
     input: DebtSizingInput,
     run: debtSizing,
   },
   lease_remeasurement_asc842: {
     id: "calc.lease_remeasurement_asc842",
-    version: 1,
+    version: 2,
     title: "Lease remeasurement (ASC 842, lessee)",
     description:
-      "Remeasure a lessee's lease liability and right-of-use asset under ASC 842 after a modification, lease-term reassessment, contingency resolution, or residual value guarantee change: new liability (PV of remaining payments), liability and ROU adjustments with any gain (ASC 842-20-35-4), and the per-period amortization table (operating: straight-line single lease cost; finance: interest plus amortization). Warns where judgment is needed.",
+      "Remeasure a lessee's lease liability and right-of-use asset under ASC 842 after a modification, lease-term reassessment, contingency resolution, or residual value guarantee change: new liability (PV of remaining payments), liability and ROU adjustments with any gain (ASC 842-20-35-4), and the per-period amortization table (operating: straight-line single lease cost; finance: interest plus amortization) in cents that foots: every row rolls forward exactly, totals are the row sums, and the final period trues up liability and ROU asset to zero. Warns where judgment is needed.",
     input: LeaseRemeasurementInput,
     run: leaseRemeasurementAsc842,
   },
@@ -130,7 +130,7 @@ export const calculators = {
     version: 1,
     title: "Weighted average lease term (WALT)",
     description:
-      "Weighted average remaining lease term in years, weighted by area or annual rent, as of a date.",
+      'Weighted average remaining lease term in years as of a date (actual days ÷ 365.25), weighted by each lease\'s area_sf (weight_by "area") or annual_rent (weight_by "rent").',
     input: WaltInput,
     run: walt,
   },

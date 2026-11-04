@@ -10,6 +10,7 @@ import {
   camReconciliation,
   debtSizing,
   irr,
+  leaseRemeasurementAsc842,
   netEffectiveRent,
   npv,
   rentSchedule,
@@ -310,4 +311,73 @@ test("irr@2: a long series reports no spurious roots near -100%", () => {
   assert.equal(r.formula.version, 2);
   assert.ok(r.value.roots.every((x) => x > -0.9));
   assert.deepEqual(r.warnings, []);
+});
+
+test("debt sizing without stress or an existing loan keeps the v2 result shape", () => {
+  const r = debtSizing({
+    noi: 1_000_000,
+    value: 15_000_000,
+    rate_annual: 0.06,
+    amortization_years: 30,
+    max_ltv: 0.65,
+  });
+  assert.deepEqual(Object.keys(r.value).sort(), [
+    "annual_constant",
+    "annual_debt_service",
+    "binding_constraint",
+    "loan_by_constraint",
+    "max_loan",
+    "resulting",
+  ]);
+});
+
+test("asc842@2: every schedule row rolls forward in cents and the totals foot", () => {
+  // Deterministic pseudo-random inputs (LCG), so the invariant is checked on many shapes.
+  let seed = 7;
+  const rand = (): number => {
+    seed = (seed * 1_103_515_245 + 12_345) % 2_147_483_648;
+    return seed / 2_147_483_648;
+  };
+  const cents = (x: number): number => Math.round(x * 100);
+  for (let c = 0; c < 300; c++) {
+    const n = 1 + Math.floor(rand() * 120);
+    const payments = [];
+    for (let k = 1; k <= n; k++)
+      if (rand() < 0.85)
+        payments.push({ period: k, amount: round(rand() * 90_000, 2) });
+    if (!payments.length) payments.push({ period: n, amount: 1000 });
+    const r = leaseRemeasurementAsc842({
+      classification: rand() < 0.5 ? "operating" : "finance",
+      payments,
+      remaining_periods: n,
+      payment_timing: rand() < 0.5 ? "begin" : "end",
+      discount_rate_annual: rand() < 0.1 ? 0 : round(rand() * 0.15, 4),
+      periods_per_year: [12, 4, 1][Math.floor(rand() * 3)] ?? 12,
+      discount_rate_updated: true,
+      liability_before: round(rand() * 3e6, 2),
+      rou_asset_before: round(rand() * 3e6, 2),
+      event: "modification_extend_term",
+    }).value;
+    let interest = 0;
+    let amort = 0;
+    let cost = 0;
+    let rou = cents(r.new_rou_asset);
+    let liability = cents(r.new_lease_liability);
+    for (const row of r.schedule) {
+      assert.equal(cents(row.opening_liability), liability);
+      liability =
+        cents(row.opening_liability) - cents(row.payment) + cents(row.interest);
+      assert.equal(cents(row.closing_liability), liability, `case ${c}`);
+      rou -= cents(row.amortization);
+      assert.equal(cents(row.closing_rou_asset), rou, `case ${c}`);
+      interest += cents(row.interest);
+      amort += cents(row.amortization);
+      cost += cents(row.lease_cost);
+    }
+    assert.equal(liability, 0);
+    assert.equal(rou, 0);
+    assert.equal(cents(r.total_interest), interest);
+    assert.equal(cents(r.total_amortization), amort);
+    assert.equal(cents(r.total_lease_cost), cost);
+  }
 });
