@@ -139,11 +139,12 @@ filing leaves them out.
 No borrower or sponsor is named in the filing, so none is stored. Tenant names are stored only for organisations or recurring
 chains (never a person).
 
-**`entity.parent`** is attached to a registry **entity** (an LLC or corporation from a state registry) and says which SEC
+**`entity.parent`** (many-valued: two registrants may list one joint venture) is attached to a registry **entity** (an LLC or corporation from a state registry) and says which SEC
 registrant lists it as a subsidiary in Exhibit 21 of its Form 10-K. Method `inferred`, with a confidence (0.9 when the
 exhibit's jurisdiction is the state whose registry holds the entity, 0.85 when it is the state of formation the registry
 records for a foreign registration) and the exhibit line as locator. The match is an exact normalized name plus the
-jurisdiction; nothing fuzzy. The value holds `parent` (`name`, `cik`, `urn` = `fl:entity:us-sec:<CIK>`), `listed_as` (the
+jurisdiction; nothing fuzzy. A company registered in several states is several registry entities and each gets the fact;
+two live same-name entities in one registry are ambiguous and get none. The value holds `parent` (`name`, `cik`, `urn` = `fl:entity:us-sec:<CIK>`), `listed_as` (the
 name and jurisdiction as the exhibit writes them), `filing` (accession, dates, exhibit) and `match` (rule). The registrant
 is an entity of its own and holds a `controls` relationship to each subsidiary. "Subsidiary" is the registrant's word and
 covers indirect subsidiaries, so the registrant is the _ultimate listed parent_, not necessarily the immediate one, and many

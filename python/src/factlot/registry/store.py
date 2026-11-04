@@ -40,9 +40,9 @@ from .normalize import (
 
 PRODUCER = "factlot.registry"
 # Predicates a subject may hold many of at once (one fact per sale; one per CMBS trust's participation in
-# a building's loan). Every other predicate is single-valued: when two current sources disagree, the
-# newest fact is returned.
-MULTI_VALUED_PREDICATES = frozenset({"transaction.sale", "debt.cmbs_loan"})
+# a building's loan; one per registrant that lists an entity as its subsidiary). Every other predicate is
+# single-valued: when two current sources disagree, the newest fact is returned.
+MULTI_VALUED_PREDICATES = frozenset({"transaction.sale", "debt.cmbs_loan", "entity.parent"})
 # Coverage marker (``coverage.present``) for a source that adds facts to parcels another source created.
 COVERED_BY_ENRICHMENT = 2
 # The predicates the registry writes (the TypeScript starter vocabulary, `Predicates` in @factlot/schema,

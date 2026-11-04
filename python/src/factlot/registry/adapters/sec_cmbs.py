@@ -11,8 +11,8 @@ What a record holds, and what it does not:
 
 * The file names **no borrower** and no sponsor (Schedule AL has no such field): the only organisations it names are
   the originators, the primary servicer and the properties' largest tenants. Tenant names are kept only when
-  ``is_organization`` reads them as an organisation, or when the name recurs as a tenant across several properties and
-  trusts of the same run (``recurring_tenants``: a chain such as "Dollar General", never a person); every other tenant
+  ``is_organization`` reads them as an organisation, or when the name is a tenant at ten or more street addresses in five
+  or more 3-digit ZIP code areas of the same run (``recurring_tenants``: a chain such as "Dollar General", never a person); every other tenant
   name is dropped and counted, so no natural person's name is stored.
 * The balances, rate and maturity are the trust's loan as reported for the period. A multi-property loan repeats
   its loan-level figures on each property's fact (``properties_in_loan`` says how many) and nothing is allocated:
@@ -203,8 +203,8 @@ def _clean(d: dict[str, Any]) -> dict[str, Any]:
 
 @dataclass
 class Loan:
-    """One ``<assets>`` element: its own fields (``fields``), its properties (each a dict of child texts) and the
-    nested tenant-free data the adapter needs. ``number`` is the position in the file (for locators)."""
+    """One ``<assets>`` element: its own fields (``fields``) and its properties (each a dict of child texts).
+    ``number`` is the position in the file (for locators). Empty elements are left out."""
 
     number: int
     fields: dict[str, str]
@@ -214,7 +214,8 @@ class Loan:
 def read_loans(path: str | Path) -> Iterator[Loan]:
     """Stream the loans of one Exhibit 102 file. Refuses a file with a DOCTYPE or entity declaration (untrusted XML)
     and a file that is not the CMBS asset data namespace."""
-    head = Path(path).read_bytes()[:4096]
+    with open(path, "rb") as f:
+        head = f.read(4096)
     if b"<!DOCTYPE" in head or b"<!ENTITY" in head:
         raise ValueError("DOCTYPE/ENTITY declarations are not accepted")
     n = 0
@@ -260,8 +261,8 @@ class CountyLocator:
     Order of evidence: a ZIP code area lying in one county of the property's state (a county with under 1% of the
     area's land is a boundary sliver and ignored) decides; for an area in several counties the filing's county name
     chooses among them, else a county holding 95% or more of the land; with no usable ZIP code the county name alone.
-    The method string says which, and ``zip_county_name_conflict`` counts the properties whose county name names another
-    county than the ZIP code area does (the ZIP code area wins).
+    The method string says which, and ``conflicts`` counts the properties whose county name names another county than
+    the ZIP code area does (the ZIP code area wins).
     """
 
     SLIVER = 0.01
@@ -421,6 +422,12 @@ class RunStats:
     buildings_with_too_many_parcels: int = 0  # over 25 parcels reached through the ordinal reading: not linked
     ingest: IngestStats | None = None
 
+    def as_dict(self) -> dict[str, Any]:
+        """Plain JSON-ready counts (``dataclasses.asdict`` would rebuild the counters from their items)."""
+        out = {k: (dict(v) if isinstance(v, Counter) else v) for k, v in self.__dict__.items() if k != "ingest"}
+        out["ingest"] = asdict(self.ingest) if self.ingest else None
+        return out
+
     def add(self, o: "RunStats") -> None:
         for f in ("loans", "loans_not_in_trust", "loans_paid_off_in_period", "properties", "no_property_element", "placeholder_property", "street_reduced", "buildings", "facts", "tenants_kept",
                   "tenants_kept_recurring", "tenants_dropped", "parcels_linked", "buildings_with_parcels",
@@ -440,11 +447,18 @@ def tenant_key(name: str) -> str:
     return normalize_name(name)
 
 
+# Not tenants at all: what filers write when there is none.
+_NOT_A_TENANT = re.compile(r"(?i)^\W*(?:vacant|unknown|none|n/?a|tbd|dark|non[- ]rentable|no tenant|owner|various)\b")
+
+
 def tenants_of(p: dict[str, str], stats: RunStats, recurring: frozenset[str]) -> list[dict[str, Any]]:
     out = []
     for name_f, sf_f, exp_f in TENANT_FIELDS:
         name = " ".join((p.get(name_f) or "").split())
         if not name:
+            continue
+        if _NOT_A_TENANT.match(name):
+            stats.tenants_dropped += 1
             continue
         recurring_name = tenant_key(name) in recurring
         if not (is_organization(name) or recurring_name):
@@ -732,21 +746,26 @@ def build(xml_path: str | Path, db_path: str | Path, *, trust: str, cik: str | i
         reg.close()
 
 
-def recurring_tenants_of(paths: Iterable[str | Path], *, min_properties: int = 5, min_trusts: int = 3) -> frozenset[str]:
-    """Tenant name keys that appear as a largest, second or third tenant of at least ``min_properties`` properties in at
-    least ``min_trusts`` of the given files: chains and brands, which no natural person is."""
-    props: Counter = Counter()
-    trusts: dict[str, set[str]] = defaultdict(set)
+def recurring_tenants_of(paths: Iterable[str | Path], *, min_addresses: int = 10, min_zip3: int = 5) -> frozenset[str]:
+    """Tenant name keys that are the largest, second or third tenant at ``min_addresses`` different street addresses in
+    ``min_zip3`` different 3-digit ZIP code areas or more, across the given files: chains and brands, which no natural
+    person is. (The same property reported by several trusts that hold notes of one loan counts once, and a portfolio
+    in one metro area, however many of its properties name one tenant, falls short of the ZIP code spread.)"""
+    addresses: dict[str, set[str]] = defaultdict(set)
+    areas: dict[str, set[str]] = defaultdict(set)
     for path in paths:
         for loan in read_loans(path):
             for p in loan.properties:
+                where = " ".join(f"{p.get('propertyAddress', '')} {p.get('propertyState', '')}".lower().split())
+                zip5 = normalize_zip(p.get("propertyZip"))
                 for name_f, _s, _e in TENANT_FIELDS:
                     name = " ".join((p.get(name_f) or "").split())
-                    if name:
+                    if name and where.strip() and not _NOT_A_TENANT.match(name):
                         k = tenant_key(name)
-                        props[k] += 1
-                        trusts[k].add(str(path))
-    return frozenset(k for k, n in props.items() if k and n >= min_properties and len(trusts[k]) >= min_trusts)
+                        addresses[k].add(where)
+                        if zip5:
+                            areas[k].add(zip5[:3])
+    return frozenset(k for k, a in addresses.items() if k and len(a) >= min_addresses and len(areas[k]) >= min_zip3)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -766,7 +785,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.link_only:
         reg = Registry(args.files[-1])
         try:
-            print(json.dumps(asdict(link_parcels(reg)), indent=2))
+            print(json.dumps(link_parcels(reg).as_dict(), indent=2))
         finally:
             reg.close()
         return 0
@@ -776,8 +795,7 @@ def main(argv: list[str] | None = None) -> int:
     loc = CountyLocator.from_files(args.zcta, args.counties)
     stats = build(xml, db, trust=args.trust, cik=args.cik, accession=args.accession, locator=loc, as_of=args.as_of,
                   link=not args.no_link)
-    out = asdict(stats)
-    print(json.dumps(out, indent=2))
+    print(json.dumps(stats.as_dict(), indent=2))
     return 0
 
 

@@ -233,12 +233,14 @@ function rights(d: Database, documentId: string): { source: Row; rights: Row } {
 
 /**
  * Predicates a subject may hold many of at once (one fact per sale; one per CMBS trust's
- * participation in a building's loan). Every other predicate is single-valued: when two current
- * sources disagree, the newest fact is returned.
+ * participation in a building's loan; one per registrant that lists an entity as its subsidiary).
+ * Every other predicate is single-valued: when two current sources disagree, the newest fact is
+ * returned.
  */
 export const MULTI_VALUED_PREDICATES: ReadonlySet<string> = new Set([
   "transaction.sale",
   "debt.cmbs_loan",
+  "entity.parent",
 ]);
 
 /** Order the facts of a many-valued predicate (sales) newest first, in the slots they occupy. */

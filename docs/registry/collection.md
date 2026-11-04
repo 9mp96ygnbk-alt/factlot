@@ -88,4 +88,3 @@ python -m factlot.registry.adapters.sec_cmbs --link-only registry.db  # re-link 
 
 The variable is read from the environment and written nowhere (not into the repository, the manifest or any fact). Run
 `maintain` (building roll-up) before linking CMBS buildings to parcels.
-

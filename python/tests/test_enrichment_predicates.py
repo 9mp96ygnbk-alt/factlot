@@ -29,10 +29,11 @@ class TestEnrichmentPredicates(unittest.TestCase):
         self.assertTrue(MULTI_VALUED_PREDICATES <= ENRICHMENT_PREDICATES)
 
     def test_sec_predicates_are_registered(self):
-        # debt.cmbs_loan: one fact per trust that holds a note of a building's loan; entity.parent: one per registrant.
-        self.assertIn("debt.cmbs_loan", MULTI_VALUED_PREDICATES)
-        self.assertIn("entity.parent", ENRICHMENT_PREDICATES)
-        self.assertNotIn("entity.parent", MULTI_VALUED_PREDICATES)
+        # debt.cmbs_loan: one fact per trust that holds a note of a building's loan; entity.parent: one per registrant
+        # that lists the entity (two registrants may list one joint venture).
+        for predicate in ("debt.cmbs_loan", "entity.parent"):
+            self.assertIn(predicate, MULTI_VALUED_PREDICATES)
+            self.assertIn(predicate, ENRICHMENT_PREDICATES)
 
     def test_pluto_writes_only_known_predicates(self):
         row = {c: "1" for c in ny_pluto.COLUMNS}

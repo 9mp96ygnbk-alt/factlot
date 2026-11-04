@@ -6,10 +6,11 @@ lines grouped under jurisdiction headings). ``read_subsidiaries`` parses what it
 counts the rest; this adapter never fetches (the run script downloads each exhibit once, within the SEC's fair
 access rate).
 
-A subsidiary is linked to a registry entity only when **the normalized name is exactly one registered entity's
-normalized legal name** (``normalize_name``) **and the exhibit's jurisdiction is that entity's registration state or the
-state of formation the registry records for it**. Everything else (a name found in no loaded registry, a foreign
-jurisdiction, no jurisdiction, several same-name entities, an entity that has ended) is counted and left alone.
+A subsidiary is linked to a registry entity only when **the normalized name is exactly the entity's normalized legal
+name** (``normalize_name``) **and the exhibit's jurisdiction is the entity's registration state or the state of formation
+the registry records for it**; a legal entity registered in several states is linked in each registry that holds it.
+Everything else (a name found in no loaded registry, a foreign jurisdiction, no jurisdiction, several live same-name
+entities in one registry, an entity that has ended) is counted and left alone.
 The link is ``inferred``: ``entity.parent`` on the subsidiary (value: the registrant, the exhibit line, the filing, the
 rule) and a ``controls`` relationship from the registrant, both citing the exhibit's snapshot, with a confidence of
 0.9 when the exhibit's jurisdiction is the state whose registry holds the entity (state registries keep names
@@ -33,7 +34,7 @@ from collections import Counter
 from dataclasses import asdict, dataclass, field
 from html.parser import HTMLParser
 from pathlib import Path
-from typing import Any, Iterable, Iterator
+from typing import Iterable, Iterator
 
 from ..normalize import STATES, entity_standing, entity_state, normalize_name
 from ..store import EntityParent, IngestStats, Registry, Source
@@ -225,9 +226,10 @@ _BAD_NAME = re.compile(r"^[\d\W]*$")
 
 
 def _clean(s: str) -> str:
-    s = s.replace("\xa0", " ").replace("​", "")
-    s = re.sub(r"[‘’]", "'", s)
-    return " ".join(s.split()).strip(" *†‡§")
+    s = s.replace("\xa0", " ").replace("\u200b", "")
+    s = re.sub(r"[\u2018\u2019]", "'", s)
+    s = re.sub(r"(?i)\b(LLC|LLP|LP|INC\.?|CORP\.?|LTD\.?)(?=dba\b)", r"\1 ", s)  # "Structure House, LLCdba Wellspring"
+    return " ".join(s.split()).strip(" *†‡§").lstrip("•◦·▪‣⁃●○■□ ")
 
 
 def _split_trailing_jurisdiction(text: str) -> tuple[str, str] | None:
@@ -350,23 +352,31 @@ CONFIDENCE_FORMATION_STATE = 0.85
 
 @dataclass
 class MatchStats:
-    subsidiaries: int = 0
+    subsidiaries: int = 0  # lines read, the registrant's own title lines included
+    registrant_itself: int = 0
     foreign_or_unknown_jurisdiction: int = 0
     not_in_registry: int = 0
-    jurisdiction_differs: int = 0
-    ambiguous: int = 0
+    jurisdiction_differs: int = 0  # a same-name entity exists, but not in the exhibit's jurisdiction
+    ambiguous: int = 0  # two or more live same-name entities in one registry
     entity_ended: int = 0
-    matched: int = 0
+    duplicate: int = 0
+    matched_subsidiaries: int = 0  # subsidiaries linked to at least one entity
+    matched: int = 0  # links: one per entity (a legal entity registered in several states is several entities)
     matched_registry_state: int = 0
     matched_formation_state: int = 0
-    duplicate: int = 0
-    registrant_itself: int = 0
+    matched_in_several_registries: int = 0  # subsidiaries linked to entities of two or more registries
 
 
 def match_subsidiaries(reg: Registry, subs: Iterable[Subsidiary],
                        registrant: str | None = None) -> Iterator[tuple[Subsidiary, str, float, str, str]]:
-    """``(subsidiary, entity URN, confidence, basis, rule)`` for each subsidiary that matches exactly one entity; the
-    counts are left on ``match_subsidiaries.stats`` of the last run."""
+    """``(subsidiary, entity URN, confidence, basis, rule)`` for each registry entity a subsidiary matches; the counts are
+    left on ``match_subsidiaries.stats`` of the last run.
+
+    An entity matches when its normalized legal name equals the subsidiary's and the exhibit's jurisdiction is the state
+    of its registry (``registry_state``) or the state of formation recorded for it (``formation_state``). A legal entity
+    registered in several states (a Delaware LLC qualified in Texas and New York) is one entity per registry, and every
+    one is linked: its name is unique in the state it was formed in. Two or more live same-name entities in one registry
+    are ambiguous, and nothing is linked for that subsidiary; entities that have ended (dissolved, revoked) are skipped."""
     stats = match_subsidiaries.stats = MatchStats()  # type: ignore[attr-defined]
     seen: set[str] = set()
     own = normalize_name(registrant) if registrant else None
@@ -391,27 +401,33 @@ def match_subsidiaries(reg: Registry, subs: Iterable[Subsidiary],
         if not fits:
             stats.jurisdiction_differs += 1
             continue
-        if len(fits) > 1:
-            live = [u for u in fits if entity_standing(reg._status(u)) != "ended"]  # noqa: SLF001
-            if len(live) != 1:
-                stats.ambiguous += 1
-                continue
-            fits = {live[0]: fits[live[0]]}
-        (urn, rule), = fits.items()
-        if entity_standing(reg._status(urn)) == "ended":  # noqa: SLF001
+        by_registry: dict[str, list[str]] = {}
+        for urn in fits:
+            by_registry.setdefault(urn.split(":")[2], []).append(urn)
+        live_by_registry = {j: [u for u in urns if entity_standing(reg._status(u)) != "ended"]  # noqa: SLF001
+                            for j, urns in by_registry.items()}
+        if any(len(live) > 1 for live in live_by_registry.values()):
+            stats.ambiguous += 1
+            continue
+        chosen = [live[0] for live in live_by_registry.values() if live]
+        if not chosen:
             stats.entity_ended += 1
             continue
-        if urn in seen:
+        fresh = [u for u in chosen if u not in seen]
+        if not fresh:
             stats.duplicate += 1
             continue
-        seen.add(urn)
-        stats.matched += 1
-        if rule == "registry_state":
-            stats.matched_registry_state += 1
-            yield sub, urn, CONFIDENCE_REGISTRY_STATE, BASIS_REGISTRY_STATE, rule
-        else:
-            stats.matched_formation_state += 1
-            yield sub, urn, CONFIDENCE_FORMATION_STATE, BASIS_FORMATION_STATE, rule
+        seen.update(fresh)
+        stats.matched_subsidiaries += 1
+        stats.matched_in_several_registries += len(fresh) > 1
+        for urn in fresh:
+            stats.matched += 1
+            if fits[urn] == "registry_state":
+                stats.matched_registry_state += 1
+                yield sub, urn, CONFIDENCE_REGISTRY_STATE, BASIS_REGISTRY_STATE, "registry_state"
+            else:
+                stats.matched_formation_state += 1
+                yield sub, urn, CONFIDENCE_FORMATION_STATE, BASIS_FORMATION_STATE, "formation_state"
 
 
 # --- driver ---------------------------------------------------------------------------------------------------
@@ -506,7 +522,9 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
     filing = Filing(args.cik, args.name, args.state, args.accession, args.form, args.filed, args.report_date, args.exhibit_type)
     stats = build(args.files[0], args.files[1], filing)
-    print(json.dumps(asdict(stats), indent=2, default=dict))
+    print(json.dumps({"parse": asdict(stats.parse), "match": asdict(stats.match),
+                      "ingest": asdict(stats.ingest) if stats.ingest else None,
+                      "jurisdictions": dict(stats.jurisdictions)}, indent=2))
     return 0
 
 

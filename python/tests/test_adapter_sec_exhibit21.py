@@ -89,6 +89,14 @@ class TestParsing(unittest.TestCase):
         self.assertEqual(ex.jurisdiction_of("Cayman Islands"), ("Cayman Islands", None))
         self.assertIsNone(ex.jurisdiction_of("Walmart"))
 
+    def test_a_dba_glued_to_the_entity_type_is_separated(self):
+        subs, _ = self.names("<p>Omicron House, LLCdba Omicron Recovery (Tennessee)</p>")
+        self.assertEqual(subs, [("Omicron House, LLC dba Omicron Recovery", "tn")])
+
+    def test_list_markers_are_not_part_of_the_name(self):
+        subs, _ = self.names("<p>\u25e6 Nu One LLC (Texas)</p><p>\u2022 Xi Two LP (Delaware)</p>")
+        self.assertEqual(subs, [("Nu One LLC", "tx"), ("Xi Two LP", "de")])
+
     def test_plain_text_exhibit(self):
         p = write(self.tmp, "e.txt", "Acme Stores LLC (Texas)\nAcme Land LP (Delaware)\n")
         subs, _ = ex.read_subsidiaries(p)
@@ -112,6 +120,8 @@ class TestMatching(unittest.TestCase):
             EntityRecord("EXAMPLE STORES TEXAS LLC", "us-tx", "0800000001", state_of_formation="TX", status="ACTIVE"),
             # a Delaware company registered in Texas as a foreign entity
             EntityRecord("Example Property Holdings, L.L.C.", "us-tx", "0800000002", state_of_formation="DE", status="ACTIVE"),
+            # the same Delaware company registered in New York too: one legal entity, an entity in each registry
+            EntityRecord("EXAMPLE PROPERTY HOLDINGS LLC", "us-ny", "5550001", state_of_formation="DE", status="ACTIVE"),
             # two same-name Texas entities: ambiguous
             EntityRecord("Example Twin Holdings LLC", "us-tx", "0800000003", state_of_formation="TX", status="ACTIVE"),
             EntityRecord("Example Twin Holdings, LLC", "us-tx", "0800000004", state_of_formation="TX", status="ACTIVE"),
@@ -135,14 +145,17 @@ class TestMatching(unittest.TestCase):
         stats = ex.build(self.path, self.db, self.FILING)
         m = stats.match
         self.assertEqual(m.subsidiaries, 9)
-        self.assertEqual(m.matched, 3)  # stores (registry state); property holdings and registrant holdings (formation state)
-        self.assertEqual((m.matched_registry_state, m.matched_formation_state), (1, 2))
+        self.assertEqual(m.matched_subsidiaries, 3)
+        # stores (registry state); property holdings (formation state, in the Texas and the New York registry) and
+        # registrant holdings (formation state)
+        self.assertEqual((m.matched, m.matched_in_several_registries), (4, 1))
+        self.assertEqual((m.matched_registry_state, m.matched_formation_state), (1, 3))
         self.assertEqual(m.foreign_or_unknown_jurisdiction, 1)
         self.assertEqual(m.ambiguous, 1)  # two Twin Holdings
         self.assertEqual(m.entity_ended, 1)  # Example Dissolved Co
         self.assertEqual(m.jurisdiction_differs, 1)  # Example Mismatch: the exhibit says Nevada, the registry Texas
         self.assertEqual(m.not_in_registry, 2)  # Example Nowhere, Example Shell
-        self.assertEqual(stats.ingest.kept, 3)
+        self.assertEqual(stats.ingest.kept, 4)
 
         (f,) = self.facts("fl:entity:us-tx:0800000001")
         self.assertEqual(f["provenance"]["method"], "inferred")
@@ -159,6 +172,9 @@ class TestMatching(unittest.TestCase):
         (g,) = self.facts("fl:entity:us-tx:0800000002")
         self.assertEqual(g["provenance"]["confidence"], 0.85)
         self.assertEqual(g["value"]["match"]["rule"], "formation_state")
+        (g2,) = self.facts("fl:entity:us-ny:5550001")  # the same company's New York registration
+        self.assertEqual((g2["value"]["match"], g2["provenance"]["confidence"]),
+                         ({"rule": "formation_state", "registry_jurisdiction_state": "ny"}, 0.85))
         self.assertEqual(self.facts("fl:entity:us-tx:0800000003"), [])
         self.assertEqual(self.facts("fl:entity:us-tx:0800000005"), [])
         self.assertEqual(self.facts("fl:entity:us-tx:0800000006"), [])
@@ -174,7 +190,8 @@ class TestMatching(unittest.TestCase):
                               ("entity.state_of_formation", "DE")})
             links = [r for r in parent["relationships"] if r["type"] == "controls"]
             self.assertEqual(sorted(r["to_urn"] for r in links),
-                             ["fl:entity:us-tx:0800000001", "fl:entity:us-tx:0800000002", "fl:entity:us-tx:0800000007"])
+                             ["fl:entity:us-ny:5550001", "fl:entity:us-tx:0800000001", "fl:entity:us-tx:0800000002",
+                              "fl:entity:us-tx:0800000007"])
             self.assertEqual({r["method"] for r in links}, {"inferred"})
             self.assertEqual({r["from_urn"] for r in links}, {"fl:entity:us-sec:0000999001"})
             self.assertEqual(reg.resolve_external("sec-cik", "0000999001"), "fl:entity:us-sec:0000999001")
@@ -195,7 +212,7 @@ class TestMatching(unittest.TestCase):
         reg = Registry.open_readonly(self.db)
         try:
             now = {r["to_urn"] for r in reg.get("fl:entity:us-sec:0000999001")["relationships"] if r["type"] == "controls"}
-            self.assertEqual(now, {"fl:entity:us-tx:0800000001", "fl:entity:us-tx:0800000002"})
+            self.assertEqual(now, {"fl:entity:us-ny:5550001", "fl:entity:us-tx:0800000001", "fl:entity:us-tx:0800000002"})
             # the dropped subsidiary's earlier parent fact is history, not current
             self.assertEqual([f for f in reg.facts("fl:entity:us-tx:0800000007") if f["predicate"] == "entity.parent"], [])
             self.assertEqual(len([f for f in reg.facts("fl:entity:us-tx:0800000007", history=True) if f["predicate"] == "entity.parent"]), 1)
@@ -204,12 +221,36 @@ class TestMatching(unittest.TestCase):
         finally:
             reg.close()
 
+    def test_two_registrants_listing_one_entity_both_keep_their_fact(self):
+        ex.build(self.path, self.db, self.FILING)
+        other = ex.Filing("999002", "Example Partner Corp", "TX", "0000999002-26-000001", "10-K", "2026-03-01", "2025-12-31")
+        ex.build(write(self.tmp, "ex21-b.htm", "<table><tr><td>Example Stores Texas, LLC</td><td>Texas</td></tr></table>"), self.db, other)
+        facts = self.facts("fl:entity:us-tx:0800000001")
+        self.assertEqual(sorted(f["value"]["parent"]["name"] for f in facts),
+                         ["Example Partner Corp", "Example Retail Holdings, Inc."])
+
     def test_the_registrant_is_never_its_own_subsidiary(self):
         own = write(self.tmp, "own.htm", "<table><tr><td>Example Registrant Holdings, Inc.</td><td>Delaware</td></tr></table>")
         stats = ex.build(own, self.db, ex.Filing("999001", "Example Registrant Holdings, Inc.", "DE", "0000999001-26-000008", "10-K",
                                                  "2026-03-14", "2026-01-31"))
         self.assertEqual(stats.match.matched, 0)
         self.assertEqual(stats.match.registrant_itself, 1)
+
+
+class TestCommandLine(unittest.TestCase):
+    def test_main_prints_the_counts_as_json(self):
+        import contextlib
+        import io
+        import json
+        tmp = Path(tempfile.mkdtemp())
+        path = write(tmp, "ex21.htm", TABLE)
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            ex.main([str(path), str(tmp / "r.db"), "--cik", "999001", "--name", "Example Retail Holdings, Inc.", "--state", "DE",
+                     "--accession", "0000999001-26-000007", "--filed", "2026-03-14", "--report-date", "2026-01-31"])
+        d = json.loads(out.getvalue())
+        self.assertEqual((d["parse"]["subsidiaries"], d["match"]["subsidiaries"], d["match"]["matched"]), (9, 9, 0))  # no entities loaded
+        self.assertEqual(d["jurisdictions"]["tx"], 4)
 
 
 if __name__ == "__main__":

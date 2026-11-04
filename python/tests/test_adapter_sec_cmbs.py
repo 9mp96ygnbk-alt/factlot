@@ -276,6 +276,22 @@ class TestBuild(unittest.TestCase):
         self.assertNotIn("Jane Q Example", str(fact))
         self.assertEqual((stats.tenants_kept, stats.tenants_kept_recurring, stats.tenants_dropped), (4, 2, 2))
 
+    def test_a_recurring_tenant_is_one_found_at_many_addresses_in_many_areas(self):
+        zips = ["10001", "20001", "30001", "40001", "50001", "60001"]
+        chain = [loan(str(n), [prop(address=f"{n} Chain Road", zip_=zips[n % 6], largestTenant="Brightway Stores", secondLargestTenant=None, thirdLargestTenant=None)]) for n in range(12)]
+        # one person named as largest tenant of 12 properties in one metro area, and a chain at 12 addresses in 2 areas
+        person = [loan(f"p{n}", [prop(address=f"{n} Metro Way", zip_="77002", largestTenant="Jane Q Example", secondLargestTenant=None, thirdLargestTenant=None)]) for n in range(12)]
+        small = [loan(f"s{n}", [prop(address=f"{n} Small Road", zip_=zips[n % 2], largestTenant="Local Shop", secondLargestTenant=None, thirdLargestTenant=None)]) for n in range(12)]
+        a = self.write("rec1.xml", exhibit(*chain, *person, *small))
+        # the same properties reported again by a second trust holding another note of the same loans
+        b = self.write("rec2.xml", exhibit(*chain))
+        got = sc.recurring_tenants_of([a, b])
+        self.assertEqual(got, frozenset({sc.tenant_key("Brightway Stores")}))
+        self.assertFalse(sc.recurring_tenants_of([a], min_addresses=13))
+        for placeholder in ("Vacant", "UNKNOWN", "N/A", "Non-Rentable SF", "TBD"):
+            self.assertTrue(sc._NOT_A_TENANT.match(placeholder), placeholder)
+        self.assertFalse(sc._NOT_A_TENANT.match("Vacation Rentals LLC"))
+
     def test_without_the_recurring_set_a_bare_brand_name_is_dropped(self):
         self.run_build(self.basic())
         (fact,) = self.facts(self.URN)
@@ -426,6 +442,30 @@ class TestBuild(unittest.TestCase):
         self.assertEqual(by["13"]["liquidation_prepayment_date"], "2026-10-02")
         self.assertNotIn("current_balance_usd", by["15"])
         self.assertEqual(by["15"]["balance_at_securitization_usd"], 7000000)
+
+    def test_only_building_ids_take_building_facts(self):
+        from factlot.registry.store import BuildingFacts
+        reg = Registry(self.db)
+        try:
+            src = sc.source_for(1900001, "Example 2026-C1 Mortgage Trust")
+            reg.add_source(src)
+            p = self.write("x.xml", "x")
+            snap = reg.add_snapshot(src.source_id, p, "2026-10-13")
+            stats = reg.ingest_building_facts([
+                BuildingFacts("fl:parcel:us-48201:0001", "x", [(sc.PREDICATE, {"a": 1}, None)]),
+                BuildingFacts("not a urn", None, [(sc.PREDICATE, {"a": 1}, None)]),
+                BuildingFacts(self.URN, "300 MAIN ST, TX 77002", [(sc.PREDICATE, {"a": 1}, None), (sc.PREDICATE, None, None)]),
+            ], snap)
+        finally:
+            reg.close()
+        self.assertEqual((stats.seen, stats.kept, stats.skipped_invalid, stats.facts_written), (3, 1, 2, 1))
+
+    def test_the_counts_are_json_ready(self):
+        stats = self.run_build(self.basic())
+        import json
+        d = json.loads(json.dumps(stats.as_dict()))
+        self.assertEqual(d["unplaced"], {"no_zip_code_and_no_county": 1, "street_without_house_number": 1})
+        self.assertEqual(d["ingest"]["kept"], 3)
 
     def test_a_missing_reporting_period_needs_as_of(self):
         text = exhibit(loan("1", [prop()])).replace("<reportingPeriodEndDate>10-13-2026</reportingPeriodEndDate>", "")

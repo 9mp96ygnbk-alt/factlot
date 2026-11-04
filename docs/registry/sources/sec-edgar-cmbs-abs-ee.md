@@ -40,7 +40,7 @@ asks for building-level loan balance, maturity and servicing status (B01-P06, B0
   `/Archives/bin`, `/Archives/etc`, `/Archives/usr` and the like; `/Archives/edgar/` is not disallowed.
 - **Rate actually used** (2026-11-03/04): 0.25 to 0.3 s between requests (about 3.5 per second), one stream, 1,146
   requests in about 35 minutes for this source and the Exhibit 21 source together (this source: 2 `form.idx`, 377
-  `index.json`, 377 Exhibit 102 files, plus the SEC's specification zip, three policy pages and `robots.txt`). Five HTTP 503 answers
+  `index.json`, 377 Exhibit 102 files, plus the SEC's specification zip, three policy pages and `robots.txt`; and one early probe, a mistyped path, answered HTTP 403 and made outside the logging helper). Five HTTP 503 answers
   (two on `index.json`, three on a URL that does not exist) were each backed off 10 to 20 seconds and retried; for a few
   seconds two of the review's own helper processes overlapped, never above the SEC's 10 per second.
 - `verified: true` for use in the registry: terms recorded, URLs confirmed by real downloads, redistribution permitted.
@@ -80,10 +80,13 @@ status, and up to three **largest tenants** with square feet and lease expiratio
 records how the building ID was keyed.
 
 - **No borrower or sponsor.** Schedule AL has no such field. The organisations it names are the originators, the
-  servicer and tenants. Tenant names are stored when `is_organization` reads them as an organisation, or when the
-  name recurs as a tenant of at least 5 properties in at least 3 of the 377 files (a chain: "Dollar General",
-  "Walgreens"); every other tenant name (a person, or a business with no organisation word that is not a
-  recurring chain) is dropped and counted. 18,213 tenant entries kept (5,845 by recurrence), 9,317 dropped.
+  servicer and tenants. Tenant names are stored when `is_organization` reads them as an organisation, or when the name is
+  the largest, second or third tenant at ten or more street addresses in five or more 3-digit ZIP code areas of the
+  377 files (a chain: "Dollar General", "Walgreens", "FedEx"; a person cannot be that, and a first version of this
+  rule that counted properties across trusts let a few owners of one portfolio through, which is why it counts
+  addresses and areas); every other tenant name is dropped and counted, as are placeholders ("Vacant", "Unknown",
+  "Non-Rentable SF"). 16,238 tenant entries kept (3,870 by the chain rule), 11,292 dropped. Brand names below the chain
+  threshold are lost; a reviewed allowlist would restore them.
 - **No watchlist status.** The CREFC watchlist is part of the Investor Reporting Package, not Schedule AL, so the
   registry does not claim one. Servicing is shown by the payment status code, the transfer and return dates and the
   workout strategy.
@@ -156,7 +159,7 @@ CMBS buildings, **40 linked and 2 rolled up**.
 
 - Registered CMBS trusts only, latest month only (no history): a monthly cron over the same script builds history.
 - Properties of "Other" type, 5 "Missing Information" and defeased collateral are not stored (counted above).
-- Tenant names of a person-like form are dropped, and so are brand names that occur at fewer than 5 properties.
+- Tenant names that are not clearly organisations are dropped, including brand names below the chain threshold.
 - The county of 89 properties may be wrong where the filing's ZIP code is wrong; `placement.method` flags them.
 - NYC co-ops and properties the commercial roll does not hold have no parcel to link to.
 - Loan data is as the servicer reported it to the trustee; it is not verified against the loan documents.
