@@ -16,7 +16,8 @@ import re
 import sqlite3
 from typing import Any
 
-from .normalize import STATE_BY_FIPS, STATES
+from .county_names import county_name
+from .normalize import STATE_BY_FIPS, STATES, address_query
 
 SCOPE = ("Commercial, industrial and multifamily parcels only (no single-family homes), each fact cited "
          "to its source file; owners of record are kept only for organisations, never natural persons.")
@@ -30,6 +31,15 @@ def state_postal(state_fips: str) -> str | None:
 
 def _state_label(state_fips: str) -> str:
     return state_postal(state_fips) or f"state {state_fips}"
+
+
+def county_label(state_fips: str, county_fips: str, detail: str = "") -> str:
+    """"Pinal County, AZ (04021)" from the Census names; "county 48999 (TX)" for a code they lack."""
+    fips = state_fips + county_fips
+    name = county_name(fips)
+    if name:
+        return f"{name}, {_state_label(state_fips)} ({fips}{detail})"
+    return f"county {fips} ({_state_label(state_fips)}{detail})"
 
 
 def stamp(db: sqlite3.Connection) -> dict[str, int]:
@@ -98,8 +108,9 @@ def key_versions(db: sqlite3.Connection) -> dict[str, str]:
 
 
 def tool_result(db: sqlite3.Connection, summary: dict[str, Any]) -> dict[str, Any]:
-    """The ``registry_coverage`` tool result."""
-    return {**summary, **key_versions(db), "scope": SCOPE}
+    """The ``registry_coverage`` tool result: the summary, each county with its Census name."""
+    counties = [{**c, "name": county_name(c["state_fips"] + c["county_fips"])} for c in summary["counties"]]
+    return {**summary, "counties": counties, **key_versions(db), "scope": SCOPE}
 
 
 # --- messages for misses --------------------------------------------------------------------------
@@ -109,8 +120,8 @@ def _counties_summary(cov: dict[str, Any]) -> str:
     if not counties:
         return "no parcels"
     if len(counties) <= _LIST_CAP:
-        return ", ".join(f"county {c['state_fips']}{c['county_fips']} ({_state_label(c['state_fips'])}, "
-                         f"{c['parcels']} parcels)" for c in counties)
+        return "; ".join(county_label(c["state_fips"], c["county_fips"], f", {c['parcels']} parcels")
+                         for c in counties)
     states = cov["totals"]["states"]
     return f"{len(counties)} counties in {len(states)} states ({', '.join(states)})"
 
@@ -132,7 +143,7 @@ def parcel_miss(cov: dict[str, Any], state_fips: str, county_fips: str) -> dict[
     """Coverage of the county a parcel query named."""
     region = f"us-{state_fips}{county_fips}"
     county = next((c for c in cov["counties"] if c["region"] == region), None)
-    label = f"county {state_fips}{county_fips} ({_state_label(state_fips)})"
+    label = county_label(state_fips, county_fips)
     if county:
         message = (f"{label} is loaded in this registry ({county['parcels']} parcels, as of "
                    f"{_as_of(county['sources'])}), but this parcel is not in it: the registry holds commercial, "
@@ -153,8 +164,8 @@ def building_miss(cov: dict[str, Any], state_fips: str, county_fips: str) -> dic
                           "(a file built before 2026-11-03 has none until `python -m factlot.registry.maintain <file> "
                           "--buildings` adds it)")
     elif county:
-        out["message"] = (f"no building is rolled up at this address: county {state_fips}{county_fips} "
-                          f"({_state_label(state_fips)}) is loaded in this registry ({county['parcels']} parcels, as of "
+        out["message"] = (f"no building is rolled up at this address: {county_label(state_fips, county_fips)} "
+                          f"is loaded in this registry ({county['parcels']} parcels, as of "
                           f"{_as_of(county['sources'])}), and the registry records a building only where two or more "
                           "of its parcels share a street address and ZIP code; search the address with "
                           "registry_search_address to find a single parcel")
@@ -193,6 +204,10 @@ def address_miss(cov: dict[str, Any], query: str) -> dict[str, Any]:
     loaded = st in states if st else None
     if st and not loaded:
         message = f"no parcel matched: {st} is not loaded in this registry; loaded: {_counties_summary(cov)}"
+    elif address_query(query)["mode"] is None:
+        message = ("no parcel matched: address search matches whole words of the street address, so give a house "
+                   'number ("1200 Main St") or a street name with its type ("Main St"); a city, state or part '
+                   f"of a word alone matches nothing. Loaded: {_counties_summary(cov)}")
     else:
         message = (f"no parcel matched in this registry (loaded: {_counties_summary(cov)}); it holds commercial, "
                    "industrial and multifamily parcels only, searched by situs address: try the house number "

@@ -4,6 +4,7 @@ import {
   NonNegMoney,
   Trace,
   fmtMoney,
+  fmtNum,
   parseInput,
   powInt,
   round,
@@ -16,6 +17,7 @@ import type { RentMonth } from "./rent.ts";
 export const CaseScheduleInput = RentScheduleInput.omit({
   term_months: true,
   include_monthly: true,
+  unit: true,
 });
 
 export const RenewVsRelocateInput = z.object({
@@ -236,7 +238,7 @@ export function renewVsRelocate(
     const ner = t.step(
       `${label} effective rent`,
       round((((c.pv + c.oneTime) / c.annuity) * 12) / area, 4),
-      `(${fmtMoney(c.pv + c.oneTime)} ÷ Σ(1+r)^−t) × 12 ÷ ${area} SF`,
+      `(${fmtMoney(c.pv + c.oneTime)} ÷ Σ(1+r)^−t) × 12 ÷ ${fmtNum(area)} SF`,
       "USD/sf/yr",
     );
     return {

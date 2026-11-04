@@ -67,6 +67,7 @@ test("exports JSON Schema for every schema", () => {
   assert.ok(s.Fact && typeof s.Fact === "object");
   assert.deepEqual(Object.keys(s).sort(), [
     "Fact",
+    "LeaseComp",
     "Provenance",
     "Relationship",
     "Rights",

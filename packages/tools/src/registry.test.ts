@@ -9,7 +9,10 @@ import { join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
+import { countyName } from "./county_names.ts";
+
 import {
+  addressQuery,
   configureRegistry,
   legacyNormalizeAddress,
   legacyNormalizeName,
@@ -73,6 +76,48 @@ test("registry tools: TypeScript matches Python on the shared fixture", () => {
       parcel.facts.filter((f) => f.predicate === "zoning.district").length,
       1,
     );
+    const at = (args: Record<string, unknown>) =>
+      python[
+        calls.findIndex(
+          (c) => JSON.stringify(c.arguments) === JSON.stringify(args),
+        )
+      ] as {
+        status?: string;
+        facts?: { predicate: string; value: unknown }[];
+        warnings?: string[];
+        results?: unknown[];
+        coverage?: { message: string };
+      };
+    const p1 = "fl:parcel:us-48999:0001-000-0001";
+    // as_of: the 2025 roll's facts on a 2025 date; nothing before the first snapshot.
+    const y2025 = at({ urn: p1, as_of: "2025-12-31" });
+    assert.equal(
+      y2025.facts?.find((f) => f.predicate === "parcel.market_value")?.value,
+      21000000,
+    );
+    assert.equal(
+      at({ urn: p1, as_of: "2024-01-01" }).status,
+      "not_yet_recorded",
+    );
+    assert.deepEqual(at({ urn: p1, as_of: "2024-01-01" }).facts, []);
+    // Area sanity checks: a warning, the facts untouched.
+    const tower = at({ urn: "fl:parcel:us-48999:0004-000-0001" });
+    assert.equal(tower.warnings?.length, 1);
+    assert.match(tower.warnings?.[0] ?? "", /1666\.7 times/);
+    assert.equal(
+      tower.facts?.find((f) => f.predicate === "parcel.land_area_sf")?.value,
+      150,
+    );
+    assert.equal(
+      at({ urn: "fl:parcel:us-48999:0004-000-0002" }).warnings?.length,
+      2,
+    );
+    // Address search by whole words: a bare name or a partial word finds nothing.
+    assert.deepEqual(at({ query: "Main" }).results, []);
+    assert.match(at({ query: "Main" }).coverage?.message ?? "", /whole words/);
+    assert.deepEqual(at({ query: "100 Mai" }).results, []);
+    assert.equal(at({ query: "Main St" }).results?.length, 1);
+    assert.equal(at({ query: "100 Main" }).results?.length, 1);
   } finally {
     configureRegistry(undefined);
   }
@@ -83,6 +128,7 @@ test("name and address normalization match the Python vectors", () => {
     names: [string, string][];
     addresses: [string, string][];
     legacy_addresses: [string, string][];
+    address_queries: [string, { mode: string | null; tokens: string[] }][];
   };
   for (const [input, expected] of v.names)
     assert.equal(normalizeName(input), expected, input);
@@ -90,6 +136,19 @@ test("name and address normalization match the Python vectors", () => {
     assert.equal(normalizeAddress(input), expected, input);
   for (const [input, expected] of v.legacy_addresses)
     assert.equal(legacyNormalizeAddress(input), expected, input);
+  for (const [input, expected] of v.address_queries)
+    assert.deepEqual(addressQuery(input), expected, input);
+});
+
+test("county names come from the Census table in spec/registry/county-names.tsv", () => {
+  const rows = readFileSync(join(spec, "county-names.tsv"), "utf8")
+    .split("\n")
+    .filter((l) => l && !l.startsWith("#"))
+    .map((l) => l.split("\t") as [string, string]);
+  assert.ok(rows.length > 3000);
+  for (const [fips, name] of rows) assert.equal(countyName(fips), name, fips);
+  assert.equal(countyName("04021"), "Pinal County");
+  assert.equal(countyName("48999"), undefined);
 });
 
 test("entity search uses the name keys the file was built with", () => {
@@ -161,7 +220,7 @@ test("address search uses the address keys the file was built with", () => {
   // A file built before address key version 2 spells directionals out in its keys.
   db.exec(
     "DELETE FROM address_index; DELETE FROM meta WHERE key = 'address_key_version'; " +
-      "INSERT INTO address_index VALUES ('9 NORTHWEST INDUSTRIAL WAY EXAMPLE CITY TX 77999', 'fl:parcel:us-48999:00030000001')",
+      "INSERT INTO address_index VALUES ('9 NORTHWEST INDUSTRIAL WAY EXAMPLE CITY TX 77999', 'fl:parcel:us-48999:0003-000-0001')",
   );
   const search = (query: string) => {
     const r = runTool("registry_search_address", { query });
@@ -173,7 +232,7 @@ test("address search uses the address keys the file was built with", () => {
   configureRegistry(db.path);
   try {
     assert.deepEqual(search("9 Northwest Industrial Way"), [
-      "fl:parcel:us-48999:00030000001",
+      "fl:parcel:us-48999:0003-000-0001",
     ]);
     assert.deepEqual(search("9 NW Industrial Way"), []);
     db.exec("INSERT INTO meta VALUES ('address_key_version', '2')");

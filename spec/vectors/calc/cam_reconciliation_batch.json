@@ -1,0 +1,439 @@
+{
+  "calculator": "calc.cam_reconciliation_batch",
+  "version": 1,
+  "notes": "Expected values computed independently with Python decimal (40 significant digits, inputs read as decimal literals, half-up rounding at the same points the formula rounds: cents for money, 4 dp for ratios and terms, 6 dp for shares), in a scratch script outside the repository; FactLot was not run to produce them. Each tenant statement is the single-tenant CAM reconciliation (calc.cam_reconciliation@2 conventions); the second case's statement values are the published single-tenant vector's values. Unrecovered reasons: pool × (1 − Σ share × occupancy), lease exclusions, −gross-up uplift, Σ cap reductions, Σ base-year/stop deductions, −Σ admin fees, −zero floor, and the rounding remainder.",
+  "cases": [
+    {
+      "name": "four tenants: cap with admin fee and an excluded line, base year with a move-in, expense stop floored at zero, year-over-year cap with fee inside it and a move-out",
+      "input": {
+        "year": 2026,
+        "expenses": [
+          {
+            "category": "real estate taxes",
+            "amount": 412000,
+            "controllable": false,
+            "admin_fee_applies": false
+          },
+          {
+            "category": "insurance",
+            "amount": 61500,
+            "controllable": false,
+            "admin_fee_applies": false
+          },
+          {
+            "category": "utilities",
+            "amount": 98000,
+            "controllable": false,
+            "variable": true
+          },
+          {
+            "category": "janitorial",
+            "amount": 154000,
+            "variable": true
+          },
+          {
+            "category": "repairs & maintenance",
+            "amount": 87250
+          },
+          {
+            "category": "landscaping",
+            "amount": 23000
+          },
+          {
+            "category": "marketing",
+            "amount": 18000
+          },
+          {
+            "category": "management fee",
+            "amount": 44000,
+            "variable": true,
+            "admin_fee_applies": false
+          },
+          {
+            "category": "parking lot resurfacing",
+            "amount": 260000,
+            "recoverable": false
+          }
+        ],
+        "gross_up": {
+          "actual_occupancy": 0.78,
+          "target_occupancy": 0.95
+        },
+        "tenants": [
+          {
+            "name": "Suite 100",
+            "pro_rata_share": 0.18,
+            "estimates_paid": 140000,
+            "cap": {
+              "method": "compounding_from_base",
+              "rate": 0.05,
+              "reference_amount": 52000,
+              "years_elapsed": 3
+            },
+            "admin_fee": {
+              "rate": 0.1
+            },
+            "excluded_categories": ["marketing"]
+          },
+          {
+            "name": "Suite 200",
+            "pro_rata_share": 0.22,
+            "estimates_paid": 30000,
+            "structure": {
+              "type": "base_year",
+              "base_year_expenses": 760000
+            },
+            "occupancy": {
+              "move_in_date": "2026-04-01"
+            }
+          },
+          {
+            "name": "Suite 300",
+            "pro_rata_share": 0.15,
+            "estimates_paid": 12000,
+            "structure": {
+              "type": "expense_stop",
+              "stop_amount": 1000000
+            }
+          },
+          {
+            "name": "Suite 400",
+            "pro_rata_share": 0.2,
+            "estimates_paid": 120000,
+            "cap": {
+              "method": "year_over_year",
+              "rate": 0.04,
+              "reference_amount": 50000
+            },
+            "admin_fee": {
+              "rate": 0.15,
+              "applied": "before_cap",
+              "capped": true
+            },
+            "admin_fee_excluded_categories": ["utilities"],
+            "occupancy": {
+              "move_out_date": "2026-09-30"
+            }
+          }
+        ]
+      },
+      "expect": {
+        "value.tenants.0.statement.value.tenant_share_controllable": 63252.69,
+        "value.tenants.0.statement.value.tenant_share_uncontrollable": 106714.62,
+        "value.tenants.0.statement.value.cap_reduction": 3056.19,
+        "value.tenants.0.statement.value.admin_fee": 7250.1,
+        "value.tenants.0.statement.value.structure_deduction": 0,
+        "value.tenants.0.statement.value.tenant_charge": 174161.22,
+        "value.tenants.0.statement.value.balance_due": 34161.22,
+        "value.tenants.0.statement.value.cap_limit": 60196.5,
+        "value.tenants.1.statement.value.tenant_share_controllable": 61229.95,
+        "value.tenants.1.statement.value.tenant_share_uncontrollable": 98268.41,
+        "value.tenants.1.statement.value.cap_reduction": 0,
+        "value.tenants.1.statement.value.admin_fee": 0,
+        "value.tenants.1.statement.value.structure_deduction": 125972.6,
+        "value.tenants.1.statement.value.tenant_charge": 33525.76,
+        "value.tenants.1.statement.value.balance_due": 3525.76,
+        "value.tenants.2.statement.value.tenant_share_controllable": 55410.58,
+        "value.tenants.2.statement.value.tenant_share_uncontrollable": 88928.85,
+        "value.tenants.2.statement.value.cap_reduction": 0,
+        "value.tenants.2.statement.value.admin_fee": 0,
+        "value.tenants.2.statement.value.structure_deduction": 150000,
+        "value.tenants.2.statement.value.tenant_charge": 0,
+        "value.tenants.2.statement.value.balance_due": -12000,
+        "value.tenants.3.statement.value.tenant_share_controllable": 55258.77,
+        "value.tenants.3.statement.value.tenant_share_uncontrollable": 88685.21,
+        "value.tenants.3.statement.value.cap_reduction": 23451.97,
+        "value.tenants.3.statement.value.admin_fee": 7086.35,
+        "value.tenants.3.statement.value.structure_deduction": 0,
+        "value.tenants.3.statement.value.tenant_charge": 127578.36,
+        "value.tenants.3.statement.value.balance_due": 7578.36,
+        "value.tenants.3.statement.value.cap_limit": 38893.15,
+        "value.building.recoverable_expenses": 897750,
+        "value.building.grossed_up_expenses": 962262.82,
+        "value.building.occupied_share": 0.645342,
+        "value.building.total_tenant_charges": 335265.34,
+        "value.building.total_balance_due": 33265.34,
+        "value.building.recovery_ratio": 0.3735,
+        "value.building.unrecovered": 562484.66,
+        "value.building.unrecovered_reasons.0.amount": 318393.8,
+        "value.building.unrecovered_reasons.1.amount": 3240,
+        "value.building.unrecovered_reasons.2.amount": -41632.86,
+        "value.building.unrecovered_reasons.3.amount": 26508.16,
+        "value.building.unrecovered_reasons.4.amount": 275972.6,
+        "value.building.unrecovered_reasons.5.amount": -14336.45,
+        "value.building.unrecovered_reasons.6.amount": -5660.57,
+        "value.building.unrecovered_reasons.7.amount": -0.02
+      }
+    },
+    {
+      "name": "one tenant reproduces the single-tenant vector 'gross-up, exclusion, compounding_from_base cap'",
+      "input": {
+        "year": 2026,
+        "expenses": [
+          {
+            "category": "real estate taxes",
+            "amount": 300000,
+            "controllable": false
+          },
+          {
+            "category": "insurance",
+            "amount": 50000,
+            "controllable": false
+          },
+          {
+            "category": "janitorial",
+            "amount": 200000,
+            "variable": true
+          },
+          {
+            "category": "repairs & maintenance",
+            "amount": 150000
+          },
+          {
+            "category": "roof replacement",
+            "amount": 400000,
+            "recoverable": false
+          }
+        ],
+        "gross_up": {
+          "actual_occupancy": 0.8,
+          "target_occupancy": 0.95
+        },
+        "tenants": [
+          {
+            "name": "Tenant",
+            "pro_rata_share": 0.1,
+            "estimates_paid": 60000,
+            "cap": {
+              "method": "compounding_from_base",
+              "rate": 0.05,
+              "reference_amount": 30000,
+              "years_elapsed": 3
+            }
+          }
+        ]
+      },
+      "expect": {
+        "value.tenants.0.statement.value.recoverable_expenses": 700000,
+        "value.tenants.0.statement.value.grossed_up_expenses": 737500,
+        "value.tenants.0.statement.value.tenant_share_controllable": 38750,
+        "value.tenants.0.statement.value.tenant_share_uncontrollable": 35000,
+        "value.tenants.0.statement.value.cap_limit": 34728.75,
+        "value.tenants.0.statement.value.cap_reduction": 4021.25,
+        "value.tenants.0.statement.value.tenant_charge": 69728.75,
+        "value.tenants.0.statement.value.balance_due": 9728.75,
+        "value.tenants.0.statement.formula": {
+          "id": "calc.cam_reconciliation",
+          "version": 2
+        },
+        "value.tenants.0.statement.value.admin_fee": 0,
+        "value.tenants.0.statement.value.structure_deduction": 0,
+        "value.building.recoverable_expenses": 700000,
+        "value.building.grossed_up_expenses": 737500,
+        "value.building.occupied_share": 0.1,
+        "value.building.total_tenant_charges": 69728.75,
+        "value.building.total_balance_due": 9728.75,
+        "value.building.recovery_ratio": 0.0996,
+        "value.building.unrecovered": 630271.25,
+        "value.building.unrecovered_reasons.0.amount": 630000,
+        "value.building.unrecovered_reasons.1.amount": 0,
+        "value.building.unrecovered_reasons.2.amount": -3750,
+        "value.building.unrecovered_reasons.3.amount": 4021.25,
+        "value.building.unrecovered_reasons.4.amount": 0,
+        "value.building.unrecovered_reasons.5.amount": 0,
+        "value.building.unrecovered_reasons.6.amount": 0,
+        "value.building.unrecovered_reasons.7.amount": 0
+      }
+    },
+    {
+      "name": "gross-up and admin fees bill more than the actual pool (over-recovery)",
+      "input": {
+        "year": 2026,
+        "expenses": [
+          {
+            "category": "taxes",
+            "amount": 200000,
+            "controllable": false
+          },
+          {
+            "category": "janitorial",
+            "amount": 100000,
+            "variable": true
+          }
+        ],
+        "gross_up": {
+          "actual_occupancy": 0.6,
+          "target_occupancy": 1
+        },
+        "tenants": [
+          {
+            "name": "A",
+            "pro_rata_share": 0.6,
+            "admin_fee": {
+              "rate": 0.15
+            }
+          },
+          {
+            "name": "B",
+            "pro_rata_share": 0.4,
+            "admin_fee": {
+              "rate": 0.15
+            }
+          }
+        ]
+      },
+      "expect": {
+        "value.tenants.0.statement.value.tenant_share_controllable": 100000,
+        "value.tenants.0.statement.value.tenant_share_uncontrollable": 120000,
+        "value.tenants.0.statement.value.cap_reduction": 0,
+        "value.tenants.0.statement.value.admin_fee": 33000,
+        "value.tenants.0.statement.value.structure_deduction": 0,
+        "value.tenants.0.statement.value.tenant_charge": 253000,
+        "value.tenants.0.statement.value.balance_due": 253000,
+        "value.tenants.1.statement.value.tenant_share_controllable": 66666.67,
+        "value.tenants.1.statement.value.tenant_share_uncontrollable": 80000,
+        "value.tenants.1.statement.value.cap_reduction": 0,
+        "value.tenants.1.statement.value.admin_fee": 22000,
+        "value.tenants.1.statement.value.structure_deduction": 0,
+        "value.tenants.1.statement.value.tenant_charge": 168666.67,
+        "value.tenants.1.statement.value.balance_due": 168666.67,
+        "value.building.recoverable_expenses": 300000,
+        "value.building.grossed_up_expenses": 366666.67,
+        "value.building.occupied_share": 1,
+        "value.building.total_tenant_charges": 421666.67,
+        "value.building.total_balance_due": 421666.67,
+        "value.building.recovery_ratio": 1.4056,
+        "value.building.unrecovered": -121666.67,
+        "value.building.unrecovered_reasons.0.amount": 0,
+        "value.building.unrecovered_reasons.1.amount": 0,
+        "value.building.unrecovered_reasons.2.amount": -66666.67,
+        "value.building.unrecovered_reasons.3.amount": 0,
+        "value.building.unrecovered_reasons.4.amount": 0,
+        "value.building.unrecovered_reasons.5.amount": -55000,
+        "value.building.unrecovered_reasons.6.amount": 0,
+        "value.building.unrecovered_reasons.7.amount": 0
+      }
+    },
+    {
+      "name": "an excluded category not in the pool is an input error",
+      "input": {
+        "year": 2026,
+        "expenses": [
+          {
+            "category": "taxes",
+            "amount": 200000,
+            "controllable": false
+          },
+          {
+            "category": "janitorial",
+            "amount": 100000,
+            "variable": true
+          }
+        ],
+        "gross_up": {
+          "actual_occupancy": 0.6,
+          "target_occupancy": 1
+        },
+        "tenants": [
+          {
+            "name": "A",
+            "pro_rata_share": 0.5,
+            "excluded_categories": ["roof"]
+          }
+        ]
+      },
+      "expect_error": true
+    },
+    {
+      "name": "duplicate tenant names are an input error",
+      "input": {
+        "year": 2026,
+        "expenses": [
+          {
+            "category": "taxes",
+            "amount": 200000,
+            "controllable": false
+          },
+          {
+            "category": "janitorial",
+            "amount": 100000,
+            "variable": true
+          }
+        ],
+        "gross_up": {
+          "actual_occupancy": 0.6,
+          "target_occupancy": 1
+        },
+        "tenants": [
+          {
+            "name": "A",
+            "pro_rata_share": 0.5
+          },
+          {
+            "name": "A",
+            "pro_rata_share": 0.5
+          }
+        ]
+      },
+      "expect_error": true
+    },
+    {
+      "name": "one tenant's invalid cap is an input error for the batch",
+      "input": {
+        "year": 2026,
+        "expenses": [
+          {
+            "category": "taxes",
+            "amount": 200000,
+            "controllable": false
+          },
+          {
+            "category": "janitorial",
+            "amount": 100000,
+            "variable": true
+          }
+        ],
+        "gross_up": {
+          "actual_occupancy": 0.6,
+          "target_occupancy": 1
+        },
+        "tenants": [
+          {
+            "name": "A",
+            "pro_rata_share": 0.5,
+            "cap": {
+              "method": "simple_from_base",
+              "rate": 0.05,
+              "reference_amount": 100
+            }
+          }
+        ]
+      },
+      "expect_error": true
+    },
+    {
+      "name": "no tenants is an input error",
+      "input": {
+        "year": 2026,
+        "expenses": [
+          {
+            "category": "taxes",
+            "amount": 200000,
+            "controllable": false
+          },
+          {
+            "category": "janitorial",
+            "amount": 100000,
+            "variable": true
+          }
+        ],
+        "gross_up": {
+          "actual_occupancy": 0.6,
+          "target_occupancy": 1
+        },
+        "tenants": []
+      },
+      "expect_error": true
+    }
+  ]
+}

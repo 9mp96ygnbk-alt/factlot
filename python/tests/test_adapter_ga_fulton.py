@@ -157,7 +157,7 @@ class Fulton(unittest.TestCase):
             self.assertTrue(snap["document_id"].startswith("fl:document:sha256-"))
             urn = reg.db.execute("SELECT urn FROM crosswalk WHERE system = 'fulton_parcel_id' AND external_id = ?",
                                  ("14 0001  LL0001",)).fetchone()[0]
-            self.assertEqual(urn, "fl:parcel:us-13121:140001ll0001")
+            self.assertEqual(urn, "fl:parcel:us-13121:14-0001-ll0001")
             owner = reg.db.execute(
                 "SELECT value_json FROM current_facts WHERE subject = ? AND predicate = 'ownership.owner_of_record'",
                 (urn,)).fetchone()

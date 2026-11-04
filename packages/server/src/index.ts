@@ -7,7 +7,8 @@
  *                          Studio, Gemini CLI, Mistral Le Chat, Cursor, and other MCP clients
  *   POST /v1/...           REST: one endpoint per tool (Custom GPT Actions, Bedrock Agents,
  *                          Copilot API plugins, Vertex AI, plain HTTP clients)
- *   GET  /openapi.json     OpenAPI 3.1  (…/openapi-3.0.json for 3.0 consumers)
+ *   GET  /openapi.json     OpenAPI 3.1, every tool
+ *   GET  /openapi-3.0.json OpenAPI 3.0, the Custom GPT Actions subset (?operations=all: every tool)
  *   GET  /v1/usage         per-key, per-tool call counts (admin key required)
  *
  * The tools are pure computation over the request, so the server stores nothing durable.
@@ -484,11 +485,16 @@ export function createHandler(opts: FactLotServerOptions = {}) {
         return;
       }
       if (path === "/openapi.json" || path === "/openapi-3.0.json") {
-        // Same tools as /v1/tools: registry operations only when a registry is loaded.
+        // Same tools as /v1/tools: registry operations only when a registry is loaded. The 3.0
+        // document is the Custom GPT Actions subset (at most 30 operations) unless the caller
+        // asks for ?operations=all.
         const api = {
           serverUrl: baseUrl(req, opts),
           filter: (t: (typeof tools)[number]) =>
             t.requires !== "registry" || registryPath() !== undefined,
+          ...(url.searchParams.get("operations") === "all"
+            ? { operations: "all" as const }
+            : {}),
         };
         const doc = path === "/openapi.json" ? openApi31(api) : openApi30(api);
         if (authRequired) doc.security = [{ bearerAuth: [] }];

@@ -4,6 +4,7 @@ import {
   NonNegMoney,
   Trace,
   fmtMoney,
+  fmtNum,
   fmtPct,
   parseInput,
   round,
@@ -83,13 +84,13 @@ export function percentageRent(
       ? t.step(
           "Natural breakpoint",
           round((input.base_rent_annual / input.rate) * f, 2),
-          `${fmtMoney(input.base_rent_annual)} ÷ ${fmtPct(input.rate)}${f < 1 ? ` × ${f}` : ""}`,
+          `${fmtMoney(input.base_rent_annual)} ÷ ${fmtPct(input.rate)}${f < 1 ? ` × ${fmtNum(f)}` : ""}`,
           "USD",
         )
       : t.step(
           "Fixed breakpoint",
           round(input.breakpoint.amount * f, 2),
-          `${fmtMoney(input.breakpoint.amount)}${f < 1 ? ` × ${f}` : ""}`,
+          `${fmtMoney(input.breakpoint.amount)}${f < 1 ? ` × ${fmtNum(f)}` : ""}`,
           "USD",
         );
   const over = t.step(

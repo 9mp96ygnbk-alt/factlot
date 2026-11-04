@@ -326,8 +326,8 @@ class Build(Fixtures):
         db = self.tmp / "registry.db"
         for fips, name, rows, kept, persons, urn, account_system, account in (
             ("021", "buncombe.csv", BUNCOMBE, 4, 1, "fl:parcel:us-37021:900000000100000", "buncombe_pin", "900000000100000"),
-            ("071", "gaston.csv", GASTON, 4, 1, "fl:parcel:us-37071:9999110001", "gaston_altparno", "900001"),
-            ("097", "iredell.csv", IREDELL, 5, 0, "fl:parcel:us-37097:9900000001000", "iredell_altparno", "9900A0001"),
+            ("071", "gaston.csv", GASTON, 4, 1, "fl:parcel:us-37071:9999-11-0001", "gaston_altparno", "900001"),
+            ("097", "iredell.csv", IREDELL, 5, 0, "fl:parcel:us-37097:9900000001-000", "iredell_altparno", "9900A0001"),
         ):
             stats = nc_onemap.build(write(self.tmp, name, rows), db, fips, as_of="2026-05-07")
             self.assertEqual((stats.kept, stats.skipped_invalid), (kept, 0), fips)
@@ -345,17 +345,17 @@ class Build(Fixtures):
                 reg.close()
 
     def test_natural_person_owner_is_not_stored(self):
-        # parcel numbers lose their hyphens and dots in the parcel URN (9999-11-0003 → 9999110003)
+        # a parcel number's hyphens and dots become hyphens in the parcel URN (9999-11-0003 → 9999-11-0003)
         db = self.tmp / "registry.db"
         nc_onemap.build(write(self.tmp, "gaston.csv", GASTON), db, "071", as_of="2026-05-07")
         reg = Registry.open_readonly(db)
         try:
             n = reg.db.execute(
-                "SELECT COUNT(*) FROM current_facts WHERE subject = 'fl:parcel:us-37071:9999110003' "
+                "SELECT COUNT(*) FROM current_facts WHERE subject = 'fl:parcel:us-37071:9999-11-0003' "
                 "AND predicate = 'ownership.owner_of_record'").fetchone()[0]
             self.assertEqual(n, 0)
             org = reg.db.execute(
-                "SELECT value_json FROM current_facts WHERE subject = 'fl:parcel:us-37071:9999110002' "
+                "SELECT value_json FROM current_facts WHERE subject = 'fl:parcel:us-37071:9999-11-0002' "
                 "AND predicate = 'ownership.owner_of_record'").fetchone()
             self.assertIn("EXAMPLE OFFICE LLC", org[0])
         finally:

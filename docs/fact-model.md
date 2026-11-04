@@ -106,3 +106,11 @@ source loaded so far does.
 **Derived zoning.** Where the zoning map and the lots come from different files (DC), the district is found by
 overlaying the lot polygon on the zoning map. The fact's method is `inferred`, its confidence is the district's
 share of the sampled points on the lot (at most 0.95), and its locator names both files by document ID.
+
+## Lease comps
+
+`lease.comp` (subject an `fl:lease:` URN) holds one lease comparable and `lease.net_effective_rent` its derived net
+effective rent; their shape, the validator `lease_comp_validate`, the GSA and SEC sources and the rules for sharing comps
+between firms are in [lease-comps.md](lease-comps.md). The registry also writes `lease.rentable_area_sf`,
+`lease.commencement_date`, `lease.expiration_date` and `lease.landlord` (an organisation only) on those leases, and
+`leases` relationships from a lease to its building ID and to the parcels at its address.

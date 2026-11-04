@@ -56,6 +56,13 @@ reg.ingest_parcels([
                  owner_name="Harbor Office Condos LLC", market_value=910000, tax_year=2026),
     ParcelRecord("999", "0003-000-0001", "F2", account="A20", situs_address="9 Northwest Industrial Way, Example City TX 77999",
                  owner_name="Gulf Logistics LP", market_value=3000000, tax_year=2026),
+    # Area facts that fail the sanity checks (registry_get warns, and returns them as published).
+    ParcelRecord("999", "0004-000-0001", "F1", account="A30", situs_address="12 Tower Court, Example City TX 77999",
+                 owner_name="Tower Unit Holdings LLC", land_area_sf=150, improvement_area_sf=250000,
+                 market_value=500000, tax_year=2026),
+    ParcelRecord("999", "0004-000-0002", "F1", account="A31", situs_address="14 Tower Court, Example City TX 77999",
+                 owner_name="Tower Unit Holdings LLC", land_area_sf=0, improvement_area_sf=-10,
+                 market_value=400000, tax_year=2026),
 ], s26, state_fips="48", account_system="test-account", full_roll=True)
 # Enrichment sources add facts to parcels the roll holds: zoning (one value per predicate) and sales
 # (a predicate that holds many facts, returned newest first).

@@ -103,7 +103,7 @@ class SCC(unittest.TestCase):
         reg = Registry.open_readonly(db)
         try:
             owned = reg.db.execute("SELECT from_urn, to_urn FROM relationships WHERE type = 'owns'").fetchall()
-            self.assertEqual([tuple(r) for r in owned], [("fl:entity:us-va:11000001", "fl:parcel:us-51059:0011010001")])
+            self.assertEqual([tuple(r) for r in owned], [("fl:entity:us-va:11000001", "fl:parcel:us-51059:0011-01-0001")])
             src = reg.db.execute("SELECT state_fips FROM sources WHERE source_id = 'va-scc-entities'").fetchone()
             self.assertEqual(src[0], "51")
         finally:

@@ -209,7 +209,8 @@ class FloridaDor(unittest.TestCase):
             self.assertEqual(broward, "fl:parcel:us-12011:494221010010")
             dashed = reg.db.execute(
                 "SELECT urn FROM crosswalk WHERE system = 'fl_parcel_id' AND external_id = '30-3122-001-0010'").fetchone()[0]
-            self.assertEqual(dashed, "fl:parcel:us-12086:3031220010010", "the ID drops the county's punctuation")
+            self.assertEqual(dashed, "fl:parcel:us-12086:30-3122-001-0010",
+                             "the ID keeps where the county's separators fall (parcel rule 2)")
             persons = reg.db.execute(
                 "SELECT COUNT(*) FROM current_facts WHERE predicate = 'ownership.owner_of_record'").fetchone()[0]
             self.assertEqual(persons, 2, "the LLC and the LP; the person and the withheld owner are not stored")

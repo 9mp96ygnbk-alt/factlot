@@ -1,4 +1,4 @@
-"""FactLot ID v0.2 — Python port of @factlot/id. See docs/id-spec.md."""
+"""FactLot ID v0.3 — Python port of @factlot/id. See docs/id-spec.md."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ import time
 from dataclasses import dataclass
 from typing import Callable
 
-ID_SPEC_VERSION = "0.2"
+ID_SPEC_VERSION = "0.3"
 
 SHORT_PREFIX = {
     "parcel": "flp",
@@ -64,11 +64,93 @@ def _alnum(s: str) -> str:
     return re.sub(r"[^a-z0-9]", "", s.lower())
 
 
-def normalize_apn(apn: str) -> str:
+def normalize_apn_v1(apn: str) -> str:
+    """The APN key of ID spec 0.1 and 0.2 (parcel rule 1): every character outside ``a-z0-9`` dropped."""
     n = _alnum(apn)
     if not n:
         raise FactLotIdError(f'APN "{apn}" is empty after normalization')
     return n
+
+
+# --- parcel rule 2 (ID spec 0.3); see COUNTY_APN_RULES in @factlot/id ---------------------------
+# A county with a documented APN format: an APN in it becomes its fields zero-padded to their fixed
+# widths and run together. Every other APN keeps one hyphen per run of separators, so "12-34" and
+# "1-234" stay two parcels. These formats are part of the ID rule.
+
+_SEP = "[^a-z0-9]+"
+
+
+@dataclass(frozen=True)
+class _ApnFormat:
+    pattern: re.Pattern[str]  # fullmatched against the lowercased APN without leading/trailing separators
+    widths: tuple[int, ...] | None = None  # None: the key is the match with its separators removed
+
+
+@dataclass(frozen=True)
+class _CountyApnRule:
+    name: str
+    formats: tuple[_ApnFormat, ...]
+    borough: str | None = None  # NYC: the borough digit a BBL in this county starts with
+    county: str = ""
+
+
+def _nyc_bbl(borough: str, county: str) -> _CountyApnRule:
+    return _CountyApnRule(
+        "New York City BBL: borough (1 digit), tax block (5), tax lot (4), optional easement letter",
+        (_ApnFormat(re.compile(f"([1-5]){_SEP}([0-9]{{1,5}}){_SEP}([0-9]{{1,4}})(?:{_SEP})?([a-z]?)"), (1, 5, 4, 0)),
+         _ApnFormat(re.compile("([1-5])([0-9]{5})([0-9]{4})([a-z]?)"), (1, 5, 4, 0))),
+        borough, county)
+
+
+def _digit_fields(widths: tuple[int, ...]) -> tuple[_ApnFormat, ...]:
+    return (_ApnFormat(re.compile(_SEP.join(f"([0-9]{{1,{w}}})" for w in widths)), widths),
+            _ApnFormat(re.compile("".join(f"([0-9]{{{w}}})" for w in widths)), widths))
+
+
+COUNTY_APN_RULES: dict[str, _CountyApnRule] = {
+    "06037": _CountyApnRule("Los Angeles County AIN: map book (4 digits), page (3), parcel (3)", _digit_fields((4, 3, 3))),
+    "11001": _CountyApnRule(
+        "District of Columbia SSL: square (4 digits) and suffix (up to 4 letters), lot (4 digits), in fixed-width "
+        "fields padded with spaces; PAR and 8 digits for a parcel outside a square",
+        (_ApnFormat(re.compile(f"([0-9]{{4}})(?:{_SEP})?([a-z]{{0,4}}){_SEP}([0-9]{{1,4}})"), (4, 0, 4)),
+         _ApnFormat(re.compile(f"(par){_SEP}([0-9]{{8}})"), (0, 8)),
+         # Any other SSL as the roll writes it: fixed-width fields padded with spaces.
+         _ApnFormat(re.compile("[a-z0-9]+(?: +[a-z0-9]+)*")))),
+    "17031": _CountyApnRule("Cook County PIN: area (2 digits), subarea (2), block (3), parcel (3), unit (4)",
+                            _digit_fields((2, 2, 3, 3, 4))),
+    "36005": _nyc_bbl("2", "the Bronx (36005)"),
+    "36047": _nyc_bbl("3", "Brooklyn (36047)"),
+    "36061": _nyc_bbl("1", "Manhattan (36061)"),
+    "36081": _nyc_bbl("4", "Queens (36081)"),
+    "36085": _nyc_bbl("5", "Staten Island (36085)"),
+}
+_EDGE_SEPARATORS = re.compile(rf"\A{_SEP}|{_SEP}\Z")
+_SEPARATORS = re.compile(_SEP)
+
+
+def normalize_apn(apn: str, county: str | None = None) -> str:
+    """APN key (parcel rule 2, ID spec 0.3): see ``normalizeApn`` in @factlot/id.
+
+    ``county`` is the 5-digit state and county FIPS; a county in ``COUNTY_APN_RULES`` turns an APN
+    in its documented format into zero-padded fields run together. Any other APN keeps one hyphen
+    per run of separators ("12-34" and "1-234" differ); leading and trailing separators are dropped.
+    """
+    core = _EDGE_SEPARATORS.sub("", apn.lower())
+    if not core:
+        raise FactLotIdError(f'APN "{apn}" is empty after normalization')
+    rule = COUNTY_APN_RULES.get(county) if county is not None else None
+    for fmt in rule.formats if rule else ():
+        m = fmt.pattern.fullmatch(core)
+        if not m:
+            continue
+        if fmt.widths is None:
+            return _alnum(core)
+        fields = [f or "" for f in m.groups()]
+        if rule is not None and rule.borough is not None and fields[0] != rule.borough:
+            raise FactLotIdError(f'APN "{apn}" is not a valid {rule.name}: a BBL in {rule.county} starts with '
+                                 f"borough {rule.borough}, not {fields[0]}")
+        return "".join(f.rjust(w, "0") for f, w in zip(fields, fmt.widths))
+    return _SEPARATORS.sub("-", core)
 
 
 def _check_fips(state_fips: str, county_fips: str) -> None:
@@ -81,9 +163,9 @@ def _check_fips(state_fips: str, county_fips: str) -> None:
 def parcel_id(state_fips: str, county_fips: str, apn: str, normalize: Callable[[str], str] | None = None) -> FactLotId:
     """Deterministic parcel ID: ``fl:parcel:us-<SSCCC>:<apn>``."""
     _check_fips(state_fips, county_fips)
-    n = (normalize or normalize_apn)(apn)
-    if not re.fullmatch(r"[a-z0-9]+", n):
-        raise FactLotIdError("normalized APN must be lowercase alphanumerics")
+    n = normalize(apn) if normalize else normalize_apn(apn, state_fips + county_fips)
+    if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", n):
+        raise FactLotIdError("normalized APN must be lowercase alphanumerics, with single hyphens between them")
     return _make("parcel", f"fl:parcel:us-{state_fips}{county_fips}:{n}")
 
 
@@ -95,9 +177,24 @@ def entity_id(jurisdiction: str, registry_number: str) -> FactLotId:
     n = _alnum(registry_number)
     if not n:
         raise FactLotIdError("registry_number is empty after normalization")
-    if j == "lei" and len(n) != 20:
-        raise FactLotIdError("an LEI is 20 characters")
+    if j == "lei":
+        _check_lei(n, registry_number)
     return _make("entity", f"fl:entity:{j}:{n}")
+
+
+def _check_lei(n: str, given: str) -> None:
+    """ISO 17442: 18 alphanumerics and 2 check digits; the code read as a number (A = 10 … Z = 35) is 1 mod 97."""
+    if len(n) != 20:
+        raise FactLotIdError(f'"{given}" is not an LEI: an LEI is 20 characters (ISO 17442), got {len(n)}')
+    if not re.fullmatch("[0-9]{2}", n[18:]):
+        raise FactLotIdError(f'"{given}" is not an LEI: its last two characters are check digits (ISO 17442)')
+    rem = 0
+    for c in n:
+        v = int(c, 36)
+        rem = (rem * 10 + v if v < 10 else rem * 100 + v) % 97
+    if rem != 1:
+        raise FactLotIdError(f'"{given}" is not a valid LEI: its check digits do not match (ISO 17442, ISO 7064 '
+                             "MOD 97-10); check for a mistyped character")
 
 
 def document_id(content: bytes | str) -> FactLotId:
@@ -278,7 +375,7 @@ _TOKEN = "[0-9a-hjkmnp-tv-z]{26}"
 _ADDRESS_BUILDING = r"(us-[0-9]{5}):([0-9]{5}):([0-9][a-z0-9]*(?:-[a-z0-9]+)+)"
 # Matched with fullmatch: re's `$` also matches before a trailing newline, which @factlot/id rejects.
 _URN_PATTERNS = {
-    "parcel": re.compile(r"fl:parcel:(us-[0-9]{5}):([a-z0-9]+)"),
+    "parcel": re.compile(r"fl:parcel:(us-[0-9]{5}):([a-z0-9]+(?:-[a-z0-9]+)*)"),
     "entity": re.compile(r"fl:entity:([a-z]{2}-[a-z0-9]{1,3}|lei):([a-z0-9]+)"),
     "building": re.compile(rf"fl:building:(?:({_TOKEN})|{_ADDRESS_BUILDING})"),
     "space": re.compile(rf"fl:space:(?:({_TOKEN})|{_ADDRESS_BUILDING}):([a-z0-9]+(?:-[a-z0-9]+)*)"),

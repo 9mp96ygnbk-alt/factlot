@@ -1,0 +1,256 @@
+{
+  "calculator": "calc.equity_waterfall",
+  "version": 1,
+  "cases": [
+    {
+      "name": "one period, by hand: 1,000 in, 1,300 out; 8% pref 80, capital 1,000, full catch-up 20 (20% of 100 profit), then 80/20 on 200: promote 60 = 20% of 300 profit; LP 1,116, GP 184",
+      "input": {
+        "cash_flows": [-1000, 1300],
+        "lp_share": 0.9,
+        "pref": {
+          "rate_annual": 0.08
+        },
+        "catch_up": {
+          "gp_share": 1,
+          "target_promote": 0.2
+        },
+        "residual_promote": 0.2
+      },
+      "expect": {
+        "value.lp.contributions": 900,
+        "value.gp.contributions": 100,
+        "value.lp.distributions": 1116,
+        "value.gp.distributions": 184,
+        "value.gp.promote": 60,
+        "value.lp.irr": 0.24,
+        "value.lp.multiple": 1.24,
+        "value.project_irr": 0.3,
+        "value.unreturned_capital": 0,
+        "value.unpaid_pref": 0,
+        "value.gp.irr": 0.84,
+        "value.periods.1.lp_distribution": 1116,
+        "value.periods.1.gp_promote": 60,
+        "value.periods.1.pref": 80,
+        "value.periods.1.return_of_capital": 1000,
+        "value.periods.1.catch_up": 20,
+        "value.periods.1.residual": 200,
+        "value.periods.1.gp_distribution": 184
+      },
+      "tolerance": 1e-8
+    },
+    {
+      "name": "annual: compounding 8% pref, full catch-up to 20%, 80/20 to a 12% LP IRR, 70/30 to 15%, 60/40 after",
+      "input": {
+        "cash_flows": [-1000000, 50000, 60000, 70000, 1800000],
+        "lp_share": 0.9,
+        "pref": {
+          "rate_annual": 0.08
+        },
+        "catch_up": {
+          "gp_share": 1,
+          "target_promote": 0.2
+        },
+        "tiers": [
+          {
+            "until_irr": 0.12,
+            "promote": 0.2
+          },
+          {
+            "until_irr": 0.15,
+            "promote": 0.3
+          }
+        ],
+        "residual_promote": 0.4
+      },
+      "expect": {
+        "value.lp.contributions": 900000,
+        "value.gp.contributions": 100000,
+        "value.lp.distributions": 1569383.9,
+        "value.gp.distributions": 410616.1,
+        "value.gp.promote": 236240.11,
+        "value.lp.irr": 0.15881533,
+        "value.lp.multiple": 1.7438,
+        "value.project_irr": 0.19739946,
+        "value.unreturned_capital": 0,
+        "value.unpaid_pref": 0,
+        "value.gp.irr": 0.44007543,
+        "value.periods.1.lp_distribution": 45000,
+        "value.periods.1.gp_promote": 0,
+        "value.periods.2.lp_distribution": 54000,
+        "value.periods.2.gp_promote": 0,
+        "value.periods.3.lp_distribution": 63000,
+        "value.periods.3.gp_promote": 0,
+        "value.periods.4.lp_distribution": 1407383.9,
+        "value.periods.4.gp_promote": 236240.11
+      },
+      "tolerance": 1e-8
+    },
+    {
+      "name": "quarterly: two contributions, simple 8% pref, capital before pref, 75/25 to a 13% LP IRR, 65/35 after",
+      "input": {
+        "cash_flows": [
+          -600000, -400000, 30000, 30000, 30000, 30000, 30000, 30000, 30000,
+          30000, 1500000
+        ],
+        "periods_per_year": 4,
+        "lp_share": 0.95,
+        "pref": {
+          "rate_annual": 0.08,
+          "compounding": "simple"
+        },
+        "distribution_order": "capital_then_pref",
+        "tiers": [
+          {
+            "until_irr": 0.13,
+            "promote": 0.25
+          }
+        ],
+        "residual_promote": 0.35
+      },
+      "expect": {
+        "value.lp.contributions": 950000,
+        "value.gp.contributions": 50000,
+        "value.lp.distributions": 1480654.1,
+        "value.gp.distributions": 259345.9,
+        "value.gp.promote": 181416.73,
+        "value.lp.irr": 0.22298127,
+        "value.lp.multiple": 1.5586,
+        "value.project_irr": 0.28346233,
+        "value.unreturned_capital": 0,
+        "value.unpaid_pref": 0,
+        "value.gp.irr": 1.03547731,
+        "value.periods.2.lp_distribution": 28500,
+        "value.periods.2.gp_promote": 0,
+        "value.periods.3.lp_distribution": 28500,
+        "value.periods.3.gp_promote": 0,
+        "value.periods.4.lp_distribution": 28500,
+        "value.periods.4.gp_promote": 0,
+        "value.periods.5.lp_distribution": 28500,
+        "value.periods.5.gp_promote": 0,
+        "value.periods.6.lp_distribution": 28500,
+        "value.periods.6.gp_promote": 0,
+        "value.periods.7.lp_distribution": 28500,
+        "value.periods.7.gp_promote": 0,
+        "value.periods.8.lp_distribution": 28500,
+        "value.periods.8.gp_promote": 0,
+        "value.periods.9.lp_distribution": 28500,
+        "value.periods.9.gp_promote": 0,
+        "value.periods.10.lp_distribution": 1252654.1,
+        "value.periods.10.gp_promote": 181416.73
+      },
+      "tolerance": 1e-8
+    },
+    {
+      "name": "pure IRR hurdles with no pref: 100% pro rata to a 10% IRR, then 80/20; the LP funds everything",
+      "input": {
+        "cash_flows": [-5000000, 400000, 400000, 400000, 400000, 6500000],
+        "lp_share": 1,
+        "tiers": [
+          {
+            "until_irr": 0.1,
+            "promote": 0
+          }
+        ],
+        "residual_promote": 0.2
+      },
+      "expect": {
+        "value.lp.contributions": 5000000,
+        "value.gp.contributions": 0,
+        "value.lp.distributions": 8002102,
+        "value.gp.distributions": 97898,
+        "value.gp.promote": 97898,
+        "value.lp.irr": 0.11205059,
+        "value.lp.multiple": 1.6004,
+        "value.project_irr": 0.11497755,
+        "value.unreturned_capital": 0,
+        "value.unpaid_pref": 0,
+        "value.periods.1.lp_distribution": 400000,
+        "value.periods.1.gp_promote": 0,
+        "value.periods.2.lp_distribution": 400000,
+        "value.periods.2.gp_promote": 0,
+        "value.periods.3.lp_distribution": 400000,
+        "value.periods.3.gp_promote": 0,
+        "value.periods.4.lp_distribution": 400000,
+        "value.periods.4.gp_promote": 0,
+        "value.periods.5.lp_distribution": 6402102,
+        "value.periods.5.gp_promote": 97898,
+        "value.gp.irr": null,
+        "value.gp.multiple": null
+      },
+      "tolerance": 1e-8
+    },
+    {
+      "name": "the deal does not return capital: no promote, pref unpaid",
+      "input": {
+        "cash_flows": [-1000000, 100000, 600000],
+        "lp_share": 0.9,
+        "pref": {
+          "rate_annual": 0.08
+        },
+        "tiers": [
+          {
+            "until_irr": 0.12,
+            "promote": 0.2
+          }
+        ],
+        "residual_promote": 0.3
+      },
+      "expect": {
+        "value.lp.contributions": 900000,
+        "value.gp.contributions": 100000,
+        "value.lp.distributions": 630000,
+        "value.gp.distributions": 70000,
+        "value.gp.promote": 0,
+        "value.lp.irr": -0.17379127,
+        "value.lp.multiple": 0.7,
+        "value.project_irr": -0.17379127,
+        "value.unreturned_capital": 458400,
+        "value.unpaid_pref": 0,
+        "value.gp.irr": -0.17379127,
+        "value.periods.1.lp_distribution": 90000,
+        "value.periods.1.gp_promote": 0,
+        "value.periods.2.lp_distribution": 540000,
+        "value.periods.2.gp_promote": 0
+      },
+      "tolerance": 1e-8
+    },
+    {
+      "name": "needs a contribution",
+      "input": {
+        "cash_flows": [100, 200],
+        "lp_share": 0.9
+      },
+      "expect_error": true
+    },
+    {
+      "name": "tiers in increasing hurdle order",
+      "input": {
+        "cash_flows": [-100, 200],
+        "lp_share": 0.9,
+        "tiers": [
+          {
+            "until_irr": 0.15,
+            "promote": 0.3
+          },
+          {
+            "until_irr": 0.12,
+            "promote": 0.2
+          }
+        ]
+      },
+      "expect_error": true
+    },
+    {
+      "name": "catch-up share must exceed its target",
+      "input": {
+        "cash_flows": [-100, 200],
+        "lp_share": 0.9,
+        "catch_up": {
+          "gp_share": 0.2,
+          "target_promote": 0.2
+        }
+      },
+      "expect_error": true
+    }
+  ]
+}

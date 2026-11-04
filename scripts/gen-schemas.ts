@@ -2,8 +2,9 @@
 //   tools.json                 every tool: name, title, description, REST path, formula, input_schema
 //   fact.json                  the FactLot data model as JSON Schema
 //   providers/<platform>.json  native tool definitions for each AI platform
-//   openapi-3.1.json           Custom GPT Actions and most API gateways
-//   openapi-3.0.json           Amazon Bedrock Agents, Microsoft API plugins, Vertex AI
+//   openapi-3.1.json           every tool: API gateways and HTTP clients
+//   openapi-3.0.json           the Custom GPT Actions subset (GPT_ACTIONS_TOOLS, at most 30
+//                              operations); openApi30({ operations: "all" }) gives every tool
 //   vocabularies/<name>.json   use categories and the chart of accounts the document tools match on
 // Run: npm run schemas   (CI fails if the committed files are stale)
 import { mkdirSync, writeFileSync } from "node:fs";

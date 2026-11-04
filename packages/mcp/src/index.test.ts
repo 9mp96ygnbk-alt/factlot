@@ -185,3 +185,79 @@ test("search and fetch follow the ChatGPT deep research contract", async () => {
   assert.equal(missing.isError, true);
   await client.close();
 });
+
+test("input errors come back as the REST error object, not plain text", async () => {
+  const client = await connect();
+  for (const [name, args, path] of [
+    ["calc_npv", { rate: "x", cash_flows: [1] }, "rate"],
+    ["id_parcel", { state_fips: "06", county_fips: "037" }, "apn"],
+    ["id_parcel", { state_fips: "06", county_fips: "037", apn: 7 }, "apn"],
+    ["search", { query: 5 }, "query"],
+    ["fetch", {}, "id"],
+  ] as const) {
+    const r = (await client.callTool({ name, arguments: args })) as {
+      isError?: boolean;
+      content: { type: string; text: string }[];
+    };
+    assert.equal(r.isError, true, name);
+    const text = r.content[0]?.text ?? "";
+    assert.doesNotMatch(text, /MCP error|-32602/, name);
+    const error = JSON.parse(text) as {
+      error: string;
+      message: string;
+      issues: { path: string; message: string }[];
+    };
+    assert.match(error.error, /InputError/, name);
+    assert.match(error.message, /^invalid input: /, name);
+    assert.ok(
+      error.issues.some((i) => i.path === path),
+      `${name}: ${JSON.stringify(error.issues)}`,
+    );
+  }
+  // A domain error keeps its shape too.
+  const lei = (await client.callTool({
+    name: "id_entity",
+    arguments: { jurisdiction: "lei", registry_number: "5493001KJTIIGC8Y1R13" },
+  })) as { isError?: boolean; content: { text: string }[] };
+  assert.equal(lei.isError, true);
+  assert.equal(
+    (JSON.parse(lei.content[0]?.text ?? "{}") as { error: string }).error,
+    "FactLotIdError",
+  );
+  const unknown = (await client.callTool({
+    name: "no_such_tool",
+    arguments: {},
+  })) as { isError?: boolean; content: { text: string }[] };
+  assert.equal(unknown.isError, true);
+  assert.equal(
+    (JSON.parse(unknown.content[0]?.text ?? "{}") as { error: string }).error,
+    "UnknownTool",
+  );
+  await client.close();
+});
+
+test("search says so when nothing matches, and fetch explains a document ID without a registry", async () => {
+  const client = await connect();
+  const s = (await client.callTool({
+    name: "search",
+    arguments: { query: "how to bake a sourdough cake" },
+  })) as { content: { text: string }[] };
+  const body = JSON.parse(s.content[0]?.text ?? "{}") as {
+    results: unknown[];
+    note?: string;
+  };
+  assert.deepEqual(body.results, []);
+  assert.match(body.note ?? "", /No FactLot knowledge document matches/);
+  const f = (await client.callTool({
+    name: "fetch",
+    arguments: { id: `fl:document:sha256-${"a".repeat(64)}` },
+  })) as { isError?: boolean; content: { text: string }[] };
+  assert.equal(f.isError, true);
+  const error = JSON.parse(f.content[0]?.text ?? "{}") as {
+    error: string;
+    message: string;
+  };
+  assert.equal(error.error, "RegistryUnavailable");
+  assert.match(error.message, /no FactLot Registry|has none/);
+  await client.close();
+});

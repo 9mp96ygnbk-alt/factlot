@@ -577,6 +577,220 @@
       },
       "required": ["from", "type", "to", "as_of", "provenance"],
       "additionalProperties": false
+    },
+    "LeaseComp": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "comp_type": {
+          "type": "string",
+          "enum": [
+            "new",
+            "renewal",
+            "extension",
+            "expansion",
+            "sublease",
+            "amendment",
+            "holdover",
+            "other"
+          ]
+        },
+        "property_type": {
+          "type": "string",
+          "enum": [
+            "office",
+            "industrial",
+            "retail",
+            "medical_office",
+            "flex",
+            "mixed_use",
+            "datacenter",
+            "self_storage",
+            "hotel",
+            "multifamily",
+            "land",
+            "other"
+          ]
+        },
+        "tenant_type": {
+          "type": "string",
+          "enum": [
+            "government_federal",
+            "government_state_local",
+            "corporate",
+            "professional_services",
+            "medical",
+            "retail_national",
+            "retail_local",
+            "nonprofit",
+            "other",
+            "unknown"
+          ]
+        },
+        "area_sf": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "area_basis": {
+          "type": "string",
+          "enum": ["rentable", "usable", "gross", "unknown"]
+        },
+        "commencement_date": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+        },
+        "expiration_date": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+        },
+        "term_months": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 1200
+        },
+        "early_termination_date": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+        },
+        "starting_rent_psf_yr": {
+          "type": "number",
+          "minimum": 0
+        },
+        "current_rent_psf_yr": {
+          "type": "number",
+          "minimum": 0
+        },
+        "escalation": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["none", "percent", "fixed_psf"]
+            },
+            "rate": {
+              "type": "number",
+              "exclusiveMinimum": -1,
+              "exclusiveMaximum": 10
+            },
+            "amount": {
+              "type": "number"
+            },
+            "every_months": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": false
+        },
+        "free_rent_months": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "free_rent_applies_to": {
+          "type": "string",
+          "enum": ["base_rent", "gross_rent"]
+        },
+        "ti_allowance_psf": {
+          "type": "number",
+          "minimum": 0
+        },
+        "leasing_commissions_usd": {
+          "type": "number",
+          "minimum": 0
+        },
+        "other_concessions_usd": {
+          "type": "number",
+          "minimum": 0
+        },
+        "expense_basis": {
+          "type": "string",
+          "enum": [
+            "full_service",
+            "modified_gross",
+            "industrial_gross",
+            "base_year",
+            "nnn",
+            "absolute_net",
+            "ground",
+            "not_full_service",
+            "unknown"
+          ]
+        },
+        "opex_psf_yr": {
+          "type": "number",
+          "minimum": 0
+        },
+        "renewal_options": {
+          "type": "object",
+          "properties": {
+            "count": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "term_months": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": ["count"],
+          "additionalProperties": false
+        },
+        "building": {
+          "type": "string",
+          "pattern": "^fl:building:[^\\s]+$"
+        },
+        "submarket": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "state": {
+          "type": "string",
+          "pattern": "^[A-Z]{2}$"
+        },
+        "confirming_party": {
+          "type": "string",
+          "enum": [
+            "landlord",
+            "tenant",
+            "landlord_broker",
+            "tenant_broker",
+            "both_parties",
+            "public_record",
+            "appraiser",
+            "lender",
+            "other"
+          ]
+        },
+        "verification": {
+          "type": "string",
+          "enum": [
+            "unverified",
+            "party_confirmed",
+            "document_verified",
+            "public_record"
+          ]
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 1000
+        }
+      },
+      "required": [
+        "comp_type",
+        "area_sf",
+        "commencement_date",
+        "confirming_party",
+        "verification"
+      ],
+      "additionalProperties": false
     }
   }
 }

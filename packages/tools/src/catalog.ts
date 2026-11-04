@@ -2,7 +2,7 @@
  * The FactLot tool catalog: one list of tools, with identical names, inputs, and
  * outputs on every surface (MCP, REST, OpenAPI, and each AI provider's function calling).
  */
-import { CalcInputError, calculators, rulePacks } from "@factlot/calc";
+import { CalcInputError, IsoDate, calculators, rulePacks } from "@factlot/calc";
 import {
   FactLotIdError,
   buildingId,
@@ -15,6 +15,7 @@ import {
 } from "@factlot/id";
 import { z } from "zod";
 
+import { LeaseCompValidateInput, validateLeaseComp } from "./comps.ts";
 import {
   AbstractLeaseInput,
   CompareInput,
@@ -153,7 +154,7 @@ const ParcelInput = z.object({
     .string()
     .max(200)
     .describe(
-      "Assessor's parcel number exactly as the county prints it; formatting is normalized.",
+      "Assessor's parcel number exactly as the county prints it. Letter case and the separator characters are normalized; where a separator falls is kept, except in counties with a documented fixed-width format (NYC BBL, Los Angeles AIN, Cook County PIN, DC SSL).",
     ),
 });
 const EntityInput = z.object({
@@ -166,7 +167,9 @@ const EntityInput = z.object({
   registry_number: z
     .string()
     .max(200)
-    .describe("File number issued by that registry, or the 20-character LEI."),
+    .describe(
+      "File number issued by that registry, or the 20-character LEI (its ISO 17442 check digits are verified).",
+    ),
 });
 const SpaceInput = z.object({
   building_urn: z
@@ -243,7 +246,7 @@ const idTools: ToolSpec[] = [
     name: "id_parcel",
     title: "FactLot parcel ID",
     description:
-      "Deterministic FactLot ID for a parcel from state FIPS, county FIPS, and the assessor's parcel number (APN). The same parcel always yields the same ID, offline. Use it as the join key across systems.",
+      'Deterministic FactLot ID for a parcel from state FIPS, county FIPS, and the assessor\'s parcel number (APN). The same parcel always yields the same ID, offline. Use it as the join key across systems. APNs that differ only in where a separator falls ("12-34", "1-234") get different IDs; in a county with a documented fixed-width format the variants of one APN converge (NYC BBL "3-1234-56" = "3012340056").',
     input: ParcelInput,
     path: "/v1/id/parcel",
     run: (i: never) => {
@@ -259,7 +262,7 @@ const idTools: ToolSpec[] = [
     name: "id_entity",
     title: "FactLot legal-entity ID",
     description:
-      "Deterministic FactLot ID for a legal entity (LLC, LP, corporation, trust) from its registry jurisdiction and file number, or from its LEI.",
+      "Deterministic FactLot ID for a legal entity (LLC, LP, corporation, trust) from its registry jurisdiction and file number, or from its LEI (an LEI whose ISO 17442 check digits do not match is rejected).",
     input: EntityInput,
     path: "/v1/id/entity",
     run: (i: never) => {
@@ -423,6 +426,19 @@ const packageTools: ToolSpec[] = [
   },
 ];
 
+const compTools: ToolSpec[] = [
+  {
+    name: "lease_comp_validate",
+    title: "Validate a lease comp and derive its NER",
+    description:
+      "Check a lease comparable one firm shares with others, as a FactLot fact with predicate lease.comp, and derive its net effective rent. The fact goes through fact_validate (schema, citations, rights), then the comp's own rules: shape (spec/schemas/fact.json LeaseComp: area, commencement, term or expiration, starting or current rent, escalation, free rent, TI, leasing commissions, expense basis, confirming party, verification), an expiration after commencement, a term that matches the dates, free rent within the term, no email, phone or ID number in the text. A comp names no person or company. With the default share profile it also needs the deal's starting rent, escalations, free rent, TI, property type, an expense basis other than unknown, and stated rights. When valid and a starting rent is given, ner.fact is a computed lease.net_effective_rent fact (formula calc.net_effective_rent@1, straight-line and discounted at discount_rate_annual, on the comp's own expense basis; no conversion between full service and net). Returns { valid, issues, warnings, ner }. Call before sharing a comp.",
+    input: LeaseCompValidateInput,
+    path: "/v1/comps/validate",
+    run: (i: never) =>
+      validateLeaseComp(i as z.output<typeof LeaseCompValidateInput>, PRODUCER),
+  },
+];
+
 class NotFoundError extends Error {
   override name = "NotFoundError";
   coverage: unknown;
@@ -447,7 +463,7 @@ const registryTools: ToolSpec[] = [
     name: "registry_get",
     title: "Get a registry record",
     description:
-      "Everything the FactLot Registry knows about a parcel, legal entity, or building: status, current cited facts (owner of record, situs address, property category, areas, values), ownership links, external IDs, and for a parcel the building it belongs to (condominium units roll up into one building). A miss says whether the county or entity registry is loaded." +
+      "Everything the FactLot Registry knows about a parcel, legal entity, or building: status, current cited facts (owner of record, situs address, property category, areas, values), ownership links, external IDs, and for a parcel the building it belongs to (condominium units roll up into one building). as_of gives the facts as they stood on a date. warnings flags area facts that look wrong (building area above 40 times the land area, a land area of 0); the facts themselves are as the source publishes them. A miss says whether the county or entity registry is loaded." +
       REGISTRY_NOTE,
     input: z.object({
       urn: z
@@ -459,16 +475,22 @@ const registryTools: ToolSpec[] = [
       include_history: z
         .boolean()
         .default(false)
-        .describe("Also return superseded facts from earlier snapshots."),
+        .describe(
+          "Also return every fact from every snapshot, superseded ones included (history lists current facts too; a source loaded once has no superseded facts).",
+        ),
+      as_of: IsoDate.optional().describe(
+        "Date (YYYY-MM-DD): return the facts and ownership links current on that date, from the snapshots dated on or before it, instead of the latest. With include_history, history stops at that date.",
+      ),
     }),
     path: "/v1/registry/get",
     requires: "registry",
     run: (i: never) => {
-      const { urn, include_history } = i as {
+      const { urn, include_history, as_of } = i as {
         urn: string;
         include_history: boolean;
+        as_of?: string;
       };
-      const record = registryGet(urn);
+      const record = registryGet(urn, as_of);
       if (!record) {
         const coverage = registryRecordMiss(urn);
         throw new NotFoundError(
@@ -477,7 +499,7 @@ const registryTools: ToolSpec[] = [
         );
       }
       return include_history
-        ? { ...record, history: registryFacts(urn, true) }
+        ? { ...record, history: registryFacts(urn, true, as_of) }
         : record;
     },
   },
@@ -532,14 +554,16 @@ const registryTools: ToolSpec[] = [
     name: "registry_search_address",
     title: "Search parcels by address",
     description:
-      "Find commercial parcels by situs address (normalized: 'Street' = 'St', 'Northwest' = 'N.W.' = 'NW'; a suite, unit, '#' or floor is ignored). No match returns coverage: what this registry holds." +
+      "Find commercial parcels by situs address. Matches whole words of the street line (the part before the first comma), normalized: 'Street' = 'St', 'Northwest' = 'N.W.' = 'NW'; a suite, unit, '#' or floor is ignored. Give a house number ('1200 Main', '1200 Main St NW') or a street name with its type ('Main St'); a city or a part of a word alone matches nothing. No match returns coverage: what this registry holds." +
       REGISTRY_NOTE,
     input: z.object({
       query: z
         .string()
         .min(1)
         .max(500)
-        .describe("Street address or part of one."),
+        .describe(
+          "Street address, or a house number and street words, or a street name with its type.",
+        ),
       limit: Limit,
     }),
     path: "/v1/registry/search_address",
@@ -603,6 +627,7 @@ export const tools: readonly ToolSpec[] = [
   ...idTools,
   ...docTools,
   ...packageTools,
+  ...compTools,
   ...registryTools,
 ];
 

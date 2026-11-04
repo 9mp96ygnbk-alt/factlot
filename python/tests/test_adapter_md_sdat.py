@@ -212,7 +212,7 @@ class MarylandSdat(unittest.TestCase):
         try:
             urns = [u for (u,) in reg.db.execute("SELECT urn FROM crosswalk WHERE system = 'sdat_account' ORDER BY external_id")]
             self.assertEqual(len(set(urns)), 5, "the space and the letters keep the three Baltimore City accounts apart")
-            self.assertIn("fl:parcel:us-24510:0301011738001", urns)
+            self.assertIn("fl:parcel:us-24510:0301011738-001", urns)
             self.assertIn("fl:parcel:us-24037:1901000099", urns)
         finally:
             reg.close()

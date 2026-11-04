@@ -436,24 +436,29 @@ if (only !== "stdio") {
       await missing.body?.cancel();
     });
 
-    test("OpenAPI 3.1 and 3.0: valid structure, every $ref resolves, every REST tool present", async () => {
+    test("OpenAPI 3.1 and 3.0: valid structure, every $ref resolves, every REST tool present (3.0: the GPT Actions subset)", async () => {
       const list = (await (await fetch(`${base}/v1/tools`)).json()) as {
         tools: { name: string; path: string }[];
       };
+      const rest = list.tools.filter((x) => !x.name.startsWith("registry_"));
       for (const [route, major] of [
         ["/openapi.json", "3.1"],
-        ["/openapi-3.0.json", "3.0"],
+        ["/openapi-3.0.json?operations=all", "3.0"],
       ] as const) {
         const r = await fetch(`${base}${route}`);
         assert.equal(r.status, 200, route);
         const doc = (await r.json()) as Record<string, unknown>;
         const { paths, operations } = checkOpenApi(doc, major);
         assert.ok(operations >= REQUIRED_TOOLS.length - 3, route);
-        for (const t of list.tools.filter(
-          (x) => !x.name.startsWith("registry_"),
-        ))
+        for (const t of rest)
           assert.ok(paths[t.path]?.post, `${route} has POST ${t.path}`);
       }
+      const r = await fetch(`${base}/openapi-3.0.json`);
+      const doc = (await r.json()) as Record<string, unknown>;
+      const { paths, operations } = checkOpenApi(doc, "3.0");
+      assert.ok(operations <= 30, `Custom GPT Actions subset: ${operations}`);
+      const known = new Set(rest.map((t) => t.path));
+      for (const p of Object.keys(paths)) assert.ok(known.has(p), p);
     });
   });
 }

@@ -1,5 +1,5 @@
 {
-  "description": "Registry name/address normalization; Python factlot.registry and TS @factlot/tools must agree. 'addresses' is address key version 2 (2026-11-03); 'legacy_addresses' version 1, which files built earlier keep until re-keyed.",
+  "description": "Registry name/address normalization; Python factlot.registry and TS @factlot/tools must agree. 'addresses' is address key version 2 (2026-11-03); 'legacy_addresses' version 1, which files built earlier keep until re-keyed. 'address_queries': how registry_search_address reads a query (mode house_number, street, or null when it has neither a house number nor a street type, and then searches nothing; tokens are the street line's words).",
   "names": [
     ["The Acme Properties, L.L.C.", "ACME PROPERTIES LLC"],
     ["Gulf Logistics, Limited Partnership", "GULF LOGISTICS LP"],
@@ -62,5 +62,84 @@
     ["5 Industrial Boulevard", "5 INDUSTRIAL BLVD"],
     ["1200 North Loop West Freeway", "1200 N LOOP W FWY"],
     ["  9 commerce  drive ", "9 COMMERCE DR"]
+  ],
+  "address_queries": [
+    [
+      "1845 Ontario Pl NW, Washington, DC 20009",
+      {
+        "mode": "house_number",
+        "tokens": ["1845", "ONTARIO", "PL", "NW"]
+      }
+    ],
+    [
+      "1845 Ontario",
+      {
+        "mode": "house_number",
+        "tokens": ["1845", "ONTARIO"]
+      }
+    ],
+    [
+      "Ontario Place Northwest",
+      {
+        "mode": "street",
+        "tokens": ["ONTARIO", "PL", "NW"]
+      }
+    ],
+    [
+      "Ontario",
+      {
+        "mode": null,
+        "tokens": ["ONTARIO"]
+      }
+    ],
+    [
+      "Ontario, CA",
+      {
+        "mode": null,
+        "tokens": ["ONTARIO"]
+      }
+    ],
+    [
+      "Washington DC",
+      {
+        "mode": null,
+        "tokens": ["WASHINGTON", "DC"]
+      }
+    ],
+    [
+      "Northwest",
+      {
+        "mode": null,
+        "tokens": ["NW"]
+      }
+    ],
+    [
+      "N.W. Industrial Way",
+      {
+        "mode": "street",
+        "tokens": ["NW", "INDUSTRIAL", "WAY"]
+      }
+    ],
+    [
+      "Suite 400",
+      {
+        "mode": null,
+        "tokens": []
+      }
+    ],
+    [
+      "",
+      {
+        "mode": null,
+        "tokens": []
+      }
+    ],
+    [
+      "Highway 290",
+      {
+        "mode": "street",
+        "tokens": ["HWY", "290"]
+      }
+    ]
   ]
 }

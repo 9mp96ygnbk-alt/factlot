@@ -10,7 +10,7 @@
     {
       "name": "factlot",
       "source": "./plugins/factlot",
-      "description": "Eight commercial real estate skills (loan sizing, lease economics, CAM reconciliation, ASC 842, lease vs own, returns, hotel metrics, Texas protest deadline) backed by the free hosted FactLot MCP server and its audited calculators.",
+      "description": "Eleven commercial real estate skills (loan sizing and amortization, lease economics, CAM reconciliation, ASC 842, lease vs own, returns, valuation and waterfalls, 1031 exchanges, multifamily rent rolls, hotel metrics, Texas protest deadline) backed by the free hosted FactLot MCP server and its audited calculators.",
       "category": "finance",
       "tags": [
         "commercial-real-estate",

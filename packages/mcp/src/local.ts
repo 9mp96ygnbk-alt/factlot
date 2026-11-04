@@ -13,20 +13,12 @@ import { createHash, webcrypto } from "node:crypto";
 import { readFile, stat } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { signFactPackage } from "@factlot/tools";
 import { z } from "zod";
 
 export const PDF_MAX_BYTES = 100 * 1024 * 1024;
 const PDF_TIMEOUT_MS = 10 * 60 * 1000;
-
-const LOCAL = {
-  readOnlyHint: true,
-  idempotentHint: true,
-  destructiveHint: false,
-  openWorldHint: false,
-} as const;
 
 function ok(data: Record<string, unknown>): CallToolResult {
   return {
@@ -93,7 +85,7 @@ function runPdfReader(
   });
 }
 
-export const ReadPdfInput = {
+export const ReadPdfInput = z.object({
   path: z
     .string()
     .min(1)
@@ -119,10 +111,10 @@ export const ReadPdfInput = {
     .max(500)
     .optional()
     .describe("Document title for citations."),
-};
+});
 
 export async function readPdf(
-  input: z.output<z.ZodObject<typeof ReadPdfInput>>,
+  input: z.output<typeof ReadPdfInput>,
 ): Promise<CallToolResult> {
   if ((input.path === undefined) === (input.content_base64 === undefined))
     return fail("InputError", "give either path or content_base64");
@@ -189,7 +181,7 @@ export async function readPdf(
 const PEM =
   /-----BEGIN PRIVATE KEY-----([A-Za-z0-9+/=\s]+)-----END PRIVATE KEY-----/;
 
-export const SignInput = {
+export const SignInput = z.object({
   package: z
     .record(z.string(), z.unknown())
     .describe("The package from fact_package_create."),
@@ -198,10 +190,10 @@ export const SignInput = {
     .max(200)
     .optional()
     .describe("A label for the key, stored with the signature."),
-};
+});
 
 export async function signPackage(
-  input: z.output<z.ZodObject<typeof SignInput>>,
+  input: z.output<typeof SignInput>,
 ): Promise<CallToolResult> {
   const file = process.env.FACTLOT_SIGNING_KEY_FILE;
   if (!file)
@@ -239,43 +231,37 @@ export async function signPackage(
   }
 }
 
-/** The local-only tools, for manifests that list a local server's tools (the desktop extension). */
-export const LOCAL_TOOLS: readonly { name: string; description: string }[] = [
+export interface LocalToolSpec {
+  name: string;
+  title: string;
+  description: string;
+  input: typeof ReadPdfInput | typeof SignInput;
+  run: (input: never) => Promise<CallToolResult>;
+}
+
+/**
+ * The local-only tools. createServer registers them (read-only: neither changes anything on the
+ * machine; fact_package_sign returns a signed copy) and validates their input like every tool.
+ */
+export const LOCAL_TOOL_SPECS: readonly LocalToolSpec[] = [
   {
     name: "doc_read_pdf",
+    title: "Read a PDF's page text",
     description:
-      "Read a PDF on this computer into page text for the document tools (text layer, OCR for scanned pages, the file's sha256). Needs the FactLot Python SDK with pypdf.",
+      "Local server only. Read a PDF on this machine (a path, or its bytes as base64) into the document input of the doc_* tools: the text layer of each page, OCR through a backend you name (e.g. tesseract) for pages without one, the file's sha256 so document_id is fl:document:sha256-<sha256> (the same ID id_document gives the file), and ocr_pages, the pages whose text came from OCR (facts cited to them carry ocr: true). Needs the FactLot Python SDK with pypdf (pip install 'factlot[pdf]'). Nothing leaves the machine.",
+    input: ReadPdfInput,
+    run: readPdf as (input: never) => Promise<CallToolResult>,
   },
   {
     name: "fact_package_sign",
+    title: "Sign a fact package",
     description:
-      "Sign a fact package with your own Ed25519 key from the file named by FACTLOT_SIGNING_KEY_FILE; the key stays on this computer.",
+      "Local server only. Sign a package from fact_package_create with your own Ed25519 private key, read from the file named by the FACTLOT_SIGNING_KEY_FILE environment variable (PKCS#8 PEM); the key never passes through the conversation and nothing leaves the machine. Returns the package with signature {algorithm, public_key, value} and the public key to share for fact_package_verify.",
+    input: SignInput,
+    run: signPackage as (input: never) => Promise<CallToolResult>,
   },
 ];
 
-/** Register the local-only tools. */
-export function registerLocalTools(server: McpServer): void {
-  server.registerTool(
-    "doc_read_pdf",
-    {
-      title: "Read a PDF's page text",
-      description:
-        "Local server only. Read a PDF on this machine (a path, or its bytes as base64) into the document input of the doc_* tools: the text layer of each page, OCR through a backend you name (e.g. tesseract) for pages without one, the file's sha256 so document_id is fl:document:sha256-<sha256> (the same ID id_document gives the file), and ocr_pages, the pages whose text came from OCR (facts cited to them carry ocr: true). Needs the FactLot Python SDK with pypdf (pip install 'factlot[pdf]'). Nothing leaves the machine.",
-      inputSchema: ReadPdfInput,
-      annotations: { ...LOCAL, title: "Read a PDF's page text" },
-    },
-    readPdf,
-  );
-  server.registerTool(
-    "fact_package_sign",
-    {
-      title: "Sign a fact package",
-      description:
-        "Local server only. Sign a package from fact_package_create with your own Ed25519 private key, read from the file named by the FACTLOT_SIGNING_KEY_FILE environment variable (PKCS#8 PEM); the key never passes through the conversation and nothing leaves the machine. Returns the package with signature {algorithm, public_key, value} and the public key to share for fact_package_verify.",
-      inputSchema: SignInput,
-      // Read-only: it returns a signed copy and changes nothing on the machine.
-      annotations: { ...LOCAL, title: "Sign a fact package" },
-    },
-    signPackage,
-  );
-}
+/** The local-only tools, for manifests that list a local server's tools (the desktop extension). */
+export const LOCAL_TOOLS: readonly { name: string; description: string }[] =
+  LOCAL_TOOL_SPECS.map((t) => ({ name: t.name, description: t.description }));

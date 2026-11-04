@@ -7,13 +7,29 @@
  */
 import type { z } from "zod";
 
+import {
+  AmortizationScheduleInput,
+  amortizationSchedule,
+} from "./amortization.ts";
 import { LeaseRemeasurementInput, leaseRemeasurementAsc842 } from "./asc842.ts";
 import { CamReconciliationInput, camReconciliation } from "./cam.ts";
+import {
+  CamReconciliationBatchInput,
+  camReconciliationBatch,
+} from "./cam_batch.ts";
+import { CapexRecoveryInput, capexRecovery } from "./capex.ts";
 import type { CalcResult } from "./core.ts";
+import { DcfProFormaInput, dcfProForma } from "./dcf.ts";
 import { DebtSizingInput, debtSizing } from "./debt.ts";
+import { DirectCapInput, directCap } from "./direct_cap.ts";
+import { Exchange1031Input, exchange1031 } from "./exchange_1031.ts";
 import { IrrInput, NpvInput, irr, npv } from "./finance.ts";
 import { HotelMetricsInput, hotelMetrics } from "./hotel.ts";
 import { LeaseVsOwnInput, leaseVsOwn } from "./lease_vs_own.ts";
+import {
+  MultifamilyRentRollInput,
+  multifamilyRentRoll,
+} from "./multifamily.ts";
 import { WaltInput, walt } from "./portfolio.ts";
 import { PrepaymentInput, prepaymentAndDefeasance } from "./prepayment.ts";
 import { ProposalComparisonInput, compareProposals } from "./proposals.ts";
@@ -25,22 +41,33 @@ import {
   netEffectiveRent,
   rentSchedule,
 } from "./rent.ts";
+import { EquityWaterfallInput, equityWaterfall } from "./waterfall.ts";
 
+export * from "./amortization.ts";
 export * from "./asc842.ts";
 export * from "./cam.ts";
+export * from "./cam_batch.ts";
+export * from "./capex.ts";
 export * from "./core.ts";
 export * from "./dates.ts";
+export * from "./dcf.ts";
 export * from "./debt.ts";
+export * from "./direct_cap.ts";
+export * from "./exchange_1031.ts";
 export * from "./finance.ts";
 export * from "./hotel.ts";
 export * from "./lease_vs_own.ts";
+export * from "./multifamily.ts";
 export * from "./portfolio.ts";
 export * from "./prepayment.ts";
 export * from "./proposals.ts";
 export * from "./renew_vs_relocate.ts";
 export * from "./retail.ts";
 export * from "./rules.ts";
+export * from "./rules-drafts/index.ts";
 export * from "./rent.ts";
+export * from "./waterfall.ts";
+export * from "./units.ts";
 
 export interface Calculator {
   id: string;
@@ -58,7 +85,7 @@ export const calculators = {
     version: 1,
     title: "Lease rent schedule",
     description:
-      "Build a base-rent schedule from commencement date, term, area, starting $/SF/yr, escalations (percent or fixed $/SF), and abated months. Lease months run from the commencement day-of-month with no calendar proration (warns when commencement is mid-month). Returns rent steps, totals, expiration date, and a calculation trace.",
+      "Build a base-rent schedule from commencement date, term, area, starting $/SF/yr, escalations (percent or fixed $/SF), and abated months. Lease months run from the commencement day-of-month with no calendar proration (warns when commencement is mid-month). Returns rent steps, totals, expiration date, and a calculation trace. Optional unit (kw, mw, unit, acre, key, room, space) relabels area and $/SF for data-center, ground, yard, residential, hotel, or parking leases without changing any number.",
     input: RentScheduleInput,
     run: rentSchedule,
   },
@@ -67,7 +94,7 @@ export const calculators = {
     version: 1,
     title: "Net effective rent (NER)",
     description:
-      "Compute effective rent, straight-line net effective rent, and discounted net effective rent ($/SF/yr) after free rent, TI allowance, leasing commissions, and other landlord concessions. Rent is monthly in advance from the commencement day (no calendar proration), discounted at annual rate ÷ 12.",
+      "Compute effective rent, straight-line net effective rent, and discounted net effective rent ($/SF/yr) after free rent, TI allowance, leasing commissions, and other landlord concessions. Rent is monthly in advance from the commencement day (no calendar proration), discounted at annual rate ÷ 12. schedule.unit (kw, mw, unit, acre, key, room, space) reports $/kW/yr, $/acre/yr and so on instead of $/SF/yr.",
     input: NetEffectiveRentInput,
     run: netEffectiveRent,
   },
@@ -76,9 +103,18 @@ export const calculators = {
     version: 2,
     title: "Compare lease proposals",
     description:
-      "Rank 2–20 lease proposals with different terms, sizes, free rent, TI, concessions, and operating-expense structures (gross, NNN, base year, expense stop, with opex growth) on one discounted $/SF/yr basis, per rentable or usable SF (load factor): effective occupancy cost (tenant perspective) or discounted net effective rent after landlord-borne opex and optional pre-commencement downtime (landlord perspective). Cash flows monthly in advance at annual rate ÷ 12; warns when the usable-SF ranking differs and when terms differ.",
+      "Rank 2–20 lease proposals with different terms, sizes, free rent, TI, concessions, and operating-expense structures (gross, NNN, base year, expense stop, with opex growth) on one discounted $/SF/yr basis, per rentable or usable SF (load factor): effective occupancy cost (tenant perspective) or discounted net effective rent after landlord-borne opex and optional pre-commencement downtime (landlord perspective). Cash flows monthly in advance at annual rate ÷ 12; warns when the usable-SF ranking differs and when terms differ. schedule.unit (kw, mw, unit, acre, key, room, space, the same for every proposal) ranks per kW, MW, unit, acre, key, room, or space instead of per SF.",
     input: ProposalComparisonInput,
     run: compareProposals,
+  },
+  multifamily_rent_roll: {
+    id: "calc.multifamily_rent_roll",
+    version: 1,
+    title: "Multifamily rent roll",
+    description:
+      "Analyze an apartment rent roll (up to 5,000 units with status occupied, notice, vacant, model, or down; market and lease rent per month; lease dates; concessions as weeks free, months free, or dollars): gross potential rent, vacancy, non-revenue units, loss to lease, concessions amortised straight-line over each lease term, effective rent income, physical and economic occupancy, effective rent per unit and per SF, a lease expiration schedule by month, and a per-unit-type summary. Single-lease mode (lease instead of units) returns the effective monthly rent after a weeks-free or months-free concession.",
+    input: MultifamilyRentRollInput,
+    run: multifamilyRentRoll,
   },
   percentage_rent: {
     id: "calc.percentage_rent",
@@ -97,6 +133,24 @@ export const calculators = {
       "Reconcile a tenant's annual CAM charge: exclusions, occupancy gross-up of variable expenses, pro rata share, controllable-expense caps (compounding_from_base, simple_from_base, year_over_year), an admin fee (before or after the cap, inside or outside it, with per-line exclusions), base year or expense stop, partial-year occupancy (move-in/move-out prorates share, cap, and base by days), and estimates paid. Returns balance due and a full trace with order-of-operations warnings.",
     input: CamReconciliationInput,
     run: camReconciliation,
+  },
+  cam_reconciliation_batch: {
+    id: "calc.cam_reconciliation_batch",
+    version: 1,
+    title: "CAM reconciliation for every tenant (batch)",
+    description:
+      "Reconcile CAM for a whole building in one call: the expense pool and gross-up once, then up to 500 tenants each with share, base year or expense stop, cap, admin fee, occupancy, estimates paid, and lease-specific excluded categories. Returns each tenant's statement (identical to calc_cam_reconciliation for that tenant, with its trace and warnings) and a building reconciliation: total billed against the recoverable pool, the unrecovered amount, and why (unleased or vacant share, lease exclusions, gross-up, caps, base years and stops, admin fees, zero floor, rounding).",
+    input: CamReconciliationBatchInput,
+    run: camReconciliationBatch,
+  },
+  capex_recovery: {
+    id: "calc.capex_recovery",
+    version: 1,
+    title: "Capital expenditure recovery",
+    description:
+      "Recoverable capital expenditure under a lease clause: amortize a capital cost over its useful life or the lease-specified period, straight-line (declining interest) or level payment, with interest on the unamortized balance or none; optionally cap each year's recovery at demonstrated cost savings (with or without carry-forward); and allocate each year to tenants by pro rata share. Every assumption is echoed with an optional lease clause citation.",
+    input: CapexRecoveryInput,
+    run: capexRecovery,
   },
   debt_sizing: {
     id: "calc.debt_sizing",
@@ -178,5 +232,50 @@ export const calculators = {
       "Occupancy, ADR, RevPAR, TRevPAR, and a USALI-style profit ladder for a period: departmental profit, GOP and margin, GOPPAR, management fees, EBITDA, FF&E reserve, and NOI (EBITDA less replacement reserve).",
     input: HotelMetricsInput,
     run: hotelMetrics,
+  },
+  dcf_pro_forma: {
+    id: "calc.dcf_pro_forma",
+    version: 1,
+    title: "Property DCF from a rent roll",
+    description:
+      "Property-level discounted cash flow from an in-place rent roll: each lease's rent, escalations, remaining term, and expense recovery (NNN, gross, base year), then at expiration one blended lease weighted by the renewal probability (renewal vs new-tenant rent, free rent, TI, leasing commissions, and new-tenant downtime, rounded to whole months); market rent growth, general vacancy and credit loss, operating expenses, management fee, and capital reserves. Returns the annual cash-flow table (NOI and cash flow before debt) for the hold plus one year, the exit value at a cap rate on forward (or trailing) NOI less selling costs, the value (PV at the discount rate, end-of-year or mid-year), and with a purchase price the NPV, unlevered IRR, and equity multiple, with every lease event and convention stated.",
+    input: DcfProFormaInput,
+    run: dcfProForma,
+  },
+  direct_cap: {
+    id: "calc.direct_cap",
+    version: 1,
+    title: "Direct capitalization value and implied cap rate",
+    description:
+      "Value by direct capitalization: (NOI − capital reserve) ÷ cap rate, then below-the-line deductions for lease-up costs, free-rent burn-off, and other adjustments to an as-is value (optionally rounded); and the cap rate a price implies, before and after reserves and all-in after the below-the-line costs. Records the NOI basis (trailing, forward, stabilized).",
+    input: DirectCapInput,
+    run: directCap,
+  },
+  amortization_schedule: {
+    id: "calc.amortization_schedule",
+    version: 1,
+    title: "Loan amortization schedule",
+    description:
+      "Period-by-period schedule of a fixed-rate loan, monthly or quarterly: an optional interest-only period, then level payments on an amortization term that can run past maturity (balloon), with 30/360, actual/360, or actual/365 interest (the payment on a 30/360 basis). Rows are in cents that foot: interest is rounded each period, the final payment repays the whole balance, and the totals are the row sums.",
+    input: AmortizationScheduleInput,
+    run: amortizationSchedule,
+  },
+  equity_waterfall: {
+    id: "calc.equity_waterfall",
+    version: 1,
+    title: "LP/GP equity distribution waterfall",
+    description:
+      "Split periodic project equity cash flows between LP and GP: preferred return (compounding or simple) and return of capital pro rata to capital in either order, an optional GP catch-up, IRR-hurdle tiers with promote splits measured on the LP's IRR, and a residual split. Returns per-period LP and GP contributions and distributions (with the GP's promote) that foot to the cent, and LP, GP, and project IRRs and multiples, with the conventions to confirm against the operating agreement.",
+    input: EquityWaterfallInput,
+    run: equityWaterfall,
+  },
+  exchange_1031: {
+    id: "calc.exchange_1031",
+    version: 1,
+    title: "1031 exchange deadlines, identification, and boot",
+    description:
+      "Not tax advice: arithmetic only. The 45-day identification and 180-day exchange deadlines of IRC §1031(a)(3) (the exchange period ends earlier at a given tax-return due date), the three-property, 200%, and 95% identification tests of Treas. Reg. §1.1031(k)-1(c)(4), and the cash boot, mortgage boot, debt replacement, and trade-down of an exchange, with the boot-limited gain when the basis is given.",
+    input: Exchange1031Input,
+    run: exchange1031,
   },
 } as const satisfies Record<string, Calculator>;

@@ -1,0 +1,254 @@
+{
+  "calculator": "calc.amortization_schedule",
+  "version": 1,
+  "cases": [
+    {
+      "name": "30-year fully amortizing at 6%, monthly, 30/360: payment 5,995.51 (standard annuity tables); the final payment trues up the cents",
+      "input": {
+        "principal": 1000000,
+        "rate_annual": 0.06,
+        "term_months": 360,
+        "amortization_months": 360
+      },
+      "expect": {
+        "value.periods": 360,
+        "value.amortizing_payment": 5995.51,
+        "value.balloon_balance": -4.5,
+        "value.final_payment": 5991.01,
+        "value.total_interest": 1158379.1,
+        "value.total_principal": 1000000,
+        "value.total_payments": 2158379.1,
+        "value.schedule.0.interest": 5000,
+        "value.schedule.0.principal": 995.51,
+        "value.schedule.359.closing_balance": 0,
+        "value.schedule.1.opening_balance": 999004.49,
+        "value.schedule.1.interest": 4995.02,
+        "value.schedule.1.principal": 1000.49,
+        "value.schedule.1.payment": 5995.51,
+        "value.schedule.358.opening_balance": 11897.22,
+        "value.schedule.358.interest": 59.49,
+        "value.schedule.358.principal": 5936.02,
+        "value.schedule.358.payment": 5995.51,
+        "value.schedule.359.opening_balance": 5961.2,
+        "value.schedule.359.interest": 29.81,
+        "value.schedule.359.principal": 5961.2,
+        "value.schedule.359.payment": 5991.01
+      }
+    },
+    {
+      "name": "10-year loan, 2 years interest-only, then 30-year amortization: balloon at maturity (review case B02-P11)",
+      "input": {
+        "principal": 1000000,
+        "rate_annual": 0.06,
+        "term_months": 120,
+        "amortization_months": 360,
+        "interest_only_months": 24
+      },
+      "expect": {
+        "value.periods": 120,
+        "value.amortizing_payment": 5995.51,
+        "value.balloon_balance": 877722.99,
+        "value.final_payment": 883718.5,
+        "value.total_interest": 573291.95,
+        "value.total_principal": 1000000,
+        "value.total_payments": 1573291.95,
+        "value.schedule.0.interest": 5000,
+        "value.schedule.0.principal": 0,
+        "value.schedule.119.closing_balance": 0,
+        "value.schedule.23.opening_balance": 1000000,
+        "value.schedule.23.interest": 5000,
+        "value.schedule.23.principal": 0,
+        "value.schedule.23.payment": 5000,
+        "value.schedule.24.opening_balance": 1000000,
+        "value.schedule.24.interest": 5000,
+        "value.schedule.24.principal": 995.51,
+        "value.schedule.24.payment": 5995.51,
+        "value.schedule.119.opening_balance": 879321.89,
+        "value.schedule.119.interest": 4396.61,
+        "value.schedule.119.principal": 879321.89,
+        "value.schedule.119.payment": 883718.5,
+        "value.interest_only_payment": 5000
+      }
+    },
+    {
+      "name": "actual/360 with the payment on a 30/360 basis: interest by actual days, residual repaid at maturity",
+      "input": {
+        "principal": 1000000,
+        "rate_annual": 0.06,
+        "term_months": 12,
+        "amortization_months": 12,
+        "day_count": "actual/360",
+        "start_date": "2026-01-15"
+      },
+      "expect": {
+        "value.periods": 12,
+        "value.amortizing_payment": 86066.43,
+        "value.balloon_balance": 332.45,
+        "value.final_payment": 86398.88,
+        "value.total_interest": 33129.61,
+        "value.total_principal": 1000000,
+        "value.total_payments": 1033129.61,
+        "value.schedule.0.interest": 5166.67,
+        "value.schedule.0.principal": 80899.76,
+        "value.schedule.11.closing_balance": 0,
+        "value.schedule.0.opening_balance": 1000000,
+        "value.schedule.0.payment": 86066.43,
+        "value.schedule.0.date": "2026-02-15",
+        "value.schedule.1.opening_balance": 919100.24,
+        "value.schedule.1.interest": 4289.13,
+        "value.schedule.1.principal": 81777.3,
+        "value.schedule.1.payment": 86066.43,
+        "value.schedule.1.date": "2026-03-15",
+        "value.schedule.11.opening_balance": 85954.78,
+        "value.schedule.11.interest": 444.1,
+        "value.schedule.11.principal": 85954.78,
+        "value.schedule.11.payment": 86398.88,
+        "value.schedule.11.date": "2027-01-15"
+      }
+    },
+    {
+      "name": "quarterly, interest-only to maturity, actual/365",
+      "input": {
+        "principal": 2500000,
+        "rate_annual": 0.0725,
+        "payment_frequency": "quarterly",
+        "term_months": 24,
+        "amortization_months": 0,
+        "day_count": "actual/365",
+        "start_date": "2026-03-31"
+      },
+      "expect": {
+        "value.periods": 8,
+        "value.amortizing_payment": null,
+        "value.balloon_balance": 2500000,
+        "value.final_payment": 2545188.36,
+        "value.total_interest": 362996.58,
+        "value.total_principal": 2500000,
+        "value.total_payments": 2862996.58,
+        "value.schedule.0.interest": 45188.36,
+        "value.schedule.0.principal": 0,
+        "value.schedule.7.closing_balance": 0,
+        "value.schedule.0.opening_balance": 2500000,
+        "value.schedule.0.payment": 45188.36,
+        "value.schedule.0.date": "2026-06-30",
+        "value.schedule.1.opening_balance": 2500000,
+        "value.schedule.1.interest": 45684.93,
+        "value.schedule.1.principal": 0,
+        "value.schedule.1.payment": 45684.93,
+        "value.schedule.1.date": "2026-09-30",
+        "value.schedule.7.opening_balance": 2500000,
+        "value.schedule.7.interest": 45188.36,
+        "value.schedule.7.principal": 2500000,
+        "value.schedule.7.payment": 2545188.36,
+        "value.schedule.7.date": "2028-03-31"
+      }
+    },
+    {
+      "name": "0% rate: equal principal payments",
+      "input": {
+        "principal": 120000,
+        "rate_annual": 0,
+        "term_months": 12,
+        "amortization_months": 12
+      },
+      "expect": {
+        "value.periods": 12,
+        "value.amortizing_payment": 10000,
+        "value.balloon_balance": 0,
+        "value.final_payment": 10000,
+        "value.total_interest": 0,
+        "value.total_principal": 120000,
+        "value.total_payments": 120000,
+        "value.schedule.0.interest": 0,
+        "value.schedule.0.principal": 10000,
+        "value.schedule.11.closing_balance": 0,
+        "value.schedule.5.opening_balance": 70000,
+        "value.schedule.5.interest": 0,
+        "value.schedule.5.principal": 10000,
+        "value.schedule.5.payment": 10000
+      }
+    },
+    {
+      "name": "quarterly amortizing, 5-year term on a 25-year schedule after 1 year interest-only",
+      "input": {
+        "principal": 8000000,
+        "rate_annual": 0.0675,
+        "payment_frequency": "quarterly",
+        "term_months": 60,
+        "amortization_months": 300,
+        "interest_only_months": 12,
+        "start_date": "2026-01-01"
+      },
+      "expect": {
+        "value.periods": 20,
+        "value.amortizing_payment": 166175.19,
+        "value.balloon_balance": 7432811.69,
+        "value.final_payment": 7598986.88,
+        "value.total_interest": 2631614.73,
+        "value.total_principal": 8000000,
+        "value.total_payments": 10631614.73,
+        "value.schedule.0.interest": 135000,
+        "value.schedule.0.principal": 0,
+        "value.schedule.19.closing_balance": 0,
+        "value.schedule.3.opening_balance": 8000000,
+        "value.schedule.3.interest": 135000,
+        "value.schedule.3.principal": 0,
+        "value.schedule.3.payment": 135000,
+        "value.schedule.3.date": "2027-01-01",
+        "value.schedule.4.opening_balance": 8000000,
+        "value.schedule.4.interest": 135000,
+        "value.schedule.4.principal": 31175.19,
+        "value.schedule.4.payment": 166175.19,
+        "value.schedule.4.date": "2027-04-01",
+        "value.schedule.19.opening_balance": 7472882,
+        "value.schedule.19.interest": 126104.88,
+        "value.schedule.19.principal": 7472882,
+        "value.schedule.19.payment": 7598986.88,
+        "value.schedule.19.date": "2031-01-01"
+      }
+    },
+    {
+      "name": "quarterly term must be whole quarters",
+      "input": {
+        "principal": 1000000.0,
+        "rate_annual": 0.05,
+        "payment_frequency": "quarterly",
+        "term_months": 61,
+        "amortization_months": 0
+      },
+      "expect_error": true
+    },
+    {
+      "name": "amortization shorter than the amortizing period is rejected",
+      "input": {
+        "principal": 1000000.0,
+        "rate_annual": 0.05,
+        "term_months": 120,
+        "amortization_months": 60
+      },
+      "expect_error": true
+    },
+    {
+      "name": "actual/360 needs start_date",
+      "input": {
+        "principal": 1000000.0,
+        "rate_annual": 0.05,
+        "term_months": 12,
+        "amortization_months": 12,
+        "day_count": "actual/360"
+      },
+      "expect_error": true
+    },
+    {
+      "name": "interest-only months beyond the term",
+      "input": {
+        "principal": 1000000.0,
+        "rate_annual": 0.05,
+        "term_months": 12,
+        "amortization_months": 0,
+        "interest_only_months": 24
+      },
+      "expect_error": true
+    }
+  ]
+}

@@ -68,11 +68,12 @@ function buildCorpus(): KnowledgeDoc[] {
     },
     {
       id: "spec:factlot-id",
-      title: "FactLot ID specification (v0.2)",
+      title: "FactLot ID specification (v0.3)",
       url: `${REPO}/docs/id-spec.md`,
       text: [
         "FactLot IDs are canonical identifiers for commercial real estate. Deterministic where a natural key exists; registry-minted otherwise.",
-        "Parcel: fl:parcel:us-<state FIPS><county FIPS>:<normalized APN>. Entity: fl:entity:<jurisdiction>:<file number> or fl:entity:lei:<LEI>.",
+        "Parcel: fl:parcel:us-<state FIPS><county FIPS>:<normalized APN>. The APN is lowercased and each run of separators becomes one hyphen, so APNs that differ only in where a separator falls (12-34, 1-234) stay distinct; in counties with a documented fixed-width format (NYC BBL, Los Angeles AIN, Cook County PIN, DC SSL) the fields are zero-padded and run together (BBL 3-1234-56 = 3012340056).",
+        "Entity: fl:entity:<jurisdiction>:<file number> or fl:entity:lei:<LEI>; an LEI must pass its ISO 17442 check digits.",
         "Building: fl:building:us-<state FIPS><county FIPS>:<5-digit ZIP>:<street key> from the street address (units, suites and floors ignored; Northwest = NW), so every condominium unit of a building shares it; a minted 26-character token for a building with no street address.",
         "Document: fl:document:sha256-<hex of the file bytes>. Lease, loan: minted 26-character time-sortable tokens. Space: fl:space:<building>:<normalized suite> (Suite 100 = Ste 100 = #100; 1-20 and 120 differ).",
         `Short IDs: <prefix>_<24 chars of SHA-256(urn) in Crockford base32>. Prefixes: ${Object.entries(
@@ -159,10 +160,12 @@ function buildCorpus(): KnowledgeDoc[] {
     title: "Use categories for doc_check_use_conflict",
     url: `${REPO}/spec/schemas/vocabularies/use-categories.json`,
     text: [
-      "Use categories (id: label; keywords; 2022 NAICS):",
+      // Ids and labels only: the keyword lists (in the linked JSON) would make search answer
+      // off-topic queries ("bake a cake") with this document.
+      "Use categories (id: label; 2022 NAICS). Keywords for each are in the linked JSON.",
       ...USE_CATEGORIES.map(
         (c) =>
-          `${c.id}: ${c.label}; ${c.keywords.join(", ")}${c.naics ? `; NAICS ${c.naics.join(", ")}` : ""}`,
+          `${c.id}: ${c.label}${c.naics ? `; NAICS ${c.naics.join(", ")}` : ""}`,
       ),
     ].join("\n"),
     metadata: { kind: "vocabulary" },
@@ -176,26 +179,57 @@ function tokens(s: string): string[] {
   return s.toLowerCase().match(/[a-z0-9]+/g) ?? [];
 }
 
-/** Rank documents by query-term matches (title weighted 3×). Deterministic; ties keep corpus order. */
+// Words that say nothing about which document fits ("how do I ... for a lease").
+const STOPWORDS = new Set(
+  (
+    "a an and are as at be by can do does for from get how i if in into is it its me my of on or our " +
+    "should that the their this to use using was we what when where which who why will with you your"
+  ).split(" "),
+);
+
+/** A query term matches a word it equals, or one it begins when the term has 3 or more characters. */
+function matches(term: string, word: string): boolean {
+  return term.length >= 3 ? word.startsWith(term) : word === term;
+}
+
+/**
+ * Share of a query's meaningful terms a document must contain to be returned. Below it the corpus
+ * has nothing on the subject, and `search` answers with no results rather than the nearest tools.
+ */
+export const MIN_TERM_COVERAGE = 0.5;
+
+/**
+ * Rank documents by query-term matches (title weighted 3×). Deterministic; ties keep corpus order.
+ * A document is returned only when it contains at least half of the query's terms (stopwords
+ * dropped), so a query on a subject FactLot does not cover returns nothing.
+ */
 export function searchCorpus(query: string, limit = 8): KnowledgeDoc[] {
-  const terms = [...new Set(tokens(query))];
-  if (terms.length === 0) return corpus.slice(0, limit);
+  const terms = [...new Set(tokens(query))].filter((t) => !STOPWORDS.has(t));
+  if (terms.length === 0)
+    return tokens(query).length ? [] : corpus.slice(0, limit);
   const scored = corpus.map((doc, i) => {
     const title = tokens(doc.title + " " + doc.id);
     const body = tokens(doc.text);
     let score = 0;
+    let found = 0;
     for (const term of terms) {
-      score += 3 * title.filter((w) => w.startsWith(term)).length;
-      score += body.filter((w) => w.startsWith(term)).length;
+      const t = title.filter((w) => matches(term, w)).length;
+      const b = body.filter((w) => matches(term, w)).length;
+      score += 3 * t + b;
+      if (t + b > 0) found += 1;
     }
-    return { doc, score, i };
+    return { doc, score, found, i };
   });
   return scored
-    .filter((s) => s.score > 0)
+    .filter((s) => s.score > 0 && s.found / terms.length >= MIN_TERM_COVERAGE)
     .sort((a, b) => b.score - a.score || a.i - b.i)
     .slice(0, limit)
     .map((s) => s.doc);
 }
+
+/** What `search` says when nothing matches. */
+export const NO_MATCH_NOTE =
+  "No FactLot knowledge document matches this query. FactLot covers commercial real estate calculators (rent, CAM, NER, loan sizing, NPV/IRR, ASC 842, prepayment, WALT, hotel metrics), FactLot IDs, cited facts, document verification and the public-record registry; try the calculation, ID or predicate you need, e.g. 'CAM cap', 'loan sizing DSCR', 'parcel ID'.";
 
 export function fetchDoc(id: string): KnowledgeDoc | undefined {
   return corpus.find((d) => d.id === id);

@@ -1,7 +1,11 @@
 // Usage: node run_ts.mjs CASES.json OUT.json   (requires `npm run build` first)
 import { readFileSync, writeFileSync } from "node:fs";
 
-import { calculators, rulePacks } from "../../packages/calc/dist/index.js";
+import {
+  calculators,
+  rulePacks,
+  runDraftRule,
+} from "../../packages/calc/dist/index.js";
 import { runToolAsync } from "../../packages/tools/dist/index.js";
 
 const cases = JSON.parse(readFileSync(process.argv[2], "utf8"));
@@ -15,6 +19,8 @@ async function run(c) {
       : { error: o.error.error, issues: o.error.issues.map((i) => i.path) };
   }
   try {
+    if (c.draft)
+      return runDraftRule(c.draft, c.input, { acknowledgeDraft: true });
     return c.rule
       ? rulePacks[c.rule].run(c.input)
       : calculators[c.calc].run(c.input);

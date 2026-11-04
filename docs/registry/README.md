@@ -29,10 +29,12 @@ synthetic data (see [Owner resolution](#owner-resolution)); it has not yet been 
 file, so the 73% figure stands until a reviewer works the queue. The combined registry file is
 9.3 GB. The source review is in [texas-sources.md](texas-sources.md).
 
-| Doc                                  | What it covers                                     |
-| ------------------------------------ | -------------------------------------------------- |
-| [data-policy.md](data-policy.md)     | What we may collect, how, and what we never keep   |
-| [texas-sources.md](texas-sources.md) | The Texas pilot sources and the domains each needs |
+| Doc                                  | What it covers                                                                |
+| ------------------------------------ | ----------------------------------------------------------------------------- |
+| [data-policy.md](data-policy.md)     | What we may collect, how, and what we never keep                              |
+| [texas-sources.md](texas-sources.md) | The Texas pilot sources and the domains each needs                            |
+| [coverage.md](coverage.md)           | What is loaded per state and county, and what is queryable today (generated)  |
+| [rights.md](rights.md)               | Licence, AI-use status, redistribution and attribution per source (generated) |
 
 ## How it works
 
@@ -71,6 +73,25 @@ is what retires a sold parcel's old owner. Example: an LLC sells to an individua
 lists a person, whose name we never store, so the LLC's ownership fact and link become history
 instead of lingering as current.
 
+`registry_get` with `as_of` (YYYY-MM-DD) applies the same rule to the snapshots dated on or before
+that date: the facts and ownership links current then, and the status then (`not_yet_recorded`
+before any snapshot covered the record). With `include_history` as well, the history stops at that
+date. The building roll-up and crosswalk IDs are the file's current ones. `include_history` lists
+every fact, current ones included, so on a file that loaded each source once (the DC sample) it
+returns the current facts again: there is nothing superseded yet.
+
+**Area checks.** `registry_get` returns a parcel's area facts as the source publishes them and adds
+a `warnings` list (empty when nothing is wrong) when they fail a sanity check:
+
+| Check                                                                     | Threshold                                                                                                                                                                                                                                          |
+| ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `parcel.improvement_area_sf` ÷ `parcel.land_area_sf` (a floor-area ratio) | above 40, a density few buildings anywhere reach. In the DC sample 36 of 12,318 parcels exceed it, nearly all condominium units whose record carries the whole building's area against the unit's share of the land (one has 195,480 sf on 120 sf) |
+| `parcel.land_area_sf`                                                     | 0 or less                                                                                                                                                                                                                                          |
+| `parcel.improvement_area_sf`                                              | less than 0                                                                                                                                                                                                                                        |
+
+The thresholds are `MAX_PLAUSIBLE_FAR` in both readers (`packages/tools/src/registry.ts`,
+`factlot.registry.store`). A warning never changes or hides a fact.
+
 ## Upgrading a registry after a rule change
 
 Owner names are stored only for organisations. If the person-detection rule (`is_organization`)
@@ -84,6 +105,12 @@ keyed by content, so only the newly readable owners are added.
 If `normalize_name` changes, the entity name index holds keys made by the old rule. Run
 `Registry(path).rebuild_name_index()` (it rewrites a key only when it is exactly the old rule's
 output for the entity's current name) and `rebuild_review_keys()`, then `link_owners()`.
+A file records the ID spec parcel rule its parcel URNs were made with in `meta.parcel_rule`
+(`2`, ID spec 0.3, for a file started now). A file holding parcels and no `parcel_rule` was built
+with parcel rule 1 (separators dropped): it keeps its URNs, ingests into it use rule 1, and
+`registry_resolve_parcel` resolves an APN by rule 1. To move such a file to rule 2, rebuild it
+from its snapshots; parcel URNs written with separators change (see the ID spec, v0.3).
+
 If `normalize_address` changes (address key version 2, 2026-11-03, reads "Northwest", "North
 West" and "N.W." as "NW" and drops a unit, suite, "#" or floor designator with its value), run
 `Registry(path).rebuild_address_index()`: it re-keys the address index from every situs-address
@@ -103,8 +130,13 @@ tool says so on a miss instead of answering `null` or `[]` alone: `registry_reso
 `registry_resolve_external`, `registry_search_address`, `registry_search_entities` and
 `registry_owned_by` add a `coverage` object to an empty result, and `registry_get` adds it to its
 `NotFound` error. It says whether the county (or entity registry, or crosswalk system) asked about
-is loaded, and its `message` says so in words, for example "county 04021 (AZ) is not loaded in
-this registry; loaded: county 11001 (DC, 18077 parcels)". A malformed URN is a `FactLotIdError`,
+is loaded, and its `message` says so in words, naming counties by their Census name, for example
+"Pinal County, AZ (04021) is not loaded in this registry; loaded: District of Columbia, DC
+(11001, 18077 parcels)". `registry_coverage` gives each county's `name` too. The names come from
+the US Census Bureau's public-domain county FIPS reference file (2020 Census FIPS Codes for
+Counties and County Equivalents, retrieved 2026-11-03), kept in `spec/registry/county-names.tsv`
+with its source and checksum; `scripts/gen-county-names.py` regenerates the TypeScript and Python
+tables from it. A county code the file does not list reads "county 48999 (TX)". A malformed URN is a `FactLotIdError`,
 not a miss. `registry_coverage` lists what the file holds: each county with its parcel and
 building counts, sources and as-of dates; each entity registry; each crosswalk system; and the
 key versions. The summary is computed from the file (`factlot.registry.coverage`) and stored in
@@ -272,7 +304,20 @@ both SDKs:
 Without a registry, the MCP server does not list them, REST returns 503, and the SDKs return
 `RegistryUnavailable`.
 
-Python builds the database and both languages read it. A cross-language test runs the same 40
+**Address search** matches whole words of the street line (the query up to its first comma),
+normalized as the address index is. A query that starts with a house number finds addresses that
+start with that number and contain every other word ("1200 Main" finds "1200 MAIN ST NW"); a
+query without one must name the street with its type, and its words must appear in a row ("Main
+St"). A city or state name, or part of a word, alone matches nothing ("Ontario" does not find
+"ONTARIO RD NW"), and the miss says what to send instead. `spec/registry/normalize.json`
+(`address_queries`) pins how a query is read in both languages.
+
+**Source snapshots over MCP.** Every registry fact cites a `document_id` (`fl:document:sha256-…`),
+the content hash of the source file. With a registry loaded, the MCP `fetch` tool returns that
+snapshot's publisher, dataset, source URL, retrieval and as-of dates, licence, AI-use and
+redistribution rights, file name and size.
+
+Python builds the database and both languages read it. A cross-language test runs the same 60
 calls on a synthetic fixture (`spec/registry/`) and requires identical JSON from Python and
 TypeScript.
 

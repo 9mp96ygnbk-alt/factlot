@@ -1,0 +1,394 @@
+{
+  "calculator": "calc.capex_recovery",
+  "version": 1,
+  "notes": "Expected values computed independently with Python decimal (40 significant digits, inputs read as decimal literals, half-up rounding at the same points the formula rounds: cents for money, 4 dp for ratios and terms, 6 dp for shares), in a scratch script outside the repository; FactLot was not run to produce them. Interest is charged annually on the balance at the start of each year; principal and interest are rounded to cents each year and the last year's principal is the remaining balance.",
+  "cases": [
+    {
+      "name": "straight-line over 5 years with 8% interest on the declining balance, two tenants",
+      "input": {
+        "cost": 100000,
+        "amortization_years": 5,
+        "interest_rate_annual": 0.08,
+        "first_year": 2026,
+        "tenants": [
+          {
+            "name": "Suite 100",
+            "pro_rata_share": 0.125
+          },
+          {
+            "name": "Suite 200",
+            "pro_rata_share": 0.3
+          }
+        ],
+        "clauses": {
+          "cost": "Lease §6.2(b)",
+          "interest": "Lease §6.2(b)(ii)"
+        }
+      },
+      "expect": {
+        "value.annual_payment": 20000,
+        "value.schedule.0.principal": 20000,
+        "value.schedule.0.interest": 8000,
+        "value.schedule.0.amortization": 28000,
+        "value.schedule.0.recoverable": 28000,
+        "value.schedule.0.closing_balance": 80000,
+        "value.schedule.1.principal": 20000,
+        "value.schedule.1.interest": 6400,
+        "value.schedule.1.amortization": 26400,
+        "value.schedule.1.recoverable": 26400,
+        "value.schedule.1.closing_balance": 60000,
+        "value.schedule.2.principal": 20000,
+        "value.schedule.2.interest": 4800,
+        "value.schedule.2.amortization": 24800,
+        "value.schedule.2.recoverable": 24800,
+        "value.schedule.2.closing_balance": 40000,
+        "value.schedule.3.principal": 20000,
+        "value.schedule.3.interest": 3200,
+        "value.schedule.3.amortization": 23200,
+        "value.schedule.3.recoverable": 23200,
+        "value.schedule.3.closing_balance": 20000,
+        "value.schedule.4.principal": 20000,
+        "value.schedule.4.interest": 1600,
+        "value.schedule.4.amortization": 21600,
+        "value.schedule.4.recoverable": 21600,
+        "value.schedule.4.closing_balance": 0,
+        "value.total_principal": 100000,
+        "value.total_interest": 24000,
+        "value.total_amortization": 124000,
+        "value.total_recoverable": 124000,
+        "value.total_unrecovered": 0,
+        "value.tenants.0.by_year": [3500, 3300, 3100, 2900, 2700],
+        "value.tenants.0.total": 15500,
+        "value.tenants.1.by_year": [8400, 7920, 7440, 6960, 6480],
+        "value.tenants.1.total": 37200
+      }
+    },
+    {
+      "name": "level payment at 8% capped at demonstrated savings, with carry-forward",
+      "input": {
+        "cost": 100000,
+        "amortization_years": 5,
+        "interest_rate_annual": 0.08,
+        "method": "level_payment",
+        "cost_savings_cap": {
+          "annual_savings": 24000,
+          "carry_forward": true
+        },
+        "tenants": [
+          {
+            "name": "A",
+            "pro_rata_share": 0.25
+          },
+          {
+            "name": "B",
+            "pro_rata_share": 0.5
+          }
+        ]
+      },
+      "expect": {
+        "value.annual_payment": 25045.65,
+        "value.schedule.0.principal": 17045.65,
+        "value.schedule.0.interest": 8000,
+        "value.schedule.0.amortization": 25045.65,
+        "value.schedule.0.recoverable": 24000,
+        "value.schedule.0.closing_balance": 82954.35,
+        "value.schedule.1.principal": 18409.3,
+        "value.schedule.1.interest": 6636.35,
+        "value.schedule.1.amortization": 25045.65,
+        "value.schedule.1.recoverable": 24000,
+        "value.schedule.1.closing_balance": 64545.05,
+        "value.schedule.2.principal": 19882.05,
+        "value.schedule.2.interest": 5163.6,
+        "value.schedule.2.amortization": 25045.65,
+        "value.schedule.2.recoverable": 24000,
+        "value.schedule.2.closing_balance": 44663,
+        "value.schedule.3.principal": 21472.61,
+        "value.schedule.3.interest": 3573.04,
+        "value.schedule.3.amortization": 25045.65,
+        "value.schedule.3.recoverable": 24000,
+        "value.schedule.3.closing_balance": 23190.39,
+        "value.schedule.4.principal": 23190.39,
+        "value.schedule.4.interest": 1855.23,
+        "value.schedule.4.amortization": 25045.62,
+        "value.schedule.4.recoverable": 24000,
+        "value.schedule.4.closing_balance": 0,
+        "value.total_principal": 100000,
+        "value.total_interest": 25228.22,
+        "value.total_amortization": 125228.22,
+        "value.total_recoverable": 120000,
+        "value.total_unrecovered": 5228.22,
+        "value.tenants.0.by_year": [6000, 6000, 6000, 6000, 6000],
+        "value.tenants.0.total": 30000,
+        "value.tenants.1.by_year": [12000, 12000, 12000, 12000, 12000],
+        "value.tenants.1.total": 60000
+      }
+    },
+    {
+      "name": "level payment without interest equals straight-line; odd cents true up in the last year",
+      "input": {
+        "cost": 250000.5,
+        "amortization_years": 7,
+        "method": "level_payment",
+        "period_basis": "lease_specified"
+      },
+      "expect": {
+        "value.annual_payment": 35714.36,
+        "value.schedule.0.principal": 35714.36,
+        "value.schedule.0.interest": 0,
+        "value.schedule.0.amortization": 35714.36,
+        "value.schedule.0.recoverable": 35714.36,
+        "value.schedule.0.closing_balance": 214286.14,
+        "value.schedule.1.principal": 35714.36,
+        "value.schedule.1.interest": 0,
+        "value.schedule.1.amortization": 35714.36,
+        "value.schedule.1.recoverable": 35714.36,
+        "value.schedule.1.closing_balance": 178571.78,
+        "value.schedule.2.principal": 35714.36,
+        "value.schedule.2.interest": 0,
+        "value.schedule.2.amortization": 35714.36,
+        "value.schedule.2.recoverable": 35714.36,
+        "value.schedule.2.closing_balance": 142857.42,
+        "value.schedule.3.principal": 35714.36,
+        "value.schedule.3.interest": 0,
+        "value.schedule.3.amortization": 35714.36,
+        "value.schedule.3.recoverable": 35714.36,
+        "value.schedule.3.closing_balance": 107143.06,
+        "value.schedule.4.principal": 35714.36,
+        "value.schedule.4.interest": 0,
+        "value.schedule.4.amortization": 35714.36,
+        "value.schedule.4.recoverable": 35714.36,
+        "value.schedule.4.closing_balance": 71428.7,
+        "value.schedule.5.principal": 35714.36,
+        "value.schedule.5.interest": 0,
+        "value.schedule.5.amortization": 35714.36,
+        "value.schedule.5.recoverable": 35714.36,
+        "value.schedule.5.closing_balance": 35714.34,
+        "value.schedule.6.principal": 35714.34,
+        "value.schedule.6.interest": 0,
+        "value.schedule.6.amortization": 35714.34,
+        "value.schedule.6.recoverable": 35714.34,
+        "value.schedule.6.closing_balance": 0,
+        "value.total_principal": 250000.5,
+        "value.total_interest": 0,
+        "value.total_amortization": 250000.5,
+        "value.total_recoverable": 250000.5,
+        "value.total_unrecovered": 0
+      }
+    },
+    {
+      "name": "savings by year without carry-forward: the excess is lost",
+      "input": {
+        "cost": 180000,
+        "amortization_years": 4,
+        "interest_rate_annual": 0.06,
+        "cost_savings_cap": {
+          "savings_by_year": [30000, 52000, 60000, 45000]
+        },
+        "tenants": [
+          {
+            "name": "Anchor",
+            "pro_rata_share": 0.4
+          }
+        ]
+      },
+      "expect": {
+        "value.annual_payment": 45000,
+        "value.schedule.0.principal": 45000,
+        "value.schedule.0.interest": 10800,
+        "value.schedule.0.amortization": 55800,
+        "value.schedule.0.recoverable": 30000,
+        "value.schedule.0.closing_balance": 135000,
+        "value.schedule.1.principal": 45000,
+        "value.schedule.1.interest": 8100,
+        "value.schedule.1.amortization": 53100,
+        "value.schedule.1.recoverable": 52000,
+        "value.schedule.1.closing_balance": 90000,
+        "value.schedule.2.principal": 45000,
+        "value.schedule.2.interest": 5400,
+        "value.schedule.2.amortization": 50400,
+        "value.schedule.2.recoverable": 50400,
+        "value.schedule.2.closing_balance": 45000,
+        "value.schedule.3.principal": 45000,
+        "value.schedule.3.interest": 2700,
+        "value.schedule.3.amortization": 47700,
+        "value.schedule.3.recoverable": 45000,
+        "value.schedule.3.closing_balance": 0,
+        "value.total_principal": 180000,
+        "value.total_interest": 27000,
+        "value.total_amortization": 207000,
+        "value.total_recoverable": 177400,
+        "value.total_unrecovered": 29600,
+        "value.tenants.0.by_year": [12000, 20800, 20160, 18000],
+        "value.tenants.0.total": 70960
+      }
+    },
+    {
+      "name": "a 15-year roof at 7.25%, level payment",
+      "input": {
+        "cost": 1234567.89,
+        "amortization_years": 15,
+        "interest_rate_annual": 0.0725,
+        "method": "level_payment"
+      },
+      "expect": {
+        "value.annual_payment": 137697.1,
+        "value.schedule.0.principal": 48190.93,
+        "value.schedule.0.interest": 89506.17,
+        "value.schedule.0.amortization": 137697.1,
+        "value.schedule.0.recoverable": 137697.1,
+        "value.schedule.0.closing_balance": 1186376.96,
+        "value.schedule.1.principal": 51684.77,
+        "value.schedule.1.interest": 86012.33,
+        "value.schedule.1.amortization": 137697.1,
+        "value.schedule.1.recoverable": 137697.1,
+        "value.schedule.1.closing_balance": 1134692.19,
+        "value.schedule.2.principal": 55431.92,
+        "value.schedule.2.interest": 82265.18,
+        "value.schedule.2.amortization": 137697.1,
+        "value.schedule.2.recoverable": 137697.1,
+        "value.schedule.2.closing_balance": 1079260.27,
+        "value.schedule.3.principal": 59450.73,
+        "value.schedule.3.interest": 78246.37,
+        "value.schedule.3.amortization": 137697.1,
+        "value.schedule.3.recoverable": 137697.1,
+        "value.schedule.3.closing_balance": 1019809.54,
+        "value.schedule.4.principal": 63760.91,
+        "value.schedule.4.interest": 73936.19,
+        "value.schedule.4.amortization": 137697.1,
+        "value.schedule.4.recoverable": 137697.1,
+        "value.schedule.4.closing_balance": 956048.63,
+        "value.schedule.5.principal": 68383.57,
+        "value.schedule.5.interest": 69313.53,
+        "value.schedule.5.amortization": 137697.1,
+        "value.schedule.5.recoverable": 137697.1,
+        "value.schedule.5.closing_balance": 887665.06,
+        "value.schedule.6.principal": 73341.38,
+        "value.schedule.6.interest": 64355.72,
+        "value.schedule.6.amortization": 137697.1,
+        "value.schedule.6.recoverable": 137697.1,
+        "value.schedule.6.closing_balance": 814323.68,
+        "value.schedule.7.principal": 78658.63,
+        "value.schedule.7.interest": 59038.47,
+        "value.schedule.7.amortization": 137697.1,
+        "value.schedule.7.recoverable": 137697.1,
+        "value.schedule.7.closing_balance": 735665.05,
+        "value.schedule.8.principal": 84361.38,
+        "value.schedule.8.interest": 53335.72,
+        "value.schedule.8.amortization": 137697.1,
+        "value.schedule.8.recoverable": 137697.1,
+        "value.schedule.8.closing_balance": 651303.67,
+        "value.schedule.9.principal": 90477.58,
+        "value.schedule.9.interest": 47219.52,
+        "value.schedule.9.amortization": 137697.1,
+        "value.schedule.9.recoverable": 137697.1,
+        "value.schedule.9.closing_balance": 560826.09,
+        "value.schedule.10.principal": 97037.21,
+        "value.schedule.10.interest": 40659.89,
+        "value.schedule.10.amortization": 137697.1,
+        "value.schedule.10.recoverable": 137697.1,
+        "value.schedule.10.closing_balance": 463788.88,
+        "value.schedule.11.principal": 104072.41,
+        "value.schedule.11.interest": 33624.69,
+        "value.schedule.11.amortization": 137697.1,
+        "value.schedule.11.recoverable": 137697.1,
+        "value.schedule.11.closing_balance": 359716.47,
+        "value.schedule.12.principal": 111617.66,
+        "value.schedule.12.interest": 26079.44,
+        "value.schedule.12.amortization": 137697.1,
+        "value.schedule.12.recoverable": 137697.1,
+        "value.schedule.12.closing_balance": 248098.81,
+        "value.schedule.13.principal": 119709.94,
+        "value.schedule.13.interest": 17987.16,
+        "value.schedule.13.amortization": 137697.1,
+        "value.schedule.13.recoverable": 137697.1,
+        "value.schedule.13.closing_balance": 128388.87,
+        "value.schedule.14.principal": 128388.87,
+        "value.schedule.14.interest": 9308.19,
+        "value.schedule.14.amortization": 137697.06,
+        "value.schedule.14.recoverable": 137697.06,
+        "value.schedule.14.closing_balance": 0,
+        "value.total_principal": 1234567.89,
+        "value.total_interest": 830888.57,
+        "value.total_amortization": 2065456.46,
+        "value.total_recoverable": 2065456.46,
+        "value.total_unrecovered": 0
+      }
+    },
+    {
+      "name": "tenant shares above 1 are an input error",
+      "input": {
+        "cost": 1000,
+        "amortization_years": 2,
+        "tenants": [
+          {
+            "name": "A",
+            "pro_rata_share": 0.6
+          },
+          {
+            "name": "B",
+            "pro_rata_share": 0.5
+          }
+        ]
+      },
+      "expect_error": true
+    },
+    {
+      "name": "annual_savings and savings_by_year together are an input error",
+      "input": {
+        "cost": 1000,
+        "amortization_years": 2,
+        "cost_savings_cap": {
+          "annual_savings": 1,
+          "savings_by_year": [1, 1]
+        }
+      },
+      "expect_error": true
+    },
+    {
+      "name": "savings_by_year of the wrong length is an input error",
+      "input": {
+        "cost": 1000,
+        "amortization_years": 3,
+        "cost_savings_cap": {
+          "savings_by_year": [1, 1]
+        }
+      },
+      "expect_error": true
+    },
+    {
+      "name": "duplicate tenant names are an input error",
+      "input": {
+        "cost": 1000,
+        "amortization_years": 2,
+        "tenants": [
+          {
+            "name": "A",
+            "pro_rata_share": 0.1
+          },
+          {
+            "name": "A",
+            "pro_rata_share": 0.1
+          }
+        ]
+      },
+      "expect_error": true
+    },
+    {
+      "name": "zero cost is an input error",
+      "input": {
+        "cost": 0,
+        "amortization_years": 2
+      },
+      "expect_error": true
+    },
+    {
+      "name": "a negative interest rate is an input error",
+      "input": {
+        "cost": 1000,
+        "amortization_years": 2,
+        "interest_rate_annual": -0.01
+      },
+      "expect_error": true
+    }
+  ]
+}
