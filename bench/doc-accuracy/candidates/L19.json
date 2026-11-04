@@ -1,0 +1,43 @@
+{
+ "doc": "L19",
+ "candidates": [
+  {
+   "predicate": "lease.landlord",
+   "value": "LG Tallahassee Market Square, LLC",
+   "quote": "LG Tallahassee Market Square, LLC, a Texas limited liability company (“Landlord”)",
+   "page": 3
+  },
+  {
+   "predicate": "lease.tenant",
+   "value": "Prime Meridian Bank",
+   "quote": "Prime Meridian Bank, a Florida banking corporation (“Tenant”)",
+   "page": 3
+  },
+  {
+   "predicate": "lease.rentable_area_sf",
+   "value": 14727,
+   "quote": "Approximately 14,727 square foot building",
+   "page": 3,
+   "section": "1"
+  },
+  {
+   "predicate": "lease.exclusive_use",
+   "value": "banking institution that includes a branch",
+   "quote": "institution that includes a branch (“Tenant’s Exclusive Use”)",
+   "page": 10,
+   "section": "8(a)"
+  },
+  {
+   "predicate": "lease.renewal_option",
+   "value": {
+    "count": 4,
+    "term_months": 60,
+    "notice_months": 6,
+    "rent": "110% of the Minimum Annual Rent of the last Lease Year or Renewal Term"
+   },
+   "quote": "to renew the Term of the Lease for four (4) consecutive Five (5) year renewal terms (each a “Renewal Term”). Each Renewal Term shall be upon the same terms\nand conditions as contained in this Lease, except that (i) any rent free periods, rental concessions, inducements, allowances and other similar items applicable during any Term will not apply during any Renewal Term, (ii) Tenant will\naccept the Demised Premises on an “as is” basis at the commencement of the Renewal Term, (iii) there shall be no further right of renewal except as stated above, and (iv) the Minimum Annual Rent for each respective Renewal Term\nshall be equal to one hundred ten percent (110%) of the Minimum Annual Rent of the last Lease Year or Renewal Term. The renewal option set forth in this Section 3(c) will only be valid if (a) the Tenant that signed this Lease, or its\nsuccessor by merger or acquisition of substantially all of the assets of the branch bank of the Tenant operated at the Premises, is the occupant of the Demised Premises; (b) Landlord has received written notice of Tenant’s election to\nrenew at least one hundred eighty (180) days prior to the expiration of the initial Term or the then existing Renewal Term, as applicable;",
+   "page": 6,
+   "section": "3(c)"
+  }
+ ]
+}
