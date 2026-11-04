@@ -179,6 +179,9 @@ def spread_statement(args: dict[str, Any]) -> dict[str, Any]:
     periods = []
     for key in period_keys:
         label = None if key == "" else key
+
+        def at_of(i: int, label: str | None = label) -> dict[str, Any]:
+            return {"line": i, "period": label} if label is not None else {"line": i}
         in_period = [c for c in checked if c["period"] == key]
         section_amount: dict[str, float] = {}
         section_lines: dict[str, int] = {}
@@ -220,7 +223,7 @@ def spread_statement(args: dict[str, Any]) -> dict[str, Any]:
                     flag("does_not_foot", f"{c['line']['label']} is {show_value(c['signed'])} on the statement; the "
                                           f"lines spread here give {show_value(amount)} (difference "
                                           f"{show_value(difference)}, tolerance {show_value(tolerance)})",
-                         {"line": c["index"], "period": label})
+                         at_of(c["index"]))
                 stated.append({"line": c["index"], "amount": c["signed"], "difference": difference,
                                "tolerance": tolerance, "foots": foots})
             entry: dict[str, Any] = {"id": t["id"], "label": t["label"], "amount": amount}
@@ -239,11 +242,11 @@ def spread_statement(args: dict[str, Any]) -> dict[str, Any]:
                     usable = False
                     where = "in another period" if part["period"] != key else f"a {part['kind']}"
                     flag("sums", f"line {j} is {where}; a subtotal adds up lines of its own period",
-                         {"line": c["index"], "period": label})
+                         at_of(c["index"]))
                     continue
                 if part["kind"] == "excluded":
                     flag("subtotal_part_excluded", f"line {j} is not in the spread ({part['reason']}); the subtotal is "
-                                                   "checked without it", {"line": c["index"], "period": label})
+                                                   "checked without it", at_of(c["index"]))
                     continue
                 acc += part["signed"]
                 n += 1
@@ -256,14 +259,15 @@ def spread_statement(args: dict[str, Any]) -> dict[str, Any]:
                 flag("does_not_foot", f"{c['line']['label']} is {show_value(c['signed'])} on the statement; lines "
                                       f"{', '.join(map(str, parts))} add up to {show_value(computed)} (difference "
                                       f"{show_value(difference)} in size, tolerance {show_value(tolerance)})",
-                     {"line": c["index"], "period": label})
+                     at_of(c["index"]))
             if not usable:
                 all_foot = False
             subtotals.append({"line": c["index"], "label": c["line"]["label"], "amount": c["signed"], "sums": parts,
                               "computed": computed, "difference": difference, "tolerance": tolerance, "foots": foots})
         memo = [{"line": c["index"], "category": c["category"]["id"], "label": c["category"]["label"],
                  "value": c["signed"]} for c in in_period if c["kind"] == "memo"]
-        entry = {"period": label, "sections": sections, "totals": totals}
+        entry = {"period": label} if label is not None else {}
+        entry.update({"sections": sections, "totals": totals})
         if subtotals:
             entry["subtotals"] = subtotals
         if memo:
@@ -273,8 +277,9 @@ def spread_statement(args: dict[str, Any]) -> dict[str, Any]:
     out = []
     for c in checked:
         status = {"line": "included"}.get(c["kind"], c["kind"])
-        item: dict[str, Any] = {"line": c["index"], "label": c["line"]["label"], "status": status,
-                                "period": None if c["period"] == "" else c["period"]}
+        item: dict[str, Any] = {"line": c["index"], "label": c["line"]["label"], "status": status}
+        if c["period"] != "":
+            item["period"] = c["period"]
         if c.get("category") is not None:
             item["category"] = c["category"]["id"]
             item["section"] = c["category"]["section"]

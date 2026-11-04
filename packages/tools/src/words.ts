@@ -22,11 +22,16 @@ export function stem(word: string): string {
 }
 
 /**
- * The words of a text: Unicode NFKD with combining marks removed, lower case, each run of ASCII
- * letters and digits one word, plurals folded. "Café & Bakeries" → ["cafe", "bakery"].
+ * The words of a text: Unicode NFKD with combining marks removed, lower case, "&" read as "and",
+ * each run of ASCII letters and digits one word, plurals folded. "Café & Bakeries" → ["cafe",
+ * "and", "bakery"]; "R&M" → ["r", "and", "m"].
  */
 export function words(text: string): string[] {
-  const t = text.normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase();
+  const t = text
+    .normalize("NFKD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .replaceAll("&", " and ");
   return [...t.matchAll(/[a-z0-9]+/g)].map((m) => stem(m[0]));
 }
 

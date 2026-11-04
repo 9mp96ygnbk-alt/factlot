@@ -352,6 +352,10 @@ export function spreadStatement(
   let allFoot = true;
   const periods = periodKeys.map((key) => {
     const label = key === "" ? null : key;
+    const atOf = (line: number): { line: number; period?: string } => ({
+      line,
+      ...(label !== null ? { period: label } : {}),
+    });
     const inPeriod = checked.filter((c) => c.period === key);
     const sectionAmount = new Map<string, number>();
     const sectionLines = new Map<string, number>();
@@ -399,7 +403,7 @@ export function spreadStatement(
             flag(
               "does_not_foot",
               `${c.line.label} is ${showValue(c.signed)} on the statement; the lines spread here give ${showValue(amount)} (difference ${showValue(difference)}, tolerance ${showValue(tolerance)})`,
-              { line: c.index, period: label },
+              atOf(c.index),
             );
           }
           return {
@@ -434,7 +438,7 @@ export function spreadStatement(
             flag(
               "sums",
               `line ${j} is ${part.period !== key ? "in another period" : `a ${part.kind}`}; a subtotal adds up lines of its own period`,
-              { line: c.index, period: label },
+              atOf(c.index),
             );
             continue;
           }
@@ -442,7 +446,7 @@ export function spreadStatement(
             flag(
               "subtotal_part_excluded",
               `line ${j} is not in the spread (${part.reason}); the subtotal is checked without it`,
-              { line: c.index, period: label },
+              atOf(c.index),
             );
             continue;
           }
@@ -458,7 +462,7 @@ export function spreadStatement(
           flag(
             "does_not_foot",
             `${c.line.label} is ${showValue(c.signed)} on the statement; lines ${parts.join(", ")} add up to ${showValue(computed)} (difference ${showValue(difference)} in size, tolerance ${showValue(tolerance)})`,
-            { line: c.index, period: label },
+            atOf(c.index),
           );
         }
         if (!usable) allFoot = false;
@@ -482,7 +486,7 @@ export function spreadStatement(
         value: c.signed,
       }));
     return {
-      period: label,
+      ...(label !== null ? { period: label } : {}),
       sections,
       totals,
       ...(subtotals.length ? { subtotals } : {}),
@@ -501,7 +505,7 @@ export function spreadStatement(
       line: c.index,
       label: c.line.label,
       status,
-      period: c.period === "" ? null : c.period,
+      ...(c.period !== "" ? { period: c.period } : {}),
       ...(c.category
         ? { category: c.category.id, section: c.category.section }
         : {}),

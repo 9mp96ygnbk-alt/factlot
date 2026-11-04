@@ -912,6 +912,7 @@ export class PageText {
   readonly normalized: readonly string[];
   private hyphenated?: string[][];
   private maps = new Map<number, SpanMap | null>();
+  private offsets?: number[];
 
   constructor(pages: readonly string[]) {
     this.pages = pages;
@@ -936,8 +937,15 @@ export class PageText {
     if (!map || map.text !== this.normalized[page - 1]) return undefined;
     const at = map.text.indexOf(q);
     if (at < 0) return undefined;
-    let offset = 0;
-    for (let i = 0; i < page - 1; i++) offset += codePoints(this.pages[i]!) + 1;
+    if (!this.offsets) {
+      // Where each page starts in the pages joined by \f, in code points (computed once).
+      this.offsets = [0];
+      for (const p of this.pages)
+        this.offsets.push(
+          this.offsets[this.offsets.length - 1]! + codePoints(p) + 1,
+        );
+    }
+    const offset = this.offsets[page - 1]!;
     return {
       start: offset + map.start[at]!,
       end: offset + map.end[at + q.length - 1]!,
@@ -976,7 +984,49 @@ interface SpanMap {
  * the whole page at once (rare: context-dependent case mapping or composition across pieces),
  * the caller gives no span rather than a wrong one.
  */
-function spanMap(page: string): SpanMap {
+export function spanMap(page: string): SpanMap {
+  if (!NON_ASCII.test(page)) return asciiSpanMap(page);
+  return generalSpanMap(page);
+}
+
+// Any character above U+007F (the page is ASCII when there is none).
+const NON_ASCII = /[^\p{ASCII}]/u;
+
+/**
+ * spanMap for an ASCII page, without the per-character Unicode work (most page text is ASCII,
+ * and this is the hot path on long documents). For ASCII, NFKC and the typographic replacements
+ * change nothing and lower-casing maps one character to one, so the result is generalSpanMap's.
+ */
+function asciiSpanMap(page: string): SpanMap {
+  const chars: string[] = [];
+  const start: number[] = [];
+  const end: number[] = [];
+  let lastWs = false;
+  for (let i = 0; i < page.length; i++) {
+    const c = page.charCodeAt(i);
+    // Python's whitespace within ASCII: \t \n \v \f \r, \x1c-\x1f and space.
+    const ws = (c >= 9 && c <= 13) || (c >= 0x1c && c <= 0x1f) || c === 32;
+    if (!ws) {
+      chars.push(c >= 65 && c <= 90 ? String.fromCharCode(c + 32) : page[i]!);
+      start.push(i);
+      end.push(i + 1);
+    } else if (lastWs) end[end.length - 1] = i + 1;
+    else if (chars.length) {
+      chars.push(" ");
+      start.push(i);
+      end.push(i + 1);
+    }
+    lastWs = ws && chars.length > 0;
+  }
+  if (lastWs) {
+    chars.pop();
+    start.pop();
+    end.pop();
+  }
+  return { text: chars.join(""), start, end };
+}
+
+export function generalSpanMap(page: string): SpanMap {
   const clusters: { text: string; s: number; e: number }[] = [];
   let cp = 0;
   for (const ch of page) {

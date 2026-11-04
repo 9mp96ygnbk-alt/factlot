@@ -59,17 +59,22 @@ function runPdfReader(
   if (ocr) args.push(`--ocr=${ocr}`);
   if (title !== undefined) args.push(`--title=${title}`);
   return new Promise((done, reject) => {
-    const child = spawn(python, args, {
-      stdio: ["pipe", "pipe", "pipe"],
-      timeout: PDF_TIMEOUT_MS,
-    });
+    const child = spawn(python, args, { stdio: ["pipe", "pipe", "pipe"] });
+    // Our own timer, unref'd and cleared on exit: spawn's timeout option keeps a timer alive when
+    // the interpreter cannot be started at all.
+    const timer = setTimeout(() => child.kill("SIGKILL"), PDF_TIMEOUT_MS);
+    timer.unref();
     const out: Buffer[] = [];
     const err: Buffer[] = [];
     child.stdout.on("data", (b: Buffer) => out.push(b));
     child.stderr.on("data", (b: Buffer) => err.push(b));
-    child.on("error", (e) => reject(e));
+    child.on("error", (e) => {
+      clearTimeout(timer);
+      reject(e);
+    });
     child.stdin.on("error", () => {}); // a reader that exits early closes the pipe
     child.on("close", () => {
+      clearTimeout(timer);
       const text = Buffer.concat(out).toString("utf8").trim();
       try {
         done(JSON.parse(text) as Record<string, unknown>);

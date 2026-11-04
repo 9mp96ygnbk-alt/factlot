@@ -23,10 +23,11 @@ def stem(word: str) -> str:
 
 
 def words(text: str) -> list[str]:
-    """The words of a text: Unicode NFKD with combining marks removed, lower case, each run of ASCII
-    letters and digits one word, plurals folded. "Café & Bakeries" -> ["cafe", "bakery"]."""
+    """The words of a text: Unicode NFKD with combining marks removed, lower case, "&" read as "and",
+    each run of ASCII letters and digits one word, plurals folded. "Café & Bakeries" -> ["cafe",
+    "and", "bakery"]; "R&M" -> ["r", "and", "m"]."""
     t = "".join(c for c in unicodedata.normalize("NFKD", text) if not unicodedata.category(c).startswith("M"))
-    return [stem(w) for w in _WORD.findall(t.lower())]
+    return [stem(w) for w in _WORD.findall(t.lower().replace("&", " and "))]
 
 
 class KeywordIndex:
