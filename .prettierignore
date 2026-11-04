@@ -3,6 +3,7 @@ dist
 package-lock.json
 docs/research/**/*.jsonl
 docs/research/**/results.txt
+docs/research/**/materials/
 collected/
 .claude/
 .wrangler/

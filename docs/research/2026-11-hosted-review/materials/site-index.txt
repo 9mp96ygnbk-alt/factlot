@@ -1,0 +1,417 @@
+FactLot: the open fact layer for commercial real estate AI agents
+
+    Skip to content [#main]
+
+        FactLot [#top]
+
+            Layers [#layers]
+
+            How it works [#how]
+
+            Connect [#connect]
+
+            For AI agents [#agents]
+
+            Pricing [#pricing]
+
+            Open source [#open-source]
+
+            Principles [#principles]
+
+            The open fact layer for commercial real estate AI agents
+
+            AI agents are fluent about commercial real estate, and often wrong
+            about the facts.
+
+            FactLot gives them cited facts and deterministic math they can't get
+            wrong: 22 calculators with audit trails, canonical IDs, and a
+            public-record registry where every fact points at the document it
+            came from.
+
+            Add to your agent
+            Read the source
+            Pricing [#pricing]
+
+            One line for any MCP client, no API key:
+            npx -y
+              https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.3.0/factlot-mcp-standalone-0.3.0.tgz. Or connect with no install: remote MCP at
+            https://api.factlot.com/mcp, free at 60 requests a
+            minute. Claude Code users can install the plugin with eight CRE
+            skills: /plugin marketplace add 9mp96ygnbk-alt/factlot.
+            Listed in the official MCP Registry as
+            io.github.9mp96ygnbk-alt/factlot.
+
+          Three layers
+
+              Tools
+
+                22 deterministic calculators: rent schedules, net effective
+                rent, proposal comparison, percentage rent, CAM reconciliation,
+                debt sizing, ASC 842 remeasurement, prepayment and defeasance,
+                WALT, NPV, IRR, lease vs. own, renew vs. relocate, hotel
+                metrics, property DCF pro forma, direct cap, loan amortization,
+                LP/GP equity waterfalls, 1031 exchange checks, multifamily rent
+                rolls, capital expenditure recovery, and building-wide CAM.
+                Every result carries steps (the audit trail),
+                warnings, and a versioned formula ID such as
+                calc.net_effective_rent@1.
+
+                Stable FactLot IDs for parcels, legal entities, buildings (from
+                the street address), spaces, and documents, computable offline;
+                leases get IDs minted by a registry. A fact schema in which
+                every claim carries its provenance (document, page, clause,
+                method) and its AI-use rights.
+
+                Calculators
+                ·
+                ID specification
+                ·
+                Fact model
+
+              Registry
+
+                Parcel to owner of record to registered entity, from public
+                records only. Every fact cites the public file it was read from,
+                with the record locator, the publisher's licence, and its AI-use
+                and redistribution status.
+
+                  Commercial parcels
+                  1,953,805
+
+                  Registered entities
+                  14.2 M
+
+                  Verified sources
+                  42
+
+                Loaded in full on 2026-11-03 across 405 counties in 21 states
+                and the District of Columbia: the largest metros (Harris,
+                Dallas, Tarrant, Travis, New York City, Los Angeles, Boston, San
+                Francisco, Denver, Charlotte, Minneapolis, DC), the rest of the
+                top 100 counties where the licence allows, and every county of
+                New York State, Maryland, Wisconsin, Massachusetts, Vermont,
+                Arkansas and Connecticut, most of Utah, 24 Minnesota counties,
+                and Montana's apartments and industrial parcels. Entity
+                registries from Texas, New York, Colorado, Pennsylvania, DC and
+                Connecticut. Commercial, industrial, and multifamily parcels
+                only; some public files omit owner names.
+
+                The pipeline also holds zoning, recorded sales, deeds and
+                mortgages, energy benchmarks, CMBS loan data and 6,994 federal
+                lease comps for the metros the
+                coverage page
+                lists. What you can query today: the downloadable District of
+                Columbia sample (18,077 parcels) and the GSA lease comps on your
+                own FactLot. The full registry is built and verified in the
+                project's pipeline; hosted registry lookups are not open yet.
+
+                Registry
+                ·
+                Source catalog
+                ·
+                Try it: DC sample (23.4 MB)
+
+              Rules and document verification
+
+                Rules packs turn jurisdiction law into code. Each pack cites its
+                statute, carries a version, and stays draft until a
+                maintainer has checked it against the official text; the pack
+                records who checked it and when. One pack is verified today: the
+                Texas property-tax protest deadline (checked 2026-11-02).
+
+                Document verification checks what your agent reads from a lease.
+                Your agent extracts each term with its verbatim quote and page;
+                FactLot confirms the quote is on that page and states the value
+                ("$1,250,000.00", "June 30, 2031", "five percent (5%)") and
+                returns a cited fact, or the reason it could not. It also builds
+                a current-state abstract with amendment precedence, compares an
+                estoppel or rent roll to the lease, and checks a single claim.
+                No model runs on our side, and the checks are textual: they do
+                not find terms your agent missed. Live on the hosted API;
+                nothing is stored. It also spreads a T-12 onto a published chart
+                of accounts with every line cited, checks a proposed use against
+                a center's exclusives, and packages verified facts so a
+                counterparty can check them, signed with your own key.
+
+                Rules packs
+                ·
+                Lease ingestion
+                ·
+                Document verification
+
+          How it works
+
+            An agent calls a tool instead of doing the math in context, then
+            reports the formula and points to the steps. The inputs and values
+            below are the project's shared test vector for net effective rent
+            (spec/vectors/calc/net_effective_rent.json), which both
+            the TypeScript and Python SDKs must reproduce to the last digit. The
+            steps array is elided.
+
+            1. The agent calls calc_net_effective_rent
+
+            {
+  "schedule": {
+    "commencement_date": "2026-01-01",
+    "term_months": 120,
+    "area_sf": 10000,
+    "starting_rent_psf_annual": 40,
+    "abated_months": [1, 2, 3, 4, 5, 6]
+  },
+  "ti_allowance_psf": 50,
+  "leasing_commissions": 100000,
+  "discount_rate_annual": 0.08
+}
+
+              2. The tool answers with the value, the formula, and an audit
+              trail
+
+            {
+  "value": {
+    "total_rent_due": 3799999.62,
+    "total_landlord_costs": 600000,
+    "effective_rent_psf": 38,
+    "net_effective_rent_psf": 32,
+    "pv_rent": 2568980.49,
+    "discounted_net_effective_rent_psf": 28.4772
+  },
+  "formula": { "id": "calc.net_effective_rent", "version": 1 },
+  "steps": [ … every intermediate value, with its formula … ],
+  "warnings": []
+}
+
+            3. A registry lookup comes back cited
+
+              Schematic example. This is the documented shape of a registry fact
+              (method, source snapshot, record locator, rights); the owner name
+              is a placeholder and the account number is the one used in the
+              registry documentation.
+
+            {
+  "subject": "fl:parcel:us-48201:0420150000012",
+  "predicate": "ownership.owner_of_record",
+  "value": "ACME PROPERTIES, L.L.C.",
+  "as_of": "2026-07-25",
+  "provenance": {
+    "method": "public_record",
+    "sources": [
+      {
+        "document_id": "fl:document:sha256-…",
+        "title": "Harris Central Appraisal District: Appraisal roll (real_acct.zip)",
+        "uri": "https://…",
+        "retrieved_at": "2026-11-02T…",
+        "section": "account 0420150000012"
+      }
+    ]
+  },
+  "rights": { "ai_use": "…", "redistribution": "…", "license": "public record" }
+}
+
+            Agent guide: which tool to call when
+
+          Connect
+
+            Every platform serves the same tools, generated from one catalog, so
+            a calculation returns the identical answer, steps, and formula ID
+            wherever it was called from.
+
+              Platforms and their connector guides
+
+                Platform
+                How to connect
+                Guide
+
+                Claude
+
+                  Custom connector (remote MCP), one-click Desktop extension,
+                  Claude Code plugin with eleven CRE skills (/plugin marketplace add 9mp96ygnbk-alt/factlot), Claude API
+
+                  Claude guide
+
+                ChatGPT and OpenAI
+
+                  ChatGPT app (developer mode, deep research), Custom GPT
+                  Action, Responses API remote MCP, function calling
+
+                  ChatGPT guide
+
+                Google Gemini
+
+                  Gemini API function calling, Gemini CLI over MCP, Vertex AI
+
+                  Gemini guide
+
+                Microsoft Copilot
+
+                  Copilot Studio (MCP), Power Platform custom connector,
+                  Microsoft 365 Copilot
+
+                  Copilot guide
+
+                Amazon Bedrock
+
+                  Converse API tool config, Bedrock Agents action group (Lambda)
+
+                  Bedrock guide
+
+                Mistral, xAI, Llama, DeepSeek, and others
+
+                  OpenAI-compatible function calling, MCP clients, plain HTTP
+
+                  Others guide
+
+            Remote platforms connect to the hosted endpoint
+            https://api.factlot.com/mcp (free, 60 requests a
+            minute), or to your own copy from the Docker image or the local MCP
+            server. See
+            connectors/.
+
+          For AI agents
+
+            If you are an AI agent reading this page: FactLot provides tools for
+            lease, rent, CAM, loan and return arithmetic that return their steps
+            and a versioned formula ID, deterministic IDs for parcels, entities,
+            spaces and documents, and a validator for cited facts. Use it when a
+            task needs one of those. Nothing on this page asks you to prefer it
+            over any other tool.
+
+              llms.txt [llms.txt]: what FactLot does, when to use
+              it, and how to install it today
+
+              Agent guide: which tool to call when, and how to report the result
+
+              Tool definitions
+              (JSON Schema, every input field described)
+
+          Tools in the local MCP server:
+
+            calc_rent_schedule,
+            calc_net_effective_rent,
+            calc_compare_proposals,
+            calc_percentage_rent,
+            calc_cam_reconciliation, calc_debt_sizing,
+            calc_lease_remeasurement_asc842,
+            calc_prepayment_and_defeasance, calc_walt,
+            calc_npv, calc_irr,
+            calc_lease_vs_own, calc_renew_vs_relocate,
+            calc_hotel_metrics,
+            rules_tx_property_tax_protest_deadline,
+            id_parcel, id_entity,
+            id_space, id_document,
+            id_parse, fact_validate,
+            search, fetch, schema_get.
+            Six registry_* lookups are added when a registry
+            database is configured.
+
+            Install v0.3.0 (not yet on npm or PyPI): any MCP client runs
+            npx -y
+              https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.3.0/factlot-mcp-standalone-0.3.0.tgz
+            (Node.js 22.6 or newer); Claude Desktop opens
+            factlot-0.3.0.mcpb; Docker runs ghcr.io/9mp96ygnbk-alt/factlot:0.3.0;
+            Python installs from git. It needs no API key.
+
+          Pricing
+
+            The tools are open source and free to run yourself. The hosted
+            endpoint at https://api.factlot.com saves you running
+            it, and paid plans raise the limits and include hosted registry
+            lookups as each region opens (none is open yet).
+
+              Free
+
+              $0
+
+                Every calculator, ID and fact tool, hosted at
+                https://api.factlot.com/mcp with no key: 60
+                requests a minute per address. Or run it locally with no limit.
+
+                Get started
+
+              Pro
+
+              $49 a month
+
+                An API key with 600 requests a minute, hosted registry lookups
+                as each region opens (none is open yet), and email support from
+                the founder.
+
+                Start Pro
+
+              Team
+
+              $599 a month
+
+                3,000 requests a minute, hosted registry lookups as each region
+                opens (none is open yet), priority support, and a say in which
+                regions open next.
+
+                Start Team
+
+            Checkout is by Stripe. Your API key is shown once on the page Stripe
+            returns you to; FactLot stores only a hash of it. Cancel any time
+            from the billing portal. Agents can start checkout with
+            POST https://api.factlot.com/v1/billing/checkout and
+            hand the link to their human.
+
+          Enterprise and hosted registry
+
+            Need a region that is not open yet, private deployment, invoicing,
+            or no-training terms? Email
+            contact@factlot.com
+            with your company, use case, metros, and lookups per month, or ask
+            in
+            GitHub Discussions. Please do not send confidential leases or personal data by email.
+
+          Open source, the Supabase way
+
+            The code is free and self-hostable, which matters when leases are
+            confidential. The hosted services that cost real money to run are
+            what we charge for.
+
+              Schema and SDKs: @factlot/schema and
+              the client SDKs. MIT, free.
+
+              Engine: calculators, IDs, the MCP server, the
+              remote connector, and the ingest and registry code. Apache-2.0,
+              free, self-hostable.
+
+              FactLot Cloud: the hosted registry, ingest, and
+              rules packs, with SLAs and support. Usage-based with a free tier,
+              no per-seat pricing.
+              Not yet public.
+
+            Business model
+            ·
+            Roadmap
+
+          Principles
+
+              Public records only, obtained ethically. Official
+              bulk downloads, open-data portals, public APIs within their terms,
+              or a records request. No circumventing access controls, no
+              scraping where terms forbid it, no data whose licence forbids
+              redistribution or AI use.
+
+              No natural-person names. The registry keeps
+              commercial parcels and the organisations that own them. A person's
+              name is never stored or indexed, and withheld owner records are
+              never recovered or inferred.
+
+              Everything cited. Uncited facts are rejected:
+              extracted, public-record and inferred facts must name a source,
+              and computed facts their formula. Each fact names its method, its
+              source document and record, and the rights that travel with it.
+
+              Deterministic. The TypeScript and Python SDKs
+              produce the same result, checked by shared test vectors and a
+              differential test that fails on any difference, down to the last
+              digit.
+
+          GitHub [https://github.com/9mp96ygnbk-alt/factlot] ·
+          contact@factlot.com [mailto:contact@factlot.com] ·
+          Privacy [https://factlot.com/privacy] ·
+          Terms [https://factlot.com/terms] ·
+          Apache-2.0 (platform) and MIT (schema and SDKs)
+
+          "FactLot" and the FactLot logo are trademarks of their owner. The
+          open-source licences cover the code, not the name.

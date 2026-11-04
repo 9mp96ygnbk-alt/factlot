@@ -1,0 +1,4105 @@
+# Appendix: every free-text answer, by persona
+
+## Must-have levers (165)
+
+- H01-P01: Hosted Travis and Bexar appraisal-roll lookups (assessed value per account and per key) plus hotel sale comps, so an appeal packet can be built end to end.
+- H01-P02: Accept a lease-clause abstract (from doc_abstract_lease) and a ledger export directly, and return the reconciliation for every tenant with the clause cited next to each assumption.
+- H01-P03: Carry the unit through every valuation tool (DCF, direct cap, waterfall) and add power and PUE pass-through inputs so a kW-quoted lease runs end to end without relabelling.
+- H01-P04: Self-hostable with the same output as the hosted service, plus sizing that accepts a partial interest-only period and a lender-template export, so the stress and payoff tables drop straight into a credit memo.
+- H01-P05: A tested, documented path from a real scanned lease (PDF to pages to candidates) with an error-rate report, so I can show the committee how often the verifier catches a wrong extraction.
+- H01-P06: A tested, copy-paste Custom GPT package (spec plus instructions) with a retail worked example, so an appraiser can stand up the GPT in ten minutes and know it works.
+- H01-P07: Accept a lease-abstract (rent, bumps, free rent, TI, opex structure) from doc_abstract_lease directly as the input to the comparison tools, so the HQ analysis starts from the actual lease rather than hand-keyed numbers.
+- H01-P08: A life-science property type and a comp-sharing pool among tenants so lab proposals can be benchmarked, not just calculated.
+- H01-P09: Make fact_package_verify re-run the value-in-quote check and report which checks were not run, and add data-center and crypto use categories to the conflict vocabulary.
+- H01-P10: Hosted registry lookups for Colorado (owner of record, recorded sales) so a listing can start from the address.
+- H01-P11: Hosted parcel and owner lookups with zoning and use rules by address, so a candidate site could be screened before a broker is called.
+- H02-P01: Hosted Maricopa County parcel, owner and sale lookups so the agent can screen replacement candidates and not only check exchange arithmetic.
+- H02-P02: A Yardi-format rent roll tie-out with a documented concession and occupancy convention, plus a cash-basis concession view.
+- H02-P03: Closed sales and rent comps for the campus markets, delivered in the same cited-fact shape as the calculators.
+- H02-P04: A single documented treatment of TI allowance and build-out cost across the proposal and renew-versus-relocate tools, with a client-ready summary.
+- H02-P05: Hosted parcel, zoning and entitlement lookups for Georgia counties, in the same cited-fact format.
+- H02-P06: Hosted NYC registry lookups (ACRIS deeds and mortgages, PLUTO zoning) plus a verified LL97 tool.
+- H02-P07: Hosted comps by address and submarket (sales and leases) with rights, keyed to FactLot building IDs.
+- H02-P08: A 'verified' status that states what was and was not checked per fact in one field (and refuses string numbers), plus hosted PDF text extraction.
+- H02-P09: A manufactured-housing example and lot-level treatment (month-to-month lots, park-owned homes, utility reimbursement) in the rent roll tool.
+- H02-P10: Separate renew and new-tenant paths with per-tenant probabilities and an ARGUS tie-out example on a real rent roll.
+- H02-P11: Hosted hazard-adjacent building facts (flood zone, year built, elevation, construction class) for Harris County, keyed to the building ID with rights stated.
+- H03-P01: Published accuracy results on real, OCR-noisy medical office leases plus a signed data-processing agreement for the hosted doc tools.
+- H03-P02: Open the hosted CMBS/registry lookups (building-level debt.cmbs_loan) so debt yield and DSCR can be benchmarked against comps, not just computed.
+- H03-P03: A published reconciliation of calc_dcf_pro_forma to ARGUS Enterprise on an industrial rent roll, with the convention differences listed.
+- H03-P04: Hosted net-lease sale and rent comps with cap rates and the source of each comp, so a pricing page can cite more than arithmetic.
+- H03-P05: Hosted building-level hazard facts (flood zone, wildfire, heat) and year built keyed to the FactLot building ID.
+- H03-P06: A Custom GPT that is already built and published with the right 30 operations for lease admin (CAM, percentage rent, doc_verify_facts, doc_compare), so I do not have to assemble it.
+- H03-P07: Compute or prompt for the tax-return due date from the transfer year (with an extension flag) so the true exchange deadline is the default output, not just a warning.
+- H03-P08: Hosted parcel and owner lookups for the Atlanta counties plus a guard in calc_npv/calc_irr that warns when the period count and rate suggest an annual rate on monthly flows.
+- H03-P09: A filterable or grouped tool list (for example ?tools=cam,capex or a manifest per skill) so a LangGraph agent loads only what it needs.
+- H03-P10: A maintainer-verified LL97 pack served as a hosted tool, with the official text cited and the check recorded.
+- H03-P11: Check the text of structured predicates (protected use, carve-outs, prohibited items) against the quote so 'verified' means more than 'the quote is on the page', plus a signed DPA for hosted use.
+- H04-P01: Hosted Harris County registry lookups (owner, appraised value, last sale) on the same endpoint, so the GPT can screen replacement candidates.
+- H04-P02: Promote the draft WA CBPS, BERDO and LL97 packs to verified, callable tools.
+- H04-P03: An ARGUS tie-out on a rollover case and a levered DCF output, so the agent can hand a reviewer one reconcilable package.
+- H04-P04: Hosted building energy benchmarking (site EUI, ENERGY STAR score, emissions) for Chicago hotels, cited to the city file.
+- H04-P05: Put prepayment and defeasance (and the other lender tools) in the Custom GPT subset, and add hosted Texas recorded mortgage and CMBS facts for cross-checking borrower packages.
+- H04-P06: A copyable end-to-end example and PDF-in-the-cloud (or a signed local reader) so the spread step runs without custom extraction code.
+- H04-P07: A published tie-out of the rent-roll tool to Yardi or RealPage output on a full property, plus Florida data.
+- H04-P08: A published ARGUS tie-out of the DCF on a multi-tenant roll, including a list of the exact conventions that differ.
+- H04-P09: Add doc_compare and doc_verify_claim to the Custom GPT subset and publish a copyable full-request example with every predicate shape and enum.
+- H04-P10: An accountant-reviewed ASC 842 formula note and a full worked compare_proposals example, so finance accepts the output without re-deriving it.
+- H04-P11: Hosted retail lease comps (even a small contributed set for Los Angeles) searchable by property type and submarket.
+- H05-P01: Storage-aware chart of accounts and metrics, with Florida (Miami-Dade) property data on the hosted service.
+- H05-P02: Verified Copilot Studio (and Gemini) connection with OAuth/SSO, plus market industrial lease comps.
+- H05-P03: Hosted Dallas and Tarrant parcel, owner and assessment lookups to sit beside the CAM and protest tools.
+- H05-P04: A security and assurance package (SOC 2 or equivalent, OAuth/SSO) plus a verified Copilot Studio connection.
+- H05-P05: A Custom GPT spec that includes lease-vs-own and renew-vs-relocate within 30 operations, with a tie-out of the ASC 842 schedule to a lease accounting system.
+- H05-P06: A Yardi/AppFolio export importer or documented column mapping for the rent roll and CAM inputs.
+- H05-P07: A worked end-to-end retail lease abstract from a real-format lease, and hosted Florida registry lookups for diligence cross-checks.
+- H05-P08: Hosted Travis and Bexar county parcel, owner and sales lookups to put beside the calculators.
+- H05-P09: A recommended tool subset or a per-tool-group MCP endpoint so a small agent loads the 1031, debt-sizing and valuation tools only, plus Midwest small-bay comps.
+- H05-P10: A multifamily income-approach tool: stabilized NOI from a rent roll plus a cap-rate or discount-rate sensitivity grid in one call.
+- H05-P11: doc_compare and doc_verify_claim in the default Custom GPT spec, plus a lawyer-readable confidentiality statement for hosted documents.
+- H06-P01: A lease-abstraction skill in the plugin with the full Ingest predicate list (dated rent-step schedule, options, expense terms) and a counsel-reviewed data-processing commitment for tenant lease text.
+- H06-P02: A published reconciliation of calc_dcf_pro_forma and calc_debt_sizing against an ARGUS Enterprise run and a Copilot Studio walkthrough that has actually been executed, plus SOC 2 or an SSO-capable gateway.
+- H06-P03: Cited sale and lease comps (with source and verification) available through the same hosted call, and warnings on implausible magnitudes like a reserve under a dollar.
+- H06-P04: A stated verification record (who, when, against which text) for the 1031 tool, and NNN sale comps or cap-rate data behind the same endpoint.
+- H06-P05: An attestation or data-handling package (SOC 2 or equivalent, DPA) and a one-line self-hosted remote MCP deployment path that a lender's IT can approve.
+- H06-P06: A published reconciliation to a real property-management system's CAM statement (Yardi or MRI) plus an input mapper from a standard CAM pool export.
+- H06-P07: Counsel-ready hosted terms (DPA) and an end-to-end diligence example, with the full predicate shapes (exclusive_use with carve-outs) in the docs an agent reads.
+- H06-P08: Sale and rent comps for the markets I list (Georgia first) delivered through the same GPT Action, with sources.
+- H06-P09: A published reconciliation of WALT, percentage rent and NER to the brokerage's Excel OM templates, plus a verified Custom GPT recipe with instructions file.
+- H06-P10: A plugin skill for exclusive and prohibited-use screening, plus protest deadlines for more states, so one agent run covers a center's whole calendar and tenant-approval checks.
+- H06-P11: Collin and Dallas County comps and appraisal-district data through the same REST API, so the deadline and the numbers to protest come from one place.
+- H07-P01: Publish the predicate list in the materials, then add a complete abstract-template mapping so every field in a standard industrial lease abstract has a named predicate.
+- H07-P02: Hosted Denver parcel and owner lookups plus a Colorado comp source, so the same agent can find the replacement properties and not only check the dates.
+- H07-P03: A way to hand it the building's whole operating statement and every tenant's lease terms once, and get back a statement per tenant (the batch tool exists; I did not test it) that I can paste into the tenant package.
+- H07-P04: Hosted parcel facts for Los Angeles County (year built, building area, use) with their source cited.
+- H07-P05: Hosted Cook County (and Illinois SOS) parcel, owner and sale lookups with sources cited.
+- H07-P06: A stored per-centre register of verified exclusives and prohibited uses, so a new-tenant check is one question instead of re-sending every anchor lease.
+- H07-P07: A documented reconciliation of the DCF against ARGUS on a shared rent roll, plus residential unit rows in the DCF, so a mixed-use building can be run end to end.
+- H07-P08: A way to take a note's prepayment clause as a verified fact and have the tool pick the matching convention, with the clause cited, instead of me choosing basis, convention and floor.
+- H07-P09: Make the claim check unit-aware (a number next to 'days' does not support 'months') and rename 'supported' to something that says the number is present in the quote.
+- H07-P10: Support a capacity ramp (kW delivered by date) in rent schedule, NER and proposal comparison.
+- H07-P11: A tested framework recipe (LangGraph and OpenAI Agents SDK) with schema-compatible tool definitions and a documented 429 and retry policy.
+- H08-P01: A worked end-to-end lease example in the docs with every predicate's value shape, plus a tool that turns a verified rent schedule into the rent-schedule calculator input.
+- H08-P02: A tenant-ready statement renderer plus a reconciliation of a real, anonymized CAM statement showing zero difference to Yardi output.
+- H08-P03: A by-the-bed multifamily/student pro forma calculator (rent per bed, pre-lease, academic-year timing, turn costs) that feeds debt sizing and the waterfall, with an ARGUS reconciliation.
+- H08-P04: Run the identification tests on timely identifications only (and say so), plus a reverse-exchange and multi-property mode; then I would make it the default exchange checker.
+- H08-P05: One renew-versus-relocate tool that takes NNN pass-throughs and CAM growth, with a published reconciliation of the ASC 842 output to a lease-accounting system.
+- H08-P06: A signed customer-documents agreement or counsel-reviewed terms for the hosted doc tools, plus data-center and powered-shell predicates.
+- H08-P07: Reject (not just warn about) a percent given as a whole number across every rate field, and publish a working Custom GPT transcript with the instructions file.
+- H08-P08: Bulk deadlines: pass 85 parcels with notice dates and get one dated list back, ideally pulling notice dates for Travis and Bexar from the districts.
+- H08-P09: Include calc_lease_vs_own in the default GPT Actions subset, and publish a ready-made Custom GPT with its instructions.
+- H08-P10: Per-unit outlier flags on the rent roll (rent 5x or more away from market) and hosted Atlanta multifamily rent comps.
+- H08-P11: Lot-based asset support (lot types, park-owned homes, utility reimbursements) and a rule that rejects whole-number rates in every calculator.
+- H09-P01: South Florida industrial/flex lease comps with expense basis, hosted, so the proposal math can be tested against the market.
+- H09-P02: A documented self-hosted/private deployment path with a stated no-retention policy, plus renew_vs_relocate that includes operating expenses and stops.
+- H09-P03: A CAM mode that warns when a cap is set but no line is marked uncontrollable, plus a ready-made Custom GPT instruction file and a public template GPT.
+- H09-P04: Hosted Miami-Dade registry lookups (owner of record, sales, zoning) so the same agent can also screen deals, not just do the math.
+- H09-P05: Hosted registry lookups with zoning and recorded sales for Bay Area counties, joined to FactLot parcel IDs.
+- H09-P06: A LangGraph/Agents SDK quickstart plus a predicate-shape discovery tool, so agents do not learn shapes from rejection messages.
+- H09-P07: An actual/360 option on debt sizing, a written reproducibility statement per tool, and a bank-grade security/retention page.
+- H09-P08: Hosted parcel, owner and zoning lookups for Midwest counties joined to FactLot building IDs, inside the same Claude Code plugin.
+- H09-P09: MOB-specific benchmarks (TI, free rent, usable/rentable factors) by market, so the ranking can be judged against what is normal.
+- H09-P10: A live shared-comp pool (even a small one with a few peers) plus a hosted lease-ID mint, so the give-to-get exchange is usable on day one.
+- H09-P11: An export of the batch result as a statement-ready table (CSV/XLSX) per tenant that imports into Yardi Breeze, plus a per-SF expense-stop input.
+- H10-P01: Hosted DFW registry lookups (parcel, owner, recorded sales, loans) returned with the same citations as the calculators.
+- H10-P02: Per-unit or monthly-turnover support in the DCF (fractional downtime or a turnover vacancy input) so apartment cash flows are not flattened by rounding.
+- H10-P03: A Custom GPT subset that includes the capex recovery and a ready gpt-instructions file for CAM so the GPT can reach the whole CAM toolkit on import.
+- H10-P04: Put doc_check_use_conflict and doc_compare into the default Custom GPT subset and add a sanity warning on implausible rents so wrong-unit inputs do not rank first.
+- H10-P05: An enterprise path: SSO/OAuth for /mcp, an SLA, and a stated data-retention guarantee for the hosted endpoint, or a documented private deployment.
+- H10-P06: Accept stepped rent tables in calc_rent_schedule (explicit date/rate steps) and tolerate unit conversions such as years-to-months in verification.
+- H10-P07: Hosted Boston/Massachusetts assessing lookups (assessed value, land/building split, comps) and a verified Massachusetts abatement-deadline rule.
+- H10-P08: A tested, documented Gemini and Copilot Studio connector (with a slimmed schema set) and hosted Georgia sales/owner lookups.
+- H10-P09: An enterprise-grade hosted option (SLA, data-retention terms, private deployment path) so credit terms can be sent without a vendor-risk exception.
+- H10-P10: An outside accounting review of the ASC 842 tool (or a published reconciliation to a lease-accounting system) so auditors accept the formula ID as support.
+- H10-P11: Verified deadline packs for Arizona, Florida and Georgia (and every state in the portfolio) with the same statute citations and file-by logic.
+- H11-P01: Hosted Texas lookups (parcel value history, owner of record, comps) for the Austin/San Antonio counties on the Pro plan.
+- H11-P02: A verified, hosted LL97 pack (limit, excess, penalty by ESPM type) joined to LL84 energy data by BBL.
+- H11-P03: Signed DPA and an independent audit of the no-storage claim for the hosted document tools.
+- H11-P04: Net-lease comps and cap-rate data (or tenant credit) callable from the same GPT Action.
+- H11-P05: Use-conflict matching that covers synonyms and a published category list I can audit, plus a pre-built exclusives abstract for common anchors.
+- H11-P06: One call that carries opex, load factor and relocation costs together (compare plus renew-or-relocate) and exports the audit trail to a client-ready table.
+- H11-P07: Verified building-performance rules packs (LL97, BERDO, CBPS) callable as tools and a skill that uses them with energy data by building.
+- H11-P08: A published tie-out of the DCF to ARGUS on a rollover-heavy rent roll.
+- H11-P09: A tested Copilot Studio connector walkthrough (with a screenshot or log) and direct cap with per-key/per-room output.
+- H11-P10: A tested LangGraph / OpenAI Agents SDK snippet with a recorded run, and calls that take the actual scheduled payment instead of re-deriving it.
+- H11-P11: A tenant-ready CAM statement output (with each line and its lease clause) plus a Chicago and Cook County property-tax input feed.
+- H12-P01: Hosted Dallas/Tarrant registry facts (owner, sales, CMBS loans) in the same cited format, so the sizing memo and its market facts come from one place.
+- H12-P02: Step-rent and percentage-rent support in the DCF plus a published tie-out to ARGUS for a multi-tenant retail center.
+- H12-P03: Plausibility warnings on hotel inputs (ADR, margin, nights versus revenue scale) so a Custom GPT can catch operator errors, not just compute them.
+- H12-P04: A tested Copilot Studio and Gemini connection (with a trimmed tool subset) so I can show IC the same ranking inside the tools my firm already approved.
+- H12-P05: A rent-roll mode with preleased beds and bed-level occupancy by lease year, so student housing works without workarounds.
+- H12-P06: A plain-English 1031 workflow page that shows the boot result and tells me what to take to the QI, with the late-identification handling fixed.
+- H12-P07: Accept derived values with a stated basis (lease-year to date conversion, years to months) as 'verified with derivation' instead of needs_review, and show every held-back key term as a placeholder field in the abstract.
+- H12-P08: A net-lease valuation tool that takes the lease terms and reversion assumptions and returns value, cap rates and IRR in one call, with an example for step rents.
+- H12-P09: A data center lease tool that handles power: kW-based pass-through, PUE, and a per-kW DCF.
+- H12-P10: Open the hosted registry for New York City (ACRIS sales and ownership with citations) and promote an LL97 pack to verified.
+- H12-P11: A signed DPA with no-storage terms for the hosted document tools, and a 'meaning check' flag on claims whose quote is about a different clause.
+- H13-P01: Make doc_abstract_lease order-independent (detect the original, or warn when roles are not explicit) and accept the PDF text from my own extractor with OCR flags end to end.
+- H13-P02: A verified, hosted, cited emissions-law pack (LL97 first) with the property-type limit table and the penalty arithmetic, plus hosted energy benchmarking facts.
+- H13-P03: Opex and free-rent-on-opex inputs in renew_vs_relocate, and a one-page proposal-comparison output a CFO can read without steps.
+- H13-P04: Let the prepayment and defeasance tool take the note's day count and the actual payment schedule (or the amortization output) so it prices the real stream.
+- H13-P05: Publish the processor and region for api.factlot.com and offer a DPA, so counsel can approve sending lease pages to the hosted verifier.
+- H13-P06: A published tie-out of the rent roll output to a Yardi or RealPage export, plus other income and delinquency lines.
+- H13-P07: Document and flag second-generation rollover inside the forward year, and publish an Argus tie-out on a real-style rent roll.
+- H13-P08: A named-counsel review on the Texas rule and the other §41.44 deadlines, so it can replace our deadline calendar.
+- H13-P09: A tested, documented Custom GPT import (with the builder's exact limits) and a pre-built GPT-instructions file in the materials.
+- H13-P10: Per-unit metrics in direct cap and multifamily comps, so the whole income approach closes inside one tool.
+- H13-P11: A tested Copilot Studio connector walkthrough, and CAM options mapped to Yardi's lease-clause fields.
+- H14-P01: Open hosted registry lookups for Mecklenburg and Wake (owner of record, last sale, zoning) so rent roll, loan and ownership history come from one agent.
+- H14-P02: Put calc_capex_recovery and a tenant-lease-abstract path in the Custom GPT subset (or raise the Action limit use case) so a CAM GPT covers a whole year-end close.
+- H14-P03: A published ARGUS tie-out on a multi-tenant rent roll, or a lease-by-lease rollover mode, so the DCF can stand in for the first ARGUS pass.
+- H14-P04: Open the hosted registry's mortgage and CMBS facts for the metros the project has loaded, so payoff and sizing can be cross-checked against recorded debt.
+- H14-P05: Hosted registry lookups for Los Angeles County that return an owning entity and mailing contact route, so site screening can end with a landlord to call.
+- H14-P06: A recorded, CI-tested live connection to Copilot Studio and Gemini with the tool schemas as those platforms ingest them.
+- H14-P07: Verify the NYC LL97 pack (named maintainer, date) and serve it as a hosted tool, with LL84 facts by building.
+- H14-P08: A tested, recorded Copilot Studio/Gemini connection plus an explicit day-count (actual/360) option in calc_debt_sizing.
+- H14-P09: Hosted sales and ownership lookups for the Sun Belt counties so a BOV can start from comps and an owner list, not only from inputs I type.
+- H14-P10: Hosted energy benchmarking facts and an ENERGY STAR/ESPM-aware check, so an energy figure can be validated against its source and not only shaped like a fact.
+- H14-P11: Include doc_compare in the Custom GPT subset and let a rent-step candidate state an escalation formula (or derive steps from the quote) so a schedule can verify.
+- H15-P01: Hosted NYC registry lookups (zoning district, max FAR, lot area, sales, deeds) with citations.
+- H15-P02: Accept lease-year and relative-date rent schedules by letting the agent supply the computed dates and the clause, with a clear 'computed' status instead of needs_review.
+- H15-P03: A worked reconciliation that ties to a Yardi CAM export, plus a way to feed ledger lines in without hand-mapping.
+- H15-P04: Check every string element of list and free-text values against the quote, and raise recall of use-conflict matching (single shared keyword with a category-less use such as boba).
+- H15-P05: Hosted Harris County parcel, owner, sale and tax-roll lookups so the same Claude session can pull comps and tax history with citations.
+- H15-P06: A critical-dates tool: option and termination notice deadlines computed from the verified clause with the business-day rule stated.
+- H15-P07: Verify booleans and enum fields against their quote (or hold them for review by default), and publish a per-predicate checked-vs-not-checked table.
+- H15-P08: Verified protest and appeal-deadline packs for the other Sun Belt states, each with statute citations and a conservative file-by date.
+- H15-P09: Hosted Texas multifamily sale and expense-ratio evidence with source citations to put beside the spread.
+- H15-P10: Market rent and sale-comp data for small multifamily in the owner's metros alongside the 1031 arithmetic.
+- H15-P11: An ARGUS reconciliation on one mixed-use rent roll, plus hosted retail and office lease comps with their basis stated.
+
+## Onboarding stuck points (379)
+
+- H01-P01: Site home says Claude Code users get 'eight CRE skills' in one place and 'eleven' in another (site-index.txt Connect/lead paragraph vs the platform table); the plugin README table lists twelve rows with cam-reconciliation twice.
+- H01-P01: The 22 vs 42 tool-count difference (home says 22 calculators; tools/list returns 42 tools) is explainable but not stated in one place.
+- H01-P02: plugin-README.md lists the cam-reconciliation skill in two table rows, so 'eleven skills' is really twelve rows.
+- H01-P02: The cap block needs reference_amount (the tenant's controllable share in the base year), which the agent must work out from the lease and the prior ledger; the schema explains it but nothing computes it.
+- H01-P03: The unit option exists on rent_schedule, net_effective_rent and compare_proposals only (changelog 0.3.0 and tools/list); calc_dcf_pro_forma and calc_direct_cap have no unit field, so kW has to be passed as area_sf and comes back labelled SF.
+- H01-P03: connector-claude-README.md step 1 says 'Deploy the remote connector' even though the hosted URL is given in step 3; confusing for someone who only wants to use the hosted service.
+- H01-P04: Had to read the schema to learn that the stress grid is a cross product of the shocks supplied, so a rate-only or NOI-only row needs the other list omitted or a 0 added.
+- H01-P04: plugin-README.md says data leaves the machine on every call; for live loan terms that pushes me to the local server, whose install needs Node 22.6+ and a release tarball URL.
+- H01-P05: doc_verify_facts and doc_abstract_lease require as_of (YYYY-MM-DD) but document-verification.md's tool table lists inputs without it; first call returned a 400 until I added it.
+- H01-P05: Predicate names beyond a handful (lease.tenant, lease.monthly_rent, lease.late_charge_pct) are not enumerated in the materials; the docs point to an ingest.md that is not in the packet, so I used generic predicates.
+- H01-P05: The materials do not say a document payload size limit beyond schema maxima (100,000 characters a page, 2,000 pages).
+- H01-P06: connector-chatgpt-README.md tells me to paste gpt-instructions.md into the GPT; that file is not in the packet I was given, so I could not review what instructions ship with it.
+- H01-P06: The doc's subset list names four registry operations that the hosted spec omits (explained in one sentence, but a builder comparing the two will notice).
+- H01-P06: I cannot confirm the GPT builder accepts a 257 KB spec with long operation descriptions.
+- H01-P07: No page says which MCP adapter or session behaviour a LangGraph or Agents SDK client needs; 'stateless' appears in llms.txt only (no session id to carry).
+- H01-P07: site-index.txt's 'Tools in the local MCP server' list names about 14 calculators while the same page says 22; and says 'Six registry_* lookups' while llms.txt says seven.
+- H01-P07: Input schemas are huge (162 KB tools/list); an agent framework will carry that into context unless filtered.
+- H01-P08: connector-claude-README.md step 1 says to deploy the remote connector before step 3 gives the hosted URL; a first-time reader may think self-hosting is required.
+- H01-P08: lease_comp_validate needed two corrections (rights vocabulary, then property type); the lease-comps doc lists property types only with an ellipsis and does not give the rights values, so I learned them from the error.
+- H01-P08: The comp property type list has no life science or lab.
+- H01-P09: Data-center predicate names (committed power, SLA) are not in the docs; I made up generic predicates and they were accepted, so there is no check that two agents would name them the same way.
+- H01-P09: doc_check_use_conflict is built around retail use categories (66 NAICS-based categories such as coffee, pharmacy); it has no category for crypto or data-center uses.
+- H01-P09: fact_package_create returns a wrapper object; passing it whole to fact_package_verify fails.
+- H01-P10: I began with the registry because a broker wants owners first; the home page says hosted lookups are not open, but the MCP search still lists registry tools and REST paths answer 503, so it took four calls to confirm there is nothing to use.
+- H01-P10: No manufactured-housing or pad-based valuation guidance; per-pad numbers come back labelled per SF.
+- H01-P10: The plugin skill list differs between pages (eight vs eleven in site-index.txt).
+- H01-P11: The exclusive_use value shape ({protected_use, carve_outs}) is only in the error text; document-verification.md points to an ingest.md I was not given.
+- H01-P11: The conflict checker is built on a 66-category use vocabulary; there is no way to see which categories it holds without the vocabulary file, which is not in my materials.
+- H01-P11: No registry or demographic data on the hosted API, so I could not look up the candidate centers at all.
+- H02-P01: getting-started.md opens with Docker and says nothing about the free hosted REST base URL; I only found it in the README curl and the plugin README.
+- H02-P01: /v1/tools is 235 KB for 39 tools (my own count), so an agent must filter it; there is no per-tool schema URL I was told about.
+- H02-P02: The first rent roll call worked, but the concession field is a oneOf object; I read the exact shape from /v1/tools, not from the home page.
+- H02-P02: The home page does not state a unit limit; the tool description says up to 5,000 units (tested with 35 only).
+- H02-P03: The Copilot Studio steps live in connectors/microsoft/README.md, which was not in the materials I could read; the connectors README only says 'Copilot Studio (MCP)' and, in its verification table, that a live Copilot Studio connection is 'Not yet' tested.
+- H02-P03: connectors-README.md says the remote MCP 'Serves 16 tools plus search, fetch, and schema_get'; tools/list returned 42 tools (39 plus search, fetch, schema_get), so the doc is stale.
+- H02-P04: Could not add the connector inside Claude itself, so the menu path in connector-claude-README.md is not tested.
+- H02-P04: The doc says an open server needs OAuth left empty; nothing in the materials says what error a client shows if it is not.
+- H02-P05: Nothing in the docs I read gives a development or build-to-rent example; I had to repurpose calc_direct_cap's price field as all-in cost to get a yield on cost.
+- H02-P05: registry-coverage.md lists Georgia counties but states they are not hosted, so site screening is not possible today.
+- H02-P06: Cannot install the plugin in this environment, so the install and the skills loading are not tested.
+- H02-P06: tools/call worked without an initialize handshake, which the docs call stateless; fine, but the plugin README does not say so.
+- H02-P07: tools/list is 169 KB, about 42,000 tokens by a rough 4-characters-per-token estimate, for 42 tools; there is no category filter or per-tool endpoint in the docs I read, so a framework that loads every tool pays that every run.
+- H02-P07: The lease.comp doc lists free_rent_applies_to as 'base or gross'; the validator accepted only base_rent or gross_rent (call 5).
+- H02-P08: document-verification.md points to ingest.md for the predicate table, which was not in my materials; I guessed predicate names and shapes. lease.exclusive_use rejected my object (expected a string or {protected_use, carve_outs?, applies_to?}), and the error told me the shape.
+- H02-P08: lease.base_rent_psf_annual is not an Ingest predicate; the tool told me so and suggested lease.base_rent_schedule, but I did not use the rent schedule shape.
+- H02-P09: The plugin cannot be installed here, so skill loading is not tested.
+- H02-P09: Nothing in the skills says how to model a lot (the rent roll tool speaks of units, apartments, floor plans); I had to decide that unit_type 'single-wide' would do.
+- H02-P10: The DCF input is large (11.9 KB of schema for one tool in the saved tools list); I built the call from the cre-valuation skill's table rather than the raw schema.
+- H02-P10: calc_debt_sizing rejected existing_loan_balance 0 for an unencumbered property ('Too small: expected number to be >0'); I dropped the field (call 4).
+- H02-P11: Field names are not guessable (registry_get takes urn, registry_search_address takes query, the Texas rule takes tax_year and notice_delivered_date); I learned each from the 400 error, which lists the known fields.
+- H02-P11: The registry routes are not in /v1/tools; I found /v1/registry/get by guessing from the tool name.
+- H03-P01: lease.base_rent_schedule value shape is not in the materials (document-verification.md points to ingest.md, which is not published with the other docs); my first guess ({from,to,rent_psf_annual}) was rejected with 'each rent step needs from, to (YYYY-MM-DD) and annual_rent_psf', which fixed it in one retry
+- H03-P01: A rent table must be quoted in full: each step's dates and rent must appear in the quote, so quoting only the last row got needs_review ('value "2024-01-01" (from) not found in quote'); this is documented only as 'every step of a rent schedule is checked'
+- H03-P01: connectors README says the remote server 'serves 16 tools'; GET /v1/tools lists 39
+- H03-P02: The per-platform Copilot and Gemini guides (connectors/microsoft, connectors/gemini) are linked but not included in the materials I was given, so the Copilot Studio steps themselves are unseen
+- H03-P02: connectors-README.md 'What has been verified' says live connection from Copilot Studio and Gemini is 'Not yet', so the step I would care about most is unverified by the vendor
+- H03-P02: tools/list inputSchema uses oneOf (14 times) and anyOf (once); I cannot tell whether Gemini or Copilot Studio accept those, and the docs only say a 'Gemini schema subset' is unit-tested
+- H03-P03: First calc_walt call failed because my rent roll included a vacant suite with area_sf 0: 'leases.5.area_sf: Too small: expected number to be >0' (isError true); the second call without the vacant row worked
+- H03-P03: The Copilot Studio and Gemini setup steps are not in the materials and connectors-README says live connection from those consoles is 'Not yet' verified
+- H03-P04: Rent schedule escalation is a single interval (every_months), so a lease whose first bump comes at month 37 and later ones every 60 months cannot be entered as such; I had to model it from the original commencement date (tool schema in GET /v1/tools)
+- H03-P05: My first initialize call was mine to blame: I posted the wrong file and got HTTP 202 with an empty body, then re-sent a proper initialize that returned protocol 2025-06-18
+- H03-P05: connector-claude-README.md step 1 says 'Deploy the remote connector ... on a public HTTPS URL' although the hosted URL already exists; the next step uses it, so it only costs a moment of confusion
+- H03-P06: gpt-instructions.md (step 4: paste into the GPT's instructions) is not in the materials I was given
+- H03-P06: The guide's list of the GPT subset includes four registry_* operations, but the hosted document has 26 operations and none of them is a registry operation
+- H03-P06: doc_compare, which a lease admin needs for estoppels, is not in the 30-operation subset (it is only in /openapi-3.0.json?operations=all); I fetched that variant (39 operations) to check
+- H03-P07: Plugin install (/plugin marketplace add, /plugin install) could not be run here; recorded as not tested
+- H03-P07: The home page says 'eight CRE skills' in one place and 'eleven' in another (site-index.txt); plugin-README.md has eleven distinct skills but its table has twelve rows because cam-reconciliation appears twice
+- H03-P07: The skill says FactLot does not compute the tax-return due date; the tool only warns when it is missing
+- H03-P08: The stateless MCP endpoint accepted tools/call without initialize, which matches 'Streamable HTTP and stateless' in connectors-README.md
+- H03-P08: registry_get is not callable over hosted MCP (UnknownTool, call 1) although the tool descriptions and registry docs refer to it, so a registry join cannot start here
+- H03-P09: The MCP tools/list is about 162 KB of JSON for 42 tools; binding all of them to a LangGraph agent is roughly 40,000 tokens by my four-characters-per-token estimate, and the docs say nothing about loading a subset (tools/list response)
+- H03-P09: No example in the materials of a LangGraph, OpenAI Agents SDK or CrewAI integration; examples-README lists mcp_client.mjs, Claude API and OpenAI Responses examples only
+- H03-P10: The only LL97 route I could think to call returned 404 'no route for POST /v1/rules/nyc_ll97_building_emissions'; rules.md says drafts are SDK-only and opt-in (call 1)
+- H03-P11: The structured value for lease.exclusive_use is not in the materials (document-verification.md points to ingest.md); my first guess {use, carve_outs} was rejected with 'expected the protected use as a string, or {protected_use, carve_outs?, applies_to?}', and the second attempt worked
+- H03-P11: No CrewAI, LangGraph or OpenAI Agents SDK example in the materials
+- H04-P01: The doc lists 30 names in the 'GPT Actions subset' including four registry_* tools; the hosted /openapi-3.0.json has 26 operations and no registry operations (the doc does say registry tools appear only on a server with a registry loaded, so this is consistent but easy to misread).
+- H04-P01: The doc tells me to paste gpt-instructions.md into the GPT; that file is not among the materials a prospect reads, so I could not see what it says (not tested).
+- H04-P01: Every operation description is long (up to 1,512 characters for doc_verify_facts); whether ChatGPT's importer accepts that is not tested here.
+- H04-P02: Nothing in tools/list (42 tools) concerns energy or emissions; the only energy content is a predicate list reached via search then fetch (calls 3 and 4).
+- H04-P02: The materials say draft rules packs exist but tools/call for rules_wa_cbps_eui_target returned UnknownTool, as the docs predict; there is no way from the hosted endpoint to reach them.
+- H04-P03: tools/list returns 162,033 bytes for 42 tools (saved file size), which an agent framework will put in context on every run unless it filters tools; the docs do not mention tool filtering for frameworks.
+- H04-P03: Passing max_ltv without value returned a CalcInputError; clear, but it cost one call.
+- H04-P04: getting-started.md says REST and OpenAPI always include the registry tools; the 3.1 /openapi.json lists 39 paths and none is a registry path (GET /openapi.json call).
+- H04-P04: The hotel call has no utilities line: utilities sit inside undistributed_expenses, so a utility saving has to be subtracted by the agent before the call.
+- H04-P05: The Actions subset (26 operations) leaves out calc_prepayment_and_defeasance, the tool a lender needs for refinance cost; it exists only in ?operations=all (39 operations, 3.0.3) and in the 3.1 spec, so a Custom GPT with the standard import cannot call it. The doc states the subset is capped at 30 operations; the hosted subset uses 26, so four slots are free.
+- H04-P05: I typed max_ltv as 65 and got HTTP 400 (first debt_sizing call); the message did not say 'use 0.65' for this field, unlike the rate fields.
+- H04-P06: The document tools' response shape is different from the calculators' (no value/steps/formula/provenance wrapper; sections like periods, lines, exceptions, summary): an agent that parses every result as {value, steps, warnings} breaks on doc_spread_statement (observed in the spread call).
+- H04-P06: Building the {label, amount, quote, page} lines is the agent's job; the doc says so, but the example in document-verification.md is a prose description, not a full request body, so I had to assemble one.
+- H04-P07: My first rent-roll call omitted lease_rent on an occupied unit and got HTTP 400 (call 2); the message is clear, but a GPT given a raw Yardi export will hit this often.
+- H04-P07: The doc tells me to paste gpt-instructions.md; it is not in the materials (not tested).
+- H04-P08: The DCF input has many fields; with the cre-valuation skill's example I assembled a six-lease request on the first try, but the fields for base_year recovery need base_year_opex_psf_annual on each lease (schema), which is easy to forget (not hit here).
+- H04-P08: Entering months_remaining as 6 for a lease with 6.5 years left was accepted without a flag (call 2).
+- H04-P09: document-verification.md points to ingest.md for each predicate's value shape and that file is not among the docs a prospect gets; I learned the shapes by failing (calls 2 and 3): 'each rent step needs from, to (YYYY-MM-DD) and annual_rent_psf' and 'expected {method, rate} with an explicit cap method'.
+- H04-P09: The cap-method rejection does not list the allowed method names, so I did not get a valid CAM cap through in the calls I made.
+- H04-P10: My first compare_proposals call failed on two issues at once: abated_months given as a count (my mistake) and escalation type 'fixed' where the allowed values are 'none', 'percent' and 'fixed_psf'; the error listed both (calls 2 and 3).
+- H04-P10: The calculator input has many nested enums; the docs I had do not show a full compare_proposals request, so the error text served as documentation.
+- H04-P11: Building a valid lease.comp fact needed schema_get (a 41 KB reply covering six schemas) and the materials' lease-comps.md; the shape took reading rather than a template (calls 2 and 3).
+- H04-P11: The exclusive-use predicate shape was only found by calling fetch predicates:ingest, which search returned among its results (calls 2 and 8); the materials point to ingest.md instead.
+- H05-P01: connector-claude-README step 1 says 'Deploy the remote connector' before entering the hosted URL; a reader of the hosted service does not need that step, and it reads as if I must host it.
+- H05-P01: connectors/README says the remote MCP serves 16 tools; tools/list returned 42, so I could not trust the doc's tool count.
+- H05-P02: The table links to microsoft/README.md and gemini/README.md, which were not among the materials I was given; I could not follow a Copilot Studio-specific procedure.
+- H05-P02: connectors-README 'What has been verified': live connection from Copilot Studio and Gemini consoles is 'Not yet'.
+- H05-P02: Not-yet-provided list: OAuth 2.1 / SSO for the MCP endpoint; enterprise Copilot Studio tenants often require OAuth or API-key auth on custom MCP servers (not tested).
+- H05-P03: The Copilot and Gemini guides linked from connectors-README were not in my materials, so no vendor-specific setup was available to me.
+- H05-P03: In the first CAM call my own omission (controllable default true for taxes and insurance) was not flagged; I only caught it by reading the 'uncontrollable' share.
+- H05-P04: The Copilot Studio and Gemini guides linked from connectors-README were not in the materials I had; no vendor-specific steps.
+- H05-P04: connectors-README says live connection tests on Copilot Studio and Gemini are 'Not yet' done.
+- H05-P04: No OAuth/SSO and no SOC 2 attestation (connectors-README 'Not provided yet').
+- H05-P05: Doc step 4 says to paste gpt-instructions.md into the GPT; that file is not in the materials I had, so I could not follow it.
+- H05-P05: The default spec has 26 operations and omits calc_lease_vs_own, calc_prepayment_and_defeasance and calc_capex_recovery; lease-vs-own is one of my three main tasks, so I would have to build a custom subset or use MCP (doc says so, openapi-3.0.json info text repeats it).
+- H05-P05: Operation descriptions are long (23 of 26 over 300 characters); I could not test whether the Actions importer accepts them.
+- H05-P06: The plugin install steps could not be run here; whether the tool names (mcp__plugin_factlot_factlot__*) and skill triggering work is not tested.
+- H05-P06: The home page says 'eight CRE skills' in one place and 'eleven' in another; the plugin README table has twelve rows (cam-reconciliation appears twice) for eleven skill files.
+- H05-P06: cam-reconciliation skill description covers four tools in one skill, so a short request may not trigger it (not tested).
+- H05-P07: I did not have the predicate value shapes in the materials; I found them with MCP search then fetch (predicates:ingest), which worked but took two calls before my first verify.
+- H05-P07: connector-claude-README step 1 says 'Deploy the remote connector' even though the hosted URL exists.
+- H05-P08: lease_comp_validate needs a full fact (subject URN, provenance with document_id, rights enums); I got the enums wrong once and fixed them from the issue list.
+- H05-P08: The catalog is 235 KB of JSON Schema; useful to code against, heavy to read.
+- H05-P08: The REST surface has no request-example page in my materials beyond the plugin skill examples; I wrote bodies from the schema.
+- H05-P09: tools/list returns all 42 tools (162 KB); no filter or tool-group parameter, so an agent framework must filter client-side to keep context small.
+- H05-P09: The materials say the server is stateless; ping, an unknown-tool call and calc_exchange_1031 all worked before I had sent initialize, so no session handling is needed, but I did not test a real framework adapter.
+- H05-P10: connector-claude-README step 1 says to deploy the remote connector before entering the hosted URL; I had to infer it can be skipped for the hosted service.
+- H05-P10: connectors-README states live connection from claude.ai is 'Not yet' verified, so I could not be sure the menu path is current.
+- H05-P11: The default Custom GPT spec has doc_verify_facts and doc_abstract_lease but not doc_compare or doc_verify_claim; estoppel comparison, one of my top tasks, needs a custom 30-operation spec.
+- H05-P11: Step 4 of the doc says to paste gpt-instructions.md; it was not in my materials.
+- H05-P11: No worked request body for doc_abstract_lease or doc_compare in my materials beyond the schema; I wrote them from /v1/tools field descriptions.
+- H05-P11: Whether a GPT Action can send a multi-page lease within the 1 MiB request cap and the model's own limits is not tested.
+- H06-P01: The plugin skills cover rent math, CAM and loan sizing but none of the eleven skills is a lease-abstraction skill; the document tools (doc_verify_facts, doc_abstract_lease) only appear in the MCP instructions string and in document-verification.md, so a plugin user would not be guided to them (plugin-README skill table).
+- H06-P01: Home page hero says 'eight CRE skills' while the same page's Connect table, llms.txt and the plugin README say eleven; the plugin README table lists cam-reconciliation twice in 12 rows.
+- H06-P01: Plugin README says the MCP tools appear as mcp__plugin_factlot_factlot__<tool>; I could not confirm that naming.
+- H06-P02: connectors-README.md says outright that a live connection from Copilot Studio and Gemini consoles has 'Not yet' been verified; the steps 'follow each platform's documentation as of Nov 2026; confirm the menu paths when you connect'.
+- H06-P02: No OAuth/SSO for the MCP endpoint (bearer keys only), which many enterprise Copilot Studio tenants require (connectors-README 'Not provided yet').
+- H06-P02: The catalogue schemas from /v1/tools use oneOf, const and exclusiveMinimum/exclusiveMaximum (counted from my saved file); whether Copilot Studio or the Gemini function-calling schema subset accepts them was not tested.
+- H06-P03: The ChatGPT guide says to paste gpt-instructions.md into the GPT; that file is not in the pack, so the instruction text cannot be checked.
+- H06-P03: The 3.0 spec is 257 KB and its longest operation description is 1,512 characters (counted from my saved file); whether the ChatGPT Actions importer accepts that is not tested.
+- H06-P03: getting-started.md says OpenAPI always includes the registry tools returning RegistryUnavailable; the live documents contain none (see contradicted_by_product).
+- H06-P04: The pack has no LangGraph, OpenAI Agents SDK or CrewAI snippet for the remote endpoint; the only generic MCP client example listed is a Node script (examples-README.md, mcp_client.mjs), and the Python examples use the local factlot package or the Claude/OpenAI APIs (connector-claude-README.md, connector-chatgpt-README.md). I wrote raw JSON-RPC.
+- H06-P04: connectors-README.md says the remote server serves '16 tools plus search, fetch, schema_get'; tools/list returned 42 tools.
+- H06-P04: getting-started.md says search/fetch/schema_get and registry tools appear on MCP only when a registry database is configured; tools/list on the hosted endpoint included search, fetch and schema_get with no registry tools.
+- H06-P05: Step 1 of the Claude connector doc says 'Deploy the remote connector ... on a public HTTPS URL' before step 3 gives the hosted URL; a reader who only wants the hosted service has to infer that step 1 is for self-hosters.
+- H06-P05: connectors-README.md states a live connection from the claude.ai console has 'Not yet' been verified and that menu paths should be confirmed when connecting.
+- H06-P05: Nothing in the pack says whether Claude.ai's custom-connector plan requirements or admin approval apply to my organisation.
+- H06-P06: The pack has no OpenAI Agents SDK, LangGraph or CrewAI snippet for a remote MCP URL: examples-README.md lists a Node MCP client (mcp_client.mjs) and a Responses API remote-MCP example (openai_responses_remote_mcp.py), which are not the framework I run. I used raw JSON-RPC.
+- H06-P06: The batch tool's input is large (building expenses plus every tenant); a 40-tenant building means a big prompt for the agent to assemble from Yardi data; no import helper.
+- H06-P07: The Copilot and Gemini guides are linked from connectors-README.md but are not in the pack; the README says live connections from those consoles are 'Not yet' verified.
+- H06-P07: document-verification.md points to an Ingest predicate table (ingest.md) for the shapes of structured values such as lease.exclusive_use; it is not in the pack, so I guessed a plain string for the exclusive and a structured value for the assignment clause. Both were accepted.
+- H06-P07: Tool outputs are large JSON (each verified fact carries provenance, span and producer); there is no 'brief' option for a counsel-facing table.
+- H06-P08: The guide says to import the curated subset (26 operations per the guide) for a GPT, not the complete one; I fetched the complete document only to check the claim.
+- H06-P08: gpt-instructions.md is referenced by the guide but is not in the pack.
+- H06-P08: Nothing for manufactured housing specifically; pads have to be fed to an apartment rent-roll tool as units.
+- H06-P09: gpt-instructions.md, which the guide says to paste into the GPT, is not in the pack.
+- H06-P09: The guide says a public GPT needs a privacy-policy URL and that FactLot stores nothing; the privacy page (site-privacy.txt) says request bodies are not logged, which supports that, but a public GPT's policy is mine to write.
+- H06-P09: Calls 1 to 3 were onboarding checks; the first calculator answer came on call 4.
+- H06-P10: The plugin skills cover the Texas deadline and percentage rent but none covers exclusive-use screening or document verification; those tools are reachable over the same MCP server but no skill guides them (plugin-README skill table).
+- H06-P10: The shape of structured values such as lease.prohibited_uses is not given in the pack; my first attempt (a comma-separated string) was rejected with 'expected a non-empty array of prohibited uses as strings', which told me the shape.
+- H06-P10: The README says tool names appear as mcp__plugin_factlot_factlot__<tool>; not verifiable here.
+- H06-P11: getting-started.md's REST examples use localhost:8787 (Docker); the hosted base URL is in connectors-README.md, a different page.
+- H06-P11: None of the packaged example scripts for REST were in the pack.
+- H07-P01: The doc says to paste gpt-instructions.md into the GPT; that file is not among the materials, so I could not see what instructions are recommended.
+- H07-P01: The document-verification doc defers the predicate list to ingest.md, which is not in the materials; I had to guess predicate names (lease.base_rent_psf, lease.area_sf, lease.renewal_option_count) and the service accepted them as generic predicates.
+- H07-P01: GET /openapi-3.0.json: 23 of 26 operation descriptions are over 300 characters (longest 1,512, doc_verify_facts). I did not test whether the GPT builder accepts that.
+- H07-P02: Whether the GPT instructions file (gpt-instructions.md) is any good is unknown: it is not in the materials.
+- H07-P02: The Denver parcel and owner data the home page advertises is not reachable: POST /v1/registry/search_address returns RegistryUnavailable.
+- H07-P03: The home page says the plugin has 'eight CRE skills'; the plugin README, getting-started and llms.txt say eleven (site-index.txt vs plugin-README.md). The plugin-skills folder holds eleven.
+- H07-P03: The plugin README's skills table lists cam-reconciliation twice (two rows), which reads like a typo.
+- H07-P03: I did not know the predicate names for document checks until I used the MCP search tool, which pointed to predicates:ingest.
+- H07-P04: Los Angeles County parcels appear in registry-coverage.md with year built and building area but 'No: not hosted, not in a published sample'; POST /v1/registry/get with a parcel URN is the closest route and returns RegistryUnavailable.
+- H07-P05: None for REST. For Illinois, registry-coverage.md says Cook County is only a 90,073-row address sample, 'none loaded' otherwise, not hosted.
+- H07-P06: The connector doc's step 1 says 'Deploy the remote connector (see connectors/README.md)' before step 3 gives the hosted URL; a non-technical reader may think she must host it (connector-claude-README.md).
+- H07-P07: calc_dcf_pro_forma needs about 25 fields per run; the skill's example is a single-lease building, so I had to read the schema for the lease-level recovery and escalation fields.
+- H07-P07: No residential unit support in the DCF, only leases: a mixed-use building's apartments would have to be entered as leases.
+- H07-P08: calc_prepayment_and_defeasance is not among the 26 operations in /openapi-3.0.json (the ChatGPT doc says so: it is in the complete document). A lender's GPT needs the ?operations=all spec or a custom subset, and the doc points to TypeScript to build one.
+- H07-P08: The ?operations=all spec has 39 operations; whether ChatGPT's builder accepts it is not tested.
+- H07-P09: None technical. The document-verification page is 26 KB; the meaning limitation I care about is in a section near the end, not the summary table.
+- H07-P10: None on REST. The unit field is not in the home page's description of the calculators; it is in the tool schemas, the 0.3.0 changelog and the lease-economics skill.
+- H07-P11: Nothing in the materials says anything about agent-framework specifics (schema dialect, structured output). I inspected tools/list myself: 42 tools, draft-07 schemas, 14 oneOf and 40 pattern keywords, no $ref, no outputSchema on any tool.
+- H07-P11: Successful tool results carry both a JSON string in a text content item and a structuredContent object (value, formula, steps, warnings, provenance), but tools/list declares no outputSchema for any tool; error results carry only the text item.
+- H08-P01: Predicate value shapes are not in the materials (the Ingest predicate table is only linked as ingest.md). My first lease.base_rent_schedule guess used rent_psf_annual; the rejection told me the field is annual_rent_psf (call 6), so the error text is the real docs.
+- H08-P01: getting-started.md says REST, OpenAPI and tool exports always include registry_* tools returning RegistryUnavailable; the hosted /v1/tools has 39 tools and no registry_* at all, and MCP tools/list has 42 (adds search, fetch, schema_get) with no registry_* either.
+- H08-P02: The doc's step 1 says 'Deploy the remote connector ... on a public HTTPS URL', which reads as if I must host something; the hosted URL is only in step 3 (connector-claude-README.md)
+- H08-P02: Cannot see the Claude Desktop connector UI here, so connection through the real client is not tested
+- H08-P03: Student housing is not mentioned anywhere in the materials; I had to infer that the commercial calculators apply (debt, cap, amortization, waterfall) and that by-the-bed pieces do not
+- H08-P03: calc_amortization_schedule day_count wants "actual/360"; my first call used "actual_360" and was rejected with the allowed values listed (clear message, one retry)
+- H08-P04: The skill file lists inputs well, but the public home page and README do not show a 1031 example; I found it only in the plugin skill
+- H08-P04: A date typed as 10/20/2026 was rejected with 'expected a valid YYYY-MM-DD date', which is right but does not say what the field wanted beyond the format
+- H08-P05: Could not add the connector in Claude.ai from here, so the real Claude path is not tested
+- H08-P05: calc_renew_vs_relocate has no operating-expense or NNN input (schema), unlike calc_compare_proposals, so the two tools measure different things and the docs do not say which to use for a net lease
+- H08-P06: Clause-level predicate value shapes are only in ingest.md, which is not in the public materials I had; lease.rofr's expected shape came from the rejection message
+- H08-P06: customer-documents.md calls itself 'policy and product commitment, not yet a contract' and 'needs counsel's review': a law firm cannot rely on it for client confidentiality yet
+- H08-P07: The doc says to paste gpt-instructions.md into the GPT instructions; that file is not in the materials I had (not available to me)
+- H08-P07: The doc's subset list includes four registry_* tools; the hosted /openapi-3.0.json has 26 operations because those four are absent (call 1). The doc does say registry tools appear only on a server with a registry, but a reader counting to 30 will be confused
+- H08-P07: Longest operation description in the file is 1,512 characters; I could not test whether the GPT builder accepts that (not tested)
+- H08-P08: The Claude connector doc's step 1 ('Deploy the remote connector') could be read as needing a server before reaching the hosted URL
+- H08-P08: None in the calls themselves: first call returned the exact worked-example answer from the skill file
+- H08-P09: calc_lease_vs_own, my first-priority tool, is not in the 26-operation GPT Actions subset (call 1), nor are calc_capex_recovery, calc_prepayment_and_defeasance, id_building and doc_compare; the connector doc says this and suggests ChatGPT developer mode or a custom subset, but a GPT-only user has to build and host their own spec or switch to the MCP route
+- H08-P10: The rent roll shape is only in the plugin skill file; the home page does not show it
+- H08-P10: connectors-README.md says the remote MCP 'Serves 16 tools plus search, fetch, and schema_get' while the same README's verification table says live connections from the claude.ai console are 'Not yet' tested; the product's own tool list has more tools than the doc says (another persona's tools/list in this batch returned 42)
+- H08-P11: No lot or pad unit: calc_rent_schedule's unit enum is sf, kw, mw, unit, acre, key, room, space (space is described as parking) and the rent roll tool is for apartments; I used unit_type labels like 'single-wide lot' with the multifamily tool
+- H08-P11: The doc's GPT import step relies on a gpt-instructions.md file that is not in the materials I had (not available to me)
+- H09-P01: No stall connecting: initialize returned instructions telling the agent to use calc_* and cite formula ids; tools/list returned 42 tools. Four calls (GET /v1/tools, initialize, tools/list, compare_proposals) to a first ranked answer.
+- H09-P01: getting-started.md says REST and OpenAPI 'always include the registry tools'; the hosted GET /v1/tools returned 39 tools with no registry_* tool (the 42 MCP tools add search, fetch, schema_get). Not a blocker for me, but the doc and the hosted service disagree.
+- H09-P02: None connecting: initialize worked on the first call.
+- H09-P02: Schemas are big (the REST catalog was 235 KB); finding the right field names (expense_stop uses stop_psf_annual; fixed escalation is fixed_psf with amount) took reading the catalog rather than the connector doc, which has no example for any calculator.
+- H09-P03: The doc's list of the 30-operation subset names four registry_* tools; the live /openapi-3.0.json has 26 operations and no registry tools (its own description says '26 of the 39 operations'). The doc says registry tools are only on a server with a registry loaded, so this is consistent but confusing.
+- H09-P03: The doc points to gpt-instructions.md for the GPT's instructions; that file is not in the materials I was given, so I could not follow step 4 (not tested).
+- H09-P04: None; the first real call (debt sizing) succeeded after the input error was corrected.
+- H09-P04: The home page says 'plugin with eight CRE skills' while the plugin README lists eleven (site-index.txt vs plugin-README.md); irrelevant for connector use but sloppy.
+- H09-P05: The default GPT subset is 26 operations and the doc says 30 or fewer, but I did not need to import both; the all-operations document has 39 and would exceed the Actions limit the doc names (not tested in ChatGPT).
+- H09-P05: getting-started.md says OpenAPI always includes the registry tools; /openapi-3.0.json?operations=all has 39 operations and none is a registry operation.
+- H09-P06: schema_get takes no arguments and returned the generic fact/provenance schemas; it did not return the value shape of lease.exclusive_use. The materials point to ingest.md#predicates, which is not in the documents I was given.
+- H09-P06: My first doc_verify_facts candidate for lease.exclusive_use (value with 'description') was rejected; the reason string gave the accepted shape: 'expected the protected use as a string, or {protected_use, carve_outs?, applies_to?}'. Two calls instead of one.
+- H09-P07: First sizing attempt used max_ltv 65 and was rejected; the message was 'max_ltv: Too big: expected number to be <=1' without the 'pass 0.65' hint that rate fields give.
+- H09-P07: No framework quickstart for OpenAI Agents SDK or LangGraph (docs only cover Claude, ChatGPT, Gemini connectors).
+- H09-P08: The plugin-README table lists cam-reconciliation twice, and the home page says 'eight CRE skills' while the README says eleven (site-index.txt vs plugin-README.md).
+- H09-P08: Skills tell me to 'ask for' inputs but ground-lease fields keep the names area_sf and starting_rent_psf_annual when the unit is acre (the result carries a warning explaining the unit).
+- H09-P09: My first compare_proposals call gave both usable_sf and load_factor per proposal and was rejected: 'give usable_sf or load_factor, not both', listed per proposal. Fixed on the second try.
+- H09-P09: No CrewAI/LangGraph quickstart in the docs; I used the generic MCP endpoint.
+- H09-P10: The lease-comps doc says a firm mints its own lease ID with mint('lease') in the SDKs; the hosted service has no mint tool, so I guessed a 26-character ULID-style token (fl:lease:01k9z3m4q5r6s7t8v9w0x1y2z3) and the validator accepted it.
+- H09-P10: No OpenAI Agents SDK quickstart in the docs.
+- H09-P11: My first batch call entered the grocer's share as 42.86 (percent) and was rejected: 'tenants.0.pro_rata_share: Too big: expected number to be <=1' with no hint to pass 0.4286.
+- H09-P11: The skill file says taxes and insurance are usually uncontrollable; the schema default is controllable true, so I had to set the flag on each line (I did).
+- H09-P11: No framework quickstart.
+- H10-P01: connectors-README.md says remote MCP 'serves 16 tools plus search, fetch, and schema_get'; tools/list returned 42 tools (39 domain tools plus search, fetch, schema_get), so the table I would give a Copilot Studio admin is stale.
+- H10-P01: connectors-README.md still shows the Docker image tag 0.1.1 while every other doc and the server report 0.3.0.
+- H10-P01: getting-started.md says REST/OpenAPI 'always include the registry tools' (returning RegistryUnavailable); GET /v1/tools and MCP tools/list list no registry_* tool on the hosted service.
+- H10-P01: connectors-README.md says live connection from Copilot Studio and Gemini consoles is 'Not yet' verified; tools/list schemas contain oneOf (14) and const (45), and I could not check whether those clients accept them.
+- H10-P02: No LangGraph / OpenAI Agents SDK / CrewAI page in the materials; the OpenAI Responses snippet in connector-chatgpt-README.md is the closest and is not an agent-framework recipe.
+- H10-P02: `search` returned one result for 'appraisal income approach direct capitalization multifamily' (calc_direct_cap) with a GitHub URL; it gave a pointer but no input guidance, so I still read the tools/list schema.
+- H10-P02: tools/list is 162 KB for 42 tools (the 2nd and 7th calls), heavy for an agent that loads every tool into context.
+- H10-P03: calc_capex_recovery (my parking-lot pass-through) is not in the 26-operation Custom GPT subset; the README states this and says to use MCP or build a custom subset, so the GPT cannot call it from the default import (first two calls).
+- H10-P03: Step 4 says to paste gpt-instructions.md, which is not in the materials; the README only links it.
+- H10-P03: The README says the subset is 'at most 30' and lists 30 names including four registry tools; the hosted 3.0 file has 26 because the registry tools are absent here.
+- H10-P04: doc_check_use_conflict, doc_verify_claim and doc_compare are not in the 26-operation Custom GPT subset (first call); the README says to use MCP or a custom subset, so the exclusives check is unreachable from a default Custom GPT.
+- H10-P04: doc_verify_facts rejected my first request with HTTP 400 'as_of: expected string, received undefined'; document-verification.md never shows as_of as required (its table lists only pages and candidates).
+- H10-P04: The value shape for lease.exclusive_use is only in ingest.md (not in the materials); I found it through MCP search/fetch (predicates:ingest), which worked but is not mentioned in the Custom GPT README.
+- H10-P05: connectors-README.md: 'Not provided yet: OAuth 2.1 / SSO for the MCP endpoint ... any SOC 2 or similar attestation'; an institutional security review stops here for production use (honestly disclosed).
+- H10-P05: The free tier is 60 requests per minute per address with no SLA, and the materials do not state an uptime commitment for the hosted endpoint.
+- H10-P05: No page maps the DCF's blended-rollover conventions to ARGUS; the tool says to confirm conventions but I had to rebuild the model to know what they are (they are in the returned steps, which helped).
+- H10-P06: document-verification.md links ingest.md for predicate value shapes; ingest.md is not in the materials, so I used `fetch predicates:ingest` over MCP (one call) to get them.
+- H10-P06: First abstract call: lease.renewal_option with term_months 60 went to needs_review because the quote says 'five (5) years' ('value 60 (term_months) not found in quote'); leases that state terms in years will always hit this.
+- H10-P06: lease.pro_rata_share quote rejoined across a line break ('Proportionate') was rejected; the message explained the hyphen rule and worked on the second try.
+- H10-P07: No Massachusetts content anywhere in the tool set: search 'Massachusetts property tax abatement deadline Boston assessing' returned no results and a note (call 2).
+- H10-P07: The plugin's property-tax skill (tx-property-tax-protest) covers Texas only; rules.md says New York, Colorado and California deadlines were 'not attempted' and Massachusetts is not mentioned.
+- H10-P07: The Boston assessing source is in registry/coverage.md with 'No: not hosted', so the data I need cannot be reached on the hosted service.
+- H10-P08: The Gemini and Microsoft Copilot guides are linked from connectors-README.md but were not available to me, so the console steps are unknown.
+- H10-P08: connectors-README.md's verification table says live connection from the Copilot Studio and Gemini consoles is 'Not yet' verified.
+- H10-P08: tools/list is 169,299 characters of JSON for 42 tools and uses `const` (45 times), `oneOf` (14), `propertyNames` (7) and `$schema` on every tool; I could not test whether Gemini or Copilot Studio accept all of it.
+- H10-P09: The plugin install itself was not run; the plugin README documents it and says the data leaves the machine (hosted), with a local npx server as the alternative. Credit data going to a free hosted API needs a vendor-risk sign-off.
+- H10-P09: The home page says the plugin has 'eight CRE skills' while plugin-README.md and llms.txt say eleven.
+- H10-P09: Loan-sizing skill says to ask for rate and constraints and to state assumptions; there is no skill text on lender policy defaults, which is fine but means analysts must supply every constraint.
+- H10-P10: My first rent_schedule body used abated_months: 6 (a count) and was rejected: 'expected array, received number'; the field is a list of month numbers, and the tool description in /v1/tools says so but the REST snippets in getting-started.md do not show it.
+- H10-P10: document-verification.md says doc_verify_claim takes a claim 'as a short sentence', but REST wanted {"text": ...}; a bare string returned 'claim: expected object, received string'.
+- H10-P10: The abstracted rent step table has no direct path into calc_rent_schedule (percent or fixed bumps every N months only).
+- H10-P11: No rule for Arizona, Florida or Georgia: POST /v1/rules/az_property_tax_appeal_deadline returned HTTP 404 'no route'.
+- H10-P11: The skill and rules.md describe the Texas fields, but nothing explains how an agent would learn the rule list programmatically other than GET /v1/tools (not re-run by this persona).
+- H10-P11: The materials say Colorado, New York and California appeal deadlines were 'not attempted'; none of my other states is on the roadmap in the materials.
+- H11-P01: getting-started.md opens with Docker, local MCP and pip sections; the hosted REST path for a Python agent is only a one-line aside in the plugin README and llms.txt, not a quickstart.
+- H11-P01: I had to read /v1/tools to learn that percentage_rent's breakpoint is an object; passing null (my own mistake) returned a 400 'expected object, received null'. The 400 was clear, but the doc did not show an example body.
+- H11-P02: connector-claude-README.md step 1 says 'Deploy the remote connector' on a public HTTPS URL even though the hosted URL is given in step 3: a first-time reader has to work out they need not deploy anything.
+- H11-P02: connectors-README.md says the remote MCP 'serves 16 tools plus search, fetch, schema_get'; tools/list returned 42 tools including those three (stale count in the docs).
+- H11-P02: No energy or rules tool for LL97: rules_nyc_ll97_building_emissions returned UnknownTool, which the materials already say.
+- H11-P03: The Ingest predicate table (ingest.md) is referenced but not in the material I read; I learned the base_rent_schedule step key (annual_rent_psf) only from a rejection message in call v2.
+- H11-P03: getting-started.md does not mention the doc tools at all; I found them via llms.txt and the changelog.
+- H11-P04: The doc tells me to paste gpt-instructions.md into the GPT instructions, but that file is not in the materials and not linked from factlot.com; a non-developer cannot do step 4.
+- H11-P04: Descriptions of some operations run to 1,512 characters (doc_verify_facts) and the spec is 257 KB; whether ChatGPT's importer accepts that is not tested here (I cannot open the GPT builder).
+- H11-P05: lease.exclusive_use's value shape is not shown in the materials I read; I passed a plain string and it was accepted unchecked ('not_checked: [value]').
+- H11-P05: compare_proposals: I guessed the operating-expense field year1_psf_annual; the 400 listed the correct names (expense_psf_annual), which helped, but cost one call.
+- H11-P06: connector-claude-README.md step 1 says 'Deploy the remote connector' on a public HTTPS URL, but step 3's URL is already the hosted one: a broker would not know whether to deploy anything.
+- H11-P06: The doc says connections to claude.ai/ChatGPT/Copilot consoles are 'Not yet' verified live (connectors-README.md); I could not test the claude.ai connector flow.
+- H11-P07: Home page snippet says 'eight CRE skills'; plugin-README.md and llms.txt say eleven; the skills folder has eleven files (site-index.txt vs plugin-README.md).
+- H11-P07: plugin-README.md's skills table has 12 rows for 11 skills (cam-reconciliation appears twice, the second row covering batch CAM and capex recovery), so a reader counting rows gets a different number from 'eleven'.
+- H11-P08: calc_dcf_pro_forma requires market_leasing.downtime_months even when no lease rolls; the error 'expected number, received undefined' does not say 'missing required field' (dcfbad call).
+- H11-P08: The DCF has no per-lease TI/LC detail view for my no-rollover test (none needed); rollover cases not tested for replication.
+- H11-P09: connectors-README.md says live connection from the Copilot Studio and Gemini consoles is 'Not yet' verified, so the one step that matters to me is untested.
+- H11-P09: A single MCP ping from the client got 'Connection reset by peer' after 46 s (ping call); a repeat returned {} in 459 ms. One transient failure, not reproduced.
+- H11-P10: There is no framework-specific doc (LangGraph, OpenAI Agents SDK, CrewAI) in the materials; the connectors README lists clients but not agent frameworks, so I wired it from the MCP spec.
+- H11-P10: Tool errors come back as HTTP 200 with isError true and a JSON string in content[0].text (seen in earlier calls); a framework must parse that string to see the error type.
+- H11-P10: tools/list returns no pagination cursor; 42 tools in one 160 KB response (see call).
+- H11-P11: connector-claude-README.md step 1 says 'Deploy the remote connector' although step 3 gives the hosted URL.
+- H11-P11: doc_verify_claim: the docs say a claim can be a 'short sentence' but the tool rejects a string ('claim: expected object, received string'); it needs {"text": ...}. The call schema, not the prose, showed this.
+- H12-P01: The home page says the plugin has 'eight CRE skills' while the plugin README, llms.txt and getting-started say eleven.
+- H12-P01: plugin-README.md lists cam-reconciliation in two table rows, so the skill table does not obviously show eleven distinct skills.
+- H12-P01: connectors-README.md says the remote MCP serves 16 tools; tools/list returned 39 plus search/fetch/schema_get.
+- H12-P02: getting-started.md says OpenAPI always includes registry tools that return RegistryUnavailable; the hosted spec has 39 paths and none for the registry.
+- H12-P02: Step-rent expression: calc_dcf_pro_forma takes one escalation_rate per lease (schema), so a 10%-every-5-years anchor cannot be entered exactly (schema read; not tested with a workaround).
+- H12-P03: Step 4 tells me to paste gpt-instructions.md into the GPT; that file is not among the materials a prospect gets, so I cannot see what I would paste.
+- H12-P03: The README says the spec holds up to 30 operations including 4 registry ones; the live file has 26 and no registry operations, so the README list and the spec disagree.
+- H12-P03: Step 5 says a public GPT needs a privacy policy; the privacy page covers the service, I did not check it against the GPT requirement.
+- H12-P04: The platform-specific guides (microsoft/README.md, gemini/README.md) are referenced but not provided, so I cannot follow actual Copilot Studio steps.
+- H12-P04: connectors-README.md says 'Live connection from the claude.ai, ChatGPT, Copilot Studio, Gemini, and Bedrock consoles: Not yet', so the Copilot Studio path is untested by the project itself.
+- H12-P04: connectors-README.md says the remote MCP serves 16 tools; tools/list returned 39 + 3, and the list is about 162 KB, which I would worry about for an agent's context.
+- H12-P05: Student housing is not mentioned anywhere in the materials, so I had to infer that a bed can be a 'unit' in a rent roll.
+- H12-P05: No preleased status for beds leased for next fall (status enum is occupied, vacant, notice, model, down).
+- H12-P05: gpt-instructions.md, which the recipe says to paste into the GPT, is not provided.
+- H12-P06: connector-claude-README.md step 1 says 'Deploy the remote connector ... on a public HTTPS URL' before step 3 gives the hosted URL, which is confusing for a non-developer who only needs the hosted one.
+- H12-P06: The materials never say the 1031 tool needs the return due date including extensions; the result's warning says it, but the skill is the only place that explains it before a call.
+- H12-P07: document-verification.md's tool table lists pages and candidates as input but the first call failed: as_of is also required (second call).
+- H12-P07: Predicate names and shapes live in ingest.md, which is not in the prospect materials; I had to find them with MCP search and fetch (first call).
+- H12-P07: doc_compare, doc_verify_claim, doc_spread_statement and doc_check_use_conflict are not in the Custom GPT Actions subset (checked in /openapi-3.0.json), so a GPT cannot do estoppel comparison without the full spec or MCP.
+- H12-P08: Nothing stalled on the API: the first call worked from the field descriptions.
+- H12-P08: gpt-instructions.md (the recipe's step 4) is not in the materials.
+- H12-P08: No example for a stepped net lease: I had to find 'every_months' in the escalation schema.
+- H12-P09: The unit convention is in the skill but not on the home page; I found it through the changelog.
+- H12-P09: Field names keep _sf and _psf even for kW (the tool warns about it), which will confuse a human reading the JSON.
+- H12-P09: Plugin README lists cam-reconciliation twice, so the table does not obviously show all eleven skills.
+- H12-P10: The NYC data claims sit beside the calculators on the home page, so the first read suggests I can query them; the 'hosted registry lookups are not open yet' sentence is two paragraphs later.
+- H12-P10: Registry coverage and rights docs are very long (the coverage file is about 180 KB); I searched them for NYC rather than reading them.
+- H12-P10: No obvious path from the NYC data description to a way to use it (a 23.4 MB DC sample is the only download).
+- H12-P11: document-verification.md's tool table omits the required as_of on verify_facts (I read it from the schema, so I did not hit the error).
+- H12-P11: The customer-documents page calls its commitments 'policy and product commitment, not yet a contract' and says counsel review is pending; for a diligence team that makes the confidentiality terms unusable today.
+- H12-P11: No manufactured-housing chart of accounts: the spread tool offers multifamily, commercial and hotel.
+- H13-P01: getting-started.md says 'Docker' first and 'point a public HTTPS URL at it'; the hosted api.factlot.com/v1 path is only found in connectors-README.md and llms.txt
+- H13-P01: The rent-step shape for lease.base_rent_schedule is not shown in document-verification.md (it points to ingest.md, which is not in the materials); I did not call that predicate
+- H13-P02: connectors-README.md lists microsoft/README.md and gemini/README.md but they are not in what I was given: I could not follow a Copilot Studio or Gemini guide
+- H13-P02: connectors-README.md says 16 tools plus search/fetch/schema_get; tools/list returned 42
+- H13-P03: connector-claude-README.md step 1 says 'Deploy the remote connector ... on a public HTTPS URL' before step 3 gives the hosted URL; I had to realise api.factlot.com is already deployed
+- H13-P03: connectors-README.md says 'Not yet' for a live connection from the claude.ai console
+- H13-P04: no framework-specific snippet in the materials for LangGraph, CrewAI or the OpenAI Agents SDK; I used the generic MCP calls
+- H13-P04: tools/list is 162 KB for 42 tools with no tool-group or filter parameter
+- H13-P05: the rent-schedule value shape (annual_rent_psf) is not in the materials; I found it from the error message
+- H13-P05: connector-claude-README.md tells me to 'deploy the remote connector' before it gives the hosted URL
+- H13-P06: no CrewAI or LangGraph snippet in the materials; generic MCP and REST only
+- H13-P06: unit statuses must be mapped to occupied/notice/vacant/model/down by my agent
+- H13-P07: no OpenAI Agents SDK or LangGraph example for the hosted URL
+- H13-P07: getting-started.md leads with Docker and says the packages are not on npm/PyPI; the hosted /mcp path is in connectors-README.md
+- H13-P08: connector-claude-README.md step 1 says to deploy the connector before step 3 gives the hosted URL
+- H13-P08: one call (tx deadline, 2026-05-01) ended in 'Connection reset by peer' after about 47 s, then worked on retry
+- H13-P09: gpt-instructions.md (step 4) is referenced but not in the materials
+- H13-P09: the doc says a public GPT needs a privacy policy URL and 'FactLot stores nothing'; privacy.txt says metadata is kept (time, path, plan, hashed key prefix), so the policy text I would paste should say that
+- H13-P10: the chart of accounts is referenced as a repo file but not listed in the materials; I had to call fetch on a vocabulary id
+- H13-P10: a statistic line with a short quote ('Units 240') was excluded for being under 12 characters
+- H13-P11: connectors-README.md links microsoft/README.md and gemini/README.md but they are not provided, and its table says a live connection from the Copilot Studio and Gemini consoles is 'Not yet'
+- H13-P11: the exclusive_use value shape is in ingest.md, which is not provided; I found it through the MCP fetch tool
+- H14-P01: The calc_multifamily_rent_roll tool description says concessions are 'weeks_free, months_free, or a dollar amount'; my first call sent {"weeks_free":2} and was rejected (the real shape is {"type":"weeks_free","weeks":2}). The error named the allowed fields but repeated itself once per bad unit (about 5 KB for 33 units).
+- H14-P01: Materials disagree on tool counts: the site says 22 calculators and Claude Code plugin 'eight' skills in one paragraph and 'eleven' in another; tools/list returned 42 tools (39 on /v1/tools plus search, fetch, schema_get). Minor, but a reader cannot tell which number is current.
+- H14-P02: The README says the 3.0 subset has 30 or fewer operations and lists 30 names including four registry_* tools; the live document has 26 operations (info.description: '26 of the 39 operations') and none are registry_*.
+- H14-P02: calc_capex_recovery is not in the 26-operation GPT subset (the README says so), so a CAM GPT cannot recover a capital project without moving to ?operations=all, which has 39 operations against the 30-operation limit the README states for Actions.
+- H14-P02: Operation descriptions run up to 1,512 characters (doc_verify_facts); whether the GPT builder accepts that length is not tested.
+- H14-P03: Plugin install not performed (cannot in this environment).
+- H14-P03: The first tools/call carried the whole rent roll in one JSON object; the skill's example is a one-lease vector, so I had to build the multi-lease shape from the tool schema (leases[].escalation_rate, next_escalation_month, market_rent_psf_annual).
+- H14-P03: The site's install paragraph says 'eight CRE skills' while the table and the plugin README list eleven (the README table repeats cam-reconciliation in two rows).
+- H14-P04: There is no 'bed' unit: calc_rent_schedule accepts sf, kw, mw, unit, acre, key, room, space. I used 'space' and the result reads 'USD/space/yr'.
+- H14-P04: The registry (borrower, recorded mortgages) is described but not hosted; I could not look up who owns a campus-adjacent parcel.
+- H14-P04: Unclear from the docs which Claude surface actually shows the 'readOnlyHint' behaviour; not tested.
+- H14-P05: Registry tools are not in GET /v1/tools; I found POST /v1/registry/search_address by guessing the path. It returns a clear 503 saying the hosted API does not serve the registry.
+- H14-P05: Los Angeles County in registry-coverage: owner names 'no (not in the public file)' and no California entity registry, so even self-hosted this would not name a landlord entity.
+- H14-P06: Copilot Studio and Gemini connections were not performed; the README says live connections from those consoles have not been verified.
+- H14-P06: tools/list schemas use oneOf, const, pattern, format and exclusiveMinimum (counts: 14 oneOf, 41 const, 40 pattern, 31 format, 95 exclusiveMinimum across 42 tools); whether Copilot Studio or Gemini accept all of that unmodified is not tested.
+- H14-P06: Tool descriptions are long (up to 1,612 characters), which may matter for a platform that has to read 42 tools.
+- H14-P07: search 'Local Law 97 emissions limit penalty' returned no results and a note listing what FactLot covers.
+- H14-P07: No LL97 or LL84 tool is served: calling rules_nyc_ll97 returned UnknownTool, consistent with rules.md ('Draft packs ... are not tools').
+- H14-P07: The energy predicates are listed (energy.site_eui, energy.ghg_emissions and others) but no hosted energy data exists to fill them.
+- H14-P08: Copilot Studio and Gemini connections not performed; README states they are unverified.
+- H14-P08: The server answers initialize with the protocol version I sent (2024-11-05), which is helpful for older clients.
+- H14-P09: Plugin install not performed.
+- H14-P09: My first 1031 call used US-style dates (12/10/2026) and was rejected; the error listed three issues, one of them ('must not be before relinquished_transfer_date') a side effect of the invalid dates.
+- H14-P10: My first rule call used tax_year 26 and was rejected (clear message).
+- H14-P10: fact_validate needs provenance.sources and rights enumerations that the tool listing does not make obvious; I learned them from two error responses (rights.ai_use must be permitted, prohibited or unknown).
+- H14-P11: doc_compare (the estoppel check) and doc_verify_claim are not in the 26-operation Custom GPT subset (the README says so); only doc_verify_facts and doc_abstract_lease are. I called doc_compare on its REST route, which a GPT built from the subset could not.
+- H14-P11: lease.base_rent_schedule needs steps named annual_rent_psf, not rent_psf_annual (my guess); the rejection reason named the right field.
+- H14-P11: The Ingest predicate table (ingest.md) is not in the materials I was given, so I learned predicate shapes by trial.
+- H15-P01: The doc's step 4 pastes gpt-instructions.md, which is not in the materials this persona can see (not tested).
+- H15-P01: The doc's subset list names four registry_* tools that are not in the live 3.0 document (the doc says they appear only when a registry is loaded; consistent, but a GPT builder reading the list expects them).
+- H15-P02: document-verification.md links to ingest.md for the predicate shapes but that file is not in the prospect materials; I found them only by calling MCP search then fetch id predicates:ingest (calls 3 and 4)
+- H15-P02: doc says doc_verify_claim accepts 'a short claim sentence'; the schema requires {text: ...} and a bare string returned InputError 'expected object, received string'
+- H15-P03: First call used pro_rata_share 10 (a whole-number mistake); the rejection said only 'expected number to be <=1', without saying 10 looks like a percent
+- H15-P04: Predicate value shapes come from ingest.md, not in the materials; I used the shapes in the tool descriptions and the doc's examples and got most of them right first time
+- H15-P04: My first co-tenancy candidate was rejected for the hyphenated line break; the rejection message told me exactly how to quote it
+- H15-P05: Claude connector doc step 1 says 'Deploy the remote connector ... on a public HTTPS URL' before step 3 gives the hosted URL; a reader of the home page has to infer that the hosted endpoint already is that deployment
+- H15-P05: The doc's step 3 says 'Leave OAuth empty for an open server' but the materials do not say that api.factlot.com is open (the free tier needs no key, said elsewhere)
+- H15-P06: First call used a US-format date (03/15/2026) and was rejected; the second call with YYYY-MM-DD worked
+- H15-P06: The 'calls_to_first_useful_answer' count includes that retry; I used REST for the WALT call because it was simpler in a shell, not through the MCP endpoint
+- H15-P07: doc_compare's asserted lease.kick_out requires 'party' even though document-verification.md says 'for an object only the fields you assert' (call 4: HTTP 400 InputError)
+- H15-P07: Value shapes for clause predicates (kick_out, co_tenancy, go_dark) are only in ingest.md, not in the materials; I read them from the tool descriptions
+- H15-P08: The tool name and path come from the skill file or GET /v1/tools; the home page lists the tool but not its path
+- H15-P09: Chart-of-accounts category names (e.g. repairs_maintenance) live in a vocabulary file referenced by the doc; the exception message for the ambiguous line listed the two candidate ids, which was enough
+- H15-P10: None for the MCP path; the materials do not show an agent-framework (LangGraph) wiring example, only connector guides for Claude, ChatGPT and Gemini
+- H15-P11: lease_comp_validate rejected my first fact for three enum values ('allowed' vs 'permitted' for rights, 'base' vs 'base_rent' for free-rent basis); the error listed the valid values, so one retry fixed it, but lease-comps.md prints 'base or gross' in prose while the enum is base_rent or gross_rent
+- H15-P11: The materials include no worked lease_comp_validate request body, so I assembled the fact (subject, provenance, rights) from the schema
+
+## Onboarding not tested (474)
+
+- H01-P01: /plugin marketplace add and /plugin install in Claude Code
+- H01-P01: Skill auto-selection from a natural-language prompt
+- H01-P01: Restarting the session / /reload-plugins
+- H01-P02: Claude Code /plugin install and skill activation
+- H01-P02: Auto-selection of the cam-reconciliation skill from a plain-language prompt
+- H01-P02: Importing a Yardi export (no such feature is described)
+- H01-P03: Adding the connector in Claude.ai Settings, Connectors
+- H01-P03: Enabling it from the tools menu in a chat
+- H01-P03: Claude Desktop .mcpb extension
+- H01-P04: Claude Code /plugin install and the /factlot:cre-loan-sizing slash command
+- H01-P04: Local stdio server via npx
+- H01-P05: Size limits at 50 leases x 20 pages
+- H01-P05: doc_read_pdf (local only)
+- H01-P05: Signed fact packages
+- H01-P05: Any retention claim ('nothing is stored'): not observable from the API
+- H01-P06: Importing the URL in the ChatGPT GPT builder
+- H01-P06: Pasting gpt-instructions.md and testing the GPT in a chat
+- H01-P06: Publishing a GPT and the privacy policy requirement
+- H01-P06: Action call confirmation prompts in ChatGPT (spec says isConsequential false on every operation)
+- H01-P07: A real LangGraph / OpenAI Agents SDK / CrewAI MCP adapter
+- H01-P07: Session or reconnect behaviour under a framework
+- H01-P07: Rate-limit behaviour above 60 requests a minute
+- H01-P08: Settings, Connectors, Add custom connector in the Claude app
+- H01-P08: Enabling FactLot from the tools menu in a chat
+- H01-P08: Claude Desktop extension (.mcpb)
+- H01-P09: CrewAI / LangGraph MCP adapter wiring
+- H01-P09: Ed25519 signing (the hosted MCP has no sign tool, only the local server does)
+- H01-P09: Size limit (1 MiB request) on a real lease
+- H01-P10: Claude Code /plugin install and the /factlot:exchange-1031 and /factlot:cre-valuation skills
+- H01-P10: Skill auto-selection from a plain-language request
+- H01-P11: Registry lookups for candidate parcels (hosted registry not open)
+- H01-P11: Rate limit behaviour in a scoring loop
+- H01-P11: Python SDK path
+- H02-P01: pip install of the Python SDK from git
+- H02-P01: Authorization header with a paid key
+- H02-P02: a roll of 180 or more units
+- H02-P02: include_units per-unit table
+- H02-P02: Authorization header with a key
+- H02-P03: Adding the MCP server inside Copilot Studio
+- H02-P03: Power Platform custom connector import of the OpenAPI file
+- H02-P03: Gemini CLI or Vertex AI
+- H02-P03: The Microsoft and Gemini guide pages (not provided)
+- H02-P04: Adding the custom connector in Claude Desktop or Claude.ai
+- H02-P04: Enabling the tool in a chat
+- H02-P04: Tool approval prompts in Claude (the doc says readOnlyHint is set; tools/list shows readOnlyHint true on the first tool, observed in the batch's saved list)
+- H02-P05: Adding the connector in Claude Desktop
+- H02-P05: Any registry lookup (the hosted service has none)
+- H02-P06: /plugin marketplace add and /plugin install
+- H02-P06: Skill auto-selection in Claude Code
+- H02-P06: Tool names in Claude Code (mcp__plugin_factlot_factlot__*)
+- H02-P06: Authorization header with a paid key
+- H02-P07: An actual LangGraph, OpenAI Agents SDK or CrewAI client (not installable here)
+- H02-P07: Strict-schema tool registration in those frameworks
+- H02-P07: Concurrent calls near the 60 per minute limit
+- H02-P08: Real PDFs or OCR (hosted API takes page text only)
+- H02-P08: Documents of 140 pages or the request size limit
+- H02-P08: fact_package_create and fact_package_verify
+- H02-P08: doc_spread_statement
+- H02-P08: OpenAI Agents SDK itself
+- H02-P09: /plugin marketplace add and install
+- H02-P09: Skill triggering in Claude Code
+- H02-P09: Paid key
+- H02-P10: Running inside CrewAI (cannot install here)
+- H02-P10: Per-lease leasing overrides
+- H02-P10: timing mid_year
+- H02-P10: exit_noi_basis trailing
+- H02-P11: MCP or OpenAPI surfaces for this persona
+- H02-P11: Any hazard, valuation or replacement-cost data (none is offered)
+- H03-P01: No Python/TypeScript SDK installed or run; raw REST only
+- H03-P01: Local PDF reading (doc_read_pdf / factlot.read_pdf) not tested
+- H03-P02: Copilot Studio MCP connection and its tool-import step
+- H03-P02: Gemini function-calling or Gemini CLI
+- H03-P02: Power Platform custom connector
+- H03-P03: Copilot Studio connector import
+- H03-P03: Gemini function calling or Gemini CLI
+- H03-P04: Python/TypeScript SDK install
+- H03-P04: Running the examples/ scripts
+- H03-P05: Adding the connector in Claude.ai or Claude Desktop settings (UI)
+- H03-P05: Tool approval prompts in Claude
+- H03-P06: Importing the spec in the ChatGPT GPT builder and the builder's validation messages
+- H03-P06: Adding the GPT instructions file
+- H03-P06: Calling operations from inside ChatGPT
+- H03-P06: Publishing a GPT (privacy policy URL step)
+- H03-P07: Installing the plugin in Claude Code
+- H03-P07: Slash commands such as /factlot:exchange-1031
+- H03-P07: Skill auto-selection from a description
+- H03-P08: Adding the connector in the Claude.ai or Claude Desktop UI
+- H03-P09: Actual LangGraph, OpenAI Agents SDK or CrewAI adapter
+- H03-P09: Tool-name filtering inside a framework
+- H03-P10: Running the draft LL97 pack through the Python or TypeScript SDK with acknowledge_draft
+- H03-P10: Downloading the registry sample (DC only)
+- H03-P11: An actual CrewAI or LangGraph MCP adapter
+- H03-P11: Signing a package with an Ed25519 key (signing happens locally and is not offered by the hosted API)
+- H03-P11: Local PDF reading
+- H04-P01: Creating the GPT in ChatGPT and clicking Import from URL
+- H04-P01: Pasting gpt-instructions.md
+- H04-P01: Publishing the GPT with a privacy policy URL
+- H04-P01: Whether the ChatGPT importer accepts the description lengths
+- H04-P02: Adding the connector in Claude Desktop or Claude.ai
+- H04-P02: Tool approval prompts in the Claude client
+- H04-P03: An actual LangGraph, OpenAI Agents SDK or CrewAI client
+- H04-P03: Running tools/call with no initialize first (statelessness claimed in llms.txt)
+- H04-P03: Session headers or streaming responses
+- H04-P04: Python or TypeScript SDK use
+- H04-P04: Any registry or energy lookup (not hosted)
+- H04-P05: Importing the spec in ChatGPT
+- H04-P05: Whether ChatGPT accepts the operations=all document (39 operations) at all
+- H04-P06: PDF input (the hosted API takes page text only)
+- H04-P06: Fact packages and signing
+- H04-P06: Paid-key behaviour and the checkout flow (not touched)
+- H04-P07: Importing the spec in ChatGPT
+- H04-P07: The gpt-instructions.md file
+- H04-P07: A real 240-unit roll
+- H04-P08: Adding the connector in Claude Desktop or Claude.ai
+- H04-P08: Tool-approval prompts in Claude
+- H04-P08: tools/list (not called in this persona's run)
+- H04-P09: Creating the GPT and the Action import
+- H04-P09: Long leases (request size limit mentioned in the schema, not probed)
+- H04-P09: PDF input (hosted API takes text only)
+- H04-P09: doc_verify_claim and fact_package tools
+- H04-P10: The TypeScript SDK
+- H04-P10: Paid-key behaviour
+- H04-P11: Adding the connector in Claude Desktop or Claude.ai
+- H04-P11: WALT on this roll (not called)
+- H04-P11: fact_package tools and signing
+- H05-P01: Adding the connector in Claude Desktop / Claude.ai Settings (cannot run a Claude client here; connectors/README says live connection from claude.ai is 'Not yet' verified)
+- H05-P01: Enabling the tool in a chat and the confirmation behaviour
+- H05-P02: Adding the server in Copilot Studio (Tools > Add a tool > Model Context Protocol)
+- H05-P02: Gemini CLI or Vertex AI function declarations built from the schemas, including whether oneOf/const schemas are accepted
+- H05-P02: Power Platform custom connector import of the OpenAPI 3.1 file
+- H05-P02: Microsoft 365 Copilot
+- H05-P03: Adding the connector in Copilot Studio or the Gemini CLI
+- H05-P03: Whether a small firm's Copilot or Gemini plan allows a custom MCP server
+- H05-P04: Connecting from Copilot Studio or Gemini
+- H05-P04: Running the local stdio server instead (needs Node 22.6+; would avoid sending borrower numbers to api.factlot.com)
+- H05-P05: Importing the spec in the ChatGPT Custom GPT editor (no ChatGPT account here)
+- H05-P05: Whether the 140 KB schema loads within the GPT's action limits
+- H05-P05: Privacy-policy URL step for a public GPT (internal GPT, not tested)
+- H05-P06: /plugin marketplace add 9mp96ygnbk-alt/factlot and /plugin install factlot@factlot
+- H05-P06: Skill auto-selection from a natural-language request
+- H05-P06: Disabling the plugin's hosted server and running the local stdio server
+- H05-P07: Adding the connector in Claude Desktop or Claude.ai
+- H05-P07: Reading a real lease PDF (hosted API takes page text; PDF reading is local-only per document-verification.md)
+- H05-P07: Rollover logic of the DCF
+- H05-P08: The TypeScript SDK and Python SDK packages (not installed; the brief asks for calls through the client only)
+- H05-P08: Authenticated calls with a paid key
+- H05-P08: Behaviour above 60 requests a minute
+- H05-P09: An actual LangGraph, OpenAI Agents SDK or CrewAI MCP adapter connecting
+- H05-P09: Streaming (SSE) responses from the endpoint
+- H05-P09: Behaviour of long-lived agents under the per-IP 60 requests a minute limit
+- H05-P10: Settings > Connectors > Add custom connector in Claude Desktop or Claude.ai
+- H05-P10: Enabling the tools in a chat and the permission prompts
+- H05-P11: Importing the spec into the Custom GPT editor
+- H05-P11: Sending real lease pages through a GPT Action (size limits)
+- H05-P11: Privacy policy URL for a public GPT (this would be internal)
+- H06-P01: /plugin marketplace add and /plugin install in a real Claude Code client
+- H06-P01: skill auto-selection from a task description
+- H06-P01: the .mcp.json shipped inside the plugin
+- H06-P01: disabling the hosted server in favor of the local npx server
+- H06-P02: Adding the server in Copilot Studio or the Power Platform custom connector
+- H06-P02: Gemini CLI, Gemini API function calling or Vertex AI against these schemas
+- H06-P02: Authentication with a paid key
+- H06-P02: Any tool run from inside either product
+- H06-P03: Importing the spec into a real Custom GPT Action
+- H06-P03: Whether the GPT's runtime accepts the 3.0 schemas (booleans for exclusiveMinimum, oneOf)
+- H06-P03: Authentication setup
+- H06-P03: gpt-instructions.md content and a public GPT's privacy-policy requirement
+- H06-P04: A LangGraph, OpenAI Agents SDK or CrewAI client connecting to /mcp (I called JSON-RPC directly)
+- H06-P04: Authenticated use with a paid key
+- H06-P04: The local npx server
+- H06-P05: Adding the connector in Claude.ai or Claude Desktop
+- H06-P05: Claude's tool-call confirmation behaviour with readOnlyHint tools
+- H06-P05: Team or Enterprise admin controls for custom connectors
+- H06-P05: Using the Desktop extension (.mcpb) instead
+- H06-P06: An OpenAI Agents SDK or LangGraph MCP client against /mcp
+- H06-P06: Large batches (the schema allows 500 tenants)
+- H06-P06: Yardi or MRI data mapping
+- H06-P06: Authentication with a paid key
+- H06-P07: Adding the server in Copilot Studio or Gemini
+- H06-P07: Behavior of Copilot Studio with the MCP tool schemas (oneOf/const) used by doc_* tools
+- H06-P07: PDF input (the hosted API takes text only; doc_read_pdf is local-only)
+- H06-P07: Documents near the 1 MiB request cap
+- H06-P08: Importing either spec into a Custom GPT and the GPT's own action-call behaviour
+- H06-P08: Whether the ChatGPT importer accepts the 352 KB complete document (the guide steers to the smaller one)
+- H06-P08: Authentication choices in the GPT builder
+- H06-P09: Importing the spec into the GPT builder and the GPT calling the Actions
+- H06-P09: Whether the builder accepts the document's size and operation descriptions
+- H06-P09: API key authentication in the GPT builder
+- H06-P09: Checkout (not attempted, by rule)
+- H06-P10: /plugin marketplace add and /plugin install in Claude Code
+- H06-P10: Skill auto-selection from a plain-language request
+- H06-P10: Disabling the hosted server for the local one
+- H06-P10: The plugin's .mcp.json
+- H06-P11: The Python SDK and rest_python.py example
+- H06-P11: Authenticated calls with a paid key
+- H06-P11: Rate limiting behaviour (I stayed far below 60 a minute)
+- H07-P01: Creating the Custom GPT and importing the Action in the ChatGPT builder (no ChatGPT access here)
+- H07-P01: Reading gpt-instructions.md
+- H07-P01: Whether the builder accepts the long operation descriptions
+- H07-P02: Importing the Action into a Custom GPT in ChatGPT
+- H07-P02: What the GPT does with the tool's warnings
+- H07-P03: /plugin marketplace add and /plugin install in Claude Code
+- H07-P03: Whether skills trigger from a plain-English request
+- H07-P03: The tool names as shown in Claude Code (mcp__plugin_factlot_factlot__<tool>)
+- H07-P04: The Python SDK (pip install from git): I stayed on plain REST
+- H07-P04: API key and the 600 per minute tier (no purchase)
+- H07-P05: pip install from git (SDK path)
+- H07-P05: An API key
+- H07-P06: Adding the custom connector in Claude Desktop or Claude.ai and enabling it in a chat
+- H07-P06: Whether Claude calls tools without a confirmation prompt given readOnlyHint
+- H07-P07: Adding the connector in Claude.ai or Claude Desktop
+- H07-P07: Organisation approval or admin controls for custom connectors
+- H07-P08: Importing either spec into the GPT builder
+- H07-P08: The GPT instructions file
+- H07-P09: Adding the connector in Claude Desktop
+- H07-P09: Whether Claude passes the verified/contradicted labels on faithfully
+- H07-P10: The Python SDK
+- H07-P10: Higher rate-limit tier
+- H07-P11: Loading the 42 tool definitions into LangGraph, the OpenAI Agents SDK or CrewAI (strict-mode schema compatibility with oneOf and long regex patterns is unknown)
+- H07-P11: Concurrency under the 60-per-minute limit with several graph branches
+- H08-P01: Actual LangGraph / OpenAI Agents SDK / CrewAI client libraries: I made the JSON-RPC calls directly through the paced client
+- H08-P01: Session handling beyond stateless calls (docs say stateless)
+- H08-P02: Adding the custom connector in the Claude Desktop or Claude.ai settings UI
+- H08-P02: tools/list as Claude's client would call it (not repeated in this persona; another persona in the batch listed 42 tools)
+- H08-P02: The Claude Code plugin cam-reconciliation skill (read only)
+- H08-P03: Python SDK (factlot.run_tool) install from git
+- H08-P03: calc_dcf_pro_forma for student housing: the schema models leases with months_remaining, not by-the-bed 12-month leases, and I did not run it
+- H08-P04: Claude Code plugin install
+- H08-P04: MCP route for this persona
+- H08-P05: Adding the custom connector in Claude.ai or Claude Desktop settings
+- H08-P05: How Claude renders tool output in the chat
+- H08-P06: Adding the custom connector in Claude
+- H08-P06: Self-hosted PDF reading (doc_read_pdf), which is local-only
+- H08-P06: Signing a fact package (needs the holder's own Ed25519 key; signature check not tested)
+- H08-P07: Importing the file in the ChatGPT Custom GPT builder
+- H08-P07: Whether the builder accepts operation descriptions of up to 1,512 characters or a 140k-character spec
+- H08-P07: GPT publishing and privacy policy step
+- H08-P08: Adding the connector in Claude Desktop
+- H08-P08: Claude Code plugin install
+- H08-P09: Import in the Custom GPT builder
+- H08-P09: ?operations=all as a way to get lease_vs_own into a GPT (this persona did not fetch it)
+- H08-P09: ChatGPT developer-mode MCP app
+- H08-P10: Adding the connector through Claude Desktop settings (the project's own doc says live console connection is not yet verified)
+- H08-P10: tools/list from this persona
+- H08-P11: Importing the file in the Custom GPT builder
+- H08-P11: Whether a Custom GPT can send a 120-row rent roll body (the Action itself was exercised through the paced client)
+- H09-P01: Adding the connector in the Claude Desktop/Claude.ai Settings UI (cannot install the client here)
+- H09-P01: OAuth-empty custom connector flow
+- H09-P02: Claude.ai Settings -> Connectors UI
+- H09-P02: tools/list over MCP for this persona (reused the batch's saved list)
+- H09-P02: Whether Claude asks for confirmation on read-only tools
+- H09-P03: Pasting the URL into ChatGPT's Actions importer (cannot run ChatGPT here)
+- H09-P03: gpt-instructions.md (not in materials)
+- H09-P03: Whether ChatGPT accepts all 26 operations' description lengths (largest description is 1,543 characters)
+- H09-P04: Adding the connector in the Claude Desktop UI
+- H09-P04: tools/list for this persona (reused the batch's saved list: 42 tools)
+- H09-P05: Importing either spec into ChatGPT
+- H09-P05: gpt-instructions.md
+- H09-P05: Registry lookups for Alameda County (hosted lookups not open per the home page; coverage file not searched in this persona's calls)
+- H09-P06: A real LangGraph/Agents SDK/CrewAI adapter (not installed here); inputSchema uses oneOf/anyOf/const, which I did not feed to any framework's schema converter
+- H09-P06: Streaming or session behaviour; the server is stateless per the home page
+- H09-P06: tools/list for this persona (reused the batch's saved list: all 42 tools carry readOnlyHint true and no outputSchema)
+- H09-P07: A real OpenAI Agents SDK/LangGraph MCP client
+- H09-P07: tools/list for this persona (reused the batch's saved list)
+- H09-P07: Defeasance, step-down and fixed-percentage prepayment types (only yield maintenance tested)
+- H09-P08: /plugin marketplace add and /plugin install in Claude Code
+- H09-P08: How Claude Code selects a skill from its description
+- H09-P08: The plugin's hosted MCP registration (.mcp.json); I called the REST fallback instead
+- H09-P09: A real CrewAI or LangGraph MCP adapter
+- H09-P09: tools/list for this persona (reused the batch's saved list)
+- H09-P10: A real Agents SDK MCP client
+- H09-P10: tools/list for this persona (reused the batch's saved list)
+- H09-P10: Signing a package with an Ed25519 key (the hosted service does not sign; done locally by design)
+- H09-P10: Whether ids from my own scheme are accepted by other validators
+- H09-P11: A real LangGraph MCP adapter
+- H09-P11: tools/list for this persona (reused the batch's saved list)
+- H09-P11: A tenant with a lease-year (non-calendar) period via period_start_date/period_end_date
+- H09-P11: The year_over_year cap method
+- H10-P01: Creating the connector inside Copilot Studio
+- H10-P01: Gemini CLI / Vertex connection
+- H10-P01: OAuth or SSO for the MCP endpoint (docs say bearer keys only)
+- H10-P01: The Microsoft and Gemini connector READMEs (not in the materials)
+- H10-P02: An actual LangGraph/CrewAI/OpenAI Agents SDK client; I sent raw JSON-RPC through the paced client
+- H10-P02: Session handling beyond stateless calls (docs say stateless)
+- H10-P03: Importing the spec into the ChatGPT GPT builder and running an Action from ChatGPT
+- H10-P03: Authentication setup (free tier needs none)
+- H10-P03: gpt-instructions.md (not provided)
+- H10-P04: Importing the spec into ChatGPT's GPT builder
+- H10-P04: Running these calls from inside a GPT Action
+- H10-P04: gpt-instructions.md (not provided)
+- H10-P05: An actual OpenAI Agents SDK / LangGraph client
+- H10-P05: Paid-key access and rate limits above 60/min
+- H10-P05: SSO / OAuth (stated as not provided)
+- H10-P06: A real CrewAI client
+- H10-P06: PDF input (hosted API takes page text only; doc_read_pdf is local-only)
+- H10-P06: Scanned/OCR pages
+- H10-P06: Large leases near the 100,000-character page limit
+- H10-P07: Installing the plugin in Claude Code and running its skills
+- H10-P07: Plugin skill selection from a natural-language prompt
+- H10-P07: The 11 plugin skills beyond reading plugin-README.md
+- H10-P08: Connecting Copilot Studio or the Gemini CLI
+- H10-P08: Gemini API function-calling schema acceptance
+- H10-P08: Vertex AI path
+- H10-P09: Installing the plugin and running a skill by slash command
+- H10-P09: Skill auto-selection from a plain prompt
+- H10-P09: Local stdio server mode
+- H10-P10: A TypeScript client
+- H10-P10: Retry and rate-limit handling above the free tier
+- H10-P10: The Python SDK (not installed; REST only)
+- H10-P11: The plugin and the MCP surface for this rule
+- H10-P11: Whether the Texas holiday list matches Tex. Gov't Code §662.003 (no access to the statute under this brief)
+- H10-P11: Non-Texas jurisdictions
+- H11-P01: pip install of the Python SDK (docs say it is installed from git; not tested)
+- H11-P01: Authenticated Pro key flow (not tested; no purchase)
+- H11-P02: Adding the connector inside Claude Desktop or Claude.ai (cannot install clients here)
+- H11-P03: Pip install of the Python SDK and its factlot.read_pdf helper (self-hosted only per document-verification.md)
+- H11-P03: Large documents near the request size limit (not tested)
+- H11-P04: Importing the spec into the ChatGPT GPT builder
+- H11-P04: Running the Custom GPT conversation
+- H11-P04: Privacy-policy URL requirement for a public GPT
+- H11-P05: Anything on the registry: no hosted lookups; coverage page lists Fulton County as gated and only DeKalb loaded and not hosted
+- H11-P06: Adding the custom connector in Claude Desktop or Claude.ai
+- H11-P06: Whether Claude actually calls the tool without prompting in a chat (not tested)
+- H11-P07: Running /plugin marketplace add and /plugin install in Claude Code
+- H11-P07: Whether skills trigger from a natural-language prompt
+- H11-P07: Tool names mcp__plugin_factlot_factlot__*
+- H11-P08: /plugin marketplace add and install in Claude Code
+- H11-P08: Whether the cre-valuation skill auto-triggers
+- H11-P08: DCF with lease rollovers (blended-lease logic) not replicated independently
+- H11-P09: Adding the MCP server in Copilot Studio
+- H11-P09: Gemini CLI or Vertex AI function calling
+- H11-P09: Power Platform custom connector import
+- H11-P09: Microsoft 365 Copilot
+- H11-P10: Actually running LangGraph, OpenAI Agents SDK or CrewAI against the endpoint (no framework runtime here)
+- H11-P10: Schema conversion by each framework's adapter
+- H11-P11: Adding the custom connector in Claude Desktop or Claude.ai
+- H11-P11: How Claude chooses between single-tenant and batch tools in a chat
+- H12-P01: /plugin marketplace add and /plugin install in Claude Code
+- H12-P01: Plugin skill triggering and the mcp__plugin_factlot_factlot__ tool names
+- H12-P01: Claude Code permission prompts
+- H12-P02: Python SDK install (pip from git)
+- H12-P02: TypeScript client
+- H12-P02: API key / Pro plan
+- H12-P03: Importing the URL in the GPT builder
+- H12-P03: Whether the builder accepts operation descriptions up to 1,512 characters
+- H12-P03: GPT calling the Action from a chat
+- H12-P03: gpt-instructions.md
+- H12-P04: Adding the MCP server in Copilot Studio
+- H12-P04: Gemini CLI or Vertex AI
+- H12-P04: Whether those platforms accept oneOf/const/exclusiveMinimum schemas
+- H12-P04: Tool filtering to a subset of the 42
+- H12-P05: Importing the spec into the GPT builder
+- H12-P05: GPT calling the Actions
+- H12-P05: Any ChatGPT-specific payload size limits for a 960-bed roll (I sent 60 beds)
+- H12-P06: Claude.ai Settings → Connectors → Add custom connector
+- H12-P06: Enabling the tool in a chat
+- H12-P06: Claude Desktop extension
+- H12-P07: GPT builder import
+- H12-P07: GPT payload limits with real lease pages
+- H12-P07: Sending a real scanned lease (not applicable here)
+- H12-P07: doc_read_pdf (local only)
+- H12-P08: GPT builder import
+- H12-P08: GPT actually invoking the Actions
+- H12-P08: Response-time limits inside ChatGPT (call latencies here were 0.6 to 3.5 seconds)
+- H12-P09: /plugin install in Claude Code
+- H12-P09: Skill auto-selection from a prompt
+- H12-P09: Whether Claude Code's tool-name prefix mcp__plugin_factlot_factlot__ resolves
+- H12-P10: Python or TypeScript SDK install
+- H12-P10: Downloading the DC sample or GSA comps file
+- H12-P10: Any registry tool
+- H12-P11: Signing a package with an Ed25519 key
+- H12-P11: Self-hosted doc_read_pdf and OCR
+- H12-P11: Any registry tool
+- H12-P11: Large documents near the 2,000-page or 100,000-character-per-page limits
+- H13-P01: Python SDK install from git or the release wheel
+- H13-P01: a real PDF through the local read_pdf helper
+- H13-P02: Copilot Studio MCP connection and its tool-count or schema-size limits
+- H13-P02: Gemini CLI or Gemini API function-declaration limits with the 42-tool, ~162 KB schema set
+- H13-P02: Power Platform custom connector from /openapi.json
+- H13-P03: Settings > Connectors > Add custom connector in Claude.ai or Desktop
+- H13-P03: whether my firm's Claude workspace admin allows custom connectors
+- H13-P04: an actual LangGraph, CrewAI or OpenAI Agents SDK run against the endpoint
+- H13-P04: rate behaviour above 60 requests a minute
+- H13-P05: Claude.ai/Desktop custom connector UI
+- H13-P05: initialize and tools/list for this persona (observed by H13-P03 and H13-P04, not repeated here)
+- H13-P05: real PDF input (hosted API takes page text only)
+- H13-P06: a CrewAI, LangGraph or OpenAI Agents SDK run
+- H13-P06: initialize and tools/list for this persona (seen by H13-P03/P04)
+- H13-P06: a 288-unit or 5,000-unit rent roll against the 1 MiB request cap
+- H13-P07: a real OpenAI Agents SDK run
+- H13-P07: tools/list for this persona (seen by H13-P03/P04)
+- H13-P07: the Excel reconciliation workbooks in examples/reconciliation (not provided)
+- H13-P08: Claude.ai/Desktop connector UI
+- H13-P08: initialize and tools/list for this persona (seen by H13-P03/P04)
+- H13-P08: cumulative caps (compounding_from_base, simple_from_base), base-year structures and partial-year occupancy
+- H13-P09: Configure > Actions > Import from URL in the ChatGPT builder
+- H13-P09: whether the builder accepts operation descriptions up to 1,512 characters or a 257 KB spec
+- H13-P09: Action response-size and timeout limits (a 360-row schedule is 104,831 bytes)
+- H13-P09: calling with the GPT's own auth setting 'None'
+- H13-P10: Claude.ai/Desktop connector UI
+- H13-P10: initialize and tools/list for this persona (seen by H13-P03/P04)
+- H13-P10: a real PDF-extracted T-12 with multiple period columns
+- H13-P11: any Copilot Studio or Gemini console step
+- H13-P11: Copilot Studio's limits on tool count or schema size against the 42-tool set (not measured by me; another persona listed it)
+- H13-P11: Power Platform custom connector import of /openapi.json
+- H13-P11: tools/list for this persona
+- H14-P01: Adding the connector in the Claude.ai or Claude Desktop settings UI
+- H14-P01: Claude Desktop .mcpb extension
+- H14-P02: Importing the spec in the ChatGPT builder
+- H14-P02: Pasting gpt-instructions.md (not in my materials)
+- H14-P02: Authentication setting in Actions
+- H14-P02: Behaviour of the free-tier per-IP limit when the calls come from OpenAI's servers
+- H14-P03: /plugin marketplace add and /plugin install in Claude Code
+- H14-P03: Skill auto-selection by description
+- H14-P03: The mcp__plugin_factlot_factlot__ tool naming
+- H14-P03: Per-lease leasing overrides in calc_dcf_pro_forma
+- H14-P04: Adding the connector through Claude Desktop or Claude.ai settings
+- H14-P04: Claude Desktop .mcpb extension
+- H14-P05: TypeScript SDK or Python SDK install
+- H14-P05: Rate-limit behaviour under a batch run (not probed)
+- H14-P06: Adding the MCP server in Copilot Studio
+- H14-P06: Gemini CLI or Gemini API function calling with the raw tool schemas
+- H14-P06: Power Platform custom connector
+- H14-P06: Whether Copilot Studio shows readOnlyHint tools without confirmation
+- H14-P07: Adding the connector in the Claude settings UI
+- H14-P07: Running the draft LL97 pack (SDK only, not hosted)
+- H14-P08: Copilot Studio MCP connection
+- H14-P08: Gemini CLI or API
+- H14-P08: Power Platform custom connector
+- H14-P08: Behaviour under Gemini's function-schema restrictions
+- H14-P09: /plugin marketplace add and /plugin install
+- H14-P09: Skill triggering from natural-language prompts
+- H14-P09: The plugin's .mcp.json tool naming
+- H14-P10: Python or TypeScript SDK installs
+- H14-P10: Anything on the self-hosted registry (not hosted)
+- H14-P10: Rate limits under a pipeline load
+- H14-P11: Importing the spec in the ChatGPT builder
+- H14-P11: Auth setting in Actions
+- H14-P11: Behaviour near the 1 MiB request cap with a full-length lease
+- H14-P11: Whether Custom GPT file uploads can be turned into the page text the API expects
+- H15-P01: Actual import in the ChatGPT GPT builder (no ChatGPT account here)
+- H15-P01: Pasting gpt-instructions.md (file not in the materials)
+- H15-P01: Behaviour of the GPT with the 26 operations
+- H15-P02: LangGraph / Agents SDK wiring itself (only raw JSON-RPC)
+- H15-P02: PDF reading (doc_read_pdf is local-only; hosted takes page text)
+- H15-P02: Pages over the 1 MiB request cap
+- H15-P02: fact_package_create / fact_package_verify
+- H15-P03: The CrewAI or LangGraph wiring (raw JSON-RPC only)
+- H15-P03: Partial-year occupancy proration (occupancy object)
+- H15-P03: year_over_year and simple_from_base cap methods
+- H15-P03: Excel reconciliation workbooks in examples/reconciliation
+- H15-P04: TypeScript client
+- H15-P04: PDF input (hosted API takes page text only)
+- H15-P04: Documents over 1 MiB
+- H15-P05: Adding the connector in Claude Desktop / Claude.ai Settings
+- H15-P05: Claude's behaviour when calling the tools (no Claude client here)
+- H15-P05: Local .mcpb extension
+- H15-P06: OpenAI Agents SDK wiring (raw JSON-RPC only)
+- H15-P06: Local PDF reading with doc_read_pdf
+- H15-P06: fact_package_* tools
+- H15-P07: TypeScript client
+- H15-P07: PDF input
+- H15-P07: Anchor-lease documents over the 1 MiB request cap
+- H15-P08: MCP route
+- H15-P08: The draft rules packs (not served as tools)
+- H15-P08: Registry lookups for appraisal-district values (not hosted)
+- H15-P09: PDF input
+- H15-P09: T-12 with several period columns
+- H15-P09: Comps or sales data (not hosted)
+- H15-P10: LangGraph or CrewAI wiring (raw JSON-RPC only)
+- H15-P10: Any real qualified-intermediary workflow
+- H15-P11: The GSA lease comps download (hosted lookups are not open; the file is a separate download)
+- H15-P11: fact_package_create for the work file
+- H15-P11: TypeScript client (raw HTTP only)
+
+## Marketing: unclear or unconvincing (379)
+
+- H01-P01: Nothing on the home page says whether FactLot helps with assessed values or CAD rolls; the registry section is parcel/owner oriented and says hosted lookups are not open.
+- H01-P01: registry-coverage.md lists Bexar Appraisal District as 'gated: records request' and Travis as a 30,555-parcel load not hosted, so the registry will not feed a San Antonio appeal.
+- H01-P01: Hospitality is represented only by calc_hotel_metrics; no hotel sale comps or tax-loaded cap-rate support is mentioned.
+- H01-P02: Nothing says which lease conventions are covered for CAM beyond the tool description; I had to read the schema to learn that cap method, admin-fee order and capped-or-not are all explicit inputs.
+- H01-P02: Seven reconciliation workbooks are listed (office, industrial, retail, multifamily-adjacent, hotel, lender, ASC 842) but not CAM-specific; I could not tell whether CAM is among the reconciled cases from the materials alone.
+- H01-P03: Nothing on the home page mentions data centers; the unit support is only in the changelog and tool schemas.
+- H01-P03: The home page's registry counts (1.95M parcels) are not usable on the hosted service, and no data-center sale comps appear anywhere in the materials; lease-comps.md offers GSA federal leases, 4 SEC-exhibit comps and a trading format.
+- H01-P04: No document says which lender conventions the sizing tool uses for DSCR (annual constant on the stated amortization, level monthly payment); I had to read the steps to confirm. Sizing a loan with an interest-only start followed by amortization (as in my schedule) is not described, only a pure interest-only case (amortization_years 0) in the schema.
+- H01-P04: The home page lists CMBS loan data from SEC filings in the registry, but hosted registry lookups are not open, so it does not help me today.
+- H01-P05: No benchmark or error-rate evidence for the verifier against real scanned leases; the examples use synthetic text (document-verification.md).
+- H01-P05: Nothing says how a rent step that starts later than the amendment's effective date is represented.
+- H01-P06: The doc lists 30 operations as the subset, but the hosted file has 26; the difference is explained, but the count a user sees first (30) is not what they get.
+- H01-P06: Important appraisal tools, calc_lease_vs_own and calc_prepayment_and_defeasance, are outside the subset; the page says so but a retail appraiser might not realise capex recovery and id_building are also missing.
+- H01-P06: 'A public GPT needs a privacy policy URL... state that FactLot stores nothing' pushes the compliance statement onto me without linking the site's own privacy page.
+- H01-P07: The home page counts 22 calculators; the same page's tool list shows fewer, and the plugin README says 'eleven' skills while the home page says 'eight' in one paragraph and 'eleven' in the table (site-index.txt).
+- H01-P07: No published reconciliation results for renew-vs-relocate or lease-vs-own; the Excel workbooks (changelog) cover office, industrial, retail, multifamily-adjacent, hotel, lender and ASC 842 but not these two tools by name.
+- H01-P07: 'Deterministic' is true on my reruns but the materials give no way to see which parts of a legal/accounting conclusion are judgement (the tool does flag some in warnings).
+- H01-P08: Nothing in the materials covers lab or life-science space; the comps (GSA, SEC, firm-shared) are not relevant to lab markets.
+- H01-P08: The home page highlights registry numbers that do not apply to a tenant doing proposals; I had to hunt for the tools that matter.
+- H01-P08: The Claude guide says 'deploy the remote connector' before the hosted URL.
+- H01-P09: The home page says conflicts are checked 'against a center's exclusives'; it does not say the vocabulary is built for retail uses, which matters for a data-center lease.
+- H01-P09: fact_package_verify's valid:true might be read by a lender as 'the facts are right'; the docs limit it to hashes, signatures and quotes on pages, but the output does not say which checks it did not run.
+- H01-P10: Home page registry numbers (1.95M parcels, 42 sources) invite a broker to expect owner lookups; the 'hosted registry lookups are not open yet' line is a few paragraphs below.
+- H01-P10: getting-started.md says REST and OpenAPI 'always include the registry tools', but /openapi.json (39 operations) and /v1/tools list none (the POST path exists and returns 503).
+- H01-P10: The plugin README and home page do not mention manufactured housing at all.
+- H01-P11: Home page says the conflict check works on 'a center's exclusives' with no mention that matching is by category and shared words, which led me to expect synonym handling ('medication' vs 'drugs').
+- H01-P11: No mention of any site-selection use case anywhere in the materials.
+- H02-P01: registry-coverage.md (Arizona section) lists Maricopa County as a sample of 3,863 parcels, 'not hosted, not in a published sample'; the home page's '405 counties' headline does not make clear that Phoenix is effectively not covered yet.
+- H02-P01: 'Deterministic calculators the model cannot get wrong' is a strong line; the late-identification result below shows the legal logic can still be wrong.
+- H02-P02: 'Physical occupancy' here is leased units over all units including model and down (30 of 35 = 0.8571); the docs I read do not say whether model and down units are in the denominator (an alternative convention would give 0.9091).
+- H02-P02: registry-coverage.md shows Los Angeles County as 203,179 parcels with no owner names and 'not hosted'; fine as stated, but the home page's headline numbers hide that.
+- H02-P03: connectors-README.md: 'Live connection from the claude.ai, ChatGPT, Copilot Studio, Gemini, and Bedrock consoles: Not yet'. A Copilot Studio team has to be the first to find out whether it works.
+- H02-P03: Nothing on the home page or connector docs mentions student housing, per-bed pricing or comps; the tools are asset-class neutral.
+- H02-P04: The home page example shows NER only; the lease-economics skill is where proposal comparison with opex structures is explained, and a broker would not find it from the marketing page.
+- H02-P04: Nothing says how TI allowances are treated in the effective-cost ranking versus renew-versus-relocate (see problems).
+- H02-P05: The 405-county and 1,953,805-parcel headline suggests site research that the hosted service cannot do; a developer has to read the coverage page to learn nothing is queryable hosted.
+- H02-P05: No build-to-rent, single-family rental or development example anywhere in the materials I read; the skills are office, retail, multifamily and hotel.
+- H02-P06: site-index.txt (home) says in one place the plugin has 'eight CRE skills' and in the Connect table 'eleven'; the plugin README and the skills folder show eleven.
+- H02-P06: plugin-README.md's skills table lists cam-reconciliation on two rows (12 rows, 11 skills).
+- H02-P06: plugin-skills/cre-loan-sizing.md cites 'review case B02-P11', an internal review identifier in a user-facing skill.
+- H02-P07: Industrial comps: lease-comps.md says GSA comps include 372 industrial leases and four SEC comps include one industrial NNN lease; a national industrial broker will find that too thin and not hosted.
+- H02-P07: 'Give-to-get' sharing has no counterparty today (no pool exists in the materials).
+- H02-P08: The home page example for documents shows quoted values such as "$1,250,000.00" but no 'verified' output; a lawyer has to go to the GitHub doc to see a result.
+- H02-P08: 'Verified' in the output means the quote is on the page and states the value, not that the value is the right term; a reader who sees 'verified' alone could overread it (see problem on generic predicates).
+- H02-P09: Manufactured housing (lots, park-owned homes, pass-through utilities) does not appear in any material; the multifamily-rent-roll skill says 'apartment rent roll'.
+- H02-P09: The rent roll output uses 'month_to_month_units' for leases that ended before the as-of date and a separate 'no_lease_end_units' count; for a community where month-to-month is the norm the skill does not explain the difference.
+- H02-P10: 'ARGUS parity is untested' (changelog) is honest but means the buyer must tie out by hand; I did, and it ties.
+- H02-P10: A blended rollover lease cannot show the renew and new-tenant paths separately; for a 95,000 sf anchor that matters to a lender.
+- H02-P11: Nothing in the materials addresses insurance, climate risk or hazard data; registry-coverage.md mentions energy benchmarking (NYC, DC, Denver) and the changelog lists draft carbon rules (LL97, Washington CBPS, BERDO), but none for Texas or the Gulf Coast and none hosted.
+- H02-P11: Building ID uses county FIPS and ZIP, so an agent must already hold both, which a broker submission often lacks (id_building needs state_fips, county_fips, zip, street).
+- H03-P01: Home page lumps lease verification in with registry and rules packs; an abstraction lead would not find the strongest section quickly (site-index.txt)
+- H03-P01: No published false-positive/false-negative evidence for the verifier on real scanned leases; the spec vectors are synthetic
+- H03-P01: 'Live on the hosted API; nothing is stored' is a policy statement; customer-documents.md says it is 'policy and product commitment, not yet a contract' and needs counsel review
+- H03-P02: site-index.txt advertises CMBS loan-level facts on 16,701 buildings but hosted lookups are not open, so the lender use case it implies is unavailable here
+- H03-P02: Home page says '22 calculators' while the Claude plugin README says eleven skills and connectors-README says 16 tools; counts differ by file
+- H03-P03: No benchmark against ARGUS: examples/README reconciles to Excel, 'ARGUS parity is stated as untested' (changelog)
+- H03-P03: Home page leads with registry and 'facts' while an asset manager's main value is in the calculators, which are on a lower-priority part of the page
+- H03-P04: The three-layer pitch buries which calculators matter for sales brokers; there is no net-lease or sale-comp story (site-index.txt)
+- H03-P04: Registry counts (1.95M parcels, 14.2M entities) are impressive but not usable hosted, so they are not evidence of anything I can try
+- H03-P04: The 'GSA lease comps' are government-tenant leases and the lease-comps doc says they are not market comps for every use, so there are no sale comps either way
+- H03-P05: The home page's list of loaded metros does not mention Arizona, and registry-coverage.md lists Maricopa as a 3,863-parcel sample only, not hosted, so Phoenix has no usable registry data either way (site-index.txt, registry-coverage.md)
+- H03-P05: No mention anywhere of flood, wildfire or heat; nothing tells an insurer that this is out of scope
+- H03-P06: The guide counts 30 operations in the subset; the hosted document says '26 of the 39 operations' because the registry operations are only present on a server with a registry (call 1)
+- H03-P06: Some operation descriptions are long (doc_verify_facts 1,512 characters, fact_validate 1,025); the docs do not say whether the GPT builder accepts those (not tested)
+- H03-P07: Skill count: 'eight' (site-index.txt intro) vs 'eleven' (site-index.txt Connect table, plugin-README.md) vs a twelve-row table with a duplicate
+- H03-P07: The 1031 tool is one of 22 calculators; nothing on the home page tells an exchanger it exists (it appears only in a long list)
+- H03-P08: site-index.txt's headline 'Loaded in full ... across 405 counties' sits next to 'hosted registry lookups are not open yet'; an insurer needs the second sentence first
+- H03-P08: Counts like 1,953,805 parcels give no way to test coverage of Fulton, Gwinnett or Cobb, which registry-rights.md lists as gated
+- H03-P09: The materials give no agent-framework recipe, so I cannot tell how many of the 42 tools an agent should load for CAM work
+- H03-P09: Home page counts '22 calculators' but my tools/list has 42 tools; the relation between the numbers is not explained on one page
+- H03-P10: llms.txt says draft rules packs for NYC LL97, Washington and Boston are in the SDKs 'for review only', so a visitor could think LL97 is available; it is not callable on the hosted API
+- H03-P10: registry-coverage.md lists NYC LL84 as a verified source (ny-nyc-dob-ll84), but hosted lookups are not open, so the data cannot be used from the hosted service
+- H03-P11: customer-documents.md calls itself 'policy and product commitment, not yet a contract' and says counsel review is needed, so I cannot send client leases on that basis
+- H03-P11: The word 'verified' covers facts whose structured value was not checked at all (see calls 3 and 4)
+- H03-P11: No accuracy evidence on real hospitality leases and franchise agreements
+- H04-P01: site-index.txt says the Claude Code plugin has 'eight CRE skills' in one place and 'eleven' elsewhere (llms.txt, getting-started and README say eleven).
+- H04-P01: Home page and llms.txt describe the registry at length (1.95M parcels, Harris County loaded) but a Houston owner cannot query it hosted today; the proof section is easy to read as availability.
+- H04-P01: getting-started.md says REST and OpenAPI 'always include the registry tools'; GET /v1/tools on the hosted service returns 39 tools and none begins with registry_ (/openapi.json itself was not fetched).
+- H04-P02: Home page and README say the registry holds 'energy benchmarks' but only NYC LL84, DC and Denver are named; for a Phoenix or Seattle portfolio that is zero hosted coverage.
+- H04-P02: The 'deterministic math they can't get wrong' claim is unproven for me beyond the three checked here; the Excel reconciliation workbooks are synthetic inputs and I did not open them.
+- H04-P03: 'Deterministic math they can't get wrong' on the home page is a strong claim; it is true only for the stated conventions, and the DCF's blended-rollover convention is not what ARGUS does (the tool says so).
+- H04-P03: No DFW or medical-office comps or sales are hosted; registry is hosted-not-open.
+- H04-P04: The home page puts 'energy benchmarks' under the registry, but for a Chicago hotel it is nothing I can call: coverage lists NYC, DC and Denver and none hosted.
+- H04-P04: Illinois and Chicago are not named as loaded for energy in the materials I read.
+- H04-P05: The guide's list of the subset includes four registry_* tools that the hosted subset does not have (26 operations, none registry); the guide says registry tools need a registry database, so it is only confusing.
+- H04-P05: Student housing is not named anywhere; per-bed rent rolls are not described (multifamily rent roll works on units; per-bed handling not tested).
+- H04-P06: Bay Area registry is described as loaded for San Francisco but the materials say owner names are omitted in the SF public file, and nothing is hosted; a lender cannot use it yet.
+- H04-P07: The ChatGPT guide's subset includes the multifamily rent roll, but nothing says what the tool does not do for apartments (no delinquency, no bad debt, no renewal conversion).
+- H04-P07: Florida is not in the loaded registry list at all (README: Florida waits on a licence decision), so nothing about Miami-Dade owners or sales.
+- H04-P08: Home page says 'deterministic math they can't get wrong': what is meant is that they reproduce a stated convention. The reconciliation workbooks use synthetic inputs and the DCF has no ARGUS tie-out.
+- H04-P08: Travis County is listed as loaded but its coverage row says not hosted and not in a published sample (registry-coverage.md); Bexar is a gated source.
+- H04-P09: The home page does not say that doc_compare, doc_verify_claim and doc_spread_statement are outside the default Custom GPT subset (the ChatGPT guide does).
+- H04-P09: Value shapes are not in the materials (ingest.md is referenced but not supplied).
+- H04-P10: Nothing in the materials says whether the ASC 842 tool has been reviewed by an accountant or auditor; the reconciliation workbook claim is synthetic inputs only.
+- H04-P10: Seattle and King County data are not available (README lists King as waiting on a decision).
+- H04-P11: The materials talk about Los Angeles parcels as loaded but the README says owner names are omitted there and nothing is hosted; I cannot use it to find owners or sales.
+- H04-P11: lease-comps.md describes sharing comps firm to firm but nothing says how or where I would receive other firms' comps; validation is all that is hosted.
+- H05-P01: Nothing on the home page or llms.txt mentions self-storage; the commercial chart of accounts has no storage line items (Fee Income was unmapped)
+- H05-P01: The 22-calculator list names no storage-specific metric (rent per occupied SF, economic occupancy)
+- H05-P01: site-index 'eight CRE skills' vs 'eleven CRE skills' in the same page
+- H05-P02: Live-connection claims for Copilot Studio and Gemini are untested by the vendor itself (connectors-README verified table)
+- H05-P02: Lease comps are federal GSA government-tenant leases, not market industrial comps (lease-comps.md, llms.txt); nothing on this page supplies logistics comps
+- H05-P02: Pricing page: 'Start Pro' for $49 gives an API key but no SSO or contract terms
+- H05-P03: Registry headline numbers (1.95M parcels, Dallas and Tarrant loaded) are not usable from the hosted service; registry-coverage lists Dallas County 'No: not hosted'
+- H05-P03: Pro at $49 'hosted registry lookups as each region opens (none is open yet)' sells something that does not exist
+- H05-P03: No tool turns lease text into CAM inputs; the schema defaults (e.g. controllable true) are the user's job to set
+- H05-P04: No statement of how the formulas were independently validated beyond 'Excel reconciliation workbooks' for synthetic inputs (changelog: ARGUS parity 'stated as untested')
+- H05-P04: CMBS loan-level data is advertised (changelog 0.3.0, home page) but not usable on the hosted service
+- H05-P04: Student housing is not mentioned anywhere; no per-bed metrics
+- H05-P05: The home page leads with 22 calculators; a Custom GPT user gets 19 of them (the 26 operations include IDs and document tools)
+- H05-P05: No statement of how ASC 842 output was validated against a lease accounting system; the reconciliation workbook folder is for synthetic inputs and 'ARGUS parity is stated as untested' (changelog)
+- H05-P05: gpt-instructions.md is referenced but not provided in the materials
+- H05-P06: Home page 'eight CRE skills' versus 'eleven' (site-index.txt); plugin README table lists cam-reconciliation twice
+- H05-P06: The marketing leans on registry data, but a property manager's day is CAM and rent rolls, which only show up in the plugin README and skills
+- H05-P06: Seattle: the Washington Clean Buildings pack is a draft and not a tool (rules.md); nothing for Seattle BEPS or King County
+- H05-P07: Nothing shows a real retail lease being abstracted end to end; the examples are synthetic
+- H05-P07: The registry story (CMBS, deeds, sales) is not available on the hosted service, so the 'public-record facts' half of the pitch is not usable
+- H05-P07: The check that a value 'is in the quote' is textual: 'twelve months' notice' would support a 12-month term (stated in document-verification.md, not tested)
+- H05-P08: No Texas county data is reachable: registry-coverage lists Travis and Williamson loaded, Bexar gated, and none hosted
+- H05-P08: lease-comps.md's shared-comps idea needs other firms to contribute; there is no hosted store
+- H05-P08: 'Pro: hosted registry lookups as each region opens (none is open yet)' is a promise, not a feature
+- H05-P09: No framework-specific example (LangGraph, CrewAI, OpenAI Agents SDK) in the materials; only Claude, ChatGPT and per-platform links
+- H05-P09: No small-market data: the registry is not hosted and the comps are federal GSA leases, not Midwest industrial
+- H05-P09: The home page counts 22 calculators; an agent with a 160 KB tool list needs a recommended subset
+- H05-P10: No appraisal-oriented example (cap-rate range, reconciliation) in the materials
+- H05-P10: Registry headline numbers include DeKalb County parcels, but registry-coverage shows no hosted lookups, and Fulton County is gated
+- H05-P10: The pitch is aimed at agents doing lease math; nothing mentions appraisal workfiles or USPAP
+- H05-P11: customer-documents.md says hosted document verification keeps nothing (stateless, metadata-only log) but also says it is 'policy and product commitment, not yet a contract' and that the data processing addendum still needs counsel; a law firm cannot sign off on that yet
+- H05-P11: NYC records are advertised (ACRIS 2013-2026) but cannot be queried on the hosted service
+- H05-P11: LL97 is a draft pack and not a tool (rules.md), so building-emissions exposure is not available
+- H06-P01: Home hero says eight skills; elsewhere eleven (site-index.txt vs plugin-README.md).
+- H06-P01: connectors-README.md says the remote MCP serves '16 tools plus search, fetch, schema_get' and its Docker example pins 0.1.1; the live server lists 42 tools at version 0.3.0.
+- H06-P01: customer-documents.md calls itself policy, 'not yet a contract', and says the hosted-verification section 'needs counsel's review'; a lease admin team cannot send tenant leases on that basis alone.
+- H06-P01: No named medical-office-specific predicates (e.g. exclusives for pharmacies, imaging, ASF rules) beyond the generic clause predicates in the changelog.
+- H06-P01: document-verification.md points to an Ingest predicate table in ingest.md that is not among the materials a prospect gets; the live tool answered my lease.escalation_rate with 'is not an Ingest predicate (did you mean lease.expiration_date?)', a hint that points at the wrong field.
+- H06-P02: The Excel reconciliation workbooks are the proof I would want, but 'ARGUS parity is stated as untested' (changelog-0.3.0.md): I cannot rely on any ARGUS equivalence.
+- H06-P02: The Copilot and Gemini setup guides are only referenced, not included, and connectors-README admits no live console test.
+- H06-P02: No SOC 2 or similar attestation, no OAuth (connectors-README).
+- H06-P03: The GPT subset omits calc_lease_vs_own, calc_prepayment_and_defeasance, calc_capex_recovery, id_building and doc_compare (connector-chatgpt-README.md says so); for my work that costs nothing, but the doc leaves the building ID out of GPT use.
+- H06-P03: No sale comps, rent comps or cap-rate surveys: the 6,994 GSA lease comps are federal government leases, which lease-comps.md itself says are not market comps for every use.
+- H06-P04: Hosted registry (owners, sales) is 'not open yet' on every plan, yet the Pro and Team tiers are priced; I would not pay for something that does not exist yet (site-index.txt Pricing).
+- H06-P04: connectors-README.md quotes tool counts and an image tag (0.1.1) that are stale against the live 0.3.0 server.
+- H06-P04: For a tax-deadline tool I would want to see the rule sourced and verified; the 1031 tool's description cites IRC and Treas. Reg. sections, but the pack has no verification record for it, unlike the 'verified 2026-11-02' stamp on the Texas rule (rules.md).
+- H06-P05: Nothing on manufactured housing: no mention of pads, park-owned homes or agency MHC underwriting, so I had to read the apartment rent-roll tool as a pad roll.
+- H06-P05: No SOC 2 or similar attestation and no OAuth/SSO (connectors-README 'Not provided yet'); a lender's vendor review will stop on that for borrower financials.
+- H06-P05: The cre-loan-sizing skill's amortization example labels a 'review case' ID in its text, which reads like an internal artifact in a customer-facing doc.
+- H06-P06: The skill says to relay warnings with each statement; my batch had 'Admin fee base includes uncontrollable lines' on two statements, which is useful but means my agent must interpret lease language to set admin_fee_applies per line.
+- H06-P06: Seven Excel reconciliation workbooks are described (examples-README.md 'reconciliation/', changelog-0.3.0.md) but are not in the pack; I could not check the zero-difference claim against them.
+- H06-P07: customer-documents.md says its hosted section 'needs counsel's review' and the whole page is 'not yet a contract'; my counsel will not rely on it, which pushes me to the self-hosted server for real deals.
+- H06-P07: The hosted tools take text, not PDFs; the PDF reader is local-only (document-verification.md), so a Copilot Studio agent still needs its own extraction step.
+- H06-P07: No example in the pack of a complete diligence flow (extract, verify, compare, report) with a real-looking estoppel.
+- H06-P08: Registry data for Georgia is thin and not hosted: registry-coverage.md lists DeKalb County parcels only (11,351), no Georgia entity registry loaded, and the Fulton County assessor source is gated; hosted lookups are not open on any plan (site-index.txt).
+- H06-P08: No comps, no buyer lists, no sale history I can use in Atlanta.
+- H06-P08: No example of a BOV or listing-pitch workflow.
+- H06-P09: Paid plans are sold on 'hosted registry lookups as each region opens (none is open yet)'; today a paid key buys only more requests per minute (site-index.txt Pricing, /v1/plans).
+- H06-P09: The home page says 'eight CRE skills' for the Claude Code plugin while the table and llms.txt say eleven (site-index.txt); a small inconsistency that makes me double-check other numbers.
+- H06-P09: No OM or mixed-use worked example.
+- H06-P10: Only Texas has a verified rule; for my tax calendar that is what I need, but the home page's 'rules packs' headline reads bigger than one pack plus three drafts that are not served.
+- H06-P10: Home hero says 'eight CRE skills'; the plugin README and llms.txt say eleven (site-index.txt).
+- H06-P10: Nothing about retail-specific work such as co-tenancy or anchor exclusives in the plugin skills, although the changelog adds exclusive-use screening.
+- H06-P11: The 'steps' field is a sentence-level audit, not the full month-by-month table, so some conventions (rounding of monthly rent to cents) are visible only in the numbers.
+- H06-P11: Pro and Team pricing is for 'hosted registry lookups as each region opens (none is open yet)': nothing I would pay for.
+- H06-P11: Marketing for the registry (1.95 million parcels) is not something I can query; the DC sample download is a 23.4 MB database for a self-hosted server (site-index.txt), not my county.
+- H07-P01: The home page leads with 1,953,805 parcels and 14.2 M entities while hosted registry lookups are not open; a lease admin reader has to work out that this does not matter for them (site-index.txt)
+- H07-P01: Predicate vocabulary lives in ingest.md, not in the materials I was given
+- H07-P02: '22 calculators' is true (22 calc_ tools in GET /v1/tools) but a buyer reading 1,953,805 parcels and 14.2 M entities first has to find the line that says none of it is queryable hosted (site-index.txt)
+- H07-P02: Colorado coverage line says Denver County parcels are loaded but 'not hosted, not in a published sample' (registry-coverage.md); the DC sample is the only registry file I could get
+- H07-P03: Skill count: eight on the home page, eleven everywhere else (site-index.txt)
+- H07-P03: No example of a whole-tenant CAM statement a tenant would accept
+- H07-P03: Nothing says how many requests a building-wide reconciliation needs against the 60 a minute limit
+- H07-P04: Home page registry counts read as if lookups work; only the pricing section and the registry card say none is open hosted (site-index.txt)
+- H07-P05: The registry headline numbers (1.95 M parcels) do not apply to me: Illinois shows 'none loaded' in registry-coverage.md
+- H07-P05: getting-started.md leads with Docker and a clone; the quickest path (plain REST) is buried under 'Hosted connector in Docker'
+- H07-P06: Step 1 'Deploy the remote connector' in the Claude doc
+- H07-P06: Nothing in the materials shows retail co-tenancy clauses being checked, though a lease.co_tenancy predicate exists (not tested)
+- H07-P07: The home page says 'deterministic calculators ... they can't get wrong', a strong word next to conventions the DCF itself says to confirm (site-index.txt vs the DCF warning)
+- H07-P07: No security or data-handling statement an institution's compliance team could file, beyond the privacy page's 'collects as little as it can' (site-privacy.txt)
+- H07-P08: The home page lists prepayment and defeasance among its 22 calculators; a GPT builder following the primary Custom GPT path would not get it (site-index.txt vs connector-chatgpt-README.md)
+- H07-P08: 'Math they can't get wrong' (site-index.txt): the tool itself warns that notes differ on all three of basis, convention and floor
+- H07-P08: No source for the Treasury yield I must supply
+- H07-P09: The status word 'supported' is stronger than what is checked (number written in the quote); the reason line says 'FactLot does not read the sentence's meaning', but the status alone says 'supported'
+- H07-P09: Home page says the document checks 'confirm the quote is on that page and states the value'; a quote can state the same number for another term
+- H07-P10: Home page and llms.txt list calculators for hotel, multifamily and retail but never mention data-center units (site-index.txt, site-llms.txt); kW appears in GET /v1/tools, the 0.3.0 changelog and the lease-economics skill
+- H07-P10: Nothing prices power, PUE or utility pass-throughs; the result's own warning says so
+- H07-P11: Per-address rate limit shared by every agent behind one NAT; the docs do not say what happens to a graph that fans out calls
+- H07-P11: No statement about framework compatibility or tested versions in the materials
+- H08-P01: The materials do not show an end-to-end lease example with predicate value shapes; ingest.md is referenced but not in the materials
+- H08-P01: Home says 22 calculators; /v1/tools returns 39 tools including doc, id and fact tools, which is consistent, but the 'eight CRE skills' on the home page versus 'eleven' elsewhere (site-index.txt vs plugin README and llms.txt) is sloppy
+- H08-P02: Nothing on the site says how the tool compares to Yardi's or an Excel workbook's CAM output beyond the seven synthetic reconciliation workbooks (examples-README.md); none is a CAM-only proof for gross-up and caps that I opened
+- H08-P02: connector-claude-README.md step 1 wording about deploying
+- H08-P02: connectors-README.md's verification table says a live connection from the claude.ai, ChatGPT, Copilot Studio, Gemini and Bedrock consoles is 'Not yet' done; the connector steps follow each platform's documentation and may need menu paths confirmed
+- H08-P03: No statement of conventions where lenders differ (for example debt-yield and DSCR on actual versus underwritten NOI); some are in tool descriptions only
+- H08-P03: Excel reconciliation workbooks are synthetic and ARGUS parity is stated as untested (changelog 0.3.0): honest, but it means no proof against my incumbent
+- H08-P04: Nothing on the site shows a late-year transfer example, which is where small owners get hurt; the skill worked example uses 2026-10-01 but the return-due-date interplay is only in a warning
+- H08-P04: plugin-skills/exchange-1031.md says the plugin has eleven skills; site-index.txt says eight CRE skills in one place
+- H08-P05: No document shows a reconciliation of the ASC 842 tool against a lease-accounting system; the Excel workbook set lists ASC 842 but I did not open it (not in the materials I read)
+- H08-P05: 'Corporate occupier' is not a stated audience anywhere on the home page; it reads as landlord and lender oriented
+- H08-P05: connectors-README.md's verification table says a live connection from the claude.ai, ChatGPT, Copilot Studio, Gemini and Bedrock consoles is 'Not yet' done; the connector steps follow each platform's documentation and may need menu paths confirmed
+- H08-P06: Statement that the hosted service stores nothing is in privacy and customer-documents pages but is a policy statement I cannot test from outside
+- H08-P06: Fact package gives tamper evidence, but an unsigned package can be rebuilt by anyone: authenticity needs the holder's signature, which I did not test
+- H08-P06: connectors-README.md's verification table says a live connection from the claude.ai, ChatGPT, Copilot Studio, Gemini and Bedrock consoles is 'Not yet' done; the connector steps follow each platform's documentation and may need menu paths confirmed
+- H08-P07: getting-started.md says REST, OpenAPI and tool exports always include registry tools that return RegistryUnavailable; neither /openapi-3.0.json (26 ops) nor ?operations=all (39 ops) on the hosted service lists any
+- H08-P07: The doc describes 30 operations; the hosted file has 26
+- H08-P07: connectors-README.md's verification table says a live connection from the claude.ai, ChatGPT, Copilot Studio, Gemini and Bedrock consoles is 'Not yet' done; the connector steps follow each platform's documentation and may need menu paths confirmed
+- H08-P08: Only the 2026 holiday calendar is mentioned as a vector (rules.md); I tested 2026 and 2027 dates only, not later years
+- H08-P08: Nothing says whether district-specific protest windows (for example for a notice sent after April 15 in some counties, or agricultural exceptions) are out of scope beyond 'county-specific practice'
+- H08-P08: connectors-README.md's verification table says a live connection from the claude.ai, ChatGPT, Copilot Studio, Gemini and Bedrock consoles is 'Not yet' done; the connector steps follow each platform's documentation and may need menu paths confirmed
+- H08-P09: Home and README do not warn that the lease-vs-own tool is outside the default GPT subset
+- H08-P09: 'Corporate occupier' is not stated as an audience; the value to me (anchor lease vs own, CAM audit) has to be inferred from the calculator list
+- H08-P09: connectors-README.md's verification table says a live connection from the claude.ai, ChatGPT, Copilot Studio, Gemini and Bedrock consoles is 'Not yet' done; the connector steps follow each platform's documentation and may need menu paths confirmed
+- H08-P10: Home page does not mention small multifamily owners at all; the audience reads as institutions
+- H08-P10: connectors-README.md says live connection from the Claude and ChatGPT consoles is not yet tested by the project, which a small owner cannot debug alone
+- H08-P11: Manufactured housing, lot rent, park-owned homes and utility billing are not mentioned
+- H08-P11: Nothing says whether state rent-regulation rules for manufactured housing are covered (rules.md: one verified pack, Texas protest deadline)
+- H08-P11: connectors-README.md's verification table says a live connection from the claude.ai, ChatGPT, Copilot Studio, Gemini and Bedrock consoles is 'Not yet' done; the connector steps follow each platform's documentation and may need menu paths confirmed
+- H09-P01: site-index.txt says the Claude Code plugin has 'eight CRE skills' but also 'eleven'; plugin-README.md lists cam-reconciliation twice in its table.
+- H09-P01: Nothing on the home page says what a flex tenant gets: the 6,994 comps are federal GSA leases, mostly office (6,493 office, 372 industrial per lease-comps.md), so a Miami flex comp set is effectively unavailable.
+- H09-P01: The 1.95M parcels / 14.2M entities figures are headline numbers on the home page, but the hosted service cannot look any of them up.
+- H09-P02: Home page registry figures (1,953,805 parcels, 14.2M entities) read as a product, but hosted lookups are not open; I had to read twice to find that.
+- H09-P02: No example of a renew-vs-relocate result in the marketing, only net effective rent.
+- H09-P02: site-terms.txt / site-privacy.txt were not enough for me to judge data retention for client lease economics (not tested beyond the plugin README statement).
+- H09-P03: The home page leads with the registry (1.95M parcels) which I cannot use; the part I can use, CAM and WALT, is a list of names without a sample result for CAM.
+- H09-P03: No CAM example in the marketing shows a cap and admin-fee case.
+- H09-P03: Nothing says whether the free 60 requests a minute is per GPT user or per address; a Custom GPT used by many asset managers may share an address (the docs say per address).
+- H09-P04: Nothing says how the tool treats mixed-use (retail plus residential) NOI; I treat it as one NOI.
+- H09-P04: 'Debt sizing' result shows the loan after rounding but the 'resulting' DSCR and debt yield are computed on the rounded loan, which a reader may not expect.
+- H09-P05: The registry headline (1.95M parcels, 21 states) invites a developer to expect owner/zoning lookups; the hosted service returns none (no registry_* operation in the all-operations spec).
+- H09-P05: Equity waterfall is listed as a calculator but the home page has no example showing pref, catch-up and tier conventions.
+- H09-P05: 'Direct cap' is worded for acquisitions; using it for yield-on-cost on a development needs reading the step labels.
+- H09-P06: No framework quickstart: the docs give Claude, ChatGPT and Gemini connectors but nothing for LangGraph, OpenAI Agents SDK or CrewAI beyond 'any MCP client'.
+- H09-P06: The predicate shapes (ingest.md) are referenced but not linked in the pages I read; an agent has to learn them from rejection messages.
+- H09-P06: Home page says one pack is verified (Texas) which is irrelevant for Massachusetts stores; no Massachusetts rules.
+- H09-P07: Nothing on the home page says the sizing constant is a monthly 30/360 constant; I found it in the step formula (12 x r / (1 - (1 + r)^-n)), and the interest-only case is rate x loan. Many lenders size on actual/360.
+- H09-P07: No SLA, status page or retention statement beyond 'nothing stored' for document tools; a bank needs more.
+- H09-P07: The hosted free tier shares limits by address (60 per minute); no statement of uptime.
+- H09-P08: Nothing for site selection: the home page positions FactLot for lease math, IDs and registry, with no traffic, trade-area or demographic data, and the registry is not open hosted.
+- H09-P08: Percentage rent is listed under the cam-reconciliation skill, where a restaurant operator would not look.
+- H09-P08: The plugin description does not say Claude Code needs the hosted server or the local one to be reachable from a corporate network.
+- H09-P09: Nothing in the marketing says how to enter a MOB where rentable area is the same but usable differs; I had to infer from the schema that rents, TI and opex are per rentable SF and the final metric divides by usable.
+- H09-P09: The home page and README do not mention medical office at all; no MOB comps or TI benchmarks.
+- H09-P10: The document-verification.md claim that a package is 'hash-chained, optionally signed' is clear in outline but the package digest composition is not described in the pages I read, so I could not reproduce the digest myself.
+- H09-P10: The home page lists GSA comps as the only comps; for NJ occupiers they are not market comps and nothing says whether anyone has contributed shared comps yet.
+- H09-P11: Nothing in the materials tells a manager how the batch treats an expense stop: the call shows stop_amount is multiplied by the tenant's share (a building-level amount), but a lease may state a stop per tenant or per SF.
+- H09-P11: California specifics (Prop 13 reassessment pass-throughs, sales-tax exclusions) are not mentioned; fine for a calculator but the headline says nothing for retail PMs.
+- H10-P01: Home counts 1,953,805 parcels and 14.2M entities, but nothing is queryable on the hosted API; a DFW buyer reads the Dallas and Tarrant coverage and cannot use it.
+- H10-P01: site-index.txt mentions a plugin 'with eight CRE skills' in one place while the plugin README and llms.txt say eleven.
+- H10-P01: 'Verified sources 42' on the home page versus 126 reviewed sources in the changelog: different measures, not reconciled where a prospect would look.
+- H10-P02: Nothing says whether the DCF is meant for apartments: its inputs are per-SF commercial leases with whole-month downtime, and the docs do not warn that residential turnover vacancy needs special handling.
+- H10-P02: cre-valuation skill and home page present the registry as the source of 'facts', but none of it (sales, zoning, assessed value) is reachable on the hosted service, which is where an appraiser's comps would come from.
+- H10-P03: The page says every operation is read-only and not consequential, and the privacy page says FactLot stores nothing, but a property manager sending tenant estimates and expense lines would want the retention statement for the request body spelled out near the Actions steps.
+- H10-P04: document-verification.md says 'verified' facts are cited, but for free-text list predicates the check is type-only; a broker skimming the word 'verified' would not expect that.
+- H10-P04: The home page describes exclusives checks without saying that the facts must first be extracted by the agent from a lease and verified; a tenant-rep GPT needs the abstract step first.
+- H10-P05: Home: 'deterministic math they can't get wrong' is stronger than the product's own conventions warning ('ARGUS and other tools differ in some of these').
+- H10-P05: 'Excel workbooks reconciling every calculator at zero difference' (llms.txt) is a claim about synthetic inputs; I did not open the workbooks and ARGUS parity is stated untested.
+- H10-P06: The materials never say how an agent should map a stepped rent table that does not recur on a fixed interval to a billing schedule; calc_rent_schedule only takes percent or fixed bumps every N months (see calls 7-8).
+- H10-P07: The home page lists Boston among the loaded metros; for a Boston appeals shop that reads like a feature, but nothing hosted lets me query it and the hosted-lookup date is not given.
+- H10-P07: The plugin README's skill table has no tax-appeal workflow beyond Texas, which a reader in another state cannot tell from the name 'tx-property-tax-protest' until opening the skill.
+- H10-P08: Nothing in the materials says the multifamily rent-roll tool is meant for manufactured-housing pads or how to model lot rent versus home rent.
+- H10-P08: The 1031 tool's description lists the identification tests but does not say how a late identification is treated in them (see calls).
+- H10-P09: site-index.txt 'eight CRE skills' vs eleven elsewhere.
+- H10-P09: The marketing line about CMBS loan-level facts (377 trusts) suggests debt comps, but nothing about them is reachable on the hosted API today.
+- H10-P10: The accounting tool says 'present results as calculations for accountants to review'; nothing says whether the formulas have been reviewed by an outside accountant.
+- H10-P11: Home and llms.txt present 'rules packs' as a layer, but there is exactly one verified pack and no stated schedule for others; for a multi-state tax team the layer is a promise.
+- H10-P11: rules.md says recommended_file_by 'is safe even if the holiday list is wrong'; I verified the dates, not the claim about the holiday list.
+- H11-P01: The home page quotes 1,953,805 parcels and 14.2M entities, but registry-coverage.md shows Bexar (San Antonio) as gated by a records request, and Travis and Williamson loaded but 'not hosted'. A small owner could read the big numbers as Texas lookups that exist for them.
+- H11-P01: Pricing says Pro/Team include 'hosted registry lookups as each region opens (none is open yet)': the paid plans' main differentiator for a Texas owner is a promise, so $49 buys only a higher rate limit today.
+- H11-P02: Home page lists 'energy benchmarks' among data the pipeline holds, but registry-coverage.md says only the DC sample is queryable and nothing else is hosted; an ESG agent must read to the coverage page to learn it cannot pull LL84 data.
+- H11-P02: Plugin README and home page describe 'eight' CRE skills in the install snippet and 'eleven' elsewhere (site-index.txt says eight CRE skills; plugin README says eleven).
+- H11-P03: customer-documents.md says the page 'needs counsel's review' and is 'policy ... not yet a contract': a corporate legal team cannot rely on the no-storage promise until a DPA exists.
+- H11-P03: The mention in site-privacy.txt that 'Documents you send are processed in memory' is only assertion; no audit or attestation (connectors README lists no SOC 2).
+- H11-P04: The ChatGPT guide lists 30 names including four registry_* operations; the served 3.0 document has 26 operations and none of them registry (the doc says registry tools appear only with a registry loaded, but getting-started.md says REST and OpenAPI 'always include the registry tools').
+- H11-P05: The use-category vocabulary (66 categories, NAICS 2022) is claimed but I cannot judge coverage; a synonym test missed a conflict (see call 4).
+- H11-P05: The home page and llms.txt emphasize loan sizing and CAM; there is no retail site-selection story (traffic, demographics, trade areas).
+- H11-P06: 'ARGUS parity is stated as untested' (changelog-0.3.0.md): the reconciliation workbooks are synthetic Excel checks, not a comparison with a tool brokers use.
+- H11-P06: Data leaves the machine on the hosted tier (plugin-README.md says so); a broker's client proposals are confidential and the privacy page is a promise, not an audit.
+- H11-P07: No ESG or energy skill although ESG is part of the pitch for the registry (energy benchmarks).
+- H11-P07: The cost-savings-cap and clause echo in capex recovery is excellent, but nothing in the marketing says the tool exists for energy retrofits; it is filed under CAM.
+- H11-P08: No evidence that the DCF ties to ARGUS on a rollover-heavy roll; the 'reconciliation' workbooks are synthetic Excel checks (changelog-0.3.0.md says ARGUS parity untested).
+- H11-P08: Pricing and free tier are fine, but nothing says what the hosted DCF costs in latency for large rolls (not tested).
+- H11-P09: The Copilot and Gemini guides exist only as links in connectors-README.md; no steps shown to a prospect on the website.
+- H11-P09: 'Streamable HTTP and stateless': GET /mcp returns 405 'use POST' (fine for stateless), but a Copilot Studio user needs to know that no SSE stream is offered.
+- H11-P10: The MCP section lists clients (Claude, ChatGPT, Copilot, Gemini, Cursor) but not agent frameworks; there is no sample LangGraph or Agents SDK snippet.
+- H11-P10: Rate limit is per IP at 60 a minute; an agent fan-out across 11 hotels will hit it on the free tier.
+- H11-P11: The CAM skill is in the Claude Code plugin; a Claude Desktop user connecting only the URL has to find the skill file to learn input meanings (e.g. cap.reference_amount is the tenant's share of controllable expenses in the base year).
+- H11-P11: Home page says 'building-wide CAM' with no sample statement a tenant could read.
+- H12-P01: 'Calculators they can't get wrong' (site index) is stronger than evidence offered; my checks matched, but five checks is not proof.
+- H12-P01: Eight versus eleven skills (site index vs plugin-README) and 16 tools vs 39 (connectors-README) make the docs feel unmaintained.
+- H12-P01: Registry counts (1.95M parcels, 14.2M entities) are prominent on the home page but nothing I can call returns any of it.
+- H12-P02: 'Calculators they can't get wrong' reads as a guarantee; the conventions warning shows the model choices a valuation committee would question (annual periods, whole-month rounding).
+- H12-P02: The registry statistics (1,953,805 parcels, 14.2M entities) say nothing I can call, so they do not help an appraiser today.
+- H12-P03: The home page headline is about registries and IDs; the hotel metrics sit in a list of 22 calculators, so I would not have found it fast.
+- H12-P03: 'Calculators with audit trails' did not say the tool will not sanity-check my inputs.
+- H12-P04: The home page lists 22 calculators and 16-tool and 39-tool figures in different places, so I cannot tell which tools my agent will see.
+- H12-P04: No industrial example appears anywhere; the sample is an office-style net effective rent.
+- H12-P05: The home page leans on registries and IDs, which do nothing for my valuation work today.
+- H12-P05: 'Cited facts' language says nothing about whether the Texas rule's verification is complete for the county (it says county practice is not covered).
+- H12-P06: Home page is about registries, IDs and agents; nothing says 'real estate owners' or shows a 1031 result.
+- H12-P06: I do not know what 'fact layer' means for my storage business.
+- H12-P07: Rent steps stated by lease year ('Lease Years 1 through 3') cannot be verified because the dates must be in the quote; the docs say 'every step of a rent schedule is checked' but do not say that lease-year language will fail.
+- H12-P07: 'Nothing is stored' is on the home page, but I did not see data-handling terms for confidential leases beyond that and a request not to email leases.
+- H12-P08: Nothing on the site shows an appraisal or net lease use; the lead example is an office net effective rent.
+- H12-P08: The headline emphasises registries I cannot call today.
+- H12-P09: Home page does not mention data centers at all.
+- H12-P09: No data center example on the site or in the README.
+- H12-P10: The 'registry' statistics are prominent while no hosted lookup exists; the section would read better if the 'what you can query' sentence came first.
+- H12-P10: The rent roll tool has no mention of rent-stabilized units or NYC-specific rent rules.
+- H12-P10: 'Public-record registry where every fact points at the document' is a strong claim I cannot test hosted.
+- H12-P11: The home page says every claim carries its AI-use rights, but facts from the document tools carried none (verify_facts call).
+- H12-P11: 'Supported' can read as an assurance; the page says the checks are textual, but the response label does not.
+- H12-P11: Nothing on the site shows a diligence workflow end to end.
+- H13-P01: site-index.txt says the Claude Code plugin has 'eight CRE skills' while getting-started.md, llms.txt and the changelog say eleven
+- H13-P01: connectors-README.md says remote MCP serves '16 tools plus search, fetch, schema_get' and shows a v0.1.1 Docker tag, while /v1/tools returned 39 tools and the other docs say 0.3.0
+- H13-P01: 'nothing is stored' on the hosted API is a policy statement; I cannot test it from outside
+- H13-P02: energy benchmarking is listed in the registry text ('energy benchmarks ... only for some metros') but nothing hosted serves it; the only energy thing I could reach is a list of predicate names via fetch
+- H13-P02: 'Draft rules packs ... are in the SDKs for review only' means no LL97, Washington or BERDO calculation is available to a hosted agent
+- H13-P03: the home page leads with a registry of parcels and owners that is not queryable on the hosted service; for a tenant rep the pitch is buried in a list of 22 calculators
+- H13-P03: connector-claude-README.md still reads as a deploy-it-yourself guide for the hosted URL
+- H13-P04: the registry numbers on the home page (1,953,805 parcels, 14.2 M entities, CMBS loan facts in the changelog) are headline-sized but not queryable on the hosted service, which the page does say; a lender reads the headline first
+- H13-P04: no stated day-count and payment-convention policy across calculators
+- H13-P05: customer-documents.md says the cloud host 'is not yet chosen' (section 7) while the hosted verification section says the hosted API has been live since 2026-11-04 and 'needs counsel's review'; privacy.txt names Cloudflare only for the website. I cannot tell my counsel who processes the pages in memory
+- H13-P05: terms say 'results are not legal ... advice'; fine, but there is no DPA or confidentiality term for lease text sent to the hosted API
+- H13-P06: multifamily is one of 22 calculators in a list led by lease and registry content on the home page; an apartment asset manager has to dig for it
+- H13-P06: 'ARGUS parity is stated as untested' is honest but means no tie-out to my real models yet
+- H13-P07: 'Proof: Excel workbooks reconciling every calculator ... at zero difference' (llms.txt) cannot be inspected from the materials, and the reconciliation uses synthetic inputs
+- H13-P07: no stated policy on second-generation rollover in the DCF
+- H13-P08: the claim that 'Every result carries steps' holds, but the site says nothing about which lease clause language maps to which cap method
+- H13-P08: verified status is by 'FactLot maintainers'; for a legal deadline I would want a named reviewer or counsel (rules.md says a named person)
+- H13-P09: the doc says the subset has 30 operations; the hosted file has 26 (4 registry tools are only on a server with a registry loaded), which the doc does say but a first-time reader may see as a miss
+- H13-P09: 'Developer mode requires a paid plan' for the ChatGPT app route; the Action route is the one that works on any GPT builder plan, but the doc does not say which plans can build Actions
+- H13-P10: the home page puts the T-12 spreader in a long list at the bottom of the rules-and-documents section; an appraiser would not find it
+- H13-P10: no mention of apartment rent or sales comps; the registry numbers are about parcels and owners
+- H13-P11: connectors-README.md says live connection from the Copilot Studio and Gemini consoles is 'Not yet' verified, so the headline 'runs wherever agents run' is unproven for my platform
+- H13-P11: the exclusives checker is described as 'potential conflicts for human review', which is fine, but the home page does not show a retail example
+- H14-P01: Home page lists Charlotte among the metros loaded in full, but registry-coverage shows Mecklenburg and Wake zoning and sales as 'not mapped' and 'Queryable today: No'; I cannot use any of it for these markets today.
+- H14-P01: Home says 42 verified sources; registry-coverage.md says 137 reviewed and 62 verified, rights.md says 126 reviewed. I would ask which is current.
+- H14-P02: connector-chatgpt README lists registry_* operations in the GPT subset, but the live 3.0 document has none and says 26, not 30
+- H14-P02: Nothing on the site shows a worked medical-office CAM example (biohazard waste, medical gases, tenant-specific excludables); the CAM skill covers generic CAM only
+- H14-P02: getting-started.md says REST and OpenAPI always include the registry tools; GET /openapi-3.0.json (26 operations) and GET /v1/tools (39 tools) list none, although another persona's call in this batch found that POST /v1/registry/search_address exists and returns RegistryUnavailable. The route is just not discoverable from the lists.
+- H14-P03: 'ARGUS parity is stated as untested' (changelog) means I cannot say the DCF ties to ARGUS; the blended single-rollover model will not match a lease-by-lease ARGUS run
+- H14-P03: Nothing on market comps or medical-office cap rates; the hosted service has no registry data
+- H14-P04: The site says CMBS loan-level data is in the registry (changelog 0.3.0), which would help a lender, but it is not reachable on the hosted service
+- H14-P04: No student-housing wording anywhere in the materials: no per-bed leasing, no academic-year lease (I did not find the term in the materials I read)
+- H14-P05: Home page lists Los Angeles among metros 'loaded in full', but the coverage file shows no owner names for the county; the headline reads more useful than it is for a franchisee needing a landlord
+- H14-P05: Nothing restaurant-specific (drive-thru, sales reporting, kick-out or co-tenancy math) beyond percentage rent
+- H14-P06: 'Every connector exposes the same tools, generated from one catalog' is a design claim; the README separately says no platform console was tested live
+- H14-P06: 'Pro' and 'Team' pricing mention hosted registry regions 'as each region opens (none is open yet)', so the paid tiers do not buy anything I use
+- H14-P07: Home page and llms.txt mention energy benchmarks (NYC LL84, DC, Denver in the changelog), but registry coverage says they are not hosted; for my role the headline reads bigger than what a hosted agent can use
+- H14-P07: 'Draft rules packs' appear in several places, which makes the NYC LL97 coverage look closer than it is
+- H14-P08: 'Every connector serves the same tools' is untested on the platforms I would use (connectors README verification table)
+- H14-P08: Debt sizing has no day-count input: interest-only DSCR is computed on the nominal rate over 12, but many IO loans accrue actual/360; nothing in the steps says which is used
+- H14-P09: Nothing in the materials gives me sale comps or cap rates by submarket, which is what a BOV actually rests on; the registry sales data is not hosted
+- H14-P09: The 'implied cap rate' headline in calc_direct_cap is after reserves, which is not how brokers quote a cap
+- H14-P10: rules.md says a pack is verified when 'a named person' has checked it, but the verification block returns verified_by 'FactLot maintainers', a team label
+- H14-P10: No energy benchmarking data for Dallas County in the registry coverage that I can query; the energy predicates are only names
+- H14-P11: The Custom GPT subset leaves out doc_compare, which is half my use case, while keeping calculators I rarely need; the README acknowledges this but offers only 'build your own subset in TypeScript' or the MCP route
+- H14-P11: Hosted use means lease text is sent to api.factlot.com; documents say nothing is stored, which I did not test and legal will want in writing (customer-documents.md not read in full)
+- H15-P01: site-index.txt leads with the registry (1,953,805 parcels, 405 counties) but hosted lookups are 'not open yet': an NYC developer has to read three paragraphs to learn nothing NYC is queryable
+- H15-P01: site-index.txt says the Claude Code plugin has 'eight CRE skills' while the plugin README, llms.txt and getting-started say eleven
+- H15-P01: connectors-README.md says remote MCP 'serves 16 tools plus search, fetch, schema_get' while the live REST catalogue has 39 tools
+- H15-P02: The materials never show a full worked request/response for a lease with an amendment; I had to build my own
+- H15-P02: customer-documents.md and site-privacy.txt are separate reads; the 'nothing stored' claim for hosted calls is a statement I could not test
+- H15-P03: Nothing in the materials shows a reconciliation against Yardi or ARGUS output (examples-README states ARGUS parity untested)
+- H15-P03: No statement of how lab-specific recoveries (sub-metered utilities, fume-hood exhaust) would be modelled
+- H15-P04: site-index.txt says FactLot 'confirms the quote is on that page and states the value', but for lease.prohibited_uses nothing in the list is checked against the quote (call 2); the not_checked field says so but the status is still verified
+- H15-P04: The use-conflict tool is described as using a published vocabulary of 66 categories; 'boba' is not one of them, which the materials do not warn about
+- H15-P05: No example of a medical-office-specific input (TI at $65/sf, long downtime); the materials only show a generic office-style vector
+- H15-P05: examples-README states ARGUS parity untested; I cannot judge how far off I will be
+- H15-P06: The home page 'Rules and document verification' section never says whether option notice deadlines can be computed; the answer (they cannot be verified as computed dates) is only discoverable by calling the tool
+- H15-P06: No example of lease-admin critical-dates workflow in the materials
+- H15-P07: The 'What is not checked' section covers meaning in general terms, but does not warn that a boolean such as go_dark.operating_covenant is not checked at all; that is the value an agent is most likely to invert
+- H15-P07: Home page says document verification 'returns a cited fact' without saying which parts of a value are only type-checked
+- H15-P08: Home page lists 'Texas property-tax protest deadline' without saying that other states have no rule at all; I learned that from a 404 (call 6)
+- H15-P08: registry-coverage.md lists assessor files per county but each says 'not hosted', so nothing I can use for comps today
+- H15-P09: No Houston or Texas multifamily sale or expense comps are available on the hosted service (registry-coverage.md: not hosted), so the market evidence half of an appraisal is missing
+- H15-P09: The materials never show how the output goes into a work file; I would cite formula IDs and quote spans
+- H15-P10: The home page says 'checks' for 1031; it does not say the dates ignore weekends and holidays and disaster relief, which only the warnings say
+- H15-P10: Nothing in the materials covers my markets' rents or sales; multifamily comps for the small-building market are not offered
+- H15-P11: Home page says 6,994 federal lease comps exist 'for the metros the coverage page lists' but they are a separate download, not queryable on the hosted service; I cannot cite them in a hosted workflow
+- H15-P11: lease-comps.md says comps from GSA are mostly office (6,493 of 6,994) fully serviced, so they will not help a retail-over-office NNN assignment
+
+## Marketing: contradicted by the product (42)
+
+- H01-P10: getting-started.md: 'REST, OpenAPI ... always include the registry tools, which return RegistryUnavailable'. Observed: /openapi.json has 39 paths and none is a registry operation (openapi call); POST /v1/registry/search_address does answer RegistryUnavailable (reg2 call), so the tool exists but is not in the OpenAPI listing.
+- H02-P03: connectors-README.md says the remote MCP serves 16 tools plus search, fetch and schema_get; tools/list on the hosted /mcp returned 42 tools (call 2).
+- H02-P03: getting-started.md says REST, OpenAPI and the tool exports 'always include the registry tools'; GET /openapi.json on the hosted service had 39 operations and none were registry tools (call 3).
+- H03-P01: getting-started.md says REST, OpenAPI and tool exports 'always include the registry tools' returning RegistryUnavailable; GET /v1/tools returned 39 tools and none begins with registry_ (call 1)
+- H03-P01: connectors-README.md says remote MCP 'serves 16 tools plus search, fetch'; GET /v1/tools returned 39 tools (22 calc_*), so that table is stale (call 1)
+- H03-P02: connectors-README.md says the remote MCP 'serves 16 tools plus search, fetch, schema_get'; MCP tools/list returned 42 tools (call 2)
+- H03-P02: MCP search for 'CMBS loan DSCR comparable mixed-use' returned only tool:registry_get, and fetch of it describes CMBS facts, but registry_get is not in the hosted tools/list (calls 2, 7, 8)
+- H03-P06: connector-chatgpt-README.md lists registry_search_address, registry_get, registry_search_entities and registry_resolve_parcel in the GPT Actions subset; the hosted /openapi-3.0.json has 26 operations and none of them is a registry operation (call 1); the guide does say 'only on a server with a registry loaded'
+- H04-P01: getting-started.md: 'REST, OpenAPI, and the TypeScript and Python tool exports always include the registry tools'. GET /v1/tools on api.factlot.com listed 39 tools, none a registry_* tool. Possibly intended for self-hosted images; the hosted behaviour differs.
+- H04-P04: getting-started.md: 'REST, OpenAPI, and the TypeScript and Python tool exports always include the registry tools'. GET /openapi.json (3.1.0) on api.factlot.com lists 39 paths and none contains 'regist'.
+- H05-P01: connectors-README: 'Serves 16 tools plus search, fetch, and schema_get' vs tools/list returning 42 tools
+- H05-P02: getting-started.md: REST/OpenAPI 'always include the registry tools'; /v1/tools and /openapi.json list 39 operations and none is a registry tool (GET /openapi.json)
+- H05-P02: connectors-README: remote MCP 'Serves 16 tools plus search, fetch, schema_get'; tools/list returned 42
+- H06-P03: getting-started.md says REST, OpenAPI and the SDK tool exports 'always include the registry tools, which return RegistryUnavailable until a database is configured'. GET /openapi.json returned 3.1.0 with 39 operations and none is a registry tool; GET /v1/tools likewise had 39 with none.
+- H06-P04: connectors-README.md: 'Serves 16 tools plus search, fetch, and schema_get'. tools/list returned 42 tools (22 calc__, rules, id__, fact_validate, 8 doc__, fact_package__, lease_comp_validate, search, fetch, schema_get).
+- H07-P02: getting-started.md says REST and OpenAPI 'always include the registry tools, which return RegistryUnavailable'; GET /openapi.json on the hosted service has 39 paths and none is a registry path, though POST /v1/registry/search_address does exist and returns 503 RegistryUnavailable. The doc describes the generic package, not the hosted surface, but a reader cannot tell.
+- H07-P03: getting-started.md says the MCP servers add search, fetch and schema_get only when a registry database is configured; the hosted /mcp (no registry) lists them: tools/list returned 42 tools including search, fetch and schema_get. This is an undersell, not a harm.
+- H08-P01: getting-started.md: REST/OpenAPI always include registry_* tools (RegistryUnavailable until configured). GET /v1/tools on the hosted service lists none.
+- H08-P01: connectors-README.md: remote MCP 'Serves 16 tools plus search, fetch, and schema_get'. tools/list (call 3) returned 42 tools (39 plus search, fetch, schema_get), with no registry_* tools
+- H08-P07: getting-started.md: 'REST, OpenAPI, and the TypeScript and Python tool exports always include the registry tools'. GET /openapi-3.0.json?operations=all returned 39 operations with no registry_* operation.
+- H09-P01: getting-started.md: REST/OpenAPI tool exports 'always include the registry tools'; GET /v1/tools on the hosted service returned 39 tools, none named registry_*.
+- H09-P05: getting-started.md: 'OpenAPI ... always include the registry tools'; the live /openapi-3.0.json?operations=all has 39 operations and none named registry_*.
+- H10-P01: connectors-README.md '16 tools plus search, fetch, schema_get' vs MCP tools/list returning 42 tools.
+- H10-P01: getting-started.md 'REST ... always include the registry tools' vs GET /v1/tools returning 39 tools, none named registry_*.
+- H11-P02: connectors-README.md says 16 tools plus search/fetch/schema_get on remote MCP; tools/list returned 42 (MCP tools/list call).
+- H11-P04: getting-started.md: 'REST, OpenAPI ... always include the registry tools, which return RegistryUnavailable'. GET /v1/tools returned 39 tools with none named registry_*, and /openapi-3.0.json?operations=all has 39 operations.
+- H11-P04: connectors-README.md says remote MCP 'Serves 16 tools plus search, fetch, schema_get'; GET /v1/tools lists 39 REST tools (not an MCP count; the MCP tool list was not fetched in this persona's calls).
+- H11-P07: site-index.txt says 'eight CRE skills'; plugin-README.md and llms.txt say eleven (documentation count, no call needed).
+- H11-P09: connectors-README.md says remote MCP 'Serves 16 tools plus search, fetch, schema_get'; tools/list returned 42 tools in total.
+- H12-P01: connectors-README.md: remote MCP 'serves 16 tools plus search, fetch, schema_get'; tools/list returned 39 domain tools plus those three.
+- H12-P02: getting-started.md: 'REST, OpenAPI ... always include the registry tools'; GET /openapi.json on the hosted service listed 39 paths and none for registry tools.
+- H12-P03: connector-chatgpt-README.md lists registry_search_address, registry_get, registry_search_entities and registry_resolve_parcel among the Actions subset; the live /openapi-3.0.json has 26 operations and none of them.
+- H12-P04: connectors-README.md: 'Serves 16 tools plus search, fetch, schema_get'; live tools/list returned 39 domain tools plus those three.
+- H13-P01: document-verification.md says doc_abstract_lease takes 'the lease and its amendments in any order'; with an explicit role on the amendment only, the original was applied as a later amendment and the abstract returned superseded values with no warning (see doc_abstract_lease call 1)
+- H13-P02: connectors-README.md: remote MCP 'serves 16 tools plus search, fetch, and schema_get'; MCP tools/list returned 42 tools (tools/list call)
+- H13-P03: connectors-README.md: 'Serves 16 tools plus search, fetch, and schema_get'; tools/list returned 42
+- H13-P07: getting-started.md: 'REST, OpenAPI, and the TypeScript and Python tool exports always include the registry tools'; the hosted /openapi.json and /v1/tools have 39 operations and none is a registry tool (GET /openapi.json call)
+- H14-P10: rules.md: 'verification status ... draft until a named person has checked the rule'; the live result for rules_tx_property_tax_protest_deadline shows verified_by 'FactLot maintainers' (call 2), not a named person.
+- H15-P01: connector doc and getting-started say REST/OpenAPI 'always include the registry tools' (RegistryUnavailable): GET /v1/tools returned 39 tools and none is a registry_* tool; the live 3.0 spec also has none
+- H15-P02: document-verification.md says doc_verify_claim takes 'a short sentence'; call 8 shows a bare string is rejected, {text: ...} works (minor docs/schema gap)
+- H15-P04: Home page / document-verification.md: 'FactLot confirms the quote ... states the value'. Call 2: an invented prohibited use 'vape shop' added to the list was returned status verified with the same quote that does not mention it (value.4 listed under not_checked)
+- H15-P07: document-verification.md says compare asserts 'only the fields you assert' for an object; call 4 shows lease.kick_out needs party in the asserted value or it is refused
+
+## Marketing: missing proof (435)
+
+- H01-P01: A hotel worked example that ends in a value-per-key against an assessed value
+- H01-P01: Coverage of section 41.44(a)(2)-(5) and late-protest relief (the rule's own notes say not covered)
+- H01-P01: Any evidence the deadline pack matches county ARB practice (the rule notes it does not cover county-specific practice)
+- H01-P02: A CAM worked example with a binding cap and gross-up in the docs, with the expected answer
+- H01-P02: Comparison of the output against a Yardi recon on the same inputs (ARGUS parity is stated as untested for valuation; nothing for Yardi)
+- H01-P02: A statement of how the order of operations is chosen when a lease is silent
+- H01-P03: A data-center worked example (kW, power pass-through, PUE) reconciled to a spreadsheet
+- H01-P03: ARGUS parity test for the DCF (stated as untested)
+- H01-P03: Any hosted comps for $/kW sales
+- H01-P04: A published reconciliation of debt sizing and prepayment against a spreadsheet (the seven Excel workbooks include a lender workbook; I did not see its results in the materials)
+- H01-P04: Statement of how IO periods are treated in DSCR sizing
+- H01-P05: A test on OCR'd real-world leases with line-break and hyphenation artefacts (the doc describes the hyphen rule but I did not test it)
+- H01-P05: Independent confirmation that nothing is stored (terms and privacy pages say so; not testable from the API)
+- H01-P05: Throughput and size limits for a 50-lease batch
+- H01-P06: A real GPT import transcript or screenshot
+- H01-P06: The gpt-instructions.md the page tells me to paste
+- H01-P06: Any retail-specific worked example (anchor, co-tenancy, percentage rent) tied out against Excel
+- H01-P07: An ASC 842 reconciliation to a lease-accounting system output
+- H01-P07: Evidence for how the tool treats mid-month commencement and holdover
+- H01-P07: Customer or auditor acceptance of the outputs (none claimed, which is honest)
+- H01-P08: Lab market data or comps, or a way to trade them with peers (the share format exists; no network does yet)
+- H01-P08: A worked example comparing proposals across markets with different load factors
+- H01-P08: Who else uses the shared-comp format (none claimed)
+- H01-P09: An error-rate test of doc_check_use_conflict on real prohibited-use language
+- H01-P09: Any signed package example with a stated public key a lender can verify
+- H01-P09: A data-center specific predicate list
+- H01-P10: Owner-of-record lookups on the hosted service for Colorado
+- H01-P10: Sale comps with cap rates and price per pad
+- H01-P10: A manufactured-housing worked example
+- H01-P11: A test set showing how often the conflict check misses synonyms
+- H01-P11: Any trade-area, traffic or competitor data, or an integration path to them
+- H01-P11: Examples for medical or healthcare retail leases
+- H02-P01: A worked 1031 example against a QI's real worksheet (the reconciliation workbooks listed are synthetic and I did not open them).
+- H02-P01: A statement of which §1031 conventions are used (net trade-down, cash added counted as replaced debt).
+- H02-P02: A Yardi-to-FactLot tie-out on a real exported rent roll (the Excel reconciliation workbooks are synthetic and ARGUS parity is stated as untested).
+- H02-P02: A cash-basis concession view; the tool states only straight-line amortisation.
+- H02-P03: A recorded or documented successful Copilot Studio connection.
+- H02-P03: A student-housing or bed-based worked example.
+- H02-P03: A BOV-style example that goes from cap rate to value to debt.
+- H02-P04: A side-by-side with the broker's Excel template or a named product on the same three proposals.
+- H02-P04: A statement of the opex growth, free-rent and TI conventions in one place for a client memo.
+- H02-P05: A development pro forma example with construction draws and lease-up (calc_dcf_pro_forma starts from an in-place rent roll).
+- H02-P05: Any zoning or parcel lookup against Georgia counties.
+- H02-P06: An NYC example: LL97 appears only as a draft rules pack in the SDKs, not a tool; no stabilised-rent handling anywhere in the materials I read.
+- H02-P06: Reconciliation to a real lender sizing sheet (the Excel workbooks use synthetic inputs).
+- H02-P07: An agent-framework example (LangGraph or OpenAI Agents SDK) with the tool list filtered; examples/README.md was in the materials but I did not rely on it.
+- H02-P07: Any evidence that firms are exchanging comps.
+- H02-P08: A worked example on a real-length lease and an estoppel with a count of mismatches caught.
+- H02-P08: A security statement for client review: no SOC 2 or similar attestation is claimed (connectors-README.md says not provided).
+- H02-P09: A manufactured-housing or lot-rent example.
+- H02-P09: Any treatment of home sales, utility reimbursement or park-owned home income (not tested; the rent roll has only rent and concessions).
+- H02-P10: A side-by-side with ARGUS on a real rent roll.
+- H02-P10: A way to stress renewal probability per tenant in one call (per-lease overrides exist in the schema; not tested).
+- H02-P11: Any evidence that the FactLot building ID matches a county appraisal district's record (the registry that would show it is not hosted).
+- H02-P11: A hazard-data predicate list for the fact model.
+- H03-P01: Accuracy of the verifier against a labelled set of real medical office leases, including scanned text with OCR errors
+- H03-P01: A signed DPA or data-processing terms for hosted doc tools
+- H03-P01: A worked example of a 40-page lease split under the 1 MiB request cap with the abstract assembled from facts-without-pages
+- H03-P02: A tested Copilot Studio / Gemini connection transcript
+- H03-P02: A published comparison of calc_debt_sizing to a lender's own model on a standard case set
+- H03-P02: Whether stressed value should reprice with NOI by default
+- H03-P03: A side-by-side of calc_dcf_pro_forma against an ARGUS Enterprise run on the same industrial rent roll
+- H03-P03: Sun Belt industrial market rent and cap-rate data (not offered)
+- H03-P04: Sold net-lease comps with cap rates
+- H03-P04: Any example of a net-lease OM pricing page built with the tools
+- H03-P04: Independent confirmation of the 1031 logic by an exchange intermediary
+- H03-P05: Any hazard, replacement-cost or construction-class data source
+- H03-P05: An example of an insurance or risk workflow
+- H03-P06: A confirmed import in the real GPT builder
+- H03-P06: The gpt-instructions.md text
+- H03-P06: Evidence on how a GPT handles the large nested schemas (cam_reconciliation, dcf_pro_forma)
+- H03-P07: Confirmation of the 1031 logic by a qualified intermediary or tax adviser
+- H03-P07: A transcript of the plugin working in Claude Code
+- H03-P08: Any hazard or flood data
+- H03-P08: Hosted parcel lookups for the Atlanta counties
+- H03-P08: Guard rails against unit errors in calc_npv
+- H03-P09: A LangGraph or OpenAI Agents SDK example against the hosted endpoint
+- H03-P09: Real CAM reconciliation cases (with a tenant audit) compared to a property manager's workbook
+- H03-P10: A verified LL97 pack and hosted LL84/LL97 data
+- H03-P10: Evidence of the draft pack's agreement with an official LL97 calculator, which a maintainer has not yet checked
+- H03-P11: A DPA or contractual no-retention commitment for hosted doc tools
+- H03-P11: Accuracy results on real lease text, including OCR output
+- H03-P11: Whether use-category matching handles Spanish-language or hotel-specific terms
+- H04-P01: A worked Houston-style 1031 example with a qualified-intermediary or CPA sign-off on the boot logic
+- H04-P01: Any statement of how the 1031 tool treats weekend or holiday 45-day deadlines beyond the warning (the warning is there; a CPA citation is not)
+- H04-P01: Hosted Harris County owner and appraised-value lookups
+- H04-P02: Verified (not draft) rules for WA CBPS, BERDO and LL97 as callable tools
+- H04-P02: Hosted energy benchmarking facts with record locators
+- H04-P02: Evidence on who verified the draft packs and against which official files
+- H04-P03: An ARGUS tie-out on a multi-tenant rollover case
+- H04-P03: Independent third-party review of the calculators
+- H04-P03: Per-calculator list of known convention differences from ARGUS
+- H04-P04: Chicago energy benchmarking records with locators
+- H04-P04: A utility-cost-per-occupied-room helper or EUI tool for hotels
+- H04-P05: A tie-out of the prepayment and defeasance numbers to a real note's published formula
+- H04-P05: Hosted Travis County recorded mortgage and CMBS data
+- H04-P05: An SLA for the paid tiers
+- H04-P06: A worked, copyable request body for doc_spread_statement in the docs
+- H04-P06: A named-institution reference or independent audit for the document checks
+- H04-P06: Alameda County coverage: registry-coverage.md lists the Alameda assessor source as gated on terms, not loaded
+- H04-P07: A Yardi or RealPage tie-out on a full roll
+- H04-P07: Statement of how weeks-free should be valued when the lease says a fraction of a month
+- H04-P07: Any Miami-Dade data, even a sample
+- H04-P08: An ARGUS tie-out of the rollover model on a real roll
+- H04-P08: A user-visible list of every convention where FactLot differs from ARGUS
+- H04-P08: Independent review of the waterfall conventions by a JV lawyer
+- H04-P09: A worked, copyable end-to-end example with the real request bodies for a lease and amendment
+- H04-P09: A list of valid cap methods and other enums
+- H04-P09: Any evidence of results on a real scanned lease
+- H04-P10: Review of the ASC 842 formulas by an accountant or auditor
+- H04-P10: A comparison of the proposal-ranking convention (level monthly payment on start-of-month discounting) with common broker models
+- H04-P10: Seattle comps
+- H04-P11: Any retail or grocery comps I can query
+- H04-P11: Evidence that other firms contribute comps
+- H04-P11: A published false-positive/false-negative rate for the use-conflict keyword matching
+- H05-P01: A storage example in the docs
+- H05-P01: Who has used the hosted service in production, and its uptime
+- H05-P01: A way to see Florida data without a hosted registry
+- H05-P02: A verified Copilot Studio walkthrough with screenshots
+- H05-P02: OAuth or SSO for the MCP endpoint
+- H05-P02: Uptime and rate-limit behaviour for a firm-wide copilot (60 requests a minute per address shared by an office)
+- H05-P02: Industrial market lease comps with verified terms
+- H05-P03: A worked mixed-use CAM example with all five clause types
+- H05-P03: Evidence the CAM order of operations matches how Texas retail leases are usually drafted (the tool says 'confirm the lease's order of operations' in warnings)
+- H05-P03: When Dallas County lookups will be hosted
+- H05-P04: Third-party audit or reconciliation of debt-sizing against a lender's model
+- H05-P04: SLA and data-handling terms for a bank's vendor review
+- H05-P04: A student-housing example with beds and academic-year leases
+- H05-P05: A recorded Custom GPT import that succeeds
+- H05-P05: A tie-out of the ASC 842 schedule to a commercial lease accounting module
+- H05-P05: Statement that ASC 842 interest and amortization conventions (e.g., period-end trues up) match auditors' expectations
+- H05-P06: A Yardi or AppFolio export mapped to the rent roll tool
+- H05-P06: Rent roll examples with more than nine units from a real export
+- H05-P06: Evidence the CAM order-of-operations options cover Seattle retail lease forms
+- H05-P07: A real-world anchor lease abstract with page citations compared against a human abstract
+- H05-P07: Examples with scanned or OCR leases on the hosted API
+- H05-P07: Comparison of the DCF with ARGUS on the same rent roll (changelog: ARGUS parity untested)
+- H05-P08: A published SLA or uptime record for the hosted API
+- H05-P08: How a TypeScript or Python agent should handle the 60 requests a minute shared per IP (the limiter is per address, so cloud runners share it)
+- H05-P08: Evidence of other firms using the comp format
+- H05-P09: A working agent-framework example with a tool filter
+- H05-P09: Evidence the 1031 arithmetic matches a QI's worksheet (changelog says 'not tax advice' only)
+- H05-P09: Expected latency and rate-limit behaviour for loops that call several tools
+- H05-P10: Any appraiser or valuation firm using it
+- H05-P10: A documented way to cite FactLot output in a workfile
+- H05-P10: Cap-rate and sales comp data for Atlanta, which no free source here provides
+- H05-P11: A real lease and amendment abstracted end to end with a human check
+- H05-P11: A signed data processing addendum or equivalent that satisfies the firm's client confidentiality terms (customer-documents.md says it is not yet a contract)
+- H05-P11: Whether the quotes survive typical PDF text extraction noise (OCR, ligatures, hyphenation)
+- H06-P01: A published list of the Ingest predicates with their shapes in the docs a plugin user sees
+- H06-P01: A before/after on a real or realistic lease showing abstract review time saved
+- H06-P01: Counsel-reviewed data processing terms for tenant lease text
+- H06-P02: A reconciliation of calc_dcf_pro_forma to an ARGUS run on one real industrial rent roll
+- H06-P02: A tested Copilot Studio walkthrough with screenshots
+- H06-P02: An enterprise-terms page with SLA, DPA and attestation status
+- H06-P03: A worked appraisal example reconciled to an Excel income-approach workbook (the repo's examples/reconciliation is referenced, not in the pack)
+- H06-P03: Evidence the GPT import works end to end
+- H06-P03: A statement of cap-rate basis conventions for comps
+- H06-P04: A verification status for the 1031 tool like the 'verified 2026-11-02' stamp on the Texas rule
+- H06-P04: A case where the tool's boot output is reconciled to a QI's worksheet
+- H06-P04: An agent-framework quickstart for the remote endpoint
+- H06-P05: Reconciliation of sizing and yield maintenance to a lender's own template or a third-party quote
+- H06-P05: Terms that let a regulated lender send borrower data to a hosted API, or an easy self-hosted route with the same MCP URL
+- H06-P05: MHC-specific examples
+- H06-P06: A reconciliation case against one real Yardi or MRI CAM statement
+- H06-P06: A Florida-specific example (insurance and tax-heavy pools)
+- H06-P06: A statement that the batch tool and a spreadsheet gave the same total on a real building
+- H06-P07: An end-to-end diligence example with an estoppel and a lease
+- H06-P07: Counsel-approved data-processing terms for hosted use
+- H06-P07: Accuracy numbers for the quote checks on scanned documents (the OCR caveat is stated but not quantified)
+- H06-P08: A worked BOV example that reconciles to a broker's Excel template
+- H06-P08: Evidence that a Custom GPT with these Actions works end to end
+- H06-P08: Georgia sales or lease comps
+- H06-P09: A reconciliation to the broker's own Excel OM template (the zero-difference workbooks are referenced but not in the pack)
+- H06-P09: A tested Custom GPT with screenshots
+- H06-P09: Dallas retail and multifamily comps
+- H06-P10: A walk-through of the plugin install with its first output
+- H06-P10: A retail example (anchor exclusive screening) in the plugin docs
+- H06-P10: How the protest rule treats a notice delivered by mail versus electronically (the rule notes only that a mailed notice is presumed delivered when mailed)
+- H06-P11: A sample Excel reconciliation of the rent schedule and NER in the pack (zero-difference workbooks are referenced, not included)
+- H06-P11: A way to check that the short ID is the documented hash of the URN
+- H06-P11: Collin County data (registry coverage says what is loaded for Texas; the hosted service has no registry lookups)
+- H07-P01: A worked example of a full lease abstract against a real (redacted) lease and its OCR text
+- H07-P01: What the Custom GPT instructions should say so the model actually extracts quotes verbatim
+- H07-P01: Throughput: how many pages per request the hosted tier takes in practice (schema says 2000 pages, not tested)
+- H07-P02: A CPA or QI sign-off on exchange boot and gain arithmetic for a case like mine
+- H07-P02: Any Denver comp source I can query: the lease-comps doc says only GSA leases are loaded, and those are government-tenant
+- H07-P03: A reconciliation checked against an actual Yardi or MRI CAM statement
+- H07-P03: Behaviour of calc_cam_reconciliation_batch on a 40-tenant building (not tested)
+- H07-P04: Any hazard-adjacent dataset (CAL FIRE, FEMA, USGS) reviewed in the source catalog; I did not search the 182 KB coverage file for these and cannot say none exists
+- H07-P04: An example of the stress table feeding a loss-of-rents limit
+- H07-P05: Excel reconciliation workbooks are mentioned (examples/reconciliation) but not in my materials; I recomputed in python instead
+- H07-P05: Uptime or latency history for the free endpoint (observed 0.5 to 1.4 s per call here)
+- H07-P06: A sample of the conflict screen on a real multi-anchor centre with many restrictions
+- H07-P06: How many leases of text one call takes at the hosted limits
+- H07-P07: A reconciliation of calc_dcf_pro_forma against ARGUS on the same rent roll (examples/reconciliation covers spreadsheets only, per llms.txt)
+- H07-P07: Uptime or SLA: terms say availability is not guaranteed
+- H07-P07: An enterprise path: 'contact@factlot.com' only
+- H07-P08: Reconciliation of the prepayment tool to a real servicer payoff statement
+- H07-P08: How yield maintenance variants in common notes map to the tool's options
+- H07-P08: A conventions page per product (YM on PV of payments vs rate differential, discount frequency)
+- H07-P09: An evaluation on real net leases: how often does the number-in-quote check pass a wrong term?
+- H07-P09: Unit awareness: nothing says months vs days is distinguished
+- H07-P10: A capacity-ramp schedule example (committed kW phasing in over quarters)
+- H07-P10: Evidence anyone in data centers uses it
+- H07-P11: A tested example for at least one agent framework
+- H07-P11: Latency distribution (my calls took 0.5 to 1.8 s)
+- H07-P11: An error-code table for HTTP 429 and its Retry-After on the free tier (the docs mention 429 for keyed limits only)
+- H08-P01: Accuracy of the quote matcher on real scanned leases with OCR noise (not tested; I used a typed synthetic lease)
+- H08-P01: A benchmark of how many real-lease terms the textual check wrongly passes (e.g. right number, wrong clause)
+- H08-P01: A way to feed Yardi field names directly
+- H08-P02: A CAM workbook reconciled to a real lease's statement, not a synthetic one
+- H08-P02: Behavior on prior-year true-up adjustments and partial-year gross-up where occupancy changes month to month (not tested)
+- H08-P03: Side-by-side against ARGUS or a broker model on a real student housing deal
+- H08-P03: Any by-the-bed or academic-year example
+- H08-P03: Benchmark results: llms.txt says FactLot Bench is not yet run on current models
+- H08-P04: A statement of who verified the 1031 arithmetic (rules.md says one rules pack is verified, the Texas protest deadline; the 1031 tool is a calculator, not a verified rules pack, and its status is not stated)
+- H08-P04: Handling of reverse exchanges, partial identification across several relinquished properties, or the weekend rule (the warning says it is not moved)
+- H08-P05: Market rent for my submarkets
+- H08-P05: Third-party review of the ASC 842 logic by an accountant (the materials do not say who reviewed it)
+- H08-P05: An example showing a negative liability adjustment (my call produced one) against a lease-accounting system
+- H08-P06: Accuracy on real, noisy OCR text and on long, multi-page leases
+- H08-P06: A third-party security or privacy assessment
+- H08-P06: Data-center specific predicates (power, PUE, SLA credits) are not in the Ingest list; I had to use generic predicates
+- H08-P07: A screenshot or transcript of a working Custom GPT using the file
+- H08-P07: The referenced gpt-instructions.md
+- H08-P07: Rate-limit behavior as a GPT sees it: the free tier is 60 requests per minute per address, and ChatGPT calls come from shared infrastructure addresses (a risk I cannot test)
+- H08-P08: Who verified it: the home page says a maintainer records who checked it, and call 1's value.rule.verification shows verified_by 'FactLot maintainers' (a group, not a named person) with verified_at 2026-11-02
+- H08-P08: Behavior for dates around observed (shifted) holidays, which rules.md says are deliberately not treated as holidays
+- H08-P09: A working Custom GPT example with instructions
+- H08-P09: Grocery-anchored comps or sales data (registry lookups are not open yet per site-index.txt)
+- H08-P09: Reconciliation of lease_vs_own to an Excel model: the workbooks listed cover office, industrial, retail, multifamily-adjacent, hotel, lender and ASC 842, not lease-vs-own
+- H08-P10: Atlanta rent comps or any registry data (hosted lookups not open)
+- H08-P10: A reconciliation of the multifamily tool against a property-management export
+- H08-P11: A rent roll example at 100+ rows in a Custom GPT
+- H08-P11: Any MH-specific comps or sales data
+- H08-P11: Per-lot outlier checks in the rent roll tool
+- H09-P01: A side-by-side showing the same three-proposal comparison reproduced in Excel (reconciliation workbooks exist but are for synthetic office/industrial inputs, not tested here).
+- H09-P01: Any flex or industrial market lease comps for South Florida, which is what a tenant rep needs to counter a proposal.
+- H09-P01: Whether the 'base_year' structure handles a base year that is not lease year 1 (not tested).
+- H09-P02: Independent reconciliation of renew-vs-relocate against a broker's own model (the reconciliation workbooks cover office, industrial, retail, multifamily-adjacent, hotel, lender, ASC 842; none is a renew-vs-relocate case per the changelog list).
+- H09-P02: Houston flex market rents or tax-rate data.
+- H09-P02: A statement of whether renew_vs_relocate includes operating expenses (it priced base rent only in my call).
+- H09-P03: A worked CAM reconciliation reconciled to a Yardi or lease-audit result.
+- H09-P03: Medical-office specifics (clinical-space vs common area, pass-through of HVAC exclusions).
+- H09-P03: What happens when a Custom GPT sends concurrent requests above 60 a minute (not tested).
+- H09-P04: A reconciled lender workbook for a small-balance bank loan (the reconciliation set is described as synthetic inputs).
+- H09-P04: An example of the stress table in the docs.
+- H09-P05: A reconciliation of the equity waterfall against an LPA-style Excel (the reconciliation workbooks listed do not include a waterfall).
+- H09-P05: Alameda County coverage and zoning availability on the hosted service.
+- H09-P05: Construction-loan draw schedule, not offered (amortization schedule only has an IO period).
+- H09-P06: A framework-specific example (LangGraph MCP adapter) that runs end to end against the hosted endpoint.
+- H09-P06: ASC 842 reconciliation against an auditor-accepted subledger (the reconciliation workbook set includes ASC 842 for synthetic inputs; not opened here).
+- H09-P06: Evidence on how often use-conflict matching over-flags or under-flags real exclusives.
+- H09-P07: A day-count option on calc_debt_sizing (actual/360); the amortization tool has one, debt sizing does not appear to.
+- H09-P07: A published lender reconciliation against an agency or CMBS sizing template.
+- H09-P07: Uptime or SLA information for the hosted endpoint.
+- H09-P08: A walkthrough of the plugin in Claude Code with real output
+- H09-P08: A restaurant or ground-lease worked example in the skills
+- H09-P08: Any QSR or pad-site comps (none on the hosted service)
+- H09-P09: A Seattle MOB comp set or TI/free-rent benchmark to put proposals in market context
+- H09-P09: A tenant-rep example output (memo) showing how to present the ranking to a client
+- H09-P09: How a CrewAI tool adapter handles the oneOf schemas (not tested)
+- H09-P10: A peer exchange with real participants; today the pool is empty except GSA and 4 SEC comps per lease-comps.md
+- H09-P10: Independent audit of the after-tax lease-vs-own model against a corporate-finance model
+- H09-P10: Published digest/canonical-form spec for fact packages
+- H09-P11: A reconciliation of a real multi-tenant statement against a PM system such as Yardi.
+- H09-P11: Guidance on rate limits for a portfolio: 12 centers x tenants in one minute is fine with the batch, not per-tenant calls (the free tier says 60 requests a minute).
+- H10-P01: Evidence that Copilot Studio and Gemini actually accept the tool schemas (docs say 'Not yet' verified).
+- H10-P01: A multifamily-specific worked underwriting chain (T-12 to NOI to value to debt) rather than separate tools.
+- H10-P01: Rent-roll output reconciled to a Yardi or RealPage export.
+- H10-P02: A reconciliation of calc_dcf_pro_forma to an ARGUS DCF (the examples/reconciliation workbooks cover calculators against Excel; ARGUS parity is stated untested).
+- H10-P02: Worked example of apartment turnover in the DCF.
+- H10-P02: Any appraisal-standards guidance (USPAP workfile language) for citing a formula ID.
+- H10-P03: A CAM worked example with a pharmacy-style cap and admin fee order checked against a lease, from a named source other than FactLot's own vectors.
+- H10-P03: Yardi/MRI export mapping for expense lines to the calc input.
+- H10-P04: A worked example of doc_check_use_conflict on a real-looking retail lease with carve-outs.
+- H10-P04: How well the use-category vocabulary (66 categories) covers restaurant and specialty-food concepts.
+- H10-P05: Independent third-party reconciliation of calc_dcf_pro_forma to ARGUS on a multi-tenant industrial rent roll.
+- H10-P05: Uptime/SLA and data-handling terms for the hosted endpoint (privacy and terms pages are short).
+- H10-P06: A measured extraction-to-verified rate on real leases (the docs describe checks, not outcomes).
+- H10-P06: A worked example of estoppel comparison on a real-looking estoppel, including name-punctuation noise.
+- H10-P07: A date or plan for hosted registry regions (Boston, Massachusetts) and what fields the Boston assessing file carries (assessed value, land/building split).
+- H10-P07: Any property-tax appeal rule outside Texas (Massachusetts abatement timelines).
+- H10-P08: Evidence that Copilot Studio and Gemini accept the schemas as published.
+- H10-P08: A manufactured-housing example (pad rent roll, lot-rent concessions).
+- H10-P08: Any independent reference for the boot arithmetic, such as a qualified-intermediary worksheet.
+- H10-P09: Reconciliation of calc_prepayment_and_defeasance to a lender's actual payoff statement.
+- H10-P09: Independent review of the yield-maintenance discount conventions against real note language.
+- H10-P10: A reconciliation of the ASC 842 schedule to an auditor-accepted workpaper or a lease-accounting system export.
+- H10-P10: Whether remeasurement for extension in advance-payment leases matches NetSuite's treatment.
+- H10-P11: Independent statutory review record for the holiday list beyond the verification note ('FactLot maintainers', 2026-11-02).
+- H10-P11: A roadmap for AZ, FL and GA rules and who verifies them.
+- H10-P11: Notice-delivery edge cases (mailed notice presumed delivered on deposit) tested against county practice.
+- H11-P01: A statement of what the 1031 tool treats as acquisition costs in the boot calculation (see problems).
+- H11-P01: A short Python REST example for the hosted endpoint in getting-started.md.
+- H11-P02: Verified (not draft) LL97 pack with the maintainer's check recorded
+- H11-P02: Any hosted energy.* lookup by BBL
+- H11-P02: Evidence that hotel NOI conventions match USALI 11th edition in edge cases (rooms out of order)
+- H11-P03: A signed DPA or an independent audit of the no-storage claim
+- H11-P03: Throughput and size limits for a 300-page lease
+- H11-P03: The Ingest predicate table in the hosted docs
+- H11-P04: A video or transcript of an actual GPT using these actions
+- H11-P04: Tenant-credit or sale-comp data for net lease
+- H11-P05: A list of the 66 use categories and their keywords in the hosted docs
+- H11-P05: Evidence on false-negative rate of the use-conflict check
+- H11-P06: A published test showing the proposal comparison against a spreadsheet the broker can open (the examples workbooks cover calculators in general; not tested here)
+- H11-P06: A statement of how monthly rent is rounded
+- H11-P07: A verified LL97/CBPS/BERDO pack with a named verifier
+- H11-P07: Hosted energy data by building
+- H11-P08: A rollover-heavy DCF compared with ARGUS output
+- H11-P08: Per-lease TI/LC/free-rent events replicated in Excel
+- H11-P09: A recorded successful Copilot Studio or Gemini connection
+- H11-P09: Value per key support in direct cap
+- H11-P10: A framework example with a recorded run
+- H11-P10: Latency numbers under load
+- H11-P11: A tenant-ready statement layout
+- H11-P11: Validation against a real audited reconciliation (synthetic vectors only)
+- H12-P01: A published tie-out of calc_debt_sizing to a named lender's sizing template (the examples/reconciliation workbooks are mentioned; I did not open them).
+- H12-P01: Data-handling terms for borrower financials sent to the hosted endpoint; the plugin README says data leaves the machine but a bank would want a DPA.
+- H12-P01: Uptime and version-pinning guarantees for a credit process.
+- H12-P02: A side-by-side tie-out against an ARGUS run for a multi-tenant retail rent roll (stated as untested).
+- H12-P02: Cap-rate and sales evidence I can cite for retail in specific markets.
+- H12-P02: Support for step rents and percentage rent inside the DCF.
+- H12-P03: A working public example GPT, or a screenshot of the import succeeding.
+- H12-P03: Any hotel comp-set or STR-like data; not claimed, but it is what the owner asks for next.
+- H12-P04: A screenshot or transcript of FactLot in Copilot Studio or Gemini.
+- H12-P04: An industrial tie-out against an ARGUS lease-up case.
+- H12-P04: A recommended tool subset for an underwriting agent so the list is not 162 KB.
+- H12-P05: A student-housing example (by the bed, 12-month leases ending together).
+- H12-P05: Checks against the statute text beyond the maintainers' own note.
+- H12-P05: Cap-rate or sales evidence for student housing.
+- H12-P06: A worked 1031 example on the site with a result a QI would recognise.
+- H12-P06: Who maintains the 1031 rule logic and whether anyone has checked it against the regulation (the Texas rule has a verification record; the 1031 tool has none that I saw).
+- H12-P06: Some storage-specific data: nothing in the materials covers self-storage.
+- H12-P07: A worked abstract of a real-looking lease with an amendment, side by side with a human abstract.
+- H12-P07: A statement on where uploaded lease text goes (logs, retention) for a client confidentiality review.
+- H12-P07: Whether an abstract can represent renewal rent or restated rent steps by lease year.
+- H12-P08: A net-lease example with stepped rent and cap-rate reasoning.
+- H12-P08: Utah net lease sales or cap-rate evidence (not claimed).
+- H12-P08: Any statement about uptime or latency for GPT Actions.
+- H12-P09: A worked kW example with an expected result I could check (the skill has only a rent schedule example).
+- H12-P09: Any treatment of power pass-through, PUE or escalating power cost; the tool states it does not price them.
+- H12-P09: Market per-kW comps.
+- H12-P10: A hosted NYC lookup (sales or ownership) with a real result.
+- H12-P10: Evidence that the NYC counts (164,633 commercial parcels, 107,090 sales) reproduce from the source files; the coverage file claims it but I cannot call it.
+- H12-P10: A verified LL97 pack rather than a draft.
+- H12-P11: A worked diligence example (seller rep vs lease) and a data processing addendum for the hosted tools.
+- H12-P11: A statement of the log and retention behaviour in the API (the policy says metadata only; I cannot observe it).
+- H12-P11: Manufactured housing predicates and a chart of accounts.
+- H13-P01: a worked REST example with a real amendment chain including the base-rent-schedule step shape
+- H13-P01: a statement of what a hosted-API request log keeps beyond metadata, in one place a client can be shown
+- H13-P01: the 0.8 confidence rule and span semantics on a scanned (OCR) lease through the hosted path
+- H13-P02: any verified energy-law pack
+- H13-P02: the real data source and vintage behind energy benchmarks, and a hosted way to read them
+- H13-P02: a tested Copilot Studio and Gemini walkthrough (the connector table says live connection from those consoles is 'Not yet')
+- H13-P03: a published reconciliation of calc_compare_proposals to a broker's Excel template (reconciliation workbooks exist for office, industrial, retail; I did not open them)
+- H13-P03: a statement of how the discount-rate and 'effective occupancy cost' definitions match the common broker convention
+- H13-P04: reconciliation of the lender workbook (examples/reconciliation lender workbook is listed in the changelog) against my own model
+- H13-P04: a statement of what the hosted request log keeps and whether a bank's loan data may be sent to it
+- H13-P04: SLA or uptime history for a pipeline that blocks on the call
+- H13-P05: the processor and region of api.factlot.com, in a page my counsel can cite
+- H13-P05: a worked estoppel example with expected output in the materials (examples/document_verification.py is referenced but not provided)
+- H13-P05: evidence of how often real leases with lease-year rent tables verify end to end
+- H13-P06: a tie-out of calc_multifamily_rent_roll to a Yardi or RealPage rent roll report on real data
+- H13-P06: a statement of the largest rent roll the hosted 1 MiB request cap allows
+- H13-P06: other income and delinquency (the tool says economic occupancy is not collections)
+- H13-P07: a side-by-side with Argus on one rent roll
+- H13-P07: a published list of DCF conventions an appraiser must disclose (rollover, rounding, TI growth)
+- H13-P07: a statement of what happens to a lease that expires in the forward year
+- H13-P08: a CAM tie-out to a real reconciliation statement with a cap and admin fee
+- H13-P08: the Texas rule's coverage of the §41.44(a)(2)-(5) deadlines (stated as not covered)
+- H13-P08: counsel review of the Texas rule
+- H13-P09: a Custom GPT that is known to import the file, with a screenshot or log
+- H13-P09: a test of the builder's limits on description length and file size
+- H13-P09: an Argus comparison for the DCF
+- H13-P10: a worked T-12 example with expected output in the materials
+- H13-P10: how the spreader copes with multi-column statements (monthly columns plus T-12)
+- H13-P10: per-unit value metrics for multifamily
+- H13-P11: a tested Copilot Studio walkthrough
+- H13-P11: a CAM tie-out to a real center's reconciliation statements
+- H13-P11: a statement of how Yardi CAM modules map onto the cap and fee options
+- H14-P01: A side-by-side against my Excel model on a full deal, not synthetic test vectors
+- H14-P01: ARGUS parity is stated as untested in the changelog; I use Excel not ARGUS, but would want the reconciliation workbooks run on my own inputs
+- H14-P01: Data-handling statement I can hand to our IT group for seller rent rolls sent to the hosted endpoint
+- H14-P02: A reconciliation of a real tenant statement to FactLot's output including a cap and admin fee disagreement
+- H14-P02: A statement of how the free tier's 60 requests a minute per address behaves when many Custom GPT users share OpenAI's source addresses
+- H14-P02: Anything about healthcare-specific expense treatment
+- H14-P03: A side-by-side with an ARGUS cash flow on the same rent roll
+- H14-P03: How per-lease leasing overrides combine with the blended model in a multi-tenant MOB
+- H14-P04: A closed-loan or term-sheet comparison against a lender's own model
+- H14-P04: Defeasance example with a real securities portfolio source (not tested here)
+- H14-P05: Any evidence the registry will serve Los Angeles landlords hosted, and when
+- H14-P05: A site-selection use case in the examples
+- H14-P06: A Copilot Studio or Gemini session recording or a CI test against a real console
+- H14-P06: A reconciled real-lease CAM with a disputed charge
+- H14-P06: An actual statement of where tenant lease data is stored or logged on the hosted API beyond the customer-documents page (I did not read it in full)
+- H14-P07: A verified LL97 pack with a named maintainer and check date, as exists for the Texas deadline
+- H14-P07: A hosted LL84 lookup by BBL
+- H14-P07: Fuel coefficients source and year for the emissions calculation
+- H14-P08: A tie-out of IO and amortizing sizing to an agency or bank model
+- H14-P08: A live Copilot Studio or Gemini session
+- H14-P08: Evidence for the defeasance approximation against a consultant quote (the tool itself says to get one)
+- H14-P09: Any comparison with a qualified intermediary's 1031 worksheet
+- H14-P09: Evidence that the 200% and three-property tests treat late identifications the way an intermediary would
+- H14-P10: Who the verifier is and their qualification
+- H14-P10: A published test list for the holiday calendar beyond Memorial Day, Juneteenth and weekends
+- H14-P10: Any evidence an auditor accepts a FactLot fact as a source
+- H14-P11: A real lease (not a synthetic one) run through extraction and verification with the miss rate noted
+- H14-P11: A statement of the request size that fits a typical 60-page lease in one call
+- H14-P11: Evidence about the Custom GPT extraction quality, which is on my side not theirs
+- H15-P01: A hosted NYC zoning/FAR/sales lookup, or an example of the registry fact for a real NYC lot
+- H15-P01: Construction-loan draw and interest-reserve modelling (the amortization tool takes a funded principal)
+- H15-P02: A test set of real lease extractions with false-accept and false-reject rates
+- H15-P02: Some statement of how 'Lease Years one through ten' phrasing is meant to be turned into verifiable dates
+- H15-P02: An independent security or data-handling attestation for sending leases to the hosted endpoint
+- H15-P03: A year-end true-up from a real or realistic building compared line by line to a property-management system
+- H15-P03: Guidance for tenants audited on the output
+- H15-P04: False-accept and false-reject rates on real leases
+- H15-P04: A list of which value parts are checked vs only type-checked per predicate, up front
+- H15-P04: Recall figures for the use-conflict matching
+- H15-P05: A comparison of calc_dcf_pro_forma against an ARGUS run on the same rent roll
+- H15-P05: Houston/Harris County parcel and tax data actually reachable from the hosted service
+- H15-P06: A critical-dates example: how 'not less than twelve months' prior written notice' becomes a calendar date with an audit trail
+- H15-P06: An ASC 842 example checked by an auditor or against a Big Four template
+- H15-P07: A catalogue per predicate of which value fields are checked against the quote and which are not
+- H15-P07: Measured error rates on real anchor leases
+- H15-P08: Rules for Arizona, Florida and Georgia appeal windows with statute cites
+- H15-P08: Assessed-value and sales lookups for my centres
+- H15-P09: A comparison of the spread's chart of accounts to a standard appraisal expense format (e.g. UAD-style or Fannie Mae operating statement categories)
+- H15-P09: Houston market cap rate and expense ratio sources
+- H15-P10: A CPA-reviewed worked boot example for a trade-down with cash taken
+- H15-P10: Any national multifamily rent or sale data I could use
+- H15-P11: A reconciliation of calc_dcf_pro_forma against ARGUS on one rent roll (examples-README says ARGUS parity is untested)
+- H15-P11: Any retail comp data
+
+## Marketing: headline for my role (165)
+
+- H01-P01: A verified, statute-cited Texas protest-deadline tool plus a USALI hotel NOI ladder, free, with every step shown.
+- H01-P02: CAM and opex reconciliations with caps, gross-up, admin fees and proration, every step shown, free for one building at a time or 500 tenants in one call.
+- H01-P03: Rent schedules, net effective rent and a property DCF that tie to the cent, with kW and MW as first-class units and every step shown.
+- H01-P04: Loan sizing under LTV, DSCR and debt-yield with stress grids, plus full amortization schedules and prepayment cost, each with steps I can tie to Excel.
+- H01-P05: Every value your agent reads from a lease is checked against its quote and page by deterministic code, and rejected with a reason when the quote is not there.
+- H01-P06: Add one URL to your Custom GPT and it gets percentage rent, net effective rent, direct cap and DCF that return the formula and steps with every answer.
+- H01-P07: Renew-vs-relocate, lease-vs-own, proposal ranking and ASC 842 remeasurement as audited calculators whose every step you can rebuild in Excel.
+- H01-P08: Rank lab or office proposals on usable-SF effective cost, with load factor, TI and opex structure, and see the steps behind every number.
+- H01-P09: Every lease value your agent reads is checked against its page and quote, and the facts can be handed to a lender as a hash-chained package that shows tampering.
+- H01-P10: Run the cap-rate, loan-sizing and 1031 arithmetic for a listing in minutes, with every step cited and a clear 'not tax advice' line.
+- H01-P11: Compare candidate-site lease proposals on effective occupancy cost and flag exclusive-use clauses to read before an LOI, each with its source quote.
+- H02-P01: Free 1031 deadline, identification-test and boot arithmetic with every step shown, from one REST call.
+- H02-P02: Rent roll GPR, loss to lease, amortised concessions and an expiration ladder from one call, with steps and a formula ID.
+- H02-P03: Cap-rate value, implied cap on the ask, buyer debt capacity and unlevered IRR as cited, step-by-step calculations over a free remote MCP endpoint.
+- H02-P04: Rank competing office proposals, gross, NNN or base year, on one effective cost per usable square foot, with the steps shown.
+- H02-P05: Stabilised-value, loan-schedule and unlevered-DCF checks on a BTR scheme, with every step cited, free.
+- H02-P06: Loan sizing with a stress table, direct cap with reserves and an implied cap on the ask, each with the steps and a formula ID, from one free call.
+- H02-P07: Portfolio WALT and net effective rent as cited steps, plus an open lease-comp format that validates and derives NER, free over remote MCP.
+- H02-P08: Every term your agent reads from a lease is checked against a quote and page, and amendments, estoppels and exclusives are reconciled with citations, with no model on FactLot's side.
+- H02-P09: Audit a broker's lot rent roll and cap-rate value with cited steps; the skills' own examples reproduce exactly on the live API.
+- H02-P10: A multi-tenant office DCF with every rollover event listed and every line reproducible, callable from an agent crew.
+- H02-P11: Stable building IDs computable offline from an address, plus a validator for cited facts with usage rights; no hazard data.
+- H03-P01: Your agent extracts the term; FactLot proves the quote is on that page and states that value, with amendment precedence, and no model in the loop.
+- H03-P02: Size the loan, name the binding constraint, stress it and quote the payoff, each with a formula ID and steps your credit committee can recompute.
+- H03-P03: Reproducible rent-roll DCF, WALT and renewal-versus-re-let comparison with every step and convention returned, in one tool call each.
+- H03-P04: Price a net-lease deal and your 1031 buyer's dates, boot and IRR from one reproducible set of calls, each with its formula and steps.
+- H03-P05: A rent roll becomes cited rent-loss exposure and every address gets a stable building ID you can join hazard data to.
+- H03-P06: Give your Custom GPT a CAM reconciliation calculator that shows its cap, gross-up and admin-fee order of operations, step by step.
+- H03-P07: Check your 45-day and 180-day dates, identification test and boot in one call, with the return-due-date cutoff flagged and no tax advice.
+- H03-P08: Deterministic parcel and building keys that stay the same across address spellings, to join your hazard layers.
+- H03-P09: One call reconciles every tenant in the building and tells the owner why only a fifth of the pool was recovered.
+- H03-P10: A cited, verified LL97 rules pack you can call (not yet available) and NYC BBLs that normalize to one ID today.
+- H03-P11: Your agent extracts the exclusive; FactLot proves the quote is on the page, flags the proposed use for human review, and packages the result with hashes your counterparty can recompute.
+- H04-P01: Deterministic 1031 identification deadlines, boot and debt-replacement math, plus the verified Texas protest deadline, free and with every step shown.
+- H04-P02: Retrofit NPV and IRR with every step shown, and honestly labelled draft compliance rules once they are served as tools.
+- H04-P03: A DCF and loan-sizing server whose every convention is printed in the result so a reviewer can tie it to a spreadsheet.
+- H04-P04: USALI-style hotel P&L ladder (occupancy, ADR, RevPAR, GOPPAR, NOI) from six numbers, free, with the steps shown.
+- H04-P05: Refinance sizing with stress, amortization with IO and actual/360, and yield maintenance or defeasance, each with the steps and formula IDs in one free API.
+- H04-P06: Spread a borrower's T-12 with every line cited to its page and quote, flag lines that do not foot, then size and cost the loan with steps shown.
+- H04-P07: Paste a rent roll, get GPR, loss to lease, amortised concessions, economic occupancy and an expiration ladder with every convention stated.
+- H04-P08: A rent-roll DCF, WALT and tiered equity waterfall whose every line I can re-perform, because the conventions are printed.
+- H04-P09: Your agent extracts lease terms; FactLot proves each quote is on the page, applies amendments in order and flags every estoppel mismatch, with citations.
+- H04-P10: Rank landlord proposals, test renew versus relocate with break-even rents, and remeasure ASC 842 leases, every number with its steps and conventions printed.
+- H04-P11: Direct-cap value, implied cap rate, percentage rent, and a quote-cited anchor-exclusive screen, each with the steps shown, free.
+- H05-P01: Spread the seller's T-12, size what a lender will fund, and hand the buyer's analyst a formula ID for every number.
+- H05-P02: Rank landlord proposals on one discounted effective cost per SF per year, with the method written in the steps, and check it against your own Excel.
+- H05-P03: Reconcile every tenant's CAM in one call and see exactly why the building did not recover its pool, with each cap, base year and fee shown line by line.
+- H05-P04: Size the loan under LTV, DSCR and debt yield at once, stress it, test the refinance, and get an audit trail for each number.
+- H05-P05: Remeasure an operating lease for an extension and get a cent-exact liability, ROU and lease-cost schedule you can hand to the controller.
+- H05-P06: Reconcile CAM for every tenant in a building in one call and see why the pool was not recovered, and get rent-roll GPR, loss to lease and amortised concessions from a unit list.
+- H05-P07: Abstract an anchor lease with every term tied to a page and quote, and screen a proposed use against its exclusives before the LOI.
+- H05-P08: Replace your hand-built waterfall and valuation code with calls that return the answer, the steps and the conventions to confirm.
+- H05-P09: Give your agent the 45- and 180-day dates, identification tests and boot netting for a 1031, with the arithmetic shown and a not-tax-advice disclaimer built in.
+- H05-P10: Get rent-roll GPR, loss to lease, concession and economic-occupancy figures from a unit list, with each step shown for the workfile.
+- H05-P11: Abstract a lease and its amendments with every term tied to a page and verbatim quote, and see mismatches against the tenant's estoppel automatically.
+- H06-P01: Send each extracted lease term with its quote and page; FactLot confirms the quote is on that page and states the value, applies amendment precedence, and keeps nothing.
+- H06-P02: Rent-roll DCF, direct cap, debt sizing with stress and IRR as audited calls with steps and stated conventions, over MCP with no key.
+- H06-P03: Direct capitalization with reserves, lease-up and free-rent deductions, rounding and the implied cap rate a sale price gives, as a call that shows every step.
+- H06-P04: 1031 deadlines, identification tests and boot as a call with steps and a not-tax-advice flag, free and read-only.
+- H06-P05: Size a loan under LTV, DSCR and debt yield, stress it for NOI and rate, and price the prepayment on the loan you are replacing, each as an audited call.
+- H06-P06: Reconcile CAM for every tenant in one call and get the building-level reason the pool is not fully recovered.
+- H06-P07: Compare what an estoppel or T-12 says to what the lease and statement actually print, with the page and quote for every line, and nothing stored.
+- H06-P08: Price a listing by direct cap, show the implied cap rate before and after reserves, and size the buyer's loan at the ask, in calls with the steps shown.
+- H06-P09: WALT, percentage rent and LOI comparison as audited calls a Custom GPT can make from one imported URL.
+- H06-P10: Never miss a Texas protest deadline, and screen a new tenant against the anchor's exclusive with the lease page and quote attached.
+- H06-P11: Turn a retail lease offer into a net effective rent, a rent table and a protest-deadline date with steps I can check against my own spreadsheet, for free.
+- H07-P01: Your GPT extracts the terms; FactLot checks each quote is on the cited page and builds the current-state abstract with amendment precedence, free, nothing stored.
+- H07-P02: Free 1031 deadline, identification and boot arithmetic with every step shown, so your GPT stops guessing dates and your CPA can check the work.
+- H07-P03: CAM and base-year reconciliations with gross-up, caps and admin fees, every step shown for the tenant statement, free from Claude Code.
+- H07-P04: Free rent-roll income, post-loss DSCR and refinance shortfall arithmetic for the building you are insuring, with every step shown.
+- H07-P05: Loan schedules, IRR and 1031 boot from one free API call, with every step shown so you can match it in Excel.
+- H07-P06: Ask Claude whether a new tenant breaks an anchor's exclusive, and get the lease clause and a 'needs human review' flag, not a guess.
+- H07-P07: An independent, line-by-line DCF and T-12 footing check with every convention disclosed, so the committee memo can say which model said what.
+- H07-P08: Size a loan on LTV, DSCR and debt yield with the binding constraint named, and price yield maintenance or defeasance with the convention stated, in one free call.
+- H07-P09: Your abstraction agent proposes each term with a quote; FactLot proves the quote is on the page and the number is in it, and tells you which checks it did not do.
+- H07-P10: Net effective rent, proposal ranking and rent schedules in $/kW/yr for data-center leases, free, no square feet involved.
+- H07-P11: A free, stateless MCP tool server whose hotel KPIs, debt sizing and stress tables your agent graph can call and cite instead of computing in-context.
+- H08-P01: Your extraction agent proposes the term and the quote; FactLot proves the quote is on that page and keeps the amendment history, with nothing stored.
+- H08-P02: Give it the building's expense lines and each tenant's lease terms and it returns the CAM statement, the working, and why the building under-recovers, with warnings about order of operations.
+- H08-P03: Every loan-sizing, cap-rate and waterfall number comes back with its formula, steps and the binding constraint, and it reproduces to the cent when you recompute it.
+- H08-P04: Give it the sale and replacement numbers and your identified list and it returns both deadlines, the identification test that is met, boot and debt to replace, each with the Treasury regulation cited.
+- H08-P05: Give it the renewal and relocation offers with every one-time cost and it returns the NPV gap, the break-even rent for each side, and the formula behind each number.
+- H08-P06: Every term your agent reads from a lease comes back with its page, quote and character span, or with the reason it could not be verified, and an estoppel can be checked against those facts.
+- H08-P07: Import one URL into your GPT and it can build rent schedules, NER and WALT with the steps shown, and check a claimed term against the lease text.
+- H08-P08: Give it the tax year and the date the appraisal notice was delivered and it returns the protest deadline, the skipped weekend or holiday, and a safe file-by date with the statutes.
+- H08-P09: Compare leasing and owning an anchor store with debt, expenses and a residual, get the break-even sale price, and audit the landlord's CAM bill with caps and fees in the stated order.
+- H08-P10: Paste your rent roll and it returns gross potential rent, loss to lease, amortised concessions, economic occupancy and a lease-expiration schedule, and then checks the refinance and the 1031 boot.
+- H08-P11: Run your lot-rent roll, cap-rate value, hold-case IRR and refinance test in one GPT with the steps shown, free.
+- H09-P01: Rank every landlord proposal on one audited, reproducible effective-occupancy-cost per SF, with the formula and steps attached.
+- H09-P02: A renew-vs-relocate NPV and a Texas protest deadline with statute citations and a verification date, computed by deterministic code instead of in-context arithmetic.
+- H09-P03: CAM true-ups with caps, gross-up and admin-fee order of operations, with every step shown and warnings where the lease language matters.
+- H09-P04: Loan sizing under LTV, DSCR and debt yield with stress tables, and cap-rate value with reserves and below-the-line deductions, every step shown.
+- H09-P05: An equity waterfall with LP-IRR hurdle tiers whose conventions are stated and whose numbers foot, callable from a Custom GPT.
+- H09-P06: ASC 842 remeasurement schedules that foot to the cent, and use-conflict screening against your anchor-lease exclusives with the controlling quote attached.
+- H09-P07: Debt sizing under LTV, DSCR and debt yield with a stress grid and a refinance shortfall, and yield-maintenance cost with the discount convention stated, all with the steps shown.
+- H09-P08: Ground-lease, percentage-rent and lease-vs-own math as skills inside Claude Code, with every figure traceable to a formula id.
+- H09-P09: Rank every landlord proposal on one audited basis per usable SF, with the ranking flip between rentable and usable called out automatically.
+- H09-P10: After-tax lease-vs-own and ASC 842 remeasurement from deterministic code, and a tamper-evident package format for sharing your own comps with peers.
+- H09-P11: Reconcile CAM for every tenant in a center in one call and see exactly why the landlord did not recover the whole pool.
+- H10-P01: Every rent-roll, debt-sizing and return number comes back with its formula ID and steps, so an IC reviewer can re-derive it.
+- H10-P02: Direct cap and DCF values come back with every step and a stated list of conventions, so a signing appraiser can audit them line by line.
+- H10-P03: One call reconciles every tenant in the center and explains, line by line, why the building under-recovers.
+- H10-P04: Rank landlord proposals on one discounted effective-cost basis in one call, and check a concept against the anchor's exclusive with the controlling quote attached.
+- H10-P05: A DCF, WALT, refinance test and JV waterfall that each return their conventions and steps, so I can reproduce every row independently.
+- H10-P06: Every abstracted term carries a verbatim quote, page and character span, with amendment precedence and open review items shown.
+- H10-P07: Compute the income-approach value of a building and the cap rate its assessment implies, with every step, before you walk into an appeal.
+- H10-P08: One call returns a seller's 45- and 180-day dates, the identification tests, and cash and mortgage boot, with the statutes cited and 'not tax advice' stated.
+- H10-P09: Size, stress, and price the payoff on a loan with every constraint, convention and step returned for the credit file.
+- H10-P10: Rent schedules and ASC 842 remeasurement tables that foot to the cent, with the rounding and final-period true-up stated for the auditors.
+- H10-P11: A verified Texas protest deadline, with statute citations, skipped days and a safe file-by date, for any notice date.
+- H11-P01: Free, cited 1031 deadline and boot math plus the Texas ARB protest deadline, one POST each.
+- H11-P02: Deterministic USALI hotel ladder and building IDs today; LL97 and LL84 once the draft pack is verified and the energy data is hosted.
+- H11-P03: Every value your abstraction agent reads from a lease is checked against its quote and page, with amendment precedence and estoppel comparison, free and stateless.
+- H11-P04: Give your listing-screening GPT a cap-rate, DSCR loan and IRR engine that shows its steps.
+- H11-P05: Check a proposed drive-through use against a center's exclusive clauses, with the controlling quote, and rank pad against in-line deals on one occupancy-cost number.
+- H11-P06: Rank landlord proposals across NNN, base-year and expense-stop structures on one stated discounting basis, and show the break-even rent for renewing versus moving.
+- H11-P07: Model how much of a green-retrofit cost you can recover from tenants under a savings cap, with each assumption tied to a lease clause.
+- H11-P08: A cited, reproducible DCF, loan sizing and promote waterfall in one call each, for the pre-ARGUS first pass.
+- H11-P09: USALI-style hotel NOI and direct capitalization with PIP deductions, each step cited, callable from Copilot Studio.
+- H11-P10: Loan schedules, balloon and yield-maintenance payoff plus USALI KPIs through one MCP URL your agent framework can load without a key.
+- H11-P11: Reconcile every tenant's CAM in one call, with caps, gross-up and admin fees explained to the cent and an unrecovered-amount bridge for the owner.
+- H12-P01: Size the loan on LTV, DSCR and debt yield, stress it in one call, and get the refinance gap with every step shown.
+- H12-P02: A DCF and direct-cap that show every step and every convention, so a reviewer can recompute them.
+- H12-P03: Paste in the month's hotel P&L and get occupancy, ADR, RevPAR, GOP and NOI back with every step named in USALI terms.
+- H12-P04: Rank lease proposals on one discounted net effective basis from the landlord's side, with downtime, free rent, TI and commissions counted.
+- H12-P05: Turn a bed-level rent roll into GPR, loss to lease, concessions and economic occupancy with every figure reproducible, and get the Texas protest deadline with its statute cites.
+- H12-P06: Enter your sale and replacement numbers and get your 45- and 180-day dates and your boot, with every step cited and a clear 'not tax advice'.
+- H12-P07: Every term in your abstract comes back with the page, the quote, the character span and the amendment that controls it, or a reason it was not verified.
+- H12-P08: Stepped rent schedules, implied cap rates and IRR/NPV that every reviewer can recompute from the returned steps.
+- H12-P09: Rank wholesale data center proposals per kW or per MW on one discounted net effective basis, with free rent, TI and commissions counted.
+- H12-P10: Roll up the apartment rent roll and DCF the retail with every step shown, and (when it opens) pull NYC sales and ownership from the same cited layer.
+- H12-P11: Check every seller number and lease term your agent reads against the page it came from, and hand counsel a package whose hashes anyone can re-verify.
+- H13-P01: Send FactLot the page text and your extracted values: it confirms each quote is on the page and says the value is in it, or tells you why not.
+- H13-P02: Compute what a retrofit costs tenants under a savings-capped capex clause, with every assumption echoed against the lease clause.
+- H13-P03: Compare three landlord proposals with different terms and expense structures on one discounted $/SF basis, with the steps to hand a CFO.
+- H13-P04: Size a loan under LTV, DSCR and debt-yield tests with an NOI-and-rate stress table, and get the steps for the credit memo.
+- H13-P05: Check every estoppel value against the lease page, with the quote, page and character span, and hand counsel a package they can verify.
+- H13-P06: Send the monthly rent roll and get GPR, loss to lease, amortised concessions, economic occupancy and an expiration schedule, with the definitions in the steps.
+- H13-P07: A rent-roll DCF whose every rollover event and convention is printed, so a reviewer can recompute it.
+- H13-P08: Reconcile CAM with gross-up, cap and admin fee in one call and get the trace to answer a tenant's question.
+- H13-P09: Import one URL into a Custom GPT and get a rent-roll DCF, loan sizing and WALT that follow printed conventions.
+- H13-P10: Spread a T-12 with every line cited and see at once which stated totals do not foot.
+- H13-P11: Reconcile every tenant's CAM in one call and see exactly why the owner recovers less than the pool.
+- H14-P01: Paste a seller rent roll and get GPR, loss to lease, concessions and economic occupancy with the formula shown, then size and stress the loan with the same agent, no key needed.
+- H14-P02: Your CAM statement, tenant by tenant and for the whole building, with the cap, gross-up, admin fee and base year each shown as a step and an unrecovered-amount bridge.
+- H14-P03: A rent-roll DCF screen with every convention stated, the cash flows by year, and the direct-cap and WALT cross-checks, from inside Claude Code with no key.
+- H14-P04: Size the loan, show the binding constraint, and produce the actual/360 schedule and payoff cost in one chat, with the formula and every step cited.
+- H14-P05: Rank pad-site lease proposals on one effective occupancy cost, and price percentage-rent exposure, from a single JSON call.
+- H14-P06: The same CAM reconciliation, with cap, gross-up and admin-fee order of operations stated, from REST or MCP with identical output.
+- H14-P07: Verified LL97 limit, emissions and penalty for a building from its ESPM property type and fuel use, with the statute citation, plus the retrofit NPV.
+- H14-P08: Size the loan, show the binding constraint and the stress grid, then quote defeasance or step-down payoff, each with its formula and steps.
+- H14-P09: Give your 1031 seller their identification and exchange deadlines, the rule their identified list meets and their boot, with the tool saying plainly it is arithmetic, not tax advice.
+- H14-P10: The Texas ARB protest deadline with the statute, holiday rollover and a conservative file-by date, plus a validator for cited facts.
+- H14-P11: Your agent abstracts the lease; FactLot proves each term's quote is on the page, applies the amendments, and flags what an estoppel gets wrong.
+- H15-P01: Audited loan sizing, amortisation and LP/GP waterfall maths your Custom GPT can call, with every step shown.
+- H15-P02: Page-cited lease terms with amendment precedence, and estoppel-vs-lease mismatches, with no model on the other side to hallucinate.
+- H15-P03: A CAM true-up for every tenant in one call, with each statement traceable step by step and the unrecovered amount explained.
+- H15-P04: Every abstracted number and date is checked against the lease page and quote, with held items for human review (but check the free-text fields yourself).
+- H15-P05: A rent-roll-driven DCF, direct-cap cross-check and loan sizing that Claude can call, with every year of the cash-flow table shown and the rollover assumptions listed.
+- H15-P06: Rent steps, WALT and ASC 842 remeasurement that foot to the cent, plus a lease-term verifier; critical-date computation is not covered.
+- H15-P07: Catches misread numbers, dates and names in lease abstracts against the exact page and quote, deterministically; booleans and enum fields are yours to check.
+- H15-P08: A statute-cited, verified Texas protest deadline with a conservative file-by date and the days it skipped.
+- H15-P09: Spreads a T-12 onto standard lines with every line cited and flags totals that do not foot, then gives you the direct-cap value with the steps shown.
+- H15-P10: 1031 deadlines, identification-rule checks and boot arithmetic with the regulation cited at each step, free from your own agent.
+- H15-P11: A rent-roll DCF with per-lease rollover events and a lease-comp validator that derives net effective rent on the comp's own basis, with every step shown.
+
+## Marketing: where I would look for it (515)
+
+- H01-P01: The Claude plugin marketplace and MCP registry listings
+- H01-P01: Texas property-tax consulting forums and the TX Comptroller training material
+- H01-P01: A colleague's Claude Code setup, not a search engine
+- H01-P02: The Claude plugin marketplace
+- H01-P02: Property-management and CAM-audit communities (BOMA-style forums)
+- H01-P02: Yardi and MRI user groups, where someone would post a connector
+- H01-P03: The Claude connectors directory or MCP registry
+- H01-P03: Appraisal Institute and data-center valuation working groups
+- H01-P03: A colleague's Claude Desktop setup
+- H01-P04: Lender and CMBS conduit user groups
+- H01-P04: The Claude plugin marketplace
+- H01-P04: Internal AI platform team's MCP shortlist
+- H01-P05: Legal-ops and CRE-tech vendor lists
+- H01-P05: GitHub search for lease verification and MCP registries
+- H01-P05: A conference talk or a blog post on lease AI hallucination
+- H01-P06: The ChatGPT GPT store or a curated list of Actions
+- H01-P06: Appraisal Institute communities and retail-valuation webinars
+- H01-P06: A colleague's shared GPT
+- H01-P07: The MCP registry and agent-framework example repos
+- H01-P07: Corporate real estate association (CoreNet-style) tool lists
+- H01-P07: My broker or a lease-admin vendor mentioning it
+- H01-P08: Claude connector listings or an MCP directory
+- H01-P08: Biotech real estate peer groups and broker newsletters
+- H01-P08: My broker's agent tooling
+- H01-P09: Legal-tech newsletters and law-firm innovation groups
+- H01-P09: MCP registries and agent-framework example repos
+- H01-P09: A lender's counsel asking for cited abstracts
+- H01-P10: Broker team chats and capital-markets AI roundups
+- H01-P10: CRE-tech newsletters
+- H01-P10: Claude plugin lists
+- H01-P11: Healthcare real estate association (retail clinic operator forums)
+- H01-P11: Broker and landlord-rep emails, not a tool directory
+- H01-P11: A developer-tool newsletter for agent builders
+- H02-P01: GitHub search and the MCP Registry
+- H02-P01: a QI's or CPA's recommended tools
+- H02-P01: Python package index searches for CRE calculators
+- H02-P02: the MCP Registry and GitHub
+- H02-P02: vendor-review lists from our data science team
+- H02-P02: peer asset-management Slack groups
+- H02-P03: Microsoft Copilot Studio connector gallery and Power Platform community
+- H02-P03: vendor emails from CoStar and RCA (as the place the broker already buys data)
+- H02-P03: Gemini and Copilot developer forums
+- H02-P04: Claude connector directory and the MCP Registry
+- H02-P04: CCIM and NAIOP member forums
+- H02-P04: AI-for-CRE newsletters and LinkedIn
+- H02-P05: NAHB and NMHC (the National Multifamily Housing Council) events
+- H02-P05: BTR developer Slack and LinkedIn groups
+- H02-P05: Claude connector directory
+- H02-P06: the Claude Code plugin marketplace and GitHub
+- H02-P06: the MCP Registry
+- H02-P06: a colleague's Slack link
+- H02-P07: MCP Registry and framework tool directories
+- H02-P07: LangChain and CrewAI community channels
+- H02-P07: brokerage innovation teams
+- H02-P08: legal-tech newsletters and CLE sessions
+- H02-P08: the MCP Registry
+- H02-P08: a colleague in the firm's innovation group
+- H02-P09: MH investor forums and conferences
+- H02-P09: GitHub and the MCP Registry
+- H02-P09: a peer underwriter's recommendation
+- H02-P10: MCP Registry and framework tool lists
+- H02-P10: CRE tech newsletters
+- H02-P10: analyst teams that already use agent frameworks
+- H02-P11: catastrophe-model and insurance data vendor catalogs, not GitHub
+- H02-P11: insurtech conferences
+- H02-P11: our data engineering team's search for ID standards
+- H03-P01: GitHub README and examples/document_verification.py
+- H03-P01: Lease-administration vendor integrations and Yardi/MRI developer forums
+- H03-P01: MCP registry search for 'lease'
+- H03-P02: Microsoft Copilot Studio connector gallery and Microsoft AppSource
+- H03-P02: MBA/CREFC forums and lender-ops Slack groups
+- H03-P02: MCP registry
+- H03-P03: Microsoft Copilot Studio / Power Platform connector listings
+- H03-P03: Institutional asset-management vendor evaluations
+- H03-P03: Peer asset managers and fund-ops Slack groups
+- H03-P04: Net-lease broker forums and conference sponsor lists
+- H03-P04: Crexi/CoStar integration marketplaces
+- H03-P04: Peer brokers
+- H03-P05: Insurtech and underwriting-workbench vendor marketplaces
+- H03-P05: Verisk-style data partner programmes
+- H03-P05: MGA operations communities
+- H03-P06: OpenAI GPT store and community forums
+- H03-P06: Lease-administration and CAM-audit communities
+- H03-P06: LinkedIn posts from property accounting leads
+- H03-P07: Claude Code plugin marketplace and GitHub
+- H03-P07: 1031 exchange and small-investor forums
+- H03-P07: The qualified intermediary's own recommendations
+- H03-P08: Catastrophe-modelling vendor ecosystems
+- H03-P08: Reinsurance broker analytics teams
+- H03-P08: Open data communities for parcel IDs
+- H03-P09: LangChain and LangGraph community tool lists
+- H03-P09: Property-management and CAM-audit forums
+- H03-P09: MCP registry
+- H03-P10: NYC building-performance and LL97 practitioner groups
+- H03-P10: ENERGY STAR Portfolio Manager partner lists
+- H03-P10: Sustainability consultancies
+- H03-P11: Legal-tech vendor lists and bar association tech committees
+- H03-P11: CrewAI and LangGraph community example repos
+- H03-P11: MCP registry
+- H04-P01: The GPT store and ChatGPT Actions documentation
+- H04-P01: LoopNet or small-investor forums that discuss 1031 tooling
+- H04-P01: The official MCP Registry
+- H04-P01: Word of mouth from a qualified intermediary
+- H04-P02: ENERGY STAR and GRESB peer networks
+- H04-P02: Sustainability-consultant newsletters
+- H04-P02: Claude connector directory or the official MCP Registry
+- H04-P03: MCP registries and agent-framework tool directories
+- H04-P03: CRE-tech newsletters
+- H04-P03: GitHub search for 'CRE MCP'
+- H04-P04: Hotel-finance and ENERGY STAR communities
+- H04-P04: GitHub
+- H04-P04: The official MCP Registry
+- H04-P05: CRE lending peer groups and conference demos
+- H04-P05: The GPT store
+- H04-P05: Vendor-risk questionnaires from my firm's tech team
+- H04-P06: Lender technology peer groups
+- H04-P06: GitHub and the official MCP Registry
+- H04-P06: Vendor-diligence conversations with our credit systems team
+- H04-P07: NMHC and local apartment-association tech sessions
+- H04-P07: The GPT store
+- H04-P07: Property-management software forums
+- H04-P08: Our internal AI-tools committee's vendor list
+- H04-P08: GitHub and MCP registries
+- H04-P08: CRE data-science forums
+- H04-P09: Lease-administration and CRE-ops forums
+- H04-P09: The GPT store
+- H04-P09: Conversations with our document-AI vendors
+- H04-P10: CoreNet and corporate real-estate peer groups
+- H04-P10: Our lease-accounting software vendor's integration list
+- H04-P10: Engineering teams building internal agents
+- H04-P11: Brokerage tech groups and ICSC-style events
+- H04-P11: Claude connector directory or MCP registry
+- H04-P11: Word of mouth from analysts
+- H05-P01: Claude connector directory or MCP registry search
+- H05-P01: Broker peer groups and CRE tech newsletters
+- H05-P01: A buyer's analyst asking 'where did that number come from'
+- H05-P02: Microsoft Copilot Studio connector catalog or a vendor demo from our IT partner
+- H05-P02: Industry conferences and PropTech vendor evaluations run by our innovation team
+- H05-P02: The firm's AI governance review, not a search engine
+- H05-P03: Gemini or Copilot extension lists, or a recommendation from our property manager
+- H05-P03: Local CRE/IREM or BOMA events and a Dallas CRE newsletter
+- H05-P03: The tax consultant telling us about the protest-deadline tool
+- H05-P04: Vendor management and our innovation team; an MBA or Mortgage Bankers Association conference
+- H05-P04: MCP registry or Copilot Studio connector catalog via IT
+- H05-P04: A colleague who already uses the open-source repo
+- H05-P05: ChatGPT's GPT store or OpenAI's documentation for Actions
+- H05-P05: Our lease accounting vendor's partner list or a controller conference
+- H05-P05: Internal AI team scanning MCP and GPT connector directories
+- H05-P06: The Claude Code plugin marketplace and the Anthropic plugin directory
+- H05-P06: IREM / BOMA chapter events and property management Slack groups
+- H05-P06: A developer on our ops team who already uses Claude Code
+- H05-P07: Claude's connector or MCP directory
+- H05-P07: Retail investor groups and ICSC events
+- H05-P07: A lease-abstraction vendor's partner page or a colleague at a REIT
+- H05-P08: GitHub and the MCP registry
+- H05-P08: Developer communities for CRE tech and our engineering lead
+- H05-P08: OpenAPI directories or a search for 'CRE waterfall API'
+- H05-P09: MCP server registries and GitHub awesome-MCP lists
+- H05-P09: LangChain and CrewAI communities, a 1031 exchange blog or my QI
+- H05-P09: Searching for '1031 exchange MCP' or 'CRE calculator API'
+- H05-P10: Appraisal Institute events and CRE AI newsletters
+- H05-P10: The Claude connector directory or a colleague's recommendation
+- H05-P10: Our firm's innovation group scanning MCP registry listings
+- H05-P11: Legal-tech and real estate bar association events
+- H05-P11: ChatGPT GPT store and law-firm AI vendor lists
+- H05-P11: A colleague who already uses a lease abstraction tool
+- H06-P01: Claude Code plugin marketplace and MCP registry listings
+- H06-P01: Lease-admin and CRE-ops communities discussing Claude/MCP workflows
+- H06-P01: The Yardi/MRI integration forums, only if it exported to those schemas
+- H06-P02: Microsoft Copilot Studio connector gallery and the MCP registry
+- H06-P02: CRE technology newsletters and conference demos
+- H06-P02: Referrals from the firm's CRE data vendors and proptech scouts
+- H06-P03: Appraisal Institute and valuation-technology discussions
+- H06-P03: ChatGPT GPT directory only if a vetted listing existed
+- H06-P03: Colleagues who share Excel income-approach templates
+- H06-P04: Agent-framework example repos and MCP registries
+- H06-P04: Net-lease investor forums and QI educational pages
+- H06-P04: Whatever my qualified intermediary recommends, which will not be this
+- H06-P05: Claude connector directory and MCP registry
+- H06-P05: Mortgage-banking technology groups and lender ops forums
+- H06-P05: Our own vendor-intake process, which this would not pass yet
+- H06-P06: Yardi and MRI user groups
+- H06-P06: Property-management technology newsletters
+- H06-P06: IREM or BOMA education sessions on CAM
+- H06-P07: Legal-tech and CRE-tech communities
+- H06-P07: Copilot Studio connector and MCP registry listings
+- H06-P07: Outside counsel's innovation groups
+- H06-P08: Brokerage tech peers and CRE-AI newsletters
+- H06-P08: ChatGPT GPT Store searches for 'commercial real estate'
+- H06-P08: Conference demos from CRE data vendors
+- H06-P09: CRE-AI and proptech communities
+- H06-P09: GPT Store and OpenAI developer forums
+- H06-P09: Brokerage innovation teams and association webinars
+- H06-P10: Claude Code plugin marketplaces and MCP directories
+- H06-P10: ICSC and local shopping-center owner groups
+- H06-P10: Texas property-tax consultants' newsletters
+- H06-P11: Small-landlord and BiggerPockets-style forums
+- H06-P11: Python agent examples on GitHub
+- H06-P11: Whatever my tax consultant or CPA mentions, which will not be this
+- H07-P01: OpenAI Custom GPT and Actions community threads
+- H07-P01: Lease abstraction vendor and CRE-technology newsletters
+- H07-P01: Whatever a ChatGPT search for 'lease abstraction GPT action' returns
+- H07-P02: A QI's or CPA's recommendation
+- H07-P02: Small-investor 1031 forums and newsletters
+- H07-P02: ChatGPT GPT store search for '1031 exchange'
+- H07-P03: Claude Code plugin marketplaces and skill directories
+- H07-P03: The MCP Registry listing
+- H07-P03: Property-management and CAM-audit forums
+- H07-P04: Insurtech and MGA developer communities
+- H07-P04: MCP registries
+- H07-P04: GitHub search for 'CRE' agent tools
+- H07-P05: BiggerPockets-style investor forums
+- H07-P05: Python and AI-agent communities on GitHub
+- H07-P05: A QI or lender referral
+- H07-P06: ICSC and retail-property-management groups
+- H07-P06: Claude connector directories and the MCP Registry
+- H07-P06: Property manager newsletters
+- H07-P07: Our internal AI platform team's approved-tool list
+- H07-P07: Industry AI working groups
+- H07-P07: Vendor demos at a CRE technology conference
+- H07-P08: Lender ops and credit-policy peer groups
+- H07-P08: MBA-type conference demos
+- H07-P08: Whatever a lender's AI vendor shortlists
+- H07-P09: Net-lease REIT operations peers
+- H07-P09: Lease abstraction vendor QA discussions
+- H07-P09: Claude connector listings
+- H07-P10: Data-center industry Slack and LinkedIn groups
+- H07-P10: Developer forums for CRE APIs
+- H07-P10: GitHub search for 'data center lease calculator'
+- H07-P11: The MCP Registry and framework tool catalogs
+- H07-P11: LangChain and OpenAI developer communities
+- H07-P11: Lender fintech peers
+- H08-P01: MCP Registry and the official connector directories my framework's tool-catalog pulls from
+- H08-P01: GitHub topics for lease abstraction and LangGraph examples
+- H08-P01: A lease-admin vendor community or a CRE-tech newsletter
+- H08-P02: IREM or BOMA chapter newsletters and the Yardi/MRI user groups
+- H08-P02: Claude connector directory or MCP Registry listings
+- H08-P02: A property-accountant colleague's Excel template that mentions it
+- H08-P03: Developer forums for agent tooling and the MCP Registry
+- H08-P03: Peer research notes from an investment-management data team
+- H08-P03: GitHub search for CRE underwriting libraries
+- H08-P04: Real-estate investor forums and 1031 intermediary blogs
+- H08-P04: CPA and QI firm resource pages
+- H08-P04: MCP Registry or Claude connector search
+- H08-P05: Corporate real estate association forums and CoreNet-style networks
+- H08-P05: Lease-accounting vendor communities
+- H08-P05: The Claude connector directory
+- H08-P06: Legal-tech newsletters and bar association tech committees
+- H08-P06: MCP Registry or Claude connector directory
+- H08-P06: Colleagues at diligence-heavy law firms
+- H08-P07: The GPT store and OpenAI developer forums
+- H08-P07: Lease-admin or Yardi user groups
+- H08-P07: Searches for 'lease abstraction GPT action'
+- H08-P08: Texas CRE and property-tax consultant newsletters
+- H08-P08: Net-lease investor communities
+- H08-P08: MCP Registry or a Claude connector search
+- H08-P09: Retail real estate and grocery-industry associations
+- H08-P09: The OpenAI GPT store and developer forums
+- H08-P09: A CAM-audit consultant's recommendation
+- H08-P10: Small-investor forums and podcasts
+- H08-P10: Property-management software communities
+- H08-P10: Claude and ChatGPT connector directories
+- H08-P11: Manufactured-housing investor forums and association newsletters
+- H08-P11: OpenAI GPT store
+- H08-P11: A peer asset manager's recommendation
+- H09-P01: Claude connector directory / MCP registry
+- H09-P01: broker-tech newsletters and LinkedIn posts from other tenant-rep firms
+- H09-P01: a colleague forwarding a link in a deal chat
+- H09-P02: Our internal AI platform team's vetted tool list
+- H09-P02: MCP registry searches by the platform team
+- H09-P02: a peer at another institutional tenant-rep firm
+- H09-P03: The GPT store or OpenAI Actions docs
+- H09-P03: a Yardi/asset-management user forum post
+- H09-P03: a colleague's Custom GPT
+- H09-P04: Claude connector directory
+- H09-P04: small-balance CRE investor communities
+- H09-P04: a tip from another acquisitions analyst
+- H09-P05: OpenAI GPT store / Actions directory
+- H09-P05: a developer-finance Slack or an analyst on the team
+- H09-P05: MCP registry via our Claude users
+- H09-P06: MCP registry or an awesome-MCP list when building LangGraph agents
+- H09-P06: Lease-accounting and corporate real estate (CoreNet-type) communities
+- H09-P06: an engineer on the team searching for 'ASC 842 MCP'
+- H09-P07: The MCP registry when my platform team evaluates tools
+- H09-P07: A GitHub search for open-source CRE underwriting libraries
+- H09-P07: a vendor-risk review request from our AI team
+- H09-P08: Claude Code plugin marketplaces and the MCP registry
+- H09-P08: developer posts on retail real estate AI workflows
+- H09-P08: an ICSC-style community channel
+- H09-P09: MCP registry / CrewAI tool lists
+- H09-P09: tenant-rep broker communities and AI-for-brokers newsletters
+- H09-P09: a developer who builds CrewAI agents for brokerages
+- H09-P10: MCP registry and GitHub
+- H09-P10: corporate real estate peer groups
+- H09-P10: the CFO's tax advisers recommending reproducible models
+- H09-P11: Property-management software forums and AI-for-PM newsletters
+- H09-P11: The MCP registry via a developer friend
+- H09-P11: Yardi/AppFolio user groups
+- H10-P01: Copilot Studio / Power Platform connector catalogs
+- H10-P01: The MCP Registry listing
+- H10-P01: Multifamily investment-team forums and vendor demos
+- H10-P01: An analyst colleague who already uses Excel reconciliation workbooks
+- H10-P02: The MCP Registry and agent-framework tool catalogs
+- H10-P02: Appraisal-software vendor communities and Texas appraiser groups
+- H10-P02: GitHub search for CRE/valuation agent tooling
+- H10-P03: Property-management software user groups and CAM-audit blogs
+- H10-P03: The GPT store and OpenAI Actions templates
+- H10-P03: Yardi/MRI customer forums
+- H10-P04: The GPT store and OpenAI Actions examples
+- H10-P04: Retail brokerage groups and ICSC-style communities
+- H10-P04: CoStar/Crexi integration marketplaces
+- H10-P05: Internal AI/platform team evaluating MCP servers
+- H10-P05: The MCP Registry
+- H10-P05: Industry conference vendor demos and peer asset-management groups
+- H10-P06: Lease-abstraction and CRE-tech vendor communities
+- H10-P06: The MCP Registry and agent-framework tool lists
+- H10-P06: Peer lease-administration managers
+- H10-P07: Property-tax consulting associations and appeal-software vendors
+- H10-P07: Claude Code plugin marketplaces
+- H10-P07: Boston open-data and assessing communities
+- H10-P08: Brokerage technology groups and MHC investor conferences
+- H10-P08: Google Workspace / Copilot Studio connector catalogs
+- H10-P08: A QI or CPA partner that already shares exchange worksheets
+- H10-P09: Credit-analyst communities and bank innovation teams
+- H10-P09: Claude Code plugin marketplaces and the MCP Registry
+- H10-P09: Vendor-risk-approved internal tool catalogs
+- H10-P10: Accounting and lease-administration communities
+- H10-P10: GitHub and package registries for CRE/finance helpers
+- H10-P10: CPA firms' technical blogs
+- H10-P11: Property-tax consultant and in-house tax-director groups
+- H10-P11: State tax-appeal software vendors
+- H10-P11: Legal-tech rule-as-code projects
+- H11-P01: Texas property-owner and CCIM/NAR member groups
+- H11-P01: An MCP/agent directory or a tool-listing page a developer-friendly owner reads
+- H11-P01: QI and tax-adviser recommendations
+- H11-P01: Search for 'Texas protest deadline calculator'
+- H11-P02: NYC building-performance/ESG practitioner groups and sustainability consultants' tool lists
+- H11-P02: MCP registry search for 'LL97' or 'energy benchmarking'
+- H11-P02: Hotel REIT asset-management peer groups
+- H11-P03: Lease-administration and CRE-tech vendor communities
+- H11-P03: MCP registry and agent-tool directories under 'document verification'
+- H11-P03: Peers at Yardi/MRI user groups
+- H11-P04: ChatGPT GPT store searches for 'net lease'
+- H11-P04: Net-lease investor forums and 1031 exchange communities
+- H11-P04: Newsletters from net-lease brokerages
+- H11-P05: Franchise real-estate peer groups (QSR development teams)
+- H11-P05: ICSC-style retail leasing communities
+- H11-P05: Search for 'exclusive use conflict check' tools
+- H11-P06: Tenant-rep and corporate real-estate communities (CoreNet-style)
+- H11-P06: Broker-technology newsletters
+- H11-P06: MCP directories searched for 'lease comparison'
+- H11-P07: Sustainability/ESG practitioner communities
+- H11-P07: The plugin marketplace listing for Claude Code
+- H11-P07: Green-lease and BOMA energy working groups
+- H11-P08: Acquisitions-team peers and CRE-tech Slack groups
+- H11-P08: Claude Code plugin marketplaces
+- H11-P08: MCP registry searches for 'underwriting'
+- H11-P09: Appraisal Institute and hospitality valuation groups
+- H11-P09: Microsoft Copilot Studio connector galleries
+- H11-P09: Hotel investment conference tool lists
+- H11-P10: MCP server registries and GitHub awesome-mcp lists
+- H11-P10: LangChain/LlamaIndex community integration pages
+- H11-P10: Hotel asset-management peer groups
+- H11-P11: Lease-administration peer groups and Yardi/MRI user communities
+- H11-P11: Retail landlord (ICSC) technology sessions
+- H11-P11: MCP directories searched for 'CAM'
+- H12-P01: Claude Code plugin marketplace
+- H12-P01: The MCP Registry listing
+- H12-P01: A credit-risk or CRE-debt team's internal agent-tool catalogue
+- H12-P01: GitHub search for 'DSCR' and 'debt sizing' tools
+- H12-P02: Valuation-team tool reviews and internal agent catalogues
+- H12-P02: MCP registries and GitHub
+- H12-P02: Appraisal Institute and CRE tech newsletters
+- H12-P03: GPT store or other GPT directories
+- H12-P03: Hotel-industry asset-management forums
+- H12-P03: Vendor lists from my operator
+- H12-P03: A newsletter on AI for real estate
+- H12-P04: Microsoft and Google connector or tool directories
+- H12-P04: MCP Registry
+- H12-P04: Industrial real estate AI communities and vendor demos
+- H12-P04: My Copilot Studio admin's approved-connector list
+- H12-P05: Appraisal Institute and Texas property tax professional communities
+- H12-P05: GPT store
+- H12-P05: MCP registries
+- H12-P05: Student-housing industry conferences
+- H12-P06: Claude's connector directory
+- H12-P06: My QI or CPA recommending it
+- H12-P06: Self-storage owner forums and associations
+- H12-P06: 1031 exchange educational sites
+- H12-P07: Lease-administration and CRE operations communities
+- H12-P07: GPT store listings
+- H12-P07: The MCP Registry
+- H12-P07: A vendor list from my CRE software providers
+- H12-P08: Appraiser forums and state appraisal-association newsletters
+- H12-P08: GPT store
+- H12-P08: Net lease brokerage tool lists
+- H12-P09: Data center investor and operator communities
+- H12-P09: Claude Code plugin marketplace
+- H12-P09: Industry conference demos and sell-side newsletters
+- H12-P10: NYC appraiser groups and lender forums
+- H12-P10: Data vendors lists (ACRIS and PLUTO wrappers)
+- H12-P10: MCP registries and GitHub search for NYC open data
+- H12-P11: Legal-tech and CRE diligence communities
+- H12-P11: MCP Registry and GitHub
+- H12-P11: In-house counsel and data-room vendor directories
+- H13-P01: the MCP Registry and GitHub
+- H13-P01: the plugin/connector directories of the LLM platform my agent runs on
+- H13-P01: a developer forum or a CRE-tech newsletter, after a peer mentions it
+- H13-P02: Microsoft Copilot Studio connector and Power Platform marketplaces
+- H13-P02: ENERGY STAR and sustainability-software vendor communities
+- H13-P02: a sustainability consultant's recommendation
+- H13-P03: a Claude connector directory or MCP Registry listing
+- H13-P03: a CRE-tech newsletter or conference demo
+- H13-P03: a peer broker's recommendation
+- H13-P04: an MCP registry or agent-framework tool catalog
+- H13-P04: a bank vendor-risk review list after a peer recommends it
+- H13-P04: GitHub search for open-source underwriting libraries
+- H13-P05: the Claude connector directory or MCP Registry
+- H13-P05: a legal-tech or proptech community thread
+- H13-P05: a peer deal team using Claude for diligence
+- H13-P06: an agent-framework tool catalog or MCP Registry
+- H13-P06: NMHC or proptech-vendor communities
+- H13-P06: a peer asset manager's workflow share
+- H13-P07: an appraisal-technology newsletter or Appraisal Institute channel
+- H13-P07: GitHub, for an open-source income-approach library
+- H13-P07: a colleague who already uses it in Claude
+- H13-P08: Texas CRE associations and property-tax consultants' networks
+- H13-P08: Yardi or lease-admin user groups
+- H13-P08: MCP Registry listing
+- H13-P09: the GPT store or ChatGPT Enterprise connector directory
+- H13-P09: an internal AI-platform team's tool review
+- H13-P09: GitHub and an MCP Registry listing
+- H13-P10: an appraisal technology newsletter or the Appraisal Institute community
+- H13-P10: Claude connector directory
+- H13-P10: a colleague's recommendation
+- H13-P11: Microsoft Copilot Studio connector catalog and Power Platform connectors
+- H13-P11: ICSC or retail property-management user groups
+- H13-P11: Yardi user community
+- H14-P01: Claude connectors directory or Anthropic MCP listings
+- H14-P01: The official MCP Registry
+- H14-P01: A peer at another acquisitions shop mentioning it in a Claude workflow
+- H14-P01: GitHub search for CRE MCP servers
+- H14-P02: The GPT store or ChatGPT app directory
+- H14-P02: BOMA or property-management newsletters
+- H14-P02: A Yardi or MRI user community forum
+- H14-P02: A search for 'CAM reconciliation GPT'
+- H14-P03: The Claude Code plugin marketplace listings
+- H14-P03: GitHub (the repo is the distribution channel)
+- H14-P03: A teammate's .claude config
+- H14-P03: MCP registry search
+- H14-P04: Claude connector directory
+- H14-P04: MCP registry
+- H14-P04: LinkedIn posts by CRE-AI practitioners
+- H14-P04: GitHub topics for real estate agents
+- H14-P05: Hacker News or GitHub trending for CRE agent tooling
+- H14-P05: A franchisee peer group
+- H14-P05: A Python package index search (the materials say not on PyPI yet)
+- H14-P05: Real estate agent-builder Discords
+- H14-P06: Microsoft Copilot Studio connector gallery
+- H14-P06: The MCP registry
+- H14-P06: An IT vendor-review list
+- H14-P06: BOMA conference demos
+- H14-P07: ENERGY STAR and BPS compliance forums
+- H14-P07: NYC real estate sustainability groups
+- H14-P07: MCP registry
+- H14-P07: Claude connector directory
+- H14-P08: Microsoft Copilot Studio connector gallery
+- H14-P08: LinkedIn CRE-tech groups
+- H14-P08: MBA forums
+- H14-P08: The MCP registry
+- H14-P09: A broker's Claude Code setup guide
+- H14-P09: CCIM or NAIOP tech sessions
+- H14-P09: GitHub
+- H14-P09: A recommendation from an exchange intermediary
+- H14-P10: GRESB or ENERGY STAR partner communities
+- H14-P10: Texas property tax professional groups
+- H14-P10: GitHub
+- H14-P10: The MCP registry
+- H14-P11: Lease administration or CRE-tech communities
+- H14-P11: ChatGPT GPT store search
+- H14-P11: A Yardi or MRI partner forum
+- H14-P11: GitHub
+- H15-P01: The GPT Store / ChatGPT connector directory
+- H15-P01: Developer-side newsletters and CRE-tech Slack groups
+- H15-P01: Word of mouth from an analyst who already uses Claude Code plugins
+- H15-P02: The MCP Registry listing when our platform team evaluates tools
+- H15-P02: GitHub, since the engine is open source and legal-tech teams read repos
+- H15-P02: Peer diligence/legal-ops forums
+- H15-P03: Property-management ops communities and Yardi user groups
+- H15-P03: MCP Registry searches by our platform engineers
+- H15-P03: GitHub, since the engine is open source
+- H15-P04: GitHub and the MCP Registry for a developer on my platform team
+- H15-P04: Lease-admin and CRE-tech practitioner groups
+- H15-P04: Not through a vendor sales call
+- H15-P05: Claude connectors directory or the MCP Registry
+- H15-P05: Underwriting-analyst communities and LinkedIn posts by other acquisitions teams
+- H15-P05: A colleague's recommendation
+- H15-P06: Lease-admin practitioner forums and Yardi/MRI user groups
+- H15-P06: The MCP Registry via our platform team
+- H15-P06: Controllers' newsletters for ASC 842 tooling
+- H15-P07: GitHub, since the engine is open source
+- H15-P07: Lease-admin and retail-owner peer groups
+- H15-P07: A conference talk or a benchmark I can rerun myself
+- H15-P08: Property-tax consultants' and appeals-desk communities
+- H15-P08: State bar and tax-professional resources for rule packs
+- H15-P08: GitHub, to read the rule source before relying on it
+- H15-P09: Appraisal Institute and state appraiser-association communities
+- H15-P09: CRE-tech newsletters
+- H15-P09: GitHub, to inspect the maths before using it in a work file
+- H15-P10: Small-investor and BiggerPockets-style forums
+- H15-P10: Qualified-intermediary and CPA blogs
+- H15-P10: Whatever AI tool directory my agent platform provides
+- H15-P11: Appraisal Institute / valuation technology groups
+- H15-P11: Through our firm's model-risk or vendor-intake review (it would have to pass that)
+- H15-P11: GitHub and the MCP Registry for our engineers
+
+## Problems (474)
+
+- H01-P01: calc_hotel_metrics returns NOI after property tax (non_operating_expenses) and reserve; for a tax appeal the pre-tax NOI is what gets tax-loaded, and the output does not flag this (hotel call)
+- H01-P01: calc_direct_cap warning about reserves appears even when the caller has just used a reserve-adjusted NOI; harmless but noisy (direct_cap call)
+- H01-P01: recommended_file_by (2026-05-29) is a tool-chosen conservative date, not defined in the output beyond its name (deadline2 call)
+- H01-P02: cam_reconciliation default left the admin-fee base including taxes and insurance until I set admin_fee_applies false on those lines; correct, but easy to miss on 100 leases (cam call warning)
+- H01-P02: No input for management fees as a percent of the pool distinct from the admin fee, so a lease with both needs a workaround (not tested, from the schema)
+- H01-P02: The capex tool allocates the amortised recovery but has no gross-up or tie back to the CAM pool (capex call)
+- H01-P03: calc_dcf_pro_forma has no unit field and reports building_area_sf = 24000 for 24,000 kW (dcf call)
+- H01-P03: calc_direct_cap returns value_per_sf 27,367.26 when the quantity is kW (dcap call)
+- H01-P03: The NER and rent-schedule schemas keep _sf and _psf field names under unit kw, so a committee exhibit needs relabelling (rent call)
+- H01-P04: calc_amortization_schedule's interest_only_payment field shows the 28-day first-period amount (1,764,000) under actual/360 without saying it varies by month (amort call)
+- H01-P04: Stress grid omits a no-shock rate row unless 0 is supplied (ds call)
+- H01-P05: as_of required but absent from the documented input table (vf call)
+- H01-P05: Delayed rent step gets valid_from = amendment effective date 2026-02-01 although the text starts it on 2026-08-01 (abstract call)
+- H01-P05: verify_claim 'contradicted' means the quote does not state the value, which is narrower than 'the lease contradicts the claim' (claim call)
+- H01-P06: connector-chatgpt-README.md lists 30 subset operations; the served file has 26 (spec call), with the four registry tools absent
+- H01-P06: gpt-instructions.md is referenced but was not provided (docs gap)
+- H01-P07: renew_vs_relocate places downtime and double-rent costs at t = 0 (stated in the steps); spreading the two overlap months over months 1-2 would change the NPV difference by about $755 on this case, so immaterial here but a convention the CFO's analyst should know (rr call)
+- H01-P07: Tool schemas are long; tools/list is 162 KB, heavy for an agent's context (tools/list call)
+- H01-P07: site-index.txt tool counts and skill counts are inconsistent (22 vs the shorter list; eight vs eleven skills; six vs seven registry tools in llms.txt)
+- H01-P08: The comp format's property_type enum lacks life science or lab, so my comp had to be filed as 'other' (comp call)
+- H01-P08: The proposal ranking compares across markets without warning that the space and markets are not equivalent beyond '$/SF normalizes size' (cmp call)
+- H01-P08: The load-factor error does not define which way the ratio runs (cmp_bad call)
+- H01-P09: doc_check_use_conflict missed 'bitcoin mining hosting' against a 'cryptocurrency mining' prohibition (use1 call)
+- H01-P09: A package re-created from an edited fact verifies as valid:true given the source pages, because the value is not re-checked against the quote and the package is unsigned (pkg_tamper and pkgv_tamper2 calls)
+- H01-P09: The failed verify call's message does not say a wrapper object was passed (pkgv call)
+- H01-P10: calc_direct_cap labels per-pad values value_per_sf and price_per_sf (dcap call)
+- H01-P10: MCP search returns registry_* tool IDs although tools/list has none, and /openapi.json omits them while the REST path exists (search, openapi, reg2 calls)
+- H01-P10: Registry error points to the registry-sample-dc-2026-11-03 tag; llms.txt names the 2026-11-04 tag (reg2 call)
+- H01-P11: doc_check_use_conflict returned no conflict for an urgent care that dispenses 'common medications' against an exclusive on dispensing 'prescription drugs' (use call 1)
+- H01-P11: Exclusive-use value shape is not documented in the packet; found by trial (vf call)
+- H01-P11: id_building error says stateFips while the field is state_fips and reports one issue at a time (bldg_bad call)
+- H02-P01: Late identification is counted in the identification tests (late D in the fourth call), so a user could be told no valid identification exists when it does.
+- H02-P01: The exchange object gives no depreciation recapture or recognized-gain tax view (realized_gain 2,048,000 only); a QI worksheet would want it (not a promised feature).
+- H02-P01: Without tax_return_due_date the tool warns but still prints the 180-day date as exchange_deadline (observed in the fourth call); an agent that ignores warnings could quote the later date.
+- H02-P02: Concession rounding: the tool rounds each unit's monthly concession to cents; my once-rounded total differs by $0.02 for the roll (first call).
+- H02-P02: Physical occupancy denominator includes model and down units; not stated in the output (first call).
+- H02-P02: Waterfall test did not reach the residual tier, so that tier was not tested.
+- H02-P03: connectors-README.md stale tool count (16 vs 42 listed by tools/list).
+- H02-P03: getting-started.md says OpenAPI includes registry tools; the hosted OpenAPI has none.
+- H02-P04: calc_compare_proposals nets the full TI allowance as a cash credit, while calc_renew_vs_relocate offsets build-out cost with the allowance and does not pay out any excess; the same $55 TI is thus treated two ways, and the tenant_upfront_costs field says 'not covered by allowances', which hides that a user should enter the full build-out cost (calls 2 and 3).
+- H02-P04: A 300% escalation was accepted, producing a $3.05 billion schedule; only a warning marks it (call 4).
+- H02-P04: Tool results arrive as a pretty-printed JSON string in a text content item (a structuredContent field was also present on the direct cap call); acceptable, but a long text block for Claude to quote (observed on every MCP call).
+- H02-P05: No yield-on-cost output: I had to feed all-in cost as 'price' to calc_direct_cap (call 2).
+- H02-P05: calc_amortization_schedule funds all principal at start, so it cannot show a construction loan with draws (call 3).
+- H02-P05: BTR leases are modelled as square-foot rent lines (call 4); a per-home view has no unit option in the DCF (the rent-schedule tools do have a unit option, not tested here).
+- H02-P06: The home page gives two different skill counts (eight vs eleven) (site-index.txt).
+- H02-P06: User-facing skill text cites an internal review case id (cre-loan-sizing.md).
+- H02-P06: The plugin skills table repeats cam-reconciliation (plugin-README.md).
+- H02-P07: Tool list is about 42,000 tokens for 42 tools with no filter (saved tools/list).
+- H02-P07: lease-comps.md enum text differs from the validator's (call 5).
+- H02-P07: Registry REST routes are not in /v1/tools or openapi.json yet respond (calls 7 and 8), so an agent cannot discover them from the machine-readable lists.
+- H02-P07: walt error has an empty issues array (call 3).
+- H02-P08: A string rent '$14.50' came back as a verified fact with no value check (call 7).
+- H02-P08: 'juice bar' flagged against a prohibited 'bar' by shared word despite the doc's own statement about juice bars (call 5).
+- H02-P08: valid_from takes the amendment's effective date rather than a stated later start date (call 3; documented).
+- H02-P08: Predicate shapes require a document (ingest.md) that the connector docs do not include.
+- H02-P09: Month-to-month tenants without a lease end are reported only as a count (no_lease_end_units) and are not in the expiration ladder; no warning mentions them (call 5).
+- H02-P09: Nothing in the materials covers manufactured housing (marketing).
+- H02-P09: The direct cap example returns a warning about noi_basis, which the skill example did not pass; trivial but the skill's example is not warning-free (call 3).
+- H02-P10: existing_loan_balance of 0 is rejected (call 4).
+- H02-P10: The exit NOI (year 8) includes TI and free rent from a rollover; the tool warns but does not normalise (observed in the warnings of call 2), so the user must adjust the exit basis.
+- H02-P10: General vacancy is applied on top of rollover downtime (documented warning), which double-counts for a building that already models downtime; the user has to set it to zero.
+- H02-P11: Hazard and valuation data absent (all calls).
+- H02-P11: Identifier inputs require FIPS codes; no helper from a plain address (id_building error call).
+- H02-P11: Registry routes are not listed in /v1/tools; I had to guess /v1/registry/get and its field name (registry_get calls).
+- H03-P01: Rent-schedule value shape not documented in the hosted tool schema or published materials (call 4)
+- H03-P01: Hint for unknown predicates is wrong-looking: 'did you mean lease.expiration_date?' for lease.escalation_rate (call 2)
+- H03-P01: Verbose output: a two-term abstract is about 7KB because every fact repeats its provenance (call 8)
+- H03-P01: A page number that does not exist (3 in a 2-page document) was silently corrected to page 2 rather than flagged beyond a note (call 2)
+- H03-P01: Docs: 'always include the registry tools' and '16 tools' contradict GET /v1/tools (call 1)
+- H03-P02: Stress holds value fixed by default, so LTV ignores the NOI shock unless value_moves_with_noi is set; disclosed by a warning but easy to miss in a credit memo (call 3)
+- H03-P02: Amortization convention (amortization starts after IO) differs from a common lender phrase; disclosed only in the field description (call 4)
+- H03-P02: search/fetch advertise registry_get which tools/list does not offer (calls 2, 7, 8)
+- H03-P02: '16 tools' in connectors-README vs 42 from tools/list (call 2)
+- H03-P03: calc_walt rejects zero-area vacant rows, so vacancy has to be handled outside the tool (call 1)
+- H03-P03: DCF with a price far above value returns NPV and IRR without a sanity warning (call 4)
+- H03-P03: Landlord-perspective downtime treatment is hard to reproduce from the description (call 6)
+- H03-P04: calc_exchange_1031 reports rule_met three_property while also listing one of the three as identified late (call 6)
+- H03-P04: Rent schedule cannot express a first bump at month 37 then every 60 months; workaround via original commencement (schema from GET /v1/tools)
+- H03-P04: Rent-schedule totals use cent-rounded monthly rent so they differ from a spreadsheet by cents (call 4)
+- H03-P05: Nothing in the materials says insurers or climate-risk work is out of scope; I only found out by searching (call 4)
+- H03-P05: The rent-roll calculator needs a row per unit; no summary mode for a submission that gives only unit counts and average rent (schema in call 3)
+- H03-P05: registry coverage for Phoenix is sample-only and not hosted
+- H03-P06: Guide lists four registry operations in the GPT subset that the hosted document does not contain (call 1)
+- H03-P06: doc_compare and calc_capex_recovery, both lease-admin jobs, are outside the subset (call 2)
+- H03-P06: Very long operation descriptions in the Action spec (call 1); GPT builder acceptance not tested
+- H03-P06: gpt-instructions.md not available to me
+- H03-P07: Plugin and home page disagree on skill count: eight vs eleven; plugin-README has a duplicated cam-reconciliation row (materials)
+- H03-P07: The exchange deadline printed without tax_return_due_date is only the 180-day date; a user who skims past the warning gets a date that can be about two months late for a December sale (call 5)
+- H03-P08: calc_npv gives no hint when an annual rate is paired with a long monthly series (calls 7-8)
+- H03-P08: registry_get exists in the materials and the REST route but is UnknownTool over hosted MCP, while the REST route returns RegistryUnavailable (calls 1-2): two different errors for the same missing capability
+- H03-P08: The registry-ready join key depends on exact APN formatting by county, with no hosted helper to validate it against the county's format (calls 3-5)
+- H03-P09: tools/list is 162 KB for 42 tools with no way to ask for a subset; loading it whole into an agent is costly (call 2)
+- H03-P09: Rate fields accept values up to 10 (1000%), so a 5% fee typed as 5 computes and only warns (call 6)
+- H03-P09: Warning about a mistyped rate sits in the top-level warnings, not in the tenant statement the agent would forward (call 6)
+- H03-P10: Hosted API gives no pointer from a missing LL97 route to the draft status (call 1)
+- H03-P10: doc_verify_claim counts the '2' in 'ft2' as a checked number (call 4)
+- H03-P10: A wrong metric label passes verification when the number matches (call 5)
+- H03-P11: Structured exclusives with only text parts verify with nothing checked, so a wrong protected use is 'verified' (call 4)
+- H03-P11: Prohibited-use lists produce one hit per list item for the same clause (call 6)
+- H03-P11: A prohibited use binding the cafe's own premises is applied to the whole center (call 5)
+- H03-P11: fact_package_verify says valid true for an unsigned package (call 8)
+- H03-P11: rooms_out_of_order units slip accepted silently (call 10)
+- H03-P11: predicate shape for lease.exclusive_use is undiscoverable from materials (call 2)
+- H04-P01: The ChatGPT guide's 30-name subset does not match the 26 hosted operations in /openapi-3.0.json (GET /openapi-3.0.json); consistent only if you read the registry caveat.
+- H04-P01: getting-started.md says REST always includes registry tools; GET /v1/tools lists none.
+- H04-P01: The 1031 deadline for 2026-11-29 lands on a Sunday and the tool does not flag that as a practical risk beyond a generic calendar-day warning (observed in the exchange_1031 call); a conservative 'file by Friday' field like the Texas rule has would help.
+- H04-P02: calc_npv returns a value for rate 8 with only a warning (calc_npv call with rate 8); whether other calculators treat a whole-number percent the same way is not tested in this persona's calls.
+- H04-P02: search for 'energy' returns only a predicate list, so an agent cannot discover that benchmarking data exists for NYC, DC and Denver without reading GitHub docs.
+- H04-P03: tools/list is 162,033 bytes for 42 tools (tools/list call), heavy for a framework that loads all tools into the prompt.
+- H04-P03: The DCF result has no levered returns, so the agent needs a second tool (calc_amortization_schedule, not tested here) plus its own join to get an equity IRR.
+- H04-P04: rooms_out_of_order given as 12 (rooms, not room-nights) was accepted with warnings [] (calc_hotel_metrics call 1).
+- H04-P04: getting-started.md says OpenAPI includes registry tools; /openapi.json has none (GET /openapi.json call).
+- H04-P05: calc_prepayment_and_defeasance is absent from /openapi-3.0.json (26 operations) but present in ?operations=all (39); four of the 30 Actions slots are unused.
+- H04-P05: The stress table gives only the cross product, so a single-shock view needs separate calls (debt_sizing stress call).
+- H04-P06: Doc tool responses have no steps/formula/provenance wrapper; the spread call returned periods, lines, exceptions and summary instead, so a generic parser must handle two shapes.
+- H04-P06: The page text has to be supplied by the agent; line construction is manual and the docs give no copyable full request example.
+- H04-P07: Unit-level concession_monthly 165.39 for unit 102 versus my 165.38 (rounding the total to cents before dividing); a one-cent difference per unit that could appear in a Yardi tie-out (calc_multifamily_rent_roll call 3, include_units).
+- H04-P08: A lease entered with 6 months remaining instead of 78 produced no warning (calc_dcf_pro_forma bad-input call), even though it moved NOI year 1 by about $0.77M and the value by about $7.8M versus the correct input.
+- H04-P08: The two waterfall calls leave the 15% tier and the residual split unexercised, so I cannot vouch for them (calc_equity_waterfall calls).
+- H04-P09: doc_compare is not in /openapi-3.0.json (26 operations; 4 of the 30 Actions slots are free), so the estoppel step is unavailable to a default Custom GPT (GET /openapi-3.0.json).
+- H04-P09: lease.cam_cap rejected with no list of valid methods (second doc_verify_facts call).
+- H04-P09: valid_from on an amended term uses the amendment's date, not the term's own effective date (doc_abstract_lease call: rent effective July 1 shown as valid from June 15).
+- H04-P10: No complete compare_proposals request example in the materials; the schema is deeply nested and I learned the escalation enum from the error (calc_compare_proposals bad-input calls).
+- H04-P10: Renew-vs-relocate treats downtime, double rent and disruption as undiscounted one-time costs at t=0 (stated in steps), which differs from timing them when they occur; it favours renewing slightly (calc_renew_vs_relocate call).
+- H04-P11: lease_comp_validate returned valid true with no warnings for an escalation rate of 3 and a derived NER of $4,492.05/SF/yr (lease_comp_validate call with rate 3); a plausibility warning on the derived NER or the rate would catch it.
+- H04-P11: Search for retail comps returns tools, not data, and nothing points to where shared comps would come from (search call).
+- H05-P01: Fee Income, a standard storage line, did not map to the commercial chart (doc_spread_statement first call)
+- H05-P01: MCP replies repeat the full result as text and as structuredContent, about double the tokens (calc_direct_cap call)
+- H05-P01: IRR needs me to build the levered flows; there is no single-call buyer return for a priced asset
+- H05-P01: Doc tool count in connectors/README is stale (tools/list)
+- H05-P02: A lease term of 7 months for 250,000 SF raised no warning (calc_rent_schedule mistake call)
+- H05-P02: Whole-number rate handling is inconsistent: a warning and a computed result in rent_schedule, a hard error in direct_cap
+- H05-P02: Effective-cost ranking favours the gross deal because it quotes no opex; I had to confirm the opex-structure assumption myself
+- H05-P02: registry_* tools described in getting-started as always present in REST/OpenAPI are absent from /v1/tools and /openapi.json
+- H05-P03: Controllable defaults to true and taxes/insurance in a capped pool raised no warning (first calc_cam_reconciliation_batch call), inflating the cap reduction from 23,988 to 54,188 on the bakery
+- H05-P03: The skipped-day reason for 2027-06-19 says only Saturday, not Juneteenth (second deadline call); the date is still right
+- H05-P03: Responses carry the full result twice in MCP (text and structuredContent), which bloats a small assistant's context
+- H05-P04: The 'value held fixed' warning appears even when value_shocks are supplied (first calc_debt_sizing call)
+- H05-P04: balloon_balance excludes the last regular installment, so final_payment is balloon plus installment (calc_amortization_schedule); easy to misread
+- H05-P04: The stress grid is the full product of the shock lists, so I cannot get single-factor rows without separate calls (calc_debt_sizing call)
+- H05-P04: MCP replies duplicate content in text and structuredContent
+- H05-P05: calc_lease_vs_own is not in the default Custom GPT spec (GET /openapi-3.0.json: 26 operations)
+- H05-P05: 23 of 26 operation descriptions exceed 300 characters; import behavior untested (GET /openapi-3.0.json)
+- H05-P05: gpt-instructions.md, referenced by the doc, was not available to me
+- H05-P05: WALT and other portfolio tools were not tested for this persona (not tested)
+- H05-P06: Rent roll with an annual rent in a monthly field returned 586% economic occupancy with only a market-rent warning (calc_multifamily_rent_roll mistake call)
+- H05-P06: Home page skill count is inconsistent (eight vs eleven) and the plugin README table lists cam-reconciliation twice
+- H05-P06: The batch CAM example's admin fee is billed on uncontrollable lines by default, and I only learn that from a warning (calc_cam_reconciliation_batch call)
+- H05-P07: Several predicate fields are only type-checked (exclusive protected_use text, co-tenancy trigger and remedy, go-dark recapture boolean): 'not_checked' listed them in the verify result, so a wrong summary passes if the quote is real
+- H05-P07: DCF with no lease rolls says so in a warning but still takes all the rollover inputs; I could not test the rollover blend
+- H05-P07: MCP tool results duplicate the payload as text and structuredContent
+- H05-P08: lease_comp_validate's required fact envelope is not documented in the materials with a complete example; I had to learn it from issues (first lease_comp_validate call)
+- H05-P08: The 235 KB tool catalog has to be fetched and parsed to code against; a smaller per-tool schema endpoint would help (GET /v1/tools)
+- H05-P09: tools/list is 162 KB with 42 tools and no way to ask for a subset (tools/list call)
+- H05-P09: The identification totals include a property flagged as late (count 3, ratio 1.625 including Lima), which could mislead an agent that reads only the totals (calc_exchange_1031 call)
+- H05-P09: Mixed units are computed with only a negative-equity warning (calc_exchange_1031 mistake call)
+- H05-P10: Direct cap takes a single cap rate, so a cap-rate range takes one call each (three calls here)
+- H05-P10: No call returns a stabilized NOI from a rent roll for multifamily; the NOI build stays outside the tool (rent roll call stops at effective rent income)
+- H05-P10: calc_npv and calc_irr take only annual flows I assemble myself; there is no multifamily DCF tool (the DCF tool is for lease rent rolls)
+- H05-P11: doc_compare is missing from the default Custom GPT spec (GET /openapi-3.0.json: 26 operations)
+- H05-P11: An item held for review shows as not_in_lease in doc_compare, so the compare result alone can mislead (doc_compare call)
+- H05-P11: A correct conversion (five years to 60 months) goes to needs_review; defensible, but it will frustrate bulk abstracting (doc_abstract_lease call)
+- H05-P11: An amendment that restates only part of the schedule drops the earlier steps from the current-state value (doc_abstract_lease call)
+- H06-P01: Plugin skills do not include the document tools, so a plugin-only user is not steered to the abstraction workflow (plugin-README table; MCP instructions string is the only pointer).
+- H06-P01: Non-Ingest predicates are accepted with a misleading 'did you mean lease.expiration_date?' note (doc_verify_facts call).
+- H06-P01: A generic-predicate amendment value replaces the earlier one regardless of when it takes effect (doc_abstract_lease call).
+- H06-P02: The DCF holds the exit year's rollover costs in forward NOI (warned) with no normalise option, so I had to reason about it myself (calc_dcf_pro_forma warnings).
+- H06-P02: Stress table holds value fixed unless told otherwise (warned in calc_debt_sizing) so a quick read overstates LTV headroom.
+- H06-P02: No tool for rollover scenario sets or sensitivity grids on the DCF; each case is a separate call.
+- H06-P03: No plausibility warning on a tiny reserve value (calc_direct_cap with capex_reserve_annual 0.10); the result is a confident value that is 1.5% too high.
+- H06-P03: getting-started.md registry-tool claim not true of the live OpenAPI (GET /openapi.json).
+- H06-P04: Tool count in connectors-README.md (16) disagrees with tools/list (42).
+- H06-P04: Years typed in a month field passes through with only a balloon warning (calc_amortization_schedule mistake call).
+- H06-P04: The 1031 tool carries no verification stamp like the Texas rule, so I cannot tell if a named person checked it against the regulation text (not in the materials).
+- H06-P05: Connector doc step 1 tells a hosted user to deploy a server first (connector-claude-README.md).
+- H06-P05: Monthly-for-annual NOI passes silently (calc_debt_sizing with 192,500).
+- H06-P05: Rent-roll occupancy denominator not disclosed (calc_multifamily_rent_roll call).
+- H06-P05: max_ltv error lacks a corrective hint (calc_debt_sizing mistake call).
+- H06-P06: Interest rate of 6 (percent) accepted with a warning only (calc_capex_recovery), while the share 37.5 in the same tool is rejected.
+- H06-P06: The share error message has no corrective hint (calc_capex_recovery mistake call).
+- H06-P06: One calc_capex_recovery call took 7.2 s (the call with no tenants); not reproduced.
+- H06-P07: Shape of structured clause values (exclusive_use with carve-outs) cannot be discovered from the pack: ingest.md is referenced but not included (document-verification.md), so a plain string was accepted but loses the carve-out logic (doc_check_use_conflict call).
+- H06-P07: Exclusive screening flagged the espresso bar on a shared word and category but cannot weigh 'primary purpose' wording; it says so, but a counsel-facing summary still needs a human read (doc_check_use_conflict call).
+- H06-P07: Output size: a five-fact verification returns about 10 KB of JSON (doc_verify_facts call) which a Copilot Studio agent must summarize itself.
+- H06-P08: String percent rejected without a corrective hint (calc_direct_cap with '6.25%').
+- H06-P08: calc_multifamily_rent_roll does not report an annualized loss to lease, only monthly (rent roll output has GPR and effective income annual but loss_to_lease_monthly only).
+- H06-P08: The saved 3.0 'all operations' document is 352 KB (GET /openapi-3.0.json?operations=all), large for a GPT import if someone ignores the guide.
+- H06-P09: The LOI ranking by discounted NER favors the 5-year LOI while the 7-year LOI has a higher total net (277,740 vs 227,621); the warning mentions the term difference but the ranking alone could mislead a seller (calc_compare_proposals call).
+- H06-P09: Paid tiers add no feature today beyond rate limits (GET /v1/plans notes).
+- H06-P10: No plugin skill covers the document and use-conflict tools (plugin-README skill table), so a plugin user would have to know to ask for them.
+- H06-P10: Structured predicate shapes (prohibited_uses array) are only learnable from an error (doc_verify_facts first call).
+- H06-P10: Screening is textual: a clinic with an in-house pharmacy was flagged, which is right, but the tool says an empty result would not prove no conflict (doc_check_use_conflict note).
+- H06-P11: The REST quickstart in getting-started.md targets localhost; the hosted base URL is on another page (connectors-README.md).
+- H06-P11: No Excel reconciliation file in the pack despite the claim of zero-difference workbooks.
+- H06-P11: 'received undefined' in the missing-field message (calc_rent_schedule missing area_sf).
+- H07-P01: Predicate names that are not in the Ingest table are accepted without complaint, so two GPTs can label the same term differently (doc_verify_facts call); and search/fetch, which a sibling MCP tool uses to look predicates up, are not among the 26 Actions operations (GET /openapi-3.0.json), so a Custom GPT has no way to ask
+- H07-P01: 23 of 26 operation descriptions exceed 300 characters, up to 1,512 (GET /openapi-3.0.json); import into the GPT builder not tested
+- H07-P01: Percent-as-whole-number is a warning, not an error (rent_schedule call)
+- H07-P01: Current-state abstract ignores that an amendment's effective date is later than as_of (doc_abstract_lease call)
+- H07-P02: Late-identified property B is still counted in the three-property and 200% tests (4 identified, 200% rule met on $3.9M); if the late one is excluded, A, C and D are three properties and the three-property rule would be the one met. The result says rule_met 200_percent (calc_exchange_1031 call)
+- H07-P02: getting-started.md says the OpenAPI always includes registry tools; the hosted OpenAPI has none (GET /openapi.json)
+- H07-P02: Debt replacement is shown as 900,000 by counting my $100,000 cash as replaced debt; correct under the netting rule cited but easy to misread (calc_exchange_1031 steps)
+- H07-P03: Home page says eight skills, other docs say eleven (site-index.txt vs plugin-README.md)
+- H07-P03: doc_compare status not_in_lease is ambiguous for an agent that did not extract the term (doc_compare call)
+- H07-P03: Plugin README skills table repeats the cam-reconciliation row (plugin-README.md)
+- H07-P03: The materials do not point to search/fetch as the way to find predicate names
+- H07-P04: The REST registry route returns 503 and is not in the OpenAPI document, so a developer finds it only by guessing (POST /v1/registry/get)
+- H07-P04: Rent-roll modes price a 'down' unit at market rent as loss; for an insurer's loss-of-rents the policy's rental value basis would need to be applied outside the tool (calc_multifamily_rent_roll steps)
+- H07-P05: Inconsistent handling of a percent entered as a whole number: calc_npv and calc_rent_schedule compute with a warning, calc_direct_cap and calc_cam_reconciliation reject with 400 (compare calc_npv rate 8 here with the direct_cap cap_rate 6.75 call in H07-P02)
+- H07-P05: The percent warning text is a fixed example ('If you meant 3%, pass 0.08')
+- H07-P06: doc_verify_facts does not check the text fields of an object-valued exclusive_use against the quote; carve-outs that my quote did not contain were accepted in the verified fact (doc_verify_facts call)
+- H07-P06: Step 1 of the Claude connector doc reads like a hosting instruction (connector-claude-README.md)
+- H07-P06: 42 tool definitions are sent to the model on every tools/list (162 KB), heavy for a desk that uses four of them
+- H07-P07: No warning when every in-place lease expires within 10 months of a 5-year hold (second DCF call)
+- H07-P07: calc_dcf_pro_forma has no apartment unit input; mixed-use needs a workaround (schema)
+- H07-P07: Home page 'can't get wrong' wording vs the DCF's own 'conventions to confirm' warning
+- H07-P08: The Custom GPT subset omits prepayment/defeasance (openapi-3.0.json vs ?operations=all)
+- H07-P08: I must supply the Treasury yield: nothing in the tool or the materials says where a rate comes from
+- H07-P08: Defeasance is an approximation by design (warning), so it cannot stand in for a consultant's quote
+- H07-P09: doc_verify_claim returns 'supported' for '120 months' against a quote about 120 days (doc_verify_claim call 2); disclosed in the docs but the status word oversells it
+- H07-P09: No plausibility warning for a rent of $4,233/SF/yr after a unit slip (calc_rent_schedule every_months 5 call)
+- H07-P10: A phased-delivery data-center lease cannot be entered (schema: one area_sf per schedule)
+- H07-P10: Data-center units are not mentioned on the home page or llms.txt; they are in tool schemas (GET /v1/tools), the changelog and one skill
+- H07-P10: The per-kW metric normalises size but 'not the value of the capacity itself' (compare_proposals warning), so a 2 MW vs 3 MW decision needs more than this ranking
+- H07-P11: Not tested: whether 14 oneOf and 40 pattern keywords load into strict-schema frameworks (tools/list)
+- H07-P11: Logic errors (rooms_sold above capacity) have an empty issues array (calc_hotel_metrics call)
+- H07-P11: No documented behaviour for 429 on the free tier
+- H08-P01: Calling tools/list returns a 162 KB payload (call 3), heavy for a framework that loads every tool into context
+- H08-P01: Predicate value shapes are only discoverable by failing a call (call 6)
+- H08-P01: Irregular rent steps cannot be generated by calc_rent_schedule (schema), and nothing links the abstract's schedule to the calculator
+- H08-P02: Batch accepts tenants whose shares sum to 0.40 while the gross-up occupancy says 82% and does not warn about the 42-point gap (call 4); an accountant would want that cross-check
+- H08-P02: No output formatting for a tenant-ready statement; the agent has to render the steps itself (clarity 4 not 5)
+- H08-P03: Student housing underwriting needs by-the-bed income and expenses; nothing in the tool list builds NOI (calc list in GET /v1/tools)
+- H08-P03: Stress table only shocks NOI, rate and value; no occupancy or rent-per-bed shock (calc_debt_sizing schema)
+- H08-P04: Late-identified property is counted in the 3-property / 200% / 95% tests: call 3 reports no valid identification (rule_met null), while the same list without the late property (call 4) passes; the reg treats a late identification as not identified, so the test should probably run on timely ones only. The warning does name the late property, so the information is there but the headline is wrong-footed
+- H08-P04: Weekend and holiday roll-forward is not applied (stated in the warnings)
+- H08-P05: calc_renew_vs_relocate omits operating expenses and CAM (schema), so for an NNN store it can disagree with calc_compare_proposals on the same offers (the two tools ranked the same pair with different gaps: $0.60 per SF versus $638k NPV); the docs do not warn about it (calls 2 and 3)
+- H08-P05: Remeasurement accepts discount_rate_updated false for a modification and still returns a liability (call 5)
+- H08-P06: doc_compare returns not_in_lease for an unverified term, which reads as a statement about the lease (call 2)
+- H08-P06: A generic predicate accepts any number in the quote without checking which term it belongs to; docs say so, but a made-up predicate is accepted (call 1)
+- H08-P06: The privacy basis for client documents is a policy page that says it needs counsel's review (customer-documents.md)
+- H08-P07: calc_rent_schedule accepts escalation.rate 3 and returns a nonsense schedule with HTTP 200 (call 4); a GPT summarizing the result could pass it on
+- H08-P07: getting-started.md and connector-chatgpt-README.md disagree with the hosted file about registry operations and the 30-operation count (calls 1 and 2)
+- H08-P07: gpt-instructions.md, which the doc says to paste, is not in the public materials I had
+- H08-P08: Mid-month commencement dates are not prorated to calendar months in rent schedules (warning in call 6); a single-tenant NNN administrator billing monthly must adjust outside the tool
+- H08-P08: Years-to-months conversion in a renewal clause lands in needs_review (call 8), which is correct but adds manual work
+- H08-P09: The most relevant tool for my job is outside the default GPT subset (call 1)
+- H08-P09: calc_cam_reconciliation reports admin_fee 12,730.46 even though the cap absorbs it, so the headline field is easy to misread (call 4)
+- H08-P09: lease_vs_own is pre-tax unless a tax block is given; a warning says so (call 2)
+- H08-P10: The one-unit 12x rent typo is not flagged by unit; only an aggregate 'gain to lease' warning blames market_rent (call 2)
+- H08-P10: Docs disagree: connectors-README.md says the remote MCP serves 16 tools plus search/fetch/schema_get, while the same server listed 42 in another persona's tools/list call in this batch
+- H08-P11: calc_npv accepts a whole-number rate with a warning and a wrong-looking result (call 6); calc_rent_schedule does the same for escalation rates in another persona's call, while debt_sizing rejects them
+- H08-P11: No lot or pad unit in the unit enum (call 1)
+- H09-P01: Input guard is a warning only: rate 3 is computed as 300% (calc_rent_schedule call).
+- H09-P01: Docs say REST tool lists include registry tools; hosted GET /v1/tools has none.
+- H09-P01: Site says eight skills and eleven skills in the same page (site-index.txt).
+- H09-P02: calc_renew_vs_relocate result carries no warning that opex/expense-stop are excluded (call 3 returned warnings [])
+- H09-P02: Compare result gives A vs B a 4.5 cent edge with a 2-year term difference; only a generic warning (call 2)
+- H09-P02: Catalog has no worked example for field names; I had to read the schema
+- H09-P03: Default controllable true with no warning when a cap is present and no line is marked uncontrollable (CAM call 1).
+- H09-P03: Doc lists four registry operations in the GPT subset that are not in the live spec (openapi call).
+- H09-P03: gpt-instructions.md referenced but not in the materials.
+- H09-P04: Stress table holds value fixed by default; only a warning tells the agent (calc_debt_sizing call 3).
+- H09-P04: Direct cap on a trailing-12 NOI returns no warning that the NOI is backward-looking (calc_direct_cap call).
+- H09-P05: Docs say the REST/OpenAPI tool exports include registry tools; the 3.0 all-operations spec has none (call 1).
+- H09-P05: Hurdle error message lacks the 'pass 0.12' hint that rate errors elsewhere carry (call 2).
+- H09-P05: Registry data I need for assembly is not hosted.
+- H09-P06: schema_get ignores a name argument and returns only generic fact schemas (schema_get call).
+- H09-P06: The shape of lease.exclusive_use is not given in the materials I was handed; found by trial (doc_verify_facts call 1).
+- H09-P06: ASC 842 result for an extension returns warnings [] although the description says it warns where judgment is needed (calc_lease_remeasurement_asc842 call).
+- H09-P07: Debt sizing is monthly 30/360 only; interest-only sizing uses the plain rate (calc_debt_sizing IO call).
+- H09-P07: Whole-number LTV error lacks the fix hint (calc_debt_sizing call 1).
+- H09-P07: No uptime/SLA or retention information in the materials for a bank.
+- H09-P08: Monthly figure entered as annual is accepted with no plausibility warning (rent_schedule mistake call).
+- H09-P08: plugin-README table repeats cam-reconciliation and the home page says eight skills versus eleven (docs).
+- H09-P08: Fields keep _sf/_psf names for acres (rent_schedule acre call).
+- H09-P09: Term typed in years as term_months is accepted with 60% free rent and no plausibility warning (rent_schedule mistake call).
+- H09-P09: The proposal comparison's differing-area warning appears even when rentable area is identical and only usable differs (usable-basis call).
+- H09-P10: lease_comp_validate returns valid true for a rent of $924,000 per SF per year (comp validation bad-unit call).
+- H09-P10: Lease-ID minting is not available on the hosted service (lease_comp_validate call; doc says use SDK mint).
+- H09-P10: Package digest not reproducible from the docs (fact_package_create call).
+- H09-P11: Share given as 42.86 was rejected without a 'pass 0.4286' hint (batch call 1).
+- H09-P11: Expense stop is applied as stop_amount x share, i.e. a building-level amount; a per-tenant or per-SF stop must be converted by the caller, and the schema does not say so in the materials I saw (batch call 2 steps).
+- H10-P01: connectors-README says 16 tools; tools/list returns 42 (call 2)
+- H10-P01: getting-started claims registry tools appear in REST/OpenAPI; GET /v1/tools shows none
+- H10-P01: Debt sizing error hint is only on rate_annual, not on max_ltv/min_debt_yield (call 4)
+- H10-P01: Rent roll output nets non-revenue units and vacancy inside 'effective_rent_income' and has no other-income or bad-debt line, so an IC summary still needs a spreadsheet for the rest of the revenue stack
+- H10-P02: DCF with renewal probability 0.55 and 1 month downtime equals the 1.0 run exactly because downtime rounds to 0, with no specific warning (calls 5 and 6)
+- H10-P02: tools/list is 162 KB (call 7)
+- H10-P02: `search` returns only a tool id and a repo URL, no usage hints (call 2)
+- H10-P03: calc_capex_recovery is absent from the Custom GPT subset (call 1 vs call 2); the README discloses it
+- H10-P03: pro_rata_share percent mistake has no hint (call 3)
+- H10-P03: Batch top-level warning only says that each statement carries warnings, so the agent must open four statements to relay them (call 4)
+- H10-P04: Wrong-unit rent (3.17 instead of 38.00) silently ranked first with no warning (call 2)
+- H10-P04: doc_verify_facts requires as_of but the guide does not say so (call 6)
+- H10-P04: A prohibited use never mentioned in the quote ('casino') comes back verified (call 8)
+- H10-P04: Use-conflict matching flags 'juice bar' against the prohibited word 'bar' (call 9)
+- H10-P05: WALT keeps an expired lease in the denominator at zero years (disclosed in a warning); some asset managers drop it, which would give 3.407 instead of 3.0096 (call 2)
+- H10-P05: Empty `issues` array on the missing-annual_rent error (call 6)
+- H10-P05: Home claim that agents 'can't get wrong' the math is stronger than the tool's own conventions caveat (call 3 warnings)
+- H10-P06: renewal_option term given in years is held for review because the value is in months (call 3)
+- H10-P06: doc_compare flags 'Brightline Analytics Inc' vs 'Brightline Analytics, Inc.' as a mismatch and a one-step rent array vs the full schedule as a mismatch (call 5), both documented but noisy
+- H10-P06: The abstract's rent schedule cannot feed calc_rent_schedule in one call (call 8 vs tool schema)
+- H10-P07: No Massachusetts content; search for it returns nothing (call 2)
+- H10-P07: direct_cap uses 'price' and 'value versus price' wording for an assessment (call 8)
+- H10-P07: Cap-rate-based tax analysis still needs the tax rate and savings arithmetic outside FactLot (not tested)
+- H10-P08: Late-identified property is counted in the three-property and 200% tests (call 2); disclosed only as a late warning
+- H10-P08: tools/list is 169 KB with const/oneOf/propertyNames, untested on Gemini and Copilot Studio (call 7)
+- H10-P08: '$-140,000.00' cosmetic formatting (call 4)
+- H10-P09: A DSCR of 130 still returns a (nonsensical) loan amount alongside the warning (call 2)
+- H10-P09: summary field interest_only_payment under actual/360 is the first month's interest, not a stable payment (call 7)
+- H10-P09: The home page says eight skills; plugin README says eleven
+- H10-P10: Only one input issue is returned per rejected request (call 1)
+- H10-P10: Escalation 3.5 (meaning 3.5%) is accepted and produces a 350% schedule; only a warning protects the script (call 2)
+- H10-P10: doc_verify_claim: bare-string claim fails on REST although the guide says 'a short sentence' (call 6)
+- H10-P11: Only one jurisdiction has a rule; the other three states return 404 (call 8)
+- H10-P11: Semantic input errors return an empty `issues` array (call 7)
+- H10-P11: The recommended file-by for a Saturday July 4 deadline is the Friday some calendars observe as the holiday; the tool treats observed days as business days by design (call 3)
+- H11-P01: Escalation rate 3 accepted as 300% (only a warning) while discount rate 8 is rejected: inconsistent strictness (calc_net_effective_rent calls 4 and 6).
+- H11-P01: 1031 output has 'trade_down 90000' with no explanation of how it relates to the 50k boot; acquisition-cost treatment not stated (calc_exchange_1031 call).
+- H11-P01: Cent rounding of monthly rent not disclosed in steps (NER call).
+- H11-P02: connectors-README.md tool count (16 + 3) vs 42 from tools/list (MCP tools/list call).
+- H11-P02: Home page says 'eight CRE skills' where other pages say eleven (site-index.txt).
+- H11-P03: doc_compare returned area_sf 'match' against the original 28,400 while the abstract held the amendment's 34,500 as an open item; compare does not carry open_items (doc_abstract_lease and doc_compare calls).
+- H11-P03: getting-started.md omits the doc tools; predicate table not in the readable docs (call 4 rejection message was how I learned the step key).
+- H11-P04: getting-started.md says REST/OpenAPI always include registry tools; /v1/tools and ?operations=all list none (GET /v1/tools).
+- H11-P04: gpt-instructions.md is required by the guide but not shipped in the readable docs (connector-chatgpt-README.md step 4).
+- H11-P04: connectors-README.md tool counts are stale.
+- H11-P05: Keyword matching missed an espresso synonym ('cortados and flat whites') in calc doc_check_use_conflict call 4.
+- H11-P05: calc_compare_proposals ranked a 10-month term as best at -$10.94/SF with only a generic warning (term-months mistake call).
+- H11-P05: Exclusive_use value shape is not documented where I looked; a plain string passes unchecked.
+- H11-P06: Warning 'Proposals differ in area' appears when all rentable areas are equal and only usable differs (calc_compare_proposals usable call).
+- H11-P06: renew_vs_relocate prices rent only; opex and load-factor differences between buildings are not in it, so a broker must reconcile with compare_proposals separately (calc_renew_vs_relocate call).
+- H11-P06: connector-claude-README.md step 1 ('Deploy the remote connector') conflicts with the hosted URL in step 3.
+- H11-P07: calc_capex_recovery accepted interest 6 (600%) as valid and put the only hint last in five warnings (capex call with mistake).
+- H11-P07: site-index.txt says eight skills; other docs say eleven.
+- H11-P07: plugin-README.md skills table repeats the cam-reconciliation name for two rows.
+- H11-P08: market_leasing.downtime_months is required even when no lease rolls (dcf call warning says 'No lease rolls within the projection'); 'received undefined' wording (dcf mistake call).
+- H11-P09: calc_direct_cap has no per-key output; passing keys as area_sf mislabels fields as per_sf (direct_cap area_sf=180 call).
+- H11-P09: Generic 'No capital reserve deducted' warning appears even when the NOI is already after the FF&E reserve (direct_cap call).
+- H11-P09: One transient connection reset on MCP ping (ping call).
+- H11-P09: connectors-README.md tool count (16+3) differs from tools/list (42).
+- H11-P10: calc_hotel_metrics accepted nights 365 with monthly figures and gave 6.4% occupancy with no warning (hotel mistake call).
+- H11-P10: Yield-maintenance rebuilds the payment on balance and remaining amortization (108,049.06) instead of taking the actual schedule payment (107,960.98): small but visible drift versus calc_amortization_schedule for actual/360 loans (prepayment call).
+- H11-P10: No framework documentation (initialize/tools-list calls worked by spec only).
+- H11-P11: pro_rata_share and percentage-rent rate rejections lack the 'rates are decimals' hint other tools give (batch and percentage_rent mistake calls).
+- H11-P11: doc_verify_claim docs say a sentence works; the API requires {text} (claim call).
+- H11-P11: The admin-fee warning 'base includes uncontrollable lines' is shown even when I excluded taxes and insurance (utilities remained), so it is not specific (batch call).
+- H12-P01: interest_only_payment is a single figure although actual/360 IO payments vary month to month (calc_amortization_schedule: 167,368.06 to 185,300.35).
+- H12-P01: calc_amortization_schedule gives no warning that the payment is computed on 30/360 while interest accrues actual/360, which the skill tells the agent to state.
+- H12-P01: search lists registry_get / registry_owned_by, which tools/list and tools/call do not serve (search and registry_search_address calls).
+- H12-P01: Documentation counts disagree (eight vs eleven skills, 16 vs 39 tools).
+- H12-P02: Step rents cannot be entered (calc_dcf_pro_forma input schema).
+- H12-P02: Doc/product mismatch on registry tools in OpenAPI (GET /openapi.json vs getting-started.md).
+- H12-P02: Value and IRR with rollover (second DCF call) were not independently rebuilt by me beyond the rollover event math.
+- H12-P03: calc_hotel_metrics accepts an annual revenue / monthly nights mismatch with no plausibility warning (ADR 3,468.45, GOP margin 0.9053).
+- H12-P03: Docs vs spec: README lists 30 operations including 4 registry ones; the live spec serves 26.
+- H12-P03: gpt-instructions.md is referenced but not provided in the materials.
+- H12-P04: The 42-tool tools/list is about 162 KB, heavy for a Copilot Studio or Gemini agent that only needs four tools (tools/list call).
+- H12-P04: calc_compare_proposals accepts a monthly-quote rent in the annual field without a plausibility warning (second compare call).
+- H12-P04: Docs say 16 tools where the endpoint serves 39 (tools/list call).
+- H12-P05: No 'preleased' status, so future leases cannot be separated from vacancy (status enum error, second call).
+- H12-P05: Annual-rent mistake in a monthly field yields economic occupancy 6.5856 with only a market-rent warning (third call).
+- H12-P05: Concession cents differ slightly from a straight sum (485.13 vs 485.10) because of per-unit rounding; disclosed nowhere in the result.
+- H12-P06: Late-identified property is counted in the identification tests, so the verdict can be wrong in the conservative direction (second 1031 call vs the control).
+- H12-P06: Skill text and result are the only explanation that the return due date must include extensions; a user who types April 15 for a December sale gets 2027-04-15 as the exchange deadline without any hint that an extension could move it (first 1031 call, though the warning for a missing date is good).
+- H12-P06: Connector README step order is confusing for a non-developer.
+- H12-P07: as_of is required but absent from the document-verification input table (first doc_verify_facts call).
+- H12-P07: Lease-year-based rent schedules and years-to-months renewal terms land in needs_review (doc_verify_facts third call), so routine leases need human review for rent and renewal.
+- H12-P07: The abstract has no rent field when the rent schedule is held for review; the held-back rent steps appear only in the separate top-level needs_review list, not beside the other terms in fields (doc_abstract_lease call).
+- H12-P07: doc_compare is outside the 26-operation GPT subset.
+- H12-P08: calc_rent_schedule accepts a bump interval longer than the term without warning (term_months 12 call).
+- H12-P08: There is no single call that rolls rent steps, reversion and IRR together for a net lease; I fed the schedule totals into calc_irr by hand (two calls plus my own arithmetic for the reversion).
+- H12-P08: The reversion cash flow is outside FactLot: nothing computes it.
+- H12-P09: Field names keep area_sf and *_psf for kW and MW values, so the JSON reads wrong to a human (all four calls).
+- H12-P09: No DCF or debt tool for kW deals: I did not test calc_dcf_pro_forma with kW but its schema is per SF.
+- H12-P09: Power cost is outside the model, so net effective rent is for base rent only.
+- H12-P10: No hosted NYC data despite prominent NYC stats on the home page (stated openly, but the first impression is misleading).
+- H12-P10: No LL97 rule available (404 on the guessed route; draft only per changelog).
+- H12-P10: The tools do not handle rent-stabilized or regulated rent (not in the tool descriptions; not tested beyond reading them).
+- H12-P11: A claim can be 'supported' by a quote about a different term (doc_verify_claim late-fee call), so a legal reviewer must read every 'supported'.
+- H12-P11: Document hash in the package is a text hash, not a file hash, and is not labelled (fact_package_create call).
+- H12-P11: Spread chart maps both Lot Rent and Home Rental Income to gross_potential_rent (spread call).
+- H12-P11: Extracted facts carry no rights block despite the home page's wording (verify_facts call).
+- H12-P11: Package verify's quote check confirms the quote is on the page, not that it still states a tampered value (second verify call).
+- H13-P01: doc_abstract_lease silently mis-orders documents when roles are not all explicit (calls 4 and 5)
+- H13-P01: a future-dated amendment (2028-01-01) controls an abstract as of 2026-11-04 without a flag (call 5)
+- H13-P01: documentation drift: 8 vs 11 skills, 16 vs 39 tools, v0.1.1 vs 0.3.0 tag
+- H13-P02: tool count in connectors-README.md (16) does not match tools/list (42) (tools/list call)
+- H13-P02: a 42-tool, ~162 KB schema set may be heavy for a Copilot Studio or Gemini agent (size observed in tools/list; limits not tested)
+- H13-P02: a percent typed as a whole number still computes (warning only) (calc_capex_recovery call 7)
+- H13-P03: renew_vs_relocate has no operating-expense input, so a NNN relocation against a gross renewal needs the agent to fold opex into rent by hand (calc_renew_vs_relocate call)
+- H13-P03: compare_proposals ranks an 84-month gross deal against 120-month deals; the warning is present but the ranking still looks like a clean 1-2-3 (compare call)
+- H13-P03: the 42-tool, ~162 KB tools/list is a lot of context for a chat client (tools/list call)
+- H13-P04: calc_prepayment_and_defeasance re-amortizes at 30/360 and has no day-count or actual payment input; against an actual/360 note its securities cost is $379,491 low in my test (defeasance call)
+- H13-P04: stress grid returns only cross-combinations of the shocks supplied, so a NOI-only row needs an explicit zero in the rate list (debt_sizing call)
+- H13-P04: interest_only_payment in the amortization output is the first period's actual-day amount, which reads like a level IO payment (amortization call)
+- H13-P04: tools/list size for a framework agent (tools/list call)
+- H13-P05: a wrong-meaning claim (5 years read as 5 months' notice) returns supported with no hint that meaning is unchecked (doc_verify_claim call 2)
+- H13-P05: lease-year rent tables cannot verify their step dates without human review (doc_verify_facts call 2)
+- H13-P05: a name that differs only by a comma is a mismatch (doc_compare call), documented but noisy for 11 estoppels
+- H13-P06: double rounding of the concession (cents on the total, then on the monthly figure) leaves a $0.02 difference on 24 leases (rent roll call); harmless but visible in a tie-out
+- H13-P06: no other income, bad debt or collections: economic occupancy is lease-based only (rent roll warning)
+- H13-P07: a lease expiring inside the forward year is not re-leased and the gap is not flagged (calc_dcf_pro_forma call)
+- H13-P07: getting-started.md says REST includes registry tools; the hosted OpenAPI has none (GET /openapi.json call)
+- H13-P07: no comparison to Argus on any input
+- H13-P08: one 'Connection reset by peer' after about 47 s on a tx deadline call (call 3, retry worked)
+- H13-P08: search ranks calc_dcf_pro_forma above the CAM tool for a CAM query (search call)
+- H13-P09: a 360-row amortization response is 104,831 bytes, which may hit Action response limits (amortization call; limit not tested)
+- H13-P09: operation descriptions run up to 1,512 characters in the 3.0 spec (GET /openapi-3.0.json call); builder limits not tested
+- H13-P09: the rollover market-year convention (start month, not expiry) is not stated in the steps I read (DCF call)
+- H13-P10: a memo line like 'Units 240' fails the 12-character quote rule unless extra context is quoted (spread call 1)
+- H13-P10: calc_direct_cap has no per-unit output for multifamily; value_per_sf is null without area (direct cap call)
+- H13-P10: chart of accounts categories are not in the materials (search and fetch calls)
+- H13-P11: pharmacy admin_fee reported as 5,301.55 while 3,651.90 of it is absorbed by the cap; billed fee is 1,649.65 (batch call)
+- H13-P11: the connectors doc says a live Copilot Studio or Gemini connection is untested (connectors-README.md)
+- H13-P11: exclusive_use predicate shape is not in the materials (fetch call)
+- H14-P01: calc_multifamily_rent_roll tool description names concession types but not the object shape (first call rejected; error text repeated per unit)
+- H14-P01: The stress table in calc_debt_sizing contains only the shocks I listed; there is no base-case row, so I had to join it with the main result
+- H14-P01: Cross-document count inconsistencies (22 calculators vs 42 tools, 8 vs 11 skills, 42 vs 62 verified sources) from the materials
+- H14-P02: OpenAPI 3.0 subset has 26 operations; connector-chatgpt README lists 30 including registry_* (GET /openapi-3.0.json)
+- H14-P02: calc_capex_recovery is not importable in a Custom GPT without going over the stated 30-operation limit
+- H14-P02: Share-as-percent error message lacks the 'decimals' hint (call 2)
+- H14-P03: calc_walt error stops at the first lease and returns an empty issues array (call 5)
+- H14-P03: Site install line says eight skills while the README lists eleven
+- H14-P04: calc_rent_schedule has no bed unit (call 4); labels read 'space'
+- H14-P04: The debt-sizing result carries no student-housing-specific guidance such as occupancy-based underwriting; that is the lender's to supply
+- H14-P05: Registry routes are missing from GET /v1/tools and /openapi-3.0.json although POST /v1/registry/search_address exists (calls 1, 6, 7); getting-started.md says REST and OpenAPI include them
+- H14-P05: Calculators are generic: I could code percentage rent myself; value is the audit trail and the cross-checked conventions
+- H14-P06: Error text for out-of-range occupancy lacks a decimal hint (call 3)
+- H14-P06: The raw MCP schemas use JSON Schema features whose acceptance by Copilot Studio and Gemini is untested (call 2)
+- H14-P06: Carried-forward amount shows 0 in the final year even though 489,000 is disallowed; the warning covers it but the schedule column alone could mislead
+- H14-P07: calc_npv accepts a rate of 7 and returns a value at 700% with only a warning, whereas calc_debt_sizing, calc_percentage_rent and calc_dcf_pro_forma reject the same mistake (call 6 versus errors seen in other calls)
+- H14-P07: search finds no LL97 content even though LL97 is documented in the changelog and rules.md as a draft pack (call 2)
+- H14-P08: Debt sizing has no day-count option and does not state the day count it assumes (call 2)
+- H14-P08: Stress rows contain only the listed shock combinations, so the base case has to be joined from the main result (call 4)
+- H14-P09: A late-identified property is still counted in the identification count and rule test (call 3)
+- H14-P09: Extra misleading issue on invalid dates (call 1)
+- H14-P10: verified_by is 'FactLot maintainers', not a named person as rules.md describes (call 2)
+- H14-P10: fact_validate accepts a fabricated document_id, so 'valid' is easily mistaken for 'true' (call 8)
+- H14-P10: Skipped-days reason for July 4 2026 says Saturday only (call 4)
+- H14-P11: doc_compare and doc_verify_claim are not importable into a Custom GPT built from /openapi-3.0.json (call 1)
+- H14-P11: Base rent schedules built from escalation clauses always land in needs_review (call 5)
+- H14-P11: Pro rata rejection lacks a '0.0462' hint (call 2)
+- H15-P01: No registry tools in GET /v1/tools although getting-started says REST always includes them (GET /v1/tools)
+- H15-P01: Home page headline stats (parcels, NYC) read as available but are not queryable on the hosted service (site-index.txt vs registry-coverage.md)
+- H15-P01: Skill-count inconsistency eight vs eleven (site-index.txt vs plugin-README.md)
+- H15-P02: doc_verify_claim contradicts a unit-converted claim (call 9)
+- H15-P02: Unresolved base_rent_schedule is not listed in abstract fields (call 6)
+- H15-P02: Docs say claim can be a sentence; schema needs {text} (call 8)
+- H15-P02: Entity-name punctuation differences become mismatches (call 7)
+- H15-P03: The cap-before-base-year and admin-fee-after-cap conventions are choices an agent must map to each lease; wrong mapping gives a defensible-looking wrong number (calls 3 and 4 warnings)
+- H15-P03: The whole-number share error message is terse (call 2)
+- H15-P04: Invented prohibited-use entry returned verified (call 2)
+- H15-P04: Boba tea shop not flagged against a tea exclusive (call 3)
+- H15-P04: 4-cent difference in total scheduled rent from monthly rounding (call 6)
+- H15-P05: The Claude connector doc tells readers to deploy a server before it gives the hosted URL (connector-claude-README.md step 1)
+- H15-P05: The DCF is a blended-rollover model: it will not match an ARGUS run lease by lease (disclosed in warnings)
+- H15-P06: No tool for the part of lease admin that costs most when missed: critical dates (call 5)
+- H15-P06: Years in the lease text vs months in the schema produces needs_review on an ordinary renewal clause (call 4)
+- H15-P06: Rent total differs by cents from exact arithmetic with no note (call 2)
+- H15-P07: Inverted go_dark.operating_covenant verified (call 1)
+- H15-P07: That inversion then makes a correct rent-roll entry look like a mismatch (call 4)
+- H15-P07: Docs vs schema mismatch on partial object values in doc_compare (call 3)
+- H15-P08: The July 4 skip is labelled Saturday only (call 5; no effect on the date)
+- H15-P08: No way from the home page to see that only one state is covered besides the rules table (home page vs call 6)
+- H15-P09: Appraisers still need market data; none is hosted (registry-coverage.md vs hosted calls)
+- H15-P09: The spread's chart of accounts may not match the appraiser's own expense format (not tested beyond the multifamily chart)
+- H15-P10: A late-identified property still counts in the three-property rule tally (call 1; flagged in warnings, so low severity)
+- H15-P10: No framework wiring example in the materials for LangGraph/CrewAI (getting-started.md covers Claude, ChatGPT, Gemini, Copilot, Bedrock)
+- H15-P11: DCF accepts implausible input (months in years) without a plausibility warning (call 5)
+- H15-P11: lease-comps.md prose says free rent applies to 'base or gross'; the enum values are base_rent and gross_rent (call 2)
+- H15-P11: Discounting convention for discounted NER (rent in advance) is visible only in a step formula (call 4)
+
+## What worked (565)
+
+- H01-P01: Both deadline calls matched my date arithmetic, including the Sunday roll to Monday, with statute links and a verification note
+- H01-P01: Hotel NOI ladder matched every line I recomputed and shows each USALI step
+- H01-P01: Input errors are specific and recoverable
+- H01-P02: Single-tenant and batch results agreed to the cent with my own python, including a binding cap, gross-up, base year and 184/365 proration
+- H01-P02: Warnings call out the exact judgement calls (admin-fee order, whether uncontrollable lines carry a fee, interest timing)
+- H01-P02: The batch statement itemises why the pool is not fully recovered (vacancy, caps, base-year deductions, admin fees)
+- H01-P03: Rent schedule, net effective rent, DCF and direct cap all recomputed to the cent or to rounding
+- H01-P03: The conventions block in the DCF output states annual periods, TI/LC timing and blended rollover rules, and warns that ARGUS differs
+- H01-P03: kW and MW units work in rent schedule and net effective rent with a unit-specific warning
+- H01-P04: Sizing, 60-row schedule, yield maintenance and defeasance all reproduced in my own python to the cent
+- H01-P04: Prepayment output states the basis, discount convention and spread, and warns that lenders differ
+- H01-P04: Refinance shortfall per stress scenario is exactly the memo table I would build
+- H01-P05: Fabricated quote rejected; mis-keyed deposit sent to needs_review; US-format date rejected; all with reasons the agent can act on
+- H01-P05: Spans index correctly into the page text (all 5 spans matched) and document IDs are reproducible hashes
+- H01-P05: doc_compare cited the controlling amendment quote for the stale rent
+- H01-P06: Spec parses, lists 26 operations and every one of them is on the doc's list
+- H01-P06: Percentage rent, landlord-perspective proposal comparison, NER and direct cap with below-the-line adjustments all recomputed
+- H01-P06: The compare_proposals steps spell out the discounting and downtime convention
+- H01-P07: All four numeric tools reproduced in independent python (differences only in cents from rounding)
+- H01-P07: Method and discounting conventions are printed in the steps, so the CFO's analyst can rebuild them
+- H01-P07: Break-even rents and break-even residual are returned directly
+- H01-P08: Usable-SF proposal ranking matched my independent rebuild to the cent on all three markets
+- H01-P08: WALT by area and by rent both matched and show the 365.25-day convention
+- H01-P08: Comp validation returned every issue at once and then derived a net effective rent that matched
+- H01-P09: 8 of 8 lease facts verified with page, quote and span, including the ratio and consent-standard phrase checks
+- H01-P09: Package hashes and Merkle root reproduced independently
+- H01-P09: Exact-wording prohibited-use conflict returned with the controlling quote and a human-review label
+- H01-P10: Direct cap, loan sizing, 1031 and pad concession calculations all matched my recomputation
+- H01-P10: The 1031 output flagged the late identification and the 200% test failure with the regulation cites
+- H01-P10: Registry error text is plain about the hosted service not serving the registry
+- H01-P11: Proposal ranking rebuilt to the cent for all three sites
+- H01-P11: Conflict check flagged the pharmacy exclusive with carve-out and page quote once the proposed use used the lease's own words
+- H01-P11: Building IDs follow the documented format and are deterministic
+- H02-P01: Deadline, boot and debt-replacement math matched my recomputation in all three cases; the tax-return-due-date cap worked (2027-04-15 instead of 2027-06-08).
+- H02-P01: Every result carries steps with the formula text and statute references; the warnings say deadlines are not moved for weekends or holidays.
+- H02-P01: Input errors were specific and returned all faults at once.
+- H02-P02: Rent roll numbers tie to an independent calculation within 2 cents of rounding.
+- H02-P02: The waterfall matched my own implementation to the cent and states its conventions.
+- H02-P02: Responses came back in 0.8 to 4.5 seconds.
+- H02-P03: MCP initialize, tools/list and tools/call worked on the first attempt and are stateless.
+- H02-P03: All three calculations matched my recomputation; the direct cap tool gave value, implied caps and deductions in one call.
+- H02-P03: The stress block in debt sizing gave the lender case I would put in the OM.
+- H02-P04: One call ranked three structurally different proposals on usable-sf cost, with the steps and conventions shown.
+- H02-P04: Renew vs relocate gave NPV, effective rent and both break-even rents; all recomputed.
+- H02-P04: Calls took 0.6 to 1.2 seconds.
+- H02-P05: The three calculations that apply to a stabilised BTR scheme matched my recomputation.
+- H02-P05: One-call error messages for every faulty field.
+- H02-P05: Calls returned in about 0.5 to 0.9 seconds.
+- H02-P06: All six numeric results, including three printed in the skills, matched my own computation.
+- H02-P06: Steps, formula IDs and warnings in every result.
+- H02-P06: Stress table in one call.
+- H02-P07: WALT and the comp-to-NER derivation matched my python.
+- H02-P07: schema_get plus validator messages were enough to build a valid comp in two tries.
+- H02-P07: Stateless MCP made the adapter trivial.
+- H02-P08: Quote, span, document hash and fact id all reproduce independently, so a citation is checkable without trusting FactLot.
+- H02-P08: Amendment precedence, history and supersedes chain were right on my example.
+- H02-P08: Every rejection and review item gave a specific reason.
+- H02-P09: All four skill examples reproduced exactly, which backs the README's claim.
+- H02-P09: The rent roll handled units without square feet and without lease end dates, with warnings.
+- H02-P09: Direct cap output shows the implied cap rate before reserves, after reserves and all-in.
+- H02-P10: The DCF reproduced line by line, including the rounding-half-up downtime and the blended TI and LC rates.
+- H02-P10: The lease_events list shows each rollover's start month, downtime, free rent, TI and LC, so a reviewer can trace them.
+- H02-P10: Responses took 0.5 to 0.7 seconds.
+- H02-P11: Building IDs are deterministic, normalise suites and street types, and the short ID is reproducible.
+- H02-P11: fact_validate gives a shape-and-provenance gate for facts I would attach to a submission.
+- H02-P11: The Texas protest rule is verified and cited (not part of my job).
+- H03-P01: Quote/page/value checks caught a wrong year, a 9-cent rent transposition and a whole-number percent in three separate calls
+- H03-P01: Amendment precedence with history, supersedes and valid_from came back correct
+- H03-P01: doc_compare returned match/mismatch/not_in_lease with the controlling citation
+- H03-P01: Error messages name the expected shape
+- H03-P02: Debt sizing with binding constraint, refinance shortfall and stress in one call, all numbers reproduced
+- H03-P02: Amortization with IO then balloon, rows foot, balloon warning
+- H03-P02: Prepayment premium reproduced with named conventions and a floor shown
+- H03-P02: Rate-as-whole-number rejected clearly
+- H03-P03: WALT by area and rent matched to four decimals
+- H03-P03: DCF year 1, exit, PV and IRR all reproduced from lease-level assumptions
+- H03-P03: Warnings list the model conventions that differ from ARGUS
+- H03-P03: Renewal-vs-re-let ranking gave a decision-ready $/SF/yr figure
+- H03-P04: Every number in my pricing and buyer-IRR chain reproduced
+- H03-P04: The 1031 tool flagged a late identification and stated the return-due-date cutoff
+- H03-P04: The printed home-page example equals the live result
+- H03-P05: Rent roll to annual effective rent income reproduced exactly, giving a defensible rent-loss exposure
+- H03-P05: Building IDs are stable across address spellings, usable as a join key to external hazard layers
+- H03-P05: search returned a clean 'nothing here' with the scope
+- H03-P06: CAM reconciliation reproduced to the cent with the cap, gross-up and fee order visible in the steps and warnings
+- H03-P06: The 3.0 document is a true 3.0 conversion (boolean exclusive bounds, no const)
+- H03-P06: Percentage rent matched
+- H03-P07: All printed skill examples matched the live endpoint to the cent
+- H03-P07: Warnings are specific and load-bearing: return-due-date cutoff, no weekend/holiday shift, not tax advice
+- H03-P07: Direct cap shows before-reserve, after-reserve and all-in implied cap rates
+- H03-P08: Parcel ID normalization is deterministic and behaves exactly as the tool description says
+- H03-P08: Direct cap arithmetic exact
+- H03-P08: RegistryUnavailable error is informative
+- H03-P09: Batch reconciliation matched per-tenant recomputation and explained every unrecovered dollar
+- H03-P09: Capex recovery echoes each assumption with its lease clause
+- H03-P09: Indexed, multi-issue error messages
+- H03-P09: Stateless MCP worked without session handling
+- H03-P10: BBL normalization behaves exactly as claimed
+- H03-P10: doc_verify_claim caught a wrong EUI value
+- H03-P10: Retrofit IRR matched
+- H03-P11: Exclusive and prohibited-use clauses were extracted as cited facts, and the use-conflict check flagged the real coffee exclusive with its carve-outs and quote
+- H03-P11: Fact package hashes reproduced independently; tampering detected
+- H03-P11: Every conflict is labelled 'needs human review' and cites section and quote
+- H04-P01: 1031 deadlines, identification tests and boot recompute exactly and every step cites the Treasury regulation
+- H04-P01: Texas protest deadline returns a verified-status rule with statute links and a conservative file-by date
+- H04-P01: Error messages are specific enough for a GPT to self-correct
+- H04-P02: MCP connect and list needed no setup
+- H04-P02: NPV and IRR recomputed exactly
+- H04-P02: The materials were upfront about what I would not get
+- H04-P03: Every annual line in the DCF tied out to a python rebuild to the cent
+- H04-P03: Conventions and rounding rules are printed in steps and warnings
+- H04-P03: Stress table and refinance logic sized in one call
+- H04-P04: Hotel ladder and cap-rate value tied out exactly in six checks
+- H04-P04: REST needed no key and no setup
+- H04-P04: Direct-cap warning about reserves was a useful nudge
+- H04-P05: Base sizing and all six stress scenarios tie out exactly
+- H04-P05: Amortization schedule reproduces to the cent across 120 rows
+- H04-P05: Prepayment tool states its basis, convention and floor
+- H04-P06: The quote check caught a transposed number that a person might miss
+- H04-P06: Footing checks tie each stated total to the lines
+- H04-P06: Sizing and defeasance figures reproduce exactly with their conventions disclosed
+- H04-P07: All rent-roll aggregates and per-unit effective rents recomputed
+- H04-P07: Warnings call out notice, month-to-month and the amortisation convention
+- H04-P07: The plugin skill's published single-lease example reproduced
+- H04-P08: I could re-perform a six-suite, mid-year DCF with base-year, gross and NNN recoveries to the cent
+- H04-P08: Waterfall and WALT reproduce with disclosed conventions
+- H04-P08: The mid-year IRR caveat is stated in warnings
+- H04-P09: Quote-on-page checks, span offsets and document IDs are exact and re-performable
+- H04-P09: Amendment order handled even when the amendment was sent first
+- H04-P09: The estoppel comparison pinpoints each mismatch with a citation
+- H04-P10: Proposal ranking, renew-vs-relocate (including both break-even rents) and ASC 842 remeasurement all reproduced in my own code
+- H04-P10: Conventions and rounding are printed in the steps
+- H04-P10: The error messages carried enough detail to fix inputs without the docs
+- H04-P11: Direct cap, implied cap rates and percentage rent reproduced with conventions stated
+- H04-P11: Use-conflict screening cited the clause and carve-out
+- H04-P11: Comp validation derives a computed NER fact with provenance
+- H05-P01: Spread refused to guess an unmapped label, flagged that NOI did not foot by exactly the missing 96,000, then footed to the dollar once I mapped it
+- H05-P01: Direct cap shows both implied caps (before and after reserves), which matters when the seller quotes the first
+- H05-P01: Debt sizing gave all three constraint loans side by side with the binding one named, plus a stress row and a warning about value held fixed
+- H05-P01: All five numbers I recomputed matched
+- H05-P02: compare_proposals handled percent and fixed-$ bumps, NNN with growth and gross in one ranking and stated its discounting method in the steps
+- H05-P02: Both comparison and renew-vs-relocate reproduced to the cent in my python
+- H05-P02: The ranking came with a warning that unequal terms (84 vs 120 months) are annualized but re-leasing risk is not priced
+- H05-P02: renew-vs-relocate returns a break-even starting rent for the competing option
+- H05-P03: Batch CAM gave a per-tenant trace and a building reconciliation that explained the unrecovered $473,823.63 by reason (vacancy, exclusions, gross-up, caps, base year, fees)
+- H05-P03: Admin-fee base, cap, gross-up and partial-year proration all reproduced to the cent in python
+- H05-P03: The protest deadline rule gave both the legal deadline and a conservative file-by date and cited its basis
+- H05-P03: Warnings told me to confirm the order of operations against the lease rather than pretending certainty
+- H05-P04: Debt sizing, amortization (with IO, balloon, actual/360) and yield maintenance each matched an independent python computation to the cent
+- H05-P04: The refinance test reported shortfall or excess proceeds for each stress case
+- H05-P04: Yield maintenance exposes basis and discounting convention as inputs, and the warning says to match the note
+- H05-P04: Error messages named the offending field and the decimal convention for rates
+- H05-P05: ASC 842 remeasurement matched my python to the cent, with the true-up in the last period stated
+- H05-P05: Lease-vs-own matched within 17 cents and gave a break-even residual value
+- H05-P05: The spec is OpenAPI 3.0.3 with no $ref and no const, so it is at least plausible for a 3.0-only importer
+- H05-P05: Input errors for rates came back with nested field paths
+- H05-P06: Every figure quoted in the cam-reconciliation and multifamily-rent-roll skill docs reproduced exactly on the live API (5 of 5 examples tried)
+- H05-P06: The rent roll tool names its own conventions in warnings (notice as leased, month-to-month, economic occupancy not collections)
+- H05-P06: The batch CAM result explains the unrecovered amount by reason
+- H05-P06: All six numeric results matched my python
+- H05-P07: doc_verify_facts rejected my misquoted sentence and held my misread number for review, with reasons
+- H05-P07: Every verified fact carried page, section, quote and span that I confirmed against the text
+- H05-P07: doc_check_use_conflict found the grocery exclusive from category and shared words, listed carve-outs, and did not false-positive 'juice bar'
+- H05-P07: DCF and WALT matched my independent python; the DCF listed its conventions to compare with ARGUS
+- H05-P08: The waterfall matched my independent implementation to the cent, with LP and GP IRRs, multiples and the promote broken out
+- H05-P08: Direct cap separates reserve, lease-up, burn-off and other adjustments and gives three implied cap rates
+- H05-P08: Error handling for typos and enums is the best I have seen from a calc API
+- H05-P08: lease_comp_validate derives and cites a net effective rent from a comp I could tie out
+- H05-P09: initialize, notifications/initialized, ping and tools/call all behaved as a stateless MCP server should
+- H05-P09: The exchange tool gave deadlines with the governing basis and days remaining, tested identification, netted boot, and said not tax advice
+- H05-P09: The doc's worked example reproduced exactly
+- H05-P09: Late identification was flagged by property name
+- H05-P10: Rent roll, three direct-cap runs, NPV and IRR all reproduced to the cent
+- H05-P10: Direct cap handles reserve, lease-up cost and appraiser rounding in one call and reports value per SF
+- H05-P10: Warnings said what the roll metrics are not (collections, cash view)
+- H05-P10: The error message listed the valid status options
+- H05-P11: Amendment precedence: the controlling value, its citation and the superseded value in history
+- H05-P11: doc_compare reported match, mismatch and not_in_lease for six assertions as expected
+- H05-P11: doc_verify_claim contradicted a wrong deposit and said what the quote does state
+- H05-P11: BBL forms joined to one parcel ID across three spellings
+- H06-P01: Misread value caught as needs_review with the exact reason
+- H06-P01: Page self-correction disclosed in notes
+- H06-P01: Amendment precedence with history, quote, span and fact IDs
+- H06-P01: Rent schedule matches an independent recompute to the cent
+- H06-P01: Stateless: each call needed no setup
+- H06-P02: DCF reproduced to the cent by an independent model, with conventions and the ARGUS caveat disclosed in warnings
+- H06-P02: Debt sizing reports every constraint's loan and the binding one, plus a stress table in one call
+- H06-P02: Clear rejection of a percent input
+- H06-P02: Every call answered in 0.5 to 1.5 seconds
+- H06-P03: Direct cap with below-the-line adjustments and appraiser rounding matches my hand calculation
+- H06-P03: Implied cap rate with a basis warning
+- H06-P03: Mid-year DCF convention matches the documented formula
+- H06-P03: Connector doc's operation list equals the live spec
+- H06-P04: Deadlines and identification outcome exactly as I computed them
+- H06-P04: Warnings that name the late identification, the cash boot and mortgage boot, and the missing return due date
+- H06-P04: Read-only annotations present on every tool
+- H06-P04: Loan schedule to the cent with balloon warning
+- H06-P05: Binding constraint and every constraint's loan in one answer
+- H06-P05: Stress and refinance shortfall in one call
+- H06-P05: Yield maintenance with the convention stated and numbers I could reproduce
+- H06-P05: Whole-number percent inputs rejected with an actionable message
+- H06-P05: Fast: about 0.5 to 0.9 seconds per call
+- H06-P06: Four different lease structures in one batch, each reconciled to the cent against an independent rebuild
+- H06-P06: Building-level unrecovered reasons that sum exactly to the gap
+- H06-P06: Per-statement warnings naming which lease choices (admin fee base, cap, proration) to confirm
+- H06-P06: Capex recovery that echoes assumptions with clause references
+- H06-P06: Quick responses (0.7 to 2.3 s; one at 7 s)
+- H06-P07: Estoppel comparison with citations, mismatches and not_in_lease handled correctly
+- H06-P07: One-claim check named what the quote actually states
+- H06-P07: The T-12 spread caught a 180 transposition against my own deliberately wrong NOI
+- H06-P07: Percent-as-whole-number rejected at the candidate level
+- H06-P07: Every response in 0.5 to 2.4 seconds
+- H06-P08: Implied cap on three bases (after reserves, before reserves, all-in) in one call
+- H06-P08: Debt sizing at the ask with every constraint's loan
+- H06-P08: Rent roll loss-to-lease and occupancy matched my hand calculation
+- H06-P08: Fast responses (0.6 to 1.9 seconds)
+- H06-P09: WALT, percentage rent and LOI ranking matched my own calculations
+- H06-P09: The LOI ranking states its discounting convention and warns that the terms differ
+- H06-P09: Plans and endpoints are discoverable from the API root
+- H06-P09: Date format error was clear
+- H06-P10: Protest deadline with holiday rollover and a safe file-by date, with its verification record in the response
+- H06-P10: Percentage rent with prorated breakpoint and a warning
+- H06-P10: Use screening that found the pharmacy conflict and both prohibited uses with citations
+- H06-P10: Shape errors that tell you the right shape
+- H06-P11: Every number I recomputed matched, including the PV and the discounted NER
+- H06-P11: The steps print their formulas, so the check is quick
+- H06-P11: Identical request gave an identical response
+- H06-P11: Building ID collapses suite and unit spellings at one address
+- H06-P11: HTTP 400 on bad input with the field named
+- H06-P11: Latency 0.5 to 1.3 seconds
+- H07-P01: Quote verification caught a wrong value and a wrong page, with reasons an agent can act on
+- H07-P01: Amendment precedence with history and supersedes IDs
+- H07-P01: Rent schedule to the cent with a disclosed rounding convention
+- H07-P01: OpenAPI 3.0 subset matched the connector doc's list
+- H07-P02: Every number I recomputed matched, including the example printed on the home page
+- H07-P02: The 1031 tool applied the return-due-date cutoff and flagged a late identification
+- H07-P02: Plain, specific errors
+- H07-P03: CAM reconciliation matched my independent python to the cent, with an itemised trace and an order-of-operations warning
+- H07-P03: Estoppel comparison returns lease citations next to each mismatch
+- H07-P03: MCP search/fetch gave the predicate table the REST docs lacked
+- H07-P03: Two-round-trip connection
+- H07-P04: Rent roll arithmetic and its warnings were accurate and clear
+- H07-P04: Debt sizing stress table is a ready-made post-loss coverage view and matched my python in all six cases
+- H07-P04: Fast, flat REST
+- H07-P05: Five of five numeric checks matched my independent python exactly
+- H07-P05: Amortization with IO, actual/360 and balloon, to the cent
+- H07-P05: 1031 tool warned me the return due date was missing
+- H07-P06: Use-conflict screen cites the clause and refuses to decide carve-outs
+- H07-P06: CAM warnings name the lease clauses I must confirm (admin fee order, fee base)
+- H07-P06: Percentage rent and CAM matched my python to the cent
+- H07-P06: Error messages usable by a model
+- H07-P07: Every DCF number reproduced from the disclosed conventions
+- H07-P07: T-12 spread flagged the planted footing error with the exact difference
+- H07-P07: All conventions are listed in the result's steps
+- H07-P08: Three numeric checks matched to the cent (premium within $0.02)
+- H07-P08: Conventions and approximation limits are stated in the steps and warnings
+- H07-P08: Combined error reporting
+- H07-P09: All three numeric results matched, including the skill's printed ASC 842 numbers
+- H07-P09: contradicted status with quote_states is genuinely useful
+- H07-P09: Plain statement of limitations
+- H07-P10: kW worked end to end in NER, ranking and rent schedule with correct labels
+- H07-P10: Rank order and totals reproduce exactly
+- H07-P10: Warnings address data-center-specific slips
+- H07-P11: Hotel KPIs and sizing reproduced exactly
+- H07-P11: isError results rather than transport failures; successful results include structuredContent, so no string parsing
+- H07-P11: Stateless, no key: trivial for a graph node
+- H07-P11: Stress table in one call
+- H08-P01: Quote-on-page check with span offsets that I could independently reproduce
+- H08-P01: Amendment precedence, history and supersedes link
+- H08-P01: Input errors came back as data an agent can correct from
+- H08-P01: Stateless MCP, no key, 0.7-3 s per call
+- H08-P02: Three lease structures reconciled in one call with a building-level explanation of why $2.09M is unrecovered
+- H08-P02: Per-tenant statements are identical to the single-tenant tool
+- H08-P02: Warnings state the order-of-operations assumption I would otherwise have to document
+- H08-P02: Fast: 1-6 seconds
+- H08-P03: Six independently recomputed results, zero differences
+- H08-P03: Binding constraint and every alternative constraint shown
+- H08-P03: Conventions disclosed in warnings (waterfall) and in schema text (cap and fee order)
+- H08-P03: Fast, no key, errors self-explanatory
+- H08-P04: Deadlines, boot and debt replacement all reproduced exactly
+- H08-P04: The tool warned that the return due date can shorten the 180 days when I left it out, and applied it when I gave it
+- H08-P04: Steps cite the regulation for each test
+- H08-P05: Five independent recomputes agreed (differences at most $0.05 from per-month rounding)
+- H08-P05: Break-even rents for both sides
+- H08-P05: ASC 842 steps spell out rounding and the final-period true-up
+- H08-P05: Fast and stateless
+- H08-P06: Verification caught the wrong consent standard and the hyphenation problem
+- H08-P06: Estoppel mismatches came with the lease page and quote
+- H08-P06: Merkle hashes reproduced independently, tamper detected
+- H08-P06: kW unit supported with a clear warning
+- H08-P07: The OpenAPI 3.0 file is well-formed 3.0.3 and matches the doc's list minus the registry tools
+- H08-P07: Three numeric results recomputed exactly
+- H08-P07: Clear contradiction output for a wrong claim
+- H08-P07: Stateless, fast (0.5-2.3 s per call, 3-5 s for the specs)
+- H08-P08: All four deadline cases matched my python, including the Juneteenth-then-weekend roll
+- H08-P08: Recommended file-by date and the reasons for skipped days are in the output
+- H08-P08: The statutes and verification status are returned for citing
+- H08-P08: NNN partial-year proration matched to the dollar
+- H08-P09: Lease-vs-own with debt, residual and break-even recomputed within cents
+- H08-P09: CAM audit with a cap and fee order and a clear credit result
+- H08-P09: Fast and free
+- H08-P10: Rent roll, cap, refinance and 1031 all ties to my recompute
+- H08-P10: Warnings about notice units, month-to-month and what economic occupancy is not
+- H08-P10: Refinance shortfall stated in dollars
+- H08-P11: Rent roll, cap, IRR, NPV and debt sizing all reproduced
+- H08-P11: Row-level error for a bad status
+- H08-P11: The subset has every tool I need
+- H09-P01: compare_proposals reproduced exactly in python on three different opex structures
+- H09-P01: Steps disclose annuity-due timing, level-payment method and opex growth
+- H09-P01: Percent-as-whole-number was flagged
+- H09-P01: Empty search did not hallucinate
+- H09-P02: Three different opex structures and a fixed-dollar escalator reproduced in python
+- H09-P02: Break-even rents for renew vs relocate are returned and reproduce
+- H09-P02: Texas rule returns statutes, skipped days, a conservative file-by date and verification metadata
+- H09-P02: Structured input error
+- H09-P03: WALT, CAM and DCF all reproduced to the cent
+- H09-P03: Spec is OpenAPI 3.0.3 with 26 operations and the isConsequential flag
+- H09-P03: CAM trace shows order of operations and warns about it
+- H09-P03: Warnings name the lease clause to confirm
+- H09-P04: Debt sizing with stress reproduced to the cent
+- H09-P04: Whole-number rate rejected cleanly
+- H09-P04: Direct cap itemises every deduction
+- H09-P04: Amortization with IO and balloon matches a month-by-month rebuild
+- H09-P04: Zero setup
+- H09-P05: Equity waterfall with IRR-hurdle tiers reproduced exactly
+- H09-P05: Conventions to confirm are returned as a warning
+- H09-P05: Direct cap's all-in implied cap helps yield-on-cost
+- H09-P05: Parcel IDs converge on case and separators
+- H09-P06: Percentage rent and ASC 842 remeasurement reproduced exactly
+- H09-P06: Use-conflict result carries the controlling quote and labels itself for human review
+- H09-P06: Verified fact states exactly which value parts were checked and not checked
+- H09-P06: Errors carry the fix
+- H09-P07: Debt sizing, stress with value moving with NOI and refinance shortfall all reproduced to the cent
+- H09-P07: Yield maintenance reproduced under both discount conventions
+- H09-P07: Warnings tell the lender to match the note
+- H09-P07: Interest-only sizing works
+- H09-P08: Both skill examples reproduce exactly, as the README claims
+- H09-P08: Ground lease per acre works with a clear unit warning
+- H09-P08: Percentage rent with fixed breakpoint and partial-year proration reproduces
+- H09-P08: Building IDs normalize address variants
+- H09-P09: Usable-basis ranking reproduces exactly
+- H09-P09: The rentable-vs-usable flip is warned automatically
+- H09-P09: Parking and upfront costs are modelled and move the ranking
+- H09-P09: Input conflict rejected clearly
+- H09-P10: After-tax lease vs own reproduced to the cent with tax simplifications warned
+- H09-P10: ASC 842 finance remeasurement reproduced
+- H09-P10: Comp validation derived the NER correctly
+- H09-P10: Fact package create/verify detected a one-field tamper
+- H09-P11: Batch statement for five different structures reproduced to the cent
+- H09-P11: The unrecovered decomposition foots and explains vacancy, exclusions, gross-up and admin fees
+- H09-P11: Capex recovery echoes every assumption with clause references
+- H09-P11: Per-statement warnings are practical
+- H10-P01: Every number I recomputed matched to the cent or the stated rounding
+- H10-P01: Stress grid in one call, with a warning that value is held fixed under NOI shocks
+- H10-P01: Rent-roll mode surfaced notice and month-to-month units as warnings instead of silently counting them
+- H10-P01: Malformed percents fail loudly
+- H10-P02: Direct cap with reserves, deductions and rounding matches my recomputation and states every step
+- H10-P02: DCF numbers reproduced to the cent; conventions and ARGUS caveat disclosed
+- H10-P02: Errors come back as structured data an agent loop can act on
+- H10-P03: Four-tenant batch reproduced to the cent, including cap, fee order and day proration
+- H10-P03: The building 'unrecovered_reasons' table answers the owner's question directly
+- H10-P03: Each statement carries its own steps and warnings
+- H10-P03: Spec is 3.0-valid and consistent with the ChatGPT README
+- H10-P04: Proposal ranking reproduced exactly and states its method, discounting and term-length warning
+- H10-P04: The exclusives checker returned the controlling quote, page and carve-out with an honest 'needs human review' label
+- H10-P04: Numbers inside quotes are enforced (a computed date and a carve-out size were held back)
+- H10-P04: search/fetch gave the value shapes in two calls
+- H10-P05: Every DCF line reproduced independently to the cent from the conventions written in the steps
+- H10-P05: Waterfall conventions and the unreached-hurdle outcome were stated and verified
+- H10-P05: Refinance shortfall computed and explained in one call
+- H10-P05: Results cite formula ID and version
+- H10-P06: Amendment precedence: the later expiration controlled, with history and open items listed
+- H10-P06: Hard failures were specific and actionable (hyphen rule, shape, quote not found)
+- H10-P06: doc_verify_claim and doc_compare return the controlling quote, page and span
+- H10-P06: Every call carried its own page text, with nothing to upload first (the claim that nothing is stored is the docs', not tested)
+- H10-P07: Income-approach value and the implied cap rate on the assessment in one call, with before- and after-reserve cap rates
+- H10-P07: Building IDs ignore unit numbers and normalize street suffixes, so condo records join
+- H10-P07: search returns a plain 'no match' note instead of a loose guess for Massachusetts
+- H10-P08: 1031 dates and boot arithmetic with statute-level step labels and a clear disclaimer
+- H10-P08: Direct cap handles reserve, deductions, excess land and rounding in one call
+- H10-P08: Pad rent roll worked for manufactured housing with the apartment tool
+- H10-P08: Late identification flagged explicitly
+- H10-P09: Sizing, stress, refinance gap, WALT, yield maintenance, defeasance and actual/360 schedule all tied to the cent from my independent python
+- H10-P09: Warnings state the conventions and tell the analyst what to confirm against loan documents
+- H10-P09: A wrong DSCR unit was caught with a corrective warning
+- H10-P10: Rent schedule and ASC 842 tables foot to the cent and reproduced my independent build
+- H10-P10: Mistakes were caught either by rejection or by a corrective warning
+- H10-P10: id_document equals a local SHA-256, so document IDs are independently checkable
+- H10-P11: Five Texas deadlines matched my independent date calculation, with statutes, skipped days and a file-by date in every response
+- H10-P11: Input mistakes were rejected with clear messages
+- H10-P11: The rule's own verification note states what is and is not covered
+- H11-P01: Protest deadline with statute citations, skipped days and a conservative file-by date
+- H11-P01: 1031 deadlines and boot netting that tied to my recomputation
+- H11-P01: Helpful input errors
+- H11-P01: Fast: sub-second to 3 s calls
+- H11-P02: Hotel USALI ladder verified to the dollar
+- H11-P02: Error and empty-result messages are honest and specific
+- H11-P02: IDs let me key a BBL to a building
+- H11-P03: Planted errors all caught with reasons
+- H11-P03: Character spans that I could re-derive
+- H11-P03: Amendment precedence with history and supersedes
+- H11-P03: Estoppel comparison with citation to the controlling amendment page
+- H11-P04: Spec self-describes its subset and imports as 3.0
+- H11-P04: Loan sizing with stress in a single call
+- H11-P04: Rate-form error that teaches the fix
+- H11-P05: Exclusive-use hit with controlling quote and section
+- H11-P05: Occupancy-cost ranking that I replicated
+- H11-P05: Disclosure that an empty result is not an all-clear
+- H11-P06: Three structures ranked in one call and reproduced to four decimals
+- H11-P06: Break-even rents for renew and relocate
+- H11-P06: Method stated in steps and descriptions
+- H11-P07: Skill worked examples reproduce the live API
+- H11-P07: Capex recovery with savings cap and per-tenant split
+- H11-P07: Clause-echo assumptions list and 'confirm the clause' warning
+- H11-P08: Full DCF, loan and waterfall reproduced to the cent
+- H11-P08: Conventions warning on every result
+- H11-P08: Waterfall flags negative leverage through unreturned capital
+- H11-P09: USALI ladder and direct cap tie out
+- H11-P09: Deduction handling and all-in implied cap rate
+- H11-P09: Read-only annotations on every tool
+- H11-P10: Clean MCP handshake and schemas without $ref
+- H11-P10: Schedule rebuilt row-for-row
+- H11-P10: Yield maintenance with explicit conventions and a parameter for them
+- H11-P11: Batch reconciliation tied out to the cent on cap, gross-up, admin fee, move-out proration and base year
+- H11-P11: Unrecovered-amount bridge that adds up
+- H11-P11: Clause verification with contradicted status and quote offsets
+- H12-P01: Stress grid in one call, with refinance shortfall per cell, matched my python exactly.
+- H12-P01: Binding constraint and loan-by-constraint shown side by side.
+- H12-P01: Amortization schedule rows, payment and total interest tie to the cent under actual/360 with a 30/360 payment.
+- H12-P02: Every annual NOI, reversion, PV and IRR in the no-rollover DCF reproduced from my own python.
+- H12-P02: Rollover events are listed with start month, downtime, free rent, TI and LC, so a reviewer can follow them.
+- H12-P02: Direct-cap shows three implied cap rates (net of reserves, before reserves, all-in).
+- H12-P03: Full USALI ladder with labelled steps, correct to the cent against my python.
+- H12-P03: Explicit room-nights handling for out-of-order rooms.
+- H12-P03: Spec is valid OpenAPI 3.0 on the checks I ran and marks every action read-only.
+- H12-P04: Landlord-perspective ranking matched my python to four decimals, including the downtime carry.
+- H12-P04: The result's steps state the discounting convention (annuity due, monthly rate annual/12) so a committee can reproduce it.
+- H12-P04: The term-mismatch warning is the right caveat for a 5-year versus 7-year comparison.
+- H12-P05: Bed-level rent roll tied to my python on every line except 3 cents of concession rounding.
+- H12-P05: Expiration schedule shows the single 2027-07 cliff clearly (54 beds).
+- H12-P05: Protest deadline cites the statutes and shows its verification status and limits.
+- H12-P06: Dates, boot and gain tie to my arithmetic, with each step's formula printed.
+- H12-P06: The result states when the exchange period ends earlier than day 180 because of the tax return due date.
+- H12-P06: Disclaimers and warnings are in the result itself, not only on the page.
+- H12-P07: Amendment precedence: the First Amendment's expiration controls and the 2028 date sits in history.
+- H12-P07: Transposition and unit-conversion errors caught with reasons.
+- H12-P07: Citations carry page, quote and span, and each fact has a stable ID.
+- H12-P08: Stepped rent via every_months worked and matched my python to the cent.
+- H12-P08: IRR and NPV matched my python on the same flows.
+- H12-P08: Latency 0.6 to 3.5 seconds per call.
+- H12-P09: Per-kW ranking matched my python to four decimals.
+- H12-P09: MW and kW outputs agree (x1,000).
+- H12-P09: Unit-aware warnings tell the reader how area_sf and *_psf were read.
+- H12-P10: Residential rent roll rollup reproduced my arithmetic.
+- H12-P10: Mid-year DCF convention is stated and reproduced.
+- H12-P10: Honest scoping on the NYC data and LL97 in the changelog.
+- H12-P11: T-12 footing error (NOI overstated by 20,000) detected and cited with line, tolerance and exception.
+- H12-P11: Contradicted claim returned the quote's own numbers.
+- H12-P11: Package hashes reproduced independently; tampering detected.
+- H13-P01: Rent schedule tied to my own Decimal recomputation to the cent, including the leap-day expiry
+- H13-P01: Quote checks with page, span and sha256 that I could reproduce
+- H13-P01: Rejection messages written so an agent can retry
+- H13-P02: calc_capex_recovery tied to my recomputation within $0.05 a year, with savings-cap disallowance reported as a warning
+- H13-P02: draft packs are not served as tools, as rules.md promised
+- H13-P02: clear MCP handshake
+- H13-P03: compare_proposals reproduced exactly with my own monthly-in-advance model, and warned that terms differ
+- H13-P03: renew_vs_relocate lists each one-time cost line and the method
+- H13-P03: error text told the agent how to fix itself
+- H13-P04: debt sizing, amortization (actual/360 with IO) and kW rent tied to my Decimal recompute to the cent
+- H13-P04: the unit kw option prices data-center leases without pretending they are per SF, and its warning says to annualize monthly quotes
+- H13-P04: clear errors
+- H13-P05: estoppel comparison with citation per mismatch
+- H13-P05: contradicted claim returned the numbers the quote does state
+- H13-P05: package verify honestly says quotes were not checked without the pages
+- H13-P06: rent roll definitions are explicit in steps and reproduce
+- H13-P06: the waterfall matched an independent implementation to the cent and surfaced its conventions as a warning
+- H13-P06: single-lease mode answers the renewal-offer question quickly
+- H13-P07: a monthly independent model reproduced the DCF year by year to the cent from the stated conventions
+- H13-P07: lease events list every rollover with TI and LC
+- H13-P07: direct cap lists implied cap rates three ways
+- H13-P08: CAM trace shows each step and order-of-operations warnings
+- H13-P08: all five numeric results matched my recomputation
+- H13-P08: Texas deadline result cites statutes, verification status and the skipped days
+- H13-P09: the 3.0 spec uses boolean exclusiveMinimum and no 3.1-only keywords I could find (checked counts)
+- H13-P09: DCF, WALT and debt sizing all reproduced; the DCF warns when exit-year NOI includes rollover costs
+- H13-P09: responses carry steps and formula IDs
+- H13-P10: the spreader refused to guess an ambiguous category and showed the exact dollar gap
+- H13-P10: footing checks on EGI, opex and NOI
+- H13-P10: direct cap shows implied cap rate before reserves, after reserves and all-in
+- H13-P11: every tenant statement and the building reconciliation matched my recomputation; unrecovered reasons sum exactly
+- H13-P11: use-conflict results carry the controlling quote, section and carve-outs
+- H13-P11: service responded in under a second on each call
+- H14-P01: Rent roll analytics reproduced exactly from 240 rows in one call
+- H14-P01: Debt sizing shows all three constraints and the binding one, and the stress table
+- H14-P01: Amortization schedule gives balloon and total interest with a stated rounding rule
+- H14-P01: Errors are JSON with a path and a fix
+- H14-P02: The three CAM structures reproduced exactly, with an order-of-operations trace
+- H14-P02: The batch tool's unrecovered-amount bridge is the thing I would show an owner
+- H14-P02: Machine-readable errors
+- H14-P03: The DCF reproduces independently to the cent from its own stated conventions
+- H14-P03: Cash flows by year, exit, NPV and IRR in one response with lease_events for each rollover
+- H14-P03: Direct cap shows reserve, lease-up and burn-off deductions and three implied caps
+- H14-P03: Error responses list every issue at once
+- H14-P04: Term-sheet math reproduces exactly, including a 120-row actual/360 schedule
+- H14-P04: Refinance excess is reported with the sizing
+- H14-P04: Yield maintenance states its discounting basis and warns that notes differ
+- H14-P05: Three-way proposal ranking in one call with an explicit discounting convention
+- H14-P05: Percentage rent with natural breakpoint and an audit trail
+- H14-P05: Errors are JSON with paths
+- H14-P06: All four CAM and capex results matched my independent implementation
+- H14-P06: Order-of-operations warnings that name the lease clause to confirm
+- H14-P06: REST and MCP returned identical JSON for the same input
+- H14-P07: Retrofit NPV, IRR and pass-through schedule are correct and reproducible
+- H14-P07: The server is clear about what it does not cover (empty search note, UnknownTool)
+- H14-P07: capex_recovery models the cost-savings limit that many green-lease clauses use
+- H14-P08: Every figure tied to an independent python calculation
+- H14-P08: Stress table with value repricing is exactly the lender repricing view
+- H14-P08: Defeasance warning and lockout warning are honest about limits
+- H14-P09: Deadlines, identification and boot all reproduce, with the basis of the exchange deadline stated
+- H14-P09: The late-identification flag
+- H14-P09: Direct cap shows both cap conventions with labels
+- H14-P10: The Texas rule matched an independent implementation on four dates including three holiday edge cases
+- H14-P10: Citations, version, verification block and a conservative file-by date in every result
+- H14-P10: fact_validate error paths are specific
+- H14-P11: Quote and span checks hold up: hash and spans recomputed exactly
+- H14-P11: Amendment precedence with history is exactly the current-state abstract I produce by hand
+- H14-P11: Estoppel comparison flags a name typo and an area mismatch with citations
+- H15-P01: Custom GPT subset matches its doc and fits the 30-operation cap
+- H15-P01: Debt sizing, amortisation and waterfall numbers reproduced exactly
+- H15-P01: Input error was clear
+- H15-P02: Wrong value held for review, invented quote rejected, with reasons
+- H15-P02: Amendment precedence and history
+- H15-P02: Estoppel mismatch against the amended lease
+- H15-P02: Spans and document ID reproduce independently
+- H15-P03: Every statement traces step by step and ties to my own recomputation to the cent
+- H15-P03: Building reconciliation explains the unrecovered amount
+- H15-P03: Order-of-operations warnings are explicit
+- H15-P04: Wrong numbers held back with reasons
+- H15-P04: Quote span and document ID give a citable reference
+- H15-P04: Percentage rent and rent steps tie to my own maths
+- H15-P04: Hyphen-at-line-break rejection teaches the agent how to quote
+- H15-P05: The DCF ties to an independent rebuild, including the rollover event arithmetic
+- H15-P05: Warnings flag exit-year rollover and the conventions to confirm
+- H15-P05: Error message teaches the decimal convention
+- H15-P06: Rent schedule and ASC 842 numbers tie to my own recomputation
+- H15-P06: WALT states its day-count convention
+- H15-P06: Document tool refuses to certify a computed date
+- H15-P07: Numbers and names that are not in the quote are held with reasons
+- H15-P07: The use-conflict tool surfaces carve-outs alongside the conflict
+- H15-P07: Output is deterministic
+- H15-P07: Page auto-correction and spans give a citable reference
+- H15-P08: Dates tie to my independent calendar, including Memorial Day and weekend rollovers
+- H15-P08: Conservative recommended_file_by
+- H15-P08: Verification status and statute citations in every response
+- H15-P08: Direct cap with an explicit reserve-basis warning
+- H15-P09: Spread refuses to guess an ambiguous line and flags totals that do not foot
+- H15-P09: Rent roll and direct cap tie to my independent arithmetic
+- H15-P09: Every spread line carries a cited quote and page
+- H15-P10: Deadlines and boot recomputed exactly
+- H15-P10: Late identification flagged
+- H15-P10: The disclaimer and regulation citations are in every response
+- H15-P10: Amortisation shows the balloon as a warning
+- H15-P11: DCF reproduced exactly, with lease_events and warnings on rollover and exit-year normalisation
+- H15-P11: Comp validator reports all issues at once and derives NER on the comp's basis
+- H15-P11: OpenAPI 3.1 document is complete (39 operations)
+
+## Blocked by (310)
+
+- H01-P01: No CAD assessment roll or hotel sale comps hosted (registry lookups not open; Bexar gated, Travis not hosted per registry-coverage.md)
+- H01-P01: No tax-loaded cap-rate helper: direct_cap capitalises NOI exactly as given, so the appraiser must handle the tax load outside the tool
+- H01-P03: No data-center sale or lease comps (lease-comps.md offers 6,994 GSA federal leases, 4 SEC-exhibit comps and a format for firms to trade their own; none is a data-center market comp)
+- H01-P03: DCF and direct cap cannot label results in kW; exhibits would show 'SF' fields
+- H01-P03: Power cost, PUE and utility pass-throughs are not modelled (the tool's own warning says so)
+- H01-P06: Could not import the spec into a GPT or run the Custom GPT here (no ChatGPT in this environment)
+- H01-P06: No South Florida retail comps, sales data or tenant sales benchmarks
+- H01-P08: No lab-specific comp or market data; comps cannot be typed as life science
+- H01-P09: No data-center vocabulary in the use-conflict check, so a crypto-hosting sublease was not flagged under 'bitcoin mining hosting'
+- H01-P09: Hosted API cannot sign packages; signing needs the local server or own code
+- H01-P10: Hosted registry (owner of record, parcels, sales) is not open: registry calls return 503 RegistryUnavailable
+- H01-P10: No sale comps or manufactured-housing data
+- H01-P10: Per-pad metrics only come back as per-SF fields (direct_cap has no unit option)
+- H01-P11: No demographics, traffic, competitor or registry data (hosted registry not open)
+- H01-P11: The use-conflict checker missed a pharmacy-exclusive risk written in different words
+- H02-P01: No hosted registry lookups, so no Maricopa owner or sales research for replacement candidates (the site says none is open).
+- H02-P02: No LA County owner names or sales in the hosted service (registry not open), so no ownership context for comps.
+- H02-P03: No student-housing or per-bed anything: no comps, no pre-lease or bed-based rent roll example.
+- H02-P03: Copilot Studio wiring not testable here and documented only as an untested row.
+- H02-P04: No Charlotte or Raleigh asking-rent, concession or availability data to put beside the proposals.
+- H02-P05: No parcel, zoning, ownership or utility data on the hosted service for site screening.
+- H02-P05: No construction-draw, lease-up or development budget tool: the DCF starts from an in-place rent roll and the loan schedule funds the full amount on day one.
+- H02-P06: No LL97 tool (draft rules pack only, not served), so the exposure check could not be run.
+- H02-P06: No ACRIS or NYC registry lookups on the hosted service (the site says none open).
+- H02-P07: No address-keyed comps or ownership on the hosted service (registry not open; 503 RegistryUnavailable).
+- H02-P07: No pool of shared comps exists yet.
+- H02-P08: PDF reading is not hosted; the agent must supply page text, and a 140-page lease's request size limit was not tested.
+- H02-P08: Predicate table (ingest.md) was not available to me, so shapes were learned by trial.
+- H02-P09: No manufactured-housing-specific treatment: pad versus home ownership, utility reimbursement, home sales, park-owned home income.
+- H02-P09: No state park, owner or sales data hosted.
+- H02-P10: No DFW comps, rent or ownership data on the hosted service.
+- H02-P11: No flood, wind, elevation, year-built or replacement-cost data anywhere in the hosted service or in the materials.
+- H02-P11: No building or parcel lookup on the hosted API (503 RegistryUnavailable); building IDs cannot be tied to the county record.
+- H03-P01: Reading scanned PDFs: the hosted API takes page text only; PDF reading exists only in the local server (not tested)
+- H03-P01: No evidence of accuracy on real, messy lease text
+- H03-P02: No CMBS or loan comps on the hosted service (registry lookups not open)
+- H03-P02: Copilot Studio and Gemini connection steps could not be performed or read (guides not in my materials)
+- H03-P03: No Sun Belt industrial market rent or cap-rate data to set market_rent and exit cap inputs
+- H03-P03: No ARGUS comparison
+- H03-P04: No sold comps or market cap-rate data hosted
+- H03-P04: Irregular bump timing (first bump not one interval after start) cannot be entered directly
+- H03-P05: No flood, wildfire, heat or wind data
+- H03-P05: No replacement-cost, construction class or year-built data hosted (Maricopa is a 3,863-parcel sample, not hosted)
+- H03-P05: No insurance-specific tools or examples
+- H03-P06: Cannot test the GPT builder itself, so whether the 140KB spec imports cleanly is unknown
+- H03-P06: doc_compare for estoppels is outside the 30-operation subset
+- H03-P07: Cannot install the plugin here
+- H03-P07: Exchange deadline for a late-year transfer depends on a tax-return due date the tool does not compute
+- H03-P08: No hosted registry: parcel and owner lookup for Fulton, DeKalb, Gwinnett unavailable (call 2)
+- H03-P08: No hazard, flood or wind data
+- H03-P08: Self-storage has no operational tools (unit mix, occupancy by size) beyond generic direct cap
+- H03-P09: No framework-specific integration test possible here
+- H03-P09: Tool list size for an agent context
+- H03-P10: LL97 limit and penalty are only in the SDK drafts, not on the hosted API
+- H03-P10: NYC LL84 energy facts are in the registry, which is not hosted
+- H03-P10: No unit-conversion or emissions-factor tools
+- H03-P11: Cannot sign packages on the hosted API (by design; signing is local)
+- H03-P11: No accuracy data for real, OCR-noisy leases and no DPA for client documents
+- H04-P01: No hosted Harris County registry lookups to pull the target replacement properties' owners, appraised values or sales (stated as not open yet)
+- H04-P01: No small-office market comps (the only comps are federal GSA leases, downloadable, not hosted)
+- H04-P02: No callable verified rules for WA CBPS, BERDO or LL97 (drafts are SDK-only)
+- H04-P02: No hosted energy benchmarking data (Seattle, Phoenix, Boston not loaded; coverage lists NYC, DC, Denver)
+- H04-P02: No emissions-factor or EUI-target tool
+- H04-P03: No DFW MOB comps or recorded-sales facts hosted
+- H04-P03: Debt result is unlevered-only DCF plus sizing; no levered cash flow or equity IRR in the DCF call
+- H04-P04: No Chicago or Illinois energy benchmarking data hosted
+- H04-P04: No EUI, utility cost per occupied room or emissions tool
+- H04-P04: The 'ESG' part of the job is not served: only the finance translation
+- H04-P05: Prepayment calculator missing from the Custom GPT Actions subset
+- H04-P05: No hosted Travis County mortgage, recorded-sale or CMBS data to cross-check the borrower's package
+- H04-P06: No hosted Alameda or San Francisco registry data (nothing hosted; Alameda assessor source is gated on terms and SF's public file has no owner names, per registry-coverage.md)
+- H04-P06: Hosted API takes page text, not PDFs
+- H04-P07: No delinquency, bad debt or collections in the tool (it says economic occupancy is not collections)
+- H04-P07: No Miami-Dade owner, sales or comp data (Florida not loaded; no hosted registry)
+- H04-P08: No hosted Austin or San Antonio comps, sales or owner data
+- H04-P08: No ARGUS tie-out for sign-off
+- H04-P09: The default Custom GPT subset omits doc_compare, so the estoppel step needs the full spec, which exceeds the 30-operation limit
+- H04-P09: No copyable shape reference for predicates (ingest.md not supplied) and no list of cap methods
+- H04-P09: Hosted API takes page text only, not PDFs
+- H04-P10: No Seattle or King County data
+- H04-P10: No external accountant or auditor review shown for the ASC 842 tool
+- H04-P11: No retail or grocery lease comps hosted (GSA federal office leases only, downloadable)
+- H04-P11: No Los Angeles owner or sale data hosted
+- H05-P01: No storage-specific chart lines: the unmapped Fee Income line needed a manual category
+- H05-P01: No Florida parcel, assessment or sale data on the hosted service (stated openly), so the tax reassessment and comps were my own estimates
+- H05-P02: No Copilot Studio or Gemini-specific onboarding steps in my materials, and no OAuth/SSO
+- H05-P02: No industrial market comps: the comp set is GSA government-tenant leases
+- H05-P02: Proposal terms had to be typed in by hand; no tool turns a landlord proposal PDF into inputs
+- H05-P03: No Dallas County parcel, owner or assessment data on the hosted service (stated openly)
+- H05-P03: Lease clauses must be read and entered by the agent; no tool reads the lease for CAM terms
+- H05-P04: No student-housing-specific inputs (per bed, academic-year lease-up) in the calculators
+- H05-P04: CMBS comparables and collateral records are not on the hosted service
+- H05-P04: Bank vendor review needs attestations that do not exist yet
+- H05-P05: The default Custom GPT spec omits calc_lease_vs_own (a core task); the 39-operation spec cannot be imported past the 30-operation limit
+- H05-P05: Could not test the actual Custom GPT import
+- H05-P05: No tie-out evidence against a lease accounting system
+- H05-P06: Could not install or run the plugin, so skill triggering is unknown
+- H05-P06: No Seattle or King County data or building-performance rules in the hosted tools
+- H05-P07: No hosted Florida registry data (parcel, owner, sales) to cross-check the seller
+- H05-P07: DCF rollover not exercised because I chose leases that do not roll; not tested
+- H05-P07: Lease PDFs need text extraction by my agent; the hosted API does not read PDFs
+- H05-P08: No Texas registry data on the hosted service (stated openly)
+- H05-P09: No Midwest small-bay comps or parcel data on the hosted service
+- H05-P09: Could not test a real agent framework adapter
+- H05-P10: No Atlanta sales or cap-rate data
+- H05-P10: No Fulton or DeKalb assessment or parcel lookups on the hosted service (stated openly)
+- H05-P10: No stabilized-NOI builder: the expense and collection assumptions are mine
+- H05-P11: doc_compare is not in the default Custom GPT spec, so the estoppel check would need a custom spec or MCP
+- H05-P11: No ACRIS or NYC registry lookups on the hosted service (stated openly)
+- H05-P11: Could not test the actual Custom GPT import or real PDF text
+- H06-P01: Could not feed the abstract into Yardi or a template; output is JSON only (not tested beyond that).
+- H06-P01: Dated rent steps for the amendment were not modeled in my run; the abstract used a non-Ingest predicate for rent.
+- H06-P02: Could not confirm the Copilot Studio or Gemini connection steps; both guides are outside the pack and no live console test exists per connectors-README.
+- H06-P02: No sales comps or market rents to feed the DCF (the hosted service has no registry lookups).
+- H06-P02: No enterprise assurances (SOC 2, OAuth).
+- H06-P03: No sale comps or market rent data on the hosted service, so the inputs to the income approach must come from elsewhere.
+- H06-P03: Could not test the Custom GPT import itself.
+- H06-P04: No NNN listings, cap-rate comps or tenant credit data on the hosted service, so the screening half of my work cannot be done here.
+- H06-P04: Tax-return due date is not computed by the tool; the agent must supply it.
+- H06-P05: Hosted endpoint conflicts with a lender's likely data-handling policy for borrower financials without attestation; the self-hosted route exists but is a separate setup.
+- H06-P05: No pad-specific rent roll fields or MHC market data.
+- H06-P06: Could not connect from an actual agent framework or Yardi data in this review.
+- H06-P06: No import helper to map a Yardi CAM pool into the batch input.
+- H06-P07: No Copilot Studio or Gemini connection tested; no PDF reading on the hosted API; no hosted-use terms my counsel can rely on.
+- H06-P08: No Georgia or MHC sale comps, buyer data or cap-rate evidence on the hosted service.
+- H06-P08: Per-year upside from loss-to-lease must be scaled by hand from a sample.
+- H06-P09: Could not test the Custom GPT import itself.
+- H06-P09: No Dallas comps or rent data to feed the OM.
+- H06-P10: The plugin install and skill behaviour could not be run here.
+- H06-P10: No skill in the plugin for document verification or exclusive screening.
+- H06-P11: No Collin County or local comps data on the hosted service.
+- H06-P11: Could not check the short ID against its documented hash (the ID spec is not in the pack).
+- H07-P02: Denver parcel, owner and comp data: registry not hosted (calls 3 and 4)
+- H07-P04: Parcel facts (year built, building area, owner) need the registry, not hosted
+- H07-P04: No hazard, replacement-cost or insurance data in FactLot, by design
+- H07-P05: Cook County parcel, owner and sale data: Illinois 'none loaded' (registry-coverage.md)
+- H07-P07: Apartments in a mixed-use building cannot be modelled except as leases
+- H07-P07: No integration with ARGUS or house charts of accounts beyond the published chart
+- H07-P10: No capacity-ramp (phased kW) in the rent schedule; every lease starts at full quantity
+- H07-P10: No power or PUE pass-through pricing
+- H08-P01: calc_rent_schedule only expresses uniform percent or fixed bumps, so an amended schedule with irregular steps (28.00, 30.50, 32.00) cannot be built from a lease table in one call (seen from the escalation schema, only the uniform-step version was called)
+- H08-P01: Rent steps stated by lease year rather than date can only go to needs_review
+- H08-P01: No Yardi field mapping
+- H08-P03: No by-the-bed rent roll, academic-year lease timing, pre-leasing tracker or per-bed pro forma; calc_dcf_pro_forma is built around lease rows with months_remaining (schema)
+- H08-P03: No hosted registry: no owner, sales or comps data for Sun Belt student housing (site-index.txt: lookups not open)
+- H08-P03: No NOI build: I supplied NOI
+- H08-P04: No replacement-property listings or comps in any of my target markets (hosted registry is not open)
+- H08-P05: No market comps for Boston strip retail; I supplied the offers
+- H08-P05: renew_vs_relocate has no NNN or operating expense input (schema), so I had to cross-check with compare_proposals separately
+- H08-P05: Real Claude connector path not exercised
+- H08-P06: No predicate set for data-center terms (power, redundancy, SLA credits): generic predicates only check numbers, not meaning
+- H08-P06: Cannot confirm hosted no-storage claim from outside
+- H08-P06: Signature path not tested
+- H08-P07: Could not test the Custom GPT builder itself, so import success is unproven
+- H08-P07: No rent step table from irregular leases (calc_rent_schedule supports uniform steps)
+- H08-P07: No registry: no ownership or property data for the Boston industrial portfolio
+- H08-P08: No appraisal-district data: the agent must still be fed each parcel's notice delivery date
+- H08-P08: No renewal-option date tracker (the tool verifies a clause but does not compute option exercise dates)
+- H08-P09: calc_lease_vs_own is not in the default Custom GPT subset; as a GPT-only team I would have to use a larger spec or another connection route
+- H08-P09: No Minneapolis market rent, sale comps or grocery-anchor data
+- H08-P09: Cannot test the GPT builder
+- H08-P10: No Atlanta rents or sales comps (hosted registry not open)
+- H08-P10: Cannot confirm the real Claude connector path from here
+- H08-P11: No MH-specific features (lot types, park-owned homes, utility billing, rent-regulation rules) or lot-rent comps
+- H08-P11: Cannot test the Custom GPT builder or large request bodies from a GPT
+- H09-P01: No flex/industrial lease comps for South Florida on the hosted service (search returned nothing; GSA comps are federal, mostly office).
+- H09-P01: The compare tool does not price term differences beyond a warning, so the 7-year vs 5-year choice still needs my judgement.
+- H09-P02: renew_vs_relocate does not price operating expenses or the expense stop, so my CFO comparison needs a second tool call or manual add-on
+- H09-P02: No Houston flex rent or tax-rate data on the hosted service
+- H09-P02: Cannot tell from the materials what the server logs from client lease economics (judged from the plugin README only)
+- H09-P03: Could not install the Action in ChatGPT here
+- H09-P03: No Seattle MOB market data on the hosted service
+- H09-P04: No Miami comps or zoning on the hosted service; judged against what the materials say (registry lookups not open yet)
+- H09-P05: No hosted parcel, owner, zoning or sales lookups, so the site-assembly part of the task cannot be done here
+- H09-P05: Direct cap is acquisition-labelled; yield on cost needs the price field reused
+- H09-P05: No construction-loan draw or lease-up cash-flow calculator (not tested for multifamily rent roll lease-up)
+- H09-P06: No LangGraph/Agents SDK/CrewAI example, so framework schema compatibility is untested
+- H09-P06: Predicate value shapes are not discoverable from tools/list or schema_get
+- H09-P07: No actual/360 option on calc_debt_sizing
+- H09-P07: No SLA or vendor-risk documentation in the materials
+- H09-P08: No site-selection data (traffic, trade area, parcel/owner/zoning) on the hosted service
+- H09-P08: Could not install or run the plugin in Claude Code in this review
+- H09-P09: No Seattle MOB comps or TI benchmarks on the hosted service
+- H09-P10: Cannot mint lease IDs on the hosted service; the doc points to the SDKs
+- H09-P10: No pool of shared comps exists yet, so the exchange is theoretical
+- H09-P10: Digest composition not documented in the materials I read
+- H09-P11: The batch result is JSON only (no CSV/XLSX statement export seen in the output) for loading into a PM system
+- H09-P11: Expense-stop semantics need confirmation against each lease
+- H10-P01: No hosted Dallas/Tarrant parcel, owner, recorded-sale or loan lookups (stated by the materials), so comps, ownership and existing-debt checks had to stay outside FactLot
+- H10-P01: No T-12 spreading was exercised (not tested)
+- H10-P02: No comparable sales, assessed values or zoning on the hosted service (registry lookups not open), so only the income-approach arithmetic could be done
+- H10-P02: Apartment turnover cannot be modelled by the blended-lease downtime when it is under half a month
+- H10-P03: From a Custom GPT: calc_capex_recovery is outside the default 26-operation import (reachable only via the all-operations spec, MCP or REST)
+- H10-P03: No tenant or lease data store; every lease term has to be supplied by the user
+- H10-P04: From a default Custom GPT, the exclusives check is outside the 26-operation subset
+- H10-P04: No market comps or CAM history on the hosted service
+- H10-P05: No hosted registry (DFW CMBS loan facts, sales, assessments), so market comps and competing-loan data were not available
+- H10-P05: Enterprise security requirements (SSO/OAuth, SOC 2) are listed as not provided
+- H10-P06: Stepped rent tables with unequal intervals cannot be turned into a schedule in one calc_rent_schedule call (percent or fixed bumps every N months only)
+- H10-P06: No PDF/OCR path on the hosted service; page text must already be extracted
+- H10-P07: No Massachusetts abatement-deadline rule (only Texas is a verified pack)
+- H10-P07: Boston assessing values and comps are not hosted (coverage.md: 'No: not hosted')
+- H10-P07: The direct-cap tool labels the assessment as a sale 'price', so the output cannot be handed to an appeals board without relabelling
+- H10-P08: No hosted registry for MH communities, sales comps or owners
+- H10-P08: The Copilot Studio / Gemini console steps are not in the materials
+- H10-P09: No hosted loan, CMBS or recorded-debt lookups for Seattle (registry not open)
+- H10-P09: Vendor-risk and data-handling approval is needed before credit terms go to a free hosted API
+- H10-P10: Stepped rent tables with uneven intervals have no direct schedule path (not hit in this task, seen in the tool schema)
+- H10-P10: Hosted API takes page text only; I did not test PDF handling
+- H10-P11: Arizona, Florida and Georgia deadline rules do not exist (the 404 and rules.md)
+- H10-P11: I could not verify the Texas holiday list against the statute from within this review
+- H11-P01: No hosted Texas parcel, owner or appraisal-district lookup (Bexar gated; Travis/Williamson loaded but not hosted per registry-coverage.md): not needed for the arithmetic but wanted for protest comps
+- H11-P02: No served LL97 rules tool (draft pack, SDK-only)
+- H11-P02: No hosted LL84 energy or GHG lookup by BBL (registry not hosted)
+- H11-P03: Cannot test privacy claims (no audit); computed terms (expansion area) still need a human
+- H11-P04: No tenant credit, sale comps or net-lease cap-rate data on the hosted service
+- H11-P05: No traffic, demographic or trade-area data (not in scope)
+- H11-P05: No hosted Georgia parcel data (Fulton gated, DeKalb loaded but not hosted per registry-coverage.md)
+- H11-P06: No market comps or CoStar-type data (not in scope)
+- H11-P06: Cannot test the claude.ai connector flow here
+- H11-P07: No served LL97/BERDO/CBPS rules (draft packs)
+- H11-P07: No energy data by building on the hosted service
+- H11-P07: Could not install the plugin here
+- H11-P08: Rollover logic not independently verified; no ARGUS comparison possible here
+- H11-P09: Cannot test Copilot Studio or Gemini connection steps
+- H11-P09: No STR or comp-set data
+- H11-P10: No framework run possible here; no sample for LangGraph/Agents SDK/CrewAI
+- H11-P11: No audited real-world reconciliation to compare against (synthetic only)
+- H12-P01: No hosted registry or market data: cannot pull owner, sales or CMBS comps for the Plano asset (stated as not open yet).
+- H12-P02: Cannot express 10% five-year anchor steps; stepped rents are the central feature of grocery anchors (from calc_dcf_pro_forma schema: one escalation_rate and next_escalation_month)
+- H12-P02: No hosted cap-rate or sales evidence
+- H12-P03: Could not test the GPT builder import or a live GPT conversation from here
+- H12-P03: No comp-set or market benchmark data
+- H12-P04: Could not install or register the server in Copilot Studio or Gemini; the platform guides were not available
+- H12-P04: No submarket rent or vacancy data
+- H12-P05: No preleased status or future-lease handling in the rent roll tool (status enum)
+- H12-P05: No student-housing comps or cap-rate evidence
+- H12-P05: Not exercised: full 960-bed volume and the GPT builder
+- H12-P06: No storage market data or listings
+- H12-P07: Rent steps written by lease year cannot pass verification, so the current-state rent is absent from the abstract
+- H12-P07: doc_compare is not in the GPT Actions subset (use MCP or the full spec)
+- H12-P08: No net lease comps; the reversion cap rate is my own assumption
+- H12-P09: Power pass-through and PUE are not priced by the tool (stated in its warning)
+- H12-P09: No data center DCF: calc_dcf_pro_forma is described per SF (schema), not tested with kW
+- H12-P10: NYC registry data (ACRIS sales, owners, PLUTO) not available hosted
+- H12-P10: Local Law 97 pack is draft and not served
+- H12-P10: A single combined residential-plus-retail valuation is not offered: I combined the pieces myself
+- H12-P11: Confidentiality terms are a policy, not a signed contract (customer-documents.md)
+- H12-P11: No manufactured-housing chart of accounts or predicates
+- H12-P11: Signing not tested
+- H13-P02: no verified or served emissions-law rule (LL97 is a draft, not a tool)
+- H13-P02: no hosted benchmarking records: fetch returned predicate names only
+- H13-P02: no tested Copilot Studio or Gemini connector doc in the materials
+- H13-P10: apartment rent and sales comps (not served on the hosted API)
+- H13-P10: no per-unit value output in calc_direct_cap
+- H13-P11: no tested Copilot Studio or Gemini connector guide in the materials
+- H14-P01: Hosted registry lookups are not open, so no Mecklenburg or Wake owner, sale or zoning data
+- H14-P01: No submarket rent comps in the hosted service (only GSA federal lease comps, downloadable, not for multifamily)
+- H14-P01: No full property DCF for multifamily with unit-level data; I built the levered flows myself and used calc_irr only for the root
+- H14-P02: calc_capex_recovery is outside the 26-operation Custom GPT subset
+- H14-P02: No medical-office-specific guidance
+- H14-P02: Texas property-tax protest rule was not needed for this task and not tried
+- H14-P03: No local market comps or cap-rate data in the hosted service, so the exit cap and rents are my assumptions
+- H14-P03: ARGUS parity untested, so the screen cannot replace the ARGUS run
+- H14-P04: No 'bed' unit or academic-year/pre-lease structure for student housing
+- H14-P04: No hosted registry (borrower, recorded mortgages, CMBS data) to cross-check the existing loan
+- H14-P04: Defeasance portfolio pricing was not tested
+- H14-P05: Hosted registry not open (no landlord, parcel or ownership data for Los Angeles)
+- H14-P05: No trade-area, traffic, demographic or comp data
+- H14-P05: No restaurant-specific lease features such as kick-outs or co-tenancy math beyond percentage rent
+- H14-P06: The Copilot Studio and Gemini connections are unverified
+- H14-P06: No tenant-data handling statement I could hand to IT beyond the privacy page
+- H14-P07: No verified or served NYC LL97 rules tool (draft pack is SDK-only)
+- H14-P07: No hosted LL84 benchmarking data
+- H14-P07: No fuel coefficient or emissions calculator
+- H14-P08: Copilot Studio and Gemini connections unverified
+- H14-P08: No registry or CMBS data hosted for borrower cross-checks
+- H14-P09: No comps or cap-rate data for a BOV
+- H14-P09: No hosted registry for owner prospecting
+- H14-P10: No energy benchmarking calculators or Dallas County energy data
+- H14-P10: No hosted registry
+- H14-P10: Nothing to check an energy value against its document beyond a textual quote check
+- H14-P11: doc_compare is outside the Custom GPT subset
+- H14-P11: Rent schedules from escalation formulas cannot be verified (dates must be in the quote)
+- H14-P11: No hosted way to read a PDF (page text must come from my side)
+- H15-P01: No hosted zoning, FAR, lot area or sales lookups for NYC (materials: NYC loaded in the pipeline but 'not hosted')
+- H15-P01: No construction-draw / interest-reserve calculator: amortization_schedule takes a funded principal
+- H15-P01: LL97 rules pack is draft, not served as a tool
+- H15-P02: Rent schedules stated by lease year cannot be verified because FactLot requires the dates in the quote
+- H15-P02: 1 MiB request cap on the hosted API forces splitting 90-page leases (stated in document-verification.md; not tested)
+- H15-P02: No data room or PDF reader on the hosted API
+- H15-P03: Lab-specific items (sub-metered utilities, tenant-specific HVAC allocations) have no tool; I modelled them as ordinary expense lines
+- H15-P03: No integration with Yardi or MRI; I would have to map ledger lines into the expense array myself
+- H15-P04: Use-conflict matching misses a plain 'tea' conflict (call 3)
+- H15-P04: Prohibited-use lists and several text fields are only type-checked
+- H15-P04: No PDF reading on the hosted API
+- H15-P05: Harris County parcels, sales and tax data are loaded in the pipeline but not hosted, so the comp set and tax history must come from elsewhere
+- H15-P06: No critical-dates calculator: notice deadlines, termination windows and option dates are held for human review rather than computed
+- H15-P06: Renewal terms stated in years versus months are held for review
+- H15-P07: Booleans and enum fields are not verified, so meaning inversions pass
+- H15-P07: No PDF reading on hosted
+- H15-P07: No reconciliation of the anchor's sales kick-out test period to dates (the test period is free text)
+- H15-P08: No deadline rules for AZ, FL or GA
+- H15-P08: No hosted assessor values, sales or land/improvement splits for comparable centres
+- H15-P08: Texas rule covers only the general deadline (not late-protest relief, county practice)
+- H15-P09: No Houston sales, expense or cap-rate comps on the hosted service, so the market-evidence part of the appraisal remains manual
+- H15-P10: No rent, sale or tax data for the target markets, so the 'what do I buy' half of the exchange decision is outside the hosted product
+- H15-P10: Dates are plain calendar counts (no weekend or disaster-relief adjustment); the owner must confirm with the QI
+- H15-P11: No hosted retail comps (GSA comps are office/fully serviced and a separate download)
+- H15-P11: No ARGUS parity evidence, so review appraisers will need a reconciliation I would have to build
+
+## Honest reactions (165)
+
+- H01-P01: The deadline tool did exactly what I would do by hand and cited the statute, which saves me a check I would do anyway; the hotel NOI math also held. For my week, though, it is a deadline calendar and a calculator, not an appeal tool, and I would not pay until it can show me the assessed value and comps.
+- H01-P02: The CAM maths held to the cent on a messy case, including the cap and the proration, and the warnings flagged the very places we get disputes. I would use it weekly to audit a recon the PM system produced, but I would not hand it a tenant file until I had run the local server.
+- H01-P03: The numbers tied out to my own rebuild, which is the first thing I check, and the DCF conventions are spelled out well enough to defend. But my exhibit would say 'per SF' next to a per-kW value, and nothing here knows about power pass-throughs, so it saves me the arithmetic and none of the data-center judgement.
+- H01-P04: It did what I would do in Excel and the numbers matched mine on every line I rebuilt, so it saves me the grid-building and the payoff math. I would use it on a pilot deal this week, but I would run the local server, not the public endpoint, with live terms.
+- H01-P05: I tried to fool it with a typo, a made-up quote and a bad date format, and it caught all three with reasons, which is more than I assumed. I still would not trust the abstract's valid_from on a deferred rent step, and a synthetic two-page lease is not a data room.
+- H01-P06: The spec checks out against the connector page and every number I tied out held, including the renew-versus-re-tenant comparison I would normally build by hand. Until I see the GPT import actually work and have the instructions file, though, this is a promising set of endpoints, not a finished GPT.
+- H01-P07: I tried to catch it out on four tools and every number rebuilt, with its conventions printed, which is rare. It is a good calculator layer, but my analysts still key the proposal terms in by hand, so it saves arithmetic, not hours.
+- H01-P08: For this week's three-city lab decision the proposal comparison saved me a spreadsheet, and the usable-SF basis was exactly what the science team asked for. It does the arithmetic; it does not tell me whether $98 NNN in Cambridge is a fair lab rent.
+- H01-P09: The page-and-quote checks are exactly what a supervising attorney wants to see, and the package hashing was correct. But my crypto-hosting query came back empty on a clause that plainly prohibits it, and a doctored package passed 'valid', so I would use this as a first-pass checker, not as the thing I show the lender.
+- H01-P10: The cap-rate, loan and 1031 numbers all checked out and the 1031 output is careful about what it is, which I like. But a broker starts from an address and an owner, and that part is not live, so this is a nice calculator for after I already have the data.
+- H01-P11: It is a good lease calculator and the exclusive check is a smart idea, but it let a pharmacy-exclusive risk through when I described my use in plain words, which is the exact thing I cannot afford. For site selection I need data it does not have, so I would try it for lease comparison and nothing else.
+- H02-P01: I came to catch it being wrong and mostly could not: the 1031 dates and boot matched my own python. The late-identification handling is the one place it made me squint, and I would still have my CPA check the output. Useful as a deadline and boot checker; it does nothing for finding the next property yet.
+- H02-P02: This is the first rent roll tool I have called that gave me steps and a formula ID I can paste into a package, and it ties out. I would want the occupancy and concession conventions printed in the output before I put it in front of my reviewers. Willing to pilot it on a few properties.
+- H02-P03: It saved me the cap-rate table and the loan sizing, and the numbers are right. But the thing that takes my week is comps, and this has none. Nobody has shown me a working Copilot Studio connection yet, so I would be the guinea pig.
+- H02-P04: The proposal ranking matched my own check and saved me the template, and that is a real hour on a deal. I do not love that the TI treatment differs between two of the tools, because a client will ask. I would use it weekly if the Claude connector installs as the doc says.
+- H02-P05: The math it does is right and I could use the DCF as a cross-check on my pro forma, but a developer's week is site screening and draws, and FactLot does neither. I would keep an eye on the registry.
+- H02-P06: I set out to find the skill examples wrong and they were right to the cent, which is rarer than it should be. For a Bronx deal the useful part would be ACRIS and LL97, and those are not hosted. I would use the loan sizing weekly and still keep my spreadsheet.
+- H02-P07: The calculators work and the comp validator is a good idea, but my week is comps by address and there are none to call. The 42k-token tool list also means I would filter it down to five tools before wiring it into LangGraph.
+- H02-P08: This is the first tool I have seen that lets me prove a quote is on the page without trusting a model, and the IDs reproduced. I would fix the string-number pass-through before showing it to a partner, but I want to pilot it.
+- H02-P09: I expected to find the skill figures wrong and could not, which earns it a place next to my spreadsheet as a cross-check. It is an apartment toolkit that happens to accept lots; I would still do the NOI quality-of-earnings work myself.
+- H02-P10: I tied it out to the cent and that makes it a usable cross-check behind my crew. The blended-lease simplification is the real limit, and I would not ship an IC memo off it without an ARGUS run. Still worth wiring in.
+- H02-P11: This is not built for my job, and it does not pretend to be. The building ID is neat and reproducible, but until it comes with data about the building, I have nothing to attach to it. I would check back if the registry opens for Harris County.
+- H03-P01: I came in expecting a confident-sounding abstraction product and found a verifier that says exactly what it does not check, which is the right posture. It caught every deliberate error I fed it, but I have only tested synthetic text, so I would run it behind my own extraction for a pilot and not yet trust it with the real leases.
+- H03-P02: The math is what I would have built in a spreadsheet and it matched to the cent, with the conventions named, which I did not expect from a free tool. I cannot sign off a Copilot Studio rollout until someone shows the connector actually working there, and the CMBS data is still just a promise.
+- H03-P03: This saved me the afternoon I would spend rebuilding rollover logic in Excel, and the numbers reproduced, but a DCF I cannot tie to ARGUS is a side tool for me. If the Copilot Studio hookup works as described, WALT and renewal comparisons go in the weekly report this month.
+- H03-P04: I tried to catch it out on the printed example and on dates and could not, which is more than I can say for most vendor math. But arithmetic I can do in Excel is not what I pay for; show me sold comps with cap rates and a source for each one and I would reconsider.
+- H03-P05: This is not an insurance tool, and it says so by omission. The rent-roll math checked out and the building ID is a decent join key, which is worth knowing, but I get nothing from it on hazard or replacement cost, which is the job.
+- H03-P06: The CAM answer matched my spreadsheet to the cent and the steps explain the order of operations, which is what I need when a tenant's auditor calls. I still have not seen the spec load into a GPT, and the estoppel compare that I need is not in the default subset.
+- H03-P07: I tried to catch the skill in a lie and every number it prints reproduced exactly, which is rare. The tool is careful about what it will not decide, but I would not let it be the only thing between me and a missed April 15 date.
+- H03-P08: I tested what I could and the arithmetic and ID rules hold, but I cannot attach a single hazard score or owner record, and the NPV tool let me understate an 18-month loss by 41% without a word. For treaty work that guard matters more than the extra decimal places.
+- H03-P09: This is the first CAM tool I have seen that explains why only 21% of the pool was recovered, and every statement tied out to my own recomputation. The 162 KB tool list and the permissive percent fields are the two things I would fix before I wire it into the nightly agent.
+- H03-P10: I appreciate that the draft packs say they are drafts and not tools, because that is precisely what I came to check. But the one thing I need, the LL97 number, is not callable from the hosted API, and a verifier that passes a wrong metric name is not something I would put in front of a compliance filing.
+- H03-P11: The use-conflict check found the coffee exclusive and showed me the carve-outs, and I recomputed the package hashes myself, which is the sort of thing I can show a lender's counsel. But my deliberately wrong 'frozen yogurt' exclusive came back verified, so I would treat the verified bucket as 'quote present' and keep a human on every clause.
+- H04-P01: The 1031 and protest-deadline tools did what they said, with the steps to prove it, and the errors told my GPT how to fix its input. I could not screen a single replacement property with it, so it covers the arithmetic half of my job, not the sourcing half.
+- H04-P02: It did not lie to me, which is more than I can say for most vendors: the draft packs are labelled drafts and the server refused to pretend otherwise. The math I ran was right, but a retrofit NPV is something any spreadsheet does; nothing here does my compliance work yet.
+- H04-P03: I came in assuming the DCF would be wrong and it was not; I could reproduce every line, which is the whole bar for me. The rollover model is not ARGUS and it says so, and the tools/list payload will need trimming before I wire it into a pipeline.
+- H04-P04: The hotel math is right and the price is zero, but it is a calculator I already have in Excel. For ESG work this week I need Chicago energy data and an emissions tool, and neither exists on the hosted service.
+- H04-P05: The sizing, amortization and prepayment math all tied out to my own rebuild, which is what I need from a calculator. The GPT import leaving out the prepayment tool when four slots are free is a plain oversight I would want fixed before piloting.
+- H04-P06: I put a typo in on purpose and it found it, told me what it did to NOI, and left every other line cited. That is the first quality check I have seen that a committee could reread, and the sizing and defeasance numbers tied out too.
+- H04-P07: I tried to catch it out and could not: the totals tie out to my rebuild and the conventions are printed. It does one slice of my review, not delinquency or comps, and I need a Yardi tie-out before I let it touch a lender package.
+- H04-P08: I tried to find a wrong number and could not: the DCF, WALT and waterfall all reproduced in my own code, which is the bar. I would still not hand it to a committee without an ARGUS tie-out, and it let me feed it a lease with 6 months left that should have been 78.
+- H04-P09: It did not extract anything for me, as it says, but the part it does is the part I distrust in AI abstracts: it proved every quote and showed what the amendment superseded. The shapes took failing twice to learn, and the estoppel comparison is not in the GPT I would actually build.
+- H04-P10: I could re-perform all three, and that is what makes it usable for my team. The timing of one-time costs in renew-vs-relocate and the missing accounting review are the two things finance will question first.
+- H04-P11: The OM math and the exclusive screen worked and the steps are what I can paste to a buyer. A comp tool that lets a 300% rent bump through as valid is the kind of thing that embarrasses a broker, and without market comps I still open CoStar first.
+- H05-P01: I came in assuming it would be one more confident black box and instead it showed its work and told me when a line did not foot, which is what I want from a tool I put in front of a buyer. It is a good arithmetic and tie-out helper, but it does not know my asset class and cannot see Florida, so it is a weekly helper at best.
+- H05-P02: The math held up to the cent, which is more than I expected, and I like that it prints its convention. But I cannot put an endpoint with no OAuth and an untested Copilot Studio path in front of my IT security team, and my real pain is getting verified logistics comps, which it does not have.
+- H05-P03: I expected to catch it out on the CAM math and could not; the one error was mine, and the tool followed its own documented default, though I would have liked a warning. Spring protest season plus year-end CAM would make it a regular tool for me, as long as I do not have to run it myself.
+- H05-P04: The three tools I tried returned numbers I could tie to the cent, with conventions I could change, which is what saves me an afternoon of spreadsheet building. I would not send borrower financials to a free hosted endpoint, so for me this is a local-server tool until there is something I can hand to vendor management.
+- H05-P05: The ASC 842 and lease-vs-own numbers tied out in my python, which is the part I care about. But the spec that a Custom GPT gets leaves out lease-vs-own and I cannot confirm that the import works, so I would still end up on MCP or a custom spec.
+- H05-P06: I like that the docs' own numbers reproduced exactly when I ran them, since that usually fails. My concern is feeding it clean inputs: a mistyped annual rent sailed through, and I would want a sanity check before I trust a portfolio run.
+- H05-P07: I tried to make it pass a bad quote and a misread number and it caught both, with page-and-span evidence I could confirm myself, which is more than I can say for most abstract tools. The DCF tied out, but I have not seen it handle rollover and I cannot see Florida data, so it is a diligence helper alongside ARGUS, not a replacement.
+- H05-P08: I wanted to catch a waterfall bug and could not: it matched my own code to the cent and told me the conventions to check against the operating agreement. The error messages saved me time. What it does not give me is Texas data, so it replaces some of my math code, not my data subscriptions.
+- H05-P09: The 1031 tool did what I needed and said not tax advice, which I appreciate, and the MCP plumbing is straightforward. But my agent would carry 42 tool definitions every call, and none of it helps me find small-bay industrial deals in Ohio.
+- H05-P10: I wanted this to work and the arithmetic did: the rent roll, cap rates, NPV and IRR all tied out, and the warnings read like a careful analyst's notes. But I still assemble NOI and cash flows myself, and it knows nothing about the Atlanta market, so it is a checker, not a valuation engine.
+- H05-P11: It caught the wrong deposit and the wrong expiration the way a careful paralegal would, with page and span evidence I could check. For a Custom GPT the key estoppel tool is not in the default import, and I would not send client leases to a hosted service without a firm sign-off, so for now this is a pilot.
+- H06-P01: The verifier did what it says: it flagged the figure I deliberately got wrong and told me why. What I would use this week is the second pair of eyes on my extractions and the amendment precedence; I still have to supply the extraction myself and the plugin does not walk me through it.
+- H06-P02: The math is right and the warnings say where it will disagree with ARGUS, which is what I need to trust a first pass. I cannot tell my IT team how to wire it into Copilot Studio from the pack, and without an attestation this stays a side tool for associates rather than a default.
+- H06-P03: I came to break it and the numbers held; the basis warning on the cap rate is what a careful reviewer would want. But it is a calculator, my workbook already does this, and the thing I cannot get elsewhere, comps with sources, is not here yet.
+- H06-P04: I went in assuming it was wrong and it was not: every date and boot figure matched my own. It still does not find me a property, and I would want the same checked-by-a-person stamp on the 1031 rule that the Texas rule gets before I let an agent near a deadline.
+- H06-P05: The sizing and prepayment numbers matched my own to the dollar and the stress table is exactly what I build by hand. What stops it from being a default is not the math; it is that I cannot send borrower financials to a vendor with no attestation.
+- H06-P06: I rebuilt the whole batch independently and it agreed to the cent, including the admin-fee order and the partial year, and the unrecovered reasons add up. If the inputs come cleanly from our system this is the part of CAM close I would hand to an agent today.
+- H06-P07: This is the first verifier I have seen that catches a transposed NOI and a wrong estoppel date with the page and quote attached, and it is honest about what it cannot judge. I want it, but my counsel will ask for terms the pack does not yet have, and I would not wire it into Copilot Studio on the strength of a guide that has never been run.
+- H06-P08: Two of the three pitch numbers I need come out right and with steps, which is more than I get from a bare GPT. But the heart of a pricing pitch is comps, and this has none for Atlanta.
+- H06-P09: The numbers match mine, and the LOI comparison tells me its convention and its blind spot, which is what I need to hand a buyer's analyst. I would like to try it in a GPT today, but the guide's instruction file is not in what I was given and nothing has been run end to end in ChatGPT.
+- H06-P10: The deadline tool did what the skill promised, including the Memorial Day edge I threw at it, and the use screen found both problems in the second prospect. For a five-person shop this is the useful kind of free, though I could not install the plugin to see how it feels.
+- H06-P11: I tried to catch it out and could not: the rent table, NER and deadline all matched my own, and the same request gave the same answer. It is a clean calculator, but my spreadsheet already does this, so it only becomes necessary when it brings the county data I cannot get easily.
+- H07-P01: It does the part I trust least in an LLM, which is checking that a quote and a number really are on the page, and it does it deterministically. It will not find the terms my model missed, and says so. I would wire it into the GPT this week, but I want the predicate list first.
+- H07-P02: I came ready to catch it out and the numbers held, including a date trap I set. The late-identification handling needs a fix before I would let it near a real 45-day deadline, and nothing here finds me a replacement property. I would use it as a cross-check against my QI, not instead of one.
+- H07-P03: The reconciliation numbers are right and the steps are what I would show a tenant. The first thing I would do is wire it into the year-end close. What I still do not know is how well my model extracts cap and exclusion clauses from messy leases, because FactLot only checks what my agent hands it.
+- H07-P04: I wanted this to work and the math did: rent roll and stress numbers matched exactly. But my job is hazard and valuation, and the one FactLot dataset that touches my need, year built and area for LA parcels, is behind a door that is not open yet. I would check back when it is.
+- H07-P05: For the screening I do every weekend, this is the fastest way I have found to get a loan schedule and a 1031 boot answer I can trust, and I checked all of them. It does not help me find or research a building in Chicago, which is the harder half of my job.
+- H07-P06: The exclusive-use check is what I came for and it behaves: it points at the clause, flags the grocery carve-out, and tells me it is not a legal answer. I would trust the CAM and percentage rent math; I would not trust my own model's extraction without the quote check, which is the point.
+- H07-P07: The math reproduces and the conventions are visible, which is more than I can say for most black boxes. It is a cross-check for me, not a system of record, and the T-12 footing flag is the piece that would earn a place in our review checklist.
+- H07-P08: I set out to find the wrong number and could not: sizing and payoff both reproduced. My objection is not accuracy, it is that the number I need is the one the note defines, and the tool defaults to a convention it tells me to go and check. Useful as a second opinion, not as my quote.
+- H07-P09: I tried to catch it out and the arithmetic held. The check I care about passed my wrong-unit claim, which the docs warned me about, so it is honest but not enough. I would use it behind my own review, never instead of it.
+- H07-P10: It is the first generic CRE API I have seen that does not make me pretend a megawatt is a square foot, and the numbers reproduce. But my leases ramp, and without that I can only check the simplified deal, not the one that gets signed.
+- H07-P11: The tools are what a lender's agent graph wants: deterministic, cited, read-only. I could not tell from the docs whether my framework will swallow 42 oneOf-heavy schemas, and that is the first thing I would check. The math reproduced.
+- H08-P01: This is the first tool I have seen that refuses to pass a rent step because the quote does not literally contain the dates, which is the behavior I want. I would wire it into the graph this week for term, dates and shares, and keep a human on rent tables until irregular schedules and lease-year wording are handled.
+- H08-P02: This did the part of year-end I dread, three different lease structures in one call, and every number tied to my own recompute to the cent. I would use it on the next reconciliation cycle; the thing I cannot say yet is whether it matches how our owners' auditors expect gross-up on partial years to be shown.
+- H08-P03: I assumed the README number was wrong; it was right, and so was every other figure I recomputed. That earns it a place as an arithmetic checker for my agent, but not as an underwriting tool: it has no way to build student-housing NOI.
+- H08-P04: This is better than the spreadsheet I use: both deadlines, the return-due-date trap, and boot in one call with the regulation named. I found one place where it counts a late identification in the tests; I would not hand that output to my CPA until that is fixed or I read the warnings next to it.
+- H08-P05: I went looking for the number that was wrong and did not find one: all five I recomputed tied out. What stops me is scope: renew-versus-relocate leaves out operating expenses, so I would use it for a gross lease or pair it with the proposal comparison, and I would not book an ASC 842 entry from it without our auditors seeing the reconciliation.
+- H08-P06: It caught the wrong consent standard and the hyphenated quote that a careless agent would have waved through, and the package hashes reproduce, so I trust the mechanics. I cannot put client leases through it until the confidentiality terms are a contract rather than a policy page.
+- H08-P07: The math I checked was right, and the file looks importable, but I found a whole-number percent that returns a seven-figure-per-SF rent with a 200 and a polite warning. In a GPT that is the failure my team gets burned by, so I would want it rejected like the other tools do before I put it in front of the lease-admin desk.
+- H08-P08: For the one job I do every April it gave me exactly the date I would have found after twenty minutes with a calendar, and told me which days it skipped. I would start using it for the deadline list now; the rest is nice but I already have Excel.
+- H08-P09: The two models I use most, lease versus own and the CAM bill, both tied to my recomputation, which is more than I expected from a free tool. The catch is that lease versus own is not in the GPT import file, so my team would have to take an extra step to get it.
+- H08-P10: I tried hard to catch it out and could not on the numbers: rent roll, refinance and exchange boot all matched my own arithmetic. But it let a twelve-times rent typo through with only a generic warning, and there is nothing here for Atlanta rents, so I would use it as a checker, not a deal tool.
+- H08-P11: It does my lot-rent roll and hold-versus-sell math correctly and fast, and every number matched my check. It still thinks of my park as an apartment building, and I would want that whole-number-rate trap closed before I let a GPT quote an NPV to the owners.
+- H09-P01: The proposal math reproduced to the cent, which is more than I expected, and it warned on my deliberately wrong 3% bump. It still doesn't give me one flex comp, so it replaces my Excel macro, not CoStar.
+- H09-P02: Every number I recomputed held up, and the Texas rule shows its work, which is more than my current macros do. I am not putting a client's rent on a free shared endpoint though, and renew-vs-relocate leaves out opex.
+- H09-P03: The CAM and DCF results matched my own python to the cent, so this saves me real time on true-ups. I'd still want it to yell when my inputs look wrong instead of only when a rate looks like a whole number.
+- H09-P04: This did the math I need for a deal and every figure tied to my own check. For my shop it is a free, boring, correct calculator and I will wire it in this week.
+- H09-P05: The waterfall was the best surprise: my own rebuild matched to the cent and it tells me which LPA conventions to check. But I came for parcels and owners, and that is still behind 'not open yet'.
+- H09-P06: The ASC 842 and percentage-rent numbers tied out and the use-conflict output is careful not to overclaim. I would use it weekly once there is an adapter example and the predicate shapes are documented where my agent can read them.
+- H09-P07: I tried to catch it out and could not: every sizing and yield-maintenance figure matched my own python. It is a good underwriting calculator that I would run self-hosted, and I would want actual/360 before citing it in a credit memo.
+- H09-P08: The lease math is correct and the skills do what the README says; that is useful but not why I pick sites. Until it can tell me who owns a pad and how it is zoned, it is a calculator next to my real tools.
+- H09-P09: Exactly the comparison I do by hand, reproduced to the cent, and it told me the winner flips on usable SF before I noticed. It does not tell me what is market, so it is a calculator, not a comp source.
+- H09-P10: I wanted this to work and the numbers held up: after-tax lease versus own and the ASC 842 schedule matched my own rebuild. The comp-sharing idea is the exciting part, but it needs a pool and a hard stop on obviously absurd rents before I would ask peers to join.
+- H09-P11: I recomputed all five tenants and the owner's unrecovered amount by hand and every dollar matched, which is exactly what I need in February. I would still read every tenant's warnings before sending a statement.
+- H10-P01: The math held up on every number I recomputed, and the audit trail is the one thing that could convince my committee. But the front page sells a registry I cannot reach, and the connector docs are out of date on basic counts; until I can pull a Dallas owner or sale through the same call, it is a calculator layer I could rebuild.
+- H10-P02: This is the first agent tool I have seen that tells me which conventions it chose and that I could actually defend in a workfile. The apartment turnover rounding is a real hole for my asset class, and I cannot get comps from it, but the direct cap and the DCF arithmetic held up to the cent.
+- H10-P03: This is the first tool where the answer to 'why do we only recover 73%' comes back as a reasoned table instead of my spreadsheet archaeology. I could not test it inside ChatGPT, and the capex tool being outside the default import is annoying, but the CAM numbers all tied out.
+- H10-P04: The proposal comparison is exactly the number I build by hand and it ties out, and the exclusive checker is the first thing I have seen that attaches the lease quote to a use question. I am not comfortable with a 'verified' tag on a list item that never appeared in the quote, and the one tool I would use most on a retail deal is not in the GPT import.
+- H10-P05: I came to catch it out and could not: the DCF, waterfall and refinance numbers tied to the cent once I rebuilt them from the stated conventions. That makes it a useful independent check on my own model, but until it has SSO, an SLA and a security attestation it stays an analyst's sidekick, not part of the committee workflow.
+- H10-P06: The verify-then-abstract flow is the right shape for my crew: wrong values come back with a reason and the right ones come back with a quote and page. The friction is small stuff, like terms written in years and estoppel names that differ by a comma, but the stepped rent gap is a real hole for billing.
+- H10-P07: I tried to find anything for a Boston appeal and got a Texas rule and a direct-cap calculator. The building and parcel IDs are tidy and the cap-rate math is right, but the data I need sits behind 'not hosted', so this is a curiosity for my job.
+- H10-P08: The 1031 and BOV math came back clean and well labelled, which is what a seller's file needs. I cannot tell from the materials whether it will actually plug into Gemini or Copilot Studio, and the late-identification treatment is the kind of thing I would want the QI to confirm.
+- H10-P09: Every figure I would put in a credit memo matched my own build, and the conventions are written next to the numbers, which is what I need. My blockers are about where the data goes and who stands behind the endpoint, not about the math.
+- H10-P10: The schedule and the 842 table both tied out to my own build, and the SHA-256 ID matched the one I computed, so I can show an auditor how each figure was derived. My script has to treat warnings as errors because a 3.5 for 3.5% was accepted.
+- H10-P11: I tried to catch the Texas rule out on holidays and weekends and could not on any date I checked, and I like that it prints the statutes and what it does not cover. But I have 38 properties in four states and it covers one, so it is a nice Texas helper rather than a tool I can standardize on.
+- H11-P01: The deadline and exchange math ties out and the warnings are honest, so I will wire it into my agent this week. What I actually pay for is the county data, and that is a promise, not a product, so I stay on free.
+- H11-P02: I tried to prove the LL97 claim wrong and could not, because FactLot does not claim it: it is a draft, not a tool. The hotel math ties to the dollar, but that is not what I am hired for. Come back when the pack says verified and the energy data is served.
+- H11-P03: This is the one tool in the pile that catches the thing I get blamed for: a number the model made up. It caught every error I planted and the offsets lined up. The compare call missing the unresolved expansion is a real gap, but it is fixable and the tool says what it does not check.
+- H11-P04: The math is clean and the error messages are good enough for a GPT to fix its own inputs. But the GPT instructions file I am told to paste is not where I can find it, and I cannot see this actually run inside the builder from here. Useful this week for listing screens; not something I would pay for.
+- H11-P05: The exclusive check found the obvious conflict and cited the clause, which is useful, but it would have waved through an espresso kiosk if I had phrased it differently, and the note is the only thing telling me so. I would use the occupancy-cost compare and keep a human on the exclusives.
+- H11-P06: I came to catch it out and could not: my own python reproduced every ranking and both break-evens. The steps are stated well enough that I could explain them to a client. It is the cleanest piece of the pile; I would give it to the brokers and keep checking one deal in three.
+- H11-P07: I tried to catch the plugin's 'figures match the live API' claim out and it held on every example I ran. That earns trust for the math, but my job is compliance rules, which are drafts here. The capex recovery tool is a nice surprise, and I would use it on retrofit pass-throughs.
+- H11-P08: For the first-pass screen this does what my analysts do by hand, ties to the cent on the cases I could replicate, and tells me when a loan makes negative leverage. I will not replace ARGUS with it, and the doc says so, which is why I would use it.
+- H11-P09: The numbers I rely on tie out and the audit trail is better than my template. But I cannot tell from these docs that the connector works inside Copilot Studio, and my report needs a per-key value, which means abusing a square-foot field.
+- H11-P10: The handshake and schemas are clean and the schedule matched my rebuild on all 120 rows. The month-versus-year hotel slip passed without a word, so my agent needs its own plausibility check. I would wire it in and keep a human reading the memo.
+- H11-P11: I could not make this disagree with my own spreadsheet on any tenant, including the move-out and base-year cases, and the bridge to the unrecovered amount is something my Excel does not give me. The error hints on shares and the claim input need polishing, but those are small.
+- H12-P01: The loan-sizing math held up to every check I ran and the audit trail is what a credit file needs. I will use it weekly for stress grids, but I will not trust the registry story until I can call it, and the stale doc counts make me read everything twice.
+- H12-P02: The math reproduced exactly and the conventions are on the page, which is more than I get from most tools. It is a checker for my own model, not a replacement, until it handles step rents and gives me market evidence I can cite.
+- H12-P03: It did the monthly ladder right and fast, and the clear error on rooms sold is what I want. The one that worries me is the annual-versus-monthly slip sailing through with a 90% margin; my GPT would have to catch that itself.
+- H12-P04: I want this to work and the landlord-side math checked out to four decimals. But the project itself says the Copilot and Gemini consoles are untested, and I would be the one to find out whether a 162 KB tool list loads, so I would pilot it with one deal first.
+- H12-P05: The numbers tie out and the Texas rule is unusually clear about its limits, so I would use both weekly. The preleasing gap is a real one for student housing, and I would still verify the statute myself before a client sees a deadline.
+- H12-P06: For the QI call this is useful: the dates and boot add up and the not-tax-advice wording is honest. The late-property handling bothered me because it said I had identified nothing when three of my four candidates were on time, so I would still check every result with the QI.
+- H12-P07: This is the first tool I tried that tells me what it did not check, and the transposed deposit got caught. I would still need to review rent and renewal terms by hand, so it supports my abstracts rather than replacing them.
+- H12-P08: It reproduces what I would do in Excel, shows the steps, and was quick. For a one-person first pass that saves a little time; I would use it weekly but I am not paying until it handles reversion and brings sales comps.
+- H12-P09: It did what the changelog said and the per-kW math tied out. It stops at base rent, which is only half of a data center lease, so I would use it for proposal ranking and not for the full model.
+- H12-P10: The calculators are tidy and reproducible, and the project is honest about what is not open. But what I need is NYC records and LL97, and today I cannot call either, so this is an occasional helper.
+- H12-P11: The footing check and the tamper-evident package are the best things I tried in this batch, and the hashes reproduce. I would use it weekly on deals, but not on confidential seller documents until the terms are contractual, and I would never let 'supported' stand without reading the clause.
+- H13-P01: The verifier did what it says and the reasons are clear enough for my agent to retry on its own. The amendment-order trap would have cost me a wrong abstract in production, so I would set roles explicitly and add my own regression test. It saves checking time, not extraction time.
+- H13-P02: I came for emissions-law exposure and benchmarking data and found neither served, which the rules page told me honestly. The capex pass-through calculator is good and its warnings are the kind I want, but it is a side job for me. I will check back when a pack moves from draft to verified.
+- H13-P03: This is the part of my week I can actually hand a client: the numbers reproduce and the steps are there. I would rather have opex inside renew-versus-relocate and a shorter tool list for my chat client. Worth a pilot on two deals.
+- H13-P04: Sizing and the schedule reproduce to the cent, which is the bar for a credit memo. The defeasance tool prices a 30/360 re-amortized stream rather than the note I just built, so I would not put its number in front of committee without a consultant quote, which its own warning already says. Useful as a check engine, not yet as the system of record.
+- H13-P05: The estoppel comparison is exactly the step I want an agent to do and be checkable on. The 'supported' verdict on a wrong-meaning claim shows why a human still reads the clause; the docs say so, but the tool could say it too. Counsel will ask who runs the server before I can use it on real leases.
+- H13-P06: The rent roll and waterfall tied out on my own recomputation, which is what I need before putting numbers in an owner report. I would use it weekly for the rent roll step and the waterfall check. I need a tie-out to the systems my reports actually come from.
+- H13-P07: I came to catch it out and could not on the arithmetic: my own monthly model matched to the cent. The one thing I would not sign is the exit NOI when a lease expires in the forward year, because the tool leaves the space dark without saying so. Good enough to use as a check engine next to my own model.
+- H13-P08: I expected to find a wrong number and did not: CAM, percentage rent and the two deadlines all tied out. For a legal deadline I still want a named reviewer and the other protest windows. The CAM trace alone would save me an hour per tenant dispute.
+- H13-P09: The numbers tie to my own model and the spec looks built for the GPT builder, which is a real effort. I cannot say it imports until someone runs the builder; a 100 KB schedule response worries me. I would pilot it on two live deals.
+- H13-P10: The spreader is what I would use weekly: it showed me the one line I had left ambiguous and why the totals did not foot. I need per-unit values and comps to close the approach. Worth a trial on the next three assignments.
+- H13-P11: The batch CAM call is the useful thing here: all six tenants tied out and the unrecovered explanation is what my owners ask for. I cannot say it works in Copilot Studio because nobody has shown it yet. I would run it side by side with our workbooks on one center this spring.
+- H14-P01: The loan sizing and rent roll numbers matched my own python on the first clean call, which is what I needed to see. I will keep it for sanity checks in Claude, but until the registry opens it is a calculator, not a deal-sourcing tool.
+- H14-P02: The CAM numbers tied to the cent and the batch bridge is genuinely useful. I would pilot it on one building at year-end, but I need the capex tool inside the Custom GPT before I would move the team over.
+- H14-P03: I rebuilt the model from the stated conventions and it agreed to the cent, which I did not expect on the first try. It is a screening tool until someone shows me an ARGUS tie-out, but as a screen it already saves the Excel build.
+- H14-P04: I could drop the term-sheet figures into Excel and they tied, including every row of the actual/360 schedule. I need beds as a unit and the debt data from the registry before this is more than a calculator for me.
+- H14-P05: The percentage rent and proposal ranking worked and I could check them. For my real job, finding the landlord and the site, there is nothing here yet. I would keep the endpoint in my agent as a tie-out for lease math, nothing more.
+- H14-P06: I went in assuming the CAM math would be wrong and could not make it wrong across four independent checks. My doubt is now the platform claim, because the README itself says the Copilot Studio and Gemini consoles were never tried live.
+- H14-P07: The NPV and pass-through math is fine but I can do that in a spreadsheet; what I need is the LL97 limit and penalty from a source I can cite, and that is a draft that is not even served. Come back when it is verified.
+- H14-P08: I tried to break the numbers and could not: sizing, stress, defeasance and step-down all tied. What I still cannot say is that it works in Copilot Studio, and IO sizing on a nominal 5.85% is not how some of my loans accrue.
+- H14-P09: I could not catch the 1031 math out, and it says plainly it is not tax advice, which I like. But my edge is comps and owners, and the part of this project that has them is not on the hosted API.
+- H14-P10: The Texas date tool is better than I expected: every edge case matched. But my job is energy data and this project only has the vocabulary for it. I would keep the rule in my calendar code and leave the rest.
+- H14-P11: The quote and amendment checks are exactly the QC I do by hand and they held up. I can build the abstract in a GPT today but not the estoppel check, and until rent schedules verify I still do that column manually.
+- H15-P01: The calculators are tidy and the numbers tie to my own check, which I like, and the Custom GPT import is clearly documented. But the thing I came for, NYC site facts, is built and not served, so today this is a calculator tab for my GPT, not a feasibility tool.
+- H15-P02: This is the first tool I have seen that refuses to take my extraction agent's word, and it caught the stale expiry date on the first try. The friction is rent schedules written by lease year and the fact that I still need a human on every held item, but for cite-checking an IC memo it saves real time.
+- H15-P03: For the year-end true-up this does what my analysts do in Excel, with a trace I can hand to a tenant's auditor, and it matched my hand check on every statement. I would use it weekly in Q1; what I need next is proof it ties to Yardi output.
+- H15-P04: I came to break it and it caught the wrong rate and the hyphen trick, which most tools would not. Then it let a made-up 'vape shop' through as verified and missed a boba shop against a tea exclusive, so the headline is stronger than the product for my clauses. Fix those and I use it as a guardrail.
+- H15-P05: For a first-pass screen this saves me the Excel build and the numbers tie to my own rebuild, which is what I need before I trust a tool. I would still finish in ARGUS; the Houston data is what would change my mind.
+- H15-P06: The maths foots and my numbers matched, which is more than I can say for some vendor tools, and it is honest about what it does not do. But the critical dates are the job, and FactLot hands me a held item where I want a date.
+- H15-P07: It caught the radius, the cure period and the sloppy name, and gave me the same answer twice, which earns some respect. Then a go-dark covenant that the lease says does not exist came back verified, and that is exactly the kind of confident-but-wrong I have been burned by.
+- H15-P08: The Texas date tool is the cleanest thing I have tried: it shows its statutes, what it skipped, and a safe file-by date. It is one state out of four for me, and the assessor data is not served, so it is a useful part-time helper rather than my tracker.
+- H15-P09: I tried to catch it out with a T-12 that does not foot and an ambiguous line, and it flagged both instead of smoothing them over. The maths tied to my own. For my work I still need comps, and I would not put the output in a work file without reading the spans myself.
+- H15-P10: The 1031 arithmetic is what my QI's spreadsheet does and it matched my hand check, with the regulation cited at each line, which is a nice touch. It does not help me find the building to buy, so it is a deadline-and-boot helper, not a deal tool.
+- H15-P11: The DCF ties to my rebuild line by line, which is better than I expected from a free tool, and the comp validator is a sensible discipline. Without market comps and an ARGUS reconciliation, it is a calculator I would use to sanity-check a model, not to produce the number.
