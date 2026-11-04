@@ -47,12 +47,13 @@ The hosted endpoint is free with no key at 60 requests a minute. It is listed in
 as `io.github.9mp96ygnbk-alt/factlot`. Runnable examples for REST, Python and agent SDKs are in
 [`examples/`](examples/).
 
-**Try the registry tools on real data:** the [DC registry sample](https://github.com/9mp96ygnbk-alt/factlot/releases/tag/registry-sample-dc-2026-11-03) (19.7 MB, CC BY 4.0) holds
-18,077 District of Columbia commercial parcels, 5,513 owning entities and 7,908 cited ownership links.
+**Try the registry tools on real data:** the [DC registry sample](https://github.com/9mp96ygnbk-alt/factlot/releases/tag/registry-sample-dc-2026-11-04) (23.4 MB, CC BY 4.0) holds
+18,077 District of Columbia commercial parcels, 5,513 owning entities, 7,931 cited ownership links, 396
+buildings, zoning districts for 16,648 parcels and the latest recorded sale for 12,594.
 
 ```bash
-curl -fLO https://github.com/9mp96ygnbk-alt/factlot/releases/download/registry-sample-dc-2026-11-03/factlot-registry-sample-dc-2026-11-03.db.gz && gunzip factlot-registry-sample-dc-2026-11-03.db.gz
-FACTLOT_REGISTRY_DB="$PWD/factlot-registry-sample-dc-2026-11-03.db" npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.2.0/factlot-mcp-standalone-0.2.0.tgz
+curl -fLO https://github.com/9mp96ygnbk-alt/factlot/releases/download/registry-sample-dc-2026-11-04/factlot-registry-sample-dc-2026-11-04.db.gz && gunzip factlot-registry-sample-dc-2026-11-04.db.gz
+FACTLOT_REGISTRY_DB="$PWD/factlot-registry-sample-dc-2026-11-04.db" npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.2.0/factlot-mcp-standalone-0.2.0.tgz
 ```
 
 **Paid plans:** [Pro $49 a month and Team $599 a month](https://factlot.com/#pricing) raise the hosted limits and include hosted registry lookups as each region opens (none is open yet). Enterprise and private deployments: [contact@factlot.com](mailto:contact@factlot.com?subject=FactLot%20hosted%20registry%20early%20access). Questions and bug reports go in [GitHub Discussions](https://github.com/9mp96ygnbk-alt/factlot/discussions) and Issues.
