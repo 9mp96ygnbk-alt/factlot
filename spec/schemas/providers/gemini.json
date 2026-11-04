@@ -3296,7 +3296,7 @@
         },
         {
           "name": "id_parcel",
-          "description": "Deterministic FactLot ID for a parcel from state FIPS, county FIPS, and the assessor's parcel number (APN). The same parcel always yields the same ID, offline. Use it as the join key across systems.",
+          "description": "Deterministic FactLot ID for a parcel from state FIPS, county FIPS, and the assessor's parcel number (APN). The same parcel always yields the same ID, offline. Use it as the join key across systems. APNs that differ only in where a separator falls (\"12-34\", \"1-234\") get different IDs; in a county with a documented fixed-width format the variants of one APN converge (NYC BBL \"3-1234-56\" = \"3012340056\").",
           "parameters": {
             "type": "object",
             "properties": {
@@ -3310,7 +3310,7 @@
               },
               "apn": {
                 "type": "string",
-                "description": "Assessor's parcel number exactly as the county prints it; formatting is normalized."
+                "description": "Assessor's parcel number exactly as the county prints it. Letter case and the separator characters are normalized; where a separator falls is kept, except in counties with a documented fixed-width format (NYC BBL, Los Angeles AIN, Cook County PIN, DC SSL)."
               }
             },
             "required": ["state_fips", "county_fips", "apn"]
@@ -3318,7 +3318,7 @@
         },
         {
           "name": "id_entity",
-          "description": "Deterministic FactLot ID for a legal entity (LLC, LP, corporation, trust) from its registry jurisdiction and file number, or from its LEI.",
+          "description": "Deterministic FactLot ID for a legal entity (LLC, LP, corporation, trust) from its registry jurisdiction and file number, or from its LEI (an LEI whose ISO 17442 check digits do not match is rejected).",
           "parameters": {
             "type": "object",
             "properties": {
@@ -3328,7 +3328,7 @@
               },
               "registry_number": {
                 "type": "string",
-                "description": "File number issued by that registry, or the 20-character LEI."
+                "description": "File number issued by that registry, or the 20-character LEI (its ISO 17442 check digits are verified)."
               }
             },
             "required": ["jurisdiction", "registry_number"]
@@ -3715,7 +3715,7 @@
         },
         {
           "name": "registry_get",
-          "description": "Everything the FactLot Registry knows about a parcel, legal entity, or building: status, current cited facts (owner of record, situs address, property category, areas, values), ownership links, external IDs, and for a parcel the building it belongs to (condominium units roll up into one building). A miss says whether the county or entity registry is loaded. Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
+          "description": "Everything the FactLot Registry knows about a parcel, legal entity, or building: status, current cited facts (owner of record, situs address, property category, areas, values), ownership links, external IDs, and for a parcel the building it belongs to (condominium units roll up into one building). as_of gives the facts as they stood on a date. warnings flags area facts that look wrong (building area above 40 times the land area, a land area of 0); the facts themselves are as the source publishes them. A miss says whether the county or entity registry is loaded. Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
           "parameters": {
             "type": "object",
             "properties": {
@@ -3724,8 +3724,12 @@
                 "description": "FactLot URN of a parcel, entity, or building, e.g. fl:parcel:us-48201:0420150000012."
               },
               "include_history": {
-                "description": "Also return superseded facts from earlier snapshots. Default: false.",
+                "description": "Also return every fact from every snapshot, superseded ones included (history lists current facts too; a source loaded once has no superseded facts). Default: false.",
                 "type": "boolean"
+              },
+              "as_of": {
+                "description": "Date (YYYY-MM-DD): return the facts and ownership links current on that date, from the snapshots dated on or before it, instead of the latest. With include_history, history stops at that date. Format: YYYY-MM-DD.",
+                "type": "string"
               }
             },
             "required": ["urn"]
@@ -3773,13 +3777,13 @@
         },
         {
           "name": "registry_search_address",
-          "description": "Find commercial parcels by situs address (normalized: 'Street' = 'St', 'Northwest' = 'N.W.' = 'NW'; a suite, unit, '#' or floor is ignored). No match returns coverage: what this registry holds. Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
+          "description": "Find commercial parcels by situs address. Matches whole words of the street line (the part before the first comma), normalized: 'Street' = 'St', 'Northwest' = 'N.W.' = 'NW'; a suite, unit, '#' or floor is ignored. Give a house number ('1200 Main', '1200 Main St NW') or a street name with its type ('Main St'); a city or a part of a word alone matches nothing. No match returns coverage: what this registry holds. Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
           "parameters": {
             "type": "object",
             "properties": {
               "query": {
                 "type": "string",
-                "description": "Street address or part of one."
+                "description": "Street address, or a house number and street words, or a street name with its type."
               },
               "limit": {
                 "description": "Maximum results (1–100). Default: 20.",

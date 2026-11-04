@@ -112,6 +112,11 @@ def fmt_pct(x: float, dp: int = 2) -> str:
     return f"{int(v) if v == int(v) else v}%"
 
 
+def fmt_num(x: float, dp: int = 6) -> str:
+    """A number written into a step's formula text, rounded to at most ``dp`` decimals (``fmtNum`` in @factlot/calc)."""
+    return js_number_str(round_(x, dp))
+
+
 def num_str(x: float) -> str:
     """Format a number the way JavaScript's String(number) does for common values."""
     return str(int(x)) if float(x).is_integer() and abs(x) < 1e21 else repr(float(x))

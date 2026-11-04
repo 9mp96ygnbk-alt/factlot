@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   CalcInputError,
   Trace,
+  fmtNum,
   fmtPct,
   parseInput,
   powInt,
@@ -48,7 +49,7 @@ export function npv(raw: NpvInput): CalcResult<{ npv: number }> {
   const v = t.step(
     "NPV",
     round(npvAt(input.cash_flows, input.rate), 2),
-    `Σ CF_t ÷ (1 + ${input.rate})^t`,
+    `Σ CF_t ÷ (1 + ${fmtNum(input.rate)})^t`,
   );
   return t.result("calc.npv", 1, { npv: v });
 }

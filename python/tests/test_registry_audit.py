@@ -204,7 +204,7 @@ class AuditTests(unittest.TestCase):
     def test_reread_flags_header_like_apns_and_colliding_apns(self):
         rows = [*ROWS, "PID,1,X ST,BOSTON,02118,345,HEADER LLC,,,,,,,1,",  # a header row read as data
                 "03-0009-0000,2,Y ST,BOSTON,02118,345,COLLIDE ONE LLC,,,,,,,1,",
-                "030009-0000,2,Y ST,BOSTON,02118,345,COLLIDE TWO LLC,,,,,,,1,"]
+                "03 0009 0000,2,Y ST,BOSTON,02118,345,COLLIDE TWO LLC,,,,,,,1,"]
         csv_path = write_roll(self.tmp, "fy2026.csv", rows)
         report = audit_mod.audit_db(self.db, today=TODAY, files={"ma-boston-assessing": [str(csv_path)]}, reread=True)
         f = self.source(report)["source_file"][0]

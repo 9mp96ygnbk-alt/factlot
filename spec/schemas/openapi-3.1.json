@@ -4919,7 +4919,7 @@
       "post": {
         "operationId": "id_parcel",
         "summary": "FactLot parcel ID",
-        "description": "Deterministic FactLot ID for a parcel from state FIPS, county FIPS, and the assessor's parcel number (APN). The same parcel always yields the same ID, offline. Use it as the join key across systems.",
+        "description": "Deterministic FactLot ID for a parcel from state FIPS, county FIPS, and the assessor's parcel number (APN). The same parcel always yields the same ID, offline. Use it as the join key across systems. APNs that differ only in where a separator falls (\"12-34\", \"1-234\") get different IDs; in a county with a documented fixed-width format the variants of one APN converge (NYC BBL \"3-1234-56\" = \"3012340056\").",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,
@@ -4941,7 +4941,7 @@
                   "apn": {
                     "type": "string",
                     "maxLength": 200,
-                    "description": "Assessor's parcel number exactly as the county prints it; formatting is normalized."
+                    "description": "Assessor's parcel number exactly as the county prints it. Letter case and the separator characters are normalized; where a separator falls is kept, except in counties with a documented fixed-width format (NYC BBL, Los Angeles AIN, Cook County PIN, DC SSL)."
                   }
                 },
                 "required": ["state_fips", "county_fips", "apn"]
@@ -5002,7 +5002,7 @@
       "post": {
         "operationId": "id_entity",
         "summary": "FactLot legal-entity ID",
-        "description": "Deterministic FactLot ID for a legal entity (LLC, LP, corporation, trust) from its registry jurisdiction and file number, or from its LEI.",
+        "description": "Deterministic FactLot ID for a legal entity (LLC, LP, corporation, trust) from its registry jurisdiction and file number, or from its LEI (an LEI whose ISO 17442 check digits do not match is rejected).",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,
@@ -5019,7 +5019,7 @@
                   "registry_number": {
                     "type": "string",
                     "maxLength": 200,
-                    "description": "File number issued by that registry, or the 20-character LEI."
+                    "description": "File number issued by that registry, or the 20-character LEI (its ISO 17442 check digits are verified)."
                   }
                 },
                 "required": ["jurisdiction", "registry_number"]

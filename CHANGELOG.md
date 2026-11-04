@@ -15,6 +15,7 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 
 ### Added
 
+- `registry_get` takes `as_of` (facts as they stood on a date) and warns when a parcel's area facts are implausible; MCP `fetch` of a registry fact's `fl:document:sha256-…` ID returns the source snapshot's metadata (publisher, URL, dates, licence and rights).
 - Operations calculators: `calc_multifamily_rent_roll` (`calc.multifamily_rent_roll@1`: gross potential rent, vacancy, non-revenue units, loss to lease, concessions in weeks, months or dollars amortised over the lease, effective rent income, physical and economic occupancy, expirations by month, floor-plan summaries; a single-lease mode for effective rent after a concession), `calc_capex_recovery` (`calc.capex_recovery@1`: straight-line or level-payment recovery with interest, an optional savings cap, per-tenant split, every assumption echoed with its lease clause) and `calc_cam_reconciliation_batch` (`calc.cam_reconciliation_batch@1`: every tenant in one call, each statement identical to `calc_cam_reconciliation`, with a building reconciliation that explains the unrecovered amount).
 - `calc_rent_schedule`, `calc_net_effective_rent` and `calc_compare_proposals` take an optional `unit` (`kw`, `mw`, `unit`, `acre`, `key`, `room`, `space`; default `sf`): labels and warnings follow the unit, numbers are unchanged, and `unit` and `rate_unit` appear only when it is given. Claude Code plugin skill `multifamily-rent-roll`.
 - Draft rules packs for NYC Local Law 97 (limit, emissions, $268/tCO2e penalty, 2024–2034), the Washington Clean Buildings Performance Standard (EUI target, Tier 1 test, tier and compliance date) and Boston BERDO 2.0 (emissions standard by building use and year), each citing the official text with a verification checklist. They are drafts, not tools: `runDraftRule(…, { acknowledgeDraft: true })` / `run_draft_rule(…, acknowledge_draft=True)`; every result is marked `status: "draft"` with a DRAFT warning. `scripts/rules/check_draft_tables.py` diffs a draft's tables against official files for the verifying maintainer.
@@ -25,6 +26,9 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 
 ### Changed
 
+- ID spec 0.3: parcel IDs keep where an APN's separators fall ("12-34" ≠ "1-234"); NYC BBL, Los Angeles AIN, Cook PIN and DC SSL normalize to their zero-padded form ("3-1234-56" = "3012340056"); LEIs must pass their ISO 17442 check digits. Earlier IDs still parse (`normalizeApnV1` / `normalize_apn_v1`), and registry files record the rule they were built with, so published files keep working.
+- Registry address search matches whole words: a house number, or a street name with its type; a city name alone no longer matches unrelated streets. Registry messages name counties ("Pinal County, AZ (04021)") from the Census Bureau county FIPS list.
+- MCP: input-validation errors return the same JSON error object as REST; `search` returns no results and a note when nothing matches. Calculator steps show rounded numbers in formula text (results unchanged).
 - `/openapi-3.0.json` is the curated Custom GPT Actions subset (at most 30 operations); `/openapi.json` (3.1) lists every tool, and `/openapi-3.0.json?operations=all` gives the complete 3.0 document.
 
 ## [0.2.0] - 2026-11-04

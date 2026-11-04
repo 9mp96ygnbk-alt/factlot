@@ -19,6 +19,7 @@ from ._core import (
     enum,
     fail,
     fmt_money,
+    fmt_num,
     fmt_pct,
     ieee_div,
     iso_date,
@@ -137,7 +138,7 @@ def _build_months(s: dict[str, Any], t: Trace | None = None) -> list[dict[str, A
             t.step("Escalation", f"{fmt_pct(esc['rate'])} compounding every {esc['every_months']} months",
                    "rate_k = starting_rate × (1 + r)^k")
         elif esc["type"] == "fixed_psf":
-            t.step("Escalation", f"+${num_str(esc['amount'])}/{_unit_labels(s['unit'])[1]}/yr every {esc['every_months']} months",
+            t.step("Escalation", f"+${fmt_num(esc['amount'])}/{_unit_labels(s['unit'])[1]}/yr every {esc['every_months']} months",
                    "rate_k = starting_rate + amount × k")
     months = []
     for m in range(1, s["term_months"] + 1):
@@ -242,7 +243,7 @@ def net_effective_rent(raw: Any) -> Result:
     qty, per, rate_unit = _unit_labels(s["unit"])
     years = t.step("Term", n / 12, f"{n} months ÷ 12", "years")
     total = t.step("Total rent due", round_(_sum([m["rent_due"] for m in months]), 2), "Σ rent due", "USD")
-    ti = t.step("TI allowance", round_(ti_psf * area, 2), f"${num_str(ti_psf)}/{per} × {num_str(area)} {qty}", "USD")
+    ti = t.step("TI allowance", round_(ti_psf * area, 2), f"${fmt_num(ti_psf)}/{per} × {fmt_num(area)} {qty}", "USD")
     costs = t.step("Total landlord costs", round_(ti + lc + other, 2),
                    f"{fmt_money(ti)} TI + {fmt_money(lc)} LC + {fmt_money(other)} other", "USD")
     eff = t.step("Effective rent", round_(total / area / years, 4), "total rent due ÷ area ÷ years", rate_unit)
@@ -684,7 +685,7 @@ def cam_reconciliation(raw: Any) -> Result:
     t = Trace()
     f = _occupancy_fraction(d, year, t)
     prorated = f < 1
-    share_text = f"{num_str(share)} × {num_str(round_(f, 6))}" if prorated else num_str(share)
+    share_text = f"{fmt_num(share)} × {fmt_num(f)}" if prorated else fmt_num(share)
     recoverable = [e for e in expenses if e["recoverable"]]
     excluded = [e for e in expenses if not e["recoverable"]]
     rec_total = t.step("Recoverable expenses", round_(_sum([e["amount"] for e in recoverable]), 2),
@@ -714,7 +715,7 @@ def cam_reconciliation(raw: Any) -> Result:
         ctrl_fee_base = round_(sum_of(lambda e: e["controllable"] and e["admin_fee_applies"]) * share * f, 2)
         unctrl_fee_base = round_(sum_of(lambda e: not e["controllable"] and e["admin_fee_applies"]) * share * f, 2)
         fee_unctrl = t.step("Admin fee on uncontrollable", round_(fee["rate"] * unctrl_fee_base, 2),
-                            f"{num_str(fee['rate'])} × {fmt_money(unctrl_fee_base)} fee-eligible uncontrollable share "
+                            f"{fmt_num(fee['rate'])} × {fmt_money(unctrl_fee_base)} fee-eligible uncontrollable share "
                             "(never capped)", "USD")
     cap_limit = None
     capped = ctrl_share
@@ -726,18 +727,18 @@ def cam_reconciliation(raw: Any) -> Result:
             raise CalcInputError(f"cap.years_elapsed is required for {method}")
         years = 1 if n is None else n
         if method == "compounding_from_base":
-            limit, formula = ref * pow_int(1 + rate, years), f"{fmt_money(ref)} × (1 + {num_str(rate)})^{years}"
+            limit, formula = ref * pow_int(1 + rate, years), f"{fmt_money(ref)} × (1 + {fmt_num(rate)})^{years}"
         elif method == "simple_from_base":
-            limit, formula = ref * (1 + rate * years), f"{fmt_money(ref)} × (1 + {num_str(rate)} × {years})"
+            limit, formula = ref * (1 + rate * years), f"{fmt_money(ref)} × (1 + {fmt_num(rate)} × {years})"
         else:
-            limit, formula = ref * (1 + rate), f"{fmt_money(ref)} × (1 + {num_str(rate)})"
+            limit, formula = ref * (1 + rate), f"{fmt_money(ref)} × (1 + {fmt_num(rate)})"
         cap_limit = t.step(f"Cap limit ({method})", round_(limit, 2), formula, "USD")
         if prorated:
             cap_limit = t.step("Cap limit prorated for occupancy", round_(cap_limit * f, 2),
-                               f"{fmt_money(cap_limit)} × {num_str(round_(f, 6))}", "USD")
+                               f"{fmt_money(cap_limit)} × {fmt_num(f)}", "USD")
         if fee and fee["applied"] == "before_cap":
             fee_ctrl = t.step("Admin fee on controllable (before cap)", round_(fee["rate"] * ctrl_fee_base, 2),
-                              f"{num_str(fee['rate'])} × {fmt_money(ctrl_fee_base)} fee-eligible controllable share", "USD")
+                              f"{fmt_num(fee['rate'])} × {fmt_money(ctrl_fee_base)} fee-eligible controllable share", "USD")
             fee_in_cap = fee["capped"]
             capped = t.step("Controllable after cap",
                             min(round_(ctrl_share + fee_ctrl, 2) if fee_in_cap else ctrl_share, cap_limit),
@@ -750,7 +751,7 @@ def cam_reconciliation(raw: Any) -> Result:
                 # The cap reduction is spread over controllable lines in proportion to their amounts.
                 eligible = base_capped * ctrl_fee_base / ctrl_share if ctrl_share > 0 else 0
                 fee_ctrl = t.step("Admin fee on controllable (after cap)", round_(fee["rate"] * eligible, 2),
-                                  f"{num_str(fee['rate'])} × {fmt_money(base_capped)} capped × {fmt_money(ctrl_fee_base)} "
+                                  f"{fmt_num(fee['rate'])} × {fmt_money(base_capped)} capped × {fmt_money(ctrl_fee_base)} "
                                   f"fee-eligible ÷ {fmt_money(ctrl_share)} controllable", "USD")
                 fee_in_cap = fee["capped"]
                 if fee_in_cap:
@@ -758,7 +759,7 @@ def cam_reconciliation(raw: Any) -> Result:
                                     "min(capped controllable + admin fee on it, cap limit)", "USD")
     elif fee:
         fee_ctrl = t.step("Admin fee on controllable", round_(fee["rate"] * ctrl_fee_base, 2),
-                          f"{num_str(fee['rate'])} × {fmt_money(ctrl_fee_base)} fee-eligible controllable share (no cap)", "USD")
+                          f"{fmt_num(fee['rate'])} × {fmt_money(ctrl_fee_base)} fee-eligible controllable share (no cap)", "USD")
     cap_reduction = round_((round_(ctrl_share + fee_ctrl, 2) if fee_in_cap else ctrl_share) - capped, 2)
     fee_outside = 0 if fee_in_cap else fee_ctrl
     admin_fee = t.step("Admin fee", round_(fee_ctrl + fee_unctrl, 2),
@@ -1233,15 +1234,15 @@ def debt_sizing(raw: Any) -> Result:
     base = _size_loan(noi, value, rate, amort, max_ltv, min_dscr, min_dy, step)
     k = t.step("Annual constant", base["k"],
                f"interest-only: {fmt_pct(rate, 3)}" if amort == 0
-               else f"12 × r ÷ (1 − (1 + r)^−n), r = {num_str(rate)}/12, n = {amort * 12}")
+               else f"12 × r ÷ (1 − (1 + r)^−n), r = {fmt_num(rate)}/12, n = {amort * 12}")
     loans = base["loans"]
     if "ltv" in loans:
-        t.step("Loan at max LTV", loans["ltv"], f"{fmt_money(value)} × {num_str(max_ltv)}", "USD")
+        t.step("Loan at max LTV", loans["ltv"], f"{fmt_money(value)} × {fmt_num(max_ltv)}", "USD")
     if "dscr" in loans:
         t.step("Loan at min DSCR", loans["dscr"],
-               f"({fmt_money(noi)} ÷ {num_str(min_dscr)}) ÷ {num_str(round_(k, 6))}", "USD")
+               f"({fmt_money(noi)} ÷ {fmt_num(min_dscr)}) ÷ {fmt_num(k)}", "USD")
     if "debt_yield" in loans:
-        t.step("Loan at min debt yield", loans["debt_yield"], f"{fmt_money(noi)} ÷ {num_str(min_dy)}", "USD")
+        t.step("Loan at min debt yield", loans["debt_yield"], f"{fmt_money(noi)} ÷ {fmt_num(min_dy)}", "USD")
     for v in loans.values():
         if not math.isfinite(v):
             # A 0% interest-only loan has a zero annual constant; TypeScript fails rounding the
@@ -1251,7 +1252,7 @@ def debt_sizing(raw: Any) -> Result:
     if min_loan <= 0:
         raise CalcInputError("constraints produce a non-positive loan")
     loan = t.step("Max loan", base["loan"],
-                  "min(" + ", ".join(f"{c} {fmt_money(v)}" for c, v in loans.items()) + f"), rounded down to {num_str(step)}",
+                  "min(" + ", ".join(f"{c} {fmt_money(v)}" for c, v in loans.items()) + f"), rounded down to {fmt_num(step)}",
                   "USD")
     if loan <= 0:
         raise CalcInputError(f"the constraints allow {fmt_money(min_loan)}, less than one rounding increment "
@@ -1326,8 +1327,8 @@ def debt_sizing(raw: Any) -> Result:
                f"rate + shock, value × {'(1 + NOI shock) × ' if st['value_moves_with_noi'] else ''}(1 + shock); "
                "same constraints and rounding as the base")
         t.step("Lowest stressed max loan", worst["max_loan"],
-               f"NOI shock {num_str(worst['noi_shock'])}, rate shock {num_str(worst['rate_shock'])}, value shock "
-               f"{num_str(worst['value_shock'])}; binding {worst['binding_constraint']}", "USD")
+               f"NOI shock {fmt_num(worst['noi_shock'])}, rate shock {fmt_num(worst['rate_shock'])}, value shock "
+               f"{fmt_num(worst['value_shock'])}; binding {worst['binding_constraint']}", "USD")
         if any(row["max_loan"] == 0 for row in rows):
             t.warn("In at least one stress scenario the constraints allow less than one rounding increment; its "
                    "max_loan is 0 and its metrics are null.")
@@ -1411,7 +1412,7 @@ def lease_remeasurement_asc842(raw: Any) -> Result:
     new_liability = t.step(
         "New lease liability", round_(pv, 2),
         f"ASC 842-10-35-4 and 842-20-35-3: Σ payment_k ÷ (1 + r)^{'(k − 1)' if in_advance else 'k'}, "
-        f"r = {num_str(round_(r, 8))}, payments in {'advance' if in_advance else 'arrears'}", "USD")
+        f"r = {fmt_num(r, 8)}, payments in {'advance' if in_advance else 'arrears'}", "USD")
     liability_adj = t.step("Liability adjustment", round_(new_liability - liability_before, 2),
                            f"{fmt_money(new_liability)} − {fmt_money(liability_before)} carrying amount", "USD")
     rou_adj = t.step("ROU asset adjustment", round_(max(liability_adj, -rou_before), 2),
@@ -1634,7 +1635,7 @@ def prepayment_and_defeasance(raw: Any) -> Result:
             for k in range(1, n + 1):
                 pv += pays[k - 1] * pow_int(1 + m, -k)
             pv_rounded = t.step("PV of remaining payments", round_(pv, 2),
-                                f"Σ payment_k ÷ (1 + {num_str(round_(m, 8))})^k, k = 1..{n}", "USD")
+                                f"Σ payment_k ÷ (1 + {fmt_num(m, 8)})^k, k = 1..{n}", "USD")
             computed = t.step("Yield maintenance (before floor)", round_(pv - B, 2),
                               f"{fmt_money(pv_rounded)} − {fmt_money(B)} balance", "USD")
             detail["pv_of_remaining_payments"] = pv_rounded
@@ -1645,7 +1646,7 @@ def prepayment_and_defeasance(raw: Any) -> Result:
                 pv += diff * openings[k - 1] * pow_int(1 + m, -k)
             computed = t.step("Yield maintenance (before floor)", round_(pv, 2),
                               f"Σ ({fmt_pct(note_rate, 4)} − {fmt_pct(dr, 4)}) ÷ 12 × balance_(k−1) ÷ "
-                              f"(1 + {num_str(round_(m, 8))})^k, k = 1..{n}", "USD")
+                              f"(1 + {fmt_num(m, 8)})^k, k = 1..{n}", "USD")
         floor = t.step("Minimum premium", round_(B * p["minimum_pct"], 2), f"{fmt_money(B)} × {fmt_pct(p['minimum_pct'], 4)}", "USD")
         premium = t.step("Prepayment premium", max(computed, floor), "max(yield maintenance, minimum)", "USD")
         detail["basis"] = p["basis"]
@@ -1775,7 +1776,7 @@ def npv(raw: Any) -> Result:
     flows = _cash_flows(d, MAX_NPV_CASH_FLOWS)
     rate = number(d, "rate", gt=-1)
     t = Trace()
-    v = t.step("NPV", round_(_npv_at(flows, rate), 2), f"Σ CF_t ÷ (1 + {num_str(rate)})^t")
+    v = t.step("NPV", round_(_npv_at(flows, rate), 2), f"Σ CF_t ÷ (1 + {fmt_num(rate)})^t")
     return t.result("calc.npv", 1, {"npv": v})
 
 
@@ -1925,8 +1926,8 @@ def compare_proposals(raw: Any) -> Result:
            "discounted NER = level monthly payment with PV of (rent − landlord-borne operating expenses − TI − "
            "commissions − concessions), × 12 ÷ area")
     t.step("Discounting",
-           f"monthly cash flows at the start of each month (annuity due), monthly rate r = {js_number_str(disc)} ÷ 12 = "
-           f"{js_number_str(round_(r, 8))}; one-time items at commencement" + ("" if tenant else "; t = 0 is the start of any downtime"),
+           f"monthly cash flows at the start of each month (annuity due), monthly rate r = {fmt_num(disc)} ÷ 12 = "
+           f"{fmt_num(r, 8)}; one-time items at commencement" + ("" if tenant else "; t = 0 is the start of any downtime"),
            "level amount = (PV of flows + PV of one-time items) ÷ Σ (1 + r)^−t")
     t.step("Lease months",
            "each month runs from the commencement day-of-month; rent is not prorated to calendar months; "
@@ -2059,7 +2060,7 @@ def percentage_rent(raw: Any) -> Result:
 
     t = Trace()
     net = t.step("Net sales", round_(max(0, gross - excl), 2), f"{fmt_money(gross)} − {fmt_money(excl)} exclusions", "USD")
-    suffix = f" × {num_str(f)}" if f < 1 else ""
+    suffix = f" × {fmt_num(f)}" if f < 1 else ""
     if bp_type == "natural":
         bp = t.step("Natural breakpoint", round_((base / rate) * f, 2), f"{fmt_money(base)} ÷ {fmt_pct(rate)}{suffix}", "USD")
     else:
@@ -2191,7 +2192,7 @@ def lease_vs_own(raw: Any) -> Result:
     lease_nets = [y["net"] for y in lease_years]
     lease_npv_raw = _npv_at(lease_nets, disc)
     lease_npv = t.step("Lease NPV", round_(lease_npv_raw, 2),
-                       f"Σ (rent − free rent + expenses − tax savings)_t ÷ (1 + {num_str(disc)})^t, t = 0..{horizon}; "
+                       f"Σ (rent − free rent + expenses − tax savings)_t ÷ (1 + {fmt_num(disc)})^t, t = 0..{horizon}; "
                        f"{free_months} free months", "USD")
 
     # --- own case
@@ -2216,7 +2217,7 @@ def lease_vs_own(raw: Any) -> Result:
     annual_dep = round_(depreciable / tax["depreciation_life_years"], 2) if tax else 0
     if tax:
         t.step("Annual depreciation", annual_dep,
-               f"({fmt_money(basis)} × (1 − {num_str(tax['land_share'])})) ÷ {tax['depreciation_life_years']} years, straight-line",
+               f"({fmt_money(basis)} × (1 − {fmt_num(tax['land_share'])})) ÷ {tax['depreciation_life_years']} years, straight-line",
                "USD")
 
     own_years = [{"year": 0, "equity": equity, "debt_service": 0, "interest": 0, "principal": 0,
@@ -2254,7 +2255,7 @@ def lease_vs_own(raw: Any) -> Result:
     proceeds = round_(residual - selling_costs - balance_h - tax_on_sale, 2)
     t.step("Net sale proceeds", proceeds,
            f"{fmt_money(residual)} − {fmt_money(selling_costs)} selling costs − {fmt_money(balance_h)} loan payoff"
-           + (f" − {fmt_money(tax_on_sale)} tax on gain ({fmt_money(gain)} × {num_str(tax_rate)})" if tax else ""),
+           + (f" − {fmt_money(tax_on_sale)} tax on gain ({fmt_money(gain)} × {fmt_num(tax_rate)})" if tax else ""),
            "USD")
     own_nets_ex_sale = [y["net"] for y in own_years]
     last = own_years[horizon]
@@ -2262,7 +2263,7 @@ def lease_vs_own(raw: Any) -> Result:
     last["net"] = round_(last["net"] - proceeds, 2)
     own_nets = [y["net"] for y in own_years]
     own_npv = t.step("Own NPV", round_(_npv_at(own_nets, disc), 2),
-                     f"Σ (equity + debt service + expenses − tax savings − sale proceeds)_t ÷ (1 + {num_str(disc)})^t, "
+                     f"Σ (equity + debt service + expenses − tax savings − sale proceeds)_t ÷ (1 + {fmt_num(disc)})^t, "
                      f"t = 0..{horizon}", "USD")
     diff = t.step("Difference", round_(own_npv - lease_npv, 2),
                   f"own NPV − lease NPV = {fmt_money(own_npv)} − {fmt_money(lease_npv)}", "USD")
@@ -2391,7 +2392,7 @@ def renew_vs_relocate(raw: Any) -> Result:
         npv_v = t.step(f"{label} NPV", round_(c["pv"] + c["one_time"], 2),
                        f"PV of rent {fmt_money(c['pv'])} + {fmt_money(c['one_time'])} one-time", "USD")
         ner = t.step(f"{label} effective rent", round_((((c["pv"] + c["one_time"]) / c["annuity"]) * 12) / area, 4),
-                     f"({fmt_money(c['pv'] + c['one_time'])} ÷ Σ(1+r)^−t) × 12 ÷ {num_str(area)} SF", "USD/sf/yr")
+                     f"({fmt_money(c['pv'] + c['one_time'])} ÷ Σ(1+r)^−t) × 12 ÷ {fmt_num(area)} SF", "USD/sf/yr")
         return {"npv": npv_v, "total_cost": round_(c["total"] + c["one_time"], 2), "total_rent": round_(c["total"], 2),
                 "one_time_costs": c["one_time"], "net_effective_rent_psf_annual": ner, "area_sf": area}
 

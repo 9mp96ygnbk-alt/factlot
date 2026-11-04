@@ -138,7 +138,7 @@ class DeKalb(unittest.TestCase):
             self.assertEqual((src["state_fips"], src["county_fips"]), ("13", "089"))
             urn = reg.db.execute(
                 "SELECT urn FROM crosswalk WHERE system = 'dekalb_parcel_id' AND external_id = '06 001 01 001'").fetchone()[0]
-            self.assertEqual(urn, "fl:parcel:us-13089:0600101001")
+            self.assertEqual(urn, "fl:parcel:us-13089:06-001-01-001")
             owner = reg.db.execute(
                 "SELECT value_json FROM current_facts WHERE subject = ? AND predicate = 'ownership.owner_of_record'", (urn,)).fetchone()
             self.assertIn("EXAMPLE RETAIL LLC", owner[0])

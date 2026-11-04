@@ -4,6 +4,7 @@ import {
   NonNegMoney,
   Trace,
   fmtMoney,
+  fmtNum,
   fmtPct,
   parseInput,
   powInt,
@@ -371,7 +372,7 @@ export function leaseVsOwn(raw: LeaseVsOwnInput): CalcResult<LeaseVsOwn> {
   const leaseNpv = t.step(
     "Lease NPV",
     round(leaseNpvRaw, 2),
-    `Σ (rent − free rent + expenses − tax savings)_t ÷ (1 + ${r})^t, t = 0..${H}; ${L.free_rent_months} free months`,
+    `Σ (rent − free rent + expenses − tax savings)_t ÷ (1 + ${fmtNum(r)})^t, t = 0..${H}; ${L.free_rent_months} free months`,
     "USD",
   );
 
@@ -421,7 +422,7 @@ export function leaseVsOwn(raw: LeaseVsOwnInput): CalcResult<LeaseVsOwn> {
     t.step(
       "Annual depreciation",
       annualDep,
-      `(${fmtMoney(basis)} × (1 − ${tax.land_share})) ÷ ${tax.depreciation_life_years} years, straight-line`,
+      `(${fmtMoney(basis)} × (1 − ${fmtNum(tax.land_share)})) ÷ ${tax.depreciation_life_years} years, straight-line`,
       "USD",
     );
   }
@@ -505,7 +506,7 @@ export function leaseVsOwn(raw: LeaseVsOwnInput): CalcResult<LeaseVsOwn> {
   t.step(
     "Net sale proceeds",
     proceeds,
-    `${fmtMoney(residual)} − ${fmtMoney(sellingCosts)} selling costs − ${fmtMoney(balanceH)} loan payoff${tax ? ` − ${fmtMoney(taxOnSale)} tax on gain (${fmtMoney(gain)} × ${taxRate})` : ""}`,
+    `${fmtMoney(residual)} − ${fmtMoney(sellingCosts)} selling costs − ${fmtMoney(balanceH)} loan payoff${tax ? ` − ${fmtMoney(taxOnSale)} tax on gain (${fmtMoney(gain)} × ${fmtNum(taxRate)})` : ""}`,
     "USD",
   );
   const last = ownYears[H] as OwnYear;
@@ -517,7 +518,7 @@ export function leaseVsOwn(raw: LeaseVsOwnInput): CalcResult<LeaseVsOwn> {
   const ownNpv = t.step(
     "Own NPV",
     round(ownNpvRaw, 2),
-    `Σ (equity + debt service + expenses − tax savings − sale proceeds)_t ÷ (1 + ${r})^t, t = 0..${H}`,
+    `Σ (equity + debt service + expenses − tax savings − sale proceeds)_t ÷ (1 + ${fmtNum(r)})^t, t = 0..${H}`,
     "USD",
   );
   const diff = t.step(

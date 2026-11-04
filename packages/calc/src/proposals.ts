@@ -5,6 +5,7 @@ import {
   Rate,
   Trace,
   fmtMoney,
+  fmtNum,
   parseInput,
   powInt,
   round,
@@ -299,7 +300,7 @@ export function compareProposals(
   );
   t.step(
     "Discounting",
-    `monthly cash flows at the start of each month (annuity due), monthly rate r = ${input.discount_rate_annual} ÷ 12 = ${round(r, 8)}; one-time items at commencement${tenant ? "" : "; t = 0 is the start of any downtime"}`,
+    `monthly cash flows at the start of each month (annuity due), monthly rate r = ${fmtNum(input.discount_rate_annual)} ÷ 12 = ${fmtNum(r, 8)}; one-time items at commencement${tenant ? "" : "; t = 0 is the start of any downtime"}`,
     "level amount = (PV of flows + PV of one-time items) ÷ Σ (1 + r)^−t",
   );
   t.step(

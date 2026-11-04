@@ -3667,7 +3667,7 @@
       {
         "toolSpec": {
           "name": "id_parcel",
-          "description": "Deterministic FactLot ID for a parcel from state FIPS, county FIPS, and the assessor's parcel number (APN). The same parcel always yields the same ID, offline. Use it as the join key across systems.",
+          "description": "Deterministic FactLot ID for a parcel from state FIPS, county FIPS, and the assessor's parcel number (APN). The same parcel always yields the same ID, offline. Use it as the join key across systems. APNs that differ only in where a separator falls (\"12-34\", \"1-234\") get different IDs; in a county with a documented fixed-width format the variants of one APN converge (NYC BBL \"3-1234-56\" = \"3012340056\").",
           "inputSchema": {
             "json": {
               "type": "object",
@@ -3685,7 +3685,7 @@
                 "apn": {
                   "type": "string",
                   "maxLength": 200,
-                  "description": "Assessor's parcel number exactly as the county prints it; formatting is normalized."
+                  "description": "Assessor's parcel number exactly as the county prints it. Letter case and the separator characters are normalized; where a separator falls is kept, except in counties with a documented fixed-width format (NYC BBL, Los Angeles AIN, Cook County PIN, DC SSL)."
                 }
               },
               "required": ["state_fips", "county_fips", "apn"]
@@ -3696,7 +3696,7 @@
       {
         "toolSpec": {
           "name": "id_entity",
-          "description": "Deterministic FactLot ID for a legal entity (LLC, LP, corporation, trust) from its registry jurisdiction and file number, or from its LEI.",
+          "description": "Deterministic FactLot ID for a legal entity (LLC, LP, corporation, trust) from its registry jurisdiction and file number, or from its LEI (an LEI whose ISO 17442 check digits do not match is rejected).",
           "inputSchema": {
             "json": {
               "type": "object",
@@ -3709,7 +3709,7 @@
                 "registry_number": {
                   "type": "string",
                   "maxLength": 200,
-                  "description": "File number issued by that registry, or the 20-character LEI."
+                  "description": "File number issued by that registry, or the 20-character LEI (its ISO 17442 check digits are verified)."
                 }
               },
               "required": ["jurisdiction", "registry_number"]
@@ -4189,7 +4189,7 @@
       {
         "toolSpec": {
           "name": "registry_get",
-          "description": "Everything the FactLot Registry knows about a parcel, legal entity, or building: status, current cited facts (owner of record, situs address, property category, areas, values), ownership links, external IDs, and for a parcel the building it belongs to (condominium units roll up into one building). A miss says whether the county or entity registry is loaded. Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
+          "description": "Everything the FactLot Registry knows about a parcel, legal entity, or building: status, current cited facts (owner of record, situs address, property category, areas, values), ownership links, external IDs, and for a parcel the building it belongs to (condominium units roll up into one building). as_of gives the facts as they stood on a date. warnings flags area facts that look wrong (building area above 40 times the land area, a land area of 0); the facts themselves are as the source publishes them. A miss says whether the county or entity registry is loaded. Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
           "inputSchema": {
             "json": {
               "type": "object",
@@ -4201,8 +4201,14 @@
                 },
                 "include_history": {
                   "default": false,
-                  "description": "Also return superseded facts from earlier snapshots.",
+                  "description": "Also return every fact from every snapshot, superseded ones included (history lists current facts too; a source loaded once has no superseded facts).",
                   "type": "boolean"
+                },
+                "as_of": {
+                  "description": "Date (YYYY-MM-DD): return the facts and ownership links current on that date, from the snapshots dated on or before it, instead of the latest. With include_history, history stops at that date.",
+                  "type": "string",
+                  "format": "date",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
                 }
               },
               "required": ["urn"]
@@ -4266,7 +4272,7 @@
       {
         "toolSpec": {
           "name": "registry_search_address",
-          "description": "Find commercial parcels by situs address (normalized: 'Street' = 'St', 'Northwest' = 'N.W.' = 'NW'; a suite, unit, '#' or floor is ignored). No match returns coverage: what this registry holds. Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
+          "description": "Find commercial parcels by situs address. Matches whole words of the street line (the part before the first comma), normalized: 'Street' = 'St', 'Northwest' = 'N.W.' = 'NW'; a suite, unit, '#' or floor is ignored. Give a house number ('1200 Main', '1200 Main St NW') or a street name with its type ('Main St'); a city or a part of a word alone matches nothing. No match returns coverage: what this registry holds. Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
           "inputSchema": {
             "json": {
               "type": "object",
@@ -4275,7 +4281,7 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 500,
-                  "description": "Street address or part of one."
+                  "description": "Street address, or a house number and street words, or a street name with its type."
                 },
                 "limit": {
                   "default": 20,

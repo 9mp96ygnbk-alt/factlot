@@ -7,6 +7,7 @@ import {
   Rate,
   Trace,
   fmtMoney,
+  fmtNum,
   fmtPct,
   parseInput,
   powInt,
@@ -188,7 +189,7 @@ export function buildMonths(
     } else if (esc.type === "fixed_psf") {
       t.step(
         "Escalation",
-        `+$${esc.amount}/${unitLabels(input.unit).per}/yr every ${esc.every_months} months`,
+        `+$${fmtNum(esc.amount)}/${unitLabels(input.unit).per}/yr every ${esc.every_months} months`,
         "rate_k = starting_rate + amount × k",
       );
     }
@@ -365,7 +366,7 @@ export function netEffectiveRent(
   const ti = t.step(
     "TI allowance",
     round(input.ti_allowance_psf * s.area_sf, 2),
-    `$${input.ti_allowance_psf}/${l.per} × ${s.area_sf} ${l.qty}`,
+    `$${fmtNum(input.ti_allowance_psf)}/${l.per} × ${fmtNum(s.area_sf)} ${l.qty}`,
     "USD",
   );
   const costs = t.step(
