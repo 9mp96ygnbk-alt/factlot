@@ -83,21 +83,20 @@ Be clear about scope before adopting it:
 
 - **Calculators, IDs, and the fact model work anywhere.** They need no data and no API key, and
   they run offline in both SDKs with identical results.
-- **The registry covers the largest metros, unevenly.** Real public-record rolls are loaded for
-  Harris, Dallas, Tarrant, Travis and Collin (Texas), New York City, Los Angeles, Boston, San
-  Francisco, Denver, Charlotte, Minneapolis and the District of Columbia: 708,538 commercial,
-  industrial and multifamily parcels, with 12.9 million registered entities from Texas, New York,
-  Colorado, Pennsylvania and DC for owner resolution. A second tier of 28 more counties is
-  verified with adapters (Monroe, Suffolk, Nassau, Westchester and Erie NY; three Maryland
-  counties; four Massachusetts counties; Denton, Williamson and Fort Bend; Milwaukee, Marion,
-  Oakland, Wake, Davidson, DeKalb, Sacramento, Salt Lake, Utah County, Pierce, Multnomah, and two
-  Pennsylvania counties) and is loaded in full. Five of its sources then covered whole states, and
-  those are loaded too (New York outside the city, Maryland, Wisconsin, Massachusetts outside
-  Boston, and 25 of Utah's 29 counties): 1,008,126 more commercial parcels in 207 counties, 436,190
-  with an organisation owner of record. The Maryland and Utah files carry no owner names, and owner
-  linking reaches only the Connecticut entities loaded so far. Cook County, Florida, Fulton, Maricopa,
-  Wayne, Fairfax, King and much of California wait on a licence decision, a form or a purchase.
-  Commercial, industrial and multifamily parcels only; several public files omit owner names; no
+- **The registry covers the largest metros, unevenly, and most of it is not queryable yet.** The
+  project's registry pipeline has built and verified 1,953,805 commercial, industrial and
+  multifamily parcels in 405 counties (21 states and DC) from 42 public-record sources, with 14.2
+  million registered entities from Texas, New York, Colorado, Pennsylvania, DC and Connecticut for
+  owner resolution: the largest metros (Harris, Dallas, Tarrant, Travis and Collin in Texas, New
+  York City, Los Angeles, Boston, San Francisco, Denver, Charlotte, Minneapolis and DC), the rest of
+  the top 100 counties where the licence allows, and statewide files for New York, Maryland,
+  Wisconsin, Massachusetts, Vermont, Arkansas and Connecticut, most of Utah, 24 Minnesota counties
+  and Montana's apartments and industrial parcels
+  ([catalog](docs/registry/sources/README.md), [quality report](docs/registry/quality/tier1-2026-11-03.md)).
+  **What you can query today** is the downloadable District of Columbia sample (18,077 parcels)
+  on a self-hosted FactLot; hosted registry lookups are not open yet. Cook County, Florida, Fulton,
+  Maricopa, Wayne, Fairfax, King and much of California wait on a licence decision, a form or a
+  purchase. Several public files omit owner names (Maryland, Utah, Los Angeles, San Francisco); no
   sales prices, tenants, debt, zoning, or building specs beyond area and year built. See
   [the registry](docs/registry/README.md), the [Tier 1 catalog](docs/registry/sources/README.md)
   and the [Tier 2 index](docs/registry/tier2/README.md).
@@ -105,7 +104,12 @@ Be clear about scope before adopting it:
   statute text. Other jurisdictions follow only after a person verifies them.
 - **Lease ingestion is a prototype**: deterministic quote-on-page and value-in-quote checks, OCR
   for scanned pages through a pluggable backend, but no published accuracy number yet.
-- **Not yet on npm or PyPI**, and no hosted public endpoint. Install from the
+- **No SOC 2 report yet.** The hosted service keeps no request bodies (see the
+  [privacy notice](https://factlot.com/privacy)); for confidential documents, self-host FactLot so
+  nothing leaves your network.
+- **Hosted, but not yet on npm or PyPI.** The hosted endpoint at `https://api.factlot.com` serves
+  the calculators, IDs and fact tools (free at 60 requests a minute); registry tools need a
+  self-hosted copy with a registry file. To run it yourself, install from the
   [v0.1.1 release](https://github.com/9mp96ygnbk-alt/factlot/releases/tag/v0.1.1), from git, from
   source, or with Docker ([getting started](docs/getting-started.md)).
 

@@ -189,6 +189,12 @@
                 Connecticut. Commercial, industrial, and multifamily parcels
                 only; some public files omit owner names.
               </p>
+              <p class="small">
+                What you can query today: the downloadable District of Columbia
+                sample (18,077 parcels) on your own FactLot. The full registry
+                is built and verified in the project's pipeline; hosted registry
+                lookups are not open yet.
+              </p>
               <p>
                 <a
                   href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/registry/README.md"
@@ -212,9 +218,9 @@
               <p>
                 Rules packs turn jurisdiction law into code. Each pack cites its
                 statute, carries a version, and stays <code>draft</code> until a
-                named person has checked it against the official text. One pack
-                is verified today: the Texas property-tax protest deadline
-                (checked 2026-11-02).
+                maintainer has checked it against the official text; the pack
+                records who checked it and when. One pack is verified today: the
+                Texas property-tax protest deadline (checked 2026-11-02).
               </p>
               <p>
                 Ingest (a prototype) turns leases and amendments into cited
@@ -417,8 +423,10 @@
             </tbody>
           </table>
           <p class="small">
-            Remote platforms need a public HTTPS URL; there is no public
-            endpoint yet, so run the Docker image or the local MCP server. See
+            Remote platforms connect to the hosted endpoint
+            <code>https://api.factlot.com/mcp</code> (free, 60 requests a
+            minute), or to your own copy from the Docker image or the local MCP
+            server. See
             <a
               href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/connectors/README.md"
               >connectors/</a
