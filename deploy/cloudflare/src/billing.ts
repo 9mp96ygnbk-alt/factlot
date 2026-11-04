@@ -163,6 +163,19 @@ export async function redeemSession(
     session.status === "complete" &&
     (session.payment_status === "paid" ||
       session.payment_status === "no_payment_required");
+  // A bank (ACH) payment completes checkout before the money arrives: the key comes once it does.
+  if (
+    session.status === "complete" &&
+    session.payment_status === "unpaid" &&
+    session.mode === "subscription" &&
+    isPlanId(plan)
+  )
+    return {
+      ok: false,
+      status: 202,
+      message:
+        "Thank you. Your bank payment is processing, which usually takes 1 to 4 business days. Bookmark this page: once the payment clears, it shows your API key (once). Stripe emails you when the payment goes through.",
+    };
   if (!paid || session.mode !== "subscription" || !isPlanId(plan))
     return {
       ok: false,

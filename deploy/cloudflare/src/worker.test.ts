@@ -217,6 +217,21 @@ describe("billing", () => {
     assert.equal(!again.ok && again.status, 409);
   });
 
+  it("refuses an open (unpaid, not completed) session with 402", async () => {
+    const s = fakeStripe({
+      [`GET /checkout/sessions/${SESSION}`]: () => [
+        200,
+        { ...paidSession, status: "open", payment_status: "unpaid" },
+      ],
+    });
+    const d = billingDeps(
+      env({ STRIPE_SECRET_KEY: "rk_test_x" }),
+      s.fetchImpl,
+    )!;
+    const r = await redeemSession(d, SESSION);
+    assert.equal(!r.ok && r.status, 402);
+  });
+
   it("refuses unpaid sessions, malformed IDs and unknown plans", async () => {
     const s = fakeStripe({
       [`GET /checkout/sessions/${SESSION}`]: () => [
@@ -229,7 +244,15 @@ describe("billing", () => {
       s.fetchImpl,
     )!;
     const unpaid = await redeemSession(d, SESSION);
-    assert.equal(!unpaid.ok && unpaid.status, 402);
+    assert.equal(
+      !unpaid.ok && unpaid.status,
+      202,
+      "a completed bank payment is processing",
+    );
+    assert.match(
+      !unpaid.ok ? unpaid.message : "",
+      /bank payment is processing/,
+    );
     const bad = await redeemSession(d, "cs_live_<script>");
     assert.equal(!bad.ok && bad.status, 400);
     assert.equal(s.calls.length, 1, "a malformed ID never reaches Stripe");

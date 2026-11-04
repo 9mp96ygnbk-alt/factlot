@@ -5,3 +5,4 @@ docs/research/**/*.jsonl
 docs/research/**/results.txt
 collected/
 .claude/
+.wrangler/
