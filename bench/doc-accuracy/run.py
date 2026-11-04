@@ -739,6 +739,34 @@ def cmd_plant(args: argparse.Namespace) -> int:
     return 0
 
 
+def label_stats(m: dict[str, Any], labels: dict[str, list[dict[str, Any]]]) -> dict[str, Any]:
+    """Facts about the frozen labels themselves, for the limitations section: totals, summary and
+    duplicate labels, the verifier's own outcome on each label (as check-labels runs it), and the
+    security-deposit labels whose quote is about a letter of credit."""
+    out: dict[str, Any] = {"labels": 0, "summary_labels": 0, "per_document": {},
+                           "self_check": {"verified": 0, "needs_review": 0, "rejected": 0},
+                           "self_check_needs_review_by_predicate": {},
+                           "security_deposit_letter_of_credit": []}
+    for d in m["documents"]:
+        labs = labels[d["id"]]
+        out["labels"] += len(labs)
+        out["per_document"][d["id"]] = len(labs)
+        out["summary_labels"] += sum(lab["predicate"] in SUMMARY_PREDICATES for lab in labs)
+        for lab in labs:
+            if lab["predicate"] == "lease.security_deposit" and "letter of credit" in lab["quote"].lower():
+                out["security_deposit_letter_of_credit"].append(d["id"])
+        if not labs:
+            continue
+        res = _verify(checked_pages(d), [{k: lab[k] for k in ("predicate", "value", "quote", "page")} for lab in labs])
+        for key in out["self_check"]:
+            for item in res.get(key, []):
+                out["self_check"][key] += 1
+                if key == "needs_review":
+                    p = labs[item["candidate"]]["predicate"]
+                    out["self_check_needs_review_by_predicate"][p] = out["self_check_needs_review_by_predicate"].get(p, 0) + 1
+    return out
+
+
 def cmd_score(args: argparse.Namespace) -> int:
     m, labels, cands = _load_set()
     vo = json.loads((HERE / "results" / "verifier-outcomes.json").read_text())
@@ -784,6 +812,18 @@ def cmd_score(args: argparse.Namespace) -> int:
         docs[doc_id] = {"labels": labels[doc_id], "candidates": cs, "outcomes": outs, "planted": planted}
     s = score(docs)
     sens = score(docs, strip_descriptors=True)
+    s["label_stats"] = label_stats(m, labels)
+    s["data"] = {
+        "documents": len(m["documents"]),
+        "property_type": {t: sum(d["property_type"] == t for d in m["documents"]) for t in ("office", "industrial", "retail", "other")},
+        "doc_kind": {t: sum(d["doc_kind"] == t for d in m["documents"]) for t in ("lease", "amendment")},
+        "forms": sorted({d["form"] for d in m["documents"]}),
+        "filing_dates": [min(d["filing_date"] for d in m["documents"]), max(d["filing_date"] for d in m["documents"])],
+        "pages_total": sum(d["pages"] for d in m["documents"]),
+        "pages_range": [min(d["pages"] for d in m["documents"]), max(d["pages"] for d in m["documents"])],
+        "candidates_per_document": {k: len(v) for k, v in cands.items()},
+        "skipped_hits": len(m["search"].get("skipped", [])),
+    }
     meta = run_meta("score")
     meta["verify_meta"] = vo.get("_meta")
     meta["planted_meta"] = {k: v["_meta"] for k, v in plants.items()}
