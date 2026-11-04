@@ -1,0 +1,95 @@
+{
+ "doc": "L15",
+ "candidates": [
+  {
+   "predicate": "lease.landlord",
+   "value": "25 North Investors SPE1, LLC, a Delaware limited liability company",
+   "quote": "25 North Investors SPE1, LLC, a Delaware limited liability company",
+   "page": 1
+  },
+  {
+   "predicate": "lease.tenant",
+   "value": "Solid Power, Inc., a Colorado corporation",
+   "quote": "Solid Power, Inc., a Colorado corporation",
+   "page": 1
+  },
+  {
+   "predicate": "lease.rentable_area_sf",
+   "value": 75022,
+   "quote": "containing 75,022 rentable square feet",
+   "page": 2
+  },
+  {
+   "predicate": "lease.base_rent_schedule",
+   "value": [
+    {
+     "from": "2022-01-01",
+     "to": "2022-12-31",
+     "annual_rent_psf": 9.5
+    },
+    {
+     "from": "2023-01-01",
+     "to": "2023-12-31",
+     "annual_rent_psf": 9.785
+    },
+    {
+     "from": "2024-01-01",
+     "to": "2024-12-31",
+     "annual_rent_psf": 10.079
+    },
+    {
+     "from": "2025-01-01",
+     "to": "2025-12-31",
+     "annual_rent_psf": 10.381
+    },
+    {
+     "from": "2026-01-01",
+     "to": "2026-12-31",
+     "annual_rent_psf": 10.692
+    },
+    {
+     "from": "2027-01-01",
+     "to": "2027-12-31",
+     "annual_rent_psf": 11.013
+    },
+    {
+     "from": "2028-01-01",
+     "to": "2028-12-31",
+     "annual_rent_psf": 11.343
+    },
+    {
+     "from": "2029-01-01",
+     "to": "2029-03-31",
+     "annual_rent_psf": 11.684
+    }
+   ],
+   "quote": "1/1/22\n---\n12/31/22\n$ 9.500\n$ 59,392.42\n$ 712,709.00\n\n1/1/23\n---\n12/31/23\n$ 9.785\n$ 61,174.19\n$ 734,090.27\n\n1/1/24\n---\n12/31/24\n$ 10.079\n$ 63,009.41\n$ 756,112.98\n\n1/1/25\n---\n12/31/25\n$ 10.381\n$ 64,899.70\n$ 778,796.37\n\n1/1/26\n---\n12/31/26\n$ 10.692\n$ 66,846.69\n$ 802,160.26\n\n1/1/27\n---\n12/31/27\n$ 11.013\n$ 68,852.09\n$ 826,225.07\n\n1/1/28\n---\n12/31/28\n$ 11.343\n$ 70,917.65\n$ 851,011.82\n\n1/1/29\n---\n3/31/29\n$ 11.684\n$ 73,045.18\n$ 876,542.17",
+   "page": 2
+  },
+  {
+   "predicate": "lease.security_deposit",
+   "value": 650000,
+   "quote": "$650,000.00",
+   "page": 2
+  },
+  {
+   "predicate": "lease.pro_rata_share",
+   "value": 0.71791,
+   "quote": "71.791%, which is the percentage obtained by dividing (a) the number of rentable square feet in the Premises as stated above by the rentable square feet in the Building which at the time of execution of this Lease is 104,500 rentable square feet.",
+   "page": 3
+  },
+  {
+   "predicate": "lease.assignment_sublease",
+   "value": "Tenant may not assign, encumber, sublet, or otherwise Transfer the Lease or any portion of the Premises without Landlord's prior written consent. Landlord shall not unreasonably withhold consent to an assignment or subletting if Tenant is not in default and the proposed transferee is creditworthy, has a good business reputation, will use the Premises for the Permitted Use without conflicting with another tenant's exclusive, will not materially increase pedestrian or vehicular traffic, is not a governmental entity, is not another occupant of the Building or Complex, and is not a person or Affiliate with whom Landlord is negotiating, or has negotiated within the prior six months, to lease space in the Building or Complex; otherwise Landlord may withhold consent in its sole discretion. Landlord consents to a Transfer to Decarbonization Plus Acquisition Corp III subject to closing of the Business Combination Agreement and Plan of Reorganization dated June 15, 2021 and DCRC having current assets of at least $150 million. No Transfer releases Tenant.",
+   "quote": "Landlord shall not unreasonably\nwithhold its consent to any assignment or subletting of the Premises, provided that Tenant is not then in default under the Lease and\nthe proposed transferee: (1) is creditworthy; (2) has a good reputation in the business community; (3) will use the Premises for the Permitted\nUse and will not use the Premises in any manner that would conflict with any exclusive use agreement or other similar agreement entered\ninto by Landlord with any other tenant of the Project or Complex, as applicable; (4) will not use the Premises, Project or Complex in\na manner that would materially increase the pedestrian or vehicular traffic to the Premises, Project or Complex; (5) is not a governmental\nentity, or subdivision or agency thereof; (6) is not another occupant of the Building or Complex, as applicable; and (7) is not a person\nor entity with whom Landlord is then, or has been within the six-month period prior to the time Tenant seeks to enter into such assignment\nor subletting, negotiating to lease space in the Building or Complex, as applicable, or any Affiliate of any such person or entity; otherwise,\nLandlord may withhold its consent in its sole discretion.",
+   "page": 18,
+   "section": "10(b)"
+  },
+  {
+   "predicate": "lease.rofo",
+   "value": "Tenant has a right of first offer on the First Offer Space and must exercise it, if at all, for all of the space described in the First Offer Notice on the Economic Terms within 5 business days, and may not take only a portion. Except as the First Offer Notice provides, the space is taken AS IS with no free rent, leasehold improvements, or other tenant inducements; rent commences on delivery and the term ends on the date set forth in the First Offer Notice. Tenant cannot exercise if an event of default is continuing or Landlord has given more than two notices of monetary default in any 12-month period. The right terminates as to the entire First Offer Space if Tenant fails to timely exercise it for the entire portion offered.",
+   "quote": "The right of first offer\ngranted herein shall terminate as to the entire First Offer Space upon the failure by Tenant to timely exercise its right of first offer\nwith respect to the entire portion of the First Offer Space as offered by Landlord in the First Offer Notice.",
+   "page": 62
+  }
+ ]
+}
