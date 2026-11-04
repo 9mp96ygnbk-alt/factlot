@@ -1,0 +1,34 @@
+{
+  "description": "District of Columbia zoning map (Office of Zoning via DC GIS) for the FactLot Registry collector. See docs/registry/data-policy.md and the review record in docs/registry/sources/dc-dcgis-zoning.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "dc-dcgis-zoning",
+      "publisher": "District of Columbia Office of Zoning (via DC GIS and Open Data DC)",
+      "landing_pages": [
+        "https://maps2.dcgis.dc.gov/dcgis/rest/services/DCGIS_DATA/Planning_Landuse_and_Zoning_WebMercator/MapServer/32?f=json",
+        "https://maps2.dcgis.dc.gov/dcgis/rest/services/DCGIS_DATA/Planning_Landuse_and_Zoning_WebMercator/MapServer/6?f=json",
+        "https://maps2.dcgis.dc.gov/dcgis/rest/services/DCGIS_DATA/Property_and_Land_WebMercator/MapServer/35?f=json",
+        "https://maps2.dcgis.dc.gov/dcgis/rest/services/DCGIS_DATA/Property_and_Land_WebMercator/MapServer/39?f=json",
+        "https://maps2.dcgis.dc.gov/dcgis/rest/services/DCGIS_DATA/Property_and_Land_WebMercator/MapServer/52?f=json"
+      ],
+      "allowed_hosts": ["maps2.dcgis.dc.gov"],
+      "link_patterns": [],
+      "files": [
+        "https://maps2.dcgis.dc.gov/dcgis/rest/services/DCGIS_DATA/Planning_Landuse_and_Zoning_WebMercator/MapServer/32/query?where=1%3D1&outFields=ZONING%2CZONING_STATUS%2CZONE_DISTRICT%2CZONE_DESCRIPTION&f=geojson&outSR=4326&geometryPrecision=7",
+        "https://maps2.dcgis.dc.gov/dcgis/rest/services/DCGIS_DATA/Planning_Landuse_and_Zoning_WebMercator/MapServer/6/query?where=1%3D1&outFields=OVERLAY_NAME%2COVERLAY_SHORT&f=geojson&outSR=4326&geometryPrecision=7"
+      ],
+      "verified": true,
+      "terms_url": "https://dc.gov/page/terms-and-conditions-use-district-data",
+      "license": "CC-BY-4.0 on each dataset page ('This work is licensed under a Creative Commons Attribution 4.0 International License'); the District's Terms and Conditions of Use for District Data: public domain, CC0 1.0 dedication, 'You can copy, modify, distribute, and perform the data, even for commercial purposes, all without asking permission'",
+      "ai_use": "Not restricted: CC-BY-4.0 and the CC0 dedication permit any use; the publisher does not address AI use",
+      "redistribution": "Permitted with attribution (CC-BY-4.0); attribution: District of Columbia Office of Zoning and Department of Buildings (DC GIS), Open Data DC (https://opendata.dc.gov)",
+      "reviewed": "2026-11-03",
+      "notes": "The files are ArcGIS REST query results from maps2.dcgis.dc.gov (no robots.txt; the Hub host opendata.dc.gov, Crawl-delay 60, is not used for the data). The confirmed files here are the zoning polygons (Planning_Landuse_and_Zoning_WebMercator layer 32, 'Zoning Boundaries (Zoning Regulations of 2016)', 981 polygons) and the overlay polygons (layer 6, 'Overlay Areas 2016', 23 polygons), as GeoJSON in WGS84. The lot polygons (Property_and_Land_WebMercator layers 35 Record Lots and 39 Tax Lots) and the condominium unit to lot table (layer 52 Condo Relate, requested with outFields=SSL,MAT_SSL only, because the table also carries owner names) are fetched in batches of 100 SSLs taken from the registry's own DC parcels: generate the URLs with 'python -m factlot.registry.adapters.dc_zoning urls <registry.db> --kind lots|condos' and put them in a run-specific config (about 170 requests for lots, 16 for condominium units). Layer 39 only needs the SSLs layer 35 did not return."
+    }
+  ]
+}

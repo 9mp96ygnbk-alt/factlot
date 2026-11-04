@@ -129,6 +129,24 @@ python -m factlot.registry.adapters.dc_otr collected/dc-otr-real-property/e2c646
   invalid 0; 35 s.
 - Owners linked to DC DLCP entities (full file, exact normalized name in a plausible jurisdiction): **7,919** (68% of organisation owners, 211 of them by the standing tie-breaker across the registry; 6,922 before C23, whose jurisdiction rule also resolved names that were ambiguous between DC and another state's registry).
 
+## Sales (2026-11-04)
+
+ITSPE records the most recent sale of each SSL: `SALEPRICE` ("Most recent property sale price"), `SALEDATE` ("Most
+recent property sale date"), `ACCEPTCODE` ("Property sale acceptance code") and `SALETYPE` ("Type of property sale
+(single or multiple lot, etc.)"), from the ITS Data Dictionary (layer 66). The adapter writes each as one
+`transaction.sale` fact, cited to the same ITSPE document and SSL as the roll's facts:
+`{date, price_usd, acceptance_code, sale_type}` (`sale_of` in `dc_otr.py`). A blank price, a blank date or the
+placeholder date 1900-01-01 yields no sale. **The extract names no buyer or seller, and the dictionary does not say
+which acceptance codes are arm's-length sales**: the code is kept verbatim (`Market Sale`, `Multi-Market Sale`,
+`Buyer = Seller`, `Miscellaneous`, `Unusual`, `Speculative`, `Foreclosure`, `Government Purchase`, `Land Sale`,
+`Tax Deed`, ...) and nothing is marked arm's length. The CAMA Commercial file also has `SALEDATE`, `PRICE` and a
+`QUALIFIED` flag (`Q`/`U`) per building; the dictionary does not define it, so it is not used.
+
+Scratch run of 2026-11-04 on the archived ITSPE (the whole roll re-read, 10 s): **12,594 of the 18,077 parcels carry a
+sale** (sale dates 1930-01-03 to 2026-10-21); 8,446 at a price above $0 and 4,148 at $0; by code, 6,209 are `Market
+Sale` or `Multi-Market Sale`, 1,473 `Buyer = Seller`, 1,534 have no code. 204,730 facts in all (the roll's 192,136
+before sales). The sale of a parcel that changed hands again is only the latest one: the extract holds no history.
+
 ## Known gaps
 
 - The ITSPE has no situs ZIP (some rows embed city and ZIP in `PREMISEADD`); situs is street plus

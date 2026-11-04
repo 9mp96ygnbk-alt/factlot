@@ -38,6 +38,7 @@ import json
 import re
 from collections.abc import Iterable, Iterator
 from dataclasses import asdict
+from datetime import date
 from pathlib import Path
 
 from ..normalize import COMMERCIAL_CATEGORIES, is_commercial
@@ -172,6 +173,28 @@ def _mailing_address(r: dict[str, str]) -> str | None:
     return ", ".join(x for x in parts if x) or None
 
 
+def sale_of(r: dict[str, str]) -> dict[str, object] | None:
+    """The ``transaction.sale`` value for the most recent sale ITSPE records on an SSL, or ``None`` when it has
+    no real date or no price. ITSPE names no buyer or seller. ``ACCEPTCODE`` is OTR's "property sale acceptance
+    code" (``Market Sale``, ``Buyer = Seller``, ``Foreclosure``, ``Government Purchase``, a ``Multi-`` prefix, ...)
+    and is kept verbatim as ``acceptance_code``; the extract does not say which codes are arm's-length sales, so
+    none is marked so here."""
+    price = _num(r.get("SALEPRICE"))
+    m = re.match(r"(\d{4})[/-](\d{2})[/-](\d{2})", (r.get("SALEDATE") or "").strip())
+    if price is None or price < 0 or not m or int(m[1]) <= 1900:  # 1900/01/01 is the blank date
+        return None
+    try:
+        when = date(int(m[1]), int(m[2]), int(m[3]))
+    except ValueError:
+        return None
+    out: dict[str, object] = {"date": when.isoformat(), "price_usd": int(round(price))}
+    if code := _squeeze(r.get("ACCEPTCODE")):
+        out["acceptance_code"] = code
+    if kind := _squeeze(r.get("SALETYPE")):
+        out["sale_type"] = kind
+    return out
+
+
 def _owner(name: str | None) -> str | None:
     n = _squeeze(name)
     if not n or n.upper() in _PLACEHOLDER_OWNERS:
@@ -244,6 +267,7 @@ def read_roll(path: str | Path, *, cama_path: str | Path | None = None,
             tax_year=int(y) if (y := _num(r.get("CY1YEAR"))) else None,
             locator=f"ITSPE SSL {ssl}",
             local_use_code=code,
+            sales=[sale] if (sale := sale_of(r)) else [],
         )
 
 
