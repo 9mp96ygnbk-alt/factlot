@@ -36,7 +36,7 @@ const leasingFields = {
       "Term of each lease signed at rollover (renewal or new tenant), months.",
     ),
   downtime_months: Months(60).describe(
-    "Months vacant before a new tenant starts paying (no downtime is assumed on renewal). Blended downtime = (1 − renewal_probability) × this, rounded to whole months.",
+    "Months vacant before a new tenant starts paying (no downtime is assumed on renewal). Blended downtime = (1 − renewal_probability) × this, kept fractional, not rounded: the suite is vacant for the whole months and the rollover lease's first month collects 1 − the fraction of its rent and recoveries (0.45 months of downtime: the first month collects 55%).",
   ),
   renewal_rent_pct_of_market: z
     .number()
@@ -53,7 +53,7 @@ const leasingFields = {
     "Months of free base rent for a new tenant at the start of its lease.",
   ),
   free_rent_months_renewal: Months(60).describe(
-    "Months of free base rent on a renewal.",
+    "Months of free base rent on a renewal. Blended free rent = p × this + (1 − p) × free_rent_months_new, kept fractional: the whole months are fully abated and the next month by the fraction.",
   ),
   ti_psf_new: NonNegMoney.describe(
     "Tenant improvement allowance for a new tenant, USD/SF in today's dollars (grown at market_rent_growth_rate to the lease start).",
@@ -334,7 +334,10 @@ interface Segment {
   end: number;
   /** Base rent per SF per year for analysis month m. */
   psf: (m: number) => number;
+  /** Free-rent months from the start, possibly fractional: month k of the lease is abated by min(1, max(0, free − k)). */
   free: number;
+  /** Share of the first month occupied: 1 − the fraction of blended downtime. */
+  firstShare: number;
   recovery: "nnn" | "gross" | "base_year";
   basePsf: number;
 }
@@ -363,11 +366,11 @@ export function dcfProForma(raw: DcfProFormaInput): CalcResult<DcfProForma> {
 
   t.step(
     "Conventions",
-    "annual periods built from months: analysis month m is in year ⌊(m − 1) ÷ 12⌋ + 1; rent, recoveries, free rent, and downtime are monthly; TI and leasing commissions are paid in the month a rollover lease starts",
+    "annual periods built from months: analysis month m is in year ⌊(m − 1) ÷ 12⌋ + 1; rent, recoveries, free rent, and downtime are monthly; TI and leasing commissions are paid in the month a rollover lease starts; a rollover lease that starts after the projection is listed in lease_events, but its TI and leasing commission are not in the cash flows",
   );
   t.step(
     "Blended rollover",
-    "at each expiration one lease is signed with renewal and new-tenant assumptions weighted by the renewal probability p: rent = market × (p × renewal_rent_pct_of_market + (1 − p)); TI/SF and LC rate = p × renewal + (1 − p) × new; free rent = round(p × renewal + (1 − p) × new) months; downtime = round((1 − p) × new-tenant downtime) months (rounding half up to whole months). Space vacant at the start is leased to a new tenant (p = 0) after the full downtime.",
+    "at each expiration one lease is signed with renewal and new-tenant assumptions weighted by the renewal probability p: rent = market × (p × renewal_rent_pct_of_market + (1 − p)); TI/SF and LC rate = p × renewal + (1 − p) × new; downtime D = (1 − p) × new-tenant downtime months and free rent F = p × renewal + (1 − p) × new months, both kept fractional (to six decimals), not rounded: the suite is vacant for ⌊D⌋ whole months, the lease's first month collects (1 − (D − ⌊D⌋)) of its base rent and recoveries, and lease month k (k = 0 first) has min(1, max(0, F − k)) of its base rent abated; the lease term runs from that first month. Space vacant at the start is leased to a new tenant (p = 0) after the full downtime.",
   );
   t.step("Building area", area, "Σ lease areas", "SF");
 
@@ -377,6 +380,10 @@ export function dcfProForma(raw: DcfProFormaInput): CalcResult<DcfProForma> {
   const ti = new Array<number>(years + 1).fill(0);
   const lc = new Array<number>(years + 1).fill(0);
   const events: DcfLeaseEvent[] = [];
+  // Rollover downtime (months) falling in the year after the hold, by suite.
+  const exitDowntime: string[] = [];
+  // Rollover leases that start after the projection ends.
+  const lateStarts: string[] = [];
 
   for (const lease of input.leases) {
     const L: Leasing = { ...input.market_leasing };
@@ -396,6 +403,7 @@ export function dcfProForma(raw: DcfProFormaInput): CalcResult<DcfProForma> {
             ? base * powInt(1 + esc, Math.floor((m - first) / 12) + 1)
             : base,
         free: lease.free_rent_months_remaining,
+        firstShare: 1,
         recovery: lease.recovery,
         basePsf: lease.base_year_opex_psf_annual ?? 0,
       });
@@ -413,14 +421,19 @@ export function dcfProForma(raw: DcfProFormaInput): CalcResult<DcfProForma> {
       });
     }
     let prevEnd = lease.months_remaining;
+    let exitDown = 0;
     while (prevEnd < horizon) {
       const vacantStart = prevEnd === 0;
       const p = vacantStart ? 0 : L.renewal_probability;
-      const downtime = round((1 - p) * L.downtime_months, 0);
-      const start = prevEnd + 1 + downtime;
-      // Downtime runs past the projection: the suite stays vacant to the end.
-      if (start > horizon) break;
+      // Blended downtime, kept fractional: whole months vacant, then a partly occupied first month.
+      const downtime = round((1 - p) * L.downtime_months, 6);
+      const wholeDown = Math.floor(downtime);
+      const fracDown = downtime - wholeDown;
+      const start = prevEnd + 1 + wholeDown;
       const end = start + L.lease_term_months - 1;
+      for (let m = prevEnd + 1; m < start && m <= horizon; m++)
+        if (yearOf(m) === years) exitDown += 1;
+      if (start <= horizon && yearOf(start) === years) exitDown += fracDown;
       const y0 = yearOf(start);
       const startPsf =
         lease.market_rent_psf_annual *
@@ -432,7 +445,7 @@ export function dcfProForma(raw: DcfProFormaInput): CalcResult<DcfProForma> {
       const freeMonths = Math.min(
         round(
           p * L.free_rent_months_renewal + (1 - p) * L.free_rent_months_new,
-          0,
+          6,
         ),
         L.lease_term_months,
       );
@@ -441,22 +454,32 @@ export function dcfProForma(raw: DcfProFormaInput): CalcResult<DcfProForma> {
       const lcRate = p * L.lc_rate_renewal + (1 - p) * L.lc_rate_new;
       const tiAmount = tiPsf * lease.area_sf;
       // Commission on the base rent payable over the whole term after free rent, even beyond
-      // the analysis horizon, paid when the lease starts.
+      // the analysis horizon, paid when the lease starts. Downtime does not shorten the term.
       let termRent = 0;
-      for (let m = start + freeMonths; m <= end; m++)
-        termRent += (lease.area_sf * psf(m)) / 12;
+      for (let m = start; m <= end; m++) {
+        const abated = Math.min(1, Math.max(0, freeMonths - (m - start)));
+        if (abated < 1)
+          termRent += ((lease.area_sf * psf(m)) / 12) * (1 - abated);
+      }
       const lcAmount = lcRate * termRent;
-      ti[yearOf(start)] = (ti[yearOf(start)] as number) + tiAmount;
-      lc[yearOf(start)] = (lc[yearOf(start)] as number) + lcAmount;
-      segments.push({
-        kind: vacantStart ? "new" : "blended",
-        start,
-        end,
-        psf,
-        free: freeMonths,
-        recovery: L.recovery,
-        basePsf: opexPsf(y0),
-      });
+      if (start <= horizon) {
+        ti[yearOf(start)] = (ti[yearOf(start)] as number) + tiAmount;
+        lc[yearOf(start)] = (lc[yearOf(start)] as number) + lcAmount;
+        segments.push({
+          kind: vacantStart ? "new" : "blended",
+          start,
+          end,
+          psf,
+          free: freeMonths,
+          firstShare: 1 - fracDown,
+          recovery: L.recovery,
+          basePsf: opexPsf(y0),
+        });
+      } else {
+        // Downtime runs past the projection: the suite is vacant to the end and the lease that
+        // follows is reported, but its costs fall after the forward year.
+        lateStarts.push(`${lease.name} (month ${start})`);
+      }
       events.push({
         lease: lease.name,
         kind: vacantStart ? "new" : "blended",
@@ -472,18 +495,23 @@ export function dcfProForma(raw: DcfProFormaInput): CalcResult<DcfProForma> {
       prevEnd = end;
     }
 
+    if (exitDown > 0)
+      exitDowntime.push(`${lease.name}: ${round(exitDown, 6)} months`);
+
     for (const s of segments) {
       const last = Math.min(s.end, horizon);
       for (let m = s.start; m <= last; m++) {
         const y = yearOf(m);
-        const rent = (lease.area_sf * s.psf(m)) / 12;
+        const share = m === s.start ? s.firstShare : 1;
+        const rent = ((lease.area_sf * s.psf(m)) / 12) * share;
         potential[y] = (potential[y] as number) + rent;
-        if (m < s.start + s.free) free[y] = (free[y] as number) - rent;
+        const abated = Math.min(1, Math.max(0, s.free - (m - s.start)));
+        if (abated > 0) free[y] = (free[y] as number) - rent * abated;
         let rec = 0;
         if (s.recovery === "nnn") rec = (lease.area_sf * opexPsf(y)) / 12;
         else if (s.recovery === "base_year")
           rec = (lease.area_sf * Math.max(0, opexPsf(y) - s.basePsf)) / 12;
-        recoveries[y] = (recoveries[y] as number) + rec;
+        recoveries[y] = (recoveries[y] as number) + rec * share;
       }
     }
   }
@@ -652,14 +680,22 @@ export function dcfProForma(raw: DcfProFormaInput): CalcResult<DcfProForma> {
     t.warn(
       "General vacancy is charged on top of the downtime modelled at each rollover (it is not reduced by it); lower general_vacancy_rate if the market assumption already includes turnover vacancy.",
     );
-  if (
-    input.exit_noi_basis === "forward" &&
-    (row(H + 1).tenant_improvements !== 0 ||
-      row(H + 1).leasing_commissions !== 0 ||
-      row(H + 1).free_rent !== 0)
-  )
+  if (input.exit_noi_basis === "forward") {
+    const fwd = row(H + 1);
+    const items: string[] = [];
+    if (exitDowntime.length > 0)
+      items.push(`rollover downtime (${exitDowntime.join("; ")})`);
+    if (fwd.free_rent !== 0) items.push("free rent");
+    if (fwd.tenant_improvements !== 0 || fwd.leasing_commissions !== 0)
+      items.push("TI or leasing commissions");
+    if (items.length > 0)
+      t.warn(
+        `The exit year (year ${H + 1}) has ${items.join(", ")}; its NOI is capitalized as is. Normalize it if a buyer would not.`,
+      );
+  }
+  if (lateStarts.length > 0)
     t.warn(
-      `The exit year (year ${H + 1}) has rollover costs or free rent; its NOI is capitalized as is. Normalize it if a buyer would not.`,
+      `Rollover leases that start after the projection ends (month ${horizon}) are in lease_events, but their TI and leasing commissions are not in the cash flows: ${lateStarts.join(", ")}.`,
     );
   if (exitNoi <= 0)
     t.warn("The exit NOI is not positive, so the sale price is not positive.");
@@ -668,10 +704,10 @@ export function dcfProForma(raw: DcfProFormaInput): CalcResult<DcfProForma> {
       "No lease rolls within the projection; the result does not depend on the leasing assumptions.",
     );
   t.warn(
-    "Conventions to confirm against your model: annual periods from monthly lease events; blended rollover assumptions with downtime and free rent rounded to whole months; TI and LC paid when the rollover lease starts; free rent abates base rent only; general vacancy and credit loss on gross revenue. ARGUS and other tools differ in some of these.",
+    "Conventions to confirm against your model: annual periods from monthly lease events; blended rollover assumptions with fractional downtime and free rent (whole months, then a part month for the fraction, not rounded); TI and LC paid when the rollover lease starts; free rent abates base rent only; general vacancy and credit loss on gross revenue. ARGUS and other tools differ in some of these.",
   );
 
-  return t.result("calc.dcf_pro_forma", 1, {
+  return t.result("calc.dcf_pro_forma", 2, {
     hold_years: H,
     building_area_sf: area,
     cash_flows: rows,

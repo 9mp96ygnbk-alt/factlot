@@ -109,17 +109,24 @@ spreadsheet or another model before relying on a figure:
   ⌊(m − 1) ÷ 12⌋ + 1. A lease runs through `months_remaining`; at expiration one **blended** lease
   starts, weighting renewal and new-tenant assumptions by the renewal probability p: rent = market
   × (p × `renewal_rent_pct_of_market` + 1 − p), TI per SF and the commission rate are weighted the
-  same way, free rent is round(p × renewal + (1 − p) × new) months and downtime is
-  round((1 − p) × new-tenant downtime) months (half up to whole months). A suite vacant at the start
-  is leased to a new tenant after the full downtime. Market rent and TI grow by
+  same way. Downtime D = (1 − p) × new-tenant downtime and free rent F = p × renewal + (1 − p) ×
+  new are kept fractional, not rounded: the suite is vacant for the whole months of D, the new
+  lease's first month collects 1 − (the fraction of D) of its rent and recoveries, and free rent
+  abates F's whole months and then the fraction of the next month (0.45 months of downtime: the
+  first month collects 55%). Every lease that expires inside the projection rolls over; if the
+  downtime runs past the forward year, the next lease is listed in `lease_events` but its TI and
+  commission are outside the cash flows, and a warning says so. A suite vacant at the start is
+  leased to a new tenant after the full downtime. Market rent and TI grow by
   `market_rent_growth_rate` each analysis year; expenses and reserves by `expense_growth_rate`. Free
   rent abates base rent only; NNN tenants still pay recoveries. TI and commissions (a share of the
   base rent over the whole new term, after free rent) are paid when the lease starts. General
   vacancy and credit loss are shares of gross revenue on top of modelled downtime. The sale is at
   the end of the hold at `exit_cap_rate` on the next year's NOI (`exit_noi_basis: "forward"`) or the
-  last hold year's. The value is the present value at `discount_rate`, end of year (Excel NPV) or
-  mid-year for operating cash flows; the unlevered IRR is always end of year (Excel IRR). Every
-  annual line is rounded to the cent and the subtotals are sums of rounded lines, so each row foots.
+  last hold year's; a warning names any rollover downtime, free rent, TI or commissions in that
+  forward year, which is capitalized as is. The value is the present value at `discount_rate`, end
+  of year (Excel NPV) or mid-year for operating cash flows; the unlevered IRR is always end of year
+  (Excel IRR). Every annual line is rounded to the cent and the subtotals are sums of rounded
+  lines, so each row foots.
   FactLot does not claim ARGUS parity: ARGUS and other models may treat fractional downtime,
   general vacancy, or commission bases differently.
 - **`calc_direct_cap`**: capitalized income = NOI − capital reserve; as-is value = capitalized
