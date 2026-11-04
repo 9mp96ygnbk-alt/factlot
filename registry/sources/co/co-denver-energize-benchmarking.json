@@ -1,0 +1,31 @@
+{
+  "description": "Energize Denver building energy benchmarking master dataset for the FactLot Registry collector. See docs/registry/data-policy.md and the review record in docs/registry/sources/co-denver-energize-benchmarking.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "co-denver-energize-benchmarking",
+      "publisher": "City and County of Denver, Climate Action, Sustainability and Resiliency (via the Denver Open Data Catalog)",
+      "landing_pages": [
+        "https://www.arcgis.com/sharing/rest/content/items/169272beebc54212ac08f3f607bef272?f=json"
+      ],
+      "allowed_hosts": ["www.arcgis.com"],
+      "link_patterns": [
+        "/sharing/rest/content/items/169272beebc54212ac08f3f607bef272"
+      ],
+      "files": [
+        "https://www.arcgis.com/sharing/rest/content/items/169272beebc54212ac08f3f607bef272/data"
+      ],
+      "verified": true,
+      "terms_url": "https://www.denvergov.org/Government/Agencies-Departments-Offices/Agencies-Departments-Offices-Directory/Technology-Services/Functions/GIS",
+      "license": "CC BY 3.0 (the City's GIS page, for the Denver Open Data Catalog); the item's use constraints disclaim liability (NOT FOR ENGINEERING PURPOSES).",
+      "ai_use": "Not addressed by the publisher; CC BY 3.0 does not restrict it",
+      "redistribution": "Attribution required (CC BY 3.0). Attribution: City and County of Denver",
+      "reviewed": "2026-11-04",
+      "notes": "ArcGIS Online item 169272beebc54212ac08f3f607bef272, 'Energize Denver 2025 Master Dataset' (2025_Master_Data_Set_090326.xlsx, 2,700 rows, modified 2026-09-22): the benchmarking results of buildings of 25,000 sq ft and more. The workbook names buildings (a name column) and gives a street address but no parcel number; the adapter reads no name and joins on the street address. The Hub (opendata-geospatial-denver.hub.arcgis.com) has Crawl-delay 60, so the ArcGIS Online item behind it is fetched; www.arcgis.com/robots.txt has no rules for this path."
+    }
+  ]
+}

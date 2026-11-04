@@ -1,0 +1,29 @@
+{
+  "description": "NYC Local Law 84 energy and water benchmarking disclosure for the FactLot Registry collector. See docs/registry/data-policy.md and the review record in docs/registry/sources/ny-nyc-dob-ll84.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "ny-nyc-dob-ll84",
+      "publisher": "New York City Department of Buildings (via NYC Open Data)",
+      "landing_pages": [
+        "https://data.cityofnewyork.us/api/views/5zyy-y8am.json"
+      ],
+      "allowed_hosts": ["data.cityofnewyork.us"],
+      "link_patterns": ["/(api/views|resource)/5zyy-y8am"],
+      "files": [
+        "https://data.cityofnewyork.us/resource/5zyy-y8am.csv?$select=report_year,property_id,nyc_borough_block_and_lot,primary_property_type,year_ending,site_eui_kbtu_ft,weather_normalized_site_eui,source_eui_kbtu_ft,energy_star_score,total_location_based_ghg,total_location_based_ghg_1,property_gfa_calculated,number_of_buildings&$order=property_id,report_year&$limit=500000"
+      ],
+      "verified": true,
+      "terms_url": "https://www.nyc.gov/opendata/get-started/FAQs",
+      "license": "Published on NYC Open Data under the NYC Open Data Law (Admin. Code §23-502). NYC Open Data FAQ: 'Open Data belongs to all New Yorkers. There are no restrictions on the use of Open Data.'",
+      "ai_use": "Not addressed by the publisher; the FAQ states there are no restrictions on the use of Open Data",
+      "redistribution": "Permitted: 'no restrictions on the use of Open Data' (FAQ). Attribution: New York City Department of Buildings, Local Law 84 benchmarking",
+      "reviewed": "2026-11-04",
+      "notes": "NYC Building Energy and Water Data Disclosure for Local Law 84, 2023 to Present (data for calendar years 2022-present), dataset 5zyy-y8am, 103,259 rows. Requested columns are the property ID, BBL list, EPA property type and the energy, emissions and floor-area figures; property name, address, coordinates and the many per-use columns are not requested. The Tyler/Socrata platform terms are in tension with bulk export (see ny-nyc-dof and docs/registry/requests/platform-terms/socrata.md); the agency licence is relied on. data.cityofnewyork.us robots.txt: Crawl-delay 1; only /browse search pages disallowed."
+    }
+  ]
+}
