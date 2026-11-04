@@ -1,0 +1,3741 @@
+{
+ "_meta": {
+  "step": "score",
+  "command": "python3 bench/doc-accuracy/run.py score",
+  "repo_head": "5c4cf1a22e2d016921927b841f79ae1733156c9a",
+  "worktree_dirty": false,
+  "factlot_version": "0.2.0",
+  "factlot_src_commit": "e2c5e63bb11dcf20415cefe9c538450feedb28d7",
+  "as_of": "2026-11-03",
+  "labels_frozen_at": "a978b85766f5c7e911fc9fe2175dbea0289079a1",
+  "python": "3.13.5",
+  "verify_meta": {
+   "step": "verify",
+   "command": "python3 bench/doc-accuracy/run.py verify",
+   "repo_head": "5c4cf1a22e2d016921927b841f79ae1733156c9a",
+   "worktree_dirty": false,
+   "factlot_version": "0.2.0",
+   "factlot_src_commit": "e2c5e63bb11dcf20415cefe9c538450feedb28d7",
+   "as_of": "2026-11-03",
+   "labels_frozen_at": "a978b85766f5c7e911fc9fe2175dbea0289079a1",
+   "python": "3.13.5"
+  },
+  "planted_meta": {
+   "value": {
+    "step": "plant",
+    "command": "python3 bench/doc-accuracy/run.py plant --seed 20261103",
+    "repo_head": "5c4cf1a22e2d016921927b841f79ae1733156c9a",
+    "worktree_dirty": false,
+    "factlot_version": "0.2.0",
+    "factlot_src_commit": "e2c5e63bb11dcf20415cefe9c538450feedb28d7",
+    "as_of": "2026-11-03",
+    "labels_frozen_at": "a978b85766f5c7e911fc9fe2175dbea0289079a1",
+    "python": "3.13.5",
+    "rule": "PLAN.md section 9 (deterministic; no seed)"
+   },
+   "quote_digit": {
+    "step": "plant",
+    "command": "python3 bench/doc-accuracy/run.py plant --seed 20261103",
+    "repo_head": "5c4cf1a22e2d016921927b841f79ae1733156c9a",
+    "worktree_dirty": false,
+    "factlot_version": "0.2.0",
+    "factlot_src_commit": "e2c5e63bb11dcf20415cefe9c538450feedb28d7",
+    "as_of": "2026-11-03",
+    "labels_frozen_at": "a978b85766f5c7e911fc9fe2175dbea0289079a1",
+    "python": "3.13.5",
+    "seed": 20261103,
+    "rule": "one digit of one number in the quote changes; value unchanged; random.Random(f'{seed}:{doc}:{candidate}') picks the number, the digit and the new digit"
+   }
+  },
+  "documents_with_verifier_error": {},
+  "documents_with_no_candidates": [
+   "L11",
+   "L13"
+  ]
+ },
+ "primary": {
+  "candidates": 158,
+  "by_kind": {
+   "correct": 113,
+   "wrong": 22,
+   "unlabeled": 8,
+   "summary": 15
+  },
+  "precision_of_verified": {
+   "k": 95,
+   "n": 114,
+   "rate": 0.8333333333333334,
+   "wilson95": [
+    0.7543065358171575,
+    0.8906270020845684
+   ]
+  },
+  "catch_rate": {
+   "k": 3,
+   "n": 22,
+   "rate": 0.13636363636363635,
+   "wilson95": [
+    0.04748917264236269,
+    0.3333541187947
+   ]
+  },
+  "false_rejection_rate": {
+   "k": 18,
+   "n": 113,
+   "rate": 0.1592920353982301,
+   "wilson95": [
+    0.10319965655551687,
+    0.23778848465446312
+   ]
+  },
+  "false_rejection_needs_review": {
+   "k": 15,
+   "n": 113,
+   "rate": 0.13274336283185842,
+   "wilson95": [
+    0.08212152163950824,
+    0.20751504615826244
+   ]
+  },
+  "false_rejection_rejected": {
+   "k": 3,
+   "n": 113,
+   "rate": 0.02654867256637168,
+   "wilson95": [
+    0.009069309551816493,
+    0.07516096459711677
+   ]
+  },
+  "coverage": {
+   "k": 90,
+   "n": 176,
+   "rate": 0.5113636363636364,
+   "wilson95": [
+    0.43806232164614967,
+    0.5841794733556742
+   ]
+  },
+  "counts": {
+   "correct_verified": 95,
+   "correct_needs_review": 15,
+   "correct_rejected": 3,
+   "wrong_verified": 19,
+   "wrong_needs_review": 3,
+   "wrong_rejected": 0,
+   "unlabeled": 8,
+   "summary": 15
+  },
+  "false_rejection_split": {
+   "needs_review": 15,
+   "rejected": 3
+  },
+  "wrong_split": {
+   "verified": 19,
+   "needs_review": 3,
+   "rejected": 0
+  },
+  "coverage_detail": {
+   "verified_match": 90,
+   "proposed_correct_not_verified": 18,
+   "proposed_other_value_only": 36,
+   "not_proposed": 32,
+   "in_documents_with_no_candidates": 13
+  },
+  "coverage_without_empty_documents": {
+   "k": 90,
+   "n": 163,
+   "rate": 0.5521472392638037,
+   "wilson95": [
+    0.4754800705128267,
+    0.6264129825386905
+   ]
+  },
+  "planted_catch_rate": {
+   "k": 74,
+   "n": 74,
+   "rate": 1.0,
+   "wilson95": [
+    0.9506484964337834,
+    0.9999999999999998
+   ]
+  },
+  "planted_catch_rate_all": {
+   "k": 92,
+   "n": 92,
+   "rate": 1.0,
+   "wilson95": [
+    0.9599171967079014,
+    1.0
+   ]
+  },
+  "planted": {
+   "quote_digit": {
+    "catch_rate": {
+     "k": 77,
+     "n": 77,
+     "rate": 1.0,
+     "wilson95": [
+      0.9524799113327793,
+      1.0
+     ]
+    },
+    "catch_rate_all": {
+     "k": 94,
+     "n": 94,
+     "rate": 1.0,
+     "wilson95": [
+      0.9607365374237544,
+      1.0
+     ]
+    },
+    "outcomes_when_original_verified": {
+     "verified": 0,
+     "needs_review": 0,
+     "rejected": 77
+    },
+    "by_predicate": {
+     "lease.base_rent_schedule": {
+      "catch_rate": {
+       "k": 4,
+       "n": 4,
+       "rate": 1.0,
+       "wilson95": [
+        0.5100999795960008,
+        1.0
+       ]
+      },
+      "catch_rate_all": {
+       "k": 7,
+       "n": 7,
+       "rate": 1.0,
+       "wilson95": [
+        0.6456611570247934,
+        1.0
+       ]
+      },
+      "outcomes_when_original_verified": {
+       "verified": 0,
+       "needs_review": 0,
+       "rejected": 4
+      }
+     },
+     "lease.cam_cap": {
+      "catch_rate": {
+       "k": 3,
+       "n": 3,
+       "rate": 1.0,
+       "wilson95": [
+        0.43849391955098227,
+        1.0
+       ]
+      },
+      "catch_rate_all": {
+       "k": 3,
+       "n": 3,
+       "rate": 1.0,
+       "wilson95": [
+        0.43849391955098227,
+        1.0
+       ]
+      },
+      "outcomes_when_original_verified": {
+       "verified": 0,
+       "needs_review": 0,
+       "rejected": 3
+      }
+     },
+     "lease.commencement_date": {
+      "catch_rate": {
+       "k": 5,
+       "n": 5,
+       "rate": 1.0,
+       "wilson95": [
+        0.5655085052479191,
+        1.0
+       ]
+      },
+      "catch_rate_all": {
+       "k": 5,
+       "n": 5,
+       "rate": 1.0,
+       "wilson95": [
+        0.5655085052479191,
+        1.0
+       ]
+      },
+      "outcomes_when_original_verified": {
+       "verified": 0,
+       "needs_review": 0,
+       "rejected": 5
+      }
+     },
+     "lease.expiration_date": {
+      "catch_rate": {
+       "k": 7,
+       "n": 7,
+       "rate": 1.0,
+       "wilson95": [
+        0.6456611570247934,
+        1.0
+       ]
+      },
+      "catch_rate_all": {
+       "k": 7,
+       "n": 7,
+       "rate": 1.0,
+       "wilson95": [
+        0.6456611570247934,
+        1.0
+       ]
+      },
+      "outcomes_when_original_verified": {
+       "verified": 0,
+       "needs_review": 0,
+       "rejected": 7
+      }
+     },
+     "lease.free_rent": {
+      "catch_rate": {
+       "k": 2,
+       "n": 2,
+       "rate": 1.0,
+       "wilson95": [
+        0.34237195288961925,
+        1.0
+       ]
+      },
+      "catch_rate_all": {
+       "k": 4,
+       "n": 4,
+       "rate": 1.0,
+       "wilson95": [
+        0.5100999795960008,
+        1.0
+       ]
+      },
+      "outcomes_when_original_verified": {
+       "verified": 0,
+       "needs_review": 0,
+       "rejected": 2
+      }
+     },
+     "lease.landlord": {
+      "catch_rate": {
+       "k": 2,
+       "n": 2,
+       "rate": 1.0,
+       "wilson95": [
+        0.34237195288961925,
+        1.0
+       ]
+      },
+      "catch_rate_all": {
+       "k": 2,
+       "n": 2,
+       "rate": 1.0,
+       "wilson95": [
+        0.34237195288961925,
+        1.0
+       ]
+      },
+      "outcomes_when_original_verified": {
+       "verified": 0,
+       "needs_review": 0,
+       "rejected": 2
+      }
+     },
+     "lease.operating_expense_base_year": {
+      "catch_rate": {
+       "k": 2,
+       "n": 2,
+       "rate": 1.0,
+       "wilson95": [
+        0.34237195288961925,
+        1.0
+       ]
+      },
+      "catch_rate_all": {
+       "k": 2,
+       "n": 2,
+       "rate": 1.0,
+       "wilson95": [
+        0.34237195288961925,
+        1.0
+       ]
+      },
+      "outcomes_when_original_verified": {
+       "verified": 0,
+       "needs_review": 0,
+       "rejected": 2
+      }
+     },
+     "lease.parking": {
+      "catch_rate": {
+       "k": 7,
+       "n": 7,
+       "rate": 1.0,
+       "wilson95": [
+        0.6456611570247934,
+        1.0
+       ]
+      },
+      "catch_rate_all": {
+       "k": 7,
+       "n": 7,
+       "rate": 1.0,
+       "wilson95": [
+        0.6456611570247934,
+        1.0
+       ]
+      },
+      "outcomes_when_original_verified": {
+       "verified": 0,
+       "needs_review": 0,
+       "rejected": 7
+      }
+     },
+     "lease.percentage_rent": {
+      "catch_rate": {
+       "k": 1,
+       "n": 1,
+       "rate": 1.0,
+       "wilson95": [
+        0.20654329147389294,
+        1.0
+       ]
+      },
+      "catch_rate_all": {
+       "k": 2,
+       "n": 2,
+       "rate": 1.0,
+       "wilson95": [
+        0.34237195288961925,
+        1.0
+       ]
+      },
+      "outcomes_when_original_verified": {
+       "verified": 0,
+       "needs_review": 0,
+       "rejected": 1
+      }
+     },
+     "lease.pro_rata_share": {
+      "catch_rate": {
+       "k": 13,
+       "n": 13,
+       "rate": 1.0,
+       "wilson95": [
+        0.7718981569447083,
+        1.0
+       ]
+      },
+      "catch_rate_all": {
+       "k": 15,
+       "n": 15,
+       "rate": 1.0,
+       "wilson95": [
+        0.7961107336956521,
+        1.0
+       ]
+      },
+      "outcomes_when_original_verified": {
+       "verified": 0,
+       "needs_review": 0,
+       "rejected": 13
+      }
+     },
+     "lease.renewal_option": {
+      "catch_rate": {
+       "k": 0,
+       "n": 0,
+       "rate": null,
+       "wilson95": null
+      },
+      "catch_rate_all": {
+       "k": 8,
+       "n": 8,
+       "rate": 1.0,
+       "wilson95": [
+        0.6755843804891231,
+        1.0
+       ]
+      },
+      "outcomes_when_original_verified": {
+       "verified": 0,
+       "needs_review": 0,
+       "rejected": 0
+      }
+     },
+     "lease.rentable_area_sf": {
+      "catch_rate": {
+       "k": 21,
+       "n": 21,
+       "rate": 1.0,
+       "wilson95": [
+        0.8453561767357979,
+        0.9999999999999999
+       ]
+      },
+      "catch_rate_all": {
+       "k": 21,
+       "n": 21,
+       "rate": 1.0,
+       "wilson95": [
+        0.8453561767357979,
+        0.9999999999999999
+       ]
+      },
+      "outcomes_when_original_verified": {
+       "verified": 0,
+       "needs_review": 0,
+       "rejected": 21
+      }
+     },
+     "lease.security_deposit": {
+      "catch_rate": {
+       "k": 9,
+       "n": 9,
+       "rate": 1.0,
+       "wilson95": [
+        0.7008472464490407,
+        1.0
+       ]
+      },
+      "catch_rate_all": {
+       "k": 10,
+       "n": 10,
+       "rate": 1.0,
+       "wilson95": [
+        0.7224598312333834,
+        1.0
+       ]
+      },
+      "outcomes_when_original_verified": {
+       "verified": 0,
+       "needs_review": 0,
+       "rejected": 9
+      }
+     },
+     "lease.tenant": {
+      "catch_rate": {
+       "k": 1,
+       "n": 1,
+       "rate": 1.0,
+       "wilson95": [
+        0.20654329147389294,
+        1.0
+       ]
+      },
+      "catch_rate_all": {
+       "k": 1,
+       "n": 1,
+       "rate": 1.0,
+       "wilson95": [
+        0.20654329147389294,
+        1.0
+       ]
+      },
+      "outcomes_when_original_verified": {
+       "verified": 0,
+       "needs_review": 0,
+       "rejected": 1
+      }
+     }
+    }
+   },
+   "value": {
+    "catch_rate": {
+     "k": 74,
+     "n": 74,
+     "rate": 1.0,
+     "wilson95": [
+      0.9506484964337834,
+      0.9999999999999998
+     ]
+    },
+    "catch_rate_all": {
+     "k": 92,
+     "n": 92,
+     "rate": 1.0,
+     "wilson95": [
+      0.9599171967079014,
+      1.0
+     ]
+    },
+    "outcomes_when_original_verified": {
+     "verified": 0,
+     "needs_review": 68,
+     "rejected": 6
+    },
+    "by_leaf_kind": {
+     "date": {
+      "catch_rate": {
+       "k": 16,
+       "n": 16,
+       "rate": 1.0,
+       "wilson95": [
+        0.8063865817272802,
+        1.0
+       ]
+      },
+      "catch_rate_all": {
+       "k": 19,
+       "n": 19,
+       "rate": 1.0,
+       "wilson95": [
+        0.8318156346315496,
+        1.0
+       ]
+      },
+      "outcomes_when_original_verified": {
+       "verified": 0,
+       "needs_review": 16,
+       "rejected": 0
+      }
+     },
+     "integer_ge_100": {
+      "catch_rate": {
+       "k": 31,
+       "n": 31,
+       "rate": 1.0,
+       "wilson95": [
+        0.889740999265246,
+        0.9999999999999999
+       ]
+      },
+      "catch_rate_all": {
+       "k": 32,
+       "n": 32,
+       "rate": 1.0,
+       "wilson95": [
+        0.8928172849426366,
+        1.0
+       ]
+      },
+      "outcomes_when_original_verified": {
+       "verified": 0,
+       "needs_review": 29,
+       "rejected": 2
+      }
+     },
+     "integer_lt_100": {
+      "catch_rate": {
+       "k": 9,
+       "n": 9,
+       "rate": 1.0,
+       "wilson95": [
+        0.7008472464490407,
+        1.0
+       ]
+      },
+      "catch_rate_all": {
+       "k": 19,
+       "n": 19,
+       "rate": 1.0,
+       "wilson95": [
+        0.8318156346315496,
+        1.0
+       ]
+      },
+      "outcomes_when_original_verified": {
+       "verified": 0,
+       "needs_review": 5,
+       "rejected": 4
+      }
+     },
+     "other_number": {
+      "catch_rate": {
+       "k": 5,
+       "n": 5,
+       "rate": 1.0,
+       "wilson95": [
+        0.5655085052479191,
+        1.0
+       ]
+      },
+      "catch_rate_all": {
+       "k": 6,
+       "n": 6,
+       "rate": 1.0,
+       "wilson95": [
+        0.6096569663469354,
+        0.9999999999999999
+       ]
+      },
+      "outcomes_when_original_verified": {
+       "verified": 0,
+       "needs_review": 5,
+       "rejected": 0
+      }
+     },
+     "ratio": {
+      "catch_rate": {
+       "k": 13,
+       "n": 13,
+       "rate": 1.0,
+       "wilson95": [
+        0.7718981569447083,
+        1.0
+       ]
+      },
+      "catch_rate_all": {
+       "k": 16,
+       "n": 16,
+       "rate": 1.0,
+       "wilson95": [
+        0.8063865817272802,
+        1.0
+       ]
+      },
+      "outcomes_when_original_verified": {
+       "verified": 0,
+       "needs_review": 13,
+       "rejected": 0
+      }
+     }
+    },
+    "by_error_type": {
+     "number_in_quote": {
+      "catch_rate": {
+       "k": 74,
+       "n": 74,
+       "rate": 1.0,
+       "wilson95": [
+        0.9506484964337834,
+        0.9999999999999998
+       ]
+      },
+      "catch_rate_all": {
+       "k": 86,
+       "n": 86,
+       "rate": 1.0,
+       "wilson95": [
+        0.9572402984808819,
+        1.0
+       ]
+      },
+      "outcomes_when_original_verified": {
+       "verified": 0,
+       "needs_review": 68,
+       "rejected": 6
+      }
+     },
+     "value_only": {
+      "catch_rate": {
+       "k": 0,
+       "n": 0,
+       "rate": null,
+       "wilson95": null
+      },
+      "catch_rate_all": {
+       "k": 6,
+       "n": 6,
+       "rate": 1.0,
+       "wilson95": [
+        0.6096569663469354,
+        0.9999999999999999
+       ]
+      },
+      "outcomes_when_original_verified": {
+       "verified": 0,
+       "needs_review": 0,
+       "rejected": 0
+      }
+     }
+    },
+    "by_planted_value_in_quote": {
+     "False": {
+      "catch_rate": {
+       "k": 74,
+       "n": 74,
+       "rate": 1.0,
+       "wilson95": [
+        0.9506484964337834,
+        0.9999999999999998
+       ]
+      },
+      "catch_rate_all": {
+       "k": 89,
+       "n": 89,
+       "rate": 1.0,
+       "wilson95": [
+        0.9586219970358116,
+        1.0
+       ]
+      },
+      "outcomes_when_original_verified": {
+       "verified": 0,
+       "needs_review": 68,
+       "rejected": 6
+      }
+     },
+     "True": {
+      "catch_rate": {
+       "k": 0,
+       "n": 0,
+       "rate": null,
+       "wilson95": null
+      },
+      "catch_rate_all": {
+       "k": 3,
+       "n": 3,
+       "rate": 1.0,
+       "wilson95": [
+        0.43849391955098227,
+        1.0
+       ]
+      },
+      "outcomes_when_original_verified": {
+       "verified": 0,
+       "needs_review": 0,
+       "rejected": 0
+      }
+     }
+    },
+    "by_predicate": {
+     "lease.base_rent_schedule": {
+      "catch_rate": {
+       "k": 4,
+       "n": 4,
+       "rate": 1.0,
+       "wilson95": [
+        0.5100999795960008,
+        1.0
+       ]
+      },
+      "catch_rate_all": {
+       "k": 7,
+       "n": 7,
+       "rate": 1.0,
+       "wilson95": [
+        0.6456611570247934,
+        1.0
+       ]
+      },
+      "outcomes_when_original_verified": {
+       "verified": 0,
+       "needs_review": 4,
+       "rejected": 0
+      }
+     },
+     "lease.cam_cap": {
+      "catch_rate": {
+       "k": 3,
+       "n": 3,
+       "rate": 1.0,
+       "wilson95": [
+        0.43849391955098227,
+        1.0
+       ]
+      },
+      "catch_rate_all": {
+       "k": 3,
+       "n": 3,
+       "rate": 1.0,
+       "wilson95": [
+        0.43849391955098227,
+        1.0
+       ]
+      },
+      "outcomes_when_original_verified": {
+       "verified": 0,
+       "needs_review": 3,
+       "rejected": 0
+      }
+     },
+     "lease.commencement_date": {
+      "catch_rate": {
+       "k": 5,
+       "n": 5,
+       "rate": 1.0,
+       "wilson95": [
+        0.5655085052479191,
+        1.0
+       ]
+      },
+      "catch_rate_all": {
+       "k": 5,
+       "n": 5,
+       "rate": 1.0,
+       "wilson95": [
+        0.5655085052479191,
+        1.0
+       ]
+      },
+      "outcomes_when_original_verified": {
+       "verified": 0,
+       "needs_review": 5,
+       "rejected": 0
+      }
+     },
+     "lease.expiration_date": {
+      "catch_rate": {
+       "k": 7,
+       "n": 7,
+       "rate": 1.0,
+       "wilson95": [
+        0.6456611570247934,
+        1.0
+       ]
+      },
+      "catch_rate_all": {
+       "k": 7,
+       "n": 7,
+       "rate": 1.0,
+       "wilson95": [
+        0.6456611570247934,
+        1.0
+       ]
+      },
+      "outcomes_when_original_verified": {
+       "verified": 0,
+       "needs_review": 7,
+       "rejected": 0
+      }
+     },
+     "lease.free_rent": {
+      "catch_rate": {
+       "k": 2,
+       "n": 2,
+       "rate": 1.0,
+       "wilson95": [
+        0.34237195288961925,
+        1.0
+       ]
+      },
+      "catch_rate_all": {
+       "k": 5,
+       "n": 5,
+       "rate": 1.0,
+       "wilson95": [
+        0.5655085052479191,
+        1.0
+       ]
+      },
+      "outcomes_when_original_verified": {
+       "verified": 0,
+       "needs_review": 2,
+       "rejected": 0
+      }
+     },
+     "lease.operating_expense_base_year": {
+      "catch_rate": {
+       "k": 2,
+       "n": 2,
+       "rate": 1.0,
+       "wilson95": [
+        0.34237195288961925,
+        1.0
+       ]
+      },
+      "catch_rate_all": {
+       "k": 2,
+       "n": 2,
+       "rate": 1.0,
+       "wilson95": [
+        0.34237195288961925,
+        1.0
+       ]
+      },
+      "outcomes_when_original_verified": {
+       "verified": 0,
+       "needs_review": 0,
+       "rejected": 2
+      }
+     },
+     "lease.parking": {
+      "catch_rate": {
+       "k": 7,
+       "n": 7,
+       "rate": 1.0,
+       "wilson95": [
+        0.6456611570247934,
+        1.0
+       ]
+      },
+      "catch_rate_all": {
+       "k": 7,
+       "n": 7,
+       "rate": 1.0,
+       "wilson95": [
+        0.6456611570247934,
+        1.0
+       ]
+      },
+      "outcomes_when_original_verified": {
+       "verified": 0,
+       "needs_review": 7,
+       "rejected": 0
+      }
+     },
+     "lease.percentage_rent": {
+      "catch_rate": {
+       "k": 1,
+       "n": 1,
+       "rate": 1.0,
+       "wilson95": [
+        0.20654329147389294,
+        1.0
+       ]
+      },
+      "catch_rate_all": {
+       "k": 2,
+       "n": 2,
+       "rate": 1.0,
+       "wilson95": [
+        0.34237195288961925,
+        1.0
+       ]
+      },
+      "outcomes_when_original_verified": {
+       "verified": 0,
+       "needs_review": 1,
+       "rejected": 0
+      }
+     },
+     "lease.pro_rata_share": {
+      "catch_rate": {
+       "k": 13,
+       "n": 13,
+       "rate": 1.0,
+       "wilson95": [
+        0.7718981569447083,
+        1.0
+       ]
+      },
+      "catch_rate_all": {
+       "k": 15,
+       "n": 15,
+       "rate": 1.0,
+       "wilson95": [
+        0.7961107336956521,
+        1.0
+       ]
+      },
+      "outcomes_when_original_verified": {
+       "verified": 0,
+       "needs_review": 9,
+       "rejected": 4
+      }
+     },
+     "lease.renewal_option": {
+      "catch_rate": {
+       "k": 0,
+       "n": 0,
+       "rate": null,
+       "wilson95": null
+      },
+      "catch_rate_all": {
+       "k": 8,
+       "n": 8,
+       "rate": 1.0,
+       "wilson95": [
+        0.6755843804891231,
+        1.0
+       ]
+      },
+      "outcomes_when_original_verified": {
+       "verified": 0,
+       "needs_review": 0,
+       "rejected": 0
+      }
+     },
+     "lease.rentable_area_sf": {
+      "catch_rate": {
+       "k": 21,
+       "n": 21,
+       "rate": 1.0,
+       "wilson95": [
+        0.8453561767357979,
+        0.9999999999999999
+       ]
+      },
+      "catch_rate_all": {
+       "k": 21,
+       "n": 21,
+       "rate": 1.0,
+       "wilson95": [
+        0.8453561767357979,
+        0.9999999999999999
+       ]
+      },
+      "outcomes_when_original_verified": {
+       "verified": 0,
+       "needs_review": 21,
+       "rejected": 0
+      }
+     },
+     "lease.security_deposit": {
+      "catch_rate": {
+       "k": 9,
+       "n": 9,
+       "rate": 1.0,
+       "wilson95": [
+        0.7008472464490407,
+        1.0
+       ]
+      },
+      "catch_rate_all": {
+       "k": 10,
+       "n": 10,
+       "rate": 1.0,
+       "wilson95": [
+        0.7224598312333834,
+        1.0
+       ]
+      },
+      "outcomes_when_original_verified": {
+       "verified": 0,
+       "needs_review": 9,
+       "rejected": 0
+      }
+     }
+    }
+   }
+  },
+  "unlabeled": {
+   "verified": 2,
+   "needs_review": 2,
+   "rejected": 4
+  },
+  "summary_predicates": {
+   "verified": 13,
+   "needs_review": 0,
+   "rejected": 2
+  },
+  "precision_of_verified_unlabeled_as_wrong": {
+   "k": 95,
+   "n": 116,
+   "rate": 0.8189655172413793,
+   "wilson95": [
+    0.739047646396424,
+    0.8784340961704309
+   ]
+  },
+  "per_predicate": {
+   "lease.base_rent_schedule": {
+    "precision_of_verified": {
+     "k": 4,
+     "n": 4,
+     "rate": 1.0,
+     "wilson95": [
+      0.5100999795960008,
+      1.0
+     ]
+    },
+    "catch_rate": {
+     "k": 1,
+     "n": 1,
+     "rate": 1.0,
+     "wilson95": [
+      0.20654329147389294,
+      1.0
+     ]
+    },
+    "false_rejection_rate": {
+     "k": 3,
+     "n": 7,
+     "rate": 0.42857142857142855,
+     "wilson95": [
+      0.15821692226262685,
+      0.7495457695909742
+     ]
+    },
+    "false_rejection_needs_review": {
+     "k": 3,
+     "n": 7,
+     "rate": 0.42857142857142855,
+     "wilson95": [
+      0.15821692226262685,
+      0.7495457695909742
+     ]
+    },
+    "false_rejection_rejected": {
+     "k": 0,
+     "n": 7,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.35433884297520657
+     ]
+    },
+    "coverage": {
+     "k": 4,
+     "n": 10,
+     "rate": 0.4,
+     "wilson95": [
+      0.16817758120350967,
+      0.6873304525498135
+     ]
+    },
+    "counts": {
+     "correct_verified": 4,
+     "correct_needs_review": 3,
+     "correct_rejected": 0,
+     "wrong_verified": 0,
+     "wrong_needs_review": 1,
+     "wrong_rejected": 0,
+     "unlabeled": 3,
+     "summary": 0
+    },
+    "unlabeled": {
+     "verified": 0,
+     "needs_review": 1,
+     "rejected": 2
+    },
+    "labels": 10
+   },
+   "lease.cam_cap": {
+    "precision_of_verified": {
+     "k": 3,
+     "n": 3,
+     "rate": 1.0,
+     "wilson95": [
+      0.43849391955098227,
+      1.0
+     ]
+    },
+    "catch_rate": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "false_rejection_rate": {
+     "k": 0,
+     "n": 3,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.5615060804490177
+     ]
+    },
+    "false_rejection_needs_review": {
+     "k": 0,
+     "n": 3,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.5615060804490177
+     ]
+    },
+    "false_rejection_rejected": {
+     "k": 0,
+     "n": 3,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.5615060804490177
+     ]
+    },
+    "coverage": {
+     "k": 3,
+     "n": 4,
+     "rate": 0.75,
+     "wilson95": [
+      0.3006360524426366,
+      0.9544139373553637
+     ]
+    },
+    "counts": {
+     "correct_verified": 3,
+     "correct_needs_review": 0,
+     "correct_rejected": 0,
+     "wrong_verified": 0,
+     "wrong_needs_review": 0,
+     "wrong_rejected": 0,
+     "unlabeled": 0,
+     "summary": 0
+    },
+    "unlabeled": {
+     "verified": 0,
+     "needs_review": 0,
+     "rejected": 0
+    },
+    "labels": 4
+   },
+   "lease.co_tenancy": {
+    "precision_of_verified": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "catch_rate": {
+     "k": 1,
+     "n": 1,
+     "rate": 1.0,
+     "wilson95": [
+      0.20654329147389294,
+      1.0
+     ]
+    },
+    "false_rejection_rate": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "false_rejection_needs_review": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "false_rejection_rejected": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "coverage": {
+     "k": 0,
+     "n": 1,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.7934567085261071
+     ]
+    },
+    "counts": {
+     "correct_verified": 0,
+     "correct_needs_review": 0,
+     "correct_rejected": 0,
+     "wrong_verified": 0,
+     "wrong_needs_review": 1,
+     "wrong_rejected": 0,
+     "unlabeled": 0,
+     "summary": 0
+    },
+    "unlabeled": {
+     "verified": 0,
+     "needs_review": 0,
+     "rejected": 0
+    },
+    "labels": 1
+   },
+   "lease.commencement_date": {
+    "precision_of_verified": {
+     "k": 5,
+     "n": 5,
+     "rate": 1.0,
+     "wilson95": [
+      0.5655085052479191,
+      1.0
+     ]
+    },
+    "catch_rate": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "false_rejection_rate": {
+     "k": 0,
+     "n": 5,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.43449149475208104
+     ]
+    },
+    "false_rejection_needs_review": {
+     "k": 0,
+     "n": 5,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.43449149475208104
+     ]
+    },
+    "false_rejection_rejected": {
+     "k": 0,
+     "n": 5,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.43449149475208104
+     ]
+    },
+    "coverage": {
+     "k": 5,
+     "n": 5,
+     "rate": 1.0,
+     "wilson95": [
+      0.5655085052479191,
+      1.0
+     ]
+    },
+    "counts": {
+     "correct_verified": 5,
+     "correct_needs_review": 0,
+     "correct_rejected": 0,
+     "wrong_verified": 0,
+     "wrong_needs_review": 0,
+     "wrong_rejected": 0,
+     "unlabeled": 1,
+     "summary": 0
+    },
+    "unlabeled": {
+     "verified": 1,
+     "needs_review": 0,
+     "rejected": 0
+    },
+    "labels": 5
+   },
+   "lease.expiration_date": {
+    "precision_of_verified": {
+     "k": 7,
+     "n": 7,
+     "rate": 1.0,
+     "wilson95": [
+      0.6456611570247934,
+      1.0
+     ]
+    },
+    "catch_rate": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "false_rejection_rate": {
+     "k": 0,
+     "n": 7,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.35433884297520657
+     ]
+    },
+    "false_rejection_needs_review": {
+     "k": 0,
+     "n": 7,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.35433884297520657
+     ]
+    },
+    "false_rejection_rejected": {
+     "k": 0,
+     "n": 7,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.35433884297520657
+     ]
+    },
+    "coverage": {
+     "k": 7,
+     "n": 10,
+     "rate": 0.7,
+     "wilson95": [
+      0.39677321997956516,
+      0.892210712513788
+     ]
+    },
+    "counts": {
+     "correct_verified": 7,
+     "correct_needs_review": 0,
+     "correct_rejected": 0,
+     "wrong_verified": 0,
+     "wrong_needs_review": 0,
+     "wrong_rejected": 0,
+     "unlabeled": 0,
+     "summary": 0
+    },
+    "unlabeled": {
+     "verified": 0,
+     "needs_review": 0,
+     "rejected": 0
+    },
+    "labels": 10
+   },
+   "lease.free_rent": {
+    "precision_of_verified": {
+     "k": 2,
+     "n": 2,
+     "rate": 1.0,
+     "wilson95": [
+      0.34237195288961925,
+      1.0
+     ]
+    },
+    "catch_rate": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "false_rejection_rate": {
+     "k": 3,
+     "n": 5,
+     "rate": 0.6,
+     "wilson95": [
+      0.23071993220883708,
+      0.8823817688407467
+     ]
+    },
+    "false_rejection_needs_review": {
+     "k": 3,
+     "n": 5,
+     "rate": 0.6,
+     "wilson95": [
+      0.23071993220883708,
+      0.8823817688407467
+     ]
+    },
+    "false_rejection_rejected": {
+     "k": 0,
+     "n": 5,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.43449149475208104
+     ]
+    },
+    "coverage": {
+     "k": 2,
+     "n": 7,
+     "rate": 0.2857142857142857,
+     "wilson95": [
+      0.0822171657090155,
+      0.6410709098517873
+     ]
+    },
+    "counts": {
+     "correct_verified": 2,
+     "correct_needs_review": 3,
+     "correct_rejected": 0,
+     "wrong_verified": 0,
+     "wrong_needs_review": 0,
+     "wrong_rejected": 0,
+     "unlabeled": 1,
+     "summary": 0
+    },
+    "unlabeled": {
+     "verified": 1,
+     "needs_review": 0,
+     "rejected": 0
+    },
+    "labels": 7
+   },
+   "lease.guaranty": {
+    "precision_of_verified": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "catch_rate": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "false_rejection_rate": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "false_rejection_needs_review": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "false_rejection_rejected": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "coverage": {
+     "k": 0,
+     "n": 2,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.6576280471103807
+     ]
+    },
+    "counts": {
+     "correct_verified": 0,
+     "correct_needs_review": 0,
+     "correct_rejected": 0,
+     "wrong_verified": 0,
+     "wrong_needs_review": 0,
+     "wrong_rejected": 0,
+     "unlabeled": 0,
+     "summary": 0
+    },
+    "unlabeled": {
+     "verified": 0,
+     "needs_review": 0,
+     "rejected": 0
+    },
+    "labels": 2
+   },
+   "lease.landlord": {
+    "precision_of_verified": {
+     "k": 11,
+     "n": 20,
+     "rate": 0.55,
+     "wilson95": [
+      0.3420820083075997,
+      0.7418049791429071
+     ]
+    },
+    "catch_rate": {
+     "k": 0,
+     "n": 9,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.2991527535509594
+     ]
+    },
+    "false_rejection_rate": {
+     "k": 0,
+     "n": 11,
+     "rate": 0.0,
+     "wilson95": [
+      2.7755575615628914e-17,
+      0.2588400172488141
+     ]
+    },
+    "false_rejection_needs_review": {
+     "k": 0,
+     "n": 11,
+     "rate": 0.0,
+     "wilson95": [
+      2.7755575615628914e-17,
+      0.2588400172488141
+     ]
+    },
+    "false_rejection_rejected": {
+     "k": 0,
+     "n": 11,
+     "rate": 0.0,
+     "wilson95": [
+      2.7755575615628914e-17,
+      0.2588400172488141
+     ]
+    },
+    "coverage": {
+     "k": 9,
+     "n": 21,
+     "rate": 0.42857142857142855,
+     "wilson95": [
+      0.24469699486521043,
+      0.6345378370296754
+     ]
+    },
+    "counts": {
+     "correct_verified": 11,
+     "correct_needs_review": 0,
+     "correct_rejected": 0,
+     "wrong_verified": 9,
+     "wrong_needs_review": 0,
+     "wrong_rejected": 0,
+     "unlabeled": 0,
+     "summary": 0
+    },
+    "unlabeled": {
+     "verified": 0,
+     "needs_review": 0,
+     "rejected": 0
+    },
+    "labels": 21
+   },
+   "lease.operating_expense_base_year": {
+    "precision_of_verified": {
+     "k": 2,
+     "n": 2,
+     "rate": 1.0,
+     "wilson95": [
+      0.34237195288961925,
+      1.0
+     ]
+    },
+    "catch_rate": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "false_rejection_rate": {
+     "k": 0,
+     "n": 2,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.6576280471103807
+     ]
+    },
+    "false_rejection_needs_review": {
+     "k": 0,
+     "n": 2,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.6576280471103807
+     ]
+    },
+    "false_rejection_rejected": {
+     "k": 0,
+     "n": 2,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.6576280471103807
+     ]
+    },
+    "coverage": {
+     "k": 2,
+     "n": 2,
+     "rate": 1.0,
+     "wilson95": [
+      0.34237195288961925,
+      1.0
+     ]
+    },
+    "counts": {
+     "correct_verified": 2,
+     "correct_needs_review": 0,
+     "correct_rejected": 0,
+     "wrong_verified": 0,
+     "wrong_needs_review": 0,
+     "wrong_rejected": 0,
+     "unlabeled": 0,
+     "summary": 0
+    },
+    "unlabeled": {
+     "verified": 0,
+     "needs_review": 0,
+     "rejected": 0
+    },
+    "labels": 2
+   },
+   "lease.parking": {
+    "precision_of_verified": {
+     "k": 7,
+     "n": 8,
+     "rate": 0.875,
+     "wilson95": [
+      0.5291051942301386,
+      0.9775830911367038
+     ]
+    },
+    "catch_rate": {
+     "k": 0,
+     "n": 1,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.7934567085261071
+     ]
+    },
+    "false_rejection_rate": {
+     "k": 0,
+     "n": 7,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.35433884297520657
+     ]
+    },
+    "false_rejection_needs_review": {
+     "k": 0,
+     "n": 7,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.35433884297520657
+     ]
+    },
+    "false_rejection_rejected": {
+     "k": 0,
+     "n": 7,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.35433884297520657
+     ]
+    },
+    "coverage": {
+     "k": 7,
+     "n": 9,
+     "rate": 0.7777777777777778,
+     "wilson95": [
+      0.4525833436728054,
+      0.9367762376877727
+     ]
+    },
+    "counts": {
+     "correct_verified": 7,
+     "correct_needs_review": 0,
+     "correct_rejected": 0,
+     "wrong_verified": 1,
+     "wrong_needs_review": 0,
+     "wrong_rejected": 0,
+     "unlabeled": 0,
+     "summary": 0
+    },
+    "unlabeled": {
+     "verified": 0,
+     "needs_review": 0,
+     "rejected": 0
+    },
+    "labels": 9
+   },
+   "lease.percentage_rent": {
+    "precision_of_verified": {
+     "k": 1,
+     "n": 1,
+     "rate": 1.0,
+     "wilson95": [
+      0.20654329147389294,
+      1.0
+     ]
+    },
+    "catch_rate": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "false_rejection_rate": {
+     "k": 1,
+     "n": 2,
+     "rate": 0.5,
+     "wilson95": [
+      0.09452865480086614,
+      0.9054713451991339
+     ]
+    },
+    "false_rejection_needs_review": {
+     "k": 1,
+     "n": 2,
+     "rate": 0.5,
+     "wilson95": [
+      0.09452865480086614,
+      0.9054713451991339
+     ]
+    },
+    "false_rejection_rejected": {
+     "k": 0,
+     "n": 2,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.6576280471103807
+     ]
+    },
+    "coverage": {
+     "k": 1,
+     "n": 2,
+     "rate": 0.5,
+     "wilson95": [
+      0.09452865480086614,
+      0.9054713451991339
+     ]
+    },
+    "counts": {
+     "correct_verified": 1,
+     "correct_needs_review": 1,
+     "correct_rejected": 0,
+     "wrong_verified": 0,
+     "wrong_needs_review": 0,
+     "wrong_rejected": 0,
+     "unlabeled": 0,
+     "summary": 0
+    },
+    "unlabeled": {
+     "verified": 0,
+     "needs_review": 0,
+     "rejected": 0
+    },
+    "labels": 2
+   },
+   "lease.pro_rata_share": {
+    "precision_of_verified": {
+     "k": 13,
+     "n": 13,
+     "rate": 1.0,
+     "wilson95": [
+      0.7718981569447083,
+      1.0
+     ]
+    },
+    "catch_rate": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "false_rejection_rate": {
+     "k": 2,
+     "n": 15,
+     "rate": 0.13333333333333333,
+     "wilson95": [
+      0.0373604698913593,
+      0.3788249920651624
+     ]
+    },
+    "false_rejection_needs_review": {
+     "k": 0,
+     "n": 15,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.20388926630434784
+     ]
+    },
+    "false_rejection_rejected": {
+     "k": 2,
+     "n": 15,
+     "rate": 0.13333333333333333,
+     "wilson95": [
+      0.0373604698913593,
+      0.3788249920651624
+     ]
+    },
+    "coverage": {
+     "k": 12,
+     "n": 23,
+     "rate": 0.5217391304347826,
+     "wilson95": [
+      0.3296242986421849,
+      0.7076313046005427
+     ]
+    },
+    "counts": {
+     "correct_verified": 13,
+     "correct_needs_review": 0,
+     "correct_rejected": 2,
+     "wrong_verified": 0,
+     "wrong_needs_review": 0,
+     "wrong_rejected": 0,
+     "unlabeled": 0,
+     "summary": 0
+    },
+    "unlabeled": {
+     "verified": 0,
+     "needs_review": 0,
+     "rejected": 0
+    },
+    "labels": 23
+   },
+   "lease.renewal_option": {
+    "precision_of_verified": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "catch_rate": {
+     "k": 1,
+     "n": 1,
+     "rate": 1.0,
+     "wilson95": [
+      0.20654329147389294,
+      1.0
+     ]
+    },
+    "false_rejection_rate": {
+     "k": 8,
+     "n": 8,
+     "rate": 1.0,
+     "wilson95": [
+      0.6755843804891231,
+      1.0
+     ]
+    },
+    "false_rejection_needs_review": {
+     "k": 8,
+     "n": 8,
+     "rate": 1.0,
+     "wilson95": [
+      0.6755843804891231,
+      1.0
+     ]
+    },
+    "false_rejection_rejected": {
+     "k": 0,
+     "n": 8,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.3244156195108769
+     ]
+    },
+    "coverage": {
+     "k": 0,
+     "n": 14,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.21531701192718142
+     ]
+    },
+    "counts": {
+     "correct_verified": 0,
+     "correct_needs_review": 8,
+     "correct_rejected": 0,
+     "wrong_verified": 0,
+     "wrong_needs_review": 1,
+     "wrong_rejected": 0,
+     "unlabeled": 0,
+     "summary": 0
+    },
+    "unlabeled": {
+     "verified": 0,
+     "needs_review": 0,
+     "rejected": 0
+    },
+    "labels": 14
+   },
+   "lease.rent_commencement_date": {
+    "precision_of_verified": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "catch_rate": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "false_rejection_rate": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "false_rejection_needs_review": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "false_rejection_rejected": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "coverage": {
+     "k": 0,
+     "n": 2,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.6576280471103807
+     ]
+    },
+    "counts": {
+     "correct_verified": 0,
+     "correct_needs_review": 0,
+     "correct_rejected": 0,
+     "wrong_verified": 0,
+     "wrong_needs_review": 0,
+     "wrong_rejected": 0,
+     "unlabeled": 1,
+     "summary": 0
+    },
+    "unlabeled": {
+     "verified": 0,
+     "needs_review": 0,
+     "rejected": 1
+    },
+    "labels": 2
+   },
+   "lease.rentable_area_sf": {
+    "precision_of_verified": {
+     "k": 21,
+     "n": 21,
+     "rate": 1.0,
+     "wilson95": [
+      0.8453561767357979,
+      0.9999999999999999
+     ]
+    },
+    "catch_rate": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "false_rejection_rate": {
+     "k": 0,
+     "n": 21,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.15464382326420195
+     ]
+    },
+    "false_rejection_needs_review": {
+     "k": 0,
+     "n": 21,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.15464382326420195
+     ]
+    },
+    "false_rejection_rejected": {
+     "k": 0,
+     "n": 21,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.15464382326420195
+     ]
+    },
+    "coverage": {
+     "k": 20,
+     "n": 32,
+     "rate": 0.625,
+     "wilson95": [
+      0.45254100589525126,
+      0.7706633153404079
+     ]
+    },
+    "counts": {
+     "correct_verified": 21,
+     "correct_needs_review": 0,
+     "correct_rejected": 0,
+     "wrong_verified": 0,
+     "wrong_needs_review": 0,
+     "wrong_rejected": 0,
+     "unlabeled": 0,
+     "summary": 0
+    },
+    "unlabeled": {
+     "verified": 0,
+     "needs_review": 0,
+     "rejected": 0
+    },
+    "labels": 32
+   },
+   "lease.security_deposit": {
+    "precision_of_verified": {
+     "k": 9,
+     "n": 9,
+     "rate": 1.0,
+     "wilson95": [
+      0.7008472464490407,
+      1.0
+     ]
+    },
+    "catch_rate": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "false_rejection_rate": {
+     "k": 1,
+     "n": 10,
+     "rate": 0.1,
+     "wilson95": [
+      0.01787574951572113,
+      0.4041563854975721
+     ]
+    },
+    "false_rejection_needs_review": {
+     "k": 0,
+     "n": 10,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.2775401687666166
+     ]
+    },
+    "false_rejection_rejected": {
+     "k": 1,
+     "n": 10,
+     "rate": 0.1,
+     "wilson95": [
+      0.01787574951572113,
+      0.4041563854975721
+     ]
+    },
+    "coverage": {
+     "k": 9,
+     "n": 12,
+     "rate": 0.75,
+     "wilson95": [
+      0.46768966087934005,
+      0.9110599603710386
+     ]
+    },
+    "counts": {
+     "correct_verified": 9,
+     "correct_needs_review": 0,
+     "correct_rejected": 1,
+     "wrong_verified": 0,
+     "wrong_needs_review": 0,
+     "wrong_rejected": 0,
+     "unlabeled": 1,
+     "summary": 0
+    },
+    "unlabeled": {
+     "verified": 0,
+     "needs_review": 0,
+     "rejected": 1
+    },
+    "labels": 12
+   },
+   "lease.tenant": {
+    "precision_of_verified": {
+     "k": 10,
+     "n": 19,
+     "rate": 0.5263157894736842,
+     "wilson95": [
+      0.31707482511825114,
+      0.7267049451255145
+     ]
+    },
+    "catch_rate": {
+     "k": 0,
+     "n": 9,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.2991527535509594
+     ]
+    },
+    "false_rejection_rate": {
+     "k": 0,
+     "n": 10,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.2775401687666166
+     ]
+    },
+    "false_rejection_needs_review": {
+     "k": 0,
+     "n": 10,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.2775401687666166
+     ]
+    },
+    "false_rejection_rejected": {
+     "k": 0,
+     "n": 10,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.2775401687666166
+     ]
+    },
+    "coverage": {
+     "k": 9,
+     "n": 20,
+     "rate": 0.45,
+     "wilson95": [
+      0.25819502085709295,
+      0.6579179916924003
+     ]
+    },
+    "counts": {
+     "correct_verified": 10,
+     "correct_needs_review": 0,
+     "correct_rejected": 0,
+     "wrong_verified": 9,
+     "wrong_needs_review": 0,
+     "wrong_rejected": 0,
+     "unlabeled": 0,
+     "summary": 0
+    },
+    "unlabeled": {
+     "verified": 0,
+     "needs_review": 0,
+     "rejected": 0
+    },
+    "labels": 20
+   },
+   "lease.termination_option": {
+    "precision_of_verified": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "catch_rate": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "false_rejection_rate": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "false_rejection_needs_review": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "false_rejection_rejected": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "coverage": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "counts": {
+     "correct_verified": 0,
+     "correct_needs_review": 0,
+     "correct_rejected": 0,
+     "wrong_verified": 0,
+     "wrong_needs_review": 0,
+     "wrong_rejected": 0,
+     "unlabeled": 1,
+     "summary": 0
+    },
+    "unlabeled": {
+     "verified": 0,
+     "needs_review": 1,
+     "rejected": 0
+    },
+    "labels": 0
+   }
+  },
+  "label_stats": {
+   "labels": 206,
+   "summary_labels": 23,
+   "per_document": {
+    "L01": 10,
+    "L02": 25,
+    "L03": 11,
+    "L04": 12,
+    "L05": 7,
+    "L06": 12,
+    "L07": 9,
+    "L08": 13,
+    "L09": 9,
+    "L10": 11,
+    "L11": 9,
+    "L12": 7,
+    "L13": 6,
+    "L14": 11,
+    "L15": 11,
+    "L16": 10,
+    "L17": 11,
+    "L18": 8,
+    "L19": 6,
+    "L20": 8
+   },
+   "self_check": {
+    "verified": 175,
+    "needs_review": 31,
+    "rejected": 0
+   },
+   "self_check_needs_review_by_predicate": {
+    "lease.parking": 3,
+    "lease.free_rent": 4,
+    "lease.base_rent_schedule": 6,
+    "lease.renewal_option": 14,
+    "lease.expiration_date": 1,
+    "lease.percentage_rent": 2,
+    "lease.co_tenancy": 1
+   },
+   "security_deposit_letter_of_credit": [
+    "L03",
+    "L06",
+    "L09",
+    "L10",
+    "L14"
+   ]
+  },
+  "data": {
+   "documents": 20,
+   "property_type": {
+    "office": 8,
+    "industrial": 7,
+    "retail": 5,
+    "other": 0
+   },
+   "doc_kind": {
+    "lease": 15,
+    "amendment": 5
+   },
+   "forms": [
+    "10-K",
+    "10-Q",
+    "8-K"
+   ],
+   "filing_dates": [
+    "2018-02-23",
+    "2025-05-08"
+   ],
+   "pages_total": 896,
+   "pages_range": [
+    5,
+    83
+   ],
+   "candidates_per_document": {
+    "L01": 8,
+    "L02": 12,
+    "L03": 9,
+    "L04": 8,
+    "L05": 5,
+    "L06": 10,
+    "L07": 6,
+    "L08": 10,
+    "L09": 8,
+    "L10": 10,
+    "L11": 0,
+    "L12": 7,
+    "L13": 0,
+    "L14": 12,
+    "L15": 8,
+    "L16": 13,
+    "L17": 6,
+    "L18": 14,
+    "L19": 5,
+    "L20": 7
+   },
+   "skipped_hits": 56
+  }
+ },
+ "sensitivity_party_name_descriptor_stripped": {
+  "note": "Post-hoc, not in PLAN.md: lease.landlord, lease.tenant and the guaranty guarantor match after dropping a trailing ', a <jurisdiction> <entity type>' descriptor on both sides.",
+  "candidates": 158,
+  "by_kind": {
+   "correct": 131,
+   "wrong": 4,
+   "unlabeled": 8,
+   "summary": 15
+  },
+  "precision_of_verified": {
+   "k": 113,
+   "n": 114,
+   "rate": 0.9912280701754386,
+   "wilson95": [
+    0.9519784746833306,
+    0.9984498969613178
+   ]
+  },
+  "catch_rate": {
+   "k": 3,
+   "n": 4,
+   "rate": 0.75,
+   "wilson95": [
+    0.3006360524426366,
+    0.9544139373553637
+   ]
+  },
+  "false_rejection_rate": {
+   "k": 18,
+   "n": 131,
+   "rate": 0.13740458015267176,
+   "wilson95": [
+    0.08871409846626482,
+    0.20675554888292114
+   ]
+  },
+  "false_rejection_needs_review": {
+   "k": 15,
+   "n": 131,
+   "rate": 0.11450381679389313,
+   "wilson95": [
+    0.07062969120142457,
+    0.18034330229613102
+   ]
+  },
+  "false_rejection_rejected": {
+   "k": 3,
+   "n": 131,
+   "rate": 0.022900763358778626,
+   "wilson95": [
+    0.007818301484185438,
+    0.06516807660684877
+   ]
+  },
+  "coverage": {
+   "k": 108,
+   "n": 176,
+   "rate": 0.6136363636363636,
+   "wilson95": [
+    0.5400028827223404,
+    0.6824150672958977
+   ]
+  },
+  "counts": {
+   "correct_verified": 113,
+   "correct_needs_review": 15,
+   "correct_rejected": 3,
+   "wrong_verified": 1,
+   "wrong_needs_review": 3,
+   "wrong_rejected": 0,
+   "unlabeled": 8,
+   "summary": 15
+  },
+  "false_rejection_split": {
+   "needs_review": 15,
+   "rejected": 3
+  },
+  "wrong_split": {
+   "verified": 1,
+   "needs_review": 3,
+   "rejected": 0
+  },
+  "coverage_detail": {
+   "verified_match": 108,
+   "proposed_correct_not_verified": 18,
+   "proposed_other_value_only": 18,
+   "not_proposed": 32,
+   "in_documents_with_no_candidates": 13
+  },
+  "coverage_without_empty_documents": {
+   "k": 108,
+   "n": 163,
+   "rate": 0.6625766871165644,
+   "wilson95": [
+    0.5869877471283148,
+    0.7306788300322974
+   ]
+  },
+  "unlabeled": {
+   "verified": 2,
+   "needs_review": 2,
+   "rejected": 4
+  },
+  "summary_predicates": {
+   "verified": 13,
+   "needs_review": 0,
+   "rejected": 2
+  },
+  "precision_of_verified_unlabeled_as_wrong": {
+   "k": 113,
+   "n": 116,
+   "rate": 0.9741379310344828,
+   "wilson95": [
+    0.9267119938162736,
+    0.9911662721614838
+   ]
+  },
+  "per_predicate": {
+   "lease.base_rent_schedule": {
+    "precision_of_verified": {
+     "k": 4,
+     "n": 4,
+     "rate": 1.0,
+     "wilson95": [
+      0.5100999795960008,
+      1.0
+     ]
+    },
+    "catch_rate": {
+     "k": 1,
+     "n": 1,
+     "rate": 1.0,
+     "wilson95": [
+      0.20654329147389294,
+      1.0
+     ]
+    },
+    "false_rejection_rate": {
+     "k": 3,
+     "n": 7,
+     "rate": 0.42857142857142855,
+     "wilson95": [
+      0.15821692226262685,
+      0.7495457695909742
+     ]
+    },
+    "false_rejection_needs_review": {
+     "k": 3,
+     "n": 7,
+     "rate": 0.42857142857142855,
+     "wilson95": [
+      0.15821692226262685,
+      0.7495457695909742
+     ]
+    },
+    "false_rejection_rejected": {
+     "k": 0,
+     "n": 7,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.35433884297520657
+     ]
+    },
+    "coverage": {
+     "k": 4,
+     "n": 10,
+     "rate": 0.4,
+     "wilson95": [
+      0.16817758120350967,
+      0.6873304525498135
+     ]
+    },
+    "counts": {
+     "correct_verified": 4,
+     "correct_needs_review": 3,
+     "correct_rejected": 0,
+     "wrong_verified": 0,
+     "wrong_needs_review": 1,
+     "wrong_rejected": 0,
+     "unlabeled": 3,
+     "summary": 0
+    },
+    "unlabeled": {
+     "verified": 0,
+     "needs_review": 1,
+     "rejected": 2
+    },
+    "labels": 10
+   },
+   "lease.cam_cap": {
+    "precision_of_verified": {
+     "k": 3,
+     "n": 3,
+     "rate": 1.0,
+     "wilson95": [
+      0.43849391955098227,
+      1.0
+     ]
+    },
+    "catch_rate": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "false_rejection_rate": {
+     "k": 0,
+     "n": 3,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.5615060804490177
+     ]
+    },
+    "false_rejection_needs_review": {
+     "k": 0,
+     "n": 3,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.5615060804490177
+     ]
+    },
+    "false_rejection_rejected": {
+     "k": 0,
+     "n": 3,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.5615060804490177
+     ]
+    },
+    "coverage": {
+     "k": 3,
+     "n": 4,
+     "rate": 0.75,
+     "wilson95": [
+      0.3006360524426366,
+      0.9544139373553637
+     ]
+    },
+    "counts": {
+     "correct_verified": 3,
+     "correct_needs_review": 0,
+     "correct_rejected": 0,
+     "wrong_verified": 0,
+     "wrong_needs_review": 0,
+     "wrong_rejected": 0,
+     "unlabeled": 0,
+     "summary": 0
+    },
+    "unlabeled": {
+     "verified": 0,
+     "needs_review": 0,
+     "rejected": 0
+    },
+    "labels": 4
+   },
+   "lease.co_tenancy": {
+    "precision_of_verified": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "catch_rate": {
+     "k": 1,
+     "n": 1,
+     "rate": 1.0,
+     "wilson95": [
+      0.20654329147389294,
+      1.0
+     ]
+    },
+    "false_rejection_rate": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "false_rejection_needs_review": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "false_rejection_rejected": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "coverage": {
+     "k": 0,
+     "n": 1,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.7934567085261071
+     ]
+    },
+    "counts": {
+     "correct_verified": 0,
+     "correct_needs_review": 0,
+     "correct_rejected": 0,
+     "wrong_verified": 0,
+     "wrong_needs_review": 1,
+     "wrong_rejected": 0,
+     "unlabeled": 0,
+     "summary": 0
+    },
+    "unlabeled": {
+     "verified": 0,
+     "needs_review": 0,
+     "rejected": 0
+    },
+    "labels": 1
+   },
+   "lease.commencement_date": {
+    "precision_of_verified": {
+     "k": 5,
+     "n": 5,
+     "rate": 1.0,
+     "wilson95": [
+      0.5655085052479191,
+      1.0
+     ]
+    },
+    "catch_rate": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "false_rejection_rate": {
+     "k": 0,
+     "n": 5,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.43449149475208104
+     ]
+    },
+    "false_rejection_needs_review": {
+     "k": 0,
+     "n": 5,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.43449149475208104
+     ]
+    },
+    "false_rejection_rejected": {
+     "k": 0,
+     "n": 5,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.43449149475208104
+     ]
+    },
+    "coverage": {
+     "k": 5,
+     "n": 5,
+     "rate": 1.0,
+     "wilson95": [
+      0.5655085052479191,
+      1.0
+     ]
+    },
+    "counts": {
+     "correct_verified": 5,
+     "correct_needs_review": 0,
+     "correct_rejected": 0,
+     "wrong_verified": 0,
+     "wrong_needs_review": 0,
+     "wrong_rejected": 0,
+     "unlabeled": 1,
+     "summary": 0
+    },
+    "unlabeled": {
+     "verified": 1,
+     "needs_review": 0,
+     "rejected": 0
+    },
+    "labels": 5
+   },
+   "lease.expiration_date": {
+    "precision_of_verified": {
+     "k": 7,
+     "n": 7,
+     "rate": 1.0,
+     "wilson95": [
+      0.6456611570247934,
+      1.0
+     ]
+    },
+    "catch_rate": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "false_rejection_rate": {
+     "k": 0,
+     "n": 7,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.35433884297520657
+     ]
+    },
+    "false_rejection_needs_review": {
+     "k": 0,
+     "n": 7,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.35433884297520657
+     ]
+    },
+    "false_rejection_rejected": {
+     "k": 0,
+     "n": 7,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.35433884297520657
+     ]
+    },
+    "coverage": {
+     "k": 7,
+     "n": 10,
+     "rate": 0.7,
+     "wilson95": [
+      0.39677321997956516,
+      0.892210712513788
+     ]
+    },
+    "counts": {
+     "correct_verified": 7,
+     "correct_needs_review": 0,
+     "correct_rejected": 0,
+     "wrong_verified": 0,
+     "wrong_needs_review": 0,
+     "wrong_rejected": 0,
+     "unlabeled": 0,
+     "summary": 0
+    },
+    "unlabeled": {
+     "verified": 0,
+     "needs_review": 0,
+     "rejected": 0
+    },
+    "labels": 10
+   },
+   "lease.free_rent": {
+    "precision_of_verified": {
+     "k": 2,
+     "n": 2,
+     "rate": 1.0,
+     "wilson95": [
+      0.34237195288961925,
+      1.0
+     ]
+    },
+    "catch_rate": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "false_rejection_rate": {
+     "k": 3,
+     "n": 5,
+     "rate": 0.6,
+     "wilson95": [
+      0.23071993220883708,
+      0.8823817688407467
+     ]
+    },
+    "false_rejection_needs_review": {
+     "k": 3,
+     "n": 5,
+     "rate": 0.6,
+     "wilson95": [
+      0.23071993220883708,
+      0.8823817688407467
+     ]
+    },
+    "false_rejection_rejected": {
+     "k": 0,
+     "n": 5,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.43449149475208104
+     ]
+    },
+    "coverage": {
+     "k": 2,
+     "n": 7,
+     "rate": 0.2857142857142857,
+     "wilson95": [
+      0.0822171657090155,
+      0.6410709098517873
+     ]
+    },
+    "counts": {
+     "correct_verified": 2,
+     "correct_needs_review": 3,
+     "correct_rejected": 0,
+     "wrong_verified": 0,
+     "wrong_needs_review": 0,
+     "wrong_rejected": 0,
+     "unlabeled": 1,
+     "summary": 0
+    },
+    "unlabeled": {
+     "verified": 1,
+     "needs_review": 0,
+     "rejected": 0
+    },
+    "labels": 7
+   },
+   "lease.guaranty": {
+    "precision_of_verified": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "catch_rate": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "false_rejection_rate": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "false_rejection_needs_review": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "false_rejection_rejected": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "coverage": {
+     "k": 0,
+     "n": 2,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.6576280471103807
+     ]
+    },
+    "counts": {
+     "correct_verified": 0,
+     "correct_needs_review": 0,
+     "correct_rejected": 0,
+     "wrong_verified": 0,
+     "wrong_needs_review": 0,
+     "wrong_rejected": 0,
+     "unlabeled": 0,
+     "summary": 0
+    },
+    "unlabeled": {
+     "verified": 0,
+     "needs_review": 0,
+     "rejected": 0
+    },
+    "labels": 2
+   },
+   "lease.landlord": {
+    "precision_of_verified": {
+     "k": 20,
+     "n": 20,
+     "rate": 1.0,
+     "wilson95": [
+      0.8388698745050667,
+      1.0
+     ]
+    },
+    "catch_rate": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "false_rejection_rate": {
+     "k": 0,
+     "n": 20,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.16113012549493322
+     ]
+    },
+    "false_rejection_needs_review": {
+     "k": 0,
+     "n": 20,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.16113012549493322
+     ]
+    },
+    "false_rejection_rejected": {
+     "k": 0,
+     "n": 20,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.16113012549493322
+     ]
+    },
+    "coverage": {
+     "k": 18,
+     "n": 21,
+     "rate": 0.8571428571428571,
+     "wilson95": [
+      0.6536350585077049,
+      0.950190782017865
+     ]
+    },
+    "counts": {
+     "correct_verified": 20,
+     "correct_needs_review": 0,
+     "correct_rejected": 0,
+     "wrong_verified": 0,
+     "wrong_needs_review": 0,
+     "wrong_rejected": 0,
+     "unlabeled": 0,
+     "summary": 0
+    },
+    "unlabeled": {
+     "verified": 0,
+     "needs_review": 0,
+     "rejected": 0
+    },
+    "labels": 21
+   },
+   "lease.operating_expense_base_year": {
+    "precision_of_verified": {
+     "k": 2,
+     "n": 2,
+     "rate": 1.0,
+     "wilson95": [
+      0.34237195288961925,
+      1.0
+     ]
+    },
+    "catch_rate": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "false_rejection_rate": {
+     "k": 0,
+     "n": 2,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.6576280471103807
+     ]
+    },
+    "false_rejection_needs_review": {
+     "k": 0,
+     "n": 2,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.6576280471103807
+     ]
+    },
+    "false_rejection_rejected": {
+     "k": 0,
+     "n": 2,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.6576280471103807
+     ]
+    },
+    "coverage": {
+     "k": 2,
+     "n": 2,
+     "rate": 1.0,
+     "wilson95": [
+      0.34237195288961925,
+      1.0
+     ]
+    },
+    "counts": {
+     "correct_verified": 2,
+     "correct_needs_review": 0,
+     "correct_rejected": 0,
+     "wrong_verified": 0,
+     "wrong_needs_review": 0,
+     "wrong_rejected": 0,
+     "unlabeled": 0,
+     "summary": 0
+    },
+    "unlabeled": {
+     "verified": 0,
+     "needs_review": 0,
+     "rejected": 0
+    },
+    "labels": 2
+   },
+   "lease.parking": {
+    "precision_of_verified": {
+     "k": 7,
+     "n": 8,
+     "rate": 0.875,
+     "wilson95": [
+      0.5291051942301386,
+      0.9775830911367038
+     ]
+    },
+    "catch_rate": {
+     "k": 0,
+     "n": 1,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.7934567085261071
+     ]
+    },
+    "false_rejection_rate": {
+     "k": 0,
+     "n": 7,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.35433884297520657
+     ]
+    },
+    "false_rejection_needs_review": {
+     "k": 0,
+     "n": 7,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.35433884297520657
+     ]
+    },
+    "false_rejection_rejected": {
+     "k": 0,
+     "n": 7,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.35433884297520657
+     ]
+    },
+    "coverage": {
+     "k": 7,
+     "n": 9,
+     "rate": 0.7777777777777778,
+     "wilson95": [
+      0.4525833436728054,
+      0.9367762376877727
+     ]
+    },
+    "counts": {
+     "correct_verified": 7,
+     "correct_needs_review": 0,
+     "correct_rejected": 0,
+     "wrong_verified": 1,
+     "wrong_needs_review": 0,
+     "wrong_rejected": 0,
+     "unlabeled": 0,
+     "summary": 0
+    },
+    "unlabeled": {
+     "verified": 0,
+     "needs_review": 0,
+     "rejected": 0
+    },
+    "labels": 9
+   },
+   "lease.percentage_rent": {
+    "precision_of_verified": {
+     "k": 1,
+     "n": 1,
+     "rate": 1.0,
+     "wilson95": [
+      0.20654329147389294,
+      1.0
+     ]
+    },
+    "catch_rate": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "false_rejection_rate": {
+     "k": 1,
+     "n": 2,
+     "rate": 0.5,
+     "wilson95": [
+      0.09452865480086614,
+      0.9054713451991339
+     ]
+    },
+    "false_rejection_needs_review": {
+     "k": 1,
+     "n": 2,
+     "rate": 0.5,
+     "wilson95": [
+      0.09452865480086614,
+      0.9054713451991339
+     ]
+    },
+    "false_rejection_rejected": {
+     "k": 0,
+     "n": 2,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.6576280471103807
+     ]
+    },
+    "coverage": {
+     "k": 1,
+     "n": 2,
+     "rate": 0.5,
+     "wilson95": [
+      0.09452865480086614,
+      0.9054713451991339
+     ]
+    },
+    "counts": {
+     "correct_verified": 1,
+     "correct_needs_review": 1,
+     "correct_rejected": 0,
+     "wrong_verified": 0,
+     "wrong_needs_review": 0,
+     "wrong_rejected": 0,
+     "unlabeled": 0,
+     "summary": 0
+    },
+    "unlabeled": {
+     "verified": 0,
+     "needs_review": 0,
+     "rejected": 0
+    },
+    "labels": 2
+   },
+   "lease.pro_rata_share": {
+    "precision_of_verified": {
+     "k": 13,
+     "n": 13,
+     "rate": 1.0,
+     "wilson95": [
+      0.7718981569447083,
+      1.0
+     ]
+    },
+    "catch_rate": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "false_rejection_rate": {
+     "k": 2,
+     "n": 15,
+     "rate": 0.13333333333333333,
+     "wilson95": [
+      0.0373604698913593,
+      0.3788249920651624
+     ]
+    },
+    "false_rejection_needs_review": {
+     "k": 0,
+     "n": 15,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.20388926630434784
+     ]
+    },
+    "false_rejection_rejected": {
+     "k": 2,
+     "n": 15,
+     "rate": 0.13333333333333333,
+     "wilson95": [
+      0.0373604698913593,
+      0.3788249920651624
+     ]
+    },
+    "coverage": {
+     "k": 12,
+     "n": 23,
+     "rate": 0.5217391304347826,
+     "wilson95": [
+      0.3296242986421849,
+      0.7076313046005427
+     ]
+    },
+    "counts": {
+     "correct_verified": 13,
+     "correct_needs_review": 0,
+     "correct_rejected": 2,
+     "wrong_verified": 0,
+     "wrong_needs_review": 0,
+     "wrong_rejected": 0,
+     "unlabeled": 0,
+     "summary": 0
+    },
+    "unlabeled": {
+     "verified": 0,
+     "needs_review": 0,
+     "rejected": 0
+    },
+    "labels": 23
+   },
+   "lease.renewal_option": {
+    "precision_of_verified": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "catch_rate": {
+     "k": 1,
+     "n": 1,
+     "rate": 1.0,
+     "wilson95": [
+      0.20654329147389294,
+      1.0
+     ]
+    },
+    "false_rejection_rate": {
+     "k": 8,
+     "n": 8,
+     "rate": 1.0,
+     "wilson95": [
+      0.6755843804891231,
+      1.0
+     ]
+    },
+    "false_rejection_needs_review": {
+     "k": 8,
+     "n": 8,
+     "rate": 1.0,
+     "wilson95": [
+      0.6755843804891231,
+      1.0
+     ]
+    },
+    "false_rejection_rejected": {
+     "k": 0,
+     "n": 8,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.3244156195108769
+     ]
+    },
+    "coverage": {
+     "k": 0,
+     "n": 14,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.21531701192718142
+     ]
+    },
+    "counts": {
+     "correct_verified": 0,
+     "correct_needs_review": 8,
+     "correct_rejected": 0,
+     "wrong_verified": 0,
+     "wrong_needs_review": 1,
+     "wrong_rejected": 0,
+     "unlabeled": 0,
+     "summary": 0
+    },
+    "unlabeled": {
+     "verified": 0,
+     "needs_review": 0,
+     "rejected": 0
+    },
+    "labels": 14
+   },
+   "lease.rent_commencement_date": {
+    "precision_of_verified": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "catch_rate": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "false_rejection_rate": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "false_rejection_needs_review": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "false_rejection_rejected": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "coverage": {
+     "k": 0,
+     "n": 2,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.6576280471103807
+     ]
+    },
+    "counts": {
+     "correct_verified": 0,
+     "correct_needs_review": 0,
+     "correct_rejected": 0,
+     "wrong_verified": 0,
+     "wrong_needs_review": 0,
+     "wrong_rejected": 0,
+     "unlabeled": 1,
+     "summary": 0
+    },
+    "unlabeled": {
+     "verified": 0,
+     "needs_review": 0,
+     "rejected": 1
+    },
+    "labels": 2
+   },
+   "lease.rentable_area_sf": {
+    "precision_of_verified": {
+     "k": 21,
+     "n": 21,
+     "rate": 1.0,
+     "wilson95": [
+      0.8453561767357979,
+      0.9999999999999999
+     ]
+    },
+    "catch_rate": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "false_rejection_rate": {
+     "k": 0,
+     "n": 21,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.15464382326420195
+     ]
+    },
+    "false_rejection_needs_review": {
+     "k": 0,
+     "n": 21,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.15464382326420195
+     ]
+    },
+    "false_rejection_rejected": {
+     "k": 0,
+     "n": 21,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.15464382326420195
+     ]
+    },
+    "coverage": {
+     "k": 20,
+     "n": 32,
+     "rate": 0.625,
+     "wilson95": [
+      0.45254100589525126,
+      0.7706633153404079
+     ]
+    },
+    "counts": {
+     "correct_verified": 21,
+     "correct_needs_review": 0,
+     "correct_rejected": 0,
+     "wrong_verified": 0,
+     "wrong_needs_review": 0,
+     "wrong_rejected": 0,
+     "unlabeled": 0,
+     "summary": 0
+    },
+    "unlabeled": {
+     "verified": 0,
+     "needs_review": 0,
+     "rejected": 0
+    },
+    "labels": 32
+   },
+   "lease.security_deposit": {
+    "precision_of_verified": {
+     "k": 9,
+     "n": 9,
+     "rate": 1.0,
+     "wilson95": [
+      0.7008472464490407,
+      1.0
+     ]
+    },
+    "catch_rate": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "false_rejection_rate": {
+     "k": 1,
+     "n": 10,
+     "rate": 0.1,
+     "wilson95": [
+      0.01787574951572113,
+      0.4041563854975721
+     ]
+    },
+    "false_rejection_needs_review": {
+     "k": 0,
+     "n": 10,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.2775401687666166
+     ]
+    },
+    "false_rejection_rejected": {
+     "k": 1,
+     "n": 10,
+     "rate": 0.1,
+     "wilson95": [
+      0.01787574951572113,
+      0.4041563854975721
+     ]
+    },
+    "coverage": {
+     "k": 9,
+     "n": 12,
+     "rate": 0.75,
+     "wilson95": [
+      0.46768966087934005,
+      0.9110599603710386
+     ]
+    },
+    "counts": {
+     "correct_verified": 9,
+     "correct_needs_review": 0,
+     "correct_rejected": 1,
+     "wrong_verified": 0,
+     "wrong_needs_review": 0,
+     "wrong_rejected": 0,
+     "unlabeled": 1,
+     "summary": 0
+    },
+    "unlabeled": {
+     "verified": 0,
+     "needs_review": 0,
+     "rejected": 1
+    },
+    "labels": 12
+   },
+   "lease.tenant": {
+    "precision_of_verified": {
+     "k": 19,
+     "n": 19,
+     "rate": 1.0,
+     "wilson95": [
+      0.8318156346315496,
+      1.0
+     ]
+    },
+    "catch_rate": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "false_rejection_rate": {
+     "k": 0,
+     "n": 19,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.16818436536845052
+     ]
+    },
+    "false_rejection_needs_review": {
+     "k": 0,
+     "n": 19,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.16818436536845052
+     ]
+    },
+    "false_rejection_rejected": {
+     "k": 0,
+     "n": 19,
+     "rate": 0.0,
+     "wilson95": [
+      0.0,
+      0.16818436536845052
+     ]
+    },
+    "coverage": {
+     "k": 18,
+     "n": 20,
+     "rate": 0.9,
+     "wilson95": [
+      0.6989617935882066,
+      0.9721341060158468
+     ]
+    },
+    "counts": {
+     "correct_verified": 19,
+     "correct_needs_review": 0,
+     "correct_rejected": 0,
+     "wrong_verified": 0,
+     "wrong_needs_review": 0,
+     "wrong_rejected": 0,
+     "unlabeled": 0,
+     "summary": 0
+    },
+    "unlabeled": {
+     "verified": 0,
+     "needs_review": 0,
+     "rejected": 0
+    },
+    "labels": 20
+   },
+   "lease.termination_option": {
+    "precision_of_verified": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "catch_rate": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "false_rejection_rate": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "false_rejection_needs_review": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "false_rejection_rejected": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "coverage": {
+     "k": 0,
+     "n": 0,
+     "rate": null,
+     "wilson95": null
+    },
+    "counts": {
+     "correct_verified": 0,
+     "correct_needs_review": 0,
+     "correct_rejected": 0,
+     "wrong_verified": 0,
+     "wrong_needs_review": 0,
+     "wrong_rejected": 0,
+     "unlabeled": 1,
+     "summary": 0
+    },
+    "unlabeled": {
+     "verified": 0,
+     "needs_review": 1,
+     "rejected": 0
+    },
+    "labels": 0
+   }
+  }
+ }
+}

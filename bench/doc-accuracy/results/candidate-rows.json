@@ -1,0 +1,2064 @@
+{
+ "_meta": {
+  "step": "score",
+  "command": "python3 bench/doc-accuracy/run.py score",
+  "repo_head": "5c4cf1a22e2d016921927b841f79ae1733156c9a",
+  "worktree_dirty": false,
+  "factlot_version": "0.2.0",
+  "factlot_src_commit": "e2c5e63bb11dcf20415cefe9c538450feedb28d7",
+  "as_of": "2026-11-03",
+  "labels_frozen_at": "a978b85766f5c7e911fc9fe2175dbea0289079a1",
+  "python": "3.13.5",
+  "verify_meta": {
+   "step": "verify",
+   "command": "python3 bench/doc-accuracy/run.py verify",
+   "repo_head": "5c4cf1a22e2d016921927b841f79ae1733156c9a",
+   "worktree_dirty": false,
+   "factlot_version": "0.2.0",
+   "factlot_src_commit": "e2c5e63bb11dcf20415cefe9c538450feedb28d7",
+   "as_of": "2026-11-03",
+   "labels_frozen_at": "a978b85766f5c7e911fc9fe2175dbea0289079a1",
+   "python": "3.13.5"
+  },
+  "planted_meta": {
+   "value": {
+    "step": "plant",
+    "command": "python3 bench/doc-accuracy/run.py plant --seed 20261103",
+    "repo_head": "5c4cf1a22e2d016921927b841f79ae1733156c9a",
+    "worktree_dirty": false,
+    "factlot_version": "0.2.0",
+    "factlot_src_commit": "e2c5e63bb11dcf20415cefe9c538450feedb28d7",
+    "as_of": "2026-11-03",
+    "labels_frozen_at": "a978b85766f5c7e911fc9fe2175dbea0289079a1",
+    "python": "3.13.5",
+    "rule": "PLAN.md section 9 (deterministic; no seed)"
+   },
+   "quote_digit": {
+    "step": "plant",
+    "command": "python3 bench/doc-accuracy/run.py plant --seed 20261103",
+    "repo_head": "5c4cf1a22e2d016921927b841f79ae1733156c9a",
+    "worktree_dirty": false,
+    "factlot_version": "0.2.0",
+    "factlot_src_commit": "e2c5e63bb11dcf20415cefe9c538450feedb28d7",
+    "as_of": "2026-11-03",
+    "labels_frozen_at": "a978b85766f5c7e911fc9fe2175dbea0289079a1",
+    "python": "3.13.5",
+    "seed": 20261103,
+    "rule": "one digit of one number in the quote changes; value unchanged; random.Random(f'{seed}:{doc}:{candidate}') picks the number, the digit and the new digit"
+   }
+  },
+  "documents_with_verifier_error": {},
+  "documents_with_no_candidates": [
+   "L11",
+   "L13"
+  ]
+ },
+ "rows": [
+  {
+   "doc": "L01",
+   "predicate": "lease.landlord",
+   "kind": "wrong",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L01",
+   "predicate": "lease.tenant",
+   "kind": "wrong",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L01",
+   "predicate": "lease.expiration_date",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L01",
+   "predicate": "lease.rentable_area_sf",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L01",
+   "predicate": "lease.pro_rata_share",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L01",
+   "predicate": "lease.operating_expense_base_year",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L01",
+   "predicate": "lease.parking",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L01",
+   "predicate": "lease.rofo",
+   "kind": "summary",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L02",
+   "predicate": "lease.landlord",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L02",
+   "predicate": "lease.tenant",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L02",
+   "predicate": "lease.rentable_area_sf",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L02",
+   "predicate": "lease.rentable_area_sf",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L02",
+   "predicate": "lease.rentable_area_sf",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L02",
+   "predicate": "lease.base_rent_schedule",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L02",
+   "predicate": "lease.base_rent_schedule",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L02",
+   "predicate": "lease.base_rent_schedule",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L02",
+   "predicate": "lease.parking",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L02",
+   "predicate": "lease.parking",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L02",
+   "predicate": "lease.parking",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L02",
+   "predicate": "lease.parking",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L03",
+   "predicate": "lease.landlord",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L03",
+   "predicate": "lease.tenant",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L03",
+   "predicate": "lease.rentable_area_sf",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L03",
+   "predicate": "lease.commencement_date",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L03",
+   "predicate": "lease.expiration_date",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L03",
+   "predicate": "lease.base_rent_schedule",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L03",
+   "predicate": "lease.free_rent",
+   "kind": "correct",
+   "outcome": "needs_review"
+  },
+  {
+   "doc": "L03",
+   "predicate": "lease.pro_rata_share",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L03",
+   "predicate": "lease.operating_expense_base_year",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L04",
+   "predicate": "lease.landlord",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L04",
+   "predicate": "lease.tenant",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L04",
+   "predicate": "lease.commencement_date",
+   "kind": "unlabeled",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L04",
+   "predicate": "lease.expiration_date",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L04",
+   "predicate": "lease.rentable_area_sf",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L04",
+   "predicate": "lease.pro_rata_share",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L04",
+   "predicate": "lease.security_deposit",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L04",
+   "predicate": "lease.parking",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L05",
+   "predicate": "lease.landlord",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L05",
+   "predicate": "lease.tenant",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L05",
+   "predicate": "lease.expiration_date",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L05",
+   "predicate": "lease.rentable_area_sf",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L05",
+   "predicate": "lease.pro_rata_share",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L06",
+   "predicate": "lease.landlord",
+   "kind": "wrong",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L06",
+   "predicate": "lease.tenant",
+   "kind": "wrong",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L06",
+   "predicate": "lease.commencement_date",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L06",
+   "predicate": "lease.expiration_date",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L06",
+   "predicate": "lease.rentable_area_sf",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L06",
+   "predicate": "lease.base_rent_schedule",
+   "kind": "correct",
+   "outcome": "needs_review"
+  },
+  {
+   "doc": "L06",
+   "predicate": "lease.pro_rata_share",
+   "kind": "correct",
+   "outcome": "rejected"
+  },
+  {
+   "doc": "L06",
+   "predicate": "lease.security_deposit",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L06",
+   "predicate": "lease.rofo",
+   "kind": "summary",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L06",
+   "predicate": "lease.renewal_option",
+   "kind": "correct",
+   "outcome": "needs_review"
+  },
+  {
+   "doc": "L07",
+   "predicate": "lease.landlord",
+   "kind": "wrong",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L07",
+   "predicate": "lease.tenant",
+   "kind": "wrong",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L07",
+   "predicate": "lease.rentable_area_sf",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L07",
+   "predicate": "lease.pro_rata_share",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L07",
+   "predicate": "lease.security_deposit",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L07",
+   "predicate": "lease.renewal_option",
+   "kind": "correct",
+   "outcome": "needs_review"
+  },
+  {
+   "doc": "L08",
+   "predicate": "lease.landlord",
+   "kind": "wrong",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L08",
+   "predicate": "lease.tenant",
+   "kind": "wrong",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L08",
+   "predicate": "lease.commencement_date",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L08",
+   "predicate": "lease.rentable_area_sf",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L08",
+   "predicate": "lease.base_rent_schedule",
+   "kind": "wrong",
+   "outcome": "needs_review"
+  },
+  {
+   "doc": "L08",
+   "predicate": "lease.free_rent",
+   "kind": "correct",
+   "outcome": "needs_review"
+  },
+  {
+   "doc": "L08",
+   "predicate": "lease.security_deposit",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L08",
+   "predicate": "lease.pro_rata_share",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L08",
+   "predicate": "lease.renewal_option",
+   "kind": "correct",
+   "outcome": "needs_review"
+  },
+  {
+   "doc": "L08",
+   "predicate": "lease.assignment_sublease",
+   "kind": "summary",
+   "outcome": "rejected"
+  },
+  {
+   "doc": "L09",
+   "predicate": "lease.landlord",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L09",
+   "predicate": "lease.tenant",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L09",
+   "predicate": "lease.rentable_area_sf",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L09",
+   "predicate": "lease.free_rent",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L09",
+   "predicate": "lease.security_deposit",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L09",
+   "predicate": "lease.pro_rata_share",
+   "kind": "correct",
+   "outcome": "rejected"
+  },
+  {
+   "doc": "L09",
+   "predicate": "lease.renewal_option",
+   "kind": "correct",
+   "outcome": "needs_review"
+  },
+  {
+   "doc": "L09",
+   "predicate": "lease.rofo",
+   "kind": "summary",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L10",
+   "predicate": "lease.landlord",
+   "kind": "wrong",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L10",
+   "predicate": "lease.tenant",
+   "kind": "wrong",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L10",
+   "predicate": "lease.commencement_date",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L10",
+   "predicate": "lease.expiration_date",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L10",
+   "predicate": "lease.rentable_area_sf",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L10",
+   "predicate": "lease.base_rent_schedule",
+   "kind": "correct",
+   "outcome": "needs_review"
+  },
+  {
+   "doc": "L10",
+   "predicate": "lease.free_rent",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L10",
+   "predicate": "lease.pro_rata_share",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L10",
+   "predicate": "lease.security_deposit",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L10",
+   "predicate": "lease.parking",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L12",
+   "predicate": "lease.landlord",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L12",
+   "predicate": "lease.tenant",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L12",
+   "predicate": "lease.rentable_area_sf",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L12",
+   "predicate": "lease.free_rent",
+   "kind": "unlabeled",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L12",
+   "predicate": "lease.security_deposit",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L12",
+   "predicate": "lease.pro_rata_share",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L12",
+   "predicate": "lease.assignment_sublease",
+   "kind": "summary",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L14",
+   "predicate": "lease.landlord",
+   "kind": "wrong",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L14",
+   "predicate": "lease.tenant",
+   "kind": "wrong",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L14",
+   "predicate": "lease.commencement_date",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L14",
+   "predicate": "lease.expiration_date",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L14",
+   "predicate": "lease.rentable_area_sf",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L14",
+   "predicate": "lease.base_rent_schedule",
+   "kind": "unlabeled",
+   "outcome": "needs_review"
+  },
+  {
+   "doc": "L14",
+   "predicate": "lease.free_rent",
+   "kind": "correct",
+   "outcome": "needs_review"
+  },
+  {
+   "doc": "L14",
+   "predicate": "lease.security_deposit",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L14",
+   "predicate": "lease.pro_rata_share",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L14",
+   "predicate": "lease.cam_cap",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L14",
+   "predicate": "lease.renewal_option",
+   "kind": "wrong",
+   "outcome": "needs_review"
+  },
+  {
+   "doc": "L14",
+   "predicate": "lease.assignment_sublease",
+   "kind": "summary",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L15",
+   "predicate": "lease.landlord",
+   "kind": "wrong",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L15",
+   "predicate": "lease.tenant",
+   "kind": "wrong",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L15",
+   "predicate": "lease.rentable_area_sf",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L15",
+   "predicate": "lease.base_rent_schedule",
+   "kind": "correct",
+   "outcome": "needs_review"
+  },
+  {
+   "doc": "L15",
+   "predicate": "lease.security_deposit",
+   "kind": "correct",
+   "outcome": "rejected"
+  },
+  {
+   "doc": "L15",
+   "predicate": "lease.pro_rata_share",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L15",
+   "predicate": "lease.assignment_sublease",
+   "kind": "summary",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L15",
+   "predicate": "lease.rofo",
+   "kind": "summary",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L16",
+   "predicate": "lease.landlord",
+   "kind": "wrong",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L16",
+   "predicate": "lease.tenant",
+   "kind": "wrong",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L16",
+   "predicate": "lease.rentable_area_sf",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L16",
+   "predicate": "lease.base_rent_schedule",
+   "kind": "unlabeled",
+   "outcome": "rejected"
+  },
+  {
+   "doc": "L16",
+   "predicate": "lease.percentage_rent",
+   "kind": "correct",
+   "outcome": "needs_review"
+  },
+  {
+   "doc": "L16",
+   "predicate": "lease.cam_cap",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L16",
+   "predicate": "lease.parking",
+   "kind": "wrong",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L16",
+   "predicate": "lease.co_tenancy",
+   "kind": "wrong",
+   "outcome": "needs_review"
+  },
+  {
+   "doc": "L16",
+   "predicate": "lease.renewal_option",
+   "kind": "correct",
+   "outcome": "needs_review"
+  },
+  {
+   "doc": "L16",
+   "predicate": "lease.termination_option",
+   "kind": "unlabeled",
+   "outcome": "needs_review"
+  },
+  {
+   "doc": "L16",
+   "predicate": "lease.assignment_sublease",
+   "kind": "summary",
+   "outcome": "rejected"
+  },
+  {
+   "doc": "L16",
+   "predicate": "lease.exclusive_use",
+   "kind": "summary",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L16",
+   "predicate": "lease.rent_commencement_date",
+   "kind": "unlabeled",
+   "outcome": "rejected"
+  },
+  {
+   "doc": "L17",
+   "predicate": "lease.landlord",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L17",
+   "predicate": "lease.tenant",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L17",
+   "predicate": "lease.rentable_area_sf",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L17",
+   "predicate": "lease.security_deposit",
+   "kind": "unlabeled",
+   "outcome": "rejected"
+  },
+  {
+   "doc": "L17",
+   "predicate": "lease.pro_rata_share",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L17",
+   "predicate": "lease.assignment_sublease",
+   "kind": "summary",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L18",
+   "predicate": "lease.landlord",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L18",
+   "predicate": "lease.tenant",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L18",
+   "predicate": "lease.rentable_area_sf",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L18",
+   "predicate": "lease.pro_rata_share",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L18",
+   "predicate": "lease.base_rent_schedule",
+   "kind": "unlabeled",
+   "outcome": "rejected"
+  },
+  {
+   "doc": "L18",
+   "predicate": "lease.landlord",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L18",
+   "predicate": "lease.landlord",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L18",
+   "predicate": "lease.tenant",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L18",
+   "predicate": "lease.rentable_area_sf",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L18",
+   "predicate": "lease.pro_rata_share",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L18",
+   "predicate": "lease.cam_cap",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L18",
+   "predicate": "lease.renewal_option",
+   "kind": "correct",
+   "outcome": "needs_review"
+  },
+  {
+   "doc": "L18",
+   "predicate": "lease.exclusive_use",
+   "kind": "summary",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L18",
+   "predicate": "lease.assignment_sublease",
+   "kind": "summary",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L19",
+   "predicate": "lease.landlord",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L19",
+   "predicate": "lease.tenant",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L19",
+   "predicate": "lease.rentable_area_sf",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L19",
+   "predicate": "lease.exclusive_use",
+   "kind": "summary",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L19",
+   "predicate": "lease.renewal_option",
+   "kind": "correct",
+   "outcome": "needs_review"
+  },
+  {
+   "doc": "L20",
+   "predicate": "lease.landlord",
+   "kind": "wrong",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L20",
+   "predicate": "lease.tenant",
+   "kind": "wrong",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L20",
+   "predicate": "lease.rentable_area_sf",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L20",
+   "predicate": "lease.security_deposit",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L20",
+   "predicate": "lease.renewal_option",
+   "kind": "correct",
+   "outcome": "needs_review"
+  },
+  {
+   "doc": "L20",
+   "predicate": "lease.percentage_rent",
+   "kind": "correct",
+   "outcome": "verified"
+  },
+  {
+   "doc": "L20",
+   "predicate": "lease.exclusive_use",
+   "kind": "summary",
+   "outcome": "verified"
+  }
+ ],
+ "labels": [
+  {
+   "doc": "L01",
+   "predicate": "lease.landlord",
+   "status": "proposed_other_value_only",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L01",
+   "predicate": "lease.tenant",
+   "status": "proposed_other_value_only",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L01",
+   "predicate": "lease.expiration_date",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L01",
+   "predicate": "lease.rentable_area_sf",
+   "status": "proposed_other_value_only",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L01",
+   "predicate": "lease.rentable_area_sf",
+   "status": "proposed_other_value_only",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L01",
+   "predicate": "lease.rentable_area_sf",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L01",
+   "predicate": "lease.pro_rata_share",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L01",
+   "predicate": "lease.operating_expense_base_year",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L01",
+   "predicate": "lease.parking",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L02",
+   "predicate": "lease.landlord",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L02",
+   "predicate": "lease.tenant",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L02",
+   "predicate": "lease.rentable_area_sf",
+   "status": "proposed_other_value_only",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L02",
+   "predicate": "lease.rentable_area_sf",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L02",
+   "predicate": "lease.rentable_area_sf",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L02",
+   "predicate": "lease.rentable_area_sf",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L02",
+   "predicate": "lease.base_rent_schedule",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L02",
+   "predicate": "lease.base_rent_schedule",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L02",
+   "predicate": "lease.base_rent_schedule",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L02",
+   "predicate": "lease.pro_rata_share",
+   "status": "not_proposed",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L02",
+   "predicate": "lease.pro_rata_share",
+   "status": "not_proposed",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L02",
+   "predicate": "lease.pro_rata_share",
+   "status": "not_proposed",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L02",
+   "predicate": "lease.pro_rata_share",
+   "status": "not_proposed",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L02",
+   "predicate": "lease.pro_rata_share",
+   "status": "not_proposed",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L02",
+   "predicate": "lease.parking",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L02",
+   "predicate": "lease.parking",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L02",
+   "predicate": "lease.parking",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L02",
+   "predicate": "lease.parking",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L03",
+   "predicate": "lease.landlord",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L03",
+   "predicate": "lease.tenant",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L03",
+   "predicate": "lease.commencement_date",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L03",
+   "predicate": "lease.expiration_date",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L03",
+   "predicate": "lease.rentable_area_sf",
+   "status": "proposed_other_value_only",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L03",
+   "predicate": "lease.rentable_area_sf",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L03",
+   "predicate": "lease.base_rent_schedule",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L03",
+   "predicate": "lease.free_rent",
+   "status": "proposed_correct_not_verified",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L03",
+   "predicate": "lease.security_deposit",
+   "status": "not_proposed",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L03",
+   "predicate": "lease.pro_rata_share",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L03",
+   "predicate": "lease.operating_expense_base_year",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L04",
+   "predicate": "lease.landlord",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L04",
+   "predicate": "lease.tenant",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L04",
+   "predicate": "lease.expiration_date",
+   "status": "proposed_other_value_only",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L04",
+   "predicate": "lease.expiration_date",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L04",
+   "predicate": "lease.rentable_area_sf",
+   "status": "proposed_other_value_only",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L04",
+   "predicate": "lease.rentable_area_sf",
+   "status": "proposed_other_value_only",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L04",
+   "predicate": "lease.rentable_area_sf",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L04",
+   "predicate": "lease.security_deposit",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L04",
+   "predicate": "lease.pro_rata_share",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L04",
+   "predicate": "lease.rent_commencement_date",
+   "status": "not_proposed",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L04",
+   "predicate": "lease.parking",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L04",
+   "predicate": "lease.base_rent_schedule",
+   "status": "not_proposed",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L05",
+   "predicate": "lease.landlord",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L05",
+   "predicate": "lease.tenant",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L05",
+   "predicate": "lease.expiration_date",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L05",
+   "predicate": "lease.rentable_area_sf",
+   "status": "proposed_other_value_only",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L05",
+   "predicate": "lease.rentable_area_sf",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L05",
+   "predicate": "lease.pro_rata_share",
+   "status": "proposed_other_value_only",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L05",
+   "predicate": "lease.pro_rata_share",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L06",
+   "predicate": "lease.landlord",
+   "status": "proposed_other_value_only",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L06",
+   "predicate": "lease.tenant",
+   "status": "proposed_other_value_only",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L06",
+   "predicate": "lease.commencement_date",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L06",
+   "predicate": "lease.rent_commencement_date",
+   "status": "not_proposed",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L06",
+   "predicate": "lease.expiration_date",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L06",
+   "predicate": "lease.rentable_area_sf",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L06",
+   "predicate": "lease.base_rent_schedule",
+   "status": "proposed_correct_not_verified",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L06",
+   "predicate": "lease.pro_rata_share",
+   "status": "proposed_correct_not_verified",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L06",
+   "predicate": "lease.security_deposit",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L06",
+   "predicate": "lease.renewal_option",
+   "status": "proposed_correct_not_verified",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L07",
+   "predicate": "lease.landlord",
+   "status": "proposed_other_value_only",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L07",
+   "predicate": "lease.tenant",
+   "status": "proposed_other_value_only",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L07",
+   "predicate": "lease.rentable_area_sf",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L07",
+   "predicate": "lease.rentable_area_sf",
+   "status": "proposed_other_value_only",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L07",
+   "predicate": "lease.rentable_area_sf",
+   "status": "proposed_other_value_only",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L07",
+   "predicate": "lease.pro_rata_share",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L07",
+   "predicate": "lease.security_deposit",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L07",
+   "predicate": "lease.renewal_option",
+   "status": "proposed_correct_not_verified",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L08",
+   "predicate": "lease.landlord",
+   "status": "proposed_other_value_only",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L08",
+   "predicate": "lease.tenant",
+   "status": "proposed_other_value_only",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L08",
+   "predicate": "lease.commencement_date",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L08",
+   "predicate": "lease.expiration_date",
+   "status": "not_proposed",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L08",
+   "predicate": "lease.rentable_area_sf",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L08",
+   "predicate": "lease.rentable_area_sf",
+   "status": "proposed_other_value_only",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L08",
+   "predicate": "lease.base_rent_schedule",
+   "status": "proposed_other_value_only",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L08",
+   "predicate": "lease.free_rent",
+   "status": "proposed_correct_not_verified",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L08",
+   "predicate": "lease.pro_rata_share",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L08",
+   "predicate": "lease.pro_rata_share",
+   "status": "proposed_other_value_only",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L08",
+   "predicate": "lease.security_deposit",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L08",
+   "predicate": "lease.renewal_option",
+   "status": "proposed_correct_not_verified",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L09",
+   "predicate": "lease.landlord",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L09",
+   "predicate": "lease.tenant",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L09",
+   "predicate": "lease.rentable_area_sf",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L09",
+   "predicate": "lease.free_rent",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L09",
+   "predicate": "lease.pro_rata_share",
+   "status": "proposed_correct_not_verified",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L09",
+   "predicate": "lease.security_deposit",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L09",
+   "predicate": "lease.renewal_option",
+   "status": "proposed_correct_not_verified",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L10",
+   "predicate": "lease.landlord",
+   "status": "proposed_other_value_only",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L10",
+   "predicate": "lease.tenant",
+   "status": "proposed_other_value_only",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L10",
+   "predicate": "lease.commencement_date",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L10",
+   "predicate": "lease.expiration_date",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L10",
+   "predicate": "lease.rentable_area_sf",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L10",
+   "predicate": "lease.base_rent_schedule",
+   "status": "proposed_correct_not_verified",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L10",
+   "predicate": "lease.free_rent",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L10",
+   "predicate": "lease.pro_rata_share",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L10",
+   "predicate": "lease.security_deposit",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L10",
+   "predicate": "lease.parking",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L11",
+   "predicate": "lease.landlord",
+   "status": "not_proposed",
+   "doc_has_no_candidates": true
+  },
+  {
+   "doc": "L11",
+   "predicate": "lease.tenant",
+   "status": "not_proposed",
+   "doc_has_no_candidates": true
+  },
+  {
+   "doc": "L11",
+   "predicate": "lease.rentable_area_sf",
+   "status": "not_proposed",
+   "doc_has_no_candidates": true
+  },
+  {
+   "doc": "L11",
+   "predicate": "lease.free_rent",
+   "status": "not_proposed",
+   "doc_has_no_candidates": true
+  },
+  {
+   "doc": "L11",
+   "predicate": "lease.pro_rata_share",
+   "status": "not_proposed",
+   "doc_has_no_candidates": true
+  },
+  {
+   "doc": "L11",
+   "predicate": "lease.security_deposit",
+   "status": "not_proposed",
+   "doc_has_no_candidates": true
+  },
+  {
+   "doc": "L11",
+   "predicate": "lease.cam_cap",
+   "status": "not_proposed",
+   "doc_has_no_candidates": true
+  },
+  {
+   "doc": "L11",
+   "predicate": "lease.renewal_option",
+   "status": "not_proposed",
+   "doc_has_no_candidates": true
+  },
+  {
+   "doc": "L12",
+   "predicate": "lease.landlord",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L12",
+   "predicate": "lease.tenant",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L12",
+   "predicate": "lease.rentable_area_sf",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L12",
+   "predicate": "lease.pro_rata_share",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L12",
+   "predicate": "lease.security_deposit",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L12",
+   "predicate": "lease.renewal_option",
+   "status": "not_proposed",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L13",
+   "predicate": "lease.landlord",
+   "status": "not_proposed",
+   "doc_has_no_candidates": true
+  },
+  {
+   "doc": "L13",
+   "predicate": "lease.tenant",
+   "status": "not_proposed",
+   "doc_has_no_candidates": true
+  },
+  {
+   "doc": "L13",
+   "predicate": "lease.rentable_area_sf",
+   "status": "not_proposed",
+   "doc_has_no_candidates": true
+  },
+  {
+   "doc": "L13",
+   "predicate": "lease.pro_rata_share",
+   "status": "not_proposed",
+   "doc_has_no_candidates": true
+  },
+  {
+   "doc": "L13",
+   "predicate": "lease.guaranty",
+   "status": "not_proposed",
+   "doc_has_no_candidates": true
+  },
+  {
+   "doc": "L14",
+   "predicate": "lease.landlord",
+   "status": "proposed_other_value_only",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L14",
+   "predicate": "lease.tenant",
+   "status": "proposed_other_value_only",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L14",
+   "predicate": "lease.commencement_date",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L14",
+   "predicate": "lease.expiration_date",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L14",
+   "predicate": "lease.rentable_area_sf",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L14",
+   "predicate": "lease.free_rent",
+   "status": "proposed_correct_not_verified",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L14",
+   "predicate": "lease.pro_rata_share",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L14",
+   "predicate": "lease.security_deposit",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L14",
+   "predicate": "lease.cam_cap",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L14",
+   "predicate": "lease.renewal_option",
+   "status": "proposed_other_value_only",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L15",
+   "predicate": "lease.landlord",
+   "status": "proposed_other_value_only",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L15",
+   "predicate": "lease.tenant",
+   "status": "proposed_other_value_only",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L15",
+   "predicate": "lease.rentable_area_sf",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L15",
+   "predicate": "lease.base_rent_schedule",
+   "status": "proposed_correct_not_verified",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L15",
+   "predicate": "lease.free_rent",
+   "status": "not_proposed",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L15",
+   "predicate": "lease.pro_rata_share",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L15",
+   "predicate": "lease.security_deposit",
+   "status": "proposed_correct_not_verified",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L15",
+   "predicate": "lease.renewal_option",
+   "status": "not_proposed",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L15",
+   "predicate": "lease.parking",
+   "status": "not_proposed",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L16",
+   "predicate": "lease.landlord",
+   "status": "proposed_other_value_only",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L16",
+   "predicate": "lease.tenant",
+   "status": "proposed_other_value_only",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L16",
+   "predicate": "lease.rentable_area_sf",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L16",
+   "predicate": "lease.percentage_rent",
+   "status": "proposed_correct_not_verified",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L16",
+   "predicate": "lease.cam_cap",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L16",
+   "predicate": "lease.renewal_option",
+   "status": "proposed_correct_not_verified",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L16",
+   "predicate": "lease.co_tenancy",
+   "status": "proposed_other_value_only",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L16",
+   "predicate": "lease.parking",
+   "status": "proposed_other_value_only",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L17",
+   "predicate": "lease.landlord",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L17",
+   "predicate": "lease.landlord",
+   "status": "proposed_other_value_only",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L17",
+   "predicate": "lease.tenant",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L17",
+   "predicate": "lease.expiration_date",
+   "status": "not_proposed",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L17",
+   "predicate": "lease.rentable_area_sf",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L17",
+   "predicate": "lease.base_rent_schedule",
+   "status": "not_proposed",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L17",
+   "predicate": "lease.pro_rata_share",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L17",
+   "predicate": "lease.renewal_option",
+   "status": "not_proposed",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L17",
+   "predicate": "lease.renewal_option",
+   "status": "not_proposed",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L17",
+   "predicate": "lease.guaranty",
+   "status": "not_proposed",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L18",
+   "predicate": "lease.landlord",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L18",
+   "predicate": "lease.tenant",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L18",
+   "predicate": "lease.rentable_area_sf",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L18",
+   "predicate": "lease.pro_rata_share",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L18",
+   "predicate": "lease.cam_cap",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L18",
+   "predicate": "lease.renewal_option",
+   "status": "proposed_correct_not_verified",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L19",
+   "predicate": "lease.landlord",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L19",
+   "predicate": "lease.tenant",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L19",
+   "predicate": "lease.rentable_area_sf",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L19",
+   "predicate": "lease.renewal_option",
+   "status": "proposed_correct_not_verified",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L20",
+   "predicate": "lease.landlord",
+   "status": "proposed_other_value_only",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L20",
+   "predicate": "lease.tenant",
+   "status": "proposed_other_value_only",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L20",
+   "predicate": "lease.rentable_area_sf",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L20",
+   "predicate": "lease.security_deposit",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L20",
+   "predicate": "lease.percentage_rent",
+   "status": "verified_match",
+   "doc_has_no_candidates": false
+  },
+  {
+   "doc": "L20",
+   "predicate": "lease.renewal_option",
+   "status": "proposed_correct_not_verified",
+   "doc_has_no_candidates": false
+  }
+ ]
+}

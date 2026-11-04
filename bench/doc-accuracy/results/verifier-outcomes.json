@@ -1,0 +1,423 @@
+{
+ "_meta": {
+  "step": "verify",
+  "command": "python3 bench/doc-accuracy/run.py verify",
+  "repo_head": "5c4cf1a22e2d016921927b841f79ae1733156c9a",
+  "worktree_dirty": false,
+  "factlot_version": "0.2.0",
+  "factlot_src_commit": "e2c5e63bb11dcf20415cefe9c538450feedb28d7",
+  "as_of": "2026-11-03",
+  "labels_frozen_at": "a978b85766f5c7e911fc9fe2175dbea0289079a1",
+  "python": "3.13.5"
+ },
+ "L01": {
+  "outcomes": [
+   "verified",
+   "verified",
+   "verified",
+   "verified",
+   "verified",
+   "verified",
+   "verified",
+   "verified"
+  ],
+  "reasons": {},
+  "summary": {
+   "candidates": 8,
+   "verified": 8,
+   "needs_review": 0,
+   "rejected": 0
+  }
+ },
+ "L02": {
+  "outcomes": [
+   "verified",
+   "verified",
+   "verified",
+   "verified",
+   "verified",
+   "verified",
+   "verified",
+   "verified",
+   "verified",
+   "verified",
+   "verified",
+   "verified"
+  ],
+  "reasons": {},
+  "summary": {
+   "candidates": 12,
+   "verified": 12,
+   "needs_review": 0,
+   "rejected": 0
+  }
+ },
+ "L03": {
+  "outcomes": [
+   "verified",
+   "verified",
+   "verified",
+   "verified",
+   "verified",
+   "verified",
+   "needs_review",
+   "verified",
+   "verified"
+  ],
+  "reasons": {
+   "6": "consistency: value 6.666666666666667 (months) not found in quote"
+  },
+  "summary": {
+   "candidates": 9,
+   "verified": 8,
+   "needs_review": 1,
+   "rejected": 0
+  }
+ },
+ "L04": {
+  "outcomes": [
+   "verified",
+   "verified",
+   "verified",
+   "verified",
+   "verified",
+   "verified",
+   "verified",
+   "verified"
+  ],
+  "reasons": {},
+  "summary": {
+   "candidates": 8,
+   "verified": 8,
+   "needs_review": 0,
+   "rejected": 0
+  }
+ },
+ "L05": {
+  "outcomes": [
+   "verified",
+   "verified",
+   "verified",
+   "verified",
+   "verified"
+  ],
+  "reasons": {},
+  "summary": {
+   "candidates": 5,
+   "verified": 5,
+   "needs_review": 0,
+   "rejected": 0
+  }
+ },
+ "L06": {
+  "outcomes": [
+   "verified",
+   "verified",
+   "verified",
+   "verified",
+   "verified",
+   "needs_review",
+   "rejected",
+   "verified",
+   "verified",
+   "needs_review"
+  ],
+  "reasons": {
+   "5": "consistency: value \"2018-11-01\" (from) not found in quote",
+   "9": "consistency: value 84 (term_months) not found in quote",
+   "6": "quote: quote shorter than 12 characters"
+  },
+  "summary": {
+   "candidates": 10,
+   "verified": 7,
+   "needs_review": 2,
+   "rejected": 1
+  }
+ },
+ "L07": {
+  "outcomes": [
+   "verified",
+   "verified",
+   "verified",
+   "verified",
+   "verified",
+   "needs_review"
+  ],
+  "reasons": {
+   "5": "consistency: value 84 (term_months) not found in quote"
+  },
+  "summary": {
+   "candidates": 6,
+   "verified": 5,
+   "needs_review": 1,
+   "rejected": 0
+  }
+ },
+ "L08": {
+  "outcomes": [
+   "verified",
+   "verified",
+   "verified",
+   "verified",
+   "needs_review",
+   "needs_review",
+   "verified",
+   "verified",
+   "needs_review",
+   "rejected"
+  ],
+  "reasons": {
+   "4": "consistency: value \"2020-03-01\" (from) not found in quote",
+   "5": "consistency: value 1 (months) not found in quote",
+   "8": "consistency: value 36 (term_months) not found in quote",
+   "9": "quote: quote not found in the document"
+  },
+  "summary": {
+   "candidates": 10,
+   "verified": 6,
+   "needs_review": 3,
+   "rejected": 1
+  }
+ },
+ "L09": {
+  "outcomes": [
+   "verified",
+   "verified",
+   "verified",
+   "verified",
+   "verified",
+   "rejected",
+   "needs_review",
+   "verified"
+  ],
+  "reasons": {
+   "6": "consistency: value 120 (term_months) not found in quote",
+   "5": "quote: quote shorter than 12 characters"
+  },
+  "summary": {
+   "candidates": 8,
+   "verified": 6,
+   "needs_review": 1,
+   "rejected": 1
+  }
+ },
+ "L10": {
+  "outcomes": [
+   "verified",
+   "verified",
+   "verified",
+   "verified",
+   "verified",
+   "needs_review",
+   "verified",
+   "verified",
+   "verified",
+   "verified"
+  ],
+  "reasons": {
+   "5": "consistency: value \"2019-01-01\" (from) not found in quote"
+  },
+  "summary": {
+   "candidates": 10,
+   "verified": 9,
+   "needs_review": 1,
+   "rejected": 0
+  }
+ },
+ "L11": {
+  "outcomes": [],
+  "reasons": {},
+  "summary": null,
+  "note": "no candidates"
+ },
+ "L12": {
+  "outcomes": [
+   "verified",
+   "verified",
+   "verified",
+   "verified",
+   "verified",
+   "verified",
+   "verified"
+  ],
+  "reasons": {},
+  "summary": {
+   "candidates": 7,
+   "verified": 7,
+   "needs_review": 0,
+   "rejected": 0
+  }
+ },
+ "L13": {
+  "outcomes": [],
+  "reasons": {},
+  "summary": null,
+  "note": "no candidates"
+ },
+ "L14": {
+  "outcomes": [
+   "verified",
+   "verified",
+   "verified",
+   "verified",
+   "verified",
+   "needs_review",
+   "needs_review",
+   "verified",
+   "verified",
+   "verified",
+   "needs_review",
+   "verified"
+  ],
+  "reasons": {
+   "5": "consistency: value \"2024-05-22\" (from) not found in quote",
+   "6": "consistency: value 2 (months) not found in quote",
+   "10": "consistency: value 60 (term_months) not found in quote"
+  },
+  "summary": {
+   "candidates": 12,
+   "verified": 9,
+   "needs_review": 3,
+   "rejected": 0
+  }
+ },
+ "L15": {
+  "outcomes": [
+   "verified",
+   "verified",
+   "verified",
+   "needs_review",
+   "rejected",
+   "verified",
+   "verified",
+   "verified"
+  ],
+  "reasons": {
+   "3": "consistency: value \"2022-01-01\" (from) not found in quote",
+   "4": "quote: quote shorter than 12 characters"
+  },
+  "summary": {
+   "candidates": 8,
+   "verified": 6,
+   "needs_review": 1,
+   "rejected": 1
+  }
+ },
+ "L16": {
+  "outcomes": [
+   "verified",
+   "verified",
+   "verified",
+   "rejected",
+   "needs_review",
+   "verified",
+   "verified",
+   "needs_review",
+   "needs_review",
+   "needs_review",
+   "rejected",
+   "verified",
+   "rejected"
+  ],
+  "reasons": {
+   "4": "consistency: value 13000000 (breakpoint.amount) not found in quote",
+   "7": "consistency: value 24 (cure_period_months) not found in quote",
+   "8": "consistency: value 60 (term_months) not found in quote",
+   "9": "consistency: value 0 (notice_months) not found in quote",
+   "3": "value: each rent step needs from, to (YYYY-MM-DD) and annual_rent_psf",
+   "10": "quote: quote not found in the document",
+   "12": "value: expected YYYY-MM-DD date"
+  },
+  "summary": {
+   "candidates": 13,
+   "verified": 6,
+   "needs_review": 4,
+   "rejected": 3
+  }
+ },
+ "L17": {
+  "outcomes": [
+   "verified",
+   "verified",
+   "verified",
+   "rejected",
+   "verified",
+   "verified"
+  ],
+  "reasons": {
+   "3": "value: expected positive number"
+  },
+  "summary": {
+   "candidates": 6,
+   "verified": 5,
+   "needs_review": 0,
+   "rejected": 1
+  }
+ },
+ "L18": {
+  "outcomes": [
+   "verified",
+   "verified",
+   "verified",
+   "verified",
+   "rejected",
+   "verified",
+   "verified",
+   "verified",
+   "verified",
+   "verified",
+   "verified",
+   "needs_review",
+   "verified",
+   "verified"
+  ],
+  "reasons": {
+   "11": "consistency: value 60 (term_months) not found in quote",
+   "4": "value: each rent step needs from, to (YYYY-MM-DD) and annual_rent_psf"
+  },
+  "summary": {
+   "candidates": 14,
+   "verified": 12,
+   "needs_review": 1,
+   "rejected": 1
+  }
+ },
+ "L19": {
+  "outcomes": [
+   "verified",
+   "verified",
+   "verified",
+   "verified",
+   "needs_review"
+  ],
+  "reasons": {
+   "4": "consistency: value 60 (term_months) not found in quote"
+  },
+  "summary": {
+   "candidates": 5,
+   "verified": 4,
+   "needs_review": 1,
+   "rejected": 0
+  }
+ },
+ "L20": {
+  "outcomes": [
+   "verified",
+   "verified",
+   "verified",
+   "verified",
+   "needs_review",
+   "verified",
+   "verified"
+  ],
+  "reasons": {
+   "4": "consistency: value 9 (notice_months) not found in quote"
+  },
+  "summary": {
+   "candidates": 7,
+   "verified": 6,
+   "needs_review": 1,
+   "rejected": 0
+  }
+ }
+}

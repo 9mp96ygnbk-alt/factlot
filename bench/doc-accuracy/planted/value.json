@@ -1,0 +1,1638 @@
+{
+ "_meta": {
+  "step": "plant",
+  "command": "python3 bench/doc-accuracy/run.py plant --seed 20261103",
+  "repo_head": "5c4cf1a22e2d016921927b841f79ae1733156c9a",
+  "worktree_dirty": false,
+  "factlot_version": "0.2.0",
+  "factlot_src_commit": "e2c5e63bb11dcf20415cefe9c538450feedb28d7",
+  "as_of": "2026-11-03",
+  "labels_frozen_at": "a978b85766f5c7e911fc9fe2175dbea0289079a1",
+  "python": "3.13.5",
+  "rule": "PLAN.md section 9 (deterministic; no seed)"
+ },
+ "copies": [
+  {
+   "doc": "L01",
+   "candidate": 2,
+   "predicate": "lease.expiration_date",
+   "path": "value",
+   "original_part": "2023-09-27",
+   "planted_part": "2023-09-28",
+   "planted_value": "2023-09-28",
+   "leaf_kind": "date",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L01",
+   "candidate": 3,
+   "predicate": "lease.rentable_area_sf",
+   "path": "value",
+   "original_part": 469056,
+   "planted_part": 515962,
+   "planted_value": 515962,
+   "leaf_kind": "integer_ge_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L01",
+   "candidate": 4,
+   "predicate": "lease.pro_rata_share",
+   "path": "value",
+   "original_part": 0.0258,
+   "planted_part": 0.0358,
+   "planted_value": 0.0358,
+   "leaf_kind": "ratio",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L01",
+   "candidate": 5,
+   "predicate": "lease.operating_expense_base_year",
+   "path": "value",
+   "original_part": 2019,
+   "planted_part": 2221,
+   "planted_value": 2221,
+   "leaf_kind": "integer_ge_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L01",
+   "candidate": 6,
+   "predicate": "lease.parking",
+   "path": "value.spaces",
+   "original_part": 5,
+   "planted_part": 6,
+   "planted_value": {
+    "spaces": 6,
+    "rate_monthly": 275
+   },
+   "leaf_kind": "integer_lt_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L02",
+   "candidate": 2,
+   "predicate": "lease.rentable_area_sf",
+   "path": "value",
+   "original_part": 552229,
+   "planted_part": 607452,
+   "planted_value": 607452,
+   "leaf_kind": "integer_ge_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L02",
+   "candidate": 3,
+   "predicate": "lease.rentable_area_sf",
+   "path": "value",
+   "original_part": 497976,
+   "planted_part": 547774,
+   "planted_value": 547774,
+   "leaf_kind": "integer_ge_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L02",
+   "candidate": 4,
+   "predicate": "lease.rentable_area_sf",
+   "path": "value",
+   "original_part": 438941,
+   "planted_part": 482835,
+   "planted_value": 482835,
+   "leaf_kind": "integer_ge_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L02",
+   "candidate": 5,
+   "predicate": "lease.base_rent_schedule",
+   "path": "value[0].from",
+   "original_part": "2023-10-01",
+   "planted_part": "2023-10-02",
+   "planted_value": [
+    {
+     "from": "2023-10-02",
+     "to": "2023-11-30",
+     "annual_rent_psf": 69.78
+    },
+    {
+     "from": "2023-12-01",
+     "to": "2024-05-31",
+     "annual_rent_psf": 71.87
+    }
+   ],
+   "leaf_kind": "date",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L02",
+   "candidate": 6,
+   "predicate": "lease.base_rent_schedule",
+   "path": "value[0].from",
+   "original_part": "2024-06-01",
+   "planted_part": "2024-06-02",
+   "planted_value": [
+    {
+     "from": "2024-06-02",
+     "to": "2024-11-30",
+     "annual_rent_psf": 71.87
+    },
+    {
+     "from": "2024-12-01",
+     "to": "2024-12-31",
+     "annual_rent_psf": 74.03
+    }
+   ],
+   "leaf_kind": "date",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L02",
+   "candidate": 7,
+   "predicate": "lease.base_rent_schedule",
+   "path": "value[0].from",
+   "original_part": "2025-01-01",
+   "planted_part": "2025-01-02",
+   "planted_value": [
+    {
+     "from": "2025-01-02",
+     "to": "2025-11-30",
+     "annual_rent_psf": 74.03
+    },
+    {
+     "from": "2025-12-01",
+     "to": "2026-11-30",
+     "annual_rent_psf": 76.25
+    },
+    {
+     "from": "2026-12-01",
+     "to": "2027-11-30",
+     "annual_rent_psf": 78.54
+    },
+    {
+     "from": "2027-12-01",
+     "to": "2028-11-30",
+     "annual_rent_psf": 80.9
+    },
+    {
+     "from": "2028-12-01",
+     "to": "2029-11-30",
+     "annual_rent_psf": 83.32
+    },
+    {
+     "from": "2029-12-01",
+     "to": "2030-11-30",
+     "annual_rent_psf": 85.82
+    },
+    {
+     "from": "2030-12-01",
+     "to": "2031-11-30",
+     "annual_rent_psf": 88.4
+    },
+    {
+     "from": "2031-12-01",
+     "to": "2032-11-30",
+     "annual_rent_psf": 91.05
+    },
+    {
+     "from": "2032-12-01",
+     "to": "2033-11-30",
+     "annual_rent_psf": 93.78
+    }
+   ],
+   "leaf_kind": "date",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L02",
+   "candidate": 8,
+   "predicate": "lease.parking",
+   "path": "value.spaces",
+   "original_part": 349,
+   "planted_part": 384,
+   "planted_value": {
+    "spaces": 384
+   },
+   "leaf_kind": "integer_ge_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L02",
+   "candidate": 9,
+   "predicate": "lease.parking",
+   "path": "value.spaces",
+   "original_part": 317,
+   "planted_part": 349,
+   "planted_value": {
+    "spaces": 349
+   },
+   "leaf_kind": "integer_ge_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L02",
+   "candidate": 10,
+   "predicate": "lease.parking",
+   "path": "value.spaces",
+   "original_part": 263,
+   "planted_part": 289,
+   "planted_value": {
+    "spaces": 289
+   },
+   "leaf_kind": "integer_ge_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L02",
+   "candidate": 11,
+   "predicate": "lease.parking",
+   "path": "value.spaces",
+   "original_part": 204,
+   "planted_part": 224,
+   "planted_value": {
+    "spaces": 224
+   },
+   "leaf_kind": "integer_ge_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L03",
+   "candidate": 2,
+   "predicate": "lease.rentable_area_sf",
+   "path": "value",
+   "original_part": 47939,
+   "planted_part": 52733,
+   "planted_value": 52733,
+   "leaf_kind": "integer_ge_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L03",
+   "candidate": 3,
+   "predicate": "lease.commencement_date",
+   "path": "value",
+   "original_part": "2020-06-30",
+   "planted_part": "2020-07-01",
+   "planted_value": "2020-07-01",
+   "leaf_kind": "date",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L03",
+   "candidate": 4,
+   "predicate": "lease.expiration_date",
+   "path": "value",
+   "original_part": "2028-10-31",
+   "planted_part": "2028-11-01",
+   "planted_value": "2028-11-01",
+   "leaf_kind": "date",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L03",
+   "candidate": 5,
+   "predicate": "lease.base_rent_schedule",
+   "path": "value[0].from",
+   "original_part": "2020-06-30",
+   "planted_part": "2020-07-01",
+   "planted_value": [
+    {
+     "from": "2020-07-01",
+     "to": "2020-10-31",
+     "annual_rent_psf": 78.28
+    },
+    {
+     "from": "2020-11-01",
+     "to": "2021-10-31",
+     "annual_rent_psf": 80.63
+    },
+    {
+     "from": "2021-11-01",
+     "to": "2022-10-31",
+     "annual_rent_psf": 83.05
+    },
+    {
+     "from": "2022-11-01",
+     "to": "2023-10-31",
+     "annual_rent_psf": 85.54
+    },
+    {
+     "from": "2023-11-01",
+     "to": "2024-10-31",
+     "annual_rent_psf": 88.1
+    },
+    {
+     "from": "2024-11-01",
+     "to": "2025-10-31",
+     "annual_rent_psf": 90.75
+    },
+    {
+     "from": "2025-11-01",
+     "to": "2026-10-31",
+     "annual_rent_psf": 93.47
+    },
+    {
+     "from": "2026-11-01",
+     "to": "2027-10-31",
+     "annual_rent_psf": 96.27
+    },
+    {
+     "from": "2027-11-01",
+     "to": "2028-10-31",
+     "annual_rent_psf": 99.16
+    }
+   ],
+   "leaf_kind": "date",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L03",
+   "candidate": 6,
+   "predicate": "lease.free_rent",
+   "path": "value.months",
+   "original_part": 6.666666666666667,
+   "planted_part": 7.666667,
+   "planted_value": {
+    "months": 7.666667,
+    "applies_to": "base_rent"
+   },
+   "leaf_kind": "other_number",
+   "error_type": "value_only",
+   "compared_with_quote": true,
+   "original_part_in_quote": false,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L03",
+   "candidate": 7,
+   "predicate": "lease.pro_rata_share",
+   "path": "value",
+   "original_part": 0.1058,
+   "planted_part": 0.1158,
+   "planted_value": 0.1158,
+   "leaf_kind": "ratio",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L03",
+   "candidate": 8,
+   "predicate": "lease.operating_expense_base_year",
+   "path": "value",
+   "original_part": 2020,
+   "planted_part": 2222,
+   "planted_value": 2222,
+   "leaf_kind": "integer_ge_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L04",
+   "candidate": 3,
+   "predicate": "lease.expiration_date",
+   "path": "value",
+   "original_part": "2025-07-31",
+   "planted_part": "2025-08-01",
+   "planted_value": "2025-08-01",
+   "leaf_kind": "date",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L04",
+   "candidate": 4,
+   "predicate": "lease.rentable_area_sf",
+   "path": "value",
+   "original_part": 25025,
+   "planted_part": 27528,
+   "planted_value": 27528,
+   "leaf_kind": "integer_ge_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L04",
+   "candidate": 5,
+   "predicate": "lease.pro_rata_share",
+   "path": "value",
+   "original_part": 0.0791,
+   "planted_part": 0.0891,
+   "planted_value": 0.0891,
+   "leaf_kind": "ratio",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L04",
+   "candidate": 6,
+   "predicate": "lease.security_deposit",
+   "path": "value",
+   "original_part": 24795.81,
+   "planted_part": 24796.81,
+   "planted_value": 24796.81,
+   "leaf_kind": "other_number",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L04",
+   "candidate": 7,
+   "predicate": "lease.parking",
+   "path": "value.spaces",
+   "original_part": 5,
+   "planted_part": 6,
+   "planted_value": {
+    "spaces": 6
+   },
+   "leaf_kind": "integer_lt_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L05",
+   "candidate": 2,
+   "predicate": "lease.expiration_date",
+   "path": "value",
+   "original_part": "2027-04-30",
+   "planted_part": "2027-05-01",
+   "planted_value": "2027-05-01",
+   "leaf_kind": "date",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L05",
+   "candidate": 3,
+   "predicate": "lease.rentable_area_sf",
+   "path": "value",
+   "original_part": 26908,
+   "planted_part": 29599,
+   "planted_value": 29599,
+   "leaf_kind": "integer_ge_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L05",
+   "candidate": 4,
+   "predicate": "lease.pro_rata_share",
+   "path": "value",
+   "original_part": 0.253,
+   "planted_part": 0.263,
+   "planted_value": 0.263,
+   "leaf_kind": "ratio",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L06",
+   "candidate": 2,
+   "predicate": "lease.commencement_date",
+   "path": "value",
+   "original_part": "2018-11-01",
+   "planted_part": "2018-11-02",
+   "planted_value": "2018-11-02",
+   "leaf_kind": "date",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L06",
+   "candidate": 3,
+   "predicate": "lease.expiration_date",
+   "path": "value",
+   "original_part": "2029-02-28",
+   "planted_part": "2029-03-01",
+   "planted_value": "2029-03-01",
+   "leaf_kind": "date",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L06",
+   "candidate": 4,
+   "predicate": "lease.rentable_area_sf",
+   "path": "value",
+   "original_part": 14943,
+   "planted_part": 16437,
+   "planted_value": 16437,
+   "leaf_kind": "integer_ge_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L06",
+   "candidate": 5,
+   "predicate": "lease.base_rent_schedule",
+   "path": "value[0].from",
+   "original_part": "2018-11-01",
+   "planted_part": "2018-11-02",
+   "planted_value": [
+    {
+     "from": "2018-11-02",
+     "to": "2019-05-31",
+     "annual_rent_psf": 60.6
+    },
+    {
+     "from": "2019-06-01",
+     "to": "2019-10-31",
+     "annual_rent_psf": 60.6
+    },
+    {
+     "from": "2019-11-01",
+     "to": "2020-10-31",
+     "annual_rent_psf": 62.76
+    },
+    {
+     "from": "2020-11-01",
+     "to": "2021-10-31",
+     "annual_rent_psf": 64.92
+    },
+    {
+     "from": "2021-11-01",
+     "to": "2022-10-31",
+     "annual_rent_psf": 67.2
+    },
+    {
+     "from": "2022-11-01",
+     "to": "2023-10-31",
+     "annual_rent_psf": 69.6
+    },
+    {
+     "from": "2023-11-01",
+     "to": "2024-10-31",
+     "annual_rent_psf": 72.0
+    },
+    {
+     "from": "2024-11-01",
+     "to": "2025-10-31",
+     "annual_rent_psf": 74.52
+    },
+    {
+     "from": "2025-11-01",
+     "to": "2026-10-31",
+     "annual_rent_psf": 77.16
+    },
+    {
+     "from": "2026-11-01",
+     "to": "2027-10-31",
+     "annual_rent_psf": 79.8
+    },
+    {
+     "from": "2027-11-01",
+     "to": "2028-10-31",
+     "annual_rent_psf": 82.68
+    },
+    {
+     "from": "2028-11-01",
+     "to": "2029-02-28",
+     "annual_rent_psf": 85.56
+    }
+   ],
+   "leaf_kind": "date",
+   "error_type": "value_only",
+   "compared_with_quote": true,
+   "original_part_in_quote": false,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L06",
+   "candidate": 6,
+   "predicate": "lease.pro_rata_share",
+   "path": "value",
+   "original_part": 0.3784,
+   "planted_part": 0.3884,
+   "planted_value": 0.3884,
+   "leaf_kind": "ratio",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L06",
+   "candidate": 7,
+   "predicate": "lease.security_deposit",
+   "path": "value",
+   "original_part": 213026,
+   "planted_part": 234329,
+   "planted_value": 234329,
+   "leaf_kind": "integer_ge_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L06",
+   "candidate": 9,
+   "predicate": "lease.renewal_option",
+   "path": "value.count",
+   "original_part": 1,
+   "planted_part": 2,
+   "planted_value": {
+    "count": 2,
+    "term_months": 84,
+    "notice_months": 9,
+    "rent": "Fair Rental Value"
+   },
+   "leaf_kind": "integer_lt_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L07",
+   "candidate": 2,
+   "predicate": "lease.rentable_area_sf",
+   "path": "value",
+   "original_part": 81412,
+   "planted_part": 89553,
+   "planted_value": 89553,
+   "leaf_kind": "integer_ge_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L07",
+   "candidate": 3,
+   "predicate": "lease.pro_rata_share",
+   "path": "value",
+   "original_part": 1,
+   "planted_part": 2,
+   "planted_value": 2,
+   "leaf_kind": "integer_lt_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L07",
+   "candidate": 4,
+   "predicate": "lease.security_deposit",
+   "path": "value",
+   "original_part": 998501.9,
+   "planted_part": 998502.9,
+   "planted_value": 998502.9,
+   "leaf_kind": "other_number",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L07",
+   "candidate": 5,
+   "predicate": "lease.renewal_option",
+   "path": "value.count",
+   "original_part": 2,
+   "planted_part": 3,
+   "planted_value": {
+    "count": 3,
+    "term_months": 84,
+    "notice_months": 9,
+    "rent": "Fair Rental Value"
+   },
+   "leaf_kind": "integer_lt_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L08",
+   "candidate": 2,
+   "predicate": "lease.commencement_date",
+   "path": "value",
+   "original_part": "2020-03-01",
+   "planted_part": "2020-03-02",
+   "planted_value": "2020-03-02",
+   "leaf_kind": "date",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L08",
+   "candidate": 3,
+   "predicate": "lease.rentable_area_sf",
+   "path": "value",
+   "original_part": 7614,
+   "planted_part": 8375,
+   "planted_value": 8375,
+   "leaf_kind": "integer_ge_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L08",
+   "candidate": 5,
+   "predicate": "lease.free_rent",
+   "path": "value.months",
+   "original_part": 1,
+   "planted_part": 2,
+   "planted_value": {
+    "months": 2,
+    "applies_to": "base_rent"
+   },
+   "leaf_kind": "integer_lt_100",
+   "error_type": "value_only",
+   "compared_with_quote": true,
+   "original_part_in_quote": false,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L08",
+   "candidate": 6,
+   "predicate": "lease.security_deposit",
+   "path": "value",
+   "original_part": 41366.39,
+   "planted_part": 41367.39,
+   "planted_value": 41367.39,
+   "leaf_kind": "other_number",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L08",
+   "candidate": 7,
+   "predicate": "lease.pro_rata_share",
+   "path": "value",
+   "original_part": 0.047304,
+   "planted_part": 0.057304,
+   "planted_value": 0.057304,
+   "leaf_kind": "ratio",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L08",
+   "candidate": 8,
+   "predicate": "lease.renewal_option",
+   "path": "value.count",
+   "original_part": 1,
+   "planted_part": 2,
+   "planted_value": {
+    "count": 2,
+    "term_months": 36,
+    "notice_months": 9,
+    "rent": "Fair Market Rent"
+   },
+   "leaf_kind": "integer_lt_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L09",
+   "candidate": 2,
+   "predicate": "lease.rentable_area_sf",
+   "path": "value",
+   "original_part": 63246,
+   "planted_part": 69571,
+   "planted_value": 69571,
+   "leaf_kind": "integer_ge_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L09",
+   "candidate": 3,
+   "predicate": "lease.free_rent",
+   "path": "value.months",
+   "original_part": 3,
+   "planted_part": 4,
+   "planted_value": {
+    "months": 4,
+    "applies_to": "base_rent"
+   },
+   "leaf_kind": "integer_lt_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L09",
+   "candidate": 4,
+   "predicate": "lease.security_deposit",
+   "path": "value",
+   "original_part": 1163675,
+   "planted_part": 1280042,
+   "planted_value": 1280042,
+   "leaf_kind": "integer_ge_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L09",
+   "candidate": 5,
+   "predicate": "lease.pro_rata_share",
+   "path": "value",
+   "original_part": 0.4262,
+   "planted_part": 0.4362,
+   "planted_value": 0.4362,
+   "leaf_kind": "ratio",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L09",
+   "candidate": 6,
+   "predicate": "lease.renewal_option",
+   "path": "value.count",
+   "original_part": 1,
+   "planted_part": 2,
+   "planted_value": {
+    "count": 2,
+    "term_months": 120,
+    "notice_months": 9,
+    "rent": "Market Rent"
+   },
+   "leaf_kind": "integer_lt_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L10",
+   "candidate": 2,
+   "predicate": "lease.commencement_date",
+   "path": "value",
+   "original_part": "2019-01-01",
+   "planted_part": "2019-01-02",
+   "planted_value": "2019-01-02",
+   "leaf_kind": "date",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L10",
+   "candidate": 3,
+   "predicate": "lease.expiration_date",
+   "path": "value",
+   "original_part": "2023-12-31",
+   "planted_part": "2024-01-01",
+   "planted_value": "2024-01-01",
+   "leaf_kind": "date",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L10",
+   "candidate": 4,
+   "predicate": "lease.rentable_area_sf",
+   "path": "value",
+   "original_part": 10837,
+   "planted_part": 11921,
+   "planted_value": 11921,
+   "leaf_kind": "integer_ge_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L10",
+   "candidate": 5,
+   "predicate": "lease.base_rent_schedule",
+   "path": "value[0].from",
+   "original_part": "2019-01-01",
+   "planted_part": "2019-01-02",
+   "planted_value": [
+    {
+     "from": "2019-01-02",
+     "to": "2019-12-31",
+     "annual_rent_psf": 90.0
+    },
+    {
+     "from": "2020-01-01",
+     "to": "2020-12-31",
+     "annual_rent_psf": 92.7
+    },
+    {
+     "from": "2021-01-01",
+     "to": "2021-12-31",
+     "annual_rent_psf": 95.48
+    },
+    {
+     "from": "2022-01-01",
+     "to": "2022-12-31",
+     "annual_rent_psf": 98.35
+    },
+    {
+     "from": "2023-01-01",
+     "to": "2023-12-31",
+     "annual_rent_psf": 101.3
+    }
+   ],
+   "leaf_kind": "date",
+   "error_type": "value_only",
+   "compared_with_quote": true,
+   "original_part_in_quote": false,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L10",
+   "candidate": 6,
+   "predicate": "lease.free_rent",
+   "path": "value.months",
+   "original_part": 2,
+   "planted_part": 3,
+   "planted_value": {
+    "months": 3,
+    "applies_to": "base_rent"
+   },
+   "leaf_kind": "integer_lt_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L10",
+   "candidate": 7,
+   "predicate": "lease.pro_rata_share",
+   "path": "value",
+   "original_part": 0.007631,
+   "planted_part": 0.017631,
+   "planted_value": 0.017631,
+   "leaf_kind": "ratio",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L10",
+   "candidate": 8,
+   "predicate": "lease.security_deposit",
+   "path": "value",
+   "original_part": 351753.97,
+   "planted_part": 351754.97,
+   "planted_value": 351754.97,
+   "leaf_kind": "other_number",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L10",
+   "candidate": 9,
+   "predicate": "lease.parking",
+   "path": "value.spaces",
+   "original_part": 2,
+   "planted_part": 3,
+   "planted_value": {
+    "spaces": 3
+   },
+   "leaf_kind": "integer_lt_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L12",
+   "candidate": 2,
+   "predicate": "lease.rentable_area_sf",
+   "path": "value",
+   "original_part": 360320,
+   "planted_part": 396352,
+   "planted_value": 396352,
+   "leaf_kind": "integer_ge_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L12",
+   "candidate": 4,
+   "predicate": "lease.security_deposit",
+   "path": "value",
+   "original_part": 330888.34,
+   "planted_part": 330889.34,
+   "planted_value": 330889.34,
+   "leaf_kind": "other_number",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L12",
+   "candidate": 5,
+   "predicate": "lease.pro_rata_share",
+   "path": "value",
+   "original_part": 1,
+   "planted_part": 2,
+   "planted_value": 2,
+   "leaf_kind": "integer_lt_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L14",
+   "candidate": 2,
+   "predicate": "lease.commencement_date",
+   "path": "value",
+   "original_part": "2024-05-22",
+   "planted_part": "2024-05-23",
+   "planted_value": "2024-05-23",
+   "leaf_kind": "date",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L14",
+   "candidate": 3,
+   "predicate": "lease.expiration_date",
+   "path": "value",
+   "original_part": "2029-06-30",
+   "planted_part": "2029-07-01",
+   "planted_value": "2029-07-01",
+   "leaf_kind": "date",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L14",
+   "candidate": 4,
+   "predicate": "lease.rentable_area_sf",
+   "path": "value",
+   "original_part": 324000,
+   "planted_part": 356400,
+   "planted_value": 356400,
+   "leaf_kind": "integer_ge_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L14",
+   "candidate": 6,
+   "predicate": "lease.free_rent",
+   "path": "value.months",
+   "original_part": 2,
+   "planted_part": 3,
+   "planted_value": {
+    "months": 3,
+    "applies_to": "gross_rent"
+   },
+   "leaf_kind": "integer_lt_100",
+   "error_type": "value_only",
+   "compared_with_quote": true,
+   "original_part_in_quote": false,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L14",
+   "candidate": 7,
+   "predicate": "lease.security_deposit",
+   "path": "value",
+   "original_part": 1000000,
+   "planted_part": 1100000,
+   "planted_value": 1100000,
+   "leaf_kind": "integer_ge_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L14",
+   "candidate": 8,
+   "predicate": "lease.pro_rata_share",
+   "path": "value",
+   "original_part": 1,
+   "planted_part": 2,
+   "planted_value": 2,
+   "leaf_kind": "integer_lt_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L14",
+   "candidate": 9,
+   "predicate": "lease.cam_cap",
+   "path": "value.rate",
+   "original_part": 0.07,
+   "planted_part": 0.08,
+   "planted_value": {
+    "method": "compounding_from_base",
+    "rate": 0.08
+   },
+   "leaf_kind": "ratio",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L15",
+   "candidate": 2,
+   "predicate": "lease.rentable_area_sf",
+   "path": "value",
+   "original_part": 75022,
+   "planted_part": 82524,
+   "planted_value": 82524,
+   "leaf_kind": "integer_ge_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L15",
+   "candidate": 3,
+   "predicate": "lease.base_rent_schedule",
+   "path": "value[0].from",
+   "original_part": "2022-01-01",
+   "planted_part": "2022-01-02",
+   "planted_value": [
+    {
+     "from": "2022-01-02",
+     "to": "2022-12-31",
+     "annual_rent_psf": 9.5
+    },
+    {
+     "from": "2023-01-01",
+     "to": "2023-12-31",
+     "annual_rent_psf": 9.785
+    },
+    {
+     "from": "2024-01-01",
+     "to": "2024-12-31",
+     "annual_rent_psf": 10.079
+    },
+    {
+     "from": "2025-01-01",
+     "to": "2025-12-31",
+     "annual_rent_psf": 10.381
+    },
+    {
+     "from": "2026-01-01",
+     "to": "2026-12-31",
+     "annual_rent_psf": 10.692
+    },
+    {
+     "from": "2027-01-01",
+     "to": "2027-12-31",
+     "annual_rent_psf": 11.013
+    },
+    {
+     "from": "2028-01-01",
+     "to": "2028-12-31",
+     "annual_rent_psf": 11.343
+    },
+    {
+     "from": "2029-01-01",
+     "to": "2029-03-31",
+     "annual_rent_psf": 11.684
+    }
+   ],
+   "leaf_kind": "date",
+   "error_type": "value_only",
+   "compared_with_quote": true,
+   "original_part_in_quote": false,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L15",
+   "candidate": 4,
+   "predicate": "lease.security_deposit",
+   "path": "value",
+   "original_part": 650000,
+   "planted_part": 715000,
+   "planted_value": 715000,
+   "leaf_kind": "integer_ge_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L15",
+   "candidate": 5,
+   "predicate": "lease.pro_rata_share",
+   "path": "value",
+   "original_part": 0.71791,
+   "planted_part": 0.72791,
+   "planted_value": 0.72791,
+   "leaf_kind": "ratio",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L16",
+   "candidate": 2,
+   "predicate": "lease.rentable_area_sf",
+   "path": "value",
+   "original_part": 65219,
+   "planted_part": 71741,
+   "planted_value": 71741,
+   "leaf_kind": "integer_ge_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L16",
+   "candidate": 4,
+   "predicate": "lease.percentage_rent",
+   "path": "value.rate",
+   "original_part": 0.08,
+   "planted_part": 0.09,
+   "planted_value": {
+    "rate": 0.09,
+    "breakpoint": {
+     "type": "fixed",
+     "amount": 13000000
+    },
+    "sales_exclusions": "taxes and governmental charges; customer refunds, credits and adjustments; vending machines (including pay telephones and ATMs); video or electronic games except to the extent payable to or retained by Tenant; advertising receipts; license and concession fees paid to Tenant (Gross Sales of the licensee or concessionaire included); lottery tickets except the commission retained by Tenant; VIP or gift certificates or discount cards until redeemed; Pass Admissions including EBF charges; third-party agency fees and commissions and surcharges in excess of the standard ticket price for off-Premises ticket sales; insurance proceeds, Taking compensation, sale of FF&E, and sublet rents (Gross Sales of subtenants and assignees included); admission receipts from Four Wall Deals (actual payments retained by Tenant included)"
+   },
+   "leaf_kind": "ratio",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L16",
+   "candidate": 5,
+   "predicate": "lease.cam_cap",
+   "path": "value.rate",
+   "original_part": 0.03,
+   "planted_part": 0.04,
+   "planted_value": {
+    "method": "year_over_year",
+    "rate": 0.04
+   },
+   "leaf_kind": "ratio",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L16",
+   "candidate": 8,
+   "predicate": "lease.renewal_option",
+   "path": "value.count",
+   "original_part": 4,
+   "planted_part": 5,
+   "planted_value": {
+    "count": 5,
+    "term_months": 60,
+    "notice_months": 6,
+    "rent": "First Extension Term $31.50 psf; Second $33.00 psf; Third $34.50 psf; Fourth $36.00 psf of Floor Area per Lease Year"
+   },
+   "leaf_kind": "integer_lt_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": true
+  },
+  {
+   "doc": "L17",
+   "candidate": 2,
+   "predicate": "lease.rentable_area_sf",
+   "path": "value",
+   "original_part": 30701,
+   "planted_part": 33771,
+   "planted_value": 33771,
+   "leaf_kind": "integer_ge_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L17",
+   "candidate": 4,
+   "predicate": "lease.pro_rata_share",
+   "path": "value",
+   "original_part": 1,
+   "planted_part": 2,
+   "planted_value": 2,
+   "leaf_kind": "integer_lt_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L18",
+   "candidate": 2,
+   "predicate": "lease.rentable_area_sf",
+   "path": "value",
+   "original_part": 17955,
+   "planted_part": 19750,
+   "planted_value": 19750,
+   "leaf_kind": "integer_ge_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L18",
+   "candidate": 3,
+   "predicate": "lease.pro_rata_share",
+   "path": "value",
+   "original_part": 0.359,
+   "planted_part": 0.369,
+   "planted_value": 0.369,
+   "leaf_kind": "ratio",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L18",
+   "candidate": 8,
+   "predicate": "lease.rentable_area_sf",
+   "path": "value",
+   "original_part": 17955,
+   "planted_part": 19750,
+   "planted_value": 19750,
+   "leaf_kind": "integer_ge_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L18",
+   "candidate": 9,
+   "predicate": "lease.pro_rata_share",
+   "path": "value",
+   "original_part": 0.359,
+   "planted_part": 0.369,
+   "planted_value": 0.369,
+   "leaf_kind": "ratio",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L18",
+   "candidate": 10,
+   "predicate": "lease.cam_cap",
+   "path": "value.rate",
+   "original_part": 0.03,
+   "planted_part": 0.04,
+   "planted_value": {
+    "method": "year_over_year",
+    "rate": 0.04
+   },
+   "leaf_kind": "ratio",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L18",
+   "candidate": 11,
+   "predicate": "lease.renewal_option",
+   "path": "value.count",
+   "original_part": 4,
+   "planted_part": 5,
+   "planted_value": {
+    "count": 5,
+    "term_months": 60,
+    "notice_months": 3,
+    "rent": "Monthly Fixed Rent of $15,000.00 for Lease Years 11-15, $16,000.00 for Lease Years 16-20, $17,000.00 for Lease Years 21-25, and $18,000.00 for Lease Years 26-30"
+   },
+   "leaf_kind": "integer_lt_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": true
+  },
+  {
+   "doc": "L19",
+   "candidate": 2,
+   "predicate": "lease.rentable_area_sf",
+   "path": "value",
+   "original_part": 14727,
+   "planted_part": 16200,
+   "planted_value": 16200,
+   "leaf_kind": "integer_ge_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L19",
+   "candidate": 4,
+   "predicate": "lease.renewal_option",
+   "path": "value.count",
+   "original_part": 4,
+   "planted_part": 5,
+   "planted_value": {
+    "count": 5,
+    "term_months": 60,
+    "notice_months": 6,
+    "rent": "110% of the Minimum Annual Rent of the last Lease Year or Renewal Term"
+   },
+   "leaf_kind": "integer_lt_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": true
+  },
+  {
+   "doc": "L20",
+   "candidate": 2,
+   "predicate": "lease.rentable_area_sf",
+   "path": "value",
+   "original_part": 30000,
+   "planted_part": 33000,
+   "planted_value": 33000,
+   "leaf_kind": "integer_ge_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L20",
+   "candidate": 3,
+   "predicate": "lease.security_deposit",
+   "path": "value",
+   "original_part": 625000,
+   "planted_part": 687500,
+   "planted_value": 687500,
+   "leaf_kind": "integer_ge_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L20",
+   "candidate": 4,
+   "predicate": "lease.renewal_option",
+   "path": "value.count",
+   "original_part": 1,
+   "planted_part": 2,
+   "planted_value": {
+    "count": 2,
+    "term_months": 60,
+    "notice_months": 9,
+    "rent": "Minimum Annual Rent of One Million Six Hundred Fifty Thousand and No/100 Dollars ($1,650,000.00) per annum"
+   },
+   "leaf_kind": "integer_lt_100",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  },
+  {
+   "doc": "L20",
+   "candidate": 5,
+   "predicate": "lease.percentage_rent",
+   "path": "value.rate",
+   "original_part": 0.07,
+   "planted_part": 0.08,
+   "planted_value": {
+    "rate": 0.08,
+    "breakpoint": {
+     "type": "natural"
+    },
+    "sales_exclusions": "exclusions from Gross Sales include claim settlements, customer returns and refunds, sales taxes and similar taxes (including LET), employee gratuities, proceeds from sale of trade fixtures, casualty insurance proceeds, improvement-cost reimbursements, subtenant security deposits, certain subtenant operating-cost and after-hours reimbursements, and uncollectible accounts receivable"
+   },
+   "leaf_kind": "ratio",
+   "error_type": "number_in_quote",
+   "compared_with_quote": true,
+   "original_part_in_quote": true,
+   "planted_value_in_quote": false
+  }
+ ]
+}

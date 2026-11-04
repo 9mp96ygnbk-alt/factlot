@@ -1,0 +1,769 @@
+{
+ "_meta": {
+  "step": "plant",
+  "command": "python3 bench/doc-accuracy/run.py plant --seed 20261103",
+  "repo_head": "5c4cf1a22e2d016921927b841f79ae1733156c9a",
+  "worktree_dirty": false,
+  "factlot_version": "0.2.0",
+  "factlot_src_commit": "e2c5e63bb11dcf20415cefe9c538450feedb28d7",
+  "as_of": "2026-11-03",
+  "labels_frozen_at": "a978b85766f5c7e911fc9fe2175dbea0289079a1",
+  "python": "3.13.5",
+  "seed": 20261103,
+  "rule": "one digit of one number in the quote changes; value unchanged; random.Random(f'{seed}:{doc}:{candidate}') picks the number, the digit and the new digit"
+ },
+ "copies": [
+  {
+   "doc": "L01",
+   "candidate": 2,
+   "predicate": "lease.expiration_date",
+   "offset": 123,
+   "original_digit": "0",
+   "planted_digit": "5"
+  },
+  {
+   "doc": "L01",
+   "candidate": 3,
+   "predicate": "lease.rentable_area_sf",
+   "offset": 101,
+   "original_digit": "6",
+   "planted_digit": "3"
+  },
+  {
+   "doc": "L01",
+   "candidate": 4,
+   "predicate": "lease.pro_rata_share",
+   "offset": 54,
+   "original_digit": "2",
+   "planted_digit": "0"
+  },
+  {
+   "doc": "L01",
+   "candidate": 5,
+   "predicate": "lease.operating_expense_base_year",
+   "offset": 48,
+   "original_digit": "9",
+   "planted_digit": "6"
+  },
+  {
+   "doc": "L01",
+   "candidate": 6,
+   "predicate": "lease.parking",
+   "offset": 499,
+   "original_digit": "5",
+   "planted_digit": "3"
+  },
+  {
+   "doc": "L02",
+   "candidate": 2,
+   "predicate": "lease.rentable_area_sf",
+   "offset": 15,
+   "original_digit": "5",
+   "planted_digit": "9"
+  },
+  {
+   "doc": "L02",
+   "candidate": 3,
+   "predicate": "lease.rentable_area_sf",
+   "offset": 0,
+   "original_digit": "2",
+   "planted_digit": "8"
+  },
+  {
+   "doc": "L02",
+   "candidate": 4,
+   "predicate": "lease.rentable_area_sf",
+   "offset": 20,
+   "original_digit": "4",
+   "planted_digit": "7"
+  },
+  {
+   "doc": "L02",
+   "candidate": 5,
+   "predicate": "lease.base_rent_schedule",
+   "offset": 113,
+   "original_digit": "6",
+   "planted_digit": "2"
+  },
+  {
+   "doc": "L02",
+   "candidate": 6,
+   "predicate": "lease.base_rent_schedule",
+   "offset": 133,
+   "original_digit": "7",
+   "planted_digit": "9"
+  },
+  {
+   "doc": "L02",
+   "candidate": 7,
+   "predicate": "lease.base_rent_schedule",
+   "offset": 575,
+   "original_digit": "0",
+   "planted_digit": "4"
+  },
+  {
+   "doc": "L02",
+   "candidate": 8,
+   "predicate": "lease.parking",
+   "offset": 33,
+   "original_digit": "2",
+   "planted_digit": "0"
+  },
+  {
+   "doc": "L02",
+   "candidate": 9,
+   "predicate": "lease.parking",
+   "offset": 23,
+   "original_digit": "1",
+   "planted_digit": "2"
+  },
+  {
+   "doc": "L02",
+   "candidate": 10,
+   "predicate": "lease.parking",
+   "offset": 24,
+   "original_digit": "3",
+   "planted_digit": "6"
+  },
+  {
+   "doc": "L02",
+   "candidate": 11,
+   "predicate": "lease.parking",
+   "offset": 35,
+   "original_digit": "2",
+   "planted_digit": "1"
+  },
+  {
+   "doc": "L03",
+   "candidate": 0,
+   "predicate": "lease.landlord",
+   "offset": 4,
+   "original_digit": "0",
+   "planted_digit": "5"
+  },
+  {
+   "doc": "L03",
+   "candidate": 2,
+   "predicate": "lease.rentable_area_sf",
+   "offset": 28,
+   "original_digit": "7",
+   "planted_digit": "8"
+  },
+  {
+   "doc": "L03",
+   "candidate": 3,
+   "predicate": "lease.commencement_date",
+   "offset": 113,
+   "original_digit": "3",
+   "planted_digit": "6"
+  },
+  {
+   "doc": "L03",
+   "candidate": 4,
+   "predicate": "lease.expiration_date",
+   "offset": 44,
+   "original_digit": "3",
+   "planted_digit": "2"
+  },
+  {
+   "doc": "L03",
+   "candidate": 5,
+   "predicate": "lease.base_rent_schedule",
+   "offset": 161,
+   "original_digit": "7",
+   "planted_digit": "0"
+  },
+  {
+   "doc": "L03",
+   "candidate": 6,
+   "predicate": "lease.free_rent",
+   "offset": 108,
+   "original_digit": "2",
+   "planted_digit": "3"
+  },
+  {
+   "doc": "L03",
+   "candidate": 7,
+   "predicate": "lease.pro_rata_share",
+   "offset": 46,
+   "original_digit": "8",
+   "planted_digit": "2"
+  },
+  {
+   "doc": "L03",
+   "candidate": 8,
+   "predicate": "lease.operating_expense_base_year",
+   "offset": 132,
+   "original_digit": "0",
+   "planted_digit": "5"
+  },
+  {
+   "doc": "L04",
+   "candidate": 3,
+   "predicate": "lease.expiration_date",
+   "offset": 30,
+   "original_digit": "2",
+   "planted_digit": "5"
+  },
+  {
+   "doc": "L04",
+   "candidate": 4,
+   "predicate": "lease.rentable_area_sf",
+   "offset": 15,
+   "original_digit": "5",
+   "planted_digit": "0"
+  },
+  {
+   "doc": "L04",
+   "candidate": 5,
+   "predicate": "lease.pro_rata_share",
+   "offset": 45,
+   "original_digit": "9",
+   "planted_digit": "1"
+  },
+  {
+   "doc": "L04",
+   "candidate": 6,
+   "predicate": "lease.security_deposit",
+   "offset": 10,
+   "original_digit": "1",
+   "planted_digit": "6"
+  },
+  {
+   "doc": "L04",
+   "candidate": 7,
+   "predicate": "lease.parking",
+   "offset": 20,
+   "original_digit": "5",
+   "planted_digit": "4"
+  },
+  {
+   "doc": "L05",
+   "candidate": 2,
+   "predicate": "lease.expiration_date",
+   "offset": 72,
+   "original_digit": "2",
+   "planted_digit": "5"
+  },
+  {
+   "doc": "L05",
+   "candidate": 3,
+   "predicate": "lease.rentable_area_sf",
+   "offset": 54,
+   "original_digit": "8",
+   "planted_digit": "3"
+  },
+  {
+   "doc": "L05",
+   "candidate": 4,
+   "predicate": "lease.pro_rata_share",
+   "offset": 61,
+   "original_digit": "1",
+   "planted_digit": "6"
+  },
+  {
+   "doc": "L06",
+   "candidate": 2,
+   "predicate": "lease.commencement_date",
+   "offset": 13,
+   "original_digit": "0",
+   "planted_digit": "1"
+  },
+  {
+   "doc": "L06",
+   "candidate": 3,
+   "predicate": "lease.expiration_date",
+   "offset": 9,
+   "original_digit": "2",
+   "planted_digit": "3"
+  },
+  {
+   "doc": "L06",
+   "candidate": 4,
+   "predicate": "lease.rentable_area_sf",
+   "offset": 14,
+   "original_digit": "1",
+   "planted_digit": "9"
+  },
+  {
+   "doc": "L06",
+   "candidate": 5,
+   "predicate": "lease.base_rent_schedule",
+   "offset": 154,
+   "original_digit": "0",
+   "planted_digit": "5"
+  },
+  {
+   "doc": "L06",
+   "candidate": 6,
+   "predicate": "lease.pro_rata_share",
+   "offset": 1,
+   "original_digit": "7",
+   "planted_digit": "5"
+  },
+  {
+   "doc": "L06",
+   "candidate": 7,
+   "predicate": "lease.security_deposit",
+   "offset": 10,
+   "original_digit": "0",
+   "planted_digit": "3"
+  },
+  {
+   "doc": "L06",
+   "candidate": 9,
+   "predicate": "lease.renewal_option",
+   "offset": 215,
+   "original_digit": "2",
+   "planted_digit": "4"
+  },
+  {
+   "doc": "L07",
+   "candidate": 2,
+   "predicate": "lease.rentable_area_sf",
+   "offset": 19,
+   "original_digit": "2",
+   "planted_digit": "9"
+  },
+  {
+   "doc": "L07",
+   "candidate": 3,
+   "predicate": "lease.pro_rata_share",
+   "offset": 22,
+   "original_digit": "0",
+   "planted_digit": "2"
+  },
+  {
+   "doc": "L07",
+   "candidate": 4,
+   "predicate": "lease.security_deposit",
+   "offset": 3,
+   "original_digit": "8",
+   "planted_digit": "2"
+  },
+  {
+   "doc": "L07",
+   "candidate": 5,
+   "predicate": "lease.renewal_option",
+   "offset": 64,
+   "original_digit": "7",
+   "planted_digit": "6"
+  },
+  {
+   "doc": "L08",
+   "candidate": 2,
+   "predicate": "lease.commencement_date",
+   "offset": 25,
+   "original_digit": "1",
+   "planted_digit": "0"
+  },
+  {
+   "doc": "L08",
+   "candidate": 3,
+   "predicate": "lease.rentable_area_sf",
+   "offset": 131,
+   "original_digit": "5",
+   "planted_digit": "1"
+  },
+  {
+   "doc": "L08",
+   "candidate": 6,
+   "predicate": "lease.security_deposit",
+   "offset": 32,
+   "original_digit": "4",
+   "planted_digit": "8"
+  },
+  {
+   "doc": "L08",
+   "candidate": 7,
+   "predicate": "lease.pro_rata_share",
+   "offset": 46,
+   "original_digit": "0",
+   "planted_digit": "6"
+  },
+  {
+   "doc": "L08",
+   "candidate": 8,
+   "predicate": "lease.renewal_option",
+   "offset": 86,
+   "original_digit": "1",
+   "planted_digit": "6"
+  },
+  {
+   "doc": "L09",
+   "candidate": 2,
+   "predicate": "lease.rentable_area_sf",
+   "offset": 66,
+   "original_digit": "5",
+   "planted_digit": "9"
+  },
+  {
+   "doc": "L09",
+   "candidate": 3,
+   "predicate": "lease.free_rent",
+   "offset": 109,
+   "original_digit": "3",
+   "planted_digit": "6"
+  },
+  {
+   "doc": "L09",
+   "candidate": 4,
+   "predicate": "lease.security_deposit",
+   "offset": 3,
+   "original_digit": "1",
+   "planted_digit": "4"
+  },
+  {
+   "doc": "L09",
+   "candidate": 5,
+   "predicate": "lease.pro_rata_share",
+   "offset": 4,
+   "original_digit": "2",
+   "planted_digit": "3"
+  },
+  {
+   "doc": "L09",
+   "candidate": 6,
+   "predicate": "lease.renewal_option",
+   "offset": 261,
+   "original_digit": "1",
+   "planted_digit": "4"
+  },
+  {
+   "doc": "L10",
+   "candidate": 2,
+   "predicate": "lease.commencement_date",
+   "offset": 37,
+   "original_digit": "1",
+   "planted_digit": "3"
+  },
+  {
+   "doc": "L10",
+   "candidate": 3,
+   "predicate": "lease.expiration_date",
+   "offset": 2,
+   "original_digit": "3",
+   "planted_digit": "5"
+  },
+  {
+   "doc": "L10",
+   "candidate": 4,
+   "predicate": "lease.rentable_area_sf",
+   "offset": 0,
+   "original_digit": "1",
+   "planted_digit": "6"
+  },
+  {
+   "doc": "L10",
+   "candidate": 5,
+   "predicate": "lease.base_rent_schedule",
+   "offset": 158,
+   "original_digit": "1",
+   "planted_digit": "9"
+  },
+  {
+   "doc": "L10",
+   "candidate": 6,
+   "predicate": "lease.free_rent",
+   "offset": 145,
+   "original_digit": "2",
+   "planted_digit": "5"
+  },
+  {
+   "doc": "L10",
+   "candidate": 7,
+   "predicate": "lease.pro_rata_share",
+   "offset": 27,
+   "original_digit": "4",
+   "planted_digit": "5"
+  },
+  {
+   "doc": "L10",
+   "candidate": 8,
+   "predicate": "lease.security_deposit",
+   "offset": 30,
+   "original_digit": "1",
+   "planted_digit": "0"
+  },
+  {
+   "doc": "L10",
+   "candidate": 9,
+   "predicate": "lease.parking",
+   "offset": 33,
+   "original_digit": "2",
+   "planted_digit": "4"
+  },
+  {
+   "doc": "L12",
+   "candidate": 2,
+   "predicate": "lease.rentable_area_sf",
+   "offset": 25,
+   "original_digit": "3",
+   "planted_digit": "8"
+  },
+  {
+   "doc": "L12",
+   "candidate": 4,
+   "predicate": "lease.security_deposit",
+   "offset": 53,
+   "original_digit": "8",
+   "planted_digit": "7"
+  },
+  {
+   "doc": "L12",
+   "candidate": 5,
+   "predicate": "lease.pro_rata_share",
+   "offset": 55,
+   "original_digit": "1",
+   "planted_digit": "6"
+  },
+  {
+   "doc": "L14",
+   "candidate": 2,
+   "predicate": "lease.commencement_date",
+   "offset": 18,
+   "original_digit": "2",
+   "planted_digit": "9"
+  },
+  {
+   "doc": "L14",
+   "candidate": 3,
+   "predicate": "lease.expiration_date",
+   "offset": 12,
+   "original_digit": "9",
+   "planted_digit": "6"
+  },
+  {
+   "doc": "L14",
+   "candidate": 4,
+   "predicate": "lease.rentable_area_sf",
+   "offset": 31,
+   "original_digit": "0",
+   "planted_digit": "4"
+  },
+  {
+   "doc": "L14",
+   "candidate": 6,
+   "predicate": "lease.free_rent",
+   "offset": 147,
+   "original_digit": "4",
+   "planted_digit": "1"
+  },
+  {
+   "doc": "L14",
+   "candidate": 7,
+   "predicate": "lease.security_deposit",
+   "offset": 1,
+   "original_digit": "1",
+   "planted_digit": "5"
+  },
+  {
+   "doc": "L14",
+   "candidate": 8,
+   "predicate": "lease.pro_rata_share",
+   "offset": 11,
+   "original_digit": "0",
+   "planted_digit": "9"
+  },
+  {
+   "doc": "L14",
+   "candidate": 9,
+   "predicate": "lease.cam_cap",
+   "offset": 200,
+   "original_digit": "5",
+   "planted_digit": "1"
+  },
+  {
+   "doc": "L15",
+   "candidate": 2,
+   "predicate": "lease.rentable_area_sf",
+   "offset": 11,
+   "original_digit": "7",
+   "planted_digit": "8"
+  },
+  {
+   "doc": "L15",
+   "candidate": 3,
+   "predicate": "lease.base_rent_schedule",
+   "offset": 233,
+   "original_digit": "1",
+   "planted_digit": "0"
+  },
+  {
+   "doc": "L15",
+   "candidate": 4,
+   "predicate": "lease.security_deposit",
+   "offset": 3,
+   "original_digit": "0",
+   "planted_digit": "4"
+  },
+  {
+   "doc": "L15",
+   "candidate": 5,
+   "predicate": "lease.pro_rata_share",
+   "offset": 1,
+   "original_digit": "1",
+   "planted_digit": "5"
+  },
+  {
+   "doc": "L16",
+   "candidate": 2,
+   "predicate": "lease.rentable_area_sf",
+   "offset": 39,
+   "original_digit": "6",
+   "planted_digit": "0"
+  },
+  {
+   "doc": "L16",
+   "candidate": 4,
+   "predicate": "lease.percentage_rent",
+   "offset": 122,
+   "original_digit": "8",
+   "planted_digit": "6"
+  },
+  {
+   "doc": "L16",
+   "candidate": 5,
+   "predicate": "lease.cam_cap",
+   "offset": 125,
+   "original_digit": "2",
+   "planted_digit": "0"
+  },
+  {
+   "doc": "L16",
+   "candidate": 8,
+   "predicate": "lease.renewal_option",
+   "offset": 170,
+   "original_digit": "3",
+   "planted_digit": "7"
+  },
+  {
+   "doc": "L17",
+   "candidate": 0,
+   "predicate": "lease.landlord",
+   "offset": 149,
+   "original_digit": "0",
+   "planted_digit": "5"
+  },
+  {
+   "doc": "L17",
+   "candidate": 1,
+   "predicate": "lease.tenant",
+   "offset": 59,
+   "original_digit": "7",
+   "planted_digit": "6"
+  },
+  {
+   "doc": "L17",
+   "candidate": 2,
+   "predicate": "lease.rentable_area_sf",
+   "offset": 60,
+   "original_digit": "0",
+   "planted_digit": "3"
+  },
+  {
+   "doc": "L17",
+   "candidate": 4,
+   "predicate": "lease.pro_rata_share",
+   "offset": 19,
+   "original_digit": "1",
+   "planted_digit": "0"
+  },
+  {
+   "doc": "L18",
+   "candidate": 2,
+   "predicate": "lease.rentable_area_sf",
+   "offset": 85,
+   "original_digit": "9",
+   "planted_digit": "6"
+  },
+  {
+   "doc": "L18",
+   "candidate": 3,
+   "predicate": "lease.pro_rata_share",
+   "offset": 89,
+   "original_digit": "5",
+   "planted_digit": "1"
+  },
+  {
+   "doc": "L18",
+   "candidate": 8,
+   "predicate": "lease.rentable_area_sf",
+   "offset": 59,
+   "original_digit": "7",
+   "planted_digit": "5"
+  },
+  {
+   "doc": "L18",
+   "candidate": 9,
+   "predicate": "lease.pro_rata_share",
+   "offset": 91,
+   "original_digit": "9",
+   "planted_digit": "4"
+  },
+  {
+   "doc": "L18",
+   "candidate": 10,
+   "predicate": "lease.cam_cap",
+   "offset": 219,
+   "original_digit": "3",
+   "planted_digit": "4"
+  },
+  {
+   "doc": "L18",
+   "candidate": 11,
+   "predicate": "lease.renewal_option",
+   "offset": 487,
+   "original_digit": "4",
+   "planted_digit": "9"
+  },
+  {
+   "doc": "L19",
+   "candidate": 2,
+   "predicate": "lease.rentable_area_sf",
+   "offset": 18,
+   "original_digit": "2",
+   "planted_digit": "8"
+  },
+  {
+   "doc": "L19",
+   "candidate": 4,
+   "predicate": "lease.renewal_option",
+   "offset": 779,
+   "original_digit": "3",
+   "planted_digit": "5"
+  },
+  {
+   "doc": "L20",
+   "candidate": 2,
+   "predicate": "lease.rentable_area_sf",
+   "offset": 36,
+   "original_digit": "0",
+   "planted_digit": "2"
+  },
+  {
+   "doc": "L20",
+   "candidate": 3,
+   "predicate": "lease.security_deposit",
+   "offset": 88,
+   "original_digit": "6",
+   "planted_digit": "1"
+  },
+  {
+   "doc": "L20",
+   "candidate": 4,
+   "predicate": "lease.renewal_option",
+   "offset": 5,
+   "original_digit": "1",
+   "planted_digit": "0"
+  },
+  {
+   "doc": "L20",
+   "candidate": 5,
+   "predicate": "lease.percentage_rent",
+   "offset": 39,
+   "original_digit": "2",
+   "planted_digit": "5"
+  }
+ ]
+}
