@@ -2,10 +2,28 @@
 
 Three ways to use FactLot, depending on where your agent runs. All three serve the same core
 tools from one catalog: twenty-two calculators, a Texas protest-deadline rule, FactLot IDs, and fact
-validation. The MCP servers (local and `/mcp`) add `search`/`fetch`/`schema_get` and list the six
-`registry_*` tools only when a registry database is configured (`FACTLOT_REGISTRY_DB`). REST,
-OpenAPI, and the TypeScript and Python tool exports always include the registry tools, which
-return `RegistryUnavailable` until a database is configured. For which tool to call when, see [agents.md](agents.md).
+validation. The MCP servers (local and `/mcp`) always add `search`/`fetch`/`schema_get`. The six
+`registry_*` tools are listed (in MCP `tools/list`, `GET /v1/tools`, and both OpenAPI documents)
+only when a registry database is configured (`FACTLOT_REGISTRY_DB`); without one, their REST routes
+answer `503 RegistryUnavailable`. The hosted API does not serve the registry yet, so it lists 39
+tools over REST and 42 over MCP. The TypeScript and Python tool exports always include the registry
+tools. For which tool to call when, see [agents.md](agents.md).
+
+## 0. The hosted API (nothing to install)
+
+`https://api.factlot.com` serves the same tools, free at 60 requests a minute per IP with no key
+(Pro and Team keys raise the limit). Remote MCP is `https://api.factlot.com/mcp`; REST is
+`POST https://api.factlot.com/v1/<group>/<name>` (paths in `GET /v1/tools`); OpenAPI is
+`/openapi.json` (3.1, every tool) and `/openapi-3.0.json` (the Custom GPT subset).
+
+```bash
+curl -s https://api.factlot.com/v1/calc/irr -H 'content-type: application/json' \
+  -d '{"cash_flows":[-100,10,10,110]}'
+```
+
+Send a descriptive `User-Agent` header from scripts (for example `my-agent/1.0`). The edge
+network in front of the API rejects some default library agents, such as Python's
+`Python-urllib/3.x`, with HTTP 403; `requests`, `httpx`, and `curl` defaults are accepted.
 
 > **What works today.** FactLot is not on npm or PyPI yet (backlog item A5). Each section
 > below lists the commands that work now first: from a clone, from git, or from the files

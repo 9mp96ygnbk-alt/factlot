@@ -42,7 +42,8 @@ in catalog order (a test keeps it at 30 or fewer and checks that this page lists
 - IDs, facts, and documents: `id_parcel`, `id_space`, `id_document`, `fact_validate`,
   `doc_verify_facts`, `doc_abstract_lease`
 - Registry, only on a server with a registry loaded: `registry_search_address`, `registry_get`,
-  `registry_search_entities`, `registry_resolve_parcel`
+  `registry_search_entities`, `registry_resolve_parcel`. The hosted API has no registry yet, so its
+  `/openapi-3.0.json` has the other 26 operations.
 
 Everything else, such as `calc_lease_vs_own`, `calc_prepayment_and_defeasance`, `calc_capex_recovery`, `id_building`,
 `doc_compare`, and the other registry tools, is in the complete OpenAPI 3.1 document

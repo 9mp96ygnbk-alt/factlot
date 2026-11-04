@@ -2,12 +2,14 @@
 
 ## Claude.ai, Claude Desktop, and mobile: custom connector (remote MCP)
 
-1. Deploy the remote connector (see [connectors/README.md](../README.md)) on a public HTTPS URL.
-2. In Claude, open **Settings → Connectors → Add custom connector**.
-3. Enter the URL `https://api.factlot.com/mcp`. Leave OAuth empty for an open server.
-4. Enable FactLot in a chat from the tools menu.
+1. In Claude, open **Settings → Connectors → Add custom connector**.
+2. Enter the URL `https://api.factlot.com/mcp` (the hosted service; nothing to deploy). Leave OAuth
+   empty.
+3. Enable FactLot in a chat from the tools menu.
 
-Claude connects from Anthropic's cloud, not from your device, so the URL must be publicly reachable.
+To use your own server instead, deploy the remote connector (see [connectors/README.md](../README.md))
+on a public HTTPS URL and enter that URL in step 2. Claude connects from Anthropic's cloud, not from
+your device, so the URL must be publicly reachable.
 
 FactLot's tools are read-only computations. Each one is annotated `readOnlyHint: true`, so Claude
 can call them without a confirmation step, depending on your settings.

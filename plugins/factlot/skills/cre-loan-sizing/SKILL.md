@@ -56,7 +56,7 @@ State the maximum loan, which constraint binds, and the loan each constraint wou
 
 For the period-by-period schedule of a fixed-rate loan, pass `principal`, `rate_annual`, `term_months` (to maturity), `amortization_months` (`0` = interest-only to maturity), and optionally `interest_only_months`, `payment_frequency` (`monthly` or `quarterly`), `day_count` (`30/360`, `actual/360`, `actual/365`; actual day counts need `start_date`), and `start_date`. Rows are in cents that foot: each row rolls forward exactly and the final payment repays the balance.
 
-Worked example (vector "10-year loan, 2 years interest-only, then 30-year amortization", review case B02-P11): `{"principal": 1000000, "rate_annual": 0.06, "term_months": 120, "amortization_months": 360, "interest_only_months": 24}` returns `interest_only_payment` 5,000, `amortizing_payment` 5,995.51, `balloon_balance` 877,722.99, `final_payment` 883,718.50, `total_interest` 573,291.95. Under actual/360 the payment is still computed on a 30/360 basis, so the balloon absorbs the difference; say so.
+Worked example (vector "10-year loan, 2 years interest-only, then 30-year amortization"): `{"principal": 1000000, "rate_annual": 0.06, "term_months": 120, "amortization_months": 360, "interest_only_months": 24}` returns `interest_only_payment` 5,000, `amortizing_payment` 5,995.51, `balloon_balance` 877,722.99, `final_payment` 883,718.50, `total_interest` 573,291.95. Under actual/360 the payment is still computed on a 30/360 basis, so the balloon absorbs the difference; say so.
 
 ## Rules
 

@@ -12,12 +12,12 @@ To self-host, run the Docker image or `@factlot/server` and use your own host in
 
 ## Three ways to connect
 
-| Surface                                               | What it is                                                                                                                                                           | Use it from                                                                                                                                       |
-| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Remote MCP** (`https://api.factlot.com/mcp`)        | Streamable HTTP and stateless. Serves 16 tools plus `search`, `fetch`, and `schema_get`, and 6 registry tools when a registry is configured.                         | Claude custom connectors, ChatGPT apps (developer mode, deep research), Microsoft Copilot Studio, Gemini CLI, Mistral Le Chat, Cursor, VS Code    |
-| **Local MCP** (stdio)                                 | `npx -y <release URL>/factlot-mcp-standalone-X.Y.Z.tgz` (`npx -y @factlot/mcp` after first publish), or a one-click Claude Desktop extension (`factlot-X.Y.Z.mcpb`). | Claude Desktop, Claude Code, Cursor, Windsurf, VS Code, Gemini CLI                                                                                |
-| **REST and OpenAPI** (`https://api.factlot.com/v1/…`) | One POST endpoint per tool. `/openapi.json` (3.1, all tools); `/openapi-3.0.json` (the GPT Actions subset; `?operations=all` for all).                               | Custom GPT Actions, Amazon Bedrock Agents, Microsoft API plugins, Vertex AI, any HTTP client                                                      |
-| **Native function calling**                           | Tool definitions in each provider's own format, plus `run_tool()` in Python and `runTool()` in TypeScript.                                                           | Claude API, OpenAI (Chat Completions and Responses), Gemini API, Bedrock Converse, Mistral, xAI, DeepSeek, Groq, and other OpenAI-compatible APIs |
+| Surface                                               | What it is                                                                                                                                                                  | Use it from                                                                                                                                       |
+| ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Remote MCP** (`https://api.factlot.com/mcp`)        | Streamable HTTP and stateless. Serves 39 tools plus `search`, `fetch`, and `schema_get`, and 6 registry tools when a registry is configured (api.factlot.com has none yet). | Claude custom connectors, ChatGPT apps (developer mode, deep research), Microsoft Copilot Studio, Gemini CLI, Mistral Le Chat, Cursor, VS Code    |
+| **Local MCP** (stdio)                                 | `npx -y <release URL>/factlot-mcp-standalone-X.Y.Z.tgz` (`npx -y @factlot/mcp` after first publish), or a one-click Claude Desktop extension (`factlot-X.Y.Z.mcpb`).        | Claude Desktop, Claude Code, Cursor, Windsurf, VS Code, Gemini CLI                                                                                |
+| **REST and OpenAPI** (`https://api.factlot.com/v1/…`) | One POST endpoint per tool. `/openapi.json` (3.1, all tools); `/openapi-3.0.json` (the GPT Actions subset; `?operations=all` for all).                                      | Custom GPT Actions, Amazon Bedrock Agents, Microsoft API plugins, Vertex AI, any HTTP client                                                      |
+| **Native function calling**                           | Tool definitions in each provider's own format, plus `run_tool()` in Python and `runTool()` in TypeScript.                                                                  | Claude API, OpenAI (Chat Completions and Responses), Gemini API, Bedrock Converse, Mistral, xAI, DeepSeek, Groq, and other OpenAI-compatible APIs |
 
 ## Per-platform guides
 
@@ -31,7 +31,7 @@ To self-host, run the Docker image or `@factlot/server` and use your own host in
 ## Run the remote connector
 
 ```bash
-docker run -p 8787:8787 ghcr.io/9mp96ygnbk-alt/factlot:0.1.1    # prebuilt image, each release
+docker run -p 8787:8787 ghcr.io/9mp96ygnbk-alt/factlot:0.3.0    # prebuilt image, each release
 # or build the image yourself, and in production run it hardened:
 docker build -t factlot .
 docker run --rm -p 8787:8787 --read-only --cap-drop ALL --security-opt no-new-privileges \
