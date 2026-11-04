@@ -1,0 +1,104 @@
+{
+ "doc": "L10",
+ "candidates": [
+  {
+   "predicate": "lease.landlord",
+   "value": "TRANSBAY TOWER LLC, a Delaware limited liability company",
+   "quote": "is made by and between TRANSBAY TOWER LLC, a Delaware limited liability company (\"Landlord\"), and EQUIDATE, INC., a Delaware corporation (\"Tenant\").",
+   "page": 1
+  },
+  {
+   "predicate": "lease.tenant",
+   "value": "EQUIDATE, INC., a Delaware corporation",
+   "quote": "is made by and between TRANSBAY TOWER LLC, a Delaware limited liability company (\"Landlord\"), and EQUIDATE, INC., a Delaware corporation (\"Tenant\").",
+   "page": 1
+  },
+  {
+   "predicate": "lease.commencement_date",
+   "value": "2019-01-01",
+   "quote": "3.2 Lease Commencement Date: January 1, 2019.",
+   "page": 1,
+   "section": "3.2"
+  },
+  {
+   "predicate": "lease.expiration_date",
+   "value": "2023-12-31",
+   "quote": "3.3 Lease Expiration Date: December 31, 2023.",
+   "page": 1,
+   "section": "3.3"
+  },
+  {
+   "predicate": "lease.rentable_area_sf",
+   "value": 10837,
+   "quote": "10,837 rentable square feet of space located on the fifty-fifth (55th) floor of the Building and commonly known as Suite 5510",
+   "page": 2,
+   "section": "2.2"
+  },
+  {
+   "predicate": "lease.base_rent_schedule",
+   "value": [
+    {
+     "from": "2019-01-01",
+     "to": "2019-12-31",
+     "annual_rent_psf": 90.0
+    },
+    {
+     "from": "2020-01-01",
+     "to": "2020-12-31",
+     "annual_rent_psf": 92.7
+    },
+    {
+     "from": "2021-01-01",
+     "to": "2021-12-31",
+     "annual_rent_psf": 95.48
+    },
+    {
+     "from": "2022-01-01",
+     "to": "2022-12-31",
+     "annual_rent_psf": 98.35
+    },
+    {
+     "from": "2023-01-01",
+     "to": "2023-12-31",
+     "annual_rent_psf": 101.3
+    }
+   ],
+   "quote": "Lease Year 1* $ 975,330.00 $ 81,277.50 $ 90.00 Lease Year 2 $ 1,004,589.96 $ 83,715.83 $ 92.70 Lease Year 3 $ 1,034,727.60 $ 86,227.30 $ 95.48 Lease Year 4 $ 1,065,769.44 $ 88,814.12 $ 98.35 Lease Year 5 $ 1,097,742.48 $ 91,478.54 $ 101.30",
+   "page": 2,
+   "section": "4"
+  },
+  {
+   "predicate": "lease.free_rent",
+   "value": {
+    "months": 2,
+    "applies_to": "base_rent"
+   },
+   "quote": "Subject to abatement of Base Rent for the first (l51) and second (2nd) full calendar months of the Lease Term, subject to the terms of Section 3.2 below.",
+   "page": 2,
+   "section": "4"
+  },
+  {
+   "predicate": "lease.pro_rata_share",
+   "value": 0.007631,
+   "quote": "6. Tenant's Share (Article 4): 0.7631%.",
+   "page": 2,
+   "section": "6"
+  },
+  {
+   "predicate": "lease.security_deposit",
+   "value": 351753.97,
+   "quote": "8. Letter of Credit (Article 21): $351,753.97.",
+   "page": 2,
+   "section": "8"
+  },
+  {
+   "predicate": "lease.parking",
+   "value": {
+    "spaces": 2
+   },
+   "quote": "5. Parking (Section 29.18): Two (2) unreserved parking passes.",
+   "page": 2,
+   "section": "5"
+  }
+ ]
+}
