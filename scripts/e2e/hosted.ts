@@ -278,6 +278,52 @@ async function main(): Promise<void> {
       restArgs.set(tool, c.arguments);
     }
   }
+  // Document-verification vectors: pages are written once under `documents` and referenced as
+  // {"$pages": name}; resolve them the way packages/tools/src/documents.test.ts does.
+  const docSpec = readJson("spec/vectors/documents.json") as {
+    documents: Record<string, string[]>;
+    cases: Case[];
+  };
+  const resolvePages = (v: unknown): unknown => {
+    if (Array.isArray(v)) return v.map(resolvePages);
+    if (v && typeof v === "object") {
+      const o = v as Record<string, unknown>;
+      if (typeof o.$pages === "string") return docSpec.documents[o.$pages];
+      return Object.fromEntries(
+        Object.entries(o).map(([k, x]) => [k, resolvePages(x)]),
+      );
+    }
+    return v;
+  };
+  for (const c of docSpec.cases) {
+    vectorCount++;
+    const tool = c.tool!;
+    const args = resolvePages(c.arguments);
+    const label = `${tool} ${JSON.stringify(c.arguments).slice(0, 80)}`;
+    const path = pathOf.get(tool);
+    if (!path) {
+      ok(false, `${label}: no REST route`);
+      continue;
+    }
+    const { status, json } = await post(path, args);
+    if (c.expect_error) {
+      ok(
+        status >= 400 && (json as { error?: string })?.error === c.expect_error,
+        `${label}: want ${c.expect_error}, got ${status} ${JSON.stringify(json).slice(0, 120)}`,
+      );
+      continue;
+    }
+    ok(status === 200, `${label}: HTTP ${status}`);
+    for (const [k, v] of Object.entries(c.expect ?? {}))
+      ok(
+        same(at(json, k), v),
+        `${label} ${k}: got ${JSON.stringify(at(json, k))}`,
+      );
+    if (status === 200 && !restResults.has(tool)) {
+      restResults.set(tool, json);
+      restArgs.set(tool, args);
+    }
+  }
   notes.push(`${vectorCount} conformance vectors replayed over REST`);
 
   // --- 4. Every MCP tool, and MCP = REST ------------------------------------------------------
