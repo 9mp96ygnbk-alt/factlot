@@ -1,0 +1,55 @@
+{
+ "doc": "L12",
+ "candidates": [
+  {
+   "predicate": "lease.landlord",
+   "value": "SFG CHARLESTON OMNI, LLC",
+   "quote": "SFG CHARLESTON OMNI, LLC, a\nDelaware limited liability company (“Landlord”)",
+   "page": 3
+  },
+  {
+   "predicate": "lease.tenant",
+   "value": "THORNE HEALTHTECH, INC.",
+   "quote": "THORNE HEALTHTECH, INC., a\nDelaware corporation (“Tenant”)",
+   "page": 3
+  },
+  {
+   "predicate": "lease.rentable_area_sf",
+   "value": 360320,
+   "quote": "to contain approximately 360,320 square feet",
+   "page": 3,
+   "section": "1(b)"
+  },
+  {
+   "predicate": "lease.free_rent",
+   "value": {
+    "months": 3,
+    "applies_to": "base_rent"
+   },
+   "quote": "Three (3) months after the Lease Commencement Date, but in no event earlier than April 1, 2023 (even if the Lease Commencement Date occurs prior to January 1, 2023).",
+   "page": 4,
+   "section": "1(f)"
+  },
+  {
+   "predicate": "lease.security_deposit",
+   "value": 330888.34,
+   "quote": "Two (2) month’s Monthly Base Rent Installment ($330,888.34)",
+   "page": 4,
+   "section": "1(j)"
+  },
+  {
+   "predicate": "lease.pro_rata_share",
+   "value": 1,
+   "quote": "Tenant’s Percentage Share of Operating\nExpenses (i.e., 100%)",
+   "page": 7,
+   "section": "6(a)(i)"
+  },
+  {
+   "predicate": "lease.assignment_sublease",
+   "value": "No Transfer will be permitted without the prior written consent of Landlord, which consent Landlord will not unreasonably withhold, condition or delay, except as otherwise expressly permitted in Section 27(d).",
+   "quote": "Except as otherwise expressly permitted in Section 27(d) below, no Transfer will be permitted without the prior written consent of Landlord, which consent Landlord will not\nunreasonably withhold, condition or delay.",
+   "page": 27,
+   "section": "27(a)(i)"
+  }
+ ]
+}
