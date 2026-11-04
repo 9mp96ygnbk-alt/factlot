@@ -16,6 +16,7 @@ import { fetchDoc, searchCorpus } from "./knowledge.ts";
 import { registerLocalTools } from "./local.ts";
 
 export { corpus, fetchDoc, searchCorpus } from "./knowledge.ts";
+export { LOCAL_TOOLS } from "./local.ts";
 export type { KnowledgeDoc } from "./knowledge.ts";
 
 export const SERVER_NAME = "factlot";

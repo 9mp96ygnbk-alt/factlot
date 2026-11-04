@@ -239,6 +239,20 @@ export async function signPackage(
   }
 }
 
+/** The local-only tools, for manifests that list a local server's tools (the desktop extension). */
+export const LOCAL_TOOLS: readonly { name: string; description: string }[] = [
+  {
+    name: "doc_read_pdf",
+    description:
+      "Read a PDF on this computer into page text for the document tools (text layer, OCR for scanned pages, the file's sha256). Needs the FactLot Python SDK with pypdf.",
+  },
+  {
+    name: "fact_package_sign",
+    description:
+      "Sign a fact package with your own Ed25519 key from the file named by FACTLOT_SIGNING_KEY_FILE; the key stays on this computer.",
+  },
+];
+
 /** Register the local-only tools. */
 export function registerLocalTools(server: McpServer): void {
   server.registerTool(
