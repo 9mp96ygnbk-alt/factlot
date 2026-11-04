@@ -1,6 +1,6 @@
 ---
 name: lease-economics
-description: Commercial lease economics. Use when the user wants a base-rent schedule with escalations and free rent, the effective or net effective rent after free rent, TI allowance, and commissions, or a ranking of competing lease proposals on one comparable $/SF/yr basis (rentable or usable SF, gross, NNN, base-year or expense-stop operating expenses, landlord downtime). Calls FactLot calc_rent_schedule, calc_net_effective_rent, and calc_compare_proposals instead of doing lease math in-context.
+description: Commercial lease economics, per SF or per kW, MW, acre, unit, key, room, or parking space. Use when the user wants a base-rent schedule with escalations and free rent, the effective or net effective rent after free rent, TI allowance, and commissions, or a ranking of competing lease proposals on one comparable $/SF/yr basis (rentable or usable SF, gross, NNN, base-year or expense-stop operating expenses, landlord downtime). Calls FactLot calc_rent_schedule, calc_net_effective_rent, and calc_compare_proposals instead of doing lease math in-context.
 ---
 
 # Lease economics
@@ -87,6 +87,12 @@ Returned: `effective_rent_psf` 38, `net_effective_rent_psf` 32 (after 600,000 of
 ```
 
 Returned: `best` "Tower A". Ranking: Tower A `metric_psf_annual` 25.2203 (`total_net` 685,348.69), Park B 30.558 (1,185,993.82), with a warning that the 60- and 84-month terms differ. Report the ranking from `value.ranking`; do not re-rank it yourself.
+
+## Units other than square feet
+
+Data-center (kW, MW), ground and yard (acre), residential (unit), hotel (key, room), and parking (space) leases use the same three tools: set `unit` in the `schedule` (`"kw"`, `"mw"`, `"acre"`, `"unit"`, `"key"`, `"room"`, `"space"`). `area_sf` then holds the quantity and every `_psf` field is per that unit, annual: a $/kW/month quote is × 12. The numbers are exactly those for square feet; the result adds `unit` and `rate_unit` (e.g. `USD/kW/yr`), steps use those labels, and a warning states how the unit was read. In `calc_compare_proposals` every proposal uses the same unit, and `usable_sf`, `load_factor`, and `area_basis: "usable"` apply to square feet only.
+
+Example (vector "unit kw"): the rent-schedule example above with `"unit": "kw"` returns the same steps and totals (`total_rent_due` 1,517,740.80) with `rate_unit` `USD/kW/yr`. For an apartment rent roll, use `calc_multifamily_rent_roll` instead.
 
 ## Rules
 

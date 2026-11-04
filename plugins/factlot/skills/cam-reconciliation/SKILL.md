@@ -1,6 +1,6 @@
 ---
 name: cam-reconciliation
-description: Year-end tenant charge true-ups on commercial leases. Use when the user needs a CAM (common area maintenance) or operating expense reconciliation with exclusions, occupancy gross-up, pro rata share, controllable-expense caps, an admin fee, base year or expense stop, a mid-year move-in or move-out, and estimates paid, or a percentage (overage) rent calculation against a natural or fixed breakpoint. Calls FactLot calc_cam_reconciliation and calc_percentage_rent instead of doing the arithmetic in-context.
+description: Year-end tenant charge true-ups on commercial leases. Use when the user needs a CAM (common area maintenance) or operating expense reconciliation with exclusions, occupancy gross-up, pro rata share, controllable-expense caps, an admin fee, base year or expense stop, a mid-year move-in or move-out, and estimates paid, a batch reconciliation for every tenant in a building with the unrecovered amount explained, the recoverable amortization of a capital expenditure under a lease clause, or a percentage (overage) rent calculation against a natural or fixed breakpoint. Calls FactLot calc_cam_reconciliation, calc_cam_reconciliation_batch, calc_capex_recovery, and calc_percentage_rent instead of doing the arithmetic in-context.
 ---
 
 # CAM reconciliation and percentage rent
@@ -49,6 +49,18 @@ Returned: `recoverable_expenses` 700,000; `grossed_up_expenses` 737,500; tenant 
 
 Mid-year move-in (vector "mid-year move-in prorates share and cap by days"): share 1,800 / 42,000, controllable 50,000, taxes 62,000 and insurance 20,000 uncontrollable, `year_over_year` cap 4% on 1,500, `"occupancy": {"move_in_date": "2025-07-01"}` (184 of 365 days). Returned: `occupancy_fraction` 0.50411, `cap_limit` 786.41 (1,560 × 184/365), `tenant_charge` 2,558.00.
 
+## Every tenant at once: `calc_cam_reconciliation_batch`
+
+Enter the building's `expenses` and `gross_up` once, then `tenants`: each with a unique `name`, `pro_rata_share`, and the same `structure`, `cap`, `admin_fee`, `occupancy`, and `estimates_paid` as the single-tenant tool, plus `excluded_categories` (lines this tenant's lease excludes) and `admin_fee_excluded_categories`. Each `tenants[i].statement` is exactly what `calc_cam_reconciliation` returns for that tenant (value, steps, warnings), ready to send. `building` totals the charges and estimates and explains the gap to the recoverable pool in `unrecovered_reasons`: unleased or vacant share, lease exclusions, gross-up (negative), caps, base years and stops, admin fees (negative), the zero floor, and rounding; they sum to `unrecovered`. A charge above the pool gets an over-recovery warning.
+
+Example (vector "gross-up and admin fees bill more than the actual pool"): taxes 200,000 and variable janitorial 100,000 grossed up from 60% to 100% occupancy, two tenants at 60% and 40% with a 15% admin fee. Returned: charges 253,000 and 168,666.67; `recoverable_expenses` 300,000; `unrecovered` −121,666.67, explained by gross-up −66,666.67 and admin fees −55,000.
+
+## Capital items: `calc_capex_recovery`
+
+For a capital expenditure the lease lets the landlord pass through: `cost` (USD), `amortization_years` (useful life or the period the lease states; `period_basis` says which), `method` (`straight_line`: equal principal plus interest on the declining balance; `level_payment`: a level annual payment), `interest_rate_annual` (decimal, 0 for none, charged on the balance at the start of each year), optional `cost_savings_cap` (`annual_savings` or `savings_by_year`, and `carry_forward`), `tenants` (`name`, `pro_rata_share`), and `clauses` (free-text lease references for `cost`, `amortization_period`, `interest`, `method`, `cost_savings_cap`, `pro_rata_share`). The result has the year-by-year schedule, totals, each tenant's share by year, and `assumptions` echoing every assumption with its clause.
+
+Example (vector "straight-line over 5 years with 8% interest"): `{"cost": 100000, "amortization_years": 5, "interest_rate_annual": 0.08, "tenants": [{"name": "Suite 100", "pro_rata_share": 0.125}, {"name": "Suite 200", "pro_rata_share": 0.3}]}` recovers 28,000, 26,400, 24,800, 23,200, 21,600 (total 124,000); Suite 100 pays 15,500 and Suite 200 37,200 over the period. As a level payment capped at 24,000 of savings a year, the payment is 25,045.65 and 5,228.22 is not recoverable.
+
 ## Percentage rent: `calc_percentage_rent`
 
 Inputs: `gross_sales` (USD for the period), `sales_exclusions` (returns, sales tax, gift cards), `rate` (decimal, 6% = `0.06`), `base_rent_annual` (USD per **full** year even for a partial period), `breakpoint` (`{"type":"natural"}` default, or `{"type":"fixed","amount":4500000}`), `period_fraction` (0.5 for a six-month period), `percentage_rent_paid`.
@@ -58,7 +70,7 @@ Example (vector "natural breakpoint"): `{"gross_sales": 5000000, "rate": 0.06, "
 ## Rules
 
 - Never compute these figures in-context; report the tool's values as returned.
-- Cite the formula ID from `provenance.formula` (`calc.cam_reconciliation@2`, `calc.percentage_rent@1`).
+- Cite the formula ID from `provenance.formula` (`calc.cam_reconciliation@2`, `calc.cam_reconciliation_batch@1`, `calc.capex_recovery@1`, `calc.percentage_rent@1`).
 - Surface every entry in `warnings`.
 - Do not guess lease terms (cap method, gross-up target, exclusions, admin fee order). Ask, or quote the clause the user provided.
 - If the FactLot MCP tools are unavailable, POST the same arguments to `https://api.factlot.com/v1/calc/cam_reconciliation` or `/v1/calc/percentage_rent`.

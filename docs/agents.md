@@ -7,7 +7,8 @@ an identifier. This page covers which tool to call, when, and how to report the 
 
 1. **Don't do CRE math in context.** Call a `calc_*` tool for rent, abatement, NER, CAM, percentage
    rent, loan sizing, ASC 842 remeasurement, prepayment and defeasance, WALT, NPV, IRR,
-   lease-versus-own, renew-versus-relocate, and hotel metrics.
+   lease-versus-own, renew-versus-relocate, hotel metrics, multifamily rent rolls, and capital
+   expenditure recovery.
    Models drift on compounding, caps, and amortization. The calculators don't.
 2. **Cite the method.** Report the formula ID (`provenance.formula`, for example
    `calc.debt_sizing@3`; `formula` holds the same as `{id, version}`) and point to `steps`.
@@ -34,6 +35,9 @@ an identifier. This page covers which tool to call, when, and how to report the 
 | "Which of these proposals is better?" (tenant rep or landlord)                | `calc_compare_proposals`                            |
 | "What does the tenant owe in percentage rent?"                                | `calc_percentage_rent`                              |
 | "Reconcile CAM / opex for 2026" or "check this CAM statement"                 | `calc_cam_reconciliation`                           |
+| "CAM true-ups for every tenant" or "why wasn't the pool recovered?"           | `calc_cam_reconciliation_batch`                     |
+| "What can we recover for the roof / HVAC under the lease?"                    | `calc_capex_recovery`                               |
+| "Analyze this rent roll" or "effective rent after six weeks free?"            | `calc_multifamily_rent_roll`                        |
 | "How big a loan can this support?" or "which constraint binds?"               | `calc_debt_sizing`                                  |
 | "Remeasure this lease under ASC 842" after an amendment or reassessment       | `calc_lease_remeasurement_asc842`                   |
 | "What does it cost to prepay or defease this loan?"                           | `calc_prepayment_and_defeasance`                    |
@@ -65,6 +69,26 @@ an identifier. This page covers which tool to call, when, and how to report the 
   net proposals, or the comparison flatters them.
 - **Partial lease years** → `period_fraction` for percentage rent. Check whether the lease
   prorates by days or by months.
+- **Leases priced per kW, MW, acre, unit, key, room, or parking space** → set `unit` on the
+  schedule (`kw`, `mw`, `acre`, `unit`, `key`, `room`, `space`) in `calc_rent_schedule`,
+  `calc_net_effective_rent`, or each proposal of `calc_compare_proposals`. `area_sf` then holds the
+  quantity (kW, acres, ...) and every `_psf` field is per that unit; the numbers are computed
+  exactly as for square feet, and the result adds `unit` and `rate_unit` (for example
+  `USD/kW/yr`). Rates are annual: a $/kW/month quote is × 12. Every proposal in a comparison uses
+  the same unit, and load factors and usable area apply to square feet only.
+- **Apartment concessions** → `calc_multifamily_rent_roll`: "six weeks free" is
+  `{"type": "weeks_free", "weeks": 6}` (worth lease rent × 12 ÷ 52 per week), "one month free" is
+  `{"type": "months_free", "months": 1}`, and a look-and-lease credit is `{"type": "amount"}`.
+  Concessions are amortised straight-line over the lease term. Give `units` for a whole rent roll
+  (with `as_of`) or `lease` for one lease.
+- **Capital items passed through CAM** → `calc_capex_recovery`. Take the amortization period
+  (useful life or the period the lease states), interest on the unamortized balance, straight-line
+  or level payment, and any cost-savings limit from the clause, and quote each clause in `clauses`;
+  the result echoes every assumption with its clause.
+- **A whole building's CAM** → `calc_cam_reconciliation_batch` with the expense pool once and every
+  tenant's terms. Each tenant's `statement` is exactly what `calc_cam_reconciliation` returns for
+  that tenant; `building.unrecovered_reasons` explains the gap between the pool and what was billed
+  (vacant or unleased share, lease exclusions, gross-up, caps, base years and stops, admin fees).
 
 ## Example: Claude Messages API with the Python SDK
 
