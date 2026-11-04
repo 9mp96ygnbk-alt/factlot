@@ -1,0 +1,50 @@
+{
+ "doc": "L07",
+ "candidates": [
+  {
+   "predicate": "lease.landlord",
+   "value": "HCP LS REDWOOD CITY, LLC, a Delaware limited liability company",
+   "quote": "HCP LS REDWOOD CITY, LLC, a Delaware limited liability company (\"Landlord\")",
+   "page": 1
+  },
+  {
+   "predicate": "lease.tenant",
+   "value": "ADVERUM BIOTECHNOLOGIES, INC., a Delaware corporation",
+   "quote": "ADVERUM BIOTECHNOLOGIES, INC., a Delaware corporation (\"Tenant\")",
+   "page": 1
+  },
+  {
+   "predicate": "lease.rentable_area_sf",
+   "value": 81412,
+   "quote": "Approximately 81,412 rentable square feet of space (\"RSF\"), consisting of all of the rentable area in the 800 Building (containing 41,445 RSF) and 900 Building (containing 39,967 RSF)",
+   "page": 1,
+   "section": "2.2"
+  },
+  {
+   "predicate": "lease.pro_rata_share",
+   "value": 1,
+   "quote": "One hundred percent (100%).",
+   "page": 2,
+   "section": "6"
+  },
+  {
+   "predicate": "lease.security_deposit",
+   "value": 998501.9,
+   "quote": "$998,501.90.",
+   "page": 2,
+   "section": "8"
+  },
+  {
+   "predicate": "lease.renewal_option",
+   "value": {
+    "count": 2,
+    "term_months": 84,
+    "notice_months": 9,
+    "rent": "Fair Rental Value"
+   },
+   "quote": "two (2) options to extend the Lease Term for a period of seven (7) years (each, an \"Option Term\"), which options shall be irrevocably exercised only by written notice delivered by Tenant to Landlord not more than twelve (12) months nor less than nine (9) months prior to the expiration of the initial Lease Term or first Option Term, as applicable",
+   "page": 6,
+   "section": "2.2.1"
+  }
+ ]
+}

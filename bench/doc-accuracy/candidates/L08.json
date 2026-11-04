@@ -1,0 +1,102 @@
+{
+ "doc": "L08",
+ "candidates": [
+  {
+   "predicate": "lease.landlord",
+   "value": "BCSP CROSSROADS PROPERTY LLC, a Delaware limited liability company",
+   "quote": "BCSP CROSSROADS PROPERTY LLC, a Delaware limited liability company (\"Landlord\")",
+   "page": 1
+  },
+  {
+   "predicate": "lease.tenant",
+   "value": "HEALTHEQUITY, INC., a Delaware corporation",
+   "quote": "HEALTHEQUITY, INC., a Delaware corporation (\"Tenant\")",
+   "page": 1
+  },
+  {
+   "predicate": "lease.commencement_date",
+   "value": "2020-03-01",
+   "quote": "Lease Commencement March 1, 2020.",
+   "page": 1,
+   "section": "3.2"
+  },
+  {
+   "predicate": "lease.rentable_area_sf",
+   "value": 7614,
+   "quote": "Approximately 7,614 rentable square feet of space located on the seventh (7th) floor of the Building and commonly known as Suite 725",
+   "page": 1,
+   "section": "2.2"
+  },
+  {
+   "predicate": "lease.base_rent_schedule",
+   "value": [
+    {
+     "from": "2020-03-01",
+     "to": "2021-02-28",
+     "annual_rent_psf": 4.55
+    },
+    {
+     "from": "2021-03-01",
+     "to": "2022-02-28",
+     "annual_rent_psf": 4.69
+    },
+    {
+     "from": "2022-03-01",
+     "to": "2023-02-28",
+     "annual_rent_psf": 4.83
+    },
+    {
+     "from": "2023-03-01",
+     "to": "2023-03-31",
+     "annual_rent_psf": 4.97
+    }
+   ],
+   "quote": "Lease Months 1-12 $415,724.40 $34,643.70* $4.55 Lease Months 13-24 $428,196.12 $35,683.01 $4.69 Lease Months 25-36 $441,042.00 $36,753.50 $4.83 Lease Month 37 N/A $37,856.11 $4.97",
+   "page": 1,
+   "section": "4"
+  },
+  {
+   "predicate": "lease.free_rent",
+   "value": {
+    "months": 1,
+    "applies_to": "base_rent"
+   },
+   "quote": "Tenant shall not be obligated to pay the Base Rent otherwise attributable to the Premises (the \"Rent Abatement\") during the first full calendar month of the Lease Term (the \"Rent Abatement Period\").",
+   "page": 7,
+   "section": "3.2"
+  },
+  {
+   "predicate": "lease.security_deposit",
+   "value": 41366.39,
+   "quote": "Security Deposit (Article 21): $41,366.39.",
+   "page": 2,
+   "section": "7"
+  },
+  {
+   "predicate": "lease.pro_rata_share",
+   "value": 0.047304,
+   "quote": "Tenant's Share (Article 4): Approximately 4.7304%.",
+   "page": 2,
+   "section": "5"
+  },
+  {
+   "predicate": "lease.renewal_option",
+   "value": {
+    "count": 1,
+    "term_months": 36,
+    "notice_months": 9,
+    "rent": "Fair Market Rent"
+   },
+   "quote": "Landlord hereby grants to the originally named Tenant herein (\"Original Tenant\") one (1) option to extend the Lease Term for a period of three (3) years (the \"Option Term\")",
+   "page": 5,
+   "section": "2.2.1"
+  },
+  {
+   "predicate": "lease.assignment_sublease",
+   "value": "Tenant shall not assign, sublease, transfer, or encumber any interest in this Lease or the Premises without Landlord's prior written consent, which shall not be unreasonably withheld; certain affiliate transfers and mergers are permitted subject to stated conditions.",
+   "quote": "Tenant shall not assign, mortgage, pledge, hypothecate, encumber, or permit any lien to attach to, or otherwise transfer, this Lease or any interest hereunder, permit any assignment, or other transfer of this Lease or any interest hereunder by operation of law, sublet the Premises or any part thereof, or enter into any license or concession agreements or otherwise permit the occupancy or use of the Premises or any part thereof by any persons other than Tenant and its employees and contractors (all of the foregoing are hereinafter sometimes referred to collectively as \"Transfers\" and any person to whom any Transfer is made or sought to be made is hereinafter sometimes referred to as a \"Transferee\"), without the prior written consent of Landlord, which consent shall not be unreasonably withheld.",
+   "page": 21,
+   "section": "14.1"
+  }
+ ]
+}
