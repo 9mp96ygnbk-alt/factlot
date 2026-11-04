@@ -29,7 +29,7 @@ from . import __version__
 from ._core import CalcInputError, input_shape_issue, num_str
 from .calc import CALCULATORS
 from .rules import RULES
-from .facts import validate_fact
+from . import docverify
 from .ids import FactLotIdError, building_id, document_id, entity_id, parcel_id, parse, short_id, space_id
 
 
@@ -259,7 +259,110 @@ def _id_parse(args: dict[str, Any]) -> dict[str, Any]:
 def _fact_validate(args: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(args.get("fact"), dict):
         raise _InputError("fact", "expected object")
-    return validate_fact(args["fact"])
+    return docverify.validate_fact_full(docverify.js_json(args["fact"]))
+
+
+# --- input schemas (for tools whose Python code reads nested input) ------------------------------
+
+_JS_WS_CLASS = "\t\n\v\f\r \u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff"
+
+
+@lru_cache(maxsize=None)
+def _js_pattern(pattern: str) -> re.Pattern[str]:
+    """A JSON Schema (ECMAScript) pattern as Python reads it: \\d is 0-9, \\s is JavaScript's
+    whitespace, and a final $ does not match before a trailing newline."""
+    out, in_class, i = [], False, 0
+    while i < len(pattern):
+        c = pattern[i]
+        if c == "\\" and i + 1 < len(pattern):
+            nxt = pattern[i + 1]
+            if nxt == "d":
+                out.append("0-9" if in_class else "[0-9]")
+            elif nxt == "s":
+                out.append(_JS_WS_CLASS if in_class else f"[{_JS_WS_CLASS}]")
+            else:
+                out.append(c + nxt)
+            i += 2
+            continue
+        if c == "[":
+            in_class = True
+        elif c == "]":
+            in_class = False
+        out.append(c)
+        i += 1
+    text = "".join(out)
+    if text.endswith("$") and not text.endswith("\\$"):
+        text = text[:-1] + r"\Z"
+    return re.compile(text)
+
+
+def input_schema_issues(schema: dict[str, Any], value: Any, path: str = "") -> list[dict[str, str]]:
+    """Where ``value`` breaks a tool's generated input schema (the subset the catalog uses:
+    types, required fields, lengths, item counts, bounds, patterns, enums). Unknown fields are
+    reported earlier by ``unknown_fields``."""
+    out: list[dict[str, str]] = []
+
+    def bad(message: str) -> list[dict[str, str]]:
+        return [{"path": path, "message": message}]
+
+    t = schema.get("type")
+    is_num = isinstance(value, (int, float)) and not isinstance(value, bool)
+    if t == "object":
+        if not isinstance(value, dict):
+            return bad("expected object")
+        for key in schema.get("required", []):
+            if key not in value:
+                out.append({"path": f"{path}.{key}" if path else key, "message": "required"})
+        for key, sub in schema.get("properties", {}).items():
+            if key in value:
+                out.extend(input_schema_issues(sub, value[key], f"{path}.{key}" if path else key))
+    elif t == "array":
+        if not isinstance(value, list):
+            return bad("expected array")
+        if len(value) < schema.get("minItems", 0):
+            return bad(f"expected at least {schema['minItems']} items")
+        if "maxItems" in schema and len(value) > schema["maxItems"]:
+            return bad(f"expected at most {schema['maxItems']} items")
+        for i, item in enumerate(value):
+            out.extend(input_schema_issues(schema.get("items", {}), item, f"{path}.{i}" if path else str(i)))
+    elif t == "string":
+        if not isinstance(value, str):
+            return bad("expected string")
+        if len(value) < schema.get("minLength", 0):
+            return bad(f"expected at least {schema['minLength']} characters")
+        if "maxLength" in schema and len(value) > schema["maxLength"]:
+            return bad(f"expected at most {schema['maxLength']} characters")
+        if "pattern" in schema and not _js_pattern(schema["pattern"]).search(value):
+            return bad("invalid format")
+    elif t in ("integer", "number"):
+        if not is_num or (t == "integer" and not float(value).is_integer()):
+            return bad(f"expected {'integer' if t == 'integer' else 'number'}")
+        if "minimum" in schema and value < schema["minimum"]:
+            return bad(f"expected at least {schema['minimum']}")
+        if "maximum" in schema and value > schema["maximum"]:
+            return bad(f"expected at most {schema['maximum']}")
+        if "exclusiveMinimum" in schema and value <= schema["exclusiveMinimum"]:
+            return bad(f"expected more than {schema['exclusiveMinimum']}")
+    elif t == "boolean" and not isinstance(value, bool):
+        return bad("expected boolean")
+    if "enum" in schema and value not in schema["enum"]:
+        return bad("expected one of " + ", ".join(map(str, schema["enum"])))
+    return out
+
+
+_PRODUCER = {"name": "factlot (python)", "version": __version__}
+_DOC_TOOLS = {
+    "doc_verify_facts": lambda a: docverify.verify_facts(a, _PRODUCER),
+    "doc_abstract_lease": lambda a: docverify.abstract_lease(a, _PRODUCER),
+    "doc_compare": docverify.compare,
+    "doc_verify_claim": docverify.verify_claim,
+}
+
+
+class _MultiInputError(_InputError):
+    def __init__(self, issues: list[dict[str, str]]) -> None:
+        ValueError.__init__(self, "invalid input: " + "; ".join(f"{i['path'] or '(root)'}: {i['message']}" for i in issues))
+        self.issues = issues
 
 
 class _RegistryUnavailable(RuntimeError):
@@ -433,7 +536,7 @@ def run_tool(name: str, arguments: dict[str, Any] | None) -> dict[str, Any]:
     if not isinstance(name, str):
         return {"error": "UnknownTool", "message": f"no FactLot tool named {name!r}", "issues": []}
     known = ((name.startswith("calc_") and name[5:] in CALCULATORS) or (name.startswith("rules_") and name[6:] in RULES)
-             or name in _OTHER_TOOLS or name in _REGISTRY_TOOLS)
+             or name in _OTHER_TOOLS or name in _DOC_TOOLS or name in _REGISTRY_TOOLS)
     if not known:
         return {"error": "UnknownTool", "message": f'no FactLot tool named "{name}"', "issues": []}
     kind = "CalcInputError" if name.startswith(("calc_", "rules_")) else "InputError"
@@ -481,6 +584,12 @@ def run_tool(name: str, arguments: dict[str, Any] | None) -> dict[str, Any]:
             }
         if name in _OTHER_TOOLS:
             return _OTHER_TOOLS[name](args)
+        if name in _DOC_TOOLS:
+            invalid = input_schema_issues(schema or {}, args)[:20]
+            if invalid:
+                raise _InputError(invalid[0]["path"], invalid[0]["message"]) if len(invalid) == 1 else \
+                    _MultiInputError(invalid)
+            return _DOC_TOOLS[name](docverify.js_json(args))
         if name in _REGISTRY_TOOLS:
             return _REGISTRY_TOOLS[name](args)
     except CalcInputError as e:
@@ -491,7 +600,7 @@ def run_tool(name: str, arguments: dict[str, Any] | None) -> dict[str, Any]:
         return {"error": "CalcInputError", "message": message, "issues": issues}
     except FactLotIdError as e:
         return {"error": "FactLotIdError", "message": str(e), "issues": []}
-    except _InputError as e:
+    except (_InputError, docverify.DocInputError) as e:
         return {"error": "InputError", "message": str(e), "issues": e.issues}
     except _RegistryUnavailable as e:
         return {"error": "RegistryUnavailable", "message": str(e), "issues": []}

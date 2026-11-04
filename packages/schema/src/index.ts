@@ -22,8 +22,22 @@ export const FactLotIdString = z
     "expected a FactLot URN (fl:<kind>:...)",
   );
 
-/** A pointer into a source document precise enough for a human to verify. */
-export const SourceRef = z.object({
+/** True when both are valid ISO dates and `from` is after `to`. */
+function datesReversed(from: unknown, to: unknown): boolean {
+  return (
+    IsoDate.safeParse(from).success &&
+    IsoDate.safeParse(to).success &&
+    (from as string) > (to as string)
+  );
+}
+
+/**
+ * A pointer into a source document precise enough for a human to verify.
+ *
+ * Every object in the model is strict: a field the schema does not define is an error, as the
+ * published JSON Schema (`additionalProperties: false`) says, so a misspelled field is caught.
+ */
+export const SourceRef = z.strictObject({
   /** Stable document identifier (a FactLot document ID or the caller's own). */
   document_id: z.string().min(1),
   /** Where the document can be retrieved, if shareable. */
@@ -40,9 +54,13 @@ export const SourceRef = z.object({
   ocr: z.boolean().optional(),
   /** Character offsets of `quote` within the document's extracted text. */
   span: z
-    .object({
+    .strictObject({
       start: z.number().int().nonnegative(),
       end: z.number().int().nonnegative(),
+    })
+    .refine((s) => s.end >= s.start, {
+      message: "span ends before it starts",
+      path: ["end"],
     })
     .optional(),
   /** SHA-256 of the exact document bytes the fact was read from. */
@@ -72,11 +90,13 @@ export const Method = z.enum([
 export type Method = z.infer<typeof Method>;
 
 export const Provenance = z
-  .object({
+  .strictObject({
     method: Method,
     sources: z.array(SourceRef),
     /** Software that produced the fact, for reproducibility. */
-    producer: z.object({ name: z.string(), version: z.string() }).optional(),
+    producer: z
+      .strictObject({ name: z.string(), version: z.string() })
+      .optional(),
     /** For `computed` facts: the formula ID and version used, e.g. `calc.ner@1`. */
     formula: z.string().optional(),
     /** For `computed` facts: IDs of the input facts. */
@@ -86,15 +106,19 @@ export const Provenance = z
     verified_by: z.string().optional(),
     verified_at: IsoDateTime.optional(),
   })
+  .refine((p) => p.method === "computed" || p.sources.length > 0, {
+    // An inferred fact cites the evidence it was inferred from.
+    message: "facts other than computed must cite at least one source",
+    path: ["sources"],
+  })
   .refine(
     (p) =>
-      p.method === "computed" ||
-      p.method === "inferred" ||
+      p.method !== "computed" ||
+      p.formula !== undefined ||
       p.sources.length > 0,
     {
-      message:
-        "facts other than computed/inferred must cite at least one source",
-      path: ["sources"],
+      message: "a computed fact names its formula or cites a source",
+      path: ["formula"],
     },
   );
 export type Provenance = z.infer<typeof Provenance>;
@@ -103,7 +127,7 @@ export type Provenance = z.infer<typeof Provenance>;
  * Machine-readable usage rights. Survey finding: agents frequently hold data
  * they are contractually barred from feeding to an LLM. Every fact says so up front.
  */
-export const Rights = z.object({
+export const Rights = z.strictObject({
   ai_use: z.enum(["permitted", "prohibited", "unknown"]),
   redistribution: z.enum([
     "permitted",
@@ -136,30 +160,35 @@ export const JsonValue: z.ZodType<JsonValue> = z.lazy(() =>
  * namespaces are open so asset-class-specific facts (e.g. `datacenter.critical_it_mw`)
  * do not need a schema change.
  */
-export const Fact = z.object({
-  /** FactLot fact ID, if registered. */
-  id: z.string().optional(),
-  /** What the fact is about (parcel, building, space, entity, lease, ...). */
-  subject: FactLotIdString,
-  predicate: z
-    .string()
-    .regex(
-      /^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/,
-      "dotted lower_snake predicate",
-    ),
-  value: JsonValue,
-  /** UCUM-style unit where meaningful: "USD", "USD/sf/yr", "sf", "ft", "MW". */
-  unit: z.string().optional(),
-  /** Date the fact was true/observed. */
-  as_of: IsoDate,
-  /** Effective window, for facts that change over time (rent steps, zoning). */
-  valid_from: IsoDate.optional(),
-  valid_to: IsoDate.optional(),
-  provenance: Provenance,
-  rights: Rights.optional(),
-  /** Fact IDs this one replaces (e.g. an amendment superseding original lease terms). */
-  supersedes: z.array(z.string()).optional(),
-});
+export const Fact = z
+  .strictObject({
+    /** FactLot fact ID, if registered. */
+    id: z.string().optional(),
+    /** What the fact is about (parcel, building, space, entity, lease, ...). */
+    subject: FactLotIdString,
+    predicate: z
+      .string()
+      .regex(
+        /^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/,
+        "dotted lower_snake predicate",
+      ),
+    value: JsonValue,
+    /** UCUM-style unit where meaningful: "USD", "USD/sf/yr", "sf", "ft", "MW". */
+    unit: z.string().optional(),
+    /** Date the fact was true/observed. */
+    as_of: IsoDate,
+    /** Effective window, for facts that change over time (rent steps, zoning). */
+    valid_from: IsoDate.optional(),
+    valid_to: IsoDate.optional(),
+    provenance: Provenance,
+    rights: Rights.optional(),
+    /** Fact IDs this one replaces (e.g. an amendment superseding original lease terms). */
+    supersedes: z.array(z.string()).optional(),
+  })
+  .refine((f) => !datesReversed(f.valid_from, f.valid_to), {
+    message: "valid_to is before valid_from",
+    path: ["valid_to"],
+  });
 export type Fact = z.infer<typeof Fact>;
 
 /** Entity kinds FactLot identifies. */
@@ -175,28 +204,33 @@ export const EntityKind = z.enum([
 export type EntityKind = z.infer<typeof EntityKind>;
 
 /** A link between two identified things, itself carrying provenance. */
-export const Relationship = z.object({
-  from: FactLotIdString,
-  type: z.enum([
-    "located_on", // building -> parcel
-    "part_of", // space -> building
-    "owns", // entity -> parcel/building
-    "controls", // entity -> entity (managing member, parent)
-    "leases", // lease -> space
-    "landlord_of", // entity -> lease
-    "tenant_of", // entity -> lease
-    "guarantor_of", // entity -> lease/loan
-    "amends", // document -> document
-    "secures", // loan -> parcel
-    "lender_of", // entity -> loan
-    "same_as", // crosswalk to another ID system
-  ]),
-  to: z.string().min(1),
-  as_of: IsoDate,
-  valid_from: IsoDate.optional(),
-  valid_to: IsoDate.optional(),
-  provenance: Provenance,
-});
+export const Relationship = z
+  .strictObject({
+    from: FactLotIdString,
+    type: z.enum([
+      "located_on", // building -> parcel
+      "part_of", // space -> building
+      "owns", // entity -> parcel/building
+      "controls", // entity -> entity (managing member, parent)
+      "leases", // lease -> space
+      "landlord_of", // entity -> lease
+      "tenant_of", // entity -> lease
+      "guarantor_of", // entity -> lease/loan
+      "amends", // document -> document
+      "secures", // loan -> parcel
+      "lender_of", // entity -> loan
+      "same_as", // crosswalk to another ID system
+    ]),
+    to: z.string().min(1),
+    as_of: IsoDate,
+    valid_from: IsoDate.optional(),
+    valid_to: IsoDate.optional(),
+    provenance: Provenance,
+  })
+  .refine((r) => !datesReversed(r.valid_from, r.valid_to), {
+    message: "valid_to is before valid_from",
+    path: ["valid_to"],
+  });
 export type Relationship = z.infer<typeof Relationship>;
 
 /**

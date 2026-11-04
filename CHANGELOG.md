@@ -15,6 +15,7 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 
 ### Added
 
+- Document verification: `doc_verify_facts`, `doc_abstract_lease`, `doc_compare` and `doc_verify_claim` (MCP, REST `/v1/doc/*`, every provider format, Python SDK). Your agent extracts each value with a verbatim quote and page; FactLot checks deterministically that the quote is on that page and states the value, and returns cited facts with character spans, review items and rejections with reasons. No model runs and nothing is stored ([guide](docs/document-verification.md)).
 - Registry misses now say whether the county, entity registry or crosswalk system is loaded: a `coverage` object comes with empty results and with `registry_get` NotFound, and a malformed URN is a format error. New tool `registry_coverage` lists what a registry file holds.
 - ID spec 0.2: `id_building`, a deterministic building ID from county, ZIP and street line (`fl:building:us-11001:20002:208-massachusetts-ave-ne`), shared by every unit at the address; `id_space` accepts it. Registry building roll-up groups condo units and other parcels at one street address under a building with unit and parcel counts, each grouping labelled with how it was inferred (DC or NYC condo lot numbering, or the shared address); `registry_get` and `registry_owned_by` show it.
 - Claude Code plugin and marketplace (`/plugin marketplace add 9mp96ygnbk-alt/factlot`, then `/plugin install factlot@factlot`): eight CRE skills (loan sizing, lease economics, CAM reconciliation, ASC 842, lease vs own and renewals, investment returns, hotel metrics, Texas protest deadline) that call the hosted FactLot tools and cite formula IDs.
@@ -24,6 +25,9 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 
 ### Changed
 
+- `fact_validate` rejects unknown fields, `valid_from` after `valid_to`, inverted spans, inferred facts without sources, and computed facts with neither a formula nor a source; for Ingest predicates it checks the value's shape and that each source quote states the value. `@factlot/schema` objects are strict, matching the published JSON Schema (`additionalProperties: false`).
+- OpenAPI documents omit `registry_*` operations unless the server has a registry loaded, as `/v1/tools` and MCP already do (keeps Custom GPT Actions under 30 operations).
+- Ingest verifier: written-form patterns are ASCII-only, as in JavaScript, and a whole-number float year such as 2026.0 is accepted.
 - Address search reads "Northwest", "North West" and "N.W." as "NW" (all eight directionals) and ignores a trailing suite, unit, "#" or floor. Older registry files are searched by old and new keys until `python -m factlot.registry.maintain <db> --all` re-keys them.
 - ID spec 0.2, suite rule 2: "Suite 1-20" and "Suite 120" no longer share an ID; "Third Floor" equals "3rd Floor"; "Apt 4B" equals "4B". Earlier IDs still parse, and the old rule stays callable.
 - `calc.lease_remeasurement_asc842@2`: the amortization schedule foots to the cent. Every row rolls forward exactly, the final period trues up the liability and ROU asset to zero (shown as a step), `total_interest`, `total_amortization` and the new `total_lease_cost` are row sums, and the rounding rule is stated in the steps. Some schedule cells move by cents; headline figures are unchanged.

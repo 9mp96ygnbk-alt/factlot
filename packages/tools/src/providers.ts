@@ -207,8 +207,15 @@ export function toGeminiSchema(schema: unknown): Json {
 export interface OpenApiOptions {
   /** Public base URL of a FactLot server, e.g. https://api.factlot.com */
   serverUrl?: string;
+  /**
+   * Tools to include. Default: every tool except registry_* ones, which work only on a server
+   * with a registry loaded (a server with one passes its own filter). This also keeps the
+   * document within Custom GPT Actions' 30 operations.
+   */
   filter?: (t: ToolSpec) => boolean;
 }
+
+const withoutRegistry = (t: ToolSpec): boolean => t.requires !== "registry";
 
 const ERROR_SCHEMA: Json = {
   type: "object",
@@ -232,7 +239,7 @@ const ERROR_SCHEMA: Json = {
 function openApi(version: "3.1.0" | "3.0.3", opts: OpenApiOptions): Json {
   const convert = version === "3.0.3" ? toOpenApi30Schema : (s: Json) => s;
   const paths: Json = {};
-  for (const t of list(opts.filter)) {
+  for (const t of list(opts.filter ?? withoutRegistry)) {
     paths[t.path] = {
       post: {
         operationId: t.name,

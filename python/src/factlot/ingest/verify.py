@@ -4,6 +4,10 @@ Three checks, in order: the value has the right shape for its predicate (``check
 quote appears verbatim on the cited page (``verify``), and the value follows from the quote
 (``check_consistency``: every checkable number, date, and verbatim string in the value is
 written in the quote in some common form).
+
+The same rules run in TypeScript (packages/tools/src/quotes.ts) for the hosted document tools,
+and spec/vectors/documents.json pins both. The patterns are ASCII-only (``re.ASCII``: ``\\d`` is
+0-9, ``\\b`` is an ASCII word boundary), as in JavaScript, so both read the same digits.
 """
 
 from __future__ import annotations
@@ -16,10 +20,11 @@ from datetime import date
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
+from .._core import js_number_str
 from .documents import LeaseDocument
 from .extract import PREDICATES, Candidate
 
-_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+_DATE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
 _DATE_PREDICATES = ("lease.commencement_date", "lease.expiration_date", "lease.renewal_notice_deadline",
                     "lease.termination_notice_deadline", "lease.rent_commencement_date",
                     "lease.expansion_option_deadline")
@@ -27,7 +32,7 @@ _DATE_PREDICATES = ("lease.commencement_date", "lease.expiration_date", "lease.r
 # natural person's address never becomes a fact (the same rule the registry applies to owners).
 _ADDRESS = re.compile(r"\b\d+[a-z]?\s+[\w.'-]+(\s+[\w.'-]+)*\s+(street|st|avenue|ave|road|rd|drive|dr|lane|ln|"
                       r"boulevard|blvd|court|ct|place|pl|way|terrace|ter|circle|cir|highway|hwy|parkway|pkwy|"
-                      r"suite|ste|apt|apartment|unit|floor|fl)\b\.?|\b\d{5}(-\d{4})?\b|\bp\.?o\.? box\b", re.I)
+                      r"suite|ste|apt|apartment|unit|floor|fl)\b\.?|\b\d{5}(-\d{4})?\b|\bp\.?o\.? box\b", re.I | re.A)
 _QUOTE_CHARS = str.maketrans({"‘": "'", "’": "'", "“": '"', "”": '"', "–": "-", "—": "-",
                               " ": " "})
 
@@ -38,7 +43,7 @@ def _norm(text: str) -> str:
 
 
 def _is_date(v: Any) -> bool:
-    if not isinstance(v, str) or not _DATE.match(v):
+    if not isinstance(v, str) or not _DATE.fullmatch(v):
         return False
     try:
         date.fromisoformat(v)
@@ -100,7 +105,8 @@ def check_value(predicate: str, value: Any) -> str | None:
             return "cure_period_months must be a positive number"
         return None
     if predicate == "lease.operating_expense_base_year":
-        ok = isinstance(value, int) and not isinstance(value, bool) and 1900 <= value <= 2200
+        # A whole number; 2026.0 counts, since JSON (and JavaScript) cannot tell it from 2026.
+        ok = _num(value) and float(value).is_integer() and 1900 <= value <= 2200
         return None if ok else "expected a four-digit integer year"
     if predicate == "lease.parking":
         if not isinstance(value, dict) or not (_num(value.get("spaces")) and value["spaces"] > 0):
@@ -173,24 +179,24 @@ _ORDINALS = {"first": 1, "second": 2, "third": 3, "fourth": 4, "fifth": 5, "sixt
              "ninth": 9, "tenth": 10, "eleventh": 11, "twelfth": 12, "thirteenth": 13, "fourteenth": 14,
              "fifteenth": 15, "sixteenth": 16, "seventeenth": 17, "eighteenth": 18, "nineteenth": 19,
              "twentieth": 20, "thirtieth": 30}
-_NUMBER_TOKEN = re.compile(r"(?<![\d.])(\d[\d,]*(?:\.\d+)?|\.\d+)")
+_NUMBER_TOKEN = re.compile(r"(?<![\d.])(\d[\d,]*(?:\.\d+)?|\.\d+)", re.A)
 _TENS_RE = "|".join(_TENS)
 _UNITS_RE = "|".join(_UNITS)
-_NUMBER_WORD = re.compile(rf"\b(?:({_TENS_RE})(?:[ -]({_UNITS_RE}))?|({_UNITS_RE}))\b")
+_NUMBER_WORD = re.compile(rf"\b(?:({_TENS_RE})(?:[ -]({_UNITS_RE}))?|({_UNITS_RE}))\b", re.A)
 _ORDINAL_RE = "|".join(sorted(_ORDINALS, key=len, reverse=True))
 _DATE_PATTERNS = (
     # 2027-03-01, 2027/03/01
-    (re.compile(r"\b(\d{4})[-/](\d{1,2})[-/](\d{1,2})\b"), lambda m: [(m[1], m[2], m[3])]),
+    (re.compile(r"\b(\d{4})[-/](\d{1,2})[-/](\d{1,2})\b", re.A), lambda m: [(m[1], m[2], m[3])]),
     # 3/1/2027, 03-01-2027, 1.3.2027 (read both month-first and day-first)
-    (re.compile(r"\b(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})\b"), lambda m: [(m[3], m[1], m[2]), (m[3], m[2], m[1])]),
+    (re.compile(r"\b(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})\b", re.A), lambda m: [(m[3], m[1], m[2]), (m[3], m[2], m[1])]),
     # March 1, 2027; Mar. 1st 2027
-    (re.compile(rf"\b({_MONTH_RE})\.? (\d{{1,2}})(?:st|nd|rd|th)?,? (\d{{4}})\b"),
+    (re.compile(rf"\b({_MONTH_RE})\.? (\d{{1,2}})(?:st|nd|rd|th)?,? (\d{{4}})\b", re.A),
      lambda m: [(m[3], _MONTHS[m[1]], m[2])]),
     # 1 March 2027; 1st day of March, 2027
-    (re.compile(rf"\b(\d{{1,2}})(?:st|nd|rd|th)? (?:day of )?({_MONTH_RE})\.?,? (\d{{4}})\b"),
+    (re.compile(rf"\b(\d{{1,2}})(?:st|nd|rd|th)? (?:day of )?({_MONTH_RE})\.?,? (\d{{4}})\b", re.A),
      lambda m: [(m[3], _MONTHS[m[2]], m[1])]),
     # first day of March, 2027; twenty-eighth day of February, 2031
-    (re.compile(rf"\b(?:({_TENS_RE})[ -])?({_ORDINAL_RE}) day of ({_MONTH_RE})\.?,? (\d{{4}})\b"),
+    (re.compile(rf"\b(?:({_TENS_RE})[ -])?({_ORDINAL_RE}) day of ({_MONTH_RE})\.?,? (\d{{4}})\b", re.A),
      lambda m: [(m[4], _MONTHS[m[3]], (_TENS[m[1]] if m[1] else 0) + _ORDINALS[m[2]])]),
 )
 
@@ -252,11 +258,18 @@ def _missing(kind: str, value: Any, quote: str) -> bool:
     return False
 
 
+def show_value(value: Any) -> str:
+    """A value as it appears in a reason: JSON, with numbers written as JavaScript writes them."""
+    if _num(value):
+        return js_number_str(value)
+    return json.dumps(value, ensure_ascii=False)
+
+
 def _walk(spec: Any, value: Any, quote: str, path: str) -> str | None:
     if isinstance(spec, str):
         if _missing(spec, value, quote):
             where = f" ({path})" if path else ""
-            return f"value {json.dumps(value)}{where} not found in quote"
+            return f"value {show_value(value)}{where} not found in quote"
         return None
     if isinstance(spec, list):
         if not isinstance(value, list):

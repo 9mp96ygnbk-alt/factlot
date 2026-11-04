@@ -484,10 +484,13 @@ export function createHandler(opts: FactLotServerOptions = {}) {
         return;
       }
       if (path === "/openapi.json" || path === "/openapi-3.0.json") {
-        const doc =
-          path === "/openapi.json"
-            ? openApi31({ serverUrl: baseUrl(req, opts) })
-            : openApi30({ serverUrl: baseUrl(req, opts) });
+        // Same tools as /v1/tools: registry operations only when a registry is loaded.
+        const api = {
+          serverUrl: baseUrl(req, opts),
+          filter: (t: (typeof tools)[number]) =>
+            t.requires !== "registry" || registryPath() !== undefined,
+        };
+        const doc = path === "/openapi.json" ? openApi31(api) : openApi30(api);
         if (authRequired) doc.security = [{ bearerAuth: [] }];
         send(res, 200, doc);
         return;

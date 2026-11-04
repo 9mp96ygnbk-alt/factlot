@@ -201,7 +201,9 @@ VALUE_CASES = [
     ("lease.expansion_option_deadline", "2028-02-29", None),
     ("lease.expansion_option_deadline", "2027-02-29", "expected YYYY-MM-DD date"),
     ("lease.operating_expense_base_year", 2026, None),
-    ("lease.operating_expense_base_year", 2026.0, "expected a four-digit integer year"),
+    # 2026.0 is the same JSON number as 2026 (JavaScript cannot tell them apart), so both pass.
+    ("lease.operating_expense_base_year", 2026.0, None),
+    ("lease.operating_expense_base_year", 2026.5, "expected a four-digit integer year"),
     ("lease.operating_expense_base_year", "2026", "expected a four-digit integer year"),
     ("lease.operating_expense_base_year", True, "expected a four-digit integer year"),
     ("lease.operating_expense_base_year", 26, "expected a four-digit integer year"),

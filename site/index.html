@@ -215,7 +215,7 @@
             </article>
 
             <article class="card">
-              <h3>Rules and Ingest</h3>
+              <h3>Rules and document verification</h3>
               <p>
                 Rules packs turn jurisdiction law into code. Each pack cites its
                 statute, carries a version, and stays <code>draft</code> until a
@@ -224,11 +224,16 @@
                 Texas property-tax protest deadline (checked 2026-11-02).
               </p>
               <p>
-                Ingest (a prototype) turns leases and amendments into cited
-                facts. A value is kept only if its verbatim quote appears on the
-                cited page and the numbers, dates, and names in the value are
-                written in that quote. Amendments supersede earlier terms with
-                the history kept; anything uncertain waits for a human.
+                Document verification checks what your agent reads from a lease.
+                Your agent extracts each term with its verbatim quote and page;
+                FactLot confirms the quote is on that page and states the value
+                ("$1,250,000.00", "June 30, 2031", "five percent (5%)") and
+                returns a cited fact, or the reason it could not. It also builds
+                a current-state abstract with amendment precedence, compares an
+                estoppel or rent roll to the lease, and checks a single claim.
+                No model runs on our side, and the checks are textual: they do
+                not find terms your agent missed. Live on the hosted API;
+                nothing is stored.
               </p>
               <p>
                 <a
@@ -239,6 +244,11 @@
                 <a
                   href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/ingest.md"
                   >Lease ingestion</a
+                >
+                ·
+                <a
+                  href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/document-verification.md"
+                  >Document verification</a
                 >
               </p>
             </article>
@@ -643,9 +653,10 @@
               never recovered or inferred.
             </li>
             <li>
-              <strong>Everything cited.</strong> Uncited facts are rejected.
-              Each fact names its method, its source document and record, and
-              the rights that travel with it.
+              <strong>Everything cited.</strong> Uncited facts are rejected:
+              extracted, public-record and inferred facts must name a source,
+              and computed facts their formula. Each fact names its method, its
+              source document and record, and the rights that travel with it.
             </li>
             <li>
               <strong>Deterministic.</strong> The TypeScript and Python SDKs

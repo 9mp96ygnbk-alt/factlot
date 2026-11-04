@@ -20,7 +20,8 @@ class Definitions(unittest.TestCase):
         self.assertEqual([f["name"] for f in factlot.gemini_tools()[0]["functionDeclarations"]], names)
         self.assertEqual([t["toolSpec"]["name"] for t in factlot.bedrock_tool_config()["tools"]], names)
         ops = sorted(p["post"]["operationId"] for p in factlot.openapi("3.1")["paths"].values())
-        self.assertEqual(ops, sorted(names))
+        # registry_* operations need a registry; a server with one lists them itself.
+        self.assertEqual(ops, sorted(n for n in names if not n.startswith("registry_")))
         self.assertEqual(factlot.openapi("3.0", "https://x.example")["servers"], [{"url": "https://x.example"}])
 
     def test_packaged_schemas_match_spec(self):

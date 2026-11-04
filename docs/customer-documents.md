@@ -15,6 +15,17 @@ Today FactLot Ingest runs only self-hosted. A hosted version (FactLot Cloud) is 
 not live; the hosted sections below describe what it will do and are the bar it must clear before
 launch.
 
+**Hosted document verification (live since 2026-11-04).** The hosted API at
+`https://api.factlot.com` offers the document-verification tools (`doc_verify_facts`,
+`doc_abstract_lease`, `doc_compare`, `doc_verify_claim`; see
+[document verification](document-verification.md)). A customer's agent sends page text and the
+terms it extracted in a single request; FactLot checks them in memory, returns the answer, and
+keeps nothing: no document text, quotes or facts are stored or logged, and the only record of the
+request is its metadata (time, route, status, plan, a hashed key ID). No model runs and no third
+party receives the text. These tools are stateless, so the storage and retention rules below for
+FactLot Cloud do not apply to them. For documents that must not leave the customer's network,
+run the same tools self-hosted. This section needs counsel's review with the rest of this page.
+
 ## 1. What a customer document is
 
 A customer document is any file a customer gives FactLot Ingest to read, and anything derived

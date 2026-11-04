@@ -3,6 +3,12 @@
 FactLot Ingest turns a lease and its amendments into cited FactLot facts. The code is in
 `python/src/factlot/ingest/`.
 
+The verifier below is also callable as tools, in TypeScript and Python, for an agent that does
+its own extraction: `doc_verify_facts`, `doc_abstract_lease`, `doc_compare` and
+`doc_verify_claim` ([document verification](document-verification.md)). The written-form
+patterns read ASCII digits and word boundaries only, as JavaScript does, so both languages give
+the same answers.
+
 ```
 pages ─▶ (OCR for pages with no text layer, if a backend is given)
       ─▶ extractor (Claude, or your own) ─▶ candidates {predicate, value, verbatim quote, page}
@@ -45,7 +51,7 @@ the quote.
 | `lease.termination_notice_deadline` | `YYYY-MM-DD`, the last day to give termination notice                                                                              | the date                          |
 | `lease.rent_commencement_date`      | `YYYY-MM-DD`                                                                                                                       | the date                          |
 | `lease.expansion_option_deadline`   | `YYYY-MM-DD`, the last day to exercise an expansion option                                                                         | the date                          |
-| `lease.operating_expense_base_year` | integer year (1900–2200)                                                                                                           | the year, as a number             |
+| `lease.operating_expense_base_year` | whole-number year (1900–2200; `2026.0` is the same JSON number as `2026`)                                                          | the year, as a number             |
 | `lease.parking`                     | `{spaces > 0, rate_monthly? ≥ 0}`                                                                                                  | spaces, monthly rate              |
 | `lease.guaranty`                    | `{guarantor: string, cap?}`; the guarantor is a name, and a value that reads as a street address, postal code or PO box is refused | the guarantor name, verbatim; cap |
 

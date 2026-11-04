@@ -38,8 +38,13 @@ A **fact** is one atomic, citable claim about one identified subject:
 ## Rules
 
 1. **No uncited facts.** Every fact must have at least one source, except facts
-   whose `method` is `computed` or `inferred`. A computed fact cites its formula
-   (`calc.net_effective_rent@1`) and its input fact IDs instead.
+   whose `method` is `computed`; an `inferred` fact cites the evidence it was
+   inferred from. A computed fact names its formula (`calc.net_effective_rent@1`,
+   required unless it cites a source) and lists its input fact IDs where it has
+   them. Fields the schema does not define are rejected, `valid_from` may not be
+   after `valid_to`, and a source `span` may not end before it starts.
+   `fact_validate` also checks the value of an Ingest predicate against each
+   source quote ([document verification](document-verification.md)).
 2. **Method tells agents when to escalate.** The trust levels, from highest to
    lowest, are `human_verified`, `public_record`, `computed`, `extracted`,
    `reported`, and `inferred`. An agent should send a human anything below its

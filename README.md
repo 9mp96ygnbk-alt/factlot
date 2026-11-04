@@ -23,6 +23,12 @@ The answer is a $9,750,000 maximum loan, bound by loan-to-value (the coverage te
 allow $10.5 million), with every intermediate step, its formula, and the versioned formula ID
 `calc.debt_sizing@3` so an agent can cite exactly how the number was made.
 
+Check what your agent read from a lease the same way: it extracts each term with the exact quote
+and page, and `doc_verify_facts` confirms the quote is on that page and states the value, then
+returns cited facts or the reason it could not
+([document verification](docs/document-verification.md)). No model runs on FactLot's side and
+nothing is stored.
+
 ## Connect your agent
 
 | Client                         | How                                                                                                                                                                                                                                       |

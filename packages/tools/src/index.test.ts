@@ -229,7 +229,11 @@ test("OpenAPI documents have one operation per tool", () => {
     const ops = Object.values(paths)
       .map((p) => p.post.operationId)
       .sort();
-    assert.deepEqual(ops, [...names].sort());
+    // registry_* operations need a registry; a server with one lists them itself.
+    assert.deepEqual(
+      ops,
+      [...names].filter((n) => !n.startsWith("registry_")).sort(),
+    );
     assert.ok(
       Object.keys(paths).length <= 30,
       "Custom GPT Actions allow at most 30 operations",

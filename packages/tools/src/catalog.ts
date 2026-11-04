@@ -13,8 +13,20 @@ import {
   shortId,
   spaceId,
 } from "@factlot/id";
-import { Fact } from "@factlot/schema";
 import { z } from "zod";
+
+import {
+  AbstractLeaseInput,
+  CompareInput,
+  ToolInputError,
+  VerifyClaimInput,
+  VerifyFactsInput,
+  abstractLease,
+  compare,
+  validateFact,
+  verifyClaim,
+  verifyFacts,
+} from "./documents.ts";
 
 import {
   RegistryUnavailableError,
@@ -309,21 +321,52 @@ const idTools: ToolSpec[] = [
     name: "fact_validate",
     title: "Validate a FactLot fact",
     description:
-      "Check that a fact conforms to the FactLot model (subject ID, dotted predicate, as_of date, provenance with citations, optional AI-use rights). Returns { valid, issues }. Call before storing or sharing extracted facts.",
+      "Check one FactLot fact against the published fact schema (spec/schemas/fact.json): subject URN, dotted predicate, as_of date, provenance, optional rights; unknown fields are rejected at every level. Rules: every fact except a computed one cites at least one source (an inferred fact cites the evidence it was inferred from); a computed fact names its formula or cites a source; valid_from is not after valid_to; a source span does not end before it starts. For Ingest predicates (lease.expiration_date, lease.rentable_area_sf, lease.base_rent_schedule, ...) the value must have the predicate's shape and every source quote must state the value, by the same written-form rules as doc_verify_facts (a quote saying \"2,500 square feet\" does not support 1000). Not checked: that the quote is in the document, that the document or sha256 exists, that supersedes IDs exist, and quotes for other predicates; doc_verify_facts with the document's pages checks the quote. Returns { valid, issues }. Call before storing or sharing facts.",
     input: FactValidateInput,
     path: "/v1/facts/validate",
-    run: (i: never) => {
-      const r = Fact.safeParse((i as z.output<typeof FactValidateInput>).fact);
-      return {
-        valid: r.success,
-        issues: r.success
-          ? []
-          : r.error.issues.map((x) => ({
-              path: x.path.join("."),
-              message: x.message,
-            })),
-      };
-    },
+    run: (i: never) =>
+      validateFact((i as z.output<typeof FactValidateInput>).fact),
+  },
+];
+
+const docTools: ToolSpec[] = [
+  {
+    name: "doc_verify_facts",
+    title: "Verify extracted document facts",
+    description:
+      'Check values YOU extracted from a document against its text, deterministically; FactLot runs no model. Send the pages as text and one candidate per value: {predicate, value, quote, page}. Each candidate is checked in order: (1) the value\'s shape (Ingest predicates such as lease.expiration_date YYYY-MM-DD, lease.pro_rata_share in (0, 1], ordered lease.base_rent_schedule steps; any other dotted predicate needs a non-empty value); (2) the quote, at least 12 characters, is on the cited page, where only whitespace, line breaks, letter case and typographic quotes and dashes may differ (a word hyphenated across a line must keep its hyphen; a quote found on exactly one other page is accepted with the page corrected); (3) every number, date and party name in the value is written in the quote, in any common form: 1250000 matches "$1,250,000.00", 0.03 matches "3%" or "three percent", 2031-06-30 matches "June 30, 2031" or "6/30/2031"; (4) a confidence you give below 0.8 holds it for review. Returns verified (FactLot facts: method extracted, citing document_id, page, quote and character span, plus which value parts were and were not checked), needs_review (the quote is on the page but does not state the value, or low confidence) and rejected (wrong shape; quote missing, too short, or on several pages), each with a reason to act on. Not checked: enums and free-text summaries, meaning (a quote stating the number in another context passes), and whether the pages came from the file whose sha256 you give.',
+    input: VerifyFactsInput,
+    path: "/v1/doc/verify_facts",
+    run: (i: never) =>
+      verifyFacts(i as z.output<typeof VerifyFactsInput>, PRODUCER),
+  },
+  {
+    name: "doc_abstract_lease",
+    title: "Lease abstract with amendments",
+    description:
+      "Current-state lease abstract from a lease and its amendments, with amendment precedence. Give each document's pages with the candidates you extracted (checked exactly as doc_verify_facts checks them), or the facts doc_verify_facts already returned for it (without pages only the value against its quote is rechecked, marked quote_on_page: false). The original applies first, then amendments by effective_date (in the order given if any is undated); a later document's value for a predicate controls, and the earlier one moves to history and is linked through supersedes. Each field gives its value, the controlling document, page, quote and fact, the superseded history, conflicts (one document stating two different values) and open_items (a candidate for that predicate in the controlling or a later document that needs review or was rejected, so the value may not be final). FactLot only orders what you extracted: it does not find terms you missed, and an amendment that changes a term without restating it (\"extended by 24 months\") needs the resulting value extracted with that sentence as its quote, which the quote check will hold for review if the date is not written there.",
+    input: AbstractLeaseInput,
+    path: "/v1/doc/abstract_lease",
+    run: (i: never) =>
+      abstractLease(i as z.output<typeof AbstractLeaseInput>, PRODUCER),
+  },
+  {
+    name: "doc_compare",
+    title: "Compare asserted values with a lease",
+    description:
+      "Compare values another document asserts (an estoppel, rent roll or offering memo, mapped by you to predicates) with verified lease facts from doc_abstract_lease or doc_verify_facts. Each asserted value comes back match, mismatch (with the differing fields), not_in_lease, or ambiguous_in_lease (two current lease facts disagree), with the controlling lease citation (document, page, quote). Values compare exactly as JSON: numbers by value, strings exactly (a name written differently is a mismatch), and for an object only the fields you assert. Facts another fact supersedes are ignored. The lease facts must pass fact_validate; FactLot does not re-read the lease, so pass the facts its document tools returned.",
+    input: CompareInput,
+    path: "/v1/doc/compare",
+    run: (i: never) => compare(i as z.output<typeof CompareInput>),
+  },
+  {
+    name: "doc_verify_claim",
+    title: "Verify a claim against a document",
+    description:
+      "Check one claim against a document page: {predicate, value} (anything doc_verify_facts accepts) or a short claim sentence, plus the verbatim quote and page it rests on. Returns supported (the quote is on the page and every checked number, date and name in the claim is written in it), contradicted (the quote is on the page and states other numbers or dates of the same kind, listed in quote_states), or unverifiable (the quote is not on the page, nothing in the claim can be checked, or the quote states no value of that kind), with the evidence (document_id, page, quote, span) and each part checked. Textual, not semantic: for a sentence only its numbers and dates are compared, never its meaning, and a quote that mentions the right number for a different term still supports it.",
+    input: VerifyClaimInput,
+    path: "/v1/doc/verify_claim",
+    run: (i: never) => verifyClaim(i as z.output<typeof VerifyClaimInput>),
   },
 ];
 
@@ -505,6 +548,7 @@ export const tools: readonly ToolSpec[] = [
   ...calcTools,
   ...ruleTools,
   ...idTools,
+  ...docTools,
   ...registryTools,
 ];
 
@@ -611,6 +655,16 @@ export function runTool(name: string, args: unknown): ToolOutcome {
           error: "RegistryUnavailable",
           message: err.message,
           issues: [],
+        },
+      };
+    }
+    if (err instanceof ToolInputError) {
+      return {
+        ok: false,
+        error: {
+          error: "InputError",
+          message: err.message,
+          issues: err.issues,
         },
       };
     }

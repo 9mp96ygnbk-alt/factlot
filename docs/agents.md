@@ -20,27 +20,34 @@ an identifier. This page covers which tool to call, when, and how to report the 
 5. **Emit facts, not prose.** When you extract something from a lease or a record, emit a fact
    with `provenance.sources` (document, page, section, quote) and check it with `fact_validate`.
    Uncited facts are rejected.
+6. **You extract, FactLot verifies.** To read a document, send its page text and, for each
+   value, the verbatim quote and page to `doc_verify_facts` (or `doc_abstract_lease` for a lease
+   with amendments). FactLot runs no model; it returns cited facts, items for review, and
+   rejections with reasons. See [document verification](document-verification.md).
 
 ## Which tool when
 
-| The user asks…                                                              | Call                                                |
-| --------------------------------------------------------------------------- | --------------------------------------------------- |
-| "What's the rent schedule / total rent / expiration date?"                  | `calc_rent_schedule`                                |
-| "What's the net effective rent on this deal?"                               | `calc_net_effective_rent`                           |
-| "Which of these proposals is better?" (tenant rep or landlord)              | `calc_compare_proposals`                            |
-| "What does the tenant owe in percentage rent?"                              | `calc_percentage_rent`                              |
-| "Reconcile CAM / opex for 2026" or "check this CAM statement"               | `calc_cam_reconciliation`                           |
-| "How big a loan can this support?" or "which constraint binds?"             | `calc_debt_sizing`                                  |
-| "Remeasure this lease under ASC 842" after an amendment or reassessment     | `calc_lease_remeasurement_asc842`                   |
-| "What does it cost to prepay or defease this loan?"                         | `calc_prepayment_and_defeasance`                    |
-| "What's the WALT?"                                                          | `calc_walt`                                         |
-| "NPV / IRR of these cash flows"                                             | `calc_npv`, `calc_irr`                              |
-| "Should we buy the building or keep leasing?"                               | `calc_lease_vs_own`                                 |
-| "Should we renew or move?" or "what rent makes moving worth it?"            | `calc_renew_vs_relocate`                            |
-| "What's the occupancy / ADR / RevPAR / GOP / NOI of this hotel?"            | `calc_hotel_metrics`                                |
-| You have a county parcel number, a state LLC file number, a suite, or a PDF | `id_parcel`, `id_entity`, `id_space`, `id_document` |
-| You have a building's street address                                        | `id_building`                                       |
-| You extracted a fact and want to store or share it                          | `fact_validate`                                     |
+| The user asks…                                                                | Call                                                |
+| ----------------------------------------------------------------------------- | --------------------------------------------------- |
+| "What's the rent schedule / total rent / expiration date?"                    | `calc_rent_schedule`                                |
+| "What's the net effective rent on this deal?"                                 | `calc_net_effective_rent`                           |
+| "Which of these proposals is better?" (tenant rep or landlord)                | `calc_compare_proposals`                            |
+| "What does the tenant owe in percentage rent?"                                | `calc_percentage_rent`                              |
+| "Reconcile CAM / opex for 2026" or "check this CAM statement"                 | `calc_cam_reconciliation`                           |
+| "How big a loan can this support?" or "which constraint binds?"               | `calc_debt_sizing`                                  |
+| "Remeasure this lease under ASC 842" after an amendment or reassessment       | `calc_lease_remeasurement_asc842`                   |
+| "What does it cost to prepay or defease this loan?"                           | `calc_prepayment_and_defeasance`                    |
+| "What's the WALT?"                                                            | `calc_walt`                                         |
+| "NPV / IRR of these cash flows"                                               | `calc_npv`, `calc_irr`                              |
+| "Should we buy the building or keep leasing?"                                 | `calc_lease_vs_own`                                 |
+| "Should we renew or move?" or "what rent makes moving worth it?"              | `calc_renew_vs_relocate`                            |
+| "What's the occupancy / ADR / RevPAR / GOP / NOI of this hotel?"              | `calc_hotel_metrics`                                |
+| You have a county parcel number, a state LLC file number, a suite, or a PDF   | `id_parcel`, `id_entity`, `id_space`, `id_document` |
+| You have a building's street address                                          | `id_building`                                       |
+| You extracted a fact and want to store or share it                            | `fact_validate`                                     |
+| "Abstract this lease" (you read the pages and propose each term with a quote) | `doc_verify_facts`, `doc_abstract_lease`            |
+| "Does the estoppel / rent roll match the lease?"                              | `doc_compare`                                       |
+| "Is this claim supported by the document?"                                    | `doc_verify_claim`                                  |
 
 ## Mapping lease language to inputs
 
