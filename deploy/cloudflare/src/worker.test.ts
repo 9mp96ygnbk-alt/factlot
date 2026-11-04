@@ -275,6 +275,28 @@ describe("billing", () => {
     assert.equal((await refreshIfStale(d, "h", record())).status, "active");
   });
 
+  it("deactivates a key whose subscription Stripe does not know", async () => {
+    const s = fakeStripe({
+      "GET /subscriptions/sub_1": () => [
+        404,
+        {
+          error: {
+            type: "invalid_request_error",
+            message: "No such subscription",
+          },
+        },
+      ],
+    });
+    const d = billingDeps(
+      env({ STRIPE_SECRET_KEY: "rk_live_x" }),
+      s.fetchImpl,
+      () => RECHECK_MS + 1,
+    )!;
+    const next = await refreshIfStale(d, "h", record());
+    assert.equal(next.status, "inactive");
+    assert.equal(next.stripe_status, "missing");
+  });
+
   it("applies a signed subscription.deleted webhook to every key of the subscription", async () => {
     const e = env({ STRIPE_WEBHOOK_SECRET: "whsec_x" });
     await writeKey(e.KEYS, "h1", record());

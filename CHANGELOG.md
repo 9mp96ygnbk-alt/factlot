@@ -28,6 +28,7 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 
 ### Fixed
 
+- Hosted billing: a key whose subscription Stripe does not know (for example a sandbox purchase re-checked with a live key) now stops working at its next check instead of staying active.
 - The hosted OpenAPI documents advertised `http://` server URLs; they now advertise `https://api.factlot.com`.
 - The registry parcel total on factlot.com and in `llms.txt` is 1,953,805, not 1,945,117: it had counted 37,292 Tarrant parcels where the full set is 45,976, and Travis gained 4 with supplement 3.
 - Colorado entity adapter: the Department's appended status history (`, Delinquent January 1, 2025`) is no longer part of the legal name (1.87 million of 3.13 million names), so owners written as the bare name link.

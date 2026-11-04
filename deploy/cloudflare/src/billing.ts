@@ -208,7 +208,19 @@ export async function refreshIfStale(
     };
     await writeKey(d.env.KEYS, hash, next);
     return next;
-  } catch {
+  } catch (err) {
+    // Stripe does not know the subscription (for example a sandbox purchase checked with a live
+    // key): the key is not backed by a payment, so it stops working.
+    if (err instanceof StripeError && err.status === 404) {
+      const next: KeyRecord = {
+        ...record,
+        stripe_status: "missing",
+        status: "inactive",
+        checked_at: d.now(),
+      };
+      await writeKey(d.env.KEYS, hash, next);
+      return next;
+    }
     // Stripe unreachable: keep the last known status rather than locking a paying customer out.
     return record;
   }
