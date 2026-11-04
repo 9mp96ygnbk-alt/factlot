@@ -1,0 +1,102 @@
+{
+ "doc": "L17",
+ "labels": [
+  {
+   "predicate": "lease.landlord",
+   "value": "TOYS “R” US - DELAWARE, INC.",
+   "page": 1,
+   "quote": "TOYS “R” US - DELAWARE, INC., a Delaware corporation",
+   "note": "Original landlord under the 2006 lease. The filed exhibit also contains a First Amendment dated May 19, 2021 (pages 60-64) in which OREOF19 BR, LLC is Landlord; both are labeled. Values the amendment changes are labeled from both instruments where each states them."
+  },
+  {
+   "predicate": "lease.landlord",
+   "value": "OREOF19 BR, LLC",
+   "page": 60,
+   "quote": "OREOF19 BR, LLC, a Delaware limited liability company (“Landlord”)",
+   "note": "Landlord as of the 2021 First Amendment."
+  },
+  {
+   "predicate": "lease.tenant",
+   "value": "BEST BUY STORES, L.P.",
+   "page": 1,
+   "quote": "BEST BUY STORES, L.P., a Virginia limited partnership"
+  },
+  {
+   "predicate": "lease.expiration_date",
+   "value": "2027-03-31",
+   "page": 60,
+   "quote": "The parties hereby agree to extend the Term for the period from February 1, 2022 through and including March 31, 2027, which period shall be deemed the First Renewal Term referenced in Section 19.17 of the Lease.",
+   "note": "Expiration as extended by the First Amendment (the original Term was scheduled to expire January 31, 2022). The original lease's Commencement Date depended on Delivery of Possession or opening (Section 4.01), so the original commencement and expiration are not labeled."
+  },
+  {
+   "predicate": "lease.rentable_area_sf",
+   "value": 30701,
+   "page": 1,
+   "quote": "The building leased to Tenant consists of approximately 30,701 square feet of floor area",
+   "note": "Premises is the entire Building."
+  },
+  {
+   "predicate": "lease.base_rent_schedule",
+   "value": [
+    {
+     "from": "2021-05-01",
+     "to": "2022-03-31",
+     "annual_rent_psf": 11.5
+    },
+    {
+     "from": "2022-04-01",
+     "to": "2027-03-31",
+     "annual_rent_psf": 11.5
+    }
+   ],
+   "page": 61,
+   "quote": "5-1-2021 to 3-31-2022\n\n$353,061.48\n\n$29,421.79\n\n$11.50",
+   "note": "Minimum Rent as amended (First Amendment paragraph 4). The amendment's table starts the First Renewal Term row on 4-1-2022 although paragraph 2 starts the First Renewal Term on February 1, 2022; dates are labeled as printed in the table. The Second Renewal Term row (4-1-2027 to 3-31-2032, $12.65) is option rent and is not part of this schedule. Original lease Minimum Rent ($332,798.84/$366,078.72/$402,686.60 per annum by lease year, Section 1.04) is undated and not labeled."
+  },
+  {
+   "predicate": "lease.pro_rata_share",
+   "value": 1,
+   "page": 4,
+   "quote": "Means one hundred (100%) percent."
+  },
+  {
+   "predicate": "lease.renewal_option",
+   "value": {
+    "count": 2,
+    "term_months": 60,
+    "notice_months": 12,
+    "rent": "Fixed: $442,955.26 per annum (first) and $487,250.78 per annum (second)"
+   },
+   "page": 39,
+   "quote": "Tenant shall have the option to renew this Lease for one additional period of five (5) years (the “First Renewal Term”).",
+   "note": "Original lease: two successive 5-year options (Section 19.17(a)-(b)); notice by the last day of the year before the last year of the Term, recorded as 12 months."
+  },
+  {
+   "predicate": "lease.renewal_option",
+   "value": {
+    "count": 1,
+    "term_months": 60,
+    "notice_months": 12,
+    "rent": "Fixed: $388,367.64 per annum ($12.65 per SF)"
+   },
+   "page": 60,
+   "quote": "Tenant shall continue to have the right to extend the Term for the Second Renewal Term (which Second Renewal Term shall be for the period from April 1, 2027 to March 31, 2032), exercisable in accordance with Section 19.17 of the Lease.",
+   "note": "As amended: the First Renewal Term is now in effect by agreement, leaving one option; notice per Section 19.17, recorded as 12 months."
+  },
+  {
+   "predicate": "lease.guaranty",
+   "value": {
+    "guarantor": "Best Buy Co., Inc."
+   },
+   "page": 42,
+   "quote": "Tenant’s obligations under this Lease shall be guaranteed by Best Buy Co., Inc. (“Guarantor”), pursuant to a separate Guaranty, in the form of Schedule B attached hereto.",
+   "note": "Schedule B guaranty form states no cap."
+  },
+  {
+   "predicate": "lease.assignment_sublease",
+   "value": "Subletting, assignment or encumbrance requires Landlord's prior written consent, not to be unreasonably conditioned, delayed or withheld; Tenant's 60-day request notice is deemed an offer to assign or sublet to Landlord (Section 10.01(b)); Tenant stays liable.",
+   "page": 19,
+   "quote": "Tenant shall not sublet the Demised Premises or any part thereof, or assign, mortgage or hypothecate, or otherwise encumber this Lease or any interest therein nor grant concessions or licenses for the occupancy of the Demised Premises or any part thereof, without Landlord’s prior written consent, which consent shall not be unreasonably conditioned, delayed or withheld."
+  }
+ ]
+}
