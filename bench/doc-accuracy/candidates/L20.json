@@ -1,0 +1,65 @@
+{
+ "doc": "L20",
+ "candidates": [
+  {
+   "predicate": "lease.landlord",
+   "value": "Ramparts, Inc., a Nevada corporation",
+   "quote": "Landlord: Ramparts, Inc., a Nevada corporation (\"Landlord\").",
+   "page": 2,
+   "section": "(2)"
+  },
+  {
+   "predicate": "lease.tenant",
+   "value": "ALLIED ESPORTS INTERNATIONAL, INC., a Nevada corporation",
+   "quote": "Tenant: ALLIED ESPORTS INTERNATIONAL, INC., a Nevada corporation (\"Tenant\").",
+   "page": 2,
+   "section": "(3)"
+  },
+  {
+   "predicate": "lease.rentable_area_sf",
+   "value": 30000,
+   "quote": "Approximately thirty thousand (30,000) square feet within the Hotel Complex",
+   "page": 2,
+   "section": "(5)"
+  },
+  {
+   "predicate": "lease.security_deposit",
+   "value": 625000,
+   "quote": "Security Deposit (Section 3.7.4): Six Hundred Twenty Five Thousand and no/100 Dollars ($625,000.00),",
+   "page": 2,
+   "section": "(11)"
+  },
+  {
+   "predicate": "lease.renewal_option",
+   "value": {
+    "count": 1,
+    "term_months": 60,
+    "notice_months": 9,
+    "rent": "Minimum Annual Rent of One Million Six Hundred Fifty Thousand and No/100 Dollars ($1,650,000.00) per annum"
+   },
+   "quote": "One (1) extension term of sixty (60) full calendar months (\"Extension Term\").",
+   "page": 2,
+   "section": "(7)"
+  },
+  {
+   "predicate": "lease.percentage_rent",
+   "value": {
+    "rate": 0.07,
+    "breakpoint": {
+     "type": "natural"
+    },
+    "sales_exclusions": "exclusions from Gross Sales include claim settlements, customer returns and refunds, sales taxes and similar taxes (including LET), employee gratuities, proceeds from sale of trade fixtures, casualty insurance proceeds, improvement-cost reimbursements, subtenant security deposits, certain subtenant operating-cost and after-hours reimbursements, and uncollectible accounts receivable"
+   },
+   "quote": "Percentage Rent Factor(s) (Section 4.1.2): Seven percent (7%) of Gross Sales.",
+   "page": 3,
+   "section": "(14)"
+  },
+  {
+   "predicate": "lease.exclusive_use",
+   "value": "any competition arena where customers play and compete against other players in organized esports games",
+   "quote": "the term \"Competitive Use\" shall mean any competition arena where customers play and compete against other players in organized esports games.",
+   "page": 3,
+   "section": "(21)"
+  }
+ ]
+}
