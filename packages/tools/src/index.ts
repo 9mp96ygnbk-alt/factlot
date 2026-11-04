@@ -19,3 +19,20 @@ export {
   validateFact,
 } from "./documents.ts";
 export { PREDICATES as INGEST_PREDICATES } from "./quotes.ts";
+export {
+  PACKAGE_FORMAT,
+  PACKAGE_VERSION,
+  SIGNING_PREFIX,
+  canonicalJson,
+  leafHash,
+  merkleRoot,
+  signFactPackage,
+} from "./packages.ts";
+export { CHARTS, USE_CATEGORIES, vocabularyDocuments } from "./vocabularies.ts";
+export type {
+  Chart,
+  ChartCategory,
+  ChartSection,
+  ChartTotal,
+  UseCategory,
+} from "./vocabularies.ts";

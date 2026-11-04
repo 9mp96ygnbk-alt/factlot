@@ -7,9 +7,15 @@ from pathlib import Path
 
 import factlot
 from factlot.docverify import DOC_LIMITS, check_consistency_any, js_json
+from factlot.factpackage import canonical_json
 from factlot.facts import validate_fact
 from factlot.ingest.verify import _norm
 
+try:
+    import cryptography  # noqa: F401  (optional: factlot[signing])
+    HAVE_SIGNING = True
+except ImportError:
+    HAVE_SIGNING = False
 SPEC = json.loads((Path(__file__).resolve().parents[2] / "spec" / "vectors" / "documents.json").read_text("utf-8"))
 _ABSENT = object()
 
@@ -42,8 +48,15 @@ class Vectors(unittest.TestCase):
             with self.subTest(predicate=c["predicate"], value=c["value"], quote=c["quote"]):
                 self.assertEqual(check_consistency_any(c["predicate"], js_json(c["value"]), c["quote"]), c["expect"])
 
+    def test_canonical_json(self):
+        for c in SPEC["canonical_json"]:
+            with self.subTest(value=c["value"]):
+                self.assertEqual(canonical_json(js_json(c["value"])), c["expect"])
+
     def test_tools(self):
         for c in SPEC["cases"]:
+            if c.get("requires") == "signing" and not HAVE_SIGNING:
+                continue  # Ed25519 needs the cryptography package (factlot[signing]); test_fact_packages says so
             with self.subTest(case=c["name"]):
                 out = factlot.run_tool(c["tool"], resolve(c["arguments"]))
                 if "expect_error" in c:

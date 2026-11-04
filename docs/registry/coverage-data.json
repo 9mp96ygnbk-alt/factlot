@@ -1,0 +1,1111 @@
+{
+  "_about": "Counts curated from the review records and source catalog. Each entry cites the document and the exact quote it was read from; scripts/registry/gen_coverage_docs.py verifies every quote is in the document and every number is in the quote. Do not add a count without a quote.",
+  "loads": [
+    {
+      "source_id": "tx-harris-cad",
+      "state": "TX",
+      "area": "Harris County",
+      "kind": "load",
+      "parcels": 87717,
+      "org_owners": 56792,
+      "owner_names": "yes",
+      "entity_links": "79.7% of organisation owners linked to the Comptroller file",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/sources/README.md",
+          "quote": "87,717; 56,792 (79.7% linked to the Comptroller)"
+        }
+      ]
+    },
+    {
+      "source_id": "tx-dallas-cad",
+      "state": "TX",
+      "area": "Dallas County",
+      "kind": "load",
+      "parcels": 59645,
+      "org_owners": 33386,
+      "owner_names": "yes",
+      "entity_links": "71.6% linked",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/sources/README.md",
+          "quote": "59,645; 33,386 (71.6% linked)"
+        }
+      ]
+    },
+    {
+      "source_id": "tx-tarrant-ad",
+      "state": "TX",
+      "area": "Tarrant County",
+      "kind": "load",
+      "parcels": 45976,
+      "org_owners": 30736,
+      "owner_names": "yes",
+      "entity_links": "71.6% linked",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/sources/README.md",
+          "quote": "45,976 (full set, with plain-B multifamily); 30,736 (71.6% linked)"
+        }
+      ]
+    },
+    {
+      "source_id": "tx-travis-cad",
+      "state": "TX",
+      "area": "Travis County",
+      "kind": "load",
+      "parcels": 30555,
+      "org_owners": 17972,
+      "owner_names": "yes",
+      "entity_links": "78.4% linked",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/sources/README.md",
+          "quote": "30,555 (supplement 3, 2026-10-06); 17,972 (78.4% linked)"
+        }
+      ]
+    },
+    {
+      "source_id": "tx-collin-cad",
+      "state": "TX",
+      "area": "Collin County",
+      "kind": "load",
+      "parcels": 18035,
+      "org_owners": 13165,
+      "owner_names": "yes",
+      "entity_links": "85.4% linked",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/sources/README.md",
+          "quote": "18,035; 13,165 (85.4% linked; needs mdbtools)"
+        }
+      ]
+    },
+    {
+      "source_id": "tx-denton-cad",
+      "state": "TX",
+      "area": "Denton County",
+      "kind": "load",
+      "parcels": 13304,
+      "org_owners": 9484,
+      "owner_names": "yes",
+      "entity_links": "not recorded for this county (the Texas entity file is loaded)",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/tier2/README.md",
+          "quote": "13,304; 11,699; 9,698"
+        },
+        {
+          "doc": "docs/registry/sources/tx-denton-cad.md",
+          "quote": "Organisation owners stored (current owner-of-record facts): 9,484"
+        }
+      ]
+    },
+    {
+      "source_id": "tx-williamson-cad",
+      "state": "TX",
+      "area": "Williamson County",
+      "kind": "load",
+      "parcels": 11699,
+      "org_owners": 8114,
+      "owner_names": "yes",
+      "entity_links": "not recorded for this county (the Texas entity file is loaded)",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/tier2/README.md",
+          "quote": "13,304; 11,699; 9,698"
+        },
+        {
+          "doc": "docs/registry/sources/tx-williamson-cad.md",
+          "quote": "Organisation owners stored (current owner-of-record facts): 8,114"
+        }
+      ]
+    },
+    {
+      "source_id": "tx-fortbend-cad",
+      "state": "TX",
+      "area": "Fort Bend County",
+      "kind": "load",
+      "parcels": 9698,
+      "org_owners": 7386,
+      "owner_names": "yes",
+      "entity_links": "not recorded for this county (the Texas entity file is loaded)",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/tier2/README.md",
+          "quote": "13,304; 11,699; 9,698"
+        },
+        {
+          "doc": "docs/registry/sources/tx-fortbend-cad.md",
+          "quote": "Organisation owners stored (current owner-of-record facts): 7,386"
+        }
+      ]
+    },
+    {
+      "source_id": "ny-nyc-dof",
+      "state": "NY",
+      "area": "New York, Kings, Queens, Bronx and Richmond (New York City)",
+      "kind": "load",
+      "parcels": 164633,
+      "org_owners": 116184,
+      "owner_names": "yes",
+      "entity_links": "87,825 linked to the New York Department of State file",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/sources/README.md",
+          "quote": "164,633; 116,184 (87,825 linked to NY DOS)"
+        }
+      ],
+      "enrichment": {
+        "zoning": "ny-nyc-dcp-pluto: 116,887 of 245,596 PLUTO lots matched to registry lots (71% of the 164,633), 1,349,335 facts",
+        "sales": "ny-nyc-dof-sales: 107,090 sales (2007 to September 2026) on 59,104 parcels; no parties in the source",
+        "buildings": "ny-nyc-dcp-pluto: buildings, floors, units, built FAR and area by use",
+        "cites": [
+          {
+            "doc": "docs/registry/sources/README.md",
+            "quote": "245,596 PLUTO lots read, 116,887 matched (71% of the 164,633 registry lots; the gap is condominium unit lots), 1,349,335 facts"
+          },
+          {
+            "doc": "docs/registry/sources/README.md",
+            "quote": "107,090 sales (2007 to September 2026) on 59,104 parcels"
+          }
+        ]
+      }
+    },
+    {
+      "source_id": "ca-los-angeles-assessor",
+      "state": "CA",
+      "area": "Los Angeles County",
+      "kind": "load",
+      "parcels": 203179,
+      "org_owners": null,
+      "owner_names": "no (not in the public file)",
+      "entity_links": "none: no owner names, no California entity registry loaded",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/sources/README.md",
+          "quote": "203,179; no owner names in the public file"
+        }
+      ]
+    },
+    {
+      "source_id": "ca-san-francisco-assessor",
+      "state": "CA",
+      "area": "San Francisco County",
+      "kind": "load",
+      "parcels": 19048,
+      "org_owners": null,
+      "owner_names": "no (not in the public file)",
+      "entity_links": "none: no owner names, no California entity registry loaded",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/sources/README.md",
+          "quote": "19,048 (2025 roll); no owner names in the public file"
+        }
+      ]
+    },
+    {
+      "source_id": "ma-boston-assessing",
+      "state": "MA",
+      "area": "Suffolk County (Boston only)",
+      "kind": "load",
+      "parcels": 13296,
+      "org_owners": 9255,
+      "owner_names": "yes",
+      "entity_links": "none: no Massachusetts entity registry loaded",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/sources/README.md",
+          "quote": "13,296; 9,255 (full file)"
+        }
+      ]
+    },
+    {
+      "source_id": "mn-hennepin-assessor",
+      "state": "MN",
+      "area": "Hennepin County",
+      "kind": "load",
+      "parcels": 19840,
+      "org_owners": 15436,
+      "owner_names": "yes",
+      "entity_links": "no Minnesota entity source; 159 linked to entities in another state",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/sources/README.md",
+          "quote": "19,840; 15,436 (no MN entity source; 159 linked out of state)"
+        }
+      ]
+    },
+    {
+      "source_id": "nc-mecklenburg-assessor",
+      "state": "NC",
+      "area": "Mecklenburg County",
+      "kind": "load",
+      "parcels": 23686,
+      "org_owners": 19676,
+      "owner_names": "yes",
+      "entity_links": "no North Carolina entity source; 247 linked to entities in another state",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/sources/README.md",
+          "quote": "23,686; 19,676 (no NC entity source; 247 linked out of state)"
+        }
+      ]
+    },
+    {
+      "source_id": "co-denver-assessor",
+      "state": "CO",
+      "area": "Denver County (City and County of Denver)",
+      "kind": "load",
+      "parcels": 13539,
+      "org_owners": 11112,
+      "owner_names": "yes",
+      "entity_links": "9,529 linked to the Colorado Secretary of State file",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/sources/README.md",
+          "quote": "13,539; 11,112 (9,529 linked to CO SOS)"
+        }
+      ]
+    },
+    {
+      "source_id": "dc-otr-real-property",
+      "state": "DC",
+      "area": "District of Columbia",
+      "kind": "load",
+      "parcels": 18077,
+      "org_owners": 11572,
+      "owner_names": "yes",
+      "entity_links": "8,377 linked to the DC DLCP file",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/sources/README.md",
+          "quote": "18,077; 11,572 (8,377 linked to DC DLCP)"
+        }
+      ],
+      "enrichment": {
+        "zoning": "dc-dcgis-zoning: 16,648 of 18,077 parcels (92.1%), inferred by lot-polygon overlay, mean confidence 0.94",
+        "sales": "latest recorded sale on 12,594 of 18,077 parcels; acceptance code kept verbatim, no arm's-length claim",
+        "buildings": "CAMA Commercial: year built, gross building area, units (396 buildings in the DC sample)",
+        "cites": [
+          {
+            "doc": "docs/registry/sources/README.md",
+            "quote": "16,648 of 18,077 parcels (92.1%) with a zoning district by lot-polygon overlay"
+          },
+          {
+            "doc": "docs/registry/sources/README.md",
+            "quote": "12,594 of 18,077 parcels carry the latest sale"
+          },
+          {
+            "doc": "README.md",
+            "quote": "396 buildings"
+          }
+        ]
+      }
+    },
+    {
+      "source_id": "pa-philadelphia-opa",
+      "state": "PA",
+      "area": "Philadelphia County",
+      "kind": "load",
+      "parcels": 77286,
+      "org_owners": 27090,
+      "owner_names": "yes (persons purged, not re-ingested)",
+      "entity_links": "not recorded (Pennsylvania entity file loaded; PA parcel links not in the records read)",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/sources/README.md",
+          "quote": "77,286; 27,090 (whole commercial scope via the API; persons purged, not re-ingested)"
+        }
+      ]
+    },
+    {
+      "source_id": "fl-dor-nal",
+      "state": "FL",
+      "area": "Union County (a sample of the statewide file)",
+      "kind": "sample",
+      "parcels": 148,
+      "org_owners": 80,
+      "owner_names": "yes",
+      "entity_links": "none: no Florida entity registry loaded",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/sources/README.md",
+          "quote": "sample (Union County) 148; 80"
+        }
+      ]
+    },
+    {
+      "source_id": "il-cook-assessor",
+      "state": "IL",
+      "area": "Cook County (class 5 address sample)",
+      "kind": "sample",
+      "parcels": 90073,
+      "org_owners": null,
+      "owner_names": "almost none (77 owners in the sample)",
+      "entity_links": "none",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/sources/README.md",
+          "quote": "sample 90,073 class-5 parcels; 77 owners (address sample only)"
+        }
+      ]
+    },
+    {
+      "source_id": "az-maricopa-assessor",
+      "state": "AZ",
+      "area": "Maricopa County (a sample)",
+      "kind": "sample",
+      "parcels": 3863,
+      "org_owners": 3206,
+      "owner_names": "yes",
+      "entity_links": "none: no Arizona entity registry loaded",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/sources/README.md",
+          "quote": "sample 3,863; 3,206"
+        }
+      ]
+    },
+    {
+      "source_id": "mi-wayne-parcels",
+      "state": "MI",
+      "area": "Wayne County (Belleville sample)",
+      "kind": "sample",
+      "parcels": 235,
+      "org_owners": 138,
+      "owner_names": "yes",
+      "entity_links": "none: no Michigan entity registry loaded",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/sources/README.md",
+          "quote": "sample (Belleville) 235; 138"
+        }
+      ]
+    },
+    {
+      "source_id": "ny-orpts-rolls",
+      "state": "NY",
+      "area": "Monroe County",
+      "kind": "load",
+      "parcels": 13601,
+      "org_owners": null,
+      "owner_names": "yes",
+      "entity_links": "not recorded per county (the New York entity file is loaded)",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/tier2/README.md",
+          "quote": "Monroe 13,601; Suffolk 27,373; Nassau 23,449; Westchester 37,456; Erie 24,108 (125,987)"
+        }
+      ]
+    },
+    {
+      "source_id": "ny-orpts-rolls",
+      "state": "NY",
+      "area": "Suffolk County",
+      "kind": "load",
+      "parcels": 27373,
+      "org_owners": null,
+      "owner_names": "yes",
+      "entity_links": "not recorded per county (the New York entity file is loaded)",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/tier2/README.md",
+          "quote": "Monroe 13,601; Suffolk 27,373; Nassau 23,449; Westchester 37,456; Erie 24,108 (125,987)"
+        }
+      ]
+    },
+    {
+      "source_id": "ny-orpts-rolls",
+      "state": "NY",
+      "area": "Nassau County",
+      "kind": "load",
+      "parcels": 23449,
+      "org_owners": null,
+      "owner_names": "yes",
+      "entity_links": "not recorded per county (the New York entity file is loaded)",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/tier2/README.md",
+          "quote": "Monroe 13,601; Suffolk 27,373; Nassau 23,449; Westchester 37,456; Erie 24,108 (125,987)"
+        }
+      ]
+    },
+    {
+      "source_id": "ny-orpts-rolls",
+      "state": "NY",
+      "area": "Westchester County",
+      "kind": "load",
+      "parcels": 37456,
+      "org_owners": null,
+      "owner_names": "yes",
+      "entity_links": "not recorded per county (the New York entity file is loaded)",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/tier2/README.md",
+          "quote": "Monroe 13,601; Suffolk 27,373; Nassau 23,449; Westchester 37,456; Erie 24,108 (125,987)"
+        }
+      ]
+    },
+    {
+      "source_id": "ny-orpts-rolls",
+      "state": "NY",
+      "area": "Erie County",
+      "kind": "load",
+      "parcels": 24108,
+      "org_owners": null,
+      "owner_names": "yes",
+      "entity_links": "not recorded per county (the New York entity file is loaded)",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/tier2/README.md",
+          "quote": "Monroe 13,601; Suffolk 27,373; Nassau 23,449; Westchester 37,456; Erie 24,108 (125,987)"
+        }
+      ]
+    },
+    {
+      "source_id": "md-sdat-real-property",
+      "state": "MD",
+      "area": "Montgomery County",
+      "kind": "load",
+      "parcels": 11578,
+      "org_owners": null,
+      "owner_names": "no (withheld by the publisher)",
+      "entity_links": "none: owner names withheld",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/tier2/README.md",
+          "quote": "MD | md-sdat-real-property (statewide) | Montgomery, Prince George's, Baltimore County | 11,578; 13,023; 14,494 (full county files) | no (withheld by the publisher)"
+        }
+      ]
+    },
+    {
+      "source_id": "md-sdat-real-property",
+      "state": "MD",
+      "area": "Prince George's County",
+      "kind": "load",
+      "parcels": 13023,
+      "org_owners": null,
+      "owner_names": "no (withheld by the publisher)",
+      "entity_links": "none: owner names withheld",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/tier2/README.md",
+          "quote": "MD | md-sdat-real-property (statewide) | Montgomery, Prince George's, Baltimore County | 11,578; 13,023; 14,494 (full county files) | no (withheld by the publisher)"
+        }
+      ]
+    },
+    {
+      "source_id": "md-sdat-real-property",
+      "state": "MD",
+      "area": "Baltimore County",
+      "kind": "load",
+      "parcels": 14494,
+      "org_owners": null,
+      "owner_names": "no (withheld by the publisher)",
+      "entity_links": "none: owner names withheld",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/tier2/README.md",
+          "quote": "MD | md-sdat-real-property (statewide) | Montgomery, Prince George's, Baltimore County | 11,578; 13,023; 14,494 (full county files) | no (withheld by the publisher)"
+        }
+      ]
+    },
+    {
+      "source_id": "pa-montgomery-parcels",
+      "state": "PA",
+      "area": "Montgomery County",
+      "kind": "load",
+      "parcels": 15584,
+      "org_owners": 10199,
+      "owner_names": "yes",
+      "entity_links": "not recorded",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/tier2/README.md",
+          "quote": "Montgomery 15,584; Allegheny 35,302"
+        },
+        {
+          "doc": "docs/registry/sources/pa-montgomery-parcels.md",
+          "quote": "Organisation owners stored (current owner-of-record facts): 10,199"
+        }
+      ]
+    },
+    {
+      "source_id": "pa-allegheny-assessments",
+      "state": "PA",
+      "area": "Allegheny County",
+      "kind": "load",
+      "parcels": 35302,
+      "org_owners": 0,
+      "owner_names": "no (not in the file)",
+      "entity_links": "none: no owner names",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/tier2/README.md",
+          "quote": "Montgomery 15,584; Allegheny 35,302"
+        },
+        {
+          "doc": "docs/registry/sources/pa-allegheny-assessments.md",
+          "quote": "Organisation owners stored (current owner-of-record facts): 0"
+        }
+      ]
+    },
+    {
+      "source_id": "ma-massgis-parcels",
+      "state": "MA",
+      "area": "Middlesex County",
+      "kind": "load",
+      "parcels": 26930,
+      "org_owners": null,
+      "owner_names": "yes",
+      "entity_links": "none: no Massachusetts entity registry loaded",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/tier2/README.md",
+          "quote": "Middlesex 26,930; Worcester 18,081; Essex 14,950; Norfolk 11,839"
+        }
+      ]
+    },
+    {
+      "source_id": "ma-massgis-parcels",
+      "state": "MA",
+      "area": "Worcester County",
+      "kind": "load",
+      "parcels": 18081,
+      "org_owners": null,
+      "owner_names": "yes",
+      "entity_links": "none: no Massachusetts entity registry loaded",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/tier2/README.md",
+          "quote": "Middlesex 26,930; Worcester 18,081; Essex 14,950; Norfolk 11,839"
+        }
+      ]
+    },
+    {
+      "source_id": "ma-massgis-parcels",
+      "state": "MA",
+      "area": "Essex County",
+      "kind": "load",
+      "parcels": 14950,
+      "org_owners": null,
+      "owner_names": "yes",
+      "entity_links": "none: no Massachusetts entity registry loaded",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/tier2/README.md",
+          "quote": "Middlesex 26,930; Worcester 18,081; Essex 14,950; Norfolk 11,839"
+        }
+      ]
+    },
+    {
+      "source_id": "ma-massgis-parcels",
+      "state": "MA",
+      "area": "Norfolk County",
+      "kind": "load",
+      "parcels": 11839,
+      "org_owners": null,
+      "owner_names": "yes",
+      "entity_links": "none: no Massachusetts entity registry loaded",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/tier2/README.md",
+          "quote": "Middlesex 26,930; Worcester 18,081; Essex 14,950; Norfolk 11,839"
+        }
+      ]
+    },
+    {
+      "source_id": "wi-statewide-parcels",
+      "state": "WI",
+      "area": "Milwaukee County",
+      "kind": "load",
+      "parcels": 16580,
+      "org_owners": null,
+      "owner_names": "yes",
+      "entity_links": "none: no Wisconsin entity registry loaded",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/tier2/README.md",
+          "quote": "WI | wi-statewide-parcels (all 72 counties) | Milwaukee | 16,580 | yes"
+        }
+      ]
+    },
+    {
+      "source_id": "in-marion-parcels",
+      "state": "IN",
+      "area": "Marion County",
+      "kind": "load",
+      "parcels": 20630,
+      "org_owners": 16092,
+      "owner_names": "yes",
+      "entity_links": "none: no Indiana entity registry loaded",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/tier2/README.md",
+          "quote": "IN | in-marion-parcels | Marion | 20,630 | yes"
+        },
+        {
+          "doc": "docs/registry/sources/in-marion-parcels.md",
+          "quote": "Organisation owners stored (current owner-of-record facts): 16,092"
+        }
+      ]
+    },
+    {
+      "source_id": "mi-oakland-parcels",
+      "state": "MI",
+      "area": "Oakland County",
+      "kind": "load",
+      "parcels": 26124,
+      "org_owners": 0,
+      "owner_names": "no (blank in the file)",
+      "entity_links": "none",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/tier2/README.md",
+          "quote": "MI | mi-oakland-parcels | Oakland | 26,124 | no (blank in the file)"
+        },
+        {
+          "doc": "docs/registry/sources/mi-oakland-parcels.md",
+          "quote": "Organisation owners stored (current owner-of-record facts): 0"
+        }
+      ]
+    },
+    {
+      "source_id": "nc-wake-parcels",
+      "state": "NC",
+      "area": "Wake County",
+      "kind": "load",
+      "parcels": 9634,
+      "org_owners": 8372,
+      "owner_names": "yes",
+      "entity_links": "none: no North Carolina entity registry loaded",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/tier2/README.md",
+          "quote": "NC | nc-wake-parcels (NC OneMap statewide) | Wake | 9,634 | yes"
+        },
+        {
+          "doc": "docs/registry/sources/nc-wake-parcels.md",
+          "quote": "Organisation owners stored (current owner-of-record facts): 8,372"
+        }
+      ]
+    },
+    {
+      "source_id": "tn-davidson-assessor",
+      "state": "TN",
+      "area": "Davidson County",
+      "kind": "load",
+      "parcels": 13111,
+      "org_owners": 8557,
+      "owner_names": "yes",
+      "entity_links": "none: no Tennessee entity registry loaded",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/tier2/README.md",
+          "quote": "TN | tn-davidson-assessor | Davidson | 13,111 | yes"
+        },
+        {
+          "doc": "docs/registry/sources/tn-davidson-assessor.md",
+          "quote": "Organisation owners stored (current owner-of-record facts): 8,557"
+        }
+      ]
+    },
+    {
+      "source_id": "ga-dekalb-parcels",
+      "state": "GA",
+      "area": "DeKalb County",
+      "kind": "load",
+      "parcels": 11351,
+      "org_owners": 9157,
+      "owner_names": "yes",
+      "entity_links": "none: no Georgia entity registry loaded",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/tier2/README.md",
+          "quote": "GA | ga-dekalb-parcels | DeKalb | 11,351 | yes"
+        },
+        {
+          "doc": "docs/registry/sources/ga-dekalb-parcels.md",
+          "quote": "Organisation owners stored (current owner-of-record facts): 9,157"
+        }
+      ]
+    },
+    {
+      "source_id": "ca-sacramento-assessor",
+      "state": "CA",
+      "area": "Sacramento County",
+      "kind": "load",
+      "parcels": 20053,
+      "org_owners": 0,
+      "owner_names": "no (not in the file)",
+      "entity_links": "none",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/tier2/README.md",
+          "quote": "CA | ca-sacramento-assessor | Sacramento | 20,053 | no"
+        },
+        {
+          "doc": "docs/registry/sources/ca-sacramento-assessor.md",
+          "quote": "Organisation owners stored (current owner-of-record facts): 0"
+        }
+      ]
+    },
+    {
+      "source_id": "ut-ugrc-lir",
+      "state": "UT",
+      "area": "Salt Lake County",
+      "kind": "load",
+      "parcels": 30756,
+      "org_owners": null,
+      "owner_names": "no (not in the file)",
+      "entity_links": "none",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/tier2/README.md",
+          "quote": "UT | ut-ugrc-lir (statewide, all 29 counties) | Salt Lake, Utah County | Salt Lake 30,756; Utah County 13,639 | no"
+        }
+      ]
+    },
+    {
+      "source_id": "ut-ugrc-lir",
+      "state": "UT",
+      "area": "Utah County",
+      "kind": "load",
+      "parcels": 13639,
+      "org_owners": null,
+      "owner_names": "no (not in the file)",
+      "entity_links": "none",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/tier2/README.md",
+          "quote": "UT | ut-ugrc-lir (statewide, all 29 counties) | Salt Lake, Utah County | Salt Lake 30,756; Utah County 13,639 | no"
+        }
+      ]
+    },
+    {
+      "source_id": "wa-pierce-assessor",
+      "state": "WA",
+      "area": "Pierce County",
+      "kind": "load",
+      "parcels": 12530,
+      "org_owners": 0,
+      "owner_names": "no (not in the file)",
+      "entity_links": "none",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/tier2/README.md",
+          "quote": "WA | wa-pierce-assessor | Pierce | 12,530 | no"
+        },
+        {
+          "doc": "docs/registry/sources/wa-pierce-assessor.md",
+          "quote": "Organisation owners stored (current owner-of-record facts): 0"
+        }
+      ]
+    },
+    {
+      "source_id": "or-metro-rlis-taxlots",
+      "state": "OR",
+      "area": "Multnomah County (Portland metro layer)",
+      "kind": "load",
+      "parcels": 20618,
+      "org_owners": null,
+      "owner_names": "no (no owner column)",
+      "entity_links": "none",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/tier2/README.md",
+          "quote": "OR | or-metro-rlis-taxlots (Portland metro) | Multnomah | Multnomah 20,618 (the layer's Clackamas 6,085 and Washington 7,425 loaded too) | no"
+        }
+      ]
+    },
+    {
+      "source_id": "or-metro-rlis-taxlots",
+      "state": "OR",
+      "area": "Clackamas County (Portland metro layer)",
+      "kind": "load",
+      "parcels": 6085,
+      "org_owners": null,
+      "owner_names": "no (no owner column)",
+      "entity_links": "none",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/tier2/README.md",
+          "quote": "OR | or-metro-rlis-taxlots (Portland metro) | Multnomah | Multnomah 20,618 (the layer's Clackamas 6,085 and Washington 7,425 loaded too) | no"
+        }
+      ]
+    },
+    {
+      "source_id": "or-metro-rlis-taxlots",
+      "state": "OR",
+      "area": "Washington County (Portland metro layer)",
+      "kind": "load",
+      "parcels": 7425,
+      "org_owners": null,
+      "owner_names": "no (no owner column)",
+      "entity_links": "none",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/tier2/README.md",
+          "quote": "OR | or-metro-rlis-taxlots (Portland metro) | Multnomah | Multnomah 20,618 (the layer's Clackamas 6,085 and Washington 7,425 loaded too) | no"
+        }
+      ]
+    },
+    {
+      "source_id": "vt-vcgi-parcels",
+      "state": "VT",
+      "area": "all 14 Vermont counties",
+      "kind": "load",
+      "parcels": 19342,
+      "org_owners": 12357,
+      "owner_names": "yes",
+      "entity_links": "none: no entity registry loaded for this state",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/tier2/README.md",
+          "quote": "VT | vt-vcgi-parcels | 14 of 14 | 19,342 | 12,357"
+        }
+      ]
+    },
+    {
+      "source_id": "mn-opt-in-parcels",
+      "state": "MN",
+      "area": "24 opt-in Minnesota counties (see the record for the list)",
+      "kind": "load",
+      "parcels": 60495,
+      "org_owners": 36373,
+      "owner_names": "yes",
+      "entity_links": "none: no entity registry loaded for this state",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/tier2/README.md",
+          "quote": "MN | mn-opt-in-parcels | 24 opt-in counties | 60,495 | 36,373"
+        }
+      ]
+    },
+    {
+      "source_id": "ar-gis-parcels",
+      "state": "AR",
+      "area": "all 75 Arkansas counties",
+      "kind": "load",
+      "parcels": 69056,
+      "org_owners": 41144,
+      "owner_names": "yes",
+      "entity_links": "none: no entity registry loaded for this state",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/tier2/README.md",
+          "quote": "AR | ar-gis-parcels | 75 of 75 | 69,056 | 41,144"
+        }
+      ]
+    },
+    {
+      "source_id": "mt-msl-cadastral",
+      "state": "MT",
+      "area": "55 of 56 Montana counties (apartments and industrial only)",
+      "kind": "load",
+      "parcels": 7546,
+      "org_owners": 4241,
+      "owner_names": "yes",
+      "entity_links": "none: no entity registry loaded for this state",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/tier2/README.md",
+          "quote": "MT | mt-msl-cadastral | 55 of 56 (apartments and industrial only) | 7,546 | 4,241"
+        }
+      ]
+    },
+    {
+      "source_id": "ct-parcel-cama-layer",
+      "state": "CT",
+      "area": "8 Connecticut former counties (169 towns)",
+      "kind": "load",
+      "parcels": 43390,
+      "org_owners": 34022,
+      "owner_names": "yes",
+      "entity_links": "Connecticut parcels link to the Connecticut entity file (see the Tier 2 expansion notes); other states: none",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/tier2/README.md",
+          "quote": "CT | ct-parcel-cama-layer | 8 former counties (169 towns) | 43,390 | 34,022"
+        }
+      ]
+    },
+    {
+      "source_id": "nc-onemap-parcels",
+      "state": "NC",
+      "area": "Guilford, Forsyth, Cumberland, Johnston and New Hanover Counties",
+      "kind": "load",
+      "parcels": 28436,
+      "org_owners": 20284,
+      "owner_names": "yes",
+      "entity_links": "none: no entity registry loaded for this state",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/tier2/README.md",
+          "quote": "NC | nc-onemap-parcels | Guilford, Forsyth, Cumberland, Johnston, New Hanover | 28,436 | 20,284"
+        }
+      ]
+    },
+    {
+      "source_id": "ut-ugrc-lir",
+      "state": "UT",
+      "area": "Garfield County",
+      "kind": "load",
+      "parcels": 188,
+      "org_owners": 0,
+      "owner_names": "no (not in the file)",
+      "entity_links": "none",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/tier2/README.md",
+          "quote": "UT | ut-ugrc-lir (Garfield) | Garfield | 188 | 0"
+        }
+      ]
+    }
+  ],
+  "entity_registries": [
+    {
+      "source_id": "tx-comptroller-franchise",
+      "state": "TX",
+      "name": "Texas Comptroller franchise-tax file",
+      "entities": 3272057,
+      "note": "",
+      "cites": [
+        {
+          "doc": "docs/registry/sources/README.md",
+          "quote": "3,272,057 entities"
+        }
+      ]
+    },
+    {
+      "source_id": "ny-dos-entities",
+      "state": "NY",
+      "name": "New York Department of State active corporations",
+      "entities": 3631216,
+      "note": "",
+      "cites": [
+        {
+          "doc": "docs/registry/sources/README.md",
+          "quote": "3,631,216 entities"
+        }
+      ]
+    },
+    {
+      "source_id": "co-sos-entities",
+      "state": "CO",
+      "name": "Colorado Secretary of State business entities",
+      "entities": 3132612,
+      "note": "",
+      "cites": [
+        {
+          "doc": "docs/registry/sources/README.md",
+          "quote": "3,132,612 entities"
+        }
+      ]
+    },
+    {
+      "source_id": "dc-dlcp-entities",
+      "state": "DC",
+      "name": "DC DLCP corporate registrations",
+      "entities": 506305,
+      "note": "",
+      "cites": [
+        {
+          "doc": "docs/registry/sources/README.md",
+          "quote": "506,305 entities"
+        }
+      ]
+    },
+    {
+      "source_id": "pa-sos-entities",
+      "state": "PA",
+      "name": "Pennsylvania Department of State registered business entities",
+      "entities": 2376226,
+      "note": "",
+      "cites": [
+        {
+          "doc": "docs/registry/sources/README.md",
+          "quote": "2,376,226 entities"
+        }
+      ]
+    },
+    {
+      "source_id": "ct-sos-entities",
+      "state": "CT",
+      "name": "Connecticut Business Registry",
+      "entities": 1305836,
+      "note": "",
+      "cites": [
+        {
+          "doc": "docs/registry/tier2/README.md",
+          "quote": "1,305,836 entities"
+        }
+      ]
+    }
+  ],
+  "queryable": {
+    "dc-otr-real-property": "Yes: the DC registry sample (a downloadable file you run locally; hosted lookups are not open)",
+    "dc-dcgis-zoning": "Yes: in the DC registry sample",
+    "dc-dlcp-entities": "Yes: in the DC registry sample"
+  },
+  "queryable_cite": {
+    "doc": "llms.txt",
+    "quote": "23.4 MB, CC BY 4.0; 18,077 District of Columbia commercial parcels, 5,513 owning entities, 7,931 cited ownership links, 396 buildings"
+  }
+}

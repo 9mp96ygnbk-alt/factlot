@@ -156,15 +156,23 @@ async function main(): Promise<void> {
     tools: { name: string; path: string }[];
   };
   const pathOf = new Map(toolList.tools.map((t) => [t.name, t.path]));
-  for (const doc of ["/openapi.json", "/openapi-3.0.json"]) {
+  for (const doc of [
+    "/openapi.json",
+    "/openapi-3.0.json?operations=all",
+    "/openapi-3.0.json",
+  ]) {
     const o = (await (await api(doc)).json()) as {
       openapi: string;
       paths: Record<string, unknown>;
       servers: { url: string }[];
     };
+    const n = Object.keys(o.paths).length;
+    // The plain 3.0 document is the Custom GPT Actions subset (at most 30 operations).
     ok(
-      Object.keys(o.paths).length >= toolList.tools.length,
-      `${doc}: ${Object.keys(o.paths).length} paths for ${toolList.tools.length} tools`,
+      doc === "/openapi-3.0.json"
+        ? n > 0 && n <= 30
+        : n >= toolList.tools.length,
+      `${doc}: ${n} paths for ${toolList.tools.length} tools`,
     );
     ok(
       o.servers?.[0]?.url === API,

@@ -9,10 +9,12 @@ import {
   calculators,
   camReconciliation,
   debtSizing,
+  fmtNum,
   irr,
   leaseRemeasurementAsc842,
   netEffectiveRent,
   npv,
+  percentageRent,
   rentSchedule,
   round,
   walt,
@@ -380,4 +382,22 @@ test("asc842@2: every schedule row rolls forward in cents and the totals foot", 
     assert.equal(cents(r.total_amortization), amort);
     assert.equal(cents(r.total_lease_cost), cost);
   }
+});
+
+test("numbers in step formulas are rounded for reading; values are not", () => {
+  assert.equal(fmtNum(0.07310737913780618), "0.073107");
+  assert.equal(fmtNum(0.065), "0.065");
+  assert.equal(fmtNum(12), "12");
+  assert.equal(fmtNum(-0.0000001), "0");
+  assert.equal(fmtNum(0.00004166666, 8), "0.00004167");
+  const f = 0.07310737913780618;
+  const r = percentageRent({
+    gross_sales: 2_000_000,
+    rate: 0.06,
+    base_rent_annual: 120_000,
+    period_fraction: f,
+  });
+  const step = r.steps.find((s) => s.label === "Natural breakpoint");
+  assert.equal(step?.formula, "$120,000.00 ÷ 6% × 0.073107");
+  assert.equal(step?.value, round((120_000 / 0.06) * f, 2));
 });

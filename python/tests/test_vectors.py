@@ -59,6 +59,8 @@ FNS = {
     "entity": lambda i: ids.entity_id(i["jurisdiction"], i["registry_number"]).as_dict(),
     "document": lambda i: ids.document_id(i["text"]).as_dict(),
     "space": lambda i: ids.space_id(i["building_urn"], i["suite"]).as_dict(),
+    "normalize_apn": lambda i: {"value": ids.normalize_apn(i["apn"], i.get("county"))},
+    "normalize_apn_v1": lambda i: {"value": ids.normalize_apn_v1(i["apn"])},
     "normalize_suite": lambda i: {"value": ids.normalize_suite(i["suite"])},
     "normalize_suite_v1": lambda i: {"value": ids.normalize_suite_v1(i["suite"])},
     "normalize_street": lambda i: {"value": ids.normalize_street(i["street"])},

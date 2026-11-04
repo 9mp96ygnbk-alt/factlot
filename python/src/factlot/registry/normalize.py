@@ -156,6 +156,92 @@ def _spaced_lp_is_partnership(s: str) -> bool:
     return any(t in _LP_CONTEXT for t in head)
 
 
+# Organisations whose name carries no entity-type word but a legal form or structure no natural person's name
+# has. Each alternative is a whole phrase, never a word that can also be a surname ("BANK", "CHURCH", "COUNTY",
+# "TEMPLE", "PARK"): a credit union, a federal savings bank, a government body ("CITY OF ...", "SECRETARY
+# OF ...", "BOARD OF MANAGERS"), a condominium, a securitization trust, a foreign "GMBH" or "PLC". Left out on
+# purpose, because a person's name can look like them: "FANNIE MAE" (also a woman's given name), a bare "NV",
+# "SA", "BV" or "AG" (initials, or a Korean given name), a bare "NA", and "AS NOMINEE FOR".
+_STRUCTURAL_ORGANIZATION = re.compile(
+    r"\bCREDIT UNION\b|\bFCU\b|\bFSB\b|\bHDFC\b|\bHOUSING DEVELOPMENT FUND\b"
+    r"|\b(?:GMBH|PLC|SARL|AKTIENGESELLSCHAFT)\b"
+    r"|\b(?:BOARD|BD|BRD|BOM) (?:OF )?(?:MANAGERS?|MGRS?|MNGRS?|DIRECTORS)\b"
+    r"|^(?:THE )?(?:CITY|COUNTY|TOWN|VILLAGE|BOROUGH|STATE|COMMONWEALTH|PEOPLE|SECRETARY|DEPARTMENT|DEPT|BOARD|"
+    r"BD|BRD|COMMISSIONERS?|ATTORNEY GENERAL) OF\b"
+    r"|^(?:THE )?UNITED STATES\b|\bPOSTAL SERVICE\b"
+    r"|\bMORTGAGE ELECTRONIC REGISTRATION\b|^MERS$|\bMERS AS (?:NOMINEE|MORTGAGEE)\b"
+    r"|\bFEDERAL NATIONAL MORTGAGE\b|\bFEDERAL HOME LOAN MORTGAGE\b|\bGOVERNMENT NATIONAL MORTGAGE\b"
+    r"|\bPASS THROUGH\b|\bASSET BACKED\b|\bMORTGAGE (?:LOAN |SECURITIES |ASSET )?TRUST\b|\bCERTIFICATES SERIES\b"
+)
+# "N.A." (national association) ends the name of a bank, but it also reads as a person's two initials
+# ("DOE JOHN N A"), so it counts only after a word that names a bank: CITIBANK, CITIMORTGAGE, a savings or
+# trust bank.
+_NATIONAL_ASSOCIATION = re.compile(r"\bN A$")
+_BANKING_WORD = re.compile(
+    r"^(?:\w+(?:BANK|BANC|BANCORP|MORTGAGE)|TRUST|SAVINGS|FINANCIAL|NATIONAL|CITIZENS|JPMORGAN|HSBC|MBNA|"
+    r"BANKUNITED|BANKBOSTON|BANKNORTH)$")
+
+# A person named with a title of a board ("DANNY F. ASHKENASI, PRESIDENT BD OF MANAGERS") or a trust named for a
+# person whose trustee is a savings bank ("JANE B. DOE GRANTOR TRUST, FSB") is a person, whatever follows.
+_PERSON_MARKER = re.compile(
+    r"\bPRESIDENT(?! (?:STREET|ST|PLAZA|AVENUE|AVE)\b)|\b(?:TREASURER|CHAIRMAN|CHAIRPERSON)\b|\bGRANTOR TRUST\b")
+
+# A condominium is a building's name ("THE CAST IRON HOUSE CONDOMINIUM"); a name that is only a person's given
+# names and initials with the word ("JOHN JAMES CONDOMINIUM") is not read as one.
+_CONDOMINIUM = re.compile(r"\bCONDOMINIUMS?\b")
+
+# Words in ``_ENTITY_TOKENS`` that are also surnames. A name of nothing but given names, initials and one of
+# them ("JOHN BANK", "MARY A CHURCH", "BANK, JOHN") is a person. Given names that are also well-known
+# institutions or places (FRANKLIN, HAMILTON, GRACE, FAITH, ROSE, ...) are not on the list, so "GRACE CHURCH"
+# stays an organisation.
+_SURNAME_WORDS = frozenset("BANK CHURCH CITY COUNTY STATE".split())
+_NAME_SUFFIXES = frozenset("JR SR II III IV".split())
+_GIVEN_NAMES = frozenset(
+    "JOHN JAMES ROBERT MICHAEL WILLIAM DAVID RICHARD JOSEPH THOMAS CHARLES CHRISTOPHER DANIEL MATTHEW ANTHONY "
+    "MARK DONALD STEVEN PAUL ANDREW JOSHUA KENNETH KEVIN BRIAN GEORGE EDWARD RONALD TIMOTHY JASON JEFFREY RYAN "
+    "JACOB GARY NICHOLAS ERIC JONATHAN STEPHEN LARRY JUSTIN SCOTT BRANDON BENJAMIN SAMUEL GREGORY FRANK ALEXANDER "
+    "RAYMOND PATRICK JACK DENNIS JERRY TYLER AARON JOSE ADAM NATHAN HENRY PETER ZACHARY DOUGLAS HAROLD KYLE "
+    "CARL ARTHUR GERALD ROGER KEITH JEREMY TERRY LAWRENCE SEAN ALBERT JOE CHRISTIAN WILLIE RALPH ROY LOUIS "
+    "EUGENE PHILIP BOBBY JOHNNY BRUCE WAYNE RUSSELL VINCENT HOWARD FRED WALTER NORMAN MARTIN ERNEST STANLEY "
+    "LEONARD CLARENCE LEON LEWIS SALVATORE ANGELO ABRAHAM ISAAC MOSES PIERRE JEAN MARIO "
+    "MARY PATRICIA JENNIFER LINDA ELIZABETH BARBARA SUSAN JESSICA SARAH KAREN LISA NANCY BETTY MARGARET SANDRA "
+    "ASHLEY KIMBERLY EMILY DONNA MICHELLE DOROTHY CAROL AMANDA MELISSA DEBORAH STEPHANIE REBECCA SHARON LAURA "
+    "CYNTHIA KATHLEEN AMY ANGELA SHIRLEY ANNA BRENDA PAMELA EMMA NICOLE HELEN SAMANTHA KATHERINE CHRISTINE "
+    "DEBRA RACHEL CAROLYN JANET CATHERINE MARIA HEATHER DIANE RUTH JULIE OLIVIA JOYCE VIRGINIA KELLY "
+    "LAUREN CHRISTINA JOAN EVELYN JUDITH ANDREA HANNAH MEGAN CHERYL JACQUELINE MARTHA GLORIA TERESA ANN SARA "
+    "FRANCES KATHRYN JANICE ABIGAIL ALICE JULIA JUDY SOPHIA DENISE AMBER DORIS MARILYN "
+    "DANIELLE BEVERLY ISABELLA THERESA DIANA NATALIE BRITTANY CHARLOTTE MARIE KAYLA ALEXIS LORI JANE JILL KATE KATIE "
+    "JIM JIMMY TOM TIMMY BILL BOB MIKE DAVE STEVE CHRIS NICK PETE TONY ANDY DAN SAM BEN MATT".split()
+)
+
+
+def _is_surname_collision(s: str) -> bool:
+    """Whether a cleaned name is a person whose surname is one of ``_SURNAME_WORDS``."""
+    tokens = s.split()
+    if sum(t in _SURNAME_WORDS for t in tokens) != 1 or not 2 <= len(tokens) <= 4:
+        return False
+    rest = [t for t in tokens if t not in _SURNAME_WORDS]
+    return _only_given_names(rest)
+
+
+def _only_given_names(tokens: list[str]) -> bool:
+    return any(t in _GIVEN_NAMES for t in tokens) and all(
+        t in _GIVEN_NAMES or t in _NAME_SUFFIXES or (len(t) == 1 and t.isalpha()) for t in tokens)
+
+
+def _structurally_organization(s: str) -> bool:
+    if _PERSON_MARKER.search(s):
+        return False
+    if _STRUCTURAL_ORGANIZATION.search(s):
+        return True
+    if _CONDOMINIUM.search(s):
+        return not _only_given_names([t for t in s.split() if not _CONDOMINIUM.fullmatch(t)])
+    if not _NATIONAL_ASSOCIATION.search(s):
+        return False
+    head = s[:-4]
+    return head.endswith("WELLS FARGO") or any(_BANKING_WORD.match(t) for t in head.split())
+
+
 def is_organization(name: str) -> bool:
     """Conservative: anything not clearly an organisation is treated as a natural person.
 
@@ -177,7 +263,9 @@ def is_organization(name: str) -> bool:
     s = _canonical_tokens(s)
     if _PERSONAL_TRUST.search(s) and not _COMPANY_WORD.search(s):
         return False
-    return bool(_ENTITY_TOKENS.search(s))
+    if _is_surname_collision(s):
+        return False
+    return bool(_ENTITY_TOKENS.search(s)) or _structurally_organization(s)
 
 
 def legacy_name_key(name: str) -> str:
@@ -304,6 +392,30 @@ def legacy_address_key(address: str) -> str:
     """The key ``normalize_address`` made before 2026-11-03 (address key version 1)."""
     s = re.sub(r"[^A-Z0-9 ]+", " ", address.upper())
     return " ".join(_STREET.get(w, w) for w in s.split())
+
+
+# Street types a query without a house number must name ("Ontario Rd", not "Ontario"): STREET_TYPES in
+# packages/tools/src/registry.ts.
+SEARCH_STREET_TYPES = frozenset(
+    "ALY AVE BLVD BYP CIR CSWY CT DR EXPY FWY HWY LN LOOP PATH PIKE PKWY PL PLZ RD ROW RUN SQ ST TER TPKE TRL "
+    "WALK WAY XING".split())
+
+
+def address_query(query: str) -> dict:
+    """How address search reads a query (``addressQuery`` in packages/tools): ``{"mode", "tokens"}``.
+
+    ``tokens`` are the words of the street line (before the first comma) as the address index writes
+    them. ``mode`` is ``house_number`` when the first word is a number, ``street`` when the words
+    include a street type, else None: a city ("Ontario") or a part of a word does not search.
+    """
+    tokens = address_tokens(query.split(",")[0])
+    if tokens and tokens[0][0] in "0123456789":
+        mode = "house_number"
+    elif any(t in SEARCH_STREET_TYPES for t in tokens):
+        mode = "street"
+    else:
+        mode = None
+    return {"mode": mode, "tokens": tokens}
 
 
 # --- building roll-up: the street line and ZIP code of a situs address --------------------------

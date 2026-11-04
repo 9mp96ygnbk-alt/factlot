@@ -23,6 +23,11 @@ a projection of 23 of the dataset's 46 columns, filtered to the in-scope ``prope
   assessed values, not market values), ``status_code`` (``NA`` taxable, ``L`` senior lien taxable, ``N``
   non-taxable or government owned, ``S`` assessed by the State Board of Equalization).
 
+Zoning: ``zoning_code`` is the zoning district the Assessor's roll records for the parcel, written without
+hyphens (``RM1``, ``C3O``, ``NC3``; the Planning Code writes ``RM-1``, ``C-3-O``, ``NC-3``). It becomes the parcel's
+``zoning.district`` as published (``public_record``, cited to the roll row); ``NA`` (no code) writes nothing. It is the
+Assessor's attribute, not a zoning verification; the Planning Department's zoning map is the authority.
+
 Scope: FactLot categories ``B`` (multifamily of 5 or more units), ``F1`` (commercial) and ``F2``
 (industrial). Government-owned class codes (the ``…G`` classes), vacant land, schools, churches, clubs,
 timeshares and every residential class are out of scope. Parcels with ``status_code`` ``N`` or ``S``
@@ -188,6 +193,7 @@ def read_roll(path: str | Path) -> Iterator[ParcelRecord]:
                 tax_year=int(year) if year else None,
                 locator=f"row_id {_squeeze(r.get('row_id')) or apn}",
                 local_use_code=f"{_squeeze(r.get('use_code'))}/{_squeeze(r.get('property_class_code'))}",
+                extra_facts=[("zoning.district", zone, None)] if (zone := _squeeze(r.get("zoning_code")).upper()) not in ("", "NA") else [],
             )
 
 

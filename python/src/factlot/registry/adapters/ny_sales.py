@@ -33,6 +33,10 @@ length is **not** stated in the files, so it is not stated here: every sale is r
 reader screening for market sales must treat $0 and other nominal prices as non-market and cannot rely on the
 file for the rest. Counts of zero and blank areas are omitted.
 
+The annualized files for 2007 to 2017 are legacy ``.xls`` workbooks (read by ``xls_reader``) with the same columns; the files for
+2007 and 2008 write the borough and neighborhood names padded with spaces, and every file from 2009 labels the tax class and
+building class columns "AT PRESENT" or "AS OF FINAL ROLL" (matched by prefix). The page lists no earlier year.
+
 Usage: ``python -m factlot.registry.adapters.ny_sales rollingsales_manhattan.xlsx ... registry.db --series rolling --as-of 2026-09-30``
 (the registry must already hold the DOF roll: ``ny_nyc``). ``--since 2026-01-01`` skips sales before a date,
 to avoid loading the same sale from an annualized file and the overlapping rolling file.
@@ -50,7 +54,7 @@ from datetime import date
 from pathlib import Path
 
 from ..store import IngestStats, ParcelFacts, Registry, Source
-from . import xlsx_reader
+from . import xls_reader, xlsx_reader
 from .ny_nyc import COUNTY_FIPS, STATE_FIPS, category
 
 PREDICATE = "transaction.sale"
@@ -174,9 +178,10 @@ def _bbl(r: dict[str, object]) -> tuple[str, str] | None:
 
 
 def sales_rows(path: str | Path) -> Iterator[tuple[int, dict[str, object]]]:
-    """``(row number, fields)`` for the data rows of one workbook, after its header row."""
+    """``(row number, fields)`` for the data rows of one workbook (``.xlsx``, or ``.xls`` for 2007-2017), after its header row."""
     names: dict[int, str] | None = None
-    for n, row in enumerate(xlsx_reader.rows(path), 1):
+    reader = xls_reader.rows if str(path).lower().endswith(".xls") else xlsx_reader.rows
+    for n, row in enumerate(reader(path), 1):
         if names is None:
             found = {i: f for i, h in enumerate(row) if h is not None and (f := _field(str(h)))}
             if {"block", "lot", "price", "date"} <= set(found.values()):

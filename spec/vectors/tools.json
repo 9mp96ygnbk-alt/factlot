@@ -284,7 +284,7 @@
       "expect_issues": [
         {
           "path": "abated_month",
-          "message": "unknown field (did you mean \"abated_months\"?); known fields here: commencement_date, term_months, area_sf, starting_rent_psf_annual, escalation, abated_months, round_rate_to_cents, include_monthly"
+          "message": "unknown field (did you mean \"abated_months\"?); known fields here: commencement_date, term_months, area_sf, starting_rent_psf_annual, escalation, abated_months, round_rate_to_cents, include_monthly, unit"
         }
       ]
     },

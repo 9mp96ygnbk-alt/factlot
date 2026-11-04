@@ -131,7 +131,8 @@ commercial of which 2,685,483 office, in the special district MiD, landmark desi
 ## Known gaps
 
 - Condominium unit lots (47,240 registry parcels, mostly commercial condominium units) have no PLUTO row of their
-  own; the billing-lot mapping is a follow-up.
+  own; they inherit zoning and some building facts from the billing lot, labelled as inherited
+  ([ny-nyc-dof-condo](ny-nyc-dof-condo.md)).
 - Zoning is the lot's PLUTO assignment, not a zoning verification; DCP says to check ZoLa and the Zoning Resolution
   for any decision. A split lot lists every district but PLUTO does not say how much of the lot lies in each.
 - A PLUTO row stays as published: `numfloors` is the tallest building's floor count, and `areasource`-level caveats

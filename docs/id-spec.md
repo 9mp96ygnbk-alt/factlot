@@ -1,4 +1,4 @@
-# FactLot ID specification, v0.2 (draft)
+# FactLot ID specification, v0.3 (draft)
 
 FactLot IDs are canonical identifiers for commercial real estate things. The goal
 is to be the **default join key** between agents, vendors, and systems of record.
@@ -28,7 +28,7 @@ URNs are lowercase ASCII.
 
 | Kind     | Form                                     | Example                                                         | Natural key                                 |
 | -------- | ---------------------------------------- | --------------------------------------------------------------- | ------------------------------------------- |
-| parcel   | `fl:parcel:us-<SS><CCC>:<apn>`           | `fl:parcel:us-06037:5432001012`                                 | State + county FIPS, normalized APN         |
+| parcel   | `fl:parcel:us-<SS><CCC>:<apn>`           | `fl:parcel:us-06037:5432001012`, `fl:parcel:us-32031:12-34`     | State + county FIPS, normalized APN         |
 | entity   | `fl:entity:<jurisdiction>:<number>`      | `fl:entity:us-de:7654321`, `fl:entity:lei:5493001kjtiigc8y1r12` | Registry jurisdiction + file number, or LEI |
 | document | `fl:document:sha256-<64 hex>`            | `fl:document:sha256-9f86…`                                      | SHA-256 of exact bytes                      |
 | building | `fl:building:us-<SSCCC>:<zip5>:<street>` | `fl:building:us-11001:20002:208-massachusetts-ave-ne`           | State + county FIPS, ZIP code, street line  |
@@ -39,12 +39,29 @@ URNs are lowercase ASCII.
 
 ### Normalization
 
-- **APN (default):** lowercase, then remove every character that is not `a-z` or `0-9`.
-  Counties where separators carry meaning must supply a county rule. The registry
-  publishes these county rules, and the library accepts a `normalize` override.
-  County rules are versioned. Changing a rule never changes an existing ID; it only
-  affects how new input is mapped.
-- **Entity jurisdiction:** lowercase ISO 3166-2 style (`us-de`, `us-ny`), or `lei`.
+- **APN (parcel rule 2, v0.3):** lowercase; separators at the start and end are dropped
+  (a separator is any run of characters outside `a-z0-9`).
+  - **In a county with a documented APN format** (the table below) an APN written in that
+    format becomes its fields, each zero-padded to its fixed width, run together:
+    "5432-1-12", "5432 001 012" and "5432001012" are all `5432001012` in Los Angeles County.
+  - **Every other APN keeps one hyphen for each run of separators:** "12-34" is `12-34`,
+    "12 34" and "12.34" are also `12-34`, "1-234" is `1-234` and "1234" is `1234`. APNs
+    that differ only in where a separator falls are never merged.
+  - The normalized APN matches `[a-z0-9]+(-[a-z0-9]+)*`. The library accepts a `normalize`
+    override; `normalizeApnV1` / `normalize_apn_v1` reproduce parcel rule 1 (below).
+
+  | County (FIPS)                                                                                  | Key and documented layout                                                                                                                                                                         | Example                                                               |
+  | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+  | New York City: Bronx 36005, Brooklyn 36047, Manhattan 36061, Queens 36081, Staten Island 36085 | BBL: borough (1 digit, which must be the county's: 1 Manhattan, 2 Bronx, 3 Brooklyn, 4 Queens, 5 Staten Island), tax block (5), tax lot (4), optional easement letter (NYC Department of Finance) | "3-1234-56" = "3-01234-0056" = `3012340056`                           |
+  | Los Angeles 06037                                                                              | AIN: map book (4 digits), page (3), parcel (3) (LA County Assessor)                                                                                                                               | "5432-1-12" = `5432001012`                                            |
+  | Cook 17031                                                                                     | PIN: area (2), subarea (2), block (3), parcel (3), unit (4) (Cook County Assessor)                                                                                                                | "17-10-318-48-1003" = `17103180481003`                                |
+  | District of Columbia 11001                                                                     | SSL: square (4 digits) and suffix (up to 4 letters), lot (4), in fixed-width fields padded with spaces; `PAR` and 8 digits outside a square (DC Office of Tax and Revenue)                        | "0442 0842" = "0442-842" = `04420842`; "PAR 01430099" = `par01430099` |
+
+  An input that does not fit the county's format falls back to the hyphen rule; a BBL whose
+  borough is not the county's is an error. The formats are part of the ID rule: adding or
+  changing one changes IDs, so it takes a new spec version and conformance vectors.
+
+- **Entity jurisdiction:** lowercase ISO 3166-2 style (`us-de`, `us-ny`), `us-sec` (an SEC registrant, number = its Central Index Key: `fl:entity:us-sec:0000104169`), or `lei`.
 - **Entity number:** lowercase alphanumerics only.
 - **Suite (suite rule 2, v0.2):** whole floors normalize to `f<n>`, so "3rd Floor",
   "Third Floor", "Floor 3", "FL 3" and "3rd Flr" all become `f3` (ordinal words "first"
@@ -60,6 +77,24 @@ URNs are lowercase ASCII.
   - **Space ID URN:** `fl:space:<building>:<suite>`, where `<building>` is everything
     after `fl:building:` in the building URN, and `<suite>` matches
     `[a-z0-9]+(-[a-z0-9]+)*`.
+
+#### Why parcel rule 2: the trade-off
+
+Parcel rule 1 (v0.1-0.2) dropped every separator so that formatting variants of one APN
+("5432-001-012", "5432 001 012", "5432001012") converge. That is safe only where every field
+has a fixed width. Where fields vary in width it merges different parcels: in a county whose
+APN is a book and page written without padding, "12-34" (book 12, page 34) and "1-234" (book
+1, page 234) both became `1234`, and an ID that joins two parcels attaches one parcel's owner,
+values and documents to the other with no sign of the error.
+
+Rule 2 chooses the opposite failure where the format is unknown: it never merges, and it may
+split. An APN printed with separators in one source and without them in another ("12-34",
+"1234") gets two IDs, because nothing in the string says whether "1234" is book 12 or book 1. A
+split is visible and repairable (a registry records `same_as` between the two IDs, or the
+county gets a documented format); a merge is silent. Where the county documents a fixed-width
+format, the table above removes the trade-off: the variants converge and nothing merges,
+because the field widths say where each separator belongs. Separator characters are not
+significant ("12-34" = "12 34" = "12.34"); no county is known to distinguish them.
 
 ### Building IDs
 
@@ -123,6 +158,12 @@ Columbia SSL lots 2000-6999; New York City BBL unit lots 1001-6999 and billing l
 
 ### Minted tokens
 
+A registry may mint a lease token _reproducibly_ instead of randomly when the lease has a natural key in a public
+file: ten zeros in place of the timestamp, then 16 characters of the SHA-256 of a namespaced key (the GSA adapter
+uses `gsa-lease-number:<lease number>`, the SEC adapter `sec-lease-exhibit:<accession>:<file>`), so registries built
+from the same file agree. The token is still a valid `fl:lease:` token, and the crosswalk to the natural key is
+recorded. The random ULID layout below remains what `mint` produces.
+
 Minted tokens use the ULID layout in Crockford base32 (lowercase): 10 characters
 of millisecond timestamp followed by 16 characters of randomness. Tokens sort
 lexicographically by creation time.
@@ -141,15 +182,30 @@ requires a registry lookup.
 
 ## Versions
 
-| Version | Changes                                                                                                                                                                                                                                                                                                                                                                                                         |
-| ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0.2     | Deterministic building IDs from the street address (`fl:building:us-<SSCCC>:<zip5>:<street>`); spaces within them. Suite rule 2: a separator between digits is kept ("1-20" was `120`, now `1-20`), ordinal floor words and "Flr" are floors ("Third Floor" was `thirdfloor`, now `f3`), and `apt`/`apartment` are designators ("Apt 4B" was `apt4b`, now `4b`). Parcel, entity and document IDs are unchanged. |
-| 0.1     | First draft.                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Version | Changes                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 0.3     | Parcel rule 2: a separator in an APN becomes a hyphen instead of being dropped ("12-34" was `1234`, now `12-34`), except in counties with a documented fixed-width format (NYC BBL, Los Angeles AIN, Cook PIN, DC SSL), where the fields are zero-padded and run together (NYC "3-1234-56" was `3123456`, now `3012340056`). An LEI must pass its ISO 17442 check digits (ISO 7064 MOD 97-10). Entity, document, building and space IDs are unchanged. |
+| 0.2     | Deterministic building IDs from the street address (`fl:building:us-<SSCCC>:<zip5>:<street>`); spaces within them. Suite rule 2: a separator between digits is kept ("1-20" was `120`, now `1-20`), ordinal floor words and "Flr" are floors ("Third Floor" was `thirdfloor`, now `f3`), and `apt`/`apartment` are designators ("Apt 4B" was `apt4b`, now `4b`). Parcel, entity and document IDs are unchanged.                                        |
+| 0.1     | First draft.                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 
-**Earlier IDs stay valid.** Every v0.1 URN still parses (`id_parse`), including space IDs
-made under suite rule 1; only the inputs listed for 0.2 map to a different space ID
-now. `normalizeSuiteV1` / `normalize_suite_v1` reproduce suite rule 1, so a system that
-stored v0.1 space IDs can recompute them and record the old and new IDs as `same_as`.
+**Earlier IDs stay valid.** Every v0.1 and v0.2 URN still parses (`id_parse`), including
+space IDs made under suite rule 1 and parcel IDs made under parcel rule 1; only the inputs
+listed for 0.2 and 0.3 map to a different ID now. `normalizeSuiteV1` / `normalize_suite_v1`
+reproduce suite rule 1, and `parcelId({ ..., normalize: normalizeApnV1 })` /
+`parcel_id(..., normalize=normalize_apn_v1)` parcel rule 1, so a system that stored earlier
+IDs can recompute them and record the old and new IDs as `same_as`. A FactLot Registry file
+records the parcel rule its URNs were made with (`meta.parcel_rule`); a file built before
+v0.3 has none, keeps rule 1, and `registry_resolve_parcel` resolves an APN in it by rule 1.
+
+An APN whose rule 1 and rule 2 IDs differ is one written with separators outside the counties
+above, or an unpadded NYC BBL. Measured on the raw APNs of the registry files built so far
+(1,921,462 parcels, 2026-11-04): 223,181 parcels (12%) in 113 counties, all of
+them in the 389-county expansion build: 72 Arkansas counties, all 8 Connecticut and 14 Vermont
+counties, 11 Minnesota and 5 North Carolina counties, DeKalb (GA), Marion (IN) and Baltimore
+City (MD). The DC sample, Los Angeles, Denver, Hennepin, Mecklenburg, the five New York City
+boroughs and the five Texas counties keep their parcel IDs. The affected IDs change when those
+files are rebuilt under v0.3; documented formats for those counties can be added in a later
+version so their variants converge again.
 
 ## Open questions
 
@@ -159,4 +215,5 @@ stored v0.1 space IDs can recompute them and record the old and new IDs as `same
   with `located_on` relationships.
 - Whether to incorporate existing open building IDs, such as the US DOE UBID (Unique
   Building Identifier, from the footprint), as `same_as` crosswalks.
-- County APN rule catalogue: format, governance, and test vectors.
+- County APN format catalogue beyond the four in v0.3: which publisher documents count as
+  documenting a format, governance, and test vectors.

@@ -54,6 +54,35 @@
           "Commencement 2023-03-15 is mid-month: each lease month runs from day 15 to the day before it in the next month (clamped to month end), and rent is not prorated to calendar months; if rent is billed by calendar month, the first and last partial months need proration outside this result."
         ]
       }
+    },
+    {
+      "name": "unit acre (ground lease): the same numbers as square feet, labelled $/acre/yr",
+      "input": {
+        "schedule": {
+          "commencement_date": "2026-01-01",
+          "term_months": 120,
+          "area_sf": 10000,
+          "starting_rent_psf_annual": 40,
+          "abated_months": [1, 2, 3, 4, 5, 6],
+          "unit": "acre"
+        },
+        "ti_allowance_psf": 50,
+        "leasing_commissions": 100000,
+        "discount_rate_annual": 0.08
+      },
+      "expect": {
+        "value.total_rent_due": 3799999.62,
+        "value.total_landlord_costs": 600000,
+        "value.effective_rent_psf": 38,
+        "value.net_effective_rent_psf": 32,
+        "value.pv_rent": 2568980.49,
+        "value.discounted_net_effective_rent_psf": 28.4772,
+        "value.unit": "acre",
+        "value.rate_unit": "USD/acre/yr",
+        "warnings": [
+          "Unit is acre: area_sf was read as acres and every *_psf rate as $/acre/yr; results are in USD/acre/yr. Field names keep _sf and _psf. Confirm whether the ground or yard lease measures gross or usable acres."
+        ]
+      }
     }
   ]
 }

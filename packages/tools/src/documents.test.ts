@@ -4,7 +4,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-import { DOC_LIMITS, runTool, tools } from "./index.ts";
+import { DOC_LIMITS, runTool, runToolAsync, tools } from "./index.ts";
+import { canonicalJson } from "./packages.ts";
 import { checkConsistency, norm } from "./quotes.ts";
 
 interface Case {
@@ -29,6 +30,7 @@ const spec = JSON.parse(
     expect: string | null;
   }[];
   cases: Case[];
+  canonical_json: { value: unknown; expect: string }[];
 };
 
 /** Replaces {"$pages": name} with the named document's pages. */
@@ -61,9 +63,14 @@ test("vectors: written forms (consistency)", () => {
     );
 });
 
-test("vectors: document tools and fact_validate", () => {
+test("vectors: canonical JSON (RFC 8785) for fact packages", () => {
+  for (const c of spec.canonical_json)
+    assert.equal(canonicalJson(c.value), c.expect, JSON.stringify(c.value));
+});
+
+test("vectors: document tools and fact_validate", async () => {
   for (const c of spec.cases) {
-    const outcome = runTool(c.tool, resolve(c.arguments));
+    const outcome = await runToolAsync(c.tool, resolve(c.arguments));
     if (c.expect_error) {
       assert.equal(outcome.ok, false, c.name);
       if (!outcome.ok) {

@@ -1,0 +1,47 @@
+{
+  "description": "GSA Inventory of Owned and Leased Properties (IOLP) for the FactLot Registry collector. See docs/registry/data-policy.md and the review record in docs/registry/sources/gsa-iolp.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "gsa-iolp",
+      "publisher": "U.S. General Services Administration (via Data.gov)",
+      "landing_pages": [
+        "https://catalog.data.gov/dataset/inventory-of-owned-and-leased-properties-iolp"
+      ],
+      "allowed_hosts": ["inventory.data.gov", "catalog.data.gov"],
+      "link_patterns": [],
+      "files": [
+        "https://inventory.data.gov/dataset/9a9e946e-124e-46f5-a934-e458a6c1c2b2/resource/13886719-6b8a-4596-8c82-5b32664005f7/download/2026-10-30-iolp-leases.xlsx",
+        "https://inventory.data.gov/dataset/9a9e946e-124e-46f5-a934-e458a6c1c2b2/resource/ad1a66f2-8019-43d9-b625-ea55e1f09677/download/2026-10-30-iolp-buildings.xlsx"
+      ],
+      "verified": true,
+      "terms_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "license": "CC0 1.0 Public Domain Dedication (stated on the Data.gov catalog record for each of the dataset's three distributions); US federal government work",
+      "ai_use": "Not restricted: CC0 permits any use; the publisher does not address AI use",
+      "redistribution": "Permitted: CC0 1.0. Attribution requested as a courtesy: U.S. General Services Administration, Inventory of Owned and Leased Properties",
+      "reviewed": "2026-11-04",
+      "notes": "Weekly dataset (modified 2026-11-02 on the catalog; the two XLSX files are the 2026-10-30 extract). inventory.data.gov robots.txt disallows /dataset/rate/, /revision/, /dataset/*/history and /api/ with Crawl-delay 10, so the download paths are allowed and the collector honours inventory.data.gov's Crawl-delay of 10 s (the 2026-11-04 run used 12 s)."
+    },
+    {
+      "source_id": "gsa-lease-inventory",
+      "publisher": "U.S. General Services Administration, Public Buildings Service",
+      "landing_pages": [
+        "https://www.gsa.gov/real-estate/real-estate-services/leasing-overview"
+      ],
+      "allowed_hosts": ["www.gsa.gov"],
+      "link_patterns": [],
+      "files": ["https://www.gsa.gov/system/files/October-2026-External.xlsx"],
+      "verified": true,
+      "terms_url": "https://www.gsa.gov/website-information/website-policies",
+      "license": "US federal government work, public domain; GSA website policies: 'Most material on our site is free of copyright and may be copied and distributed without permission' and works by federal employees 'are in the public domain in the U.S.'. The data.gov catalog record for the lease inventory carries no license field",
+      "ai_use": "Not restricted: public domain; the publisher does not address AI use. GSA states the inventory is posted 'to conduct market research for future leasing opportunities'",
+      "redistribution": "Permitted: public domain. GSA asks for citation: 'Citation of the GSA site and a link back is much appreciated'. Attribution: U.S. General Services Administration",
+      "reviewed": "2026-11-04",
+      "notes": "Monthly external lease inventory (posted after the 1st of each month; the page was last updated 2026-11-03 and offers the October 2026 file). Annual archives FY16-FY26 are ZIPs on the same page. 'Certain details have been redacted to protect sensitive information.' www.gsa.gov/robots.txt does not disallow /system/files/ or the leasing page; the 2026-11-04 run used 12 s between requests."
+    }
+  ]
+}

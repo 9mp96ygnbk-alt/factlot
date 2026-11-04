@@ -5,12 +5,15 @@ import {
   Rate,
   Trace,
   fmtMoney,
+  fmtNum,
   parseInput,
   powInt,
   round,
 } from "./core.ts";
 import type { CalcResult } from "./core.ts";
 import { RentScheduleInput, buildMonths } from "./rent.ts";
+import { unitLabels, unitWarning } from "./units.ts";
+import type { LeaseUnit } from "./units.ts";
 
 const OpexGrowth = Rate.default(0).describe(
   "Annual growth of operating expenses as a decimal, e.g. 0.03, compounding each lease year from commencement (lease year 1 is expense_psf_annual).",
@@ -106,7 +109,7 @@ export const ProposalComparisonInput = z
             .max(200)
             .describe("Unique label for the proposal, e.g. building name."),
           schedule: RentScheduleInput.describe(
-            "Base-rent terms of this proposal (same input as calc_rent_schedule); schedule.area_sf is the rentable area.",
+            "Base-rent terms of this proposal (same input as calc_rent_schedule); schedule.area_sf is the rentable area. With schedule.unit (kw, mw, unit, acre, key, room, space), area_sf and every $/SF field of this proposal are per that unit; all proposals must use the same unit.",
           ),
           usable_sf: z
             .number()
@@ -163,7 +166,34 @@ export const ProposalComparisonInput = z
       ),
   })
   .superRefine((v, ctx) => {
+    const unit0 = v.proposals[0]?.schedule.unit ?? "sf";
+    if (unit0 !== "sf" && v.area_basis === "usable")
+      ctx.addIssue({
+        code: "custom",
+        path: ["area_basis"],
+        message: `area_basis usable applies to square feet only, not ${unit0}`,
+      });
     v.proposals.forEach((p, i) => {
+      const unit = p.schedule.unit ?? "sf";
+      if (unit !== unit0)
+        ctx.addIssue({
+          code: "custom",
+          path: ["proposals", i, "schedule", "unit"],
+          message: `every proposal must use the same unit; the first uses ${unit0}, this one ${unit}`,
+        });
+      if (
+        unit !== "sf" &&
+        (p.usable_sf !== undefined || p.load_factor !== undefined)
+      )
+        ctx.addIssue({
+          code: "custom",
+          path: [
+            "proposals",
+            i,
+            p.usable_sf !== undefined ? "usable_sf" : "load_factor",
+          ],
+          message: `usable_sf and load_factor apply to square feet only, not ${unit}`,
+        });
       if (p.usable_sf !== undefined && p.load_factor !== undefined)
         ctx.addIssue({
           code: "custom",
@@ -217,6 +247,10 @@ export interface ProposalComparison {
   area_basis: "rentable" | "usable";
   ranking: RankedProposal[];
   best: string;
+  /** Echo of the proposals' schedule.unit; present only when it was given. */
+  unit?: LeaseUnit;
+  /** What metric_psf_annual is measured in, e.g. "USD/kW/yr"; present only when schedule.unit was given. */
+  rate_unit?: string;
 }
 
 /** Operating expenses in lease year `year` (0 = first): [total $/SF/yr, tenant-paid $/SF/yr]. */
@@ -254,6 +288,10 @@ export function compareProposals(
   const r = input.discount_rate_annual / 12;
   const tenant = input.perspective === "tenant";
   const usable = input.area_basis === "usable";
+  const unit = input.proposals.find((p) => p.schedule.unit !== undefined)
+    ?.schedule.unit;
+  const l = unitLabels(unit);
+  const sfUnit = l === unitLabels(undefined);
   t.step(
     "Method",
     tenant
@@ -262,7 +300,7 @@ export function compareProposals(
   );
   t.step(
     "Discounting",
-    `monthly cash flows at the start of each month (annuity due), monthly rate r = ${input.discount_rate_annual} ÷ 12 = ${round(r, 8)}; one-time items at commencement${tenant ? "" : "; t = 0 is the start of any downtime"}`,
+    `monthly cash flows at the start of each month (annuity due), monthly rate r = ${fmtNum(input.discount_rate_annual)} ÷ 12 = ${fmtNum(r, 8)}; one-time items at commencement${tenant ? "" : "; t = 0 is the start of any downtime"}`,
     "level amount = (PV of flows + PV of one-time items) ÷ Σ (1 + r)^−t",
   );
   t.step(
@@ -273,7 +311,9 @@ export function compareProposals(
     "Area basis",
     usable
       ? "usable SF: usable_sf, or area_sf ÷ load_factor; rents, TI and expenses are per rentable SF"
-      : "rentable SF (schedule.area_sf)",
+      : sfUnit
+        ? "rentable SF (schedule.area_sf)"
+        : `${l.qty} (schedule.area_sf, unit ${unit}); rents, TI and expenses are per ${l.per}`,
   );
 
   const rows = input.proposals.map((p) => {
@@ -330,8 +370,8 @@ export function compareProposals(
     t.step(
       p.name,
       metric,
-      `PV ${fmtMoney(pv)} ${upfrontPv < 0 ? "−" : "+"} ${fmtMoney(Math.abs(upfrontPv))} one-time; ${downtime ? `${downtime} downtime + ` : ""}${months.length} months; ${opex ? `${opex.type} opex; ` : ""}÷ ${round(basis, 2)} ${usable ? "usable" : "rentable"} SF`,
-      "USD/sf/yr",
+      `PV ${fmtMoney(pv)} ${upfrontPv < 0 ? "−" : "+"} ${fmtMoney(Math.abs(upfrontPv))} one-time; ${downtime ? `${downtime} downtime + ` : ""}${months.length} months; ${opex ? `${opex.type} opex; ` : ""}÷ ${round(basis, 2)} ${sfUnit ? `${usable ? "usable" : "rentable"} SF` : l.qty}`,
+      l.rate,
     );
     return {
       row: {
@@ -366,7 +406,9 @@ export function compareProposals(
   const sizes = new Set(rows.map((x) => x.row.basis_area_sf));
   if (sizes.size > 1)
     t.warn(
-      "Proposals differ in area; $/SF/yr normalizes size but not the value of the space itself.",
+      sfUnit
+        ? "Proposals differ in area; $/SF/yr normalizes size but not the value of the space itself."
+        : `Proposals differ in size (${l.qty}); $/${l.per}/yr normalizes size but not the value of the space or capacity itself.`,
     );
   if (!usable && rows.every((x) => x.usableMetric !== null)) {
     const byUsable = [...rows].sort((a, b) =>
@@ -428,10 +470,12 @@ export function compareProposals(
     ranking[0]?.metric_psf_annual === ranking[1]?.metric_psf_annual;
   if (tied)
     t.warn(
-      `Top proposals are tied at ${ranking[0]?.metric_psf_annual} $/SF/yr.`,
+      `Top proposals are tied at ${ranking[0]?.metric_psf_annual} $/${l.per}/yr.`,
     );
+  const unitNote = unitWarning(unit);
+  if (unitNote) t.warn(unitNote);
 
-  return t.result("calc.compare_proposals", 2, {
+  const value: ProposalComparison = {
     perspective: input.perspective,
     metric: tenant
       ? "effective_occupancy_cost_psf"
@@ -439,5 +483,10 @@ export function compareProposals(
     area_basis: input.area_basis,
     ranking,
     best,
-  });
+  };
+  if (unit !== undefined) {
+    value.unit = unit;
+    value.rate_unit = l.rate;
+  }
+  return t.result("calc.compare_proposals", 2, value);
 }

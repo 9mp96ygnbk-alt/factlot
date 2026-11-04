@@ -30,8 +30,11 @@ from .ingest.verify import (
     _norm,
     _num,
     _numbers_in,
+    PHRASES,
     check_value,
+    missing_reason,
     show_value,
+    text_number_missing,
 )
 
 DOC_LIMITS = {
@@ -103,6 +106,11 @@ def check_any_value(predicate: str, value: Any) -> str | None:
 
 
 def _checkable(kind: str, value: Any) -> bool:
+    if kind == "text":
+        # A text is checked for the numbers written in digits in it; one without digits is not checked.
+        return isinstance(value, str) and any(c in "0123456789" for c in _norm(value))
+    if kind == "phrase":
+        return isinstance(value, str) and value in PHRASES
     if kind == "string":
         return isinstance(value, str)
     if kind == "date":
@@ -189,8 +197,7 @@ def check_consistency_any(predicate: str, value: Any, quote: str) -> str | None:
     q = _norm(quote)
     for p in value_parts(predicate, value):
         if p.get("as") and _missing(p["as"], p["value"], q):
-            where = f" ({p['reason_path']})" if p["reason_path"] else ""
-            return f"value {show_value(p['value'])}{where} not found in quote"
+            return missing_reason(p["as"], p["value"], p["reason_path"], q)
     return None
 
 
@@ -311,7 +318,13 @@ def _cap_characters(total: int) -> None:
             "Verify long documents in several calls (doc_abstract_lease accepts the facts from each)")}])
 
 
-def _load_document(d: dict[str, Any]) -> dict[str, Any]:
+def _load_document(d: dict[str, Any], path: str = "document") -> dict[str, Any]:
+    """A document input as pages to check; ``path`` names it in an error (e.g. "document")."""
+    pages = d["pages"]
+    beyond = next((p for p in d.get("ocr_pages", []) if p > len(pages)), None)
+    if beyond is not None:
+        raise DocInputError([{"path": f"{path}.ocr_pages", "message": (
+            f"page {beyond} is listed as OCR, but the document has {len(pages)} page{'' if len(pages) == 1 else 's'}")}])
     sha = d.get("sha256")
     doc: dict[str, Any] = {
         "id": f"fl:document:sha256-{sha}" if sha else document_id("\f".join(d["pages"])).urn,
@@ -322,6 +335,7 @@ def _load_document(d: dict[str, Any]) -> dict[str, Any]:
         doc["title"] = d["title"]
     if sha:
         doc["sha256"] = sha
+    doc["ocr"] = set(d.get("ocr_pages", []))
     return doc
 
 
@@ -330,6 +344,8 @@ def _describe(doc: dict[str, Any]) -> dict[str, Any]:
     if "title" in doc:
         out["title"] = doc["title"]
     out["pages"] = len(doc["text"].pages)
+    if doc["ocr"]:
+        out["ocr_pages"] = sorted(doc["ocr"])
     return out
 
 
@@ -408,6 +424,8 @@ def _verify_candidate(doc: dict[str, Any], c: dict[str, Any], ctx: dict[str, Any
     if "section" in c:
         source["section"] = c["section"]
     source["quote"] = c["quote"]
+    if loc["page"] in doc["ocr"]:
+        source["ocr"] = True
     if span:
         source["span"] = span
     if "sha256" in doc:
@@ -546,7 +564,7 @@ def abstract_lease(args: dict[str, Any], producer: dict[str, str]) -> dict[str, 
             f"{candidates} candidates and facts in all; the limit is {DOC_LIMITS['candidates_per_call']} per call")}])
 
     order = _apply_order(docs)
-    loaded = [_load_document(d) if "pages" in d else None for d in docs]
+    loaded = [_load_document(d, f"documents.{i}") if "pages" in d else None for i, d in enumerate(docs)]
 
     def doc_id(i: int) -> str | None:
         if loaded[i] is not None:
@@ -813,6 +831,8 @@ def verify_claim(args: dict[str, Any]) -> dict[str, Any]:
     if not loc["ok"]:
         return {"status": "unverifiable", "reason": loc["reason"], "evidence": evidence, "checked": []}
     evidence["page"] = loc["page"]
+    if loc["page"] in doc["ocr"]:
+        evidence["ocr"] = True
     span = doc["text"].span(loc["page"], loc["q"])
     if span:
         evidence["span"] = span
@@ -850,7 +870,12 @@ def verify_claim(args: dict[str, Any]) -> dict[str, Any]:
     absent = [p for p in checked if not p["found"]]
 
     def stated(kind: str) -> list[Any]:
-        return states["dates"] if kind == "date" else [] if kind == "string" else states["numbers"]
+        return states["dates"] if kind == "date" else [] if kind in ("string", "phrase") else states["numbers"]
+
+    def shown(p: dict[str, Any]) -> str:
+        if p["as"] == "text":
+            return f"number {text_number_missing(p['value'], q)} in {show_value(p['value'])}"
+        return show_value(p["value"])
 
     def where(p: dict[str, Any]) -> str:
         return f" ({p['path'][len('value.'):]})" if p.get("path") and p["path"] != "value" else ""
@@ -865,14 +890,16 @@ def verify_claim(args: dict[str, Any]) -> dict[str, Any]:
         status = "contradicted"
         kind = "dates" if contradicting["as"] == "date" else "numbers"
         listed = ", ".join(js_number_str(v) if _num(v) else str(v) for v in stated(contradicting["as"]))
-        reason = (f"{show_value(contradicting['value'])}{where(contradicting)} is not written in the quote; "
-                  f"the quote states {kind}: {listed}")
+        reason = f"{shown(contradicting)}{where(contradicting)} is not written in the quote; the quote states {kind}: {listed}"
     else:
         status = "unverifiable"
         p = absent[0]
         if p["as"] == "string":
             reason = (f"{show_value(p['value'])}{where(p)} is not written in the quote; FactLot cannot tell whether the "
                       "quote names someone else")
+        elif p["as"] == "phrase":
+            reason = (f"{show_value(p['value'])}{where(p)} is not worded in the quote as FactLot recognises it "
+                      "(docs/document-verification.md lists the phrases); read the quote")
         else:
             reason = (f"{show_value(p['value'])}{where(p)} is not written in the quote, and the quote states no "
                       f"{'date' if p['as'] == 'date' else 'number'} to compare it with")

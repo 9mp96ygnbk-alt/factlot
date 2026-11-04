@@ -2,7 +2,7 @@
   "name": "factlot",
   "displayName": "FactLot",
   "version": "0.2.0",
-  "description": "Commercial real estate skills plus the FactLot MCP tools: deterministic, audited calculators for loan sizing, lease economics, CAM, ASC 842, returns, hotel metrics, and the Texas protest deadline.",
+  "description": "Commercial real estate skills plus the FactLot MCP tools: deterministic, audited calculators for loan sizing and amortization, lease economics, CAM, ASC 842, returns, DCF and direct-cap valuation, LP/GP waterfalls, 1031 exchanges, multifamily rent rolls, capex recovery, hotel metrics, and the Texas protest deadline.",
   "author": {
     "name": "FactLot",
     "email": "contact@factlot.com",
@@ -19,6 +19,9 @@
     "dscr",
     "cam",
     "asc-842",
+    "dcf",
+    "waterfall",
+    "1031-exchange",
     "mcp"
   ]
 }

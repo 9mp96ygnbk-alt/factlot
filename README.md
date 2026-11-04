@@ -29,18 +29,24 @@ returns cited facts or the reason it could not
 ([document verification](docs/document-verification.md)). No model runs on FactLot's side and
 nothing is stored.
 
+**Check us against your own spreadsheet:** [seven Excel workbooks](examples/reconciliation/) (office,
+industrial, retail, hotel, lender, lease accounting and more) put live Excel formulas beside FactLot's
+numbers with a difference column of 0.00 (synthetic inputs; ARGUS parity is untested and not
+claimed). What the registry holds, county by county, and the licence and AI-use rights of every
+source: [coverage](docs/registry/coverage.md) and [rights](docs/registry/rights.md).
+
 ## Connect your agent
 
-| Client                         | How                                                                                                                                                                                                                                       |
-| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Claude Code plugin             | `/plugin marketplace add 9mp96ygnbk-alt/factlot`, then `/plugin install factlot@factlot`: eight CRE skills (loan sizing, lease economics, CAM, ASC 842, returns and more) wired to the hosted tools ([plugin](plugins/factlot/README.md)) |
-| Claude Code                    | `claude mcp add --transport http factlot https://api.factlot.com/mcp`                                                                                                                                                                     |
-| Claude (web and Desktop)       | Settings, Connectors, Add custom connector: `https://api.factlot.com/mcp`. Or open [`factlot-0.2.0.mcpb`](https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.2.0/factlot-0.2.0.mcpb)                                          |
-| ChatGPT                        | Developer mode app with `https://api.factlot.com/mcp`, or a Custom GPT Action importing `https://api.factlot.com/openapi-3.0.json`                                                                                                        |
-| Cursor, VS Code, other clients | Remote MCP URL `https://api.factlot.com/mcp` ([guides](connectors/README.md))                                                                                                                                                             |
-| Any MCP client, run locally    | `npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.2.0/factlot-mcp-standalone-0.2.0.tgz` (Node.js 22.6+, no network calls)                                                                                            |
-| Python agents                  | `pip install "git+https://github.com/9mp96ygnbk-alt/factlot.git@v0.2.0#subdirectory=python"`                                                                                                                                              |
-| Self-hosted REST and MCP       | `docker run -p 8787:8787 ghcr.io/9mp96ygnbk-alt/factlot:0.2.0`                                                                                                                                                                            |
+| Client                         | How                                                                                                                                                                                                                                        |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Claude Code plugin             | `/plugin marketplace add 9mp96ygnbk-alt/factlot`, then `/plugin install factlot@factlot`: eleven CRE skills (loan sizing, lease economics, CAM, ASC 842, returns and more) wired to the hosted tools ([plugin](plugins/factlot/README.md)) |
+| Claude Code                    | `claude mcp add --transport http factlot https://api.factlot.com/mcp`                                                                                                                                                                      |
+| Claude (web and Desktop)       | Settings, Connectors, Add custom connector: `https://api.factlot.com/mcp`. Or open [`factlot-0.2.0.mcpb`](https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.2.0/factlot-0.2.0.mcpb)                                           |
+| ChatGPT                        | Developer mode app with `https://api.factlot.com/mcp`, or a Custom GPT Action importing `https://api.factlot.com/openapi-3.0.json`                                                                                                         |
+| Cursor, VS Code, other clients | Remote MCP URL `https://api.factlot.com/mcp` ([guides](connectors/README.md))                                                                                                                                                              |
+| Any MCP client, run locally    | `npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.2.0/factlot-mcp-standalone-0.2.0.tgz` (Node.js 22.6+, no network calls)                                                                                             |
+| Python agents                  | `pip install "git+https://github.com/9mp96ygnbk-alt/factlot.git@v0.2.0#subdirectory=python"`                                                                                                                                               |
+| Self-hosted REST and MCP       | `docker run -p 8787:8787 ghcr.io/9mp96ygnbk-alt/factlot:0.2.0`                                                                                                                                                                             |
 
 The hosted endpoint is free with no key at 60 requests a minute. It is listed in the
 [official MCP Registry](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.9mp96ygnbk-alt/factlot)
@@ -122,14 +128,14 @@ Be clear about scope before adopting it:
 
 ## Connect FactLot to any AI platform
 
-| Platform                                      | How to connect                                                                                                                                                                                |
-| --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Claude**                                    | Add a custom connector with `https://api.factlot.com/mcp`, install the one-click Desktop extension (`factlot.mcpb`), use Claude Code, or call it from the Claude API                          |
-| **ChatGPT and OpenAI**                        | Create a ChatGPT app in developer mode (`search`/`fetch` make deep research work), import `/openapi.json` as a Custom GPT Action, use the Responses API's remote MCP, or use function calling |
-| **Google Gemini**                             | Use Gemini API function declarations, Gemini CLI over MCP, or Vertex AI                                                                                                                       |
-| **Microsoft Copilot**                         | Add an MCP tool in Copilot Studio, use the Power Platform connector, or build a Microsoft 365 API plugin                                                                                      |
-| **Amazon Bedrock**                            | Use the Converse API `toolConfig`, or a Bedrock Agents action group backed by the Lambda handler                                                                                              |
-| **Mistral, xAI, Llama, DeepSeek, and others** | Use OpenAI-compatible function calling or MCP clients                                                                                                                                         |
+| Platform                                      | How to connect                                                                                                                                                                                                                                  |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Claude**                                    | Add a custom connector with `https://api.factlot.com/mcp`, install the one-click Desktop extension (`factlot.mcpb`), use Claude Code, or call it from the Claude API                                                                            |
+| **ChatGPT and OpenAI**                        | Create a ChatGPT app in developer mode (`search`/`fetch` make deep research work), import `/openapi-3.0.json` (the curated subset of at most 30 operations) as a Custom GPT Action, use the Responses API's remote MCP, or use function calling |
+| **Google Gemini**                             | Use Gemini API function declarations, Gemini CLI over MCP, or Vertex AI                                                                                                                                                                         |
+| **Microsoft Copilot**                         | Add an MCP tool in Copilot Studio, use the Power Platform connector, or build a Microsoft 365 API plugin                                                                                                                                        |
+| **Amazon Bedrock**                            | Use the Converse API `toolConfig`, or a Bedrock Agents action group backed by the Lambda handler                                                                                                                                                |
+| **Mistral, xAI, Llama, DeepSeek, and others** | Use OpenAI-compatible function calling or MCP clients                                                                                                                                                                                           |
 
 Every surface serves the same tools, generated from one catalog. See **[connectors/](connectors/README.md)**.
 

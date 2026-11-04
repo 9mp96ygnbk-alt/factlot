@@ -43,7 +43,7 @@ asks for building-level loan balance, maturity and servicing status (B01-P06, B0
   `index.json`, 377 Exhibit 102 files, plus the SEC's specification zip, three policy pages and `robots.txt`; and one early probe, a mistyped path, answered HTTP 403 and made outside the logging helper). Five HTTP 503 answers
   (two on `index.json`, three on a URL that does not exist) were each backed off 10 to 20 seconds and retried; for a few
   seconds two of the review's own helper processes overlapped, never above the SEC's 10 per second.
-- `verified: true` for use in the registry: terms recorded, URLs confirmed by real downloads, redistribution permitted.
+- Review status: terms recorded, URLs confirmed by real downloads, redistribution permitted. The config in `registry/sources/us/` says `verified: false` only so the generic collector never fetches it (no files are listed; the SEC wants the requester's own User-Agent).
 
 ## Scope: what this covers
 
@@ -85,7 +85,7 @@ records how the building ID was keyed.
   377 files (a chain: "Dollar General", "Walgreens", "FedEx"; a person cannot be that, and a first version of this
   rule that counted properties across trusts let a few owners of one portfolio through, which is why it counts
   addresses and areas); every other tenant name is dropped and counted, as are placeholders ("Vacant", "Unknown",
-  "Non-Rentable SF"). 16,238 tenant entries kept (3,870 by the chain rule), 11,292 dropped. Brand names below the chain
+  "Non-Rentable SF"). 16,366 tenant entries kept (12,531 by the organisation rule alone, 3,835 more by the chain rule), 11,164 dropped. Re-checked after the organisation rule was widened (2026-11-04): it passes only 226 more entries than before, and the chain rule still carries 14% of all tenant entries (219 distinct brand names: Dollar General, Walgreens, FedEx...), so it is kept. Brand names below the chain
   threshold are lost; a reviewed allowlist would restore them.
 - **No watchlist status.** The CREFC watchlist is part of the Investor Reporting Package, not Schedule AL, so the
   registry does not claim one. Servicing is shown by the payment status code, the transfer and return dates and the

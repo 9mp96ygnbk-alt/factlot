@@ -129,8 +129,9 @@ class Rollup(unittest.TestCase):
         miss = factlot.run_tool("registry_resolve_parcel", {"state_fips": "04", "county_fips": "021", "apn": "1"})
         self.assertIsNone(miss["urn"])
         self.assertFalse(miss["coverage"]["county_loaded"])
-        self.assertIn("county 04021 (AZ) is not loaded in this registry", miss["coverage"]["message"])
-        self.assertIn("county 11001 (DC, 6 parcels), county 36061 (NY, 3 parcels)", miss["coverage"]["message"])
+        self.assertIn("Pinal County, AZ (04021) is not loaded in this registry", miss["coverage"]["message"])
+        self.assertIn("District of Columbia, DC (11001, 6 parcels); New York County, NY (36061, 3 parcels)",
+                      miss["coverage"]["message"])
         self.assertTrue(factlot.run_tool("registry_resolve_parcel", {"state_fips": "11", "county_fips": "001",
                                                                      "apn": "1"})["coverage"]["county_loaded"])
         self.assertEqual(factlot.run_tool("registry_get", {"urn": "not a urn"})["error"], "FactLotIdError")

@@ -10,7 +10,8 @@ import unittest
 from pathlib import Path
 
 import factlot
-from factlot.registry.normalize import legacy_address_key, legacy_name_key
+from factlot.registry.county_names import county_name
+from factlot.registry.normalize import address_query, legacy_address_key, legacy_name_key
 from factlot.registry import (
     EntityRecord,
     ParcelRecord,
@@ -79,6 +80,17 @@ class Normalization(unittest.TestCase):
             self.assertEqual(normalize_address(raw), expected, raw)
         for raw, expected in vectors["legacy_addresses"]:
             self.assertEqual(legacy_address_key(raw), expected, raw)
+        for raw, expected in vectors["address_queries"]:
+            self.assertEqual(address_query(raw), expected, raw)
+
+    def test_county_names_match_the_census_table(self):
+        tsv = Path(__file__).resolve().parents[2] / "spec" / "registry" / "county-names.tsv"
+        rows = [line.split("\t") for line in tsv.read_text("utf-8").splitlines() if line and not line.startswith("#")]
+        self.assertGreater(len(rows), 3000)
+        for fips, name in rows:
+            self.assertEqual(county_name(fips), name, fips)
+        self.assertEqual(county_name("04021"), "Pinal County")
+        self.assertIsNone(county_name("48999"))
 
     def test_owner_tails_apostrophes_and_abbreviations_share_one_key(self):
         same = [
@@ -146,6 +158,38 @@ class Normalization(unittest.TestCase):
         for org in ("Gulf Logistics L.P.", "Gulf Logistics, L. P.", "Smith & Co", "Acme LLC DBA The Shops",
                     "PRESIDENTIAL OWNERS'CORP"):
             self.assertTrue(is_organization(org), org)
+
+
+class OrganizationRule(unittest.TestCase):
+    """``is_organization`` against the shared vectors (``spec/registry/organizations.json``)."""
+
+    vectors = json.loads((Path(__file__).resolve().parents[2] / "spec" / "registry" / "organizations.json").read_text())
+
+    def test_organizations(self):
+        for name in self.vectors["organizations"]:
+            self.assertTrue(is_organization(name), name)
+
+    def test_persons_are_never_organizations(self):
+        for name in self.vectors["persons"]:
+            self.assertFalse(is_organization(name), name)
+
+    def test_a_surname_that_is_an_organisation_word_needs_more_than_a_given_name_beside_it(self):
+        for name in ("JOHN BANK", "BANK, JOHN", "MARY CHURCH", "ANNA COUNTY", "COUNTY, ANNA"):
+            self.assertFalse(is_organization(name), name)
+        # the same word with anything else a person's name lacks is the organisation again
+        for name in ("JOHN BANK INC", "BANK OF AMERICA", "FIRST BANK", "COUNTY OF KINGS", "ORANGE COUNTY"):
+            self.assertTrue(is_organization(name), name)
+
+    def test_national_association_needs_a_bank_word_before_it(self):
+        self.assertTrue(is_organization("CITIBANK, N.A."))
+        self.assertTrue(is_organization("WELLS FARGO N.A."))
+        for name in ("DOE, JOHN N A", "ROE, N A", "N A"):
+            self.assertFalse(is_organization(name), name)
+
+    def test_widened_forms_do_not_override_the_personal_trust_rule(self):
+        for name in ("SMITH FAMILY TRUST", "DOE JANE SEPARATE PROPERTY TRUST", "ESTATE OF JOHN SMITH CONDOMINIUM",
+                     "DOE JANE REVOCABLE TRUST CREDIT UNION"):
+            self.assertFalse(is_organization(name), name)
 
 
 class RegistryCore(unittest.TestCase):

@@ -4,6 +4,7 @@ import {
   CalcInputError,
   Trace,
   fmtMoney,
+  fmtNum,
   fmtPct,
   parseInput,
   powInt,
@@ -247,7 +248,7 @@ export function debtSizing(raw: DebtSizingInput): CalcResult<DebtSizing> {
     base.k,
     input.amortization_years === 0
       ? `interest-only: ${fmtPct(input.rate_annual, 3)}`
-      : `12 × r ÷ (1 − (1 + r)^−n), r = ${input.rate_annual}/12, n = ${input.amortization_years * 12}`,
+      : `12 × r ÷ (1 − (1 + r)^−n), r = ${fmtNum(input.rate_annual)}/12, n = ${input.amortization_years * 12}`,
   );
 
   const loans = base.loans;
@@ -255,21 +256,21 @@ export function debtSizing(raw: DebtSizingInput): CalcResult<DebtSizing> {
     t.step(
       "Loan at max LTV",
       loans.ltv,
-      `${fmtMoney(input.value)} × ${input.max_ltv}`,
+      `${fmtMoney(input.value)} × ${fmtNum(input.max_ltv!)}`,
       "USD",
     );
   if (loans.dscr !== undefined)
     t.step(
       "Loan at min DSCR",
       loans.dscr,
-      `(${fmtMoney(input.noi)} ÷ ${input.min_dscr}) ÷ ${round(k, 6)}`,
+      `(${fmtMoney(input.noi)} ÷ ${fmtNum(input.min_dscr!)}) ÷ ${fmtNum(k)}`,
       "USD",
     );
   if (loans.debt_yield !== undefined)
     t.step(
       "Loan at min debt yield",
       loans.debt_yield,
-      `${fmtMoney(input.noi)} ÷ ${input.min_debt_yield}`,
+      `${fmtMoney(input.noi)} ÷ ${fmtNum(input.min_debt_yield!)}`,
       "USD",
     );
 
@@ -280,7 +281,7 @@ export function debtSizing(raw: DebtSizingInput): CalcResult<DebtSizing> {
   const loan = t.step(
     "Max loan",
     base.loan,
-    `min(${entries.map(([c, v]) => `${c} ${fmtMoney(v)}`).join(", ")}), rounded down to ${input.round_down_to}`,
+    `min(${entries.map(([c, v]) => `${c} ${fmtMoney(v)}`).join(", ")}), rounded down to ${fmtNum(input.round_down_to)}`,
     "USD",
   );
   if (loan <= 0)
@@ -375,7 +376,7 @@ export function debtSizing(raw: DebtSizingInput): CalcResult<DebtSizing> {
     t.step(
       "Lowest stressed max loan",
       worst.max_loan,
-      `NOI shock ${worst.noi_shock}, rate shock ${worst.rate_shock}, value shock ${worst.value_shock}; binding ${worst.binding_constraint}`,
+      `NOI shock ${fmtNum(worst.noi_shock)}, rate shock ${fmtNum(worst.rate_shock)}, value shock ${fmtNum(worst.value_shock)}; binding ${worst.binding_constraint}`,
       "USD",
     );
     if (rows.some((r) => r.max_loan === 0))

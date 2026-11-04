@@ -1,0 +1,31 @@
+{
+  "description": "NYC Department of Finance Digital Tax Map condominium tables (unit lot to billing lot) for the FactLot Registry collector. See docs/registry/data-policy.md, docs/registry/collection.md, and the review record in docs/registry/sources/ny-nyc-dof-condo.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "ny-nyc-dof-condo",
+      "publisher": "New York City Department of Finance (via NYC Open Data)",
+      "landing_pages": [
+        "https://data.cityofnewyork.us/api/views/p8u6-a6it.json",
+        "https://data.cityofnewyork.us/api/views/eguu-7ie3.json"
+      ],
+      "allowed_hosts": ["data.cityofnewyork.us"],
+      "link_patterns": ["/(api/views|resource)/(p8u6-a6it|eguu-7ie3)"],
+      "files": [
+        "https://data.cityofnewyork.us/resource/p8u6-a6it.csv?$select=condo_key,condo_base_bbl,condo_billing_bbl&$order=condo_key&$limit=100000",
+        "https://data.cityofnewyork.us/resource/eguu-7ie3.csv?$select=unit_bbl,condo_key,condo_base_bbl&$order=unit_bbl&$limit=1000000"
+      ],
+      "verified": true,
+      "terms_url": "https://www.nyc.gov/opendata/get-started/FAQs",
+      "license": "Published on NYC Open Data under the NYC Open Data Law (Admin. Code §23-502). NYC Open Data FAQ: 'Open Data belongs to all New Yorkers. There are no restrictions on the use of Open Data.'",
+      "ai_use": "Not addressed by the publisher; the FAQ states there are no restrictions on the use of Open Data",
+      "redistribution": "Permitted: 'no restrictions on the use of Open Data' (FAQ). Attribution: New York City Department of Finance, Digital Tax Map",
+      "reviewed": "2026-11-04",
+      "notes": "Digital Tax Map: Condominiums (p8u6-a6it, one row per condominium with its billing-lot BBL) and Digital Tax Map: Condominium Units (eguu-7ie3, one row per unit lot with its condominium key). Only BBL and key columns are requested (no condominium name, unit designation or geometry). The Tyler/Socrata platform terms are in tension with bulk export (see ny-nyc-dof and docs/registry/requests/platform-terms/socrata.md); the agency licence is relied on. data.cityofnewyork.us robots.txt: Crawl-delay 1; only /browse search pages disallowed."
+    }
+  ]
+}

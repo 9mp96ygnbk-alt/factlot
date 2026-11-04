@@ -4,6 +4,7 @@ import {
   NonNegMoney,
   Trace,
   fmtMoney,
+  fmtNum,
   fmtPct,
   nthRoot,
   parseInput,
@@ -308,7 +309,7 @@ export function prepaymentAndDefeasance(
       const pvRounded = t.step(
         "PV of remaining payments",
         round(pv, 2),
-        `Σ payment_k ÷ (1 + ${round(m, 8)})^k, k = 1..${n}`,
+        `Σ payment_k ÷ (1 + ${fmtNum(m, 8)})^k, k = 1..${n}`,
         "USD",
       );
       computed = t.step(
@@ -326,7 +327,7 @@ export function prepaymentAndDefeasance(
       computed = t.step(
         "Yield maintenance (before floor)",
         round(pv, 2),
-        `Σ (${fmtPct(input.note_rate_annual, 4)} − ${fmtPct(d, 4)}) ÷ 12 × balance_(k−1) ÷ (1 + ${round(m, 8)})^k, k = 1..${n}`,
+        `Σ (${fmtPct(input.note_rate_annual, 4)} − ${fmtPct(d, 4)}) ÷ 12 × balance_(k−1) ÷ (1 + ${fmtNum(m, 8)})^k, k = 1..${n}`,
         "USD",
       );
     }

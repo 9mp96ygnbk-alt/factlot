@@ -264,6 +264,9 @@ export const Predicates = {
     "lease.guaranty",
     "lease.green_lease_data_sharing",
     "lease.critical_date",
+    // A lease comparable (see LeaseComp) and the net effective rent derived from one.
+    "lease.comp",
+    "lease.net_effective_rent",
   ],
   building: [
     "building.rentable_area_sf",
@@ -316,9 +319,24 @@ export const Predicates = {
     "zoning.max_far_facility",
     "zoning.max_far_manufacturing",
     "zoning.max_far_affordable_residential",
+    "zoning.max_far_nonresidential",
+    "zoning.max_height_ft",
   ],
-  // One fact per sale; a parcel may hold many (see MULTI_VALUED_PREDICATES in @factlot/tools).
-  transaction: ["transaction.sale"],
+  // Building energy benchmarking disclosures (NYC Local Law 84, DC): the newest usable report of the property.
+  energy: [
+    "energy.reporting_year",
+    "energy.property_type",
+    "energy.site_eui",
+    "energy.weather_normalized_site_eui",
+    "energy.source_eui",
+    "energy.energy_star_score",
+    "energy.ghg_emissions",
+    "energy.ghg_intensity",
+    "energy.floor_area_sf",
+    "energy.property_lot_count",
+  ],
+  // One fact per sale or recorded deed; a parcel may hold many (see MULTI_VALUED_PREDICATES in @factlot/tools).
+  transaction: ["transaction.sale", "transaction.deed"],
   ownership: [
     "ownership.owner_of_record",
     "ownership.beneficial_owner",
@@ -333,10 +351,153 @@ export const Predicates = {
     // One fact per CMBS trust's participation in a building's loan (a structured value; SEC Form
     // ABS-EE). A building may hold several: see MULTI_VALUED_PREDICATES in @factlot/tools.
     "debt.cmbs_loan",
+    // Recorded mortgages and satisfactions as the registry writes them (many per parcel, organisations only).
+    "debt.mortgage_recorded",
+    "debt.mortgage_satisfaction_recorded",
   ],
   // The registrant that lists an entity as a subsidiary in Exhibit 21 of its 10-K (inferred).
   entity: ["entity.parent"],
 } as const;
+
+/** What a lease comp is: how the deal came about. */
+export const CompType = z.enum([
+  "new",
+  "renewal",
+  "extension",
+  "expansion",
+  "sublease",
+  "amendment",
+  "holdover",
+  "other",
+]);
+export const PropertyType = z.enum([
+  "office",
+  "industrial",
+  "retail",
+  "medical_office",
+  "flex",
+  "mixed_use",
+  "datacenter",
+  "self_storage",
+  "hotel",
+  "multifamily",
+  "land",
+  "other",
+]);
+/** Who the tenant is by type only: a comp never names a party. */
+export const TenantType = z.enum([
+  "government_federal",
+  "government_state_local",
+  "corporate",
+  "professional_services",
+  "medical",
+  "retail_national",
+  "retail_local",
+  "nonprofit",
+  "other",
+  "unknown",
+]);
+export const ExpenseBasis = z.enum([
+  "full_service",
+  "modified_gross",
+  "industrial_gross",
+  "base_year",
+  "nnn",
+  "absolute_net",
+  "ground",
+  "not_full_service",
+  "unknown",
+]);
+export const ConfirmingParty = z.enum([
+  "landlord",
+  "tenant",
+  "landlord_broker",
+  "tenant_broker",
+  "both_parties",
+  "public_record",
+  "appraiser",
+  "lender",
+  "other",
+]);
+export const CompVerification = z.enum([
+  "unverified",
+  "party_confirmed",
+  "document_verified",
+  "public_record",
+]);
+
+/**
+ * The value of a `lease.comp` fact: one lease comparable, shareable without a central database.
+ *
+ * A comp names no person or company. It carries economics (rent, escalations, concessions, term,
+ * area, expense basis), who confirmed it and how well, and optionally the building (an `fl:building:`
+ * ID, which anyone can compute from the address). Its rights (`ai_use`, `redistribution`) are the
+ * enclosing fact's `rights`. Cross-field rules (a term, an expiration after commencement, free rent
+ * within the term, no contact details in the text) are checked by `lease_comp_validate`.
+ */
+export const LeaseComp = z.strictObject({
+  comp_type: CompType,
+  property_type: PropertyType.optional(),
+  tenant_type: TenantType.optional(),
+  /** Area leased, square feet, on the basis in `area_basis`. */
+  area_sf: z.number().positive(),
+  area_basis: z.enum(["rentable", "usable", "gross", "unknown"]).optional(),
+  /** Lease commencement (the date rent begins unless the lease says otherwise). */
+  commencement_date: IsoDate,
+  expiration_date: IsoDate.optional(),
+  /** Term in months; given, or implied by the two dates. */
+  term_months: z.number().int().positive().max(1200).optional(),
+  /** First date the tenant may terminate early, if the lease allows it. */
+  early_termination_date: IsoDate.optional(),
+  /** First-year base rent of the deal, USD per SF per year (annual, not monthly). */
+  starting_rent_psf_yr: z.number().nonnegative().optional(),
+  /** Rent being paid now (an observed rent, e.g. from a public inventory); not a deal's starting rent. */
+  current_rent_psf_yr: z.number().nonnegative().optional(),
+  escalation: z
+    .strictObject({
+      type: z.enum(["none", "percent", "fixed_psf"]),
+      /** Percent bumps as a decimal (0.03 = 3%), compounding. */
+      rate: z.number().gt(-1).lt(10).optional(),
+      /** Fixed bump, USD per SF per year, added at each step. */
+      amount: z.number().optional(),
+      every_months: z.number().int().positive().optional(),
+    })
+    .optional(),
+  /** Months of fully abated base rent at the start of the term. */
+  free_rent_months: z.number().int().nonnegative().optional(),
+  free_rent_applies_to: z.enum(["base_rent", "gross_rent"]).optional(),
+  /** Landlord-funded improvement allowance, USD per SF, once. */
+  ti_allowance_psf: z.number().nonnegative().optional(),
+  /** Total leasing commissions the landlord pays, USD. */
+  leasing_commissions_usd: z.number().nonnegative().optional(),
+  other_concessions_usd: z.number().nonnegative().optional(),
+  expense_basis: ExpenseBasis.optional(),
+  /** Operating expenses the tenant pays on top of rent, USD per SF per year (NNN and similar). */
+  opex_psf_yr: z.number().nonnegative().optional(),
+  renewal_options: z
+    .strictObject({
+      count: z.number().int().nonnegative(),
+      term_months: z.number().int().positive().optional(),
+    })
+    .optional(),
+  /** `fl:building:` ID of the building, if the contributor chooses to say where. */
+  building: z
+    .string()
+    .regex(/^fl:building:[^\s]+$/, "expected a FactLot building URN")
+    .optional(),
+  submarket: z.string().max(120).optional(),
+  /** Two-letter US state or territory code. */
+  state: z
+    .string()
+    .regex(/^[A-Z]{2}$/, "expected a two-letter state code")
+    .optional(),
+  /** Who vouches for the numbers. */
+  confirming_party: ConfirmingParty,
+  verification: CompVerification,
+  /** Caveats a reader needs (what the numbers are and are not). No names or contact details. */
+  notes: z.string().max(1000).optional(),
+});
+export type LeaseComp = z.infer<typeof LeaseComp>;
 
 /** All schemas, keyed by name, for JSON Schema export. */
 export const schemas = {
@@ -345,6 +506,7 @@ export const schemas = {
   Rights,
   Fact,
   Relationship,
+  LeaseComp,
 } as const;
 
 /** JSON Schema (draft 2020-12) for each FactLot schema, for non-TypeScript agents. */

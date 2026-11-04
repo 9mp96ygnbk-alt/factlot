@@ -1,0 +1,1904 @@
+{
+  "spec": "lease_comp_validate conformance vectors: run by the TypeScript tests (packages/tools/src/comps.test.ts) and the Python tests (python/tests/test_comps.py). Every case is synthetic. Issue paths and messages are pinned in both languages.",
+  "cases": [
+    {
+      "name": "a complete shared comp is valid and carries NER 32 (the calc.net_effective_rent vector)",
+      "tool": "lease_comp_validate",
+      "arguments": {
+        "fact": {
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.comp",
+          "value": {
+            "comp_type": "new",
+            "property_type": "office",
+            "area_sf": 10000,
+            "area_basis": "rentable",
+            "commencement_date": "2026-01-01",
+            "term_months": 120,
+            "starting_rent_psf_yr": 40,
+            "escalation": {
+              "type": "none"
+            },
+            "free_rent_months": 6,
+            "ti_allowance_psf": 50,
+            "leasing_commissions_usd": 100000,
+            "expense_basis": "full_service",
+            "confirming_party": "landlord_broker",
+            "verification": "party_confirmed",
+            "state": "TX",
+            "submarket": "Downtown"
+          },
+          "as_of": "2026-10-01",
+          "provenance": {
+            "method": "reported",
+            "sources": [
+              {
+                "document_id": "firm:deal-4471",
+                "title": "Executed lease, summarized by the leasing broker"
+              }
+            ]
+          },
+          "rights": {
+            "ai_use": "permitted",
+            "redistribution": "attribution_required"
+          }
+        },
+        "discount_rate_annual": 0.08
+      },
+      "expect": {
+        "valid": true,
+        "issues": [],
+        "warnings": [],
+        "ner.formula": "calc.net_effective_rent@1",
+        "ner.fact.value": {
+          "net_effective_rent_psf": 32,
+          "discounted_net_effective_rent_psf": 28.4772,
+          "effective_rent_psf": 38,
+          "discount_rate_annual": 0.08,
+          "term_months": 120,
+          "expense_basis": "full_service"
+        },
+        "ner.fact.predicate": "lease.net_effective_rent"
+      }
+    },
+    {
+      "name": "default discount rate is 8%",
+      "tool": "lease_comp_validate",
+      "arguments": {
+        "fact": {
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.comp",
+          "value": {
+            "comp_type": "new",
+            "property_type": "office",
+            "area_sf": 10000,
+            "area_basis": "rentable",
+            "commencement_date": "2026-01-01",
+            "term_months": 120,
+            "starting_rent_psf_yr": 40,
+            "escalation": {
+              "type": "none"
+            },
+            "free_rent_months": 6,
+            "ti_allowance_psf": 50,
+            "leasing_commissions_usd": 100000,
+            "expense_basis": "full_service",
+            "confirming_party": "landlord_broker",
+            "verification": "party_confirmed",
+            "state": "TX",
+            "submarket": "Downtown"
+          },
+          "as_of": "2026-10-01",
+          "provenance": {
+            "method": "reported",
+            "sources": [
+              {
+                "document_id": "firm:deal-4471",
+                "title": "Executed lease, summarized by the leasing broker"
+              }
+            ]
+          },
+          "rights": {
+            "ai_use": "permitted",
+            "redistribution": "attribution_required"
+          }
+        }
+      },
+      "expect": {
+        "valid": true,
+        "issues": [],
+        "warnings": [],
+        "ner.formula": "calc.net_effective_rent@1",
+        "ner.fact.value": {
+          "net_effective_rent_psf": 32,
+          "discounted_net_effective_rent_psf": 28.4772,
+          "effective_rent_psf": 38,
+          "discount_rate_annual": 0.08,
+          "term_months": 120,
+          "expense_basis": "full_service"
+        },
+        "ner.fact.predicate": "lease.net_effective_rent"
+      }
+    },
+    {
+      "name": "zero discount rate gives the straight-line NER twice and warns",
+      "tool": "lease_comp_validate",
+      "arguments": {
+        "fact": {
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.comp",
+          "value": {
+            "comp_type": "new",
+            "property_type": "office",
+            "area_sf": 10000,
+            "area_basis": "rentable",
+            "commencement_date": "2026-01-01",
+            "term_months": 120,
+            "starting_rent_psf_yr": 40,
+            "escalation": {
+              "type": "none"
+            },
+            "free_rent_months": 6,
+            "ti_allowance_psf": 50,
+            "leasing_commissions_usd": 100000,
+            "expense_basis": "full_service",
+            "confirming_party": "landlord_broker",
+            "verification": "party_confirmed",
+            "state": "TX",
+            "submarket": "Downtown"
+          },
+          "as_of": "2026-10-01",
+          "provenance": {
+            "method": "reported",
+            "sources": [
+              {
+                "document_id": "firm:deal-4471",
+                "title": "Executed lease, summarized by the leasing broker"
+              }
+            ]
+          },
+          "rights": {
+            "ai_use": "permitted",
+            "redistribution": "attribution_required"
+          }
+        },
+        "discount_rate_annual": 0
+      },
+      "expect": {
+        "valid": true,
+        "issues": [],
+        "warnings": [
+          "discount_rate_annual is 0, so discounted NER equals straight-line NER."
+        ],
+        "ner.formula": "calc.net_effective_rent@1",
+        "ner.fact.value": {
+          "net_effective_rent_psf": 32,
+          "discounted_net_effective_rent_psf": 32,
+          "effective_rent_psf": 38,
+          "discount_rate_annual": 0,
+          "term_months": 120,
+          "expense_basis": "full_service"
+        },
+        "ner.fact.predicate": "lease.net_effective_rent"
+      }
+    },
+    {
+      "name": "3% bumps, 3 months free, expiration instead of term",
+      "tool": "lease_comp_validate",
+      "arguments": {
+        "fact": {
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.comp",
+          "value": {
+            "comp_type": "new",
+            "property_type": "industrial",
+            "area_sf": 10000,
+            "area_basis": "rentable",
+            "commencement_date": "2026-01-01",
+            "starting_rent_psf_yr": 40,
+            "escalation": {
+              "type": "percent",
+              "rate": 0.03
+            },
+            "free_rent_months": 3,
+            "ti_allowance_psf": 25,
+            "expense_basis": "nnn",
+            "confirming_party": "landlord_broker",
+            "verification": "party_confirmed",
+            "state": "TX",
+            "submarket": "Downtown",
+            "expiration_date": "2031-12-31",
+            "opex_psf_yr": 3.5
+          },
+          "as_of": "2026-10-01",
+          "provenance": {
+            "method": "reported",
+            "sources": [
+              {
+                "document_id": "firm:deal-4471",
+                "title": "Executed lease, summarized by the leasing broker"
+              }
+            ]
+          },
+          "rights": {
+            "ai_use": "permitted",
+            "redistribution": "attribution_required"
+          }
+        }
+      },
+      "expect": {
+        "valid": true,
+        "issues": [],
+        "warnings": [],
+        "ner.formula": "calc.net_effective_rent@1",
+        "ner.fact.value": {
+          "net_effective_rent_psf": 37.2894,
+          "discounted_net_effective_rent_psf": 35.5266,
+          "effective_rent_psf": 41.4561,
+          "discount_rate_annual": 0.08,
+          "term_months": 72,
+          "expense_basis": "nnn"
+        },
+        "ner.fact.predicate": "lease.net_effective_rent"
+      }
+    },
+    {
+      "name": "fixed $/SF bumps every 24 months",
+      "tool": "lease_comp_validate",
+      "arguments": {
+        "fact": {
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.comp",
+          "value": {
+            "comp_type": "new",
+            "property_type": "office",
+            "area_sf": 10000,
+            "area_basis": "rentable",
+            "commencement_date": "2026-01-01",
+            "term_months": 60,
+            "starting_rent_psf_yr": 40,
+            "escalation": {
+              "type": "fixed_psf",
+              "amount": 0.5,
+              "every_months": 24
+            },
+            "free_rent_months": 0,
+            "ti_allowance_psf": 0,
+            "expense_basis": "full_service",
+            "confirming_party": "landlord_broker",
+            "verification": "party_confirmed",
+            "state": "TX",
+            "submarket": "Downtown",
+            "other_concessions_usd": 15000
+          },
+          "as_of": "2026-10-01",
+          "provenance": {
+            "method": "reported",
+            "sources": [
+              {
+                "document_id": "firm:deal-4471",
+                "title": "Executed lease, summarized by the leasing broker"
+              }
+            ]
+          },
+          "rights": {
+            "ai_use": "permitted",
+            "redistribution": "attribution_required"
+          }
+        }
+      },
+      "expect": {
+        "valid": true,
+        "issues": [],
+        "warnings": [],
+        "ner.formula": "calc.net_effective_rent@1",
+        "ner.fact.value": {
+          "net_effective_rent_psf": 40.1,
+          "discounted_net_effective_rent_psf": 39.998,
+          "effective_rent_psf": 40.4,
+          "discount_rate_annual": 0.08,
+          "term_months": 60,
+          "expense_basis": "full_service"
+        },
+        "ner.fact.predicate": "lease.net_effective_rent"
+      }
+    },
+    {
+      "name": "mid-month commencement passes the calculator's warning through",
+      "tool": "lease_comp_validate",
+      "arguments": {
+        "fact": {
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.comp",
+          "value": {
+            "comp_type": "new",
+            "property_type": "office",
+            "area_sf": 10000,
+            "area_basis": "rentable",
+            "commencement_date": "2026-03-15",
+            "term_months": 60,
+            "starting_rent_psf_yr": 40,
+            "escalation": {
+              "type": "none"
+            },
+            "free_rent_months": 6,
+            "ti_allowance_psf": 50,
+            "leasing_commissions_usd": 100000,
+            "expense_basis": "full_service",
+            "confirming_party": "landlord_broker",
+            "verification": "party_confirmed",
+            "state": "TX",
+            "submarket": "Downtown"
+          },
+          "as_of": "2026-10-01",
+          "provenance": {
+            "method": "reported",
+            "sources": [
+              {
+                "document_id": "firm:deal-4471",
+                "title": "Executed lease, summarized by the leasing broker"
+              }
+            ]
+          },
+          "rights": {
+            "ai_use": "permitted",
+            "redistribution": "attribution_required"
+          }
+        }
+      },
+      "expect": {
+        "valid": true,
+        "issues": [],
+        "warnings": [
+          "Commencement 2026-03-15 is mid-month: each lease month runs from day 15 to the day before it in the next month (clamped to month end), and rent is not prorated to calendar months; if rent is billed by calendar month, the first and last partial months need proration outside this result."
+        ],
+        "ner.formula": "calc.net_effective_rent@1",
+        "ner.fact.value": {
+          "net_effective_rent_psf": 24,
+          "discounted_net_effective_rent_psf": 20.7429,
+          "effective_rent_psf": 36,
+          "discount_rate_annual": 0.08,
+          "term_months": 60,
+          "expense_basis": "full_service"
+        },
+        "ner.fact.predicate": "lease.net_effective_rent"
+      }
+    },
+    {
+      "name": "free rent on gross rent warns that the NER abates base rent only",
+      "tool": "lease_comp_validate",
+      "arguments": {
+        "fact": {
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.comp",
+          "value": {
+            "comp_type": "new",
+            "property_type": "office",
+            "area_sf": 10000,
+            "area_basis": "rentable",
+            "commencement_date": "2026-01-01",
+            "term_months": 120,
+            "starting_rent_psf_yr": 40,
+            "escalation": {
+              "type": "none"
+            },
+            "free_rent_months": 6,
+            "ti_allowance_psf": 50,
+            "leasing_commissions_usd": 100000,
+            "expense_basis": "full_service",
+            "confirming_party": "landlord_broker",
+            "verification": "party_confirmed",
+            "state": "TX",
+            "submarket": "Downtown",
+            "free_rent_applies_to": "gross_rent"
+          },
+          "as_of": "2026-10-01",
+          "provenance": {
+            "method": "reported",
+            "sources": [
+              {
+                "document_id": "firm:deal-4471",
+                "title": "Executed lease, summarized by the leasing broker"
+              }
+            ]
+          },
+          "rights": {
+            "ai_use": "permitted",
+            "redistribution": "attribution_required"
+          }
+        }
+      },
+      "expect": {
+        "valid": true,
+        "issues": [],
+        "warnings": [
+          "free rent applies to gross rent, but the NER abates base rent only: the NER is higher than the tenant's true saving"
+        ],
+        "ner.formula": "calc.net_effective_rent@1",
+        "ner.fact.value": {
+          "net_effective_rent_psf": 32,
+          "discounted_net_effective_rent_psf": 28.4772,
+          "effective_rent_psf": 38,
+          "discount_rate_annual": 0.08,
+          "term_months": 120,
+          "expense_basis": "full_service"
+        },
+        "ner.fact.predicate": "lease.net_effective_rent"
+      }
+    },
+    {
+      "name": "observed profile: a current rent alone is valid and derives no NER",
+      "tool": "lease_comp_validate",
+      "arguments": {
+        "profile": "observed",
+        "fact": {
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.comp",
+          "value": {
+            "comp_type": "renewal",
+            "property_type": "office",
+            "area_sf": 10000,
+            "area_basis": "rentable",
+            "commencement_date": "2026-01-01",
+            "term_months": 120,
+            "expense_basis": "full_service",
+            "confirming_party": "public_record",
+            "verification": "public_record",
+            "state": "TX",
+            "submarket": "Downtown",
+            "current_rent_psf_yr": 31.25
+          },
+          "as_of": "2026-10-01",
+          "provenance": {
+            "method": "public_record",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-abababababababababababababababababababababababababababababababab"
+              }
+            ]
+          },
+          "rights": {
+            "ai_use": "unknown",
+            "redistribution": "permitted"
+          }
+        }
+      },
+      "expect": {
+        "valid": true,
+        "issues": [],
+        "warnings": [
+          "rights say unknown for ai_use or redistribution: other firms cannot tell what they may do with this comp, and a cautious reader will treat unknown as prohibited"
+        ],
+        "ner": null,
+        "ner_reason": "no starting_rent_psf_yr: net effective rent needs the deal's starting rent, and an observed current rent is not one"
+      }
+    },
+    {
+      "name": "share profile asks for what a shared comp must state",
+      "tool": "lease_comp_validate",
+      "arguments": {
+        "fact": {
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.comp",
+          "value": {
+            "comp_type": "new",
+            "area_sf": 10000,
+            "area_basis": "rentable",
+            "commencement_date": "2026-01-01",
+            "term_months": 120,
+            "leasing_commissions_usd": 100000,
+            "expense_basis": "unknown",
+            "confirming_party": "landlord_broker",
+            "verification": "party_confirmed",
+            "state": "TX",
+            "submarket": "Downtown",
+            "current_rent_psf_yr": 31.25
+          },
+          "as_of": "2026-10-01",
+          "provenance": {
+            "method": "reported",
+            "sources": [
+              {
+                "document_id": "firm:deal-4471",
+                "title": "Executed lease, summarized by the leasing broker"
+              }
+            ]
+          }
+        }
+      },
+      "expect": {
+        "valid": false,
+        "issues": [
+          {
+            "path": "value.starting_rent_psf_yr",
+            "message": "a shared comp states the deal's starting rent (current_rent_psf_yr alone is an observed rent)"
+          },
+          {
+            "path": "value.escalation",
+            "message": "state the escalations (type none if the rent is flat)"
+          },
+          {
+            "path": "value.free_rent_months",
+            "message": "state the free rent (0 if none)"
+          },
+          {
+            "path": "value.ti_allowance_psf",
+            "message": "state the tenant improvement allowance (0 if none)"
+          },
+          {
+            "path": "value.property_type",
+            "message": "state the property type"
+          },
+          {
+            "path": "value.expense_basis",
+            "message": "state the expense basis (full_service, nnn, ...): rent means little without it"
+          },
+          {
+            "path": "rights",
+            "message": "a shared comp states its rights: ai_use and redistribution (permitted, attribution_required, prohibited or unknown)"
+          }
+        ],
+        "warnings": [],
+        "ner": null
+      }
+    },
+    {
+      "name": "neither starting nor current rent, and neither term nor expiration",
+      "tool": "lease_comp_validate",
+      "arguments": {
+        "profile": "observed",
+        "fact": {
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.comp",
+          "value": {
+            "comp_type": "new",
+            "property_type": "office",
+            "area_sf": 10000,
+            "area_basis": "rentable",
+            "commencement_date": "2026-01-01",
+            "escalation": {
+              "type": "none"
+            },
+            "free_rent_months": 6,
+            "ti_allowance_psf": 50,
+            "leasing_commissions_usd": 100000,
+            "expense_basis": "full_service",
+            "confirming_party": "landlord_broker",
+            "verification": "party_confirmed",
+            "state": "TX",
+            "submarket": "Downtown"
+          },
+          "as_of": "2026-10-01",
+          "provenance": {
+            "method": "reported",
+            "sources": [
+              {
+                "document_id": "firm:deal-4471",
+                "title": "Executed lease, summarized by the leasing broker"
+              }
+            ]
+          },
+          "rights": {
+            "ai_use": "permitted",
+            "redistribution": "attribution_required"
+          }
+        }
+      },
+      "expect": {
+        "valid": false,
+        "issues": [
+          {
+            "path": "value.starting_rent_psf_yr",
+            "message": "give starting_rent_psf_yr (the deal's first-year base rent) or current_rent_psf_yr (an observed rent)"
+          },
+          {
+            "path": "value.term_months",
+            "message": "give term_months or expiration_date"
+          }
+        ],
+        "warnings": [],
+        "ner": null
+      }
+    },
+    {
+      "name": "wrong shapes are reported in schema order, then unknown keys",
+      "tool": "lease_comp_validate",
+      "arguments": {
+        "fact": {
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.comp",
+          "value": {
+            "comp_type": "new",
+            "property_type": "office",
+            "area_sf": "ten thousand",
+            "area_basis": "rentable",
+            "commencement_date": "2026-01-01",
+            "term_months": 3.5,
+            "starting_rent_psf_yr": 40,
+            "escalation": "x",
+            "free_rent_months": -1,
+            "ti_allowance_psf": 50,
+            "leasing_commissions_usd": 100000,
+            "expense_basis": "full_service",
+            "confirming_party": "friend",
+            "verification": "party_confirmed",
+            "state": "TX",
+            "submarket": "Downtown",
+            "bogus": 1
+          },
+          "as_of": "2026-10-01",
+          "provenance": {
+            "method": "reported",
+            "sources": [
+              {
+                "document_id": "firm:deal-4471",
+                "title": "Executed lease, summarized by the leasing broker"
+              }
+            ]
+          },
+          "rights": {
+            "ai_use": "permitted",
+            "redistribution": "attribution_required"
+          }
+        }
+      },
+      "expect": {
+        "valid": false,
+        "issues": [
+          {
+            "path": "value.area_sf",
+            "message": "Invalid input: expected number, received string"
+          },
+          {
+            "path": "value.term_months",
+            "message": "Invalid input: expected int, received number"
+          },
+          {
+            "path": "value.escalation",
+            "message": "Invalid input: expected object, received string"
+          },
+          {
+            "path": "value.free_rent_months",
+            "message": "Too small: expected number to be >=0"
+          },
+          {
+            "path": "value.confirming_party",
+            "message": "Invalid option: expected one of \"landlord\"|\"tenant\"|\"landlord_broker\"|\"tenant_broker\"|\"both_parties\"|\"public_record\"|\"appraiser\"|\"lender\"|\"other\""
+          },
+          {
+            "path": "value",
+            "message": "Unrecognized key: \"bogus\""
+          }
+        ],
+        "warnings": [],
+        "ner": null
+      }
+    },
+    {
+      "name": "bounds and formats",
+      "tool": "lease_comp_validate",
+      "arguments": {
+        "fact": {
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.comp",
+          "value": {
+            "comp_type": "new",
+            "property_type": "office",
+            "area_sf": 0,
+            "area_basis": "rentable",
+            "commencement_date": "2026-02-30",
+            "term_months": 1201,
+            "starting_rent_psf_yr": -1,
+            "escalation": {
+              "type": "none"
+            },
+            "free_rent_months": 6,
+            "ti_allowance_psf": 50,
+            "leasing_commissions_usd": 100000,
+            "expense_basis": "full_service",
+            "confirming_party": "landlord_broker",
+            "verification": "party_confirmed",
+            "state": "tx",
+            "submarket": "sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss",
+            "building": "x",
+            "renewal_options": {
+              "count": 1.5,
+              "term_months": 0
+            }
+          },
+          "as_of": "2026-10-01",
+          "provenance": {
+            "method": "reported",
+            "sources": [
+              {
+                "document_id": "firm:deal-4471",
+                "title": "Executed lease, summarized by the leasing broker"
+              }
+            ]
+          },
+          "rights": {
+            "ai_use": "permitted",
+            "redistribution": "attribution_required"
+          }
+        }
+      },
+      "expect": {
+        "valid": false,
+        "issues": [
+          {
+            "path": "value.area_sf",
+            "message": "Too small: expected number to be >0"
+          },
+          {
+            "path": "value.commencement_date",
+            "message": "Invalid ISO date"
+          },
+          {
+            "path": "value.term_months",
+            "message": "Too big: expected number to be <=1200"
+          },
+          {
+            "path": "value.starting_rent_psf_yr",
+            "message": "Too small: expected number to be >=0"
+          },
+          {
+            "path": "value.renewal_options.count",
+            "message": "Invalid input: expected int, received number"
+          },
+          {
+            "path": "value.renewal_options.term_months",
+            "message": "Too small: expected number to be >0"
+          },
+          {
+            "path": "value.building",
+            "message": "expected a FactLot building URN"
+          },
+          {
+            "path": "value.submarket",
+            "message": "Too big: expected string to have <=120 characters"
+          },
+          {
+            "path": "value.state",
+            "message": "expected a two-letter state code"
+          }
+        ],
+        "warnings": [],
+        "ner": null
+      }
+    },
+    {
+      "name": "escalation fields",
+      "tool": "lease_comp_validate",
+      "arguments": {
+        "fact": {
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.comp",
+          "value": {
+            "comp_type": "new",
+            "property_type": "office",
+            "area_sf": 10000,
+            "area_basis": "rentable",
+            "commencement_date": "2026-01-01",
+            "term_months": 120,
+            "starting_rent_psf_yr": 40,
+            "escalation": {
+              "type": "percent",
+              "every_months": 0,
+              "rate": 10
+            },
+            "free_rent_months": 6,
+            "ti_allowance_psf": 50,
+            "leasing_commissions_usd": 100000,
+            "expense_basis": "full_service",
+            "confirming_party": "landlord_broker",
+            "verification": "party_confirmed",
+            "state": "TX",
+            "submarket": "Downtown"
+          },
+          "as_of": "2026-10-01",
+          "provenance": {
+            "method": "reported",
+            "sources": [
+              {
+                "document_id": "firm:deal-4471",
+                "title": "Executed lease, summarized by the leasing broker"
+              }
+            ]
+          },
+          "rights": {
+            "ai_use": "permitted",
+            "redistribution": "attribution_required"
+          }
+        }
+      },
+      "expect": {
+        "valid": false,
+        "issues": [
+          {
+            "path": "value.escalation.rate",
+            "message": "Too big: expected number to be <10"
+          },
+          {
+            "path": "value.escalation.every_months",
+            "message": "Too small: expected number to be >0"
+          }
+        ],
+        "warnings": [],
+        "ner": null
+      }
+    },
+    {
+      "name": "a percent escalation needs its rate and a fixed one its amount",
+      "tool": "lease_comp_validate",
+      "arguments": {
+        "fact": {
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.comp",
+          "value": {
+            "comp_type": "new",
+            "property_type": "office",
+            "area_sf": 10000,
+            "area_basis": "rentable",
+            "commencement_date": "2026-01-01",
+            "term_months": 120,
+            "starting_rent_psf_yr": 40,
+            "escalation": {
+              "type": "percent"
+            },
+            "free_rent_months": 6,
+            "ti_allowance_psf": 50,
+            "leasing_commissions_usd": 100000,
+            "expense_basis": "full_service",
+            "confirming_party": "landlord_broker",
+            "verification": "party_confirmed",
+            "state": "TX",
+            "submarket": "Downtown"
+          },
+          "as_of": "2026-10-01",
+          "provenance": {
+            "method": "reported",
+            "sources": [
+              {
+                "document_id": "firm:deal-4471",
+                "title": "Executed lease, summarized by the leasing broker"
+              }
+            ]
+          },
+          "rights": {
+            "ai_use": "permitted",
+            "redistribution": "attribution_required"
+          }
+        }
+      },
+      "expect": {
+        "valid": false,
+        "issues": [
+          {
+            "path": "value.escalation.rate",
+            "message": "an escalation of type percent needs rate (0.03 for 3%)"
+          }
+        ],
+        "warnings": [],
+        "ner": null
+      }
+    },
+    {
+      "name": "a fixed escalation needs its amount",
+      "tool": "lease_comp_validate",
+      "arguments": {
+        "fact": {
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.comp",
+          "value": {
+            "comp_type": "new",
+            "property_type": "office",
+            "area_sf": 10000,
+            "area_basis": "rentable",
+            "commencement_date": "2026-01-01",
+            "term_months": 120,
+            "starting_rent_psf_yr": 40,
+            "escalation": {
+              "type": "fixed_psf"
+            },
+            "free_rent_months": 6,
+            "ti_allowance_psf": 50,
+            "leasing_commissions_usd": 100000,
+            "expense_basis": "full_service",
+            "confirming_party": "landlord_broker",
+            "verification": "party_confirmed",
+            "state": "TX",
+            "submarket": "Downtown"
+          },
+          "as_of": "2026-10-01",
+          "provenance": {
+            "method": "reported",
+            "sources": [
+              {
+                "document_id": "firm:deal-4471",
+                "title": "Executed lease, summarized by the leasing broker"
+              }
+            ]
+          },
+          "rights": {
+            "ai_use": "permitted",
+            "redistribution": "attribution_required"
+          }
+        }
+      },
+      "expect": {
+        "valid": false,
+        "issues": [
+          {
+            "path": "value.escalation.amount",
+            "message": "an escalation of type fixed_psf needs amount (USD per SF per year)"
+          }
+        ],
+        "warnings": [],
+        "ner": null
+      }
+    },
+    {
+      "name": "expiration not after commencement",
+      "tool": "lease_comp_validate",
+      "arguments": {
+        "fact": {
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.comp",
+          "value": {
+            "comp_type": "new",
+            "property_type": "office",
+            "area_sf": 10000,
+            "area_basis": "rentable",
+            "commencement_date": "2026-01-01",
+            "starting_rent_psf_yr": 40,
+            "escalation": {
+              "type": "none"
+            },
+            "free_rent_months": 6,
+            "ti_allowance_psf": 50,
+            "leasing_commissions_usd": 100000,
+            "expense_basis": "full_service",
+            "confirming_party": "landlord_broker",
+            "verification": "party_confirmed",
+            "state": "TX",
+            "submarket": "Downtown",
+            "expiration_date": "2025-12-31"
+          },
+          "as_of": "2026-10-01",
+          "provenance": {
+            "method": "reported",
+            "sources": [
+              {
+                "document_id": "firm:deal-4471",
+                "title": "Executed lease, summarized by the leasing broker"
+              }
+            ]
+          },
+          "rights": {
+            "ai_use": "permitted",
+            "redistribution": "attribution_required"
+          }
+        }
+      },
+      "expect": {
+        "valid": false,
+        "issues": [
+          {
+            "path": "value.expiration_date",
+            "message": "expiration_date is not after commencement_date"
+          }
+        ],
+        "warnings": [],
+        "ner": null
+      }
+    },
+    {
+      "name": "term_months disagrees with the dates",
+      "tool": "lease_comp_validate",
+      "arguments": {
+        "fact": {
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.comp",
+          "value": {
+            "comp_type": "new",
+            "property_type": "office",
+            "area_sf": 10000,
+            "area_basis": "rentable",
+            "commencement_date": "2026-01-01",
+            "term_months": 12,
+            "starting_rent_psf_yr": 40,
+            "escalation": {
+              "type": "none"
+            },
+            "free_rent_months": 6,
+            "ti_allowance_psf": 50,
+            "leasing_commissions_usd": 100000,
+            "expense_basis": "full_service",
+            "confirming_party": "landlord_broker",
+            "verification": "party_confirmed",
+            "state": "TX",
+            "submarket": "Downtown",
+            "expiration_date": "2035-12-31"
+          },
+          "as_of": "2026-10-01",
+          "provenance": {
+            "method": "reported",
+            "sources": [
+              {
+                "document_id": "firm:deal-4471",
+                "title": "Executed lease, summarized by the leasing broker"
+              }
+            ]
+          },
+          "rights": {
+            "ai_use": "permitted",
+            "redistribution": "attribution_required"
+          }
+        }
+      },
+      "expect": {
+        "valid": false,
+        "issues": [
+          {
+            "path": "value.term_months",
+            "message": "term_months 12 does not match commencement_date to expiration_date (about 120 months)"
+          }
+        ],
+        "warnings": [],
+        "ner": null
+      }
+    },
+    {
+      "name": "term_months agrees with the dates to within a month and a half",
+      "tool": "lease_comp_validate",
+      "arguments": {
+        "fact": {
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.comp",
+          "value": {
+            "comp_type": "new",
+            "property_type": "office",
+            "area_sf": 10000,
+            "area_basis": "rentable",
+            "commencement_date": "2026-01-01",
+            "term_months": 121,
+            "starting_rent_psf_yr": 40,
+            "escalation": {
+              "type": "none"
+            },
+            "free_rent_months": 6,
+            "ti_allowance_psf": 50,
+            "leasing_commissions_usd": 100000,
+            "expense_basis": "full_service",
+            "confirming_party": "landlord_broker",
+            "verification": "party_confirmed",
+            "state": "TX",
+            "submarket": "Downtown",
+            "expiration_date": "2035-12-31"
+          },
+          "as_of": "2026-10-01",
+          "provenance": {
+            "method": "reported",
+            "sources": [
+              {
+                "document_id": "firm:deal-4471",
+                "title": "Executed lease, summarized by the leasing broker"
+              }
+            ]
+          },
+          "rights": {
+            "ai_use": "permitted",
+            "redistribution": "attribution_required"
+          }
+        }
+      },
+      "expect": {
+        "valid": true,
+        "issues": [],
+        "warnings": [],
+        "ner.formula": "calc.net_effective_rent@1",
+        "ner.fact.value": {
+          "net_effective_rent_psf": 32.0661,
+          "discounted_net_effective_rent_psf": 28.5394,
+          "effective_rent_psf": 38.0165,
+          "discount_rate_annual": 0.08,
+          "term_months": 121,
+          "expense_basis": "full_service"
+        },
+        "ner.fact.predicate": "lease.net_effective_rent"
+      }
+    },
+    {
+      "name": "early termination outside the term",
+      "tool": "lease_comp_validate",
+      "arguments": {
+        "fact": {
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.comp",
+          "value": {
+            "comp_type": "new",
+            "property_type": "office",
+            "area_sf": 10000,
+            "area_basis": "rentable",
+            "commencement_date": "2026-01-01",
+            "starting_rent_psf_yr": 40,
+            "escalation": {
+              "type": "none"
+            },
+            "free_rent_months": 6,
+            "ti_allowance_psf": 50,
+            "leasing_commissions_usd": 100000,
+            "expense_basis": "full_service",
+            "confirming_party": "landlord_broker",
+            "verification": "party_confirmed",
+            "state": "TX",
+            "submarket": "Downtown",
+            "expiration_date": "2035-12-31",
+            "early_termination_date": "2025-06-01"
+          },
+          "as_of": "2026-10-01",
+          "provenance": {
+            "method": "reported",
+            "sources": [
+              {
+                "document_id": "firm:deal-4471",
+                "title": "Executed lease, summarized by the leasing broker"
+              }
+            ]
+          },
+          "rights": {
+            "ai_use": "permitted",
+            "redistribution": "attribution_required"
+          }
+        }
+      },
+      "expect": {
+        "valid": false,
+        "issues": [
+          {
+            "path": "value.early_termination_date",
+            "message": "early_termination_date is before commencement_date"
+          }
+        ],
+        "warnings": [],
+        "ner": null
+      }
+    },
+    {
+      "name": "early termination after expiration",
+      "tool": "lease_comp_validate",
+      "arguments": {
+        "fact": {
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.comp",
+          "value": {
+            "comp_type": "new",
+            "property_type": "office",
+            "area_sf": 10000,
+            "area_basis": "rentable",
+            "commencement_date": "2026-01-01",
+            "starting_rent_psf_yr": 40,
+            "escalation": {
+              "type": "none"
+            },
+            "free_rent_months": 6,
+            "ti_allowance_psf": 50,
+            "leasing_commissions_usd": 100000,
+            "expense_basis": "full_service",
+            "confirming_party": "landlord_broker",
+            "verification": "party_confirmed",
+            "state": "TX",
+            "submarket": "Downtown",
+            "expiration_date": "2035-12-31",
+            "early_termination_date": "2036-06-01"
+          },
+          "as_of": "2026-10-01",
+          "provenance": {
+            "method": "reported",
+            "sources": [
+              {
+                "document_id": "firm:deal-4471",
+                "title": "Executed lease, summarized by the leasing broker"
+              }
+            ]
+          },
+          "rights": {
+            "ai_use": "permitted",
+            "redistribution": "attribution_required"
+          }
+        }
+      },
+      "expect": {
+        "valid": false,
+        "issues": [
+          {
+            "path": "value.early_termination_date",
+            "message": "early_termination_date is after expiration_date"
+          }
+        ],
+        "warnings": [],
+        "ner": null
+      }
+    },
+    {
+      "name": "free rent longer than the term",
+      "tool": "lease_comp_validate",
+      "arguments": {
+        "fact": {
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.comp",
+          "value": {
+            "comp_type": "new",
+            "property_type": "office",
+            "area_sf": 10000,
+            "area_basis": "rentable",
+            "commencement_date": "2026-01-01",
+            "term_months": 12,
+            "starting_rent_psf_yr": 40,
+            "escalation": {
+              "type": "none"
+            },
+            "free_rent_months": 13,
+            "ti_allowance_psf": 50,
+            "leasing_commissions_usd": 100000,
+            "expense_basis": "full_service",
+            "confirming_party": "landlord_broker",
+            "verification": "party_confirmed",
+            "state": "TX",
+            "submarket": "Downtown"
+          },
+          "as_of": "2026-10-01",
+          "provenance": {
+            "method": "reported",
+            "sources": [
+              {
+                "document_id": "firm:deal-4471",
+                "title": "Executed lease, summarized by the leasing broker"
+              }
+            ]
+          },
+          "rights": {
+            "ai_use": "permitted",
+            "redistribution": "attribution_required"
+          }
+        }
+      },
+      "expect": {
+        "valid": false,
+        "issues": [
+          {
+            "path": "value.free_rent_months",
+            "message": "free_rent_months is longer than the term"
+          }
+        ],
+        "warnings": [],
+        "ner": null
+      }
+    },
+    {
+      "name": "free rent equal to the term is accepted",
+      "tool": "lease_comp_validate",
+      "arguments": {
+        "fact": {
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.comp",
+          "value": {
+            "comp_type": "new",
+            "property_type": "office",
+            "area_sf": 10000,
+            "area_basis": "rentable",
+            "commencement_date": "2026-01-01",
+            "term_months": 12,
+            "starting_rent_psf_yr": 40,
+            "escalation": {
+              "type": "none"
+            },
+            "free_rent_months": 12,
+            "ti_allowance_psf": 50,
+            "leasing_commissions_usd": 100000,
+            "expense_basis": "full_service",
+            "confirming_party": "landlord_broker",
+            "verification": "party_confirmed",
+            "state": "TX",
+            "submarket": "Downtown"
+          },
+          "as_of": "2026-10-01",
+          "provenance": {
+            "method": "reported",
+            "sources": [
+              {
+                "document_id": "firm:deal-4471",
+                "title": "Executed lease, summarized by the leasing broker"
+              }
+            ]
+          },
+          "rights": {
+            "ai_use": "permitted",
+            "redistribution": "attribution_required"
+          }
+        }
+      },
+      "expect": {
+        "valid": true,
+        "issues": [],
+        "warnings": [
+          "free_rent_months equals term_months: no base rent is ever payable, so the NER is negative"
+        ],
+        "ner.formula": "calc.net_effective_rent@1",
+        "ner.fact.value": {
+          "net_effective_rent_psf": -60,
+          "discounted_net_effective_rent_psf": -62.2169,
+          "effective_rent_psf": 0,
+          "discount_rate_annual": 0.08,
+          "term_months": 12,
+          "expense_basis": "full_service"
+        },
+        "ner.fact.predicate": "lease.net_effective_rent"
+      }
+    },
+    {
+      "name": "contact details in the text",
+      "tool": "lease_comp_validate",
+      "arguments": {
+        "fact": {
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.comp",
+          "value": {
+            "comp_type": "new",
+            "property_type": "office",
+            "area_sf": 10000,
+            "area_basis": "rentable",
+            "commencement_date": "2026-01-01",
+            "term_months": 120,
+            "starting_rent_psf_yr": 40,
+            "escalation": {
+              "type": "none"
+            },
+            "free_rent_months": 6,
+            "ti_allowance_psf": 50,
+            "leasing_commissions_usd": 100000,
+            "expense_basis": "full_service",
+            "confirming_party": "landlord_broker",
+            "verification": "party_confirmed",
+            "state": "TX",
+            "submarket": "SSN 123-45-6789",
+            "notes": "Call Jo on (214) 555-0147 or write jo@example.com"
+          },
+          "as_of": "2026-10-01",
+          "provenance": {
+            "method": "reported",
+            "sources": [
+              {
+                "document_id": "firm:deal-4471",
+                "title": "Executed lease, summarized by the leasing broker"
+              }
+            ]
+          },
+          "rights": {
+            "ai_use": "permitted",
+            "redistribution": "attribution_required"
+          }
+        }
+      },
+      "expect": {
+        "valid": false,
+        "issues": [
+          {
+            "path": "value.notes",
+            "message": "looks like an email address, phone number or ID number; a comp carries no personal data"
+          },
+          {
+            "path": "value.submarket",
+            "message": "looks like an email address, phone number or ID number; a comp carries no personal data"
+          }
+        ],
+        "warnings": [],
+        "ner": null
+      }
+    },
+    {
+      "name": "wrong predicate and subject",
+      "tool": "lease_comp_validate",
+      "arguments": {
+        "fact": {
+          "subject": "fl:parcel:us-48201:123",
+          "predicate": "lease.expiration_date",
+          "value": {
+            "comp_type": "new",
+            "property_type": "office",
+            "area_sf": 10000,
+            "area_basis": "rentable",
+            "commencement_date": "2026-01-01",
+            "term_months": 120,
+            "starting_rent_psf_yr": 40,
+            "escalation": {
+              "type": "none"
+            },
+            "free_rent_months": 6,
+            "ti_allowance_psf": 50,
+            "leasing_commissions_usd": 100000,
+            "expense_basis": "full_service",
+            "confirming_party": "landlord_broker",
+            "verification": "party_confirmed",
+            "state": "TX",
+            "submarket": "Downtown"
+          },
+          "as_of": "2026-10-01",
+          "provenance": {
+            "method": "reported",
+            "sources": [
+              {
+                "document_id": "firm:deal-4471",
+                "title": "Executed lease, summarized by the leasing broker"
+              }
+            ]
+          },
+          "rights": {
+            "ai_use": "permitted",
+            "redistribution": "attribution_required"
+          }
+        }
+      },
+      "expect": {
+        "valid": false,
+        "issues": [
+          {
+            "path": "value",
+            "message": "value does not fit lease.expiration_date: expected YYYY-MM-DD date"
+          },
+          {
+            "path": "predicate",
+            "message": "expected \"lease.comp\""
+          },
+          {
+            "path": "subject",
+            "message": "a lease comp is about a lease: expected an fl:lease: URN"
+          }
+        ],
+        "warnings": [],
+        "ner": null
+      }
+    },
+    {
+      "name": "rights unknown is a warning",
+      "tool": "lease_comp_validate",
+      "arguments": {
+        "fact": {
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.comp",
+          "value": {
+            "comp_type": "new",
+            "property_type": "office",
+            "area_sf": 10000,
+            "area_basis": "rentable",
+            "commencement_date": "2026-01-01",
+            "term_months": 120,
+            "starting_rent_psf_yr": 40,
+            "escalation": {
+              "type": "none"
+            },
+            "free_rent_months": 6,
+            "ti_allowance_psf": 50,
+            "leasing_commissions_usd": 100000,
+            "expense_basis": "full_service",
+            "confirming_party": "landlord_broker",
+            "verification": "party_confirmed",
+            "state": "TX",
+            "submarket": "Downtown"
+          },
+          "as_of": "2026-10-01",
+          "provenance": {
+            "method": "reported",
+            "sources": [
+              {
+                "document_id": "firm:deal-4471",
+                "title": "Executed lease, summarized by the leasing broker"
+              }
+            ]
+          },
+          "rights": {
+            "ai_use": "unknown",
+            "redistribution": "unknown"
+          }
+        }
+      },
+      "expect": {
+        "valid": true,
+        "issues": [],
+        "warnings": [
+          "rights say unknown for ai_use or redistribution: other firms cannot tell what they may do with this comp, and a cautious reader will treat unknown as prohibited"
+        ],
+        "ner.formula": "calc.net_effective_rent@1",
+        "ner.fact.value": {
+          "net_effective_rent_psf": 32,
+          "discounted_net_effective_rent_psf": 28.4772,
+          "effective_rent_psf": 38,
+          "discount_rate_annual": 0.08,
+          "term_months": 120,
+          "expense_basis": "full_service"
+        },
+        "ner.fact.predicate": "lease.net_effective_rent"
+      }
+    },
+    {
+      "name": "a computed fact is not a comp source",
+      "tool": "lease_comp_validate",
+      "arguments": {
+        "fact": {
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.comp",
+          "value": {
+            "comp_type": "new",
+            "property_type": "office",
+            "area_sf": 10000,
+            "area_basis": "rentable",
+            "commencement_date": "2026-01-01",
+            "term_months": 120,
+            "starting_rent_psf_yr": 40,
+            "escalation": {
+              "type": "none"
+            },
+            "free_rent_months": 6,
+            "ti_allowance_psf": 50,
+            "leasing_commissions_usd": 100000,
+            "expense_basis": "full_service",
+            "confirming_party": "landlord_broker",
+            "verification": "party_confirmed",
+            "state": "TX",
+            "submarket": "Downtown"
+          },
+          "as_of": "2026-10-01",
+          "provenance": {
+            "method": "computed",
+            "sources": [],
+            "formula": "calc.x@1"
+          },
+          "rights": {
+            "ai_use": "permitted",
+            "redistribution": "attribution_required"
+          }
+        }
+      },
+      "expect": {
+        "valid": false,
+        "issues": [
+          {
+            "path": "provenance.method",
+            "message": "a comp is reported, human_verified, extracted, public_record; computed facts are not shared as comps"
+          }
+        ],
+        "warnings": [],
+        "ner": null
+      }
+    },
+    {
+      "name": "document_verified needs a hashed source",
+      "tool": "lease_comp_validate",
+      "arguments": {
+        "fact": {
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.comp",
+          "value": {
+            "comp_type": "new",
+            "property_type": "office",
+            "area_sf": 10000,
+            "area_basis": "rentable",
+            "commencement_date": "2026-01-01",
+            "term_months": 120,
+            "starting_rent_psf_yr": 40,
+            "escalation": {
+              "type": "none"
+            },
+            "free_rent_months": 6,
+            "ti_allowance_psf": 50,
+            "leasing_commissions_usd": 100000,
+            "expense_basis": "full_service",
+            "confirming_party": "landlord_broker",
+            "verification": "document_verified",
+            "state": "TX",
+            "submarket": "Downtown"
+          },
+          "as_of": "2026-10-01",
+          "provenance": {
+            "method": "reported",
+            "sources": [
+              {
+                "document_id": "firm:deal-4471",
+                "title": "Executed lease, summarized by the leasing broker"
+              }
+            ]
+          },
+          "rights": {
+            "ai_use": "permitted",
+            "redistribution": "attribution_required"
+          }
+        }
+      },
+      "expect": {
+        "valid": false,
+        "issues": [
+          {
+            "path": "provenance.sources",
+            "message": "verification document_verified needs a source with the document's sha256 (or an fl:document:sha256- document_id)"
+          }
+        ],
+        "warnings": [],
+        "ner": null
+      }
+    },
+    {
+      "name": "document_verified with a sha256 source is accepted",
+      "tool": "lease_comp_validate",
+      "arguments": {
+        "fact": {
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.comp",
+          "value": {
+            "comp_type": "new",
+            "property_type": "office",
+            "area_sf": 10000,
+            "area_basis": "rentable",
+            "commencement_date": "2026-01-01",
+            "term_months": 120,
+            "starting_rent_psf_yr": 40,
+            "escalation": {
+              "type": "none"
+            },
+            "free_rent_months": 6,
+            "ti_allowance_psf": 50,
+            "leasing_commissions_usd": 100000,
+            "expense_basis": "full_service",
+            "confirming_party": "landlord_broker",
+            "verification": "document_verified",
+            "state": "TX",
+            "submarket": "Downtown"
+          },
+          "as_of": "2026-10-01",
+          "provenance": {
+            "method": "human_verified",
+            "sources": [
+              {
+                "document_id": "firm:deal-4471",
+                "sha256": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+                "page": 3,
+                "quote": "Base Rent shall be $40.00 per rentable square foot"
+              }
+            ]
+          },
+          "rights": {
+            "ai_use": "permitted",
+            "redistribution": "attribution_required"
+          }
+        }
+      },
+      "expect": {
+        "valid": true,
+        "issues": [],
+        "warnings": [],
+        "ner.formula": "calc.net_effective_rent@1",
+        "ner.fact.value": {
+          "net_effective_rent_psf": 32,
+          "discounted_net_effective_rent_psf": 28.4772,
+          "effective_rent_psf": 38,
+          "discount_rate_annual": 0.08,
+          "term_months": 120,
+          "expense_basis": "full_service"
+        },
+        "ner.fact.predicate": "lease.net_effective_rent"
+      }
+    },
+    {
+      "name": "implausible rent and area warn",
+      "tool": "lease_comp_validate",
+      "arguments": {
+        "fact": {
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.comp",
+          "value": {
+            "comp_type": "new",
+            "property_type": "office",
+            "area_sf": 6000000,
+            "area_basis": "rentable",
+            "commencement_date": "2026-01-01",
+            "term_months": 120,
+            "starting_rent_psf_yr": 620,
+            "escalation": {
+              "type": "none"
+            },
+            "free_rent_months": 6,
+            "ti_allowance_psf": 50,
+            "leasing_commissions_usd": 100000,
+            "expense_basis": "full_service",
+            "confirming_party": "landlord_broker",
+            "verification": "party_confirmed",
+            "state": "TX",
+            "submarket": "Downtown"
+          },
+          "as_of": "2026-10-01",
+          "provenance": {
+            "method": "reported",
+            "sources": [
+              {
+                "document_id": "firm:deal-4471",
+                "title": "Executed lease, summarized by the leasing broker"
+              }
+            ]
+          },
+          "rights": {
+            "ai_use": "permitted",
+            "redistribution": "attribution_required"
+          }
+        }
+      },
+      "expect": {
+        "valid": true,
+        "issues": [],
+        "warnings": [
+          "starting_rent_psf_yr 620 is outside the usual 1 to 500 USD per SF per year: check it is annual, not monthly",
+          "area_sf 6000000 is above 5,000,000: check the unit"
+        ],
+        "ner.formula": "calc.net_effective_rent@1",
+        "ner.fact.value": {
+          "net_effective_rent_psf": 583.9983,
+          "discounted_net_effective_rent_psf": 568.667,
+          "effective_rent_psf": 589,
+          "discount_rate_annual": 0.08,
+          "term_months": 120,
+          "expense_basis": "full_service"
+        },
+        "ner.fact.predicate": "lease.net_effective_rent"
+      }
+    },
+    {
+      "name": "a fact that fails fact_validate",
+      "tool": "lease_comp_validate",
+      "arguments": {
+        "fact": {
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.comp",
+          "value": {
+            "comp_type": "new",
+            "property_type": "office",
+            "area_sf": 10000,
+            "area_basis": "rentable",
+            "commencement_date": "2026-01-01",
+            "term_months": 120,
+            "starting_rent_psf_yr": 40,
+            "escalation": {
+              "type": "none"
+            },
+            "free_rent_months": 6,
+            "ti_allowance_psf": 50,
+            "leasing_commissions_usd": 100000,
+            "expense_basis": "full_service",
+            "confirming_party": "landlord_broker",
+            "verification": "party_confirmed",
+            "state": "TX",
+            "submarket": "Downtown"
+          },
+          "as_of": "yesterday",
+          "provenance": {
+            "method": "reported",
+            "sources": []
+          },
+          "rights": {
+            "ai_use": "permitted",
+            "redistribution": "attribution_required"
+          }
+        }
+      },
+      "expect": {
+        "valid": false,
+        "issues": [
+          {
+            "path": "as_of",
+            "message": "Invalid ISO date"
+          },
+          {
+            "path": "provenance.sources",
+            "message": "facts other than computed must cite at least one source"
+          }
+        ],
+        "warnings": [],
+        "ner": null
+      }
+    },
+    {
+      "name": "the fact id is listed as the NER input",
+      "tool": "lease_comp_validate",
+      "arguments": {
+        "fact": {
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.comp",
+          "value": {
+            "comp_type": "new",
+            "property_type": "office",
+            "area_sf": 10000,
+            "area_basis": "rentable",
+            "commencement_date": "2026-01-01",
+            "term_months": 120,
+            "starting_rent_psf_yr": 40,
+            "escalation": {
+              "type": "none"
+            },
+            "free_rent_months": 6,
+            "ti_allowance_psf": 50,
+            "leasing_commissions_usd": 100000,
+            "expense_basis": "full_service",
+            "confirming_party": "landlord_broker",
+            "verification": "party_confirmed",
+            "state": "TX",
+            "submarket": "Downtown"
+          },
+          "as_of": "2026-10-01",
+          "provenance": {
+            "method": "reported",
+            "sources": [
+              {
+                "document_id": "firm:deal-4471",
+                "title": "Executed lease, summarized by the leasing broker"
+              }
+            ]
+          },
+          "rights": {
+            "ai_use": "permitted",
+            "redistribution": "attribution_required"
+          },
+          "id": "flf_comp_1"
+        }
+      },
+      "expect": {
+        "valid": true,
+        "issues": [],
+        "warnings": [],
+        "ner.formula": "calc.net_effective_rent@1",
+        "ner.fact.value": {
+          "net_effective_rent_psf": 32,
+          "discounted_net_effective_rent_psf": 28.4772,
+          "effective_rent_psf": 38,
+          "discount_rate_annual": 0.08,
+          "term_months": 120,
+          "expense_basis": "full_service"
+        },
+        "ner.fact.provenance.inputs": ["flf_comp_1"],
+        "ner.fact.predicate": "lease.net_effective_rent"
+      }
+    },
+    {
+      "name": "value is not an object",
+      "tool": "lease_comp_validate",
+      "arguments": {
+        "fact": {
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.comp",
+          "value": [1],
+          "as_of": "2026-10-01",
+          "provenance": {
+            "method": "reported",
+            "sources": [
+              {
+                "document_id": "firm:deal-4471",
+                "title": "Executed lease, summarized by the leasing broker"
+              }
+            ]
+          },
+          "rights": {
+            "ai_use": "permitted",
+            "redistribution": "attribution_required"
+          }
+        }
+      },
+      "expect": {
+        "valid": false,
+        "issues": [
+          {
+            "path": "value",
+            "message": "Invalid input: expected object, received array"
+          }
+        ],
+        "warnings": [],
+        "ner": null
+      }
+    }
+  ]
+}

@@ -22,7 +22,7 @@ tenant resolver: it goes from a registrant to the registered entities it lists, 
 - Terms, rights, rate: as in the CMBS record. About 370 requests for this source (3 per registrant, plus the ticker file), 3.5 per second at most, one stream
   (the review's 1,146 logged requests in all are counted in the CMBS record). Exhibit files: 45 MB in all.
 - Rights recorded on each fact: public SEC filing, redistribution `permitted`, AI use `unknown`, attribution the SEC (EDGAR)
-  and the registrant. `verified: true` for use in the registry.
+  and the registrant. Review status: as in the CMBS record (`verified: false` in the config only to keep the generic collector away).
 
 ## Which registrants (bounded list, chosen by hand and documented)
 

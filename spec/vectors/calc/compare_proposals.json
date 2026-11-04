@@ -673,6 +673,199 @@
         ]
       },
       "expect_error": true
+    },
+    {
+      "name": "unit mw on every proposal: the same ranking and numbers, per MW",
+      "input": {
+        "proposals": [
+          {
+            "name": "Park B",
+            "schedule": {
+              "commencement_date": "2027-01-01",
+              "term_months": 84,
+              "area_sf": 5000,
+              "starting_rent_psf_annual": 32,
+              "escalation": {
+                "type": "percent",
+                "rate": 0.03
+              },
+              "abated_months": [1, 2, 3, 4, 5, 6],
+              "unit": "mw"
+            },
+            "ti_allowance_psf": 60,
+            "leasing_commissions": 45000,
+            "additional_costs_psf_annual": 9,
+            "tenant_upfront_costs": 25000
+          },
+          {
+            "name": "Tower A",
+            "schedule": {
+              "commencement_date": "2027-01-01",
+              "term_months": 60,
+              "area_sf": 5000,
+              "starting_rent_psf_annual": 35,
+              "escalation": {
+                "type": "percent",
+                "rate": 0.03
+              },
+              "abated_months": [1, 2, 3],
+              "unit": "mw"
+            },
+            "ti_allowance_psf": 40,
+            "leasing_commissions": 30000
+          }
+        ],
+        "discount_rate_annual": 0.08
+      },
+      "expect": {
+        "value.best": "Tower A",
+        "value.ranking.0.name": "Tower A",
+        "value.ranking.0.metric_psf_annual": 25.2203,
+        "value.ranking.0.total_net": 685348.69,
+        "value.ranking.1.name": "Park B",
+        "value.ranking.1.metric_psf_annual": 30.558,
+        "value.ranking.1.total_net": 1185993.82,
+        "value.unit": "mw",
+        "value.rate_unit": "USD/MW/yr"
+      }
+    },
+    {
+      "name": "proposals in different units are an input error",
+      "input": {
+        "proposals": [
+          {
+            "name": "Park B",
+            "schedule": {
+              "commencement_date": "2027-01-01",
+              "term_months": 84,
+              "area_sf": 5000,
+              "starting_rent_psf_annual": 32,
+              "escalation": {
+                "type": "percent",
+                "rate": 0.03
+              },
+              "abated_months": [1, 2, 3, 4, 5, 6],
+              "unit": "kw"
+            },
+            "ti_allowance_psf": 60,
+            "leasing_commissions": 45000,
+            "additional_costs_psf_annual": 9,
+            "tenant_upfront_costs": 25000
+          },
+          {
+            "name": "Tower A",
+            "schedule": {
+              "commencement_date": "2027-01-01",
+              "term_months": 60,
+              "area_sf": 5000,
+              "starting_rent_psf_annual": 35,
+              "escalation": {
+                "type": "percent",
+                "rate": 0.03
+              },
+              "abated_months": [1, 2, 3]
+            },
+            "ti_allowance_psf": 40,
+            "leasing_commissions": 30000
+          }
+        ],
+        "discount_rate_annual": 0.08
+      },
+      "expect_error": true
+    },
+    {
+      "name": "a load factor with a non-SF unit is an input error",
+      "input": {
+        "discount_rate_annual": 0.08,
+        "area_basis": "rentable",
+        "proposals": [
+          {
+            "name": "C Creek",
+            "schedule": {
+              "commencement_date": "2027-01-01",
+              "term_months": 120,
+              "escalation": {
+                "type": "percent",
+                "rate": 0.03
+              },
+              "abated_months": [1, 2, 3, 4, 5, 6],
+              "area_sf": 53100,
+              "starting_rent_psf_annual": 28,
+              "unit": "kw"
+            },
+            "load_factor": 1.18,
+            "ti_allowance_psf": 50,
+            "tenant_upfront_costs": 150000
+          },
+          {
+            "name": "B Midrise",
+            "schedule": {
+              "commencement_date": "2027-01-01",
+              "term_months": 120,
+              "escalation": {
+                "type": "percent",
+                "rate": 0.03
+              },
+              "abated_months": [1, 2, 3, 4, 5, 6],
+              "area_sf": 50400,
+              "starting_rent_psf_annual": 29,
+              "unit": "kw"
+            },
+            "load_factor": 1.12,
+            "ti_allowance_psf": 50,
+            "tenant_upfront_costs": 150000
+          }
+        ]
+      },
+      "expect_error": true
+    },
+    {
+      "name": "area_basis usable with a non-SF unit is an input error",
+      "input": {
+        "proposals": [
+          {
+            "name": "Park B",
+            "schedule": {
+              "commencement_date": "2027-01-01",
+              "term_months": 84,
+              "area_sf": 5000,
+              "starting_rent_psf_annual": 32,
+              "escalation": {
+                "type": "percent",
+                "rate": 0.03
+              },
+              "abated_months": [1, 2, 3, 4, 5, 6],
+              "unit": "kw"
+            },
+            "ti_allowance_psf": 60,
+            "leasing_commissions": 45000,
+            "additional_costs_psf_annual": 9,
+            "tenant_upfront_costs": 25000,
+            "usable_sf": 4000
+          },
+          {
+            "name": "Tower A",
+            "schedule": {
+              "commencement_date": "2027-01-01",
+              "term_months": 60,
+              "area_sf": 5000,
+              "starting_rent_psf_annual": 35,
+              "escalation": {
+                "type": "percent",
+                "rate": 0.03
+              },
+              "abated_months": [1, 2, 3],
+              "unit": "kw"
+            },
+            "ti_allowance_psf": 40,
+            "leasing_commissions": 30000,
+            "usable_sf": 4000
+          }
+        ],
+        "discount_rate_annual": 0.08,
+        "area_basis": "usable"
+      },
+      "expect_error": true
     }
   ]
 }

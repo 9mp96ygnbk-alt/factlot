@@ -51,4 +51,5 @@ Add FactLot to `~/.gemini/settings.json`:
 
 - **Agent Development Kit and Agent Engine.** Connect to the remote MCP endpoint, or use the
   function declarations above.
-- **OpenAPI-based tools.** Use `https://api.factlot.com/openapi-3.0.json`.
+- **OpenAPI-based tools.** Use `https://api.factlot.com/openapi-3.0.json?operations=all` (every
+  tool); `/openapi-3.0.json` alone is the curated subset of at most 30 operations.

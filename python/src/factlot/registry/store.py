@@ -16,7 +16,8 @@ from importlib import resources
 from pathlib import Path
 from typing import Any, Callable, Iterable
 
-from ..ids import FactLotIdError, _base32, entity_id, parcel_id, parse as parse_id, short_id
+from .._core import fmt_num
+from ..ids import FactLotIdError, _base32, entity_id, normalize_apn_v1, parcel_id, parse as parse_id, short_id
 from . import buildings as _buildings
 from . import coverage as _coverage
 from .normalize import (
@@ -24,6 +25,7 @@ from .normalize import (
     NAME_KEY_VERSION,
     NAME_OVERLAP_WEIGHT,
     NAME_RATIO_WEIGHT,
+    address_query,
     address_state,
     distinctive_tokens,
     entity_standing,
@@ -39,10 +41,13 @@ from .normalize import (
 )
 
 PRODUCER = "factlot.registry"
-# Predicates a subject may hold many of at once (one fact per sale; one per CMBS trust's participation in
-# a building's loan; one per registrant that lists an entity as its subsidiary). Every other predicate is
+# Predicates a subject may hold many of at once (one fact per sale, deed, mortgage or satisfaction; one per CMBS trust's
+# participation in a building's loan; one per registrant that lists an entity as its subsidiary). Every other predicate is
 # single-valued: when two current sources disagree, the newest fact is returned.
-MULTI_VALUED_PREDICATES = frozenset({"transaction.sale", "debt.cmbs_loan", "entity.parent"})
+MULTI_VALUED_PREDICATES = frozenset({
+    "transaction.sale", "transaction.deed", "debt.mortgage_recorded", "debt.mortgage_satisfaction_recorded",
+    "debt.cmbs_loan", "entity.parent",
+})
 # Coverage marker (``coverage.present``) for a source that adds facts to parcels another source created.
 COVERED_BY_ENRICHMENT = 2
 # The predicates the registry writes (the TypeScript starter vocabulary, `Predicates` in @factlot/schema,
@@ -54,9 +59,19 @@ ENRICHMENT_PREDICATES = frozenset({
     "zoning.max_far_facility", "zoning.max_far_manufacturing", "zoning.max_far_affordable_residential",
     "parcel.built_far", "parcel.num_buildings", "parcel.num_floors", "parcel.units_residential",
     "parcel.units_total", "parcel.area_by_use_sf", "parcel.land_use_code", "parcel.year_altered",
-    "parcel.historic_district", "parcel.landmark_designated", "transaction.sale", "debt.cmbs_loan", "entity.parent",
+    "parcel.historic_district", "parcel.landmark_designated", "transaction.sale",
+    "debt.cmbs_loan", "entity.parent",
+    "transaction.deed", "debt.mortgage_recorded", "debt.mortgage_satisfaction_recorded",
+    "zoning.max_far_nonresidential", "zoning.max_height_ft",
+    "energy.reporting_year", "energy.property_type", "energy.site_eui", "energy.weather_normalized_site_eui",
+    "energy.source_eui", "energy.energy_star_score", "energy.ghg_emissions", "energy.ghg_intensity",
+    "energy.floor_area_sf", "energy.property_lot_count",
 })
 SCHEMA_VERSION = "2"
+# The ID spec parcel rule a file's parcel URNs were made with (meta ``parcel_rule``): rule 2 (ID spec
+# 0.3) for a file started now; a file holding parcels and no ``parcel_rule`` was built with rule 1 and
+# keeps it, so its parcels are found and re-ingested under the URNs they already have.
+PARCEL_RULE = "2"
 
 # Owner links: an exact, unambiguous normalized-name match is confidence 0.9; a fuzzy candidate a
 # reviewer accepted is the candidate's score capped below that, so inferred links stay ranked.
@@ -124,6 +139,8 @@ class ParcelRecord:
     local_use_code: str | None = None
     # Sales the same file records for the parcel, each a ``transaction.sale`` value (see docs/fact-model.md).
     sales: list[dict[str, Any]] = field(default_factory=list)
+    # Other facts the same file records for the parcel (a zoning district the roll carries), as ``(predicate, value, unit)``.
+    extra_facts: list[tuple[str, Any, str | None]] = field(default_factory=list)
 
 
 @dataclass
@@ -226,6 +243,50 @@ _CURRENT_LINK = (
 )
 
 
+# Facts current on a date: the coverage rule of the ``current_facts`` view applied to the snapshots
+# dated on or before it (FACTS_AT in packages/tools/src/registry.ts).
+_FACTS_AT = (
+    "SELECT f.* FROM facts f JOIN snapshots s ON s.document_id = f.document_id WHERE f.subject = ? "
+    "AND f.as_of <= ? AND f.as_of = (SELECT MAX(c.as_of) FROM coverage c WHERE c.subject = f.subject "
+    "AND c.source_id = s.source_id AND c.as_of <= ?)"
+)
+_ORDER_FACTS = " ORDER BY predicate, as_of DESC, fact_id"
+# An ownership link on a date: made by then, from an owner-of-record fact current on that date.
+_LINK_AT = (
+    "r.as_of <= ? AND (r.type != 'owns' OR EXISTS (SELECT 1 FROM facts f JOIN snapshots s ON "
+    "s.document_id = f.document_id WHERE f.subject = r.to_urn AND f.predicate = 'ownership.owner_of_record' "
+    "AND f.document_id = r.document_id AND f.as_of <= ? AND f.as_of = (SELECT MAX(c.as_of) FROM coverage c "
+    "WHERE c.subject = f.subject AND c.source_id = s.source_id AND c.as_of <= ?)))"
+)
+# Floor-area ratio (improvement area ÷ land area) above which ``get`` warns (MAX_PLAUSIBLE_FAR in TypeScript).
+MAX_PLAUSIBLE_FAR = 40
+
+
+def _area_value(facts: list[dict[str, Any]], predicate: str) -> float | None:
+    v = next((f["value"] for f in facts if f["predicate"] == predicate), None)
+    return v if isinstance(v, (int, float)) and not isinstance(v, bool) and v == v and abs(v) != float("inf") else None
+
+
+def area_warnings(facts: list[dict[str, Any]]) -> list[str]:
+    """Sanity checks on a parcel's area facts (``areaWarnings`` in TypeScript); the facts stay as published."""
+    land = _area_value(facts, "parcel.land_area_sf")
+    building = _area_value(facts, "parcel.improvement_area_sf")
+    out = []
+    if land is not None and land <= 0:
+        out.append(f"parcel.land_area_sf is {fmt_num(land)}: a land area must be positive, so the source's value "
+                   "is not usable")
+    if building is not None and building < 0:
+        out.append(f"parcel.improvement_area_sf is {fmt_num(building)}: a building area cannot be negative, so the "
+                   "source's value is not usable")
+    if land is not None and building is not None and land > 0 and building > 0 and building / land > MAX_PLAUSIBLE_FAR:
+        out.append(f"parcel.improvement_area_sf ({fmt_num(building)} sf) is {fmt_num(building / land, 1)} times "
+                   f"parcel.land_area_sf ({fmt_num(land)} sf), a floor-area ratio above {MAX_PLAUSIBLE_FAR}, which few "
+                   "buildings anywhere reach: one of the two areas is probably not this parcel's own (a "
+                   "condominium unit's record, for example, can carry the whole building's area against the unit's "
+                   "share of the land); check the source before using either")
+    return out
+
+
 def _newest_first(facts: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Order the facts of a many-valued predicate (sales) newest first, in the slots they occupy."""
     slots = [i for i, f in enumerate(facts) if f["predicate"] in MULTI_VALUED_PREDICATES]
@@ -263,7 +324,17 @@ class Registry:
         # The same for address keys (``rebuild_address_index`` re-keys an older file).
         if not self.db.execute("SELECT 1 FROM address_index LIMIT 1").fetchone():
             self.db.execute("INSERT OR IGNORE INTO meta VALUES ('address_key_version', ?)", (ADDRESS_KEY_VERSION,))
+        if not self.db.execute("SELECT 1 FROM subjects WHERE kind = 'parcel' LIMIT 1").fetchone():
+            self.db.execute("INSERT OR IGNORE INTO meta VALUES ('parcel_rule', ?)", (PARCEL_RULE,))
         self.db.commit()
+
+    def parcel_urn(self, state_fips: str, county_fips: str, apn: str) -> str:
+        """The parcel URN for an APN under the parcel rule this file was built with (see ``PARCEL_RULE``)."""
+        rule_1 = getattr(self, "_parcel_rule_1", None)
+        if rule_1 is None:
+            row = self.db.execute("SELECT value FROM meta WHERE key = 'parcel_rule'").fetchone()
+            rule_1 = self._parcel_rule_1 = not (row and row[0] == PARCEL_RULE)
+        return parcel_id(state_fips, county_fips, apn, normalize_apn_v1 if rule_1 else None).urn
 
     def _address_search_keys(self, address: str) -> list[str]:
         """Keys to search for ``address``: the current key, and on a file not yet re-keyed the version 1 key too."""
@@ -574,7 +645,7 @@ class Registry:
                 stats.skipped_out_of_scope += 1
                 continue
             try:
-                urn = parcel_id(state_fips, r.county_fips, r.apn).urn
+                urn = self.parcel_urn(state_fips, r.county_fips, r.apn)
             except FactLotIdError as e:
                 stats.skipped_invalid += 1
                 stats.errors.append(f"{r.locator or r.apn}: {e}")
@@ -606,6 +677,8 @@ class Registry:
             n += self._fact(urn, "parcel.local_use_code", r.local_use_code, snap, locator=loc)
             for sale in r.sales:
                 n += self._fact(urn, "transaction.sale", sale, snap, locator=loc)
+            for predicate, value, unit in r.extra_facts:
+                n += self._fact(urn, predicate, value, snap, unit=unit, locator=loc)
             if account_system and r.account:
                 self.db.execute("INSERT OR REPLACE INTO crosswalk VALUES (?,?,?)", (account_system, r.account, urn))
             if r.situs_address:
@@ -644,7 +717,7 @@ class Registry:
             for r in records:
                 stats.seen += 1
                 try:
-                    urn = parcel_id(state_fips, r.county_fips, r.apn).urn
+                    urn = self.parcel_urn(state_fips, r.county_fips, r.apn)
                 except FactLotIdError as e:
                     stats.skipped_invalid += 1
                     stats.errors.append(f"{r.locator or r.apn}: {e}")
@@ -774,11 +847,19 @@ class Registry:
         )
         return cur.rowcount
 
-    def status(self, urn: str) -> str:
-        """'current', or 'not_in_latest_snapshot' when the latest full snapshot of every covering source omitted it."""
+    def status(self, urn: str, as_of: str | None = None) -> str:
+        """'current', or 'not_in_latest_snapshot' when the latest full snapshot of every covering source omitted it.
+
+        With ``as_of``, the status on that date ('not_yet_recorded' before any snapshot covered the subject).
+        """
+        at = "" if as_of is None else " AND {}.as_of <= ?"
         rows = self.db.execute(
-            "SELECT c.present FROM coverage c WHERE c.subject = ? AND c.as_of = "
-            "(SELECT MAX(as_of) FROM coverage d WHERE d.subject = c.subject AND d.source_id = c.source_id)", (urn,)).fetchall()
+            f"SELECT c.present FROM coverage c WHERE c.subject = ?{at.format('c')} AND c.as_of = "
+            f"(SELECT MAX(as_of) FROM coverage d WHERE d.subject = c.subject AND d.source_id = c.source_id{at.format('d')})",
+            (urn,) if as_of is None else (urn, as_of, as_of)).fetchall()
+        if not rows and as_of is not None and self.db.execute(
+                "SELECT 1 FROM coverage WHERE subject = ?", (urn,)).fetchone():
+            return "not_yet_recorded"
         return "current" if any(r["present"] == 1 for r in rows) or not rows else "not_in_latest_snapshot"
 
     def link_owners(self) -> dict[str, int]:
@@ -1100,11 +1181,20 @@ class Registry:
             rights["attribution"] = row["attribution"]
         return source, rights
 
-    def facts(self, urn: str, *, history: bool = False) -> list[dict[str, Any]]:
-        """FactLot facts about a subject: current ones by default (coverage rule), or the full history."""
-        table = "facts" if history else "current_facts"
-        rows = self.db.execute(
-            f"SELECT * FROM {table} WHERE subject = ? ORDER BY predicate, as_of DESC, fact_id", (urn,)).fetchall()
+    def facts(self, urn: str, *, history: bool = False, as_of: str | None = None) -> list[dict[str, Any]]:
+        """FactLot facts about a subject: current ones by default (coverage rule), or the full history.
+
+        With ``as_of`` (YYYY-MM-DD): the facts current on that date, or with ``history`` every fact dated on or
+        before it.
+        """
+        if as_of is None:
+            table = "facts" if history else "current_facts"
+            rows = self.db.execute(f"SELECT * FROM {table} WHERE subject = ?{_ORDER_FACTS}", (urn,)).fetchall()
+        elif history:
+            rows = self.db.execute(f"SELECT * FROM facts WHERE subject = ? AND as_of <= ?{_ORDER_FACTS}",
+                                   (urn, as_of)).fetchall()
+        else:
+            rows = self.db.execute(_FACTS_AT + _ORDER_FACTS, (urn, as_of, as_of)).fetchall()
         out, seen = [], set()
         for f in rows:
             # Two current sources disagree: keep the newest (a predicate that holds many facts keeps them all).
@@ -1130,24 +1220,45 @@ class Registry:
             out.append(fact)
         return _newest_first(out)
 
-    def get(self, urn: str) -> dict[str, Any] | None:
+    def get(self, urn: str, as_of: str | None = None) -> dict[str, Any] | None:
+        """A record: current facts and links, or with ``as_of`` (YYYY-MM-DD) those current on that date.
+
+        The building roll-up and crosswalk IDs are the file's current ones either way. ``warnings`` flags
+        area facts that look wrong (``area_warnings``).
+        """
         subj = self.db.execute("SELECT * FROM subjects WHERE urn = ?", (urn,)).fetchone()
         if subj is None:
             return None
+        link, params = (_CURRENT_LINK, ()) if as_of is None else (_LINK_AT, (as_of, as_of, as_of))
         rels = [dict(r) for r in self.db.execute(
             f"SELECT from_urn, type, to_urn, as_of, method, confidence, basis, document_id FROM relationships r "
-            f"WHERE (from_urn = ? OR to_urn = ?) AND {_CURRENT_LINK} ORDER BY as_of DESC", (urn, urn))]
+            f"WHERE (from_urn = ? OR to_urn = ?) AND {link} ORDER BY as_of DESC", (urn, urn, *params))]
         xw = [dict(r) for r in self.db.execute("SELECT system, external_id FROM crosswalk WHERE urn = ?", (urn,))]
-        record = {"urn": urn, "kind": subj["kind"], "short": subj["short"], "label": subj["label"],
-                  "status": self.status(urn), "facts": self.facts(urn), "relationships": rels, "crosswalk": xw}
+        facts = self.facts(urn, as_of=as_of)
+        status = self.status(urn, as_of)
+        if status == "not_yet_recorded":
+            rels = []  # no link before the record itself
+        record: dict[str, Any] = {"urn": urn, "kind": subj["kind"], "short": subj["short"], "label": subj["label"]}
+        if as_of is not None:
+            record["as_of"] = as_of
+        record.update({"status": status, "facts": facts, "relationships": rels, "crosswalk": xw})
         if subj["kind"] == "parcel":
             record["building"] = _buildings.building_of(self.db, urn)
         elif subj["kind"] == "building":
             record["building"] = _buildings.building_detail(self.db, urn)
+        record["warnings"] = area_warnings(facts)
         return record
 
+    def snapshot(self, document_id: str) -> dict[str, Any] | None:
+        """A source snapshot the registry cites, by its ``fl:document:sha256-…`` ID (``registrySnapshot`` in TS)."""
+        row = self.db.execute(
+            "SELECT s.document_id, s.source_id, s.retrieved_at, s.as_of, s.filename, s.bytes, src.publisher, "
+            "src.title, src.url, src.license, src.ai_use, src.redistribution, src.attribution "
+            "FROM snapshots s JOIN sources src USING (source_id) WHERE s.document_id = ?", (document_id,)).fetchone()
+        return dict(row) if row else None
+
     def resolve_parcel(self, state_fips: str, county_fips: str, apn: str) -> str | None:
-        urn = parcel_id(state_fips, county_fips, apn).urn
+        urn = self.parcel_urn(state_fips, county_fips, apn)
         return urn if self.db.execute("SELECT 1 FROM subjects WHERE urn = ?", (urn,)).fetchone() else None
 
     def resolve_external(self, system: str, external_id: str) -> str | None:
@@ -1163,13 +1274,28 @@ class Registry:
         return [dict(r) for r in rows]
 
     def search_address(self, address: str, limit: int = 20) -> list[dict[str, Any]]:
-        keys = self._address_search_keys(address)
-        like = " OR ".join("a.key LIKE ?" for _ in keys)
+        """Parcels whose situs address holds the query's words (``address_query``): with a house number, an
+        address starting with it and holding every other word; otherwise the words in a row, including a
+        street type. A query with neither finds nothing."""
+        mode = address_query(address)["mode"]
+        if mode is None:
+            return []
+        runs = [k.split(" ") for k in self._address_search_keys(address.split(",")[0])]
+        where, params = [], []
+        for words in runs:
+            if mode == "street":
+                where.append("(' ' || a.key || ' ') LIKE ?")
+                params.append(f"% {' '.join(words)} %")
+            else:
+                where.append("(" + " AND ".join(["(a.key || ' ') LIKE ?"]
+                                                + ["(' ' || a.key || ' ') LIKE ?" for _ in words[1:]]) + ")")
+                params += [f"{words[0]} %", *(f"% {w} %" for w in words[1:])]
+        keys = [" ".join(w) for w in runs]
         exact = " OR ".join("a.key = ?" for _ in keys)
         rows = self.db.execute(
             "SELECT s.urn, s.label FROM address_index a JOIN subjects s ON s.urn = a.urn "
-            f"WHERE {like} GROUP BY s.urn ORDER BY MAX({exact}) DESC, s.label, s.urn LIMIT ?",
-            (*[f"%{k}%" for k in keys], *keys, limit)).fetchall()
+            f"WHERE {' OR '.join(where)} GROUP BY s.urn ORDER BY MAX({exact}) DESC, s.label, s.urn LIMIT ?",
+            (*params, *keys, limit)).fetchall()
         return [dict(r) for r in rows]
 
     def parcels_owned_by(self, entity_urn: str) -> list[dict[str, Any]]:

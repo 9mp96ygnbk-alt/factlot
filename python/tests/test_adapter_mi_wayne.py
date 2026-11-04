@@ -214,7 +214,7 @@ class Wayne(unittest.TestCase):
             urn = reg.db.execute(
                 "SELECT urn FROM crosswalk WHERE system = 'wayne_parcel_no' AND external_id = '31 084 01 0001 000'"
             ).fetchone()[0]
-            self.assertEqual(urn, "fl:parcel:us-26163:31084010001000")
+            self.assertEqual(urn, "fl:parcel:us-26163:31-084-01-0001-000")
             owners = sorted(json.loads(r[0]) for r in reg.db.execute(
                 "SELECT value_json FROM current_facts WHERE predicate = 'ownership.owner_of_record'"))
             self.assertEqual(owners, ["EXAMPLE CHURCH OF GOD", "EXAMPLE LAKE HOUSE LLC", "EXAMPLE TOWER LLC"],

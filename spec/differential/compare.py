@@ -32,8 +32,8 @@ bad = collections.Counter()
 examples = {}
 for c, t, y in zip(cases, ts, py):
     diffs = []
-    if "tool" in c:
-        walk(t, y, "", diffs)
+    if "tool" in c or ("draft" in c and "error" not in t and "error" not in y):
+        walk(t, y, "", diffs)  # draft packs: the whole result, steps and warnings included
     elif ("error" in t) != ("error" in y):
         diffs.append(("error", t.get("error"), y.get("error")))
     else:
@@ -41,7 +41,7 @@ for c, t, y in zip(cases, ts, py):
         if len(t.get("warnings", [])) != len(y.get("warnings", [])):
             diffs.append(("warnings", len(t.get("warnings", [])), len(y.get("warnings", []))))
     if diffs:
-        key = c.get("calc") or c.get("rule") or c["tool"]
+        key = c.get("calc") or c.get("rule") or c.get("draft") or c["tool"]
         bad[key] += 1
         examples.setdefault(key, (c.get("input", c.get("arguments")), diffs[:3]))
 print(f"{len(cases)} cases, {sum(bad.values())} mismatched")

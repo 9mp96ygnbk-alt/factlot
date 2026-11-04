@@ -21,6 +21,7 @@ import copy
 import json
 import os
 import re
+from datetime import date
 from functools import lru_cache
 from importlib import resources
 from typing import Any
@@ -29,7 +30,7 @@ from . import __version__
 from ._core import CalcInputError, input_shape_issue, num_str
 from .calc import CALCULATORS
 from .rules import RULES
-from . import docverify
+from . import comps, docverify, factpackage, statements, uses
 from .ids import FactLotIdError, building_id, document_id, entity_id, parcel_id, parse, short_id, space_id
 
 
@@ -203,7 +204,11 @@ def bedrock_tool_config() -> dict[str, Any]:
 
 
 def openapi(version: str = "3.1", server_url: str | None = None) -> dict[str, Any]:
-    """OpenAPI document ("3.1" for Custom GPT Actions, "3.0" for Bedrock Agents / Microsoft plugins)."""
+    """OpenAPI document: "3.1" lists every tool; "3.0" is the Custom GPT Actions subset (at most 30 operations).
+
+    For every tool in OpenAPI 3.0 (Bedrock Agents, Microsoft plugins), fetch a server's
+    ``/openapi-3.0.json?operations=all``.
+    """
     doc = copy.deepcopy(_load("openapi-3.1.json" if version.startswith("3.1") else "openapi-3.0.json"))
     if server_url:
         doc["servers"] = [{"url": server_url}]
@@ -356,6 +361,11 @@ _DOC_TOOLS = {
     "doc_abstract_lease": lambda a: docverify.abstract_lease(a, _PRODUCER),
     "doc_compare": docverify.compare,
     "doc_verify_claim": docverify.verify_claim,
+    "lease_comp_validate": lambda a: comps.validate_lease_comp(a, _PRODUCER),
+    "doc_spread_statement": lambda a: statements.spread_statement(a),
+    "doc_check_use_conflict": lambda a: uses.check_use_conflict(a),
+    "fact_package_create": lambda a: factpackage.create_fact_package(a),
+    "fact_package_verify": lambda a: factpackage.verify_fact_package(a),
 }
 
 
@@ -427,18 +437,34 @@ def _record_miss(reg: Any, urn: str) -> dict[str, Any]:
     return coverage.other_kind_miss(kind)
 
 
+def _as_of(args: dict[str, Any]) -> str | None:
+    """Optional ``as_of`` date: YYYY-MM-DD, a real calendar date (as ``IsoDate`` in @factlot/calc)."""
+    if "as_of" not in args:
+        return None
+    v = args.get("as_of")
+    m = re.fullmatch(r"([0-9]{4})-([0-9]{2})-([0-9]{2})", v) if isinstance(v, str) else None
+    try:
+        if not m:
+            raise ValueError
+        date(int(m[1]), int(m[2]), int(m[3]))
+    except ValueError:
+        raise _InputError("as_of", "expected a valid YYYY-MM-DD date") from None
+    return v
+
+
 def _registry_get(args: dict[str, Any]) -> dict[str, Any]:
     urn = _str(args, "urn")
     hist = args.get("include_history", False)
     if not isinstance(hist, bool):
         raise _InputError("include_history", "expected boolean")
+    as_of = _as_of(args)
     reg = _registry()
     parse(urn)  # a malformed URN is a format error, not a miss
-    record = reg.get(urn)
+    record = reg.get(urn, as_of)
     if record is None:
         cov = _record_miss(reg, urn)
         raise _NotFound(f"no registry record for {urn}: {cov['message']}", cov)
-    return {**record, "history": reg.facts(urn, history=True)} if hist is True else record
+    return {**record, "history": reg.facts(urn, history=True, as_of=as_of)} if hist is True else record
 
 
 def _nonempty(args: dict[str, Any], key: str) -> str:

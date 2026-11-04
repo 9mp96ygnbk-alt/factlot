@@ -205,3 +205,12 @@ export function fmtMoney(x: number): string {
 export function fmtPct(x: number, dp = 2): string {
   return `${round(x * 100, dp)}%`;
 }
+
+/**
+ * A number written into a step's formula text: rounded with `round` to at most `dp` decimal
+ * places (6 by default), so an input such as 0.07310737913780618 reads 0.073107. Only the text is
+ * rounded; step values and results never are (`fmt_num` in Python writes the same text).
+ */
+export function fmtNum(x: number, dp = 6): string {
+  return String(round(x, dp));
+}

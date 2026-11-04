@@ -71,11 +71,11 @@ class RegistryTools(unittest.TestCase):
                        capture_output=True)
         configure_registry(str(db))
         try:
-            rec = factlot.run_tool("registry_get", {"urn": "fl:parcel:us-48999:00010000002"})
+            rec = factlot.run_tool("registry_get", {"urn": "fl:parcel:us-48999:0001-000-0002"})
             self.assertEqual(rec["status"], "not_in_latest_snapshot")
             self.assertEqual(rec["facts"], [])
             owned = factlot.run_tool("registry_owned_by", {"entity_urn": "fl:entity:us-tx:0801111111"})
-            self.assertEqual([r["urn"] for r in owned["results"]], ["fl:parcel:us-48999:00010000001"])
+            self.assertEqual([r["urn"] for r in owned["results"]], ["fl:parcel:us-48999:0001-000-0001"])
             self.assertEqual(factlot.run_tool("registry_get", {"urn": "fl:parcel:us-48999:404"})["error"], "NotFound")
         finally:
             configure_registry(None)

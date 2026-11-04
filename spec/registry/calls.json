@@ -2,26 +2,26 @@
   {
     "tool": "registry_get",
     "arguments": {
-      "urn": "fl:parcel:us-48999:00010000001"
+      "urn": "fl:parcel:us-48999:0001-000-0001"
     }
   },
   {
     "tool": "registry_get",
     "arguments": {
-      "urn": "fl:parcel:us-48999:00010000001",
+      "urn": "fl:parcel:us-48999:0001-000-0001",
       "include_history": true
     }
   },
   {
     "tool": "registry_get",
     "arguments": {
-      "urn": "fl:parcel:us-48999:00010000002"
+      "urn": "fl:parcel:us-48999:0001-000-0002"
     }
   },
   {
     "tool": "registry_get",
     "arguments": {
-      "urn": "fl:parcel:us-48999:00010000004"
+      "urn": "fl:parcel:us-48999:0001-000-0004"
     }
   },
   {
@@ -127,7 +127,7 @@
   {
     "tool": "registry_get",
     "arguments": {
-      "urn": "fl:parcel:us-48999:00020001002"
+      "urn": "fl:parcel:us-48999:0002-000-1002"
     }
   },
   {
@@ -245,7 +245,140 @@
   {
     "tool": "registry_owned_by",
     "arguments": {
-      "entity_urn": "fl:parcel:us-48999:00010000001"
+      "entity_urn": "fl:parcel:us-48999:0001-000-0001"
+    }
+  },
+  {
+    "tool": "registry_get",
+    "arguments": {
+      "urn": "fl:parcel:us-48999:0004-000-0001"
+    }
+  },
+  {
+    "tool": "registry_get",
+    "arguments": {
+      "urn": "fl:parcel:us-48999:0004-000-0002"
+    }
+  },
+  {
+    "tool": "registry_get",
+    "arguments": {
+      "urn": "fl:parcel:us-48999:0001-000-0001",
+      "as_of": "2025-12-31"
+    }
+  },
+  {
+    "tool": "registry_get",
+    "arguments": {
+      "urn": "fl:parcel:us-48999:0001-000-0001",
+      "as_of": "2025-12-31",
+      "include_history": true
+    }
+  },
+  {
+    "tool": "registry_get",
+    "arguments": {
+      "urn": "fl:parcel:us-48999:0001-000-0001",
+      "as_of": "2026-09-01"
+    }
+  },
+  {
+    "tool": "registry_get",
+    "arguments": {
+      "urn": "fl:parcel:us-48999:0001-000-0001",
+      "as_of": "2024-01-01"
+    }
+  },
+  {
+    "tool": "registry_get",
+    "arguments": {
+      "urn": "fl:parcel:us-48999:0001-000-0002",
+      "as_of": "2025-12-31"
+    }
+  },
+  {
+    "tool": "registry_get",
+    "arguments": {
+      "urn": "fl:entity:us-tx:0801111111",
+      "as_of": "2026-09-30"
+    }
+  },
+  {
+    "tool": "registry_get",
+    "arguments": {
+      "urn": "fl:parcel:us-48999:0001-000-0001",
+      "as_of": "2025-02-30"
+    }
+  },
+  {
+    "tool": "registry_get",
+    "arguments": {
+      "urn": "fl:parcel:us-48999:0001-000-0001",
+      "as_of": "20251231"
+    }
+  },
+  {
+    "tool": "registry_resolve_parcel",
+    "arguments": {
+      "state_fips": "48",
+      "county_fips": "999",
+      "apn": "0001 000 0001"
+    }
+  },
+  {
+    "tool": "registry_resolve_parcel",
+    "arguments": {
+      "state_fips": "48",
+      "county_fips": "999",
+      "apn": "00010000001"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "Main"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "Main St"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "100 Main"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "100 Mai"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "Example City"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "Harbor Drive"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "Tower Ct, Example City, TX"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "Industrial"
     }
   },
   {

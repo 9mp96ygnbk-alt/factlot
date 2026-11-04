@@ -28,6 +28,7 @@ import {
   norm,
   numbersIn,
   showValue,
+  textNumberMissing,
   valueParts,
 } from "./quotes.ts";
 import type { Kind } from "./quotes.ts";
@@ -88,10 +89,17 @@ const Title = z
   .string()
   .max(500)
   .describe('Document title for citations, e.g. "First Amendment to Lease".');
-const DocumentInput = z.object({
+const OcrPages = z
+  .array(z.number().int().min(1).max(100_000))
+  .max(DOC_LIMITS.pagesPerDocument)
+  .describe(
+    "Optional: pages (1-based) whose text came from OCR rather than the file's text layer (doc_read_pdf and factlot.read_pdf report them). Facts and citations on these pages carry ocr: true, so a reviewer checks the scan.",
+  );
+export const DocumentInput = z.object({
   pages: Pages,
   sha256: Sha256.optional(),
   title: Title.optional(),
+  ocr_pages: OcrPages.optional(),
 });
 const Candidate = z.object({
   predicate: z
@@ -169,6 +177,7 @@ const AbstractDocument = z.object({
   title: Title.optional(),
   sha256: Sha256.optional(),
   pages: Pages.optional(),
+  ocr_pages: OcrPages.optional(),
   candidates: Candidates.optional(),
   facts: z
     .array(FactObject)
@@ -296,26 +305,41 @@ export function factId(
   return `flf_${base32(digest, 24)}`;
 }
 
-type Json = Record<string, unknown>;
-type Producer = { name: string; version: string };
+export type Json = Record<string, unknown>;
+export type Producer = { name: string; version: string };
 
-interface Doc {
+export interface Doc {
   id: string;
   basis: "sha256" | "page_text";
   title?: string;
   sha256?: string;
   text: PageText;
+  /** Pages whose text came from OCR (DocumentInput.ocr_pages). */
+  ocr: ReadonlySet<number>;
 }
 
-function characters(pages: readonly string[]): number {
+export function characters(pages: readonly string[]): number {
   return pages.reduce((n, p) => n + p.length, 0);
 }
 
-function loadDocument(d: {
-  pages: string[];
-  sha256?: string;
-  title?: string;
-}): Doc {
+/** A document input as pages to check; `path` names it in an error (e.g. "document"). */
+export function loadDocument(
+  d: {
+    pages: string[];
+    sha256?: string;
+    title?: string;
+    ocr_pages?: number[];
+  },
+  path = "document",
+): Doc {
+  const beyond = (d.ocr_pages ?? []).find((p) => p > d.pages.length);
+  if (beyond !== undefined)
+    throw new ToolInputError([
+      {
+        path: `${path}.ocr_pages`,
+        message: `page ${beyond} is listed as OCR, but the document has ${d.pages.length} page${d.pages.length === 1 ? "" : "s"}`,
+      },
+    ]);
   return {
     id: d.sha256
       ? `fl:document:sha256-${d.sha256}`
@@ -324,15 +348,17 @@ function loadDocument(d: {
     ...(d.title !== undefined ? { title: d.title } : {}),
     ...(d.sha256 !== undefined ? { sha256: d.sha256 } : {}),
     text: new PageText(d.pages),
+    ocr: new Set(d.ocr_pages ?? []),
   };
 }
 
-function describeDocument(doc: Doc): Json {
+export function describeDocument(doc: Doc): Json {
   return {
     document_id: doc.id,
     document_id_basis: doc.basis,
     ...(doc.title !== undefined ? { title: doc.title } : {}),
     pages: doc.text.pages.length,
+    ...(doc.ocr.size ? { ocr_pages: [...doc.ocr].sort((a, b) => a - b) } : {}),
   };
 }
 
@@ -429,6 +455,7 @@ function verifyCandidate(
     page: loc.page,
     ...(c.section !== undefined ? { section: c.section } : {}),
     quote: c.quote,
+    ...(doc.ocr.has(loc.page) ? { ocr: true } : {}),
     ...(span ? { span } : {}),
     ...(doc.sha256 !== undefined ? { sha256: doc.sha256 } : {}),
   };
@@ -472,7 +499,7 @@ function buildFact(
   return fact;
 }
 
-function capCharacters(total: number): void {
+export function capCharacters(total: number): void {
   if (total > DOC_LIMITS.charactersPerCall)
     throw new ToolInputError([
       {
@@ -686,8 +713,10 @@ export function abstractLease(
     ]);
 
   const order = applyOrder(docs);
-  const loaded = docs.map((d) =>
-    d.pages ? loadDocument({ ...d, pages: d.pages }) : undefined,
+  const loaded = docs.map((d, i) =>
+    d.pages
+      ? loadDocument({ ...d, pages: d.pages }, `documents.${i}`)
+      : undefined,
   );
   // A document given only as facts is identified by the facts' own citations.
   const ids = docs.map((d, i) => {
@@ -1089,6 +1118,7 @@ export function verifyClaim(input: z.output<typeof VerifyClaimInput>): Json {
       checked: [],
     };
   evidence.page = loc.page;
+  if (doc.ocr.has(loc.page)) evidence.ocr = true;
   const span = doc.text.span(loc.page, loc.q);
   if (span) evidence.span = span;
   if (loc.corrected)
@@ -1140,9 +1170,13 @@ export function verifyClaim(input: z.output<typeof VerifyClaimInput>): Json {
   const stated = (kind: Kind): unknown[] =>
     kind === "date"
       ? (states.dates as unknown[])
-      : kind === "string"
+      : kind === "string" || kind === "phrase"
         ? []
         : (states.numbers as unknown[]);
+  const shown = (p: { as: Kind; value: unknown }): string =>
+    p.as === "text"
+      ? `number ${textNumberMissing(p.value as string, q)} in ${showValue(p.value)}`
+      : showValue(p.value);
   const contradicting = absent.find((p) => stated(p.as).length > 0);
   const where = (p: { path?: string }): string =>
     p.path && p.path !== "value" ? ` (${p.path.slice("value.".length)})` : "";
@@ -1156,14 +1190,16 @@ export function verifyClaim(input: z.output<typeof VerifyClaimInput>): Json {
   } else if (contradicting) {
     status = "contradicted";
     const kind = contradicting.as === "date" ? "dates" : "numbers";
-    reason = `${showValue(contradicting.value)}${where(contradicting)} is not written in the quote; the quote states ${kind}: ${stated(contradicting.as).map(String).join(", ")}`;
+    reason = `${shown(contradicting)}${where(contradicting)} is not written in the quote; the quote states ${kind}: ${stated(contradicting.as).map(String).join(", ")}`;
   } else {
     status = "unverifiable";
     const p = absent[0]!;
     reason =
       p.as === "string"
         ? `${showValue(p.value)}${where(p)} is not written in the quote; FactLot cannot tell whether the quote names someone else`
-        : `${showValue(p.value)}${where(p)} is not written in the quote, and the quote states no ${p.as === "date" ? "date" : "number"} to compare it with`;
+        : p.as === "phrase"
+          ? `${showValue(p.value)}${where(p)} is not worded in the quote as FactLot recognises it (docs/document-verification.md lists the phrases); read the quote`
+          : `${showValue(p.value)}${where(p)} is not written in the quote, and the quote states no ${p.as === "date" ? "date" : "number"} to compare it with`;
   }
   return {
     status,
