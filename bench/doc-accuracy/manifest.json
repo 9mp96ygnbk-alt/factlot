@@ -1,7 +1,715 @@
 {
-  "benchmark": "factlot doc_verify_facts accuracy",
-  "user_agent": "FactLot doc-accuracy benchmark contact@factlot.com",
-  "search": {"endpoint": "https://efts.sec.gov/LATEST/search-index", "queries": [], "forms": ["8-K", "10-K", "10-Q"],
-             "filed_from": "2018-01-01", "filed_to": "2025-12-31", "searched_on": null, "skipped": []},
-  "documents": []
+ "benchmark": "factlot doc_verify_facts accuracy",
+ "user_agent": "FactLot doc-accuracy benchmark contact@factlot.com",
+ "search": {
+  "endpoint": "https://efts.sec.gov/LATEST/search-index",
+  "queries": [
+   {
+    "name": "office",
+    "q": "\"office lease\" \"rentable square feet\" \"base rent\""
+   },
+   {
+    "name": "industrial",
+    "q": "\"industrial lease\" \"warehouse\" \"base rent\""
+   },
+   {
+    "name": "retail",
+    "q": "\"shopping center\" \"percentage rent\" \"lease\""
+   },
+   {
+    "name": "amendment",
+    "q": "\"amendment to lease\" \"rentable square feet\" \"base rent\""
+   },
+   {
+    "name": "retail2",
+    "q": "\"retail lease\" \"gross sales\" \"base rent\""
+   },
+   {
+    "name": "retail3",
+    "q": "\"shopping center\" \"gross sales\" \"minimum rent\""
+   },
+   {
+    "name": "office_full",
+    "q": "\"office lease\" \"basic lease information\" \"letter of credit\" \"tenant's share\""
+   }
+  ],
+  "forms": [
+   "8-K",
+   "10-K",
+   "10-Q"
+  ],
+  "filed_from": "2018-01-01",
+  "filed_to": "2025-12-31",
+  "searched_on": "2026-11-03",
+  "skipped": [
+   {
+    "accession": "0001683168-19-002657",
+    "file": "brac_ex1033.htm",
+    "company": "Allied Esports Entertainment, Inc.",
+    "reason": "lease amendment; amendment quota (office 3, industrial 2) already full when reached"
+   },
+   {
+    "accession": "0001459200-25-000008",
+    "file": "ex101fifteenthamendment.htm",
+    "company": "Alarm.com Holdings, Inc.",
+    "reason": "lease amendment; amendment quota (office 3, industrial 2) already full when reached"
+   },
+   {
+    "accession": "0001093557-23-000024",
+    "file": "dxcm12312022ex1018-fourtha.htm",
+    "company": "DEXCOM INC",
+    "reason": "lease amendment; amendment quota (office 3, industrial 2) already full when reached"
+   },
+   {
+    "accession": "0001437749-20-004130",
+    "file": "ex_174052.htm",
+    "company": "INPHI Corp",
+    "reason": "lease amendment; amendment quota (office 3, industrial 2) already full when reached"
+   },
+   {
+    "accession": "0001213900-24-054851",
+    "file": "ea020823101ex10-1_gcmgros.htm",
+    "company": "GCM Grosvenor Inc.",
+    "reason": "lease amendment; amendment quota (office 3, industrial 2) already full when reached"
+   },
+   {
+    "accession": "0001261333-23-000050",
+    "file": "exhibit1012_eleventhamendm.htm",
+    "company": "DOCUSIGN, INC.",
+    "reason": "lease amendment; amendment quota (office 3, industrial 2) already full when reached"
+   },
+   {
+    "accession": "0001411059-19-000012",
+    "file": "kbsriiq42018exhibit1056.htm",
+    "company": "KBS Real Estate Investment Trust II, Inc.",
+    "reason": "lease amendment; amendment quota (office 3, industrial 2) already full when reached"
+   },
+   {
+    "accession": "0000950170-24-124067",
+    "file": "kpti-ex10_1.htm",
+    "company": "Karyopharm Therapeutics Inc.",
+    "reason": "lease amendment; amendment quota (office 3, industrial 2) already full when reached"
+   },
+   {
+    "accession": "0001140361-19-008945",
+    "file": "ex10_1.htm",
+    "company": "REXAHN PHARMACEUTICALS, INC.",
+    "reason": "lease amendment; amendment quota (office 3, industrial 2) already full when reached"
+   },
+   {
+    "accession": "0001095315-22-000065",
+    "file": "a1052shelbydriveleaseamn.htm",
+    "company": "PFSWEB INC",
+    "reason": "text layer is OCR output of a scan with visible recognition errors (scanned document)"
+   },
+   {
+    "accession": "0001213900-21-021766",
+    "file": "f10k2020ex10-47_1847hold.htm",
+    "company": "1847 Holdings LLC",
+    "reason": "landlord parties are natural persons"
+   },
+   {
+    "accession": "0001558370-19-002565",
+    "file": "giii-20190131ex1010bb073.htm",
+    "company": "G III APPAREL GROUP LTD /DE/",
+    "reason": "lease amendment; amendment quota (office 3, industrial 2) already full when reached"
+   },
+   {
+    "accession": "0001558370-21-015152",
+    "file": "aprn-20210930xex10d1.htm",
+    "company": "Blue Apron Holdings, Inc.",
+    "reason": "lease amendment; amendment quota (office 3, industrial 2) already full when reached"
+   },
+   {
+    "accession": "0000950170-23-010960",
+    "file": "acdc-ex10_54.htm",
+    "company": "ProFrac Holding Corp.",
+    "reason": "industrial lease quota (5) already full when reached"
+   },
+   {
+    "accession": "0001558370-20-002154",
+    "file": "cto-20191231ex10328b5ac.htm",
+    "company": "CONSOLIDATED TOMOKA LAND CO",
+    "reason": "purchase and sale agreement, not a lease"
+   },
+   {
+    "accession": "0000003499-19-000004",
+    "file": "regoparkii-arloanandsecuri.htm",
+    "company": "ALEXANDERS INC",
+    "reason": "loan agreement, not a lease"
+   },
+   {
+    "accession": "0001564590-21-050301",
+    "file": "rvi-ex101_52.htm",
+    "company": "Retail Value Inc.",
+    "reason": "purchase agreement, not a lease"
+   },
+   {
+    "accession": "0001213900-24-033444",
+    "file": "ea020177001ex10-132_larosa.htm",
+    "company": "La Rosa Holdings Corp.",
+    "reason": "form of lease; landlord is a natural person; office space"
+   },
+   {
+    "accession": "0001516551-23-000044",
+    "file": "amendedandrestatedlease-ro.htm",
+    "company": "Skye Bioscience, Inc.",
+    "reason": "office lease; office quota already full when reached"
+   },
+   {
+    "accession": "0001446371-21-000007",
+    "file": "exhibit108leaseagreement.htm",
+    "company": "Strategic Realty Trust, Inc.",
+    "reason": "text layer is OCR output of a scan with visible recognition errors (scanned document)"
+   },
+   {
+    "accession": "0000950170-23-059764",
+    "file": "dtil-ex10_2.htm",
+    "company": "PRECISION BIOSCIENCES INC",
+    "reason": "lease amendment; amendment quota (office 3, industrial 2) already full when reached"
+   },
+   {
+    "accession": "0001558370-22-002824",
+    "file": "nxtc-20211231xex10d26.htm",
+    "company": "NextCure, Inc.",
+    "reason": "lease amendment; amendment quota (office 3, industrial 2) already full when reached"
+   },
+   {
+    "accession": "0001564590-20-047991",
+    "file": "rare-ex105_443.htm",
+    "company": "Ultragenyx Pharmaceutical Inc.",
+    "reason": "lease amendment; amendment quota (office 3, industrial 2) already full when reached"
+   },
+   {
+    "accession": "0001655759-23-000079",
+    "file": "arvinassixthleaseamendme.htm",
+    "company": "ARVINAS, INC.",
+    "reason": "lease amendment; amendment quota (office 3, industrial 2) already full when reached"
+   },
+   {
+    "accession": "0001564590-19-028984",
+    "file": "sage-ex101_50.htm",
+    "company": "Sage Therapeutics, Inc.",
+    "reason": "lease amendment; amendment quota (office 3, industrial 2) already full when reached"
+   },
+   {
+    "accession": "0001564590-18-010662",
+    "file": "srpt-ex104_284.htm",
+    "company": "Sarepta Therapeutics, Inc.",
+    "reason": "lease amendment; amendment quota (office 3, industrial 2) already full when reached"
+   },
+   {
+    "accession": "0001162194-21-000013",
+    "file": "exhibit102b2020secondamend.htm",
+    "company": "FLUIDIGM CORP",
+    "reason": "lease amendment; amendment quota (office 3, industrial 2) already full when reached"
+   },
+   {
+    "accession": "0001475115-20-000021",
+    "file": "nashvilleleaseamendments.htm",
+    "company": "Eventbrite, Inc.",
+    "reason": "lease amendment; amendment quota (office 3, industrial 2) already full when reached"
+   },
+   {
+    "accession": "0001213900-24-030053",
+    "file": "ea020298801ex10-32_biomx.htm",
+    "company": "BiomX Inc.",
+    "reason": "lease amendment; amendment quota (office 3, industrial 2) already full when reached"
+   },
+   {
+    "accession": "0001590750-25-000020",
+    "file": "ex1022025-09x06bixwatchfac.htm",
+    "company": "Viridian Therapeutics, Inc.\\DE",
+    "reason": "lease amendment; amendment quota (office 3, industrial 2) already full when reached"
+   },
+   {
+    "accession": "0001564590-19-040403",
+    "file": "rgnx-ex101_176.htm",
+    "company": "REGENXBIO Inc.",
+    "reason": "lease amendment; amendment quota (office 3, industrial 2) already full when reached"
+   },
+   {
+    "accession": "0001104659-18-014107",
+    "file": "a18-1042_1ex10d20.htm",
+    "company": "Loxo Oncology, Inc.",
+    "reason": "lease amendment; amendment quota (office 3, industrial 2) already full when reached"
+   },
+   {
+    "accession": "0001558370-18-004450",
+    "file": "ecyt-20180331ex10194b733.htm",
+    "company": "ENDOCYTE INC",
+    "reason": "lease amendment; amendment quota (office 3, industrial 2) already full when reached"
+   },
+   {
+    "accession": "0001685071-19-000023",
+    "file": "dovaq22019ex103.htm",
+    "company": "Dova Pharmaceuticals Inc.",
+    "reason": "lease amendment; amendment quota (office 3, industrial 2) already full when reached"
+   },
+   {
+    "accession": "0001852117-21-000061",
+    "file": "rockleyex10123rdqtr2021x09.htm",
+    "company": "Rockley Photonics Holdings Ltd",
+    "reason": "lease amendment; amendment quota (office 3, industrial 2) already full when reached"
+   },
+   {
+    "accession": "0001437749-22-001821",
+    "file": "ex_325548.htm",
+    "company": "NovaBay Pharmaceuticals, Inc.",
+    "reason": "lease amendment; amendment quota (office 3, industrial 2) already full when reached"
+   },
+   {
+    "accession": "0001500435-19-000031",
+    "file": "gpro2019-03x31exhibit1.htm",
+    "company": "GoPro, Inc.",
+    "reason": "lease amendment; amendment quota (office 3, industrial 2) already full when reached"
+   },
+   {
+    "accession": "0001558370-23-003331",
+    "file": "rain-20221231xex10d19.htm",
+    "company": "Rain Oncology Inc.",
+    "reason": "lease amendment; amendment quota (office 3, industrial 2) already full when reached"
+   },
+   {
+    "accession": "0001628280-20-002122",
+    "file": "cort201910-kex1035.htm",
+    "company": "CORCEPT THERAPEUTICS INC",
+    "reason": "lease amendment; amendment quota (office 3, industrial 2) already full when reached"
+   },
+   {
+    "accession": "0001289848-19-000040",
+    "file": "exh101-chicagolease6th.htm",
+    "company": "Huron Consulting Group Inc.",
+    "reason": "lease amendment; amendment quota (office 3, industrial 2) already full when reached"
+   },
+   {
+    "accession": "0001564590-20-028397",
+    "file": "box-ex104_154.htm",
+    "company": "BOX INC",
+    "reason": "lease amendment; amendment quota (office 3, industrial 2) already full when reached"
+   },
+   {
+    "accession": "0001600033-19-000049",
+    "file": "q120exhibit101.htm",
+    "company": "e.l.f. Beauty, Inc.",
+    "reason": "lease amendment; amendment quota (office 3, industrial 2) already full when reached"
+   },
+   {
+    "accession": "0001564590-21-001977",
+    "file": "emma-ex1023_941.htm",
+    "company": "Emmaus Life Sciences, Inc.",
+    "reason": "lease amendment; amendment quota (office 3, industrial 2) already full when reached"
+   },
+   {
+    "accession": "0001438133-21-000033",
+    "file": "exhibit101-leaseagreementx.htm",
+    "company": "TANDEM DIABETES CARE INC",
+    "reason": "lease amendment; amendment quota (office 3, industrial 2) already full when reached"
+   },
+   {
+    "accession": "0001564590-19-008784",
+    "file": "emma-ex1024b_312.htm",
+    "company": "EMMAUS LIFE SCIENCES, INC.",
+    "reason": "lease amendment; amendment quota (office 3, industrial 2) already full when reached"
+   },
+   {
+    "accession": "0001171843-18-007914",
+    "file": "exh_1025.htm",
+    "company": "Zomedica Pharmaceuticals Corp.",
+    "reason": "lease amendment; amendment quota (office 3, industrial 2) already full when reached"
+   },
+   {
+    "accession": "0001529274-23-000165",
+    "file": "exhibit101-sixthamendmentt.htm",
+    "company": "ALKAMI TECHNOLOGY, INC.",
+    "reason": "lease amendment; amendment quota (office 3, industrial 2) already full when reached"
+   },
+   {
+    "accession": "0001564590-20-023050",
+    "file": "acad-ex101_304.htm",
+    "company": "ACADIA PHARMACEUTICALS INC",
+    "reason": "lease amendment; amendment quota (office 3, industrial 2) already full when reached"
+   },
+   {
+    "accession": "0001725160-21-000220",
+    "file": "exhibit101-healthpeakhcpxz.htm",
+    "company": "Zentalis Pharmaceuticals, Inc.",
+    "reason": "lease amendment; amendment quota (office 3, industrial 2) already full when reached"
+   },
+   {
+    "accession": "0001617553-24-000056",
+    "file": "ex102-ziprecruitersmbpxoff.htm",
+    "company": "ZIPRECRUITER, INC.",
+    "reason": "over 400,000 characters after splitting"
+   },
+   {
+    "accession": "0001159036-22-000038",
+    "file": "ex101agreementforassignmen.htm",
+    "company": "HALOZYME THERAPEUTICS, INC.",
+    "reason": "assignment agreement, not a lease or amendment"
+   },
+   {
+    "accession": "0001564590-21-036496",
+    "file": "nktx-ex101_6.htm",
+    "company": "Nkarta, Inc.",
+    "reason": "office lease quota (5) already full when reached"
+   },
+   {
+    "accession": "0001564590-18-005132",
+    "file": "toca-ex1016_769.htm",
+    "company": "Tocagen Inc",
+    "reason": "office lease quota (5) already full when reached"
+   },
+   {
+    "accession": "0001564590-18-028395",
+    "file": "myok-ex101_334.htm",
+    "company": "MyoKardia Inc",
+    "reason": "office lease quota (5) already full when reached"
+   },
+   {
+    "accession": "0001628280-22-021104",
+    "file": "ngm-20220630x10qex101.htm",
+    "company": "NGM BIOPHARMACEUTICALS INC",
+    "reason": "office lease quota (5) already full when reached"
+   },
+   {
+    "accession": "0001564590-21-036001",
+    "file": "dmtk-ex101_6.htm",
+    "company": "DermTech, Inc.",
+    "reason": "office lease quota (5) already full when reached"
+   }
+  ],
+  "procedure": "Hits were opened in search order, one document per filer. Quotas: 3 office and 2 industrial amendments (from the office and industrial queries), 5 office leases (office_full query), 5 industrial leases (industrial query), 5 retail leases (retail, retail3, retail2 queries). Each opened hit is either selected or listed in skipped with the reason. Selection was fixed before any label was written."
+ },
+ "documents": [
+  {
+   "id": "L01",
+   "company": "Square, Inc.",
+   "cik": "1512673",
+   "form": "10-Q",
+   "filing_date": "2018-08-01",
+   "accession": "0001512673-18-000011",
+   "exhibit": "EX-10.6",
+   "url": "https://www.sec.gov/Archives/edgar/data/1512673/000151267318000011/exhibit106.htm",
+   "property_type": "office",
+   "doc_kind": "amendment",
+   "sha256": "c6441b40b38b4ed6c8105ebf637020bb39a98d0729c52edd3965974a9ef47c29",
+   "pages": 7,
+   "text_sha256": "4bafb63b62c33f957f157134b1a485a7b3e0bcdeba68087854dbb12c58d8b55a",
+   "characters": 21499
+  },
+  {
+   "id": "L02",
+   "company": "DROPBOX, INC.",
+   "cik": "1467623",
+   "form": "10-K",
+   "filing_date": "2024-02-16",
+   "accession": "0001467623-24-000008",
+   "exhibit": "EX-10.24",
+   "url": "https://www.sec.gov/Archives/edgar/data/1467623/000146762324000008/exhibit1024-q423.htm",
+   "property_type": "office",
+   "doc_kind": "amendment",
+   "sha256": "7695233e55196ae37efc56e4bcb15981e35d50f098846fff922949d74fd4c5b6",
+   "pages": 20,
+   "text_sha256": "cea216f34d6a9335a2c0e8054869e23ab47877e5a18bada24cea0c75346cc472",
+   "characters": 38838
+  },
+  {
+   "id": "L03",
+   "company": "Okta, Inc.",
+   "cik": "1660134",
+   "form": "10-K",
+   "filing_date": "2021-03-04",
+   "accession": "0001660134-21-000007",
+   "exhibit": "EX-10.9.2",
+   "url": "https://www.sec.gov/Archives/edgar/data/1660134/000166013421000007/okta-1312021_ex1092.htm",
+   "property_type": "office",
+   "doc_kind": "amendment",
+   "sha256": "aac6308a3c127a367e86c927ced36c8105bfd566579175c2c296d19a9a4dedff",
+   "pages": 6,
+   "text_sha256": "0071f1b633ec1c7d5ecefeb5ef0d89cc822f1a87157005e185a018e9c5c7faab",
+   "characters": 21803
+  },
+  {
+   "id": "L04",
+   "company": "Dragonfly Energy Holdings Corp.",
+   "cik": "1847986",
+   "form": "10-K",
+   "filing_date": "2023-04-17",
+   "accession": "0001493152-23-012533",
+   "exhibit": "EX-10.35",
+   "url": "https://www.sec.gov/Archives/edgar/data/1847986/000149315223012533/ex10-35.htm",
+   "property_type": "industrial",
+   "doc_kind": "amendment",
+   "sha256": "c2542ddaae0876d4098caf9bcfeb86a956b2c25fd9afe75911524beed4bf6996",
+   "pages": 5,
+   "text_sha256": "2e990201b37823aff6c6e6c917fda3a93ce9f7688e44b9d1b4937f758f4ab62c",
+   "characters": 17892
+  },
+  {
+   "id": "L05",
+   "company": "Hyliion Holdings Corp.",
+   "cik": "1759631",
+   "form": "10-K",
+   "filing_date": "2022-02-24",
+   "accession": "0001759631-22-000014",
+   "exhibit": "EX-10.14",
+   "url": "https://www.sec.gov/Archives/edgar/data/1759631/000175963122000014/hyln-20211231xex1014.htm",
+   "property_type": "industrial",
+   "doc_kind": "amendment",
+   "sha256": "772f0400db82176bcebbd7214120cb3f6eab05e391ae551d0ebabaa42483f317",
+   "pages": 17,
+   "text_sha256": "2c5f4ef732e8105335d1c81a0460ffc81a8cb6605f74f291529072d26f80f1e5",
+   "characters": 37724
+  },
+  {
+   "id": "L06",
+   "company": "Allogene Therapeutics, Inc.",
+   "cik": "1737287",
+   "form": "10-K",
+   "filing_date": "2019-03-08",
+   "accession": "0001564590-19-006991",
+   "exhibit": "EX-10.17",
+   "url": "https://www.sec.gov/Archives/edgar/data/1737287/000156459019006991/allo-ex1017_446.htm",
+   "property_type": "office",
+   "doc_kind": "lease",
+   "sha256": "0afdd6ee9eb21a8539fa17858d4d94502329fab9383cd12f17669c0a3e6a20d6",
+   "pages": 73,
+   "text_sha256": "ef470093547769a46e4744cecd7f2396514d91022d4846b85f5dfdb4bb267fde",
+   "characters": 285316,
+   "note": "office/laboratory building"
+  },
+  {
+   "id": "L07",
+   "company": "Adverum Biotechnologies, Inc.",
+   "cik": "1501756",
+   "form": "10-Q",
+   "filing_date": "2018-08-08",
+   "accession": "0001564590-18-020510",
+   "exhibit": "EX-10.2",
+   "url": "https://www.sec.gov/Archives/edgar/data/1501756/000156459018020510/advm-ex102_101.htm",
+   "property_type": "office",
+   "doc_kind": "lease",
+   "sha256": "975ed815f480d917cf33057d967b64a45252f85f2b32818e791fa01f6f84e810",
+   "pages": 74,
+   "text_sha256": "6e0e4a89cf5faa913291a579dba6518a205ac588d55b21c22382802edd99dc82",
+   "characters": 278803,
+   "note": "office/laboratory building"
+  },
+  {
+   "id": "L08",
+   "company": "HEALTHEQUITY, INC.",
+   "cik": "1428336",
+   "form": "8-K",
+   "filing_date": "2020-01-27",
+   "accession": "0001428336-20-000006",
+   "exhibit": "EX-10.1",
+   "url": "https://www.sec.gov/Archives/edgar/data/1428336/000142833620000006/a101wla-811068xv3xcrossr.htm",
+   "property_type": "office",
+   "doc_kind": "lease",
+   "sha256": "a618c14e859a988541657c1b763f8685a981f9a457c2584db7b0ce36d35d926a",
+   "pages": 39,
+   "text_sha256": "2c99cf24d2a112c81f9bd796c6b0da01339550c2a0eca75ab68a9afbf4a9d7b0",
+   "characters": 179268
+  },
+  {
+   "id": "L09",
+   "company": "MYRIAD GENETICS INC",
+   "cik": "899923",
+   "form": "10-K",
+   "filing_date": "2024-02-28",
+   "accession": "0000899923-24-000018",
+   "exhibit": "EX-10.5",
+   "url": "https://www.sec.gov/Archives/edgar/data/899923/000089992324000018/healthpeak233egrand-leaseb.htm",
+   "property_type": "office",
+   "doc_kind": "lease",
+   "sha256": "e5ff270bfa8863366fe830c705e92e662039d0a9aed6f9117d2dcdf36fb81135",
+   "pages": 83,
+   "text_sha256": "4d7664fbe3fcd5a64f0e7a0a5bf061e42d8a38f1fd203f4d84d20b127d5723d1",
+   "characters": 316350,
+   "note": "office/laboratory building"
+  },
+  {
+   "id": "L10",
+   "company": "Forge Global Holdings, Inc.",
+   "cik": "1827821",
+   "form": "8-K",
+   "filing_date": "2022-03-25",
+   "accession": "0001104659-22-038152",
+   "exhibit": "EX-10.2",
+   "url": "https://www.sec.gov/Archives/edgar/data/1827821/000110465922038152/tm2210206d1_ex10-2.htm",
+   "property_type": "office",
+   "doc_kind": "lease",
+   "sha256": "148aab584cc5c67907b226fe5e70926554a4200cac01fe29a808f10b5cf5016a",
+   "pages": 67,
+   "text_sha256": "04891a82d732067ad788682889ae42e6e9614080717c23c54a9e77a8c5837760",
+   "characters": 224029
+  },
+  {
+   "id": "L11",
+   "company": "ORASURE TECHNOLOGIES INC",
+   "cik": "1116463",
+   "form": "10-K",
+   "filing_date": "2022-03-01",
+   "accession": "0000950170-22-002556",
+   "exhibit": "EX-10.30",
+   "url": "https://www.sec.gov/Archives/edgar/data/1116463/000095017022002556/osur-ex10_30.htm",
+   "property_type": "industrial",
+   "doc_kind": "lease",
+   "sha256": "bb58f4d824e2d16c54ced6a2e3e4590349871b8c495aadc199f1d2f09c13e411",
+   "pages": 36,
+   "text_sha256": "75985ce0e8853e4e369ac3f386c169e378c4b7afa1113d75353794842f087e56",
+   "characters": 121272
+  },
+  {
+   "id": "L12",
+   "company": "Thorne Healthtech, Inc.",
+   "cik": "1844280",
+   "form": "10-Q",
+   "filing_date": "2021-11-10",
+   "accession": "0001193125-21-325658",
+   "exhibit": "EX-10.1",
+   "url": "https://www.sec.gov/Archives/edgar/data/1844280/000119312521325658/d183435dex101.htm",
+   "property_type": "industrial",
+   "doc_kind": "lease",
+   "sha256": "235933ecc3a75439c764ec4db859e99cc7e46f8cc87e41925f5f90308270de0e",
+   "pages": 57,
+   "text_sha256": "36786c23b700c47547b17fe5d4c9fa4aa656a837b39267629a9a7f819fa5d9f4",
+   "characters": 160899
+  },
+  {
+   "id": "L13",
+   "company": "SCANSOURCE, INC.",
+   "cik": "918965",
+   "form": "10-K",
+   "filing_date": "2021-08-24",
+   "accession": "0000918965-21-000022",
+   "exhibit": "EX-10.40",
+   "url": "https://www.sec.gov/Archives/edgar/data/918965/000091896521000022/scansourceex10406302021.htm",
+   "property_type": "industrial",
+   "doc_kind": "lease",
+   "sha256": "56fa039539d499b5da026af847041db4659770e42dc165e5ba3325b1bb68fa46",
+   "pages": 29,
+   "text_sha256": "036a79e44ffa299ba22b1d400572885ff69f0443d754292e3661a2ed3f4184ac",
+   "characters": 120625,
+   "note": "tenant is a filer subsidiary LLC; some terms redacted"
+  },
+  {
+   "id": "L14",
+   "company": "Sow Good Inc.",
+   "cik": "1490161",
+   "form": "8-K",
+   "filing_date": "2024-05-29",
+   "accession": "0000950170-24-066060",
+   "exhibit": "EX-10.1",
+   "url": "https://www.sec.gov/Archives/edgar/data/1490161/000095017024066060/sowg-ex10_1.htm",
+   "property_type": "industrial",
+   "doc_kind": "lease",
+   "sha256": "a9fe566055f889ac226160969eba3caae29d00e65e2b9624aec315e9510b3ff6",
+   "pages": 50,
+   "text_sha256": "6e2ec669fe64524b5bec83d17f7efdf4e6a341051492c24cbecb1c4112c091f3",
+   "characters": 177412
+  },
+  {
+   "id": "L15",
+   "company": "Solid Power, Inc.",
+   "cik": "1844862",
+   "form": "8-K",
+   "filing_date": "2021-12-13",
+   "accession": "0001104659-21-148821",
+   "exhibit": "EX-10.21",
+   "url": "https://www.sec.gov/Archives/edgar/data/1844862/000110465921148821/tm2132574d4_ex10-21.htm",
+   "property_type": "industrial",
+   "doc_kind": "lease",
+   "sha256": "959a9ab33ec1848eac635b8a04ea80d5796f7aaa13ad865936598eda9414b8ee",
+   "pages": 62,
+   "text_sha256": "51e7ec6112d0d147379a940dfe5cefe5a25398c145e99b58bd9bf989942a7587",
+   "characters": 211013
+  },
+  {
+   "id": "L16",
+   "company": "Cinemark Holdings, Inc.",
+   "cik": "1385280",
+   "form": "10-K",
+   "filing_date": "2018-02-23",
+   "accession": "0001564590-18-002969",
+   "exhibit": "EX-10.28(A)",
+   "url": "https://www.sec.gov/Archives/edgar/data/1385280/000156459018002969/cnk-ex1028a_191.htm",
+   "property_type": "retail",
+   "doc_kind": "lease",
+   "sha256": "8c1c6403a3c6cea3725b80304e044d3de11627f5da18870f3155b28f881c4421",
+   "pages": 65,
+   "text_sha256": "9f81529074ef4902a651258a75f3d8c456caba9ffb14a0575b8b0182e32b4f8c",
+   "characters": 300540,
+   "note": "movie theatre in a shopping center"
+  },
+  {
+   "id": "L17",
+   "company": "GENERATION INCOME PROPERTIES, INC.",
+   "cik": "1651721",
+   "form": "10-Q",
+   "filing_date": "2022-05-16",
+   "accession": "0001564590-22-020397",
+   "exhibit": "EX-10.4",
+   "url": "https://www.sec.gov/Archives/edgar/data/1651721/000156459022020397/gipr-ex104_168.htm",
+   "property_type": "retail",
+   "doc_kind": "lease",
+   "sha256": "75f68266ce41a4d11356378e7f76520f4c7ce1fbc09ea42b607aaf6ed78e29be",
+   "pages": 69,
+   "text_sha256": "64a530fc0fcd0de86afc99eb29de173bab3e8e80bc496817b69da51a33bd2830",
+   "characters": 203895,
+   "note": "big-box store"
+  },
+  {
+   "id": "L18",
+   "company": "Natural Grocers by Vitamin Cottage, Inc.",
+   "cik": "1547459",
+   "form": "10-Q",
+   "filing_date": "2025-05-08",
+   "accession": "0001437749-25-015486",
+   "exhibit": "EX-10.1",
+   "url": "https://www.sec.gov/Archives/edgar/data/1547459/000143774925015486/ex_812731.htm",
+   "property_type": "retail",
+   "doc_kind": "lease",
+   "sha256": "936169128b058af98af954e17ab5989abe5224df0f0a7214863044da4e1c848b",
+   "pages": 35,
+   "text_sha256": "461f655dd8d1c1de767bab92f89e0a03c1bfabdd9132aaeae0da6e871fdbfb36",
+   "characters": 113800,
+   "note": "grocery store in a shopping center"
+  },
+  {
+   "id": "L19",
+   "company": "Prime Meridian Holding Co",
+   "cik": "1586454",
+   "form": "8-K",
+   "filing_date": "2018-08-07",
+   "accession": "0001193125-18-240532",
+   "exhibit": "EX-10.1",
+   "url": "https://www.sec.gov/Archives/edgar/data/1586454/000119312518240532/d567543dex101.htm",
+   "property_type": "retail",
+   "doc_kind": "lease",
+   "sha256": "4618812677bcbb3f6a8c2a2259c7c1e0e29daec0ea50ac31aba5a6e623d28de4",
+   "pages": 53,
+   "text_sha256": "eae366afbaf70ebbfaa30f6f4ae8a67c4a77b0875a54f41852511d373479fb1e",
+   "characters": 170901,
+   "note": "bank branch in a shopping center"
+  },
+  {
+   "id": "L20",
+   "company": "Allied Esports Entertainment, Inc.",
+   "cik": "1708341",
+   "form": "8-K",
+   "filing_date": "2019-08-15",
+   "accession": "0001683168-19-002657",
+   "exhibit": "EX-10.36",
+   "url": "https://www.sec.gov/Archives/edgar/data/1708341/000168316819002657/brac_ex1036.htm",
+   "property_type": "retail",
+   "doc_kind": "lease",
+   "sha256": "197b7251e36cbdbf5e9157c59c65a8af1eba97d95b5f0acdbd628e6d5f4bb01a",
+   "pages": 49,
+   "text_sha256": "89eb56a4ce474f5de9357a86cc55ef7b649995e9e5fcb19a0621f90fcd701160",
+   "characters": 262563,
+   "note": "entertainment venue in a hotel-casino complex"
+  }
+ ]
 }

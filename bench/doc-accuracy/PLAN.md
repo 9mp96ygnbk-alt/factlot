@@ -116,7 +116,7 @@ A candidate is correct when its value equals the matched label:
 
 - JSON equality. Object key order does not matter. Lists match element by element. A boolean is not a number.
 - Dates are exact `YYYY-MM-DD` strings.
-- Numbers match by value (`95000` equals `95000.0`).
+- Numbers match by value (`95000` equals `95000.0`). Two numbers also match when both round to the same value at two decimal places (`6.666666666666667` equals `6.67`), so a label written as an exact fraction and a candidate written as a rounded decimal are the same value. Every planted error changes the value at two decimal places, so this tolerance cannot hide one. (Changed before the label freeze, while drafting labels.)
 - Party names (`lease.landlord`, `lease.tenant`, and the `guarantor` of `lease.guaranty`) and other strings match after NFKC, typographic quotes to ASCII, whitespace collapsed and case folded.
 - For object predicates only these fields are compared (missing on both sides counts as equal): `free_rent` months, applies_to; `cam_cap` method, rate; `renewal_option` count, term_months, notice_months; `termination_option` effective_date, notice_months; `percentage_rent` rate, breakpoint; `co_tenancy` cure_period_months; `parking` spaces, rate_monthly; `guaranty` guarantor, cap. Free-text fields (renewal rent, termination fee, co-tenancy trigger and remedy, sales exclusions) are not compared, because two correct readers word them differently. Enums (a cap method, what free rent applies to) are compared even though the verifier does not check them, so a wrong enum shows up as a wrong value the verifier passed.
 
@@ -124,7 +124,7 @@ Summary predicates are `lease.rofr`, `lease.rofo`, `lease.exclusive_use`, and `l
 
 A candidate whose predicate has no label on that document is unlabeled. Unlabeled candidates are left out of precision, catch rate, false-rejection rate, and coverage. Counts by outcome are reported. A sensitivity line puts each unlabeled verified candidate in the precision denominator as wrong.
 
-Each candidate is scored on its own. Duplicate candidates are not merged. A label is covered when at least one verified candidate matches it. Coverage's denominator is every non-summary label, including labels the extractor never proposed. Coverage is joint (a correct proposal that was also verified). It is not verifier recall.
+Each candidate is scored on its own. Duplicate candidates are not merged. A label is covered when at least one verified candidate matches it. Coverage's denominator is every distinct non-summary label (the same predicate and value labelled twice in one document, for example two pro rata shares that are both 100%, counts once), including labels the extractor never proposed. Coverage is joint (a correct proposal that was also verified). It is not verifier recall.
 
 ### Metrics
 

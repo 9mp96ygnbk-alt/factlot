@@ -222,7 +222,7 @@ def _num(x: Any) -> bool:
 
 def _eq(a: Any, b: Any) -> bool:
     if _num(a) and _num(b):
-        return abs(a - b) <= 1e-9 * max(1.0, abs(a), abs(b))
+        return abs(a - b) <= 1e-9 * max(1.0, abs(a), abs(b)) or round(a, 2) == round(b, 2)
     if isinstance(a, str) and isinstance(b, str):
         return _norm_name(a) == _norm_name(b)
     if isinstance(a, dict) and isinstance(b, dict):
@@ -451,9 +451,14 @@ def score(docs: dict[str, dict[str, Any]]) -> dict[str, Any]:
     labels_scored = []
     for doc_id, d in docs.items():
         kinds = classify(d["candidates"], d["labels"])
+        seen: list[tuple[str, Any]] = []
         for lab in d["labels"]:
             if lab["predicate"] in SUMMARY_PREDICATES:
                 continue
+            # Coverage counts distinct (predicate, value) labels: the same value labelled twice is one fact.
+            if any(p == lab["predicate"] and values_match(p, v, lab["value"]) for p, v in seen):
+                continue
+            seen.append((lab["predicate"], lab["value"]))
             hit = any(c["predicate"] == lab["predicate"] and k == "correct" and o == "verified"
                       and values_match(lab["predicate"], c["value"], lab["value"])
                       for c, k, o in zip(d["candidates"], kinds, d["outcomes"]))
