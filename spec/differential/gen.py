@@ -1,4 +1,4 @@
-"""Generate random calculator inputs for the TypeScript/Python differential test.
+"""Generate random calculator, rule and document-tool inputs for the TypeScript/Python differential test.
 
 Usage: python gen.py SEED COUNT OUT.json
 """
@@ -89,4 +89,8 @@ for _ in range(int(sys.argv[2])):
         from datetime import date as _d, timedelta as _t
         rinp["notice_delivered_date"]=(_d(y,1,1)+_t(days=random.randint(0,364))).isoformat()
     cases.append({"rule":"tx_property_tax_protest_deadline","input":rinp})
+# document tools and fact_validate: their own random stream, so the cases above stay as they were
+sys.path.insert(0, __import__("os").path.dirname(__file__))
+from gen_docs import doc_cases
+cases.extend(doc_cases(int(sys.argv[1]), int(sys.argv[2])))
 json.dump(cases,open(sys.argv[3],"w"))

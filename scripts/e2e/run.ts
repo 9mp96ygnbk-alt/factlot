@@ -44,6 +44,10 @@ const REQUIRED_TOOLS = [
   "id_document",
   "id_parse",
   "fact_validate",
+  "doc_verify_facts",
+  "doc_abstract_lease",
+  "doc_compare",
+  "doc_verify_claim",
   "schema_get",
   "search",
   "fetch",
@@ -58,6 +62,27 @@ const DEBT_SIZING = {
   min_dscr: 1.25,
 };
 const PARCEL = { state_fips: "06", county_fips: "037", apn: "5432-001-012" };
+// Synthetic text, not a real lease: one value the quote states and one it does not.
+const DOC_CHECK = {
+  document: {
+    pages: ["SYNTHETIC LEASE. The Term shall expire on June 30, 2031."],
+  },
+  as_of: "2026-11-03",
+  candidates: [
+    {
+      predicate: "lease.expiration_date",
+      value: "2031-06-30",
+      quote: "shall expire on June 30, 2031",
+      page: 1,
+    },
+    {
+      predicate: "lease.expiration_date",
+      value: "2033-06-30",
+      quote: "shall expire on June 30, 2031",
+      page: 1,
+    },
+  ],
+};
 const PARCEL_URN = "fl:parcel:us-06037:5432001012";
 const CITED_FACT = {
   subject: PARCEL_URN,
@@ -155,6 +180,24 @@ function mcpSuite(connect: () => Promise<Client>) {
     })) as ToolResult;
     assert.equal(bad.structuredContent?.valid, false);
     assert.ok((bad.structuredContent?.issues as unknown[]).length > 0);
+  });
+
+  test("tools/call doc_verify_facts: the quote decides, with a reason", async () => {
+    const r = (await client.callTool({
+      name: "doc_verify_facts",
+      arguments: DOC_CHECK,
+    })) as ToolResult;
+    assert.notEqual(r.isError, true);
+    const out = r.structuredContent as {
+      verified: { fact: { provenance: { method: string } } }[];
+      needs_review: { reason: string }[];
+    };
+    assert.equal(out.verified.length, 1);
+    assert.equal(out.verified[0]!.fact.provenance.method, "extracted");
+    assert.equal(
+      out.needs_review[0]!.reason,
+      'value "2033-06-30" not found in quote',
+    );
   });
 
   test("invalid calls: bad arguments and an unknown tool are reported, not crashes", async () => {
@@ -369,6 +412,14 @@ if (only !== "stdio") {
       const fact = await post("/v1/facts/validate", { fact: CITED_FACT });
       assert.equal(fact.status, 200);
       assert.equal(((await fact.json()) as { valid: boolean }).valid, true);
+
+      const doc = await post("/v1/doc/verify_facts", DOC_CHECK);
+      assert.equal(doc.status, 200);
+      assert.equal(
+        ((await doc.json()) as { summary: { verified: number } }).summary
+          .verified,
+        1,
+      );
 
       const bad = await post("/v1/calc/debt_sizing", { noi: "a lot" });
       assert.equal(bad.status, 400);

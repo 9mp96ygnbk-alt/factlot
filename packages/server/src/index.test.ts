@@ -138,7 +138,11 @@ test("OpenAPI documents point at this server", async () => {
   };
   assert.equal(doc31.openapi, "3.1.0");
   assert.equal(doc31.servers[0]?.url, base);
-  assert.equal(Object.keys(doc31.paths).length, tools.length);
+  // Without a registry, the same operations /v1/tools lists: no registry tools.
+  assert.equal(
+    Object.keys(doc31.paths).length,
+    tools.filter((t) => t.requires !== "registry").length,
+  );
   const doc30 = (await (
     await fetch(`${base}/openapi-3.0.json`, {
       headers: {

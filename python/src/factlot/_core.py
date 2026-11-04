@@ -117,6 +117,33 @@ def num_str(x: float) -> str:
     return str(int(x)) if float(x).is_integer() and abs(x) < 1e21 else repr(float(x))
 
 
+def js_number_str(x: float) -> str:
+    """Exactly JavaScript's String(number) (ECMAScript Number::toString) for a finite number.
+
+    Python's repr gives the same shortest round-trip digits; only the layout differs (repr
+    writes 1e-05 and 1e+16 where JavaScript writes 0.00001 and 10000000000000000).
+    """
+    f = float(x)
+    if f == 0:
+        return "0"
+    m = re.fullmatch(r"([0-9]+)(?:\.([0-9]+))?(?:e([+-][0-9]+))?", repr(abs(f)))
+    assert m is not None
+    whole, frac = m[1], m[2] or ""
+    all_digits = whole + frac
+    digits = all_digits.lstrip("0")
+    n = len(whole) + int(m[3] or 0) - (len(all_digits) - len(digits))  # decimal point position
+    digits = digits.rstrip("0")
+    k, sign = len(digits), "-" if f < 0 else ""
+    if k <= n <= 21:
+        return sign + digits + "0" * (n - k)
+    if 0 < n <= 21:
+        return f"{sign}{digits[:n]}.{digits[n:]}"
+    if -6 < n <= 0:
+        return f"{sign}0.{'0' * -n}{digits}"
+    e = n - 1
+    return f"{sign}{digits[0]}{'.' + digits[1:] if k > 1 else ''}e{'+' if e >= 0 else '-'}{abs(e)}"
+
+
 class Trace:
     def __init__(self) -> None:
         self.steps: list[dict[str, Any]] = []

@@ -10,6 +10,8 @@ cases, ts, py = (json.load(open(p)) for p in sys.argv[1:4])
 def walk(a, b, path, out):
     if isinstance(a, dict) and isinstance(b, dict):
         for k in sorted(set(a) | set(b)):
+            if k == "producer":  # names the SDK that produced a fact; differs by design
+                continue
             walk(a.get(k, "<missing>"), b.get(k, "<missing>"), f"{path}.{k}", out)
     elif isinstance(a, list) and isinstance(b, list):
         if len(a) != len(b):
@@ -30,16 +32,18 @@ bad = collections.Counter()
 examples = {}
 for c, t, y in zip(cases, ts, py):
     diffs = []
-    if ("error" in t) != ("error" in y):
+    if "tool" in c:
+        walk(t, y, "", diffs)
+    elif ("error" in t) != ("error" in y):
         diffs.append(("error", t.get("error"), y.get("error")))
     else:
         walk(t.get("value"), y.get("value"), "value", diffs)
         if len(t.get("warnings", [])) != len(y.get("warnings", [])):
             diffs.append(("warnings", len(t.get("warnings", [])), len(y.get("warnings", []))))
     if diffs:
-        key = c.get("calc") or c["rule"]
+        key = c.get("calc") or c.get("rule") or c["tool"]
         bad[key] += 1
-        examples.setdefault(key, (c["input"], diffs[:3]))
+        examples.setdefault(key, (c.get("input", c.get("arguments")), diffs[:3]))
 print(f"{len(cases)} cases, {sum(bad.values())} mismatched")
 for calc, (inp, diffs) in examples.items():
     print(f"  {calc}: {diffs}\n    input: {json.dumps(inp)[:400]}")

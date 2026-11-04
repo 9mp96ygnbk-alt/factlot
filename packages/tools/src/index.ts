@@ -12,3 +12,10 @@ export * from "./catalog.ts";
 export * from "./providers.ts";
 export * from "./registry.ts";
 export * from "./limits.ts";
+export {
+  DOC_LIMITS,
+  REVIEW_CONFIDENCE_THRESHOLD,
+  factId,
+  validateFact,
+} from "./documents.ts";
+export { PREDICATES as INGEST_PREDICATES } from "./quotes.ts";

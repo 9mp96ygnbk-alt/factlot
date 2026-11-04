@@ -22,7 +22,7 @@ assert "site-packages" in (factlot.__file__ or ""), f"imported from {factlot.__f
 anthropic = factlot.anthropic_tools()
 openai = factlot.openai_tools()
 names = {t["name"] for t in anthropic}
-for required in ("calc_debt_sizing", "id_parcel", "fact_validate", "calc_npv"):
+for required in ("calc_debt_sizing", "id_parcel", "fact_validate", "calc_npv", "doc_verify_facts"):
     assert required in names, required
 for t in anthropic:
     assert t["input_schema"]["type"] == "object", t["name"]
@@ -62,6 +62,15 @@ fact = {
     },
 }
 assert factlot.run_tool("fact_validate", {"fact": fact}) == {"valid": True, "issues": []}
+
+# Document verification: synthetic text; the quote states one value and not the other.
+doc = factlot.run_tool("doc_verify_facts", {
+    "document": {"pages": ["SYNTHETIC LEASE. The Term shall expire on June 30, 2031."]},
+    "as_of": "2026-11-03",
+    "candidates": [{"predicate": "lease.expiration_date", "value": v, "quote": "shall expire on June 30, 2031", "page": 1}
+                   for v in ("2031-06-30", "2033-06-30")],
+})
+assert doc["summary"] == {"candidates": 2, "verified": 1, "needs_review": 1, "rejected": 0}, doc
 
 # Input errors come back as data the model can correct.
 bad = factlot.run_tool("calc_debt_sizing", {"noi": "a lot"})

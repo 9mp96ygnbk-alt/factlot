@@ -3256,7 +3256,7 @@
       "post": {
         "operationId": "fact_validate",
         "summary": "Validate a FactLot fact",
-        "description": "Check that a fact conforms to the FactLot model (subject ID, dotted predicate, as_of date, provenance with citations, optional AI-use rights). Returns { valid, issues }. Call before storing or sharing extracted facts.",
+        "description": "Check one FactLot fact against the published fact schema (spec/schemas/fact.json): subject URN, dotted predicate, as_of date, provenance, optional rights; unknown fields are rejected at every level. Rules: every fact except a computed one cites at least one source (an inferred fact cites the evidence it was inferred from); a computed fact names its formula or cites a source; valid_from is not after valid_to; a source span does not end before it starts. For Ingest predicates (lease.expiration_date, lease.rentable_area_sf, lease.base_rent_schedule, ...) the value must have the predicate's shape and every source quote must state the value, by the same written-form rules as doc_verify_facts (a quote saying \"2,500 square feet\" does not support 1000). Not checked: that the quote is in the document, that the document or sha256 exists, that supersedes IDs exist, and quotes for other predicates; doc_verify_facts with the document's pages checks the quote. Returns { valid, issues }. Call before storing or sharing facts.",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,
@@ -3325,11 +3325,11 @@
         }
       }
     },
-    "/v1/registry/get": {
+    "/v1/doc/verify_facts": {
       "post": {
-        "operationId": "registry_get",
-        "summary": "Get a registry record",
-        "description": "Everything the FactLot Registry knows about a parcel or legal entity: status, current cited facts (owner of record, situs address, property category, areas, values), ownership links, and external IDs. Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
+        "operationId": "doc_verify_facts",
+        "summary": "Verify extracted document facts",
+        "description": "Check values YOU extracted from a document against its text, deterministically; FactLot runs no model. Send the pages as text and one candidate per value: {predicate, value, quote, page}. Each candidate is checked in order: (1) the value's shape (Ingest predicates such as lease.expiration_date YYYY-MM-DD, lease.pro_rata_share in (0, 1], ordered lease.base_rent_schedule steps; any other dotted predicate needs a non-empty value); (2) the quote, at least 12 characters, is on the cited page, where only whitespace, line breaks, letter case and typographic quotes and dashes may differ (a word hyphenated across a line must keep its hyphen; a quote found on exactly one other page is accepted with the page corrected); (3) every number, date and party name in the value is written in the quote, in any common form: 1250000 matches \"$1,250,000.00\", 0.03 matches \"3%\" or \"three percent\", 2031-06-30 matches \"June 30, 2031\" or \"6/30/2031\"; (4) a confidence you give below 0.8 holds it for review. Returns verified (FactLot facts: method extracted, citing document_id, page, quote and character span, plus which value parts were and were not checked), needs_review (the quote is on the page but does not state the value, or low confidence) and rejected (wrong shape; quote missing, too short, or on several pages), each with a reason to act on. Not checked: enums and free-text summaries, meaning (a quote stating the number in another context passes), and whether the pages came from the file whose sha256 you give.",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,
@@ -3338,18 +3338,91 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "urn": {
+                  "document": {
+                    "type": "object",
+                    "properties": {
+                      "pages": {
+                        "minItems": 1,
+                        "maxItems": 2000,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "maxLength": 100000,
+                          "description": "The text of one page, exactly as extracted."
+                        },
+                        "description": "The document's text, one string per page in order: pages[0] is page 1. Send the text as extracted (from the PDF text layer or OCR), not a summary; quotes are matched against it."
+                      },
+                      "sha256": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$",
+                        "description": "Optional SHA-256 (lowercase hex) of the original file. When given, document_id is fl:document:sha256-<this>, the same ID id_document gives the file; FactLot cannot check that the pages came from that file. Without it, document_id is the SHA-256 of the pages joined by form feeds (\\f)."
+                      },
+                      "title": {
+                        "type": "string",
+                        "maxLength": 500,
+                        "description": "Document title for citations, e.g. \"First Amendment to Lease\"."
+                      }
+                    },
+                    "required": ["pages"],
+                    "description": "The document the candidates were read from."
+                  },
+                  "candidates": {
+                    "minItems": 1,
+                    "maxItems": 500,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "predicate": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200,
+                          "description": "Dotted lower_snake predicate. Use an Ingest predicate (lease.expiration_date, lease.base_rent_schedule, ...) for its value-shape and quote rules; any other predicate gets the generic rules."
+                        },
+                        "value": {
+                          "description": "The value you read, in the predicate's shape: dates YYYY-MM-DD, money and areas as plain numbers (1250000, not \"$1.25M\"), shares and rates as decimals (0.03 for 3%)."
+                        },
+                        "quote": {
+                          "type": "string",
+                          "maxLength": 5000,
+                          "description": "Verbatim text from the page that states the value, at least 12 characters. Copy it exactly; only whitespace, line breaks, letter case and typographic quotes and dashes may differ."
+                        },
+                        "page": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 100000,
+                          "description": "1-based page the quote is on."
+                        },
+                        "section": {
+                          "description": "Section or clause as written, e.g. \"§4.2(b)\".",
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "confidence": {
+                          "description": "Your confidence 0–1. Below 0.8 the candidate goes to needs_review even if it verifies.",
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1
+                        }
+                      },
+                      "required": ["predicate", "value", "quote", "page"]
+                    },
+                    "description": "Values you extracted, each with its quote and page."
+                  },
+                  "as_of": {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                    "description": "Date the facts are stated as of (YYYY-MM-DD), usually today."
+                  },
+                  "subject": {
                     "type": "string",
                     "maxLength": 500,
-                    "description": "FactLot URN of a parcel or entity, e.g. fl:parcel:us-48201:0420150000012."
-                  },
-                  "include_history": {
-                    "default": false,
-                    "description": "Also return superseded facts from earlier snapshots.",
-                    "type": "boolean"
+                    "pattern": "^fl:[a-z]+:[^\\s:]+(?::[^\\s]+)?$",
+                    "description": "FactLot URN the facts are about, e.g. your lease's fl:lease:… ID. Default: the document ID."
                   }
                 },
-                "required": ["urn"]
+                "required": ["document", "candidates", "as_of"]
               }
             }
           }
@@ -3403,11 +3476,11 @@
         }
       }
     },
-    "/v1/registry/resolve_parcel": {
+    "/v1/doc/abstract_lease": {
       "post": {
-        "operationId": "registry_resolve_parcel",
-        "summary": "Resolve a parcel in the registry",
-        "description": "Find a parcel's FactLot URN from state FIPS, county FIPS, and APN, if the registry holds it. Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
+        "operationId": "doc_abstract_lease",
+        "summary": "Lease abstract with amendments",
+        "description": "Current-state lease abstract from a lease and its amendments, with amendment precedence. Give each document's pages with the candidates you extracted (checked exactly as doc_verify_facts checks them), or the facts doc_verify_facts already returned for it (without pages only the value against its quote is rechecked, marked quote_on_page: false). The original applies first, then amendments by effective_date (in the order given if any is undated); a later document's value for a predicate controls, and the earlier one moves to history and is linked through supersedes. Each field gives its value, the controlling document, page, quote and fact, the superseded history, conflicts (one document stating two different values) and open_items (a candidate for that predicate in the controlling or a later document that needs review or was rejected, so the value may not be final). FactLot only orders what you extracted: it does not find terms you missed, and an amendment that changes a term without restating it (\"extended by 24 months\") needs the resulting value extracted with that sentence as its quote, which the quote check will hold for review if the date is not written there.",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,
@@ -3416,336 +3489,348 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "state_fips": {
-                    "type": "string",
-                    "maxLength": 16,
-                    "description": "2-digit state FIPS, e.g. \"48\" for Texas."
-                  },
-                  "county_fips": {
-                    "type": "string",
-                    "maxLength": 16,
-                    "description": "3-digit county FIPS, e.g. \"201\" for Harris County."
-                  },
-                  "apn": {
-                    "type": "string",
-                    "maxLength": 200,
-                    "description": "Parcel or account number as the county prints it."
-                  }
-                },
-                "required": ["state_fips", "county_fips", "apn"]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Result object.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid input; read `issues`, fix the arguments, and retry.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "CalcInputError, FactLotIdError, InputError, or UnknownTool"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "issues": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "path": {
-                            "type": "string"
+                  "documents": {
+                    "minItems": 1,
+                    "maxItems": 50,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "role": {
+                          "description": "Default: \"original\" for the first document, \"amendment\" for the rest.",
+                          "type": "string",
+                          "enum": ["original", "amendment"]
+                        },
+                        "effective_date": {
+                          "description": "Amendment effective date (YYYY-MM-DD). Amendments apply in date order when every amendment has one, otherwise in the order given. Becomes valid_from on its facts.",
+                          "type": "string",
+                          "format": "date",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                        },
+                        "title": {
+                          "type": "string",
+                          "maxLength": 500,
+                          "description": "Document title for citations, e.g. \"First Amendment to Lease\"."
+                        },
+                        "sha256": {
+                          "type": "string",
+                          "pattern": "^[a-f0-9]{64}$",
+                          "description": "Optional SHA-256 (lowercase hex) of the original file. When given, document_id is fl:document:sha256-<this>, the same ID id_document gives the file; FactLot cannot check that the pages came from that file. Without it, document_id is the SHA-256 of the pages joined by form feeds (\\f)."
+                        },
+                        "pages": {
+                          "minItems": 1,
+                          "maxItems": 2000,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "maxLength": 100000,
+                            "description": "The text of one page, exactly as extracted."
                           },
-                          "message": {
-                            "type": "string"
+                          "description": "The document's text, one string per page in order: pages[0] is page 1. Send the text as extracted (from the PDF text layer or OCR), not a summary; quotes are matched against it."
+                        },
+                        "candidates": {
+                          "maxItems": 500,
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "predicate": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 200,
+                                "description": "Dotted lower_snake predicate. Use an Ingest predicate (lease.expiration_date, lease.base_rent_schedule, ...) for its value-shape and quote rules; any other predicate gets the generic rules."
+                              },
+                              "value": {
+                                "description": "The value you read, in the predicate's shape: dates YYYY-MM-DD, money and areas as plain numbers (1250000, not \"$1.25M\"), shares and rates as decimals (0.03 for 3%)."
+                              },
+                              "quote": {
+                                "type": "string",
+                                "maxLength": 5000,
+                                "description": "Verbatim text from the page that states the value, at least 12 characters. Copy it exactly; only whitespace, line breaks, letter case and typographic quotes and dashes may differ."
+                              },
+                              "page": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 100000,
+                                "description": "1-based page the quote is on."
+                              },
+                              "section": {
+                                "description": "Section or clause as written, e.g. \"§4.2(b)\".",
+                                "type": "string",
+                                "maxLength": 200
+                              },
+                              "confidence": {
+                                "description": "Your confidence 0–1. Below 0.8 the candidate goes to needs_review even if it verifies.",
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 1
+                              }
+                            },
+                            "required": ["predicate", "value", "quote", "page"]
+                          },
+                          "description": "Values you extracted, each with its quote and page."
+                        },
+                        "facts": {
+                          "description": "Facts doc_verify_facts already returned for this document. With pages, each is checked again; without pages (to stay under the request size limit), only its value against its quote is checked and the abstract marks it quote_on_page: false.",
+                          "maxItems": 500,
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": true,
+                            "description": "A FactLot fact, as doc_verify_facts returned it."
                           }
                         }
                       }
-                    }
-                  },
-                  "required": ["error", "message"]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/registry/resolve_external": {
-      "post": {
-        "operationId": "registry_resolve_external",
-        "summary": "Resolve an external ID",
-        "description": "Find the FactLot URN for an ID from another system, e.g. system \"tx-harris-cad-account\" or \"us-tx-taxpayer\". Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
-        "x-openai-isConsequential": false,
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "system": {
-                    "type": "string",
-                    "maxLength": 100,
-                    "description": "Crosswalk system name, e.g. \"tx-harris-cad-account\"."
-                  },
-                  "external_id": {
-                    "type": "string",
-                    "maxLength": 200,
-                    "description": "The ID in that system."
-                  }
-                },
-                "required": ["system", "external_id"]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Result object.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid input; read `issues`, fix the arguments, and retry.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "CalcInputError, FactLotIdError, InputError, or UnknownTool"
                     },
-                    "message": {
-                      "type": "string"
-                    },
-                    "issues": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "path": {
-                            "type": "string"
-                          },
-                          "message": {
-                            "type": "string"
-                          }
-                        }
-                      }
-                    }
+                    "description": "The lease and its amendments. Each needs pages with candidates or facts, or facts alone."
                   },
-                  "required": ["error", "message"]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/registry/search_address": {
-      "post": {
-        "operationId": "registry_search_address",
-        "summary": "Search parcels by address",
-        "description": "Find commercial parcels by situs address (normalized: 'Street' = 'St', 'Suite' = 'Ste'). Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
-        "x-openai-isConsequential": false,
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "query": {
+                  "as_of": {
                     "type": "string",
-                    "minLength": 1,
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                    "description": "Date the facts are stated as of (YYYY-MM-DD), usually today."
+                  },
+                  "subject": {
+                    "type": "string",
                     "maxLength": 500,
-                    "description": "Street address or part of one."
+                    "pattern": "^fl:[a-z]+:[^\\s:]+(?::[^\\s]+)?$",
+                    "description": "FactLot URN the facts are about, e.g. your lease's fl:lease:… ID. Default: the document ID."
+                  }
+                },
+                "required": ["documents", "as_of"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Result object.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input; read `issues`, fix the arguments, and retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "CalcInputError, FactLotIdError, InputError, or UnknownTool"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "issues": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "path": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
                   },
-                  "limit": {
-                    "default": 20,
-                    "description": "Maximum results (1–100).",
+                  "required": ["error", "message"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/doc/compare": {
+      "post": {
+        "operationId": "doc_compare",
+        "summary": "Compare asserted values with a lease",
+        "description": "Compare values another document asserts (an estoppel, rent roll or offering memo, mapped by you to predicates) with verified lease facts from doc_abstract_lease or doc_verify_facts. Each asserted value comes back match, mismatch (with the differing fields), not_in_lease, or ambiguous_in_lease (two current lease facts disagree), with the controlling lease citation (document, page, quote). Values compare exactly as JSON: numbers by value, strings exactly (a name written differently is a mismatch), and for an object only the fields you assert. Facts another fact supersedes are ignored. The lease facts must pass fact_validate; FactLot does not re-read the lease, so pass the facts its document tools returned.",
+        "x-openai-isConsequential": false,
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "lease_facts": {
+                    "minItems": 1,
+                    "maxItems": 2000,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": true,
+                      "description": "A FactLot fact, as doc_verify_facts returned it."
+                    },
+                    "description": "Verified lease facts: the facts from doc_abstract_lease (or doc_verify_facts). Facts another fact supersedes are ignored."
+                  },
+                  "asserted": {
+                    "minItems": 1,
+                    "maxItems": 500,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "predicate": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200,
+                          "description": "Predicate of the asserted value, e.g. lease.expiration_date."
+                        },
+                        "value": {
+                          "description": "The asserted value in the predicate's shape (YYYY-MM-DD dates, plain numbers, decimal rates). For an object, only the fields given are compared."
+                        },
+                        "label": {
+                          "description": "Where it was asserted, e.g. \"Estoppel ¶3\".",
+                          "type": "string",
+                          "maxLength": 200
+                        }
+                      },
+                      "required": ["predicate", "value"]
+                    },
+                    "description": "Values another document states (an estoppel, a rent roll, an OM), mapped to predicates."
+                  }
+                },
+                "required": ["lease_facts", "asserted"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Result object.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input; read `issues`, fix the arguments, and retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "CalcInputError, FactLotIdError, InputError, or UnknownTool"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "issues": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "path": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error", "message"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/doc/verify_claim": {
+      "post": {
+        "operationId": "doc_verify_claim",
+        "summary": "Verify a claim against a document",
+        "description": "Check one claim against a document page: {predicate, value} (anything doc_verify_facts accepts) or a short claim sentence, plus the verbatim quote and page it rests on. Returns supported (the quote is on the page and every checked number, date and name in the claim is written in it), contradicted (the quote is on the page and states other numbers or dates of the same kind, listed in quote_states), or unverifiable (the quote is not on the page, nothing in the claim can be checked, or the quote states no value of that kind), with the evidence (document_id, page, quote, span) and each part checked. Textual, not semantic: for a sentence only its numbers and dates are compared, never its meaning, and a quote that mentions the right number for a different term still supports it.",
+        "x-openai-isConsequential": false,
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "document": {
+                    "type": "object",
+                    "properties": {
+                      "pages": {
+                        "minItems": 1,
+                        "maxItems": 2000,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "maxLength": 100000,
+                          "description": "The text of one page, exactly as extracted."
+                        },
+                        "description": "The document's text, one string per page in order: pages[0] is page 1. Send the text as extracted (from the PDF text layer or OCR), not a summary; quotes are matched against it."
+                      },
+                      "sha256": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$",
+                        "description": "Optional SHA-256 (lowercase hex) of the original file. When given, document_id is fl:document:sha256-<this>, the same ID id_document gives the file; FactLot cannot check that the pages came from that file. Without it, document_id is the SHA-256 of the pages joined by form feeds (\\f)."
+                      },
+                      "title": {
+                        "type": "string",
+                        "maxLength": 500,
+                        "description": "Document title for citations, e.g. \"First Amendment to Lease\"."
+                      }
+                    },
+                    "required": ["pages"],
+                    "description": "The document the quote is from."
+                  },
+                  "claim": {
+                    "type": "object",
+                    "properties": {
+                      "predicate": {
+                        "description": "Predicate of the claim, with value.",
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200
+                      },
+                      "value": {
+                        "description": "Claimed value in the predicate's shape, with predicate."
+                      },
+                      "text": {
+                        "description": "Or a short claim sentence instead of predicate and value; its numbers and dates are checked.",
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 2000
+                      }
+                    },
+                    "description": "Either {predicate, value} or {text}."
+                  },
+                  "quote": {
+                    "type": "string",
+                    "maxLength": 5000,
+                    "description": "Verbatim text from the page that the claim rests on."
+                  },
+                  "page": {
                     "type": "integer",
                     "minimum": 1,
-                    "maximum": 100
+                    "maximum": 100000,
+                    "description": "1-based page the quote is on."
                   }
                 },
-                "required": ["query"]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Result object.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid input; read `issues`, fix the arguments, and retry.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "CalcInputError, FactLotIdError, InputError, or UnknownTool"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "issues": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "path": {
-                            "type": "string"
-                          },
-                          "message": {
-                            "type": "string"
-                          }
-                        }
-                      }
-                    }
-                  },
-                  "required": ["error", "message"]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/registry/search_entities": {
-      "post": {
-        "operationId": "registry_search_entities",
-        "summary": "Search legal entities by name",
-        "description": "Find registered business entities (LLCs, LPs, corporations) by name. Natural persons are not searchable. Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
-        "x-openai-isConsequential": false,
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "query": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 500,
-                    "description": "Entity name or part of one."
-                  },
-                  "limit": {
-                    "default": 20,
-                    "description": "Maximum results (1–100).",
-                    "type": "integer",
-                    "minimum": 1,
-                    "maximum": 100
-                  }
-                },
-                "required": ["query"]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Result object.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid input; read `issues`, fix the arguments, and retry.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "CalcInputError, FactLotIdError, InputError, or UnknownTool"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "issues": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "path": {
-                            "type": "string"
-                          },
-                          "message": {
-                            "type": "string"
-                          }
-                        }
-                      }
-                    }
-                  },
-                  "required": ["error", "message"]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/registry/owned_by": {
-      "post": {
-        "operationId": "registry_owned_by",
-        "summary": "Parcels owned by an entity",
-        "description": "Commercial parcels currently linked to a legal entity as owner of record (inferred links carry a confidence). Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
-        "x-openai-isConsequential": false,
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "entity_urn": {
-                    "type": "string",
-                    "maxLength": 500,
-                    "description": "FactLot entity URN, e.g. fl:entity:us-tx:0801111111."
-                  }
-                },
-                "required": ["entity_urn"]
+                "required": ["document", "claim", "quote", "page"]
               }
             }
           }

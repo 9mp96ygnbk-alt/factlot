@@ -105,7 +105,7 @@ function editDistance(a: string, b: string): number {
   return row[b.length]!;
 }
 
-function suggest(key: string, known: string[]): string | undefined {
+export function suggest(key: string, known: string[]): string | undefined {
   let best: string | undefined;
   let bestD = Infinity;
   for (const k of known) {

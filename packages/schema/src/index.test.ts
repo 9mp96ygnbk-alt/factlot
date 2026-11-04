@@ -73,3 +73,64 @@ test("exports JSON Schema for every schema", () => {
     "SourceRef",
   ]);
 });
+
+const cited = {
+  method: "extracted",
+  sources: [
+    { document_id: "doc-1", page: 3, quote: "expire on March 31, 2031" },
+  ],
+};
+
+test("rejects fields the schema does not define, at every level", () => {
+  const r = Fact.safeParse({ ...base, provenance: cited, units: "sf" });
+  assert.equal(r.success, false);
+  const nested = Fact.safeParse({
+    ...base,
+    provenance: { ...cited, sources: [{ document_id: "d", pg: 3 }] },
+  });
+  assert.equal(nested.success, false);
+  assert.deepEqual(
+    !nested.success && nested.error.issues.map((i) => i.path.join(".")),
+    ["provenance.sources.0"],
+  );
+});
+
+test("rejects valid_from after valid_to, and a span that ends before it starts", () => {
+  const dates = Fact.safeParse({
+    ...base,
+    valid_from: "2031-01-01",
+    valid_to: "2030-12-31",
+    provenance: cited,
+  });
+  assert.deepEqual(!dates.success && dates.error.issues.map((i) => i.message), [
+    "valid_to is before valid_from",
+  ]);
+  const span = Fact.safeParse({
+    ...base,
+    provenance: {
+      method: "extracted",
+      sources: [{ document_id: "d", span: { start: 9, end: 2 } }],
+    },
+  });
+  assert.equal(span.success, false);
+});
+
+test("an inferred fact cites its evidence; a computed one names its formula", () => {
+  assert.equal(
+    Fact.safeParse({ ...base, provenance: { method: "inferred", sources: [] } })
+      .success,
+    false,
+  );
+  assert.equal(
+    Fact.safeParse({ ...base, provenance: { method: "computed", sources: [] } })
+      .success,
+    false,
+  );
+  assert.equal(
+    Fact.safeParse({
+      ...base,
+      provenance: { method: "inferred", sources: [{ document_id: "d" }] },
+    }).success,
+    true,
+  );
+});

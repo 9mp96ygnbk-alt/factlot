@@ -1,0 +1,2249 @@
+{
+  "spec": "factlot-documents",
+  "description": "Document verification tools (doc_*) and fact_validate: results every SDK must share. Expected values are written by hand from the rules in docs/document-verification.md; document IDs, fact IDs and spans follow their published definitions (SHA-256 of the pages joined by form feeds; flf_ + Crockford base32 of SHA-256(subject, predicate, document_id, quote joined by U+001F); code-point offsets in that joined text). In arguments, {\"$pages\": name} stands for documents[name]. An expected value of null means the path is absent.",
+  "synthetic": "Every document here is synthetic test text written for these vectors; none is a real lease.",
+  "documents": {
+    "lease": [
+      "OFFICE LEASE (SYNTHETIC TEST DOCUMENT - NOT A REAL LEASE)\n\nThis Office Lease is entered into by Sample Landlord LLC (“Landlord”) and Example Tenant, Inc. (“Tenant”).\n\n1.1 Premises. Suite 400, containing approximately 12,500 rentable square feet.\n1.2 Term. The Term shall commence on March 1, 2026 (the “Commencement Date”) and shall expire on\nJune 30, 2031, unless sooner terminated.",
+      "2.1 Base Rent. Base Rent for the period from March 1, 2026 through February 28, 2027 shall be $38.00 per rentable square foot per annum, and for the period from March 1, 2027 through June 30, 2031 shall be $39.14 per rentable square foot per annum.\n2.2 Tenant’s Pro-\nportionate Share is 4.25%.\n2.3 Controllable Operating Expenses shall not increase by more than five percent (5%) per year on a cumulative, compounding basis.",
+      "3.1 Security Deposit. Upon execution Tenant shall deposit with Landlord the sum of $1,250,000.00 as security.\n3.2 Renewal. Tenant shall have one (1) option to extend the Term for sixty (60) months by notice given not less than twelve (12) months before expiration.\n3.3 Notices. Notices are effective five (5) days after mailing.\n3.4 Parking. Tenant may use forty (40) parking spaces for the 12,500 rentable square feet."
+    ],
+    "first_amendment": [
+      "FIRST AMENDMENT TO OFFICE LEASE (SYNTHETIC TEST DOCUMENT)\nEffective January 15, 2028.\n1. Extension. The expiration date of the Lease is hereby extended to the thirtieth day of June, 2033.\n2. Area. Effective as of the date hereof the Premises contain 14,000 rentable square feet.\n3. Share. Tenant's Proportionate Share is hereby changed to 4.76%."
+    ],
+    "second_amendment": [
+      "SECOND AMENDMENT TO OFFICE LEASE (SYNTHETIC TEST DOCUMENT)\nEffective March 1, 2030.\n1. Extension. The expiration date of the Lease is hereby extended to 6/30/2034.\n2. Area. The Premises contain 14,500 rentable square feet."
+    ]
+  },
+  "consistency": [
+    {
+      "predicate": "lease.security_deposit",
+      "value": 1250000,
+      "quote": "a deposit of $1,250,000.00",
+      "expect": null
+    },
+    {
+      "predicate": "lease.security_deposit",
+      "value": 1250000,
+      "quote": "a deposit of 1250000 dollars",
+      "expect": null
+    },
+    {
+      "predicate": "lease.security_deposit",
+      "value": 1250000,
+      "quote": "a deposit of $1.25 million",
+      "expect": "value 1250000 not found in quote"
+    },
+    {
+      "predicate": "lease.rentable_area_sf",
+      "value": 24.5,
+      "quote": "24.50/SF",
+      "expect": null
+    },
+    {
+      "predicate": "lease.expiration_date",
+      "value": "2031-06-30",
+      "quote": "expires June 30, 2031",
+      "expect": null
+    },
+    {
+      "predicate": "lease.expiration_date",
+      "value": "2031-06-30",
+      "quote": "expires Jun. 30th 2031",
+      "expect": null
+    },
+    {
+      "predicate": "lease.expiration_date",
+      "value": "2031-06-30",
+      "quote": "expires 6/30/2031",
+      "expect": null
+    },
+    {
+      "predicate": "lease.expiration_date",
+      "value": "2031-06-30",
+      "quote": "expires 30.6.2031",
+      "expect": null
+    },
+    {
+      "predicate": "lease.expiration_date",
+      "value": "2031-06-30",
+      "quote": "expires 30 June 2031",
+      "expect": null
+    },
+    {
+      "predicate": "lease.expiration_date",
+      "value": "2031-06-30",
+      "quote": "expires on the thirtieth day of June, 2031",
+      "expect": null
+    },
+    {
+      "predicate": "lease.expiration_date",
+      "value": "2031-06-30",
+      "quote": "expires June 30, '31",
+      "expect": "value \"2031-06-30\" not found in quote"
+    },
+    {
+      "predicate": "lease.expiration_date",
+      "value": "2031-06-30",
+      "quote": "expires on the Expiration Date",
+      "expect": "value \"2031-06-30\" not found in quote"
+    },
+    {
+      "predicate": "lease.commencement_date",
+      "value": "2026-03-01",
+      "quote": "the 1st day of March, 2026",
+      "expect": null
+    },
+    {
+      "predicate": "lease.pro_rata_share",
+      "value": 0.03,
+      "quote": "a share of 3%",
+      "expect": null
+    },
+    {
+      "predicate": "lease.pro_rata_share",
+      "value": 0.03,
+      "quote": "a share of three percent",
+      "expect": null
+    },
+    {
+      "predicate": "lease.pro_rata_share",
+      "value": 0.0425,
+      "quote": "4.25 percent",
+      "expect": null
+    },
+    {
+      "predicate": "lease.pro_rata_share",
+      "value": 0.03,
+      "quote": "a share of 3",
+      "expect": "value 0.03 not found in quote"
+    },
+    {
+      "predicate": "lease.pro_rata_share",
+      "value": 0.03,
+      "quote": "a share of 0.03",
+      "expect": null
+    },
+    {
+      "predicate": "lease.cam_cap",
+      "value": {
+        "method": "year_over_year",
+        "rate": 0.05
+      },
+      "quote": "five percent (5%) over the prior year",
+      "expect": null
+    },
+    {
+      "predicate": "lease.renewal_option",
+      "value": {
+        "count": 2,
+        "term_months": 60,
+        "notice_months": 9
+      },
+      "quote": "two (2) options of sixty (60) months on twelve (12) months' notice",
+      "expect": "value 9 (notice_months) not found in quote"
+    },
+    {
+      "predicate": "lease.tenant",
+      "value": "Example Tenant, Inc.",
+      "quote": "EXAMPLE  TENANT,\nINC. as tenant",
+      "expect": null
+    },
+    {
+      "predicate": "lease.tenant",
+      "value": "Example Tenant, Inc.",
+      "quote": "Example Tenant Inc. as tenant",
+      "expect": "value \"Example Tenant, Inc.\" not found in quote"
+    },
+    {
+      "predicate": "lease.base_rent_schedule",
+      "value": [
+        {
+          "from": "2026-03-01",
+          "to": "2027-02-28",
+          "annual_rent_psf": 38
+        },
+        {
+          "from": "2027-03-01",
+          "to": "2028-02-29",
+          "annual_rent_psf": 39.14
+        }
+      ],
+      "quote": "from March 1, 2026 to February 28, 2027 at $38.00, and from March 1, 2027 to February 28, 2028 at $39.14",
+      "expect": "value \"2028-02-29\" (to) not found in quote"
+    },
+    {
+      "predicate": "lease.notice_days",
+      "value": 90,
+      "quote": "within ninety (90) days",
+      "expect": null
+    },
+    {
+      "predicate": "lease.notice_days",
+      "value": 90,
+      "quote": "within thirty (30) days",
+      "expect": "value 90 not found in quote"
+    },
+    {
+      "predicate": "lease.escalation",
+      "value": {
+        "rate": 0.03,
+        "starts": "2027-03-01"
+      },
+      "quote": "three percent (3%) each year starting March 1, 2027",
+      "expect": null
+    },
+    {
+      "predicate": "lease.escalation",
+      "value": {
+        "rate": 0.035,
+        "starts": "2027-03-01"
+      },
+      "quote": "three percent (3%) each year starting March 1, 2027",
+      "expect": "value 0.035 (rate) not found in quote"
+    },
+    {
+      "predicate": "lease.rofr",
+      "value": "a right of first refusal on Suite 500",
+      "quote": "no such words here",
+      "expect": null
+    }
+  ],
+  "cases": [
+    {
+      "name": "verify a lease: verified, needs_review and rejected with reasons",
+      "tool": "doc_verify_facts",
+      "arguments": {
+        "document": {
+          "pages": {
+            "$pages": "lease"
+          }
+        },
+        "as_of": "2026-11-03",
+        "candidates": [
+          {
+            "predicate": "lease.expiration_date",
+            "value": "2031-06-30",
+            "quote": "shall expire on June 30, 2031",
+            "page": 1,
+            "section": "1.2"
+          },
+          {
+            "predicate": "lease.rentable_area_sf",
+            "value": 12500,
+            "quote": "containing approximately 12,500 rentable square feet",
+            "page": 1
+          },
+          {
+            "predicate": "lease.security_deposit",
+            "value": 1250000,
+            "quote": "the sum of $1,250,000.00 as security",
+            "page": 3
+          },
+          {
+            "predicate": "lease.pro_rata_share",
+            "value": 0.0425,
+            "quote": "Tenant's Pro-\nportionate Share is 4.25%",
+            "page": 2
+          },
+          {
+            "predicate": "lease.pro_rata_share",
+            "value": 0.0425,
+            "quote": "TENANT’S PRO- PORTIONATE SHARE IS 4.25%",
+            "page": 2
+          },
+          {
+            "predicate": "lease.pro_rata_share",
+            "value": 0.0425,
+            "quote": "Tenant's Proportionate Share is 4.25%",
+            "page": 2
+          },
+          {
+            "predicate": "lease.cam_cap",
+            "value": {
+              "method": "compounding_from_base",
+              "rate": 0.05
+            },
+            "quote": "shall not increase by more than five percent (5%) per year on a cumulative, compounding basis",
+            "page": 2
+          },
+          {
+            "predicate": "lease.expiration_date",
+            "value": "2033-06-30",
+            "quote": "shall expire on June 30, 2031",
+            "page": 1
+          },
+          {
+            "predicate": "lease.base_rent_schedule",
+            "value": [
+              {
+                "from": "2026-03-01",
+                "to": "2027-02-28",
+                "annual_rent_psf": 38
+              },
+              {
+                "from": "2027-03-01",
+                "to": "2031-06-30",
+                "annual_rent_psf": 39.14
+              }
+            ],
+            "quote": "Base Rent for the period from March 1, 2026 through February 28, 2027 shall be $38.00 per rentable square foot per annum, and for the period from March 1, 2027 through June 30, 2031 shall be $39.14 per rentable square foot per annum",
+            "page": 2
+          },
+          {
+            "predicate": "lease.commencement_date",
+            "value": "2026-03-01",
+            "quote": "The Term shall commence on March 1, 2026",
+            "page": 2
+          },
+          {
+            "predicate": "lease.tenant",
+            "value": "Example Tenant, Inc.",
+            "quote": "and Example Tenant, Inc. (\"Tenant\")",
+            "page": 1
+          },
+          {
+            "predicate": "lease.renewal_option",
+            "value": {
+              "count": 1,
+              "term_months": 60,
+              "notice_months": 12,
+              "rent": "not stated"
+            },
+            "quote": "Tenant shall have one (1) option to extend the Term for sixty (60) months by notice given not less than twelve (12) months before expiration",
+            "page": 3
+          },
+          {
+            "predicate": "lease.notice_effective_days",
+            "value": 5,
+            "quote": "Notices are effective five (5) days after mailing",
+            "page": 3
+          },
+          {
+            "predicate": "lease.notice_effective_days",
+            "value": 3,
+            "quote": "Notices are effective five (5) days after mailing",
+            "page": 3
+          },
+          {
+            "predicate": "lease.expiration_date",
+            "value": "June 30, 2031",
+            "quote": "shall expire on June 30, 2031",
+            "page": 1
+          },
+          {
+            "predicate": "lease.expiration_date",
+            "value": "2031-06-30",
+            "quote": "June 30",
+            "page": 1
+          },
+          {
+            "predicate": "lease.rentable_area_sf",
+            "value": 12500,
+            "quote": "12,500 rentable square feet",
+            "page": 2
+          },
+          {
+            "predicate": "lease.security_deposit",
+            "value": 1250000,
+            "quote": "the sum of $1,250,000.00 as security",
+            "page": 3,
+            "confidence": 0.6
+          },
+          {
+            "predicate": "lease.rentable_area_sf",
+            "value": 12500,
+            "quote": "containing approximately 12,500 rentable sq. ft.",
+            "page": 1
+          }
+        ]
+      },
+      "expect": {
+        "document": {
+          "document_id": "fl:document:sha256-1d126a7c278cfd3998a899c06b8eea84cb0621ea1a1ef56a6c1bbb7ef616f0ff",
+          "document_id_basis": "page_text",
+          "pages": 3
+        },
+        "summary": {
+          "candidates": 19,
+          "verified": 11,
+          "needs_review": 3,
+          "rejected": 5
+        },
+        "verified.0.candidate": 0,
+        "verified.0.fact.id": "flf_w457bgxxq7bm401m3n4rntnj",
+        "verified.0.fact.subject": "fl:document:sha256-1d126a7c278cfd3998a899c06b8eea84cb0621ea1a1ef56a6c1bbb7ef616f0ff",
+        "verified.0.fact.value": "2031-06-30",
+        "verified.0.fact.provenance.method": "extracted",
+        "verified.0.fact.provenance.sources.0": {
+          "document_id": "fl:document:sha256-1d126a7c278cfd3998a899c06b8eea84cb0621ea1a1ef56a6c1bbb7ef616f0ff",
+          "page": 1,
+          "section": "1.2",
+          "quote": "shall expire on June 30, 2031",
+          "span": {
+            "start": 327,
+            "end": 356
+          }
+        },
+        "verified.0.checked": [
+          {
+            "path": "value",
+            "as": "date"
+          }
+        ],
+        "verified.0.not_checked": [],
+        "verified.2.candidate": 2,
+        "verified.2.fact.provenance.sources.0.span": {
+          "start": 881,
+          "end": 917
+        },
+        "verified.3.candidate": 3,
+        "verified.3.fact.provenance.sources.0.span": {
+          "start": 637,
+          "end": 676
+        },
+        "verified.4.candidate": 4,
+        "verified.4.fact.provenance.sources.0.span": {
+          "start": 637,
+          "end": 676
+        },
+        "verified.5.candidate": 6,
+        "verified.5.checked": [
+          {
+            "path": "value.rate",
+            "as": "ratio"
+          }
+        ],
+        "verified.5.not_checked": ["value.method"],
+        "verified.6.candidate": 8,
+        "verified.6.checked": [
+          {
+            "path": "value.0.from",
+            "as": "date"
+          },
+          {
+            "path": "value.0.to",
+            "as": "date"
+          },
+          {
+            "path": "value.0.annual_rent_psf",
+            "as": "number"
+          },
+          {
+            "path": "value.1.from",
+            "as": "date"
+          },
+          {
+            "path": "value.1.to",
+            "as": "date"
+          },
+          {
+            "path": "value.1.annual_rent_psf",
+            "as": "number"
+          }
+        ],
+        "verified.7.candidate": 9,
+        "verified.7.fact.provenance.sources.0.page": 1,
+        "verified.7.notes": ["quote found on page 1, not 2"],
+        "verified.8.candidate": 10,
+        "verified.8.checked": [
+          {
+            "path": "value",
+            "as": "string"
+          }
+        ],
+        "verified.9.candidate": 11,
+        "verified.9.not_checked": ["value.rent"],
+        "verified.10.candidate": 12,
+        "verified.10.checked": [
+          {
+            "path": "value",
+            "as": "number"
+          }
+        ],
+        "needs_review": [
+          {
+            "candidate": 7,
+            "predicate": "lease.expiration_date",
+            "value": "2033-06-30",
+            "quote": "shall expire on June 30, 2031",
+            "page": 1,
+            "check": "consistency",
+            "reason": "value \"2033-06-30\" not found in quote"
+          },
+          {
+            "candidate": 13,
+            "predicate": "lease.notice_effective_days",
+            "value": 3,
+            "quote": "Notices are effective five (5) days after mailing",
+            "page": 3,
+            "check": "consistency",
+            "reason": "value 3 not found in quote"
+          },
+          {
+            "candidate": 17,
+            "predicate": "lease.security_deposit",
+            "value": 1250000,
+            "quote": "the sum of $1,250,000.00 as security",
+            "page": 3,
+            "check": "confidence",
+            "reason": "extractor confidence 0.6 is below 0.8"
+          }
+        ],
+        "rejected": [
+          {
+            "candidate": 5,
+            "predicate": "lease.pro_rata_share",
+            "value": 0.0425,
+            "page": 2,
+            "check": "quote",
+            "reason": "quote not found in the document; it matches page 2 only if a word hyphenated at a line break is rejoined. Quote the text as printed: keep the hyphen and the line break (a space will do), e.g. \"com- mencement\""
+          },
+          {
+            "candidate": 14,
+            "predicate": "lease.expiration_date",
+            "value": "June 30, 2031",
+            "page": 1,
+            "check": "value",
+            "reason": "expected YYYY-MM-DD date"
+          },
+          {
+            "candidate": 15,
+            "predicate": "lease.expiration_date",
+            "value": "2031-06-30",
+            "page": 1,
+            "check": "quote",
+            "reason": "quote shorter than 12 characters"
+          },
+          {
+            "candidate": 16,
+            "predicate": "lease.rentable_area_sf",
+            "value": 12500,
+            "page": 2,
+            "check": "quote",
+            "reason": "quote appears on several pages [1, 3]; cannot cite a single page"
+          },
+          {
+            "candidate": 18,
+            "predicate": "lease.rentable_area_sf",
+            "value": 12500,
+            "page": 1,
+            "check": "quote",
+            "reason": "quote not found in the document"
+          }
+        ]
+      }
+    },
+    {
+      "name": "a quote on the cited page is accepted even if it also appears on another page",
+      "tool": "doc_verify_facts",
+      "arguments": {
+        "document": {
+          "pages": {
+            "$pages": "lease"
+          }
+        },
+        "as_of": "2026-11-03",
+        "candidates": [
+          {
+            "predicate": "lease.rentable_area_sf",
+            "value": 12500,
+            "quote": "12,500 rentable square feet",
+            "page": 3
+          }
+        ]
+      },
+      "expect": {
+        "summary.verified": 1,
+        "verified.0.fact.provenance.sources.0.page": 3,
+        "verified.0.notes": null
+      }
+    },
+    {
+      "name": "sha256 names the document; subject and title are carried",
+      "tool": "doc_verify_facts",
+      "arguments": {
+        "document": {
+          "pages": {
+            "$pages": "lease"
+          },
+          "sha256": "28f0fee39d03764c5294e915f4bd7dcb54e3a1042a21050096898da4cac1119f",
+          "title": "Office Lease"
+        },
+        "as_of": "2026-11-03",
+        "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+        "candidates": [
+          {
+            "predicate": "lease.security_deposit",
+            "value": 1250000,
+            "quote": "the sum of $1,250,000.00 as security",
+            "page": 3
+          }
+        ]
+      },
+      "expect": {
+        "document": {
+          "document_id": "fl:document:sha256-28f0fee39d03764c5294e915f4bd7dcb54e3a1042a21050096898da4cac1119f",
+          "document_id_basis": "sha256",
+          "title": "Office Lease",
+          "pages": 3
+        },
+        "verified.0.fact.id": "flf_795pfwwpekwe14y4mgrq2r91",
+        "verified.0.fact.subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+        "verified.0.fact.provenance.sources.0": {
+          "document_id": "fl:document:sha256-28f0fee39d03764c5294e915f4bd7dcb54e3a1042a21050096898da4cac1119f",
+          "title": "Office Lease",
+          "page": 3,
+          "quote": "the sum of $1,250,000.00 as security",
+          "span": {
+            "start": 881,
+            "end": 917
+          },
+          "sha256": "28f0fee39d03764c5294e915f4bd7dcb54e3a1042a21050096898da4cac1119f"
+        }
+      }
+    },
+    {
+      "name": "a near-miss lease predicate gets the generic rules and a hint",
+      "tool": "doc_verify_facts",
+      "arguments": {
+        "document": {
+          "pages": {
+            "$pages": "lease"
+          }
+        },
+        "as_of": "2026-11-03",
+        "candidates": [
+          {
+            "predicate": "lease.expiry_date",
+            "value": "2031-06-30",
+            "quote": "shall expire on June 30, 2031",
+            "page": 1
+          }
+        ]
+      },
+      "expect": {
+        "verified.0.checked": [
+          {
+            "path": "value",
+            "as": "date"
+          }
+        ],
+        "verified.0.notes": [
+          "lease.expiry_date is not an Ingest predicate (did you mean lease.expiration_date?); its numbers, ratios and dates were checked with the generic rules"
+        ]
+      }
+    },
+    {
+      "name": "a misspelled candidate field is an input error",
+      "tool": "doc_verify_facts",
+      "arguments": {
+        "document": {
+          "pages": {
+            "$pages": "lease"
+          }
+        },
+        "as_of": "2026-11-03",
+        "candidates": [
+          {
+            "predicate": "lease.tenant",
+            "value": "x",
+            "quote": "q",
+            "pg": 1
+          }
+        ]
+      },
+      "expect_error": "InputError"
+    },
+    {
+      "name": "candidate value is required",
+      "tool": "doc_verify_facts",
+      "arguments": {
+        "document": {
+          "pages": {
+            "$pages": "lease"
+          }
+        },
+        "as_of": "2026-11-03",
+        "candidates": [
+          {
+            "predicate": "lease.tenant",
+            "quote": "Example Tenant, Inc.",
+            "page": 1
+          }
+        ]
+      },
+      "expect_error": "InputError"
+    },
+    {
+      "name": "bad sha256 is an input error",
+      "tool": "doc_verify_facts",
+      "arguments": {
+        "document": {
+          "pages": {
+            "$pages": "lease"
+          },
+          "sha256": "28F0FEE39D03764C5294E915F4BD7DCB54E3A1042A21050096898DA4CAC1119F"
+        },
+        "as_of": "2026-11-03",
+        "candidates": [
+          {
+            "predicate": "lease.security_deposit",
+            "value": 1250000,
+            "quote": "the sum of $1,250,000.00 as security",
+            "page": 3
+          }
+        ]
+      },
+      "expect_error": "InputError"
+    },
+    {
+      "name": "abstract: amendments apply by effective date; later controls, history kept",
+      "tool": "doc_abstract_lease",
+      "arguments": {
+        "as_of": "2026-11-03",
+        "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+        "documents": [
+          {
+            "role": "amendment",
+            "effective_date": "2030-03-01",
+            "title": "Second Amendment",
+            "pages": {
+              "$pages": "second_amendment"
+            },
+            "candidates": [
+              {
+                "predicate": "lease.expiration_date",
+                "value": "2034-06-30",
+                "quote": "is hereby extended to 6/30/2034",
+                "page": 1
+              },
+              {
+                "predicate": "lease.rentable_area_sf",
+                "value": 15000,
+                "quote": "The Premises contain 14,500 rentable square feet",
+                "page": 1
+              }
+            ]
+          },
+          {
+            "role": "original",
+            "title": "Office Lease",
+            "pages": {
+              "$pages": "lease"
+            },
+            "candidates": [
+              {
+                "predicate": "lease.expiration_date",
+                "value": "2031-06-30",
+                "quote": "shall expire on June 30, 2031",
+                "page": 1,
+                "section": "1.2"
+              },
+              {
+                "predicate": "lease.rentable_area_sf",
+                "value": 12500,
+                "quote": "containing approximately 12,500 rentable square feet",
+                "page": 1
+              },
+              {
+                "predicate": "lease.pro_rata_share",
+                "value": 0.0425,
+                "quote": "Tenant's Pro-\nportionate Share is 4.25%",
+                "page": 2
+              }
+            ]
+          },
+          {
+            "role": "amendment",
+            "effective_date": "2028-01-15",
+            "title": "First Amendment",
+            "pages": {
+              "$pages": "first_amendment"
+            },
+            "candidates": [
+              {
+                "predicate": "lease.expiration_date",
+                "value": "2033-06-30",
+                "quote": "is hereby extended to the thirtieth day of June, 2033",
+                "page": 1
+              },
+              {
+                "predicate": "lease.rentable_area_sf",
+                "value": 14000,
+                "quote": "the Premises contain 14,000 rentable square feet",
+                "page": 1
+              },
+              {
+                "predicate": "lease.pro_rata_share",
+                "value": 0.0476,
+                "quote": "Proportionate Share is hereby changed to 4.76%",
+                "page": 1
+              }
+            ]
+          }
+        ]
+      },
+      "expect": {
+        "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+        "documents.0": {
+          "document": 1,
+          "applied": 1,
+          "role": "original",
+          "document_id": "fl:document:sha256-1d126a7c278cfd3998a899c06b8eea84cb0621ea1a1ef56a6c1bbb7ef616f0ff",
+          "document_id_basis": "page_text",
+          "title": "Office Lease",
+          "pages": 3,
+          "verified": 3,
+          "needs_review": 0,
+          "rejected": 0
+        },
+        "documents.1.document": 2,
+        "documents.2.document": 0,
+        "documents.2.needs_review": 1,
+        "fields.0.predicate": "lease.expiration_date",
+        "fields.0.value": "2034-06-30",
+        "fields.0.source": {
+          "document": 0,
+          "document_id": "fl:document:sha256-ee1702acb0625c510d368f9c9864856c8e7113a7082ec6446ee66841b9a3001a",
+          "title": "Second Amendment",
+          "page": 1,
+          "quote": "is hereby extended to 6/30/2034",
+          "span": {
+            "start": 131,
+            "end": 162
+          },
+          "quote_on_page": true,
+          "fact_id": "flf_3z5vkrdhm0qg31addspzsj09"
+        },
+        "fields.0.history": [
+          {
+            "value": "2031-06-30",
+            "document": 1,
+            "document_id": "fl:document:sha256-1d126a7c278cfd3998a899c06b8eea84cb0621ea1a1ef56a6c1bbb7ef616f0ff",
+            "title": "Office Lease",
+            "page": 1,
+            "section": "1.2",
+            "quote": "shall expire on June 30, 2031",
+            "span": {
+              "start": 327,
+              "end": 356
+            },
+            "quote_on_page": true,
+            "fact_id": "flf_sp6qxqajqm1r9s7hf409ggnh"
+          },
+          {
+            "value": "2033-06-30",
+            "document": 2,
+            "document_id": "fl:document:sha256-f00f83f97806bcc141661ff7cb6baf54c02d70188c9f038c16eefc00f904b7c4",
+            "title": "First Amendment",
+            "page": 1,
+            "quote": "is hereby extended to the thirtieth day of June, 2033",
+            "span": {
+              "start": 133,
+              "end": 186
+            },
+            "quote_on_page": true,
+            "fact_id": "flf_1cw79xv1dfn3jgj2jfpb6fzd"
+          }
+        ],
+        "fields.1.predicate": "lease.rentable_area_sf",
+        "fields.1.value": 14000,
+        "fields.1.source.fact_id": "flf_w3kr23hva3bmef94xcykn60z",
+        "fields.1.open_items": [
+          {
+            "document": 0,
+            "candidate": 1,
+            "status": "needs_review",
+            "check": "consistency",
+            "reason": "value 15000 not found in quote"
+          }
+        ],
+        "fields.2.predicate": "lease.pro_rata_share",
+        "fields.2.value": 0.0476,
+        "fields.2.history.0.value": 0.0425,
+        "facts.0.id": "flf_sp6qxqajqm1r9s7hf409ggnh",
+        "facts.0.valid_from": null,
+        "facts.3.id": "flf_1cw79xv1dfn3jgj2jfpb6fzd",
+        "facts.3.supersedes": ["flf_sp6qxqajqm1r9s7hf409ggnh"],
+        "facts.3.valid_from": "2028-01-15",
+        "facts.4.supersedes": ["flf_8ac24hj2ve8s09yedtkk0kde"],
+        "facts.6.id": "flf_3z5vkrdhm0qg31addspzsj09",
+        "facts.6.supersedes": ["flf_1cw79xv1dfn3jgj2jfpb6fzd"],
+        "facts.6.valid_from": "2030-03-01",
+        "summary": {
+          "documents": 3,
+          "fields": 3,
+          "facts": 7,
+          "needs_review": 1,
+          "rejected": 0,
+          "conflicts": 0
+        }
+      }
+    },
+    {
+      "name": "abstract: effective_date null is an input error (leave it out instead)",
+      "tool": "doc_abstract_lease",
+      "arguments": {
+        "as_of": "2026-11-03",
+        "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+        "documents": [
+          {
+            "role": "original",
+            "title": "Office Lease",
+            "pages": {
+              "$pages": "lease"
+            },
+            "candidates": [
+              {
+                "predicate": "lease.expiration_date",
+                "value": "2031-06-30",
+                "quote": "shall expire on June 30, 2031",
+                "page": 1,
+                "section": "1.2"
+              },
+              {
+                "predicate": "lease.rentable_area_sf",
+                "value": 12500,
+                "quote": "containing approximately 12,500 rentable square feet",
+                "page": 1
+              },
+              {
+                "predicate": "lease.pro_rata_share",
+                "value": 0.0425,
+                "quote": "Tenant's Pro-\nportionate Share is 4.25%",
+                "page": 2
+              }
+            ]
+          },
+          {
+            "role": "amendment",
+            "effective_date": null,
+            "title": "Second Amendment",
+            "pages": {
+              "$pages": "second_amendment"
+            },
+            "candidates": [
+              {
+                "predicate": "lease.expiration_date",
+                "value": "2034-06-30",
+                "quote": "is hereby extended to 6/30/2034",
+                "page": 1
+              },
+              {
+                "predicate": "lease.rentable_area_sf",
+                "value": 15000,
+                "quote": "The Premises contain 14,500 rentable square feet",
+                "page": 1
+              }
+            ]
+          },
+          {
+            "role": "amendment",
+            "effective_date": "2028-01-15",
+            "title": "First Amendment",
+            "pages": {
+              "$pages": "first_amendment"
+            },
+            "candidates": [
+              {
+                "predicate": "lease.expiration_date",
+                "value": "2033-06-30",
+                "quote": "is hereby extended to the thirtieth day of June, 2033",
+                "page": 1
+              },
+              {
+                "predicate": "lease.rentable_area_sf",
+                "value": 14000,
+                "quote": "the Premises contain 14,000 rentable square feet",
+                "page": 1
+              },
+              {
+                "predicate": "lease.pro_rata_share",
+                "value": 0.0476,
+                "quote": "Proportionate Share is hereby changed to 4.76%",
+                "page": 1
+              }
+            ]
+          }
+        ]
+      },
+      "expect_error": "InputError"
+    },
+    {
+      "name": "abstract: amendments without dates apply in the order given",
+      "tool": "doc_abstract_lease",
+      "arguments": {
+        "as_of": "2026-11-03",
+        "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+        "documents": [
+          {
+            "role": "original",
+            "title": "Office Lease",
+            "pages": {
+              "$pages": "lease"
+            },
+            "candidates": [
+              {
+                "predicate": "lease.expiration_date",
+                "value": "2031-06-30",
+                "quote": "shall expire on June 30, 2031",
+                "page": 1,
+                "section": "1.2"
+              },
+              {
+                "predicate": "lease.rentable_area_sf",
+                "value": 12500,
+                "quote": "containing approximately 12,500 rentable square feet",
+                "page": 1
+              },
+              {
+                "predicate": "lease.pro_rata_share",
+                "value": 0.0425,
+                "quote": "Tenant's Pro-\nportionate Share is 4.25%",
+                "page": 2
+              }
+            ]
+          },
+          {
+            "role": "amendment",
+            "title": "Second Amendment",
+            "pages": {
+              "$pages": "second_amendment"
+            },
+            "candidates": [
+              {
+                "predicate": "lease.expiration_date",
+                "value": "2034-06-30",
+                "quote": "is hereby extended to 6/30/2034",
+                "page": 1
+              },
+              {
+                "predicate": "lease.rentable_area_sf",
+                "value": 15000,
+                "quote": "The Premises contain 14,500 rentable square feet",
+                "page": 1
+              }
+            ]
+          },
+          {
+            "role": "amendment",
+            "effective_date": "2028-01-15",
+            "title": "First Amendment",
+            "pages": {
+              "$pages": "first_amendment"
+            },
+            "candidates": [
+              {
+                "predicate": "lease.expiration_date",
+                "value": "2033-06-30",
+                "quote": "is hereby extended to the thirtieth day of June, 2033",
+                "page": 1
+              },
+              {
+                "predicate": "lease.rentable_area_sf",
+                "value": 14000,
+                "quote": "the Premises contain 14,000 rentable square feet",
+                "page": 1
+              },
+              {
+                "predicate": "lease.pro_rata_share",
+                "value": 0.0476,
+                "quote": "Proportionate Share is hereby changed to 4.76%",
+                "page": 1
+              }
+            ]
+          }
+        ]
+      },
+      "expect": {
+        "documents.1.document": 1,
+        "documents.2.document": 2,
+        "fields.0.value": "2033-06-30",
+        "fields.0.history.1.value": "2034-06-30",
+        "fields.1.value": 14000,
+        "fields.1.open_items": null
+      }
+    },
+    {
+      "name": "abstract: one document stating two values is a conflict",
+      "tool": "doc_abstract_lease",
+      "arguments": {
+        "as_of": "2026-11-03",
+        "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+        "documents": [
+          {
+            "pages": {
+              "$pages": "lease"
+            },
+            "candidates": [
+              {
+                "predicate": "lease.expiration_date",
+                "value": "2031-06-30",
+                "quote": "shall expire on June 30, 2031",
+                "page": 1,
+                "section": "1.2"
+              },
+              {
+                "predicate": "lease.notice_effective_days",
+                "value": 5,
+                "quote": "Notices are effective five (5) days after mailing",
+                "page": 3
+              },
+              {
+                "predicate": "lease.expiration_date",
+                "value": "2031-06-30",
+                "quote": "through June 30, 2031 shall be $39.14",
+                "page": 2
+              },
+              {
+                "predicate": "lease.notice_effective_days",
+                "value": 12,
+                "quote": "not less than twelve (12) months before expiration",
+                "page": 3
+              }
+            ]
+          }
+        ]
+      },
+      "expect": {
+        "fields.0.value": "2031-06-30",
+        "fields.0.conflicts": null,
+        "fields.1.value": 5,
+        "fields.1.conflicts.0.value": 12,
+        "summary.conflicts": 1
+      }
+    },
+    {
+      "name": "abstract: facts without pages are taken with quote_on_page false",
+      "tool": "doc_abstract_lease",
+      "arguments": {
+        "as_of": "2026-11-03",
+        "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+        "documents": [
+          {
+            "role": "original",
+            "title": "Office Lease",
+            "pages": {
+              "$pages": "lease"
+            },
+            "candidates": [
+              {
+                "predicate": "lease.expiration_date",
+                "value": "2031-06-30",
+                "quote": "shall expire on June 30, 2031",
+                "page": 1,
+                "section": "1.2"
+              },
+              {
+                "predicate": "lease.rentable_area_sf",
+                "value": 12500,
+                "quote": "containing approximately 12,500 rentable square feet",
+                "page": 1
+              },
+              {
+                "predicate": "lease.pro_rata_share",
+                "value": 0.0425,
+                "quote": "Tenant's Pro-\nportionate Share is 4.25%",
+                "page": 2
+              }
+            ]
+          },
+          {
+            "effective_date": "2028-01-15",
+            "facts": [
+              {
+                "id": "flf_v9wdtfpqmdfnjmrzhs2450je",
+                "subject": "fl:document:sha256-f00f83f97806bcc141661ff7cb6baf54c02d70188c9f038c16eefc00f904b7c4",
+                "predicate": "lease.expiration_date",
+                "value": "2033-06-30",
+                "as_of": "2026-11-03",
+                "provenance": {
+                  "method": "extracted",
+                  "sources": [
+                    {
+                      "document_id": "fl:document:sha256-f00f83f97806bcc141661ff7cb6baf54c02d70188c9f038c16eefc00f904b7c4",
+                      "page": 1,
+                      "quote": "is hereby extended to the thirtieth day of June, 2033",
+                      "span": {
+                        "start": 133,
+                        "end": 186
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "expect": {
+        "fields.0.value": "2033-06-30",
+        "fields.0.source.quote_on_page": false,
+        "fields.0.source.document_id": "fl:document:sha256-f00f83f97806bcc141661ff7cb6baf54c02d70188c9f038c16eefc00f904b7c4",
+        "fields.0.history.0.value": "2031-06-30",
+        "documents.1.document_id_basis": "facts"
+      }
+    },
+    {
+      "name": "abstract: a fact whose value its quote does not state is rejected",
+      "tool": "doc_abstract_lease",
+      "arguments": {
+        "as_of": "2026-11-03",
+        "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+        "documents": [
+          {
+            "role": "original",
+            "title": "Office Lease",
+            "pages": {
+              "$pages": "lease"
+            },
+            "candidates": [
+              {
+                "predicate": "lease.expiration_date",
+                "value": "2031-06-30",
+                "quote": "shall expire on June 30, 2031",
+                "page": 1,
+                "section": "1.2"
+              },
+              {
+                "predicate": "lease.rentable_area_sf",
+                "value": 12500,
+                "quote": "containing approximately 12,500 rentable square feet",
+                "page": 1
+              },
+              {
+                "predicate": "lease.pro_rata_share",
+                "value": 0.0425,
+                "quote": "Tenant's Pro-\nportionate Share is 4.25%",
+                "page": 2
+              }
+            ]
+          },
+          {
+            "effective_date": "2028-01-15",
+            "facts": [
+              {
+                "id": "flf_v9wdtfpqmdfnjmrzhs2450je",
+                "subject": "fl:document:sha256-f00f83f97806bcc141661ff7cb6baf54c02d70188c9f038c16eefc00f904b7c4",
+                "predicate": "lease.expiration_date",
+                "value": "2035-06-30",
+                "as_of": "2026-11-03",
+                "provenance": {
+                  "method": "extracted",
+                  "sources": [
+                    {
+                      "document_id": "fl:document:sha256-f00f83f97806bcc141661ff7cb6baf54c02d70188c9f038c16eefc00f904b7c4",
+                      "page": 1,
+                      "quote": "is hereby extended to the thirtieth day of June, 2033",
+                      "span": {
+                        "start": 133,
+                        "end": 186
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "expect": {
+        "fields.0.value": "2031-06-30",
+        "rejected": [
+          {
+            "document": 1,
+            "fact": 0,
+            "predicate": "lease.expiration_date",
+            "check": "fact",
+            "reason": "not a valid fact: provenance.sources.0.quote: value not supported by quote: value \"2035-06-30\" not found in quote"
+          }
+        ],
+        "fields.0.open_items": [
+          {
+            "document": 1,
+            "fact": 0,
+            "status": "rejected",
+            "check": "fact",
+            "reason": "not a valid fact: provenance.sources.0.quote: value not supported by quote: value \"2035-06-30\" not found in quote"
+          }
+        ]
+      }
+    },
+    {
+      "name": "abstract: pages without candidates is an input error",
+      "tool": "doc_abstract_lease",
+      "arguments": {
+        "as_of": "2026-11-03",
+        "documents": [
+          {
+            "pages": {
+              "$pages": "lease"
+            }
+          }
+        ]
+      },
+      "expect_error": "InputError",
+      "expect_issues": [
+        {
+          "path": "documents.0",
+          "message": "pages need candidates (or facts) to verify"
+        }
+      ]
+    },
+    {
+      "name": "compare an estoppel with the lease",
+      "tool": "doc_compare",
+      "arguments": {
+        "lease_facts": [
+          {
+            "id": "flf_exp_original",
+            "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+            "predicate": "lease.expiration_date",
+            "value": "2031-06-30",
+            "as_of": "2026-11-03",
+            "provenance": {
+              "method": "extracted",
+              "sources": [
+                {
+                  "document_id": "fl:document:sha256-1d126a7c278cfd3998a899c06b8eea84cb0621ea1a1ef56a6c1bbb7ef616f0ff",
+                  "page": 1,
+                  "quote": "shall expire on June 30, 2031"
+                }
+              ]
+            }
+          },
+          {
+            "id": "flf_exp_first",
+            "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+            "predicate": "lease.expiration_date",
+            "value": "2033-06-30",
+            "as_of": "2026-11-03",
+            "supersedes": ["flf_exp_original"],
+            "provenance": {
+              "method": "extracted",
+              "sources": [
+                {
+                  "document_id": "fl:document:sha256-f00f83f97806bcc141661ff7cb6baf54c02d70188c9f038c16eefc00f904b7c4",
+                  "page": 1,
+                  "quote": "extended to the thirtieth day of June, 2033"
+                }
+              ]
+            }
+          },
+          {
+            "id": "flf_deposit",
+            "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+            "predicate": "lease.security_deposit",
+            "value": 1250000,
+            "as_of": "2026-11-03",
+            "provenance": {
+              "method": "extracted",
+              "sources": [
+                {
+                  "document_id": "fl:document:sha256-1d126a7c278cfd3998a899c06b8eea84cb0621ea1a1ef56a6c1bbb7ef616f0ff",
+                  "page": 3,
+                  "section": "3.1",
+                  "quote": "the sum of $1,250,000.00 as security"
+                }
+              ]
+            }
+          },
+          {
+            "id": "flf_renewal",
+            "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+            "predicate": "lease.renewal_option",
+            "value": {
+              "count": 1,
+              "term_months": 60,
+              "notice_months": 12,
+              "rent": "not stated"
+            },
+            "as_of": "2026-11-03",
+            "provenance": {
+              "method": "extracted",
+              "sources": [
+                {
+                  "document_id": "fl:document:sha256-1d126a7c278cfd3998a899c06b8eea84cb0621ea1a1ef56a6c1bbb7ef616f0ff",
+                  "page": 3,
+                  "quote": "Tenant shall have one (1) option to extend the Term for sixty (60) months by notice given not less than twelve (12) months before expiration"
+                }
+              ]
+            }
+          }
+        ],
+        "asserted": [
+          {
+            "predicate": "lease.expiration_date",
+            "value": "2033-06-30",
+            "label": "Estoppel 2"
+          },
+          {
+            "predicate": "lease.security_deposit",
+            "value": 125000,
+            "label": "Estoppel 5"
+          },
+          {
+            "predicate": "lease.renewal_option",
+            "value": {
+              "count": 1,
+              "term_months": 36
+            }
+          },
+          {
+            "predicate": "lease.tenant",
+            "value": "Example Tenant, Inc."
+          },
+          {
+            "predicate": "lease.security_deposit",
+            "value": 1250000.0
+          }
+        ]
+      },
+      "expect": {
+        "results.0": {
+          "asserted": 0,
+          "label": "Estoppel 2",
+          "predicate": "lease.expiration_date",
+          "value": "2033-06-30",
+          "status": "match",
+          "lease_value": "2033-06-30",
+          "citation": {
+            "fact_id": "flf_exp_first",
+            "document_id": "fl:document:sha256-f00f83f97806bcc141661ff7cb6baf54c02d70188c9f038c16eefc00f904b7c4",
+            "page": 1,
+            "quote": "extended to the thirtieth day of June, 2033"
+          }
+        },
+        "results.1.status": "mismatch",
+        "results.1.differences": [
+          {
+            "path": "value",
+            "asserted": 125000,
+            "lease": 1250000
+          }
+        ],
+        "results.1.citation": {
+          "fact_id": "flf_deposit",
+          "document_id": "fl:document:sha256-1d126a7c278cfd3998a899c06b8eea84cb0621ea1a1ef56a6c1bbb7ef616f0ff",
+          "page": 3,
+          "section": "3.1",
+          "quote": "the sum of $1,250,000.00 as security"
+        },
+        "results.2.status": "mismatch",
+        "results.2.differences": [
+          {
+            "path": "value.term_months",
+            "asserted": 36,
+            "lease": 60
+          }
+        ],
+        "results.3": {
+          "asserted": 3,
+          "predicate": "lease.tenant",
+          "value": "Example Tenant, Inc.",
+          "status": "not_in_lease"
+        },
+        "results.4.status": "match",
+        "summary": {
+          "match": 2,
+          "mismatch": 2,
+          "not_in_lease": 1,
+          "ambiguous_in_lease": 0
+        }
+      }
+    },
+    {
+      "name": "compare: two current lease facts that disagree",
+      "tool": "doc_compare",
+      "arguments": {
+        "lease_facts": [
+          {
+            "id": "flf_exp_original",
+            "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+            "predicate": "lease.expiration_date",
+            "value": "2031-06-30",
+            "as_of": "2026-11-03",
+            "provenance": {
+              "method": "extracted",
+              "sources": [
+                {
+                  "document_id": "fl:document:sha256-1d126a7c278cfd3998a899c06b8eea84cb0621ea1a1ef56a6c1bbb7ef616f0ff",
+                  "page": 1,
+                  "quote": "shall expire on June 30, 2031"
+                }
+              ]
+            }
+          },
+          {
+            "id": "flf_exp_first",
+            "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+            "predicate": "lease.expiration_date",
+            "value": "2033-06-30",
+            "as_of": "2026-11-03",
+            "supersedes": [],
+            "provenance": {
+              "method": "extracted",
+              "sources": [
+                {
+                  "document_id": "fl:document:sha256-f00f83f97806bcc141661ff7cb6baf54c02d70188c9f038c16eefc00f904b7c4",
+                  "page": 1,
+                  "quote": "extended to the thirtieth day of June, 2033"
+                }
+              ]
+            }
+          }
+        ],
+        "asserted": [
+          {
+            "predicate": "lease.expiration_date",
+            "value": "2033-06-30"
+          }
+        ]
+      },
+      "expect": {
+        "results.0.status": "ambiguous_in_lease",
+        "results.0.lease.0.value": "2031-06-30",
+        "results.0.lease.1.value": "2033-06-30"
+      }
+    },
+    {
+      "name": "compare: an asserted date not in YYYY-MM-DD is an input error",
+      "tool": "doc_compare",
+      "arguments": {
+        "lease_facts": [
+          {
+            "id": "flf_exp_original",
+            "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+            "predicate": "lease.expiration_date",
+            "value": "2031-06-30",
+            "as_of": "2026-11-03",
+            "provenance": {
+              "method": "extracted",
+              "sources": [
+                {
+                  "document_id": "fl:document:sha256-1d126a7c278cfd3998a899c06b8eea84cb0621ea1a1ef56a6c1bbb7ef616f0ff",
+                  "page": 1,
+                  "quote": "shall expire on June 30, 2031"
+                }
+              ]
+            }
+          },
+          {
+            "id": "flf_exp_first",
+            "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+            "predicate": "lease.expiration_date",
+            "value": "2033-06-30",
+            "as_of": "2026-11-03",
+            "supersedes": ["flf_exp_original"],
+            "provenance": {
+              "method": "extracted",
+              "sources": [
+                {
+                  "document_id": "fl:document:sha256-f00f83f97806bcc141661ff7cb6baf54c02d70188c9f038c16eefc00f904b7c4",
+                  "page": 1,
+                  "quote": "extended to the thirtieth day of June, 2033"
+                }
+              ]
+            }
+          },
+          {
+            "id": "flf_deposit",
+            "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+            "predicate": "lease.security_deposit",
+            "value": 1250000,
+            "as_of": "2026-11-03",
+            "provenance": {
+              "method": "extracted",
+              "sources": [
+                {
+                  "document_id": "fl:document:sha256-1d126a7c278cfd3998a899c06b8eea84cb0621ea1a1ef56a6c1bbb7ef616f0ff",
+                  "page": 3,
+                  "section": "3.1",
+                  "quote": "the sum of $1,250,000.00 as security"
+                }
+              ]
+            }
+          },
+          {
+            "id": "flf_renewal",
+            "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+            "predicate": "lease.renewal_option",
+            "value": {
+              "count": 1,
+              "term_months": 60,
+              "notice_months": 12,
+              "rent": "not stated"
+            },
+            "as_of": "2026-11-03",
+            "provenance": {
+              "method": "extracted",
+              "sources": [
+                {
+                  "document_id": "fl:document:sha256-1d126a7c278cfd3998a899c06b8eea84cb0621ea1a1ef56a6c1bbb7ef616f0ff",
+                  "page": 3,
+                  "quote": "Tenant shall have one (1) option to extend the Term for sixty (60) months by notice given not less than twelve (12) months before expiration"
+                }
+              ]
+            }
+          }
+        ],
+        "asserted": [
+          {
+            "predicate": "lease.expiration_date",
+            "value": "June 30, 2033"
+          }
+        ]
+      },
+      "expect_error": "InputError",
+      "expect_issues": [
+        {
+          "path": "asserted.0.value",
+          "message": "expected YYYY-MM-DD date"
+        }
+      ]
+    },
+    {
+      "name": "compare: a lease fact that its own quote contradicts is an input error",
+      "tool": "doc_compare",
+      "arguments": {
+        "lease_facts": [
+          {
+            "id": "flf_deposit",
+            "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+            "predicate": "lease.security_deposit",
+            "value": 1000000,
+            "as_of": "2026-11-03",
+            "provenance": {
+              "method": "extracted",
+              "sources": [
+                {
+                  "document_id": "fl:document:sha256-1d126a7c278cfd3998a899c06b8eea84cb0621ea1a1ef56a6c1bbb7ef616f0ff",
+                  "page": 3,
+                  "section": "3.1",
+                  "quote": "the sum of $1,250,000.00 as security"
+                }
+              ]
+            }
+          }
+        ],
+        "asserted": [
+          {
+            "predicate": "lease.security_deposit",
+            "value": 1000000
+          }
+        ]
+      },
+      "expect_error": "InputError",
+      "expect_issues": [
+        {
+          "path": "lease_facts.0.provenance.sources.0.quote",
+          "message": "value not supported by quote: value 1000000 not found in quote"
+        }
+      ]
+    },
+    {
+      "name": "claim supported",
+      "tool": "doc_verify_claim",
+      "arguments": {
+        "document": {
+          "pages": {
+            "$pages": "lease"
+          }
+        },
+        "claim": {
+          "predicate": "lease.security_deposit",
+          "value": 1250000
+        },
+        "quote": "the sum of $1,250,000.00 as security",
+        "page": 3
+      },
+      "expect": {
+        "status": "supported",
+        "evidence": {
+          "document_id": "fl:document:sha256-1d126a7c278cfd3998a899c06b8eea84cb0621ea1a1ef56a6c1bbb7ef616f0ff",
+          "document_id_basis": "page_text",
+          "page": 3,
+          "quote": "the sum of $1,250,000.00 as security",
+          "span": {
+            "start": 881,
+            "end": 917
+          }
+        },
+        "checked": [
+          {
+            "path": "value",
+            "as": "number",
+            "value": 1250000,
+            "found": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "claim contradicted: the quote states another date",
+      "tool": "doc_verify_claim",
+      "arguments": {
+        "document": {
+          "pages": {
+            "$pages": "lease"
+          }
+        },
+        "claim": {
+          "predicate": "lease.expiration_date",
+          "value": "2033-06-30"
+        },
+        "quote": "shall expire on June 30, 2031",
+        "page": 1
+      },
+      "expect": {
+        "status": "contradicted",
+        "reason": "\"2033-06-30\" is not written in the quote; the quote states dates: 2031-06-30",
+        "quote_states": {
+          "dates": ["2031-06-30"],
+          "numbers": [30, 2031]
+        }
+      }
+    },
+    {
+      "name": "claim text: numbers and dates in a sentence",
+      "tool": "doc_verify_claim",
+      "arguments": {
+        "document": {
+          "pages": {
+            "$pages": "lease"
+          }
+        },
+        "claim": {
+          "text": "Tenant may renew once for 60 months with 12 months' notice"
+        },
+        "quote": "Tenant shall have one (1) option to extend the Term for sixty (60) months by notice given not less than twelve (12) months before expiration",
+        "page": 3
+      },
+      "expect": {
+        "status": "supported",
+        "checked": [
+          {
+            "as": "number",
+            "value": 12,
+            "found": true
+          },
+          {
+            "as": "number",
+            "value": 60,
+            "found": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "claim text: a date is one value, not its numbers",
+      "tool": "doc_verify_claim",
+      "arguments": {
+        "document": {
+          "pages": {
+            "$pages": "lease"
+          }
+        },
+        "claim": {
+          "text": "The lease expires on the thirtieth day of June, 2031."
+        },
+        "quote": "shall expire on June 30, 2031",
+        "page": 1
+      },
+      "expect": {
+        "status": "supported",
+        "checked": [
+          {
+            "as": "date",
+            "value": "2031-06-30",
+            "found": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "claim text with a wrong number: contradicted",
+      "tool": "doc_verify_claim",
+      "arguments": {
+        "document": {
+          "pages": {
+            "$pages": "lease"
+          }
+        },
+        "claim": {
+          "text": "Notices take effect 3 days after mailing"
+        },
+        "quote": "Notices are effective five (5) days after mailing",
+        "page": 3
+      },
+      "expect": {
+        "status": "contradicted",
+        "reason": "3 is not written in the quote; the quote states numbers: 5"
+      }
+    },
+    {
+      "name": "claim about a name the quote does not contain: unverifiable",
+      "tool": "doc_verify_claim",
+      "arguments": {
+        "document": {
+          "pages": {
+            "$pages": "lease"
+          }
+        },
+        "claim": {
+          "predicate": "lease.tenant",
+          "value": "Other Tenant LLC"
+        },
+        "quote": "and Example Tenant, Inc. (\"Tenant\")",
+        "page": 1
+      },
+      "expect": {
+        "status": "unverifiable",
+        "reason": "\"Other Tenant LLC\" is not written in the quote; FactLot cannot tell whether the quote names someone else"
+      }
+    },
+    {
+      "name": "claim with nothing checkable: unverifiable",
+      "tool": "doc_verify_claim",
+      "arguments": {
+        "document": {
+          "pages": {
+            "$pages": "lease"
+          }
+        },
+        "claim": {
+          "predicate": "lease.exclusive_use",
+          "value": "medical office"
+        },
+        "quote": "and Example Tenant, Inc. (\"Tenant\")",
+        "page": 1
+      },
+      "expect": {
+        "status": "unverifiable",
+        "not_checked": ["value"]
+      }
+    },
+    {
+      "name": "claim whose quote is not in the document: unverifiable",
+      "tool": "doc_verify_claim",
+      "arguments": {
+        "document": {
+          "pages": {
+            "$pages": "lease"
+          }
+        },
+        "claim": {
+          "predicate": "lease.expiration_date",
+          "value": "2031-06-30"
+        },
+        "quote": "shall expire on June 30, 2031 at midnight",
+        "page": 1
+      },
+      "expect": {
+        "status": "unverifiable",
+        "reason": "quote not found in the document",
+        "checked": []
+      }
+    },
+    {
+      "name": "claim needs predicate and value, or text",
+      "tool": "doc_verify_claim",
+      "arguments": {
+        "document": {
+          "pages": {
+            "$pages": "lease"
+          }
+        },
+        "claim": {
+          "predicate": "lease.expiration_date"
+        },
+        "quote": "shall expire on June 30, 2031",
+        "page": 1
+      },
+      "expect_error": "InputError",
+      "expect_issues": [
+        {
+          "path": "claim",
+          "message": "give either predicate and value, or text"
+        }
+      ]
+    },
+    {
+      "name": "fact_validate: a cited extracted fact whose quote states the value",
+      "tool": "fact_validate",
+      "arguments": {
+        "fact": {
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.rentable_area_sf",
+          "value": 2500,
+          "as_of": "2026-11-03",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-1d126a7c278cfd3998a899c06b8eea84cb0621ea1a1ef56a6c1bbb7ef616f0ff",
+                "page": 1,
+                "quote": "approximately 2,500 rentable square feet"
+              }
+            ]
+          }
+        }
+      },
+      "expect": {
+        "valid": true,
+        "issues": []
+      }
+    },
+    {
+      "name": "fact_validate: value contradicting its own quote",
+      "tool": "fact_validate",
+      "arguments": {
+        "fact": {
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.rentable_area_sf",
+          "value": 1000,
+          "as_of": "2026-11-03",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-1d126a7c278cfd3998a899c06b8eea84cb0621ea1a1ef56a6c1bbb7ef616f0ff",
+                "page": 1,
+                "quote": "approximately 2,500 rentable square feet"
+              }
+            ]
+          }
+        }
+      },
+      "expect": {
+        "valid": false,
+        "issues": [
+          {
+            "path": "provenance.sources.0.quote",
+            "message": "value not supported by quote: value 1000 not found in quote"
+          }
+        ]
+      }
+    },
+    {
+      "name": "fact_validate: expiration date against a quote with another date",
+      "tool": "fact_validate",
+      "arguments": {
+        "fact": {
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.expiration_date",
+          "value": "2033-06-30",
+          "as_of": "2026-11-03",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-1d126a7c278cfd3998a899c06b8eea84cb0621ea1a1ef56a6c1bbb7ef616f0ff",
+                "quote": "shall expire on June 30, 2031"
+              }
+            ]
+          }
+        }
+      },
+      "expect": {
+        "valid": false,
+        "issues": [
+          {
+            "path": "provenance.sources.0.quote",
+            "message": "value not supported by quote: value \"2033-06-30\" not found in quote"
+          }
+        ]
+      }
+    },
+    {
+      "name": "fact_validate: value in the wrong shape for its predicate",
+      "tool": "fact_validate",
+      "arguments": {
+        "fact": {
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.expiration_date",
+          "value": "June 30, 2031",
+          "as_of": "2026-11-03",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-1d126a7c278cfd3998a899c06b8eea84cb0621ea1a1ef56a6c1bbb7ef616f0ff",
+                "quote": "shall expire on June 30, 2031"
+              }
+            ]
+          }
+        }
+      },
+      "expect": {
+        "valid": false,
+        "issues": [
+          {
+            "path": "value",
+            "message": "value does not fit lease.expiration_date: expected YYYY-MM-DD date"
+          }
+        ]
+      }
+    },
+    {
+      "name": "fact_validate: unknown field on the fact",
+      "tool": "fact_validate",
+      "arguments": {
+        "fact": {
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.rentable_area_sf",
+          "value": 2500,
+          "as_of": "2026-11-03",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-1d126a7c278cfd3998a899c06b8eea84cb0621ea1a1ef56a6c1bbb7ef616f0ff",
+                "page": 1,
+                "quote": "approximately 2,500 rentable square feet"
+              }
+            ]
+          },
+          "units": "sf"
+        }
+      },
+      "expect": {
+        "valid": false,
+        "issues": [
+          {
+            "path": "",
+            "message": "Unrecognized key: \"units\""
+          }
+        ]
+      }
+    },
+    {
+      "name": "fact_validate: unknown field in a source",
+      "tool": "fact_validate",
+      "arguments": {
+        "fact": {
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.rentable_area_sf",
+          "value": 2500,
+          "as_of": "2026-11-03",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-1d126a7c278cfd3998a899c06b8eea84cb0621ea1a1ef56a6c1bbb7ef616f0ff",
+                "page": 1,
+                "quote": "approximately 2,500 rentable square feet",
+                "pg": 1
+              }
+            ]
+          }
+        }
+      },
+      "expect": {
+        "valid": false,
+        "issues": [
+          {
+            "path": "provenance.sources.0",
+            "message": "Unrecognized key: \"pg\""
+          }
+        ]
+      }
+    },
+    {
+      "name": "fact_validate: valid_from after valid_to",
+      "tool": "fact_validate",
+      "arguments": {
+        "fact": {
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.rentable_area_sf",
+          "value": 2500,
+          "as_of": "2026-11-03",
+          "valid_from": "2031-01-01",
+          "valid_to": "2030-12-31",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-1d126a7c278cfd3998a899c06b8eea84cb0621ea1a1ef56a6c1bbb7ef616f0ff",
+                "page": 1,
+                "quote": "approximately 2,500 rentable square feet"
+              }
+            ]
+          }
+        }
+      },
+      "expect": {
+        "valid": false,
+        "issues": [
+          {
+            "path": "valid_to",
+            "message": "valid_to is before valid_from"
+          }
+        ]
+      }
+    },
+    {
+      "name": "fact_validate: inferred with no sources",
+      "tool": "fact_validate",
+      "arguments": {
+        "fact": {
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "debt.special_servicing",
+          "value": true,
+          "as_of": "2026-11-03",
+          "provenance": {
+            "method": "inferred",
+            "sources": []
+          }
+        }
+      },
+      "expect": {
+        "valid": false,
+        "issues": [
+          {
+            "path": "provenance.sources",
+            "message": "facts other than computed must cite at least one source"
+          }
+        ]
+      }
+    },
+    {
+      "name": "fact_validate: computed with neither formula nor source",
+      "tool": "fact_validate",
+      "arguments": {
+        "fact": {
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.rentable_area_sf",
+          "value": 2500,
+          "as_of": "2026-11-03",
+          "provenance": {
+            "method": "computed",
+            "sources": []
+          }
+        }
+      },
+      "expect": {
+        "valid": false,
+        "issues": [
+          {
+            "path": "provenance.formula",
+            "message": "a computed fact names its formula or cites a source"
+          }
+        ]
+      }
+    },
+    {
+      "name": "fact_validate: computed with its formula",
+      "tool": "fact_validate",
+      "arguments": {
+        "fact": {
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.net_effective_rent",
+          "value": 41.27,
+          "as_of": "2026-11-03",
+          "provenance": {
+            "method": "computed",
+            "sources": [],
+            "formula": "calc.net_effective_rent@1"
+          }
+        }
+      },
+      "expect": {
+        "valid": true,
+        "issues": []
+      }
+    },
+    {
+      "name": "fact_validate: span that ends before it starts",
+      "tool": "fact_validate",
+      "arguments": {
+        "fact": {
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.rentable_area_sf",
+          "value": 2500,
+          "as_of": "2026-11-03",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-1d126a7c278cfd3998a899c06b8eea84cb0621ea1a1ef56a6c1bbb7ef616f0ff",
+                "page": 1,
+                "quote": "approximately 2,500 rentable square feet",
+                "span": {
+                  "start": 10,
+                  "end": 4
+                }
+              }
+            ]
+          }
+        }
+      },
+      "expect": {
+        "valid": false,
+        "issues": [
+          {
+            "path": "provenance.sources.0.span.end",
+            "message": "span ends before it starts"
+          }
+        ]
+      }
+    },
+    {
+      "name": "fact_validate: rules are skipped once a type is wrong, as in zod",
+      "tool": "fact_validate",
+      "arguments": {
+        "fact": {
+          "subject": 5,
+          "predicate": "lease.rentable_area_sf",
+          "value": 2500,
+          "as_of": "2026-11-03",
+          "valid_from": "2031-01-01",
+          "valid_to": "2030-12-31",
+          "provenance": {
+            "method": "inferred",
+            "sources": []
+          }
+        }
+      },
+      "expect": {
+        "valid": false,
+        "issues": [
+          {
+            "path": "subject",
+            "message": "Invalid input: expected string, received number"
+          },
+          {
+            "path": "provenance.sources",
+            "message": "facts other than computed must cite at least one source"
+          }
+        ]
+      }
+    },
+    {
+      "name": "fact_validate: a generic predicate's quote is not checked",
+      "tool": "fact_validate",
+      "arguments": {
+        "fact": {
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.notice_days",
+          "value": 90,
+          "as_of": "2026-11-03",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-1d126a7c278cfd3998a899c06b8eea84cb0621ea1a1ef56a6c1bbb7ef616f0ff",
+                "quote": "within thirty (30) days"
+              }
+            ]
+          }
+        }
+      },
+      "expect": {
+        "valid": true,
+        "issues": []
+      }
+    }
+  ]
+}

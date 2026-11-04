@@ -2,9 +2,16 @@
 import { readFileSync, writeFileSync } from "node:fs";
 
 import { calculators, rulePacks } from "../../packages/calc/dist/index.js";
+import { runTool } from "../../packages/tools/dist/index.js";
 
 const cases = JSON.parse(readFileSync(process.argv[2], "utf8"));
 const results = cases.map((c) => {
+  if (c.tool) {
+    const o = runTool(c.tool, c.arguments);
+    return o.ok
+      ? { result: o.result }
+      : { error: o.error.error, issues: o.error.issues.map((i) => i.path) };
+  }
   try {
     return c.rule
       ? rulePacks[c.rule].run(c.input)
