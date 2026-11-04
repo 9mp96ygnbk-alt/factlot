@@ -1,0 +1,54 @@
+{
+ "doc": "L12",
+ "labels": [
+  {
+   "predicate": "lease.landlord",
+   "value": "SFG CHARLESTON OMNI, LLC",
+   "page": 3,
+   "quote": "SFG CHARLESTON OMNI, LLC, a Delaware limited liability company (“Landlord”)"
+  },
+  {
+   "predicate": "lease.tenant",
+   "value": "THORNE HEALTHTECH, INC.",
+   "page": 3,
+   "quote": "THORNE HEALTHTECH, INC., a\nDelaware corporation (“Tenant”)"
+  },
+  {
+   "predicate": "lease.rentable_area_sf",
+   "value": 360320,
+   "page": 3,
+   "quote": "to contain approximately 360,320 square feet (the\n“Presumed Square Footage”)",
+   "note": "The Premises is the whole Land and Building (Section 2(a)), so the Building's Presumed Square Footage is the premises area; subject to post-completion remeasurement (Section 2(b)). Lease Year 1 Annual Base Rent $1,981,760.00 = $5.50 x 360,320. Lease Commencement Date is Substantial Completion (estimated January 1, 2023), so commencement, rent commencement, expiration and dated rent steps are not labeled; rent table is by Lease Year ($5.50 rising 2% a year to $6.98 in Lease Year 13). Section 4(a)(ii) abates Base Rent for an 'Abatement Period' that the lease never defines (Base Rent Commencement Date is three months after the Lease Commencement Date but not before April 1, 2023), so free_rent is not labeled."
+  },
+  {
+   "predicate": "lease.pro_rata_share",
+   "value": 1,
+   "page": 4,
+   "quote": "(i) “Tenant’s Percentage Share”\n\n100%"
+  },
+  {
+   "predicate": "lease.security_deposit",
+   "value": 330888.34,
+   "page": 4,
+   "quote": "Two (2) month’s Monthly Base Rent Installment ($330,888.34)"
+  },
+  {
+   "predicate": "lease.renewal_option",
+   "value": {
+    "count": 1,
+    "term_months": 60,
+    "notice_months": 12,
+    "rent": "Greater of Market Rental Rate or 102.5% of the last Primary Term Base Rent, escalating 2% each Lease Year"
+   },
+   "page": 50,
+   "quote": "Tenant shall have the right to extend the Term of this Lease for one successive period of five (5) years",
+   "note": "Notice not less than 12 full months nor more than 18 months before expiration (Exhibit C, Special Stipulation 1(a))."
+  },
+  {
+   "predicate": "lease.assignment_sublease",
+   "value": "Transfers require Landlord's prior written consent, not to be unreasonably withheld, conditioned or delayed, except Permitted Transfers (e.g. to Affiliates) under Section 27(d); Tenant gives 30 days' notice.",
+   "page": 27,
+   "quote": "no Transfer will be permitted without the prior written consent of Landlord, which consent Landlord will not unreasonably withhold, condition or delay."
+  }
+ ]
+}
