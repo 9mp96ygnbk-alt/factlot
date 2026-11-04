@@ -84,8 +84,64 @@ keyed by content, so only the newly readable owners are added.
 If `normalize_name` changes, the entity name index holds keys made by the old rule. Run
 `Registry(path).rebuild_name_index()` (it rewrites a key only when it is exactly the old rule's
 output for the entity's current name) and `rebuild_review_keys()`, then `link_owners()`.
-`python -m factlot.registry.maintain registry.db --all` runs all four steps in order, and
-`python -m factlot.registry.audit registry.db` measures the result (see [Quality](#quality)).
+If `normalize_address` changes (address key version 2, 2026-11-03, reads "Northwest", "North
+West" and "N.W." as "NW" and drops a unit, suite, "#" or floor designator with its value), run
+`Registry(path).rebuild_address_index()`: it re-keys the address index from every situs-address
+fact and records `address_key_version` in `meta`. Until then the readers search an older file by
+both the old and the new key, so a published file keeps working.
+
+`python -m factlot.registry.maintain registry.db --all` runs, in order: purge persons, clean
+entity names, re-key names, re-key addresses, link owners, roll up buildings
+(`rollup_buildings`), and store the coverage summary (`refresh_coverage`). Each step is
+idempotent. `python -m factlot.registry.audit registry.db` measures the result (see
+[Quality](#quality)).
+
+## Coverage
+
+A registry file holds some counties and some entity registries, not the country. Every registry
+tool says so on a miss instead of answering `null` or `[]` alone: `registry_resolve_parcel`,
+`registry_resolve_external`, `registry_search_address`, `registry_search_entities` and
+`registry_owned_by` add a `coverage` object to an empty result, and `registry_get` adds it to its
+`NotFound` error. It says whether the county (or entity registry, or crosswalk system) asked about
+is loaded, and its `message` says so in words, for example "county 04021 (AZ) is not loaded in
+this registry; loaded: county 11001 (DC, 18077 parcels)". A malformed URN is a `FactLotIdError`,
+not a miss. `registry_coverage` lists what the file holds: each county with its parcel and
+building counts, sources and as-of dates; each entity registry; each crosswalk system; and the
+key versions. The summary is computed from the file (`factlot.registry.coverage`) and stored in
+`meta.coverage` by `refresh_coverage`, with a stamp that makes readers recompute it after a later
+ingest.
+
+## Buildings
+
+Rolls list each condominium unit as its own parcel, with no record of the building. The
+building roll-up (`Registry.rollup_buildings`, `factlot.registry.buildings`) groups the parcels
+of one county whose current situs addresses give the same street line and ZIP code (unit,
+suite, "#" and floor designators removed) under a building subject. Its URN is the
+deterministic building ID (`fl:building:us-<SSCCC>:<zip5>:<street>`, [ID spec](../id-spec.md#building-ids)),
+the same ID `id_building` computes offline from the address. Only groups of two or more parcels
+are recorded. Each member says how it was placed (`building_members`):
+
+| Rule                    | Meaning                                                                            |
+| ----------------------- | ---------------------------------------------------------------------------------- |
+| `dc_condo_lot`          | DC SSL lot 2000-6999: a condominium lot under the District's lot numbering (DCGIS) |
+| `nyc_condo_unit_lot`    | NYC BBL lot 1001-6999: a condominium unit lot (NYC Planning PLUTO data dictionary) |
+| `nyc_condo_billing_lot` | NYC BBL lot 7501-7599: the condominium's billing lot (PLUTO data dictionary)       |
+| `same_street_address`   | the shared street line and ZIP code alone (`is_unit` when the situs names a unit)  |
+
+`street_found` says how the street line was read: `before_comma`, or `street_type_end` for a
+situs written without a comma before the city (the street is taken to end at the first street
+type after the name, plus a directional). `zip_found` is `other_parcels` when the publisher cut
+the ZIP code short and the parcel joined the one building at its street line whose ZIP code
+begins with the digits left. `registry_get` on a parcel returns its `building` (URN, label,
+parcel and unit counts, rule); on a building URN it returns the members; `registry_owned_by`
+gives each parcel its `building` and adds a `buildings` summary, so one owner's 25 parcels in one condominium
+building count as one building. On the published DC sample the roll-up makes 396 buildings from
+1,682 parcels (713 by DC condominium lot numbers).
+
+Limits: the roll-up is an inference from addresses, not a published building record. Two
+buildings at one address are one building here; a corner building listed under two addresses is
+two; a parcel without a house number or ZIP code is not rolled up (1,056 of 18,077 in the DC
+sample).
 
 ## Quality
 
@@ -189,7 +245,7 @@ reg.get(reg.resolve_external("tx-harris-cad-account", "0420150000012"))
 ## Agent tools
 
 When a registry file is configured (`FACTLOT_REGISTRY_DB`, or `configureRegistry()` /
-`configure_registry()`), the catalog gains six tools. They are served over MCP and REST, and in
+`configure_registry()`), the catalog gains seven tools. They are served over MCP and REST, and in
 both SDKs:
 
 - `registry_get`
@@ -198,11 +254,12 @@ both SDKs:
 - `registry_search_address`
 - `registry_search_entities`
 - `registry_owned_by`
+- `registry_coverage`
 
 Without a registry, the MCP server does not list them, REST returns 503, and the SDKs return
 `RegistryUnavailable`.
 
-Python builds the database and both languages read it. A cross-language test runs the same 18
+Python builds the database and both languages read it. A cross-language test runs the same 40
 calls on a synthetic fixture (`spec/registry/`) and requires identical JSON from Python and
 TypeScript.
 

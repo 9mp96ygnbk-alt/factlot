@@ -14,9 +14,9 @@ an identifier. This page covers which tool to call, when, and how to report the 
    A human can check every intermediate value without redoing the work.
 3. **Surface warnings.** `warnings` lists assumptions that need a human, such as the order of a
    CAM cap versus the base year, or a prorated breakpoint.
-4. **Use FactLot IDs as join keys.** Compute `id_parcel`, `id_entity`, `id_space`, and
-   `id_document` IDs offline. Two agents given the same county parcel number or state file
-   number always produce the same ID.
+4. **Use FactLot IDs as join keys.** Compute `id_parcel`, `id_entity`, `id_building`, `id_space`,
+   and `id_document` IDs offline. Two agents given the same county parcel number, state file
+   number, or street address always produce the same ID.
 5. **Emit facts, not prose.** When you extract something from a lease or a record, emit a fact
    with `provenance.sources` (document, page, section, quote) and check it with `fact_validate`.
    Uncited facts are rejected.
@@ -39,6 +39,7 @@ an identifier. This page covers which tool to call, when, and how to report the 
 | "Should we renew or move?" or "what rent makes moving worth it?"            | `calc_renew_vs_relocate`                            |
 | "What's the occupancy / ADR / RevPAR / GOP / NOI of this hotel?"            | `calc_hotel_metrics`                                |
 | You have a county parcel number, a state LLC file number, a suite, or a PDF | `id_parcel`, `id_entity`, `id_space`, `id_document` |
+| You have a building's street address                                        | `id_building`                                       |
 | You extracted a fact and want to store or share it                          | `fact_validate`                                     |
 
 ## Mapping lease language to inputs

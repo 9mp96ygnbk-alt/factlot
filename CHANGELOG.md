@@ -15,6 +15,8 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 
 ### Added
 
+- Registry misses now say whether the county, entity registry or crosswalk system is loaded: a `coverage` object comes with empty results and with `registry_get` NotFound, and a malformed URN is a format error. New tool `registry_coverage` lists what a registry file holds.
+- ID spec 0.2: `id_building`, a deterministic building ID from county, ZIP and street line (`fl:building:us-11001:20002:208-massachusetts-ave-ne`), shared by every unit at the address; `id_space` accepts it. Registry building roll-up groups condo units and other parcels at one street address under a building with unit and parcel counts, each grouping labelled with how it was inferred (DC or NYC condo lot numbering, or the shared address); `registry_get` and `registry_owned_by` show it.
 - Claude Code plugin and marketplace (`/plugin marketplace add 9mp96ygnbk-alt/factlot`, then `/plugin install factlot@factlot`): eight CRE skills (loan sizing, lease economics, CAM reconciliation, ASC 842, lease vs own and renewals, investment returns, hotel metrics, Texas protest deadline) that call the hosted FactLot tools and cite formula IDs.
 - `examples/` (curl, Python REST, MCP client, offline SDK, Claude API and OpenAI Responses remote MCP) and `npm run test:hosted`, a live end-to-end check of the hosted service: every conformance vector over REST, every MCP tool against REST, every site page and link, and the checkout paths.
 - Registry Tier 2 expansion: statewide Vermont, Arkansas and Connecticut (CC0 layer) parcels, 24 Minnesota opt-in counties, Montana apartments and industrial parcels, five more North Carolina counties (Guilford, Forsyth, Cumberland, Johnston, New Hanover) and Garfield County, Utah: 228,453 more commercial parcels in 182 counties, with review records and adapters ([expansion notes](docs/registry/tier2/expansion.md)).
@@ -22,6 +24,8 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 
 ### Changed
 
+- Address search reads "Northwest", "North West" and "N.W." as "NW" (all eight directionals) and ignores a trailing suite, unit, "#" or floor. Older registry files are searched by old and new keys until `python -m factlot.registry.maintain <db> --all` re-keys them.
+- ID spec 0.2, suite rule 2: "Suite 1-20" and "Suite 120" no longer share an ID; "Third Floor" equals "3rd Floor"; "Apt 4B" equals "4B". Earlier IDs still parse, and the old rule stays callable.
 - `calc.lease_remeasurement_asc842@2`: the amortization schedule foots to the cent. Every row rolls forward exactly, the final period trues up the liability and ROU asset to zero (shown as a step), `total_interest`, `total_amortization` and the new `total_lease_cost` are row sums, and the rounding rule is stated in the steps. Some schedule cells move by cents; headline figures are unchanged.
 - `calc.compare_proposals@2`: `area_basis` (rentable or usable, via `usable_sf` or `load_factor`) and per-proposal `operating_expenses` (gross, nnn, base_year, expense_stop with growth), so mixed gross and NNN proposals compare like for like; landlord `downtime_months`; the discounting convention is stated in the steps; warnings when the usable-SF ranking differs and when terms differ by 12 months or more.
 - `calc.cam_reconciliation@2`: `admin_fee` (rate, before or after the cap, capped or not, per-line `admin_fee_applies`) and `occupancy` (move-in and move-out prorate share, cap and base-year or stop deduction by days), with order-of-operations warnings for the fee.

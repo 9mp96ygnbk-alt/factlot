@@ -1,4 +1,4 @@
-"""FactLot ID v0.1 — Python port of @factlot/id. See docs/id-spec.md."""
+"""FactLot ID v0.2 — Python port of @factlot/id. See docs/id-spec.md."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ import time
 from dataclasses import dataclass
 from typing import Callable
 
-ID_SPEC_VERSION = "0.1"
+ID_SPEC_VERSION = "0.2"
 
 SHORT_PREFIX = {
     "parcel": "flp",
@@ -71,12 +71,16 @@ def normalize_apn(apn: str) -> str:
     return n
 
 
-def parcel_id(state_fips: str, county_fips: str, apn: str, normalize: Callable[[str], str] | None = None) -> FactLotId:
-    """Deterministic parcel ID: ``fl:parcel:us-<SSCCC>:<apn>``."""
+def _check_fips(state_fips: str, county_fips: str) -> None:
     if not re.fullmatch(r"[0-9]{2}", state_fips):
         raise FactLotIdError("state_fips must be 2 digits")
     if not re.fullmatch(r"[0-9]{3}", county_fips):
         raise FactLotIdError("county_fips must be 3 digits")
+
+
+def parcel_id(state_fips: str, county_fips: str, apn: str, normalize: Callable[[str], str] | None = None) -> FactLotId:
+    """Deterministic parcel ID: ``fl:parcel:us-<SSCCC>:<apn>``."""
+    _check_fips(state_fips, county_fips)
     n = (normalize or normalize_apn)(apn)
     if not re.fullmatch(r"[a-z0-9]+", n):
         raise FactLotIdError("normalized APN must be lowercase alphanumerics")
@@ -102,30 +106,157 @@ def document_id(content: bytes | str) -> FactLotId:
     return _make("document", f"fl:document:sha256-{hashlib.sha256(data).hexdigest()}")
 
 
+# Ordinal words for whole floors ("Third Floor" is "3rd Floor").
+_ORDINAL_WORDS = ("first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth",
+                  "eleventh", "twelfth", "thirteenth", "fourteenth", "fifteenth", "sixteenth", "seventeenth",
+                  "eighteenth", "nineteenth", "twentieth")
+_FLOOR_WORD = r"(?:floor|flr\.?|fl\.?)"
 _FLOOR = (
-    re.compile(rf"^([0-9]+)(?:st|nd|rd|th)?[{_JS_WS}]*(?:floor|fl\.?)$"),
-    re.compile(rf"^(?:floor|fl\.?)[{_JS_WS}]*([0-9]+)$"),
+    re.compile(rf"^([0-9]+)(?:st|nd|rd|th)?[{_JS_WS}]*{_FLOOR_WORD}$"),
+    re.compile(rf"^{_FLOOR_WORD}[{_JS_WS}]*([0-9]+)$"),
 )
-_DESIGNATOR = re.compile(rf"^(?:suite|ste\.?|unit|space|spc\.?|room|rm\.?|no\.?|#)[{_JS_WS}]*")
+_ORDINAL_FLOOR = re.compile(rf"^({'|'.join(_ORDINAL_WORDS)})[{_JS_WS}]*{_FLOOR_WORD}$")
+_DESIGNATOR = re.compile(rf"^(?:suite|ste\.?|unit|apartment|apt\.?|space|spc\.?|room|rm\.?|no\.?|#)[{_JS_WS}]*")
+_SEPARATOR = re.compile(r"[^a-z0-9]+")
+_DIGITS = "0123456789"
 
 
 def normalize_suite(suite: str) -> str:
+    """Suite rule 2 (ID spec 0.2): see ``normalizeSuite`` in @factlot/id.
+
+    Whole floors are ``f<n>`` ("3rd Floor", "Third Floor", "FL 3", "3rd Flr"); a separator between
+    two digits is kept as one hyphen ("1-20" is not "120"); other separators are dropped; leading
+    zeros are kept.
+    """
     s = suite.strip(_JS_WS_CHARS).lower()
     for pattern in _FLOOR:
         m = pattern.match(s)
         if m:
             return f"f{int(m[1])}"
-    n = _alnum(_DESIGNATOR.sub("", s, count=1))
+    m = _ORDINAL_FLOOR.match(s)
+    if m:
+        return f"f{_ORDINAL_WORDS.index(m[1]) + 1}"
+    v = _DESIGNATOR.sub("", s, count=1)
+    n = _SEPARATOR.sub(lambda m: "-" if 0 < m.start() and m.end() < len(v) and v[m.start() - 1] in _DIGITS
+                       and v[m.end()] in _DIGITS else "", v)
     if not n:
         raise FactLotIdError(f'suite "{suite}" is empty after normalization')
     return n
 
 
+_FLOOR_V1 = (
+    re.compile(rf"^([0-9]+)(?:st|nd|rd|th)?[{_JS_WS}]*(?:floor|fl\.?)$"),
+    re.compile(rf"^(?:floor|fl\.?)[{_JS_WS}]*([0-9]+)$"),
+)
+_DESIGNATOR_V1 = re.compile(rf"^(?:suite|ste\.?|unit|space|spc\.?|room|rm\.?|no\.?|#)[{_JS_WS}]*")
+
+
+def normalize_suite_v1(suite: str) -> str:
+    """The suite key of ID spec 0.1 (suite rule 1), kept so earlier space IDs can be recomputed."""
+    s = suite.strip(_JS_WS_CHARS).lower()
+    for pattern in _FLOOR_V1:
+        m = pattern.match(s)
+        if m:
+            return f"f{int(m[1])}"
+    n = _alnum(_DESIGNATOR_V1.sub("", s, count=1))
+    if not n:
+        raise FactLotIdError(f'suite "{suite}" is empty after normalization')
+    return n
+
+
+# --- street addresses (building IDs, ID spec 0.2) ---------------------------------------------
+# These tables are part of the ID rule (see addressTokens in @factlot/id): changing them changes
+# building IDs, so they change only with a new ID spec version.
+
+_DIRECTIONAL = {"NORTH": "N", "SOUTH": "S", "EAST": "E", "WEST": "W",
+                "NORTHEAST": "NE", "NORTHWEST": "NW", "SOUTHEAST": "SE", "SOUTHWEST": "SW"}
+
+
+def _ordinal(n: int) -> str:
+    suffix = "th" if 11 <= n % 100 <= 13 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    return f"{n}{suffix}".upper()
+
+
+_STREET_WORD = {
+    "STREET": "ST", "AVENUE": "AVE", "AV": "AVE", "ROAD": "RD", "DRIVE": "DR", "BOULEVARD": "BLVD",
+    "LANE": "LN", "PARKWAY": "PKWY", "HIGHWAY": "HWY", "FREEWAY": "FWY", "EXPRESSWAY": "EXPY",
+    "COURT": "CT", "PLACE": "PL", "CIRCLE": "CIR", "TRAIL": "TRL", "TERRACE": "TER", "SQUARE": "SQ",
+    "PLAZA": "PLZ", "ALLEY": "ALY", "BUILDING": "BLDG",
+    **{w.upper(): _ordinal(i + 1) for i, w in enumerate(_ORDINAL_WORDS)},
+}
+# A unit designator and the one token after it are not part of the street address; a floor word
+# only before a one- or two-digit number or after an ordinal ("FL" is also Florida's postal code);
+# "RM" is left out (Texas Ranch-to-Market roads, "RM 620").
+_UNIT_WORDS = frozenset({"#", "STE", "SUITE", "UNIT", "APT", "APARTMENT", "ROOM", "SPC"})
+_FLOOR_WORDS = frozenset({"FL", "FLR", "FLOOR"})
+_ORDINAL_NUMBER = re.compile(r"[0-9]{1,3}(?:ST|ND|RD|TH)")
+_JS_SPLIT = re.compile(f"[{_JS_WS}]+")
+
+
+def address_tokens(address: str) -> list[str]:
+    """The comparable tokens of a street address (see ``addressTokens`` in @factlot/id)."""
+    raw = [t for t in _JS_SPLIT.split(address.upper().replace("#", " # ")) if t]
+    kept: list[str] = []
+    i = 0
+    while i < len(raw):
+        t = raw[i][:-1] if raw[i].endswith(".") else raw[i]
+        nxt = raw[i + 1] if i + 1 < len(raw) else ""
+        if nxt[-1:] in (".", ","):
+            nxt = nxt[:-1]
+        if t in _UNIT_WORDS:
+            while i + 1 < len(raw) and raw[i + 1] == "#":
+                i += 1
+            i += 2  # the designator and the unit's value
+            continue
+        if (t in _FLOOR_WORDS and re.fullmatch(r"[0-9]{1,2}", nxt)) or (
+                _ORDINAL_NUMBER.fullmatch(t) and nxt in _FLOOR_WORDS):
+            i += 2
+            continue
+        kept.append(raw[i])
+        i += 1
+    words = [w for w in re.sub(r"[^A-Z0-9 ]+", " ", " ".join(kept)).split(" ") if w]
+    out: list[str] = []
+    for w in (_DIRECTIONAL.get(w) or _STREET_WORD.get(w) or w for w in words):
+        if out and out[-1] in ("N", "S") and w in ("E", "W"):
+            out[-1] += w
+        else:
+            out.append(w)
+    return out
+
+
+_STATE_AND_ZIP = re.compile(r"(?:^|-)[a-z]{2}-[0-9]{5}(?:-[0-9]{4})?$")
+
+
+def normalize_street(street: str) -> str:
+    """Street key of a building ID: ``"208 Massachusetts Avenue Northeast, Suite 2"`` → ``"208-massachusetts-ave-ne"``."""
+    key = "-".join(address_tokens(street.split(",")[0])).lower()
+    if not re.match(r"[0-9][a-z0-9]*-[a-z0-9]", key):
+        raise FactLotIdError(f'street "{street}" must start with a house number followed by a street name')
+    if _STATE_AND_ZIP.search(key):
+        raise FactLotIdError(f'street "{street}" seems to include a state and ZIP code: pass the street line only, '
+                             "or put a comma before the city")
+    return key
+
+
+_ZIP = re.compile(rf"[{_JS_WS}]*([0-9]{{5}})(?:-?[0-9]{{4}})?[{_JS_WS}]*")
+
+
+def building_id(state_fips: str, county_fips: str, zip_code: str, street: str) -> FactLotId:
+    """Deterministic building ID from a street address: ``fl:building:us-<SSCCC>:<zip5>:<street key>``."""
+    _check_fips(state_fips, county_fips)
+    m = _ZIP.fullmatch(zip_code)
+    if not m:
+        raise FactLotIdError("zip must be a 5-digit ZIP code (or ZIP+4)")
+    return _make("building", f"fl:building:us-{state_fips}{county_fips}:{m[1]}:{normalize_street(street)}")
+
+
 def space_id(building: str | FactLotId, suite: str) -> FactLotId:
-    kind, parts = parse(building if isinstance(building, str) else building.urn)
+    """Space ID within a building: ``fl:space:<building>:<suite>`` (``<building>`` follows ``fl:building:``)."""
+    urn = building if isinstance(building, str) else building.urn
+    kind, _parts = parse(urn)
     if kind != "building":
         raise FactLotIdError("space_id requires a building ID")
-    return _make("space", f"fl:space:{parts[0]}:{normalize_suite(suite)}")
+    return _make("space", f"fl:space:{urn[len('fl:building:'):]}:{normalize_suite(suite)}")
 
 
 def mint(kind: str, now_ms: int | None = None) -> FactLotId:
@@ -143,12 +274,14 @@ def mint(kind: str, now_ms: int | None = None) -> FactLotId:
 
 
 _TOKEN = "[0-9a-hjkmnp-tv-z]{26}"
+# An address building: region, ZIP code, street key (house number first, words joined by hyphens).
+_ADDRESS_BUILDING = r"(us-[0-9]{5}):([0-9]{5}):([0-9][a-z0-9]*(?:-[a-z0-9]+)+)"
 # Matched with fullmatch: re's `$` also matches before a trailing newline, which @factlot/id rejects.
 _URN_PATTERNS = {
     "parcel": re.compile(r"fl:parcel:(us-[0-9]{5}):([a-z0-9]+)"),
     "entity": re.compile(r"fl:entity:([a-z]{2}-[a-z0-9]{1,3}|lei):([a-z0-9]+)"),
-    "building": re.compile(rf"fl:building:({_TOKEN})"),
-    "space": re.compile(rf"fl:space:({_TOKEN}):([a-z0-9]+)"),
+    "building": re.compile(rf"fl:building:(?:({_TOKEN})|{_ADDRESS_BUILDING})"),
+    "space": re.compile(rf"fl:space:(?:({_TOKEN})|{_ADDRESS_BUILDING}):([a-z0-9]+(?:-[a-z0-9]+)*)"),
     "lease": re.compile(rf"fl:lease:({_TOKEN})"),
     "loan": re.compile(rf"fl:loan:({_TOKEN})"),
     "document": re.compile(r"fl:document:(sha256-[a-f0-9]{64})"),
@@ -164,7 +297,7 @@ def parse(urn: str) -> tuple[str, list[str]]:
     m = _URN_PATTERNS[kind].fullmatch(urn)
     if not m:
         raise FactLotIdError(f'"{urn}" is not a valid {kind} URN')
-    return kind, list(m.groups())
+    return kind, [g for g in m.groups() if g is not None]
 
 
 def is_factlot_urn(value: str) -> bool:

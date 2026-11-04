@@ -10,7 +10,7 @@ import unittest
 from pathlib import Path
 
 import factlot
-from factlot.registry.normalize import legacy_name_key
+from factlot.registry.normalize import legacy_address_key, legacy_name_key
 from factlot.registry import (
     EntityRecord,
     ParcelRecord,
@@ -66,7 +66,8 @@ class Normalization(unittest.TestCase):
         self.assertEqual(normalize_name("The Acme Properties, L.L.C."), "ACME PROPERTIES LLC")
         self.assertEqual(normalize_name("Gulf Logistics, Limited Partnership"), "GULF LOGISTICS LP")
         self.assertEqual(normalize_name("Smith & Sons Incorporated"), "SMITH AND SONS INC")
-        self.assertEqual(normalize_address("100 Main Street, Suite 400"), "100 MAIN ST STE 400")
+        self.assertEqual(normalize_address("100 Main Street, Suite 400"), "100 MAIN ST")
+        self.assertEqual(legacy_address_key("100 Main Street, Suite 400"), "100 MAIN ST STE 400")
 
     def test_name_normalization_matches_the_shared_vectors(self):
         """The same vectors run against the TypeScript mirror (packages/tools/src/registry.test.ts)."""
@@ -76,6 +77,8 @@ class Normalization(unittest.TestCase):
             self.assertEqual(normalize_name(raw), expected, raw)
         for raw, expected in vectors["addresses"]:
             self.assertEqual(normalize_address(raw), expected, raw)
+        for raw, expected in vectors["legacy_addresses"]:
+            self.assertEqual(legacy_address_key(raw), expected, raw)
 
     def test_owner_tails_apostrophes_and_abbreviations_share_one_key(self):
         same = [

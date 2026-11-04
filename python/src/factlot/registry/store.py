@@ -17,7 +17,10 @@ from pathlib import Path
 from typing import Any, Callable, Iterable
 
 from ..ids import FactLotIdError, _base32, entity_id, parcel_id, short_id
+from . import buildings as _buildings
+from . import coverage as _coverage
 from .normalize import (
+    ADDRESS_KEY_VERSION,
     NAME_KEY_VERSION,
     NAME_OVERLAP_WEIGHT,
     NAME_RATIO_WEIGHT,
@@ -27,6 +30,7 @@ from .normalize import (
     entity_state,
     is_commercial,
     is_organization,
+    legacy_address_key,
     legacy_name_key,
     name_similarity,
     normalize_address,
@@ -166,7 +170,26 @@ class Registry:
         # before name_key_version existed keeps reading as version 1 until ``rebuild_name_index``.
         if not self.db.execute("SELECT 1 FROM name_index LIMIT 1").fetchone():
             self.db.execute("INSERT OR IGNORE INTO meta VALUES ('name_key_version', ?)", (NAME_KEY_VERSION,))
+        # The same for address keys (``rebuild_address_index`` re-keys an older file).
+        if not self.db.execute("SELECT 1 FROM address_index LIMIT 1").fetchone():
+            self.db.execute("INSERT OR IGNORE INTO meta VALUES ('address_key_version', ?)", (ADDRESS_KEY_VERSION,))
         self.db.commit()
+
+    def _address_search_keys(self, address: str) -> list[str]:
+        """Keys to search for ``address``: the current key, and on a file not yet re-keyed the version 1 key too."""
+        row = self.db.execute("SELECT value FROM meta WHERE key = 'address_key_version'").fetchone()
+        keys = [normalize_address(address)]
+        if not (row and row[0] == ADDRESS_KEY_VERSION) and legacy_address_key(address) not in keys:
+            keys.append(legacy_address_key(address))
+        return keys
+
+    def coverage(self) -> dict[str, Any]:
+        """What this file holds (``factlot.registry.coverage``), recomputed only after the file changes."""
+        stamp = _coverage.stamp(self.db)
+        cached = getattr(self, "_coverage_cache", None)
+        if cached is None or cached[0] != stamp:
+            cached = self._coverage_cache = (stamp, _coverage.stored_or_compute(self.db))
+        return cached[1]
 
     def _name_search_key(self, name: str) -> str:
         """The key ``name`` has under the rules this file's name index was built with."""
@@ -337,6 +360,40 @@ class Registry:
         self.db.execute("INSERT OR REPLACE INTO meta VALUES ('name_key_version', ?)", (NAME_KEY_VERSION,))
         self.db.commit()
         return {"scanned": scanned, "rekeyed": rekeyed}
+
+    def rebuild_address_index(self) -> dict[str, int]:
+        """Re-key the address index from every situs address the file holds (current and earlier); idempotent.
+
+        Every address key comes from a ``parcel.situs_address`` fact, so the index is rebuilt from
+        those facts under the current ``normalize_address`` and the file is marked with the current
+        ``address_key_version``. Returns ``{"addresses": …, "keys": …}``.
+        """
+        self.db.execute("DELETE FROM address_index")
+        n = 0
+        for row in self.db.execute("SELECT DISTINCT subject, value_json FROM facts WHERE predicate = 'parcel.situs_address'").fetchall():
+            value = json.loads(row["value_json"])
+            if isinstance(value, str) and value.strip():
+                self.db.execute("INSERT OR IGNORE INTO address_index VALUES (?,?)", (normalize_address(value), row["subject"]))
+                n += 1
+        self.db.execute("INSERT OR REPLACE INTO meta VALUES ('address_key_version', ?)", (ADDRESS_KEY_VERSION,))
+        self.db.commit()
+        keys = self.db.execute("SELECT COUNT(*) FROM address_index").fetchone()[0]
+        return {"addresses": n, "keys": keys}
+
+    def rollup_buildings(self) -> dict[str, Any]:
+        """Group the parcels of one building under a building subject (``factlot.registry.buildings``); idempotent."""
+        result = _buildings.rollup(self.db)
+        self.db.commit()
+        return result
+
+    def refresh_coverage(self) -> dict[str, Any]:
+        """Store the coverage summary in ``meta.coverage`` so readers need not compute it; run after any change."""
+        summary = _coverage.compute(self.db)
+        self.db.execute("INSERT OR REPLACE INTO meta VALUES ('coverage', ?)",
+                        (json.dumps({"stamp": _coverage.stamp(self.db), "summary": summary}),))
+        self.db.commit()
+        self._coverage_cache = (_coverage.stamp(self.db), summary)
+        return dict(summary["totals"])
 
     def rewrite_entity_names(self, source_id: str, clean: Callable[[str], str]) -> dict[str, int]:
         """Re-derive entity legal names after an adapter fix, in place; idempotent.
@@ -852,8 +909,13 @@ class Registry:
             f"SELECT from_urn, type, to_urn, as_of, method, confidence, basis, document_id FROM relationships r "
             f"WHERE (from_urn = ? OR to_urn = ?) AND {_CURRENT_LINK} ORDER BY as_of DESC", (urn, urn))]
         xw = [dict(r) for r in self.db.execute("SELECT system, external_id FROM crosswalk WHERE urn = ?", (urn,))]
-        return {"urn": urn, "kind": subj["kind"], "short": subj["short"], "label": subj["label"],
-                "status": self.status(urn), "facts": self.facts(urn), "relationships": rels, "crosswalk": xw}
+        record = {"urn": urn, "kind": subj["kind"], "short": subj["short"], "label": subj["label"],
+                  "status": self.status(urn), "facts": self.facts(urn), "relationships": rels, "crosswalk": xw}
+        if subj["kind"] == "parcel":
+            record["building"] = _buildings.building_of(self.db, urn)
+        elif subj["kind"] == "building":
+            record["building"] = _buildings.building_detail(self.db, urn)
+        return record
 
     def resolve_parcel(self, state_fips: str, county_fips: str, apn: str) -> str | None:
         urn = parcel_id(state_fips, county_fips, apn).urn
@@ -872,10 +934,13 @@ class Registry:
         return [dict(r) for r in rows]
 
     def search_address(self, address: str, limit: int = 20) -> list[dict[str, Any]]:
-        key = normalize_address(address)
+        keys = self._address_search_keys(address)
+        like = " OR ".join("a.key LIKE ?" for _ in keys)
+        exact = " OR ".join("a.key = ?" for _ in keys)
         rows = self.db.execute(
-            "SELECT DISTINCT s.urn, s.label FROM address_index a JOIN subjects s ON s.urn = a.urn "
-            "WHERE a.key LIKE ? ORDER BY (a.key = ?) DESC, s.label LIMIT ?", (f"%{key}%", key, limit)).fetchall()
+            "SELECT s.urn, s.label FROM address_index a JOIN subjects s ON s.urn = a.urn "
+            f"WHERE {like} GROUP BY s.urn ORDER BY MAX({exact}) DESC, s.label, s.urn LIMIT ?",
+            (*[f"%{k}%" for k in keys], *keys, limit)).fetchall()
         return [dict(r) for r in rows]
 
     def parcels_owned_by(self, entity_urn: str) -> list[dict[str, Any]]:

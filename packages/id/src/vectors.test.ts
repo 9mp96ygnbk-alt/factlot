@@ -5,9 +5,12 @@ import test from "node:test";
 
 import {
   FactLotIdError,
+  buildingId,
   documentId,
   entityId,
+  normalizeStreet,
   normalizeSuite,
+  normalizeSuiteV1,
   parcelId,
   parse,
   shortId,
@@ -44,6 +47,15 @@ const fns: Record<string, (i: Input) => object> = {
   document: (i) => documentId(i.text ?? ""),
   space: (i) => spaceId(i.building_urn ?? "", i.suite ?? ""),
   normalize_suite: (i) => ({ value: normalizeSuite(i.suite ?? "") }),
+  normalize_suite_v1: (i) => ({ value: normalizeSuiteV1(i.suite ?? "") }),
+  normalize_street: (i) => ({ value: normalizeStreet(i.street ?? "") }),
+  building: (i) =>
+    buildingId({
+      stateFips: i.state_fips ?? "",
+      countyFips: i.county_fips ?? "",
+      zip: i.zip ?? "",
+      street: i.street ?? "",
+    }),
   parse: (i) => ({
     kind: parse(i.urn ?? "").kind,
     short: shortId(i.urn ?? ""),

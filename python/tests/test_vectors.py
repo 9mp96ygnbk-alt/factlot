@@ -60,6 +60,9 @@ FNS = {
     "document": lambda i: ids.document_id(i["text"]).as_dict(),
     "space": lambda i: ids.space_id(i["building_urn"], i["suite"]).as_dict(),
     "normalize_suite": lambda i: {"value": ids.normalize_suite(i["suite"])},
+    "normalize_suite_v1": lambda i: {"value": ids.normalize_suite_v1(i["suite"])},
+    "normalize_street": lambda i: {"value": ids.normalize_street(i["street"])},
+    "building": lambda i: ids.building_id(i["state_fips"], i["county_fips"], i["zip"], i["street"]).as_dict(),
     "parse": lambda i: {"kind": ids.parse(i["urn"])[0], "short": ids.short_id(i["urn"])},
 }
 

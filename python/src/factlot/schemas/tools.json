@@ -2281,7 +2281,7 @@
     {
       "name": "id_space",
       "title": "FactLot space (suite) ID",
-      "description": "FactLot ID for a suite or unit within a building, given the building's FactLot URN. Suite designators are normalized.",
+      "description": "FactLot ID for a suite or unit within a building, given the building's FactLot URN (from id_building). Suite designators are normalized: \"Suite 100\", \"Ste 100\" and \"#100\" agree, while \"1-20\" and \"120\" stay distinct.",
       "path": "/v1/id/space",
       "input_schema": {
         "type": "object",
@@ -2289,7 +2289,7 @@
           "building_urn": {
             "type": "string",
             "maxLength": 500,
-            "description": "FactLot building URN, e.g. fl:building:01jbx3k8q2v7m9c4t6w8y0a2b4."
+            "description": "FactLot building URN from id_building, e.g. fl:building:us-11001:20002:208-massachusetts-ave-ne (a minted fl:building:<26-character token> also works)."
           },
           "suite": {
             "type": "string",
@@ -2298,6 +2298,38 @@
           }
         },
         "required": ["building_urn", "suite"]
+      }
+    },
+    {
+      "name": "id_building",
+      "title": "FactLot building ID",
+      "description": "Deterministic FactLot ID for a building from its street address: county FIPS, ZIP code, and street line. Every condominium unit, suite, and floor at the address gets the same building ID, offline. Pass it to id_space for a suite, or to registry_get to see the building's parcels.",
+      "path": "/v1/id/building",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "state_fips": {
+            "type": "string",
+            "maxLength": 16,
+            "description": "2-digit state FIPS code, e.g. \"11\" for the District of Columbia."
+          },
+          "county_fips": {
+            "type": "string",
+            "maxLength": 16,
+            "description": "3-digit county FIPS code, e.g. \"001\"."
+          },
+          "zip": {
+            "type": "string",
+            "maxLength": 16,
+            "description": "5-digit ZIP code of the address, e.g. \"20002\" (ZIP+4 accepted)."
+          },
+          "street": {
+            "type": "string",
+            "maxLength": 300,
+            "description": "Street line: house number and street, e.g. \"208 Massachusetts Ave NE\". A suite, unit or floor is ignored, and so is anything after a comma (city, state)."
+          }
+        },
+        "required": ["state_fips", "county_fips", "zip", "street"]
       }
     },
     {
@@ -2359,7 +2391,7 @@
     {
       "name": "registry_get",
       "title": "Get a registry record",
-      "description": "Everything the FactLot Registry knows about a parcel or legal entity: status, current cited facts (owner of record, situs address, property category, areas, values), ownership links, and external IDs. Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
+      "description": "Everything the FactLot Registry knows about a parcel, legal entity, or building: status, current cited facts (owner of record, situs address, property category, areas, values), ownership links, external IDs, and for a parcel the building it belongs to (condominium units roll up into one building). A miss says whether the county or entity registry is loaded. Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
       "path": "/v1/registry/get",
       "input_schema": {
         "type": "object",
@@ -2367,7 +2399,7 @@
           "urn": {
             "type": "string",
             "maxLength": 500,
-            "description": "FactLot URN of a parcel or entity, e.g. fl:parcel:us-48201:0420150000012."
+            "description": "FactLot URN of a parcel, entity, or building, e.g. fl:parcel:us-48201:0420150000012."
           },
           "include_history": {
             "default": false,
@@ -2381,7 +2413,7 @@
     {
       "name": "registry_resolve_parcel",
       "title": "Resolve a parcel in the registry",
-      "description": "Find a parcel's FactLot URN from state FIPS, county FIPS, and APN, if the registry holds it. Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
+      "description": "Find a parcel's FactLot URN from state FIPS, county FIPS, and APN, if the registry holds it. A miss returns urn null with coverage: whether that county is loaded in this registry. Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
       "path": "/v1/registry/resolve_parcel",
       "input_schema": {
         "type": "object",
@@ -2430,7 +2462,7 @@
     {
       "name": "registry_search_address",
       "title": "Search parcels by address",
-      "description": "Find commercial parcels by situs address (normalized: 'Street' = 'St', 'Suite' = 'Ste'). Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
+      "description": "Find commercial parcels by situs address (normalized: 'Street' = 'St', 'Northwest' = 'N.W.' = 'NW'; a suite, unit, '#' or floor is ignored). No match returns coverage: what this registry holds. Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
       "path": "/v1/registry/search_address",
       "input_schema": {
         "type": "object",
@@ -2480,7 +2512,7 @@
     {
       "name": "registry_owned_by",
       "title": "Parcels owned by an entity",
-      "description": "Commercial parcels currently linked to a legal entity as owner of record (inferred links carry a confidence). Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
+      "description": "Commercial parcels currently linked to a legal entity as owner of record (inferred links carry a confidence), each with the building it belongs to, plus a per-building summary so condominium units count once per building. Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
       "path": "/v1/registry/owned_by",
       "input_schema": {
         "type": "object",
@@ -2492,6 +2524,16 @@
           }
         },
         "required": ["entity_urn"]
+      }
+    },
+    {
+      "name": "registry_coverage",
+      "title": "What the registry holds",
+      "description": "The counties (with parcel and building counts), entity registries, and crosswalk systems this FactLot Registry file holds, each with its sources and as-of dates. Call it before concluding that a parcel or entity does not exist: a miss outside these regions means not loaded, not absent. Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
+      "path": "/v1/registry/coverage",
+      "input_schema": {
+        "type": "object",
+        "properties": {}
       }
     }
   ]

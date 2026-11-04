@@ -35,6 +35,30 @@
       }
     },
     {
+      "tool": "id_building",
+      "arguments": {
+        "state_fips": "11",
+        "county_fips": "001",
+        "zip": "20002",
+        "street": "208 Massachusetts Avenue NE, Unit 4"
+      },
+      "expect": {
+        "urn": "fl:building:us-11001:20002:208-massachusetts-ave-ne",
+        "kind": "building",
+        "short": "flb_nmqcnj0ba3d65ywy5j94bz0h"
+      }
+    },
+    {
+      "tool": "id_space",
+      "arguments": {
+        "building_urn": "fl:building:us-11001:20002:208-massachusetts-ave-ne",
+        "suite": "Suite 1-20"
+      },
+      "expect": {
+        "urn": "fl:space:us-11001:20002:208-massachusetts-ave-ne:1-20"
+      }
+    },
+    {
       "tool": "id_document",
       "arguments": {
         "content_base64": "bGVhc2UgdGV4dA=="
