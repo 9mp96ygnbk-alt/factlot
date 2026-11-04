@@ -9,7 +9,7 @@ description: Value commercial real estate and split its returns. Use when the us
 
 Gather, per lease or vacant suite: `name`, `area_sf`, in-place `rent_psf_annual` (USD/SF/yr; 0 for vacant), `months_remaining` from the analysis start (0 = vacant now), optional `escalation_rate` and `next_escalation_month`, `recovery` (`nnn`, `gross`, or `base_year` with `base_year_opex_psf_annual`), and today's `market_rent_psf_annual` for that space. Then `market_leasing`: `renewal_probability`, `lease_term_months`, `downtime_months` (required), and optionally `renewal_rent_pct_of_market`, `rent_escalation_rate`, free rent, TI per SF and leasing commission rates for new tenants and renewals, and `recovery`. A lease's own `leasing` object overrides any of these. Property-level: `hold_years`, `exit_cap_rate`, `discount_rate`, and optionally `market_rent_growth_rate`, `operating_expenses_psf_annual`, `non_recoverable_expenses_annual`, `expense_growth_rate`, `management_fee_rate`, `general_vacancy_rate`, `credit_loss_rate`, `capital_reserve_psf_annual`, `exit_noi_basis` (`forward` default), `selling_cost_rate`, `timing` (`end_of_year` default or `mid_year`), and `purchase_price` (adds NPV, unlevered IRR, and multiple). All rates are decimals.
 
-How it models a rollover (say this when you report): at each expiration one **blended** lease starts, with renewal and new-tenant assumptions weighted by the renewal probability; downtime is (1 − p) × the new-tenant downtime and free rent the weighted months, both rounded to whole months. It is a deterministic, documented model, not an ARGUS replica.
+How it models a rollover (say this when you report): at each expiration one **blended** lease starts, with renewal and new-tenant assumptions weighted by the renewal probability; downtime is (1 − p) × the new-tenant downtime and free rent the weighted months, both kept fractional: whole months vacant or free, then a part month for the fraction. A lease that expires inside the projection always rolls over; if its next lease starts after the forward year it is listed in `lease_events` and a warning says its TI and commission are outside the cash flows. It is a deterministic, documented model, not an ARGUS replica.
 
 Worked example (vector "single NNN lease, no rollover, flat"):
 
@@ -57,6 +57,6 @@ Waterfall agreements differ: relay the conventions warning (hurdles on LP cash f
 ## Rules
 
 - Never compute these figures in-context; report the tool's values as returned.
-- Cite the formula ID from `provenance.formula` (`calc.dcf_pro_forma@1`, `calc.direct_cap@1`, `calc.equity_waterfall@1`).
+- Cite the formula ID from `provenance.formula` (`calc.dcf_pro_forma@2`, `calc.direct_cap@1`, `calc.equity_waterfall@1`).
 - Surface every entry in `warnings`, including the conventions warning.
 - If the FactLot MCP tools are unavailable, POST the same arguments to `https://api.factlot.com/v1/calc/<tool name without the calc_ prefix>`.
