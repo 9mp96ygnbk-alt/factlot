@@ -232,11 +232,13 @@ function rights(d: Database, documentId: string): { source: Row; rights: Row } {
 }
 
 /**
- * Predicates a parcel may hold many of at once (one fact per sale). Every other predicate is
- * single-valued: when two current sources disagree, the newest fact is returned.
+ * Predicates a subject may hold many of at once (one fact per sale; one per CMBS trust's
+ * participation in a building's loan). Every other predicate is single-valued: when two current
+ * sources disagree, the newest fact is returned.
  */
 export const MULTI_VALUED_PREDICATES: ReadonlySet<string> = new Set([
   "transaction.sale",
+  "debt.cmbs_loan",
 ]);
 
 /** Order the facts of a many-valued predicate (sales) newest first, in the slots they occupy. */
@@ -248,8 +250,10 @@ function newestFirst(facts: Row[]): Row[] {
   if (slots.length < 2) return facts;
   const key = (f: Row): [string, number, string] => {
     const v = (f.value ?? {}) as Row;
-    const price = typeof v.price_usd === "number" ? v.price_usd : -1;
-    return [typeof v.date === "string" ? v.date : "", price, String(f.id)];
+    const amount = v.price_usd ?? v.current_balance_usd;
+    const price = typeof amount === "number" ? amount : -1;
+    const when = v.date ?? v.reporting_period_end;
+    return [typeof when === "string" ? when : "", price, String(f.id)];
   };
   const ordered = slots
     .map((i) => facts[i]!)

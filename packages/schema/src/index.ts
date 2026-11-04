@@ -330,7 +330,12 @@ export const Predicates = {
     "debt.maturity_date",
     "debt.rate",
     "debt.special_servicing",
+    // One fact per CMBS trust's participation in a building's loan (a structured value; SEC Form
+    // ABS-EE). A building may hold several: see MULTI_VALUED_PREDICATES in @factlot/tools.
+    "debt.cmbs_loan",
   ],
+  // The registrant that lists an entity as a subsidiary in Exhibit 21 of its 10-K (inferred).
+  entity: ["entity.parent"],
 } as const;
 
 /** All schemas, keyed by name, for JSON Schema export. */

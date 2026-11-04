@@ -247,5 +247,35 @@
     "arguments": {
       "entity_urn": "fl:parcel:us-48999:00010000001"
     }
+  },
+  {
+    "tool": "registry_get",
+    "arguments": {
+      "urn": "fl:building:us-48999:77999:300-harbor-dr"
+    }
+  },
+  {
+    "tool": "registry_get",
+    "arguments": {
+      "urn": "fl:building:us-48999:77999:9-nw-industrial-way"
+    }
+  },
+  {
+    "tool": "registry_get",
+    "arguments": {
+      "urn": "fl:parcel:us-48999:00030000001"
+    }
+  },
+  {
+    "tool": "registry_get",
+    "arguments": {
+      "urn": "fl:entity:us-tx:0801111111"
+    }
+  },
+  {
+    "tool": "registry_get",
+    "arguments": {
+      "urn": "fl:entity:us-sec:0000900001"
+    }
   }
 ]

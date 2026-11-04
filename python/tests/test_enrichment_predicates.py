@@ -22,11 +22,17 @@ class TestEnrichmentPredicates(unittest.TestCase):
 
     def test_typescript_vocabulary_lists_the_same_names(self):
         text = TS_SCHEMA.read_text()
-        listed = set(re.findall(r'"((?:zoning|transaction|parcel)\.[a-z_]+)"', text))
+        listed = set(re.findall(r'"((?:zoning|transaction|parcel|debt|entity)\.[a-z_]+)"', text))
         self.assertTrue(ENRICHMENT_PREDICATES <= listed, sorted(ENRICHMENT_PREDICATES - listed))
 
     def test_many_valued_predicates_are_known_predicates(self):
         self.assertTrue(MULTI_VALUED_PREDICATES <= ENRICHMENT_PREDICATES)
+
+    def test_sec_predicates_are_registered(self):
+        # debt.cmbs_loan: one fact per trust that holds a note of a building's loan; entity.parent: one per registrant.
+        self.assertIn("debt.cmbs_loan", MULTI_VALUED_PREDICATES)
+        self.assertIn("entity.parent", ENRICHMENT_PREDICATES)
+        self.assertNotIn("entity.parent", MULTI_VALUED_PREDICATES)
 
     def test_pluto_writes_only_known_predicates(self):
         row = {c: "1" for c in ny_pluto.COLUMNS}

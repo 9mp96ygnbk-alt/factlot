@@ -10,6 +10,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "python" / "src"))
 from factlot.registry import EntityRecord, ParcelFacts, ParcelRecord, Registry, Source  # noqa: E402
+from factlot.registry.adapters import sec_cmbs, sec_exhibit21 as ex21  # noqa: E402
+from factlot.registry.store import BuildingFacts, EntityParent  # noqa: E402
 
 out = Path(sys.argv[1])
 out.unlink(missing_ok=True)
@@ -90,6 +92,43 @@ reg.ingest_entities([
     EntityRecord("Harbor Office Condos LLC", "us-tx", "0805555555", status="ACTIVE"),
     EntityRecord("Quiet Holdings LLC", "us-tx", "0806666666", status="ACTIVE"),
 ], ent)
+# SEC filings (synthetic here): CMBS loan facts on building IDs, one fact per trust holding a note of the loan,
+# and a registrant's Exhibit 21 line naming a registered entity as its subsidiary.
+for cik, trust in ((1900001, "Example 2026-C1 Mortgage Trust"), (1900002, "Other 2026-C2 Mortgage Trust")):
+    reg.add_source(sec_cmbs.source_for(cik, trust))
+HARBOR = "fl:building:us-48999:77999:300-harbor-dr"
+NW = "fl:building:us-48999:77999:9-nw-industrial-way"
+
+
+def loan(trust, cik, period_end, balance, status):
+    return {"trust": trust, "trust_cik": f"{cik:010d}", "loan_id": "7", "reporting_period_end": period_end,
+            "current_balance_usd": balance, "original_balance_usd": 40000000, "interest_rate_pct": 5.25,
+            "maturity_date": "2031-11-06", "payment_status": {"code": status[0], "description": status[1]},
+            "property": {"name": "Harbor Point", "type": {"code": "OF", "description": "Office"}},
+            "placement": {"state_fips": "48", "county_fips": "999", "method": "zip_code_area"}}
+
+
+c1 = snap("sec-edgar-cmbs-1900001", "exh_102_c1.xml", "synthetic exhibit 102, trust 1", "2026-10-13")
+c2 = snap("sec-edgar-cmbs-1900002", "exh_102_c2.xml", "synthetic exhibit 102, trust 2", "2026-11-12")
+reg.ingest_building_facts([
+    BuildingFacts(HARBOR, "300 HARBOR DR, TX 77999", [("debt.cmbs_loan", loan("Example 2026-C1 Mortgage Trust", 1900001, "2026-10-13", 39000000, ("0", "Current")), None)],
+                  locator="0001900001-26-000001 exh_102_c1.xml asset 7 property 1"),
+    BuildingFacts(NW, "9 NW INDUSTRIAL WAY, TX 77999", [("debt.cmbs_loan", loan("Example 2026-C1 Mortgage Trust", 1900001, "2026-10-13", 8000000, ("3", "90+ days delinquent")), None)],
+                  locator="0001900001-26-000001 exh_102_c1.xml asset 8 property 1"),
+], c1, full_roll=True)
+reg.ingest_building_facts([
+    BuildingFacts(HARBOR, "300 HARBOR DR, TX 77999", [("debt.cmbs_loan", loan("Other 2026-C2 Mortgage Trust", 1900002, "2026-11-12", 25000000, ("0", "Current")), None)],
+                  locator="0001900002-26-000001 exh_102_c2.xml asset 2 property 1"),
+], c2, full_roll=True)
+sec_cmbs.link_parcels(reg)
+reg.add_source(ex_src := ex21.source_for(900001, "Example Holdings Corp"))
+ex21_snap = snap(ex_src.source_id, "ex21.htm", "synthetic exhibit 21", "2026-01-31")
+reg.ingest_entity_parents([
+    EntityParent("Example Holdings Corp", "0000900001", "DE", "fl:entity:us-tx:0801111111", 0.9, ex21.BASIS_REGISTRY_STATE,
+                 {"parent": {"name": "Example Holdings Corp", "cik": "0000900001", "urn": "fl:entity:us-sec:0000900001"},
+                  "listed_as": {"name": "Lonestar Office Holdings, L.L.C.", "jurisdiction": "Texas"}},
+                 locator="0000900001-26-000004 ex21.htm line 12"),
+], ex21_snap)
 reg.link_owners()
 reg.rollup_buildings()
 reg.refresh_coverage()

@@ -16,7 +16,7 @@ from importlib import resources
 from pathlib import Path
 from typing import Any, Callable, Iterable
 
-from ..ids import FactLotIdError, _base32, entity_id, parcel_id, short_id
+from ..ids import FactLotIdError, _base32, entity_id, parcel_id, parse as parse_id, short_id
 from . import buildings as _buildings
 from . import coverage as _coverage
 from .normalize import (
@@ -39,9 +39,10 @@ from .normalize import (
 )
 
 PRODUCER = "factlot.registry"
-# Predicates a parcel may hold many of at once (one fact per sale). Every other predicate is
-# single-valued: when two current sources disagree, the newest fact is returned.
-MULTI_VALUED_PREDICATES = frozenset({"transaction.sale"})
+# Predicates a subject may hold many of at once (one fact per sale; one per CMBS trust's participation in
+# a building's loan). Every other predicate is single-valued: when two current sources disagree, the
+# newest fact is returned.
+MULTI_VALUED_PREDICATES = frozenset({"transaction.sale", "debt.cmbs_loan"})
 # Coverage marker (``coverage.present``) for a source that adds facts to parcels another source created.
 COVERED_BY_ENRICHMENT = 2
 # The predicates the registry writes (the TypeScript starter vocabulary, `Predicates` in @factlot/schema,
@@ -53,7 +54,7 @@ ENRICHMENT_PREDICATES = frozenset({
     "zoning.max_far_facility", "zoning.max_far_manufacturing", "zoning.max_far_affordable_residential",
     "parcel.built_far", "parcel.num_buildings", "parcel.num_floors", "parcel.units_residential",
     "parcel.units_total", "parcel.area_by_use_sf", "parcel.land_use_code", "parcel.year_altered",
-    "parcel.historic_district", "parcel.landmark_designated", "transaction.sale",
+    "parcel.historic_district", "parcel.landmark_designated", "transaction.sale", "debt.cmbs_loan", "entity.parent",
 })
 SCHEMA_VERSION = "2"
 
@@ -146,6 +147,42 @@ class ParcelFacts:
 
 
 @dataclass
+class BuildingFacts:
+    """Facts about a building subject, from a source that is not an appraisal roll (SEC CMBS loan data).
+
+    ``urn`` is the deterministic building ID of the address (``fl:building:us-<SSCCC>:<zip5>:<street>``);
+    the subject is created if the roll-up has not (a building the roll-up never made has no parcels).
+    ``facts`` is a list of ``(predicate, value, unit)``; empty and null values are skipped.
+    """
+
+    urn: str
+    label: str | None
+    facts: list[tuple[str, Any, str | None]]
+    locator: str | None = None
+    method: str = "public_record"
+    confidence: float | None = None
+
+
+@dataclass
+class EntityParent:
+    """A registrant's statement that it has a subsidiary (SEC Exhibit 21), matched to a registered entity.
+
+    ``parent_cik`` is the registrant's SEC CIK (its entity ID is ``fl:entity:us-sec:<cik>``);
+    ``subsidiary_urn`` is the registry entity the subsidiary's name and jurisdiction matched. The link is
+    an inference: ``confidence`` and ``basis`` say how strong and why, ``locator`` names the exhibit line.
+    """
+
+    parent_name: str
+    parent_cik: str
+    parent_state: str | None
+    subsidiary_urn: str
+    confidence: float
+    basis: str
+    value: dict[str, Any]
+    locator: str | None = None
+
+
+@dataclass
 class EntityRecord:
     """A registered business entity (e.g. from franchise-tax or Secretary of State data)."""
 
@@ -195,8 +232,9 @@ def _newest_first(facts: list[dict[str, Any]]) -> list[dict[str, Any]]:
     if len(slots) > 1:
         def key(f: dict[str, Any]) -> tuple[str, float, str]:
             v = f["value"] if isinstance(f["value"], dict) else {}
-            price = v.get("price_usd")
-            return (str(v.get("date") or ""), float(price) if isinstance(price, (int, float)) else -1.0, f["id"])
+            price = v.get("price_usd", v.get("current_balance_usd"))
+            return (str(v.get("date") or v.get("reporting_period_end") or ""),
+                    float(price) if isinstance(price, (int, float)) else -1.0, f["id"])
         ordered = sorted((facts[i] for i in slots), key=key, reverse=True)
         for i, f in zip(slots, ordered):
             facts[i] = f
@@ -627,6 +665,97 @@ class Registry:
                     stats.facts_written += self._fact(urn, predicate, value, snap, unit=unit, method=r.method,
                                                        confidence=r.confidence, locator=loc)
                 self._drop_stale(urn, snap, old_ids)
+            if full_roll:
+                stats.retired = self._retire_absent(snap)
+            self.db.commit()
+            return stats
+        finally:
+            self._tracking = False
+
+    def ingest_building_facts(self, records: Iterable[BuildingFacts], snap: Snapshot, *,
+                              full_roll: bool = False) -> IngestStats:
+        """Add facts to building subjects (created here if the roll-up has not made them).
+
+        One record per building, with all of the file's facts for it. Like the other ingests, re-ingesting
+        a document makes the registry hold what the records yield now, and ``full_roll=True`` retires
+        buildings an earlier snapshot of this source covered that this one does not list (a loan paid off).
+        """
+        stats = IngestStats()
+        self._tracking = True
+        try:
+            for r in records:
+                stats.seen += 1
+                try:
+                    if parse_id(r.urn)[0] != "building":
+                        raise FactLotIdError("not a building ID")
+                except FactLotIdError as e:
+                    stats.skipped_invalid += 1
+                    stats.errors.append(f"{r.locator or r.urn}: {e}")
+                    continue
+                stats.kept += 1
+                old_ids = {row[0] for row in self.db.execute(
+                    "SELECT fact_id FROM facts WHERE subject = ? AND document_id = ?", (r.urn, snap.document_id))}
+                self._written = set()
+                self._subject(r.urn, "building", r.label)
+                self._cover(r.urn, snap)
+                for predicate, value, unit in r.facts:
+                    stats.facts_written += self._fact(r.urn, predicate, value, snap, unit=unit, method=r.method,
+                                                       confidence=r.confidence, locator=r.locator)
+                self._drop_stale(r.urn, snap, old_ids)
+            if full_roll:
+                stats.retired = self._retire_absent(snap)
+            self.db.commit()
+            return stats
+        finally:
+            self._tracking = False
+
+    def ingest_entity_parents(self, records: Iterable[EntityParent], snap: Snapshot, *,
+                              full_roll: bool = False) -> IngestStats:
+        """Record registrants' Exhibit 21 subsidiaries that matched registered entities.
+
+        For each record the registrant becomes an entity (``fl:entity:us-sec:<cik>``, indexed by name, with a
+        ``sec-cik`` crosswalk), the subsidiary entity gets an ``entity.parent`` fact (``inferred``, with the
+        confidence), and the registrant gets a ``controls`` link to it citing the same document. A link set an
+        earlier document of this source wrote for the registrant is replaced by this one's.
+        """
+        stats = IngestStats()
+        self._tracking = True
+        done_parents: set[str] = set()
+        try:
+            for r in records:
+                stats.seen += 1
+                try:
+                    parent = entity_id("us-sec", r.parent_cik).urn
+                except FactLotIdError as e:
+                    stats.skipped_invalid += 1
+                    stats.errors.append(f"{r.locator or r.parent_cik}: {e}")
+                    continue
+                if not self.db.execute("SELECT 1 FROM subjects WHERE urn = ? AND kind = 'entity'",
+                                       (r.subsidiary_urn,)).fetchone():
+                    stats.skipped_out_of_scope += 1
+                    continue
+                stats.kept += 1
+                if parent not in done_parents:
+                    done_parents.add(parent)
+                    self.db.execute(
+                        "DELETE FROM relationships WHERE from_urn = ? AND type = 'controls' AND document_id IN "
+                        "(SELECT document_id FROM snapshots WHERE source_id = ? AND document_id != ?)",
+                        (parent, snap.source_id, snap.document_id))
+                    self._subject(parent, "entity", r.parent_name)
+                    self._cover(parent, snap)
+                    stats.facts_written += self._fact(parent, "entity.legal_name", r.parent_name, snap)
+                    stats.facts_written += self._fact(parent, "entity.registry_number", r.parent_cik, snap)
+                    stats.facts_written += self._fact(parent, "entity.state_of_formation", r.parent_state, snap)
+                    key = normalize_name(r.parent_name)
+                    self.db.execute("INSERT OR IGNORE INTO name_index VALUES (?,?)", (key, parent))
+                    self._index_name_tokens(key, parent)
+                    self.db.execute("INSERT OR REPLACE INTO crosswalk VALUES (?,?,?)", ("sec-cik", r.parent_cik, parent))
+                self._cover(r.subsidiary_urn, snap, COVERED_BY_ENRICHMENT)
+                stats.facts_written += self._fact(r.subsidiary_urn, "entity.parent", r.value, snap, method="inferred",
+                                                   confidence=r.confidence, locator=r.locator)
+                self.db.execute("INSERT OR REPLACE INTO relationships VALUES (?,?,?,?,?,?,?,?)",
+                                (parent, "controls", r.subsidiary_urn, snap.as_of, "inferred", r.confidence,
+                                 snap.document_id, r.basis))
             if full_roll:
                 stats.retired = self._retire_absent(snap)
             self.db.commit()

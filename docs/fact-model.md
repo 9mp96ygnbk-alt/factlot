@@ -106,3 +106,45 @@ source loaded so far does.
 **Derived zoning.** Where the zoning map and the lots come from different files (DC), the district is found by
 overlaying the lot polygon on the zoning map. The fact's method is `inferred`, its confidence is the district's
 share of the sampled points on the lot (at most 0.95), and its locator names both files by document ID.
+
+## Predicates from SEC filings
+
+Two registry sources read the SEC's EDGAR filings ([CMBS loan data](registry/sources/sec-edgar-cmbs-abs-ee.md),
+[Exhibit 21 subsidiary lists](registry/sources/sec-edgar-exhibit-21.md)). Their predicates are in `Predicates`
+(`@factlot/schema`) and `ENRICHMENT_PREDICATES` (`factlot.registry.store`).
+
+**`debt.cmbs_loan`** is attached to a **building** subject (`fl:building:us-<SSCCC>:<zip5>:<street>`), not to a parcel:
+a loan is secured by a building, and the registry joins it to parcels through the building (the roll-up, or a
+`located_on` link from the building to its one parcel). It is many-valued: one fact per CMBS trust and loan that names the
+building, returned newest reporting period first (`MULTI_VALUED_PREDICATES`). Method `public_record`; the fact's source
+is the trust's Exhibit 102 file (`as_of` is the reporting period end). The value is an object; fields are omitted when the
+filing leaves them out.
+
+| Field                                                                                                     | Meaning                                                                                                                                                                                                                                                                                               |
+| --------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `trust`, `trust_cik`, `loan_id`                                                                           | The issuing trust, its SEC CIK, and the loan's "Prospectus Loan ID" in that trust                                                                                                                                                                                                                     |
+| `reporting_period_start`, `reporting_period_end`                                                          | The monthly report the figures come from                                                                                                                                                                                                                                                              |
+| `originator`, `origination_date`, `maturity_date`, `original_term_months`, `amortization_months`          | As filed (`maturity_date` is the final maturity; a hyper-amortizing loan's anticipated repayment date is not given)                                                                                                                                                                                   |
+| `original_balance_usd`, `current_balance_usd`, `balance_at_securitization_usd`, `actual_balance_usd`      | The trust's loan: scheduled balance at period end, and the actual balance when it differs. **Not the property's share** of a multi-property loan                                                                                                                                                      |
+| `interest_rate_pct`                                                                                       | Rate for the period, in percent (`5.25`)                                                                                                                                                                                                                                                              |
+| `payment_type`, `loan_structure`, `interest_only`                                                         | Coded `{code, description}` (SEC code tables): amortizing/IO/hyper-amortizing; whole loan, pari passu note, A/B note...                                                                                                                                                                               |
+| `properties_in_loan`                                                                                      | How many properties secure the loan. Balances repeat on each property's fact: do not add them up                                                                                                                                                                                                      |
+| `payment_status`, `paid_through_date`                                                                     | Delinquency: `{code: "0", description: "Current"}`, 30-59, 60-89, 90+ days, matured balloon, grace period, late under 30 days                                                                                                                                                                         |
+| `primary_servicer`, `special_servicer_transfer_date`, `master_servicer_return_date`, `specially_serviced` | Servicing. `specially_serviced` is true when a transfer date is reported and no later return date is. **No watchlist status is in the filing**                                                                                                                                                        |
+| `workout_strategy`, `modified`, `last_modification_date`, `modification`, `post_modification_*`           | Workout and modification, coded                                                                                                                                                                                                                                                                       |
+| `paid_off_in_period`, `liquidation_prepayment`, `liquidation_prepayment_date`                             | The balance fell to zero in the period (paid off or liquidated)                                                                                                                                                                                                                                       |
+| `property`                                                                                                | Name, address, city, state, ZIP, county as filed; `type`; `net_rentable_sf`; `units_beds_rooms`; `year_built`; `occupancy_pct`; `noi_usd`, `ncf_usd`, `dscr_noi`, `dscr_ncf` with `financials_period_*` (most recent) and `*_at_securitization`; valuation; `status`; `defeasance`; `largest_tenants` |
+| `placement`                                                                                               | How the building ID was keyed: `state_fips`, `county_fips`, `method` (ZIP code area, county name, ...), and `address_used` when a list of house numbers was cut to the first                                                                                                                          |
+
+No borrower or sponsor is named in the filing, so none is stored. Tenant names are stored only for organisations or recurring
+chains (never a person).
+
+**`entity.parent`** is attached to a registry **entity** (an LLC or corporation from a state registry) and says which SEC
+registrant lists it as a subsidiary in Exhibit 21 of its Form 10-K. Method `inferred`, with a confidence (0.9 when the
+exhibit's jurisdiction is the state whose registry holds the entity, 0.85 when it is the state of formation the registry
+records for a foreign registration) and the exhibit line as locator. The match is an exact normalized name plus the
+jurisdiction; nothing fuzzy. The value holds `parent` (`name`, `cik`, `urn` = `fl:entity:us-sec:<CIK>`), `listed_as` (the
+name and jurisdiction as the exhibit writes them), `filing` (accession, dates, exhibit) and `match` (rule). The registrant
+is an entity of its own and holds a `controls` relationship to each subsidiary. "Subsidiary" is the registrant's word and
+covers indirect subsidiaries, so the registrant is the _ultimate listed parent_, not necessarily the immediate one, and many
+registrants list only significant subsidiaries.
