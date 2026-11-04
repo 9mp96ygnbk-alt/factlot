@@ -1,0 +1,135 @@
+{
+ "doc": "L16",
+ "candidates": [
+  {
+   "predicate": "lease.landlord",
+   "value": "SY Arden way llc, a California limited liability company",
+   "quote": "is by and between SY Arden way llc, a California limited liability company (“Landlord”)",
+   "page": 2
+  },
+  {
+   "predicate": "lease.tenant",
+   "value": "Century Theatres, Inc., a California corporation",
+   "quote": "and Century Theatres, Inc., a California corporation (“Tenant”)",
+   "page": 2
+  },
+  {
+   "predicate": "lease.rentable_area_sf",
+   "value": 65219,
+   "quote": "Floor Area of Premises:\n\nApproximately 65,219 square feet.",
+   "page": 2,
+   "section": "1.1"
+  },
+  {
+   "predicate": "lease.base_rent_schedule",
+   "value": [
+    {
+     "from": "",
+     "to": "",
+     "annual_rent_psf": 27.0
+    },
+    {
+     "from": "",
+     "to": "",
+     "annual_rent_psf": 28.5
+    },
+    {
+     "from": "",
+     "to": "",
+     "annual_rent_psf": 30.0
+    }
+   ],
+   "quote": "Lease Years 1-5, $27.00 per square foot of Floor Area within the Premises per Lease Year\n\nLease Years 6-10, $28.50 per square foot of Floor Area within the Premises per Lease Year\n\nLease Years 11-15, $30.00 per square foot of Floor Area within the Premises per Lease Year",
+   "page": 3,
+   "section": "1.1"
+  },
+  {
+   "predicate": "lease.percentage_rent",
+   "value": {
+    "rate": 0.08,
+    "breakpoint": {
+     "type": "fixed",
+     "amount": 13000000
+    },
+    "sales_exclusions": "taxes and governmental charges; customer refunds, credits and adjustments; vending machines (including pay telephones and ATMs); video or electronic games except to the extent payable to or retained by Tenant; advertising receipts; license and concession fees paid to Tenant (Gross Sales of the licensee or concessionaire included); lottery tickets except the commission retained by Tenant; VIP or gift certificates or discount cards until redeemed; Pass Admissions including EBF charges; third-party agency fees and commissions and surcharges in excess of the standard ticket price for off-Premises ticket sales; insurance proceeds, Taking compensation, sale of FF&E, and sublet rents (Gross Sales of subtenants and assignees included); admission receipts from Four Wall Deals (actual payments retained by Tenant included)"
+   },
+   "quote": "Tenant shall pay Percentage Rent during both the Initial Term and any Extension Term in an amount equal to eight percent (8%) of the amount, if any, by which Tenant’s Gross Sales for the Percentage Rent Year exceeds the Percentage Rent Breakpoint for such Percentage Rent Year.",
+   "page": 3,
+   "section": "1.1"
+  },
+  {
+   "predicate": "lease.cam_cap",
+   "value": {
+    "method": "year_over_year",
+    "rate": 0.03
+   },
+   "quote": "Until the end of the CAM Base Year, Tenant’s liability for Tenant’s Pro Rata Share of Common Area Expenses shall not exceed $2.50 per square foot of Floor Area and every calendar year thereafter shall not exceed one hundred and three percent (103%) of the Common Area Expenses for the prior calendar year on an annualized basis.",
+   "page": 3,
+   "section": "1.1"
+  },
+  {
+   "predicate": "lease.parking",
+   "value": {
+    "spaces": 471
+   },
+   "quote": "With respect to the Priority Parking Area, no less than four hundred seventy-one (471) parking spaces.",
+   "page": 4,
+   "section": "1.1"
+  },
+  {
+   "predicate": "lease.co_tenancy",
+   "value": {
+    "trigger": "While Tenant operates primarily for Theater Use (subject to Excused Closures): (i) Co-Tenancy Level of the Center equal to or greater than 50% of the gross leasable area of the Center (exclusive of the Building), (ii) at least one sit-down restaurant of at least 5,000 square feet is open and operating, and (iii) the Center is being operated as a First Class Center.",
+    "remedy": "If the Co-Tenancy Condition is not satisfied on the Commencement Date, or thereafter remains unsatisfied for 180 consecutive days or more, Base Rent and Additional Rent (other than Tenant’s Tax Contribution) are abated and Tenant pays Alternate Rent (the lesser of 7.5% of Gross Sales or Base Rent otherwise due) until the condition is next satisfied. If the condition continues for 24 consecutive months or more, Tenant may terminate the Lease.",
+    "cure_period_months": 24
+   },
+   "quote": "“Co-Tenancy Condition” shall mean the achievement and continued satisfaction of the following conditions while Tenant is operating the Premises primarily for the Theater Use (subject to Excused Closures): (i) the Co-Tenancy Level of the Center shall be equal to or greater than fifty percent (50%) of the gross leasable area of the Center (exclusive of the Building), (ii) at least one (1) sit-down restaurant of at least 5,000 square feet, (which may be utilized to achieve the fifty percent (50%) requirement in clause (i) above) is open and operating and (iii) the Center is being operated as a First Class Center.",
+   "page": 7,
+   "section": "1.2"
+  },
+  {
+   "predicate": "lease.renewal_option",
+   "value": {
+    "count": 4,
+    "term_months": 60,
+    "notice_months": 6,
+    "rent": "First Extension Term $31.50 psf; Second $33.00 psf; Third $34.50 psf; Fourth $36.00 psf of Floor Area per Lease Year"
+   },
+   "quote": "Landlord hereby grants to Tenant the option to extend the Term of this Lease for (not more than) the number of Extension Terms set forth in Section 1.1, the first three (3) of which shall each be five (5) Lease Years in duration and the last of which shall be four (4) Lease Years and eleven (11) months in duration.",
+   "page": 20,
+   "section": "3.3"
+  },
+  {
+   "predicate": "lease.termination_option",
+   "value": {
+    "effective_date": "",
+    "notice_months": 0,
+    "fee": "none stated; Tenant surrenders the Premises in accordance with Section 20.1"
+   },
+   "quote": "If, at any time during the Term while Tenant is operating the Premises primarily for the Theater Use (or during periods of Excused Closure provided that Tenant was operating the Premises for the Theater Use immediately before such Excused Closure commenced) the Co-Tenancy Condition is not satisfied and such condition continues for twenty-four (24) consecutive months or more, then at any time after the expiration of such 24-month period (but only for so long as such condition persists), Tenant shall have the option to terminate this Lease upon notice of such election given to Landlord.",
+   "page": 20,
+   "section": "3.5"
+  },
+  {
+   "predicate": "lease.assignment_sublease",
+   "value": "Tenant may not assign this Lease or sublet the Premises without Landlord’s prior written consent, which shall not be unreasonably withheld, conditioned or delayed. Permitted Transfers to a Tenant Affiliate or in connection with a merger, consolidation or sale of all or substantially all of Tenant’s assets or stock do not require consent if Tenant gives notice and the transferee assumes Tenant’s obligations. Tenant remains liable. Consent to one Transfer is not a waiver.",
+   "quote": "Tenant shall not assign this Lease or sublet all or any part of the Premises without the prior written consent of Landlord, which consent shall not be unreasonably withheld, conditioned or delayed.",
+   "page": 48,
+   "section": "14.1"
+  },
+  {
+   "predicate": "lease.exclusive_use",
+   "value": "motion picture theater / theater use in the Center; until expiration or earlier termination, the Demised Land is the only location upon which a theater can be constructed and operated in the Center",
+   "quote": "until the expiration or earlier termination of this Lease, the Demised Land is the only location upon which a theater can be constructed and operated in the Center",
+   "page": 18,
+   "section": "2.3"
+  },
+  {
+   "predicate": "lease.rent_commencement_date",
+   "value": "",
+   "quote": "no Rent or other charges shall be payable by Tenant with respect to any period prior to the Commencement Date.",
+   "page": 19,
+   "section": "3.2"
+  }
+ ]
+}
