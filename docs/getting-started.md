@@ -40,7 +40,7 @@ It listens on port **8787** and serves:
 | ---------------------------------------- | -------------------------------------------------------------------------------------------------------- |
 | `POST /mcp`                              | Streamable HTTP MCP: Claude custom connectors, ChatGPT apps, Copilot Studio, Gemini CLI, Cursor, VS Code |
 | `POST /v1/calc/<name>` and other `/v1/`  | REST, one endpoint per tool; `GET /v1/tools` lists them                                                  |
-| `GET /openapi.json`, `/openapi-3.0.json` | OpenAPI 3.1 and 3.0 for Custom GPT Actions, Bedrock Agents, Microsoft plugins                            |
+| `GET /openapi.json`, `/openapi-3.0.json` | OpenAPI 3.1 (all tools); 3.0 is the GPT Actions subset (`?operations=all` for all)                       |
 | `GET /health`                            | `{"ok": true, "version": "..."}`                                                                         |
 
 Try it:

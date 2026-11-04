@@ -24,6 +24,7 @@ Studio then discovers the tools over MCP, so the connector needs no per-tool sch
 ## Microsoft 365 Copilot declarative agents and Azure AI Foundry
 
 - **API plugins for declarative agents** take an OpenAPI 3.0 description: use
-  `https://api.factlot.com/openapi-3.0.json`.
+  `https://api.factlot.com/openapi-3.0.json?operations=all` for every tool, or
+  `https://api.factlot.com/openapi-3.0.json` for the curated subset of at most 30 operations.
 - **Azure AI Foundry Agent Service** can attach FactLot as an MCP tool, using the same `/mcp` URL,
   or as an OpenAPI tool.

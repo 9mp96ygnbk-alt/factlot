@@ -1,0 +1,243 @@
+{
+  "calculator": "calc.exchange_1031",
+  "version": 1,
+  "cases": [
+    {
+      "name": "transfer 2026-10-01: identify by 2026-11-15; the 2027-03-15 return due date comes before day 180 (2027-03-30); four candidates fail the three-property and 200% tests; cash boot only",
+      "input": {
+        "relinquished_transfer_date": "2026-10-01",
+        "tax_return_due_date": "2027-03-15",
+        "as_of": "2026-11-03",
+        "relinquished": {
+          "sale_price": 3000000,
+          "selling_expenses": 150000,
+          "debt_relieved": 1200000,
+          "adjusted_basis": 1000000
+        },
+        "cash_received_at_sale": 50000,
+        "replacement": {
+          "purchase_price": 2800000,
+          "acquisition_costs": 30000,
+          "new_debt": 1000000
+        },
+        "identified_properties": [
+          {
+            "name": "A",
+            "fair_market_value": 2800000,
+            "received": true
+          },
+          {
+            "name": "B",
+            "fair_market_value": 2500000
+          },
+          {
+            "name": "C",
+            "fair_market_value": 2000000
+          },
+          {
+            "name": "D",
+            "fair_market_value": 900000
+          }
+        ]
+      },
+      "expect": {
+        "value.deadlines.identification_deadline": "2026-11-15",
+        "value.deadlines.exchange_deadline": "2027-03-15",
+        "value.deadlines.exchange_deadline_basis": "tax_return_due_date",
+        "value.identification.three_property_rule": false,
+        "value.identification.two_hundred_percent_rule": false,
+        "value.identification.ratio_to_relinquished": 2.7333,
+        "value.exchange.amount_realized": 2850000,
+        "value.exchange.exchange_equity": 1650000,
+        "value.exchange.qualified_intermediary_funds": 1600000,
+        "value.exchange.additional_cash_paid": 230000,
+        "value.exchange.cash_boot": 50000,
+        "value.exchange.mortgage_boot": 0,
+        "value.exchange.total_boot": 50000,
+        "value.exchange.trade_down": 50000,
+        "value.exchange.realized_gain": 1850000,
+        "value.exchange.boot_limited_gain": 50000,
+        "value.deadlines.days_to_identification_deadline": 12,
+        "value.deadlines.days_to_exchange_deadline": 132,
+        "value.identification.rule_met": null
+      }
+    },
+    {
+      "name": "three NNN candidates (review case B10-P01): trade up with more debt, no boot; 180 days with no due date given",
+      "input": {
+        "relinquished_transfer_date": "2026-06-15",
+        "relinquished": {
+          "sale_price": 4200000,
+          "selling_expenses": 210000,
+          "debt_relieved": 1500000
+        },
+        "replacement": {
+          "purchase_price": 4500000,
+          "acquisition_costs": 45000,
+          "new_debt": 1800000
+        },
+        "identified_properties": [
+          {
+            "name": "Candidate A (synthetic pharmacy)",
+            "fair_market_value": 4500000,
+            "received": true,
+            "identified_date": "2026-07-20",
+            "received_date": "2026-11-30"
+          },
+          {
+            "name": "Candidate B (synthetic QSR)",
+            "fair_market_value": 2100000
+          },
+          {
+            "name": "Candidate C (synthetic dollar store)",
+            "fair_market_value": 1600000
+          }
+        ]
+      },
+      "expect": {
+        "value.deadlines.identification_deadline": "2026-07-30",
+        "value.deadlines.exchange_deadline": "2026-12-12",
+        "value.deadlines.exchange_deadline_basis": "180_days",
+        "value.identification.three_property_rule": true,
+        "value.identification.two_hundred_percent_rule": true,
+        "value.identification.ratio_to_relinquished": 1.9524,
+        "value.exchange.amount_realized": 3990000,
+        "value.exchange.exchange_equity": 2490000,
+        "value.exchange.qualified_intermediary_funds": 2490000,
+        "value.exchange.additional_cash_paid": 255000,
+        "value.exchange.cash_boot": 0,
+        "value.exchange.mortgage_boot": 0,
+        "value.exchange.total_boot": 0,
+        "value.exchange.trade_down": 0,
+        "value.identification.rule_met": "three_property",
+        "value.identification.late_identifications": []
+      }
+    },
+    {
+      "name": "five candidates within 200% of the relinquished value; a trade-down that does not replace the debt gives 400,000 of mortgage boot",
+      "input": {
+        "relinquished_transfer_date": "2026-12-20",
+        "relinquished": {
+          "sale_price": 2000000,
+          "selling_expenses": 100000,
+          "debt_relieved": 900000,
+          "adjusted_basis": 1200000
+        },
+        "replacement": {
+          "purchase_price": 1500000,
+          "new_debt": 500000
+        },
+        "identified_properties": [
+          {
+            "name": "P1",
+            "fair_market_value": 790000
+          },
+          {
+            "name": "P2",
+            "fair_market_value": 790000
+          },
+          {
+            "name": "P3",
+            "fair_market_value": 790000
+          },
+          {
+            "name": "P4",
+            "fair_market_value": 790000
+          },
+          {
+            "name": "P5",
+            "fair_market_value": 790000
+          }
+        ]
+      },
+      "expect": {
+        "value.deadlines.identification_deadline": "2027-02-03",
+        "value.deadlines.exchange_deadline": "2027-06-18",
+        "value.deadlines.exchange_deadline_basis": "180_days",
+        "value.identification.three_property_rule": false,
+        "value.identification.two_hundred_percent_rule": true,
+        "value.identification.ratio_to_relinquished": 1.975,
+        "value.exchange.amount_realized": 1900000,
+        "value.exchange.exchange_equity": 1000000,
+        "value.exchange.qualified_intermediary_funds": 1000000,
+        "value.exchange.additional_cash_paid": 0,
+        "value.exchange.cash_boot": 0,
+        "value.exchange.mortgage_boot": 400000,
+        "value.exchange.total_boot": 400000,
+        "value.exchange.trade_down": 400000,
+        "value.exchange.realized_gain": 700000,
+        "value.exchange.boot_limited_gain": 400000,
+        "value.identification.rule_met": "200_percent"
+      }
+    },
+    {
+      "name": "95% exception: six candidates over 200%, but 96% of the identified value was received in time",
+      "input": {
+        "relinquished_transfer_date": "2026-01-10",
+        "tax_return_due_date": "2027-04-15",
+        "relinquished": {
+          "sale_price": 1000000
+        },
+        "identified_properties": [
+          {
+            "name": "Big",
+            "fair_market_value": 2400000,
+            "received": true,
+            "received_date": "2026-07-01"
+          },
+          {
+            "name": "Small 1",
+            "fair_market_value": 20000
+          },
+          {
+            "name": "Small 2",
+            "fair_market_value": 20000
+          },
+          {
+            "name": "Small 3",
+            "fair_market_value": 20000
+          },
+          {
+            "name": "Small 4",
+            "fair_market_value": 20000
+          },
+          {
+            "name": "Small 5",
+            "fair_market_value": 20000
+          }
+        ]
+      },
+      "expect": {
+        "value.deadlines.identification_deadline": "2026-02-24",
+        "value.deadlines.exchange_deadline": "2026-07-09",
+        "value.deadlines.exchange_deadline_basis": "180_days",
+        "value.identification.three_property_rule": false,
+        "value.identification.two_hundred_percent_rule": false,
+        "value.identification.ratio_to_relinquished": 2.5,
+        "value.identification.rule_met": "95_percent",
+        "value.identification.ninety_five_percent_exception": true
+      }
+    },
+    {
+      "name": "return due date before the transfer",
+      "input": {
+        "relinquished_transfer_date": "2026-10-01",
+        "tax_return_due_date": "2026-04-15",
+        "relinquished": {
+          "sale_price": 1000000
+        }
+      },
+      "expect_error": true
+    },
+    {
+      "name": "invalid date",
+      "input": {
+        "relinquished_transfer_date": "2026-02-30",
+        "relinquished": {
+          "sale_price": 1000000
+        }
+      },
+      "expect_error": true
+    }
+  ]
+}

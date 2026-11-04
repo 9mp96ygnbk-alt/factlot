@@ -1,6 +1,6 @@
 ---
 name: cre-loan-sizing
-description: Size a commercial real estate loan. Use when the user asks how much debt a property can support, for maximum loan proceeds, or to test or compare LTV, DSCR, and debt yield constraints, find the binding constraint, or run interest-only versus amortizing sizing, stress-test proceeds under NOI, rate, and value shocks, or find the refinance gap against an existing loan. Calls the FactLot calc_debt_sizing tool (calc.debt_sizing@3) instead of computing proceeds in-context.
+description: Size a commercial real estate loan. Use when the user asks how much debt a property can support, for maximum loan proceeds, or to test or compare LTV, DSCR, and debt yield constraints, find the binding constraint, or run interest-only versus amortizing sizing, stress-test proceeds under NOI, rate, and value shocks, or find the refinance gap against an existing loan; also for a loan's amortization schedule (partial interest-only, balloon at maturity, monthly or quarterly, 30/360 or actual/360). Calls the FactLot calc_debt_sizing (calc.debt_sizing@3) and calc_amortization_schedule (calc.amortization_schedule@1) tools instead of computing proceeds or schedules in-context.
 ---
 
 # CRE loan sizing
@@ -52,10 +52,16 @@ Stress example (vector "stress table on an interest-only bridge loan"): NOI 2,45
 
 State the maximum loan, which constraint binds, and the loan each constraint would allow on its own, so the user sees how much slack the other tests have. Include debt service and the resulting LTV, DSCR, and debt yield. For a stress table, show each scenario's max loan and binding constraint, and the refinance shortfall when there is an existing loan.
 
+## Amortization schedule: `calc_amortization_schedule`
+
+For the period-by-period schedule of a fixed-rate loan, pass `principal`, `rate_annual`, `term_months` (to maturity), `amortization_months` (`0` = interest-only to maturity), and optionally `interest_only_months`, `payment_frequency` (`monthly` or `quarterly`), `day_count` (`30/360`, `actual/360`, `actual/365`; actual day counts need `start_date`), and `start_date`. Rows are in cents that foot: each row rolls forward exactly and the final payment repays the balance.
+
+Worked example (vector "10-year loan, 2 years interest-only, then 30-year amortization", review case B02-P11): `{"principal": 1000000, "rate_annual": 0.06, "term_months": 120, "amortization_months": 360, "interest_only_months": 24}` returns `interest_only_payment` 5,000, `amortizing_payment` 5,995.51, `balloon_balance` 877,722.99, `final_payment` 883,718.50, `total_interest` 573,291.95. Under actual/360 the payment is still computed on a 30/360 basis, so the balloon absorbs the difference; say so.
+
 ## Rules
 
 - Never compute these figures in-context; report the tool's values as returned.
-- Cite the formula ID from `provenance.formula` (`calc.debt_sizing@3`) beside the figures.
+- Cite the formula ID from `provenance.formula` (`calc.debt_sizing@3`, `calc.amortization_schedule@1`) beside the figures.
 - Surface every entry in `warnings`.
 - On an input error (no constraint set, or `max_ltv` without `value`), fix the arguments or ask the user. Do not estimate instead.
 - If the FactLot MCP tools are unavailable, POST the same arguments to `https://api.factlot.com/v1/calc/debt_sizing`.

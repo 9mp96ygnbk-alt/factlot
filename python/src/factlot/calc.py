@@ -1812,6 +1812,14 @@ def hotel_metrics(raw: Any) -> Result:
 
 # --- registry -------------------------------------------------------------------------------------
 
+from .valuation import (  # noqa: E402  (valuation.py imports irr from this module lazily)
+    amortization_schedule,
+    dcf_pro_forma,
+    direct_cap,
+    equity_waterfall,
+    exchange_1031,
+)
+
 #: name -> (function, formula id, formula version). Names match the MCP/TypeScript registry.
 CALCULATORS: dict[str, tuple[Callable[[Any], Result], str, int]] = {
     "rent_schedule": (rent_schedule, "calc.rent_schedule", 1),
@@ -1828,4 +1836,9 @@ CALCULATORS: dict[str, tuple[Callable[[Any], Result], str, int]] = {
     "lease_vs_own": (lease_vs_own, "calc.lease_vs_own", 2),
     "renew_vs_relocate": (renew_vs_relocate, "calc.renew_vs_relocate", 2),
     "hotel_metrics": (hotel_metrics, "calc.hotel_metrics", 1),
+    "dcf_pro_forma": (dcf_pro_forma, "calc.dcf_pro_forma", 1),
+    "direct_cap": (direct_cap, "calc.direct_cap", 1),
+    "amortization_schedule": (amortization_schedule, "calc.amortization_schedule", 1),
+    "equity_waterfall": (equity_waterfall, "calc.equity_waterfall", 1),
+    "exchange_1031": (exchange_1031, "calc.exchange_1031", 1),
 }
