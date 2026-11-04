@@ -4,6 +4,7 @@ import {
   NonNegMoney,
   Trace,
   fmtMoney,
+  fmtNum,
   parseInput,
   powInt,
   round,
@@ -236,7 +237,7 @@ export function renewVsRelocate(
     const ner = t.step(
       `${label} effective rent`,
       round((((c.pv + c.oneTime) / c.annuity) * 12) / area, 4),
-      `(${fmtMoney(c.pv + c.oneTime)} ÷ Σ(1+r)^−t) × 12 ÷ ${area} SF`,
+      `(${fmtMoney(c.pv + c.oneTime)} ÷ Σ(1+r)^−t) × 12 ÷ ${fmtNum(area)} SF`,
       "USD/sf/yr",
     );
     return {

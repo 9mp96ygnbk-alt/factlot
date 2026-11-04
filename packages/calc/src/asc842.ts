@@ -5,6 +5,7 @@ import {
   NonNegMoney,
   Trace,
   fmtMoney,
+  fmtNum,
   fmtPct,
   parseInput,
   powInt,
@@ -206,7 +207,7 @@ export function leaseRemeasurementAsc842(
   const newLiability = t.step(
     "New lease liability",
     round(pv, 2),
-    `ASC 842-10-35-4 and 842-20-35-3: Σ payment_k ÷ (1 + r)^${inAdvance ? "(k − 1)" : "k"}, r = ${round(r, 8)}, payments in ${inAdvance ? "advance" : "arrears"}`,
+    `ASC 842-10-35-4 and 842-20-35-3: Σ payment_k ÷ (1 + r)^${inAdvance ? "(k − 1)" : "k"}, r = ${fmtNum(r, 8)}, payments in ${inAdvance ? "advance" : "arrears"}`,
     "USD",
   );
   const liabilityAdj = t.step(

@@ -8,6 +8,7 @@ import {
   Share,
   Trace,
   fmtMoney,
+  fmtNum,
   fmtPct,
   parseInput,
   powInt,
@@ -264,7 +265,9 @@ export function camReconciliation(
   const share = input.pro_rata_share;
   const f = occupancyFraction(input, t);
   const prorated = f < 1;
-  const shareText = prorated ? `${share} × ${round(f, 6)}` : `${share}`;
+  const shareText = prorated
+    ? `${fmtNum(share)} × ${fmtNum(f)}`
+    : fmtNum(share);
 
   const recoverable = input.expenses.filter((e) => e.recoverable);
   const excluded = input.expenses.filter((e) => !e.recoverable);
@@ -339,7 +342,7 @@ export function camReconciliation(
     feeUnctrl = t.step(
       "Admin fee on uncontrollable",
       round(fee.rate * unctrlFeeBase, 2),
-      `${fee.rate} × ${fmtMoney(unctrlFeeBase)} fee-eligible uncontrollable share (never capped)`,
+      `${fmtNum(fee.rate)} × ${fmtMoney(unctrlFeeBase)} fee-eligible uncontrollable share (never capped)`,
       "USD",
     );
   }
@@ -358,20 +361,20 @@ export function camReconciliation(
       method === "compounding_from_base"
         ? [
             ref * powInt(1 + rate, years),
-            `${fmtMoney(ref)} × (1 + ${rate})^${years}`,
+            `${fmtMoney(ref)} × (1 + ${fmtNum(rate)})^${years}`,
           ]
         : method === "simple_from_base"
           ? [
               ref * (1 + rate * years),
-              `${fmtMoney(ref)} × (1 + ${rate} × ${years})`,
+              `${fmtMoney(ref)} × (1 + ${fmtNum(rate)} × ${years})`,
             ]
-          : [ref * (1 + rate), `${fmtMoney(ref)} × (1 + ${rate})`];
+          : [ref * (1 + rate), `${fmtMoney(ref)} × (1 + ${fmtNum(rate)})`];
     capLimit = t.step(`Cap limit (${method})`, round(limit, 2), formula, "USD");
     if (prorated)
       capLimit = t.step(
         "Cap limit prorated for occupancy",
         round(capLimit * f, 2),
-        `${fmtMoney(capLimit)} × ${round(f, 6)}`,
+        `${fmtMoney(capLimit)} × ${fmtNum(f)}`,
         "USD",
       );
     const limitNow = capLimit;
@@ -379,7 +382,7 @@ export function camReconciliation(
       feeCtrl = t.step(
         "Admin fee on controllable (before cap)",
         round(fee.rate * ctrlFeeBase, 2),
-        `${fee.rate} × ${fmtMoney(ctrlFeeBase)} fee-eligible controllable share`,
+        `${fmtNum(fee.rate)} × ${fmtMoney(ctrlFeeBase)} fee-eligible controllable share`,
         "USD",
       );
       feeInCap = fee.capped;
@@ -408,7 +411,7 @@ export function camReconciliation(
         feeCtrl = t.step(
           "Admin fee on controllable (after cap)",
           round(fee.rate * eligible, 2),
-          `${fee.rate} × ${fmtMoney(base)} capped × ${fmtMoney(ctrlFeeBase)} fee-eligible ÷ ${fmtMoney(ctrlShare)} controllable`,
+          `${fmtNum(fee.rate)} × ${fmtMoney(base)} capped × ${fmtMoney(ctrlFeeBase)} fee-eligible ÷ ${fmtMoney(ctrlShare)} controllable`,
           "USD",
         );
         feeInCap = fee.capped;
@@ -425,7 +428,7 @@ export function camReconciliation(
     feeCtrl = t.step(
       "Admin fee on controllable",
       round(fee.rate * ctrlFeeBase, 2),
-      `${fee.rate} × ${fmtMoney(ctrlFeeBase)} fee-eligible controllable share (no cap)`,
+      `${fmtNum(fee.rate)} × ${fmtMoney(ctrlFeeBase)} fee-eligible controllable share (no cap)`,
       "USD",
     );
   }
