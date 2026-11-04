@@ -1,0 +1,68 @@
+{
+ "doc": "L20",
+ "labels": [
+  {
+   "predicate": "lease.landlord",
+   "value": "Ramparts, Inc.",
+   "page": 2,
+   "quote": "Landlord: Ramparts, Inc., a Nevada corporation (\"Landlord\")."
+  },
+  {
+   "predicate": "lease.tenant",
+   "value": "ALLIED ESPORTS INTERNATIONAL, INC.",
+   "page": 2,
+   "quote": "Tenant: ALLIED ESPORTS INTERNATIONAL, INC., a Nevada corporation (\"Tenant\").",
+   "note": "Basic Lease Information item (27) states 'Guarantor(s): None.'"
+  },
+  {
+   "predicate": "lease.rentable_area_sf",
+   "value": 30000,
+   "page": 2,
+   "quote": "Approximately thirty thousand (30,000) square feet within the Hotel Complex",
+   "note": "Commencement Date is the earlier of opening or the Required Completion Date (365 days after an undetermined Delivery Date; Estimated Delivery Date approximately April 10, 2017), so commencement, expiration and dated rent steps are not labeled. Minimum Annual Rent is a flat $1,500,000 for the Initial Term. Landlord has a termination-for-convenience right after the sixth full month following commencement on 120 days' notice (Section 2.7), with no fixed effective date, so it is not labeled as termination_option."
+  },
+  {
+   "predicate": "lease.security_deposit",
+   "value": 625000,
+   "page": 2,
+   "quote": "Six Hundred Twenty Five Thousand and no/100 Dollars ($625,000.00), subject to reduction as provided Section 3.7.4.",
+   "note": "Reduces to $375,000 if no monetary Event of Default occurs in the first 12 months after the Commencement Date (Section 3.7.4)."
+  },
+  {
+   "predicate": "lease.percentage_rent",
+   "value": {
+    "rate": 0.07,
+    "breakpoint": {
+     "type": "natural"
+    }
+   },
+   "page": 15,
+   "quote": "the amount by which an amount equal to the Percentage Rent Factor(s) (as set forth in the Basic Lease Information) multiplied by all Gross Sales (as defined in Section 4.3) exceeds the Minimum Annual Rent during such Lease Year",
+   "note": "Percentage Rent Factor is 7% of Gross Sales (Basic Lease Information item (14), page 3). Paying 7% of Gross Sales over Minimum Annual Rent is a natural breakpoint. Percentage Rent Cap: $3,000,000 per Lease Year; Section 4.1.2 words the cap as applying to the aggregate of Minimum Monthly Rent and Percentage Rent, which conflicts with item (14) (cap on Percentage Rent alone)."
+  },
+  {
+   "predicate": "lease.renewal_option",
+   "value": {
+    "count": 1,
+    "term_months": 60,
+    "notice_months": 9,
+    "rent": "Fixed: $1,650,000.00 per annum"
+   },
+   "page": 2,
+   "quote": "One (1) extension term of sixty (60) full calendar months (\"Extension Term\").",
+   "note": "Notice window is no earlier than 15 and no later than 9 months before expiration (Section 2.3.2, page 8); notice_months records the 9-month deadline. Extension Term rent is on page 3."
+  },
+  {
+   "predicate": "lease.exclusive_use",
+   "value": "Absent an uncured Tenant default, Landlord will not use or allow any Hotel Complex tenant or occupant to use premises for a competition arena where customers play and compete in organized esports games; excludes pre-existing tenants, private occasional events and conventions; applies only while Tenant operates; Willful Breach cuts Minimum Monthly Rent to 70%.",
+   "page": 3,
+   "quote": "the term \"Competitive Use\" shall mean any competition arena where customers play and compete against other players in organized esports games."
+  },
+  {
+   "predicate": "lease.assignment_sublease",
+   "value": "Any assignment, sublease, concession, license or other transfer requires Landlord's prior written consent in Landlord's sole and absolute discretion; unauthorized transfers are voidable at Landlord's election.",
+   "page": 34,
+   "quote": "without Landlord's prior written consent\nin each instance at Landlord's sole and absolute discretion."
+  }
+ ]
+}
