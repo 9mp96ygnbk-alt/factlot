@@ -4095,6 +4095,39 @@
     },
     {
       "type": "function",
+      "name": "lease_comp_validate",
+      "description": "Check a lease comparable one firm shares with others, as a FactLot fact with predicate lease.comp, and derive its net effective rent. The fact goes through fact_validate (schema, citations, rights), then the comp's own rules: shape (spec/schemas/fact.json LeaseComp: area, commencement, term or expiration, starting or current rent, escalation, free rent, TI, leasing commissions, expense basis, confirming party, verification), an expiration after commencement, a term that matches the dates, free rent within the term, no email, phone or ID number in the text. A comp names no person or company. With the default share profile it also needs the deal's starting rent, escalations, free rent, TI, property type, an expense basis other than unknown, and stated rights. When valid and a starting rent is given, ner.fact is a computed lease.net_effective_rent fact (formula calc.net_effective_rent@1, straight-line and discounted at discount_rate_annual, on the comp's own expense basis; no conversion between full service and net). Returns { valid, issues, warnings, ner }. Call before sharing a comp.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "fact": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {},
+            "description": "A FactLot fact with predicate lease.comp: subject (an fl:lease: URN), value (the comp), as_of, provenance (with at least one source: your own record is fine, cited by document_id or sha256 without sharing it), and rights (ai_use and redistribution)."
+          },
+          "profile": {
+            "default": "share",
+            "description": "share (default): a comp offered to other firms: needs the deal's starting rent, escalations, free rent, TI, expense basis, property type, a term and stated rights. observed: a rent seen in a public record (current_rent_psf_yr is enough); no NER is derived without a starting rent.",
+            "type": "string",
+            "enum": ["share", "observed"]
+          },
+          "discount_rate_annual": {
+            "default": 0.08,
+            "description": "Annual discount rate for the discounted NER (an assumption, not part of the comp). 0 gives the straight-line NER only.",
+            "type": "number",
+            "minimum": 0,
+            "exclusiveMaximum": 1
+          }
+        },
+        "required": ["fact"]
+      },
+      "strict": false
+    },
+    {
+      "type": "function",
       "name": "registry_get",
       "description": "Everything the FactLot Registry knows about a parcel, legal entity, or building: status, current cited facts (owner of record, situs address, property category, areas, values), ownership links, external IDs, and for a parcel the building it belongs to (condominium units roll up into one building). as_of gives the facts as they stood on a date. warnings flags area facts that look wrong (building area above 40 times the land area, a land area of 0); the facts themselves are as the source publishes them. A miss says whether the county or entity registry is loaded. Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
       "parameters": {

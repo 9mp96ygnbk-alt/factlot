@@ -20,7 +20,7 @@ How to read the columns:
   reviewer's reading.
 - **Attribution.** The credit line the record gives, when it gives one.
 
-126 sources, 53 verified. 5 sources carry an AI-use reservation or restriction in their recorded
+128 sources, 55 verified. 5 sources carry an AI-use reservation or restriction in their recorded
 `ai_use` text: `az-sos-entities`, `nc-mecklenburg-assessor`, `tn-shelby-assessor`, `tx-elpaso-cad`, `tx-tarrant-ad`.
 
 ## Arizona
@@ -88,6 +88,13 @@ How to read the columns:
 | ----------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------- | ------------ | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `fl-dor-nal`      | gated: terms        | Public record (ch. 119, F.S.): the data portal states the Department publishes assessment rolls in compliance with chapter 119 ... | Not addressed by the publisher | Unclear: public record under ch. 119 (and Microdecisions, Inc. v. Skinner, 889 So. 2d 871 (Fla. 2d DCA 2004) ... | not recorded | 2026-11-02 | [record](sources/fl-dor-nal.md), [config](../../registry/sources/fl/fl-dor-nal.json), [terms](https://floridarevenue.com/Pages/conditions.aspx)                   |
 | `fl-dos-entities` | gated: terms unread | Public record (Fla. Stat. ch. 119). No licence stated ...                                                                          | Not addressed by the publisher | Not addressed by the publisher; public record                                                                    | not recorded | 2026-11-02 | [record](sources/fl-dos-entities.md), [config](../../registry/sources/fl/fl-dos-entities.json), [terms](https://dos.fl.gov/sunbiz/other-services/data-downloads/) |
+
+## GSA
+
+| Source                | Status   | Licence                                                                                                                    | AI use                                                                     | Redistribution                                                                                                                   | Attribution                          | Reviewed   | Links                                                                                                                                                           |
+| --------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `gsa-iolp`            | verified | CC0 1.0 Public Domain Dedication (stated on the Data.gov catalog record for each of the dataset's three distributions) ... | Not restricted: CC0 permits any use; the publisher does not address AI use | Permitted: CC0 1.0. Attribution requested as a courtesy: U.S. General Services Administration ...                                | not recorded                         | 2026-11-04 | no separate record, [config](../../registry/sources/gsa/gsa-iolp.json), [terms](https://creativecommons.org/publicdomain/zero/1.0/)                             |
+| `gsa-lease-inventory` | verified | US federal government work, public domain; GSA website policies ...                                                        | Not restricted: public domain; the publisher does not address AI use ...   | Permitted: public domain. GSA asks for citation: 'Citation of the GSA site and a link back is much appreciated'. Attribution ... | U.S. General Services Administration | 2026-11-04 | [record](sources/gsa-lease-inventory.md), [config](../../registry/sources/gsa/gsa-iolp.json), [terms](https://www.gsa.gov/website-information/website-policies) |
 
 ## Georgia
 

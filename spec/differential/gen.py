@@ -134,4 +134,7 @@ cases.extend(draft_cases(int(sys.argv[1]), int(sys.argv[2])))
 # operations calculators and the lease unit option: their own stream too
 from gen_operations import operation_cases
 cases.extend(operation_cases(int(sys.argv[1]), int(sys.argv[2]) // 2, sched))
+# lease_comp_validate: its own stream as well
+from gen_comps import comp_cases
+cases.extend(comp_cases(int(sys.argv[1]), int(sys.argv[2])))
 json.dump(cases,open(sys.argv[3],"w"))

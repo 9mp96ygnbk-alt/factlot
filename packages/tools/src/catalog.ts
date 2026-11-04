@@ -15,6 +15,7 @@ import {
 } from "@factlot/id";
 import { z } from "zod";
 
+import { LeaseCompValidateInput, validateLeaseComp } from "./comps.ts";
 import {
   AbstractLeaseInput,
   CompareInput,
@@ -372,6 +373,19 @@ const docTools: ToolSpec[] = [
   },
 ];
 
+const compTools: ToolSpec[] = [
+  {
+    name: "lease_comp_validate",
+    title: "Validate a lease comp and derive its NER",
+    description:
+      "Check a lease comparable one firm shares with others, as a FactLot fact with predicate lease.comp, and derive its net effective rent. The fact goes through fact_validate (schema, citations, rights), then the comp's own rules: shape (spec/schemas/fact.json LeaseComp: area, commencement, term or expiration, starting or current rent, escalation, free rent, TI, leasing commissions, expense basis, confirming party, verification), an expiration after commencement, a term that matches the dates, free rent within the term, no email, phone or ID number in the text. A comp names no person or company. With the default share profile it also needs the deal's starting rent, escalations, free rent, TI, property type, an expense basis other than unknown, and stated rights. When valid and a starting rent is given, ner.fact is a computed lease.net_effective_rent fact (formula calc.net_effective_rent@1, straight-line and discounted at discount_rate_annual, on the comp's own expense basis; no conversion between full service and net). Returns { valid, issues, warnings, ner }. Call before sharing a comp.",
+    input: LeaseCompValidateInput,
+    path: "/v1/comps/validate",
+    run: (i: never) =>
+      validateLeaseComp(i as z.output<typeof LeaseCompValidateInput>, PRODUCER),
+  },
+];
+
 class NotFoundError extends Error {
   override name = "NotFoundError";
   coverage: unknown;
@@ -559,6 +573,7 @@ export const tools: readonly ToolSpec[] = [
   ...ruleTools,
   ...idTools,
   ...docTools,
+  ...compTools,
   ...registryTools,
 ];
 

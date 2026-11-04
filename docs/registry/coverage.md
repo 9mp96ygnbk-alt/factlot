@@ -31,7 +31,7 @@ Licence and AI-use detail per source: [rights.md](rights.md).
 
 ## Summary
 
-126 sources are reviewed (53 verified). The rows below record **2,031,091** commercial parcels in
+128 sources are reviewed (55 verified). The rows below record **2,031,091** commercial parcels in
 228 county or county-group rows, in 21 states and the District of Columbia. Rows from verified sources add up to
 **1,953,805** (the figure the project's Tier 2 notes give for the combined load of verified sources); the other 77,286
 come from `pa-philadelphia-opa` (loaded, but not verified: gated on terms). Statewide aggregate rows (Vermont, Minnesota, Arkansas, Montana,
@@ -46,6 +46,7 @@ Connecticut, North Carolina) stand for several counties each; the record names t
 | [Connecticut](#connecticut)                   | 2                       | 1        | 1           | 43,390                    | yes         | 1,305,836 entities | No: not hosted  |
 | [District of Columbia](#district-of-columbia) | 1                       | 1        | 1           | 18,077                    | yes         | 506,305 entities   | Yes (DC sample) |
 | [Florida](#florida)                           | 1                       | 0        | 0           | none loaded               | sample only | none loaded        | No: not hosted  |
+| [GSA](#gsa)                                   | 2                       | 2        | 0           | none loaded               | no          | none loaded        | No: not hosted  |
 | [Georgia](#georgia)                           | 4                       | 1        | 1           | 11,351                    | yes         | none loaded        | No: not hosted  |
 | [Hawaii](#hawaii)                             | 1                       | 0        | 0           | none loaded               | no          | none loaded        | No: not hosted  |
 | [Illinois](#illinois)                         | 4                       | 0        | 0           | none loaded               | sample only | none loaded        | No: not hosted  |
@@ -175,6 +176,19 @@ Reviewed, nothing loaded:
 | Source            | Holds    | Publisher                                                      | Status              | Licence                                                   | Reviewed   | Record                               |
 | ----------------- | -------- | -------------------------------------------------------------- | ------------------- | --------------------------------------------------------- | ---------- | ------------------------------------ |
 | `fl-dos-entities` | entities | Florida Department of State, Division of Corporations (Sunbiz) | gated: terms unread | Public record (Fla. Stat. ch. 119). No licence stated ... | 2026-11-02 | [record](sources/fl-dos-entities.md) |
+
+## GSA
+
+Nothing loaded for this state.
+
+Entity registry loaded: none for this state.
+
+Reviewed, nothing loaded:
+
+| Source                | Holds   | Publisher                                                      | Status   | Licence                                                              | Reviewed   | Record                                   |
+| --------------------- | ------- | -------------------------------------------------------------- | -------- | -------------------------------------------------------------------- | ---------- | ---------------------------------------- |
+| `gsa-iolp`            | parcels | U.S. General Services Administration (via Data.gov)            | verified | CC0 1.0 Public Domain Dedication (stated on the Data.gov catalog ... | 2026-11-04 | no separate record                       |
+| `gsa-lease-inventory` | parcels | U.S. General Services Administration, Public Buildings Service | verified | US federal government work, public domain; GSA website policies ...  | 2026-11-04 | [record](sources/gsa-lease-inventory.md) |
 
 ## Georgia
 
