@@ -1,6 +1,6 @@
 {
   "spec": "factlot-id",
-  "version": "0.1",
+  "version": "0.2",
   "short_id": "prefix + '_' + first 120 bits of SHA-256(urn) in lowercase Crockford base32",
   "cases": [
     {
@@ -338,6 +338,415 @@
       "note": "a trailing newline is not part of a URN",
       "input": {
         "urn": "fl:parcel:us-06037:5432001012\n"
+      },
+      "expect_error": true
+    },
+    {
+      "fn": "normalize_suite",
+      "note": "suite rule 2: a separator between two digits is kept, so 1-20 and 120 differ",
+      "input": {
+        "suite": "Suite 1-20"
+      },
+      "expect": {
+        "value": "1-20"
+      }
+    },
+    {
+      "fn": "normalize_suite",
+      "input": {
+        "suite": "Suite 120"
+      },
+      "expect": {
+        "value": "120"
+      }
+    },
+    {
+      "fn": "normalize_suite",
+      "input": {
+        "suite": "1-2"
+      },
+      "expect": {
+        "value": "1-2"
+      }
+    },
+    {
+      "fn": "normalize_suite",
+      "input": {
+        "suite": "12"
+      },
+      "expect": {
+        "value": "12"
+      }
+    },
+    {
+      "fn": "normalize_suite",
+      "note": "any run of separators between digits is one hyphen",
+      "input": {
+        "suite": "Unit 1 / 20"
+      },
+      "expect": {
+        "value": "1-20"
+      }
+    },
+    {
+      "fn": "normalize_suite",
+      "note": "separators next to a letter are dropped",
+      "input": {
+        "suite": "B-1-20"
+      },
+      "expect": {
+        "value": "b1-20"
+      }
+    },
+    {
+      "fn": "normalize_suite",
+      "note": "leading zeros are kept: 0100 and 100 are different suites",
+      "input": {
+        "suite": "Suite 0100"
+      },
+      "expect": {
+        "value": "0100"
+      }
+    },
+    {
+      "fn": "normalize_suite",
+      "note": "ordinal words name whole floors",
+      "input": {
+        "suite": "Third Floor"
+      },
+      "expect": {
+        "value": "f3"
+      }
+    },
+    {
+      "fn": "normalize_suite",
+      "input": {
+        "suite": "Twentieth floor"
+      },
+      "expect": {
+        "value": "f20"
+      }
+    },
+    {
+      "fn": "normalize_suite",
+      "input": {
+        "suite": "3rd Flr"
+      },
+      "expect": {
+        "value": "f3"
+      }
+    },
+    {
+      "fn": "normalize_suite",
+      "note": "apartment designators are removed like suite designators",
+      "input": {
+        "suite": "Apt. 4B"
+      },
+      "expect": {
+        "value": "4b"
+      }
+    },
+    {
+      "fn": "normalize_suite",
+      "input": {
+        "suite": "Apartment 4B"
+      },
+      "expect": {
+        "value": "4b"
+      }
+    },
+    {
+      "fn": "normalize_suite_v1",
+      "note": "suite rule 1 (ID spec 0.1), kept to recompute earlier space IDs",
+      "input": {
+        "suite": "Suite 1-20"
+      },
+      "expect": {
+        "value": "120"
+      }
+    },
+    {
+      "fn": "normalize_suite_v1",
+      "input": {
+        "suite": "Third Floor"
+      },
+      "expect": {
+        "value": "thirdfloor"
+      }
+    },
+    {
+      "fn": "normalize_suite_v1",
+      "input": {
+        "suite": "Apt 4B"
+      },
+      "expect": {
+        "value": "apt4b"
+      }
+    },
+    {
+      "fn": "space",
+      "input": {
+        "building_urn": "fl:building:01jbx3k8q2v7m9c4t6w8y0a2b4",
+        "suite": "Suite 1-20"
+      },
+      "expect": {
+        "urn": "fl:space:01jbx3k8q2v7m9c4t6w8y0a2b4:1-20",
+        "short": "fls_ntan2kje8njjmx8758xvfhae"
+      }
+    },
+    {
+      "fn": "space",
+      "input": {
+        "building_urn": "fl:building:01jbx3k8q2v7m9c4t6w8y0a2b4",
+        "suite": "Suite 120"
+      },
+      "expect": {
+        "urn": "fl:space:01jbx3k8q2v7m9c4t6w8y0a2b4:120",
+        "short": "fls_nkevzn2tm5mp2qbn97ykkk90"
+      }
+    },
+    {
+      "fn": "space",
+      "input": {
+        "building_urn": "fl:building:us-11001:20002:208-massachusetts-ave-ne",
+        "suite": "STE 400"
+      },
+      "expect": {
+        "urn": "fl:space:us-11001:20002:208-massachusetts-ave-ne:400",
+        "short": "fls_vsqk1kzxwdcbm25geckk1vc5"
+      }
+    },
+    {
+      "fn": "building",
+      "input": {
+        "state_fips": "11",
+        "county_fips": "001",
+        "zip": "20002",
+        "street": "208 Massachusetts Avenue Northeast, Suite 2"
+      },
+      "expect": {
+        "urn": "fl:building:us-11001:20002:208-massachusetts-ave-ne",
+        "short": "flb_nmqcnj0ba3d65ywy5j94bz0h"
+      }
+    },
+    {
+      "fn": "building",
+      "note": "a unit after '#' and a ZIP+4 do not change the building",
+      "input": {
+        "state_fips": "11",
+        "county_fips": "001",
+        "zip": "20002-4941",
+        "street": "208 MASSACHUSETTS AVE NE # E"
+      },
+      "expect": {
+        "urn": "fl:building:us-11001:20002:208-massachusetts-ave-ne",
+        "short": "flb_nmqcnj0ba3d65ywy5j94bz0h"
+      }
+    },
+    {
+      "fn": "building",
+      "note": "directionals spelled out, split, or dotted are one form",
+      "input": {
+        "state_fips": "11",
+        "county_fips": "001",
+        "zip": "20009",
+        "street": "1722 Sixth Street North West"
+      },
+      "expect": {
+        "urn": "fl:building:us-11001:20009:1722-6th-st-nw",
+        "short": "flb_dek0g2zyjrmpnj50jgfnse23"
+      }
+    },
+    {
+      "fn": "building",
+      "input": {
+        "state_fips": "11",
+        "county_fips": "001",
+        "zip": "20009",
+        "street": "1722 6th St. N.W., Washington, DC"
+      },
+      "expect": {
+        "urn": "fl:building:us-11001:20009:1722-6th-st-nw",
+        "short": "flb_dek0g2zyjrmpnj50jgfnse23"
+      }
+    },
+    {
+      "fn": "building",
+      "note": "a hyphenated (Queens) house number keeps its parts",
+      "input": {
+        "state_fips": "36",
+        "county_fips": "081",
+        "zip": "11101",
+        "street": "37-10 30th Street, 3rd Floor"
+      },
+      "expect": {
+        "urn": "fl:building:us-36081:11101:37-10-30th-st",
+        "short": "flb_qvsv2j9kpr3q8dkwcq7nqzwf"
+      }
+    },
+    {
+      "fn": "building",
+      "note": "no house number",
+      "input": {
+        "state_fips": "11",
+        "county_fips": "001",
+        "zip": "20002",
+        "street": "Massachusetts Ave NE"
+      },
+      "expect_error": true
+    },
+    {
+      "fn": "building",
+      "note": "city, state and ZIP inside the street line without a comma",
+      "input": {
+        "state_fips": "11",
+        "county_fips": "001",
+        "zip": "20002",
+        "street": "208 Massachusetts Ave NE Washington DC 20002"
+      },
+      "expect_error": true
+    },
+    {
+      "fn": "building",
+      "input": {
+        "state_fips": "11",
+        "county_fips": "001",
+        "zip": "2000",
+        "street": "208 Massachusetts Ave NE"
+      },
+      "expect_error": true
+    },
+    {
+      "fn": "building",
+      "input": {
+        "state_fips": "11",
+        "county_fips": "1",
+        "zip": "20002",
+        "street": "208 Massachusetts Ave NE"
+      },
+      "expect_error": true
+    },
+    {
+      "fn": "normalize_street",
+      "input": {
+        "street": "100 Main Street, Suite 400"
+      },
+      "expect": {
+        "value": "100-main-st"
+      }
+    },
+    {
+      "fn": "normalize_street",
+      "note": "a floor after an ordinal or before a number is not part of the street",
+      "input": {
+        "street": "100 Main St 3rd Floor"
+      },
+      "expect": {
+        "value": "100-main-st"
+      }
+    },
+    {
+      "fn": "normalize_street",
+      "input": {
+        "street": "100 Ocean Dr Fl 3"
+      },
+      "expect": {
+        "value": "100-ocean-dr"
+      }
+    },
+    {
+      "fn": "normalize_street",
+      "note": "Texas Ranch-to-Market roads keep RM",
+      "input": {
+        "street": "12345 RM 620 N"
+      },
+      "expect": {
+        "value": "12345-rm-620-n"
+      }
+    },
+    {
+      "fn": "normalize_street",
+      "input": {
+        "street": "500 Fifth Avenue"
+      },
+      "expect": {
+        "value": "500-5th-ave"
+      }
+    },
+    {
+      "fn": "normalize_street",
+      "input": {
+        "street": "1200 North Loop West Freeway"
+      },
+      "expect": {
+        "value": "1200-n-loop-w-fwy"
+      }
+    },
+    {
+      "fn": "normalize_street",
+      "input": {
+        "street": "1 Dupont Circle NW #200"
+      },
+      "expect": {
+        "value": "1-dupont-cir-nw"
+      }
+    },
+    {
+      "fn": "parse",
+      "input": {
+        "urn": "fl:building:us-11001:20002:208-massachusetts-ave-ne"
+      },
+      "expect": {
+        "kind": "building",
+        "short": "flb_nmqcnj0ba3d65ywy5j94bz0h"
+      }
+    },
+    {
+      "fn": "parse",
+      "input": {
+        "urn": "fl:space:us-11001:20002:208-massachusetts-ave-ne:400"
+      },
+      "expect": {
+        "kind": "space",
+        "short": "fls_vsqk1kzxwdcbm25geckk1vc5"
+      }
+    },
+    {
+      "fn": "parse",
+      "note": "a space ID made under suite rule 1 still parses",
+      "input": {
+        "urn": "fl:space:01jbx3k8q2v7m9c4t6w8y0a2b4:120"
+      },
+      "expect": {
+        "kind": "space",
+        "short": "fls_nkevzn2tm5mp2qbn97ykkk90"
+      }
+    },
+    {
+      "fn": "parse",
+      "input": {
+        "urn": "fl:building:us-11001:2000:208-massachusetts-ave-ne"
+      },
+      "expect_error": true
+    },
+    {
+      "fn": "parse",
+      "input": {
+        "urn": "fl:building:us-11001:20002:massachusetts-ave-ne"
+      },
+      "expect_error": true
+    },
+    {
+      "fn": "parse",
+      "input": {
+        "urn": "fl:building:us-11001:20002:208"
+      },
+      "expect_error": true
+    },
+    {
+      "fn": "parse",
+      "input": {
+        "urn": "fl:space:01jbx3k8q2v7m9c4t6w8y0a2b4:1--20"
       },
       "expect_error": true
     }

@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   FactLotIdError,
+  buildingId,
   documentId,
   entityId,
   isFactLotUrn,
@@ -144,4 +145,53 @@ test("parse, validation, and short IDs", () => {
     assert.equal(isFactLotUrn(bad), false, bad);
   }
   assert.throws(() => shortIdKind("flz_abc"), FactLotIdError);
+});
+
+test("distinct suites never merge, and spellings of one suite converge", () => {
+  const b = "fl:building:01jbx3k8q2v7m9c4t6w8y0a2b4";
+  assert.notEqual(spaceId(b, "Suite 1-20").urn, spaceId(b, "Suite 120").urn);
+  assert.notEqual(spaceId(b, "1-2").urn, spaceId(b, "12").urn);
+  const same = ["Suite 100", "Ste 100", "#100", "STE. 100", "Unit 100"];
+  assert.equal(new Set(same.map((s) => spaceId(b, s).urn)).size, 1);
+  assert.equal(normalizeSuite("Third Floor"), normalizeSuite("3rd Floor"));
+  assert.notEqual(normalizeSuite("Suite 0100"), normalizeSuite("Suite 100"));
+});
+
+test("building IDs come from the street address and carry spaces", () => {
+  const a = buildingId({
+    stateFips: "11",
+    countyFips: "001",
+    zip: "20002",
+    street: "208 Massachusetts Avenue Northeast, Unit 4",
+  });
+  const b = buildingId({
+    stateFips: "11",
+    countyFips: "001",
+    zip: "20002-4941",
+    street: "208 MASSACHUSETTS AVE N.E. # E",
+  });
+  assert.deepEqual(a, b);
+  assert.equal(a.urn, "fl:building:us-11001:20002:208-massachusetts-ave-ne");
+  assert.match(a.short, /^flb_/);
+  assert.deepEqual(parse(a.urn).parts, [
+    "us-11001",
+    "20002",
+    "208-massachusetts-ave-ne",
+  ]);
+  const space = spaceId(a, "Suite 1-20");
+  assert.equal(
+    space.urn,
+    "fl:space:us-11001:20002:208-massachusetts-ave-ne:1-20",
+  );
+  assert.equal(parse(space.urn).parts.length, 4);
+  // A different ZIP code is a different building (one street address can exist in two towns).
+  assert.notEqual(
+    buildingId({
+      stateFips: "11",
+      countyFips: "001",
+      zip: "20003",
+      street: "208 Massachusetts Ave NE",
+    }).urn,
+    a.urn,
+  );
 });

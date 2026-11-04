@@ -35,6 +35,8 @@ separate script using decimal arithmetic) and checked against the implementation
 
 ## `vectors/id.json`
 
-Each case names a function (`parcel`, `entity`, `document`, `space`, `normalize_suite`, `parse`), its
-snake_case input, and either the expected `urn` and `short` values or `expect_error`. For `document`,
-`input.text` is UTF-8 encoded before hashing.
+Each case names a function (`parcel`, `entity`, `document`, `building`, `space`, `normalize_suite`,
+`normalize_suite_v1`, `normalize_street`, `parse`), its snake_case input, and either the expected
+`urn` and `short` values (or `value`) or `expect_error`. For `document`, `input.text` is UTF-8
+encoded before hashing. `version` is the ID spec version the vectors pin (0.2); `normalize_suite_v1`
+pins suite rule 1 of spec 0.1, kept so earlier space IDs can be recomputed.
