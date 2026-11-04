@@ -8,7 +8,13 @@
  */
 import { SHORT_PREFIX } from "@factlot/id";
 import { Predicates } from "@factlot/schema";
-import { inputJsonSchema, tools } from "@factlot/tools";
+import {
+  CHARTS,
+  INGEST_PREDICATES,
+  USE_CATEGORIES,
+  inputJsonSchema,
+  tools,
+} from "@factlot/tools";
 
 const REPO = "https://github.com/9mp96ygnbk-alt/factlot/blob/main";
 
@@ -120,6 +126,47 @@ function buildCorpus(): KnowledgeDoc[] {
       metadata: { kind: "predicates", namespace: ns },
     });
   }
+  docs.push({
+    id: "predicates:ingest",
+    title: "Lease predicates the document tools check (value shapes)",
+    url: `${REPO}/docs/ingest.md#predicates`,
+    text: [
+      "Each predicate doc_verify_facts and fact_validate check, with its value shape:",
+      ...Object.entries(INGEST_PREDICATES).map(
+        ([p, shape]) => `${p}: ${shape}`,
+      ),
+    ].join("\n"),
+    metadata: { kind: "predicates", namespace: "ingest" },
+  });
+  for (const [type, chart] of Object.entries(CHARTS))
+    docs.push({
+      id: `vocabulary:chart-of-accounts:${type}`,
+      title: `Chart of accounts for doc_spread_statement: ${chart.label}`,
+      url: `${REPO}/spec/schemas/vocabularies/chart-of-accounts.json`,
+      text: [
+        `Categories (id: label [section]) for property_type ${type}:`,
+        ...chart.categories.map(
+          (c) =>
+            `${c.id}: ${c.label} [${c.section}${c.contra ? ", always subtracted" : ""}]`,
+        ),
+        "Totals (give a total line this category):",
+        ...chart.totals.map((t) => `${t.id}: ${t.label} = ${t.sum.join(" ")}`),
+      ].join("\n"),
+      metadata: { kind: "vocabulary", property_type: type },
+    });
+  docs.push({
+    id: "vocabulary:use-categories",
+    title: "Use categories for doc_check_use_conflict",
+    url: `${REPO}/spec/schemas/vocabularies/use-categories.json`,
+    text: [
+      "Use categories (id: label; keywords; 2022 NAICS):",
+      ...USE_CATEGORIES.map(
+        (c) =>
+          `${c.id}: ${c.label}; ${c.keywords.join(", ")}${c.naics ? `; NAICS ${c.naics.join(", ")}` : ""}`,
+      ),
+    ].join("\n"),
+    metadata: { kind: "vocabulary" },
+  });
   return docs;
 }
 

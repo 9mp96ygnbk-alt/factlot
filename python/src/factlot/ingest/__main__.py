@@ -1,6 +1,6 @@
 """Run lease ingestion from the command line.
 
-    pip install anthropic pypdf
+    pip install anthropic 'factlot[pdf]'
     python -m factlot.ingest --model <claude-model-id> --lease lease.pdf \
         --amendment first-amendment.pdf@2030-01-15 [--gold gold.json] [--out facts.json] \
         [--ocr tesseract] [--confidence-threshold 0.8]

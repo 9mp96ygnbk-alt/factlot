@@ -1,22 +1,32 @@
 # Document verification
 
-Four tools turn values an agent reads from a document into cited FactLot facts. **Your agent
+Document tools turn values an agent reads from a document into cited FactLot facts. **Your agent
 extracts; FactLot verifies.** Your model reads the pages and proposes each value with the
 verbatim quote and page it came from. FactLot checks every proposal with deterministic code and
 returns facts it can cite, items a person should look at, and rejections, each with a reason the
 agent can act on. FactLot runs no model, so a verification costs no model spend and gives the
 same answer every time.
 
-| Tool                 | Input                                                                  | Output                                                                                    |
-| -------------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `doc_verify_facts`   | one document's pages, and candidates `{predicate, value, quote, page}` | `verified` facts, `needs_review`, `rejected`, each with a reason                          |
-| `doc_abstract_lease` | a lease and its amendments, each with candidates or verified facts     | the current-state abstract: each term's value, controlling citation, and history          |
-| `doc_compare`        | values another document asserts (estoppel, rent roll), and lease facts | per value: `match`, `mismatch`, `not_in_lease` or `ambiguous_in_lease`, with the citation |
-| `doc_verify_claim`   | one claim (`{predicate, value}` or a sentence), its quote and page     | `supported`, `contradicted` or `unverifiable`, with the evidence                          |
+| Tool                        | Input                                                                           | Output                                                                                                    |
+| --------------------------- | ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `doc_verify_facts`          | one document's pages, and candidates `{predicate, value, quote, page}`          | `verified` facts, `needs_review`, `rejected`, each with a reason                                          |
+| `doc_abstract_lease`        | a lease and its amendments, each with candidates or verified facts              | the current-state abstract: each term's value, controlling citation, and history                          |
+| `doc_compare`               | values another document asserts (estoppel, rent roll), and lease facts          | per value: `match`, `mismatch`, `not_in_lease` or `ambiguous_in_lease`, with the citation                 |
+| `doc_verify_claim`          | one claim (`{predicate, value}` or a sentence), its quote and page              | `supported`, `contradicted` or `unverifiable`, with the evidence                                          |
+| `doc_spread_statement`      | a T-12 or operating statement's pages, and lines `{label, amount, quote, page}` | the statement on a standard chart of accounts (NOI, EBITDA, ...), each line cited, footing and exceptions |
+| `doc_check_use_conflict`    | verified exclusive-use and prohibited-use facts, and a proposed use             | each potential conflict with the controlling quote, labelled for human review                             |
+| `fact_package_create`       | facts                                                                           | a canonical, hash-chained package and the message its holder signs                                        |
+| `fact_package_verify`       | a package, optionally the signer's public key and the source pages              | whether hashes, signature, facts and quotes check out, with details                                       |
+| `doc_read_pdf` (local)      | a PDF file on this machine                                                      | the `document` input above: page text, sha256, OCR pages                                                  |
+| `fact_package_sign` (local) | a package; the key comes from `FACTLOT_SIGNING_KEY_FILE`                        | the package with its Ed25519 signature                                                                    |
 
-They are in the MCP server, the REST API (`/v1/doc/verify_facts`, `/v1/doc/abstract_lease`,
-`/v1/doc/compare`, `/v1/doc/verify_claim`), every provider format, and the Python SDK
-(`factlot.run_tool`). The checks are the ones FactLot Ingest has always run
+The first eight are in the MCP server, the REST API (`/v1/doc/verify_facts`,
+`/v1/doc/abstract_lease`, `/v1/doc/compare`, `/v1/doc/verify_claim`, `/v1/doc/spread_statement`,
+`/v1/doc/check_use_conflict`, `/v1/facts/package`, `/v1/facts/package/verify`), every provider
+format, and the Python SDK (`factlot.run_tool`). The two marked local are registered only by the
+stdio MCP server (`factlot-mcp`), because they read files on the user's machine; the hosted API
+never reads files. In TypeScript, `fact_package_verify` checks signatures with WebCrypto, which is
+asynchronous: call it through `runToolAsync` (the MCP server and REST API do). The checks are the ones FactLot Ingest has always run
 ([ingest.md](ingest.md)); the TypeScript code (`packages/tools/src/quotes.ts`,
 `documents.ts`) is a port of the Python verifier (`python/src/factlot/ingest/verify.py`,
 `python/src/factlot/docverify.py`), and `spec/vectors/documents.json` pins both. A runnable
@@ -162,16 +172,181 @@ with the pages for the first, and `doc_verify_claim` for a generic predicate.
   ("12 months' notice" supporting a 12-month term) passes. Review what matters.
 - **Completeness.** FactLot verifies what it is given; it does not look for terms the model
   missed.
-- **The file.** FactLot sees text, not the PDF. Page text from OCR carries OCR errors, and a
+- **The file.** The doc tools see text, not the PDF (locally, `read_pdf` and `doc_read_pdf`
+  extract that text for you). Page text from OCR carries OCR errors, and a
   quote copied from a misrecognised page verifies against the misrecognition.
-- **Enums and summaries.** A CAM cap method, what free rent applies to, ROFR and assignment
-  summaries are type-checked only.
+- **Enums and summaries.** A CAM cap method, what free rent applies to, and summary strings
+  (a ROFR or assignment summary, a protected use without numbers) are type-checked only; a consent
+  standard is checked only for its wording.
+
+## Clause-level lease terms
+
+Exclusive use with its carve-outs, prohibited uses, co-tenancy, go-dark, radius restrictions,
+relocation rights, kick-outs, the assignment and sublet consent standard, and ROFR/ROFO details
+are Ingest predicates with structured values ([predicate table](ingest.md#predicates)), checked
+like every other candidate. Free text inside them (a carve-out, a description) is checked for the
+numbers it writes in digits, so "incidental sales in up to 10% of floor area" needs 10 or "ten" in
+the quote. The consent standard is checked for its wording:
+
+| `consent_standard`                                 | The quote must contain                             |
+| -------------------------------------------------- | -------------------------------------------------- |
+| `sole_discretion`                                  | "sole discretion" or "absolute discretion"         |
+| `not_unreasonably_withheld`                        | "unreasonably withheld" or "unreasonably withhold" |
+| `not_unreasonably_withheld_conditioned_or_delayed` | that, and "delay" (delayed) or "conditioned"       |
+| `prohibited`, `no_consent_required`                | not checked                                        |
+
+The wording check is textual: "consent may be withheld in Landlord's sole discretion, except
+that it shall not be unreasonably withheld for an affiliate" passes both of the first two.
+
+## Checking a proposed use against exclusives
+
+`doc_check_use_conflict` takes a center's verified `lease.exclusive_use` and
+`lease.prohibited_uses` facts (from `doc_verify_facts` or `doc_abstract_lease`; each must pass
+`fact_validate`, and a fact another fact supersedes is ignored) and a proposed use: a description,
+and optionally a use category and a 2022 NAICS code. A restriction is a **potential conflict**
+when:
+
+- it shares a **use category** with the proposed use. Categories come from FactLot's open
+  vocabulary ([`spec/schemas/vocabularies/use-categories.json`](../spec/schemas/vocabularies/use-categories.json),
+  66 categories such as `coffee`, `bar_nightclub`, `pharmacy`, `adult`), found by keywords as
+  whole words, plus the category you give and every category whose NAICS code starts with yours
+  (or yours with it: 7225 matches coffee shops and restaurants); or
+- it shares **words** with the proposed use: two or more, or every significant word of a short
+  restriction ("the sale of kites" against "kite store"). Stopwords such as "sale", "store",
+  "tenant" do not count.
+
+Words are compared after normalization: lower case, accents removed, "&" read as "and", simple
+plurals folded ("bakeries" = "bakery"). Where keywords overlap, the longest wins, so a "juice bar"
+or "coffee bar" is not a bar. Each hit returns the restriction, the matched categories and words,
+the exclusive's carve-outs (those that mention the proposed use are listed under
+`carve_outs_that_may_apply`), the controlling citation (document, page, section, quote), and the
+label `potential conflict — needs human review`. FactLot does not interpret the lease, decide
+whether a carve-out applies, or give legal conclusions, and an empty list does not mean there is
+no conflict.
+
+## Spreading an operating statement
+
+`doc_spread_statement` maps a T-12, operating statement, budget or rent roll summary onto a
+published chart of accounts
+([`spec/schemas/vocabularies/chart-of-accounts.json`](../spec/schemas/vocabularies/chart-of-accounts.json)):
+`multifamily`, `commercial` (office, retail, industrial), or `hotel`, which follows the structure
+of the USALI summary operating statement. Your agent sends one line per item it reads:
+`{label, amount, quote, page}`, optionally its proposed `category`, the `period` column it read the
+amount from, and for a subtotal the statement prints, `sums`: the indexes of the lines it adds up.
+The statement's own totals are lines too, with the total as their category
+(`effective_gross_income`, `total_operating_expenses`, `net_operating_income`, `ebitda`, ...).
+
+Each line is checked in order, and a line that fails is left out of the spread with its reason:
+
+1. the quote is on the page (the rules above);
+2. the amount is written in the quote, in any common form ("245,000", "$245,000.00");
+3. the label is written in the quote, as the statement prints it.
+
+**Mapping.** The label is matched against the chart's keywords (whole words, longest match). When
+you give a category that is in the chart, it is used; if the label maps somewhere else, a
+`category_review` exception says so. Without a category, a label that maps to exactly one category
+is placed there; an ambiguous label ("Parking Lot Repairs": parking income or repairs?) or an
+unknown one is left out with an `unmapped` exception. A category outside the chart is reported as
+`unknown_category` and the label is mapped instead.
+
+**Signs.** Income, expenses and capital items are positive. Contra lines (vacancy, loss to lease,
+concessions, bad debt, free rent, non-operating income in a hotel) are always subtracted, however
+the statement writes them. Any other amount the quote writes as negative, `(4,000)`, `-4,000` or
+`-$4,000`, is spread as negative and a `sign` exception notes it.
+
+**Totals.** Per period, FactLot sums each section and computes the chart's totals:
+
+| Chart                   | Totals                                                                                                                                                                                                                                                                                                  |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| multifamily, commercial | effective gross income, total operating expenses, net operating income, total capital items (capex, reserves; TI and leasing commissions for commercial), net cash flow before debt service                                                                                                             |
+| hotel                   | total operating revenue, departmental expenses, departmental profit, undistributed operating expenses, gross operating profit, management fees, income before non-operating income and expenses, non-operating, EBITDA, replacement reserve, net operating income (EBITDA less the replacement reserve) |
+
+Debt service, depreciation and owner costs are kept apart and never enter NOI. A total the
+statement states foots when it is within the tolerance of the computed one; a subtotal foots when
+its size matches the sum of its lines. The default tolerance is 0.5 for each line added (each
+rounded line can be off by half a unit); pass `tolerance` to change it. A line whose label starts
+with "Total" but is spread as an ordinary line gets a `possible_subtotal` exception, since it may
+count its parts twice. Statistics (units, occupancy, rooms sold, ADR) are memo lines: verified and
+cited, not summed.
+
+The result gives each period's sections, totals (with whether each stated total foots), subtotals
+and memo lines; every line with its status, category, spread amount and citation (document, page,
+quote, span, `ocr` when the page came from OCR); the exceptions to review; and a summary. FactLot
+does not find lines the agent missed: compare the stated totals.
+
+## PDF files (self-hosted)
+
+The hosted API takes page text. Run locally, FactLot can read the PDF itself:
+
+```python
+import factlot
+
+doc = factlot.read_pdf("lease.pdf", ocr="tesseract")     # a path or the file's bytes
+factlot.run_tool("doc_verify_facts", {"document": doc["document"], "as_of": "2026-11-04",
+                                      "candidates": [...]})
+```
+
+`read_pdf` extracts each page's text layer with [pypdf](https://github.com/py-pdf/pypdf)
+(BSD-3-Clause, an optional dependency: `pip install 'factlot[pdf]'`), sends every page without a
+text layer through the pluggable OCR hook of FactLot Ingest (any callable, or a backend name such
+as `tesseract`; [ingest.md](ingest.md#ocr-backends)), and returns `document`, ready for any doc
+tool: the pages, the file's `sha256` (so `document_id` is `fl:document:sha256-<sha256>`, the ID
+`id_document` gives the file) and `ocr_pages`, the pages whose text came from OCR. The local MCP
+server's `doc_read_pdf` runs the same code (`python -m factlot.pdf`, with `FACTLOT_PYTHON` naming
+the interpreter if `python3` is not the one with FactLot), so both SDKs read a PDF the same way and
+quotes match the same text.
+
+Any document input may list `ocr_pages`, wherever its text came from. Facts, spread lines and
+claim evidence cited to those pages carry `ocr: true`, so a reviewer checks the scan rather than
+a text layer.
+
+## Fact packages
+
+A fact package hands verified facts to someone else (a lender, a buyer's agent, an auditor) in a
+form they can check without trusting the sender's systems. `fact_package_create` takes facts
+(each must pass `fact_validate`) and returns:
+
+- `documents`: every document the facts cite, with its `sha256` when the source or the
+  `fl:document:sha256-…` ID gives it;
+- `facts`, unchanged, and `integrity`: the SHA-256 of each fact's canonical JSON
+  ([RFC 8785](https://www.rfc-editor.org/rfc/rfc8785) JCS) as an
+  [RFC 6962](https://www.rfc-editor.org/rfc/rfc6962) Merkle leaf, the Merkle root, and `digest`,
+  the SHA-256 of the canonical manifest (format, version, title, created_at, created_by,
+  documents, fact count, Merkle root);
+- `signing_message`: `factlot.fact_package.v1:<digest>`, the exact text to sign.
+
+FactLot adds no clock time (pass `created_at`), so the same input always gives the same digest.
+
+**Signing happens where the key is.** FactLot never sees a private key. The holder signs
+`signing_message` with their own Ed25519 key and adds
+`signature: {algorithm: "Ed25519", public_key, key_id?, value}` (public key and signature as
+base64url):
+
+- Python: `factlot.sign_fact_package(package, private_key)` with a PKCS#8 PEM, a raw 32-byte
+  seed, or a `cryptography` key (`pip install 'factlot[signing]'`;
+  [cryptography](https://github.com/pyca/cryptography) is Apache-2.0 or BSD-3-Clause; the Python
+  standard library has no Ed25519);
+- TypeScript: `signFactPackage(package, cryptoKey)` from `@factlot/tools` (WebCrypto);
+- the local MCP server: `fact_package_sign`, which reads the key from the file named by
+  `FACTLOT_SIGNING_KEY_FILE` (for example made with `openssl genpkey -algorithm ed25519`), so the
+  key never passes through the conversation.
+
+`fact_package_verify` recomputes every hash from the content: a changed fact, title, date or
+document list shows as an `integrity` mismatch naming what differs. It runs each fact through
+`fact_validate`. The signature is `verified` only against the `public_key` you pass, the
+signer's key you trust; without one it can at most `match` the key inside the package, which
+proves nothing about who signed. Given the source documents' pages (with `sha256` when the facts
+cite the file's hash), it checks each quote is on its cited page. `valid` is true when all of
+that checks out (and, when you pass a key, the signature verifies with it). In Python without
+`cryptography`, the signature is reported `unavailable` and everything else is still checked.
 
 ## Limits
 
 Per call: 2,000 pages per document, 100,000 characters per page, 2,000,000 characters in all,
 500 candidates (or facts) per document and 2,000 per call, 50 documents per abstract, quotes up
-to 5,000 characters, 2,000 lease facts and 500 asserted values per comparison. The hosted API
+to 5,000 characters, 2,000 lease facts and 500 asserted values per comparison, 1,000 statement
+lines per spread, 2,000 facts per use check or package, 50 source documents per package
+verification. `doc_read_pdf` reads files up to 100 MB. The hosted API
 also caps a request at 1 MiB, which binds first there: split a long lease into several
 `doc_verify_facts` calls and pass the returned facts to `doc_abstract_lease` without pages.
 Characters are UTF-16 code units in TypeScript and code points in Python.
