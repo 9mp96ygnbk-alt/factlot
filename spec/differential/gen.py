@@ -125,4 +125,7 @@ for _ in range(int(sys.argv[2])):
 sys.path.insert(0, __import__("os").path.dirname(__file__))
 from gen_docs import doc_cases
 cases.extend(doc_cases(int(sys.argv[1]), int(sys.argv[2])))
+# lease_comp_validate: its own stream as well
+from gen_comps import comp_cases
+cases.extend(comp_cases(int(sys.argv[1]), int(sys.argv[2])))
 json.dump(cases,open(sys.argv[3],"w"))

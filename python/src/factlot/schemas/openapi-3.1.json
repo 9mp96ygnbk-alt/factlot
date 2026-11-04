@@ -4143,6 +4143,95 @@
           }
         }
       }
+    },
+    "/v1/comps/validate": {
+      "post": {
+        "operationId": "lease_comp_validate",
+        "summary": "Validate a lease comp and derive its NER",
+        "description": "Check a lease comparable one firm shares with others, as a FactLot fact with predicate lease.comp, and derive its net effective rent. The fact goes through fact_validate (schema, citations, rights), then the comp's own rules: shape (spec/schemas/fact.json LeaseComp: area, commencement, term or expiration, starting or current rent, escalation, free rent, TI, leasing commissions, expense basis, confirming party, verification), an expiration after commencement, a term that matches the dates, free rent within the term, no email, phone or ID number in the text. A comp names no person or company. With the default share profile it also needs the deal's starting rent, escalations, free rent, TI, property type, an expense basis other than unknown, and stated rights. When valid and a starting rent is given, ner.fact is a computed lease.net_effective_rent fact (formula calc.net_effective_rent@1, straight-line and discounted at discount_rate_annual, on the comp's own expense basis; no conversion between full service and net). Returns { valid, issues, warnings, ner }. Call before sharing a comp.",
+        "x-openai-isConsequential": false,
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "fact": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {},
+                    "description": "A FactLot fact with predicate lease.comp: subject (an fl:lease: URN), value (the comp), as_of, provenance (with at least one source: your own record is fine, cited by document_id or sha256 without sharing it), and rights (ai_use and redistribution)."
+                  },
+                  "profile": {
+                    "default": "share",
+                    "description": "share (default): a comp offered to other firms: needs the deal's starting rent, escalations, free rent, TI, expense basis, property type, a term and stated rights. observed: a rent seen in a public record (current_rent_psf_yr is enough); no NER is derived without a starting rent.",
+                    "type": "string",
+                    "enum": ["share", "observed"]
+                  },
+                  "discount_rate_annual": {
+                    "default": 0.08,
+                    "description": "Annual discount rate for the discounted NER (an assumption, not part of the comp). 0 gives the straight-line NER only.",
+                    "type": "number",
+                    "minimum": 0,
+                    "exclusiveMaximum": 1
+                  }
+                },
+                "required": ["fact"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Result object.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input; read `issues`, fix the arguments, and retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "CalcInputError, FactLotIdError, InputError, or UnknownTool"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "issues": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "path": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error", "message"]
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {

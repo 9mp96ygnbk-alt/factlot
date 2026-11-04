@@ -123,6 +123,12 @@ Columbia SSL lots 2000-6999; New York City BBL unit lots 1001-6999 and billing l
 
 ### Minted tokens
 
+A registry may mint a lease token _reproducibly_ instead of randomly when the lease has a natural key in a public
+file: ten zeros in place of the timestamp, then 16 characters of the SHA-256 of a namespaced key (the GSA adapter
+uses `gsa-lease-number:<lease number>`, the SEC adapter `sec-lease-exhibit:<accession>:<file>`), so registries built
+from the same file agree. The token is still a valid `fl:lease:` token, and the crosswalk to the natural key is
+recorded. The random ULID layout below remains what `mint` produces.
+
 Minted tokens use the ULID layout in Crockford base32 (lowercase): 10 characters
 of millisecond timestamp followed by 16 characters of randomness. Tokens sort
 lexicographically by creation time.
