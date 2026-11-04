@@ -19,6 +19,16 @@ One extraction, `candidates/L01.json` … `L20.json`, produced by `candidates/ex
 - **Conversion:** each fact becomes `{predicate, value, quote, page, section}`: `value` is
   `json.loads(value_json)` (the raw string when that fails), `section` is kept only when the model
   emitted a non-empty one. No `confidence` is emitted, so none is stored.
+- **Parsing fallback (script change after L05).** On L06 the CLI returned `structuredOutput: null`
+  with `model output was not valid JSON: trailing characters`: the model had written 14
+  `{"facts": [...]}` objects back to back (13 empty, then the real one). `extract.py` was then
+  changed to decode every object in the output text in order and concatenate their facts when
+  the CLI's own parse fails, and L06.json was built from L06's saved CLI output with
+  `--reparse L06` (no second model call). The same change raised the per-run timeout from 1,800 s
+  to 3,600 s. The prompt, schema, model, flags and sandbox did not change. L01–L05 were produced
+  with the earlier version (the CLI parsed them itself, so the fallback never applies to them);
+  re-parsing their saved outputs with the current version gives byte-identical candidates.
+  A lease where the fallback was used is listed under "Per-lease notes" below.
 - **Inputs checked:** before each run the cached file's sha256 and the split pages' `text_sha256`
   were checked against `manifest.json`. No network request was made for lease text.
 - **Blind to labels.** The extractor never received labels, the skip list, verifier output, or
@@ -31,3 +41,7 @@ One extraction, `candidates/L01.json` … `L20.json`, produced by `candidates/ex
   (candidate format, extraction, page splitting), `run.py`, `docs/ingest.md`, and
   `docs/document-verification.md`.
 - Raw CLI output is kept outside git (`candidates/.logs/`, ignored).
+
+## Per-lease notes
+
+- L06: CLI JSON parse failed (concatenated objects); facts decoded by the fallback above.

@@ -1,0 +1,139 @@
+{
+ "doc": "L06",
+ "candidates": [
+  {
+   "predicate": "lease.landlord",
+   "value": "EDGEWATER LIMITED PARTNERSHIP, a Delaware limited partnership",
+   "quote": "EDGEWATER LIMITED PARTNERSHIP, a Delaware limited partnership (\"Landlord\")",
+   "page": 1
+  },
+  {
+   "predicate": "lease.tenant",
+   "value": "ALLOGENE THERAPEUTICS, INC., a Delaware corporation",
+   "quote": "ALLOGENE THERAPEUTICS, INC., a Delaware corporation (\"Tenant\")",
+   "page": 1
+  },
+  {
+   "predicate": "lease.commencement_date",
+   "value": "2018-11-01",
+   "quote": "November 1, 2018.",
+   "page": 1,
+   "section": "3.2"
+  },
+  {
+   "predicate": "lease.expiration_date",
+   "value": "2029-02-28",
+   "quote": "February 28, 2029.",
+   "page": 1,
+   "section": "3.3"
+  },
+  {
+   "predicate": "lease.rentable_area_sf",
+   "value": 14943,
+   "quote": "Approximately 14,943 rentable square feet of space comprising a portion of the Building, as further set forth in Exhibit A to the Lease.",
+   "page": 1,
+   "section": "2.2"
+  },
+  {
+   "predicate": "lease.base_rent_schedule",
+   "value": [
+    {
+     "from": "2018-11-01",
+     "to": "2019-05-31",
+     "annual_rent_psf": 60.6
+    },
+    {
+     "from": "2019-06-01",
+     "to": "2019-10-31",
+     "annual_rent_psf": 60.6
+    },
+    {
+     "from": "2019-11-01",
+     "to": "2020-10-31",
+     "annual_rent_psf": 62.76
+    },
+    {
+     "from": "2020-11-01",
+     "to": "2021-10-31",
+     "annual_rent_psf": 64.92
+    },
+    {
+     "from": "2021-11-01",
+     "to": "2022-10-31",
+     "annual_rent_psf": 67.2
+    },
+    {
+     "from": "2022-11-01",
+     "to": "2023-10-31",
+     "annual_rent_psf": 69.6
+    },
+    {
+     "from": "2023-11-01",
+     "to": "2024-10-31",
+     "annual_rent_psf": 72.0
+    },
+    {
+     "from": "2024-11-01",
+     "to": "2025-10-31",
+     "annual_rent_psf": 74.52
+    },
+    {
+     "from": "2025-11-01",
+     "to": "2026-10-31",
+     "annual_rent_psf": 77.16
+    },
+    {
+     "from": "2026-11-01",
+     "to": "2027-10-31",
+     "annual_rent_psf": 79.8
+    },
+    {
+     "from": "2027-11-01",
+     "to": "2028-10-31",
+     "annual_rent_psf": 82.68
+    },
+    {
+     "from": "2028-11-01",
+     "to": "2029-02-28",
+     "annual_rent_psf": 85.56
+    }
+   ],
+   "quote": "1 (months 1 through 7)\n\n$452,803.20\n\n$37,733.60\n\n$5.05\n\n1 (months 8 through 12)\n\n$905,545.80\n\n$75,462.15\n\n$5.05\n\n2\n\n$937,822.68\n\n$78,151.89\n\n$5.23\n\n3\n\n$970,646.47\n\n$80,887.21\n\n$5.41\n\n4\n\n$1,004,619.10\n\n$83,718.26\n\n$5.60\n\n5\n\n$1,039,780.77\n\n$86,648.40\n\n$5.80\n\n6\n\n$1,076,173.10\n\n$89,681.09\n\n$6.00\n\n7\n\n$1,113,839.15\n\n$92,819.93\n\n$6.21\n\n8\n\n$1,152,823.52\n\n$96,068.63\n\n$6.43\n\n9\n\n$1,193,172.35\n\n$99,431.03\n\n$6.65\n\n10\n\n$1,234,933.38\n\n$102,911.12\n\n$6.89\n\n11 (through Lease Expiration Date)\n\n$1,278,156.05\n\n$106,513.00\n\n$7.13",
+   "page": 2,
+   "section": "4"
+  },
+  {
+   "predicate": "lease.pro_rata_share",
+   "value": 0.3784,
+   "quote": "37.84%.",
+   "page": 2,
+   "section": "6"
+  },
+  {
+   "predicate": "lease.security_deposit",
+   "value": 213026,
+   "quote": "$213,026.00.",
+   "page": 3,
+   "section": "8"
+  },
+  {
+   "predicate": "lease.rofo",
+   "value": "One-time right of first offer during the initial Lease Term only on the remaining rentable space in the Building, subordinate to Superior Rights, exercisable for all of the offered space within seven business days after the First Offer Notice.",
+   "quote": "Landlord hereby grants to the named Tenant in this Lease (the \"Original Tenant\") and its \"Permitted Assignees\", as that term is defined in Section 14.8, below, a one-time right of first offer, during the initial Lease Term only, with respect to the remaining rentable space in the Building not located within the Premises (the \"First Offer Space\").",
+   "page": 5,
+   "section": "1.3"
+  },
+  {
+   "predicate": "lease.renewal_option",
+   "value": {
+    "count": 1,
+    "term_months": 84,
+    "notice_months": 9,
+    "rent": "Fair Rental Value"
+   },
+   "quote": "one (1) option to extend the Lease Term for a period of seven (7) years (the \"Option Term\"), which option shall be irrevocably exercised only by written notice delivered by Tenant to Landlord not more than twelve (12) months nor less than nine (9) months prior to the expiration of the initial Lease Term",
+   "page": 7,
+   "section": "2.2.1"
+  }
+ ]
+}

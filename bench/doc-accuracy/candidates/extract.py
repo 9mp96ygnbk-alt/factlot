@@ -7,6 +7,7 @@ scratch directory under a kernel sandbox that denies the repository and the cach
 built-in tools removed, so the only input it sees is the prompt below.
 
 Usage: python3 candidates/extract.py L01 [L02 ...]
+       python3 candidates/extract.py --reparse L06   (re-read saved CLI output, no model call)
 """
 from __future__ import annotations
 
@@ -24,6 +25,7 @@ from factlot.ingest import extract as fx  # noqa: E402
 
 GROK = "/home/box/.local/bin/grok"
 MODEL = "grok-4.7"
+LOGS = HERE / ".logs"
 SCRATCH = Path("/tmp/grokx")  # empty dir; holds only .grok/sandbox.toml and the prompt file
 SANDBOX = """[profiles.factlot_extract]
 extends = "strict"
@@ -62,17 +64,37 @@ def extract_one(d: dict) -> dict:
            "--disallowed-tools", DISALLOWED, "--disable-web-search", "--no-subagents", "--max-turns", "1",
            "--system-prompt-override", system_prompt(), "--json-schema", json.dumps(fx._OUTPUT_SCHEMA),
            "--prompt-file", str(pf)]
-    p = subprocess.run(cmd, cwd=SCRATCH, capture_output=True, text=True, timeout=1800)
+    p = subprocess.run(cmd, cwd=SCRATCH, capture_output=True, text=True, timeout=3600)
     pf.unlink()
-    log = HERE / ".logs"
-    log.mkdir(exist_ok=True)
-    (log / f"{d['id']}.out.json").write_text(p.stdout)
-    out = json.loads(p.stdout)
+    LOGS.mkdir(exist_ok=True)
+    (LOGS / f"{d['id']}.out.json").write_text(p.stdout)
+    return parse(d["id"], p.stdout)
+
+
+def facts_of(doc_id: str, out: dict) -> list[dict]:
+    """The structured output's facts. When the CLI could not parse the text because the model wrote
+    several {"facts": [...]} objects back to back (it did on long documents), every object in the
+    text is decoded in order and their facts concatenated. Nothing is re-asked."""
     so = out.get("structuredOutput")
-    if not so:
-        raise SystemExit(f"{d['id']}: no structured output ({out.get('structuredOutputError')}, stop {out.get('stopReason')})")
+    if so:
+        return so["facts"]
+    text, dec, i, facts, n = (out.get("text") or "").strip(), json.JSONDecoder(), 0, [], 0
+    while i < len(text):
+        obj, j = dec.raw_decode(text, i)
+        facts += obj["facts"]
+        n += 1
+        i = j
+        while i < len(text) and text[i].isspace():
+            i += 1
+    if not n:
+        raise SystemExit(f"{doc_id}: no structured output ({out.get('structuredOutputError')}, stop {out.get('stopReason')})")
+    print(f"{doc_id}: CLI reported {out.get('structuredOutputError')!r}; decoded {n} concatenated objects", flush=True)
+    return facts
+
+
+def parse(doc_id: str, stdout: str) -> dict:
     cands = []
-    for f in so["facts"]:
+    for f in facts_of(doc_id, json.loads(stdout)):
         try:
             value = json.loads(f["value_json"])
         except json.JSONDecodeError:
@@ -81,13 +103,15 @@ def extract_one(d: dict) -> dict:
         if f.get("section"):
             c["section"] = f["section"]
         cands.append(c)
-    return {"doc": d["id"], "candidates": cands}
+    return {"doc": doc_id, "candidates": cands}
 
 
 def main() -> None:
     docs = {d["id"]: d for d in run.load_manifest()["documents"]}
-    for doc_id in sys.argv[1:]:
-        res = extract_one(docs[doc_id])
+    args = sys.argv[1:]
+    reparse = args[:1] == ["--reparse"]  # rebuild Lxx.json from the saved CLI output; no model call
+    for doc_id in args[reparse:]:
+        res = parse(doc_id, (LOGS / f"{doc_id}.out.json").read_text()) if reparse else extract_one(docs[doc_id])
         (HERE / f"{doc_id}.json").write_text(json.dumps(res, indent=1, ensure_ascii=False) + "\n")
         print(f"{doc_id}: {len(res['candidates'])} candidates", flush=True)
 
