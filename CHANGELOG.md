@@ -13,6 +13,8 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-04
+
 ### Added
 
 - Registry: CMBS loan-level facts from SEC Form ABS-EE (Regulation AB II, EX-102): the many-valued `debt.cmbs_loan` gives, per trust, loan and property, balances, rate, maturity, payment status, servicer and special-servicing dates, workout strategy, NOI, DSCR, occupancy and organisation tenants, on building IDs with a `located_on` link to the parcel (377 registered CMBS trusts; 21,595 facts on 16,701 buildings). No borrower names (the filings carry none) and no watchlist status (not in the SEC data).
@@ -312,7 +314,8 @@ From the pre-launch audit ([docs/security/audit-2026-11-03.md](docs/security/aud
   ended (dissolved, revoked, merged, withdrawn), the one still in existence is linked at
   confidence 0.85 (`linked_by_standing`); an unknown status anywhere leaves the name ambiguous.
 
-[Unreleased]: https://github.com/9mp96ygnbk-alt/factlot/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/9mp96ygnbk-alt/factlot/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/9mp96ygnbk-alt/factlot/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/9mp96ygnbk-alt/factlot/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/9mp96ygnbk-alt/factlot/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/9mp96ygnbk-alt/factlot/releases/tag/v0.1.0

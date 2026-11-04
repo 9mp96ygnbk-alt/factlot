@@ -27,7 +27,7 @@ TypeScript: `openaiChatTools()` and `runTool()` from `@factlot/tools`.
 ## MCP clients
 
 Use the remote URL `https://api.factlot.com/mcp`, or run locally with
-`npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.2.0/factlot-mcp-standalone-0.2.0.tgz`
+`npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.3.0/factlot-mcp-standalone-0.3.0.tgz`
 (`npx -y @factlot/mcp` after first publish to npm). See
 [getting started](../../docs/getting-started.md) for the other local options.
 

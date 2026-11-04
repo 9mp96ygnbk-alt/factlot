@@ -29,7 +29,7 @@ export { LOCAL_TOOLS } from "./local.ts";
 export type { KnowledgeDoc } from "./knowledge.ts";
 
 export const SERVER_NAME = "factlot";
-export const SERVER_VERSION = "0.2.0";
+export const SERVER_VERSION = "0.3.0";
 
 export const SERVER_INSTRUCTIONS =
   "FactLot tools for commercial real estate. Use calc_* tools for ALL lease, CAM, rent, loan, and return math instead of computing in-context; cite the returned formula id and steps and surface warnings. Use id_* tools to produce canonical FactLot IDs for parcels, legal entities, spaces, and documents so records join across systems. To read a lease or other document, extract the values yourself and pass the page text with each value and its verbatim quote to doc_verify_facts (or doc_abstract_lease for a lease and its amendments); FactLot checks each value against its quote and page and returns cited facts. Use doc_compare for an estoppel or rent roll against the lease and doc_verify_claim to check one claim. Use doc_spread_statement to spread a T-12 or operating statement onto the chart of accounts with every line cited, doc_check_use_conflict to check a proposed use against verified exclusives and prohibited uses, and fact_package_create / fact_package_verify to hand facts to a counterparty as a hash-chained, optionally signed package. Use fact_validate before emitting facts. Use search/fetch to find which tool or predicate fits a task.";

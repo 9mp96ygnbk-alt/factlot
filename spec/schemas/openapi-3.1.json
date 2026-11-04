@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "FactLot",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "description": "The open fact layer for commercial real estate AI agents: deterministic CRE calculators with audit trails, canonical FactLot IDs, and cited-fact validation. Call these operations instead of doing lease, CAM, rent, loan, or return math yourself."
   },
   "servers": [
