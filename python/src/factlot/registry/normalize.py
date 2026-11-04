@@ -306,6 +306,30 @@ def legacy_address_key(address: str) -> str:
     return " ".join(_STREET.get(w, w) for w in s.split())
 
 
+# Street types a query without a house number must name ("Ontario Rd", not "Ontario"): STREET_TYPES in
+# packages/tools/src/registry.ts.
+SEARCH_STREET_TYPES = frozenset(
+    "ALY AVE BLVD BYP CIR CSWY CT DR EXPY FWY HWY LN LOOP PATH PIKE PKWY PL PLZ RD ROW RUN SQ ST TER TPKE TRL "
+    "WALK WAY XING".split())
+
+
+def address_query(query: str) -> dict:
+    """How address search reads a query (``addressQuery`` in packages/tools): ``{"mode", "tokens"}``.
+
+    ``tokens`` are the words of the street line (before the first comma) as the address index writes
+    them. ``mode`` is ``house_number`` when the first word is a number, ``street`` when the words
+    include a street type, else None: a city ("Ontario") or a part of a word does not search.
+    """
+    tokens = address_tokens(query.split(",")[0])
+    if tokens and tokens[0][0] in "0123456789":
+        mode = "house_number"
+    elif any(t in SEARCH_STREET_TYPES for t in tokens):
+        mode = "street"
+    else:
+        mode = None
+    return {"mode": mode, "tokens": tokens}
+
+
 # --- building roll-up: the street line and ZIP code of a situs address --------------------------
 
 # Street types that end a street name, for situs lines written without a comma before the city.

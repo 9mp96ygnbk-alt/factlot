@@ -10,7 +10,8 @@ import unittest
 from pathlib import Path
 
 import factlot
-from factlot.registry.normalize import legacy_address_key, legacy_name_key
+from factlot.registry.county_names import county_name
+from factlot.registry.normalize import address_query, legacy_address_key, legacy_name_key
 from factlot.registry import (
     EntityRecord,
     ParcelRecord,
@@ -79,6 +80,17 @@ class Normalization(unittest.TestCase):
             self.assertEqual(normalize_address(raw), expected, raw)
         for raw, expected in vectors["legacy_addresses"]:
             self.assertEqual(legacy_address_key(raw), expected, raw)
+        for raw, expected in vectors["address_queries"]:
+            self.assertEqual(address_query(raw), expected, raw)
+
+    def test_county_names_match_the_census_table(self):
+        tsv = Path(__file__).resolve().parents[2] / "spec" / "registry" / "county-names.tsv"
+        rows = [line.split("\t") for line in tsv.read_text("utf-8").splitlines() if line and not line.startswith("#")]
+        self.assertGreater(len(rows), 3000)
+        for fips, name in rows:
+            self.assertEqual(county_name(fips), name, fips)
+        self.assertEqual(county_name("04021"), "Pinal County")
+        self.assertIsNone(county_name("48999"))
 
     def test_owner_tails_apostrophes_and_abbreviations_share_one_key(self):
         same = [

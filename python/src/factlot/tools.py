@@ -21,6 +21,7 @@ import copy
 import json
 import os
 import re
+from datetime import date
 from functools import lru_cache
 from importlib import resources
 from typing import Any
@@ -427,18 +428,34 @@ def _record_miss(reg: Any, urn: str) -> dict[str, Any]:
     return coverage.other_kind_miss(kind)
 
 
+def _as_of(args: dict[str, Any]) -> str | None:
+    """Optional ``as_of`` date: YYYY-MM-DD, a real calendar date (as ``IsoDate`` in @factlot/calc)."""
+    if "as_of" not in args:
+        return None
+    v = args.get("as_of")
+    m = re.fullmatch(r"([0-9]{4})-([0-9]{2})-([0-9]{2})", v) if isinstance(v, str) else None
+    try:
+        if not m:
+            raise ValueError
+        date(int(m[1]), int(m[2]), int(m[3]))
+    except ValueError:
+        raise _InputError("as_of", "expected a valid YYYY-MM-DD date") from None
+    return v
+
+
 def _registry_get(args: dict[str, Any]) -> dict[str, Any]:
     urn = _str(args, "urn")
     hist = args.get("include_history", False)
     if not isinstance(hist, bool):
         raise _InputError("include_history", "expected boolean")
+    as_of = _as_of(args)
     reg = _registry()
     parse(urn)  # a malformed URN is a format error, not a miss
-    record = reg.get(urn)
+    record = reg.get(urn, as_of)
     if record is None:
         cov = _record_miss(reg, urn)
         raise _NotFound(f"no registry record for {urn}: {cov['message']}", cov)
-    return {**record, "history": reg.facts(urn, history=True)} if hist is True else record
+    return {**record, "history": reg.facts(urn, history=True, as_of=as_of)} if hist is True else record
 
 
 def _nonempty(args: dict[str, Any], key: str) -> str:

@@ -5,7 +5,16 @@
  */
 import { createRequire } from "node:module";
 
-import { FactLotIdError, addressTokens, parcelId, parse } from "@factlot/id";
+import { fmtNum } from "@factlot/calc";
+import {
+  FactLotIdError,
+  addressTokens,
+  normalizeApnV1,
+  parcelId,
+  parse,
+} from "@factlot/id";
+
+import { countyName } from "./county_names.ts";
 
 type Row = Record<string, unknown>;
 interface Statement {
@@ -266,14 +275,38 @@ function newestFirst(facts: Row[]): Row[] {
   return facts;
 }
 
-export function registryFacts(urn: string, history = false): Row[] {
+// Facts current on a date: the coverage rule of the `current_facts` view, applied to the snapshots
+// dated on or before it (`_FACTS_AT` in Python).
+const FACTS_AT =
+  "SELECT f.* FROM facts f JOIN snapshots s ON s.document_id = f.document_id WHERE f.subject = ? " +
+  "AND f.as_of <= ? AND f.as_of = (SELECT MAX(c.as_of) FROM coverage c WHERE c.subject = f.subject " +
+  "AND c.source_id = s.source_id AND c.as_of <= ?)";
+const ORDER_FACTS = " ORDER BY predicate, as_of DESC, fact_id";
+
+/**
+ * Facts about a subject: the current ones, or the whole history. With `asOf` (YYYY-MM-DD), the
+ * facts that were current on that date, or with `history` every fact dated on or before it.
+ */
+export function registryFacts(
+  urn: string,
+  history = false,
+  asOf?: string,
+): Row[] {
   const d = open();
-  const table = history ? "facts" : "current_facts";
-  const rows = d
-    .prepare(
-      `SELECT * FROM ${table} WHERE subject = ? ORDER BY predicate, as_of DESC, fact_id`,
-    )
-    .all(urn);
+  const rows =
+    asOf === undefined
+      ? d
+          .prepare(
+            `SELECT * FROM ${history ? "facts" : "current_facts"} WHERE subject = ?${ORDER_FACTS}`,
+          )
+          .all(urn)
+      : history
+        ? d
+            .prepare(
+              `SELECT * FROM facts WHERE subject = ? AND as_of <= ?${ORDER_FACTS}`,
+            )
+            .all(urn, asOf)
+        : d.prepare(FACTS_AT + ORDER_FACTS).all(urn, asOf, asOf);
   const out: Row[] = [];
   const seen = new Set<unknown>();
   for (const f of rows) {
@@ -308,19 +341,37 @@ export function registryFacts(urn: string, history = false): Row[] {
   return newestFirst(out);
 }
 
-function status(d: Database, urn: string): string {
+function status(d: Database, urn: string, asOf?: string): string {
+  const at = asOf === undefined ? "" : " AND c.as_of <= ?";
   const rows = d
     .prepare(
-      "SELECT c.present FROM coverage c WHERE c.subject = ? AND c.as_of = " +
-        "(SELECT MAX(as_of) FROM coverage d WHERE d.subject = c.subject AND d.source_id = c.source_id)",
+      `SELECT c.present FROM coverage c WHERE c.subject = ?${at} AND c.as_of = ` +
+        `(SELECT MAX(as_of) FROM coverage d WHERE d.subject = c.subject AND d.source_id = c.source_id${at.replace("c.", "d.")})`,
     )
-    .all(urn);
+    .all(...(asOf === undefined ? [urn] : [urn, asOf, asOf]));
+  if (
+    rows.length === 0 &&
+    asOf !== undefined &&
+    d.prepare("SELECT 1 AS x FROM coverage WHERE subject = ?").get(urn)
+  )
+    return "not_yet_recorded";
   return rows.length === 0 || rows.some((r) => Number(r.present) === 1)
     ? "current"
     : "not_in_latest_snapshot";
 }
 
-export function registryGet(urn: string): Row | null {
+// An ownership link on a date: made by then, from an owner-of-record fact current on that date.
+const LINK_AT =
+  "r.as_of <= ? AND (r.type != 'owns' OR EXISTS (SELECT 1 FROM facts f JOIN snapshots s ON " +
+  "s.document_id = f.document_id WHERE f.subject = r.to_urn AND f.predicate = 'ownership.owner_of_record' " +
+  "AND f.document_id = r.document_id AND f.as_of <= ? AND f.as_of = (SELECT MAX(c.as_of) FROM coverage c " +
+  "WHERE c.subject = f.subject AND c.source_id = s.source_id AND c.as_of <= ?)))";
+
+/**
+ * A registry record: current facts and links, or with `asOf` (YYYY-MM-DD) those current on that
+ * date (the building roll-up and crosswalk IDs are the file's current ones either way).
+ */
+export function registryGet(urn: string, asOf?: string): Row | null {
   const d = open();
   parse(urn); // a malformed URN is a format error (FactLotIdError), not a miss
   const subj = d.prepare("SELECT * FROM subjects WHERE urn = ?").get(urn);
@@ -331,34 +382,91 @@ export function registryGet(urn: string): Row | null {
   const relationships = d
     .prepare(
       `SELECT from_urn, type, to_urn, as_of, method, confidence, basis, document_id FROM relationships r ` +
-        `WHERE (from_urn = ? OR to_urn = ?) AND ${CURRENT_LINK} ORDER BY as_of DESC`,
+        `WHERE (from_urn = ? OR to_urn = ?) AND ${asOf === undefined ? CURRENT_LINK : LINK_AT} ORDER BY as_of DESC`,
     )
-    .all(urn, urn)
+    .all(urn, urn, ...(asOf === undefined ? [] : [asOf, asOf, asOf]))
     .map((r) => ({ ...r }));
   const crosswalk = d
     .prepare("SELECT system, external_id FROM crosswalk WHERE urn = ?")
     .all(urn)
     .map((r) => ({ ...r }));
+  const facts = registryFacts(urn, false, asOf);
+  const state = status(d, urn, asOf);
   return {
     urn,
     kind: subj.kind,
     short: subj.short,
     label: subj.label,
-    status: status(d, urn),
-    facts: registryFacts(urn),
-    relationships,
+    ...(asOf === undefined ? {} : { as_of: asOf }),
+    status: state,
+    facts,
+    // No link before the record itself.
+    relationships: state === "not_yet_recorded" ? [] : relationships,
     crosswalk,
     ...extra,
+    warnings: areaWarnings(facts),
   };
 }
+
+/** Floor-area ratio (improvement area ÷ land area) above which `registry_get` warns. */
+export const MAX_PLAUSIBLE_FAR = 40;
+
+function areaValue(facts: Row[], predicate: string): number | undefined {
+  const v = facts.find((f) => f.predicate === predicate)?.value;
+  return typeof v === "number" && Number.isFinite(v) ? v : undefined;
+}
+
+/**
+ * Sanity checks on a parcel's area facts (`area_warnings` in Python). The facts are returned as the
+ * source publishes them; a warning says which look wrong.
+ */
+export function areaWarnings(facts: Row[]): string[] {
+  const land = areaValue(facts, "parcel.land_area_sf");
+  const building = areaValue(facts, "parcel.improvement_area_sf");
+  const out: string[] = [];
+  if (land !== undefined && land <= 0)
+    out.push(
+      `parcel.land_area_sf is ${fmtNum(land)}: a land area must be positive, so the source's value is not usable`,
+    );
+  if (building !== undefined && building < 0)
+    out.push(
+      `parcel.improvement_area_sf is ${fmtNum(building)}: a building area cannot be negative, so the source's value is not usable`,
+    );
+  if (
+    land !== undefined &&
+    building !== undefined &&
+    land > 0 &&
+    building > 0 &&
+    building / land > MAX_PLAUSIBLE_FAR
+  )
+    out.push(
+      `parcel.improvement_area_sf (${fmtNum(building)} sf) is ${fmtNum(building / land, 1)} times parcel.land_area_sf (${fmtNum(land)} sf), a floor-area ratio above ${MAX_PLAUSIBLE_FAR}, which few buildings anywhere reach: one of the two areas is probably not this parcel's own (a condominium unit's record, for example, can carry the whole building's area against the unit's share of the land); check the source before using either`,
+    );
+  return out;
+}
+
+/** Meta `parcel_rule` of a file built under ID spec 0.3 (`PARCEL_RULE` in Python). */
+const PARCEL_RULE = "2";
 
 export function registryResolveParcel(
   stateFips: string,
   countyFips: string,
   apn: string,
 ): string | null {
-  const urn = parcelId({ stateFips, countyFips, apn }).urn;
-  return open().prepare("SELECT 1 AS x FROM subjects WHERE urn = ?").get(urn)
+  const d = open();
+  // A file without parcel_rule was built with parcel rule 1 (ID spec 0.1-0.2) and keeps its URNs.
+  const rule = d
+    .prepare("SELECT value FROM meta WHERE key = 'parcel_rule'")
+    .get();
+  const urn = parcelId({
+    stateFips,
+    countyFips,
+    apn,
+    ...(rule && String(rule.value) === PARCEL_RULE
+      ? {}
+      : { normalize: normalizeApnV1 }),
+  }).urn;
+  return d.prepare("SELECT 1 AS x FROM subjects WHERE urn = ?").get(urn)
     ? urn
     : null;
 }
@@ -428,18 +536,107 @@ function addressSearchKeys(d: Database, address: string): string[] {
   return keys;
 }
 
+/** Street types: a query without a house number must name one ("Main St", not "Main"). */
+const STREET_TYPES = new Set([
+  "ALY",
+  "AVE",
+  "BLVD",
+  "BYP",
+  "CIR",
+  "CSWY",
+  "CT",
+  "DR",
+  "EXPY",
+  "FWY",
+  "HWY",
+  "LN",
+  "LOOP",
+  "PATH",
+  "PIKE",
+  "PKWY",
+  "PL",
+  "PLZ",
+  "RD",
+  "ROW",
+  "RUN",
+  "SQ",
+  "ST",
+  "TER",
+  "TPKE",
+  "TRL",
+  "WALK",
+  "WAY",
+  "XING",
+]);
+
+export interface AddressQuery {
+  /** "house_number": the first word is a number; "street": a street name with its type; null: neither. */
+  mode: "house_number" | "street" | null;
+  /** Words of the street line (before the first comma), as the address index writes them. */
+  tokens: string[];
+}
+
+/**
+ * How `registry_search_address` reads a query (`address_query` in Python). Matching is by whole
+ * words of the street line: with a house number, an address starting with that number and holding
+ * every other word; otherwise the words in a row, and only when they include a street type, so a
+ * city ("Ontario") or a part of a word never matches a street that happens to contain it.
+ */
+export function addressQuery(query: string): AddressQuery {
+  const tokens = addressTokens(query.split(",")[0] ?? "");
+  const mode = /^[0-9]/.test(tokens[0] ?? "")
+    ? "house_number"
+    : tokens.some((t) => STREET_TYPES.has(t))
+      ? "street"
+      : null;
+  return { mode, tokens };
+}
+
 export function registrySearchAddress(address: string, limit = 20): Row[] {
   const d = open();
-  const keys = addressSearchKeys(d, address);
-  const like = keys.map(() => "a.key LIKE ?").join(" OR ");
+  const { mode } = addressQuery(address);
+  if (mode === null) return [];
+  const line = address.split(",")[0] ?? "";
+  // Each key version the file may hold: the words of the street line under that version's rules.
+  const runs = addressSearchKeys(d, line).map((k) => k.split(" "));
+  const where: string[] = [];
+  const params: string[] = [];
+  for (const words of runs) {
+    if (mode === "street") {
+      where.push("(' ' || a.key || ' ') LIKE ?");
+      params.push(`% ${words.join(" ")} %`);
+    } else {
+      where.push(
+        "(" +
+          ["(a.key || ' ') LIKE ?"]
+            .concat(words.slice(1).map(() => "(' ' || a.key || ' ') LIKE ?"))
+            .join(" AND ") +
+          ")",
+      );
+      params.push(`${words[0]} %`, ...words.slice(1).map((w) => `% ${w} %`));
+    }
+  }
+  const keys = runs.map((w) => w.join(" "));
   const exact = keys.map(() => "a.key = ?").join(" OR ");
   return d
     .prepare(
       "SELECT s.urn, s.label FROM address_index a JOIN subjects s ON s.urn = a.urn " +
-        `WHERE ${like} GROUP BY s.urn ORDER BY MAX(${exact}) DESC, s.label, s.urn LIMIT ?`,
+        `WHERE ${where.join(" OR ")} GROUP BY s.urn ORDER BY MAX(${exact}) DESC, s.label, s.urn LIMIT ?`,
     )
-    .all(...keys.map((k) => `%${k}%`), ...keys, limit)
+    .all(...params, ...keys, limit)
     .map((r) => ({ ...r }));
+}
+
+/** A source snapshot (`fl:document:sha256-…`) the registry cites, or null (`Registry.snapshot` in Python). */
+export function registrySnapshot(documentId: string): Row | null {
+  const row = open()
+    .prepare(
+      "SELECT s.document_id, s.source_id, s.retrieved_at, s.as_of, s.filename, s.bytes, src.publisher, " +
+        "src.title, src.url, src.license, src.ai_use, src.redistribution, src.attribution " +
+        "FROM snapshots s JOIN sources src USING (source_id) WHERE s.document_id = ?",
+    )
+    .get(documentId);
+  return row ? { ...row } : null;
 }
 
 export function registryOwnedBy(entityUrn: string): Row[] {
@@ -549,6 +746,22 @@ function statePostal(stateFips: string): string | null {
 
 function stateLabel(stateFips: string): string {
   return statePostal(stateFips) ?? `state ${stateFips}`;
+}
+
+/**
+ * "Pinal County, AZ (04021)", with the Census name (`county_names.ts`); "county 48999 (TX)" for a
+ * code the Census list does not hold. `detail` goes inside the parentheses after the code.
+ */
+function countyLabel(
+  stateFips: string,
+  countyFips: string,
+  detail = "",
+): string {
+  const fips = `${stateFips}${countyFips}`;
+  const name = countyName(fips);
+  return name
+    ? `${name}, ${stateLabel(stateFips)} (${fips}${detail})`
+    : `county ${fips} (${stateLabel(stateFips)}${detail})`;
 }
 
 function coverageStamp(d: Database): {
@@ -701,8 +914,13 @@ export function registryCoverage(): Row {
       .all()
       .map((r) => [String(r.key), String(r.value)]),
   );
+  const cov = coverage(d);
   return {
-    ...coverage(d),
+    ...cov,
+    counties: cov.counties.map((c) => ({
+      ...c,
+      name: countyName(`${c.state_fips}${c.county_fips}`) ?? null,
+    })),
     name_key_version: versions.get("name_key_version") ?? "1",
     address_key_version: versions.get("address_key_version") ?? "1",
     scope: REGISTRY_SCOPE,
@@ -714,11 +932,10 @@ function countiesSummary(cov: RegistryCoverage): string {
   if (!counties.length) return "no parcels";
   if (counties.length <= LIST_CAP)
     return counties
-      .map(
-        (c) =>
-          `county ${c.state_fips}${c.county_fips} (${stateLabel(c.state_fips)}, ${c.parcels} parcels)`,
+      .map((c) =>
+        countyLabel(c.state_fips, c.county_fips, `, ${c.parcels} parcels`),
       )
-      .join(", ");
+      .join("; ");
   const states = cov.totals.states;
   return `${counties.length} counties in ${states.length} states (${states.join(", ")})`;
 }
@@ -749,7 +966,7 @@ function parcelMiss(
 ): Row {
   const region = `us-${stateFips}${countyFips}`;
   const county = cov.counties.find((c) => c.region === region);
-  const label = `county ${stateFips}${countyFips} (${stateLabel(stateFips)})`;
+  const label = countyLabel(stateFips, countyFips);
   const message = county
     ? `${label} is loaded in this registry (${county.parcels} parcels, as of ${latestAsOf(county.sources)}), but this parcel is not in it: the registry holds commercial, industrial and multifamily parcels only, so a residential or exempt parcel is not found`
     : `${label} is not loaded in this registry; loaded: ${countiesSummary(cov)}. Call registry_coverage for what this registry holds`;
@@ -802,7 +1019,9 @@ function addressMiss(cov: RegistryCoverage, query: string): Row {
   const message =
     st && !loaded
       ? `no parcel matched: ${st} is not loaded in this registry; loaded: ${countiesSummary(cov)}`
-      : `no parcel matched in this registry (loaded: ${countiesSummary(cov)}); it holds commercial, industrial and multifamily parcels only, searched by situs address: try the house number and street name alone`;
+      : addressQuery(query).mode === null
+        ? `no parcel matched: address search matches whole words of the street address, so give a house number ("1200 Main St") or a street name with its type ("Main St"); a city, state or part of a word alone matches nothing. Loaded: ${countiesSummary(cov)}`
+        : `no parcel matched in this registry (loaded: ${countiesSummary(cov)}); it holds commercial, industrial and multifamily parcels only, searched by situs address: try the house number and street name alone`;
   return { state: st, state_loaded: loaded, loaded_states: states, message };
 }
 
@@ -847,7 +1066,7 @@ export function registryRecordMiss(urn: string): Row {
       county && !cov.totals.buildings
         ? "no building is rolled up at this address: this registry file holds no building roll-up (a file built before 2026-11-03 has none until `python -m factlot.registry.maintain <file> --buildings` adds it)"
         : county
-          ? `no building is rolled up at this address: county ${region.slice(3)} (${stateLabel(stateFips)}) is loaded in this registry (${county.parcels} parcels, as of ${latestAsOf(county.sources)}), and the registry records a building only where two or more of its parcels share a street address and ZIP code; search the address with registry_search_address to find a single parcel`
+          ? `no building is rolled up at this address: ${countyLabel(stateFips, region.slice(5, 8))} is loaded in this registry (${county.parcels} parcels, as of ${latestAsOf(county.sources)}), and the registry records a building only where two or more of its parcels share a street address and ZIP code; search the address with registry_search_address to find a single parcel`
           : `no building is rolled up at this address: ${String(out.message)}`;
     return out;
   }
