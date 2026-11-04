@@ -36,6 +36,7 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 
 ### Changed
 
+- Registry owner rule: credit unions, national banks written "N.A.", federal savings banks, government bodies, condominiums and boards of managers, housing development fund corporations, MERS, Fannie Mae and Freddie Mac under their legal names, securitization trusts and foreign GMBH/PLC now read as organisations; a surname that is also an organisation word ("JOHN BANK", "CHURCH, MARY") no longer makes a person an organisation. Registries built earlier need `python -m factlot.registry.maintain <db> --purge-persons`. Shared synthetic vectors in `spec/registry/organizations.json`.
 - ID spec 0.3: parcel IDs keep where an APN's separators fall ("12-34" ≠ "1-234"); NYC BBL, Los Angeles AIN, Cook PIN and DC SSL normalize to their zero-padded form ("3-1234-56" = "3012340056"); LEIs must pass their ISO 17442 check digits. Earlier IDs still parse (`normalizeApnV1` / `normalize_apn_v1`), and registry files record the rule they were built with, so published files keep working.
 - Registry address search matches whole words: a house number, or a street name with its type; a city name alone no longer matches unrelated streets. Registry messages name counties ("Pinal County, AZ (04021)") from the Census Bureau county FIPS list.
 - MCP: input-validation errors return the same JSON error object as REST; `search` returns no results and a note when nothing matches. Calculator steps show rounded numbers in formula text (results unchanged).

@@ -160,6 +160,38 @@ class Normalization(unittest.TestCase):
             self.assertTrue(is_organization(org), org)
 
 
+class OrganizationRule(unittest.TestCase):
+    """``is_organization`` against the shared vectors (``spec/registry/organizations.json``)."""
+
+    vectors = json.loads((Path(__file__).resolve().parents[2] / "spec" / "registry" / "organizations.json").read_text())
+
+    def test_organizations(self):
+        for name in self.vectors["organizations"]:
+            self.assertTrue(is_organization(name), name)
+
+    def test_persons_are_never_organizations(self):
+        for name in self.vectors["persons"]:
+            self.assertFalse(is_organization(name), name)
+
+    def test_a_surname_that_is_an_organisation_word_needs_more_than_a_given_name_beside_it(self):
+        for name in ("JOHN BANK", "BANK, JOHN", "MARY CHURCH", "ANNA COUNTY", "COUNTY, ANNA"):
+            self.assertFalse(is_organization(name), name)
+        # the same word with anything else a person's name lacks is the organisation again
+        for name in ("JOHN BANK INC", "BANK OF AMERICA", "FIRST BANK", "COUNTY OF KINGS", "ORANGE COUNTY"):
+            self.assertTrue(is_organization(name), name)
+
+    def test_national_association_needs_a_bank_word_before_it(self):
+        self.assertTrue(is_organization("CITIBANK, N.A."))
+        self.assertTrue(is_organization("WELLS FARGO N.A."))
+        for name in ("DOE, JOHN N A", "ROE, N A", "N A"):
+            self.assertFalse(is_organization(name), name)
+
+    def test_widened_forms_do_not_override_the_personal_trust_rule(self):
+        for name in ("SMITH FAMILY TRUST", "DOE JANE SEPARATE PROPERTY TRUST", "ESTATE OF JOHN SMITH CONDOMINIUM",
+                     "DOE JANE REVOCABLE TRUST CREDIT UNION"):
+            self.assertFalse(is_organization(name), name)
+
+
 class RegistryCore(unittest.TestCase):
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp())
