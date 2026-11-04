@@ -46,6 +46,8 @@ STATES = {
 CFG_ALIAS = {"nc-onemap-parcels": "nc-onemap-guilford"}
 GROUP_MEMBERS = {"nc-onemap-parcels": ["nc-onemap-guilford", "nc-onemap-forsyth", "nc-onemap-cumberland", "nc-onemap-johnston", "nc-onemap-newhanover"]}
 ENRICHMENT = {"dc-dcgis-zoning", "ny-nyc-dcp-pluto", "ny-nyc-dof-sales"}
+# What a source holds when it is neither a parcel roll nor an entity file (SEC filings, not loaded as parcels).
+HOLDS_OVERRIDES = {"sec-edgar-cmbs-abs-ee": "building loan facts", "sec-edgar-exhibit-21": "entity parent links"}
 # Where a source's review record is not <id>.md.
 RECORD_OVERRIDES = {
     "tx-harris-cad": "texas-sources.md", "tx-dallas-cad": "texas-sources.md", "tx-tarrant-ad": "texas-sources.md",
@@ -598,7 +600,7 @@ def gen_coverage(configs: list[dict]) -> str:
                 info = record_info(sid)
                 rp = record_path(sid)
                 link = f"[record]({os.path.relpath(os.path.join(ROOT, rp), DOCS)})" if rp else "no separate record"
-                kind = "entities" if s in entity_sources else "parcels"
+                kind = HOLDS_OVERRIDES.get(sid) or ("entities" if s in entity_sources else "parcels")
                 pb.append([f"`{sid}`", kind, cell(clause(s.get("publisher") or info["area"] or sid, 80)), cell(short_status(s)), cell(clause(s.get("license"), 70)),
                            s.get("reviewed", "not recorded"), link])
             L += ["Reviewed, nothing loaded:", "", table(["Source", "Holds", "Publisher", "Status", "Licence", "Reviewed", "Record"], pb), ""]

@@ -31,7 +31,7 @@ Licence and AI-use detail per source: [rights.md](rights.md).
 
 ## Summary
 
-135 sources are reviewed (62 verified). The rows below record **2,031,091** commercial parcels in
+137 sources are reviewed (62 verified). The rows below record **2,031,091** commercial parcels in
 228 county or county-group rows, in 21 states and the District of Columbia. Rows from verified sources add up to
 **1,953,805** (the figure the project's Tier 2 notes give for the combined load of verified sources); the other 77,286
 come from `pa-philadelphia-opa` (loaded, but not verified: gated on terms). Statewide aggregate rows (Vermont, Minnesota, Arkansas, Montana,
@@ -68,6 +68,7 @@ Connecticut, North Carolina) stand for several counties each; the record names t
 | [Pennsylvania](#pennsylvania)                 | 3                       | 2        | 3           | 128,172                   | yes         | 2,376,226 entities | No: not hosted  |
 | [Tennessee](#tennessee)                       | 3                       | 1        | 1           | 13,111                    | yes         | none loaded        | No: not hosted  |
 | [Texas](#texas)                               | 13                      | 8        | 8           | 276,629                   | yes         | 3,272,057 entities | No: not hosted  |
+| [US](#us)                                     | 2                       | 0        | 0           | none loaded               | no          | none loaded        | No: not hosted  |
 | [Utah](#utah)                                 | 1                       | 1        | 26          | 76,250                    | yes         | none loaded        | No: not hosted  |
 | [Vermont](#vermont)                           | 1                       | 1        | 1           | 19,342                    | yes         | none loaded        | No: not hosted  |
 | [Virginia](#virginia)                         | 1                       | 0        | 0           | none loaded               | no          | none loaded        | No: not hosted  |
@@ -606,6 +607,19 @@ Reviewed, nothing loaded:
 | `tx-hidalgo-cad`    | parcels | Hidalgo County Appraisal District           | gated: page content is client-side rendered ...          | not recorded                                                         | 2026-11-03 | [record](sources/tx-hidalgo-cad.md)    |
 | `tx-montgomery-cad` | parcels | Montgomery Central Appraisal District       | gated: page content is client-side rendered ...          | not recorded                                                         | 2026-11-03 | [record](sources/tx-montgomery-cad.md) |
 | `tx-txgio-parcels`  | parcels | Texas Geographic Information Office (TxGIO) | gated: host blocks automated clients                     | CC0-1.0 (stated by the publisher's API for the 2026 Land Parcels ... | 2026-11-02 | [record](texas-sources.md)             |
+
+## US
+
+Nothing loaded for this state.
+
+Entity registry loaded: none for this state.
+
+Reviewed, nothing loaded:
+
+| Source                  | Holds               | Publisher                                                                 | Status                    | Licence                                              | Reviewed   | Record                                     |
+| ----------------------- | ------------------- | ------------------------------------------------------------------------- | ------------------------- | ---------------------------------------------------- | ---------- | ------------------------------------------ |
+| `sec-edgar-cmbs-abs-ee` | building loan facts | U.S. Securities and Exchange Commission (EDGAR) ...                       | not verified (see record) | Public filing on www.sec.gov. SEC website policy ... | 2026-11-04 | [record](sources/sec-edgar-cmbs-abs-ee.md) |
+| `sec-edgar-exhibit-21`  | entity parent links | U.S. Securities and Exchange Commission (EDGAR), filed by each registrant | not verified (see record) | Public filing on www.sec.gov. SEC website policy ... | 2026-11-04 | [record](sources/sec-edgar-exhibit-21.md)  |
 
 ## Utah
 

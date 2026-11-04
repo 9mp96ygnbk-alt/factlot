@@ -61,7 +61,7 @@ URNs are lowercase ASCII.
   borough is not the county's is an error. The formats are part of the ID rule: adding or
   changing one changes IDs, so it takes a new spec version and conformance vectors.
 
-- **Entity jurisdiction:** lowercase ISO 3166-2 style (`us-de`, `us-ny`), or `lei`.
+- **Entity jurisdiction:** lowercase ISO 3166-2 style (`us-de`, `us-ny`), `us-sec` (an SEC registrant, number = its Central Index Key: `fl:entity:us-sec:0000104169`), or `lei`.
 - **Entity number:** lowercase alphanumerics only.
 - **Suite (suite rule 2, v0.2):** whole floors normalize to `f<n>`, so "3rd Floor",
   "Third Floor", "Floor 3", "FL 3" and "3rd Flr" all become `f3` (ordinal words "first"

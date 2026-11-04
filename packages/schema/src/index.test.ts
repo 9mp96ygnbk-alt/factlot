@@ -159,6 +159,8 @@ test("every starter predicate is a valid dotted lower_snake name in its namespac
     "zoning.max_height_ft",
     "energy.site_eui",
     "parcel.num_floors",
+    "debt.cmbs_loan",
+    "entity.parent",
   ]) {
     assert.ok(all.includes(p), p);
   }

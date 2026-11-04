@@ -69,3 +69,22 @@ every week. Use route 4 for any district without a public bulk download.
    status in [texas-sources.md](texas-sources.md).
 3. Put the confirmed file URLs in `files` and set `verified: true`.
 4. Let the weekly run archive them. Write the county adapter against the first real snapshot.
+
+## SEC EDGAR (CMBS loan data and Exhibit 21)
+
+Two registry sources read the SEC's EDGAR filings: [CMBS loan-level data](sources/sec-edgar-cmbs-abs-ee.md) (Form ABS-EE,
+Exhibit 102) and [subsidiary lists](sources/sec-edgar-exhibit-21.md) (Exhibit 21 of Form 10-K). They do not go through
+the collector above, because the SEC's fair access policy asks for a declared User-Agent of the requester's own, at
+most 10 requests per second, and no crawling. `scripts/registry/sec_edgar.py` fetches them (one stream, 4 requests per
+second at most, files already on disk are not fetched again, every request logged):
+
+```
+export FACTLOT_SEC_USER_AGENT="Your Name contact@example.com"   # required; sent only to sec.gov, data.sec.gov, efts.sec.gov
+scripts/registry/sec_edgar.py trusts   OUTDIR 2026/QTR3 2026/QTR4     # latest ABS-EE of every CMBS trust in the full-index
+scripts/registry/sec_edgar.py exhibit21 OUTDIR PLD SPG WMT ...        # latest 10-K Exhibit 21 of each ticker
+python -m factlot.registry.adapters.sec_cmbs ...                      # then the adapters (see their docstrings)
+python -m factlot.registry.adapters.sec_cmbs --link-only registry.db  # re-link buildings to parcels after loading more rolls
+```
+
+The variable is read from the environment and written nowhere (not into the repository, the manifest or any fact). Run
+`maintain` (building roll-up) before linking CMBS buildings to parcels.

@@ -135,6 +135,18 @@ test("registry tools: TypeScript matches Python on the shared fixture", () => {
       parcel.facts.filter((f) => f.predicate === "energy.site_eui").length,
       1,
     );
+    // A building holds one debt.cmbs_loan fact per trust that holds a note of its loan, newest report first.
+    const building = at({
+      urn: "fl:building:us-48999:77999:300-harbor-dr",
+    }) as {
+      facts?: { predicate: string; value: { trust: string } }[];
+    };
+    assert.deepEqual(
+      (building.facts ?? [])
+        .filter((f) => f.predicate === "debt.cmbs_loan")
+        .map((f) => f.value.trust),
+      ["Other 2026-C2 Mortgage Trust", "Example 2026-C1 Mortgage Trust"],
+    );
   } finally {
     configureRegistry(undefined);
   }

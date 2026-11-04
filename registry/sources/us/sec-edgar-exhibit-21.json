@@ -1,0 +1,28 @@
+{
+  "description": "SEC EDGAR Exhibit 21 subsidiary lists (Form 10-K) for the FactLot Registry. Not downloaded by the collector: the SEC asks for a declared User-Agent of its own (FACTLOT_SEC_USER_AGENT), so scripts/registry/sec_edgar.py fetches these files. See docs/registry/data-policy.md and the review record in docs/registry/sources/sec-edgar-exhibit-21.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "sec-edgar-exhibit-21",
+      "publisher": "U.S. Securities and Exchange Commission (EDGAR), filed by each registrant",
+      "landing_pages": [
+        "https://www.sec.gov/files/company_tickers.json",
+        "https://data.sec.gov/submissions/"
+      ],
+      "allowed_hosts": ["www.sec.gov", "data.sec.gov"],
+      "link_patterns": [],
+      "files": [],
+      "verified": false,
+      "terms_url": "https://www.sec.gov/about/privacy-information",
+      "license": "Public filing on www.sec.gov. SEC website policy (privacy-information page, 'Website Dissemination'): information presented on sec.gov is public information and may be copied or further distributed without the SEC's permission; citation of the SEC as the source is asked for. Filers' contents are the registrants' own disclosures",
+      "ai_use": "Not addressed by the SEC; recorded unknown",
+      "redistribution": "Permitted: sec.gov information may be copied or further distributed without permission. Attribution: U.S. Securities and Exchange Commission, EDGAR; the filing trust or registrant",
+      "reviewed": "2026-11-04",
+      "notes": "Terms reviewed and downloads confirmed with scripts/registry/sec_edgar.py. 'verified' is false only so that the generic collector never fetches this source: it has no files listed, and the SEC's fair access policy asks for the requester's own declared User-Agent (FACTLOT_SEC_USER_AGENT). One registry source per registrant (sec-edgar-ex21-<CIK>), latest 10-K Exhibit 21 of 122 chosen registrants on 2026-11-04. Same fair-access handling as the CMBS source."
+    }
+  ]
+}
