@@ -250,7 +250,7 @@ class Maricopa(unittest.TestCase):
             self.assertTrue(snap["document_id"].startswith("fl:document:sha256-"))
             urn = reg.db.execute(
                 "SELECT urn FROM crosswalk WHERE system = 'maricopa_apn' AND external_id = '177-04-896A'").fetchone()[0]
-            self.assertEqual(urn, "fl:parcel:us-04013:17704896a")
+            self.assertEqual(urn, "fl:parcel:us-04013:177-04-896a")
             cat = reg.db.execute(
                 "SELECT value_json FROM current_facts WHERE subject = ? AND predicate = 'parcel.state_property_category'",
                 (urn,)).fetchone()[0]

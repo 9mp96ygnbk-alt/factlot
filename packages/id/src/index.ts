@@ -20,7 +20,7 @@
  */
 import { createHash, randomBytes } from "node:crypto";
 
-export const ID_SPEC_VERSION = "0.2";
+export const ID_SPEC_VERSION = "0.3";
 
 export type IdKind =
   "parcel" | "entity" | "building" | "space" | "lease" | "document" | "loan";
@@ -83,14 +83,140 @@ function alnum(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
-/**
- * Generic APN normalization: lowercase, strip every non-alphanumeric character.
- * Counties where separators are significant must pass a county-specific `normalize`.
- */
-export function normalizeApn(apn: string): string {
+/** The APN key of ID spec 0.1 and 0.2 (parcel rule 1): every character outside `a-z0-9` dropped. */
+export function normalizeApnV1(apn: string): string {
   const n = alnum(apn);
   if (!n) throw new FactLotIdError(`APN "${apn}" is empty after normalization`);
   return n;
+}
+
+// --- parcel rule 2 (ID spec 0.3) ---------------------------------------------------------------
+//
+// A county whose APN format is documented gets a format below: each field is zero-padded to its
+// fixed width and the fields are joined with no separator, so "5432-1-12", "5432 001 012" and
+// "5432001012" are one AIN. Fixed widths are what make dropping the separators safe. Any other
+// APN keeps a hyphen wherever it has a separator ("12-34" and "1-234" stay two parcels). Like the
+// street tables, these formats are part of the ID rule and change only with a new spec version.
+
+/** Separators between APN fields: any run of characters outside `a-z0-9`. */
+const SEP = "[^a-z0-9]+";
+
+interface ApnFormat {
+  /** Matched against the lowercased APN with leading and trailing separators removed. */
+  pattern: RegExp;
+  /**
+   * Width each captured field is zero-padded to (0: kept as written); the key is the fields run
+   * together. Without widths the key is the match with its separators removed.
+   */
+  widths?: number[];
+}
+
+interface CountyApnRule {
+  /** The county's own name for the key and its documented layout. */
+  name: string;
+  formats: ApnFormat[];
+  /** Further check of the fields; returns an error message. */
+  check?: (fields: string[]) => string | undefined;
+}
+
+/** NYC BBL: borough (1), block (5), lot (4), and an easement letter that makes a separate record. */
+function nycBbl(borough: string, county: string): CountyApnRule {
+  return {
+    name: "New York City BBL: borough (1 digit), tax block (5), tax lot (4), optional easement letter",
+    formats: [
+      {
+        pattern: new RegExp(
+          `^([1-5])${SEP}([0-9]{1,5})${SEP}([0-9]{1,4})(?:${SEP})?([a-z]?)$`,
+        ),
+        widths: [1, 5, 4, 0],
+      },
+      {
+        pattern: /^([1-5])([0-9]{5})([0-9]{4})([a-z]?)$/,
+        widths: [1, 5, 4, 0],
+      },
+    ],
+    check: ([b]) =>
+      b === borough
+        ? undefined
+        : `a BBL in ${county} starts with borough ${borough}, not ${b ?? ""}`,
+  };
+}
+
+/** Fixed-width digit fields, written with separators (fields may omit leading zeros) or run together. */
+function digitFields(widths: number[]): ApnFormat[] {
+  return [
+    {
+      pattern: new RegExp(
+        `^${widths.map((w) => `([0-9]{1,${w}})`).join(SEP)}$`,
+      ),
+      widths,
+    },
+    {
+      pattern: new RegExp(`^${widths.map((w) => `([0-9]{${w}})`).join("")}$`),
+      widths,
+    },
+  ];
+}
+
+/** County APN formats by `<state FIPS><county FIPS>` (parcel rule 2). */
+export const COUNTY_APN_RULES: Readonly<Record<string, CountyApnRule>> = {
+  "06037": {
+    name: "Los Angeles County AIN: map book (4 digits), page (3), parcel (3)",
+    formats: digitFields([4, 3, 3]),
+  },
+  "11001": {
+    name: "District of Columbia SSL: square (4 digits) and suffix (up to 4 letters), lot (4 digits), in fixed-width fields padded with spaces; PAR and 8 digits for a parcel outside a square",
+    formats: [
+      {
+        pattern: new RegExp(
+          `^([0-9]{4})(?:${SEP})?([a-z]{0,4})${SEP}([0-9]{1,4})$`,
+        ),
+        widths: [4, 0, 4],
+      },
+      { pattern: new RegExp(`^(par)${SEP}([0-9]{8})$`), widths: [0, 8] },
+      // Any other SSL as the roll writes it: fixed-width fields padded with spaces.
+      { pattern: /^[a-z0-9]+(?: +[a-z0-9]+)*$/ },
+    ],
+  },
+  "17031": {
+    name: "Cook County PIN: area (2 digits), subarea (2), block (3), parcel (3), unit (4)",
+    formats: digitFields([2, 2, 3, 3, 4]),
+  },
+  "36005": nycBbl("2", "the Bronx (36005)"),
+  "36047": nycBbl("3", "Brooklyn (36047)"),
+  "36061": nycBbl("1", "Manhattan (36061)"),
+  "36081": nycBbl("4", "Queens (36081)"),
+  "36085": nycBbl("5", "Staten Island (36085)"),
+};
+
+/**
+ * APN key (parcel rule 2, ID spec 0.3). Lowercase; leading and trailing separators are dropped.
+ * In a county with a documented format (`COUNTY_APN_RULES`, keyed by the 5-digit state and
+ * county FIPS) an APN in that format becomes its fields zero-padded and run together; every other
+ * APN keeps one hyphen for each run of separators, so APNs that differ only in where a separator
+ * falls ("12-34", "1-234") never share an ID.
+ */
+export function normalizeApn(apn: string, county?: string): string {
+  const core = apn
+    .toLowerCase()
+    .replace(new RegExp(`^${SEP}|${SEP}$`, "g"), "");
+  if (!core)
+    throw new FactLotIdError(`APN "${apn}" is empty after normalization`);
+  const rule = county === undefined ? undefined : COUNTY_APN_RULES[county];
+  for (const format of rule?.formats ?? []) {
+    const m = format.pattern.exec(core);
+    if (!m) continue;
+    const widths = format.widths;
+    if (!widths) return alnum(core);
+    const fields = m.slice(1).map((f) => f ?? "");
+    const problem = rule?.check?.(fields);
+    if (problem)
+      throw new FactLotIdError(
+        `APN "${apn}" is not a valid ${rule?.name}: ${problem}`,
+      );
+    return fields.map((f, i) => f.padStart(widths[i] ?? 0, "0")).join("");
+  }
+  return core.replace(new RegExp(SEP, "g"), "-");
 }
 
 export interface ParcelInput {
@@ -100,7 +226,10 @@ export interface ParcelInput {
   countyFips: string;
   /** Assessor's parcel number as printed by the county. */
   apn: string;
-  /** Override for counties whose APN formatting is semantically significant. */
+  /**
+   * Override of the APN rule, e.g. `normalizeApnV1` to recompute an ID made under ID spec 0.1 or
+   * 0.2. It must return lowercase alphanumerics, with single hyphens between them.
+   */
   normalize?: (apn: string) => string;
 }
 
@@ -114,9 +243,13 @@ function checkFips(stateFips: string, countyFips: string): void {
 /** Deterministic parcel ID: `fl:parcel:us-<SSCCC>:<apn>`. */
 export function parcelId(input: ParcelInput): FactLotId {
   checkFips(input.stateFips, input.countyFips);
-  const apn = (input.normalize ?? normalizeApn)(input.apn);
-  if (!/^[a-z0-9]+$/.test(apn)) {
-    throw new FactLotIdError("normalized APN must be lowercase alphanumerics");
+  const apn = input.normalize
+    ? input.normalize(input.apn)
+    : normalizeApn(input.apn, `${input.stateFips}${input.countyFips}`);
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(apn)) {
+    throw new FactLotIdError(
+      "normalized APN must be lowercase alphanumerics, with single hyphens between them",
+    );
   }
   return make(
     "parcel",
@@ -130,7 +263,7 @@ export interface EntityInput {
    * For companies identified by LEI instead, use "lei".
    */
   jurisdiction: string;
-  /** File/registration number issued by that registry (or the 20-char LEI). */
+  /** File/registration number issued by that registry (or the 20-character LEI, check digits verified). */
   registryNumber: string;
 }
 
@@ -145,9 +278,32 @@ export function entityId(input: EntityInput): FactLotId {
   const n = alnum(input.registryNumber);
   if (!n)
     throw new FactLotIdError("registryNumber is empty after normalization");
-  if (j === "lei" && n.length !== 20)
-    throw new FactLotIdError("an LEI is 20 characters");
+  if (j === "lei") checkLei(n, input.registryNumber);
   return make("entity", `fl:entity:${j}:${n}`);
+}
+
+/**
+ * ISO 17442 LEI: 18 alphanumerics and 2 check digits, valid when the whole code read as a number
+ * (letters A = 10 … Z = 35) is 1 modulo 97 (ISO 7064 MOD 97-10, as for an IBAN).
+ */
+function checkLei(n: string, given: string): void {
+  if (n.length !== 20)
+    throw new FactLotIdError(
+      `"${given}" is not an LEI: an LEI is 20 characters (ISO 17442), got ${n.length}`,
+    );
+  if (!/^[0-9]{2}$/.test(n.slice(18)))
+    throw new FactLotIdError(
+      `"${given}" is not an LEI: its last two characters are check digits (ISO 17442)`,
+    );
+  let rem = 0;
+  for (const c of n) {
+    const v = parseInt(c, 36);
+    rem = (v < 10 ? rem * 10 + v : rem * 100 + v) % 97;
+  }
+  if (rem !== 1)
+    throw new FactLotIdError(
+      `"${given}" is not a valid LEI: its check digits do not match (ISO 17442, ISO 7064 MOD 97-10); check for a mistyped character`,
+    );
 }
 
 /** Content-addressed document ID: `fl:document:sha256-<hex>`. */
@@ -451,7 +607,7 @@ const TOKEN = "[0-9a-hjkmnp-tv-z]{26}";
 const ADDRESS_BUILDING = "(us-\\d{5}):(\\d{5}):([0-9][a-z0-9]*(?:-[a-z0-9]+)+)";
 const SUITE = "([a-z0-9]+(?:-[a-z0-9]+)*)";
 const URN_PATTERNS: Record<IdKind, RegExp> = {
-  parcel: /^fl:parcel:(us-\d{5}):([a-z0-9]+)$/,
+  parcel: /^fl:parcel:(us-\d{5}):([a-z0-9]+(?:-[a-z0-9]+)*)$/,
   entity: /^fl:entity:([a-z]{2}-[a-z0-9]{1,3}|lei):([a-z0-9]+)$/,
   building: new RegExp(`^fl:building:(?:(${TOKEN})|${ADDRESS_BUILDING})$`),
   space: new RegExp(`^fl:space:(?:(${TOKEN})|${ADDRESS_BUILDING}):${SUITE}$`),

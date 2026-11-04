@@ -8,6 +8,7 @@ import {
   entityId,
   isFactLotUrn,
   mint,
+  normalizeApnV1,
   normalizeSuite,
   parcelId,
   parse,
@@ -30,6 +31,28 @@ test("parcel IDs are deterministic across APN formatting", () => {
   assert.equal(a.urn, "fl:parcel:us-06037:5432001012");
   assert.deepEqual(a, b);
   assert.match(a.short, /^flp_[0-9a-hjkmnp-tv-z]{24}$/);
+});
+
+test("parcel rule 2 keeps where a separator falls; rule 1 IDs can be recomputed", () => {
+  const id = (apn: string) =>
+    parcelId({ stateFips: "32", countyFips: "031", apn }).urn;
+  assert.notEqual(id("12-34"), id("1-234"));
+  assert.equal(id("12-34"), "fl:parcel:us-32031:12-34");
+  assert.equal(id("12 34"), id("12-34"));
+  const v1 = parcelId({
+    stateFips: "32",
+    countyFips: "031",
+    apn: "12-34",
+    normalize: normalizeApnV1,
+  });
+  assert.equal(v1.urn, "fl:parcel:us-32031:1234");
+  assert.equal(parse(v1.urn).kind, "parcel", "a 0.2 parcel ID still parses");
+  // NYC BBL: the zero-padded 10-digit form, whatever the input's padding.
+  const bbl = (apn: string) =>
+    parcelId({ stateFips: "36", countyFips: "047", apn }).urn;
+  assert.equal(bbl("3-1234-56"), bbl("3-01234-0056"));
+  assert.equal(bbl("3-1234-56"), "fl:parcel:us-36047:3012340056");
+  assert.throws(() => bbl("1-1234-56"), /borough 3/);
 });
 
 test("same APN in different counties yields different IDs", () => {

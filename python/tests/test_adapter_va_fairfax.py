@@ -151,7 +151,7 @@ class Fairfax(unittest.TestCase):
             self.assertTrue(all(s[0].startswith("fl:document:sha256-") for s in snaps))
             urn = reg.db.execute(
                 "SELECT urn FROM crosswalk WHERE system = 'fairfax_parcel_id' AND external_id = '0011 01 0001'").fetchone()[0]
-            self.assertEqual(urn, "fl:parcel:us-51059:0011010001")
+            self.assertEqual(urn, "fl:parcel:us-51059:0011-01-0001")
             code = reg.db.execute(
                 "SELECT value_json FROM current_facts WHERE subject = ? AND predicate = 'parcel.local_use_code'", (urn,)).fetchone()
             self.assertIn("General med/hi rise off", code[0])

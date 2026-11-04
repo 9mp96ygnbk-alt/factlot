@@ -1,6 +1,6 @@
 {
   "spec": "factlot-id",
-  "version": "0.2",
+  "version": "0.3",
   "short_id": "prefix + '_' + first 120 bits of SHA-256(urn) in lowercase Crockford base32",
   "cases": [
     {
@@ -747,6 +747,545 @@
       "fn": "parse",
       "input": {
         "urn": "fl:space:01jbx3k8q2v7m9c4t6w8y0a2b4:1--20"
+      },
+      "expect_error": true
+    },
+    {
+      "fn": "parcel",
+      "input": {
+        "state_fips": "32",
+        "county_fips": "031",
+        "apn": "12-34"
+      },
+      "expect": {
+        "urn": "fl:parcel:us-32031:12-34",
+        "short": "flp_k555ypb8zqh9y4h8s2g1h2vc"
+      }
+    },
+    {
+      "fn": "parcel",
+      "input": {
+        "state_fips": "32",
+        "county_fips": "031",
+        "apn": "1-234"
+      },
+      "expect": {
+        "urn": "fl:parcel:us-32031:1-234",
+        "short": "flp_j5qzwdfrbesy2a2sysh56n14"
+      }
+    },
+    {
+      "fn": "parcel",
+      "input": {
+        "state_fips": "32",
+        "county_fips": "031",
+        "apn": "1234"
+      },
+      "expect": {
+        "urn": "fl:parcel:us-32031:1234",
+        "short": "flp_cv5fn0ckw94ggyakakdmngh3"
+      }
+    },
+    {
+      "fn": "parcel",
+      "input": {
+        "state_fips": "32",
+        "county_fips": "031",
+        "apn": " 12 . 34 "
+      },
+      "expect": {
+        "urn": "fl:parcel:us-32031:12-34",
+        "short": "flp_k555ypb8zqh9y4h8s2g1h2vc"
+      }
+    },
+    {
+      "fn": "parcel",
+      "input": {
+        "state_fips": "32",
+        "county_fips": "031",
+        "apn": "A-12/b"
+      },
+      "expect": {
+        "urn": "fl:parcel:us-32031:a-12-b",
+        "short": "flp_gfjck41tf98f6apv8j5b4p53"
+      }
+    },
+    {
+      "fn": "parcel",
+      "input": {
+        "state_fips": "48",
+        "county_fips": "999",
+        "apn": "0001-000-0001"
+      },
+      "expect": {
+        "urn": "fl:parcel:us-48999:0001-000-0001",
+        "short": "flp_60wptmvmzrjsc52e0vm9dg5g"
+      }
+    },
+    {
+      "fn": "parcel",
+      "input": {
+        "state_fips": "36",
+        "county_fips": "047",
+        "apn": "3-1234-56"
+      },
+      "expect": {
+        "urn": "fl:parcel:us-36047:3012340056",
+        "short": "flp_5fnx0r3nb75n5xpkwxhyjxgm"
+      }
+    },
+    {
+      "fn": "parcel",
+      "input": {
+        "state_fips": "36",
+        "county_fips": "047",
+        "apn": "3-01234-0056"
+      },
+      "expect": {
+        "urn": "fl:parcel:us-36047:3012340056",
+        "short": "flp_5fnx0r3nb75n5xpkwxhyjxgm"
+      }
+    },
+    {
+      "fn": "parcel",
+      "input": {
+        "state_fips": "36",
+        "county_fips": "047",
+        "apn": "3012340056"
+      },
+      "expect": {
+        "urn": "fl:parcel:us-36047:3012340056",
+        "short": "flp_5fnx0r3nb75n5xpkwxhyjxgm"
+      }
+    },
+    {
+      "fn": "parcel",
+      "input": {
+        "state_fips": "36",
+        "county_fips": "047",
+        "apn": "3 1234 56"
+      },
+      "expect": {
+        "urn": "fl:parcel:us-36047:3012340056",
+        "short": "flp_5fnx0r3nb75n5xpkwxhyjxgm"
+      }
+    },
+    {
+      "fn": "parcel",
+      "input": {
+        "state_fips": "36",
+        "county_fips": "005",
+        "apn": "2/2345/1"
+      },
+      "expect": {
+        "urn": "fl:parcel:us-36005:2023450001",
+        "short": "flp_3rr76sqpdmrgvzv3ab1jfxp4"
+      }
+    },
+    {
+      "fn": "parcel",
+      "input": {
+        "state_fips": "36",
+        "county_fips": "061",
+        "apn": "1-00009-0001-E"
+      },
+      "expect": {
+        "urn": "fl:parcel:us-36061:1000090001e",
+        "short": "flp_8zgsrrz7y83251fhhbwkzxas"
+      }
+    },
+    {
+      "fn": "parcel",
+      "input": {
+        "state_fips": "36",
+        "county_fips": "061",
+        "apn": "1000090001E"
+      },
+      "expect": {
+        "urn": "fl:parcel:us-36061:1000090001e",
+        "short": "flp_8zgsrrz7y83251fhhbwkzxas"
+      }
+    },
+    {
+      "fn": "parcel",
+      "input": {
+        "state_fips": "36",
+        "county_fips": "081",
+        "apn": "4-123-4"
+      },
+      "expect": {
+        "urn": "fl:parcel:us-36081:4001230004",
+        "short": "flp_32hbbc2220k74bp9jzb1vpr8"
+      }
+    },
+    {
+      "fn": "parcel",
+      "input": {
+        "state_fips": "36",
+        "county_fips": "085",
+        "apn": "5-1-1"
+      },
+      "expect": {
+        "urn": "fl:parcel:us-36085:5000010001",
+        "short": "flp_634598e0y0g0cnc073ykkrv6"
+      }
+    },
+    {
+      "fn": "parcel",
+      "input": {
+        "state_fips": "36",
+        "county_fips": "047",
+        "apn": "1-1234-56"
+      },
+      "expect_error": true
+    },
+    {
+      "fn": "parcel",
+      "input": {
+        "state_fips": "36",
+        "county_fips": "061",
+        "apn": "3012340056"
+      },
+      "expect_error": true
+    },
+    {
+      "fn": "parcel",
+      "input": {
+        "state_fips": "36",
+        "county_fips": "047",
+        "apn": "12-34"
+      },
+      "expect": {
+        "urn": "fl:parcel:us-36047:12-34",
+        "short": "flp_z9330fm69j06z9sdj4ejbxg9"
+      }
+    },
+    {
+      "fn": "parcel",
+      "input": {
+        "state_fips": "06",
+        "county_fips": "037",
+        "apn": "5432-1-12"
+      },
+      "expect": {
+        "urn": "fl:parcel:us-06037:5432001012",
+        "short": "flp_veegwm5gsrn0f56ca7qyj56m"
+      }
+    },
+    {
+      "fn": "parcel",
+      "input": {
+        "state_fips": "06",
+        "county_fips": "037",
+        "apn": "5432 001 012"
+      },
+      "expect": {
+        "urn": "fl:parcel:us-06037:5432001012",
+        "short": "flp_veegwm5gsrn0f56ca7qyj56m"
+      }
+    },
+    {
+      "fn": "parcel",
+      "input": {
+        "state_fips": "17",
+        "county_fips": "031",
+        "apn": "17-10-318-48-1003"
+      },
+      "expect": {
+        "urn": "fl:parcel:us-17031:17103180481003",
+        "short": "flp_qbevy1mny2pcpyf6y15rn1w1"
+      }
+    },
+    {
+      "fn": "parcel",
+      "input": {
+        "state_fips": "11",
+        "county_fips": "001",
+        "apn": "0442 0842"
+      },
+      "expect": {
+        "urn": "fl:parcel:us-11001:04420842",
+        "short": "flp_azsmsdqg1pf6xmhjtrdhk80x"
+      }
+    },
+    {
+      "fn": "parcel",
+      "input": {
+        "state_fips": "11",
+        "county_fips": "001",
+        "apn": "0442-842"
+      },
+      "expect": {
+        "urn": "fl:parcel:us-11001:04420842",
+        "short": "flp_azsmsdqg1pf6xmhjtrdhk80x"
+      }
+    },
+    {
+      "fn": "parcel",
+      "input": {
+        "state_fips": "11",
+        "county_fips": "001",
+        "apn": "4061N 0079"
+      },
+      "expect": {
+        "urn": "fl:parcel:us-11001:4061n0079",
+        "short": "flp_n3axgt7hwnbzg63q1wqd6gxn"
+      }
+    },
+    {
+      "fn": "parcel",
+      "input": {
+        "state_fips": "11",
+        "county_fips": "001",
+        "apn": "1068SE   0815"
+      },
+      "expect": {
+        "urn": "fl:parcel:us-11001:1068se0815",
+        "short": "flp_tt64h4amgc4v2b11120heh8m"
+      }
+    },
+    {
+      "fn": "parcel",
+      "input": {
+        "state_fips": "11",
+        "county_fips": "001",
+        "apn": "PAR 01430099"
+      },
+      "expect": {
+        "urn": "fl:parcel:us-11001:par01430099",
+        "short": "flp_xrw40258maqxp9dzdwx1nf95"
+      }
+    },
+    {
+      "fn": "parcel",
+      "input": {
+        "state_fips": "11",
+        "county_fips": "001",
+        "apn": "PI0002570045"
+      },
+      "expect": {
+        "urn": "fl:parcel:us-11001:pi0002570045",
+        "short": "flp_0a1r30h0x9ke8v03745b66r0"
+      }
+    },
+    {
+      "fn": "parcel",
+      "input": {
+        "state_fips": "11",
+        "county_fips": "001",
+        "apn": "RES D 0000"
+      },
+      "expect": {
+        "urn": "fl:parcel:us-11001:resd0000",
+        "short": "flp_fpayhbgddbsm9jmrfyppafgw"
+      }
+    },
+    {
+      "fn": "normalize_apn",
+      "input": {
+        "apn": "12-34",
+        "county": "32031"
+      },
+      "expect": {
+        "value": "12-34"
+      }
+    },
+    {
+      "fn": "normalize_apn",
+      "input": {
+        "apn": "1-234",
+        "county": "32031"
+      },
+      "expect": {
+        "value": "1-234"
+      }
+    },
+    {
+      "fn": "normalize_apn",
+      "input": {
+        "apn": "--12--34--",
+        "county": "32031"
+      },
+      "expect": {
+        "value": "12-34"
+      }
+    },
+    {
+      "fn": "normalize_apn",
+      "input": {
+        "apn": "3-1234-56",
+        "county": "36047"
+      },
+      "expect": {
+        "value": "3012340056"
+      }
+    },
+    {
+      "fn": "normalize_apn",
+      "input": {
+        "apn": "3-1234-56",
+        "county": "32031"
+      },
+      "expect": {
+        "value": "3-1234-56"
+      }
+    },
+    {
+      "fn": "normalize_apn",
+      "input": {
+        "apn": "5432-001-012"
+      },
+      "expect": {
+        "value": "5432-001-012"
+      }
+    },
+    {
+      "fn": "normalize_apn",
+      "input": {
+        "apn": " - "
+      },
+      "expect_error": true
+    },
+    {
+      "fn": "normalize_apn_v1",
+      "input": {
+        "apn": "12-34"
+      },
+      "expect": {
+        "value": "1234"
+      }
+    },
+    {
+      "fn": "normalize_apn_v1",
+      "input": {
+        "apn": "1-234"
+      },
+      "expect": {
+        "value": "1234"
+      }
+    },
+    {
+      "fn": "normalize_apn_v1",
+      "input": {
+        "apn": "5432-001-012"
+      },
+      "expect": {
+        "value": "5432001012"
+      }
+    },
+    {
+      "fn": "parse",
+      "input": {
+        "urn": "fl:parcel:us-32031:1234"
+      },
+      "expect": {
+        "kind": "parcel",
+        "short": "flp_cv5fn0ckw94ggyakakdmngh3"
+      }
+    },
+    {
+      "fn": "parse",
+      "input": {
+        "urn": "fl:parcel:us-32031:12-34"
+      },
+      "expect": {
+        "kind": "parcel",
+        "short": "flp_k555ypb8zqh9y4h8s2g1h2vc"
+      }
+    },
+    {
+      "fn": "parse",
+      "input": {
+        "urn": "fl:parcel:us-48999:0001-000-0001"
+      },
+      "expect": {
+        "kind": "parcel",
+        "short": "flp_60wptmvmzrjsc52e0vm9dg5g"
+      }
+    },
+    {
+      "fn": "parse",
+      "input": {
+        "urn": "fl:parcel:us-32031:12--34"
+      },
+      "expect_error": true
+    },
+    {
+      "fn": "parse",
+      "input": {
+        "urn": "fl:parcel:us-32031:-1234"
+      },
+      "expect_error": true
+    },
+    {
+      "fn": "parse",
+      "input": {
+        "urn": "fl:parcel:us-32031:1234-"
+      },
+      "expect_error": true
+    },
+    {
+      "fn": "entity",
+      "input": {
+        "jurisdiction": "lei",
+        "registry_number": "529900T8BM49AURSDO55"
+      },
+      "expect": {
+        "urn": "fl:entity:lei:529900t8bm49aursdo55",
+        "short": "fle_debs7p6md162jm5758b3drwa"
+      }
+    },
+    {
+      "fn": "entity",
+      "input": {
+        "jurisdiction": "lei",
+        "registry_number": "5493-001K-JTII-GC8Y-1R12"
+      },
+      "expect": {
+        "urn": "fl:entity:lei:5493001kjtiigc8y1r12",
+        "short": "fle_7k31v83pn2v2wmtnegg7vedx"
+      }
+    },
+    {
+      "fn": "entity",
+      "input": {
+        "jurisdiction": "lei",
+        "registry_number": "FACTLOTTEST000000085"
+      },
+      "expect": {
+        "urn": "fl:entity:lei:factlottest000000085",
+        "short": "fle_56t3stds21ajv1xw8hb35xfg"
+      }
+    },
+    {
+      "fn": "entity",
+      "input": {
+        "jurisdiction": "lei",
+        "registry_number": "5493001KJTIIGC8Y1R13"
+      },
+      "expect_error": true
+    },
+    {
+      "fn": "entity",
+      "input": {
+        "jurisdiction": "lei",
+        "registry_number": "5493001KJTIIGC8Y1RAB"
+      },
+      "expect_error": true
+    },
+    {
+      "fn": "entity",
+      "input": {
+        "jurisdiction": "lei",
+        "registry_number": "529900T8BM49AURSD055"
+      },
+      "expect_error": true
+    },
+    {
+      "fn": "entity",
+      "input": {
+        "jurisdiction": "lei",
+        "registry_number": "ABCDEFGHIJKLMNOPQRST"
       },
       "expect_error": true
     }
