@@ -38,13 +38,13 @@ def row(**f: str) -> dict[str, str]:
 ROWS = [
     # 1: office tower, single street number
     row(parcel_number="9001001", property_location=loc("0000", "0100", "EXAMPLE", "ST", "0000"), use_code="COMO",
-        use_definition="Commercial Office", property_class_code="O", property_class_code_definition="Office",
+        zoning_code="C3O", use_definition="Commercial Office", property_class_code="O", property_class_code_definition="Office",
         year_property_built="1985", number_of_units="0.0", property_area="250000.0", lot_area="40000.0",
         assessed_improvement_value="30000000.0", assessed_land_value="20000000.0",
         assessed_fixtures_value="500.0", assessed_personal_property_value="900.0"),
     # 2: apartments, 15+ units, street-number range
     row(parcel_number="9002002A", property_location=loc("0210", "0200", "SAMPLE", "AV", "0000"), use_code="MRES",
-        use_definition="Multi-Family Residential", property_class_code="A15",
+        zoning_code="rm2 ", use_definition="Multi-Family Residential", property_class_code="A15",
         property_class_code_definition="Apartment 15 Units or more", year_property_built="1962",
         number_of_units="40.0", property_area="30000.0", lot_area="9000.5",
         assessed_improvement_value="4000000.0", assessed_land_value="6000000.0"),
@@ -53,7 +53,7 @@ ROWS = [
         property_class_code="A", number_of_units="4.0", assessed_land_value="1000.0"),
     # 4: Flat & Store with 6 units: no unit band in the class, so the unit count decides
     row(parcel_number="9004004", property_location=loc("0000", "0400", "CLAY", "ST", "0000"), use_code="MRES",
-        property_class_code="F2", number_of_units="6.0", assessed_land_value="2000.0",
+        zoning_code="NA", property_class_code="F2", number_of_units="6.0", assessed_land_value="2000.0",
         assessed_improvement_value="3000.0"),
     # 5: Flat & Store with 2 units: out
     row(parcel_number="9005005", property_location=loc("0000", "0500", "CLAY", "ST", "0000"), use_code="MRES",
@@ -132,6 +132,13 @@ class SanFrancisco(unittest.TestCase):
         # The dataset publishes no owner names, so no record carries one or is marked confidential.
         self.assertTrue(all(r.owner_name is None and not r.owner_confidential for r in recs.values()))
 
+    def test_zoning_code_becomes_the_zoning_district(self):
+        recs = {r.apn: r for r in ca_san_francisco.read_roll(self.csv)}
+        self.assertEqual(recs["9001001"].extra_facts, [("zoning.district", "C3O", None)])
+        self.assertEqual(recs["9002002A"].extra_facts, [("zoning.district", "RM2", None)], "squeezed and upper-cased")
+        self.assertEqual(recs["9004004"].extra_facts, [], "NA is no code")
+        self.assertEqual(recs["9006006"].extra_facts, [], "a blank code writes nothing")
+
     def test_category(self):
         c = ca_san_francisco.category
         self.assertEqual(c("A5"), "B")
@@ -178,6 +185,10 @@ class SanFrancisco(unittest.TestCase):
             owners = reg.db.execute(
                 "SELECT count(*) FROM current_facts WHERE predicate = 'ownership.owner_of_record'").fetchone()[0]
             self.assertEqual(owners, 0)
+            zoning = [f for f in reg.facts(urn) if f["predicate"] == "zoning.district"]
+            self.assertEqual([f["value"] for f in zoning], ["RM2"])
+            self.assertEqual(zoning[0]["provenance"]["method"], "public_record")
+            self.assertEqual(zoning[0]["provenance"]["sources"][0]["section"], "row_id 20259002002A")
         finally:
             reg.close()
 

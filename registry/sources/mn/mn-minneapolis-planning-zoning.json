@@ -1,0 +1,29 @@
+{
+  "description": "City of Minneapolis Planning Primary Zoning (MapIT Minneapolis) for the FactLot Registry collector. See docs/registry/data-policy.md and the review record in docs/registry/sources/mn-minneapolis-planning-zoning.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "mn-minneapolis-planning-zoning",
+      "publisher": "City of Minneapolis, MapIT Minneapolis (via ArcGIS Online / Minneapolis Open Data)",
+      "landing_pages": [
+        "https://services.arcgis.com/afSMGVsC7QlRK1kZ/arcgis/rest/services/Planning_Primary_Zoning/FeatureServer/0?f=json"
+      ],
+      "allowed_hosts": ["services.arcgis.com"],
+      "link_patterns": ["/Planning_Primary_Zoning/FeatureServer/0"],
+      "files": [
+        "https://services.arcgis.com/afSMGVsC7QlRK1kZ/arcgis/rest/services/Planning_Primary_Zoning/FeatureServer/0/query?where=1%3D1&outFields=OBJECTID,Land_Use,Land_Use_Code&orderByFields=OBJECTID&f=geojson&resultRecordCount=2000"
+      ],
+      "verified": true,
+      "terms_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "license": "CC0 1.0 Universal on the Minneapolis Open Data item 'Planning Primary Zoning' (Hub metadata, DCAT license field, 2026-11-04).",
+      "ai_use": "Permitted: CC0 1.0 dedicates the data to the public domain",
+      "redistribution": "Permitted (CC0 1.0). Attribution requested: City of Minneapolis, MapIT Minneapolis",
+      "reviewed": "2026-11-04",
+      "notes": "Feature service layer 0, 1,308 polygons, fields Land_Use (district name) and Land_Use_Code (district code); data last edited 2026-10-30. Requested with geometry as GeoJSON (WGS84). The Hub (opendata.minneapolismn.gov) has Crawl-delay 60, so the ArcGIS Online feature service behind it is queried; services.arcgis.com answers 403 'Invalid URL' to /robots.txt, which the collector treats as no robots rules, as for the Denver and DC services. The layer is the City's planning layer; the Zoning Code and the City's map are the authority."
+    }
+  ]
+}

@@ -34,6 +34,11 @@ warehouse, ``2245`` commercial condominiums and the commercial possessory intere
 condominiums, exempt portions, agricultural, state-assessed and exempt (``9xxx``) classes are out of
 scope. Both codes are kept verbatim in ``local_use_code`` as ``<improvements>/<land>``.
 
+Zoning: both exports carry ``ZONE10``, the parcel's zone district under the Denver Zoning Code (2010), as the
+Assessor's file records it (``C-MX-5``, ``I-A``, ``PUD``). It becomes the parcel's ``zoning.district`` (``public_record``,
+cited to the same export and PARID). It is the Assessor's attribute, not a zoning verification; the City's zoning map
+is the authority.
+
 Usage: ``python -m factlot.registry.adapters.co_denver <commercial export>.csv registry.db --as-of 2026-10-29``
 then the residential export with ``--partial``.
 """
@@ -201,6 +206,7 @@ def read_roll(path: str | Path) -> Iterator[ParcelRecord]:
             tax_year=None,  # the export carries no assessment year; the snapshot's as-of date does
             locator=f"PARID {parid}",
             local_use_code=local_use_code(imps, land),
+            extra_facts=[("zoning.district", zone, None)] if (zone := " ".join((r.get("ZONE10") or "").split())) else [],
         )
 
 
