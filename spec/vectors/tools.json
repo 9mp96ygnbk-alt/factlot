@@ -323,54 +323,6 @@
       "expect_issues": []
     },
     {
-      "tool": "calc_npv",
-      "arguments": {
-        "cash_flows": [-100, 10, 10, 110],
-        "rate": 8
-      },
-      "expect": {
-        "warnings": [
-          "rate is 8: FactLot reads rates as decimals (0.03 = 3%). If you meant 8%, pass 0.08."
-        ]
-      }
-    },
-    {
-      "tool": "calc_debt_sizing",
-      "arguments": {
-        "noi": 1000000,
-        "rate_annual": 0.06,
-        "amortization_years": 30,
-        "max_ltv": 0.65,
-        "min_dscr": 125,
-        "min_debt_yield": 0.09,
-        "value": 15000000
-      },
-      "expect": {
-        "warnings": [
-          "min_dscr is 125: DSCR is a ratio (1.25 = 1.25x coverage). If you meant 1.25x, pass 1.25."
-        ]
-      }
-    },
-    {
-      "tool": "calc_rent_schedule",
-      "arguments": {
-        "commencement_date": "2027-01-01",
-        "term_months": 24,
-        "area_sf": 10000,
-        "starting_rent_psf_annual": 30,
-        "escalation": {
-          "type": "percent",
-          "rate": 3
-        }
-      },
-      "expect": {
-        "warnings": [
-          "Escalated $/SF rates are not rounded per step; set round_rate_to_cents if the lease table rounds.",
-          "escalation.rate is 3: FactLot reads rates as decimals (0.03 = 3%). If you meant 3%, pass 0.03."
-        ]
-      }
-    },
-    {
       "tool": "calc_renew_vs_relocate",
       "arguments": {
         "horizon_months": 60,
@@ -463,6 +415,473 @@
           "Proposals commence on different dates (2027-01-01, 2030-01-01); each is valued as of its own commencement, so the ranking ignores the timing difference."
         ]
       }
+    },
+    {
+      "tool": "calc_npv",
+      "arguments": {
+        "cash_flows": [-100, 10, 10, 110],
+        "rate": 8
+      },
+      "expect_error": "CalcInputError",
+      "expect_issues": [
+        {
+          "path": "rate",
+          "message": "must be a decimal between -1 and 1 but is 8 (rates are decimals: pass 0.08 for 8%)"
+        }
+      ]
+    },
+    {
+      "tool": "calc_debt_sizing",
+      "arguments": {
+        "noi": 1000000,
+        "rate_annual": 0.06,
+        "amortization_years": 30,
+        "max_ltv": 0.65,
+        "min_dscr": 125,
+        "min_debt_yield": 0.09,
+        "value": 15000000
+      },
+      "expect_error": "CalcInputError",
+      "expect_issues": [
+        {
+          "path": "min_dscr",
+          "message": "must be at most 10 but is 125 (DSCR is a ratio: pass 1.25 for 1.25x coverage)"
+        }
+      ]
+    },
+    {
+      "tool": "calc_rent_schedule",
+      "arguments": {
+        "commencement_date": "2027-01-01",
+        "term_months": 24,
+        "area_sf": 10000,
+        "starting_rent_psf_annual": 30,
+        "escalation": {
+          "type": "percent",
+          "rate": 3
+        }
+      },
+      "expect_error": "CalcInputError",
+      "expect_issues": [
+        {
+          "path": "escalation.rate",
+          "message": "must be a decimal between -1 and 1 but is 3 (rates are decimals: pass 0.03 for 3%)"
+        }
+      ]
+    },
+    {
+      "tool": "calc_capex_recovery",
+      "arguments": {
+        "cost": 100000,
+        "amortization_years": 5,
+        "interest_rate_annual": 6,
+        "first_year": 2026,
+        "tenants": [
+          {
+            "name": "Suite 100",
+            "pro_rata_share": 0.125
+          },
+          {
+            "name": "Suite 200",
+            "pro_rata_share": 0.3
+          }
+        ],
+        "clauses": {
+          "cost": "Lease §6.2(b)",
+          "interest": "Lease §6.2(b)(ii)"
+        }
+      },
+      "expect_error": "CalcInputError",
+      "expect_issues": [
+        {
+          "path": "interest_rate_annual",
+          "message": "must be a decimal between -1 and 1 but is 6 (rates are decimals: pass 0.06 for 6%)"
+        }
+      ]
+    },
+    {
+      "tool": "calc_net_effective_rent",
+      "arguments": {
+        "schedule": {
+          "commencement_date": "2026-01-01",
+          "term_months": 120,
+          "area_sf": 10000,
+          "starting_rent_psf_annual": 40,
+          "abated_months": [1, 2, 3, 4, 5, 6],
+          "escalation": {
+            "type": "percent",
+            "rate": 3
+          }
+        },
+        "ti_allowance_psf": 50,
+        "leasing_commissions": 100000,
+        "discount_rate_annual": 0.08
+      },
+      "expect_error": "CalcInputError",
+      "expect_issues": [
+        {
+          "path": "schedule.escalation.rate",
+          "message": "must be a decimal between -1 and 1 but is 3 (rates are decimals: pass 0.03 for 3%)"
+        }
+      ]
+    },
+    {
+      "tool": "calc_cam_reconciliation_batch",
+      "arguments": {
+        "year": 2026,
+        "expenses": [
+          {
+            "category": "real estate taxes",
+            "amount": 412000,
+            "controllable": false,
+            "admin_fee_applies": false
+          },
+          {
+            "category": "insurance",
+            "amount": 61500,
+            "controllable": false,
+            "admin_fee_applies": false
+          },
+          {
+            "category": "utilities",
+            "amount": 98000,
+            "controllable": false,
+            "variable": true
+          },
+          {
+            "category": "janitorial",
+            "amount": 154000,
+            "variable": true
+          },
+          {
+            "category": "repairs & maintenance",
+            "amount": 87250
+          },
+          {
+            "category": "landscaping",
+            "amount": 23000
+          },
+          {
+            "category": "marketing",
+            "amount": 18000
+          },
+          {
+            "category": "management fee",
+            "amount": 44000,
+            "variable": true,
+            "admin_fee_applies": false
+          },
+          {
+            "category": "parking lot resurfacing",
+            "amount": 260000,
+            "recoverable": false
+          }
+        ],
+        "gross_up": {
+          "actual_occupancy": 0.78,
+          "target_occupancy": 0.95
+        },
+        "tenants": [
+          {
+            "name": "Suite 100",
+            "pro_rata_share": 0.18,
+            "estimates_paid": 140000,
+            "cap": {
+              "method": "compounding_from_base",
+              "rate": 0.05,
+              "reference_amount": 52000,
+              "years_elapsed": 3
+            },
+            "admin_fee": {
+              "rate": 5
+            },
+            "excluded_categories": ["marketing"]
+          },
+          {
+            "name": "Suite 200",
+            "pro_rata_share": 0.22,
+            "estimates_paid": 30000,
+            "structure": {
+              "type": "base_year",
+              "base_year_expenses": 760000
+            },
+            "occupancy": {
+              "move_in_date": "2026-04-01"
+            }
+          },
+          {
+            "name": "Suite 300",
+            "pro_rata_share": 0.15,
+            "estimates_paid": 12000,
+            "structure": {
+              "type": "expense_stop",
+              "stop_amount": 1000000
+            }
+          },
+          {
+            "name": "Suite 400",
+            "pro_rata_share": 0.2,
+            "estimates_paid": 120000,
+            "cap": {
+              "method": "year_over_year",
+              "rate": 0.04,
+              "reference_amount": 50000
+            },
+            "admin_fee": {
+              "rate": 0.15,
+              "applied": "before_cap",
+              "capped": true
+            },
+            "admin_fee_excluded_categories": ["utilities"],
+            "occupancy": {
+              "move_out_date": "2026-09-30"
+            }
+          }
+        ]
+      },
+      "expect_error": "CalcInputError",
+      "expect_issues": [
+        {
+          "path": "tenants.0.admin_fee.rate",
+          "message": "must be a decimal between -1 and 1 but is 5 (rates are decimals: pass 0.05 for 5%)"
+        }
+      ]
+    },
+    {
+      "tool": "calc_debt_sizing",
+      "arguments": {
+        "noi": 1000000,
+        "rate_annual": 0.06,
+        "amortization_years": 30,
+        "max_ltv": 0.65,
+        "min_dscr": 130,
+        "min_debt_yield": 0.09,
+        "value": 15000000
+      },
+      "expect_error": "CalcInputError",
+      "expect_issues": [
+        {
+          "path": "min_dscr",
+          "message": "must be at most 10 but is 130 (DSCR is a ratio: pass 1.3 for 1.3x coverage)"
+        }
+      ]
+    },
+    {
+      "tool": "lease_comp_validate",
+      "arguments": {
+        "fact": {
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.comp",
+          "value": {
+            "comp_type": "new",
+            "property_type": "office",
+            "area_sf": 10000,
+            "area_basis": "rentable",
+            "commencement_date": "2026-01-01",
+            "term_months": 120,
+            "starting_rent_psf_yr": 40,
+            "escalation": {
+              "type": "percent",
+              "every_months": 12,
+              "rate": 3
+            },
+            "free_rent_months": 6,
+            "ti_allowance_psf": 50,
+            "leasing_commissions_usd": 100000,
+            "expense_basis": "full_service",
+            "confirming_party": "landlord_broker",
+            "verification": "party_confirmed",
+            "state": "TX",
+            "submarket": "Downtown"
+          },
+          "as_of": "2026-10-01",
+          "provenance": {
+            "method": "reported",
+            "sources": [
+              {
+                "document_id": "firm:deal-4471",
+                "title": "Executed lease, summarized by the leasing broker"
+              }
+            ]
+          },
+          "rights": {
+            "ai_use": "permitted",
+            "redistribution": "attribution_required"
+          }
+        }
+      },
+      "expect_error": "InputError",
+      "expect_issues": [
+        {
+          "path": "fact.value.escalation.rate",
+          "message": "must be a decimal between -1 and 1 but is 3 (rates are decimals: pass 0.03 for 3%)"
+        }
+      ]
+    },
+    {
+      "tool": "calc_debt_sizing",
+      "arguments": {
+        "noi": 1000000,
+        "rate_annual": 6.5,
+        "amortization_years": 30,
+        "max_ltv": 0.65,
+        "min_dscr": 130,
+        "min_debt_yield": 0.09,
+        "value": 15000000
+      },
+      "expect_error": "CalcInputError",
+      "expect_issues": [
+        {
+          "path": "rate_annual",
+          "message": "must be a decimal between -1 and 1 but is 6.5 (rates are decimals: pass 0.065 for 6.5%)"
+        },
+        {
+          "path": "min_dscr",
+          "message": "must be at most 10 but is 130 (DSCR is a ratio: pass 1.3 for 1.3x coverage)"
+        }
+      ]
+    },
+    {
+      "tool": "calc_npv",
+      "arguments": {
+        "cash_flows": [-100, 10, 10, 110],
+        "rate": -8
+      },
+      "expect_error": "CalcInputError",
+      "expect_issues": [
+        {
+          "path": "rate",
+          "message": "must be a decimal between -1 and 1 but is -8 (rates are decimals: pass -0.08 for -8%)"
+        }
+      ]
+    },
+    {
+      "tool": "calc_cam_reconciliation",
+      "arguments": {
+        "year": 2026,
+        "pro_rata_share": 25,
+        "expenses": [
+          {
+            "category": "real estate taxes",
+            "amount": 300000,
+            "controllable": false
+          },
+          {
+            "category": "insurance",
+            "amount": 50000,
+            "controllable": false
+          },
+          {
+            "category": "janitorial",
+            "amount": 200000,
+            "variable": true
+          },
+          {
+            "category": "repairs & maintenance",
+            "amount": 150000
+          },
+          {
+            "category": "roof replacement",
+            "amount": 400000,
+            "recoverable": false
+          }
+        ],
+        "gross_up": {
+          "actual_occupancy": 0.8,
+          "target_occupancy": 0.95
+        },
+        "estimates_paid": 60000,
+        "cap": {
+          "method": "compounding_from_base",
+          "rate": 0.05,
+          "reference_amount": 30000,
+          "years_elapsed": 3
+        }
+      },
+      "expect_error": "CalcInputError",
+      "expect_message_contains": [
+        "shares and ratios are decimals: pass 0.25 for 25%"
+      ]
+    },
+    {
+      "tool": "calc_debt_sizing",
+      "arguments": {
+        "noi": 1000000,
+        "rate_annual": 0.06,
+        "amortization_years": 30,
+        "max_ltv": 75,
+        "min_dscr": 1.25,
+        "min_debt_yield": 0.09,
+        "value": 15000000
+      },
+      "expect_error": "CalcInputError",
+      "expect_message_contains": [
+        "shares and ratios are decimals: pass 0.75 for 75%"
+      ]
+    },
+    {
+      "tool": "calc_debt_sizing",
+      "arguments": {
+        "noi": 1000000,
+        "rate_annual": 0.06,
+        "amortization_years": 30,
+        "max_ltv": 0.65,
+        "min_dscr": 1.25,
+        "min_debt_yield": 9,
+        "value": 15000000
+      },
+      "expect_error": "CalcInputError",
+      "expect_message_contains": [
+        "shares and ratios are decimals: pass 0.09 for 9%"
+      ]
+    },
+    {
+      "tool": "calc_cam_reconciliation",
+      "arguments": {
+        "year": 2026,
+        "pro_rata_share": 0.1,
+        "expenses": [
+          {
+            "category": "real estate taxes",
+            "amount": 300000,
+            "controllable": false
+          },
+          {
+            "category": "insurance",
+            "amount": 50000,
+            "controllable": false
+          },
+          {
+            "category": "janitorial",
+            "amount": 200000,
+            "variable": true
+          },
+          {
+            "category": "repairs & maintenance",
+            "amount": 150000
+          },
+          {
+            "category": "roof replacement",
+            "amount": 400000,
+            "recoverable": false
+          }
+        ],
+        "gross_up": {
+          "actual_occupancy": 78,
+          "target_occupancy": 0.95
+        },
+        "estimates_paid": 60000,
+        "cap": {
+          "method": "compounding_from_base",
+          "rate": 0.05,
+          "reference_amount": 30000,
+          "years_elapsed": 3
+        }
+      },
+      "expect_error": "CalcInputError",
+      "expect_message_contains": [
+        "shares and ratios are decimals: pass 0.78 for 78%"
+      ]
     }
   ]
 }

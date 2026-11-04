@@ -197,31 +197,32 @@ export function exchange1031(raw: Exchange1031Input): CalcResult<Exchange1031> {
   let identification: Exchange1031["identification"] = null;
   const props = input.identified_properties;
   if (props.length > 0) {
+    // An identification delivered after the 45-day deadline is not an identification
+    // (IRC §1031(a)(3)(A)): it is left out of the count, the value, every
+    // test, and the received share, and is only listed under late_identifications.
+    const isLate = (x: (typeof props)[number]): boolean =>
+      x.identified_date !== undefined && x.identified_date > idDeadline;
+    const onTime = props.filter((x) => !isLate(x));
+    const late = props.filter(isLate).map((x) => x.name);
+    // Property received after the exchange deadline was identified, but is not received
+    // in time: it counts toward the identified value, not toward the 95% received value.
+    const receivedLate = (x: (typeof props)[number]): boolean =>
+      x.received &&
+      x.received_date !== undefined &&
+      x.received_date > exDeadline;
+    const lateReceipts = props.filter(receivedLate).map((x) => x.name);
     let total = 0;
     let received = 0;
-    for (const x of props) {
+    for (const x of onTime) {
       total += x.fair_market_value;
-      if (x.received) received += x.fair_market_value;
+      if (x.received && !receivedLate(x)) received += x.fair_market_value;
     }
-    const three = props.length <= 3;
-    const twoHundred = reduceNoise(total) <= reduceNoise(2 * rel.sale_price);
-    const late = props
-      .filter(
-        (x) =>
-          x.identified_date !== undefined && x.identified_date > idDeadline,
-      )
-      .map((x) => x.name);
-    const lateReceipts = props
-      .filter(
-        (x) =>
-          x.received &&
-          x.received_date !== undefined &&
-          x.received_date > exDeadline,
-      )
-      .map((x) => x.name);
+    const any = onTime.length > 0;
+    const three = any && onTime.length <= 3;
+    const twoHundred =
+      any && reduceNoise(total) <= reduceNoise(2 * rel.sale_price);
     const ninetyFive =
-      reduceNoise(received) >= reduceNoise(0.95 * total) &&
-      lateReceipts.length === 0;
+      any && reduceNoise(received) >= reduceNoise(0.95 * total);
     const rule: IdentificationRule | null = three
       ? "three_property"
       : twoHundred
@@ -232,21 +233,21 @@ export function exchange1031(raw: Exchange1031Input): CalcResult<Exchange1031> {
     t.step(
       "Three-property rule",
       three ? "met" : "not met",
-      `Treas. Reg. §1.1031(k)-1(c)(4)(i)(A): ${props.length} identified, at most 3`,
+      `Treas. Reg. §1.1031(k)-1(c)(4)(i)(A): ${onTime.length} identified in time, at most 3`,
     );
     t.step(
       "200% rule",
       twoHundred ? "met" : "not met",
       `Treas. Reg. §1.1031(k)-1(c)(4)(i)(B): ${fmtMoney(total)} identified ≤ 200% × ${fmtMoney(rel.sale_price)} = ${fmtMoney(2 * rel.sale_price)}`,
     );
-    if (!three && !twoHundred)
+    if (any && !three && !twoHundred)
       t.step(
         "95% exception",
         ninetyFive ? "met" : "not met",
         `Treas. Reg. §1.1031(k)-1(c)(4)(ii)(B): ${fmtMoney(received)} received ≥ 95% × ${fmtMoney(total)} = ${fmtMoney(0.95 * total)}, each by the exchange deadline`,
       );
     identification = {
-      count: props.length,
+      count: onTime.length,
       total_fair_market_value: round(total, 2),
       ratio_to_relinquished: round(total / rel.sale_price, 4),
       three_property_rule: three,
@@ -257,17 +258,21 @@ export function exchange1031(raw: Exchange1031Input): CalcResult<Exchange1031> {
       late_identifications: late,
       late_receipts: lateReceipts,
     };
-    if (rule === null)
+    if (!any)
+      t.warn(
+        "Every identification was delivered after the 45-day deadline, so the taxpayer is treated as having identified no replacement property.",
+      );
+    else if (rule === null)
       t.warn(
         "The identification meets none of the three-property, 200%, or 95% tests: Treas. Reg. §1.1031(k)-1(c)(4)(ii)(A) treats the taxpayer as having identified no replacement property.",
       );
     if (late.length > 0)
       t.warn(
-        `Identified after the ${idDeadline} deadline: ${late.join(", ")}.`,
+        `Identified after the ${idDeadline} deadline: ${late.join(", ")}. A late identification does not count${any ? ": it is left out of the count, the total value, and the tests" : ""}.`,
       );
     if (lateReceipts.length > 0)
       t.warn(
-        `Received after the ${exDeadline} exchange deadline: ${lateReceipts.join(", ")}.`,
+        `Received after the ${exDeadline} exchange deadline: ${lateReceipts.join(", ")}. Not counted as received for the 95% exception.`,
       );
     if (rule === "95_percent")
       t.warn(
@@ -401,7 +406,7 @@ export function exchange1031(raw: Exchange1031Input): CalcResult<Exchange1031> {
   );
   t.warn(NOT_TAX_ADVICE);
 
-  return t.result("calc.exchange_1031", 1, {
+  return t.result("calc.exchange_1031", 2, {
     disclaimer: NOT_TAX_ADVICE,
     deadlines: {
       transfer_date: start,

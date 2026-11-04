@@ -5,6 +5,7 @@ import test from "node:test";
 import {
   GPT_ACTIONS_MAX_OPERATIONS,
   GPT_ACTIONS_TOOLS,
+  appliesUnitPolicy,
   anthropicTools,
   bedrockConverseToolConfig,
   geminiTools,
@@ -292,4 +293,54 @@ test("a rate rejected as too big says rates are decimals", () => {
     assert.match(r.error.message, /rates are decimals: pass 0\.065 for 6\.5%/);
     assert.match(r.error.issues[0]!.message, /rates are decimals/);
   }
+});
+
+test("a whole-number percent in any rate field is rejected, whatever the tool's own bound", () => {
+  // npv has no upper bound and the schedules allow up to 10; one policy covers them all.
+  for (const [tool, args, path] of [
+    ["calc_npv", { cash_flows: [-100, 110], rate: 8 }, "rate"],
+    [
+      "calc_rent_schedule",
+      {
+        commencement_date: "2027-01-01",
+        term_months: 24,
+        area_sf: 10000,
+        starting_rent_psf_annual: 30,
+        escalation: { type: "percent", rate: 3 },
+      },
+      "escalation.rate",
+    ],
+  ] as const) {
+    const r = runTool(tool, args);
+    assert.ok(!r.ok, tool);
+    if (!r.ok) {
+      assert.equal(r.error.error, "CalcInputError");
+      assert.equal(r.error.issues[0]?.path, path);
+      assert.match(
+        r.error.issues[0]!.message,
+        /rates are decimals: pass 0\.0\d for \d%/,
+      );
+    }
+  }
+  // a decimal is still fine, and so is a rate field a tool does not police (free-form fact values)
+  assert.ok(runTool("calc_npv", { cash_flows: [-100, 110], rate: 0.08 }).ok);
+  assert.ok(!appliesUnitPolicy("fact_validate"));
+  assert.ok(appliesUnitPolicy("lease_comp_validate"));
+  assert.ok(appliesUnitPolicy("calc_anything_new"));
+});
+
+test("a share or ratio rejected as too big says to pass a decimal", () => {
+  const r = runTool("calc_debt_sizing", {
+    noi: 1000000,
+    value: 15000000,
+    rate_annual: 0.065,
+    amortization_years: 30,
+    max_ltv: 75,
+  });
+  assert.ok(!r.ok);
+  if (!r.ok)
+    assert.match(
+      r.error.issues[0]!.message,
+      /shares and ratios are decimals: pass 0\.75 for 75%/,
+    );
 });

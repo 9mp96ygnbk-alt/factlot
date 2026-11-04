@@ -349,12 +349,23 @@ def exchange(transfer, due=None, sale=0, costs=0, debt=0, basis=None, cash_out=0
     out = {"id": id_dl, "ex": ex_dl, "basis": "tax_return_due_date" if due and due < d180 else "180_days"}
     S = D(str(sale))
     if props:
-        total = sum(D(str(v)) for v, _ in props)
-        received = sum(D(str(v)) for v, r in props if r)
-        out["three"] = len(props) <= 3
-        out["two_hundred"] = total <= 2 * S
-        out["ninety_five"] = received >= D("0.95") * total
+        # props: (fair market value, received, identified_date, received_date). A property identified
+        # after the 45-day deadline is not an identification: out of the count, value, tests and
+        # received share. A property received after the exchange deadline is not received in time.
+        on_time = [p for p in props if not (p[2] and p[2] > id_dl)]
+        total = sum((D(str(p[0])) for p in on_time), D(0))
+        received = sum((D(str(p[0])) for p in on_time if p[1] and not (p[3] and p[3] > ex_dl)), D(0))
+        out["received_share"] = rq(received / total, 4) if total > 0 else D(0)
+        out["count"] = len(on_time)
+        out["total"] = total
+        out["three"] = 0 < len(on_time) <= 3
+        out["two_hundred"] = bool(on_time) and total <= 2 * S
+        out["ninety_five"] = bool(on_time) and received >= D("0.95") * total
         out["ratio"] = rq(total / S, 4)
+        out["late_ids"] = [p[4] for p in props if p[2] and p[2] > id_dl]
+        out["late_receipts"] = [p[4] for p in props if p[1] and p[3] and p[3] > ex_dl]
+        out["rule"] = ("three_property" if out["three"] else "200_percent" if out["two_hundred"]
+                       else "95_percent" if out["ninety_five"] else None)
     if price is not None:
         realized = S - D(str(costs))
         equity = realized - D(str(debt))

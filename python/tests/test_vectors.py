@@ -94,6 +94,8 @@ class ToolVectors(unittest.TestCase):
                     self.assertEqual(out.get("error"), case["expect_error"])
                     if "expect_issues" in case:
                         self.assertEqual(out.get("issues"), case["expect_issues"])
+                    for text in case.get("expect_message_contains", []):
+                        self.assertIn(text, out.get("message", ""))
                     continue
                 self.assertNotIn("error", out)
                 for path, expected in case["expect"].items():

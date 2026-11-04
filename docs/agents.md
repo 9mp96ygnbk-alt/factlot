@@ -16,6 +16,10 @@ an identifier. This page covers which tool to call, when, and how to report the 
    A human can check every intermediate value without redoing the work.
 3. **Surface warnings.** `warnings` lists assumptions that need a human, such as the order of a
    CAM cap versus the base year, or a prorated breakpoint.
+   Pass rates as decimals (0.065 for 6.5%): every `calc_*` tool and `lease_comp_validate` rejects a
+   rate field above 1 in absolute value, and a `min_dscr` above 10, with an error that names the
+   decimal you probably meant. Shares and ratios (`pro_rata_share`, `max_ltv`, occupancy) are
+   decimals too.
 4. **Use FactLot IDs as join keys.** Compute `id_parcel`, `id_entity`, `id_building`, `id_space`,
    and `id_document` IDs offline. Two agents given the same county parcel number, state file
    number, or street address always produce the same ID.
@@ -136,7 +140,9 @@ spreadsheet or another model before relying on a figure:
   (IRC §1031(a)(3)), ends the exchange period at `tax_return_due_date` when that is earlier, applies
   the three-property, 200%, and 95% tests of Treas. Reg. §1.1031(k)-1(c)(4), and nets boot: cash
   boot is cash taken plus exchange funds not reinvested; mortgage boot is debt relieved less new debt
-  and cash added. It does not move deadlines for weekends, holidays, or disaster relief.
+  and cash added. A property identified after the 45-day deadline is left out of the count, value,
+  and tests (and listed under `late_identifications`); one received after the exchange deadline does
+  not count toward the 95% exception. It does not move deadlines for weekends, holidays, or disaster relief.
 
 ## Example: Claude Messages API with the Python SDK
 

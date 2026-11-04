@@ -183,34 +183,79 @@ export function unknownFields(
   return out;
 }
 
-// --- implausible inputs -----------------------------------------------------------------------
+// --- whole-number percents ----------------------------------------------------------------------
 
+/** Rate fields: a decimal fraction (0.065 for 6.5%). */
 const RATE_KEY = /^(?:rate|rate_annual|.+_rate|.+_rate_annual)$/;
+/** Share and ratio fields that are also decimal fractions (0.25 for 25%). */
+const SHARE_KEY =
+  /^(?:share|.+_share|ltv|.+_ltv|(?:.+_)?occupancy(?:_.+)?|(?:.+_)?debt_yield|.+_pct)$/;
+/** A minimum DSCR is a coverage ratio (1.25 for 1.25x), not a decimal fraction. */
+const DSCR_KEY = "min_dscr";
+const DSCR_MAX = 10;
+
+/** `pass` for a whole-number percent: 6.5 becomes 0.065. */
+const asDecimal = (v: number): number => v / 100;
 
 /**
- * Warnings for inputs that are valid but almost certainly a unit slip: a rate above 1 (a
- * whole-number percent such as 8 for 8%) or a minimum DSCR above 10 (125 for 1.25x).
- * Must match `implausible_input_warnings` in python/src/factlot/tools.py.
+ * One policy for whole-number percents, shared by every surface: a rate field (RATE_KEY) above
+ * 1 in absolute value, or a min_dscr above 10, is a unit slip (8 for 8%, 130 for 1.3x), and the
+ * tool rejects it instead of computing 800%. Returns the hint that names the likely value, or
+ * undefined when the field is fine. Share and ratio fields (SHARE_KEY) are bounded by each
+ * tool's schema; the hint is added when that bound rejects them (withRateHints).
  */
-export function implausibleInputWarnings(value: unknown, path = ""): string[] {
+function unitSlip(
+  key: string,
+  v: number,
+): { rejectMessage?: string; hint?: string } {
+  if (RATE_KEY.test(key) && Math.abs(v) > 1) {
+    const hint = `rates are decimals: pass ${asDecimal(v)} for ${v}%`;
+    return {
+      rejectMessage: `must be a decimal between -1 and 1 but is ${v} (${hint})`,
+      hint: ` (${hint})`,
+    };
+  }
+  if (key === DSCR_KEY && v > DSCR_MAX)
+    return {
+      rejectMessage: `must be at most ${DSCR_MAX} but is ${v} (DSCR is a ratio: pass ${asDecimal(v)} for ${asDecimal(v)}x coverage)`,
+    };
+  if (SHARE_KEY.test(key) && v > 1)
+    return {
+      hint: ` (shares and ratios are decimals: pass ${asDecimal(v)} for ${v}%)`,
+    };
+  return {};
+}
+
+/**
+ * Tools the whole-number-percent rejection covers: every calculator, and lease_comp_validate
+ * (its comp carries an escalation rate and it derives a net effective rent). A new calc_ tool
+ * inherits the check. Other tools take free-form fact values and judge them themselves.
+ * Must match `applies_unit_policy` in python/src/factlot/tools.py.
+ */
+export function appliesUnitPolicy(toolName: string): boolean {
+  return toolName.startsWith("calc_") || toolName === "lease_comp_validate";
+}
+
+/**
+ * Every rate field above 1 (or min_dscr above 10) anywhere in the arguments, as input issues.
+ * Must match `unit_slip_issues` in python/src/factlot/tools.py.
+ */
+export function unitSlipIssues(
+  value: unknown,
+  path = "",
+): { path: string; message: string }[] {
   if (Array.isArray(value))
     return value.flatMap((v, i) =>
-      implausibleInputWarnings(v, path ? `${path}.${i}` : String(i)),
+      unitSlipIssues(v, path ? `${path}.${i}` : String(i)),
     );
   if (!isPlainObject(value)) return [];
-  const out: string[] = [];
+  const out: { path: string; message: string }[] = [];
   for (const [k, v] of Object.entries(value)) {
     const at = path ? `${path}.${k}` : k;
     if (typeof v === "number") {
-      if (RATE_KEY.test(k) && Math.abs(v) > 1)
-        out.push(
-          `${at} is ${v}: FactLot reads rates as decimals (0.03 = 3%). If you meant ${v}%, pass ${v / 100}.`,
-        );
-      else if (k === "min_dscr" && v > 10)
-        out.push(
-          `${at} is ${v}: DSCR is a ratio (1.25 = 1.25x coverage). If you meant ${v / 100}x, pass ${v / 100}.`,
-        );
-    } else out.push(...implausibleInputWarnings(v, at));
+      const slip = unitSlip(k, v).rejectMessage;
+      if (slip !== undefined) out.push({ path: at, message: slip });
+    } else out.push(...unitSlipIssues(v, at));
   }
   return out;
 }
@@ -226,11 +271,9 @@ function valueAt(args: unknown, path: string): unknown {
   return v;
 }
 
-const RATE_HINT = " (rates are decimals: pass 0.065 for 6.5%)";
-
 /**
- * Adds a hint to issues on rate fields whose value is above 1: the usual cause is a
- * whole-number percent. Must match `rate_hints` in python/src/factlot/tools.py.
+ * Adds a hint to issues on rate, share and ratio fields whose value is above 1: the usual cause
+ * is a whole-number percent. Must match `rate_hints` in python/src/factlot/tools.py.
  */
 export function withRateHints<T extends { path: string; message: string }>(
   args: unknown,
@@ -239,8 +282,7 @@ export function withRateHints<T extends { path: string; message: string }>(
   return issues.map((i) => {
     const key = i.path.split(".").pop() ?? "";
     const v = valueAt(args, i.path);
-    return RATE_KEY.test(key) && typeof v === "number" && Math.abs(v) > 1
-      ? { ...i, message: i.message + RATE_HINT }
-      : i;
+    const hint = typeof v === "number" ? unitSlip(key, v).hint : undefined;
+    return hint === undefined ? i : { ...i, message: i.message + hint };
   });
 }

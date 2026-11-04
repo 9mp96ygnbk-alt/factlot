@@ -2581,5 +2581,5 @@ CALCULATORS: dict[str, tuple[Callable[[Any], Result], str, int]] = {
     "direct_cap": (direct_cap, "calc.direct_cap", 1),
     "amortization_schedule": (amortization_schedule, "calc.amortization_schedule", 1),
     "equity_waterfall": (equity_waterfall, "calc.equity_waterfall", 1),
-    "exchange_1031": (exchange_1031, "calc.exchange_1031", 1),
+    "exchange_1031": (exchange_1031, "calc.exchange_1031", 2),
 }
