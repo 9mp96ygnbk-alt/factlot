@@ -1,0 +1,71 @@
+{
+ "doc": "L09",
+ "labels": [
+  {
+   "predicate": "lease.landlord",
+   "value": "BAYSIDE AREA DEVELOPMENT, LLC",
+   "page": 1,
+   "quote": "BAYSIDE AREA DEVELOPMENT, LLC, a Delaware limited liability company (\"Landlord\")"
+  },
+  {
+   "predicate": "lease.tenant",
+   "value": "MYRIAD GENETICS, INC.",
+   "page": 1,
+   "quote": "MYRIAD GENETICS, INC., a Delaware corporation (\"Tenant\")",
+   "note": "Lease Commencement Date is the earlier of Substantial Completion of the Tenant Improvements and nine months after the Possession Date; expiration is the day before the tenth anniversary of it. No commencement, expiration or dated rent step is stated, so none is labeled."
+  },
+  {
+   "predicate": "lease.rentable_area_sf",
+   "value": 63246,
+   "page": 1,
+   "quote": "Approximately 63,246 RSF in the aggregate, located on the 4th and 5th floors of the Building"
+  },
+  {
+   "predicate": "lease.free_rent",
+   "value": {
+    "months": 3,
+    "applies_to": "base_rent"
+   },
+   "page": 8,
+   "quote": "Tenant shall have no obligation to pay any Base Rent (the \"Rent Abatement\") attributable to the first three (3) months of the Lease Term (the \"Rent Abatement Period\")",
+   "note": "Base Rent only; conditioned on no uncured default."
+  },
+  {
+   "predicate": "lease.pro_rata_share",
+   "value": 0.4262,
+   "page": 2,
+   "quote": "Tenant's Share (Article 4): 42.62%"
+  },
+  {
+   "predicate": "lease.security_deposit",
+   "value": 1163675,
+   "page": 2,
+   "quote": "Letter of Credit (Article 21): $1,163,675.00",
+   "note": "Letter of Credit amount (Summary section 8)."
+  },
+  {
+   "predicate": "lease.renewal_option",
+   "value": {
+    "count": 1,
+    "term_months": 120,
+    "notice_months": 9,
+    "rent": "Market Rent (Exhibit F) for the first year of the Option Term"
+   },
+   "page": 6,
+   "quote": "one (1) option to extend the Lease Term for a period of ten (10) years (the \"Option Term\")",
+   "note": "Exercise window is not more than 12 nor less than 9 months before expiration; notice_months is the 9-month minimum."
+  },
+  {
+   "predicate": "lease.rofo",
+   "value": "Right of first offer on the 3rd floor of the Building (First Offer Space), subject and subordinate to existing tenants' rights, from the Lease Commencement Date through the first five Lease Years.",
+   "page": 5,
+   "quote": "a right of first offer with respect to the space located on the 3rd floor of the Building (the \"First Offer Space\")"
+  },
+  {
+   "predicate": "lease.assignment_sublease",
+   "value": "Transfers require Landlord's consent, not to be unreasonably withheld, conditioned or delayed; Transfer Premium sharing and recapture provisions apply; transfers to Affiliates and certain successors are Non-Transfers under Section 14.8.",
+   "page": 26,
+   "quote": "Landlord shall not unreasonably withhold, condition or delay its consent to any proposed Transfer of the Subject Space to the Transferee on the terms specified in the Transfer Notice."
+  }
+ ]
+}
