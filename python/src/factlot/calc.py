@@ -2577,7 +2577,7 @@ CALCULATORS: dict[str, tuple[Callable[[Any], Result], str, int]] = {
     "lease_vs_own": (lease_vs_own, "calc.lease_vs_own", 2),
     "renew_vs_relocate": (renew_vs_relocate, "calc.renew_vs_relocate", 2),
     "hotel_metrics": (hotel_metrics, "calc.hotel_metrics", 1),
-    "dcf_pro_forma": (dcf_pro_forma, "calc.dcf_pro_forma", 1),
+    "dcf_pro_forma": (dcf_pro_forma, "calc.dcf_pro_forma", 2),
     "direct_cap": (direct_cap, "calc.direct_cap", 1),
     "amortization_schedule": (amortization_schedule, "calc.amortization_schedule", 1),
     "equity_waterfall": (equity_waterfall, "calc.equity_waterfall", 1),

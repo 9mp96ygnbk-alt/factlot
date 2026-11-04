@@ -17,9 +17,9 @@ OUT = Path(__file__).resolve().parents[1]
 n = ref.num
 
 
-def write(calc, cases):
+def write(calc, cases, version=1):
     path = OUT / f"{calc}.json"
-    path.write_text(json.dumps({"calculator": f"calc.{calc}", "version": 1, "cases": cases}, indent=2,
+    path.write_text(json.dumps({"calculator": f"calc.{calc}", "version": version, "cases": cases}, indent=2,
                                ensure_ascii=False) + "\n")
     print("wrote", path.name, len(cases), "cases")
 
@@ -146,8 +146,8 @@ def dcf_case(name, inp, rows=(), extra=None):
         e[f"value.lease_events.{i}.kind"] = ev["kind"]
         e[f"value.lease_events.{i}.start_month"] = ev["start"]
         e[f"value.lease_events.{i}.end_month"] = ev["end"]
-        e[f"value.lease_events.{i}.downtime_months"] = ev["downtime"]
-        e[f"value.lease_events.{i}.free_rent_months"] = ev["free"]
+        e[f"value.lease_events.{i}.downtime_months"] = n(ev["downtime"])
+        e[f"value.lease_events.{i}.free_rent_months"] = n(ev["free"])
         e[f"value.lease_events.{i}.rent_psf_annual"] = n(ref.rq(ev["psf"], 4))
         e[f"value.lease_events.{i}.tenant_improvements"] = n(ref.r2(ev["ti"]))
         e[f"value.lease_events.{i}.leasing_commission"] = n(ref.r2(ev["lc"]))
@@ -184,6 +184,59 @@ mid = dict(multi, timing="mid_year", exit_noi_basis="trailing")
 mid.pop("purchase_price")
 c3, _ = dcf_case("the same rent roll with mid-year discounting and a trailing exit NOI", mid)
 dcf_cases = [c1, c2, c3]
+
+# Review case H10-P02: 12-month leases, 1 month of new-tenant downtime. At p = 0.55 the blended downtime is
+# 0.45 months; formula version 1 rounded it to 0, so the result equalled p = 1.0. Each rollover's first month
+# now collects 55% of its rent.
+annual = {"hold_years": 5, "leases": [
+    {"name": "Plan A 1x1 (40 units)", "area_sf": 32000, "rent_psf_annual": 14.4, "months_remaining": 12,
+     "market_rent_psf_annual": 15.12, "recovery": "gross"},
+    {"name": "Plan B 2x2 (24 units)", "area_sf": 26400, "rent_psf_annual": 20.4, "months_remaining": 12,
+     "market_rent_psf_annual": 21.0, "recovery": "gross"}],
+    "market_leasing": {"renewal_probability": 1.0, "lease_term_months": 12, "downtime_months": 1,
+                       "renewal_rent_pct_of_market": 1.0, "recovery": "gross"},
+    "market_rent_growth_rate": 0.03, "operating_expenses_psf_annual": 5.7, "expense_growth_rate": 0.03,
+    "management_fee_rate": 0.03, "general_vacancy_rate": 0.05, "credit_loss_rate": 0.005,
+    "capital_reserve_psf_annual": 0.3, "exit_cap_rate": 0.0625, "selling_cost_rate": 0.015, "discount_rate": 0.08,
+    "purchase_price": 8000000}
+c4, _ = dcf_case("review case H10-P02, renewal probability 1.0: 12-month leases roll every year with no downtime",
+                 annual, rows=[1, 2, 6])
+annual55 = {**annual, "market_leasing": {**annual["market_leasing"], "renewal_probability": 0.55}}
+c5, _ = dcf_case("review case H10-P02, renewal probability 0.55: blended downtime 0.45 months is kept (the first month "
+                 "of each rollover lease collects 55%), so the value is below the p = 1.0 case",
+                 annual55, rows=[1, 2, 6], extra={"value.lease_events.1.start_month": 13,
+                                                  "value.lease_events.1.downtime_months": 0.45})
+
+# Review case H13-P07: Suite 300 (vacant) is leased months 10-69; the rollover after month 69 has 3.15 months of
+# blended downtime, so months 70-72 are vacant and the next lease starts in month 73, after the projection. It is
+# listed in lease_events; its TI and LC are not in the cash flows, and the warnings say so. Also fractional free
+# rent (2.05 months) and downtime (3.15 months) on Suite 200.
+office = {"hold_years": 5, "leases": [
+    {"name": "Suite 100", "area_sf": 30000, "rent_psf_annual": 32, "months_remaining": 72, "escalation_rate": 0.025,
+     "next_escalation_month": 13, "recovery": "nnn", "market_rent_psf_annual": 34},
+    {"name": "Suite 200", "area_sf": 20000, "rent_psf_annual": 30, "months_remaining": 24, "escalation_rate": 0.02,
+     "next_escalation_month": 13, "recovery": "nnn", "market_rent_psf_annual": 33},
+    {"name": "Suite 300 vacant", "area_sf": 10000, "rent_psf_annual": 0, "months_remaining": 0,
+     "market_rent_psf_annual": 33}],
+    "market_leasing": {"renewal_probability": 0.65, "lease_term_months": 60, "downtime_months": 9,
+                       "renewal_rent_pct_of_market": 0.95, "rent_escalation_rate": 0.03, "free_rent_months_new": 4,
+                       "free_rent_months_renewal": 1, "ti_psf_new": 40, "ti_psf_renewal": 10, "lc_rate_new": 0.06,
+                       "lc_rate_renewal": 0.03, "recovery": "nnn"},
+    "market_rent_growth_rate": 0.03, "operating_expenses_psf_annual": 12, "non_recoverable_expenses_annual": 60000,
+    "expense_growth_rate": 0.03, "management_fee_rate": 0.03, "general_vacancy_rate": 0.05, "credit_loss_rate": 0.005,
+    "capital_reserve_psf_annual": 0.25, "exit_cap_rate": 0.0725, "selling_cost_rate": 0.02, "discount_rate": 0.085,
+    "purchase_price": 17500000}
+c6, r6 = dcf_case("review case H13-P07: a second-generation lease expiring in the forward year rolls over; its "
+                  "3.15 months of downtime fill months 70-72 and the next lease (month 73) is listed but outside the "
+                  "cash flows", office, rows=[2, 3, 6], extra={
+                      "value.lease_events.4.start_month": 73,
+                      "warnings.1": "The exit year (year 6) has rollover downtime (Suite 300 vacant: 3 months); its NOI "
+                                    "is capitalized as is. Normalize it if a buyer would not.",
+                      "warnings.2": "Rollover leases that start after the projection ends (month 72) are in "
+                                    "lease_events, but their TI and leasing commissions are not in the cash flows: "
+                                    "Suite 300 vacant (month 73)."})
+assert r6["events"][4]["start"] == 73 and r6["rows"][5]["ti"] == 0
+dcf_cases += [c4, c5, c6]
 dcf_cases += [
     {"name": "base_year recovery needs the lease's base", "input": {**single, "leases": [
         {**single["leases"][0], "recovery": "base_year"}]}, "expect_error": True},
@@ -192,7 +245,7 @@ dcf_cases += [
     {"name": "renewal probability is between 0 and 1", "input": {**single, "market_leasing": {
         **single["market_leasing"], "renewal_probability": 65}}, "expect_error": True},
 ]
-write("dcf_pro_forma", dcf_cases)
+write("dcf_pro_forma", dcf_cases, version=2)
 
 # --- equity_waterfall -------------------------------------------------------------------------
 

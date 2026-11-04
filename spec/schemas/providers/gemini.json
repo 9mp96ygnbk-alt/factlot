@@ -2607,7 +2607,7 @@
         },
         {
           "name": "calc_dcf_pro_forma",
-          "description": "Property-level discounted cash flow from an in-place rent roll: each lease's rent, escalations, remaining term, and expense recovery (NNN, gross, base year), then at expiration one blended lease weighted by the renewal probability (renewal vs new-tenant rent, free rent, TI, leasing commissions, and new-tenant downtime, rounded to whole months); market rent growth, general vacancy and credit loss, operating expenses, management fee, and capital reserves. Returns the annual cash-flow table (NOI and cash flow before debt) for the hold plus one year, the exit value at a cap rate on forward (or trailing) NOI less selling costs, the value (PV at the discount rate, end-of-year or mid-year), and with a purchase price the NPV, unlevered IRR, and equity multiple, with every lease event and convention stated. Deterministic: use this instead of doing the math yourself; cite formula calc.dcf_pro_forma@1 and the returned steps, and surface any warnings.",
+          "description": "Property-level discounted cash flow from an in-place rent roll: each lease's rent, escalations, remaining term, and expense recovery (NNN, gross, base year), then at expiration one blended lease weighted by the renewal probability (renewal vs new-tenant rent, free rent, TI, leasing commissions, and new-tenant downtime, with fractional downtime and free rent kept as part months rather than rounded); market rent growth, general vacancy and credit loss, operating expenses, management fee, and capital reserves. Returns the annual cash-flow table (NOI and cash flow before debt) for the hold plus one year, the exit value at a cap rate on forward (or trailing) NOI less selling costs, the value (PV at the discount rate, end-of-year or mid-year), and with a purchase price the NPV, unlevered IRR, and equity multiple, with every lease event and convention stated. Deterministic: use this instead of doing the math yourself; cite formula calc.dcf_pro_forma@2 and the returned steps, and surface any warnings.",
           "parameters": {
             "type": "object",
             "properties": {
@@ -2696,7 +2696,7 @@
                           "type": "integer",
                           "minimum": 0,
                           "maximum": 60,
-                          "description": "Months vacant before a new tenant starts paying (no downtime is assumed on renewal). Blended downtime = (1 − renewal_probability) × this, rounded to whole months."
+                          "description": "Months vacant before a new tenant starts paying (no downtime is assumed on renewal). Blended downtime = (1 − renewal_probability) × this, kept fractional, not rounded: the suite is vacant for the whole months and the rollover lease's first month collects 1 − the fraction of its rent and recoveries (0.45 months of downtime: the first month collects 55%)."
                         },
                         "renewal_rent_pct_of_market": {
                           "type": "number",
@@ -2720,7 +2720,7 @@
                           "type": "integer",
                           "minimum": 0,
                           "maximum": 60,
-                          "description": "Months of free base rent on a renewal."
+                          "description": "Months of free base rent on a renewal. Blended free rent = p × this + (1 − p) × free_rent_months_new, kept fractional: the whole months are fully abated and the next month by the fraction."
                         },
                         "ti_psf_new": {
                           "type": "number",
@@ -2782,7 +2782,7 @@
                     "type": "integer",
                     "minimum": 0,
                     "maximum": 60,
-                    "description": "Months vacant before a new tenant starts paying (no downtime is assumed on renewal). Blended downtime = (1 − renewal_probability) × this, rounded to whole months."
+                    "description": "Months vacant before a new tenant starts paying (no downtime is assumed on renewal). Blended downtime = (1 − renewal_probability) × this, kept fractional, not rounded: the suite is vacant for the whole months and the rollover lease's first month collects 1 − the fraction of its rent and recoveries (0.45 months of downtime: the first month collects 55%)."
                   },
                   "renewal_rent_pct_of_market": {
                     "type": "number",
@@ -2806,7 +2806,7 @@
                     "type": "integer",
                     "minimum": 0,
                     "maximum": 60,
-                    "description": "Months of free base rent on a renewal. Default: 0."
+                    "description": "Months of free base rent on a renewal. Blended free rent = p × this + (1 − p) × free_rent_months_new, kept fractional: the whole months are fully abated and the next month by the fraction. Default: 0."
                   },
                   "ti_psf_new": {
                     "type": "number",

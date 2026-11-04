@@ -7,6 +7,7 @@ vectors in ``spec/vectors/calc`` and the differential test.
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
 from ._core import (
@@ -380,13 +381,18 @@ def dcf_pro_forma(raw: Any) -> Result:
 
     t.step("Conventions",
            "annual periods built from months: analysis month m is in year ⌊(m − 1) ÷ 12⌋ + 1; rent, recoveries, free "
-           "rent, and downtime are monthly; TI and leasing commissions are paid in the month a rollover lease starts")
+           "rent, and downtime are monthly; TI and leasing commissions are paid in the month a rollover lease starts; "
+           "a rollover lease that starts after the projection is listed in lease_events, but its TI and leasing "
+           "commission are not in the cash flows")
     t.step("Blended rollover",
            "at each expiration one lease is signed with renewal and new-tenant assumptions weighted by the renewal "
            "probability p: rent = market × (p × renewal_rent_pct_of_market + (1 − p)); TI/SF and LC rate = p × "
-           "renewal + (1 − p) × new; free rent = round(p × renewal + (1 − p) × new) months; downtime = round((1 − p) "
-           "× new-tenant downtime) months (rounding half up to whole months). Space vacant at the start is leased to "
-           "a new tenant (p = 0) after the full downtime.")
+           "renewal + (1 − p) × new; downtime D = (1 − p) × new-tenant downtime months and free rent F = p × "
+           "renewal + (1 − p) × new months, both kept fractional (to six decimals), not rounded: the suite is vacant "
+           "for ⌊D⌋ whole months, the lease's first month collects (1 − (D − ⌊D⌋)) of its base rent and recoveries, "
+           "and lease month k (k = 0 first) has min(1, max(0, F − k)) of its base rent abated; the lease term runs "
+           "from that first month. Space vacant at the start is leased to a new tenant (p = 0) after the full "
+           "downtime.")
     t.step("Building area", area, "Σ lease areas", "SF")
 
     potential = [0.0] * (years + 1)
@@ -395,6 +401,10 @@ def dcf_pro_forma(raw: Any) -> Result:
     ti = [0.0] * (years + 1)
     lc = [0.0] * (years + 1)
     events: list[dict[str, Any]] = []
+    # Rollover downtime (months) falling in the year after the hold, by suite.
+    exit_downtime: list[str] = []
+    # Rollover leases that start after the projection ends.
+    late_starts: list[str] = []
 
     for lease in leases:
         L = dict(market)
@@ -410,7 +420,7 @@ def dcf_pro_forma(raw: Any) -> Result:
                 return base * pow_int(1 + esc, (m - first) // 12 + 1) if m >= first else base
 
             segments.append({"start": 1, "end": lease["months_remaining"], "psf": in_place_psf,
-                             "free": lease["free_rent_months_remaining"], "recovery": lease["recovery"],
+                             "free": lease["free_rent_months_remaining"], "first_share": 1, "recovery": lease["recovery"],
                              "base_psf": lease["base_year_opex_psf_annual"] or 0})
             events.append({
                 "lease": lease["name"], "kind": "in_place", "start_month": 1, "end_month": lease["months_remaining"],
@@ -419,15 +429,21 @@ def dcf_pro_forma(raw: Any) -> Result:
                 "tenant_improvements": 0, "leasing_commission": 0,
             })
         prev_end = lease["months_remaining"]
+        exit_down = 0.0
         while prev_end < horizon:
             vacant_start = prev_end == 0
             p = 0 if vacant_start else L["renewal_probability"]
-            downtime = int(round_((1 - p) * L["downtime_months"], 0))
-            start = prev_end + 1 + downtime
-            # Downtime runs past the projection: the suite stays vacant to the end.
-            if start > horizon:
-                break
+            # Blended downtime, kept fractional: whole months vacant, then a partly occupied first month.
+            downtime = round_((1 - p) * L["downtime_months"], 6)
+            whole_down = math.floor(downtime)
+            frac_down = downtime - whole_down
+            start = prev_end + 1 + whole_down
             end = start + L["lease_term_months"] - 1
+            for m in range(prev_end + 1, min(start - 1, horizon) + 1):
+                if _year_of(m) == years:
+                    exit_down += 1
+            if start <= horizon and _year_of(start) == years:
+                exit_down += frac_down
             y0 = _year_of(start)
             start_psf = lease["market_rent_psf_annual"] * market_growth(y0) * (
                 p * L["renewal_rent_pct_of_market"] + (1 - p))
@@ -436,22 +452,29 @@ def dcf_pro_forma(raw: Any) -> Result:
             def spec_psf(m: int, start_psf: float = start_psf, esc_rate: float = esc_rate, start: int = start) -> float:
                 return start_psf * pow_int(1 + esc_rate, (m - start) // 12)
 
-            free_months = min(int(round_(p * L["free_rent_months_renewal"] + (1 - p) * L["free_rent_months_new"], 0)),
+            free_months = min(round_(p * L["free_rent_months_renewal"] + (1 - p) * L["free_rent_months_new"], 6),
                               L["lease_term_months"])
             ti_psf = (p * L["ti_psf_renewal"] + (1 - p) * L["ti_psf_new"]) * market_growth(y0)
             lc_rate = p * L["lc_rate_renewal"] + (1 - p) * L["lc_rate_new"]
             ti_amount = ti_psf * area_sf
             # Commission on the base rent payable over the whole term after free rent, even beyond the
-            # analysis horizon, paid when the lease starts.
+            # analysis horizon, paid when the lease starts. Downtime does not shorten the term.
             term_rent = 0.0
-            for m in range(start + free_months, end + 1):
-                term_rent += (area_sf * spec_psf(m)) / 12
+            for m in range(start, end + 1):
+                abated = min(1, max(0, free_months - (m - start)))
+                if abated < 1:
+                    term_rent += ((area_sf * spec_psf(m)) / 12) * (1 - abated)
             lc_amount = lc_rate * term_rent
-            ti[_year_of(start)] += ti_amount
-            lc[_year_of(start)] += lc_amount
             kind = "new" if vacant_start else "blended"
-            segments.append({"start": start, "end": end, "psf": spec_psf, "free": free_months,
-                             "recovery": L["recovery"], "base_psf": opex_psf(y0)})
+            if start <= horizon:
+                ti[_year_of(start)] += ti_amount
+                lc[_year_of(start)] += lc_amount
+                segments.append({"start": start, "end": end, "psf": spec_psf, "free": free_months,
+                                 "first_share": 1 - frac_down, "recovery": L["recovery"], "base_psf": opex_psf(y0)})
+            else:
+                # Downtime runs past the projection: the suite is vacant to the end and the lease that follows
+                # is reported, but its costs fall after the forward year.
+                late_starts.append(f"{lease['name']} (month {start})")
             events.append({
                 "lease": lease["name"], "kind": kind, "start_month": start, "end_month": end,
                 "renewal_probability": None if vacant_start else p, "downtime_months": downtime,
@@ -460,19 +483,24 @@ def dcf_pro_forma(raw: Any) -> Result:
             })
             prev_end = end
 
+        if exit_down > 0:
+            exit_downtime.append(f"{lease['name']}: {js_number_str(round_(exit_down, 6))} months")
+
         for s in segments:
             for m in range(s["start"], min(s["end"], horizon) + 1):
                 y = _year_of(m)
-                rent = (area_sf * s["psf"](m)) / 12
+                share = s["first_share"] if m == s["start"] else 1
+                rent = ((area_sf * s["psf"](m)) / 12) * share
                 potential[y] += rent
-                if m < s["start"] + s["free"]:
-                    free[y] -= rent
+                abated = min(1, max(0, s["free"] - (m - s["start"])))
+                if abated > 0:
+                    free[y] -= rent * abated
                 rec = 0.0
                 if s["recovery"] == "nnn":
                     rec = (area_sf * opex_psf(y)) / 12
                 elif s["recovery"] == "base_year":
                     rec = (area_sf * max(0, opex_psf(y) - s["base_psf"])) / 12
-                recoveries[y] += rec
+                recoveries[y] += rec * share
 
     rows: list[dict[str, Any]] = []
     for y in range(1, years + 1):
@@ -571,21 +599,32 @@ def dcf_pro_forma(raw: Any) -> Result:
     if vac_rate > 0:
         t.warn("General vacancy is charged on top of the downtime modelled at each rollover (it is not reduced by it); "
                "lower general_vacancy_rate if the market assumption already includes turnover vacancy.")
-    fwd = row(H + 1)
-    if exit_basis == "forward" and (fwd["tenant_improvements"] != 0 or fwd["leasing_commissions"] != 0
-                                    or fwd["free_rent"] != 0):
-        t.warn(f"The exit year (year {H + 1}) has rollover costs or free rent; its NOI is capitalized as is. Normalize "
-               "it if a buyer would not.")
+    if exit_basis == "forward":
+        fwd = row(H + 1)
+        items: list[str] = []
+        if exit_downtime:
+            items.append(f"rollover downtime ({'; '.join(exit_downtime)})")
+        if fwd["free_rent"] != 0:
+            items.append("free rent")
+        if fwd["tenant_improvements"] != 0 or fwd["leasing_commissions"] != 0:
+            items.append("TI or leasing commissions")
+        if items:
+            t.warn(f"The exit year (year {H + 1}) has {', '.join(items)}; its NOI is capitalized as is. Normalize it if "
+                   "a buyer would not.")
+    if late_starts:
+        t.warn(f"Rollover leases that start after the projection ends (month {horizon}) are in lease_events, but their "
+               f"TI and leasing commissions are not in the cash flows: {', '.join(late_starts)}.")
     if exit_noi <= 0:
         t.warn("The exit NOI is not positive, so the sale price is not positive.")
     if not any(e["kind"] != "in_place" for e in events):
         t.warn("No lease rolls within the projection; the result does not depend on the leasing assumptions.")
     t.warn("Conventions to confirm against your model: annual periods from monthly lease events; blended rollover "
-           "assumptions with downtime and free rent rounded to whole months; TI and LC paid when the rollover lease "
+           "assumptions with fractional downtime and free rent (whole months, then a part month for the fraction, not "
+           "rounded); TI and LC paid when the rollover lease "
            "starts; free rent abates base rent only; general vacancy and credit loss on gross revenue. ARGUS and other "
            "tools differ in some of these.")
 
-    return t.result("calc.dcf_pro_forma", 1, {
+    return t.result("calc.dcf_pro_forma", 2, {
         "hold_years": H,
         "building_area_sf": area,
         "cash_flows": rows,

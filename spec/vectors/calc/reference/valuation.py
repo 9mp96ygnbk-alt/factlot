@@ -26,10 +26,6 @@ def rq(x, places):
     return x.quantize(D(1).scaleb(-places), rounding=ROUND_HALF_UP)
 
 
-def whole(x):
-    return int(x.quantize(D(1), rounding=ROUND_HALF_UP))
-
-
 def num(x):
     """JSON number for a Decimal: int when whole, else float of the decimal string."""
     if isinstance(x, D):
@@ -132,6 +128,11 @@ def direct_cap(noi, cap=None, price=None, reserve=0, lease_up=0, burn=0, others=
 
 # --- DCF ---------------------------------------------------------------------------------------
 
+def abate(free, k):
+    """Share of lease month k (0 = first) that is free rent: the whole months, then the fraction."""
+    return min(D(1), max(D(0), D(free) - k))
+
+
 def dcf(inp):
     H = inp["hold_years"]
     months = (H + 1) * 12
@@ -165,28 +166,31 @@ def dcf(inp):
         def sign_lease(prev_end):
             vacant = prev_end == 0
             p = D(0) if vacant else D(str(a["renewal_probability"]))
-            down = whole((1 - p) * a["downtime_months"])
-            s = prev_end + 1 + down
+            # fractional blended downtime: floor(D) vacant months, then the first lease month at 1 - frac(D)
+            down = rq((1 - p) * a["downtime_months"], 6)
+            wd = int(down.to_integral_value(rounding=ROUND_FLOOR))
+            share0 = 1 - (down - wd)
+            s = prev_end + 1 + wd
             T = a["lease_term_months"]
             y0 = year(s)
             mrent = D(str(l["market_rent_psf_annual"])) * (1 + g) ** (y0 - 1)
             psf0 = mrent * (p * D(str(a["renewal_rent_pct_of_market"])) + 1 - p)
             e = D(str(a["rent_escalation_rate"]))
-            fr = min(whole(p * a["free_rent_months_renewal"] + (1 - p) * a["free_rent_months_new"]), T)
+            fr = min(rq(p * a["free_rent_months_renewal"] + (1 - p) * a["free_rent_months_new"], 6), D(T))
             ti = (p * D(str(a["ti_psf_renewal"])) + (1 - p) * D(str(a["ti_psf_new"]))) * (1 + g) ** (y0 - 1) * A
             lcr = p * D(str(a["lc_rate_renewal"])) + (1 - p) * D(str(a["lc_rate_new"]))
             psf = lambda m, psf0=psf0, e=e, s=s: psf0 * (1 + e) ** ((m - s) // 12)  # noqa: E731
-            lc = lcr * sum(A * psf(m) / 12 for m in range(s + fr, s + T))
+            lc = lcr * sum(A * psf(m) / 12 * (1 - abate(fr, m - s)) for m in range(s, s + T))
             ev = {"lease": l["name"], "kind": "new" if vacant else "blended", "start": s, "end": s + T - 1, "downtime": down, "free": fr,
                   "psf": psf0, "ti": ti, "lc": lc}
             return {"start": s, "end": s + T - 1, "free": fr, "rec": a["recovery"], "base": opex(y0), "psf": psf,
-                    "kind": ev["kind"], "ti": ti, "lc": lc}, ev
+                    "kind": ev["kind"], "ti": ti, "lc": lc, "share0": share0}, ev
 
         if cur is None:
             nxt, ev = sign_lease(0)
+            events.append(ev)  # listed even when it starts after the projection
             if nxt["start"] <= months:
                 next_start = nxt
-                events.append(ev)
         for m in range(1, months + 1):
             if cur is None and next_start is not None and m == next_start["start"]:
                 cur, next_start = next_start, None
@@ -194,21 +198,22 @@ def dcf(inp):
                 lines["lc"][year(m)] += cur["lc"]
             if cur is not None:
                 y = year(m)
-                rent = A * cur["psf"](m) / 12
+                share = cur.get("share0", D(1)) if m == cur["start"] else D(1)
+                rent = A * cur["psf"](m) / 12 * share
                 lines["pbr"][y] += rent
-                if m < cur["start"] + cur["free"]:
-                    lines["free"][y] -= rent
+                lines["free"][y] -= rent * abate(cur["free"], m - cur["start"])
                 if cur["rec"] == "nnn":
-                    lines["rec"][y] += A * opex(y) / 12
+                    lines["rec"][y] += A * opex(y) / 12 * share
                 elif cur["rec"] == "base_year":
-                    lines["rec"][y] += A * max(D(0), opex(y) - cur["base"]) / 12
+                    lines["rec"][y] += A * max(D(0), opex(y) - cur["base"]) / 12 * share
                 if m == cur["end"]:
                     last_end = cur["end"]
                     cur = None
-                    nxt, ev = sign_lease(last_end)
-                    if nxt["start"] <= months:
-                        next_start = nxt
-                        events.append(ev)
+                    if last_end < months:
+                        nxt, ev = sign_lease(last_end)
+                        events.append(ev)  # listed even when it starts after the projection
+                        if nxt["start"] <= months:
+                            next_start = nxt
     rows = []
     for y in range(1, H + 2):
         pbr, fr, rec = r2(lines["pbr"][y]), r2(lines["free"][y]), r2(lines["rec"][y])
