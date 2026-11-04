@@ -1,0 +1,108 @@
+{
+ "doc": "L10",
+ "labels": [
+  {
+   "predicate": "lease.landlord",
+   "value": "TRANSBAY TOWER LLC",
+   "page": 1,
+   "quote": "TRANSBAY TOWER LLC, a Delaware limited liability company (\"Landlord\")"
+  },
+  {
+   "predicate": "lease.tenant",
+   "value": "EQUIDATE, INC.",
+   "page": 1,
+   "quote": "EQUIDATE, INC., a Delaware corporation (\"Tenant\")",
+   "note": "Filer is Forge Global Holdings; the lease names Equidate, Inc. as Tenant. The cover page text layer reads 'TRANSBA Y' and 'EQUIDA TE'; the quotes here are from the clean preamble."
+  },
+  {
+   "predicate": "lease.commencement_date",
+   "value": "2019-01-01",
+   "page": 2,
+   "quote": "3.2 Lease Commencement Date: January 1, 2019."
+  },
+  {
+   "predicate": "lease.expiration_date",
+   "value": "2023-12-31",
+   "page": 2,
+   "quote": "3.3 Lease Expiration Date: December 31, 2023."
+  },
+  {
+   "predicate": "lease.rentable_area_sf",
+   "value": 10837,
+   "page": 2,
+   "quote": "10,837 rentable square feet of space located on the fifty-fifth (55th) floor of the Building"
+  },
+  {
+   "predicate": "lease.base_rent_schedule",
+   "value": [
+    {
+     "from": "2019-01-01",
+     "to": "2019-12-31",
+     "annual_rent_psf": 90.0
+    },
+    {
+     "from": "2020-01-01",
+     "to": "2020-12-31",
+     "annual_rent_psf": 92.7
+    },
+    {
+     "from": "2021-01-01",
+     "to": "2021-12-31",
+     "annual_rent_psf": 95.48
+    },
+    {
+     "from": "2022-01-01",
+     "to": "2022-12-31",
+     "annual_rent_psf": 98.35
+    },
+    {
+     "from": "2023-01-01",
+     "to": "2023-12-31",
+     "annual_rent_psf": 101.3
+    }
+   ],
+   "page": 2,
+   "quote": "Lease Year 1* $ 975,330.00 $ 81,277.50 $ 90.00 Lease Year 2 $ 1,004,589.96 $ 83,715.83 $ 92.70 Lease Year 3 $ 1,034,727.60 $ 86,227.30 $ 95.48 Lease Year 4 $ 1,065,769.44 $ 88,814.12 $ 98.35 Lease Year 5 $ 1,097,742.48 $ 91,478.54 $ 101.30",
+   "derived": true,
+   "note": "Annual rate per RSF is printed. Step dates derived from the January 1, 2019 Lease Commencement Date and Article 2 (each Lease Year is a consecutive 12-month period)."
+  },
+  {
+   "predicate": "lease.free_rent",
+   "value": {
+    "months": 2,
+    "applies_to": "base_rent"
+   },
+   "page": 5,
+   "quote": "during the first (l51) and second (2nd) full calendar months of the Lease Term (the \"Rent Abatement Period\"), Tenant shall not be obligated to pay any Base Rent otherwise attributable to the Premises",
+   "note": "Abatement stated as $162,555.00. The text layer reads 'first (l51)' (OCR of 1st); quote kept verbatim. A separate $54,185.00 Rent Credit ($5.00/RSF) against Base Rent is not counted in months."
+  },
+  {
+   "predicate": "lease.pro_rata_share",
+   "value": 0.007631,
+   "page": 2,
+   "quote": "Tenant's Share (Article 4): 0.7631%."
+  },
+  {
+   "predicate": "lease.security_deposit",
+   "value": 351753.97,
+   "page": 2,
+   "quote": "Letter of Credit (Article 21): $351,753.97.",
+   "note": "Letter of Credit amount (Summary section 8); Article 21 is the letter of credit article."
+  },
+  {
+   "predicate": "lease.parking",
+   "value": {
+    "spaces": 2
+   },
+   "page": 2,
+   "quote": "5. Parking (Section 29.18): Two (2) unreserved parking passes.",
+   "note": "Passes are rented at the prevailing monthly rate (Section 29.18); no rate is stated, so rate_monthly is omitted."
+  },
+  {
+   "predicate": "lease.assignment_sublease",
+   "value": "Transfers require Landlord's consent, not to be unreasonably withheld; Article 14 lists reasonable grounds for refusal and provides for Transfer Premium sharing.",
+   "page": 35,
+   "quote": "Landlord shall not unreasonably withhold its consent to any proposed Transfer of the Subject Space to the Transferee on the terms specified in the Transfer Notice."
+  }
+ ]
+}
