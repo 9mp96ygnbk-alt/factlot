@@ -1,0 +1,115 @@
+{
+ "doc": "L03",
+ "candidates": [
+  {
+   "predicate": "lease.landlord",
+   "value": "KR 100 FIRST STREET OWNER, LLC",
+   "quote": "KR 100 FIRST STREET OWNER, LLC, a Delaware limited liability company (“Landlord”)",
+   "page": 1
+  },
+  {
+   "predicate": "lease.tenant",
+   "value": "OKTA, INC.",
+   "quote": "OKTA, INC., a Delaware corporation (“Tenant”)",
+   "page": 1
+  },
+  {
+   "predicate": "lease.rentable_area_sf",
+   "value": 47939,
+   "quote": "space currently containing 47,939 rentable square feet (the “Must-Take Space” and, together with the Existing Premises, the “Premises”)",
+   "page": 1,
+   "section": "A"
+  },
+  {
+   "predicate": "lease.commencement_date",
+   "value": "2020-06-30",
+   "quote": "the Must-Take Term for the entirety of the Must-Take Space commenced on the Must-Take Effective Date (i.e., June 30, 2020)",
+   "page": 1,
+   "section": "1"
+  },
+  {
+   "predicate": "lease.expiration_date",
+   "value": "2028-10-31",
+   "quote": "on the Lease Expiration Date (i.e., October 31, 2028)",
+   "page": 1,
+   "section": "1"
+  },
+  {
+   "predicate": "lease.base_rent_schedule",
+   "value": [
+    {
+     "from": "2020-06-30",
+     "to": "2020-10-31",
+     "annual_rent_psf": 78.28
+    },
+    {
+     "from": "2020-11-01",
+     "to": "2021-10-31",
+     "annual_rent_psf": 80.63
+    },
+    {
+     "from": "2021-11-01",
+     "to": "2022-10-31",
+     "annual_rent_psf": 83.05
+    },
+    {
+     "from": "2022-11-01",
+     "to": "2023-10-31",
+     "annual_rent_psf": 85.54
+    },
+    {
+     "from": "2023-11-01",
+     "to": "2024-10-31",
+     "annual_rent_psf": 88.1
+    },
+    {
+     "from": "2024-11-01",
+     "to": "2025-10-31",
+     "annual_rent_psf": 90.75
+    },
+    {
+     "from": "2025-11-01",
+     "to": "2026-10-31",
+     "annual_rent_psf": 93.47
+    },
+    {
+     "from": "2026-11-01",
+     "to": "2027-10-31",
+     "annual_rent_psf": 96.27
+    },
+    {
+     "from": "2027-11-01",
+     "to": "2028-10-31",
+     "annual_rent_psf": 99.16
+    }
+   ],
+   "quote": "Period Rentable Square Footage Annual Base Rent* Monthly Installment of Base Rent* Annual Rental Rate per Rentable Square Foot* 6/30/2020 – 10/31/2020 47,939 $3,752,664.92 $312,722.08 $78.28 11/1/2020 – 10/31/2021 47,939 $3,865,244.87 $322,103.74 $80.63** 11/1/2021 – 10/31/2022 47,939 $3,981,202.22 $331,766.85 $83.05** 11/1/2022 – 10/31/2023 47,939 $4,100,638.29 $341,719.86 $85.54** 11/1/2023 – 10/31/2024 47,939 $4,223,657.44 $351,971.45 $88.10** 11/1/2024 – 10/31/2025 47,939 $4,350,367.16 $362,530.60 $90.75** 11/1/2025 – 10/31/2026 47,939 $4,480,878.17 $373,406.51 $93.47** 11/1/2026 – 10/31/2027 47,939 $4,615,304.52 $384,608.71 $96.27** 11/1/2027 – 10/31/2028 47,939 $4,753,763.66 $396,146.97 $99.16**",
+   "page": 2,
+   "section": "2"
+  },
+  {
+   "predicate": "lease.free_rent",
+   "value": {
+    "months": 6.666666666666667,
+    "applies_to": "base_rent"
+   },
+   "quote": "during the period commencing as of the Must-Take Effective Date (i.e., June 30, 2020) through January 20, 2021 (i.e., the date which is six and two-thirds (6⅔) months after the Must-Take Effective Date) (the “Must-Take Space Base Rent Abatement Period”), Tenant shall not be obligated to pay any Base Rent otherwise attributable to the Must-Take Space during such period",
+   "page": 2,
+   "section": "2"
+  },
+  {
+   "predicate": "lease.pro_rata_share",
+   "value": 0.1058,
+   "quote": "Tenant’s Share for the Must-Take Space is 10.58% of the Office Space",
+   "page": 2,
+   "section": "4"
+  },
+  {
+   "predicate": "lease.operating_expense_base_year",
+   "value": 2020,
+   "quote": "the Base Year for the computation of Tenant’s Share of Direct Expenses solely with respect to the Must-Take Space is calendar year 2020",
+   "page": 3,
+   "section": "4"
+  }
+ ]
+}

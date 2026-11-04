@@ -1,0 +1,62 @@
+{
+ "doc": "L01",
+ "candidates": [
+  {
+   "predicate": "lease.landlord",
+   "value": "HUDSON 1455 MARKET STREET, LLC, a Delaware limited liability company",
+   "quote": "by and between HUDSON 1455 MARKET STREET, LLC, a Delaware limited liability company (\"Landlord\"), and SQUARE, INC., a Delaware corporation (\"Tenant\").",
+   "page": 1
+  },
+  {
+   "predicate": "lease.tenant",
+   "value": "SQUARE, INC., a Delaware corporation",
+   "quote": "by and between HUDSON 1455 MARKET STREET, LLC, a Delaware limited liability company (\"Landlord\"), and SQUARE, INC., a Delaware corporation (\"Tenant\").",
+   "page": 1
+  },
+  {
+   "predicate": "lease.expiration_date",
+   "value": "2023-09-27",
+   "quote": "shall expire coterminously with the Lease Term for the Existing Premises under the Existing Lease (i.e., on September 27, 2023), as the same may be extended.",
+   "page": 2,
+   "section": "2"
+  },
+  {
+   "predicate": "lease.rentable_area_sf",
+   "value": 469056,
+   "quote": "increase the size of the Premises then leased by Tenant under the Lease, as hereby amended, to 469,056 rentable square feet of space (442,952 + 26,104)",
+   "page": 2,
+   "section": "1"
+  },
+  {
+   "predicate": "lease.pro_rata_share",
+   "value": 0.0258,
+   "quote": "(i)Tenant's Share with respect to Suite 2100 shall be 2.58%; and",
+   "page": 3,
+   "section": "4.1"
+  },
+  {
+   "predicate": "lease.operating_expense_base_year",
+   "value": 2019,
+   "quote": "(ii)the Base Year shall be the calendar year 2019.",
+   "page": 3,
+   "section": "4.1"
+  },
+  {
+   "predicate": "lease.parking",
+   "value": {
+    "spaces": 5,
+    "rate_monthly": 275
+   },
+   "quote": "Tenant shall have the right to rent from Landlord up to five (5) unreserved parking passes on a monthly basis throughout the Eleventh Amendment Space Term, which parking passes (the \"Suite 2100 Parking Passes\") shall pertain to the Property parking facility. Tenant shall pay to Landlord for the Suite 2100 Parking Passes on a monthly basis the prevailing rate charged from time to time at the location of such parking passes (which rate is currently Two Hundred Seventy-Five and 00/100 Dollars ($275.00) per unreserved parking pass per month).",
+   "page": 4,
+   "section": "6"
+  },
+  {
+   "predicate": "lease.rofo",
+   "value": "Upon the Suite 2100 Lease Commencement Date, any expansion right or right of first offer with respect to the 21st floor, including Section 1.4 of the Original Lease, is superseded and deleted in its entirety, and Tenant's sole expansion right into the 21st floor is under this Eleventh Amendment.",
+   "quote": "upon the Suite 2100 Lease Commencement Date, the terms of this Eleventh Amendment are intended to, and shall, supersede any expansion right or right of first offer Tenant may have with respect to space on the 21st floor of the Building contained in the Lease, as amended hereby, including but not limited to Section 1.4 of the Original Lease, and (c) upon the Suite 2100 Lease Commencement Date, any such expansion rights or rights of first offer with respect to the 21st floor shall be deleted in their entirety and of no further force or effect, and (d) effective as of the Suite 2100 Lease Commencement Date, Tenant's sole right to expand the Premises into the 21st Floor shall be pursuant to the terms of this Eleventh Amendment.",
+   "page": 4,
+   "section": "7"
+  }
+ ]
+}

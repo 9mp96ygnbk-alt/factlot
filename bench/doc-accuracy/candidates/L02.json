@@ -1,0 +1,163 @@
+{
+ "doc": "L02",
+ "candidates": [
+  {
+   "predicate": "lease.landlord",
+   "value": "KRE EXCHANGE OWNER LLC",
+   "quote": "KRE EXCHANGE OWNER LLC, a Delaware limited liability company (“Landlord”)",
+   "page": 1
+  },
+  {
+   "predicate": "lease.tenant",
+   "value": "DROPBOX, INC.",
+   "quote": "DROPBOX, INC., a Delaware corporation (“Tenant”)",
+   "page": 1
+  },
+  {
+   "predicate": "lease.rentable_area_sf",
+   "value": 552229,
+   "quote": "2.2. Premises: 552,229 rentable square feet of space,",
+   "page": 5,
+   "section": "6(a)"
+  },
+  {
+   "predicate": "lease.rentable_area_sf",
+   "value": 497976,
+   "quote": "2.2. Premises: 497,976 rentable square feet of space,",
+   "page": 5,
+   "section": "6(b)"
+  },
+  {
+   "predicate": "lease.rentable_area_sf",
+   "value": 438941,
+   "quote": "2.2. Premises: 438,941 rentable square feet of space,",
+   "page": 5,
+   "section": "6(c)"
+  },
+  {
+   "predicate": "lease.base_rent_schedule",
+   "value": [
+    {
+     "from": "2023-10-01",
+     "to": "2023-11-30",
+     "annual_rent_psf": 69.78
+    },
+    {
+     "from": "2023-12-01",
+     "to": "2024-05-31",
+     "annual_rent_psf": 71.87
+    }
+   ],
+   "quote": "October 1, 2023 to November\n\n30, 2023\n$38,535,393.49 $3,211,282.79 $69.78\n\nDecember 1, 2023 to May 31,\n\n2024\n$39,691,455.29 $3,307,621.27 $71.87",
+   "page": 8,
+   "section": "8(b)"
+  },
+  {
+   "predicate": "lease.base_rent_schedule",
+   "value": [
+    {
+     "from": "2024-06-01",
+     "to": "2024-11-30",
+     "annual_rent_psf": 71.87
+    },
+    {
+     "from": "2024-12-01",
+     "to": "2024-12-31",
+     "annual_rent_psf": 74.03
+    }
+   ],
+   "quote": "June 1, 2024 -\n\nNovember 30, 2024\n\n$35,792,021.32\n\n$2,982,668.44\n\n$71.87\n\nDecember 1, 2024 -\n\nDecember 31, 2024\n\n$36,865,781.96\n\n$3,072,148.50\n\n$74.03",
+   "page": 8,
+   "section": "8(c)"
+  },
+  {
+   "predicate": "lease.base_rent_schedule",
+   "value": [
+    {
+     "from": "2025-01-01",
+     "to": "2025-11-30",
+     "annual_rent_psf": 74.03
+    },
+    {
+     "from": "2025-12-01",
+     "to": "2026-11-30",
+     "annual_rent_psf": 76.25
+    },
+    {
+     "from": "2026-12-01",
+     "to": "2027-11-30",
+     "annual_rent_psf": 78.54
+    },
+    {
+     "from": "2027-12-01",
+     "to": "2028-11-30",
+     "annual_rent_psf": 80.9
+    },
+    {
+     "from": "2028-12-01",
+     "to": "2029-11-30",
+     "annual_rent_psf": 83.32
+    },
+    {
+     "from": "2029-12-01",
+     "to": "2030-11-30",
+     "annual_rent_psf": 85.82
+    },
+    {
+     "from": "2030-12-01",
+     "to": "2031-11-30",
+     "annual_rent_psf": 88.4
+    },
+    {
+     "from": "2031-12-01",
+     "to": "2032-11-30",
+     "annual_rent_psf": 91.05
+    },
+    {
+     "from": "2032-12-01",
+     "to": "2033-11-30",
+     "annual_rent_psf": 93.78
+    }
+   ],
+   "quote": "January 1, 2025 - November\n\n30, 2025\n\n$32,495,347.56\n\n$2,707,945.63\n\n$74.03\n\nDecember 1, 2025 -\n\nNovember 30, 2026\n\n$33,470,207.99\n\n$2,789,184.00\n\n$76.25\n\nDecember 1, 2026 -\n\nNovember 30, 2027\n\n$34,474,314.23\n\n$2,872,859.52\n\n$78.54\n\nDecember 1, 2027 -\n\nNovember 30, 2028\n\n$35,508,543.66\n\n$2,959,045.30\n\n$80.90\n\nDecember 1, 2028 -\n\nNovember 30, 2029\n\n$36,573,799.97\n\n$3,047,816.66\n\n$83.32\n\nDecember 1, 2029 -\n\nNovember 30, 2030\n\n$37,671,013.97\n\n$3,139,251.16\n\n$85.82\n\nDecember 1, 2030 -\n\nNovember 30, 2031\n\n$38,801,144.38\n\n$3,233,428.70\n\n$88.40\n\nDecember 1, 2031 -\n\nNovember 30, 2032\n\n$39,965,178.72\n\n$3,330,431.56\n\n$91.05\n\nDecember 1, 2032 -\n\nNovember 30, 2033\n\n$41,164,134.08\n\n$3,430,344.51\n\n$93.78",
+   "page": 9,
+   "section": "8(d)"
+  },
+  {
+   "predicate": "lease.parking",
+   "value": {
+    "spaces": 349
+   },
+   "quote": "October 1, 2023 - December 31, 2023\n\n349 Parking Passes",
+   "page": 10,
+   "section": "10"
+  },
+  {
+   "predicate": "lease.parking",
+   "value": {
+    "spaces": 317
+   },
+   "quote": "January 1, 2024 - May 31, 2024\n\n317 Parking Passes",
+   "page": 10,
+   "section": "10"
+  },
+  {
+   "predicate": "lease.parking",
+   "value": {
+    "spaces": 263
+   },
+   "quote": "June 1, 2024 - December 31, 2024\n\n263 Parking Passes",
+   "page": 10,
+   "section": "10"
+  },
+  {
+   "predicate": "lease.parking",
+   "value": {
+    "spaces": 204
+   },
+   "quote": "January 1, 2025 - Expiration Date\n\n204 Parking Passes",
+   "page": 10,
+   "section": "10"
+  }
+ ]
+}

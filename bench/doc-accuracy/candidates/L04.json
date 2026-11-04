@@ -1,0 +1,61 @@
+{
+ "doc": "L04",
+ "candidates": [
+  {
+   "predicate": "lease.landlord",
+   "value": "BRE RS GREG PARK OWNER LLC",
+   "quote": "BRE RS GREG PARK OWNER LLC, a Delaware limited liability company (“Landlord”)",
+   "page": 1
+  },
+  {
+   "predicate": "lease.tenant",
+   "value": "DRAGONFLY ENERGY CORP.",
+   "quote": "DRAGONFLY ENERGY CORP., a Nevada corporation (“Tenant”)",
+   "page": 1
+  },
+  {
+   "predicate": "lease.commencement_date",
+   "value": "2020-08-01",
+   "quote": "commencing on August 1, 2020 (the “Suite 104 Expansion Date”)",
+   "page": 2,
+   "section": "3"
+  },
+  {
+   "predicate": "lease.expiration_date",
+   "value": "2025-07-31",
+   "quote": "shall terminate on July 31, 2025 (the “Suite 104 Expiration Date”)",
+   "page": 2,
+   "section": "4"
+  },
+  {
+   "predicate": "lease.rentable_area_sf",
+   "value": 25025,
+   "quote": "approximately 25,025 square feet (the entirety of such space is referred to herein as the “Expanded Premises”).",
+   "page": 2,
+   "section": "3"
+  },
+  {
+   "predicate": "lease.pro_rata_share",
+   "value": 0.0791,
+   "quote": "Proportionate Share of Building B shall be 7.91%.",
+   "page": 2,
+   "section": "6"
+  },
+  {
+   "predicate": "lease.security_deposit",
+   "value": 24795.81,
+   "quote": "($24,795.81), the increased amount of the Security Deposit.",
+   "page": 4,
+   "section": "8"
+  },
+  {
+   "predicate": "lease.parking",
+   "value": {
+    "spaces": 5
+   },
+   "quote": "an additional five (5) unreserved parking spaces",
+   "page": 4,
+   "section": "9"
+  }
+ ]
+}

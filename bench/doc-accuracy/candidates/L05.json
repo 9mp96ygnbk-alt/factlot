@@ -1,0 +1,38 @@
+{
+ "doc": "L05",
+ "candidates": [
+  {
+   "predicate": "lease.landlord",
+   "value": "IGX BRUSHY CREEK, LLC",
+   "quote": "IGX BRUSHY CREEK, LLC, a Texas limited liability company (\"Landlord\")",
+   "page": 1
+  },
+  {
+   "predicate": "lease.tenant",
+   "value": "HYLIION INC.",
+   "quote": "HYLIION INC., a Delaware corporation (\"Tenant\")",
+   "page": 1
+  },
+  {
+   "predicate": "lease.expiration_date",
+   "value": "2027-04-30",
+   "quote": "Lease for the entire Premises shall be amended to expire on April 30, 2027",
+   "page": 2,
+   "section": "3"
+  },
+  {
+   "predicate": "lease.rentable_area_sf",
+   "value": 26908,
+   "quote": "which the parties agree contain in the aggregate 26,908 square feet of space",
+   "page": 2,
+   "section": "2"
+  },
+  {
+   "predicate": "lease.pro_rata_share",
+   "value": 0.253,
+   "quote": "25.3% of all Additional Expenses relating solely to Building 1",
+   "page": 2,
+   "section": "5.a"
+  }
+ ]
+}
