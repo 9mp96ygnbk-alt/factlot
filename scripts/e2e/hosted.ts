@@ -66,6 +66,8 @@ function same(actual: unknown, expected: unknown, tol?: number): boolean {
     return tol
       ? Math.abs(actual - expected) <= tol * Math.max(1, Math.abs(expected))
       : actual === expected;
+  // A vector's null means the field is absent, as in the unit tests.
+  if (expected === null) return actual === undefined || actual === null;
   return JSON.stringify(actual) === JSON.stringify(expected);
 }
 
