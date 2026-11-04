@@ -35,7 +35,7 @@ in catalog order (a test keeps it at 30 or fewer and checks that this page lists
 
 - Lease and CAM: `calc_rent_schedule`, `calc_net_effective_rent`, `calc_compare_proposals`,
   `calc_percentage_rent`, `calc_cam_reconciliation`, `calc_walt`, `calc_renew_vs_relocate`,
-  `calc_lease_remeasurement_asc842`
+  `calc_lease_remeasurement_asc842`, `calc_multifamily_rent_roll`, `calc_cam_reconciliation_batch`
 - Debt, returns, and valuation: `calc_debt_sizing`, `calc_amortization_schedule`, `calc_npv`,
   `calc_irr`, `calc_dcf_pro_forma`, `calc_direct_cap`, `calc_equity_waterfall`, `calc_exchange_1031`
 - Hotels and rules: `calc_hotel_metrics`, `rules_tx_property_tax_protest_deadline`
@@ -44,7 +44,7 @@ in catalog order (a test keeps it at 30 or fewer and checks that this page lists
 - Registry, only on a server with a registry loaded: `registry_search_address`, `registry_get`,
   `registry_search_entities`, `registry_resolve_parcel`
 
-Everything else, such as `calc_lease_vs_own`, `calc_prepayment_and_defeasance`, `id_building`,
+Everything else, such as `calc_lease_vs_own`, `calc_prepayment_and_defeasance`, `calc_capex_recovery`, `id_building`,
 `doc_compare`, and the other registry tools, is in the complete OpenAPI 3.1 document
 (`/openapi.json`) and over MCP. If your GPT needs one of them, connect ChatGPT to the MCP server
 (developer mode, above), or build your own subset of at most 30 operations in TypeScript:

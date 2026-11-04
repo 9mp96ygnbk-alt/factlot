@@ -1,0 +1,546 @@
+{
+  "calculator": "calc.multifamily_rent_roll",
+  "version": 1,
+  "notes": "Expected values computed independently with Python decimal (40 significant digits, inputs read as decimal literals, half-up rounding at the same points the formula rounds: cents for money, 4 dp for ratios and terms, 6 dp for shares), in a scratch script outside the repository; FactLot was not run to produce them. Lease term from dates: whole months from lease_start to the day after lease_end plus the remaining days ÷ the days in that lease month; weeks free valued at lease_rent × 12 ÷ 52 per week.",
+  "cases": [
+    {
+      "name": "rent roll: GPR to effective rent income, occupancy, expirations by month, unit types",
+      "input": {
+        "as_of": "2026-11-01",
+        "units": [
+          {
+            "unit_id": "101",
+            "unit_type": "A1 1x1",
+            "bedrooms": 1,
+            "sf": 710,
+            "status": "occupied",
+            "market_rent": 1525,
+            "lease_rent": 1495,
+            "lease_start": "2026-03-01",
+            "lease_end": "2027-02-28",
+            "concession": {
+              "type": "weeks_free",
+              "weeks": 6
+            }
+          },
+          {
+            "unit_id": "102",
+            "unit_type": "A1 1x1",
+            "bedrooms": 1,
+            "sf": 710,
+            "status": "occupied",
+            "market_rent": 1525,
+            "lease_rent": 1550,
+            "lease_start": "2025-12-15",
+            "lease_end": "2026-12-14"
+          },
+          {
+            "unit_id": "103",
+            "unit_type": "A1 1x1",
+            "bedrooms": 1,
+            "sf": 710,
+            "status": "vacant",
+            "market_rent": 1525
+          },
+          {
+            "unit_id": "104",
+            "unit_type": "A1 1x1",
+            "bedrooms": 1,
+            "sf": 710,
+            "status": "notice",
+            "market_rent": 1525,
+            "lease_rent": 1460,
+            "lease_term_months": 13,
+            "lease_end": "2026-11-30",
+            "concession": {
+              "type": "months_free",
+              "months": 1
+            }
+          },
+          {
+            "unit_id": "201",
+            "unit_type": "B2 2x2",
+            "bedrooms": 2,
+            "sf": 1085,
+            "status": "occupied",
+            "market_rent": 2150,
+            "lease_rent": 2075,
+            "lease_start": "2026-06-01",
+            "lease_end": "2027-05-31",
+            "concession": {
+              "type": "amount",
+              "amount": 500
+            }
+          },
+          {
+            "unit_id": "202",
+            "unit_type": "B2 2x2",
+            "bedrooms": 2,
+            "sf": 1085,
+            "status": "occupied",
+            "market_rent": 2150,
+            "lease_rent": 2010,
+            "lease_start": "2025-08-01",
+            "lease_end": "2026-07-31"
+          },
+          {
+            "unit_id": "203",
+            "unit_type": "B2 2x2",
+            "bedrooms": 2,
+            "sf": 1085,
+            "status": "model",
+            "market_rent": 2150
+          },
+          {
+            "unit_id": "204",
+            "unit_type": "B2 2x2",
+            "bedrooms": 2,
+            "sf": 1085,
+            "status": "down",
+            "market_rent": 2150
+          },
+          {
+            "unit_id": "301",
+            "bedrooms": 0,
+            "sf": 520,
+            "status": "occupied",
+            "market_rent": 1195,
+            "lease_rent": 1195,
+            "lease_start": "2026-09-01",
+            "lease_end": "2027-08-31",
+            "concession": {
+              "type": "weeks_free",
+              "weeks": 2
+            }
+          }
+        ]
+      },
+      "expect": {
+        "value.unit_count": 9,
+        "value.leased_units": 6,
+        "value.gross_potential_rent_monthly": 15895,
+        "value.vacancy_loss_monthly": 1525,
+        "value.non_revenue_units_monthly": 4300,
+        "value.loss_to_lease_monthly": 285,
+        "value.concessions_monthly": 372.44,
+        "value.effective_rent_income_monthly": 9412.56,
+        "value.gross_potential_rent_annual": 190740,
+        "value.effective_rent_income_annual": 112950.72,
+        "value.physical_occupancy": 0.6667,
+        "value.economic_occupancy": 0.5922,
+        "value.average_market_rent": 1766.11,
+        "value.average_lease_rent": 1630.83,
+        "value.effective_rent_per_unit": 1568.76,
+        "value.month_to_month_units": 1,
+        "value.no_lease_end_units": 0,
+        "value.effective_rent_psf": 1.9528,
+        "value.lease_expirations.0.month": "2026-11",
+        "value.lease_expirations.0.units": 1,
+        "value.lease_expirations.0.lease_rent_monthly": 1460,
+        "value.lease_expirations.1.month": "2026-12",
+        "value.lease_expirations.1.units": 1,
+        "value.lease_expirations.1.lease_rent_monthly": 1550,
+        "value.lease_expirations.2.month": "2027-02",
+        "value.lease_expirations.2.units": 1,
+        "value.lease_expirations.2.lease_rent_monthly": 1495,
+        "value.lease_expirations.3.month": "2027-05",
+        "value.lease_expirations.3.units": 1,
+        "value.lease_expirations.3.lease_rent_monthly": 2075,
+        "value.lease_expirations.4.month": "2027-08",
+        "value.lease_expirations.4.units": 1,
+        "value.lease_expirations.4.lease_rent_monthly": 1195,
+        "value.unit_types.0.unit_type": "A1 1x1",
+        "value.unit_types.0.units": 4,
+        "value.unit_types.0.leased_units": 3,
+        "value.unit_types.0.average_market_rent": 1525,
+        "value.unit_types.0.average_effective_rent": 1406.73,
+        "value.unit_types.0.loss_to_lease_monthly": 70,
+        "value.unit_types.0.concessions_monthly": 284.81,
+        "value.unit_types.0.physical_occupancy": 0.75,
+        "value.unit_types.0.effective_rent_psf": 1.9813,
+        "value.unit_types.1.unit_type": "B2 2x2",
+        "value.unit_types.1.units": 4,
+        "value.unit_types.1.leased_units": 2,
+        "value.unit_types.1.average_market_rent": 2150,
+        "value.unit_types.1.average_effective_rent": 2021.67,
+        "value.unit_types.1.loss_to_lease_monthly": 215,
+        "value.unit_types.1.concessions_monthly": 41.67,
+        "value.unit_types.1.physical_occupancy": 0.5,
+        "value.unit_types.1.effective_rent_psf": 1.8633,
+        "value.unit_types.2.unit_type": "studio",
+        "value.unit_types.2.units": 1,
+        "value.unit_types.2.leased_units": 1,
+        "value.unit_types.2.average_market_rent": 1195,
+        "value.unit_types.2.average_effective_rent": 1149.04,
+        "value.unit_types.2.loss_to_lease_monthly": 0,
+        "value.unit_types.2.concessions_monthly": 45.96,
+        "value.unit_types.2.physical_occupancy": 1,
+        "value.unit_types.2.effective_rent_psf": 2.2097
+      }
+    },
+    {
+      "name": "a leased unit without sf makes the property and its type per-SF figures null",
+      "input": {
+        "as_of": "2026-11-01",
+        "units": [
+          {
+            "unit_id": "101",
+            "unit_type": "A1 1x1",
+            "bedrooms": 1,
+            "status": "occupied",
+            "market_rent": 1525,
+            "lease_rent": 1495,
+            "lease_start": "2026-03-01",
+            "lease_end": "2027-02-28",
+            "concession": {
+              "type": "weeks_free",
+              "weeks": 6
+            }
+          },
+          {
+            "unit_id": "102",
+            "unit_type": "A1 1x1",
+            "bedrooms": 1,
+            "sf": 710,
+            "status": "occupied",
+            "market_rent": 1525,
+            "lease_rent": 1550,
+            "lease_start": "2025-12-15",
+            "lease_end": "2026-12-14"
+          },
+          {
+            "unit_id": "103",
+            "unit_type": "A1 1x1",
+            "bedrooms": 1,
+            "sf": 710,
+            "status": "vacant",
+            "market_rent": 1525
+          },
+          {
+            "unit_id": "104",
+            "unit_type": "A1 1x1",
+            "bedrooms": 1,
+            "sf": 710,
+            "status": "notice",
+            "market_rent": 1525,
+            "lease_rent": 1460,
+            "lease_term_months": 13,
+            "lease_end": "2026-11-30",
+            "concession": {
+              "type": "months_free",
+              "months": 1
+            }
+          },
+          {
+            "unit_id": "201",
+            "unit_type": "B2 2x2",
+            "bedrooms": 2,
+            "sf": 1085,
+            "status": "occupied",
+            "market_rent": 2150,
+            "lease_rent": 2075,
+            "lease_start": "2026-06-01",
+            "lease_end": "2027-05-31",
+            "concession": {
+              "type": "amount",
+              "amount": 500
+            }
+          },
+          {
+            "unit_id": "202",
+            "unit_type": "B2 2x2",
+            "bedrooms": 2,
+            "sf": 1085,
+            "status": "occupied",
+            "market_rent": 2150,
+            "lease_rent": 2010,
+            "lease_start": "2025-08-01",
+            "lease_end": "2026-07-31"
+          },
+          {
+            "unit_id": "203",
+            "unit_type": "B2 2x2",
+            "bedrooms": 2,
+            "sf": 1085,
+            "status": "model",
+            "market_rent": 2150
+          },
+          {
+            "unit_id": "204",
+            "unit_type": "B2 2x2",
+            "bedrooms": 2,
+            "sf": 1085,
+            "status": "down",
+            "market_rent": 2150
+          },
+          {
+            "unit_id": "301",
+            "bedrooms": 0,
+            "sf": 520,
+            "status": "occupied",
+            "market_rent": 1195,
+            "lease_rent": 1195,
+            "lease_start": "2026-09-01",
+            "lease_end": "2027-08-31",
+            "concession": {
+              "type": "weeks_free",
+              "weeks": 2
+            }
+          }
+        ]
+      },
+      "expect": {
+        "value.unit_count": 9,
+        "value.leased_units": 6,
+        "value.gross_potential_rent_monthly": 15895,
+        "value.vacancy_loss_monthly": 1525,
+        "value.non_revenue_units_monthly": 4300,
+        "value.loss_to_lease_monthly": 285,
+        "value.concessions_monthly": 372.44,
+        "value.effective_rent_income_monthly": 9412.56,
+        "value.gross_potential_rent_annual": 190740,
+        "value.effective_rent_income_annual": 112950.72,
+        "value.physical_occupancy": 0.6667,
+        "value.economic_occupancy": 0.5922,
+        "value.average_market_rent": 1766.11,
+        "value.average_lease_rent": 1630.83,
+        "value.effective_rent_per_unit": 1568.76,
+        "value.month_to_month_units": 1,
+        "value.no_lease_end_units": 0,
+        "value.lease_expirations.0.month": "2026-11",
+        "value.lease_expirations.0.units": 1,
+        "value.lease_expirations.0.lease_rent_monthly": 1460,
+        "value.lease_expirations.1.month": "2026-12",
+        "value.lease_expirations.1.units": 1,
+        "value.lease_expirations.1.lease_rent_monthly": 1550,
+        "value.lease_expirations.2.month": "2027-02",
+        "value.lease_expirations.2.units": 1,
+        "value.lease_expirations.2.lease_rent_monthly": 1495,
+        "value.lease_expirations.3.month": "2027-05",
+        "value.lease_expirations.3.units": 1,
+        "value.lease_expirations.3.lease_rent_monthly": 2075,
+        "value.lease_expirations.4.month": "2027-08",
+        "value.lease_expirations.4.units": 1,
+        "value.lease_expirations.4.lease_rent_monthly": 1195,
+        "value.effective_rent_psf": null,
+        "value.unit_types.0.effective_rent_psf": null,
+        "value.unit_types.0.average_sf": null,
+        "value.unit_types.1.effective_rent_psf": 1.8633
+      }
+    },
+    {
+      "name": "single lease: one month free on a 12-month lease",
+      "input": {
+        "lease": {
+          "lease_rent": 1800,
+          "lease_term_months": 12,
+          "concession": {
+            "type": "months_free",
+            "months": 1
+          }
+        }
+      },
+      "expect": {
+        "value.term_months": 12,
+        "value.concession_total": 1800,
+        "value.concession_monthly": 150,
+        "value.effective_monthly_rent": 1650,
+        "value.effective_annual_rent": 19800
+      }
+    },
+    {
+      "name": "single lease: six weeks free on a 13-month lease from its dates, with market rent and sf",
+      "input": {
+        "lease": {
+          "lease_rent": 1650,
+          "market_rent": 1700,
+          "sf": 825,
+          "lease_start": "2026-02-01",
+          "lease_end": "2027-02-28",
+          "concession": {
+            "type": "weeks_free",
+            "weeks": 6
+          }
+        }
+      },
+      "expect": {
+        "value.term_months": 13,
+        "value.concession_total": 2284.62,
+        "value.concession_monthly": 175.74,
+        "value.effective_monthly_rent": 1474.26,
+        "value.effective_annual_rent": 17691.12,
+        "value.effective_rent_psf": 1.787,
+        "value.loss_to_lease": 50
+      }
+    },
+    {
+      "name": "single lease: a part-month term from mid-month dates",
+      "input": {
+        "lease": {
+          "lease_rent": 1800,
+          "lease_start": "2026-01-15",
+          "lease_end": "2027-03-31",
+          "concession": {
+            "type": "weeks_free",
+            "weeks": 6
+          }
+        }
+      },
+      "expect": {
+        "value.term_months": 14.5484,
+        "value.concession_total": 2492.31,
+        "value.concession_monthly": 171.31,
+        "value.effective_monthly_rent": 1628.69,
+        "value.effective_annual_rent": 19544.28
+      }
+    },
+    {
+      "name": "single lease: no concession leaves the lease rent",
+      "input": {
+        "lease": {
+          "lease_rent": 2200,
+          "lease_term_months": 12
+        }
+      },
+      "expect": {
+        "value.term_months": 12,
+        "value.concession_total": 0,
+        "value.concession_monthly": 0,
+        "value.effective_monthly_rent": 2200,
+        "value.effective_annual_rent": 26400
+      }
+    },
+    {
+      "name": "units and lease together are an input error",
+      "input": {
+        "as_of": "2026-11-01",
+        "units": [
+          {
+            "unit_id": "1",
+            "status": "occupied",
+            "market_rent": 1500,
+            "lease_rent": 1400,
+            "lease_term_months": 12
+          }
+        ],
+        "lease": {
+          "lease_rent": 1,
+          "lease_term_months": 12
+        }
+      },
+      "expect_error": true
+    },
+    {
+      "name": "neither units nor lease is an input error",
+      "input": {
+        "as_of": "2026-11-01"
+      },
+      "expect_error": true
+    },
+    {
+      "name": "units without as_of is an input error",
+      "input": {
+        "units": [
+          {
+            "unit_id": "1",
+            "status": "occupied",
+            "market_rent": 1500,
+            "lease_rent": 1400,
+            "lease_term_months": 12
+          }
+        ]
+      },
+      "expect_error": true
+    },
+    {
+      "name": "duplicate unit_id is an input error",
+      "input": {
+        "as_of": "2026-11-01",
+        "units": [
+          {
+            "unit_id": "1",
+            "status": "occupied",
+            "market_rent": 1500,
+            "lease_rent": 1400,
+            "lease_term_months": 12
+          },
+          {
+            "unit_id": "1",
+            "status": "occupied",
+            "market_rent": 1500,
+            "lease_rent": 1400,
+            "lease_term_months": 12
+          }
+        ]
+      },
+      "expect_error": true
+    },
+    {
+      "name": "an occupied unit without lease_rent is an input error",
+      "input": {
+        "as_of": "2026-11-01",
+        "units": [
+          {
+            "unit_id": "1",
+            "status": "occupied",
+            "market_rent": 1500
+          }
+        ]
+      },
+      "expect_error": true
+    },
+    {
+      "name": "a concession without a lease term is an input error",
+      "input": {
+        "as_of": "2026-11-01",
+        "units": [
+          {
+            "unit_id": "1",
+            "status": "occupied",
+            "market_rent": 1500,
+            "lease_rent": 1400,
+            "concession": {
+              "type": "months_free",
+              "months": 1
+            }
+          }
+        ]
+      },
+      "expect_error": true
+    },
+    {
+      "name": "a concession worth more than the term's rent is an input error",
+      "input": {
+        "lease": {
+          "lease_rent": 1000,
+          "lease_term_months": 2,
+          "concession": {
+            "type": "months_free",
+            "months": 3
+          }
+        }
+      },
+      "expect_error": true
+    },
+    {
+      "name": "a single lease without a term is an input error",
+      "input": {
+        "lease": {
+          "lease_rent": 1000
+        }
+      },
+      "expect_error": true
+    },
+    {
+      "name": "lease_end before lease_start is an input error",
+      "input": {
+        "lease": {
+          "lease_rent": 1000,
+          "lease_start": "2026-05-01",
+          "lease_end": "2026-04-30"
+        }
+      },
+      "expect_error": true
+    }
+  ]
+}

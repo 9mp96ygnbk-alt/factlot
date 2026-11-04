@@ -1,6 +1,6 @@
 # FactLot plugin for Claude Code
 
-Commercial real estate skills that call audited, deterministic calculators instead of letting the model do the arithmetic. The plugin registers the free hosted [FactLot MCP server](../../README.md) and adds ten skills that know which tool to call, what inputs to collect (with units), and how to report the answer: the tool's value, the formula ID, and every warning.
+Commercial real estate skills that call audited, deterministic calculators instead of letting the model do the arithmetic. The plugin registers the free hosted [FactLot MCP server](../../README.md) and adds eleven skills that know which tool to call, what inputs to collect (with units), and how to report the answer: the tool's value, the formula ID, and every warning.
 
 ## Claude Code plugin
 
@@ -20,6 +20,8 @@ From a shell: `claude plugin marketplace add 9mp96ygnbk-alt/factlot` then `claud
 | `cre-loan-sizing`           | Max loan under LTV, DSCR, and debt yield; amortization schedules      | `calc_debt_sizing`, `calc_amortization_schedule`                          |
 | `lease-economics`           | Rent schedules, net effective rent, ranking lease proposals           | `calc_rent_schedule`, `calc_net_effective_rent`, `calc_compare_proposals` |
 | `cam-reconciliation`        | CAM and opex true-ups with caps, gross-up, base year; percentage rent | `calc_cam_reconciliation`, `calc_percentage_rent`                         |
+| `cam-reconciliation`        | Batch CAM for every tenant; capital expenditure recovery              | `calc_cam_reconciliation_batch`, `calc_capex_recovery`                    |
+| `multifamily-rent-roll`     | Rent roll GPR, loss to lease, concessions, occupancy, expirations     | `calc_multifamily_rent_roll`                                              |
 | `lease-accounting-asc842`   | Lessee lease remeasurement: liability, ROU asset, amortization        | `calc_lease_remeasurement_asc842`                                         |
 | `lease-vs-own-and-renewals` | Lease vs buy, renew vs relocate, WALT                                 | `calc_lease_vs_own`, `calc_renew_vs_relocate`, `calc_walt`                |
 | `investment-returns`        | IRR, NPV, prepayment premium, yield maintenance, defeasance           | `calc_irr`, `calc_npv`, `calc_prepayment_and_defeasance`                  |

@@ -131,4 +131,7 @@ cases.extend(valuation_cases(int(sys.argv[1]), int(sys.argv[2])))
 # draft rules packs: also their own random stream
 from gen_drafts import draft_cases
 cases.extend(draft_cases(int(sys.argv[1]), int(sys.argv[2])))
+# operations calculators and the lease unit option: their own stream too
+from gen_operations import operation_cases
+cases.extend(operation_cases(int(sys.argv[1]), int(sys.argv[2]) // 2, sched))
 json.dump(cases,open(sys.argv[3],"w"))

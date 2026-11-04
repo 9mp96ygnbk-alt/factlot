@@ -1,7 +1,7 @@
 # Getting started
 
 Three ways to use FactLot, depending on where your agent runs. All three serve the same core
-tools from one catalog: nineteen calculators, a Texas protest-deadline rule, FactLot IDs, and fact
+tools from one catalog: twenty-two calculators, a Texas protest-deadline rule, FactLot IDs, and fact
 validation. The MCP servers (local and `/mcp`) add `search`/`fetch`/`schema_get` and list the six
 `registry_*` tools only when a registry database is configured (`FACTLOT_REGISTRY_DB`). REST,
 OpenAPI, and the TypeScript and Python tool exports always include the registry tools, which
@@ -199,7 +199,7 @@ model can correct its arguments. A complete Messages API loop is in
 ## Claude Code plugin
 
 In Claude Code, `/plugin marketplace add 9mp96ygnbk-alt/factlot` then `/plugin install factlot@factlot` adds the hosted
-MCP server plus eight CRE skills that call the calculators. See [plugins/factlot/README.md](../plugins/factlot/README.md).
+MCP server plus eleven CRE skills that call the calculators. See [plugins/factlot/README.md](../plugins/factlot/README.md).
 
 ## Next
 

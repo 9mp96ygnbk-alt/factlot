@@ -248,6 +248,8 @@ export const GPT_ACTIONS_TOOLS: readonly string[] = [
   "calc_amortization_schedule",
   "calc_equity_waterfall",
   "calc_exchange_1031",
+  "calc_multifamily_rent_roll",
+  "calc_cam_reconciliation_batch",
   "rules_tx_property_tax_protest_deadline",
   "id_parcel",
   "id_space",
