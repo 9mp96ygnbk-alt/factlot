@@ -9,11 +9,20 @@ import type { z } from "zod";
 
 import { LeaseRemeasurementInput, leaseRemeasurementAsc842 } from "./asc842.ts";
 import { CamReconciliationInput, camReconciliation } from "./cam.ts";
+import {
+  CamReconciliationBatchInput,
+  camReconciliationBatch,
+} from "./cam_batch.ts";
+import { CapexRecoveryInput, capexRecovery } from "./capex.ts";
 import type { CalcResult } from "./core.ts";
 import { DebtSizingInput, debtSizing } from "./debt.ts";
 import { IrrInput, NpvInput, irr, npv } from "./finance.ts";
 import { HotelMetricsInput, hotelMetrics } from "./hotel.ts";
 import { LeaseVsOwnInput, leaseVsOwn } from "./lease_vs_own.ts";
+import {
+  MultifamilyRentRollInput,
+  multifamilyRentRoll,
+} from "./multifamily.ts";
 import { WaltInput, walt } from "./portfolio.ts";
 import { PrepaymentInput, prepaymentAndDefeasance } from "./prepayment.ts";
 import { ProposalComparisonInput, compareProposals } from "./proposals.ts";
@@ -28,12 +37,15 @@ import {
 
 export * from "./asc842.ts";
 export * from "./cam.ts";
+export * from "./cam_batch.ts";
+export * from "./capex.ts";
 export * from "./core.ts";
 export * from "./dates.ts";
 export * from "./debt.ts";
 export * from "./finance.ts";
 export * from "./hotel.ts";
 export * from "./lease_vs_own.ts";
+export * from "./multifamily.ts";
 export * from "./portfolio.ts";
 export * from "./prepayment.ts";
 export * from "./proposals.ts";
@@ -41,6 +53,7 @@ export * from "./renew_vs_relocate.ts";
 export * from "./retail.ts";
 export * from "./rules.ts";
 export * from "./rent.ts";
+export * from "./units.ts";
 
 export interface Calculator {
   id: string;
@@ -58,7 +71,7 @@ export const calculators = {
     version: 1,
     title: "Lease rent schedule",
     description:
-      "Build a base-rent schedule from commencement date, term, area, starting $/SF/yr, escalations (percent or fixed $/SF), and abated months. Lease months run from the commencement day-of-month with no calendar proration (warns when commencement is mid-month). Returns rent steps, totals, expiration date, and a calculation trace.",
+      "Build a base-rent schedule from commencement date, term, area, starting $/SF/yr, escalations (percent or fixed $/SF), and abated months. Lease months run from the commencement day-of-month with no calendar proration (warns when commencement is mid-month). Returns rent steps, totals, expiration date, and a calculation trace. Optional unit (kw, mw, unit, acre, key, room, space) relabels area and $/SF for data-center, ground, yard, residential, hotel, or parking leases without changing any number.",
     input: RentScheduleInput,
     run: rentSchedule,
   },
@@ -67,7 +80,7 @@ export const calculators = {
     version: 1,
     title: "Net effective rent (NER)",
     description:
-      "Compute effective rent, straight-line net effective rent, and discounted net effective rent ($/SF/yr) after free rent, TI allowance, leasing commissions, and other landlord concessions. Rent is monthly in advance from the commencement day (no calendar proration), discounted at annual rate ÷ 12.",
+      "Compute effective rent, straight-line net effective rent, and discounted net effective rent ($/SF/yr) after free rent, TI allowance, leasing commissions, and other landlord concessions. Rent is monthly in advance from the commencement day (no calendar proration), discounted at annual rate ÷ 12. schedule.unit (kw, mw, unit, acre, key, room, space) reports $/kW/yr, $/acre/yr and so on instead of $/SF/yr.",
     input: NetEffectiveRentInput,
     run: netEffectiveRent,
   },
@@ -76,9 +89,18 @@ export const calculators = {
     version: 2,
     title: "Compare lease proposals",
     description:
-      "Rank 2–20 lease proposals with different terms, sizes, free rent, TI, concessions, and operating-expense structures (gross, NNN, base year, expense stop, with opex growth) on one discounted $/SF/yr basis, per rentable or usable SF (load factor): effective occupancy cost (tenant perspective) or discounted net effective rent after landlord-borne opex and optional pre-commencement downtime (landlord perspective). Cash flows monthly in advance at annual rate ÷ 12; warns when the usable-SF ranking differs and when terms differ.",
+      "Rank 2–20 lease proposals with different terms, sizes, free rent, TI, concessions, and operating-expense structures (gross, NNN, base year, expense stop, with opex growth) on one discounted $/SF/yr basis, per rentable or usable SF (load factor): effective occupancy cost (tenant perspective) or discounted net effective rent after landlord-borne opex and optional pre-commencement downtime (landlord perspective). Cash flows monthly in advance at annual rate ÷ 12; warns when the usable-SF ranking differs and when terms differ. schedule.unit (kw, mw, unit, acre, key, room, space, the same for every proposal) ranks per kW, MW, unit, acre, key, room, or space instead of per SF.",
     input: ProposalComparisonInput,
     run: compareProposals,
+  },
+  multifamily_rent_roll: {
+    id: "calc.multifamily_rent_roll",
+    version: 1,
+    title: "Multifamily rent roll",
+    description:
+      "Analyze an apartment rent roll (up to 5,000 units with status occupied, notice, vacant, model, or down; market and lease rent per month; lease dates; concessions as weeks free, months free, or dollars): gross potential rent, vacancy, non-revenue units, loss to lease, concessions amortised straight-line over each lease term, effective rent income, physical and economic occupancy, effective rent per unit and per SF, a lease expiration schedule by month, and a per-unit-type summary. Single-lease mode (lease instead of units) returns the effective monthly rent after a weeks-free or months-free concession.",
+    input: MultifamilyRentRollInput,
+    run: multifamilyRentRoll,
   },
   percentage_rent: {
     id: "calc.percentage_rent",
@@ -97,6 +119,24 @@ export const calculators = {
       "Reconcile a tenant's annual CAM charge: exclusions, occupancy gross-up of variable expenses, pro rata share, controllable-expense caps (compounding_from_base, simple_from_base, year_over_year), an admin fee (before or after the cap, inside or outside it, with per-line exclusions), base year or expense stop, partial-year occupancy (move-in/move-out prorates share, cap, and base by days), and estimates paid. Returns balance due and a full trace with order-of-operations warnings.",
     input: CamReconciliationInput,
     run: camReconciliation,
+  },
+  cam_reconciliation_batch: {
+    id: "calc.cam_reconciliation_batch",
+    version: 1,
+    title: "CAM reconciliation for every tenant (batch)",
+    description:
+      "Reconcile CAM for a whole building in one call: the expense pool and gross-up once, then up to 500 tenants each with share, base year or expense stop, cap, admin fee, occupancy, estimates paid, and lease-specific excluded categories. Returns each tenant's statement (identical to calc_cam_reconciliation for that tenant, with its trace and warnings) and a building reconciliation: total billed against the recoverable pool, the unrecovered amount, and why (unleased or vacant share, lease exclusions, gross-up, caps, base years and stops, admin fees, zero floor, rounding).",
+    input: CamReconciliationBatchInput,
+    run: camReconciliationBatch,
+  },
+  capex_recovery: {
+    id: "calc.capex_recovery",
+    version: 1,
+    title: "Capital expenditure recovery",
+    description:
+      "Recoverable capital expenditure under a lease clause: amortize a capital cost over its useful life or the lease-specified period, straight-line (declining interest) or level payment, with interest on the unamortized balance or none; optionally cap each year's recovery at demonstrated cost savings (with or without carry-forward); and allocate each year to tenants by pro rata share. Every assumption is echoed with an optional lease clause citation.",
+    input: CapexRecoveryInput,
+    run: capexRecovery,
   },
   debt_sizing: {
     id: "calc.debt_sizing",

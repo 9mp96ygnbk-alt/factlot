@@ -125,4 +125,7 @@ for _ in range(int(sys.argv[2])):
 sys.path.insert(0, __import__("os").path.dirname(__file__))
 from gen_docs import doc_cases
 cases.extend(doc_cases(int(sys.argv[1]), int(sys.argv[2])))
+# operations calculators and the lease unit option: their own stream too
+from gen_operations import operation_cases
+cases.extend(operation_cases(int(sys.argv[1]), int(sys.argv[2]) // 2, sched))
 json.dump(cases,open(sys.argv[3],"w"))

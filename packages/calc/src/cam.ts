@@ -216,7 +216,7 @@ export interface CamReconciliation {
 }
 
 /** Occupied days ÷ period days for `occupancy`, validated against the reconciliation period. */
-function occupancyFraction(
+export function occupancyFraction(
   input: z.output<typeof CamReconciliationInput>,
   t: Trace,
 ): number {

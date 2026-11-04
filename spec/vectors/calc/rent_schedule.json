@@ -120,6 +120,77 @@
         "starting_rent_psf_annual": 20
       },
       "expect_error": true
+    },
+    {
+      "name": "unit kw: the same numbers as square feet, labelled $/kW/yr (review cases B01-P07, B03-P06)",
+      "input": {
+        "commencement_date": "2026-01-01",
+        "term_months": 60,
+        "area_sf": 10000,
+        "starting_rent_psf_annual": 30,
+        "escalation": {
+          "type": "percent",
+          "rate": 0.03
+        },
+        "abated_months": [1, 2, 3],
+        "unit": "kw"
+      },
+      "expect": {
+        "value.expiration_date": "2030-12-31",
+        "value.steps.0.monthly_rent": 25000,
+        "value.steps.0.abated_months": 3,
+        "value.steps.1.monthly_rent": 25750,
+        "value.steps.2.monthly_rent": 26522.5,
+        "value.steps.3.monthly_rent": 27318.18,
+        "value.steps.4.monthly_rent": 28137.72,
+        "value.total_scheduled_rent": 1592740.8,
+        "value.total_abatement": 75000,
+        "value.total_rent_due": 1517740.8,
+        "value.unit": "kw",
+        "value.rate_unit": "USD/kW/yr",
+        "warnings": [
+          "Escalated $/SF rates are not rounded per step; set round_rate_to_cents if the lease table rounds.",
+          "Unit is kw: area_sf was read as kW and every *_psf rate as $/kW/yr; results are in USD/kW/yr. Field names keep _sf and _psf. Data-center rents are often quoted per kW per month: starting_rent_psf_annual must be annual (monthly × 12). Power, cooling (PUE) and other pass-throughs are not priced unless added as costs."
+        ]
+      }
+    },
+    {
+      "name": "unit sf given explicitly: the same numbers, plus unit and rate_unit",
+      "input": {
+        "commencement_date": "2026-03-01",
+        "term_months": 24,
+        "area_sf": 1000,
+        "starting_rent_psf_annual": 20,
+        "escalation": {
+          "type": "fixed_psf",
+          "amount": 1
+        },
+        "unit": "sf"
+      },
+      "expect": {
+        "value.expiration_date": "2028-02-29",
+        "value.steps.0.monthly_rent": 1666.67,
+        "value.steps.1.monthly_rent": 1750,
+        "value.total_rent_due": 41000.04,
+        "value.unit": "sf",
+        "value.rate_unit": "USD/sf/yr",
+        "warnings": []
+      }
+    },
+    {
+      "name": "an unknown unit is an input error",
+      "input": {
+        "commencement_date": "2026-03-01",
+        "term_months": 24,
+        "area_sf": 1000,
+        "starting_rent_psf_annual": 20,
+        "escalation": {
+          "type": "fixed_psf",
+          "amount": 1
+        },
+        "unit": "sqm"
+      },
+      "expect_error": true
     }
   ]
 }

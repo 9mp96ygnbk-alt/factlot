@@ -14,6 +14,12 @@ import {
 } from "./core.ts";
 import type { CalcResult } from "./core.ts";
 import { addDays, addMonths } from "./dates.ts";
+import {
+  LEASE_UNIT_DESCRIPTION,
+  LeaseUnit,
+  unitLabels,
+  unitWarning,
+} from "./units.ts";
 
 export const Escalation = z.discriminatedUnion("type", [
   z
@@ -41,7 +47,9 @@ export const Escalation = z.discriminatedUnion("type", [
       amount: z
         .number()
         .finite()
-        .describe("Dollars per SF per year added at each bump, e.g. 0.50."),
+        .describe(
+          "Dollars per SF per year (or per unit per year when unit is set) added at each bump, e.g. 0.50.",
+        ),
       every_months: z
         .number()
         .int()
@@ -64,13 +72,18 @@ export const RentScheduleInput = z.object({
     .positive()
     .max(1200)
     .describe("Lease term in months, e.g. 120 for ten years."),
-  area_sf: z.number().positive().describe("Rentable square feet."),
+  area_sf: z
+    .number()
+    .positive()
+    .describe(
+      "Rentable square feet, or the quantity leased in unit (kW, MW, units, acres, keys, rooms, spaces) when unit is set.",
+    ),
   starting_rent_psf_annual: z
     .number()
     .finite()
     .nonnegative()
     .describe(
-      "Year-one base rent in dollars per SF per year (annual, not monthly), e.g. 42.5.",
+      "Year-one base rent in dollars per SF per year (annual, not monthly), e.g. 42.5; per unit per year when unit is set (a $/kW/month quote × 12).",
     ),
   escalation: Escalation.default({ type: "none" }).describe(
     "How base rent escalates. Omit for flat rent.",
@@ -92,6 +105,7 @@ export const RentScheduleInput = z.object({
     .boolean()
     .default(false)
     .describe("Include a month-by-month table (can be long)."),
+  unit: LeaseUnit.optional().describe(LEASE_UNIT_DESCRIPTION),
 });
 export type RentScheduleInput = z.input<typeof RentScheduleInput>;
 
@@ -123,6 +137,10 @@ export interface RentSchedule {
   total_abatement: number;
   total_rent_due: number;
   monthly?: RentMonth[];
+  /** Echo of the input unit; present only when unit was given. */
+  unit?: LeaseUnit;
+  /** What rent_psf_annual is measured in, e.g. "USD/kW/yr"; present only when unit was given. */
+  rate_unit?: string;
 }
 
 /**
@@ -170,7 +188,7 @@ export function buildMonths(
     } else if (esc.type === "fixed_psf") {
       t.step(
         "Escalation",
-        `+$${esc.amount}/SF/yr every ${esc.every_months} months`,
+        `+$${esc.amount}/${unitLabels(input.unit).per}/yr every ${esc.every_months} months`,
         "rate_k = starting_rate + amount × k",
       );
     }
@@ -260,6 +278,8 @@ export function rentSchedule(raw: RentScheduleInput): CalcResult<RentSchedule> {
     );
   }
   warnMidMonth(input.commencement_date, t);
+  const unitNote = unitWarning(input.unit);
+  if (unitNote) t.warn(unitNote);
 
   const expiration_date = months.at(-1)?.end_date ?? input.commencement_date;
   const value: RentSchedule = {
@@ -270,6 +290,10 @@ export function rentSchedule(raw: RentScheduleInput): CalcResult<RentSchedule> {
     total_rent_due,
   };
   if (input.include_monthly) value.monthly = months;
+  if (input.unit !== undefined) {
+    value.unit = input.unit;
+    value.rate_unit = unitLabels(input.unit).rate;
+  }
   return t.result("calc.rent_schedule", 1, value);
 }
 
@@ -278,7 +302,7 @@ export const NetEffectiveRentInput = z.object({
     "The lease's base-rent terms (same input as calc_rent_schedule).",
   ),
   ti_allowance_psf: NonNegMoney.default(0).describe(
-    "Landlord-funded tenant improvement allowance, USD per SF, paid once at commencement (not per year).",
+    "Landlord-funded tenant improvement allowance, USD per SF (per schedule.unit when set), paid once at commencement (not per year).",
   ),
   leasing_commissions: NonNegMoney.default(0).describe(
     "Total leasing commissions paid by landlord, USD.",
@@ -308,6 +332,10 @@ export interface NetEffectiveRent {
   total_rent_due: number;
   total_landlord_costs: number;
   pv_rent: number;
+  /** Echo of schedule.unit; present only when it was given. */
+  unit?: LeaseUnit;
+  /** What the *_psf results are measured in, e.g. "USD/kW/yr"; present only when schedule.unit was given. */
+  rate_unit?: string;
 }
 
 /**
@@ -319,6 +347,7 @@ export function netEffectiveRent(
 ): CalcResult<NetEffectiveRent> {
   const input = parseInput(NetEffectiveRentInput, raw);
   const s = input.schedule;
+  const l = unitLabels(s.unit);
   const t = new Trace();
   const months = buildMonths(s, t);
   const n = months.length;
@@ -336,7 +365,7 @@ export function netEffectiveRent(
   const ti = t.step(
     "TI allowance",
     round(input.ti_allowance_psf * s.area_sf, 2),
-    `$${input.ti_allowance_psf}/SF × ${s.area_sf} SF`,
+    `$${input.ti_allowance_psf}/${l.per} × ${s.area_sf} ${l.qty}`,
     "USD",
   );
   const costs = t.step(
@@ -349,13 +378,13 @@ export function netEffectiveRent(
     "Effective rent",
     round(totalRent / s.area_sf / years, 4),
     "total rent due ÷ area ÷ years",
-    "USD/sf/yr",
+    l.rate,
   );
   const ner = t.step(
     "Net effective rent (straight-line)",
     round((totalRent - costs) / s.area_sf / years, 4),
     "(total rent due − landlord costs) ÷ area ÷ years",
-    "USD/sf/yr",
+    l.rate,
   );
 
   const r = input.discount_rate_annual / 12;
@@ -377,20 +406,27 @@ export function netEffectiveRent(
     "Discounted net effective rent",
     round((level * 12) / s.area_sf, 4),
     "((PV rent − costs) ÷ Σ(1+r)^−t) × 12 ÷ area",
-    "USD/sf/yr",
+    l.rate,
   );
   if (input.discount_rate_annual === 0)
     t.warn(
       "discount_rate_annual is 0, so discounted NER equals straight-line NER.",
     );
   warnMidMonth(s.commencement_date, t);
+  const unitNote = unitWarning(s.unit);
+  if (unitNote) t.warn(unitNote);
 
-  return t.result("calc.net_effective_rent", 1, {
+  const value: NetEffectiveRent = {
     effective_rent_psf: effective,
     net_effective_rent_psf: ner,
     discounted_net_effective_rent_psf: dner,
     total_rent_due: totalRent,
     total_landlord_costs: costs,
     pv_rent: pvRent,
-  });
+  };
+  if (s.unit !== undefined) {
+    value.unit = s.unit;
+    value.rate_unit = l.rate;
+  }
+  return t.result("calc.net_effective_rent", 1, value);
 }

@@ -16,6 +16,7 @@ import type { RentMonth } from "./rent.ts";
 export const CaseScheduleInput = RentScheduleInput.omit({
   term_months: true,
   include_monthly: true,
+  unit: true,
 });
 
 export const RenewVsRelocateInput = z.object({
