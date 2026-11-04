@@ -15,6 +15,9 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 
 ### Added
 
+- Registry: recorded deeds, mortgages and satisfactions for NYC commercial, industrial and multifamily lots from ACRIS, 2013 to 2026 (`transaction.deed`, `debt.mortgage_recorded`, `debt.mortgage_satisfaction_recorded`, many per parcel, newest first); only organisations among the parties are stored.
+- Registry: NYC condominium unit lots inherit zoning and building facts from their PLUTO billing lot (labelled inferred; 99.4% of NYC registry lots now have a zoning district); NYC sales extend back to 2007 (107,090 sales; a standard-library reader handles DOF's legacy `.xls` workbooks).
+- Registry: DC parcels get their zoning district's maximum floor-area ratio and height (`zoning.max_far_*`, `zoning.max_far_nonresidential`, `zoning.max_height_ft`, inferred from the Office of Zoning's development standards); building energy benchmarking (`energy.*`) for NYC Local Law 84, DC and Denver; zoning districts for Denver, San Francisco and Minneapolis parcels.
 - `doc_spread_statement`: spread a T-12, operating statement or rent-roll summary onto a published chart of accounts (multifamily, commercial, hotel after the USALI summary), with every line cited, footing checks and exceptions.
 - `doc_check_use_conflict`: check a proposed use against verified exclusives and prohibited uses with a published use-category vocabulary (66 categories, 2022 NAICS); every hit is a potential conflict for human review.
 - Clause-level lease predicates: `lease.prohibited_uses`, `lease.go_dark`, `lease.radius_restriction`, `lease.relocation_right`, `lease.kick_out`; structured `lease.exclusive_use` (carve-outs), `lease.assignment_sublease` (consent standard), `lease.rofr`/`lease.rofo` details and co-tenancy occupancy and named tenants, with numbers and consent wording checked against the quote.

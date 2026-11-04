@@ -1,0 +1,29 @@
+{
+  "description": "DC Zoning Regulations of 2016 Development Standards table (DC Office of Zoning via DC GIS) for the FactLot Registry collector. See docs/registry/data-policy.md and the review record in docs/registry/sources/dc-dcgis-zoning-standards.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "dc-dcgis-zoning-standards",
+      "publisher": "District of Columbia Office of Zoning (via DC GIS, Open Data DC)",
+      "landing_pages": [
+        "https://maps2.dcgis.dc.gov/dcgis/rest/services/DCGIS_DATA/Planning_Landuse_and_Zoning_WebMercator/MapServer/36?f=json"
+      ],
+      "allowed_hosts": ["maps2.dcgis.dc.gov"],
+      "link_patterns": ["/MapServer/36"],
+      "files": [
+        "https://maps2.dcgis.dc.gov/dcgis/rest/services/DCGIS_DATA/Planning_Landuse_and_Zoning_WebMercator/MapServer/36/query?where=1%3D1&outFields=*&returnGeometry=false&orderByFields=OBJECTID&f=json"
+      ],
+      "verified": true,
+      "terms_url": "https://dc.gov/page/terms-and-conditions-use-district-data",
+      "license": "CC-BY-4.0 on the Open Data DC item 8d10621514e544c0b5a1ef775e7e0263 ('Zoning Development Standards'); District terms for District data: the data is public domain under a CC0 1.0 dedication.",
+      "ai_use": "Not addressed; CC-BY-4.0 and the CC0 dedication permit any use",
+      "redistribution": "Attribution required (CC-BY-4.0). Attribution: District of Columbia Office of Zoning (DC GIS), Open Data DC",
+      "reviewed": "2026-11-04",
+      "notes": "Layer 36 of the Planning_Landuse_and_Zoning_WebMercator map service, 409 rows: floor-area ratio, height, lot occupancy and other standards per zone and building category, all columns text (NULL strings). maps2.dcgis.dc.gov has no robots.txt (404)."
+    }
+  ]
+}

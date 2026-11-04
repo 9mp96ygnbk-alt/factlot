@@ -118,6 +118,23 @@ test("registry tools: TypeScript matches Python on the shared fixture", () => {
     assert.deepEqual(at({ query: "100 Mai" }).results, []);
     assert.equal(at({ query: "Main St" }).results?.length, 1);
     assert.equal(at({ query: "100 Main" }).results?.length, 1);
+    // Recorded deeds, mortgages and satisfactions are many-valued too, newest first; an energy report is single-valued.
+    const dates = (predicate: string) =>
+      parcel.facts
+        .filter((f) => f.predicate === predicate)
+        .map((f) => (f.value as { date: string }).date);
+    assert.deepEqual(dates("transaction.deed"), ["2025-03-14", "2021-07-02"]);
+    assert.deepEqual(dates("debt.mortgage_recorded"), [
+      "2025-03-20",
+      "2025-03-20",
+    ]);
+    assert.deepEqual(dates("debt.mortgage_satisfaction_recorded"), [
+      "2024-11-05",
+    ]);
+    assert.equal(
+      parcel.facts.filter((f) => f.predicate === "energy.site_eui").length,
+      1,
+    );
   } finally {
     configureRegistry(undefined);
   }

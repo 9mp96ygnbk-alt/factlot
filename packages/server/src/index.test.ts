@@ -300,8 +300,12 @@ test("registry tools over MCP and REST when a registry is configured", async () 
       [urn],
     );
     // fetch of a registry fact's source document_id returns that snapshot's metadata.
+    // A fact read from the roll (the fixture also holds recorded-document facts from another file).
+    const fromRoll =
+      record.facts.find((f) => f.predicate === "parcel.market_value") ??
+      record.facts[0];
     const cited = (
-      record.facts[0] as unknown as {
+      fromRoll as unknown as {
         provenance: { sources: { document_id: string }[] };
       }
     ).provenance.sources[0]?.document_id;

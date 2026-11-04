@@ -1,0 +1,35 @@
+{
+  "description": "DC Department of Energy and Environment building energy benchmarking (Open Data DC) for the FactLot Registry collector. See docs/registry/data-policy.md and the review record in docs/registry/sources/dc-doee-energy-benchmarking.md.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "dc-doee-energy-benchmarking",
+      "publisher": "District of Columbia Department of Energy and Environment (via DC GIS, Open Data DC)",
+      "landing_pages": [
+        "https://maps2.dcgis.dc.gov/dcgis/rest/services/DCGIS_DATA/Environment_Energy_WebMercator/FeatureServer/45?f=json"
+      ],
+      "allowed_hosts": ["maps2.dcgis.dc.gov"],
+      "link_patterns": ["/FeatureServer/45"],
+      "files": [
+        "https://maps2.dcgis.dc.gov/dcgis/rest/services/DCGIS_DATA/Environment_Energy_WebMercator/FeatureServer/45/query?where=REPORTINGYEAR%3E%3D2023&outFields=SSL,PMPROPERTYID,REPORTINGYEAR,REPORTSTATUS,PRIMARYPROPERTYTYPE_EPACALC,PRIMARYPROPERTYTYPE_SELFSELECT,ENERGYSTARSCORE,SITEEUI_KBTU_FT,WEATHERNORMALZEDSITEEUI_KBTUFT,SOURCEEUI_KBTU_FT,TOTGHGEMISSIONS_METRICTONSCO2E,TOTGHGEMISSINTENSITY_KGCO2EFT,REPORTEDBUILDINGGROSSFLOORAREA,TAXRECORDFLOORAREA&returnGeometry=false&orderByFields=OBJECTID&f=json&resultRecordCount=2000&resultOffset=0",
+        "https://maps2.dcgis.dc.gov/dcgis/rest/services/DCGIS_DATA/Environment_Energy_WebMercator/FeatureServer/45/query?where=REPORTINGYEAR%3E%3D2023&outFields=SSL,PMPROPERTYID,REPORTINGYEAR,REPORTSTATUS,PRIMARYPROPERTYTYPE_EPACALC,PRIMARYPROPERTYTYPE_SELFSELECT,ENERGYSTARSCORE,SITEEUI_KBTU_FT,WEATHERNORMALZEDSITEEUI_KBTUFT,SOURCEEUI_KBTU_FT,TOTGHGEMISSIONS_METRICTONSCO2E,TOTGHGEMISSINTENSITY_KGCO2EFT,REPORTEDBUILDINGGROSSFLOORAREA,TAXRECORDFLOORAREA&returnGeometry=false&orderByFields=OBJECTID&f=json&resultRecordCount=2000&resultOffset=2000",
+        "https://maps2.dcgis.dc.gov/dcgis/rest/services/DCGIS_DATA/Environment_Energy_WebMercator/FeatureServer/45/query?where=REPORTINGYEAR%3E%3D2023&outFields=SSL,PMPROPERTYID,REPORTINGYEAR,REPORTSTATUS,PRIMARYPROPERTYTYPE_EPACALC,PRIMARYPROPERTYTYPE_SELFSELECT,ENERGYSTARSCORE,SITEEUI_KBTU_FT,WEATHERNORMALZEDSITEEUI_KBTUFT,SOURCEEUI_KBTU_FT,TOTGHGEMISSIONS_METRICTONSCO2E,TOTGHGEMISSINTENSITY_KGCO2EFT,REPORTEDBUILDINGGROSSFLOORAREA,TAXRECORDFLOORAREA&returnGeometry=false&orderByFields=OBJECTID&f=json&resultRecordCount=2000&resultOffset=4000",
+        "https://maps2.dcgis.dc.gov/dcgis/rest/services/DCGIS_DATA/Environment_Energy_WebMercator/FeatureServer/45/query?where=REPORTINGYEAR%3E%3D2023&outFields=SSL,PMPROPERTYID,REPORTINGYEAR,REPORTSTATUS,PRIMARYPROPERTYTYPE_EPACALC,PRIMARYPROPERTYTYPE_SELFSELECT,ENERGYSTARSCORE,SITEEUI_KBTU_FT,WEATHERNORMALZEDSITEEUI_KBTUFT,SOURCEEUI_KBTU_FT,TOTGHGEMISSIONS_METRICTONSCO2E,TOTGHGEMISSINTENSITY_KGCO2EFT,REPORTEDBUILDINGGROSSFLOORAREA,TAXRECORDFLOORAREA&returnGeometry=false&orderByFields=OBJECTID&f=json&resultRecordCount=2000&resultOffset=6000",
+        "https://maps2.dcgis.dc.gov/dcgis/rest/services/DCGIS_DATA/Environment_Energy_WebMercator/FeatureServer/45/query?where=REPORTINGYEAR%3E%3D2023&outFields=SSL,PMPROPERTYID,REPORTINGYEAR,REPORTSTATUS,PRIMARYPROPERTYTYPE_EPACALC,PRIMARYPROPERTYTYPE_SELFSELECT,ENERGYSTARSCORE,SITEEUI_KBTU_FT,WEATHERNORMALZEDSITEEUI_KBTUFT,SOURCEEUI_KBTU_FT,TOTGHGEMISSIONS_METRICTONSCO2E,TOTGHGEMISSINTENSITY_KGCO2EFT,REPORTEDBUILDINGGROSSFLOORAREA,TAXRECORDFLOORAREA&returnGeometry=false&orderByFields=OBJECTID&f=json&resultRecordCount=2000&resultOffset=8000",
+        "https://maps2.dcgis.dc.gov/dcgis/rest/services/DCGIS_DATA/Environment_Energy_WebMercator/FeatureServer/45/query?where=REPORTINGYEAR%3E%3D2023&outFields=SSL,PMPROPERTYID,REPORTINGYEAR,REPORTSTATUS,PRIMARYPROPERTYTYPE_EPACALC,PRIMARYPROPERTYTYPE_SELFSELECT,ENERGYSTARSCORE,SITEEUI_KBTU_FT,WEATHERNORMALZEDSITEEUI_KBTUFT,SOURCEEUI_KBTU_FT,TOTGHGEMISSIONS_METRICTONSCO2E,TOTGHGEMISSINTENSITY_KGCO2EFT,REPORTEDBUILDINGGROSSFLOORAREA,TAXRECORDFLOORAREA&returnGeometry=false&orderByFields=OBJECTID&f=json&resultRecordCount=2000&resultOffset=10000",
+        "https://maps2.dcgis.dc.gov/dcgis/rest/services/DCGIS_DATA/Environment_Energy_WebMercator/FeatureServer/45/query?where=REPORTINGYEAR%3E%3D2023&outFields=SSL,PMPROPERTYID,REPORTINGYEAR,REPORTSTATUS,PRIMARYPROPERTYTYPE_EPACALC,PRIMARYPROPERTYTYPE_SELFSELECT,ENERGYSTARSCORE,SITEEUI_KBTU_FT,WEATHERNORMALZEDSITEEUI_KBTUFT,SOURCEEUI_KBTU_FT,TOTGHGEMISSIONS_METRICTONSCO2E,TOTGHGEMISSINTENSITY_KGCO2EFT,REPORTEDBUILDINGGROSSFLOORAREA,TAXRECORDFLOORAREA&returnGeometry=false&orderByFields=OBJECTID&f=json&resultRecordCount=2000&resultOffset=12000"
+      ],
+      "verified": true,
+      "terms_url": "https://dc.gov/page/terms-and-conditions-use-district-data",
+      "license": "CC-BY-4.0 on the Open Data DC item for 'Building Energy Benchmarking'; District terms for District data: the data is public domain under a CC0 1.0 dedication.",
+      "ai_use": "Not addressed; CC-BY-4.0 and the CC0 dedication permit any use",
+      "redistribution": "Attribution required (CC-BY-4.0). Attribution: District of Columbia Department of Energy and Environment (DOEE), Open Data DC",
+      "reviewed": "2026-11-04",
+      "notes": "Layer 45 (Building Energy Benchmarks) of the Environment_Energy_WebMercator feature service, reporting years 2023 onward (7 pages of 2,000 records, 12,004 rows). Owner of record, property name, address, coordinates and verifier columns are not requested. maps2.dcgis.dc.gov has no robots.txt (404)."
+    }
+  ]
+}

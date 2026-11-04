@@ -167,7 +167,7 @@
       ],
       "enrichment": {
         "zoning": "ny-nyc-dcp-pluto: 116,887 of 245,596 PLUTO lots matched to registry lots (71% of the 164,633), 1,349,335 facts",
-        "sales": "ny-nyc-dof-sales: 12,445 sales (2024, 2025, 2026 to September) on 11,072 parcels; no parties in the source",
+        "sales": "ny-nyc-dof-sales: 107,090 sales (2007 to September 2026) on 59,104 parcels; no parties in the source",
         "buildings": "ny-nyc-dcp-pluto: buildings, floors, units, built FAR and area by use",
         "cites": [
           {
@@ -176,7 +176,7 @@
           },
           {
             "doc": "docs/registry/sources/README.md",
-            "quote": "12,445 sales (2024, 2025, 2026 to September) on 11,072 parcels"
+            "quote": "107,090 sales (2007 to September 2026) on 59,104 parcels"
           }
         ]
       }

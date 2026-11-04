@@ -137,6 +137,16 @@ Read: the terms do not restrict redistribution. The data are dedicated under PDD
 - Organisation owners: **0**, by construction (no owner names in the dataset). Spot check: parcel
   `0010001` (COMR/C1) → F1, 2801 LEAVENWORTH ST, assessed 10,546,659 + 15,819,989 = 26,366,648.
 
+## Zoning (added 2026-11-04)
+
+The roll's `zoning_code` is the zoning district the Assessor-Recorder records for the parcel, written without hyphens (`RM1`,
+`C3O`, `NC3`, `M1`; the Planning Code writes `RM-1`, `C-3-O`, `NC-3`). The adapter now writes it, as published, as the parcel's
+`zoning.district` (`public_record`, cited to the roll row, PDDL rights as the roll); `NA` (no code) writes nothing. It is the
+Assessor's attribute, not a zoning verification: the Planning Department's zoning map is the authority. Scratch registry
+(`…/scratchpad/data/r2/sf.db`, a copy of round 1's re-ingested with this change from the archived 2026-06-26 extract): 16,874
+of 19,048 parcels (88.6%) with a district (`RM1` 1,644; `RH3` 1,630; `RH2` 1,423; `NC3` 1,275; `NC2` 1,159; `RC4` 919; `M1` 913;
+`RM2` 910); the other 2,174 are `NA`. SF Planning's own zoning-district polygons (DataSF) were not used.
+
 ## Known gaps
 
 - No owner names, so no owner graph from this source; the registry's owner-of-record needs another

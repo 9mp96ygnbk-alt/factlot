@@ -187,6 +187,17 @@ python -m factlot.registry.adapters.co_denver collected/co-denver-assessor/1e108
   facts written 90; 3 s.
 - Registry total: **13,539 Denver parcels; 11,115 organisation owners; 9,332 (83%) linked to Colorado SOS entities** (full file) by exact normalized name in a plausible jurisdiction (9,449 before C23: 131 names that exist only in another state's registry now wait in the review queue).
 
+## Zoning (added 2026-11-04)
+
+Both exports carry `ZONE10`, the parcel's zone district under the Denver Zoning Code (2010) as the Assessor's file records
+it (`I-A`, `C-MX-5`, `G-MU-3`, `PUD`; 193 distinct values in the commercial export, none blank). The adapter now writes it as
+the parcel's `zoning.district` (`public_record`, cited to the export and the PARID, same rights as the roll facts). It is
+the Assessor's attribute, not a zoning verification: the City's zoning map is the authority, and the field is not
+labelled with a map date. Rebuilt scratch registry (`…/scratchpad/data/r2/denver.db`, the two archived exports of
+2026-10-29): 13,539 parcels, all 13,539 with a district (`I-A` 1,272; `I-B` 820; `U-MS-3` 602; `B-8` 575; `I-MX-3` 565;
+`G-MU-3` 490; `D-C` 464; `C-MX-5` 425). A registry built before this change needs the exports ingested again to gain the
+facts. The Denver building energy benchmarking results are a separate source: [co-denver-energize-benchmarking](co-denver-energize-benchmarking.md).
+
 ## Known gaps
 
 - No assessment year in the export (`tax_year` is left empty; the snapshot's as-of date is the

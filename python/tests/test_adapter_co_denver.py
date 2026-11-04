@@ -38,7 +38,7 @@ COMMERCIAL_ROWS = [
     dict(OBJECTID="1", PARID="0003100025000", CD="1", OFCARD="2", OWNER="EXAMPLE HOSPITALITY LLC", OWNER_NUM="100",
          OWNER_DIR="N", OWNER_ST="MAIN", OWNER_TYPE="ST", OWNER_APT="STE 200", OWNER_CITY="DENVER", OWNER_STATE="CO",
          OWNER_ZIP="80202", SITE_NBR="6805", SITE_DIR="N", SITE_NAME="ARGONNE", SITE_MODE="ST", TAX_DIST="DENV",
-         PROP_CLASS_LAND="2115", PROP_CLASS_IMPS="2215", PROPERTY_CLASS_DESC="LODGING", BLD_NAME="EXAMPLE INN",
+         PROP_CLASS_LAND="2115", PROP_CLASS_IMPS="2215", PROPERTY_CLASS_DESC="LODGING", BLD_NAME="EXAMPLE INN", ZONE10="C-MX-5",
          GROSS_AREA="58930", NET_AREA="14772992", NO_FLOORS="4", TOTL_SQFT="152183", D_CLASS_CN="COMMERCIAL-HOTEL",
          ORIG_YOC="2009", ASMT_APPR_LAND="2891500", ASMT_APPR_IMPR="7668500", TOTAL_VALUE="10560000",
          APPR_TOT_LOC="10560000", ASSESS_VALUE_LOC="2640010"),
@@ -168,6 +168,11 @@ class Denver(unittest.TestCase):
         self.assertIsNone(placeholder.situs_address, "no street name, no situs")
         self.assertIsNone(placeholder.owner_mailing_address)
 
+    def test_zone10_becomes_the_zoning_district(self):
+        recs = {r.apn: r for r in co_denver.read_roll(self.commercial)}
+        self.assertEqual(recs["0003100025000"].extra_facts, [("zoning.district", "C-MX-5", None)])
+        self.assertEqual(recs["0003105005000"].extra_facts, [], "a blank ZONE10 writes nothing")
+
     def test_residential_export(self):
         recs = {r.apn: r for r in co_denver.read_roll(self.residential)}
         house, fourplex = recs["0613400010000"], recs["0613400011000"]
@@ -199,6 +204,9 @@ class Denver(unittest.TestCase):
             self.assertEqual(facts["parcel.local_use_code"], "2215/2115")
             self.assertEqual(facts["ownership.owner_of_record"], "EXAMPLE HOSPITALITY LLC")
             self.assertEqual(facts["parcel.market_value"], 10560000)
+            zoning = [f for f in reg.facts(urn) if f["predicate"] == "zoning.district"]
+            self.assertEqual([(f["value"], f["provenance"]["method"]) for f in zoning], [("C-MX-5", "public_record")])
+            self.assertEqual(zoning[0]["provenance"]["sources"][0]["section"], "PARID 0003100025000")
             fourplex = reg.resolve_external("denver_schednum", "0613400011000")
             self.assertEqual(fourplex, "fl:parcel:us-08031:0613400011000")
             person = reg.resolve_external("denver_schednum", "0512300017000")

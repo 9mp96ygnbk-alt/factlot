@@ -41,9 +41,11 @@ from .normalize import (
 )
 
 PRODUCER = "factlot.registry"
-# Predicates a parcel may hold many of at once (one fact per sale). Every other predicate is
+# Predicates a parcel may hold many of at once (one fact per sale, deed, mortgage or satisfaction). Every other predicate is
 # single-valued: when two current sources disagree, the newest fact is returned.
-MULTI_VALUED_PREDICATES = frozenset({"transaction.sale"})
+MULTI_VALUED_PREDICATES = frozenset({
+    "transaction.sale", "transaction.deed", "debt.mortgage_recorded", "debt.mortgage_satisfaction_recorded",
+})
 # Coverage marker (``coverage.present``) for a source that adds facts to parcels another source created.
 COVERED_BY_ENRICHMENT = 2
 # The predicates the registry writes (the TypeScript starter vocabulary, `Predicates` in @factlot/schema,
@@ -56,6 +58,11 @@ ENRICHMENT_PREDICATES = frozenset({
     "parcel.built_far", "parcel.num_buildings", "parcel.num_floors", "parcel.units_residential",
     "parcel.units_total", "parcel.area_by_use_sf", "parcel.land_use_code", "parcel.year_altered",
     "parcel.historic_district", "parcel.landmark_designated", "transaction.sale",
+    "transaction.deed", "debt.mortgage_recorded", "debt.mortgage_satisfaction_recorded",
+    "zoning.max_far_nonresidential", "zoning.max_height_ft",
+    "energy.reporting_year", "energy.property_type", "energy.site_eui", "energy.weather_normalized_site_eui",
+    "energy.source_eui", "energy.energy_star_score", "energy.ghg_emissions", "energy.ghg_intensity",
+    "energy.floor_area_sf", "energy.property_lot_count",
 })
 SCHEMA_VERSION = "2"
 # The ID spec parcel rule a file's parcel URNs were made with (meta ``parcel_rule``): rule 2 (ID spec
@@ -129,6 +136,8 @@ class ParcelRecord:
     local_use_code: str | None = None
     # Sales the same file records for the parcel, each a ``transaction.sale`` value (see docs/fact-model.md).
     sales: list[dict[str, Any]] = field(default_factory=list)
+    # Other facts the same file records for the parcel (a zoning district the roll carries), as ``(predicate, value, unit)``.
+    extra_facts: list[tuple[str, Any, str | None]] = field(default_factory=list)
 
 
 @dataclass
@@ -628,6 +637,8 @@ class Registry:
             n += self._fact(urn, "parcel.local_use_code", r.local_use_code, snap, locator=loc)
             for sale in r.sales:
                 n += self._fact(urn, "transaction.sale", sale, snap, locator=loc)
+            for predicate, value, unit in r.extra_facts:
+                n += self._fact(urn, predicate, value, snap, unit=unit, locator=loc)
             if account_system and r.account:
                 self.db.execute("INSERT OR REPLACE INTO crosswalk VALUES (?,?,?)", (account_system, r.account, urn))
             if r.situs_address:
