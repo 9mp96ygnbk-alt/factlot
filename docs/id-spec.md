@@ -191,12 +191,15 @@ IDs can recompute them and record the old and new IDs as `same_as`. A FactLot Re
 records the parcel rule its URNs were made with (`meta.parcel_rule`); a file built before
 v0.3 has none, keeps rule 1, and `registry_resolve_parcel` resolves an APN in it by rule 1.
 
-An APN whose rule 1 and rule 2 IDs differ is one written with separators (outside the
-counties above) or an unpadded NYC BBL. In the registries built so far that is about one parcel
-in ten: every county in Arkansas, Connecticut and Vermont, the North Carolina and Minnesota
-counties, Fulton and DeKalb (GA), Marion (IN), Baltimore City (MD), Wayne (MI), Fairfax (VA),
-Maricopa (AZ) and Miami-Dade (FL), among others. Their parcel IDs change when a registry is
-rebuilt under v0.3. Documented formats for these counties can be added in a later version.
+An APN whose rule 1 and rule 2 IDs differ is one written with separators outside the counties
+above, or an unpadded NYC BBL. Measured on the raw APNs of the registry files built so far
+(about 1.97 million parcels, 2026-11-04): about 218,000 parcels (11%) in 113 counties, all of
+them in the 389-county expansion build: 72 Arkansas counties, all 8 Connecticut and 14 Vermont
+counties, 11 Minnesota and 5 North Carolina counties, DeKalb (GA), Marion (IN) and Baltimore
+City (MD). The DC sample, Los Angeles, Denver, Hennepin, Mecklenburg, the five New York City
+boroughs and the five Texas counties keep their parcel IDs. The affected IDs change when those
+files are rebuilt under v0.3; documented formats for those counties can be added in a later
+version so their variants converge again.
 
 ## Open questions
 
