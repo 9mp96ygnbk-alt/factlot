@@ -13,6 +13,22 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 
 ## [Unreleased]
 
+Fixes from the hosted product review (`docs/research/2026-11-hosted-review`).
+
+### Changed
+
+- `doc_verify_facts`: `verified` now means every part of the value was found in the quote. Prohibited uses, an exclusive's protected use and carve-outs, and ROFR/ROFO descriptions must be written in the quote; an invented item goes to `needs_review` (check `consistency`). A true/false value, an enum the quote does not word, or a paraphrased summary goes to `needs_review` with the new check `coverage` and a reason naming each part. `free_rent.applies_to: base_rent` and a `natural` breakpoint are checked by their wording.
+- `doc_abstract_lease`: results no longer depend on document order. A document without a role is the original only when that is unambiguous (`role_inferred: true`); otherwise an `InputError` asks for `role`. Two or more amendments need `effective_date`; same-day amendments conflict instead of superseding.
+- `doc_abstract_lease`: an amendment effective after `as_of` is pending: its values are under `pending` and `pending_facts` with a warning, and it does not control the current abstract. A rent schedule restated from a later date keeps the earlier steps (`carried_forward`).
+- `doc_compare`: `lease_not_checked` lists the parts of an extracted lease fact that its quote does not confirm. `fact_package_verify` reports `checks_run`, `checks_not_run` and `values_not_checked`; `valid` is unchanged. `doc_verify_claim` accepts a bare sentence string as the claim.
+- `calc_exchange_1031` (`calc.exchange_1031@2`): a property identified after the 45-day deadline no longer counts. It is left out of the identification count, total value, ratio, the three-property, 200% and 95% tests and the received share, and is listed only under `late_identifications`. A property received after the exchange deadline no longer counts as received for the 95% exception (before, any late receipt ended the exception).
+- `calc_dcf_pro_forma` (`calc.dcf_pro_forma@2`): blended downtime and free rent are no longer rounded to whole months. The suite is vacant for the whole months, the rollover lease's first month collects the remaining share of rent and recoveries, and free rent abates the fraction of a month. Before, a 0.45-month blended downtime disappeared and a 55% renewal probability gave the same value as 100%. A lease that expires inside the projection always appears in `lease_events`, with a warning when its next lease starts after the forward year; the exit-year warning names rollover downtime.
+- Whole-number percents are rejected everywhere: a rate field above 1 in absolute value, or `min_dscr` above 10, in any calculator or in `lease_comp_validate` is an input error (HTTP 400) naming the decimal you probably meant ("pass 0.08 for 8%"), instead of computing 800% with a warning. Shares and ratios (`pro_rata_share`, `max_ltv`, `min_debt_yield`, occupancy, `*_pct`) rejected above 1 also say to pass a decimal. This replaces the warning added in 0.3.0.
+
+### Fixed
+
+- Docs: getting-started no longer says REST and OpenAPI always list the registry tools (they are listed only with a registry) and has a hosted-API section, including that Python's default `urllib` user agent is refused at the edge; connectors README tool count and Docker tag; Claude connector steps start from the hosted URL; the site says eleven skills; `document-verification.md` and `ingest.md` list `as_of` as required and describe the stricter checks; the registry-unavailable message links the current DC sample.
+
 ## [0.3.0] - 2026-11-04
 
 ### Added
