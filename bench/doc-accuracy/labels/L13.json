@@ -1,0 +1,46 @@
+{
+ "doc": "L13",
+ "labels": [
+  {
+   "predicate": "lease.landlord",
+   "value": "INDUSTRIAL DEVELOPMENTS INTERNATIONAL, INC.",
+   "page": 1,
+   "quote": "INDUSTRIAL DEVELOPMENTS INTERNATIONAL, INC., a Delaware corporation (“Landlord”)"
+  },
+  {
+   "predicate": "lease.tenant",
+   "value": "8650 Commerce Drive, LLC",
+   "page": 1,
+   "quote": "8650 Commerce Drive, LLC, a Mississippi limited liability company (“Tenant”)",
+   "note": "Tenant is a filer subsidiary; ScanSource, Inc. is the guarantor."
+  },
+  {
+   "predicate": "lease.rentable_area_sf",
+   "value": 592956,
+   "page": 1,
+   "quote": "(b)Demised Premises Square Footage: approximately 592,956 sq. ft.",
+   "note": "Premises area; the Building is approximately 740,844 sq. ft. Base Rent amounts and rates and the Security Deposit amount are redacted ([*****]) and are not labeled. Lease Commencement Date is Substantial Completion (contemplated October 1, 2007), so commencement, rent commencement and expiration are not labeled. Exhibit C (Special Stipulations, incl. Special Stipulations 5 and 6 on Operating Expenses) and Exhibit G (Guaranty form) are not in the filing."
+  },
+  {
+   "predicate": "lease.pro_rata_share",
+   "value": 0.8004,
+   "page": 2,
+   "quote": "(j)Tenant’s Operating Expense Percentage: 80.04%."
+  },
+  {
+   "predicate": "lease.guaranty",
+   "value": {
+    "guarantor": "ScanSource, Inc."
+   },
+   "page": 27,
+   "quote": "ScanSource, Inc., a South Carolina corporation (“Guarantor”) has agreed to guaranty the obligations of Tenant under this Lease",
+   "note": "Guaranty form (Exhibit G) is not in the filing; no cap is stated in the lease, so cap is omitted."
+  },
+  {
+   "predicate": "lease.assignment_sublease",
+   "value": "Assignment or subletting requires Landlord's prior written consent, not to be unreasonably withheld, conditioned or delayed; a change in control counts as an assignment unless Tenant or a guarantor is publicly traded.",
+   "page": 23,
+   "quote": "Tenant may not assign, mortgage, pledge, encumber or otherwise transfer this Lease, or any interest hereunder, or sublet the Demised Premises, in whole or in part, without on each occasion first obtaining the prior express written consent of Landlord, which consent Landlord shall not unreasonably withhold, condition or delay."
+  }
+ ]
+}
