@@ -1,0 +1,149 @@
+{
+ "doc": "L06",
+ "labels": [
+  {
+   "predicate": "lease.landlord",
+   "value": "EDGEWATER LIMITED PARTNERSHIP",
+   "page": 1,
+   "quote": "EDGEWATER LIMITED PARTNERSHIP, a Delaware limited partnership (\"Landlord\")"
+  },
+  {
+   "predicate": "lease.tenant",
+   "value": "ALLOGENE THERAPEUTICS, INC.",
+   "page": 1,
+   "quote": "ALLOGENE THERAPEUTICS, INC., a Delaware corporation (\"Tenant\")"
+  },
+  {
+   "predicate": "lease.commencement_date",
+   "value": "2018-11-01",
+   "page": 1,
+   "quote": "3.2 Rent Commencement Date: November 1, 2018.",
+   "note": "Section 2.1: the Lease Term commences on the Rent Commencement Date (Summary 3.2)."
+  },
+  {
+   "predicate": "lease.rent_commencement_date",
+   "value": "2018-11-01",
+   "page": 1,
+   "quote": "3.2 Rent Commencement Date: November 1, 2018."
+  },
+  {
+   "predicate": "lease.expiration_date",
+   "value": "2029-02-28",
+   "page": 1,
+   "quote": "3.3 Lease Expiration Date: February 28, 2029."
+  },
+  {
+   "predicate": "lease.rentable_area_sf",
+   "value": 14943,
+   "page": 1,
+   "quote": "Approximately 14,943 rentable square feet of space comprising a portion of the Building"
+  },
+  {
+   "predicate": "lease.base_rent_schedule",
+   "value": [
+    {
+     "from": "2018-11-01",
+     "to": "2019-05-31",
+     "annual_rent_psf": 60.6
+    },
+    {
+     "from": "2019-06-01",
+     "to": "2019-10-31",
+     "annual_rent_psf": 60.6
+    },
+    {
+     "from": "2019-11-01",
+     "to": "2020-10-31",
+     "annual_rent_psf": 62.76
+    },
+    {
+     "from": "2020-11-01",
+     "to": "2021-10-31",
+     "annual_rent_psf": 64.92
+    },
+    {
+     "from": "2021-11-01",
+     "to": "2022-10-31",
+     "annual_rent_psf": 67.2
+    },
+    {
+     "from": "2022-11-01",
+     "to": "2023-10-31",
+     "annual_rent_psf": 69.6
+    },
+    {
+     "from": "2023-11-01",
+     "to": "2024-10-31",
+     "annual_rent_psf": 72.0
+    },
+    {
+     "from": "2024-11-01",
+     "to": "2025-10-31",
+     "annual_rent_psf": 74.52
+    },
+    {
+     "from": "2025-11-01",
+     "to": "2026-10-31",
+     "annual_rent_psf": 77.16
+    },
+    {
+     "from": "2026-11-01",
+     "to": "2027-10-31",
+     "annual_rent_psf": 79.8
+    },
+    {
+     "from": "2027-11-01",
+     "to": "2028-10-31",
+     "annual_rent_psf": 82.68
+    },
+    {
+     "from": "2028-11-01",
+     "to": "2029-02-28",
+     "annual_rent_psf": 85.56
+    }
+   ],
+   "page": 2,
+   "quote": "1 (months 1 through 7) $452,803.20 $37,733.60 $5.05 1 (months 8 through 12) $905,545.80 $75,462.15 $5.05 2 $937,822.68 $78,151.89 $5.23 3 $970,646.47 $80,887.21 $5.41 4 $1,004,619.10 $83,718.26 $5.60 5 $1,039,780.77 $86,648.40 $5.80 6 $1,076,173.10 $89,681.09 $6.00 7 $1,113,839.15 $92,819.93 $6.21 8 $1,152,823.52 $96,068.63 $6.43 9 $1,193,172.35 $99,431.03 $6.65 10 $1,234,933.38 $102,911.12 $6.89 11 (through Lease Expiration Date) $1,278,156.05 $106,513.00 $7.13",
+   "derived": true,
+   "note": "Table gives Lease Years and approximate MONTHLY rent per RSF. Dates derived from the 2018-11-01 Rent Commencement Date and Section 2.1 (each Lease Year is a consecutive 12-month period); annual psf = monthly psf x 12, which equals annualized base rent / 14,943 for months 8 onward. Months 1-7 rent is computed on only 7,472 RSF (footnote), so the 60.60 for that step is the stated per-RSF rate, not annualized rent / 14,943."
+  },
+  {
+   "predicate": "lease.pro_rata_share",
+   "value": 0.3784,
+   "page": 2,
+   "quote": "6. Tenant's Share (Article 4): 37.84%.",
+   "note": "Tenant's Share (Summary section 6) of Direct Expenses."
+  },
+  {
+   "predicate": "lease.security_deposit",
+   "value": 213026,
+   "page": 3,
+   "quote": "8. Letter of Credit (Article 21): $213,026.00.",
+   "note": "Letter of Credit amount (Summary section 8). Section 21.5 says the L-C is not a security deposit under the security deposit laws; labeled as collateral, consistent with L03."
+  },
+  {
+   "predicate": "lease.renewal_option",
+   "value": {
+    "count": 1,
+    "term_months": 84,
+    "notice_months": 9,
+    "rent": "Fair Rental Value"
+   },
+   "page": 7,
+   "quote": "one (1) option to extend the Lease Term for a period of seven (7) years (the \"Option Term\")",
+   "note": "Exercise window is not more than 12 nor less than 9 months before expiration of the initial term; notice_months is the 9-month minimum. Option rent is Fair Rental Value (Section 2.2.2). The last exercise day (9 months before 2029-02-28) is not labeled as lease.renewal_notice_deadline because the lease does not state the date."
+  },
+  {
+   "predicate": "lease.rofo",
+   "value": "One-time right of first offer during the initial Lease Term on the remaining rentable space in the Building (First Offer Space), subordinate to Superior Rights; Tenant has seven business days to accept the entire offered space on the First Offer Notice terms.",
+   "page": 5,
+   "quote": "a one-time right of first offer, during the initial Lease Term only, with respect to the remaining rentable space in the Building not located within the Premises (the \"First Offer Space\")"
+  },
+  {
+   "predicate": "lease.assignment_sublease",
+   "value": "Assignment, subletting or other Transfer requires Landlord's prior written consent, not to be unreasonably withheld, conditioned or delayed; Tenant pays Landlord 50% of any Transfer Premium; Landlord has a recapture option; transfers to affiliates, asset acquirers or merger successors (Permitted Transferees) need no consent.",
+   "page": 26,
+   "quote": "Landlord shall not unreasonably withhold, condition or delay its consent to any proposed Transfer of the Subject Space to the Transferee on the terms specified in the Transfer Notice."
+  }
+ ]
+}
