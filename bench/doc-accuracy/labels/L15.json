@@ -1,0 +1,130 @@
+{
+ "doc": "L15",
+ "labels": [
+  {
+   "predicate": "lease.landlord",
+   "value": "25 North Investors SPE1, LLC",
+   "page": 3,
+   "quote": "between 25 North Investors SPE1, LLC, a Delaware limited\nliability company (“Landlord”)"
+  },
+  {
+   "predicate": "lease.tenant",
+   "value": "Solid Power, Inc.",
+   "page": 3,
+   "quote": "Solid Power, Inc., a Colorado corporation (“Tenant”)"
+  },
+  {
+   "predicate": "lease.rentable_area_sf",
+   "value": 75022,
+   "page": 2,
+   "quote": "Suite No. 140, containing 75,022 rentable square feet",
+   "note": "Commencement Date is the earlier of Tenant's substantial completion of its Tenant Work and January 1, 2022, so commencement and expiration (87th full calendar month after commencement) are not labeled; the stated rent table runs 1/1/22 to 3/31/29. Early Occupancy of 9,870 RSF at $11,111.98/month before commencement is not labeled. Section 20 lets either party terminate on five business days' notice if Tenant's Special Use Permit milestones are missed; it has no fixed effective date, so termination_option is not labeled."
+  },
+  {
+   "predicate": "lease.base_rent_schedule",
+   "value": [
+    {
+     "from": "2022-01-01",
+     "to": "2022-12-31",
+     "annual_rent_psf": 9.5
+    },
+    {
+     "from": "2023-01-01",
+     "to": "2023-12-31",
+     "annual_rent_psf": 9.785
+    },
+    {
+     "from": "2024-01-01",
+     "to": "2024-12-31",
+     "annual_rent_psf": 10.079
+    },
+    {
+     "from": "2025-01-01",
+     "to": "2025-12-31",
+     "annual_rent_psf": 10.381
+    },
+    {
+     "from": "2026-01-01",
+     "to": "2026-12-31",
+     "annual_rent_psf": 10.692
+    },
+    {
+     "from": "2027-01-01",
+     "to": "2027-12-31",
+     "annual_rent_psf": 11.013
+    },
+    {
+     "from": "2028-01-01",
+     "to": "2028-12-31",
+     "annual_rent_psf": 11.343
+    },
+    {
+     "from": "2029-01-01",
+     "to": "2029-03-31",
+     "annual_rent_psf": 11.684
+    }
+   ],
+   "page": 2,
+   "quote": "1/1/22\n---\n12/31/22\n$ 9.500",
+   "note": "Dates and annual rates per foot are printed in the Basic Lease Information table (1/1/22-12/31/22 $9.500 through 1/1/29-3/31/29 $11.684); only the first row is quoted."
+  },
+  {
+   "predicate": "lease.free_rent",
+   "value": {
+    "months": 3,
+    "applies_to": "base_rent"
+   },
+   "page": 2,
+   "quote": "Tenant shall be entitled to an abatement of Base Rent only, commencing on the Commencement Date and\nending on March 31, 2022 (the “Abated Rent Period”)",
+   "derived": true,
+   "note": "Three months assumes the January 1, 2022 outside Commencement Date that the rent table uses; if Tenant Work is completed earlier, the abatement is longer. Additional Rent, Taxes, Insurance and CAM remain payable."
+  },
+  {
+   "predicate": "lease.pro_rata_share",
+   "value": 0.71791,
+   "page": 3,
+   "quote": "71.791%, which is the percentage obtained by dividing (a) the number of rentable square feet in the Premises"
+  },
+  {
+   "predicate": "lease.security_deposit",
+   "value": 650000,
+   "page": 2,
+   "quote": "Security Deposit:\n$650,000.00",
+   "note": "May reduce to no less than $325,000 after the 44th month on stated conditions (Section 6(b))."
+  },
+  {
+   "predicate": "lease.renewal_option",
+   "value": {
+    "count": 1,
+    "term_months": 60,
+    "notice_months": 9,
+    "rent": "Prevailing Rental Rate, with broker determination if disputed"
+   },
+   "page": 59,
+   "quote": "Tenant\nmay renew this Lease for one (1) additional period of five (5) years, by delivering written notice of the exercise thereof to Landlord\nnot earlier than twelve (12) months nor later than nine (9) months before the expiration of the Term."
+  },
+  {
+   "predicate": "lease.rofo",
+   "value": "Right of first offer on space in the Building contiguous and adjacent to the Premises, starting only after the initial lease(s) of that space expire or terminate (Exhibit J).",
+   "page": 61,
+   "quote": "Landlord hereby grants to Tenant a right of first offer to lease space in the Building that is contiguous and adjacent to the Premises (the “First Offer Space”).",
+   "note": "The Section 26(cc) exhibit list says 'Exhibit J - Intentionally Deleted', but an Exhibit J Right of First Offer is attached; labeled from the attached exhibit."
+  },
+  {
+   "predicate": "lease.parking",
+   "value": {
+    "spaces": 158,
+    "rate_monthly": 0
+   },
+   "page": 58,
+   "quote": "Tenant may use up to 12 trailer stalls for parking of trailers and up to 158 undesignated automobile parking spaces in the parking area associated with the Building",
+   "note": "Parking is at no cost to Tenant during the initial Term (Exhibit H). The 12 trailer stalls are not counted in spaces."
+  },
+  {
+   "predicate": "lease.assignment_sublease",
+   "value": "Landlord will not unreasonably withhold consent to an assignment or sublease if Tenant is not in default and the transferee meets seven listed standards (creditworthy, good reputation, Permitted Use, etc.); otherwise consent is in Landlord's sole discretion. Landlord has cancellation and profit-sharing rights (Section 10(e)-(f)).",
+   "page": 18,
+   "quote": "Landlord shall not unreasonably\nwithhold its consent to any assignment or subletting of the Premises, provided that Tenant is not then in default under the Lease and\nthe proposed transferee: (1) is creditworthy;"
+  }
+ ]
+}
