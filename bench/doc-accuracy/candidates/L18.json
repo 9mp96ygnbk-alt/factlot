@@ -1,0 +1,110 @@
+{
+ "doc": "L18",
+ "candidates": [
+  {
+   "predicate": "lease.landlord",
+   "value": "CHALET PROPERTIES OF PUEBLO, LLC",
+   "quote": "between CHALET PROPERTIES OF PUEBLO, LLC, a Colorado limited liability company (hereinafter called “Landlord”)",
+   "page": 2
+  },
+  {
+   "predicate": "lease.tenant",
+   "value": "VITAMIN COTTAGE NATURAL FOOD MARKETS, INC.",
+   "quote": "and VITAMIN COTTAGE NATURAL FOOD MARKETS, INC., a Colorado corporation (hereinafter called “Tenant”)",
+   "page": 2
+  },
+  {
+   "predicate": "lease.rentable_area_sf",
+   "value": 17955,
+   "quote": "the premises to include approximately seventeen thousand nine hundred fifty-five (17,955) square feet of interior Leasable Floor Area",
+   "page": 2
+  },
+  {
+   "predicate": "lease.pro_rata_share",
+   "value": 0.359,
+   "quote": "Tenant’s Po-Rata Share (“Tenant’s Pro-Rata Share” or “Pro-Rata Share”), is deemed to be 35.9%",
+   "page": 3,
+   "section": "1.d.(2)"
+  },
+  {
+   "predicate": "lease.base_rent_schedule",
+   "value": [
+    {
+     "from": "",
+     "to": "",
+     "annual_rent_psf": 0
+    }
+   ],
+   "quote": "",
+   "page": 2,
+   "section": "1.b"
+  },
+  {
+   "predicate": "lease.landlord",
+   "value": "CHALET PROPERTIES OF PUEBLO, LLC",
+   "quote": "between CHALET PROPERTIES OF PUEBLO, LLC, a Colorado limited liability company (hereinafter called “Landlord”)",
+   "page": 2
+  },
+  {
+   "predicate": "lease.landlord",
+   "value": "CHALET PROPERTIES OF PUEBLO, LLC",
+   "quote": "between CHALET PROPERTIES OF PUEBLO, LLC, a Colorado limited liability company (hereinafter called “Landlord”)",
+   "page": 2
+  },
+  {
+   "predicate": "lease.tenant",
+   "value": "VITAMIN COTTAGE NATURAL FOOD MARKETS, INC.",
+   "quote": "and VITAMIN COTTAGE NATURAL FOOD MARKETS, INC., a Colorado corporation (hereinafter called “Tenant”)",
+   "page": 2
+  },
+  {
+   "predicate": "lease.rentable_area_sf",
+   "value": 17955,
+   "quote": "approximately seventeen thousand nine hundred fifty-five (17,955) square feet of interior Leasable Floor Area",
+   "page": 2
+  },
+  {
+   "predicate": "lease.pro_rata_share",
+   "value": 0.359,
+   "quote": "Tenant’s Po-Rata Share (“Tenant’s Pro-Rata Share” or “Pro-Rata Share”), is deemed to be 35.9%",
+   "page": 3,
+   "section": "1.d.(2)"
+  },
+  {
+   "predicate": "lease.cam_cap",
+   "value": {
+    "method": "year_over_year",
+    "rate": 0.03
+   },
+   "quote": "Tenant’s Pro-Rata Share of Controllable Common Area Costs shall not exceed the lesser of: (a) Tenant’s Pro-Rata Share of actual Controllable Common Area Costs for such calendar year, or (b) one hundred three percent (103%) of Tenant’s Pro-Rata Share of Controllable Common Area Costs of the previous calendar year.",
+   "page": 12,
+   "section": "6.d"
+  },
+  {
+   "predicate": "lease.renewal_option",
+   "value": {
+    "count": 4,
+    "term_months": 60,
+    "notice_months": 3,
+    "rent": "Monthly Fixed Rent of $15,000.00 for Lease Years 11-15, $16,000.00 for Lease Years 16-20, $17,000.00 for Lease Years 21-25, and $18,000.00 for Lease Years 26-30"
+   },
+   "quote": "Tenant shall have the option to extend the Term for four (4) additional periods of five (5) years each (each additional period, an “Extended Lease Term”), with such Extended Lease Terms to begin upon the expiration of the Initial Lease Term (or the then existing Extended Lease Term, as the case may be) and the same terms and conditions as herein set forth shall apply to such Extended Lease Term, but there shall be no further option to extend the Term after expiration of the fourth (4th) Extended Lease Term. If Tenant wishes to exercise an option to extend the Term, it shall do so by giving written notice to Landlord not less than three (3) months, nor more than twenty-four (24) months, prior to the expiration of the Initial Term (or the prior Extended Lease Term, as the case may be).",
+   "page": 5,
+   "section": "2.d"
+  },
+  {
+   "predicate": "lease.exclusive_use",
+   "value": "primary use as a grocery store, meaning more than ten percent (10%) of gross sales from the sale of nutritional supplements or vitamins, or pre-packaged natural or organic fresh, frozen, or shelf-stable foods, fruits, vegetables and fish/meat, intended for at home consumption",
+   "quote": "will be granted the right by Landlord to be used for a primary use as a grocery store (examples of which include Sprouts, Whole Foods, Lucky’s, Alfalfa’s, Trader Joe’s, King Soopers, Safeway, and Albertsons) (the “Exclusive” and “Exclusive Use Covenant”); provided, however, (a) the term “primary use as a grocery store” shall mean any use in which more than ten percent (10%) of gross sales (inclusive of all types of sales revenue including but not limited to retail, services, membership-based, and other revenues) are generated from either or both of (i.) the sale of nutritional supplements or vitamins, or (ii.) pre-packaged natural or organic fresh, frozen, or shelf-stable foods, fruits, vegetables and fish/meat, intended for at home consumption",
+   "page": 14,
+   "section": "7.b"
+  },
+  {
+   "predicate": "lease.assignment_sublease",
+   "value": "Tenant may assign this Lease or sublet all or any portion of the Leased Premises without Landlord’s consent, but is not released from liability unless the successor entity has a net worth greater than or equal to $50,000,000.00 at the time of the assignment or sublease.",
+   "quote": "Tenant shall have the right to assign this Lease and to sublet all or any portion of the Leased Premises without Landlord’s consent, but Tenant shall not be released from liability hereunder upon any such assignment or subletting; except that: (i) in the event Landlord and any assignee modify or amend this Lease without Tenant’s consent so as to increase the obligations of Tenant hereunder, Tenant’s liability hereunder shall not be increased, but instead shall continue as it existed prior to such modification or amendment, and (ii) in the event any successor entity has a net worth that is greater than or equal to Fifty Million Dollars ($50,000,000.00) at the time of an assignment or sublease, Tenant shall be released from any further liability under the Lease.",
+   "page": 19,
+   "section": "12.b"
+  }
+ ]
+}
