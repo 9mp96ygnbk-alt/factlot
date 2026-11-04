@@ -1,7 +1,7 @@
 {
   "name": "factlot",
   "displayName": "FactLot",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Commercial real estate skills plus the FactLot MCP tools: deterministic, audited calculators for loan sizing, lease economics, CAM, ASC 842, returns, hotel metrics, and the Texas protest deadline.",
   "author": {
     "name": "FactLot",
