@@ -51,8 +51,9 @@ import {
 } from "./registry.ts";
 import {
   INPUT_LIMITS,
-  implausibleInputWarnings,
+  appliesUnitPolicy,
   inputShapeIssue,
+  unitSlipIssues,
   unknownFields,
   withRateHints,
 } from "./limits.ts";
@@ -637,7 +638,10 @@ export function getTool(name: string): ToolSpec | undefined {
 
 type Checked = { tool: ToolSpec; data: unknown } | { error: ToolOutcome };
 
-/** Structural caps, unknown fields and schema validation, in that order (runTool, runToolAsync). */
+/**
+ * Structural caps, unknown fields, whole-number percents and schema validation, in that order
+ * (runTool, runToolAsync).
+ */
 function checkInput(name: string, args: unknown): Checked {
   const tool = getTool(name);
   if (!tool) {
@@ -688,6 +692,22 @@ function checkInput(name: string, args: unknown): Checked {
         },
       },
     };
+  }
+  // Whole-number percents next: a rate above 1 (8 for 8%) or a min_dscr above 10 is a unit slip
+  // that some schemas bound and some do not, so one check covers every calculator.
+  if (appliesUnitPolicy(name)) {
+    const slips = unitSlipIssues(args ?? {}).slice(0, INPUT_LIMITS.maxIssues);
+    if (slips.length)
+      return {
+        error: {
+          ok: false,
+          error: {
+            error: kind,
+            message: `invalid input: ${slips.map((i) => `${i.path}: ${i.message}`).join("; ")}`,
+            issues: slips,
+          },
+        },
+      };
   }
   const parsed = tool.input.safeParse(args ?? {});
   if (!parsed.success) {
@@ -767,13 +787,6 @@ function errorOutcome(err: unknown): ToolOutcome {
   throw err;
 }
 
-function finish(name: string, args: unknown, result: unknown): ToolOutcome {
-  const warnings = (result as { warnings?: unknown } | null)?.warnings;
-  if (name.startsWith("calc_") && Array.isArray(warnings))
-    warnings.push(...implausibleInputWarnings(args));
-  return { ok: true, result };
-}
-
 /**
  * Validate input and run a tool. Never throws for bad input: returns errors as data agents can act
  * on. Tools marked `async` (fact_package_verify, which checks Ed25519 signatures with WebCrypto)
@@ -792,7 +805,10 @@ export function runTool(name: string, args: unknown): ToolOutcome {
       },
     };
   try {
-    return finish(name, args, (c.tool.run as (i: unknown) => unknown)(c.data));
+    return {
+      ok: true,
+      result: (c.tool.run as (i: unknown) => unknown)(c.data),
+    };
   } catch (err) {
     return errorOutcome(err);
   }
@@ -806,11 +822,10 @@ export async function runToolAsync(
   const c = checkInput(name, args);
   if ("error" in c) return c.error;
   try {
-    return finish(
-      name,
-      args,
-      await (c.tool.run as (i: unknown) => unknown)(c.data),
-    );
+    return {
+      ok: true,
+      result: await (c.tool.run as (i: unknown) => unknown)(c.data),
+    };
   } catch (err) {
     return errorOutcome(err);
   }

@@ -3527,11 +3527,11 @@
     {
       "name": "calc_exchange_1031",
       "title": "1031 exchange deadlines, identification, and boot",
-      "description": "Not tax advice: arithmetic only. The 45-day identification and 180-day exchange deadlines of IRC §1031(a)(3) (the exchange period ends earlier at a given tax-return due date), the three-property, 200%, and 95% identification tests of Treas. Reg. §1.1031(k)-1(c)(4), and the cash boot, mortgage boot, debt replacement, and trade-down of an exchange, with the boot-limited gain when the basis is given. Deterministic: use this instead of doing the math yourself; cite formula calc.exchange_1031@1 and the returned steps, and surface any warnings.",
+      "description": "Not tax advice: arithmetic only. The 45-day identification and 180-day exchange deadlines of IRC §1031(a)(3) (the exchange period ends earlier at a given tax-return due date), the three-property, 200%, and 95% identification tests of Treas. Reg. §1.1031(k)-1(c)(4), and the cash boot, mortgage boot, debt replacement, and trade-down of an exchange, with the boot-limited gain when the basis is given. Deterministic: use this instead of doing the math yourself; cite formula calc.exchange_1031@2 and the returned steps, and surface any warnings.",
       "path": "/v1/calc/exchange_1031",
       "formula": {
         "id": "calc.exchange_1031",
-        "version": 1
+        "version": 2
       },
       "input_schema": {
         "type": "object",

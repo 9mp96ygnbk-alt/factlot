@@ -784,7 +784,7 @@
             "escalation": {
               "type": "percent",
               "every_months": 0,
-              "rate": 10
+              "rate": 0.03
             },
             "free_rent_months": 6,
             "ti_allowance_psf": 50,
@@ -814,10 +814,6 @@
       "expect": {
         "valid": false,
         "issues": [
-          {
-            "path": "value.escalation.rate",
-            "message": "Too big: expected number to be <10"
-          },
           {
             "path": "value.escalation.every_months",
             "message": "Too small: expected number to be >0"

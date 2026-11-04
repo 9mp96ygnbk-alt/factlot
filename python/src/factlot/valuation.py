@@ -952,30 +952,42 @@ def exchange_1031(raw: Any) -> Result:
 
     identification = None
     if props:
+        # An identification delivered after the 45-day deadline is not an identification
+        # (IRC §1031(a)(3)(A)): it is left out of the count, the value, every test, and the
+        # received share, and is only listed under late_identifications.
+        def is_late(x: dict) -> bool:
+            return x["identified_date"] is not None and x["identified_date"] > id_deadline
+
+        # Property received after the exchange deadline was identified, but is not received in
+        # time: it counts toward the identified value, not toward the 95% received value.
+        def received_late(x: dict) -> bool:
+            return x["received"] and x["received_date"] is not None and x["received_date"] > ex_deadline
+
+        on_time = [x for x in props if not is_late(x)]
+        late = [x["name"] for x in props if is_late(x)]
+        late_receipts = [x["name"] for x in props if received_late(x)]
         total = 0.0
         received = 0.0
-        for x in props:
+        for x in on_time:
             total += x["fair_market_value"]
-            if x["received"]:
+            if x["received"] and not received_late(x):
                 received += x["fair_market_value"]
-        three = len(props) <= 3
-        two_hundred = reduce_noise(total) <= reduce_noise(2 * rel["sale_price"])
-        late = [x["name"] for x in props if x["identified_date"] is not None and x["identified_date"] > id_deadline]
-        late_receipts = [x["name"] for x in props
-                         if x["received"] and x["received_date"] is not None and x["received_date"] > ex_deadline]
-        ninety_five = reduce_noise(received) >= reduce_noise(0.95 * total) and not late_receipts
+        any_on_time = len(on_time) > 0
+        three = any_on_time and len(on_time) <= 3
+        two_hundred = any_on_time and reduce_noise(total) <= reduce_noise(2 * rel["sale_price"])
+        ninety_five = any_on_time and reduce_noise(received) >= reduce_noise(0.95 * total)
         rule = "three_property" if three else "200_percent" if two_hundred else "95_percent" if ninety_five else None
         t.step("Three-property rule", "met" if three else "not met",
-               f"Treas. Reg. §1.1031(k)-1(c)(4)(i)(A): {len(props)} identified, at most 3")
+               f"Treas. Reg. §1.1031(k)-1(c)(4)(i)(A): {len(on_time)} identified in time, at most 3")
         t.step("200% rule", "met" if two_hundred else "not met",
                f"Treas. Reg. §1.1031(k)-1(c)(4)(i)(B): {fmt_money(total)} identified ≤ 200% × "
                f"{fmt_money(rel['sale_price'])} = {fmt_money(2 * rel['sale_price'])}")
-        if not three and not two_hundred:
+        if any_on_time and not three and not two_hundred:
             t.step("95% exception", "met" if ninety_five else "not met",
                    f"Treas. Reg. §1.1031(k)-1(c)(4)(ii)(B): {fmt_money(received)} received ≥ 95% × {fmt_money(total)} "
                    f"= {fmt_money(0.95 * total)}, each by the exchange deadline")
         identification = {
-            "count": len(props),
+            "count": len(on_time),
             "total_fair_market_value": round_(total, 2),
             "ratio_to_relinquished": round_(total / rel["sale_price"], 4),
             "three_property_rule": three,
@@ -986,13 +998,18 @@ def exchange_1031(raw: Any) -> Result:
             "late_identifications": late,
             "late_receipts": late_receipts,
         }
-        if rule is None:
+        if not any_on_time:
+            t.warn("Every identification was delivered after the 45-day deadline, so the taxpayer is treated as "
+                   "having identified no replacement property.")
+        elif rule is None:
             t.warn("The identification meets none of the three-property, 200%, or 95% tests: Treas. Reg. "
                    "§1.1031(k)-1(c)(4)(ii)(A) treats the taxpayer as having identified no replacement property.")
         if late:
-            t.warn(f"Identified after the {id_deadline} deadline: {', '.join(late)}.")
+            t.warn(f"Identified after the {id_deadline} deadline: {', '.join(late)}. A late identification does not "
+                   f"count{': it is left out of the count, the total value, and the tests' if any_on_time else ''}.")
         if late_receipts:
-            t.warn(f"Received after the {ex_deadline} exchange deadline: {', '.join(late_receipts)}.")
+            t.warn(f"Received after the {ex_deadline} exchange deadline: {', '.join(late_receipts)}. Not counted as "
+                   "received for the 95% exception.")
         if rule == "95_percent":
             t.warn("The identification relies on the 95% exception, which counts only property actually received by "
                    "the exchange deadline.")
@@ -1071,7 +1088,7 @@ def exchange_1031(raw: Any) -> Result:
            "(IRC §7508A) are not applied.")
     t.warn(NOT_TAX_ADVICE)
 
-    return t.result("calc.exchange_1031", 1, {
+    return t.result("calc.exchange_1031", 2, {
         "disclaimer": NOT_TAX_ADVICE,
         "deadlines": {
             "transfer_date": start,

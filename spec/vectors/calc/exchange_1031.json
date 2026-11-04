@@ -1,6 +1,6 @@
 {
   "calculator": "calc.exchange_1031",
-  "version": 1,
+  "version": 2,
   "cases": [
     {
       "name": "transfer 2026-10-01: identify by 2026-11-15; the 2027-03-15 return due date comes before day 180 (2027-03-30); four candidates fail the three-property and 200% tests; cash boot only",
@@ -47,6 +47,12 @@
         "value.identification.three_property_rule": false,
         "value.identification.two_hundred_percent_rule": false,
         "value.identification.ratio_to_relinquished": 2.7333,
+        "value.identification.count": 4,
+        "value.identification.total_fair_market_value": 8200000,
+        "value.identification.received_share": 0.3415,
+        "value.identification.rule_met": null,
+        "value.identification.late_identifications": [],
+        "value.identification.late_receipts": [],
         "value.exchange.amount_realized": 2850000,
         "value.exchange.exchange_equity": 1650000,
         "value.exchange.qualified_intermediary_funds": 1600000,
@@ -58,8 +64,7 @@
         "value.exchange.realized_gain": 1850000,
         "value.exchange.boot_limited_gain": 50000,
         "value.deadlines.days_to_identification_deadline": 12,
-        "value.deadlines.days_to_exchange_deadline": 132,
-        "value.identification.rule_met": null
+        "value.deadlines.days_to_exchange_deadline": 132
       }
     },
     {
@@ -101,6 +106,12 @@
         "value.identification.three_property_rule": true,
         "value.identification.two_hundred_percent_rule": true,
         "value.identification.ratio_to_relinquished": 1.9524,
+        "value.identification.count": 3,
+        "value.identification.total_fair_market_value": 8200000,
+        "value.identification.received_share": 0.5488,
+        "value.identification.rule_met": "three_property",
+        "value.identification.late_identifications": [],
+        "value.identification.late_receipts": [],
         "value.exchange.amount_realized": 3990000,
         "value.exchange.exchange_equity": 2490000,
         "value.exchange.qualified_intermediary_funds": 2490000,
@@ -108,9 +119,7 @@
         "value.exchange.cash_boot": 0,
         "value.exchange.mortgage_boot": 0,
         "value.exchange.total_boot": 0,
-        "value.exchange.trade_down": 0,
-        "value.identification.rule_met": "three_property",
-        "value.identification.late_identifications": []
+        "value.exchange.trade_down": 0
       }
     },
     {
@@ -157,6 +166,12 @@
         "value.identification.three_property_rule": false,
         "value.identification.two_hundred_percent_rule": true,
         "value.identification.ratio_to_relinquished": 1.975,
+        "value.identification.count": 5,
+        "value.identification.total_fair_market_value": 3950000,
+        "value.identification.received_share": 0,
+        "value.identification.rule_met": "200_percent",
+        "value.identification.late_identifications": [],
+        "value.identification.late_receipts": [],
         "value.exchange.amount_realized": 1900000,
         "value.exchange.exchange_equity": 1000000,
         "value.exchange.qualified_intermediary_funds": 1000000,
@@ -166,8 +181,7 @@
         "value.exchange.total_boot": 400000,
         "value.exchange.trade_down": 400000,
         "value.exchange.realized_gain": 700000,
-        "value.exchange.boot_limited_gain": 400000,
-        "value.identification.rule_met": "200_percent"
+        "value.exchange.boot_limited_gain": 400000
       }
     },
     {
@@ -214,8 +228,368 @@
         "value.identification.three_property_rule": false,
         "value.identification.two_hundred_percent_rule": false,
         "value.identification.ratio_to_relinquished": 2.5,
+        "value.identification.count": 6,
+        "value.identification.total_fair_market_value": 2500000,
+        "value.identification.received_share": 0.96,
         "value.identification.rule_met": "95_percent",
+        "value.identification.late_identifications": [],
+        "value.identification.late_receipts": [],
         "value.identification.ninety_five_percent_exception": true
+      }
+    },
+    {
+      "name": "late identification (review batch H, reproduced): A, B, C identified on time, D after the 45-day deadline of 2026-10-30: D is out of the count, the value and the tests, so three on-time properties meet the three-property rule (before the fix: count 4, 9,000,000, no rule met)",
+      "input": {
+        "relinquished_transfer_date": "2026-09-15",
+        "as_of": "2026-11-04",
+        "relinquished": {
+          "sale_price": 4200000
+        },
+        "identified_properties": [
+          {
+            "name": "A",
+            "fair_market_value": 3000000,
+            "identified_date": "2026-10-20"
+          },
+          {
+            "name": "B",
+            "fair_market_value": 2500000,
+            "identified_date": "2026-10-25"
+          },
+          {
+            "name": "C",
+            "fair_market_value": 2000000,
+            "identified_date": "2026-10-28"
+          },
+          {
+            "name": "D",
+            "fair_market_value": 1500000,
+            "identified_date": "2026-11-01"
+          }
+        ]
+      },
+      "expect": {
+        "value.deadlines.identification_deadline": "2026-10-30",
+        "value.deadlines.exchange_deadline": "2027-03-14",
+        "value.deadlines.exchange_deadline_basis": "180_days",
+        "value.identification.three_property_rule": true,
+        "value.identification.two_hundred_percent_rule": true,
+        "value.identification.ratio_to_relinquished": 1.7857,
+        "value.identification.count": 3,
+        "value.identification.total_fair_market_value": 7500000,
+        "value.identification.received_share": 0,
+        "value.identification.rule_met": "three_property",
+        "value.identification.late_identifications": ["D"],
+        "value.identification.late_receipts": []
+      }
+    },
+    {
+      "name": "deadline day itself counts: identified 2026-10-30 is on time, 2026-10-31 is late",
+      "input": {
+        "relinquished_transfer_date": "2026-09-15",
+        "relinquished": {
+          "sale_price": 1000000
+        },
+        "identified_properties": [
+          {
+            "name": "A",
+            "fair_market_value": 500000,
+            "identified_date": "2026-10-30"
+          },
+          {
+            "name": "B",
+            "fair_market_value": 500000,
+            "identified_date": "2026-10-30"
+          },
+          {
+            "name": "C",
+            "fair_market_value": 500000,
+            "identified_date": "2026-10-30"
+          },
+          {
+            "name": "D",
+            "fair_market_value": 500000,
+            "identified_date": "2026-10-31"
+          },
+          {
+            "name": "E",
+            "fair_market_value": 500000,
+            "identified_date": "2026-11-20"
+          }
+        ]
+      },
+      "expect": {
+        "value.deadlines.identification_deadline": "2026-10-30",
+        "value.deadlines.exchange_deadline": "2027-03-14",
+        "value.deadlines.exchange_deadline_basis": "180_days",
+        "value.identification.three_property_rule": true,
+        "value.identification.two_hundred_percent_rule": true,
+        "value.identification.ratio_to_relinquished": 1.5,
+        "value.identification.count": 3,
+        "value.identification.total_fair_market_value": 1500000,
+        "value.identification.received_share": 0,
+        "value.identification.rule_met": "three_property",
+        "value.identification.late_identifications": ["D", "E"],
+        "value.identification.late_receipts": []
+      }
+    },
+    {
+      "name": "every identification late: nothing counts, no rule is met",
+      "input": {
+        "relinquished_transfer_date": "2026-09-15",
+        "relinquished": {
+          "sale_price": 1000000
+        },
+        "identified_properties": [
+          {
+            "name": "A",
+            "fair_market_value": 900000,
+            "identified_date": "2026-11-01"
+          },
+          {
+            "name": "B",
+            "fair_market_value": 800000,
+            "identified_date": "2026-11-02"
+          }
+        ]
+      },
+      "expect": {
+        "value.deadlines.identification_deadline": "2026-10-30",
+        "value.deadlines.exchange_deadline": "2027-03-14",
+        "value.deadlines.exchange_deadline_basis": "180_days",
+        "value.identification.three_property_rule": false,
+        "value.identification.two_hundred_percent_rule": false,
+        "value.identification.ratio_to_relinquished": 0,
+        "value.identification.count": 0,
+        "value.identification.total_fair_market_value": 0,
+        "value.identification.received_share": 0,
+        "value.identification.rule_met": null,
+        "value.identification.late_identifications": ["A", "B"],
+        "value.identification.late_receipts": []
+      }
+    },
+    {
+      "name": "late identifications are left out of the 200% test: four on-time properties total 1,600,000 (within 200% of 1,000,000); counting the late 900,000 would give 2,500,000 and fail",
+      "input": {
+        "relinquished_transfer_date": "2026-09-15",
+        "relinquished": {
+          "sale_price": 1000000
+        },
+        "identified_properties": [
+          {
+            "name": "P1",
+            "fair_market_value": 400000,
+            "identified_date": "2026-10-01"
+          },
+          {
+            "name": "P2",
+            "fair_market_value": 400000,
+            "identified_date": "2026-10-01"
+          },
+          {
+            "name": "P3",
+            "fair_market_value": 400000,
+            "identified_date": "2026-10-01"
+          },
+          {
+            "name": "P4",
+            "fair_market_value": 400000,
+            "identified_date": "2026-10-01"
+          },
+          {
+            "name": "Late",
+            "fair_market_value": 900000,
+            "identified_date": "2026-11-10"
+          }
+        ]
+      },
+      "expect": {
+        "value.deadlines.identification_deadline": "2026-10-30",
+        "value.deadlines.exchange_deadline": "2027-03-14",
+        "value.deadlines.exchange_deadline_basis": "180_days",
+        "value.identification.three_property_rule": false,
+        "value.identification.two_hundred_percent_rule": true,
+        "value.identification.ratio_to_relinquished": 1.6,
+        "value.identification.count": 4,
+        "value.identification.total_fair_market_value": 1600000,
+        "value.identification.received_share": 0,
+        "value.identification.rule_met": "200_percent",
+        "value.identification.late_identifications": ["Late"],
+        "value.identification.late_receipts": []
+      }
+    },
+    {
+      "name": "a late-identified property that was received still counts for nothing: it is out of the received share",
+      "input": {
+        "relinquished_transfer_date": "2026-01-10",
+        "tax_return_due_date": "2027-04-15",
+        "relinquished": {
+          "sale_price": 1000000
+        },
+        "identified_properties": [
+          {
+            "name": "Big",
+            "fair_market_value": 2400000,
+            "received": true,
+            "identified_date": "2026-03-01",
+            "received_date": "2026-07-01"
+          },
+          {
+            "name": "Small 1",
+            "fair_market_value": 20000,
+            "identified_date": "2026-02-01"
+          },
+          {
+            "name": "Small 2",
+            "fair_market_value": 20000,
+            "identified_date": "2026-02-01"
+          },
+          {
+            "name": "Small 3",
+            "fair_market_value": 20000,
+            "identified_date": "2026-02-01"
+          },
+          {
+            "name": "Small 4",
+            "fair_market_value": 20000,
+            "identified_date": "2026-02-01"
+          },
+          {
+            "name": "Small 5",
+            "fair_market_value": 20000,
+            "identified_date": "2026-02-01"
+          }
+        ]
+      },
+      "expect": {
+        "value.deadlines.identification_deadline": "2026-02-24",
+        "value.deadlines.exchange_deadline": "2026-07-09",
+        "value.deadlines.exchange_deadline_basis": "180_days",
+        "value.identification.three_property_rule": false,
+        "value.identification.two_hundred_percent_rule": true,
+        "value.identification.ratio_to_relinquished": 0.1,
+        "value.identification.count": 5,
+        "value.identification.total_fair_market_value": 100000,
+        "value.identification.received_share": 0,
+        "value.identification.rule_met": "200_percent",
+        "value.identification.late_identifications": ["Big"],
+        "value.identification.late_receipts": []
+      }
+    },
+    {
+      "name": "late receipt of a small property: the 95% exception counts only value received by the deadline, 2,400,000 of 2,500,000 = 96% (before the fix any late receipt ended the exception)",
+      "input": {
+        "relinquished_transfer_date": "2026-01-10",
+        "tax_return_due_date": "2027-04-15",
+        "relinquished": {
+          "sale_price": 1000000
+        },
+        "identified_properties": [
+          {
+            "name": "Big",
+            "fair_market_value": 2400000,
+            "received": true,
+            "received_date": "2026-07-01"
+          },
+          {
+            "name": "Small 1",
+            "fair_market_value": 20000,
+            "received": true,
+            "received_date": "2026-09-01"
+          },
+          {
+            "name": "Small 2",
+            "fair_market_value": 20000
+          },
+          {
+            "name": "Small 3",
+            "fair_market_value": 20000
+          },
+          {
+            "name": "Small 4",
+            "fair_market_value": 20000
+          },
+          {
+            "name": "Small 5",
+            "fair_market_value": 20000
+          }
+        ]
+      },
+      "expect": {
+        "value.deadlines.identification_deadline": "2026-02-24",
+        "value.deadlines.exchange_deadline": "2026-07-09",
+        "value.deadlines.exchange_deadline_basis": "180_days",
+        "value.identification.three_property_rule": false,
+        "value.identification.two_hundred_percent_rule": false,
+        "value.identification.ratio_to_relinquished": 2.5,
+        "value.identification.count": 6,
+        "value.identification.total_fair_market_value": 2500000,
+        "value.identification.received_share": 0.96,
+        "value.identification.rule_met": "95_percent",
+        "value.identification.late_identifications": [],
+        "value.identification.late_receipts": ["Small 1"]
+      }
+    },
+    {
+      "name": "late receipt of the large property: received value 100,000 of 2,500,000, the exception fails and the late receipt is listed",
+      "input": {
+        "relinquished_transfer_date": "2026-01-10",
+        "tax_return_due_date": "2027-04-15",
+        "relinquished": {
+          "sale_price": 1000000
+        },
+        "identified_properties": [
+          {
+            "name": "Big",
+            "fair_market_value": 2400000,
+            "received": true,
+            "received_date": "2026-09-01"
+          },
+          {
+            "name": "Small 1",
+            "fair_market_value": 20000,
+            "received": true,
+            "received_date": "2026-06-01"
+          },
+          {
+            "name": "Small 2",
+            "fair_market_value": 20000,
+            "received": true,
+            "received_date": "2026-06-01"
+          },
+          {
+            "name": "Small 3",
+            "fair_market_value": 20000,
+            "received": true,
+            "received_date": "2026-06-01"
+          },
+          {
+            "name": "Small 4",
+            "fair_market_value": 20000,
+            "received": true,
+            "received_date": "2026-06-01"
+          },
+          {
+            "name": "Small 5",
+            "fair_market_value": 20000,
+            "received": true,
+            "received_date": "2026-06-01"
+          }
+        ]
+      },
+      "expect": {
+        "value.deadlines.identification_deadline": "2026-02-24",
+        "value.deadlines.exchange_deadline": "2026-07-09",
+        "value.deadlines.exchange_deadline_basis": "180_days",
+        "value.identification.three_property_rule": false,
+        "value.identification.two_hundred_percent_rule": false,
+        "value.identification.ratio_to_relinquished": 2.5,
+        "value.identification.count": 6,
+        "value.identification.total_fair_market_value": 2500000,
+        "value.identification.received_share": 0.04,
+        "value.identification.rule_met": null,
+        "value.identification.late_identifications": [],
+        "value.identification.late_receipts": ["Big"]
       }
     },
     {

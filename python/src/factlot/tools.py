@@ -115,38 +115,67 @@ def unknown_fields(schema: dict[str, Any], value: Any, path: str = "") -> list[d
     return out
 
 
+# Rate fields are decimal fractions (0.065 for 6.5%); share and ratio fields likewise. A minimum DSCR is
+# a coverage ratio (1.25 for 1.25x). Must match RATE_KEY, SHARE_KEY and DSCR_MAX in packages/tools/src/limits.ts.
 _RATE_KEY = re.compile(r"^(?:rate|rate_annual|.+_rate|.+_rate_annual)$")
+_SHARE_KEY = re.compile(r"^(?:share|.+_share|ltv|.+_ltv|(?:.+_)?occupancy(?:_.+)?|(?:.+_)?debt_yield|.+_pct)$")
+_DSCR_KEY = "min_dscr"
+_DSCR_MAX = 10
 
 
-def implausible_input_warnings(value: Any, path: str = "") -> list[str]:
-    """Warnings for valid inputs that are almost certainly a unit slip (rate > 1, min_dscr > 10).
+def _unit_slip(key: str, v: Any) -> tuple[str | None, str | None]:
+    """(rejection message, hint) for a whole-number percent in a numeric field, else (None, None).
 
-    Must match ``implausibleInputWarnings`` in packages/tools/src/limits.ts.
+    One policy for every surface: a rate above 1 in absolute value, or a min_dscr above 10, is a unit
+    slip (8 for 8%, 130 for 1.3x) and the tool rejects it. Share and ratio fields are bounded by each
+    tool's schema; the hint is added when that bound rejects them. Must match ``unitSlip`` in
+    packages/tools/src/limits.ts.
+    """
+    if not isinstance(v, (int, float)) or isinstance(v, bool):
+        return None, None
+    if _RATE_KEY.match(key) and abs(v) > 1:
+        hint = f"rates are decimals: pass {num_str(v / 100)} for {num_str(v)}%"
+        return f"must be a decimal between -1 and 1 but is {num_str(v)} ({hint})", f" ({hint})"
+    if key == _DSCR_KEY and v > _DSCR_MAX:
+        return (f"must be at most {_DSCR_MAX} but is {num_str(v)} (DSCR is a ratio: pass {num_str(v / 100)} "
+                f"for {num_str(v / 100)}x coverage)"), None
+    if _SHARE_KEY.match(key) and v > 1:
+        return None, f" (shares and ratios are decimals: pass {num_str(v / 100)} for {num_str(v)}%)"
+    return None, None
+
+
+def applies_unit_policy(tool_name: str) -> bool:
+    """Tools the whole-number-percent rejection covers: every calculator and lease_comp_validate.
+
+    Must match ``appliesUnitPolicy`` in packages/tools/src/limits.ts.
+    """
+    return tool_name.startswith("calc_") or tool_name == "lease_comp_validate"
+
+
+def unit_slip_issues(value: Any, path: str = "") -> list[dict[str, str]]:
+    """Every rate field above 1 (or min_dscr above 10) anywhere in the arguments, as input issues.
+
+    Must match ``unitSlipIssues`` in packages/tools/src/limits.ts.
     """
     if isinstance(value, list):
-        return [w for i, v in enumerate(value) for w in implausible_input_warnings(v, f"{path}.{i}" if path else str(i))]
+        return [i for n, v in enumerate(value) for i in unit_slip_issues(v, f"{path}.{n}" if path else str(n))]
     if not isinstance(value, dict):
         return []
-    out: list[str] = []
+    out: list[dict[str, str]] = []
     for k, v in value.items():
         at = f"{path}.{k}" if path else k
         if isinstance(v, (int, float)) and not isinstance(v, bool):
-            if _RATE_KEY.match(k) and abs(v) > 1:
-                out.append(f"{at} is {num_str(v)}: FactLot reads rates as decimals (0.03 = 3%). "
-                           f"If you meant {num_str(v)}%, pass {num_str(v / 100)}.")
-            elif k == "min_dscr" and v > 10:
-                out.append(f"{at} is {num_str(v)}: DSCR is a ratio (1.25 = 1.25x coverage). "
-                           f"If you meant {num_str(v / 100)}x, pass {num_str(v / 100)}.")
+            message = _unit_slip(k, v)[0]
+            if message is not None:
+                out.append({"path": at, "message": message})
         else:
-            out.extend(implausible_input_warnings(v, at))
+            out.extend(unit_slip_issues(v, at))
     return out
 
 
-_RATE_HINT = " (rates are decimals: pass 0.065 for 6.5%)"
-
-
 def rate_hints(args: Any, issues: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Adds a hint to issues on rate fields whose value is above 1 (usually a whole-number percent).
+    """Adds a hint to issues on rate, share and ratio fields whose value is above 1 (usually a
+    whole-number percent).
 
     Must match ``withRateHints`` in packages/tools/src/limits.ts.
     """
@@ -162,8 +191,9 @@ def rate_hints(args: Any, issues: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 v = None
                 break
         key = str(issue.get("path", "")).split(".")[-1]
-        if _RATE_KEY.match(key) and isinstance(v, (int, float)) and not isinstance(v, bool) and abs(v) > 1:
-            issue = {**issue, "message": issue["message"] + _RATE_HINT}
+        hint = _unit_slip(key, v)[1]
+        if hint is not None:
+            issue = {**issue, "message": issue["message"] + hint}
         out.append(issue)
     return out
 
@@ -582,12 +612,17 @@ def run_tool(name: str, arguments: dict[str, Any] | None) -> dict[str, Any]:
     if unknown:
         return {"error": kind, "message": "invalid input: " + "; ".join(f"{u['path']}: {u['message']}" for u in unknown),
                 "issues": unknown}
+    # Whole-number percents next (rate above 1, min_dscr above 10): one policy for every calculator and
+    # lease_comp_validate, ahead of each tool's own bounds.
+    if applies_unit_policy(name):
+        slips = unit_slip_issues(args)[:20]
+        if slips:
+            return {"error": kind, "message": "invalid input: " + "; ".join(f"{i['path']}: {i['message']}" for i in slips),
+                    "issues": slips}
     try:
         if name.startswith("calc_") and name[5:] in CALCULATORS:
             fn, formula_id, version = CALCULATORS[name[5:]]
             out = fn(args)
-            if isinstance(out.get("warnings"), list):
-                out["warnings"].extend(implausible_input_warnings(args))
             return {
                 **out,
                 "provenance": {

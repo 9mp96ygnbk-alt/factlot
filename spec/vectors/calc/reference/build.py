@@ -17,9 +17,9 @@ OUT = Path(__file__).resolve().parents[1]
 n = ref.num
 
 
-def write(calc, cases):
+def write(calc, cases, version=1):
     path = OUT / f"{calc}.json"
-    path.write_text(json.dumps({"calculator": f"calc.{calc}", "version": 1, "cases": cases}, indent=2,
+    path.write_text(json.dumps({"calculator": f"calc.{calc}", "version": version, "cases": cases}, indent=2,
                                ensure_ascii=False) + "\n")
     print("wrote", path.name, len(cases), "cases")
 
@@ -260,7 +260,8 @@ write("equity_waterfall", wf_cases)
 
 def ex_case(name, inp, extra=None):
     rel, rep = inp["relinquished"], inp.get("replacement")
-    props = [(p["fair_market_value"], p.get("received", False)) for p in inp.get("identified_properties", [])]
+    props = [(p["fair_market_value"], p.get("received", False), p.get("identified_date"), p.get("received_date"),
+              p["name"]) for p in inp.get("identified_properties", [])]
     r = ref.exchange(inp["relinquished_transfer_date"], inp.get("tax_return_due_date"), rel["sale_price"],
                      rel.get("selling_expenses", 0), rel.get("debt_relieved", 0), rel.get("adjusted_basis"),
                      inp.get("cash_received_at_sale", 0), rep["purchase_price"] if rep else None,
@@ -270,7 +271,13 @@ def ex_case(name, inp, extra=None):
     if props:
         e.update({"value.identification.three_property_rule": r["three"],
                   "value.identification.two_hundred_percent_rule": r["two_hundred"],
-                  "value.identification.ratio_to_relinquished": n(r["ratio"])})
+                  "value.identification.ratio_to_relinquished": n(r["ratio"]),
+                  "value.identification.count": r["count"],
+                  "value.identification.total_fair_market_value": n(r["total"]),
+                  "value.identification.received_share": n(r["received_share"]),
+                  "value.identification.rule_met": r["rule"],
+                  "value.identification.late_identifications": r["late_ids"],
+                  "value.identification.late_receipts": r["late_receipts"]})
     if rep:
         e.update({"value.exchange.amount_realized": n(r["realized"]), "value.exchange.exchange_equity": n(r["equity"]),
                   "value.exchange.qualified_intermediary_funds": n(r["qi"]),
@@ -323,9 +330,59 @@ ex_cases = [
             {"value.identification.rule_met": "95_percent", "value.identification.ninety_five_percent_exception": True}),
 ]
 ex_cases += [
+    ex_case("late identification (review batch H, reproduced): A, B, C identified on time, D after the 45-day "
+            "deadline of 2026-10-30: D is out of the count, the value and the tests, so three on-time properties "
+            "meet the three-property rule (before the fix: count 4, 9,000,000, no rule met)",
+            {"relinquished_transfer_date": "2026-09-15", "as_of": "2026-11-04",
+             "relinquished": {"sale_price": 4200000},
+             "identified_properties": [{"name": "A", "fair_market_value": 3000000, "identified_date": "2026-10-20"},
+                                       {"name": "B", "fair_market_value": 2500000, "identified_date": "2026-10-25"},
+                                       {"name": "C", "fair_market_value": 2000000, "identified_date": "2026-10-28"},
+                                       {"name": "D", "fair_market_value": 1500000, "identified_date": "2026-11-01"}]}),
+    ex_case("deadline day itself counts: identified 2026-10-30 is on time, 2026-10-31 is late",
+            {"relinquished_transfer_date": "2026-09-15", "relinquished": {"sale_price": 1000000},
+             "identified_properties": [{"name": "A", "fair_market_value": 500000, "identified_date": "2026-10-30"},
+                                       {"name": "B", "fair_market_value": 500000, "identified_date": "2026-10-30"},
+                                       {"name": "C", "fair_market_value": 500000, "identified_date": "2026-10-30"},
+                                       {"name": "D", "fair_market_value": 500000, "identified_date": "2026-10-31"},
+                                       {"name": "E", "fair_market_value": 500000, "identified_date": "2026-11-20"}]}),
+    ex_case("every identification late: nothing counts, no rule is met",
+            {"relinquished_transfer_date": "2026-09-15", "relinquished": {"sale_price": 1000000},
+             "identified_properties": [{"name": "A", "fair_market_value": 900000, "identified_date": "2026-11-01"},
+                                       {"name": "B", "fair_market_value": 800000, "identified_date": "2026-11-02"}]}),
+    ex_case("late identifications are left out of the 200% test: four on-time properties total 1,600,000 (within "
+            "200% of 1,000,000); counting the late 900,000 would give 2,500,000 and fail",
+            {"relinquished_transfer_date": "2026-09-15", "relinquished": {"sale_price": 1000000},
+             "identified_properties": [{"name": f"P{i}", "fair_market_value": 400000, "identified_date": "2026-10-01"}
+                                       for i in range(1, 5)] +
+                                      [{"name": "Late", "fair_market_value": 900000, "identified_date": "2026-11-10"}]}),
+    ex_case("a late-identified property that was received still counts for nothing: it is out of the received share",
+            {"relinquished_transfer_date": "2026-01-10", "tax_return_due_date": "2027-04-15",
+             "relinquished": {"sale_price": 1000000},
+             "identified_properties": [{"name": "Big", "fair_market_value": 2400000, "received": True,
+                                        "identified_date": "2026-03-01", "received_date": "2026-07-01"}] +
+                                      [{"name": f"Small {i}", "fair_market_value": 20000, "identified_date": "2026-02-01"}
+                                       for i in range(1, 6)]}),
+    ex_case("late receipt of a small property: the 95% exception counts only value received by the deadline, "
+            "2,400,000 of 2,500,000 = 96% (before the fix any late receipt ended the exception)",
+            {"relinquished_transfer_date": "2026-01-10", "tax_return_due_date": "2027-04-15",
+             "relinquished": {"sale_price": 1000000},
+             "identified_properties": [{"name": "Big", "fair_market_value": 2400000, "received": True,
+                                        "received_date": "2026-07-01"},
+                                       {"name": "Small 1", "fair_market_value": 20000, "received": True,
+                                        "received_date": "2026-09-01"}] +
+                                      [{"name": f"Small {i}", "fair_market_value": 20000} for i in range(2, 6)]}),
+    ex_case("late receipt of the large property: received value 100,000 of 2,500,000, the exception fails and the "
+            "late receipt is listed",
+            {"relinquished_transfer_date": "2026-01-10", "tax_return_due_date": "2027-04-15",
+             "relinquished": {"sale_price": 1000000},
+             "identified_properties": [{"name": "Big", "fair_market_value": 2400000, "received": True,
+                                        "received_date": "2026-09-01"}] +
+                                      [{"name": f"Small {i}", "fair_market_value": 20000, "received": True,
+                                        "received_date": "2026-06-01"} for i in range(1, 6)]}),
     {"name": "return due date before the transfer", "input": {"relinquished_transfer_date": "2026-10-01",
      "tax_return_due_date": "2026-04-15", "relinquished": {"sale_price": 1000000}}, "expect_error": True},
     {"name": "invalid date", "input": {"relinquished_transfer_date": "2026-02-30",
      "relinquished": {"sale_price": 1000000}}, "expect_error": True},
 ]
-write("exchange_1031", ex_cases)
+write("exchange_1031", ex_cases, version=2)

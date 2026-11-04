@@ -105,5 +105,32 @@ class RateHints(unittest.TestCase):
         self.assertIn("rates are decimals", out["issues"][0]["message"])
 
 
+class WholeNumberPercents(unittest.TestCase):
+    def test_a_rate_above_one_is_rejected_in_any_calculator(self):
+        for tool, args, path in [
+            ("calc_npv", {"cash_flows": [-100, 110], "rate": 8}, "rate"),
+            ("calc_rent_schedule", {"commencement_date": "2027-01-01", "term_months": 24, "area_sf": 10000,
+                                    "starting_rent_psf_annual": 30, "escalation": {"type": "percent", "rate": 3}},
+             "escalation.rate"),
+        ]:
+            out = factlot.run_tool(tool, args)
+            self.assertEqual(out["error"], "CalcInputError", tool)
+            self.assertEqual(out["issues"][0]["path"], path)
+            self.assertIn("rates are decimals: pass 0.0", out["issues"][0]["message"])
+        self.assertNotIn("error", factlot.run_tool("calc_npv", {"cash_flows": [-100, 110], "rate": 0.08}))
+
+    def test_policy_scope(self):
+        from factlot.tools import applies_unit_policy
+        self.assertTrue(applies_unit_policy("calc_anything_new"))
+        self.assertTrue(applies_unit_policy("lease_comp_validate"))
+        self.assertFalse(applies_unit_policy("fact_validate"))
+
+    def test_a_share_rejected_as_too_big_says_to_pass_a_decimal(self):
+        out = factlot.run_tool("calc_debt_sizing", {"noi": 1000000, "value": 15000000, "rate_annual": 0.065,
+                                                    "amortization_years": 30, "max_ltv": 75})
+        self.assertEqual(out["error"], "CalcInputError")
+        self.assertIn("shares and ratios are decimals: pass 0.75 for 75%", out["issues"][0]["message"])
+
+
 if __name__ == "__main__":
     unittest.main()

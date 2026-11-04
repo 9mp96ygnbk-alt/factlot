@@ -34,7 +34,8 @@ Give both deadlines and their basis, the identification rule met (or that none i
 ## Rules
 
 - Never compute deadlines or boot in-context; report the tool's values as returned.
-- Cite `calc.exchange_1031@1`, IRC §1031(a)(3) for the deadlines, and Treas. Reg. §1.1031(k)-1(c)(4) for the identification rules, as the tool's steps do.
+- Cite `calc.exchange_1031@2`, IRC §1031(a)(3) for the deadlines, and Treas. Reg. §1.1031(k)-1(c)(4) for the identification rules, as the tool's steps do.
+- A property whose `identified_date` is after the 45-day deadline is not an identification: the tool leaves it out of the count, the total value, the three-property, 200%, and 95% tests, and the received share, and lists it under `late_identifications`. Report the on-time count and tell the user which names were late. Likewise, a property received after the exchange deadline is listed under `late_receipts` and does not count as received for the 95% exception.
 - Surface every entry in `warnings`. The deadlines are calendar-day counts; the tool does not move them for weekends, holidays, or disaster relief.
 - Do not give tax advice or say an exchange qualifies.
 - If the FactLot MCP tools are unavailable, POST the same arguments to `https://api.factlot.com/v1/calc/exchange_1031`.

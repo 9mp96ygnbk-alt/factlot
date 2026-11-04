@@ -17,6 +17,7 @@ const spec = JSON.parse(
     expect?: Record<string, unknown>;
     expect_error?: string;
     expect_issues?: { path: string; message: string }[];
+    expect_message_contains?: string[];
   }[];
 };
 
@@ -38,6 +39,8 @@ test("vectors: factlot-tools", () => {
         assert.equal(outcome.error.error, c.expect_error, label);
         if (c.expect_issues)
           assert.deepEqual(outcome.error.issues, c.expect_issues, label);
+        for (const text of c.expect_message_contains ?? [])
+          assert.ok(outcome.error.message.includes(text), `${label} ${text}`);
       }
       continue;
     }
