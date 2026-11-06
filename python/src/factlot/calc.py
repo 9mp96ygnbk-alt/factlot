@@ -2557,6 +2557,7 @@ from .valuation import (  # noqa: E402  (valuation.py imports irr from this modu
     equity_waterfall,
     exchange_1031,
 )
+from .tx_unequal_appraisal import tx_unequal_appraisal  # noqa: E402
 
 #: name -> (function, formula id, formula version). Names match the MCP/TypeScript registry.
 CALCULATORS: dict[str, tuple[Callable[[Any], Result], str, int]] = {
@@ -2582,4 +2583,5 @@ CALCULATORS: dict[str, tuple[Callable[[Any], Result], str, int]] = {
     "amortization_schedule": (amortization_schedule, "calc.amortization_schedule", 1),
     "equity_waterfall": (equity_waterfall, "calc.equity_waterfall", 1),
     "exchange_1031": (exchange_1031, "calc.exchange_1031", 2),
+    "tx_unequal_appraisal": (tx_unequal_appraisal, "calc.tx_unequal_appraisal", 1),
 }
