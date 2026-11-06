@@ -15,6 +15,11 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 
 Fixes from the hosted product review (`docs/research/2026-11-hosted-review`).
 
+### Added
+
+- `calc_tx_unequal_appraisal` (`calc.tx_unequal_appraisal@1`): the Texas unequal-appraisal arithmetic of Tax Code §41.43(b)(3) and §42.26(a)(3). 3–200 comparables chosen by the caller, normalized by improvement or land area or compared whole, adjusted by percentages (summed or compounded), USD amounts and $/SF, each with a reason; the sorted adjusted values, the median (the mean of the two middle values for an even count) and the subject's value minus the median. Warns on mixed value bases, §42.26(d) and the §23.231 limitation, comparables in another county, fewer than 5 comparables, total adjustments over 25% and a comparable identical to the subject. Evidence calculation only: not an appraisal, not legal or tax advice, and it does not say whether to protest.
+- Draft rule pack `tx_protest_evidence_dates` (`rules.tx.protest_evidence_dates@1`, opt-in through `runDraftRule` / `run_draft_rule`, not a tool): the owner's and the district's 14-day evidence dates before an appraisal review board hearing (§41.43(a-1), (a-3)(3), §41.461(a), §41.67(d)), with the owner's date rolled back past weekends and Texas legal holidays. `nonBusinessReason` / `non_business_reason` are exported from the verified deadline rule's calendar.
+
 ### Changed
 
 - `doc_verify_facts`: `verified` now means every part of the value was found in the quote. Prohibited uses, an exclusive's protected use and carve-outs, and ROFR/ROFO descriptions must be written in the quote; an invented item goes to `needs_review` (check `consistency`). A true/false value, an enum the quote does not word, or a paraphrased summary goes to `needs_review` with the new check `coverage` and a reason naming each part. `free_rent.applies_to: base_rent` and a `natural` breakpoint are checked by their wording.
