@@ -340,6 +340,114 @@ WILSON = CountyExport(
     account_system="wilson_prop_id",
 )
 
+HILL = CountyExport(
+    source=Source(
+        source_id="tx-hill-cad",
+        publisher="Hill County Appraisal District",
+        title="2026 appraisal data as of supplement 5 (PACS 8.0.34)",
+        url="https://hillcad.org/download-data/",
+        state_fips="48",
+        county_fips="217",
+        license="No license stated on the download page (read 2026-11-06). Public redistribution is not stated",
+        ai_use="unknown",
+        redistribution="unknown",
+        attribution="Hill County Appraisal District",
+        terms_reviewed="2026-11-06",
+    ),
+    county_fips="217",
+    account_system="hill_prop_id",
+)
+
+WOOD = CountyExport(
+    source=Source(
+        source_id="tx-wood-cad",
+        publisher="Wood County Appraisal District",
+        title="2026 certified roll (PACS 8.0.34 record length)",
+        url="https://www.woodcad.net/2026-records/",
+        state_fips="48",
+        county_fips="499",
+        license="No license stated on the records page (read 2026-11-06). Public redistribution is not stated",
+        ai_use="unknown",
+        redistribution="unknown",
+        attribution="Wood County Appraisal District",
+        terms_reviewed="2026-11-06",
+    ),
+    county_fips="499",
+    account_system="wood_prop_id",
+)
+
+BROWN = CountyExport(
+    source=Source(
+        source_id="tx-brown-cad",
+        publisher="Brown County Appraisal District",
+        title="2026 certified real-estate export (PACS 8.0.34 record length)",
+        url="https://brown-cad.org/downloads/",
+        state_fips="48",
+        county_fips="049",
+        license="No license stated on the downloads page (read 2026-11-06). Public redistribution is not stated",
+        ai_use="unknown",
+        redistribution="unknown",
+        attribution="Brown County Appraisal District",
+        terms_reviewed="2026-11-06",
+    ),
+    county_fips="049",
+    account_system="brown_prop_id",
+)
+
+MATAGORDA = CountyExport(
+    source=Source(
+        source_id="tx-matagorda-cad",
+        publisher="Matagorda County Appraisal District",
+        title="2026 appraisal export, supplement 14, confidential owners redacted (PACS 8.0.34)",
+        url="https://matagorda-cad.org/roll-export-data/",
+        state_fips="48",
+        county_fips="321",
+        license="No license stated on the roll-export page (read 2026-11-06). Public redistribution is not stated",
+        ai_use="unknown",
+        redistribution="unknown",
+        attribution="Matagorda County Appraisal District",
+        terms_reviewed="2026-11-06",
+    ),
+    county_fips="321",
+    account_system="matagorda_prop_id",
+)
+
+LAMAR = CountyExport(
+    source=Source(
+        source_id="tx-lamar-cad",
+        publisher="Lamar County Appraisal District",
+        title="2026 notice-of-appraised-value open-records snapshot (PACS 8.0.33), not the certified roll",
+        url="https://lamarcad.org/public-info/",
+        state_fips="48",
+        county_fips="277",
+        license="The open-records form says many data files are free to download from the website and that a CD, email, or mailed copy is $50. This file is the posted free zip. Public redistribution is not stated",
+        ai_use="unknown",
+        redistribution="unknown",
+        attribution="Lamar County Appraisal District",
+        terms_reviewed="2026-11-06",
+    ),
+    county_fips="277",
+    account_system="lamar_prop_id",
+)
+
+WASHINGTON = CountyExport(
+    source=Source(
+        source_id="tx-washington-cad",
+        publisher="Washington County Appraisal District",
+        title="2026 certified appraisal roll, supplement 0 (PACS 8.0.34 record length)",
+        url="https://washingtoncad.org/downloads/",
+        state_fips="48",
+        county_fips="477",
+        license="Downloads page disclaimer, read live 2026-11-06: informational, not a survey, no guarantee of accuracy or completeness, no accountability for errors or omissions. Clicking the link accepts that text. No fee, indemnity, confidentiality, or attestation clause is in the text. Public redistribution is not granted",
+        ai_use="unknown",
+        redistribution="unknown",
+        attribution="Washington County Appraisal District",
+        terms_reviewed="2026-11-06",
+    ),
+    county_fips="477",
+    account_system="washington_prop_id",
+)
+
 WALKER = CountyExport(
     source=Source(
         source_id="tx-walker-cad",
