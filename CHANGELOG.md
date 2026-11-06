@@ -13,6 +13,8 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-06
+
 ### Added
 
 - `lease_comp_search`: search the 6,994 GSA lease comps (the federal government is the tenant; not market comps for private tenants) offline and on the hosted API, by state, county, city, ZIP, radius, size, commencement, rent and type, with summary statistics and a citation on every answer. The data ship inside `@factlot/tools` and the `factlot` Python package and are rebuilt by `scripts/gen-gsa-lease-comps.py` from the GSA file, checked against the release.
@@ -26,6 +28,10 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 - Draft rule pack `tx_protest_evidence_dates` (`rules.tx.protest_evidence_dates@1`, opt-in through `runDraftRule` / `run_draft_rule`, not a tool): the owner's 14-day evidence date before an appraisal review board hearing (§41.43(a-1), (a-3)(3)) with a conservative date rolled back past weekends and Texas legal holidays, and the §41.67(d) requested-information cutoff (an exclusion rule, not a due date). `nonBusinessReason` / `non_business_reason` are exported from the verified deadline rule's calendar.
 - `registry_tx_equity_candidates`: candidate comparable parcels for a Texas unequal-appraisal comparison from a local registry, with the selection rule, its effective parameters, the tier each candidate came from, and each source's rights. Candidates are shaped for `calc_tx_unequal_appraisal`; owner names, mailing addresses and ownership facts are never returned. Texas parcels only.
 - `registry_get`: a parcel's record carries `value_history`, its market and appraised value by tax year from every snapshot, newest first, each value cited.
+- Registry: Texas appraisal-roll adapters record `parcel.neighborhood_code` and `parcel.building_class` (Harris, Dallas, Travis; building class for Collin), and each tax year's roll is its own source, so a preliminary roll for the next year no longer retires the certified year's facts.
+- Claude Code plugin skill `tx-commercial-protest-evidence` (twelve skills): evidence arithmetic for a Texas unequal-appraisal protest with the filing deadline, candidate comparables, the median calculation and a cited fact package. It never advises whether to protest or what value to claim, never looks up owners, and opens with the statement that it is not a substitute for the advice of an attorney.
+- Excel workbook `examples/reconciliation/tx_unequal_appraisal.py`: the unequal-appraisal adjustment grid with live Excel formulas reconciled to `calc_tx_unequal_appraisal` at zero difference, from synthetic inputs or your own (`build.py tx_unequal_appraisal --input`).
+- `llms-install.md`: setup steps an AI coding agent can follow, hosted and local.
 
 ### Changed
 
@@ -338,7 +344,8 @@ From the security review of 2026-11-03:
   ended (dissolved, revoked, merged, withdrawn), the one still in existence is linked at
   confidence 0.85 (`linked_by_standing`); an unknown status anywhere leaves the name ambiguous.
 
-[Unreleased]: https://github.com/9mp96ygnbk-alt/factlot/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/9mp96ygnbk-alt/factlot/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/9mp96ygnbk-alt/factlot/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/9mp96ygnbk-alt/factlot/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/9mp96ygnbk-alt/factlot/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/9mp96ygnbk-alt/factlot/compare/v0.1.0...v0.1.1

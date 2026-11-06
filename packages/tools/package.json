@@ -1,6 +1,6 @@
 {
   "name": "@factlot/tools",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "The FactLot tool catalog with native tool definitions for Claude, OpenAI, Gemini, Amazon Bedrock, Mistral, and OpenAPI-based platforms.",
   "license": "MIT",
   "type": "module",
@@ -33,9 +33,9 @@
     "build": "tsc -p tsconfig.build.json"
   },
   "dependencies": {
-    "@factlot/calc": "0.3.0",
-    "@factlot/id": "0.3.0",
-    "@factlot/schema": "0.3.0",
+    "@factlot/calc": "0.4.0",
+    "@factlot/id": "0.4.0",
+    "@factlot/schema": "0.4.0",
     "zod": "^4.6.7"
   }
 }

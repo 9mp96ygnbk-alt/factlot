@@ -36,7 +36,7 @@ Every skill follows the same rules: never compute the figures in-context, report
 
 `.mcp.json` registers one remote server, `factlot`, at `https://api.factlot.com/mcp` (Streamable HTTP). It is free, needs no key, and is limited to 60 requests per minute. In Claude Code its tools appear as `mcp__plugin_factlot_factlot__<tool>`.
 
-- **Data leaves your machine.** Each tool call sends its arguments (rents, NOI, loan terms, and so on) to `api.factlot.com`. If that is a problem, run the local server instead: `claude mcp add factlot-local -- npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.3.0/factlot-mcp-standalone-0.3.0.tgz` (Node 22.6 or newer, no network calls), and disable the plugin's hosted server in `/mcp`.
+- **Data leaves your machine.** Each tool call sends its arguments (rents, NOI, loan terms, and so on) to `api.factlot.com`. If that is a problem, run the local server instead: `claude mcp add factlot-local -- npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.4.0/factlot-mcp-standalone-0.4.0.tgz` (Node 22.6 or newer, no network calls), and disable the plugin's hosted server in `/mcp`.
 - **Paid key.** If you have a key, add your own server with the header instead of editing the plugin: `claude mcp add --transport http factlot-pro https://api.factlot.com/mcp --header "Authorization: Bearer <key>"`.
 - **No MCP?** The same calculators are plain REST: `POST https://api.factlot.com/v1/calc/<name>`. `GET https://api.factlot.com/v1/tools` lists them with their input schemas.
 

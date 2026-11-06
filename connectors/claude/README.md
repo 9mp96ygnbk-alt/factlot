@@ -33,7 +33,7 @@ no account, no API key, and no network access.
 # Remote
 claude mcp add --transport http factlot https://api.factlot.com/mcp
 # Local, from a GitHub release (no npm account needed)
-claude mcp add factlot -- npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.3.0/factlot-mcp-standalone-0.3.0.tgz
+claude mcp add factlot -- npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.4.0/factlot-mcp-standalone-0.4.0.tgz
 # Local, from a source build
 claude mcp add factlot -- node "$PWD/packages/mcp/dist/bin.js"
 # Local, after first publish to npm

@@ -8,7 +8,7 @@
 - ``factlot.factpackage``  sign and verify fact packages (Ed25519 with ``factlot[signing]``)
 """
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 from ._core import CalcInputError  # noqa: E402
 from .calc import (  # noqa: E402

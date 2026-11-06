@@ -29,7 +29,7 @@ export { LOCAL_TOOLS } from "./local.ts";
 export type { KnowledgeDoc } from "./knowledge.ts";
 
 export const SERVER_NAME = "factlot";
-export const SERVER_VERSION = "0.3.0";
+export const SERVER_VERSION = "0.4.0";
 
 export const SERVER_INSTRUCTIONS =
   "FactLot: commercial real estate (CRE) tools with deterministic, cited results. Covers net effective rent, rent schedules, CAM reconciliation, debt sizing (DSCR, LTV, debt yield), loan amortization, yield maintenance and defeasance, ASC 842 lease remeasurement, WALT, NPV, IRR, DCF pro forma, direct capitalization (cap rate), LP/GP equity waterfalls, 1031 exchange deadlines, hotel RevPAR and ADR, multifamily rent rolls, lease critical dates, lease abstract verification, GSA lease comps, Texas property tax protest deadlines, and parcel and owner IDs. Use calc_* tools for this math instead of computing in context; cite the returned formula ID and steps, and surface every warning. To read a lease or other document, extract each value with its verbatim quote and page, then call doc_verify_facts (doc_abstract_lease for a lease and its amendments, doc_compare for an estoppel or rent roll, doc_verify_claim for one claim, doc_spread_statement for a T-12, doc_check_use_conflict for exclusives); FactLot checks each value against its quote and returns cited facts. Use id_* for canonical IDs of parcels, entities, buildings, spaces and documents, rules_* for statutory deadlines, lease_comp_search for comps, and fact_validate or fact_package_create before handing facts on. Use search and fetch to find the right tool.";
