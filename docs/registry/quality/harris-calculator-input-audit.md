@@ -4,32 +4,34 @@ Status of this file: the investigation below, plus the behavior that is now impl
 
 ## Implemented behavior
 
-`harrisReadiness` / `harris_readiness` checks one caller-supplied fact card for `calc.tx_unequal_appraisal` subject fields only. `countyEvidenceGate` / `county_evidence_gate` returns a bundled evidence gate. Neither function performs I/O. Both always set `not_county_complete` true, `queryable` false, and `verified_against_publisher` false. `coverage_claim` is `field_diagnostic_only`.
+`harrisReadiness` / `harris_readiness` format-checks one caller-supplied fact card for `calc.tx_unequal_appraisal` subject fields only. It does not perform I/O. It does not embed county snapshot counts, and it does not return a readiness status for Travis, Collin, Dallas, Tarrant, or any other county. The earlier `county_evidence_gate` helper was removed for that reason.
 
-A roll fact is filled only when all of these hold:
+Every result sets `not_county_complete` true, `queryable` false, `verified_against_publisher` false, `publisher_content_checked` false, `check_kind` `caller_cited_format`, `freshness_policy` `local_limit_400_days`, and `freshness_is_official_standard` false. `coverage_claim` is `field_diagnostic_only`. A filled field means the caller supplied a positive finite number, or other accepted text, in a recognized shape. It does not mean the figure was read from the Harris Central Appraisal District.
 
-- `source_id` is `tx-harris-cad` and `filename` is `Real_acct_owner.zip` (building class: `tx-harris-cad-buildings` and `Real_building_land.zip`). Any other pair is `untrusted_source`. The caller's words are not treated as verified evidence, and a `verified` flag on the fact is ignored.
-- `locator` is a non-empty string, `tax_year` metadata is an integer equal to the requested tax year, and `as_of` is a real `YYYY-MM-DD`.
-- `evaluation_date` is a caller-supplied real date. The clock is not read. `as_of` after that date is `future_as_of`. `as_of` more than 400 days earlier is `stale` (the same age line the registry audit warns on; 400 days is still usable).
-- Money uses unit `USD` and area uses unit `sf`. Acres are not converted. Text and booleans are not coerced into numbers. Zero, negative, blank, and values above the registry audit's implausible lines (50,000,000,000 USD or 500,000,000 sf) are not filled.
-- County FIPS must be `201`. Any other county returns `jurisdiction_status: "not_harris"` and no Harris fills. The diagnostic does not acquire that county.
+A roll fact passes that format check only when all of these hold:
 
-Selection: with `prefer` omitted or `"appraised"`, a positive cited appraised value is selected with `selected_because: "statutory_comparison_uses_appraised"`, and a positive market value is `not_used`. Market is `available_not_selected` when it is usable and appraised is not. Market is selected only when `prefer` is `"market"`, and the basis in the result is `market`, not appraised. `normalize_by_supported` includes `none` only when a value is selected, and an area mode only when that area was also filled. Land and improvement are never copied onto each other. Building-file `im_sq_ft` is not account improvement area. A numeric building class is not an area. Neighborhood `0.00` or blank is not a code. A non-sentinel neighborhood code is not checked against HCAD's list and is not a subject field.
+- `source_id` and `filename` equal the recognized labels (`tx-harris-cad` and `Real_acct_owner.zip`; building class: `tx-harris-cad-buildings` and `Real_building_land.zip`). Any other pair is `unrecognized_citation_label`. Matching the label is not source verification. A caller `verified` flag is an unknown property and is ignored. The result does not copy `source_id`, `filename`, or `locator`; it records only that a non-empty locator was present and that the labels matched.
+- Citation `tax_year` is an integer equal to the requested tax year, and `as_of` is a real `YYYY-MM-DD`.
+- `evaluation_date` is a caller-supplied real date. The clock is not read. `as_of` after that date is `future_as_of`. `as_of` more than 400 days earlier is `stale`. The 400-day line is a local validation policy, the same age the registry audit warns on. It is not an official HCAD refresh standard and it does not certify a newer file as current. 400 days is still accepted; 401 is not.
+- Money uses unit `USD` and area uses unit `sf`. Acres are not converted. Text, booleans, and non-finite values are not coerced into numbers. Zero, negative, blank, and values above the registry audit's implausible lines (50,000,000,000 USD or 500,000,000 sf) are not filled, and the rejected value is not copied into the message.
+- County FIPS must be `201`. Any other county returns `jurisdiction_status: "not_harris"` and no Harris fills. The diagnostic does not acquire that county and does not repeat another county's published counts.
 
-Owner names and mailing addresses are refused and are not copied into the result. Tax rate, exemption, §23.231 / `circuit_breaker_23_231`, zoning, NOI, cap rate, rent, sale price, and taxable value are refused with those reasons. `circuit_breaker_23_231` is never defaulted to false. A Houston situs city adds a limitation that the city has no conventional zoning ordinance and that this is not a county zoning fact. A street named Houston in another city does not.
+`calc.tx_unequal_appraisal` already requires `z.number().finite().positive()` for value and area and `z.number().int()` for `tax_year`. Zod does not coerce a numeric string, and `.positive()` rejects 0. This diagnostic uses the same rejection: a string `"0"` is a type failure, not the number 0, and the number 0 is not usable. The calculator file was not changed.
 
-`county_evidence_gate` knows five published extracts copied from `docs/registry/quality/audit-2026-11-03/after-texas.json`. It does not remeasure them. Harris (`201`), Travis (`453`, current `as_of` `2026-10-06`, not the older `2026-07-18` snapshot), and Collin (`085`) can be `cited_subject_fields_only`. Dallas (`113`) and Tarrant (`439`) are `not_ready` (Dallas has no appraised value; Tarrant stays held). Any other FIPS is `not_ready` with no download. A caller attestation is adopted only when it matches those figures exactly, including `queryable: false`. `parcel_count` and `audit_violations` are ignored. A claim that Harris appraised coverage is complete is not adopted.
+Selection: with `prefer` omitted or `"appraised"`, a positive caller-cited appraised value is selected with `selected_because: "statutory_comparison_uses_appraised"`, and a positive market value is `not_used`. Market is `available_not_selected` when it passes the format check and appraised does not. Market is selected only when `prefer` is `"market"`. `null` prefer does not default and does not select. `normalize_by_supported` includes `none` only when a value is selected, and an area mode only when that area also passed. Land and improvement are never copied onto each other. Building-file `im_sq_ft` is not account improvement area. A numeric building class is not an area. Neighborhood `0.00` or blank is not a code. A non-sentinel neighborhood code is not checked against HCAD's list, is not a subject field, and is not repeated in the result.
 
-The existing unequal-appraisal function is not called and was not edited. A manual calculator input still runs without this diagnostic.
+Unknown properties are not copied. Owner names and mailing addresses are refused and are not copied, including values nested on a fact. Tax rate, exemption, §23.231 / `circuit_breaker_23_231`, zoning, NOI, cap rate, rent, sale price, and taxable value are refused. `circuit_breaker_23_231` is never defaulted to false. A Houston situs city adds a limitation that the city has no conventional zoning ordinance. The street text is not copied. A street named Houston in another city does not add that limitation.
+
+The function is exported from `@factlot/calc` (`packages/calc/src/index.ts`) and from `factlot` (`python/src/factlot/__init__.py`). It is not an entry in the `calculators` registry, so the catalog does not gain a tool. `packages/tools/src/catalog.ts` was left unchanged: a catalog tool would need a new input schema and `npm run schemas`, which is a new capability and would rewrite unreserved schema files. Calling the export does not fetch, does not open a hosted lookup, and does not change `tx_unequal_appraisal`.
 
 ## Tests measured on 2026-11-06
 
-`spec/vectors/harris_readiness.json` has 20 hand-written cases. Both runners passed every case:
+`spec/vectors/harris_readiness.json` has 23 hand-written cases. Each runner compares its result to that file and to the other language's result.
 
-- `node --experimental-strip-types --conditions=factlot-source --test packages/calc/src/harris_readiness.test.ts` — 1 test, 20 cases, pass 1, fail 0
-- `cd python && PYTHONPATH=src python3 -m unittest tests.test_harris_readiness` — 1 test, 20 subtests, OK
+- `node --experimental-strip-types --conditions=factlot-source --test packages/calc/src/harris_readiness.test.ts` — 3 tests, pass 3, fail 0. One test covers the 23 cases. One checks that the package export is the same function and is not in `calculators` (`tx_unequal_appraisal` remains version 1). One compares all 23 results to Python.
+- `cd python && PYTHONPATH=src python3 -m unittest tests.test_harris_readiness` — 3 tests, OK. One covers the 23 cases. One checks `import factlot` exposes `harris_readiness` and that `CALCULATORS` does not. One compares all 23 results to TypeScript.
 
-`npm test` and `npm run check` were not run. No calculator version changed.
+The cases include leap days, a non-leap 1900-02-29, the 400/401-day cutoff, other-county FIPS, numeric strings, booleans, NaN, infinities, zero, blank, negative, implausible, duplicate, unknown properties, and nested owner and citation text that must not appear in the output. `npm test` and `npm run check` were not run. No calculator version changed.
 
 Inspection date: 2026-11-06, repository `main` at `b289a08`. Counts below are quoted from files already in the repo. No new official file was downloaded to write this page.
 
@@ -142,16 +144,14 @@ Zoning is unmapped for every Harris account. The City of Houston does not use a 
 
 ## First slice
 
-The useful slice is a pure readiness check for one caller-supplied fact card aimed at `calc.tx_unequal_appraisal`'s **subject** fields.
+The useful slice is a pure format check for one caller-supplied fact card aimed at `calc.tx_unequal_appraisal`'s **subject** fields. The implemented contract is the section above. This section is the original field list.
 
 The caller passes facts they already hold, each with predicate, value, unit, source id, filename, locator, tax year, and `as_of`. The function returns:
 
-- `filled`: subject fields that are cited and usable, with basis and unit spelled out
-- `missing`: required or requested fields that are absent, zero, negative, non-numeric, or uncited, with a message that says what the caller must type
-- `refused`: NOI, cap rate, rent, sale price, taxable value, tax rate, exemption eligibility, zoning district, owner name. Refusal text says the diagnostic did not look them up.
-- `normalize_by`: which of `none`, `improvement_area_sf`, and `land_area_sf` the card can support
-- `not_county_complete: true` always
-- `queryable: false` for Harris until a coverage record says otherwise. This module does not read coverage files and does not flip that flag from a parcel count.
+- `filled`: subject fields that passed the caller-cited format check, with basis and unit spelled out. Passing is not publisher verification.
+- `issues`: absent, zero, negative, non-numeric, uncited, stale, mismatched, refused, and limitation rows. Messages do not repeat rejected values or owner text.
+- `normalize_by_supported`: which of `none`, `improvement_area_sf`, and `land_area_sf` the card can support
+- `not_county_complete: true` and `queryable: false` on every result. This module does not read coverage files and does not flip `queryable` from a parcel count.
 
 It does not return a value opinion, a median, a protest recommendation, or a loan amount. It does not fetch. It does not open a database.
 
@@ -165,7 +165,7 @@ Use synthetic cards only. The invented rows in `python/tests/test_adapters.py` s
 2. Appraised `0` or negative → not filled, even though the adapter's `_num` would store a numeric 0.
 3. Market present, appraised absent → value not filled as appraised. Market reported only as `available_not_selected`.
 4. Both present and positive → both reported; selected basis is appraised only when the caller set `prefer: "appraised"` or left the statutory default explicit in the result as `selected_because: "statutory_comparison_uses_appraised"`. Market is `not_used`. The result must not look like the market figure was unseen.
-5. Improvement area missing or 0 → `normalize_by` cannot be `improvement_area_sf`. `none` stays available. Land area is not copied across.
+5. Improvement area missing or 0 → `normalize_by_supported` cannot include `improvement_area_sf`. `none` is included only when a subject value was selected. Land area is not copied across.
 6. Land area missing → `land_area_sf` normalization blocked. Improvement area is not copied across.
 7. `Neighborhood_Code` `0.00` or blank → no neighborhood key.
 8. Any `ownership.*`, owner name, or mailing address → rejected, omitted from the output.
@@ -180,7 +180,7 @@ Expected diagnostic objects are written by hand in `spec/vectors/harris_readines
 
 ## Files that implement the slice
 
-These paths were empty on `main` at `b289a08` and now hold the diagnostic. They are not wired into `packages/calc/src/index.ts` or `python/src/factlot/__init__.py`.
+These paths were empty on `main` at `b289a08` and now hold the diagnostic. The two package entrypoints re-export the function. The calculator registry does not.
 
 | Path                                         | Role                                            |
 | -------------------------------------------- | ----------------------------------------------- |
@@ -206,35 +206,26 @@ cd python && PYTHONPATH=src python3 -m unittest tests.test_harris_readiness
 
 Do not run `npm test`, `npm run check`, `npm run test:python`, or `npm run differential` for this slice.
 
-### Existing files this slice does not edit
+### Export, and files this slice still does not edit
 
-Wiring the module into a registry would touch files this agreement excludes. Leave them alone:
+`packages/calc/src/index.ts` re-exports `harrisReadiness`. `python/src/factlot/__init__.py` exports `harris_readiness`. Neither file adds the function to the calculator registry.
 
-- `packages/calc/src/index.ts` (the `calculators` object)
+Left unchanged:
+
+- the `calculators` object in `packages/calc/src/index.ts`
 - `packages/calc/src/tx_unequal_appraisal.ts` and every other calculator file
 - `python/src/factlot/calc.py`
-- `python/src/factlot/__init__.py` (explicit export list; a new submodule imports without it)
 - `packages/tools/src/catalog.ts` and anything `npm run schemas` rewrites (`spec/schemas/**`, `python/src/factlot/schemas/**`)
 - `packages/tools/src/registry.ts` and `registry_tx_equity_candidates`
 - `python/src/factlot/registry/**`, `python/src/factlot/collector/**`, `scripts/registry/**`
 - `registry/sources/**`, `docs/registry/sources/**`, `docs/registry/coverage.md`, `docs/registry/coverage-data.json`, `docs/registry/coverage-counties.json`, `docs/registry/coverage-matrix.md`, `docs/registry/coverage-matrix.json`, `docs/registry/quality/surge-2026-11/**`
 - `site/**`, root `README.md`, `CHANGELOG.md`, `llms.txt`, `site/llms.txt`
 
-Calculator integration was not added. The tests do not import `txUnequalAppraisal`. A later catalog tool would edit `packages/tools/src/catalog.ts` and the generated schemas. That is a separate reservation.
+The tests do not call `txUnequalAppraisal`. A catalog tool would be a later reservation.
 
-## County expansion, as implemented
+## County expansion
 
-`county_evidence_gate` is the reusable gate. It does not download rolls and does not read the coverage generator. Status values it can return are only `not_ready` and `cited_subject_fields_only`. The second status is not "calculator ready" and is not county-complete. It means the published field audit copied into the module has the four subject predicates for that county, with the blockers listed in the result.
-
-The implemented order, still not a download list:
-
-1. Harris (`201`) returns `cited_subject_fields_only`, with the 255 missing appraised values and 11,921 missing improvement areas as blockers. Not county-complete.
-2. Travis (`453`) returns the same status for the `2026-10-06` snapshot only. The `2026-07-18` snapshot does not match.
-3. Collin (`085`) returns the same status. 240 accounts missing `tax_year` stay a blocker. The gate does not invent a year.
-4. Dallas (`113`) returns `not_ready`. Appraised coverage in the published audit is 0. Market value is not relabeled.
-5. Tarrant (`439`) returns `not_ready`. Field counts do not lift the AI-use hold.
-
-Denton, Fort Bend, Williamson, Bexar (`029` is the unknown-county vector), El Paso, Hidalgo, Montgomery, and TxGIO are `not_ready`. Their rolls are not bundled and are not fetched. A caller `queryable: true` does not match the published gate.
+This module is not a multi-county readiness table. Another county FIPS returns `not_harris` and no fills. Published field counts stay in `docs/registry/quality/audit-2026-11-03/after-texas.json`, which this function does not read. Reusing the format check for another county would require a new reservation and a new cited-label rule. It would not consist of copying that audit's present/missing counts into code. No county roll is downloaded here.
 
 ## Next step for data this module cannot see
 

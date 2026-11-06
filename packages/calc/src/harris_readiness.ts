@@ -1,25 +1,25 @@
 /**
- * Caller-supplied readiness for one Harris unequal-appraisal subject.
+ * Caller-supplied format check for one Harris unequal-appraisal subject.
  *
- * Pure. No network, no database, and no valuation. A filled field is a cited
- * roll figure the caller already holds. It is not a county-complete extract and
- * not a hosted lookup. See docs/registry/quality/harris-calculator-input-audit.md.
+ * Pure. No network, no database, and no valuation. A filled field means the
+ * caller supplied a value in a recognized shape. It does not mean the figure
+ * was read from Harris County, and it is not a county-complete extract.
+ * `verified_against_publisher` is always false. The 400-day as-of line is a
+ * local validation policy, not an official refresh standard.
+ * See docs/registry/quality/harris-calculator-input-audit.md.
  */
 
-export const CALCULATOR = "calc.tx_unequal_appraisal";
-export const CALCULATOR_VERSION = 1;
 const HARRIS_FIPS = "201";
 const ROLL_SOURCE = "tx-harris-cad";
 const ROLL_FILE = "Real_acct_owner.zip";
 const BUILDINGS_SOURCE = "tx-harris-cad-buildings";
 const BUILDINGS_FILE = "Real_building_land.zip";
-/** Same age line the registry audit warns on. Above 400 days is not filled. */
+/** Local policy only. Above 400 days is not filled. Not an HCAD refresh rule. */
 const STALE_AFTER_DAYS = 400;
 const MAX_VALUE_USD = 50_000_000_000;
 const MAX_AREA_SF = 500_000_000;
 const TAX_YEAR_MIN = 1982;
 const TAX_YEAR_MAX = 2100;
-const AUDIT_FILE = "docs/registry/quality/audit-2026-11-03/after-texas.json";
 
 const HOUSTON_CITY = /(?:^|,\s*)HOUSTON(?:\s+TX\b|\s*,|\s*$)/i;
 const FIPS = /^\d{3}$/;
@@ -33,6 +33,27 @@ const CLASS_ORDER: Record<string, number> = {
   refused: 5,
   limitation: 6,
 };
+const CARD_KEYS = new Set([
+  "evaluation_date",
+  "county_fips",
+  "tax_year",
+  "prefer",
+  "facts",
+  "requested",
+  "owner_name",
+  "owner_mailing_address",
+  "owner",
+]);
+const FACT_KEYS = new Set([
+  "predicate",
+  "value",
+  "unit",
+  "source_id",
+  "filename",
+  "locator",
+  "tax_year",
+  "as_of",
+]);
 const OWNER_KEYS = ["owner_name", "owner_mailing_address", "owner"];
 const SENTINEL_CODES = new Set(["", "0", "0.0", "0.00"]);
 const SUPPORTED = new Set([
@@ -48,80 +69,85 @@ const SUPPORTED = new Set([
 
 type Issue = { class: string; code: string; field: string; message: string };
 type Fact = Record<string, unknown>;
-type Side = { status: string; value: number | null; unit: string | null };
-type Row = {
+type Side = {
   status: string;
-  source_id: string;
-  as_of: string;
-  license_reviewed: string;
-  redistribution: string;
-  fields: Record<string, { present: number; missing: number }>;
-  blockers: string[];
+  value: number | null;
+  unit: string | null;
+  evidence: string;
 };
 
 const REFUSALS: Record<string, [string, string]> = {
   tax_rate: [
     "tax_rate",
-    "No tax rate is evaluated. A rate would have to be the adopted rate of each taxing unit for this account and tax year. A county-wide rate is not assumed. Unknown is not zero.",
+    "No tax rate is evaluated. A rate would have to be the adopted rate of each taxing unit for this account and tax year. A county-wide rate is not assumed. Unknown is not zero. Nothing is fetched.",
   ],
   "parcel.tax_rate": [
     "tax_rate",
-    "No tax rate is evaluated. A rate would have to be the adopted rate of each taxing unit for this account and tax year. A county-wide rate is not assumed. Unknown is not zero.",
+    "No tax rate is evaluated. A rate would have to be the adopted rate of each taxing unit for this account and tax year. A county-wide rate is not assumed. Unknown is not zero. Nothing is fetched.",
   ],
   exemption: [
     "exemption",
-    'Exemption eligibility is not determined. Unknown is not "no exemption".',
+    'Exemption eligibility is not determined. Unknown is not "no exemption". Nothing is fetched.',
   ],
   "parcel.exemption": [
     "exemption",
-    'Exemption eligibility is not determined. Unknown is not "no exemption".',
+    'Exemption eligibility is not determined. Unknown is not "no exemption". Nothing is fetched.',
   ],
   zoning: [
     "zoning",
-    "Zoning is not mapped. Unknown is not unrestricted, and the lack of conventional zoning in the City of Houston is not applied to every Harris municipality.",
+    "Zoning is not mapped. Unknown is not unrestricted, and the lack of conventional zoning in the City of Houston is not applied to every Harris municipality. Nothing is fetched.",
   ],
   "parcel.zoning": [
     "zoning",
-    "Zoning is not mapped. Unknown is not unrestricted, and the lack of conventional zoning in the City of Houston is not applied to every Harris municipality.",
+    "Zoning is not mapped. Unknown is not unrestricted, and the lack of conventional zoning in the City of Houston is not applied to every Harris municipality. Nothing is fetched.",
   ],
-  noi: ["noi", "NOI is not on the appraisal roll and is not inferred."],
+  noi: [
+    "noi",
+    "NOI is not on the appraisal roll and is not inferred. Nothing is fetched.",
+  ],
   "parcel.noi": [
     "noi",
-    "NOI is not on the appraisal roll and is not inferred.",
+    "NOI is not on the appraisal roll and is not inferred. Nothing is fetched.",
   ],
-  cap_rate: ["cap_rate", "A cap rate is not inferred from roll values."],
+  cap_rate: [
+    "cap_rate",
+    "A cap rate is not inferred from roll values. Nothing is fetched.",
+  ],
   "parcel.cap_rate": [
     "cap_rate",
-    "A cap rate is not inferred from roll values.",
+    "A cap rate is not inferred from roll values. Nothing is fetched.",
   ],
-  rent: ["rent", "Rent is not on the appraisal roll and is not inferred."],
+  rent: [
+    "rent",
+    "Rent is not on the appraisal roll and is not inferred. Nothing is fetched.",
+  ],
   "parcel.rent": [
     "rent",
-    "Rent is not on the appraisal roll and is not inferred.",
+    "Rent is not on the appraisal roll and is not inferred. Nothing is fetched.",
   ],
   "lease.rent": [
     "rent",
-    "Rent is not on the appraisal roll and is not inferred.",
+    "Rent is not on the appraisal roll and is not inferred. Nothing is fetched.",
   ],
   sale_price: [
     "sale_price",
-    "No sale price is read. Roll market value is not a sale.",
+    "No sale price is read. Roll market value is not a sale. Nothing is fetched.",
   ],
   "parcel.sale_price": [
     "sale_price",
-    "No sale price is read. Roll market value is not a sale.",
+    "No sale price is read. Roll market value is not a sale. Nothing is fetched.",
   ],
   "transaction.sale": [
     "sale_price",
-    "No sale price is read. Roll market value is not a sale.",
+    "No sale price is read. Roll market value is not a sale. Nothing is fetched.",
   ],
   taxable_value: [
     "taxable_value",
-    "Taxable value after exemptions is not the appraised value and is not filled.",
+    "Taxable value after exemptions is not the appraised value and is not filled. Nothing is fetched.",
   ],
   "parcel.taxable_value": [
     "taxable_value",
-    "Taxable value after exemptions is not the appraised value and is not filled.",
+    "Taxable value after exemptions is not the appraised value and is not filled. Nothing is fetched.",
   ],
   circuit_breaker_23_231: [
     "circuit_breaker_23_231",
@@ -133,154 +159,45 @@ const REFUSALS: Record<string, [string, string]> = {
   ],
 };
 
+const LABEL =
+  "Recognized citation labels are source_id tx-harris-cad and filename Real_acct_owner.zip. A matching label is a format check only and does not verify the figure against the publisher.";
+
 const VALUE_DEFINITION: Record<string, string> = {
-  appraised:
-    "Roll appraised value (HCAD tot_appr_val as parcel.appraised_value), USD. Not taxable value, not a sale price, and not NOI.",
-  market:
-    "Roll market value (HCAD tot_mkt_val as parcel.market_value), USD. Not an appraised value, not a sale price, and not NOI.",
+  appraised: `Caller-cited parcel.appraised_value in USD (the HCAD tot_appr_val shape). ${LABEL} Not taxable value, not a sale price, and not NOI.`,
+  market: `Caller-cited parcel.market_value in USD (the HCAD tot_mkt_val shape). ${LABEL} Not an appraised value, not a sale price, and not NOI.`,
 };
 const AREA_DEFINITION: Record<string, string> = {
-  "parcel.improvement_area_sf":
-    "Account improvement area (HCAD bld_ar as parcel.improvement_area_sf), square feet. Not rentable area and not a sum of building-section im_sq_ft.",
-  "parcel.land_area_sf":
-    "Account land area in square feet as stored (parcel.land_area_sf). The roll adapter may have converted acreage when land_ar was 0. This diagnostic does not convert units and cannot tell which column was used.",
+  "parcel.improvement_area_sf": `Caller-cited parcel.improvement_area_sf in square feet (the HCAD bld_ar shape). ${LABEL} Not rentable area and not a sum of building-section im_sq_ft.`,
+  "parcel.land_area_sf": `Caller-cited parcel.land_area_sf in square feet. ${LABEL} The roll adapter may convert acreage when land_ar is 0; this diagnostic does not convert units and cannot tell which column was used.`,
 };
-
-const FIGURES =
-  "Figures are copied from docs/registry/quality/audit-2026-11-03/after-texas.json. This function does not remeasure them and does not download anything.";
-const NOT_COMPLETE =
-  "Not county-complete. The counts are the commercial extract in that audit (state categories B, F1, and F2), not every account in the county.";
-const NOT_QUERY =
-  "Not queryable. Hosted lookup is not opened by this diagnostic.";
-const REDIST = "Redistribution is unknown and is not treated as granted.";
-const OUTSIDE =
-  "Tax rates, exemptions, taxable value, sales, rent, NOI, cap rates, and zoning are outside this diagnostic. Unknown is not zero.";
-const ATTEST_OK =
-  "Caller attestation matches those published figures. parcel_count and audit_violations were ignored. Neither a parcel count nor zero audit violations certifies the county.";
-const ATTEST_BAD =
-  "Caller attestation does not match the published audit. The caller's figures were not adopted.";
+const YEAR_DEFINITION = `Caller-cited parcel.tax_year (the HCAD yr shape). ${LABEL} Not the snapshot as-of date.`;
+const FIPS_DEFINITION =
+  "Caller county_fips matched 201 (Harris County, Texas), the appraisal district. Not a taxing unit, not a tax rate, and not a parcel fact from the roll. Not a publisher check.";
 const GENERIC =
-  "This diagnostic only checks cited Harris subject fields for calc.tx_unequal_appraisal. It does not evaluate that input, and unknown is not zero.";
-
-const PUBLISHED: Record<string, Row> = {
-  "201": {
-    status: "cited_subject_fields_only",
-    source_id: ROLL_SOURCE,
-    as_of: "2026-11-01",
-    license_reviewed: "2026-11-02",
-    redistribution: "unknown",
-    fields: {
-      "parcel.appraised_value": { present: 87462, missing: 255 },
-      "parcel.improvement_area_sf": { present: 75796, missing: 11921 },
-      "parcel.market_value": { present: 87462, missing: 255 },
-      "parcel.tax_year": { present: 87717, missing: 0 },
-    },
-    blockers: [
-      FIGURES,
-      NOT_COMPLETE,
-      NOT_QUERY,
-      REDIST,
-      OUTSIDE,
-      "parcel.appraised_value is missing on 255 accounts in the published audit. Market value is not a substitute.",
-      "parcel.improvement_area_sf is missing on 11921 accounts in the published audit. Those accounts cannot be normalized by improvement area.",
-    ],
-  },
-  "453": {
-    status: "cited_subject_fields_only",
-    source_id: "tx-travis-cad",
-    as_of: "2026-10-06",
-    license_reviewed: "2026-11-02",
-    redistribution: "unknown",
-    fields: {
-      "parcel.appraised_value": { present: 30555, missing: 0 },
-      "parcel.improvement_area_sf": { present: 29150, missing: 1405 },
-      "parcel.market_value": { present: 30555, missing: 0 },
-      "parcel.tax_year": { present: 30555, missing: 0 },
-    },
-    blockers: [
-      FIGURES,
-      NOT_COMPLETE,
-      NOT_QUERY,
-      REDIST,
-      OUTSIDE,
-      "The current snapshot in that audit is as_of 2026-10-06. An older 2026-07-18 snapshot is in the same file and is not the figure used here.",
-      "parcel.improvement_area_sf is missing on 1405 accounts in the current extract.",
-    ],
-  },
-  "085": {
-    status: "cited_subject_fields_only",
-    source_id: "tx-collin-cad",
-    as_of: "2026-11-02",
-    license_reviewed: "2026-11-02",
-    redistribution: "unknown",
-    fields: {
-      "parcel.appraised_value": { present: 17795, missing: 240 },
-      "parcel.improvement_area_sf": { present: 17125, missing: 910 },
-      "parcel.market_value": { present: 17795, missing: 240 },
-      "parcel.tax_year": { present: 17795, missing: 240 },
-    },
-    blockers: [
-      FIGURES,
-      NOT_COMPLETE,
-      NOT_QUERY,
-      REDIST,
-      OUTSIDE,
-      "parcel.tax_year is missing on 240 accounts in the published audit. Those accounts must not be given a guessed tax year.",
-      "parcel.appraised_value is missing on 240 accounts in the published audit. Market value is not a substitute.",
-      "parcel.improvement_area_sf is missing on 910 accounts in the published audit.",
-    ],
-  },
-  "113": {
-    status: "not_ready",
-    source_id: "tx-dallas-cad",
-    as_of: "2026-10-12",
-    license_reviewed: "2026-11-02",
-    redistribution: "unknown",
-    fields: {
-      "parcel.appraised_value": { present: 0, missing: 59645 },
-      "parcel.improvement_area_sf": { present: 59292, missing: 353 },
-      "parcel.market_value": { present: 59645, missing: 0 },
-      "parcel.tax_year": { present: 59645, missing: 0 },
-    },
-    blockers: [
-      FIGURES,
-      "Not ready for the appraised-value subject. parcel.appraised_value is present on 0 accounts and missing on 59645 in the published audit.",
-      "parcel.market_value is present on 59645 accounts. It is not relabeled as appraised value.",
-      "Not queryable and not county-complete. This diagnostic does not download Dallas.",
-    ],
-  },
-  "439": {
-    status: "not_ready",
-    source_id: "tx-tarrant-ad",
-    as_of: "2026-11-02",
-    license_reviewed: "2026-11-02",
-    redistribution: "unknown",
-    fields: {
-      "parcel.appraised_value": { present: 44934, missing: 1042 },
-      "parcel.improvement_area_sf": { present: 39635, missing: 6341 },
-      "parcel.market_value": { present: 44934, missing: 1042 },
-      "parcel.tax_year": { present: 45976, missing: 0 },
-    },
-    blockers: [
-      FIGURES,
-      "Not ready. Tarrant Appraisal District data is not served to agents until that district's published signals allow it. Field counts do not lift the hold.",
-      "Not queryable and not county-complete. This diagnostic does not download Tarrant.",
-    ],
-  },
-};
+  "This diagnostic only checks the format of caller-cited Harris subject fields for calc.tx_unequal_appraisal. It does not evaluate that input, does not fetch it, and does not treat unknown as zero.";
+const OWNER_MESSAGE =
+  "Owner names and mailing addresses are not read and are not returned.";
+const UNKNOWN_INPUT =
+  "The input includes a property this diagnostic does not accept. That property was ignored and was not copied into the result.";
+const UNKNOWN_FACT =
+  "A fact includes a property this diagnostic does not accept. That fact was not used and was not copied into the result.";
 
 function emptySide(): Side {
-  return { status: "absent", value: null, unit: null };
+  return { status: "absent", value: null, unit: null, evidence: "none" };
 }
 
 function shell(): Record<string, unknown> {
   return {
-    calculator: CALCULATOR,
-    calculator_version: CALCULATOR_VERSION,
+    calculator: "calc.tx_unequal_appraisal",
+    calculator_version: 1,
     not_county_complete: true,
     queryable: false,
     verified_against_publisher: false,
+    publisher_content_checked: false,
     coverage_claim: "field_diagnostic_only",
+    check_kind: "caller_cited_format",
+    freshness_policy: "local_limit_400_days",
+    freshness_is_official_standard: false,
     county_fips: null,
     jurisdiction_status: "unchecked",
     tax_year: null,
@@ -385,18 +302,23 @@ function noteOwners(raw: Fact, issues: Issue[]): void {
       "refused",
       "owner_not_returned",
       "ownership",
-      "Owner names and mailing addresses are not read and are not returned.",
+      OWNER_MESSAGE,
     );
   const facts = raw.facts;
   if (!Array.isArray(facts)) return;
   for (const fact of facts) {
-    if (fact && typeof fact === "object" && ownerish((fact as Fact).predicate))
+    if (
+      fact &&
+      typeof fact === "object" &&
+      !Array.isArray(fact) &&
+      ownerish((fact as Fact).predicate)
+    )
       addIssue(
         issues,
         "refused",
         "owner_not_returned",
         "ownership",
-        "Owner names and mailing addresses are not read and are not returned.",
+        OWNER_MESSAGE,
       );
   }
 }
@@ -407,13 +329,7 @@ function refuseName(name: string, issues: Issue[]): void {
     addIssue(issues, "refused", "unsupported", known[0], known[1]);
     return;
   }
-  addIssue(
-    issues,
-    "refused",
-    "unsupported",
-    SAFE_NAME.test(name) ? name : "fact",
-    GENERIC,
-  );
+  addIssue(issues, "refused", "unsupported", "requested", GENERIC);
 }
 
 function unitIssue(predicate: string, unit: unknown): [string, string] | null {
@@ -464,12 +380,17 @@ function citationOk(fact: Fact): boolean {
   return true;
 }
 
+function pairFor(predicate: string): [string, string] {
+  return predicate === "parcel.building_class"
+    ? [BUILDINGS_SOURCE, BUILDINGS_FILE]
+    : [ROLL_SOURCE, ROLL_FILE];
+}
+
 function screenFact(
   fact: Fact,
   predicate: string,
   requestedYear: number,
   evaluation: string,
-  pair: [string, string],
 ): Issue | null {
   if (!citationOk(fact))
     return {
@@ -496,7 +417,7 @@ function screenFact(
       class: "mismatched",
       code: "semantic",
       field: predicate,
-      message: `${predicate} is cited to the buildings file. Section im_sq_ft is not the account improvement area and is not copied into it.`,
+      message: `${predicate} is cited with the buildings-file labels. Section im_sq_ft is not the account improvement area and is not copied into it. The label is not a publisher check.`,
     };
   if (
     predicate === "parcel.land_area_sf" &&
@@ -507,14 +428,15 @@ function screenFact(
       class: "mismatched",
       code: "semantic",
       field: predicate,
-      message: `${predicate} is cited to the buildings file. Land area is not taken from building sections.`,
+      message: `${predicate} is cited with the buildings-file labels. Land area is not taken from building sections. The label is not a publisher check.`,
     };
+  const pair = pairFor(predicate);
   if (sourceId !== pair[0] || filename !== pair[1])
     return {
       class: "mismatched",
-      code: "untrusted_source",
+      code: "unrecognized_citation_label",
       field: predicate,
-      message: `${predicate} does not cite the known Harris source and filename for this predicate. Other metadata is not treated as verified evidence.`,
+      message: `${predicate} source_id and filename are not the recognized citation labels for that predicate. A recognized label is still only caller-cited format and is not a publisher check.`,
     };
   const asOf = parseIso(fact.as_of);
   if (asOf == null)
@@ -529,14 +451,14 @@ function screenFact(
       class: "invalid",
       code: "future_as_of",
       field: predicate,
-      message: `${predicate} as_of is after evaluation_date, so it is not usable evidence.`,
+      message: `${predicate} as_of is after evaluation_date, so it is not usable as caller-cited evidence.`,
     };
   if (utcDays(evaluation) - utcDays(asOf) > STALE_AFTER_DAYS)
     return {
       class: "stale",
       code: "stale",
       field: predicate,
-      message: `${predicate} as_of is more than 400 days before evaluation_date. The registry audit warns above 400 days. A stale fact is not filled.`,
+      message: `${predicate} as_of is more than 400 days before evaluation_date. The 400-day line is a local validation policy, not an official refresh standard and not a certification that a newer file is current. The fact is not filled.`,
     };
   if (fact.tax_year !== requestedYear)
     return {
@@ -574,14 +496,14 @@ function amountIssue(
       class: "invalid",
       code: "wrong_type",
       field: predicate,
-      message: `${predicate} must be a number. Text and booleans are not coerced into a value.`,
+      message: `${predicate} must be a number. Text, booleans, and non-finite values are not coerced into a value.`,
     };
   if (value === 0)
     return {
       class: "invalid",
       code: "zero",
       field: predicate,
-      message: `${predicate} is 0. Zero is not a usable value.`,
+      message: `${predicate} is 0. Zero is not a usable value and is not treated as missing.`,
     };
   if (value < 0)
     return {
@@ -606,21 +528,37 @@ function amountIssue(
   return null;
 }
 
-function pairFor(predicate: string): [string, string] {
-  return predicate === "parcel.building_class"
-    ? [BUILDINGS_SOURCE, BUILDINGS_FILE]
-    : [ROLL_SOURCE, ROLL_FILE];
-}
-
 function cite(fact: Fact): Record<string, unknown> {
   return {
-    source_id: fact.source_id,
-    filename: fact.filename,
-    locator: fact.locator,
+    evidence: "caller_cited_format",
+    source_label_recognized: true,
+    filename_label_recognized: true,
+    locator_present: true,
     tax_year: fact.tax_year,
     as_of: fact.as_of,
     verified_against_publisher: false,
   };
+}
+
+function filledFact(
+  field: string,
+  value: unknown,
+  unit: string,
+  definition: string,
+  fact: Fact,
+  basis?: string,
+): Record<string, unknown> {
+  const row: Record<string, unknown> = {
+    field,
+    value,
+    unit,
+    definition,
+    evidence: "caller_cited_format",
+    verified_against_publisher: false,
+    citation: cite(fact),
+  };
+  if (basis != null) row.basis = basis;
+  return row;
 }
 
 function neighborhoodSentinel(value: unknown): boolean {
@@ -629,7 +567,27 @@ function neighborhoodSentinel(value: unknown): boolean {
   return typeof value === "string" && SENTINEL_CODES.has(value.trim());
 }
 
-/** Diagnose one caller-supplied card for calc.tx_unequal_appraisal's subject fields. */
+function fipsRow(): Record<string, unknown> {
+  return {
+    field: "subject.county_fips",
+    value: HARRIS_FIPS,
+    unit: null,
+    definition: FIPS_DEFINITION,
+    evidence: "caller_asserted_jurisdiction",
+    verified_against_publisher: false,
+    citation: {
+      evidence: "caller_asserted_jurisdiction",
+      source_label_recognized: false,
+      filename_label_recognized: false,
+      locator_present: false,
+      tax_year: null,
+      as_of: null,
+      verified_against_publisher: false,
+    },
+  };
+}
+
+/** Format-check one caller-supplied card for calc.tx_unequal_appraisal's subject fields. */
 export function harrisReadiness(raw: unknown): Record<string, unknown> {
   const out = shell();
   const issues: Issue[] = [];
@@ -646,6 +604,8 @@ export function harrisReadiness(raw: unknown): Record<string, unknown> {
   }
   const card = raw as Fact;
   noteOwners(card, issues);
+  if (Object.keys(card).some((key) => !CARD_KEYS.has(key)))
+    addIssue(issues, "invalid", "unknown_property", "input", UNKNOWN_INPUT);
   let requested = card.requested ?? [];
   if (!Array.isArray(requested)) {
     addIssue(
@@ -673,7 +633,7 @@ export function harrisReadiness(raw: unknown): Record<string, unknown> {
     out.issues = sortIssues(issues);
     return out;
   }
-  out.evaluation_date = card.evaluation_date;
+  out.evaluation_date = evaluation;
   const fips = card.county_fips;
   if (typeof fips === "string" && FIPS.test(fips)) out.county_fips = fips;
   if (out.county_fips !== HARRIS_FIPS) {
@@ -683,7 +643,7 @@ export function harrisReadiness(raw: unknown): Record<string, unknown> {
       "mismatched",
       "jurisdiction",
       "county_fips",
-      "This diagnostic is only for Harris County, Texas (FIPS 201). It does not assess other counties and does not acquire their data.",
+      "This diagnostic is only for Harris County, Texas (FIPS 201). It does not assess other counties, does not use their published counts, and does not acquire their data.",
     );
     out.issues = sortIssues(issues);
     return out;
@@ -696,7 +656,7 @@ export function harrisReadiness(raw: unknown): Record<string, unknown> {
       "invalid",
       "tax_year",
       "tax_year",
-      "tax_year must be an integer from 1982 through 2100, the range calc.tx_unequal_appraisal accepts.",
+      "tax_year must be an integer from 1982 through 2100, the range calc.tx_unequal_appraisal accepts. A numeric string is not coerced.",
     );
     out.issues = sortIssues(issues);
     return out;
@@ -738,9 +698,13 @@ export function harrisReadiness(raw: unknown): Record<string, unknown> {
       continue;
     }
     const row = fact as Fact;
+    if (Object.keys(row).some((key) => !FACT_KEYS.has(key))) {
+      addIssue(issues, "invalid", "unknown_property", "fact", UNKNOWN_FACT);
+      continue;
+    }
     const predicate = row.predicate;
     if (typeof predicate !== "string" || !SAFE_NAME.test(predicate)) {
-      addIssue(issues, "refused", "unsupported", "fact", GENERIC);
+      addIssue(issues, "refused", "unsupported", "requested", GENERIC);
       continue;
     }
     if (ownerish(predicate)) continue;
@@ -791,13 +755,7 @@ export function harrisReadiness(raw: unknown): Record<string, unknown> {
       );
       return null;
     }
-    const problem = screenFact(
-      fact,
-      predicate,
-      taxYear as number,
-      evaluation,
-      pairFor(predicate),
-    );
+    const problem = screenFact(fact, predicate, taxYear as number, evaluation);
     if (problem) {
       addIssue(
         issues,
@@ -846,7 +804,7 @@ export function harrisReadiness(raw: unknown): Record<string, unknown> {
           "invalid",
           "wrong_type",
           predicate,
-          `${predicate} must be an integer. Text and booleans are not coerced into a value.`,
+          `${predicate} must be an integer. Text, booleans, and non-finite values are not coerced into a value.`,
         );
         return null;
       }
@@ -860,25 +818,17 @@ export function harrisReadiness(raw: unknown): Record<string, unknown> {
         );
         return null;
       }
-    } else if (predicate === "parcel.situs_address") {
+    } else if (
+      predicate === "parcel.situs_address" ||
+      predicate === "parcel.neighborhood_code"
+    ) {
       if (typeof value !== "string" || value.trim() === "") {
         addIssue(
           issues,
           "invalid",
           "wrong_type",
           predicate,
-          "parcel.situs_address must be text.",
-        );
-        return null;
-      }
-    } else if (predicate === "parcel.neighborhood_code") {
-      if (typeof value !== "string" || value.trim() === "") {
-        addIssue(
-          issues,
-          "invalid",
-          "wrong_type",
-          predicate,
-          "parcel.neighborhood_code must be text.",
+          `${predicate} must be text.`,
         );
         return null;
       }
@@ -937,11 +887,18 @@ export function harrisReadiness(raw: unknown): Record<string, unknown> {
 
   function side(predicate: string, present: boolean): Side {
     if (!grouped.has(predicate)) return emptySide();
-    if (!present) return { status: "not_filled", value: null, unit: null };
+    if (!present)
+      return {
+        status: "not_filled",
+        value: null,
+        unit: null,
+        evidence: "none",
+      };
     return {
-      status: "usable",
+      status: "caller_cited",
       value: accepted.get(predicate)!.value as number,
       unit: "USD",
+      evidence: "caller_cited_format",
     };
   }
   const appraisedOk = accepted.has("parcel.appraised_value");
@@ -968,7 +925,7 @@ export function harrisReadiness(raw: unknown): Record<string, unknown> {
       "missing",
       "value",
       "subject.value",
-      "subject.value is not filled. No appraised value was usable, and market value was not relabeled as appraised.",
+      "subject.value is not filled. No appraised value passed the caller-cited format checks, and market value was not relabeled as appraised.",
     );
   } else {
     const fact = accepted.get(
@@ -981,71 +938,64 @@ export function harrisReadiness(raw: unknown): Record<string, unknown> {
       basis: selectedBasis,
       value: fact.value,
       unit: "USD",
+      evidence: "caller_cited_format",
       selected_because:
         selectedBasis === "market"
           ? "caller_selected_market"
           : "statutory_comparison_uses_appraised",
+      verified_against_publisher: false,
     };
   }
-  const filled: Record<string, unknown>[] = [
-    {
-      field: "subject.county_fips",
-      value: HARRIS_FIPS,
-      unit: null,
-      definition:
-        "Caller county_fips matched 201 (Harris County, Texas), the appraisal district. Not a taxing unit, not a tax rate, and not a parcel fact from the roll.",
-      citation: {
-        source_id: null,
-        filename: null,
-        locator: null,
-        tax_year: null,
-        as_of: null,
-        verified_against_publisher: false,
-      },
-    },
-  ];
+  const filled: Record<string, unknown>[] = [fipsRow()];
   const improvement = accepted.get("parcel.improvement_area_sf");
   if (improvement)
-    filled.push({
-      field: "subject.improvement_area_sf",
-      value: improvement.value,
-      unit: "sf",
-      definition: AREA_DEFINITION["parcel.improvement_area_sf"],
-      citation: cite(improvement),
-    });
+    filled.push(
+      filledFact(
+        "subject.improvement_area_sf",
+        improvement.value,
+        "sf",
+        AREA_DEFINITION["parcel.improvement_area_sf"]!,
+        improvement,
+      ),
+    );
   const land = accepted.get("parcel.land_area_sf");
   if (land)
-    filled.push({
-      field: "subject.land_area_sf",
-      value: land.value,
-      unit: "sf",
-      definition: AREA_DEFINITION["parcel.land_area_sf"],
-      citation: cite(land),
-    });
+    filled.push(
+      filledFact(
+        "subject.land_area_sf",
+        land.value,
+        "sf",
+        AREA_DEFINITION["parcel.land_area_sf"]!,
+        land,
+      ),
+    );
   const yearFact = accepted.get("parcel.tax_year");
   if (yearFact)
-    filled.push({
-      field: "subject.tax_year",
-      value: yearFact.value,
-      unit: "year",
-      definition:
-        "Tax year of the roll values (HCAD yr as parcel.tax_year). Not the snapshot as-of date.",
-      citation: cite(yearFact),
-    });
+    filled.push(
+      filledFact(
+        "subject.tax_year",
+        yearFact.value,
+        "year",
+        YEAR_DEFINITION,
+        yearFact,
+      ),
+    );
   if (selectedBasis != null) {
     const fact = accepted.get(
       selectedBasis === "market"
         ? "parcel.market_value"
         : "parcel.appraised_value",
     )!;
-    filled.push({
-      field: "subject.value",
-      value: fact.value,
-      unit: "USD",
-      basis: selectedBasis,
-      definition: VALUE_DEFINITION[selectedBasis],
-      citation: cite(fact),
-    });
+    filled.push(
+      filledFact(
+        "subject.value",
+        fact.value,
+        "USD",
+        VALUE_DEFINITION[selectedBasis]!,
+        fact,
+        selectedBasis,
+      ),
+    );
   }
   filled.sort((a, b) => cmp(String(a.field), String(b.field)));
   out.filled = filled;
@@ -1070,7 +1020,7 @@ export function harrisReadiness(raw: unknown): Record<string, unknown> {
       "limitation",
       "neighborhood_not_subject",
       "parcel.neighborhood_code",
-      "A neighborhood code is not an unequal-appraisal subject field and was not checked against HCAD's neighborhood list.",
+      "A neighborhood code passed the caller-cited format checks. It is not an unequal-appraisal subject field, it was not checked against HCAD's neighborhood list, and the code is not repeated here.",
     );
   if (accepted.has("parcel.building_class"))
     addIssue(
@@ -1078,96 +1028,8 @@ export function harrisReadiness(raw: unknown): Record<string, unknown> {
       "limitation",
       "building_class_not_area",
       "parcel.building_class",
-      "Building class is not an unequal-appraisal subject field and is not an area.",
+      "A building class passed the caller-cited format checks. It is not an unequal-appraisal subject field, it is not an area, and the class text is not repeated here.",
     );
   out.issues = sortIssues(issues);
   return out;
-}
-
-function sourceBlock(row: Row | undefined): Record<string, unknown> | null {
-  if (!row) return null;
-  return {
-    source_id: row.source_id,
-    as_of: row.as_of,
-    audit_file: AUDIT_FILE,
-    license_reviewed: row.license_reviewed,
-    redistribution: row.redistribution,
-  };
-}
-
-function attestationMatches(row: Row, attestation: unknown): boolean {
-  if (
-    attestation == null ||
-    typeof attestation !== "object" ||
-    Array.isArray(attestation)
-  )
-    return false;
-  const got = attestation as Fact;
-  if (got.source_id !== row.source_id || got.as_of !== row.as_of) return false;
-  if (got.queryable !== false) return false;
-  const fields = got.fields;
-  if (fields == null || typeof fields !== "object" || Array.isArray(fields))
-    return false;
-  const gotFields = fields as Record<string, Fact>;
-  const expectedNames = Object.keys(row.fields).sort();
-  const gotNames = Object.keys(gotFields).sort();
-  if (expectedNames.join() !== gotNames.join()) return false;
-  for (const name of expectedNames) {
-    const item = gotFields[name];
-    const expected = row.fields[name]!;
-    if (item == null || typeof item !== "object") return false;
-    const keys = Object.keys(item).sort().join();
-    if (keys !== "missing,present") return false;
-    if (!isInt(item.present) || !isInt(item.missing)) return false;
-    if (item.present !== expected.present || item.missing !== expected.missing)
-      return false;
-  }
-  return true;
-}
-
-/** Evidence gate for the same subject-field diagnostic. Does not download a county. */
-export function countyEvidenceGate(raw: unknown): Record<string, unknown> {
-  const card =
-    raw != null && typeof raw === "object" && !Array.isArray(raw)
-      ? (raw as Fact)
-      : null;
-  const fips = card ? card.county_fips : null;
-  const fipsOut = typeof fips === "string" && FIPS.test(fips) ? fips : null;
-  const row = fipsOut ? PUBLISHED[fipsOut] : undefined;
-  let blockers = row
-    ? [...row.blockers]
-    : [
-        "No bundled field audit for this county. This diagnostic does not download rolls and does not treat a parcel count as readiness.",
-      ];
-  let status = row ? row.status : "not_ready";
-  let attestation = "not_supplied";
-  if (card && "attestation" in card) {
-    if (row && attestationMatches(row, card.attestation)) {
-      attestation = "matches_published_audit";
-      blockers = [...blockers, ATTEST_OK];
-    } else {
-      attestation = "does_not_match_published_audit";
-      status = "not_ready";
-      blockers = [ATTEST_BAD, ...blockers];
-    }
-  }
-  return {
-    diagnostic: "county_evidence_gate",
-    calculator: CALCULATOR,
-    county_fips: fipsOut,
-    status,
-    not_county_complete: true,
-    queryable: false,
-    verified_against_publisher: false,
-    figures_remeasured: false,
-    source: sourceBlock(row),
-    published_fields: row
-      ? Object.fromEntries(
-          Object.entries(row.fields).map(([key, value]) => [key, { ...value }]),
-        )
-      : null,
-    ignored_for_status: ["audit_violations", "parcel_count"],
-    attestation,
-    blockers,
-  };
 }

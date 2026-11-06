@@ -40,6 +40,7 @@ from .calc import (  # noqa: E402
     walt,
 )
 from .facts import validate_fact  # noqa: E402
+from .harris_readiness import harris_readiness  # noqa: E402
 from .factpackage import sign_fact_package  # noqa: E402
 from .pdf import read_pdf  # noqa: E402
 from .rules import RULES, texas_holidays, tx_property_tax_protest_deadline  # noqa: E402
@@ -95,6 +96,7 @@ __all__ = [
     "equity_waterfall",
     "exchange_1031",
     "gemini_tools",
+    "harris_readiness",
     "hotel_metrics",
     "irr",
     "lease_remeasurement_asc842",
