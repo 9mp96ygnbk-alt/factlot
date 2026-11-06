@@ -19,6 +19,7 @@ export {
   validateFact,
 } from "./documents.ts";
 export { PREDICATES as INGEST_PREDICATES } from "./quotes.ts";
+export { describePredicate, predicateCatalog } from "./predicates.ts";
 export {
   PACKAGE_FORMAT,
   PACKAGE_VERSION,

@@ -45,7 +45,8 @@ const iso = (y: number, m: number, d: number) =>
   new Date(Date.UTC(y, m - 1, d)).toISOString().slice(0, 10);
 const weekday = (date: string) => new Date(`${date}T00:00:00Z`).getUTCDay(); // 0 = Sunday
 
-function nthWeekday(
+/** The nth given weekday (0 = Sunday) of a month, as YYYY-MM-DD. */
+export function nthWeekday(
   year: number,
   month: number,
   dow: number,
@@ -55,7 +56,8 @@ function nthWeekday(
   return iso(year, month, 1 + ((dow - firstDow + 7) % 7) + 7 * (n - 1));
 }
 
-function lastWeekday(year: number, month: number, dow: number): string {
+/** The last given weekday (0 = Sunday) of a month, as YYYY-MM-DD. */
+export function lastWeekday(year: number, month: number, dow: number): string {
   const last = new Date(Date.UTC(year, month, 0));
   return iso(
     year,

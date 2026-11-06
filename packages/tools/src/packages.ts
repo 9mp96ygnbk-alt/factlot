@@ -20,6 +20,7 @@ import {
   capCharacters,
   characters,
   loadDocument,
+  personConfirmed,
   unconfirmed,
   validateFact,
 } from "./documents.ts";
@@ -173,6 +174,29 @@ function digestOf(m: Manifest): string {
 
 // --- fact_package_create -------------------------------------------------------------------------
 
+/**
+ * The facts a person confirmed (method human_verified) and the parts of each value that rest on
+ * that confirmation rather than on the quote. Reported beside the package, not inside it, so the
+ * digest is unchanged.
+ */
+function confirmedByPerson(facts: readonly unknown[]): Json[] {
+  const out: Json[] = [];
+  facts.forEach((f, i) => {
+    if (!isPlainObject(f) || !isPlainObject(f.provenance)) return;
+    if (f.provenance.method !== "human_verified") return;
+    out.push({
+      fact: i,
+      ...(typeof f.id === "string" ? { fact_id: f.id } : {}),
+      predicate: f.predicate,
+      ...(f.provenance.verified_by !== undefined
+        ? { verified_by: f.provenance.verified_by }
+        : {}),
+      confirmed_by_person: personConfirmed(f),
+    });
+  });
+  return out;
+}
+
 export function createFactPackage(
   input: z.output<typeof FactPackageCreateInput>,
 ): Json {
@@ -223,6 +247,7 @@ export function createFactPackage(
 
   const leaves = input.facts.map(leafHash);
   const root = merkleRoot(leaves);
+  const byPerson = confirmedByPerson(input.facts);
   const manifest: Manifest = {
     format: PACKAGE_FORMAT,
     version: PACKAGE_VERSION,
@@ -252,6 +277,7 @@ export function createFactPackage(
     },
     digest,
     signing_message: `${SIGNING_PREFIX}${digest}`,
+    ...(byPerson.length ? { confirmed_by_person: byPerson } : {}),
     next: "To sign, sign the UTF-8 bytes of signing_message with your own Ed25519 key on your own machine (factlot.sign_fact_package in Python, signFactPackage in @factlot/tools, or fact_package_sign in the local MCP server) and add signature {algorithm: Ed25519, public_key, value}. FactLot never sees or stores a private key.",
   };
 }
@@ -560,6 +586,10 @@ export async function verifyFactPackage(
       });
   });
 
+  const byPerson = confirmedByPerson(facts as unknown[]).filter(
+    (x) => !factIssues.some((y) => y.fact === x.fact),
+  );
+
   const integrityOk = r.problems.length === 0;
   const signatureOk =
     input.public_key !== undefined
@@ -590,6 +620,7 @@ export async function verifyFactPackage(
       documents_not_supplied: notSupplied,
     },
     values_not_checked: valuesNotChecked,
+    ...(byPerson.length ? { values_confirmed_by_person: byPerson } : {}),
     checks_run: [
       "integrity: each fact's hash, the Merkle root and the digest, recomputed from the content",
       signature.status === "absent"
@@ -606,6 +637,11 @@ export async function verifyFactPackage(
       ...(valuesNotChecked.length
         ? [
             "values: the parts in values_not_checked are not confirmed by their quotes (booleans, enums, free text not written in the quote, or a generic predicate's value the quote does not state)",
+          ]
+        : []),
+      ...(byPerson.length
+        ? [
+            "people: the parts in values_confirmed_by_person rest on the confirmation of the person named in verified_by, which FactLot does not authenticate",
           ]
         : []),
       ...(notSupplied.length

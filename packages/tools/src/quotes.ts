@@ -189,7 +189,7 @@ export function checkValue(
       if ((step.from as string) > (step.to as string))
         return "rent step ends before it starts";
     }
-    return undefined;
+    return leaseYearsIssue(value as Record<string, unknown>[]);
   }
   if (predicate === "lease.cam_cap") {
     const ok =
@@ -204,14 +204,16 @@ export function checkValue(
       ? undefined
       : "expected {method, rate} with an explicit cap method";
   }
-  if (
-    predicate === "lease.free_rent" ||
-    predicate === "lease.renewal_option" ||
-    predicate === "lease.termination_option"
-  )
-    return isPlainObject(value) && Object.keys(value).length > 0
-      ? undefined
-      : "expected object";
+  if (Object.hasOwn(OBJECT_FIELDS, predicate)) {
+    if (!isPlainObject(value) || Object.keys(value).length === 0)
+      return "expected object";
+    for (const [k, t] of Object.entries(OBJECT_FIELDS[predicate]!))
+      if (has(value, k) && !fieldOk(t, value[k]))
+        return typeof t === "string"
+          ? `${k} ${FIELD_REASONS[t]}`
+          : `${k} must be one of ${t.join(", ")}`;
+    return undefined;
+  }
   if (predicate === "lease.percentage_rent") {
     if (
       !isPlainObject(value) ||
@@ -262,9 +264,10 @@ export function checkValue(
 // Clause predicates: which fields an object value may carry and the test each must pass, in the
 // order they are checked (Python `_CLAUSES`). `stringOk` predicates also accept a plain summary
 // string, the shape they had before clause objects. A test is a check or a list of enum values.
-type FieldCheck = "text" | "texts" | "positive" | "fraction" | "bool" | "date";
-type FieldTest = FieldCheck | readonly string[];
-interface ClauseRule {
+export type FieldCheck =
+  "text" | "texts" | "number" | "positive" | "fraction" | "bool" | "date";
+export type FieldTest = FieldCheck | readonly string[];
+export interface ClauseRule {
   expected: string;
   stringOk?: boolean;
   arrayOfText?: boolean;
@@ -275,6 +278,7 @@ interface ClauseRule {
 const FIELD_REASONS: Record<FieldCheck, string> = {
   text: "must be a non-empty string",
   texts: "must be a non-empty array of non-empty strings",
+  number: "must be a number",
   positive: "must be a positive number",
   fraction: "must be a number in (0, 1]",
   bool: "must be true or false",
@@ -285,11 +289,36 @@ const isTexts = (v: unknown): boolean =>
 const FIELD_CHECKS: Record<FieldCheck, (v: unknown) => boolean> = {
   text: isText,
   texts: isTexts,
+  number: isNum,
   positive: (v) => isNum(v) && v > 0,
   fraction: (v) => isNum(v) && v > 0 && v <= 1,
   bool: (v) => typeof v === "boolean",
   date: isDate,
 };
+/**
+ * The fields of the object predicates that are not clauses, each optional but checked when given
+ * (Python `_OBJECT_FIELDS`); the value must have at least one field.
+ */
+export const OBJECT_FIELDS: Readonly<
+  Record<string, Readonly<Record<string, FieldTest>>>
+> = {
+  "lease.free_rent": {
+    months: "number",
+    applies_to: ["base_rent", "gross_rent"],
+  },
+  "lease.renewal_option": {
+    count: "number",
+    term_months: "number",
+    notice_months: "number",
+    rent: "text",
+  },
+  "lease.termination_option": {
+    effective_date: "date",
+    notice_months: "number",
+    fee: "text",
+  },
+};
+
 const ROFR: ClauseRule = {
   stringOk: true,
   expected:
@@ -297,7 +326,7 @@ const ROFR: ClauseRule = {
   required: { applies_to: ["space", "purchase"], description: "text" },
   optional: { response_days: "positive" },
 };
-const CLAUSES: Readonly<Record<string, ClauseRule>> = {
+export const CLAUSES: Readonly<Record<string, ClauseRule>> = {
   "lease.rofr": ROFR,
   "lease.rofo": ROFR,
   "lease.exclusive_use": {
@@ -404,6 +433,63 @@ function checkClause(predicate: string, value: unknown): string | undefined {
   return undefined;
 }
 
+/**
+ * The lease-year numbers of a rent schedule written by lease year ("Lease Years 1–5: $34.50"):
+ * either every step has `lease_years: [first, last]` (whole numbers 1–99, first ≤ last, in order
+ * and not overlapping) or none does (Python `_lease_years_issue`).
+ */
+export function leaseYearsIssue(
+  steps: readonly Record<string, unknown>[],
+): string | undefined {
+  const marked = steps.filter((s) => has(s, "lease_years")).length;
+  if (marked === 0) return undefined;
+  if (marked !== steps.length)
+    return "give lease_years on every rent step or on none";
+  let last = 0;
+  for (const s of steps) {
+    const ly = s.lease_years;
+    if (
+      !Array.isArray(ly) ||
+      ly.length !== 2 ||
+      !ly.every((n) => isNum(n) && Number.isInteger(n) && n >= 1 && n <= 99)
+    )
+      return "lease_years must be [first, last], whole numbers from 1 to 99, e.g. [1, 5]";
+    const [a, b] = ly as [number, number];
+    if (a > b)
+      return "lease_years must list the first lease year before the last";
+    if (a <= last)
+      return "rent steps by lease year must be in order and must not overlap";
+    last = b;
+  }
+  return undefined;
+}
+
+/** True when a rent schedule is written by lease year: every step is an object with lease_years. */
+export function isLeaseYearSchedule(value: unknown): boolean {
+  return (
+    Array.isArray(value) &&
+    value.length > 0 &&
+    value.every((s) => isPlainObject(s) && has(s, "lease_years"))
+  );
+}
+
+/**
+ * The shape check for a rent schedule written by lease year as a candidate gives it: steps of
+ * `{lease_years, annual_rent_psf}`, with `from` and `to` optional (FactLot derives them).
+ */
+export function checkLeaseYearCandidate(value: unknown): string | undefined {
+  if (!Array.isArray(value) || value.length === 0)
+    return "expected non-empty array of rent steps";
+  for (const step of value) {
+    if (!(isPlainObject(step) && isNum(step.annual_rent_psf)))
+      return "each rent step by lease year needs lease_years [first, last] and annual_rent_psf";
+    for (const k of ["from", "to"])
+      if (has(step, k) && !isDate(step[k]))
+        return `${k} must be a YYYY-MM-DD date (or leave it out: FactLot derives it from the commencement date)`;
+  }
+  return leaseYearsIssue(value as Record<string, unknown>[]);
+}
+
 export const PREDICATE_PATTERN = /^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/;
 
 /**
@@ -426,6 +512,7 @@ export function checkAnyValue(
 // --- value–quote consistency ----------------------------------------------------------------
 
 export type Kind =
+  | "derived"
   | "number"
   | "ratio"
   | "date"
@@ -435,7 +522,7 @@ export type Kind =
   | "words"
   | "summary"
   | "enum";
-type Spec = Kind | readonly [Spec] | { readonly [k: string]: Spec };
+export type Spec = Kind | readonly [Spec] | { readonly [k: string]: Spec };
 
 // Which parts of each predicate's value are checked against the quote, and how (Python
 // `_CONSISTENCY`). A list spec applies to each element; dict keys that are not listed (enums,
@@ -445,7 +532,7 @@ type Spec = Kind | readonly [Spec] | { readonly [k: string]: Spec };
 // fails this check, and counts as checked only when it is written in the quote. "enum": a value
 // from a fixed list that never fails this check either, and counts as checked only when the quote
 // words it as PHRASES lists (other enums are never checked).
-const CONSISTENCY: Readonly<Record<string, Spec>> = {
+export const CONSISTENCY: Readonly<Record<string, Spec>> = {
   "lease.commencement_date": "date",
   "lease.expiration_date": "date",
   "lease.rentable_area_sf": "number",
@@ -520,8 +607,20 @@ const CONSISTENCY: Readonly<Record<string, Spec>> = {
   },
 };
 
+/**
+ * A rent step written by lease year: the rent and the lease-year numbers are checked against the
+ * schedule's quote; `from` and `to` are derived from the commencement date, which is checked
+ * against its own quote (Python `LEASE_YEAR_STEP`).
+ */
+export const LEASE_YEAR_STEP: Spec = {
+  from: "derived",
+  to: "derived",
+  annual_rent_psf: "number",
+  lease_years: ["number"],
+};
+
 /** How a predicate that also accepts a plain string is checked when given one (Python `_STRING_FORMS`). */
-const STRING_FORMS: Readonly<Record<string, Kind>> = {
+export const STRING_FORMS: Readonly<Record<string, Kind>> = {
   "lease.exclusive_use": "words",
   "lease.rofr": "summary",
   "lease.rofo": "summary",
@@ -817,6 +916,7 @@ export function writtenIn(text: unknown, quote: string): boolean {
 /** True when `value` of the given kind cannot be found in the normalized quote (Python `_missing`). */
 export function missing(kind: Kind, value: unknown, quote: string): boolean {
   if (kind === "summary" || kind === "enum") return false; // see coverage
+  if (kind === "derived") return false; // dates derived from another quote (lease years)
   if (kind === "words")
     return (
       typeof value === "string" &&
@@ -879,7 +979,7 @@ function checkable(kind: Kind, value: unknown): boolean {
   if (kind === "string") return typeof value === "string";
   if (kind === "words" || kind === "summary")
     return typeof value === "string" && fold(norm(value)) !== "";
-  if (kind === "date") return isDate(value);
+  if (kind === "date" || kind === "derived") return isDate(value);
   return isNum(value);
 }
 
@@ -963,19 +1063,25 @@ export function valueParts(
     });
   };
   if (isIngestPredicate(predicate))
-    known(
-      typeof value === "string" && Object.hasOwn(STRING_FORMS, predicate)
-        ? STRING_FORMS[predicate]
-        : CONSISTENCY[predicate],
-      value,
-      "",
-      "",
-    );
+    known(specFor(predicate, value), value, "", "");
   else generic(value, "");
   return out.map((p) => ({
     ...p,
     path: p.path === "value" ? "value" : `value.${p.path}`,
   }));
+}
+
+/** The consistency spec a value is checked with: its string form, the lease-year form, or the table's. */
+export function specFor(predicate: string, value: unknown): Spec | undefined {
+  if (typeof value === "string" && Object.hasOwn(STRING_FORMS, predicate))
+    return STRING_FORMS[predicate];
+  if (
+    predicate === "lease.base_rent_schedule" &&
+    Array.isArray(value) &&
+    value.some((s) => isPlainObject(s) && has(s, "lease_years"))
+  )
+    return [LEASE_YEAR_STEP];
+  return CONSISTENCY[predicate];
 }
 
 /** A JSON type name for a value part FactLot does not check. */
@@ -1000,11 +1106,14 @@ export function coverage(
   checked: { path: string; as: Kind }[];
   not_checked: string[];
   gaps: string[];
+  /** Parts a rule checks that the quote does not state: a confirmation never covers them. */
+  absent: string[];
 } {
   const q = norm(quote);
   const checked: { path: string; as: Kind }[] = [];
   const notChecked: string[] = [];
   const gaps: string[] = [];
+  const absent: string[] = [];
   for (const p of valueParts(predicate, value)) {
     if (p.as === "enum") {
       if (worded(p.value, q)) checked.push({ path: p.path, as: "phrase" });
@@ -1022,6 +1131,7 @@ export function coverage(
       }
     } else if (p.as && missing(p.as, p.value, q)) {
       notChecked.push(p.path);
+      absent.push(p.path);
       gaps.push(`${p.path} (not found in the quote)`);
     } else if (p.as) checked.push({ path: p.path, as: p.as });
     else {
@@ -1029,7 +1139,7 @@ export function coverage(
       gaps.push(`${p.path} (${typeName(p.value)})`);
     }
   }
-  return { checked, not_checked: notChecked, gaps };
+  return { checked, not_checked: notChecked, gaps, absent };
 }
 
 /** The needs_review reason for value parts the quote does not confirm (Python `coverage_reason`). */

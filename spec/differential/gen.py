@@ -142,4 +142,7 @@ cases.extend(round2_cases(int(sys.argv[1]), int(sys.argv[2]) // 2))
 # lease_comp_search over the bundled GSA comps: its own stream, after every other
 from gen_comps import comp_search_cases
 cases.extend(comp_search_cases(int(sys.argv[1]), int(sys.argv[2])))
+# calc_critical_dates, human confirmation, lease-year rent schedules, doc_predicates: their own stream
+from gen_round4 import round4_cases
+cases.extend(round4_cases(int(sys.argv[1]), int(sys.argv[2]) // 2))
 json.dump(cases,open(sys.argv[3],"w"))

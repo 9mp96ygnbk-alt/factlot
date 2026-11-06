@@ -30,7 +30,7 @@ from . import __version__
 from ._core import CalcInputError, input_shape_issue, num_str
 from .calc import CALCULATORS
 from .rules import RULES
-from . import comps, comps_search, docverify, factpackage, statements, uses
+from . import comps, comps_search, docverify, factpackage, predicates, statements, uses
 from .ids import FactLotIdError, building_id, document_id, entity_id, parcel_id, parse, short_id, space_id
 
 
@@ -406,6 +406,7 @@ _DOC_TOOLS = {
     "lease_comp_search": lambda a: comps_search.search(a, _PRODUCER),
     "doc_spread_statement": lambda a: statements.spread_statement(a),
     "doc_check_use_conflict": lambda a: uses.check_use_conflict(a),
+    "doc_predicates": lambda a: predicates.doc_predicates(a),
     "fact_package_create": lambda a: factpackage.create_fact_package(a),
     "fact_package_verify": lambda a: factpackage.verify_fact_package(a),
 }

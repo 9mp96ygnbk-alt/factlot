@@ -2558,6 +2558,8 @@ from .valuation import (  # noqa: E402  (valuation.py imports irr from this modu
     exchange_1031,
 )
 
+from .critical_dates import critical_dates  # noqa: E402
+
 #: name -> (function, formula id, formula version). Names match the MCP/TypeScript registry.
 CALCULATORS: dict[str, tuple[Callable[[Any], Result], str, int]] = {
     "rent_schedule": (rent_schedule, "calc.rent_schedule", 1),
@@ -2582,4 +2584,5 @@ CALCULATORS: dict[str, tuple[Callable[[Any], Result], str, int]] = {
     "amortization_schedule": (amortization_schedule, "calc.amortization_schedule", 1),
     "equity_waterfall": (equity_waterfall, "calc.equity_waterfall", 1),
     "exchange_1031": (exchange_1031, "calc.exchange_1031", 2),
+    "critical_dates": (critical_dates, "calc.critical_dates", 1),
 }

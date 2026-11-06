@@ -15,14 +15,16 @@ same answer every time.
 | `doc_verify_claim`          | one claim (`{predicate, value}`, `{text}` or a bare sentence string), its quote and page   | `supported`, `contradicted` or `unverifiable`, with the evidence                                          |
 | `doc_spread_statement`      | a T-12 or operating statement's pages, and lines `{label, amount, quote, page}`            | the statement on a standard chart of accounts (NOI, EBITDA, ...), each line cited, footing and exceptions |
 | `doc_check_use_conflict`    | verified exclusive-use and prohibited-use facts, and a proposed use                        | each potential conflict with the controlling quote, labelled for human review                             |
+| `doc_predicates`            | optionally one `predicate` or a `prefix`                                                   | each lease predicate's value shape (JSON Schema), an example, and which parts are checked and how         |
 | `fact_package_create`       | facts                                                                                      | a canonical, hash-chained package and the message its holder signs                                        |
 | `fact_package_verify`       | a package, optionally the signer's public key and the source pages                         | whether hashes, signature, facts and quotes check out, with details and the checks it did not run         |
 | `doc_read_pdf` (local)      | a PDF file on this machine                                                                 | the `document` input above: page text, sha256, OCR pages                                                  |
 | `fact_package_sign` (local) | a package; the key comes from `FACTLOT_SIGNING_KEY_FILE`                                   | the package with its Ed25519 signature                                                                    |
 
-The first eight are in the MCP server, the REST API (`/v1/doc/verify_facts`,
+The first nine are in the MCP server, the REST API (`/v1/doc/verify_facts`,
 `/v1/doc/abstract_lease`, `/v1/doc/compare`, `/v1/doc/verify_claim`, `/v1/doc/spread_statement`,
-`/v1/doc/check_use_conflict`, `/v1/facts/package`, `/v1/facts/package/verify`), every provider
+`/v1/doc/check_use_conflict`, `/v1/doc/predicates`, `/v1/facts/package`,
+`/v1/facts/package/verify`), every provider
 format, and the Python SDK (`factlot.run_tool`). The two marked local are registered only by the
 stdio MCP server (`factlot-mcp`), because they read files on the user's machine; the hosted API
 never reads files. In TypeScript, `fact_package_verify` checks signatures with WebCrypto, which is
@@ -38,9 +40,12 @@ example with a synthetic lease, amendment and estoppel is in
 `doc_verify_facts` checks each candidate in this order and stops at the first failure.
 
 1. **Value shape.** For an Ingest predicate the value must have the shape in the
-   [Ingest predicate table](ingest.md#predicates): dates `YYYY-MM-DD`, `lease.pro_rata_share` in
-   (0, 1], rent steps with `from` before `to`, a CAM cap with an explicit method, a guarantor that
-   is a name and not an address. Any other dotted lower_snake predicate (`lease.notice_days`,
+   [Ingest predicate table](ingest.md#predicates), which `doc_predicates` also returns as JSON
+   Schema: dates `YYYY-MM-DD`, `lease.pro_rata_share` in (0, 1], rent steps with `from` before
+   `to`, a CAM cap with an explicit method, a guarantor that is a name and not an address, and the
+   documented field types of `lease.free_rent`, `lease.renewal_option` and
+   `lease.termination_option` (`applies_to` is `base_rent` or `gross_rent`, months are numbers, a
+   rent or fee is a non-empty string). Any other dotted lower_snake predicate (`lease.notice_days`,
    `om.occupancy`) is allowed with the generic rules: the value must not be null or blank.
    Failure: `rejected`, check `value`.
 2. **Quote on the page.** The quote must be at least 12 characters and appear on the cited page.
@@ -89,8 +94,14 @@ example with a synthetic lease, amendment and estoppel is in
 
    Failure: `needs_review`, check `coverage`, with `checked`, `not_checked` and a reason naming
    each part, such as `value.operating_covenant (boolean) is not checked against the quote; confirm
-it`. A person who has read the clause decides; FactLot does not issue a cited fact for a value
-   it could not confirm.
+it`. A person who has read the clause decides; FactLot does not issue an `extracted` fact for a
+   value it could not confirm. When that person confirms it, send the candidate again with their
+   `confirmation` ([below](#human-confirmation)).
+
+A rent schedule written by lease year adds one step between 3 and 4: the commencement date its
+step dates are derived from must verify against its own quote
+([below](#rent-schedules-by-lease-year)); if it does not, the schedule is `needs_review` with check
+`derivation`.
 
 A verified fact has `provenance.method: "extracted"` and one source: `document_id`, `page`,
 `section` (if given), the `quote` as sent, and `span`, the code-point offsets of the matching
@@ -100,6 +111,103 @@ appears on the page. `span` is left out in the rare case where it cannot be comp
 item also lists which parts of the value were `checked` and as what (`number`, `ratio`, `date`,
 `string` for a name, `words` for written text, `phrase` for a worded enum); its `not_checked` is
 always empty, because a value with an unchecked part is held for review instead.
+
+### Human confirmation
+
+Some parts of a value can never be confirmed by a quote: a true/false value (`lease.go_dark`
+`operating_covenant`), an enum no wording settles (a CAM cap `method`, a kick-out `party`, a ROFR's
+`applies_to`), or a summary the quote does not write out. Once a person has read the clause, send
+the candidate again with their confirmation:
+
+```json
+{
+  "predicate": "lease.go_dark",
+  "value": { "operating_covenant": true },
+  "quote": "Tenant shall continuously operate in the Premises.",
+  "page": 2,
+  "confirmation": {
+    "by": "J. Smith, lease administrator",
+    "at": "2026-11-05",
+    "note": "read Section 7.1"
+  }
+}
+```
+
+- The candidate goes through every check above. If the only gaps left are parts no rule can
+  check, it is verified with `provenance.method: "human_verified"`, `verified_by` (as given) and
+  `verified_at` (a date is recorded as that day at 00:00 UTC; a timestamp with offset is kept). The
+  verified item lists the parts the quote confirmed under `checked`, the parts only the person
+  confirmed under `confirmed_by_person`, and echoes the `confirmation` (the fact schema has no
+  field for the note). The result's `warnings` and `summary.confirmed_by_person` say how many
+  values rest on a person.
+- A confirmation never overrides a failed check: a quote that is not on the page is still
+  `rejected`; a number, date, name or as-written text the quote does not state is still
+  `needs_review` (check `consistency`); a confidence below 0.8 still holds it; and a commencement
+  date that does not verify still holds a lease-year schedule. A confirmation on a value the quote
+  fully confirms is not used: the fact stays `extracted`, with a note.
+- **`by` must name a person or a role** ("J. Smith", "Lease administration, Acme REIT"). FactLot
+  records it as given and does not authenticate it: it is the caller's statement that a person
+  read the clause. An agent must never set `confirmation` for its own extraction. Values that read
+  as an automated actor ("agent", "assistant", "model", "system", "FactLot", "me", "unknown", ...)
+  are an `InputError`; that guard catches slips, not dishonesty.
+- `doc_abstract_lease` accepts `human_verified` facts like any other (each needs a `verified_by`
+  that names a person, or it is rejected). With pages they are checked again and stay
+  `human_verified`; the field's `source` adds `method`, `verified_by` and `confirmed_by_person`.
+- `doc_compare` adds `lease_method: "human_verified"`, `lease_verified_by` and
+  `lease_confirmed_by_person` to a result whose lease fact a person confirmed, so a `match` on
+  those parts is read as a match against a person's reading, not against the quote.
+- `fact_package_create` lists such facts under `confirmed_by_person`, beside the package (the
+  digest does not change), and `fact_package_verify` reports them under
+  `values_confirmed_by_person`, apart from `values_not_checked`, with a line in `checks_not_run`.
+
+### Rent schedules by lease year
+
+A rent table written by lease year ("Lease Years 1–5: $34.50 ...; Lease Years 6–10: $38.00 ...")
+does not write the step dates, so a schedule with dates would fail the quote check. Send the steps
+by lease year and the commencement date with its own quote, which may be on another page of the
+same document:
+
+```json
+{
+  "predicate": "lease.base_rent_schedule",
+  "value": [
+    { "lease_years": [1, 5], "annual_rent_psf": 34.5 },
+    { "lease_years": [6, 10], "annual_rent_psf": 38.0 }
+  ],
+  "quote": "Lease Years 1–5: $34.50 per rentable square foot per annum;\nLease Years 6–10: $38.00",
+  "page": 2,
+  "commencement": {
+    "value": "2026-07-01",
+    "quote": "The Commencement Date is July 1, 2026",
+    "page": 1
+  }
+}
+```
+
+FactLot checks every rent and every lease-year number against the table's quote, and the
+commencement date against its quote as a `lease.commencement_date` candidate would be checked.
+It then derives the dates (formula `doc.lease_year_dates@1`):
+
+- Lease Year 1 begins on the commencement date. Lease Year N begins on the (N−1)th anniversary of
+  the commencement date (the same month and day N−1 years later) and ends the day before the next
+  anniversary: a July 1, 2026 commencement gives Lease Years 1–5 from 2026-07-01 to 2031-06-30.
+- The anniversary of a February 29 commencement in a common year is February 28, the same
+  calendar-month rule as `calc_rent_schedule` (a note says so; a lease that says March 1 gives
+  dates a day later). A commencement that is not the first of a month gets a note too: some leases
+  end Lease Year 1 with the twelfth full calendar month.
+- Steps must be in order and must not overlap, either every step has `lease_years` or none does,
+  and `from`/`to` may be sent but must equal the derived dates.
+
+The verified fact's value has each step's `from`, `to`, `annual_rent_psf` and `lease_years`, so
+calculators and the abstract's step merging use it like any schedule. It cites two sources, the
+table first and the commencement date second, and names the formula in `provenance.formula`; the
+verified item shows the derivation under `derived_from` (the commencement date, its citation, the
+convention and each step's dates), and `checked` lists the dates `as: "derived"`. `fact_validate`
+checks such a fact the same way: the rents and lease years against the first quote, and the dates
+against a commencement date written in the second. If the commencement date is not verified (its
+quote is not on the page, or does not state the date), the schedule is `needs_review` with check
+`derivation`; without `commencement` it is `rejected` (check `value`). In `doc_abstract_lease` the
+commencement quote must be in the same document as the table.
 
 ### Words hyphenated across a line
 
@@ -122,6 +230,35 @@ by form feeds that is the same as hashing the file.
 Fact IDs follow Ingest: `flf_` and 24 Crockford base32 characters of SHA-256 of the subject,
 predicate, document ID and quote joined by U+001F. The subject defaults to the document ID; pass
 your lease's `fl:lease:…` URN as `subject`.
+
+## The predicate catalog
+
+`doc_predicates` (REST `/v1/doc/predicates`, MCP, every provider format) answers "what shape does
+this predicate take, and what will FactLot check?" without a rejection round trip. Give
+`predicate` for one, `prefix` (`lease.renewal`) for a group, or neither for all 30 lease
+predicates. Each entry has:
+
+- `value_schema`: the value shape as JSON Schema (an `anyOf` for the four clauses that also accept
+  a summary string), and `example`: a valid value with a synthetic quote that states it, its
+  `outcome` from `doc_verify_facts` (`verified`, or `needs_review` when the shape has parts no
+  quote can prove), and which of its parts were checked;
+- `checked`: the parts always compared with the quote and how (`number`, `ratio`, `date`, `string`
+  for a verbatim name, `words` for as-written text, `phrase` for a consent standard, `text` for the
+  numbers inside free text); a part the quote does not state makes the candidate
+  `needs_review` (check `consistency`);
+- `checked_if_written`: the parts that count as checked only when the quote writes them out
+  (summaries) or words them (`free_rent.applies_to: base_rent`, a `natural` breakpoint), with the
+  phrases FactLot recognises;
+- `always_review`: the parts no quote confirms (true/false values, enum values with no recognised
+  wording), which hold a candidate in `needs_review` (check `coverage`) unless a person confirms
+  them;
+- for `lease.base_rent_schedule`, `alternate_forms` describes the lease-year form.
+
+Paths start at `value` and `[]` stands for every item of an array. `notes` explains the statuses,
+human confirmation and the generic rules for any other predicate. The catalog is generated from the
+tables the checks use (`packages/tools/src/predicates.ts`, published as
+`spec/schemas/predicates.json`, which the Python SDK serves as is); tests in both languages run
+every example through the checks and fail if a predicate is missing.
 
 ## Lease abstracts and amendment precedence
 
@@ -178,7 +315,48 @@ only the fields you assert. Every lease fact must pass `fact_validate`; FactLot 
 the lease here. When the lease fact is an `extracted` fact whose quote does not confirm part of
 its value (a true/false value, an enum, a paraphrased summary: facts that `doc_verify_facts` would
 hold for review), the result lists those parts in `lease_not_checked`, so a `match` against them
-is not read as a verified match.
+is not read as a verified match. When the lease fact is `human_verified`, the result adds
+`lease_method`, `lease_verified_by` and `lease_confirmed_by_person`
+([human confirmation](#human-confirmation)).
+
+## Critical dates from verified terms
+
+`calc_critical_dates` (formula `calc.critical_dates@1`) turns the expiration date and the option
+terms an abstract verified into a dated list of notice deadlines and option windows, with steps:
+
+- `expiration_date` (required), optional `commencement_date` and `as_of`;
+- `renewal_option`: `count`, `term_months`, and one of `notice_months`, `notice_days` or
+  `notice_window` (`earliest_months_before`, `latest_months_before`). Option 1 counts back from
+  the expiration; each later option counts back from the end of the renewal term before it, which
+  assumes every earlier option was exercised (a warning says so);
+- `termination_options`: each `effective_date` with `notice_months` or `notice_days`;
+- `expansion_option_deadline`, and `other_deadlines`: a stated `date`, or `from_date` plus
+  `days_after` (a ROFO response period after Landlord's notice).
+
+Conventions, also returned in `value.conventions`:
+
+- Calendar months. N months before a date is the same day of the month N months earlier, clamped
+  to a shorter month's end. A month-end date is not moved to the target month's end: notice six
+  months before February 28, 2031 is due August 28, 2030; a warning gives the month-end reading
+  (August 31) when it would be later, and FactLot keeps the earlier date.
+- "No later than N months before" a date means that date minus N months: the deadline is the last
+  day notice may be given. A renewal term starts the day after the expiration in effect and ends
+  the day before the same day of the month `term_months` later.
+- Business days. A deadline on a Saturday, Sunday or US federal holiday is flagged
+  (`non_business_day`) and not moved by default. `business_day_roll: "preceding"` moves it to the
+  business day before (never later than the lease date); `"following"` moves it to the next
+  business day, with a warning, because only a lease clause that says so allows that. Holidays are
+  the eleven of 5 U.S.C. §6103(a) (Juneteenth from 2021) with their federal observed days
+  (Saturday: the Friday before; Sunday: the Monday after), from 1986 on; `holidays: "none"`
+  counts weekends only. State, bank and local holidays are not included: the lease's definition of
+  business day controls.
+- With `as_of`, every event has `days_from_as_of`, each deadline before `as_of` is warned as
+  passed, and `next_deadline` is the first deadline on or after it.
+
+The result lists `events` in date order (with each one's `kind`, label and option number),
+`renewal_terms`, `termination_options` and `next_deadline`. It does arithmetic on the dates given;
+it does not read the notice clause (how notice is given, when it is deemed received). Not legal
+advice.
 
 ## Checking one claim
 
@@ -226,7 +404,8 @@ with the pages for the first, and `doc_verify_claim` for a generic predicate.
 - **True/false values, enums and summaries.** They are never proven by a quote. A value that has
   one goes to `needs_review` (check `coverage`) unless the quote words the enum or writes out the
   summary; a consent standard, `free_rent.applies_to: base_rent` and a `natural` breakpoint are
-  checked for their wording.
+  checked for their wording. A person's confirmation can carry them, as `human_verified`; FactLot
+  does not check who the person is.
 
 ## Clause-level lease terms
 
@@ -399,9 +578,12 @@ documents whose pages were not given, whether the pages came from the files thei
 and meaning. `fact_validate` compares each Ingest fact's numbers, dates, names and as-written text
 with its quotes, but a package can carry values no quote confirms (a true/false value, an enum, a
 paraphrased summary, or a generic predicate's value). For `extracted` facts those parts are listed
-in `values_not_checked` and named in `checks_not_run`. They do not make `valid` false: a package
-may carry facts a person confirmed (`human_verified`), and verifying the package is about whether
-it is intact and correctly cited, not a second judgement of each value.
+in `values_not_checked` and named in `checks_not_run`. For `human_verified` facts they are listed
+in `values_confirmed_by_person`, with `verified_by`, because they rest on a person's confirmation
+that FactLot does not authenticate. Neither makes `valid` false: verifying the package is about
+whether it is intact and correctly cited, not a second judgement of each value.
+`fact_package_create` lists the `human_verified` facts under `confirmed_by_person` too, outside the
+package, so the digest does not change.
 
 ## Limits
 

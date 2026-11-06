@@ -1,0 +1,1585 @@
+{
+  "generated_by": "scripts/gen-schemas.ts",
+  "notes": {
+    "statuses": "doc_verify_facts checks a candidate's shape (value_schema; a wrong shape is rejected, check value), that its quote is on the cited page (rejected, check quote), every part under checked (a part the quote does not state is needs_review, check consistency), its confidence (below 0.8: needs_review, check confidence), and then that every other part is confirmed: a part under checked_if_written that the quote does not write out, or any part under always_review, holds the candidate in needs_review with check coverage. Verified means every part of the value was confirmed.",
+    "paths": "Paths start at value; [] stands for every item of an array. form string or object marks the two shapes of a predicate that also accepts a plain summary string.",
+    "confirmation": "A person who has read the clause can confirm the parts no quote can prove: send the candidate again with confirmation {by, at, note?}. by is the person's name or role; FactLot records it as given and does not authenticate it, so an agent must never confirm its own extraction. The fact is then verified with method human_verified, the quote-checked parts under checked and the rest under confirmed_by_person. A confirmation never overrides a quote that is not on the page, a part under checked that the quote does not state, or a low confidence.",
+    "generic": "Any other dotted lower_snake predicate (lease.notice_days, om.occupancy) is accepted with generic rules: the value must not be null or blank; every number, ratio (a number in (0, 1]) and date in it is checked against the quote, and text counts as checked only when written in the quote."
+  },
+  "predicates": [
+    {
+      "predicate": "lease.landlord",
+      "description": "string (the landlord's name exactly as written in the document)",
+      "value_schema": {
+        "type": "string",
+        "minLength": 1
+      },
+      "example": {
+        "value": "Sample Landlord LLC",
+        "quote": "entered into by Sample Landlord LLC (“Landlord”)",
+        "outcome": "verified",
+        "checked": ["value"],
+        "not_checked": []
+      },
+      "checked": [
+        {
+          "path": "value",
+          "as": "string",
+          "how": "written in the quote verbatim, ignoring case, whitespace and typographic quotes"
+        }
+      ],
+      "checked_if_written": [],
+      "always_review": []
+    },
+    {
+      "predicate": "lease.tenant",
+      "description": "string (the tenant's name exactly as written in the document)",
+      "value_schema": {
+        "type": "string",
+        "minLength": 1
+      },
+      "example": {
+        "value": "Example Tenant, Inc.",
+        "quote": "and Example Tenant, Inc. (“Tenant”)",
+        "outcome": "verified",
+        "checked": ["value"],
+        "not_checked": []
+      },
+      "checked": [
+        {
+          "path": "value",
+          "as": "string",
+          "how": "written in the quote verbatim, ignoring case, whitespace and typographic quotes"
+        }
+      ],
+      "checked_if_written": [],
+      "always_review": []
+    },
+    {
+      "predicate": "lease.commencement_date",
+      "description": "date (YYYY-MM-DD)",
+      "value_schema": {
+        "type": "string",
+        "format": "date",
+        "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+        "description": "YYYY-MM-DD"
+      },
+      "example": {
+        "value": "2026-07-01",
+        "quote": "The Commencement Date is July 1, 2026.",
+        "outcome": "verified",
+        "checked": ["value"],
+        "not_checked": []
+      },
+      "checked": [
+        {
+          "path": "value",
+          "as": "date",
+          "how": "the calendar date is written in the quote in a common form (June 30, 2031; Jun. 30, 2031; 6/30/2031; 30 June 2031; the thirtieth day of June, 2031), not a two-digit year or a relative date"
+        }
+      ],
+      "checked_if_written": [],
+      "always_review": []
+    },
+    {
+      "predicate": "lease.expiration_date",
+      "description": "date (YYYY-MM-DD)",
+      "value_schema": {
+        "type": "string",
+        "format": "date",
+        "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+        "description": "YYYY-MM-DD"
+      },
+      "example": {
+        "value": "2031-06-30",
+        "quote": "The Term shall expire on June 30, 2031.",
+        "outcome": "verified",
+        "checked": ["value"],
+        "not_checked": []
+      },
+      "checked": [
+        {
+          "path": "value",
+          "as": "date",
+          "how": "the calendar date is written in the quote in a common form (June 30, 2031; Jun. 30, 2031; 6/30/2031; 30 June 2031; the thirtieth day of June, 2031), not a two-digit year or a relative date"
+        }
+      ],
+      "checked_if_written": [],
+      "always_review": []
+    },
+    {
+      "predicate": "lease.rentable_area_sf",
+      "description": "number (square feet)",
+      "value_schema": {
+        "type": "number",
+        "exclusiveMinimum": 0
+      },
+      "example": {
+        "value": 12500,
+        "quote": "containing approximately 12,500 rentable square feet",
+        "outcome": "verified",
+        "checked": ["value"],
+        "not_checked": []
+      },
+      "checked": [
+        {
+          "path": "value",
+          "as": "number",
+          "how": "the number is written in the quote in any common form (1250000 matches $1,250,000.00, 1,250,000 or 1250000; 24.5 matches 24.50/SF; whole numbers up to ninety-nine also as words, e.g. twelve (12))"
+        }
+      ],
+      "checked_if_written": [],
+      "always_review": []
+    },
+    {
+      "predicate": "lease.base_rent_schedule",
+      "description": "array of {\"from\": \"YYYY-MM-DD\", \"to\": \"YYYY-MM-DD\", \"annual_rent_psf\": number}",
+      "value_schema": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "type": "object",
+          "properties": {
+            "from": {
+              "type": "string",
+              "format": "date",
+              "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+              "description": "YYYY-MM-DD"
+            },
+            "to": {
+              "type": "string",
+              "format": "date",
+              "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+              "description": "YYYY-MM-DD"
+            },
+            "annual_rent_psf": {
+              "type": "number"
+            }
+          },
+          "required": ["from", "to", "annual_rent_psf"],
+          "additionalProperties": false
+        },
+        "description": "Rent steps in order; each step's from is not after its to."
+      },
+      "example": {
+        "value": [
+          {
+            "from": "2026-07-01",
+            "to": "2027-06-30",
+            "annual_rent_psf": 34.5
+          },
+          {
+            "from": "2027-07-01",
+            "to": "2028-06-30",
+            "annual_rent_psf": 35.54
+          }
+        ],
+        "quote": "July 1, 2026 to June 30, 2027: $34.50 per RSF; July 1, 2027 to June 30, 2028: $35.54 per RSF",
+        "outcome": "verified",
+        "checked": [
+          "value.0.from",
+          "value.0.to",
+          "value.0.annual_rent_psf",
+          "value.1.from",
+          "value.1.to",
+          "value.1.annual_rent_psf"
+        ],
+        "not_checked": []
+      },
+      "checked": [
+        {
+          "path": "value[].from",
+          "as": "date",
+          "how": "the calendar date is written in the quote in a common form (June 30, 2031; Jun. 30, 2031; 6/30/2031; 30 June 2031; the thirtieth day of June, 2031), not a two-digit year or a relative date"
+        },
+        {
+          "path": "value[].to",
+          "as": "date",
+          "how": "the calendar date is written in the quote in a common form (June 30, 2031; Jun. 30, 2031; 6/30/2031; 30 June 2031; the thirtieth day of June, 2031), not a two-digit year or a relative date"
+        },
+        {
+          "path": "value[].annual_rent_psf",
+          "as": "number",
+          "how": "the number is written in the quote in any common form (1250000 matches $1,250,000.00, 1,250,000 or 1250000; 24.5 matches 24.50/SF; whole numbers up to ninety-nine also as words, e.g. twelve (12))"
+        }
+      ],
+      "checked_if_written": [],
+      "always_review": [],
+      "alternate_forms": [
+        {
+          "form": "lease_years",
+          "how": "A rent table written by lease year (Lease Years 1–5: $34.50 ...). Give steps {lease_years: [first, last], annual_rent_psf} and, on the candidate, commencement {value, quote, page}. FactLot checks each rent and each lease-year number against the table's quote and the commencement date against its own quote, then derives each step's from and to: Lease Year N runs from the (N−1)th anniversary of the commencement date to the day before the next (a February 29 commencement's anniversary in a common year is February 28). The verified fact cites both quotes, keeps lease_years on each step, names formula doc.lease_year_dates@1, and the result shows the dates under derived_from. If the commencement date is not verified, the schedule stays in needs_review (check derivation).",
+          "value_schema": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "properties": {
+                "lease_years": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "items": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 99
+                  },
+                  "description": "[first, last] lease year of the step, in order"
+                },
+                "annual_rent_psf": {
+                  "type": "number"
+                }
+              },
+              "required": ["lease_years", "annual_rent_psf"],
+              "additionalProperties": false
+            }
+          },
+          "checked": [
+            {
+              "path": "value[].annual_rent_psf",
+              "as": "number",
+              "how": "the number is written in the quote in any common form (1250000 matches $1,250,000.00, 1,250,000 or 1250000; 24.5 matches 24.50/SF; whole numbers up to ninety-nine also as words, e.g. twelve (12))"
+            },
+            {
+              "path": "value[].lease_years[]",
+              "as": "number",
+              "how": "the number is written in the quote in any common form (1250000 matches $1,250,000.00, 1,250,000 or 1250000; 24.5 matches 24.50/SF; whole numbers up to ninety-nine also as words, e.g. twelve (12))"
+            },
+            {
+              "path": "value[].from",
+              "as": "derived",
+              "how": "derived from the commencement date (candidate.commencement), which is checked against its own quote"
+            },
+            {
+              "path": "value[].to",
+              "as": "derived",
+              "how": "derived from the commencement date (candidate.commencement), which is checked against its own quote"
+            }
+          ],
+          "example": {
+            "value": [
+              {
+                "lease_years": [1, 5],
+                "annual_rent_psf": 34.5
+              },
+              {
+                "lease_years": [6, 10],
+                "annual_rent_psf": 38
+              }
+            ],
+            "quote": "Lease Years 1-5: $34.50 per rentable square foot per annum; Lease Years 6-10: $38.00",
+            "commencement": {
+              "value": "2026-07-01",
+              "quote": "The Commencement Date is July 1, 2026"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "predicate": "lease.free_rent",
+      "description": "object {\"months\": number, \"applies_to\": \"base_rent\" | \"gross_rent\"}",
+      "value_schema": {
+        "type": "object",
+        "properties": {
+          "months": {
+            "type": "number"
+          },
+          "applies_to": {
+            "enum": ["base_rent", "gross_rent"]
+          }
+        },
+        "additionalProperties": false,
+        "minProperties": 1
+      },
+      "example": {
+        "value": {
+          "months": 3,
+          "applies_to": "base_rent"
+        },
+        "quote": "Base Rent shall be abated for the first three (3) months of the Term",
+        "outcome": "verified",
+        "checked": ["value.months", "value.applies_to"],
+        "not_checked": []
+      },
+      "checked": [
+        {
+          "path": "value.months",
+          "as": "number",
+          "how": "the number is written in the quote in any common form (1250000 matches $1,250,000.00, 1,250,000 or 1250000; 24.5 matches 24.50/SF; whole numbers up to ninety-nine also as words, e.g. twelve (12))"
+        }
+      ],
+      "checked_if_written": [
+        {
+          "path": "value.applies_to",
+          "as": "phrase",
+          "how": "counts as checked only when the quote words it as phrases lists; otherwise needs_review with check coverage",
+          "values": ["base_rent"],
+          "phrases": {
+            "base_rent": [
+              ["base rent", "basic rent", "fixed rent", "minimum rent"]
+            ]
+          }
+        }
+      ],
+      "always_review": [
+        {
+          "path": "value.applies_to",
+          "as": "enum",
+          "how": "an enum value no quote wording confirms: needs_review with check coverage unless a person confirms it",
+          "values": ["gross_rent"]
+        }
+      ]
+    },
+    {
+      "predicate": "lease.security_deposit",
+      "description": "number (USD)",
+      "value_schema": {
+        "type": "number",
+        "exclusiveMinimum": 0
+      },
+      "example": {
+        "value": 95000,
+        "quote": "a security deposit of $95,000.00",
+        "outcome": "verified",
+        "checked": ["value"],
+        "not_checked": []
+      },
+      "checked": [
+        {
+          "path": "value",
+          "as": "number",
+          "how": "the number is written in the quote in any common form (1250000 matches $1,250,000.00, 1,250,000 or 1250000; 24.5 matches 24.50/SF; whole numbers up to ninety-nine also as words, e.g. twelve (12))"
+        }
+      ],
+      "checked_if_written": [],
+      "always_review": []
+    },
+    {
+      "predicate": "lease.pro_rata_share",
+      "description": "number between 0 and 1",
+      "value_schema": {
+        "type": "number",
+        "exclusiveMinimum": 0,
+        "maximum": 1
+      },
+      "example": {
+        "value": 0.0425,
+        "quote": "Tenant's Proportionate Share is 4.25%",
+        "outcome": "verified",
+        "checked": ["value"],
+        "not_checked": []
+      },
+      "checked": [
+        {
+          "path": "value",
+          "as": "ratio",
+          "how": "the decimal, or its percentage when the quote has a % sign or the word percent (0.0425 matches 4.25% or 4.25 percent, not a bare 4.25)"
+        }
+      ],
+      "checked_if_written": [],
+      "always_review": []
+    },
+    {
+      "predicate": "lease.cam_cap",
+      "description": "object {\"method\": \"compounding_from_base\" | \"simple_from_base\" | \"year_over_year\", \"rate\": number}",
+      "value_schema": {
+        "type": "object",
+        "properties": {
+          "method": {
+            "enum": [
+              "compounding_from_base",
+              "simple_from_base",
+              "year_over_year"
+            ]
+          },
+          "rate": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "maximum": 1
+          }
+        },
+        "required": ["method", "rate"],
+        "additionalProperties": false
+      },
+      "example": {
+        "value": {
+          "method": "compounding_from_base",
+          "rate": 0.05
+        },
+        "quote": "Controllable Operating Expenses shall not increase by more than five percent (5%) per year, on a cumulative and compounding basis",
+        "outcome": "needs_review",
+        "checked": ["value.rate"],
+        "not_checked": ["value.method"]
+      },
+      "checked": [
+        {
+          "path": "value.rate",
+          "as": "ratio",
+          "how": "the decimal, or its percentage when the quote has a % sign or the word percent (0.0425 matches 4.25% or 4.25 percent, not a bare 4.25)"
+        }
+      ],
+      "checked_if_written": [],
+      "always_review": [
+        {
+          "path": "value.method",
+          "as": "enum",
+          "how": "an enum value no quote wording confirms: needs_review with check coverage unless a person confirms it",
+          "values": [
+            "compounding_from_base",
+            "simple_from_base",
+            "year_over_year"
+          ]
+        }
+      ]
+    },
+    {
+      "predicate": "lease.renewal_option",
+      "description": "object {\"count\": number, \"term_months\": number, \"notice_months\": number, \"rent\": string}",
+      "value_schema": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "number"
+          },
+          "term_months": {
+            "type": "number"
+          },
+          "notice_months": {
+            "type": "number"
+          },
+          "rent": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false,
+        "minProperties": 1
+      },
+      "example": {
+        "value": {
+          "count": 1,
+          "term_months": 60,
+          "notice_months": 12,
+          "rent": "95% of Fair Market Rent"
+        },
+        "quote": "Tenant shall have one (1) option to extend the Term for sixty (60) months by notice given not less than twelve (12) months before expiration, at 95% of Fair Market Rent",
+        "outcome": "verified",
+        "checked": [
+          "value.count",
+          "value.term_months",
+          "value.notice_months",
+          "value.rent"
+        ],
+        "not_checked": []
+      },
+      "checked": [
+        {
+          "path": "value.count",
+          "as": "number",
+          "how": "the number is written in the quote in any common form (1250000 matches $1,250,000.00, 1,250,000 or 1250000; 24.5 matches 24.50/SF; whole numbers up to ninety-nine also as words, e.g. twelve (12))"
+        },
+        {
+          "path": "value.term_months",
+          "as": "number",
+          "how": "the number is written in the quote in any common form (1250000 matches $1,250,000.00, 1,250,000 or 1250000; 24.5 matches 24.50/SF; whole numbers up to ninety-nine also as words, e.g. twelve (12))"
+        },
+        {
+          "path": "value.notice_months",
+          "as": "number",
+          "how": "the number is written in the quote in any common form (1250000 matches $1,250,000.00, 1,250,000 or 1250000; 24.5 matches 24.50/SF; whole numbers up to ninety-nine also as words, e.g. twelve (12))"
+        }
+      ],
+      "checked_if_written": [
+        {
+          "path": "value.rent",
+          "as": "summary",
+          "how": "counts as checked only when it is written in the quote as whole words (as for words); otherwise the candidate is held in needs_review with check coverage"
+        }
+      ],
+      "always_review": []
+    },
+    {
+      "predicate": "lease.termination_option",
+      "description": "object {\"effective_date\": \"YYYY-MM-DD\", \"notice_months\": number, \"fee\": string}",
+      "value_schema": {
+        "type": "object",
+        "properties": {
+          "effective_date": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+            "description": "YYYY-MM-DD"
+          },
+          "notice_months": {
+            "type": "number"
+          },
+          "fee": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false,
+        "minProperties": 1
+      },
+      "example": {
+        "value": {
+          "effective_date": "2029-06-30",
+          "notice_months": 9,
+          "fee": "the unamortized leasing costs"
+        },
+        "quote": "Tenant may terminate this Lease effective June 30, 2029 on nine (9) months' notice and payment of the unamortized leasing costs",
+        "outcome": "verified",
+        "checked": ["value.effective_date", "value.notice_months", "value.fee"],
+        "not_checked": []
+      },
+      "checked": [
+        {
+          "path": "value.effective_date",
+          "as": "date",
+          "how": "the calendar date is written in the quote in a common form (June 30, 2031; Jun. 30, 2031; 6/30/2031; 30 June 2031; the thirtieth day of June, 2031), not a two-digit year or a relative date"
+        },
+        {
+          "path": "value.notice_months",
+          "as": "number",
+          "how": "the number is written in the quote in any common form (1250000 matches $1,250,000.00, 1,250,000 or 1250000; 24.5 matches 24.50/SF; whole numbers up to ninety-nine also as words, e.g. twelve (12))"
+        }
+      ],
+      "checked_if_written": [
+        {
+          "path": "value.fee",
+          "as": "summary",
+          "how": "counts as checked only when it is written in the quote as whole words (as for words); otherwise the candidate is held in needs_review with check coverage"
+        }
+      ],
+      "always_review": []
+    },
+    {
+      "predicate": "lease.rofr",
+      "description": "string (summary of the right of first refusal), or object {\"applies_to\": \"space\" | \"purchase\", \"description\": string (what it covers, as written), \"response_days\": number (optional; days to respond)}",
+      "value_schema": {
+        "anyOf": [
+          {
+            "type": "string",
+            "minLength": 1
+          },
+          {
+            "type": "object",
+            "properties": {
+              "applies_to": {
+                "enum": ["space", "purchase"]
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1
+              },
+              "response_days": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            },
+            "required": ["applies_to", "description"],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "example": {
+        "value": {
+          "applies_to": "space",
+          "description": "the adjacent Suite 410",
+          "response_days": 10
+        },
+        "quote": "Tenant shall have a right of first refusal on the adjacent Suite 410, exercisable within ten (10) days after Landlord's notice",
+        "outcome": "needs_review",
+        "checked": ["value.description", "value.response_days"],
+        "not_checked": ["value.applies_to"]
+      },
+      "checked": [
+        {
+          "path": "value.description",
+          "form": "object",
+          "as": "words",
+          "how": "written in the quote as whole words, ignoring case, whitespace, punctuation and a word hyphenated at a line break; a number in it must be in the quote"
+        },
+        {
+          "path": "value.response_days",
+          "form": "object",
+          "as": "number",
+          "how": "the number is written in the quote in any common form (1250000 matches $1,250,000.00, 1,250,000 or 1250000; 24.5 matches 24.50/SF; whole numbers up to ninety-nine also as words, e.g. twelve (12))"
+        }
+      ],
+      "checked_if_written": [
+        {
+          "path": "value",
+          "form": "string",
+          "as": "summary",
+          "how": "counts as checked only when it is written in the quote as whole words (as for words); otherwise the candidate is held in needs_review with check coverage"
+        }
+      ],
+      "always_review": [
+        {
+          "path": "value.applies_to",
+          "form": "object",
+          "as": "enum",
+          "how": "an enum value no quote wording confirms: needs_review with check coverage unless a person confirms it",
+          "values": ["space", "purchase"]
+        }
+      ]
+    },
+    {
+      "predicate": "lease.rofo",
+      "description": "string (summary of the right of first offer), or object {\"applies_to\": \"space\" | \"purchase\", \"description\": string (what it covers, as written), \"response_days\": number (optional; days to respond)}",
+      "value_schema": {
+        "anyOf": [
+          {
+            "type": "string",
+            "minLength": 1
+          },
+          {
+            "type": "object",
+            "properties": {
+              "applies_to": {
+                "enum": ["space", "purchase"]
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1
+              },
+              "response_days": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            },
+            "required": ["applies_to", "description"],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "example": {
+        "value": {
+          "applies_to": "space",
+          "description": "any space on the fourth floor",
+          "response_days": 15
+        },
+        "quote": "Landlord shall first offer to Tenant any space on the fourth floor that becomes available; Tenant shall respond within fifteen (15) days",
+        "outcome": "needs_review",
+        "checked": ["value.description", "value.response_days"],
+        "not_checked": ["value.applies_to"]
+      },
+      "checked": [
+        {
+          "path": "value.description",
+          "form": "object",
+          "as": "words",
+          "how": "written in the quote as whole words, ignoring case, whitespace, punctuation and a word hyphenated at a line break; a number in it must be in the quote"
+        },
+        {
+          "path": "value.response_days",
+          "form": "object",
+          "as": "number",
+          "how": "the number is written in the quote in any common form (1250000 matches $1,250,000.00, 1,250,000 or 1250000; 24.5 matches 24.50/SF; whole numbers up to ninety-nine also as words, e.g. twelve (12))"
+        }
+      ],
+      "checked_if_written": [
+        {
+          "path": "value",
+          "form": "string",
+          "as": "summary",
+          "how": "counts as checked only when it is written in the quote as whole words (as for words); otherwise the candidate is held in needs_review with check coverage"
+        }
+      ],
+      "always_review": [
+        {
+          "path": "value.applies_to",
+          "form": "object",
+          "as": "enum",
+          "how": "an enum value no quote wording confirms: needs_review with check coverage unless a person confirms it",
+          "values": ["space", "purchase"]
+        }
+      ]
+    },
+    {
+      "predicate": "lease.exclusive_use",
+      "description": "string (the protected use), or object {\"protected_use\": string (as written), \"carve_outs\": array of strings (optional; exceptions as written), \"applies_to\": string (optional; where it applies, e.g. \"the Shopping Center\")}",
+      "value_schema": {
+        "anyOf": [
+          {
+            "type": "string",
+            "minLength": 1
+          },
+          {
+            "type": "object",
+            "properties": {
+              "protected_use": {
+                "type": "string",
+                "minLength": 1
+              },
+              "carve_outs": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "applies_to": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": ["protected_use"],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "example": {
+        "value": {
+          "protected_use": "the sale of coffee",
+          "carve_outs": ["a full-service restaurant"],
+          "applies_to": "the Shopping Center"
+        },
+        "quote": "no other premises in the Shopping Center shall be used for the sale of coffee, except by a full-service restaurant",
+        "outcome": "verified",
+        "checked": [
+          "value.protected_use",
+          "value.carve_outs.0",
+          "value.applies_to"
+        ],
+        "not_checked": []
+      },
+      "checked": [
+        {
+          "path": "value",
+          "form": "string",
+          "as": "words",
+          "how": "written in the quote as whole words, ignoring case, whitespace, punctuation and a word hyphenated at a line break; a number in it must be in the quote"
+        },
+        {
+          "path": "value.protected_use",
+          "form": "object",
+          "as": "words",
+          "how": "written in the quote as whole words, ignoring case, whitespace, punctuation and a word hyphenated at a line break; a number in it must be in the quote"
+        },
+        {
+          "path": "value.carve_outs[]",
+          "form": "object",
+          "as": "words",
+          "how": "written in the quote as whole words, ignoring case, whitespace, punctuation and a word hyphenated at a line break; a number in it must be in the quote"
+        }
+      ],
+      "checked_if_written": [
+        {
+          "path": "value.applies_to",
+          "form": "object",
+          "as": "summary",
+          "how": "counts as checked only when it is written in the quote as whole words (as for words); otherwise the candidate is held in needs_review with check coverage"
+        }
+      ],
+      "always_review": []
+    },
+    {
+      "predicate": "lease.assignment_sublease",
+      "description": "string (summary of consent requirements), or object {\"consent_standard\": \"prohibited\" | \"sole_discretion\" | \"not_unreasonably_withheld\" | \"not_unreasonably_withheld_conditioned_or_delayed\" | \"no_consent_required\", \"permitted_transfers\": string (optional; transfers allowed without consent), \"recapture_right\": boolean (optional), \"profit_share\": number between 0 and 1 (optional; Landlord's share of transfer profit)}",
+      "value_schema": {
+        "anyOf": [
+          {
+            "type": "string",
+            "minLength": 1
+          },
+          {
+            "type": "object",
+            "properties": {
+              "consent_standard": {
+                "enum": [
+                  "prohibited",
+                  "sole_discretion",
+                  "not_unreasonably_withheld",
+                  "not_unreasonably_withheld_conditioned_or_delayed",
+                  "no_consent_required"
+                ]
+              },
+              "permitted_transfers": {
+                "type": "string",
+                "minLength": 1
+              },
+              "recapture_right": {
+                "type": "boolean"
+              },
+              "profit_share": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 1
+              }
+            },
+            "required": ["consent_standard"],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "example": {
+        "value": {
+          "consent_standard": "not_unreasonably_withheld_conditioned_or_delayed",
+          "profit_share": 0.5
+        },
+        "quote": "with Landlord's consent, which shall not be unreasonably withheld, conditioned or delayed; Landlord shall receive fifty percent (50%) of any transfer profit",
+        "outcome": "verified",
+        "checked": ["value.consent_standard", "value.profit_share"],
+        "not_checked": []
+      },
+      "checked": [
+        {
+          "path": "value.consent_standard",
+          "form": "object",
+          "as": "phrase",
+          "how": "the quote must word the value as phrases lists (every group needs one of its alternatives); otherwise needs_review with check consistency",
+          "values": [
+            "sole_discretion",
+            "not_unreasonably_withheld",
+            "not_unreasonably_withheld_conditioned_or_delayed"
+          ],
+          "phrases": {
+            "sole_discretion": [
+              [
+                "sole discretion",
+                "absolute discretion",
+                "sole and absolute discretion"
+              ]
+            ],
+            "not_unreasonably_withheld": [["unreasonably withh"]],
+            "not_unreasonably_withheld_conditioned_or_delayed": [
+              ["unreasonably withh"],
+              ["delay", "conditioned"]
+            ]
+          }
+        },
+        {
+          "path": "value.permitted_transfers",
+          "form": "object",
+          "as": "text",
+          "how": "every number written in digits in it is in the quote"
+        },
+        {
+          "path": "value.profit_share",
+          "form": "object",
+          "as": "ratio",
+          "how": "the decimal, or its percentage when the quote has a % sign or the word percent (0.0425 matches 4.25% or 4.25 percent, not a bare 4.25)"
+        }
+      ],
+      "checked_if_written": [
+        {
+          "path": "value",
+          "form": "string",
+          "as": "summary",
+          "how": "counts as checked only when it is written in the quote as whole words (as for words); otherwise the candidate is held in needs_review with check coverage"
+        },
+        {
+          "path": "value.permitted_transfers",
+          "form": "object",
+          "as": "summary",
+          "how": "counts as checked only when it is written in the quote as whole words (as for words); otherwise the candidate is held in needs_review with check coverage"
+        }
+      ],
+      "always_review": [
+        {
+          "path": "value.consent_standard",
+          "form": "object",
+          "as": "enum",
+          "how": "an enum value no quote wording confirms: needs_review with check coverage unless a person confirms it",
+          "values": ["prohibited", "no_consent_required"]
+        },
+        {
+          "path": "value.recapture_right",
+          "form": "object",
+          "as": "boolean",
+          "how": "a quote cannot prove true or false by containing words: needs_review with check coverage unless a person confirms it"
+        }
+      ]
+    },
+    {
+      "predicate": "lease.percentage_rent",
+      "description": "object {\"rate\": number between 0 and 1, \"breakpoint\": {\"type\": \"natural\" | \"fixed\", \"amount\": number (annual sales in USD; required when type is fixed)}, \"sales_exclusions\": string (optional summary of sales excluded from gross sales)}",
+      "value_schema": {
+        "type": "object",
+        "properties": {
+          "rate": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "maximum": 1
+          },
+          "breakpoint": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "enum": ["natural", "fixed"]
+              },
+              "amount": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            },
+            "required": ["type"],
+            "additionalProperties": false,
+            "description": "A fixed breakpoint needs a positive amount."
+          },
+          "sales_exclusions": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": ["rate", "breakpoint"],
+        "additionalProperties": false
+      },
+      "example": {
+        "value": {
+          "rate": 0.06,
+          "breakpoint": {
+            "type": "natural"
+          }
+        },
+        "quote": "Percentage Rent equal to six percent (6%) of Gross Sales in excess of the natural breakpoint",
+        "outcome": "verified",
+        "checked": ["value.rate", "value.breakpoint.type"],
+        "not_checked": []
+      },
+      "checked": [
+        {
+          "path": "value.rate",
+          "as": "ratio",
+          "how": "the decimal, or its percentage when the quote has a % sign or the word percent (0.0425 matches 4.25% or 4.25 percent, not a bare 4.25)"
+        },
+        {
+          "path": "value.breakpoint.amount",
+          "as": "number",
+          "how": "the number is written in the quote in any common form (1250000 matches $1,250,000.00, 1,250,000 or 1250000; 24.5 matches 24.50/SF; whole numbers up to ninety-nine also as words, e.g. twelve (12))"
+        }
+      ],
+      "checked_if_written": [
+        {
+          "path": "value.breakpoint.type",
+          "as": "phrase",
+          "how": "counts as checked only when the quote words it as phrases lists; otherwise needs_review with check coverage",
+          "values": ["natural"],
+          "phrases": {
+            "natural": [["natural breakpoint", "natural break point"]]
+          }
+        },
+        {
+          "path": "value.sales_exclusions",
+          "as": "summary",
+          "how": "counts as checked only when it is written in the quote as whole words (as for words); otherwise the candidate is held in needs_review with check coverage"
+        }
+      ],
+      "always_review": [
+        {
+          "path": "value.breakpoint.type",
+          "as": "enum",
+          "how": "an enum value no quote wording confirms: needs_review with check coverage unless a person confirms it",
+          "values": ["fixed"]
+        }
+      ]
+    },
+    {
+      "predicate": "lease.co_tenancy",
+      "description": "object {\"trigger\": string (the co-tenancy condition), \"remedy\": string (what Tenant may do when it fails), \"cure_period_months\": number (optional), \"required_occupancy\": number between 0 and 1 (optional; share of the center that must be open), \"named_tenants\": array of strings (optional; required co-tenants as written), \"remedy_type\": \"alternate_rent\" | \"termination\" | \"alternate_rent_then_termination\" | \"other\" (optional)}",
+      "value_schema": {
+        "type": "object",
+        "properties": {
+          "trigger": {
+            "type": "string",
+            "minLength": 1
+          },
+          "remedy": {
+            "type": "string",
+            "minLength": 1
+          },
+          "cure_period_months": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "required_occupancy": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "maximum": 1
+          },
+          "named_tenants": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "remedy_type": {
+            "enum": [
+              "alternate_rent",
+              "termination",
+              "alternate_rent_then_termination",
+              "other"
+            ]
+          }
+        },
+        "required": ["trigger", "remedy"],
+        "additionalProperties": false
+      },
+      "example": {
+        "value": {
+          "trigger": "the Anchor Tenant ceases to operate",
+          "remedy": "pay 50% of Base Rent",
+          "cure_period_months": 12,
+          "named_tenants": ["Major Grocer"]
+        },
+        "quote": "If Major Grocer, the Anchor Tenant ceases to operate in the Shopping Center, Tenant may pay 50% of Base Rent for up to twelve (12) months",
+        "outcome": "verified",
+        "checked": [
+          "value.trigger",
+          "value.remedy",
+          "value.cure_period_months",
+          "value.named_tenants.0"
+        ],
+        "not_checked": []
+      },
+      "checked": [
+        {
+          "path": "value.cure_period_months",
+          "as": "number",
+          "how": "the number is written in the quote in any common form (1250000 matches $1,250,000.00, 1,250,000 or 1250000; 24.5 matches 24.50/SF; whole numbers up to ninety-nine also as words, e.g. twelve (12))"
+        },
+        {
+          "path": "value.required_occupancy",
+          "as": "ratio",
+          "how": "the decimal, or its percentage when the quote has a % sign or the word percent (0.0425 matches 4.25% or 4.25 percent, not a bare 4.25)"
+        },
+        {
+          "path": "value.named_tenants[]",
+          "as": "string",
+          "how": "written in the quote verbatim, ignoring case, whitespace and typographic quotes"
+        }
+      ],
+      "checked_if_written": [
+        {
+          "path": "value.trigger",
+          "as": "summary",
+          "how": "counts as checked only when it is written in the quote as whole words (as for words); otherwise the candidate is held in needs_review with check coverage"
+        },
+        {
+          "path": "value.remedy",
+          "as": "summary",
+          "how": "counts as checked only when it is written in the quote as whole words (as for words); otherwise the candidate is held in needs_review with check coverage"
+        }
+      ],
+      "always_review": [
+        {
+          "path": "value.remedy_type",
+          "as": "enum",
+          "how": "an enum value no quote wording confirms: needs_review with check coverage unless a person confirms it",
+          "values": [
+            "alternate_rent",
+            "termination",
+            "alternate_rent_then_termination",
+            "other"
+          ]
+        }
+      ]
+    },
+    {
+      "predicate": "lease.renewal_notice_deadline",
+      "description": "date (YYYY-MM-DD; the last day to exercise a renewal option)",
+      "value_schema": {
+        "type": "string",
+        "format": "date",
+        "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+        "description": "YYYY-MM-DD"
+      },
+      "example": {
+        "value": "2030-06-30",
+        "quote": "the exercise notice must be received no later than June 30, 2030",
+        "outcome": "verified",
+        "checked": ["value"],
+        "not_checked": []
+      },
+      "checked": [
+        {
+          "path": "value",
+          "as": "date",
+          "how": "the calendar date is written in the quote in a common form (June 30, 2031; Jun. 30, 2031; 6/30/2031; 30 June 2031; the thirtieth day of June, 2031), not a two-digit year or a relative date"
+        }
+      ],
+      "checked_if_written": [],
+      "always_review": []
+    },
+    {
+      "predicate": "lease.termination_notice_deadline",
+      "description": "date (YYYY-MM-DD; the last day to give notice of early termination)",
+      "value_schema": {
+        "type": "string",
+        "format": "date",
+        "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+        "description": "YYYY-MM-DD"
+      },
+      "example": {
+        "value": "2028-09-30",
+        "quote": "notice of termination must be given by September 30, 2028",
+        "outcome": "verified",
+        "checked": ["value"],
+        "not_checked": []
+      },
+      "checked": [
+        {
+          "path": "value",
+          "as": "date",
+          "how": "the calendar date is written in the quote in a common form (June 30, 2031; Jun. 30, 2031; 6/30/2031; 30 June 2031; the thirtieth day of June, 2031), not a two-digit year or a relative date"
+        }
+      ],
+      "checked_if_written": [],
+      "always_review": []
+    },
+    {
+      "predicate": "lease.rent_commencement_date",
+      "description": "date (YYYY-MM-DD; the day rent starts, when it differs from commencement)",
+      "value_schema": {
+        "type": "string",
+        "format": "date",
+        "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+        "description": "YYYY-MM-DD"
+      },
+      "example": {
+        "value": "2026-10-01",
+        "quote": "the Rent Commencement Date shall be October 1, 2026",
+        "outcome": "verified",
+        "checked": ["value"],
+        "not_checked": []
+      },
+      "checked": [
+        {
+          "path": "value",
+          "as": "date",
+          "how": "the calendar date is written in the quote in a common form (June 30, 2031; Jun. 30, 2031; 6/30/2031; 30 June 2031; the thirtieth day of June, 2031), not a two-digit year or a relative date"
+        }
+      ],
+      "checked_if_written": [],
+      "always_review": []
+    },
+    {
+      "predicate": "lease.expansion_option_deadline",
+      "description": "date (YYYY-MM-DD; the last day to exercise an expansion option)",
+      "value_schema": {
+        "type": "string",
+        "format": "date",
+        "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+        "description": "YYYY-MM-DD"
+      },
+      "example": {
+        "value": "2028-12-31",
+        "quote": "Tenant may exercise the expansion option by December 31, 2028",
+        "outcome": "verified",
+        "checked": ["value"],
+        "not_checked": []
+      },
+      "checked": [
+        {
+          "path": "value",
+          "as": "date",
+          "how": "the calendar date is written in the quote in a common form (June 30, 2031; Jun. 30, 2031; 6/30/2031; 30 June 2031; the thirtieth day of June, 2031), not a two-digit year or a relative date"
+        }
+      ],
+      "checked_if_written": [],
+      "always_review": []
+    },
+    {
+      "predicate": "lease.operating_expense_base_year",
+      "description": "integer (the operating-expense base year, e.g. 2026)",
+      "value_schema": {
+        "type": "integer",
+        "minimum": 1900,
+        "maximum": 2200
+      },
+      "example": {
+        "value": 2026,
+        "quote": "the Base Year shall be calendar year 2026",
+        "outcome": "verified",
+        "checked": ["value"],
+        "not_checked": []
+      },
+      "checked": [
+        {
+          "path": "value",
+          "as": "number",
+          "how": "the number is written in the quote in any common form (1250000 matches $1,250,000.00, 1,250,000 or 1250000; 24.5 matches 24.50/SF; whole numbers up to ninety-nine also as words, e.g. twelve (12))"
+        }
+      ],
+      "checked_if_written": [],
+      "always_review": []
+    },
+    {
+      "predicate": "lease.parking",
+      "description": "object {\"spaces\": number, \"rate_monthly\": number (optional, USD per space per month)}",
+      "value_schema": {
+        "type": "object",
+        "properties": {
+          "spaces": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "rate_monthly": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "required": ["spaces"],
+        "additionalProperties": false
+      },
+      "example": {
+        "value": {
+          "spaces": 40,
+          "rate_monthly": 125
+        },
+        "quote": "forty (40) unreserved parking spaces at $125 per space per month",
+        "outcome": "verified",
+        "checked": ["value.spaces", "value.rate_monthly"],
+        "not_checked": []
+      },
+      "checked": [
+        {
+          "path": "value.spaces",
+          "as": "number",
+          "how": "the number is written in the quote in any common form (1250000 matches $1,250,000.00, 1,250,000 or 1250000; 24.5 matches 24.50/SF; whole numbers up to ninety-nine also as words, e.g. twelve (12))"
+        },
+        {
+          "path": "value.rate_monthly",
+          "as": "number",
+          "how": "the number is written in the quote in any common form (1250000 matches $1,250,000.00, 1,250,000 or 1250000; 24.5 matches 24.50/SF; whole numbers up to ninety-nine also as words, e.g. twelve (12))"
+        }
+      ],
+      "checked_if_written": [],
+      "always_review": []
+    },
+    {
+      "predicate": "lease.guaranty",
+      "description": "object {\"guarantor\": string (the guarantor's name exactly as written: the name only, never an address), \"cap\": number (optional, USD)}",
+      "value_schema": {
+        "type": "object",
+        "properties": {
+          "guarantor": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The guarantor's name as written; a value that reads as a street address, postal code or PO box is refused."
+          },
+          "cap": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
+        },
+        "required": ["guarantor"],
+        "additionalProperties": false
+      },
+      "example": {
+        "value": {
+          "guarantor": "Example Parent Corp.",
+          "cap": 500000
+        },
+        "quote": "guaranteed by Example Parent Corp., up to $500,000",
+        "outcome": "verified",
+        "checked": ["value.guarantor", "value.cap"],
+        "not_checked": []
+      },
+      "checked": [
+        {
+          "path": "value.guarantor",
+          "as": "string",
+          "how": "written in the quote verbatim, ignoring case, whitespace and typographic quotes"
+        },
+        {
+          "path": "value.cap",
+          "as": "number",
+          "how": "the number is written in the quote in any common form (1250000 matches $1,250,000.00, 1,250,000 or 1250000; 24.5 matches 24.50/SF; whole numbers up to ninety-nine also as words, e.g. twelve (12))"
+        }
+      ],
+      "checked_if_written": [],
+      "always_review": []
+    },
+    {
+      "predicate": "lease.prohibited_uses",
+      "description": "array of strings (each use the lease prohibits, as written)",
+      "value_schema": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "example": {
+        "value": ["dry cleaner", "bowling alley"],
+        "quote": "the Premises shall not be used as a dry-cleaner or a bowling alley",
+        "outcome": "verified",
+        "checked": ["value.0", "value.1"],
+        "not_checked": []
+      },
+      "checked": [
+        {
+          "path": "value[]",
+          "as": "words",
+          "how": "written in the quote as whole words, ignoring case, whitespace, punctuation and a word hyphenated at a line break; a number in it must be in the quote"
+        }
+      ],
+      "checked_if_written": [],
+      "always_review": []
+    },
+    {
+      "predicate": "lease.go_dark",
+      "description": "object {\"operating_covenant\": boolean (true when Tenant must keep operating), \"recapture_right\": boolean (optional; Landlord may recapture or terminate if Tenant stops operating), \"dark_period_days\": number (optional; days dark before that right arises)}",
+      "value_schema": {
+        "type": "object",
+        "properties": {
+          "operating_covenant": {
+            "type": "boolean"
+          },
+          "recapture_right": {
+            "type": "boolean"
+          },
+          "dark_period_days": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
+        },
+        "required": ["operating_covenant"],
+        "additionalProperties": false
+      },
+      "example": {
+        "value": {
+          "operating_covenant": true,
+          "recapture_right": true,
+          "dark_period_days": 180
+        },
+        "quote": "Tenant shall continuously operate in the Premises. If Tenant ceases to operate for more than 180 days, Landlord may recapture the Premises",
+        "outcome": "needs_review",
+        "checked": ["value.dark_period_days"],
+        "not_checked": ["value.operating_covenant", "value.recapture_right"]
+      },
+      "checked": [
+        {
+          "path": "value.dark_period_days",
+          "as": "number",
+          "how": "the number is written in the quote in any common form (1250000 matches $1,250,000.00, 1,250,000 or 1250000; 24.5 matches 24.50/SF; whole numbers up to ninety-nine also as words, e.g. twelve (12))"
+        }
+      ],
+      "checked_if_written": [],
+      "always_review": [
+        {
+          "path": "value.operating_covenant",
+          "as": "boolean",
+          "how": "a quote cannot prove true or false by containing words: needs_review with check coverage unless a person confirms it"
+        },
+        {
+          "path": "value.recapture_right",
+          "as": "boolean",
+          "how": "a quote cannot prove true or false by containing words: needs_review with check coverage unless a person confirms it"
+        }
+      ]
+    },
+    {
+      "predicate": "lease.radius_restriction",
+      "description": "object {\"radius_miles\": number, \"duration\": string (optional, e.g. \"during the Term\"), \"remedy\": string (optional)}",
+      "value_schema": {
+        "type": "object",
+        "properties": {
+          "radius_miles": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "duration": {
+            "type": "string",
+            "minLength": 1
+          },
+          "remedy": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": ["radius_miles"],
+        "additionalProperties": false
+      },
+      "example": {
+        "value": {
+          "radius_miles": 3,
+          "duration": "during the Term"
+        },
+        "quote": "Tenant shall not operate a similar store within three (3) miles of the Shopping Center during the Term",
+        "outcome": "verified",
+        "checked": ["value.radius_miles", "value.duration"],
+        "not_checked": []
+      },
+      "checked": [
+        {
+          "path": "value.radius_miles",
+          "as": "number",
+          "how": "the number is written in the quote in any common form (1250000 matches $1,250,000.00, 1,250,000 or 1250000; 24.5 matches 24.50/SF; whole numbers up to ninety-nine also as words, e.g. twelve (12))"
+        }
+      ],
+      "checked_if_written": [
+        {
+          "path": "value.duration",
+          "as": "summary",
+          "how": "counts as checked only when it is written in the quote as whole words (as for words); otherwise the candidate is held in needs_review with check coverage"
+        },
+        {
+          "path": "value.remedy",
+          "as": "summary",
+          "how": "counts as checked only when it is written in the quote as whole words (as for words); otherwise the candidate is held in needs_review with check coverage"
+        }
+      ],
+      "always_review": []
+    },
+    {
+      "predicate": "lease.relocation_right",
+      "description": "object {\"notice_days\": number (optional), \"landlord_pays_costs\": boolean (optional), \"tenant_may_terminate\": boolean (optional), \"replacement_premises\": string (optional, e.g. \"substantially similar size\")}, at least one field",
+      "value_schema": {
+        "type": "object",
+        "properties": {
+          "notice_days": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "landlord_pays_costs": {
+            "type": "boolean"
+          },
+          "tenant_may_terminate": {
+            "type": "boolean"
+          },
+          "replacement_premises": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false,
+        "minProperties": 1
+      },
+      "example": {
+        "value": {
+          "notice_days": 60,
+          "landlord_pays_costs": true,
+          "replacement_premises": "substantially similar size"
+        },
+        "quote": "Landlord may relocate Tenant on sixty (60) days' notice to space of substantially similar size, at Landlord's cost",
+        "outcome": "needs_review",
+        "checked": ["value.notice_days", "value.replacement_premises"],
+        "not_checked": ["value.landlord_pays_costs"]
+      },
+      "checked": [
+        {
+          "path": "value.notice_days",
+          "as": "number",
+          "how": "the number is written in the quote in any common form (1250000 matches $1,250,000.00, 1,250,000 or 1250000; 24.5 matches 24.50/SF; whole numbers up to ninety-nine also as words, e.g. twelve (12))"
+        }
+      ],
+      "checked_if_written": [
+        {
+          "path": "value.replacement_premises",
+          "as": "summary",
+          "how": "counts as checked only when it is written in the quote as whole words (as for words); otherwise the candidate is held in needs_review with check coverage"
+        }
+      ],
+      "always_review": [
+        {
+          "path": "value.landlord_pays_costs",
+          "as": "boolean",
+          "how": "a quote cannot prove true or false by containing words: needs_review with check coverage unless a person confirms it"
+        },
+        {
+          "path": "value.tenant_may_terminate",
+          "as": "boolean",
+          "how": "a quote cannot prove true or false by containing words: needs_review with check coverage unless a person confirms it"
+        }
+      ]
+    },
+    {
+      "predicate": "lease.kick_out",
+      "description": "object {\"party\": \"landlord\" | \"tenant\", \"sales_threshold\": number (optional; annual gross sales in USD), \"test_period\": string (optional, e.g. \"the third Lease Year\"), \"notice_days\": number (optional), \"effective_date\": \"YYYY-MM-DD\" (optional), \"fee\": string (optional)}",
+      "value_schema": {
+        "type": "object",
+        "properties": {
+          "party": {
+            "enum": ["landlord", "tenant"]
+          },
+          "sales_threshold": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "test_period": {
+            "type": "string",
+            "minLength": 1
+          },
+          "notice_days": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "effective_date": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+            "description": "YYYY-MM-DD"
+          },
+          "fee": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": ["party"],
+        "additionalProperties": false
+      },
+      "example": {
+        "value": {
+          "party": "tenant",
+          "sales_threshold": 2000000,
+          "test_period": "the third Lease Year",
+          "notice_days": 90
+        },
+        "quote": "If Gross Sales in the third Lease Year are less than $2,000,000, Tenant may terminate this Lease on ninety (90) days' notice",
+        "outcome": "needs_review",
+        "checked": [
+          "value.sales_threshold",
+          "value.test_period",
+          "value.notice_days"
+        ],
+        "not_checked": ["value.party"]
+      },
+      "checked": [
+        {
+          "path": "value.sales_threshold",
+          "as": "number",
+          "how": "the number is written in the quote in any common form (1250000 matches $1,250,000.00, 1,250,000 or 1250000; 24.5 matches 24.50/SF; whole numbers up to ninety-nine also as words, e.g. twelve (12))"
+        },
+        {
+          "path": "value.notice_days",
+          "as": "number",
+          "how": "the number is written in the quote in any common form (1250000 matches $1,250,000.00, 1,250,000 or 1250000; 24.5 matches 24.50/SF; whole numbers up to ninety-nine also as words, e.g. twelve (12))"
+        },
+        {
+          "path": "value.effective_date",
+          "as": "date",
+          "how": "the calendar date is written in the quote in a common form (June 30, 2031; Jun. 30, 2031; 6/30/2031; 30 June 2031; the thirtieth day of June, 2031), not a two-digit year or a relative date"
+        }
+      ],
+      "checked_if_written": [
+        {
+          "path": "value.test_period",
+          "as": "summary",
+          "how": "counts as checked only when it is written in the quote as whole words (as for words); otherwise the candidate is held in needs_review with check coverage"
+        },
+        {
+          "path": "value.fee",
+          "as": "summary",
+          "how": "counts as checked only when it is written in the quote as whole words (as for words); otherwise the candidate is held in needs_review with check coverage"
+        }
+      ],
+      "always_review": [
+        {
+          "path": "value.party",
+          "as": "enum",
+          "how": "an enum value no quote wording confirms: needs_review with check coverage unless a person confirms it",
+          "values": ["landlord", "tenant"]
+        }
+      ]
+    }
+  ]
+}
