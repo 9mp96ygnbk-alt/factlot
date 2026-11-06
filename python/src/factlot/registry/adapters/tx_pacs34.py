@@ -178,6 +178,42 @@ TAYLOR = CountyExport(
     account_system="taylor_prop_id",
 )
 
+ANGELINA = CountyExport(
+    source=Source(
+        source_id="tx-angelina-cad",
+        publisher="Angelina County Appraisal District",
+        title="2026 certified roll export (PACS 8.0.34 record length)",
+        url="https://www.angelinacad.org/open-records",
+        state_fips="48",
+        county_fips="005",
+        license="Open-records page disclaimer, read 2026-11-06: no responsibility for downloading, no technical support, as-is with no warranty, possible inaccuracies, no liability for errors or omissions, and a bandwidth retry note. Downloading accepts that text. No fee, use, resale, attribution, indemnity, or confidentiality clause is in the text. Public redistribution is not granted",
+        ai_use="unknown",
+        redistribution="unknown",
+        attribution="Angelina County Appraisal District",
+        terms_reviewed="2026-11-06",
+    ),
+    county_fips="005",
+    account_system="angelina_prop_id",
+)
+
+KAUFMAN = CountyExport(
+    source=Source(
+        source_id="tx-kaufman-cad",
+        publisher="Kaufman Central Appraisal District",
+        title="2026 certified export (PACS 8.0.34 record length)",
+        url="https://kaufman-cad.org/public-info/",
+        state_fips="48",
+        county_fips="257",
+        license="The public-info page says the district cannot offer technical support for reading the exports (read 2026-11-06). No click-through is on the roll links. The map disclaimer was not accepted. Public redistribution is not stated",
+        ai_use="unknown",
+        redistribution="unknown",
+        attribution="Kaufman Central Appraisal District",
+        terms_reviewed="2026-11-06",
+    ),
+    county_fips="257",
+    account_system="kaufman_prop_id",
+)
+
 NUECES = CountyExport(
     source=Source(
         source_id="tx-nueces-cad",
