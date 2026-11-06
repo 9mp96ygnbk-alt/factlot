@@ -171,10 +171,10 @@ BAYOU, PARTNERS = "Bayou Equity Holdings LLC", "Example Office Partners LP"
 
 
 def cad(apn, category, area, year, zip5, value, *, appraised=True, nbhd=None, cls=None, owner=BAYOU, tax_year=2026,
-        land=None):
+        land=None, mailing="PO Box 9, Example City TX 77001", confidential=False):
     extra = [(p, v, None) for p, v in (("parcel.neighborhood_code", nbhd), ("parcel.building_class", cls)) if v]
     return ParcelRecord("997", apn, category, account=f"C{apn}", situs_address=f"{int(apn[-2:])} Alpha Plaza, Example City TX {zip5}",
-                        owner_name=owner, owner_mailing_address="PO Box 9, Example City TX 77001" if owner else None,
+                        owner_name=owner, owner_mailing_address=mailing if owner else None, owner_confidential=confidential,
                         land_area_sf=land, improvement_area_sf=area, year_built=year, market_value=value,
                         appraised_value=value if appraised and value is not None else None, tax_year=tax_year,
                         extra_facts=extra)
@@ -194,7 +194,11 @@ def roll_2026(subject_value):
         cad("1000011", "F1", 51000, 2006, "77001", None),  # no value
         cad("1000012", "F1", None, None, "77001", 3000000, land=90000),  # no improvement area
         cad("1000013", "F1", 47000, 2004, "77001", 9000000, tax_year=2025),  # a stale tax year
-        cad("1000014", "F1", 49000, 2003, "77001", 9300000, owner="Jane Q Example"),  # a person: no owner stored
+        # Owners the registry does not keep (data policy §3): a natural person, and an owner withheld under
+        # Tax Code §25.025. The roll gives a name and mailing address for the first; neither is stored.
+        cad("1000014", "F1", 49000, 2003, "77001", 9300000, owner="Jane Q Example",
+            mailing="12 Quiet Lane, Example City TX 77001"),
+        cad("1000015", "F1", 50500, 2004, "77001", 9400000, owner=None, confidential=True),
     ]
 
 

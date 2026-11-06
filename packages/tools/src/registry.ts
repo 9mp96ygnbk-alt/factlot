@@ -1496,12 +1496,13 @@ function equitySources(d: Database, documentIds: Set<string>): Row[] {
   for (const doc of [...documentIds].sort()) {
     const row = d.prepare(EQUITY_SOURCE_SQL).get(doc);
     if (!row) continue;
+    // Every right is stated, attribution included (null when the source asks for none), so an agent can relay them.
     const r: Row = {
       ai_use: row.ai_use,
       redistribution: row.redistribution,
       license: row.license,
+      attribution: row.attribution || null,
     };
-    if (row.attribution) r.attribution = row.attribution;
     out.push({
       document_id: doc,
       source_id: row.source_id,

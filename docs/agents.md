@@ -170,8 +170,10 @@ outside Texas are an input error.
   `value_basis` (`appraised` when the roll gives an appraised value, else `market`),
   `market_value`, `appraised_value`, the areas, `year_built`, the district's codes, `situs_address`,
   `tax_year`, and the `citation` of the value fact; a missing fact is `null`. `selection.tiers`
-  says which tier each candidate came from and how many matched there; `sources` gives each cited
-  snapshot's `ai_use`, `redistribution`, and license, as `registry_get` does for each fact.
+  says which tier each candidate came from and how many matched there. Each candidate's
+  `citation.document_id` names its entry in `sources`, which gives that snapshot's `license`,
+  `attribution` (null when the source asks for none), `ai_use`, and `redistribution`: relay them
+  with the candidate.
 - **Value history.** The subject, and every parcel's `registry_get` record, carry `value_history`:
   market and appraised value by tax year from every snapshot, newest first, each value cited. A
   tax year two snapshots value differently is listed once per value.
@@ -179,7 +181,8 @@ outside Texas are an input error.
   decides which to use and supplies any adjustments. Say that the selection rule is FactLot's
   default, that the output is evidence for a calculation, not an appraisal, and that FactLot does
   not represent property owners, file protests, or advise whether to protest. The tool never
-  returns owner names, mailing addresses, or ownership facts.
+  returns owner names, mailing addresses, or ownership facts. Do not look up the owners of
+  candidate parcels; ownership is not needed for this comparison.
 
 ## Example: Claude Messages API with the Python SDK
 

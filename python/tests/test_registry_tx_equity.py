@@ -21,6 +21,9 @@ SPEC = Path(__file__).resolve().parents[2] / "spec" / "registry"
 CALLS = json.loads((SPEC / "calls.json").read_text())
 TOOL = "registry_tx_equity_candidates"
 SUBJECT = "fl:parcel:us-48997:1000001"
+PERSON_PARCEL, WITHHELD_PARCEL = "fl:parcel:us-48997:1000014", "fl:parcel:us-48997:1000015"
+# What the roll gives for owners the registry does not keep (a natural person; an owner withheld under §25.025).
+NOT_STORED = {"Jane Q Example", "Jane", "12 Quiet Lane", "CONFIDENTIAL"}
 
 
 def walk(value: Any, path: str = ""):
@@ -55,9 +58,9 @@ class TxEquity(unittest.TestCase):
         tiers = {t["tier"]: t for t in r["selection"]["tiers"]}
         self.assertEqual(tiers["neighborhood"]["ids"], ["fl:parcel:us-48997:1000002", "fl:parcel:us-48997:1000003"])
         # Same ZIP code: nearest area first, and a tie in area (40,000 and 60,000 sf) broken by URN.
-        self.assertEqual([i[-2:] for i in tiers["zip"]["ids"]], ["14", "04", "05"])
-        self.assertEqual(tiers["county"]["ids"], ["fl:parcel:us-48997:1000009"])  # widened: 5 < min_matches
-        self.assertTrue(r["selection"]["widened_to_county"])
+        self.assertEqual([i[-2:] for i in tiers["zip"]["ids"]], ["15", "14", "04", "05"])
+        self.assertEqual(tiers["county"]["ids"], ["fl:parcel:us-48997:1000009"])  
+        self.assertTrue(r["selection"]["widened_to_county"])  # 6 < min_matches
         ids = [c["id"] for c in r["candidates"]]
         for excluded in ("1000006", "1000007", "1000008", "1000010", "1000011", "1000012", "1000013", SUBJECT[-7:]):
             self.assertNotIn(f"fl:parcel:us-48997:{excluded}", ids)
@@ -65,9 +68,9 @@ class TxEquity(unittest.TestCase):
         self.assertEqual((criteria["tax_year"], criteria["state_property_category"], criteria["zip"]), (2026, "F1", "77001"))
         self.assertEqual(criteria["year_built"], {"subject": 2005, "min": 1990, "max": 2020})
         # Not widened when the first two tiers hold min_matches.
-        r5 = self.run_tool({"urn": SUBJECT, "min_matches": 5})
-        self.assertFalse(r5["selection"]["widened_to_county"])
-        self.assertEqual(len(r5["candidates"]), 5)
+        r6 = self.run_tool({"urn": SUBJECT, "min_matches": 6})
+        self.assertFalse(r6["selection"]["widened_to_county"])
+        self.assertEqual(len(r6["candidates"]), 6)
         self.assertTrue(self.run_tool({"urn": SUBJECT, "limit": 2})["selection"]["truncated"])
 
     def test_candidates_drop_into_the_calculator(self):
@@ -84,32 +87,56 @@ class TxEquity(unittest.TestCase):
         self.assertEqual(set(r["subject"]), keys | {"value_history"})
         self.assertEqual(r["subject"]["value"], 9800000)  # the corrected 2026 roll
         self.assertEqual(r["notice"], NOTICE)
-        # Each cited snapshot carries its source's rights, as registry_get's facts do.
-        self.assertEqual({s["rights"]["ai_use"] for s in r["sources"]}, {"unknown"})
-        self.assertTrue(all(s["rights"]["redistribution"] == "attribution_required" for s in r["sources"]))
+        # Each candidate's citation names a snapshot in sources, which states every right of its source.
+        by_doc = {s["document_id"]: s for s in r["sources"]}
+        for c in [r["subject"], *r["candidates"]]:
+            rights = by_doc[c["citation"]["document_id"]]["rights"]
+            self.assertEqual(rights, {"ai_use": "unknown", "redistribution": "attribution_required",
+                                      "license": "Synthetic test data", "attribution": "Example Central Appraisal District"})
+        # A source that asks for no attribution says so (null), rather than leaving the field out.
+        other = self.run_tool({"urn": "fl:parcel:us-48999:0004-000-0001"})["sources"]
+        self.assertEqual({(s["source_id"], s["rights"]["attribution"]) for s in other}, {("test-roll", None)})
 
     def test_never_returns_owner_data(self):
         con = sqlite3.connect(self.db)
         rows = con.execute("SELECT fact_id, value_json FROM facts WHERE predicate LIKE 'ownership.%'").fetchall()
         allowed_facts = {r[0] for r in con.execute(
             f"SELECT fact_id FROM facts WHERE predicate IN ({','.join('?' * len(PARCEL_PREDICATES))})", PARCEL_PREDICATES)}
+        # The owners the registry does not keep leave no ownership fact at all.
+        kept = con.execute("SELECT COUNT(*) FROM facts WHERE predicate LIKE 'ownership.%' AND subject IN (?, ?)",
+                           (PERSON_PARCEL, WITHHELD_PARCEL)).fetchone()[0]
         con.close()
+        self.assertEqual(kept, 0)
         owner_ids = {r[0] for r in rows}
-        owner_values = {json.loads(r[1]) for r in rows}
-        self.assertIn("Bayou Equity Holdings LLC", owner_values)  # the fixture does hold owners
+        owner_strings = {v for v in (json.loads(r[1]) for r in rows) if isinstance(v, str)} | NOT_STORED
+        self.assertIn("Bayou Equity Holdings LLC", owner_strings)  # the fixture does hold owners
         outputs = [factlot.run_tool(c["tool"], c["arguments"]) for c in CALLS if c["tool"] == TOOL]
         self.assertGreater(sum("candidates" in o for o in outputs), 5)
         for out in outputs:
+            ok = "error" not in out
             for path, key, leaf in walk(out):
                 if key is not None:
                     self.assertFalse(key.startswith("ownership") or "owner" in key or "mailing" in key
                                      or key in ("relationships", "owns"), path)
                 if isinstance(leaf, str):
                     self.assertNotIn(leaf, owner_ids, path)
-                    self.assertFalse(any(v in leaf for v in owner_values if isinstance(v, str)), path)
-                    self.assertFalse(leaf.startswith("ownership.") or leaf.startswith("fl:entity:"), path)
+                    self.assertFalse(any(v.upper() in leaf.upper() for v in owner_strings), path)
+                    self.assertNotIn("ownership.", leaf, path)
+                    if ok:  # an error may quote the entity URN it was given; a result names no entity
+                        self.assertNotIn("fl:entity:", leaf, path)
                 if key == "fact_id":
                     self.assertIn(leaf, allowed_facts, path)
+
+    def test_person_and_withheld_owners_are_not_revealed(self):
+        listed = [c["id"] for c in self.run_tool({"urn": SUBJECT})["candidates"]]
+        self.assertIn(PERSON_PARCEL, listed)
+        self.assertIn(WITHHELD_PARCEL, listed)
+        for urn in (PERSON_PARCEL, WITHHELD_PARCEL):
+            r = self.run_tool({"urn": urn})
+            self.assertTrue(r["subject"]["value_history"])
+            text = json.dumps(r).upper()
+            for s in NOT_STORED:
+                self.assertNotIn(s.upper(), text, urn)
 
     def test_inputs(self):
         self.assertEqual(self.run_tool({"county_fips": "997", "apn": "1000004"})["subject"]["id"], "fl:parcel:us-48997:1000004")
