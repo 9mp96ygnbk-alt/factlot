@@ -1,0 +1,133 @@
+"""Measured row conservation for Texas extracts already read in this workspace.
+
+A source-file numerator is the count of records in that file. It is not a
+current county commercial denominator. Rejection counts are integers. No
+parcel identifier is stored here.
+"""
+
+from __future__ import annotations
+
+# input_records = kept + sum(drops). duplicate_stored_ids is the staged registry, not the file.
+EXTRACTS: list[dict] = [
+    {
+        "source_id": "tx-galveston-cad",
+        "sha256": "4eb3a166cf820f3cc1ee33c179a70c5e118896cb74ec1027adfedec06b16d25f",
+        "bytes": 137906111,
+        "layout": "PACS 8.0.34",
+        "header_run_date": "2026-07-20",
+        "http_last_modified": "2026-08-05",
+        "input_records": 202065,
+        "input_kind": "CRLF property records",
+        "drops": {"not_real": 21343, "out_of_scope": 171657, "short": 0, "deleted": 0,
+                  "duplicate_ids": 0, "unmapped_code": 0},
+        "eligible_unique": 9065,
+        "kept": 9065,
+        "duplicate_stored_ids": 0,
+    },
+    {
+        "source_id": "tx-nueces-cad",
+        "sha256": "def85dadcee4e4eac83bda8fa4f496fa38625132b8fcaee24d0a2807383fcfff",
+        "bytes": 174554819,
+        "layout": "PACS 8.0.34 record length 9714",
+        "header_run_date": "2026-10-09",
+        "http_last_modified": "2026-10-13",
+        "input_records": 213286,
+        "input_kind": "CRLF property records",
+        "drops": {"not_real": 55208, "out_of_scope": 145985, "short": 0, "deleted": 0,
+                  "duplicate_ids": 0, "unmapped_code": 0},
+        "eligible_unique": 12093,
+        "kept": 12093,
+        "duplicate_stored_ids": 0,
+    },
+    {
+        "source_id": "tx-fortbend-cad",
+        "sha256": "9ab49abdc2baaa75bb2fd89ffecc316ae948f231db54f6740807e52b07758254",
+        "bytes": 58776333,
+        "layout": "Orion property export",
+        "header_run_date": "2026-07-07",
+        "http_last_modified": "2026-08-21",
+        "input_records": 440798,
+        "input_kind": "certified property rows",
+        "drops": {"not_real": 53053, "out_of_scope": 378047},
+        "eligible_unique": 9698,
+        "kept": 9698,
+        "duplicate_stored_ids": 0,
+    },
+    {
+        "source_id": "tx-denton-cad",
+        "sha256": None,
+        "bytes": 8925795,
+        "layout": "ArcGIS query pages",
+        "header_run_date": None,
+        "http_last_modified": None,
+        "retrieved_on": "2026-11-06",
+        "input_records": 13732,
+        "input_kind": "B-or-F feature rows, not the 384308-parcel layer",
+        "drops": {"duplicate_rows": 286, "out_of_scope": 142, "blank_id": 0},
+        "eligible_unique": 13304,
+        "kept": 13304,
+        "duplicate_stored_ids": 0,
+    },
+    {
+        "source_id": "tx-williamson-cad",
+        "sha256": None,
+        "bytes": None,
+        "layout": "Socrata improvement query plus PropOwner pages",
+        "header_run_date": None,
+        "improvement_last_modified": "2026-11-01",
+        "owner_last_modified": "2026-11-05",
+        "input_records": 11758,
+        "input_kind": "unique in-scope improvement properties; 14087 improvement rows collapse to these",
+        "drops": {},
+        "eligible_unique": 11758,
+        "kept": 11758,
+        "duplicate_stored_ids": 0,
+    },
+    {
+        "source_id": "tx-cameron-cad",
+        "sha256": "2ec31d46e01cb54fa80c2993bf804900b06e9799490c7aeeabaf094e101e1b07",
+        "bytes": 200873408,
+        "layout": "PACS 8.0.33 record length 9922",
+        "header_run_date": "2026-07-23",
+        "http_last_modified": "2026-07-23",
+        "input_records": 224139,
+        "input_kind": "property records",
+        "drops": {"not_real": 23279, "out_of_scope": 186655, "duplicate_ids": 32, "short": 0},
+        "eligible_unique": 14173,
+        "kept": 14173,
+        "duplicate_stored_ids": 0,
+    },
+    {
+        "source_id": "tx-guadalupe-cad",
+        "sha256": "3c70174bb6c7d5388ff9ff88186bc7775b1f1d27470ac664f624d5f5b1ff9a33",
+        "bytes": 73167463,
+        "layout": "PACS 8.0.34 supplement 0; supplement 38 not applied",
+        "header_run_date": "2026-07-28",
+        "http_last_modified": "2026-07-28",
+        "input_records": 113486,
+        "input_kind": "supplement 0 property records",
+        "drops": {"not_real": 12984, "out_of_scope": 96481, "opaque_code": 0},
+        "eligible_unique": 4021,
+        "kept": 4021,
+        "duplicate_stored_ids": 0,
+    },
+    {
+        "source_id": "tx-brazos-cad",
+        "sha256": "94618060ed6768806dd6674db11dae425e5ccb4318e0467708ce8d0282b8e449",
+        "bytes": 351512148,
+        "layout": "PACS 8.0.34",
+        "header_run_date": "2026-07-30",
+        "http_last_modified": "2026-08-11",
+        "input_records": 132377,
+        "input_kind": "property records in the totals-named zip",
+        "drops": {"not_real": 50565, "out_of_scope": 74232, "duplicate_ids": 0},
+        "eligible_unique": 7580,
+        "kept": 7580,
+        "duplicate_stored_ids": 0,
+    },
+]
+
+
+def conserved(row: dict) -> bool:
+    """True when every input record is either kept or counted in a drop bucket."""
+    return row["input_records"] == row["kept"] + sum(row["drops"].values()) and row["eligible_unique"] == row["kept"]

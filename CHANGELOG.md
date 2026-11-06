@@ -16,6 +16,7 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 ### Added
 
 - Williamson keeps an in-scope improvement when the owner file has no row for it. The 2026-11-05 extract has 11,758 such properties, 60 of them with no owner.
+- Private extracts were staged for Cameron (14,173), Guadalupe supplement 0 (4,021), and Brazos (7,580). Public redistribution is not stated. Guadalupe supplement 38 was not applied.
 - Texas 254-county status list now records private extracts for Galveston (9,065) and Nueces (12,093). Public redistribution of those files is not stated. Montgomery and Hidalgo stay uncollected because Drive's robots.txt disallows the collector download URL.
 - Texas 254-county status list now records local extract counts for six appraisal rolls (Dallas, Travis, Collin, Denton, Fort Bend, Williamson). Those counts are not a statewide commercial total.
 - Registry coverage matrix (`docs/registry/coverage-matrix.md` and `docs/registry/coverage-matrix.json`): jurisdiction accounting compiled from the review records already in the repository. It lists every state, including those with no review. A missing review is not a zero.

@@ -57,6 +57,7 @@ class ExportTally:
     deleted: int = 0
     duplicate_ids: int = 0
     unmapped_code: int = 0
+    opaque_code: int = 0
     out_of_scope: int = 0
     kept: int = 0
     local_codes: dict[str, int] = field(default_factory=dict)
@@ -85,6 +86,60 @@ GALVESTON = CountyExport(
     ),
     county_fips="167",
     account_system="gcad_prop_id",
+)
+
+GUADALUPE = CountyExport(
+    source=Source(
+        source_id="tx-guadalupe-cad",
+        publisher="Guadalupe Appraisal District",
+        title="2026 certified appraisal roll, supplement 0 (PACS 8.0.34)",
+        url="https://guadalupead.org/certified-appraisal-roll/",
+        state_fips="48",
+        county_fips="187",
+        license="No license stated on the certified-roll page (read 2026-11-06). Public record (Tex. Gov't Code ch. 552)",
+        ai_use="unknown",
+        redistribution="unknown",
+        attribution="Guadalupe Appraisal District",
+        terms_reviewed="2026-11-06",
+    ),
+    county_fips="187",
+    account_system="gcad_gco_prop_id",
+)
+
+CAMERON = CountyExport(
+    source=Source(
+        source_id="tx-cameron-cad",
+        publisher="Cameron Appraisal District",
+        title="2026 certified appraisal export (PACS 8.0.33 record length)",
+        url="https://www.cameroncad.org/Pages/Data",
+        state_fips="48",
+        county_fips="061",
+        license="Data page says information herein is in the public domain and disclaims warranty (read 2026-11-06). That sentence is not treated as a license to serve the file publicly",
+        ai_use="unknown",
+        redistribution="unknown",
+        attribution="Cameron Appraisal District",
+        terms_reviewed="2026-11-06",
+    ),
+    county_fips="061",
+    account_system="cameron_prop_id",
+)
+
+BRAZOS = CountyExport(
+    source=Source(
+        source_id="tx-brazos-cad",
+        publisher="Brazos Central Appraisal District",
+        title="2026 certified roll (PACS 8.0.34), file name includes totals",
+        url="https://brazoscad.org/certified-data-downloads/",
+        state_fips="48",
+        county_fips="041",
+        license="No license stated on the downloads page (read 2026-11-06). Public record (Tex. Gov't Code ch. 552)",
+        ai_use="unknown",
+        redistribution="unknown",
+        attribution="Brazos Central Appraisal District",
+        terms_reviewed="2026-11-06",
+    ),
+    county_fips="041",
+    account_system="brazoscad_prop_id",
 )
 
 NUECES = CountyExport(
@@ -163,7 +218,8 @@ def state_table(path: str | Path) -> dict[str, str]:
     return table
 
 
-def read_roll(path: str | Path, county_fips: str, tally: ExportTally | None = None) -> Iterator[ParcelRecord]:
+def read_roll(path: str | Path, county_fips: str, tally: ExportTally | None = None, *,
+              exclude_local: frozenset[str] = frozenset()) -> Iterator[ParcelRecord]:
     """Yield one commercial real-property record per account. The first row wins."""
     tally = tally if tally is not None else ExportTally()
     table = state_table(path)
@@ -184,6 +240,9 @@ def read_roll(path: str | Path, county_fips: str, tally: ExportTally | None = No
             tally.duplicate_ids += 1
             continue
         local = _field(line, PROP_FIELDS["imprv_state_cd"]).upper() or _field(line, PROP_FIELDS["land_state_cd"]).upper()
+        if local in exclude_local:
+            tally.opaque_code += 1
+            continue
         category = table.get(local)
         if category is None:
             tally.unmapped_code += 1
@@ -251,13 +310,13 @@ def read_roll(path: str | Path, county_fips: str, tally: ExportTally | None = No
 
 
 def build(snapshot_path: str | Path, db_path: str | Path, county: CountyExport, *, as_of: str,
-          retrieved_at: str | None = None) -> tuple[IngestStats, ExportTally]:
+          retrieved_at: str | None = None, exclude_local: frozenset[str] = frozenset()) -> tuple[IngestStats, ExportTally]:
     """Ingest one archived export into a registry file. Entity members are not read."""
     tally = ExportTally()
     reg = Registry(db_path)
     try:
         stats = reg.ingest_roll(
-            county.source, snapshot_path, read_roll(snapshot_path, county.county_fips, tally),
+            county.source, snapshot_path, read_roll(snapshot_path, county.county_fips, tally, exclude_local=exclude_local),
             as_of=as_of, retrieved_at=retrieved_at, state_fips="48", account_system=county.account_system,
             full_roll=True,
         )

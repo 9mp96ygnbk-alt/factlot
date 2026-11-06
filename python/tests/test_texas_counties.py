@@ -3,6 +3,7 @@
 import unittest
 
 from factlot.registry.texas_counties import matrix, texas_fips
+from factlot.registry.texas_extracts import EXTRACTS, conserved
 
 
 class TexasCountyMatrix(unittest.TestCase):
@@ -56,6 +57,12 @@ class TexasCountyMatrix(unittest.TestCase):
         self.assertEqual(by["48167"]["staged_parcels"], 9065)
         self.assertEqual(by["48355"]["reuse"], "private")
         self.assertEqual(by["48355"]["staged_parcels"], 12093)
+        self.assertEqual(by["48061"]["reuse"], "private")
+        self.assertEqual(by["48061"]["staged_parcels"], 14173)
+        self.assertEqual(by["48187"]["staged_parcels"], 4021)
+        self.assertEqual(by["48041"]["staged_parcels"], 7580)
+        for fips in ("48061", "48187", "48041"):
+            self.assertIsNone(by[fips]["commercial_universe"])
         for fips in ("48167", "48355"):
             self.assertIsNone(by[fips]["commercial_universe"])
             self.assertNotEqual(by[fips]["reuse"], "eligible")
@@ -64,3 +71,20 @@ class TexasCountyMatrix(unittest.TestCase):
         self.assertEqual(by["48141"]["reuse"], "blocked")
         self.assertIsNone(by["48303"]["source_id"])
         self.assertEqual(by["48303"]["reuse"], "unknown")
+
+    def test_dates_are_labeled_and_extract_rows_balance(self):
+        by = {r["fips"]: r for r in matrix()}
+        self.assertIsNone(by["48121"]["snapshot_as_of"])
+        self.assertIn("retrieval", by["48121"]["as_of_basis"])
+        self.assertNotIn("2026-11-06", by["48121"]["snapshot_as_of"] or "")
+        self.assertIn("zip member", by["48113"]["as_of_basis"])
+        self.assertIsNone(by["48491"]["snapshot_as_of"])
+        self.assertIn("2026-11-01", by["48491"]["as_of_basis"])
+        self.assertIn("2026-11-05", by["48491"]["as_of_basis"])
+        self.assertGreaterEqual(len(EXTRACTS), 5)
+        for row in EXTRACTS:
+            self.assertTrue(conserved(row), row["source_id"])
+            self.assertEqual(row["duplicate_stored_ids"], 0)
+            self.assertNotIn("rejection_ids", row)
+            for value in row["drops"].values():
+                self.assertIsInstance(value, int)
