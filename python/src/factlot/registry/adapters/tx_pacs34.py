@@ -196,6 +196,96 @@ ANGELINA = CountyExport(
     account_system="angelina_prop_id",
 )
 
+JEFFERSON = CountyExport(
+    source=Source(
+        source_id="tx-jefferson-cad",
+        publisher="Jefferson Central Appraisal District",
+        title="2026 public export, supplement group 05 (PACS 8.0.34)",
+        url="https://jcad.org/data-download/",
+        state_fips="48",
+        county_fips="245",
+        license="No license stated on the data-download page (read 2026-11-06). Public redistribution is not stated",
+        ai_use="unknown",
+        redistribution="unknown",
+        attribution="Jefferson Central Appraisal District",
+        terms_reviewed="2026-11-06",
+    ),
+    county_fips="245",
+    account_system="jcad_prop_id",
+)
+
+LIBERTY = CountyExport(
+    source=Source(
+        source_id="tx-liberty-cad",
+        publisher="Liberty County Central Appraisal District",
+        title="2026 certified appraisal roll (PACS 8.0.34)",
+        url="https://libertycad.com/",
+        state_fips="48",
+        county_fips="291",
+        license="No license stated on the district page (read 2026-11-06). Public redistribution is not stated",
+        ai_use="unknown",
+        redistribution="unknown",
+        attribution="Liberty County Central Appraisal District",
+        terms_reviewed="2026-11-06",
+    ),
+    county_fips="291",
+    account_system="libertycad_prop_id",
+)
+
+WICHITA = CountyExport(
+    source=Source(
+        source_id="tx-wichita-ad",
+        publisher="Wichita Appraisal District",
+        title="2026 certified real roll (PACS 8.0.34 record length)",
+        url="https://wadtx.com/reports/",
+        state_fips="48",
+        county_fips="485",
+        license="No license stated on the reports page (read 2026-11-06). The posted layout pdf is 8.0.25 and was not used. Public redistribution is not stated",
+        ai_use="unknown",
+        redistribution="unknown",
+        attribution="Wichita Appraisal District",
+        terms_reviewed="2026-11-06",
+    ),
+    county_fips="485",
+    account_system="wad_prop_id",
+)
+
+SAN_PATRICIO = CountyExport(
+    source=Source(
+        source_id="tx-sanpatricio-cad",
+        publisher="San Patricio County Appraisal District",
+        title="2026 certified export (PACS 8.0.34 record length)",
+        url="https://sanpatcad.org/data-downloads/",
+        state_fips="48",
+        county_fips="409",
+        license="No license stated for the roll zip (read 2026-11-06). The posted layout is 8.0.20 and was not used. A map-file note says the district cannot provide technical support and the product is not suitable for legal, engineering, or surveying purposes. Public redistribution is not stated",
+        ai_use="unknown",
+        redistribution="unknown",
+        attribution="San Patricio County Appraisal District",
+        terms_reviewed="2026-11-06",
+    ),
+    county_fips="409",
+    account_system="sanpat_prop_id",
+)
+
+WALKER = CountyExport(
+    source=Source(
+        source_id="tx-walker-cad",
+        publisher="Walker County Appraisal District",
+        title="2026 certified roll (PACS 8.0.34)",
+        url="https://walkercad.org/texas-public-information-act/",
+        state_fips="48",
+        county_fips="471",
+        license="No license stated on the public-information page (read 2026-11-06). Public redistribution is not stated",
+        ai_use="unknown",
+        redistribution="unknown",
+        attribution="Walker County Appraisal District",
+        terms_reviewed="2026-11-06",
+    ),
+    county_fips="471",
+    account_system="walkercad_prop_id",
+)
+
 KAUFMAN = CountyExport(
     source=Source(
         source_id="tx-kaufman-cad",

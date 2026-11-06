@@ -47,7 +47,7 @@ def _category(imp: str, land: str) -> tuple[str | None, str | None]:
     return None, None
 
 
-def read_webprop(path: str | Path):
+def read_webprop(path: str | Path, *, county_fips: str = "329"):
     """Yield in-scope rows. Birth-date columns are refused if present."""
     p = Path(path)
     zf = zipfile.ZipFile(p) if not p.is_dir() else None
@@ -75,7 +75,7 @@ def read_webprop(path: str | Path):
                 name = None
             situs = None if confidential else (row.get("webprop_situs") or "").strip() or None
             yield ParcelRecord(
-                county_fips="329",
+                county_fips=county_fips,
                 apn=pid,
                 state_category=category,
                 account=pid,
