@@ -76,7 +76,7 @@ const packs = {
   tx_protest_evidence_dates: {
     meta: TX_PROTEST_EVIDENCE_DATES,
     description:
-      "Texas protest evidence dates for an appraisal review board hearing: the 14th day before the first day of the hearing for the owner's evidence (Tax Code §41.43(a-1), (a-3)(3)) with a conservative date rolled back past weekends and Texas legal holidays, and the 14-day date for the district's requested evidence (§41.461(a), §41.67(d)).",
+      "Texas protest evidence dates for an appraisal review board hearing: the 14th day before the first day of the hearing for the owner's evidence (Tax Code §41.43(a-1), (a-3)(3)) with a conservative date rolled back past weekends and Texas legal holidays, and the §41.67(d) cutoff after which information requested under §41.461 and not delivered may not be used, except to rebut.",
     input: TxProtestEvidenceDatesInput,
     run: txProtestEvidenceDates,
   },

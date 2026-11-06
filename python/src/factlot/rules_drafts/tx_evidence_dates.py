@@ -24,31 +24,19 @@ META: dict[str, Any] = {
     "title": "Texas protest evidence dates before an appraisal review board hearing",
     "citations": [
         {"law": "Tex. Tax Code §41.43(a-3)(3)", "url": f"{_TX41}#41.43", "retrieved": _RETRIEVED,
-         "covers": "owner_evidence_by_unadjusted: the owner files with the appraisal review board and delivers to the "
-                   "chief appraiser, not later than the 14th day before the date of the first day of the hearing, "
-                   "information sufficient for the clear-and-convincing standard of (a-3)"},
+         "covers": "owner_evidence_by_unadjusted: the owner files with the appraisal review board and delivers to the chief appraiser, not later than the 14th day before the date of the first day of the hearing, information sufficient for the clear-and-convincing standard of (a-3), which applies only if the appraised value was lowered under this subtitle in the preceding tax year and that value was not set by a §1.111(e) agreement"},
         {"law": "Tex. Tax Code §41.43(a-1)", "url": f"{_TX41}#41.43", "retrieved": _RETRIEVED,
-         "covers": "owner_evidence_by_unadjusted: for property of $1 million or less, the certified appraisal is "
-                   "delivered to the chief appraiser not later than the 14th day before the date of the first day of "
-                   "the hearing (the 180-day appraisal date is not computed)"},
+         "covers": "owner_evidence_by_unadjusted: for property with a market or appraised value of $1 million or less, an appraisal by a certified appraiser is delivered to the chief appraiser not later than the 14th day before the date of the first day of the hearing (the 180-day appraisal date is not computed)"},
         {"law": "Tex. Tax Code §41.43(a-5)", "url": f"{_TX41}#41.43", "retrieved": _RETRIEVED,
          "covers": "the (a-3)(3) filing is a condition for the higher standard, not a duty of the owner"},
         {"law": "Tex. Tax Code §41.461(a)", "url": f"{_TX41}#41.461", "retrieved": _RETRIEVED,
-         "covers": "district_evidence_due: at least 14 days before a hearing the chief appraiser informs the owner of "
-                   "the right to request the data, schedules, formulas and other information the chief appraiser will "
-                   "introduce"},
+         "covers": "requested_information_cutoff: at least 14 days before a hearing the chief appraiser informs the owner of the right to request the data, schedules, formulas and other information the chief appraiser will introduce"},
         {"law": "Tex. Tax Code §41.67(d)", "url": f"{_TX41}#41.67", "retrieved": _RETRIEVED,
-         "covers": "district_evidence_due: information requested under §41.461 and not delivered at least 14 days "
-                   "before the scheduled or postponed hearing may not be used as evidence, except to rebut"},
-        {"law": "Tex. Tax Code §1.06", "url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.1.htm#1.06",
-         "retrieved": _RETRIEVED,
-         "covers": "owner_evidence_recommended_by: the weekend and holiday rule for a last day; whether it moves a "
-                   "'not later than the 14th day before' date is not settled here, so the date is rolled back, not "
-                   "forward"},
-        {"law": "Tex. Gov't Code §662.003", "url": "https://statutes.capitol.texas.gov/Docs/GV/htm/GV.662.htm#662.003",
-         "retrieved": _RETRIEVED,
-         "covers": "owner_evidence_recommended_by: the Texas legal holidays skipped, on their actual dates, as in "
-                   "rules.tx.property_tax_protest_deadline"},
+         "covers": "requested_information_cutoff: an exclusion rule, not a due date: information previously requested under §41.461 and not delivered at least 14 days before the scheduled or postponed hearing may not be used, except to rebut"},
+        {"law": "Tex. Tax Code §1.06", "url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.1.htm#1.06", "retrieved": _RETRIEVED,
+         "covers": "owner_evidence_conservative_by: the weekend and holiday rule for a last day; whether it moves a 'not later than the 14th day before' date is not settled here, so the date is rolled back, not forward"},
+        {"law": "Tex. Gov't Code §662.003", "url": "https://statutes.capitol.texas.gov/Docs/GV/htm/GV.662.htm#662.003", "retrieved": _RETRIEVED,
+         "covers": "owner_evidence_conservative_by: the Texas legal holidays skipped, on their actual dates, as in rules.tx.property_tax_protest_deadline"},
     ],
     "verification": {
         "status": "draft",
@@ -57,7 +45,7 @@ META: dict[str, Any] = {
             "the files behind statutes.capitol.texas.gov. Not checked by a named maintainer. Open point for the "
             "verifier: whether §1.06 moves a 'not later than the 14th day before' date that falls on a weekend or "
             "holiday; the pack returns the unadjusted date and a date rolled back to the previous business day, which "
-            "is timely either way."
+            "is timely under either reading."
         ),
     },
     "not_covered": [
@@ -80,39 +68,33 @@ def tx_protest_evidence_dates(raw: Any) -> dict[str, Any]:
     t.step("First day of the hearing", hearing, "as given")
     hearing_reason = non_business_reason(hearing)
     if hearing_reason is not None:
-        t.warn(f"The hearing date {hearing} is a {hearing_reason}; check it against the notice of hearing.")
+        t.warn(f"The hearing date {hearing} falls on {hearing_reason}; check it against the notice of hearing.")
 
     unadjusted = t.step(
         "Owner evidence by (unadjusted)", add_days(hearing, -14),
         f'{hearing} − 14 calendar days: "not later than the 14th day before the date of the first day of the hearing" '
         "(§41.43(a-1), (a-3)(3))")
     skipped: list[dict[str, str]] = []
-    recommended = unadjusted
-    while (reason := non_business_reason(recommended)) is not None:
-        skipped.append({"date": recommended, "reason": reason})
-        recommended = add_days(recommended, -1)
-    t.step("Owner evidence recommended by", recommended,
+    conservative = unadjusted
+    while (reason := non_business_reason(conservative)) is not None:
+        skipped.append({"date": conservative, "reason": reason})
+        conservative = add_days(conservative, -1)
+    t.step("Owner evidence, conservative date", conservative,
            "rolled back past " + ", ".join(f"{s['date']} ({s['reason']})" for s in skipped)
            + " to the previous business day" if skipped else "the unadjusted date is a business day")
     if skipped:
-        t.warn(f"{unadjusted} is a {skipped[0]['reason']}. Whether Tax Code §1.06 moves a \"not later than the 14th day "
-               f"before\" date to the next business day is not settled here; {recommended}, the business day before, is "
-               "the safe date.")
-    t.warn("The owner's 14-day date matters only for the clear-and-convincing standard of §41.43(a-1) or (a-3), which "
-           "have other conditions; filing that information is not a duty (§41.43(a-5)).")
+        t.warn(f"{unadjusted} falls on {skipped[0]['reason']}. Whether Tax Code §1.06 moves a \"not later than the 14th day before\" date to the next business day is not settled here; {conservative}, the business day before, is timely under either reading.")
+    t.warn("The owner's 14-day date matters only for the clear-and-convincing standard, and only under its conditions: §41.43(a-3) applies only if the appraised value was lowered under this subtitle in the preceding tax year and that value was not set by a written agreement under §1.111(e); §41.43(a-1) applies only to property with a market or appraised value of $1 million or less and an appraisal by a certified appraiser. Filing is not a duty (§41.43(a-5)).")
 
-    district = t.step(
-        "District evidence due", add_days(hearing, -14),
-        f'{hearing} − 14 days: requested information "not delivered to the protesting party at least 14 days before the '
-        'scheduled or postponed hearing may not be used" (§41.67(d); §41.461(a))')
-    t.warn("A postponed hearing moves the district's 14-day date: §41.67(d) counts from the scheduled or postponed "
-           "hearing. Rerun with the new hearing date. Information offered to rebut the owner's evidence is not excluded.")
+    cutoff = t.step("Requested-information cutoff", add_days(hearing, -14),
+                    f"{hearing} − 14 days: information previously requested under §41.461 and \"not delivered to the protesting party at least 14 days before the scheduled or postponed hearing may not be used or offered in any form as evidence in the hearing\", except \"information offered to rebut evidence or argument presented at the hearing by the protesting party or that party's designated agent\" (§41.67(d))")
+    t.warn("The requested-information cutoff is an exclusion rule, not a due date, and a postponed hearing moves it: §41.67(d) counts from the scheduled or postponed hearing. Rerun with the new hearing date.")
 
     return draft_result(t, META, {
         "hearing_date": hearing,
         "owner_evidence_by_unadjusted": unadjusted,
-        "owner_evidence_recommended_by": recommended,
+        "owner_evidence_conservative_by": conservative,
         "owner_evidence_skipped_non_business_days": skipped,
-        "district_evidence_due": district,
+        "requested_information_cutoff": cutoff,
         "not_covered": list(META["not_covered"]),
     })

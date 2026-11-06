@@ -33,37 +33,37 @@ an identifier. This page covers which tool to call, when, and how to report the 
 
 ## Which tool when
 
-| The user asks…                                                                                | Call                                                |
-| --------------------------------------------------------------------------------------------- | --------------------------------------------------- |
-| "What's the rent schedule / total rent / expiration date?"                                    | `calc_rent_schedule`                                |
-| "What's the net effective rent on this deal?"                                                 | `calc_net_effective_rent`                           |
-| "Which of these proposals is better?" (tenant rep or landlord)                                | `calc_compare_proposals`                            |
-| "What does the tenant owe in percentage rent?"                                                | `calc_percentage_rent`                              |
-| "Reconcile CAM / opex for 2026" or "check this CAM statement"                                 | `calc_cam_reconciliation`                           |
-| "CAM true-ups for every tenant" or "why wasn't the pool recovered?"                           | `calc_cam_reconciliation_batch`                     |
-| "What can we recover for the roof / HVAC under the lease?"                                    | `calc_capex_recovery`                               |
-| "Analyze this rent roll" or "effective rent after six weeks free?"                            | `calc_multifamily_rent_roll`                        |
-| "How big a loan can this support?" or "which constraint binds?"                               | `calc_debt_sizing`                                  |
-| "Show me the loan schedule / balloon / interest-only payments"                                | `calc_amortization_schedule`                        |
-| "Remeasure this lease under ASC 842" after an amendment or reassessment                       | `calc_lease_remeasurement_asc842`                   |
-| "What does it cost to prepay or defease this loan?"                                           | `calc_prepayment_and_defeasance`                    |
-| "What's the WALT?"                                                                            | `calc_walt`                                         |
-| "NPV / IRR of these cash flows"                                                               | `calc_npv`, `calc_irr`                              |
-| "What's it worth on a DCF from this rent roll?" or "what's the IRR?"                          | `calc_dcf_pro_forma`                                |
-| "Value at a 6.5% cap" or "what cap rate does this price imply?"                               | `calc_direct_cap`                                   |
-| "How do the LP and GP split it?" (pref, catch-up, promote)                                    | `calc_equity_waterfall`                             |
-| "When are my 1031 deadlines?" or "do I have boot?" (not tax advice)                           | `calc_exchange_1031`                                |
-| "Is this Texas property appraised unequally?" (median of adjusted comparables, evidence only) | `calc_tx_unequal_appraisal`                         |
-| "When is a Texas protest due?"                                                                | `rules_tx_property_tax_protest_deadline`            |
-| "Should we buy the building or keep leasing?"                                                 | `calc_lease_vs_own`                                 |
-| "Should we renew or move?" or "what rent makes moving worth it?"                              | `calc_renew_vs_relocate`                            |
-| "What's the occupancy / ADR / RevPAR / GOP / NOI of this hotel?"                              | `calc_hotel_metrics`                                |
-| You have a county parcel number, a state LLC file number, a suite, or a PDF                   | `id_parcel`, `id_entity`, `id_space`, `id_document` |
-| You have a building's street address                                                          | `id_building`                                       |
-| You extracted a fact and want to store or share it                                            | `fact_validate`                                     |
-| "Abstract this lease" (you read the pages and propose each term with a quote)                 | `doc_verify_facts`, `doc_abstract_lease`            |
-| "Does the estoppel / rent roll match the lease?"                                              | `doc_compare`                                       |
-| "Is this claim supported by the document?"                                                    | `doc_verify_claim`                                  |
+| The user asks…                                                                           | Call                                                |
+| ---------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| "What's the rent schedule / total rent / expiration date?"                               | `calc_rent_schedule`                                |
+| "What's the net effective rent on this deal?"                                            | `calc_net_effective_rent`                           |
+| "Which of these proposals is better?" (tenant rep or landlord)                           | `calc_compare_proposals`                            |
+| "What does the tenant owe in percentage rent?"                                           | `calc_percentage_rent`                              |
+| "Reconcile CAM / opex for 2026" or "check this CAM statement"                            | `calc_cam_reconciliation`                           |
+| "CAM true-ups for every tenant" or "why wasn't the pool recovered?"                      | `calc_cam_reconciliation_batch`                     |
+| "What can we recover for the roof / HVAC under the lease?"                               | `calc_capex_recovery`                               |
+| "Analyze this rent roll" or "effective rent after six weeks free?"                       | `calc_multifamily_rent_roll`                        |
+| "How big a loan can this support?" or "which constraint binds?"                          | `calc_debt_sizing`                                  |
+| "Show me the loan schedule / balloon / interest-only payments"                           | `calc_amortization_schedule`                        |
+| "Remeasure this lease under ASC 842" after an amendment or reassessment                  | `calc_lease_remeasurement_asc842`                   |
+| "What does it cost to prepay or defease this loan?"                                      | `calc_prepayment_and_defeasance`                    |
+| "What's the WALT?"                                                                       | `calc_walt`                                         |
+| "NPV / IRR of these cash flows"                                                          | `calc_npv`, `calc_irr`                              |
+| "What's it worth on a DCF from this rent roll?" or "what's the IRR?"                     | `calc_dcf_pro_forma`                                |
+| "Value at a 6.5% cap" or "what cap rate does this price imply?"                          | `calc_direct_cap`                                   |
+| "How do the LP and GP split it?" (pref, catch-up, promote)                               | `calc_equity_waterfall`                             |
+| "When are my 1031 deadlines?" or "do I have boot?" (not tax advice)                      | `calc_exchange_1031`                                |
+| Compare a Texas property's value with the median of adjusted comparables (evidence only) | `calc_tx_unequal_appraisal`                         |
+| "When is a Texas protest due?"                                                           | `rules_tx_property_tax_protest_deadline`            |
+| "Should we buy the building or keep leasing?"                                            | `calc_lease_vs_own`                                 |
+| "Should we renew or move?" or "what rent makes moving worth it?"                         | `calc_renew_vs_relocate`                            |
+| "What's the occupancy / ADR / RevPAR / GOP / NOI of this hotel?"                         | `calc_hotel_metrics`                                |
+| You have a county parcel number, a state LLC file number, a suite, or a PDF              | `id_parcel`, `id_entity`, `id_space`, `id_document` |
+| You have a building's street address                                                     | `id_building`                                       |
+| You extracted a fact and want to store or share it                                       | `fact_validate`                                     |
+| "Abstract this lease" (you read the pages and propose each term with a quote)            | `doc_verify_facts`, `doc_abstract_lease`            |
+| "Does the estoppel / rent roll match the lease?"                                         | `doc_compare`                                       |
+| "Is this claim supported by the document?"                                               | `doc_verify_claim`                                  |
 
 ## Mapping lease language to inputs
 
@@ -158,8 +158,9 @@ spreadsheet or another model before relying on a figure:
 `calc_tx_unequal_appraisal` (`calc.tx_unequal_appraisal@1`) does the arithmetic of Tex. Tax Code
 §41.43(b)(3) and §42.26(a)(3): the subject's value against "the median appraised value of a
 reasonable number of comparable properties appropriately adjusted". It is an **evidence
-calculation only**: not an appraisal (§41.66(l)), not legal or tax advice, and it never says whether
-to protest, what value to put forward, or how a protest might turn out. FactLot does not represent
+calculation only**: not an appraisal or an opinion of value (Occupations Code §1103.003(1)), not
+legal or tax advice, and not a substitute for the advice of an attorney. It never says whether to
+protest, what value to put forward, or how a protest might turn out. FactLot does not represent
 property owners; the person files through the appraisal district's own process, themselves or
 through a registered property tax consultant or an attorney. Every result says so in `disclaimer`
 and in its first warning; pass that on.
@@ -170,7 +171,8 @@ Which tool when:
 - **The comparison itself**: `calc_tx_unequal_appraisal`, with comparables and adjustments the
   user chose or confirmed. The tool never picks comparables or invents an adjustment, and each
   adjustment needs a `reason` in the user's words.
-- **Evidence dates before the hearing** (the owner's and the district's 14-day dates): the draft
+- **Evidence dates before the hearing** (the owner's 14-day date and the §41.67(d)
+  requested-information cutoff): the draft
   rule pack `tx_protest_evidence_dates`, opt-in through `runDraftRule` / `run_draft_rule` with the
   draft acknowledged; it is not a tool yet ([docs](rules/tx-protest-evidence-dates.md)).
 
@@ -178,9 +180,11 @@ Conventions:
 
 - **Value basis.** Give every value from the roll with `value_basis` (`appraised` or `market`) and
   use one basis throughout; a comparable on a different basis draws a warning. For tax year 2026 or
-  earlier, §42.26(d) requires market value when the property is subject to the §23.231 limitation
-  (`circuit_breaker_23_231`); from 2027-01-01 the text no longer refers to §23.231, and the tool
-  warns you to check.
+  earlier, on appeal under §42.26, §42.26(d) (text in effect until 2027-01-01) requires market value
+  when the property is subject to the §23.231 limitation (`circuit_breaker_23_231`); appraisal
+  review board practice may differ. §23.231(k) says "This section expires December 31, 2026", and
+  from 2027-01-01 §42.26(d) and §41.41(a) no longer refer to §23.231, so for later years the tool
+  warns you to check whether the limitation applies.
 - **Normalization** (`normalize_by`). `none` compares whole values. `improvement_area_sf` or
   `land_area_sf` converts each comparable to value per SF of that area and multiplies by the
   subject's same area (comparable value ÷ comparable area × subject area); the subject and every

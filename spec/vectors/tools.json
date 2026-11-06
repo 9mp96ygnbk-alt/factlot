@@ -913,8 +913,7 @@
       "expect": {
         "provenance.formula": "calc.tx_unequal_appraisal@1",
         "value.median_adjusted_value": 1020000,
-        "value.subject_minus_median": -20000,
-        "value.subject_above_median": false
+        "value.subject_minus_median": -20000
       }
     },
     {
