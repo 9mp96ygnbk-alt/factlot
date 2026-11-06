@@ -130,7 +130,7 @@ statewide but not extended: North Carolina OneMap (100 counties, county use code
 Tennessee Comptroller (86 of 95 counties, not yet reviewed in full).
 
 **Licence points** (also in each record): MassGIS asks that its data not be
-redistributed "for a fee beyond reproduction costs"; the Portland metro RLIS data is ODbL
+redistributed "for a fee beyond reproduction costs"; the Portland metro RLIS file was labeled ODbL in error and is unverified as of 2026-11-06
 (share-alike); Fort Bend's export carries a hold-harmless and indemnity clause; Davidson's
 verification rests on Nashville's terms excluding open-portal data from its commercial-use ban.
 

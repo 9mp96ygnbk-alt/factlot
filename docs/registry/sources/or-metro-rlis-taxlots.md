@@ -30,12 +30,14 @@ Adapter: `python/src/factlot/registry/adapters/or_metro_rlis.py` (account system
   metadata repeats it and adds: "The information in this file was derived from digital databases on Metro's GIS. Care
   was taken in the creation of this file. Metro cannot accept any responsibility for errors, omissions, or positional
   accuracy. There are no warranties, expressed or implied."
-- The license page is a JavaScript application; its text could not be read by the collector or the page fetcher.
-  Search results about it say it is the Open Database License (ODbL) v1.0 (OpenAddresses lists Metro's address file
-  as ODbL v1.0; a Washington County service record names ODbL v1 and DbCL v1) and that Metro also has a separate 2021
-  "RLIS Limited Use License" for the paid products (credit line "(c) Oregon Metro www.oregonmetro.gov/rlis").
-  ODbL permits redistribution and commercial use with attribution and share-alike for derived databases and does not
-  restrict AI use. **A person should read the license page to confirm** (see Gates).
+- The license page HTML is an application shell. The agreement text was read 2026-11-06 from public ArcGIS Hub
+  item `43a73dbe46e644a9a8204afc4cbeb525` (revised February 2023). It is Metro's own RLIS Open Database End User
+  License Agreement, not the Open Database License (ODbL). It grants a limited, revocable license to copy, publish,
+  and adapt the data; it prohibits sublicensing; and it does not license rights to the individual contents of the
+  database. It says its terms are compatible with CC BY 4.0 and the Open Data Commons Attribution License, not ODbL.
+  FGDC metadata id 3733 says the product contains information copyrighted by Clackamas County. The earlier ODbL label
+  came from search results and is withdrawn. `verified` is false until a person decides whether derived facts can be
+  carried. The cited load counts below are not deleted.
 - robots.txt: `rlisdiscovery.oregonmetro.gov` and `hub.arcgis.com` both `Crawl-delay: 60`, disallow `/sites/`, `/admin/`,
   `/sessions/`, `/groups/`, `/people/`, `/workspace/`; the download API is allowed. `services2.arcgis.com` has none.
 
@@ -75,9 +77,8 @@ only, 9 manufactured structure.
 
 None for the download itself: no account, login, click-through, fee or CAPTCHA. For a person:
 
-1. Read <https://rlisdiscovery.oregonmetro.gov/pages/open-database-license> and confirm it is ODbL (share-alike, attribution)
-   and that FactLot's open registry can carry the derived facts under it. If the registry is published under another
-   license, ODbL's share-alike clause applies to a derived database; decide how to meet it.
+1. Decide whether derived registry facts can be carried under the February 2023 RLIS end-user agreement (no sublicensing,
+   individual database contents not licensed, revocable, Clackamas copyright noted in the metadata). This is not an ODbL question.
 2. Confirm `202` ("Commercial, vacant, condominium" in Metro's list) is an improved commercial condominium in Multnomah (832 lots). The adapter treats `x02` as improved.
 3. Owners: Multnomah County's Division of Assessment, Recording and Taxation sells data files on a fee schedule (a
    county-wide general property data report, land characteristics, improvement characteristics and values, tax bill

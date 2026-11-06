@@ -95,9 +95,9 @@ Be clear about scope before adopting it:
 - **Calculators, IDs, and the fact model work anywhere.** They need no data and no API key, and
   they run offline in both SDKs with identical results.
 - <!-- registry-trust -->**Cited pipeline row sum, not a live count.** The verified-source pipeline
-  row sum is 1,953,805 commercial parcels: the sum of cited scratch-load rows. It is not
+  row sum is 1,919,677 commercial parcels: the sum of cited scratch-load rows. It is not
   deduplicated, not a live count, and not a national total. The sum was compiled 2026-11-06 from
-  records whose loads are dated 2026-11-03 in the coverage notes. Companion unverified rows: 77,286. Sample rows
+  records whose loads are dated 2026-11-03 in the coverage notes. Companion unverified rows: 111,414. Sample rows
   excluded from that sum: 94,319. Cited registered entities: 14,224,252, not a live count. Census
   county equivalents: 3,235, file retrieved 2026-11-03, not a parcel count. The queryable published
   sample is the District of Columbia, release tag `registry-sample-dc-2026-11-04`, dated

@@ -21,12 +21,12 @@
       "files": [
         "https://rlisdiscovery.oregonmetro.gov/api/download/v1/items/b3cabe5845ec47eab61c54e0c631313c/csv?layers=3"
       ],
-      "verified": true,
+      "verified": false,
       "terms_url": "https://rlisdiscovery.oregonmetro.gov/pages/open-database-license",
-      "license": "RLIS Open Database End User License Agreement (item licenseInfo: 'This database and GIS data are made available under the RLIS Open Database End User License Agreement'); Metro's metadata record names the Open Database License (ODbL) v1.0, which requires attribution and share-alike for derived databases. Ownership information is excluded from the open data by Metro ('excluding ownership information') and sold separately",
-      "ai_use": "Not addressed by the publisher",
-      "redistribution": "Permitted under ODbL (attribution, share-alike)",
-      "reviewed": "2026-11-03",
+      "license": "RLIS Open Database End User License Agreement, revised February 2023, read 2026-11-06 from ArcGIS Hub item 43a73dbe46e644a9a8204afc4cbeb525. It is Metro's own agreement, not the Open Database License (ODbL). It grants a limited revocable license to copy, publish, and adapt the data, prohibits sublicensing, and does not license rights to the individual contents of the database. Taxlots (Public) licenseInfo points at this agreement. FGDC metadata id 3733 says the product contains information copyrighted by Clackamas County. The prior ODbL label was an inference from search results and is withdrawn. A person has not decided whether derived registry facts can be carried.",
+      "ai_use": "Not addressed by the agreement. The metadata host's robots file has a separate ai-train signal; that host is not the tax-lot download host",
+      "redistribution": "Not confirmed for the open registry. Prior ODbL permission withdrawn 2026-11-06. The EULA prohibits sublicensing and does not license individual database contents. Carry or drop is a person's decision; the cited load rows are unchanged.",
+      "reviewed": "2026-11-06",
       "notes": "Statewide? No: tri-county (Clackamas, Multnomah, Washington), 647,192 tax lots in the live layer, updated 2026-07-17 (layer 3 of FeatureServer Taxlots_(Public) on services2.arcgis.com/McQ0OlIABe29rJJy). The Hub export (rlisdiscovery -> 302 -> hub.arcgis.com/api/v3/datasets/b3cabe58..._3/downloads/data?format=csv&spatialRefId=2913&where=1%3D1) answers 200 text/csv, chunked, without Content-Length, and rejects Range requests; its Last-Modified was 2026-02-19 on 2026-11-03, i.e. an export cached before the layer's July update, so check Last-Modified before relying on it. The review took the first 30 MB of the stream (118,956 tax lots) and queried the live layer for totals. The CSV header is the field names. Multnomah County sells owner and detail files on a fee schedule (see the review record). robots.txt: rlisdiscovery.oregonmetro.gov and hub.arcgis.com both Crawl-delay 60, disallow /sites/ /admin/ /sessions/ /groups/ /people/ /workspace/ (not the download API); services2.arcgis.com none. Full export is over 50 MB, so no snapshot was taken here."
     }
   ]

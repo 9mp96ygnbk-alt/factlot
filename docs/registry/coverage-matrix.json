@@ -2045,7 +2045,7 @@
       "census_county_equivalents": 36,
       "census_county_equivalents_as_of": "2026-11-03",
       "cited_pipeline_parcels": 34128,
-      "cited_pipeline_parcels_verified_sources": 34128,
+      "cited_pipeline_parcels_verified_sources": 0,
       "cited_sample_parcels": null,
       "counties_with_a_fips_row": 3,
       "counties_without_a_row": 33,
@@ -2057,14 +2057,14 @@
           "cited_source_rows": null,
           "cost_usd": 0,
           "counted_under": null,
-          "gate_class": "verified",
+          "gate_class": "blocked_redistribution_text",
           "group_lead": false,
-          "ingestion": "loaded_verified",
+          "ingestion": "loaded_unverified",
           "residual_block": null,
-          "reviewed": "2026-11-03",
+          "reviewed": "2026-11-06",
           "role": "parcels",
           "source_id": "or-metro-rlis-taxlots",
-          "verified": true
+          "verified": false
         },
         {
           "cited_pipeline_parcels": null,
@@ -2082,7 +2082,7 @@
         }
       ],
       "state_fips": "41",
-      "status": "pipeline_load"
+      "status": "pipeline_load_includes_unverified"
     },
     {
       "admin1": "pa",
@@ -2846,8 +2846,8 @@
     "cited_entities_label": "Sum of cited entity-registry loads. Not a live count.",
     "label": "Sum of cited commercial-parcel rows in scratch loads. Not deduplicated, not live, not a national total.",
     "sample_parcels_excluded_from_pipeline": 94319,
-    "unverified_sources_parcels": 77286,
-    "verified_sources_parcels": 1953805
+    "unverified_sources_parcels": 111414,
+    "verified_sources_parcels": 1919677
   },
   "published_sample": {
     "cite": "llms.txt",

@@ -21,7 +21,7 @@ Published sample: District of Columbia, release tag `registry-sample-dc-2026-11-
 
 ## Pipeline row sum
 
-Verified-source rows: 1,953,805. Unverified-source rows: 77,286. Sample rows, excluded from both: 94,319. Cited registered entities: 14,224,252.
+Verified-source rows: 1,919,677. Unverified-source rows: 111,414. Sample rows, excluded from both: 94,319. Cited registered entities: 14,224,252.
 
 Sum of cited commercial-parcel rows in scratch loads. Not deduplicated, not live, not a national total. Sum of cited entity-registry loads. Not a live count.
 
@@ -70,7 +70,7 @@ A state with no cited load shows `not recorded` rather than zero. `counties with
 | North Dakota         | 53              | not_reviewed                      | not recorded           | not recorded   | not recorded           | not recorded             | no               |
 | Ohio                 | 88              | reviewed_not_loaded               | not recorded           | not recorded   | not recorded           | not recorded             | no               |
 | Oklahoma             | 77              | reviewed_not_loaded               | not recorded           | not recorded   | not recorded           | not recorded             | no               |
-| Oregon               | 36              | pipeline_load                     | 34,128                 | not recorded   | 33                     | 2026-07-17               | no               |
+| Oregon               | 36              | pipeline_load_includes_unverified | 34,128                 | not recorded   | 33                     | 2026-07-17               | no               |
 | Pennsylvania         | 67              | pipeline_load_includes_unverified | 128,172                | not recorded   | 64                     | 2026-10-05 to 2026-11-02 | no               |
 | Puerto Rico          | 78              | not_reviewed                      | not recorded           | not recorded   | not recorded           | not recorded             | no               |
 | Rhode Island         | 5               | not_reviewed                      | not recorded           | not recorded   | not recorded           | not recorded             | no               |
@@ -90,132 +90,132 @@ A state with no cited load shows `not recorded` rather than zero. `counties with
 
 A source is `loaded_verified` only when a person set `verified` and a cited load exists. Purchase, click-through, automated-access and records-request gates stay blocked. Public access is not a redistribution grant. Nothing below was fetched for this page.
 
-| State                | Source                            | Role     | Gate                     | Ingestion         | Cited source rows |
-| -------------------- | --------------------------------- | -------- | ------------------------ | ----------------- | ----------------- |
-| Arizona              | `az-maricopa-assessor`            | parcels  | blocked_terms_or_other   | sample_not_a_load | not recorded      |
-| Arizona              | `az-pima-assessor`                | parcels  | blocked_automated_access | not_loaded        | not recorded      |
-| Arizona              | `az-sos-entities`                 | entities | blocked_purchase         | not_loaded        | not recorded      |
-| Arkansas             | `ar-gis-parcels`                  | parcels  | verified                 | loaded_verified   | not recorded      |
-| California           | `ca-alameda-assessor`             | parcels  | blocked_terms_or_other   | not_loaded        | not recorded      |
-| California           | `ca-contra-costa-assessor`        | parcels  | blocked_automated_access | not_loaded        | not recorded      |
-| California           | `ca-fresno-assessor`              | parcels  | blocked_purchase         | not_loaded        | not recorded      |
-| California           | `ca-kern-assessor`                | parcels  | blocked_purchase         | not_loaded        | not recorded      |
-| California           | `ca-los-angeles-assessor`         | parcels  | verified                 | loaded_verified   | not recorded      |
-| California           | `ca-orange-assessor`              | parcels  | blocked_purchase         | not_loaded        | not recorded      |
-| California           | `ca-riverside-assessor`           | parcels  | blocked_terms_or_other   | not_loaded        | not recorded      |
-| California           | `ca-sacramento-assessor`          | parcels  | verified                 | loaded_verified   | not recorded      |
-| California           | `ca-san-bernardino-assessor`      | parcels  | blocked_terms_or_other   | not_loaded        | not recorded      |
-| California           | `ca-san-diego-assessor`           | parcels  | blocked_purchase         | not_loaded        | not recorded      |
-| California           | `ca-san-francisco-assessor`       | parcels  | verified                 | loaded_verified   | not recorded      |
-| California           | `ca-san-joaquin-assessor`         | parcels  | blocked_terms_or_other   | not_loaded        | not recorded      |
-| California           | `ca-san-mateo-assessor`           | parcels  | blocked_purchase         | not_loaded        | not recorded      |
-| California           | `ca-santa-clara-assessor`         | parcels  | blocked_purchase         | not_loaded        | not recorded      |
-| California           | `ca-sos-entities`                 | entities | blocked_purchase         | not_loaded        | not recorded      |
-| California           | `ca-ventura-assessor`             | parcels  | blocked_automated_access | not_loaded        | not recorded      |
-| Colorado             | `co-denver-assessor`              | parcels  | verified                 | loaded_verified   | not recorded      |
-| Colorado             | `co-denver-energize-benchmarking` | parcels  | verified                 | not_loaded        | not recorded      |
-| Colorado             | `co-elpaso-assessor`              | parcels  | blocked_click_through    | not_loaded        | not recorded      |
-| Colorado             | `co-sos-entities`                 | entities | verified                 | not_loaded        | not recorded      |
-| Connecticut          | `ct-parcel-cama`                  | parcels  | blocked_terms_or_other   | not_loaded        | not recorded      |
-| Connecticut          | `ct-parcel-cama-layer`            | parcels  | verified                 | loaded_verified   | not recorded      |
-| Connecticut          | `ct-sos-entities`                 | entities | verified                 | not_loaded        | not recorded      |
-| District of Columbia | `dc-dlcp-entities`                | entities | verified                 | not_loaded        | not recorded      |
-| District of Columbia | `dc-otr-real-property`            | parcels  | verified                 | loaded_verified   | not recorded      |
-| Florida              | `fl-dor-nal`                      | parcels  | blocked_terms_or_other   | sample_not_a_load | not recorded      |
-| Florida              | `fl-dos-entities`                 | entities | blocked_terms_or_other   | not_loaded        | not recorded      |
-| Georgia              | `ga-cobb-assessor`                | parcels  | blocked_purchase         | not_loaded        | not recorded      |
-| Georgia              | `ga-dekalb-parcels`               | parcels  | verified                 | loaded_verified   | not recorded      |
-| Georgia              | `ga-fulton-assessor`              | parcels  | blocked_terms_or_other   | not_loaded        | not recorded      |
-| Georgia              | `ga-gwinnett-assessor`            | parcels  | blocked_terms_or_other   | not_loaded        | not recorded      |
-| Georgia              | `ga-sos-entities`                 | entities | blocked_purchase         | not_loaded        | not recorded      |
-| Hawaii               | `hi-breg-entities`                | entities | blocked_purchase         | not_loaded        | not recorded      |
-| Hawaii               | `hi-honolulu-assessor`            | parcels  | blocked_terms_or_other   | not_loaded        | not recorded      |
-| Illinois             | `il-cook-assessor`                | parcels  | blocked_terms_or_other   | sample_not_a_load | not recorded      |
-| Illinois             | `il-dupage-parcels`               | parcels  | blocked_terms_or_other   | not_loaded        | not recorded      |
-| Illinois             | `il-lake-parcels`                 | parcels  | blocked_automated_access | not_loaded        | not recorded      |
-| Illinois             | `il-sos-entities`                 | entities | blocked_automated_access | not_loaded        | not recorded      |
-| Illinois             | `il-will-parcels`                 | parcels  | blocked_terms_or_other   | not_loaded        | not recorded      |
-| Indiana              | `in-marion-parcels`               | parcels  | verified                 | loaded_verified   | not recorded      |
-| Indiana              | `in-sos-entities`                 | entities | blocked_purchase         | not_loaded        | not recorded      |
-| Kentucky             | `ky-jefferson-pva`                | parcels  | blocked_purchase         | not_loaded        | not recorded      |
-| Kentucky             | `ky-sos-entities`                 | entities | blocked_terms_or_other   | not_loaded        | not recorded      |
-| Maryland             | `md-sdat-entities`                | entities | blocked_purchase         | not_loaded        | not recorded      |
-| Maryland             | `md-sdat-real-property`           | parcels  | verified                 | loaded_verified   | not recorded      |
-| Massachusetts        | `ma-boston-assessing`             | parcels  | verified                 | loaded_verified   | not recorded      |
-| Massachusetts        | `ma-massgis-parcels`              | parcels  | verified                 | loaded_verified   | not recorded      |
-| Massachusetts        | `ma-sos-entities`                 | entities | blocked_purchase         | not_loaded        | not recorded      |
-| Michigan             | `mi-macomb-parcels`               | parcels  | blocked_records_request  | not_loaded        | not recorded      |
-| Michigan             | `mi-oakland-parcels`              | parcels  | verified                 | loaded_verified   | 26,128            |
-| Michigan             | `mi-sos-entities`                 | entities | blocked_no_bulk_source   | not_loaded        | not recorded      |
-| Michigan             | `mi-wayne-parcels`                | parcels  | blocked_terms_or_other   | sample_not_a_load | not recorded      |
-| Minnesota            | `mn-hennepin-assessor`            | parcels  | verified                 | loaded_verified   | not recorded      |
-| Minnesota            | `mn-opt-in-parcels`               | parcels  | verified                 | loaded_verified   | not recorded      |
-| Minnesota            | `mn-sos-entities`                 | entities | blocked_purchase         | not_loaded        | not recorded      |
-| Missouri             | `mo-jackson-assessment`           | parcels  | blocked_records_request  | not_loaded        | not recorded      |
-| Missouri             | `mo-sos-entities`                 | entities | blocked_no_bulk_source   | not_loaded        | not recorded      |
-| Missouri             | `mo-stlouis-county-parcels`       | parcels  | blocked_automated_access | not_loaded        | not recorded      |
-| Montana              | `mt-msl-cadastral`                | parcels  | verified                 | loaded_verified   | not recorded      |
-| Nevada               | `nv-clark-assessor`               | parcels  | blocked_purchase         | not_loaded        | not recorded      |
-| Nevada               | `nv-sos-entities`                 | entities | blocked_purchase         | not_loaded        | not recorded      |
-| New Jersey           | `nj-dores-entities`               | entities | blocked_purchase         | not_loaded        | not recorded      |
-| New Jersey           | `nj-modiv-parcels`                | parcels  | blocked_terms_or_other   | not_loaded        | not recorded      |
-| New York             | `ny-dos-entities`                 | entities | verified                 | not_loaded        | not recorded      |
-| New York             | `ny-nyc-dof`                      | parcels  | verified                 | loaded_verified   | not recorded      |
-| New York             | `ny-orpts-rolls`                  | parcels  | verified                 | loaded_verified   | not recorded      |
-| North Carolina       | `nc-mecklenburg-assessor`         | parcels  | verified                 | loaded_verified   | not recorded      |
-| North Carolina       | `nc-onemap-buncombe`              | parcels  | verified                 | not_loaded        | not recorded      |
-| North Carolina       | `nc-onemap-cumberland`            | parcels  | verified                 | included_in_group | not recorded      |
-| North Carolina       | `nc-onemap-forsyth`               | parcels  | verified                 | included_in_group | not recorded      |
-| North Carolina       | `nc-onemap-gaston`                | parcels  | verified                 | not_loaded        | not recorded      |
-| North Carolina       | `nc-onemap-guilford`              | parcels  | verified                 | loaded_verified   | not recorded      |
-| North Carolina       | `nc-onemap-iredell`               | parcels  | verified                 | not_loaded        | not recorded      |
-| North Carolina       | `nc-onemap-johnston`              | parcels  | verified                 | included_in_group | not recorded      |
-| North Carolina       | `nc-onemap-newhanover`            | parcels  | verified                 | included_in_group | not recorded      |
-| North Carolina       | `nc-sos-entities`                 | entities | blocked_purchase         | not_loaded        | not recorded      |
-| North Carolina       | `nc-wake-parcels`                 | parcels  | verified                 | loaded_verified   | not recorded      |
-| Ohio                 | `oh-cuyahoga-parcels`             | parcels  | blocked_terms_or_other   | not_loaded        | not recorded      |
-| Ohio                 | `oh-franklin-auditor`             | parcels  | blocked_click_through    | not_loaded        | not recorded      |
-| Ohio                 | `oh-hamilton-auditor`             | parcels  | blocked_automated_access | not_loaded        | not recorded      |
-| Ohio                 | `oh-sos-entities`                 | entities | blocked_automated_access | not_loaded        | not recorded      |
-| Oklahoma             | `ok-oklahoma-assessor`            | parcels  | blocked_records_request  | not_loaded        | not recorded      |
-| Oklahoma             | `ok-sos-entities`                 | entities | blocked_purchase         | not_loaded        | not recorded      |
-| Oklahoma             | `ok-tulsa-assessor`               | parcels  | blocked_records_request  | not_loaded        | not recorded      |
-| Oregon               | `or-metro-rlis-taxlots`           | parcels  | verified                 | loaded_verified   | not recorded      |
-| Oregon               | `or-sos-entities`                 | entities | blocked_terms_or_other   | not_loaded        | not recorded      |
-| Pennsylvania         | `pa-allegheny-assessments`        | parcels  | verified                 | loaded_verified   | not recorded      |
-| Pennsylvania         | `pa-montgomery-parcels`           | parcels  | verified                 | loaded_verified   | not recorded      |
-| Pennsylvania         | `pa-philadelphia-opa`             | parcels  | blocked_terms_or_other   | loaded_unverified | not recorded      |
-| Pennsylvania         | `pa-sos-entities`                 | entities | verified                 | not_loaded        | not recorded      |
-| Tennessee            | `tn-comptroller-assessment`       | parcels  | blocked_click_through    | not_loaded        | not recorded      |
-| Tennessee            | `tn-davidson-assessor`            | parcels  | verified                 | loaded_verified   | not recorded      |
-| Tennessee            | `tn-shelby-assessor`              | parcels  | blocked_automated_access | not_loaded        | not recorded      |
-| Tennessee            | `tn-sos-entities`                 | entities | blocked_purchase         | not_loaded        | not recorded      |
-| Texas                | `tx-bexar-ad`                     | parcels  | blocked_records_request  | not_loaded        | not recorded      |
-| Texas                | `tx-collin-cad`                   | parcels  | verified                 | loaded_verified   | not recorded      |
-| Texas                | `tx-comptroller-franchise`        | entities | verified                 | not_loaded        | not recorded      |
-| Texas                | `tx-dallas-cad`                   | parcels  | verified                 | loaded_verified   | not recorded      |
-| Texas                | `tx-denton-cad`                   | parcels  | verified                 | loaded_verified   | not recorded      |
-| Texas                | `tx-elpaso-cad`                   | parcels  | blocked_terms_or_other   | not_loaded        | not recorded      |
-| Texas                | `tx-fortbend-cad`                 | parcels  | verified                 | loaded_verified   | not recorded      |
-| Texas                | `tx-harris-cad`                   | parcels  | verified                 | loaded_verified   | 1,628,382         |
-| Texas                | `tx-hidalgo-cad`                  | parcels  | blocked_automated_access | not_loaded        | not recorded      |
-| Texas                | `tx-montgomery-cad`               | parcels  | blocked_terms_or_other   | not_loaded        | not recorded      |
-| Texas                | `tx-tarrant-ad`                   | parcels  | verified                 | loaded_verified   | not recorded      |
-| Texas                | `tx-travis-cad`                   | parcels  | verified                 | loaded_verified   | not recorded      |
-| Texas                | `tx-txgio-parcels`                | parcels  | blocked_automated_access | not_loaded        | not recorded      |
-| Texas                | `tx-williamson-cad`               | parcels  | verified                 | loaded_verified   | not recorded      |
-| Utah                 | `ut-sos-entities`                 | entities | blocked_records_request  | not_loaded        | not recorded      |
-| Utah                 | `ut-ugrc-lir`                     | parcels  | verified                 | loaded_verified   | not recorded      |
-| Vermont              | `vt-vcgi-parcels`                 | parcels  | verified                 | loaded_verified   | not recorded      |
-| Virginia             | `va-fairfax-assessor`             | parcels  | blocked_terms_or_other   | not_loaded        | not recorded      |
-| Virginia             | `va-scc-entities`                 | entities | blocked_click_through    | not_loaded        | not recorded      |
-| Washington           | `wa-king-assessor`                | parcels  | blocked_click_through    | not_loaded        | not recorded      |
-| Washington           | `wa-pierce-assessor`              | parcels  | verified                 | loaded_verified   | not recorded      |
-| Washington           | `wa-snohomish-assessor`           | parcels  | blocked_terms_or_other   | not_loaded        | not recorded      |
-| Washington           | `wa-sos-entities`                 | entities | blocked_no_bulk_source   | not_loaded        | not recorded      |
-| Washington           | `wa-state-parcels`                | parcels  | blocked_terms_or_other   | not_loaded        | not recorded      |
-| Wisconsin            | `wi-dfi-entities`                 | entities | blocked_purchase         | not_loaded        | not recorded      |
-| Wisconsin            | `wi-statewide-parcels`            | parcels  | verified                 | loaded_verified   | not recorded      |
+| State                | Source                            | Role     | Gate                        | Ingestion         | Cited source rows |
+| -------------------- | --------------------------------- | -------- | --------------------------- | ----------------- | ----------------- |
+| Arizona              | `az-maricopa-assessor`            | parcels  | blocked_terms_or_other      | sample_not_a_load | not recorded      |
+| Arizona              | `az-pima-assessor`                | parcels  | blocked_automated_access    | not_loaded        | not recorded      |
+| Arizona              | `az-sos-entities`                 | entities | blocked_purchase            | not_loaded        | not recorded      |
+| Arkansas             | `ar-gis-parcels`                  | parcels  | verified                    | loaded_verified   | not recorded      |
+| California           | `ca-alameda-assessor`             | parcels  | blocked_terms_or_other      | not_loaded        | not recorded      |
+| California           | `ca-contra-costa-assessor`        | parcels  | blocked_automated_access    | not_loaded        | not recorded      |
+| California           | `ca-fresno-assessor`              | parcels  | blocked_purchase            | not_loaded        | not recorded      |
+| California           | `ca-kern-assessor`                | parcels  | blocked_purchase            | not_loaded        | not recorded      |
+| California           | `ca-los-angeles-assessor`         | parcels  | verified                    | loaded_verified   | not recorded      |
+| California           | `ca-orange-assessor`              | parcels  | blocked_purchase            | not_loaded        | not recorded      |
+| California           | `ca-riverside-assessor`           | parcels  | blocked_terms_or_other      | not_loaded        | not recorded      |
+| California           | `ca-sacramento-assessor`          | parcels  | verified                    | loaded_verified   | not recorded      |
+| California           | `ca-san-bernardino-assessor`      | parcels  | blocked_terms_or_other      | not_loaded        | not recorded      |
+| California           | `ca-san-diego-assessor`           | parcels  | blocked_purchase            | not_loaded        | not recorded      |
+| California           | `ca-san-francisco-assessor`       | parcels  | verified                    | loaded_verified   | not recorded      |
+| California           | `ca-san-joaquin-assessor`         | parcels  | blocked_terms_or_other      | not_loaded        | not recorded      |
+| California           | `ca-san-mateo-assessor`           | parcels  | blocked_purchase            | not_loaded        | not recorded      |
+| California           | `ca-santa-clara-assessor`         | parcels  | blocked_purchase            | not_loaded        | not recorded      |
+| California           | `ca-sos-entities`                 | entities | blocked_purchase            | not_loaded        | not recorded      |
+| California           | `ca-ventura-assessor`             | parcels  | blocked_automated_access    | not_loaded        | not recorded      |
+| Colorado             | `co-denver-assessor`              | parcels  | verified                    | loaded_verified   | not recorded      |
+| Colorado             | `co-denver-energize-benchmarking` | parcels  | verified                    | not_loaded        | not recorded      |
+| Colorado             | `co-elpaso-assessor`              | parcels  | blocked_click_through       | not_loaded        | not recorded      |
+| Colorado             | `co-sos-entities`                 | entities | verified                    | not_loaded        | not recorded      |
+| Connecticut          | `ct-parcel-cama`                  | parcels  | blocked_terms_or_other      | not_loaded        | not recorded      |
+| Connecticut          | `ct-parcel-cama-layer`            | parcels  | verified                    | loaded_verified   | not recorded      |
+| Connecticut          | `ct-sos-entities`                 | entities | verified                    | not_loaded        | not recorded      |
+| District of Columbia | `dc-dlcp-entities`                | entities | verified                    | not_loaded        | not recorded      |
+| District of Columbia | `dc-otr-real-property`            | parcels  | verified                    | loaded_verified   | not recorded      |
+| Florida              | `fl-dor-nal`                      | parcels  | blocked_terms_or_other      | sample_not_a_load | not recorded      |
+| Florida              | `fl-dos-entities`                 | entities | blocked_terms_or_other      | not_loaded        | not recorded      |
+| Georgia              | `ga-cobb-assessor`                | parcels  | blocked_purchase            | not_loaded        | not recorded      |
+| Georgia              | `ga-dekalb-parcels`               | parcels  | verified                    | loaded_verified   | not recorded      |
+| Georgia              | `ga-fulton-assessor`              | parcels  | blocked_terms_or_other      | not_loaded        | not recorded      |
+| Georgia              | `ga-gwinnett-assessor`            | parcels  | blocked_terms_or_other      | not_loaded        | not recorded      |
+| Georgia              | `ga-sos-entities`                 | entities | blocked_purchase            | not_loaded        | not recorded      |
+| Hawaii               | `hi-breg-entities`                | entities | blocked_purchase            | not_loaded        | not recorded      |
+| Hawaii               | `hi-honolulu-assessor`            | parcels  | blocked_terms_or_other      | not_loaded        | not recorded      |
+| Illinois             | `il-cook-assessor`                | parcels  | blocked_terms_or_other      | sample_not_a_load | not recorded      |
+| Illinois             | `il-dupage-parcels`               | parcels  | blocked_terms_or_other      | not_loaded        | not recorded      |
+| Illinois             | `il-lake-parcels`                 | parcels  | blocked_automated_access    | not_loaded        | not recorded      |
+| Illinois             | `il-sos-entities`                 | entities | blocked_automated_access    | not_loaded        | not recorded      |
+| Illinois             | `il-will-parcels`                 | parcels  | blocked_terms_or_other      | not_loaded        | not recorded      |
+| Indiana              | `in-marion-parcels`               | parcels  | verified                    | loaded_verified   | not recorded      |
+| Indiana              | `in-sos-entities`                 | entities | blocked_purchase            | not_loaded        | not recorded      |
+| Kentucky             | `ky-jefferson-pva`                | parcels  | blocked_purchase            | not_loaded        | not recorded      |
+| Kentucky             | `ky-sos-entities`                 | entities | blocked_terms_or_other      | not_loaded        | not recorded      |
+| Maryland             | `md-sdat-entities`                | entities | blocked_purchase            | not_loaded        | not recorded      |
+| Maryland             | `md-sdat-real-property`           | parcels  | verified                    | loaded_verified   | not recorded      |
+| Massachusetts        | `ma-boston-assessing`             | parcels  | verified                    | loaded_verified   | not recorded      |
+| Massachusetts        | `ma-massgis-parcels`              | parcels  | verified                    | loaded_verified   | not recorded      |
+| Massachusetts        | `ma-sos-entities`                 | entities | blocked_purchase            | not_loaded        | not recorded      |
+| Michigan             | `mi-macomb-parcels`               | parcels  | blocked_records_request     | not_loaded        | not recorded      |
+| Michigan             | `mi-oakland-parcels`              | parcels  | verified                    | loaded_verified   | 26,128            |
+| Michigan             | `mi-sos-entities`                 | entities | blocked_no_bulk_source      | not_loaded        | not recorded      |
+| Michigan             | `mi-wayne-parcels`                | parcels  | blocked_terms_or_other      | sample_not_a_load | not recorded      |
+| Minnesota            | `mn-hennepin-assessor`            | parcels  | verified                    | loaded_verified   | not recorded      |
+| Minnesota            | `mn-opt-in-parcels`               | parcels  | verified                    | loaded_verified   | not recorded      |
+| Minnesota            | `mn-sos-entities`                 | entities | blocked_purchase            | not_loaded        | not recorded      |
+| Missouri             | `mo-jackson-assessment`           | parcels  | blocked_records_request     | not_loaded        | not recorded      |
+| Missouri             | `mo-sos-entities`                 | entities | blocked_no_bulk_source      | not_loaded        | not recorded      |
+| Missouri             | `mo-stlouis-county-parcels`       | parcels  | blocked_automated_access    | not_loaded        | not recorded      |
+| Montana              | `mt-msl-cadastral`                | parcels  | verified                    | loaded_verified   | not recorded      |
+| Nevada               | `nv-clark-assessor`               | parcels  | blocked_purchase            | not_loaded        | not recorded      |
+| Nevada               | `nv-sos-entities`                 | entities | blocked_purchase            | not_loaded        | not recorded      |
+| New Jersey           | `nj-dores-entities`               | entities | blocked_purchase            | not_loaded        | not recorded      |
+| New Jersey           | `nj-modiv-parcels`                | parcels  | blocked_terms_or_other      | not_loaded        | not recorded      |
+| New York             | `ny-dos-entities`                 | entities | verified                    | not_loaded        | not recorded      |
+| New York             | `ny-nyc-dof`                      | parcels  | verified                    | loaded_verified   | not recorded      |
+| New York             | `ny-orpts-rolls`                  | parcels  | verified                    | loaded_verified   | not recorded      |
+| North Carolina       | `nc-mecklenburg-assessor`         | parcels  | verified                    | loaded_verified   | not recorded      |
+| North Carolina       | `nc-onemap-buncombe`              | parcels  | verified                    | not_loaded        | not recorded      |
+| North Carolina       | `nc-onemap-cumberland`            | parcels  | verified                    | included_in_group | not recorded      |
+| North Carolina       | `nc-onemap-forsyth`               | parcels  | verified                    | included_in_group | not recorded      |
+| North Carolina       | `nc-onemap-gaston`                | parcels  | verified                    | not_loaded        | not recorded      |
+| North Carolina       | `nc-onemap-guilford`              | parcels  | verified                    | loaded_verified   | not recorded      |
+| North Carolina       | `nc-onemap-iredell`               | parcels  | verified                    | not_loaded        | not recorded      |
+| North Carolina       | `nc-onemap-johnston`              | parcels  | verified                    | included_in_group | not recorded      |
+| North Carolina       | `nc-onemap-newhanover`            | parcels  | verified                    | included_in_group | not recorded      |
+| North Carolina       | `nc-sos-entities`                 | entities | blocked_purchase            | not_loaded        | not recorded      |
+| North Carolina       | `nc-wake-parcels`                 | parcels  | verified                    | loaded_verified   | not recorded      |
+| Ohio                 | `oh-cuyahoga-parcels`             | parcels  | blocked_terms_or_other      | not_loaded        | not recorded      |
+| Ohio                 | `oh-franklin-auditor`             | parcels  | blocked_click_through       | not_loaded        | not recorded      |
+| Ohio                 | `oh-hamilton-auditor`             | parcels  | blocked_automated_access    | not_loaded        | not recorded      |
+| Ohio                 | `oh-sos-entities`                 | entities | blocked_automated_access    | not_loaded        | not recorded      |
+| Oklahoma             | `ok-oklahoma-assessor`            | parcels  | blocked_records_request     | not_loaded        | not recorded      |
+| Oklahoma             | `ok-sos-entities`                 | entities | blocked_purchase            | not_loaded        | not recorded      |
+| Oklahoma             | `ok-tulsa-assessor`               | parcels  | blocked_records_request     | not_loaded        | not recorded      |
+| Oregon               | `or-metro-rlis-taxlots`           | parcels  | blocked_redistribution_text | loaded_unverified | not recorded      |
+| Oregon               | `or-sos-entities`                 | entities | blocked_terms_or_other      | not_loaded        | not recorded      |
+| Pennsylvania         | `pa-allegheny-assessments`        | parcels  | verified                    | loaded_verified   | not recorded      |
+| Pennsylvania         | `pa-montgomery-parcels`           | parcels  | verified                    | loaded_verified   | not recorded      |
+| Pennsylvania         | `pa-philadelphia-opa`             | parcels  | blocked_terms_or_other      | loaded_unverified | not recorded      |
+| Pennsylvania         | `pa-sos-entities`                 | entities | verified                    | not_loaded        | not recorded      |
+| Tennessee            | `tn-comptroller-assessment`       | parcels  | blocked_click_through       | not_loaded        | not recorded      |
+| Tennessee            | `tn-davidson-assessor`            | parcels  | verified                    | loaded_verified   | not recorded      |
+| Tennessee            | `tn-shelby-assessor`              | parcels  | blocked_automated_access    | not_loaded        | not recorded      |
+| Tennessee            | `tn-sos-entities`                 | entities | blocked_purchase            | not_loaded        | not recorded      |
+| Texas                | `tx-bexar-ad`                     | parcels  | blocked_records_request     | not_loaded        | not recorded      |
+| Texas                | `tx-collin-cad`                   | parcels  | verified                    | loaded_verified   | not recorded      |
+| Texas                | `tx-comptroller-franchise`        | entities | verified                    | not_loaded        | not recorded      |
+| Texas                | `tx-dallas-cad`                   | parcels  | verified                    | loaded_verified   | not recorded      |
+| Texas                | `tx-denton-cad`                   | parcels  | verified                    | loaded_verified   | not recorded      |
+| Texas                | `tx-elpaso-cad`                   | parcels  | blocked_terms_or_other      | not_loaded        | not recorded      |
+| Texas                | `tx-fortbend-cad`                 | parcels  | verified                    | loaded_verified   | not recorded      |
+| Texas                | `tx-harris-cad`                   | parcels  | verified                    | loaded_verified   | 1,628,382         |
+| Texas                | `tx-hidalgo-cad`                  | parcels  | blocked_automated_access    | not_loaded        | not recorded      |
+| Texas                | `tx-montgomery-cad`               | parcels  | blocked_terms_or_other      | not_loaded        | not recorded      |
+| Texas                | `tx-tarrant-ad`                   | parcels  | verified                    | loaded_verified   | not recorded      |
+| Texas                | `tx-travis-cad`                   | parcels  | verified                    | loaded_verified   | not recorded      |
+| Texas                | `tx-txgio-parcels`                | parcels  | blocked_automated_access    | not_loaded        | not recorded      |
+| Texas                | `tx-williamson-cad`               | parcels  | verified                    | loaded_verified   | not recorded      |
+| Utah                 | `ut-sos-entities`                 | entities | blocked_records_request     | not_loaded        | not recorded      |
+| Utah                 | `ut-ugrc-lir`                     | parcels  | verified                    | loaded_verified   | not recorded      |
+| Vermont              | `vt-vcgi-parcels`                 | parcels  | verified                    | loaded_verified   | not recorded      |
+| Virginia             | `va-fairfax-assessor`             | parcels  | blocked_terms_or_other      | not_loaded        | not recorded      |
+| Virginia             | `va-scc-entities`                 | entities | blocked_click_through       | not_loaded        | not recorded      |
+| Washington           | `wa-king-assessor`                | parcels  | blocked_click_through       | not_loaded        | not recorded      |
+| Washington           | `wa-pierce-assessor`              | parcels  | verified                    | loaded_verified   | not recorded      |
+| Washington           | `wa-snohomish-assessor`           | parcels  | blocked_terms_or_other      | not_loaded        | not recorded      |
+| Washington           | `wa-sos-entities`                 | entities | blocked_no_bulk_source      | not_loaded        | not recorded      |
+| Washington           | `wa-state-parcels`                | parcels  | blocked_terms_or_other      | not_loaded        | not recorded      |
+| Wisconsin            | `wi-dfi-entities`                 | entities | blocked_purchase            | not_loaded        | not recorded      |
+| Wisconsin            | `wi-statewide-parcels`            | parcels  | verified                    | loaded_verified   | not recorded      |
 
 ## Outside the product state table
 

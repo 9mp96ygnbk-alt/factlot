@@ -33,10 +33,10 @@ Licence and AI-use detail per source: [rights.md](rights.md).
 
 ## Summary
 
-137 sources are reviewed (62 verified). The rows below record **2,031,091** commercial parcels in
+137 sources are reviewed (61 verified). The rows below record **2,031,091** commercial parcels in
 228 county or county-group rows, in 21 states and the District of Columbia. Rows from verified sources add up to
-**1,953,805** (the figure the project's Tier 2 notes give for the combined load of verified sources); the other 77,286
-come from `pa-philadelphia-opa` (loaded, but not verified: gated on terms). Statewide aggregate rows (Vermont, Minnesota, Arkansas, Montana,
+**1,919,677**. The other 111,414
+come from `pa-philadelphia-opa` (77,286; loaded, but not verified: gated on terms) and `or-metro-rlis-taxlots` (34,128; ODbL label withdrawn 2026-11-06, cited rows kept). Statewide aggregate rows (Vermont, Minnesota, Arkansas, Montana,
 Connecticut, North Carolina) stand for several counties each; the record names the counties. Treat the per-row numbers as the record.
 
 | State                                         | Parcel sources reviewed | Verified | Rows loaded | Commercial parcels loaded | Loaded      | Entity registry    | Queryable today |

@@ -52,11 +52,11 @@ SOURCE = Source(
     title="RLIS Taxlots (Public): Clackamas, Multnomah and Washington County tax lots (no ownership information)",
     url="https://rlisdiscovery.oregonmetro.gov/datasets/b3cabe5845ec47eab61c54e0c631313c/about",
     state_fips=STATE_FIPS,
-    license="RLIS Open Database End User License Agreement (Open Database License, ODbL v1.0 per Metro's metadata): attribution and share-alike",
-    ai_use="unknown",  # not addressed by the publisher
-    redistribution="attribution_required",  # ODbL: attribution and share-alike for derived databases
-    attribution="Contains information from RLIS, Metro (Oregon), made available under the Open Database License (ODbL)",
-    terms_reviewed="2026-11-03",
+    license="RLIS Open Database End User License Agreement (revised February 2023). Not the Open Database License (ODbL). Sublicensing is prohibited and individual database contents are not licensed",
+    ai_use="unknown",  # the agreement does not address AI use
+    redistribution="unknown",  # prior ODbL label withdrawn 2026-11-06; a person decides carry or drop
+    attribution="Regional Land Information System data are a product of Metro and made publicly available according to the license agreement found in https://rlisdiscovery.oregonmetro.gov/pages/open-database-license",
+    terms_reviewed="2026-11-06",
 )
 
 SQFT_PER_ACRE = 43560.0
