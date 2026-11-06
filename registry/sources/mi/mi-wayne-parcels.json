@@ -12,8 +12,12 @@
       "landing_pages": [
         "https://www.waynecountymi.gov/Government/Departments/Management-Budget/Assessment-Equalization/Annual-Assessment-Data"
       ],
-      "allowed_hosts": ["waynecountymi.gov"],
-      "link_patterns": ["wayne-county-assessments"],
+      "allowed_hosts": [
+        "waynecountymi.gov"
+      ],
+      "link_patterns": [
+        "wayne-county-assessments"
+      ],
       "files": [
         "https://www.waynecountymi.gov/files/assets/mainsite/v/1/management-amp-budget/documents/2026-wayne-county-assessments-names-addresses-legal.zip",
         "https://www.waynecountymi.gov/files/assets/mainsite/v/1/management-amp-budget/documents/assessment-data/2026/2026-wayne-county-assessments-detroit-city.zip"
@@ -22,9 +26,10 @@
       "terms_url": "https://www.waynecountymi.gov/Government/About-Wayne-County/Privacy-Policy",
       "license": "Public record (Michigan FOIA, MCL 15.231 et seq.; assessment rolls are public under the General Property Tax Act). No license is stated for the files. The portal's 'Terms of Use and Linking Policy' says materials may be saved 'for personal, non-commercial use only' and that use of the portal's content 'on any other web site or networked computer environment is prohibited'",
       "ai_use": "Not addressed by the publisher",
-      "redistribution": "Unclear: the portal terms restrict reuse of 'content, images and logos'; the assessment roll is a public record. A person must decide whether the terms reach these bulk files, or ask equalization@waynecountymi.gov",
+      "redistribution": "Unclear: the portal terms restrict reuse of 'content, images and logos'; the assessment roll is a public record. A person must decide whether the terms reach these bulk files, or ask equalization@waynecountymi.gov. Robert decided on 2026-11-06 that cited commercial facts from this public file may be kept. The publisher's own text is unchanged and still does not grant redistribution. See docs/registry/decisions/2026-11-06-cited-facts.md.",
       "reviewed": "2026-11-02",
-      "notes": "Not verified for two reasons: (1) the portal terms of use conflict with redistribution and need a licence decision; (2) the county-wide zip (132 MB, Last-Modified 2026-06-05, HEAD 200) could not be fully downloaded during the review (the host served about 40 KB/s), so the layout is confirmed on the per-municipality zips (assessment-data/2026/2026-wayne-county-assessments-<municipality>.zip, 44 links listed by discover; Belleville archived and run; the Detroit City zip was cut off by the host three times and then refused). Each zip holds one quoted CSV with a 130-column BS&A header (Parcels.*, ParcelMaster.*, ParcelReadonly.*) and a trailing 0x1A line; adapter mi_wayne. Values are the 2026 roll (as of 2025-12-31, after county equalization). The year is in every file name and folder: update when the 2027 files appear. robots.txt on waynecountymi.gov disallows only named content pages (no /files/ rule, no crawl delay). The Division's Assessment Data page says it no longer offers GIS data and points to data-wayne.opendata.arcgis.com; the GIS Data page's parcel shapefile is dated 2015. The City of Detroit also publishes a daily 'Parcels (Current)' layer on data.detroitmi.gov (ArcGIS Hub item 3c784c118e5c4083b37038e9b38573df, licenseInfo empty, hub robots Crawl-delay 60), Detroit only; not catalogued."
+      "notes": "Not verified for two reasons: (1) the portal terms of use conflict with redistribution and need a licence decision; (2) the county-wide zip (132 MB, Last-Modified 2026-06-05, HEAD 200) could not be fully downloaded during the review (the host served about 40 KB/s), so the layout is confirmed on the per-municipality zips (assessment-data/2026/2026-wayne-county-assessments-<municipality>.zip, 44 links listed by discover; Belleville archived and run; the Detroit City zip was cut off by the host three times and then refused). Each zip holds one quoted CSV with a 130-column BS&A header (Parcels.*, ParcelMaster.*, ParcelReadonly.*) and a trailing 0x1A line; adapter mi_wayne. Values are the 2026 roll (as of 2025-12-31, after county equalization). The year is in every file name and folder: update when the 2027 files appear. robots.txt on waynecountymi.gov disallows only named content pages (no /files/ rule, no crawl delay). The Division's Assessment Data page says it no longer offers GIS data and points to data-wayne.opendata.arcgis.com; the GIS Data page's parcel shapefile is dated 2015. The City of Detroit also publishes a daily 'Parcels (Current)' layer on data.detroitmi.gov (ArcGIS Hub item 3c784c118e5c4083b37038e9b38573df, licenseInfo empty, hub robots Crawl-delay 60), Detroit only; not catalogued.",
+      "redistribution_decision": "2026-11-06-cited-facts"
     }
   ]
 }

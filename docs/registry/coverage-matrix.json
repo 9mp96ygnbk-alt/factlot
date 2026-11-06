@@ -1,6 +1,30 @@
 {
   "compiled": "2026-11-06",
   "compiled_note": "Compiled from the review records, source configs and Census county file in this repository. No publisher file was downloaded to produce these figures.",
+  "decisions": [
+    {
+      "covers": [
+        "pa-philadelphia-opa",
+        "il-cook-assessor",
+        "ga-fulton-assessor",
+        "fl-dor-nal",
+        "mi-wayne-parcels",
+        "va-fairfax-assessor",
+        "ca-riverside-assessor",
+        "ca-san-bernardino-assessor"
+      ],
+      "date": "2026-11-06",
+      "does_not_cover": [
+        "paid extracts and subscriptions",
+        "click-through gates that have not been accepted",
+        "hosts that block automated clients",
+        "Arizona commercial-purpose filing",
+        "an unlisted roll the publisher sells"
+      ],
+      "effect": "Cited commercial facts may be kept from a public file whose publisher does not grant redistribution in writing.",
+      "id": "2026-11-06-cited-facts"
+    }
+  ],
   "folklore_used_as_target": false,
   "geography_denominator": {
     "county_equivalents": 3235,
@@ -105,7 +129,9 @@
     },
     {
       "admin1": "ar",
-      "areas_not_a_single_county": ["all 75 Arkansas counties"],
+      "areas_not_a_single_county": [
+        "all 75 Arkansas counties"
+      ],
       "as_of_recorded": "2026-11-03",
       "census_county_equivalents": 75,
       "census_county_equivalents_as_of": "2026-11-03",
@@ -2554,7 +2580,9 @@
     },
     {
       "admin1": "vt",
-      "areas_not_a_single_county": ["all 14 Vermont counties"],
+      "areas_not_a_single_county": [
+        "all 14 Vermont counties"
+      ],
       "as_of_recorded": "2026-11-03",
       "census_county_equivalents": 14,
       "census_county_equivalents_as_of": "2026-11-03",

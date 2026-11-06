@@ -349,6 +349,24 @@ def build(root: Path) -> dict[str, Any]:
         "outside_product_state_table": outside,
         "sources_outside_state_table": other,
         "rejected_proposals": REJECTED_PROPOSALS,
+        "decisions": [
+            {
+                "id": "2026-11-06-cited-facts",
+                "date": "2026-11-06",
+                "effect": "Cited commercial facts may be kept from a public file whose publisher does not grant redistribution in writing.",
+                "covers": [
+                    "pa-philadelphia-opa", "il-cook-assessor", "ga-fulton-assessor", "fl-dor-nal",
+                    "mi-wayne-parcels", "va-fairfax-assessor", "ca-riverside-assessor", "ca-san-bernardino-assessor",
+                ],
+                "does_not_cover": [
+                    "paid extracts and subscriptions",
+                    "click-through gates that have not been accepted",
+                    "hosts that block automated clients",
+                    "Arizona commercial-purpose filing",
+                    "an unlisted roll the publisher sells",
+                ],
+            }
+        ],
     }
 
 
@@ -452,6 +470,12 @@ def render_markdown(matrix: dict[str, Any]) -> str:
     for item in matrix["outside_product_state_table"]:
         lines.append(f"- FIPS {item['state_fips']}: {item['census_county_equivalents']} county equivalents, {item['status']}.")
     lines += [
+        "",
+        "## Decision of 2026-11-06",
+        "",
+        "Cited commercial facts may be kept from a public file whose publisher does not grant redistribution in writing. "
+        "Paid extracts, click-through gates, automated-access blocks, Arizona's commercial-purpose filing, and a roll the publisher sells stay closed. "
+        "A source is still unverified until a real download confirms its file.",
         "",
         "## Proposals not adopted",
         "",
