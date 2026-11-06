@@ -71,6 +71,11 @@ SPLITS = {
     },
 }
 
+# Counties whose record says the count is incomplete, quoted (the quote is checked against the document).
+INCOMPLETE = {
+    "49039": ("docs/registry/sources/ut-ugrc-lir.md", "Sanpete's layer leaves 9,620 of 12,976 rows without a class, so its 33 commercial parcels are a floor."),
+}
+
 
 def county_names() -> dict[str, str]:
     out = {}
@@ -192,6 +197,13 @@ def main(argv: list[str]) -> int:
             for f in parts:
                 if f not in names:
                     raise SystemExit(f"{r['area']}: FIPS {f} not in county-names.tsv")
+            hit = [f for f in parts if f in INCOMPLETE]
+            if hit:
+                doc, quote = INCOMPLETE[hit[0]]
+                if g.norm(quote) not in g.doc_norm(doc):
+                    raise SystemExit(f"INCOMPLETE quote for {hit[0]} not found in {doc}")
+                skip(r, f"record says the count is incomplete: {quote}")
+                continue
             # what it is worth
             if not s.get("verified"):
                 skip(r, "source not verified (publisher terms gate open)")

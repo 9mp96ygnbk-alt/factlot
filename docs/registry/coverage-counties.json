@@ -9,7 +9,7 @@
   },
   "counts": {
     "audited_load": 15,
-    "cited_load": 190,
+    "cited_load": 189,
     "published_sample": 1
   },
   "geography": "US Census 2020 county FIPS codes (spec/registry/county-names.tsv, 3,235 county equivalents incl. territories)",
@@ -1750,20 +1750,6 @@
       "hosted": false,
       "evidence": "docs/registry/tier2/README.md"
     },
-    "49039": {
-      "name": "Sanpete County",
-      "state": "UT",
-      "class": "cited_load",
-      "source_id": "ut-ugrc-lir",
-      "commercial_parcels": 31,
-      "organisation_owners_row": 0,
-      "owner_names": "no (not in the file)",
-      "entity_links": "0 ownership links",
-      "owner_link_rate_audited": null,
-      "data_as_of": "2025-10-23",
-      "hosted": false,
-      "evidence": "docs/registry/sources/ut-ugrc-lir.md"
-    },
     "49041": {
       "name": "Sevier County",
       "state": "UT",
@@ -3067,6 +3053,12 @@
       "state": "UT",
       "source_id": "ut-ugrc-lir",
       "reason": "data as-of 2024-07-18 is 839 days before 2026-11-04 (over 400)"
+    },
+    {
+      "area": "Sanpete County (49039)",
+      "state": "UT",
+      "source_id": "ut-ugrc-lir",
+      "reason": "record says the count is incomplete: Sanpete's layer leaves 9,620 of 12,976 rows without a class, so its 33 commercial parcels are a floor."
     },
     {
       "area": "Wasatch County (49051)",
