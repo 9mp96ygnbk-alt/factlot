@@ -142,6 +142,42 @@ BRAZOS = CountyExport(
     account_system="brazoscad_prop_id",
 )
 
+GRAYSON = CountyExport(
+    source=Source(
+        source_id="tx-grayson-cad",
+        publisher="Grayson Central Appraisal District",
+        title="Appraisal export as of supplement (PACS 8.0.34)",
+        url="https://graysonappraisal.org/public-information/",
+        state_fips="48",
+        county_fips="181",
+        license="No license stated on the public-information page (read 2026-11-06). The GIS disclaimer is informational and is not a license",
+        ai_use="unknown",
+        redistribution="unknown",
+        attribution="Grayson Central Appraisal District",
+        terms_reviewed="2026-11-06",
+    ),
+    county_fips="181",
+    account_system="grayson_prop_id",
+)
+
+TAYLOR = CountyExport(
+    source=Source(
+        source_id="tx-taylor-cad",
+        publisher="Central Appraisal District of Taylor County",
+        title="2026 adjusted certified appraisal roll (PACS 8.0.34)",
+        url="https://taylor-cad.org/data-downloads/",
+        state_fips="48",
+        county_fips="441",
+        license="No license stated for the appraisal-roll zip (read 2026-11-06). The internal-use and no-resale paragraph is under the GIS shapefile heading and names the GIS shapefiles",
+        ai_use="unknown",
+        redistribution="unknown",
+        attribution="Central Appraisal District of Taylor County",
+        terms_reviewed="2026-11-06",
+    ),
+    county_fips="441",
+    account_system="taylor_prop_id",
+)
+
 NUECES = CountyExport(
     source=Source(
         source_id="tx-nueces-cad",

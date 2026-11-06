@@ -58,6 +58,22 @@ _ASSIGNED: dict[str, dict[str, str | None]] = {
               "blocker": "Private extract of the 2026 certified zip whose name includes totals, header run date 2026-07-30, HTTP Last-Modified 2026-08-11. 132,377 property records = 50,565 not real + 74,232 out of scope + 7,580 unique in-scope ids. F3 commercial improvement-only is 5 of those and is deduped on property id. No license on the downloads page. Public redistribution is unknown."},
     "48303": {"source_id": None, "reuse": "unknown",
               "blocker": "No official bulk appraisal roll was verified. A map service without a state category is not a commercial denominator. No records request was sent."},
+    "48005": {"source_id": "tx-angelina-cad", "reuse": "blocked",
+              "blocker": "The open-records page says downloading the files automatically accepts the disclaimer. The file was not read and the disclaimer was not accepted. Not a finding that no roll exists."},
+    "48001": {"source_id": None, "reuse": "unknown",
+              "blocker": "The district site returned the empty portal shell on 2026-11-06. That is a discovery gap, not a zero parcel count. No records request was sent."},
+    "48037": {"source_id": None, "reuse": "unknown",
+              "blocker": "The district site returned the empty portal shell on 2026-11-06. That is a discovery gap, not a zero parcel count. No records request was sent."},
+    "48367": {"source_id": None, "reuse": "unknown",
+              "blocker": "The publications page that was read listed no bulk appraisal zip. That is a discovery gap, not a zero parcel count. No records request was sent."},
+    "48181": {"source_id": "tx-grayson-cad", "reuse": "private",
+              "blocker": "Private extract of the posted roll zip, header run date 2026-10-14, HTTP Last-Modified 2026-10-15. 113,081 property records = 18,291 not real + 88,177 out of scope + 6,613 in scope (F1 5,230, B1 1,065, B2 170, F2 148). Local codes F3 and F4 are mineral and were excluded; none were the selected code. GIS shapefile was not opened. Public redistribution is unknown."},
+    "48329": {"source_id": "tx-midland-web", "reuse": "private",
+              "blocker": "Private extract of the certified web property file only. Matrix date created 2026-08-06; HTTP Last-Modified 2026-08-17. 544,321 rows, 7,641 in scope from improvement or land PTD codes (F1 6,178, F2 557, B 906). Mineral and personal code columns were not used for scope. The collectors file was not opened. No birth-date column is in the web file. Public redistribution is unknown."},
+    "48441": {"source_id": "tx-taylor-cad", "reuse": "private",
+              "blocker": "Private extract of the adjusted certified roll, header run date 2026-10-22, HTTP Last-Modified 2026-10-23. 86,270 property records = 14,256 not real + 65,326 out of scope + 6,688 in scope (F1 5,035, B2 1,373, B1 126, F2 154). The internal-use and no-resale paragraph is under the GIS shapefile heading; the GIS zip was not opened. Public redistribution of the roll is unknown, and the GIS file stays gated."},
+    "48135": {"source_id": "tx-ector-cad", "reuse": "reviewed",
+              "blocker": "A 2026 real-property roll zip is linked from the downloads page. Its member is an xlsx whose columns were not read. Not ingested. Public redistribution is unknown."},
 }
 
 
@@ -96,6 +112,15 @@ _MEASURED: dict[str, dict[str, str | int | None]] = {
     "48041": {"staged_parcels": 7580, "unique_ids": 7580, "snapshot_as_of": "2026-07-30",
               "as_of_basis": "run date in the export header; HTTP Last-Modified 2026-08-11",
               "org_owner_facts": 5078},
+    "48181": {"staged_parcels": 6613, "unique_ids": 6613, "snapshot_as_of": "2026-10-14",
+              "as_of_basis": "run date in the export header; HTTP Last-Modified 2026-10-15",
+              "org_owner_facts": 3957},
+    "48329": {"staged_parcels": 7641, "unique_ids": 7641, "snapshot_as_of": "2026-08-06",
+              "as_of_basis": "web file matrix Date Created; HTTP Last-Modified 2026-08-17; file name says 2026 certified",
+              "org_owner_facts": 5006},
+    "48441": {"staged_parcels": 6688, "unique_ids": 6688, "snapshot_as_of": "2026-10-22",
+              "as_of_basis": "run date in the export header; HTTP Last-Modified 2026-10-23",
+              "org_owner_facts": 3910},
 }
 
 
