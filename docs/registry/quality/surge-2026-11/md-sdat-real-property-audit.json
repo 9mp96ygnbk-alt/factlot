@@ -1,0 +1,583 @@
+{
+  "audited_on": "2026-11-06",
+  "database": "scratch.db",
+  "entity_registries_by_state": {},
+  "sources": [
+    {
+      "ai_use": "unknown",
+      "citations": {
+        "as_of_differs_from_snapshot": 0,
+        "document_not_a_snapshot": 0,
+        "facts": 878548,
+        "links": 0,
+        "links_document_not_a_snapshot": 0,
+        "links_without_basis": 0,
+        "without_locator": 0,
+        "without_method": 0,
+        "without_valid_as_of": 0
+      },
+      "counties": [
+        "us-24001",
+        "us-24003",
+        "us-24005",
+        "us-24009",
+        "us-24011",
+        "us-24013",
+        "us-24015",
+        "us-24017",
+        "us-24019",
+        "us-24021",
+        "us-24023",
+        "us-24025",
+        "us-24027",
+        "us-24029",
+        "us-24031",
+        "us-24033",
+        "us-24035",
+        "us-24037",
+        "us-24039",
+        "us-24041",
+        "us-24043",
+        "us-24045",
+        "us-24047",
+        "us-24510"
+      ],
+      "county_fips": null,
+      "findings": [
+        {
+          "message": "4 parcels have an implausible year built",
+          "severity": "warning"
+        },
+        {
+          "message": "7 parcels have an implausible area",
+          "severity": "warning"
+        }
+      ],
+      "implausible_facts": {
+        "area": 7,
+        "out_of_scope_category": 0,
+        "tax_year": 0,
+        "value": 0,
+        "year_built": 4
+      },
+      "kind": "parcels",
+      "license": "Public Domain (portal license field PUBLIC_DOMAIN); attribution field 'SDAT and MDP'",
+      "links": {
+        "by_confidence": {},
+        "by_rule": {},
+        "entity_registry_loaded_for": [],
+        "link_rate_pct": null,
+        "linked_parcels": 0,
+        "note": "no entity registry is loaded for this state, so owners cannot be linked",
+        "organisation_owner_parcels": 0
+      },
+      "lookups": {
+        "parcels_with_account_crosswalk": 109249,
+        "parcels_with_address_index": 107846
+      },
+      "owners": {
+        "orphan_mailing_addresses": 0,
+        "owner_facts": 0,
+        "person_like": 0
+      },
+      "parcels": {
+        "absent_from_latest_snapshot": 0,
+        "conflicting_facts": 0,
+        "count": 109249,
+        "fields": {
+          "apn": {
+            "missing": 0,
+            "parcels": 109249,
+            "pct_present": 100.0
+          },
+          "appraised_value": {
+            "missing": 5179,
+            "parcels": 104070,
+            "pct_present": 95.26
+          },
+          "improvement_area_sf": {
+            "missing": 36948,
+            "parcels": 72301,
+            "pct_present": 66.18
+          },
+          "land_area_sf": {
+            "missing": 8094,
+            "parcels": 101155,
+            "pct_present": 92.59
+          },
+          "market_value": {
+            "missing": 5172,
+            "parcels": 104077,
+            "pct_present": 95.27
+          },
+          "owner_of_record": {
+            "missing": 109249,
+            "parcels": 0,
+            "pct_present": 0.0
+          },
+          "situs_address": {
+            "missing": 1403,
+            "parcels": 107846,
+            "pct_present": 98.72
+          },
+          "state_property_category": {
+            "missing": 0,
+            "parcels": 109249,
+            "pct_present": 100.0
+          },
+          "tax_year": {
+            "missing": 109249,
+            "parcels": 0,
+            "pct_present": 0.0
+          },
+          "year_built": {
+            "missing": 47897,
+            "parcels": 61352,
+            "pct_present": 56.16
+          }
+        },
+        "missing_address": 1403,
+        "missing_as_of": 0,
+        "no_organisation_owner": 109249
+      },
+      "publisher": "Maryland State Department of Assessments and Taxation (SDAT) and Maryland Department of Planning (MDP)",
+      "redistribution": "permitted",
+      "review_queue": {
+        "accepted": 0,
+        "pending": 0,
+        "pending_by_rule": {},
+        "pending_owners": 0,
+        "rejected": 0
+      },
+      "snapshots": [
+        {
+          "age_days": 1,
+          "as_of": "2026-11-05",
+          "bytes": 1123426,
+          "document_id": "fl:document:sha256-0e201c34d0ed2e309bdb9ea52c4fd54cd487ba35e3ebcfdceb9013fcc58d4cbd",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 33790,
+          "filename": "ed4q-f8tm.csv",
+          "parcels": 4225,
+          "retrieved_at": "2026-11-06T23:01:33+00:00"
+        },
+        {
+          "age_days": 1,
+          "as_of": "2026-11-05",
+          "bytes": 977386,
+          "document_id": "fl:document:sha256-1bf45ac4e25ebffe68a91491f492facf490a8f18ed22d21d04f84189689a37a8",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 30248,
+          "filename": "ed4q-f8tm.csv",
+          "parcels": 3716,
+          "retrieved_at": "2026-11-06T23:01:44+00:00"
+        },
+        {
+          "age_days": 1,
+          "as_of": "2026-11-05",
+          "bytes": 252142,
+          "document_id": "fl:document:sha256-24aa531917694a8a7958d2fdbda20e3ca5236abe66f41e0d126a37563fd1f007",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7718,
+          "filename": "ed4q-f8tm.csv",
+          "parcels": 995,
+          "retrieved_at": "2026-11-06T23:01:38+00:00"
+        },
+        {
+          "age_days": 1,
+          "as_of": "2026-11-05",
+          "bytes": 2427475,
+          "document_id": "fl:document:sha256-2f4b250e20a91029a45318c8b3c700a06010cb74f9f1f3daf38c803f2855fa4a",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 71438,
+          "filename": "ed4q-f8tm.csv",
+          "parcels": 9049,
+          "retrieved_at": "2026-11-06T23:01:09+00:00"
+        },
+        {
+          "age_days": 1,
+          "as_of": "2026-11-05",
+          "bytes": 857257,
+          "document_id": "fl:document:sha256-3242efefeefcbe0fb7b064de791bb9141c4efbd623eed59dfddd41ce937495e4",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 27290,
+          "filename": "ed4q-f8tm.csv",
+          "parcels": 3327,
+          "retrieved_at": "2026-11-06T23:01:18+00:00"
+        },
+        {
+          "age_days": 1,
+          "as_of": "2026-11-05",
+          "bytes": 282239,
+          "document_id": "fl:document:sha256-3bbdad848e8386eadbbc7327774b972fcb1eb46c49b386c6ed8ec9f53945f247",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 8375,
+          "filename": "ed4q-f8tm.csv",
+          "parcels": 1042,
+          "retrieved_at": "2026-11-06T23:01:15+00:00"
+        },
+        {
+          "age_days": 1,
+          "as_of": "2026-11-05",
+          "bytes": 364697,
+          "document_id": "fl:document:sha256-3e130c0a627b396f006ad808c47bcd758d8200606772d76f66e8a24d5731f7cc",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 11435,
+          "filename": "ed4q-f8tm.csv",
+          "parcels": 1445,
+          "retrieved_at": "2026-11-06T23:01:30+00:00"
+        },
+        {
+          "age_days": 1,
+          "as_of": "2026-11-05",
+          "bytes": 870136,
+          "document_id": "fl:document:sha256-3eb49e7c3face0e68eb166203beddcc79d1fc0a787e468d0355c52f138a7d292",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 27750,
+          "filename": "ed4q-f8tm.csv",
+          "parcels": 3434,
+          "retrieved_at": "2026-11-06T23:01:07+00:00"
+        },
+        {
+          "age_days": 1,
+          "as_of": "2026-11-05",
+          "bytes": 517040,
+          "document_id": "fl:document:sha256-442e20b7ce7d6e50f530f31bed47ec167b5b1f1dfa0279fa97e1891c1b6d5f6d",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 16068,
+          "filename": "ed4q-f8tm.csv",
+          "parcels": 1944,
+          "retrieved_at": "2026-11-06T23:01:41+00:00"
+        },
+        {
+          "age_days": 1,
+          "as_of": "2026-11-05",
+          "bytes": 3204816,
+          "document_id": "fl:document:sha256-4b270bbe07a785f62597f211083650d88107e959e0f99d44babd7a87afa5da02",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 91796,
+          "filename": "ed4q-f8tm.csv",
+          "parcels": 11579,
+          "retrieved_at": "2026-11-06T23:00:58+00:00"
+        },
+        {
+          "age_days": 1,
+          "as_of": "2026-11-05",
+          "bytes": 945391,
+          "document_id": "fl:document:sha256-58d10e536d06a2b0c82eaaf04fedd10384264469fe5b8648eebc58990b5090c9",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 28093,
+          "filename": "ed4q-f8tm.csv",
+          "parcels": 3592,
+          "retrieved_at": "2026-11-06T23:01:49+00:00"
+        },
+        {
+          "age_days": 1,
+          "as_of": "2026-11-05",
+          "bytes": 4091444,
+          "document_id": "fl:document:sha256-5bf18de7134842360c5e499443889620e0a828fc4f9dd1e1dca4f0ced6bcab35",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 119900,
+          "filename": "ed4q-f8tm.csv",
+          "parcels": 14801,
+          "retrieved_at": "2026-11-06T23:01:14+00:00"
+        },
+        {
+          "age_days": 1,
+          "as_of": "2026-11-05",
+          "bytes": 788271,
+          "document_id": "fl:document:sha256-5c59fb8041e5a53c8a38e542bb973d618ba66effa222bc9b14b6cf49edd84b56",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 24294,
+          "filename": "ed4q-f8tm.csv",
+          "parcels": 3043,
+          "retrieved_at": "2026-11-06T23:01:22+00:00"
+        },
+        {
+          "age_days": 1,
+          "as_of": "2026-11-05",
+          "bytes": 966797,
+          "document_id": "fl:document:sha256-a8f620cfec644040eaa118b90d8ba770cb6e694bfee04c72d40868ef9212aa61",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 30561,
+          "filename": "ed4q-f8tm.csv",
+          "parcels": 3738,
+          "retrieved_at": "2026-11-06T23:01:30+00:00"
+        },
+        {
+          "age_days": 1,
+          "as_of": "2026-11-05",
+          "bytes": 414295,
+          "document_id": "fl:document:sha256-acebcfa9bd91e36306fe43ae83047d4b08640b20503466f2c476a7395486bba2",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 12409,
+          "filename": "ed4q-f8tm.csv",
+          "parcels": 1530,
+          "retrieved_at": "2026-11-06T23:01:36+00:00"
+        },
+        {
+          "age_days": 1,
+          "as_of": "2026-11-05",
+          "bytes": 223162,
+          "document_id": "fl:document:sha256-b76e8437507fa9246ecffe13583c3bdab233c04169f9d20c4f08a7b56b337d42",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7399,
+          "filename": "ed4q-f8tm.csv",
+          "parcels": 887,
+          "retrieved_at": "2026-11-06T23:01:16+00:00"
+        },
+        {
+          "age_days": 1,
+          "as_of": "2026-11-05",
+          "bytes": 174126,
+          "document_id": "fl:document:sha256-ba401318f39bd88146b96714cfb796580ee46267901fd877baa5da16d895b348",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 5660,
+          "filename": "ed4q-f8tm.csv",
+          "parcels": 677,
+          "retrieved_at": "2026-11-06T23:01:35+00:00"
+        },
+        {
+          "age_days": 1,
+          "as_of": "2026-11-05",
+          "bytes": 648389,
+          "document_id": "fl:document:sha256-c02e84b40275289aff6115bdfcd4a2f150afd571d9fa753d66a3e621af707228",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 20145,
+          "filename": "ed4q-f8tm.csv",
+          "parcels": 2606,
+          "retrieved_at": "2026-11-06T23:01:20+00:00"
+        },
+        {
+          "age_days": 1,
+          "as_of": "2026-11-05",
+          "bytes": 3773208,
+          "document_id": "fl:document:sha256-d03232a76ab26eef73950e15b378ddfd05d9954121b2a1b4d5385ec5add47102",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 112300,
+          "filename": "ed4q-f8tm.csv",
+          "parcels": 14490,
+          "retrieved_at": "2026-11-06T23:01:06+00:00"
+        },
+        {
+          "age_days": 1,
+          "as_of": "2026-11-05",
+          "bytes": 827754,
+          "document_id": "fl:document:sha256-d592c838e8086258e74efac825fa07a3ea48e5bf2c6155412b6a1d9db0c92770",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 26182,
+          "filename": "ed4q-f8tm.csv",
+          "parcels": 3201,
+          "retrieved_at": "2026-11-06T23:01:47+00:00"
+        },
+        {
+          "age_days": 1,
+          "as_of": "2026-11-05",
+          "bytes": 357780,
+          "document_id": "fl:document:sha256-d68904e46b1ace4dc578c8438154390b895ea5b73cd6356628d3c641bd5854bf",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 11874,
+          "filename": "ed4q-f8tm.csv",
+          "parcels": 1416,
+          "retrieved_at": "2026-11-06T23:01:43+00:00"
+        },
+        {
+          "age_days": 1,
+          "as_of": "2026-11-05",
+          "bytes": 1128446,
+          "document_id": "fl:document:sha256-eab5b03e14df741dc5c6385c89eec7dd141e8acb49e6e2e98c5c369e6935cb9c",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 36159,
+          "filename": "ed4q-f8tm.csv",
+          "parcels": 4351,
+          "retrieved_at": "2026-11-06T23:01:27+00:00"
+        },
+        {
+          "age_days": 1,
+          "as_of": "2026-11-05",
+          "bytes": 3658751,
+          "document_id": "fl:document:sha256-f4d369a97a950eb1953a6eae89f635b2faad3d9bab361040530a4b856bd2b432",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 108249,
+          "filename": "ed4q-f8tm.csv",
+          "parcels": 13029,
+          "retrieved_at": "2026-11-06T23:01:03+00:00"
+        },
+        {
+          "age_days": 1,
+          "as_of": "2026-11-05",
+          "bytes": 288926,
+          "document_id": "fl:document:sha256-fb151e53afd5fa9f962097f63af056619aaad1c4808d3f67db962c4c70291769",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 9415,
+          "filename": "ed4q-f8tm.csv",
+          "parcels": 1132,
+          "retrieved_at": "2026-11-06T23:01:24+00:00"
+        }
+      ],
+      "source_file": [
+        {
+          "document_id": "13fcc58d4cbd",
+          "error": "no adapter registered for this source",
+          "file": "ed4q-f8tm.csv"
+        },
+        {
+          "document_id": "4189689a37a8",
+          "error": "no adapter registered for this source",
+          "file": "ed4q-f8tm.csv"
+        },
+        {
+          "document_id": "37563fd1f007",
+          "error": "no adapter registered for this source",
+          "file": "ed4q-f8tm.csv"
+        },
+        {
+          "document_id": "803f2855fa4a",
+          "error": "no adapter registered for this source",
+          "file": "ed4q-f8tm.csv"
+        },
+        {
+          "document_id": "41ce937495e4",
+          "error": "no adapter registered for this source",
+          "file": "ed4q-f8tm.csv"
+        },
+        {
+          "document_id": "c9f53945f247",
+          "error": "no adapter registered for this source",
+          "file": "ed4q-f8tm.csv"
+        },
+        {
+          "document_id": "a24d5731f7cc",
+          "error": "no adapter registered for this source",
+          "file": "ed4q-f8tm.csv"
+        },
+        {
+          "document_id": "52f138a7d292",
+          "error": "no adapter registered for this source",
+          "file": "ed4q-f8tm.csv"
+        },
+        {
+          "document_id": "891c1b6d5f6d",
+          "error": "no adapter registered for this source",
+          "file": "ed4q-f8tm.csv"
+        },
+        {
+          "document_id": "7a87afa5da02",
+          "error": "no adapter registered for this source",
+          "file": "ed4q-f8tm.csv"
+        },
+        {
+          "document_id": "58990b5090c9",
+          "error": "no adapter registered for this source",
+          "file": "ed4q-f8tm.csv"
+        },
+        {
+          "document_id": "f0ced6bcab35",
+          "error": "no adapter registered for this source",
+          "file": "ed4q-f8tm.csv"
+        },
+        {
+          "document_id": "cf49edd84b56",
+          "error": "no adapter registered for this source",
+          "file": "ed4q-f8tm.csv"
+        },
+        {
+          "document_id": "68ef9212aa61",
+          "error": "no adapter registered for this source",
+          "file": "ed4q-f8tm.csv"
+        },
+        {
+          "document_id": "a7395486bba2",
+          "error": "no adapter registered for this source",
+          "file": "ed4q-f8tm.csv"
+        },
+        {
+          "document_id": "a7b56b337d42",
+          "error": "no adapter registered for this source",
+          "file": "ed4q-f8tm.csv"
+        },
+        {
+          "document_id": "da16d895b348",
+          "error": "no adapter registered for this source",
+          "file": "ed4q-f8tm.csv"
+        },
+        {
+          "document_id": "e621af707228",
+          "error": "no adapter registered for this source",
+          "file": "ed4q-f8tm.csv"
+        },
+        {
+          "document_id": "5ec5add47102",
+          "error": "no adapter registered for this source",
+          "file": "ed4q-f8tm.csv"
+        },
+        {
+          "document_id": "1d9db0c92770",
+          "error": "no adapter registered for this source",
+          "file": "ed4q-f8tm.csv"
+        },
+        {
+          "document_id": "c641bd5854bf",
+          "error": "no adapter registered for this source",
+          "file": "ed4q-f8tm.csv"
+        },
+        {
+          "document_id": "369e6935cb9c",
+          "error": "no adapter registered for this source",
+          "file": "ed4q-f8tm.csv"
+        },
+        {
+          "document_id": "4b856bd2b432",
+          "error": "no adapter registered for this source",
+          "file": "ed4q-f8tm.csv"
+        },
+        {
+          "document_id": "2c4c70291769",
+          "error": "no adapter registered for this source",
+          "file": "ed4q-f8tm.csv"
+        }
+      ],
+      "source_id": "md-sdat-real-property",
+      "state_fips": "24",
+      "terms_reviewed": "2026-11-03",
+      "url": "https://opendata.maryland.gov/d/ed4q-f8tm"
+    }
+  ],
+  "stats": {
+    "entities": 0,
+    "facts": 878548,
+    "links": 0,
+    "parcels": 109249,
+    "review_pending": 0,
+    "snapshots": 24
+  },
+  "violations": [],
+  "warnings": [
+    "md-sdat-real-property: 4 parcels have an implausible year built",
+    "md-sdat-real-property: 7 parcels have an implausible area"
+  ]
+}

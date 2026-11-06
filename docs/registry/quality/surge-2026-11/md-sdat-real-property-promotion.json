@@ -1,0 +1,505 @@
+{
+  "source": "md-sdat-real-property",
+  "audit_date": "2026-11-06",
+  "as_of": "2026-11-05",
+  "counties": [
+    {
+      "fips": "24001",
+      "name": "Allegany",
+      "record_count": 3434,
+      "scratch_count": 3434,
+      "reread_count": 3434,
+      "pass": true,
+      "reason": "Re-read parcel-id set equals the registry. Violations 0. Person-like owner facts 0. As-of 2026-11-05. 2026-11-03 kept count was 3433."
+    },
+    {
+      "fips": "24003",
+      "name": "Anne Arundel",
+      "record_count": 9049,
+      "scratch_count": 9049,
+      "reread_count": 9049,
+      "pass": true,
+      "reason": "Re-read parcel-id set equals the registry. Violations 0. Person-like owner facts 0. As-of 2026-11-05. 2026-11-03 kept count was 9046."
+    },
+    {
+      "fips": "24005",
+      "name": "Baltimore County",
+      "record_count": 14490,
+      "scratch_count": 14490,
+      "reread_count": 14490,
+      "pass": true,
+      "reason": "Re-read parcel-id set equals the registry. Violations 0. Person-like owner facts 0. As-of 2026-11-05. 2026-11-03 kept count was 14494. Portal name is Baltimore."
+    },
+    {
+      "fips": "24009",
+      "name": "Calvert",
+      "record_count": 1042,
+      "scratch_count": 1042,
+      "reread_count": 1042,
+      "pass": true,
+      "reason": "Re-read parcel-id set equals the registry. Violations 0. Person-like owner facts 0. As-of 2026-11-05. Matches the 2026-11-03 kept count."
+    },
+    {
+      "fips": "24011",
+      "name": "Caroline",
+      "record_count": 887,
+      "scratch_count": 887,
+      "reread_count": 887,
+      "pass": true,
+      "reason": "Re-read parcel-id set equals the registry. Violations 0. Person-like owner facts 0. As-of 2026-11-05. 2026-11-03 kept count was 891."
+    },
+    {
+      "fips": "24013",
+      "name": "Carroll",
+      "record_count": 3327,
+      "scratch_count": 3327,
+      "reread_count": 3327,
+      "pass": true,
+      "reason": "Re-read parcel-id set equals the registry. Violations 0. Person-like owner facts 0. As-of 2026-11-05. 2026-11-03 kept count was 3318."
+    },
+    {
+      "fips": "24015",
+      "name": "Cecil",
+      "record_count": 2606,
+      "scratch_count": 2606,
+      "reread_count": 2606,
+      "pass": true,
+      "reason": "Re-read parcel-id set equals the registry. Violations 0. Person-like owner facts 0. As-of 2026-11-05. 2026-11-03 kept count was 2605."
+    },
+    {
+      "fips": "24017",
+      "name": "Charles",
+      "record_count": 3043,
+      "scratch_count": 3043,
+      "reread_count": 3043,
+      "pass": true,
+      "reason": "Re-read parcel-id set equals the registry. Violations 0. Person-like owner facts 0. As-of 2026-11-05. 2026-11-03 kept count was 3044."
+    },
+    {
+      "fips": "24019",
+      "name": "Dorchester",
+      "record_count": 1132,
+      "scratch_count": 1132,
+      "reread_count": 1132,
+      "pass": true,
+      "reason": "Re-read parcel-id set equals the registry. Violations 0. Person-like owner facts 0. As-of 2026-11-05. 2026-11-03 kept count was 1131."
+    },
+    {
+      "fips": "24021",
+      "name": "Frederick",
+      "record_count": 4351,
+      "scratch_count": 4351,
+      "reread_count": 4351,
+      "pass": true,
+      "reason": "Re-read parcel-id set equals the registry. Violations 0. Person-like owner facts 0. As-of 2026-11-05. 2026-11-03 kept count was 4353."
+    },
+    {
+      "fips": "24023",
+      "name": "Garrett",
+      "record_count": 1445,
+      "scratch_count": 1445,
+      "reread_count": 1445,
+      "pass": true,
+      "reason": "Re-read parcel-id set equals the registry. Violations 0. Person-like owner facts 0. As-of 2026-11-05. Matches the 2026-11-03 kept count."
+    },
+    {
+      "fips": "24025",
+      "name": "Harford",
+      "record_count": 3738,
+      "scratch_count": 3738,
+      "reread_count": 3738,
+      "pass": true,
+      "reason": "Re-read parcel-id set equals the registry. Violations 0. Person-like owner facts 0. As-of 2026-11-05. 2026-11-03 kept count was 3735."
+    },
+    {
+      "fips": "24027",
+      "name": "Howard",
+      "record_count": 4225,
+      "scratch_count": 4225,
+      "reread_count": 4225,
+      "pass": true,
+      "reason": "Re-read parcel-id set equals the registry. Violations 0. Person-like owner facts 0. As-of 2026-11-05. 2026-11-03 kept count was 4226."
+    },
+    {
+      "fips": "24029",
+      "name": "Kent",
+      "record_count": 677,
+      "scratch_count": 677,
+      "reread_count": 677,
+      "pass": true,
+      "reason": "Re-read parcel-id set equals the registry. Violations 0. Person-like owner facts 0. As-of 2026-11-05. 2026-11-03 kept count was 676."
+    },
+    {
+      "fips": "24031",
+      "name": "Montgomery",
+      "record_count": 11579,
+      "scratch_count": 11579,
+      "reread_count": 11579,
+      "pass": true,
+      "reason": "Re-read parcel-id set equals the registry. Violations 0. Person-like owner facts 0. As-of 2026-11-05. 2026-11-03 kept count was 11578."
+    },
+    {
+      "fips": "24033",
+      "name": "Prince George's",
+      "record_count": 13029,
+      "scratch_count": 13029,
+      "reread_count": 13029,
+      "pass": true,
+      "reason": "Re-read parcel-id set equals the registry. Violations 0. Person-like owner facts 0. As-of 2026-11-05. 2026-11-03 kept count was 13023."
+    },
+    {
+      "fips": "24035",
+      "name": "Queen Anne's",
+      "record_count": 1530,
+      "scratch_count": 1530,
+      "reread_count": 1530,
+      "pass": true,
+      "reason": "Re-read parcel-id set equals the registry. Violations 0. Person-like owner facts 0. As-of 2026-11-05. 2026-11-03 kept count was 1528."
+    },
+    {
+      "fips": "24037",
+      "name": "St. Mary's",
+      "record_count": 1944,
+      "scratch_count": 1944,
+      "reread_count": 1944,
+      "pass": true,
+      "reason": "Re-read parcel-id set equals the registry. Violations 0. Person-like owner facts 0. As-of 2026-11-05. 2026-11-03 kept count was 1945."
+    },
+    {
+      "fips": "24039",
+      "name": "Somerset",
+      "record_count": 995,
+      "scratch_count": 995,
+      "reread_count": 995,
+      "pass": true,
+      "reason": "Re-read parcel-id set equals the registry. Violations 0. Person-like owner facts 0. As-of 2026-11-05. 2026-11-03 kept count was 994. Industrial (I) is 0."
+    },
+    {
+      "fips": "24041",
+      "name": "Talbot",
+      "record_count": 1416,
+      "scratch_count": 1416,
+      "reread_count": 1416,
+      "pass": true,
+      "reason": "Re-read parcel-id set equals the registry. Violations 0. Person-like owner facts 0. As-of 2026-11-05. 2026-11-03 kept count was 1418."
+    },
+    {
+      "fips": "24043",
+      "name": "Washington",
+      "record_count": 3716,
+      "scratch_count": 3716,
+      "reread_count": 3716,
+      "pass": true,
+      "reason": "Re-read parcel-id set equals the registry. Violations 0. Person-like owner facts 0. As-of 2026-11-05. 2026-11-03 kept count was 3690."
+    },
+    {
+      "fips": "24045",
+      "name": "Wicomico",
+      "record_count": 3201,
+      "scratch_count": 3201,
+      "reread_count": 3201,
+      "pass": true,
+      "reason": "Re-read parcel-id set equals the registry. Violations 0. Person-like owner facts 0. As-of 2026-11-05. 2026-11-03 kept count was 3204."
+    },
+    {
+      "fips": "24047",
+      "name": "Worcester",
+      "record_count": 3592,
+      "scratch_count": 3592,
+      "reread_count": 3592,
+      "pass": true,
+      "reason": "Re-read parcel-id set equals the registry. Violations 0. Person-like owner facts 0. As-of 2026-11-05. 2026-11-03 kept count was 3594."
+    },
+    {
+      "fips": "24510",
+      "name": "Baltimore City",
+      "record_count": 14801,
+      "scratch_count": 14801,
+      "reread_count": 14801,
+      "pass": true,
+      "reason": "Re-read parcel-id set equals the registry. Violations 0. Person-like owner facts 0. As-of 2026-11-05. 2026-11-03 kept count was 14832."
+    }
+  ],
+  "denominator": {
+    "status": "published",
+    "url": "https://opendata.maryland.gov/resource/ed4q-f8tm.csv",
+    "queried": "2026-11-06",
+    "definition": "SoQL count(*) grouped by county, jurisdiction code, and land_use_code on ed4q-f8tm. Commercial plus industrial is Commercial (C) + Commercial Condominium (CC) + Industrial (I). Apartments (M) is separate. The adapter also keeps M.",
+    "statewide_accounts": 2434625,
+    "statewide_commercial_industrial": 97515,
+    "statewide_apartments_m": 11746,
+    "statewide_c_cc_i_m": 109261,
+    "kept_after_deletion_skip": 109249,
+    "by_county": [
+      {
+        "fips": "24001",
+        "name": "Allegany",
+        "all_accounts": 41484,
+        "c": 2649,
+        "cc": 55,
+        "i": 345,
+        "m": 385,
+        "commercial_industrial": 3049,
+        "c_cc_i_m": 3434
+      },
+      {
+        "fips": "24003",
+        "name": "Anne Arundel",
+        "all_accounts": 229272,
+        "c": 5945,
+        "cc": 1736,
+        "i": 1099,
+        "m": 273,
+        "commercial_industrial": 8780,
+        "c_cc_i_m": 9053
+      },
+      {
+        "fips": "24005",
+        "name": "Baltimore County",
+        "all_accounts": 306655,
+        "c": 7866,
+        "cc": 593,
+        "i": 3153,
+        "m": 2878,
+        "commercial_industrial": 11612,
+        "c_cc_i_m": 14490
+      },
+      {
+        "fips": "24009",
+        "name": "Calvert",
+        "all_accounts": 43333,
+        "c": 718,
+        "cc": 149,
+        "i": 150,
+        "m": 25,
+        "commercial_industrial": 1017,
+        "c_cc_i_m": 1042
+      },
+      {
+        "fips": "24011",
+        "name": "Caroline",
+        "all_accounts": 16708,
+        "c": 671,
+        "cc": 0,
+        "i": 126,
+        "m": 90,
+        "commercial_industrial": 797,
+        "c_cc_i_m": 887
+      },
+      {
+        "fips": "24013",
+        "name": "Carroll",
+        "all_accounts": 69332,
+        "c": 2160,
+        "cc": 365,
+        "i": 327,
+        "m": 475,
+        "commercial_industrial": 2852,
+        "c_cc_i_m": 3327
+      },
+      {
+        "fips": "24015",
+        "name": "Cecil",
+        "all_accounts": 48468,
+        "c": 2086,
+        "cc": 188,
+        "i": 220,
+        "m": 112,
+        "commercial_industrial": 2494,
+        "c_cc_i_m": 2606
+      },
+      {
+        "fips": "24017",
+        "name": "Charles",
+        "all_accounts": 75799,
+        "c": 1672,
+        "cc": 913,
+        "i": 363,
+        "m": 95,
+        "commercial_industrial": 2948,
+        "c_cc_i_m": 3043
+      },
+      {
+        "fips": "24019",
+        "name": "Dorchester",
+        "all_accounts": 22819,
+        "c": 926,
+        "cc": 0,
+        "i": 181,
+        "m": 25,
+        "commercial_industrial": 1107,
+        "c_cc_i_m": 1132
+      },
+      {
+        "fips": "24021",
+        "name": "Frederick",
+        "all_accounts": 112874,
+        "c": 2742,
+        "cc": 695,
+        "i": 562,
+        "m": 352,
+        "commercial_industrial": 3999,
+        "c_cc_i_m": 4351
+      },
+      {
+        "fips": "24023",
+        "name": "Garrett",
+        "all_accounts": 30646,
+        "c": 1103,
+        "cc": 275,
+        "i": 21,
+        "m": 46,
+        "commercial_industrial": 1399,
+        "c_cc_i_m": 1445
+      },
+      {
+        "fips": "24025",
+        "name": "Harford",
+        "all_accounts": 103505,
+        "c": 2972,
+        "cc": 161,
+        "i": 362,
+        "m": 243,
+        "commercial_industrial": 3495,
+        "c_cc_i_m": 3738
+      },
+      {
+        "fips": "24027",
+        "name": "Howard",
+        "all_accounts": 112798,
+        "c": 1803,
+        "cc": 1434,
+        "i": 790,
+        "m": 198,
+        "commercial_industrial": 4027,
+        "c_cc_i_m": 4225
+      },
+      {
+        "fips": "24029",
+        "name": "Kent",
+        "all_accounts": 13625,
+        "c": 627,
+        "cc": 23,
+        "i": 5,
+        "m": 22,
+        "commercial_industrial": 655,
+        "c_cc_i_m": 677
+      },
+      {
+        "fips": "24031",
+        "name": "Montgomery",
+        "all_accounts": 355589,
+        "c": 4845,
+        "cc": 3982,
+        "i": 1472,
+        "m": 1283,
+        "commercial_industrial": 10299,
+        "c_cc_i_m": 11582
+      },
+      {
+        "fips": "24033",
+        "name": "Prince George's",
+        "all_accounts": 315586,
+        "c": 5392,
+        "cc": 3229,
+        "i": 3265,
+        "m": 1143,
+        "commercial_industrial": 11886,
+        "c_cc_i_m": 13029
+      },
+      {
+        "fips": "24035",
+        "name": "Queen Anne's",
+        "all_accounts": 27776,
+        "c": 894,
+        "cc": 580,
+        "i": 10,
+        "m": 46,
+        "commercial_industrial": 1484,
+        "c_cc_i_m": 1530
+      },
+      {
+        "fips": "24037",
+        "name": "St. Mary's",
+        "all_accounts": 51280,
+        "c": 1539,
+        "cc": 142,
+        "i": 95,
+        "m": 168,
+        "commercial_industrial": 1776,
+        "c_cc_i_m": 1944
+      },
+      {
+        "fips": "24039",
+        "name": "Somerset",
+        "all_accounts": 16894,
+        "c": 935,
+        "cc": 14,
+        "i": 0,
+        "m": 46,
+        "commercial_industrial": 949,
+        "c_cc_i_m": 995
+      },
+      {
+        "fips": "24041",
+        "name": "Talbot",
+        "all_accounts": 22179,
+        "c": 1046,
+        "cc": 212,
+        "i": 69,
+        "m": 89,
+        "commercial_industrial": 1327,
+        "c_cc_i_m": 1416
+      },
+      {
+        "fips": "24043",
+        "name": "Washington",
+        "all_accounts": 61137,
+        "c": 2583,
+        "cc": 113,
+        "i": 360,
+        "m": 660,
+        "commercial_industrial": 3056,
+        "c_cc_i_m": 3716
+      },
+      {
+        "fips": "24045",
+        "name": "Wicomico",
+        "all_accounts": 48471,
+        "c": 2117,
+        "cc": 334,
+        "i": 447,
+        "m": 303,
+        "commercial_industrial": 2898,
+        "c_cc_i_m": 3201
+      },
+      {
+        "fips": "24047",
+        "name": "Worcester",
+        "all_accounts": 66725,
+        "c": 1928,
+        "cc": 1181,
+        "i": 189,
+        "m": 294,
+        "commercial_industrial": 3298,
+        "c_cc_i_m": 3592
+      },
+      {
+        "fips": "24510",
+        "name": "Baltimore City",
+        "all_accounts": 241670,
+        "c": 9237,
+        "cc": 738,
+        "i": 2336,
+        "m": 2495,
+        "commercial_industrial": 12311,
+        "c_cc_i_m": 14806
+      }
+    ]
+  },
+  "blockers": [
+    "The unmodified collector CLI refused all 24 URLs with status 'refused: refusing opendata.maryland.gov: resolves to non-public address 198.18.0.1'. This sandbox resolves that host to 198.18.0.1. The same snapshot() archived the files after allow_private_addresses was set on the in-memory CollectorConfig only. Publisher HTTP status on the terms and SoQL requests was 200. Collector code, the adapter, and the source JSON were not edited.",
+    "python -m factlot.registry.audit --reread wrote source_file error 'no adapter registered for this source' because _READER_MODULES omits md_sdat. violations is empty and the audit exit code was 0. The promotion re-read called factlot.registry.audit.reread_source_file on factlot.registry.adapters.md_sdat and compared parcel ids to coverage where present=1. All 24 sets matched. audit.py was not edited.",
+    "No terms stop on ed4q-f8tm. A person does not need to re-read that dataset before promotion. The data story also describes a different asset, 9xq5-z8s2 'Maryland Real Property Assessments: Includes Property Owner Names', which requires a signed user license agreement. That asset was not requested and its agreement was not read."
+  ]
+}

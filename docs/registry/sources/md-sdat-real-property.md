@@ -299,3 +299,43 @@ By jurisdiction:
   commercial accounts are rarely owner-occupied.
 - **The file does not carry coordinates or geometry** (`mappable_latitude_and_longitude` exists in the
   dataset but is not requested).
+
+## Correction (2026-11-06)
+
+The sections above are the 2026-11-03 load at `--as-of 2026-10-05` (109,245 parcels kept: `B` 11,752, `F1` 81,510, `F2` 15,983). Those tables are unchanged.
+
+Terms re-read the same day from <https://opendata.maryland.gov/api/views/ed4q-f8tm.json> (HTTP 200, `Fri, 06 Nov 2026 22:55:26 GMT`): `licenseId` `PUBLIC_DOMAIN`, `license.name` `Public Domain`, attribution `SDAT (State Department of Assessments and Taxation) and MDP (Maryland Department of Planning)`. The documentation PDF disclaimer is still "MDP does not provide any guaranty of accuracy or completeness regarding the map information." robots.txt is unchanged (`User-agent: *`, `Crawl-delay: 1`). No new redistribution, commercial-use, or AI-use restriction was in that metadata or the PDF. A separate asset, `9xq5-z8s2` ("Includes Property Owner Names"), is described on the portal data story as requiring a signed user license agreement. That asset was not requested. Evidence and the verbatim sentences: `docs/registry/quality/surge-2026-11/md-sdat-real-property.md`.
+
+Freshness moved. `rowsUpdatedAt` is 1793936319 (2026-11-06T03:38:39Z). A SoQL group of `date_of_most_recent_open_data_portal_record_update` on `ed4q-f8tm` returned `20261105` for 2,434,580 accounts and `20261005` for 45. The scratch load's as-of date is 2026-11-05. The `--as-of` commands in the sections above stay 2026-10-05; the coverage generator reads those commands, and regenerating the county file is the integrator's step.
+
+Kept on that load, all 24 jurisdiction files, deletion-dated accounts skipped (Montgomery 3, Anne Arundel 4, Baltimore City 5): **109,249** parcels (`B` 11,746, `F1` 81,561, `F2` 15,942). Facts written: 878,548. Person-like owner facts: 0. Owner-of-record facts: 0. Calvert (1,042) and Garrett (1,445) match the 2026-11-03 kept counts. The Tier 1 re-read matched the registry in every county (0 audit violations). Audit warnings, which do not fail the bar: 4 implausible years built and 7 implausible areas.
+
+| County (FIPS)            | Parcels kept |        `B` |       `F1` |       `F2` |
+| ------------------------ | -----------: | ---------: | ---------: | ---------: |
+| Allegany (24001)         |        3,434 |        385 |      2,704 |        345 |
+| Anne Arundel (24003)     |        9,049 |        273 |      7,679 |      1,097 |
+| Baltimore County (24005) |       14,490 |      2,878 |      8,459 |      3,153 |
+| Calvert (24009)          |        1,042 |         25 |        867 |        150 |
+| Caroline (24011)         |          887 |         90 |        671 |        126 |
+| Carroll (24013)          |        3,327 |        475 |      2,525 |        327 |
+| Cecil (24015)            |        2,606 |        112 |      2,274 |        220 |
+| Charles (24017)          |        3,043 |         95 |      2,585 |        363 |
+| Dorchester (24019)       |        1,132 |         25 |        926 |        181 |
+| Frederick (24021)        |        4,351 |        352 |      3,437 |        562 |
+| Garrett (24023)          |        1,445 |         46 |      1,378 |         21 |
+| Harford (24025)          |        3,738 |        243 |      3,133 |        362 |
+| Howard (24027)           |        4,225 |        198 |      3,237 |        790 |
+| Kent (24029)             |          677 |         22 |        650 |          5 |
+| Montgomery (24031)       |       11,579 |      1,283 |      8,826 |      1,470 |
+| Prince George's (24033)  |       13,029 |      1,143 |      8,621 |      3,265 |
+| Queen Anne's (24035)     |        1,530 |         46 |      1,474 |         10 |
+| St. Mary's (24037)       |        1,944 |        168 |      1,681 |         95 |
+| Somerset (24039)         |          995 |         46 |        949 |          0 |
+| Talbot (24041)           |        1,416 |         89 |      1,258 |         69 |
+| Washington (24043)       |        3,716 |        660 |      2,696 |        360 |
+| Wicomico (24045)         |        3,201 |        303 |      2,451 |        447 |
+| Worcester (24047)        |        3,592 |        294 |      3,109 |        189 |
+| Baltimore City (24510)   |       14,801 |      2,495 |      9,971 |      2,335 |
+| **All 24**               |  **109,249** | **11,746** | **81,561** | **15,942** |
+
+On the kept `M` accounts, field 239 is under 5 for 541 of 1,283 Montgomery, 320 of 1,143 Prince George's, and 2,301 of 2,878 Baltimore County (1,873 of those say one unit and 419 say zero). Statewide, 6,042 of 11,746. The 2026-11-03 known-gaps sentences stay as that day's measurement.
