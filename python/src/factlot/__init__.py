@@ -36,6 +36,7 @@ from .calc import (  # noqa: E402
     reconcile_dcf,
     renew_vs_relocate,
     rent_schedule,
+    tx_unequal_appraisal,
     walt,
 )
 from .facts import validate_fact  # noqa: E402
@@ -125,6 +126,7 @@ __all__ = [
     "space_id",
     "texas_holidays",
     "tool_definitions",
+    "tx_unequal_appraisal",
     "tx_property_tax_protest_deadline",
     "validate_fact",
     "walt",

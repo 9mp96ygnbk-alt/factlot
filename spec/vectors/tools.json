@@ -882,6 +882,156 @@
       "expect_message_contains": [
         "shares and ratios are decimals: pass 0.78 for 78%"
       ]
+    },
+    {
+      "tool": "calc_tx_unequal_appraisal",
+      "arguments": {
+        "tax_year": 2027,
+        "subject": {
+          "id": "S",
+          "value": 1000000,
+          "value_basis": "appraised"
+        },
+        "comparables": [
+          {
+            "id": "K1",
+            "value": 1010000,
+            "value_basis": "appraised"
+          },
+          {
+            "id": "K2",
+            "value": 1020000,
+            "value_basis": "appraised"
+          },
+          {
+            "id": "K3",
+            "value": 1030000,
+            "value_basis": "appraised"
+          }
+        ]
+      },
+      "expect": {
+        "provenance.formula": "calc.tx_unequal_appraisal@1",
+        "value.median_adjusted_value": 1020000,
+        "value.subject_minus_median": -20000
+      }
+    },
+    {
+      "tool": "calc_tx_unequal_appraisal",
+      "arguments": {
+        "tax_year": 2027,
+        "subject": {
+          "id": "S",
+          "value": 1000000,
+          "value_basis": "appraised"
+        },
+        "comparables": [
+          {
+            "id": "K1",
+            "value": 1010000,
+            "value_basis": "appraised",
+            "adjustment": [
+              {
+                "label": "age",
+                "kind": "percent",
+                "value": 0.05,
+                "reason": "older"
+              }
+            ]
+          },
+          {
+            "id": "K2",
+            "value": 1020000,
+            "value_basis": "appraised"
+          },
+          {
+            "id": "K3",
+            "value": 1030000,
+            "value_basis": "appraised"
+          }
+        ]
+      },
+      "expect_error": "CalcInputError",
+      "expect_issues": [
+        {
+          "path": "comparables.0.adjustment",
+          "message": "unknown field (did you mean \"adjustments\"?); known fields here: id, county_fips, value, value_basis, improvement_area_sf, land_area_sf, citation, adjustments"
+        }
+      ]
+    },
+    {
+      "tool": "calc_tx_unequal_appraisal",
+      "arguments": {
+        "tax_year": 2027,
+        "subject": {
+          "id": "S",
+          "value": 1000000,
+          "value_basis": "appraised"
+        },
+        "normalise_by": "land_area_sf",
+        "comparables": [
+          {
+            "id": "K1",
+            "value": 1010000,
+            "value_basis": "appraised"
+          },
+          {
+            "id": "K2",
+            "value": 1020000,
+            "value_basis": "appraised"
+          },
+          {
+            "id": "K3",
+            "value": 1030000,
+            "value_basis": "appraised"
+          }
+        ]
+      },
+      "expect_error": "CalcInputError",
+      "expect_issues": [
+        {
+          "path": "normalise_by",
+          "message": "unknown field (did you mean \"normalize_by\"?); known fields here: tax_year, subject, normalize_by, adjustment_combine, comparables"
+        }
+      ]
+    },
+    {
+      "tool": "calc_tx_unequal_appraisal",
+      "arguments": {
+        "tax_year": 2027,
+        "subject": {
+          "id": "S",
+          "value": 1000000,
+          "value_basis": "appraised"
+        },
+        "comparables": [
+          {
+            "id": "K1",
+            "value": 1010000,
+            "value_basis": "appraised",
+            "adjustments": [
+              {
+                "label": "age",
+                "kind": "percent",
+                "value": 5,
+                "reason": "comp older"
+              }
+            ]
+          },
+          {
+            "id": "K2",
+            "value": 1020000,
+            "value_basis": "appraised"
+          },
+          {
+            "id": "K3",
+            "value": 1030000,
+            "value_basis": "appraised"
+          }
+        ]
+      },
+      "expect_error": "CalcInputError",
+      "expect_message_contains": ["percentages are decimals: pass 0.05 for 5%"]
     }
   ]
 }

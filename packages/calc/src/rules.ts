@@ -99,7 +99,11 @@ export function texasHolidays(year: number): Map<string, string> {
   return map;
 }
 
-function nonBusinessReason(date: string): string | undefined {
+/**
+ * Why `date` (YYYY-MM-DD) is not a Texas business day: "Saturday", "Sunday", or the name of the
+ * Texas legal holiday (texasHolidays), else undefined.
+ */
+export function nonBusinessReason(date: string): string | undefined {
   const dow = weekday(date);
   if (dow === 6) return "Saturday";
   if (dow === 0) return "Sunday";

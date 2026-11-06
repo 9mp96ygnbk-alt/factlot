@@ -2564,6 +2564,7 @@ from .valuation import (  # noqa: E402  (valuation.py imports irr from this modu
     equity_waterfall,
     exchange_1031,
 )
+from .tx_unequal_appraisal import tx_unequal_appraisal  # noqa: E402
 
 from .critical_dates import critical_dates  # noqa: E402
 
@@ -2594,4 +2595,5 @@ CALCULATORS: dict[str, tuple[Callable[[Any], Result], str, int]] = {
     "critical_dates": (critical_dates, "calc.critical_dates", 1),
     "reconcile_dcf": (reconcile_dcf, "calc.reconcile_dcf", 1),
     "reconcile_cam": (reconcile_cam, "calc.reconcile_cam", 1),
+    "tx_unequal_appraisal": (tx_unequal_appraisal, "calc.tx_unequal_appraisal", 1),
 }

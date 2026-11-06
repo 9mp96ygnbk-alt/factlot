@@ -1,0 +1,1216 @@
+{
+  "calculator": "calc.tx_unequal_appraisal",
+  "version": 1,
+  "cases": [
+    {
+      "name": "odd count, whole values, percentages summed: A 900,000 × (1 + 0.20 − 0.10) = 990,000 is the 3rd of 5 (900,000; 902,500; 990,000; 1,050,000; 1,058,400), subject 1,000,000 is 10,000 above it",
+      "input": {
+        "tax_year": 2027,
+        "subject": {
+          "id": "S",
+          "county_fips": "201",
+          "value": 1000000,
+          "value_basis": "appraised"
+        },
+        "adjustment_combine": "sum",
+        "comparables": [
+          {
+            "id": "A",
+            "county_fips": "201",
+            "value": 900000,
+            "value_basis": "appraised",
+            "adjustments": [
+              {
+                "label": "location",
+                "kind": "percent",
+                "value": 0.2,
+                "reason": "comp on a weaker corridor"
+              },
+              {
+                "label": "age",
+                "kind": "percent",
+                "value": -0.1,
+                "reason": "comp newer"
+              }
+            ]
+          },
+          {
+            "id": "B",
+            "county_fips": "201",
+            "value": 950000,
+            "value_basis": "appraised",
+            "adjustments": [
+              {
+                "label": "condition",
+                "kind": "percent",
+                "value": -0.05,
+                "reason": "comp renovated 2024"
+              }
+            ]
+          },
+          {
+            "id": "C",
+            "county_fips": "201",
+            "value": 1050000,
+            "value_basis": "appraised"
+          },
+          {
+            "id": "D",
+            "county_fips": "201",
+            "value": 980000,
+            "value_basis": "appraised",
+            "adjustments": [
+              {
+                "label": "age",
+                "kind": "percent",
+                "value": 0.05,
+                "reason": "comp older"
+              },
+              {
+                "label": "parking",
+                "kind": "percent",
+                "value": 0.03,
+                "reason": "comp has less parking"
+              }
+            ]
+          },
+          {
+            "id": "E",
+            "county_fips": "201",
+            "value": 920000,
+            "value_basis": "appraised",
+            "adjustments": [
+              {
+                "label": "excess land",
+                "kind": "amount",
+                "value": -20000,
+                "reason": "comp has a surplus pad site"
+              }
+            ]
+          }
+        ]
+      },
+      "expect": {
+        "formula.id": "calc.tx_unequal_appraisal",
+        "value.disclaimer": "Evidence calculation only: arithmetic on the values and adjustments supplied. It is not an appraisal or an opinion of value (Occupations Code §1103.003(1)), it is not legal or tax advice, and it is not a substitute for the advice of an attorney. It does not say whether to protest or what value to claim. FactLot does not represent property owners.",
+        "value.comparables_count": 5,
+        "value.normalize_by": "none",
+        "value.adjustment_combine": "sum",
+        "value.comparables.0.normalized_value": 900000,
+        "value.comparables.0.percent_factor": 1.1,
+        "value.comparables.0.after_percent_value": 990000,
+        "value.comparables.0.amount_adjustments_total": 0,
+        "value.comparables.0.adjusted_value": 990000,
+        "value.comparables.0.adjusted_value_psf": null,
+        "value.comparables.0.total_adjustment_pct": 0.1,
+        "value.comparables.1.normalized_value": 950000,
+        "value.comparables.1.percent_factor": 0.95,
+        "value.comparables.1.after_percent_value": 902500,
+        "value.comparables.1.amount_adjustments_total": 0,
+        "value.comparables.1.adjusted_value": 902500,
+        "value.comparables.1.adjusted_value_psf": null,
+        "value.comparables.1.total_adjustment_pct": -0.05,
+        "value.comparables.2.normalized_value": 1050000,
+        "value.comparables.2.percent_factor": 1,
+        "value.comparables.2.after_percent_value": 1050000,
+        "value.comparables.2.amount_adjustments_total": 0,
+        "value.comparables.2.adjusted_value": 1050000,
+        "value.comparables.2.adjusted_value_psf": null,
+        "value.comparables.2.total_adjustment_pct": 0,
+        "value.comparables.3.normalized_value": 980000,
+        "value.comparables.3.percent_factor": 1.08,
+        "value.comparables.3.after_percent_value": 1058400,
+        "value.comparables.3.amount_adjustments_total": 0,
+        "value.comparables.3.adjusted_value": 1058400,
+        "value.comparables.3.adjusted_value_psf": null,
+        "value.comparables.3.total_adjustment_pct": 0.08,
+        "value.comparables.4.normalized_value": 920000,
+        "value.comparables.4.percent_factor": 1,
+        "value.comparables.4.after_percent_value": 920000,
+        "value.comparables.4.amount_adjustments_total": -20000,
+        "value.comparables.4.adjusted_value": 900000,
+        "value.comparables.4.adjusted_value_psf": null,
+        "value.comparables.4.total_adjustment_pct": -0.021739,
+        "value.sorted_adjusted_values": [
+          900000, 902500, 990000, 1050000, 1058400
+        ],
+        "value.median_adjusted_value": 990000,
+        "value.median_pair": null,
+        "value.subject_value": 1000000,
+        "value.subject_minus_median": 10000,
+        "value.subject_minus_median_pct": 0.010101,
+        "value.law.0.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.41.htm#41.43",
+        "value.law.1.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.42.htm#42.26",
+        "value.law.3.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.41.htm#41.66",
+        "value.law.4.url": "https://statutes.capitol.texas.gov/Docs/OC/htm/OC.1103.htm#1103.003",
+        "warnings": [
+          "Evidence calculation only: arithmetic on the values and adjustments supplied. It is not an appraisal or an opinion of value (Occupations Code §1103.003(1)), it is not legal or tax advice, and it is not a substitute for the advice of an attorney. It does not say whether to protest or what value to claim. FactLot does not represent property owners."
+        ]
+      }
+    },
+    {
+      "name": "same comparables, percentages compounded: A 900,000 × 1.20 × 0.90 = 972,000 becomes the median, D 980,000 × 1.05 × 1.03 = 1,059,870",
+      "input": {
+        "tax_year": 2027,
+        "subject": {
+          "id": "S",
+          "county_fips": "201",
+          "value": 1000000,
+          "value_basis": "appraised"
+        },
+        "adjustment_combine": "compound",
+        "comparables": [
+          {
+            "id": "A",
+            "county_fips": "201",
+            "value": 900000,
+            "value_basis": "appraised",
+            "adjustments": [
+              {
+                "label": "location",
+                "kind": "percent",
+                "value": 0.2,
+                "reason": "comp on a weaker corridor"
+              },
+              {
+                "label": "age",
+                "kind": "percent",
+                "value": -0.1,
+                "reason": "comp newer"
+              }
+            ]
+          },
+          {
+            "id": "B",
+            "county_fips": "201",
+            "value": 950000,
+            "value_basis": "appraised",
+            "adjustments": [
+              {
+                "label": "condition",
+                "kind": "percent",
+                "value": -0.05,
+                "reason": "comp renovated 2024"
+              }
+            ]
+          },
+          {
+            "id": "C",
+            "county_fips": "201",
+            "value": 1050000,
+            "value_basis": "appraised"
+          },
+          {
+            "id": "D",
+            "county_fips": "201",
+            "value": 980000,
+            "value_basis": "appraised",
+            "adjustments": [
+              {
+                "label": "age",
+                "kind": "percent",
+                "value": 0.05,
+                "reason": "comp older"
+              },
+              {
+                "label": "parking",
+                "kind": "percent",
+                "value": 0.03,
+                "reason": "comp has less parking"
+              }
+            ]
+          },
+          {
+            "id": "E",
+            "county_fips": "201",
+            "value": 920000,
+            "value_basis": "appraised",
+            "adjustments": [
+              {
+                "label": "excess land",
+                "kind": "amount",
+                "value": -20000,
+                "reason": "comp has a surplus pad site"
+              }
+            ]
+          }
+        ]
+      },
+      "expect": {
+        "formula.id": "calc.tx_unequal_appraisal",
+        "value.disclaimer": "Evidence calculation only: arithmetic on the values and adjustments supplied. It is not an appraisal or an opinion of value (Occupations Code §1103.003(1)), it is not legal or tax advice, and it is not a substitute for the advice of an attorney. It does not say whether to protest or what value to claim. FactLot does not represent property owners.",
+        "value.comparables_count": 5,
+        "value.normalize_by": "none",
+        "value.adjustment_combine": "compound",
+        "value.comparables.0.normalized_value": 900000,
+        "value.comparables.0.percent_factor": 1.08,
+        "value.comparables.0.after_percent_value": 972000,
+        "value.comparables.0.amount_adjustments_total": 0,
+        "value.comparables.0.adjusted_value": 972000,
+        "value.comparables.0.adjusted_value_psf": null,
+        "value.comparables.0.total_adjustment_pct": 0.08,
+        "value.comparables.1.normalized_value": 950000,
+        "value.comparables.1.percent_factor": 0.95,
+        "value.comparables.1.after_percent_value": 902500,
+        "value.comparables.1.amount_adjustments_total": 0,
+        "value.comparables.1.adjusted_value": 902500,
+        "value.comparables.1.adjusted_value_psf": null,
+        "value.comparables.1.total_adjustment_pct": -0.05,
+        "value.comparables.2.normalized_value": 1050000,
+        "value.comparables.2.percent_factor": 1,
+        "value.comparables.2.after_percent_value": 1050000,
+        "value.comparables.2.amount_adjustments_total": 0,
+        "value.comparables.2.adjusted_value": 1050000,
+        "value.comparables.2.adjusted_value_psf": null,
+        "value.comparables.2.total_adjustment_pct": 0,
+        "value.comparables.3.normalized_value": 980000,
+        "value.comparables.3.percent_factor": 1.0815,
+        "value.comparables.3.after_percent_value": 1059870,
+        "value.comparables.3.amount_adjustments_total": 0,
+        "value.comparables.3.adjusted_value": 1059870,
+        "value.comparables.3.adjusted_value_psf": null,
+        "value.comparables.3.total_adjustment_pct": 0.0815,
+        "value.comparables.4.normalized_value": 920000,
+        "value.comparables.4.percent_factor": 1,
+        "value.comparables.4.after_percent_value": 920000,
+        "value.comparables.4.amount_adjustments_total": -20000,
+        "value.comparables.4.adjusted_value": 900000,
+        "value.comparables.4.adjusted_value_psf": null,
+        "value.comparables.4.total_adjustment_pct": -0.021739,
+        "value.sorted_adjusted_values": [
+          900000, 902500, 972000, 1050000, 1059870
+        ],
+        "value.median_adjusted_value": 972000,
+        "value.median_pair": null,
+        "value.subject_value": 1000000,
+        "value.subject_minus_median": 28000,
+        "value.subject_minus_median_pct": 0.028807,
+        "value.law.0.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.41.htm#41.43",
+        "value.law.1.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.42.htm#42.26",
+        "value.law.3.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.41.htm#41.66",
+        "value.law.4.url": "https://statutes.capitol.texas.gov/Docs/OC/htm/OC.1103.htm#1103.003",
+        "warnings": [
+          "Evidence calculation only: arithmetic on the values and adjustments supplied. It is not an appraisal or an opinion of value (Occupations Code §1103.003(1)), it is not legal or tax advice, and it is not a substitute for the advice of an attorney. It does not say whether to protest or what value to claim. FactLot does not represent property owners."
+        ]
+      }
+    },
+    {
+      "name": "even count, normalized by improvement area, $/SF and amount adjustments: A 3,650,000 ÷ 29,500 × 31,000 = 3,835,593.22 × 1.03 = 3,950,661.02; B 3,875,000 − 2.50 × 31,000 = 3,797,500; median (3,797,500 + 3,950,661.02) ÷ 2 = 3,874,080.51; 4 comparables warn",
+      "input": {
+        "tax_year": 2027,
+        "subject": {
+          "id": "fl:parcel:us-48201:0420150000012",
+          "value": 4200000,
+          "value_basis": "appraised",
+          "improvement_area_sf": 31000
+        },
+        "normalize_by": "improvement_area_sf",
+        "comparables": [
+          {
+            "id": "fl:parcel:us-48201:0420150000034",
+            "value": 3650000,
+            "value_basis": "appraised",
+            "improvement_area_sf": 29500,
+            "citation": {
+              "document_id": "fl:document:sha256-example",
+              "locator": "account 0420150000034",
+              "as_of": "2027-04-15"
+            },
+            "adjustments": [
+              {
+                "label": "age",
+                "kind": "percent",
+                "value": 0.05,
+                "reason": "comp built 1998, subject 2006"
+              },
+              {
+                "label": "size",
+                "kind": "percent",
+                "value": -0.02,
+                "reason": "comp 5% smaller"
+              }
+            ]
+          },
+          {
+            "id": "B",
+            "value": 4000000,
+            "value_basis": "appraised",
+            "improvement_area_sf": 32000,
+            "adjustments": [
+              {
+                "label": "condition",
+                "kind": "psf",
+                "value": -2.5,
+                "reason": "comp has a new roof"
+              }
+            ]
+          },
+          {
+            "id": "C",
+            "value": 3900000,
+            "value_basis": "appraised",
+            "improvement_area_sf": 30000,
+            "adjustments": [
+              {
+                "label": "pad site",
+                "kind": "amount",
+                "value": -50000,
+                "reason": "comp includes a leased pad"
+              }
+            ]
+          },
+          {
+            "id": "D",
+            "value": 3720000,
+            "value_basis": "appraised",
+            "improvement_area_sf": 31000
+          }
+        ]
+      },
+      "expect": {
+        "formula.id": "calc.tx_unequal_appraisal",
+        "value.disclaimer": "Evidence calculation only: arithmetic on the values and adjustments supplied. It is not an appraisal or an opinion of value (Occupations Code §1103.003(1)), it is not legal or tax advice, and it is not a substitute for the advice of an attorney. It does not say whether to protest or what value to claim. FactLot does not represent property owners.",
+        "value.comparables_count": 4,
+        "value.normalize_by": "improvement_area_sf",
+        "value.adjustment_combine": "sum",
+        "value.comparables.0.normalized_value": 3835593.22,
+        "value.comparables.0.percent_factor": 1.03,
+        "value.comparables.0.after_percent_value": 3950661.02,
+        "value.comparables.0.amount_adjustments_total": 0,
+        "value.comparables.0.adjusted_value": 3950661.02,
+        "value.comparables.0.adjusted_value_psf": 127.44,
+        "value.comparables.0.total_adjustment_pct": 0.03,
+        "value.comparables.1.normalized_value": 3875000,
+        "value.comparables.1.percent_factor": 1,
+        "value.comparables.1.after_percent_value": 3875000,
+        "value.comparables.1.amount_adjustments_total": -77500,
+        "value.comparables.1.adjusted_value": 3797500,
+        "value.comparables.1.adjusted_value_psf": 122.5,
+        "value.comparables.1.total_adjustment_pct": -0.02,
+        "value.comparables.2.normalized_value": 4030000,
+        "value.comparables.2.percent_factor": 1,
+        "value.comparables.2.after_percent_value": 4030000,
+        "value.comparables.2.amount_adjustments_total": -50000,
+        "value.comparables.2.adjusted_value": 3980000,
+        "value.comparables.2.adjusted_value_psf": 128.39,
+        "value.comparables.2.total_adjustment_pct": -0.012407,
+        "value.comparables.3.normalized_value": 3720000,
+        "value.comparables.3.percent_factor": 1,
+        "value.comparables.3.after_percent_value": 3720000,
+        "value.comparables.3.amount_adjustments_total": 0,
+        "value.comparables.3.adjusted_value": 3720000,
+        "value.comparables.3.adjusted_value_psf": 120,
+        "value.comparables.3.total_adjustment_pct": 0,
+        "value.sorted_adjusted_values": [3720000, 3797500, 3950661.02, 3980000],
+        "value.median_adjusted_value": 3874080.51,
+        "value.median_pair": [3797500, 3950661.02],
+        "value.subject_value": 4200000,
+        "value.subject_minus_median": 325919.49,
+        "value.subject_minus_median_pct": 0.084128,
+        "value.law.0.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.41.htm#41.43",
+        "value.law.1.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.42.htm#42.26",
+        "value.law.3.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.41.htm#41.66",
+        "value.law.4.url": "https://statutes.capitol.texas.gov/Docs/OC/htm/OC.1103.htm#1103.003",
+        "warnings": [
+          "Evidence calculation only: arithmetic on the values and adjustments supplied. It is not an appraisal or an opinion of value (Occupations Code §1103.003(1)), it is not legal or tax advice, and it is not a substitute for the advice of an attorney. It does not say whether to protest or what value to claim. FactLot does not represent property owners.",
+          "Only 4 comparables: §41.43(b)(3) and §42.26(a)(3) call for \"a reasonable number\" and the statute does not define it. FactLot's minimum of 3 is a product floor, not a rule of law."
+        ],
+        "value.comparables.0.citation": {
+          "document_id": "fl:document:sha256-example",
+          "locator": "account 0420150000034",
+          "as_of": "2027-04-15"
+        },
+        "value.comparables.0.id": "fl:parcel:us-48201:0420150000034"
+      }
+    },
+    {
+      "name": "even count of 6, normalized by land area, market values, subject below the median: (2,100,000 + 2,160,000) ÷ 2 = 2,130,000, subject 2,000,000 is 130,000 below",
+      "input": {
+        "tax_year": 2027,
+        "subject": {
+          "value": 2000000,
+          "value_basis": "market",
+          "land_area_sf": 100000
+        },
+        "normalize_by": "land_area_sf",
+        "comparables": [
+          {
+            "id": "L1",
+            "value": 1100000,
+            "value_basis": "market",
+            "land_area_sf": 50000,
+            "adjustments": [
+              {
+                "label": "frontage",
+                "kind": "psf",
+                "value": 1,
+                "reason": "comp has less frontage"
+              }
+            ]
+          },
+          {
+            "id": "L2",
+            "value": 2400000,
+            "value_basis": "market",
+            "land_area_sf": 120000,
+            "adjustments": [
+              {
+                "label": "access",
+                "kind": "amount",
+                "value": 25000,
+                "reason": "comp lacks a signal"
+              }
+            ]
+          },
+          {
+            "id": "L3",
+            "value": 1800000,
+            "value_basis": "market",
+            "land_area_sf": 80000,
+            "adjustments": [
+              {
+                "label": "shape",
+                "kind": "percent",
+                "value": -0.04,
+                "reason": "comp is rectangular"
+              }
+            ]
+          },
+          {
+            "id": "L4",
+            "value": 3150000,
+            "value_basis": "market",
+            "land_area_sf": 150000
+          },
+          {
+            "id": "L5",
+            "value": 950000,
+            "value_basis": "market",
+            "land_area_sf": 40000,
+            "adjustments": [
+              {
+                "label": "floodplain",
+                "kind": "psf",
+                "value": -0.5,
+                "reason": "comp is outside the floodplain"
+              }
+            ]
+          },
+          {
+            "id": "L6",
+            "value": 2100000,
+            "value_basis": "market",
+            "land_area_sf": 105000,
+            "adjustments": [
+              {
+                "label": "utilities",
+                "kind": "amount",
+                "value": -10000.5,
+                "reason": "comp has sewer at the line"
+              }
+            ]
+          }
+        ]
+      },
+      "expect": {
+        "formula.id": "calc.tx_unequal_appraisal",
+        "value.disclaimer": "Evidence calculation only: arithmetic on the values and adjustments supplied. It is not an appraisal or an opinion of value (Occupations Code §1103.003(1)), it is not legal or tax advice, and it is not a substitute for the advice of an attorney. It does not say whether to protest or what value to claim. FactLot does not represent property owners.",
+        "value.comparables_count": 6,
+        "value.normalize_by": "land_area_sf",
+        "value.adjustment_combine": "sum",
+        "value.comparables.0.normalized_value": 2200000,
+        "value.comparables.0.percent_factor": 1,
+        "value.comparables.0.after_percent_value": 2200000,
+        "value.comparables.0.amount_adjustments_total": 100000,
+        "value.comparables.0.adjusted_value": 2300000,
+        "value.comparables.0.adjusted_value_psf": 23,
+        "value.comparables.0.total_adjustment_pct": 0.045455,
+        "value.comparables.1.normalized_value": 2000000,
+        "value.comparables.1.percent_factor": 1,
+        "value.comparables.1.after_percent_value": 2000000,
+        "value.comparables.1.amount_adjustments_total": 25000,
+        "value.comparables.1.adjusted_value": 2025000,
+        "value.comparables.1.adjusted_value_psf": 20.25,
+        "value.comparables.1.total_adjustment_pct": 0.0125,
+        "value.comparables.2.normalized_value": 2250000,
+        "value.comparables.2.percent_factor": 0.96,
+        "value.comparables.2.after_percent_value": 2160000,
+        "value.comparables.2.amount_adjustments_total": 0,
+        "value.comparables.2.adjusted_value": 2160000,
+        "value.comparables.2.adjusted_value_psf": 21.6,
+        "value.comparables.2.total_adjustment_pct": -0.04,
+        "value.comparables.3.normalized_value": 2100000,
+        "value.comparables.3.percent_factor": 1,
+        "value.comparables.3.after_percent_value": 2100000,
+        "value.comparables.3.amount_adjustments_total": 0,
+        "value.comparables.3.adjusted_value": 2100000,
+        "value.comparables.3.adjusted_value_psf": 21,
+        "value.comparables.3.total_adjustment_pct": 0,
+        "value.comparables.4.normalized_value": 2375000,
+        "value.comparables.4.percent_factor": 1,
+        "value.comparables.4.after_percent_value": 2375000,
+        "value.comparables.4.amount_adjustments_total": -50000,
+        "value.comparables.4.adjusted_value": 2325000,
+        "value.comparables.4.adjusted_value_psf": 23.25,
+        "value.comparables.4.total_adjustment_pct": -0.021053,
+        "value.comparables.5.normalized_value": 2000000,
+        "value.comparables.5.percent_factor": 1,
+        "value.comparables.5.after_percent_value": 2000000,
+        "value.comparables.5.amount_adjustments_total": -10000.5,
+        "value.comparables.5.adjusted_value": 1989999.5,
+        "value.comparables.5.adjusted_value_psf": 19.9,
+        "value.comparables.5.total_adjustment_pct": -0.005,
+        "value.sorted_adjusted_values": [
+          1989999.5, 2025000, 2100000, 2160000, 2300000, 2325000
+        ],
+        "value.median_adjusted_value": 2130000,
+        "value.median_pair": [2100000, 2160000],
+        "value.subject_value": 2000000,
+        "value.subject_minus_median": -130000,
+        "value.subject_minus_median_pct": -0.061033,
+        "value.law.0.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.41.htm#41.43",
+        "value.law.1.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.42.htm#42.26",
+        "value.law.3.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.41.htm#41.66",
+        "value.law.4.url": "https://statutes.capitol.texas.gov/Docs/OC/htm/OC.1103.htm#1103.003",
+        "warnings": [
+          "Evidence calculation only: arithmetic on the values and adjustments supplied. It is not an appraisal or an opinion of value (Occupations Code §1103.003(1)), it is not legal or tax advice, and it is not a substitute for the advice of an attorney. It does not say whether to protest or what value to claim. FactLot does not represent property owners."
+        ]
+      }
+    },
+    {
+      "name": "tax year 2026, §23.231 property: every warning except the 2027 one (mixed basis W2, other county W3, W4 adjusted 30%, W5 identical to the subject); median 1,450,000",
+      "input": {
+        "tax_year": 2026,
+        "subject": {
+          "id": "S",
+          "county_fips": "201",
+          "value": 1500000,
+          "value_basis": "appraised",
+          "improvement_area_sf": 10000,
+          "circuit_breaker_23_231": true
+        },
+        "comparables": [
+          {
+            "id": "W1",
+            "county_fips": "201",
+            "value": 1400000,
+            "value_basis": "appraised"
+          },
+          {
+            "id": "W2",
+            "county_fips": "201",
+            "value": 1600000,
+            "value_basis": "market"
+          },
+          {
+            "id": "W3",
+            "county_fips": "157",
+            "value": 1450000,
+            "value_basis": "appraised"
+          },
+          {
+            "id": "W4",
+            "county_fips": "201",
+            "value": 1000000,
+            "value_basis": "appraised",
+            "adjustments": [
+              {
+                "label": "quality",
+                "kind": "percent",
+                "value": 0.3,
+                "reason": "comp is class C, subject class A"
+              }
+            ]
+          },
+          {
+            "id": "W5",
+            "county_fips": "201",
+            "value": 1500000,
+            "value_basis": "appraised",
+            "improvement_area_sf": 10000
+          }
+        ]
+      },
+      "expect": {
+        "formula.id": "calc.tx_unequal_appraisal",
+        "value.disclaimer": "Evidence calculation only: arithmetic on the values and adjustments supplied. It is not an appraisal or an opinion of value (Occupations Code §1103.003(1)), it is not legal or tax advice, and it is not a substitute for the advice of an attorney. It does not say whether to protest or what value to claim. FactLot does not represent property owners.",
+        "value.comparables_count": 5,
+        "value.normalize_by": "none",
+        "value.adjustment_combine": "sum",
+        "value.comparables.0.normalized_value": 1400000,
+        "value.comparables.0.percent_factor": 1,
+        "value.comparables.0.after_percent_value": 1400000,
+        "value.comparables.0.amount_adjustments_total": 0,
+        "value.comparables.0.adjusted_value": 1400000,
+        "value.comparables.0.adjusted_value_psf": null,
+        "value.comparables.0.total_adjustment_pct": 0,
+        "value.comparables.1.normalized_value": 1600000,
+        "value.comparables.1.percent_factor": 1,
+        "value.comparables.1.after_percent_value": 1600000,
+        "value.comparables.1.amount_adjustments_total": 0,
+        "value.comparables.1.adjusted_value": 1600000,
+        "value.comparables.1.adjusted_value_psf": null,
+        "value.comparables.1.total_adjustment_pct": 0,
+        "value.comparables.2.normalized_value": 1450000,
+        "value.comparables.2.percent_factor": 1,
+        "value.comparables.2.after_percent_value": 1450000,
+        "value.comparables.2.amount_adjustments_total": 0,
+        "value.comparables.2.adjusted_value": 1450000,
+        "value.comparables.2.adjusted_value_psf": null,
+        "value.comparables.2.total_adjustment_pct": 0,
+        "value.comparables.3.normalized_value": 1000000,
+        "value.comparables.3.percent_factor": 1.3,
+        "value.comparables.3.after_percent_value": 1300000,
+        "value.comparables.3.amount_adjustments_total": 0,
+        "value.comparables.3.adjusted_value": 1300000,
+        "value.comparables.3.adjusted_value_psf": null,
+        "value.comparables.3.total_adjustment_pct": 0.3,
+        "value.comparables.4.normalized_value": 1500000,
+        "value.comparables.4.percent_factor": 1,
+        "value.comparables.4.after_percent_value": 1500000,
+        "value.comparables.4.amount_adjustments_total": 0,
+        "value.comparables.4.adjusted_value": 1500000,
+        "value.comparables.4.adjusted_value_psf": null,
+        "value.comparables.4.total_adjustment_pct": 0,
+        "value.sorted_adjusted_values": [
+          1300000, 1400000, 1450000, 1500000, 1600000
+        ],
+        "value.median_adjusted_value": 1450000,
+        "value.median_pair": null,
+        "value.subject_value": 1500000,
+        "value.subject_minus_median": 50000,
+        "value.subject_minus_median_pct": 0.034483,
+        "value.law.0.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.41.htm#41.43",
+        "value.law.1.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.42.htm#42.26",
+        "value.law.3.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.41.htm#41.66",
+        "value.law.4.url": "https://statutes.capitol.texas.gov/Docs/OC/htm/OC.1103.htm#1103.003",
+        "warnings": [
+          "Evidence calculation only: arithmetic on the values and adjustments supplied. It is not an appraisal or an opinion of value (Occupations Code §1103.003(1)), it is not legal or tax advice, and it is not a substitute for the advice of an attorney. It does not say whether to protest or what value to claim. FactLot does not represent property owners.",
+          "Value basis differs from the subject's (appraised) for comparable W2: compare the same kind of value for the subject and every comparable.",
+          "Tax year 2026: on appeal under §42.26, §42.26(d) (text in effect until 2027-01-01) requires market value for the subject and the comparables when the property is subject to the §23.231 limitation, and the subject, comparable W1, comparable W3, comparable W4, comparable W5 use appraised value; appraisal review board practice may differ.",
+          "In a different county from the subject (FIPS 201): comparable W3. Unequal-appraisal comparisons are made within the appraisal district.",
+          "Total adjustment over 25% (adjusted ÷ normalized − 1) for comparable W4. This is a FactLot flag, not a legal limit; large adjustments deserve a second look.",
+          "Same value, value basis and areas as the subject: comparable W5. Check that the subject is not among its own comparables."
+        ]
+      }
+    },
+    {
+      "name": "tax year 2027, §23.231 flag: the limitation is no longer in §42.26(d); comparables without ids are named #1–#3; median 790,000 × (1 − 0.025) = 770,250",
+      "input": {
+        "tax_year": 2027,
+        "subject": {
+          "value": 800000,
+          "value_basis": "market",
+          "circuit_breaker_23_231": true
+        },
+        "comparables": [
+          {
+            "value": 750000,
+            "value_basis": "market",
+            "adjustments": [
+              {
+                "label": "signage",
+                "kind": "amount",
+                "value": 15000,
+                "reason": "comp has none"
+              }
+            ]
+          },
+          {
+            "value": 820000,
+            "value_basis": "market"
+          },
+          {
+            "value": 790000,
+            "value_basis": "market",
+            "adjustments": [
+              {
+                "label": "condition",
+                "kind": "percent",
+                "value": -0.025,
+                "reason": "comp in better condition"
+              }
+            ]
+          }
+        ]
+      },
+      "expect": {
+        "formula.id": "calc.tx_unequal_appraisal",
+        "value.disclaimer": "Evidence calculation only: arithmetic on the values and adjustments supplied. It is not an appraisal or an opinion of value (Occupations Code §1103.003(1)), it is not legal or tax advice, and it is not a substitute for the advice of an attorney. It does not say whether to protest or what value to claim. FactLot does not represent property owners.",
+        "value.comparables_count": 3,
+        "value.normalize_by": "none",
+        "value.adjustment_combine": "sum",
+        "value.comparables.0.normalized_value": 750000,
+        "value.comparables.0.percent_factor": 1,
+        "value.comparables.0.after_percent_value": 750000,
+        "value.comparables.0.amount_adjustments_total": 15000,
+        "value.comparables.0.adjusted_value": 765000,
+        "value.comparables.0.adjusted_value_psf": null,
+        "value.comparables.0.total_adjustment_pct": 0.02,
+        "value.comparables.1.normalized_value": 820000,
+        "value.comparables.1.percent_factor": 1,
+        "value.comparables.1.after_percent_value": 820000,
+        "value.comparables.1.amount_adjustments_total": 0,
+        "value.comparables.1.adjusted_value": 820000,
+        "value.comparables.1.adjusted_value_psf": null,
+        "value.comparables.1.total_adjustment_pct": 0,
+        "value.comparables.2.normalized_value": 790000,
+        "value.comparables.2.percent_factor": 0.975,
+        "value.comparables.2.after_percent_value": 770250,
+        "value.comparables.2.amount_adjustments_total": 0,
+        "value.comparables.2.adjusted_value": 770250,
+        "value.comparables.2.adjusted_value_psf": null,
+        "value.comparables.2.total_adjustment_pct": -0.025,
+        "value.sorted_adjusted_values": [765000, 770250, 820000],
+        "value.median_adjusted_value": 770250,
+        "value.median_pair": null,
+        "value.subject_value": 800000,
+        "value.subject_minus_median": 29750,
+        "value.subject_minus_median_pct": 0.038624,
+        "value.law.0.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.41.htm#41.43",
+        "value.law.1.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.42.htm#42.26",
+        "value.law.3.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.41.htm#41.66",
+        "value.law.4.url": "https://statutes.capitol.texas.gov/Docs/OC/htm/OC.1103.htm#1103.003",
+        "warnings": [
+          "Evidence calculation only: arithmetic on the values and adjustments supplied. It is not an appraisal or an opinion of value (Occupations Code §1103.003(1)), it is not legal or tax advice, and it is not a substitute for the advice of an attorney. It does not say whether to protest or what value to claim. FactLot does not represent property owners.",
+          "Tax year 2027: the subject is marked as subject to the §23.231 limitation, but §23.231(k) says \"This section expires December 31, 2026\", and §42.26(d) and §41.41(a) as in effect from 2027-01-01 no longer refer to §23.231; check whether the limitation applies and which value is compared.",
+          "Only 3 comparables: §41.43(b)(3) and §42.26(a)(3) call for \"a reasonable number\" and the statute does not define it. FactLot's minimum of 3 is a product floor, not a rule of law."
+        ]
+      }
+    },
+    {
+      "name": "fewer than 3 comparables (a FactLot product floor, not law)",
+      "input": {
+        "tax_year": 2027,
+        "subject": {
+          "id": "S",
+          "value": 1000000,
+          "value_basis": "appraised"
+        },
+        "comparables": [
+          {
+            "id": "K1",
+            "value": 1010000,
+            "value_basis": "appraised"
+          },
+          {
+            "id": "K2",
+            "value": 1020000,
+            "value_basis": "appraised"
+          }
+        ]
+      },
+      "expect_error": true
+    },
+    {
+      "name": "the subject among its own comparables (same id)",
+      "input": {
+        "tax_year": 2027,
+        "subject": {
+          "id": "S",
+          "value": 1000000,
+          "value_basis": "appraised"
+        },
+        "comparables": [
+          {
+            "id": "K1",
+            "value": 1010000,
+            "value_basis": "appraised"
+          },
+          {
+            "id": "S",
+            "value": 1020000,
+            "value_basis": "appraised"
+          },
+          {
+            "id": "K3",
+            "value": 1030000,
+            "value_basis": "appraised"
+          }
+        ]
+      },
+      "expect_error": true
+    },
+    {
+      "name": "duplicate comparable ids",
+      "input": {
+        "tax_year": 2027,
+        "subject": {
+          "id": "S",
+          "value": 1000000,
+          "value_basis": "appraised"
+        },
+        "comparables": [
+          {
+            "id": "K1",
+            "value": 1010000,
+            "value_basis": "appraised"
+          },
+          {
+            "id": "K2",
+            "value": 1020000,
+            "value_basis": "appraised"
+          },
+          {
+            "id": "K1",
+            "value": 1030000,
+            "value_basis": "appraised"
+          }
+        ]
+      },
+      "expect_error": true
+    },
+    {
+      "name": "normalize_by needs the area on every comparable",
+      "input": {
+        "tax_year": 2027,
+        "subject": {
+          "id": "S",
+          "value": 1000000,
+          "value_basis": "appraised",
+          "improvement_area_sf": 10000
+        },
+        "comparables": [
+          {
+            "id": "K1",
+            "value": 1010000,
+            "value_basis": "appraised",
+            "improvement_area_sf": 9000
+          },
+          {
+            "id": "K2",
+            "value": 1020000,
+            "value_basis": "appraised",
+            "improvement_area_sf": 9000
+          },
+          {
+            "id": "K3",
+            "value": 1030000,
+            "value_basis": "appraised"
+          }
+        ],
+        "normalize_by": "improvement_area_sf"
+      },
+      "expect_error": true
+    },
+    {
+      "name": "normalize_by needs the subject's area",
+      "input": {
+        "tax_year": 2027,
+        "subject": {
+          "id": "S",
+          "value": 1000000,
+          "value_basis": "appraised"
+        },
+        "comparables": [
+          {
+            "id": "K1",
+            "value": 1010000,
+            "value_basis": "appraised",
+            "land_area_sf": 40000
+          },
+          {
+            "id": "K2",
+            "value": 1020000,
+            "value_basis": "appraised",
+            "land_area_sf": 40000
+          },
+          {
+            "id": "K3",
+            "value": 1030000,
+            "value_basis": "appraised",
+            "land_area_sf": 40000
+          }
+        ],
+        "normalize_by": "land_area_sf"
+      },
+      "expect_error": true
+    },
+    {
+      "name": "a $/SF adjustment needs a normalizing area",
+      "input": {
+        "tax_year": 2027,
+        "subject": {
+          "id": "S",
+          "value": 1000000,
+          "value_basis": "appraised"
+        },
+        "comparables": [
+          {
+            "id": "K1",
+            "value": 1010000,
+            "value_basis": "appraised",
+            "adjustments": [
+              {
+                "label": "size",
+                "kind": "psf",
+                "value": 2,
+                "reason": "smaller"
+              }
+            ]
+          },
+          {
+            "id": "K2",
+            "value": 1020000,
+            "value_basis": "appraised"
+          },
+          {
+            "id": "K3",
+            "value": 1030000,
+            "value_basis": "appraised"
+          }
+        ]
+      },
+      "expect_error": true
+    },
+    {
+      "name": "a whole-number percent (5 for 5%) is rejected",
+      "input": {
+        "tax_year": 2027,
+        "subject": {
+          "id": "S",
+          "value": 1000000,
+          "value_basis": "appraised"
+        },
+        "comparables": [
+          {
+            "id": "K1",
+            "value": 1010000,
+            "value_basis": "appraised",
+            "adjustments": [
+              {
+                "label": "age",
+                "kind": "percent",
+                "value": 5,
+                "reason": "older"
+              }
+            ]
+          },
+          {
+            "id": "K2",
+            "value": 1020000,
+            "value_basis": "appraised"
+          },
+          {
+            "id": "K3",
+            "value": 1030000,
+            "value_basis": "appraised"
+          }
+        ]
+      },
+      "expect_error": true
+    },
+    {
+      "name": "adjustments may not take a value to zero or below",
+      "input": {
+        "tax_year": 2027,
+        "subject": {
+          "id": "S",
+          "value": 1000000,
+          "value_basis": "appraised"
+        },
+        "comparables": [
+          {
+            "id": "K1",
+            "value": 1010000,
+            "value_basis": "appraised",
+            "adjustments": [
+              {
+                "label": "contamination",
+                "kind": "amount",
+                "value": -1010000,
+                "reason": "remediation"
+              }
+            ]
+          },
+          {
+            "id": "K2",
+            "value": 1020000,
+            "value_basis": "appraised"
+          },
+          {
+            "id": "K3",
+            "value": 1030000,
+            "value_basis": "appraised"
+          }
+        ]
+      },
+      "expect_error": true
+    },
+    {
+      "name": "percentages totalling -100% or less",
+      "input": {
+        "tax_year": 2027,
+        "subject": {
+          "id": "S",
+          "value": 1000000,
+          "value_basis": "appraised"
+        },
+        "comparables": [
+          {
+            "id": "K1",
+            "value": 1010000,
+            "value_basis": "appraised",
+            "adjustments": [
+              {
+                "label": "a",
+                "kind": "percent",
+                "value": -0.6,
+                "reason": "x"
+              },
+              {
+                "label": "b",
+                "kind": "percent",
+                "value": -0.5,
+                "reason": "y"
+              }
+            ]
+          },
+          {
+            "id": "K2",
+            "value": 1020000,
+            "value_basis": "appraised"
+          },
+          {
+            "id": "K3",
+            "value": 1030000,
+            "value_basis": "appraised"
+          }
+        ]
+      },
+      "expect_error": true
+    },
+    {
+      "name": "every adjustment needs a reason",
+      "input": {
+        "tax_year": 2027,
+        "subject": {
+          "id": "S",
+          "value": 1000000,
+          "value_basis": "appraised"
+        },
+        "comparables": [
+          {
+            "id": "K1",
+            "value": 1010000,
+            "value_basis": "appraised",
+            "adjustments": [
+              {
+                "label": "age",
+                "kind": "percent",
+                "value": 0.05
+              }
+            ]
+          },
+          {
+            "id": "K2",
+            "value": 1020000,
+            "value_basis": "appraised"
+          },
+          {
+            "id": "K3",
+            "value": 1030000,
+            "value_basis": "appraised"
+          }
+        ]
+      },
+      "expect_error": true
+    },
+    {
+      "name": "unknown field on a comparable",
+      "input": {
+        "tax_year": 2027,
+        "subject": {
+          "id": "S",
+          "value": 1000000,
+          "value_basis": "appraised"
+        },
+        "comparables": [
+          {
+            "id": "K1",
+            "value": 1010000,
+            "value_basis": "appraised",
+            "adjustment": [
+              {
+                "label": "age",
+                "kind": "percent",
+                "value": 0.05,
+                "reason": "older"
+              }
+            ]
+          },
+          {
+            "id": "K2",
+            "value": 1020000,
+            "value_basis": "appraised"
+          },
+          {
+            "id": "K3",
+            "value": 1030000,
+            "value_basis": "appraised"
+          }
+        ]
+      },
+      "expect_error": true
+    },
+    {
+      "name": "county FIPS is 3 digits, not the 5-digit state+county code",
+      "input": {
+        "tax_year": 2027,
+        "subject": {
+          "id": "S",
+          "value": 1000000,
+          "value_basis": "appraised",
+          "county_fips": "48201"
+        },
+        "comparables": [
+          {
+            "id": "K1",
+            "value": 1010000,
+            "value_basis": "appraised"
+          },
+          {
+            "id": "K2",
+            "value": 1020000,
+            "value_basis": "appraised"
+          },
+          {
+            "id": "K3",
+            "value": 1030000,
+            "value_basis": "appraised"
+          }
+        ]
+      },
+      "expect_error": true
+    },
+    {
+      "name": "tax year before the Tax Code took effect",
+      "input": {
+        "tax_year": 1981,
+        "subject": {
+          "id": "S",
+          "value": 1000000,
+          "value_basis": "appraised"
+        },
+        "comparables": [
+          {
+            "id": "K1",
+            "value": 1010000,
+            "value_basis": "appraised"
+          },
+          {
+            "id": "K2",
+            "value": 1020000,
+            "value_basis": "appraised"
+          },
+          {
+            "id": "K3",
+            "value": 1030000,
+            "value_basis": "appraised"
+          }
+        ]
+      },
+      "expect_error": true
+    }
+  ]
+}

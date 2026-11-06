@@ -58,11 +58,13 @@ def readme_sheet(
     formulas: list[tuple[str, dict]],
     conventions: list[str],
     extra: list[str] | None = None,
+    banner: str = "SYNTHETIC EXAMPLE. Every input is made up for illustration; none is a real lease, property, loan or hotel.",
+    argus: bool = True,
 ) -> Sheet:
     sh = wb.sheet("ReadMe")
     sh.width(1, 120)
     sh.put(1, 1, title, "title")
-    sh.put(2, 1, "SYNTHETIC EXAMPLE. Every input is made up for illustration; none is a real lease, property, loan or hotel.", "warn")
+    sh.put(2, 1, banner, "warn")
     r = 4
     sh.put(r, 1, "What this workbook does", "bold")
     r = put_lines(sh, r + 1, purpose)
@@ -94,9 +96,10 @@ def readme_sheet(
         r += 1
         sh.put(r, 1, "Notes", "bold")
         r = put_lines(sh, r + 1, extra)
-    r += 1
-    sh.put(r, 1, "ARGUS", "bold")
-    r = put_lines(sh, r + 1, ARGUS_NOTE)
+    if argus:
+        r += 1
+        sh.put(r, 1, "ARGUS", "bold")
+        r = put_lines(sh, r + 1, ARGUS_NOTE)
     r += 1
     sh.put(r, 1, "Regenerating", "bold")
     put_lines(

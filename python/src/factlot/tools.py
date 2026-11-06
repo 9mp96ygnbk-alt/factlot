@@ -573,6 +573,53 @@ def _registry_coverage(args: dict[str, Any]) -> dict[str, Any]:
     return coverage.tool_result(reg.db, reg.coverage())
 
 
+def _bounded(args: dict[str, Any], key: str, default: Any, lo: float, hi: float, *, integer: bool,
+             above: bool = False) -> Any:
+    """An optional number in [lo, hi] (``(lo, hi]`` with ``above``), bounded as the TypeScript schema bounds it."""
+    if key not in args:
+        return default
+    v = args[key]
+    if isinstance(v, bool) or not isinstance(v, (int, float)) or v != v or abs(v) == float("inf"):
+        raise _InputError(key, "expected number")
+    if integer and not float(v).is_integer():
+        raise _InputError(key, "expected integer")
+    if (v <= lo if above else v < lo) or v > hi:
+        raise _InputError(key, f"expected {'above' if above else 'at least'} {num_str(lo)} and at most {num_str(hi)}")
+    return int(v) if integer else v
+
+
+def _tx_equity_candidates(args: dict[str, Any]) -> dict[str, Any]:
+    from .registry import tx_equity
+
+    by_apn = {k for k in ("state_fips", "county_fips", "apn") if k in args}
+    if ("urn" in args) == bool(by_apn) or (by_apn and not {"county_fips", "apn"} <= by_apn):
+        raise _InputError("", tx_equity.WHICH_PARCEL)
+    params = {
+        "area_band": _bounded(args, "area_band", tx_equity.DEFAULTS["area_band"], 0, 1, integer=False, above=True),
+        "year_band": _bounded(args, "year_band", tx_equity.DEFAULTS["year_band"], 0, 100, integer=True),
+        "min_matches": _bounded(args, "min_matches", tx_equity.DEFAULTS["min_matches"], 1, 200, integer=True),
+        "limit": _bounded(args, "limit", tx_equity.DEFAULTS["limit"], 1, 200, integer=True),
+    }
+    if "urn" in args:
+        urn = _str(args, "urn")
+        kind, parts = parse(urn)
+        if kind != "parcel":
+            raise FactLotIdError(f'"{urn}" is a {kind} URN; registry_tx_equity_candidates needs a parcel URN')
+        state, field = parts[0][3:5], "urn"
+    else:
+        state = _str(args, "state_fips") if "state_fips" in args else tx_equity.TEXAS_FIPS
+        county, apn, field = _str(args, "county_fips"), _str(args, "apn"), "state_fips"
+    if state != tx_equity.TEXAS_FIPS:
+        raise _InputError(field, tx_equity.texas_only(state))
+    reg = _registry()
+    if "urn" not in args:
+        urn = reg.parcel_urn(state, county, apn)
+    if reg.db.execute("SELECT 1 FROM subjects WHERE urn = ?", (urn,)).fetchone() is None:
+        cov = _record_miss(reg, urn)
+        raise _NotFound(f"no registry record for {urn}: {cov['message']}", cov)
+    return tx_equity.equity_candidates(reg, urn, **params)
+
+
 _REGISTRY_TOOLS = {
     "registry_get": _registry_get,
     "registry_resolve_parcel": _resolve_parcel,
@@ -581,6 +628,7 @@ _REGISTRY_TOOLS = {
     "registry_search_entities": _search("entities"),
     "registry_owned_by": _owned_by,
     "registry_coverage": _registry_coverage,
+    "registry_tx_equity_candidates": _tx_equity_candidates,
 }
 
 _OTHER_TOOLS = {

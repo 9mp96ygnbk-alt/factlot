@@ -439,3 +439,193 @@ ex_cases += [
      "relinquished": {"sale_price": 1000000}}, "expect_error": True},
 ]
 write("exchange_1031", ex_cases, version=2)
+
+# --- tx_unequal_appraisal -----------------------------------------------------------------------
+
+import tx_appraisal as tx  # noqa: E402
+
+TX_LAW_URLS = ["https://statutes.capitol.texas.gov/Docs/TX/htm/TX.41.htm#41.43",
+               "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.42.htm#42.26",
+               "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.42.htm#42.26",
+               "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.41.htm#41.66",
+               "https://statutes.capitol.texas.gov/Docs/OC/htm/OC.1103.htm#1103.003"]
+
+
+def tx_case(name, inp):
+    r = tx.unequal(inp)
+    e = {
+        "formula.id": "calc.tx_unequal_appraisal",
+        "value.disclaimer": tx.NOTICE,
+        "value.comparables_count": len(inp["comparables"]),
+        "value.normalize_by": inp.get("normalize_by", "none"),
+        "value.adjustment_combine": inp.get("adjustment_combine", "sum"),
+    }
+    for i, c in enumerate(r["comps"]):
+        e[f"value.comparables.{i}.normalized_value"] = n(c["normalized"])
+        e[f"value.comparables.{i}.percent_factor"] = n(c["factor"])
+        e[f"value.comparables.{i}.after_percent_value"] = n(c["after"])
+        e[f"value.comparables.{i}.amount_adjustments_total"] = n(c["amount_total"])
+        e[f"value.comparables.{i}.adjusted_value"] = n(c["adjusted"])
+        e[f"value.comparables.{i}.adjusted_value_psf"] = n(c["psf"]) if c["psf"] is not None else None
+        e[f"value.comparables.{i}.total_adjustment_pct"] = n(c["pct"])
+    e.update({
+        "value.sorted_adjusted_values": [n(v) for v in r["sorted"]],
+        "value.median_adjusted_value": n(r["median"]),
+        "value.median_pair": [n(v) for v in r["pair"]] if r["pair"] is not None else None,
+        "value.subject_value": inp["subject"]["value"],
+        "value.subject_minus_median": n(r["diff"]),
+        "value.subject_minus_median_pct": n(r["diff_pct"]),
+        "value.law.0.url": TX_LAW_URLS[0],
+        "value.law.1.url": TX_LAW_URLS[1],
+        "value.law.3.url": TX_LAW_URLS[3],
+        "value.law.4.url": TX_LAW_URLS[4],
+        "warnings": r["warnings"],
+    })
+    return {"name": name, "input": inp, "expect": e}
+
+
+def pct(label, v, reason):
+    return {"label": label, "kind": "percent", "value": v, "reason": reason}
+
+
+def amt(label, v, reason):
+    return {"label": label, "kind": "amount", "value": v, "reason": reason}
+
+
+def psf(label, v, reason):
+    return {"label": label, "kind": "psf", "value": v, "reason": reason}
+
+
+def five_whole(combine):
+    return {
+        "tax_year": 2027,
+        "subject": {"id": "S", "county_fips": "201", "value": 1000000, "value_basis": "appraised"},
+        "adjustment_combine": combine,
+        "comparables": [
+            {"id": "A", "county_fips": "201", "value": 900000, "value_basis": "appraised",
+             "adjustments": [pct("location", 0.20, "comp on a weaker corridor"), pct("age", -0.10, "comp newer")]},
+            {"id": "B", "county_fips": "201", "value": 950000, "value_basis": "appraised",
+             "adjustments": [pct("condition", -0.05, "comp renovated 2024")]},
+            {"id": "C", "county_fips": "201", "value": 1050000, "value_basis": "appraised"},
+            {"id": "D", "county_fips": "201", "value": 980000, "value_basis": "appraised",
+             "adjustments": [pct("age", 0.05, "comp older"), pct("parking", 0.03, "comp has less parking")]},
+            {"id": "E", "county_fips": "201", "value": 920000, "value_basis": "appraised",
+             "adjustments": [amt("excess land", -20000, "comp has a surplus pad site")]},
+        ],
+    }
+
+
+tx_cases = [
+    tx_case("odd count, whole values, percentages summed: A 900,000 × (1 + 0.20 − 0.10) = 990,000 is the 3rd of 5 "
+            "(900,000; 902,500; 990,000; 1,050,000; 1,058,400), subject 1,000,000 is 10,000 above it",
+            five_whole("sum")),
+    tx_case("same comparables, percentages compounded: A 900,000 × 1.20 × 0.90 = 972,000 becomes the median, "
+            "D 980,000 × 1.05 × 1.03 = 1,059,870",
+            five_whole("compound")),
+    tx_case("even count, normalized by improvement area, $/SF and amount adjustments: A 3,650,000 ÷ 29,500 × 31,000 "
+            "= 3,835,593.22 × 1.03 = 3,950,661.02; B 3,875,000 − 2.50 × 31,000 = 3,797,500; median (3,797,500 + "
+            "3,950,661.02) ÷ 2 = 3,874,080.51; 4 comparables warn",
+            {"tax_year": 2027,
+             "subject": {"id": "fl:parcel:us-48201:0420150000012", "value": 4200000, "value_basis": "appraised",
+                         "improvement_area_sf": 31000},
+             "normalize_by": "improvement_area_sf",
+             "comparables": [
+                 {"id": "fl:parcel:us-48201:0420150000034", "value": 3650000, "value_basis": "appraised",
+                  "improvement_area_sf": 29500,
+                  "citation": {"document_id": "fl:document:sha256-example", "locator": "account 0420150000034",
+                               "as_of": "2027-04-15"},
+                  "adjustments": [pct("age", 0.05, "comp built 1998, subject 2006"),
+                                  pct("size", -0.02, "comp 5% smaller")]},
+                 {"id": "B", "value": 4000000, "value_basis": "appraised", "improvement_area_sf": 32000,
+                  "adjustments": [psf("condition", -2.5, "comp has a new roof")]},
+                 {"id": "C", "value": 3900000, "value_basis": "appraised", "improvement_area_sf": 30000,
+                  "adjustments": [amt("pad site", -50000, "comp includes a leased pad")]},
+                 {"id": "D", "value": 3720000, "value_basis": "appraised", "improvement_area_sf": 31000},
+             ]}),
+    tx_case("even count of 6, normalized by land area, market values, subject below the median: (2,100,000 + "
+            "2,160,000) ÷ 2 = 2,130,000, subject 2,000,000 is 130,000 below",
+            {"tax_year": 2027,
+             "subject": {"value": 2000000, "value_basis": "market", "land_area_sf": 100000},
+             "normalize_by": "land_area_sf",
+             "comparables": [
+                 {"id": "L1", "value": 1100000, "value_basis": "market", "land_area_sf": 50000,
+                  "adjustments": [psf("frontage", 1, "comp has less frontage")]},
+                 {"id": "L2", "value": 2400000, "value_basis": "market", "land_area_sf": 120000,
+                  "adjustments": [amt("access", 25000, "comp lacks a signal")]},
+                 {"id": "L3", "value": 1800000, "value_basis": "market", "land_area_sf": 80000,
+                  "adjustments": [pct("shape", -0.04, "comp is rectangular")]},
+                 {"id": "L4", "value": 3150000, "value_basis": "market", "land_area_sf": 150000},
+                 {"id": "L5", "value": 950000, "value_basis": "market", "land_area_sf": 40000,
+                  "adjustments": [psf("floodplain", -0.5, "comp is outside the floodplain")]},
+                 {"id": "L6", "value": 2100000, "value_basis": "market", "land_area_sf": 105000,
+                  "adjustments": [amt("utilities", -10000.5, "comp has sewer at the line")]},
+             ]}),
+    tx_case("tax year 2026, §23.231 property: every warning except the 2027 one (mixed basis W2, other county W3, "
+            "W4 adjusted 30%, W5 identical to the subject); median 1,450,000",
+            {"tax_year": 2026,
+             "subject": {"id": "S", "county_fips": "201", "value": 1500000, "value_basis": "appraised",
+                         "improvement_area_sf": 10000, "circuit_breaker_23_231": True},
+             "comparables": [
+                 {"id": "W1", "county_fips": "201", "value": 1400000, "value_basis": "appraised"},
+                 {"id": "W2", "county_fips": "201", "value": 1600000, "value_basis": "market"},
+                 {"id": "W3", "county_fips": "157", "value": 1450000, "value_basis": "appraised"},
+                 {"id": "W4", "county_fips": "201", "value": 1000000, "value_basis": "appraised",
+                  "adjustments": [pct("quality", 0.30, "comp is class C, subject class A")]},
+                 {"id": "W5", "county_fips": "201", "value": 1500000, "value_basis": "appraised",
+                  "improvement_area_sf": 10000},
+             ]}),
+    tx_case("tax year 2027, §23.231 flag: the limitation is no longer in §42.26(d); comparables without ids are "
+            "named #1–#3; median 790,000 × (1 − 0.025) = 770,250",
+            {"tax_year": 2027,
+             "subject": {"value": 800000, "value_basis": "market", "circuit_breaker_23_231": True},
+             "comparables": [
+                 {"value": 750000, "value_basis": "market", "adjustments": [amt("signage", 15000, "comp has none")]},
+                 {"value": 820000, "value_basis": "market"},
+                 {"value": 790000, "value_basis": "market",
+                  "adjustments": [pct("condition", -0.025, "comp in better condition")]},
+             ]}),
+]
+tx_cases[2]["expect"]["value.comparables.0.citation"] = {
+    "document_id": "fl:document:sha256-example", "locator": "account 0420150000034", "as_of": "2027-04-15"}
+tx_cases[2]["expect"]["value.comparables.0.id"] = "fl:parcel:us-48201:0420150000034"
+tx_cases[3]["expect"]["value.median_pair"] = [2100000, 2160000]  # hand check
+
+_three = [{"id": f"K{i}", "value": 1000000 + i * 10000, "value_basis": "appraised"} for i in range(1, 4)]
+_subject = {"id": "S", "value": 1000000, "value_basis": "appraised"}
+
+
+def tx_err(name, **over):
+    inp = {"tax_year": 2027, "subject": dict(_subject), "comparables": [dict(c) for c in _three]}
+    for k, v in over.items():
+        inp[k] = v
+    return {"name": name, "input": inp, "expect_error": True}
+
+
+def _with(i, **fields):
+    comps = [dict(c) for c in _three]
+    comps[i].update(fields)
+    return comps
+
+
+tx_cases += [
+    tx_err("fewer than 3 comparables (a FactLot product floor, not law)", comparables=[dict(c) for c in _three[:2]]),
+    tx_err("the subject among its own comparables (same id)", comparables=_with(1, id="S")),
+    tx_err("duplicate comparable ids", comparables=_with(2, id="K1")),
+    tx_err("normalize_by needs the area on every comparable", normalize_by="improvement_area_sf",
+           subject={**_subject, "improvement_area_sf": 10000},
+           comparables=[{**c, "improvement_area_sf": 9000} for c in _three[:2]] + [dict(_three[2])]),
+    tx_err("normalize_by needs the subject's area", normalize_by="land_area_sf",
+           comparables=[{**c, "land_area_sf": 40000} for c in _three]),
+    tx_err("a $/SF adjustment needs a normalizing area", comparables=_with(0, adjustments=[psf("size", 2, "smaller")])),
+    tx_err("a whole-number percent (5 for 5%) is rejected", comparables=_with(0, adjustments=[pct("age", 5, "older")])),
+    tx_err("adjustments may not take a value to zero or below",
+           comparables=_with(0, adjustments=[amt("contamination", -1010000, "remediation")])),
+    tx_err("percentages totalling -100% or less", comparables=_with(0, adjustments=[pct("a", -0.6, "x"),
+                                                                                  pct("b", -0.5, "y")])),
+    tx_err("every adjustment needs a reason", comparables=_with(0, adjustments=[{"label": "age", "kind": "percent",
+                                                                                "value": 0.05}])),
+    tx_err("unknown field on a comparable", comparables=_with(0, adjustment=[pct("age", 0.05, "older")])),
+    tx_err("county FIPS is 3 digits, not the 5-digit state+county code", subject={**_subject, "county_fips": "48201"}),
+    tx_err("tax year before the Tax Code took effect", tax_year=1981),
+]
+write("tx_unequal_appraisal", tx_cases)

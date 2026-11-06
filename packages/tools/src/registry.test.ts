@@ -147,6 +147,99 @@ test("registry tools: TypeScript matches Python on the shared fixture", () => {
         .map((f) => f.value.trust),
       ["Other 2026-C2 Mortgage Trust", "Example 2026-C1 Mortgage Trust"],
     );
+    // Value history: a tax year two snapshots value differently is listed twice, newest first.
+    const subject = "fl:parcel:us-48997:1000001";
+    const history = (
+      at({ urn: subject }) as {
+        value_history?: { tax_year: number; as_of: string }[];
+      }
+    ).value_history;
+    assert.deepEqual(
+      history?.map((e) => [e.tax_year, e.as_of]),
+      [
+        [2026, "2026-10-15"],
+        [2026, "2026-07-25"],
+        [2025, "2025-07-25"],
+      ],
+    );
+    // Equity candidates: tiers in order.
+    const eq = runTool("registry_tx_equity_candidates", { urn: subject });
+    assert.ok(eq.ok);
+    const result = eq.result as {
+      selection: { tiers: { tier: string; ids: string[] }[] };
+    };
+    assert.deepEqual(
+      result.selection.tiers.map((t) => [t.tier, t.ids.length]),
+      [
+        ["neighborhood", 2],
+        ["zip", 4],
+        ["county", 1],
+      ],
+    );
+    // No owner data in any equity output (TypeScript's own run): every ownership.* fact ID and value in
+    // the file, what the roll gave for the owners the registry does not keep (a natural person, an owner
+    // withheld under Tax Code §25.025), and in a result any entity URN.
+    const { DatabaseSync } = createRequire(import.meta.url)("node:sqlite") as {
+      DatabaseSync: new (
+        p: string,
+        o?: { readOnly?: boolean },
+      ) => {
+        prepare(sql: string): {
+          all(...p: unknown[]): Record<string, unknown>[];
+        };
+        close(): void;
+      };
+    };
+    const file = new DatabaseSync(db, { readOnly: true });
+    const ownerRows = file
+      .prepare(
+        "SELECT fact_id, value_json, subject FROM facts WHERE predicate LIKE 'ownership.%'",
+      )
+      .all();
+    file.close();
+    const person = "fl:parcel:us-48997:1000014";
+    const withheld = "fl:parcel:us-48997:1000015";
+    assert.ok(
+      !ownerRows.some((r) => r.subject === person || r.subject === withheld),
+    );
+    const banned = new Set<string>([
+      "Jane Q Example",
+      "Jane",
+      "12 Quiet Lane",
+      "CONFIDENTIAL",
+    ]);
+    for (const r of ownerRows) {
+      banned.add(String(r.fact_id));
+      const v: unknown = JSON.parse(String(r.value_json));
+      if (typeof v === "string") banned.add(v);
+    }
+    assert.ok(banned.has("Bayou Equity Holdings LLC"));
+    assert.ok(
+      (result as unknown as { candidates: { id: string }[] }).candidates.some(
+        (c) => c.id === person,
+      ) &&
+        (result as unknown as { candidates: { id: string }[] }).candidates.some(
+          (c) => c.id === withheld,
+        ),
+    );
+    const equityCalls = [
+      ...calls.filter((c) => c.tool === "registry_tx_equity_candidates"),
+      { tool: "registry_tx_equity_candidates", arguments: { urn: person } },
+      { tool: "registry_tx_equity_candidates", arguments: { urn: withheld } },
+    ];
+    for (const c of equityCalls) {
+      const out = runTool(c.tool, c.arguments);
+      const text = JSON.stringify(
+        out.ok ? out.result : out.error,
+      ).toUpperCase();
+      const label = JSON.stringify(c.arguments);
+      for (const b of banned)
+        assert.ok(!text.includes(b.toUpperCase()), `${label}: ${b}`);
+      assert.ok(!text.includes("OWNERSHIP."), `${label}: ownership.`);
+      // An error may quote the entity URN it was given; a result names no entity.
+      if (out.ok)
+        assert.ok(!text.includes("FL:ENTITY:"), `${label}: entity URN`);
+    }
   } finally {
     configureRegistry(undefined);
   }

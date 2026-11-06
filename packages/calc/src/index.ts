@@ -44,6 +44,10 @@ import {
   netEffectiveRent,
   rentSchedule,
 } from "./rent.ts";
+import {
+  TxUnequalAppraisalInput,
+  txUnequalAppraisal,
+} from "./tx_unequal_appraisal.ts";
 import { EquityWaterfallInput, equityWaterfall } from "./waterfall.ts";
 
 export * from "./amortization.ts";
@@ -72,6 +76,7 @@ export * from "./retail.ts";
 export * from "./rules.ts";
 export * from "./rules-drafts/index.ts";
 export * from "./rent.ts";
+export * from "./tx_unequal_appraisal.ts";
 export * from "./waterfall.ts";
 export * from "./units.ts";
 
@@ -310,5 +315,14 @@ export const calculators = {
       "Reconcile FactLot's CAM reconciliation for one expense pool with another system's per-tenant results (Yardi or any other; parity is not claimed and is untested against a real export): give the calc_cam_reconciliation_batch input plus, per tenant, what the other system reported (share, gross-up, cap limit and reduction, admin fee, base-year or stop deduction, billed amount, estimates, balance; billed_amount required) and a tolerance. Returns per tenant and line FactLot's amount, the other amount, the difference and whether it is within tolerance, tenants missing on either side, and likely causes worded as hypotheses to check: a different pro rata share (and, when every share differs by one factor, the pool's denominator), or a FactLot rerun that matches the other system with lines left to the default controllable: true set uncontrollable, the cap's base year one year off, the other cap method, the other gross-up target or no gross-up, the admin fee before or after and within or outside the cap, or no fee on uncontrollable lines; and differing estimates paid.",
     input: ReconcileCamInput,
     run: reconcileCam,
+  },
+  tx_unequal_appraisal: {
+    id: "calc.tx_unequal_appraisal",
+    version: 1,
+    title: "Texas unequal appraisal: median of adjusted comparables",
+    description:
+      "Evidence calculation only: not an appraisal or an opinion of value, not legal or tax advice, and not a substitute for the advice of an attorney. The arithmetic of Tex. Tax Code §41.43(b)(3) and §42.26(a)(3), the subject's value against the median appraised value of a reasonable number of comparable properties appropriately adjusted. Takes 3–200 comparables chosen by the caller, each with its roll value and the caller's adjustments (percent, USD amount, or $/SF, each with a reason); optionally normalizes each comparable to value per SF of improvement or land area times the subject's area; applies percentages summed or compounded, then amounts; and returns every comparable's normalized and adjusted value, the sorted list, the median (for an even count, the mean of the two middle values), and the subject's value minus the median in USD and percent, with the statutes cited. Warns on mixed value bases, §42.26(d) and the §23.231 limitation, comparables in another county, fewer than 5 comparables, total adjustments over 25%, and a comparable identical to the subject. It does not choose comparables, invent adjustments, or say whether to protest.",
+    input: TxUnequalAppraisalInput,
+    run: txUnequalAppraisal,
   },
 } as const satisfies Record<string, Calculator>;

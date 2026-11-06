@@ -4726,6 +4726,192 @@
       },
       {
         "toolSpec": {
+          "name": "calc_tx_unequal_appraisal",
+          "description": "Evidence calculation only: not an appraisal or an opinion of value, not legal or tax advice, and not a substitute for the advice of an attorney. The arithmetic of Tex. Tax Code §41.43(b)(3) and §42.26(a)(3), the subject's value against the median appraised value of a reasonable number of comparable properties appropriately adjusted. Takes 3–200 comparables chosen by the caller, each with its roll value and the caller's adjustments (percent, USD amount, or $/SF, each with a reason); optionally normalizes each comparable to value per SF of improvement or land area times the subject's area; applies percentages summed or compounded, then amounts; and returns every comparable's normalized and adjusted value, the sorted list, the median (for an even count, the mean of the two middle values), and the subject's value minus the median in USD and percent, with the statutes cited. Warns on mixed value bases, §42.26(d) and the §23.231 limitation, comparables in another county, fewer than 5 comparables, total adjustments over 25%, and a comparable identical to the subject. It does not choose comparables, invent adjustments, or say whether to protest. Deterministic: use this instead of doing the math yourself; cite formula calc.tx_unequal_appraisal@1 and the returned steps, and surface any warnings.",
+          "inputSchema": {
+            "json": {
+              "type": "object",
+              "properties": {
+                "tax_year": {
+                  "type": "integer",
+                  "minimum": 1982,
+                  "maximum": 2100,
+                  "description": "Tax year of the values compared, e.g. 2027. Decides which text of §42.26(d) applies."
+                },
+                "subject": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "description": "Identifier of the subject property, e.g. its FactLot parcel ID.",
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200
+                    },
+                    "county_fips": {
+                      "type": "string",
+                      "pattern": "^[0-9]{3}$",
+                      "description": "Texas county FIPS code, 3 digits, e.g. \"201\" for Harris. Optional; used only to warn when a comparable is in a different county (appraisal district) from the subject."
+                    },
+                    "value": {
+                      "type": "number",
+                      "exclusiveMinimum": 0,
+                      "description": "The subject's value from the appraisal roll (or the value at issue), USD."
+                    },
+                    "value_basis": {
+                      "type": "string",
+                      "enum": ["appraised", "market"],
+                      "description": "Which roll value this is: \"appraised\" (after any limitation) or \"market\". Use the same basis for the subject and every comparable."
+                    },
+                    "improvement_area_sf": {
+                      "description": "Improvement (building) area, SF. Required when normalize_by is improvement_area_sf.",
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "land_area_sf": {
+                      "description": "Land area, SF. Required when normalize_by is land_area_sf.",
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "circuit_breaker_23_231": {
+                      "default": false,
+                      "description": "Whether the subject is subject to the §23.231 limitation on appraised value (the circuit breaker for non-homestead property). Only used for warnings about which value §42.26(d) compares.",
+                      "type": "boolean"
+                    }
+                  },
+                  "required": ["value", "value_basis"],
+                  "additionalProperties": false,
+                  "description": "The property whose value is compared."
+                },
+                "normalize_by": {
+                  "default": "none",
+                  "description": "\"none\" compares whole values. \"improvement_area_sf\" or \"land_area_sf\" converts each comparable to value per SF of that area and multiplies by the subject's same area before adjusting; the subject and every comparable must then have that area.",
+                  "type": "string",
+                  "enum": ["none", "improvement_area_sf", "land_area_sf"]
+                },
+                "adjustment_combine": {
+                  "default": "sum",
+                  "description": "\"sum\" adds a comparable's percentage adjustments and applies the total once (the usual adjustment grid); \"compound\" multiplies (1 + each percentage).",
+                  "type": "string",
+                  "enum": ["sum", "compound"]
+                },
+                "comparables": {
+                  "minItems": 3,
+                  "maxItems": 200,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "description": "Identifier of the comparable, e.g. its FactLot parcel ID or account number. Must differ from the subject's and from every other comparable's.",
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200
+                      },
+                      "county_fips": {
+                        "type": "string",
+                        "pattern": "^[0-9]{3}$",
+                        "description": "Texas county FIPS code, 3 digits, e.g. \"201\" for Harris. Optional; used only to warn when a comparable is in a different county (appraisal district) from the subject."
+                      },
+                      "value": {
+                        "type": "number",
+                        "exclusiveMinimum": 0,
+                        "description": "The comparable's value from the appraisal roll, USD."
+                      },
+                      "value_basis": {
+                        "type": "string",
+                        "enum": ["appraised", "market"],
+                        "description": "Which roll value this is: \"appraised\" (after any limitation) or \"market\". Use the same basis for the subject and every comparable."
+                      },
+                      "improvement_area_sf": {
+                        "description": "Improvement (building) area, SF. Required when normalize_by is improvement_area_sf.",
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "land_area_sf": {
+                        "description": "Land area, SF. Required when normalize_by is land_area_sf.",
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "citation": {
+                        "type": "object",
+                        "properties": {
+                          "fact_id": {
+                            "description": "FactLot fact ID of the comparable's value, if it came from the registry.",
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200
+                          },
+                          "document_id": {
+                            "description": "FactLot document ID of the source (e.g. the appraisal roll file).",
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200
+                          },
+                          "locator": {
+                            "description": "Where in the source the value is: row, account number, page.",
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 500
+                          },
+                          "as_of": {
+                            "description": "Date the value was read or certified, YYYY-MM-DD.",
+                            "type": "string",
+                            "format": "date",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                          }
+                        },
+                        "additionalProperties": false,
+                        "description": "Where the comparable's value comes from. Passed through to the output unchanged."
+                      },
+                      "adjustments": {
+                        "default": [],
+                        "description": "Adjustments to this comparable, each with a reason. Percentages are applied first (summed or compounded per adjustment_combine), then amounts and $/SF adjustments.",
+                        "maxItems": 20,
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "label": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 100,
+                              "description": "What the adjustment is for, e.g. \"age\", \"size\", \"condition\"."
+                            },
+                            "kind": {
+                              "type": "string",
+                              "enum": ["percent", "amount", "psf"],
+                              "description": "\"percent\": a decimal share of the normalized value (0.05 for +5%, -0.02 for -2%); \"amount\": USD added to the value (negative to deduct); \"psf\": USD per SF of the normalizing area, multiplied by the subject's area (only with normalize_by other than \"none\")."
+                            },
+                            "value": {
+                              "type": "number",
+                              "description": "The adjustment: a decimal between -1 and 1 for percent (0.05, not 5), else USD or USD/SF. Positive raises the comparable's value."
+                            },
+                            "reason": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 300,
+                              "description": "Why the adjustment is made, in the caller's words (e.g. \"comp built 1998, subject 2006\"). Required: FactLot never invents an adjustment."
+                            }
+                          },
+                          "required": ["label", "kind", "value", "reason"],
+                          "additionalProperties": false
+                        }
+                      }
+                    },
+                    "required": ["value", "value_basis"],
+                    "additionalProperties": false
+                  },
+                  "description": "The comparable properties, 3 to 200, chosen by the caller. Values must be on the same basis as the subject's."
+                }
+              },
+              "required": ["tax_year", "subject", "comparables"],
+              "additionalProperties": false
+            }
+          }
+        }
+      },
+      {
+        "toolSpec": {
           "name": "rules_tx_property_tax_protest_deadline",
           "description": "Deadline to file a Texas property tax protest with the appraisal review board: the later of May 15 or 30 days after the notice of appraised value was delivered, rolled past weekends and Texas legal holidays, plus a conservative file-by date. Returns the statute citations and the rule's verification status. Verification status: verified. Cite rule rules.tx.property_tax_protest_deadline@1 and its statutes.",
           "inputSchema": {
@@ -5945,7 +6131,7 @@
       {
         "toolSpec": {
           "name": "registry_get",
-          "description": "Everything the FactLot Registry knows about a parcel, legal entity, or building: status, current cited facts (owner of record, situs address, property category, areas, values), ownership links, external IDs, and for a parcel the building it belongs to (condominium units roll up into one building). as_of gives the facts as they stood on a date. warnings flags area facts that look wrong (building area above 40 times the land area, a land area of 0); the facts themselves are as the source publishes them. A building record can carry debt.cmbs_loan facts (one per CMBS trust holding a note of its loan: balance, rate, maturity, payment status, servicer, special-servicing dates, NOI, DSCR) and an entity record can carry entity.parent facts (the SEC registrant that lists it as a subsidiary in Exhibit 21), each cited to its SEC filing. A miss says whether the county or entity registry is loaded. Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
+          "description": "Everything the FactLot Registry knows about a parcel, legal entity, or building: status, current cited facts (owner of record, situs address, property category, areas, values), ownership links, external IDs, and for a parcel the building it belongs to (condominium units roll up into one building). value_history (parcels) lists market and appraised value by tax year from every snapshot, newest first, each value cited; a tax year two snapshots value differently appears once per value. as_of gives the facts as they stood on a date. warnings flags area facts that look wrong (building area above 40 times the land area, a land area of 0); the facts themselves are as the source publishes them. A building record can carry debt.cmbs_loan facts (one per CMBS trust holding a note of its loan: balance, rate, maturity, payment status, servicer, special-servicing dates, NOI, DSCR) and an entity record can carry entity.parent facts (the SEC registrant that lists it as a subsidiary in Exhibit 21), each cited to its SEC filing. A miss says whether the county or entity registry is loaded. Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
           "inputSchema": {
             "json": {
               "type": "object",
@@ -6106,6 +6292,67 @@
             "json": {
               "type": "object",
               "properties": {}
+            }
+          }
+        }
+      },
+      {
+        "toolSpec": {
+          "name": "registry_tx_equity_candidates",
+          "description": "Candidate comparable parcels for a Texas unequal-appraisal comparison (Tax Code §41.43(b)(3)), from the subject's appraisal district roll: same county and tax year, the same state property category code, improvement area within area_band of the subject's, year built within year_band years when both are known; parcels sharing the subject's neighborhood code first (when the roll gives one), then its ZIP code, then the rest of the county if fewer than min_matches. Each candidate and the subject are shaped for calc_tx_unequal_appraisal (id, value and value_basis, areas, year built, codes, citation of the value fact); the subject adds its value history by tax year. selection echoes the rule, the effective parameters, and which tier each candidate came from; Each candidate's citation.document_id names its entry in sources, which gives that snapshot's license, attribution, ai_use and redistribution: relay them with the candidate. Candidates only: a person decides which to use. The selection rule is FactLot's default, not a legal standard of comparability. For evidence calculations only: FactLot does not represent property owners, file protests, or advise whether to protest. Never returns owner names, mailing addresses, or ownership facts. Do not look up the owners of candidate parcels; ownership is not needed for this comparison. Texas parcels only. Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
+          "inputSchema": {
+            "json": {
+              "type": "object",
+              "properties": {
+                "urn": {
+                  "description": "FactLot parcel URN of the subject, e.g. fl:parcel:us-48201:0420150000012. Give this, or county_fips and apn.",
+                  "type": "string",
+                  "maxLength": 500
+                },
+                "state_fips": {
+                  "description": "With county_fips and apn: \"48\" (Texas), the only state served.",
+                  "type": "string",
+                  "maxLength": 16
+                },
+                "county_fips": {
+                  "description": "3-digit Texas county FIPS, e.g. \"201\" for Harris County.",
+                  "type": "string",
+                  "maxLength": 16
+                },
+                "apn": {
+                  "description": "Appraisal district account number as the district prints it.",
+                  "type": "string",
+                  "maxLength": 200
+                },
+                "area_band": {
+                  "default": 0.35,
+                  "description": "Improvement area band as a share of the subject's (0.35: within ±35%).",
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "maximum": 1
+                },
+                "year_band": {
+                  "default": 15,
+                  "description": "Year-built band in years, applied when both the subject's and the candidate's are known.",
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 100
+                },
+                "min_matches": {
+                  "default": 10,
+                  "description": "Widen from the neighborhood and ZIP code tiers to the whole county when they hold fewer than this.",
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 200
+                },
+                "limit": {
+                  "default": 50,
+                  "description": "Maximum candidates returned (1–200).",
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 200
+                }
+              }
             }
           }
         }

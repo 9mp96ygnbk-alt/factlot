@@ -5,6 +5,8 @@
     python3 examples/reconciliation/build.py office     # one workbook
     python3 examples/reconciliation/build.py --check    # build in memory, verify, compare with the files on disk
     python3 examples/reconciliation/build.py tie_out    # only the synthetic tie-out fixtures (tie_out.py)
+    python3 examples/reconciliation/build.py tx_unequal_appraisal --input args.json --out evidence.xlsx
+                                                        # your own calc_tx_unequal_appraisal arguments
 
 Python standard library only. FactLot runs from this repository (python/src), no install needed.
 """
@@ -21,7 +23,7 @@ sys.path.insert(0, HERE)
 
 from common import check  # noqa: E402
 
-CASES = ["office", "industrial", "retail", "multifamily", "hotel", "lender", "lease_accounting"]
+CASES = ["office", "industrial", "retail", "multifamily", "hotel", "lender", "lease_accounting", "tx_unequal_appraisal"]
 
 
 def build_one(name: str):
@@ -38,7 +40,28 @@ def members(path_or_parts) -> dict[str, bytes]:
     return {n: d.encode("utf-8") for n, d in path_or_parts}
 
 
+def build_from_input(name: str, input_path: str, out_path: str) -> int:
+    """Build one workbook from a JSON file of tool arguments (only modules whose build() takes args)."""
+    import json
+
+    mod = importlib.import_module(name)
+    with open(input_path, encoding="utf-8") as f:
+        args = json.load(f)
+    wb, rec = mod.build(args)
+    check(wb, rec)
+    wb.save(out_path)
+    print(f"wrote    {out_path}: {rec.count} rows, all differences 0")
+    return 0
+
+
 def main(argv: list[str]) -> int:
+    if "--input" in argv:
+        i = argv.index("--input")
+        names = [a for a in argv[:i] if not a.startswith("--")]
+        if len(names) != 1 or "--out" not in argv:
+            print("usage: build.py <workbook> --input args.json --out file.xlsx", file=sys.stderr)
+            return 2
+        return build_from_input(names[0], argv[i + 1], argv[argv.index("--out") + 1])
     check_only = "--check" in argv
     asked = [a for a in argv if not a.startswith("--")]
     names = [a for a in asked if a != "tie_out"] if asked else CASES

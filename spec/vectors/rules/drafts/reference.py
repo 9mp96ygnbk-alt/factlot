@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import sys
+from datetime import date, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 
@@ -285,10 +286,110 @@ BOS_ERRORS = [
 ]
 
 
+# --- Texas protest evidence dates ------------------------------------------------------------------------------------
+# Written from Tax Code §41.43(a-1), (a-3)(3), §41.67(d) and Gov't Code §662.003, not from either SDK: the hearing date
+# minus 14 calendar days; the conservative owner date steps back one day at a time past Saturdays, Sundays and Texas
+# legal holidays on their actual dates (observed dates and the optional §662.003(c) days are not holidays). When two
+# holidays share a date, Confederate Heroes Day is named before Martin Luther King, Jr., Day, as in
+# spec/vectors/rules/texas_holidays.json.
+
+def _nth_monday(year: int, month: int, n: int) -> date:
+    mondays = [d for d in (date(year, month, k) for k in range(1, 32) if _valid(year, month, k)) if d.weekday() == 0]
+    return mondays[n - 1] if n > 0 else mondays[-1]
+
+
+def _valid(year: int, month: int, day: int) -> bool:
+    try:
+        date(year, month, day)
+        return True
+    except ValueError:
+        return False
+
+
+def _tx_holidays(year: int) -> dict:
+    thanksgiving = [d for d in (date(year, 11, k) for k in range(1, 31)) if d.weekday() == 3][3]
+    pairs = [
+        (date(year, 1, 1), "New Year's Day"),
+        (date(year, 1, 19), "Confederate Heroes Day"),
+        (_nth_monday(year, 1, 3), "Martin Luther King, Jr., Day"),
+        (_nth_monday(year, 2, 3), "Presidents' Day"),
+        (date(year, 3, 2), "Texas Independence Day"),
+        (date(year, 4, 21), "San Jacinto Day"),
+        (_nth_monday(year, 5, 0), "Memorial Day"),
+        (date(year, 6, 19), "Emancipation Day (Juneteenth)"),
+        (date(year, 7, 4), "Independence Day"),
+        (date(year, 8, 27), "Lyndon Baines Johnson Day"),
+        (_nth_monday(year, 9, 1), "Labor Day"),
+        (date(year, 11, 11), "Veterans Day"),
+        (thanksgiving, "Thanksgiving Day"),
+        (thanksgiving + timedelta(days=1), "Day after Thanksgiving"),
+        (date(year, 12, 24), "Christmas Eve"),
+        (date(year, 12, 25), "Christmas Day"),
+        (date(year, 12, 26), "Day after Christmas"),
+    ]
+    out: dict = {}
+    for d, name in pairs:
+        out.setdefault(d, name)
+    return out
+
+
+def _why_closed(d: date):
+    if d.weekday() == 5:
+        return "Saturday"
+    if d.weekday() == 6:
+        return "Sunday"
+    return _tx_holidays(d.year).get(d)
+
+
+def txed(inp: dict) -> dict:
+    h = date.fromisoformat(inp["hearing_date"])
+    unadjusted = h - timedelta(days=14)
+    rec, skipped = unadjusted, []
+    while _why_closed(rec):
+        skipped.append({"date": rec.isoformat(), "reason": _why_closed(rec)})
+        rec -= timedelta(days=1)
+    return {
+        "value.hearing_date": h.isoformat(),
+        "value.owner_evidence_by_unadjusted": unadjusted.isoformat(),
+        "value.owner_evidence_conservative_by": rec.isoformat(),
+        "value.owner_evidence_skipped_non_business_days": skipped,
+        "value.requested_information_cutoff": unadjusted.isoformat(),
+        "value.rule.citations.0.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.41.htm#41.43",
+        "value.rule.citations.0.retrieved": "2026-11-06",
+    }
+
+
+TXED_CASES = [
+    ("plain weekday: hearing Tue 2027-06-08, both dates Tue 2027-05-25", {"hearing_date": "2027-06-08"}),
+    ("hearing 14 days after Memorial Day: 2027-05-31 rolls back past Mon, Sun, Sat to Fri 2027-05-28",
+     {"hearing_date": "2027-06-14"}),
+    ("Saturday hearing: the 14th day before is also a Saturday, rolled back to Fri 2027-05-28",
+     {"hearing_date": "2027-06-12"}),
+    ("Sunday hearing: 2027-07-04 is a Sunday (named Sunday, not Independence Day), back to Fri 2027-07-02",
+     {"hearing_date": "2027-07-18"}),
+    ("Monday 2027-07-05, the observed Independence Day, is not a holiday on actual dates: no roll",
+     {"hearing_date": "2027-07-19"}),
+    ("Thanksgiving: 2026-11-27 and 2026-11-26 skipped, back to Wed 2026-11-25", {"hearing_date": "2026-12-11"}),
+    ("Confederate Heroes Day and MLK Day back to back, then a weekend: back to Fri 2027-01-15",
+     {"hearing_date": "2027-02-02"}),
+    ("year boundary: 2027-01-01 New Year's Day rolls back to Thu 2026-12-31", {"hearing_date": "2027-01-15"}),
+    ("Christmas cluster across a Saturday: 2026-12-26, -25, -24 skipped, back to Wed 2026-12-23",
+     {"hearing_date": "2027-01-09"}),
+    ("leap day: hearing 2028-03-14, 14 days before is Tue 2028-02-29", {"hearing_date": "2028-03-14"}),
+]
+TXED_ERRORS = [
+    ("invalid date", {"hearing_date": "2027-02-30"}),
+    ("not ISO format", {"hearing_date": "06/01/2027"}),
+    ("missing hearing date", {}),
+    ("unknown field", {"hearing_date": "2027-06-08", "postponed": True}),
+]
+
+
 PACKS = [
     ("nyc_ll97_building_emissions", "rules.nyc.ll97_building_emissions", nyc, NYC_CASES, NYC_ERRORS),
     ("wa_cbps_eui_target", "rules.wa.cbps_eui_target", wa, WA_CASES, WA_ERRORS),
     ("boston_berdo_emissions_standard", "rules.boston.berdo_emissions_standard", bos, BOS_CASES, BOS_ERRORS),
+    ("tx_protest_evidence_dates", "rules.tx.protest_evidence_dates", txed, TXED_CASES, TXED_ERRORS),
 ]
 
 
