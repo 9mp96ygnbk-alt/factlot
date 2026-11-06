@@ -4,6 +4,7 @@ Every account, name, and value here is invented to exercise the mapping; none is
 """
 
 import io
+import re
 import tempfile
 import unittest
 import zipfile
@@ -14,16 +15,20 @@ from factlot.registry.adapters import tx_comptroller, tx_dallas, tx_harris, tx_t
 
 HARRIS_REAL_ACCT_HEADER = (
     "acct\tyr\tmailto\tmail_addr_1\tmail_addr_2\tmail_city\tmail_state\tmail_zip\tmail_country\tsite_addr_1\t"
-    "site_addr_2\tsite_addr_3\tstate_class\tyr_impr\tbld_ar\tland_ar\tacreage\ttot_appr_val\ttot_mkt_val"
+    "site_addr_2\tsite_addr_3\tstate_class\tyr_impr\tbld_ar\tland_ar\tacreage\ttot_appr_val\ttot_mkt_val\t"
+    "Neighborhood_Code"
 )
 HARRIS_REAL_ACCT_ROWS = [
-    # acct, yr, mailto, mail1, mail2, city, st, zip, country, site1, site2, site3, class, yr_impr, bld_ar, land_ar, acreage, appr, mkt
-    "0010010000001            \t2026\tEXAMPLE TOWER LLC\t100 MAIN ST STE 1\t \tHOUSTON\tTX\t77002\t \t100 MAIN ST\tHOUSTON\t77002\tF1\t1985\t250000\t40000\t0.9183\t50000000\t52000000",
-    "0010010000002            \t2026\tCURRENT OWNER\tPO BOX 9\t \tHOUSTON\tTX\t77001\t \t0 ELM ST\tHOUSTON\t77003\tF1\t\t0\t0\t0.5000\t900000\t900000",
-    "0010010000003            \t2026\tJ EXAMPLE\t5 OAK LN\t \tHOUSTON\tTX\t77004\t \t5 OAK LN\tHOUSTON\t77004\tA1\t1990\t2000\t7000\t0.1607\t300000\t300000",
-    "0010010000004            \t2026\tEXAMPLE APARTMENTS LP\t1 PARK AVE\tFLOOR 2\tNEW YORK\tNY\t10001\t \t900 RIVER RD\tHOUSTON\t77005\tB1\t2005\t180000\t90000\t2.0661\t30000000\t31000000",
-    "0010010000005            \t2026\tCONFIDENTIAL\t \t \t \t \t \t \t7 SHIELD ST\tHOUSTON\t77006\tF1\t2000\t5000\t8000\t0.1837\t1000000\t1000000",
+    # acct, yr, mailto, mail1, mail2, city, st, zip, country, site1, site2, site3, class, yr_impr, bld_ar, land_ar, acreage, appr, mkt,
+    # Neighborhood_Code
+    "0010010000001            \t2026\tEXAMPLE TOWER LLC\t100 MAIN ST STE 1\t \tHOUSTON\tTX\t77002\t \t100 MAIN ST\tHOUSTON\t77002\tF1\t1985\t250000\t40000\t0.9183\t50000000\t52000000\t8300.01",
+    "0010010000002            \t2026\tCURRENT OWNER\tPO BOX 9\t \tHOUSTON\tTX\t77001\t \t0 ELM ST\tHOUSTON\t77003\tF1\t\t0\t0\t0.5000\t900000\t900000\t ",
+    "0010010000003            \t2026\tJ EXAMPLE\t5 OAK LN\t \tHOUSTON\tTX\t77004\t \t5 OAK LN\tHOUSTON\t77004\tA1\t1990\t2000\t7000\t0.1607\t300000\t300000\t1.00",
+    "0010010000004            \t2026\tEXAMPLE APARTMENTS LP\t1 PARK AVE\tFLOOR 2\tNEW YORK\tNY\t10001\t \t900 RIVER RD\tHOUSTON\t77005\tB1\t2005\t180000\t90000\t2.0661\t30000000\t31000000\t 6001.02 ",
+    "0010010000005            \t2026\tCONFIDENTIAL\t \t \t \t \t \t \t7 SHIELD ST\tHOUSTON\t77006\tF1\t2000\t5000\t8000\t0.1837\t1000000\t1000000\t0.00",
 ]
+HARRIS_NEIGHBORHOOD_ROWS = ["cd\tgrp_cd\tdscr", "1.00\t4326\tEXAMPLE VILLAGE", "6001.02\t6001\tEXAMPLE RIVER",
+                            "8300.01\t8300\tEXAMPLE DOWNTOWN"]
 HARRIS_OWNERS_HEADER = "acct\tln_num\tname\taka\tpct_own"
 HARRIS_OWNERS_ROWS = [
     "0010010000001\t1\tEXAMPLE TOWER LLC\t \t1.0000",
@@ -35,12 +40,41 @@ HARRIS_OWNERS_ROWS = [
 ]
 
 
+HARRIS_BUILDING_HEADER = "acct\tproperty_use_cd\tbld_num\timpr_tp\tstructure\tstructure_dscr\tqa_cd\tdscr\tdate_erected\tim_sq_ft"
+HARRIS_BUILDING_OTHER_ROWS = [
+    # The tower: two sections of building 1 and a smaller building 2; the largest section is masonry (C).
+    "0010010000001            \tF1\t1\t4353\tD  \tWood or Light Steel\tC \tAverage\t1985\t1000",
+    "0010010000001            \tF1\t1\t4354\tC  \tMasonry Bearing\tA \tExcellent\t1985\t240000",
+    "0010010000001            \tF1\t2\t4354\tA  \tFireproofed Steel\tA \tExcellent\t1999\t5000",
+    # The apartments: a commercial row with no class is skipped, so the residential file decides.
+    "0010010000004            \tB1\t1\t4670\t   \t \tC \tAverage\t2005\t90000",
+    # The withheld owner's property: two equal sections; the first in the file wins.
+    "0010010000005            \tF1\t1\t4327\tS  \tOpen Steel Skeleton\tD \tLow\t2000\t2500",
+    "0010010000005            \tF1\t2\t4327\tD  \tWood or Light Steel\tD \tLow\t2000\t2500",
+]
+HARRIS_BUILDING_RES_ROWS = [
+    "0010010000004            \tB1\t1\t1001\tR  \tResidential\tB \tGood\t2005\t180000",
+    # The house (A1) is not a registry parcel.
+    "0010010000003            \tA1\t1\t1001\tR  \tResidential\tB \tGood\t1990\t2000",
+]
+
+
+def harris_buildings_zip(tmp: Path) -> Path:
+    p = tmp / "Real_building_land.zip"
+    with zipfile.ZipFile(p, "w") as zf:
+        zf.writestr("building_other.txt", "\r\n".join([HARRIS_BUILDING_HEADER, *HARRIS_BUILDING_OTHER_ROWS, ""]))
+        zf.writestr("building_res.txt", "\r\n".join([HARRIS_BUILDING_HEADER, *HARRIS_BUILDING_RES_ROWS, ""]))
+        zf.writestr("land.txt", "acct\tnum\r\n")
+    return p
+
+
 def harris_zip(tmp: Path) -> Path:
     p = tmp / "Real_acct_owner.zip"
     with zipfile.ZipFile(p, "w") as zf:
         zf.writestr("real_acct.txt", "\r\n".join([HARRIS_REAL_ACCT_HEADER, *HARRIS_REAL_ACCT_ROWS, ""]))
         zf.writestr("owners.txt", "\r\n".join([HARRIS_OWNERS_HEADER, *HARRIS_OWNERS_ROWS, ""]))
         zf.writestr("deeds.txt", "acct\tdos\tclerk_yr\tclerk_id\tdeed_id\r\n")
+        zf.writestr("real_neighborhood_code.txt", "\r\n".join([*HARRIS_NEIGHBORHOOD_ROWS, ""]))
     return p
 
 
@@ -75,6 +109,49 @@ class Harris(unittest.TestCase):
         self.assertIsNone(withheld.owner_name)
         self.assertIsNone(withheld.owner_mailing_address)
 
+    def test_neighborhood_code(self):
+        recs = {r.apn: r for r in tx_harris.read_roll(self.zip)}
+        self.assertEqual(recs["0010010000001"].extra_facts, [("parcel.neighborhood_code", "8300.01", None)])
+        self.assertEqual(recs["0010010000004"].extra_facts, [("parcel.neighborhood_code", "6001.02", None)],
+                         "padding is not part of the code")
+        self.assertEqual(recs["0010010000002"].extra_facts, [], "blank is no code")
+        self.assertEqual(recs["0010010000005"].extra_facts, [], "0.00 is not a listed neighborhood")
+
+    def test_building_classes(self):
+        facts = {f.apn: f for f in tx_harris.read_building_classes(harris_buildings_zip(self.tmp))}
+        classes = {apn: f.facts for apn, f in facts.items()}
+        self.assertEqual(classes["0010010000001"], [("parcel.building_class", "C", None)], "the largest section")
+        self.assertEqual(facts["0010010000001"].locator, "building_other.txt acct 0010010000001 bld_num 1")
+        self.assertEqual(classes["0010010000004"], [("parcel.building_class", "R", None)],
+                         "no classed commercial row: the residential file")
+        self.assertEqual(facts["0010010000004"].locator, "building_res.txt acct 0010010000004 bld_num 1")
+        self.assertEqual(classes["0010010000005"], [("parcel.building_class", "S", None)], "a tie keeps the first")
+        self.assertNotIn("0010010000002", classes, "no building, no class")
+        only = {f.apn for f in tx_harris.read_building_classes(harris_buildings_zip(self.tmp), ["0010010000001"])}
+        self.assertEqual(only, {"0010010000001"})
+
+    def test_build_building_classes_cites_the_buildings_file(self):
+        db = self.tmp / "registry.db"
+        tx_harris.build(self.zip, db, as_of="2026-11-01")
+        bzip = harris_buildings_zip(self.tmp)
+        stats = tx_harris.build_buildings(bzip, db, as_of="2026-11-01", tax_year=2026)
+        self.assertEqual((stats.kept, stats.skipped_out_of_scope, stats.source_id), (3, 0, "tx-harris-cad-buildings"),
+                         "the house is never read: it is not a registry parcel")
+        reg = Registry.open_readonly(db)
+        try:
+            row = reg.db.execute(
+                "SELECT f.value_json, s.source_id, s.filename FROM current_facts f JOIN snapshots s USING (document_id) "
+                "WHERE f.subject = 'fl:parcel:us-48201:0010010000001' AND f.predicate = 'parcel.building_class'").fetchone()
+            self.assertEqual(tuple(row), ('"C"', "tx-harris-cad-buildings", "Real_building_land.zip"))
+            nbhd = reg.db.execute(
+                "SELECT f.value_json, s.source_id FROM current_facts f JOIN snapshots s USING (document_id) "
+                "WHERE f.subject = 'fl:parcel:us-48201:0010010000001' AND f.predicate = 'parcel.neighborhood_code'").fetchone()
+            self.assertEqual(tuple(nbhd), ('"8300.01"', "tx-harris-cad"))
+        finally:
+            reg.close()
+        self.assertEqual(tx_harris.build_buildings(bzip, db, as_of="2026-11-01", tax_year=2027).source_id,
+                         "tx-harris-cad-buildings-2027", "another tax year is its own source, as for the roll")
+
     def test_unpacked_directory_reads_the_same(self):
         with zipfile.ZipFile(self.zip) as zf:
             zf.extractall(self.tmp / "unpacked")
@@ -106,6 +183,22 @@ class Harris(unittest.TestCase):
         finally:
             reg.close()
 
+
+
+class RollSource(unittest.TestCase):
+    def test_one_source_per_tax_year(self):
+        from factlot.registry.store import ROLL_BASE_TAX_YEAR, ParcelRecord, roll_source, roll_tax_year
+        src = tx_dallas.SOURCE
+        self.assertIs(roll_source(src, ROLL_BASE_TAX_YEAR), src, "the base year keeps the id the roll was loaded under")
+        self.assertIs(roll_source(src, None), src)
+        nxt = roll_source(src, 2027)
+        self.assertEqual((nxt.source_id, nxt.county_fips, nxt.license), ("tx-dallas-cad-2027", src.county_fips, src.license))
+        self.assertIn("tax year 2027", nxt.title)
+        self.assertIs(roll_source(src, 2027, base_year=2027), src, "a source first loaded for 2027 keeps its id for 2027")
+        self.assertEqual(roll_source(src, 2026, base_year=2027).source_id, "tx-dallas-cad-2026")
+        recs = [ParcelRecord(county_fips="113", apn=str(i), tax_year=y) for i, y in enumerate((2026, 2027, 2026, None))]
+        year, kept = roll_tax_year(iter(recs))
+        self.assertEqual((year, len(kept)), (2026, 4), "the year most records state; every record kept")
 
 COMPTROLLER_HEADER = (
     '"Taxpayer Number","Taxpayer Name","Taxpayer Address","Taxpayer City","Taxpayer State","Taxpayer Zip",'
@@ -161,23 +254,27 @@ class Comptroller(unittest.TestCase):
 
 DALLAS = {
     "ACCOUNT_APPRL_YEAR.CSV": [
-        '"ACCOUNT_NUM","APPRAISAL_YR","IMPR_VAL","LAND_VAL","TOT_VAL","DIVISION_CD","SPTD_CODE"',
-        '"00000100001000000","2026","4000000.00","1000000.00","5000000.00","COM","F10"',
-        '"00000100002000000","2026","0.00","300000.00","300000.00","COM","C12"',
-        '"00000100003000000","2026","900000.00","100000.00","1000000.00","RES","B11"',
-        '"00000100004000000","2026","50000.00","0.00","50000.00","BPP","F10"',
-        '"00000100005000000","2026","2000000.00","500000.00","2500000.00","COM","F20"',
+        '"ACCOUNT_NUM","APPRAISAL_YR","IMPR_VAL","LAND_VAL","TOT_VAL","DIVISION_CD","BLDG_CLASS_CD","SPTD_CODE"',
+        '"00000100001000000","2026","4000000.00","1000000.00","5000000.00","COM","OFFICE BUILDING","F10"',
+        '"00000100002000000","2026","0.00","300000.00","300000.00","COM","UNASSIGNED","C12"',
+        '"00000100003000000","2026","900000.00","100000.00","1000000.00","RES","14","B11"',
+        '"00000100004000000","2026","50000.00","0.00","50000.00","BPP","","F10"',
+        '"00000100005000000","2026","2000000.00","500000.00","2500000.00","COM","UNASSIGNED","F20"',
     ],
     "ACCOUNT_INFO.CSV": [
         '"ACCOUNT_NUM","APPRAISAL_YR","DIVISION_CD","OWNER_NAME1","OWNER_NAME2","EXCLUDE_OWNER","OWNER_ADDRESS_LINE1",'
         '"OWNER_ADDRESS_LINE2","OWNER_ADDRESS_LINE3","OWNER_ADDRESS_LINE4","OWNER_CITY","OWNER_STATE","OWNER_ZIPCODE",'
-        '"OWNER_COUNTRY","STREET_NUM","STREET_HALF_NUM","FULL_STREET_NAME","BLDG_ID","UNIT_ID","PROPERTY_CITY","PROPERTY_ZIPCODE"',
+        '"OWNER_COUNTRY","STREET_NUM","STREET_HALF_NUM","FULL_STREET_NAME","BLDG_ID","UNIT_ID","PROPERTY_CITY","PROPERTY_ZIPCODE",'
+        '"NBHD_CD","LMA","IMA"',
         '"00000100001000000","2026","COM","EXAMPLE PLAZA LP","C/O EXAMPLE MGMT","N","","PO BOX 100","","","DALLAS","TEXAS",'
-        '"752010100","UNITED STATES OF AMERICA","1500","","MAIN ST","","","DALLAS","75201"',
-        '"00000100002000000","2026","COM","VACANT LOT LLC","","N","1 LOT ST","","","","DALLAS","TEXAS","75201","","0","","ELM ST","","","DALLAS","75201"',
-        '"00000100003000000","2026","RES","EXAMPLE DUPLEX LLC","","N","2 OAK ST","","","","DALLAS","TEXAS","75202","","200","1/2","OAK ST","","B","DALLAS","75202"',
-        '"00000100004000000","2026","BPP","EXAMPLE SHOP INC","","N","","","","","","","","","1500","","MAIN ST","","","DALLAS","75201"',
-        '"00000100005000000","2026","COM","WITHHELD PERSON","","Y","9 SHIELD RD","","","","DALLAS","TEXAS","75203","","9","","SHIELD RD","","","DALLAS","75203"',
+        '"752010100","UNITED STATES OF AMERICA","1500","","MAIN ST","","","DALLAS","75201","UNASSIGNED","120000","112000"',
+        '"00000100002000000","2026","COM","VACANT LOT LLC","","N","1 LOT ST","","","","DALLAS","TEXAS","75201","","0","","ELM ST","","","DALLAS","75201",'
+        '"UNASSIGNED","120000","UNASSIGNED"',
+        '"00000100003000000","2026","RES","EXAMPLE DUPLEX LLC","","N","2 OAK ST","","","","DALLAS","TEXAS","75202","","200","1/2","OAK ST","","B","DALLAS","75202",'
+        '"3YSS26","UNASSIGNED","UNASSIGNED"',
+        '"00000100004000000","2026","BPP","EXAMPLE SHOP INC","","N","","","","","","","","","1500","","MAIN ST","","","DALLAS","75201","","",""',
+        '"00000100005000000","2026","COM","WITHHELD PERSON","","Y","9 SHIELD RD","","","","DALLAS","TEXAS","75203","","9","","SHIELD RD","","","DALLAS","75203",'
+        '"1HS204","130000","UNASSIGNED"',
     ],
     "LAND.CSV": [
         '"ACCOUNT_NUM","APPRAISAL_YR","SECTION_NUM","SPTD_CD","AREA_SIZE","AREA_UOM_DESC"',
@@ -199,11 +296,16 @@ DALLAS = {
 }
 
 
-def dallas_zip(tmp: Path) -> Path:
-    p = tmp / "DCAD2026_CURRENT.ZIP"
+def dallas_zip(tmp: Path, year: int = 2026, values: bool = True, drop: str | None = None) -> Path:
+    """The fixture export; another ``year`` relabels every row, ``values=False`` zeroes the values (as in
+    DCAD's next-year working file), ``drop`` leaves one account out."""
+    p = tmp / f"DCAD{year}_CURRENT{'' if values else '_ZERO'}{'_' + drop if drop else ''}.ZIP"
     with zipfile.ZipFile(p, "w") as zf:
         for name, lines in DALLAS.items():
-            zf.writestr(name, "\r\n".join([*lines, ""]))
+            rows = [ln.replace('"2026"', f'"{year}"') for ln in lines if not (drop and ln.startswith(f'"{drop}"'))]
+            if not values and name == "ACCOUNT_APPRL_YEAR.CSV":
+                rows = [rows[0]] + [re.sub(r'"[0-9]+\.00"', '".00"', ln) for ln in rows[1:]]
+            zf.writestr(name, "\r\n".join([*rows, ""]))
     return p
 
 
@@ -235,6 +337,52 @@ class Dallas(unittest.TestCase):
         self.assertIsNone(withheld.owner_mailing_address)
         self.assertEqual((withheld.land_area_sf, withheld.improvement_area_sf, withheld.year_built), (None, None, None),
                          "zeros are not figures")
+
+    def test_neighborhood_and_building_class(self):
+        recs = {r.apn: dict(((p, v) for p, v, _u in r.extra_facts)) for r in tx_dallas.read_roll(self.zip)}
+        self.assertEqual(recs["00000100001000000"], {"parcel.neighborhood_code": "112000", "parcel.building_class": "OFFICE BUILDING"},
+                         "a commercial account's market area is IMA")
+        self.assertEqual(recs["00000100003000000"], {"parcel.neighborhood_code": "3YSS26", "parcel.building_class": "14"},
+                         "a residential-division account's is NBHD_CD")
+        self.assertEqual(recs["00000100005000000"], {}, "UNASSIGNED is DCAD's blank; NBHD_CD is not read on a commercial account")
+
+    def test_zero_values_are_not_values(self):
+        recs = {r.apn: r for r in tx_dallas.read_roll(dallas_zip(self.tmp, 2027, values=False))}
+        self.assertEqual({r.market_value for r in recs.values()}, {None})
+        self.assertEqual({r.tax_year for r in recs.values()}, {2027})
+
+    def test_next_year_file_does_not_retire_this_years_roll(self):
+        db = self.tmp / "registry.db"
+        urn = "fl:parcel:us-48113:00000100001000000"
+        first = tx_dallas.build(self.zip, db, as_of="2026-10-12")
+        later = tx_dallas.build(dallas_zip(self.tmp, 2027, values=False), db, as_of="2026-11-02")
+        self.assertEqual((first.source_id, later.source_id), ("tx-dallas-cad", "tx-dallas-cad-2027"))
+        self.assertEqual(later.retired, 0)
+        reg = Registry.open_readonly(db)
+        try:
+            current = reg.db.execute(
+                "SELECT f.predicate, f.value_json, s.source_id FROM current_facts f JOIN snapshots s USING (document_id) "
+                "WHERE f.subject = ? AND f.predicate IN ('parcel.market_value', 'parcel.tax_year') ORDER BY 1, 3",
+                (urn,)).fetchall()
+            self.assertEqual([tuple(r) for r in current],
+                             [("parcel.market_value", "5000000.0", "tx-dallas-cad"),
+                              ("parcel.tax_year", "2026", "tx-dallas-cad"), ("parcel.tax_year", "2027", "tx-dallas-cad-2027")],
+                             "the certified 2026 value stays current; the 2027 file has no value to state yet")
+            self.assertEqual(reg.status(urn), "current")
+        finally:
+            reg.close()
+        # Within one tax year a newer file still replaces the older one and retires what it no longer lists.
+        again = tx_dallas.build(dallas_zip(self.tmp, 2026, drop="00000100005000000"), db, as_of="2026-11-09")
+        self.assertEqual((again.source_id, again.retired), ("tx-dallas-cad", 1))
+        reg = Registry.open_readonly(db)
+        try:
+            sources = reg.db.execute(
+                "SELECT DISTINCT s.source_id FROM current_facts f JOIN snapshots s USING (document_id) WHERE f.subject = ?",
+                ("fl:parcel:us-48113:00000100005000000",)).fetchall()
+            self.assertEqual([r[0] for r in sources], ["tx-dallas-cad-2027"],
+                             "its 2026 facts are history; the 2027 file still lists the account")
+        finally:
+            reg.close()
 
     def test_build(self):
         db = self.tmp / "registry.db"

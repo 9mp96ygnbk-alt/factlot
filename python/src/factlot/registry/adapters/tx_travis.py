@@ -15,7 +15,8 @@ field). The column positions below are transcribed from that spreadsheet.
   ``situs_num``, ``situs_street_prefx``, ``situs_street``, ``situs_street_suffix``, ``situs_unit``,
   ``situs_city`` (blank on most records), ``situs_zip``. ``imprv_state_cd`` and ``land_state_cd``
   carry TCAD's own state codes (``F4``), ``land_acres`` the acreage, ``market_value`` and
-  ``appraised_val`` the values, ``prop_val_yr`` the year. ``sup_num`` is 0 on certified records and
+  ``appraised_val`` the values, ``prop_val_yr`` the year. ``hood_cd`` (columns 1686–1695,
+  "Neighborhood code") is written as ``parcel.neighborhood_code``. ``sup_num`` is 0 on certified records and
   the supplement number otherwise; the supplemental export is a full re-export of the roll, not a
   delta (``sup_action`` is blank on every record of the 2026 supplement 3 file; a ``D`` would mark
   a deletion).
@@ -27,7 +28,11 @@ field). The column positions below are transcribed from that spreadsheet.
 - ``IMP_DET.TXT`` (file #8, 622 characters) — one record per improvement detail (a floor, a canopy,
   paved area, a fence, ...): ``imprv_det_type_cd``, ``yr_built``, ``imprv_det_area``. Building area
   is the sum of the floor details (``1ST``, ``2ND``, ..., ``ADDL``, ``MEZZ``, basements); the
-  oldest floor dates the parcel.
+  oldest floor dates the parcel. ``imprv_det_class_cd`` (columns 76–85, "Class Code") of the main
+  improvement is written as ``parcel.building_class``: the class of the largest floor detail (first in
+  file order on a tie), or of the largest detail of any type when the property has no floor detail
+  with a class (a class with no letter or digit, such as ``*``, is skipped). TCAD's export has no
+  separate quality code.
 
 Usage: ``python -m factlot.registry.adapters.tx_travis "2026 Certified Appraisal Export Supp 0.zip" registry.db --as-of 2026-07-18``
 """
@@ -68,7 +73,7 @@ SOURCE = Source(
 # Fixed-width fields as (start, end), 1-based and inclusive, from the Legacy 8.0.33 layout.
 PROP_FIELDS = {
     "prop_id": (1, 12), "prop_type_cd": (13, 17), "prop_val_yr": (18, 22), "sup_num": (23, 34), "sup_action": (35, 36),
-    "geo_id": (547, 596),
+    "geo_id": (547, 596), "hood_cd": (1686, 1695),
     "py_owner_name": (609, 678), "partial_owner": (679, 679),
     "py_addr_line1": (694, 753), "py_addr_line2": (754, 813), "py_addr_line3": (814, 873),
     "py_addr_city": (874, 923), "py_addr_state": (924, 973), "py_addr_country": (974, 978),
@@ -84,7 +89,8 @@ PROP_FIELDS = {
 PROP_RECORD_LENGTH = 9922
 STATE_CD_FIELDS = {"state_cd": (1, 10), "ptd_state_cd": (61, 70)}
 LAND_DET_FIELDS = {"prop_id": (1, 12), "size_acres": (70, 83), "size_square_feet": (84, 97)}
-IMP_DET_FIELDS = {"prop_id": (1, 12), "imprv_det_type_cd": (41, 50), "yr_built": (86, 89), "imprv_det_area": (94, 108)}
+IMP_DET_FIELDS = {"prop_id": (1, 12), "imprv_det_type_cd": (41, 50), "imprv_det_class_cd": (76, 85), "yr_built": (86, 89),
+                  "imprv_det_area": (94, 108)}
 
 # Improvement detail types that are building floors; everything else (canopies, paved area,
 # fences, pools, parking garages, plumbing counts) is not building area.
@@ -246,6 +252,8 @@ def read_roll(path: str | Path, *, categories: Iterable[str] | None = COMMERCIAL
     area: dict[str, float] = defaultdict(float)
     built: dict[str, int] = {}
     built_any: dict[str, int] = {}
+    # Main improvement class: (is a floor, area) of the best detail with a class so far, and its class.
+    main_class: dict[str, tuple[tuple[bool, float], str]] = {}
     if _has_member(path, "IMP_DET.TXT"):
         for line in _lines(path, "IMP_DET.TXT"):
             pid = _field(line, IMP_DET_FIELDS["prop_id"]).lstrip("0")
@@ -253,6 +261,11 @@ def read_roll(path: str | Path, *, categories: Iterable[str] | None = COMMERCIAL
                 continue
             floor = _field(line, IMP_DET_FIELDS["imprv_det_type_cd"]).upper() in _FLOOR_DETAIL_TYPES
             year = _positive(_field(line, IMP_DET_FIELDS["yr_built"]))
+            cls = _squeeze(_field(line, IMP_DET_FIELDS["imprv_det_class_cd"]))
+            if re.search(r"[A-Za-z0-9]", cls):  # a bare "*" (20 commercial properties in 2026) is not a class
+                rank = (floor, _positive(_field(line, IMP_DET_FIELDS["imprv_det_area"])) or 0.0)
+                if pid not in main_class or rank > main_class[pid][0]:
+                    main_class[pid] = (rank, cls)
             if floor:
                 if a := _positive(_field(line, IMP_DET_FIELDS["imprv_det_area"])):
                     area[pid] += a
@@ -285,6 +298,8 @@ def read_roll(path: str | Path, *, categories: Iterable[str] | None = COMMERCIAL
             tax_year=int(y) if (y := _num(r["prop_val_yr"])) else None,
             locator=f"PROP.TXT prop_id {pid}",
             local_use_code=r["_code"] or None,
+            extra_facts=[(p, v, None) for p, v in (("parcel.neighborhood_code", _squeeze(r["hood_cd"])),
+                                                    ("parcel.building_class", main_class.get(pid, ((), ""))[1])) if v],
         )
 
 
@@ -293,10 +308,9 @@ def build(snapshot_path: str | Path, db_path: str | Path, *, as_of: str, retriev
     """Ingest one archived certified export into a registry file (created if missing)."""
     reg = Registry(db_path)
     try:
-        reg.add_source(SOURCE)
-        snap = reg.add_snapshot(SOURCE.source_id, snapshot_path, as_of, retrieved_at)
-        return reg.ingest_parcels(read_roll(snapshot_path), snap, state_fips=STATE_FIPS,
-                                  account_system=ACCOUNT_SYSTEM, full_roll=full_roll)
+        # One registry source per tax year (store.roll_source): a next-year file never retires this year's roll.
+        return reg.ingest_roll(SOURCE, snapshot_path, read_roll(snapshot_path), as_of=as_of, retrieved_at=retrieved_at,
+                               state_fips=STATE_FIPS, account_system=ACCOUNT_SYSTEM, full_roll=full_roll)
     finally:
         reg.close()
 

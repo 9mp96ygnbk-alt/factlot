@@ -18,7 +18,11 @@ Codes, Imprv Type Codes).
 - ``state_cd`` — CCAD's state classification code (``F3`` office, ``F4`` commercial condo, ``B2``
   duplex, ``EX4`` city-owned); the "State Category Codes" sheet of ``CodeFileLists.xls`` gives the
   Comptroller category of each, transcribed in ``_STATE_CATEGORY`` below. ``commercial_flag`` is
-  CCAD's own commercial-division indicator (``T``/``F``).
+  CCAD's own commercial-division indicator (``T``/``F``). ``class_cd`` ("CCAD Improvement
+  Classification Code (internal CAD use)", e.g. ``RE1``, ``MM2``) is written as
+  ``parcel.building_class``; the file gives one per property and no separate quality code. The file
+  has no neighborhood or market-area code (``abs_subdv_cd`` is the abstract or subdivision, which is
+  not recorded as one), so Collin parcels get no ``parcel.neighborhood_code``.
 - ``land_total_sqft`` (``land_sqft`` is marked "DO NOT USE"), ``legal_acreage``, ``eff_size_acres``,
   ``living_area`` ("Improvement Main Area SqFt Total (of all bldgs)"), ``yr_blt`` (actual year
   built; ``eff_yr_blt`` is the appraisal's effective year).
@@ -239,6 +243,7 @@ def read_roll(path: str | Path, *, categories: Iterable[str] | None = COMMERCIAL
             tax_year=int(y) if (y := _num(year)) else None,
             locator=f"{TABLE} prop_id {pid}",
             local_use_code=code or None,
+            extra_facts=[("parcel.building_class", cls, None)] if (cls := _squeeze(r.get("class_cd"))) else [],
         )
 
 
@@ -247,10 +252,9 @@ def build(snapshot_path: str | Path, db_path: str | Path, *, as_of: str, retriev
     """Ingest one archived ``LiteDatabaseCurrent.zip`` into a registry file (created if missing)."""
     reg = Registry(db_path)
     try:
-        reg.add_source(SOURCE)
-        snap = reg.add_snapshot(SOURCE.source_id, snapshot_path, as_of, retrieved_at)
-        return reg.ingest_parcels(read_roll(snapshot_path), snap, state_fips=STATE_FIPS,
-                                  account_system=ACCOUNT_SYSTEM, full_roll=full_roll)
+        # One registry source per tax year (store.roll_source): a next-year file never retires this year's roll.
+        return reg.ingest_roll(SOURCE, snapshot_path, read_roll(snapshot_path), as_of=as_of, retrieved_at=retrieved_at,
+                               state_fips=STATE_FIPS, account_system=ACCOUNT_SYSTEM, full_roll=full_roll)
     finally:
         reg.close()
 
