@@ -47,6 +47,10 @@ STATE_FIPS = "48"
 COUNTY_FIPS = "491"
 ACCOUNT_SYSTEM = "wcad_property_id"
 
+# The tax year the records stated when this source was first loaded (2026-11-03): the publisher had already
+# rolled to 2027. Rolls for that year keep the plain source id (store.roll_source).
+BASE_TAX_YEAR = 2027
+
 SOURCE = Source(
     source_id="tx-williamson-cad",
     publisher="Williamson Central Appraisal District",
@@ -182,13 +186,14 @@ def build(improvements: str | Path, owner_paths: Iterable[str | Path], db_path: 
     total = IngestStats()
     reg = Registry(db_path)
     try:
-        reg.add_source(SOURCE)
         for page in owner_paths:
-            snap = reg.add_snapshot(SOURCE.source_id, page, as_of, retrieved_at)
-            stats = reg.ingest_parcels(read_roll(improvements, page), snap, state_fips=STATE_FIPS,
-                                       account_system=ACCOUNT_SYSTEM, full_roll=False)
+            # One registry source per tax year (store.roll_source): next year's pages never supersede this year's.
+            stats = reg.ingest_roll(SOURCE, page, read_roll(improvements, page), as_of=as_of, retrieved_at=retrieved_at,
+                                    state_fips=STATE_FIPS, account_system=ACCOUNT_SYSTEM, full_roll=False, base_year=BASE_TAX_YEAR)
             for k, v in asdict(stats).items():
-                if isinstance(v, int):
+                if k in ("source_id", "tax_year"):
+                    setattr(total, k, v)
+                elif isinstance(v, int):
                     setattr(total, k, getattr(total, k) + v)
                 elif isinstance(v, list):
                     getattr(total, k).extend(v)

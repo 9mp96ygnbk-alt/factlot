@@ -13,7 +13,8 @@
         "https://hcad.org/actions/hcad-pdata/default/get-tax-years",
         "https://hcad.org/actions/hcad-pdata/default/get-property-downloads?t=2026&c=CAMA&s=Real%20Property",
         "https://hcad.org/actions/hcad-pdata/default/get-property-downloads?t=2026&c=CAMA&s=Personal%20Property",
-        "https://hcad.org/actions/hcad-pdata/default/get-property-downloads?t=2026&c=CAMA&s=Hearings"
+        "https://hcad.org/actions/hcad-pdata/default/get-property-downloads?t=2026&c=CAMA&s=Hearings",
+        "https://hcad.org/actions/hcad-pdata/default/get-property-downloads?t=2027&c=CAMA&s=Real%20Property"
       ],
       "allowed_hosts": ["hcad.org"],
       "files": [
@@ -24,7 +25,10 @@
         "https://download.hcad.org/data/CAMA/2026/Code_description_real.zip",
         "https://download.hcad.org/data/CAMA/2026/PP_files.zip",
         "https://download.hcad.org/data/CAMA/2026/Code_description_pp.zip",
-        "https://download.hcad.org/data/CAMA/2026/Hearing_files.zip"
+        "https://download.hcad.org/data/CAMA/2026/Hearing_files.zip",
+        "https://download.hcad.org/data/CAMA/2027/Real_acct_owner.zip",
+        "https://download.hcad.org/data/CAMA/2027/Real_building_land.zip",
+        "https://download.hcad.org/data/CAMA/2027/Code_description_real.zip"
       ],
       "verified": true,
       "terms_url": "https://hcad.org/hcad-privacy-policy",
@@ -32,7 +36,7 @@
       "ai_use": "Not addressed by the publisher",
       "redistribution": "Not addressed by the publisher; public record",
       "reviewed": "2026-11-02",
-      "notes": "The downloads page (hcad.org/pdata/pdata-property-downloads.html) is filled by the JSON endpoints listed as landing pages; the files live on download.hcad.org. Each tax year has its own folder (data/CAMA/<year>/): update the year in the landing pages and files when the new roll appears (get-tax-years lists them). robots.txt on hcad.org has no active rules; download.hcad.org has none."
+      "notes": "The downloads page (hcad.org/pdata/pdata-property-downloads.html) is filled by the JSON endpoints listed as landing pages; the files live on download.hcad.org. Each tax year has its own folder (data/CAMA/<year>/), which holds the preliminary values first and the certified values later under the same file names (HCAD's page script labels a year 'Preliminary Values' until get-certification-flag?t=<year> returns certflg Y). The 2027 files the adapter reads are listed ahead of time so the weekly run archives the spring 2027 preliminary roll as soon as it is posted; until then they answer 404 (on 2026-11-06 get-property-downloads?t=2027 returned null and get-tax-years listed 2026 back to at least 2007). The 2026 files stay listed: they are the certified roll of the year being protested. The adapters load each tax year as its own registry source (store.roll_source), so the 2027 files do not retire the 2026 facts. See registry/sources/tx/PROTEST-SEASON.md. robots.txt on hcad.org has no active rules; download.hcad.org has none."
     },
     {
       "source_id": "tx-dallas-cad",

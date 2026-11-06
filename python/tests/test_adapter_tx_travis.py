@@ -25,7 +25,7 @@ PROP = {
     "py_confidential_flag": (990, 990), "py_address_suppress_flag": (991, 991),
     "situs_street_prefx": (1040, 1049), "situs_street": (1050, 1099), "situs_street_suffix": (1100, 1109),
     "situs_city": (1110, 1139), "situs_zip": (1140, 1149), "legal_desc": (1150, 1404),
-    "legal_acreage": (1660, 1675), "land_non_hstd_val": (1811, 1825), "imprv_non_hstd_val": (1841, 1855),
+    "legal_acreage": (1660, 1675), "abs_subdv_cd": (1676, 1685), "hood_cd": (1686, 1695), "land_non_hstd_val": (1811, 1825), "imprv_non_hstd_val": (1841, 1855),
     "appraised_val": (1916, 1930), "assessed_val": (1946, 1960),
     "imprv_state_cd": (2732, 2741), "land_state_cd": (2742, 2751), "land_acres": (2772, 2791),
     "ownership_pct": (4022, 4027), "prop_owner_sequence": (4051, 4090), "dba": (4136, 4175),
@@ -92,7 +92,7 @@ PROP_ROWS = [
          py_addr_line1="41 EXAMPLE DR", py_addr_city="WOODCREEK", py_addr_zip="78676", py_addr_zip_cass="2530",
          situs_street_prefx="S", situs_street="LAMAR", situs_street_suffix="BLVD", situs_zip="78704", situs_num="1201",
          imprv_state_cd="F1", land_state_cd="F1", land_acres="5398", appraised_val="4336640", market_value="4336640",
-         dba="EXAMPLE CAFE"),
+         dba="EXAMPLE CAFE", abs_subdv_cd="S01244", hood_cd="C01244"),
     # Apartments (B1 → B) with a care-of mailing line and a city on the situs.
     prop(prop_id="100012", py_owner_name="EXAMPLE LAMAR VENTURE LLC", py_addr_line1="% EXAMPLE ADVISORS",
          py_addr_line2="400 EXAMPLE ST", py_addr_city="SAN FRANCISCO", py_addr_state="CA", py_addr_zip="94105",
@@ -187,6 +187,9 @@ IMP_ROWS = [
     # The storage lot: only a fence, with a year but no floor, so the year still dates the parcel.
     detail(prop_id="100090", imprv_id="5", imprv_det_id="3", imprv_det_type_cd="541", imprv_det_type_desc="FENCE COMM LF",
            imprv_det_class_cd="C6", yr_built="1999", imprv_det_area="00000300.000000"),
+    # The storage lot again: a larger detail whose class is a bare "*" gives no class.
+    detail(prop_id="100090", imprv_id="5", imprv_det_id="5", imprv_det_type_cd="551", imprv_det_type_desc="PAVED AREA",
+           imprv_det_class_cd="*", yr_built="0", imprv_det_area="00009000.000000"),
     # A house detail: out of scope, ignored.
     detail(prop_id="100050", imprv_id="6", imprv_det_id="4", imprv_det_type_cd="1ST", imprv_det_type_desc="1st Floor",
            imprv_det_class_cd="R4", yr_built="1990", imprv_det_area="00002000.000000"),
@@ -214,6 +217,15 @@ class Travis(unittest.TestCase):
         self.assertTrue(all(len(r) == LAND_DET_LENGTH for r in LAND_ROWS))
         self.assertTrue(all(len(r) == IMP_DET_LENGTH for r in IMP_ROWS))
         self.assertEqual(PROP_ROWS[0][:17], "000000100008R    ")
+
+    def test_neighborhood_and_building_class(self):
+        facts = {r.apn: dict((p, v) for p, v, _u in r.extra_facts) for r in tx_travis.read_roll(self.zip)}
+        self.assertEqual(facts["100008"], {"parcel.neighborhood_code": "C01244", "parcel.building_class": "C"},
+                         "hood_cd, not the subdivision; the floor's class, not the larger paved area's")
+        self.assertEqual(facts["100012"], {"parcel.building_class": "WV"}, "the largest floor; the garage is not a floor")
+        self.assertEqual(facts["100090"], {"parcel.building_class": "C6"}, "no floor: the largest detail of any type with a class ('*' is not one)")
+        self.assertEqual(facts["100080"], {"parcel.building_class": "R5"})
+        self.assertEqual(facts["100040"], {}, "no improvement detail, no class; a blank hood_cd is no code")
 
     def test_mapping(self):
         recs = {r.apn: r for r in tx_travis.read_roll(self.zip)}

@@ -6,9 +6,22 @@ header row, one row set per appraisal year, keyed by the 17-character ``ACCOUNT_
 - ``ACCOUNT_INFO.CSV`` — owner of record (``OWNER_NAME1``/``2``, ``EXCLUDE_OWNER``), owner mailing
   address, situs (``STREET_NUM``, ``FULL_STREET_NAME``, ``UNIT_ID``, ``PROPERTY_CITY``,
   ``PROPERTY_ZIPCODE``), and ``DIVISION_CD`` (``RES``, ``COM``, or ``BPP`` for business personal
-  property, which is not real property).
+  property, which is not real property). ``NBHD_CD`` ("DCAD Neighborhood identifier") is assigned on
+  residential-division accounts and ``IMA`` ("DCAD Improved Market Area Identifier (Commercial
+  Only)") on commercial ones; ``parcel.neighborhood_code`` is ``IMA`` for a ``COM`` account and
+  ``NBHD_CD`` otherwise, as written. ``UNASSIGNED`` is DCAD's blank and writes no fact. The land
+  market area (``LMA``) is not recorded.
 - ``ACCOUNT_APPRL_YEAR.CSV`` — values (``TOT_VAL`` is the total market value) and ``SPTD_CODE``, the
   state property category with DCAD's subclass digit (``F10``, ``F20``, ``B11``, ``B12``).
+  ``BLDG_CLASS_CD`` ("Primary building class description" in DCAD's ``TABLES AND FIELD NAMES.xlsx``)
+  is written as ``parcel.building_class``: a description such as ``OFFICE BUILDING`` on commercial
+  accounts, a numeric residential class (``14``) on residential-division ones. DCAD chooses the
+  primary building itself; the per-building quality (``COM_DETAIL.CSV`` ``PROPERTY_QUAL_DESC``) and
+  construction type (``CONSTR_TYP_DESC``) are not recorded. ``HMSTD_CAP_VAL`` ("Capped total value
+  of account") is not read: it differs from ``TOT_VAL`` on about a fifth of the commercial accounts
+  of the 2026 file and is the candidate for ``parcel.appraised_value``.
+  A ``TOT_VAL`` of 0 is not a value: DCAD's next-year working file (``DCAD2027_CURRENT.zip`` in
+  November 2026) lists every account with zero values until appraisal.
 - ``LAND.CSV`` — one row per land section with ``AREA_SIZE`` and ``AREA_UOM_DESC``.
 - ``COM_DETAIL.CSV`` — commercial buildings: ``YEAR_BUILT``, ``GROSS_BLDG_AREA``.
 - ``RES_DETAIL.CSV`` — residential buildings (small multifamily): ``YR_BUILT``, ``TOT_MAIN_SF``.
@@ -101,6 +114,24 @@ def _mailing_address(r: dict[str, str]) -> str | None:
     return ", ".join(x for x in lines if x) or None
 
 
+def _code(s: str | None) -> str | None:
+    """A DCAD code as written; blank and ``UNASSIGNED`` (DCAD's blank) are no code."""
+    c = " ".join((s or "").split())
+    return c if c and c.upper() != "UNASSIGNED" else None
+
+
+def _class_and_area(values: dict[str, str], info: dict[str, str]) -> list[tuple[str, str, None]]:
+    """``parcel.neighborhood_code`` and ``parcel.building_class`` for one account (see the module docstring)."""
+    commercial = (info.get("DIVISION_CD") or values.get("DIVISION_CD") or "").strip().upper() == "COM"
+    area = _code(info.get("IMA")) if commercial else _code(info.get("NBHD_CD"))
+    facts: list[tuple[str, str, None]] = []
+    if area:
+        facts.append(("parcel.neighborhood_code", area, None))
+    if cls := _code(values.get("BLDG_CLASS_CD")):
+        facts.append(("parcel.building_class", cls, None))
+    return facts
+
+
 def read_roll(path: str | Path) -> Iterator[ParcelRecord]:
     """Yield one ``ParcelRecord`` per real-property account in the registry's commercial scope."""
     # 1. Which accounts are in scope, and their values (ACCOUNT_APPRL_YEAR is the smaller file).
@@ -154,9 +185,10 @@ def read_roll(path: str | Path) -> Iterator[ParcelRecord]:
             land_area_sf=round(land[acct], 2) if land.get(acct) else None,
             improvement_area_sf=area[acct] if area.get(acct) else None,
             year_built=built.get(acct),
-            market_value=_num(v.get("TOT_VAL")),
+            market_value=_positive(v.get("TOT_VAL")),
             tax_year=int(y) if (y := _num(v.get("APPRAISAL_YR"))) else None,
             locator=f"ACCOUNT_INFO.CSV account {acct}",
+            extra_facts=_class_and_area(v, r),
         )
 
 
@@ -165,10 +197,9 @@ def build(snapshot_path: str | Path, db_path: str | Path, *, as_of: str, retriev
     """Ingest one archived DCAD export into a registry file (created if missing)."""
     reg = Registry(db_path)
     try:
-        reg.add_source(SOURCE)
-        snap = reg.add_snapshot(SOURCE.source_id, snapshot_path, as_of, retrieved_at)
-        return reg.ingest_parcels(read_roll(snapshot_path), snap, state_fips=STATE_FIPS,
-                                  account_system=ACCOUNT_SYSTEM, full_roll=full_roll)
+        # One registry source per tax year (store.roll_source): a next-year file never retires this year's roll.
+        return reg.ingest_roll(SOURCE, snapshot_path, read_roll(snapshot_path), as_of=as_of, retrieved_at=retrieved_at,
+                               state_fips=STATE_FIPS, account_system=ACCOUNT_SYSTEM, full_roll=full_roll)
     finally:
         reg.close()
 
