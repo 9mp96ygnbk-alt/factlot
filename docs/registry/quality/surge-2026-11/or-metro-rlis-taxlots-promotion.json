@@ -1,0 +1,45 @@
+{
+  "source": "or-metro-rlis-taxlots",
+  "audit_date": "2026-11-06",
+  "as_of": "2026-11-02",
+  "as_of_note": "Publisher stated content date on the Taxlots (Public) item description and FGDC time-period-of-content, read 2026-11-06. Not loaded. The source record still says 2026-07-17. Feature-layer dataLastEditDate was 2026-11-05T01:46:05.868Z.",
+  "counties": [
+    {
+      "fips": "41005",
+      "name": "Clackamas",
+      "record_count": 6085,
+      "scratch_count": null,
+      "reread_count": null,
+      "pass": false,
+      "reason": "Stopped before collect. The license read on 2026-11-06 is Metro's RLIS Open Database End User License Agreement (revised February 2023), not ODbL. No scratch registry was built."
+    },
+    {
+      "fips": "41051",
+      "name": "Multnomah",
+      "record_count": 20618,
+      "scratch_count": null,
+      "reread_count": null,
+      "pass": false,
+      "reason": "Stopped before collect. The license read on 2026-11-06 is Metro's RLIS Open Database End User License Agreement (revised February 2023), not ODbL. No scratch registry was built."
+    },
+    {
+      "fips": "41067",
+      "name": "Washington",
+      "record_count": 7425,
+      "scratch_count": null,
+      "reread_count": null,
+      "pass": false,
+      "reason": "Stopped before collect. The license read on 2026-11-06 is Metro's RLIS Open Database End User License Agreement (revised February 2023), not ODbL. No scratch registry was built."
+    }
+  ],
+  "denominator": "unavailable: the Taxlots (Public) item description and FGDC details record publish one tri-county layer and a content date, not a commercial-plus-industrial parcel count. pt-and-vector-object-count is empty. No count query was run.",
+  "blockers": [
+    "License text differs from the 2026-11-03 record's ODbL v1.0 description. A person must read docs/registry/quality/surge-2026-11/or-metro-rlis-taxlots.md before any load.",
+    "The agreement prohibits sublicensing, does not license individual database contents, is limited and revocable, and is accepted by accessing or using the data. It is compatible with CC BY 4.0 and the Open Data Commons Attribution License, not ODbL share-alike.",
+    "FGDC supplemental information: 'This Product contains information retrieved from and copyrighted by County of Clackamas.'",
+    "registry/sources/or/or-metro-rlis-taxlots.json still says ODbL and verified true. This lane did not edit it.",
+    "Publisher content date is 2026-11-02. Record counts at as-of 2026-07-17 were not remeasured. The Hub CSV Last-Modified header was not requested again.",
+    "No subscription wall and no click-through interstitial was observed. The RLIS Limited Use License (revised September 2021) is a separate account and sold-product agreement and is not the licenseInfo of Taxlots (Public).",
+    "gis.oregonmetro.gov robots.txt (Cloudflare-managed) sets Content-Signal ai-train=no, use=reference for User-agent *. The Open EULA does not mention AI."
+  ]
+}

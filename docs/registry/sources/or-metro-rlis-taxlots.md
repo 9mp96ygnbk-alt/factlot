@@ -6,6 +6,47 @@ Adapter: `python/src/factlot/registry/adapters/or_metro_rlis.py` (account system
 `<county FIPS>:<PRIMACCNUM>`); tests: `python/tests/test_adapter_or_metro_rlis.py`. Tier 2, west region
 ([`../tier2/west.md`](../tier2/west.md)).
 
+## Correction (2026-11-06)
+
+The surge audit stopped before collect. Evidence:
+[`../quality/surge-2026-11/or-metro-rlis-taxlots.md`](../quality/surge-2026-11/or-metro-rlis-taxlots.md)
+and
+[`../quality/surge-2026-11/or-metro-rlis-taxlots-promotion.json`](../quality/surge-2026-11/or-metro-rlis-taxlots-promotion.json).
+
+The license page is a JavaScript shell. Its text is the public Hub Page item
+`43a73dbe46e644a9a8204afc4cbeb525`, read 2026-11-06 from
+<https://www.arcgis.com/sharing/rest/content/items/43a73dbe46e644a9a8204afc4cbeb525/data>.
+It is Metro's RLIS Open Database End User License Agreement, revised February 2023.
+It is not the Open Database License (ODbL) v1.0. The Terms section below records the
+2026-11-03 inference from search results. These sentences, from the page read on
+2026-11-06, are the agreement:
+
+> By accessing or using the Data, you (whether a person or entity) and Metro agree that the following terms and conditions govern your use.
+
+> Metro grants you a limited, worldwide, royalty-free, non-exclusive, revocable license to: Copy, publish, distribute, and share the Data; Extract, modify, and adapt the Data; and Combine it with other data, or include it in your own product or application.
+
+> You agree that you will not attempt to restrict or interfere with use of the Data by Metro or others. You may not impose any further restrictions on the exercise of rights granted or affirmed under this License with respect to the Data. Sublicensing the Data is prohibited. You may impose your own license terms with respect to your derivative works.
+
+> This license does not cover: Any personal data in the Data, unless otherwise agreed to in writing by Metro; Third-party rights Metro is not authorized to license; Other intellectual property rights, including copyrights, trademarks, patents, privacy, or personality rights; and Rights to individual contents contained in the database.
+
+> These terms are compatible with the Creative Commons Attribution License 4.0 and the Open Data Commons Attribution License, both of which license copyright and database rights. This means that when the Information is adapted and licensed under either of those licenses, you automatically satisfy the conditions of this RLIS OPEN DATABASE END USER LICENSE AGREEMENT when you comply with the other license.
+
+No subscription wall and no click-through interstitial was observed (the page and the
+Taxlots item both answered HTTP 200, and the item `access` is `public`). A separate
+page, the RLIS Limited Use License (revised September 2021,
+<https://rlisdiscovery.oregonmetro.gov/pages/terms-of-use>), is the account and
+sold-product terms. Taxlots (Public) `licenseInfo` still points at the Open Database
+End User License Agreement, not at that Limited Use License. The FGDC supplemental
+information also says: "This Product contains information retrieved from and
+copyrighted by County of Clackamas."
+
+`registry/sources/or/or-metro-rlis-taxlots.json` still says ODbL and `verified: true`.
+This note does not edit that file. A person decides whether the registry can carry
+derived facts under the agreement above before any further load.
+
+The item description and FGDC `time-period-of-content` now say the last data update
+is 2026-11-02, not 2026-07-17. The Full load counts below were not remeasured.
+
 ## Publisher and URLs
 
 - Publisher: Metro (the Portland-area regional government), Data Resource Center, which compiles the
