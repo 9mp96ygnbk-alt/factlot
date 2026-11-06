@@ -1,0 +1,3314 @@
+{
+  "audited_on": "2026-11-06",
+  "database": "in-statewide-registry.db",
+  "entity_registries_by_state": {},
+  "sources": [
+    {
+      "ai_use": "unknown",
+      "citations": {
+        "as_of_differs_from_snapshot": 0,
+        "document_not_a_snapshot": 0,
+        "facts": 719613,
+        "links": 0,
+        "links_document_not_a_snapshot": 0,
+        "links_without_basis": 0,
+        "without_locator": 0,
+        "without_method": 0,
+        "without_valid_as_of": 0
+      },
+      "counties": [
+        "us-18001",
+        "us-18003",
+        "us-18005",
+        "us-18007",
+        "us-18009",
+        "us-18011",
+        "us-18013",
+        "us-18015",
+        "us-18017",
+        "us-18019",
+        "us-18021",
+        "us-18023",
+        "us-18025",
+        "us-18027",
+        "us-18029",
+        "us-18031",
+        "us-18033",
+        "us-18035",
+        "us-18037",
+        "us-18039",
+        "us-18041",
+        "us-18043",
+        "us-18045",
+        "us-18047",
+        "us-18049",
+        "us-18051",
+        "us-18053",
+        "us-18055",
+        "us-18057",
+        "us-18059",
+        "us-18061",
+        "us-18063",
+        "us-18065",
+        "us-18067",
+        "us-18069",
+        "us-18071",
+        "us-18073",
+        "us-18075",
+        "us-18077",
+        "us-18079",
+        "us-18081",
+        "us-18083",
+        "us-18085",
+        "us-18087",
+        "us-18089",
+        "us-18091",
+        "us-18093",
+        "us-18095",
+        "us-18099",
+        "us-18101",
+        "us-18103",
+        "us-18105",
+        "us-18107",
+        "us-18109",
+        "us-18111",
+        "us-18113",
+        "us-18115",
+        "us-18117",
+        "us-18119",
+        "us-18121",
+        "us-18123",
+        "us-18125",
+        "us-18127",
+        "us-18129",
+        "us-18131",
+        "us-18133",
+        "us-18135",
+        "us-18137",
+        "us-18139",
+        "us-18141",
+        "us-18143",
+        "us-18145",
+        "us-18147",
+        "us-18149",
+        "us-18151",
+        "us-18153",
+        "us-18155",
+        "us-18157",
+        "us-18159",
+        "us-18161",
+        "us-18163",
+        "us-18165",
+        "us-18167",
+        "us-18169",
+        "us-18171",
+        "us-18173",
+        "us-18175",
+        "us-18177",
+        "us-18179",
+        "us-18181",
+        "us-18183"
+      ],
+      "county_fips": null,
+      "findings": [
+        {
+          "message": "snapshot 4b078e04 is 463 days old (as_of 2025-07-31)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 1c44d5f7 is 462 days old (as_of 2025-08-01)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 275ece08 is 456 days old (as_of 2025-08-07)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot a448948c is 455 days old (as_of 2025-08-08)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 4f941988 is 455 days old (as_of 2025-08-08)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 9c2bb740 is 455 days old (as_of 2025-08-08)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 25cd5783 is 455 days old (as_of 2025-08-08)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 7384eb65 is 455 days old (as_of 2025-08-08)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot ab138580 is 452 days old (as_of 2025-08-11)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 9ee7c2d8 is 452 days old (as_of 2025-08-11)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 0e3fab5d is 452 days old (as_of 2025-08-11)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 4e24f585 is 452 days old (as_of 2025-08-11)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot d0663a30 is 452 days old (as_of 2025-08-11)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 891386ff is 452 days old (as_of 2025-08-11)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 485a9a78 is 452 days old (as_of 2025-08-11)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot f19009c4 is 452 days old (as_of 2025-08-11)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 5b36c671 is 451 days old (as_of 2025-08-12)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 6ceedefc is 451 days old (as_of 2025-08-12)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 18d683f1 is 451 days old (as_of 2025-08-12)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot e2796f9b is 451 days old (as_of 2025-08-12)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot c80f0fa1 is 451 days old (as_of 2025-08-12)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 78c53cd0 is 451 days old (as_of 2025-08-12)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot a1249d32 is 451 days old (as_of 2025-08-12)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 174d3235 is 451 days old (as_of 2025-08-12)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot d9d294ab is 451 days old (as_of 2025-08-12)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot b141ad47 is 451 days old (as_of 2025-08-12)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot d689e48c is 451 days old (as_of 2025-08-12)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 7b8ec4b8 is 451 days old (as_of 2025-08-12)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 3c87d504 is 451 days old (as_of 2025-08-12)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot d8f2cae6 is 451 days old (as_of 2025-08-12)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 5c78b8ca is 451 days old (as_of 2025-08-12)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 8f7a6c25 is 451 days old (as_of 2025-08-12)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot a2f6fcb1 is 450 days old (as_of 2025-08-13)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 5cbb6bb4 is 450 days old (as_of 2025-08-13)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 95480b18 is 450 days old (as_of 2025-08-13)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 33c82ffa is 450 days old (as_of 2025-08-13)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot a00c2d8e is 449 days old (as_of 2025-08-14)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 15d08de6 is 448 days old (as_of 2025-08-15)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot fc7477fb is 445 days old (as_of 2025-08-18)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 6bca2b06 is 445 days old (as_of 2025-08-18)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 7d45ff61 is 444 days old (as_of 2025-08-19)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 76601f70 is 444 days old (as_of 2025-08-19)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot c787025f is 444 days old (as_of 2025-08-19)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 26eff731 is 444 days old (as_of 2025-08-19)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 950f6fae is 444 days old (as_of 2025-08-19)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot a9e5f71a is 444 days old (as_of 2025-08-19)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 81a68b2f is 444 days old (as_of 2025-08-19)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot db57a2aa is 444 days old (as_of 2025-08-19)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 7053a191 is 444 days old (as_of 2025-08-19)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot e072a8fb is 443 days old (as_of 2025-08-20)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 41592b48 is 443 days old (as_of 2025-08-20)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot fdd83e85 is 443 days old (as_of 2025-08-20)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 7fdaf208 is 443 days old (as_of 2025-08-20)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot a0b45a8c is 443 days old (as_of 2025-08-20)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 8da34d59 is 443 days old (as_of 2025-08-20)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 531dc424 is 441 days old (as_of 2025-08-22)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 1e069004 is 441 days old (as_of 2025-08-22)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot d739d444 is 441 days old (as_of 2025-08-22)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 67747760 is 441 days old (as_of 2025-08-22)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot f48d542c is 441 days old (as_of 2025-08-22)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot ab043bfa is 441 days old (as_of 2025-08-22)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 91b9d0e4 is 441 days old (as_of 2025-08-22)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 1118b7e2 is 441 days old (as_of 2025-08-22)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 78d26b47 is 441 days old (as_of 2025-08-22)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot d6c255e4 is 438 days old (as_of 2025-08-25)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot ff7fe591 is 438 days old (as_of 2025-08-25)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot b65f5c07 is 438 days old (as_of 2025-08-25)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot d42d65a0 is 437 days old (as_of 2025-08-26)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot fdd083cd is 437 days old (as_of 2025-08-26)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot fca86a01 is 437 days old (as_of 2025-08-26)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 1f8faee8 is 436 days old (as_of 2025-08-27)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 7dbe2bd5 is 436 days old (as_of 2025-08-27)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 8c416ff4 is 436 days old (as_of 2025-08-27)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot ef312c25 is 436 days old (as_of 2025-08-27)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 1467b0af is 436 days old (as_of 2025-08-27)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 669bb75e is 436 days old (as_of 2025-08-27)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 3d28414c is 436 days old (as_of 2025-08-27)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot bf369e3d is 436 days old (as_of 2025-08-27)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 3a672c2d is 436 days old (as_of 2025-08-27)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot d0b65583 is 436 days old (as_of 2025-08-27)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot f35de61b is 436 days old (as_of 2025-08-27)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 9d62697a is 436 days old (as_of 2025-08-27)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 62eafd08 is 436 days old (as_of 2025-08-27)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot f8b6adc5 is 435 days old (as_of 2025-08-28)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot de755a66 is 435 days old (as_of 2025-08-28)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot e42af186 is 435 days old (as_of 2025-08-28)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot b54e0aa5 is 435 days old (as_of 2025-08-28)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 33f2774e is 435 days old (as_of 2025-08-28)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 1eb52d65 is 435 days old (as_of 2025-08-28)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 5795bb8e is 435 days old (as_of 2025-08-28)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot b27d94b5 is 435 days old (as_of 2025-08-28)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 14df4ef7 is 435 days old (as_of 2025-08-28)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot dae62005 is 435 days old (as_of 2025-08-28)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 4ef4692e is 435 days old (as_of 2025-08-28)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 7e12ca89 is 435 days old (as_of 2025-08-28)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 8a8f4f49 is 435 days old (as_of 2025-08-28)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot ac0f2ad6 is 435 days old (as_of 2025-08-28)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 735caf76 is 435 days old (as_of 2025-08-28)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 24669df4 is 434 days old (as_of 2025-08-29)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot d49d8c1b is 434 days old (as_of 2025-08-29)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot b7f3016d is 434 days old (as_of 2025-08-29)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot e0e2496b is 434 days old (as_of 2025-08-29)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 349cc807 is 434 days old (as_of 2025-08-29)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot b86d2a5b is 434 days old (as_of 2025-08-29)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot ffd3f394 is 434 days old (as_of 2025-08-29)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 93052244 is 434 days old (as_of 2025-08-29)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot d29853bd is 434 days old (as_of 2025-08-29)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 178c7bcb is 434 days old (as_of 2025-08-29)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 3f63e605 is 434 days old (as_of 2025-08-29)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 03f13d2e is 434 days old (as_of 2025-08-29)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 4d137d78 is 434 days old (as_of 2025-08-29)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 8e192771 is 434 days old (as_of 2025-08-29)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot cc94dd1e is 434 days old (as_of 2025-08-29)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot cc335147 is 434 days old (as_of 2025-08-29)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot ddebcad6 is 434 days old (as_of 2025-08-29)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 77f4ab4b is 434 days old (as_of 2025-08-29)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 0a20be02 is 434 days old (as_of 2025-08-29)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 5b75dde4 is 430 days old (as_of 2025-09-02)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot dac4bc36 is 429 days old (as_of 2025-09-03)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot e596a872 is 429 days old (as_of 2025-09-03)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 0bb68cdb is 428 days old (as_of 2025-09-04)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 66f02986 is 428 days old (as_of 2025-09-04)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot ce2c9151 is 427 days old (as_of 2025-09-05)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 8acfe29c is 427 days old (as_of 2025-09-05)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot ec389ca8 is 427 days old (as_of 2025-09-05)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot cc0abb01 is 427 days old (as_of 2025-09-05)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 94bc563f is 427 days old (as_of 2025-09-05)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 8d8680b1 is 427 days old (as_of 2025-09-05)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot f7bb9c95 is 427 days old (as_of 2025-09-05)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 176abbe5 is 427 days old (as_of 2025-09-05)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot b3a4ca8f is 423 days old (as_of 2025-09-09)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot c3088e8b is 423 days old (as_of 2025-09-09)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 6ec8bc98 is 423 days old (as_of 2025-09-09)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot b992dcd6 is 422 days old (as_of 2025-09-10)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 88fd354b is 422 days old (as_of 2025-09-10)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 0978fe42 is 422 days old (as_of 2025-09-10)",
+          "severity": "warning"
+        },
+        {
+          "message": "snapshot 0a48c5d7 is 422 days old (as_of 2025-09-10)",
+          "severity": "warning"
+        }
+      ],
+      "implausible_facts": {
+        "area": 0,
+        "out_of_scope_category": 0,
+        "tax_year": 0,
+        "value": 0,
+        "year_built": 0
+      },
+      "kind": "parcels",
+      "license": "Service iteminfo licenseInfo, read 2026-11-06: citation of the Indiana GIS Data Harvest Program is 'requested, but not required'. Provided \"AS IS\" with no warranty. AI use is not addressed",
+      "links": {
+        "by_confidence": {},
+        "by_rule": {},
+        "entity_registry_loaded_for": [],
+        "link_rate_pct": null,
+        "linked_parcels": 0,
+        "note": "no entity registry is loaded for this state, so owners cannot be linked",
+        "organisation_owner_parcels": 0
+      },
+      "lookups": {
+        "parcels_with_account_crosswalk": 179930,
+        "parcels_with_address_index": 179823
+      },
+      "owners": {
+        "orphan_mailing_addresses": 0,
+        "owner_facts": 0,
+        "person_like": 0
+      },
+      "parcels": {
+        "absent_from_latest_snapshot": 0,
+        "conflicting_facts": 0,
+        "count": 179930,
+        "fields": {
+          "apn": {
+            "missing": 0,
+            "parcels": 179930,
+            "pct_present": 100.0
+          },
+          "appraised_value": {
+            "missing": 179930,
+            "parcels": 0,
+            "pct_present": 0.0
+          },
+          "improvement_area_sf": {
+            "missing": 179930,
+            "parcels": 0,
+            "pct_present": 0.0
+          },
+          "land_area_sf": {
+            "missing": 179930,
+            "parcels": 0,
+            "pct_present": 0.0
+          },
+          "market_value": {
+            "missing": 179930,
+            "parcels": 0,
+            "pct_present": 0.0
+          },
+          "owner_of_record": {
+            "missing": 179930,
+            "parcels": 0,
+            "pct_present": 0.0
+          },
+          "situs_address": {
+            "missing": 107,
+            "parcels": 179823,
+            "pct_present": 99.94
+          },
+          "state_property_category": {
+            "missing": 0,
+            "parcels": 179930,
+            "pct_present": 100.0
+          },
+          "tax_year": {
+            "missing": 179930,
+            "parcels": 0,
+            "pct_present": 0.0
+          },
+          "year_built": {
+            "missing": 179930,
+            "parcels": 0,
+            "pct_present": 0.0
+          }
+        },
+        "missing_address": 107,
+        "missing_as_of": 0,
+        "no_organisation_owner": 179930
+      },
+      "publisher": "Indiana Geographic Information Office (IGIO), Indiana GIS Data Harvest Program",
+      "redistribution": "permitted",
+      "review_queue": {
+        "accepted": 0,
+        "pending": 0,
+        "pending_by_rule": {},
+        "pending_owners": 0,
+        "rejected": 0
+      },
+      "snapshots": [
+        {
+          "age_days": 463,
+          "as_of": "2025-07-31",
+          "bytes": 490008,
+          "document_id": "fl:document:sha256-4119dc3c088244ae97dcc95b53dedbf8b319f3281cdaa3dfb39825664b078e04",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 4884,
+          "filename": "query",
+          "parcels": 1221,
+          "retrieved_at": "2026-11-06T23:16:54+00:00"
+        },
+        {
+          "age_days": 462,
+          "as_of": "2025-08-01",
+          "bytes": 383469,
+          "document_id": "fl:document:sha256-60d6b4cf8915c20c2dc9a20a54aa1e35da61025b545fe4f5f456842c1c44d5f7",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 3704,
+          "filename": "query",
+          "parcels": 926,
+          "retrieved_at": "2026-11-06T23:16:58+00:00"
+        },
+        {
+          "age_days": 456,
+          "as_of": "2025-08-07",
+          "bytes": 396670,
+          "document_id": "fl:document:sha256-1df65f4297b9a0f05708bf6f451dc4e6e39f7f0d4efd98f4cee34aad275ece08",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 3928,
+          "filename": "query",
+          "parcels": 982,
+          "retrieved_at": "2026-11-06T23:16:48+00:00"
+        },
+        {
+          "age_days": 455,
+          "as_of": "2025-08-08",
+          "bytes": 468872,
+          "document_id": "fl:document:sha256-1fc0400bb1c94a88800ecbfa6b24b2ee153bfc83e0e63e3eebcc1bf2a448948c",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 4884,
+          "filename": "query",
+          "parcels": 1221,
+          "retrieved_at": "2026-11-06T23:16:48+00:00"
+        },
+        {
+          "age_days": 455,
+          "as_of": "2025-08-08",
+          "bytes": 803928,
+          "document_id": "fl:document:sha256-4b1edabfe0cc19c30c04d945336556c1ebb4789a05caef8d9fd25f2d4f941988",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 8000,
+          "filename": "query",
+          "parcels": 2000,
+          "retrieved_at": "2026-11-06T23:16:55+00:00"
+        },
+        {
+          "age_days": 455,
+          "as_of": "2025-08-08",
+          "bytes": 80231,
+          "document_id": "fl:document:sha256-a09a17bbcfbb5f948fd879b396fd4697e24975def2891c7f89d42d869c2bb740",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 776,
+          "filename": "query",
+          "parcels": 194,
+          "retrieved_at": "2026-11-06T23:17:11+00:00"
+        },
+        {
+          "age_days": 455,
+          "as_of": "2025-08-08",
+          "bytes": 803365,
+          "document_id": "fl:document:sha256-a7e74e2b8bef4c6aeed541d64c154bfa768905f89db0ce5f68d98e6d25cd5783",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7992,
+          "filename": "query",
+          "parcels": 1998,
+          "retrieved_at": "2026-11-06T23:17:12+00:00"
+        },
+        {
+          "age_days": 455,
+          "as_of": "2025-08-08",
+          "bytes": 804320,
+          "document_id": "fl:document:sha256-b646b86df67036923e699c55a667005957355a92f0115f155b1986ed7384eb65",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7992,
+          "filename": "query",
+          "parcels": 1998,
+          "retrieved_at": "2026-11-06T23:17:13+00:00"
+        },
+        {
+          "age_days": 452,
+          "as_of": "2025-08-11",
+          "bytes": 447796,
+          "document_id": "fl:document:sha256-1cd7aa7b96b2a1fb4a211b31b838b7ba9bf5e0b4c56b543e276981c8ab138580",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 4428,
+          "filename": "query",
+          "parcels": 1107,
+          "retrieved_at": "2026-11-06T23:16:47+00:00"
+        },
+        {
+          "age_days": 452,
+          "as_of": "2025-08-11",
+          "bytes": 207775,
+          "document_id": "fl:document:sha256-25ac3d9b6715048ddd72a371330bb8ce7948a6f2fccb83a6e9e660cb9ee7c2d8",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 2012,
+          "filename": "query",
+          "parcels": 503,
+          "retrieved_at": "2026-11-06T23:16:49+00:00"
+        },
+        {
+          "age_days": 452,
+          "as_of": "2025-08-11",
+          "bytes": 587100,
+          "document_id": "fl:document:sha256-32f5ebf8872b53e75070e94e709849e52e760ef44ca6da7ad6f30e520e3fab5d",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 5764,
+          "filename": "query",
+          "parcels": 1441,
+          "retrieved_at": "2026-11-06T23:16:52+00:00"
+        },
+        {
+          "age_days": 452,
+          "as_of": "2025-08-11",
+          "bytes": 490599,
+          "document_id": "fl:document:sha256-368a68f77e8dfb10642cf2ee549791885f97cbf19649ea121c2b02c34e24f585",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 5104,
+          "filename": "query",
+          "parcels": 1276,
+          "retrieved_at": "2026-11-06T23:16:52+00:00"
+        },
+        {
+          "age_days": 452,
+          "as_of": "2025-08-11",
+          "bytes": 311955,
+          "document_id": "fl:document:sha256-539382c4a198a5c8ab44f10e23d687cd6e259f71a8bbc975226e1dfcd0663a30",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 3203,
+          "filename": "query",
+          "parcels": 801,
+          "retrieved_at": "2026-11-06T23:16:57+00:00"
+        },
+        {
+          "age_days": 452,
+          "as_of": "2025-08-11",
+          "bytes": 764832,
+          "document_id": "fl:document:sha256-c3188ddcf1d71e7837aa4b5cc11d3b7b49daaab32b3c02dab975097b891386ff",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7663,
+          "filename": "query",
+          "parcels": 1916,
+          "retrieved_at": "2026-11-06T23:17:15+00:00"
+        },
+        {
+          "age_days": 452,
+          "as_of": "2025-08-11",
+          "bytes": 764410,
+          "document_id": "fl:document:sha256-cb67c71b65a1d9956eac4671de3d19809411550dc6fcb9585a4b0c7b485a9a78",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7341,
+          "filename": "query",
+          "parcels": 1836,
+          "retrieved_at": "2026-11-06T23:17:17+00:00"
+        },
+        {
+          "age_days": 452,
+          "as_of": "2025-08-11",
+          "bytes": 408931,
+          "document_id": "fl:document:sha256-cf1bf0f30ed0c4f46fe2fbf230291549e901e427a4d7a6ac2a8878f8f19009c4",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 4172,
+          "filename": "query",
+          "parcels": 1043,
+          "retrieved_at": "2026-11-06T23:17:18+00:00"
+        },
+        {
+          "age_days": 451,
+          "as_of": "2025-08-12",
+          "bytes": 790311,
+          "document_id": "fl:document:sha256-0b596a2522d93de8b4ad6fa022ead3cee820a6088b0733eb3fe49d755b36c671",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 6144,
+          "filename": "query",
+          "parcels": 1536,
+          "retrieved_at": "2026-11-06T23:16:45+00:00"
+        },
+        {
+          "age_days": 451,
+          "as_of": "2025-08-12",
+          "bytes": 379972,
+          "document_id": "fl:document:sha256-0fa55e115ff44c937be087cc4c958b24642abe2026f9a09e2e74a9b96ceedefc",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 3712,
+          "filename": "query",
+          "parcels": 928,
+          "retrieved_at": "2026-11-06T23:16:46+00:00"
+        },
+        {
+          "age_days": 451,
+          "as_of": "2025-08-12",
+          "bytes": 218990,
+          "document_id": "fl:document:sha256-11c455ec49bc63878cdd0f433ba728806eda05ab882c948362a37c1418d683f1",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 2314,
+          "filename": "query",
+          "parcels": 579,
+          "retrieved_at": "2026-11-06T23:16:46+00:00"
+        },
+        {
+          "age_days": 451,
+          "as_of": "2025-08-12",
+          "bytes": 405419,
+          "document_id": "fl:document:sha256-1da2a4502d49b473def9756dfdf6465a22664d0ff7c426e89ce56748e2796f9b",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 3940,
+          "filename": "query",
+          "parcels": 985,
+          "retrieved_at": "2026-11-06T23:16:48+00:00"
+        },
+        {
+          "age_days": 451,
+          "as_of": "2025-08-12",
+          "bytes": 83129,
+          "document_id": "fl:document:sha256-2b5a326fc58dbd9faa76eff07f00d9f6928423c65d350897e128ae96c80f0fa1",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 644,
+          "filename": "query",
+          "parcels": 161,
+          "retrieved_at": "2026-11-06T23:16:51+00:00"
+        },
+        {
+          "age_days": 451,
+          "as_of": "2025-08-12",
+          "bytes": 629308,
+          "document_id": "fl:document:sha256-4dcf0835a5aad0c784a9296107fcc64baa8cb85e5e063f4159bb5ba478c53cd0",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 6316,
+          "filename": "query",
+          "parcels": 1579,
+          "retrieved_at": "2026-11-06T23:16:56+00:00"
+        },
+        {
+          "age_days": 451,
+          "as_of": "2025-08-12",
+          "bytes": 817599,
+          "document_id": "fl:document:sha256-5493a01a026b16ef14ed28c30ce3a8a70f1e4585f20f89b8fbae6e79a1249d32",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 6840,
+          "filename": "query",
+          "parcels": 1710,
+          "retrieved_at": "2026-11-06T23:16:57+00:00"
+        },
+        {
+          "age_days": 451,
+          "as_of": "2025-08-12",
+          "bytes": 551354,
+          "document_id": "fl:document:sha256-5a2037d50e32ab7432e6d83541062879b4da80ae3da9cf5b71e7a4f9174d3235",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 5444,
+          "filename": "query",
+          "parcels": 1361,
+          "retrieved_at": "2026-11-06T23:16:58+00:00"
+        },
+        {
+          "age_days": 451,
+          "as_of": "2025-08-12",
+          "bytes": 798501,
+          "document_id": "fl:document:sha256-63095d6e1f3d8ab7256c401dd61cccfc3b91c7d339bb1575fe114489d9d294ab",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7992,
+          "filename": "query",
+          "parcels": 1998,
+          "retrieved_at": "2026-11-06T23:16:59+00:00"
+        },
+        {
+          "age_days": 451,
+          "as_of": "2025-08-12",
+          "bytes": 254629,
+          "document_id": "fl:document:sha256-846c6f9490dc94c3774f82debf3d4157a7e06e34667cada17a81423bb141ad47",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 2556,
+          "filename": "query",
+          "parcels": 639,
+          "retrieved_at": "2026-11-06T23:17:05+00:00"
+        },
+        {
+          "age_days": 451,
+          "as_of": "2025-08-12",
+          "bytes": 605264,
+          "document_id": "fl:document:sha256-ad42488cf0cac3603ff68b0ee5adeedf79f31693f4b46af9da213759d689e48c",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 3676,
+          "filename": "query",
+          "parcels": 919,
+          "retrieved_at": "2026-11-06T23:17:12+00:00"
+        },
+        {
+          "age_days": 451,
+          "as_of": "2025-08-12",
+          "bytes": 384421,
+          "document_id": "fl:document:sha256-d8d2ccf3242805baa81058805f6d1aa287c50c8f3a4365b44c9cd0f97b8ec4b8",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 3220,
+          "filename": "query",
+          "parcels": 805,
+          "retrieved_at": "2026-11-06T23:17:19+00:00"
+        },
+        {
+          "age_days": 451,
+          "as_of": "2025-08-12",
+          "bytes": 764923,
+          "document_id": "fl:document:sha256-db81c8fc284cb85541e96acf79547125e4a704dcad187162bdf013473c87d504",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 6348,
+          "filename": "query",
+          "parcels": 1587,
+          "retrieved_at": "2026-11-06T23:17:20+00:00"
+        },
+        {
+          "age_days": 451,
+          "as_of": "2025-08-12",
+          "bytes": 171941,
+          "document_id": "fl:document:sha256-e9fbfbce21b2f06245a62413d094100134efd01e045bb08733ef51eed8f2cae6",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 1684,
+          "filename": "query",
+          "parcels": 421,
+          "retrieved_at": "2026-11-06T23:17:22+00:00"
+        },
+        {
+          "age_days": 451,
+          "as_of": "2025-08-12",
+          "bytes": 414451,
+          "document_id": "fl:document:sha256-f2fa1a341c3213449d4025e653eba8f70f2766eb9a98cfeeaecc4a375c78b8ca",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 4072,
+          "filename": "query",
+          "parcels": 1018,
+          "retrieved_at": "2026-11-06T23:17:22+00:00"
+        },
+        {
+          "age_days": 451,
+          "as_of": "2025-08-12",
+          "bytes": 358417,
+          "document_id": "fl:document:sha256-f65cd70c55d64e959959d126b27cd0960a59816ad54be1151fbab3d88f7a6c25",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 2576,
+          "filename": "query",
+          "parcels": 644,
+          "retrieved_at": "2026-11-06T23:17:23+00:00"
+        },
+        {
+          "age_days": 450,
+          "as_of": "2025-08-13",
+          "bytes": 801204,
+          "document_id": "fl:document:sha256-3ad37edbb5e74ca679dd6f9bf0dcf3c7ea5652a54f5329484c04ecd4a2f6fcb1",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7992,
+          "filename": "query",
+          "parcels": 1998,
+          "retrieved_at": "2026-11-06T23:16:53+00:00"
+        },
+        {
+          "age_days": 450,
+          "as_of": "2025-08-13",
+          "bytes": 636868,
+          "document_id": "fl:document:sha256-62e91bdc79e3266a786ee7e5c6e1f05bf8ba41ac601ca215b2a8508a5cbb6bb4",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 6184,
+          "filename": "query",
+          "parcels": 1546,
+          "retrieved_at": "2026-11-06T23:16:59+00:00"
+        },
+        {
+          "age_days": 450,
+          "as_of": "2025-08-13",
+          "bytes": 49715,
+          "document_id": "fl:document:sha256-d15e58591bfe5400a41e780d16233490c273785be751c1cb690682f395480b18",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 460,
+          "filename": "query",
+          "parcels": 115,
+          "retrieved_at": "2026-11-06T23:17:19+00:00"
+        },
+        {
+          "age_days": 450,
+          "as_of": "2025-08-13",
+          "bytes": 708073,
+          "document_id": "fl:document:sha256-dbce3cdf29d0ace94593c8653265b70fc9299ba5ea30ae441203c7d133c82ffa",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7420,
+          "filename": "query",
+          "parcels": 1855,
+          "retrieved_at": "2026-11-06T23:17:20+00:00"
+        },
+        {
+          "age_days": 449,
+          "as_of": "2025-08-14",
+          "bytes": 492010,
+          "document_id": "fl:document:sha256-c54eb2a7d63c3217ea238cb508a42303975c1e4f14a8479142cea86da00c2d8e",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 5124,
+          "filename": "query",
+          "parcels": 1281,
+          "retrieved_at": "2026-11-06T23:17:15+00:00"
+        },
+        {
+          "age_days": 448,
+          "as_of": "2025-08-15",
+          "bytes": 444489,
+          "document_id": "fl:document:sha256-fc689312619dfb6bb6aecd794a7ee93ecab7045dd5e40830728bb44515d08de6",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 4288,
+          "filename": "query",
+          "parcels": 1072,
+          "retrieved_at": "2026-11-06T23:17:25+00:00"
+        },
+        {
+          "age_days": 445,
+          "as_of": "2025-08-18",
+          "bytes": 111366,
+          "document_id": "fl:document:sha256-820267fc5b805a7826c24a636ef91883e25b7c0581768f27c14c13fffc7477fb",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 1104,
+          "filename": "query",
+          "parcels": 276,
+          "retrieved_at": "2026-11-06T23:17:05+00:00"
+        },
+        {
+          "age_days": 445,
+          "as_of": "2025-08-18",
+          "bytes": 523047,
+          "document_id": "fl:document:sha256-a21c36a4bb6765c157e41a3b6391be1848fa98bbf13cf698bab856fa6bca2b06",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 5232,
+          "filename": "query",
+          "parcels": 1308,
+          "retrieved_at": "2026-11-06T23:17:11+00:00"
+        },
+        {
+          "age_days": 444,
+          "as_of": "2025-08-19",
+          "bytes": 807628,
+          "document_id": "fl:document:sha256-060dbc55f15c82924e6229d383b255aa657bd4ed507d6d8647fb6ee87d45ff61",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7988,
+          "filename": "query",
+          "parcels": 1998,
+          "retrieved_at": "2026-11-06T23:16:44+00:00"
+        },
+        {
+          "age_days": 444,
+          "as_of": "2025-08-19",
+          "bytes": 808394,
+          "document_id": "fl:document:sha256-07980133e921722133914393d7bffb4cf82ecc4c0138db644e35ba4b76601f70",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7968,
+          "filename": "query",
+          "parcels": 1994,
+          "retrieved_at": "2026-11-06T23:16:45+00:00"
+        },
+        {
+          "age_days": 444,
+          "as_of": "2025-08-19",
+          "bytes": 808262,
+          "document_id": "fl:document:sha256-2a8d135aae1dd8952a098771596334b34c77517e2633384bad4c771ec787025f",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7994,
+          "filename": "query",
+          "parcels": 2000,
+          "retrieved_at": "2026-11-06T23:16:50+00:00"
+        },
+        {
+          "age_days": 444,
+          "as_of": "2025-08-19",
+          "bytes": 808270,
+          "document_id": "fl:document:sha256-327d738e9d0a3bd214c258292d2e4e3f75521b7cdb01fc5e288dbd6c26eff731",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7960,
+          "filename": "query",
+          "parcels": 1992,
+          "retrieved_at": "2026-11-06T23:16:51+00:00"
+        },
+        {
+          "age_days": 444,
+          "as_of": "2025-08-19",
+          "bytes": 413052,
+          "document_id": "fl:document:sha256-6187cd1f4b5b48198a2e35bd2845994a690d1a417450f3aec3a18bda950f6fae",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 4051,
+          "filename": "query",
+          "parcels": 1013,
+          "retrieved_at": "2026-11-06T23:16:58+00:00"
+        },
+        {
+          "age_days": 444,
+          "as_of": "2025-08-19",
+          "bytes": 353403,
+          "document_id": "fl:document:sha256-668c0c7e5fd74532885d762f799e6e883b982841d5ef45b717b3d1dca9e5f71a",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 3408,
+          "filename": "query",
+          "parcels": 852,
+          "retrieved_at": "2026-11-06T23:17:00+00:00"
+        },
+        {
+          "age_days": 444,
+          "as_of": "2025-08-19",
+          "bytes": 807659,
+          "document_id": "fl:document:sha256-9a0f2ce8bee2bcf2cc669bedbf6cab192bedd7b78b2341e9a88dd3f281a68b2f",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7945,
+          "filename": "query",
+          "parcels": 1988,
+          "retrieved_at": "2026-11-06T23:17:10+00:00"
+        },
+        {
+          "age_days": 444,
+          "as_of": "2025-08-19",
+          "bytes": 808816,
+          "document_id": "fl:document:sha256-bcdffb8a09ceb4b2c08fa99935a6cf2299c9186431ce3caac31df4d4db57a2aa",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7959,
+          "filename": "query",
+          "parcels": 1991,
+          "retrieved_at": "2026-11-06T23:17:14+00:00"
+        },
+        {
+          "age_days": 444,
+          "as_of": "2025-08-19",
+          "bytes": 807830,
+          "document_id": "fl:document:sha256-fa95d5682e745ad5f7e06e261a0682bd8c85bfa074c001ac32daab4a7053a191",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7935,
+          "filename": "query",
+          "parcels": 1985,
+          "retrieved_at": "2026-11-06T23:17:24+00:00"
+        },
+        {
+          "age_days": 443,
+          "as_of": "2025-08-20",
+          "bytes": 158988,
+          "document_id": "fl:document:sha256-337dd0f68839fd3ffe7206e2ce0e600eb807254a1a40a7e471848d3ce072a8fb",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 1580,
+          "filename": "query",
+          "parcels": 395,
+          "retrieved_at": "2026-11-06T23:16:52+00:00"
+        },
+        {
+          "age_days": 443,
+          "as_of": "2025-08-20",
+          "bytes": 824302,
+          "document_id": "fl:document:sha256-39d8fa390cc9d39ac2fed2a039aa7f2edfee6ac67482e5b6feb0db6b41592b48",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7572,
+          "filename": "query",
+          "parcels": 1893,
+          "retrieved_at": "2026-11-06T23:16:53+00:00"
+        },
+        {
+          "age_days": 443,
+          "as_of": "2025-08-20",
+          "bytes": 764778,
+          "document_id": "fl:document:sha256-74d1611f0efba93bd0392ff58680062aa1a87d091af3046e85907d10fdd83e85",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 6576,
+          "filename": "query",
+          "parcels": 1644,
+          "retrieved_at": "2026-11-06T23:17:02+00:00"
+        },
+        {
+          "age_days": 443,
+          "as_of": "2025-08-20",
+          "bytes": 517510,
+          "document_id": "fl:document:sha256-9007c3d95271ec577f0fb697625f6d24084004113ae8da6a3dc00aa07fdaf208",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 5112,
+          "filename": "query",
+          "parcels": 1278,
+          "retrieved_at": "2026-11-06T23:17:08+00:00"
+        },
+        {
+          "age_days": 443,
+          "as_of": "2025-08-20",
+          "bytes": 824236,
+          "document_id": "fl:document:sha256-9a2cc4c572c52ac04cc45dc2abe98bc09577ada93476853ec30d4a45a0b45a8c",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 6632,
+          "filename": "query",
+          "parcels": 1658,
+          "retrieved_at": "2026-11-06T23:17:10+00:00"
+        },
+        {
+          "age_days": 443,
+          "as_of": "2025-08-20",
+          "bytes": 824465,
+          "document_id": "fl:document:sha256-f44bbb40c29a59a0ebfd1ffb72cab3441dc14e314541d9a8b38162f28da34d59",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 6444,
+          "filename": "query",
+          "parcels": 1611,
+          "retrieved_at": "2026-11-06T23:17:23+00:00"
+        },
+        {
+          "age_days": 441,
+          "as_of": "2025-08-22",
+          "bytes": 67484,
+          "document_id": "fl:document:sha256-084edc4aa38100bc4bf92a6837682de12f6a1d543c4849e04ea12662531dc424",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 652,
+          "filename": "query",
+          "parcels": 163,
+          "retrieved_at": "2026-11-06T23:16:45+00:00"
+        },
+        {
+          "age_days": 441,
+          "as_of": "2025-08-22",
+          "bytes": 807747,
+          "document_id": "fl:document:sha256-1a07fa1f1c1ed7850ff86373c5ff6c598b81bf2efb0f55430c93e8431e069004",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7952,
+          "filename": "query",
+          "parcels": 1988,
+          "retrieved_at": "2026-11-06T23:16:47+00:00"
+        },
+        {
+          "age_days": 441,
+          "as_of": "2025-08-22",
+          "bytes": 220663,
+          "document_id": "fl:document:sha256-26917f45fdc4fedcbc185c40e53ade1b7ffd15ee30ecb880cb9125dad739d444",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 1912,
+          "filename": "query",
+          "parcels": 478,
+          "retrieved_at": "2026-11-06T23:16:49+00:00"
+        },
+        {
+          "age_days": 441,
+          "as_of": "2025-08-22",
+          "bytes": 806901,
+          "document_id": "fl:document:sha256-51b0b794cde1026076a640912f49f1f9511f7213bb5ded807478322967747760",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7904,
+          "filename": "query",
+          "parcels": 1976,
+          "retrieved_at": "2026-11-06T23:16:57+00:00"
+        },
+        {
+          "age_days": 441,
+          "as_of": "2025-08-22",
+          "bytes": 283636,
+          "document_id": "fl:document:sha256-6ef753b7cb9c9c3dcd3ec190f04d6f2b6981552d5b72af98fc52a1bcf48d542c",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 2700,
+          "filename": "query",
+          "parcels": 675,
+          "retrieved_at": "2026-11-06T23:17:02+00:00"
+        },
+        {
+          "age_days": 441,
+          "as_of": "2025-08-22",
+          "bytes": 836225,
+          "document_id": "fl:document:sha256-77841bc8b61c2594a5e0009217813c5853139c710b19cb40bcb7e176ab043bfa",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7975,
+          "filename": "query",
+          "parcels": 1994,
+          "retrieved_at": "2026-11-06T23:17:03+00:00"
+        },
+        {
+          "age_days": 441,
+          "as_of": "2025-08-22",
+          "bytes": 816349,
+          "document_id": "fl:document:sha256-881cca3c89e80fa03132dc13169435ab3506891da9213131bc7c826c91b9d0e4",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 5500,
+          "filename": "query",
+          "parcels": 1375,
+          "retrieved_at": "2026-11-06T23:17:06+00:00"
+        },
+        {
+          "age_days": 441,
+          "as_of": "2025-08-22",
+          "bytes": 835970,
+          "document_id": "fl:document:sha256-b99775d20ffe5108698402a8ff07d4ad2245ffbf1562e494ec2022141118b7e2",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7943,
+          "filename": "query",
+          "parcels": 1986,
+          "retrieved_at": "2026-11-06T23:17:13+00:00"
+        },
+        {
+          "age_days": 441,
+          "as_of": "2025-08-22",
+          "bytes": 153006,
+          "document_id": "fl:document:sha256-f8c3bb1ab593cc862ae93b2bd54de16ee3f8bf6d0d5faf3a2641248178d26b47",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 1456,
+          "filename": "query",
+          "parcels": 364,
+          "retrieved_at": "2026-11-06T23:17:24+00:00"
+        },
+        {
+          "age_days": 438,
+          "as_of": "2025-08-25",
+          "bytes": 292202,
+          "document_id": "fl:document:sha256-cf33495d3196408c3f709d096483dc018e5a5186eb9dcf65eacc002bd6c255e4",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 3056,
+          "filename": "query",
+          "parcels": 764,
+          "retrieved_at": "2026-11-06T23:17:18+00:00"
+        },
+        {
+          "age_days": 438,
+          "as_of": "2025-08-25",
+          "bytes": 752883,
+          "document_id": "fl:document:sha256-d4c638c4f129eec75708b5af019c538be4578dfed2d616a9bd6c58c9ff7fe591",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7964,
+          "filename": "query",
+          "parcels": 1991,
+          "retrieved_at": "2026-11-06T23:17:19+00:00"
+        },
+        {
+          "age_days": 438,
+          "as_of": "2025-08-25",
+          "bytes": 444693,
+          "document_id": "fl:document:sha256-fc8ca5c63b2efe9606cbda26b38ad939030cfc8f7e99698359ddf58cb65f5c07",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 4372,
+          "filename": "query",
+          "parcels": 1093,
+          "retrieved_at": "2026-11-06T23:17:25+00:00"
+        },
+        {
+          "age_days": 437,
+          "as_of": "2025-08-26",
+          "bytes": 616493,
+          "document_id": "fl:document:sha256-299cee35e3a73bcbd93d673965a7af46b07a0b01804599557f6f0a22d42d65a0",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 6128,
+          "filename": "query",
+          "parcels": 1532,
+          "retrieved_at": "2026-11-06T23:16:50+00:00"
+        },
+        {
+          "age_days": 437,
+          "as_of": "2025-08-26",
+          "bytes": 101178,
+          "document_id": "fl:document:sha256-8c9a609bb0a0b1e7de6e242d44933a2b537dcc36ce2b58de249b2369fdd083cd",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 1008,
+          "filename": "query",
+          "parcels": 252,
+          "retrieved_at": "2026-11-06T23:17:08+00:00"
+        },
+        {
+          "age_days": 437,
+          "as_of": "2025-08-26",
+          "bytes": 789849,
+          "document_id": "fl:document:sha256-f6f90ee2c2aaef340671b17e0c73a0657ebef40f4be636311fcb4705fca86a01",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 8000,
+          "filename": "query",
+          "parcels": 2000,
+          "retrieved_at": "2026-11-06T23:17:23+00:00"
+        },
+        {
+          "age_days": 436,
+          "as_of": "2025-08-27",
+          "bytes": 723009,
+          "document_id": "fl:document:sha256-0bb0cd4246c911dbd2e65882daf92cf27d5c7f5f71f917f872cb82cf1f8faee8",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7336,
+          "filename": "query",
+          "parcels": 1834,
+          "retrieved_at": "2026-11-06T23:16:45+00:00"
+        },
+        {
+          "age_days": 436,
+          "as_of": "2025-08-27",
+          "bytes": 817315,
+          "document_id": "fl:document:sha256-13368ef6121dbe8857b28c680aff80ad76b5131426f7787f749259b57dbe2bd5",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7847,
+          "filename": "query",
+          "parcels": 1962,
+          "retrieved_at": "2026-11-06T23:16:46+00:00"
+        },
+        {
+          "age_days": 436,
+          "as_of": "2025-08-27",
+          "bytes": 325500,
+          "document_id": "fl:document:sha256-4f73327154aae4000b12cdc39242d0108d95ad49a009a237237e18198c416ff4",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 3252,
+          "filename": "query",
+          "parcels": 813,
+          "retrieved_at": "2026-11-06T23:16:56+00:00"
+        },
+        {
+          "age_days": 436,
+          "as_of": "2025-08-27",
+          "bytes": 298322,
+          "document_id": "fl:document:sha256-5424ce3140569f8465d17407befc916536804d4749491d998a613f44ef312c25",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 2948,
+          "filename": "query",
+          "parcels": 737,
+          "retrieved_at": "2026-11-06T23:16:57+00:00"
+        },
+        {
+          "age_days": 436,
+          "as_of": "2025-08-27",
+          "bytes": 802155,
+          "document_id": "fl:document:sha256-624a48fe6a0896e1e5bc6a47a5db517cb1bcffd783ecc779086b410f1467b0af",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7924,
+          "filename": "query",
+          "parcels": 1981,
+          "retrieved_at": "2026-11-06T23:16:59+00:00"
+        },
+        {
+          "age_days": 436,
+          "as_of": "2025-08-27",
+          "bytes": 303665,
+          "document_id": "fl:document:sha256-63add0c83851438020e20603eec2febb9c19558ca9233991072e3e62669bb75e",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 2992,
+          "filename": "query",
+          "parcels": 748,
+          "retrieved_at": "2026-11-06T23:17:00+00:00"
+        },
+        {
+          "age_days": 436,
+          "as_of": "2025-08-27",
+          "bytes": 233257,
+          "document_id": "fl:document:sha256-68d0f3b6b1836e892729715d21256572bf7fc86f309a77890ed889353d28414c",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 2180,
+          "filename": "query",
+          "parcels": 545,
+          "retrieved_at": "2026-11-06T23:17:01+00:00"
+        },
+        {
+          "age_days": 436,
+          "as_of": "2025-08-27",
+          "bytes": 805989,
+          "document_id": "fl:document:sha256-7f523214f5da9eef1bad0ed318f425f5b3641cafe64f9b30c072b490bf369e3d",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7840,
+          "filename": "query",
+          "parcels": 1960,
+          "retrieved_at": "2026-11-06T23:17:04+00:00"
+        },
+        {
+          "age_days": 436,
+          "as_of": "2025-08-27",
+          "bytes": 261897,
+          "document_id": "fl:document:sha256-91b37ae13023d1a3eb9470929cd96c44c04e6f43012d70411fee96c63a672c2d",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 2608,
+          "filename": "query",
+          "parcels": 652,
+          "retrieved_at": "2026-11-06T23:17:08+00:00"
+        },
+        {
+          "age_days": 436,
+          "as_of": "2025-08-27",
+          "bytes": 620719,
+          "document_id": "fl:document:sha256-9431eadc63cfe0416c975d07c6e3ca694dbf881a9355c439e14f44f4d0b65583",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 5952,
+          "filename": "query",
+          "parcels": 1489,
+          "retrieved_at": "2026-11-06T23:17:09+00:00"
+        },
+        {
+          "age_days": 436,
+          "as_of": "2025-08-27",
+          "bytes": 625596,
+          "document_id": "fl:document:sha256-a349d63d57ff3396ad8df490dfa74f6b8becef0d5591f88a310a5ccbf35de61b",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 6056,
+          "filename": "query",
+          "parcels": 1514,
+          "retrieved_at": "2026-11-06T23:17:11+00:00"
+        },
+        {
+          "age_days": 436,
+          "as_of": "2025-08-27",
+          "bytes": 90893,
+          "document_id": "fl:document:sha256-ab6360e228a6b469ef396bbf95a39eb88e961ca82bda2d75a45d39399d62697a",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 804,
+          "filename": "query",
+          "parcels": 201,
+          "retrieved_at": "2026-11-06T23:17:12+00:00"
+        },
+        {
+          "age_days": 436,
+          "as_of": "2025-08-27",
+          "bytes": 798619,
+          "document_id": "fl:document:sha256-de32f8fa150c3007fba83ee148d212aceea62ad9c5210e5ea034ec9962eafd08",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7984,
+          "filename": "query",
+          "parcels": 1996,
+          "retrieved_at": "2026-11-06T23:17:20+00:00"
+        },
+        {
+          "age_days": 435,
+          "as_of": "2025-08-28",
+          "bytes": 604746,
+          "document_id": "fl:document:sha256-1d8a68b3652602e93b4d145d1fedfbb647d5ae01a1b95776680a751cf8b6adc5",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 6096,
+          "filename": "query",
+          "parcels": 1524,
+          "retrieved_at": "2026-11-06T23:16:47+00:00"
+        },
+        {
+          "age_days": 435,
+          "as_of": "2025-08-28",
+          "bytes": 153141,
+          "document_id": "fl:document:sha256-2dcb42cd58eb18d5ca5c8a70080be3fa58d80de4b6c87bf512a0795bde755a66",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 1500,
+          "filename": "query",
+          "parcels": 375,
+          "retrieved_at": "2026-11-06T23:16:51+00:00"
+        },
+        {
+          "age_days": 435,
+          "as_of": "2025-08-28",
+          "bytes": 95388,
+          "document_id": "fl:document:sha256-30f19fe3647a346dc80af7474262858b853d0c248412c3191a806ecce42af186",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 876,
+          "filename": "query",
+          "parcels": 219,
+          "retrieved_at": "2026-11-06T23:16:51+00:00"
+        },
+        {
+          "age_days": 435,
+          "as_of": "2025-08-28",
+          "bytes": 799550,
+          "document_id": "fl:document:sha256-356945e02ff5f620fa42a29ebc91d63d5b5dd326e3684929f6e2052eb54e0aa5",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7988,
+          "filename": "query",
+          "parcels": 1997,
+          "retrieved_at": "2026-11-06T23:16:52+00:00"
+        },
+        {
+          "age_days": 435,
+          "as_of": "2025-08-28",
+          "bytes": 800043,
+          "document_id": "fl:document:sha256-491eabfbff6d57f14b82ddf2b13eae7563d4dfdda280b957db0c0dbc33f2774e",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7980,
+          "filename": "query",
+          "parcels": 1995,
+          "retrieved_at": "2026-11-06T23:16:55+00:00"
+        },
+        {
+          "age_days": 435,
+          "as_of": "2025-08-28",
+          "bytes": 208102,
+          "document_id": "fl:document:sha256-788adc43a5fd59c5ffbc197dc45c3e80b2239efe706bec546cbe466c1eb52d65",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 2016,
+          "filename": "query",
+          "parcels": 504,
+          "retrieved_at": "2026-11-06T23:17:04+00:00"
+        },
+        {
+          "age_days": 435,
+          "as_of": "2025-08-28",
+          "bytes": 265705,
+          "document_id": "fl:document:sha256-83c3829128b456051b7564b5a8a46efc3832256cae7ae69c17dfe75c5795bb8e",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 2236,
+          "filename": "query",
+          "parcels": 559,
+          "retrieved_at": "2026-11-06T23:17:05+00:00"
+        },
+        {
+          "age_days": 435,
+          "as_of": "2025-08-28",
+          "bytes": 615262,
+          "document_id": "fl:document:sha256-8a0d63aa551e83679fd9c8592ac362581ce83b57a73fa16a08b291dbb27d94b5",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 5992,
+          "filename": "query",
+          "parcels": 1498,
+          "retrieved_at": "2026-11-06T23:17:07+00:00"
+        },
+        {
+          "age_days": 435,
+          "as_of": "2025-08-28",
+          "bytes": 223048,
+          "document_id": "fl:document:sha256-952c346b34ce069618a982455afd23a0f73288d590392611ccd386bc14df4ef7",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 2192,
+          "filename": "query",
+          "parcels": 548,
+          "retrieved_at": "2026-11-06T23:17:09+00:00"
+        },
+        {
+          "age_days": 435,
+          "as_of": "2025-08-28",
+          "bytes": 305113,
+          "document_id": "fl:document:sha256-a315622f8c136c9a8acb8556c73a6fdd0a6bbe7829bf40892805e388dae62005",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 2940,
+          "filename": "query",
+          "parcels": 735,
+          "retrieved_at": "2026-11-06T23:17:11+00:00"
+        },
+        {
+          "age_days": 435,
+          "as_of": "2025-08-28",
+          "bytes": 554296,
+          "document_id": "fl:document:sha256-c63e1714c7f96c4977c9eae3783602e52bf62aec9b33b6d30ee2d7f14ef4692e",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 5524,
+          "filename": "query",
+          "parcels": 1381,
+          "retrieved_at": "2026-11-06T23:17:16+00:00"
+        },
+        {
+          "age_days": 435,
+          "as_of": "2025-08-28",
+          "bytes": 369438,
+          "document_id": "fl:document:sha256-d0ed490d97907c7951907fd3c45549842f0d54d06cb54b22447719077e12ca89",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 3524,
+          "filename": "query",
+          "parcels": 881,
+          "retrieved_at": "2026-11-06T23:17:18+00:00"
+        },
+        {
+          "age_days": 435,
+          "as_of": "2025-08-28",
+          "bytes": 406059,
+          "document_id": "fl:document:sha256-deb0e4fa7f117761657bb504e0415bef4c61f936ac2f7d85ba758e1b8a8f4f49",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 3936,
+          "filename": "query",
+          "parcels": 984,
+          "retrieved_at": "2026-11-06T23:17:21+00:00"
+        },
+        {
+          "age_days": 435,
+          "as_of": "2025-08-28",
+          "bytes": 329120,
+          "document_id": "fl:document:sha256-eb2049e7cfd1f069d5f2d4b11fdbe98021fc7ed818adf96c25b93fdcac0f2ad6",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 3284,
+          "filename": "query",
+          "parcels": 821,
+          "retrieved_at": "2026-11-06T23:17:22+00:00"
+        },
+        {
+          "age_days": 435,
+          "as_of": "2025-08-28",
+          "bytes": 392678,
+          "document_id": "fl:document:sha256-ee6e5e04dbdf8821ebb2c6af60880a1279c956e4074a6cc01e9b837e735caf76",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 3944,
+          "filename": "query",
+          "parcels": 986,
+          "retrieved_at": "2026-11-06T23:17:22+00:00"
+        },
+        {
+          "age_days": 434,
+          "as_of": "2025-08-29",
+          "bytes": 818709,
+          "document_id": "fl:document:sha256-0e29d1f50a9bef282f0ad1ca27c2a8bae7e2ef4928122fbe3b46189324669df4",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 8000,
+          "filename": "query",
+          "parcels": 2000,
+          "retrieved_at": "2026-11-06T23:16:46+00:00"
+        },
+        {
+          "age_days": 434,
+          "as_of": "2025-08-29",
+          "bytes": 819347,
+          "document_id": "fl:document:sha256-12335391fb1bada782e43b446a74e79ed9d0b5fcc852a611888ef65cd49d8c1b",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7992,
+          "filename": "query",
+          "parcels": 1998,
+          "retrieved_at": "2026-11-06T23:16:46+00:00"
+        },
+        {
+          "age_days": 434,
+          "as_of": "2025-08-29",
+          "bytes": 824067,
+          "document_id": "fl:document:sha256-1f787fe64934b92bd6cdd4b958e39eae0756f0440adce640d45fe2e3b7f3016d",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 8000,
+          "filename": "query",
+          "parcels": 2000,
+          "retrieved_at": "2026-11-06T23:16:48+00:00"
+        },
+        {
+          "age_days": 434,
+          "as_of": "2025-08-29",
+          "bytes": 305303,
+          "document_id": "fl:document:sha256-21ca57c36192a72cff85a306181f18507949d813e9d73229cbc7ffb2e0e2496b",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 3008,
+          "filename": "query",
+          "parcels": 752,
+          "retrieved_at": "2026-11-06T23:16:49+00:00"
+        },
+        {
+          "age_days": 434,
+          "as_of": "2025-08-29",
+          "bytes": 794247,
+          "document_id": "fl:document:sha256-28e56eb97188622c18072d72447bbc1c8a4191dba70930c0461f0235349cc807",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7864,
+          "filename": "query",
+          "parcels": 1966,
+          "retrieved_at": "2026-11-06T23:16:50+00:00"
+        },
+        {
+          "age_days": 434,
+          "as_of": "2025-08-29",
+          "bytes": 524769,
+          "document_id": "fl:document:sha256-4524b0bd7a50d069efeabf02d2d307e8ec484aa4acd6076aaea1d3f8b86d2a5b",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 5068,
+          "filename": "query",
+          "parcels": 1267,
+          "retrieved_at": "2026-11-06T23:16:54+00:00"
+        },
+        {
+          "age_days": 434,
+          "as_of": "2025-08-29",
+          "bytes": 254934,
+          "document_id": "fl:document:sha256-4b44a686684c092fe628ab3206cba656990194a07cfc935ab2f83b79ffd3f394",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 2492,
+          "filename": "query",
+          "parcels": 623,
+          "retrieved_at": "2026-11-06T23:16:56+00:00"
+        },
+        {
+          "age_days": 434,
+          "as_of": "2025-08-29",
+          "bytes": 819302,
+          "document_id": "fl:document:sha256-66dedd7109920f75fe63d8ab5f1e2d7b116303e293ab539f37e96c7d93052244",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7984,
+          "filename": "query",
+          "parcels": 1996,
+          "retrieved_at": "2026-11-06T23:17:00+00:00"
+        },
+        {
+          "age_days": 434,
+          "as_of": "2025-08-29",
+          "bytes": 67318,
+          "document_id": "fl:document:sha256-7151ceac8b36f9bf9fbef944f5f45bccb28f527cc9fd3f80a29ae799d29853bd",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 628,
+          "filename": "query",
+          "parcels": 157,
+          "retrieved_at": "2026-11-06T23:17:02+00:00"
+        },
+        {
+          "age_days": 434,
+          "as_of": "2025-08-29",
+          "bytes": 377356,
+          "document_id": "fl:document:sha256-86d16ab21a0ad8af268361d1b615e72d20f7b2b9bd06027f84564d1f178c7bcb",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 3648,
+          "filename": "query",
+          "parcels": 912,
+          "retrieved_at": "2026-11-06T23:17:06+00:00"
+        },
+        {
+          "age_days": 434,
+          "as_of": "2025-08-29",
+          "bytes": 634735,
+          "document_id": "fl:document:sha256-8ab23be6b9f1ec001c43b434e0188bc792c55922c2b75431350645e63f63e605",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 6156,
+          "filename": "query",
+          "parcels": 1539,
+          "retrieved_at": "2026-11-06T23:17:08+00:00"
+        },
+        {
+          "age_days": 434,
+          "as_of": "2025-08-29",
+          "bytes": 762385,
+          "document_id": "fl:document:sha256-992da651685f3109b3fc0baecc117b4bbbfa5a605928a7d33f436e8603f13d2e",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 6448,
+          "filename": "query",
+          "parcels": 1616,
+          "retrieved_at": "2026-11-06T23:17:09+00:00"
+        },
+        {
+          "age_days": 434,
+          "as_of": "2025-08-29",
+          "bytes": 762336,
+          "document_id": "fl:document:sha256-9c458a35b503812d3a3515f1d65f959b88909b9f83f97a70ea3dc2324d137d78",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 5032,
+          "filename": "query",
+          "parcels": 1261,
+          "retrieved_at": "2026-11-06T23:17:11+00:00"
+        },
+        {
+          "age_days": 434,
+          "as_of": "2025-08-29",
+          "bytes": 549544,
+          "document_id": "fl:document:sha256-bf18afa80629dfa539df3e55ffc242cdd0e2f27dfc7721d5ac40c9f98e192771",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 5352,
+          "filename": "query",
+          "parcels": 1338,
+          "retrieved_at": "2026-11-06T23:17:14+00:00"
+        },
+        {
+          "age_days": 434,
+          "as_of": "2025-08-29",
+          "bytes": 823874,
+          "document_id": "fl:document:sha256-ca8b40a96bec35965dafdbea8a9b8132d5108788a845614952de3ba3cc94dd1e",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 8000,
+          "filename": "query",
+          "parcels": 2000,
+          "retrieved_at": "2026-11-06T23:17:16+00:00"
+        },
+        {
+          "age_days": 434,
+          "as_of": "2025-08-29",
+          "bytes": 818257,
+          "document_id": "fl:document:sha256-cd455d0f103a38bae17fd0ec97447325461bec7e84f8a120751bd232cc335147",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7996,
+          "filename": "query",
+          "parcels": 1999,
+          "retrieved_at": "2026-11-06T23:17:17+00:00"
+        },
+        {
+          "age_days": 434,
+          "as_of": "2025-08-29",
+          "bytes": 762999,
+          "document_id": "fl:document:sha256-d0e1379204111416c79a63d515ecfbb430fd7b263901daadf4226969ddebcad6",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 4094,
+          "filename": "query",
+          "parcels": 1027,
+          "retrieved_at": "2026-11-06T23:17:18+00:00"
+        },
+        {
+          "age_days": 434,
+          "as_of": "2025-08-29",
+          "bytes": 584937,
+          "document_id": "fl:document:sha256-d91603eded47299db7d38d7b4c264f9d35d62fcd893219c83fb03f6777f4ab4b",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 5772,
+          "filename": "query",
+          "parcels": 1443,
+          "retrieved_at": "2026-11-06T23:17:19+00:00"
+        },
+        {
+          "age_days": 434,
+          "as_of": "2025-08-29",
+          "bytes": 29673,
+          "document_id": "fl:document:sha256-f8a91d5216be3373088a7b3e5cc2ab75d0c0ddf1e2b03e08b8aef5ab0a20be02",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 167,
+          "filename": "query",
+          "parcels": 42,
+          "retrieved_at": "2026-11-06T23:17:24+00:00"
+        },
+        {
+          "age_days": 430,
+          "as_of": "2025-09-02",
+          "bytes": 637211,
+          "document_id": "fl:document:sha256-7a9088d48adf8a9ed07d3a28f01f14d8acc667d32ac26cb79ddb48b15b75dde4",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 6204,
+          "filename": "query",
+          "parcels": 1551,
+          "retrieved_at": "2026-11-06T23:17:04+00:00"
+        },
+        {
+          "age_days": 429,
+          "as_of": "2025-09-03",
+          "bytes": 705804,
+          "document_id": "fl:document:sha256-7506dd260bc9971f2b1487a309bcefa1bf89fbd754849a09205366e1dac4bc36",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7040,
+          "filename": "query",
+          "parcels": 1760,
+          "retrieved_at": "2026-11-06T23:17:02+00:00"
+        },
+        {
+          "age_days": 429,
+          "as_of": "2025-09-03",
+          "bytes": 802330,
+          "document_id": "fl:document:sha256-c1ab2c4c382eadd1911e0069f4c0234c4bd42f7abf0dac3103789de5e596a872",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 8000,
+          "filename": "query",
+          "parcels": 2000,
+          "retrieved_at": "2026-11-06T23:17:15+00:00"
+        },
+        {
+          "age_days": 428,
+          "as_of": "2025-09-04",
+          "bytes": 797684,
+          "document_id": "fl:document:sha256-32a105302f1bb92bbddfa7aa23663b0237753358f430a5cd3ab1dc940bb68cdb",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7960,
+          "filename": "query",
+          "parcels": 1990,
+          "retrieved_at": "2026-11-06T23:16:51+00:00"
+        },
+        {
+          "age_days": 428,
+          "as_of": "2025-09-04",
+          "bytes": 128046,
+          "document_id": "fl:document:sha256-3e41fa53a1af52398a05b25068d483867937d57b60fc98b97bae405566f02986",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 1260,
+          "filename": "query",
+          "parcels": 315,
+          "retrieved_at": "2026-11-06T23:16:53+00:00"
+        },
+        {
+          "age_days": 427,
+          "as_of": "2025-09-05",
+          "bytes": 784900,
+          "document_id": "fl:document:sha256-25cf4aed13e6d74a1eaab5efd3e1e36f1e87481f56192815e319a19ece2c9151",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 8000,
+          "filename": "query",
+          "parcels": 2000,
+          "retrieved_at": "2026-11-06T23:16:49+00:00"
+        },
+        {
+          "age_days": 427,
+          "as_of": "2025-09-05",
+          "bytes": 390509,
+          "document_id": "fl:document:sha256-476f0aef5c5f4b653cc36e88cf67e2c7aabc2da1a3cb371ec0d5502f8acfe29c",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 3832,
+          "filename": "query",
+          "parcels": 958,
+          "retrieved_at": "2026-11-06T23:16:55+00:00"
+        },
+        {
+          "age_days": 427,
+          "as_of": "2025-09-05",
+          "bytes": 784705,
+          "document_id": "fl:document:sha256-6d0453c1dc4deab9100db2ce6e80feef17e9e7026ef9aa2729611724ec389ca8",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 8000,
+          "filename": "query",
+          "parcels": 2000,
+          "retrieved_at": "2026-11-06T23:17:01+00:00"
+        },
+        {
+          "age_days": 427,
+          "as_of": "2025-09-05",
+          "bytes": 383868,
+          "document_id": "fl:document:sha256-759b1a6d41c755921a7539ae89cb2e9caf4b09cd1e164d1d852997d3cc0abb01",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 3808,
+          "filename": "query",
+          "parcels": 952,
+          "retrieved_at": "2026-11-06T23:17:03+00:00"
+        },
+        {
+          "age_days": 427,
+          "as_of": "2025-09-05",
+          "bytes": 785527,
+          "document_id": "fl:document:sha256-766dc81399145eb50aebdd7bf1cb1b008f04378c30460d16a76c30a494bc563f",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7992,
+          "filename": "query",
+          "parcels": 1998,
+          "retrieved_at": "2026-11-06T23:17:03+00:00"
+        },
+        {
+          "age_days": 427,
+          "as_of": "2025-09-05",
+          "bytes": 811849,
+          "document_id": "fl:document:sha256-862ff9b27dde593da10417c0aecee1221e65469b13c6a3935db652438d8680b1",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 8000,
+          "filename": "query",
+          "parcels": 2000,
+          "retrieved_at": "2026-11-06T23:17:05+00:00"
+        },
+        {
+          "age_days": 427,
+          "as_of": "2025-09-05",
+          "bytes": 369919,
+          "document_id": "fl:document:sha256-8908b26adb599ad977f821ed3898e05423c6c44e6eaacad74bbdc3c0f7bb9c95",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 3604,
+          "filename": "query",
+          "parcels": 901,
+          "retrieved_at": "2026-11-06T23:17:06+00:00"
+        },
+        {
+          "age_days": 427,
+          "as_of": "2025-09-05",
+          "bytes": 726448,
+          "document_id": "fl:document:sha256-e60f8148e344363a1dff3cf515304c7cb48cdc44b7c4c0da8a6dc1a1176abbe5",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7396,
+          "filename": "query",
+          "parcels": 1849,
+          "retrieved_at": "2026-11-06T23:17:21+00:00"
+        },
+        {
+          "age_days": 423,
+          "as_of": "2025-09-09",
+          "bytes": 171990,
+          "document_id": "fl:document:sha256-012e2d506c60b7870bd24df53f06f799a027d1ddfd2f3aae87ecc8d3b3a4ca8f",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 1522,
+          "filename": "query",
+          "parcels": 381,
+          "retrieved_at": "2026-11-06T23:16:44+00:00"
+        },
+        {
+          "age_days": 423,
+          "as_of": "2025-09-09",
+          "bytes": 756072,
+          "document_id": "fl:document:sha256-46f278ca55387425cd36ca0c4f49f0ae1427198c90cd3142b7a41169c3088e8b",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7968,
+          "filename": "query",
+          "parcels": 1992,
+          "retrieved_at": "2026-11-06T23:16:54+00:00"
+        },
+        {
+          "age_days": 423,
+          "as_of": "2025-09-09",
+          "bytes": 760146,
+          "document_id": "fl:document:sha256-89c53dae47df5cc7d17ad3cb64b2903f41d5e78d3cd73b0f5c46ad3f6ec8bc98",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7964,
+          "filename": "query",
+          "parcels": 1991,
+          "retrieved_at": "2026-11-06T23:17:07+00:00"
+        },
+        {
+          "age_days": 422,
+          "as_of": "2025-09-10",
+          "bytes": 274039,
+          "document_id": "fl:document:sha256-0bc809331a4e02830484a254646a374e5cc5b9b928bb558a3cc71899b992dcd6",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 2644,
+          "filename": "query",
+          "parcels": 661,
+          "retrieved_at": "2026-11-06T23:16:45+00:00"
+        },
+        {
+          "age_days": 422,
+          "as_of": "2025-09-10",
+          "bytes": 389983,
+          "document_id": "fl:document:sha256-20370563a2132d628e3b0ea5ff6d762f1e53446bb1d227dad1d809ff88fd354b",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 3764,
+          "filename": "query",
+          "parcels": 941,
+          "retrieved_at": "2026-11-06T23:16:49+00:00"
+        },
+        {
+          "age_days": 422,
+          "as_of": "2025-09-10",
+          "bytes": 485156,
+          "document_id": "fl:document:sha256-892a8d862ee074dedf257f8c5ebf0e22f29918efe01500859df46d650978fe42",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 4804,
+          "filename": "query",
+          "parcels": 1201,
+          "retrieved_at": "2026-11-06T23:17:07+00:00"
+        },
+        {
+          "age_days": 422,
+          "as_of": "2025-09-10",
+          "bytes": 317099,
+          "document_id": "fl:document:sha256-94993727c36bf5fc04e58b30457a0ae3f2244ece990c02d145320bf70a48c5d7",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 3076,
+          "filename": "query",
+          "parcels": 770,
+          "retrieved_at": "2026-11-06T23:17:09+00:00"
+        },
+        {
+          "age_days": 382,
+          "as_of": "2025-10-20",
+          "bytes": 308129,
+          "document_id": "fl:document:sha256-83198cb095065b12869b050d40c53ec3070e107d0b78c61ebbc53ae43a152f04",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 2888,
+          "filename": "query",
+          "parcels": 722,
+          "retrieved_at": "2026-11-06T23:17:05+00:00"
+        },
+        {
+          "age_days": 375,
+          "as_of": "2025-10-27",
+          "bytes": 190325,
+          "document_id": "fl:document:sha256-253f6c326e01489fef13e2b617c3a9fa4a652d35b191384ca3ce2487339a2ada",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 1868,
+          "filename": "query",
+          "parcels": 467,
+          "retrieved_at": "2026-11-06T23:16:49+00:00"
+        },
+        {
+          "age_days": 375,
+          "as_of": "2025-10-27",
+          "bytes": 795192,
+          "document_id": "fl:document:sha256-4d3d78c6d77c7602beb33d29da3c97e5863ae83df3960064e301cd7ab851156a",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7888,
+          "filename": "query",
+          "parcels": 1972,
+          "retrieved_at": "2026-11-06T23:16:56+00:00"
+        },
+        {
+          "age_days": 375,
+          "as_of": "2025-10-27",
+          "bytes": 567543,
+          "document_id": "fl:document:sha256-6acba97b203786a124985a5d7845f17e96742cb6e0b955b66355f077fa2f209a",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 5904,
+          "filename": "query",
+          "parcels": 1476,
+          "retrieved_at": "2026-11-06T23:17:01+00:00"
+        }
+      ],
+      "source_file": [
+        {
+          "document_id": "25664b078e04",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "842c1c44d5f7",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "4aad275ece08",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "1bf2a448948c",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "5f2d4f941988",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "2d869c2bb740",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "8e6d25cd5783",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "86ed7384eb65",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "81c8ab138580",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "60cb9ee7c2d8",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "0e520e3fab5d",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "02c34e24f585",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "1dfcd0663a30",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "097b891386ff",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "0c7b485a9a78",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "78f8f19009c4",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "9d755b36c671",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "a9b96ceedefc",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "7c1418d683f1",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "6748e2796f9b",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "ae96c80f0fa1",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "5ba478c53cd0",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "6e79a1249d32",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "a4f9174d3235",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "4489d9d294ab",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "423bb141ad47",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "3759d689e48c",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "d0f97b8ec4b8",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "13473c87d504",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "51eed8f2cae6",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "4a375c78b8ca",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "b3d88f7a6c25",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "ecd4a2f6fcb1",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "508a5cbb6bb4",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "82f395480b18",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "c7d133c82ffa",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "a86da00c2d8e",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "b44515d08de6",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "13fffc7477fb",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "56fa6bca2b06",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "6ee87d45ff61",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "ba4b76601f70",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "771ec787025f",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "bd6c26eff731",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "8bda950f6fae",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "d1dca9e5f71a",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "d3f281a68b2f",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "f4d4db57a2aa",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "ab4a7053a191",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "8d3ce072a8fb",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "db6b41592b48",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "7d10fdd83e85",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "0aa07fdaf208",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "4a45a0b45a8c",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "62f28da34d59",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "2662531dc424",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "e8431e069004",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "25dad739d444",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "322967747760",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "a1bcf48d542c",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "e176ab043bfa",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "826c91b9d0e4",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "22141118b7e2",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "248178d26b47",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "002bd6c255e4",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "58c9ff7fe591",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "f58cb65f5c07",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "0a22d42d65a0",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "2369fdd083cd",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "4705fca86a01",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "82cf1f8faee8",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "59b57dbe2bd5",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "18198c416ff4",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "3f44ef312c25",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "410f1467b0af",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "3e62669bb75e",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "89353d28414c",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "b490bf369e3d",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "96c63a672c2d",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "44f4d0b65583",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "5ccbf35de61b",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "39399d62697a",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "ec9962eafd08",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "751cf8b6adc5",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "795bde755a66",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "6ecce42af186",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "052eb54e0aa5",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "0dbc33f2774e",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "466c1eb52d65",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "e75c5795bb8e",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "91dbb27d94b5",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "86bc14df4ef7",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "e388dae62005",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "d7f14ef4692e",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "19077e12ca89",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "8e1b8a8f4f49",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "3fdcac0f2ad6",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "837e735caf76",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "189324669df4",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "f65cd49d8c1b",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "e2e3b7f3016d",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "ffb2e0e2496b",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "0235349cc807",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "d3f8b86d2a5b",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "3b79ffd3f394",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "6c7d93052244",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "e799d29853bd",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "4d1f178c7bcb",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "45e63f63e605",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "6e8603f13d2e",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "c2324d137d78",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "c9f98e192771",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "3ba3cc94dd1e",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "d232cc335147",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "6969ddebcad6",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "3f6777f4ab4b",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "f5ab0a20be02",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "48b15b75dde4",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "66e1dac4bc36",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "9de5e596a872",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "dc940bb68cdb",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "405566f02986",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "a19ece2c9151",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "502f8acfe29c",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "1724ec389ca8",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "97d3cc0abb01",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "30a494bc563f",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "52438d8680b1",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "c3c0f7bb9c95",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "c1a1176abbe5",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "c8d3b3a4ca8f",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "1169c3088e8b",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "ad3f6ec8bc98",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "1899b992dcd6",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "09ff88fd354b",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "6d650978fe42",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "0bf70a48c5d7",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "3ae43a152f04",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "2487339a2ada",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "cd7ab851156a",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "f077fa2f209a",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        }
+      ],
+      "source_id": "in-statewide-parcels",
+      "state_fips": "18",
+      "terms_reviewed": "2026-11-06",
+      "url": "https://gisdata.in.gov/server/rest/services/Hosted/Parcel_Boundaries_of_Indiana_Current/FeatureServer/0"
+    }
+  ],
+  "stats": {
+    "entities": 0,
+    "facts": 719613,
+    "links": 0,
+    "parcels": 179930,
+    "review_pending": 0,
+    "snapshots": 141
+  },
+  "violations": [],
+  "warnings": [
+    "in-statewide-parcels: snapshot 4b078e04 is 463 days old (as_of 2025-07-31)",
+    "in-statewide-parcels: snapshot 1c44d5f7 is 462 days old (as_of 2025-08-01)",
+    "in-statewide-parcels: snapshot 275ece08 is 456 days old (as_of 2025-08-07)",
+    "in-statewide-parcels: snapshot a448948c is 455 days old (as_of 2025-08-08)",
+    "in-statewide-parcels: snapshot 4f941988 is 455 days old (as_of 2025-08-08)",
+    "in-statewide-parcels: snapshot 9c2bb740 is 455 days old (as_of 2025-08-08)",
+    "in-statewide-parcels: snapshot 25cd5783 is 455 days old (as_of 2025-08-08)",
+    "in-statewide-parcels: snapshot 7384eb65 is 455 days old (as_of 2025-08-08)",
+    "in-statewide-parcels: snapshot ab138580 is 452 days old (as_of 2025-08-11)",
+    "in-statewide-parcels: snapshot 9ee7c2d8 is 452 days old (as_of 2025-08-11)",
+    "in-statewide-parcels: snapshot 0e3fab5d is 452 days old (as_of 2025-08-11)",
+    "in-statewide-parcels: snapshot 4e24f585 is 452 days old (as_of 2025-08-11)",
+    "in-statewide-parcels: snapshot d0663a30 is 452 days old (as_of 2025-08-11)",
+    "in-statewide-parcels: snapshot 891386ff is 452 days old (as_of 2025-08-11)",
+    "in-statewide-parcels: snapshot 485a9a78 is 452 days old (as_of 2025-08-11)",
+    "in-statewide-parcels: snapshot f19009c4 is 452 days old (as_of 2025-08-11)",
+    "in-statewide-parcels: snapshot 5b36c671 is 451 days old (as_of 2025-08-12)",
+    "in-statewide-parcels: snapshot 6ceedefc is 451 days old (as_of 2025-08-12)",
+    "in-statewide-parcels: snapshot 18d683f1 is 451 days old (as_of 2025-08-12)",
+    "in-statewide-parcels: snapshot e2796f9b is 451 days old (as_of 2025-08-12)",
+    "in-statewide-parcels: snapshot c80f0fa1 is 451 days old (as_of 2025-08-12)",
+    "in-statewide-parcels: snapshot 78c53cd0 is 451 days old (as_of 2025-08-12)",
+    "in-statewide-parcels: snapshot a1249d32 is 451 days old (as_of 2025-08-12)",
+    "in-statewide-parcels: snapshot 174d3235 is 451 days old (as_of 2025-08-12)",
+    "in-statewide-parcels: snapshot d9d294ab is 451 days old (as_of 2025-08-12)",
+    "in-statewide-parcels: snapshot b141ad47 is 451 days old (as_of 2025-08-12)",
+    "in-statewide-parcels: snapshot d689e48c is 451 days old (as_of 2025-08-12)",
+    "in-statewide-parcels: snapshot 7b8ec4b8 is 451 days old (as_of 2025-08-12)",
+    "in-statewide-parcels: snapshot 3c87d504 is 451 days old (as_of 2025-08-12)",
+    "in-statewide-parcels: snapshot d8f2cae6 is 451 days old (as_of 2025-08-12)",
+    "in-statewide-parcels: snapshot 5c78b8ca is 451 days old (as_of 2025-08-12)",
+    "in-statewide-parcels: snapshot 8f7a6c25 is 451 days old (as_of 2025-08-12)",
+    "in-statewide-parcels: snapshot a2f6fcb1 is 450 days old (as_of 2025-08-13)",
+    "in-statewide-parcels: snapshot 5cbb6bb4 is 450 days old (as_of 2025-08-13)",
+    "in-statewide-parcels: snapshot 95480b18 is 450 days old (as_of 2025-08-13)",
+    "in-statewide-parcels: snapshot 33c82ffa is 450 days old (as_of 2025-08-13)",
+    "in-statewide-parcels: snapshot a00c2d8e is 449 days old (as_of 2025-08-14)",
+    "in-statewide-parcels: snapshot 15d08de6 is 448 days old (as_of 2025-08-15)",
+    "in-statewide-parcels: snapshot fc7477fb is 445 days old (as_of 2025-08-18)",
+    "in-statewide-parcels: snapshot 6bca2b06 is 445 days old (as_of 2025-08-18)",
+    "in-statewide-parcels: snapshot 7d45ff61 is 444 days old (as_of 2025-08-19)",
+    "in-statewide-parcels: snapshot 76601f70 is 444 days old (as_of 2025-08-19)",
+    "in-statewide-parcels: snapshot c787025f is 444 days old (as_of 2025-08-19)",
+    "in-statewide-parcels: snapshot 26eff731 is 444 days old (as_of 2025-08-19)",
+    "in-statewide-parcels: snapshot 950f6fae is 444 days old (as_of 2025-08-19)",
+    "in-statewide-parcels: snapshot a9e5f71a is 444 days old (as_of 2025-08-19)",
+    "in-statewide-parcels: snapshot 81a68b2f is 444 days old (as_of 2025-08-19)",
+    "in-statewide-parcels: snapshot db57a2aa is 444 days old (as_of 2025-08-19)",
+    "in-statewide-parcels: snapshot 7053a191 is 444 days old (as_of 2025-08-19)",
+    "in-statewide-parcels: snapshot e072a8fb is 443 days old (as_of 2025-08-20)",
+    "in-statewide-parcels: snapshot 41592b48 is 443 days old (as_of 2025-08-20)",
+    "in-statewide-parcels: snapshot fdd83e85 is 443 days old (as_of 2025-08-20)",
+    "in-statewide-parcels: snapshot 7fdaf208 is 443 days old (as_of 2025-08-20)",
+    "in-statewide-parcels: snapshot a0b45a8c is 443 days old (as_of 2025-08-20)",
+    "in-statewide-parcels: snapshot 8da34d59 is 443 days old (as_of 2025-08-20)",
+    "in-statewide-parcels: snapshot 531dc424 is 441 days old (as_of 2025-08-22)",
+    "in-statewide-parcels: snapshot 1e069004 is 441 days old (as_of 2025-08-22)",
+    "in-statewide-parcels: snapshot d739d444 is 441 days old (as_of 2025-08-22)",
+    "in-statewide-parcels: snapshot 67747760 is 441 days old (as_of 2025-08-22)",
+    "in-statewide-parcels: snapshot f48d542c is 441 days old (as_of 2025-08-22)",
+    "in-statewide-parcels: snapshot ab043bfa is 441 days old (as_of 2025-08-22)",
+    "in-statewide-parcels: snapshot 91b9d0e4 is 441 days old (as_of 2025-08-22)",
+    "in-statewide-parcels: snapshot 1118b7e2 is 441 days old (as_of 2025-08-22)",
+    "in-statewide-parcels: snapshot 78d26b47 is 441 days old (as_of 2025-08-22)",
+    "in-statewide-parcels: snapshot d6c255e4 is 438 days old (as_of 2025-08-25)",
+    "in-statewide-parcels: snapshot ff7fe591 is 438 days old (as_of 2025-08-25)",
+    "in-statewide-parcels: snapshot b65f5c07 is 438 days old (as_of 2025-08-25)",
+    "in-statewide-parcels: snapshot d42d65a0 is 437 days old (as_of 2025-08-26)",
+    "in-statewide-parcels: snapshot fdd083cd is 437 days old (as_of 2025-08-26)",
+    "in-statewide-parcels: snapshot fca86a01 is 437 days old (as_of 2025-08-26)",
+    "in-statewide-parcels: snapshot 1f8faee8 is 436 days old (as_of 2025-08-27)",
+    "in-statewide-parcels: snapshot 7dbe2bd5 is 436 days old (as_of 2025-08-27)",
+    "in-statewide-parcels: snapshot 8c416ff4 is 436 days old (as_of 2025-08-27)",
+    "in-statewide-parcels: snapshot ef312c25 is 436 days old (as_of 2025-08-27)",
+    "in-statewide-parcels: snapshot 1467b0af is 436 days old (as_of 2025-08-27)",
+    "in-statewide-parcels: snapshot 669bb75e is 436 days old (as_of 2025-08-27)",
+    "in-statewide-parcels: snapshot 3d28414c is 436 days old (as_of 2025-08-27)",
+    "in-statewide-parcels: snapshot bf369e3d is 436 days old (as_of 2025-08-27)",
+    "in-statewide-parcels: snapshot 3a672c2d is 436 days old (as_of 2025-08-27)",
+    "in-statewide-parcels: snapshot d0b65583 is 436 days old (as_of 2025-08-27)",
+    "in-statewide-parcels: snapshot f35de61b is 436 days old (as_of 2025-08-27)",
+    "in-statewide-parcels: snapshot 9d62697a is 436 days old (as_of 2025-08-27)",
+    "in-statewide-parcels: snapshot 62eafd08 is 436 days old (as_of 2025-08-27)",
+    "in-statewide-parcels: snapshot f8b6adc5 is 435 days old (as_of 2025-08-28)",
+    "in-statewide-parcels: snapshot de755a66 is 435 days old (as_of 2025-08-28)",
+    "in-statewide-parcels: snapshot e42af186 is 435 days old (as_of 2025-08-28)",
+    "in-statewide-parcels: snapshot b54e0aa5 is 435 days old (as_of 2025-08-28)",
+    "in-statewide-parcels: snapshot 33f2774e is 435 days old (as_of 2025-08-28)",
+    "in-statewide-parcels: snapshot 1eb52d65 is 435 days old (as_of 2025-08-28)",
+    "in-statewide-parcels: snapshot 5795bb8e is 435 days old (as_of 2025-08-28)",
+    "in-statewide-parcels: snapshot b27d94b5 is 435 days old (as_of 2025-08-28)",
+    "in-statewide-parcels: snapshot 14df4ef7 is 435 days old (as_of 2025-08-28)",
+    "in-statewide-parcels: snapshot dae62005 is 435 days old (as_of 2025-08-28)",
+    "in-statewide-parcels: snapshot 4ef4692e is 435 days old (as_of 2025-08-28)",
+    "in-statewide-parcels: snapshot 7e12ca89 is 435 days old (as_of 2025-08-28)",
+    "in-statewide-parcels: snapshot 8a8f4f49 is 435 days old (as_of 2025-08-28)",
+    "in-statewide-parcels: snapshot ac0f2ad6 is 435 days old (as_of 2025-08-28)",
+    "in-statewide-parcels: snapshot 735caf76 is 435 days old (as_of 2025-08-28)",
+    "in-statewide-parcels: snapshot 24669df4 is 434 days old (as_of 2025-08-29)",
+    "in-statewide-parcels: snapshot d49d8c1b is 434 days old (as_of 2025-08-29)",
+    "in-statewide-parcels: snapshot b7f3016d is 434 days old (as_of 2025-08-29)",
+    "in-statewide-parcels: snapshot e0e2496b is 434 days old (as_of 2025-08-29)",
+    "in-statewide-parcels: snapshot 349cc807 is 434 days old (as_of 2025-08-29)",
+    "in-statewide-parcels: snapshot b86d2a5b is 434 days old (as_of 2025-08-29)",
+    "in-statewide-parcels: snapshot ffd3f394 is 434 days old (as_of 2025-08-29)",
+    "in-statewide-parcels: snapshot 93052244 is 434 days old (as_of 2025-08-29)",
+    "in-statewide-parcels: snapshot d29853bd is 434 days old (as_of 2025-08-29)",
+    "in-statewide-parcels: snapshot 178c7bcb is 434 days old (as_of 2025-08-29)",
+    "in-statewide-parcels: snapshot 3f63e605 is 434 days old (as_of 2025-08-29)",
+    "in-statewide-parcels: snapshot 03f13d2e is 434 days old (as_of 2025-08-29)",
+    "in-statewide-parcels: snapshot 4d137d78 is 434 days old (as_of 2025-08-29)",
+    "in-statewide-parcels: snapshot 8e192771 is 434 days old (as_of 2025-08-29)",
+    "in-statewide-parcels: snapshot cc94dd1e is 434 days old (as_of 2025-08-29)",
+    "in-statewide-parcels: snapshot cc335147 is 434 days old (as_of 2025-08-29)",
+    "in-statewide-parcels: snapshot ddebcad6 is 434 days old (as_of 2025-08-29)",
+    "in-statewide-parcels: snapshot 77f4ab4b is 434 days old (as_of 2025-08-29)",
+    "in-statewide-parcels: snapshot 0a20be02 is 434 days old (as_of 2025-08-29)",
+    "in-statewide-parcels: snapshot 5b75dde4 is 430 days old (as_of 2025-09-02)",
+    "in-statewide-parcels: snapshot dac4bc36 is 429 days old (as_of 2025-09-03)",
+    "in-statewide-parcels: snapshot e596a872 is 429 days old (as_of 2025-09-03)",
+    "in-statewide-parcels: snapshot 0bb68cdb is 428 days old (as_of 2025-09-04)",
+    "in-statewide-parcels: snapshot 66f02986 is 428 days old (as_of 2025-09-04)",
+    "in-statewide-parcels: snapshot ce2c9151 is 427 days old (as_of 2025-09-05)",
+    "in-statewide-parcels: snapshot 8acfe29c is 427 days old (as_of 2025-09-05)",
+    "in-statewide-parcels: snapshot ec389ca8 is 427 days old (as_of 2025-09-05)",
+    "in-statewide-parcels: snapshot cc0abb01 is 427 days old (as_of 2025-09-05)",
+    "in-statewide-parcels: snapshot 94bc563f is 427 days old (as_of 2025-09-05)",
+    "in-statewide-parcels: snapshot 8d8680b1 is 427 days old (as_of 2025-09-05)",
+    "in-statewide-parcels: snapshot f7bb9c95 is 427 days old (as_of 2025-09-05)",
+    "in-statewide-parcels: snapshot 176abbe5 is 427 days old (as_of 2025-09-05)",
+    "in-statewide-parcels: snapshot b3a4ca8f is 423 days old (as_of 2025-09-09)",
+    "in-statewide-parcels: snapshot c3088e8b is 423 days old (as_of 2025-09-09)",
+    "in-statewide-parcels: snapshot 6ec8bc98 is 423 days old (as_of 2025-09-09)",
+    "in-statewide-parcels: snapshot b992dcd6 is 422 days old (as_of 2025-09-10)",
+    "in-statewide-parcels: snapshot 88fd354b is 422 days old (as_of 2025-09-10)",
+    "in-statewide-parcels: snapshot 0978fe42 is 422 days old (as_of 2025-09-10)",
+    "in-statewide-parcels: snapshot 0a48c5d7 is 422 days old (as_of 2025-09-10)"
+  ]
+}
