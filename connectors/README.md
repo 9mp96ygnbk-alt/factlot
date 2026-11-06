@@ -27,6 +27,7 @@ To self-host, run the Docker image or `@factlot/server` and use your own host in
 - [Microsoft Copilot](microsoft/README.md): Copilot Studio (MCP), Power Platform custom connector, Microsoft 365 Copilot
 - [Amazon Bedrock](amazon/README.md): Converse API, Bedrock Agents action group (Lambda)
 - [Mistral, xAI, Meta Llama, DeepSeek, and others](others/README.md)
+- [Agent frameworks](frameworks/README.md): LangGraph / LangChain, OpenAI Agents SDK, CrewAI, the MCP Python and TypeScript SDKs, and the Vercel AI SDK, with tested recipes, a 429 policy, and a rerunnable script
 
 ## Run the remote connector
 
