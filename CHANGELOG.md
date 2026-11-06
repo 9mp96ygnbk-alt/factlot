@@ -13,8 +13,19 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 
 ## [Unreleased]
 
+### Added
+
+- `lease_comp_search`: search the 6,994 GSA lease comps (the federal government is the tenant; not market comps for private tenants) offline and on the hosted API, by state, county, city, ZIP, radius, size, commencement, rent and type, with summary statistics and a citation on every answer. The data ship inside `@factlot/tools` and the `factlot` Python package and are rebuilt by `scripts/gen-gsa-lease-comps.py` from the GSA file, checked against the release.
+- `doc_predicates`: the lease predicate catalog (JSON Schema, an example, which parts are checked against the quote and how, which always need a person), generated from the checks. It replaces `fact_validate` in the Custom GPT Actions subset.
+- Document tools: a person's confirmation `{by, at, note?}` turns a value whose only unverifiable parts are true/false values, enums or summaries into a `human_verified` fact, with the quote-checked parts under `checked` and the rest under `confirmed_by_person`. It never overrides a failed quote, a contradicted number or date, or low confidence; generic labels such as "agent" or "system" are refused, and FactLot does not authenticate the name.
+- Document tools: rent schedules written by lease year ("Lease Years 1–5: $34.50") verify: rents and lease years are checked against the table, the commencement date against its own quote, and the step dates derived (`doc.lease_year_dates@1`).
+- `calc_critical_dates` (`calc.critical_dates@1`): renewal, termination, expansion and other notice deadlines and windows, in calendar months, with US federal holidays flagged or rolled and `as_of` warnings.
+- `calc_reconcile_dcf` and `calc_reconcile_cam` (`@1`): tie FactLot's DCF or batch CAM reconciliation out against another system's export, line by line within a tolerance, with likely causes worded as hypotheses from FactLot's conventions; `python -m factlot.reconcile_files` reads a CSV or XLSX export. Tested on synthetic exports only (`examples/reconciliation/tie-out`); ARGUS and Yardi parity remain untested.
+- Docs: `connectors/frameworks/README.md`, tested recipes for LangGraph/LangChain, the OpenAI Agents SDK, CrewAI, the MCP Python and TypeScript SDKs and the Vercel AI SDK (client-side tool filtering, 429 policy, User-Agent, API key), and a rerunnable script under `scripts/e2e/frameworks/` (not part of CI). `docs/reconciliation.md`.
+
 ### Changed
 
+- The shape check enforces the documented field types of `lease.free_rent`, `lease.renewal_option` and `lease.termination_option`.
 - `doc_verify_facts`: `verified` now means every part of the value was found in the quote. Prohibited uses, an exclusive's protected use and carve-outs, and ROFR/ROFO descriptions must be written in the quote; an invented item goes to `needs_review` (check `consistency`). A true/false value, an enum the quote does not word, or a paraphrased summary goes to `needs_review` with the new check `coverage` and a reason naming each part. `free_rent.applies_to: base_rent` and a `natural` breakpoint are checked by their wording.
 - `doc_abstract_lease`: results no longer depend on document order. A document without a role is the original only when that is unambiguous (`role_inferred: true`); otherwise an `InputError` asks for `role`. Two or more amendments need `effective_date`; same-day amendments conflict instead of superseding.
 - `doc_abstract_lease`: an amendment effective after `as_of` is pending: its values are under `pending` and `pending_facts` with a warning, and it does not control the current abstract. A rent schedule restated from a later date keeps the earlier steps (`carried_forward`).

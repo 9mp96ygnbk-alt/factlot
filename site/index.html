@@ -9,7 +9,7 @@
     </title>
     <meta
       name="description"
-      content="FactLot gives commercial real estate AI agents cited facts and deterministic math: 22 calculators with audit trails, canonical IDs, and a public-record registry where every fact cites its source document. Open source."
+      content="FactLot gives commercial real estate AI agents cited facts and deterministic math: 25 calculators with audit trails, canonical IDs, and a public-record registry where every fact cites its source document. Open source."
     />
     <link rel="canonical" href="https://factlot.com/" />
     <meta property="og:type" content="website" />
@@ -99,7 +99,7 @@
           </h1>
           <p class="lede">
             FactLot gives them cited facts and deterministic math they can't get
-            wrong: 22 calculators with audit trails, canonical IDs, and a
+            wrong: 25 calculators with audit trails, canonical IDs, and a
             public-record registry where every fact points at the document it
             came from.
           </p>
@@ -215,10 +215,13 @@
                   href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/registry/coverage.md"
                   >coverage page</a
                 >
-                lists. What you can query today: the downloadable District of
-                Columbia sample (18,077 parcels) and the GSA lease comps on your
-                own FactLot. The full registry is built and verified in the
-                project's pipeline; hosted registry lookups are not open yet.
+                lists. What you can query today: the 6,994 GSA lease comps on
+                the hosted API (<code>lease_comp_search</code>; the federal
+                government is the tenant, so they are not private-market comps)
+                and the downloadable District of Columbia sample (18,077
+                parcels) on your own FactLot. The full registry is built and
+                verified in the project's pipeline; hosted registry lookups are
+                not open yet.
               </p>
               <p>
                 <a
@@ -523,7 +526,9 @@
               <code>calc_direct_cap</code>,
               <code>calc_amortization_schedule</code>,
               <code>calc_equity_waterfall</code>,
-              <code>calc_exchange_1031</code>
+              <code>calc_exchange_1031</code>, <code>calc_critical_dates</code>,
+              <code>calc_reconcile_dcf</code>,
+              <code>calc_reconcile_cam</code>
             </li>
             <li>
               <strong>Rules</strong>:
@@ -535,13 +540,15 @@
               <code>id_building</code>, <code>id_document</code>,
               <code>id_parse</code>, <code>fact_validate</code>,
               <code>fact_package_create</code>,
-              <code>fact_package_verify</code>, <code>lease_comp_validate</code>
+              <code>fact_package_verify</code>,
+              <code>lease_comp_validate</code>,
+              <code>lease_comp_search</code>
             </li>
             <li>
               <strong>Documents</strong>: <code>doc_verify_facts</code>,
               <code>doc_abstract_lease</code>, <code>doc_compare</code>,
               <code>doc_verify_claim</code>, <code>doc_spread_statement</code>,
-              <code>doc_check_use_conflict</code>
+              <code>doc_check_use_conflict</code>, <code>doc_predicates</code>
             </li>
             <li>
               <strong>Discovery</strong>: <code>search</code>,

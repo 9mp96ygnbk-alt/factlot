@@ -4489,79 +4489,6 @@
         }
       }
     },
-    "/v1/facts/validate": {
-      "post": {
-        "operationId": "fact_validate",
-        "summary": "Validate a FactLot fact",
-        "description": "Check one FactLot fact against the published fact schema (spec/schemas/fact.json): subject URN, dotted predicate, as_of date, provenance, optional rights; unknown fields are rejected at every level. Rules: every fact except a computed one cites at least one source (an inferred fact cites the evidence it was inferred from); a computed fact names its formula or cites a source; valid_from is not after valid_to; a source span does not end before it starts. For Ingest predicates (lease.expiration_date, lease.rentable_area_sf, lease.base_rent_schedule, ...) the value must have the predicate's shape and every source quote must state the value, by the same written-form rules as doc_verify_facts (a quote saying \"2,500 square feet\" does not support 1000). Not checked: that the quote is in the document, that the document or sha256 exists, that supersedes IDs exist, and quotes for other predicates; doc_verify_facts with the document's pages checks the quote. Returns { valid, issues }. Call before storing or sharing facts.",
-        "x-openai-isConsequential": false,
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "fact": {
-                    "type": "object",
-                    "additionalProperties": true,
-                    "description": "A FactLot fact: subject, predicate, value, as_of, provenance (with sources), optional rights."
-                  }
-                },
-                "required": ["fact"]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Result object.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid input; read `issues`, fix the arguments, and retry.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "CalcInputError, FactLotIdError, InputError, or UnknownTool"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "issues": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "path": {
-                            "type": "string"
-                          },
-                          "message": {
-                            "type": "string"
-                          }
-                        }
-                      }
-                    }
-                  },
-                  "required": ["error", "message"]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/v1/doc/verify_facts": {
       "post": {
         "operationId": "doc_verify_facts",
@@ -4979,6 +4906,85 @@
                   }
                 },
                 "required": ["documents", "as_of"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Result object.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input; read `issues`, fix the arguments, and retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "CalcInputError, FactLotIdError, InputError, or UnknownTool"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "issues": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "path": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error", "message"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/doc/predicates": {
+      "post": {
+        "operationId": "doc_predicates",
+        "summary": "Lease predicate catalog",
+        "description": "Look up the lease predicates doc_verify_facts and doc_abstract_lease know (lease.expiration_date, lease.base_rent_schedule, lease.go_dark, ...) before extracting: for each, its value shape as JSON Schema, one valid example with a quote that states it (and whether that example verifies), which parts of the value are checked against the quote and how (number, ratio, date, verbatim name, as-written words, a worded enum, a number inside free text), which count as checked only when the quote writes them out (summaries, some enums), and which always need review (true/false values and enums no wording confirms, such as a CAM cap method or a kick-out party) unless a person confirms them. Generated from the same tables the checks use. Give predicate for one, prefix (e.g. lease.renewal) for a group, or neither for all. Also returns notes on statuses, paths, human confirmation and the generic rules for any other dotted predicate. Reads no document.",
+        "x-openai-isConsequential": false,
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "predicate": {
+                    "description": "One predicate to describe, e.g. lease.go_dark. Omit both predicate and prefix for every lease predicate.",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "prefix": {
+                    "description": "Only predicates starting with this, e.g. \"lease.renewal\" or \"lease.\". Give predicate or prefix, not both.",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                }
               }
             }
           }

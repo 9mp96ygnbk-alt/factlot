@@ -39,14 +39,14 @@ in catalog order (a test keeps it at 30 or fewer and checks that this page lists
 - Debt, returns, and valuation: `calc_debt_sizing`, `calc_amortization_schedule`, `calc_npv`,
   `calc_irr`, `calc_dcf_pro_forma`, `calc_direct_cap`, `calc_equity_waterfall`, `calc_exchange_1031`
 - Hotels and rules: `calc_hotel_metrics`, `rules_tx_property_tax_protest_deadline`
-- IDs, facts, and documents: `id_parcel`, `id_space`, `id_document`, `fact_validate`,
-  `doc_verify_facts`, `doc_abstract_lease`
+- IDs and documents: `id_parcel`, `id_space`, `id_document`, `doc_verify_facts`,
+  `doc_abstract_lease`, `doc_predicates` (the lease predicate catalog: shapes, examples, what is checked)
 - Registry, only on a server with a registry loaded: `registry_search_address`, `registry_get`,
   `registry_search_entities`, `registry_resolve_parcel`. The hosted API has no registry yet, so its
   `/openapi-3.0.json` has the other 26 operations.
 
-Everything else, such as `calc_lease_vs_own`, `calc_prepayment_and_defeasance`, `calc_capex_recovery`, `id_building`,
-`doc_compare`, and the other registry tools, is in the complete OpenAPI 3.1 document
+Everything else, such as `calc_lease_vs_own`, `calc_prepayment_and_defeasance`, `calc_capex_recovery`,
+`calc_critical_dates`, `id_building`, `fact_validate`, `doc_compare`, `lease_comp_search`, and the other registry tools, is in the complete OpenAPI 3.1 document
 (`/openapi.json`) and over MCP. If your GPT needs one of them, connect ChatGPT to the MCP server
 (developer mode, above), or build your own subset of at most 30 operations in TypeScript:
 
