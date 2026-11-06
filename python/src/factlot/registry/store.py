@@ -10,7 +10,8 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
-from dataclasses import dataclass, field
+from collections import Counter
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
 from importlib import resources
 from pathlib import Path
@@ -66,6 +67,7 @@ ENRICHMENT_PREDICATES = frozenset({
     "energy.reporting_year", "energy.property_type", "energy.site_eui", "energy.weather_normalized_site_eui",
     "energy.source_eui", "energy.energy_star_score", "energy.ghg_emissions", "energy.ghg_intensity",
     "energy.floor_area_sf", "energy.property_lot_count",
+    "parcel.neighborhood_code", "parcel.building_class",
 })
 SCHEMA_VERSION = "2"
 # The ID spec parcel rule a file's parcel URNs were made with (meta ``parcel_rule``): rule 2 (ID spec
@@ -103,6 +105,29 @@ class Source:
     county_fips: str | None = None
     attribution: str | None = None
     terms_reviewed: str | None = None
+
+
+# Appraisal rolls are loaded under one registry source per tax year, so a district's next-year file (a
+# preliminary roll in spring, or a next-year working file such as DCAD<year>_CURRENT.zip) does not retire
+# the certified roll of the year before: the coverage rule retires facts only within a source. The tax
+# year a source was first loaded for (its base year: 2026 for most Texas rolls) keeps the plain source id;
+# every other tax year is ``<source_id>-<year>`` (``tx-dallas-cad-2027``). Within one tax year a newer
+# file (certified after preliminary, a supplement after certification) still replaces the older one.
+ROLL_BASE_TAX_YEAR = 2026
+
+
+def roll_source(source: Source, tax_year: int | None, base_year: int = ROLL_BASE_TAX_YEAR) -> Source:
+    """The registry source a roll for ``tax_year`` is loaded under (see ``ROLL_BASE_TAX_YEAR``)."""
+    if tax_year is None or tax_year == base_year:
+        return source
+    return replace(source, source_id=f"{source.source_id}-{tax_year}", title=f"{source.title}, tax year {tax_year}")
+
+
+def roll_tax_year(records: Iterable["ParcelRecord"]) -> tuple[int | None, list["ParcelRecord"]]:
+    """The tax year of a roll file (the year most of its records state) and the records, read into a list."""
+    recs = list(records)
+    years = Counter(r.tax_year for r in recs if r.tax_year)
+    return (years.most_common(1)[0][0] if years else None), recs
 
 
 @dataclass(frozen=True)
@@ -223,6 +248,8 @@ class IngestStats:
     facts_written: int = 0
     retired: int = 0
     errors: list[str] = field(default_factory=list)
+    source_id: str | None = None  # the registry source the file was loaded under (``ingest_roll``)
+    tax_year: int | None = None  # the roll's tax year (``ingest_roll``)
 
 
 def file_document_id(path: str | Path) -> tuple[str, int]:
@@ -660,6 +687,21 @@ class Registry:
             moved += 1
         self.db.commit()
         return {"rekeyed": moved, "dropped_duplicates": dropped}
+
+    def ingest_roll(self, source: Source, snapshot_path: str | Path, records: Iterable[ParcelRecord], *, as_of: str,
+                    retrieved_at: str | None = None, state_fips: str, account_system: str | None = None,
+                    full_roll: bool = False, base_year: int = ROLL_BASE_TAX_YEAR) -> IngestStats:
+        """Register an appraisal-roll file under the source for its tax year (``roll_source``) and ingest it.
+
+        The file's tax year is the one most of its records state; ``stats.source_id`` names the source used.
+        """
+        year, recs = roll_tax_year(records)
+        src = roll_source(source, year, base_year)
+        self.add_source(src)
+        snap = self.add_snapshot(src.source_id, snapshot_path, as_of, retrieved_at)
+        stats = self.ingest_parcels(recs, snap, state_fips=state_fips, account_system=account_system, full_roll=full_roll)
+        stats.source_id, stats.tax_year = src.source_id, year
+        return stats
 
     def ingest_parcels(self, records: Iterable[ParcelRecord], snap: Snapshot, *, state_fips: str,
                        account_system: str | None = None, include_all_categories: bool = False,

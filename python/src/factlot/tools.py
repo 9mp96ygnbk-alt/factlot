@@ -599,18 +599,21 @@ def _tx_equity_candidates(args: dict[str, Any]) -> dict[str, Any]:
         "year_band": _bounded(args, "year_band", tx_equity.DEFAULTS["year_band"], 0, 100, integer=True),
         "min_matches": _bounded(args, "min_matches", tx_equity.DEFAULTS["min_matches"], 1, 200, integer=True),
         "limit": _bounded(args, "limit", tx_equity.DEFAULTS["limit"], 1, 200, integer=True),
+        "tax_year": _bounded(args, "tax_year", None, 1900, 2100, integer=True),
     }
     if "urn" in args:
         urn = _str(args, "urn")
         kind, parts = parse(urn)
         if kind != "parcel":
             raise FactLotIdError(f'"{urn}" is a {kind} URN; registry_tx_equity_candidates needs a parcel URN')
-        state, field = parts[0][3:5], "urn"
+        state, county, field, county_field = parts[0][3:5], parts[0][5:8], "urn", "urn"
     else:
         state = _str(args, "state_fips") if "state_fips" in args else tx_equity.TEXAS_FIPS
-        county, apn, field = _str(args, "county_fips"), _str(args, "apn"), "state_fips"
+        county, apn, field, county_field = _str(args, "county_fips"), _str(args, "apn"), "state_fips", "county_fips"
     if state != tx_equity.TEXAS_FIPS:
         raise _InputError(field, tx_equity.texas_only(state))
+    if county in tx_equity.WITHHELD_COUNTIES:
+        raise _InputError(county_field, tx_equity.WITHHELD_COUNTIES[county])
     reg = _registry()
     if "urn" not in args:
         urn = reg.parcel_urn(state, county, apn)

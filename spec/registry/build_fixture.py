@@ -161,18 +161,22 @@ reg.ingest_entity_parents([
                   "listed_as": {"name": "Lonestar Office Holdings, L.L.C.", "jurisdiction": "Texas"}},
                  locator="0000900001-26-000004 ex21.htm line 12"),
 ], ex21_snap)
-# A second synthetic appraisal district for registry_tx_equity_candidates and value history: three full rolls
-# (tax year 2025, tax year 2026, and a corrected 2026 roll that changes one parcel's value), both value bases,
-# neighborhood and building-class codes on some parcels, and owners of record the tool must never return.
-reg.add_source(Source("test-cad-997", "Example Central Appraisal District (synthetic)", "Appraisal roll",
-                      "https://example.invalid/cad-997", "48", county_fips="997", license="Synthetic test data",
-                      ai_use="unknown", redistribution="attribution_required", attribution="Example Central Appraisal District"))
+# A second synthetic appraisal district for registry_tx_equity_candidates and value history. Its rolls are one
+# registry source per tax year, as the Texas adapters load them (Registry.ingest_roll): tax year 2025
+# (test-cad-997-2025), 2026 (test-cad-997: a July roll and a corrected October roll that changes one value), and a
+# 2027 preliminary roll (test-cad-997-2027) that changes values, codes, an area and a category, so a parcel holds
+# current facts from three years at once. Building classes come from a separate buildings file per year
+# (test-cad-997-buildings, test-cad-997-buildings-2027). Both value bases, neighborhood codes on some parcels, and
+# owners of record the tool must never return.
+CAD997 = Source("test-cad-997", "Example Central Appraisal District (synthetic)", "Appraisal roll",
+                "https://example.invalid/cad-997", "48", county_fips="997", license="Synthetic test data",
+                ai_use="unknown", redistribution="attribution_required", attribution="Example Central Appraisal District")
 BAYOU, PARTNERS = "Bayou Equity Holdings LLC", "Example Office Partners LP"
 
 
-def cad(apn, category, area, year, zip5, value, *, appraised=True, nbhd=None, cls=None, owner=BAYOU, tax_year=2026,
+def cad(apn, category, area, year, zip5, value, *, appraised=True, nbhd=None, owner=BAYOU, tax_year=2026,
         land=None, mailing="PO Box 9, Example City TX 77001", confidential=False):
-    extra = [(p, v, None) for p, v in (("parcel.neighborhood_code", nbhd), ("parcel.building_class", cls)) if v]
+    extra = [("parcel.neighborhood_code", nbhd, None)] if nbhd else []
     return ParcelRecord("997", apn, category, account=f"C{apn}", situs_address=f"{int(apn[-2:])} Alpha Plaza, Example City TX {zip5}",
                         owner_name=owner, owner_mailing_address=mailing if owner else None, owner_confidential=confidential,
                         land_area_sf=land, improvement_area_sf=area, year_built=year, market_value=value,
@@ -182,11 +186,11 @@ def cad(apn, category, area, year, zip5, value, *, appraised=True, nbhd=None, cl
 
 def roll_2026(subject_value):
     return [
-        cad("1000001", "F1", 50000, 2005, "77001", subject_value, nbhd="N100", cls="B", land=120000),  # the subject
-        cad("1000002", "F1", 48000, 2000, "77002", 9100000, nbhd="N100", cls="B"),
+        cad("1000001", "F1", 50000, 2005, "77001", subject_value, nbhd="N100", land=120000),  # the subject
+        cad("1000002", "F1", 48000, 2000, "77002", 9100000, nbhd="N100"),
         cad("1000003", "F1", 55000, 2010, "77001", 11000000, appraised=False, nbhd="N100", owner=PARTNERS),
         cad("1000004", "F1", 40000, 1995, "77001", 7000000, owner=PARTNERS),
-        cad("1000005", "F1", 60000, None, "77001", 12000000, nbhd="N200", cls="A"),
+        cad("1000005", "F1", 60000, None, "77001", 12000000, nbhd="N200"),
         cad("1000006", "F1", 52000, 1980, "77001", 9900000),  # built outside the year band
         cad("1000007", "F1", 80000, 2005, "77001", 15000000),  # outside the area band
         cad("1000008", "F2", 50000, 2005, "77001", 6000000),  # another category
@@ -202,16 +206,40 @@ def roll_2026(subject_value):
     ]
 
 
-r997_25 = snap("test-cad-997", "cad-997-2025.txt", "synthetic district 997 roll 2025", "2025-07-25")
-reg.ingest_parcels([
-    cad("1000001", "F1", 50000, 2005, "77001", 9000000, nbhd="N100", cls="B", land=120000, tax_year=2025),
-    cad("1000002", "F1", 48000, 2000, "77002", 8500000, nbhd="N100", cls="B", tax_year=2025),
-    cad("1000010", "F1", 50000, 2005, "77001", 9500000, tax_year=2025),  # absent from 2026: retired
-], r997_25, state_fips="48", account_system="test-cad-997-account", full_roll=True)
-r997_26 = snap("test-cad-997", "cad-997-2026.txt", "synthetic district 997 roll 2026", "2026-07-25")
-reg.ingest_parcels(roll_2026(10000000), r997_26, state_fips="48", account_system="test-cad-997-account", full_roll=True)
-r997_26b = snap("test-cad-997", "cad-997-2026-corrected.txt", "synthetic district 997 corrected roll 2026", "2026-10-15")
-reg.ingest_parcels(roll_2026(9800000), r997_26b, state_fips="48", account_system="test-cad-997-account", full_roll=True)
+def roll_file(name, text, as_of, records):
+    path = tmp / name
+    path.write_text(text)
+    reg.ingest_roll(CAD997, path, records, as_of=as_of, retrieved_at=f"{as_of}T12:00:00+00:00", state_fips="48",
+                    account_system="test-cad-997-account", full_roll=True)
+
+
+def buildings_file(year_suffix, name, as_of, classes):
+    src = Source(f"test-cad-997-buildings{year_suffix}", "Example Central Appraisal District (synthetic)",
+                 "Building file", "https://example.invalid/cad-997", "48", county_fips="997", license="Synthetic test data",
+                 ai_use="unknown", redistribution="attribution_required", attribution="Example Central Appraisal District")
+    reg.add_source(src)
+    sn = snap(src.source_id, name, f"synthetic buildings {name}", as_of)
+    reg.ingest_parcel_facts([ParcelFacts("997", apn, [("parcel.building_class", cls, None)], locator=f"building {apn}")
+                             for apn, cls in classes], sn, state_fips="48", full_roll=True)
+
+
+roll_file("cad-997-2025.txt", "synthetic district 997 roll 2025", "2025-07-25", [
+    cad("1000001", "F1", 50000, 2005, "77001", 9000000, nbhd="N100", land=120000, tax_year=2025),
+    cad("1000002", "F1", 48000, 2000, "77002", 8500000, nbhd="N100", tax_year=2025),
+    cad("1000010", "F1", 50000, 2005, "77001", 9500000, tax_year=2025),  # on the 2025 roll only
+])
+roll_file("cad-997-2026.txt", "synthetic district 997 roll 2026", "2026-07-25", roll_2026(10000000))
+roll_file("cad-997-2026-corrected.txt", "synthetic district 997 corrected roll 2026", "2026-10-15", roll_2026(9800000))
+roll_file("cad-997-2027-preliminary.txt", "synthetic district 997 preliminary roll 2027", "2027-04-15", [
+    cad("1000001", "F1", 50000, 2005, "77001", 10500000, nbhd="N100", land=120000, tax_year=2027),
+    cad("1000002", "F1", 48000, 2000, "77002", 9500000, nbhd="N150", tax_year=2027),  # a new neighborhood
+    cad("1000003", "F1", 70000, 2010, "77001", 12000000, appraised=False, nbhd="N100", owner=PARTNERS,
+        tax_year=2027),  # enlarged: outside the 2027 area band
+    cad("1000004", "F2", 40000, 1995, "77001", 7500000, owner=PARTNERS, tax_year=2027),  # reclassified
+    cad("1000009", "F1", 45000, 2008, "77003", 9200000, nbhd="N300", tax_year=2027),
+])
+buildings_file("", "cad-997-buildings-2026.txt", "2026-07-25", [("1000001", "B"), ("1000002", "B"), ("1000005", "A")])
+buildings_file("-2027", "cad-997-buildings-2027.txt", "2027-04-15", [("1000001", "C"), ("1000002", "A")])
 reg.link_owners()
 reg.rollup_buildings()
 reg.refresh_coverage()

@@ -191,10 +191,9 @@ def build(snapshot_path: str | Path, db_path: str | Path, *, as_of: str, retriev
     """
     reg = Registry(db_path)
     try:
-        reg.add_source(SOURCE)
-        snap = reg.add_snapshot(SOURCE.source_id, snapshot_path, as_of, retrieved_at)
-        return reg.ingest_parcels(read_roll(snapshot_path), snap, state_fips=STATE_FIPS,
-                                  account_system=ACCOUNT_SYSTEM, full_roll=full_roll)
+        # One registry source per tax year (store.roll_source): a next-year file never retires this year's roll.
+        return reg.ingest_roll(SOURCE, snapshot_path, read_roll(snapshot_path), as_of=as_of, retrieved_at=retrieved_at,
+                               state_fips=STATE_FIPS, account_system=ACCOUNT_SYSTEM, full_roll=full_roll)
     finally:
         reg.close()
 

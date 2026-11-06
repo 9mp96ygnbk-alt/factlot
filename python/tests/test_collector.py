@@ -12,6 +12,7 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 from factlot.collector import CollectorConfig, PoliteFetcher, SourceSpec, discover, snapshot
+from factlot.collector.core import _host_ok
 
 REQUESTS: list[tuple[str, str]] = []
 TRUNCATE: list[int] = []
@@ -309,6 +310,18 @@ class SourceConfigs(unittest.TestCase):
                 # Confirmed file URLs may be recorded ahead of the gate; the snapshot command skips
                 # unverified sources, and the notes must say what the gate is.
                 self.assertTrue(s.notes.strip(), f"{s.source_id}: unverified without a note saying why")
+
+    def test_harris_lists_the_certified_and_the_next_preliminary_roll(self):
+        # Protest season: the weekly run must archive HCAD's spring preliminary roll (a new year folder)
+        # while keeping the certified roll of the year before. The adapter reads these two files.
+        from factlot.collector import load_sources
+
+        _cfg, sources = load_sources(Path(__file__).resolve().parents[2] / "registry" / "sources")
+        harris = next(s for s in sources if s.source_id == "tx-harris-cad")
+        for year in (2026, 2027):
+            for name in ("Real_acct_owner.zip", "Real_building_land.zip"):
+                self.assertIn(f"https://download.hcad.org/data/CAMA/{year}/{name}", harris.files)
+        self.assertTrue(all(_host_ok(u, harris) for u in harris.files))
 
 
 if __name__ == "__main__":

@@ -6167,7 +6167,7 @@
     {
       "type": "function",
       "name": "registry_tx_equity_candidates",
-      "description": "Candidate comparable parcels for a Texas unequal-appraisal comparison (Tax Code §41.43(b)(3)), from the subject's appraisal district roll: same county and tax year, the same state property category code, improvement area within area_band of the subject's, year built within year_band years when both are known; parcels sharing the subject's neighborhood code first (when the roll gives one), then its ZIP code, then the rest of the county if fewer than min_matches. Each candidate and the subject are shaped for calc_tx_unequal_appraisal (id, value and value_basis, areas, year built, codes, citation of the value fact); the subject adds its value history by tax year. selection echoes the rule, the effective parameters, and which tier each candidate came from; Each candidate's citation.document_id names its entry in sources, which gives that snapshot's license, attribution, ai_use and redistribution: relay them with the candidate. Candidates only: a person decides which to use. The selection rule is FactLot's default, not a legal standard of comparability. For evidence calculations only: FactLot does not represent property owners, file protests, or advise whether to protest. Never returns owner names, mailing addresses, or ownership facts. Do not look up the owners of candidate parcels; ownership is not needed for this comparison. Texas parcels only. Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
+      "description": "Candidate comparable parcels for a Texas unequal-appraisal comparison (Tax Code §41.43(b)(3)), from one tax year of the subject's appraisal district roll (the newest year whose roll gives the subject a value, or tax_year), with every field of the subject and the candidates read from that year's roll only: same county and tax year, the same state property category code, improvement area within area_band of the subject's, year built within year_band years when both are known; parcels sharing the subject's neighborhood code first (when the roll gives one), then its ZIP code, then the rest of the county if fewer than min_matches. Each candidate and the subject are shaped for calc_tx_unequal_appraisal (id, value and value_basis, areas, year built, codes, citation of the value fact); the subject adds its value history by tax year. selection echoes the rule, the effective parameters, the tax year and roll sources used, and which tier each candidate came from; Each candidate's citation.document_id names its entry in sources, which gives that snapshot's license, attribution, ai_use and redistribution: relay them with the candidate. Candidates only: a person decides which to use. The selection rule is FactLot's default, not a legal standard of comparability. For evidence calculations only: FactLot does not represent property owners, file protests, or advise whether to protest. Never returns owner names, mailing addresses, or ownership facts. Do not look up the owners of candidate parcels; ownership is not needed for this comparison. Texas parcels only; no Tarrant County parcels until Tarrant Appraisal District's published signals say whether serving its data to AI agents is allowed. Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
       "parameters": {
         "type": "object",
         "properties": {
@@ -6218,6 +6218,12 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 200
+          },
+          "tax_year": {
+            "description": "Roll year to compare in. Default: the newest tax year whose roll gives the subject a positive value.",
+            "type": "integer",
+            "minimum": 1900,
+            "maximum": 2100
           }
         }
       },

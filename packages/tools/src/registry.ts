@@ -1378,6 +1378,36 @@ export const TX_EQUITY_DEFAULTS = {
 export const TX_EQUITY_WHICH_PARCEL =
   "give urn, or county_fips and apn (with state_fips 48, or none)";
 
+/**
+ * Counties the candidate tool serves no parcel of, with the reason (`WITHHELD_COUNTIES` in Python). Tarrant
+ * Appraisal District (48439): its robots.txt signals "search=yes,ai-train=no,use=reference"; use=reference is
+ * undefined and ai-input is not stated.
+ */
+export const TX_EQUITY_WITHHELD_COUNTIES: Record<string, string> = {
+  "439":
+    "Tarrant Appraisal District's published signals do not say whether serving its data to AI agents is allowed; FactLot does not serve Tarrant comparables until that is clarified",
+};
+
+/** Why the candidate tool serves no parcel of this county, or undefined (own keys only, as a Python dict). */
+export function txEquityWithheld(countyFips: string): string | undefined {
+  return Object.hasOwn(TX_EQUITY_WITHHELD_COUNTIES, countyFips)
+    ? TX_EQUITY_WITHHELD_COUNTIES[countyFips]
+    : undefined;
+}
+
+/**
+ * The tax year the district's first per-year roll sources were loaded for (`ROLL_BASE_TAX_YEAR` in Python): that
+ * year keeps the plain source id, every other year is `<source_id>-<year>`.
+ */
+export const ROLL_BASE_TAX_YEAR = 2026;
+const YEAR_SUFFIX = /-([0-9]{4})$/;
+
+/** The tax year a roll or companion source holds by its id (`source_tax_year` in Python). */
+export function sourceTaxYear(sourceId: string): number {
+  const m = YEAR_SUFFIX.exec(sourceId);
+  return m ? Number(m[1]) : ROLL_BASE_TAX_YEAR;
+}
+
 /** The error for a parcel outside Texas (`texas_only` in Python). */
 export function texasOnly(stateFips: string): string {
   return `registry_tx_equity_candidates is Texas-only (state FIPS 48): this parcel is in state FIPS ${stateFips}. Texas unequal-appraisal protests compare parcels on one Texas appraisal district's roll`;
@@ -1399,14 +1429,21 @@ export const TX_EQUITY_PREDICATES = [
 const EQUITY_IN = TX_EQUITY_PREDICATES.map((p) => `'${p}'`).join(", ");
 const EQUITY_ORDER =
   " ORDER BY f.subject, f.predicate, f.as_of DESC, f.fact_id";
+// Current facts of one parcel with the source of each, and the same for every parcel in a county whose category
+// fact in one of the given roll sources has a given value (the caller fills in the source lists).
 const EQUITY_SUBJECT_SQL =
-  `SELECT f.* FROM current_facts f WHERE f.subject = ? AND f.predicate IN (${EQUITY_IN})` +
+  "SELECT f.*, s.source_id AS source_id FROM current_facts f JOIN snapshots s ON s.document_id = f.document_id " +
+  `WHERE f.subject = ? AND f.predicate IN (${EQUITY_IN})` +
   EQUITY_ORDER;
-const EQUITY_POOL_SQL =
-  "SELECT f.* FROM current_facts f WHERE f.subject IN (SELECT c.subject FROM current_facts c WHERE c.subject >= ? " +
-  "AND c.subject < ? AND c.predicate = 'parcel.state_property_category' AND c.value_json = ?) " +
-  `AND f.predicate IN (${EQUITY_IN})` +
+const equityPoolSql = (rolls: number, sources: number): string =>
+  "SELECT f.*, s.source_id AS source_id FROM current_facts f JOIN snapshots s ON s.document_id = f.document_id " +
+  "WHERE f.subject IN (SELECT c.subject FROM current_facts c JOIN snapshots cs ON cs.document_id = c.document_id " +
+  "WHERE c.subject >= ? AND c.subject < ? AND c.predicate = 'parcel.state_property_category' AND c.value_json = ? " +
+  `AND cs.source_id IN (${Array(rolls).fill("?").join(", ")})) AND f.predicate IN (${EQUITY_IN}) ` +
+  `AND s.source_id IN (${Array(sources).fill("?").join(", ")})` +
   EQUITY_ORDER;
+const EQUITY_COUNTY_SOURCES_SQL =
+  "SELECT source_id FROM sources WHERE state_fips = ? AND county_fips = ? ORDER BY source_id";
 const EQUITY_SOURCE_SQL =
   "SELECT s.document_id, s.source_id, s.as_of, s.retrieved_at, s.filename, src.publisher, src.title, src.url, " +
   "src.license, src.ai_use, src.redistribution, src.attribution FROM snapshots s JOIN sources src USING (source_id) " +
@@ -1416,7 +1453,7 @@ const STATE_ZIP_TAIL = /\s[A-Z]{2}\s+([0-9]{5})(?:[- ]?[0-9]{1,4})?\s*$/;
 const TIERS = ["neighborhood", "zip", "county"] as const;
 
 export const TX_EQUITY_RULE =
-  "FactLot's default candidate rule (a design choice, not a legal standard): parcels in the subject's appraisal district (county) whose current facts give the same tax year as the subject's and exactly the same state property category code, an improvement area within area_band (a share) of the subject's, a year built within year_band years of the subject's when both are known, and an appraised or market value. Tiers: parcels sharing the subject's neighborhood code (when it has one), then parcels in its 5-digit ZIP code, then the rest of the county only when the first two tiers hold fewer than min_matches. Ordered by tier, then nearest improvement area, then URN; at most limit returned.";
+  "FactLot's default candidate rule (a design choice, not a legal standard): the subject's roll year is the newest tax year whose roll gives it a positive market or appraised value (or tax_year when given), and every field of the subject and the candidates is read from that year's roll (building class also from the district's buildings file for that year). Candidates are parcels on the same district's roll for that year with exactly the same state property category code, an improvement area within area_band (a share) of the subject's, a year built within year_band years of the subject's when both are known, and an appraised or market value. Tiers: parcels sharing the subject's neighborhood code (when it has one), then parcels in its 5-digit ZIP code, then the rest of the county only when the first two tiers hold fewer than min_matches. Ordered by tier, then nearest improvement area, then URN; at most limit returned.";
 export const TX_EQUITY_NOTICE =
   "Candidates only: a person decides which, if any, to use as comparables. The selection rule is FactLot's default, not a legal standard of comparability. For evidence calculations only: FactLot does not represent property owners, file protests, or advise whether to protest or what value to claim. Owner names and mailing addresses are never returned.";
 
@@ -1432,18 +1469,57 @@ export function situsZip5(situs: unknown): string | null {
   return m ? m[1]! : null;
 }
 
-type FactsBySubject = Map<string, Map<string, Row>>;
-
-/** subject → predicate → its newest current fact row (`registry_get`'s rule for single-valued predicates). */
-function firstPerPredicate(rows: Row[]): FactsBySubject {
-  const out: FactsBySubject = new Map();
+function bySubject(rows: Row[]): Map<string, Row[]> {
+  const out = new Map<string, Row[]>();
   for (const r of rows) {
     const subject = String(r.subject);
-    const facts = out.get(subject) ?? new Map<string, Row>();
-    if (!facts.has(String(r.predicate))) facts.set(String(r.predicate), r);
-    out.set(subject, facts);
+    const list = out.get(subject) ?? [];
+    list.push(r);
+    out.set(subject, list);
   }
   return out;
+}
+
+/** source → [tax year, has a positive value] for each source whose current facts give the parcel a tax year. */
+function rollYears(rows: Row[]): Map<string, [number, boolean]> {
+  const first = new Map<string, Map<string, Row>>();
+  for (const r of rows) {
+    const src = String(r.source_id);
+    const facts = first.get(src) ?? new Map<string, Row>();
+    if (!facts.has(String(r.predicate))) facts.set(String(r.predicate), r);
+    first.set(src, facts);
+  }
+  const out = new Map<string, [number, boolean]>();
+  for (const [src, facts] of first) {
+    const year = finite(rowValue(facts.get("parcel.tax_year")));
+    if (year === null) continue;
+    const valued = ["parcel.market_value", "parcel.appraised_value"].some(
+      (p) => (finite(rowValue(facts.get(p))) ?? 0) > 0,
+    );
+    out.set(src, [year, valued]);
+  }
+  return out;
+}
+
+/** predicate → newest fact from the year's roll sources; building class from a companion when the roll has none. */
+function yearFacts(
+  rows: Row[],
+  rolls: string[],
+  companions: string[],
+): Map<string, Row> {
+  const facts = new Map<string, Row>();
+  for (const r of rows)
+    if (rolls.includes(String(r.source_id)) && !facts.has(String(r.predicate)))
+      facts.set(String(r.predicate), r);
+  if (!facts.has("parcel.building_class"))
+    for (const r of rows)
+      if (
+        companions.includes(String(r.source_id)) &&
+        r.predicate === "parcel.building_class" &&
+        !facts.has("parcel.building_class")
+      )
+        facts.set("parcel.building_class", r);
+  return facts;
 }
 
 function nonEmptyString(v: unknown): string | null {
@@ -1521,6 +1597,7 @@ export interface TxEquityParams {
   year_band: number;
   min_matches: number;
   limit: number;
+  tax_year?: number;
 }
 
 /** The parcel URN a `registry_tx_equity_candidates` call names: its `urn`, or the URN of its APN under the file's rule. */
@@ -1544,10 +1621,46 @@ export function registryTxEquityCandidates(
   if (!d.prepare("SELECT 1 AS x FROM subjects WHERE urn = ?").get(urn))
     return null;
   const { area_band, year_band, min_matches, limit } = params;
+  const taxYear = params.tax_year ?? null;
   const region = urn.split(":")[2] ?? "";
-  const subjectFacts =
-    firstPerPredicate(d.prepare(EQUITY_SUBJECT_SQL).all(urn)).get(urn) ??
-    new Map<string, Row>();
+  const subjectRows =
+    bySubject(d.prepare(EQUITY_SUBJECT_SQL).all(urn)).get(urn) ?? [];
+  const years = rollYears(subjectRows);
+  const available = [...new Set([...years.values()].map(([y]) => y))].sort(
+    (a, b) => b - a,
+  );
+  const valued = [...years.values()].filter(([, v]) => v).map(([y]) => y);
+  const warnings: string[] = [];
+  let yearUsed: number | null;
+  if (taxYear !== null) {
+    yearUsed = available.includes(taxYear) ? taxYear : null;
+    if (yearUsed === null)
+      warnings.push(
+        `the subject is on no current roll for tax year ${taxYear}; its roll years: ${available.map((y) => String(Math.trunc(y))).join(", ") || "none"}`,
+      );
+  } else {
+    yearUsed = valued.length
+      ? Math.max(...valued)
+      : available.length
+        ? available[0]!
+        : null;
+  }
+  const rolls = [...years.entries()]
+    .filter(([, [y]]) => y === yearUsed)
+    .map(([src]) => src)
+    .sort();
+  const countySources = d
+    .prepare(EQUITY_COUNTY_SOURCES_SQL)
+    .all(region.slice(3, 5), region.slice(5, 8))
+    .map((r) => String(r.source_id));
+  const companions = countySources.filter(
+    (c) =>
+      !rolls.includes(c) &&
+      yearUsed !== null &&
+      sourceTaxYear(c) === yearUsed &&
+      rolls.some((r) => c.startsWith(r.replace(YEAR_SUFFIX, "") + "-")),
+  );
+  const subjectFacts = yearFacts(subjectRows, rolls, companions);
   const subject: Row = {
     ...comparable(urn, subjectFacts),
     value_history: registryValueHistory(urn),
@@ -1575,7 +1688,6 @@ export function registryTxEquityCandidates(
     neighborhood_code: subject.neighborhood_code,
     zip: zip5,
   };
-  const warnings: string[] = [];
   const missing = (
     [
       ["parcel.tax_year", subject.tax_year],
@@ -1597,17 +1709,21 @@ export function registryTxEquityCandidates(
     );
   } else {
     const { min: lo, max: hi } = areaBand as { min: number; max: number };
-    const pool = firstPerPredicate(
+    const pool = bySubject(
       d
-        .prepare(EQUITY_POOL_SQL)
+        .prepare(equityPoolSql(rolls.length, rolls.length + companions.length))
         .all(
           `fl:parcel:${region}:`,
           `fl:parcel:${region};`,
           subjectFacts.get("parcel.state_property_category")!.value_json,
+          ...rolls,
+          ...rolls,
+          ...companions,
         ),
     );
-    for (const [candUrn, facts] of pool) {
+    for (const [candUrn, candRows] of pool) {
       if (candUrn === urn) continue;
+      const facts = yearFacts(candRows, rolls, companions);
       const c = comparable(candUrn, facts);
       const cArea = positive(c.improvement_area_sf);
       if (
@@ -1684,7 +1800,17 @@ export function registryTxEquityCandidates(
     candidates,
     selection: {
       rule: TX_EQUITY_RULE,
-      parameters: { area_band, year_band, min_matches, limit },
+      parameters: {
+        area_band,
+        year_band,
+        min_matches,
+        limit,
+        tax_year: taxYear,
+      },
+      tax_year: yearUsed,
+      available_tax_years: available,
+      roll_sources: rolls,
+      building_class_sources: companions,
       criteria,
       tiers,
       widened_to_county: widened && !missing.length,

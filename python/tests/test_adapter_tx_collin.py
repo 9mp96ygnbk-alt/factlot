@@ -164,6 +164,13 @@ class Collin(unittest.TestCase):
         # The file carries no confidentiality flag, so no record can be marked confidential from it.
         self.assertFalse(any(r.owner_confidential for r in recs.values()))
 
+    def test_building_class(self):
+        facts = {r.apn: r.extra_facts for r in tx_collin.read_roll(self.csv)}
+        self.assertEqual(facts["37"], [("parcel.building_class", "MM2", None)])
+        self.assertTrue(all(f == [] for apn, f in facts.items() if apn != "37"), "a blank class_cd is no class")
+        self.assertFalse(any(p == "parcel.neighborhood_code" for f in facts.values() for p, _v, _u in f),
+                         "the file has no neighborhood code")
+
     def test_state_category(self):
         self.assertEqual(tx_collin.state_category("F3"), "F1")
         self.assertEqual(tx_collin.state_category("F4"), "F1")

@@ -6,12 +6,31 @@ with CRLF line endings and Latin-1 bytes.
 - ``real_acct.txt`` — one row per account (the 13-digit HCAD account number is the parcel key):
   mailing address (``mailto``, ``mail_*``), situs (``site_addr_1`` street, ``_2`` city, ``_3``
   ZIP), ``state_class`` (Comptroller category with HCAD subclass, e.g. ``F1``, ``B1``),
-  ``yr_impr``, ``bld_ar`` and ``land_ar`` (square feet), ``acreage``, and the value columns
-  (``tot_mkt_val``, ``tot_appr_val``).
+  ``yr_impr``, ``bld_ar`` and ``land_ar`` (square feet), ``acreage``, the value columns
+  (``tot_mkt_val``, ``tot_appr_val``), and ``Neighborhood_Code`` (HCAD's neighborhood number, such as
+  ``5900.05``; ``real_neighborhood_code.txt`` lists them), written as ``parcel.neighborhood_code`` when
+  that list has it: the 2026 file also writes ``0.00``, which is not a listed code, on 4 commercial
+  accounts.
+  ``Market_Area_1``/``_2`` and ``econ_bld_class`` are not read.
 - ``owners.txt`` — owner-of-record lines per account (``ln_num``, ``name``, ``pct_own``). The
   ``mailto`` column of ``real_acct.txt`` is only the addressee, so owners come from here.
 
-Usage: ``python -m factlot.registry.adapters.tx_harris Real_acct_owner.zip registry.db --as-of 2026-11-01``
+Building class comes from a second file, ``Real_building_land.zip`` (same folder, same layout
+conventions), loaded as its own registry source (``tx-harris-cad-buildings``) so each fact cites
+the file it was read from:
+
+- ``building_other.txt`` — commercial improvements, one row per building section (``acct``,
+  ``bld_num``, ``structure``, ``qa_cd``, ``im_sq_ft``); ``building_res.txt`` — residential-type
+  improvements with the same columns. ``structure`` is the building class (``A`` fireproofed steel,
+  ``B`` reinforced concrete, ``C`` masonry bearing, ``D`` wood or light steel, ``S`` open steel
+  skeleton, ... in ``desc_r_04_building_class.txt``); ``qa_cd`` is the quality (``A`` excellent ...
+  ``F`` poor, ``desc_r_07_quality_code.txt``) and is not recorded. ``parcel.building_class`` is the
+  ``structure`` of the main improvement: the section with the largest ``im_sq_ft`` among the
+  account's ``building_other.txt`` rows, or among its ``building_res.txt`` rows when it has none
+  (first in file order on a tie; rows with no class are skipped).
+
+Usage: ``python -m factlot.registry.adapters.tx_harris Real_acct_owner.zip registry.db --as-of 2026-11-01
+[--buildings Real_building_land.zip]``
 """
 
 from __future__ import annotations
@@ -26,7 +45,7 @@ from dataclasses import asdict
 from pathlib import Path
 
 from ..normalize import COMMERCIAL_CATEGORIES, is_commercial
-from ..store import IngestStats, ParcelRecord, Registry, Source
+from ..store import IngestStats, ParcelFacts, ParcelRecord, Registry, Source, roll_source
 
 STATE_FIPS = "48"
 COUNTY_FIPS = "201"
@@ -44,6 +63,20 @@ SOURCE = Source(
     redistribution="unknown",  # not addressed; public record
     attribution="Harris Central Appraisal District",
     terms_reviewed="2026-11-02",
+)
+
+BUILDINGS_SOURCE = Source(
+    source_id="tx-harris-cad-buildings",
+    publisher="Harris Central Appraisal District",
+    title="Real property building and land export (Real_building_land.zip)",
+    url="https://hcad.org/pdata/pdata-property-downloads.html",
+    state_fips=STATE_FIPS,
+    county_fips=COUNTY_FIPS,
+    license=SOURCE.license,
+    ai_use=SOURCE.ai_use,
+    redistribution=SOURCE.redistribution,
+    attribution=SOURCE.attribution,
+    terms_reviewed=SOURCE.terms_reviewed,
 )
 
 # Owner names HCAD uses when it has no owner of record (for example a deed not yet processed):
@@ -121,6 +154,7 @@ def read_roll(path: str | Path, *, categories: Iterable[str] | None = COMMERCIAL
         code = r.get("state_class", "").strip().upper()
         if keep(code):
             kept[r["acct"].strip()] = r
+    listed = _neighborhoods(path)
     owners: dict[str, str] = {}
     for o in _rows(path, "owners.txt"):
         acct = o["acct"].strip()
@@ -148,7 +182,52 @@ def read_roll(path: str | Path, *, categories: Iterable[str] | None = COMMERCIAL
             appraised_value=_num(r.get("tot_appr_val")),
             tax_year=int(y) if (y := _num(r.get("yr"))) else None,
             locator=f"real_acct.txt acct {acct}",
+            extra_facts=[("parcel.neighborhood_code", nbhd, None)]
+            if (nbhd := _code(r.get("Neighborhood_Code"))) and (listed is None or nbhd in listed) else [],
         )
+
+
+def _neighborhoods(path: str | Path) -> frozenset[str] | None:
+    """The neighborhood codes ``real_neighborhood_code.txt`` lists, or ``None`` when the file has no such member."""
+    p = Path(path)
+    if p.is_dir():
+        present = (p / "real_neighborhood_code.txt").is_file()
+    else:
+        with zipfile.ZipFile(p) as zf:
+            present = "real_neighborhood_code.txt" in zf.namelist()
+    if not present:
+        return None
+    return frozenset(c for r in _rows(path, "real_neighborhood_code.txt") if (c := _code(r.get("cd"))))
+
+
+def _code(s: str | None) -> str | None:
+    """An HCAD code as written (padding removed); blank is no code."""
+    return " ".join((s or "").split()) or None
+
+
+def read_building_classes(path: str | Path, accounts: Iterable[str] | None = None) -> Iterator[ParcelFacts]:
+    """Yield ``parcel.building_class`` for each account's main improvement (see the module docstring).
+
+    ``accounts`` limits the accounts read (the registry's Harris parcels); ``None`` reads every account.
+    """
+    wanted = None if accounts is None else frozenset(accounts)
+    best: dict[str, tuple[float, str, str, str]] = {}  # acct -> (area, class, member, bld_num)
+    for member in ("building_other.txt", "building_res.txt"):
+        found: dict[str, tuple[float, str, str, str]] = {}
+        for r in _rows(path, member):
+            acct = r["acct"].strip()
+            if (wanted is not None and acct not in wanted) or acct in best:
+                continue  # building_res.txt is read only for accounts with no commercial improvement
+            cls = _code(r.get("structure"))
+            if not cls:
+                continue
+            area = _num(r.get("im_sq_ft")) or 0.0
+            if acct not in found or area > found[acct][0]:
+                found[acct] = (area, cls, member, (r.get("bld_num") or "").strip())
+        best.update(found)
+    for acct, (_area, cls, member, bld) in best.items():
+        yield ParcelFacts(county_fips=COUNTY_FIPS, apn=acct, facts=[("parcel.building_class", cls, None)],
+                          locator=f"{member} acct {acct} bld_num {bld}")
 
 
 def build(snapshot_path: str | Path, db_path: str | Path, *, as_of: str, retrieved_at: str | None = None,
@@ -156,10 +235,31 @@ def build(snapshot_path: str | Path, db_path: str | Path, *, as_of: str, retriev
     """Ingest one archived ``Real_acct_owner.zip`` into a registry file (created if missing)."""
     reg = Registry(db_path)
     try:
-        reg.add_source(SOURCE)
-        snap = reg.add_snapshot(SOURCE.source_id, snapshot_path, as_of, retrieved_at)
-        return reg.ingest_parcels(read_roll(snapshot_path), snap, state_fips=STATE_FIPS,
-                                  account_system=ACCOUNT_SYSTEM, full_roll=full_roll)
+        # One registry source per tax year (store.roll_source): a next-year file never retires this year's roll.
+        return reg.ingest_roll(SOURCE, snapshot_path, read_roll(snapshot_path), as_of=as_of, retrieved_at=retrieved_at,
+                               state_fips=STATE_FIPS, account_system=ACCOUNT_SYSTEM, full_roll=full_roll)
+    finally:
+        reg.close()
+
+
+def build_buildings(buildings_path: str | Path, db_path: str | Path, *, as_of: str, tax_year: int | None,
+                    retrieved_at: str | None = None, full_roll: bool = True) -> IngestStats:
+    """Add building classes from an archived ``Real_building_land.zip`` to the Harris parcels already loaded.
+
+    ``tax_year`` is the year of the roll the file was published with (the ``data/CAMA/<year>/`` folder);
+    it picks the registry source, as for the roll.
+    """
+    reg = Registry(db_path)
+    try:
+        src = roll_source(BUILDINGS_SOURCE, tax_year)
+        reg.add_source(src)
+        snap = reg.add_snapshot(src.source_id, buildings_path, as_of, retrieved_at)
+        accounts = [row[0] for row in reg.db.execute(
+            "SELECT external_id FROM crosswalk WHERE system = ?", (ACCOUNT_SYSTEM,))]
+        stats = reg.ingest_parcel_facts(read_building_classes(buildings_path, accounts), snap, state_fips=STATE_FIPS,
+                                        full_roll=full_roll)
+        stats.source_id, stats.tax_year = src.source_id, tax_year
+        return stats
     finally:
         reg.close()
 
@@ -172,9 +272,16 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--as-of", required=True, help="roll date, YYYY-MM-DD (HCAD's 'last updated' date for the file)")
     ap.add_argument("--retrieved-at", help="ISO timestamp from the collector manifest")
     ap.add_argument("--partial", action="store_true", help="do not retire parcels missing from this file")
+    ap.add_argument("--buildings", help="Real_building_land.zip from the same folder: adds building classes")
+    ap.add_argument("--buildings-as-of", help="its 'last updated' date, YYYY-MM-DD (default: --as-of)")
     args = ap.parse_args(argv)
     stats = build(args.snapshot, args.db, as_of=args.as_of, retrieved_at=args.retrieved_at, full_roll=not args.partial)
-    print(json.dumps(asdict(stats), indent=2))
+    out = {"roll": asdict(stats)}
+    if args.buildings:
+        b = build_buildings(args.buildings, args.db, as_of=args.buildings_as_of or args.as_of, tax_year=stats.tax_year,
+                            retrieved_at=args.retrieved_at, full_roll=not args.partial)
+        out["buildings"] = asdict(b)
+    print(json.dumps(out if args.buildings else out["roll"], indent=2))
     return 0
 
 

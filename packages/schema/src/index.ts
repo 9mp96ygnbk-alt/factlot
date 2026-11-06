@@ -302,6 +302,9 @@ export const Predicates = {
     "parcel.year_altered",
     "parcel.historic_district",
     "parcel.landmark_designated",
+    // The appraisal district's neighborhood or market-area code and main-improvement building class, as written.
+    "parcel.neighborhood_code",
+    "parcel.building_class",
   ],
   // Zoning as the registry writes it. `zoning.district` is the registry's name for what the
   // starter list called `parcel.zoning_district`, which the registry does not write.
