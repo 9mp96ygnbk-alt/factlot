@@ -302,6 +302,49 @@ def _newest_first(facts: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return facts
 
 
+# Value history (Registry.value_history; VALUE_HISTORY_IN and ORDER_VALUE_HISTORY in TypeScript).
+_VALUE_HISTORY_IN = "'parcel.tax_year', 'parcel.market_value', 'parcel.appraised_value'"
+_ORDER_VALUE_HISTORY = " ORDER BY as_of DESC, document_id, predicate, fact_id"
+
+
+def fact_citation(row: Any) -> dict[str, Any]:
+    """The citation of one stored fact row: what a reader needs to find it in its source (``factCitation`` in TS)."""
+    return {"fact_id": row["fact_id"], "document_id": row["document_id"], "locator": row["locator"], "as_of": row["as_of"]}
+
+
+def _number(v: Any) -> float | None:
+    return v if isinstance(v, (int, float)) and not isinstance(v, bool) and v == v and abs(v) != float("inf") else None
+
+
+def value_history_entries(rows: Iterable[Any]) -> list[dict[str, Any]]:
+    """Value-history entries from fact rows ordered by ``_ORDER_VALUE_HISTORY`` (``valueHistoryEntries`` in TS).
+
+    The rows of one snapshot make one entry; where a snapshot holds two facts for one predicate (a file that
+    lists a parcel twice) the first in that order is used.
+    """
+    by_doc: dict[str, dict[str, Any]] = {}
+    for r in rows:
+        by_doc.setdefault(r["document_id"], {}).setdefault(r["predicate"], r)
+    kept: list[dict[str, Any]] = []
+    for doc in by_doc.values():
+        market, appraised, year = doc.get("parcel.market_value"), doc.get("parcel.appraised_value"), doc.get("parcel.tax_year")
+        mv = _number(json.loads(market["value_json"])) if market else None
+        av = _number(json.loads(appraised["value_json"])) if appraised else None
+        if mv is None and av is None:
+            continue
+        ty = _number(json.loads(year["value_json"])) if year else None
+        if any(e["tax_year"] == ty and e["market_value"] == mv and e["appraised_value"] == av for e in kept):
+            continue  # restated unchanged: the newer snapshot's entry stands
+        first = market if mv is not None else appraised
+        kept.append({
+            "tax_year": ty, "market_value": mv, "appraised_value": av, "as_of": first["as_of"],
+            "citations": {"market_value": fact_citation(market) if mv is not None else None,
+                          "appraised_value": fact_citation(appraised) if av is not None else None},
+        })
+    # Snapshots are newest first already; a stable sort by tax year keeps that order within a year.
+    return sorted(kept, key=lambda e: (e["tax_year"] is None, -(e["tax_year"] or 0)))
+
+
 def _fact_id(subject: str, predicate: str, value_json: str, document_id: str) -> str:
     digest = hashlib.sha256("\x1f".join((subject, predicate, value_json, document_id)).encode()).digest()
     return f"flf_{_base32(digest, 24)}"
@@ -1244,10 +1287,26 @@ class Registry:
         record.update({"status": status, "facts": facts, "relationships": rels, "crosswalk": xw})
         if subj["kind"] == "parcel":
             record["building"] = _buildings.building_of(self.db, urn)
+            record["value_history"] = self.value_history(urn, as_of)
         elif subj["kind"] == "building":
             record["building"] = _buildings.building_detail(self.db, urn)
         record["warnings"] = area_warnings(facts)
         return record
+
+    def value_history(self, urn: str, as_of: str | None = None) -> list[dict[str, Any]]:
+        """A parcel's market and appraised values by tax year, each cited (``registryValueHistory`` in TypeScript).
+
+        Read from every snapshot (current and superseded; with ``as_of``, those dated on or before it): one entry
+        per snapshot that recorded a value. A tax year a later snapshot restates with the same values is listed
+        once, cited to the newest; a tax year two snapshots value differently is listed once per value, newest
+        snapshot first. Ordered by tax year, newest first (an entry without a tax year last).
+        """
+        sql = f"SELECT * FROM facts WHERE subject = ? AND predicate IN ({_VALUE_HISTORY_IN})"
+        params: tuple[Any, ...] = (urn,)
+        if as_of is not None:
+            sql += " AND as_of <= ?"
+            params += (as_of,)
+        return value_history_entries(self.db.execute(sql + _ORDER_VALUE_HISTORY, params).fetchall())
 
     def snapshot(self, document_id: str) -> dict[str, Any] | None:
         """A source snapshot the registry cites, by its ``fl:document:sha256-…`` ID (``registrySnapshot`` in TS)."""

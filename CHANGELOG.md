@@ -15,6 +15,11 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 
 Fixes from the hosted product review (`docs/research/2026-11-hosted-review`).
 
+### Added
+
+- `registry_tx_equity_candidates`: candidate comparable parcels for a Texas unequal-appraisal comparison from a local registry, with the selection rule, its effective parameters, the tier each candidate came from, and each source's rights. Candidates are shaped for `calc_tx_unequal_appraisal`; owner names, mailing addresses and ownership facts are never returned. Texas parcels only.
+- `registry_get`: a parcel's record carries `value_history`, its market and appraised value by tax year from every snapshot, newest first, each value cited.
+
 ### Changed
 
 - `doc_verify_facts`: `verified` now means every part of the value was found in the quote. Prohibited uses, an exclusive's protected use and carve-outs, and ROFR/ROFO descriptions must be written in the quote; an invented item goes to `needs_review` (check `consistency`). A true/false value, an enum the quote does not word, or a paraphrased summary goes to `needs_review` with the new check `coverage` and a reason naming each part. `free_rent.applies_to: base_rent` and a `natural` breakpoint are checked by their wording.

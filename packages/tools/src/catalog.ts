@@ -48,6 +48,12 @@ import {
   registryResolveParcelResult,
   registrySearchAddressResult,
   registrySearchEntitiesResult,
+  registryTxEquityCandidates,
+  texasOnly,
+  TEXAS_FIPS,
+  TX_EQUITY_DEFAULTS,
+  TX_EQUITY_WHICH_PARCEL,
+  txEquitySubjectUrn,
 } from "./registry.ts";
 import {
   INPUT_LIMITS,
@@ -464,7 +470,7 @@ const registryTools: ToolSpec[] = [
     name: "registry_get",
     title: "Get a registry record",
     description:
-      "Everything the FactLot Registry knows about a parcel, legal entity, or building: status, current cited facts (owner of record, situs address, property category, areas, values), ownership links, external IDs, and for a parcel the building it belongs to (condominium units roll up into one building). as_of gives the facts as they stood on a date. warnings flags area facts that look wrong (building area above 40 times the land area, a land area of 0); the facts themselves are as the source publishes them. A building record can carry debt.cmbs_loan facts (one per CMBS trust holding a note of its loan: balance, rate, maturity, payment status, servicer, special-servicing dates, NOI, DSCR) and an entity record can carry entity.parent facts (the SEC registrant that lists it as a subsidiary in Exhibit 21), each cited to its SEC filing. A miss says whether the county or entity registry is loaded." +
+      "Everything the FactLot Registry knows about a parcel, legal entity, or building: status, current cited facts (owner of record, situs address, property category, areas, values), ownership links, external IDs, and for a parcel the building it belongs to (condominium units roll up into one building). value_history (parcels) lists market and appraised value by tax year from every snapshot, newest first, each value cited; a tax year two snapshots value differently appears once per value. as_of gives the facts as they stood on a date. warnings flags area facts that look wrong (building area above 40 times the land area, a land area of 0); the facts themselves are as the source publishes them. A building record can carry debt.cmbs_loan facts (one per CMBS trust holding a note of its loan: balance, rate, maturity, payment status, servicer, special-servicing dates, NOI, DSCR) and an entity record can carry entity.parent facts (the SEC registrant that lists it as a subsidiary in Exhibit 21), each cited to its SEC filing. A miss says whether the county or entity registry is loaded." +
       REGISTRY_NOTE,
     input: z.object({
       urn: z
@@ -618,6 +624,134 @@ const registryTools: ToolSpec[] = [
     path: "/v1/registry/coverage",
     requires: "registry",
     run: () => registryCoverage(),
+  },
+  {
+    name: "registry_tx_equity_candidates",
+    title: "Texas unequal-appraisal candidates",
+    description:
+      "Candidate comparable parcels for a Texas unequal-appraisal comparison (Tax Code §41.43(b)(3)), from the subject's appraisal district roll: same county and tax year, the same state property category code, improvement area within area_band of the subject's, year built within year_band years when both are known; parcels sharing the subject's neighborhood code first (when the roll gives one), then its ZIP code, then the rest of the county if fewer than min_matches. Each candidate and the subject are shaped for calc_tx_unequal_appraisal (id, value and value_basis, areas, year built, codes, citation of the value fact); the subject adds its value history by tax year. selection echoes the rule, the effective parameters, and which tier each candidate came from; sources gives each cited snapshot's rights. Candidates only: a person decides which to use. The selection rule is FactLot's default, not a legal standard of comparability. For evidence calculations only: FactLot does not represent property owners, file protests, or advise whether to protest. Never returns owner names, mailing addresses, or ownership facts. Texas parcels only." +
+      REGISTRY_NOTE,
+    input: z.object({
+      urn: z
+        .string()
+        .max(500)
+        .optional()
+        .describe(
+          "FactLot parcel URN of the subject, e.g. fl:parcel:us-48201:0420150000012. Give this, or county_fips and apn.",
+        ),
+      state_fips: z
+        .string()
+        .max(16)
+        .optional()
+        .describe(
+          'With county_fips and apn: "48" (Texas), the only state served.',
+        ),
+      county_fips: z
+        .string()
+        .max(16)
+        .optional()
+        .describe('3-digit Texas county FIPS, e.g. "201" for Harris County.'),
+      apn: z
+        .string()
+        .max(200)
+        .optional()
+        .describe(
+          "Appraisal district account number as the district prints it.",
+        ),
+      area_band: z
+        .number()
+        .gt(0)
+        .max(1)
+        .default(TX_EQUITY_DEFAULTS.area_band)
+        .describe(
+          "Improvement area band as a share of the subject's (0.35: within ±35%).",
+        ),
+      year_band: z
+        .number()
+        .int()
+        .min(0)
+        .max(100)
+        .default(TX_EQUITY_DEFAULTS.year_band)
+        .describe(
+          "Year-built band in years, applied when both the subject's and the candidate's are known.",
+        ),
+      min_matches: z
+        .number()
+        .int()
+        .min(1)
+        .max(200)
+        .default(TX_EQUITY_DEFAULTS.min_matches)
+        .describe(
+          "Widen from the neighborhood and ZIP code tiers to the whole county when they hold fewer than this.",
+        ),
+      limit: z
+        .number()
+        .int()
+        .min(1)
+        .max(200)
+        .default(TX_EQUITY_DEFAULTS.limit)
+        .describe("Maximum candidates returned (1–200)."),
+    }),
+    path: "/v1/registry/tx_equity_candidates",
+    requires: "registry",
+    run: (i: never) => {
+      const v = i as {
+        urn?: string;
+        state_fips?: string;
+        county_fips?: string;
+        apn?: string;
+        area_band: number;
+        year_band: number;
+        min_matches: number;
+        limit: number;
+      };
+      const byApn =
+        v.state_fips !== undefined ||
+        v.county_fips !== undefined ||
+        v.apn !== undefined;
+      if (
+        (v.urn !== undefined) === byApn ||
+        (byApn && (v.county_fips === undefined || v.apn === undefined))
+      )
+        throw new ToolInputError([
+          { path: "", message: TX_EQUITY_WHICH_PARCEL },
+        ]);
+      let urn: string;
+      if (v.urn !== undefined) {
+        const { kind, parts } = parse(v.urn);
+        if (kind !== "parcel")
+          throw new FactLotIdError(
+            `"${v.urn}" is a ${kind} URN; registry_tx_equity_candidates needs a parcel URN`,
+          );
+        const state = (parts[0] ?? "").slice(3, 5);
+        if (state !== TEXAS_FIPS)
+          throw new ToolInputError([
+            { path: "urn", message: texasOnly(state) },
+          ]);
+        urn = v.urn;
+      } else {
+        const state = v.state_fips ?? TEXAS_FIPS;
+        if (state !== TEXAS_FIPS)
+          throw new ToolInputError([
+            { path: "state_fips", message: texasOnly(state) },
+          ]);
+        urn = txEquitySubjectUrn(state, v.county_fips!, v.apn!);
+      }
+      const result = registryTxEquityCandidates(urn, {
+        area_band: v.area_band,
+        year_band: v.year_band,
+        min_matches: v.min_matches,
+        limit: v.limit,
+      });
+      if (!result) {
+        const coverage = registryRecordMiss(urn);
+        throw new NotFoundError(
+          `no registry record for ${urn}: ${String(coverage.message)}`,
+          coverage,
+        );
+      }
+      return result;
+    },
   },
 ];
 

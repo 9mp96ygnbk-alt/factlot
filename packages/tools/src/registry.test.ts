@@ -147,6 +147,54 @@ test("registry tools: TypeScript matches Python on the shared fixture", () => {
         .map((f) => f.value.trust),
       ["Other 2026-C2 Mortgage Trust", "Example 2026-C1 Mortgage Trust"],
     );
+    // Value history: a tax year two snapshots value differently is listed twice, newest first.
+    const subject = "fl:parcel:us-48997:1000001";
+    const history = (
+      at({ urn: subject }) as {
+        value_history?: { tax_year: number; as_of: string }[];
+      }
+    ).value_history;
+    assert.deepEqual(
+      history?.map((e) => [e.tax_year, e.as_of]),
+      [
+        [2026, "2026-10-15"],
+        [2026, "2026-07-25"],
+        [2025, "2025-07-25"],
+      ],
+    );
+    // Equity candidates: tiers in order, and no owner name, mailing address or ownership fact in any output
+    // (TypeScript's own run; the notice may say that owners are never returned).
+    const eq = runTool("registry_tx_equity_candidates", { urn: subject });
+    assert.ok(eq.ok);
+    const result = eq.result as {
+      selection: { tiers: { tier: string; ids: string[] }[] };
+    };
+    assert.deepEqual(
+      result.selection.tiers.map((t) => [t.tier, t.ids.length]),
+      [
+        ["neighborhood", 2],
+        ["zip", 3],
+        ["county", 1],
+      ],
+    );
+    calls.forEach((c) => {
+      if (c.tool !== "registry_tx_equity_candidates") return;
+      const out = runTool(c.tool, c.arguments);
+      const text = JSON.stringify(out.ok ? out.result : out.error);
+      for (const banned of [
+        "ownership.",
+        "owner_of_record",
+        "owner_mailing_address",
+        "relationships",
+        "Bayou Equity Holdings",
+        "Example Office Partners",
+        "PO Box 9",
+      ])
+        assert.ok(
+          !text.includes(banned),
+          `${JSON.stringify(c.arguments)}: ${banned}`,
+        );
+    });
   } finally {
     configureRegistry(undefined);
   }

@@ -385,8 +385,10 @@ export function registryGet(urn: string, asOf?: string): Row | null {
   const subj = d.prepare("SELECT * FROM subjects WHERE urn = ?").get(urn);
   if (!subj) return null;
   const extra: Row = {};
-  if (subj.kind === "parcel") extra.building = buildingOf(d, urn);
-  else if (subj.kind === "building") extra.building = buildingDetail(d, urn);
+  if (subj.kind === "parcel") {
+    extra.building = buildingOf(d, urn);
+    extra.value_history = registryValueHistory(urn, asOf);
+  } else if (subj.kind === "building") extra.building = buildingDetail(d, urn);
   const relationships = d
     .prepare(
       `SELECT from_urn, type, to_urn, as_of, method, confidence, basis, document_id FROM relationships r ` +
@@ -414,6 +416,101 @@ export function registryGet(urn: string, asOf?: string): Row | null {
     ...extra,
     warnings: areaWarnings(facts),
   };
+}
+
+// --- value history (Registry.value_history) ------------------------------------------------------
+
+const VALUE_HISTORY_IN =
+  "'parcel.tax_year', 'parcel.market_value', 'parcel.appraised_value'";
+const ORDER_VALUE_HISTORY =
+  " ORDER BY as_of DESC, document_id, predicate, fact_id";
+
+/** The citation of one stored fact row: what a reader needs to find it in its source (`fact_citation` in Python). */
+function factCitation(row: Row): Row {
+  return {
+    fact_id: row.fact_id,
+    document_id: row.document_id,
+    locator: row.locator ?? null,
+    as_of: row.as_of,
+  };
+}
+
+function finite(v: unknown): number | null {
+  return typeof v === "number" && Number.isFinite(v) ? v : null;
+}
+
+function rowValue(row: Row | undefined): unknown {
+  return row ? JSON.parse(String(row.value_json)) : null;
+}
+
+/**
+ * Value-history entries from fact rows ordered by `ORDER_VALUE_HISTORY` (`value_history_entries` in Python).
+ * The rows of one snapshot make one entry; where a snapshot holds two facts for one predicate (a file that
+ * lists a parcel twice) the first in that order is used.
+ */
+function valueHistoryEntries(rows: Row[]): Row[] {
+  const byDoc = new Map<string, Map<string, Row>>();
+  for (const r of rows) {
+    const doc = String(r.document_id);
+    const facts = byDoc.get(doc) ?? new Map<string, Row>();
+    if (!facts.has(String(r.predicate))) facts.set(String(r.predicate), r);
+    byDoc.set(doc, facts);
+  }
+  const kept: Row[] = [];
+  for (const facts of byDoc.values()) {
+    const market = facts.get("parcel.market_value");
+    const appraised = facts.get("parcel.appraised_value");
+    const mv = finite(rowValue(market));
+    const av = finite(rowValue(appraised));
+    if (mv === null && av === null) continue;
+    const ty = finite(rowValue(facts.get("parcel.tax_year")));
+    // Restated unchanged: the newer snapshot's entry stands.
+    if (
+      kept.some(
+        (e) =>
+          e.tax_year === ty &&
+          e.market_value === mv &&
+          e.appraised_value === av,
+      )
+    )
+      continue;
+    const first = (mv !== null ? market : appraised) as Row;
+    kept.push({
+      tax_year: ty,
+      market_value: mv,
+      appraised_value: av,
+      as_of: first.as_of,
+      citations: {
+        market_value: mv !== null ? factCitation(market as Row) : null,
+        appraised_value: av !== null ? factCitation(appraised as Row) : null,
+      },
+    });
+  }
+  // Snapshots are newest first already; a stable sort by tax year keeps that order within a year.
+  return kept.sort((a, b) => {
+    const ya = a.tax_year as number | null;
+    const yb = b.tax_year as number | null;
+    if (ya === null || yb === null)
+      return (ya === null ? 1 : 0) - (yb === null ? 1 : 0);
+    return yb - ya;
+  });
+}
+
+/**
+ * A parcel's market and appraised values by tax year, each cited (`Registry.value_history` in Python). Read
+ * from every snapshot (current and superseded; with `asOf`, those dated on or before it): one entry per
+ * snapshot that recorded a value. A tax year a later snapshot restates with the same values is listed once,
+ * cited to the newest; a tax year two snapshots value differently is listed once per value, newest snapshot
+ * first. Ordered by tax year, newest first (an entry without a tax year last).
+ */
+export function registryValueHistory(urn: string, asOf?: string): Row[] {
+  const d = open();
+  const sql = `SELECT * FROM facts WHERE subject = ? AND predicate IN (${VALUE_HISTORY_IN})${asOf === undefined ? "" : " AND as_of <= ?"}`;
+  return valueHistoryEntries(
+    d
+      .prepare(sql + ORDER_VALUE_HISTORY)
+      .all(...(asOf === undefined ? [urn] : [urn, asOf])),
+  );
 }
 
 /** Floor-area ratio (improvement area ÷ land area) above which `registry_get` warns. */
@@ -456,17 +553,18 @@ export function areaWarnings(facts: Row[]): string[] {
 /** Meta `parcel_rule` of a file built under ID spec 0.3 (`PARCEL_RULE` in Python). */
 const PARCEL_RULE = "2";
 
-export function registryResolveParcel(
+/** The parcel URN for an APN under the parcel rule the file was built with (`Registry.parcel_urn` in Python). */
+function parcelUrn(
+  d: Database,
   stateFips: string,
   countyFips: string,
   apn: string,
-): string | null {
-  const d = open();
+): string {
   // A file without parcel_rule was built with parcel rule 1 (ID spec 0.1-0.2) and keeps its URNs.
   const rule = d
     .prepare("SELECT value FROM meta WHERE key = 'parcel_rule'")
     .get();
-  const urn = parcelId({
+  return parcelId({
     stateFips,
     countyFips,
     apn,
@@ -474,6 +572,15 @@ export function registryResolveParcel(
       ? {}
       : { normalize: normalizeApnV1 }),
   }).urn;
+}
+
+export function registryResolveParcel(
+  stateFips: string,
+  countyFips: string,
+  apn: string,
+): string | null {
+  const d = open();
+  const urn = parcelUrn(d, stateFips, countyFips, apn);
   return d.prepare("SELECT 1 AS x FROM subjects WHERE urn = ?").get(urn)
     ? urn
     : null;
@@ -1257,4 +1364,335 @@ function ownedBuildings(d: Database, parcels: Row[]): Row[] {
           ? 1
           : 0),
   );
+}
+
+// --- Texas unequal-appraisal candidates (factlot.registry.tx_equity) ---------------------------
+
+export const TEXAS_FIPS = "48";
+export const TX_EQUITY_DEFAULTS = {
+  area_band: 0.35,
+  year_band: 15,
+  min_matches: 10,
+  limit: 50,
+} as const;
+export const TX_EQUITY_WHICH_PARCEL =
+  "give urn, or county_fips and apn (with state_fips 48, or none)";
+
+/** The error for a parcel outside Texas (`texas_only` in Python). */
+export function texasOnly(stateFips: string): string {
+  return `registry_tx_equity_candidates is Texas-only (state FIPS 48): this parcel is in state FIPS ${stateFips}. Texas unequal-appraisal protests compare parcels on one Texas appraisal district's roll`;
+}
+
+/** The only predicates the candidate tool reads (never ownership.*), `PARCEL_PREDICATES` in Python. */
+export const TX_EQUITY_PREDICATES = [
+  "parcel.tax_year",
+  "parcel.state_property_category",
+  "parcel.market_value",
+  "parcel.appraised_value",
+  "parcel.improvement_area_sf",
+  "parcel.land_area_sf",
+  "parcel.year_built",
+  "parcel.neighborhood_code",
+  "parcel.building_class",
+  "parcel.situs_address",
+] as const;
+const EQUITY_IN = TX_EQUITY_PREDICATES.map((p) => `'${p}'`).join(", ");
+const EQUITY_ORDER =
+  " ORDER BY f.subject, f.predicate, f.as_of DESC, f.fact_id";
+const EQUITY_SUBJECT_SQL =
+  `SELECT f.* FROM current_facts f WHERE f.subject = ? AND f.predicate IN (${EQUITY_IN})` +
+  EQUITY_ORDER;
+const EQUITY_POOL_SQL =
+  "SELECT f.* FROM current_facts f WHERE f.subject IN (SELECT c.subject FROM current_facts c WHERE c.subject >= ? " +
+  "AND c.subject < ? AND c.predicate = 'parcel.state_property_category' AND c.value_json = ?) " +
+  `AND f.predicate IN (${EQUITY_IN})` +
+  EQUITY_ORDER;
+const EQUITY_SOURCE_SQL =
+  "SELECT s.document_id, s.source_id, s.as_of, s.retrieved_at, s.filename, src.publisher, src.title, src.url, " +
+  "src.license, src.ai_use, src.redistribution, src.attribution FROM snapshots s JOIN sources src USING (source_id) " +
+  "WHERE s.document_id = ?";
+const ZIP_AFTER_COMMA = /(?:^|[^0-9A-Z_])([0-9]{5})(?:[- ]?[0-9]{1,4})?\s*$/;
+const STATE_ZIP_TAIL = /\s[A-Z]{2}\s+([0-9]{5})(?:[- ]?[0-9]{1,4})?\s*$/;
+const TIERS = ["neighborhood", "zip", "county"] as const;
+
+export const TX_EQUITY_RULE =
+  "FactLot's default candidate rule (a design choice, not a legal standard): parcels in the subject's appraisal district (county) whose current facts give the same tax year as the subject's and exactly the same state property category code, an improvement area within area_band (a share) of the subject's, a year built within year_band years of the subject's when both are known, and an appraised or market value. Tiers: parcels sharing the subject's neighborhood code (when it has one), then parcels in its 5-digit ZIP code, then the rest of the county only when the first two tiers hold fewer than min_matches. Ordered by tier, then nearest improvement area, then URN; at most limit returned.";
+export const TX_EQUITY_NOTICE =
+  "Candidates only: a person decides which, if any, to use as comparables. The selection rule is FactLot's default, not a legal standard of comparability. For evidence calculations only: FactLot does not represent property owners, file protests, or advise whether to protest or what value to claim. Owner names and mailing addresses are never returned.";
+
+/** The 5-digit ZIP code of a situs address (`situs_zip5` in Python): after the first comma, or after a state. */
+export function situsZip5(situs: unknown): string | null {
+  if (typeof situs !== "string") return null;
+  const s = situs.toUpperCase().trim();
+  const comma = s.indexOf(",");
+  const m =
+    comma >= 0
+      ? ZIP_AFTER_COMMA.exec(s.slice(comma + 1))
+      : STATE_ZIP_TAIL.exec(s);
+  return m ? m[1]! : null;
+}
+
+type FactsBySubject = Map<string, Map<string, Row>>;
+
+/** subject → predicate → its newest current fact row (`registry_get`'s rule for single-valued predicates). */
+function firstPerPredicate(rows: Row[]): FactsBySubject {
+  const out: FactsBySubject = new Map();
+  for (const r of rows) {
+    const subject = String(r.subject);
+    const facts = out.get(subject) ?? new Map<string, Row>();
+    if (!facts.has(String(r.predicate))) facts.set(String(r.predicate), r);
+    out.set(subject, facts);
+  }
+  return out;
+}
+
+function nonEmptyString(v: unknown): string | null {
+  return typeof v === "string" && v !== "" ? v : null;
+}
+
+function positive(v: unknown): number | null {
+  const n = finite(v);
+  return n !== null && n > 0 ? n : null;
+}
+
+/** A parcel shaped as a `calc_tx_unequal_appraisal` subject or comparable; missing facts are null. */
+function comparable(urn: string, facts: Map<string, Row>): Row {
+  const val = (p: string) => rowValue(facts.get(p));
+  const market = finite(val("parcel.market_value"));
+  const appraised = finite(val("parcel.appraised_value"));
+  const basis =
+    appraised !== null ? "appraised" : market !== null ? "market" : null;
+  const cited = basis
+    ? facts.get(
+        basis === "appraised"
+          ? "parcel.appraised_value"
+          : "parcel.market_value",
+      )
+    : undefined;
+  return {
+    id: urn,
+    county_fips: (urn.split(":")[2] ?? "").slice(5, 8),
+    value: basis === "appraised" ? appraised : market,
+    value_basis: basis,
+    market_value: market,
+    appraised_value: appraised,
+    improvement_area_sf: finite(val("parcel.improvement_area_sf")),
+    land_area_sf: finite(val("parcel.land_area_sf")),
+    year_built: finite(val("parcel.year_built")),
+    state_property_category: nonEmptyString(
+      val("parcel.state_property_category"),
+    ),
+    neighborhood_code: nonEmptyString(val("parcel.neighborhood_code")),
+    building_class: nonEmptyString(val("parcel.building_class")),
+    situs_address: nonEmptyString(val("parcel.situs_address")),
+    tax_year: finite(val("parcel.tax_year")),
+    citation: cited ? factCitation(cited) : null,
+  };
+}
+
+/** The cited snapshots with their source's rights, as `registry_get` gives each fact's `rights`. */
+function equitySources(d: Database, documentIds: Set<string>): Row[] {
+  const out: Row[] = [];
+  for (const doc of [...documentIds].sort()) {
+    const row = d.prepare(EQUITY_SOURCE_SQL).get(doc);
+    if (!row) continue;
+    const r: Row = {
+      ai_use: row.ai_use,
+      redistribution: row.redistribution,
+      license: row.license,
+    };
+    if (row.attribution) r.attribution = row.attribution;
+    out.push({
+      document_id: doc,
+      source_id: row.source_id,
+      title: `${row.publisher}: ${row.title} (${row.filename})`,
+      uri: row.url,
+      retrieved_at: row.retrieved_at,
+      as_of: row.as_of,
+      rights: r,
+    });
+  }
+  return out;
+}
+
+export interface TxEquityParams {
+  area_band: number;
+  year_band: number;
+  min_matches: number;
+  limit: number;
+}
+
+/** The parcel URN a `registry_tx_equity_candidates` call names: its `urn`, or the URN of its APN under the file's rule. */
+export function txEquitySubjectUrn(
+  stateFips: string,
+  countyFips: string,
+  apn: string,
+): string {
+  return parcelUrn(open(), stateFips, countyFips, apn);
+}
+
+/**
+ * Candidate comparables for a Texas unequal-appraisal comparison (`equity_candidates` in Python). The caller
+ * has checked that `urn` is a Texas parcel; a parcel this file does not hold is null.
+ */
+export function registryTxEquityCandidates(
+  urn: string,
+  params: TxEquityParams,
+): Row | null {
+  const d = open();
+  if (!d.prepare("SELECT 1 AS x FROM subjects WHERE urn = ?").get(urn))
+    return null;
+  const { area_band, year_band, min_matches, limit } = params;
+  const region = urn.split(":")[2] ?? "";
+  const subjectFacts =
+    firstPerPredicate(d.prepare(EQUITY_SUBJECT_SQL).all(urn)).get(urn) ??
+    new Map<string, Row>();
+  const subject: Row = {
+    ...comparable(urn, subjectFacts),
+    value_history: registryValueHistory(urn),
+  };
+  const area = positive(subject.improvement_area_sf);
+  const year = subject.year_built as number | null;
+  const zip5 = situsZip5(subject.situs_address);
+  const areaBand =
+    area === null
+      ? null
+      : {
+          subject: area,
+          min: area * (1 - area_band),
+          max: area * (1 + area_band),
+        };
+  const criteria: Row = {
+    county_fips: subject.county_fips,
+    tax_year: subject.tax_year,
+    state_property_category: subject.state_property_category,
+    improvement_area_sf: areaBand,
+    year_built:
+      year === null
+        ? null
+        : { subject: year, min: year - year_band, max: year + year_band },
+    neighborhood_code: subject.neighborhood_code,
+    zip: zip5,
+  };
+  const warnings: string[] = [];
+  const missing = (
+    [
+      ["parcel.tax_year", subject.tax_year],
+      ["parcel.state_property_category", subject.state_property_category],
+      ["parcel.improvement_area_sf", area],
+    ] as [string, unknown][]
+  )
+    .filter(([, v]) => v === null)
+    .map(([p]) => p);
+  if (subject.value === null)
+    warnings.push(
+      "the subject has no current parcel.appraised_value or parcel.market_value fact",
+    );
+  type Match = [number, number, string, Row, Map<string, Row>];
+  const matched: Match[] = [];
+  if (missing.length) {
+    warnings.push(
+      `no candidates selected: the subject has no current ${missing.join(", ")} fact (an improvement area must be positive), which the rule needs`,
+    );
+  } else {
+    const { min: lo, max: hi } = areaBand as { min: number; max: number };
+    const pool = firstPerPredicate(
+      d
+        .prepare(EQUITY_POOL_SQL)
+        .all(
+          `fl:parcel:${region}:`,
+          `fl:parcel:${region};`,
+          subjectFacts.get("parcel.state_property_category")!.value_json,
+        ),
+    );
+    for (const [candUrn, facts] of pool) {
+      if (candUrn === urn) continue;
+      const c = comparable(candUrn, facts);
+      const cArea = positive(c.improvement_area_sf);
+      if (
+        c.state_property_category !== subject.state_property_category ||
+        c.tax_year !== subject.tax_year ||
+        cArea === null ||
+        !(lo <= cArea && cArea <= hi) ||
+        c.value === null
+      )
+        continue;
+      if (
+        year !== null &&
+        c.year_built !== null &&
+        Math.abs((c.year_built as number) - year) > year_band
+      )
+        continue;
+      const tier =
+        subject.neighborhood_code !== null &&
+        c.neighborhood_code === subject.neighborhood_code
+          ? 0
+          : zip5 !== null && situsZip5(c.situs_address) === zip5
+            ? 1
+            : 2;
+      matched.push([
+        tier,
+        Math.abs(cArea - (area as number)),
+        candUrn,
+        c,
+        facts,
+      ]);
+    }
+  }
+  matched.sort(
+    (a, b) =>
+      a[0] - b[0] || a[1] - b[1] || (a[2] < b[2] ? -1 : a[2] > b[2] ? 1 : 0),
+  );
+  const counts = [0, 1, 2].map((t) => matched.filter((m) => m[0] === t).length);
+  const widened = counts[0]! + counts[1]! < min_matches;
+  const included = matched.filter((m) => m[0] < 2 || widened);
+  const returned = included.slice(0, limit);
+  const keys = [subject.neighborhood_code, zip5, subject.county_fips];
+  const applied = [keys[0] !== null, keys[1] !== null, widened];
+  const tiers = [0, 1, 2].map((t) => ({
+    tier: TIERS[t],
+    key: keys[t],
+    applied: applied[t]! && !missing.length,
+    matched: counts[t],
+    returned: returned.filter((m) => m[0] === t).length,
+    ids: returned.filter((m) => m[0] === t).map((m) => m[2]),
+  }));
+  const candidates = returned.map((m) => m[3]);
+  if (!missing.length && included.length < min_matches)
+    warnings.push(
+      `${included.length} candidates meet the rule in the whole county, fewer than min_matches (${min_matches}); the statute does not define a reasonable number of comparables`,
+    );
+  if (subject.value_basis !== null) {
+    const other = candidates.filter(
+      (c) => c.value_basis !== subject.value_basis,
+    ).length;
+    if (other)
+      warnings.push(
+        `${other} of the ${candidates.length} candidates have a value_basis other than the subject's (${String(subject.value_basis)}): compare like with like`,
+      );
+  }
+  // Every snapshot a returned fact comes from, with its source's rights.
+  const docs = new Set<string>();
+  for (const facts of [subjectFacts, ...returned.map((m) => m[4])])
+    for (const f of facts.values()) docs.add(String(f.document_id));
+  for (const e of subject.value_history as Row[])
+    for (const cite of Object.values(e.citations as Row))
+      if (cite) docs.add(String((cite as Row).document_id));
+  return {
+    subject,
+    candidates,
+    selection: {
+      rule: TX_EQUITY_RULE,
+      parameters: { area_band, year_band, min_matches, limit },
+      criteria,
+      tiers,
+      widened_to_county: widened && !missing.length,
+      matched: included.length,
+      returned: returned.length,
+      truncated: included.length > returned.length,
+    },
+    sources: equitySources(d, docs),
+    notice: TX_EQUITY_NOTICE,
+    warnings,
+  };
 }
