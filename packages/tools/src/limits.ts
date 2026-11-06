@@ -185,8 +185,8 @@ export function unknownFields(
 
 // --- whole-number percents ----------------------------------------------------------------------
 
-/** Rate fields: a decimal fraction (0.065 for 6.5%). */
-const RATE_KEY = /^(?:rate|rate_annual|.+_rate|.+_rate_annual)$/;
+/** Rate fields: a decimal fraction (0.065 for 6.5%), including IRR hurdles (until_irr). */
+const RATE_KEY = /^(?:rate|rate_annual|.+_rate|.+_rate_annual|until_irr)$/;
 /** Share and ratio fields that are also decimal fractions (0.25 for 25%). */
 const SHARE_KEY =
   /^(?:share|.+_share|ltv|.+_ltv|(?:.+_)?occupancy(?:_.+)?|(?:.+_)?debt_yield|.+_pct)$/;
