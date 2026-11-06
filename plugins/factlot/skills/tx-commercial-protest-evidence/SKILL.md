@@ -102,7 +102,7 @@ Offer two artifacts:
   calculation: unequal appraisal, tax year 2027". Anyone can check it with `fact_package_verify`.
   FactLot never signs it; the holder signs with their own key if they want to.
 - **An Excel workbook**: with the Python SDK checked out, `python3
-  examples/reconciliation/build.py tx_unequal_appraisal --input evidence.json --out evidence.xlsx`
+examples/reconciliation/build.py tx_unequal_appraisal --input evidence.json --out evidence.xlsx`
   writes the adjustment grid with live Excel formulas beside FactLot's numbers. The input file is
   the `calc_tx_unequal_appraisal` arguments.
 
