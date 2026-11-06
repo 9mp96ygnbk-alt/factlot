@@ -1,0 +1,73 @@
+{
+  "hold_years": 7,
+  "leases": [
+    {
+      "name": "Suite 100",
+      "area_sf": 12000,
+      "rent_psf_annual": 31,
+      "months_remaining": 30,
+      "market_rent_psf_annual": 33,
+      "escalation_rate": 0.03,
+      "leasing": {
+        "renewal_probability": 0.55,
+        "downtime_months": 1,
+        "free_rent_months_new": 3,
+        "free_rent_months_renewal": 1
+      }
+    },
+    {
+      "name": "Suite 200",
+      "area_sf": 25000,
+      "rent_psf_annual": 27.5,
+      "months_remaining": 64,
+      "market_rent_psf_annual": 29,
+      "escalation_rate": 0.025,
+      "next_escalation_month": 7
+    },
+    {
+      "name": "Suite 300",
+      "area_sf": 8000,
+      "rent_psf_annual": 0,
+      "months_remaining": 0,
+      "market_rent_psf_annual": 30,
+      "leasing": {
+        "lease_term_months": 120
+      }
+    },
+    {
+      "name": "Suite 400",
+      "area_sf": 15000,
+      "rent_psf_annual": 29,
+      "months_remaining": 100,
+      "market_rent_psf_annual": 31,
+      "escalation_rate": 0.03,
+      "recovery": "base_year",
+      "base_year_opex_psf_annual": 9.5
+    }
+  ],
+  "market_leasing": {
+    "renewal_probability": 0.75,
+    "lease_term_months": 60,
+    "downtime_months": 5,
+    "renewal_rent_pct_of_market": 0.95,
+    "rent_escalation_rate": 0.03,
+    "free_rent_months_new": 4,
+    "free_rent_months_renewal": 1,
+    "ti_psf_new": 45,
+    "ti_psf_renewal": 15,
+    "lc_rate_new": 0.06,
+    "lc_rate_renewal": 0.03
+  },
+  "market_rent_growth_rate": 0.03,
+  "operating_expenses_psf_annual": 10.25,
+  "non_recoverable_expenses_annual": 85000,
+  "expense_growth_rate": 0.03,
+  "management_fee_rate": 0.03,
+  "general_vacancy_rate": 0.04,
+  "credit_loss_rate": 0.01,
+  "capital_reserve_psf_annual": 0.2,
+  "exit_cap_rate": 0.0725,
+  "selling_cost_rate": 0.02,
+  "discount_rate": 0.08,
+  "purchase_price": 18500000
+}

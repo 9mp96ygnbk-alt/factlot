@@ -1,0 +1,5 @@
+tenant,pro_rata_share,gross_up_applied,grossed_up_expenses,cap_applied,cap_limit,cap_reduction,admin_fee_applied,admin_fee,structure_deduction,billed_amount,estimates_paid,balance_due
+Suite 100,0.125,true,574243.90,true,23152.50,3499.94,true,4053.06,0.00,72333.61,60000.00,12333.61
+Suite 200,0.083333,true,574243.90,true,16200.00,4233.45,true,4403.03,39999.84,8023.21,5000.00,3023.21
+Suite 300,0.260417,true,574243.90,false,,0.00,false,0.00,104166.80,45376.08,30000.00,15376.08
+Suite 400,0.1875,true,574243.90,true,31500.00,8478.66,true,6908.05,0.00,106100.12,90000.00,16100.12

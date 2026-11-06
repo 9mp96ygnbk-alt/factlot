@@ -34,6 +34,8 @@ import { WaltInput, walt } from "./portfolio.ts";
 import { PrepaymentInput, prepaymentAndDefeasance } from "./prepayment.ts";
 import { ProposalComparisonInput, compareProposals } from "./proposals.ts";
 import { RenewVsRelocateInput, renewVsRelocate } from "./renew_vs_relocate.ts";
+import { ReconcileCamInput, reconcileCam } from "./reconcile_cam.ts";
+import { ReconcileDcfInput, reconcileDcf } from "./reconcile_dcf.ts";
 import { PercentageRentInput, percentageRent } from "./retail.ts";
 import {
   NetEffectiveRentInput,
@@ -61,6 +63,8 @@ export * from "./multifamily.ts";
 export * from "./portfolio.ts";
 export * from "./prepayment.ts";
 export * from "./proposals.ts";
+export * from "./reconcile_cam.ts";
+export * from "./reconcile_dcf.ts";
 export * from "./renew_vs_relocate.ts";
 export * from "./retail.ts";
 export * from "./rules.ts";
@@ -277,5 +281,23 @@ export const calculators = {
       "Not tax advice: arithmetic only. The 45-day identification and 180-day exchange deadlines of IRC §1031(a)(3) (the exchange period ends earlier at a given tax-return due date), the three-property, 200%, and 95% identification tests of Treas. Reg. §1.1031(k)-1(c)(4), and the cash boot, mortgage boot, debt replacement, and trade-down of an exchange, with the boot-limited gain when the basis is given.",
     input: Exchange1031Input,
     run: exchange1031,
+  },
+  reconcile_dcf: {
+    id: "calc.reconcile_dcf",
+    version: 1,
+    title: "Tie out a DCF against another system's annual lines",
+    description:
+      "Reconcile FactLot's DCF with another system's export (ARGUS or any other model; parity is not claimed and is untested against real ARGUS output): give the calc_dcf_pro_forma input plus the other system's annual lines {label, values: [year 1, …]}, optionally its value, unlevered IRR and sale price, a tolerance (absolute and relative) and your label mapping. Labels map to FactLot lines by your mapping, else by common CRE line names (Potential Base Rent, Absorption & Turnover Vacancy, Free Rent, Expense Reimbursements, General Vacancy, Credit Loss, Effective Gross Revenue, Operating Expenses, Net Operating Income, Tenant Improvements, Leasing Commissions, Capital Reserves, Cash Flow Before Debt Service); positive deductions are negated (sign_convention). Returns per line and year FactLot's amount, the other amount, the difference and whether it is within tolerance; unmapped labels; and for each differing line a likely_cause from FactLot's documented conventions, worded as a hypothesis to check: differences only in rollover years (fractional downtime and free rent), a rate on a different base (general vacancy), only the exit year, a one-year shift, management fee inside operating expenses, a growth rate, a constant factor or amount, rounding; and for the value FactLot rerun with mid-year or end-of-year discounting, the other exit NOI basis, or no selling costs.",
+    input: ReconcileDcfInput,
+    run: reconcileDcf,
+  },
+  reconcile_cam: {
+    id: "calc.reconcile_cam",
+    version: 1,
+    title: "Tie out CAM reconciliations against another system's results",
+    description:
+      "Reconcile FactLot's CAM reconciliation for one expense pool with another system's per-tenant results (Yardi or any other; parity is not claimed and is untested against a real export): give the calc_cam_reconciliation_batch input plus, per tenant, what the other system reported (share, gross-up, cap limit and reduction, admin fee, base-year or stop deduction, billed amount, estimates, balance; billed_amount required) and a tolerance. Returns per tenant and line FactLot's amount, the other amount, the difference and whether it is within tolerance, tenants missing on either side, and likely causes worded as hypotheses to check: a different pro rata share (and, when every share differs by one factor, the pool's denominator), or a FactLot rerun that matches the other system with lines left to the default controllable: true set uncontrollable, the cap's base year one year off, the other cap method, the other gross-up target or no gross-up, the admin fee before or after and within or outside the cap, or no fee on uncontrollable lines; and differing estimates paid.",
+    input: ReconcileCamInput,
+    run: reconcileCam,
   },
 } as const satisfies Record<string, Calculator>;

@@ -1,0 +1,1311 @@
+{
+  "calculator": "calc.reconcile_cam",
+  "version": 1,
+  "notes": "SYNTHETIC. No Yardi or other export was available; every 'other system' here was built by examples/reconciliation/tie_out.py from FactLot's own CAM output with one convention changed on purpose. The expected causes are the planted ones.",
+  "cases": [
+    {
+      "name": "SYNTHETIC cam-exact: FactLot's own statements",
+      "input": {
+        "cam": {
+          "year": 2026,
+          "expenses": [
+            {
+              "category": "Real estate taxes",
+              "amount": 180000,
+              "controllable": false,
+              "admin_fee_applies": false
+            },
+            {
+              "category": "Insurance",
+              "amount": 42000,
+              "controllable": false,
+              "admin_fee_applies": false
+            },
+            {
+              "category": "Janitorial",
+              "amount": 96000,
+              "variable": true,
+              "controllable": true
+            },
+            {
+              "category": "Utilities",
+              "amount": 120000,
+              "variable": true,
+              "controllable": false
+            },
+            {
+              "category": "Landscaping",
+              "amount": 38000,
+              "controllable": true
+            },
+            {
+              "category": "Repairs and maintenance",
+              "amount": 64000,
+              "controllable": true
+            }
+          ],
+          "gross_up": {
+            "actual_occupancy": 0.82,
+            "target_occupancy": 0.95
+          },
+          "tenants": [
+            {
+              "name": "Suite 100",
+              "pro_rata_share": 0.12,
+              "estimates_paid": 60000,
+              "cap": {
+                "method": "compounding_from_base",
+                "rate": 0.05,
+                "reference_amount": 20000,
+                "years_elapsed": 3
+              },
+              "admin_fee": {
+                "rate": 0.1
+              }
+            },
+            {
+              "name": "Suite 200",
+              "pro_rata_share": 0.08,
+              "estimates_paid": 5000,
+              "structure": {
+                "type": "base_year",
+                "base_year_expenses": 480000
+              },
+              "cap": {
+                "method": "simple_from_base",
+                "rate": 0.04,
+                "reference_amount": 15000,
+                "years_elapsed": 2
+              },
+              "admin_fee": {
+                "rate": 0.15,
+                "applied": "before_cap",
+                "capped": true
+              }
+            },
+            {
+              "name": "Suite 300",
+              "pro_rata_share": 0.25,
+              "estimates_paid": 30000,
+              "structure": {
+                "type": "expense_stop",
+                "stop_amount": 400000
+              }
+            },
+            {
+              "name": "Suite 400",
+              "pro_rata_share": 0.18,
+              "estimates_paid": 90000,
+              "cap": {
+                "method": "year_over_year",
+                "rate": 0.05,
+                "reference_amount": 30000
+              },
+              "admin_fee": {
+                "rate": 0.12
+              }
+            }
+          ]
+        },
+        "other": {
+          "system": "SYNTHETIC cam-exact",
+          "pool": "CAM",
+          "tenants": [
+            {
+              "tenant": "Suite 100",
+              "pro_rata_share": 0.12,
+              "gross_up_applied": true,
+              "grossed_up_expenses": 574243.9,
+              "cap_applied": true,
+              "cap_limit": 23152.5,
+              "cap_reduction": 2433.84,
+              "admin_fee_applied": true,
+              "admin_fee": 3983.54,
+              "structure_deduction": 0.0,
+              "billed_amount": 70458.97,
+              "estimates_paid": 60000.0,
+              "balance_due": 10458.97
+            },
+            {
+              "tenant": "Suite 200",
+              "pro_rata_share": 0.08,
+              "gross_up_applied": true,
+              "grossed_up_expenses": 574243.9,
+              "cap_applied": true,
+              "cap_limit": 16200.0,
+              "cap_reduction": 3416.19,
+              "admin_fee_applied": true,
+              "admin_fee": 4226.92,
+              "structure_deduction": 38400.0,
+              "billed_amount": 8350.24,
+              "estimates_paid": 5000.0,
+              "balance_due": 3350.24
+            },
+            {
+              "tenant": "Suite 300",
+              "pro_rata_share": 0.25,
+              "gross_up_applied": true,
+              "grossed_up_expenses": 574243.9,
+              "cap_applied": false,
+              "cap_reduction": 0.0,
+              "admin_fee_applied": false,
+              "admin_fee": 0.0,
+              "structure_deduction": 100000.0,
+              "billed_amount": 43560.98,
+              "estimates_paid": 30000.0,
+              "balance_due": 13560.98
+            },
+            {
+              "tenant": "Suite 400",
+              "pro_rata_share": 0.18,
+              "gross_up_applied": true,
+              "grossed_up_expenses": 574243.9,
+              "cap_applied": true,
+              "cap_limit": 31500.0,
+              "cap_reduction": 6879.51,
+              "admin_fee_applied": true,
+              "admin_fee": 6782.93,
+              "structure_deduction": 0.0,
+              "billed_amount": 103267.32,
+              "estimates_paid": 90000.0,
+              "balance_due": 13267.32
+            }
+          ]
+        }
+      },
+      "expect": {
+        "value.all_within_tolerance": true,
+        "value.tenants_compared": 4,
+        "value.cells_outside_tolerance": 0
+      }
+    },
+    {
+      "name": "SYNTHETIC cam-admin-fee-before-cap: Suite 100's admin fee charged on its uncapped share",
+      "input": {
+        "cam": {
+          "year": 2026,
+          "expenses": [
+            {
+              "category": "Real estate taxes",
+              "amount": 180000,
+              "controllable": false,
+              "admin_fee_applies": false
+            },
+            {
+              "category": "Insurance",
+              "amount": 42000,
+              "controllable": false,
+              "admin_fee_applies": false
+            },
+            {
+              "category": "Janitorial",
+              "amount": 96000,
+              "variable": true,
+              "controllable": true
+            },
+            {
+              "category": "Utilities",
+              "amount": 120000,
+              "variable": true,
+              "controllable": false
+            },
+            {
+              "category": "Landscaping",
+              "amount": 38000,
+              "controllable": true
+            },
+            {
+              "category": "Repairs and maintenance",
+              "amount": 64000,
+              "controllable": true
+            }
+          ],
+          "gross_up": {
+            "actual_occupancy": 0.82,
+            "target_occupancy": 0.95
+          },
+          "tenants": [
+            {
+              "name": "Suite 100",
+              "pro_rata_share": 0.12,
+              "estimates_paid": 60000,
+              "cap": {
+                "method": "compounding_from_base",
+                "rate": 0.05,
+                "reference_amount": 20000,
+                "years_elapsed": 3
+              },
+              "admin_fee": {
+                "rate": 0.1
+              }
+            },
+            {
+              "name": "Suite 200",
+              "pro_rata_share": 0.08,
+              "estimates_paid": 5000,
+              "structure": {
+                "type": "base_year",
+                "base_year_expenses": 480000
+              },
+              "cap": {
+                "method": "simple_from_base",
+                "rate": 0.04,
+                "reference_amount": 15000,
+                "years_elapsed": 2
+              },
+              "admin_fee": {
+                "rate": 0.15,
+                "applied": "before_cap",
+                "capped": true
+              }
+            },
+            {
+              "name": "Suite 300",
+              "pro_rata_share": 0.25,
+              "estimates_paid": 30000,
+              "structure": {
+                "type": "expense_stop",
+                "stop_amount": 400000
+              }
+            },
+            {
+              "name": "Suite 400",
+              "pro_rata_share": 0.18,
+              "estimates_paid": 90000,
+              "cap": {
+                "method": "year_over_year",
+                "rate": 0.05,
+                "reference_amount": 30000
+              },
+              "admin_fee": {
+                "rate": 0.12
+              }
+            }
+          ]
+        },
+        "other": {
+          "system": "SYNTHETIC cam-admin-fee-before-cap",
+          "pool": "CAM",
+          "tenants": [
+            {
+              "tenant": "Suite 100",
+              "pro_rata_share": 0.12,
+              "gross_up_applied": true,
+              "grossed_up_expenses": 574243.9,
+              "cap_applied": true,
+              "cap_limit": 23152.5,
+              "cap_reduction": 2433.84,
+              "admin_fee_applied": true,
+              "admin_fee": 4226.92,
+              "structure_deduction": 0.0,
+              "billed_amount": 70702.35,
+              "estimates_paid": 60000.0,
+              "balance_due": 10702.35
+            },
+            {
+              "tenant": "Suite 200",
+              "pro_rata_share": 0.08,
+              "gross_up_applied": true,
+              "grossed_up_expenses": 574243.9,
+              "cap_applied": true,
+              "cap_limit": 16200.0,
+              "cap_reduction": 3416.19,
+              "admin_fee_applied": true,
+              "admin_fee": 4226.92,
+              "structure_deduction": 38400.0,
+              "billed_amount": 8350.24,
+              "estimates_paid": 5000.0,
+              "balance_due": 3350.24
+            },
+            {
+              "tenant": "Suite 300",
+              "pro_rata_share": 0.25,
+              "gross_up_applied": true,
+              "grossed_up_expenses": 574243.9,
+              "cap_applied": false,
+              "cap_reduction": 0.0,
+              "admin_fee_applied": false,
+              "admin_fee": 0.0,
+              "structure_deduction": 100000.0,
+              "billed_amount": 43560.98,
+              "estimates_paid": 30000.0,
+              "balance_due": 13560.98
+            },
+            {
+              "tenant": "Suite 400",
+              "pro_rata_share": 0.18,
+              "gross_up_applied": true,
+              "grossed_up_expenses": 574243.9,
+              "cap_applied": true,
+              "cap_limit": 31500.0,
+              "cap_reduction": 6879.51,
+              "admin_fee_applied": true,
+              "admin_fee": 6782.93,
+              "structure_deduction": 0.0,
+              "billed_amount": 103267.32,
+              "estimates_paid": 90000.0,
+              "balance_due": 13267.32
+            }
+          ]
+        }
+      },
+      "expect": {
+        "value.all_within_tolerance": false,
+        "value.tenants_compared": 4,
+        "value.tenants.0.likely_causes.0.cause": "admin_fee_cap_order",
+        "value.tenants_within_tolerance": 3
+      }
+    },
+    {
+      "name": "SYNTHETIC cam-pro-rata-denominator: every share on a 96,000 SF denominator instead of 100,000 SF",
+      "input": {
+        "cam": {
+          "year": 2026,
+          "expenses": [
+            {
+              "category": "Real estate taxes",
+              "amount": 180000,
+              "controllable": false,
+              "admin_fee_applies": false
+            },
+            {
+              "category": "Insurance",
+              "amount": 42000,
+              "controllable": false,
+              "admin_fee_applies": false
+            },
+            {
+              "category": "Janitorial",
+              "amount": 96000,
+              "variable": true,
+              "controllable": true
+            },
+            {
+              "category": "Utilities",
+              "amount": 120000,
+              "variable": true,
+              "controllable": false
+            },
+            {
+              "category": "Landscaping",
+              "amount": 38000,
+              "controllable": true
+            },
+            {
+              "category": "Repairs and maintenance",
+              "amount": 64000,
+              "controllable": true
+            }
+          ],
+          "gross_up": {
+            "actual_occupancy": 0.82,
+            "target_occupancy": 0.95
+          },
+          "tenants": [
+            {
+              "name": "Suite 100",
+              "pro_rata_share": 0.12,
+              "estimates_paid": 60000,
+              "cap": {
+                "method": "compounding_from_base",
+                "rate": 0.05,
+                "reference_amount": 20000,
+                "years_elapsed": 3
+              },
+              "admin_fee": {
+                "rate": 0.1
+              }
+            },
+            {
+              "name": "Suite 200",
+              "pro_rata_share": 0.08,
+              "estimates_paid": 5000,
+              "structure": {
+                "type": "base_year",
+                "base_year_expenses": 480000
+              },
+              "cap": {
+                "method": "simple_from_base",
+                "rate": 0.04,
+                "reference_amount": 15000,
+                "years_elapsed": 2
+              },
+              "admin_fee": {
+                "rate": 0.15,
+                "applied": "before_cap",
+                "capped": true
+              }
+            },
+            {
+              "name": "Suite 300",
+              "pro_rata_share": 0.25,
+              "estimates_paid": 30000,
+              "structure": {
+                "type": "expense_stop",
+                "stop_amount": 400000
+              }
+            },
+            {
+              "name": "Suite 400",
+              "pro_rata_share": 0.18,
+              "estimates_paid": 90000,
+              "cap": {
+                "method": "year_over_year",
+                "rate": 0.05,
+                "reference_amount": 30000
+              },
+              "admin_fee": {
+                "rate": 0.12
+              }
+            }
+          ]
+        },
+        "other": {
+          "system": "SYNTHETIC cam-pro-rata-denominator",
+          "pool": "CAM",
+          "tenants": [
+            {
+              "tenant": "Suite 100",
+              "pro_rata_share": 0.125,
+              "gross_up_applied": true,
+              "grossed_up_expenses": 574243.9,
+              "cap_applied": true,
+              "cap_limit": 23152.5,
+              "cap_reduction": 3499.94,
+              "admin_fee_applied": true,
+              "admin_fee": 4053.06,
+              "structure_deduction": 0.0,
+              "billed_amount": 72333.61,
+              "estimates_paid": 60000.0,
+              "balance_due": 12333.61
+            },
+            {
+              "tenant": "Suite 200",
+              "pro_rata_share": 0.083333,
+              "gross_up_applied": true,
+              "grossed_up_expenses": 574243.9,
+              "cap_applied": true,
+              "cap_limit": 16200.0,
+              "cap_reduction": 4233.45,
+              "admin_fee_applied": true,
+              "admin_fee": 4403.03,
+              "structure_deduction": 39999.84,
+              "billed_amount": 8023.21,
+              "estimates_paid": 5000.0,
+              "balance_due": 3023.21
+            },
+            {
+              "tenant": "Suite 300",
+              "pro_rata_share": 0.260417,
+              "gross_up_applied": true,
+              "grossed_up_expenses": 574243.9,
+              "cap_applied": false,
+              "cap_reduction": 0.0,
+              "admin_fee_applied": false,
+              "admin_fee": 0.0,
+              "structure_deduction": 104166.8,
+              "billed_amount": 45376.08,
+              "estimates_paid": 30000.0,
+              "balance_due": 15376.08
+            },
+            {
+              "tenant": "Suite 400",
+              "pro_rata_share": 0.1875,
+              "gross_up_applied": true,
+              "grossed_up_expenses": 574243.9,
+              "cap_applied": true,
+              "cap_limit": 31500.0,
+              "cap_reduction": 8478.66,
+              "admin_fee_applied": true,
+              "admin_fee": 6908.05,
+              "structure_deduction": 0.0,
+              "billed_amount": 106100.12,
+              "estimates_paid": 90000.0,
+              "balance_due": 16100.12
+            }
+          ]
+        }
+      },
+      "expect": {
+        "value.all_within_tolerance": false,
+        "value.tenants_compared": 4,
+        "value.tenants.0.likely_causes.0.cause": "pro_rata_denominator",
+        "value.tenants.3.likely_causes.0.cause": "pro_rata_denominator",
+        "value.building_causes.0.cause": "pro_rata_denominator"
+      }
+    },
+    {
+      "name": "SYNTHETIC cam-controllable-default: taxes and insurance not capped, where the FactLot input left their controllable flag to the default (true)",
+      "input": {
+        "cam": {
+          "year": 2026,
+          "expenses": [
+            {
+              "category": "Real estate taxes",
+              "amount": 180000,
+              "admin_fee_applies": false
+            },
+            {
+              "category": "Insurance",
+              "amount": 42000,
+              "admin_fee_applies": false
+            },
+            {
+              "category": "Janitorial",
+              "amount": 96000,
+              "variable": true,
+              "controllable": true
+            },
+            {
+              "category": "Utilities",
+              "amount": 120000,
+              "variable": true,
+              "controllable": false
+            },
+            {
+              "category": "Landscaping",
+              "amount": 38000,
+              "controllable": true
+            },
+            {
+              "category": "Repairs and maintenance",
+              "amount": 64000,
+              "controllable": true
+            }
+          ],
+          "gross_up": {
+            "actual_occupancy": 0.82,
+            "target_occupancy": 0.95
+          },
+          "tenants": [
+            {
+              "name": "Suite 100",
+              "pro_rata_share": 0.12,
+              "estimates_paid": 60000,
+              "cap": {
+                "method": "compounding_from_base",
+                "rate": 0.05,
+                "reference_amount": 20000,
+                "years_elapsed": 3
+              },
+              "admin_fee": {
+                "rate": 0.1
+              }
+            },
+            {
+              "name": "Suite 200",
+              "pro_rata_share": 0.08,
+              "estimates_paid": 5000,
+              "structure": {
+                "type": "base_year",
+                "base_year_expenses": 480000
+              },
+              "cap": {
+                "method": "simple_from_base",
+                "rate": 0.04,
+                "reference_amount": 15000,
+                "years_elapsed": 2
+              },
+              "admin_fee": {
+                "rate": 0.15,
+                "applied": "before_cap",
+                "capped": true
+              }
+            },
+            {
+              "name": "Suite 300",
+              "pro_rata_share": 0.25,
+              "estimates_paid": 30000,
+              "structure": {
+                "type": "expense_stop",
+                "stop_amount": 400000
+              }
+            },
+            {
+              "name": "Suite 400",
+              "pro_rata_share": 0.18,
+              "estimates_paid": 90000,
+              "cap": {
+                "method": "year_over_year",
+                "rate": 0.05,
+                "reference_amount": 30000
+              },
+              "admin_fee": {
+                "rate": 0.12
+              }
+            }
+          ]
+        },
+        "other": {
+          "system": "SYNTHETIC cam-controllable-default",
+          "pool": "CAM",
+          "tenants": [
+            {
+              "tenant": "Suite 100",
+              "pro_rata_share": 0.12,
+              "gross_up_applied": true,
+              "grossed_up_expenses": 574243.9,
+              "cap_applied": true,
+              "cap_limit": 23152.5,
+              "cap_reduction": 2433.84,
+              "admin_fee_applied": true,
+              "admin_fee": 3983.54,
+              "structure_deduction": 0.0,
+              "billed_amount": 70458.97,
+              "estimates_paid": 60000.0,
+              "balance_due": 10458.97
+            },
+            {
+              "tenant": "Suite 200",
+              "pro_rata_share": 0.08,
+              "gross_up_applied": true,
+              "grossed_up_expenses": 574243.9,
+              "cap_applied": true,
+              "cap_limit": 16200.0,
+              "cap_reduction": 3416.19,
+              "admin_fee_applied": true,
+              "admin_fee": 4226.92,
+              "structure_deduction": 38400.0,
+              "billed_amount": 8350.24,
+              "estimates_paid": 5000.0,
+              "balance_due": 3350.24
+            },
+            {
+              "tenant": "Suite 300",
+              "pro_rata_share": 0.25,
+              "gross_up_applied": true,
+              "grossed_up_expenses": 574243.9,
+              "cap_applied": false,
+              "cap_reduction": 0.0,
+              "admin_fee_applied": false,
+              "admin_fee": 0.0,
+              "structure_deduction": 100000.0,
+              "billed_amount": 43560.98,
+              "estimates_paid": 30000.0,
+              "balance_due": 13560.98
+            },
+            {
+              "tenant": "Suite 400",
+              "pro_rata_share": 0.18,
+              "gross_up_applied": true,
+              "grossed_up_expenses": 574243.9,
+              "cap_applied": true,
+              "cap_limit": 31500.0,
+              "cap_reduction": 6879.51,
+              "admin_fee_applied": true,
+              "admin_fee": 6782.93,
+              "structure_deduction": 0.0,
+              "billed_amount": 103267.32,
+              "estimates_paid": 90000.0,
+              "balance_due": 13267.32
+            }
+          ]
+        }
+      },
+      "expect": {
+        "value.all_within_tolerance": false,
+        "value.tenants_compared": 4,
+        "value.tenants.0.likely_causes.0.cause": "controllable_default",
+        "value.tenants.3.likely_causes.0.cause": "controllable_default"
+      }
+    },
+    {
+      "name": "SYNTHETIC small: Suite 300 on a 100% gross-up, a name written differently, other estimates",
+      "input": {
+        "cam": {
+          "year": 2026,
+          "expenses": [
+            {
+              "category": "Real estate taxes",
+              "amount": 180000,
+              "controllable": false,
+              "admin_fee_applies": false
+            },
+            {
+              "category": "Insurance",
+              "amount": 42000,
+              "controllable": false,
+              "admin_fee_applies": false
+            },
+            {
+              "category": "Janitorial",
+              "amount": 96000,
+              "variable": true,
+              "controllable": true
+            },
+            {
+              "category": "Utilities",
+              "amount": 120000,
+              "variable": true,
+              "controllable": false
+            },
+            {
+              "category": "Landscaping",
+              "amount": 38000,
+              "controllable": true
+            },
+            {
+              "category": "Repairs and maintenance",
+              "amount": 64000,
+              "controllable": true
+            }
+          ],
+          "gross_up": {
+            "actual_occupancy": 0.82,
+            "target_occupancy": 0.95
+          },
+          "tenants": [
+            {
+              "name": "Suite 100",
+              "pro_rata_share": 0.12,
+              "estimates_paid": 60000,
+              "cap": {
+                "method": "compounding_from_base",
+                "rate": 0.05,
+                "reference_amount": 20000,
+                "years_elapsed": 3
+              },
+              "admin_fee": {
+                "rate": 0.1
+              }
+            },
+            {
+              "name": "Suite 200",
+              "pro_rata_share": 0.08,
+              "estimates_paid": 5000,
+              "structure": {
+                "type": "base_year",
+                "base_year_expenses": 480000
+              },
+              "cap": {
+                "method": "simple_from_base",
+                "rate": 0.04,
+                "reference_amount": 15000,
+                "years_elapsed": 2
+              },
+              "admin_fee": {
+                "rate": 0.15,
+                "applied": "before_cap",
+                "capped": true
+              }
+            },
+            {
+              "name": "Suite 300",
+              "pro_rata_share": 0.25,
+              "estimates_paid": 30000,
+              "structure": {
+                "type": "expense_stop",
+                "stop_amount": 400000
+              }
+            },
+            {
+              "name": "Suite 400",
+              "pro_rata_share": 0.18,
+              "estimates_paid": 90000,
+              "cap": {
+                "method": "year_over_year",
+                "rate": 0.05,
+                "reference_amount": 30000
+              },
+              "admin_fee": {
+                "rate": 0.12
+              }
+            }
+          ]
+        },
+        "other": {
+          "tenants": [
+            {
+              "tenant": "suite 300",
+              "billed_amount": 46853.66,
+              "grossed_up_expenses": 587414.63,
+              "estimates_paid": 31000
+            }
+          ]
+        }
+      },
+      "expect": {
+        "value.tenants.0.tenant": "Suite 300",
+        "value.tenants.0.likely_causes.0.cause": "gross_up_target",
+        "value.tenants.0.likely_causes.1.cause": "estimates_paid",
+        "value.factlot_tenants_not_in_other": [
+          "Suite 100",
+          "Suite 200",
+          "Suite 400"
+        ]
+      }
+    },
+    {
+      "name": "SYNTHETIC small: Suite 100's cap counted from one year earlier, and a row for no FactLot tenant",
+      "input": {
+        "cam": {
+          "year": 2026,
+          "expenses": [
+            {
+              "category": "Real estate taxes",
+              "amount": 180000,
+              "controllable": false,
+              "admin_fee_applies": false
+            },
+            {
+              "category": "Insurance",
+              "amount": 42000,
+              "controllable": false,
+              "admin_fee_applies": false
+            },
+            {
+              "category": "Janitorial",
+              "amount": 96000,
+              "variable": true,
+              "controllable": true
+            },
+            {
+              "category": "Utilities",
+              "amount": 120000,
+              "variable": true,
+              "controllable": false
+            },
+            {
+              "category": "Landscaping",
+              "amount": 38000,
+              "controllable": true
+            },
+            {
+              "category": "Repairs and maintenance",
+              "amount": 64000,
+              "controllable": true
+            }
+          ],
+          "gross_up": {
+            "actual_occupancy": 0.82,
+            "target_occupancy": 0.95
+          },
+          "tenants": [
+            {
+              "name": "Suite 100",
+              "pro_rata_share": 0.12,
+              "estimates_paid": 60000,
+              "cap": {
+                "method": "compounding_from_base",
+                "rate": 0.05,
+                "reference_amount": 20000,
+                "years_elapsed": 3
+              },
+              "admin_fee": {
+                "rate": 0.1
+              }
+            },
+            {
+              "name": "Suite 200",
+              "pro_rata_share": 0.08,
+              "estimates_paid": 5000,
+              "structure": {
+                "type": "base_year",
+                "base_year_expenses": 480000
+              },
+              "cap": {
+                "method": "simple_from_base",
+                "rate": 0.04,
+                "reference_amount": 15000,
+                "years_elapsed": 2
+              },
+              "admin_fee": {
+                "rate": 0.15,
+                "applied": "before_cap",
+                "capped": true
+              }
+            },
+            {
+              "name": "Suite 300",
+              "pro_rata_share": 0.25,
+              "estimates_paid": 30000,
+              "structure": {
+                "type": "expense_stop",
+                "stop_amount": 400000
+              }
+            },
+            {
+              "name": "Suite 400",
+              "pro_rata_share": 0.18,
+              "estimates_paid": 90000,
+              "cap": {
+                "method": "year_over_year",
+                "rate": 0.05,
+                "reference_amount": 30000
+              },
+              "admin_fee": {
+                "rate": 0.12
+              }
+            }
+          ]
+        },
+        "other": {
+          "tenants": [
+            {
+              "tenant": "Suite 100",
+              "billed_amount": 71732.36,
+              "cap_limit": 24310.13
+            },
+            {
+              "tenant": "Suite 900",
+              "billed_amount": 5
+            }
+          ]
+        }
+      },
+      "expect": {
+        "value.tenants.0.likely_causes.0.cause": "cap_base_year",
+        "value.other_tenants_not_matched": ["Suite 900"],
+        "value.all_within_tolerance": false
+      }
+    },
+    {
+      "name": "the same tenant twice",
+      "input": {
+        "cam": {
+          "year": 2026,
+          "expenses": [
+            {
+              "category": "Real estate taxes",
+              "amount": 180000,
+              "controllable": false,
+              "admin_fee_applies": false
+            },
+            {
+              "category": "Insurance",
+              "amount": 42000,
+              "controllable": false,
+              "admin_fee_applies": false
+            },
+            {
+              "category": "Janitorial",
+              "amount": 96000,
+              "variable": true,
+              "controllable": true
+            },
+            {
+              "category": "Utilities",
+              "amount": 120000,
+              "variable": true,
+              "controllable": false
+            },
+            {
+              "category": "Landscaping",
+              "amount": 38000,
+              "controllable": true
+            },
+            {
+              "category": "Repairs and maintenance",
+              "amount": 64000,
+              "controllable": true
+            }
+          ],
+          "gross_up": {
+            "actual_occupancy": 0.82,
+            "target_occupancy": 0.95
+          },
+          "tenants": [
+            {
+              "name": "Suite 100",
+              "pro_rata_share": 0.12,
+              "estimates_paid": 60000,
+              "cap": {
+                "method": "compounding_from_base",
+                "rate": 0.05,
+                "reference_amount": 20000,
+                "years_elapsed": 3
+              },
+              "admin_fee": {
+                "rate": 0.1
+              }
+            },
+            {
+              "name": "Suite 200",
+              "pro_rata_share": 0.08,
+              "estimates_paid": 5000,
+              "structure": {
+                "type": "base_year",
+                "base_year_expenses": 480000
+              },
+              "cap": {
+                "method": "simple_from_base",
+                "rate": 0.04,
+                "reference_amount": 15000,
+                "years_elapsed": 2
+              },
+              "admin_fee": {
+                "rate": 0.15,
+                "applied": "before_cap",
+                "capped": true
+              }
+            },
+            {
+              "name": "Suite 300",
+              "pro_rata_share": 0.25,
+              "estimates_paid": 30000,
+              "structure": {
+                "type": "expense_stop",
+                "stop_amount": 400000
+              }
+            },
+            {
+              "name": "Suite 400",
+              "pro_rata_share": 0.18,
+              "estimates_paid": 90000,
+              "cap": {
+                "method": "year_over_year",
+                "rate": 0.05,
+                "reference_amount": 30000
+              },
+              "admin_fee": {
+                "rate": 0.12
+              }
+            }
+          ]
+        },
+        "other": {
+          "tenants": [
+            {
+              "tenant": "Suite 100",
+              "billed_amount": 1
+            },
+            {
+              "tenant": "Suite 100",
+              "billed_amount": 2
+            }
+          ]
+        }
+      },
+      "expect_error": true
+    },
+    {
+      "name": "no billed amount",
+      "input": {
+        "cam": {
+          "year": 2026,
+          "expenses": [
+            {
+              "category": "Real estate taxes",
+              "amount": 180000,
+              "controllable": false,
+              "admin_fee_applies": false
+            },
+            {
+              "category": "Insurance",
+              "amount": 42000,
+              "controllable": false,
+              "admin_fee_applies": false
+            },
+            {
+              "category": "Janitorial",
+              "amount": 96000,
+              "variable": true,
+              "controllable": true
+            },
+            {
+              "category": "Utilities",
+              "amount": 120000,
+              "variable": true,
+              "controllable": false
+            },
+            {
+              "category": "Landscaping",
+              "amount": 38000,
+              "controllable": true
+            },
+            {
+              "category": "Repairs and maintenance",
+              "amount": 64000,
+              "controllable": true
+            }
+          ],
+          "gross_up": {
+            "actual_occupancy": 0.82,
+            "target_occupancy": 0.95
+          },
+          "tenants": [
+            {
+              "name": "Suite 100",
+              "pro_rata_share": 0.12,
+              "estimates_paid": 60000,
+              "cap": {
+                "method": "compounding_from_base",
+                "rate": 0.05,
+                "reference_amount": 20000,
+                "years_elapsed": 3
+              },
+              "admin_fee": {
+                "rate": 0.1
+              }
+            },
+            {
+              "name": "Suite 200",
+              "pro_rata_share": 0.08,
+              "estimates_paid": 5000,
+              "structure": {
+                "type": "base_year",
+                "base_year_expenses": 480000
+              },
+              "cap": {
+                "method": "simple_from_base",
+                "rate": 0.04,
+                "reference_amount": 15000,
+                "years_elapsed": 2
+              },
+              "admin_fee": {
+                "rate": 0.15,
+                "applied": "before_cap",
+                "capped": true
+              }
+            },
+            {
+              "name": "Suite 300",
+              "pro_rata_share": 0.25,
+              "estimates_paid": 30000,
+              "structure": {
+                "type": "expense_stop",
+                "stop_amount": 400000
+              }
+            },
+            {
+              "name": "Suite 400",
+              "pro_rata_share": 0.18,
+              "estimates_paid": 90000,
+              "cap": {
+                "method": "year_over_year",
+                "rate": 0.05,
+                "reference_amount": 30000
+              },
+              "admin_fee": {
+                "rate": 0.12
+              }
+            }
+          ]
+        },
+        "other": {
+          "tenants": [
+            {
+              "tenant": "Suite 100"
+            }
+          ]
+        }
+      },
+      "expect_error": true
+    },
+    {
+      "name": "an invalid CAM input",
+      "input": {
+        "cam": {
+          "year": 1,
+          "expenses": [
+            {
+              "category": "Real estate taxes",
+              "amount": 180000,
+              "controllable": false,
+              "admin_fee_applies": false
+            },
+            {
+              "category": "Insurance",
+              "amount": 42000,
+              "controllable": false,
+              "admin_fee_applies": false
+            },
+            {
+              "category": "Janitorial",
+              "amount": 96000,
+              "variable": true,
+              "controllable": true
+            },
+            {
+              "category": "Utilities",
+              "amount": 120000,
+              "variable": true,
+              "controllable": false
+            },
+            {
+              "category": "Landscaping",
+              "amount": 38000,
+              "controllable": true
+            },
+            {
+              "category": "Repairs and maintenance",
+              "amount": 64000,
+              "controllable": true
+            }
+          ],
+          "gross_up": {
+            "actual_occupancy": 0.82,
+            "target_occupancy": 0.95
+          },
+          "tenants": [
+            {
+              "name": "Suite 100",
+              "pro_rata_share": 0.12,
+              "estimates_paid": 60000,
+              "cap": {
+                "method": "compounding_from_base",
+                "rate": 0.05,
+                "reference_amount": 20000,
+                "years_elapsed": 3
+              },
+              "admin_fee": {
+                "rate": 0.1
+              }
+            },
+            {
+              "name": "Suite 200",
+              "pro_rata_share": 0.08,
+              "estimates_paid": 5000,
+              "structure": {
+                "type": "base_year",
+                "base_year_expenses": 480000
+              },
+              "cap": {
+                "method": "simple_from_base",
+                "rate": 0.04,
+                "reference_amount": 15000,
+                "years_elapsed": 2
+              },
+              "admin_fee": {
+                "rate": 0.15,
+                "applied": "before_cap",
+                "capped": true
+              }
+            },
+            {
+              "name": "Suite 300",
+              "pro_rata_share": 0.25,
+              "estimates_paid": 30000,
+              "structure": {
+                "type": "expense_stop",
+                "stop_amount": 400000
+              }
+            },
+            {
+              "name": "Suite 400",
+              "pro_rata_share": 0.18,
+              "estimates_paid": 90000,
+              "cap": {
+                "method": "year_over_year",
+                "rate": 0.05,
+                "reference_amount": 30000
+              },
+              "admin_fee": {
+                "rate": 0.12
+              }
+            }
+          ]
+        },
+        "other": {
+          "tenants": [
+            {
+              "tenant": "Suite 100",
+              "billed_amount": 1
+            }
+          ]
+        }
+      },
+      "expect_error": true
+    }
+  ]
+}

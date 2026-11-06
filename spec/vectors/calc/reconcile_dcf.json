@@ -1,0 +1,2729 @@
+{
+  "calculator": "calc.reconcile_dcf",
+  "version": 1,
+  "notes": "SYNTHETIC. No ARGUS or other export was available; every 'other system' here was built by examples/reconciliation/tie_out.py from FactLot's own output with one convention changed on purpose, and says nothing about how any product computes. The expected causes are the planted ones, stated in the builder; the year-3 differences of the rounded-downtime case are computed by hand there (0.45 of one month of Suite 100's rollover rent and recoveries). The remaining cases are small hand-built patterns on a two-lease property.",
+  "cases": [
+    {
+      "name": "SYNTHETIC dcf-exact: FactLot's own lines, deductions shown as positive amounts, with the value, IRR and sale",
+      "input": {
+        "dcf": {
+          "hold_years": 7,
+          "leases": [
+            {
+              "name": "Suite 100",
+              "area_sf": 12000,
+              "rent_psf_annual": 31,
+              "months_remaining": 30,
+              "market_rent_psf_annual": 33,
+              "escalation_rate": 0.03,
+              "leasing": {
+                "renewal_probability": 0.55,
+                "downtime_months": 1,
+                "free_rent_months_new": 3,
+                "free_rent_months_renewal": 1
+              }
+            },
+            {
+              "name": "Suite 200",
+              "area_sf": 25000,
+              "rent_psf_annual": 27.5,
+              "months_remaining": 64,
+              "market_rent_psf_annual": 29,
+              "escalation_rate": 0.025,
+              "next_escalation_month": 7
+            },
+            {
+              "name": "Suite 300",
+              "area_sf": 8000,
+              "rent_psf_annual": 0,
+              "months_remaining": 0,
+              "market_rent_psf_annual": 30,
+              "leasing": {
+                "lease_term_months": 120
+              }
+            },
+            {
+              "name": "Suite 400",
+              "area_sf": 15000,
+              "rent_psf_annual": 29,
+              "months_remaining": 100,
+              "market_rent_psf_annual": 31,
+              "escalation_rate": 0.03,
+              "recovery": "base_year",
+              "base_year_opex_psf_annual": 9.5
+            }
+          ],
+          "market_leasing": {
+            "renewal_probability": 0.75,
+            "lease_term_months": 60,
+            "downtime_months": 5,
+            "renewal_rent_pct_of_market": 0.95,
+            "rent_escalation_rate": 0.03,
+            "free_rent_months_new": 4,
+            "free_rent_months_renewal": 1,
+            "ti_psf_new": 45,
+            "ti_psf_renewal": 15,
+            "lc_rate_new": 0.06,
+            "lc_rate_renewal": 0.03
+          },
+          "market_rent_growth_rate": 0.03,
+          "operating_expenses_psf_annual": 10.25,
+          "non_recoverable_expenses_annual": 85000,
+          "expense_growth_rate": 0.03,
+          "management_fee_rate": 0.03,
+          "general_vacancy_rate": 0.04,
+          "credit_loss_rate": 0.01,
+          "capital_reserve_psf_annual": 0.2,
+          "exit_cap_rate": 0.0725,
+          "selling_cost_rate": 0.02,
+          "discount_rate": 0.08,
+          "purchase_price": 18500000
+        },
+        "other": {
+          "system": "SYNTHETIC dcf-exact",
+          "lines": [
+            {
+              "label": "Potential Base Rent",
+              "values": [
+                1643093.75, 1788906.09, 1830638.88, 1898716.51, 1951929.92,
+                1933398.61, 2078764.91, 2123366.48
+              ]
+            },
+            {
+              "label": "Free Rent",
+              "values": [
+                80000.0, 0.0, 49368.05, 0.0, 0.0, 101119.49, 0.0, 57231.1
+              ]
+            },
+            {
+              "label": "Expense Reimbursements",
+              "values": [
+                438333.33, 490950.0, 505060.1, 529527.11, 549687.92, 539509.39,
+                591842.16, 608199.63
+              ]
+            },
+            {
+              "label": "Gross Revenue",
+              "values": [
+                2001427.08, 2279856.09, 2286330.93, 2428243.62, 2501617.84,
+                2371788.51, 2670607.07, 2674335.01
+              ]
+            },
+            {
+              "label": "General Vacancy",
+              "values": [
+                80057.08, 91194.24, 91453.24, 97129.74, 100064.71, 94871.54,
+                106824.28, 106973.4
+              ]
+            },
+            {
+              "label": "Credit Loss",
+              "values": [
+                20014.27, 22798.56, 22863.31, 24282.44, 25016.18, 23717.89,
+                26706.07, 26743.35
+              ]
+            },
+            {
+              "label": "Effective Gross Revenue",
+              "values": [
+                1901355.73, 2165863.29, 2172014.38, 2306831.44, 2376536.95,
+                2253199.08, 2537076.72, 2540618.26
+              ]
+            },
+            {
+              "label": "Operating Expenses",
+              "values": [
+                700000.0, 721000.0, 742630.0, 764908.9, 787856.17, 811491.85,
+                835836.61, 860911.71
+              ]
+            },
+            {
+              "label": "Management Fee",
+              "values": [
+                57040.67, 64975.9, 65160.43, 69204.94, 71296.11, 67595.97,
+                76112.3, 76218.55
+              ]
+            },
+            {
+              "label": "Net Operating Income",
+              "values": [
+                1144315.06, 1379887.39, 1364223.95, 1472717.6, 1517384.67,
+                1374111.26, 1625127.81, 1603488.0
+              ]
+            },
+            {
+              "label": "Tenant Improvements",
+              "values": [
+                360000.0, 0.0, 362827.8, 0.0, 0.0, 652091.67, 0.0, 420616.86
+              ]
+            },
+            {
+              "label": "Leasing Commissions",
+              "values": [
+                160279.86, 0.0, 91542.63, 0.0, 0.0, 156633.16, 0.0, 106123.0
+              ]
+            },
+            {
+              "label": "Capital Reserves",
+              "values": [
+                12000.0, 12360.0, 12730.8, 13112.72, 13506.11, 13911.29,
+                14328.63, 14758.49
+              ]
+            },
+            {
+              "label": "Cash Flow Before Debt Service",
+              "values": [
+                612035.2, 1367527.39, 897122.72, 1459604.88, 1503878.56,
+                551475.14, 1610799.18, 1061989.65
+              ]
+            }
+          ],
+          "value": 18482074.2,
+          "unlevered_irr": 0.07982671,
+          "gross_sale_price": 22117075.86,
+          "net_sale_proceeds": 21674734.34
+        }
+      },
+      "expect": {
+        "value.all_within_tolerance": true,
+        "value.cells_compared": 112,
+        "value.cells_outside_tolerance": 0,
+        "value.mapping.1.sign_flipped": true
+      },
+      "tolerance": 0.01
+    },
+    {
+      "name": "SYNTHETIC dcf-rounded-downtime: blended rollover downtime and free rent rounded to whole months (the convention of calc.dcf_pro_forma@1)",
+      "input": {
+        "dcf": {
+          "hold_years": 7,
+          "leases": [
+            {
+              "name": "Suite 100",
+              "area_sf": 12000,
+              "rent_psf_annual": 31,
+              "months_remaining": 30,
+              "market_rent_psf_annual": 33,
+              "escalation_rate": 0.03,
+              "leasing": {
+                "renewal_probability": 0.55,
+                "downtime_months": 1,
+                "free_rent_months_new": 3,
+                "free_rent_months_renewal": 1
+              }
+            },
+            {
+              "name": "Suite 200",
+              "area_sf": 25000,
+              "rent_psf_annual": 27.5,
+              "months_remaining": 64,
+              "market_rent_psf_annual": 29,
+              "escalation_rate": 0.025,
+              "next_escalation_month": 7
+            },
+            {
+              "name": "Suite 300",
+              "area_sf": 8000,
+              "rent_psf_annual": 0,
+              "months_remaining": 0,
+              "market_rent_psf_annual": 30,
+              "leasing": {
+                "lease_term_months": 120
+              }
+            },
+            {
+              "name": "Suite 400",
+              "area_sf": 15000,
+              "rent_psf_annual": 29,
+              "months_remaining": 100,
+              "market_rent_psf_annual": 31,
+              "escalation_rate": 0.03,
+              "recovery": "base_year",
+              "base_year_opex_psf_annual": 9.5
+            }
+          ],
+          "market_leasing": {
+            "renewal_probability": 0.75,
+            "lease_term_months": 60,
+            "downtime_months": 5,
+            "renewal_rent_pct_of_market": 0.95,
+            "rent_escalation_rate": 0.03,
+            "free_rent_months_new": 4,
+            "free_rent_months_renewal": 1,
+            "ti_psf_new": 45,
+            "ti_psf_renewal": 15,
+            "lc_rate_new": 0.06,
+            "lc_rate_renewal": 0.03
+          },
+          "market_rent_growth_rate": 0.03,
+          "operating_expenses_psf_annual": 10.25,
+          "non_recoverable_expenses_annual": 85000,
+          "expense_growth_rate": 0.03,
+          "management_fee_rate": 0.03,
+          "general_vacancy_rate": 0.04,
+          "credit_loss_rate": 0.01,
+          "capital_reserve_psf_annual": 0.2,
+          "exit_cap_rate": 0.0725,
+          "selling_cost_rate": 0.02,
+          "discount_rate": 0.08,
+          "purchase_price": 18500000
+        },
+        "other": {
+          "system": "SYNTHETIC dcf-rounded-downtime",
+          "lines": [
+            {
+              "label": "Potential Base Rent",
+              "values": [
+                1643093.75, 1788906.09, 1845960.0, 1898716.51, 1951929.92,
+                1950251.86, 2078764.91, 2141127.85
+              ]
+            },
+            {
+              "label": "Free Rent",
+              "values": [
+                -80000.0, 0.0, -68093.87, 0.0, 0.0, -134825.99, 0.0, -78939.45
+              ]
+            },
+            {
+              "label": "Expense Reimbursements",
+              "values": [
+                438333.33, 490950.0, 509953.5, 529527.11, 549687.92, 545698.22,
+                591842.16, 613872.43
+              ]
+            },
+            {
+              "label": "Gross Revenue",
+              "values": [
+                2001427.08, 2279856.09, 2287819.63, 2428243.62, 2501617.84,
+                2361124.09, 2670607.07, 2676060.83
+              ]
+            },
+            {
+              "label": "General Vacancy",
+              "values": [
+                -80057.08, -91194.24, -91512.79, -97129.74, -100064.71,
+                -94444.96, -106824.28, -107042.43
+              ]
+            },
+            {
+              "label": "Credit Loss",
+              "values": [
+                -20014.27, -22798.56, -22878.2, -24282.44, -25016.18, -23611.24,
+                -26706.07, -26760.61
+              ]
+            },
+            {
+              "label": "Effective Gross Revenue",
+              "values": [
+                1901355.73, 2165863.29, 2173428.64, 2306831.44, 2376536.95,
+                2243067.89, 2537076.72, 2542257.79
+              ]
+            },
+            {
+              "label": "Operating Expenses",
+              "values": [
+                -700000.0, -721000.0, -742630.0, -764908.9, -787856.17,
+                -811491.85, -835836.61, -860911.71
+              ]
+            },
+            {
+              "label": "Management Fee",
+              "values": [
+                -57040.67, -64975.9, -65202.86, -69204.94, -71296.11, -67292.04,
+                -76112.3, -76267.73
+              ]
+            },
+            {
+              "label": "Net Operating Income",
+              "values": [
+                1144315.06, 1379887.39, 1365595.78, 1472717.6, 1517384.67,
+                1364284.0, 1625127.81, 1605078.35
+              ]
+            },
+            {
+              "label": "Tenant Improvements",
+              "values": [
+                -360000.0, 0.0, -362827.8, 0.0, 0.0, -652091.67, 0.0, -420616.86
+              ]
+            },
+            {
+              "label": "Leasing Commissions",
+              "values": [
+                -160279.86, 0.0, -91394.53, 0.0, 0.0, -156001.16, 0.0,
+                -105951.31
+              ]
+            },
+            {
+              "label": "Capital Reserves",
+              "values": [
+                -12000.0, -12360.0, -12730.8, -13112.72, -13506.11, -13911.29,
+                -14328.63, -14758.49
+              ]
+            },
+            {
+              "label": "Cash Flow Before Debt Service",
+              "values": [
+                612035.2, 1367527.39, 898642.65, 1459604.88, 1503878.56,
+                542279.88, 1610799.18, 1063751.69
+              ]
+            }
+          ],
+          "value": 18490029.58
+        }
+      },
+      "expect": {
+        "value.all_within_tolerance": false,
+        "value.cells_compared": 112,
+        "value.lines.0.likely_causes.0.cause": "rollover_convention",
+        "value.lines.2.likely_causes.0.cause": "rollover_convention",
+        "value.lines.9.likely_causes.0.cause": "carried_from_other_lines",
+        "value.totals.0.likely_causes.0.cause": "carried_from_other_lines",
+        "value.lines.0.likely_causes.0.years": [3, 6, 8],
+        "value.lines.0.years.2.difference": -15321.12,
+        "value.lines.2.years.2.difference": -4893.4
+      },
+      "tolerance": 0.01
+    },
+    {
+      "name": "SYNTHETIC dcf-vacancy-base: general vacancy charged on potential base rent instead of gross revenue",
+      "input": {
+        "dcf": {
+          "hold_years": 7,
+          "leases": [
+            {
+              "name": "Suite 100",
+              "area_sf": 12000,
+              "rent_psf_annual": 31,
+              "months_remaining": 30,
+              "market_rent_psf_annual": 33,
+              "escalation_rate": 0.03,
+              "leasing": {
+                "renewal_probability": 0.55,
+                "downtime_months": 1,
+                "free_rent_months_new": 3,
+                "free_rent_months_renewal": 1
+              }
+            },
+            {
+              "name": "Suite 200",
+              "area_sf": 25000,
+              "rent_psf_annual": 27.5,
+              "months_remaining": 64,
+              "market_rent_psf_annual": 29,
+              "escalation_rate": 0.025,
+              "next_escalation_month": 7
+            },
+            {
+              "name": "Suite 300",
+              "area_sf": 8000,
+              "rent_psf_annual": 0,
+              "months_remaining": 0,
+              "market_rent_psf_annual": 30,
+              "leasing": {
+                "lease_term_months": 120
+              }
+            },
+            {
+              "name": "Suite 400",
+              "area_sf": 15000,
+              "rent_psf_annual": 29,
+              "months_remaining": 100,
+              "market_rent_psf_annual": 31,
+              "escalation_rate": 0.03,
+              "recovery": "base_year",
+              "base_year_opex_psf_annual": 9.5
+            }
+          ],
+          "market_leasing": {
+            "renewal_probability": 0.75,
+            "lease_term_months": 60,
+            "downtime_months": 5,
+            "renewal_rent_pct_of_market": 0.95,
+            "rent_escalation_rate": 0.03,
+            "free_rent_months_new": 4,
+            "free_rent_months_renewal": 1,
+            "ti_psf_new": 45,
+            "ti_psf_renewal": 15,
+            "lc_rate_new": 0.06,
+            "lc_rate_renewal": 0.03
+          },
+          "market_rent_growth_rate": 0.03,
+          "operating_expenses_psf_annual": 10.25,
+          "non_recoverable_expenses_annual": 85000,
+          "expense_growth_rate": 0.03,
+          "management_fee_rate": 0.03,
+          "general_vacancy_rate": 0.04,
+          "credit_loss_rate": 0.01,
+          "capital_reserve_psf_annual": 0.2,
+          "exit_cap_rate": 0.0725,
+          "selling_cost_rate": 0.02,
+          "discount_rate": 0.08,
+          "purchase_price": 18500000
+        },
+        "other": {
+          "system": "SYNTHETIC dcf-vacancy-base",
+          "lines": [
+            {
+              "label": "Potential Base Rent",
+              "values": [
+                1643093.75, 1788906.09, 1830638.88, 1898716.51, 1951929.92,
+                1933398.61, 2078764.91, 2123366.48
+              ]
+            },
+            {
+              "label": "Free Rent",
+              "values": [
+                80000.0, 0.0, 49368.05, 0.0, 0.0, 101119.49, 0.0, 57231.1
+              ]
+            },
+            {
+              "label": "Expense Reimbursements",
+              "values": [
+                438333.33, 490950.0, 505060.1, 529527.11, 549687.92, 539509.39,
+                591842.16, 608199.63
+              ]
+            },
+            {
+              "label": "Gross Revenue",
+              "values": [
+                2001427.08, 2279856.09, 2286330.93, 2428243.62, 2501617.84,
+                2371788.51, 2670607.07, 2674335.01
+              ]
+            },
+            {
+              "label": "General Vacancy",
+              "values": [
+                65723.75, 71556.24, 73225.56, 75948.66, 78077.2, 77335.94,
+                83150.6, 84934.66
+              ]
+            },
+            {
+              "label": "Credit Loss",
+              "values": [
+                20014.27, 22798.56, 22863.31, 24282.44, 25016.18, 23717.89,
+                26706.07, 26743.35
+              ]
+            },
+            {
+              "label": "Effective Gross Revenue",
+              "values": [
+                1915689.06, 2185501.29, 2190242.06, 2328012.52, 2398524.46,
+                2270734.68, 2560750.4, 2562657.0
+              ]
+            },
+            {
+              "label": "Operating Expenses",
+              "values": [
+                700000.0, 721000.0, 742630.0, 764908.9, 787856.17, 811491.85,
+                835836.61, 860911.71
+              ]
+            },
+            {
+              "label": "Management Fee",
+              "values": [
+                57470.67, 65565.04, 65707.26, 69840.38, 71955.73, 68122.04,
+                76822.51, 76879.71
+              ]
+            },
+            {
+              "label": "Net Operating Income",
+              "values": [
+                1158218.39, 1398936.25, 1381904.8, 1493263.24, 1538712.56,
+                1391120.79, 1648091.28, 1624865.58
+              ]
+            },
+            {
+              "label": "Tenant Improvements",
+              "values": [
+                360000.0, 0.0, 362827.8, 0.0, 0.0, 652091.67, 0.0, 420616.86
+              ]
+            },
+            {
+              "label": "Leasing Commissions",
+              "values": [
+                160279.86, 0.0, 91542.63, 0.0, 0.0, 156633.16, 0.0, 106123.0
+              ]
+            },
+            {
+              "label": "Capital Reserves",
+              "values": [
+                12000.0, 12360.0, 12730.8, 13112.72, 13506.11, 13911.29,
+                14328.63, 14758.49
+              ]
+            },
+            {
+              "label": "Cash Flow Before Debt Service",
+              "values": [
+                625938.53, 1386576.25, 914803.57, 1480150.52, 1525206.45,
+                568484.67, 1633762.65, 1083367.23
+              ]
+            }
+          ]
+        }
+      },
+      "expect": {
+        "value.all_within_tolerance": false,
+        "value.cells_compared": 112,
+        "value.lines.4.likely_causes.0.cause": "rate_base",
+        "value.lines.6.likely_causes.0.cause": "carried_from_other_lines",
+        "value.lines.8.likely_causes.0.cause": "carried_from_other_lines",
+        "value.lines.9.likely_causes.0.cause": "carried_from_other_lines"
+      },
+      "tolerance": 0.01
+    },
+    {
+      "name": "SYNTHETIC dcf-mid-year: the same lines, valued with mid-year discounting of the operating cash flows",
+      "input": {
+        "dcf": {
+          "hold_years": 7,
+          "leases": [
+            {
+              "name": "Suite 100",
+              "area_sf": 12000,
+              "rent_psf_annual": 31,
+              "months_remaining": 30,
+              "market_rent_psf_annual": 33,
+              "escalation_rate": 0.03,
+              "leasing": {
+                "renewal_probability": 0.55,
+                "downtime_months": 1,
+                "free_rent_months_new": 3,
+                "free_rent_months_renewal": 1
+              }
+            },
+            {
+              "name": "Suite 200",
+              "area_sf": 25000,
+              "rent_psf_annual": 27.5,
+              "months_remaining": 64,
+              "market_rent_psf_annual": 29,
+              "escalation_rate": 0.025,
+              "next_escalation_month": 7
+            },
+            {
+              "name": "Suite 300",
+              "area_sf": 8000,
+              "rent_psf_annual": 0,
+              "months_remaining": 0,
+              "market_rent_psf_annual": 30,
+              "leasing": {
+                "lease_term_months": 120
+              }
+            },
+            {
+              "name": "Suite 400",
+              "area_sf": 15000,
+              "rent_psf_annual": 29,
+              "months_remaining": 100,
+              "market_rent_psf_annual": 31,
+              "escalation_rate": 0.03,
+              "recovery": "base_year",
+              "base_year_opex_psf_annual": 9.5
+            }
+          ],
+          "market_leasing": {
+            "renewal_probability": 0.75,
+            "lease_term_months": 60,
+            "downtime_months": 5,
+            "renewal_rent_pct_of_market": 0.95,
+            "rent_escalation_rate": 0.03,
+            "free_rent_months_new": 4,
+            "free_rent_months_renewal": 1,
+            "ti_psf_new": 45,
+            "ti_psf_renewal": 15,
+            "lc_rate_new": 0.06,
+            "lc_rate_renewal": 0.03
+          },
+          "market_rent_growth_rate": 0.03,
+          "operating_expenses_psf_annual": 10.25,
+          "non_recoverable_expenses_annual": 85000,
+          "expense_growth_rate": 0.03,
+          "management_fee_rate": 0.03,
+          "general_vacancy_rate": 0.04,
+          "credit_loss_rate": 0.01,
+          "capital_reserve_psf_annual": 0.2,
+          "exit_cap_rate": 0.0725,
+          "selling_cost_rate": 0.02,
+          "discount_rate": 0.08,
+          "purchase_price": 18500000
+        },
+        "other": {
+          "system": "SYNTHETIC dcf-mid-year",
+          "lines": [
+            {
+              "label": "Potential Base Rent",
+              "values": [
+                1643093.75, 1788906.09, 1830638.88, 1898716.51, 1951929.92,
+                1933398.61, 2078764.91, 2123366.48
+              ]
+            },
+            {
+              "label": "Free Rent",
+              "values": [
+                80000.0, 0.0, 49368.05, 0.0, 0.0, 101119.49, 0.0, 57231.1
+              ]
+            },
+            {
+              "label": "Expense Reimbursements",
+              "values": [
+                438333.33, 490950.0, 505060.1, 529527.11, 549687.92, 539509.39,
+                591842.16, 608199.63
+              ]
+            },
+            {
+              "label": "Gross Revenue",
+              "values": [
+                2001427.08, 2279856.09, 2286330.93, 2428243.62, 2501617.84,
+                2371788.51, 2670607.07, 2674335.01
+              ]
+            },
+            {
+              "label": "General Vacancy",
+              "values": [
+                80057.08, 91194.24, 91453.24, 97129.74, 100064.71, 94871.54,
+                106824.28, 106973.4
+              ]
+            },
+            {
+              "label": "Credit Loss",
+              "values": [
+                20014.27, 22798.56, 22863.31, 24282.44, 25016.18, 23717.89,
+                26706.07, 26743.35
+              ]
+            },
+            {
+              "label": "Effective Gross Revenue",
+              "values": [
+                1901355.73, 2165863.29, 2172014.38, 2306831.44, 2376536.95,
+                2253199.08, 2537076.72, 2540618.26
+              ]
+            },
+            {
+              "label": "Operating Expenses",
+              "values": [
+                700000.0, 721000.0, 742630.0, 764908.9, 787856.17, 811491.85,
+                835836.61, 860911.71
+              ]
+            },
+            {
+              "label": "Management Fee",
+              "values": [
+                57040.67, 64975.9, 65160.43, 69204.94, 71296.11, 67595.97,
+                76112.3, 76218.55
+              ]
+            },
+            {
+              "label": "Net Operating Income",
+              "values": [
+                1144315.06, 1379887.39, 1364223.95, 1472717.6, 1517384.67,
+                1374111.26, 1625127.81, 1603488.0
+              ]
+            },
+            {
+              "label": "Tenant Improvements",
+              "values": [
+                360000.0, 0.0, 362827.8, 0.0, 0.0, 652091.67, 0.0, 420616.86
+              ]
+            },
+            {
+              "label": "Leasing Commissions",
+              "values": [
+                160279.86, 0.0, 91542.63, 0.0, 0.0, 156633.16, 0.0, 106123.0
+              ]
+            },
+            {
+              "label": "Capital Reserves",
+              "values": [
+                12000.0, 12360.0, 12730.8, 13112.72, 13506.11, 13911.29,
+                14328.63, 14758.49
+              ]
+            },
+            {
+              "label": "Cash Flow Before Debt Service",
+              "values": [
+                612035.2, 1367527.39, 897122.72, 1459604.88, 1503878.56,
+                551475.14, 1610799.18, 1061989.65
+              ]
+            }
+          ],
+          "value": 18710987.01,
+          "unlevered_irr": 0.07982671
+        }
+      },
+      "expect": {
+        "value.all_within_tolerance": false,
+        "value.cells_compared": 112,
+        "value.totals.0.likely_causes.0.cause": "discount_timing",
+        "value.cells_outside_tolerance": 0,
+        "value.totals.1.within_tolerance": true
+      },
+      "tolerance": 0.01
+    },
+    {
+      "name": "SYNTHETIC small: tenant improvements booked one year later",
+      "input": {
+        "dcf": {
+          "hold_years": 5,
+          "leases": [
+            {
+              "name": "Suite A",
+              "area_sf": 10000,
+              "rent_psf_annual": 30,
+              "months_remaining": 24,
+              "market_rent_psf_annual": 32
+            },
+            {
+              "name": "Suite B",
+              "area_sf": 20000,
+              "rent_psf_annual": 28,
+              "months_remaining": 70,
+              "market_rent_psf_annual": 30,
+              "escalation_rate": 0.03
+            }
+          ],
+          "market_leasing": {
+            "renewal_probability": 0.55,
+            "lease_term_months": 60,
+            "downtime_months": 1,
+            "free_rent_months_new": 3,
+            "free_rent_months_renewal": 1,
+            "ti_psf_new": 40,
+            "ti_psf_renewal": 10,
+            "lc_rate_new": 0.06,
+            "lc_rate_renewal": 0.03
+          },
+          "operating_expenses_psf_annual": 9,
+          "expense_growth_rate": 0.03,
+          "market_rent_growth_rate": 0.03,
+          "general_vacancy_rate": 0.05,
+          "management_fee_rate": 0.03,
+          "capital_reserve_psf_annual": 0.25,
+          "selling_cost_rate": 0.02,
+          "exit_cap_rate": 0.07,
+          "discount_rate": 0.08,
+          "purchase_price": 9000000
+        },
+        "other": {
+          "lines": [
+            {
+              "label": "potential_base_rent",
+              "values": [
+                860000.0, 876800.0, 920861.2, 951415.12, 969772.93, 970326.31
+              ]
+            },
+            {
+              "label": "free_rent",
+              "values": [0.0, 0.0, -41021.47, 0.0, 0.0, -84047.37]
+            },
+            {
+              "label": "expense_recoveries",
+              "values": [
+                270000.0, 278100.0, 282862.46, 295036.29, 303887.38, 305178.9
+              ]
+            },
+            {
+              "label": "gross_revenue",
+              "values": [
+                1130000.0, 1154900.0, 1162702.19, 1246451.41, 1273660.31,
+                1191457.84
+              ]
+            },
+            {
+              "label": "general_vacancy",
+              "values": [
+                -56500.0, -57745.0, -58135.11, -62322.57, -63683.02, -59572.89
+              ]
+            },
+            {
+              "label": "credit_loss",
+              "values": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+            },
+            {
+              "label": "effective_gross_revenue",
+              "values": [
+                1073500.0, 1097155.0, 1104567.08, 1184128.84, 1209977.29,
+                1131884.95
+              ]
+            },
+            {
+              "label": "operating_expenses",
+              "values": [
+                -270000.0, -278100.0, -286443.0, -295036.29, -303887.38,
+                -313004.0
+              ]
+            },
+            {
+              "label": "management_fee",
+              "values": [
+                -32205.0, -32914.65, -33137.01, -35523.87, -36299.32, -33956.55
+              ]
+            },
+            {
+              "label": "net_operating_income",
+              "values": [
+                771295.0, 786140.35, 784987.07, 853568.68, 869790.59, 784924.4
+              ]
+            },
+            {
+              "label": "tenant_improvements",
+              "values": [0, 0.0, 0.0, -249311.5, 0.0, 0.0]
+            },
+            {
+              "label": "leasing_commissions",
+              "values": [0.0, 0.0, -71500.42, 0.0, 0.0, -146494.57]
+            },
+            {
+              "label": "capital_reserves",
+              "values": [
+                -7500.0, -7725.0, -7956.75, -8195.45, -8441.32, -8694.56
+              ]
+            },
+            {
+              "label": "cash_flow_before_debt",
+              "values": [
+                763795.0, 778415.35, 456218.4, 845373.23, 861349.27, 84876.46
+              ]
+            }
+          ]
+        }
+      },
+      "expect": {
+        "value.lines.10.likely_causes.0.cause": "one_year_shift"
+      }
+    },
+    {
+      "name": "SYNTHETIC small: management fee inside operating expenses, no management fee line",
+      "input": {
+        "dcf": {
+          "hold_years": 5,
+          "leases": [
+            {
+              "name": "Suite A",
+              "area_sf": 10000,
+              "rent_psf_annual": 30,
+              "months_remaining": 24,
+              "market_rent_psf_annual": 32
+            },
+            {
+              "name": "Suite B",
+              "area_sf": 20000,
+              "rent_psf_annual": 28,
+              "months_remaining": 70,
+              "market_rent_psf_annual": 30,
+              "escalation_rate": 0.03
+            }
+          ],
+          "market_leasing": {
+            "renewal_probability": 0.55,
+            "lease_term_months": 60,
+            "downtime_months": 1,
+            "free_rent_months_new": 3,
+            "free_rent_months_renewal": 1,
+            "ti_psf_new": 40,
+            "ti_psf_renewal": 10,
+            "lc_rate_new": 0.06,
+            "lc_rate_renewal": 0.03
+          },
+          "operating_expenses_psf_annual": 9,
+          "expense_growth_rate": 0.03,
+          "market_rent_growth_rate": 0.03,
+          "general_vacancy_rate": 0.05,
+          "management_fee_rate": 0.03,
+          "capital_reserve_psf_annual": 0.25,
+          "selling_cost_rate": 0.02,
+          "exit_cap_rate": 0.07,
+          "discount_rate": 0.08,
+          "purchase_price": 9000000
+        },
+        "other": {
+          "lines": [
+            {
+              "label": "potential_base_rent",
+              "values": [
+                860000.0, 876800.0, 920861.2, 951415.12, 969772.93, 970326.31
+              ]
+            },
+            {
+              "label": "free_rent",
+              "values": [0.0, 0.0, -41021.47, 0.0, 0.0, -84047.37]
+            },
+            {
+              "label": "expense_recoveries",
+              "values": [
+                270000.0, 278100.0, 282862.46, 295036.29, 303887.38, 305178.9
+              ]
+            },
+            {
+              "label": "gross_revenue",
+              "values": [
+                1130000.0, 1154900.0, 1162702.19, 1246451.41, 1273660.31,
+                1191457.84
+              ]
+            },
+            {
+              "label": "general_vacancy",
+              "values": [
+                -56500.0, -57745.0, -58135.11, -62322.57, -63683.02, -59572.89
+              ]
+            },
+            {
+              "label": "credit_loss",
+              "values": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+            },
+            {
+              "label": "effective_gross_revenue",
+              "values": [
+                1073500.0, 1097155.0, 1104567.08, 1184128.84, 1209977.29,
+                1131884.95
+              ]
+            },
+            {
+              "label": "operating_expenses",
+              "values": [
+                -302205.0, -311014.65, -319580.01, -330560.16, -340186.7,
+                -346960.55
+              ]
+            },
+            {
+              "label": "net_operating_income",
+              "values": [
+                771295.0, 786140.35, 784987.07, 853568.68, 869790.59, 784924.4
+              ]
+            },
+            {
+              "label": "tenant_improvements",
+              "values": [0.0, 0.0, -249311.5, 0.0, 0.0, -544858.81]
+            },
+            {
+              "label": "leasing_commissions",
+              "values": [0.0, 0.0, -71500.42, 0.0, 0.0, -146494.57]
+            },
+            {
+              "label": "capital_reserves",
+              "values": [
+                -7500.0, -7725.0, -7956.75, -8195.45, -8441.32, -8694.56
+              ]
+            },
+            {
+              "label": "cash_flow_before_debt",
+              "values": [
+                763795.0, 778415.35, 456218.4, 845373.23, 861349.27, 84876.46
+              ]
+            }
+          ]
+        }
+      },
+      "expect": {
+        "value.lines.7.likely_causes.0.cause": "management_fee_in_opex",
+        "value.factlot_lines_not_compared": ["management_fee"]
+      }
+    },
+    {
+      "name": "SYNTHETIC small: operating expenses positive, compared as reported",
+      "input": {
+        "dcf": {
+          "hold_years": 5,
+          "leases": [
+            {
+              "name": "Suite A",
+              "area_sf": 10000,
+              "rent_psf_annual": 30,
+              "months_remaining": 24,
+              "market_rent_psf_annual": 32
+            },
+            {
+              "name": "Suite B",
+              "area_sf": 20000,
+              "rent_psf_annual": 28,
+              "months_remaining": 70,
+              "market_rent_psf_annual": 30,
+              "escalation_rate": 0.03
+            }
+          ],
+          "market_leasing": {
+            "renewal_probability": 0.55,
+            "lease_term_months": 60,
+            "downtime_months": 1,
+            "free_rent_months_new": 3,
+            "free_rent_months_renewal": 1,
+            "ti_psf_new": 40,
+            "ti_psf_renewal": 10,
+            "lc_rate_new": 0.06,
+            "lc_rate_renewal": 0.03
+          },
+          "operating_expenses_psf_annual": 9,
+          "expense_growth_rate": 0.03,
+          "market_rent_growth_rate": 0.03,
+          "general_vacancy_rate": 0.05,
+          "management_fee_rate": 0.03,
+          "capital_reserve_psf_annual": 0.25,
+          "selling_cost_rate": 0.02,
+          "exit_cap_rate": 0.07,
+          "discount_rate": 0.08,
+          "purchase_price": 9000000
+        },
+        "other": {
+          "lines": [
+            {
+              "label": "potential_base_rent",
+              "values": [
+                860000.0, 876800.0, 920861.2, 951415.12, 969772.93, 970326.31
+              ]
+            },
+            {
+              "label": "free_rent",
+              "values": [0.0, 0.0, -41021.47, 0.0, 0.0, -84047.37]
+            },
+            {
+              "label": "expense_recoveries",
+              "values": [
+                270000.0, 278100.0, 282862.46, 295036.29, 303887.38, 305178.9
+              ]
+            },
+            {
+              "label": "gross_revenue",
+              "values": [
+                1130000.0, 1154900.0, 1162702.19, 1246451.41, 1273660.31,
+                1191457.84
+              ]
+            },
+            {
+              "label": "general_vacancy",
+              "values": [
+                -56500.0, -57745.0, -58135.11, -62322.57, -63683.02, -59572.89
+              ]
+            },
+            {
+              "label": "credit_loss",
+              "values": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+            },
+            {
+              "label": "effective_gross_revenue",
+              "values": [
+                1073500.0, 1097155.0, 1104567.08, 1184128.84, 1209977.29,
+                1131884.95
+              ]
+            },
+            {
+              "label": "operating_expenses",
+              "values": [
+                270000.0, 278100.0, 286443.0, 295036.29, 303887.38, 313004.0
+              ]
+            },
+            {
+              "label": "management_fee",
+              "values": [
+                -32205.0, -32914.65, -33137.01, -35523.87, -36299.32, -33956.55
+              ]
+            },
+            {
+              "label": "net_operating_income",
+              "values": [
+                771295.0, 786140.35, 784987.07, 853568.68, 869790.59, 784924.4
+              ]
+            },
+            {
+              "label": "tenant_improvements",
+              "values": [0.0, 0.0, -249311.5, 0.0, 0.0, -544858.81]
+            },
+            {
+              "label": "leasing_commissions",
+              "values": [0.0, 0.0, -71500.42, 0.0, 0.0, -146494.57]
+            },
+            {
+              "label": "capital_reserves",
+              "values": [
+                -7500.0, -7725.0, -7956.75, -8195.45, -8441.32, -8694.56
+              ]
+            },
+            {
+              "label": "cash_flow_before_debt",
+              "values": [
+                763795.0, 778415.35, 456218.4, 845373.23, 861349.27, 84876.46
+              ]
+            }
+          ]
+        },
+        "sign_convention": "as_reported"
+      },
+      "expect": {
+        "value.lines.7.likely_causes.0.cause": "opposite_sign"
+      }
+    },
+    {
+      "name": "SYNTHETIC small: operating expenses positive, sign_convention auto",
+      "input": {
+        "dcf": {
+          "hold_years": 5,
+          "leases": [
+            {
+              "name": "Suite A",
+              "area_sf": 10000,
+              "rent_psf_annual": 30,
+              "months_remaining": 24,
+              "market_rent_psf_annual": 32
+            },
+            {
+              "name": "Suite B",
+              "area_sf": 20000,
+              "rent_psf_annual": 28,
+              "months_remaining": 70,
+              "market_rent_psf_annual": 30,
+              "escalation_rate": 0.03
+            }
+          ],
+          "market_leasing": {
+            "renewal_probability": 0.55,
+            "lease_term_months": 60,
+            "downtime_months": 1,
+            "free_rent_months_new": 3,
+            "free_rent_months_renewal": 1,
+            "ti_psf_new": 40,
+            "ti_psf_renewal": 10,
+            "lc_rate_new": 0.06,
+            "lc_rate_renewal": 0.03
+          },
+          "operating_expenses_psf_annual": 9,
+          "expense_growth_rate": 0.03,
+          "market_rent_growth_rate": 0.03,
+          "general_vacancy_rate": 0.05,
+          "management_fee_rate": 0.03,
+          "capital_reserve_psf_annual": 0.25,
+          "selling_cost_rate": 0.02,
+          "exit_cap_rate": 0.07,
+          "discount_rate": 0.08,
+          "purchase_price": 9000000
+        },
+        "other": {
+          "lines": [
+            {
+              "label": "potential_base_rent",
+              "values": [
+                860000.0, 876800.0, 920861.2, 951415.12, 969772.93, 970326.31
+              ]
+            },
+            {
+              "label": "free_rent",
+              "values": [0.0, 0.0, -41021.47, 0.0, 0.0, -84047.37]
+            },
+            {
+              "label": "expense_recoveries",
+              "values": [
+                270000.0, 278100.0, 282862.46, 295036.29, 303887.38, 305178.9
+              ]
+            },
+            {
+              "label": "gross_revenue",
+              "values": [
+                1130000.0, 1154900.0, 1162702.19, 1246451.41, 1273660.31,
+                1191457.84
+              ]
+            },
+            {
+              "label": "general_vacancy",
+              "values": [
+                -56500.0, -57745.0, -58135.11, -62322.57, -63683.02, -59572.89
+              ]
+            },
+            {
+              "label": "credit_loss",
+              "values": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+            },
+            {
+              "label": "effective_gross_revenue",
+              "values": [
+                1073500.0, 1097155.0, 1104567.08, 1184128.84, 1209977.29,
+                1131884.95
+              ]
+            },
+            {
+              "label": "operating_expenses",
+              "values": [
+                270000.0, 278100.0, 286443.0, 295036.29, 303887.38, 313004.0
+              ]
+            },
+            {
+              "label": "management_fee",
+              "values": [
+                -32205.0, -32914.65, -33137.01, -35523.87, -36299.32, -33956.55
+              ]
+            },
+            {
+              "label": "net_operating_income",
+              "values": [
+                771295.0, 786140.35, 784987.07, 853568.68, 869790.59, 784924.4
+              ]
+            },
+            {
+              "label": "tenant_improvements",
+              "values": [0.0, 0.0, -249311.5, 0.0, 0.0, -544858.81]
+            },
+            {
+              "label": "leasing_commissions",
+              "values": [0.0, 0.0, -71500.42, 0.0, 0.0, -146494.57]
+            },
+            {
+              "label": "capital_reserves",
+              "values": [
+                -7500.0, -7725.0, -7956.75, -8195.45, -8441.32, -8694.56
+              ]
+            },
+            {
+              "label": "cash_flow_before_debt",
+              "values": [
+                763795.0, 778415.35, 456218.4, 845373.23, 861349.27, 84876.46
+              ]
+            }
+          ]
+        }
+      },
+      "expect": {
+        "value.all_within_tolerance": true,
+        "value.mapping.7.sign_flipped": true
+      }
+    },
+    {
+      "name": "SYNTHETIC small: operating expenses growing 3% a year faster",
+      "input": {
+        "dcf": {
+          "hold_years": 5,
+          "leases": [
+            {
+              "name": "Suite A",
+              "area_sf": 10000,
+              "rent_psf_annual": 30,
+              "months_remaining": 24,
+              "market_rent_psf_annual": 32
+            },
+            {
+              "name": "Suite B",
+              "area_sf": 20000,
+              "rent_psf_annual": 28,
+              "months_remaining": 70,
+              "market_rent_psf_annual": 30,
+              "escalation_rate": 0.03
+            }
+          ],
+          "market_leasing": {
+            "renewal_probability": 0.55,
+            "lease_term_months": 60,
+            "downtime_months": 1,
+            "free_rent_months_new": 3,
+            "free_rent_months_renewal": 1,
+            "ti_psf_new": 40,
+            "ti_psf_renewal": 10,
+            "lc_rate_new": 0.06,
+            "lc_rate_renewal": 0.03
+          },
+          "operating_expenses_psf_annual": 9,
+          "expense_growth_rate": 0.03,
+          "market_rent_growth_rate": 0.03,
+          "general_vacancy_rate": 0.05,
+          "management_fee_rate": 0.03,
+          "capital_reserve_psf_annual": 0.25,
+          "selling_cost_rate": 0.02,
+          "exit_cap_rate": 0.07,
+          "discount_rate": 0.08,
+          "purchase_price": 9000000
+        },
+        "other": {
+          "lines": [
+            {
+              "label": "potential_base_rent",
+              "values": [
+                860000.0, 876800.0, 920861.2, 951415.12, 969772.93, 970326.31
+              ]
+            },
+            {
+              "label": "free_rent",
+              "values": [0.0, 0.0, -41021.47, 0.0, 0.0, -84047.37]
+            },
+            {
+              "label": "expense_recoveries",
+              "values": [
+                270000.0, 278100.0, 282862.46, 295036.29, 303887.38, 305178.9
+              ]
+            },
+            {
+              "label": "gross_revenue",
+              "values": [
+                1130000.0, 1154900.0, 1162702.19, 1246451.41, 1273660.31,
+                1191457.84
+              ]
+            },
+            {
+              "label": "general_vacancy",
+              "values": [
+                -56500.0, -57745.0, -58135.11, -62322.57, -63683.02, -59572.89
+              ]
+            },
+            {
+              "label": "credit_loss",
+              "values": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+            },
+            {
+              "label": "effective_gross_revenue",
+              "values": [
+                1073500.0, 1097155.0, 1104567.08, 1184128.84, 1209977.29,
+                1131884.95
+              ]
+            },
+            {
+              "label": "operating_expenses",
+              "values": [
+                -270000.0, -286443.0, -303887.38, -322394.12, -342027.92,
+                -362857.42
+              ]
+            },
+            {
+              "label": "management_fee",
+              "values": [
+                -32205.0, -32914.65, -33137.01, -35523.87, -36299.32, -33956.55
+              ]
+            },
+            {
+              "label": "net_operating_income",
+              "values": [
+                771295.0, 786140.35, 784987.07, 853568.68, 869790.59, 784924.4
+              ]
+            },
+            {
+              "label": "tenant_improvements",
+              "values": [0.0, 0.0, -249311.5, 0.0, 0.0, -544858.81]
+            },
+            {
+              "label": "leasing_commissions",
+              "values": [0.0, 0.0, -71500.42, 0.0, 0.0, -146494.57]
+            },
+            {
+              "label": "capital_reserves",
+              "values": [
+                -7500.0, -7725.0, -7956.75, -8195.45, -8441.32, -8694.56
+              ]
+            },
+            {
+              "label": "cash_flow_before_debt",
+              "values": [
+                763795.0, 778415.35, 456218.4, 845373.23, 861349.27, 84876.46
+              ]
+            }
+          ]
+        }
+      },
+      "expect": {
+        "value.lines.7.likely_causes.0.cause": "growth_rate"
+      }
+    },
+    {
+      "name": "SYNTHETIC small: capital reserves 10% higher every year",
+      "input": {
+        "dcf": {
+          "hold_years": 5,
+          "leases": [
+            {
+              "name": "Suite A",
+              "area_sf": 10000,
+              "rent_psf_annual": 30,
+              "months_remaining": 24,
+              "market_rent_psf_annual": 32
+            },
+            {
+              "name": "Suite B",
+              "area_sf": 20000,
+              "rent_psf_annual": 28,
+              "months_remaining": 70,
+              "market_rent_psf_annual": 30,
+              "escalation_rate": 0.03
+            }
+          ],
+          "market_leasing": {
+            "renewal_probability": 0.55,
+            "lease_term_months": 60,
+            "downtime_months": 1,
+            "free_rent_months_new": 3,
+            "free_rent_months_renewal": 1,
+            "ti_psf_new": 40,
+            "ti_psf_renewal": 10,
+            "lc_rate_new": 0.06,
+            "lc_rate_renewal": 0.03
+          },
+          "operating_expenses_psf_annual": 9,
+          "expense_growth_rate": 0.03,
+          "market_rent_growth_rate": 0.03,
+          "general_vacancy_rate": 0.05,
+          "management_fee_rate": 0.03,
+          "capital_reserve_psf_annual": 0.25,
+          "selling_cost_rate": 0.02,
+          "exit_cap_rate": 0.07,
+          "discount_rate": 0.08,
+          "purchase_price": 9000000
+        },
+        "other": {
+          "lines": [
+            {
+              "label": "potential_base_rent",
+              "values": [
+                860000.0, 876800.0, 920861.2, 951415.12, 969772.93, 970326.31
+              ]
+            },
+            {
+              "label": "free_rent",
+              "values": [0.0, 0.0, -41021.47, 0.0, 0.0, -84047.37]
+            },
+            {
+              "label": "expense_recoveries",
+              "values": [
+                270000.0, 278100.0, 282862.46, 295036.29, 303887.38, 305178.9
+              ]
+            },
+            {
+              "label": "gross_revenue",
+              "values": [
+                1130000.0, 1154900.0, 1162702.19, 1246451.41, 1273660.31,
+                1191457.84
+              ]
+            },
+            {
+              "label": "general_vacancy",
+              "values": [
+                -56500.0, -57745.0, -58135.11, -62322.57, -63683.02, -59572.89
+              ]
+            },
+            {
+              "label": "credit_loss",
+              "values": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+            },
+            {
+              "label": "effective_gross_revenue",
+              "values": [
+                1073500.0, 1097155.0, 1104567.08, 1184128.84, 1209977.29,
+                1131884.95
+              ]
+            },
+            {
+              "label": "operating_expenses",
+              "values": [
+                -270000.0, -278100.0, -286443.0, -295036.29, -303887.38,
+                -313004.0
+              ]
+            },
+            {
+              "label": "management_fee",
+              "values": [
+                -32205.0, -32914.65, -33137.01, -35523.87, -36299.32, -33956.55
+              ]
+            },
+            {
+              "label": "net_operating_income",
+              "values": [
+                771295.0, 786140.35, 784987.07, 853568.68, 869790.59, 784924.4
+              ]
+            },
+            {
+              "label": "tenant_improvements",
+              "values": [0.0, 0.0, -249311.5, 0.0, 0.0, -544858.81]
+            },
+            {
+              "label": "leasing_commissions",
+              "values": [0.0, 0.0, -71500.42, 0.0, 0.0, -146494.57]
+            },
+            {
+              "label": "capital_reserves",
+              "values": [
+                -8250.0, -8497.5, -8752.43, -9015.0, -9285.45, -9564.02
+              ]
+            },
+            {
+              "label": "cash_flow_before_debt",
+              "values": [
+                763795.0, 778415.35, 456218.4, 845373.23, 861349.27, 84876.46
+              ]
+            }
+          ]
+        }
+      },
+      "expect": {
+        "value.lines.12.likely_causes.0.cause": "constant_ratio"
+      }
+    },
+    {
+      "name": "SYNTHETIC small: capital reserves 5,000 a year more",
+      "input": {
+        "dcf": {
+          "hold_years": 5,
+          "leases": [
+            {
+              "name": "Suite A",
+              "area_sf": 10000,
+              "rent_psf_annual": 30,
+              "months_remaining": 24,
+              "market_rent_psf_annual": 32
+            },
+            {
+              "name": "Suite B",
+              "area_sf": 20000,
+              "rent_psf_annual": 28,
+              "months_remaining": 70,
+              "market_rent_psf_annual": 30,
+              "escalation_rate": 0.03
+            }
+          ],
+          "market_leasing": {
+            "renewal_probability": 0.55,
+            "lease_term_months": 60,
+            "downtime_months": 1,
+            "free_rent_months_new": 3,
+            "free_rent_months_renewal": 1,
+            "ti_psf_new": 40,
+            "ti_psf_renewal": 10,
+            "lc_rate_new": 0.06,
+            "lc_rate_renewal": 0.03
+          },
+          "operating_expenses_psf_annual": 9,
+          "expense_growth_rate": 0.03,
+          "market_rent_growth_rate": 0.03,
+          "general_vacancy_rate": 0.05,
+          "management_fee_rate": 0.03,
+          "capital_reserve_psf_annual": 0.25,
+          "selling_cost_rate": 0.02,
+          "exit_cap_rate": 0.07,
+          "discount_rate": 0.08,
+          "purchase_price": 9000000
+        },
+        "other": {
+          "lines": [
+            {
+              "label": "potential_base_rent",
+              "values": [
+                860000.0, 876800.0, 920861.2, 951415.12, 969772.93, 970326.31
+              ]
+            },
+            {
+              "label": "free_rent",
+              "values": [0.0, 0.0, -41021.47, 0.0, 0.0, -84047.37]
+            },
+            {
+              "label": "expense_recoveries",
+              "values": [
+                270000.0, 278100.0, 282862.46, 295036.29, 303887.38, 305178.9
+              ]
+            },
+            {
+              "label": "gross_revenue",
+              "values": [
+                1130000.0, 1154900.0, 1162702.19, 1246451.41, 1273660.31,
+                1191457.84
+              ]
+            },
+            {
+              "label": "general_vacancy",
+              "values": [
+                -56500.0, -57745.0, -58135.11, -62322.57, -63683.02, -59572.89
+              ]
+            },
+            {
+              "label": "credit_loss",
+              "values": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+            },
+            {
+              "label": "effective_gross_revenue",
+              "values": [
+                1073500.0, 1097155.0, 1104567.08, 1184128.84, 1209977.29,
+                1131884.95
+              ]
+            },
+            {
+              "label": "operating_expenses",
+              "values": [
+                -270000.0, -278100.0, -286443.0, -295036.29, -303887.38,
+                -313004.0
+              ]
+            },
+            {
+              "label": "management_fee",
+              "values": [
+                -32205.0, -32914.65, -33137.01, -35523.87, -36299.32, -33956.55
+              ]
+            },
+            {
+              "label": "net_operating_income",
+              "values": [
+                771295.0, 786140.35, 784987.07, 853568.68, 869790.59, 784924.4
+              ]
+            },
+            {
+              "label": "tenant_improvements",
+              "values": [0.0, 0.0, -249311.5, 0.0, 0.0, -544858.81]
+            },
+            {
+              "label": "leasing_commissions",
+              "values": [0.0, 0.0, -71500.42, 0.0, 0.0, -146494.57]
+            },
+            {
+              "label": "capital_reserves",
+              "values": [
+                -12500.0, -12725.0, -12956.75, -13195.45, -13441.32, -13694.56
+              ]
+            },
+            {
+              "label": "cash_flow_before_debt",
+              "values": [
+                763795.0, 778415.35, 456218.4, 845373.23, 861349.27, 84876.46
+              ]
+            }
+          ]
+        }
+      },
+      "expect": {
+        "value.lines.12.likely_causes.0.cause": "constant_offset",
+        "value.lines.12.years.0.difference": 5000
+      }
+    },
+    {
+      "name": "SYNTHETIC small: capital reserves 5 cents off, one-cent tolerance",
+      "input": {
+        "dcf": {
+          "hold_years": 5,
+          "leases": [
+            {
+              "name": "Suite A",
+              "area_sf": 10000,
+              "rent_psf_annual": 30,
+              "months_remaining": 24,
+              "market_rent_psf_annual": 32
+            },
+            {
+              "name": "Suite B",
+              "area_sf": 20000,
+              "rent_psf_annual": 28,
+              "months_remaining": 70,
+              "market_rent_psf_annual": 30,
+              "escalation_rate": 0.03
+            }
+          ],
+          "market_leasing": {
+            "renewal_probability": 0.55,
+            "lease_term_months": 60,
+            "downtime_months": 1,
+            "free_rent_months_new": 3,
+            "free_rent_months_renewal": 1,
+            "ti_psf_new": 40,
+            "ti_psf_renewal": 10,
+            "lc_rate_new": 0.06,
+            "lc_rate_renewal": 0.03
+          },
+          "operating_expenses_psf_annual": 9,
+          "expense_growth_rate": 0.03,
+          "market_rent_growth_rate": 0.03,
+          "general_vacancy_rate": 0.05,
+          "management_fee_rate": 0.03,
+          "capital_reserve_psf_annual": 0.25,
+          "selling_cost_rate": 0.02,
+          "exit_cap_rate": 0.07,
+          "discount_rate": 0.08,
+          "purchase_price": 9000000
+        },
+        "other": {
+          "lines": [
+            {
+              "label": "potential_base_rent",
+              "values": [
+                860000.0, 876800.0, 920861.2, 951415.12, 969772.93, 970326.31
+              ]
+            },
+            {
+              "label": "free_rent",
+              "values": [0.0, 0.0, -41021.47, 0.0, 0.0, -84047.37]
+            },
+            {
+              "label": "expense_recoveries",
+              "values": [
+                270000.0, 278100.0, 282862.46, 295036.29, 303887.38, 305178.9
+              ]
+            },
+            {
+              "label": "gross_revenue",
+              "values": [
+                1130000.0, 1154900.0, 1162702.19, 1246451.41, 1273660.31,
+                1191457.84
+              ]
+            },
+            {
+              "label": "general_vacancy",
+              "values": [
+                -56500.0, -57745.0, -58135.11, -62322.57, -63683.02, -59572.89
+              ]
+            },
+            {
+              "label": "credit_loss",
+              "values": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+            },
+            {
+              "label": "effective_gross_revenue",
+              "values": [
+                1073500.0, 1097155.0, 1104567.08, 1184128.84, 1209977.29,
+                1131884.95
+              ]
+            },
+            {
+              "label": "operating_expenses",
+              "values": [
+                -270000.0, -278100.0, -286443.0, -295036.29, -303887.38,
+                -313004.0
+              ]
+            },
+            {
+              "label": "management_fee",
+              "values": [
+                -32205.0, -32914.65, -33137.01, -35523.87, -36299.32, -33956.55
+              ]
+            },
+            {
+              "label": "net_operating_income",
+              "values": [
+                771295.0, 786140.35, 784987.07, 853568.68, 869790.59, 784924.4
+              ]
+            },
+            {
+              "label": "tenant_improvements",
+              "values": [0.0, 0.0, -249311.5, 0.0, 0.0, -544858.81]
+            },
+            {
+              "label": "leasing_commissions",
+              "values": [0.0, 0.0, -71500.42, 0.0, 0.0, -146494.57]
+            },
+            {
+              "label": "capital_reserves",
+              "values": [
+                -7499.95, -7724.95, -7956.7, -8195.4, -8441.27, -8694.51
+              ]
+            },
+            {
+              "label": "cash_flow_before_debt",
+              "values": [
+                763795.0, 778415.35, 456218.4, 845373.23, 861349.27, 84876.46
+              ]
+            }
+          ]
+        },
+        "tolerance": {
+          "absolute": 0.01
+        }
+      },
+      "expect": {
+        "value.lines.12.likely_causes.0.cause": "rounding"
+      }
+    },
+    {
+      "name": "SYNTHETIC small: capital reserves missing (zeros)",
+      "input": {
+        "dcf": {
+          "hold_years": 5,
+          "leases": [
+            {
+              "name": "Suite A",
+              "area_sf": 10000,
+              "rent_psf_annual": 30,
+              "months_remaining": 24,
+              "market_rent_psf_annual": 32
+            },
+            {
+              "name": "Suite B",
+              "area_sf": 20000,
+              "rent_psf_annual": 28,
+              "months_remaining": 70,
+              "market_rent_psf_annual": 30,
+              "escalation_rate": 0.03
+            }
+          ],
+          "market_leasing": {
+            "renewal_probability": 0.55,
+            "lease_term_months": 60,
+            "downtime_months": 1,
+            "free_rent_months_new": 3,
+            "free_rent_months_renewal": 1,
+            "ti_psf_new": 40,
+            "ti_psf_renewal": 10,
+            "lc_rate_new": 0.06,
+            "lc_rate_renewal": 0.03
+          },
+          "operating_expenses_psf_annual": 9,
+          "expense_growth_rate": 0.03,
+          "market_rent_growth_rate": 0.03,
+          "general_vacancy_rate": 0.05,
+          "management_fee_rate": 0.03,
+          "capital_reserve_psf_annual": 0.25,
+          "selling_cost_rate": 0.02,
+          "exit_cap_rate": 0.07,
+          "discount_rate": 0.08,
+          "purchase_price": 9000000
+        },
+        "other": {
+          "lines": [
+            {
+              "label": "potential_base_rent",
+              "values": [
+                860000.0, 876800.0, 920861.2, 951415.12, 969772.93, 970326.31
+              ]
+            },
+            {
+              "label": "free_rent",
+              "values": [0.0, 0.0, -41021.47, 0.0, 0.0, -84047.37]
+            },
+            {
+              "label": "expense_recoveries",
+              "values": [
+                270000.0, 278100.0, 282862.46, 295036.29, 303887.38, 305178.9
+              ]
+            },
+            {
+              "label": "gross_revenue",
+              "values": [
+                1130000.0, 1154900.0, 1162702.19, 1246451.41, 1273660.31,
+                1191457.84
+              ]
+            },
+            {
+              "label": "general_vacancy",
+              "values": [
+                -56500.0, -57745.0, -58135.11, -62322.57, -63683.02, -59572.89
+              ]
+            },
+            {
+              "label": "credit_loss",
+              "values": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+            },
+            {
+              "label": "effective_gross_revenue",
+              "values": [
+                1073500.0, 1097155.0, 1104567.08, 1184128.84, 1209977.29,
+                1131884.95
+              ]
+            },
+            {
+              "label": "operating_expenses",
+              "values": [
+                -270000.0, -278100.0, -286443.0, -295036.29, -303887.38,
+                -313004.0
+              ]
+            },
+            {
+              "label": "management_fee",
+              "values": [
+                -32205.0, -32914.65, -33137.01, -35523.87, -36299.32, -33956.55
+              ]
+            },
+            {
+              "label": "net_operating_income",
+              "values": [
+                771295.0, 786140.35, 784987.07, 853568.68, 869790.59, 784924.4
+              ]
+            },
+            {
+              "label": "tenant_improvements",
+              "values": [0.0, 0.0, -249311.5, 0.0, 0.0, -544858.81]
+            },
+            {
+              "label": "leasing_commissions",
+              "values": [0.0, 0.0, -71500.42, 0.0, 0.0, -146494.57]
+            },
+            {
+              "label": "capital_reserves",
+              "values": [0, 0, 0, 0, 0, 0]
+            },
+            {
+              "label": "cash_flow_before_debt",
+              "values": [
+                763795.0, 778415.35, 456218.4, 845373.23, 861349.27, 84876.46
+              ]
+            }
+          ]
+        }
+      },
+      "expect": {
+        "value.lines.12.likely_causes.0.cause": "zero_in_other"
+      }
+    },
+    {
+      "name": "SYNTHETIC small: potential base rent differs only in the year after the hold",
+      "input": {
+        "dcf": {
+          "hold_years": 5,
+          "leases": [
+            {
+              "name": "Suite A",
+              "area_sf": 10000,
+              "rent_psf_annual": 30,
+              "months_remaining": 24,
+              "market_rent_psf_annual": 32
+            },
+            {
+              "name": "Suite B",
+              "area_sf": 20000,
+              "rent_psf_annual": 28,
+              "months_remaining": 70,
+              "market_rent_psf_annual": 30,
+              "escalation_rate": 0.03
+            }
+          ],
+          "market_leasing": {
+            "renewal_probability": 0.55,
+            "lease_term_months": 60,
+            "downtime_months": 1,
+            "free_rent_months_new": 3,
+            "free_rent_months_renewal": 1,
+            "ti_psf_new": 40,
+            "ti_psf_renewal": 10,
+            "lc_rate_new": 0.06,
+            "lc_rate_renewal": 0.03
+          },
+          "operating_expenses_psf_annual": 9,
+          "expense_growth_rate": 0.03,
+          "market_rent_growth_rate": 0.03,
+          "general_vacancy_rate": 0.05,
+          "management_fee_rate": 0.03,
+          "capital_reserve_psf_annual": 0.25,
+          "selling_cost_rate": 0.02,
+          "exit_cap_rate": 0.07,
+          "discount_rate": 0.08,
+          "purchase_price": 9000000
+        },
+        "other": {
+          "lines": [
+            {
+              "label": "potential_base_rent",
+              "values": [
+                860000.0, 876800.0, 920861.2, 951415.12, 969772.93, 971325.31
+              ]
+            },
+            {
+              "label": "free_rent",
+              "values": [0.0, 0.0, -41021.47, 0.0, 0.0, -84047.37]
+            },
+            {
+              "label": "expense_recoveries",
+              "values": [
+                270000.0, 278100.0, 282862.46, 295036.29, 303887.38, 305178.9
+              ]
+            },
+            {
+              "label": "gross_revenue",
+              "values": [
+                1130000.0, 1154900.0, 1162702.19, 1246451.41, 1273660.31,
+                1191457.84
+              ]
+            },
+            {
+              "label": "general_vacancy",
+              "values": [
+                -56500.0, -57745.0, -58135.11, -62322.57, -63683.02, -59572.89
+              ]
+            },
+            {
+              "label": "credit_loss",
+              "values": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+            },
+            {
+              "label": "effective_gross_revenue",
+              "values": [
+                1073500.0, 1097155.0, 1104567.08, 1184128.84, 1209977.29,
+                1131884.95
+              ]
+            },
+            {
+              "label": "operating_expenses",
+              "values": [
+                -270000.0, -278100.0, -286443.0, -295036.29, -303887.38,
+                -313004.0
+              ]
+            },
+            {
+              "label": "management_fee",
+              "values": [
+                -32205.0, -32914.65, -33137.01, -35523.87, -36299.32, -33956.55
+              ]
+            },
+            {
+              "label": "net_operating_income",
+              "values": [
+                771295.0, 786140.35, 784987.07, 853568.68, 869790.59, 784924.4
+              ]
+            },
+            {
+              "label": "tenant_improvements",
+              "values": [0.0, 0.0, -249311.5, 0.0, 0.0, -544858.81]
+            },
+            {
+              "label": "leasing_commissions",
+              "values": [0.0, 0.0, -71500.42, 0.0, 0.0, -146494.57]
+            },
+            {
+              "label": "capital_reserves",
+              "values": [
+                -7500.0, -7725.0, -7956.75, -8195.45, -8441.32, -8694.56
+              ]
+            },
+            {
+              "label": "cash_flow_before_debt",
+              "values": [
+                763795.0, 778415.35, 456218.4, 845373.23, 861349.27, 84876.46
+              ]
+            }
+          ]
+        }
+      },
+      "expect": {
+        "value.lines.0.likely_causes.0.cause": "exit_year_only",
+        "value.lines.0.likely_causes.0.years": [6]
+      }
+    },
+    {
+      "name": "SYNTHETIC small: value and sale on the trailing exit NOI",
+      "input": {
+        "dcf": {
+          "hold_years": 5,
+          "leases": [
+            {
+              "name": "Suite A",
+              "area_sf": 10000,
+              "rent_psf_annual": 30,
+              "months_remaining": 24,
+              "market_rent_psf_annual": 32
+            },
+            {
+              "name": "Suite B",
+              "area_sf": 20000,
+              "rent_psf_annual": 28,
+              "months_remaining": 70,
+              "market_rent_psf_annual": 30,
+              "escalation_rate": 0.03
+            }
+          ],
+          "market_leasing": {
+            "renewal_probability": 0.55,
+            "lease_term_months": 60,
+            "downtime_months": 1,
+            "free_rent_months_new": 3,
+            "free_rent_months_renewal": 1,
+            "ti_psf_new": 40,
+            "ti_psf_renewal": 10,
+            "lc_rate_new": 0.06,
+            "lc_rate_renewal": 0.03
+          },
+          "operating_expenses_psf_annual": 9,
+          "expense_growth_rate": 0.03,
+          "market_rent_growth_rate": 0.03,
+          "general_vacancy_rate": 0.05,
+          "management_fee_rate": 0.03,
+          "capital_reserve_psf_annual": 0.25,
+          "selling_cost_rate": 0.02,
+          "exit_cap_rate": 0.07,
+          "discount_rate": 0.08,
+          "purchase_price": 9000000
+        },
+        "other": {
+          "lines": [
+            {
+              "label": "potential_base_rent",
+              "values": [
+                860000.0, 876800.0, 920861.2, 951415.12, 969772.93, 970326.31
+              ]
+            },
+            {
+              "label": "free_rent",
+              "values": [0.0, 0.0, -41021.47, 0.0, 0.0, -84047.37]
+            },
+            {
+              "label": "expense_recoveries",
+              "values": [
+                270000.0, 278100.0, 282862.46, 295036.29, 303887.38, 305178.9
+              ]
+            },
+            {
+              "label": "gross_revenue",
+              "values": [
+                1130000.0, 1154900.0, 1162702.19, 1246451.41, 1273660.31,
+                1191457.84
+              ]
+            },
+            {
+              "label": "general_vacancy",
+              "values": [
+                -56500.0, -57745.0, -58135.11, -62322.57, -63683.02, -59572.89
+              ]
+            },
+            {
+              "label": "credit_loss",
+              "values": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+            },
+            {
+              "label": "effective_gross_revenue",
+              "values": [
+                1073500.0, 1097155.0, 1104567.08, 1184128.84, 1209977.29,
+                1131884.95
+              ]
+            },
+            {
+              "label": "operating_expenses",
+              "values": [
+                -270000.0, -278100.0, -286443.0, -295036.29, -303887.38,
+                -313004.0
+              ]
+            },
+            {
+              "label": "management_fee",
+              "values": [
+                -32205.0, -32914.65, -33137.01, -35523.87, -36299.32, -33956.55
+              ]
+            },
+            {
+              "label": "net_operating_income",
+              "values": [
+                771295.0, 786140.35, 784987.07, 853568.68, 869790.59, 784924.4
+              ]
+            },
+            {
+              "label": "tenant_improvements",
+              "values": [0.0, 0.0, -249311.5, 0.0, 0.0, -544858.81]
+            },
+            {
+              "label": "leasing_commissions",
+              "values": [0.0, 0.0, -71500.42, 0.0, 0.0, -146494.57]
+            },
+            {
+              "label": "capital_reserves",
+              "values": [
+                -7500.0, -7725.0, -7956.75, -8195.45, -8441.32, -8694.56
+              ]
+            },
+            {
+              "label": "cash_flow_before_debt",
+              "values": [
+                763795.0, 778415.35, 456218.4, 845373.23, 861349.27, 84876.46
+              ]
+            }
+          ],
+          "value": 11231846.62,
+          "gross_sale_price": 12425579.86
+        }
+      },
+      "expect": {
+        "value.totals.0.likely_causes.0.cause": "exit_noi_basis",
+        "value.totals.1.likely_causes.0.cause": "exit_noi_basis"
+      }
+    },
+    {
+      "name": "SYNTHETIC small: lines agree, IRR differs",
+      "input": {
+        "dcf": {
+          "hold_years": 5,
+          "leases": [
+            {
+              "name": "Suite A",
+              "area_sf": 10000,
+              "rent_psf_annual": 30,
+              "months_remaining": 24,
+              "market_rent_psf_annual": 32
+            },
+            {
+              "name": "Suite B",
+              "area_sf": 20000,
+              "rent_psf_annual": 28,
+              "months_remaining": 70,
+              "market_rent_psf_annual": 30,
+              "escalation_rate": 0.03
+            }
+          ],
+          "market_leasing": {
+            "renewal_probability": 0.55,
+            "lease_term_months": 60,
+            "downtime_months": 1,
+            "free_rent_months_new": 3,
+            "free_rent_months_renewal": 1,
+            "ti_psf_new": 40,
+            "ti_psf_renewal": 10,
+            "lc_rate_new": 0.06,
+            "lc_rate_renewal": 0.03
+          },
+          "operating_expenses_psf_annual": 9,
+          "expense_growth_rate": 0.03,
+          "market_rent_growth_rate": 0.03,
+          "general_vacancy_rate": 0.05,
+          "management_fee_rate": 0.03,
+          "capital_reserve_psf_annual": 0.25,
+          "selling_cost_rate": 0.02,
+          "exit_cap_rate": 0.07,
+          "discount_rate": 0.08,
+          "purchase_price": 9000000
+        },
+        "other": {
+          "lines": [
+            {
+              "label": "potential_base_rent",
+              "values": [
+                860000.0, 876800.0, 920861.2, 951415.12, 969772.93, 970326.31
+              ]
+            },
+            {
+              "label": "free_rent",
+              "values": [0.0, 0.0, -41021.47, 0.0, 0.0, -84047.37]
+            },
+            {
+              "label": "expense_recoveries",
+              "values": [
+                270000.0, 278100.0, 282862.46, 295036.29, 303887.38, 305178.9
+              ]
+            },
+            {
+              "label": "gross_revenue",
+              "values": [
+                1130000.0, 1154900.0, 1162702.19, 1246451.41, 1273660.31,
+                1191457.84
+              ]
+            },
+            {
+              "label": "general_vacancy",
+              "values": [
+                -56500.0, -57745.0, -58135.11, -62322.57, -63683.02, -59572.89
+              ]
+            },
+            {
+              "label": "credit_loss",
+              "values": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+            },
+            {
+              "label": "effective_gross_revenue",
+              "values": [
+                1073500.0, 1097155.0, 1104567.08, 1184128.84, 1209977.29,
+                1131884.95
+              ]
+            },
+            {
+              "label": "operating_expenses",
+              "values": [
+                -270000.0, -278100.0, -286443.0, -295036.29, -303887.38,
+                -313004.0
+              ]
+            },
+            {
+              "label": "management_fee",
+              "values": [
+                -32205.0, -32914.65, -33137.01, -35523.87, -36299.32, -33956.55
+              ]
+            },
+            {
+              "label": "net_operating_income",
+              "values": [
+                771295.0, 786140.35, 784987.07, 853568.68, 869790.59, 784924.4
+              ]
+            },
+            {
+              "label": "tenant_improvements",
+              "values": [0.0, 0.0, -249311.5, 0.0, 0.0, -544858.81]
+            },
+            {
+              "label": "leasing_commissions",
+              "values": [0.0, 0.0, -71500.42, 0.0, 0.0, -146494.57]
+            },
+            {
+              "label": "capital_reserves",
+              "values": [
+                -7500.0, -7725.0, -7956.75, -8195.45, -8441.32, -8694.56
+              ]
+            },
+            {
+              "label": "cash_flow_before_debt",
+              "values": [
+                763795.0, 778415.35, 456218.4, 845373.23, 861349.27, 84876.46
+              ]
+            }
+          ],
+          "unlevered_irr": 0.120801
+        }
+      },
+      "expect": {
+        "value.totals.0.likely_causes.0.cause": "irr_convention",
+        "value.totals.0.difference": -0.004
+      }
+    },
+    {
+      "name": "SYNTHETIC small: potential base rent at full occupancy with a turnover vacancy line, an ignored line, an unmapped line",
+      "input": {
+        "dcf": {
+          "hold_years": 5,
+          "leases": [
+            {
+              "name": "Suite A",
+              "area_sf": 10000,
+              "rent_psf_annual": 30,
+              "months_remaining": 24,
+              "market_rent_psf_annual": 32
+            },
+            {
+              "name": "Suite B",
+              "area_sf": 20000,
+              "rent_psf_annual": 28,
+              "months_remaining": 70,
+              "market_rent_psf_annual": 30,
+              "escalation_rate": 0.03
+            }
+          ],
+          "market_leasing": {
+            "renewal_probability": 0.55,
+            "lease_term_months": 60,
+            "downtime_months": 1,
+            "free_rent_months_new": 3,
+            "free_rent_months_renewal": 1,
+            "ti_psf_new": 40,
+            "ti_psf_renewal": 10,
+            "lc_rate_new": 0.06,
+            "lc_rate_renewal": 0.03
+          },
+          "operating_expenses_psf_annual": 9,
+          "expense_growth_rate": 0.03,
+          "market_rent_growth_rate": 0.03,
+          "general_vacancy_rate": 0.05,
+          "management_fee_rate": 0.03,
+          "capital_reserve_psf_annual": 0.25,
+          "selling_cost_rate": 0.02,
+          "exit_cap_rate": 0.07,
+          "discount_rate": 0.08,
+          "purchase_price": 9000000
+        },
+        "other": {
+          "lines": [
+            {
+              "label": "Potential Base Rent",
+              "values": [
+                861000.0, 877800.0, 921861.2, 952415.12, 970772.93, 971326.31
+              ]
+            },
+            {
+              "label": "Absorption & Turnover Vacancy",
+              "values": [1000, 1000, 1000, 1000, 1000, 1000]
+            },
+            {
+              "label": "Real Estate Taxes",
+              "values": [1, 2, 3]
+            },
+            {
+              "label": "Parking Income",
+              "values": [5, 5, 5]
+            },
+            {
+              "label": "NOI",
+              "values": [
+                771295.0, 786140.35, 784987.07, 853568.68, 869790.59, 784924.4
+              ]
+            }
+          ]
+        },
+        "mapping": [
+          {
+            "label": "real estate taxes",
+            "line": "ignore"
+          }
+        ]
+      },
+      "expect": {
+        "value.all_within_tolerance": true,
+        "value.lines.0.other_labels": [
+          "Potential Base Rent",
+          "Absorption & Turnover Vacancy"
+        ],
+        "value.unmapped_labels": ["Parking Income"],
+        "value.ignored_labels": ["Real Estate Taxes"],
+        "value.cells_compared": 12
+      }
+    },
+    {
+      "name": "SYNTHETIC small: general vacancy charged where FactLot's rate is 0",
+      "input": {
+        "dcf": {
+          "hold_years": 5,
+          "leases": [
+            {
+              "name": "Suite A",
+              "area_sf": 10000,
+              "rent_psf_annual": 30,
+              "months_remaining": 24,
+              "market_rent_psf_annual": 32
+            },
+            {
+              "name": "Suite B",
+              "area_sf": 20000,
+              "rent_psf_annual": 28,
+              "months_remaining": 70,
+              "market_rent_psf_annual": 30,
+              "escalation_rate": 0.03
+            }
+          ],
+          "market_leasing": {
+            "renewal_probability": 0.55,
+            "lease_term_months": 60,
+            "downtime_months": 1,
+            "free_rent_months_new": 3,
+            "free_rent_months_renewal": 1,
+            "ti_psf_new": 40,
+            "ti_psf_renewal": 10,
+            "lc_rate_new": 0.06,
+            "lc_rate_renewal": 0.03
+          },
+          "operating_expenses_psf_annual": 9,
+          "expense_growth_rate": 0.03,
+          "market_rent_growth_rate": 0.03,
+          "general_vacancy_rate": 0,
+          "management_fee_rate": 0.03,
+          "capital_reserve_psf_annual": 0.25,
+          "selling_cost_rate": 0.02,
+          "exit_cap_rate": 0.07,
+          "discount_rate": 0.08,
+          "purchase_price": 9000000
+        },
+        "other": {
+          "lines": [
+            {
+              "label": "General Vacancy",
+              "values": [
+                -56500.0, -57745.0, -58135.11, -62322.57, -63683.02, -59572.89
+              ]
+            }
+          ]
+        }
+      },
+      "expect": {
+        "value.lines.0.likely_causes.0.cause": "rate_not_entered"
+      }
+    },
+    {
+      "name": "two labels that read the same",
+      "input": {
+        "dcf": {
+          "hold_years": 5,
+          "leases": [
+            {
+              "name": "Suite A",
+              "area_sf": 10000,
+              "rent_psf_annual": 30,
+              "months_remaining": 24,
+              "market_rent_psf_annual": 32
+            },
+            {
+              "name": "Suite B",
+              "area_sf": 20000,
+              "rent_psf_annual": 28,
+              "months_remaining": 70,
+              "market_rent_psf_annual": 30,
+              "escalation_rate": 0.03
+            }
+          ],
+          "market_leasing": {
+            "renewal_probability": 0.55,
+            "lease_term_months": 60,
+            "downtime_months": 1,
+            "free_rent_months_new": 3,
+            "free_rent_months_renewal": 1,
+            "ti_psf_new": 40,
+            "ti_psf_renewal": 10,
+            "lc_rate_new": 0.06,
+            "lc_rate_renewal": 0.03
+          },
+          "operating_expenses_psf_annual": 9,
+          "expense_growth_rate": 0.03,
+          "market_rent_growth_rate": 0.03,
+          "general_vacancy_rate": 0.05,
+          "management_fee_rate": 0.03,
+          "capital_reserve_psf_annual": 0.25,
+          "selling_cost_rate": 0.02,
+          "exit_cap_rate": 0.07,
+          "discount_rate": 0.08,
+          "purchase_price": 9000000
+        },
+        "other": {
+          "lines": [
+            {
+              "label": "NOI",
+              "values": [1]
+            },
+            {
+              "label": "noi!",
+              "values": [2]
+            }
+          ]
+        }
+      },
+      "expect_error": true
+    },
+    {
+      "name": "a line with no values",
+      "input": {
+        "dcf": {
+          "hold_years": 5,
+          "leases": [
+            {
+              "name": "Suite A",
+              "area_sf": 10000,
+              "rent_psf_annual": 30,
+              "months_remaining": 24,
+              "market_rent_psf_annual": 32
+            },
+            {
+              "name": "Suite B",
+              "area_sf": 20000,
+              "rent_psf_annual": 28,
+              "months_remaining": 70,
+              "market_rent_psf_annual": 30,
+              "escalation_rate": 0.03
+            }
+          ],
+          "market_leasing": {
+            "renewal_probability": 0.55,
+            "lease_term_months": 60,
+            "downtime_months": 1,
+            "free_rent_months_new": 3,
+            "free_rent_months_renewal": 1,
+            "ti_psf_new": 40,
+            "ti_psf_renewal": 10,
+            "lc_rate_new": 0.06,
+            "lc_rate_renewal": 0.03
+          },
+          "operating_expenses_psf_annual": 9,
+          "expense_growth_rate": 0.03,
+          "market_rent_growth_rate": 0.03,
+          "general_vacancy_rate": 0.05,
+          "management_fee_rate": 0.03,
+          "capital_reserve_psf_annual": 0.25,
+          "selling_cost_rate": 0.02,
+          "exit_cap_rate": 0.07,
+          "discount_rate": 0.08,
+          "purchase_price": 9000000
+        },
+        "other": {
+          "lines": [
+            {
+              "label": "NOI",
+              "values": []
+            }
+          ]
+        }
+      },
+      "expect_error": true
+    },
+    {
+      "name": "an invalid DCF input",
+      "input": {
+        "dcf": {
+          "hold_years": 0,
+          "leases": [
+            {
+              "name": "Suite A",
+              "area_sf": 10000,
+              "rent_psf_annual": 30,
+              "months_remaining": 24,
+              "market_rent_psf_annual": 32
+            },
+            {
+              "name": "Suite B",
+              "area_sf": 20000,
+              "rent_psf_annual": 28,
+              "months_remaining": 70,
+              "market_rent_psf_annual": 30,
+              "escalation_rate": 0.03
+            }
+          ],
+          "market_leasing": {
+            "renewal_probability": 0.55,
+            "lease_term_months": 60,
+            "downtime_months": 1,
+            "free_rent_months_new": 3,
+            "free_rent_months_renewal": 1,
+            "ti_psf_new": 40,
+            "ti_psf_renewal": 10,
+            "lc_rate_new": 0.06,
+            "lc_rate_renewal": 0.03
+          },
+          "operating_expenses_psf_annual": 9,
+          "expense_growth_rate": 0.03,
+          "market_rent_growth_rate": 0.03,
+          "general_vacancy_rate": 0.05,
+          "management_fee_rate": 0.03,
+          "capital_reserve_psf_annual": 0.25,
+          "selling_cost_rate": 0.02,
+          "exit_cap_rate": 0.07,
+          "discount_rate": 0.08,
+          "purchase_price": 9000000
+        },
+        "other": {
+          "lines": [
+            {
+              "label": "NOI",
+              "values": [1]
+            }
+          ]
+        }
+      },
+      "expect_error": true
+    },
+    {
+      "name": "a mapping to an unknown line",
+      "input": {
+        "dcf": {
+          "hold_years": 5,
+          "leases": [
+            {
+              "name": "Suite A",
+              "area_sf": 10000,
+              "rent_psf_annual": 30,
+              "months_remaining": 24,
+              "market_rent_psf_annual": 32
+            },
+            {
+              "name": "Suite B",
+              "area_sf": 20000,
+              "rent_psf_annual": 28,
+              "months_remaining": 70,
+              "market_rent_psf_annual": 30,
+              "escalation_rate": 0.03
+            }
+          ],
+          "market_leasing": {
+            "renewal_probability": 0.55,
+            "lease_term_months": 60,
+            "downtime_months": 1,
+            "free_rent_months_new": 3,
+            "free_rent_months_renewal": 1,
+            "ti_psf_new": 40,
+            "ti_psf_renewal": 10,
+            "lc_rate_new": 0.06,
+            "lc_rate_renewal": 0.03
+          },
+          "operating_expenses_psf_annual": 9,
+          "expense_growth_rate": 0.03,
+          "market_rent_growth_rate": 0.03,
+          "general_vacancy_rate": 0.05,
+          "management_fee_rate": 0.03,
+          "capital_reserve_psf_annual": 0.25,
+          "selling_cost_rate": 0.02,
+          "exit_cap_rate": 0.07,
+          "discount_rate": 0.08,
+          "purchase_price": 9000000
+        },
+        "other": {
+          "lines": [
+            {
+              "label": "NOI",
+              "values": [1]
+            }
+          ]
+        },
+        "mapping": [
+          {
+            "label": "NOI",
+            "line": "noi"
+          }
+        ]
+      },
+      "expect_error": true
+    }
+  ]
+}
