@@ -454,14 +454,16 @@
     "tool": "registry_tx_equity_candidates",
     "arguments": {
       "urn": "fl:parcel:us-48997:1000001",
-      "min_matches": 5
+      "min_matches": 5,
+      "tax_year": 2026
     }
   },
   {
     "tool": "registry_tx_equity_candidates",
     "arguments": {
       "urn": "fl:parcel:us-48997:1000001",
-      "limit": 2
+      "limit": 2,
+      "tax_year": 2026
     }
   },
   {
@@ -469,7 +471,36 @@
     "arguments": {
       "urn": "fl:parcel:us-48997:1000001",
       "area_band": 0.1,
-      "year_band": 5
+      "year_band": 5,
+      "tax_year": 2026
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates",
+    "arguments": {
+      "urn": "fl:parcel:us-48997:1000001",
+      "tax_year": 2026
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates",
+    "arguments": {
+      "urn": "fl:parcel:us-48997:1000001",
+      "tax_year": 2025
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates",
+    "arguments": {
+      "urn": "fl:parcel:us-48997:1000001",
+      "tax_year": 2027
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates",
+    "arguments": {
+      "urn": "fl:parcel:us-48997:1000001",
+      "tax_year": 2024
     }
   },
   {
@@ -612,6 +643,32 @@
     "arguments": {
       "urn": "fl:parcel:us-48997:1000001",
       "min_matche": 3
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates",
+    "arguments": {
+      "urn": "fl:parcel:us-48439:00001234"
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates",
+    "arguments": {
+      "county_fips": "439",
+      "apn": "00001234"
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates",
+    "arguments": {
+      "urn": "fl:parcel:us-48997:1000001",
+      "tax_year": 1800
+    }
+  },
+  {
+    "tool": "registry_get",
+    "arguments": {
+      "urn": "fl:parcel:us-48997:1000003"
     }
   }
 ]

@@ -157,13 +157,17 @@ test("registry tools: TypeScript matches Python on the shared fixture", () => {
     assert.deepEqual(
       history?.map((e) => [e.tax_year, e.as_of]),
       [
+        [2027, "2027-04-15"],
         [2026, "2026-10-15"],
         [2026, "2026-07-25"],
         [2025, "2025-07-25"],
       ],
     );
     // Equity candidates: tiers in order.
-    const eq = runTool("registry_tx_equity_candidates", { urn: subject });
+    const eq = runTool("registry_tx_equity_candidates", {
+      urn: subject,
+      tax_year: 2026,
+    });
     assert.ok(eq.ok);
     const result = eq.result as {
       selection: { tiers: { tier: string; ids: string[] }[] };
@@ -175,6 +179,47 @@ test("registry tools: TypeScript matches Python on the shared fixture", () => {
         ["zip", 4],
         ["county", 1],
       ],
+    );
+    // One tax year at a time: the 2027 preliminary roll's codes and class, never 2026's.
+    const y2027 = runTool("registry_tx_equity_candidates", { urn: subject });
+    assert.ok(y2027.ok);
+    const r2027 = y2027.result as {
+      subject: { building_class: string | null };
+      candidates: {
+        id: string;
+        neighborhood_code: string | null;
+        building_class: string | null;
+        tax_year: number;
+      }[];
+      selection: { tax_year: number; roll_sources: string[] };
+    };
+    assert.deepEqual(
+      [
+        r2027.selection.tax_year,
+        r2027.selection.roll_sources,
+        r2027.subject.building_class,
+      ],
+      [2027, ["test-cad-997-2027"], "C"],
+    );
+    assert.deepEqual(
+      r2027.candidates.map((c) => [
+        c.id.slice(-2),
+        c.neighborhood_code,
+        c.building_class,
+        c.tax_year,
+      ]),
+      [
+        ["02", "N150", "A", 2027],
+        ["09", "N300", null, 2027],
+      ],
+    );
+    const tarrant = runTool("registry_tx_equity_candidates", {
+      urn: "fl:parcel:us-48439:00001234",
+    });
+    assert.ok(!tarrant.ok && tarrant.error.error === "InputError");
+    assert.match(
+      tarrant.ok ? "" : tarrant.error.message,
+      /Tarrant Appraisal District's published signals do not say whether serving its data to AI agents is allowed/,
     );
     // No owner data in any equity output (TypeScript's own run): every ownership.* fact ID and value in
     // the file, what the roll gave for the owners the registry does not keep (a natural person, an owner

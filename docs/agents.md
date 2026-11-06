@@ -156,11 +156,20 @@ spreadsheet or another model before relying on a figure:
 `registry_tx_equity_candidates` lists candidate comparable parcels for a Texas unequal-appraisal
 comparison (Tax Code §41.43(b)(3)) from a local registry file (`FACTLOT_REGISTRY_DB`; the hosted
 API has no registry loaded). Give the subject as `urn`, or as `county_fips` and `apn`. Parcels
-outside Texas are an input error.
+outside Texas are an input error, and so are Tarrant County parcels: Tarrant Appraisal District's
+published signals do not say whether serving its data to AI agents is allowed, so FactLot does not
+serve Tarrant comparables until that is clarified.
+
+- **One tax year.** Each tax year's roll is its own registry source, so a parcel can carry a
+  certified roll and next year's preliminary roll at once. The tool compares within one year: the
+  newest tax year whose roll gives the subject a positive market or appraised value, or the
+  `tax_year` you pass. Every field of the subject and of each candidate comes from that year's roll
+  (building class also from the district's buildings file for that year), and candidates come only
+  from the same district's roll for that year. `selection.tax_year`, `available_tax_years`,
+  `roll_sources`, and `building_class_sources` say what was used.
 
 - **Default rule** (FactLot's design, not a legal standard; every parameter is optional and echoed
-  in `selection.parameters`): same appraisal district (county) and tax year as the subject's current
-  facts; exactly the same `parcel.state_property_category` code; improvement area within
+  in `selection.parameters`): same appraisal district (county) and roll year as the subject; exactly the same `parcel.state_property_category` code; improvement area within
   `area_band` (0.35, a share) of the subject's; year built within `year_band` (15) years when both
   are known; an appraised or market value. Parcels sharing the subject's `parcel.neighborhood_code`
   come first when the registry holds one, then the subject's 5-digit ZIP code, then the rest of the
@@ -175,8 +184,8 @@ outside Texas are an input error.
   `attribution` (null when the source asks for none), `ai_use`, and `redistribution`: relay them
   with the candidate.
 - **Value history.** The subject, and every parcel's `registry_get` record, carry `value_history`:
-  market and appraised value by tax year from every snapshot, newest first, each value cited. A
-  tax year two snapshots value differently is listed once per value.
+  market and appraised value by tax year from every snapshot, newest first, each value cited to the
+  roll of that tax year. A tax year two snapshots value differently is listed once per value.
 - **Boundaries.** These are candidates: the user, or the consultant or attorney working for them,
   decides which to use and supplies any adjustments. Say that the selection rule is FactLot's
   default, that the output is evidence for a calculation, not an appraisal, and that FactLot does

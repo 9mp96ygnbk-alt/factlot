@@ -88,7 +88,7 @@
       "verified": true,
       "terms_url": "https://www.tad.org/robots.txt",
       "license": "Public record; no license or terms of use stated for the downloads",
-      "ai_use": "robots.txt Content-Signal: search=yes, ai-train=no, use=reference. The publisher reserves rights against AI training; use as reference input is signalled as allowed. The registry does not train models on this data",
+      "ai_use": "robots.txt (www.tad.org) for generic agents: \"Content-Signal: search=yes,ai-train=no,use=reference\". The publisher reserves rights against AI training. use=reference is not defined by the Content-Signal vocabulary, and ai-input is not stated, so whether serving the data to AI agents is allowed is unclear; until that is clarified FactLot does not serve Tarrant comparables (registry_tx_equity_candidates). The registry does not train models on this data",
       "redistribution": "Not addressed by the publisher; public record",
       "reviewed": "2026-11-02",
       "notes": "robots.txt allows all paths for generic agents and disallows a list of named AI crawlers (the FactLot bot is not among them). PropertyData(Delimited)_C.ZIP is the commercial-only extract; 000_Tarrant_All_Taxing_Units.zip is the full True Prodigy extract. Prior certified years are also published (PropertyData_<year>(Certified).ZIP)."

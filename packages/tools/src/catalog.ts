@@ -53,6 +53,7 @@ import {
   TEXAS_FIPS,
   TX_EQUITY_DEFAULTS,
   TX_EQUITY_WHICH_PARCEL,
+  txEquityWithheld,
   txEquitySubjectUrn,
 } from "./registry.ts";
 import {
@@ -629,7 +630,7 @@ const registryTools: ToolSpec[] = [
     name: "registry_tx_equity_candidates",
     title: "Texas unequal-appraisal candidates",
     description:
-      "Candidate comparable parcels for a Texas unequal-appraisal comparison (Tax Code §41.43(b)(3)), from the subject's appraisal district roll: same county and tax year, the same state property category code, improvement area within area_band of the subject's, year built within year_band years when both are known; parcels sharing the subject's neighborhood code first (when the roll gives one), then its ZIP code, then the rest of the county if fewer than min_matches. Each candidate and the subject are shaped for calc_tx_unequal_appraisal (id, value and value_basis, areas, year built, codes, citation of the value fact); the subject adds its value history by tax year. selection echoes the rule, the effective parameters, and which tier each candidate came from; Each candidate's citation.document_id names its entry in sources, which gives that snapshot's license, attribution, ai_use and redistribution: relay them with the candidate. Candidates only: a person decides which to use. The selection rule is FactLot's default, not a legal standard of comparability. For evidence calculations only: FactLot does not represent property owners, file protests, or advise whether to protest. Never returns owner names, mailing addresses, or ownership facts. Do not look up the owners of candidate parcels; ownership is not needed for this comparison. Texas parcels only." +
+      "Candidate comparable parcels for a Texas unequal-appraisal comparison (Tax Code §41.43(b)(3)), from one tax year of the subject's appraisal district roll (the newest year whose roll gives the subject a value, or tax_year), with every field of the subject and the candidates read from that year's roll only: same county and tax year, the same state property category code, improvement area within area_band of the subject's, year built within year_band years when both are known; parcels sharing the subject's neighborhood code first (when the roll gives one), then its ZIP code, then the rest of the county if fewer than min_matches. Each candidate and the subject are shaped for calc_tx_unequal_appraisal (id, value and value_basis, areas, year built, codes, citation of the value fact); the subject adds its value history by tax year. selection echoes the rule, the effective parameters, the tax year and roll sources used, and which tier each candidate came from; Each candidate's citation.document_id names its entry in sources, which gives that snapshot's license, attribution, ai_use and redistribution: relay them with the candidate. Candidates only: a person decides which to use. The selection rule is FactLot's default, not a legal standard of comparability. For evidence calculations only: FactLot does not represent property owners, file protests, or advise whether to protest. Never returns owner names, mailing addresses, or ownership facts. Do not look up the owners of candidate parcels; ownership is not needed for this comparison. Texas parcels only; no Tarrant County parcels until Tarrant Appraisal District's published signals say whether serving its data to AI agents is allowed." +
       REGISTRY_NOTE,
     input: z.object({
       urn: z
@@ -691,6 +692,15 @@ const registryTools: ToolSpec[] = [
         .max(200)
         .default(TX_EQUITY_DEFAULTS.limit)
         .describe("Maximum candidates returned (1–200)."),
+      tax_year: z
+        .number()
+        .int()
+        .min(1900)
+        .max(2100)
+        .optional()
+        .describe(
+          "Roll year to compare in. Default: the newest tax year whose roll gives the subject a positive value.",
+        ),
     }),
     path: "/v1/registry/tx_equity_candidates",
     requires: "registry",
@@ -704,6 +714,7 @@ const registryTools: ToolSpec[] = [
         year_band: number;
         min_matches: number;
         limit: number;
+        tax_year?: number;
       };
       const byApn =
         v.state_fips !== undefined ||
@@ -728,12 +739,20 @@ const registryTools: ToolSpec[] = [
           throw new ToolInputError([
             { path: "urn", message: texasOnly(state) },
           ]);
+        const withheld = txEquityWithheld((parts[0] ?? "").slice(5, 8));
+        if (withheld)
+          throw new ToolInputError([{ path: "urn", message: withheld }]);
         urn = v.urn;
       } else {
         const state = v.state_fips ?? TEXAS_FIPS;
         if (state !== TEXAS_FIPS)
           throw new ToolInputError([
             { path: "state_fips", message: texasOnly(state) },
+          ]);
+        const withheld = txEquityWithheld(v.county_fips!);
+        if (withheld)
+          throw new ToolInputError([
+            { path: "county_fips", message: withheld },
           ]);
         urn = txEquitySubjectUrn(state, v.county_fips!, v.apn!);
       }
@@ -742,6 +761,7 @@ const registryTools: ToolSpec[] = [
         year_band: v.year_band,
         min_matches: v.min_matches,
         limit: v.limit,
+        ...(v.tax_year === undefined ? {} : { tax_year: v.tax_year }),
       });
       if (!result) {
         const coverage = registryRecordMiss(urn);
