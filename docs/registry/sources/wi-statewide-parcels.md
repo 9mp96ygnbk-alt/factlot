@@ -333,8 +333,8 @@ By county (county from `CONAME`, as fixed in the statewide extension):
 
 ## Known gaps
 
-- Only Milwaukee County has been archived and loaded so far; the other 71 counties' 121 pages are in the config
-  (statewide extension above) and are archived by the next weekly collector run.
+- Resolved 2026-11-03: this bullet said only Milwaukee County was loaded. The other 71 counties' 121 pages were archived
+  and loaded the same day (Statewide full load above: 169,174 parcels in 71 counties; 185,754 in 72 with Milwaukee).
 - The page list is cut to V12's counts; a county that grows before V13 would lose its last rows until the list is
   regenerated (re-run the group-by and rebuild the offsets at each release).
 - No building area or year built in the layer. Apartments cannot be separated from commercial (see above).
