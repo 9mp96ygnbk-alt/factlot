@@ -363,7 +363,9 @@ async function main(): Promise<void> {
   notes.push(`${vectorCount} conformance vectors replayed over REST`);
 
   // --- 4. Every MCP tool, and MCP = REST ------------------------------------------------------
-  await sleep(DELAY);
+  // The REST section runs close to the free tier's 60 a minute; the MCP handshake sends several
+  // requests at once, so start it in a fresh rate window.
+  await sleep(Math.max(DELAY, 61_000));
   const client = new Client({ name: "factlot-hosted-e2e", version: "1.0.0" });
   await client.connect(
     new StreamableHTTPClientTransport(new URL(`${API}/mcp`)),
