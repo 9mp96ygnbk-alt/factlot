@@ -32,6 +32,7 @@ identity layer for commercial real estate.
   - ~~hotel RevPAR, ADR, and GOP~~
   - NYC LL97 penalty: drafted (not yet verified); see [rules](rules.md#draft-packs)
 - [x] Rules-pack framework (versioned, cited, verification status) and the first pack: Texas property tax protest deadline (verified against the official statute text on 2026-11-02)
+- [ ] Texas commercial protest kit for the 2027 season: unequal-appraisal calculator, evidence dates, comparable candidates, value history, evidence workbook ([spec](tx-protest-kit.md))
 - [x] Lease ingestion prototype with deterministic quote verification and amendment supersession ([ingest](ingest.md)); next: accuracy on real leases
 - [x] Build **FactLot Bench**: 14 CRE agent tasks with independent ground truth, a
       runner that compares the model alone with the model plus FactLot tools, and
