@@ -55,4 +55,21 @@ Before sending a request:
 | Dallas CAD |      |               |              |          |          |       |
 | Travis CAD |      |               |              |          |          |       |
 | Tarrant AD |      |               |              |          |          |       |
-| Bexar AD   |      |               |              |          |          |       |
+| Bexar AD   | not sent |               |              | not accepted |          | Form retrieved 2026-11-06 (279,462 bytes). Draft below. Help Center returned HTTP 403 to a plain fetch. |
+
+## Bexar CAD — prepared 2026-11-06, not sent
+
+Verified from the district PDF at
+`https://bcad.org/wp-content/uploads/2026/04/BCAD-Public-Information-Act-Request.pdf`
+(HTTP 200, 279,462 bytes, form GR1000-34):
+
+- Mail: Bexar Central Appraisal District, Attention: Records Management Officer, 411 North Frio Street, San Antonio, TX 78207
+- Email: OpenRecords@bcad.org (not sent; email stays on the review path)
+- Fax: (210) 242-2455 (not sent)
+- Online: Help Center at https://help.bcad.org/hc/en-us, request type Open Records. A plain fetch of the help article returned HTTP 403, so that route was not used.
+
+The form asks for a name, mailing address, phone, a yes/no on mandatory redactions, a yes/no on discretionary redactions, and a signature. Those are blank here. No fee is authorized. The form says electronic-data costs are available by written request and that charges over $40 require an estimate before work starts.
+
+Description to put on the form, once a person signs it:
+
+> Existing electronic copy of the current certified appraisal roll for real property in Bexar County, tax year 2026, including account or property ID, situs, state property category (including B and its subclasses, F1, and F2), land area, improvement area, year built, and market and appraised values, plus the record layout. Please exclude information confidential under Tex. Tax Code §25.025. Please send an itemized estimate before any charge. This request is withdrawn if the copy is not available at no charge. Delivery by download link is enough.

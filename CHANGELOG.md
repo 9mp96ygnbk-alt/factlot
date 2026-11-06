@@ -15,6 +15,7 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 
 ### Added
 
+- Texas 254-county status list now records local extract counts for six appraisal rolls (Dallas, Travis, Collin, Denton, Fort Bend, Williamson). Those counts are not a statewide commercial total. Brazoria, Galveston, and Nueces are located and not ingested. Hidalgo, Montgomery, El Paso, and Bexar stay blocked.
 - Registry coverage matrix (`docs/registry/coverage-matrix.md` and `docs/registry/coverage-matrix.json`): jurisdiction accounting compiled from the review records already in the repository. It lists every state, including those with no review. A missing review is not a zero.
 - Ingest reconciliation ledger: counts and reason codes only, no personal data.
 - Row classification that does not change stored rows.

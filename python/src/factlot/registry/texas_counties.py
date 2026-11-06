@@ -22,27 +22,46 @@ _ASSIGNED: dict[str, dict[str, str | None]] = {
     "48201": {"source_id": "tx-harris-cad", "reuse": "blocked",
               "blocker": "HCAD terms remain unresolved. Do not re-fetch from the public download."},
     "48113": {"source_id": "tx-dallas-cad", "reuse": "eligible",
-              "blocker": "Reviewed as a public-record bulk export. Not re-audited in this workspace."},
+              "blocker": "2026 current zip re-read 2026-11-06: 59,645 unique commercial accounts (B11, B12, F10, F20). Organisation-owner facts 33,528; 33,386 match the pre-2026-11-04 rule and the cited figure. Not a universe certificate."},
     "48439": {"source_id": "tx-tarrant-ad", "reuse": "eligible",
-              "blocker": "Reviewed public-record download. Commercial zip is a separate file from the full roll."},
+              "blocker": "Reviewed public-record download. On 2026-11-06 the commercial zip returned http_403. Not retried and not bypassed."},
     "48453": {"source_id": "tx-travis-cad", "reuse": "eligible",
-              "blocker": "Reviewed public-record export. Not re-audited in this workspace."},
+              "blocker": "Supplement 3 zip matches the previously reviewed document, run date 2026-10-06: 30,555 unique commercial parcels (B, F1, F2). Organisation-owner facts 18,082; the pre-2026-11-04 rule stores 17,971 against a cited 17,972. Not a newer roll and not a universe certificate."},
     "48085": {"source_id": "tx-collin-cad", "reuse": "eligible",
-              "blocker": "Reviewed public-record database. Not re-audited in this workspace."},
+              "blocker": "Lite database regenerated 2026-11-06: 18,039 unique commercial parcels; the cited load was 18,035. Organisation-owner facts 13,187, of which 21 fail the pre-2026-11-04 rule. Not a universe certificate."},
     "48121": {"source_id": "tx-denton-cad", "reuse": "eligible",
-              "blocker": "County GIS query reviewed as a public record. The district's own extract page was not readable."},
+              "blocker": "2026-11-06 layer count is 384,308 parcels and 13,732 rows with a B or F code. 13,304 unique in-scope parcels match the cited count. Organisation-owner facts 9,501; cited 9,498 and 9,484 are not overwritten. The district extract page was not readable. Not a universe certificate."},
     "48157": {"source_id": "tx-fortbend-cad", "reuse": "eligible",
-              "blocker": "Reviewed public-record export. Confidential owners are redacted by the publisher."},
+              "blocker": "Certified redacted export only, 2026-07-07: 9,698 commercial parcels. Organisation-owner facts 7,417. The pre-2026-11-04 rule stores 7,385 on this file; the cited 7,386 is one higher. Supplement 4 was not applied. Not a current-universe certificate."},
     "48491": {"source_id": "tx-williamson-cad", "reuse": "eligible",
-              "blocker": "Reviewed public-record portal. Platform terms were not read as text."},
-    "48141": {"source_id": "tx-elpaso-cad", "reuse": "blocked",
-              "blocker": "Review did not verify a bulk file that may be redistributed."},
+              "blocker": "Improvement file unchanged at 14,087 rows. PropOwner file dated 2026-11-05 has 325,956 rows and was read through a short last page. 11,698 parcels kept; 60 in-scope improvements have no owner row. Cited kept count was 11,699. Organisation-owner facts 8,144; 8,114 match the pre-2026-11-04 rule and the cited full-load figure. Platform terms were not read as text. Not a universe certificate."},
     "48215": {"source_id": "tx-hidalgo-cad", "reuse": "blocked",
-              "blocker": "No confirmed bulk file. A records request would need separate approval."},
+              "blocker": "2026-11-06 plain fetch of the data-downloads and property-search pages still returns the empty portal shell. A public-domain sentence was not on either page. No Drive download and no confirmation bypass. Not ingested."},
     "48339": {"source_id": "tx-montgomery-cad", "reuse": "blocked",
-              "blocker": "No confirmed bulk file. A records request would need separate approval."},
+              "blocker": "2026-11-06 plain fetch of the exports page still returns the empty portal shell. No file link was visible. Not ingested."},
     "48029": {"source_id": "tx-bexar-ad", "reuse": "blocked",
-              "blocker": "No bulk appraisal-roll download was found. A records request would need separate approval."},
+              "blocker": "No $0 bulk file. The district's request form was retrieved (279,462 bytes). A request is drafted and not sent. Fees are not accepted."},
+    "48141": {"source_id": "tx-elpaso-cad", "reuse": "blocked",
+              "blocker": "2026-11-06 the acceptable-use page returned http_403. The export host was not requested. Automated collection waits on written permission or a file a person downloads in a normal browser."},
+    "48039": {"source_id": "tx-brazoria-cad", "reuse": "reviewed",
+              "blocker": "Downloads page says information herein is public domain, calls the data a work in progress, and disclaims linked sites. The 2026 certified roll link on that page points at pCloud, not the district host. Not downloaded. Not cleared for serving."},
+    "48167": {"source_id": "tx-galveston-cad", "reuse": "reviewed",
+              "blocker": "The 2026 certified roll zip is linked from the district's own exports page. That page states no license and no public-domain grant. Not downloaded."},
+    "48355": {"source_id": "tx-nueces-cad", "reuse": "reviewed",
+              "blocker": "The 2026 certified public-export zip is linked from the district's downloads page. That page states no license. A search-site wording was not on this page and is not adopted. Not downloaded."},
+    "48303": {"source_id": None, "reuse": "unknown",
+              "blocker": "No official bulk appraisal roll was verified. A map service without a state category is not a commercial denominator. No records request was sent."},
+}
+
+
+# Measured from a local ingest. commercial_universe stays null: an extract count is not a completeness certificate.
+_MEASURED: dict[str, dict[str, str | int | None]] = {
+    "48113": {"staged_parcels": 59645, "unique_ids": 59645, "snapshot_as_of": "2026-10-12", "org_owner_facts": 33528},
+    "48453": {"staged_parcels": 30555, "unique_ids": 30555, "snapshot_as_of": "2026-10-06", "org_owner_facts": 18082},
+    "48085": {"staged_parcels": 18039, "unique_ids": 18039, "snapshot_as_of": "2026-11-06", "org_owner_facts": 13187},
+    "48121": {"staged_parcels": 13304, "unique_ids": 13304, "snapshot_as_of": "2026-11-06", "org_owner_facts": 9501},
+    "48157": {"staged_parcels": 9698, "unique_ids": 9698, "snapshot_as_of": "2026-07-07", "org_owner_facts": 7417},
+    "48491": {"staged_parcels": 11698, "unique_ids": 11698, "snapshot_as_of": "2026-11-05", "org_owner_facts": 8144},
 }
 
 
@@ -54,18 +73,23 @@ def texas_fips() -> list[tuple[str, str]]:
 def county_row(fips: str, name: str, *, staged_parcels: int | None = None, snapshot_as_of: str | None = None,
                unique_ids: int | None = None) -> dict:
     """One county. Unknown parcel totals stay null."""
+    measured = _MEASURED.get(fips, {})
     assigned = _ASSIGNED.get(fips)
     if assigned is None:
         return {
             "fips": fips, "name": name, "source_id": None, "reuse": "unknown",
             "commercial_universe": None, "staged_parcels": None, "unique_ids": None,
-            "snapshot_as_of": None,
+            "snapshot_as_of": None, "org_owner_facts": None,
             "blocker": "No reviewed zero-cost bulk appraisal roll for this county.",
         }
     return {
         "fips": fips, "name": name, "source_id": assigned["source_id"], "reuse": assigned["reuse"],
-        "commercial_universe": None, "staged_parcels": staged_parcels, "unique_ids": unique_ids,
-        "snapshot_as_of": snapshot_as_of, "blocker": assigned["blocker"],
+        "commercial_universe": None,
+        "staged_parcels": staged_parcels if staged_parcels is not None else measured.get("staged_parcels"),
+        "unique_ids": unique_ids if unique_ids is not None else measured.get("unique_ids"),
+        "snapshot_as_of": snapshot_as_of if snapshot_as_of is not None else measured.get("snapshot_as_of"),
+        "org_owner_facts": measured.get("org_owner_facts"),
+        "blocker": assigned["blocker"],
     }
 
 
