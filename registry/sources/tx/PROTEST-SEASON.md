@@ -102,8 +102,7 @@ Export Layout.xlsx` shipped in the zip; the entity record has per-unit `MarketVa
   (`2026_10_23_1427-Orion-2026-Supplement-4-Export-_Redacted.zip`, 1,959,232 bytes, downloaded
   2026-11-06 to a scratch folder): of its 120 in-scope (F1, F2, B) accounts, 14 have a non-zero
   `CBLCapAdj` and none a `HSCapAdj`. Market minus those adjustments would be the capped value; not
-  derived here (it would be a computed, not a stated, figure). The spec reads §23.231 and its
-  §42.26(d) reference as dropping out on 2027-01-01; if so, 2027 commercial rows should carry no
+  derived here (it would be a computed, not a stated, figure). §23.231(k) says the section expires December 31, 2026, and its §42.26(d) reference drops out on 2027-01-01; so 2027 commercial rows should carry no
   `CBLCapAdj` and appraised and market value should coincide (**unconfirmed** until 2027 files exist).
 
 ### Would a 2027 file retire the certified 2026 facts? It would have; fixed here
