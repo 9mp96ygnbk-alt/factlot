@@ -75,15 +75,20 @@ def check_value(predicate: str, value: Any) -> str | None:
                 return "each rent step needs from, to (YYYY-MM-DD) and annual_rent_psf"
             if step["from"] > step["to"]:
                 return "rent step ends before it starts"
-        return None
+        return lease_years_issue(value)
     if predicate == "lease.cam_cap":
         ok = isinstance(value, dict) and value.get("method") in ("compounding_from_base", "simple_from_base",
                                                                   "year_over_year") and _num(value.get("rate"))
         if ok and not 0 < value["rate"] <= 1:
             return "rate must be a fraction in (0, 1], e.g. 0.05 for 5%"
         return None if ok else "expected {method, rate} with an explicit cap method"
-    if predicate in ("lease.free_rent", "lease.renewal_option", "lease.termination_option"):
-        return None if isinstance(value, dict) and value else "expected object"
+    if predicate in _OBJECT_FIELDS:
+        if not (isinstance(value, dict) and value):
+            return "expected object"
+        for key, test in _OBJECT_FIELDS[predicate].items():
+            if key in value and not _field_ok(test, value[key]):
+                return _field_reason(key, test)
+        return None
     if predicate == "lease.percentage_rent":
         if not isinstance(value, dict) or not (_num(value.get("rate")) and 0 < value["rate"] <= 1):
             return "expected {rate, breakpoint} with rate in (0, 1]"
@@ -125,6 +130,49 @@ def _text(v: Any) -> bool:
     return isinstance(v, str) and bool(v.strip())
 
 
+def lease_years_issue(steps: list[Any]) -> str | None:
+    """The lease-year numbers of a rent schedule written by lease year ("Lease Years 1–5: $34.50"):
+    either every step has ``lease_years: [first, last]`` (whole numbers 1–99, first <= last, in order
+    and not overlapping) or none does (quotes.ts ``leaseYearsIssue``)."""
+    marked = sum(1 for s in steps if isinstance(s, dict) and "lease_years" in s)
+    if marked == 0:
+        return None
+    if marked != len(steps):
+        return "give lease_years on every rent step or on none"
+    last = 0
+    for s in steps:
+        ly = s["lease_years"]
+        if not (isinstance(ly, list) and len(ly) == 2
+                and all(_num(n) and float(n).is_integer() and 1 <= n <= 99 for n in ly)):
+            return "lease_years must be [first, last], whole numbers from 1 to 99, e.g. [1, 5]"
+        a, b = ly
+        if a > b:
+            return "lease_years must list the first lease year before the last"
+        if a <= last:
+            return "rent steps by lease year must be in order and must not overlap"
+        last = b
+    return None
+
+
+def is_lease_year_schedule(value: Any) -> bool:
+    """True when a rent schedule is written by lease year: every step is an object with lease_years."""
+    return isinstance(value, list) and bool(value) and all(isinstance(s, dict) and "lease_years" in s for s in value)
+
+
+def check_lease_year_candidate(value: Any) -> str | None:
+    """The shape check for a rent schedule by lease year as a candidate gives it: steps of
+    ``{lease_years, annual_rent_psf}``, with ``from`` and ``to`` optional (FactLot derives them)."""
+    if not isinstance(value, list) or not value:
+        return "expected non-empty array of rent steps"
+    for step in value:
+        if not (isinstance(step, dict) and _num(step.get("annual_rent_psf"))):
+            return "each rent step by lease year needs lease_years [first, last] and annual_rent_psf"
+        for k in ("from", "to"):
+            if k in step and not _is_date(step[k]):
+                return f"{k} must be a YYYY-MM-DD date (or leave it out: FactLot derives it from the commencement date)"
+    return lease_years_issue(value)
+
+
 def _texts(v: Any) -> bool:
     return isinstance(v, list) and bool(v) and all(_text(x) for x in v)
 
@@ -141,16 +189,28 @@ def _bool(v: Any) -> bool:
     return isinstance(v, bool)
 
 
+def _number(v: Any) -> bool:
+    return _num(v)
+
+
 # Clause predicates: which fields an object value may carry and the test each must pass, in the
 # order they are checked. ``None`` as the first entry means the predicate also accepts a plain
 # summary string (the shape it had before clause objects). Each test is (check, reason).
 _FIELD_REASONS = {
     _text: "must be a non-empty string",
     _texts: "must be a non-empty array of non-empty strings",
+    _number: "must be a number",
     _positive: "must be a positive number",
     _fraction: "must be a number in (0, 1]",
     _bool: "must be true or false",
     _is_date: "must be a YYYY-MM-DD date",
+}
+# The fields of the object predicates that are not clauses, each optional but checked when given
+# (quotes.ts ``OBJECT_FIELDS``); the value must have at least one field.
+_OBJECT_FIELDS: dict[str, dict[str, Any]] = {
+    "lease.free_rent": {"months": _number, "applies_to": ("base_rent", "gross_rent")},
+    "lease.renewal_option": {"count": _number, "term_months": _number, "notice_months": _number, "rent": _text},
+    "lease.termination_option": {"effective_date": _is_date, "notice_months": _number, "fee": _text},
 }
 _ROFR = {"string_ok": True, "expected": "expected a summary string, or {applies_to: space | purchase, description, "
                                          "response_days?}",
@@ -288,6 +348,12 @@ _CONSISTENCY: dict[str, Any] = {
     "lease.kick_out": {"sales_threshold": "number", "test_period": "summary", "notice_days": "number",
                        "effective_date": "date", "fee": "summary"},
 }
+
+# A rent step written by lease year: the rent and the lease-year numbers are checked against the
+# schedule's quote; "from" and "to" are "derived" from the commencement date, which is checked
+# against its own quote (quotes.ts ``LEASE_YEAR_STEP``).
+LEASE_YEAR_STEP: dict[str, Any] = {"from": "derived", "to": "derived", "annual_rent_psf": "number",
+                                   "lease_years": ["number"]}
 
 # How a predicate that also accepts a plain string is checked when given one.
 _STRING_FORMS: dict[str, str] = {
@@ -428,8 +494,8 @@ def worded(value: Any, quote: str) -> bool:
 
 def _missing(kind: str, value: Any, quote: str) -> bool:
     """True when ``value`` of the given kind cannot be found in the normalized quote."""
-    if kind in ("summary", "enum"):
-        return False  # see docverify.coverage
+    if kind in ("summary", "enum", "derived"):
+        return False  # see docverify.coverage; "derived": dates derived from another quote (lease years)
     if kind == "words":
         return isinstance(value, str) and (text_number_missing(value, quote) is not None or not written_in(value, quote))
     if kind == "text":
@@ -485,6 +551,16 @@ def _walk(spec: Any, value: Any, quote: str, path: str) -> str | None:
     return None
 
 
+def spec_for(predicate: str, value: Any) -> Any:
+    """The consistency spec a value is checked with: its string form, the lease-year form, or the table's."""
+    if isinstance(value, str) and predicate in _STRING_FORMS:
+        return _STRING_FORMS[predicate]
+    if predicate == "lease.base_rent_schedule" and isinstance(value, list) and any(
+            isinstance(s, dict) and "lease_years" in s for s in value):
+        return [LEASE_YEAR_STEP]
+    return _CONSISTENCY.get(predicate)
+
+
 def check_consistency(predicate: str, value: Any, quote: str) -> str | None:
     """Return a reason the value does not follow from the quote, or None if it does (or cannot be checked).
 
@@ -492,9 +568,7 @@ def check_consistency(predicate: str, value: Any, quote: str) -> str | None:
     ``_CONSISTENCY`` are checked, in the written forms described there. Anything else (enums,
     free-text summaries, unknown predicates) passes.
     """
-    spec = _CONSISTENCY.get(predicate)
-    if isinstance(value, str) and predicate in _STRING_FORMS:
-        spec = _STRING_FORMS[predicate]
+    spec = spec_for(predicate, value)
     if spec is None:
         return None
     return _walk(spec, value, _norm(quote), "")

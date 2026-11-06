@@ -19,13 +19,13 @@ from decimal import Decimal
 from typing import Any
 
 from ._core import js_number_str
+from .dates import add_days, add_months
 from .facts import _JS_WS, is_iso_date, js_key_order, schema_issues
 from .ids import _base32, document_id
 from .ingest.extract import PREDICATES
 from .ingest.verify import (
     _CONSISTENCY,
     _DATE_PATTERNS,
-    _STRING_FORMS,
     _fold,
     _dates_in,
     _is_date,
@@ -34,9 +34,12 @@ from .ingest.verify import (
     _num,
     _numbers_in,
     PHRASES,
+    check_lease_year_candidate,
     check_value,
+    is_lease_year_schedule,
     missing_reason,
     show_value,
+    spec_for,
     text_number_missing,
     worded,
     written_in,
@@ -120,7 +123,7 @@ def _checkable(kind: str, value: Any) -> bool:
         return isinstance(value, str)
     if kind in ("words", "summary"):
         return isinstance(value, str) and _fold(_norm(value)) != ""
-    if kind == "date":
+    if kind in ("date", "derived"):
         return _is_date(value)
     return _num(value)
 
@@ -195,9 +198,7 @@ def value_parts(predicate: str, value: Any) -> list[dict[str, Any]]:
             out.append(part)
 
     if is_ingest_predicate(predicate):
-        spec = _STRING_FORMS[predicate] if isinstance(value, str) and predicate in _STRING_FORMS \
-            else _CONSISTENCY.get(predicate)
-        known(spec, value, "", "")
+        known(spec_for(predicate, value), value, "", "")
     else:
         generic(value, "")
     for p in out:
@@ -227,6 +228,7 @@ def coverage(predicate: str, value: Any, quote: str) -> dict[str, Any]:
     checked: list[dict[str, Any]] = []
     not_checked: list[str] = []
     gaps: list[str] = []
+    absent: list[str] = []  # parts a rule checks that the quote does not state: a confirmation never covers them
     for p in value_parts(predicate, value):
         kind = p.get("as")
         if kind == "enum":
@@ -243,13 +245,14 @@ def coverage(predicate: str, value: Any, quote: str) -> dict[str, Any]:
                 gaps.append(f"{p['path']} (text not written in the quote)")
         elif kind and _missing(kind, p["value"], q):
             not_checked.append(p["path"])
+            absent.append(p["path"])
             gaps.append(f"{p['path']} (not found in the quote)")
         elif kind:
             checked.append({"path": p["path"], "as": kind})
         else:
             not_checked.append(p["path"])
             gaps.append(f"{p['path']} ({_type_name(p['value'])})")
-    return {"checked": checked, "not_checked": not_checked, "gaps": gaps}
+    return {"checked": checked, "not_checked": not_checked, "gaps": gaps, "absent": absent}
 
 
 def coverage_reason(gaps: list[str]) -> str:
@@ -441,15 +444,120 @@ def _build_fact(ctx: dict[str, Any], predicate: str, value: Any, document: str, 
     return fact
 
 
+# --- lease years and human confirmation ----------------------------------------------------------
+
+_RENT = "lease.base_rent_schedule"
+#: The derivation a rent schedule written by lease year cites in provenance.formula.
+LEASE_YEAR_FORMULA = "doc.lease_year_dates@1"
+LEASE_YEAR_CONVENTION = (
+    "Lease Year 1 begins on the commencement date. Lease Year N begins on the (N−1)th anniversary of the "
+    "commencement date (the same month and day N−1 years later; the anniversary of February 29 in a common year is "
+    "February 28) and ends the day before the next anniversary.")
+
+
+def lease_year_dates(commencement: str, first: int, last: int) -> dict[str, str]:
+    """The dates of lease years first..last for a commencement date (documents.ts ``leaseYearDates``)."""
+    return {"from": add_months(commencement, 12 * (first - 1)),
+            "to": add_days(add_months(commencement, 12 * last), -1)}
+
+
+def _derive_steps(steps: list[dict[str, Any]], commencement: str) -> list[dict[str, Any]] | None:
+    """The rent steps with the dates a commencement date gives them; None past the year 9999."""
+    last = steps[-1]["lease_years"][1]
+    if int(commencement[:4]) + last > 9999:
+        return None
+    out = []
+    for step in steps:
+        a, b = step["lease_years"]
+        out.append({**lease_year_dates(commencement, int(a), int(b)), "annual_rent_psf": step["annual_rent_psf"],
+                    "lease_years": [a, b]})
+    return out
+
+
+def lease_year_commencement(steps: list[dict[str, Any]], quote: str) -> str | None:
+    """The commencement date written in the quote that a lease-year schedule's dates follow from, or
+    None (the earliest, if several do)."""
+    for c in sorted(_iso(d) for d in _dates_in(_norm(quote))):
+        derived = _derive_steps(steps, c)
+        if derived is not None and all(d["from"] == st.get("from") and d["to"] == st.get("to")
+                                       for d, st in zip(derived, steps)):
+            return c
+    return None
+
+
+_AUTOMATED = {"agent", "ai", "ai agent", "the agent", "this agent", "assistant", "ai assistant", "bot", "model",
+              "language model", "llm", "auto", "automatic", "automated", "system", "factlot", "extractor", "me", "self",
+              "myself", "n a", "na", "none", "unknown"}
+
+
+def confirmer_issue(by: str) -> str | None:
+    """Why a confirmation's ``by`` cannot be recorded as a person's name or role, or None."""
+    v = _fold(_norm(by))
+    if not v:
+        return "must name the person who confirmed the value"
+    if v in _AUTOMATED:
+        return (f'must name the person (or role) who read the clause and confirmed the value, not "{by}": FactLot '
+                "records it as a human confirmation and cannot authenticate it, so an agent must never confirm its "
+                "own extraction")
+    return None
+
+
+def confirmation_issues(candidates: list[dict[str, Any]] | None, path: str) -> list[dict[str, str]]:
+    """Input errors for confirmations an agent could not have been given by a person."""
+    out = []
+    for i, c in enumerate(candidates or []):
+        why = confirmer_issue(c["confirmation"]["by"]) if "confirmation" in c else None
+        if why:
+            out.append({"path": f"{path}.{i}.confirmation.by", "message": why})
+    return out
+
+
+def _verified_at(at: str) -> str:
+    """A confirmation's ``at`` as the fact's verified_at (a date is that day at 00:00 UTC)."""
+    return f"{at}T00:00:00Z" if _is_date(at) else at
+
+
+def _source(doc: dict[str, Any], page: int, q: str, quote: str, section: str | None) -> dict[str, Any]:
+    span = doc["text"].span(page, q)
+    source: dict[str, Any] = {"document_id": doc["id"]}
+    if "title" in doc:
+        source["title"] = doc["title"]
+    source["page"] = page
+    if section is not None:
+        source["section"] = section
+    source["quote"] = quote
+    if page in doc["ocr"]:
+        source["ocr"] = True
+    if span:
+        source["span"] = span
+    if "sha256" in doc:
+        source["sha256"] = doc["sha256"]
+    return source
+
+
+def _person_warning(n: int) -> str:
+    """The warning every result with person-confirmed facts carries, so the distinction is never silent."""
+    return (f"{n} verified value{' rests' if n == 1 else 's rest'} partly on a person's confirmation (method "
+            "human_verified): the quote confirmed the parts under checked; the parts under confirmed_by_person were "
+            "confirmed by the person named in verified_by, whom FactLot does not authenticate")
+
+
 def _verify_candidate(doc: dict[str, Any], c: dict[str, Any], ctx: dict[str, Any], label: dict[str, Any],
                       out: dict[str, list[Any]]) -> None:
-    """One candidate through the Ingest checks, in order: value shape, quote on page, value in
-    quote, confidence."""
+    """One candidate through the Ingest checks, in order: value shape, quote on page, value in quote,
+    the commencement date (a rent schedule by lease year), confidence, and every part confirmed by the
+    quote or, for parts no quote can prove, by a person's confirmation."""
     base = {**label, "predicate": c["predicate"]}
     value = c["value"]
-    shape = check_any_value(c["predicate"], value)
+    by_lease_year = c["predicate"] == _RENT and is_lease_year_schedule(value)
+    shape = check_lease_year_candidate(value) if by_lease_year else check_any_value(c["predicate"], value)
     if shape:
         out["rejected"].append({**base, "value": value, "page": c["page"], "check": "value", "reason": shape})
+        return
+    if by_lease_year and "commencement" not in c:
+        out["rejected"].append({**base, "value": value, "page": c["page"], "check": "value", "reason": (
+            "a rent schedule by lease year needs commencement {value, quote, page}: FactLot derives each step's dates "
+            "from the commencement date and checks that date against its own quote")})
         return
     loc = locate_quote(doc["text"], c["quote"], c["page"])
     if not loc["ok"]:
@@ -461,6 +569,8 @@ def _verify_candidate(doc: dict[str, Any], c: dict[str, Any], ctx: dict[str, Any
     note = _predicate_note(c["predicate"])
     if note:
         notes.append(note)
+    if "commencement" in c and not by_lease_year:
+        notes.append("commencement is used only for a lease.base_rent_schedule written by lease year; it was not checked")
 
     def review(check: str, reason: str, extra: dict[str, Any] | None = None) -> None:
         item = {**base, "value": value, "quote": c["quote"], "page": loc["page"]}
@@ -474,35 +584,87 @@ def _verify_candidate(doc: dict[str, Any], c: dict[str, Any], ctx: dict[str, Any
     mismatch = check_consistency_any(c["predicate"], value, c["quote"])
     if mismatch:
         return review("consistency", mismatch)
+
+    # A rent schedule by lease year: the commencement date is checked like a candidate of its own,
+    # and the step dates are derived from it.
+    full = value
+    derived_from: dict[str, Any] | None = None
+    commencement_source: dict[str, Any] | None = None
+    if by_lease_year:
+        com = c["commencement"]
+
+        def unverified(why: str) -> None:
+            review("derivation", f"the commencement date {com['value']} that the step dates are derived from is not "
+                                 f"verified: {why}")
+
+        at = locate_quote(doc["text"], com["quote"], com["page"])
+        if not at["ok"]:
+            return unverified(at["reason"])
+        wrong = check_consistency_any("lease.commencement_date", com["value"], com["quote"])
+        if wrong:
+            return unverified(wrong)
+        derived = _derive_steps(value, com["value"])
+        if derived is None:
+            return unverified("the lease years run past the year 9999")
+        for i, step in enumerate(value):
+            for k in ("from", "to"):
+                if k in step and step[k] != derived[i][k]:
+                    years = "–".join(js_number_str(n) for n in step["lease_years"])
+                    return review("consistency", (
+                        f"value.{i}.{k} {show_value(step[k])} does not follow from the commencement date "
+                        f"{com['value']}: lease years {years} run from {derived[i]['from']} to {derived[i]['to']}"))
+        full = derived
+        if at["corrected"]:
+            notes.append(f"commencement quote found on page {at['page']}, not {com['page']}")
+        if com["value"].endswith("-02-29"):
+            notes.append("the commencement date is February 29: in common years its anniversary is taken as February "
+                         "28. If the lease defines it as March 1, the step dates differ by a day; confirm")
+        if not com["value"].endswith("-01"):
+            notes.append("the commencement date is not the first of a month: if the lease defines Lease Year 1 to end "
+                         "with the twelfth full calendar month, its dates differ from these anniversary dates; confirm "
+                         "against the lease's definition of Lease Year")
+        commencement_source = _source(doc, at["page"], at["q"], com["quote"], com.get("section"))
+        derived_from = {"commencement_date": com["value"], "citation": commencement_source,
+                        "convention": LEASE_YEAR_CONVENTION, "formula": LEASE_YEAR_FORMULA,
+                        "steps": [{"lease_years": d["lease_years"], "from": d["from"], "to": d["to"]}
+                                  for d in derived]}
+
     if c.get("confidence") is not None and c["confidence"] < REVIEW_CONFIDENCE_THRESHOLD:
         return review("confidence", f"extractor confidence {show_value(c['confidence'])} is below "
                                     f"{js_number_str(REVIEW_CONFIDENCE_THRESHOLD)}")
     # Verified means every part of the value was found in the quote: a part no rule can check (a
-    # boolean, an enum) or free text the quote does not contain holds the candidate for a person.
-    cov = coverage(c["predicate"], value, c["quote"])
-    if cov["gaps"]:
+    # boolean, an enum) or free text the quote does not contain holds the candidate for a person,
+    # unless a person has confirmed it.
+    cov = coverage(c["predicate"], full, c["quote"])
+    confirmable = bool(cov["gaps"]) and not cov["absent"]
+    confirmation = c.get("confirmation")
+    if cov["gaps"] and not (confirmable and confirmation is not None):
         return review("coverage", coverage_reason(cov["gaps"]),
                       {"checked": cov["checked"], "not_checked": cov["not_checked"]})
-    span = doc["text"].span(loc["page"], loc["q"])
-    source: dict[str, Any] = {"document_id": doc["id"]}
-    if "title" in doc:
-        source["title"] = doc["title"]
-    source["page"] = loc["page"]
-    if "section" in c:
-        source["section"] = c["section"]
-    source["quote"] = c["quote"]
-    if loc["page"] in doc["ocr"]:
-        source["ocr"] = True
-    if span:
-        source["span"] = span
-    if "sha256" in doc:
-        source["sha256"] = doc["sha256"]
-    provenance: dict[str, Any] = {"method": "extracted", "sources": [source], "producer": dict(ctx["producer"])}
+    by_person = confirmable and confirmation is not None
+    if confirmation is not None and not by_person:
+        notes.append("the confirmation was not needed: the quote confirms every part of the value, so the fact keeps "
+                     "method extracted")
+    source = _source(doc, loc["page"], loc["q"], c["quote"], c.get("section"))
+    provenance: dict[str, Any] = {"method": "human_verified" if by_person else "extracted",
+                                  "sources": [source, commencement_source] if commencement_source else [source],
+                                  "producer": dict(ctx["producer"])}
+    if derived_from is not None:
+        provenance["formula"] = LEASE_YEAR_FORMULA
     if c.get("confidence") is not None:
         provenance["confidence"] = c["confidence"]
-    fact = _build_fact(ctx, c["predicate"], value, doc["id"], c["quote"], provenance)
+    if by_person:
+        provenance["verified_by"] = confirmation["by"]
+        if confirmation.get("at") is not None:
+            provenance["verified_at"] = _verified_at(confirmation["at"])
+    fact = _build_fact(ctx, c["predicate"], full, doc["id"], c["quote"], provenance)
     out["facts"].append(fact)
-    item = {**label, "fact": fact, "checked": cov["checked"], "not_checked": cov["not_checked"]}
+    item = {**label, "fact": fact, "checked": cov["checked"], "not_checked": [] if by_person else cov["not_checked"]}
+    if by_person:
+        item["confirmed_by_person"] = cov["not_checked"]
+        item["confirmation"] = confirmation
+    if derived_from is not None:
+        item["derived_from"] = derived_from
     if notes:
         item["notes"] = notes
     out["verified"].append(item)
@@ -531,6 +693,8 @@ def fact_value_issues(fact: Any) -> list[dict[str, str]]:
     prov = fact.get("provenance")
     if not isinstance(prov, dict) or not isinstance(prov.get("sources"), list):
         return []
+    if predicate == _RENT and is_lease_year_schedule(fact["value"]):
+        return _lease_year_fact_issues(fact["value"], prov["sources"])
     out = []
     for i, s in enumerate(prov["sources"]):
         if not isinstance(s, dict) or not isinstance(s.get("quote"), str):
@@ -538,6 +702,27 @@ def fact_value_issues(fact: Any) -> list[dict[str, str]]:
         reason = check_consistency_any(predicate, fact["value"], s["quote"])
         if reason:
             out.append({"path": f"provenance.sources.{i}.quote", "message": f"value not supported by quote: {reason}"})
+    return out
+
+
+def _lease_year_fact_issues(steps: list[dict[str, Any]], sources: list[Any]) -> list[dict[str, str]]:
+    """fact_validate for a rent schedule by lease year: the first source states every rent and lease
+    year, and the second states a commencement date the step dates follow from."""
+    table = sources[0] if sources else None
+    start = sources[1] if len(sources) > 1 else None
+    out = []
+    if isinstance(table, dict) and isinstance(table.get("quote"), str):
+        reason = check_consistency_any(_RENT, steps, table["quote"])
+        if reason:
+            out.append({"path": "provenance.sources.0.quote", "message": f"value not supported by quote: {reason}"})
+    if not isinstance(start, dict) or not isinstance(start.get("quote"), str):
+        out.append({"path": "provenance.sources", "message": (
+            "value not supported by quote: a rent schedule by lease year cites its rent table first and then the quote "
+            "stating the commencement date its step dates are derived from")})
+    elif lease_year_commencement(steps, start["quote"]) is None:
+        out.append({"path": "provenance.sources.1.quote", "message": (
+            "value not supported by quote: the step dates do not follow from a commencement date written in this "
+            f"quote ({LEASE_YEAR_CONVENTION})")})
     return out
 
 
@@ -552,15 +737,25 @@ def validate_fact_full(fact: Any) -> dict[str, Any]:
 
 def verify_facts(args: dict[str, Any], producer: dict[str, str]) -> dict[str, Any]:
     _cap_characters(_characters(args["document"]["pages"]))
+    bad = confirmation_issues(args["candidates"], "candidates")
+    if bad:
+        raise DocInputError(bad[:20])
     doc = _load_document(args["document"])
     out = _outcome()
     ctx = {"subject": args.get("subject", doc["id"]), "as_of": args["as_of"], "producer": producer}
     for i, c in enumerate(args["candidates"]):
         _verify_candidate(doc, c, ctx, {"candidate": i}, out)
-    return {"document": _describe(doc), "verified": out["verified"], "needs_review": out["needs_review"],
-            "rejected": out["rejected"],
-            "summary": {"candidates": len(args["candidates"]), "verified": len(out["verified"]),
-                        "needs_review": len(out["needs_review"]), "rejected": len(out["rejected"])}}
+    by_person = sum(1 for v in out["verified"] if "confirmed_by_person" in v)
+    result: dict[str, Any] = {"document": _describe(doc), "verified": out["verified"],
+                              "needs_review": out["needs_review"], "rejected": out["rejected"]}
+    if by_person:
+        result["warnings"] = [_person_warning(by_person)]
+    summary: dict[str, Any] = {"candidates": len(args["candidates"]), "verified": len(out["verified"])}
+    if by_person:
+        summary["confirmed_by_person"] = by_person
+    summary.update({"needs_review": len(out["needs_review"]), "rejected": len(out["rejected"])})
+    result["summary"] = summary
+    return result
 
 
 # --- doc_abstract_lease ------------------------------------------------------------------------------
@@ -626,6 +821,10 @@ def _citation(s: dict[str, Any]) -> dict[str, Any]:
             out[k] = src[k]
     out["quote_on_page"] = s["quote_on_page"]
     out["fact_id"] = s["fact"]["id"]
+    prov = s["fact"]["provenance"]
+    if prov.get("method") == "human_verified":
+        out.update({"method": "human_verified", "verified_by": prov.get("verified_by"),
+                    "confirmed_by_person": person_confirmed(s["fact"])})
     return out
 
 
@@ -670,6 +869,9 @@ def abstract_lease(args: dict[str, Any], producer: dict[str, str]) -> dict[str, 
         total += _characters(d.get("pages", []))
         candidates += len(d.get("candidates", [])) + len(d.get("facts", []))
     _cap_characters(total)
+    bad = [x for i, d in enumerate(docs) for x in confirmation_issues(d.get("candidates"), f"documents.{i}.candidates")]
+    if bad:
+        raise DocInputError(bad[:20])
     if candidates > DOC_LIMITS["candidates_per_call"]:
         raise DocInputError([{"path": "documents", "message": (
             f"{candidates} candidates and facts in all; the limit is {DOC_LIMITS['candidates_per_call']} per call")}])
@@ -735,6 +937,18 @@ def abstract_lease(args: dict[str, Any], producer: dict[str, str]) -> dict[str, 
             if src["document_id"] != ids[di]:
                 reject(f"the fact cites {src['document_id']}, but this document is {ids[di]}")
                 continue
+            by_person = prov.get("method") == "human_verified"
+            if by_person:
+                why = confirmer_issue(prov["verified_by"]) if isinstance(prov.get("verified_by"), str) else "is missing"
+                if why:
+                    reject("a human_verified fact needs provenance.verified_by naming the person who confirmed it: "
+                           f"verified_by {why}")
+                    continue
+            start = prov["sources"][1] if predicate == _RENT and is_lease_year_schedule(f["value"]) else None
+            if start is not None and start.get("document_id") != ids[di]:
+                reject("a rent schedule by lease year must cite the commencement date in the same document as its rent "
+                       "table")
+                continue
             if doc is not None:
                 cand: dict[str, Any] = {"predicate": predicate, "value": f["value"], "quote": src["quote"],
                                         "page": src["page"]}
@@ -742,6 +956,16 @@ def abstract_lease(args: dict[str, Any], producer: dict[str, str]) -> dict[str, 
                     cand["section"] = src["section"]
                 if _num(prov.get("confidence")):
                     cand["confidence"] = prov["confidence"]
+                if start is not None:
+                    com: dict[str, Any] = {"value": lease_year_commencement(f["value"], start["quote"]),
+                                           "quote": start["quote"], "page": start["page"]}
+                    if isinstance(start.get("section"), str):
+                        com["section"] = start["section"]
+                    cand["commencement"] = com
+                if by_person:
+                    cand["confirmation"] = {"by": prov["verified_by"]}
+                    if isinstance(prov.get("verified_at"), str):
+                        cand["confirmation"]["at"] = prov["verified_at"]
                 _verify_candidate(doc, cand, ctx, label, out)
                 continue
             if predicate and not is_ingest_predicate(predicate):
@@ -750,7 +974,7 @@ def abstract_lease(args: dict[str, Any], producer: dict[str, str]) -> dict[str, 
                     reject(f"value not supported by quote: {reason}")
                     continue
             cov = coverage(predicate, f["value"], src["quote"])
-            if cov["gaps"]:
+            if cov["gaps"] and not (by_person and not cov["absent"]):
                 item: dict[str, Any] = {**label, "predicate": predicate, "value": f["value"], "quote": src["quote"],
                                         "page": src["page"]}
                 if isinstance(src.get("section"), str):
@@ -825,6 +1049,7 @@ def abstract_lease(args: dict[str, Any], producer: dict[str, str]) -> dict[str, 
         return {"value": s["fact"]["value"], "effective_date": docs[s["document"]].get("effective_date"),
                 **_citation(s)}
 
+    by_person = sum(1 for f in facts if f["provenance"]["method"] == "human_verified")
     open_items = [{**x, "status": "needs_review"} for x in needs_review] + [{**x, "status": "rejected"} for x in rejected]
     result_fields = []
     for predicate, f in fields.items():
@@ -864,8 +1089,10 @@ def abstract_lease(args: dict[str, Any], producer: dict[str, str]) -> dict[str, 
         result_fields.append(field)
     return {"subject": subject, "as_of": args["as_of"], "documents": documents, "fields": result_fields,
             "facts": facts, "pending": [{"predicate": s["fact"]["predicate"], **pending_of(s)} for s in pending_statements],
-            "pending_facts": pending_facts, "needs_review": needs_review, "rejected": rejected, "warnings": warnings,
+            "pending_facts": pending_facts, "needs_review": needs_review, "rejected": rejected,
+            "warnings": warnings + [_person_warning(by_person)] if by_person else warnings,
             "summary": {"documents": len(docs), "fields": len(result_fields), "facts": len(facts),
+                        **({"confirmed_by_person": by_person} if by_person else {}),
                         "pending": len(pending_facts), "needs_review": len(needs_review), "rejected": len(rejected),
                         "conflicts": sum(1 for f in result_fields if "conflicts" in f)}}
 
@@ -883,6 +1110,18 @@ def unconfirmed(f: dict[str, Any]) -> list[str]:
     if not isinstance(src, dict) or not isinstance(src.get("quote"), str) or not isinstance(f.get("predicate"), str):
         return []
     return coverage(f["predicate"], f.get("value"), src["quote"])["gaps"]
+
+
+def person_confirmed(f: dict[str, Any]) -> list[str]:
+    """Parts of a human_verified fact's value that its first quote does not confirm: they rest on the
+    confirmation of the person in verified_by (documents.ts ``personConfirmed``)."""
+    prov = f.get("provenance")
+    if not isinstance(prov, dict) or prov.get("method") != "human_verified":
+        return []
+    src = prov["sources"][0] if isinstance(prov.get("sources"), list) and prov["sources"] else {}
+    if not isinstance(src, dict) or not isinstance(src.get("quote"), str) or not isinstance(f.get("predicate"), str):
+        return []
+    return coverage(f["predicate"], f.get("value"), src["quote"])["not_checked"]
 
 
 def _differences(a: Any, lease: Any, path: str, out: list[dict[str, Any]]) -> None:
@@ -964,6 +1203,11 @@ def compare(args: dict[str, Any]) -> dict[str, Any]:
         gaps = unconfirmed(f)
         if gaps:
             item["lease_not_checked"] = gaps
+        if f["provenance"].get("method") == "human_verified":
+            item["lease_method"] = "human_verified"
+            if "verified_by" in f["provenance"]:
+                item["lease_verified_by"] = f["provenance"]["verified_by"]
+            item["lease_confirmed_by_person"] = person_confirmed(f)
         results.append(item)
     return {"results": results, "summary": summary}
 

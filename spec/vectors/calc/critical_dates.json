@@ -1,0 +1,603 @@
+{
+  "calculator": "calc.critical_dates",
+  "version": 1,
+  "cases": [
+    {
+      "name": "expiration 2031-06-30, one 60-month renewal on 12 months' notice: the deadline 2030-06-30 is a Sunday, flagged and not moved; the term ends 2036-06-30",
+      "input": {
+        "expiration_date": "2031-06-30",
+        "renewal_option": {
+          "count": 1,
+          "term_months": 60,
+          "notice_months": 12
+        }
+      },
+      "expect": {
+        "value.events": [
+          {
+            "date": "2030-06-30",
+            "kind": "renewal_notice_deadline",
+            "label": "Renewal option 1: last day to give notice",
+            "option": 1,
+            "non_business_day": "Sunday"
+          },
+          {
+            "date": "2031-06-30",
+            "kind": "expiration",
+            "label": "Expiration date"
+          },
+          {
+            "date": "2036-06-30",
+            "kind": "renewal_term_ends",
+            "label": "Renewal option 1: renewal term ends",
+            "option": 1
+          }
+        ],
+        "value.next_deadline": null,
+        "value.renewal_terms": [
+          {
+            "option": 1,
+            "notice_deadline": "2030-06-30",
+            "term_start": "2031-07-01",
+            "term_end": "2036-06-30"
+          }
+        ],
+        "value.termination_options": [],
+        "warnings": [
+          "Renewal option 1: last day to give notice falls on 2030-06-30, not a business day (Sunday). FactLot did not move it (business_day_roll none); the lease's business-day clause decides whether it moves."
+        ]
+      }
+    },
+    {
+      "name": "two renewals with an 18-to-12-month window and as_of: windows, deadlines rolled to the preceding business day, terms, and the next deadline",
+      "input": {
+        "expiration_date": "2031-06-30",
+        "commencement_date": "2026-07-01",
+        "as_of": "2026-11-06",
+        "renewal_option": {
+          "count": 2,
+          "term_months": 60,
+          "notice_window": {
+            "earliest_months_before": 18,
+            "latest_months_before": 12
+          }
+        },
+        "termination_options": [
+          {
+            "effective_date": "2029-06-30",
+            "notice_months": 9
+          }
+        ],
+        "expansion_option_deadline": "2028-12-31",
+        "other_deadlines": [
+          {
+            "label": "ROFO response for Suite 410",
+            "from_date": "2026-11-02",
+            "days_after": 10
+          }
+        ],
+        "business_day_roll": "preceding"
+      },
+      "expect": {
+        "value.events": [
+          {
+            "date": "2026-07-01",
+            "kind": "commencement",
+            "label": "Commencement date",
+            "days_from_as_of": -128
+          },
+          {
+            "date": "2026-11-12",
+            "kind": "deadline",
+            "label": "ROFO response for Suite 410",
+            "days_from_as_of": 6
+          },
+          {
+            "date": "2028-09-29",
+            "kind": "termination_notice_deadline",
+            "label": "Termination option 1: last day to give notice",
+            "option": 1,
+            "unadjusted_date": "2028-09-30",
+            "rolled_because": "Saturday",
+            "days_from_as_of": 693
+          },
+          {
+            "date": "2028-12-29",
+            "kind": "expansion_option_deadline",
+            "label": "Expansion option deadline",
+            "unadjusted_date": "2028-12-31",
+            "rolled_because": "Sunday",
+            "days_from_as_of": 784
+          },
+          {
+            "date": "2029-06-30",
+            "kind": "termination_effective",
+            "label": "Termination option 1: effective date",
+            "option": 1,
+            "days_from_as_of": 967
+          },
+          {
+            "date": "2029-12-30",
+            "kind": "renewal_window_opens",
+            "label": "Renewal option 1: notice window opens",
+            "option": 1,
+            "days_from_as_of": 1150
+          },
+          {
+            "date": "2030-06-28",
+            "kind": "renewal_notice_deadline",
+            "label": "Renewal option 1: last day to give notice",
+            "option": 1,
+            "unadjusted_date": "2030-06-30",
+            "rolled_because": "Sunday",
+            "days_from_as_of": 1330
+          },
+          {
+            "date": "2031-06-30",
+            "kind": "expiration",
+            "label": "Expiration date",
+            "days_from_as_of": 1697
+          },
+          {
+            "date": "2034-12-30",
+            "kind": "renewal_window_opens",
+            "label": "Renewal option 2: notice window opens",
+            "option": 2,
+            "days_from_as_of": 2976
+          },
+          {
+            "date": "2035-06-29",
+            "kind": "renewal_notice_deadline",
+            "label": "Renewal option 2: last day to give notice",
+            "option": 2,
+            "unadjusted_date": "2035-06-30",
+            "rolled_because": "Saturday",
+            "days_from_as_of": 3157
+          },
+          {
+            "date": "2036-06-30",
+            "kind": "renewal_term_ends",
+            "label": "Renewal option 1: renewal term ends",
+            "option": 1,
+            "days_from_as_of": 3524
+          },
+          {
+            "date": "2041-06-30",
+            "kind": "renewal_term_ends",
+            "label": "Renewal option 2: renewal term ends",
+            "option": 2,
+            "days_from_as_of": 5350
+          }
+        ],
+        "value.next_deadline": {
+          "date": "2026-11-12",
+          "kind": "deadline",
+          "label": "ROFO response for Suite 410",
+          "days_from_as_of": 6
+        },
+        "value.renewal_terms": [
+          {
+            "option": 1,
+            "window_opens": "2029-12-30",
+            "notice_deadline": "2030-06-28",
+            "term_start": "2031-07-01",
+            "term_end": "2036-06-30"
+          },
+          {
+            "option": 2,
+            "window_opens": "2034-12-30",
+            "notice_deadline": "2035-06-29",
+            "term_start": "2036-07-01",
+            "term_end": "2041-06-30"
+          }
+        ],
+        "value.termination_options": [
+          {
+            "option": 1,
+            "effective_date": "2029-06-30",
+            "notice_deadline": "2028-09-29"
+          }
+        ],
+        "warnings": [
+          "Renewal option 1: 2031-06-30 is the last day of its month and FactLot keeps the day of month, giving 2029-12-30. Read month-end to month-end it would be 2029-12-31, which is later; FactLot gives the earlier date.",
+          "Renewal option 2: 2036-06-30 is the last day of its month and FactLot keeps the day of month, giving 2034-12-30. Read month-end to month-end it would be 2034-12-31, which is later; FactLot gives the earlier date.",
+          "Renewal options after the first assume every earlier option was exercised: each notice counts back from the expiration of the term before it."
+        ]
+      }
+    },
+    {
+      "name": "New Year's Day 2022 is a Saturday: the federal holiday is observed on Friday 2021-12-31, so a deadline on 2022-01-01 rolls back to 2021-12-30",
+      "input": {
+        "expiration_date": "2023-06-30",
+        "other_deadlines": [
+          {
+            "label": "Expansion notice",
+            "date": "2022-01-01"
+          }
+        ],
+        "business_day_roll": "preceding"
+      },
+      "expect": {
+        "value.events": [
+          {
+            "date": "2021-12-30",
+            "kind": "deadline",
+            "label": "Expansion notice",
+            "unadjusted_date": "2022-01-01",
+            "rolled_because": "Saturday"
+          },
+          {
+            "date": "2023-06-30",
+            "kind": "expiration",
+            "label": "Expiration date"
+          }
+        ],
+        "value.next_deadline": null,
+        "value.renewal_terms": [],
+        "value.termination_options": [],
+        "warnings": []
+      }
+    },
+    {
+      "name": "Juneteenth 2027 is a Saturday, observed Friday 2027-06-18: a deadline that day rolls forward to Monday 2027-06-21, with a warning",
+      "input": {
+        "expiration_date": "2028-06-30",
+        "termination_options": [
+          {
+            "effective_date": "2028-06-18",
+            "notice_months": 12,
+            "label": "Year 5 termination right"
+          }
+        ],
+        "business_day_roll": "following"
+      },
+      "expect": {
+        "value.events": [
+          {
+            "date": "2027-06-21",
+            "kind": "termination_notice_deadline",
+            "label": "Year 5 termination right: last day to give notice",
+            "option": 1,
+            "unadjusted_date": "2027-06-18",
+            "rolled_because": "Juneteenth National Independence Day (observed)"
+          },
+          {
+            "date": "2028-06-18",
+            "kind": "termination_effective",
+            "label": "Year 5 termination right: effective date",
+            "option": 1
+          },
+          {
+            "date": "2028-06-30",
+            "kind": "expiration",
+            "label": "Expiration date"
+          }
+        ],
+        "value.next_deadline": null,
+        "value.renewal_terms": [],
+        "value.termination_options": [
+          {
+            "option": 1,
+            "effective_date": "2028-06-18",
+            "notice_deadline": "2027-06-21"
+          }
+        ],
+        "warnings": [
+          "Year 5 termination right: last day to give notice was moved later, from 2027-06-18 to 2027-06-21. Only a lease clause that extends a deadline falling on a non-business day allows that; the preceding business day, 2027-06-17, is safe either way."
+        ]
+      }
+    },
+    {
+      "name": "Thanksgiving 2026 (November 26): flagged with business_day_roll none; with holidays none only weekends count",
+      "input": {
+        "expiration_date": "2027-11-26",
+        "renewal_option": {
+          "count": 1,
+          "term_months": 36,
+          "notice_months": 12
+        }
+      },
+      "expect": {
+        "value.events": [
+          {
+            "date": "2026-11-26",
+            "kind": "renewal_notice_deadline",
+            "label": "Renewal option 1: last day to give notice",
+            "option": 1,
+            "non_business_day": "Thanksgiving Day"
+          },
+          {
+            "date": "2027-11-26",
+            "kind": "expiration",
+            "label": "Expiration date"
+          },
+          {
+            "date": "2030-11-26",
+            "kind": "renewal_term_ends",
+            "label": "Renewal option 1: renewal term ends",
+            "option": 1
+          }
+        ],
+        "value.next_deadline": null,
+        "value.renewal_terms": [
+          {
+            "option": 1,
+            "notice_deadline": "2026-11-26",
+            "term_start": "2027-11-27",
+            "term_end": "2030-11-26"
+          }
+        ],
+        "value.termination_options": [],
+        "warnings": [
+          "Renewal option 1: last day to give notice falls on 2026-11-26, not a business day (Thanksgiving Day). FactLot did not move it (business_day_roll none); the lease's business-day clause decides whether it moves."
+        ]
+      }
+    },
+    {
+      "name": "the same with holidays none: Thanksgiving is a business day",
+      "input": {
+        "expiration_date": "2027-11-26",
+        "renewal_option": {
+          "count": 1,
+          "term_months": 36,
+          "notice_months": 12
+        },
+        "holidays": "none"
+      },
+      "expect": {
+        "value.events": [
+          {
+            "date": "2026-11-26",
+            "kind": "renewal_notice_deadline",
+            "label": "Renewal option 1: last day to give notice",
+            "option": 1
+          },
+          {
+            "date": "2027-11-26",
+            "kind": "expiration",
+            "label": "Expiration date"
+          },
+          {
+            "date": "2030-11-26",
+            "kind": "renewal_term_ends",
+            "label": "Renewal option 1: renewal term ends",
+            "option": 1
+          }
+        ],
+        "value.next_deadline": null,
+        "value.renewal_terms": [
+          {
+            "option": 1,
+            "notice_deadline": "2026-11-26",
+            "term_start": "2027-11-27",
+            "term_end": "2030-11-26"
+          }
+        ],
+        "value.termination_options": [],
+        "warnings": []
+      }
+    },
+    {
+      "name": "expiration on February 29: six months' notice keeps the day of month (2031-08-29) and warns that the month-end reading would be 2031-08-31; a 12-month renewal ends 2033-02-28",
+      "input": {
+        "expiration_date": "2032-02-29",
+        "renewal_option": {
+          "count": 1,
+          "term_months": 12,
+          "notice_months": 6
+        }
+      },
+      "expect": {
+        "value.events": [
+          {
+            "date": "2031-08-29",
+            "kind": "renewal_notice_deadline",
+            "label": "Renewal option 1: last day to give notice",
+            "option": 1
+          },
+          {
+            "date": "2032-02-29",
+            "kind": "expiration",
+            "label": "Expiration date"
+          },
+          {
+            "date": "2033-02-28",
+            "kind": "renewal_term_ends",
+            "label": "Renewal option 1: renewal term ends",
+            "option": 1
+          }
+        ],
+        "value.next_deadline": null,
+        "value.renewal_terms": [
+          {
+            "option": 1,
+            "notice_deadline": "2031-08-29",
+            "term_start": "2032-03-01",
+            "term_end": "2033-02-28"
+          }
+        ],
+        "value.termination_options": [],
+        "warnings": [
+          "Renewal option 1: 2032-02-29 is the last day of its month and FactLot keeps the day of month, giving 2031-08-29. Read month-end to month-end it would be 2031-08-31, which is later; FactLot gives the earlier date."
+        ]
+      }
+    },
+    {
+      "name": "notice in days, and a passed deadline warned against as_of",
+      "input": {
+        "expiration_date": "2027-03-31",
+        "as_of": "2026-11-06",
+        "renewal_option": {
+          "count": 1,
+          "term_months": 60,
+          "notice_days": 270
+        },
+        "termination_options": [
+          {
+            "effective_date": "2026-12-31",
+            "notice_days": 90
+          }
+        ]
+      },
+      "expect": {
+        "value.events": [
+          {
+            "date": "2026-07-04",
+            "kind": "renewal_notice_deadline",
+            "label": "Renewal option 1: last day to give notice",
+            "option": 1,
+            "non_business_day": "Saturday",
+            "days_from_as_of": -125
+          },
+          {
+            "date": "2026-10-02",
+            "kind": "termination_notice_deadline",
+            "label": "Termination option 1: last day to give notice",
+            "option": 1,
+            "days_from_as_of": -35
+          },
+          {
+            "date": "2026-12-31",
+            "kind": "termination_effective",
+            "label": "Termination option 1: effective date",
+            "option": 1,
+            "days_from_as_of": 55
+          },
+          {
+            "date": "2027-03-31",
+            "kind": "expiration",
+            "label": "Expiration date",
+            "days_from_as_of": 145
+          },
+          {
+            "date": "2032-03-31",
+            "kind": "renewal_term_ends",
+            "label": "Renewal option 1: renewal term ends",
+            "option": 1,
+            "days_from_as_of": 1972
+          }
+        ],
+        "value.next_deadline": null,
+        "value.renewal_terms": [
+          {
+            "option": 1,
+            "notice_deadline": "2026-07-04",
+            "term_start": "2027-04-01",
+            "term_end": "2032-03-31"
+          }
+        ],
+        "value.termination_options": [
+          {
+            "option": 1,
+            "effective_date": "2026-12-31",
+            "notice_deadline": "2026-10-02"
+          }
+        ],
+        "warnings": [
+          "Renewal option 1: last day to give notice falls on 2026-07-04, not a business day (Saturday). FactLot did not move it (business_day_roll none); the lease's business-day clause decides whether it moves.",
+          "Renewal option 1: last day to give notice (2026-07-04) is before as_of 2026-11-06: it has passed.",
+          "Termination option 1: last day to give notice (2026-10-02) is before as_of 2026-11-06: it has passed."
+        ]
+      }
+    },
+    {
+      "name": "two notice forms",
+      "input": {
+        "expiration_date": "2031-06-30",
+        "renewal_option": {
+          "count": 1,
+          "term_months": 60,
+          "notice_months": 12,
+          "notice_days": 30
+        }
+      },
+      "expect_error": true
+    },
+    {
+      "name": "no notice",
+      "input": {
+        "expiration_date": "2031-06-30",
+        "renewal_option": {
+          "count": 1,
+          "term_months": 60
+        }
+      },
+      "expect_error": true
+    },
+    {
+      "name": "window that opens after it closes",
+      "input": {
+        "expiration_date": "2031-06-30",
+        "renewal_option": {
+          "count": 1,
+          "term_months": 60,
+          "notice_window": {
+            "earliest_months_before": 6,
+            "latest_months_before": 12
+          }
+        }
+      },
+      "expect_error": true
+    },
+    {
+      "name": "commencement after expiration",
+      "input": {
+        "expiration_date": "2031-06-30",
+        "commencement_date": "2031-07-01"
+      },
+      "expect_error": true
+    },
+    {
+      "name": "termination after expiration",
+      "input": {
+        "expiration_date": "2031-06-30",
+        "termination_options": [
+          {
+            "effective_date": "2031-07-01",
+            "notice_months": 6
+          }
+        ]
+      },
+      "expect_error": true
+    },
+    {
+      "name": "other deadline with a date and a from_date",
+      "input": {
+        "expiration_date": "2031-06-30",
+        "other_deadlines": [
+          {
+            "label": "x",
+            "date": "2030-01-01",
+            "from_date": "2029-01-01",
+            "days_after": 5
+          }
+        ]
+      },
+      "expect_error": true
+    },
+    {
+      "name": "count zero",
+      "input": {
+        "expiration_date": "2031-06-30",
+        "renewal_option": {
+          "count": 0,
+          "term_months": 60,
+          "notice_months": 12
+        }
+      },
+      "expect_error": true
+    },
+    {
+      "name": "fractional months",
+      "input": {
+        "expiration_date": "2031-06-30",
+        "renewal_option": {
+          "count": 1,
+          "term_months": 60,
+          "notice_months": 1.5
+        }
+      },
+      "expect_error": true
+    }
+  ]
+}

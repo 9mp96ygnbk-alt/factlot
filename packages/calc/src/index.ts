@@ -18,6 +18,7 @@ import {
   camReconciliationBatch,
 } from "./cam_batch.ts";
 import { CapexRecoveryInput, capexRecovery } from "./capex.ts";
+import { CriticalDatesInput, criticalDates } from "./critical_dates.ts";
 import type { CalcResult } from "./core.ts";
 import { DcfProFormaInput, dcfProForma } from "./dcf.ts";
 import { DebtSizingInput, debtSizing } from "./debt.ts";
@@ -49,6 +50,7 @@ export * from "./cam.ts";
 export * from "./cam_batch.ts";
 export * from "./capex.ts";
 export * from "./core.ts";
+export * from "./critical_dates.ts";
 export * from "./dates.ts";
 export * from "./dcf.ts";
 export * from "./debt.ts";
@@ -277,5 +279,14 @@ export const calculators = {
       "Not tax advice: arithmetic only. The 45-day identification and 180-day exchange deadlines of IRC §1031(a)(3) (the exchange period ends earlier at a given tax-return due date), the three-property, 200%, and 95% identification tests of Treas. Reg. §1.1031(k)-1(c)(4), and the cash boot, mortgage boot, debt replacement, and trade-down of an exchange, with the boot-limited gain when the basis is given.",
     input: Exchange1031Input,
     run: exchange1031,
+  },
+  critical_dates: {
+    id: "calc.critical_dates",
+    version: 1,
+    title: "Lease critical dates",
+    description:
+      "Dated list of a lease's notice deadlines and option windows, from its expiration date and options: each renewal option's notice deadline or notice window and renewal term (successive options count back from the term before), each termination option's last day to give notice, an expansion option deadline, and other deadlines (a stated date, or N days after a date such as a ROFO notice). Calendar months; N months before a date keeps the day of month, clamped to a shorter month's end (a warning gives the month-end reading when it is later). Deadlines on a weekend or US federal holiday (5 U.S.C. §6103, observed days included) are flagged, or rolled to the preceding or following business day when business_day_roll says so. With as_of: days to each event, passed deadlines warned, and the next deadline. Steps show each computation.",
+    input: CriticalDatesInput,
+    run: criticalDates,
   },
 } as const satisfies Record<string, Calculator>;

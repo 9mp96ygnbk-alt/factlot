@@ -24,7 +24,10 @@ pages ─▶ (OCR for pages with no text layer, if a backend is given)
 ## Predicates
 
 Every predicate the extractor is asked for, with the value shape `check_value` enforces and the
-parts of the value `check_consistency` looks for in the quote. Numbers, ratios, and dates in a
+parts of the value `check_consistency` looks for in the quote. The `doc_predicates` tool returns the
+same table as data, generated from the code: each predicate's shape as JSON Schema, an example, and
+which parts are checked, checked only when written out, or always held for review
+([document verification](document-verification.md#the-predicate-catalog)). Numbers, ratios, and dates in a
 value go through the same written-form rules whatever the predicate (see below); strings marked
 _verbatim_ must appear in the quote; everything else (enums, summaries) is not checked against
 the quote.
@@ -35,13 +38,13 @@ the quote.
 | `lease.commencement_date`           | `YYYY-MM-DD`                                                                                                                                                                                                                          | the date                                                                                       |
 | `lease.expiration_date`             | `YYYY-MM-DD`                                                                                                                                                                                                                          | the date                                                                                       |
 | `lease.rentable_area_sf`            | positive number                                                                                                                                                                                                                       | the number                                                                                     |
-| `lease.base_rent_schedule`          | array of `{from, to, annual_rent_psf}`, each step ordered                                                                                                                                                                             | every step's two dates and rent                                                                |
-| `lease.free_rent`                   | `{months, applies_to: base_rent \| gross_rent}`                                                                                                                                                                                       | months                                                                                         |
+| `lease.base_rent_schedule`          | array of `{from, to, annual_rent_psf}`, each step ordered; or, written by lease year, `{lease_years: [first, last], annual_rent_psf}` on every step (doc tools: with the commencement date's own quote)                               | every step's two dates and rent; by lease year, each rent and lease year (dates derived)       |
+| `lease.free_rent`                   | `{months?: number, applies_to?: base_rent \| gross_rent}`, at least one field                                                                                                                                                         | months                                                                                         |
 | `lease.security_deposit`            | positive number (USD)                                                                                                                                                                                                                 | the number                                                                                     |
 | `lease.pro_rata_share`              | number in (0, 1]                                                                                                                                                                                                                      | the ratio (or its percentage)                                                                  |
 | `lease.cam_cap`                     | `{method: compounding_from_base \| simple_from_base \| year_over_year, rate}`                                                                                                                                                         | rate (ratio)                                                                                   |
-| `lease.renewal_option`              | `{count, term_months, notice_months, rent: string}`                                                                                                                                                                                   | count, term and notice months                                                                  |
-| `lease.termination_option`          | `{effective_date, notice_months, fee: string}`                                                                                                                                                                                        | the date, notice months                                                                        |
+| `lease.renewal_option`              | `{count?, term_months?, notice_months?: number, rent?: string}`, at least one field                                                                                                                                                   | count, term and notice months                                                                  |
+| `lease.termination_option`          | `{effective_date?: YYYY-MM-DD, notice_months?: number, fee?: string}`, at least one field                                                                                                                                             | the date, notice months                                                                        |
 | `lease.rofr`, `lease.rofo`          | string summary, or `{applies_to: space \| purchase, description, response_days?}`                                                                                                                                                     | the object's response days, and the description, written in the quote                          |
 | `lease.exclusive_use`               | string, the protected use, or `{protected_use, carve_outs?: [string], applies_to?}`                                                                                                                                                   | the protected use (string or object) and each carve-out, written in the quote; numbers in them |
 | `lease.assignment_sublease`         | string summary, or `{consent_standard: prohibited \| sole_discretion \| not_unreasonably_withheld \| not_unreasonably_withheld_conditioned_or_delayed \| no_consent_required, permitted_transfers?, recapture_right?, profit_share?}` | the consent standard's wording (below), profit share (ratio), numbers in permitted transfers   |
@@ -80,7 +83,12 @@ and `no_consent_required` are not checked against the quote.
 
 The critical dates are separate dated predicates rather than offsets ("twelve months before
 expiration") so each one is checked against a date written on the page and can be diarised as
-is. A value computed from another term is not a fact this pipeline emits.
+is. A value computed from another term is not a fact this pipeline emits. Two exceptions sit in
+the document tools, not here: a rent schedule written by lease year, whose step dates are derived
+from a commencement date verified against its own quote (formula `doc.lease_year_dates@1`), and
+`calc_critical_dates`, which computes notice deadlines from verified terms as a calculation with
+steps, not as an extracted fact
+([document verification](document-verification.md#critical-dates-from-verified-terms)).
 
 ## Trust model
 
@@ -164,6 +172,9 @@ decide(result, "rv_2b394pt02bkn", accepted=False, decided_by="A. Reviewer")
   `provenance.verified_by`, which names the reviewer, the item and the check it failed, for
   example `A. Reviewer (accepted in ingest review rv_056bge9hh9nv after failing the consistency
 check: value 59000 not found in quote)`, with the decision time in `verified_at`.
+  The document tools take a person's decision differently: a candidate sent with
+  `confirmation: {by, at}` becomes a `human_verified` fact when its only gaps are parts no quote
+  can prove ([human confirmation](document-verification.md#human-confirmation)).
 - **Reject.** The decision is recorded and the same (predicate, quote) pair is never queued
   again, whatever value the extractor attaches to it next time.
 - **Persistence.** The CLI writes the queue into its output file (`--out`, default

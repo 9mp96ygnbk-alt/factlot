@@ -20,7 +20,7 @@ from typing import Any
 
 from ._core import js_number_str
 from .docverify import DOC_LIMITS, DocInputError, _cap_characters, _characters, _load_document, locate_quote, \
-    unconfirmed, validate_fact_full
+    person_confirmed, unconfirmed, validate_fact_full
 
 PACKAGE_FORMAT = "factlot.fact_package"
 PACKAGE_VERSION = 1
@@ -152,7 +152,33 @@ def create_fact_package(args: dict[str, Any]) -> dict[str, Any]:
     package.update({"documents": documents, "facts": args["facts"], "integrity": {
         "hash": "sha256", "canonicalization": "RFC 8785 (JCS)", "tree": "RFC 6962 Merkle tree hash",
         "leaf_hashes": leaves, "merkle_root": root, "digest": digest}})
-    return {"package": package, "digest": digest, "signing_message": f"{SIGNING_PREFIX}{digest}", "next": _NEXT}
+    result: dict[str, Any] = {"package": package, "digest": digest, "signing_message": f"{SIGNING_PREFIX}{digest}"}
+    by_person = _confirmed_by_person(args["facts"])
+    if by_person:
+        result["confirmed_by_person"] = by_person
+    result["next"] = _NEXT
+    return result
+
+
+def _confirmed_by_person(facts: list[Any]) -> list[dict[str, Any]]:
+    """The facts a person confirmed (method human_verified) and the parts of each value that rest on
+    that confirmation rather than on the quote. Reported beside the package, not inside it, so the
+    digest is unchanged (packages.ts ``confirmedByPerson``)."""
+    out = []
+    for i, f in enumerate(facts):
+        if not isinstance(f, dict) or not isinstance(f.get("provenance"), dict):
+            continue
+        if f["provenance"].get("method") != "human_verified":
+            continue
+        item: dict[str, Any] = {"fact": i}
+        if isinstance(f.get("id"), str):
+            item["fact_id"] = f["id"]
+        item["predicate"] = f.get("predicate")
+        if "verified_by" in f["provenance"]:
+            item["verified_by"] = f["provenance"]["verified_by"]
+        item["confirmed_by_person"] = person_confirmed(f)
+        out.append(item)
+    return out
 
 
 # --- verification ----------------------------------------------------------------------------------
@@ -340,6 +366,8 @@ def verify_fact_package(args: dict[str, Any]) -> dict[str, Any]:
             item.update({"predicate": f.get("predicate"), "not_checked": gaps})
             values_not_checked.append(item)
 
+    by_person = [x for x in _confirmed_by_person(facts) if x["fact"] not in invalid]
+
     integrity_ok = not r["problems"]
     if "public_key" in args:
         signature_ok = signature["status"] == "verified"
@@ -357,6 +385,7 @@ def verify_fact_package(args: dict[str, Any]) -> dict[str, Any]:
         "quotes": {"checked": checked, "on_page": on_page, "problems": quote_problems,
                    "documents_not_supplied": not_supplied},
         "values_not_checked": values_not_checked,
+        **({"values_confirmed_by_person": by_person} if by_person else {}),
         "checks_run": [
             "integrity: each fact's hash, the Merkle root and the digest, recomputed from the content",
             "signature: none to check (the package is not signed)" if signature["status"] == "absent" else
@@ -370,6 +399,8 @@ def verify_fact_package(args: dict[str, Any]) -> dict[str, Any]:
             *(["values: the parts in values_not_checked are not confirmed by their quotes (booleans, enums, free "
                "text not written in the quote, or a generic predicate's value the quote does not state)"]
               if values_not_checked else []),
+            *(["people: the parts in values_confirmed_by_person rest on the confirmation of the person named in "
+               "verified_by, which FactLot does not authenticate"] if by_person else []),
             *(["quotes: quotes citing the documents in quotes.documents_not_supplied were not looked for, because "
                "their pages were not given"] if not_supplied else []),
             "files: whether the pages given came from the files their sha256 names",

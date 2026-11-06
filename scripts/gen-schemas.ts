@@ -6,6 +6,7 @@
 //   openapi-3.0.json           the Custom GPT Actions subset (GPT_ACTIONS_TOOLS, at most 30
 //                              operations); openApi30({ operations: "all" }) gives every tool
 //   vocabularies/<name>.json   use categories and the chart of accounts the document tools match on
+//   predicates.json            the lease predicate catalog doc_predicates serves (shapes, examples, checks)
 // Run: npm run schemas   (CI fails if the committed files are stale)
 import { mkdirSync, writeFileSync } from "node:fs";
 
@@ -19,6 +20,7 @@ import {
   openApi31,
   openaiChatTools,
   openaiResponsesTools,
+  predicateCatalog,
   tools,
   vocabularyDocuments,
 } from "@factlot/tools";
@@ -56,6 +58,7 @@ write("providers/bedrock-converse.json", {
 });
 for (const [file, data] of Object.entries(vocabularyDocuments()))
   write(`vocabularies/${file}`, { generated_by, ...(data as object) });
+write("predicates.json", { generated_by, ...predicateCatalog() });
 write("openapi-3.1.json", openApi31());
 write("openapi-3.0.json", openApi30());
 console.log(

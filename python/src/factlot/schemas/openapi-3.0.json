@@ -3,7 +3,7 @@
   "info": {
     "title": "FactLot",
     "version": "0.3.0",
-    "description": "The open fact layer for commercial real estate AI agents: deterministic CRE calculators with audit trails, canonical FactLot IDs, and cited-fact validation. Call these operations instead of doing lease, CAM, rent, loan, or return math yourself. This document is the curated Custom GPT Actions subset: 26 of the 39 operations (Actions accept at most 30). Every tool is in the OpenAPI 3.1 document (/openapi.json) and over MCP (/mcp); /openapi-3.0.json?operations=all is the complete OpenAPI 3.0 document."
+    "description": "The open fact layer for commercial real estate AI agents: deterministic CRE calculators with audit trails, canonical FactLot IDs, and cited-fact validation. Call these operations instead of doing lease, CAM, rent, loan, or return math yourself. This document is the curated Custom GPT Actions subset: 26 of the 41 operations (Actions accept at most 30). Every tool is in the OpenAPI 3.1 document (/openapi.json) and over MCP (/mcp); /openapi-3.0.json?operations=all is the complete OpenAPI 3.0 document."
   },
   "servers": [
     {
@@ -4650,6 +4650,68 @@
                           "type": "number",
                           "minimum": 0,
                           "maximum": 1
+                        },
+                        "commencement": {
+                          "description": "Only for lease.base_rent_schedule written by lease year (steps {lease_years: [1, 5], annual_rent_psf}): the commencement date the step dates are derived from, with its own quote. FactLot checks it like a lease.commencement_date candidate and derives each step: Lease Year N runs from the (N−1)th anniversary of the commencement date to the day before the next. If it does not verify, the schedule stays in needs_review.",
+                          "type": "object",
+                          "properties": {
+                            "value": {
+                              "type": "string",
+                              "format": "date",
+                              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                              "description": "The commencement date (YYYY-MM-DD)."
+                            },
+                            "quote": {
+                              "type": "string",
+                              "maxLength": 5000,
+                              "description": "Verbatim text that states the commencement date, at least 12 characters."
+                            },
+                            "page": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 100000,
+                              "description": "1-based page of this document the quote is on (it may differ from the rent table's page)."
+                            },
+                            "section": {
+                              "description": "Section, if any.",
+                              "type": "string",
+                              "maxLength": 200
+                            }
+                          },
+                          "required": ["value", "quote", "page"]
+                        },
+                        "confirmation": {
+                          "description": "A person's confirmation of the parts of the value no quote can prove (a true/false value, an enum such as a CAM cap method or kick-out party, a paraphrased summary). With it, a candidate whose only gaps are such parts is verified with method human_verified: the parts the quote confirmed are listed under checked and the rest under confirmed_by_person. It never overrides a quote that is not on the page, a number or date the quote does not state, or a confidence below 0.8.",
+                          "type": "object",
+                          "properties": {
+                            "by": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 200,
+                              "description": "The name or role of the PERSON who read the clause and confirmed the value, e.g. \"J. Smith, lease administrator\". FactLot does not authenticate it. Never set this for a value no person has read: an agent must not confirm its own extraction."
+                            },
+                            "at": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "format": "date",
+                                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                                },
+                                {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                                }
+                              ],
+                              "description": "When the person confirmed it: YYYY-MM-DD, or an ISO 8601 timestamp with offset. A date is recorded on the fact as that day at 00:00 UTC."
+                            },
+                            "note": {
+                              "description": "What the person checked; returned with the result (the fact schema has no field for it).",
+                              "type": "string",
+                              "maxLength": 1000
+                            }
+                          },
+                          "required": ["by", "at"]
                         }
                       },
                       "required": ["predicate", "value", "quote", "page"]
@@ -4821,6 +4883,68 @@
                                 "type": "number",
                                 "minimum": 0,
                                 "maximum": 1
+                              },
+                              "commencement": {
+                                "description": "Only for lease.base_rent_schedule written by lease year (steps {lease_years: [1, 5], annual_rent_psf}): the commencement date the step dates are derived from, with its own quote. FactLot checks it like a lease.commencement_date candidate and derives each step: Lease Year N runs from the (N−1)th anniversary of the commencement date to the day before the next. If it does not verify, the schedule stays in needs_review.",
+                                "type": "object",
+                                "properties": {
+                                  "value": {
+                                    "type": "string",
+                                    "format": "date",
+                                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                                    "description": "The commencement date (YYYY-MM-DD)."
+                                  },
+                                  "quote": {
+                                    "type": "string",
+                                    "maxLength": 5000,
+                                    "description": "Verbatim text that states the commencement date, at least 12 characters."
+                                  },
+                                  "page": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 100000,
+                                    "description": "1-based page of this document the quote is on (it may differ from the rent table's page)."
+                                  },
+                                  "section": {
+                                    "description": "Section, if any.",
+                                    "type": "string",
+                                    "maxLength": 200
+                                  }
+                                },
+                                "required": ["value", "quote", "page"]
+                              },
+                              "confirmation": {
+                                "description": "A person's confirmation of the parts of the value no quote can prove (a true/false value, an enum such as a CAM cap method or kick-out party, a paraphrased summary). With it, a candidate whose only gaps are such parts is verified with method human_verified: the parts the quote confirmed are listed under checked and the rest under confirmed_by_person. It never overrides a quote that is not on the page, a number or date the quote does not state, or a confidence below 0.8.",
+                                "type": "object",
+                                "properties": {
+                                  "by": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 200,
+                                    "description": "The name or role of the PERSON who read the clause and confirmed the value, e.g. \"J. Smith, lease administrator\". FactLot does not authenticate it. Never set this for a value no person has read: an agent must not confirm its own extraction."
+                                  },
+                                  "at": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "format": "date",
+                                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                                      },
+                                      {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                                      }
+                                    ],
+                                    "description": "When the person confirmed it: YYYY-MM-DD, or an ISO 8601 timestamp with offset. A date is recorded on the fact as that day at 00:00 UTC."
+                                  },
+                                  "note": {
+                                    "description": "What the person checked; returned with the result (the fact schema has no field for it).",
+                                    "type": "string",
+                                    "maxLength": 1000
+                                  }
+                                },
+                                "required": ["by", "at"]
                               }
                             },
                             "required": ["predicate", "value", "quote", "page"]

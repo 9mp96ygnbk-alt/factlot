@@ -6,8 +6,9 @@
  */
 import { createHash } from "node:crypto";
 
+import { addDays, addMonths } from "@factlot/calc";
 import { documentId } from "@factlot/id";
-import { Fact, FactLotIdString, IsoDate } from "@factlot/schema";
+import { Fact, FactLotIdString, IsoDate, IsoDateTime } from "@factlot/schema";
 import { z } from "zod";
 
 import { suggest } from "./limits.ts";
@@ -17,13 +18,16 @@ import {
   PageText,
   checkAnyValue,
   checkConsistency,
+  checkLeaseYearCandidate,
   checkValue,
   coverage,
   coverageReason,
   dateRanges,
   datesIn,
   hasConsistencyRule,
+  isDate,
   isIngestPredicate,
+  isLeaseYearSchedule,
   isPlainObject,
   locateQuote,
   missing,
@@ -143,8 +147,58 @@ const Candidate = z.object({
     .describe(
       "Your confidence 0–1. Below 0.8 the candidate goes to needs_review even if it verifies.",
     ),
+  commencement: z
+    .object({
+      value: IsoDate.describe("The commencement date (YYYY-MM-DD)."),
+      quote: z
+        .string()
+        .max(DOC_LIMITS.quoteCharacters)
+        .describe(
+          "Verbatim text that states the commencement date, at least 12 characters.",
+        ),
+      page: z
+        .number()
+        .int()
+        .min(1)
+        .max(100_000)
+        .describe(
+          "1-based page of this document the quote is on (it may differ from the rent table's page).",
+        ),
+      section: z.string().max(200).optional().describe("Section, if any."),
+    })
+    .optional()
+    .describe(
+      "Only for lease.base_rent_schedule written by lease year (steps {lease_years: [1, 5], annual_rent_psf}): the commencement date the step dates are derived from, with its own quote. FactLot checks it like a lease.commencement_date candidate and derives each step: Lease Year N runs from the (N−1)th anniversary of the commencement date to the day before the next. If it does not verify, the schedule stays in needs_review.",
+    ),
+  confirmation: z
+    .object({
+      by: z
+        .string()
+        .min(1)
+        .max(200)
+        .describe(
+          'The name or role of the PERSON who read the clause and confirmed the value, e.g. "J. Smith, lease administrator". FactLot does not authenticate it. Never set this for a value no person has read: an agent must not confirm its own extraction.',
+        ),
+      at: z
+        .union([IsoDate, IsoDateTime])
+        .describe(
+          "When the person confirmed it: YYYY-MM-DD, or an ISO 8601 timestamp with offset. A date is recorded on the fact as that day at 00:00 UTC.",
+        ),
+      note: z
+        .string()
+        .max(1_000)
+        .optional()
+        .describe(
+          "What the person checked; returned with the result (the fact schema has no field for it).",
+        ),
+    })
+    .optional()
+    .describe(
+      "A person's confirmation of the parts of the value no quote can prove (a true/false value, an enum such as a CAM cap method or kick-out party, a paraphrased summary). With it, a candidate whose only gaps are such parts is verified with method human_verified: the parts the quote confirmed are listed under checked and the rest under confirmed_by_person. It never overrides a quote that is not on the page, a number or date the quote does not state, or a confidence below 0.8.",
+    ),
 });
 type CandidateIn = z.output<typeof Candidate>;
+type Confirmation = { by: string; at?: string; note?: string };
 const Candidates = z
   .array(Candidate)
   .max(DOC_LIMITS.candidatesPerDocument)
@@ -398,16 +452,163 @@ interface Outcome {
   facts: Json[];
 }
 
-/** One candidate through the Ingest checks, in order: value shape, quote on page, value in quote, confidence. */
+// --- lease years and human confirmation ----------------------------------------------------
+
+const RENT = "lease.base_rent_schedule";
+
+/** The derivation a rent schedule written by lease year cites in provenance.formula. */
+export const LEASE_YEAR_FORMULA = "doc.lease_year_dates@1";
+export const LEASE_YEAR_CONVENTION =
+  "Lease Year 1 begins on the commencement date. Lease Year N begins on the (N−1)th anniversary of the commencement date (the same month and day N−1 years later; the anniversary of February 29 in a common year is February 28) and ends the day before the next anniversary.";
+
+/** The dates of lease years first..last for a commencement date (Python `lease_year_dates`). */
+export function leaseYearDates(
+  commencement: string,
+  first: number,
+  last: number,
+): { from: string; to: string } {
+  return {
+    from: addMonths(commencement, 12 * (first - 1)),
+    to: addDays(addMonths(commencement, 12 * last), -1),
+  };
+}
+
+/** The rent steps with the dates a commencement date gives them; undefined past the year 9999. */
+function deriveSteps(
+  steps: readonly Record<string, unknown>[],
+  commencement: string,
+): Record<string, unknown>[] | undefined {
+  const last = (steps[steps.length - 1]!.lease_years as number[])[1]!;
+  if (Number(commencement.slice(0, 4)) + last > 9999) return undefined;
+  return steps.map((step) => {
+    const [a, b] = step.lease_years as [number, number];
+    return {
+      ...leaseYearDates(commencement, a, b),
+      annual_rent_psf: step.annual_rent_psf,
+      lease_years: [a, b],
+    };
+  });
+}
+
+const isoOfKey = (key: string): string =>
+  key
+    .split("-")
+    .map((p, i) => p.padStart(i ? 2 : 4, "0"))
+    .join("-");
+
+/**
+ * The commencement date written in the quote that a lease-year schedule's dates follow from, or
+ * undefined (the earliest, if several do).
+ */
+export function leaseYearCommencement(
+  steps: readonly Record<string, unknown>[],
+  quote: string,
+): string | undefined {
+  for (const c of [...datesIn(norm(quote))].map(isoOfKey).sort()) {
+    const derived = deriveSteps(steps, c);
+    if (
+      derived?.every(
+        (d, i) => d.from === steps[i]!.from && d.to === steps[i]!.to,
+      )
+    )
+      return c;
+  }
+  return undefined;
+}
+
+const AUTOMATED = new Set([
+  "agent",
+  "ai",
+  "ai agent",
+  "the agent",
+  "this agent",
+  "assistant",
+  "ai assistant",
+  "bot",
+  "model",
+  "language model",
+  "llm",
+  "auto",
+  "automatic",
+  "automated",
+  "system",
+  "factlot",
+  "extractor",
+  "me",
+  "self",
+  "myself",
+  "n a",
+  "na",
+  "none",
+  "unknown",
+]);
+
+/** Why a confirmation's `by` cannot be recorded as a person's name or role, or undefined. */
+export function confirmerIssue(by: string): string | undefined {
+  const v = norm(by)
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim();
+  if (!v) return "must name the person who confirmed the value";
+  if (AUTOMATED.has(v))
+    return `must name the person (or role) who read the clause and confirmed the value, not "${by}": FactLot records it as a human confirmation and cannot authenticate it, so an agent must never confirm its own extraction`;
+  return undefined;
+}
+
+/** Input errors for confirmations an agent could not have been given by a person. */
+export function confirmationIssues(
+  candidates: readonly CandidateIn[] | undefined,
+  path: string,
+): { path: string; message: string }[] {
+  const out: { path: string; message: string }[] = [];
+  (candidates ?? []).forEach((c, i) => {
+    const why = c.confirmation && confirmerIssue(c.confirmation.by);
+    if (why) out.push({ path: `${path}.${i}.confirmation.by`, message: why });
+  });
+  return out;
+}
+
+/** A confirmation's `at` as the fact's verified_at (a date is that day at 00:00 UTC). */
+function verifiedAt(at: string): string {
+  return isDate(at) ? `${at}T00:00:00Z` : at;
+}
+
+function sourceOf(
+  doc: Doc,
+  page: number,
+  q: string,
+  quote: string,
+  section: string | undefined,
+): Json {
+  const span = doc.text.span(page, q);
+  return {
+    document_id: doc.id,
+    ...(doc.title !== undefined ? { title: doc.title } : {}),
+    page,
+    ...(section !== undefined ? { section } : {}),
+    quote,
+    ...(doc.ocr.has(page) ? { ocr: true } : {}),
+    ...(span ? { span } : {}),
+    ...(doc.sha256 !== undefined ? { sha256: doc.sha256 } : {}),
+  };
+}
+
+/**
+ * One candidate through the Ingest checks, in order: value shape, quote on page, value in quote,
+ * the commencement date (a rent schedule by lease year), confidence, and every part confirmed
+ * by the quote or, for parts no quote can prove, by a person's confirmation.
+ */
 function verifyCandidate(
   doc: Doc,
-  c: CandidateIn,
+  c: Omit<CandidateIn, "confirmation"> & { confirmation?: Confirmation },
   ctx: Context,
   label: Json,
   out: Outcome,
 ): void {
   const base = { ...label, predicate: c.predicate };
-  const shape = checkAnyValue(c.predicate, c.value);
+  const byLeaseYear = c.predicate === RENT && isLeaseYearSchedule(c.value);
+  const shape = byLeaseYear
+    ? checkLeaseYearCandidate(c.value)
+    : checkAnyValue(c.predicate, c.value);
   if (shape) {
     out.rejected.push({
       ...base,
@@ -415,6 +616,17 @@ function verifyCandidate(
       page: c.page,
       check: "value",
       reason: shape,
+    });
+    return;
+  }
+  if (byLeaseYear && !c.commencement) {
+    out.rejected.push({
+      ...base,
+      value: c.value,
+      page: c.page,
+      check: "value",
+      reason:
+        "a rent schedule by lease year needs commencement {value, quote, page}: FactLot derives each step's dates from the commencement date and checks that date against its own quote",
     });
     return;
   }
@@ -434,6 +646,10 @@ function verifyCandidate(
     notes.push(`quote found on page ${loc.page}, not ${c.page}`);
   const note = predicateNote(c.predicate);
   if (note) notes.push(note);
+  if (c.commencement && !byLeaseYear)
+    notes.push(
+      "commencement is used only for a lease.base_rent_schedule written by lease year; it was not checked",
+    );
   const review = (check: string, reason: string, extra: Json = {}): void => {
     out.needs_review.push({
       ...base,
@@ -449,42 +665,109 @@ function verifyCandidate(
   };
   const mismatch = checkConsistency(c.predicate, c.value, c.quote);
   if (mismatch) return review("consistency", mismatch);
+
+  // A rent schedule by lease year: the commencement date is checked like a candidate of its own,
+  // and the step dates are derived from it.
+  let value = c.value;
+  let derivedFrom: Json | undefined;
+  let commencementSource: Json | undefined;
+  if (byLeaseYear) {
+    const com = c.commencement!;
+    const unverified = (why: string): void =>
+      review(
+        "derivation",
+        `the commencement date ${com.value} that the step dates are derived from is not verified: ${why}`,
+      );
+    const at = locateQuote(doc.text, com.quote, com.page);
+    if (!at.ok) return unverified(at.reason);
+    const wrong = checkConsistency(
+      "lease.commencement_date",
+      com.value,
+      com.quote,
+    );
+    if (wrong) return unverified(wrong);
+    const steps = c.value as Record<string, unknown>[];
+    const derived = deriveSteps(steps, com.value);
+    if (!derived) return unverified("the lease years run past the year 9999");
+    for (const [i, step] of steps.entries())
+      for (const k of ["from", "to"] as const)
+        if (step[k] !== undefined && step[k] !== derived[i]![k])
+          return review(
+            "consistency",
+            `value.${i}.${k} ${showValue(step[k])} does not follow from the commencement date ${com.value}: lease years ${(step.lease_years as number[]).join("–")} run from ${derived[i]!.from} to ${derived[i]!.to}`,
+          );
+    value = derived;
+    if (at.corrected)
+      notes.push(
+        `commencement quote found on page ${at.page}, not ${com.page}`,
+      );
+    if (com.value.endsWith("-02-29"))
+      notes.push(
+        "the commencement date is February 29: in common years its anniversary is taken as February 28. If the lease defines it as March 1, the step dates differ by a day; confirm",
+      );
+    if (!com.value.endsWith("-01"))
+      notes.push(
+        "the commencement date is not the first of a month: if the lease defines Lease Year 1 to end with the twelfth full calendar month, its dates differ from these anniversary dates; confirm against the lease's definition of Lease Year",
+      );
+    commencementSource = sourceOf(doc, at.page, at.q, com.quote, com.section);
+    derivedFrom = {
+      commencement_date: com.value,
+      citation: commencementSource,
+      convention: LEASE_YEAR_CONVENTION,
+      formula: LEASE_YEAR_FORMULA,
+      steps: derived.map((d) => ({
+        lease_years: d.lease_years,
+        from: d.from,
+        to: d.to,
+      })),
+    };
+  }
+
   if (c.confidence !== undefined && c.confidence < REVIEW_CONFIDENCE_THRESHOLD)
     return review(
       "confidence",
       `extractor confidence ${showValue(c.confidence)} is below ${REVIEW_CONFIDENCE_THRESHOLD}`,
     );
   // Verified means every part of the value was found in the quote: a part no rule can check (a
-  // boolean, an enum) or free text the quote does not contain holds the candidate for a person.
-  const cov = coverage(c.predicate, c.value, c.quote);
-  if (cov.gaps.length)
+  // boolean, an enum) or free text the quote does not contain holds the candidate for a person,
+  // unless a person has confirmed it.
+  const cov = coverage(c.predicate, value, c.quote);
+  const confirmed = cov.gaps.length > 0 && cov.absent.length === 0;
+  if (cov.gaps.length && !(confirmed && c.confirmation))
     return review("coverage", coverageReason(cov.gaps), {
       checked: cov.checked,
       not_checked: cov.not_checked,
     });
-  const span = doc.text.span(loc.page, loc.q);
-  const source: Json = {
-    document_id: doc.id,
-    ...(doc.title !== undefined ? { title: doc.title } : {}),
-    page: loc.page,
-    ...(c.section !== undefined ? { section: c.section } : {}),
-    quote: c.quote,
-    ...(doc.ocr.has(loc.page) ? { ocr: true } : {}),
-    ...(span ? { span } : {}),
-    ...(doc.sha256 !== undefined ? { sha256: doc.sha256 } : {}),
-  };
-  const fact = buildFact(ctx, c.predicate, c.value, doc.id, c.quote, {
-    method: "extracted",
-    sources: [source],
+  const byPerson = confirmed && c.confirmation !== undefined;
+  if (c.confirmation && !byPerson)
+    notes.push(
+      "the confirmation was not needed: the quote confirms every part of the value, so the fact keeps method extracted",
+    );
+  const source = sourceOf(doc, loc.page, loc.q, c.quote, c.section);
+  const fact = buildFact(ctx, c.predicate, value, doc.id, c.quote, {
+    method: byPerson ? "human_verified" : "extracted",
+    sources: commencementSource ? [source, commencementSource] : [source],
     producer: ctx.producer,
+    ...(derivedFrom ? { formula: LEASE_YEAR_FORMULA } : {}),
     ...(c.confidence !== undefined ? { confidence: c.confidence } : {}),
+    ...(byPerson ? { verified_by: c.confirmation!.by } : {}),
+    ...(byPerson && c.confirmation!.at !== undefined
+      ? { verified_at: verifiedAt(c.confirmation!.at) }
+      : {}),
   });
   out.facts.push(fact);
   out.verified.push({
     ...label,
     fact,
     checked: cov.checked,
-    not_checked: cov.not_checked,
+    not_checked: byPerson ? [] : cov.not_checked,
+    ...(byPerson
+      ? {
+          confirmed_by_person: cov.not_checked,
+          confirmation: c.confirmation,
+        }
+      : {}),
+    ...(derivedFrom ? { derived_from: derivedFrom } : {}),
     ...(notes.length ? { notes } : {}),
   });
 }
@@ -547,6 +830,11 @@ export function factValueIssues(
   if (!hasConsistencyRule(fact.predicate)) return [];
   const prov = fact.provenance;
   if (!isPlainObject(prov) || !Array.isArray(prov.sources)) return [];
+  if (fact.predicate === RENT && isLeaseYearSchedule(fact.value))
+    return leaseYearFactIssues(
+      fact.value as Record<string, unknown>[],
+      prov.sources,
+    );
   const out: { path: string; message: string }[] = [];
   prov.sources.forEach((s, i) => {
     if (!isPlainObject(s) || typeof s.quote !== "string") return;
@@ -561,6 +849,38 @@ export function factValueIssues(
         message: `value not supported by quote: ${reason}`,
       });
   });
+  return out;
+}
+
+/**
+ * fact_validate for a rent schedule by lease year: the first source states every rent and lease
+ * year, and the second states a commencement date the step dates follow from.
+ */
+function leaseYearFactIssues(
+  steps: Record<string, unknown>[],
+  sources: unknown[],
+): { path: string; message: string }[] {
+  const [table, start] = sources;
+  const out: { path: string; message: string }[] = [];
+  if (isPlainObject(table) && typeof table.quote === "string") {
+    const reason = checkConsistency(RENT, steps, table.quote);
+    if (reason)
+      out.push({
+        path: "provenance.sources.0.quote",
+        message: `value not supported by quote: ${reason}`,
+      });
+  }
+  if (!isPlainObject(start) || typeof start.quote !== "string")
+    out.push({
+      path: "provenance.sources",
+      message:
+        "value not supported by quote: a rent schedule by lease year cites its rent table first and then the quote stating the commencement date its step dates are derived from",
+    });
+  else if (leaseYearCommencement(steps, start.quote) === undefined)
+    out.push({
+      path: "provenance.sources.1.quote",
+      message: `value not supported by quote: the step dates do not follow from a commencement date written in this quote (${LEASE_YEAR_CONVENTION})`,
+    });
   return out;
 }
 
@@ -587,6 +907,8 @@ export function verifyFacts(
   producer: Producer,
 ): Json {
   capCharacters(characters(input.document.pages));
+  const bad = confirmationIssues(input.candidates, "candidates");
+  if (bad.length) throw new ToolInputError(bad.slice(0, 20));
   const doc = loadDocument(input.document);
   const out: Outcome = {
     verified: [],
@@ -602,18 +924,26 @@ export function verifyFacts(
   input.candidates.forEach((c, i) =>
     verifyCandidate(doc, c, ctx, { candidate: i }, out),
   );
+  const byPerson = out.verified.filter((v) => v.confirmed_by_person).length;
   return {
     document: describeDocument(doc),
     verified: out.verified,
     needs_review: out.needs_review,
     rejected: out.rejected,
+    ...(byPerson ? { warnings: [personWarning(byPerson)] } : {}),
     summary: {
       candidates: input.candidates.length,
       verified: out.verified.length,
+      ...(byPerson ? { confirmed_by_person: byPerson } : {}),
       needs_review: out.needs_review.length,
       rejected: out.rejected.length,
     },
   };
+}
+
+/** The warning every result with person-confirmed facts carries, so the distinction is never silent. */
+function personWarning(n: number): string {
+  return `${n} verified value${n === 1 ? " rests" : "s rest"} partly on a person's confirmation (method human_verified): the quote confirmed the parts under checked; the parts under confirmed_by_person were confirmed by the person named in verified_by, whom FactLot does not authenticate`;
 }
 
 // --- doc_abstract_lease -------------------------------------------------------------------------
@@ -732,7 +1062,8 @@ interface Statement {
 }
 
 function citation(s: Statement): Json {
-  const src = ((s.fact.provenance as Json).sources as Json[])[0]!;
+  const prov = s.fact.provenance as Json;
+  const src = (prov.sources as Json[])[0]!;
   const pick = (k: string): Json =>
     src[k] !== undefined ? { [k]: src[k] } : {};
   return {
@@ -745,6 +1076,13 @@ function citation(s: Statement): Json {
     ...pick("span"),
     quote_on_page: s.quoteOnPage,
     fact_id: s.fact.id,
+    ...(prov.method === "human_verified"
+      ? {
+          method: "human_verified",
+          verified_by: prov.verified_by,
+          confirmed_by_person: personConfirmed(s.fact),
+        }
+      : {}),
   };
 }
 
@@ -825,6 +1163,10 @@ export function abstractLease(
     candidates += (d.candidates?.length ?? 0) + (d.facts?.length ?? 0);
   });
   capCharacters(total);
+  const bad = docs.flatMap((d, i) =>
+    confirmationIssues(d.candidates, `documents.${i}.candidates`),
+  );
+  if (bad.length) throw new ToolInputError(bad.slice(0, 20));
   if (candidates > DOC_LIMITS.candidatesPerCall)
     throw new ToolInputError([
       {
@@ -921,6 +1263,25 @@ export function abstractLease(
         return reject(
           `the fact cites ${String(src.document_id)}, but this document is ${String(ids[di])}`,
         );
+      const byPerson = prov.method === "human_verified";
+      if (byPerson) {
+        const why =
+          typeof prov.verified_by === "string"
+            ? confirmerIssue(prov.verified_by)
+            : "is missing";
+        if (why)
+          return reject(
+            `a human_verified fact needs provenance.verified_by naming the person who confirmed it: verified_by ${why}`,
+          );
+      }
+      const byLeaseYear = predicate === RENT && isLeaseYearSchedule(f.value);
+      const start = byLeaseYear
+        ? ((prov.sources as Json[])[1] as Json)
+        : undefined;
+      if (start && start.document_id !== ids[di])
+        return reject(
+          "a rent schedule by lease year must cite the commencement date in the same document as its rent table",
+        );
       if (doc) {
         verifyCandidate(
           doc,
@@ -935,6 +1296,31 @@ export function abstractLease(
             ...(typeof prov.confidence === "number"
               ? { confidence: prov.confidence }
               : {}),
+            ...(start
+              ? {
+                  commencement: {
+                    value: leaseYearCommencement(
+                      f.value as Record<string, unknown>[],
+                      start.quote as string,
+                    )!,
+                    quote: start.quote as string,
+                    page: start.page as number,
+                    ...(typeof start.section === "string"
+                      ? { section: start.section }
+                      : {}),
+                  },
+                }
+              : {}),
+            ...(byPerson
+              ? {
+                  confirmation: {
+                    by: prov.verified_by as string,
+                    ...(typeof prov.verified_at === "string"
+                      ? { at: prov.verified_at }
+                      : {}),
+                  },
+                }
+              : {}),
           },
           ctx,
           label,
@@ -947,7 +1333,7 @@ export function abstractLease(
         if (reason) return reject(`value not supported by quote: ${reason}`);
       }
       const cov = coverage(predicate, f.value, src.quote);
-      if (cov.gaps.length) {
+      if (cov.gaps.length && !(byPerson && cov.absent.length === 0)) {
         out.needs_review.push({
           ...label,
           predicate,
@@ -1024,7 +1410,6 @@ export function abstractLease(
     steps?: HeldStep[];
     notes: string[];
   }
-  const RENT = "lease.base_rent_schedule";
   const fields = new Map<string, Field>();
   for (const s of statements) {
     const predicate = s.fact.predicate as string;
@@ -1074,6 +1459,9 @@ export function abstractLease(
     ...needsReview.map((x) => ({ ...x, status: "needs_review" })),
     ...rejected.map((x) => ({ ...x, status: "rejected" })),
   ];
+  const byPerson = facts.filter(
+    (f) => (f.provenance as Json).method === "human_verified",
+  ).length;
   const out: Json[] = [];
   for (const f of fields.values()) {
     const items = open
@@ -1130,11 +1518,12 @@ export function abstractLease(
     pending_facts: pendingFacts,
     needs_review: needsReview,
     rejected,
-    warnings,
+    warnings: byPerson ? [...warnings, personWarning(byPerson)] : warnings,
     summary: {
       documents: docs.length,
       fields: out.length,
       facts: facts.length,
+      ...(byPerson ? { confirmed_by_person: byPerson } : {}),
       pending: pendingFacts.length,
       needs_review: needsReview.length,
       rejected: rejected.length,
@@ -1144,6 +1533,19 @@ export function abstractLease(
 }
 
 // --- doc_compare --------------------------------------------------------------------------------
+
+/**
+ * Parts of a human_verified fact's value that its first quote does not confirm: they rest on the
+ * confirmation of the person in verified_by (Python `person_confirmed`).
+ */
+export function personConfirmed(f: Json): string[] {
+  const prov = f.provenance;
+  if (!isPlainObject(prov) || prov.method !== "human_verified") return [];
+  const src = Array.isArray(prov.sources) ? (prov.sources[0] as unknown) : {};
+  if (!isPlainObject(src) || typeof src.quote !== "string") return [];
+  if (typeof f.predicate !== "string") return [];
+  return coverage(f.predicate, f.value, src.quote).not_checked;
+}
 
 /**
  * Parts of an extracted fact's value that its first quote does not confirm (booleans, enums, free
@@ -1252,6 +1654,7 @@ export function compare(input: z.output<typeof CompareInput>): Json {
     const status = diffs.length ? "mismatch" : "match";
     summary[status]++;
     const gaps = unconfirmed(f);
+    const prov = f.provenance as Json;
     return {
       ...base,
       status,
@@ -1259,6 +1662,15 @@ export function compare(input: z.output<typeof CompareInput>): Json {
       ...(diffs.length ? { differences: diffs } : {}),
       citation: cite(f),
       ...(gaps.length ? { lease_not_checked: gaps } : {}),
+      ...(prov.method === "human_verified"
+        ? {
+            lease_method: "human_verified",
+            ...(prov.verified_by !== undefined
+              ? { lease_verified_by: prov.verified_by }
+              : {}),
+            lease_confirmed_by_person: personConfirmed(f),
+          }
+        : {}),
     };
   });
   return { results, summary };

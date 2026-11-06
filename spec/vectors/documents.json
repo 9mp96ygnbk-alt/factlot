@@ -65,6 +65,11 @@
     ],
     "concessions": [
       "RETAIL LEASE RIDER (SYNTHETIC TEST DOCUMENT)\n1. Abatement. Tenant shall not pay Base Rent for the first three (3) months of the Term.\n2. Percentage Rent. Tenant shall pay six percent (6%) of Gross Sales above the natural breakpoint.\n3. Inducement. Tenant shall receive two (2) months of free rent."
+    ],
+    "lease_year_lease": [
+      "SHOPPING CENTER LEASE (SYNTHETIC TEST DOCUMENT - NOT A REAL LEASE)\n\n1.3 Commencement Date. The Commencement Date is July 1, 2026.\n1.4 Term. Ten (10) Lease Years.",
+      "4.1 Base Rent. Tenant shall pay Base Rent as follows:\nLease Years 1–5: $34.50 per rentable square foot per annum;\nLease Years 6–10: $38.00 per rentable square foot per annum.\n4.2 CAM Cap. Controllable Common Area Charges shall not increase by more than five percent (5%) over the prior year.",
+      "EXHIBIT C (SYNTHETIC). Kiosk license. The License Commencement Date is February 29, 2028. License Years 1–2: $40.00 per square foot; License Years 3–4: $42.00 per square foot."
     ]
   },
   "consistency": [
@@ -6493,6 +6498,1571 @@
         ],
         "needs_review.0.reason": "value.applies_to (not worded in the quote as FactLot recognises it) is not checked against the quote; confirm it",
         "needs_review.1.reason": "value.applies_to (string) is not checked against the quote; confirm it"
+      }
+    },
+    {
+      "name": "lease-year rent schedule: rents and lease years checked against the table, the commencement date against its own quote on another page, step dates derived",
+      "tool": "doc_verify_facts",
+      "arguments": {
+        "document": {
+          "pages": {
+            "$pages": "lease_year_lease"
+          }
+        },
+        "as_of": "2026-11-06",
+        "candidates": [
+          {
+            "predicate": "lease.base_rent_schedule",
+            "value": [
+              {
+                "lease_years": [1, 5],
+                "annual_rent_psf": 34.5
+              },
+              {
+                "lease_years": [6, 10],
+                "annual_rent_psf": 38
+              }
+            ],
+            "quote": "Lease Years 1–5: $34.50 per rentable square foot per annum;\nLease Years 6–10: $38.00",
+            "page": 2,
+            "section": "4.1",
+            "commencement": {
+              "value": "2026-07-01",
+              "quote": "The Commencement Date is July 1, 2026",
+              "page": 1,
+              "section": "1.3"
+            }
+          },
+          {
+            "predicate": "lease.base_rent_schedule",
+            "value": [
+              {
+                "lease_years": [1, 5],
+                "annual_rent_psf": 34.5
+              },
+              {
+                "lease_years": [6, 10],
+                "annual_rent_psf": 38
+              }
+            ],
+            "quote": "Lease Years 1–5: $34.50 per rentable square foot per annum;\nLease Years 6–10: $38.00",
+            "page": 2,
+            "commencement": {
+              "value": "2026-07-02",
+              "quote": "The Commencement Date is July 1, 2026",
+              "page": 1
+            }
+          },
+          {
+            "predicate": "lease.base_rent_schedule",
+            "value": [
+              {
+                "lease_years": [1, 5],
+                "annual_rent_psf": 34.5
+              },
+              {
+                "lease_years": [6, 10],
+                "annual_rent_psf": 38
+              }
+            ],
+            "quote": "Lease Years 1–5: $34.50 per rentable square foot per annum;\nLease Years 6–10: $38.00",
+            "page": 2,
+            "commencement": {
+              "value": "2026-07-01",
+              "quote": "The Commencement Date is July 1st, 2026",
+              "page": 1
+            }
+          },
+          {
+            "predicate": "lease.base_rent_schedule",
+            "value": [
+              {
+                "lease_years": [1, 5],
+                "annual_rent_psf": 34.5
+              },
+              {
+                "lease_years": [6, 10],
+                "annual_rent_psf": 38
+              }
+            ],
+            "quote": "Lease Years 1–5: $34.50 per rentable square foot per annum;\nLease Years 6–10: $38.00",
+            "page": 2
+          },
+          {
+            "predicate": "lease.base_rent_schedule",
+            "value": [
+              {
+                "lease_years": [1, 5],
+                "annual_rent_psf": 34.5,
+                "from": "2026-07-01",
+                "to": "2031-07-01"
+              }
+            ],
+            "quote": "Lease Years 1–5: $34.50 per rentable square foot per annum;\nLease Years 6–10: $38.00",
+            "page": 2,
+            "commencement": {
+              "value": "2026-07-01",
+              "quote": "The Commencement Date is July 1, 2026",
+              "page": 1,
+              "section": "1.3"
+            }
+          },
+          {
+            "predicate": "lease.base_rent_schedule",
+            "value": [
+              {
+                "lease_years": [1, 5],
+                "annual_rent_psf": 35.5
+              }
+            ],
+            "quote": "Lease Years 1–5: $34.50 per rentable square foot per annum;\nLease Years 6–10: $38.00",
+            "page": 2,
+            "commencement": {
+              "value": "2026-07-01",
+              "quote": "The Commencement Date is July 1, 2026",
+              "page": 1,
+              "section": "1.3"
+            }
+          },
+          {
+            "predicate": "lease.base_rent_schedule",
+            "value": [
+              {
+                "lease_years": [1, 5],
+                "annual_rent_psf": 34.5
+              },
+              {
+                "lease_years": [5, 10],
+                "annual_rent_psf": 38
+              }
+            ],
+            "quote": "Lease Years 1–5: $34.50 per rentable square foot per annum;\nLease Years 6–10: $38.00",
+            "page": 2,
+            "commencement": {
+              "value": "2026-07-01",
+              "quote": "The Commencement Date is July 1, 2026",
+              "page": 1,
+              "section": "1.3"
+            }
+          }
+        ]
+      },
+      "expect": {
+        "verified.0.fact.value": [
+          {
+            "from": "2026-07-01",
+            "to": "2031-06-30",
+            "annual_rent_psf": 34.5,
+            "lease_years": [1, 5]
+          },
+          {
+            "from": "2031-07-01",
+            "to": "2036-06-30",
+            "annual_rent_psf": 38,
+            "lease_years": [6, 10]
+          }
+        ],
+        "verified.0.fact.provenance.sources": [
+          {
+            "document_id": "fl:document:sha256-d49399c3af1aacafbefbd142116b95b0f4fd556a32553f1e78eb85e828df2e8e",
+            "page": 2,
+            "section": "4.1",
+            "quote": "Lease Years 1–5: $34.50 per rentable square foot per annum;\nLease Years 6–10: $38.00",
+            "span": {
+              "start": 216,
+              "end": 300
+            }
+          },
+          {
+            "document_id": "fl:document:sha256-d49399c3af1aacafbefbd142116b95b0f4fd556a32553f1e78eb85e828df2e8e",
+            "page": 1,
+            "section": "1.3",
+            "quote": "The Commencement Date is July 1, 2026",
+            "span": {
+              "start": 91,
+              "end": 128
+            }
+          }
+        ],
+        "verified.0.fact.provenance.formula": "doc.lease_year_dates@1",
+        "verified.0.fact.provenance.method": "extracted",
+        "verified.0.checked": [
+          {
+            "path": "value.0.from",
+            "as": "derived"
+          },
+          {
+            "path": "value.0.to",
+            "as": "derived"
+          },
+          {
+            "path": "value.0.annual_rent_psf",
+            "as": "number"
+          },
+          {
+            "path": "value.0.lease_years.0",
+            "as": "number"
+          },
+          {
+            "path": "value.0.lease_years.1",
+            "as": "number"
+          },
+          {
+            "path": "value.1.from",
+            "as": "derived"
+          },
+          {
+            "path": "value.1.to",
+            "as": "derived"
+          },
+          {
+            "path": "value.1.annual_rent_psf",
+            "as": "number"
+          },
+          {
+            "path": "value.1.lease_years.0",
+            "as": "number"
+          },
+          {
+            "path": "value.1.lease_years.1",
+            "as": "number"
+          }
+        ],
+        "verified.0.not_checked": [],
+        "verified.0.derived_from": {
+          "commencement_date": "2026-07-01",
+          "citation": {
+            "document_id": "fl:document:sha256-d49399c3af1aacafbefbd142116b95b0f4fd556a32553f1e78eb85e828df2e8e",
+            "page": 1,
+            "section": "1.3",
+            "quote": "The Commencement Date is July 1, 2026",
+            "span": {
+              "start": 91,
+              "end": 128
+            }
+          },
+          "convention": "Lease Year 1 begins on the commencement date. Lease Year N begins on the (N−1)th anniversary of the commencement date (the same month and day N−1 years later; the anniversary of February 29 in a common year is February 28) and ends the day before the next anniversary.",
+          "formula": "doc.lease_year_dates@1",
+          "steps": [
+            {
+              "lease_years": [1, 5],
+              "from": "2026-07-01",
+              "to": "2031-06-30"
+            },
+            {
+              "lease_years": [6, 10],
+              "from": "2031-07-01",
+              "to": "2036-06-30"
+            }
+          ]
+        },
+        "verified.0.notes": null,
+        "needs_review.0.candidate": 1,
+        "needs_review.0.check": "derivation",
+        "needs_review.0.reason": "the commencement date 2026-07-02 that the step dates are derived from is not verified: value \"2026-07-02\" not found in quote",
+        "needs_review.1.check": "derivation",
+        "needs_review.1.reason": "the commencement date 2026-07-01 that the step dates are derived from is not verified: quote not found in the document",
+        "needs_review.2.check": "consistency",
+        "needs_review.2.reason": "value.0.to \"2031-07-01\" does not follow from the commencement date 2026-07-01: lease years 1–5 run from 2026-07-01 to 2031-06-30",
+        "needs_review.3.check": "consistency",
+        "needs_review.3.reason": "value 35.5 (annual_rent_psf) not found in quote",
+        "rejected.0.candidate": 3,
+        "rejected.0.check": "value",
+        "rejected.0.reason": "a rent schedule by lease year needs commencement {value, quote, page}: FactLot derives each step's dates from the commencement date and checks that date against its own quote",
+        "rejected.1.check": "value",
+        "rejected.1.reason": "rent steps by lease year must be in order and must not overlap",
+        "summary": {
+          "candidates": 7,
+          "verified": 1,
+          "needs_review": 4,
+          "rejected": 2
+        }
+      }
+    },
+    {
+      "name": "lease-year schedule with a February 29 commencement: the anniversary in a common year is February 28, with a note",
+      "tool": "doc_verify_facts",
+      "arguments": {
+        "document": {
+          "pages": {
+            "$pages": "lease_year_lease"
+          }
+        },
+        "as_of": "2026-11-06",
+        "candidates": [
+          {
+            "predicate": "lease.base_rent_schedule",
+            "value": [
+              {
+                "lease_years": [1, 2],
+                "annual_rent_psf": 40
+              },
+              {
+                "lease_years": [3, 4],
+                "annual_rent_psf": 42
+              }
+            ],
+            "quote": "License Years 1–2: $40.00 per square foot; License Years 3–4: $42.00",
+            "page": 3,
+            "commencement": {
+              "value": "2028-02-29",
+              "quote": "The License Commencement Date is February 29, 2028",
+              "page": 3
+            }
+          }
+        ]
+      },
+      "expect": {
+        "verified.0.fact.value": [
+          {
+            "from": "2028-02-29",
+            "to": "2030-02-27",
+            "annual_rent_psf": 40,
+            "lease_years": [1, 2]
+          },
+          {
+            "from": "2030-02-28",
+            "to": "2032-02-28",
+            "annual_rent_psf": 42,
+            "lease_years": [3, 4]
+          }
+        ],
+        "verified.0.derived_from.steps": [
+          {
+            "lease_years": [1, 2],
+            "from": "2028-02-29",
+            "to": "2030-02-27"
+          },
+          {
+            "lease_years": [3, 4],
+            "from": "2030-02-28",
+            "to": "2032-02-28"
+          }
+        ],
+        "verified.0.notes": [
+          "the commencement date is February 29: in common years its anniversary is taken as February 28. If the lease defines it as March 1, the step dates differ by a day; confirm",
+          "the commencement date is not the first of a month: if the lease defines Lease Year 1 to end with the twelfth full calendar month, its dates differ from these anniversary dates; confirm against the lease's definition of Lease Year"
+        ]
+      }
+    },
+    {
+      "name": "human confirmation: a part no quote can prove becomes a human_verified fact; the confirmation never overrides a value the quote does not state or a low confidence",
+      "tool": "doc_verify_facts",
+      "arguments": {
+        "document": {
+          "pages": {
+            "$pages": "retail_lease"
+          }
+        },
+        "as_of": "2026-11-06",
+        "candidates": [
+          {
+            "predicate": "lease.go_dark",
+            "value": {
+              "operating_covenant": true
+            },
+            "quote": "Tenant shall continuously operate in the Premises.",
+            "page": 2,
+            "section": "7.1",
+            "confirmation": {
+              "by": "A. Reviewer, lease administration",
+              "at": "2026-11-05",
+              "note": "read Section 7.1"
+            }
+          },
+          {
+            "predicate": "lease.go_dark",
+            "value": {
+              "operating_covenant": true
+            },
+            "quote": "Tenant shall continuously operate in the Premises.",
+            "page": 2,
+            "section": "7.1"
+          },
+          {
+            "predicate": "lease.go_dark",
+            "value": {
+              "operating_covenant": true,
+              "dark_period_days": 90
+            },
+            "quote": "Tenant shall continuously operate in the Premises. If Tenant ceases operating for more than 180 consecutive days",
+            "page": 2,
+            "confirmation": {
+              "by": "A. Reviewer, lease administration",
+              "at": "2026-11-05",
+              "note": "read Section 7.1"
+            }
+          },
+          {
+            "predicate": "lease.go_dark",
+            "value": {
+              "operating_covenant": true
+            },
+            "quote": "Tenant shall continuously operate in the Premises.",
+            "page": 2,
+            "section": "7.1",
+            "confidence": 0.5,
+            "confirmation": {
+              "by": "A. Reviewer, lease administration",
+              "at": "2026-11-05",
+              "note": "read Section 7.1"
+            }
+          },
+          {
+            "predicate": "lease.radius_restriction",
+            "value": {
+              "radius_miles": 3
+            },
+            "quote": "within 3 miles of the Shopping Center",
+            "page": 2,
+            "confirmation": {
+              "by": "A. Reviewer",
+              "at": "2026-11-05T14:30:00-05:00"
+            }
+          },
+          {
+            "predicate": "lease.go_dark",
+            "value": {
+              "operating_covenant": true,
+              "recapture_right": true,
+              "dark_period_days": 180
+            },
+            "quote": "If Tenant ceases operating for more than 180 consecutive days, Landlord may recapture the Premises",
+            "page": 2,
+            "confirmation": {
+              "by": "A. Reviewer",
+              "at": "2026-11-05T19:30:00Z"
+            }
+          }
+        ]
+      },
+      "expect": {
+        "verified.0.fact.provenance.method": "human_verified",
+        "verified.0.fact.provenance.sources": [
+          {
+            "document_id": "fl:document:sha256-901035802fb0eb5a259b7a1d3a6aab2b456fdf7e61424fd50bad56a97704dafd",
+            "page": 2,
+            "section": "7.1",
+            "quote": "Tenant shall continuously operate in the Premises.",
+            "span": {
+              "start": 856,
+              "end": 906
+            }
+          }
+        ],
+        "verified.0.fact.provenance.verified_by": "A. Reviewer, lease administration",
+        "verified.0.fact.provenance.verified_at": "2026-11-05T00:00:00Z",
+        "verified.0.checked": [],
+        "verified.0.not_checked": [],
+        "verified.0.confirmed_by_person": ["value.operating_covenant"],
+        "verified.0.confirmation": {
+          "by": "A. Reviewer, lease administration",
+          "at": "2026-11-05",
+          "note": "read Section 7.1"
+        },
+        "verified.1.candidate": 4,
+        "verified.1.fact.provenance.method": "extracted",
+        "verified.1.notes": [
+          "the confirmation was not needed: the quote confirms every part of the value, so the fact keeps method extracted"
+        ],
+        "verified.1.confirmed_by_person": null,
+        "verified.2.candidate": 5,
+        "verified.2.checked": [
+          {
+            "path": "value.dark_period_days",
+            "as": "number"
+          }
+        ],
+        "verified.2.confirmed_by_person": [
+          "value.operating_covenant",
+          "value.recapture_right"
+        ],
+        "verified.2.fact.provenance.verified_at": "2026-11-05T19:30:00Z",
+        "needs_review.0.candidate": 1,
+        "needs_review.0.check": "coverage",
+        "needs_review.1.candidate": 2,
+        "needs_review.1.check": "consistency",
+        "needs_review.1.reason": "value 90 (dark_period_days) not found in quote",
+        "needs_review.2.candidate": 3,
+        "needs_review.2.check": "confidence",
+        "warnings": [
+          "2 verified values rest partly on a person's confirmation (method human_verified): the quote confirmed the parts under checked; the parts under confirmed_by_person were confirmed by the person named in verified_by, whom FactLot does not authenticate"
+        ],
+        "summary": {
+          "candidates": 6,
+          "verified": 3,
+          "confirmed_by_person": 2,
+          "needs_review": 3,
+          "rejected": 0
+        }
+      }
+    },
+    {
+      "name": "human confirmation: by must name a person, not an automated actor",
+      "tool": "doc_verify_facts",
+      "arguments": {
+        "document": {
+          "pages": {
+            "$pages": "retail_lease"
+          }
+        },
+        "as_of": "2026-11-06",
+        "candidates": [
+          {
+            "predicate": "lease.go_dark",
+            "value": {
+              "operating_covenant": true
+            },
+            "quote": "Tenant shall continuously operate in the Premises.",
+            "page": 2,
+            "section": "7.1",
+            "confirmation": {
+              "by": "the agent",
+              "at": "2026-11-05"
+            }
+          }
+        ]
+      },
+      "expect_error": "InputError",
+      "expect_issues": [
+        {
+          "path": "candidates.0.confirmation.by",
+          "message": "must name the person (or role) who read the clause and confirmed the value, not \"the agent\": FactLot records it as a human confirmation and cannot authenticate it, so an agent must never confirm its own extraction"
+        }
+      ]
+    },
+    {
+      "name": "human confirmation: at is a date or a timestamp with offset",
+      "tool": "doc_verify_facts",
+      "arguments": {
+        "document": {
+          "pages": {
+            "$pages": "retail_lease"
+          }
+        },
+        "as_of": "2026-11-06",
+        "candidates": [
+          {
+            "predicate": "lease.go_dark",
+            "value": {
+              "operating_covenant": true
+            },
+            "quote": "Tenant shall continuously operate in the Premises.",
+            "page": 2,
+            "section": "7.1",
+            "confirmation": {
+              "by": "A. Reviewer",
+              "at": "yesterday"
+            }
+          }
+        ]
+      },
+      "expect_error": "InputError",
+      "expect_issues": [
+        {
+          "path": "candidates.0.confirmation.at",
+          "message": "Invalid input"
+        }
+      ]
+    },
+    {
+      "name": "fact_validate: a lease-year schedule's dates must follow from the commencement date in its second source",
+      "tool": "fact_validate",
+      "arguments": {
+        "fact": {
+          "id": "flf_21sgpjz3xmzegjjbww3saz0r",
+          "subject": "fl:document:sha256-d49399c3af1aacafbefbd142116b95b0f4fd556a32553f1e78eb85e828df2e8e",
+          "predicate": "lease.base_rent_schedule",
+          "value": [
+            {
+              "from": "2026-07-01",
+              "to": "2031-06-30",
+              "annual_rent_psf": 34.5,
+              "lease_years": [1, 5]
+            },
+            {
+              "from": "2031-07-01",
+              "to": "2036-06-30",
+              "annual_rent_psf": 38,
+              "lease_years": [6, 10]
+            }
+          ],
+          "as_of": "2026-11-06",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-d49399c3af1aacafbefbd142116b95b0f4fd556a32553f1e78eb85e828df2e8e",
+                "page": 2,
+                "section": "4.1",
+                "quote": "Lease Years 1–5: $34.50 per rentable square foot per annum;\nLease Years 6–10: $38.00",
+                "span": {
+                  "start": 216,
+                  "end": 300
+                }
+              },
+              {
+                "document_id": "fl:document:sha256-d49399c3af1aacafbefbd142116b95b0f4fd556a32553f1e78eb85e828df2e8e",
+                "page": 1,
+                "section": "1.3",
+                "quote": "The Commencement Date is July 1, 2026",
+                "span": {
+                  "start": 91,
+                  "end": 128
+                }
+              }
+            ],
+            "producer": {
+              "name": "@factlot/tools",
+              "version": "0.3.0"
+            },
+            "formula": "doc.lease_year_dates@1"
+          }
+        }
+      },
+      "expect": {
+        "valid": true,
+        "issues": []
+      }
+    },
+    {
+      "name": "fact_validate: a lease-year schedule with a date that does not follow is not valid",
+      "tool": "fact_validate",
+      "arguments": {
+        "fact": {
+          "id": "flf_21sgpjz3xmzegjjbww3saz0r",
+          "subject": "fl:document:sha256-d49399c3af1aacafbefbd142116b95b0f4fd556a32553f1e78eb85e828df2e8e",
+          "predicate": "lease.base_rent_schedule",
+          "value": [
+            {
+              "from": "2026-07-01",
+              "to": "2031-07-01",
+              "annual_rent_psf": 34.5,
+              "lease_years": [1, 5]
+            },
+            {
+              "from": "2031-07-01",
+              "to": "2036-06-30",
+              "annual_rent_psf": 38,
+              "lease_years": [6, 10]
+            }
+          ],
+          "as_of": "2026-11-06",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-d49399c3af1aacafbefbd142116b95b0f4fd556a32553f1e78eb85e828df2e8e",
+                "page": 2,
+                "section": "4.1",
+                "quote": "Lease Years 1–5: $34.50 per rentable square foot per annum;\nLease Years 6–10: $38.00",
+                "span": {
+                  "start": 216,
+                  "end": 300
+                }
+              },
+              {
+                "document_id": "fl:document:sha256-d49399c3af1aacafbefbd142116b95b0f4fd556a32553f1e78eb85e828df2e8e",
+                "page": 1,
+                "section": "1.3",
+                "quote": "The Commencement Date is July 1, 2026",
+                "span": {
+                  "start": 91,
+                  "end": 128
+                }
+              }
+            ],
+            "producer": {
+              "name": "@factlot/tools",
+              "version": "0.3.0"
+            },
+            "formula": "doc.lease_year_dates@1"
+          }
+        }
+      },
+      "expect": {
+        "valid": false,
+        "issues": [
+          {
+            "path": "provenance.sources.1.quote",
+            "message": "value not supported by quote: the step dates do not follow from a commencement date written in this quote (Lease Year 1 begins on the commencement date. Lease Year N begins on the (N−1)th anniversary of the commencement date (the same month and day N−1 years later; the anniversary of February 29 in a common year is February 28) and ends the day before the next anniversary.)"
+          }
+        ]
+      }
+    },
+    {
+      "name": "fact_validate: a lease-year schedule without the commencement source is not valid",
+      "tool": "fact_validate",
+      "arguments": {
+        "fact": {
+          "id": "flf_21sgpjz3xmzegjjbww3saz0r",
+          "subject": "fl:document:sha256-d49399c3af1aacafbefbd142116b95b0f4fd556a32553f1e78eb85e828df2e8e",
+          "predicate": "lease.base_rent_schedule",
+          "value": [
+            {
+              "from": "2026-07-01",
+              "to": "2031-06-30",
+              "annual_rent_psf": 34.5,
+              "lease_years": [1, 5]
+            },
+            {
+              "from": "2031-07-01",
+              "to": "2036-06-30",
+              "annual_rent_psf": 38,
+              "lease_years": [6, 10]
+            }
+          ],
+          "as_of": "2026-11-06",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-d49399c3af1aacafbefbd142116b95b0f4fd556a32553f1e78eb85e828df2e8e",
+                "page": 2,
+                "section": "4.1",
+                "quote": "Lease Years 1–5: $34.50 per rentable square foot per annum;\nLease Years 6–10: $38.00",
+                "span": {
+                  "start": 216,
+                  "end": 300
+                }
+              }
+            ],
+            "producer": {
+              "name": "@factlot/tools",
+              "version": "0.3.0"
+            },
+            "formula": "doc.lease_year_dates@1"
+          }
+        }
+      },
+      "expect": {
+        "valid": false,
+        "issues": [
+          {
+            "path": "provenance.sources",
+            "message": "value not supported by quote: a rent schedule by lease year cites its rent table first and then the quote stating the commencement date its step dates are derived from"
+          }
+        ]
+      }
+    },
+    {
+      "name": "abstract: facts without pages keep human_verified and lease-year facts; citations say who confirmed what",
+      "tool": "doc_abstract_lease",
+      "arguments": {
+        "as_of": "2026-11-06",
+        "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+        "documents": [
+          {
+            "role": "original",
+            "facts": [
+              {
+                "id": "flf_zyz2thasdjkr8mfvegdb7d3n",
+                "subject": "fl:document:sha256-901035802fb0eb5a259b7a1d3a6aab2b456fdf7e61424fd50bad56a97704dafd",
+                "predicate": "lease.go_dark",
+                "value": {
+                  "operating_covenant": true
+                },
+                "as_of": "2026-11-06",
+                "provenance": {
+                  "method": "human_verified",
+                  "sources": [
+                    {
+                      "document_id": "fl:document:sha256-901035802fb0eb5a259b7a1d3a6aab2b456fdf7e61424fd50bad56a97704dafd",
+                      "page": 2,
+                      "section": "7.1",
+                      "quote": "Tenant shall continuously operate in the Premises.",
+                      "span": {
+                        "start": 856,
+                        "end": 906
+                      }
+                    }
+                  ],
+                  "producer": {
+                    "name": "@factlot/tools",
+                    "version": "0.3.0"
+                  },
+                  "verified_by": "A. Reviewer, lease administration",
+                  "verified_at": "2026-11-05T00:00:00Z"
+                }
+              }
+            ]
+          },
+          {
+            "role": "amendment",
+            "effective_date": "2026-08-01",
+            "facts": [
+              {
+                "id": "flf_21sgpjz3xmzegjjbww3saz0r",
+                "subject": "fl:document:sha256-d49399c3af1aacafbefbd142116b95b0f4fd556a32553f1e78eb85e828df2e8e",
+                "predicate": "lease.base_rent_schedule",
+                "value": [
+                  {
+                    "from": "2026-07-01",
+                    "to": "2031-06-30",
+                    "annual_rent_psf": 34.5,
+                    "lease_years": [1, 5]
+                  },
+                  {
+                    "from": "2031-07-01",
+                    "to": "2036-06-30",
+                    "annual_rent_psf": 38,
+                    "lease_years": [6, 10]
+                  }
+                ],
+                "as_of": "2026-11-06",
+                "provenance": {
+                  "method": "extracted",
+                  "sources": [
+                    {
+                      "document_id": "fl:document:sha256-d49399c3af1aacafbefbd142116b95b0f4fd556a32553f1e78eb85e828df2e8e",
+                      "page": 2,
+                      "section": "4.1",
+                      "quote": "Lease Years 1–5: $34.50 per rentable square foot per annum;\nLease Years 6–10: $38.00",
+                      "span": {
+                        "start": 216,
+                        "end": 300
+                      }
+                    },
+                    {
+                      "document_id": "fl:document:sha256-d49399c3af1aacafbefbd142116b95b0f4fd556a32553f1e78eb85e828df2e8e",
+                      "page": 1,
+                      "section": "1.3",
+                      "quote": "The Commencement Date is July 1, 2026",
+                      "span": {
+                        "start": 91,
+                        "end": 128
+                      }
+                    }
+                  ],
+                  "producer": {
+                    "name": "@factlot/tools",
+                    "version": "0.3.0"
+                  },
+                  "formula": "doc.lease_year_dates@1"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "expect": {
+        "fields.0.predicate": "lease.go_dark",
+        "fields.0.source.method": "human_verified",
+        "fields.0.source.verified_by": "A. Reviewer, lease administration",
+        "fields.0.source.confirmed_by_person": ["value.operating_covenant"],
+        "fields.1.predicate": "lease.base_rent_schedule",
+        "fields.1.value": [
+          {
+            "from": "2026-07-01",
+            "to": "2031-06-30",
+            "annual_rent_psf": 34.5,
+            "lease_years": [1, 5]
+          },
+          {
+            "from": "2031-07-01",
+            "to": "2036-06-30",
+            "annual_rent_psf": 38,
+            "lease_years": [6, 10]
+          }
+        ],
+        "rejected": [],
+        "needs_review": [],
+        "warnings": [
+          "1 verified value rests partly on a person's confirmation (method human_verified): the quote confirmed the parts under checked; the parts under confirmed_by_person were confirmed by the person named in verified_by, whom FactLot does not authenticate"
+        ],
+        "summary": {
+          "documents": 2,
+          "fields": 2,
+          "facts": 2,
+          "confirmed_by_person": 1,
+          "pending": 0,
+          "needs_review": 0,
+          "rejected": 0,
+          "conflicts": 0
+        }
+      }
+    },
+    {
+      "name": "abstract: a human_verified fact without verified_by is rejected",
+      "tool": "doc_abstract_lease",
+      "arguments": {
+        "as_of": "2026-11-06",
+        "documents": [
+          {
+            "role": "original",
+            "facts": [
+              {
+                "id": "flf_zyz2thasdjkr8mfvegdb7d3n",
+                "subject": "fl:document:sha256-901035802fb0eb5a259b7a1d3a6aab2b456fdf7e61424fd50bad56a97704dafd",
+                "predicate": "lease.go_dark",
+                "value": {
+                  "operating_covenant": true
+                },
+                "as_of": "2026-11-06",
+                "provenance": {
+                  "method": "human_verified",
+                  "sources": [
+                    {
+                      "document_id": "fl:document:sha256-901035802fb0eb5a259b7a1d3a6aab2b456fdf7e61424fd50bad56a97704dafd",
+                      "page": 2,
+                      "section": "7.1",
+                      "quote": "Tenant shall continuously operate in the Premises.",
+                      "span": {
+                        "start": 856,
+                        "end": 906
+                      }
+                    }
+                  ],
+                  "producer": {
+                    "name": "@factlot/tools",
+                    "version": "0.3.0"
+                  },
+                  "verified_at": "2026-11-05T00:00:00Z"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "expect": {
+        "rejected": [
+          {
+            "document": 0,
+            "fact": 0,
+            "predicate": "lease.go_dark",
+            "check": "fact",
+            "reason": "a human_verified fact needs provenance.verified_by naming the person who confirmed it: verified_by is missing"
+          }
+        ],
+        "summary": {
+          "documents": 1,
+          "fields": 0,
+          "facts": 0,
+          "pending": 0,
+          "needs_review": 0,
+          "rejected": 1,
+          "conflicts": 0
+        }
+      }
+    },
+    {
+      "name": "abstract: a human_verified fact with its pages is checked again and stays human_verified",
+      "tool": "doc_abstract_lease",
+      "arguments": {
+        "as_of": "2026-11-06",
+        "documents": [
+          {
+            "role": "original",
+            "pages": {
+              "$pages": "retail_lease"
+            },
+            "facts": [
+              {
+                "id": "flf_zyz2thasdjkr8mfvegdb7d3n",
+                "subject": "fl:document:sha256-901035802fb0eb5a259b7a1d3a6aab2b456fdf7e61424fd50bad56a97704dafd",
+                "predicate": "lease.go_dark",
+                "value": {
+                  "operating_covenant": true
+                },
+                "as_of": "2026-11-06",
+                "provenance": {
+                  "method": "human_verified",
+                  "sources": [
+                    {
+                      "document_id": "fl:document:sha256-901035802fb0eb5a259b7a1d3a6aab2b456fdf7e61424fd50bad56a97704dafd",
+                      "page": 2,
+                      "section": "7.1",
+                      "quote": "Tenant shall continuously operate in the Premises.",
+                      "span": {
+                        "start": 856,
+                        "end": 906
+                      }
+                    }
+                  ],
+                  "producer": {
+                    "name": "@factlot/tools",
+                    "version": "0.3.0"
+                  },
+                  "verified_by": "A. Reviewer, lease administration",
+                  "verified_at": "2026-11-05T00:00:00Z"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "expect": {
+        "facts.0.provenance.method": "human_verified",
+        "facts.0.provenance.verified_by": "A. Reviewer, lease administration",
+        "facts.0.provenance.verified_at": "2026-11-05T00:00:00Z",
+        "fields.0.source.confirmed_by_person": ["value.operating_covenant"],
+        "summary": {
+          "documents": 1,
+          "fields": 1,
+          "facts": 1,
+          "confirmed_by_person": 1,
+          "pending": 0,
+          "needs_review": 0,
+          "rejected": 0,
+          "conflicts": 0
+        }
+      }
+    },
+    {
+      "name": "compare: a match against a human_verified lease fact says which parts a person confirmed",
+      "tool": "doc_compare",
+      "arguments": {
+        "lease_facts": [
+          {
+            "id": "flf_zyz2thasdjkr8mfvegdb7d3n",
+            "subject": "fl:document:sha256-901035802fb0eb5a259b7a1d3a6aab2b456fdf7e61424fd50bad56a97704dafd",
+            "predicate": "lease.go_dark",
+            "value": {
+              "operating_covenant": true
+            },
+            "as_of": "2026-11-06",
+            "provenance": {
+              "method": "human_verified",
+              "sources": [
+                {
+                  "document_id": "fl:document:sha256-901035802fb0eb5a259b7a1d3a6aab2b456fdf7e61424fd50bad56a97704dafd",
+                  "page": 2,
+                  "section": "7.1",
+                  "quote": "Tenant shall continuously operate in the Premises.",
+                  "span": {
+                    "start": 856,
+                    "end": 906
+                  }
+                }
+              ],
+              "producer": {
+                "name": "@factlot/tools",
+                "version": "0.3.0"
+              },
+              "verified_by": "A. Reviewer, lease administration",
+              "verified_at": "2026-11-05T00:00:00Z"
+            }
+          },
+          {
+            "id": "flf_21sgpjz3xmzegjjbww3saz0r",
+            "subject": "fl:document:sha256-d49399c3af1aacafbefbd142116b95b0f4fd556a32553f1e78eb85e828df2e8e",
+            "predicate": "lease.base_rent_schedule",
+            "value": [
+              {
+                "from": "2026-07-01",
+                "to": "2031-06-30",
+                "annual_rent_psf": 34.5,
+                "lease_years": [1, 5]
+              },
+              {
+                "from": "2031-07-01",
+                "to": "2036-06-30",
+                "annual_rent_psf": 38,
+                "lease_years": [6, 10]
+              }
+            ],
+            "as_of": "2026-11-06",
+            "provenance": {
+              "method": "extracted",
+              "sources": [
+                {
+                  "document_id": "fl:document:sha256-d49399c3af1aacafbefbd142116b95b0f4fd556a32553f1e78eb85e828df2e8e",
+                  "page": 2,
+                  "section": "4.1",
+                  "quote": "Lease Years 1–5: $34.50 per rentable square foot per annum;\nLease Years 6–10: $38.00",
+                  "span": {
+                    "start": 216,
+                    "end": 300
+                  }
+                },
+                {
+                  "document_id": "fl:document:sha256-d49399c3af1aacafbefbd142116b95b0f4fd556a32553f1e78eb85e828df2e8e",
+                  "page": 1,
+                  "section": "1.3",
+                  "quote": "The Commencement Date is July 1, 2026",
+                  "span": {
+                    "start": 91,
+                    "end": 128
+                  }
+                }
+              ],
+              "producer": {
+                "name": "@factlot/tools",
+                "version": "0.3.0"
+              },
+              "formula": "doc.lease_year_dates@1"
+            }
+          }
+        ],
+        "asserted": [
+          {
+            "predicate": "lease.go_dark",
+            "value": {
+              "operating_covenant": true
+            },
+            "label": "Estoppel 9"
+          },
+          {
+            "predicate": "lease.base_rent_schedule",
+            "value": [
+              {
+                "from": "2026-07-01",
+                "to": "2031-06-30",
+                "annual_rent_psf": 34.5,
+                "lease_years": [1, 5]
+              },
+              {
+                "from": "2031-07-01",
+                "to": "2036-06-30",
+                "annual_rent_psf": 38,
+                "lease_years": [6, 10]
+              }
+            ]
+          }
+        ]
+      },
+      "expect": {
+        "results.0.status": "match",
+        "results.0.lease_method": "human_verified",
+        "results.0.lease_verified_by": "A. Reviewer, lease administration",
+        "results.0.lease_confirmed_by_person": ["value.operating_covenant"],
+        "results.0.lease_not_checked": null,
+        "results.1.status": "match",
+        "results.1.lease_not_checked": null,
+        "results.1.lease_method": null
+      }
+    },
+    {
+      "name": "fact package: human_verified facts are listed beside the package, outside the digest",
+      "tool": "fact_package_create",
+      "arguments": {
+        "facts": [
+          {
+            "id": "flf_zyz2thasdjkr8mfvegdb7d3n",
+            "subject": "fl:document:sha256-901035802fb0eb5a259b7a1d3a6aab2b456fdf7e61424fd50bad56a97704dafd",
+            "predicate": "lease.go_dark",
+            "value": {
+              "operating_covenant": true
+            },
+            "as_of": "2026-11-06",
+            "provenance": {
+              "method": "human_verified",
+              "sources": [
+                {
+                  "document_id": "fl:document:sha256-901035802fb0eb5a259b7a1d3a6aab2b456fdf7e61424fd50bad56a97704dafd",
+                  "page": 2,
+                  "section": "7.1",
+                  "quote": "Tenant shall continuously operate in the Premises.",
+                  "span": {
+                    "start": 856,
+                    "end": 906
+                  }
+                }
+              ],
+              "producer": {
+                "name": "@factlot/tools",
+                "version": "0.3.0"
+              },
+              "verified_by": "A. Reviewer, lease administration",
+              "verified_at": "2026-11-05T00:00:00Z"
+            }
+          },
+          {
+            "id": "flf_21sgpjz3xmzegjjbww3saz0r",
+            "subject": "fl:document:sha256-d49399c3af1aacafbefbd142116b95b0f4fd556a32553f1e78eb85e828df2e8e",
+            "predicate": "lease.base_rent_schedule",
+            "value": [
+              {
+                "from": "2026-07-01",
+                "to": "2031-06-30",
+                "annual_rent_psf": 34.5,
+                "lease_years": [1, 5]
+              },
+              {
+                "from": "2031-07-01",
+                "to": "2036-06-30",
+                "annual_rent_psf": 38,
+                "lease_years": [6, 10]
+              }
+            ],
+            "as_of": "2026-11-06",
+            "provenance": {
+              "method": "extracted",
+              "sources": [
+                {
+                  "document_id": "fl:document:sha256-d49399c3af1aacafbefbd142116b95b0f4fd556a32553f1e78eb85e828df2e8e",
+                  "page": 2,
+                  "section": "4.1",
+                  "quote": "Lease Years 1–5: $34.50 per rentable square foot per annum;\nLease Years 6–10: $38.00",
+                  "span": {
+                    "start": 216,
+                    "end": 300
+                  }
+                },
+                {
+                  "document_id": "fl:document:sha256-d49399c3af1aacafbefbd142116b95b0f4fd556a32553f1e78eb85e828df2e8e",
+                  "page": 1,
+                  "section": "1.3",
+                  "quote": "The Commencement Date is July 1, 2026",
+                  "span": {
+                    "start": 91,
+                    "end": 128
+                  }
+                }
+              ],
+              "producer": {
+                "name": "@factlot/tools",
+                "version": "0.3.0"
+              },
+              "formula": "doc.lease_year_dates@1"
+            }
+          }
+        ],
+        "created_at": "2026-11-06T00:00:00Z"
+      },
+      "expect": {
+        "digest": "57957c02402dcd813bdf8b8f51b96e4edcdf61c4261b80952223d9dccc1b4df2",
+        "confirmed_by_person": [
+          {
+            "fact": 0,
+            "fact_id": "flf_zyz2thasdjkr8mfvegdb7d3n",
+            "predicate": "lease.go_dark",
+            "verified_by": "A. Reviewer, lease administration",
+            "confirmed_by_person": ["value.operating_covenant"]
+          }
+        ]
+      }
+    },
+    {
+      "name": "fact package verify: values a person confirmed are reported apart from values no one checked",
+      "tool": "fact_package_verify",
+      "arguments": {
+        "package": {
+          "format": "factlot.fact_package",
+          "version": 1,
+          "created_at": "2026-11-06T00:00:00Z",
+          "documents": [
+            {
+              "document_id": "fl:document:sha256-901035802fb0eb5a259b7a1d3a6aab2b456fdf7e61424fd50bad56a97704dafd",
+              "sha256": "901035802fb0eb5a259b7a1d3a6aab2b456fdf7e61424fd50bad56a97704dafd"
+            },
+            {
+              "document_id": "fl:document:sha256-d49399c3af1aacafbefbd142116b95b0f4fd556a32553f1e78eb85e828df2e8e",
+              "sha256": "d49399c3af1aacafbefbd142116b95b0f4fd556a32553f1e78eb85e828df2e8e"
+            }
+          ],
+          "facts": [
+            {
+              "id": "flf_zyz2thasdjkr8mfvegdb7d3n",
+              "subject": "fl:document:sha256-901035802fb0eb5a259b7a1d3a6aab2b456fdf7e61424fd50bad56a97704dafd",
+              "predicate": "lease.go_dark",
+              "value": {
+                "operating_covenant": true
+              },
+              "as_of": "2026-11-06",
+              "provenance": {
+                "method": "human_verified",
+                "sources": [
+                  {
+                    "document_id": "fl:document:sha256-901035802fb0eb5a259b7a1d3a6aab2b456fdf7e61424fd50bad56a97704dafd",
+                    "page": 2,
+                    "section": "7.1",
+                    "quote": "Tenant shall continuously operate in the Premises.",
+                    "span": {
+                      "start": 856,
+                      "end": 906
+                    }
+                  }
+                ],
+                "producer": {
+                  "name": "@factlot/tools",
+                  "version": "0.3.0"
+                },
+                "verified_by": "A. Reviewer, lease administration",
+                "verified_at": "2026-11-05T00:00:00Z"
+              }
+            },
+            {
+              "id": "flf_21sgpjz3xmzegjjbww3saz0r",
+              "subject": "fl:document:sha256-d49399c3af1aacafbefbd142116b95b0f4fd556a32553f1e78eb85e828df2e8e",
+              "predicate": "lease.base_rent_schedule",
+              "value": [
+                {
+                  "from": "2026-07-01",
+                  "to": "2031-06-30",
+                  "annual_rent_psf": 34.5,
+                  "lease_years": [1, 5]
+                },
+                {
+                  "from": "2031-07-01",
+                  "to": "2036-06-30",
+                  "annual_rent_psf": 38,
+                  "lease_years": [6, 10]
+                }
+              ],
+              "as_of": "2026-11-06",
+              "provenance": {
+                "method": "extracted",
+                "sources": [
+                  {
+                    "document_id": "fl:document:sha256-d49399c3af1aacafbefbd142116b95b0f4fd556a32553f1e78eb85e828df2e8e",
+                    "page": 2,
+                    "section": "4.1",
+                    "quote": "Lease Years 1–5: $34.50 per rentable square foot per annum;\nLease Years 6–10: $38.00",
+                    "span": {
+                      "start": 216,
+                      "end": 300
+                    }
+                  },
+                  {
+                    "document_id": "fl:document:sha256-d49399c3af1aacafbefbd142116b95b0f4fd556a32553f1e78eb85e828df2e8e",
+                    "page": 1,
+                    "section": "1.3",
+                    "quote": "The Commencement Date is July 1, 2026",
+                    "span": {
+                      "start": 91,
+                      "end": 128
+                    }
+                  }
+                ],
+                "producer": {
+                  "name": "@factlot/tools",
+                  "version": "0.3.0"
+                },
+                "formula": "doc.lease_year_dates@1"
+              }
+            }
+          ],
+          "integrity": {
+            "hash": "sha256",
+            "canonicalization": "RFC 8785 (JCS)",
+            "tree": "RFC 6962 Merkle tree hash",
+            "leaf_hashes": [
+              "1c268acfb032d9855a889e8e71d2c8cbd34ebb1272123b5a83427567cdf441f8",
+              "b758e5c2ddd0f5c6d2bb53b5d6f92fd80cfdd96e8b5a05d91a82560867b1af1b"
+            ],
+            "merkle_root": "2dfac89778fae8b5a4e571b3d96e0464a87e901624b4e8543cbd639cdf193999",
+            "digest": "57957c02402dcd813bdf8b8f51b96e4edcdf61c4261b80952223d9dccc1b4df2"
+          }
+        },
+        "documents": [
+          {
+            "pages": {
+              "$pages": "retail_lease"
+            }
+          },
+          {
+            "pages": {
+              "$pages": "lease_year_lease"
+            }
+          }
+        ]
+      },
+      "expect": {
+        "valid": true,
+        "values_not_checked": [],
+        "values_confirmed_by_person": [
+          {
+            "fact": 0,
+            "fact_id": "flf_zyz2thasdjkr8mfvegdb7d3n",
+            "predicate": "lease.go_dark",
+            "verified_by": "A. Reviewer, lease administration",
+            "confirmed_by_person": ["value.operating_covenant"]
+          }
+        ],
+        "checks_not_run": [
+          "people: the parts in values_confirmed_by_person rest on the confirmation of the person named in verified_by, which FactLot does not authenticate",
+          "files: whether the pages given came from the files their sha256 names",
+          "meaning: a quote that states the right number for a different term passes"
+        ],
+        "quotes.problems": []
+      }
+    },
+    {
+      "name": "doc_predicates: one predicate, with its shape, example and which parts are checked",
+      "tool": "doc_predicates",
+      "arguments": {
+        "predicate": "lease.free_rent"
+      },
+      "expect": {
+        "predicates.0.predicate": "lease.free_rent",
+        "predicates.0.value_schema": {
+          "type": "object",
+          "properties": {
+            "months": {
+              "type": "number"
+            },
+            "applies_to": {
+              "enum": ["base_rent", "gross_rent"]
+            }
+          },
+          "additionalProperties": false,
+          "minProperties": 1
+        },
+        "predicates.0.example": {
+          "value": {
+            "months": 3,
+            "applies_to": "base_rent"
+          },
+          "quote": "Base Rent shall be abated for the first three (3) months of the Term",
+          "outcome": "verified",
+          "checked": ["value.months", "value.applies_to"],
+          "not_checked": []
+        },
+        "predicates.0.checked": [
+          {
+            "path": "value.months",
+            "as": "number",
+            "how": "the number is written in the quote in any common form (1250000 matches $1,250,000.00, 1,250,000 or 1250000; 24.5 matches 24.50/SF; whole numbers up to ninety-nine also as words, e.g. twelve (12))"
+          }
+        ],
+        "predicates.0.checked_if_written": [
+          {
+            "path": "value.applies_to",
+            "as": "phrase",
+            "how": "counts as checked only when the quote words it as phrases lists; otherwise needs_review with check coverage",
+            "values": ["base_rent"],
+            "phrases": {
+              "base_rent": [
+                ["base rent", "basic rent", "fixed rent", "minimum rent"]
+              ]
+            }
+          }
+        ],
+        "predicates.0.always_review": [
+          {
+            "path": "value.applies_to",
+            "as": "enum",
+            "how": "an enum value no quote wording confirms: needs_review with check coverage unless a person confirms it",
+            "values": ["gross_rent"]
+          }
+        ]
+      }
+    },
+    {
+      "name": "doc_predicates: the consent standard, a string-or-object clause",
+      "tool": "doc_predicates",
+      "arguments": {
+        "predicate": "lease.assignment_sublease"
+      },
+      "expect": {
+        "predicates.0.checked": [
+          {
+            "path": "value.consent_standard",
+            "form": "object",
+            "as": "phrase",
+            "how": "the quote must word the value as phrases lists (every group needs one of its alternatives); otherwise needs_review with check consistency",
+            "values": [
+              "sole_discretion",
+              "not_unreasonably_withheld",
+              "not_unreasonably_withheld_conditioned_or_delayed"
+            ],
+            "phrases": {
+              "sole_discretion": [
+                [
+                  "sole discretion",
+                  "absolute discretion",
+                  "sole and absolute discretion"
+                ]
+              ],
+              "not_unreasonably_withheld": [["unreasonably withh"]],
+              "not_unreasonably_withheld_conditioned_or_delayed": [
+                ["unreasonably withh"],
+                ["delay", "conditioned"]
+              ]
+            }
+          },
+          {
+            "path": "value.permitted_transfers",
+            "form": "object",
+            "as": "text",
+            "how": "every number written in digits in it is in the quote"
+          },
+          {
+            "path": "value.profit_share",
+            "form": "object",
+            "as": "ratio",
+            "how": "the decimal, or its percentage when the quote has a % sign or the word percent (0.0425 matches 4.25% or 4.25 percent, not a bare 4.25)"
+          }
+        ],
+        "predicates.0.checked_if_written": [
+          {
+            "path": "value",
+            "form": "string",
+            "as": "summary",
+            "how": "counts as checked only when it is written in the quote as whole words (as for words); otherwise the candidate is held in needs_review with check coverage"
+          },
+          {
+            "path": "value.permitted_transfers",
+            "form": "object",
+            "as": "summary",
+            "how": "counts as checked only when it is written in the quote as whole words (as for words); otherwise the candidate is held in needs_review with check coverage"
+          }
+        ],
+        "predicates.0.always_review": [
+          {
+            "path": "value.consent_standard",
+            "form": "object",
+            "as": "enum",
+            "how": "an enum value no quote wording confirms: needs_review with check coverage unless a person confirms it",
+            "values": ["prohibited", "no_consent_required"]
+          },
+          {
+            "path": "value.recapture_right",
+            "form": "object",
+            "as": "boolean",
+            "how": "a quote cannot prove true or false by containing words: needs_review with check coverage unless a person confirms it"
+          }
+        ],
+        "predicates.0.example.outcome": "verified"
+      }
+    },
+    {
+      "name": "doc_predicates: a prefix",
+      "tool": "doc_predicates",
+      "arguments": {
+        "prefix": "lease.renewal"
+      },
+      "expect": {
+        "predicates.0.predicate": "lease.renewal_option",
+        "predicates.1.predicate": "lease.renewal_notice_deadline",
+        "predicates.2": null
+      }
+    },
+    {
+      "name": "doc_predicates: a near-miss predicate gets a hint",
+      "tool": "doc_predicates",
+      "arguments": {
+        "predicate": "lease.expiry_date"
+      },
+      "expect": {
+        "predicates": [],
+        "note": "lease.expiry_date is not an Ingest predicate (did you mean lease.expiration_date?); doc_verify_facts checks it with the generic rules in notes.generic"
+      }
+    },
+    {
+      "name": "doc_predicates: predicate and prefix together is an input error",
+      "tool": "doc_predicates",
+      "arguments": {
+        "predicate": "lease.go_dark",
+        "prefix": "lease."
+      },
+      "expect_error": "InputError",
+      "expect_issues": [
+        {
+          "path": "",
+          "message": "give predicate or prefix, not both"
+        }
+      ]
+    },
+    {
+      "name": "doc_predicates: every lease predicate",
+      "tool": "doc_predicates",
+      "arguments": {},
+      "expect": {
+        "predicates.0.predicate": "lease.landlord",
+        "predicates.29.predicate": "lease.kick_out",
+        "predicates.30": null
       }
     }
   ],

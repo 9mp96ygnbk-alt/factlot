@@ -34,6 +34,7 @@ import {
   createFactPackage,
   verifyFactPackage,
 } from "./packages.ts";
+import { DocPredicatesInput, docPredicates } from "./predicates.ts";
 import { SpreadStatementInput, spreadStatement } from "./statements.ts";
 import { UseConflictInput, checkUseConflict } from "./uses.ts";
 
@@ -400,6 +401,15 @@ const docTools: ToolSpec[] = [
     input: UseConflictInput,
     path: "/v1/doc/check_use_conflict",
     run: (i: never) => checkUseConflict(i as z.output<typeof UseConflictInput>),
+  },
+  {
+    name: "doc_predicates",
+    title: "Lease predicate catalog",
+    description:
+      "Look up the lease predicates doc_verify_facts and doc_abstract_lease know (lease.expiration_date, lease.base_rent_schedule, lease.go_dark, ...) before extracting: for each, its value shape as JSON Schema, one valid example with a quote that states it (and whether that example verifies), which parts of the value are checked against the quote and how (number, ratio, date, verbatim name, as-written words, a worded enum, a number inside free text), which count as checked only when the quote writes them out (summaries, some enums), and which always need review (true/false values and enums no wording confirms, such as a CAM cap method or a kick-out party) unless a person confirms them. Generated from the same tables the checks use. Give predicate for one, prefix (e.g. lease.renewal) for a group, or neither for all. Also returns notes on statuses, paths, human confirmation and the generic rules for any other dotted predicate. Reads no document.",
+    input: DocPredicatesInput,
+    path: "/v1/doc/predicates",
+    run: (i: never) => docPredicates(i as z.output<typeof DocPredicatesInput>),
   },
 ];
 
