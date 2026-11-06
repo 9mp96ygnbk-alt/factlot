@@ -63,7 +63,7 @@ function fill(template, vars) {
 
 const NAV = [
   ["/calculators/", "Calculators"],
-  ["/mcp/", "MCP server"],
+  ["/mcp-server/", "MCP server"],
   ["/texas/property-tax-protest-deadline/", "Texas protest deadline"],
   [`${REPO}/blob/main/docs/getting-started.md`, "Docs"],
   ["/#pricing", "Pricing"],
@@ -160,7 +160,22 @@ ${body}
 }
 
 const pages = []; // { urlPath, html, sources }
+// The Worker strips trailing slashes and answers these paths itself on every host
+// (deploy/cloudflare/src/router.ts), so a page there would never be served.
+const WORKER_PATHS = [
+  "/mcp",
+  "/openapi.json",
+  "/openapi-3.0.json",
+  "/health",
+  "/v1",
+  "/billing",
+];
 function addPage(page, sources) {
+  const p = page.urlPath.replace(/\/+$/, "");
+  if (WORKER_PATHS.some((w) => p === w || p.startsWith(`${w}/`)))
+    throw new Error(
+      `${page.urlPath} is a path the Worker answers itself; pick another`,
+    );
   pages.push({ urlPath: page.urlPath, html: layout(page), sources });
 }
 
@@ -246,16 +261,16 @@ ${shown.map((s) => `<tr><th scope="row">${esc(s.label)}</th><td>${fmt(s.value, s
 </table>${steps.length > MAX_STEPS ? `\n<p class="small">First ${MAX_STEPS} of ${steps.length} steps shown; the tool returns all of them.</p>` : ""}`;
 }
 
-// --- /mcp/ ---------------------------------------------------------------------------------
+// --- /mcp-server/ ---------------------------------------------------------------------------------
 
 addPage(
   {
-    urlPath: "/mcp/",
+    urlPath: "/mcp-server/",
     title: "Commercial real estate MCP server | FactLot",
     description:
       "FactLot's hosted MCP server gives AI agents CRE calculators with audit trails, lease document verification, property IDs and cited public-record facts. No API key.",
     h1: "Commercial real estate MCP server",
-    crumbs: [["/mcp/", "MCP server"]],
+    crumbs: [["/mcp-server/", "MCP server"]],
     body: fill(read("site/_content/mcp.html"), { VERSION }),
   },
   ["site/_content/mcp.html"],
@@ -326,7 +341,7 @@ ${warnings}
 ${workbook}
 <h2 id="use">Use it from an agent or your code</h2>
 <ul class="plain">
-<li><strong>MCP:</strong> tool <code>${esc(m.tool)}</code> on <code>https://api.factlot.com/mcp</code> (<a href="/mcp/">connect a client</a>).</li>
+<li><strong>MCP:</strong> tool <code>${esc(m.tool)}</code> on <code>https://api.factlot.com/mcp</code> (<a href="/mcp-server/">connect a client</a>).</li>
 <li><strong>Python:</strong> <code>factlot.run_tool("${esc(m.tool)}", input)</code> runs the same calculation offline (<a href="${REPO}/blob/main/python/README.md">Python SDK</a>).</li>
 <li><strong>Input schema:</strong> every field is described in <a href="${REPO}/blob/main/spec/schemas/tools.json">tools.json</a>.</li>
 </ul>
@@ -355,7 +370,7 @@ addPage(
 ${manifest.map((m) => `<article class="card"><h2><a href="/calculators/${m.slug}/">${esc(m.h1)}</a></h2><p>${esc(m.description)}</p></article>`).join("\n")}
 </div>
 <h2 id="all">Every calculator</h2>
-<p>All of them run on the hosted <a href="/mcp/">MCP server</a> and REST API, and offline in the SDKs.</p>
+<p>All of them run on the hosted <a href="/mcp-server/">MCP server</a> and REST API, and offline in the SDKs.</p>
 <table>
 <caption class="visually-hidden">All calculators</caption>
 <thead><tr><th scope="col">Calculator</th><th scope="col">Tool</th><th scope="col">Formula</th></tr></thead>

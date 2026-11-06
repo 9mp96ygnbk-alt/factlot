@@ -34,7 +34,7 @@ Hosted registry regions, enterprise terms, and private deployments: email contac
 
 ## Use it
 
-- [Hosted MCP server](https://factlot.com/mcp/): hosted remote MCP at `https://api.factlot.com/mcp`, no key; per-client setup for Claude, Claude Code, ChatGPT, Cursor, VS Code, Gemini CLI and agent frameworks
+- [Hosted MCP server](https://factlot.com/mcp-server/): hosted remote MCP at `https://api.factlot.com/mcp`, no key; per-client setup for Claude, Claude Code, ChatGPT, Cursor, VS Code, Gemini CLI and agent frameworks
 - [Calculators](https://factlot.com/calculators/): every calculator, with worked examples and audit trails for net effective rent, debt sizing, CAM, yield maintenance, ASC 842, WALT, direct cap and equity waterfalls
 - [Texas property tax protest deadline](https://factlot.com/texas/property-tax-protest-deadline/): the next three seasons' deadlines with statute citations
 - [Connectors](https://github.com/9mp96ygnbk-alt/factlot/blob/main/connectors/README.md): remote MCP at `https://api.factlot.com/mcp` and REST/OpenAPI at `/v1` and `/openapi.json`, with setup for Claude, ChatGPT, Gemini, Copilot, Bedrock, and others
