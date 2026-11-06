@@ -16,6 +16,13 @@
           "doc": "docs/registry/sources/README.md",
           "quote": "87,717; 56,792 (79.7% linked to the Comptroller)"
         }
+      ],
+      "source_rows": 1628382,
+      "source_rows_cites": [
+        {
+          "doc": "docs/registry/README.md",
+          "quote": "1,628,382 accounts read, 87,717 commercial parcels kept"
+        }
       ]
     },
     {
@@ -706,6 +713,13 @@
         {
           "doc": "docs/registry/sources/mi-oakland-parcels.md",
           "quote": "Organisation owners stored (current owner-of-record facts): 0"
+        }
+      ],
+      "source_rows": 26128,
+      "source_rows_cites": [
+        {
+          "doc": "docs/registry/tier2/midwest.md",
+          "quote": "26,128 rows read, 26,124 kept"
         }
       ]
     },

@@ -13,8 +13,15 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 
 ## [Unreleased]
 
+### Added
+
+- Registry coverage matrix (`docs/registry/coverage-matrix.md` and `docs/registry/coverage-matrix.json`): jurisdiction accounting compiled from the review records already in the repository. It lists every state, including those with no review. A missing review is not a zero.
+- Ingest reconciliation ledger: counts and reason codes only, no personal data.
+- Row classification that does not change stored rows.
+
 ### Changed
 
+- Public registry figures are labeled as a cited pipeline row sum, not a live count.
 - Tool input: a `null` for a field the input schema names is treated as the field left out, in TypeScript and Python alike (shared vectors in `spec/vectors/tools.json`). Some agent frameworks (the `crewai-tools` MCP adapter) send `null` for every optional field the model skips, which used to fail with "expected number, received null". A required field sent as `null` is reported as missing; a misspelled field is still reported even when `null`; open objects (facts, fact packages) keep their nulls, since a package's signature covers them.
 
 ## [0.4.0] - 2026-11-06

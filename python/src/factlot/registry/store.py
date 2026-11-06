@@ -21,6 +21,7 @@ from .._core import fmt_num
 from ..ids import FactLotIdError, _base32, entity_id, normalize_apn_v1, parcel_id, parse as parse_id, short_id
 from . import buildings as _buildings
 from . import coverage as _coverage
+from .validate import classify_entity, classify_parcel
 from .normalize import (
     ADDRESS_KEY_VERSION,
     NAME_KEY_VERSION,
@@ -250,6 +251,14 @@ class IngestStats:
     errors: list[str] = field(default_factory=list)
     source_id: str | None = None  # the registry source the file was loaded under (``ingest_roll``)
     tax_year: int | None = None  # the roll's tax year (``ingest_roll``)
+    # Observational quality counts. They do not change which rows are stored.
+    duplicate_identity: int = 0
+    unknown_county: int = 0
+    missing_address: int = 0
+    unknown_category: int = 0
+    coordinates_supplied: int = 0
+    issue_counts: dict[str, int] = field(default_factory=dict)
+    fixture: int = 0
 
 
 def file_document_id(path: str | Path) -> tuple[str, int]:
@@ -507,10 +516,68 @@ class Registry:
         self.db.execute("INSERT OR REPLACE INTO coverage VALUES (?,?,?,?,?)",
                         (subject, snap.source_id, snap.as_of, snap.document_id, present))
 
+    def _source_is_fixture(self, source_id: str) -> int:
+        """1 when the source is the synthetic fixture convention (license or URL), else 0.
+
+        A fixture reconciliation must not be reported as a live load.
+        """
+        row = self.db.execute("SELECT license, url, publisher FROM sources WHERE source_id = ?", (source_id,)).fetchone()
+        if row is None:
+            return 0
+        blob = " ".join(str(part or "") for part in row).lower()
+        if "synthetic" in blob or "example.invalid" in blob:
+            return 1
+        return 0
+
+    def _finish_issue_counts(self, stats: IngestStats) -> None:
+        stats.duplicate_identity = stats.issue_counts.get("duplicate_identity", 0)
+        stats.unknown_county = stats.issue_counts.get("unknown_county", 0)
+        stats.missing_address = stats.issue_counts.get("missing_address", 0)
+        stats.unknown_category = stats.issue_counts.get("unknown_category", 0)
+        stats.coordinates_supplied = stats.issue_counts.get("coordinates_present", 0)
+
+    def _record_reconciliation(self, snap: Snapshot, kind: str, stats: IngestStats) -> None:
+        """Store aggregate reason counts for this snapshot. No personal data."""
+        if not self._has_table("ingest_reconciliation"):
+            return
+        self._finish_issue_counts(stats)
+        stats.fixture = self._source_is_fixture(snap.source_id)
+        issues = {k: stats.issue_counts[k] for k in sorted(stats.issue_counts)}
+        self.db.execute(
+            "INSERT OR REPLACE INTO ingest_reconciliation (document_id, kind, recorded_at, seen, kept, "
+            "skipped_out_of_scope, skipped_invalid, owners_person_or_withheld, facts_written, retired, "
+            "duplicate_rows, unknown_county, missing_address, unknown_category, coordinates_supplied, "
+            "issues_json, fixture) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (snap.document_id, kind, snap.retrieved_at, stats.seen, stats.kept, stats.skipped_out_of_scope,
+             stats.skipped_invalid, stats.owners_person_or_withheld, stats.facts_written, stats.retired,
+             stats.duplicate_identity, stats.unknown_county, stats.missing_address, stats.unknown_category,
+             stats.coordinates_supplied, json.dumps(issues, separators=(",", ":"), sort_keys=True), stats.fixture))
+
+    def reconciliation(self, document_id: str | None = None) -> list[dict[str, Any]]:
+        """Aggregate reconciliation rows for one snapshot, or every snapshot. Reason counts only."""
+        if not self._has_table("ingest_reconciliation"):
+            return []
+        sql = "SELECT * FROM ingest_reconciliation"
+        args: tuple[Any, ...] = ()
+        if document_id:
+            sql += " WHERE document_id = ?"
+            args = (document_id,)
+        sql += " ORDER BY document_id, kind"
+        out = []
+        for row in self.db.execute(sql, args):
+            item = dict(row)
+            item["issues"] = json.loads(item.pop("issues_json"))
+            out.append(item)
+        return out
+
     def ingest_entities(self, records: Iterable[EntityRecord], snap: Snapshot) -> IngestStats:
         stats = IngestStats()
+        seen: set[str] = set()
         for r in records:
             stats.seen += 1
+            classified = classify_entity(r, seen_urns=seen)
+            for code in classified.reasons:
+                stats.issue_counts[code] = stats.issue_counts.get(code, 0) + 1
             if not r.registry_number or not r.legal_name.strip():
                 stats.skipped_invalid += 1
                 continue
@@ -520,6 +587,9 @@ class Registry:
                 stats.skipped_invalid += 1
                 stats.errors.append(f"{r.locator or r.legal_name}: {e}")
                 continue
+            if classified.disposition != "keep":
+                stats.issue_counts["classifier_disagreed"] = stats.issue_counts.get("classifier_disagreed", 0) + 1
+            seen.add(urn)
             stats.kept += 1
             self._subject(urn, "entity", r.legal_name.strip())
             self._cover(urn, snap)
@@ -536,6 +606,7 @@ class Registry:
             key = normalize_name(r.legal_name)
             self.db.execute("INSERT OR IGNORE INTO name_index VALUES (?,?)", (key, urn))
             self._index_name_tokens(key, urn)
+        self._record_reconciliation(snap, "entities", stats)
         self.db.commit()
         return stats
 
@@ -724,17 +795,29 @@ class Registry:
     def _ingest_parcels(self, records: Iterable[ParcelRecord], snap: Snapshot, stats: IngestStats, replaced: set[str],
                         state_fips: str, account_system: str | None, include_all_categories: bool,
                         full_roll: bool) -> IngestStats:
+        seen_urns: set[str] = set()
         for r in records:
             stats.seen += 1
+            classified = classify_parcel(r, state_fips=state_fips, seen_urns=seen_urns, urn_for=self.parcel_urn,
+                                         include_all_categories=include_all_categories)
+            for code in classified.reasons:
+                stats.issue_counts[code] = stats.issue_counts.get(code, 0) + 1
             if not include_all_categories and not is_commercial(r.state_category):
+                if classified.disposition != "skip_out_of_scope":
+                    stats.issue_counts["classifier_disagreed"] = stats.issue_counts.get("classifier_disagreed", 0) + 1
                 stats.skipped_out_of_scope += 1
                 continue
             try:
                 urn = self.parcel_urn(state_fips, r.county_fips, r.apn)
             except FactLotIdError as e:
+                if classified.disposition != "skip_invalid":
+                    stats.issue_counts["classifier_disagreed"] = stats.issue_counts.get("classifier_disagreed", 0) + 1
                 stats.skipped_invalid += 1
                 stats.errors.append(f"{r.locator or r.apn}: {e}")
                 continue
+            if classified.disposition != "keep":
+                stats.issue_counts["classifier_disagreed"] = stats.issue_counts.get("classifier_disagreed", 0) + 1
+            seen_urns.add(urn)
             stats.kept += 1
             # Re-ingesting a snapshot makes the registry hold what the adapter yields now: facts an earlier
             # run wrote for this parcel from this document that the adapter no longer yields are dropped
@@ -782,6 +865,7 @@ class Registry:
             self._drop_stale(urn, snap, old_ids)
         if full_roll:
             stats.retired = self._retire_absent(snap)
+        self._record_reconciliation(snap, "parcels", stats)
         self.db.commit()
         return stats
 

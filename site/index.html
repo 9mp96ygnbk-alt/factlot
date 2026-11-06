@@ -204,33 +204,36 @@
                 with the record locator, the publisher's licence, and its AI-use
                 and redistribution status.
               </p>
+              <!-- registry-trust -->
               <dl class="stats">
                 <div>
-                  <dt>Commercial parcels</dt>
+                  <dt>Pipeline row sum, not a live count</dt>
                   <dd>1,953,805</dd>
                 </div>
                 <div>
-                  <dt>Registered entities</dt>
-                  <dd>14.2 M</dd>
+                  <dt>Cited registered entities</dt>
+                  <dd>14,224,252</dd>
                 </div>
                 <div>
-                  <dt>Verified sources</dt>
-                  <dd>42</dd>
+                  <dt>DC sample, 2026-11-04</dt>
+                  <dd>18,077</dd>
                 </div>
               </dl>
               <p class="small">
-                Loaded in full on 2026-11-03 across 405 counties in 21 states
-                and the District of Columbia: the largest metros (Harris,
-                Dallas, Tarrant, Travis, New York City, Los Angeles, Boston, San
-                Francisco, Denver, Charlotte, Minneapolis, DC), the rest of the
-                top 100 counties where the licence allows, and every county of
-                New York State, Maryland, Wisconsin, Massachusetts, Vermont,
-                Arkansas and Connecticut, most of Utah, 24 Minnesota counties,
-                and Montana's apartments and industrial parcels. Entity
-                registries from Texas, New York, Colorado, Pennsylvania, DC and
-                Connecticut. Commercial, industrial, and multifamily parcels
-                only; some public files omit owner names.
+                1,953,805 is the verified-source pipeline row sum: the sum of
+                cited scratch-load rows. It is not deduplicated, not a live
+                count, and not a national total. The sum was compiled 2026-11-06
+                from records whose loads are dated 2026-11-03 in the coverage
+                notes. Companion unverified rows: 77,286. Sample rows excluded
+                from that sum: 94,319. Cited registered entities: 14,224,252,
+                not a live count. Census county equivalents: 3,235, file
+                retrieved 2026-11-03, not a parcel count. The queryable
+                published sample is the District of Columbia, release tag
+                registry-sample-dc-2026-11-04, dated 2026-11-04, 18,077
+                commercial parcels. Hosted registry lookups are not open.
+                Jurisdiction accounting is in docs/registry/coverage-matrix.md.
               </p>
+              <!-- /registry-trust -->
               <p class="small">
                 The pipeline also holds zoning, recorded sales, deeds and
                 mortgages, energy benchmarks, CMBS loan data and 6,994 federal
@@ -241,16 +244,17 @@
                 >
                 lists. What you can query today: the 6,994 GSA lease comps on
                 the hosted API (<code>lease_comp_search</code>; the federal
-                government is the tenant, so they are not private-market comps)
-                and the downloadable District of Columbia sample (18,077
-                parcels) on your own FactLot. The full registry is built and
-                verified in the project's pipeline; hosted registry lookups are
-                not open yet.
+                government is the tenant, so they are not private-market comps).
               </p>
               <p>
                 <a
                   href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/registry/README.md"
                   >Registry</a
+                >
+                ·
+                <a
+                  href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/registry/coverage-matrix.md"
+                  >Coverage matrix</a
                 >
                 ·
                 <a

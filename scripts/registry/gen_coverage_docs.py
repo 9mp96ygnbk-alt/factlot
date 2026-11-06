@@ -413,12 +413,18 @@ def gen_rights(configs: list[dict]) -> str:
 # ------------------------------------------------------------------ coverage.md
 
 
-def gen_coverage(configs: list[dict]) -> str:
+def assemble_rows(configs: list[dict]) -> tuple[list[dict], dict]:
+    """Quote-checked load rows plus the statewide county tables, in coverage-page order.
+
+    Every count in ``coverage-data.json`` must appear in the document it cites. County-table
+    rows are the figures the review record tabulated; they are not a second national total.
+    """
     cfg = {s["source_id"]: s for s in configs}
     with open(os.path.join(DOCS, "coverage-data.json"), encoding="utf-8") as fh:
         data = json.load(fh)
     for i, e in enumerate(data["loads"]):
         verify_cites(e, f"loads[{i}] {e['source_id']} {e['area']}")
+        _verify_named_count(e, "source_rows", "source_rows_cites", f"loads[{i}] {e['source_id']}")
     for i, e in enumerate(data["entity_registries"]):
         verify_cites(e, f"entity_registries[{i}] {e['source_id']}")
     qc = data["queryable_cite"]
@@ -428,8 +434,7 @@ def gen_coverage(configs: list[dict]) -> str:
         if CFG_ALIAS.get(sid, sid) not in cfg:
             raise SystemExit(f"coverage-data.json: unknown source_id {sid}")
 
-    # rows per state: curated loads + per-county tables of the statewide records
-    rows_by_state: dict[str, list[dict]] = {}
+    rows: list[dict] = []
     seen = set()
 
     def add_row(r: dict) -> None:
@@ -437,10 +442,10 @@ def gen_coverage(configs: list[dict]) -> str:
         if key in seen:
             raise SystemExit(f"duplicate coverage row {key}")
         seen.add(key)
-        rows_by_state.setdefault(r["state"], []).append(r)
+        rows.append(r)
 
     for e in data["loads"]:
-        add_row({**e, "fips": None, "as_of_override": None})
+        add_row({**e, "fips": e.get("fips"), "as_of_override": None, "evidence": "cited_quote"})
     table_sources = {"ny-orpts-rolls": "NY", "md-sdat-real-property": "MD", "ut-ugrc-lir": "UT", "wi-statewide-parcels": "WI",
                      "ma-massgis-parcels": "MA"}
     owners_note = {"md-sdat-real-property": "no (withheld by the publisher)", "ut-ugrc-lir": "no (not in the file)"}
@@ -460,7 +465,38 @@ def gen_coverage(configs: list[dict]) -> str:
                 "org_owners": org, "owner_names": owners,
                 "entity_links": ("%s ownership links" % f"{t['links']:,}") if t["links"] is not None else "not recorded",
                 "notes": "", "cites": [{"doc": rp, "quote": "County (FIPS)"}], "fips": t["fips"], "as_of_override": t["as_of"],
+                "evidence": "county_table",
             })
+    return rows, data
+
+
+def _verify_named_count(entry: dict, key: str, cites_key: str, label: str) -> None:
+    """An optional integer is kept only when a quote in the named cite list contains it."""
+    if key not in entry:
+        return
+    v = entry[key]
+    if not isinstance(v, int) or isinstance(v, bool) or v < 0:
+        raise SystemExit(f"coverage-data.json: {label}: {key} must be a non-negative integer")
+    cites = entry.get(cites_key) or []
+    if not cites:
+        raise SystemExit(f"coverage-data.json: {label}: {key} has no {cites_key}")
+    blob = []
+    for c in cites:
+        doc = doc_norm(c["doc"])
+        q = norm(c["quote"])
+        if q not in doc:
+            raise SystemExit(f"coverage-data.json: {label}: {key} quote not found in {c['doc']}: {c['quote']!r}")
+        blob.append(q)
+    if f"{v:,}" not in " ".join(blob):
+        raise SystemExit(f"coverage-data.json: {label}: {key} {v:,} is not in its quotes")
+
+
+def gen_coverage(configs: list[dict]) -> str:
+    cfg = {s["source_id"]: s for s in configs}
+    rows, data = assemble_rows(configs)
+    rows_by_state: dict[str, list[dict]] = {}
+    for r in rows:
+        rows_by_state.setdefault(r["state"], []).append(r)
 
     loaded_sources = {r["source_id"] for rows in rows_by_state.values() for r in rows}
     for grp, members in GROUP_MEMBERS.items():
@@ -529,6 +565,8 @@ def gen_coverage(configs: list[dict]) -> str:
         "  date we built it. Where a record shows more than one run, the range is shown. `not recorded in the record` means the record",
         "  does not give an as-of date.",
         "- **Not loaded.** For every reviewed source with nothing loaded, the state section says why (the gate) and links the record.",
+        "- **Every state.** [coverage-matrix.md](coverage-matrix.md) lists each state, the District of Columbia and Puerto Rico,",
+        "  including those with no review. A missing review is not a parcel count of zero, and the page is not a live inventory.",
         "",
         "## Summary",
         "",

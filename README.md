@@ -94,22 +94,17 @@ Be clear about scope before adopting it:
 
 - **Calculators, IDs, and the fact model work anywhere.** They need no data and no API key, and
   they run offline in both SDKs with identical results.
-- **The registry covers the largest metros, unevenly, and most of it is not queryable yet.** The
-  project's registry pipeline has built and verified 1,953,805 commercial, industrial and
-  multifamily parcels in 405 counties (21 states and DC) from 42 public-record sources, with 14.2
-  million registered entities from Texas, New York, Colorado, Pennsylvania, DC and Connecticut for
-  owner resolution: the largest metros (Harris, Dallas, Tarrant, Travis and Collin in Texas, New
-  York City, Los Angeles, Boston, San Francisco, Denver, Charlotte, Minneapolis and DC), the rest of
-  the top 100 counties where the licence allows, and statewide files for New York, Maryland,
-  Wisconsin, Massachusetts, Vermont, Arkansas and Connecticut, most of Utah, 24 Minnesota counties
-  and Montana's apartments and industrial parcels
-  ([catalog](docs/registry/sources/README.md), [quality report](docs/registry/quality/tier1-2026-11-03.md)).
-  **What you can query today** is the downloadable District of Columbia sample (18,077 parcels)
-  on a self-hosted FactLot; hosted registry lookups are not open yet. Cook County, Florida, Fulton,
-  Maricopa, Wayne, Fairfax, King and much of California wait on a licence decision, a form or a
-  purchase. Several public files omit owner names (Maryland, Utah, Los Angeles, San Francisco); zoning, recorded sales, deeds and mortgages,
-  energy benchmarks and CMBS loan data only for some metros ([coverage](docs/registry/coverage.md)); no tenant rosters. See
-  [the registry](docs/registry/README.md) and the [source catalog](docs/registry/sources/README.md).
+- <!-- registry-trust -->**Cited pipeline row sum, not a live count.** The verified-source pipeline
+  row sum is 1,953,805 commercial parcels: the sum of cited scratch-load rows. It is not
+  deduplicated, not a live count, and not a national total. The sum was compiled 2026-11-06 from
+  records whose loads are dated 2026-11-03 in the coverage notes. Companion unverified rows: 77,286. Sample rows
+  excluded from that sum: 94,319. Cited registered entities: 14,224,252, not a live count. Census
+  county equivalents: 3,235, file retrieved 2026-11-03, not a parcel count. The queryable published
+  sample is the District of Columbia, release tag `registry-sample-dc-2026-11-04`, dated
+  2026-11-04, 18,077 commercial parcels. Hosted registry lookups are not open. Jurisdiction
+  accounting is in the [coverage matrix](docs/registry/coverage-matrix.md). See
+  [the registry](docs/registry/README.md) and the
+  [source catalog](docs/registry/sources/README.md).<!-- /registry-trust -->
 - **One rules pack**, the Texas property-tax protest deadline, verified against the official
   statute text. Other jurisdictions follow only after a person verifies them.
 - **Lease ingestion is a prototype**: deterministic quote-on-page and value-in-quote checks, OCR

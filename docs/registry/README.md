@@ -135,6 +135,9 @@ idempotent. `python -m factlot.registry.audit registry.db` measures the result (
 
 ## Coverage
 
+Jurisdiction accounting is in [coverage-matrix.md](coverage-matrix.md). It lists every state, including
+those with no review. A missing review is not a zero.
+
 A registry file holds some counties and some entity registries, not the country. Every registry
 tool says so on a miss instead of answering `null` or `[]` alone: `registry_resolve_parcel`,
 `registry_resolve_external`, `registry_search_address`, `registry_search_entities` and

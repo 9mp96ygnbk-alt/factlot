@@ -137,3 +137,27 @@ CREATE TABLE IF NOT EXISTS building_members (
   PRIMARY KEY (building_urn, parcel_urn)
 );
 CREATE INDEX IF NOT EXISTS building_members_parcel ON building_members(parcel_urn);
+
+-- Aggregate ingest reconciliation. Counts and reason codes only: no owner names, mailing
+-- addresses, or other personal data. Opening an older file adds the table; existing facts
+-- are not rewritten. ``fixture`` is 1 when the source is marked synthetic.
+CREATE TABLE IF NOT EXISTS ingest_reconciliation (
+  document_id              TEXT NOT NULL,
+  kind                     TEXT NOT NULL,       -- parcels | entities | parcel_facts | buildings
+  recorded_at              TEXT NOT NULL,       -- the snapshot's retrieved_at, not a second clock in the digest
+  seen                     INTEGER NOT NULL,
+  kept                     INTEGER NOT NULL,
+  skipped_out_of_scope     INTEGER NOT NULL,
+  skipped_invalid          INTEGER NOT NULL,
+  owners_person_or_withheld INTEGER NOT NULL,
+  facts_written            INTEGER NOT NULL,
+  retired                  INTEGER NOT NULL,
+  duplicate_rows           INTEGER NOT NULL,
+  unknown_county           INTEGER NOT NULL,
+  missing_address          INTEGER NOT NULL,
+  unknown_category         INTEGER NOT NULL,
+  coordinates_supplied     INTEGER NOT NULL,
+  issues_json              TEXT NOT NULL,       -- object of reason code -> count
+  fixture                  INTEGER NOT NULL,
+  PRIMARY KEY (document_id, kind)
+);
