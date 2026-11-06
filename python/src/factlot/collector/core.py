@@ -468,6 +468,9 @@ def snapshot(fetcher: PoliteFetcher, spec: SourceSpec, urls: list[str], out_dir:
     results = []
     for url in urls:
         rec: dict[str, Any] = {"source_id": spec.source_id, "url": url, "checked_at": _now(), "collector": VERSION}
+        if (cap := query_limit(url)) is not None:
+            # A later row count that equals this cap is incomplete. The cap is not a parcel total.
+            rec["row_cap"] = cap
         if not _host_ok(url, spec):
             rec["status"] = "skipped_host_not_allowed"
             results.append(rec)
