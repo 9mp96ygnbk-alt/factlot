@@ -4586,6 +4586,129 @@
       },
       {
         "toolSpec": {
+          "name": "lease_comp_search",
+          "description": "Search the 6,994 lease comps from the U.S. General Services Administration's Lease Inventory (October 2026 file, FactLot release lease-comps-gsa-2026-11-04), bundled with FactLot: works offline and on the hosted API, no registry needed. READ THE CAVEAT: the tenant in every one of these leases is the federal government (GSA, for an agency); they are not market comps for private tenants, and the rent is the current annual rent in GSA's file divided by the rentable SF, not the starting rent (no escalations, free rent, TI or commissions are known). Filter by state, 5-digit county FIPS, city, ZIP, a radius around a latitude/longitude (GSA's own coordinates; nothing is geocoded), rentable SF, commencement date, rent per SF, property type (office, industrial, other) and expense basis; sort; limit (default 25, at most 200). Each comp gives its FactLot lease ID, GSA lease number, address, county FIPS, building ID, landlord (organisations only; individuals are never stored), rentable SF, commencement, expiration, term, early-termination date, annual rent, rent per SF per year, property type, expense basis and the row of the GSA file it comes from. summary gives the count and the median, quartiles and range of rent per SF over every match, labelled as statistics of GSA leases. Every answer carries the caveat and the citation (GSA file URL, SHA-256 document ID, as-of and retrieval dates, licence: public domain). Cite them, and never mix these comps silently into market comps.",
+          "inputSchema": {
+            "json": {
+              "type": "object",
+              "properties": {
+                "state": {
+                  "description": "Two-letter state or territory code, e.g. \"TX\".",
+                  "type": "string",
+                  "pattern": "^[A-Za-z]{2}$"
+                },
+                "county_fips": {
+                  "description": "5-digit county FIPS code (state + county), e.g. \"48201\" for Harris County, Texas. Connecticut uses its planning regions (09110 to 09190).",
+                  "type": "string",
+                  "pattern": "^[0-9]{5}$"
+                },
+                "city": {
+                  "description": "City as GSA writes it, matched whole and ignoring case, e.g. \"Houston\".",
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                },
+                "zip": {
+                  "description": "5-digit ZIP code (ZIP+4 accepted), e.g. \"77002\".",
+                  "type": "string",
+                  "pattern": "^[0-9]{5}(-[0-9]{4})?$"
+                },
+                "near": {
+                  "description": "Comps within a radius of a point, by great-circle distance to the coordinates GSA's file gives for each lease (FactLot geocodes nothing; give the point's coordinates yourself). Comps without coordinates are left out and counted in warnings.",
+                  "type": "object",
+                  "properties": {
+                    "latitude": {
+                      "type": "number",
+                      "minimum": -90,
+                      "maximum": 90,
+                      "description": "Latitude, degrees."
+                    },
+                    "longitude": {
+                      "type": "number",
+                      "minimum": -180,
+                      "maximum": 180,
+                      "description": "Longitude, degrees."
+                    },
+                    "radius_miles": {
+                      "type": "number",
+                      "exclusiveMinimum": 0,
+                      "maximum": 500,
+                      "description": "Radius in miles (at most 500)."
+                    }
+                  },
+                  "required": ["latitude", "longitude", "radius_miles"]
+                },
+                "min_rentable_sf": {
+                  "description": "Smallest lease rentable area, SF.",
+                  "type": "number",
+                  "minimum": 0
+                },
+                "max_rentable_sf": {
+                  "description": "Largest lease rentable area, SF.",
+                  "type": "number",
+                  "minimum": 0
+                },
+                "commencement_from": {
+                  "description": "Earliest lease commencement (effective) date, YYYY-MM-DD.",
+                  "type": "string",
+                  "format": "date",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                },
+                "commencement_to": {
+                  "description": "Latest lease commencement (effective) date, YYYY-MM-DD.",
+                  "type": "string",
+                  "format": "date",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                },
+                "min_rent_psf_yr": {
+                  "description": "Lowest current rent, USD per rentable SF per year (GSA's current annual rent divided by the RSF).",
+                  "type": "number",
+                  "minimum": 0
+                },
+                "max_rent_psf_yr": {
+                  "description": "Highest current rent, USD per rentable SF per year.",
+                  "type": "number",
+                  "minimum": 0
+                },
+                "property_type": {
+                  "description": "office, industrial (GSA warehouse) or other (GSA special space): the largest use in the lease.",
+                  "type": "string",
+                  "enum": ["office", "industrial", "other"]
+                },
+                "expense_basis": {
+                  "description": "full_service (GSA fully serviced) or not_full_service.",
+                  "type": "string",
+                  "enum": ["full_service", "not_full_service"]
+                },
+                "sort": {
+                  "description": "Order of results: distance_asc (the default with near; needs near), commencement_desc (the default otherwise), commencement_asc, expiration_asc, expiration_desc, rent_psf_desc, rent_psf_asc, rentable_sf_desc, rentable_sf_asc. Ties go by GSA lease number.",
+                  "type": "string",
+                  "enum": [
+                    "commencement_desc",
+                    "commencement_asc",
+                    "expiration_asc",
+                    "expiration_desc",
+                    "rent_psf_desc",
+                    "rent_psf_asc",
+                    "rentable_sf_desc",
+                    "rentable_sf_asc",
+                    "distance_asc"
+                  ]
+                },
+                "limit": {
+                  "default": 25,
+                  "description": "Maximum comps returned (1–200, default 25); the summary covers every match.",
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 200
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "toolSpec": {
           "name": "registry_get",
           "description": "Everything the FactLot Registry knows about a parcel, legal entity, or building: status, current cited facts (owner of record, situs address, property category, areas, values), ownership links, external IDs, and for a parcel the building it belongs to (condominium units roll up into one building). as_of gives the facts as they stood on a date. warnings flags area facts that look wrong (building area above 40 times the land area, a land area of 0); the facts themselves are as the source publishes them. A building record can carry debt.cmbs_loan facts (one per CMBS trust holding a note of its loan: balance, rate, maturity, payment status, servicer, special-servicing dates, NOI, DSCR) and an entity record can carry entity.parent facts (the SEC registrant that lists it as a subsidiary in Exhibit 21), each cited to its SEC filing. A miss says whether the county or entity registry is loaded. Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
           "inputSchema": {

@@ -139,4 +139,7 @@ from gen_comps import comp_cases
 cases.extend(comp_cases(int(sys.argv[1]), int(sys.argv[2])))
 # round-2 document tools (clauses, statements, use conflicts, fact packages): their own stream
 cases.extend(round2_cases(int(sys.argv[1]), int(sys.argv[2]) // 2))
+# lease_comp_search over the bundled GSA comps: its own stream, after every other
+from gen_comps import comp_search_cases
+cases.extend(comp_search_cases(int(sys.argv[1]), int(sys.argv[2])))
 json.dump(cases,open(sys.argv[3],"w"))

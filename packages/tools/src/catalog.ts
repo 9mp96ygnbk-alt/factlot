@@ -16,6 +16,7 @@ import {
 import { z } from "zod";
 
 import { LeaseCompValidateInput, validateLeaseComp } from "./comps.ts";
+import { LeaseCompSearchInput, searchLeaseComps } from "./comps_search.ts";
 import {
   AbstractLeaseInput,
   CompareInput,
@@ -437,6 +438,16 @@ const compTools: ToolSpec[] = [
     path: "/v1/comps/validate",
     run: (i: never) =>
       validateLeaseComp(i as z.output<typeof LeaseCompValidateInput>, PRODUCER),
+  },
+  {
+    name: "lease_comp_search",
+    title: "Search GSA lease comps (federal tenant)",
+    description:
+      "Search the 6,994 lease comps from the U.S. General Services Administration's Lease Inventory (October 2026 file, FactLot release lease-comps-gsa-2026-11-04), bundled with FactLot: works offline and on the hosted API, no registry needed. READ THE CAVEAT: the tenant in every one of these leases is the federal government (GSA, for an agency); they are not market comps for private tenants, and the rent is the current annual rent in GSA's file divided by the rentable SF, not the starting rent (no escalations, free rent, TI or commissions are known). Filter by state, 5-digit county FIPS, city, ZIP, a radius around a latitude/longitude (GSA's own coordinates; nothing is geocoded), rentable SF, commencement date, rent per SF, property type (office, industrial, other) and expense basis; sort; limit (default 25, at most 200). Each comp gives its FactLot lease ID, GSA lease number, address, county FIPS, building ID, landlord (organisations only; individuals are never stored), rentable SF, commencement, expiration, term, early-termination date, annual rent, rent per SF per year, property type, expense basis and the row of the GSA file it comes from. summary gives the count and the median, quartiles and range of rent per SF over every match, labelled as statistics of GSA leases. Every answer carries the caveat and the citation (GSA file URL, SHA-256 document ID, as-of and retrieval dates, licence: public domain). Cite them, and never mix these comps silently into market comps.",
+    input: LeaseCompSearchInput,
+    path: "/v1/comps/search",
+    run: (i: never) =>
+      searchLeaseComps(i as z.output<typeof LeaseCompSearchInput>, PRODUCER),
   },
 ];
 

@@ -52,3 +52,54 @@ def comp_cases(seed, count):
             args["discount_rate_annual"] = round(r.uniform(0, 0.15), 4)
         out.append({"tool": "lease_comp_validate", "arguments": args})
     return out
+
+
+def comp_search_cases(seed, count):
+    """Random lease_comp_search filters over the bundled GSA comps (the filters are synthetic; the data is real)."""
+    r = random.Random(f"comp-search-{seed}")
+    out = []
+    states = ["TX", "CA", "ny", "DC", "VA", "MD", "FL", "WA", "AK", "PR", "GU", "ZZ"]
+    counties = ["48201", "11001", "06037", "36061", "09140", "53033", "17031", "00000"]
+    cities = ["Houston", "WASHINGTON", " new  york ", "Los Angeles", "Seattle", "Nowhere"]
+    sorts = ["commencement_desc", "commencement_asc", "expiration_asc", "expiration_desc", "rent_psf_desc",
+             "rent_psf_asc", "rentable_sf_desc", "rentable_sf_asc", "distance_asc"]
+    for _ in range(max(1, count // 20)):
+        args = {}
+        if r.random() < 0.4:
+            args["state"] = r.choice(states)
+        if r.random() < 0.15:
+            args["county_fips"] = r.choice(counties)
+        if r.random() < 0.15:
+            args["city"] = r.choice(cities)
+        if r.random() < 0.1:
+            args["zip"] = r.choice(["77002", "20002-4232", "10007", "99999"])
+        if r.random() < 0.35:
+            args["near"] = {"latitude": round(r.uniform(25, 49), r.choice([0, 4, 6])),
+                            "longitude": round(r.uniform(-124, -67), r.choice([0, 4, 6])),
+                            "radius_miles": r.choice([0.5, 1, 5, 25, 100, 500, round(r.uniform(0.1, 300), 2)])}
+        if r.random() < 0.3:
+            args["min_rentable_sf"] = r.choice([0, 1000, 10000, 50000])
+        if r.random() < 0.3:
+            args["max_rentable_sf"] = r.choice([500, 5000, 20000, 1e6])
+        if r.random() < 0.3:
+            y = r.randint(1995, 2026)
+            args["commencement_from"] = f"{y}-{r.randint(1, 12):02d}-01"
+        if r.random() < 0.3:
+            y = r.randint(2000, 2027)
+            args["commencement_to"] = f"{y}-{r.randint(1, 12):02d}-28"
+        if r.random() < 0.3:
+            args["min_rent_psf_yr"] = round(r.uniform(0, 50), r.choice([0, 2]))
+        if r.random() < 0.3:
+            args["max_rent_psf_yr"] = round(r.uniform(10, 120), r.choice([0, 2]))
+        if r.random() < 0.2:
+            args["property_type"] = r.choice(["office", "industrial", "other"])
+        if r.random() < 0.15:
+            args["expense_basis"] = r.choice(["full_service", "not_full_service"])
+        if r.random() < 0.6:
+            args["sort"] = r.choice(sorts)
+        if r.random() < 0.5:
+            args["limit"] = r.choice([1, 5, 25, 200, 0, 201, 2.5])
+        if r.random() < 0.05:
+            args[r.choice(["states", "radius", "zipcode"])] = "x"
+        out.append({"tool": "lease_comp_search", "arguments": args})
+    return out

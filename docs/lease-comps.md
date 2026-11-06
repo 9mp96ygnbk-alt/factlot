@@ -76,6 +76,58 @@ lease_comp_validate({ fact: { subject: "fl:lease:…", predicate: "lease.comp", 
 → { valid, issues: [{ path, message }], warnings, ner: { formula: "calc.net_effective_rent@1", fact } | null }
 ```
 
+## `lease_comp_search`
+
+The 6,994 GSA comps ship inside the tool packages, so this tool works offline, in both SDKs, and on the
+hosted API, with no registry file and no network call (MCP, REST `/v1/comps/search`, every provider
+format, `factlot.run_tool` in Python; the same answers in both languages, `spec/vectors/lease_comp_search.json`,
+17 cases, and 150 more in the differential test).
+
+> **Every answer says it:** the federal government (GSA, for an agency) is the tenant in every one of these
+> leases. They are not market comps for private tenants, and the rent is the current rent in GSA's file, not the
+> starting rent. Read [GSA leases are not market comps](#gsa-leases-are-not-market-comps-for-every-use).
+
+Filters: `state`, `county_fips` (5 digits; Connecticut uses its planning regions), `city` (whole, any case), `zip`
+(ZIP+4 accepted), `near` (`latitude`, `longitude`, `radius_miles` up to 500: great-circle distance to the coordinates
+GSA's file gives; FactLot geocodes nothing, and the 9 comps without coordinates are left out and counted), rentable SF,
+commencement dates, rent per SF, `property_type` (`office`, `industrial`, `other`) and `expense_basis`. `sort` is one of
+`distance_asc` (the default with `near`), `commencement_desc` (the default otherwise), `commencement_asc`,
+`expiration_asc`, `expiration_desc`, `rent_psf_desc`, `rent_psf_asc`, `rentable_sf_desc`, `rentable_sf_asc`; ties go by
+GSA lease number. `limit` is 25 by default, 200 at most.
+
+```
+lease_comp_search({ near: { latitude: 29.7604, longitude: -95.3698, radius_miles: 5 }, limit: 3 })
+→ { caveat, total_matches: 12, returned: 3, sort: "distance_asc",
+    results: [{ comp_id: "fl:lease:0000000000tvar4xzf9ttp7kmj", gsa_lease_number: "LTX16707",
+                address: "1000 LOUISIANA ST", city: "HOUSTON", state: "TX", zip: "77002", county_fips: "48201",
+                latitude, longitude, building: "fl:building:us-48201:77002:1000-louisiana-st",
+                landlord: "1000 LOUISIANA LP", tenant_type: "government_federal", rentable_sf: 132539,
+                commencement_date: "2012-05-24", expiration_date: "2027-05-23", term_months: 180,
+                early_termination_date: null, annual_rent_usd: 5144284.3, rent_psf_yr: 38.81,
+                property_type: "office", expense_basis: "full_service", comp_type: "extension",
+                renewal_options_left: 0, distance_miles: 0.16,
+                source: { document_id: "fl:document:sha256-11c0a0eb…", section: "row 4898 lease LTX16707 location TX2772" } }, …],
+    summary: { label, count: 12, rent_psf_yr: { min, p25, median: 34.31, p75, max }, rentable_sf: {…}, property_types },
+    warnings, citation: { source, file_url, document_id, as_of: "2026-11-01", retrieved_at, license, attribution,
+    release: "lease-comps-gsa-2026-11-04", release_sha256, rights }, provenance }
+```
+
+- `comp_id` is the lease ID the release uses (the same URN `registry_get` takes on a registry built from it), and
+  `building` the building ID computed from the address. `landlord` is the lessor only where the release stored it as
+  an organisation and `is_organization` still agrees (6,451 of 6,994); otherwise `null`. Individuals are never stored.
+- `summary` covers every match, not just the returned page: the count, and the minimum, quartiles (linear
+  interpolation between ranks, as PERCENTILE.INC), median and maximum of rent per SF and of rentable SF. It is labelled
+  as statistics of GSA leases; over the whole file the median is $29.86 (quartiles $23.54 and $38.63), the figures above.
+- The data: `python/src/factlot/data/gsa_lease_comps.tsv` (and the same bytes as a string in
+  `packages/tools/src/data/gsa_lease_comps.ts`), one row per comp, 1.34 MB, 431 KB gzipped; it adds about 431 KB
+  (gzip) to the hosted Worker. It is parsed on the first search (about 35 ms in Node, 40 ms in Python); later searches
+  take about 10 to 20 ms.
+- Regenerate it with `python3 scripts/gen-gsa-lease-comps.py October-2026-External.xlsx factlot-lease-comps-gsa-2026-11-04.db.gz`
+  (both files from the GSA page and the release). The script parses the GSA file with the registry adapter, takes the
+  coordinates and annual rent from the same rows, and stops unless the GSA file is the release's snapshot (same
+  SHA-256), the `.db.gz` matches its `SHA256SUMS`, and every comp, landlord, building ID and row locator equals the
+  release's.
+
 ## How comps are keyed
 
 - **Lease** `fl:lease:<26-character token>`. The [ID spec](id-spec.md) has the registry mint lease
@@ -222,7 +274,14 @@ small to justify that.
 
 ## Not done, and why
 
-- **Hosting, accounts, matching and a marketplace.** Not built.
+- **Hosting shared comps, accounts, matching and a marketplace.** Not built. Only the public GSA comps are served by
+  the hosted API (bundled, `lease_comp_search`).
+- **A residential rent benchmark (HUD Fair Market Rents).** Not built: on 2026-11-06 huduser.gov answered every
+  scripted request, robots.txt included, with an AWS WAF challenge (HTTP 202, `x-amzn-waf-action: challenge`), which
+  FactLot does not work around. HUD's own eGIS copy (the "Fair Market Rents" feature service, owner HUD.Official.Content)
+  has FMR areas without the county list, and its metadata says "FY2024" while its data were last edited 2025-09-30, so
+  its fiscal year cannot be cited with confidence. A person can download the FMR file from huduser.gov in a browser;
+  the tool can then be built from it.
 - **CMBS lease data and Exhibit 21** belong to another workstream.
 - **A stated anticipated commencement date** (for leases that define commencement by delivery) would raise the SEC
   yield from 4 of 55 to perhaps 15 of 55 if comps may carry an "anticipated" flag. Decision below.

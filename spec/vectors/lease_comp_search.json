@@ -1,0 +1,376 @@
+{
+  "spec": "lease_comp_search conformance vectors: run by the TypeScript tests (packages/tools/src/comps_search.test.ts) and the Python tests (python/tests/test_comps_search.py). The expected values are real: they come from the bundled GSA lease comps (python/src/factlot/data/gsa_lease_comps.tsv, release lease-comps-gsa-2026-11-04), and the count and rent statistics of the whole file match the release (docs/lease-comps.md). Regenerating the data from a newer GSA file changes them.",
+  "cases": [
+    {
+      "name": "every comp: count, rent statistics and property types match the release (6,994 comps, median 29.86)",
+      "tool": "lease_comp_search",
+      "arguments": {},
+      "expect": {
+        "total_matches": 6994,
+        "returned": 25,
+        "sort": "commencement_desc",
+        "summary.count": 6994,
+        "summary.rent_psf_yr": {
+          "min": 2.32,
+          "p25": 23.54,
+          "median": 29.86,
+          "p75": 38.63,
+          "max": 237.6
+        },
+        "summary.property_types": {
+          "industrial": 372,
+          "office": 6493,
+          "other": 118,
+          "unstated": 11
+        },
+        "summary.label": "Statistics of the GSA leases that match the filters (the federal government is the tenant): current rent per rentable SF per year from GSA's file, not starting rents and not market rents.",
+        "dataset": "GSA lease comps, release lease-comps-gsa-2026-11-04 (6994 comps)",
+        "caveat": "These are leases in which the federal government (GSA, for an agency) is the tenant, not market comps for private tenants. The rent is the lease's current annual rent in GSA's file, not the starting rent; the file gives no escalations, free rent, tenant improvement allowance or commissions. GSA leases are often full service and follow GSA's own lease form and requirements (security, build-out standards, termination rights): adjust before using one for a private tenant, and never mix them silently into market comps.",
+        "citation.document_id": "fl:document:sha256-11c0a0eb92fbf25c6af0e63beba9f16e6deb696a52732f05b411788b5cbbd431",
+        "citation.file_url": "https://www.gsa.gov/system/files/October-2026-External.xlsx",
+        "citation.as_of": "2026-11-01",
+        "citation.retrieved_at": "2026-11-04T05:41:00Z",
+        "citation.license": "Public domain in the United States: a work of the US federal government (17 U.S.C. 105)",
+        "citation.release": "lease-comps-gsa-2026-11-04",
+        "citation.release_sha256": "5409e56b24529de9ffc3e03d7198d59738dc685bc9b441ea46037c305ec5e13f",
+        "citation.rights": {
+          "ai_use": "permitted",
+          "redistribution": "permitted"
+        },
+        "provenance.method": "public_record",
+        "provenance.sources": [
+          {
+            "document_id": "fl:document:sha256-11c0a0eb92fbf25c6af0e63beba9f16e6deb696a52732f05b411788b5cbbd431",
+            "uri": "https://www.gsa.gov/system/files/October-2026-External.xlsx",
+            "title": "U.S. General Services Administration, Public Buildings Service, Lease Inventory (monthly external file)"
+          }
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "name": "radius around downtown Houston: nearest first, with distance, building ID and the GSA row cited",
+      "tool": "lease_comp_search",
+      "arguments": {
+        "near": {
+          "latitude": 29.7604,
+          "longitude": -95.3698,
+          "radius_miles": 5
+        },
+        "limit": 3
+      },
+      "expect": {
+        "total_matches": 12,
+        "returned": 3,
+        "sort": "distance_asc",
+        "results.0": {
+          "comp_id": "fl:lease:0000000000tvar4xzf9ttp7kmj",
+          "gsa_lease_number": "LTX16707",
+          "address": "1000 LOUISIANA ST",
+          "city": "HOUSTON",
+          "state": "TX",
+          "zip": "77002",
+          "county_fips": "48201",
+          "latitude": 29.75849,
+          "longitude": -95.368401,
+          "building": "fl:building:us-48201:77002:1000-louisiana-st",
+          "landlord": "1000 LOUISIANA LP",
+          "tenant_type": "government_federal",
+          "rentable_sf": 132539,
+          "commencement_date": "2012-05-24",
+          "expiration_date": "2027-05-23",
+          "term_months": 180,
+          "early_termination_date": null,
+          "annual_rent_usd": 5144284.3,
+          "rent_psf_yr": 38.81,
+          "property_type": "office",
+          "expense_basis": "full_service",
+          "comp_type": "extension",
+          "renewal_options_left": 0,
+          "distance_miles": 0.16,
+          "source": {
+            "document_id": "fl:document:sha256-11c0a0eb92fbf25c6af0e63beba9f16e6deb696a52732f05b411788b5cbbd431",
+            "section": "row 4898 lease LTX16707 location TX2772"
+          }
+        },
+        "results.1.comp_id": "fl:lease:00000000004cc7jmxbzp9gswab",
+        "results.1.distance_miles": 0.36,
+        "results.2.distance_miles": 0.57,
+        "summary.rent_psf_yr": {
+          "min": 19.72,
+          "p25": 30.56,
+          "median": 34.31,
+          "p75": 38.22,
+          "max": 46.03
+        }
+      }
+    },
+    {
+      "name": "Washington DC (county 11001), 50,000 SF and up, highest rent first",
+      "tool": "lease_comp_search",
+      "arguments": {
+        "county_fips": "11001",
+        "min_rentable_sf": 50000,
+        "sort": "rent_psf_desc",
+        "limit": 2
+      },
+      "expect": {
+        "total_matches": 69,
+        "results.0.gsa_lease_number": "LDC12548",
+        "results.0.rent_psf_yr": 61.74,
+        "results.0.rentable_sf": 201281,
+        "results.1.rent_psf_yr": 60.64,
+        "summary.rent_psf_yr": {
+          "min": 16.41,
+          "p25": 46.69,
+          "median": 49.6,
+          "p75": 52.14,
+          "max": 61.74
+        },
+        "summary.rentable_sf": {
+          "min": 50005,
+          "p25": 69480.0,
+          "median": 106558.0,
+          "p75": 217000.0,
+          "max": 600802
+        }
+      }
+    },
+    {
+      "name": "city matches whole, ignoring case and extra spaces; office leases commencing since 2020",
+      "tool": "lease_comp_search",
+      "arguments": {
+        "city": " new  york ",
+        "property_type": "office",
+        "commencement_from": "2020-01-01",
+        "limit": 1
+      },
+      "expect": {
+        "total_matches": 7,
+        "results.0.city": "NEW YORK",
+        "results.0.state": "NY",
+        "results.0.commencement_date": "2024-04-01",
+        "summary.rent_psf_yr": {
+          "min": 47.75,
+          "p25": 61.21,
+          "median": 69.22,
+          "p75": 79.27,
+          "max": 93.14
+        }
+      }
+    },
+    {
+      "name": "state is case-insensitive: Texas holds 530 comps",
+      "tool": "lease_comp_search",
+      "arguments": {
+        "state": "tx",
+        "limit": 1,
+        "sort": "rentable_sf_desc"
+      },
+      "expect": {
+        "total_matches": 530,
+        "results.0.gsa_lease_number": "LTX00122",
+        "results.0.rentable_sf": 406000,
+        "results.0.annual_rent_usd": 3478028.46,
+        "results.0.rent_psf_yr": 8.57,
+        "summary.property_types": {
+          "industrial": 24,
+          "office": 497,
+          "other": 9
+        }
+      }
+    },
+    {
+      "name": "a Connecticut planning-region county FIPS (09140, Naugatuck Valley)",
+      "tool": "lease_comp_search",
+      "arguments": {
+        "county_fips": "09140",
+        "sort": "commencement_asc",
+        "limit": 1
+      },
+      "expect": {
+        "total_matches": 4,
+        "results.0.gsa_lease_number": "LCT04552",
+        "results.0.county_fips": "09140",
+        "results.0.building": "fl:building:us-09140:06401:475-main-st",
+        "results.0.landlord": "AGS ANSONIA, LLC",
+        "results.0.source": {
+          "document_id": "fl:document:sha256-11c0a0eb92fbf25c6af0e63beba9f16e6deb696a52732f05b411788b5cbbd431",
+          "section": "row 35 lease LCT04552 location CT3429"
+        }
+      }
+    },
+    {
+      "name": "ZIP+4 is cut to the ZIP; rent band and commencement window",
+      "tool": "lease_comp_search",
+      "arguments": {
+        "zip": "20002-4232",
+        "min_rent_psf_yr": 40,
+        "max_rent_psf_yr": 60,
+        "commencement_from": "2015-01-01",
+        "commencement_to": "2025-12-31",
+        "sort": "commencement_asc",
+        "limit": 2
+      },
+      "expect": {
+        "total_matches": 19,
+        "results.0.zip": "20002",
+        "results.0.commencement_date": "2017-02-11",
+        "results.1.commencement_date": "2017-09-12",
+        "summary.count": 19
+      }
+    },
+    {
+      "name": "industrial, not fully serviced, in California",
+      "tool": "lease_comp_search",
+      "arguments": {
+        "state": "CA",
+        "property_type": "industrial",
+        "expense_basis": "not_full_service",
+        "sort": "expiration_asc",
+        "limit": 1
+      },
+      "expect": {
+        "total_matches": 2,
+        "results.0.expiration_date": "2028-06-30",
+        "results.0.property_type": "industrial",
+        "results.0.expense_basis": "not_full_service",
+        "summary.rent_psf_yr": {
+          "min": 33.08,
+          "p25": 34.32,
+          "median": 35.56,
+          "p75": 36.79,
+          "max": 38.03
+        }
+      }
+    },
+    {
+      "name": "no match: an empty result with no statistics and a warning",
+      "tool": "lease_comp_search",
+      "arguments": {
+        "zip": "99999"
+      },
+      "expect": {
+        "total_matches": 0,
+        "returned": 0,
+        "results": [],
+        "summary.rent_psf_yr": null,
+        "summary.rentable_sf": null,
+        "summary.property_types": {},
+        "warnings": [
+          "no GSA lease matches these filters; the file covers federal leases only, so an empty result says nothing about the private market"
+        ]
+      }
+    },
+    {
+      "name": "limit 200 returns 200 of the matches",
+      "tool": "lease_comp_search",
+      "arguments": {
+        "state": "CA",
+        "limit": 200,
+        "sort": "rent_psf_asc"
+      },
+      "expect": {
+        "total_matches": 613,
+        "returned": 200,
+        "results.0.rent_psf_yr": 5.57,
+        "results.199.rent_psf_yr": 33.65
+      }
+    },
+    {
+      "name": "distance_asc without near is an input error",
+      "tool": "lease_comp_search",
+      "arguments": {
+        "sort": "distance_asc"
+      },
+      "expect_error": "InputError",
+      "expect_issues": [
+        {
+          "path": "sort",
+          "message": "distance_asc needs near (latitude, longitude, radius_miles)"
+        }
+      ]
+    },
+    {
+      "name": "a minimum above its maximum is an input error",
+      "tool": "lease_comp_search",
+      "arguments": {
+        "min_rent_psf_yr": 50,
+        "max_rent_psf_yr": 40,
+        "min_rentable_sf": 9000,
+        "max_rentable_sf": 100
+      },
+      "expect_error": "InputError",
+      "expect_issues": [
+        {
+          "path": "max_rentable_sf",
+          "message": "is below min_rentable_sf"
+        },
+        {
+          "path": "max_rent_psf_yr",
+          "message": "is below min_rent_psf_yr"
+        }
+      ]
+    },
+    {
+      "name": "commencement_from after commencement_to is an input error",
+      "tool": "lease_comp_search",
+      "arguments": {
+        "commencement_from": "2025-01-01",
+        "commencement_to": "2024-01-01"
+      },
+      "expect_error": "InputError",
+      "expect_issues": [
+        {
+          "path": "commencement_to",
+          "message": "is before commencement_from"
+        }
+      ]
+    },
+    {
+      "name": "an unknown field is rejected, not ignored",
+      "tool": "lease_comp_search",
+      "arguments": {
+        "states": "TX"
+      },
+      "expect_error": "InputError",
+      "expect_issues": [
+        {
+          "path": "states",
+          "message": "unknown field (did you mean \"state\"?); known fields here: state, county_fips, city, zip, near, min_rentable_sf, max_rentable_sf, commencement_from, commencement_to, min_rent_psf_yr, max_rent_psf_yr, property_type, expense_basis, sort, limit"
+        }
+      ]
+    },
+    {
+      "name": "limit above 200 is rejected",
+      "tool": "lease_comp_search",
+      "arguments": {
+        "limit": 201
+      },
+      "expect_error": "InputError",
+      "expect_issue_paths": ["limit"]
+    },
+    {
+      "name": "a county FIPS needs 5 digits",
+      "tool": "lease_comp_search",
+      "arguments": {
+        "county_fips": "201"
+      },
+      "expect_error": "InputError",
+      "expect_issue_paths": ["county_fips"]
+    },
+    {
+      "name": "a radius above 500 miles is rejected",
+      "tool": "lease_comp_search",
+      "arguments": {
+        "near": {
+          "latitude": 30,
+          "longitude": -97,
+          "radius_miles": 501
+        }
+      },
+      "expect_error": "InputError",
+      "expect_issue_paths": ["near.radius_miles"]
+    }
+  ]
+}
