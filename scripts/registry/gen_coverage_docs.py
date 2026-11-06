@@ -413,7 +413,10 @@ def gen_rights(configs: list[dict]) -> str:
 # ------------------------------------------------------------------ coverage.md
 
 
-def gen_coverage(configs: list[dict]) -> str:
+def coverage_rows(configs: list[dict]) -> tuple[dict, dict, dict[str, list[dict]]]:
+    """The checked coverage rows, by state: curated loads plus the per-county tables of the statewide records.
+
+    Also used by gen_coverage_map.py, so the map and coverage.md are read from the same rows."""
     cfg = {s["source_id"]: s for s in configs}
     with open(os.path.join(DOCS, "coverage-data.json"), encoding="utf-8") as fh:
         data = json.load(fh)
@@ -461,6 +464,11 @@ def gen_coverage(configs: list[dict]) -> str:
                 "entity_links": ("%s ownership links" % f"{t['links']:,}") if t["links"] is not None else "not recorded",
                 "notes": "", "cites": [{"doc": rp, "quote": "County (FIPS)"}], "fips": t["fips"], "as_of_override": t["as_of"],
             })
+    return cfg, data, rows_by_state
+
+
+def gen_coverage(configs: list[dict]) -> str:
+    cfg, data, rows_by_state = coverage_rows(configs)
 
     loaded_sources = {r["source_id"] for rows in rows_by_state.values() for r in rows}
     for grp, members in GROUP_MEMBERS.items():

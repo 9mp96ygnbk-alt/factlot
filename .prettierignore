@@ -5,3 +5,4 @@ collected/
 .claude/
 .wrangler/
 deploy/cloudflare/public/
+site/_content/coverage-geometry.json

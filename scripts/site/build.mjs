@@ -65,6 +65,7 @@ const NAV = [
   ["/calculators/", "Calculators"],
   ["/mcp-server/", "MCP server"],
   ["/texas/property-tax-protest-deadline/", "Texas protest deadline"],
+  ["/coverage/", "Coverage"],
   [`${REPO}/blob/main/docs/getting-started.md`, "Docs"],
   ["/#pricing", "Pricing"],
 ];
@@ -461,6 +462,181 @@ ${rows
   );
 }
 
+// --- County coverage map -------------------------------------------------------------------
+
+let coverageJson;
+{
+  const covRel = "docs/registry/coverage-counties.json";
+  const geoRel = "site/_content/coverage-geometry.json";
+  const cov = readJson(covRel);
+  const geo = readJson(geoRel);
+  const CLASSES = ["published_sample", "audited_load", "cited_load"];
+  const LABEL = {
+    published_sample: "Download today",
+    audited_load: "Audited, not yet hosted",
+    cited_load: "Loaded, not yet audited",
+  };
+  const fmtN = (n) => Number(n).toLocaleString("en-US");
+  const entries = Object.entries(cov.counties);
+  for (const [fips, c] of entries) {
+    if (!/^\d{5}$/.test(fips)) throw new Error(`coverage: bad FIPS ${fips}`);
+    if (!CLASSES.includes(c.class))
+      throw new Error(`coverage: ${fips} class ${c.class}`);
+    if (!geo.counties[fips])
+      throw new Error(`coverage: ${fips} has no boundary`);
+  }
+  // Tiny counties (DC, Manhattan) get a dot so they can be seen and tapped.
+  const box = (d) => {
+    const xs = [],
+      ys = [];
+    let x = 0,
+      y = 0;
+    for (const [, cmd, body] of d.matchAll(/([MlZ])([^MlZ]*)/g)) {
+      const nums = (body.match(/-?\d*\.?\d+/g) ?? []).map(Number);
+      if (cmd === "M") {
+        [x, y] = nums;
+        xs.push(x);
+        ys.push(y);
+      }
+      if (cmd === "l")
+        for (let i = 0; i + 1 < nums.length; i += 2) {
+          x += nums[i];
+          y += nums[i + 1];
+          xs.push(x);
+          ys.push(y);
+        }
+    }
+    return {
+      x0: Math.min(...xs),
+      x1: Math.max(...xs),
+      y0: Math.min(...ys),
+      y1: Math.max(...ys),
+    };
+  };
+  const ordered = entries.sort(
+    (a, b) => CLASSES.indexOf(b[1].class) - CLASSES.indexOf(a[1].class),
+  );
+  const shapes = ordered
+    .map(([fips, c]) => {
+      const t = `<title>${esc(c.name)}, ${esc(c.state)}: ${LABEL[c.class]}. ${fmtN(c.commercial_parcels)} commercial parcels, data as of ${c.data_as_of}.</title>`;
+      const b = box(geo.counties[fips].d);
+      const dot =
+        Math.max(b.x1 - b.x0, b.y1 - b.y0) < 6
+          ? `<circle cx="${((b.x0 + b.x1) / 2).toFixed(1)}" cy="${((b.y0 + b.y1) / 2).toFixed(1)}" r="4.5" class="dot"/>`
+          : "";
+      return `<g class="cty cov-${c.class}" data-fips="${fips}" tabindex="0">${t}<path d="${geo.counties[fips].d}"/>${dot}</g>`;
+    })
+    .join("\n");
+  const n = Object.fromEntries(
+    CLASSES.map((k) => [k, entries.filter(([, c]) => c.class === k).length]),
+  );
+  const total = 3142; // counties and county equivalents drawn on this map (50 states and DC)
+  if (Object.keys(geo.counties).length !== total)
+    throw new Error("coverage: geometry county count changed");
+  const svg = `<svg class="covsvg" viewBox="${geo.viewBox}" role="img" aria-labelledby="covsvg-t covsvg-d" xmlns="http://www.w3.org/2000/svg">
+<title id="covsvg-t">FactLot commercial property data coverage by US county</title>
+<desc id="covsvg-d">${n.published_sample} county available to download, ${n.audited_load} audited, ${n.cited_load} loaded but not yet audited; the other ${total - entries.length} counties are grey. The full list is below the map.</desc>
+<path class="nation" d="${geo.nation}"/>
+${shapes}
+<path class="cmesh" d="${geo.countyMesh}"/>
+<path class="smesh" d="${geo.stateMesh}"/>
+</svg>`;
+  const byState = {};
+  for (const [fips, c] of entries) (byState[c.state] ??= []).push([fips, c]);
+  const table = `<table class="covtable">
+<caption class="visually-hidden">Counties with FactLot data</caption>
+<thead><tr><th scope="col">County</th><th scope="col">FIPS</th><th scope="col">Status</th><th scope="col">Commercial parcels</th><th scope="col">Data as of</th></tr></thead>
+<tbody>
+${Object.keys(byState)
+  .sort()
+  .map((st) =>
+    byState[st]
+      .sort((a, b) => a[1].name.localeCompare(b[1].name))
+      .map(
+        ([fips, c]) =>
+          `<tr><th scope="row">${esc(c.name)}, ${esc(c.state)}</th><td>${fips}</td><td><span class="sw sm cov-${c.class}" aria-hidden="true"></span>${LABEL[c.class]}</td><td>${fmtN(c.commercial_parcels)}</td><td>${c.data_as_of}</td></tr>`,
+      )
+      .join("\n"),
+  )
+  .join("\n")}
+</tbody>
+</table>`;
+  const long = new Date(`${cov.reference_date}T12:00:00Z`).toLocaleDateString(
+    "en-US",
+    { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" },
+  );
+  coverageJson = JSON.stringify(
+    {
+      about:
+        "FactLot registry coverage by US county (5-digit Census FIPS). Counties not listed are grey (not usable yet). Generated from the registry's review records; see the methodology on https://factlot.com/coverage/.",
+      reference_date: cov.reference_date,
+      max_age_days: cov.max_age_days,
+      classes: cov.classes,
+      counts: { ...cov.counts, grey: total - entries.length, drawn: total },
+      counties: Object.fromEntries(
+        Object.entries(cov.counties).map(([f, c]) => [
+          f,
+          {
+            name: c.name,
+            state: c.state,
+            class: c.class,
+            commercial_parcels: c.commercial_parcels,
+            data_as_of: c.data_as_of,
+            source_id: c.source_id,
+            owner_names: c.owner_names,
+            hosted: c.hosted,
+          },
+        ]),
+      ),
+      sources: cov.sources,
+    },
+    null,
+    1,
+  );
+  addPage(
+    {
+      urlPath: "/coverage/",
+      title: "County coverage map: commercial property data | FactLot",
+      description: `Which US counties FactLot holds checked commercial property data for: ${n.published_sample + n.audited_load + n.cited_load} counties with whole-county loads, as of ${long}. Everything else is grey.`,
+      h1: "County coverage",
+      crumbs: [["/coverage/", "County coverage"]],
+      jsonld: [
+        {
+          "@context": "https://schema.org",
+          "@type": "Dataset",
+          name: "FactLot registry coverage by US county",
+          description:
+            "Per-county status of FactLot's commercial property registry data, keyed by 5-digit FIPS.",
+          url: `${SITE}/coverage/`,
+          dateModified: cov.reference_date,
+          license: "https://www.apache.org/licenses/LICENSE-2.0",
+          isAccessibleForFree: true,
+          distribution: [
+            {
+              "@type": "DataDownload",
+              encodingFormat: "application/json",
+              contentUrl: `${SITE}/coverage/counties.json`,
+            },
+          ],
+        },
+      ],
+      body: fill(read("site/_content/coverage.html"), {
+        COV_SVG: svg,
+        COV_N_PUBLISHED: String(n.published_sample),
+        COV_N_AUDITED: String(n.audited_load),
+        COV_N_CITED: String(n.cited_load),
+        COV_N_GREY: fmtN(total - entries.length),
+        COV_N_COLORED: String(entries.length),
+        COV_ASOF: long,
+        COV_MAX_AGE: String(cov.max_age_days),
+        COV_TABLE: table,
+        COV_REPO: REPO,
+      }),
+    },
+    ["site/_content/coverage.html", covRel, geoRel],
+  );
+}
+
 // --- write, sitemap, checks ----------------------------------------------------------------
 
 fs.rmSync(out, { recursive: true, force: true });
@@ -476,6 +652,7 @@ for (const p of pages) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, p.html);
 }
+fs.writeFileSync(path.join(out, "coverage", "counties.json"), coverageJson);
 
 const staticPages = [
   ["/", ["site/index.html"]],

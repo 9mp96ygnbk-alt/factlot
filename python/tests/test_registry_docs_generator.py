@@ -51,3 +51,24 @@ class RegistryDocsGenerator(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CoverageMapGenerator(unittest.TestCase):
+    """scripts/registry/gen_coverage_map.py: county classes for the factlot.com/coverage/ map."""
+
+    def test_county_file_is_current_and_honest(self):
+        import json
+        import subprocess
+        import sys
+
+        r = subprocess.run([sys.executable, str(ROOT / "scripts" / "registry" / "gen_coverage_map.py"), "--check"], capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        data = json.loads((ROOT / "docs" / "registry" / "coverage-counties.json").read_text(encoding="utf-8"))
+        published = [f for f, c in data["counties"].items() if c["class"] == "published_sample"]
+        self.assertEqual(published, ["11001"])  # only the DC sample is published
+        for fips, c in data["counties"].items():
+            self.assertRegex(fips, r"^\d{5}$")
+            self.assertGreater(c["commercial_parcels"], 0)
+        not_counted = {(n["source_id"], n["reason"].split(":")[0]) for n in data["not_counted"]}
+        self.assertIn(("pa-philadelphia-opa", "source not verified (publisher terms gate open)"), not_counted)
+        self.assertIn(("ar-gis-parcels", "statewide or multi-county aggregate"), not_counted)

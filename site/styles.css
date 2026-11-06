@@ -389,3 +389,149 @@ ul.principles li {
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+/* County coverage map (/coverage/) */
+:root {
+  --cov-grey: #dfe2e7;
+  --cov-cited: #a9c7f2;
+  --cov-audited: #3b76d9;
+  --cov-published: #0b2f73;
+  --cov-line: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --cov-grey: #2a2f37;
+    --cov-cited: #38557f;
+    --cov-audited: #5b8def;
+    --cov-published: #b9d2fb;
+    --cov-line: #0f1115;
+  }
+}
+
+.covmap {
+  margin: 1.5rem 0 2rem;
+}
+
+.covsvg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.covsvg .nation {
+  fill: var(--cov-grey);
+}
+
+.covsvg .cmesh {
+  fill: none;
+  stroke: var(--cov-line);
+  stroke-width: 0.35;
+  stroke-opacity: 0.7;
+  pointer-events: none;
+}
+
+.covsvg .smesh {
+  fill: none;
+  stroke: var(--cov-line);
+  stroke-width: 1.1;
+  pointer-events: none;
+}
+
+.covsvg .cty:hover,
+.covsvg .cty:focus {
+  outline: none;
+  filter: brightness(1.12);
+}
+
+.covsvg .cty:focus path,
+.covsvg .cty:focus .dot {
+  stroke: var(--focus);
+  stroke-width: 1.5;
+}
+
+.covsvg .dot {
+  stroke: var(--cov-line);
+  stroke-width: 1;
+}
+
+.cov-published_sample,
+.covsvg .cov-published_sample path,
+.covsvg .cov-published_sample .dot {
+  fill: var(--cov-published);
+  background: var(--cov-published);
+}
+
+.cov-audited_load,
+.covsvg .cov-audited_load path,
+.covsvg .cov-audited_load .dot {
+  fill: var(--cov-audited);
+  background: var(--cov-audited);
+}
+
+.cov-cited_load,
+.covsvg .cov-cited_load path,
+.covsvg .cov-cited_load .dot {
+  fill: var(--cov-cited);
+  background: var(--cov-cited);
+}
+
+.cov-grey {
+  background: var(--cov-grey);
+}
+
+.covlegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  list-style: none;
+  margin: 1rem 0 0.25rem;
+  padding: 0;
+}
+
+.covlegend li {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.covlegend .n {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.sw {
+  display: inline-block;
+  width: 0.95rem;
+  height: 0.95rem;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  flex: none;
+}
+
+.sw.sm {
+  width: 0.7rem;
+  height: 0.7rem;
+  margin-right: 0.4rem;
+  vertical-align: -0.05rem;
+}
+
+.covlist {
+  margin: 1rem 0;
+  border-top: 1px solid var(--border);
+  padding-top: 0.75rem;
+}
+
+.covlist summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.covtable {
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.covtable th[scope="row"] {
+  font-weight: 500;
+}

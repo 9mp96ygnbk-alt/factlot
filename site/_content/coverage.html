@@ -1,0 +1,99 @@
+<p class="lede">
+  Where FactLot holds whole-county commercial property data, and how far it has
+  been checked. Grey means not usable yet: not reviewed, not loaded, waiting on
+  publisher terms, a sample only, or too old.
+</p>
+
+<figure class="covmap" aria-labelledby="covmap-cap">
+  {{COV_SVG}}
+  <figcaption id="covmap-cap">
+    <ul class="covlegend" aria-label="Legend">
+      <li>
+        <span class="sw cov-published_sample" aria-hidden="true"></span>Download
+        today <span class="n">{{COV_N_PUBLISHED}}</span>
+      </li>
+      <li>
+        <span class="sw cov-audited_load" aria-hidden="true"></span>Audited, not
+        yet hosted <span class="n">{{COV_N_AUDITED}}</span>
+      </li>
+      <li>
+        <span class="sw cov-cited_load" aria-hidden="true"></span>Loaded, not
+        yet audited <span class="n">{{COV_N_CITED}}</span>
+      </li>
+      <li>
+        <span class="sw cov-grey" aria-hidden="true"></span>Not usable yet
+        <span class="n">{{COV_N_GREY}}</span>
+      </li>
+    </ul>
+    <p class="small">
+      Commercial parcels only (apartments, commercial and industrial). Data as
+      of {{COV_ASOF}}. Hover a county for its count; the full list is below.
+    </p>
+  </figcaption>
+</figure>
+
+<h2 id="meaning">What the colors mean</h2>
+<ul class="plain">
+  <li>
+    <strong>Download today.</strong> Published as an open sample database (CC BY
+    4.0) you can run with the FactLot MCP server.
+  </li>
+  <li>
+    <strong>Audited, not yet hosted.</strong> The whole county's commercial roll
+    is loaded from a source whose terms we recorded and verified, and an audit
+    re-read the publisher's archived file and found the registry holds exactly
+    its in-scope parcels, with no violations.
+  </li>
+  <li>
+    <strong>Loaded, not yet audited.</strong> The whole county is loaded from a
+    verified source, with a per-county count and a data date in the review
+    record, but the audit has not covered it yet.
+  </li>
+  <li>
+    <strong>Not usable yet.</strong> Everything else, including statewide loads
+    with no per-county count, partial or sample loads, sources whose terms are
+    still open, and data more than {{COV_MAX_AGE}} days old.
+  </li>
+</ul>
+<p>
+  Hosted lookups are not open yet. To ask for early access for a county,
+  <a href="mailto:contact@factlot.com?subject=FactLot%20county%20coverage"
+    >email us</a
+  >.
+</p>
+
+<details class="covlist">
+  <summary>Counties with data, by state ({{COV_N_COLORED}})</summary>
+  {{COV_TABLE}}
+</details>
+
+<details class="covlist">
+  <summary>Method and sources</summary>
+  <ul class="plain small">
+    <li>
+      Every county is keyed by its 5-digit Census FIPS code. Counts are quoted
+      from the registry's review records and checked by the generator; nothing
+      is estimated.
+    </li>
+    <li>
+      Owner names are stored only for organisations. No natural person's name is
+      stored or shown.
+    </li>
+    <li>
+      The freshness limit is {{COV_MAX_AGE}} days before {{COV_ASOF}}, the
+      latest source review date.
+    </li>
+    <li>
+      Machine-readable file:
+      <a href="/coverage/counties.json">/coverage/counties.json</a>. Full
+      per-source terms and records:
+      <a href="{{COV_REPO}}/blob/main/docs/registry/coverage.md"
+        >registry coverage</a
+      >.
+    </li>
+    <li>
+      Boundaries: US Census Bureau cartographic boundary files (public domain),
+      via us-atlas.
+    </li>
+  </ul>
+</details>
