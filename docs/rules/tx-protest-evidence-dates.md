@@ -17,18 +17,24 @@ against the official text; do not rely on it."
 
 Given the first day of an appraisal review board (ARB) hearing on a protest, it returns:
 
-- `owner_evidence_by_unadjusted`: the hearing date minus 14 calendar days. Under Tax Code
-  §41.43(a-1) and (a-3)(3), the owner's evidence must be delivered by this date for the district to
-  carry the higher clear-and-convincing burden. It is a condition, not a duty (§41.43(a-5)).
-- `owner_evidence_recommended_by`: the same date, or, if it is a Saturday, Sunday or Texas legal
+- `owner_evidence_by_unadjusted`: the hearing date minus 14 calendar days. Delivering the owner's
+  evidence by this date is a condition for the district to carry the higher clear-and-convincing
+  burden, and only under the other conditions of each subsection:
+  - §41.43(a-3) applies only if the appraised value was lowered under this subtitle in the
+    preceding tax year and that value was not set by a written agreement under §1.111(e);
+  - §41.43(a-1) applies only to property with a market or appraised value of $1 million or less,
+    and only with an appraisal by an appraiser certified under Occupations Code ch. 1103;
+  - neither is a duty: under §41.43(a-5), (a-3)(3) "does not impose a duty on a property owner to
+    provide any information".
+- `owner_evidence_conservative_by`: the same date, or, if it is a Saturday, Sunday or Texas legal
   holiday, the business day before it, with `owner_evidence_skipped_non_business_days` listing each
   day skipped and why. Whether Tax Code §1.06 moves a "not later than the 14th day before" date
   forward to the next business day is not settled here, so the pack gives the earlier date, which is
-  timely on either reading.
-- `district_evidence_due`: the hearing date minus 14 days. Information the owner requested under
-  §41.461 and did not receive at least 14 days before the scheduled or postponed hearing may not be
-  used as evidence, except to rebut (§41.67(d)). A postponed hearing moves this date; rerun with the
-  new hearing date.
+  timely under either reading.
+- `requested_information_cutoff`: the hearing date minus 14 days. This is an exclusion rule, not a
+  due date: information previously requested under §41.461 and not delivered at least 14 days
+  before the scheduled or postponed hearing may not be used, except to rebut (§41.67(d)). A
+  postponed hearing moves it; rerun with the new hearing date.
 - `not_covered`: what the pack leaves out (below).
 
 ```ts
@@ -37,8 +43,8 @@ runDraftRule(
   { hearing_date: "2027-06-14" },
   { acknowledgeDraft: true },
 );
-// owner_evidence_by_unadjusted 2027-05-31 (Memorial Day), owner_evidence_recommended_by
-// 2027-05-28 (skips Memorial Day, Sunday, Saturday), district_evidence_due 2027-05-31
+// owner_evidence_by_unadjusted 2027-05-31 (Memorial Day), owner_evidence_conservative_by
+// 2027-05-28 (skips Memorial Day, Sunday, Saturday), requested_information_cutoff 2027-05-31
 ```
 
 ```python
@@ -48,7 +54,7 @@ factlot.run_draft_rule("tx_protest_evidence_dates", {"hearing_date": "2027-06-14
 Holidays are those of the verified protest-deadline rule: Gov't Code §662.003(a) and (b) on their
 actual dates, with observed (shifted) dates and Columbus Day not treated as holidays. When a day is
 in doubt, treating it as a business day makes the rolled-back date later, so a holiday the list
-misses could put the recommended date on that holiday; it can never put it after the unadjusted
+misses could put the conservative date on that holiday; it can never put it after the unadjusted
 date.
 
 ## Sources and operative text
@@ -107,8 +113,9 @@ appraiser will introduce at the hearing to establish any matter at issue".
 > evidence or argument presented at the hearing by the protesting party or that party's designated
 > agent.
 
-Encoded: `district_evidence_due` = hearing date − 14 days. "At least 14 days before" is read as
-delivered on or before that date.
+Encoded: `requested_information_cutoff` = hearing date − 14 days, an exclusion rule and not a due
+date. "At least 14 days before" is read as delivered on or before that date. The rebuttal exception
+in the second sentence is not computed; the result states it.
 
 ### Weekends and holidays — §1.06
 

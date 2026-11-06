@@ -447,7 +447,8 @@ import tx_appraisal as tx  # noqa: E402
 TX_LAW_URLS = ["https://statutes.capitol.texas.gov/Docs/TX/htm/TX.41.htm#41.43",
                "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.42.htm#42.26",
                "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.42.htm#42.26",
-               "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.41.htm#41.66"]
+               "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.41.htm#41.66",
+               "https://statutes.capitol.texas.gov/Docs/OC/htm/OC.1103.htm#1103.003"]
 
 
 def tx_case(name, inp):
@@ -474,10 +475,10 @@ def tx_case(name, inp):
         "value.subject_value": inp["subject"]["value"],
         "value.subject_minus_median": n(r["diff"]),
         "value.subject_minus_median_pct": n(r["diff_pct"]),
-        "value.subject_above_median": r["diff"] > 0,
         "value.law.0.url": TX_LAW_URLS[0],
         "value.law.1.url": TX_LAW_URLS[1],
         "value.law.3.url": TX_LAW_URLS[3],
+        "value.law.4.url": TX_LAW_URLS[4],
         "warnings": r["warnings"],
     })
     return {"name": name, "input": inp, "expect": e}

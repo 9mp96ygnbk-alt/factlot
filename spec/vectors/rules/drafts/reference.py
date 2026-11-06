@@ -288,7 +288,7 @@ BOS_ERRORS = [
 
 # --- Texas protest evidence dates ------------------------------------------------------------------------------------
 # Written from Tax Code §41.43(a-1), (a-3)(3), §41.67(d) and Gov't Code §662.003, not from either SDK: the hearing date
-# minus 14 calendar days; the recommended owner date steps back one day at a time past Saturdays, Sundays and Texas
+# minus 14 calendar days; the conservative owner date steps back one day at a time past Saturdays, Sundays and Texas
 # legal holidays on their actual dates (observed dates and the optional §662.003(c) days are not holidays). When two
 # holidays share a date, Confederate Heroes Day is named before Martin Luther King, Jr., Day, as in
 # spec/vectors/rules/texas_holidays.json.
@@ -351,9 +351,9 @@ def txed(inp: dict) -> dict:
     return {
         "value.hearing_date": h.isoformat(),
         "value.owner_evidence_by_unadjusted": unadjusted.isoformat(),
-        "value.owner_evidence_recommended_by": rec.isoformat(),
+        "value.owner_evidence_conservative_by": rec.isoformat(),
         "value.owner_evidence_skipped_non_business_days": skipped,
-        "value.district_evidence_due": unadjusted.isoformat(),
+        "value.requested_information_cutoff": unadjusted.isoformat(),
         "value.rule.citations.0.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.41.htm#41.43",
         "value.rule.citations.0.retrieved": "2026-11-06",
     }

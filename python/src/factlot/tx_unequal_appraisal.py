@@ -34,9 +34,7 @@ Result = dict[str, Any]
 
 #: First warning on every result.
 EVIDENCE_NOTICE = (
-    "Evidence calculation only: arithmetic on the values and adjustments supplied. It is not an appraisal (Tax Code "
-    "§41.66(l)), not legal or tax advice, and does not say whether to protest or what value to claim. FactLot does not "
-    "represent property owners (Occupations Code ch. 1152)."
+    "Evidence calculation only: arithmetic on the values and adjustments supplied. It is not an appraisal or an opinion of value (Occupations Code §1103.003(1)), it is not legal or tax advice, and it is not a substitute for the advice of an attorney. It does not say whether to protest or what value to claim. FactLot does not represent property owners."
 )
 
 #: Fewest comparables accepted: a FactLot product floor, not a rule of law.
@@ -48,19 +46,15 @@ _STATUTES = "https://statutes.capitol.texas.gov/Docs/TX/htm"
 
 LAW: tuple[dict[str, str], ...] = (
     {"section": "Tex. Tax Code §41.43(b)(3)", "url": f"{_STATUTES}/TX.41.htm#41.43",
-     "covers": "at the appraisal review board, an unequal-appraisal protest is determined for the owner unless the "
-               "district establishes that the appraised value is equal to or less than the median appraised value of a "
-               "reasonable number of comparable properties appropriately adjusted"},
+     "covers": "the unequal-appraisal comparison at an appraisal review board hearing: the median appraised value of a reasonable number of comparable properties appropriately adjusted"},
     {"section": "Tex. Tax Code §42.26(a)(3) and (b)", "url": f"{_STATUTES}/TX.42.htm#42.26",
-     "covers": "on appeal, relief when the appraised value exceeds that median, and the appraised value changed to the "
-               "value calculated on the basis of the median appraised value"},
+     "covers": "the same comparison in a district-court appeal and how the court sets the value"},
     {"section": "Tex. Tax Code §42.26(d)", "url": f"{_STATUTES}/TX.42.htm#42.26",
-     "covers": "which value is compared when the property is subject to an appraised-value limitation: until "
-               "2027-01-01, market value under §23.23 or §23.231; from 2027-01-01, market value for a residence "
-               "homestead under §23.23"},
+     "covers": "which value, market or appraised, is used for the subject and the comparables for purposes of §42.26 when the property is subject to an appraised-value limitation; the text in effect from 2027-01-01 refers only to a residence homestead under §23.23"},
     {"section": "Tex. Tax Code §41.66(l)", "url": f"{_STATUTES}/TX.41.htm#41.66",
-     "covers": "a person offering evidence or argument in a value or unequal-appraisal protest is not subject to "
-               "Occupations Code ch. 1103 unless they say they offer it as a licence or certificate holder"},
+     "covers": "a property owner, attorney or agent offering evidence or argument in a value or unequal-appraisal protest, and Occupations Code ch. 1103 (\"A property owner, attorney, or agent offering evidence\")"},
+    {"section": "Tex. Occ. Code §1103.003(1)", "url": "https://statutes.capitol.texas.gov/Docs/OC/htm/OC.1103.htm#1103.003",
+     "covers": "defines an appraisal as an opinion of value"},
 )
 
 _BASES = ("appraised", "market")
@@ -305,13 +299,9 @@ def tx_unequal_appraisal(raw: Any) -> Result:
             appraised = (["the subject"] if subject["value_basis"] == "appraised" else []) + \
                 [f"comparable {lb}" for lb in labels(lambda c: c["value_basis"] == "appraised")]
             if appraised:
-                t.warn(f"Tax year {inp['tax_year']}: §42.26(d), in the text in effect until 2027-01-01, requires market "
-                       "value for the subject and the comparables when the property is subject to the §23.231 "
-                       f"limitation, and {', '.join(appraised)} use appraised value.")
+                t.warn(f"Tax year {inp['tax_year']}: on appeal under §42.26, §42.26(d) (text in effect until 2027-01-01) requires market value for the subject and the comparables when the property is subject to the §23.231 limitation, and {', '.join(appraised)} use appraised value; appraisal review board practice may differ.")
         else:
-            t.warn(f"Tax year {inp['tax_year']}: the subject is marked as subject to the §23.231 limitation, but §42.26(d) "
-                   "and §41.41(a) as in effect from 2027-01-01 no longer refer to §23.231; check whether the limitation "
-                   "still applies and which value is compared.")
+            t.warn(f"Tax year {inp['tax_year']}: the subject is marked as subject to the §23.231 limitation, but §23.231(k) says \"This section expires December 31, 2026\", and §42.26(d) and §41.41(a) as in effect from 2027-01-01 no longer refer to §23.231; check whether the limitation applies and which value is compared.")
     if subject["county_fips"] is not None:
         other_county = labels(lambda c: c["county_fips"] is not None and c["county_fips"] != subject["county_fips"])
         if other_county:
@@ -347,6 +337,5 @@ def tx_unequal_appraisal(raw: Any) -> Result:
         "subject_value_basis": subject["value_basis"],
         "subject_minus_median": diff,
         "subject_minus_median_pct": diff_pct,
-        "subject_above_median": diff > 0,
         "law": [dict(x) for x in LAW],
     })

@@ -16,9 +16,9 @@
         "formula.id": "rules.tx.protest_evidence_dates",
         "value.hearing_date": "2027-06-08",
         "value.owner_evidence_by_unadjusted": "2027-05-25",
-        "value.owner_evidence_recommended_by": "2027-05-25",
+        "value.owner_evidence_conservative_by": "2027-05-25",
         "value.owner_evidence_skipped_non_business_days": [],
-        "value.district_evidence_due": "2027-05-25",
+        "value.requested_information_cutoff": "2027-05-25",
         "value.rule.citations.0.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.41.htm#41.43",
         "value.rule.citations.0.retrieved": "2026-11-06"
       }
@@ -34,7 +34,7 @@
         "formula.id": "rules.tx.protest_evidence_dates",
         "value.hearing_date": "2027-06-14",
         "value.owner_evidence_by_unadjusted": "2027-05-31",
-        "value.owner_evidence_recommended_by": "2027-05-28",
+        "value.owner_evidence_conservative_by": "2027-05-28",
         "value.owner_evidence_skipped_non_business_days": [
           {
             "date": "2027-05-31",
@@ -49,7 +49,7 @@
             "reason": "Saturday"
           }
         ],
-        "value.district_evidence_due": "2027-05-31",
+        "value.requested_information_cutoff": "2027-05-31",
         "value.rule.citations.0.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.41.htm#41.43",
         "value.rule.citations.0.retrieved": "2026-11-06"
       }
@@ -65,14 +65,14 @@
         "formula.id": "rules.tx.protest_evidence_dates",
         "value.hearing_date": "2027-06-12",
         "value.owner_evidence_by_unadjusted": "2027-05-29",
-        "value.owner_evidence_recommended_by": "2027-05-28",
+        "value.owner_evidence_conservative_by": "2027-05-28",
         "value.owner_evidence_skipped_non_business_days": [
           {
             "date": "2027-05-29",
             "reason": "Saturday"
           }
         ],
-        "value.district_evidence_due": "2027-05-29",
+        "value.requested_information_cutoff": "2027-05-29",
         "value.rule.citations.0.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.41.htm#41.43",
         "value.rule.citations.0.retrieved": "2026-11-06"
       }
@@ -88,7 +88,7 @@
         "formula.id": "rules.tx.protest_evidence_dates",
         "value.hearing_date": "2027-07-18",
         "value.owner_evidence_by_unadjusted": "2027-07-04",
-        "value.owner_evidence_recommended_by": "2027-07-02",
+        "value.owner_evidence_conservative_by": "2027-07-02",
         "value.owner_evidence_skipped_non_business_days": [
           {
             "date": "2027-07-04",
@@ -99,7 +99,7 @@
             "reason": "Saturday"
           }
         ],
-        "value.district_evidence_due": "2027-07-04",
+        "value.requested_information_cutoff": "2027-07-04",
         "value.rule.citations.0.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.41.htm#41.43",
         "value.rule.citations.0.retrieved": "2026-11-06"
       }
@@ -115,9 +115,9 @@
         "formula.id": "rules.tx.protest_evidence_dates",
         "value.hearing_date": "2027-07-19",
         "value.owner_evidence_by_unadjusted": "2027-07-05",
-        "value.owner_evidence_recommended_by": "2027-07-05",
+        "value.owner_evidence_conservative_by": "2027-07-05",
         "value.owner_evidence_skipped_non_business_days": [],
-        "value.district_evidence_due": "2027-07-05",
+        "value.requested_information_cutoff": "2027-07-05",
         "value.rule.citations.0.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.41.htm#41.43",
         "value.rule.citations.0.retrieved": "2026-11-06"
       }
@@ -133,7 +133,7 @@
         "formula.id": "rules.tx.protest_evidence_dates",
         "value.hearing_date": "2026-12-11",
         "value.owner_evidence_by_unadjusted": "2026-11-27",
-        "value.owner_evidence_recommended_by": "2026-11-25",
+        "value.owner_evidence_conservative_by": "2026-11-25",
         "value.owner_evidence_skipped_non_business_days": [
           {
             "date": "2026-11-27",
@@ -144,7 +144,7 @@
             "reason": "Thanksgiving Day"
           }
         ],
-        "value.district_evidence_due": "2026-11-27",
+        "value.requested_information_cutoff": "2026-11-27",
         "value.rule.citations.0.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.41.htm#41.43",
         "value.rule.citations.0.retrieved": "2026-11-06"
       }
@@ -160,7 +160,7 @@
         "formula.id": "rules.tx.protest_evidence_dates",
         "value.hearing_date": "2027-02-02",
         "value.owner_evidence_by_unadjusted": "2027-01-19",
-        "value.owner_evidence_recommended_by": "2027-01-15",
+        "value.owner_evidence_conservative_by": "2027-01-15",
         "value.owner_evidence_skipped_non_business_days": [
           {
             "date": "2027-01-19",
@@ -179,7 +179,7 @@
             "reason": "Saturday"
           }
         ],
-        "value.district_evidence_due": "2027-01-19",
+        "value.requested_information_cutoff": "2027-01-19",
         "value.rule.citations.0.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.41.htm#41.43",
         "value.rule.citations.0.retrieved": "2026-11-06"
       }
@@ -195,14 +195,14 @@
         "formula.id": "rules.tx.protest_evidence_dates",
         "value.hearing_date": "2027-01-15",
         "value.owner_evidence_by_unadjusted": "2027-01-01",
-        "value.owner_evidence_recommended_by": "2026-12-31",
+        "value.owner_evidence_conservative_by": "2026-12-31",
         "value.owner_evidence_skipped_non_business_days": [
           {
             "date": "2027-01-01",
             "reason": "New Year's Day"
           }
         ],
-        "value.district_evidence_due": "2027-01-01",
+        "value.requested_information_cutoff": "2027-01-01",
         "value.rule.citations.0.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.41.htm#41.43",
         "value.rule.citations.0.retrieved": "2026-11-06"
       }
@@ -218,7 +218,7 @@
         "formula.id": "rules.tx.protest_evidence_dates",
         "value.hearing_date": "2027-01-09",
         "value.owner_evidence_by_unadjusted": "2026-12-26",
-        "value.owner_evidence_recommended_by": "2026-12-23",
+        "value.owner_evidence_conservative_by": "2026-12-23",
         "value.owner_evidence_skipped_non_business_days": [
           {
             "date": "2026-12-26",
@@ -233,7 +233,7 @@
             "reason": "Christmas Eve"
           }
         ],
-        "value.district_evidence_due": "2026-12-26",
+        "value.requested_information_cutoff": "2026-12-26",
         "value.rule.citations.0.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.41.htm#41.43",
         "value.rule.citations.0.retrieved": "2026-11-06"
       }
@@ -249,9 +249,9 @@
         "formula.id": "rules.tx.protest_evidence_dates",
         "value.hearing_date": "2028-03-14",
         "value.owner_evidence_by_unadjusted": "2028-02-29",
-        "value.owner_evidence_recommended_by": "2028-02-29",
+        "value.owner_evidence_conservative_by": "2028-02-29",
         "value.owner_evidence_skipped_non_business_days": [],
-        "value.district_evidence_due": "2028-02-29",
+        "value.requested_information_cutoff": "2028-02-29",
         "value.rule.citations.0.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.41.htm#41.43",
         "value.rule.citations.0.retrieved": "2026-11-06"
       }

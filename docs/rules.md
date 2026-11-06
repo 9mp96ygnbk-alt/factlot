@@ -76,7 +76,7 @@ are kept apart from verified packs:
 | `nyc_ll97_building_emissions`     | NYC Local Law 97, 2024–2034: limit by ESPM property type, emissions by fuel, excess, $268/tCO2e penalty | [nyc-ll97.md](rules/nyc-ll97.md)                                   |
 | `wa_cbps_eui_target`              | Washington Clean Buildings (WAC 194-50): EUI target, Tier 1 test, tier and compliance date              | [wa-cbps.md](rules/wa-cbps.md)                                     |
 | `boston_berdo_emissions_standard` | Boston BERDO 2.0: Table 1 standard by building use and year, limit, excess, ACP at $234/tCO2e           | [boston-berdo.md](rules/boston-berdo.md)                           |
-| `tx_protest_evidence_dates`       | Texas protest: owner and district 14-day evidence dates, owner date rolled back past holidays           | [tx-protest-evidence-dates.md](rules/tx-protest-evidence-dates.md) |
+| `tx_protest_evidence_dates`       | Texas protest: owner's 14-day evidence date and the requested-information cutoff                        | [tx-protest-evidence-dates.md](rules/tx-protest-evidence-dates.md) |
 
 Not drafted yet:
 

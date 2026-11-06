@@ -21,9 +21,7 @@ from decimal import ROUND_HALF_UP, Decimal as D, getcontext
 
 getcontext().prec = 60
 
-NOTICE = ("Evidence calculation only: arithmetic on the values and adjustments supplied. It is not an appraisal (Tax "
-          "Code §41.66(l)), not legal or tax advice, and does not say whether to protest or what value to claim. "
-          "FactLot does not represent property owners (Occupations Code ch. 1152).")
+NOTICE = ("Evidence calculation only: arithmetic on the values and adjustments supplied. It is not an appraisal or an opinion of value (Occupations Code §1103.003(1)), it is not legal or tax advice, and it is not a substitute for the advice of an attorney. It does not say whether to protest or what value to claim. FactLot does not represent property owners.")
 
 
 def q(x: D, places: int) -> D:
@@ -88,13 +86,9 @@ def unequal(inp: dict) -> dict:
             appr = (["the subject"] if basis == "appraised" else []) + \
                 [f"comparable {x['label']}" for x in comps if x["c"]["value_basis"] == "appraised"]
             if appr:
-                warnings.append(f"Tax year {year}: §42.26(d), in the text in effect until 2027-01-01, requires market "
-                                "value for the subject and the comparables when the property is subject to the §23.231 "
-                                f"limitation, and {', '.join(appr)} use appraised value.")
+                warnings.append(f"Tax year {year}: on appeal under §42.26, §42.26(d) (text in effect until 2027-01-01) requires market value for the subject and the comparables when the property is subject to the §23.231 limitation, and {', '.join(appr)} use appraised value; appraisal review board practice may differ.")
         else:
-            warnings.append(f"Tax year {year}: the subject is marked as subject to the §23.231 limitation, but §42.26(d) "
-                            "and §41.41(a) as in effect from 2027-01-01 no longer refer to §23.231; check whether the "
-                            "limitation still applies and which value is compared.")
+            warnings.append(f"Tax year {year}: the subject is marked as subject to the §23.231 limitation, but §23.231(k) says \"This section expires December 31, 2026\", and §42.26(d) and §41.41(a) as in effect from 2027-01-01 no longer refer to §23.231; check whether the limitation applies and which value is compared.")
     if "county_fips" in s:
         far = [x["label"] for x in comps if "county_fips" in x["c"] and x["c"]["county_fips"] != s["county_fips"]]
         if far:
