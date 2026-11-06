@@ -3526,6 +3526,174 @@
       }
     },
     {
+      "name": "calc_critical_dates",
+      "description": "Dated list of a lease's notice deadlines and option windows, from its expiration date and options: each renewal option's notice deadline or notice window and renewal term (successive options count back from the term before), each termination option's last day to give notice, an expansion option deadline, and other deadlines (a stated date, or N days after a date such as a ROFO notice). Calendar months; N months before a date keeps the day of month, clamped to a shorter month's end (a warning gives the month-end reading when it is later). Deadlines on a weekend or US federal holiday (5 U.S.C. §6103, observed days included) are flagged, or rolled to the preceding or following business day when business_day_roll says so. With as_of: days to each event, passed deadlines warned, and the next deadline. Steps show each computation. Deterministic: use this instead of doing the math yourself; cite formula calc.critical_dates@1 and the returned steps, and surface any warnings.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "expiration_date": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+            "description": "Expiration date of the current term (YYYY-MM-DD), as the lease or the latest amendment states it."
+          },
+          "commencement_date": {
+            "description": "Commencement date (YYYY-MM-DD). Optional; listed as an event and checked to be before expiration_date.",
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          },
+          "as_of": {
+            "description": "Date to measure from (YYYY-MM-DD), usually today. Deadlines before it are flagged as passed; next_deadline is the first one on or after it.",
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          },
+          "renewal_option": {
+            "description": "Renewal options, as lease.renewal_option states them: each is exercised by notice counted back from the expiration in effect when it is exercised.",
+            "type": "object",
+            "properties": {
+              "count": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10,
+                "description": "Number of successive renewal options."
+              },
+              "term_months": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 600,
+                "description": "Length of each renewal term in calendar months."
+              },
+              "notice_months": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 120,
+                "description": "Notice \"no later than N months before\" the date it counts back from, in calendar months."
+              },
+              "notice_days": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 3650,
+                "description": "Notice \"no later than N days before\" the date it counts back from, in calendar days."
+              },
+              "notice_window": {
+                "description": "A notice window (\"not earlier than 18 nor later than 12 months before expiration\"), instead of notice_months or notice_days.",
+                "type": "object",
+                "properties": {
+                  "earliest_months_before": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 120,
+                    "description": "The window opens this many calendar months before the expiration in effect (notice given earlier is premature)."
+                  },
+                  "latest_months_before": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 120,
+                    "description": "The window closes this many calendar months before the expiration in effect (the last day to give notice)."
+                  }
+                },
+                "required": ["earliest_months_before", "latest_months_before"]
+              }
+            },
+            "required": ["count", "term_months"]
+          },
+          "termination_options": {
+            "default": [],
+            "description": "Early termination options, as lease.termination_option states them; notice counts back from each effective_date.",
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "effective_date": {
+                  "type": "string",
+                  "format": "date",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                  "description": "Date the early termination takes effect (YYYY-MM-DD)."
+                },
+                "notice_months": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 120,
+                  "description": "Notice \"no later than N months before\" the date it counts back from, in calendar months."
+                },
+                "notice_days": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 3650,
+                  "description": "Notice \"no later than N days before\" the date it counts back from, in calendar days."
+                },
+                "label": {
+                  "description": "Name for this option, e.g. \"Year 5 termination right\".",
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                }
+              },
+              "required": ["effective_date"]
+            }
+          },
+          "expansion_option_deadline": {
+            "description": "Last day to exercise an expansion option (lease.expansion_option_deadline), YYYY-MM-DD.",
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          },
+          "other_deadlines": {
+            "default": [],
+            "description": "Other deadlines: expansion rights, ROFO or ROFR response periods, contraction rights.",
+            "maxItems": 50,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "What the deadline is, e.g. \"ROFO response for Suite 410\"."
+                },
+                "date": {
+                  "description": "The deadline, when the lease states the date.",
+                  "type": "string",
+                  "format": "date",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                },
+                "from_date": {
+                  "description": "Or the date it counts from (e.g. the day Landlord's ROFO notice was received), with days_after.",
+                  "type": "string",
+                  "format": "date",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                },
+                "days_after": {
+                  "description": "Calendar days after from_date.",
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 3650
+                }
+              },
+              "required": ["label"]
+            }
+          },
+          "business_day_roll": {
+            "default": "none",
+            "description": "What to do with a deadline that falls on a weekend or holiday: \"none\" (default) keeps the date and flags it; \"preceding\" moves it to the business day before (never later than the lease date: the safe choice); \"following\" moves it to the next business day, which only a lease clause that says so allows.",
+            "type": "string",
+            "enum": ["none", "preceding", "following"]
+          },
+          "holidays": {
+            "default": "us_federal",
+            "description": "Holidays that are not business days: \"us_federal\" (the eleven US federal holidays of 5 U.S.C. §6103(a), with the federal observed day when one falls on a weekend) or \"none\" (weekends only).",
+            "type": "string",
+            "enum": ["us_federal", "none"]
+          }
+        },
+        "required": ["expiration_date"]
+      }
+    },
+    {
       "name": "calc_reconcile_dcf",
       "description": "Reconcile FactLot's DCF with another system's export (ARGUS or any other model; parity is not claimed and is untested against real ARGUS output): give the calc_dcf_pro_forma input plus the other system's annual lines {label, values: [year 1, …]}, optionally its value, unlevered IRR and sale price, a tolerance (absolute and relative) and your label mapping. Labels map to FactLot lines by your mapping, else by common CRE line names (Potential Base Rent, Absorption & Turnover Vacancy, Free Rent, Expense Reimbursements, General Vacancy, Credit Loss, Effective Gross Revenue, Operating Expenses, Net Operating Income, Tenant Improvements, Leasing Commissions, Capital Reserves, Cash Flow Before Debt Service); positive deductions are negated (sign_convention). Returns per line and year FactLot's amount, the other amount, the difference and whether it is within tolerance; unmapped labels; and for each differing line a likely_cause from FactLot's documented conventions, worded as a hypothesis to check: differences only in rollover years (fractional downtime and free rent), a rate on a different base (general vacancy), only the exit year, a one-year shift, management fee inside operating expenses, a growth rate, a constant factor or amount, rounding; and for the value FactLot rerun with mid-year or end-of-year discounting, the other exit NOI basis, or no selling costs. Deterministic: use this instead of doing the math yourself; cite formula calc.reconcile_dcf@1 and the returned steps, and surface any warnings.",
       "input_schema": {
@@ -4676,6 +4844,68 @@
                   "type": "number",
                   "minimum": 0,
                   "maximum": 1
+                },
+                "commencement": {
+                  "description": "Only for lease.base_rent_schedule written by lease year (steps {lease_years: [1, 5], annual_rent_psf}): the commencement date the step dates are derived from, with its own quote. FactLot checks it like a lease.commencement_date candidate and derives each step: Lease Year N runs from the (N−1)th anniversary of the commencement date to the day before the next. If it does not verify, the schedule stays in needs_review.",
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                      "format": "date",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                      "description": "The commencement date (YYYY-MM-DD)."
+                    },
+                    "quote": {
+                      "type": "string",
+                      "maxLength": 5000,
+                      "description": "Verbatim text that states the commencement date, at least 12 characters."
+                    },
+                    "page": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 100000,
+                      "description": "1-based page of this document the quote is on (it may differ from the rent table's page)."
+                    },
+                    "section": {
+                      "description": "Section, if any.",
+                      "type": "string",
+                      "maxLength": 200
+                    }
+                  },
+                  "required": ["value", "quote", "page"]
+                },
+                "confirmation": {
+                  "description": "A person's confirmation of the parts of the value no quote can prove (a true/false value, an enum such as a CAM cap method or kick-out party, a paraphrased summary). With it, a candidate whose only gaps are such parts is verified with method human_verified: the parts the quote confirmed are listed under checked and the rest under confirmed_by_person. It never overrides a quote that is not on the page, a number or date the quote does not state, or a confidence below 0.8.",
+                  "type": "object",
+                  "properties": {
+                    "by": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "description": "The name or role of the PERSON who read the clause and confirmed the value, e.g. \"J. Smith, lease administrator\". FactLot does not authenticate it. Never set this for a value no person has read: an agent must not confirm its own extraction."
+                    },
+                    "at": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "date",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                        },
+                        {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                        }
+                      ],
+                      "description": "When the person confirmed it: YYYY-MM-DD, or an ISO 8601 timestamp with offset. A date is recorded on the fact as that day at 00:00 UTC."
+                    },
+                    "note": {
+                      "description": "What the person checked; returned with the result (the fact schema has no field for it).",
+                      "type": "string",
+                      "maxLength": 1000
+                    }
+                  },
+                  "required": ["by", "at"]
                 }
               },
               "required": ["predicate", "value", "quote", "page"]
@@ -4789,6 +5019,68 @@
                         "type": "number",
                         "minimum": 0,
                         "maximum": 1
+                      },
+                      "commencement": {
+                        "description": "Only for lease.base_rent_schedule written by lease year (steps {lease_years: [1, 5], annual_rent_psf}): the commencement date the step dates are derived from, with its own quote. FactLot checks it like a lease.commencement_date candidate and derives each step: Lease Year N runs from the (N−1)th anniversary of the commencement date to the day before the next. If it does not verify, the schedule stays in needs_review.",
+                        "type": "object",
+                        "properties": {
+                          "value": {
+                            "type": "string",
+                            "format": "date",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                            "description": "The commencement date (YYYY-MM-DD)."
+                          },
+                          "quote": {
+                            "type": "string",
+                            "maxLength": 5000,
+                            "description": "Verbatim text that states the commencement date, at least 12 characters."
+                          },
+                          "page": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 100000,
+                            "description": "1-based page of this document the quote is on (it may differ from the rent table's page)."
+                          },
+                          "section": {
+                            "description": "Section, if any.",
+                            "type": "string",
+                            "maxLength": 200
+                          }
+                        },
+                        "required": ["value", "quote", "page"]
+                      },
+                      "confirmation": {
+                        "description": "A person's confirmation of the parts of the value no quote can prove (a true/false value, an enum such as a CAM cap method or kick-out party, a paraphrased summary). With it, a candidate whose only gaps are such parts is verified with method human_verified: the parts the quote confirmed are listed under checked and the rest under confirmed_by_person. It never overrides a quote that is not on the page, a number or date the quote does not state, or a confidence below 0.8.",
+                        "type": "object",
+                        "properties": {
+                          "by": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200,
+                            "description": "The name or role of the PERSON who read the clause and confirmed the value, e.g. \"J. Smith, lease administrator\". FactLot does not authenticate it. Never set this for a value no person has read: an agent must not confirm its own extraction."
+                          },
+                          "at": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "format": "date",
+                                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time",
+                                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                              }
+                            ],
+                            "description": "When the person confirmed it: YYYY-MM-DD, or an ISO 8601 timestamp with offset. A date is recorded on the fact as that day at 00:00 UTC."
+                          },
+                          "note": {
+                            "description": "What the person checked; returned with the result (the fact schema has no field for it).",
+                            "type": "string",
+                            "maxLength": 1000
+                          }
+                        },
+                        "required": ["by", "at"]
                       }
                     },
                     "required": ["predicate", "value", "quote", "page"]
@@ -5145,6 +5437,27 @@
       }
     },
     {
+      "name": "doc_predicates",
+      "description": "Look up the lease predicates doc_verify_facts and doc_abstract_lease know (lease.expiration_date, lease.base_rent_schedule, lease.go_dark, ...) before extracting: for each, its value shape as JSON Schema, one valid example with a quote that states it (and whether that example verifies), which parts of the value are checked against the quote and how (number, ratio, date, verbatim name, as-written words, a worded enum, a number inside free text), which count as checked only when the quote writes them out (summaries, some enums), and which always need review (true/false values and enums no wording confirms, such as a CAM cap method or a kick-out party) unless a person confirms them. Generated from the same tables the checks use. Give predicate for one, prefix (e.g. lease.renewal) for a group, or neither for all. Also returns notes on statuses, paths, human confirmation and the generic rules for any other dotted predicate. Reads no document.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "predicate": {
+            "description": "One predicate to describe, e.g. lease.go_dark. Omit both predicate and prefix for every lease predicate.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "prefix": {
+            "description": "Only predicates starting with this, e.g. \"lease.renewal\" or \"lease.\". Give predicate or prefix, not both.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        }
+      }
+    },
+    {
       "name": "fact_package_create",
       "description": "Bundle FactLot facts (each must pass fact_validate) into a fact package a counterparty can verify: canonical JSON (RFC 8785) of every fact, an RFC 6962 Merkle tree over the facts, the source documents the facts cite with their sha256 where known, and a digest over all of it. Returns the unsigned package, its digest, and signing_message, the exact text to sign. FactLot never holds private keys: to sign, the holder signs signing_message with their own Ed25519 key on their own machine (factlot.sign_fact_package in Python, signFactPackage in @factlot/tools, or fact_package_sign in the local MCP server). Deterministic: no clock time is added (pass created_at), and the same facts always give the same digest.",
       "input_schema": {
@@ -5304,6 +5617,125 @@
           }
         },
         "required": ["fact"]
+      }
+    },
+    {
+      "name": "lease_comp_search",
+      "description": "Search the 6,994 lease comps from the U.S. General Services Administration's Lease Inventory (October 2026 file, FactLot release lease-comps-gsa-2026-11-04), bundled with FactLot: works offline and on the hosted API, no registry needed. READ THE CAVEAT: the tenant in every one of these leases is the federal government (GSA, for an agency); they are not market comps for private tenants, and the rent is the current annual rent in GSA's file divided by the rentable SF, not the starting rent (no escalations, free rent, TI or commissions are known). Filter by state, 5-digit county FIPS, city, ZIP, a radius around a latitude/longitude (GSA's own coordinates; nothing is geocoded), rentable SF, commencement date, rent per SF, property type (office, industrial, other) and expense basis; sort; limit (default 25, at most 200). Each comp gives its FactLot lease ID, GSA lease number, address, county FIPS, building ID, landlord (organisations only; individuals are never stored), rentable SF, commencement, expiration, term, early-termination date, annual rent, rent per SF per year, property type, expense basis and the row of the GSA file it comes from. summary gives the count and the median, quartiles and range of rent per SF over every match, labelled as statistics of GSA leases. Every answer carries the caveat and the citation (GSA file URL, SHA-256 document ID, as-of and retrieval dates, licence: public domain). Cite them, and never mix these comps silently into market comps.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "description": "Two-letter state or territory code, e.g. \"TX\".",
+            "type": "string",
+            "pattern": "^[A-Za-z]{2}$"
+          },
+          "county_fips": {
+            "description": "5-digit county FIPS code (state + county), e.g. \"48201\" for Harris County, Texas. Connecticut uses its planning regions (09110 to 09190).",
+            "type": "string",
+            "pattern": "^[0-9]{5}$"
+          },
+          "city": {
+            "description": "City as GSA writes it, matched whole and ignoring case, e.g. \"Houston\".",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "zip": {
+            "description": "5-digit ZIP code (ZIP+4 accepted), e.g. \"77002\".",
+            "type": "string",
+            "pattern": "^[0-9]{5}(-[0-9]{4})?$"
+          },
+          "near": {
+            "description": "Comps within a radius of a point, by great-circle distance to the coordinates GSA's file gives for each lease (FactLot geocodes nothing; give the point's coordinates yourself). Comps without coordinates are left out and counted in warnings.",
+            "type": "object",
+            "properties": {
+              "latitude": {
+                "type": "number",
+                "minimum": -90,
+                "maximum": 90,
+                "description": "Latitude, degrees."
+              },
+              "longitude": {
+                "type": "number",
+                "minimum": -180,
+                "maximum": 180,
+                "description": "Longitude, degrees."
+              },
+              "radius_miles": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 500,
+                "description": "Radius in miles (at most 500)."
+              }
+            },
+            "required": ["latitude", "longitude", "radius_miles"]
+          },
+          "min_rentable_sf": {
+            "description": "Smallest lease rentable area, SF.",
+            "type": "number",
+            "minimum": 0
+          },
+          "max_rentable_sf": {
+            "description": "Largest lease rentable area, SF.",
+            "type": "number",
+            "minimum": 0
+          },
+          "commencement_from": {
+            "description": "Earliest lease commencement (effective) date, YYYY-MM-DD.",
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          },
+          "commencement_to": {
+            "description": "Latest lease commencement (effective) date, YYYY-MM-DD.",
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          },
+          "min_rent_psf_yr": {
+            "description": "Lowest current rent, USD per rentable SF per year (GSA's current annual rent divided by the RSF).",
+            "type": "number",
+            "minimum": 0
+          },
+          "max_rent_psf_yr": {
+            "description": "Highest current rent, USD per rentable SF per year.",
+            "type": "number",
+            "minimum": 0
+          },
+          "property_type": {
+            "description": "office, industrial (GSA warehouse) or other (GSA special space): the largest use in the lease.",
+            "type": "string",
+            "enum": ["office", "industrial", "other"]
+          },
+          "expense_basis": {
+            "description": "full_service (GSA fully serviced) or not_full_service.",
+            "type": "string",
+            "enum": ["full_service", "not_full_service"]
+          },
+          "sort": {
+            "description": "Order of results: distance_asc (the default with near; needs near), commencement_desc (the default otherwise), commencement_asc, expiration_asc, expiration_desc, rent_psf_desc, rent_psf_asc, rentable_sf_desc, rentable_sf_asc. Ties go by GSA lease number.",
+            "type": "string",
+            "enum": [
+              "commencement_desc",
+              "commencement_asc",
+              "expiration_asc",
+              "expiration_desc",
+              "rent_psf_desc",
+              "rent_psf_asc",
+              "rentable_sf_desc",
+              "rentable_sf_asc",
+              "distance_asc"
+            ]
+          },
+          "limit": {
+            "default": 25,
+            "description": "Maximum comps returned (1–200, default 25); the summary covers every match.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200
+          }
+        }
       }
     },
     {
