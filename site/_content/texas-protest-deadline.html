@@ -1,0 +1,76 @@
+<p class="lede">
+  In Texas, a property owner protests an appraised value by filing a written
+  notice of protest with the appraisal review board (ARB). The general deadline
+  is in Tax Code §41.44(a)(1). FactLot computes it from the statute text, rolls
+  it past weekends and legal holidays, and cites the sections it relied on.
+</p>
+
+<h2 id="dates">General deadline by tax year</h2>
+<p>
+  These dates assume the notice of appraised value was delivered early enough
+  that May 15 is the later date. The table is computed by FactLot's rule
+  <code>{{TX_RULE_ID}}</code> when this page is built.
+</p>
+{{TX_TABLE}}
+<p class="small">
+  "Statutory deadline" is the last day a notice of protest is timely under the
+  general rule. "Conservative file-by date" is the latest business day on or
+  before the unadjusted date, for filers who do not want to rely on the weekend
+  and holiday rollover.
+</p>
+
+<h2 id="rule">How the deadline is set</h2>
+<ul class="plain">
+  <li>
+    <strong>The later of two dates.</strong> Under §41.44(a)(1) the notice of
+    protest is due by May 15, or by the 30th day after the appraisal district
+    delivered the notice of appraised value, whichever is later. A mailed notice
+    is presumed delivered on the day it was deposited in the mail (§1.07(c)).
+  </li>
+  <li>
+    <strong>Weekends and holidays.</strong> When the last day falls on a
+    Saturday, Sunday or a legal state or national holiday, §1.06 (as amended by
+    H.B. 1392, effective January 1, 2026) makes the act timely on the next
+    regular business day. The holiday list comes from Government Code §662.003;
+    optional holidays under §662.003(c) are not counted as legal holidays.
+  </li>
+  <li>
+    <strong>Commercial property.</strong> The general deadline is the same for
+    commercial, industrial and residential property.
+  </li>
+</ul>
+
+<h2 id="not-covered">What the rule does not cover</h2>
+<p>
+  The rule computes the general deadline only. It does not cover the other
+  deadlines in §41.44(a)(2) through (5), corrections under §25.25, late-protest
+  relief under §41.44(b) through (c-3), or how a particular appraisal district
+  or ARB handles filings in practice. Check the notice you received and the
+  appraisal district's own instructions. This page is information, not legal or
+  tax advice.
+</p>
+
+<h2 id="check">Check a specific notice</h2>
+<p>
+  If the notice of appraised value arrived late in April or later, the 30-day
+  basis can move the deadline past May 15. An agent can compute the deadline for
+  a specific delivery date with the
+  <code>rules_tx_property_tax_protest_deadline</code> tool (inputs
+  <code>tax_year</code> and <code>notice_delivered_date</code>) over
+  <a href="/mcp/">MCP</a> or REST:
+</p>
+<pre><code>curl -s https://api.factlot.com/v1/rules/tx_property_tax_protest_deadline \
+  -H 'content-type: application/json' \
+  -d '{"tax_year":{{TX_NEXT_YEAR}},"notice_delivered_date":"{{TX_NEXT_YEAR}}-04-28"}'</code></pre>
+<p>
+  The result names the governing basis (May 15 or the 30-day rule), every
+  skipped weekend day or holiday, the statute citations, and the rule's version.
+</p>
+
+<h2 id="sources">Sources</h2>
+{{TX_SOURCES}}
+<p class="small">
+  Checked against the official statute text on {{TX_CHECKED}}. The Texas
+  Legislature meets in regular session from January 2027 and can change these
+  sections; the rule and this page are re-checked after the session.
+</p>

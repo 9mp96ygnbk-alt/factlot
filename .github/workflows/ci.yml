@@ -28,6 +28,8 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+      - name: Build factlot.com (checks numbers, links, and that nothing loads from another origin)
+        run: npm run build:site -- "$RUNNER_TEMP/site"
 
   python-and-differential:
     runs-on: ubuntu-latest

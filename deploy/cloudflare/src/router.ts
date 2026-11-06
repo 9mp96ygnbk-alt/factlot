@@ -37,6 +37,12 @@ const API_EXACT = new Set([
   "/health",
 ]);
 
+const API_ROBOTS = `# api.factlot.com serves FactLot's REST API, OpenAPI and MCP endpoint. Docs: https://factlot.com/
+Content-Signal: search=yes, ai-input=yes, ai-train=yes
+User-agent: *
+Allow: /
+`;
+
 export function isApiPath(path: string): boolean {
   return API_EXACT.has(path) || path.startsWith("/v1/") || path === "/v1";
 }
@@ -168,6 +174,12 @@ export async function handle(
   // Landing page on the apex and www hosts.
   if (!isApiHost(host) && !isApiPath(path) && env.ASSETS)
     return env.ASSETS.fetch(request);
+
+  // The API host's own robots.txt, so crawler rules never depend on a dashboard default.
+  if (path === "/robots.txt")
+    return new Response(API_ROBOTS, {
+      headers: { "content-type": "text/plain; charset=utf-8" },
+    });
 
   // --- API ---------------------------------------------------------------------------------
   if (path === "/v1/plans" || (path === "/" && request.method === "GET")) {

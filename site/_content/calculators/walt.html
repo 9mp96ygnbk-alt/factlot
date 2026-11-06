@@ -1,0 +1,111 @@
+<h2>What it computes</h2>
+<p>
+  Weighted average lease term (WALT) is the average time left on a group of
+  leases, weighted by each lease's size or income. It measures rollover exposure
+  for a building or portfolio and is used in valuation, credit underwriting and
+  asset management reporting. The calculator returns WALT in years from an
+  <code>as_of</code> date, weighted by leased area or by annual rent. It also
+  returns the total weight and the number of leases already expired.
+</p>
+
+<h2>Method and conventions</h2>
+<p>
+  For each lease, remaining term in years is
+  <code>max(0, days from as_of to expiration_date ÷ 365.25)</code>. The days are
+  whole calendar days, the actual count between the two dates. WALT is
+  <code>Σ(weight × years remaining) ÷ Σ weight</code>, reported to four
+  decimals. The weight is <code>area_sf</code> when <code>weight_by</code> is
+  <code>area</code> (the default) and <code>annual_rent</code> when it is
+  <code>rent</code>. Every lease needs the field that matches the chosen
+  weighting.
+</p>
+<p>
+  A lease that expires on or before <code>as_of</code> counts as zero years
+  remaining but keeps its weight, so it lowers WALT. It is counted in
+  <code>expired_count</code>, and the result carries a warning. To leave an
+  expired lease out of the average, omit it from <code>leases</code>.
+</p>
+<p>Practitioners differ in several ways:</p>
+<ul>
+  <li>
+    <strong>Weighting.</strong> Area weighting treats every square foot equally.
+    Rent weighting gives more influence to leases that pay more, so the two can
+    differ a lot in a building with mixed rents. FactLot computes one at a time
+    and the choice is made with <code>weight_by</code>.
+  </li>
+  <li>
+    <strong>Expiry or break date.</strong> Some reports measure to the first
+    tenant termination option instead of contractual expiration; this is
+    sometimes called the weighted average lease term to break. FactLot measures
+    to the date given in <code>expiration_date</code>, so a break-date figure
+    uses break dates as that input.
+  </li>
+  <li>
+    <strong>Year length.</strong> Remaining terms can be counted in months ÷ 12,
+    days ÷ 365, or days ÷ 365.25. FactLot uses actual days ÷ 365.25.
+  </li>
+  <li>
+    <strong>Expired and vacant space.</strong> Some methods drop expired leases
+    or include vacant space at zero. FactLot keeps expired leases at zero years
+    with their weight. Vacant space enters only if it is listed as a lease.
+  </li>
+  <li>
+    <strong>Which rent.</strong> Rent weighting can use passing rent,
+    contractual rent over the remaining term, or gross rent with recoveries.
+    FactLot uses whatever <code>annual_rent</code> is supplied for each lease.
+  </li>
+</ul>
+
+<h2>Inputs that matter</h2>
+<ul>
+  <li>
+    <code>as_of</code>: the date remaining term is measured from, YYYY-MM-DD.
+  </li>
+  <li>
+    <code>weight_by</code>: <code>area</code> (default) or <code>rent</code>.
+  </li>
+  <li>
+    <code>leases</code>: the leases in the building or portfolio, up to 10,000.
+  </li>
+  <li>
+    <code>leases[].expiration_date</code>: the date each lease ends, or the
+    break date for a to-break figure.
+  </li>
+  <li>
+    <code>leases[].area_sf</code>: leased square feet; required for every lease
+    when weighting by area.
+  </li>
+  <li>
+    <code>leases[].annual_rent</code>: current annual rent in dollars; required
+    for every lease when weighting by rent.
+  </li>
+  <li>
+    <code>leases[].id</code>: an optional identifier to keep the result tied to
+    a rent roll.
+  </li>
+</ul>
+
+<h2>Limits</h2>
+<ul>
+  <li>
+    It does not read options, so renewals, early terminations and month-to-month
+    holdovers are reflected only through the dates supplied.
+  </li>
+  <li>
+    A lease that starts after <code>as_of</code> is measured from
+    <code>as_of</code>. The time before it commences is counted as remaining
+    term.
+  </li>
+  <li>
+    Rent is not escalated or projected. Each lease's weight is the single figure
+    given.
+  </li>
+  <li>
+    Weights must be positive. A lease in a free-rent period cannot be weighted
+    at zero rent.
+  </li>
+  <li>
+    It returns one WALT for one date. It does not produce an expiration schedule
+    by year or a WALT history over time.
+  </li>
+</ul>

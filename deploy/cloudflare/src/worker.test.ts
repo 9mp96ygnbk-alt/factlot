@@ -359,6 +359,16 @@ describe("router", () => {
   };
   const assets = { fetch: async () => new Response("<html>site</html>") };
 
+  it("serves its own robots.txt on the API host", async () => {
+    const res = await handle(
+      new Request("https://api.factlot.com/robots.txt"),
+      env({ ASSETS: assets }),
+      api,
+    );
+    assert.equal(res.status, 200);
+    assert.match(await res.text(), /User-agent: \*\nAllow: \//);
+  });
+
   it("serves the landing page on the apex host and the API on api.", async () => {
     const e = env({ ASSETS: assets });
     assert.equal(

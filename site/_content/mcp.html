@@ -1,0 +1,250 @@
+<p class="lede">
+  FactLot's MCP server gives AI agents commercial real estate tools they can
+  rely on: deterministic calculators that return every step and a versioned
+  formula ID, lease-document verification, canonical IDs for parcels, entities
+  and documents, and public-record facts that cite their source. The hosted
+  server needs no API key.
+</p>
+
+<table>
+  <caption class="visually-hidden">
+    Hosted MCP server details
+  </caption>
+  <tbody>
+    <tr>
+      <th scope="row">Remote URL</th>
+      <td><code>https://api.factlot.com/mcp</code></td>
+    </tr>
+    <tr>
+      <th scope="row">Transport</th>
+      <td>Streamable HTTP, stateless</td>
+    </tr>
+    <tr>
+      <th scope="row">Authentication</th>
+      <td>
+        None on the free tier (60 requests a minute per IP address). Paid plans
+        send <code>Authorization: Bearer &lt;key&gt;</code>.
+      </td>
+    </tr>
+    <tr>
+      <th scope="row">Registry name</th>
+      <td>
+        <code>io.github.9mp96ygnbk-alt/factlot</code> in the
+        <a
+          href="https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.9mp96ygnbk-alt/factlot"
+          >official MCP Registry</a
+        >
+      </td>
+    </tr>
+    <tr>
+      <th scope="row">Tool annotations</th>
+      <td>Every tool is read-only and has a title</td>
+    </tr>
+    <tr>
+      <th scope="row">Licence</th>
+      <td>
+        Apache-2.0 (server and calculators), MIT (schema and SDKs). The same
+        server runs locally or in Docker.
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 id="connect">Connect a client</h2>
+<table>
+  <caption class="visually-hidden">
+    How to connect each MCP client
+  </caption>
+  <thead>
+    <tr>
+      <th scope="col">Client</th>
+      <th scope="col">How</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th scope="row">Claude (web, Desktop, mobile)</th>
+      <td>
+        Settings, Connectors, Add custom connector, then enter
+        <code>https://api.factlot.com/mcp</code>.
+      </td>
+    </tr>
+    <tr>
+      <th scope="row">Claude Code</th>
+      <td>
+        <code
+          >claude mcp add --transport http factlot
+          https://api.factlot.com/mcp</code
+        >, or install the plugin with CRE skills:
+        <code>/plugin marketplace add 9mp96ygnbk-alt/factlot</code> then
+        <code>/plugin install factlot@factlot</code>.
+      </td>
+    </tr>
+    <tr>
+      <th scope="row">ChatGPT</th>
+      <td>
+        Settings, Apps, Advanced settings, Developer mode; create an app with
+        <code>https://api.factlot.com/mcp</code>. For a Custom GPT Action,
+        import <code>https://api.factlot.com/openapi-3.0.json</code>.
+      </td>
+    </tr>
+    <tr>
+      <th scope="row">Cursor</th>
+      <td>
+        <code>.cursor/mcp.json</code>:
+        <code
+          >{"mcpServers": {"factlot": {"url":
+          "https://api.factlot.com/mcp"}}}</code
+        >
+      </td>
+    </tr>
+    <tr>
+      <th scope="row">VS Code (agent mode)</th>
+      <td>
+        <code>.vscode/mcp.json</code>:
+        <code
+          >{"servers": {"factlot": {"type": "http", "url":
+          "https://api.factlot.com/mcp"}}}</code
+        >
+      </td>
+    </tr>
+    <tr>
+      <th scope="row">Gemini CLI</th>
+      <td>
+        <code>~/.gemini/settings.json</code>:
+        <code
+          >{"mcpServers": {"factlot": {"httpUrl":
+          "https://api.factlot.com/mcp"}}}</code
+        >
+      </td>
+    </tr>
+    <tr>
+      <th scope="row">Any client, run locally</th>
+      <td>
+        <code
+          >npx -y
+          https://github.com/9mp96ygnbk-alt/factlot/releases/download/v{{VERSION}}/factlot-mcp-standalone-{{VERSION}}.tgz</code
+        >
+        (Node.js 22.6 or newer; the local server makes no network calls). More
+        options:
+        <a
+          href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/getting-started.md"
+          >getting started</a
+        >.
+      </td>
+    </tr>
+    <tr>
+      <th scope="row">Docker</th>
+      <td>
+        <code
+          >docker run -p 8787:8787
+          ghcr.io/9mp96ygnbk-alt/factlot:{{VERSION}}</code
+        >
+        serves MCP at <code>/mcp</code> and REST at <code>/v1</code>.
+      </td>
+    </tr>
+  </tbody>
+</table>
+<p class="small">
+  Menu names change between client releases; the URL stays the same. Per-client
+  guides:
+  <a
+    href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/connectors/README.md"
+    >connectors</a
+  >.
+</p>
+
+<h2 id="check">Check the connection</h2>
+<p>
+  The server answers a plain JSON-RPC <code>initialize</code> request, so you
+  can test it without a client:
+</p>
+<pre><code>curl -s https://api.factlot.com/mcp \
+  -H 'content-type: application/json' \
+  -H 'accept: application/json, text/event-stream' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"check","version":"1"}}}'</code></pre>
+<p>
+  The reply names the server and carries its instructions: which tool to use for
+  which task, and how to cite the result.
+</p>
+
+<h2 id="tools">What the tools do</h2>
+<ul class="plain">
+  <li>
+    <strong>Calculators</strong> (<code>calc_*</code>): lease economics, CAM,
+    debt sizing, prepayment, ASC 842, valuation, returns, waterfalls, 1031
+    timing, hotel and multifamily metrics. Each returns the value, every
+    intermediate step with its formula, warnings, and a versioned formula ID.
+    See the <a href="/calculators/">calculator pages</a>.
+  </li>
+  <li>
+    <strong>Document verification</strong> (<code>doc_*</code>): the agent
+    extracts a lease term with its verbatim quote and page; FactLot checks that
+    the quote is on that page and states the value, and returns a cited fact or
+    the reason it could not. No model runs on FactLot's side and nothing is
+    stored.
+  </li>
+  <li>
+    <strong>IDs and facts</strong> (<code>id_*</code>, <code>fact_*</code>):
+    deterministic IDs for parcels, entities, buildings, spaces and documents,
+    and cited fact packages a counterparty can check.
+  </li>
+  <li>
+    <strong>Rules</strong> (<code>rules_*</code>): the
+    <a href="/texas/property-tax-protest-deadline/"
+      >Texas property tax protest deadline</a
+    >, with statute citations.
+  </li>
+  <li>
+    <strong>Lease comps and registry</strong>: 6,994 federal (GSA) lease comps
+    on the hosted server; the <code>registry_*</code> parcel and owner lookups
+    run on a self-hosted copy with a registry file.
+  </li>
+  <li>
+    <strong>Discovery</strong>: <code>search</code>, <code>fetch</code> and
+    <code>schema_get</code> help an agent find the right tool.
+  </li>
+</ul>
+<p class="small">
+  Full definitions with every input described:
+  <a
+    href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/spec/schemas/tools.json"
+    >tools.json</a
+  >
+  · REST and OpenAPI:
+  <a href="https://api.factlot.com/openapi.json">openapi.json</a>
+</p>
+
+<h2 id="frameworks">Agent frameworks</h2>
+<p>
+  LangGraph and LangChain (<code>langchain-mcp-adapters</code>), the OpenAI
+  Agents SDK, CrewAI, the MCP Python and TypeScript SDKs and the Vercel AI SDK
+  connect with their standard MCP clients. The
+  <a
+    href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/connectors/frameworks/README.md"
+    >framework guide</a
+  >
+  has tested recipes: loading only some tools, backing off on HTTP 429, naming
+  your client, and sending a key.
+</p>
+
+<h2 id="limits">Limits</h2>
+<ul class="plain">
+  <li>
+    The free tier allows 60 requests a minute per IP address. Every HTTP request
+    counts, including <code>initialize</code> and <code>tools/list</code>; cache
+    the tool list.
+  </li>
+  <li>
+    Hosted registry lookups are not open yet. The
+    <a
+      href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/registry/coverage.md"
+      >coverage page</a
+    >
+    lists what the registry holds and the downloadable samples.
+  </li>
+  <li>
+    Calculators check their inputs and return warnings; they do not replace
+    professional judgment on lease terms, valuation or tax positions.
+  </li>
+</ul>

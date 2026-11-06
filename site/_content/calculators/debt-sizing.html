@@ -1,0 +1,128 @@
+<h2>What it computes</h2>
+<p>
+  Debt sizing finds the largest loan a property supports under a lender's tests.
+  The calculator applies any combination of a maximum loan-to-value (LTV), a
+  minimum debt service coverage ratio (DSCR) and a minimum debt yield, and the
+  lowest of the resulting loan amounts is the maximum loan. It reports which
+  test binds, the annual debt service, and the LTV, DSCR and debt yield of the
+  final loan. It can also produce a stress table and a refinance shortfall
+  against an existing balance.
+</p>
+
+<h2>Method and conventions</h2>
+<p>
+  Debt service is based on an annual loan constant <code>k</code>. For an
+  amortizing loan with monthly payments,
+  <code>k = 12 × r ÷ (1 − (1 + r)^−n)</code>, where
+  <code>r = rate_annual ÷ 12</code> and
+  <code>n = amortization_years × 12</code>. At a zero rate the constant is
+  <code>12 ÷ n</code>. When <code>amortization_years</code> is 0 the loan is
+  interest-only and <code>k = rate_annual</code>.
+</p>
+<p>Each supplied test gives a loan amount:</p>
+<ul>
+  <li>LTV: <code>value × max_ltv</code></li>
+  <li>DSCR: <code>noi ÷ min_dscr ÷ k</code></li>
+  <li>Debt yield: <code>noi ÷ min_debt_yield</code></li>
+</ul>
+<p>
+  The maximum loan is the smallest of these, rounded down to
+  <code>round_down_to</code>. Before rounding, the amount is reduced to 15
+  significant digits so that floating-point noise (such as 0.57 × 10,000,000
+  evaluating just under 5,700,000) does not cost a whole increment. When two
+  tests give the same loan, the one listed first in the order LTV, DSCR, debt
+  yield is reported as binding. Annual debt service is
+  <code>max loan × k</code>, rounded to the cent. The resulting DSCR and debt
+  yield use that rounded loan and debt service.
+</p>
+<p>
+  Lenders differ on what income the tests use. Some size DSCR on net operating
+  income (NOI) and others on net cash flow after reserves, tenant improvements
+  and leasing commissions. FactLot applies both the DSCR and the debt-yield
+  tests to the single <code>noi</code> figure supplied, so a net cash flow
+  figure passed as <code>noi</code> sizes on net cash flow. Lenders also differ
+  on the payment basis. FactLot always uses monthly payments at the annual rate
+  ÷ 12; it does not size on an actual/360 constant. Some lenders size an
+  interest-only loan on an amortizing constant; the DSCR test uses whatever
+  <code>amortization_years</code> is given, and 0 sizes on interest-only debt
+  service.
+</p>
+<p>
+  The optional <code>stress</code> table sizes every combination of NOI, rate
+  and value shocks under the same tests and rounding: NOI ×
+  <code>(1 + noi_shock)</code>, rate + <code>rate_shock</code>, and value ×
+  <code>(1 + value_shock)</code>. With <code>value_moves_with_noi</code>, value
+  is also scaled by each NOI shock, which holds the cap rate constant. A
+  scenario that supports less than one rounding increment reports a maximum loan
+  of 0 and null metrics. With <code>existing_loan_balance</code>, the refinance
+  shortfall is <code>max(0, existing − max loan)</code> and the excess proceeds
+  are <code>max(0, max loan − existing)</code>.
+</p>
+<p>
+  For a period-by-period payment table on the sized loan, including an
+  interest-only period, a balloon at maturity, quarterly payments, or actual/360
+  and actual/365 interest, FactLot has a separate tool,
+  <code>calc_amortization_schedule</code>.
+</p>
+
+<h2>Inputs that matter</h2>
+<ul>
+  <li>
+    <code>noi</code>: underwritten annual income; it drives both the DSCR and
+    the debt-yield tests.
+  </li>
+  <li>
+    <code>value</code>: appraised or underwritten value; required when
+    <code>max_ltv</code> is set.
+  </li>
+  <li>
+    <code>rate_annual</code>: annual interest rate as a decimal, for example
+    0.065.
+  </li>
+  <li>
+    <code>amortization_years</code>: amortization used for the loan constant; 0
+    means interest-only.
+  </li>
+  <li><code>max_ltv</code>: maximum loan as a share of value.</li>
+  <li>
+    <code>min_dscr</code>: minimum NOI ÷ annual debt service, for example 1.25.
+  </li>
+  <li><code>min_debt_yield</code>: minimum NOI ÷ loan amount.</li>
+  <li>
+    <code>round_down_to</code>: increment the final loan is floored to, such as
+    1,000 or 10,000.
+  </li>
+  <li>
+    <code>stress</code> and <code>existing_loan_balance</code>: optional
+    scenario table and refinance comparison; the base result does not change.
+  </li>
+</ul>
+
+<h2>Limits</h2>
+<ul>
+  <li>
+    It does not build NOI or net cash flow from a rent roll or operating
+    statement. The income figure is taken as given.
+  </li>
+  <li>
+    Fixed rate only. Floating-rate loans, index caps, rate floors and interest
+    reserves are not modeled.
+  </li>
+  <li>
+    There is no loan-to-cost test, no loan term or maturity, and no fees or
+    closing costs.
+  </li>
+  <li>
+    One loan only. Mezzanine debt, preferred equity and combined-leverage tests
+    are not covered.
+  </li>
+  <li>
+    At least one of <code>max_ltv</code>, <code>min_dscr</code> and
+    <code>min_debt_yield</code> is required. Inputs that allow a non-positive
+    loan, or less than one rounding increment, return an error.
+  </li>
+  <li>
+    Stress rate shocks must keep the rate at or above 0 and below 1. A stress
+    table allows at most ten shocks per dimension (1,000 scenarios).
+  </li>
+</ul>

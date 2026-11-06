@@ -1,0 +1,141 @@
+<h2>What it computes</h2>
+<p>
+  An equity waterfall divides a real estate deal's cash flows between the
+  limited partner (LP) investors and the general partner (GP) sponsor under the
+  terms of an operating agreement. The calculator runs project-level equity cash
+  flows through a preferred return, return of capital, an optional GP catch-up,
+  a series of LP IRR hurdle tiers with promote splits, and a residual split. It
+  returns every period's distributions by tier, the GP's promote, each party's
+  contributions, distributions, profit, equity multiple and IRR, and the project
+  IRR before the waterfall.
+</p>
+
+<h2>Method and conventions</h2>
+<p>
+  Each negative cash flow is a contribution, split <code>lp_share</code> to the
+  LP and the rest to the GP as co-investor. Each positive cash flow is a
+  distribution and runs through the steps below in order. Capital, pref and the
+  non-promote part of every split are paid to LP and GP pro rata to capital.
+</p>
+<ol>
+  <li>
+    <strong>Pref.</strong> It accrues from the period after each contribution,
+    on balances after the previous period's flows. With <code>compounding</code>
+    <code>compound</code>, unreturned capital plus unpaid pref earns
+    <code>(1 + rate_annual)^(1 ÷ periods_per_year) − 1</code>
+    each period, so a fully paid pref equals an IRR of the pref rate. With
+    <code>simple</code>, each period accrues
+    <code>unreturned capital × rate_annual ÷ periods_per_year</code>, and unpaid
+    pref earns nothing.
+  </li>
+  <li>
+    <strong>Return of capital.</strong> By default accrued pref is paid first
+    and then capital. <code>distribution_order</code>
+    <code>capital_then_pref</code> reverses that.
+  </li>
+  <li>
+    <strong>Catch-up.</strong> <code>gp_share</code> of each dollar goes to the
+    GP as promote, and the rest goes to investors pro rata. This continues until
+    the GP's cumulative promote equals <code>target_promote</code> of all profit
+    distributed so far. Profit means everything other than return of capital,
+    including pref paid to both LP and GP.
+  </li>
+  <li>
+    <strong>IRR tiers.</strong> Each tier tracks an LP balance. The balance
+    grows each period at
+    <code>(1 + until_irr)^(1 ÷ periods_per_year) − 1</code>, rises with LP
+    contributions and falls with every LP distribution. The tier pays with its
+    <code>promote</code> until that balance reaches zero, which is the point
+    where the LP's IRR reaches the hurdle.
+  </li>
+  <li>
+    <strong>Residual.</strong> Everything after the last tier is split with
+    <code>residual_promote</code> to the GP.
+  </li>
+</ol>
+<p>
+  Each period's LP distribution is rounded to the cent and the GP receives the
+  rest of the cash flow, so each row foots. IRRs are annualized from the period
+  flows.
+</p>
+<p>
+  Operating agreements differ on most of these points. Pref may compound or
+  accrue simply (<code>pref.compounding</code>). Hurdles may compound at an
+  effective periodic rate, as FactLot does, or at a nominal rate ÷ periods.
+  Hurdles may be tested on the LP's cash flows, as here, or on all investors'
+  cash flows, or by equity multiple instead of IRR. A catch-up may be full
+  (<code>gp_share</code> of 1) or partial (for example 0.5), and its target may
+  or may not count the pref as profit. FactLot fixes the hurdle basis and the
+  catch-up definition as described. The pref, order, catch-up, tiers and
+  residual are all inputs. The result warns when a tier hurdle is at or below
+  the pref, when a catch-up has no pref, and when the catch-up target differs
+  from the next split's promote.
+</p>
+
+<h2>Inputs that matter</h2>
+<ul>
+  <li>
+    <code>cash_flows</code>: equity flows at t = 0, 1, 2 and so on, negative for
+    contributions and positive for distributions.
+  </li>
+  <li>
+    <code>periods_per_year</code>: 1, 4 or 12. It sets the periodic pref and
+    hurdle rates and annualizes the IRRs.
+  </li>
+  <li>
+    <code>lp_share</code>: the LP's share of every contribution; 1 means the GP
+    puts in no capital.
+  </li>
+  <li>
+    <code>pref</code>: <code>rate_annual</code> and
+    <code>compounding</code> (<code>compound</code> or <code>simple</code>).
+  </li>
+  <li>
+    <code>distribution_order</code>: <code>pref_then_capital</code> (default) or
+    <code>capital_then_pref</code>.
+  </li>
+  <li>
+    <code>catch_up</code>: <code>gp_share</code> of each catch-up dollar and the
+    <code>target_promote</code> share of profit.
+  </li>
+  <li>
+    <code>tiers</code>: up to ten <code>until_irr</code> hurdles in increasing
+    order, each with its <code>promote</code>.
+  </li>
+  <li>
+    <code>residual_promote</code>: the GP's promote on everything after the last
+    tier.
+  </li>
+</ul>
+
+<h2>Limits</h2>
+<ul>
+  <li>
+    One deal, one LP class and one GP. Multiple investor classes, side letters
+    and separate capital accounts are not modeled.
+  </li>
+  <li>
+    The GP's co-investment shares pref, capital and splits with the LP on equal
+    terms. There is no separate GP pref.
+  </li>
+  <li>
+    There are no clawbacks, lookbacks, asset management or acquisition fees, or
+    tax distributions.
+  </li>
+  <li>
+    Periods are equal and all flows are at period end. There are no day-count or
+    mid-period dates.
+  </li>
+  <li>
+    Each period takes one net cash flow, so a capital call and a distribution in
+    the same period are netted before they are entered.
+  </li>
+  <li>
+    An IRR is reported as null when it does not exist, and a GP with no capital
+    has no IRR or multiple. The input is limited to 600 periods.
+  </li>
+  <li>
+    Capital not returned or pref unpaid by the last period is reported and
+    warned about, not forced.
+  </li>
+</ul>

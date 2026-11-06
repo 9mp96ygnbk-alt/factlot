@@ -1,0 +1,124 @@
+<h2>What it computes</h2>
+<p>
+  Direct capitalization values an income property by dividing one year's net
+  operating income (NOI) by a capitalization rate. The calculator works in both
+  directions. Given a cap rate, it returns a stabilized value and an as-is value
+  after reserves and below-the-line adjustments. Given a price, it returns the
+  cap rate that price implies. With both, it also reports the difference between
+  the as-is value and the price.
+</p>
+
+<h2>Method and conventions</h2>
+<ol>
+  <li>
+    Capitalized income = <code>noi − capex_reserve_annual</code>. It must be
+    positive.
+  </li>
+  <li>
+    Below-the-line deductions =
+    <code>lease_up_costs + free_rent_burn_off − Σ other_adjustments.amount</code
+    >. Other adjustments are signed: a negative amount (deferred maintenance)
+    reduces value and a positive amount (excess land) adds to it.
+  </li>
+  <li>
+    Stabilized value = <code>capitalized income ÷ cap_rate</code>, rounded to
+    the cent.
+  </li>
+  <li>
+    As-is value = <code>stabilized value − deductions</code>. With
+    <code>round_value_to</code>, it is also reported rounded to that increment,
+    half away from zero (for example to the nearest 100,000). Value per square
+    foot uses the unrounded as-is value.
+  </li>
+  <li>
+    Implied cap rate = <code>capitalized income ÷ price</code>. Two variants are
+    also returned: before reserves (<code>noi ÷ price</code>) and all-in (<code
+      >capitalized income ÷ (price + deductions)</code
+    >), which is the yield on the price once the below-the-line costs are paid.
+  </li>
+</ol>
+<p>
+  A cap rate applies only to income on the same basis as the market evidence it
+  came from. FactLot records the basis in <code>noi_basis</code> as
+  <code>trailing_12</code>, <code>forward_12</code> or <code>stabilized</code>.
+  It does not check the basis against the cap rate, and it warns when the basis
+  is missing. The usual sequence for a property that is not yet stabilized is to
+  capitalize stabilized NOI and then deduct the cost of getting there. That is
+  what <code>lease_up_costs</code> and <code>free_rent_burn_off</code> do. The
+  output is labeled stabilized value whatever basis is chosen.
+</p>
+<p>
+  Sources differ on where capital reserves sit. Some cap rates are quoted on NOI
+  before reserves and others after. FactLot deducts
+  <code>capex_reserve_annual</code> before capitalizing and reports the implied
+  cap rate both ways. When the reserve is zero, it warns that comparables quoted
+  after reserves would need one. Practice also varies on below-the-line items.
+  Some appraisers discount lease-up costs for the time they take or add an
+  entrepreneurial incentive. FactLot deducts the amounts at face value, with no
+  discounting and no profit allowance. Rounding of the final value, common in
+  appraisal reports, is optional and reported separately, so the exact figure is
+  still available.
+</p>
+
+<h2>Inputs that matter</h2>
+<ul>
+  <li>
+    <code>noi</code>: annual net operating income before capital reserves.
+  </li>
+  <li>
+    <code>noi_basis</code>: <code>trailing_12</code>, <code>forward_12</code> or
+    <code>stabilized</code>; recorded in the steps.
+  </li>
+  <li>
+    <code>cap_rate</code>: capitalization rate as a decimal; it gives the value.
+  </li>
+  <li>
+    <code>price</code>: purchase or asking price; it gives the implied cap rate.
+  </li>
+  <li>
+    <code>capex_reserve_annual</code>: annual replacement reserve deducted
+    before capitalizing.
+  </li>
+  <li>
+    <code>lease_up_costs</code>: one-time tenant improvements, commissions and
+    lost rent needed to reach stabilized NOI.
+  </li>
+  <li>
+    <code>free_rent_burn_off</code>: free rent still owed under signed leases
+    that the stabilized NOI assumes is collected.
+  </li>
+  <li>
+    <code>other_adjustments</code>: up to 20 labeled, signed value adjustments.
+  </li>
+  <li>
+    <code>area_sf</code> and <code>round_value_to</code>: optional value and
+    price per square foot, and a rounded as-is value.
+  </li>
+</ul>
+
+<h2>Limits</h2>
+<ul>
+  <li>
+    It capitalizes a single year of income. There is no holding period, no
+    income growth and no reversion; that is a discounted cash flow, not direct
+    capitalization.
+  </li>
+  <li>It does not build NOI from a rent roll or operating statement.</li>
+  <li>
+    It does not derive or select a cap rate. Market surveys, band-of-investment
+    and comparable-sale extraction happen outside the calculator.
+  </li>
+  <li>
+    Lease-up costs and free rent are deducted undiscounted. Transaction costs,
+    taxes and financing are not considered.
+  </li>
+  <li>
+    At least one of <code>cap_rate</code> and <code>price</code> is required. A
+    reserve at or above NOI is an error.
+  </li>
+  <li>
+    Deductions larger than the stabilized value give a non-positive as-is value,
+    with a warning. Per-unit values (per apartment or per key) are not reported;
+    only per square foot.
+  </li>
+</ul>

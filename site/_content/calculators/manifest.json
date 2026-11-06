@@ -1,0 +1,98 @@
+[
+  {
+    "slug": "net-effective-rent",
+    "tool": "calc_net_effective_rent",
+    "title": "Net effective rent (NER) calculator",
+    "h1": "Net effective rent (NER) calculator",
+    "description": "Net effective rent calculator: straight-line and discounted NER per SF after free rent, TI allowance and leasing commissions, with every step shown.",
+    "example_case": "10-year deal, 6 months free, TI and LC, 8% discount",
+    "vector_file": "net_effective_rent.json",
+    "workbook": "office-lease-proposals.xlsx",
+    "related": ["cam-reconciliation", "walt", "asc-842-lease-remeasurement"]
+  },
+  {
+    "slug": "debt-sizing",
+    "tool": "calc_debt_sizing",
+    "title": "Debt sizing calculator: DSCR, LTV, debt yield",
+    "h1": "Debt sizing calculator (DSCR, LTV and debt yield)",
+    "description": "Debt sizing calculator: maximum commercial loan under DSCR, LTV and debt yield tests, the binding constraint, stress scenarios and refinance shortfall.",
+    "example_case": "LTV binds",
+    "vector_file": "debt_sizing.json",
+    "workbook": "lender-debt-sizing.xlsx",
+    "related": [
+      "direct-capitalization",
+      "yield-maintenance-defeasance",
+      "equity-waterfall"
+    ]
+  },
+  {
+    "slug": "cam-reconciliation",
+    "tool": "calc_cam_reconciliation",
+    "title": "CAM reconciliation calculator",
+    "h1": "CAM reconciliation calculator",
+    "description": "CAM reconciliation calculator: tenant share of operating expenses with gross-up, controllable caps, admin fees, base year or expense stop, and balance due.",
+    "example_case": "gross-up, exclusion, compounding_from_base cap",
+    "vector_file": "cam_reconciliation.json",
+    "workbook": "retail-cam-and-percentage-rent.xlsx",
+    "related": ["net-effective-rent", "walt"]
+  },
+  {
+    "slug": "yield-maintenance-defeasance",
+    "tool": "calc_prepayment_and_defeasance",
+    "title": "Yield maintenance and defeasance calculator",
+    "h1": "Yield maintenance and defeasance calculator",
+    "description": "Yield maintenance and defeasance calculator: prepayment premium and total payoff for a fixed-rate loan, plus step-down and flat-percentage penalties.",
+    "example_case": "yield maintenance on an interest-only loan, PV of payments at Treasury flat",
+    "vector_file": "prepayment_and_defeasance.json",
+    "workbook": null,
+    "related": ["debt-sizing", "equity-waterfall"]
+  },
+  {
+    "slug": "asc-842-lease-remeasurement",
+    "tool": "calc_lease_remeasurement_asc842",
+    "title": "ASC 842 lease remeasurement calculator",
+    "h1": "ASC 842 lease remeasurement calculator",
+    "description": "ASC 842 lease remeasurement calculator: new lease liability, ROU asset adjustment, gain, and the operating or finance lease schedule after a modification.",
+    "example_case": "operating lease, term extended, monthly payments in arrears, rate updated",
+    "vector_file": "lease_remeasurement_asc842.json",
+    "workbook": "lease-accounting-asc842-remeasurement.xlsx",
+    "related": ["net-effective-rent", "walt"]
+  },
+  {
+    "slug": "walt",
+    "tool": "calc_walt",
+    "title": "WALT calculator: weighted average lease term",
+    "h1": "Weighted average lease term (WALT) calculator",
+    "description": "WALT calculator: weighted average lease term remaining in years, weighted by leased area or annual rent, from any as-of date, with expired leases flagged.",
+    "example_case": "area-weighted",
+    "vector_file": "walt.json",
+    "workbook": "industrial-lease-and-walt.xlsx",
+    "related": [
+      "net-effective-rent",
+      "direct-capitalization",
+      "cam-reconciliation"
+    ]
+  },
+  {
+    "slug": "direct-capitalization",
+    "tool": "calc_direct_cap",
+    "title": "Direct capitalization (cap rate) calculator",
+    "h1": "Direct capitalization calculator (cap rate value)",
+    "description": "Direct capitalization calculator: property value from NOI and a cap rate, or the cap rate a price implies, with reserves and lease-up deductions.",
+    "example_case": "value with reserves and below-the-line adjustments, and the cap rate the price implies (hand check: 975,000 ÷ 6.5% = 15,000,000)",
+    "vector_file": "direct_cap.json",
+    "workbook": null,
+    "related": ["debt-sizing", "walt", "equity-waterfall"]
+  },
+  {
+    "slug": "equity-waterfall",
+    "tool": "calc_equity_waterfall",
+    "title": "Equity waterfall calculator (LP/GP promote)",
+    "h1": "Equity waterfall calculator (LP/GP pref, catch-up and promote)",
+    "description": "Equity waterfall calculator: LP/GP distributions with preferred return, catch-up, IRR hurdle tiers and promote, plus each party's IRR and multiple.",
+    "example_case": "annual: compounding 8% pref, full catch-up to 20%, 80/20 to a 12% LP IRR, 70/30 to 15%, 60/40 after",
+    "vector_file": "equity_waterfall.json",
+    "workbook": null,
+    "related": ["direct-capitalization", "debt-sizing"]
+  }
+]

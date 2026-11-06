@@ -46,13 +46,35 @@
       name="twitter:description"
       content="Deterministic CRE calculators with audit trails, canonical IDs, and cited public-record facts for AI agents. Open source."
     />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/icon-48.png" sizes="48x48" type="image/png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "FactLot",
+        "url": "https://factlot.com/"
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "FactLot",
+        "url": "https://factlot.com/",
+        "logo": "https://factlot.com/icon-512.png",
+        "email": "contact@factlot.com",
+        "sameAs": ["https://github.com/9mp96ygnbk-alt/factlot"]
+      }
+    </script>
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@type": "SoftwareApplication",
         "name": "FactLot",
-        "description": "Open fact layer for commercial real estate AI agents: 22 deterministic calculators with audit trails and versioned formula IDs, canonical IDs for parcels, legal entities, buildings, spaces, leases and documents, a fact schema with provenance and AI-use rights, and a registry of cited public-record facts. Runs as an MCP server, a REST and OpenAPI server, and a Python SDK.",
+        "description": "Open fact layer for commercial real estate AI agents: 25 deterministic calculators with audit trails and versioned formula IDs, canonical IDs for parcels, legal entities, buildings, spaces, leases and documents, a fact schema with provenance and AI-use rights, and a registry of cited public-record facts. Runs as an MCP server, a REST and OpenAPI server, and a Python SDK.",
         "applicationCategory": "DeveloperApplication",
         "operatingSystem": "Cross-platform (Node.js 22.6 or newer, or Python 3.10 or newer)",
         "url": "https://factlot.com/",
@@ -75,6 +97,8 @@
         <a class="brand" href="#top" aria-label="FactLot home">FactLot</a>
         <nav aria-label="Page sections">
           <ul>
+            <li><a href="/calculators/">Calculators</a></li>
+            <li><a href="/mcp/">MCP server</a></li>
             <li><a href="#layers">Layers</a></li>
             <li><a href="#how">How it works</a></li>
             <li><a href="#connect">Connect</a></li>
@@ -136,15 +160,17 @@
             <article class="card">
               <h3>Tools</h3>
               <p>
-                22 deterministic calculators: rent schedules, net effective
+                25 deterministic calculators: rent schedules, net effective
                 rent, proposal comparison, percentage rent, CAM reconciliation,
                 debt sizing, ASC 842 remeasurement, prepayment and defeasance,
                 WALT, NPV, IRR, lease vs. own, renew vs. relocate, hotel
                 metrics, property DCF pro forma, direct cap, loan amortization,
                 LP/GP equity waterfalls, 1031 exchange checks, multifamily rent
-                rolls, capital expenditure recovery, and building-wide CAM.
-                Every result carries <code>steps</code> (the audit trail),
-                <code>warnings</code>, and a versioned formula ID such as
+                rolls, capital expenditure recovery, building-wide CAM, lease
+                critical dates, and tie-outs of a DCF or CAM reconciliation
+                against your own model. Every result carries
+                <code>steps</code> (the audit trail), <code>warnings</code>, and
+                a versioned formula ID such as
                 <code>calc.net_effective_rent@1</code>.
               </p>
               <p>
@@ -155,10 +181,7 @@
                 method) and its AI-use rights.
               </p>
               <p>
-                <a
-                  href="https://github.com/9mp96ygnbk-alt/factlot/tree/main/packages/calc"
-                  >Calculators</a
-                >
+                <a href="/calculators/">Calculators</a>
                 ·
                 <a
                   href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/id-spec.md"
@@ -269,6 +292,10 @@
                 <a
                   href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/rules.md"
                   >Rules packs</a
+                >
+                ·
+                <a href="/texas/property-tax-protest-deadline/"
+                  >Texas protest deadline</a
                 >
                 ·
                 <a
@@ -467,7 +494,7 @@
             Remote platforms connect to the hosted endpoint
             <code>https://api.factlot.com/mcp</code> (free, 60 requests a
             minute), or to your own copy from the Docker image or the local MCP
-            server. See
+            server. See the <a href="/mcp/">MCP server page</a> and
             <a
               href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/connectors/README.md"
               >connectors/</a

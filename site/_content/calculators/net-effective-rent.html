@@ -1,0 +1,132 @@
+<h2>What it computes</h2>
+<p>
+  Net effective rent (NER) is the average annual base rent per square foot a
+  landlord keeps over a lease term after free rent and the landlord's leasing
+  costs. The calculator returns three figures in dollars per square foot per
+  year: effective rent (the average rent actually paid after abatement),
+  straight-line NER (effective rent less the tenant improvement allowance,
+  leasing commissions and other concessions, spread evenly over the term), and
+  discounted NER (the level rent with the same present value as the landlord's
+  net cash flows at a stated discount rate).
+</p>
+
+<h2>Method and conventions</h2>
+<p>
+  The base-rent schedule is built exactly as
+  <code>calc_rent_schedule</code> builds it. Lease month 1 starts on
+  <code>commencement_date</code>, and each later month starts on the same day of
+  the month, clamped to month end. The annual rate for month <code>m</code> uses
+  <code>k = floor((m − 1) ÷ every_months)</code> completed bumps: a percent
+  escalation gives <code>starting_rate × (1 + rate)^k</code> and a fixed
+  escalation gives <code>starting_rate + amount × k</code>. Monthly rent is
+  <code>rate × area_sf ÷ 12</code>, rounded to the cent. Each month listed in
+  <code>abated_months</code> has zero rent due.
+</p>
+<p>
+  The term in years is <code>term_months ÷ 12</code>. Landlord costs are
+  <code
+    >ti_allowance_psf × area_sf + leasing_commissions + other_concessions</code
+  >, all paid at commencement. Effective rent is
+  <code>total rent due ÷ area ÷ years</code>. Straight-line NER is
+  <code>(total rent due − landlord costs) ÷ area ÷ years</code>.
+</p>
+<p>
+  For discounted NER, rent is paid monthly in advance, so month 1 has a discount
+  factor of 1. The monthly rate is <code>r = discount_rate_annual ÷ 12</code>
+  (a nominal rate, not an effective one). The present value of rent is
+  <code>Σ rent_due_t ÷ (1 + r)^t</code> for <code>t = 0 … n − 1</code>. The
+  level monthly rent is
+  <code>(PV of rent − landlord costs) ÷ Σ (1 + r)^−t</code>, and discounted NER
+  is that amount <code>× 12 ÷ area</code>. Landlord costs are not discounted
+  because they fall at time zero.
+</p>
+<p>
+  Practitioners differ on several points. Some quote only straight-line NER and
+  others only a discounted figure; FactLot returns both, and
+  <code>discount_rate_annual</code> of 0 makes them equal (the result then
+  carries a warning). Some models pay rent in arrears or convert an effective
+  annual rate to a monthly rate; FactLot always discounts in advance at annual ÷
+  12, so an effective annual rate needs converting to its nominal equivalent
+  before it is passed. Some analyses treat free rent as a cost line; FactLot
+  reduces rent due in the abated months instead, so free rent is counted once.
+  Some NER figures include expense recoveries; this one uses base rent only.
+  Escalations run on lease-month anniversaries counted from commencement, not on
+  calendar dates. Optional <code>round_rate_to_cents</code>
+  rounds each step's annual rate to cents, as many lease rent tables do.
+</p>
+<p>
+  Setting <code>schedule.unit</code> to <code>kw</code>, <code>mw</code>,
+  <code>acre</code>, <code>unit</code>, <code>key</code>, <code>room</code> or
+  <code>space</code> relabels the results (for example dollars per kW per year)
+  without changing any number.
+</p>
+
+<h2>Inputs that matter</h2>
+<ul>
+  <li>
+    <code>schedule.starting_rent_psf_annual</code>: year-one base rent in
+    dollars per square foot per year, not per month.
+  </li>
+  <li>
+    <code>schedule.term_months</code>: lease term in months; it sets both the
+    schedule length and the years divisor.
+  </li>
+  <li>
+    <code>schedule.area_sf</code>: rentable square feet (or the quantity in
+    <code>unit</code>); totals are divided by it.
+  </li>
+  <li>
+    <code>schedule.escalation</code>: <code>none</code>,
+    <code>percent</code> (compounding) or <code>fixed_psf</code>, with
+    <code>every_months</code>
+    between bumps.
+  </li>
+  <li>
+    <code>schedule.abated_months</code>: fully free months, counted from 1 at
+    commencement.
+  </li>
+  <li>
+    <code>ti_allowance_psf</code>: landlord-funded improvement allowance per
+    square foot, paid once at commencement.
+  </li>
+  <li>
+    <code>leasing_commissions</code>: total commissions paid by the landlord, in
+    dollars.
+  </li>
+  <li>
+    <code>other_concessions</code>: other landlord payments at commencement,
+    such as a moving allowance or lease buyout.
+  </li>
+  <li>
+    <code>discount_rate_annual</code>: annual rate for discounted NER; 0 gives
+    the straight-line figure.
+  </li>
+</ul>
+
+<h2>Limits</h2>
+<ul>
+  <li>
+    Base rent only. Operating expense recoveries, expense stops and percentage
+    rent are not part of the result.
+  </li>
+  <li>
+    Abatement is whole months at 100%. Half-rent periods or partial-month
+    abatement are not supported.
+  </li>
+  <li>
+    All landlord costs are paid at commencement. Allowances or commissions paid
+    in installments, and downtime before commencement, are not modeled.
+  </li>
+  <li>
+    One escalation pattern applies to the whole term. Irregular step tables with
+    hand-set rates cannot be entered.
+  </li>
+  <li>
+    Rent is not prorated to calendar months. A mid-month commencement produces a
+    warning, and any proration happens outside the result.
+  </li>
+  <li>
+    The tenant's own costs, renewal options and termination options are not
+    considered. The term is at most 1,200 months.
+  </li>
+</ul>

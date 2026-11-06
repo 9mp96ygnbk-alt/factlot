@@ -1,0 +1,146 @@
+<h2>What it computes</h2>
+<p>
+  Under ASC 842, a lessee remeasures its lease liability when a modification, a
+  reassessment of the lease term or a purchase option, or certain other events
+  change the remaining lease payments. The calculator computes the new lease
+  liability as the present value of the remaining payments. It adjusts the
+  right-of-use (ROU) asset by the change and recognizes a gain when a liability
+  decrease exceeds the ROU asset's carrying amount. It then produces the
+  period-by-period schedule of interest, liability, ROU amortization and lease
+  cost for an operating or a finance lease.
+</p>
+
+<h2>Method and conventions</h2>
+<p>
+  The periodic rate is
+  <code>r = discount_rate_annual ÷ periods_per_year</code>, a nominal rate. The
+  remaining term <code>n</code> is <code>remaining_periods</code>, or the last
+  period in <code>payments</code> when it is omitted. Periods not listed carry
+  no payment. Payments are taken to the cent.
+</p>
+<ul>
+  <li>
+    New lease liability = <code>Σ payment_k ÷ (1 + r)^k</code> for payments in
+    arrears, or <code>÷ (1 + r)^(k − 1)</code> for payments in advance (<code
+      >payment_timing</code
+    >
+    <code>begin</code>), for <code>k = 1 … n</code>.
+  </li>
+  <li>Liability adjustment = <code>new liability − liability_before</code>.</li>
+  <li>
+    ROU adjustment = <code>max(liability adjustment, −rou_asset_before)</code>,
+    so the asset is not reduced below zero (ASC 842-20-35-4). Any excess
+    decrease is the gain recognized.
+  </li>
+  <li>New ROU asset = <code>rou_asset_before + ROU adjustment</code>.</li>
+</ul>
+<p>
+  <strong>Operating lease.</strong> The total remaining lease cost is
+  <code>remaining payments + new ROU asset − new liability</code>. Each period
+  takes <code>total ÷ n</code>, rounded to the cent, as a single straight-line
+  lease cost, and the last period takes what is left. ROU amortization in each
+  period is <code>lease cost − interest</code>.
+</p>
+<p>
+  <strong>Finance lease.</strong> ROU amortization is
+  <code>new ROU asset ÷ n</code>, straight-line over the remaining lease term.
+  Lease cost is <code>interest + amortization</code>.
+</p>
+<p>
+  Interest is <code>opening liability × r</code> in arrears, or
+  <code>(opening liability − payment) × r</code> in advance, rounded to the cent
+  each period. The final period's interest is the amount that closes the
+  liability at 0.00, and the ROU asset also closes at 0.00. Every row foots, and
+  totals are the sums of the rows. The trace reports the final-period true-up.
+</p>
+<p>
+  The inputs <code>event</code> and <code>discount_rate_updated</code> do not
+  change the arithmetic. They drive the citations and warnings. ASC 842-10-35-5
+  requires a rate determined at the remeasurement date for modifications and for
+  term or purchase-option reassessments, and keeps the original rate for a
+  resolved contingency or a residual value guarantee change. The calculator
+  warns when the flag contradicts the event. It also warns that an index or rate
+  change alone is not a remeasurement trigger.
+</p>
+<p>
+  Entities and auditors differ on several judgments, and FactLot leaves each to
+  the user. The first is the discount rate itself (the rate implicit in the
+  lease or the incremental borrowing rate). The second is whether payments are
+  in advance or in arrears. The third is whether a shortened term is a partial
+  termination. For <code>modification_shorten_term</code>, the calculator
+  applies only the liability-change adjustment and warns that ASC 842-10-25-13
+  may require a proportionate reduction of the ROU asset. For finance leases it
+  amortizes over the remaining lease term and warns that useful life applies
+  when ownership transfers or a purchase option is reasonably certain.
+</p>
+
+<h2>Inputs that matter</h2>
+<ul>
+  <li>
+    <code>classification</code>: <code>operating</code> (single straight-line
+    cost) or <code>finance</code> (interest plus amortization).
+  </li>
+  <li>
+    <code>payments</code>: remaining payments by period after the event, net of
+    incentives receivable, as amounts per period.
+  </li>
+  <li>
+    <code>remaining_periods</code>: remaining term when the final periods are
+    rent-free.
+  </li>
+  <li>
+    <code>payment_timing</code>: <code>begin</code> (in advance) or
+    <code>end</code> (in arrears, the default).
+  </li>
+  <li>
+    <code>discount_rate_annual</code>: the annual rate applied to the remaining
+    payments, divided by <code>periods_per_year</code>.
+  </li>
+  <li>
+    <code>discount_rate_updated</code>: whether the rate was set at the
+    remeasurement date or kept from commencement.
+  </li>
+  <li>
+    <code>liability_before</code>: carrying amount of the liability just before
+    remeasurement.
+  </li>
+  <li>
+    <code>rou_asset_before</code>: carrying amount of the ROU asset just before
+    remeasurement, after any impairment.
+  </li>
+  <li>
+    <code>event</code>: the trigger, such as
+    <code>modification_extend_term</code> or
+    <code>reassessment_of_term_or_option</code>.
+  </li>
+</ul>
+
+<h2>Limits</h2>
+<ul>
+  <li>
+    Lessee accounting under ASC 842 only. Lessor accounting, IFRS 16 and GASB 87
+    are not covered.
+  </li>
+  <li>
+    It does not decide whether a change is a separate contract, whether
+    remeasurement is required, or whether classification changes. The user
+    states the classification and the event.
+  </li>
+  <li>
+    It does not determine the discount rate or allocate consideration between
+    lease and non-lease components.
+  </li>
+  <li>
+    Initial direct costs, new incentives and prepaid rent arising from a
+    modification are not added to the ROU asset beyond the liability change.
+  </li>
+  <li>
+    The partial-termination approach for a shortened term is not applied.
+    Impairment is not tested.
+  </li>
+  <li>
+    Periods are of equal length with one rate throughout. Only the payments
+    given are discounted; variable payments are not estimated. There are no
+    journal entries or disclosure tables.
+  </li>
+</ul>

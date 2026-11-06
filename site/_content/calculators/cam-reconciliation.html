@@ -1,0 +1,148 @@
+<h2>What it computes</h2>
+<p>
+  A CAM reconciliation compares what a tenant owes for common area maintenance
+  and other operating expenses in a year with the estimates it paid. The
+  calculator takes the building's actual expense lines and the lease terms and
+  returns the tenant's charge and the balance due. The lease terms covered are
+  the pro rata share, exclusions, occupancy gross-up, a cap on controllable
+  expenses, an administrative fee, and a net, base-year or expense-stop
+  structure. A positive balance is owed by the tenant. A negative balance is a
+  credit or refund owed by the landlord.
+</p>
+
+<h2>Method and conventions</h2>
+<ol>
+  <li>Lines with <code>recoverable</code> false are dropped entirely.</li>
+  <li>
+    Gross-up: when <code>gross_up</code> is given and
+    <code>actual_occupancy</code> is below <code>target_occupancy</code>, every
+    line marked <code>variable</code> is multiplied by
+    <code>target ÷ actual</code>. At or above the target there is no gross-up.
+  </li>
+  <li>
+    The tenant's share of controllable and of uncontrollable lines is each
+    <code>total × pro_rata_share × occupancy fraction</code>, rounded to the
+    cent.
+  </li>
+  <li>
+    The cap applies to the controllable share only. The limit depends on
+    <code>cap.method</code>: <code>compounding_from_base</code> is
+    <code>reference × (1 + rate)^years_elapsed</code>,
+    <code>simple_from_base</code> is
+    <code>reference × (1 + rate × years_elapsed)</code>, and
+    <code>year_over_year</code> is <code>reference × (1 + rate)</code>, where
+    the reference is the prior year's capped amount. The capped amount is
+    <code>min(controllable share, limit)</code>. Uncontrollable lines are never
+    capped.
+  </li>
+  <li>
+    Admin fee: <code>admin_fee.rate</code> times the tenant's share of lines
+    with <code>admin_fee_applies</code>, after gross-up. The fee on
+    uncontrollable lines is never capped. On controllable lines,
+    <code>applied</code> sets whether the fee is computed on the share before
+    the cap or on the capped amount. <code>capped</code> sets whether the fee
+    counts toward the cap limit or is added outside it.
+  </li>
+  <li>
+    Structure: <code>net</code> has no deduction. <code>base_year</code> deducts
+    <code>base_year_expenses × share × occupancy fraction</code>.
+    <code>expense_stop</code> deducts
+    <code>stop_amount × share × occupancy fraction</code>. The cap is applied
+    before this deduction, and the result carries a warning saying so.
+  </li>
+  <li>
+    Tenant charge =
+    <code>max(0, capped controllable + fees + uncontrollable − deduction)</code
+    >. Balance due = <code>tenant charge − estimates_paid</code>.
+  </li>
+</ol>
+<p>
+  Each tenant share, fee, cap limit and deduction is rounded to the cent, half
+  away from zero, before it is combined. For a partial year, the occupancy
+  fraction is occupied days ÷ period days, both ends inclusive. The period
+  defaults to the calendar year of <code>year</code>, and setting
+  <code>period_start_date</code> and <code>period_end_date</code> reconciles a
+  lease year instead. The tenant's share, the cap limit and the base-year or
+  stop deduction are all scaled by that fraction.
+</p>
+<p>
+  Lease language is where most disputes start. The terms "cumulative" and
+  "non-cumulative" are used inconsistently, so FactLot names cap methods by what
+  they compute and the input must pick one. Leases also differ on the gross-up
+  target (often 95% or 100%), on whether a base year is grossed up (FactLot
+  expects <code>base_year_expenses</code> already grossed up), on whether the
+  cap or the base-year deduction comes first, and on which lines carry an admin
+  fee. FactLot warns when a fee base includes taxes, insurance or utilities, and
+  when a line named like a management or admin fee would itself carry a fee.
+</p>
+
+<h2>Inputs that matter</h2>
+<ul>
+  <li>
+    <code>pro_rata_share</code>: the tenant's share as a decimal, for example
+    12,000 ÷ 150,000 = 0.08.
+  </li>
+  <li>
+    <code>expenses</code>: building-level lines, each flagged
+    <code>controllable</code>, <code>recoverable</code>,
+    <code>variable</code> and <code>admin_fee_applies</code>.
+  </li>
+  <li>
+    <code>gross_up</code>: actual and target occupancy for grossing up variable
+    lines.
+  </li>
+  <li>
+    <code>structure</code>: <code>net</code>, <code>base_year</code> with
+    <code>base_year_expenses</code>, or <code>expense_stop</code> with
+    <code>stop_amount</code>.
+  </li>
+  <li>
+    <code>cap</code>: <code>method</code>, <code>rate</code>,
+    <code>reference_amount</code> and, for the from-base methods,
+    <code>years_elapsed</code>.
+  </li>
+  <li>
+    <code>admin_fee</code>: fee <code>rate</code>, and whether it is
+    <code>applied</code> before or after the cap and <code>capped</code>.
+  </li>
+  <li>
+    <code>occupancy</code>: move-in, move-out and period dates for a partial
+    year.
+  </li>
+  <li>
+    <code>estimates_paid</code>: total estimated payments for the year, not a
+    monthly amount.
+  </li>
+</ul>
+
+<h2>Limits</h2>
+<ul>
+  <li>
+    It does not read the lease. Classifying lines as controllable, variable or
+    excluded, and choosing the cap method, are the user's inputs.
+  </li>
+  <li>
+    One tenant and one pro rata share for every line. Separate pools with
+    different shares or denominators are not modeled here.
+  </li>
+  <li>
+    A line flagged variable is grossed up in full. A line that is partly fixed
+    has to be entered as two lines.
+  </li>
+  <li>
+    Capital items are either recoverable or excluded; this calculator does not
+    amortize them.
+  </li>
+  <li>
+    Part years are prorated by days only, not by months. The cap reference is
+    taken as a full-year amount.
+  </li>
+  <li>
+    The tenant charge cannot go below zero, so a base year or stop above current
+    expenses gives a zero charge, not a negative one.
+  </li>
+  <li>
+    There are no cap floors, no minimum increases, no audit adjustments and no
+    interest on late balances.
+  </li>
+</ul>

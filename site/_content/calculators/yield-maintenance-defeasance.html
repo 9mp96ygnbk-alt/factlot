@@ -1,0 +1,145 @@
+<h2>What it computes</h2>
+<p>
+  The calculator finds the prepayment premium and total payoff for a fixed-rate
+  commercial loan repaid before maturity. It supports four provisions: yield
+  maintenance, a step-down schedule (such as 5-4-3-2-1), a flat percentage, and
+  defeasance. Yield maintenance compensates the lender for the gap between the
+  note rate and current Treasury yields over the remaining term. Defeasance
+  replaces the loan's collateral with government securities that fund the
+  remaining payments; its cost is the price of those securities plus transaction
+  costs, less the balance.
+</p>
+
+<h2>Method and conventions</h2>
+<p>
+  The calculator first rebuilds the remaining payment stream. The monthly note
+  rate is <code>i = note_rate_annual ÷ 12</code>. The level payment is
+  <code>balance × i ÷ (1 − (1 + i)^−amortization_months)</code>, or
+  <code>balance × i</code> when <code>amortization_months</code> is 0
+  (interest-only). The balance rolls forward month by month. The balloon is the
+  scheduled balance after <code>remaining_term_months</code> payments, and it is
+  added to the final payment. Payment 1 falls one month after the payoff date.
+</p>
+<p>
+  <strong>Yield maintenance.</strong> The discount rate is
+  <code>treasury_rate_annual + spread_annual</code>, converted to a monthly rate
+  <code>m</code>. There are two bases:
+</p>
+<ul>
+  <li>
+    <code>pv_of_payments</code> (default): premium =
+    <code>Σ payment_k ÷ (1 + m)^k − balance</code>, for
+    <code>k = 1 … remaining_term_months</code>, balloon included.
+  </li>
+  <li>
+    <code>rate_differential</code>: premium =
+    <code
+      >Σ (note rate − discount rate) ÷ 12 × scheduled opening balance_k ÷ (1 +
+      m)^k</code
+    >.
+  </li>
+</ul>
+<p>
+  The premium is the larger of the computed amount and
+  <code>balance × minimum_pct</code>, which defaults to a 1% floor.
+</p>
+<p>
+  Loan documents differ in three places, and each is an input. The first is the
+  basis (<code>basis</code>). The second is Treasury flat or Treasury plus a
+  spread (<code>spread_annual</code>). The third is the compounding convention
+  (<code>discount_convention</code>). The <code>monthly</code> convention uses
+  <code>m = annual ÷ 12</code>. The <code>semiannual</code>
+  convention treats the yield as a bond-equivalent yield and uses
+  <code>m = (1 + annual ÷ 2)^(1/6) − 1</code>. Notes also differ on which
+  Treasury is the reference. FactLot does not look one up or interpolate; the
+  yield is supplied. Discounting always runs to maturity, not to the start of an
+  open prepayment window.
+</p>
+<p>
+  <strong>Step-down and flat percentage.</strong> A step-down premium is
+  <code>balance × pct</code> for the first tier whose
+  <code>through_month</code> is at or after <code>loan_month</code>. After the
+  last tier the loan is open and the premium is 0. A flat percentage is
+  <code>balance × pct</code>.
+</p>
+<p>
+  <strong>Defeasance.</strong> Each remaining payment is discounted at the
+  replacement yield for its month. That yield is either one flat rate or a step
+  curve of <code>{months, rate}</code> points, where each payment uses the first
+  point whose <code>months</code> is at or after its month and payments beyond
+  the last point use the last rate. The premium is
+  <code>securities cost + costs − balance</code>. It has no floor and can be
+  negative when replacement yields exceed the note rate.
+</p>
+<p>
+  For every type, total payoff is
+  <code>balance + premium + accrued_interest</code>, and the effective cost
+  ratio is <code>premium ÷ balance</code>.
+</p>
+
+<h2>Inputs that matter</h2>
+<ul>
+  <li><code>balance</code>: outstanding principal at the payoff date.</li>
+  <li><code>note_rate_annual</code>: the fixed note rate as a decimal.</li>
+  <li>
+    <code>remaining_term_months</code>: months from payoff to maturity, when the
+    balloon is due.
+  </li>
+  <li>
+    <code>amortization_months</code>: remaining amortization at payoff (for
+    example 300 on a 30-year schedule five years in), or 0 for interest-only.
+  </li>
+  <li>
+    <code>accrued_interest</code>: unpaid interest to the payoff date, added to
+    the payoff.
+  </li>
+  <li>
+    <code>prepayment.type</code>: <code>yield_maintenance</code>,
+    <code>step_down</code>, <code>fixed_pct</code> or <code>defeasance</code>.
+  </li>
+  <li>
+    <code>prepayment.treasury_rate_annual</code> and
+    <code>prepayment.spread_annual</code>: the yield-maintenance discount rate.
+  </li>
+  <li>
+    <code>prepayment.basis</code>,
+    <code>prepayment.discount_convention</code> and
+    <code>prepayment.minimum_pct</code>: how yield maintenance is computed and
+    floored.
+  </li>
+  <li>
+    <code>prepayment.replacement_yield</code> and <code>prepayment.costs</code>:
+    the defeasance yield or curve, and stated consultant, legal, rating agency
+    and servicer fees.
+  </li>
+</ul>
+
+<h2>Limits</h2>
+<ul>
+  <li>
+    Fixed-rate loans with monthly payments only. Interest is on a 30/360 basis;
+    actual/360 accrual is not modeled.
+  </li>
+  <li>
+    The payoff is assumed to fall on a payment date. Stub-period interest enters
+    only through <code>accrued_interest</code>.
+  </li>
+  <li>
+    Lockout periods are not modeled. A step-down result carries a warning that a
+    locked-out loan cannot be prepaid at any premium.
+  </li>
+  <li>
+    The defeasance cost is an approximation. It discounts each payment at a
+    stated yield rather than pricing specific Treasury or agency securities, and
+    it ignores residual or float value. The result carries a warning to that
+    effect.
+  </li>
+  <li>
+    The calculator does not decide whether a borrower keeps a negative
+    defeasance premium; that depends on the loan documents.
+  </li>
+  <li>
+    <code>loan_month</code> for a step-down is not checked against the remaining
+    term. Taxes, exit fees and partial prepayments are not modeled.
+  </li>
+</ul>
