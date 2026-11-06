@@ -41,6 +41,10 @@ import {
   netEffectiveRent,
   rentSchedule,
 } from "./rent.ts";
+import {
+  TxUnequalAppraisalInput,
+  txUnequalAppraisal,
+} from "./tx_unequal_appraisal.ts";
 import { EquityWaterfallInput, equityWaterfall } from "./waterfall.ts";
 
 export * from "./amortization.ts";
@@ -66,6 +70,7 @@ export * from "./retail.ts";
 export * from "./rules.ts";
 export * from "./rules-drafts/index.ts";
 export * from "./rent.ts";
+export * from "./tx_unequal_appraisal.ts";
 export * from "./waterfall.ts";
 export * from "./units.ts";
 
@@ -277,5 +282,14 @@ export const calculators = {
       "Not tax advice: arithmetic only. The 45-day identification and 180-day exchange deadlines of IRC §1031(a)(3) (the exchange period ends earlier at a given tax-return due date), the three-property, 200%, and 95% identification tests of Treas. Reg. §1.1031(k)-1(c)(4), and the cash boot, mortgage boot, debt replacement, and trade-down of an exchange, with the boot-limited gain when the basis is given.",
     input: Exchange1031Input,
     run: exchange1031,
+  },
+  tx_unequal_appraisal: {
+    id: "calc.tx_unequal_appraisal",
+    version: 1,
+    title: "Texas unequal appraisal: median of adjusted comparables",
+    description:
+      "Evidence calculation only, not an appraisal and not legal or tax advice: the arithmetic of Tex. Tax Code §41.43(b)(3) and §42.26(a)(3), the subject's value against the median appraised value of a reasonable number of comparable properties appropriately adjusted. Takes 3–200 comparables chosen by the caller, each with its roll value and the caller's adjustments (percent, USD amount, or $/SF, each with a reason); optionally normalizes each comparable to value per SF of improvement or land area times the subject's area; applies percentages summed or compounded, then amounts; and returns every comparable's normalized and adjusted value, the sorted list, the median (for an even count, the mean of the two middle values), and the subject's value minus the median in USD and percent, with the statutes cited. Warns on mixed value bases, §42.26(d) and the §23.231 limitation, comparables in another county, fewer than 5 comparables, total adjustments over 25%, and a comparable identical to the subject. It does not choose comparables, invent adjustments, or say whether to protest.",
+    input: TxUnequalAppraisalInput,
+    run: txUnequalAppraisal,
   },
 } as const satisfies Record<string, Calculator>;

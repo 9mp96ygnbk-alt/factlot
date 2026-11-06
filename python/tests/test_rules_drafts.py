@@ -12,7 +12,7 @@ from factlot import DRAFT_RULES, DRAFT_WARNING, RULES, CalcInputError, run_draft
 from factlot.rules_drafts import _PACKS, boston_berdo, nyc_ll97, wa_cbps
 
 DRAFTS = Path(__file__).resolve().parents[2] / "spec" / "vectors" / "rules" / "drafts"
-OFFICIAL_HOSTS = {"www.nyc.gov", "lawfilesext.leg.wa.gov", "www.boston.gov"}
+OFFICIAL_HOSTS = {"www.nyc.gov", "lawfilesext.leg.wa.gov", "www.boston.gov", "statutes.capitol.texas.gov"}
 
 
 def at(obj, path):

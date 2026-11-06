@@ -1,0 +1,287 @@
+{
+  "rule": "tx_protest_evidence_dates",
+  "calculator": "rules.tx.protest_evidence_dates",
+  "version": 1,
+  "status": "draft",
+  "note": "Expected values computed by spec/vectors/rules/drafts/reference.py in exact decimal arithmetic from the reference tables in this directory, not by either SDK.",
+  "cases": [
+    {
+      "name": "plain weekday: hearing Tue 2027-06-08, both dates Tue 2027-05-25",
+      "input": {
+        "hearing_date": "2027-06-08"
+      },
+      "expect": {
+        "value.status": "draft",
+        "value.rule.verification.status": "draft",
+        "formula.id": "rules.tx.protest_evidence_dates",
+        "value.hearing_date": "2027-06-08",
+        "value.owner_evidence_by_unadjusted": "2027-05-25",
+        "value.owner_evidence_recommended_by": "2027-05-25",
+        "value.owner_evidence_skipped_non_business_days": [],
+        "value.district_evidence_due": "2027-05-25",
+        "value.rule.citations.0.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.41.htm#41.43",
+        "value.rule.citations.0.retrieved": "2026-11-06"
+      }
+    },
+    {
+      "name": "hearing 14 days after Memorial Day: 2027-05-31 rolls back past Mon, Sun, Sat to Fri 2027-05-28",
+      "input": {
+        "hearing_date": "2027-06-14"
+      },
+      "expect": {
+        "value.status": "draft",
+        "value.rule.verification.status": "draft",
+        "formula.id": "rules.tx.protest_evidence_dates",
+        "value.hearing_date": "2027-06-14",
+        "value.owner_evidence_by_unadjusted": "2027-05-31",
+        "value.owner_evidence_recommended_by": "2027-05-28",
+        "value.owner_evidence_skipped_non_business_days": [
+          {
+            "date": "2027-05-31",
+            "reason": "Memorial Day"
+          },
+          {
+            "date": "2027-05-30",
+            "reason": "Sunday"
+          },
+          {
+            "date": "2027-05-29",
+            "reason": "Saturday"
+          }
+        ],
+        "value.district_evidence_due": "2027-05-31",
+        "value.rule.citations.0.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.41.htm#41.43",
+        "value.rule.citations.0.retrieved": "2026-11-06"
+      }
+    },
+    {
+      "name": "Saturday hearing: the 14th day before is also a Saturday, rolled back to Fri 2027-05-28",
+      "input": {
+        "hearing_date": "2027-06-12"
+      },
+      "expect": {
+        "value.status": "draft",
+        "value.rule.verification.status": "draft",
+        "formula.id": "rules.tx.protest_evidence_dates",
+        "value.hearing_date": "2027-06-12",
+        "value.owner_evidence_by_unadjusted": "2027-05-29",
+        "value.owner_evidence_recommended_by": "2027-05-28",
+        "value.owner_evidence_skipped_non_business_days": [
+          {
+            "date": "2027-05-29",
+            "reason": "Saturday"
+          }
+        ],
+        "value.district_evidence_due": "2027-05-29",
+        "value.rule.citations.0.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.41.htm#41.43",
+        "value.rule.citations.0.retrieved": "2026-11-06"
+      }
+    },
+    {
+      "name": "Sunday hearing: 2027-07-04 is a Sunday (named Sunday, not Independence Day), back to Fri 2027-07-02",
+      "input": {
+        "hearing_date": "2027-07-18"
+      },
+      "expect": {
+        "value.status": "draft",
+        "value.rule.verification.status": "draft",
+        "formula.id": "rules.tx.protest_evidence_dates",
+        "value.hearing_date": "2027-07-18",
+        "value.owner_evidence_by_unadjusted": "2027-07-04",
+        "value.owner_evidence_recommended_by": "2027-07-02",
+        "value.owner_evidence_skipped_non_business_days": [
+          {
+            "date": "2027-07-04",
+            "reason": "Sunday"
+          },
+          {
+            "date": "2027-07-03",
+            "reason": "Saturday"
+          }
+        ],
+        "value.district_evidence_due": "2027-07-04",
+        "value.rule.citations.0.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.41.htm#41.43",
+        "value.rule.citations.0.retrieved": "2026-11-06"
+      }
+    },
+    {
+      "name": "Monday 2027-07-05, the observed Independence Day, is not a holiday on actual dates: no roll",
+      "input": {
+        "hearing_date": "2027-07-19"
+      },
+      "expect": {
+        "value.status": "draft",
+        "value.rule.verification.status": "draft",
+        "formula.id": "rules.tx.protest_evidence_dates",
+        "value.hearing_date": "2027-07-19",
+        "value.owner_evidence_by_unadjusted": "2027-07-05",
+        "value.owner_evidence_recommended_by": "2027-07-05",
+        "value.owner_evidence_skipped_non_business_days": [],
+        "value.district_evidence_due": "2027-07-05",
+        "value.rule.citations.0.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.41.htm#41.43",
+        "value.rule.citations.0.retrieved": "2026-11-06"
+      }
+    },
+    {
+      "name": "Thanksgiving: 2026-11-27 and 2026-11-26 skipped, back to Wed 2026-11-25",
+      "input": {
+        "hearing_date": "2026-12-11"
+      },
+      "expect": {
+        "value.status": "draft",
+        "value.rule.verification.status": "draft",
+        "formula.id": "rules.tx.protest_evidence_dates",
+        "value.hearing_date": "2026-12-11",
+        "value.owner_evidence_by_unadjusted": "2026-11-27",
+        "value.owner_evidence_recommended_by": "2026-11-25",
+        "value.owner_evidence_skipped_non_business_days": [
+          {
+            "date": "2026-11-27",
+            "reason": "Day after Thanksgiving"
+          },
+          {
+            "date": "2026-11-26",
+            "reason": "Thanksgiving Day"
+          }
+        ],
+        "value.district_evidence_due": "2026-11-27",
+        "value.rule.citations.0.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.41.htm#41.43",
+        "value.rule.citations.0.retrieved": "2026-11-06"
+      }
+    },
+    {
+      "name": "Confederate Heroes Day and MLK Day back to back, then a weekend: back to Fri 2027-01-15",
+      "input": {
+        "hearing_date": "2027-02-02"
+      },
+      "expect": {
+        "value.status": "draft",
+        "value.rule.verification.status": "draft",
+        "formula.id": "rules.tx.protest_evidence_dates",
+        "value.hearing_date": "2027-02-02",
+        "value.owner_evidence_by_unadjusted": "2027-01-19",
+        "value.owner_evidence_recommended_by": "2027-01-15",
+        "value.owner_evidence_skipped_non_business_days": [
+          {
+            "date": "2027-01-19",
+            "reason": "Confederate Heroes Day"
+          },
+          {
+            "date": "2027-01-18",
+            "reason": "Martin Luther King, Jr., Day"
+          },
+          {
+            "date": "2027-01-17",
+            "reason": "Sunday"
+          },
+          {
+            "date": "2027-01-16",
+            "reason": "Saturday"
+          }
+        ],
+        "value.district_evidence_due": "2027-01-19",
+        "value.rule.citations.0.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.41.htm#41.43",
+        "value.rule.citations.0.retrieved": "2026-11-06"
+      }
+    },
+    {
+      "name": "year boundary: 2027-01-01 New Year's Day rolls back to Thu 2026-12-31",
+      "input": {
+        "hearing_date": "2027-01-15"
+      },
+      "expect": {
+        "value.status": "draft",
+        "value.rule.verification.status": "draft",
+        "formula.id": "rules.tx.protest_evidence_dates",
+        "value.hearing_date": "2027-01-15",
+        "value.owner_evidence_by_unadjusted": "2027-01-01",
+        "value.owner_evidence_recommended_by": "2026-12-31",
+        "value.owner_evidence_skipped_non_business_days": [
+          {
+            "date": "2027-01-01",
+            "reason": "New Year's Day"
+          }
+        ],
+        "value.district_evidence_due": "2027-01-01",
+        "value.rule.citations.0.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.41.htm#41.43",
+        "value.rule.citations.0.retrieved": "2026-11-06"
+      }
+    },
+    {
+      "name": "Christmas cluster across a Saturday: 2026-12-26, -25, -24 skipped, back to Wed 2026-12-23",
+      "input": {
+        "hearing_date": "2027-01-09"
+      },
+      "expect": {
+        "value.status": "draft",
+        "value.rule.verification.status": "draft",
+        "formula.id": "rules.tx.protest_evidence_dates",
+        "value.hearing_date": "2027-01-09",
+        "value.owner_evidence_by_unadjusted": "2026-12-26",
+        "value.owner_evidence_recommended_by": "2026-12-23",
+        "value.owner_evidence_skipped_non_business_days": [
+          {
+            "date": "2026-12-26",
+            "reason": "Saturday"
+          },
+          {
+            "date": "2026-12-25",
+            "reason": "Christmas Day"
+          },
+          {
+            "date": "2026-12-24",
+            "reason": "Christmas Eve"
+          }
+        ],
+        "value.district_evidence_due": "2026-12-26",
+        "value.rule.citations.0.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.41.htm#41.43",
+        "value.rule.citations.0.retrieved": "2026-11-06"
+      }
+    },
+    {
+      "name": "leap day: hearing 2028-03-14, 14 days before is Tue 2028-02-29",
+      "input": {
+        "hearing_date": "2028-03-14"
+      },
+      "expect": {
+        "value.status": "draft",
+        "value.rule.verification.status": "draft",
+        "formula.id": "rules.tx.protest_evidence_dates",
+        "value.hearing_date": "2028-03-14",
+        "value.owner_evidence_by_unadjusted": "2028-02-29",
+        "value.owner_evidence_recommended_by": "2028-02-29",
+        "value.owner_evidence_skipped_non_business_days": [],
+        "value.district_evidence_due": "2028-02-29",
+        "value.rule.citations.0.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.41.htm#41.43",
+        "value.rule.citations.0.retrieved": "2026-11-06"
+      }
+    },
+    {
+      "name": "invalid date",
+      "input": {
+        "hearing_date": "2027-02-30"
+      },
+      "expect_error": true
+    },
+    {
+      "name": "not ISO format",
+      "input": {
+        "hearing_date": "06/01/2027"
+      },
+      "expect_error": true
+    },
+    {
+      "name": "missing hearing date",
+      "input": {},
+      "expect_error": true
+    },
+    {
+      "name": "unknown field",
+      "input": {
+        "hearing_date": "2027-06-08",
+        "postponed": true
+      },
+      "expect_error": true
+    }
+  ]
+}
