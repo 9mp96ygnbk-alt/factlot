@@ -268,6 +268,78 @@ SAN_PATRICIO = CountyExport(
     account_system="sanpat_prop_id",
 )
 
+CALDWELL = CountyExport(
+    source=Source(
+        source_id="tx-caldwell-cad",
+        publisher="Caldwell County Appraisal District",
+        title="2026 certified export (PACS 8.0.34 record length)",
+        url="https://caldwellcad.org/publicly-available-data/",
+        state_fips="48",
+        county_fips="055",
+        license="The public-data page says other exports must be requested and include a fee, and that the district cannot offer technical support for the posted exports (read 2026-11-06). No redistribution license is stated",
+        ai_use="unknown",
+        redistribution="unknown",
+        attribution="Caldwell County Appraisal District",
+        terms_reviewed="2026-11-06",
+    ),
+    county_fips="055",
+    account_system="caldwell_prop_id",
+)
+
+ATASCOSA = CountyExport(
+    source=Source(
+        source_id="tx-atascosa-cad",
+        publisher="Atascosa Central Appraisal District",
+        title="2026 certified export (PACS 8.0.34 record length)",
+        url="https://atascosacad.com/data-export/",
+        state_fips="48",
+        county_fips="013",
+        license="No license stated on the data-export page (read 2026-11-06). Public redistribution is not stated",
+        ai_use="unknown",
+        redistribution="unknown",
+        attribution="Atascosa Central Appraisal District",
+        terms_reviewed="2026-11-06",
+    ),
+    county_fips="013",
+    account_system="atascosa_prop_id",
+)
+
+HARDIN = CountyExport(
+    source=Source(
+        source_id="tx-hardin-cad",
+        publisher="Hardin County Appraisal District",
+        title="2026 certified roll (PACS 8.0.34 record length)",
+        url="https://hardin-cad.org/data-downloads/",
+        state_fips="48",
+        county_fips="199",
+        license="No license stated on the data-downloads page (read 2026-11-06). A separate open-records policy prices custom copies. Public redistribution is not stated",
+        ai_use="unknown",
+        redistribution="unknown",
+        attribution="Hardin County Appraisal District",
+        terms_reviewed="2026-11-06",
+    ),
+    county_fips="199",
+    account_system="hardin_prop_id",
+)
+
+WILSON = CountyExport(
+    source=Source(
+        source_id="tx-wilson-cad",
+        publisher="Wilson County Appraisal District",
+        title="2026 appraisal roll, supplement 46 (PACS 8.0.34)",
+        url="https://wilson-cad.org/reports/",
+        state_fips="48",
+        county_fips="493",
+        license="No license stated on the reports page (read 2026-11-06). Public redistribution is not stated",
+        ai_use="unknown",
+        redistribution="unknown",
+        attribution="Wilson County Appraisal District",
+        terms_reviewed="2026-11-06",
+    ),
+    county_fips="493",
+    account_system="wilson_prop_id",
+)
+
 WALKER = CountyExport(
     source=Source(
         source_id="tx-walker-cad",
