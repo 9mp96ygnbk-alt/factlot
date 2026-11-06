@@ -65,11 +65,11 @@ file. Status: gated (purchase), `verified: false`, no adapter.** Config:
 
 ## Gates (need a person)
 
-1. **Purchase.** The one action: mail a written request with a cheque for the **Property Characteristics file
+1. **Purchase.** Requires a written request with a cheque for the **Property Characteristics file
    ($15,491.85)** and the **Secured Assessment Roll file ($48.70)** to Fresno County Assessor, Attention: Data
-   Sales, P.O. Box 1146, Fresno, CA 93715, and ask in the same letter for the use-code table and whether the
-   files may be republished. The Secured Roll file in the paid form includes owners' names; the founder should
-   decide whether to buy it with or without them (natural persons are never stored).
+   Sales, P.O. Box 1146, Fresno, CA 93715, together with the use-code table and an answer on whether the
+   files may be republished. The Secured Roll file in the paid form includes owners' names; it can be bought
+   with or without them (natural persons are never stored).
 2. A cheaper, partial route: the free 2026 PDF has values only; with the situs index ($29.21) one could join
    values to addresses but still has no use codes, so it cannot define the commercial scope.
 

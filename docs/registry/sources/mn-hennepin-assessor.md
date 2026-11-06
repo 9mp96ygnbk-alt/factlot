@@ -69,7 +69,7 @@ Adapter: `python/src/factlot/registry/adapters/mn_hennepin.py` (account system `
     §3); the sample below shows how many.
 - **AI use:** not addressed by the publisher. **Redistribution:** not restricted; public data,
   credit requested. Note that the Hub platform (Esri ArcGIS Hub) has its own terms of use for the
-  site, which should be read by a person, as for Socrata (backlog A11).
+  site, which should be read by a person, as for Socrata.
 - **robots.txt**
   - `gis-hennepin.hub.arcgis.com` and `hub.arcgis.com` (the download hosts): `User-agent: *`,
     `Crawl-delay: 60`, `Disallow: /sites/ /admin/ /sessions/ /groups/ /people/ /workspace/`. The
@@ -145,8 +145,8 @@ otherwise. The adapter maps by code, so an unlisted code yields no record.
 - **Throughput.** The Hub serves the CSV as a chunked stream; during this run it delivered about
   14 KB/s to the collector (which, like urllib, does not ask for gzip), while a dozen other
   collector runs shared the same link. The full file would have taken hours, so the real run
-  below used the first 4 MB as a sample (brief: "if a run would take more than 30 minutes, load a
-  sample and say so"). The detached collector run was left going; re-run
+  below used the first 4 MB as a sample (a run over 30 minutes is replaced by a stated
+  sample). To archive the full file, re-run
   `python -m factlot.collector snapshot --config registry/sources/mn/mn-hennepin-assessor.json --out collected`
   on a quiet link to archive the whole file, then `python -m factlot.registry.adapters.mn_hennepin collected/mn-hennepin-assessor/<sha16>/County_Parcels.csv registry.db --as-of 2026-10-22`.
 - **Platform terms.** A person should read the ArcGIS Hub site terms (Esri) once, as for Socrata.
@@ -155,7 +155,7 @@ otherwise. The adapter maps by code, so an unlisted code yields no record.
   person may want to confirm with Hennepin County GIS that automated downloads from the Hub are
   welcome (the metadata lists no contact; the Hub site does).
 
-### Platform terms read 2026-11-03 (gates pass, Task 5)
+### Platform terms read 2026-11-03
 
 Esri / ArcGIS Hub. No separate public Hub terms page for downloaders was found. Esri's Master Agreement (E204CW, <https://www.esri.com/content/dam/esrisites/en-us/media/legal/ma-translations/english.pdf>) and Product-Specific Terms (E300, <https://www.esri.com/content/dam/esrisites/en-us/media/legal/product-specific-terms-of-use/e300.pdf>) were read 2026-11-03 (HTTP 200, not accepted). Full notes: [`../requests/platform-terms/esri-hub.md`](../requests/platform-terms/esri-hub.md), [`esri-e204.md`](../requests/platform-terms/esri-e204.md), [`esri-e300.md`](../requests/platform-terms/esri-e300.md). E300 footnote 85:
 

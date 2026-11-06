@@ -69,6 +69,8 @@ FACTLOT_REGISTRY_DB="$PWD/factlot-registry-sample-dc-2026-11-04.db" npx -y https
 
 **Paid plans:** [Pro $49 a month and Team $599 a month](https://factlot.com/#pricing) raise the hosted limits and include hosted registry lookups as each region opens (none is open yet). Enterprise and private deployments: [contact@factlot.com](mailto:contact@factlot.com?subject=FactLot%20hosted%20registry%20early%20access). Questions and bug reports go in [GitHub Discussions](https://github.com/9mp96ygnbk-alt/factlot/discussions) and Issues.
 
+## What FactLot is
+
 Agents doing CRE work get stuck in the same places. They can't trust their own
 arithmetic, they can't cite where a number came from, and they can't tell that
 "Suite 400, 123 Main LLC" in one system is the same thing as a parcel number in
@@ -84,16 +86,6 @@ FactLot gives every agent three things it can use by default:
 | [`@factlot/tools`](packages/tools)   | The tool catalog, with native tool definitions for Claude, OpenAI, Gemini, Amazon Bedrock, Mistral, and OpenAPI platforms, plus one `runTool` dispatcher.                                                                                                                                                                           | MIT        |
 | [`@factlot/server`](packages/server) | The remote connector: Streamable HTTP MCP at `/mcp`, REST at `/v1`, and OpenAPI. Runs in Docker.                                                                                                                                                                                                                                    | Apache-2.0 |
 | [`@factlot/mcp`](packages/mcp)       | An MCP server that exposes all of the above to Claude and any other MCP-capable agent. It runs locally and needs no API key.                                                                                                                                                                                                        | Apache-2.0 |
-
-## Why
-
-In a [simulated survey of 165 CRE agent personas](docs/research/2026-11-agent-survey) across 20 roles:
-
-- The highest-rated offerings were document-to-facts (3.52/5), deterministic calculators (3.24), and canonical IDs and entity resolution (3.12).
-- 95% asked for citations, 51% reported that LLM math was wrong, and 35% said data licensing stops them using data they already pay for.
-- Agent-to-agent negotiation scored 0.35/5. Agents want facts they can trust, not more autonomy.
-
-That survey is a hypothesis generator, not market research. The [customer discovery plan](docs/customer-discovery.md) describes how we validate it. The same personas later [reviewed v0.1 as built](docs/research/2026-11-product-feedback) (also simulated): the calculators, IDs, and the quote-on-page verifier were praised wherever they applied, and most personas were blocked by coverage, which is what the section below is honest about.
 
 ## What FactLot covers today
 
@@ -116,8 +108,7 @@ Be clear about scope before adopting it:
   Maricopa, Wayne, Fairfax, King and much of California wait on a licence decision, a form or a
   purchase. Several public files omit owner names (Maryland, Utah, Los Angeles, San Francisco); zoning, recorded sales, deeds and mortgages,
   energy benchmarks and CMBS loan data only for some metros ([coverage](docs/registry/coverage.md)); no tenant rosters. See
-  [the registry](docs/registry/README.md), the [Tier 1 catalog](docs/registry/sources/README.md)
-  and the [Tier 2 index](docs/registry/tier2/README.md).
+  [the registry](docs/registry/README.md) and the [source catalog](docs/registry/sources/README.md).
 - **One rules pack**, the Texas property-tax protest deadline, verified against the official
   statute text. Other jurisdictions follow only after a person verifies them.
 - **Lease ingestion is a prototype**: deterministic quote-on-page and value-in-quote checks, OCR
@@ -178,25 +169,32 @@ same command in its config:
 }
 ```
 
-After first publish to npm: `claude mcp add factlot -- npx -y @factlot/mcp`.
 [Getting started](docs/getting-started.md) has every option, including the TypeScript libraries
 as release tarballs.
 
-The server provides these tools: `calc_rent_schedule`, `calc_net_effective_rent`,
-`calc_compare_proposals`, `calc_percentage_rent`, `calc_cam_reconciliation`,
-`calc_debt_sizing`, `calc_lease_remeasurement_asc842`, `calc_prepayment_and_defeasance`,
-`calc_walt`, `calc_npv`, `calc_irr`, `calc_lease_vs_own`,
-`calc_renew_vs_relocate`, `calc_hotel_metrics`,
-`rules_tx_property_tax_protest_deadline`,
-`id_parcel`, `id_entity`, `id_space`, `id_document`, `id_parse`, `fact_validate`,
-`search`, `fetch`, and `schema_get`, plus the six `registry_*` lookups when a registry database is configured
-(`FACTLOT_REGISTRY_DB`).
+The server provides these tools:
+
+- **Calculators:** `calc_rent_schedule`, `calc_net_effective_rent`, `calc_compare_proposals`,
+  `calc_multifamily_rent_roll`, `calc_percentage_rent`, `calc_cam_reconciliation`,
+  `calc_cam_reconciliation_batch`, `calc_capex_recovery`, `calc_debt_sizing`,
+  `calc_lease_remeasurement_asc842`, `calc_prepayment_and_defeasance`, `calc_walt`, `calc_npv`,
+  `calc_irr`, `calc_lease_vs_own`, `calc_renew_vs_relocate`, `calc_hotel_metrics`,
+  `calc_dcf_pro_forma`, `calc_direct_cap`, `calc_amortization_schedule`, `calc_equity_waterfall`,
+  `calc_exchange_1031`
+- **Rules:** `rules_tx_property_tax_protest_deadline`
+- **IDs and facts:** `id_parcel`, `id_entity`, `id_space`, `id_building`, `id_document`,
+  `id_parse`, `fact_validate`, `fact_package_create`, `fact_package_verify`, `lease_comp_validate`
+- **Documents:** `doc_verify_facts`, `doc_abstract_lease`, `doc_compare`, `doc_verify_claim`,
+  `doc_spread_statement`, `doc_check_use_conflict`
+- **Discovery:** `search`, `fetch`, `schema_get`
+- **Registry** (when `FACTLOT_REGISTRY_DB` points at a registry file): `registry_get`,
+  `registry_resolve_parcel`, `registry_resolve_external`, `registry_search_address`,
+  `registry_search_entities`, `registry_owned_by`, `registry_coverage`
 
 ## Quick start: Python agents
 
 ```bash
 pip install "git+https://github.com/9mp96ygnbk-alt/factlot.git#subdirectory=python"
-# after first publish to PyPI: pip install factlot
 ```
 
 ```python
@@ -245,31 +243,25 @@ npm install
 npm run check   # lint, format check, typecheck, tests, build
 ```
 
-## How FactLot is built and funded
+## License
 
-FactLot follows the [Supabase](https://github.com/supabase/supabase) model:
+FactLot is open source and fully self-hostable, which matters when leases are confidential.
 
-- **Open source.** The platform code is Apache-2.0. Client-facing schemas and SDKs are MIT. Everything here can be self-hosted, which matters when leases are confidential.
-- **FactLot Cloud (planned).** These are hosted services that cost real money to run:
-  - the **FactLot Registry**: ID resolution, ownership graph, crosswalks, change webhooks
-  - **Ingest**: documents to cited facts
-  - **Rules packs**: property tax, zoning, building-performance law
-
-  Pricing is usage-based with a free tier.
-
-See [docs/business-model.md](docs/business-model.md) and [docs/roadmap.md](docs/roadmap.md).
+- **Platform:** calculators, IDs, rules, the MCP server, the remote connector, and the ingest and
+  registry code are licensed under [Apache-2.0](LICENSE).
+- **Schema and SDKs:** `@factlot/schema`, `@factlot/tools` and the client SDKs are licensed under MIT.
+- **Hosted service:** [api.factlot.com](https://api.factlot.com/) runs the same open-source code,
+  free at 60 requests a minute, with [paid plans](https://factlot.com/#pricing) for higher limits.
 
 ## Docs
 
+- [Getting started](docs/getting-started.md) · [Install verification](docs/install-verification.md)
 - [Agent guide: which tool to call when](docs/agents.md) · [llms.txt](llms.txt)
-- [Rules packs](docs/rules.md) · [Lease ingestion](docs/ingest.md) · [Registry](docs/registry/README.md)
-- [FactLot ID specification](docs/id-spec.md)
-- [Fact model: provenance and rights](docs/fact-model.md)
-- [Backlog: everything not finished yet](docs/BACKLOG.md)
-- [Roadmap](docs/roadmap.md)
-- [Business model](docs/business-model.md)
-- [Customer discovery plan](docs/customer-discovery.md)
-- [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)
+- [Document verification](docs/document-verification.md) · [Lease ingestion](docs/ingest.md) · [Lease comps](docs/lease-comps.md)
+- [Rules packs](docs/rules.md) · [Registry](docs/registry/README.md) · [Coverage](docs/registry/coverage.md) · [Rights](docs/registry/rights.md)
+- [FactLot ID specification](docs/id-spec.md) · [Fact model: provenance and rights](docs/fact-model.md)
+- [Customer documents policy](docs/customer-documents.md) · [Privacy](https://factlot.com/privacy) · [Terms](https://factlot.com/terms)
+- [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)
 
 "FactLot" and the FactLot logo are trademarks of their owner. The open-source licenses
 cover the code, not the name.

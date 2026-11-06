@@ -52,11 +52,11 @@ tables" joined on `APN9`, which the Assessor holds.
 
 ## Gates (need a person)
 
-1. **Host blocks automated clients and the data is sold.** The founder opens
-   https://www.kerncounty.com/government/departments/assessor-recorder/property/mapping-gis/gis-data in a
-   browser, gets the price and order form, orders the GIS parcel database with use codes and assessed values
-   (owner names are in it; natural persons are never stored), and asks in the same request whether the
-   county permits republication of the facts.
+1. **Host blocks automated clients and the data is sold.** The price and order form are on
+   https://www.kerncounty.com/government/departments/assessor-recorder/property/mapping-gis/gis-data, which
+   needs a browser. The GIS parcel database with use codes and assessed values is a purchase (owner names are
+   in it; natural persons are never stored), and whether the county permits republication of the facts is
+   not stated.
 2. The Shafter copy is not a substitute: partial (37,628 parcels), three years old, indemnity terms.
 
 ## Real run

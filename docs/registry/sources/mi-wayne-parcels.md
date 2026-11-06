@@ -9,7 +9,7 @@ municipalities, Detroit included) with class and values, so this source covers t
 only Detroit. Two things keep it unverified: the county web portal's terms of use restrict reuse of
 site "materials" to personal, non-commercial use and forbid use on another website, which a person
 must weigh against the public-record status of an assessment roll; and the county-wide zip could not
-be fully downloaded in this session (the host served about 40 KB/s and dropped the collector's
+be fully downloaded during the review (the host served about 40 KB/s and dropped the collector's
 connections after about a minute), so the layout and the real run are confirmed on per-municipality
 zips of the same export (see Real run).
 
@@ -62,7 +62,7 @@ zips of the same export (see Real run).
 - **License status.** Assessment rolls are public records in Michigan (General Property Tax Act,
   MCL 211.1 et seq.; FOIA). The facts in the file (parcel number, class, values, situs) are not
   copyrightable, but the portal terms as written do not grant redistribution, so the config records
-  `redistribution` as unclear and `ai_use` as not addressed. Gate for the founder (below).
+  `redistribution` as unclear and `ai_use` as not addressed. See Gates (below).
 - **robots.txt** (`www.waynecountymi.gov/robots.txt`, read 2026-11-02): `User-agent: *` with a list
   of disallowed content pages (Covid, EngagementHQ projects, redirects, Sandbox, payment-option
   pages); no rule on `/files/`, no `Crawl-delay`. The landing page and the files are allowed; the
@@ -132,22 +132,22 @@ churches coded `201` as F1 with no values.
 
 ## Gates (anything that needs a person)
 
-1. **Terms of use.** Decide whether the portal's "personal, non-commercial use only" and "use … on any
-   other web site … is prohibited" sentences apply to the assessment exports, or ask
-   `equalization@waynecountymi.gov` for a statement on reuse of the annual assessment files (and on AI
+1. **Terms of use.** Open point: whether the portal's "personal, non-commercial use only" and "use … on any
+   other web site … is prohibited" sentences apply to the assessment exports, or a
+   statement from `equalization@waynecountymi.gov` on reuse of the annual assessment files (and on AI
    use). Until then the source stays `verified: false` and nothing from it is published. Downloading
    the files needs no account, login, click-through, CAPTCHA, or fee.
 2. **The county-wide download.** The 132 MB zip downloads at about 40 KB/s from this environment
    (while other collectors share the connection), and the collector's connections were closed by the
    host or network after roughly a minute (`The read operation timed out`, `Remote end closed
 connection without response`, `SSL: UNEXPECTED_EOF_WHILE_READING`). The weekly GitHub Actions
-   collector, or a run from the founder's machine, should archive it; if it still fails, the 43
+   collector, or a run on a faster connection, should archive it; if it still fails, the 43
    per-municipality zips (listed by `discover`) are the same export in smaller pieces and can be put
    in `files` instead.
 
-### Terms read 2026-11-03 (gates pass)
+### Terms read 2026-11-03
 
-Portal terms, <https://www.waynecountymi.gov/Government/About-Wayne-County/Privacy-Policy>, section "Wayne County Terms of Use and Linking Policy" (read 2026-11-02, NOTES.md):
+Portal terms, <https://www.waynecountymi.gov/Government/About-Wayne-County/Privacy-Policy>, section "Wayne County Terms of Use and Linking Policy" (read 2026-11-02):
 
 > The use of the content, images and logos on the Wayne County web portal on any other web site or networked computer environment is prohibited.
 
@@ -163,11 +163,11 @@ Statute, MCL 15.231(2), <https://www.legislature.mi.gov/Laws/MCL?objectName=mcl-
 
 MCL 15.233(1), <https://www.legislature.mi.gov/Laws/MCL?objectName=mcl-15-233> (read 2026-11-02): "upon providing a public body's FOIA coordinator with a written request that describes a public record sufficiently to enable the public body to find the public record, a person has a right to inspect, copy, or receive copies of the requested public record of the public body." Commercial use: silent. Redistribution: silent.
 
-Blocked on 2026-11-03 (founder should open these): <https://www.waynecountymi.gov/Services/Records/FOIA-Request-Form-General> (HTTP 403, Access Denied); the FOIA procedures PDF at <https://www.waynecountymi.gov/files/assets/mainsite/v/1/clerk/documents/records/summary_of_foia_procedures_and_guidelines.pdf> (HTTP 403); <https://waynecountymi.nextrequest.com/> (HTTP 204, empty body). The FOIA coordinator's postal address is NOT CONFIRMED from those fetches. The review record (reviewed 2026-11-02) states the publishing division, Department of Management and Budget, Division of Assessment and Equalization, at 500 Griswold, Suite 2650, Detroit, and equalization@waynecountymi.gov, with no ZIP.
+Blocked on 2026-11-03 (these need a person in a browser): <https://www.waynecountymi.gov/Services/Records/FOIA-Request-Form-General> (HTTP 403, Access Denied); the FOIA procedures PDF at <https://www.waynecountymi.gov/files/assets/mainsite/v/1/clerk/documents/records/summary_of_foia_procedures_and_guidelines.pdf> (HTTP 403); <https://waynecountymi.nextrequest.com/> (HTTP 204, empty body). The FOIA coordinator's postal address is NOT CONFIRMED from those fetches. The review record (reviewed 2026-11-02) states the publishing division, Department of Management and Budget, Division of Assessment and Equalization, at 500 Griswold, Suite 2650, Detroit, and equalization@waynecountymi.gov, with no ZIP.
 
-The terms restrict saving materials to personal, non-commercial use and prohibit using portal content on any other website. They do not grant redistribution of the annual assessment zip. Michigan FOIA, as read, gives a right to inspect and copy and says nothing about commercial reuse. Do not treat the export as cleared for the open registry until the county answers the letter in `mi-wayne-parcels-letter.md`.
+The terms restrict saving materials to personal, non-commercial use and prohibit using portal content on any other website. They do not grant redistribution of the annual assessment zip. Michigan FOIA, as read, gives a right to inspect and copy and says nothing about commercial reuse. The export is not cleared for the open registry until the county confirms the terms in writing.
 
-### Platform terms read 2026-11-03 (gates pass, Task 5)
+### Platform terms read 2026-11-03
 
 Esri / ArcGIS Hub. No separate public Hub terms page for downloaders was found. Esri's Master Agreement (E204CW, <https://www.esri.com/content/dam/esrisites/en-us/media/legal/ma-translations/english.pdf>) and Product-Specific Terms (E300, <https://www.esri.com/content/dam/esrisites/en-us/media/legal/product-specific-terms-of-use/e300.pdf>) were read 2026-11-03 (HTTP 200, not accepted). Full notes: [`../requests/platform-terms/esri-hub.md`](../requests/platform-terms/esri-hub.md), [`esri-e204.md`](../requests/platform-terms/esri-e204.md), [`esri-e300.md`](../requests/platform-terms/esri-e300.md). E300 footnote 85:
 
@@ -193,7 +193,7 @@ Per-municipality zips of the 2026 export, archived with the collector (manifest
 response`, then a SIGTERM'd process at 4 MB), and by 01:51 UTC the host answered HEAD for this file
   with `content-length: 1` and reset range requests, which reads as the CDN refusing further
   automated requests from this address. Per the data policy the attempts stopped there; nothing was
-  worked around. A later run (the weekly collector, or the founder's machine) should archive it with
+  worked around. A later run (the weekly collector, or another connection) should archive it with
   `snapshot`.
 
 The county-wide zip was not run either (Gate 2): the one attempt that got past robots.txt timed out

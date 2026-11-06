@@ -31,7 +31,7 @@ jobs:
         with:
           persist-credentials: false
       # The site is plain files with no build step. Leave out the folder's own notes
-      # (README.md, CHECKS.md), which are for maintainers, not visitors.
+      # (README.md), which is for maintainers, not visitors.
       - name: Stage the site
         run: |
           mkdir -p "$RUNNER_TEMP/site"

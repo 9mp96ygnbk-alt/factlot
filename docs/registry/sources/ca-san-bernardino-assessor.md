@@ -28,8 +28,8 @@ adapter written: the layout was read from the publisher's PDFs, not from a real 
   or redistribution statement.
 - Roll page, "Limitation of liability": "Data provided by the San Bernardino County Assessor's Office is
   maintained for internal use only in the determination of property value for the purpose of taxation."
-  It then disclaims accuracy and warranties. I read this as a statement of purpose inside a disclaimer, not a
-  use restriction, but it is the one sentence a person should confirm before the flag is flipped.
+  It then disclaims accuracy and warranties. This reads as a statement of purpose inside a disclaimer, not a
+  use restriction, but it is the one sentence to confirm before the source is verified.
 - "Names and address information protected per California Government Code Section 7928.205."
 - `arc.sbcounty.gov/robots.txt`: generic agents disallow only `/wp-admin/` (except admin-ajax) and calendar
   query strings; SemrushBot is disallowed. Downloads are allowed. `main.sbcounty.gov` did not answer robots.txt.
@@ -57,9 +57,9 @@ adapter written: the layout was read from the publisher's PDFs, not from a real 
 None for access. Confirm the "internal use only" sentence (above) and decide whether a roll without situs
 or owner is worth loading.
 
-### Terms read 2026-11-03 (gates pass)
+### Terms read 2026-11-03
 
-Assessor Property Data Files, <https://arc.sbcounty.gov/property-information/> (read 2026-11-02, NOTES.md). The page states: "Names and address information protected per California Government Code Section 7928.205." Limitation of liability:
+Assessor Property Data Files, <https://arc.sbcounty.gov/property-information/> (read 2026-11-02). The page states: "Names and address information protected per California Government Code Section 7928.205." Limitation of liability:
 
 > Data provided by the San Bernardino County Assessor's Office is maintained for internal use only in the determination of property value for the purpose of taxation. While the office strives to maintain the accuracy of the content of its data files, it makes no claims, promises, or guarantees about the accuracy, completeness, or adequacy of the contents of the files. The County of San Bernardino assumes no responsibility arising from use of this information. No warranty of any kind, expressed or implied, including but not limited to, the implied warranties of merchantability and fitness for particular purposes is made.
 
@@ -67,9 +67,9 @@ Assessor Property Data Files, <https://arc.sbcounty.gov/property-information/> (
 
 Office address, <https://arc.sbcounty.gov/san-bernardino-assessor-district-office/> (read 2026-11-03): "222 W. Hospitality Lane", "3rd Floor", "San Bernardino, CA 92415", phone 909.386.8870. No email address is printed on that page.
 
-Gov. Code § 7922.530(a) and Rev. & Tax. Code §§ 408 and 408.3 (read 2026-11-02, NOTES.md; <https://leginfo.legislature.ca.gov>). Section 408.3(a): "property characteristics information maintained by the assessor is a public record and shall be open to public inspection." Section 408(a) withholds records "not required by law to be kept or prepared by the assessor". Commercial use: silent. Redistribution: silent. Gov. Code § 7921.000 is NOT CONFIRMED. Founder URL, HTTP 403 on 2026-11-03: <https://leginfo.legislature.ca.gov/faces/codes_displaySection.xhtml?lawCode=GOV&sectionNum=7921.000.> The text of § 7928.205 was not read.
+Gov. Code § 7922.530(a) and Rev. & Tax. Code §§ 408 and 408.3 (read 2026-11-02; <https://leginfo.legislature.ca.gov>). Section 408.3(a): "property characteristics information maintained by the assessor is a public record and shall be open to public inspection." Section 408(a) withholds records "not required by law to be kept or prepared by the assessor". Commercial use: silent. Redistribution: silent. Gov. Code § 7921.000 is NOT CONFIRMED (HTTP 403 on 2026-11-03: <https://leginfo.legislature.ca.gov/faces/codes_displaySection.xhtml?lawCode=GOV&sectionNum=7921.000.> The text of § 7928.205 was not read.
 
-The liability paragraph does not grant redistribution. "maintained for internal use only" is a use sentence inside a warranty disclaimer, and it is unresolved. The name-and-address line is a withholding, not a licence to republish the other fields. Leave the source unverified until the Assessor answers `ca-san-bernardino-assessor-letter.md`.
+The liability paragraph does not grant redistribution. "maintained for internal use only" is a use sentence inside a warranty disclaimer, and it is unresolved. The name-and-address line is a withholding, not a licence to republish the other fields. The source stays unverified until the Assessor confirms the terms in writing.
 
 ## Real run
 

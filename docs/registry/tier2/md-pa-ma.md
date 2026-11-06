@@ -1,11 +1,11 @@
 # Tier 2: Maryland, Pennsylvania, Massachusetts
 
 Region file for the nine counties in `md-pa-ma` (rank by 2025 resident population in brackets), reviewed
-2026-11-03 under the [Tier 2 brief](README.md). Statewide sources were checked first: Maryland and
+2026-11-03 under the [Tier 2 method](README.md#method). Statewide sources were checked first: Maryland and
 Massachusetts each have one that clears every county in the region; Pennsylvania has none, so the two
 counties have a source each.
 
-| County (rank)            | Source id                                                            | Status   | Licence                                                                                          | Owner names | Sample counts                                                                                                                  | Action a person must take                                                 |
+| County (rank)            | Source id                                                            | Status   | Licence                                                                                          | Owner names | Sample counts                                                                                                                  | What clearing the gate needs                                              |
 | ------------------------ | -------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------ | ----------- | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
 | Montgomery MD (45)       | [`md-sdat-real-property`](../sources/md-sdat-real-property.md)       | verified | Public Domain (portal field); attribution SDAT and MDP                                           | no          | full county file: 11,578 kept (`F1` 8,826; `F2` 1,470; `B` 1,282) of 11,580 rows                                               | none                                                                      |
 | Prince George's MD (57)  | [`md-sdat-real-property`](../sources/md-sdat-real-property.md)       | verified | same                                                                                             | no          | full county file: 13,023 kept (`F1` 8,615; `F2` 3,269; `B` 1,139)                                                              | none                                                                      |
@@ -30,10 +30,10 @@ How to read the table:
 - **Massachusetts.** MassGIS's Level 3 town files (one zip per municipality, from a public bucket, with
   owner names and addresses) cover Middlesex, Worcester, Essex and Norfolk: 176 files, 514.6 MB, none over
   13.5 MB. Only 10 towns were downloaded; the other 166 are in the config. The fee clause in the layer
-  metadata ("should not be redistributed for a fee beyond reproduction costs") is the one question for
-  the founder; the open registry is free, so the source is `verified: true`. mass.gov blocks the collector,
+  metadata ("should not be redistributed for a fee beyond reproduction costs") is the one open licence
+  question; the open registry is free, so the source is `verified: true`. mass.gov blocks the collector,
   so the licence was read from the metadata inside the downloads.
-- `B` here is each publisher's own apartment class; the unit-count tests the brief asks for (five or more)
+- `B` here is each publisher's own apartment class; the unit-count test for apartments (five or more)
   are noted in each record's Known gaps (Maryland `M` often shows fewer than five dwelling units;
   Massachusetts `111` covers four to eight).
 
@@ -51,12 +51,12 @@ Adapters (`python/src/factlot/registry/adapters/`): `md_sdat.py`, `ma_massgis.py
 Loading notes common to the multi-file sources (Maryland: one file per county; Massachusetts: one per town;
 Montgomery PA: one per class): load each file with the same or its own as-of date, and do not use
 `--full-roll` (the registry would retire the other files' parcels). Allegheny is a single file and loads
-as a full roll. Bandwidth used in this review: about 100 MB (Maryland 10.6 MB, Massachusetts 67.9 MB,
+as a full roll. Downloaded in this review: about 100 MB (Maryland 10.6 MB, Massachusetts 67.9 MB,
 Montgomery PA 12.3 MB, Allegheny three 3 MB samples).
 
 ## Entity registries for these states
 
-| State | Source id                                            | Status                                            | What it is and what a person must do                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| State | Source id                                            | Status                                            | What it is and what it needs                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | ----- | ---------------------------------------------------- | ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | PA    | [`pa-sos-entities`](../sources/pa-sos-entities.md)   | verified, already loaded                          | Department of State registered businesses on data.pa.gov, Public Domain U.S. Government. No action. Owner-name matching can use it for Montgomery PA (Allegheny publishes no owners).                                                                                                                                                                                                                                                                                            |
 | MD    | [`md-sdat-entities`](../sources/md-sdat-entities.md) | gated: purchase                                   | SDAT's Corporate File (corporations, LLCs, LPs, LLPs, trade names; monthly, weekly subscription) is sold through SpecPrint, Inc.; no price or terms are published. **Action:** contact SpecPrint (sales@specprint.com, (410) 561-9600) for price, layout, and whether the file may be redistributed and used by AI; the same call covers SDAT's ownership file. Maryland parcels have no owner names, so the first use would be Maryland-registered owners of parcels elsewhere. |

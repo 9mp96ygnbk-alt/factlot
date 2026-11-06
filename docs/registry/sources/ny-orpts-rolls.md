@@ -40,7 +40,7 @@ never loaded from this source (they are `ny-nyc-dof`).
   license field. AI use is not addressed.
 - The one clause flagged on `ny-dos-entities` applies here too: the prohibition on bots sits in the
   "Public Participation" (user upload) section, not in the licence to download data. A person should
-  confirm that reading once for both sources (backlog A11), and read the portal platform's terms
+  confirm that reading once for both sources, and read the portal platform's terms
   (socrata.com).
 - robots.txt (`data.ny.gov`): `Crawl-delay: 1`; only `/browse` search URLs with `q=`, `category=` and
   similar parameters are disallowed. `/resource/` and `/api/` are allowed. The collector's discover

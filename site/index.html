@@ -23,7 +23,21 @@
       property="og:description"
       content="Deterministic CRE calculators with audit trails, canonical IDs, and cited public-record facts for AI agents. Open source."
     />
-    <meta name="twitter:card" content="summary" />
+    <meta
+      property="og:image"
+      content="https://factlot.com/social-preview.png"
+    />
+    <meta property="og:image:width" content="1280" />
+    <meta property="og:image:height" content="640" />
+    <meta
+      property="og:image:alt"
+      content="FactLot: the open fact layer for commercial real estate AI agents"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:image"
+      content="https://factlot.com/social-preview.png"
+    />
     <meta
       name="twitter:title"
       content="FactLot: the open fact layer for commercial real estate AI agents"
@@ -489,26 +503,55 @@
               (JSON Schema, every input field described)
             </li>
           </ul>
-          <p>Tools in the local MCP server:</p>
-          <p class="small">
-            <code>calc_rent_schedule</code>,
-            <code>calc_net_effective_rent</code>,
-            <code>calc_compare_proposals</code>,
-            <code>calc_percentage_rent</code>,
-            <code>calc_cam_reconciliation</code>, <code>calc_debt_sizing</code>,
-            <code>calc_lease_remeasurement_asc842</code>,
-            <code>calc_prepayment_and_defeasance</code>, <code>calc_walt</code>,
-            <code>calc_npv</code>, <code>calc_irr</code>,
-            <code>calc_lease_vs_own</code>, <code>calc_renew_vs_relocate</code>,
-            <code>calc_hotel_metrics</code>,
-            <code>rules_tx_property_tax_protest_deadline</code>,
-            <code>id_parcel</code>, <code>id_entity</code>,
-            <code>id_space</code>, <code>id_document</code>,
-            <code>id_parse</code>, <code>fact_validate</code>,
-            <code>search</code>, <code>fetch</code>, <code>schema_get</code>.
-            Six <code>registry_*</code> lookups are added when a registry
-            database is configured.
-          </p>
+          <p>Tools:</p>
+          <ul class="plain small">
+            <li>
+              <strong>Calculators</strong>: <code>calc_rent_schedule</code>,
+              <code>calc_net_effective_rent</code>,
+              <code>calc_compare_proposals</code>,
+              <code>calc_multifamily_rent_roll</code>,
+              <code>calc_percentage_rent</code>,
+              <code>calc_cam_reconciliation</code>,
+              <code>calc_cam_reconciliation_batch</code>,
+              <code>calc_capex_recovery</code>, <code>calc_debt_sizing</code>,
+              <code>calc_lease_remeasurement_asc842</code>,
+              <code>calc_prepayment_and_defeasance</code>,
+              <code>calc_walt</code>, <code>calc_npv</code>,
+              <code>calc_irr</code>, <code>calc_lease_vs_own</code>,
+              <code>calc_renew_vs_relocate</code>,
+              <code>calc_hotel_metrics</code>, <code>calc_dcf_pro_forma</code>,
+              <code>calc_direct_cap</code>,
+              <code>calc_amortization_schedule</code>,
+              <code>calc_equity_waterfall</code>,
+              <code>calc_exchange_1031</code>
+            </li>
+            <li>
+              <strong>Rules</strong>:
+              <code>rules_tx_property_tax_protest_deadline</code>
+            </li>
+            <li>
+              <strong>IDs and facts</strong>: <code>id_parcel</code>,
+              <code>id_entity</code>, <code>id_space</code>,
+              <code>id_building</code>, <code>id_document</code>,
+              <code>id_parse</code>, <code>fact_validate</code>,
+              <code>fact_package_create</code>,
+              <code>fact_package_verify</code>, <code>lease_comp_validate</code>
+            </li>
+            <li>
+              <strong>Documents</strong>: <code>doc_verify_facts</code>,
+              <code>doc_abstract_lease</code>, <code>doc_compare</code>,
+              <code>doc_verify_claim</code>, <code>doc_spread_statement</code>,
+              <code>doc_check_use_conflict</code>
+            </li>
+            <li>
+              <strong>Discovery</strong>: <code>search</code>,
+              <code>fetch</code>, <code>schema_get</code>
+            </li>
+            <li>
+              <strong>Registry</strong>: seven <code>registry_*</code> lookups,
+              added when a registry database is configured
+            </li>
+          </ul>
           <p class="small">
             Install v0.3.0 (not yet on npm or PyPI): any MCP client runs
             <code
@@ -555,8 +598,7 @@
               <p><strong>$49 a month</strong></p>
               <p>
                 An API key with 600 requests a minute, hosted registry lookups
-                as each region opens (none is open yet), and email support from
-                the founder.
+                as each region opens (none is open yet), and email support.
               </p>
               <p>
                 <a
@@ -572,7 +614,7 @@
               <p><strong>$599 a month</strong></p>
               <p>
                 3,000 requests a minute, hosted registry lookups as each region
-                opens (none is open yet), priority support, and a say in which
+                opens (none is open yet), priority support, and input on which
                 regions open next.
               </p>
               <p>
@@ -611,38 +653,43 @@
 
       <section id="open-source" aria-labelledby="os-title">
         <div class="wrap">
-          <h2 id="os-title">Open source, the Supabase way</h2>
+          <h2 id="os-title">Open source</h2>
           <p>
-            The code is free and self-hostable, which matters when leases are
-            confidential. The hosted services that cost real money to run are
-            what we charge for.
+            Every tool is open source and self-hostable, which matters when
+            leases are confidential. The hosted endpoint runs the same code.
           </p>
           <ul class="plain">
             <li>
-              <strong>Schema and SDKs</strong>: <code>@factlot/schema</code> and
-              the client SDKs. MIT, free.
+              <strong>Schema and SDKs</strong>: <code>@factlot/schema</code>,
+              <code>@factlot/tools</code> and the client SDKs. MIT.
             </li>
             <li>
-              <strong>Engine</strong>: calculators, IDs, the MCP server, the
-              remote connector, and the ingest and registry code. Apache-2.0,
-              free, self-hostable.
+              <strong>Platform</strong>: calculators, IDs, rules, the MCP
+              server, the remote connector, and the ingest and registry code.
+              Apache-2.0.
             </li>
             <li>
-              <strong>FactLot Cloud</strong>: the hosted registry, ingest, and
-              rules packs, with SLAs and support. Usage-based with a free tier,
-              no per-seat pricing.
-              <em>Not yet public.</em>
+              <strong>Hosted</strong>: <code>https://api.factlot.com</code>,
+              free at 60 requests a minute, with paid plans for higher limits
+              and hosted registry lookups.
             </li>
           </ul>
           <p>
+            <a href="https://github.com/9mp96ygnbk-alt/factlot">Source</a>
+            ·
             <a
-              href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/business-model.md"
-              >Business model</a
+              href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/CONTRIBUTING.md"
+              >Contributing</a
             >
             ·
             <a
-              href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/roadmap.md"
-              >Roadmap</a
+              href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/SECURITY.md"
+              >Security</a
+            >
+            ·
+            <a
+              href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/CHANGELOG.md"
+              >Changelog</a
             >
           </p>
         </div>

@@ -44,12 +44,9 @@ Hosted registry regions, enterprise terms, and private deployments: email contac
 - [Tool definitions (JSON Schema)](https://github.com/9mp96ygnbk-alt/factlot/blob/main/spec/schemas/tools.json): every calculator's input schema, with field descriptions
 - [Fact model](https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/fact-model.md): facts, provenance, rights, and supersession
 - [FactLot ID spec](https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/id-spec.md): URN and short-ID formats and normalization rules
-- [Registry and source catalog](https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/registry/sources/README.md): 42 verified public-record sources, 1,953,805 commercial parcels in 405 counties (21 states and DC) built in the project's pipeline, and 14.2 million registered entities (queryable today: the downloadable DC sample on a self-hosted FactLot; hosted registry lookups are not open yet), with the licence and AI-use status of each source ([Tier 2 index](https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/registry/tier2/README.md))
+- [Registry and source catalog](https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/registry/sources/README.md): 42 verified public-record sources, 1,953,805 commercial parcels in 405 counties (21 states and DC) built in the project's pipeline, and 14.2 million registered entities (queryable today: the downloadable DC sample on a self-hosted FactLot; hosted registry lookups are not open yet), with the licence and AI-use status of each source
 - [Conformance vectors](https://github.com/9mp96ygnbk-alt/factlot/blob/main/spec/README.md): shared test cases every SDK must pass
 
 ## Optional
 
 - [FactLot Bench](https://github.com/9mp96ygnbk-alt/factlot/blob/main/bench/README.md): 14 CRE agent tasks with independently computed answers (not yet run on current models)
-- [Roadmap](https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/roadmap.md)
-- [Business model](https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/business-model.md)
-- [Survey of 165 simulated CRE agent personas](https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/research/2026-11-agent-survey/README.md): simulated, not customers or users

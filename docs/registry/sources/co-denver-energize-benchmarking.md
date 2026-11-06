@@ -44,7 +44,7 @@ matched on street address 6805 N ARGONNE ST`). `Reporting Year` is the workbook'
 
 ## Real run (2026-11-04)
 
-Into a scratch Denver registry built from the archived Assessor exports (`…/scratchpad/data/r2/denver.db`, 13,539 parcels):
+Into a scratch Denver registry built from the archived Assessor exports (13,539 parcels):
 
 ```
 python -m factlot.registry.adapters.energy_benchmark denver 2025_Master_Data_Set_090326.xlsx denver.db --as-of 2026-09-22

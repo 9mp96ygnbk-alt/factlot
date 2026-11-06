@@ -23,15 +23,15 @@ Unknown (the order page is behind the account). The free search shows: entity na
 
 ## Gates
 
-1. Create a bizfile Online user account (not done; accounts are the founder's to create).
-2. Read the bulk-order price and any order agreement or use terms.
-3. Pay (not done).
+1. A bizfile Online user account (not created in this review).
+2. The bulk-order price and any order agreement or use terms (unread, behind the account).
+3. Payment (not made).
 
 Do not scrape bizfile Online search: it is an interactive application, and no bulk-use permission was found.
 
-### Terms read 2026-11-03 (gates pass)
+### Terms read 2026-11-03
 
-This memo is research, not legal advice; the founder holds no attorney or real estate license.
+This memo is research, not legal advice.
 
 **Bulk-order page.** https://www.sos.ca.gov/administration/public-records-act-requests/business-entity-records , read 2026-11-03.
 
@@ -56,7 +56,7 @@ Weekly BE data is $0 per year on that sentence. A master unload is $100 per unlo
 
 The prohibited-uses list also says: "Post, transmit, or in any way exploit any information, software, or other material for advertising or commercial purposes;" and, separately, "create derivative works from, or sublicense any proprietary software." The derivative-works bullet is about software. The filing-data sentence is the one that speaks to the records.
 
-Filing data (entity name, number, status) is the product the terms describe as unrestricted by the Secretary of State, with a third-party trademark caveat. The website commercial-purposes bullet is still on the page, so the draft letter asks the office to confirm the cited-fact use. Do not store natural-person names. Draft: `../requests/orders/ca-sos-entities-order-draft.md`.
+Filing data (entity name, number, status) is the product the terms describe as unrestricted by the Secretary of State, with a third-party trademark caveat. The website commercial-purposes bullet is still on the page, so the cited-fact use needs the office's confirmation. Natural-person names are not stored.
 
 ## Real run
 

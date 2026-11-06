@@ -86,8 +86,8 @@ All need a person. Nothing was done about any of them.
    `.dbf` table. A written confirmation covering the table, republication of facts and AI use is needed before
    `verified: true`.
 
-One action for the founder: email `GIS.Data@cot.tn.gov` asking (a) for a bulk or API route for the county folders (86 counties,
-weekly) that does not need the form, and (b) written confirmation that facts from `Assessment_Data_##.dbf` (owner of
+What would clear the gate: an answer from `GIS.Data@cot.tn.gov` on (a) a bulk or API route for the county folders (86 counties,
+weekly) that does not need the form, and (b) whether facts from `Assessment_Data_##.dbf` (owner of
 record, land use, values) may be republished in an open registry with AI use allowed. If the answer is yes, a person
 submits the form once for the wanted counties and places the zips in `collected/`; the adapter can then be written
 against the real layout. Alternatively use the per-county sources for the nine excluded counties (Davidson is done:

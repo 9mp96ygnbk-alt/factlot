@@ -1,10 +1,10 @@
-# Task 5: Tyler / Socrata terms of service
+# Tyler / Socrata terms of service
 
 Final URL: https://www.tylertech.com/terms/socrata-terms-of-service
 HTTP 200. Read 2026-11-03.
-Status versus the task5-raw capture: VERIFIED for the restrictions compared below. The page is Tyler's general Terms of Use. It is marked "Effective April 29, 2024".
+Status versus an earlier browser capture: VERIFIED for the restrictions compared below. The page is Tyler's general Terms of Use. It is marked "Effective April 29, 2024".
 
-This memo is research, not legal advice; the founder holds no attorney or real estate license.
+This memo is research, not legal advice.
 
 > Effective April 29, 2024
 

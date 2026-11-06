@@ -16,7 +16,7 @@ Reviewed 2026-11-03. Status: **not verified (gated: purchase; robots.txt disallo
 
 - **robots.txt blocks automation.** `https://www.sos.ok.gov/robots.txt` and `https://sos.ok.gov/robots.txt` are
   `User-agent: *` / `Disallow: /`. The collector's `discover` run records "robots_disallowed". One disclosure: the
-  research agent opened the order page once, by hand, before it had read robots.txt, to read the fee schedule; no
+  order page was opened once, by hand, before robots.txt was read, to read the fee schedule; no
   other page or file on the host was fetched and nothing was downloaded.
 - Fee schedule on the page: Master Download $500.00; Weekly Filing Update $150.00; Customize Bulk Order $1 per 40
   records (custom reports are returned as xhtml). "The monthly export is our complete database in a tilde(~)-delimited

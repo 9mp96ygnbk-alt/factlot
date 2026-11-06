@@ -1,10 +1,10 @@
-# Task 5: DataSF terms of use
+# DataSF terms of use
 
 Final URL: https://www.sf.gov/reports--april-2017--datasf-terms-use
 HTTP 200. Read 2026-11-03.
-Status versus the task5-raw capture: VERIFIED for the operative clauses compared below. The capture wraps the same sentences across lines. The licence, acceptance-by-download, derivative-work, re-identification, and indemnity wording matches.
+Status versus an earlier browser capture: VERIFIED for the operative clauses compared below. The capture wraps the same sentences across lines. The licence, acceptance-by-download, derivative-work, re-identification, and indemnity wording matches.
 
-This memo is research, not legal advice; the founder holds no attorney or real estate license.
+This memo is research, not legal advice.
 
 > Downloading or using any of the Data or any Derivative Work, in which case you understand and agree that the City will treat your download or use of the Data or a Derivative Work as an acceptance of the Terms of Use from that point forward.
 

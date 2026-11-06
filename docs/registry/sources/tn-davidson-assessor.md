@@ -77,7 +77,7 @@ Land-use codes (the Assessor's, from the portal data: code, description, parcels
 
 ## Gates
 
-None. (The founder may want written confirmation from `opendata@nashville.gov`; see Terms.)
+None. (Written confirmation from `opendata@nashville.gov` would settle the reading; see Terms.)
 
 ## Real run
 

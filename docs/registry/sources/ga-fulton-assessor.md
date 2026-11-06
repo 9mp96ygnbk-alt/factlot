@@ -135,11 +135,11 @@ the only published source of the class and land-use descriptions above.
 4. The Assessors' own site (fultonassessor.org) refuses the collector's user agent (403). Nothing was fetched
    from it; if its "property data downloads" are needed, a person should look.
 
-### Terms read 2026-11-03 (gates pass)
+### Terms read 2026-11-03
 
-**ArcGIS licenseInfo, read 2026-11-02** (working notes; this lane did not re-fetch the item JSON).
+**ArcGIS licenseInfo, read 2026-11-02** (the item JSON was not re-fetched on 2026-11-03).
 
-Site item "Fulton County, Georgia - Open Data", https://www.arcgis.com/sharing/rest/content/items/9a3d1c28277b43ef99acf5c790302e49?f=json — licenseInfo is exactly "CC-BY-SA". No Creative Commons deed URL was in that field. This lane did not fetch the Creative Commons legal text. Share-alike and attribution duties are NOT CONFIRMED from a license deed.
+Site item "Fulton County, Georgia - Open Data", https://www.arcgis.com/sharing/rest/content/items/9a3d1c28277b43ef99acf5c790302e49?f=json — licenseInfo is exactly "CC-BY-SA". No Creative Commons deed URL was in that field. The Creative Commons legal text was not fetched. Share-alike and attribution duties are NOT CONFIRMED from a license deed.
 
 Tax Parcels 2025, https://www.arcgis.com/sharing/rest/content/items/c805da9aa51d4c508440358c00498fcf?f=json:
 
@@ -149,7 +149,7 @@ Tax_CAMA, https://www.arcgis.com/sharing/rest/content/items/75e58855b00d40d78739
 
 > Fulton County provides the data within these pages for your personal use
 
-The notes then continue with a quoted as-is, broken across the line end.
+The text then continues with a quoted as-is, broken across the line end.
 
 **Board of Assessors.** https://www.fultoncountyga.gov/boardofassessors — read 2026-11-03, HTTP 200. "235 Peachtree Street, NE", "Suite 1400", "Atlanta, GA 30303", "boa@fultoncountyga.gov".
 
@@ -175,11 +175,11 @@ Fees in that 2025 text:
 
 The Attorney General compilation says "no charge shall be made for the first quarter" and "not to exceed 10 cent(s) per page for letter or". No line of § 50-18-70 or § 50-18-71 in either file contains the word commercial. Both sections are silent on redistribution after the copy is obtained.
 
-**Blocked.** One guessed file URL returned HTTP 403 and a Cloudflare "Just a moment..." page. Exact URL for the founder: https://law.georgia.gov/sites/law.georgia.gov/files/AG-%23872100-v1-OPENGOV__Open_Records_Act_March_2016.pdf. The statute text above was read from the URLs that returned HTTP 200. LexisNexis was not opened.
+**Blocked.** One guessed file URL returned HTTP 403 and a Cloudflare "Just a moment..." page. The URL, which needs a person in a browser: https://law.georgia.gov/sites/law.georgia.gov/files/AG-%23872100-v1-OPENGOV__Open_Records_Act_March_2016.pdf. The statute text above was read from the URLs that returned HTTP 200. LexisNexis was not opened.
 
-The three publisher statements (CC-BY-SA, an as-is disclaimer, and personal use on Tax_CAMA) do not say the same thing. The Open Records Act sections read here do not supply a commercial-purpose certification and do not forbid redistribution after access. Leave `verified` false. The founder signs and sends `ga-fulton-assessor-letter.md`. This lane did not send it.
+The three publisher statements (CC-BY-SA, an as-is disclaimer, and personal use on Tax_CAMA) do not say the same thing. The Open Records Act sections read here do not supply a commercial-purpose certification and do not forbid redistribution after access. The source stays `verified: false` until the county confirms the terms in writing. No letter was sent.
 
-### Platform terms read 2026-11-03 (gates pass, Task 5)
+### Platform terms read 2026-11-03
 
 Esri / ArcGIS Hub. No separate public Hub terms page for downloaders was found. Esri's Master Agreement (E204CW, <https://www.esri.com/content/dam/esrisites/en-us/media/legal/ma-translations/english.pdf>) and Product-Specific Terms (E300, <https://www.esri.com/content/dam/esrisites/en-us/media/legal/product-specific-terms-of-use/e300.pdf>) were read 2026-11-03 (HTTP 200, not accepted). Full notes: [`../requests/platform-terms/esri-hub.md`](../requests/platform-terms/esri-hub.md), [`esri-e204.md`](../requests/platform-terms/esri-e204.md), [`esri-e300.md`](../requests/platform-terms/esri-e300.md). E300 footnote 85:
 
@@ -190,9 +190,8 @@ Read: E204 and E300 bind Esri's customer (here, the publisher), not an anonymous
 ## Real run
 
 **Not yet run on a real file.** On 2026-11-02 the shared connection was saturated and
-`gis.fultoncountyga.gov` stalled, so no roll file was archived before hand-off. A detached collector run
-for the Hub CSV (`config-csv-only.json` in the scratchpad, same source id, `--out collected`) was left
-running; when it finishes, `collected/ga-fulton-assessor/manifest.jsonl` gains an `archived` line and the
+`gis.fultoncountyga.gov` stalled, so no roll file was archived during the review. When a collector run
+for the Hub CSV finishes, `collected/ga-fulton-assessor/manifest.jsonl` gains an `archived` line and the
 file lands at `collected/ga-fulton-assessor/<sha16>/Tax_Parcels_2025.csv`. Then:
 
 ```

@@ -113,7 +113,7 @@ would rather file those under F1 changes `_STATE_CATEGORY` and ignores the file'
 ## Gates (needs a person)
 
 None for collection: the downloads are public, unauthenticated and robots-permitted. For the
-record: a person should re-read the privacy policy before go-live (backlog A11, common to all Texas
+record: a person should re-read the privacy policy before go-live (common to all Texas
 sources), and decide the F3/F4/F5 question above.
 
 ## Quality pass (2026-11-03)

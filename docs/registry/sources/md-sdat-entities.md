@@ -2,8 +2,8 @@
 
 Review record for the source `md-sdat-entities` (data policy §5). Reviewed 2026-11-03. Machine-readable
 copy: [`registry/sources/md/md-sdat-entities.json`](../../../registry/sources/md/md-sdat-entities.json)
-(`verified: false`). **No adapter, no file, no sample**: the register is sold, and the brief says to
-stop at a purchase.
+(`verified: false`). **No adapter, no file, no sample**: the register is sold, and review stops at
+a purchase.
 
 ## Publisher and URLs
 

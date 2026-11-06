@@ -52,7 +52,7 @@ None (no account, click-through, fee, or CAPTCHA). The Hub export streams slowly
 record); the collector's first `snapshot` attempt is recorded in
 `collected/dc-dlcp-entities/manifest.jsonl` as `error: The read operation timed out`.
 
-### Platform terms read 2026-11-03 (gates pass, Task 5)
+### Platform terms read 2026-11-03
 
 Terms and Conditions of Use for District Data, <https://dc.gov/page/terms-and-conditions-use-district-data> (HTTP 200, read 2026-11-03; reached from the Open Data DC footer, since <https://opendata.dc.gov/pages/terms-of-use> shows a sign-in message). Full notes: [`../requests/platform-terms/dc-district-data.md`](../requests/platform-terms/dc-district-data.md).
 

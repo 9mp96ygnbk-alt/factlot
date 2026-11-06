@@ -1023,7 +1023,7 @@ class Registry:
                  f"in owner_match_review #{decision['review_id']}")
         return self._link(decision["entity_urn"], owner_fact, confidence, basis)
 
-    # --- fuzzy owner matching with human review (backlog C2) --------------------------------------
+    # --- fuzzy owner matching with human review------------------------------------------------
 
     def _common_tokens(self, max_token_frequency: int) -> set[str]:
         """Tokens indexed for more entities than the cap: too common to narrow a candidate pool."""

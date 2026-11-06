@@ -31,9 +31,9 @@ From the form: business name and address, incorporation date, approval date, sta
 
 Nothing was purchased and no request was sent.
 
-### Terms read 2026-11-03 (gates pass)
+### Terms read 2026-11-03
 
-This memo is research, not legal advice; the founder holds no attorney or real estate license.
+This memo is research, not legal advice.
 
 **Form m027.** https://www.azcc.gov/docs/default-source/corps-files/forms/m027-database-extraction-request4afa009930ae4583a9310593ba4c65ce.pdf?sfvrsn=73637fee_6 , read 2026-11-03.
 
@@ -53,9 +53,9 @@ The general public-records page (https://azcc.gov/public-records-request , effec
 
 > D. For the purposes of this section, "commercial purpose" means the use of a public record for the purpose of sale or resale or for the purpose of producing a document containing all or part of the copy, printout or photograph for sale or the obtaining of names and addresses from public records for the purpose of solicitation or the sale of names and addresses to another for the purpose of solicitation or for any purpose in which the purchaser can reasonably anticipate the receipt of monetary gain from the direct or indirect use of the public record. Commercial purpose does not mean the use of a public record as evidence or as research for evidence in an action in any judicial or quasi-judicial body.
 
-Subsection C makes a different commercial purpose than the one stated a treble-damages misuse. Subsection A is where the statute places the three charge factors. The public-records page cites subsection B for those factors. Both texts are saved.
+Subsection C makes a different commercial purpose than the one stated a treble-damages misuse. Subsection A is where the statute places the three charge factors. The public-records page cites subsection B for those factors.
 
-The form sells a use, keeps ownership with the Commission, and requires the purpose to match the use. Publishing the file is not what the draft purpose asks for. Publishing cited entity name, status, and id is still a commercial purpose under subsection D, so it has to be written on the form and accepted. It is not cleared by silence. Draft, unsigned: `../requests/orders/az-sos-entities-order-draft.md`.
+The form sells a use, keeps ownership with the Commission, and requires the purpose to match the use. Publishing the file itself would not match a stated purpose of cited facts. Publishing cited entity name, status, and id is still a commercial purpose under subsection D, so it has to be written on the form and accepted. It is not cleared by silence.
 
 ## Real run
 

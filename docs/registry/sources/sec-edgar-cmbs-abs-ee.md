@@ -6,9 +6,8 @@ Review record for the sources `sec-edgar-cmbs-<CIK>` (one source per CMBS trust;
 `python/tests/test_sec_edgar_script.py`). There is no collector config under `registry/sources/`: the SEC asks for its
 own declared User-Agent, which the generic collector does not send, so these files are fetched by the script.
 
-Predicate: `debt.cmbs_loan` ([fact model](../../fact-model.md#predicates-from-sec-filings)). It answers the persona
-asks for building-level loan balance, maturity and servicing status (B01-P06, B04-P17, B07-P06, B10-P14 in the
-[live product review](../../research/2026-11-live-product-review/appendix.md)).
+Predicate: `debt.cmbs_loan` ([fact model](../../fact-model.md#predicates-from-sec-filings)). It answers questions about
+building-level loan balance, maturity and servicing status.
 
 ## Publisher and URLs
 
@@ -134,7 +133,7 @@ sit on the very building subject the roll-up makes. Run `maintain` (roll-up) bef
 ## Real run (2026-11-04)
 
 All 377 trusts into one scratch registry, then into copies of the NYC and DC registries (the two with building-level
-parcels at hand), `scratchpad/data/edgar/`:
+parcels at hand):
 
 | Count                                                          |                               |
 | -------------------------------------------------------------- | ----------------------------: |

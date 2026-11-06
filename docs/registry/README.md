@@ -24,7 +24,7 @@ B12), 537,359 facts, 33,362 organisation owners, in 40 s. The Comptroller adapte
 (`tx_comptroller`) loaded 3,272,073 registered Texas entities from the franchise-tax file
 (242,564 rows without an SOS number skipped) in 19 min, and exact-name linking matched 66,132 of
 the 90,158 organisation owners of record (73%): 224 names were ambiguous and 23,802 unmatched.
-For those, fuzzy matching with a human review queue (backlog C2) is now built and tested on
+For those, fuzzy matching with a human review queue is now built and tested on
 synthetic data (see [Owner resolution](#owner-resolution)); it has not yet been run on the real
 file, so the 73% figure stands until a reviewer works the queue. The combined registry file is
 9.3 GB. The source review is in [texas-sources.md](texas-sources.md).

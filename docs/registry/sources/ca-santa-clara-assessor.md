@@ -57,20 +57,19 @@ another source; it is not catalogued as a source.
 
 1. **Purchase.** The roll with Use Codes is a paid product; the price is on a dated form, to be confirmed
    by phone (408-299-5500).
-2. **Order form and payment** by cheque, to the Public Service Unit. FactLot must not pay or send the form
-   (brief: the founder does this).
-3. **Terms** of the order form: resale, redistribution and AI use are unread. Ask specifically whether
+2. **Order form and payment** by cheque, to the Public Service Unit. Not done in this review.
+3. **Terms** of the order form: resale, redistribution and AI use are unread, including whether
    the registry may republish derived facts (class, situs, values) and whether owner names may be stored
    (the registry stores organisation names only).
 4. **Alternative to purchase:** a California Public Records Act request for the roll; California Revenue
    and Taxation Code §408 and §408.3 govern what the Assessor must disclose and may charge. These were
    not researched in this pass.
 
-### Terms read 2026-11-03 (gates pass)
+### Terms read 2026-11-03
 
-This memo is research, not legal advice; the founder holds no attorney or real estate license.
+This memo is research, not legal advice.
 
-No terms, price, layout, or address were readable. Each URL returned HTTP 403 (Cloudflare). The founder should open:
+No terms, price, layout, or address were readable. Each URL returned HTTP 403 (Cloudflare) and needs a person in a browser:
 
 - https://asr.santaclaracounty.gov/about-us/purchase-data/bulk-data
 - https://asr.santaclaracounty.gov/about-us/purchase-data/bulk-data-by-jurisdiction
@@ -80,9 +79,9 @@ No terms, price, layout, or address were readable. Each URL returned HTTP 403 (C
 
 Price per year: NOT CONFIRMED. Restrictive clause: NOT CONFIRMED. No search-indexed fee is quoted here.
 
-**Statute.** Same NOTES.md capture as the other California assessors, read 2026-11-02, because leginfo returned HTTP 403 on 2026-11-03. Gov. Code § 7922.530(a) and Rev. & Tax. Code §§ 408(a) and 408.3(a)–(d), as quoted in NOTES.md, do not address commercial use or redistribution. Gov. Code § 7928.205 is NOT CONFIRMED. A county contract, if one exists, was not read and can still restrict the file.
+**Statute.** Same capture as the other California assessors, read 2026-11-02, because leginfo returned HTTP 403 on 2026-11-03. Gov. Code § 7922.530(a) and Rev. & Tax. Code §§ 408(a) and 408.3(a)–(d), as captured, do not address commercial use or redistribution. Gov. Code § 7928.205 is NOT CONFIRMED. A county contract, if one exists, was not read and can still restrict the file.
 
-Until the Assessor sends the current form, there is nothing to treat as a license and nothing to load. Draft inquiry, with no dollar amount: `../requests/orders/ca-santa-clara-assessor-order-draft.md`.
+Until the Assessor sends the current form, there is nothing to treat as a license and nothing to load.
 
 ## Real run
 
@@ -92,7 +91,7 @@ the collector recorded `error: HTTP Error 403: Forbidden` (`collected/ca-santa-c
 
 ## Known gaps
 
-- Terms, current prices, field layout and use-code list are all unknown until the founder gets the forms.
+- Terms, current prices, field layout and use-code list are all unknown until the forms are obtained.
 - Owner names are in the paid roll; the Assessor's public portal withholds them.
 - If the roll is bought, the adapter should be `ca_santa_clara.py`, account system `scc_apn` (APN
   printed `123-45-678`), county FIPS `085`.

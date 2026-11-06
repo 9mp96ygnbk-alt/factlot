@@ -65,9 +65,9 @@ Review record for the FactLot Registry (data policy §5). Reviewed 2026-11-02. *
   restrict commercial use of its roll data or claim copyright in it without a statute saying so
   (Microdecisions, Inc. v. Skinner, 889 So. 2d 871 (Fla. 2d DCA 2004), about Collier County's GIS
   parcel data). But the publisher's own stated terms say "non-commercial use only" and forbid
-  redistribution of "material" from the site, and the brief says an unclear license stays
-  unverified. A person needs to decide that chapter 119 governs the roll files rather than the
-  website boilerplate (or ask PTO to confirm), then set `verified: true`. AI use is not addressed
+  redistribution of "material" from the site, and an unclear license stays unverified under the
+  data policy. Open point: whether chapter 119 governs the roll files rather than the website
+  boilerplate (or PTO confirms it); until then the source stays `verified: false`. AI use is not addressed
   anywhere. Attribution to use: "Florida Department of Revenue, Property Tax Oversight".
 - Note for whoever decides: the files are served to anyone without a login, agreement, or
   click-through; nothing was accepted to obtain them, and the collector identified itself.
@@ -171,13 +171,13 @@ are dropped by the registry at ingest (data policy §3).
   stalled past the collector's 600-second read timeout, so the six target files (262 MB in all,
   Miami-Dade 60 MB alone) take hours, not minutes. The run was therefore done on a sample.
 
-### Terms read 2026-11-03 (gates pass)
+### Terms read 2026-11-03
 
 **Download Assessment Roll and GIS Data.** https://floridarevenue.com/property/Pages/DataPortal_RequestAssessmentRollGISData.aspx — read 2026-11-03, HTTP 200. The saved page names the file "real property roll (Name – Address – Legal, or NAL)". Opening line of the chapter 119 sentence:
 
 > The Department of Revenue publishes assessment rolls in compliance with
 
-The next line begins "chapter 119, Florida Statutes." The working notes (read 2026-11-02) give that opening as one line: "The Department of Revenue publishes assessment rolls in compliance with chapter 119, Florida". The same notes include "property owners exempt from public records disclosure under section 119.071, Florida Statutes."
+The next line begins "chapter 119, Florida Statutes." A capture read 2026-11-02 gives that opening as one line: "The Department of Revenue publishes assessment rolls in compliance with chapter 119, Florida". The same capture includes "property owners exempt from public records disclosure under section 119.071, Florida Statutes."
 
 Request route on the page read 2026-11-03:
 
@@ -211,9 +211,9 @@ Section 119.07(1)(a), https://www.leg.state.fl.us/statutes/index.cfm?App_mode=Di
 
 > and under supervision by the custodian of the public records.
 
-The working notes state that neither section says anything about commercial use or redistribution of records once obtained. On those two sections the statute is silent on commercial use and silent on redistribution after the copy is obtained.
+As captured, neither section says anything about commercial use or redistribution of records once obtained. On those two sections the statute is silent on commercial use and silent on redistribution after the copy is obtained.
 
-The Conditions of Use restrict copying and distribution of site material and limit a download to non-commercial use on one personal computer. They do not name the assessment rolls. The portal says the rolls are published in compliance with chapter 119. Those two writings do not, together, state a clear right to redistribute the NAL public fields. Leave `verified` false. The founder signs and sends `fl-dor-nal-letter.md`. This lane did not send it.
+The Conditions of Use restrict copying and distribution of site material and limit a download to non-commercial use on one personal computer. They do not name the assessment rolls. The portal says the rolls are published in compliance with chapter 119. Those two writings do not, together, state a clear right to redistribute the NAL public fields. The source stays `verified: false` until the Department confirms the terms in writing. No letter was sent.
 
 ## Real run (2026-11-02)
 
@@ -259,4 +259,4 @@ smallest 2026 final NAL file, `Union 73 Final NAL 2026.zip` (620,184 bytes, libr
   decision so the weekly run picks the source up.
 - The landing-page JSON listing in the config returns Atom XML to the collector (no `Accept`
   header), so `discover` finds 0 links; a collector option to send `Accept: application/json`
-  would make the library discoverable (backlog).
+  would make the library discoverable.

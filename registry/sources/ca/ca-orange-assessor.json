@@ -22,7 +22,7 @@
       "ai_use": "Not addressed",
       "redistribution": "Not addressed; the Assessor's privacy statement says the roll is a public document and that the website will not provide roll information on individual owners",
       "reviewed": "2026-11-02",
-      "notes": "Gate: no free bulk file. The only county GIS layer found (OC Public Works open data, 'Parcels With Attributes', ocgis.com LegalLotsAttributeOpenData) has APN, site address, land and improved value but no assessor use or class code (its GPLU fields hold editing notes), so commercial scope cannot be derived; its item carries no license and the OC Landbase is licensed by Board Resolution 11-196. Next step for the founder: written request to the Assessor (500 S. Main St, Suite 103, Orange CA 92868, Attn Quality Assurance) for the secured roll with use codes, or a ParcelQuest bulk order. robots.txt on ocassessor.gov blocks only Drupal system paths."
+      "notes": "Gate: no free bulk file. The only county GIS layer found (OC Public Works open data, 'Parcels With Attributes', ocgis.com LegalLotsAttributeOpenData) has APN, site address, land and improved value but no assessor use or class code (its GPLU fields hold editing notes), so commercial scope cannot be derived; its item carries no license and the OC Landbase is licensed by Board Resolution 11-196. What would clear the gate: a written request to the Assessor (500 S. Main St, Suite 103, Orange CA 92868, Attn Quality Assurance) for the secured roll with use codes, or a ParcelQuest bulk order. robots.txt on ocassessor.gov blocks only Drupal system paths."
     }
   ]
 }

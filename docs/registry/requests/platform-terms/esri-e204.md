@@ -1,11 +1,11 @@
-# Task 5: Esri Click-Through Master Agreement (E204CW)
+# Esri Click-Through Master Agreement (E204CW)
 
 Fetched URL: https://www.esri.com/content/dam/esrisites/en-us/media/legal/ma-translations/english.pdf
 HTTP 200. Read 2026-11-03. The master-agreement index links the English click-through to https://assets.esri.com/content/dam/esrisites/en-us/media/legal/ma-translations/english.pdf . That assets URL was not fetched separately. The PDF that was fetched is the click-through products-only agreement.
 
-Status versus the task5-raw capture: VERIFIED for the header, the grant in section 1.1, the Redistribution License definition, and B.8.1. The capture includes the full agreement. This memo does not claim a byte-for-byte diff of all 16 pages. The footer on the saved text is "E204CW (Click-through)" and "August 1, 2025", and the index lists "E204—08/01/2025".
+Status versus an earlier browser capture: VERIFIED for the header, the grant in section 1.1, the Redistribution License definition, and B.8.1. The capture includes the full agreement. This memo does not claim a byte-for-byte diff of all 16 pages. The footer on the saved text is "E204CW (Click-through)" and "August 1, 2025", and the index lists "E204—08/01/2025".
 
-This memo is research, not legal advice; the founder holds no attorney or real estate license.
+This memo is research, not legal advice.
 
 > Click-Through Master Agreement
 

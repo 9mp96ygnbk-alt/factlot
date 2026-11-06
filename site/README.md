@@ -5,7 +5,7 @@ A single static page: `index.html` and `styles.css`, plus `llms.txt` (a copy of 
 framework, no build step, no external scripts or fonts, no tracking. The only `<script>` element is
 a `application/ld+json` block (schema.org `SoftwareApplication` data), which the browser does not
 execute. Every number on the page comes from the
-repository's docs (`README.md`, `docs/roadmap.md`, `docs/registry/sources/README.md`,
+repository's docs (`README.md`, `docs/registry/sources/README.md`,
 `packages/calc/README.md`); update the page when those change.
 
 ## Preview locally
@@ -31,6 +31,5 @@ Then point `factlot.com` at the host following its custom-domain instructions.
 
 ## Checks
 
-`CHECKS.md` lists what was verified before the page was committed and how to repeat it.
 Formatting is covered by the repository's `npm run format:check` (Prettier formats the HTML and
 CSS too).

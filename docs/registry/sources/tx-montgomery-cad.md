@@ -39,7 +39,7 @@ retrieved** (the district's site is client-rendered). No adapter. County FIPS 48
 - Presenting the site's origin headers to the vendor API from the collector would be a workaround of
   the client-side delivery and is not to be done.
   One such request (to the vendor API, with another site's origin header) was prepared during the
-  2026-11-03 review and was blocked by the session's own safety check before it ran; it was not
+  2026-11-03 review and was blocked by a safety check before it ran; it was not
   retried and nothing was obtained that way. It must not be attempted: the route is a person reading
   the page in a browser, or a Public Information Act request.
 

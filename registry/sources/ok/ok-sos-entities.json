@@ -21,7 +21,7 @@
       "ai_use": "Unknown",
       "redistribution": "Unknown",
       "reviewed": "2026-11-03",
-      "notes": "The page describes the monthly export as 'our complete database in a tilde(~)-delimited text file' with 19 relational tables, about 600 MB unzipped; weekly updates have the same structure. A layout file and a sample weekly file are linked from the page; they were not fetched because of robots.txt. The research agent opened the order page once, by hand, before reading robots.txt; nothing else on the host was fetched. Natural-person names (agents, officers) must not be stored."
+      "notes": "The page describes the monthly export as 'our complete database in a tilde(~)-delimited text file' with 19 relational tables, about 600 MB unzipped; weekly updates have the same structure. A layout file and a sample weekly file are linked from the page; they were not fetched because of robots.txt. The order page was opened once, by hand, before robots.txt was read; nothing else on the host was fetched. Natural-person names (agents, officers) must not be stored."
     }
   ]
 }

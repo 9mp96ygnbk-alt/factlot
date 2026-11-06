@@ -1,7 +1,6 @@
 # Lease comps
 
-Lease comps are the one thing the survey's personas asked for that no open source had: what
-space like theirs leases for. FactLot does not sell them. It holds comps as **cited, verifiable
+Lease comps answer what space like yours leases for, and no open-source project held them. FactLot does not sell them. It holds comps as **cited, verifiable
 facts** from three free routes, and gives firms an open format and a validator to trade comps
 with each other without a central database.
 
@@ -153,7 +152,7 @@ redact the rent. A comp from a filing is before leasing commissions (leases do n
 expense basis from the agent's reading of a quoted clause (the quote is checked, its meaning is not), and
 uses the pages `html_pages` cuts from the exhibit (HTML has no page numbers). To widen the sample, a rent
 predicate that takes monthly dollars was added (Dexcom, Boxabl); the next gain is accepting a lease's
-stated anticipated commencement date with a flag, which needs a founder decision (below).
+stated anticipated commencement date with a flag, which the format does not support yet.
 
 ## Sharing comps between firms (give-to-get)
 
@@ -186,7 +185,7 @@ Rights travel with each comp (`rights.ai_use`, `rights.redistribution`):
   inside the pool, and may not reproduce it outside. `unknown` is treated as `prohibited`; the validator warns.
 - `ai_use: permitted`: an AI agent may read the comp. `prohibited`: the comp is for human readers only.
   Agents must check this field before they read a comp. FactLot enforces nothing by itself; it makes the
-  contributor's choice machine-readable, as the survey asked.
+  contributor's choice machine-readable.
 - A contributor may contribute a comp with narrower rights than the pool's norm, and may withdraw a comp by
   superseding it; copies already made are not recalled, which is why `unverified` hearsay should not be shared with `permitted`
   rights.
@@ -220,12 +219,12 @@ Checked 2026-11-04 for open, reusable per-lease data from large states. None is 
 The shape would need an expiration-only comp and a ZIP source to take the Connecticut file; its value is too
 small to justify that.
 
-## Not done, and why
+## Limitations
 
-- **Hosting, accounts, matching and a marketplace.** Not built.
-- **CMBS lease data and Exhibit 21** belong to another workstream.
+- **No hosted exchange.** FactLot runs no comp marketplace, accounts or matching service.
+- **CMBS lease data and Exhibit 21** are documented in their own source records.
 - **A stated anticipated commencement date** (for leases that define commencement by delivery) would raise the SEC
-  yield from 4 of 55 to perhaps 15 of 55 if comps may carry an "anticipated" flag. Decision below.
+  yield from 4 of 55 to perhaps 15 of 55 if comps may carry an "anticipated" flag. Not supported yet.
 - **IOLP** (GSA Inventory of Owned and Leased Properties, CC0) was archived and reviewed. It adds a construction
   year and an asset type for leased buildings but no rent or lessor; not loaded.
 - **Metro labels.** The counts above use the Census 2023 CBSA delineation file; the registry does not store a metro.

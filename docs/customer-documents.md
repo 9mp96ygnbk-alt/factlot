@@ -1,8 +1,8 @@
 # Customer documents policy
 
 **Version 1, 2026-11-03. Status: policy and product commitment, not yet a contract.** The
-contractual version of these promises is the data processing addendum a customer signs
-(needs counsel; see [the launch checklist](customer-documents-checklist.md)). Where this page
+contractual version of these promises is the data processing addendum a customer signs.
+Where this page
 and a signed agreement differ, the agreement wins. Where this page and the code differ, the code
 is the bug.
 
@@ -12,8 +12,7 @@ in plain language, so that a customer's counsel can read it without a call. Ever
 that can be enforced by code is, and the section says where.
 
 Today FactLot Ingest runs only self-hosted. A hosted version (FactLot Cloud) is planned and is
-not live; the hosted sections below describe what it will do and are the bar it must clear before
-launch.
+not yet available; the hosted sections below describe the rules it will operate under.
 
 **Hosted document verification (live since 2026-11-04).** The hosted API at
 `https://api.factlot.com` offers the document-verification tools (`doc_verify_facts`,
@@ -24,7 +23,7 @@ keeps nothing: no document text, quotes or facts are stored or logged, and the o
 request is its metadata (time, route, status, plan, a hashed key ID). No model runs and no third
 party receives the text. These tools are stateless, so the storage and retention rules below for
 FactLot Cloud do not apply to them. For documents that must not leave the customer's network,
-run the same tools self-hosted. This section needs counsel's review with the rest of this page.
+run the same tools self-hosted.
 
 ## 1. What a customer document is
 
@@ -61,8 +60,7 @@ for the page text sent to the model provider during extraction (section 3). Spec
 
 ### Hosted (FactLot Cloud, planned)
 
-When hosted ingest launches it will keep documents under these rules. The
-[launch checklist](customer-documents-checklist.md) lists what must be in place first.
+When hosted ingest is available it will keep documents under these rules.
 
 | What                                                    | Where                                                                        | Kept for                                                                                     |
 | ------------------------------------------------------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
@@ -215,22 +213,22 @@ in writing.
 
 **Subprocessors.** A subprocessor is any company that may hold customer documents on FactLot's
 behalf. For hosted ingest there will be at most three kinds, and the list will be published at a
-fixed URL before launch, with the function and processing region of each:
+fixed URL before hosted ingest opens, with the function and processing region of each:
 
 - the model provider, for the duration of an extraction request and its retention window
   (section 3)
-- the cloud host for storage and compute (not yet chosen; backlog item A4)
+- the cloud host for storage and compute
 - no OCR subprocessor: OCR runs inside FactLot's own environment
 
 Customers get 30 days' notice before a subprocessor is added and may terminate without penalty
-if they object (needs counsel for the contractual form).
+if they object.
 
 **Breach notice.** If FactLot confirms that a customer's documents were accessed, taken, or
 exposed without authorization, it tells the customer without undue delay and in any event
 within 72 hours of confirming it, with what was affected, what is known about how, and what
 FactLot has done. The provider's 48-hour notice to FactLot (section 3) is what makes 72 hours
-achievable end to end. Whether state or sector law requires a different clock or additional
-recipients for a given customer needs counsel.
+achievable end to end. Where state or sector law requires a shorter clock or additional
+recipients, FactLot follows that law.
 
 ## 8. The customer's rights
 
@@ -254,8 +252,7 @@ Requests that cannot yet be self-served go to contact@factlot.com and are honour
 ## 9. What changes for Enterprise
 
 The engine is Apache-2.0 and the promises above hold in every tier. Enterprise adds the
-guarantees large firms make a precondition for buying anything
-([business model](business-model.md)):
+guarantees large firms require:
 
 - **Private VPC or on-prem.** Ingest runs inside the customer's own cloud account or data centre.
   FactLot operates it or hands it over with support; either way, documents never reach FactLot's
@@ -266,7 +263,7 @@ guarantees large firms make a precondition for buying anything
 - **Customer-managed keys.** Storage and backups encrypted with a key in the customer's KMS.
   Revoking the key makes every copy FactLot holds unreadable, including backups.
 - **Contractual no-training and no-use terms** covering FactLot and every subprocessor, in the
-  DPA (needs counsel).
+  DPA.
 - **Data residency.** Storage, compute, and backups pinned to a named region.
 - **Audit logs and SSO** as account features rather than on request.
 

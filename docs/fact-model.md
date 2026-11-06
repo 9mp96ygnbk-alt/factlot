@@ -51,15 +51,15 @@ A **fact** is one atomic, citable claim about one identified subject:
    threshold.
 3. **Rights travel with the data.** `ai_use` and `redistribution` let an agent
    decide mechanically whether it may read a fact, and whether it may put it in a
-   client deliverable. In the survey, licensing was a blocker for 35% of agents.
+   client deliverable. Data licensing often decides whether a fact may be used at all.
 4. **Time is explicit.** `as_of` is required. Facts that change over time, such as
    rent steps or zoning, carry `valid_from` and `valid_to`.
 5. **Amendments supersede rather than overwrite.** A fact from an amendment lists
    the IDs of the facts it replaces in `supersedes`. The full history is kept.
 6. **Predicates are open.** Predicates are dotted, lowercase snake_case names. Asset
    classes extend the vocabulary without schema changes, for example
-   `datacenter.critical_it_mw` or `hotel.keys`. This is deliberate: the survey's
-   data center, hotel, medical, and storage personas reject generic office schemas.
+   `datacenter.critical_it_mw` or `hotel.keys`. This is deliberate: data center,
+   hotel, medical, and storage assets do not fit a generic office schema.
 
 ## Predicates the registry writes for zoning, building and sale facts
 

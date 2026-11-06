@@ -1,10 +1,10 @@
-# Task 5: Open Data DC terms for District data
+# Open Data DC terms for District data
 
 Final URL: https://dc.gov/page/terms-and-conditions-use-district-data
 HTTP 200. Read 2026-11-03.
-Status versus the task5-raw capture: VERIFIED. The commercial-use sentence and the catalog attribution line are on the saved page.
+Status versus an earlier browser capture: VERIFIED. The commercial-use sentence and the catalog attribution line are on the saved page.
 
-This memo is research, not legal advice; the founder holds no attorney or real estate license.
+This memo is research, not legal advice.
 
 > You can copy, modify, distribute, and perform the data, even for commercial purposes, all without asking permission.
 

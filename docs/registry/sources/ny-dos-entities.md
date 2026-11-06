@@ -43,7 +43,7 @@ Adapter: `python/src/factlot/registry/adapters/ny_dos_entities.py`; tests:
   document invites the public to "freely download and use this Content" and the portal publishes
   bulk export and API endpoints for that purpose; the collector uses those endpoints only, identifies
   itself, and obeys robots.txt. A person should confirm this reading before the source goes live
-  (backlog A11), together with the portal platform's own terms (socrata.com), which were not read.
+  , together with the portal platform's own terms (socrata.com), which were not read.
 - robots.txt (`data.ny.gov`): `User-agent: *`, `Crawl-delay: 1`; `Disallow` only for `/browse`,
   `/catalog`, `/page` and `/*/browse` search pages with `category=`, `q=`, `tags=`, `sortBy=`,
   `view_type=`, `limitTo=`, `federation_filter=` parameters. The dataset page, the metadata API, the
@@ -92,7 +92,7 @@ None. The portal needs no account, login, click-through or fee for the export or
 only blocker on 2026-11-02 was the machine running this review (about 80 KB/s of bandwidth), not
 the publisher.
 
-### Platform terms read 2026-11-03 (gates pass, Task 5)
+### Platform terms read 2026-11-03
 
 Tyler Technologies Terms of Use (served at <https://www.tylertech.com/terms/socrata-terms-of-service>, "Effective April 29, 2024"; HTTP 200, read 2026-11-03; matches the browser capture). Full notes: [`../requests/platform-terms/socrata.md`](../requests/platform-terms/socrata.md). Under "Restrictions on Use" the user may not:
 
@@ -100,7 +100,7 @@ Tyler Technologies Terms of Use (served at <https://www.tylertech.com/terms/socr
 
 > Display, distribute, license, perform, publish, reproduce, duplicate, copy, create derivative works from, modify, sell, resell, exploit, transfer, or transmit for any commercial purposes, all or any portion of the Services
 
-Read: these are Tyler's generic terms for its own "Services". The page refers to "the terms specific to a particular Service as applicable" and does not address a public agency's own dataset licence. Read literally, the scraper clause covers copying "data ... accessed through the Services", which is in tension with the collector's export downloads; the publisher's own dataset licence (recorded above) is what grants rights in the data. Decision for the founder: rely on the agency licence and treat the Tyler page as platform boilerplate, or ask the agency (not Tyler) to confirm that its licence governs bulk exports. Nothing was accepted.
+Read: these are Tyler's generic terms for its own "Services". The page refers to "the terms specific to a particular Service as applicable" and does not address a public agency's own dataset licence. Read literally, the scraper clause covers copying "data ... accessed through the Services", which is in tension with the collector's export downloads; the publisher's own dataset licence (recorded above) is what grants rights in the data. Open point: whether to rely on the agency licence and treat the Tyler page as platform boilerplate, or ask the agency (not Tyler) to confirm that its licence governs bulk exports. Nothing was accepted.
 
 ## Real run (2026-11-03)
 

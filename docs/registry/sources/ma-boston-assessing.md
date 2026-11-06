@@ -114,14 +114,14 @@ Notes on the mapping:
 
 - Boston files `111` (4–6 units) under its residential land-use class `R4` and starts its
   apartment class `A` at 7 units (`112`). `111` is kept as `B` because the state code is an
-  apartment code and the brief asked for the 11x apartment codes; a consumer who wants 7+ units
+  apartment code and the registry maps the 11x apartment codes; a consumer who wants 7+ units
   only can filter on `local_use_code`.
 - `465` COM BILLBOARD is a 4xx code that Boston files under land-use class `C`; the code decides,
   so it is `F2`. There are few of them.
 - Commercial condominium units (`356`, `357`, `450`) are kept, one record per unit, like Texas
   commercial condos. Condo mains (`995`, `LU` `CM`) carry no assessed value and are exempt-coded,
   so they are out of scope.
-- Mixed-use parcels (`0xx`, `LU` `RC`) are out of scope under the brief's mapping. Boston has many
+- Mixed-use parcels (`0xx`, `LU` `RC`) are out of scope under the registry's mapping. Boston has many
   three-storey residential-over-retail buildings coded `013`/`025`–`027`/`031`; see Known gaps.
 - Exempt parcels with a commercial use (`9xx`) are out of scope, as category X is in Texas.
 
@@ -138,8 +138,8 @@ SignatureDoesNotMatch` (confirmed 2026-11-02 against the occupancy-code PDF: `cu
    collector's own `snapshot()` through a driver script that adds a redirect handler dropping the
    explicit default port (everything else, including the user agent, robots check, crawl delay,
    manifest, and content addressing, is the collector's code). The fix belongs in
-   `python/src/factlot/collector/core.py` (`PoliteFetcher`'s opener), which this brief does not
-   allow me to edit. Until it lands, `python -m factlot.collector snapshot` records `http_403` for
+   `python/src/factlot/collector/core.py` (`PoliteFetcher`'s opener), which was not changed in this
+   review. Until it lands, `python -m factlot.collector snapshot` records `http_403` for
    this source.
 2. S3 throughput to this machine was poor on 2026-11-02 (tens of KB/s, with stalls, for the 80 MB
    CSV; a ranged `curl` got an empty reply after 56 s). See Real run for what was loaded.

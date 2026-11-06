@@ -38,7 +38,7 @@ document, not yet run on a real file).
 - Subscription terms: the subscription page says "Data subscriptions are available for purchase",
   "Various terms apply to the contract based on the type of frequency", and "Account access
   information will be provided after the subscription is set up". The contract text itself is
-  not published, so whether it restricts redistribution is unknown until the founder sees it.
+  not published, so whether it restricts redistribution is unknown until it is read.
 - robots.txt: `https://www.sosnc.gov/robots.txt` answers 404 (no rules). The collector's
   `discover` run reached four of the five landing pages on 2026-11-02; the reports-and-listings
   page closed the connection once ("Remote end closed connection without response").
@@ -77,16 +77,16 @@ and have no `Corporations` row, so they are never yielded. Rows without a legal 
 - **Purchase.** The only bulk route is the paid subscription: "Business Registration Division
   Master Files Subscription $2,000 per State fiscal year" and "One time set-up fee $750.00"
   (fees page, 2026-11-02; the page does not say whether the set-up fee applies to every
-  subscription), delivered weekly as CSV over an FTP account provided after set-up. Subscribe by
-  email to `DataSubscriptions@sosnc.gov`. The founder decides; nothing was requested or bought.
+  subscription), delivered weekly as CSV over an FTP account provided after set-up. Subscription is by
+  email to `DataSubscriptions@sosnc.gov`. Nothing was requested or bought.
 - **Contract terms.** The subscription contract is not published; read it for redistribution and
   derivative-use clauses before any facts from it go into the open registry (data policy §1).
 - **Alternative:** a public records request to the Secretary of State for the same export
   (N.C. Gen. Stat. §132-6.2 lets an agency charge for the actual cost of a database copy).
 
-### Terms read 2026-11-03 (gates pass)
+### Terms read 2026-11-03
 
-This memo is research, not legal advice; the founder holds no attorney or real estate license.
+This memo is research, not legal advice.
 
 **Fees.** https://www.sosnc.gov/fees/by_title/_data_subscriptions , read 2026-11-03.
 
@@ -118,7 +118,7 @@ The business-registration paragraph includes officers, partners, directors, and 
 
 G.S. 132-6.2, same site, chapter 132, GS_132-6.2.html, read 2026-11-03, limits copy fees to actual cost, with a special service charge for extensive information-technology use. Neither section says anything about commercial use or redistribution after receipt.
 
-The published pages sell a weekly CSV and say the contract's terms vary by frequency. They do not themselves forbid publishing a cited entity name, status, and id. Until the contract is read, redistribution of the file and publication of derived facts are both unresolved. Draft: `../requests/orders/nc-sos-entities-order-draft.md`. Address: Department of the Secretary of State, P.O. Box 29622, Raleigh, NC 27626-0622. Phone 919-814-5400. The Secretary's name in the page chrome is not copied.
+The published pages sell a weekly CSV and say the contract's terms vary by frequency. They do not themselves forbid publishing a cited entity name, status, and id. Until the contract is read, redistribution of the file and publication of derived facts are both unresolved. Address: Department of the Secretary of State, P.O. Box 29622, Raleigh, NC 27626-0622. Phone 919-814-5400. The Secretary's name in the page chrome is not copied.
 
 ## Real run
 

@@ -71,7 +71,7 @@ SOURCE = Source(
             "non-commercial use only and prohibit use on another website; whether they apply to these bulk "
             "files is unresolved",
     ai_use="unknown",  # the publisher does not address AI use
-    redistribution="unknown",  # the portal terms restrict reuse; the facts are public record. Founder's decision
+    redistribution="unknown",  # the portal terms restrict reuse; the facts are public record; pending a licence decision
     attribution="Wayne County, Michigan, Division of Assessment and Equalization",
     terms_reviewed="2026-11-02",
 )

@@ -49,9 +49,9 @@ downloaded.
 
 ## Gates (need a person)
 
-1. **Purchase.** The founder e-mails Secured-Support@smcacre.gov to order the **Secured Assessment Roll Master
-   ($305)** and **Property Characteristics ($305)** (use codes and building facts), and asks whether the files
-   may be republished. The county's payment and delivery route is not published on the fee page.
+1. **Purchase.** The **Secured Assessment Roll Master ($305)** and **Property Characteristics ($305)** (use
+   codes and building facts) are ordered by e-mail to Secured-Support@smcacre.gov; whether the files may be
+   republished is not stated. The county's payment and delivery route is not published on the fee page.
 2. Optional: the free parcel layer alone adds situs and land area but, with no use code, would create no
    commercial records.
 

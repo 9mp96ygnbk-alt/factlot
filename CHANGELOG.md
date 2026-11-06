@@ -13,8 +13,6 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 
 ## [Unreleased]
 
-Fixes from the hosted product review (`docs/research/2026-11-hosted-review`).
-
 ### Changed
 
 - `doc_verify_facts`: `verified` now means every part of the value was found in the quote. Prohibited uses, an exclusive's protected use and carve-outs, and ROFR/ROFO descriptions must be written in the quote; an invented item goes to `needs_review` (check `consistency`). A true/false value, an enum the quote does not word, or a paraphrased summary goes to `needs_review` with the new check `coverage` and a reason naming each part. `free_rent.applies_to: base_rent` and a `natural` breakpoint are checked by their wording.
@@ -126,10 +124,10 @@ from its commit history; nothing was published to npm or PyPI before it.
 
 ### Added
 
-- Launch kit under `docs/launch/`: zero-dollar go-to-market strategy, launch-day checklist, ready-to-post drafts, directory and awesome-list submission text, GitHub metadata suggestions, and an early-access reply template. `site/` gained schema.org JSON-LD, Open Graph and Twitter tags, a canonical link, a "For AI agents" section, a hosted-registry early-access call to action, and `site/llms.txt`; `llms.txt` now opens with what FactLot does, when to use it, and how to install it today.
+- `site/` gained schema.org JSON-LD, Open Graph and Twitter tags, a canonical link, a "For AI agents" section, a hosted-registry early-access call to action, and `site/llms.txt`; `llms.txt` now opens with what FactLot does, when to use it, and how to install it today.
 - `site/`: the factlot.com landing page, a static page with no build step, no scripts, and no
-  tracking, with deployment notes and a record of the checks run on it.
-- Customer documents policy (`docs/customer-documents.md`) and hosted-ingest launch checklist, with controls in code: every ingest report carries a `retention` header (`retain_until`, default 30 days, `--retain-days`), `--redact` / `IngestResult.to_report(redact=True)` persists document text only as the quotes that are evidence, and the server's request log schema is fixed to metadata (`REQUEST_LOG_FIELDS`) with a test that no request body, tool argument, or bearer token reaches a log line.
+  tracking, with deployment notes.
+- Customer documents policy (`docs/customer-documents.md`), with controls in code: every ingest report carries a `retention` header (`retain_until`, default 30 days, `--retain-days`), `--redact` / `IngestResult.to_report(redact=True)` persists document text only as the quotes that are evidence, and the server's request log schema is fixed to metadata (`REQUEST_LOG_FIELDS`) with a test that no request body, tool argument, or bearer token reaches a log line.
 - `calc.lease_remeasurement_asc842@1`: lessee remeasurement of a lease liability and
   right-of-use asset under ASC 842 (modification, lease-term or purchase-option reassessment,
   contingency resolution, residual value guarantee change; index changes warn that they are not
@@ -143,10 +141,6 @@ from its commit history; nothing was published to npm or PyPI before it.
   convention), step-down, flat percentage, or defeasance (replacement securities cost from a flat
   yield or a stepped curve, plus stated costs). Both calculators ship in TypeScript and Python
   with shared vectors and differential-test generators.
-- Business documents under `docs/business/`: a business plan, a bottom-up 36-month financial
-  model (`model.md` with its monthly lines in `model.csv`, three scenarios), and a market-sizing
-  study with cited firm counts, a competition deep dive, and a pricing comparison (backlog C19
-  and C20).
 - `@factlot/schema` (MIT): the fact data model with provenance and AI-use rights, exported as
   JSON Schema.
 - `@factlot/id`: FactLot ID v0.1, deterministic identifiers for parcels, legal entities,
@@ -208,8 +202,7 @@ from its commit history; nothing was published to npm or PyPI before it.
   `--reject`, `--by`). The queue lives in the CLI's output file; an accepted item becomes an
   `extracted` fact whose provenance names the reviewer and the failed check, a rejected
   (predicate, quote) pair is never queued again, and re-running keeps every decision.
-- A simulated product-feedback round: the 165 survey personas reviewed v0.1 as built, and the
-  README states what FactLot covers today.
+- The README states what FactLot covers today.
 - Tier 1 expansion: 47 source reviews across 15 states and DC (`docs/registry/sources/`), one
   collector config per source under `registry/sources/<state>/`, 33 adapters (New York City,
   Los Angeles, San Francisco, Alameda, Riverside, Boston, Philadelphia, Cook County, Fulton,
@@ -232,7 +225,7 @@ from its commit history; nothing was published to npm or PyPI before it.
 - FactLot Bench: fourteen CRE agent tasks with independently computed ground truth, a runner,
   and a scorer.
 - Documentation for agents (`llms.txt`, `AGENTS.md`, `docs/agents.md`), the ID spec, the fact
-  model, the registry, rules, ingestion, and the backlog.
+  model, the registry, rules, and ingestion.
 
 ### Changed
 
@@ -257,7 +250,7 @@ from its commit history; nothing was published to npm or PyPI before it.
 
 ### Security
 
-From the pre-launch audit ([docs/security/audit-2026-11-03.md](docs/security/audit-2026-11-03.md)):
+From the security review of 2026-11-03:
 
 - Tool input limits in both SDKs: nesting depth 32, 200,000 values, 10,000 items per array,
   16 MiB per string, checked before schema validation; per-field caps in the input schemas

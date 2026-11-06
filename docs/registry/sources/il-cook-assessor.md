@@ -70,11 +70,11 @@ record status is enough, or ask the Assessor's Office for a license statement (s
   "Public Domain", which shows the office has used CC0 before, but the current datasets do not. The data
   is public record under the Illinois Freedom of Information Act (5 ILCS 140) and the assessment books are
   public under the Property Tax Code (35 ILCS 200/9-20 and 9-25); facts are not copyrightable. Whether that
-  is enough against section 10 of the website terms is the founder's call.
+  is enough against section 10 of the website terms is an open point.
 - **AI use:** not addressed. **Redistribution:** not addressed; public record.
 - **Platform terms.** The portal HTML embeds Socrata's 2011 "Customer Terms of Use", which bind the
   government customer, not readers. Tyler's platform terms were not reviewed (same open item as the Texas
-  Comptroller source, backlog A11).
+  Comptroller source).
 - **robots.txt** (`datacatalog.cookcountyil.gov/robots.txt`): `User-agent: *`, `Crawl-delay: 1`, and
   `Disallow` for `/browse?…&q=`, `…&category=` and similar search and facet pages, `/OData.svc/`,
   `/api/odata/`, `/tiles/`, `/login`. The `/api/views/<id>.json` metadata pages and `/resource/<id>.csv`
@@ -150,7 +150,7 @@ workbooks write `5-17`. `local_use_code` keeps the universe's form.
 Counts in the 2026 Parcel Universe by first character of class: 1: 61,252; 2: 1,587,697; 3: 19,851;
 4: 500; 5: 91,172; 6: 2,308; 7: 362; 8: 1,906; 9: 896; E: 93,478; R: 5,047. The archived universe is
 therefore 116,495 PINs. Class 2 includes 2-11 and 2-12 (two- to six-unit apartment buildings), which
-the brief leaves out of scope.
+are out of scope.
 
 ## Gates (anything that needs a person)
 
@@ -159,10 +159,10 @@ the brief leaves out of scope.
   (as for the Texas CADs) or ask the Assessor's Data Department for a license statement (the office has
   published under CC0 before). Until then `verified: false`, and the collector only archives this source
   with `--include-unverified`, which is how the real run below was made.
-- Tyler/Socrata platform terms: same open item as the Texas Comptroller source (backlog A11).
+- Tyler/Socrata platform terms: same open item as the Texas Comptroller source.
 - No account, login, click-through, CAPTCHA, fee or records request is needed for the downloads.
 
-### Terms read 2026-11-03 (gates pass)
+### Terms read 2026-11-03
 
 **View metadata, read 2026-11-03, HTTP 200.** No key named license appears in any of the four files. Each includes:
 
@@ -183,9 +183,9 @@ The `rights` value "read" is the permission flag in the metadata. It is not a co
 
 > images/graphics from this website.
 
-The notes state: "Nothing in the ten sections addresses redistribution of datasets, automated access or AI use."
+As read: "Nothing in the ten sections addresses redistribution of datasets, automated access or AI use."
 
-**FOIA page.** https://www.cookcountyassessoril.gov/foia-freedom-information — read 2026-11-03, HTTP 200. Requests go to "CCAO Freedom of Information Officer", "118 North Clark Street", "Chicago, Illinois 60602", fax "(312) 603-3616". The page says "file FOIA requests via the GovQA platform". No public email is printed. The page includes "reasonable fee established by the custodian" as its quotation of Property Tax Code section 9-20. The full text of 35 ILCS 200/9-20 and 9-25 was NOT READ (TLS failure, curl error 60, twice; not a bot challenge). Founder URL: https://www.ilga.gov/legislation/ILCS/details?ActID=596&ChapAct=35+ILCS+200%2F&SeqStart=12100000&SeqEnd=13500000.
+**FOIA page.** https://www.cookcountyassessoril.gov/foia-freedom-information — read 2026-11-03, HTTP 200. Requests go to "CCAO Freedom of Information Officer", "118 North Clark Street", "Chicago, Illinois 60602", fax "(312) 603-3616". The page says "file FOIA requests via the GovQA platform". No public email is printed. The page includes "reasonable fee established by the custodian" as its quotation of Property Tax Code section 9-20. The full text of 35 ILCS 200/9-20 and 9-25 was NOT READ (TLS failure, curl error 60, twice; not a bot challenge). URL: https://www.ilga.gov/legislation/ILCS/details?ActID=596&ChapAct=35+ILCS+200%2F&SeqStart=12100000&SeqEnd=13500000.
 
 **Statute, read 2026-11-02.** 5 ILCS 140/3(a), https://www.ilga.gov/Documents/legislation/ilcs/documents/000501400K3.htm:
 
@@ -197,9 +197,9 @@ The notes state: "Nothing in the ten sections addresses redistribution of datase
 
 5 ILCS 140/1, https://www.ilga.gov/Documents/legislation/ilcs/documents/000501400K1.htm, includes "commercial enterprise to unduly burden public resources". The sections read are silent on redistribution of a record once obtained. Section 3.1 is a disclosure rule when a public body asks the purpose of a request.
 
-County section 10, in the words read, is about images and graphics. It does not state a redistribution rule for these four datasets, and the datasets carry no license field. Leave `verified` false. The founder signs and sends `il-cook-assessor-letter.md`, which discloses the commercial purpose. This lane did not send it.
+County section 10, in the words read, is about images and graphics. It does not state a redistribution rule for these four datasets, and the datasets carry no license field. The source stays `verified: false` until the county confirms the terms in writing; a request would disclose the commercial purpose. No letter was sent.
 
-### Platform terms read 2026-11-03 (gates pass, Task 5)
+### Platform terms read 2026-11-03
 
 Tyler Technologies Terms of Use (served at <https://www.tylertech.com/terms/socrata-terms-of-service>, "Effective April 29, 2024"; HTTP 200, read 2026-11-03; matches the browser capture). Full notes: [`../requests/platform-terms/socrata.md`](../requests/platform-terms/socrata.md). Under "Restrictions on Use" the user may not:
 
@@ -207,7 +207,7 @@ Tyler Technologies Terms of Use (served at <https://www.tylertech.com/terms/socr
 
 > Display, distribute, license, perform, publish, reproduce, duplicate, copy, create derivative works from, modify, sell, resell, exploit, transfer, or transmit for any commercial purposes, all or any portion of the Services
 
-Read: these are Tyler's generic terms for its own "Services". The page refers to "the terms specific to a particular Service as applicable" and does not address a public agency's own dataset licence. Read literally, the scraper clause covers copying "data ... accessed through the Services", which is in tension with the collector's export downloads; the publisher's own dataset licence (recorded above) is what grants rights in the data. Decision for the founder: rely on the agency licence and treat the Tyler page as platform boilerplate, or ask the agency (not Tyler) to confirm that its licence governs bulk exports. Nothing was accepted.
+Read: these are Tyler's generic terms for its own "Services". The page refers to "the terms specific to a particular Service as applicable" and does not address a public agency's own dataset licence. Read literally, the scraper clause covers copying "data ... accessed through the Services", which is in tension with the collector's export downloads; the publisher's own dataset licence (recorded above) is what grants rights in the data. Open point: whether to rely on the agency licence and treat the Tyler page as platform boilerplate, or ask the agency (not Tyler) to confirm that its licence governs bulk exports. Nothing was accepted.
 
 ## Real run
 
@@ -238,7 +238,7 @@ portal streamed:
 placeholders or names without an entity token (the 22-character truncation cuts off `LLC` and `INC`
 on long names, so these are undercounted), 2,503 year-built, 2,480 building-area and 2,343 land-area
 facts from single-PIN valuation rows, in 8.9 s. The registry's facts cite the universe sample's
-document id; the sample registry is in the review scratchpad, not in the repo.
+document id; the sample registry is not in the repo.
 
 ## Known gaps
 

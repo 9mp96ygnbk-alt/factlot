@@ -42,9 +42,9 @@ parcels, but every parcel loads without an owner of record.
   `res_format=` and similar), `/datastore/dump/`, `/api/`, `/dataset/activity/`, `/user/` and edit paths.
   The file's own comment says these rules are "NOT a usage policy": "You are welcome to use the CKAN API
   (/api/) and the DataStore dump downloads (/datastore/dump/) from your own code", and they are listed
-  "only to prevent the heavy activity we see from crawlers". **What I did:** the collector config uses
+  "only to prevent the heavy activity we see from crawlers". **Approach:** the collector config uses
   only the dataset page and `/dataset/.../download/data.csv`, which robots.txt allows. To find the
-  resource ids I made two CKAN API calls (`package_search`, `package_show`) with the collector's user
+  resource ids, two CKAN API calls were made (`package_search`, `package_show`) with the collector's user
   agent, which the file's text invites for scripts; the collector itself never calls `/api/`.
 - `verified: true`: terms and robots read and recorded; the file URL is confirmed by ranged downloads
   (`206 Partial Content`) and the collector's `discover` (three allowed links found on the dataset page);

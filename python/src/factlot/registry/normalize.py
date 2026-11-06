@@ -286,7 +286,7 @@ def legacy_name_key(name: str) -> str:
 NAME_KEY_VERSION = "2"
 
 
-# --- name similarity (fuzzy owner matching, backlog C2) ---------------------------------------
+# --- name similarity (fuzzy owner matching) ---------------------------------------------------
 
 # Tokens too common in organisation names to identify one: entity-type suffixes and generic
 # real-estate words. They are dropped from the token index and from the token-overlap score,

@@ -23,9 +23,9 @@ No file.
 
 A person should (1) ask the Corporations Division (517-241-6470) whether a bulk or custom extract exists and at what price, or (2) file a Michigan FOIA request through LARA for an entity extract (see [public-information-requests.md](../public-information-requests.md) for the pattern). Do not scrape the portal search.
 
-### Terms read 2026-11-03 (gates pass)
+### Terms read 2026-11-03
 
-This memo is research, not legal advice; the founder holds no attorney or real estate license.
+This memo is research, not legal advice.
 
 No bulk entity product was named on the pages read.
 
@@ -43,15 +43,15 @@ FOIA procedures, effective September 10, 2024, read 2026-11-03: email LARAFOIAIn
 
 > estimate exceeds fifty dollars a deposit will be required to initiate processing
 
-Statute, from NOTES.md (read 2026-11-02), MCL 15.233, https://www.legislature.mi.gov/Laws/MCL?objectName=mcl-15-233 :
+Statute, from a capture read 2026-11-02, MCL 15.233, https://www.legislature.mi.gov/Laws/MCL?objectName=mcl-15-233 :
 
 > the person's agent who is an individual.
 
 > inspect, copy, or receive copies of the requested public record of the public body.
 
-NOTES.md says no section read addresses commercial use or redistribution. The statute as captured is silent on both. It does not require the Department to create a new compilation.
+No section read addresses commercial use or redistribution. The statute as captured is silent on both. It does not require the Department to create a new compilation.
 
-The draft `../requests/mi-sos-entities-request.md` asks for an existing extract of entity id, legal name, status, type, formation date, and organisation address, with no natural-person officer or member names. The founder signs as FactLot's individual agent, fills address, phone, and email, and sends the letter. Do not use the portal. Do not accept a deposit until the founder agrees in writing.
+A FOIA request would ask for an existing extract of entity id, legal name, status, type, formation date, and organisation address, with no natural-person officer or member names. It is made by an individual agent, and a deposit is required when the estimate exceeds fifty dollars. No request was sent.
 
 ## Real run
 

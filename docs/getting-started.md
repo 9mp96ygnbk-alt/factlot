@@ -25,7 +25,7 @@ Send a descriptive `User-Agent` header from scripts (for example `my-agent/1.0`)
 network in front of the API rejects some default library agents, such as Python's
 `Python-urllib/3.x`, with HTTP 403; `requests`, `httpx`, and `curl` defaults are accepted.
 
-> **What works today.** FactLot is not on npm or PyPI yet (backlog item A5). Each section
+> **What works today.** FactLot is not on npm or PyPI yet. Each section
 > below lists the commands that work now first: from a clone, from git, or from the files
 > attached to each [GitHub release](https://github.com/9mp96ygnbk-alt/factlot/releases). The
 > `npx -y @factlot/mcp` and `pip install factlot` forms are marked **after first publish**.
@@ -88,7 +88,7 @@ Environment variables (pass with `docker run -e`):
 The full configuration reference, including the keys-file format, is in
 [packages/server/README.md](../packages/server/README.md).
 
-Point a public HTTPS URL at it (backlog A4) and follow [connectors/](../connectors/README.md)
+Point a public HTTPS URL at it and follow [connectors/](../connectors/README.md)
 for each platform's setup. Without Docker: `npm install && npm run build && node packages/server/dist/bin.js`.
 
 ## 2. Local MCP server for an MCP client (stdio)

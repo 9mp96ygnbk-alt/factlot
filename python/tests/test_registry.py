@@ -541,7 +541,7 @@ class RegistryCore(unittest.TestCase):
         self.assertEqual(same.document_id, factlot.document_id("synthetic 2025").urn)
 
 
-# --- fuzzy owner matching with human review (backlog C2) -----------------------------------------
+# --- fuzzy owner matching with human review --------------------------------------------------
 # SYNTHETIC fixtures: every name below is invented. Expected scores are worked out by hand in the
 # comments, from the documented rule (0.7 * token-sorted difflib ratio + 0.3 * distinctive-token
 # overlap), not by running the code.

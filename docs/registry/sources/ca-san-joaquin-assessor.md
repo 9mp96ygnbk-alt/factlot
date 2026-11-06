@@ -2,7 +2,7 @@
 
 Review record for the county's parcel layer that carries the Assessor's roll attributes.
 **Result: a complete free roll exists (253,428 parcels with use codes, values, situs and building
-facts) but it states no licence, so `verified: false`. No adapter is written (Tier 2 brief:
+facts) but it states no licence, so `verified: false`. No adapter is written (Tier 2 method:
 adapters for verified sources only); the layout is mapped below so one takes about an hour once the
 county clears the terms. No data file was archived.** Config:
 `registry/sources/ca/ca-san-joaquin-assessor.json`. Reviewed 2026-11-03.
@@ -85,12 +85,12 @@ GOVERNMENT 6,334; INDUSTRIAL 3,821; blank 1,874; INSTITUTIONAL 681; RECREATIONAL
 
 ## Gates (need a person)
 
-1. **Licence and written authorization.** Ask the county (the Assessor, or Public Works GIS through the
+1. **Licence and written authorization.** Needs the county (the Assessor, or Public Works GIS through the
    sjmap.org "GIS Data Request" page) to confirm in writing that the Open Data "Parcels" layer may be
    copied, stored and redistributed, and by whom a signed "authorized, in writing" statement is given.
-   Until then leave `verified: false`. Nothing was requested from the county in this review.
+   Until then the source stays `verified: false`. Nothing was requested from the county in this review.
 2. After clearing: add the CSV export URL(s) to `files` (a `where` filter on `CATEGORY` or `USECODES`
-   keeps the file small; the full layer is 408 MB, over this brief's 50 MB limit), set `verified: true`,
+   keeps the file small; the full layer is 408 MB, over the review's 50 MB limit), set `verified: true`,
    write `ca_san_joaquin.py` modelled on `ca_sacramento.py` and `ca_los_angeles.py`.
 
 ## Real run

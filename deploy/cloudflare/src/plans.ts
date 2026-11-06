@@ -1,5 +1,5 @@
 /**
- * Hosted plans. Prices follow docs/business/model.md (Pro $49 base, Team $599 base); the
+ * Hosted plans. Prices: Pro $49 base, Team $599 base; the
  * calculators, IDs and fact tools stay free and open source to run locally.
  */
 export type PlanId = "pro" | "team";
@@ -26,7 +26,7 @@ export const PLANS: Record<PlanId, Plan> = {
     lookupKey: "factlot_pro_monthly_v1",
     requestsPerMinute: 600,
     summary:
-      "Hosted FactLot API key: 600 requests per minute, hosted registry lookups as each region opens (none is open yet), email support from the founder.",
+      "Hosted FactLot API key: 600 requests per minute, hosted registry lookups as each region opens (none is open yet), email support.",
   },
   team: {
     id: "team",
@@ -35,7 +35,7 @@ export const PLANS: Record<PlanId, Plan> = {
     lookupKey: "factlot_team_monthly_v1",
     requestsPerMinute: 3000,
     summary:
-      "Hosted FactLot API key for a team: 3,000 requests per minute, hosted registry lookups as each region opens (none is open yet), priority support and a say in which regions open next.",
+      "Hosted FactLot API key for a team: 3,000 requests per minute, hosted registry lookups as each region opens (none is open yet), priority support and input on which regions open next.",
   },
 };
 

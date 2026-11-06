@@ -40,9 +40,8 @@ Please report especially:
   publish something that is not the publisher's file
 - issues in the MCP server's input handling
 
-The [security audit of 2026-11-03](docs/security/audit-2026-11-03.md) lists what was reviewed,
-what was fixed, and the residual risks a hosted deployment must handle itself (TLS termination, an
-edge firewall or rate limit, log retention).
+A self-hosted public deployment must handle TLS termination, an edge firewall or rate limit,
+and log retention itself.
 
 ## Customer documents
 

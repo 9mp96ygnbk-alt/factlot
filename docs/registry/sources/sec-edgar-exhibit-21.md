@@ -7,8 +7,7 @@ in [sec-edgar-cmbs-abs-ee.md](sec-edgar-cmbs-abs-ee.md#terms-license-robots-fair
 robots.txt reading and the fair-access rules; they apply unchanged here (`data.sec.gov` is a third SEC host with the same policy).
 
 Predicate: `entity.parent` and a `controls` relationship from the registrant ([fact model](../../fact-model.md#predicates-from-sec-filings)).
-It answers the persona asks for owner-to-parent-to-sponsor chains and tenant-parent resolution (B02-P05, B06-P03 in the
-[live product review](../../research/2026-11-live-product-review/appendix.md)) for the registrants chosen below. It is not a
+It answers questions about owner-to-parent-to-sponsor chains and tenant-parent resolution for the registrants chosen below. It is not a
 tenant resolver: it goes from a registrant to the registered entities it lists, not from a tenant's name on a lease to its parent.
 
 ## What is read
@@ -43,7 +42,7 @@ them in February 2026; fiscal years ended 2025-12-27 to 2026-09-26):
 - **11 healthcare operators**: ACHC BKD CHE CYH DVA EHC ENSG HCA PNTG THC UHS.
 - **Not obtained:** 3 chosen registrants whose latest 10-K index lists no Exhibit 21 (NTST, OLLI, WOOF); 10 more that are not in the
   SEC's ticker file (AVB, EQR, MPW, NSA, WBA, JWN, VSCO, ODP, SEM, AMED: taken private, acquired or delisted) and were not looked up
-  by remembered CIK. The list is a sample for the persona asks, not a ranking of any kind.
+  by remembered CIK. The list is a sample, not a ranking of any kind.
 
 ## Reading the exhibits
 

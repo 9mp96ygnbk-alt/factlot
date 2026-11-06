@@ -90,8 +90,8 @@ Officers and registered agents are not read: the type flag shows most are natura
 ## Gates
 
 - **Terms could not be read at the source.** Every request to `dos.fl.gov` from the collector
-  (`FactLotRegistryBot/0.1`), from plain `curl` with the same user agent, and from the WebFetch
-  tool receives a Cloudflare managed challenge ("Just a moment... Enable JavaScript and cookies to
+  (`FactLotRegistryBot/0.1`), from plain `curl` with the same user agent, and from a separate web
+  fetcher receives a Cloudflare managed challenge ("Just a moment... Enable JavaScript and cookies to
   continue", HTTP 403), including `/robots.txt`. The data policy forbids working around bot
   detection, so the Data Downloads, Quarterly Data and Daily Data pages were not read directly;
   their content above comes from a search engine's rendering. The source stays `verified: false`
@@ -104,7 +104,7 @@ Officers and registered agents are not read: the type flag shows most are natura
 - No account, fee, form or click-through is involved in the SFTP route; the login is the one the
   Division publishes for the public.
 
-### Terms read 2026-11-03 (gates pass)
+### Terms read 2026-11-03
 
 The three data-download pages rendered on a plain GET. Each was HTTP 200 and was the Division's HTML, not a Cloudflare challenge. An earlier capture (`fl.hdr` / `fl.txt`) is the same Data Downloads page, also HTTP 200.
 
@@ -146,9 +146,9 @@ Section 607.0120, https://www.leg.state.fl.us/statutes/index.cfm?App_mode=Displa
 
 > A document must satisfy the requirements of this section and of any other section that adds to or varies these requirements to be entitled to filing by the department.
 
-Chapter 119, sections 119.01(1) and 119.07(1)(a), read 2026-11-02 and quoted in `fl-dor-nal-GATES-addendum.md`, are silent on commercial use and silent on redistribution after the copy is obtained. Section 15.16 and section 607.0120, as read, are also silent on commercial use of the corporate data file and silent on redistribution of it.
+Chapter 119, sections 119.01(1) and 119.07(1)(a), read 2026-11-02 (see [fl-dor-nal.md](fl-dor-nal.md)), are silent on commercial use and silent on redistribution after the copy is obtained. Section 15.16 and section 607.0120, as read, are also silent on commercial use of the corporate data file and silent on redistribution of it.
 
-The download pages offer the files free, for informational purposes, as is. They do not restrict redistribution of the public fields. The founder decides whether that, with chapter 119, is enough to load the corporate files. `fl-dos-entities-letter.md` is optional and was not sent. This lane does not recommend leaving the source unloaded on the words that were read.
+The download pages offer the files free, for informational purposes, as is. They do not restrict redistribution of the public fields. Open point: whether that, with chapter 119, is enough to load the corporate files. On the words that were read, there is no reason to leave the source unloaded. No letter was sent.
 
 ## Real run
 
@@ -185,8 +185,8 @@ and recorded by hand in `collected/fl-dos-entities/manifest.jsonl` in the collec
 
 ## Known gaps
 
-- Sample only: the full `cordata.zip` (1.8 GB) could not be fetched on this machine's connection in
-  the brief's time budget; the real run used daily files. A run on the quarterly file is needed for
+- Sample only: the full `cordata.zip` (1.8 GB) could not be fetched on the review machine's connection in
+  the review's time; the real run used daily files. A run on the quarterly file is needed for
   the full count (about 13 million records are expected from the file size; one secondary source
   reports a full parse of 12,987,601 records of the October 2026 file).
 - Daily files carry filings and changes of the day; an entity appears in several daily files, and

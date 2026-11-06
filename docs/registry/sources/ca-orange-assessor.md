@@ -64,9 +64,9 @@ collector, so it was not read directly).
    contract-licensed product whose license would have to be read before any use.
 3. Nothing was purchased, no form was sent, and no account was created.
 
-### Terms read 2026-11-03 (gates pass)
+### Terms read 2026-11-03
 
-This memo is research, not legal advice; the founder holds no attorney or real estate license.
+This memo is research, not legal advice.
 
 **Roll products.** https://www.ocassessor.gov/page/assessor-roll-products , revised 8/09/2021, read 2026-11-03.
 
@@ -93,11 +93,11 @@ Mail: Orange County Assessor, 500 S. Main Street, Suite 103, Orange, CA 92868, A
 
 Lite limits on the same page: 50 searches and 25 parcel maps per month. Subscription price: NOT CONFIRMED.
 
-**Statute.** NOTES.md, read 2026-11-02 (leginfo HTTP 403 on 2026-11-03). Gov. Code § 7922.530(a) and Rev. & Tax. Code §§ 408 and 408.3, as quoted there, are silent on commercial use and redistribution after receipt. Gov. Code § 7928.205 is NOT CONFIRMED.
+**Statute.** Capture read 2026-11-02 (leginfo HTTP 403 on 2026-11-03). Gov. Code § 7922.530(a) and Rev. & Tax. Code §§ 408 and 408.3, as captured, are silent on commercial use and redistribution after receipt. Gov. Code § 7928.205 is NOT CONFIRMED.
 
-The county pages do not publish an electronic-roll license. ParcelQuest's agreement does restrict redistribution, and it forbids publishing the website Content. A county written request is a different product from ParcelQuest Lite. Do not load ParcelQuest Content into the registry. Draft to Quality Assurance: `../requests/orders/ca-orange-assessor-order-draft.md`.
+The county pages do not publish an electronic-roll license. ParcelQuest's agreement does restrict redistribution, and it forbids publishing the website Content. A county written request is a different product from ParcelQuest Lite. ParcelQuest Content is not loaded into the registry.
 
-### Platform terms read 2026-11-03 (gates pass, Task 5)
+### Platform terms read 2026-11-03
 
 Esri / ArcGIS Hub. No separate public Hub terms page for downloaders was found. Esri's Master Agreement (E204CW, <https://www.esri.com/content/dam/esrisites/en-us/media/legal/ma-translations/english.pdf>) and Product-Specific Terms (E300, <https://www.esri.com/content/dam/esrisites/en-us/media/legal/product-specific-terms-of-use/e300.pdf>) were read 2026-11-03 (HTTP 200, not accepted). Full notes: [`../requests/platform-terms/esri-hub.md`](../requests/platform-terms/esri-hub.md), [`esri-e204.md`](../requests/platform-terms/esri-e204.md), [`esri-e300.md`](../requests/platform-terms/esri-e300.md). E300 footnote 85:
 

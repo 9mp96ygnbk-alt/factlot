@@ -50,7 +50,7 @@ For each tax lot named in the file, the **latest report year that has a usable r
 
 ## Real run (2026-11-04)
 
-Into the scratch NYC registry (`…/scratchpad/data/r2/nyc.db`):
+Into a scratch copy of the NYC registry:
 
 ```
 python -m factlot.registry.adapters.energy_benchmark nyc 5zyy-y8am.csv nyc.db --as-of 2025-11-25

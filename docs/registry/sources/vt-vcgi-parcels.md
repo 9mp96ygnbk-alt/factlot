@@ -6,7 +6,7 @@ Adapter: `factlot.registry.adapters.vt_vcgi` (account system `vt_span`, the Scho
 
 **Status: `verified: true`.** The publisher states no licence; the item carries only a warranty disclaimer and the Parcel Program
 calls the data "freely available". This is the same basis as Pierce County WA and Denton CAD (public record, disclaimer only); see
-"Licence point for the founder".
+"Licence point".
 
 ## Publisher and URLs
 
@@ -75,7 +75,7 @@ python -m factlot.registry.adapters.vt_vcgi collected/vt-vcgi-parcels registry.d
 - The layer's own category counts (stacked polygons included) are C 17,169, CA 2,393, I 879 (all 18,271 rows with a blank category and the rest
   are out of scope); the adapter's count is by distinct SPAN.
 
-## Licence point for the founder
+## Licence point
 
 No licence is stated, only a disclaimer and "freely available". If a written statement is wanted, `vcgi@vermont.gov` can confirm that the
 Grand List parcel layer may be redistributed as facts. Vermont law keeps grand lists public (32 V.S.A. ch. 123).

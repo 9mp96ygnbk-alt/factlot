@@ -64,5 +64,5 @@ then `oh_cuyahoga.build` (11.6 s):
 
 - No year built (the service has none); `tax_year` is the certified tax year (2025). The Ohio Hamilton and Franklin files carry more characteristics.
 - Whether `gross_certified_total` equals the appraised (100 %) value is not documented by the service.
-- 4090 (4-6 units) is mapped B as the publisher's apartment class, though the brief's threshold is 5+ units.
+- 4090 (4-6 units) is mapped B as the publisher's apartment class, though the registry's apartment threshold is 5+ units.
 - Fiscal Officer sales and transfer detail beyond the last transfer are not read.

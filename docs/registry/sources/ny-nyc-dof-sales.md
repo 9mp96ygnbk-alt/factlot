@@ -70,7 +70,7 @@ sales gets $0 sales flagged and no more.
 
 ## Real run (2026-11-04)
 
-Into the scratch NYC registry (`…/scratchpad/data/zs/zs.db`, with the DOF roll and PLUTO), one series at a time; the
+Into a scratch copy of the NYC registry (with the DOF roll and PLUTO), one series at a time; the
 rolling files with `--since 2026-01-01` so October-December 2025 sales are not loaded twice (they are in the 2025
 files):
 

@@ -2,7 +2,7 @@
 
 Review record for data policy §5. Reviewed 2026-11-03. **Verified**: public Socrata datasets, no
 account or agreement; the platform's own terms were not read as text (same caveat as the
-Comptroller portal, backlog A11). County FIPS 48491; account system `wcad_property_id` (WCAD's
+Comptroller portal). County FIPS 48491; account system `wcad_property_id` (WCAD's
 integer property id). Config `registry/sources/tx/tx-williamson-cad.json`; adapter
 `python/src/factlot/registry/adapters/tx_williamson.py`; tests
 `python/tests/test_adapter_tx_williamson.py`.
@@ -73,7 +73,7 @@ is `totalassessedvalue` (the appraised value after the Tax Code caps).
 ## Gates
 
 - **Platform terms.** A person should read Tyler's terms for the Socrata portal and the WCAD open
-  data page, and record the result (backlog A11). Nothing else gates the download.
+  data page, and record the result. Nothing else gates the download.
 
 ## Real run
 

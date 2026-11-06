@@ -76,9 +76,9 @@ found, so no category mapping was written.
    to `geo.sandag.org`).
 3. Nothing was purchased and no account was created.
 
-### Terms read 2026-11-03 (gates pass)
+### Terms read 2026-11-03
 
-This memo is research, not legal advice; the founder holds no attorney or real estate license.
+This memo is research, not legal advice.
 
 **Fee schedule.** https://www.sdarcc.gov/content/dam/arcc/assessor/forms/other-assessor-forms/PUB%20INFO%20FEE%20SCHEDULE.pdf , read 2026-11-03. Address: San Diego County Assessor, Public Information, 1600 Pacific Highway, Suite 103, San Diego, CA 92101, (619) 236-3771.
 
@@ -103,11 +103,11 @@ Continue URL https://assr.parcelquest.com/impl/sdxassr redirected to the same Pa
 > Every three months SanGIS creates an 8GB Flash Drive containing the most requested public layers in ready
 > to use shape file format (not zipped) for $75.
 
-$75 x 4 = $300 per year if the drive is bought each quarter. Custom extracts are $100 an hour with a $100 minimum. No use or resale clause is in the price list. It is not the assessor roll. These URLs were not usable: https://www.sangis.org/ (JS shell), https://www.sangis.org/pages/download-data (JS shell), https://www.sangis.org/Legal_Notice.htm (HTTP 404, 0 bytes), https://sangis.org/privacy.html (HTTP 404, 0 bytes). The founder should open the legal-notice URL.
+$75 x 4 = $300 per year if the drive is bought each quarter. Custom extracts are $100 an hour with a $100 minimum. No use or resale clause is in the price list. It is not the assessor roll. These URLs were not usable: https://www.sangis.org/ (JS shell), https://www.sangis.org/pages/download-data (JS shell), https://www.sangis.org/Legal_Notice.htm (HTTP 404, 0 bytes), https://sangis.org/privacy.html (HTTP 404, 0 bytes). The legal notice needs a person in a browser.
 
-**Statute.** NOTES.md, read 2026-11-02. Same silence on commercial use and redistribution as the other California assessor notes. Gov. Code § 7928.205 is NOT CONFIRMED.
+**Statute.** Capture read 2026-11-02. Same silence on commercial use and redistribution as the other California assessor notes. Gov. Code § 7928.205 is NOT CONFIRMED.
 
-No ARCC bulk license was read, so there is no file to treat as cleared for the registry. ParcelQuest Content is restricted. Draft: `../requests/orders/ca-san-diego-assessor-order-draft.md`.
+No ARCC bulk license was read, so there is no file to treat as cleared for the registry. ParcelQuest Content is restricted.
 
 ## Real run
 

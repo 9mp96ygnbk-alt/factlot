@@ -18,7 +18,7 @@ situs, county land-use class and lot size. The layer has no assessed values and 
   answers `302` to `https://services1.arcgis.com/.../Parcels/FeatureServer/replicafilescache/Parcels_<n>.csv`. The
   `where` clause is honoured (field names, not aliases). A filter not yet cached is built on request; the collector
   recorded it as `not_ready` and the second `snapshot` run fetched it. The unfiltered export was not requested (the
-  item is 466 MB with geometry, far over this brief's 50 MB limit); three class filters are in `files` (below).
+  item is 466 MB with geometry, far over the review's 50 MB limit); three class filters are in `files` (below).
 - Related county layers, same licence, not used: "Apartments" (`f57203d580a64429ade7428d22d4fadb`, 1,698 landmark
   polygons with a name and description), "Mobile Home Parks", "Zoning", "General Plan".
 - The Assessor (https://assessor.saccounty.gov) publishes no bulk file but its fee schedule
@@ -89,7 +89,7 @@ None for loading: no account, agreement, fee or request is needed. Optional, for
 `assessor@saccounty.gov` for the free electronic secured roll (the Assessor's fee schedule offers it "at no
 charge"; owner names would be in it and are only for natural-person screening, never stored). Not done.
 
-## Real run (2026-11-03, collector run from this machine, archive in the session scratchpad, not committed)
+## Real run (2026-11-03, local collector run; archive not committed)
 
 Three class-filtered CSV exports archived by the collector (`python -m factlot.collector snapshot`), then loaded
 into a scratch registry with `python -m factlot.registry.adapters.ca_sacramento ... --as-of 2026-11-01` (2.9 s):

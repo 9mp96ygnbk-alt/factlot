@@ -42,7 +42,7 @@ lists all 350 towns except Boston (see that section).
   appropriate for planning purposes. It should not be utilized where legal and surveyed property
   boundaries are required." The abstract adds: "This data enters the public domain as a valuable
   resource for mapping, planning, and analysis at all levels."
-- AI use: not addressed. Redistribution: permitted (public domain). **Flag for the founder:** the "not
+- AI use: not addressed. Redistribution: permitted (public domain). **Licence point:** the "not
   redistributed for a fee beyond reproduction costs" sentence limits selling the parcel data itself. The
   open registry is free, so `verified: true`; a paid tier that resells these facts needs a reading of
   that sentence (or MassGIS's view) first.

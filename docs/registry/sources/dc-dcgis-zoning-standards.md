@@ -62,7 +62,7 @@ Residential (IZ))`).
 
 ## Real run (2026-11-04)
 
-Into the scratch DC registry (`…/scratchpad/data/r2/dc.db`, a copy of round 1's `dc.db`):
+Into a scratch copy of the DC registry:
 
 ```
 python -m factlot.registry.adapters.dc_zoning_standards query.json dc.db --as-of 2026-11-03

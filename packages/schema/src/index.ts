@@ -124,8 +124,8 @@ export const Provenance = z
 export type Provenance = z.infer<typeof Provenance>;
 
 /**
- * Machine-readable usage rights. Survey finding: agents frequently hold data
- * they are contractually barred from feeding to an LLM. Every fact says so up front.
+ * Machine-readable usage rights. Agents frequently hold data they are contractually
+ * barred from feeding to an LLM. Every fact says so up front.
  */
 export const Rights = z.strictObject({
   ai_use: z.enum(["permitted", "prohibited", "unknown"]),

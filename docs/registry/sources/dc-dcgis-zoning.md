@@ -79,8 +79,8 @@ authority. Overlays are reported by name only (DC's overlays also change what a 
 Requests (collector, one at a time, 2 s apart): the zoning layer (5.5 MB GeoJSON), the overlay layer, 16
 condominium-unit queries (1,568 SSLs with lot numbers of 2000 or more), 170 Record Lots queries (16,969 SSLs:
 the registry's, with each resolved condominium unit replaced by its underlying lot) and 62 Tax Lots queries (the
-6,153 SSLs Record Lots did not return): 250 archived files, 12.7 MB in all, about ten minutes of collector time. Scratch registry (not the
-repo): `…/scratchpad/data/zs/dc.db`, built from the archived ITSPE and CAMA files (`dc_otr`, 18,077 parcels, 10 s) and
+6,153 SSLs Record Lots did not return): 250 archived files, 12.7 MB in all, about ten minutes of collector time. Scratch registry (not in the
+repo), built from the archived ITSPE and CAMA files (`dc_otr`, 18,077 parcels, 10 s) and
 then:
 
 ```

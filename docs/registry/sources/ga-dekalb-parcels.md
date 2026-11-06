@@ -73,12 +73,12 @@ published layer has none), so apartments (`B`), hotels and vacant lots can be to
 
 ## Full load (2026-11-03)
 
-The whole filtered export (classes `C` and `I`), archived by `python -m factlot.collector snapshot` in this session because the weekly
+The whole filtered export (classes `C` and `I`), archived by a separate `python -m factlot.collector snapshot` run because the weekly
 release `data-2026-11-03-41603209834` holds only a manifest line with status `not_ready` for it (the Hub export was still building). Same file (same sha256) as the review run above. Loaded into the Tier 2 scratch registry.
 
 Assets (document id from the manifest):
 
-- Collector snapshot run in this session (the weekly release's manifest recorded `not_ready` for this export, so no asset exists in `data-2026-11-03-41603209834`): `ga-dekalb-parcels/6b569f0b50728ba3/csv` (5,001,349 bytes), `fl:document:sha256-6b569f0b50728ba3b2e9cdb171603439c6a37e717cd227aa0e8abb966e96d74c`.
+- Separate collector snapshot run (the weekly release's manifest recorded `not_ready` for this export, so no asset exists in `data-2026-11-03-41603209834`): `ga-dekalb-parcels/6b569f0b50728ba3/csv` (5,001,349 bytes), `fl:document:sha256-6b569f0b50728ba3b2e9cdb171603439c6a37e717cd227aa0e8abb966e96d74c`.
 
 Command:
 

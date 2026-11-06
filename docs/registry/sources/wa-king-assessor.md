@@ -99,7 +99,7 @@ Rules (`wa_king.category_for`, applied in order to the upper-cased description):
 | F1      | starts with `Retail`, `Shopping Ctr`, `Restaurant`, `Parking(`, `Conv Store`, `Hist Prop(`; or is one of: Office Building, Medical/Dental Office, Bank, Hotel/Motel, Tavern/Lounge, Grocery Store, Gas Station, Service Station, Service Building, Auto Showroom and Lot, Bowling Alley, Car Wash, Daycare Center, Health Club, Movie Theater, Nursing Home, Post Office/Post Service, Rehabilitation Center, Residence Hall/Dorm, Retirement Facility, Sport Facility, Vet/Animal Control Srvc, Mini Lube, Hospital, Marina, Golf Course, Club, Fraternal Organization, Mortuary/Cemetery/Crematory, Greenhse/Nrsry/Hort Srvc, Shell Structure, Air Terminal and Hangers, Park, Private(Amuse Ctr), Art Gallery/Museum/Soc Srvc, Mobile Home Park, School(Private) |
 | out     | everything else: single family, duplex to 4-plex, townhouse, mobile home, condominium units and complexes, churches, public schools, government, public utilities and parks, rights of way, easements, open space and current-use land, tidelands, reserves, farms                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 
-Judgment calls to confirm with the founder: `Rooming House` as B; `Retirement Facility`, `Nursing
+Judgment calls open to confirmation: `Rooming House` as B; `Retirement Facility`, `Nursing
 Home`, `Residence Hall/Dorm` and `Mobile Home Park` as F1 rather than B; `Terminal(…)` and `High
 Tech/High Flex` as F2; churches and private clubs. `python -m factlot.registry.adapters.wa_king
 <zips…> --check-lookup` prints how every description in the real Lookup extract maps, including the
@@ -108,9 +108,9 @@ ones no rule recognises, and should be read before the first load.
 ## Gates (needs a person)
 
 1. **Click-through acknowledgement.** The file links appear only after ticking the RCW 42.56.070
-   checkbox. The founder must decide whether FactLot can make that acknowledgement (the registry
+   checkbox. Open point: whether FactLot can make that acknowledgement (the registry
    stores no natural-person names, which is the statute's concern, but the acknowledgement is a
-   personal undertaking) and tick it. The collector will not.
+   personal undertaking). The collector will not tick it.
 2. **Redistribution.** The website terms of use forbid publishing or distributing site content
    without written permission. Either obtain written permission from King County (Department of
    Assessments, or KCIT for the website terms) or record a reasoned decision that public-record
@@ -120,9 +120,9 @@ ones no rule recognises, and should be read before the first load.
    `--check-lookup` and confirm the column names in "What the file contains" against the real
    headers (and whether a taxpayer-name column exists at all).
 
-### Terms read 2026-11-03 (gates pass)
+### Terms read 2026-11-03
 
-This memo is research, not legal advice; the founder holds no attorney or real estate license.
+This memo is research, not legal advice.
 
 Download acknowledgement, https://info.kingcounty.gov/assessor/DataDownload/default.aspx (read 2026-11-03). The box was not ticked.
 
@@ -142,7 +142,7 @@ Statute, RCW 42.56.070, https://app.leg.wa.gov/rcw/default.aspx?cite=42.56.070 (
 
 Subsection (8) restricts lists of individuals requested for commercial purposes and is silent on other records. The website clause is not silent: it forbids publishing, displaying, distributing, or commercially exploiting website content, including data, without prior written permission. That is not compatible, on its face, with an open registry.
 
-Letter: `../requests/wa-king-assessor-letter.md`, to the Public Records Officer at KSC-AS-0708, 201 S. Jackson St., Seattle, Washington 98104, email Assessor.Info@KingCounty.gov. The founder signs and sends it. Do not tick the box and do not download until the County answers.
+Contact for a written request: the Public Records Officer at KSC-AS-0708, 201 S. Jackson St., Seattle, Washington 98104, email Assessor.Info@KingCounty.gov. The box is not ticked and nothing is downloaded until the County answers.
 
 ## Real run
 

@@ -13,7 +13,7 @@
 #
 # Trigger: push a tag vX.Y.Z that matches the package versions (docs/release-process.md), or run it
 # by hand on an existing tag to rebuild and replace the assets. It runs next to release.yml, which
-# publishes to npm and PyPI once their accounts exist (backlog A5) and stops in its preflight until
+# publishes to npm and PyPI once their accounts exist and stops in its preflight until
 # then; this workflow does not depend on it.
 name: Release assets
 

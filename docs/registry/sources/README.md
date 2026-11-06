@@ -6,7 +6,7 @@ One review record per source lives in this folder; the machine-readable config f
 is under [`registry/sources/<state>/`](../../../registry/sources/). **Verified** means a person
 can rely on the recorded terms, the file URLs were confirmed by a real download, and the licence
 permits redistribution of the facts (data policy §5). **Gated** sources have an adapter where a
-file layout was published, but nothing is collected until the gate is cleared by the founder.
+file layout was published, but nothing is collected until the gate is cleared.
 
 Counts are from real runs on the publisher's full files (2026-11-02/03). Three ArcGIS Hub
 exports (DC OTR, Hennepin, DC DLCP) were fetched by the weekly workflow from GitHub's network,
@@ -48,7 +48,7 @@ archived by the collector here. Owner links follow the jurisdiction rule (regist
 | tx-bexar-ad                                                 | Bexar TX                                 | gated: records request               | no bulk file                                                         | none                                                                                 |
 | tx-txgio-parcels                                            | Texas parcel geometry                    | gated: host blocks automated clients | CC0                                                                  | none                                                                                 |
 
-### Added on the tier2-expansion branch (2026-11-03)
+### Added in the Tier 2 expansion (2026-11-03)
 
 | Source                                                      | Counties                                                            | Status                     | Licence                                           | Real run (commercial parcels; organisation owners) |
 | ----------------------------------------------------------- | ------------------------------------------------------------------- | -------------------------- | ------------------------------------------------- | -------------------------------------------------- |
@@ -82,7 +82,7 @@ archived by the collector here. Owner links follow the jurisdiction rule (regist
 | [wa-sos-entities](wa-sos-entities.md)   | none                                 | extract retired in 2024                               | none                                                           |
 | [mi-sos-entities](mi-sos-entities.md)   | none                                 | no bulk file; host blocks automated clients           | none                                                           |
 
-## What the founder decides
+## Open licence decisions
 
 Every "gated: terms" row is a publisher whose files are open but whose website terms do not
 grant redistribution in so many words (Florida, Cook County, Philadelphia, Fulton, Wayne, Fairfax,

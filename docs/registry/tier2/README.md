@@ -1,4 +1,4 @@
-# Tier 2: the next 61 counties (research brief and index)
+# Tier 2 sources: the next 61 counties
 
 Tier 1 covered the largest commercial markets (see [sources/README.md](../sources/README.md)).
 Tier 2 extends the registry to every other county in the top 100 US counties by 2025 resident
@@ -16,6 +16,20 @@ population, plus the state entity registries those counties need for owner resol
 - Counties already reviewed in Tier 1 are excluded, including every Florida county (the Florida
   Department of Revenue roll covers all 67; it is gated on terms) and the five New York City
   boroughs.
+
+## Method
+
+- Public sources only, fetched with the collector's user agent and within each host's robots.txt.
+  Review stops at any gate that needs a person (an account, a click-through, a form, a purchase or
+  a records request). Scope is commercial parcels (B, F1, F2); natural-person names are not stored.
+- A statewide source is checked first, since one review can clear many counties. Then the terms
+  and robots are read and the file URLs confirmed by a small request. A source is `verified` only
+  if its licence clearly permits redistribution and does not forbid AI use.
+- Files over 50 MB were sampled with a ranged or filtered request during review, with the full
+  size taken from the headers. Full loads come from the weekly collector workflow.
+- Adapters exist only for verified sources whose layout is published or visible in the sample.
+  Gated sources have a config with `verified: false` and a review record whose Gates section says
+  what is needed.
 
 ## Regions
 
@@ -36,8 +50,8 @@ MO, Arlington VA, Alexandria VA, Richmond VA, Orleans Parish LA, Jefferson AL (1
 ## Results (2026-11-03)
 
 28 of the 61 counties are **verified** (licence permits redistribution; files confirmed by a real
-request) and have adapters; 33 are gated on something only a person can do, listed with the one
-action each needs in its region file. Counts below are **full loads** (2026-11-03): every
+request) and have adapters; 33 are gated (terms, a form, a purchase, a records request, or a host
+that blocks automated clients), with the reason for each in its region file. Counts below are **full loads** (2026-11-03): every
 file the weekly collector archived from GitHub's network (draft release
 `data-2026-11-03-41603209834`) was loaded in full into one scratch registry, entity registry first,
 then `purge_person_owners()` and `link_owners()` once. Each source's review record has a "Full load
@@ -115,51 +129,15 @@ line no longer retires parcels by default; MassGIS covers all 350 towns and refu
 statewide but not extended: North Carolina OneMap (100 counties, county use codes to map) and the
 Tennessee Comptroller (86 of 95 counties, not yet reviewed in full).
 
-**Licence points for the founder** (also in each record): MassGIS asks that its data not be
+**Licence points** (also in each record): MassGIS asks that its data not be
 redistributed "for a fee beyond reproduction costs"; the Portland metro RLIS data is ODbL
 (share-alike); Fort Bend's export carries a hold-harmless and indemnity clause; Davidson's
 verification rests on Nashville's terms excluding open-portal data from its commercial-use ban.
 
-**Process notes.** Three agents recorded slips that the rules forbid and that did not obtain
-data: header-only requests to Hamilton County's download folder before its robots.txt (which
-disallows it) was read; one look at the Oklahoma Secretary of State's fee page before its
-robots.txt was read; and one request to a Texas appraisal-district vendor API with another site's
-origin header, blocked before it ran. Each is recorded in that source's review record.
-
-## Rules for Tier 2 research agents
-
-Everything in [EXPANSION-BRIEF.md](../EXPANSION-BRIEF.md) applies (public sources only, the
-collector's user agent, robots.txt, stop at any gate that needs a person, no invented data,
-commercial scope B/F1/F2, no natural-person names, no AI model identifiers). In addition:
-
-- **Bandwidth.** A product launch is running on the same connection. Do not download any file
-  larger than 50 MB; use a ranged or filtered request (e.g. `?$limit=20000`, an ArcGIS `where`
-  clause, an HTTP `Range` header) to get a sample, and record the full file's size from its
-  headers. Full loads run later from GitHub's network through the weekly collector workflow.
-- **One shared worktree.** You share `/Users/rs/Projects/FactLot/worktrees/tier2-research` with
-  six other agents. Write only your own files: `registry/sources/<state>/<id>.json`,
-  `python/src/factlot/registry/adapters/<module>.py`, `python/tests/test_adapter_<module>.py`,
-  `docs/registry/sources/<id>.md`, and your region file `docs/registry/tier2/<region>.md`. Do not
-  edit any shared file (this README, `docs/registry/sources/README.md`, `docs/BACKLOG.md`,
-  `CHANGELOG.md`, existing adapters). Never run git write commands and never commit. Do not run
-  `npm` at all. Run only your own tests: `cd python && PYTHONPATH=src python3 -m unittest tests.test_adapter_<module>`.
-- **Order of work per county.** First find whether a statewide source covers it (one review can
-  clear many counties). Then: terms and robots review, file URLs confirmed by a small request,
-  config with `verified` true only if the licence clearly permits redistribution and does not
-  forbid AI use. Write an adapter only for verified sources whose layout is published or visible
-  in the sample, and load the sample into a scratch registry to report real counts. Gated
-  sources get a config with `verified: false`, a review record with a precise Gates section, and
-  no adapter.
-- **Region file.** `docs/registry/tier2/<region>.md` has one table row per county: source id,
-  status (verified, gated: terms / form / purchase / records request / host blocks automated
-  clients, or none found), licence, owner names present (yes/no), sample counts, and the one
-  action a person must take for gated sources. End with the entity registries for your states.
-- **Budget.** About three hours in all; prefer breadth (every county reviewed) over depth.
-
-## Expansion (2026-11-03, branch `data/tier2-expansion`)
+## Expansion (2026-11-03)
 
 A second pass added open statewide sources in states the registry did not yet cover, and cleared two gates (Connecticut's licence, five North Carolina counties' use codes) and
-one load (Garfield County, Utah). Full record, reviewed-but-not-loaded sources and the founder gates: [expansion.md](expansion.md). Counts are distinct commercial parcels
+one load (Garfield County, Utah). Full record, reviewed-but-not-loaded sources and the remaining gates: [expansion.md](expansion.md). Counts are distinct commercial parcels
 (`B`, `F1`, `F2`) in one scratch registry built from the Tier 2 file plus these loads.
 
 | State | Source                   | Counties in the load                                 | Commercial parcels | Organisation owners |
@@ -177,6 +155,6 @@ two), 148,421 of them with an organisation owner of record, and four new states 
 (1,008,126 in 207 counties before), 1,305,836 Connecticut entities and no natural-person owner. `link_owners()` then `purge_person_owners()` ran on the whole file: 30,420 exact links plus 1,350 chosen among
 same-name entities because the others have ended (31,770 current ownership links, 3,873 before; 289 ambiguous, 33,298 owners whose exact match exists only in another state, 3,526 of them newly queued for
 review); **27,513 of the links are on the new Connecticut parcels**, because Connecticut is the only entity registry loaded; Vermont 110, Minnesota 124, Arkansas 66 and North Carolina 84 link to Connecticut
-entities of the same name. `purge_person_owners()` removed nothing (0 owner facts, 0 mailing facts, 0 links): every new adapter stores organisations only. Against the lead's combined figures (1,716,664
-parcels, 223 counties, 17 states and the District of Columbia, 37 verified sources) the branch brings the totals to **1,945,117 parcels, 405 counties, 21 states and the District of Columbia, 47 verified sources**
-(five new sources, five North Carolina county sources; Garfield is an existing source). The Tier 1 quality pass later corrected the total to 1,953,805: Tarrant's full set is 45,976 parcels, not the 37,292 in the lead's figures, and Travis supplement 3 added 4 ([quality report](../quality/tier1-2026-11-03.md)).
+entities of the same name. `purge_person_owners()` removed nothing (0 owner facts, 0 mailing facts, 0 links): every new adapter stores organisations only. Added to the earlier combined figures (1,716,664
+parcels, 223 counties, 17 states and the District of Columbia, 37 verified sources), the expansion brings the totals to **1,945,117 parcels, 405 counties, 21 states and the District of Columbia, 47 verified sources**
+(five new sources, five North Carolina county sources; Garfield is an existing source). The Tier 1 quality pass later corrected the total to 1,953,805: Tarrant's full set is 45,976 parcels, not the 37,292 in the earlier figures, and Travis supplement 3 added 4 ([quality report](../quality/tier1-2026-11-03.md)).

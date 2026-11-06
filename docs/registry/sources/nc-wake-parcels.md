@@ -85,9 +85,9 @@ None for the loaded source. Notes for a person:
 
 - **Wake County's own extract is robots-blocked.** `https://services.wake.gov/robots.txt` disallows all paths.
   A person could download `RealEstData<MMDDYYYY>.zip` (42 MB) by hand, but the collector may not. The extract has
-  building area, year built, sale data and the full type-and-use detail; if that is wanted, the founder asks Wake
+  building area, year built, sale data and the full type-and-use detail; using it needs Wake
   County Tax Administration to lift the robots rule for the FactLotRegistryBot user agent
-  (contact on the Wake page), or places the file in `collected/` by hand.
+  (contact on the Wake page), or a person to place the file in `collected/` by hand.
 - The statewide layer is refreshed when each county re-submits (Wake's `transfdate` is 2026-05-17), so it can lag
   Wake's daily extract by months.
 

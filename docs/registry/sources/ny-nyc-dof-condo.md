@@ -54,7 +54,7 @@ named by a 16-hex prefix of its document ID (the full ID is in the `snapshots` t
 
 ## Real run (2026-11-04)
 
-Into the scratch NYC registry (`…/scratchpad/data/r2/nyc.db`, a copy of the round-1 `zs.db` with the DOF roll and PLUTO):
+Into a scratch copy of the NYC registry (with the DOF roll and PLUTO):
 
 ```
 python -m factlot.registry.adapters.ny_condo eguu-7ie3.csv p8u6-a6it.csv 64uk-42ks.csv nyc.db --as-of 2026-08-24

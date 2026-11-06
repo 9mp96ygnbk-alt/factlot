@@ -16,8 +16,8 @@ carries only APN and situs, so the commercial scope (B/F1/F2) cannot be derived 
   download site; it adds that online parcel maps are free and that property characteristics through
   ParcelQuest Lite cost $7.50 per parcel (same source).
 - File: https://gis.cccounty.us/Downloads/Assessor/Parcels_Public_September2026.zip, 42,044,982 bytes,
-  `Last-Modified: Fri, 02 Oct 2026 19:32:17 GMT`. Downloaded once (under this brief's 50 MB limit) to the
-  session scratchpad and inspected; not archived through the collector and not committed.
+  `Last-Modified: Fri, 02 Oct 2026 19:32:17 GMT`. Downloaded once (under the review's 50 MB limit) and
+  inspected; not archived through the collector.
 - Other folders: `General County Data` has `CCC_DOIT_AddressData.zip` (25 MB, 2025-10-31; address points)
   and base-map layers; `Planning` has city limits, general plan land-use element, zoning (2026-07-04). None
   carries assessor use codes.
@@ -48,11 +48,11 @@ fields such as owner names are not in any free file.
 
 ## Gates (need a person)
 
-1. **No file with use codes is free.** The founder must ask the Assessor (https://www.contracosta.ca.gov/assessor,
-   which the collector cannot read: Cloudflare challenge) for the secured roll with use codes or the property
-   characteristics file, with its price and whether the county permits republication. The price and order
+1. **No file with use codes is free.** The secured roll with use codes, or the property characteristics file,
+   has to be requested from the Assessor (https://www.contracosta.ca.gov/assessor, which the collector cannot
+   read: Cloudflare challenge), with its price and whether the county permits republication. The price and order
    route were not found in a public page reachable by the collector.
-2. Open the Assessor's "Maps & Property Information" page in a browser and confirm the statement quoted above.
+2. The statement quoted above, from the Assessor's "Maps & Property Information" page, needs a person in a browser to confirm.
 
 ## Real run
 

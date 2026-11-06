@@ -29,11 +29,11 @@ Bulk Business Data: a monthly CSV in a zip, with three main record types (master
 3. Pay $710 or $30 (not paid).
 4. Clear the CAPTCHA block with the Office if page access is needed.
 
-### Terms read 2026-11-03 (gates pass)
+### Terms read 2026-11-03
 
-This memo is research, not legal advice; the founder holds no attorney or real estate license.
+This memo is research, not legal advice.
 
-**Blocked HTML.** https://www.sos.mn.gov/business-liens/business-liens-data/business-data-available/ returned a Radware captcha (HTTP 200 on the challenge URL). Any price that lived only on that page is NOT CONFIRMED. The founder should open the URL.
+**Blocked HTML.** https://www.sos.mn.gov/business-liens/business-liens-data/business-data-available/ returned a Radware captcha (HTTP 200 on the challenge URL). Any price that lived only on that page is NOT CONFIRMED; the page needs a person in a browser.
 
 **Commercial order, revised 5/22/2024.** https://www.sos.mn.gov/media/5124/bulkrequestcorp_commercialusers.pdf , read 2026-11-03.
 
@@ -66,7 +66,7 @@ CSV in a zip. File created at the beginning of each month. Delivery email must b
 
 Records remain the sole property of OSS. A header email in the text extract, "secretary.state.@state.mn.us", is not relied on. Use business.services@state.mn.us.
 
-**Statute.** Minn. Stat. § 13.03, subd. 3, https://www.revisor.mn.gov/statutes/cite/13.03 , read 2026-11-03. Subd. 3(a) permits inspection and copying of public government data. Subd. 3(d) allows a fee for a commercially valuable database built with significant public funds. Subd. 3(e) requires an electronic copy in the format maintained. The section does not forbid republication after receipt. The license applies "Notwithstanding" chapter 13 and then bars bulk resale or bulk repackaging of a substantial part, and bars sublicensing. Publishing one cited entity name, status, and file number is what paragraph A.1 seems to allow, and it is also the point paragraph C.1 does not expressly decide. Do not load an open dump of the file. Draft, unsigned: `../requests/orders/mn-sos-entities-order-draft.md`.
+**Statute.** Minn. Stat. § 13.03, subd. 3, https://www.revisor.mn.gov/statutes/cite/13.03 , read 2026-11-03. Subd. 3(a) permits inspection and copying of public government data. Subd. 3(d) allows a fee for a commercially valuable database built with significant public funds. Subd. 3(e) requires an electronic copy in the format maintained. The section does not forbid republication after receipt. The license applies "Notwithstanding" chapter 13 and then bars bulk resale or bulk repackaging of a substantial part, and bars sublicensing. Publishing one cited entity name, status, and file number is what paragraph A.1 seems to allow, and it is also the point paragraph C.1 does not expressly decide. An open dump of the file is not loaded.
 
 ## Real run
 

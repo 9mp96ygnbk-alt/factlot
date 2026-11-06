@@ -93,7 +93,7 @@ rule; `F2` stays. Of the accounts with no improvement, 291 carry land code `F1` 
   4,837 property rows (`M` 4,129, `D` 704, `A` 4); **120 commercial parcels kept** (F1 112, B1 3, B2 3,
   F2 2), all with owner and values; facts 1,041; organisation owners 104; persons 16.
 - Certified roll, property member whole and owner member prefix (the sample is a zip of the two
-  extracts built in the scratchpad, `build(..., full_roll=False)`, 8.7 s): property rows read
+  extracts, `build(..., full_roll=False)`, 8.7 s): property rows read
   440,798; **9,698 commercial real properties**: F1 8,570 (`F1` 7,994, `F1H` 468, `F1M` 95, `F1X` 12,
   `F1V` 1), B 924 (`B2` 617, `B1` 245, `B3` 62), F2 204. Situs present 9,682. The owner prefix covers
   only the first third of the owner file (123,064 real-property owner rows of the file), so

@@ -48,7 +48,7 @@ read and are not stored in any form.
   mortgage on a house lists the borrower). Like the appraisal rolls, the archived raw files therefore stay private
   (data policy §3, "Raw archives stay private"); only facts and citations are published. The adapter reads a party's name only
   to ask `is_organization`, keeps it only if it says yes, and counts the rest. A test checks that no person appears in the
-  registry file's bytes. **The founder decides** whether the collector should archive these party files at all, or whether
+  registry file's bytes. **Open point:** whether the collector should archive these party files at all, or whether
   the adapter should read the live API and archive an organisation-only extract (the citation would then point at the
   extract, not the publisher's file).
 
@@ -72,7 +72,7 @@ of the year are registered as snapshots of the source under the names `acris-mas
   classes), 72% pass; the largest groups it drops are clearly organisations: MERS (the nominee on most residential
   mortgages), the Secretary of Housing and Urban Development, `CITIBANK, N.A.` (one word), and credit unions
   (`… FEDERAL CREDIT UNION`). The rule is shared by every adapter, so it was not changed here; widening it (a "CREDIT UNION", a
-  `…BANK` suffix, a short list of agencies) is a decision for the lead and the founder. A deed to an individual lists no
+  `…BANK` suffix, a short list of agencies) is a maintainers' decision. A deed to an individual lists no
   grantee, and `organizations_only: true` says why.
 - **Multi-lot documents.** `lots_in_document` is the number of lots the Legals table lists for the document. A deed or
   mortgage over several lots is published on each lot with the full amount: do not sum it or divide it by one lot's area.
@@ -85,7 +85,7 @@ of the year are registered as snapshots of the source under the names `acris-mas
 
 ## Real run (2026-11-04)
 
-Into the scratch NYC registry (`…/scratchpad/data/r2/nyc.db`, a copy of round 1's `zs.db`); `python -m
+Into a scratch copy of the NYC registry; `python -m
 factlot.registry.adapters.ny_acris nyc.db --as-of 2026-09-30 --set master.csv legals.csv parties.csv …` (one `--set` per year).
 
 | Measure                                                                                          | Count                                       |

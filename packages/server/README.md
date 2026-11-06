@@ -211,9 +211,8 @@ Always on, whatever is configured:
   on another origin cannot use a visitor's credentials; restrict origins at the edge if you want to.
 
 TLS is not terminated here: run behind a proxy or load balancer that does, set
-`FACTLOT_PUBLIC_URL` to the `https://` URL, and see
-[docs/security/audit-2026-11-03.md](../../docs/security/audit-2026-11-03.md) for what a public
-deployment must add (TLS, WAF or edge limits, log retention).
+`FACTLOT_PUBLIC_URL` to the `https://` URL. A public deployment must also add a WAF or edge rate
+limit and its own log retention.
 
 ## Programmatic use
 

@@ -1,5 +1,5 @@
 // Hosted FactLot: api.factlot.com (MCP, REST, OpenAPI, billing) and the landing page.
-// Deploy: npm run deploy:cloudflare (from the repo root). Secrets (set by the founder, never in
+// Deploy: npm run deploy:cloudflare (from the repo root). Secrets (set by a maintainer, never in
 // this file): STRIPE_SECRET_KEY (required for billing), STRIPE_WEBHOOK_SECRET (optional).
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",

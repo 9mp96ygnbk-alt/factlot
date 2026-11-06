@@ -1,6 +1,6 @@
 # Tier 2 expansion: Vermont, Minnesota, Arkansas, Montana and Connecticut statewide sources; North Carolina text-class counties; Garfield UT
 
-Researched and loaded 2026-11-03 on the branch `data/tier2-expansion`. Rules and method: [README.md](README.md) and [../EXPANSION-BRIEF.md](../EXPANSION-BRIEF.md). Every count below comes
+Researched and loaded 2026-11-03. Method: [README.md](README.md#method). Every count below comes
 from a real run on the real file (collected with the project's collector, loaded into one scratch registry); nothing was bought, signed, requested, registered or submitted.
 
 ## Results
@@ -18,8 +18,8 @@ from a real run on the real file (collected with the project's collector, loaded
 ## Totals
 
 The expansion added 228,453 distinct commercial parcels in 182 counties (148,421 with an organisation owner of record) and four states. After `link_owners()` and `purge_person_owners()` on the scratch registry:
-1,236,579 parcels in 389 counties of 20 states; combined with the lead's figures (1,716,664 parcels, 223 counties, 17 states and DC, 37 verified sources) the branch brings the totals to **1,945,117 parcels,
-405 counties, 21 states and DC, 47 verified sources**. Details and the link counts: [README.md](README.md), section "Expansion". The Tier 1 quality pass later corrected the total to 1,953,805: Tarrant's full set is 45,976 parcels, not the 37,292 in the lead's figures, and Travis supplement 3 added 4 ([quality report](../quality/tier1-2026-11-03.md)).
+1,236,579 parcels in 389 counties of 20 states; added to the earlier combined figures (1,716,664 parcels, 223 counties, 17 states and DC, 37 verified sources), the expansion brings the totals to **1,945,117 parcels,
+405 counties, 21 states and DC, 47 verified sources**. Details and the link counts: [README.md](README.md), section "Expansion". The Tier 1 quality pass later corrected the total to 1,953,805: Tarrant's full set is 45,976 parcels, not the 37,292 in the earlier figures, and Travis supplement 3 added 4 ([quality report](../quality/tier1-2026-11-03.md)).
 
 ## What was reviewed and not loaded
 
@@ -33,41 +33,35 @@ The expansion added 228,453 distinct commercial parcels in 182 counties (148,421
 | Montana, commercial parcels                        | The 2026 file lumps commercial into `Improved Property` with houses; the CAMA tables (`StatewideCama.zip`, file geodatabase) are the way in.                                                                                                                                          |
 | NC: Durham, Union, Cabarrus, Onslow                | Durham's code list is on a robots-disallowed path; Union has only `COM` and `IND` and no improvement values to drop vacant land; Cabarrus and Onslow carry no class.                                                                                                                  |
 
-## Gates for the founder
+## Open gates
 
 1. **Montana.** (a) The State Library's record warns that Montana law bars using a list of persons prepared by a public agency as a mailing list. The registry stores no natural-person names and is
-   not a mailing list; decide that this is enough, or ask `geoinfo@mt.gov`. (b) To load commercial parcels: engineering work on the CAMA file geodatabase, or ask the State Library which field marks
-   commercial improved property. (c) Rule slip: one request reached `gisservice.mt.gov/ArcGIS/rest/` before its robots.txt `Disallow: /arcgis/*` was understood to cover it (see the record).
-2. **Vermont and Arkansas.** No licence is stated, only disclaimers ("freely available", a public statewide cadastre). Optional: `vcgi@vermont.gov` and the Arkansas GIS Office can confirm in writing
-   that the parcel layers may be redistributed as facts. Arkansas: ask the Assessment Coordination Division (501-324-9240) for the current property type code list to add commercial, apartment and
-   other codes.
-3. **Minnesota.** Optional: ask Washington County (and MnGeo's mapping file for each county) for the use-class definitions.
-4. **Connecticut.** The earlier gate (`ct-parcel-cama`, Open Data CT table with no licence field) is cleared for the layer on the publisher's own ArcGIS items, which state CC0. Decide the county
-   code: the layer carries the former county (Fairfield 001 ... Windham 015); the Census now uses nine planning regions (09110 ...). Suppressed-owner records are blank in the layer; the registry
+   not a mailing list; open point: whether that is enough, or whether to ask `geoinfo@mt.gov`. (b) Loading commercial parcels needs work on the CAMA file geodatabase, or the State Library
+   to say which field marks commercial improved property.
+2. **Vermont and Arkansas.** No licence is stated, only disclaimers ("freely available", a public statewide cadastre). `vcgi@vermont.gov` and the Arkansas GIS Office could confirm in writing
+   that the parcel layers may be redistributed as facts. Arkansas: the Assessment Coordination Division (501-324-9240) holds the current property type code list needed to add commercial, apartment
+   and other codes.
+3. **Minnesota.** Washington County (and MnGeo's mapping file for each county) hold the use-class definitions not yet mapped.
+4. **Connecticut.** The earlier gate (`ct-parcel-cama`, Open Data CT table with no licence field) is cleared for the layer on the publisher's own ArcGIS items, which state CC0. Open point: the county
+   code. The layer carries the former county (Fairfield 001 ... Windham 015); the Census now uses nine planning regions (09110 ...). Suppressed-owner records are blank in the layer; the registry
    never tries to recover them.
-5. **North Carolina.** No gate for the five counties (text classes used as the county's definition; say if a code table should be required). Durham: a person reads the County's Land Use codes
-   spreadsheet, or the County allows the bot; Union: ask for improvement values and a class table.
+5. **North Carolina.** No gate for the five counties (text classes used as the county's definition). Durham: the County's Land Use codes spreadsheet is on a
+   robots-disallowed path and needs a person to read it; Union: needs improvement values and a class table from the County.
 6. **Still gated from earlier reviews, unchanged:** Florida (terms), Cook, Philadelphia, Fulton, Maricopa, Wayne, Fairfax, King, Clark NV, Alameda, Riverside, San Bernardino, the Tennessee Comptroller,
    the purchase and records-request counties, and every paid entity register.
 
-## Process notes
+## Method notes
 
 - The ArcGIS REST services used are the publishers' own query endpoints with `returnGeometry=false` and a class filter; every request was made with the collector's user agent, 2 seconds apart (the
   NC OneMap Hub export host asks for 60 seconds and the collector waits that long), and a host's robots.txt was read first. Montana's 518 MB zip was fetched on GitHub's network
-  (`collect.yml`, draft release `data-2026-11-03-41690576115`) and downloaded with `gh release download`; every other file was fetched by the collector on the review machine, one at a time.
-- Research lookups (item JSON, metadata, code tables, group-by counts) went through a small script that applies the collector's fetcher (robots.txt first, 2 seconds apart per host, the collector's
+  (`collect.yml`, draft release `data-2026-11-03-41690576115`); every other file was fetched by the collector, one at a time.
+- Lookups (item JSON, metadata, code tables, group-by counts) used the collector's fetcher (robots.txt first, 2 seconds apart per host, the collector's
   user agent). Pages read this way: Vermont Department of Taxes presentation, VCGI metadata, Arkansas standards, Minnesota and Montana item pages and metadata. No account, form, login or CAPTCHA was touched.
+- Montana, robots.txt: one metadata request (`/ArcGIS/rest/services/msdi_cadastral_map_v1/MapServer?f=pjson`) went to `gisservice.mt.gov` because the collector's parser
+  treated the lower-case rule `Disallow: /arcgis/*` as not covering the mixed-case path. No data was kept from that host; Montana was loaded from the
+  State Library's file download instead (`ftpgeoinfo.msl.mt.gov`, no robots.txt).
 - Adapter additions: `arcgis_pages.py` (shared page helpers), `dbf_reader.py` (stdlib dBASE reader for zipped shapefiles), `vt_vcgi.py`, `mn_opt_in.py`, `ar_gis.py`, `mt_msl.py`,
   `ct_parcel_cama.py`, and text-class support in `nc_onemap.py` (`key_field`, `prefixes`). `registry/normalize.py` was not touched.
-
-## Rule slips (stated honestly)
-
-- **Montana, robots.txt.** One metadata request (`/ArcGIS/rest/services/msdi_cadastral_map_v1/MapServer?f=pjson`) went to `gisservice.mt.gov` after its robots.txt was read, because the collector's parser
-  treated the lower-case rule `Disallow: /arcgis/*` as not covering the mixed-case path. The rule is plainly meant to cover it. No data was kept from that host and no later request was made to it; Montana was loaded from the
-  State Library's file download instead (`ftpgeoinfo.msl.mt.gov`, no robots.txt).
-- **One download at a time.** The 518 MB Montana release asset (fetched from GitHub with `gh release download`, because the publisher's file was collected on GitHub's network) was still arriving while the five
-  North Carolina Hub requests (a few MB in all) ran on the same connection. Nothing else overlapped with it; the Arkansas, Minnesota and Connecticut pages were collected one source at a time.
-- No account, form, login, CAPTCHA, purchase or message was involved, and no AI model name appears in any file.
 
 ## Maintenance after the Tier 1 quality pass (2026-11-03)
 

@@ -57,12 +57,12 @@ Adapter: `python/src/factlot/registry/adapters/ca_riverside.py` (account system 
 ## Gates (need a person)
 
 1. Paid, owner-bearing files: order forms and a signed Data Distribution Agreement; $66 per file. Not pursued.
-2. Founder to decide whether "Public Use" on the open-data items suffices for redistribution, and AI use given the ACR robots.
+2. Open point: whether "Public Use" on the open-data items suffices for redistribution, and AI use given the ACR robots.
 3. No account, purchase, form or agreement was used.
 
-### Terms read 2026-11-03 (gates pass)
+### Terms read 2026-11-03
 
-ArcGIS item `739eb1d35eb64725a8aed3fae1ed9f6f`, "CREST General Table", <https://www.arcgis.com/sharing/rest/content/items/739eb1d35eb64725a8aed3fae1ed9f6f?f=json> (read 2026-11-02, NOTES.md): `licenseInfo` is exactly `Public Use`. The capture's description is "New CREST General Table to replace current General table from the Assessor." Redistribution and AI use are not addressed by those two words. A data-distribution disclaimer mentioned in the review record was not re-read in this lane and is NOT CONFIRMED here. The paid-file Data Distribution Agreement was not read.
+ArcGIS item `739eb1d35eb64725a8aed3fae1ed9f6f`, "CREST General Table", <https://www.arcgis.com/sharing/rest/content/items/739eb1d35eb64725a8aed3fae1ed9f6f?f=json> (read 2026-11-02): `licenseInfo` is exactly `Public Use`. The capture's description is "New CREST General Table to replace current General table from the Assessor." Redistribution and AI use are not addressed by those two words. A data-distribution disclaimer mentioned in the review record was not re-read and is NOT CONFIRMED here. The paid-file Data Distribution Agreement was not read.
 
 Mailing address, <https://www.rivcoacr.org/mapbookchanges> (read 2026-11-03):
 
@@ -72,11 +72,11 @@ Mailing address, <https://www.rivcoacr.org/mapbookchanges> (read 2026-11-03):
 
 Assessor phone on that page: (951) 955-6200. No email is printed there.
 
-Gov. Code § 7922.530(a) (read 2026-11-02, NOTES.md): records "shall make the records promptly available to any person upon payment of fees covering direct costs of duplication, or a statutory fee if applicable." Rev. & Tax. Code § 408.3(a) (read 2026-11-02): "property characteristics information maintained by the assessor is a public record and shall be open to public inspection." Section 408(a) withholds records "not required by law to be kept or prepared by the assessor". Commercial use: silent. Redistribution: silent. Gov. Code § 7921.000 is NOT CONFIRMED. Founder URL, HTTP 403 on 2026-11-03: <https://leginfo.legislature.ca.gov/faces/codes_displaySection.xhtml?lawCode=GOV&sectionNum=7921.000.>
+Gov. Code § 7922.530(a) (read 2026-11-02): records "shall make the records promptly available to any person upon payment of fees covering direct costs of duplication, or a statutory fee if applicable." Rev. & Tax. Code § 408.3(a) (read 2026-11-02): "property characteristics information maintained by the assessor is a public record and shall be open to public inspection." Section 408(a) withholds records "not required by law to be kept or prepared by the assessor". Commercial use: silent. Redistribution: silent. Gov. Code § 7921.000 is NOT CONFIRMED (HTTP 403 on 2026-11-03: <https://leginfo.legislature.ca.gov/faces/codes_displaySection.xhtml?lawCode=GOV&sectionNum=7921.000.>
 
-"Public Use" does not state a redistribution right. The statutes read are an access rule and a fee rule. They do not clear the CREST tables for the open registry. Do not load them, and do not order the paid roll, until the Assessor answers `ca-riverside-assessor-letter.md`.
+"Public Use" does not state a redistribution right. The statutes read are an access rule and a fee rule. They do not clear the CREST tables for the open registry. They are not loaded, and the paid roll is not ordered, until the Assessor confirms the terms in writing.
 
-### Platform terms read 2026-11-03 (gates pass, Task 5)
+### Platform terms read 2026-11-03
 
 Esri / ArcGIS Hub. No separate public Hub terms page for downloaders was found. Esri's Master Agreement (E204CW, <https://www.esri.com/content/dam/esrisites/en-us/media/legal/ma-translations/english.pdf>) and Product-Specific Terms (E300, <https://www.esri.com/content/dam/esrisites/en-us/media/legal/product-specific-terms-of-use/e300.pdf>) were read 2026-11-03 (HTTP 200, not accepted). Full notes: [`../requests/platform-terms/esri-hub.md`](../requests/platform-terms/esri-hub.md), [`esri-e204.md`](../requests/platform-terms/esri-e204.md), [`esri-e300.md`](../requests/platform-terms/esri-e300.md). E300 footnote 85:
 

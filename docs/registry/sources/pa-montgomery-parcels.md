@@ -48,7 +48,7 @@ owner's mailing address).
   the licence "Public Domain U.S. Government". (Found by search; not fetched.)
 - AI use: not addressed. Redistribution: no restriction stated; the data is a public record offered as a
   "free and open resource". **Judgement call recorded:** the custom licence does not say "public domain" or
-  "redistribution", so the founder may want a one-line confirmation from the Board of Assessment Appeals
+  "redistribution", so a one-line confirmation from the Board of Assessment Appeals would settle it
   (`BOA.datarequests@montgomerycountypa.gov` is the data contact); it is `verified: true` because
   nothing forbids redistribution or AI use and the county calls the data free and open.
 - robots.txt: `gis-montcopa.hub.arcgis.com` and `hub.arcgis.com`: `Crawl-delay: 60`, `Disallow: /sites/`,

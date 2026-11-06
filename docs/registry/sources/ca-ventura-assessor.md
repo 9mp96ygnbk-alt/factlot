@@ -39,11 +39,11 @@ Reviewed 2026-11-03.
 
 ## Gates (need a person)
 
-1. **Public records request and public information agreement.** The founder submits the Assessor's public
-   records request for the secured roll with use codes and signs the "public info agreement contract"
+1. **Public records request and public information agreement.** The secured roll with use codes needs the
+   Assessor's public records request and a signed "public info agreement contract"
    (https://assessor.venturacounty.gov/assessor-data/public-records-request/, which the collector cannot read;
-   telephone (805) 654-2181 per the summary), and asks whether the agreement allows republication of the facts.
-   The agreement is an acceptance of terms and so is the founder's act.
+   telephone (805) 654-2181 per the summary). Whether the agreement allows republication of the facts is not
+   stated. Signing it is an acceptance of terms, which the collector never does.
 2. Both county web hosts need a browser, not the collector.
 
 ## Real run

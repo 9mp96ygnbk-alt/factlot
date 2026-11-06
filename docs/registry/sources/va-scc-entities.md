@@ -81,20 +81,20 @@ them as `skipped_invalid`.
    automated clients, ask the Clerk's Office for a route (or whether the file may be fetched by a
    bot at all).
 2. **Cookie-consent click-through.** The download requires accepting the site's cookie banner
-   first. The collector never accepts banners or terms (data policy §1; EXPANSION-BRIEF). A person
-   must read what that consent covers and decide.
+   first. The collector never accepts banners or terms (data policy §1). A person
+   must read what that consent covers before it is accepted.
 3. **Fee / agreement.** Confirm whether `DownloadBEDataSalesFile` is free and whether any
    agreement attaches, versus the $1,000/month FTP extract on the purchase page. If a purchase or
-   agreement is required, the founder does it.
+   agreement is required, it is a separate gate.
 4. **Terms, AI use, redistribution.** None could be read. Record them, then set `verified: true`
    and add the file URL to `files` (note the collector will also need robots.txt to be readable
    or explicitly allowed).
 5. **Layout check.** On the first real file, compare the headers with the list above and fix the
    adapter before trusting its output.
 
-### Terms read 2026-11-03 (gates pass)
+### Terms read 2026-11-03
 
-This memo is research, not legal advice; the founder holds no attorney or real estate license.
+This memo is research, not legal advice.
 
 These three URLs did not load (curl 35, no HTTP status, read 2026-11-03). Consent banner and price list are NOT CONFIRMED. A person must open them:
 
@@ -108,15 +108,15 @@ The page that loaded, https://www.scc.virginia.gov/businesses/about-the-clerks-o
 
 > The Clerk's Office operates under the Code of Virginia.
 
-No bulk licence, price, or redistribution term was on that page. No letter was drafted. Do not load.
+No bulk licence, price, or redistribution term was on that page. Not loaded.
 
-Statute text was not fetched on 2026-11-03. NOTES.md (read 2026-11-02) quotes Va. Code § 2.2-3700(B) and § 2.2-3704, https://law.lis.virginia.gov/vacode/title2.2/chapter37/section2.2-3700/ and https://law.lis.virginia.gov/vacode/title2.2/chapter37/section2.2-3704/ . Contiguous pieces:
+Statute text was not fetched on 2026-11-03. A capture read 2026-11-02 quotes Va. Code § 2.2-3700(B) and § 2.2-3704, https://law.lis.virginia.gov/vacode/title2.2/chapter37/section2.2-3700/ and https://law.lis.virginia.gov/vacode/title2.2/chapter37/section2.2-3704/ . Contiguous pieces:
 
 > available for inspection and copying upon request.
 
 > a public body may make reasonable charges not to exceed its actual cost incurred in
 
-As read in NOTES.md, those sections are silent on commercial use and on redistribution of an entity extract. They are not a price list for the Clerk's data file.
+As captured, those sections are silent on commercial use and on redistribution of an entity extract. They are not a price list for the Clerk's data file.
 
 ## Real run
 

@@ -102,5 +102,5 @@ PYTHONPATH=python/src python3 -m factlot.registry.adapters.in_marion <21 page fi
 
 - No year built, building area or roll year in the layer; `ASSESSORYEAR_*` are assessed (not market) values for the current assessment year.
 - `FULLOWNERNAME` joins lines with a comma, so a name containing a comma that is not a company suffix keeps only its first segment (a person's "LAST, FIRST" becomes "LAST", which is dropped as a person anyway).
-- Only the 300-499 classes were pulled; 4-unit apartments (code 401) are the publisher's multifamily class, so they are B though the brief's threshold is 5+ units.
+- Only the 300-499 classes were pulled; 4-unit apartments (code 401) are the publisher's multifamily class, so they are B though the registry's apartment threshold is 5+ units.
 - Indiana's other counties are not covered; the statewide IndianaMap layer has no owners.

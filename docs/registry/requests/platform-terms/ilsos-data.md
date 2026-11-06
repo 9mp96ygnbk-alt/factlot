@@ -1,9 +1,9 @@
-# Task 5: Illinois Secretary of State business-services data pages
+# Illinois Secretary of State business-services data pages
 
 Read 2026-11-03.
 Status: BLOCKED. Neither page returned a document.
 
-This memo is research, not legal advice; the founder holds no attorney or real estate license.
+This memo is research, not legal advice.
 
 https://www.ilsos.gov/data/bus-serv-home.html timed out (curl 28) on the first GET and on the one allowed timeout retry. Zero bytes. No HTTP status.
 
@@ -13,4 +13,4 @@ Licence, redistribution, commercial use, automated access, and derivative works:
 
 Review record: `il-sos-entities`.
 
-A person must open both URLs above. Do not retry from this lane, and do not treat the privacy-policy capture as a substitute. That page is also blocked; see `ilsos-privacy.md`.
+Both URLs above need a person in a browser. The privacy-policy capture is not a substitute. That page is also blocked; see `ilsos-privacy.md`.

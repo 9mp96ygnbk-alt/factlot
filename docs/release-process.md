@@ -6,7 +6,8 @@ Claude Desktop extension (`.mcpb`) attached. The workflow that does the publishi
 [`.github/workflows/release.yml`](../.github/workflows/release.yml).
 
 Four more workflows need **no npm or PyPI account**, only the repository's own `GITHUB_TOKEN` or
-GitHub OIDC. They are what make FactLot installable before backlog item A5 is done:
+GitHub OIDC, so every release is installable from GitHub whether or not npm and PyPI publishing
+is configured:
 
 | Workflow                                                        | Trigger                                 | What it does                                                                                                                                                                                                                                                                      |
 | --------------------------------------------------------------- | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -20,51 +21,36 @@ each job declares only the permissions it needs (`contents: read` by default; `c
 only to attach release assets; `packages: write` only to push the image; `pages: write` and
 `id-token: write` only to deploy Pages; `id-token: write` only to log in to the MCP Registry).
 
-> **Before the npm and PyPI accounts exist (backlog A5):** pushing a `vX.Y.Z` tag runs
+> **Without npm and PyPI credentials:** pushing a `vX.Y.Z` tag runs
 > `release.yml`'s checks and builds and then skips npm and PyPI with a notice instead of failing;
 > `release-assets.yml` and `container.yml` still publish the GitHub release assets and the GHCR
 > image. The MCP Registry workflow publishes the `.mcpb` package alone while the GHCR package is
 > still private, and adds the OCI package once it is public.
 
-## First release without npm or PyPI accounts
+## Cutting a release
 
-What the owner does on launch day, in order. Nothing here creates an account or costs money.
-
-1. **Make the repository public** (Settings, General, Danger Zone). Release-asset URLs,
-   `pip install git+https://…`, anonymous GHCR pulls, free GitHub Pages, and MCP Registry
-   validation all need it.
-2. **Enable Pages:** Settings, Pages, Source "GitHub Actions". Then run **Pages** by hand once
-   (Actions, Pages, Run workflow), or push a change under `site/`. For `factlot.com`, add the
-   custom domain on the same settings page and point DNS at GitHub Pages.
-3. **Add a changelog section and tag.** The packages are already at `0.1.0`:
+1. **Add a changelog section and tag.**
 
    ```bash
    git switch main && git pull --ff-only
-   node scripts/release/changelog.mjs release 0.1.0
-   git commit -am "Release 0.1.0"
-   git tag -a v0.1.0 -m "FactLot 0.1.0"
-   git push origin main v0.1.0
+   node scripts/release/changelog.mjs release X.Y.Z
+   git commit -am "Release X.Y.Z"
+   git tag -a vX.Y.Z -m "FactLot X.Y.Z"
+   git push origin main vX.Y.Z
    ```
 
-   The tag starts `release-assets.yml`, `container.yml`, and `release.yml`. **`release.yml`
-   fails in `preflight`** ("backlog item A5 … is not complete") until the npm token and PyPI
-   trusted publisher exist. That is expected and publishes nothing; the other two do not depend
-   on it.
+   The tag starts `release-assets.yml`, `container.yml`, and `release.yml`.
 
-4. **Make the container package public**, once, after `container.yml` first pushes:
-   <https://github.com/users/9mp96ygnbk-alt/packages/container/factlot/settings>, Danger Zone,
-   Change visibility, Public. GHCR creates new packages as private, and the MCP Registry reads the
-   image anonymously.
-5. **Check the release** has `factlot-0.1.0.mcpb`, `factlot-mcp-standalone-0.1.0.tgz`, the six
-   `factlot-*-0.1.0.tgz`, the wheel, the sdist, and `SHA256SUMS`. Then, from any machine:
+2. **Check the release** has `factlot-X.Y.Z.mcpb`, `factlot-mcp-standalone-X.Y.Z.tgz`, the six
+   `factlot-*-X.Y.Z.tgz`, the wheel, the sdist, and `SHA256SUMS`. Then, from any machine:
 
    ```bash
-   npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.1.0/factlot-mcp-standalone-0.1.0.tgz < /dev/null
-   pip install "git+https://github.com/9mp96ygnbk-alt/factlot.git@v0.1.0#subdirectory=python"
-   docker run --rm -p 8787:8787 ghcr.io/9mp96ygnbk-alt/factlot:0.1.0
+   npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/vX.Y.Z/factlot-mcp-standalone-X.Y.Z.tgz < /dev/null
+   pip install "git+https://github.com/9mp96ygnbk-alt/factlot.git@vX.Y.Z#subdirectory=python"
+   docker run --rm -p 8787:8787 ghcr.io/9mp96ygnbk-alt/factlot:X.Y.Z
    ```
 
-6. **Publish to the MCP Registry:** Actions, **MCP Registry**, Run workflow, version `0.1.0`,
+3. **Publish to the MCP Registry:** Actions, **MCP Registry**, Run workflow, version `X.Y.Z`,
    leave **dry run** ticked first. When it passes (`mcp-publisher validate` and the `.mcpb`
    checksum), run it again with dry run unticked.
 
@@ -74,8 +60,8 @@ re-push a tag that has been released.
 
 ## Prerequisites (once)
 
-These need accounts only the project owner can create (backlog item **A5**). Until they exist
-the workflow stops in its first job with a message naming A5, so a tag cannot half-publish.
+npm and PyPI publishing need these, set up once by a repository owner. Until they exist the
+workflow skips npm and PyPI in its first job, so a tag cannot half-publish.
 
 1. **npm org `@factlot`.** Create it at npmjs.com, then create a _granular access token_ with
    read and write access to the `@factlot` scope and "bypass 2FA" enabled for automation. Save it
@@ -220,10 +206,9 @@ exist yet):
   others.
 - PyPI: none. The Python package is an SDK, not an MCP server. If one is added, its README needs
   a line `<!-- mcp-name: io.github.9mp96ygnbk-alt/factlot -->`.
-- A `remotes` entry (`{"type": "streamable-http", "url": "https://<host>/mcp"}`) once a hosted
-  endpoint exists (backlog A4).
+- A `remotes` entry for the hosted endpoint (`{"type": "streamable-http", "url": "https://api.factlot.com/mcp"}`).
 
-**Interaction with `release.yml`.** Once A5 is done, `release.yml`'s `github-release` job uploads
+**Interaction with `release.yml`.** Once npm and PyPI publishing is configured, `release.yml`'s `github-release` job uploads
 its own `.mcpb` with `--clobber`. That rebuild has a different SHA-256 from the one
 `release-assets.yml` attached and recorded in `SHA256SUMS`, so for a release that has already been
 published to the MCP Registry, either skip that upload or re-run `release-assets.yml` (which

@@ -115,17 +115,17 @@ to single spaces, `0072 01 0021A`). Counts from the live services on 2026-11-02:
 ## Gates (anything that needs a person)
 
 1. **License decision.** The disclaimer authorises reproduction for internal or personal use only.
-   Decide whether facts derived from these public assessment records may be published in the open
-   registry, or ask Fairfax County GIS / DTA for a statement. Until then `verified: false`; the
+   Open point: whether facts derived from these public assessment records may be published in the open
+   registry, or whether Fairfax County GIS / DTA will give a statement. Until then `verified: false`; the
    scratch run below used `--include-unverified` for internal evaluation only, which the
    disclaimer permits. Nothing from it is published.
-2. **Owner names.** Not published in bulk. If owners of record are wanted, ask DTA whether a bulk
+2. **Owner names.** Not published in bulk. If owners of record are wanted, DTA would have to say whether a bulk
    owner file is available (Virginia FOIA request; owner names are public assessment information
    under § 58.1-3122.2) or accept a roll without owners.
 
-### Terms read 2026-11-03 (gates pass)
+### Terms read 2026-11-03
 
-GIS Division disclaimer, <https://www.fairfaxcounty.gov/maps/disclaimer> (read 2026-11-02, NOTES.md). Each Tax Administration dataset's license field points here and nowhere else:
+GIS Division disclaimer, <https://www.fairfaxcounty.gov/maps/disclaimer> (read 2026-11-02). Each Tax Administration dataset's license field points here and nowhere else:
 
 > Copyright by Fairfax County. Except as provided herein, all rights are reserved. Authorization to reproduce material for internal or personal use by any user of this information is granted by Fairfax County, the copyright owner.
 
@@ -139,11 +139,11 @@ The statutory right runs to Virginia citizens and in-state print and broadcast m
 
 Va. Code § 2.2-3700(B), <https://law.lis.virginia.gov/vacode/title2.2/chapter37/section2.2-3700/> (read 2026-11-02): public records "shall be presumed open". Va. Code § 58.1-3122.2, <https://law.lis.virginia.gov/vacode/title58.1/chapter32/section58.1-3122.2/> (read 2026-11-02): the commissioner "may provide remote access, including access through the Internet, to all nonconfidential public records maintained by his office, subject to such limitations as may be imposed by applicable law." That sentence is silent on commercial use and on redistribution by a recipient.
 
-Recipient for the letter and the owner-file request, <https://www.fairfaxcounty.gov/publicaffairs/foia/> (read 2026-11-02): Countywide FOIA Officer, Office of Public Affairs, 12000 Government Center Parkway, Suite 551, Fairfax, VA 22035, FOIA@fairfaxcounty.gov. Department of Tax Administration, Real Estate Division, by title. The published Hub tables have no owner column. The owner-file draft is `va-fairfax-assessor-request.md`.
+FOIA recipient, <https://www.fairfaxcounty.gov/publicaffairs/foia/> (read 2026-11-02): Countywide FOIA Officer, Office of Public Affairs, 12000 Government Center Parkway, Suite 551, Fairfax, VA 22035, FOIA@fairfaxcounty.gov. Department of Tax Administration, Real Estate Division, by title. The published Hub tables have no owner column.
 
-The disclaimer grants reproduction for internal or personal use and reserves every other right. It restricts redistribution of the assessment tables. Do not publish facts from them until the county answers `va-fairfax-assessor-letter.md`. The owner file is a separate FOIA request, and § 2.2-3704(A) has to be faced in that request before it is sent.
+The disclaimer grants reproduction for internal or personal use and reserves every other right. It restricts redistribution of the assessment tables. Facts from them are not published until the county confirms the terms in writing. The owner file is a separate FOIA request, and § 2.2-3704(A) has to be faced in that request before it is sent.
 
-### Platform terms read 2026-11-03 (gates pass, Task 5)
+### Platform terms read 2026-11-03
 
 Esri / ArcGIS Hub. No separate public Hub terms page for downloaders was found. Esri's Master Agreement (E204CW, <https://www.esri.com/content/dam/esrisites/en-us/media/legal/ma-translations/english.pdf>) and Product-Specific Terms (E300, <https://www.esri.com/content/dam/esrisites/en-us/media/legal/product-specific-terms-of-use/e300.pdf>) were read 2026-11-03 (HTTP 200, not accepted). Full notes: [`../requests/platform-terms/esri-hub.md`](../requests/platform-terms/esri-hub.md), [`esri-e204.md`](../requests/platform-terms/esri-e204.md), [`esri-e300.md`](../requests/platform-terms/esri-e300.md). E300 footnote 85:
 
@@ -163,10 +163,9 @@ real file; the row counts in "What the file contains" are from the live feature 
 
 To finish the run once `collected/va-fairfax-assessor/manifest.jsonl` has five `archived` lines:
 
-    python3 -I /private/tmp/claude-501/-Users-rs-Projects-FactLease/fb297270-1bc8-428b-aed7-1276b3addaee/scratchpad/scripts/run_va_scratch.py <scratch.db>
+    PYTHONPATH=python/src python3 -m factlot.registry.adapters.va_fairfax collected/va-fairfax-assessor <db> --as-of 2026-11-02
 
-(or `PYTHONPATH=python/src python3 -m factlot.registry.adapters.va_fairfax collected/va-fairfax-assessor <db> --as-of 2026-11-02`, then
-`Registry(db).link_owners()`), and record here: rows read per table, parcels kept by category,
+then `Registry(db).link_owners()`, and record here: rows read per table, parcels kept by category,
 facts written, organisation owners (expected 0: no owner column), seconds, and the Parcels Data
 snapshot document id. `link_owners()` is expected to return all zeros for this source because it
 has no owner-of-record facts; the adapter's synthetic test (`python/tests/test_adapter_va_fairfax.py`,

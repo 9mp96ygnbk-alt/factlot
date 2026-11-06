@@ -1,10 +1,10 @@
-# Task 5: ArcGIS Hub and county open-data downloads
+# ArcGIS Hub and county open-data downloads
 
 Read 2026-11-03.
 
-This memo is research, not legal advice; the founder holds no attorney or real estate license.
+This memo is research, not legal advice.
 
-No separate public page of ArcGIS Hub terms for downloaders was in the task5-raw capture, and none was found on the Esri pages fetched. The pages fetched are the master-agreement index (https://www.esri.com/en-us/legal/terms/master-agreement), the product-specific scope page (https://www.esri.com/en-us/legal/terms/product-specific-scope-of-use), E204CW, and E300. The scope page's English E300 link is https://www.esri.com/content/dam/esrisites/en-us/media/legal/product-specific-terms-of-use/e300.pdf .
+No separate public page of ArcGIS Hub terms for downloaders was in the earlier browser capture, and none was found on the Esri pages fetched. The pages fetched are the master-agreement index (https://www.esri.com/en-us/legal/terms/master-agreement), the product-specific scope page (https://www.esri.com/en-us/legal/terms/product-specific-scope-of-use), E204CW, and E300. The scope page's English E300 link is https://www.esri.com/content/dam/esrisites/en-us/media/legal/product-specific-terms-of-use/e300.pdf .
 
 Hub, inside E300 footnote 85, is a limit on the customer's included software licences. See `esri-e300.md`. E204 is the customer's master agreement. See `esri-e204.md`. Neither document is a licence of a county's public records to an anonymous downloader.
 

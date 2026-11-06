@@ -40,11 +40,11 @@ residential with an apartment (`SFR w/Acc Apt`, `Apt 4-Unit`, `In-Law Apt`), `Mu
 only with `Appraised_Building` > 0 (18,140 of the 20,572 rows described `Commercial` have one).
 
 The layer's `FIPS` is the town's 11-digit county-subdivision code with the **former county** in characters 3-5 (`09013526102`: Tolland, 013). Connecticut's counties were replaced by planning regions for Census purposes in 2022; the
-former county is used as the county code here and the planning region is a founder decision (the first review planned `09110` for the Capitol Planning Region).
+former county is used as the county code here and the planning-region code is an open point (the first review planned `09110` for the Capitol Planning Region).
 
 ## Gates
 
-None for the load. Decision for the founder: planning-region or former-county codes for Connecticut parcels (the former county is what the layer carries).
+None for the load. Open point: planning-region or former-county codes for Connecticut parcels (the former county is what the layer carries).
 
 ## Real run
 

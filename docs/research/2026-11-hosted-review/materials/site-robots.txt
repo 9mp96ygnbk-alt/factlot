@@ -1,7 +1,0 @@
-# FactLot welcomes search engines and AI systems. The tools and docs are open source.
-Content-Signal: search=yes, ai-input=yes, ai-train=yes
-User-agent: *
-Allow: /
-Disallow: /billing/
-
-Sitemap: https://factlot.com/sitemap.xml

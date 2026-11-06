@@ -20,7 +20,7 @@ fiscal year).** Config: `registry/sources/ca/ca-san-francisco-assessor.json`. Ad
 - File in `files`: the SODA CSV endpoint
   `https://data.sf.gov/resource/wv5m-vpq2.csv?$select=<23 columns>&$where=closed_roll_year=2025 AND property_class_code in(<73 in-scope class codes>)&$order=row_id&$limit=300000`.
   Change `closed_roll_year` for a new roll. **It is an extract:** the unfiltered stream of the full roll
-  repeatedly stalled and dropped partway on this session's network (three attempts, the collector process
+  repeatedly stalled and dropped partway on the review machine's network (three attempts, the collector process
   ended at 4 to 20 MB each time), so the collector archives only the in-scope property classes
   (20,612 of 211,547 rows, 5.5 MB) with a 23-column projection of the 46 columns. The class list is the
   one in the adapter; if the adapter's class sets change, change the URL too.
@@ -95,7 +95,7 @@ class definition). Mapping used:
   (`MISC`: `V`, `VCI`, `VR`, `VA15`...); schools `E`, churches `W`, clubs `U`, timeshares `TS*`, police,
   fire and library stations, `CONG` Consulate, `LE35`, `MB`, `TDR`, `UWL`, `X`. A code not in the table
   yields no record. Parcels with `status_code` `N` or `S` are dropped even in an in-scope class.
-- Judgement calls the founder may want to revisit: `AC` (apartment over store) is F1 because the Assessor
+- Judgement calls open to revisiting: `AC` (apartment over store) is F1 because the Assessor
   files it under commercial; `RH` residential hotels and SROs are F1 for the same reason; parking stall
   condominiums (`PZ`, 366 parcels) are kept as commercial parcels.
 
@@ -104,7 +104,7 @@ class definition). Mapping used:
 None for the data. One housekeeping item: read the DataSF terms page on sf.gov in a browser (it refused
 the collector), per data policy §5.
 
-### Platform terms read 2026-11-03 (gates pass, Task 5)
+### Platform terms read 2026-11-03
 
 DataSF terms of use, <https://www.sf.gov/reports--april-2017--datasf-terms-use> (HTTP 200, read 2026-11-03; matches the browser capture in the gates working file). Full notes: [`../requests/platform-terms/datasf.md`](../requests/platform-terms/datasf.md).
 
@@ -114,7 +114,7 @@ DataSF terms of use, <https://www.sf.gov/reports--april-2017--datasf-terms-use> 
 
 Section II.A says downloading or using the Data or a Derivative Work is treated "as an acceptance of the Terms of Use from that point forward", and section VII.B requires indemnity for use "including without limitation Your use of the Data in a Derivative Work."
 
-Read: the terms do not restrict redistribution. The data are dedicated under PDDL v1.0 unless the file or its page says otherwise (none was seen for `wv5m-vpq2`). The binding conditions are no re-identification and no contacting individuals (the registry keeps no natural-person names and this dataset has no owner names) and an indemnity. This clears the housekeeping item above; the founder should note that downloading counts as acceptance under II.A.
+Read: the terms do not restrict redistribution. The data are dedicated under PDDL v1.0 unless the file or its page says otherwise (none was seen for `wv5m-vpq2`). The binding conditions are no re-identification and no contacting individuals (the registry keeps no natural-person names and this dataset has no owner names) and an indemnity. This clears the housekeeping item above. Downloading counts as acceptance under II.A.
 
 ## Real run
 
@@ -143,7 +143,7 @@ The roll's `zoning_code` is the zoning district the Assessor-Recorder records fo
 `C3O`, `NC3`, `M1`; the Planning Code writes `RM-1`, `C-3-O`, `NC-3`). The adapter now writes it, as published, as the parcel's
 `zoning.district` (`public_record`, cited to the roll row, PDDL rights as the roll); `NA` (no code) writes nothing. It is the
 Assessor's attribute, not a zoning verification: the Planning Department's zoning map is the authority. Scratch registry
-(`…/scratchpad/data/r2/sf.db`, a copy of round 1's re-ingested with this change from the archived 2026-06-26 extract): 16,874
+(re-ingested with this change from the archived 2026-06-26 extract): 16,874
 of 19,048 parcels (88.6%) with a district (`RM1` 1,644; `RH3` 1,630; `RH2` 1,423; `NC3` 1,275; `NC2` 1,159; `RC4` 919; `M1` 913;
 `RM2` 910); the other 2,174 are `NA`. SF Planning's own zoning-district polygons (DataSF) were not used.
 

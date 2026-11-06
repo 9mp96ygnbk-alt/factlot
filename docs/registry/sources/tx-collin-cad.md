@@ -103,7 +103,7 @@ X (totally exempt), which is what their own names say. A reviewer who disagrees 
 ## Gates (needs a person)
 
 None for collection: the downloads are public, unauthenticated and robots-permitted. For the record:
-a person should re-check the site before go-live (backlog A11, common to all Texas sources), and
+a person should re-check the site before go-live (common to all Texas sources), and
 confirm the EX/X decision above.
 
 ## Quality pass (2026-11-03)

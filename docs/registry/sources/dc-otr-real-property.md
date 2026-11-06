@@ -37,7 +37,7 @@ Also published but not used: ITSPE Facts, ITSPE Vacant Property, CAMA Residentia
 - **dc.gov Terms and Conditions of Use** (`https://dc.gov/page/terms-and-conditions-use`): "The data
   located on DC Open Data has its own terms and conditions." (site content is CC-BY-3.0.)
 - **Open Data DC terms page** `https://opendata.dc.gov/pages/terms-and-conditions` is rendered by
-  JavaScript; the collector sees no text. A person should read it in a browser (founder item).
+  JavaScript; the collector sees no text. It needs a person to read it in a browser.
 - **AI use:** not addressed; CC-BY-4.0 and the CC0 statement permit any use with attribution.
 - **robots.txt** `opendata.dc.gov`: `User-agent: *`, `Crawl-delay: 60`, disallows `/sites/`, `/admin/`,
   `/sessions/`, `/groups/`, `/people/`, `/workspace/` (the API and download paths are allowed). The
@@ -86,7 +86,7 @@ shared by other collectors; one 10-minute stall produced a read timeout), so the
 needs an unattended run. The feature services page at 1,000 (ITSPE) and 2,000 (CAMA) rows per
 request as an alternative.
 
-### Platform terms read 2026-11-03 (gates pass, Task 5)
+### Platform terms read 2026-11-03
 
 Terms and Conditions of Use for District Data, <https://dc.gov/page/terms-and-conditions-use-district-data> (HTTP 200, read 2026-11-03; reached from the Open Data DC footer, since <https://opendata.dc.gov/pages/terms-of-use> shows a sign-in message). Full notes: [`../requests/platform-terms/dc-district-data.md`](../requests/platform-terms/dc-district-data.md).
 

@@ -47,7 +47,7 @@ the registry, matched by borough-block-lot (the `nyc_bbl` account, the parcel AP
 - **Platform terms.** The file is served by Socrata (Tyler Technologies). Tyler's Terms of Use forbid
   scrapers and bulk copying of data "accessed through the Services" and commercial redistribution of the
   Services; the tension with the agency licence is the one recorded for the DOF roll and in
-  [`../requests/platform-terms/socrata.md`](../requests/platform-terms/socrata.md). It is the founder's call
+  [`../requests/platform-terms/socrata.md`](../requests/platform-terms/socrata.md). It is an open point
   (rely on the agency licence, or ask DCP to confirm that it governs bulk exports); the collector made one
   request for this file and nothing was accepted.
 - **robots.txt** `data.cityofnewyork.us`: `Crawl-delay: 1`; only `/browse?...` search and filter pages are
@@ -89,7 +89,7 @@ returns one fact per single-valued predicate. Owner name and owner type are neve
 
 ## Real run (2026-11-04)
 
-Scratch registry (not the repo): `…/scratchpad/data/zs/zs.db`, built by loading the archived FY27 DOF roll
+Scratch registry (not in the repo), built by loading the archived FY27 DOF roll
 (`ny_nyc`, 164,633 lots, 72 s) and then PLUTO:
 
 ```

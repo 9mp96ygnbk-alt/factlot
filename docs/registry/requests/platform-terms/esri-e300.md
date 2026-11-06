@@ -1,11 +1,11 @@
-# Task 5: Esri Product-Specific Terms of Use (E300)
+# Esri Product-Specific Terms of Use (E300)
 
 Fetched URL: https://www.esri.com/content/dam/esrisites/en-us/media/legal/product-specific-terms-of-use/e300.pdf
 HTTP 200. Read 2026-11-03. The scope page https://www.esri.com/en-us/legal/terms/product-specific-scope-of-use (HTTP 200, read 2026-11-03) is titled "Product-Specific Terms of Use (E300)" and its current English link is that PDF. The index lists "E300—11/13/2025". The PDF footer says "November 13, 2025" and "Page 6 of 6".
 
-Status versus the task5-raw capture: the capture says E300 was NOT read. That statement is accurate for the capture. This fetch supplies the clauses. The page is not BLOCKED. Clause-level VERIFIED or DIFFERS does not apply, because the capture has no E300 text to compare.
+Status versus an earlier browser capture: the capture says E300 was NOT read. That statement is accurate for the capture. This fetch supplies the clauses. The page is not BLOCKED. Clause-level VERIFIED or DIFFERS does not apply, because the capture has no E300 text to compare.
 
-This memo is research, not legal advice; the founder holds no attorney or real estate license.
+This memo is research, not legal advice.
 
 ArcGIS Hub is footnote 85:
 

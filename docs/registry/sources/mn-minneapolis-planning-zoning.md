@@ -39,7 +39,7 @@ point.
 
 ## Real run (2026-11-04)
 
-Into a scratch Hennepin registry built from the archived county file (`…/scratchpad/data/r2/hennepin.db`, 19,840 parcels):
+Into a scratch Hennepin registry built from the archived county file (19,840 parcels):
 
 ```
 python -m factlot.registry.adapters.zoning_points minneapolis query.geojson County_Parcels.csv hennepin.db --as-of 2026-10-30

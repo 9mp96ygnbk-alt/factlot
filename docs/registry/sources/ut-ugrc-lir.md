@@ -105,7 +105,7 @@ None for the download: no account, login, click-through, fee or CAPTCHA. For a p
 
 ## Real run (2026-11-03)
 
-The full CSVs exceed the 50 MB limit of the Tier 2 brief (Salt Lake 163,852,405 bytes), so each county was
+The full CSVs exceed the 50 MB review limit of the Tier 2 method (Salt Lake 163,852,405 bytes), so each county was
 sampled with a ranged read of the Hub export (a prefix of 30 MB and 25 MB, cut at the last complete row;
 the collector's weekly workflow takes the full files). The prefixes were loaded into a scratch registry
 outside the repository.

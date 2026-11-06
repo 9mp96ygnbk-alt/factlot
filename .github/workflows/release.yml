@@ -6,7 +6,7 @@
 # docs/release-process.md). A manual run ("Run workflow") is a dry run by default: it runs every
 # check and build and publishes nothing. Untick "dry run" only when dispatching on a `v*` tag.
 #
-# Required before the first real release (backlog A5): the npm org `@factlot` and a PyPI
+# Required before the first real release: the npm org `@factlot` and a PyPI
 # project with trusted publishing, then the repository secret NPM_TOKEN and the repository
 # variable PYPI_TRUSTED_PUBLISHING=ready. Optional: MCPB_SIGNING_CERT and MCPB_SIGNING_KEY to
 # sign the .mcpb.
@@ -102,11 +102,11 @@ jobs:
             exit 1
           fi
 
-      # Until the npm and PyPI accounts exist (backlog A5), a tag push still runs every check and
+      # Until the npm and PyPI accounts exist, a tag push still runs every check and
       # build here and publishes nothing to npm or PyPI; the GitHub release assets and the
       # container image come from release-assets.yml and container.yml. A manual non-dry-run
       # dispatch without credentials is an error, since someone asked for a publish.
-      - name: Publishing credentials are configured (backlog A5)
+      - name: Publishing credentials are configured
         id: creds
         if: steps.mode.outputs.publish == 'true'
         env:
@@ -119,11 +119,11 @@ jobs:
           [ "$PYPI_TRUSTED_PUBLISHING" = "ready" ] || missing="$missing\n  - repository variable PYPI_TRUSTED_PUBLISHING=ready (set it once the PyPI trusted publisher for this workflow exists)"
           if [ -n "$missing" ]; then
             if [ "$EVENT" = "push" ]; then
-              printf '::notice::npm and PyPI publishing skipped: backlog item A5 is not complete. Missing:%b\n' "$missing"
+              printf '::notice::npm and PyPI publishing skipped: the npm and PyPI publishing credentials are not configured. Missing:%b\n' "$missing"
               echo "publish=false" >> "$GITHUB_OUTPUT"
               exit 0
             fi
-            printf '::error::Cannot publish: backlog item A5 (create the npm org @factlot and a PyPI account) is not complete. Missing:%b\nSee docs/release-process.md, section Prerequisites.\n' "$missing"
+            printf '::error::Cannot publish: the npm and PyPI publishing credentials are not configured (an npm org @factlot and a PyPI account). Missing:%b\nSee docs/release-process.md, section Prerequisites.\n' "$missing"
             exit 1
           fi
           echo "NPM_TOKEN and PYPI_TRUSTED_PUBLISHING are set."
