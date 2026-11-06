@@ -36,6 +36,19 @@ for (const file of ["site/index.html", "llms.txt", "site/llms.txt"]) {
   });
 }
 
+describe("llms-install.md", () => {
+  it(`links release v${version} only`, () => {
+    const versions = new Set(
+      [
+        ...read("llms-install.md").matchAll(
+          /releases\/download\/v(\d+\.\d+\.\d+)\//g,
+        ),
+      ].map((m) => m[1]),
+    );
+    assert.deepEqual([...versions], [version]);
+  });
+});
+
 describe("site/llms.txt", () => {
   it("is a copy of llms.txt", () => {
     assert.equal(read("site/llms.txt"), read("llms.txt"));
