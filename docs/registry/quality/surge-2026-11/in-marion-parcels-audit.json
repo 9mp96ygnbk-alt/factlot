@@ -1,0 +1,500 @@
+{
+  "audited_on": "2026-11-06",
+  "database": "in-marion-parcels.db",
+  "entity_registries_by_state": {},
+  "sources": [
+    {
+      "ai_use": "unknown",
+      "citations": {
+        "as_of_differs_from_snapshot": 0,
+        "document_not_a_snapshot": 0,
+        "facts": 155917,
+        "links": 0,
+        "links_document_not_a_snapshot": 0,
+        "links_without_basis": 0,
+        "without_locator": 0,
+        "without_method": 0,
+        "without_valid_as_of": 0
+      },
+      "counties": ["us-18097"],
+      "county_fips": "097",
+      "findings": [
+        {
+          "message": "2 parcels have an implausible area",
+          "severity": "warning"
+        }
+      ],
+      "implausible_facts": {
+        "area": 2,
+        "out_of_scope_category": 0,
+        "tax_year": 0,
+        "value": 0,
+        "year_built": 0
+      },
+      "kind": "parcels",
+      "license": "'There are no restrictions on the use of Data provided via data download, map or service; any data derived from the Data must acknowledge the City of Indianapolis/Marion County, IN' (ArcGIS item licenseInfo). Provided as is, for reference only",
+      "links": {
+        "by_confidence": {},
+        "by_rule": {},
+        "entity_registry_loaded_for": [],
+        "link_rate_pct": null,
+        "linked_parcels": 0,
+        "note": "no entity registry is loaded for this state, so owners cannot be linked",
+        "organisation_owner_parcels": 16122
+      },
+      "lookups": {
+        "parcels_with_account_crosswalk": 20626,
+        "parcels_with_address_index": 20626
+      },
+      "owners": {
+        "orphan_mailing_addresses": 0,
+        "owner_facts": 16122,
+        "person_like": 0
+      },
+      "parcels": {
+        "absent_from_latest_snapshot": 0,
+        "conflicting_facts": 0,
+        "count": 20626,
+        "fields": {
+          "apn": {
+            "missing": 0,
+            "parcels": 20626,
+            "pct_present": 100.0
+          },
+          "appraised_value": {
+            "missing": 83,
+            "parcels": 20543,
+            "pct_present": 99.6
+          },
+          "improvement_area_sf": {
+            "missing": 20626,
+            "parcels": 0,
+            "pct_present": 0.0
+          },
+          "land_area_sf": {
+            "missing": 0,
+            "parcels": 20626,
+            "pct_present": 100.0
+          },
+          "market_value": {
+            "missing": 20626,
+            "parcels": 0,
+            "pct_present": 0.0
+          },
+          "owner_of_record": {
+            "missing": 4504,
+            "parcels": 16122,
+            "pct_present": 78.16
+          },
+          "situs_address": {
+            "missing": 0,
+            "parcels": 20626,
+            "pct_present": 100.0
+          },
+          "state_property_category": {
+            "missing": 0,
+            "parcels": 20626,
+            "pct_present": 100.0
+          },
+          "tax_year": {
+            "missing": 20626,
+            "parcels": 0,
+            "pct_present": 0.0
+          },
+          "year_built": {
+            "missing": 20626,
+            "parcels": 0,
+            "pct_present": 0.0
+          }
+        },
+        "missing_address": 0,
+        "missing_as_of": 0,
+        "no_organisation_owner": 4504
+      },
+      "publisher": "City of Indianapolis and Marion County, Indiana (IndyGIS, with the Marion County Assessor's Office)",
+      "redistribution": "attribution_required",
+      "review_queue": {
+        "accepted": 0,
+        "pending": 0,
+        "pending_by_rule": {},
+        "pending_owners": 0,
+        "rejected": 0
+      },
+      "snapshots": [
+        {
+          "age_days": 0,
+          "as_of": "2026-11-06",
+          "bytes": 784910,
+          "document_id": "fl:document:sha256-03dfc84dad223adc4081be79fd26ec30a94d3ed2bfe4dd7c70f9382c58de4fe1",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7490,
+          "filename": "query",
+          "parcels": 982,
+          "retrieved_at": "2026-11-06T22:56:20+00:00"
+        },
+        {
+          "age_days": 0,
+          "as_of": "2026-11-06",
+          "bytes": 784601,
+          "document_id": "fl:document:sha256-04171e83fb0f4731bb5b545bed417da2928de0ec6caaf63ff77752af430c1b10",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7467,
+          "filename": "query",
+          "parcels": 979,
+          "retrieved_at": "2026-11-06T22:56:20+00:00"
+        },
+        {
+          "age_days": 0,
+          "as_of": "2026-11-06",
+          "bytes": 782350,
+          "document_id": "fl:document:sha256-04b32b45f509ec50589c3d21a2c4f2159942df1356b6cb902d1f5422b68ea8ce",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7561,
+          "filename": "query",
+          "parcels": 996,
+          "retrieved_at": "2026-11-06T22:56:20+00:00"
+        },
+        {
+          "age_days": 0,
+          "as_of": "2026-11-06",
+          "bytes": 670190,
+          "document_id": "fl:document:sha256-22f7f532aa22433a5a797698c981a4ca14cbdbea0b3cd722f7245aa578fc013d",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 6329,
+          "filename": "query",
+          "parcels": 858,
+          "retrieved_at": "2026-11-06T22:56:20+00:00"
+        },
+        {
+          "age_days": 0,
+          "as_of": "2026-11-06",
+          "bytes": 785037,
+          "document_id": "fl:document:sha256-233973455966a5151c9339cfac7e8d3e9d7ba4b791c96b96f08d1f9a33112b0e",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7537,
+          "filename": "query",
+          "parcels": 990,
+          "retrieved_at": "2026-11-06T22:56:20+00:00"
+        },
+        {
+          "age_days": 0,
+          "as_of": "2026-11-06",
+          "bytes": 784023,
+          "document_id": "fl:document:sha256-254e1ef15e6f22e8a8dbc8c2309e1a0fccff436426ff7bcb414d771824994a06",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7502,
+          "filename": "query",
+          "parcels": 981,
+          "retrieved_at": "2026-11-06T22:56:20+00:00"
+        },
+        {
+          "age_days": 0,
+          "as_of": "2026-11-06",
+          "bytes": 781596,
+          "document_id": "fl:document:sha256-2ad9f79eaaf515d6322fd3d06aee1d38c0f73d53f8a46c528adf8ef954d8f0fa",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7590,
+          "filename": "query",
+          "parcels": 993,
+          "retrieved_at": "2026-11-06T22:56:20+00:00"
+        },
+        {
+          "age_days": 0,
+          "as_of": "2026-11-06",
+          "bytes": 776799,
+          "document_id": "fl:document:sha256-5843b8b364349a7b346745df5ae7c8bae7c882d8802dd9c18689e99bf6b8adf9",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7471,
+          "filename": "query",
+          "parcels": 998,
+          "retrieved_at": "2026-11-06T22:56:20+00:00"
+        },
+        {
+          "age_days": 0,
+          "as_of": "2026-11-06",
+          "bytes": 780113,
+          "document_id": "fl:document:sha256-76a454b39fed47803a11115f9faf5f488e475b0342d908873af310f47a82e8a7",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7468,
+          "filename": "query",
+          "parcels": 996,
+          "retrieved_at": "2026-11-06T22:56:20+00:00"
+        },
+        {
+          "age_days": 0,
+          "as_of": "2026-11-06",
+          "bytes": 776916,
+          "document_id": "fl:document:sha256-8245c6b645fc5f8cd605d99455269b3241c6bfe20c7ff969f6abe0796a29d2a0",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7390,
+          "filename": "query",
+          "parcels": 995,
+          "retrieved_at": "2026-11-06T22:56:20+00:00"
+        },
+        {
+          "age_days": 0,
+          "as_of": "2026-11-06",
+          "bytes": 779117,
+          "document_id": "fl:document:sha256-88bdfc36ea9b2b1cfa68c7dcdf91a471a200e91a757bbc79c3257017dd46d70b",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7342,
+          "filename": "query",
+          "parcels": 989,
+          "retrieved_at": "2026-11-06T22:56:20+00:00"
+        },
+        {
+          "age_days": 0,
+          "as_of": "2026-11-06",
+          "bytes": 785632,
+          "document_id": "fl:document:sha256-93e6ba2a9538e82595a4c3c61282fc3e25da2cacc427ceac316199ea426e9d5a",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7458,
+          "filename": "query",
+          "parcels": 974,
+          "retrieved_at": "2026-11-06T22:56:20+00:00"
+        },
+        {
+          "age_days": 0,
+          "as_of": "2026-11-06",
+          "bytes": 778079,
+          "document_id": "fl:document:sha256-9b6445b3e68c066f61096153e1ddce133de0b278a7a534cf8f66f89cbb65fc76",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7395,
+          "filename": "query",
+          "parcels": 998,
+          "retrieved_at": "2026-11-06T22:56:20+00:00"
+        },
+        {
+          "age_days": 0,
+          "as_of": "2026-11-06",
+          "bytes": 781698,
+          "document_id": "fl:document:sha256-9d41d50cd3abd0607b5bed192353d78f42c60b06e92868518b301b7c9da7fcce",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7561,
+          "filename": "query",
+          "parcels": 997,
+          "retrieved_at": "2026-11-06T22:56:20+00:00"
+        },
+        {
+          "age_days": 0,
+          "as_of": "2026-11-06",
+          "bytes": 783439,
+          "document_id": "fl:document:sha256-a2abb8ed2419ad9fb5ad1f8312af51380d75b1639883743fedf2c947f0f9a3f8",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7555,
+          "filename": "query",
+          "parcels": 987,
+          "retrieved_at": "2026-11-06T22:56:20+00:00"
+        },
+        {
+          "age_days": 0,
+          "as_of": "2026-11-06",
+          "bytes": 781755,
+          "document_id": "fl:document:sha256-ab49965d1bd538c70558001c16007e2eb8117831a3496d685dc2bd8577a91171",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7509,
+          "filename": "query",
+          "parcels": 993,
+          "retrieved_at": "2026-11-06T22:56:20+00:00"
+        },
+        {
+          "age_days": 0,
+          "as_of": "2026-11-06",
+          "bytes": 786353,
+          "document_id": "fl:document:sha256-ad700626e35837f24a4b0da003ec97f4e308da72d4159040210b3c87a069689f",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7448,
+          "filename": "query",
+          "parcels": 972,
+          "retrieved_at": "2026-11-06T22:56:20+00:00"
+        },
+        {
+          "age_days": 0,
+          "as_of": "2026-11-06",
+          "bytes": 783913,
+          "document_id": "fl:document:sha256-c54007b1ed85fa56097510940ee769f43a61b69a3996373c402f626decd9f8b1",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7512,
+          "filename": "query",
+          "parcels": 981,
+          "retrieved_at": "2026-11-06T22:56:20+00:00"
+        },
+        {
+          "age_days": 0,
+          "as_of": "2026-11-06",
+          "bytes": 788654,
+          "document_id": "fl:document:sha256-d707226aca30e40f5c31f3456acbbd6fb86f7642ed0c29a3c698bd8acafb3df2",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7502,
+          "filename": "query",
+          "parcels": 973,
+          "retrieved_at": "2026-11-06T22:56:20+00:00"
+        },
+        {
+          "age_days": 0,
+          "as_of": "2026-11-06",
+          "bytes": 775377,
+          "document_id": "fl:document:sha256-e14f0539d03dbe4e1bdcc6a2d3f7e23a366c6c23ccb0e25befeb942a59e05c6e",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7291,
+          "filename": "query",
+          "parcels": 994,
+          "retrieved_at": "2026-11-06T22:56:20+00:00"
+        },
+        {
+          "age_days": 0,
+          "as_of": "2026-11-06",
+          "bytes": 777411,
+          "document_id": "fl:document:sha256-fa126120b0d326d93a7116a27fa1d00eff4997f693d35dc61c843f7bb0f34bc0",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7539,
+          "filename": "query",
+          "parcels": 1000,
+          "retrieved_at": "2026-11-06T22:56:20+00:00"
+        }
+      ],
+      "source_file": [
+        {
+          "document_id": "382c58de4fe1",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "52af430c1b10",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "5422b68ea8ce",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "5aa578fc013d",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "1f9a33112b0e",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "771824994a06",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "8ef954d8f0fa",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "e99bf6b8adf9",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "10f47a82e8a7",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "e0796a29d2a0",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "7017dd46d70b",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "99ea426e9d5a",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "f89cbb65fc76",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "1b7c9da7fcce",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "c947f0f9a3f8",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "bd8577a91171",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "3c87a069689f",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "626decd9f8b1",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "bd8acafb3df2",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "942a59e05c6e",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "3f7bb0f34bc0",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        }
+      ],
+      "source_id": "in-marion-parcels",
+      "state_fips": "18",
+      "terms_reviewed": "2026-11-03",
+      "url": "https://www.arcgis.com/home/item.html?id=0d28e222479743baa97f8f4456da7bb4"
+    }
+  ],
+  "stats": {
+    "entities": 0,
+    "facts": 155917,
+    "links": 0,
+    "parcels": 20626,
+    "review_pending": 0,
+    "snapshots": 21
+  },
+  "violations": [],
+  "warnings": ["in-marion-parcels: 2 parcels have an implausible area"]
+}

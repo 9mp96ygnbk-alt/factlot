@@ -1,0 +1,383 @@
+{
+  "audited_on": "2026-11-06",
+  "database": "mi-oakland-parcels.db",
+  "entity_registries_by_state": {},
+  "sources": [
+    {
+      "ai_use": "unknown",
+      "citations": {
+        "as_of_differs_from_snapshot": 0,
+        "document_not_a_snapshot": 0,
+        "facts": 124851,
+        "links": 0,
+        "links_document_not_a_snapshot": 0,
+        "links_without_basis": 0,
+        "without_locator": 0,
+        "without_method": 0,
+        "without_valid_as_of": 0
+      },
+      "counties": ["us-26125"],
+      "county_fips": "125",
+      "findings": [
+        {
+          "message": "4211 of 26122 parcels have no situs address",
+          "severity": "warning"
+        }
+      ],
+      "implausible_facts": {
+        "area": 0,
+        "out_of_scope_category": 0,
+        "tax_year": 0,
+        "value": 0,
+        "year_built": 0
+      },
+      "kind": "parcels",
+      "license": "Oakland County Open Data Terms of Use Agreement, section 3: 'You may retrieve, download, copy, modify, translate, adapt, distribute, sort, search, and reuse Open Data for any lawful purpose.' As-is disclaimers and an indemnification clause apply",
+      "links": {
+        "by_confidence": {},
+        "by_rule": {},
+        "entity_registry_loaded_for": [],
+        "link_rate_pct": null,
+        "linked_parcels": 0,
+        "note": "no entity registry is loaded for this state, so owners cannot be linked",
+        "organisation_owner_parcels": 0
+      },
+      "lookups": {
+        "parcels_with_account_crosswalk": 26122,
+        "parcels_with_address_index": 21911
+      },
+      "owners": {
+        "orphan_mailing_addresses": 0,
+        "owner_facts": 0,
+        "person_like": 0
+      },
+      "parcels": {
+        "absent_from_latest_snapshot": 0,
+        "conflicting_facts": 0,
+        "count": 26122,
+        "fields": {
+          "apn": {
+            "missing": 0,
+            "parcels": 26122,
+            "pct_present": 100.0
+          },
+          "appraised_value": {
+            "missing": 1782,
+            "parcels": 24340,
+            "pct_present": 93.18
+          },
+          "improvement_area_sf": {
+            "missing": 25888,
+            "parcels": 234,
+            "pct_present": 0.9
+          },
+          "land_area_sf": {
+            "missing": 26122,
+            "parcels": 0,
+            "pct_present": 0.0
+          },
+          "market_value": {
+            "missing": 26122,
+            "parcels": 0,
+            "pct_present": 0.0
+          },
+          "owner_of_record": {
+            "missing": 26122,
+            "parcels": 0,
+            "pct_present": 0.0
+          },
+          "situs_address": {
+            "missing": 4211,
+            "parcels": 21911,
+            "pct_present": 83.88
+          },
+          "state_property_category": {
+            "missing": 0,
+            "parcels": 26122,
+            "pct_present": 100.0
+          },
+          "tax_year": {
+            "missing": 26122,
+            "parcels": 0,
+            "pct_present": 0.0
+          },
+          "year_built": {
+            "missing": 26122,
+            "parcels": 0,
+            "pct_present": 0.0
+          }
+        },
+        "missing_address": 4211,
+        "missing_as_of": 0,
+        "no_organisation_owner": 26122
+      },
+      "publisher": "Oakland County, Michigan (Access Oakland Open Data)",
+      "redistribution": "permitted",
+      "review_queue": {
+        "accepted": 0,
+        "pending": 0,
+        "pending_by_rule": {},
+        "pending_owners": 0,
+        "rejected": 0
+      },
+      "snapshots": [
+        {
+          "age_days": 0,
+          "as_of": "2026-11-06",
+          "bytes": 903358,
+          "document_id": "fl:document:sha256-33f0f9678785ae6324d721aea97cf1cf27a291ef6fd463c51e6125b353392722",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 9609,
+          "filename": "query",
+          "parcels": 2000,
+          "retrieved_at": "2026-11-06T22:56:20+00:00"
+        },
+        {
+          "age_days": 0,
+          "as_of": "2026-11-06",
+          "bytes": 877282,
+          "document_id": "fl:document:sha256-3bd73464acff88a96fa8142235cc2a65ed28ba109e0c5d746b4350bbfef68ea3",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 9598,
+          "filename": "query",
+          "parcels": 2000,
+          "retrieved_at": "2026-11-06T22:56:20+00:00"
+        },
+        {
+          "age_days": 0,
+          "as_of": "2026-11-06",
+          "bytes": 58073,
+          "document_id": "fl:document:sha256-4b89f39f18f3dd0554df95825c8c56e4e420ac9ed5661645d392c5d519e8be4a",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 600,
+          "filename": "query",
+          "parcels": 126,
+          "retrieved_at": "2026-11-06T22:56:20+00:00"
+        },
+        {
+          "age_days": 0,
+          "as_of": "2026-11-06",
+          "bytes": 872970,
+          "document_id": "fl:document:sha256-6d23525c615cb36e6f879495b105427f9756190b7d74466d1c05c7a5aee2a887",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 9388,
+          "filename": "query",
+          "parcels": 2000,
+          "retrieved_at": "2026-11-06T22:56:20+00:00"
+        },
+        {
+          "age_days": 0,
+          "as_of": "2026-11-06",
+          "bytes": 916968,
+          "document_id": "fl:document:sha256-7508fa4afce1059b0a9bfc911f2a8f7817d4cd2ab0ddb9861b8af1eae0b5c3ad",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 9615,
+          "filename": "query",
+          "parcels": 1999,
+          "retrieved_at": "2026-11-06T22:56:20+00:00"
+        },
+        {
+          "age_days": 0,
+          "as_of": "2026-11-06",
+          "bytes": 882510,
+          "document_id": "fl:document:sha256-882791afcf2d7df574564f4e90fe5411478ab28cff0de71311e3bf013eeef768",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 9676,
+          "filename": "query",
+          "parcels": 2000,
+          "retrieved_at": "2026-11-06T22:56:20+00:00"
+        },
+        {
+          "age_days": 0,
+          "as_of": "2026-11-06",
+          "bytes": 904895,
+          "document_id": "fl:document:sha256-8ef832b7583c2bcd3e33fa4e31978a50d7edaf8b99245b7d6310bc9dd56f82bd",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 9617,
+          "filename": "query",
+          "parcels": 2000,
+          "retrieved_at": "2026-11-06T22:56:20+00:00"
+        },
+        {
+          "age_days": 0,
+          "as_of": "2026-11-06",
+          "bytes": 896529,
+          "document_id": "fl:document:sha256-9030be6ed01818d882afbb9856f8300d18a21788ba1f9eac1ec8bac690a43088",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 9422,
+          "filename": "query",
+          "parcels": 2000,
+          "retrieved_at": "2026-11-06T22:56:20+00:00"
+        },
+        {
+          "age_days": 0,
+          "as_of": "2026-11-06",
+          "bytes": 904612,
+          "document_id": "fl:document:sha256-a2a82200ce9b1b04eae162999efe7003f0cdd876ae16086cf6fcb481a6779f93",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 9414,
+          "filename": "query",
+          "parcels": 2000,
+          "retrieved_at": "2026-11-06T22:56:20+00:00"
+        },
+        {
+          "age_days": 0,
+          "as_of": "2026-11-06",
+          "bytes": 883896,
+          "document_id": "fl:document:sha256-c19596e5bd31be317c766a497dddd31aa7e6288851a1c4ccd553d4f5446e676a",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 9671,
+          "filename": "query",
+          "parcels": 2000,
+          "retrieved_at": "2026-11-06T22:56:20+00:00"
+        },
+        {
+          "age_days": 0,
+          "as_of": "2026-11-06",
+          "bytes": 908894,
+          "document_id": "fl:document:sha256-e09e2afb747cf144fc8bbbdf3acc7622dfd0f60c10e0475b7d748599131191e6",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 9347,
+          "filename": "query",
+          "parcels": 2000,
+          "retrieved_at": "2026-11-06T22:56:20+00:00"
+        },
+        {
+          "age_days": 0,
+          "as_of": "2026-11-06",
+          "bytes": 895427,
+          "document_id": "fl:document:sha256-ea76c9b109f7229252bd5099202d6d9f0e37638660c51ac6247969f5bec41f23",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 9536,
+          "filename": "query",
+          "parcels": 2000,
+          "retrieved_at": "2026-11-06T22:56:20+00:00"
+        },
+        {
+          "age_days": 0,
+          "as_of": "2026-11-06",
+          "bytes": 890741,
+          "document_id": "fl:document:sha256-f1f4061f9a981c545a1d6d8c88386f2d92ac46efdc955bba629122eee7c6c5e1",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 9711,
+          "filename": "query",
+          "parcels": 1997,
+          "retrieved_at": "2026-11-06T22:56:20+00:00"
+        },
+        {
+          "age_days": 0,
+          "as_of": "2026-11-06",
+          "bytes": 894492,
+          "document_id": "fl:document:sha256-fe6bfd71c0a8aef907127d232e66a1981a01539ff912754ed9bc00bb87e147bc",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 9647,
+          "filename": "query",
+          "parcels": 2000,
+          "retrieved_at": "2026-11-06T22:56:20+00:00"
+        }
+      ],
+      "source_file": [
+        {
+          "document_id": "25b353392722",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "50bbfef68ea3",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "c5d519e8be4a",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "c7a5aee2a887",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "f1eae0b5c3ad",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "bf013eeef768",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "bc9dd56f82bd",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "bac690a43088",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "b481a6779f93",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "d4f5446e676a",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "8599131191e6",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "69f5bec41f23",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "22eee7c6c5e1",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        },
+        {
+          "document_id": "00bb87e147bc",
+          "error": "no adapter registered for this source",
+          "file": "query"
+        }
+      ],
+      "source_id": "mi-oakland-parcels",
+      "state_fips": "26",
+      "terms_reviewed": "2026-11-03",
+      "url": "https://www.arcgis.com/home/item.html?id=e2910cc3a8f84549ab7f0f8e8f99817b"
+    }
+  ],
+  "stats": {
+    "entities": 0,
+    "facts": 124851,
+    "links": 0,
+    "parcels": 26122,
+    "review_pending": 0,
+    "snapshots": 14
+  },
+  "violations": [],
+  "warnings": [
+    "mi-oakland-parcels: 4211 of 26122 parcels have no situs address"
+  ]
+}

@@ -92,3 +92,7 @@ PYTHONPATH=python/src python3 -m factlot.registry.adapters.mi_oakland <14 page f
 - No owners, so no entity linking for Oakland; no land area (no acreage column), year built, or roll year.
 - `ASSESSEDVALUE` is the Michigan assessed value (50 % of true cash value); no market value is published, none is inferred.
 - Apartments are F1 (no occupancy field). The Michigan LARA entity register has no bulk file (`mi-sos-entities`), so owners could not link even if present.
+
+## Tier 1 audit (2026-11-06)
+
+Lane A6 re-collected the 14 configured pages. The layer's count query returned 26,126 features with a Michigan class code beginning 2 or 3 (the whole layer was 490,821). Distinct PINs kept: **26,122** (F1 21,455, F2 4,667), four repeated PINs dropped. The 2026-11-03 load above was 26,124 parcels from 26,128 features. `--as-of` for this retrieval is **2026-11-06** (the layer publishes no single roll date; the newest `REVISIONDATE` in the commercial pages is 2026-10-21). Audit violations 0, person-like owner facts 0. Evidence: [mi-oakland-parcels.md](../quality/surge-2026-11/mi-oakland-parcels.md) and [mi-oakland-parcels-audit.json](../quality/surge-2026-11/mi-oakland-parcels-audit.json). Section 3 of the open-data terms, re-read the same day, is unchanged.

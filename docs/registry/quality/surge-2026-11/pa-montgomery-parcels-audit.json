@@ -1,0 +1,189 @@
+{
+  "audited_on": "2026-11-06",
+  "database": "pa-montgomery-parcels.db",
+  "entity_registries_by_state": {},
+  "sources": [
+    {
+      "ai_use": "unknown",
+      "citations": {
+        "as_of_differs_from_snapshot": 0,
+        "document_not_a_snapshot": 0,
+        "facts": 153874,
+        "links": 0,
+        "links_document_not_a_snapshot": 0,
+        "links_without_basis": 0,
+        "without_locator": 0,
+        "without_method": 0,
+        "without_valid_as_of": 0
+      },
+      "counties": ["us-42091"],
+      "county_fips": "091",
+      "findings": [],
+      "implausible_facts": {
+        "area": 0,
+        "out_of_scope_category": 0,
+        "tax_year": 0,
+        "value": 0,
+        "year_built": 0
+      },
+      "kind": "parcels",
+      "license": "Custom license on the county portal: 'Montgomery County provides this data as a free and open resource.' Data as is, not a legal description; the county's catalog record on data.pa.gov states Public Domain U.S. Government",
+      "links": {
+        "by_confidence": {},
+        "by_rule": {},
+        "entity_registry_loaded_for": [],
+        "link_rate_pct": null,
+        "linked_parcels": 0,
+        "note": "no entity registry is loaded for this state, so owners cannot be linked",
+        "organisation_owner_parcels": 10246
+      },
+      "lookups": {
+        "parcels_with_account_crosswalk": 15584,
+        "parcels_with_address_index": 15584
+      },
+      "owners": {
+        "orphan_mailing_addresses": 0,
+        "owner_facts": 10246,
+        "person_like": 0
+      },
+      "parcels": {
+        "absent_from_latest_snapshot": 0,
+        "conflicting_facts": 0,
+        "count": 15584,
+        "fields": {
+          "apn": {
+            "missing": 0,
+            "parcels": 15584,
+            "pct_present": 100.0
+          },
+          "appraised_value": {
+            "missing": 329,
+            "parcels": 15255,
+            "pct_present": 97.89
+          },
+          "improvement_area_sf": {
+            "missing": 3714,
+            "parcels": 11870,
+            "pct_present": 76.17
+          },
+          "land_area_sf": {
+            "missing": 85,
+            "parcels": 15499,
+            "pct_present": 99.45
+          },
+          "market_value": {
+            "missing": 329,
+            "parcels": 15255,
+            "pct_present": 97.89
+          },
+          "owner_of_record": {
+            "missing": 5338,
+            "parcels": 10246,
+            "pct_present": 65.75
+          },
+          "situs_address": {
+            "missing": 0,
+            "parcels": 15584,
+            "pct_present": 100.0
+          },
+          "state_property_category": {
+            "missing": 0,
+            "parcels": 15584,
+            "pct_present": 100.0
+          },
+          "tax_year": {
+            "missing": 15584,
+            "parcels": 0,
+            "pct_present": 0.0
+          },
+          "year_built": {
+            "missing": 2416,
+            "parcels": 13168,
+            "pct_present": 84.5
+          }
+        },
+        "missing_address": 0,
+        "missing_as_of": 0,
+        "no_organisation_owner": 5338
+      },
+      "publisher": "Montgomery County, Pennsylvania (Board of Assessment Appeals and Data & Mapping Services)",
+      "redistribution": "permitted",
+      "review_queue": {
+        "accepted": 0,
+        "pending": 0,
+        "pending_by_rule": {},
+        "pending_owners": 0,
+        "rejected": 0
+      },
+      "snapshots": [
+        {
+          "age_days": 32,
+          "as_of": "2026-10-05",
+          "bytes": 554924,
+          "document_id": "fl:document:sha256-14b606a871eba7619cbeec7017f6c9f3bda1d062a510e79ae2685f9c3d979a61",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7189,
+          "filename": "Montgomery_County_Parcels.csv",
+          "parcels": 678,
+          "retrieved_at": "2026-11-06T22:58:31+00:00"
+        },
+        {
+          "age_days": 32,
+          "as_of": "2026-10-05",
+          "bytes": 9664071,
+          "document_id": "fl:document:sha256-23caa211dc4bd7ad3c29da88118e89f5b9d7b23611a1ec340fe9d2ddbb2f4708",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 120169,
+          "filename": "Montgomery_County_Parcels.csv",
+          "parcels": 12244,
+          "retrieved_at": "2026-11-06T22:58:31+00:00"
+        },
+        {
+          "age_days": 32,
+          "as_of": "2026-10-05",
+          "bytes": 2109102,
+          "document_id": "fl:document:sha256-2a208007c010b7d50b9f6852e0b1216c5178340ce01b5cbf40eb7ad93016ddae",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 26516,
+          "filename": "Montgomery_County_Parcels.csv",
+          "parcels": 2662,
+          "retrieved_at": "2026-11-06T22:58:31+00:00"
+        }
+      ],
+      "source_file": [
+        {
+          "document_id": "5f9c3d979a61",
+          "error": "no adapter registered for this source",
+          "file": "Montgomery_County_Parcels.csv"
+        },
+        {
+          "document_id": "d2ddbb2f4708",
+          "error": "no adapter registered for this source",
+          "file": "Montgomery_County_Parcels.csv"
+        },
+        {
+          "document_id": "7ad93016ddae",
+          "error": "no adapter registered for this source",
+          "file": "Montgomery_County_Parcels.csv"
+        }
+      ],
+      "source_id": "pa-montgomery-parcels",
+      "state_fips": "42",
+      "terms_reviewed": "2026-11-03",
+      "url": "https://gis-montcopa.hub.arcgis.com/"
+    }
+  ],
+  "stats": {
+    "entities": 0,
+    "facts": 153874,
+    "links": 0,
+    "parcels": 15584,
+    "review_pending": 0,
+    "snapshots": 3
+  },
+  "violations": [],
+  "warnings": []
+}

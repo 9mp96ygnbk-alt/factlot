@@ -1,0 +1,155 @@
+{
+  "audited_on": "2026-11-06",
+  "database": "tn-davidson-assessor.db",
+  "entity_registries_by_state": {},
+  "sources": [
+    {
+      "ai_use": "unknown",
+      "citations": {
+        "as_of_differs_from_snapshot": 0,
+        "document_not_a_snapshot": 0,
+        "facts": 94900,
+        "links": 0,
+        "links_document_not_a_snapshot": 0,
+        "links_without_basis": 0,
+        "without_locator": 0,
+        "without_method": 0,
+        "without_valid_as_of": 0
+      },
+      "counties": ["us-47037"],
+      "county_fips": "037",
+      "findings": [],
+      "implausible_facts": {
+        "area": 0,
+        "out_of_scope_category": 0,
+        "tax_year": 0,
+        "value": 0,
+        "year_built": 0
+      },
+      "kind": "parcels",
+      "license": "Metro Nashville Open Data Portal data; the Nashville.gov Terms of Service exclude 'publicly available data on Metro's Open Data Portal' from the commercial-use prohibition. Executive Order 18 (2024): informational use, show the retrieval date, no implied Metro approval, as is. Public records",
+      "links": {
+        "by_confidence": {},
+        "by_rule": {},
+        "entity_registry_loaded_for": [],
+        "link_rate_pct": null,
+        "linked_parcels": 0,
+        "note": "no entity registry is loaded for this state, so owners cannot be linked",
+        "organisation_owner_parcels": 8548
+      },
+      "lookups": {
+        "parcels_with_account_crosswalk": 13111,
+        "parcels_with_address_index": 13111
+      },
+      "owners": {
+        "orphan_mailing_addresses": 0,
+        "owner_facts": 8548,
+        "person_like": 0
+      },
+      "parcels": {
+        "absent_from_latest_snapshot": 0,
+        "conflicting_facts": 0,
+        "count": 13111,
+        "fields": {
+          "apn": {
+            "missing": 0,
+            "parcels": 13111,
+            "pct_present": 100.0
+          },
+          "appraised_value": {
+            "missing": 9,
+            "parcels": 13102,
+            "pct_present": 99.93
+          },
+          "improvement_area_sf": {
+            "missing": 13111,
+            "parcels": 0,
+            "pct_present": 0.0
+          },
+          "land_area_sf": {
+            "missing": 853,
+            "parcels": 12258,
+            "pct_present": 93.49
+          },
+          "market_value": {
+            "missing": 13111,
+            "parcels": 0,
+            "pct_present": 0.0
+          },
+          "owner_of_record": {
+            "missing": 4563,
+            "parcels": 8548,
+            "pct_present": 65.2
+          },
+          "situs_address": {
+            "missing": 0,
+            "parcels": 13111,
+            "pct_present": 100.0
+          },
+          "state_property_category": {
+            "missing": 0,
+            "parcels": 13111,
+            "pct_present": 100.0
+          },
+          "tax_year": {
+            "missing": 13111,
+            "parcels": 0,
+            "pct_present": 0.0
+          },
+          "year_built": {
+            "missing": 13111,
+            "parcels": 0,
+            "pct_present": 0.0
+          }
+        },
+        "missing_address": 0,
+        "missing_as_of": 0,
+        "no_organisation_owner": 4563
+      },
+      "publisher": "Metropolitan Government of Nashville and Davidson County (Planning Department; Assessor of Property)",
+      "redistribution": "permitted",
+      "review_queue": {
+        "accepted": 0,
+        "pending": 0,
+        "pending_by_rule": {},
+        "pending_owners": 0,
+        "rejected": 0
+      },
+      "snapshots": [
+        {
+          "age_days": 0,
+          "as_of": "2026-11-06",
+          "bytes": 5823139,
+          "document_id": "fl:document:sha256-7d73ada67b98d39781de5010f5e6732bbccbf1308f23994c773f4e919a1a7ddb",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 94900,
+          "filename": "csv",
+          "parcels": 13111,
+          "retrieved_at": "2026-11-06T22:57:27+00:00"
+        }
+      ],
+      "source_file": [
+        {
+          "document_id": "4e919a1a7ddb",
+          "error": "no adapter registered for this source",
+          "file": "csv"
+        }
+      ],
+      "source_id": "tn-davidson-assessor",
+      "state_fips": "47",
+      "terms_reviewed": "2026-11-03",
+      "url": "https://data.nashville.gov/datasets/parcels-1/about"
+    }
+  ],
+  "stats": {
+    "entities": 0,
+    "facts": 94900,
+    "links": 0,
+    "parcels": 13111,
+    "review_pending": 0,
+    "snapshots": 1
+  },
+  "violations": [],
+  "warnings": []
+}
