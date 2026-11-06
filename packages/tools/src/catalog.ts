@@ -77,6 +77,12 @@ export interface ToolSpec {
   requires?: "registry";
   /** Set for tools whose run returns a Promise (WebCrypto); call them through runToolAsync. */
   async?: true;
+  /**
+   * Set for tools that parse their own input (the calculators): run receives the arguments as
+   * sent, after the checks, so a tool can tell an omitted field from its schema default (as
+   * Python's run_tool does).
+   */
+  rawInput?: true;
 }
 
 export interface ToolError {
@@ -105,6 +111,7 @@ const calcTools: ToolSpec[] = Object.entries(calculators).map(([name, c]) => ({
   input: c.input,
   path: `/v1/calc/${name}`,
   formula: { id: c.id, version: c.version },
+  rawInput: true,
   run: (input: never) => {
     const result = (
       c.run as (i: unknown) => { formula: { id: string; version: number } }
@@ -659,6 +666,11 @@ export function getTool(name: string): ToolSpec | undefined {
 
 type Checked = { tool: ToolSpec; data: unknown } | { error: ToolOutcome };
 
+const inputFor = (
+  c: { tool: ToolSpec; data: unknown },
+  args: unknown,
+): unknown => (c.tool.rawInput ? args : c.data);
+
 /**
  * Structural caps, unknown fields, whole-number percents and schema validation, in that order
  * (runTool, runToolAsync).
@@ -828,7 +840,7 @@ export function runTool(name: string, args: unknown): ToolOutcome {
   try {
     return {
       ok: true,
-      result: (c.tool.run as (i: unknown) => unknown)(c.data),
+      result: (c.tool.run as (i: unknown) => unknown)(inputFor(c, args)),
     };
   } catch (err) {
     return errorOutcome(err);
@@ -845,7 +857,7 @@ export async function runToolAsync(
   try {
     return {
       ok: true,
-      result: await (c.tool.run as (i: unknown) => unknown)(c.data),
+      result: await (c.tool.run as (i: unknown) => unknown)(inputFor(c, args)),
     };
   } catch (err) {
     return errorOutcome(err);

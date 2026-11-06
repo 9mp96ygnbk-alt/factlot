@@ -291,11 +291,12 @@ async function main(): Promise<void> {
       restArgs.set(tool, c.arguments);
     }
   }
-  // Lease-comp vectors (spec/vectors/lease_comps.json): same case shape as tools.json.
-  const compSpec = readJson("spec/vectors/lease_comps.json") as {
-    cases: Case[];
-  };
-  for (const c of compSpec.cases) {
+  // Lease-comp vectors (spec/vectors/lease_comps.json, lease_comp_search.json): same case shape
+  // as tools.json.
+  const compCases = ["lease_comps.json", "lease_comp_search.json"].flatMap(
+    (f) => (readJson(`spec/vectors/${f}`) as { cases: Case[] }).cases,
+  );
+  for (const c of compCases) {
     vectorCount++;
     const tool = c.tool!;
     const label = `${tool} ${JSON.stringify(c.arguments).slice(0, 80)}`;
@@ -305,6 +306,14 @@ async function main(): Promise<void> {
       continue;
     }
     const { status, json } = await post(path, c.arguments);
+    const wantError = (c as { expect_error?: string }).expect_error;
+    if (wantError) {
+      ok(
+        status === 400 && at(json, "error") === wantError,
+        `${label}: want ${wantError}, got HTTP ${status} ${JSON.stringify(at(json, "error"))}`,
+      );
+      continue;
+    }
     ok(status === 200, `${label}: HTTP ${status}`);
     for (const [k, v] of Object.entries(c.expect ?? {}))
       ok(
