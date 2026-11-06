@@ -13,6 +13,10 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 
 ## [Unreleased]
 
+### Changed
+
+- Tool input: a `null` for a field the input schema names is treated as the field left out, in TypeScript and Python alike (shared vectors in `spec/vectors/tools.json`). Some agent frameworks (the `crewai-tools` MCP adapter) send `null` for every optional field the model skips, which used to fail with "expected number, received null". A required field sent as `null` is reported as missing; a misspelled field is still reported even when `null`; open objects (facts, fact packages) keep their nulls, since a package's signature covers them.
+
 ## [0.4.0] - 2026-11-06
 
 ### Added

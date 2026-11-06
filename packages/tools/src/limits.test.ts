@@ -4,7 +4,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { configureRegistry } from "./registry.ts";
-import { INPUT_LIMITS, inputShapeIssue, runTool } from "./index.ts";
+import {
+  INPUT_LIMITS,
+  inputShapeIssue,
+  runTool,
+  withoutNulls,
+} from "./index.ts";
 
 function errorOf(name: string, args: unknown) {
   const outcome = runTool(name, args);
@@ -123,4 +128,47 @@ test("an unopenable registry does not reveal its path", () => {
   } finally {
     configureRegistry(undefined);
   }
+});
+
+test("null for a named field is the field left out; open objects keep their nulls", () => {
+  const schema = {
+    type: "object",
+    properties: {
+      a: { type: "number" },
+      nested: { type: "object", properties: { b: { type: "string" } } },
+      rows: {
+        type: "array",
+        items: { type: "object", properties: { c: { type: "number" } } },
+      },
+      fact: { type: "object", additionalProperties: {} },
+    },
+  };
+  assert.deepEqual(
+    withoutNulls(schema, {
+      a: null,
+      nested: { b: null },
+      rows: [{ c: null }, null],
+      fact: { value: null },
+      typo: null,
+    }),
+    { nested: {}, rows: [{}, null], fact: { value: null }, typo: null },
+  );
+  // Through runTool: the skipped optionals (as crewai-tools sends them) change nothing.
+  const base = {
+    noi: 1000000,
+    rate_annual: 0.06,
+    amortization_years: 30,
+    max_ltv: 0.65,
+    min_dscr: 1.25,
+    value: 15000000,
+  };
+  assert.deepEqual(
+    runTool("calc_debt_sizing", {
+      ...base,
+      min_debt_yield: null,
+      existing_loan_balance: null,
+      stress: null,
+    }),
+    runTool("calc_debt_sizing", base),
+  );
 });

@@ -8,7 +8,7 @@ import unittest
 import factlot
 from factlot._core import INPUT_LIMITS, input_shape_issue, round_
 from factlot.calc import CALCULATORS
-from factlot.tools import configure_registry
+from factlot.tools import configure_registry, without_nulls
 
 
 def error_of(name, args):
@@ -105,6 +105,30 @@ class NumericEdgeCases(unittest.TestCase):
         args = {"noi": 3713937.31, "value": 422703000.22, "rate_annual": 0.0, "amortization_years": 0,
                 "max_ltv": 0.541, "min_dscr": 1.06}
         self.assertEqual(error_of("calc_debt_sizing", args)["error"], "CalcInputError")
+
+
+class NullsAsOmitted(unittest.TestCase):
+    """Must match the withoutNulls test in packages/tools/src/limits.test.ts."""
+
+    def test_named_nulls_are_dropped_and_open_objects_keep_theirs(self):
+        schema = {"type": "object", "properties": {
+            "a": {"type": "number"},
+            "nested": {"type": "object", "properties": {"b": {"type": "string"}}},
+            "rows": {"type": "array", "items": {"type": "object", "properties": {"c": {"type": "number"}}}},
+            "fact": {"type": "object", "additionalProperties": {}},
+        }}
+        self.assertEqual(
+            without_nulls(schema, {"a": None, "nested": {"b": None}, "rows": [{"c": None}, None],
+                                   "fact": {"value": None}, "typo": None}),
+            {"nested": {}, "rows": [{}, None], "fact": {"value": None}, "typo": None})
+
+    def test_skipped_optionals_change_nothing(self):
+        base = {"noi": 1000000, "rate_annual": 0.06, "amortization_years": 30, "max_ltv": 0.65,
+                "min_dscr": 1.25, "value": 15000000}
+        self.assertEqual(
+            factlot.run_tool("calc_debt_sizing", {**base, "min_debt_yield": None, "existing_loan_balance": None,
+                                                  "stress": None}),
+            factlot.run_tool("calc_debt_sizing", base))
 
 
 if __name__ == "__main__":

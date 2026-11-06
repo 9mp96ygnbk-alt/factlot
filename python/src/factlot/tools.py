@@ -115,6 +115,34 @@ def unknown_fields(schema: dict[str, Any], value: Any, path: str = "") -> list[d
     return out
 
 
+def without_nulls(schema: dict[str, Any], value: Any) -> Any:
+    """``value`` without the nulls the schema has no use for: a named field sent as null is left out.
+
+    Some agent frameworks (crewai-tools' MCP adapter) send null for every optional field the model
+    skips, and no FactLot input accepts null. Open objects (facts, fact packages) keep their nulls:
+    they are data, and a package's signature covers them. Must match ``withoutNulls`` in
+    packages/tools/src/limits.ts.
+    """
+    if isinstance(value, list):
+        items = schema.get("items")
+        if not isinstance(items, dict):
+            return value
+        return [without_nulls(items, v) for v in value]
+    if not isinstance(value, dict):
+        return value
+    branches = _object_branches(schema)
+    if not branches or any(b.get("additionalProperties", False) is not False for b in branches):
+        return value
+    out: dict[str, Any] = {}
+    for k, v in value.items():
+        sub = next((b["properties"][k] for b in branches if k in b["properties"]), None)
+        if sub is None:
+            out[k] = v
+        elif v is not None:
+            out[k] = without_nulls(sub, v)
+    return out
+
+
 # Rate fields are decimal fractions (0.065 for 6.5%); share and ratio fields likewise. A minimum DSCR is
 # a coverage ratio (1.25 for 1.25x). Must match RATE_KEY, SHARE_KEY and DSCR_MAX in packages/tools/src/limits.ts.
 _RATE_KEY = re.compile(r"^(?:rate|rate_annual|.+_rate|.+_rate_annual|until_irr)$")
@@ -669,9 +697,13 @@ def run_tool(name: str, arguments: dict[str, Any] | None) -> dict[str, Any]:
     if not isinstance(args, dict):
         return {"error": kind, "message": "invalid input: (root): expected object",
                 "issues": [{"path": "", "message": "expected object"}]}
+    schema = _input_schemas().get(name)
+    # A null for a named field is the field left out (agent frameworks send null for skipped optionals);
+    # every later check, and the tool itself, sees the input without it.
+    if schema is not None:
+        args = without_nulls(schema, args)
     # Unknown fields next (at most 20, as maxIssues in TypeScript): validation would ignore them, so a misspelled optional field would
     # change the answer with no sign.
-    schema = _input_schemas().get(name)
     unknown = unknown_fields(schema, args)[:20] if schema is not None else []
     if unknown:
         return {"error": kind, "message": "invalid input: " + "; ".join(f"{u['path']}: {u['message']}" for u in unknown),

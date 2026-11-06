@@ -362,8 +362,10 @@ Tool names the model sees are prefixed with the server host (for the local test,
 
 **`MCPServerAdapter` from `crewai-tools` (older).** `pip install "crewai-tools[mcp]"`. It keeps one
 session open, takes the shared client factory, and takes tool names to load. It has one catch:
-**it sends `null` for every optional field the model leaves out, and FactLot rejects `null`**, so
-strip them (shown below). Without the helper, `calc_debt_sizing` came back:
+**it sends `null` for every optional field the model leaves out.** The hosted API now treats a
+`null` for a field the schema names as the field left out, so these calls work as sent. A local
+server or SDK at 0.4.0 or earlier still rejects them; against one of those, strip the nulls with
+the helper below. Without it, `calc_debt_sizing` on such a server came back:
 
 ```text
 invalid input: min_debt_yield: Invalid input: expected number, received null; existing_loan_balance:
@@ -389,7 +391,7 @@ def without_nulls(value):
     return value
 
 def drop_nulls(tool):
-    """crewai-tools sends null for every optional field you leave out; FactLot rejects null."""
+    """crewai-tools sends null for every optional field you leave out; FactLot 0.4.0 and earlier reject null."""
     inner = tool._run
     object.__setattr__(tool, "_run", lambda **kw: inner(**without_nulls(kw)))
     return tool
@@ -731,16 +733,16 @@ rejection messages to correct it.
 
 ## Troubleshooting
 
-| Symptom                                                                           | Cause and fix                                                                                                  |
-| --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `403` from `api.factlot.com` in a Python script                                   | The default `urllib` User-Agent. Send your own ([above](#set-a-user-agent)).                                   |
-| `ImportError: cannot import name 'RequestContext'`                                | `langchain-mcp-adapters` 0.3.1 with `mcp` 2.x. Install `langchain-mcp-adapters` 0.3.2 and `mcp<2`.             |
-| `MCP Python SDK v2 requires httpx_client_factory to return an httpx2.AsyncClient` | Use `import httpx2 as httpx` in the factory, or pin `mcp<2`.                                                   |
-| `Error converting MCP schema to strict mode` (INFO, OpenAI Agents)                | Only with `convert_schemas_to_strict` on. Expected for 8 tools; they run non-strict.                           |
-| `expected number, received null` (CrewAI adapter)                                 | `crewai-tools` sends nulls for omitted optional fields. Use `drop_nulls` or the `mcps=` path.                  |
-| `Timed out while waiting for response ... Waited 5.0 seconds`                     | OpenAI Agents' default session timeout, hit while waiting out a 429. Set `client_session_timeout_seconds=130`. |
-| `Request timed out` (TypeScript) while a 429 retry waits                          | Raise the request `timeout` above the `Retry-After`.                                                           |
-| `invalid or inactive FactLot API key` (HTTP 401)                                  | The key is wrong or revoked. The free tier needs no key at all: unset `FACTLOT_API_KEY`.                       |
+| Symptom                                                                           | Cause and fix                                                                                                                                           |
+| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `403` from `api.factlot.com` in a Python script                                   | The default `urllib` User-Agent. Send your own ([above](#set-a-user-agent)).                                                                            |
+| `ImportError: cannot import name 'RequestContext'`                                | `langchain-mcp-adapters` 0.3.1 with `mcp` 2.x. Install `langchain-mcp-adapters` 0.3.2 and `mcp<2`.                                                      |
+| `MCP Python SDK v2 requires httpx_client_factory to return an httpx2.AsyncClient` | Use `import httpx2 as httpx` in the factory, or pin `mcp<2`.                                                                                            |
+| `Error converting MCP schema to strict mode` (INFO, OpenAI Agents)                | Only with `convert_schemas_to_strict` on. Expected for 8 tools; they run non-strict.                                                                    |
+| `expected number, received null` (CrewAI adapter)                                 | `crewai-tools` sends nulls for omitted optional fields; servers at 0.4.0 or earlier reject them. Use `drop_nulls`, the `mcps=` path, or the hosted API. |
+| `Timed out while waiting for response ... Waited 5.0 seconds`                     | OpenAI Agents' default session timeout, hit while waiting out a 429. Set `client_session_timeout_seconds=130`.                                          |
+| `Request timed out` (TypeScript) while a 429 retry waits                          | Raise the request `timeout` above the `Retry-After`.                                                                                                    |
+| `invalid or inactive FactLot API key` (HTTP 401)                                  | The key is wrong or revoked. The free tier needs no key at all: unset `FACTLOT_API_KEY`.                                                                |
 
 ## Rerun the tests
 

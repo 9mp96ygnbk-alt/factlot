@@ -183,6 +183,41 @@ export function unknownFields(
   return out;
 }
 
+/**
+ * `value` without the nulls the schema has no use for: a field the schema names, sent as null, is
+ * treated as left out. Some agent frameworks (crewai-tools' MCP adapter) send null for every
+ * optional field the model skips, and no FactLot input accepts null. Open objects (facts, fact
+ * packages) keep their nulls: they are data, and a package's signature covers them.
+ * Must match `without_nulls` in python/src/factlot/tools.py.
+ */
+export function withoutNulls(schema: JsonSchema, value: unknown): unknown {
+  if (Array.isArray(value)) {
+    const items = schema.items as JsonSchema | undefined;
+    if (!items || typeof items !== "object") return value;
+    return value.map((v) => withoutNulls(items, v));
+  }
+  if (!isPlainObject(value)) return value;
+  const branches = objectBranches(schema);
+  if (
+    branches.length === 0 ||
+    branches.some(
+      (b) =>
+        b.additionalProperties !== undefined &&
+        b.additionalProperties !== false,
+    )
+  )
+    return value;
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(value)) {
+    const sub = branches
+      .map((b) => (b.properties as Record<string, JsonSchema>)[k])
+      .find((p) => p !== undefined);
+    if (sub === undefined) out[k] = v;
+    else if (v !== null) out[k] = withoutNulls(sub, v);
+  }
+  return out;
+}
+
 // --- whole-number percents ----------------------------------------------------------------------
 
 /** Rate fields: a decimal fraction (0.065 for 6.5%), including IRR hurdles (until_irr). */

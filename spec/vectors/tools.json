@@ -1051,6 +1051,72 @@
       },
       "expect_error": "CalcInputError",
       "expect_message_contains": ["tiers.0.until_irr", "pass 0.08 for 8%"]
+    },
+    {
+      "tool": "calc_debt_sizing",
+      "arguments": {
+        "noi": 1000000,
+        "rate_annual": 0.06,
+        "amortization_years": 30,
+        "max_ltv": 0.65,
+        "min_dscr": 1.25,
+        "value": 15000000,
+        "min_debt_yield": null,
+        "existing_loan_balance": null,
+        "stress": null
+      },
+      "expect": {
+        "value.max_loan": 9750000,
+        "value.binding_constraint": "ltv",
+        "warnings": []
+      }
+    },
+    {
+      "tool": "calc_rent_schedule",
+      "arguments": {
+        "commencement_date": "2027-01-01",
+        "term_months": 24,
+        "area_sf": 10000,
+        "starting_rent_psf_annual": 30,
+        "abated_months": null,
+        "include_monthly": null,
+        "escalation": {
+          "type": "percent",
+          "rate": 0.03,
+          "every_months": 12,
+          "amount": null
+        }
+      },
+      "expect": {
+        "value.expiration_date": "2028-12-31",
+        "value.steps.1.rent_psf_annual": 30.9
+      }
+    },
+    {
+      "tool": "calc_npv",
+      "arguments": {
+        "cash_flows": [-100, 10, 110],
+        "rate": null
+      },
+      "expect_error": "CalcInputError",
+      "expect_message_contains": ["rate"]
+    },
+    {
+      "tool": "calc_rent_schedule",
+      "arguments": {
+        "commencement_date": "2027-01-01",
+        "term_months": 24,
+        "area_sf": 10000,
+        "starting_rent_psf_annual": 30,
+        "abated_month": null
+      },
+      "expect_error": "CalcInputError",
+      "expect_issues": [
+        {
+          "path": "abated_month",
+          "message": "unknown field (did you mean \"abated_months\"?); known fields here: commencement_date, term_months, area_sf, starting_rent_psf_annual, escalation, abated_months, round_rate_to_cents, include_monthly, unit"
+        }
+      ]
     }
   ]
 }

@@ -64,6 +64,7 @@ import {
   inputShapeIssue,
   unitSlipIssues,
   unknownFields,
+  withoutNulls,
   withRateHints,
 } from "./limits.ts";
 
@@ -818,12 +819,14 @@ export function getTool(name: string): ToolSpec | undefined {
   return tools.find((t) => t.name === name);
 }
 
-type Checked = { tool: ToolSpec; data: unknown } | { error: ToolOutcome };
+type Checked =
+  { tool: ToolSpec; data: unknown; args: unknown } | { error: ToolOutcome };
 
-const inputFor = (
-  c: { tool: ToolSpec; data: unknown },
-  args: unknown,
-): unknown => (c.tool.rawInput ? args : c.data);
+const inputFor = (c: {
+  tool: ToolSpec;
+  data: unknown;
+  args: unknown;
+}): unknown => (c.tool.rawInput ? c.args : c.data);
 
 /**
  * Structural caps, unknown fields, whole-number percents and schema validation, in that order
@@ -862,9 +865,12 @@ function checkInput(name: string, args: unknown): Checked {
       },
     };
   }
+  // A null for a named field is the field left out (agent frameworks send null for skipped
+  // optionals); every later check, and the tool itself, sees the input without it.
+  args = withoutNulls(schemaOf(tool), args ?? {});
   // Unknown fields next: validation would drop them silently, so a misspelled optional field
   // would change the answer with no sign.
-  const unknown = unknownFields(schemaOf(tool), args ?? {}).slice(
+  const unknown = unknownFields(schemaOf(tool), args).slice(
     0,
     INPUT_LIMITS.maxIssues,
   );
@@ -883,7 +889,7 @@ function checkInput(name: string, args: unknown): Checked {
   // Whole-number percents next: a rate above 1 (8 for 8%) or a min_dscr above 10 is a unit slip
   // that some schemas bound and some do not, so one check covers every calculator.
   if (appliesUnitPolicy(name)) {
-    const slips = unitSlipIssues(args ?? {}).slice(0, INPUT_LIMITS.maxIssues);
+    const slips = unitSlipIssues(args).slice(0, INPUT_LIMITS.maxIssues);
     if (slips.length)
       return {
         error: {
@@ -896,7 +902,7 @@ function checkInput(name: string, args: unknown): Checked {
         },
       };
   }
-  const parsed = tool.input.safeParse(args ?? {});
+  const parsed = tool.input.safeParse(args);
   if (!parsed.success) {
     const all = parsed.error.issues;
     const issues = withRateHints(
@@ -921,7 +927,7 @@ function checkInput(name: string, args: unknown): Checked {
       },
     };
   }
-  return { tool, data: parsed.data };
+  return { tool, data: parsed.data, args };
 }
 
 /** A thrown domain error as an outcome; anything else is a bug and is rethrown. */
@@ -994,7 +1000,7 @@ export function runTool(name: string, args: unknown): ToolOutcome {
   try {
     return {
       ok: true,
-      result: (c.tool.run as (i: unknown) => unknown)(inputFor(c, args)),
+      result: (c.tool.run as (i: unknown) => unknown)(inputFor(c)),
     };
   } catch (err) {
     return errorOutcome(err);
@@ -1011,7 +1017,7 @@ export async function runToolAsync(
   try {
     return {
       ok: true,
-      result: await (c.tool.run as (i: unknown) => unknown)(inputFor(c, args)),
+      result: await (c.tool.run as (i: unknown) => unknown)(inputFor(c)),
     };
   } catch (err) {
     return errorOutcome(err);
