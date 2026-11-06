@@ -13,6 +13,7 @@
 // visitor or agent would touch. Exit code 1 on any failure.
 import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { isDeepStrictEqual } from "node:util";
 
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
@@ -68,7 +69,8 @@ function same(actual: unknown, expected: unknown, tol?: number): boolean {
       : actual === expected;
   // A vector's null means the field is absent, as in the unit tests.
   if (expected === null) return actual === undefined || actual === null;
-  return JSON.stringify(actual) === JSON.stringify(expected);
+  // Key order is not part of the contract.
+  return isDeepStrictEqual(actual, expected);
 }
 
 function readJson(rel: string): unknown {
