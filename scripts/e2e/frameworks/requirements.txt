@@ -1,0 +1,9 @@
+# Versions the recipes in connectors/frameworks/README.md were tested with (Python 3.13).
+# `mcp<2` is needed for langchain-mcp-adapters; the plain MCP SDK recipe also runs on mcp 2.x.
+mcp==1.30.0
+langchain-mcp-adapters==0.3.2
+langgraph==1.2.20
+langchain-core==1.7.6
+openai-agents==0.20.0
+crewai==1.15.36
+crewai-tools[mcp]==1.15.36
