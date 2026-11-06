@@ -1,0 +1,1953 @@
+{
+  "note": "Hand-written expected diagnostics, by hand from the field rules. Not produced by running FactLot. Values are synthetic.",
+  "cases": [
+    {
+      "fn": "harris_readiness",
+      "name": "cited appraised subject, market not relabeled, Houston is not a zoning district",
+      "input": {
+        "evaluation_date": "2026-11-06",
+        "county_fips": "201",
+        "tax_year": 2026,
+        "facts": [
+          {
+            "predicate": "parcel.tax_year",
+            "value": 2026,
+            "unit": "year",
+            "source_id": "tx-harris-cad",
+            "filename": "Real_acct_owner.zip",
+            "locator": "real_acct.txt acct 0010010000001",
+            "tax_year": 2026,
+            "as_of": "2026-11-01"
+          },
+          {
+            "predicate": "parcel.appraised_value",
+            "value": 50000000,
+            "unit": "USD",
+            "source_id": "tx-harris-cad",
+            "filename": "Real_acct_owner.zip",
+            "locator": "real_acct.txt acct 0010010000001",
+            "tax_year": 2026,
+            "as_of": "2026-11-01"
+          },
+          {
+            "predicate": "parcel.market_value",
+            "value": 52000000,
+            "unit": "USD",
+            "source_id": "tx-harris-cad",
+            "filename": "Real_acct_owner.zip",
+            "locator": "real_acct.txt acct 0010010000001",
+            "tax_year": 2026,
+            "as_of": "2026-11-01"
+          },
+          {
+            "predicate": "parcel.improvement_area_sf",
+            "value": 250000,
+            "unit": "sf",
+            "source_id": "tx-harris-cad",
+            "filename": "Real_acct_owner.zip",
+            "locator": "real_acct.txt acct 0010010000001",
+            "tax_year": 2026,
+            "as_of": "2026-11-01"
+          },
+          {
+            "predicate": "parcel.land_area_sf",
+            "value": 40000,
+            "unit": "sf",
+            "source_id": "tx-harris-cad",
+            "filename": "Real_acct_owner.zip",
+            "locator": "real_acct.txt acct 0010010000001",
+            "tax_year": 2026,
+            "as_of": "2026-11-01"
+          },
+          {
+            "predicate": "parcel.situs_address",
+            "value": "100 MAIN ST, HOUSTON TX 77002",
+            "source_id": "tx-harris-cad",
+            "filename": "Real_acct_owner.zip",
+            "locator": "real_acct.txt acct 0010010000001",
+            "tax_year": 2026,
+            "as_of": "2026-11-01"
+          },
+          {
+            "predicate": "parcel.neighborhood_code",
+            "value": "8300.01",
+            "source_id": "tx-harris-cad",
+            "filename": "Real_acct_owner.zip",
+            "locator": "real_neighborhood_code.txt",
+            "tax_year": 2026,
+            "as_of": "2026-11-01"
+          },
+          {
+            "predicate": "parcel.building_class",
+            "value": "C",
+            "source_id": "tx-harris-cad-buildings",
+            "filename": "Real_building_land.zip",
+            "locator": "building_other.txt acct 0010010000001 bld_num 1",
+            "tax_year": 2026,
+            "as_of": "2026-11-01"
+          }
+        ]
+      },
+      "expect": {
+        "calculator": "calc.tx_unequal_appraisal",
+        "calculator_version": 1,
+        "not_county_complete": true,
+        "queryable": false,
+        "verified_against_publisher": false,
+        "coverage_claim": "field_diagnostic_only",
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "tax_year": 2026,
+        "evaluation_date": "2026-11-06",
+        "prefer": "appraised",
+        "selected_value": {
+          "field": "subject.value",
+          "basis": "appraised",
+          "value": 50000000,
+          "unit": "USD",
+          "selected_because": "statutory_comparison_uses_appraised"
+        },
+        "appraised_value": {
+          "status": "selected",
+          "value": 50000000,
+          "unit": "USD"
+        },
+        "market_value": {
+          "status": "not_used",
+          "value": 52000000,
+          "unit": "USD"
+        },
+        "filled": [
+          {
+            "field": "subject.county_fips",
+            "value": "201",
+            "unit": null,
+            "definition": "Caller county_fips matched 201 (Harris County, Texas), the appraisal district. Not a taxing unit, not a tax rate, and not a parcel fact from the roll.",
+            "citation": {
+              "source_id": null,
+              "filename": null,
+              "locator": null,
+              "tax_year": null,
+              "as_of": null,
+              "verified_against_publisher": false
+            }
+          },
+          {
+            "field": "subject.improvement_area_sf",
+            "value": 250000,
+            "unit": "sf",
+            "definition": "Account improvement area (HCAD bld_ar as parcel.improvement_area_sf), square feet. Not rentable area and not a sum of building-section im_sq_ft.",
+            "citation": {
+              "source_id": "tx-harris-cad",
+              "filename": "Real_acct_owner.zip",
+              "locator": "real_acct.txt acct 0010010000001",
+              "tax_year": 2026,
+              "as_of": "2026-11-01",
+              "verified_against_publisher": false
+            }
+          },
+          {
+            "field": "subject.land_area_sf",
+            "value": 40000,
+            "unit": "sf",
+            "definition": "Account land area in square feet as stored (parcel.land_area_sf). The roll adapter may have converted acreage when land_ar was 0. This diagnostic does not convert units and cannot tell which column was used.",
+            "citation": {
+              "source_id": "tx-harris-cad",
+              "filename": "Real_acct_owner.zip",
+              "locator": "real_acct.txt acct 0010010000001",
+              "tax_year": 2026,
+              "as_of": "2026-11-01",
+              "verified_against_publisher": false
+            }
+          },
+          {
+            "field": "subject.tax_year",
+            "value": 2026,
+            "unit": "year",
+            "definition": "Tax year of the roll values (HCAD yr as parcel.tax_year). Not the snapshot as-of date.",
+            "citation": {
+              "source_id": "tx-harris-cad",
+              "filename": "Real_acct_owner.zip",
+              "locator": "real_acct.txt acct 0010010000001",
+              "tax_year": 2026,
+              "as_of": "2026-11-01",
+              "verified_against_publisher": false
+            }
+          },
+          {
+            "field": "subject.value",
+            "value": 50000000,
+            "unit": "USD",
+            "basis": "appraised",
+            "definition": "Roll appraised value (HCAD tot_appr_val as parcel.appraised_value), USD. Not taxable value, not a sale price, and not NOI.",
+            "citation": {
+              "source_id": "tx-harris-cad",
+              "filename": "Real_acct_owner.zip",
+              "locator": "real_acct.txt acct 0010010000001",
+              "tax_year": 2026,
+              "as_of": "2026-11-01",
+              "verified_against_publisher": false
+            }
+          }
+        ],
+        "normalize_by_supported": [
+          "none",
+          "improvement_area_sf",
+          "land_area_sf"
+        ],
+        "issues": [
+          {
+            "class": "limitation",
+            "code": "building_class_not_area",
+            "field": "parcel.building_class",
+            "message": "Building class is not an unequal-appraisal subject field and is not an area."
+          },
+          {
+            "class": "limitation",
+            "code": "houston_zoning",
+            "field": "zoning",
+            "message": "Situs city is Houston. The City of Houston does not use a conventional zoning ordinance. That is not a fact that this parcel is unzoned, and it does not describe other municipalities in Harris County. This diagnostic does not assign a zoning district."
+          },
+          {
+            "class": "limitation",
+            "code": "neighborhood_not_subject",
+            "field": "parcel.neighborhood_code",
+            "message": "A neighborhood code is not an unequal-appraisal subject field and was not checked against HCAD's neighborhood list."
+          }
+        ]
+      }
+    },
+    {
+      "fn": "harris_readiness",
+      "name": "zero appraised is not replaced by market",
+      "input": {
+        "evaluation_date": "2026-11-06",
+        "county_fips": "201",
+        "tax_year": 2026,
+        "facts": [
+          {
+            "predicate": "parcel.tax_year",
+            "value": 2026,
+            "unit": "year",
+            "source_id": "tx-harris-cad",
+            "filename": "Real_acct_owner.zip",
+            "locator": "real_acct.txt acct 0010010000002",
+            "tax_year": 2026,
+            "as_of": "2026-11-01"
+          },
+          {
+            "predicate": "parcel.appraised_value",
+            "value": 0,
+            "unit": "USD",
+            "source_id": "tx-harris-cad",
+            "filename": "Real_acct_owner.zip",
+            "locator": "real_acct.txt acct 0010010000002",
+            "tax_year": 2026,
+            "as_of": "2026-11-01"
+          },
+          {
+            "predicate": "parcel.market_value",
+            "value": 52000000,
+            "unit": "USD",
+            "source_id": "tx-harris-cad",
+            "filename": "Real_acct_owner.zip",
+            "locator": "real_acct.txt acct 0010010000002",
+            "tax_year": 2026,
+            "as_of": "2026-11-01"
+          },
+          {
+            "predicate": "parcel.improvement_area_sf",
+            "value": 250000,
+            "unit": "sf",
+            "source_id": "tx-harris-cad",
+            "filename": "Real_acct_owner.zip",
+            "locator": "real_acct.txt acct 0010010000002",
+            "tax_year": 2026,
+            "as_of": "2026-11-01"
+          },
+          {
+            "predicate": "parcel.land_area_sf",
+            "value": 40000,
+            "unit": "sf",
+            "source_id": "tx-harris-cad",
+            "filename": "Real_acct_owner.zip",
+            "locator": "real_acct.txt acct 0010010000002",
+            "tax_year": 2026,
+            "as_of": "2026-11-01"
+          }
+        ]
+      },
+      "expect": {
+        "calculator": "calc.tx_unequal_appraisal",
+        "calculator_version": 1,
+        "not_county_complete": true,
+        "queryable": false,
+        "verified_against_publisher": false,
+        "coverage_claim": "field_diagnostic_only",
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "tax_year": 2026,
+        "evaluation_date": "2026-11-06",
+        "prefer": "appraised",
+        "selected_value": null,
+        "appraised_value": {
+          "status": "not_filled",
+          "value": null,
+          "unit": null
+        },
+        "market_value": {
+          "status": "available_not_selected",
+          "value": 52000000,
+          "unit": "USD"
+        },
+        "filled": [
+          {
+            "field": "subject.county_fips",
+            "value": "201",
+            "unit": null,
+            "definition": "Caller county_fips matched 201 (Harris County, Texas), the appraisal district. Not a taxing unit, not a tax rate, and not a parcel fact from the roll.",
+            "citation": {
+              "source_id": null,
+              "filename": null,
+              "locator": null,
+              "tax_year": null,
+              "as_of": null,
+              "verified_against_publisher": false
+            }
+          },
+          {
+            "field": "subject.improvement_area_sf",
+            "value": 250000,
+            "unit": "sf",
+            "definition": "Account improvement area (HCAD bld_ar as parcel.improvement_area_sf), square feet. Not rentable area and not a sum of building-section im_sq_ft.",
+            "citation": {
+              "source_id": "tx-harris-cad",
+              "filename": "Real_acct_owner.zip",
+              "locator": "real_acct.txt acct 0010010000002",
+              "tax_year": 2026,
+              "as_of": "2026-11-01",
+              "verified_against_publisher": false
+            }
+          },
+          {
+            "field": "subject.land_area_sf",
+            "value": 40000,
+            "unit": "sf",
+            "definition": "Account land area in square feet as stored (parcel.land_area_sf). The roll adapter may have converted acreage when land_ar was 0. This diagnostic does not convert units and cannot tell which column was used.",
+            "citation": {
+              "source_id": "tx-harris-cad",
+              "filename": "Real_acct_owner.zip",
+              "locator": "real_acct.txt acct 0010010000002",
+              "tax_year": 2026,
+              "as_of": "2026-11-01",
+              "verified_against_publisher": false
+            }
+          },
+          {
+            "field": "subject.tax_year",
+            "value": 2026,
+            "unit": "year",
+            "definition": "Tax year of the roll values (HCAD yr as parcel.tax_year). Not the snapshot as-of date.",
+            "citation": {
+              "source_id": "tx-harris-cad",
+              "filename": "Real_acct_owner.zip",
+              "locator": "real_acct.txt acct 0010010000002",
+              "tax_year": 2026,
+              "as_of": "2026-11-01",
+              "verified_against_publisher": false
+            }
+          }
+        ],
+        "normalize_by_supported": [],
+        "issues": [
+          {
+            "class": "invalid",
+            "code": "zero",
+            "field": "parcel.appraised_value",
+            "message": "parcel.appraised_value is 0. Zero is not a usable value."
+          },
+          {
+            "class": "missing",
+            "code": "value",
+            "field": "subject.value",
+            "message": "subject.value is not filled. No appraised value was usable, and market value was not relabeled as appraised."
+          }
+        ]
+      }
+    },
+    {
+      "fn": "harris_readiness",
+      "name": "caller may select market basis explicitly",
+      "input": {
+        "evaluation_date": "2026-11-06",
+        "county_fips": "201",
+        "tax_year": 2026,
+        "prefer": "market",
+        "facts": [
+          {
+            "predicate": "parcel.tax_year",
+            "value": 2026,
+            "unit": "year",
+            "source_id": "tx-harris-cad",
+            "filename": "Real_acct_owner.zip",
+            "locator": "real_acct.txt acct 0010010000001",
+            "tax_year": 2026,
+            "as_of": "2026-11-01"
+          },
+          {
+            "predicate": "parcel.appraised_value",
+            "value": 50000000,
+            "unit": "USD",
+            "source_id": "tx-harris-cad",
+            "filename": "Real_acct_owner.zip",
+            "locator": "real_acct.txt acct 0010010000001",
+            "tax_year": 2026,
+            "as_of": "2026-11-01"
+          },
+          {
+            "predicate": "parcel.market_value",
+            "value": 52000000,
+            "unit": "USD",
+            "source_id": "tx-harris-cad",
+            "filename": "Real_acct_owner.zip",
+            "locator": "real_acct.txt acct 0010010000001",
+            "tax_year": 2026,
+            "as_of": "2026-11-01"
+          },
+          {
+            "predicate": "parcel.improvement_area_sf",
+            "value": 250000,
+            "unit": "sf",
+            "source_id": "tx-harris-cad",
+            "filename": "Real_acct_owner.zip",
+            "locator": "real_acct.txt acct 0010010000001",
+            "tax_year": 2026,
+            "as_of": "2026-11-01"
+          },
+          {
+            "predicate": "parcel.land_area_sf",
+            "value": 40000,
+            "unit": "sf",
+            "source_id": "tx-harris-cad",
+            "filename": "Real_acct_owner.zip",
+            "locator": "real_acct.txt acct 0010010000001",
+            "tax_year": 2026,
+            "as_of": "2026-11-01"
+          },
+          {
+            "predicate": "parcel.situs_address",
+            "value": "100 HOUSTON ST, PASADENA TX 77506",
+            "source_id": "tx-harris-cad",
+            "filename": "Real_acct_owner.zip",
+            "locator": "real_acct.txt acct 0010010000001",
+            "tax_year": 2026,
+            "as_of": "2026-11-01"
+          }
+        ]
+      },
+      "expect": {
+        "calculator": "calc.tx_unequal_appraisal",
+        "calculator_version": 1,
+        "not_county_complete": true,
+        "queryable": false,
+        "verified_against_publisher": false,
+        "coverage_claim": "field_diagnostic_only",
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "tax_year": 2026,
+        "evaluation_date": "2026-11-06",
+        "prefer": "market",
+        "selected_value": {
+          "field": "subject.value",
+          "basis": "market",
+          "value": 52000000,
+          "unit": "USD",
+          "selected_because": "caller_selected_market"
+        },
+        "appraised_value": {
+          "status": "not_used",
+          "value": 50000000,
+          "unit": "USD"
+        },
+        "market_value": {
+          "status": "selected",
+          "value": 52000000,
+          "unit": "USD"
+        },
+        "filled": [
+          {
+            "field": "subject.county_fips",
+            "value": "201",
+            "unit": null,
+            "definition": "Caller county_fips matched 201 (Harris County, Texas), the appraisal district. Not a taxing unit, not a tax rate, and not a parcel fact from the roll.",
+            "citation": {
+              "source_id": null,
+              "filename": null,
+              "locator": null,
+              "tax_year": null,
+              "as_of": null,
+              "verified_against_publisher": false
+            }
+          },
+          {
+            "field": "subject.improvement_area_sf",
+            "value": 250000,
+            "unit": "sf",
+            "definition": "Account improvement area (HCAD bld_ar as parcel.improvement_area_sf), square feet. Not rentable area and not a sum of building-section im_sq_ft.",
+            "citation": {
+              "source_id": "tx-harris-cad",
+              "filename": "Real_acct_owner.zip",
+              "locator": "real_acct.txt acct 0010010000001",
+              "tax_year": 2026,
+              "as_of": "2026-11-01",
+              "verified_against_publisher": false
+            }
+          },
+          {
+            "field": "subject.land_area_sf",
+            "value": 40000,
+            "unit": "sf",
+            "definition": "Account land area in square feet as stored (parcel.land_area_sf). The roll adapter may have converted acreage when land_ar was 0. This diagnostic does not convert units and cannot tell which column was used.",
+            "citation": {
+              "source_id": "tx-harris-cad",
+              "filename": "Real_acct_owner.zip",
+              "locator": "real_acct.txt acct 0010010000001",
+              "tax_year": 2026,
+              "as_of": "2026-11-01",
+              "verified_against_publisher": false
+            }
+          },
+          {
+            "field": "subject.tax_year",
+            "value": 2026,
+            "unit": "year",
+            "definition": "Tax year of the roll values (HCAD yr as parcel.tax_year). Not the snapshot as-of date.",
+            "citation": {
+              "source_id": "tx-harris-cad",
+              "filename": "Real_acct_owner.zip",
+              "locator": "real_acct.txt acct 0010010000001",
+              "tax_year": 2026,
+              "as_of": "2026-11-01",
+              "verified_against_publisher": false
+            }
+          },
+          {
+            "field": "subject.value",
+            "value": 52000000,
+            "unit": "USD",
+            "basis": "market",
+            "definition": "Roll market value (HCAD tot_mkt_val as parcel.market_value), USD. Not an appraised value, not a sale price, and not NOI.",
+            "citation": {
+              "source_id": "tx-harris-cad",
+              "filename": "Real_acct_owner.zip",
+              "locator": "real_acct.txt acct 0010010000001",
+              "tax_year": 2026,
+              "as_of": "2026-11-01",
+              "verified_against_publisher": false
+            }
+          }
+        ],
+        "normalize_by_supported": [
+          "none",
+          "improvement_area_sf",
+          "land_area_sf"
+        ],
+        "issues": []
+      }
+    },
+    {
+      "fn": "harris_readiness",
+      "name": "market alone is available and not appraised; zero area is not land",
+      "input": {
+        "evaluation_date": "2026-11-06",
+        "county_fips": "201",
+        "tax_year": 2026,
+        "facts": [
+          {
+            "predicate": "parcel.tax_year",
+            "value": 2026,
+            "unit": "year",
+            "source_id": "tx-harris-cad",
+            "filename": "Real_acct_owner.zip",
+            "locator": "real_acct.txt acct 0010010000002",
+            "tax_year": 2026,
+            "as_of": "2026-11-01"
+          },
+          {
+            "predicate": "parcel.market_value",
+            "value": 900000,
+            "unit": "USD",
+            "source_id": "tx-harris-cad",
+            "filename": "Real_acct_owner.zip",
+            "locator": "real_acct.txt acct 0010010000002",
+            "tax_year": 2026,
+            "as_of": "2026-11-01"
+          },
+          {
+            "predicate": "parcel.improvement_area_sf",
+            "value": 0,
+            "unit": "sf",
+            "source_id": "tx-harris-cad",
+            "filename": "Real_acct_owner.zip",
+            "locator": "real_acct.txt acct 0010010000002",
+            "tax_year": 2026,
+            "as_of": "2026-11-01"
+          },
+          {
+            "predicate": "parcel.land_area_sf",
+            "value": 21780,
+            "unit": "sf",
+            "source_id": "tx-harris-cad",
+            "filename": "Real_acct_owner.zip",
+            "locator": "real_acct.txt acct 0010010000002",
+            "tax_year": 2026,
+            "as_of": "2026-11-01"
+          },
+          {
+            "predicate": "parcel.neighborhood_code",
+            "value": "0.00",
+            "source_id": "tx-harris-cad",
+            "filename": "Real_acct_owner.zip",
+            "locator": "real_acct.txt acct 0010010000002",
+            "tax_year": 2026,
+            "as_of": "2026-11-01"
+          }
+        ]
+      },
+      "expect": {
+        "calculator": "calc.tx_unequal_appraisal",
+        "calculator_version": 1,
+        "not_county_complete": true,
+        "queryable": false,
+        "verified_against_publisher": false,
+        "coverage_claim": "field_diagnostic_only",
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "tax_year": 2026,
+        "evaluation_date": "2026-11-06",
+        "prefer": "appraised",
+        "selected_value": null,
+        "appraised_value": { "status": "absent", "value": null, "unit": null },
+        "market_value": {
+          "status": "available_not_selected",
+          "value": 900000,
+          "unit": "USD"
+        },
+        "filled": [
+          {
+            "field": "subject.county_fips",
+            "value": "201",
+            "unit": null,
+            "definition": "Caller county_fips matched 201 (Harris County, Texas), the appraisal district. Not a taxing unit, not a tax rate, and not a parcel fact from the roll.",
+            "citation": {
+              "source_id": null,
+              "filename": null,
+              "locator": null,
+              "tax_year": null,
+              "as_of": null,
+              "verified_against_publisher": false
+            }
+          },
+          {
+            "field": "subject.land_area_sf",
+            "value": 21780,
+            "unit": "sf",
+            "definition": "Account land area in square feet as stored (parcel.land_area_sf). The roll adapter may have converted acreage when land_ar was 0. This diagnostic does not convert units and cannot tell which column was used.",
+            "citation": {
+              "source_id": "tx-harris-cad",
+              "filename": "Real_acct_owner.zip",
+              "locator": "real_acct.txt acct 0010010000002",
+              "tax_year": 2026,
+              "as_of": "2026-11-01",
+              "verified_against_publisher": false
+            }
+          },
+          {
+            "field": "subject.tax_year",
+            "value": 2026,
+            "unit": "year",
+            "definition": "Tax year of the roll values (HCAD yr as parcel.tax_year). Not the snapshot as-of date.",
+            "citation": {
+              "source_id": "tx-harris-cad",
+              "filename": "Real_acct_owner.zip",
+              "locator": "real_acct.txt acct 0010010000002",
+              "tax_year": 2026,
+              "as_of": "2026-11-01",
+              "verified_against_publisher": false
+            }
+          }
+        ],
+        "normalize_by_supported": [],
+        "issues": [
+          {
+            "class": "invalid",
+            "code": "not_a_code",
+            "field": "parcel.neighborhood_code",
+            "message": "Neighborhood code 0.00 or blank is not a code. It is not stored as a neighborhood."
+          },
+          {
+            "class": "invalid",
+            "code": "zero",
+            "field": "parcel.improvement_area_sf",
+            "message": "parcel.improvement_area_sf is 0. Zero is not a usable value."
+          },
+          {
+            "class": "missing",
+            "code": "value",
+            "field": "subject.value",
+            "message": "subject.value is not filled. No appraised value was usable, and market value was not relabeled as appraised."
+          }
+        ]
+      }
+    },
+    {
+      "fn": "harris_readiness",
+      "name": "uncited, impossible, future, and stale dates",
+      "input": {
+        "evaluation_date": "2026-11-06",
+        "county_fips": "201",
+        "tax_year": 2026,
+        "facts": [
+          {
+            "predicate": "parcel.tax_year",
+            "value": 2026,
+            "unit": "year",
+            "source_id": "tx-harris-cad",
+            "filename": "Real_acct_owner.zip",
+            "locator": "real_acct.txt acct 0010010000001",
+            "tax_year": 2026,
+            "as_of": "2026-11-01"
+          },
+          {
+            "predicate": "parcel.appraised_value",
+            "value": 50000000,
+            "unit": "USD",
+            "source_id": "tx-harris-cad",
+            "filename": "Real_acct_owner.zip",
+            "locator": "real_acct.txt acct 0010010000001",
+            "tax_year": 2026
+          },
+          {
+            "predicate": "parcel.market_value",
+            "value": 52000000,
+            "unit": "USD",
+            "source_id": "tx-harris-cad",
+            "filename": "Real_acct_owner.zip",
+            "locator": "real_acct.txt acct 0010010000001",
+            "tax_year": 2026,
+            "as_of": "2026-02-31"
+          },
+          {
+            "predicate": "parcel.improvement_area_sf",
+            "value": 250000,
+            "unit": "sf",
+            "source_id": "tx-harris-cad",
+            "filename": "Real_acct_owner.zip",
+            "locator": "real_acct.txt acct 0010010000001",
+            "tax_year": 2026,
+            "as_of": "2025-10-01"
+          },
+          {
+            "predicate": "parcel.land_area_sf",
+            "value": 40000,
+            "unit": "sf",
+            "source_id": "tx-harris-cad",
+            "filename": "Real_acct_owner.zip",
+            "locator": "real_acct.txt acct 0010010000001",
+            "tax_year": 2026,
+            "as_of": "2026-11-07"
+          }
+        ]
+      },
+      "expect": {
+        "calculator": "calc.tx_unequal_appraisal",
+        "calculator_version": 1,
+        "not_county_complete": true,
+        "queryable": false,
+        "verified_against_publisher": false,
+        "coverage_claim": "field_diagnostic_only",
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "tax_year": 2026,
+        "evaluation_date": "2026-11-06",
+        "prefer": "appraised",
+        "selected_value": null,
+        "appraised_value": {
+          "status": "not_filled",
+          "value": null,
+          "unit": null
+        },
+        "market_value": { "status": "not_filled", "value": null, "unit": null },
+        "filled": [
+          {
+            "field": "subject.county_fips",
+            "value": "201",
+            "unit": null,
+            "definition": "Caller county_fips matched 201 (Harris County, Texas), the appraisal district. Not a taxing unit, not a tax rate, and not a parcel fact from the roll.",
+            "citation": {
+              "source_id": null,
+              "filename": null,
+              "locator": null,
+              "tax_year": null,
+              "as_of": null,
+              "verified_against_publisher": false
+            }
+          },
+          {
+            "field": "subject.tax_year",
+            "value": 2026,
+            "unit": "year",
+            "definition": "Tax year of the roll values (HCAD yr as parcel.tax_year). Not the snapshot as-of date.",
+            "citation": {
+              "source_id": "tx-harris-cad",
+              "filename": "Real_acct_owner.zip",
+              "locator": "real_acct.txt acct 0010010000001",
+              "tax_year": 2026,
+              "as_of": "2026-11-01",
+              "verified_against_publisher": false
+            }
+          }
+        ],
+        "normalize_by_supported": [],
+        "issues": [
+          {
+            "class": "invalid",
+            "code": "bad_as_of",
+            "field": "parcel.market_value",
+            "message": "parcel.market_value as_of is not a real calendar date YYYY-MM-DD."
+          },
+          {
+            "class": "invalid",
+            "code": "future_as_of",
+            "field": "parcel.land_area_sf",
+            "message": "parcel.land_area_sf as_of is after evaluation_date, so it is not usable evidence."
+          },
+          {
+            "class": "uncited",
+            "code": "uncited",
+            "field": "parcel.appraised_value",
+            "message": "parcel.appraised_value has no complete citation. source_id, filename, locator, tax_year, and as_of are required. An uncited figure is not filled."
+          },
+          {
+            "class": "stale",
+            "code": "stale",
+            "field": "parcel.improvement_area_sf",
+            "message": "parcel.improvement_area_sf as_of is more than 400 days before evaluation_date. The registry audit warns above 400 days. A stale fact is not filled."
+          },
+          {
+            "class": "missing",
+            "code": "value",
+            "field": "subject.value",
+            "message": "subject.value is not filled. No appraised value was usable, and market value was not relabeled as appraised."
+          }
+        ]
+      }
+    },
+    {
+      "fn": "harris_readiness",
+      "name": "four hundred days is still usable",
+      "input": {
+        "evaluation_date": "2026-11-06",
+        "county_fips": "201",
+        "tax_year": 2026,
+        "facts": [
+          {
+            "predicate": "parcel.tax_year",
+            "value": 2026,
+            "unit": "year",
+            "source_id": "tx-harris-cad",
+            "filename": "Real_acct_owner.zip",
+            "locator": "real_acct.txt acct 0010010000001",
+            "tax_year": 2026,
+            "as_of": "2025-10-02"
+          },
+          {
+            "predicate": "parcel.appraised_value",
+            "value": 1000,
+            "unit": "USD",
+            "source_id": "tx-harris-cad",
+            "filename": "Real_acct_owner.zip",
+            "locator": "real_acct.txt acct 0010010000001",
+            "tax_year": 2026,
+            "as_of": "2025-10-02"
+          }
+        ]
+      },
+      "expect": {
+        "calculator": "calc.tx_unequal_appraisal",
+        "calculator_version": 1,
+        "not_county_complete": true,
+        "queryable": false,
+        "verified_against_publisher": false,
+        "coverage_claim": "field_diagnostic_only",
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "tax_year": 2026,
+        "evaluation_date": "2026-11-06",
+        "prefer": "appraised",
+        "selected_value": {
+          "field": "subject.value",
+          "basis": "appraised",
+          "value": 1000,
+          "unit": "USD",
+          "selected_because": "statutory_comparison_uses_appraised"
+        },
+        "appraised_value": {
+          "status": "selected",
+          "value": 1000,
+          "unit": "USD"
+        },
+        "market_value": { "status": "absent", "value": null, "unit": null },
+        "filled": [
+          {
+            "field": "subject.county_fips",
+            "value": "201",
+            "unit": null,
+            "definition": "Caller county_fips matched 201 (Harris County, Texas), the appraisal district. Not a taxing unit, not a tax rate, and not a parcel fact from the roll.",
+            "citation": {
+              "source_id": null,
+              "filename": null,
+              "locator": null,
+              "tax_year": null,
+              "as_of": null,
+              "verified_against_publisher": false
+            }
+          },
+          {
+            "field": "subject.tax_year",
+            "value": 2026,
+            "unit": "year",
+            "definition": "Tax year of the roll values (HCAD yr as parcel.tax_year). Not the snapshot as-of date.",
+            "citation": {
+              "source_id": "tx-harris-cad",
+              "filename": "Real_acct_owner.zip",
+              "locator": "real_acct.txt acct 0010010000001",
+              "tax_year": 2026,
+              "as_of": "2025-10-02",
+              "verified_against_publisher": false
+            }
+          },
+          {
+            "field": "subject.value",
+            "value": 1000,
+            "unit": "USD",
+            "basis": "appraised",
+            "definition": "Roll appraised value (HCAD tot_appr_val as parcel.appraised_value), USD. Not taxable value, not a sale price, and not NOI.",
+            "citation": {
+              "source_id": "tx-harris-cad",
+              "filename": "Real_acct_owner.zip",
+              "locator": "real_acct.txt acct 0010010000001",
+              "tax_year": 2026,
+              "as_of": "2025-10-02",
+              "verified_against_publisher": false
+            }
+          }
+        ],
+        "normalize_by_supported": ["none"],
+        "issues": [
+          {
+            "class": "missing",
+            "code": "area",
+            "field": "subject.improvement_area_sf",
+            "message": "parcel.improvement_area_sf is absent. normalize_by improvement_area_sf is blocked. Land area is not copied into it."
+          },
+          {
+            "class": "missing",
+            "code": "area",
+            "field": "subject.land_area_sf",
+            "message": "parcel.land_area_sf is absent. normalize_by land_area_sf is blocked. Improvement area is not copied into it."
+          }
+        ]
+      }
+    },
+    {
+      "fn": "harris_readiness",
+      "name": "owner strings are refused and not echoed",
+      "input": {
+        "evaluation_date": "2026-11-06",
+        "county_fips": "201",
+        "tax_year": 2026,
+        "owner_name": "QX7 OWNER",
+        "owner_mailing_address": "owner@example.test",
+        "facts": [
+          {
+            "predicate": "ownership.owner_of_record",
+            "value": "QX7 OWNER",
+            "source_id": "tx-harris-cad",
+            "filename": "Real_acct_owner.zip",
+            "locator": "owners.txt",
+            "tax_year": 2026,
+            "as_of": "2026-11-01"
+          },
+          {
+            "predicate": "parcel.appraised_value",
+            "value": 1000,
+            "unit": "USD",
+            "source_id": "tx-harris-cad",
+            "filename": "Real_acct_owner.zip",
+            "locator": "real_acct.txt acct 0010010000001",
+            "tax_year": 2026,
+            "as_of": "2026-11-01"
+          }
+        ]
+      },
+      "expect": {
+        "calculator": "calc.tx_unequal_appraisal",
+        "calculator_version": 1,
+        "not_county_complete": true,
+        "queryable": false,
+        "verified_against_publisher": false,
+        "coverage_claim": "field_diagnostic_only",
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "tax_year": 2026,
+        "evaluation_date": "2026-11-06",
+        "prefer": "appraised",
+        "selected_value": {
+          "field": "subject.value",
+          "basis": "appraised",
+          "value": 1000,
+          "unit": "USD",
+          "selected_because": "statutory_comparison_uses_appraised"
+        },
+        "appraised_value": {
+          "status": "selected",
+          "value": 1000,
+          "unit": "USD"
+        },
+        "market_value": { "status": "absent", "value": null, "unit": null },
+        "filled": [
+          {
+            "field": "subject.county_fips",
+            "value": "201",
+            "unit": null,
+            "definition": "Caller county_fips matched 201 (Harris County, Texas), the appraisal district. Not a taxing unit, not a tax rate, and not a parcel fact from the roll.",
+            "citation": {
+              "source_id": null,
+              "filename": null,
+              "locator": null,
+              "tax_year": null,
+              "as_of": null,
+              "verified_against_publisher": false
+            }
+          },
+          {
+            "field": "subject.value",
+            "value": 1000,
+            "unit": "USD",
+            "basis": "appraised",
+            "definition": "Roll appraised value (HCAD tot_appr_val as parcel.appraised_value), USD. Not taxable value, not a sale price, and not NOI.",
+            "citation": {
+              "source_id": "tx-harris-cad",
+              "filename": "Real_acct_owner.zip",
+              "locator": "real_acct.txt acct 0010010000001",
+              "tax_year": 2026,
+              "as_of": "2026-11-01",
+              "verified_against_publisher": false
+            }
+          }
+        ],
+        "normalize_by_supported": ["none"],
+        "issues": [
+          {
+            "class": "missing",
+            "code": "area",
+            "field": "subject.improvement_area_sf",
+            "message": "parcel.improvement_area_sf is absent. normalize_by improvement_area_sf is blocked. Land area is not copied into it."
+          },
+          {
+            "class": "missing",
+            "code": "area",
+            "field": "subject.land_area_sf",
+            "message": "parcel.land_area_sf is absent. normalize_by land_area_sf is blocked. Improvement area is not copied into it."
+          },
+          {
+            "class": "missing",
+            "code": "tax_year",
+            "field": "subject.tax_year",
+            "message": "parcel.tax_year is absent, so subject.tax_year is not filled. The requested tax year is not copied in as a fact."
+          },
+          {
+            "class": "refused",
+            "code": "owner_not_returned",
+            "field": "ownership",
+            "message": "Owner names and mailing addresses are not read and are not returned."
+          }
+        ]
+      }
+    },
+    {
+      "fn": "harris_readiness",
+      "name": "tax rate, exemption, zoning, rent, and cap rate are unsupported",
+      "input": {
+        "evaluation_date": "2026-11-06",
+        "county_fips": "201",
+        "tax_year": 2026,
+        "requested": [
+          "tax_rate",
+          "exemption",
+          "zoning",
+          "noi",
+          "cap_rate",
+          "sale_price",
+          "rent",
+          "taxable_value",
+          "circuit_breaker_23_231"
+        ],
+        "facts": [
+          {
+            "predicate": "parcel.tax_rate",
+            "value": 0.02,
+            "unit": "rate",
+            "source_id": "tx-harris-cad",
+            "filename": "Real_acct_owner.zip",
+            "locator": "not-a-rate-column",
+            "tax_year": 2026,
+            "as_of": "2026-11-01"
+          }
+        ]
+      },
+      "expect": {
+        "calculator": "calc.tx_unequal_appraisal",
+        "calculator_version": 1,
+        "not_county_complete": true,
+        "queryable": false,
+        "verified_against_publisher": false,
+        "coverage_claim": "field_diagnostic_only",
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "tax_year": 2026,
+        "evaluation_date": "2026-11-06",
+        "prefer": "appraised",
+        "selected_value": null,
+        "appraised_value": { "status": "absent", "value": null, "unit": null },
+        "market_value": { "status": "absent", "value": null, "unit": null },
+        "filled": [
+          {
+            "field": "subject.county_fips",
+            "value": "201",
+            "unit": null,
+            "definition": "Caller county_fips matched 201 (Harris County, Texas), the appraisal district. Not a taxing unit, not a tax rate, and not a parcel fact from the roll.",
+            "citation": {
+              "source_id": null,
+              "filename": null,
+              "locator": null,
+              "tax_year": null,
+              "as_of": null,
+              "verified_against_publisher": false
+            }
+          }
+        ],
+        "normalize_by_supported": [],
+        "issues": [
+          {
+            "class": "missing",
+            "code": "area",
+            "field": "subject.improvement_area_sf",
+            "message": "parcel.improvement_area_sf is absent. normalize_by improvement_area_sf is blocked. Land area is not copied into it."
+          },
+          {
+            "class": "missing",
+            "code": "area",
+            "field": "subject.land_area_sf",
+            "message": "parcel.land_area_sf is absent. normalize_by land_area_sf is blocked. Improvement area is not copied into it."
+          },
+          {
+            "class": "missing",
+            "code": "tax_year",
+            "field": "subject.tax_year",
+            "message": "parcel.tax_year is absent, so subject.tax_year is not filled. The requested tax year is not copied in as a fact."
+          },
+          {
+            "class": "missing",
+            "code": "value",
+            "field": "subject.value",
+            "message": "subject.value is not filled. No appraised value was usable, and market value was not relabeled as appraised."
+          },
+          {
+            "class": "refused",
+            "code": "unsupported",
+            "field": "cap_rate",
+            "message": "A cap rate is not inferred from roll values."
+          },
+          {
+            "class": "refused",
+            "code": "unsupported",
+            "field": "circuit_breaker_23_231",
+            "message": "circuit_breaker_23_231 is not set. Exemption and section 23.231 status are not accepted here. The calculator default of false is not applied, because false would mean not subject rather than unknown."
+          },
+          {
+            "class": "refused",
+            "code": "unsupported",
+            "field": "exemption",
+            "message": "Exemption eligibility is not determined. Unknown is not \"no exemption\"."
+          },
+          {
+            "class": "refused",
+            "code": "unsupported",
+            "field": "noi",
+            "message": "NOI is not on the appraisal roll and is not inferred."
+          },
+          {
+            "class": "refused",
+            "code": "unsupported",
+            "field": "rent",
+            "message": "Rent is not on the appraisal roll and is not inferred."
+          },
+          {
+            "class": "refused",
+            "code": "unsupported",
+            "field": "sale_price",
+            "message": "No sale price is read. Roll market value is not a sale."
+          },
+          {
+            "class": "refused",
+            "code": "unsupported",
+            "field": "tax_rate",
+            "message": "No tax rate is evaluated. A rate would have to be the adopted rate of each taxing unit for this account and tax year. A county-wide rate is not assumed. Unknown is not zero."
+          },
+          {
+            "class": "refused",
+            "code": "unsupported",
+            "field": "taxable_value",
+            "message": "Taxable value after exemptions is not the appraised value and is not filled."
+          },
+          {
+            "class": "refused",
+            "code": "unsupported",
+            "field": "zoning",
+            "message": "Zoning is not mapped. Unknown is not unrestricted, and the lack of conventional zoning in the City of Houston is not applied to every Harris municipality."
+          }
+        ]
+      }
+    },
+    {
+      "fn": "harris_readiness",
+      "name": "year, unit, buildings-file, and untrusted-source mismatches",
+      "input": {
+        "evaluation_date": "2026-11-06",
+        "county_fips": "201",
+        "tax_year": 2026,
+        "facts": [
+          {
+            "predicate": "parcel.appraised_value",
+            "value": 50000000,
+            "unit": "USD",
+            "source_id": "tx-harris-cad",
+            "filename": "Real_acct_owner.zip",
+            "locator": "real_acct.txt acct 0010010000001",
+            "tax_year": 2025,
+            "as_of": "2026-11-01"
+          },
+          {
+            "predicate": "parcel.land_area_sf",
+            "value": 0.5,
+            "unit": "acre",
+            "source_id": "tx-harris-cad",
+            "filename": "Real_acct_owner.zip",
+            "locator": "real_acct.txt acct 0010010000001",
+            "tax_year": 2026,
+            "as_of": "2026-11-01"
+          },
+          {
+            "predicate": "parcel.improvement_area_sf",
+            "value": 240000,
+            "unit": "sf",
+            "source_id": "tx-harris-cad-buildings",
+            "filename": "Real_building_land.zip",
+            "locator": "building_other.txt acct 0010010000001 bld_num 1",
+            "tax_year": 2026,
+            "as_of": "2026-11-01"
+          },
+          {
+            "predicate": "parcel.market_value",
+            "value": "52000000",
+            "unit": "USD",
+            "source_id": "tx-harris-cad",
+            "filename": "Real_acct_owner.zip",
+            "locator": "real_acct.txt acct 0010010000001",
+            "tax_year": 2026,
+            "as_of": "2026-11-01"
+          },
+          {
+            "predicate": "parcel.situs_address",
+            "value": "100 MAIN ST, HOUSTON TX 77002",
+            "source_id": "not-hcad",
+            "filename": "Real_acct_owner.zip",
+            "locator": "real_acct.txt acct 0010010000001",
+            "tax_year": 2026,
+            "as_of": "2026-11-01"
+          },
+          {
+            "predicate": "parcel.building_class",
+            "value": 250000,
+            "unit": "sf",
+            "source_id": "tx-harris-cad-buildings",
+            "filename": "Real_building_land.zip",
+            "locator": "building_other.txt acct 0010010000001 bld_num 1",
+            "tax_year": 2026,
+            "as_of": "2026-11-01"
+          }
+        ]
+      },
+      "expect": {
+        "calculator": "calc.tx_unequal_appraisal",
+        "calculator_version": 1,
+        "not_county_complete": true,
+        "queryable": false,
+        "verified_against_publisher": false,
+        "coverage_claim": "field_diagnostic_only",
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "tax_year": 2026,
+        "evaluation_date": "2026-11-06",
+        "prefer": "appraised",
+        "selected_value": null,
+        "appraised_value": {
+          "status": "not_filled",
+          "value": null,
+          "unit": null
+        },
+        "market_value": { "status": "not_filled", "value": null, "unit": null },
+        "filled": [
+          {
+            "field": "subject.county_fips",
+            "value": "201",
+            "unit": null,
+            "definition": "Caller county_fips matched 201 (Harris County, Texas), the appraisal district. Not a taxing unit, not a tax rate, and not a parcel fact from the roll.",
+            "citation": {
+              "source_id": null,
+              "filename": null,
+              "locator": null,
+              "tax_year": null,
+              "as_of": null,
+              "verified_against_publisher": false
+            }
+          }
+        ],
+        "normalize_by_supported": [],
+        "issues": [
+          {
+            "class": "invalid",
+            "code": "wrong_type",
+            "field": "parcel.building_class",
+            "message": "parcel.building_class must be text. A number is not improvement area and is not converted."
+          },
+          {
+            "class": "invalid",
+            "code": "wrong_type",
+            "field": "parcel.market_value",
+            "message": "parcel.market_value must be a number. Text and booleans are not coerced into a value."
+          },
+          {
+            "class": "mismatched",
+            "code": "semantic",
+            "field": "parcel.improvement_area_sf",
+            "message": "parcel.improvement_area_sf is cited to the buildings file. Section im_sq_ft is not the account improvement area and is not copied into it."
+          },
+          {
+            "class": "mismatched",
+            "code": "tax_year",
+            "field": "parcel.appraised_value",
+            "message": "parcel.appraised_value tax_year does not match the requested tax year. A different year's value is not mixed in."
+          },
+          {
+            "class": "mismatched",
+            "code": "unit",
+            "field": "parcel.land_area_sf",
+            "message": "parcel.land_area_sf must use unit \"sf\" (square feet). Acres and other units are not converted."
+          },
+          {
+            "class": "mismatched",
+            "code": "untrusted_source",
+            "field": "parcel.situs_address",
+            "message": "parcel.situs_address does not cite the known Harris source and filename for this predicate. Other metadata is not treated as verified evidence."
+          },
+          {
+            "class": "missing",
+            "code": "tax_year",
+            "field": "subject.tax_year",
+            "message": "parcel.tax_year is absent, so subject.tax_year is not filled. The requested tax year is not copied in as a fact."
+          },
+          {
+            "class": "missing",
+            "code": "value",
+            "field": "subject.value",
+            "message": "subject.value is not filled. No appraised value was usable, and market value was not relabeled as appraised."
+          }
+        ]
+      }
+    },
+    {
+      "fn": "harris_readiness",
+      "name": "another county is not assessed as Harris",
+      "input": {
+        "evaluation_date": "2026-11-06",
+        "county_fips": "113",
+        "tax_year": 2026,
+        "facts": []
+      },
+      "expect": {
+        "calculator": "calc.tx_unequal_appraisal",
+        "calculator_version": 1,
+        "not_county_complete": true,
+        "queryable": false,
+        "verified_against_publisher": false,
+        "coverage_claim": "field_diagnostic_only",
+        "county_fips": "113",
+        "jurisdiction_status": "not_harris",
+        "tax_year": null,
+        "evaluation_date": "2026-11-06",
+        "prefer": null,
+        "selected_value": null,
+        "appraised_value": { "status": "absent", "value": null, "unit": null },
+        "market_value": { "status": "absent", "value": null, "unit": null },
+        "filled": [],
+        "normalize_by_supported": [],
+        "issues": [
+          {
+            "class": "mismatched",
+            "code": "jurisdiction",
+            "field": "county_fips",
+            "message": "This diagnostic is only for Harris County, Texas (FIPS 201). It does not assess other counties and does not acquire their data."
+          }
+        ]
+      }
+    },
+    {
+      "fn": "harris_readiness",
+      "name": "evaluation date is required and is not today's date",
+      "input": { "county_fips": "201", "tax_year": 2026 },
+      "expect": {
+        "calculator": "calc.tx_unequal_appraisal",
+        "calculator_version": 1,
+        "not_county_complete": true,
+        "queryable": false,
+        "verified_against_publisher": false,
+        "coverage_claim": "field_diagnostic_only",
+        "county_fips": null,
+        "jurisdiction_status": "unchecked",
+        "tax_year": null,
+        "evaluation_date": null,
+        "prefer": null,
+        "selected_value": null,
+        "appraised_value": { "status": "absent", "value": null, "unit": null },
+        "market_value": { "status": "absent", "value": null, "unit": null },
+        "filled": [],
+        "normalize_by_supported": [],
+        "issues": [
+          {
+            "class": "invalid",
+            "code": "evaluation_date",
+            "field": "evaluation_date",
+            "message": "evaluation_date must be a real calendar date YYYY-MM-DD. The diagnostic does not substitute today's date."
+          }
+        ]
+      }
+    },
+    {
+      "fn": "harris_readiness",
+      "name": "duplicate and negative values are not chosen",
+      "input": {
+        "evaluation_date": "2026-11-06",
+        "county_fips": "201",
+        "tax_year": 2026,
+        "facts": [
+          {
+            "predicate": "parcel.appraised_value",
+            "value": 10,
+            "unit": "USD",
+            "source_id": "tx-harris-cad",
+            "filename": "Real_acct_owner.zip",
+            "locator": "row-a",
+            "tax_year": 2026,
+            "as_of": "2026-11-01"
+          },
+          {
+            "predicate": "parcel.appraised_value",
+            "value": 12,
+            "unit": "USD",
+            "source_id": "tx-harris-cad",
+            "filename": "Real_acct_owner.zip",
+            "locator": "row-b",
+            "tax_year": 2026,
+            "as_of": "2026-11-01"
+          },
+          {
+            "predicate": "parcel.market_value",
+            "value": -5,
+            "unit": "USD",
+            "source_id": "tx-harris-cad",
+            "filename": "Real_acct_owner.zip",
+            "locator": "row-c",
+            "tax_year": 2026,
+            "as_of": "2026-11-01"
+          }
+        ]
+      },
+      "expect": {
+        "calculator": "calc.tx_unequal_appraisal",
+        "calculator_version": 1,
+        "not_county_complete": true,
+        "queryable": false,
+        "verified_against_publisher": false,
+        "coverage_claim": "field_diagnostic_only",
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "tax_year": 2026,
+        "evaluation_date": "2026-11-06",
+        "prefer": "appraised",
+        "selected_value": null,
+        "appraised_value": {
+          "status": "not_filled",
+          "value": null,
+          "unit": null
+        },
+        "market_value": { "status": "not_filled", "value": null, "unit": null },
+        "filled": [
+          {
+            "field": "subject.county_fips",
+            "value": "201",
+            "unit": null,
+            "definition": "Caller county_fips matched 201 (Harris County, Texas), the appraisal district. Not a taxing unit, not a tax rate, and not a parcel fact from the roll.",
+            "citation": {
+              "source_id": null,
+              "filename": null,
+              "locator": null,
+              "tax_year": null,
+              "as_of": null,
+              "verified_against_publisher": false
+            }
+          }
+        ],
+        "normalize_by_supported": [],
+        "issues": [
+          {
+            "class": "invalid",
+            "code": "negative",
+            "field": "parcel.market_value",
+            "message": "parcel.market_value is negative. A negative figure is not a usable value."
+          },
+          {
+            "class": "mismatched",
+            "code": "duplicate",
+            "field": "parcel.appraised_value",
+            "message": "More than one parcel.appraised_value fact was supplied. None was selected."
+          },
+          {
+            "class": "missing",
+            "code": "area",
+            "field": "subject.improvement_area_sf",
+            "message": "parcel.improvement_area_sf is absent. normalize_by improvement_area_sf is blocked. Land area is not copied into it."
+          },
+          {
+            "class": "missing",
+            "code": "area",
+            "field": "subject.land_area_sf",
+            "message": "parcel.land_area_sf is absent. normalize_by land_area_sf is blocked. Improvement area is not copied into it."
+          },
+          {
+            "class": "missing",
+            "code": "tax_year",
+            "field": "subject.tax_year",
+            "message": "parcel.tax_year is absent, so subject.tax_year is not filled. The requested tax year is not copied in as a fact."
+          },
+          {
+            "class": "missing",
+            "code": "value",
+            "field": "subject.value",
+            "message": "subject.value is not filled. No appraised value was usable, and market value was not relabeled as appraised."
+          }
+        ]
+      }
+    },
+    {
+      "fn": "harris_readiness",
+      "name": "implausible roll value is not filled",
+      "input": {
+        "evaluation_date": "2026-11-06",
+        "county_fips": "201",
+        "tax_year": 2026,
+        "facts": [
+          {
+            "predicate": "parcel.appraised_value",
+            "value": 50000000001,
+            "unit": "USD",
+            "source_id": "tx-harris-cad",
+            "filename": "Real_acct_owner.zip",
+            "locator": "real_acct.txt acct 0010010000001",
+            "tax_year": 2026,
+            "as_of": "2026-11-01"
+          }
+        ]
+      },
+      "expect": {
+        "calculator": "calc.tx_unequal_appraisal",
+        "calculator_version": 1,
+        "not_county_complete": true,
+        "queryable": false,
+        "verified_against_publisher": false,
+        "coverage_claim": "field_diagnostic_only",
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "tax_year": 2026,
+        "evaluation_date": "2026-11-06",
+        "prefer": "appraised",
+        "selected_value": null,
+        "appraised_value": {
+          "status": "not_filled",
+          "value": null,
+          "unit": null
+        },
+        "market_value": { "status": "absent", "value": null, "unit": null },
+        "filled": [
+          {
+            "field": "subject.county_fips",
+            "value": "201",
+            "unit": null,
+            "definition": "Caller county_fips matched 201 (Harris County, Texas), the appraisal district. Not a taxing unit, not a tax rate, and not a parcel fact from the roll.",
+            "citation": {
+              "source_id": null,
+              "filename": null,
+              "locator": null,
+              "tax_year": null,
+              "as_of": null,
+              "verified_against_publisher": false
+            }
+          }
+        ],
+        "normalize_by_supported": [],
+        "issues": [
+          {
+            "class": "invalid",
+            "code": "implausible",
+            "field": "parcel.appraised_value",
+            "message": "parcel.appraised_value exceeds 50000000000 USD, the registry audit's implausible-value line. It is not filled."
+          },
+          {
+            "class": "missing",
+            "code": "area",
+            "field": "subject.improvement_area_sf",
+            "message": "parcel.improvement_area_sf is absent. normalize_by improvement_area_sf is blocked. Land area is not copied into it."
+          },
+          {
+            "class": "missing",
+            "code": "area",
+            "field": "subject.land_area_sf",
+            "message": "parcel.land_area_sf is absent. normalize_by land_area_sf is blocked. Improvement area is not copied into it."
+          },
+          {
+            "class": "missing",
+            "code": "tax_year",
+            "field": "subject.tax_year",
+            "message": "parcel.tax_year is absent, so subject.tax_year is not filled. The requested tax year is not copied in as a fact."
+          },
+          {
+            "class": "missing",
+            "code": "value",
+            "field": "subject.value",
+            "message": "subject.value is not filled. No appraised value was usable, and market value was not relabeled as appraised."
+          }
+        ]
+      }
+    },
+    {
+      "fn": "county_evidence_gate",
+      "name": "Harris published gate is not county-complete",
+      "input": { "county_fips": "201" },
+      "expect": {
+        "diagnostic": "county_evidence_gate",
+        "calculator": "calc.tx_unequal_appraisal",
+        "county_fips": "201",
+        "status": "cited_subject_fields_only",
+        "not_county_complete": true,
+        "queryable": false,
+        "verified_against_publisher": false,
+        "figures_remeasured": false,
+        "source": {
+          "source_id": "tx-harris-cad",
+          "as_of": "2026-11-01",
+          "audit_file": "docs/registry/quality/audit-2026-11-03/after-texas.json",
+          "license_reviewed": "2026-11-02",
+          "redistribution": "unknown"
+        },
+        "published_fields": {
+          "parcel.appraised_value": { "present": 87462, "missing": 255 },
+          "parcel.improvement_area_sf": { "present": 75796, "missing": 11921 },
+          "parcel.market_value": { "present": 87462, "missing": 255 },
+          "parcel.tax_year": { "present": 87717, "missing": 0 }
+        },
+        "ignored_for_status": ["audit_violations", "parcel_count"],
+        "attestation": "not_supplied",
+        "blockers": [
+          "Figures are copied from docs/registry/quality/audit-2026-11-03/after-texas.json. This function does not remeasure them and does not download anything.",
+          "Not county-complete. The counts are the commercial extract in that audit (state categories B, F1, and F2), not every account in the county.",
+          "Not queryable. Hosted lookup is not opened by this diagnostic.",
+          "Redistribution is unknown and is not treated as granted.",
+          "Tax rates, exemptions, taxable value, sales, rent, NOI, cap rates, and zoning are outside this diagnostic. Unknown is not zero.",
+          "parcel.appraised_value is missing on 255 accounts in the published audit. Market value is not a substitute.",
+          "parcel.improvement_area_sf is missing on 11921 accounts in the published audit. Those accounts cannot be normalized by improvement area."
+        ]
+      }
+    },
+    {
+      "fn": "county_evidence_gate",
+      "name": "matching attestation still ignores parcel count and zero violations",
+      "input": {
+        "county_fips": "201",
+        "attestation": {
+          "source_id": "tx-harris-cad",
+          "as_of": "2026-11-01",
+          "queryable": false,
+          "parcel_count": 87717,
+          "audit_violations": 0,
+          "fields": {
+            "parcel.appraised_value": { "present": 87462, "missing": 255 },
+            "parcel.improvement_area_sf": {
+              "present": 75796,
+              "missing": 11921
+            },
+            "parcel.market_value": { "present": 87462, "missing": 255 },
+            "parcel.tax_year": { "present": 87717, "missing": 0 }
+          }
+        }
+      },
+      "expect": {
+        "diagnostic": "county_evidence_gate",
+        "calculator": "calc.tx_unequal_appraisal",
+        "county_fips": "201",
+        "status": "cited_subject_fields_only",
+        "not_county_complete": true,
+        "queryable": false,
+        "verified_against_publisher": false,
+        "figures_remeasured": false,
+        "source": {
+          "source_id": "tx-harris-cad",
+          "as_of": "2026-11-01",
+          "audit_file": "docs/registry/quality/audit-2026-11-03/after-texas.json",
+          "license_reviewed": "2026-11-02",
+          "redistribution": "unknown"
+        },
+        "published_fields": {
+          "parcel.appraised_value": { "present": 87462, "missing": 255 },
+          "parcel.improvement_area_sf": { "present": 75796, "missing": 11921 },
+          "parcel.market_value": { "present": 87462, "missing": 255 },
+          "parcel.tax_year": { "present": 87717, "missing": 0 }
+        },
+        "ignored_for_status": ["audit_violations", "parcel_count"],
+        "attestation": "matches_published_audit",
+        "blockers": [
+          "Figures are copied from docs/registry/quality/audit-2026-11-03/after-texas.json. This function does not remeasure them and does not download anything.",
+          "Not county-complete. The counts are the commercial extract in that audit (state categories B, F1, and F2), not every account in the county.",
+          "Not queryable. Hosted lookup is not opened by this diagnostic.",
+          "Redistribution is unknown and is not treated as granted.",
+          "Tax rates, exemptions, taxable value, sales, rent, NOI, cap rates, and zoning are outside this diagnostic. Unknown is not zero.",
+          "parcel.appraised_value is missing on 255 accounts in the published audit. Market value is not a substitute.",
+          "parcel.improvement_area_sf is missing on 11921 accounts in the published audit. Those accounts cannot be normalized by improvement area.",
+          "Caller attestation matches those published figures. parcel_count and audit_violations were ignored. Neither a parcel count nor zero audit violations certifies the county."
+        ]
+      }
+    },
+    {
+      "fn": "county_evidence_gate",
+      "name": "a caller claim of complete appraised coverage is not adopted",
+      "input": {
+        "county_fips": "201",
+        "attestation": {
+          "source_id": "tx-harris-cad",
+          "as_of": "2026-11-01",
+          "queryable": true,
+          "parcel_count": 87717,
+          "audit_violations": 0,
+          "fields": {
+            "parcel.appraised_value": { "present": 87717, "missing": 0 },
+            "parcel.improvement_area_sf": { "present": 87717, "missing": 0 },
+            "parcel.market_value": { "present": 87717, "missing": 0 },
+            "parcel.tax_year": { "present": 87717, "missing": 0 }
+          }
+        }
+      },
+      "expect": {
+        "diagnostic": "county_evidence_gate",
+        "calculator": "calc.tx_unequal_appraisal",
+        "county_fips": "201",
+        "status": "not_ready",
+        "not_county_complete": true,
+        "queryable": false,
+        "verified_against_publisher": false,
+        "figures_remeasured": false,
+        "source": {
+          "source_id": "tx-harris-cad",
+          "as_of": "2026-11-01",
+          "audit_file": "docs/registry/quality/audit-2026-11-03/after-texas.json",
+          "license_reviewed": "2026-11-02",
+          "redistribution": "unknown"
+        },
+        "published_fields": {
+          "parcel.appraised_value": { "present": 87462, "missing": 255 },
+          "parcel.improvement_area_sf": { "present": 75796, "missing": 11921 },
+          "parcel.market_value": { "present": 87462, "missing": 255 },
+          "parcel.tax_year": { "present": 87717, "missing": 0 }
+        },
+        "ignored_for_status": ["audit_violations", "parcel_count"],
+        "attestation": "does_not_match_published_audit",
+        "blockers": [
+          "Caller attestation does not match the published audit. The caller's figures were not adopted.",
+          "Figures are copied from docs/registry/quality/audit-2026-11-03/after-texas.json. This function does not remeasure them and does not download anything.",
+          "Not county-complete. The counts are the commercial extract in that audit (state categories B, F1, and F2), not every account in the county.",
+          "Not queryable. Hosted lookup is not opened by this diagnostic.",
+          "Redistribution is unknown and is not treated as granted.",
+          "Tax rates, exemptions, taxable value, sales, rent, NOI, cap rates, and zoning are outside this diagnostic. Unknown is not zero.",
+          "parcel.appraised_value is missing on 255 accounts in the published audit. Market value is not a substitute.",
+          "parcel.improvement_area_sf is missing on 11921 accounts in the published audit. Those accounts cannot be normalized by improvement area."
+        ]
+      }
+    },
+    {
+      "fn": "county_evidence_gate",
+      "name": "Dallas market value does not make the appraised subject ready",
+      "input": { "county_fips": "113" },
+      "expect": {
+        "diagnostic": "county_evidence_gate",
+        "calculator": "calc.tx_unequal_appraisal",
+        "county_fips": "113",
+        "status": "not_ready",
+        "not_county_complete": true,
+        "queryable": false,
+        "verified_against_publisher": false,
+        "figures_remeasured": false,
+        "source": {
+          "source_id": "tx-dallas-cad",
+          "as_of": "2026-10-12",
+          "audit_file": "docs/registry/quality/audit-2026-11-03/after-texas.json",
+          "license_reviewed": "2026-11-02",
+          "redistribution": "unknown"
+        },
+        "published_fields": {
+          "parcel.appraised_value": { "present": 0, "missing": 59645 },
+          "parcel.improvement_area_sf": { "present": 59292, "missing": 353 },
+          "parcel.market_value": { "present": 59645, "missing": 0 },
+          "parcel.tax_year": { "present": 59645, "missing": 0 }
+        },
+        "ignored_for_status": ["audit_violations", "parcel_count"],
+        "attestation": "not_supplied",
+        "blockers": [
+          "Figures are copied from docs/registry/quality/audit-2026-11-03/after-texas.json. This function does not remeasure them and does not download anything.",
+          "Not ready for the appraised-value subject. parcel.appraised_value is present on 0 accounts and missing on 59645 in the published audit.",
+          "parcel.market_value is present on 59645 accounts. It is not relabeled as appraised value.",
+          "Not queryable and not county-complete. This diagnostic does not download Dallas."
+        ]
+      }
+    },
+    {
+      "fn": "county_evidence_gate",
+      "name": "Tarrant stays not ready despite published field counts",
+      "input": { "county_fips": "439" },
+      "expect": {
+        "diagnostic": "county_evidence_gate",
+        "calculator": "calc.tx_unequal_appraisal",
+        "county_fips": "439",
+        "status": "not_ready",
+        "not_county_complete": true,
+        "queryable": false,
+        "verified_against_publisher": false,
+        "figures_remeasured": false,
+        "source": {
+          "source_id": "tx-tarrant-ad",
+          "as_of": "2026-11-02",
+          "audit_file": "docs/registry/quality/audit-2026-11-03/after-texas.json",
+          "license_reviewed": "2026-11-02",
+          "redistribution": "unknown"
+        },
+        "published_fields": {
+          "parcel.appraised_value": { "present": 44934, "missing": 1042 },
+          "parcel.improvement_area_sf": { "present": 39635, "missing": 6341 },
+          "parcel.market_value": { "present": 44934, "missing": 1042 },
+          "parcel.tax_year": { "present": 45976, "missing": 0 }
+        },
+        "ignored_for_status": ["audit_violations", "parcel_count"],
+        "attestation": "not_supplied",
+        "blockers": [
+          "Figures are copied from docs/registry/quality/audit-2026-11-03/after-texas.json. This function does not remeasure them and does not download anything.",
+          "Not ready. Tarrant Appraisal District data is not served to agents until that district's published signals allow it. Field counts do not lift the hold.",
+          "Not queryable and not county-complete. This diagnostic does not download Tarrant."
+        ]
+      }
+    },
+    {
+      "fn": "county_evidence_gate",
+      "name": "an unreviewed county is not downloaded",
+      "input": { "county_fips": "029" },
+      "expect": {
+        "diagnostic": "county_evidence_gate",
+        "calculator": "calc.tx_unequal_appraisal",
+        "county_fips": "029",
+        "status": "not_ready",
+        "not_county_complete": true,
+        "queryable": false,
+        "verified_against_publisher": false,
+        "figures_remeasured": false,
+        "source": null,
+        "published_fields": null,
+        "ignored_for_status": ["audit_violations", "parcel_count"],
+        "attestation": "not_supplied",
+        "blockers": [
+          "No bundled field audit for this county. This diagnostic does not download rolls and does not treat a parcel count as readiness."
+        ]
+      }
+    },
+    {
+      "fn": "county_evidence_gate",
+      "name": "Travis July snapshot is not the current published figure",
+      "input": {
+        "county_fips": "453",
+        "attestation": {
+          "source_id": "tx-travis-cad",
+          "as_of": "2026-07-18",
+          "queryable": false,
+          "fields": {
+            "parcel.appraised_value": { "present": 30555, "missing": 0 },
+            "parcel.improvement_area_sf": { "present": 29150, "missing": 1405 },
+            "parcel.market_value": { "present": 30555, "missing": 0 },
+            "parcel.tax_year": { "present": 30555, "missing": 0 }
+          }
+        }
+      },
+      "expect": {
+        "diagnostic": "county_evidence_gate",
+        "calculator": "calc.tx_unequal_appraisal",
+        "county_fips": "453",
+        "status": "not_ready",
+        "not_county_complete": true,
+        "queryable": false,
+        "verified_against_publisher": false,
+        "figures_remeasured": false,
+        "source": {
+          "source_id": "tx-travis-cad",
+          "as_of": "2026-10-06",
+          "audit_file": "docs/registry/quality/audit-2026-11-03/after-texas.json",
+          "license_reviewed": "2026-11-02",
+          "redistribution": "unknown"
+        },
+        "published_fields": {
+          "parcel.appraised_value": { "present": 30555, "missing": 0 },
+          "parcel.improvement_area_sf": { "present": 29150, "missing": 1405 },
+          "parcel.market_value": { "present": 30555, "missing": 0 },
+          "parcel.tax_year": { "present": 30555, "missing": 0 }
+        },
+        "ignored_for_status": ["audit_violations", "parcel_count"],
+        "attestation": "does_not_match_published_audit",
+        "blockers": [
+          "Caller attestation does not match the published audit. The caller's figures were not adopted.",
+          "Figures are copied from docs/registry/quality/audit-2026-11-03/after-texas.json. This function does not remeasure them and does not download anything.",
+          "Not county-complete. The counts are the commercial extract in that audit (state categories B, F1, and F2), not every account in the county.",
+          "Not queryable. Hosted lookup is not opened by this diagnostic.",
+          "Redistribution is unknown and is not treated as granted.",
+          "Tax rates, exemptions, taxable value, sales, rent, NOI, cap rates, and zoning are outside this diagnostic. Unknown is not zero.",
+          "The current snapshot in that audit is as_of 2026-10-06. An older 2026-07-18 snapshot is in the same file and is not the figure used here.",
+          "parcel.improvement_area_sf is missing on 1405 accounts in the current extract."
+        ]
+      }
+    }
+  ]
+}
