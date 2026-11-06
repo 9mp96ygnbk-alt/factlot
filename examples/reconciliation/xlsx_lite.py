@@ -452,6 +452,15 @@ def _crit_match(v, crit) -> bool:
     return isinstance(v, (int, float)) and not isinstance(v, bool) and float(v) == float(crit)
 
 
+def _median(xs):
+    """Excel MEDIAN: the middle number, or the mean of the two middle numbers for an even count."""
+    s = sorted(xs)
+    if not s:
+        raise ValueError("#NUM!: MEDIAN of no numbers")
+    m = len(s) // 2
+    return s[m] if len(s) % 2 else (s[m - 1] + s[m]) / 2
+
+
 def _sumproduct(*rs):
     rows = [list(r.flat()) if isinstance(r, Rng) else [r] for r in rs]
     n = len(rows[0])
@@ -472,6 +481,8 @@ FUNCTIONS = {
     "SUMPRODUCT": _sumproduct,
     "ROUND": lambda x, d: excel_round(num(x), int(num(d))),
     "ABS": lambda x: abs(num(x)),
+    "MEDIAN": lambda *a: _median(_flat_numbers(a)),
+    "PRODUCT": lambda *a: math.prod(_flat_numbers(a)),
     "MIN": lambda *a: min(_flat_numbers(a)),
     "MAX": lambda *a: max(_flat_numbers(a)),
     "INT": lambda x: float(math.floor(num(x))),
