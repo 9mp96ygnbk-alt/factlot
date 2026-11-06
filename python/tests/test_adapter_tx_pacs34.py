@@ -95,6 +95,21 @@ class Pacs34(unittest.TestCase):
             self.assertNotIn(b"SECRET OWNER", blob)
             self.assertIn(b"ACME HOLDINGS LLC", blob)
 
+    def test_record_break_is_crlf_and_a_short_row_is_rejected(self):
+        info = _info("7", "R", "F1", "ACME\nHOLDINGS LLC")
+        self.assertEqual(len(info), 9714)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "export.zip"
+            with zipfile.ZipFile(path, "w") as zf:
+                zf.writestr("APPRAISAL_STATE_CODE.TXT", _state("F1", "F1") + "\r\n")
+                zf.writestr("APPRAISAL_INFO.TXT", (info + "\r\n" + "TOO SHORT" + "\r\n").encode("latin-1"))
+            tally = ExportTally()
+            rows = list(read_roll(path, "167", tally))
+        self.assertEqual([r.apn for r in rows], ["7"])
+        self.assertEqual(rows[0].owner_name, "ACME HOLDINGS LLC")
+        self.assertEqual(tally.short_rows, 1)
+        self.assertEqual(tally.info_rows, 2)
+
 
 if __name__ == "__main__":
     unittest.main()

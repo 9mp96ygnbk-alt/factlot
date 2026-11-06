@@ -120,6 +120,21 @@ def _member(path: str | Path, suffix: str) -> str | None:
     return hit[0] if hit else None
 
 
+def _crlf_records(raw) -> Iterator[bytes]:
+    """Records separated by CRLF. A bare line feed inside a field stays in the record."""
+    pending = b""
+    while True:
+        chunk = raw.read(1 << 20)
+        if not chunk:
+            if pending:
+                yield pending
+            return
+        pending += chunk
+        parts = pending.split(b"\r\n")
+        pending = parts.pop()
+        yield from parts
+
+
 def _lines(path: str | Path, suffix: str) -> Iterator[str]:
     name = _member(path, suffix)
     if name is None:
@@ -127,12 +142,12 @@ def _lines(path: str | Path, suffix: str) -> Iterator[str]:
     p = Path(path)
     if p.is_dir():
         with open(p / name, "rb") as raw:
-            for line in raw:
-                yield line.decode("latin-1").rstrip("\r\n")
+            for rec in _crlf_records(raw):
+                yield rec.decode("latin-1")
         return
     with zipfile.ZipFile(p) as zf, zf.open(name) as raw:
-        for line in io.BufferedReader(raw, 1 << 22):
-            yield line.decode("latin-1").rstrip("\r\n")
+        for rec in _crlf_records(raw):
+            yield rec.decode("latin-1")
 
 
 def state_table(path: str | Path) -> dict[str, str]:
