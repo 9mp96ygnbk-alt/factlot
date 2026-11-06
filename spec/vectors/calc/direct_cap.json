@@ -36,7 +36,7 @@
       }
     },
     {
-      "name": "implied cap rate from a price only (review case B02-P02: 208,000 ÷ 3,200,000 = 6.5%)",
+      "name": "implied cap rate from a price only (208,000 ÷ 3,200,000 = 6.5%)",
       "input": {
         "noi": 208000,
         "price": 3200000,

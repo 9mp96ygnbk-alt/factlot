@@ -845,7 +845,8 @@ def _batch_tenant_input(d: dict[str, Any], tenant: dict[str, Any]) -> dict[str, 
     return out
 
 
-def cam_reconciliation_batch(raw: Any) -> Result:
+def _cam_batch_parse(raw: Any) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    """The batch input as ``(base, tenants)``: the pool with defaults applied, and each tenant with its raw entry."""
     d = obj(raw)
     year = number(d, "year", integer=True, ge=1900, le=2200)
     expenses = []
@@ -883,7 +884,12 @@ def cam_reconciliation_batch(raw: Any) -> Result:
                 if c not in categories:
                     fail(join(join(p, key), j), f"\"{c}\" is not a category in expenses")
         tenants.append(tenant)
-    base = {"year": year, "expenses": expenses, "gross_up": gross_up}
+    return {"year": year, "expenses": expenses, "gross_up": gross_up}, tenants
+
+
+def cam_reconciliation_batch(raw: Any) -> Result:
+    base, tenants = _cam_batch_parse(raw)
+    year, expenses, gross_up = base["year"], base["expenses"], base["gross_up"]
 
     statements = []
     for i, tenant in enumerate(tenants):
@@ -2550,6 +2556,7 @@ def hotel_metrics(raw: Any) -> Result:
 
 # --- registry -------------------------------------------------------------------------------------
 
+from .reconcile import reconcile_cam, reconcile_dcf  # noqa: E402  (imports this module lazily)
 from .valuation import (  # noqa: E402  (valuation.py imports irr from this module lazily)
     amortization_schedule,
     dcf_pro_forma,
@@ -2585,4 +2592,6 @@ CALCULATORS: dict[str, tuple[Callable[[Any], Result], str, int]] = {
     "equity_waterfall": (equity_waterfall, "calc.equity_waterfall", 1),
     "exchange_1031": (exchange_1031, "calc.exchange_1031", 2),
     "critical_dates": (critical_dates, "calc.critical_dates", 1),
+    "reconcile_dcf": (reconcile_dcf, "calc.reconcile_dcf", 1),
+    "reconcile_cam": (reconcile_cam, "calc.reconcile_cam", 1),
 }

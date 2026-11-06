@@ -103,7 +103,7 @@
       }
     },
     {
-      "name": "rentable basis with load factors: the usable-SF ranking picks a different proposal and a warning says so (review case B07-P13)",
+      "name": "rentable basis with load factors: the usable-SF ranking picks a different proposal and a warning says so",
       "input": {
         "discount_rate_annual": 0.08,
         "area_basis": "rentable",

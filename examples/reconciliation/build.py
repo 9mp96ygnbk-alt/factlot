@@ -4,6 +4,7 @@
     python3 examples/reconciliation/build.py            # write every .xlsx (refuses if any Difference is not 0)
     python3 examples/reconciliation/build.py office     # one workbook
     python3 examples/reconciliation/build.py --check    # build in memory, verify, compare with the files on disk
+    python3 examples/reconciliation/build.py tie_out    # only the synthetic tie-out fixtures (tie_out.py)
 
 Python standard library only. FactLot runs from this repository (python/src), no install needed.
 """
@@ -39,7 +40,8 @@ def members(path_or_parts) -> dict[str, bytes]:
 
 def main(argv: list[str]) -> int:
     check_only = "--check" in argv
-    names = [a for a in argv if not a.startswith("--")] or CASES
+    asked = [a for a in argv if not a.startswith("--")]
+    names = [a for a in asked if a != "tie_out"] if asked else CASES
     status = 0
     for name in names:
         fname, wb, rec = build_one(name)
@@ -56,6 +58,11 @@ def main(argv: list[str]) -> int:
         else:
             wb.save(path)
             print(f"wrote    {fname}: {rec.count} rows, all differences 0")
+    if not asked or "tie_out" in asked:
+        # The SYNTHETIC tie-out fixtures for calc_reconcile_dcf and calc_reconcile_cam (tie_out.py).
+        import tie_out
+
+        status = tie_out.main(["--check"] if check_only else []) or status
     return status
 
 

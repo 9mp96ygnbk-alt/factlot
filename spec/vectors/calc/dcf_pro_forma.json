@@ -420,7 +420,7 @@
       }
     },
     {
-      "name": "review case H10-P02, renewal probability 1.0: 12-month leases roll every year with no downtime",
+      "name": "renewal probability 1.0: 12-month leases roll every year with no downtime",
       "input": {
         "hold_years": 5,
         "leases": [
@@ -627,7 +627,7 @@
       }
     },
     {
-      "name": "review case H10-P02, renewal probability 0.55: blended downtime 0.45 months is kept (the first month of each rollover lease collects 55%), so the value is below the p = 1.0 case",
+      "name": "renewal probability 0.55: blended downtime 0.45 months is kept (the first month of each rollover lease collects 55%), so the value is below the p = 1.0 case",
       "input": {
         "hold_years": 5,
         "leases": [
@@ -834,7 +834,7 @@
       }
     },
     {
-      "name": "review case H13-P07: a second-generation lease expiring in the forward year rolls over; its 3.15 months of downtime fill months 70-72 and the next lease (month 73) is listed but outside the cash flows",
+      "name": "a second-generation lease expiring in the forward year rolls over; its 3.15 months of downtime fill months 70-72 and the next lease (month 73) is listed but outside the cash flows",
       "input": {
         "hold_years": 5,
         "leases": [

@@ -78,7 +78,8 @@ scenario (cap, fee timing, base year or stop). Everything numeric is live.
 
 ## ARGUS
 
-**ARGUS parity is untested.** Nothing here was compared with ARGUS Enterprise output, and nothing here
+**ARGUS parity is untested.** The tie-out tool above is ready for a real ARGUS export, but none has
+been run through it yet. Nothing here was compared with ARGUS Enterprise output, and nothing here
 claims that FactLot matches ARGUS. We do not have ARGUS, and we found no public ARGUS documentation
 to cite, so this repository does not describe ARGUS's internals or quote its help.
 
@@ -98,6 +99,18 @@ What you can do, and what we can say honestly:
   difference is real and known, not hidden by these workbooks.
 - If you run the same synthetic inputs through ARGUS and the numbers differ, that is useful: open an
   issue with the setting you used and the two numbers. We will document the difference.
+
+## Tie-out against another system (synthetic)
+
+`calc_reconcile_dcf` and `calc_reconcile_cam` compare FactLot with another system's export (annual
+DCF lines, or per-tenant CAM results) and name likely causes for each difference; see
+[docs/reconciliation.md](../../docs/reconciliation.md). No ARGUS or Yardi export was available, so
+their fixtures in [`tie-out/`](tie-out) are **synthetic**: `tie_out.py` builds each "other system"
+file from FactLot's own output with one convention changed on purpose (rounded rollover downtime,
+general vacancy on potential base rent, mid-year discounting, an admin fee on the uncapped amount, a
+different pro-rata denominator, taxes left controllable by default), reads it back through
+`factlot.reconcile_files` and checks that the tool names the planted cause. `build.py --check` runs it
+too. They are not exports from any product and do not show any product's layout.
 
 ## What this does not prove
 

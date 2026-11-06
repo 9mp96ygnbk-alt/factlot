@@ -78,7 +78,7 @@
       }
     },
     {
-      "name": "mid-month commencement warns that months run from the 15th without calendar proration (review case B04-P04)",
+      "name": "mid-month commencement warns that months run from the 15th without calendar proration",
       "input": {
         "commencement_date": "2023-03-15",
         "term_months": 60,
@@ -122,7 +122,7 @@
       "expect_error": true
     },
     {
-      "name": "unit kw: the same numbers as square feet, labelled $/kW/yr (review cases B01-P07, B03-P06)",
+      "name": "unit kw: the same numbers as square feet, labelled $/kW/yr",
       "input": {
         "commencement_date": "2026-01-01",
         "term_months": 60,

@@ -1,0 +1,99 @@
+{
+  "year": 2026,
+  "expenses": [
+    {
+      "category": "Real estate taxes",
+      "amount": 180000,
+      "admin_fee_applies": false
+    },
+    {
+      "category": "Insurance",
+      "amount": 42000,
+      "admin_fee_applies": false
+    },
+    {
+      "category": "Janitorial",
+      "amount": 96000,
+      "variable": true,
+      "controllable": true
+    },
+    {
+      "category": "Utilities",
+      "amount": 120000,
+      "variable": true,
+      "controllable": false
+    },
+    {
+      "category": "Landscaping",
+      "amount": 38000,
+      "controllable": true
+    },
+    {
+      "category": "Repairs and maintenance",
+      "amount": 64000,
+      "controllable": true
+    }
+  ],
+  "gross_up": {
+    "actual_occupancy": 0.82,
+    "target_occupancy": 0.95
+  },
+  "tenants": [
+    {
+      "name": "Suite 100",
+      "pro_rata_share": 0.12,
+      "estimates_paid": 60000,
+      "cap": {
+        "method": "compounding_from_base",
+        "rate": 0.05,
+        "reference_amount": 20000,
+        "years_elapsed": 3
+      },
+      "admin_fee": {
+        "rate": 0.1
+      }
+    },
+    {
+      "name": "Suite 200",
+      "pro_rata_share": 0.08,
+      "estimates_paid": 5000,
+      "structure": {
+        "type": "base_year",
+        "base_year_expenses": 480000
+      },
+      "cap": {
+        "method": "simple_from_base",
+        "rate": 0.04,
+        "reference_amount": 15000,
+        "years_elapsed": 2
+      },
+      "admin_fee": {
+        "rate": 0.15,
+        "applied": "before_cap",
+        "capped": true
+      }
+    },
+    {
+      "name": "Suite 300",
+      "pro_rata_share": 0.25,
+      "estimates_paid": 30000,
+      "structure": {
+        "type": "expense_stop",
+        "stop_amount": 400000
+      }
+    },
+    {
+      "name": "Suite 400",
+      "pro_rata_share": 0.18,
+      "estimates_paid": 90000,
+      "cap": {
+        "method": "year_over_year",
+        "rate": 0.05,
+        "reference_amount": 30000
+      },
+      "admin_fee": {
+        "rate": 0.12
+      }
+    }
+  ]
+}

@@ -5100,7 +5100,7 @@
       }
     },
     {
-      "name": "verify: an invented prohibited use is not verified (hosted review H15-P04)",
+      "name": "verify: an invented prohibited use is not verified",
       "tool": "doc_verify_facts",
       "arguments": {
         "document": {
@@ -5169,7 +5169,7 @@
       }
     },
     {
-      "name": "verify: an exclusive use with a carve-out its quote does not state is held for review (H15-P04)",
+      "name": "verify: an exclusive use with a carve-out its quote does not state is held for review",
       "tool": "doc_verify_facts",
       "arguments": {
         "document": {
@@ -5206,7 +5206,7 @@
       }
     },
     {
-      "name": "verify: a true/false value is never verified by its quote (go-dark, H15-P07)",
+      "name": "verify: a true/false value is never verified by its quote (go-dark)",
       "tool": "doc_verify_facts",
       "arguments": {
         "document": {
@@ -5269,7 +5269,7 @@
       }
     },
     {
-      "name": "abstract: amendment first and the lease without a role; the lease is inferred as the original (H13-P01)",
+      "name": "abstract: amendment first and the lease without a role; the lease is inferred as the original",
       "tool": "doc_abstract_lease",
       "arguments": {
         "documents": [
@@ -5504,7 +5504,7 @@
       }
     },
     {
-      "name": "abstract: an amendment effective after as_of is pending and does not control (H13-P01)",
+      "name": "abstract: an amendment effective after as_of is pending and does not control",
       "tool": "doc_abstract_lease",
       "arguments": {
         "documents": [
@@ -5725,7 +5725,7 @@
       }
     },
     {
-      "name": "abstract: an amendment restating the rent from 2026 keeps the lease's earlier steps (H05-P11)",
+      "name": "abstract: an amendment restating the rent from 2026 keeps the lease's earlier steps",
       "tool": "doc_abstract_lease",
       "arguments": {
         "documents": [
@@ -6330,7 +6330,7 @@
       }
     },
     {
-      "name": "verify package: says which checks ran and which value parts no quote confirms (H01-P09)",
+      "name": "verify package: says which checks ran and which value parts no quote confirms",
       "tool": "fact_package_verify",
       "arguments": {
         "package": {

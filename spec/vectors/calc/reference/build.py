@@ -57,7 +57,7 @@ amort_cases = [
     amort_case("30-year fully amortizing at 6%, monthly, 30/360: payment 5,995.51 (standard annuity tables); "
                "the final payment trues up the cents",
                {"principal": 1000000, "rate_annual": 0.06, "term_months": 360, "amortization_months": 360}, [1, 358, 359]),
-    amort_case("10-year loan, 2 years interest-only, then 30-year amortization: balloon at maturity (review case B02-P11)",
+    amort_case("10-year loan, 2 years interest-only, then 30-year amortization: balloon at maturity",
                {"principal": 1000000, "rate_annual": 0.06, "term_months": 120, "amortization_months": 360,
                 "interest_only_months": 24}, [23, 24, 119]),
     amort_case("actual/360 with the payment on a 30/360 basis: interest by actual days, residual repaid at maturity",
@@ -103,7 +103,7 @@ dc_cases = [
                 "value.implied_cap_rate_all_in": n(r["implied_all_in"]), "value.price_per_sf": 150, "warnings": []}},
 ]
 r = ref.direct_cap(208000, price=3200000)
-dc_cases.append({"name": "implied cap rate from a price only (review case B02-P02: 208,000 ÷ 3,200,000 = 6.5%)",
+dc_cases.append({"name": "implied cap rate from a price only (208,000 ÷ 3,200,000 = 6.5%)",
                  "input": {"noi": 208000, "price": 3200000, "noi_basis": "trailing_12"},
                  "expect": {"value.implied_cap_rate": n(r["implied"]), "value.stabilized_value": None,
                             "value.as_is_value": None}})
@@ -185,7 +185,7 @@ mid.pop("purchase_price")
 c3, _ = dcf_case("the same rent roll with mid-year discounting and a trailing exit NOI", mid)
 dcf_cases = [c1, c2, c3]
 
-# Review case H10-P02: 12-month leases, 1 month of new-tenant downtime. At p = 0.55 the blended downtime is
+# 12-month leases, 1 month of new-tenant downtime. At p = 0.55 the blended downtime is
 # 0.45 months; formula version 1 rounded it to 0, so the result equalled p = 1.0. Each rollover's first month
 # now collects 55% of its rent.
 annual = {"hold_years": 5, "leases": [
@@ -199,15 +199,15 @@ annual = {"hold_years": 5, "leases": [
     "management_fee_rate": 0.03, "general_vacancy_rate": 0.05, "credit_loss_rate": 0.005,
     "capital_reserve_psf_annual": 0.3, "exit_cap_rate": 0.0625, "selling_cost_rate": 0.015, "discount_rate": 0.08,
     "purchase_price": 8000000}
-c4, _ = dcf_case("review case H10-P02, renewal probability 1.0: 12-month leases roll every year with no downtime",
+c4, _ = dcf_case("renewal probability 1.0: 12-month leases roll every year with no downtime",
                  annual, rows=[1, 2, 6])
 annual55 = {**annual, "market_leasing": {**annual["market_leasing"], "renewal_probability": 0.55}}
-c5, _ = dcf_case("review case H10-P02, renewal probability 0.55: blended downtime 0.45 months is kept (the first month "
+c5, _ = dcf_case("renewal probability 0.55: blended downtime 0.45 months is kept (the first month "
                  "of each rollover lease collects 55%), so the value is below the p = 1.0 case",
                  annual55, rows=[1, 2, 6], extra={"value.lease_events.1.start_month": 13,
                                                   "value.lease_events.1.downtime_months": 0.45})
 
-# Review case H13-P07: Suite 300 (vacant) is leased months 10-69; the rollover after month 69 has 3.15 months of
+# Suite 300 (vacant) is leased months 10-69; the rollover after month 69 has 3.15 months of
 # blended downtime, so months 70-72 are vacant and the next lease starts in month 73, after the projection. It is
 # listed in lease_events; its TI and LC are not in the cash flows, and the warnings say so. Also fractional free
 # rent (2.05 months) and downtime (3.15 months) on Suite 200.
@@ -226,7 +226,7 @@ office = {"hold_years": 5, "leases": [
     "expense_growth_rate": 0.03, "management_fee_rate": 0.03, "general_vacancy_rate": 0.05, "credit_loss_rate": 0.005,
     "capital_reserve_psf_annual": 0.25, "exit_cap_rate": 0.0725, "selling_cost_rate": 0.02, "discount_rate": 0.085,
     "purchase_price": 17500000}
-c6, r6 = dcf_case("review case H13-P07: a second-generation lease expiring in the forward year rolls over; its "
+c6, r6 = dcf_case("a second-generation lease expiring in the forward year rolls over; its "
                   "3.15 months of downtime fill months 70-72 and the next lease (month 73) is listed but outside the "
                   "cash flows", office, rows=[2, 3, 6], extra={
                       "value.lease_events.4.start_month": 73,
@@ -358,7 +358,7 @@ ex_cases = [
                                        {"name": "D", "fair_market_value": 900000}]},
             {"value.deadlines.days_to_identification_deadline": 12, "value.deadlines.days_to_exchange_deadline": 132,
              "value.identification.rule_met": None}),
-    ex_case("three NNN candidates (review case B10-P01): trade up with more debt, no boot; 180 days with no due date given",
+    ex_case("three NNN candidates: trade up with more debt, no boot; 180 days with no due date given",
             {"relinquished_transfer_date": "2026-06-15",
              "relinquished": {"sale_price": 4200000, "selling_expenses": 210000, "debt_relieved": 1500000},
              "replacement": {"purchase_price": 4500000, "acquisition_costs": 45000, "new_debt": 1800000},

@@ -70,7 +70,7 @@
       }
     },
     {
-      "name": "stress table on an interest-only bridge loan: NOI and rate shocks with a refinance shortfall per scenario (review case B03-P14)",
+      "name": "stress table on an interest-only bridge loan: NOI and rate shocks with a refinance shortfall per scenario",
       "input": {
         "noi": 2450000,
         "value": 38000000,

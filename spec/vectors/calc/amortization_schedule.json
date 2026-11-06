@@ -36,7 +36,7 @@
       }
     },
     {
-      "name": "10-year loan, 2 years interest-only, then 30-year amortization: balloon at maturity (review case B02-P11)",
+      "name": "10-year loan, 2 years interest-only, then 30-year amortization: balloon at maturity",
       "input": {
         "principal": 1000000,
         "rate_annual": 0.06,

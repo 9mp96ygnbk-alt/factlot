@@ -200,7 +200,7 @@
       }
     },
     {
-      "name": "mid-year move-in prorates share and cap by days: annualize-then-prorate result (review case B04-P04)",
+      "name": "mid-year move-in prorates share and cap by days: annualize-then-prorate result",
       "input": {
         "year": 2025,
         "pro_rata_share": 0.04285714285714286,

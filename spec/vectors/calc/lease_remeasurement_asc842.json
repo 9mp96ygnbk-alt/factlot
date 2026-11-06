@@ -538,7 +538,7 @@
       "notes": "Final payment includes the 6,000 now probable under the residual value guarantee."
     },
     {
-      "name": "schedule foots to the cent (review case B04-P10): abated months 1-4, payments in advance, 60 rows, final period trues up to zero",
+      "name": "schedule foots to the cent: abated months 1-4, payments in advance, 60 rows, final period trues up to zero",
       "input": {
         "classification": "operating",
         "payments": [

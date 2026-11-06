@@ -68,7 +68,7 @@
       }
     },
     {
-      "name": "three NNN candidates (review case B10-P01): trade up with more debt, no boot; 180 days with no due date given",
+      "name": "three NNN candidates: trade up with more debt, no boot; 180 days with no due date given",
       "input": {
         "relinquished_transfer_date": "2026-06-15",
         "relinquished": {
