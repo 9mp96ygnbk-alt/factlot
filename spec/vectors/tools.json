@@ -1032,6 +1032,25 @@
       },
       "expect_error": "CalcInputError",
       "expect_message_contains": ["percentages are decimals: pass 0.05 for 5%"]
+    },
+    {
+      "tool": "calc_equity_waterfall",
+      "arguments": {
+        "cash_flows": [-1000, 100, 1500],
+        "lp_share": 0.9,
+        "pref": {
+          "rate_annual": 0.08
+        },
+        "tiers": [
+          {
+            "until_irr": 8,
+            "promote": 0.2
+          }
+        ],
+        "residual_promote": 0.3
+      },
+      "expect_error": "CalcInputError",
+      "expect_message_contains": ["tiers.0.until_irr", "pass 0.08 for 8%"]
     }
   ]
 }

@@ -117,7 +117,7 @@ def unknown_fields(schema: dict[str, Any], value: Any, path: str = "") -> list[d
 
 # Rate fields are decimal fractions (0.065 for 6.5%); share and ratio fields likewise. A minimum DSCR is
 # a coverage ratio (1.25 for 1.25x). Must match RATE_KEY, SHARE_KEY and DSCR_MAX in packages/tools/src/limits.ts.
-_RATE_KEY = re.compile(r"^(?:rate|rate_annual|.+_rate|.+_rate_annual)$")
+_RATE_KEY = re.compile(r"^(?:rate|rate_annual|.+_rate|.+_rate_annual|until_irr)$")
 _SHARE_KEY = re.compile(r"^(?:share|.+_share|ltv|.+_ltv|(?:.+_)?occupancy(?:_.+)?|(?:.+_)?debt_yield|.+_pct)$")
 _DSCR_KEY = "min_dscr"
 _DSCR_MAX = 10
