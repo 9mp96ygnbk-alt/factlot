@@ -410,5 +410,196 @@
     "arguments": {
       "urn": "fl:entity:us-sec:0000900001"
     }
+  },
+  {
+    "tool": "registry_get",
+    "arguments": {
+      "urn": "fl:parcel:us-48997:1000001"
+    }
+  },
+  {
+    "tool": "registry_get",
+    "arguments": {
+      "urn": "fl:parcel:us-48997:1000002"
+    }
+  },
+  {
+    "tool": "registry_get",
+    "arguments": {
+      "urn": "fl:parcel:us-48997:1000001",
+      "as_of": "2026-08-01"
+    }
+  },
+  {
+    "tool": "registry_get",
+    "arguments": {
+      "urn": "fl:parcel:us-48997:1000001",
+      "as_of": "2026-08-01",
+      "include_history": true
+    }
+  },
+  {
+    "tool": "registry_get",
+    "arguments": {
+      "urn": "fl:parcel:us-48997:1000010"
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates",
+    "arguments": {
+      "urn": "fl:parcel:us-48997:1000001"
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates",
+    "arguments": {
+      "urn": "fl:parcel:us-48997:1000001",
+      "min_matches": 5
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates",
+    "arguments": {
+      "urn": "fl:parcel:us-48997:1000001",
+      "limit": 2
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates",
+    "arguments": {
+      "urn": "fl:parcel:us-48997:1000001",
+      "area_band": 0.1,
+      "year_band": 5
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates",
+    "arguments": {
+      "county_fips": "997",
+      "apn": "1000004"
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates",
+    "arguments": {
+      "state_fips": "48",
+      "county_fips": "997",
+      "apn": "1000003"
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates",
+    "arguments": {
+      "urn": "fl:parcel:us-48997:1000012"
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates",
+    "arguments": {
+      "urn": "fl:parcel:us-48997:1000010"
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates",
+    "arguments": {
+      "urn": "fl:parcel:us-48999:0004-000-0001"
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates",
+    "arguments": {
+      "urn": "fl:parcel:us-48999:0001-000-0001"
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates",
+    "arguments": {
+      "urn": "fl:parcel:us-48997:9999999"
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates",
+    "arguments": {
+      "county_fips": "997",
+      "apn": "9999999"
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates",
+    "arguments": {
+      "urn": "fl:parcel:us-04021:50101001"
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates",
+    "arguments": {
+      "state_fips": "06",
+      "county_fips": "037",
+      "apn": "5101001001"
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates",
+    "arguments": {
+      "urn": "fl:entity:us-tx:0807777777"
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates",
+    "arguments": {
+      "urn": "fl:parcel:us-48997"
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates",
+    "arguments": {}
+  },
+  {
+    "tool": "registry_tx_equity_candidates",
+    "arguments": {
+      "urn": "fl:parcel:us-48997:1000001",
+      "apn": "1000001"
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates",
+    "arguments": {
+      "apn": "1000001"
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates",
+    "arguments": {
+      "urn": "fl:parcel:us-48997:1000001",
+      "area_band": 35
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates",
+    "arguments": {
+      "urn": "fl:parcel:us-48997:1000001",
+      "area_band": 0
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates",
+    "arguments": {
+      "urn": "fl:parcel:us-48997:1000001",
+      "limit": 201
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates",
+    "arguments": {
+      "urn": "fl:parcel:us-48997:1000001",
+      "year_band": 2.5
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates",
+    "arguments": {
+      "urn": "fl:parcel:us-48997:1000001",
+      "min_matche": 3
+    }
   }
 ]

@@ -208,6 +208,36 @@ Conventions:
   passed through to the output unchanged, and `law` lists the sections relied on with their
   official URLs.
 
+## Texas unequal-appraisal candidates
+
+`registry_tx_equity_candidates` lists candidate comparable parcels for a Texas unequal-appraisal
+comparison (Tax Code §41.43(b)(3)) from a local registry file (`FACTLOT_REGISTRY_DB`; the hosted
+API has no registry loaded). Give the subject as `urn`, or as `county_fips` and `apn`. Parcels
+outside Texas are an input error.
+
+- **Default rule** (FactLot's design, not a legal standard; every parameter is optional and echoed
+  in `selection.parameters`): same appraisal district (county) and tax year as the subject's current
+  facts; exactly the same `parcel.state_property_category` code; improvement area within
+  `area_band` (0.35, a share) of the subject's; year built within `year_band` (15) years when both
+  are known; an appraised or market value. Parcels sharing the subject's `parcel.neighborhood_code`
+  come first when the registry holds one, then the subject's 5-digit ZIP code, then the rest of the
+  county only when those tiers hold fewer than `min_matches` (10). Within a tier, nearest
+  improvement area first, then URN; at most `limit` (50, up to 200).
+- **Output.** `subject` and each of `candidates` carry `id`, `county_fips`, `value` and
+  `value_basis` (`appraised` when the roll gives an appraised value, else `market`),
+  `market_value`, `appraised_value`, the areas, `year_built`, the district's codes, `situs_address`,
+  `tax_year`, and the `citation` of the value fact; a missing fact is `null`. `selection.tiers`
+  says which tier each candidate came from and how many matched there; `sources` gives each cited
+  snapshot's `ai_use`, `redistribution`, and license, as `registry_get` does for each fact.
+- **Value history.** The subject, and every parcel's `registry_get` record, carry `value_history`:
+  market and appraised value by tax year from every snapshot, newest first, each value cited. A
+  tax year two snapshots value differently is listed once per value.
+- **Boundaries.** These are candidates: the user, or the consultant or attorney working for them,
+  decides which to use and supplies any adjustments. Say that the selection rule is FactLot's
+  default, that the output is evidence for a calculation, not an appraisal, and that FactLot does
+  not represent property owners, file protests, or advise whether to protest. The tool never
+  returns owner names, mailing addresses, or ownership facts.
+
 ## Example: Claude Messages API with the Python SDK
 
 Requires `pip install anthropic` and an `ANTHROPIC_API_KEY`. The loop passes every tool, so the

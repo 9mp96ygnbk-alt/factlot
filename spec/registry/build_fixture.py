@@ -122,6 +122,7 @@ reg.ingest_entities([
     EntityRecord("Gulf Logistics, L.P.", "us-tx", "0804444444"),
     EntityRecord("Harbor Office Condos LLC", "us-tx", "0805555555", status="ACTIVE"),
     EntityRecord("Quiet Holdings LLC", "us-tx", "0806666666", status="ACTIVE"),
+    EntityRecord("Bayou Equity Holdings LLC", "us-tx", "0807777777", status="ACTIVE"),
 ], ent)
 # SEC filings (synthetic here): CMBS loan facts on building IDs, one fact per trust holding a note of the loan,
 # and a registrant's Exhibit 21 line naming a registered entity as its subsidiary.
@@ -160,6 +161,53 @@ reg.ingest_entity_parents([
                   "listed_as": {"name": "Lonestar Office Holdings, L.L.C.", "jurisdiction": "Texas"}},
                  locator="0000900001-26-000004 ex21.htm line 12"),
 ], ex21_snap)
+# A second synthetic appraisal district for registry_tx_equity_candidates and value history: three full rolls
+# (tax year 2025, tax year 2026, and a corrected 2026 roll that changes one parcel's value), both value bases,
+# neighborhood and building-class codes on some parcels, and owners of record the tool must never return.
+reg.add_source(Source("test-cad-997", "Example Central Appraisal District (synthetic)", "Appraisal roll",
+                      "https://example.invalid/cad-997", "48", county_fips="997", license="Synthetic test data",
+                      ai_use="unknown", redistribution="attribution_required", attribution="Example Central Appraisal District"))
+BAYOU, PARTNERS = "Bayou Equity Holdings LLC", "Example Office Partners LP"
+
+
+def cad(apn, category, area, year, zip5, value, *, appraised=True, nbhd=None, cls=None, owner=BAYOU, tax_year=2026,
+        land=None):
+    extra = [(p, v, None) for p, v in (("parcel.neighborhood_code", nbhd), ("parcel.building_class", cls)) if v]
+    return ParcelRecord("997", apn, category, account=f"C{apn}", situs_address=f"{int(apn[-2:])} Alpha Plaza, Example City TX {zip5}",
+                        owner_name=owner, owner_mailing_address="PO Box 9, Example City TX 77001" if owner else None,
+                        land_area_sf=land, improvement_area_sf=area, year_built=year, market_value=value,
+                        appraised_value=value if appraised and value is not None else None, tax_year=tax_year,
+                        extra_facts=extra)
+
+
+def roll_2026(subject_value):
+    return [
+        cad("1000001", "F1", 50000, 2005, "77001", subject_value, nbhd="N100", cls="B", land=120000),  # the subject
+        cad("1000002", "F1", 48000, 2000, "77002", 9100000, nbhd="N100", cls="B"),
+        cad("1000003", "F1", 55000, 2010, "77001", 11000000, appraised=False, nbhd="N100", owner=PARTNERS),
+        cad("1000004", "F1", 40000, 1995, "77001", 7000000, owner=PARTNERS),
+        cad("1000005", "F1", 60000, None, "77001", 12000000, nbhd="N200", cls="A"),
+        cad("1000006", "F1", 52000, 1980, "77001", 9900000),  # built outside the year band
+        cad("1000007", "F1", 80000, 2005, "77001", 15000000),  # outside the area band
+        cad("1000008", "F2", 50000, 2005, "77001", 6000000),  # another category
+        cad("1000009", "F1", 45000, 2008, "77003", 8800000, nbhd="N300"),  # elsewhere in the county
+        cad("1000011", "F1", 51000, 2006, "77001", None),  # no value
+        cad("1000012", "F1", None, None, "77001", 3000000, land=90000),  # no improvement area
+        cad("1000013", "F1", 47000, 2004, "77001", 9000000, tax_year=2025),  # a stale tax year
+        cad("1000014", "F1", 49000, 2003, "77001", 9300000, owner="Jane Q Example"),  # a person: no owner stored
+    ]
+
+
+r997_25 = snap("test-cad-997", "cad-997-2025.txt", "synthetic district 997 roll 2025", "2025-07-25")
+reg.ingest_parcels([
+    cad("1000001", "F1", 50000, 2005, "77001", 9000000, nbhd="N100", cls="B", land=120000, tax_year=2025),
+    cad("1000002", "F1", 48000, 2000, "77002", 8500000, nbhd="N100", cls="B", tax_year=2025),
+    cad("1000010", "F1", 50000, 2005, "77001", 9500000, tax_year=2025),  # absent from 2026: retired
+], r997_25, state_fips="48", account_system="test-cad-997-account", full_roll=True)
+r997_26 = snap("test-cad-997", "cad-997-2026.txt", "synthetic district 997 roll 2026", "2026-07-25")
+reg.ingest_parcels(roll_2026(10000000), r997_26, state_fips="48", account_system="test-cad-997-account", full_roll=True)
+r997_26b = snap("test-cad-997", "cad-997-2026-corrected.txt", "synthetic district 997 corrected roll 2026", "2026-10-15")
+reg.ingest_parcels(roll_2026(9800000), r997_26b, state_fips="48", account_system="test-cad-997-account", full_roll=True)
 reg.link_owners()
 reg.rollup_buildings()
 reg.refresh_coverage()
