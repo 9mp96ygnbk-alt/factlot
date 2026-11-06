@@ -2,12 +2,14 @@
 stream so the other cases stay as they were:
 
 - calc.tx_unequal_appraisal, run directly (value and warning count compared) and through calc_tx_unequal_appraisal
-  (the whole tool result compared: every step, warning text and error path).
+  (the whole tool result compared: every step, warning text and error path);
+- the draft pack tx_protest_evidence_dates (the whole result compared).
 
 Some inputs are deliberately invalid (missing areas, whole-number percents, duplicate ids, $/SF without a normalizing
 area, adjustments that leave nothing) so both SDKs must also reject the same inputs.
 """
 import random
+from datetime import date, timedelta
 
 _FIPS = ["201", "113", "439", "453", "085", "121", "491", "157"]
 
@@ -86,6 +88,14 @@ def unequal_appraisal(r):
     return inp
 
 
+def evidence_dates(r):
+    d = date(2024, 1, 1) + timedelta(days=r.randint(0, 365 * 6))
+    inp = {"hearing_date": d.isoformat()}
+    if r.random() < 0.03:
+        inp = r.choice([{"hearing_date": "2027-02-30"}, {}, {"hearing_date": "2027-06-01", "extra": 1},
+                        {"hearing_date": "06/01/2027"}])
+    return inp
+
 
 def tx_cases(seed, count):
     r = random.Random(f"tx-protest-{seed}")
@@ -94,4 +104,5 @@ def tx_cases(seed, count):
         inp = unequal_appraisal(r)
         out.append({"calc": "tx_unequal_appraisal", "input": inp})
         out.append({"tool": "calc_tx_unequal_appraisal", "arguments": inp})
+        out.append({"draft": "tx_protest_evidence_dates", "input": evidence_dates(r)})
     return out

@@ -23,6 +23,11 @@ import {
   NycLl97Input,
   nycLl97BuildingEmissions,
 } from "./nyc-ll97.ts";
+import {
+  TX_PROTEST_EVIDENCE_DATES,
+  TxProtestEvidenceDatesInput,
+  txProtestEvidenceDates,
+} from "./tx-evidence-dates.ts";
 import { WA_CBPS_EUI_TARGET, WaCbpsInput, waCbpsEuiTarget } from "./wa-cbps.ts";
 
 export { DRAFT_WARNING } from "./draft.ts";
@@ -36,6 +41,7 @@ export {
   NYC_LL97_EMISSIONS_FACTORS,
   NYC_LL97_OTHER_FUELS,
 } from "./nyc-ll97.ts";
+export { TX_PROTEST_EVIDENCE_DATES } from "./tx-evidence-dates.ts";
 export { WA_CBPS_ACTIVITIES, WA_CBPS_EUI_TARGET } from "./wa-cbps.ts";
 
 interface DraftPack {
@@ -66,6 +72,13 @@ const packs = {
       "Boston BERDO 2.0: the emissions standard for a building use and year from Table 1 of the ordinance, the building's limit, and the excess and Alternative Compliance Payment for given emissions.",
     input: BostonBerdoInput,
     run: bostonBerdoEmissionsStandard,
+  },
+  tx_protest_evidence_dates: {
+    meta: TX_PROTEST_EVIDENCE_DATES,
+    description:
+      "Texas protest evidence dates for an appraisal review board hearing: the 14th day before the first day of the hearing for the owner's evidence (Tax Code §41.43(a-1), (a-3)(3)) with a conservative date rolled back past weekends and Texas legal holidays, and the 14-day date for the district's requested evidence (§41.461(a), §41.67(d)).",
+    input: TxProtestEvidenceDatesInput,
+    run: txProtestEvidenceDates,
   },
 } satisfies Record<string, DraftPack>;
 

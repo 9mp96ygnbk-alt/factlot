@@ -10,13 +10,14 @@ from __future__ import annotations
 from typing import Any, Callable
 
 from .._core import CalcInputError
-from . import boston_berdo, nyc_ll97, wa_cbps
+from . import boston_berdo, nyc_ll97, tx_evidence_dates, wa_cbps
 from ._draft import DRAFT_WARNING
 
 _PACKS: dict[str, tuple[Callable[[Any], dict[str, Any]], dict[str, Any]]] = {
     "nyc_ll97_building_emissions": (nyc_ll97.nyc_ll97_building_emissions, nyc_ll97.META),
     "wa_cbps_eui_target": (wa_cbps.wa_cbps_eui_target, wa_cbps.META),
     "boston_berdo_emissions_standard": (boston_berdo.boston_berdo_emissions_standard, boston_berdo.META),
+    "tx_protest_evidence_dates": (tx_evidence_dates.tx_protest_evidence_dates, tx_evidence_dates.META),
 }
 
 #: name -> (rule id, version). Names match the TypeScript ``draftRulePacks`` registry. Not tools.

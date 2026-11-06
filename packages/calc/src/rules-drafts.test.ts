@@ -28,6 +28,7 @@ const OFFICIAL_HOSTS = [
   "www.nyc.gov",
   "lawfilesext.leg.wa.gov",
   "www.boston.gov",
+  "statutes.capitol.texas.gov",
 ];
 
 const files = readdirSync(dir).filter(

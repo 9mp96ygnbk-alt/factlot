@@ -131,7 +131,7 @@ cases.extend(valuation_cases(int(sys.argv[1]), int(sys.argv[2])))
 # draft rules packs: also their own random stream
 from gen_drafts import draft_cases
 cases.extend(draft_cases(int(sys.argv[1]), int(sys.argv[2])))
-# Texas protest kit (calc_tx_unequal_appraisal): its own random stream
+# Texas protest kit (calc_tx_unequal_appraisal and the tx_protest_evidence_dates draft): its own random stream
 from gen_tx import tx_cases
 cases.extend(tx_cases(int(sys.argv[1]), int(sys.argv[2])))
 # operations calculators and the lease unit option: their own stream too

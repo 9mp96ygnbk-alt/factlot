@@ -75,6 +75,12 @@ def _non_business(iso: str) -> str | None:
     return texas_holidays(d.year).get(iso)
 
 
+def non_business_reason(iso: str) -> str | None:
+    """Why ``iso`` (YYYY-MM-DD) is not a Texas business day: "Saturday", "Sunday", or the holiday's name, else None
+    (``nonBusinessReason`` in @factlot/calc)."""
+    return _non_business(iso)
+
+
 def _add(iso: str, days: int) -> str:
     return (date.fromisoformat(iso) + timedelta(days=days)).isoformat()
 
