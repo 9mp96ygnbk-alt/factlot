@@ -6,10 +6,11 @@ F1 (commercial), and F2 (industrial), including subclasses such as B1 and F10
 A statewide geometry file, even one that lists 254 counties, does not certify a
 commercial roll for each county.
 
-Parcel counts stay null unless this workspace has measured them from a file whose
-reuse was already recorded as permitted. Historical pipeline notes are not copied
-in as if they were a new audit. Harris Central Appraisal District and the state
-geographic download are not treated as eligible re-fetches.
+Parcel counts stay null unless this workspace measured them from a file it was
+allowed to read. A private extract is not a public-serving grant and not a
+county-wide certificate. Historical pipeline notes are not copied in as if they
+were a new audit. Harris Central Appraisal District and the state geographic
+download are not treated as eligible re-fetches.
 """
 
 from __future__ import annotations
@@ -36,19 +37,19 @@ _ASSIGNED: dict[str, dict[str, str | None]] = {
     "48491": {"source_id": "tx-williamson-cad", "reuse": "eligible",
               "blocker": "Improvement file unchanged at 14,087 rows. PropOwner file dated 2026-11-05 has 325,956 rows and was read through a short last page. 11,698 parcels kept; 60 in-scope improvements have no owner row. Cited kept count was 11,699. Organisation-owner facts 8,144; 8,114 match the pre-2026-11-04 rule and the cited full-load figure. Platform terms were not read as text. Not a universe certificate."},
     "48215": {"source_id": "tx-hidalgo-cad", "reuse": "blocked",
-              "blocker": "2026-11-06 plain fetch of the data-downloads and property-search pages still returns the empty portal shell. A public-domain sentence was not on either page. No Drive download and no confirmation bypass. Not ingested."},
+              "blocker": "Rendered downloads page offers a monthly parcel shapefile on Google Drive. drive.google.com robots.txt disallows the published /uc download URL, so the collector stopped. Not bypassed and not ingested. The search-site public-domain sentence does not clear that file. Public redistribution is unknown."},
     "48339": {"source_id": "tx-montgomery-cad", "reuse": "blocked",
-              "blocker": "2026-11-06 plain fetch of the exports page still returns the empty portal shell. No file link was visible. Not ingested."},
+              "blocker": "Rendered exports page offers the 2026 certified roll on Google Drive and states no use terms. Fixed-width layout was not opened. drive.google.com robots.txt disallows the published /uc download URL, so the collector stopped. Not bypassed and not ingested. Public redistribution is unknown."},
     "48029": {"source_id": "tx-bexar-ad", "reuse": "blocked",
               "blocker": "No $0 bulk file. The district's request form was retrieved (279,462 bytes). A request is drafted and not sent. Fees are not accepted."},
     "48141": {"source_id": "tx-elpaso-cad", "reuse": "blocked",
               "blocker": "2026-11-06 the acceptable-use page returned http_403. The export host was not requested. Automated collection waits on written permission or a file a person downloads in a normal browser."},
     "48039": {"source_id": "tx-brazoria-cad", "reuse": "reviewed",
-              "blocker": "Downloads page says information herein is public domain, calls the data a work in progress, and disclaims linked sites. The 2026 certified roll link on that page points at pCloud, not the district host. Not downloaded. Not cleared for serving."},
-    "48167": {"source_id": "tx-galveston-cad", "reuse": "reviewed",
-              "blocker": "The 2026 certified roll zip is linked from the district's own exports page. That page states no license and no public-domain grant. Not downloaded."},
-    "48355": {"source_id": "tx-nueces-cad", "reuse": "reviewed",
-              "blocker": "The 2026 certified public-export zip is linked from the district's downloads page. That page states no license. A search-site wording was not on this page and is not adopted. Not downloaded."},
+              "blocker": "Downloads page links the 2026 certified roll on pCloud and says information herein is public domain, a work in progress, and that linked sites are not endorsed. The documented public-link download then returned HTTP 410: the link was generated for another IP address. Not retried with another session. Not ingested. Public redistribution is unknown."},
+    "48167": {"source_id": "tx-galveston-cad", "reuse": "private",
+              "blocker": "Private extract of the district's own 2026 certified zip, header 2026-07-20, layout 8.0.34, 9,065 commercial parcels (F1 7,239 including XV 70 and F9 5, B 1,607, F2 219). Situs 8,089, organisation owners 5,251, main-area floor 7,068, year built 6,733. Three short records dropped. Entity file not read. The exports page states no license. Public redistribution is unknown."},
+    "48355": {"source_id": "tx-nueces-cad", "reuse": "private",
+              "blocker": "Private extract of the district's own 2026 certified zip, header 2026-10-09, same 9,714-character record as the 8.0.34 layout, 12,093 commercial parcels (F1 9,579, B 1,886, F2 628). Situs 11,878, organisation owners 7,559. Main-area floor on 1,468 and year built on 1,393; other detail types were not summed. Entity file not read. The downloads page states no license. Public redistribution is unknown."},
     "48303": {"source_id": None, "reuse": "unknown",
               "blocker": "No official bulk appraisal roll was verified. A map service without a state category is not a commercial denominator. No records request was sent."},
 }
@@ -62,6 +63,8 @@ _MEASURED: dict[str, dict[str, str | int | None]] = {
     "48121": {"staged_parcels": 13304, "unique_ids": 13304, "snapshot_as_of": "2026-11-06", "org_owner_facts": 9501},
     "48157": {"staged_parcels": 9698, "unique_ids": 9698, "snapshot_as_of": "2026-07-07", "org_owner_facts": 7417},
     "48491": {"staged_parcels": 11698, "unique_ids": 11698, "snapshot_as_of": "2026-11-05", "org_owner_facts": 8144},
+    "48167": {"staged_parcels": 9065, "unique_ids": 9065, "snapshot_as_of": "2026-07-20", "org_owner_facts": 5251},
+    "48355": {"staged_parcels": 12093, "unique_ids": 12093, "snapshot_as_of": "2026-10-09", "org_owner_facts": 7559},
 }
 
 

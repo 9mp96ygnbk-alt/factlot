@@ -13,9 +13,7 @@
         "https://floridarevenue.com/property/Pages/DataPortal_RequestAssessmentRollGISData.aspx",
         "https://floridarevenue.com/property/dataportal/_api/web/GetFolderByServerRelativeUrl('/property/dataportal/Documents/PTO%20Data%20Portal/Tax%20Roll%20Data%20Files/NAL/2026F')/Files?$select=Name,ServerRelativeUrl,Length,TimeLastModified&$top=500"
       ],
-      "allowed_hosts": [
-        "floridarevenue.com"
-      ],
+      "allowed_hosts": ["floridarevenue.com"],
       "files": [
         "https://floridarevenue.com/property/dataportal/Documents/PTO%20Data%20Portal/User%20Guides/2026%20Users%20guide%20and%20quick%20reference/2026_NAL_SDF_NAP_Users_Guide.pdf",
         "https://floridarevenue.com/property/dataportal/Documents/PTO%20Data%20Portal/Tax%20Roll%20Data%20Files/NAL/2026F/Union%2073%20Final%20NAL%202026.zip",

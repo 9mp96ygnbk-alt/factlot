@@ -9,12 +9,8 @@
     {
       "source_id": "ca-san-bernardino-assessor",
       "publisher": "San Bernardino County Assessor-Recorder-County Clerk",
-      "landing_pages": [
-        "https://arc.sbcounty.gov/property-information/"
-      ],
-      "allowed_hosts": [
-        "arc.sbcounty.gov"
-      ],
+      "landing_pages": ["https://arc.sbcounty.gov/property-information/"],
+      "allowed_hosts": ["arc.sbcounty.gov"],
       "files": [
         "https://arc.sbcounty.gov/wp-content/uploads/sites/70/arcforms/npp.cdrom_.publicuc.sec_.a.zip",
         "https://arc.sbcounty.gov/wp-content/uploads/sites/70/arcforms/Secured-Roll.zip",

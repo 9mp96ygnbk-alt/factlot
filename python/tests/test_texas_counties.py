@@ -49,10 +49,16 @@ class TexasCountyMatrix(unittest.TestCase):
 
     def test_located_files_without_a_rights_reading_are_not_ingested(self):
         by = {r["fips"]: r for r in matrix()}
-        for fips in ("48039", "48167", "48355"):
-            self.assertEqual(by[fips]["reuse"], "reviewed")
-            self.assertIsNone(by[fips]["staged_parcels"])
+        self.assertEqual(by["48039"]["reuse"], "reviewed")
+        self.assertIsNone(by["48039"]["staged_parcels"])
+        self.assertIsNone(by["48039"]["commercial_universe"])
+        self.assertEqual(by["48167"]["reuse"], "private")
+        self.assertEqual(by["48167"]["staged_parcels"], 9065)
+        self.assertEqual(by["48355"]["reuse"], "private")
+        self.assertEqual(by["48355"]["staged_parcels"], 12093)
+        for fips in ("48167", "48355"):
             self.assertIsNone(by[fips]["commercial_universe"])
+            self.assertNotEqual(by[fips]["reuse"], "eligible")
         self.assertEqual(by["48215"]["reuse"], "blocked")
         self.assertEqual(by["48339"]["reuse"], "blocked")
         self.assertEqual(by["48141"]["reuse"], "blocked")

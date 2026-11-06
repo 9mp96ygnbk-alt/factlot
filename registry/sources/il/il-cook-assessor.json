@@ -14,9 +14,7 @@
         "https://datacatalog.cookcountyil.gov/api/views/3723-97qp.json",
         "https://datacatalog.cookcountyil.gov/api/views/csik-bsws.json"
       ],
-      "allowed_hosts": [
-        "datacatalog.cookcountyil.gov"
-      ],
+      "allowed_hosts": ["datacatalog.cookcountyil.gov"],
       "link_patterns": [
         "/(api/views|api/v3/views|d|resource)/[a-z0-9]{4}-[a-z0-9]{4}"
       ],

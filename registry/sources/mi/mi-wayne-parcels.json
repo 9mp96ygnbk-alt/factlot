@@ -12,12 +12,8 @@
       "landing_pages": [
         "https://www.waynecountymi.gov/Government/Departments/Management-Budget/Assessment-Equalization/Annual-Assessment-Data"
       ],
-      "allowed_hosts": [
-        "waynecountymi.gov"
-      ],
-      "link_patterns": [
-        "wayne-county-assessments"
-      ],
+      "allowed_hosts": ["waynecountymi.gov"],
+      "link_patterns": ["wayne-county-assessments"],
       "files": [
         "https://www.waynecountymi.gov/files/assets/mainsite/v/1/management-amp-budget/documents/2026-wayne-county-assessments-names-addresses-legal.zip",
         "https://www.waynecountymi.gov/files/assets/mainsite/v/1/management-amp-budget/documents/assessment-data/2026/2026-wayne-county-assessments-detroit-city.zip"

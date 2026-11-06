@@ -49,12 +49,12 @@ Before sending a request:
 
 ## Tracking
 
-| District   | Sent | Reference no. | Response due | Estimate | Received | Notes |
-| ---------- | ---- | ------------- | ------------ | -------- | -------- | ----- |
-| Harris CAD |      |               |              |          |          |       |
-| Dallas CAD |      |               |              |          |          |       |
-| Travis CAD |      |               |              |          |          |       |
-| Tarrant AD |      |               |              |          |          |       |
+| District   | Sent     | Reference no. | Response due | Estimate     | Received | Notes                                                                                                   |
+| ---------- | -------- | ------------- | ------------ | ------------ | -------- | ------------------------------------------------------------------------------------------------------- |
+| Harris CAD |          |               |              |              |          |                                                                                                         |
+| Dallas CAD |          |               |              |              |          |                                                                                                         |
+| Travis CAD |          |               |              |              |          |                                                                                                         |
+| Tarrant AD |          |               |              |              |          |                                                                                                         |
 | Bexar AD   | not sent |               |              | not accepted |          | Form retrieved 2026-11-06 (279,462 bytes). Draft below. Help Center returned HTTP 403 to a plain fetch. |
 
 ## Bexar CAD — prepared 2026-11-06, not sent

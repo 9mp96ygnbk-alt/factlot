@@ -12,9 +12,7 @@
       "landing_pages": [
         "https://gisopendata-countyofriverside.opendata.arcgis.com/api/search/v1/collections/all/items?q=CREST&limit=20"
       ],
-      "allowed_hosts": [
-        "gisopendata-countyofriverside.opendata.arcgis.com"
-      ],
+      "allowed_hosts": ["gisopendata-countyofriverside.opendata.arcgis.com"],
       "files": [
         "https://gisopendata-countyofriverside.opendata.arcgis.com/api/download/v1/items/739eb1d35eb64725a8aed3fae1ed9f6f/csv?layers=70",
         "https://gisopendata-countyofriverside.opendata.arcgis.com/api/download/v1/items/6aa0a76a93b34eef9fbeb4b90a21364b/csv?layers=100"
