@@ -135,9 +135,9 @@ def _sources(reg: Registry, document_ids: set[str]) -> list[dict[str, Any]]:
         row = reg.db.execute(_SOURCE_SQL, (doc,)).fetchone()
         if row is None:
             continue
-        rights = {"ai_use": row["ai_use"], "redistribution": row["redistribution"], "license": row["license"]}
-        if row["attribution"]:
-            rights["attribution"] = row["attribution"]
+        # Every right is stated, attribution included (null when the source asks for none), so an agent can relay them.
+        rights = {"ai_use": row["ai_use"], "redistribution": row["redistribution"], "license": row["license"],
+                  "attribution": row["attribution"] or None}
         out.append({"document_id": doc, "source_id": row["source_id"],
                     "title": f"{row['publisher']}: {row['title']} ({row['filename']})", "uri": row["url"],
                     "retrieved_at": row["retrieved_at"], "as_of": row["as_of"], "rights": rights})
