@@ -4,8 +4,8 @@ Built from the synthetic scenarios below, or from your own calc_tx_unequal_appra
 
     python3 examples/reconciliation/build.py tx_unequal_appraisal --input evidence.json --out evidence.xlsx
 
-Either way it is an evidence calculation, not an appraisal (Tax Code §41.66(l)), and not legal or
-tax advice.
+Either way it is an evidence calculation, not an appraisal or an opinion of value (Occupations Code
+§1103.003(1)), not legal or tax advice, and not a substitute for the advice of an attorney.
 """
 
 from __future__ import annotations
@@ -16,9 +16,9 @@ from xlsx_lite import Workbook
 FILENAME = "tx-unequal-appraisal-evidence.xlsx"
 
 NOTICE = (
-    "Evidence calculation only: arithmetic on the values and adjustments supplied. It is not an appraisal "
-    "(Tax Code §41.66(l)), not legal or tax advice, and does not say whether to protest or what value to claim. "
-    "FactLot does not represent property owners (Occupations Code ch. 1152)."
+    "Evidence calculation only: arithmetic on the values and adjustments supplied. It is not an appraisal or an opinion "
+    "of value (Occupations Code §1103.003(1)), it is not legal or tax advice, and it is not a substitute for the advice "
+    "of an attorney. It does not say whether to protest or what value to claim. FactLot does not represent property owners."
 )
 
 CONVENTIONS = [
