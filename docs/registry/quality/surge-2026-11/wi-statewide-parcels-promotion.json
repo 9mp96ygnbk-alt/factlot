@@ -1,0 +1,1324 @@
+{
+  "source": "wi-statewide-parcels",
+  "audit_date": "2026-11-06",
+  "as_of": "2026-06-30",
+  "counties": [
+    {
+      "fips": "55001",
+      "name": "Adams",
+      "record_count": 721,
+      "scratch_count": 721,
+      "reread_count": 721,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55003",
+      "name": "Ashland",
+      "record_count": 834,
+      "scratch_count": 834,
+      "reread_count": 834,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55005",
+      "name": "Barron",
+      "record_count": 2331,
+      "scratch_count": 2331,
+      "reread_count": 2331,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55007",
+      "name": "Bayfield",
+      "record_count": 1072,
+      "scratch_count": 1072,
+      "reread_count": 1072,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55009",
+      "name": "Brown",
+      "record_count": 7212,
+      "scratch_count": 7212,
+      "reread_count": 7212,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55011",
+      "name": "Buffalo",
+      "record_count": 765,
+      "scratch_count": 765,
+      "reread_count": 765,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55013",
+      "name": "Burnett",
+      "record_count": 799,
+      "scratch_count": 799,
+      "reread_count": 799,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55015",
+      "name": "Calumet",
+      "record_count": 1547,
+      "scratch_count": 1547,
+      "reread_count": 1547,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0. 11 repeated rows are inside one page and are dropped by both ingest and the per-file re-read."
+    },
+    {
+      "fips": "55017",
+      "name": "Chippewa",
+      "record_count": 2712,
+      "scratch_count": 2712,
+      "reread_count": 2712,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55019",
+      "name": "Clark",
+      "record_count": 1561,
+      "scratch_count": 1561,
+      "reread_count": 1561,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55021",
+      "name": "Columbia",
+      "record_count": 2485,
+      "scratch_count": 2485,
+      "reread_count": 2485,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55023",
+      "name": "Crawford",
+      "record_count": 916,
+      "scratch_count": 916,
+      "reread_count": 916,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55025",
+      "name": "Dane",
+      "record_count": 14137,
+      "scratch_count": 14137,
+      "reread_count": 14137,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55027",
+      "name": "Dodge",
+      "record_count": 2940,
+      "scratch_count": 2940,
+      "reread_count": 2940,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55029",
+      "name": "Door",
+      "record_count": 2929,
+      "scratch_count": 2929,
+      "reread_count": 2929,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55031",
+      "name": "Douglas",
+      "record_count": 2432,
+      "scratch_count": 2432,
+      "reread_count": 2432,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55033",
+      "name": "Dunn",
+      "record_count": 1504,
+      "scratch_count": 1504,
+      "reread_count": 1504,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55035",
+      "name": "Eau Claire",
+      "record_count": 3474,
+      "scratch_count": 3474,
+      "reread_count": 3474,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55037",
+      "name": "Florence",
+      "record_count": 272,
+      "scratch_count": 272,
+      "reread_count": 272,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55039",
+      "name": "Fond du Lac",
+      "record_count": 3705,
+      "scratch_count": 3705,
+      "reread_count": 3705,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55041",
+      "name": "Forest",
+      "record_count": 631,
+      "scratch_count": 631,
+      "reread_count": 631,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55043",
+      "name": "Grant",
+      "record_count": 2367,
+      "scratch_count": 2367,
+      "reread_count": 2367,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55045",
+      "name": "Green",
+      "record_count": 1482,
+      "scratch_count": 1482,
+      "reread_count": 1482,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55047",
+      "name": "Green Lake",
+      "record_count": 1109,
+      "scratch_count": 1109,
+      "reread_count": 1109,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55049",
+      "name": "Iowa",
+      "record_count": 1195,
+      "scratch_count": 1195,
+      "reread_count": 1195,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55051",
+      "name": "Iron",
+      "record_count": 547,
+      "scratch_count": 547,
+      "reread_count": 547,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55053",
+      "name": "Jackson",
+      "record_count": 969,
+      "scratch_count": 969,
+      "reread_count": 969,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55055",
+      "name": "Jefferson",
+      "record_count": 3013,
+      "scratch_count": 3013,
+      "reread_count": 3013,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55057",
+      "name": "Juneau",
+      "record_count": 1082,
+      "scratch_count": 1082,
+      "reread_count": 1082,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55059",
+      "name": "Kenosha",
+      "record_count": 4031,
+      "scratch_count": 4031,
+      "reread_count": 4031,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55061",
+      "name": "Kewaunee",
+      "record_count": 839,
+      "scratch_count": 839,
+      "reread_count": 839,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55063",
+      "name": "La Crosse",
+      "record_count": 4068,
+      "scratch_count": 4068,
+      "reread_count": 4068,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55065",
+      "name": "Lafayette",
+      "record_count": 903,
+      "scratch_count": 903,
+      "reread_count": 903,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55067",
+      "name": "Langlade",
+      "record_count": 962,
+      "scratch_count": 962,
+      "reread_count": 962,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55069",
+      "name": "Lincoln",
+      "record_count": 1169,
+      "scratch_count": 1169,
+      "reread_count": 1169,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55071",
+      "name": "Manitowoc",
+      "record_count": 2917,
+      "scratch_count": 2917,
+      "reread_count": 2917,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55073",
+      "name": "Marathon",
+      "record_count": 4711,
+      "scratch_count": 4711,
+      "reread_count": 4711,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55075",
+      "name": "Marinette",
+      "record_count": 1980,
+      "scratch_count": 1980,
+      "reread_count": 1980,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55077",
+      "name": "Marquette",
+      "record_count": 610,
+      "scratch_count": 610,
+      "reread_count": 610,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55078",
+      "name": "Menominee",
+      "record_count": 15,
+      "scratch_count": 15,
+      "reread_count": 15,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55079",
+      "name": "Milwaukee",
+      "record_count": 16580,
+      "scratch_count": 16580,
+      "reread_count": 16580,
+      "pass": true,
+      "reason": "Record, scratch, and county-level re-read are 16580. All 9 snapshot files re-read to the parcels that snapshot holds (2 repeated parcel ids sit inside one page and are dropped on both sides). The 9 file sha256 values match the 2026-11-03 source record. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0. Seventeen land areas over 500,000,000 square feet are an audit warning, not a violation."
+    },
+    {
+      "fips": "55081",
+      "name": "Monroe",
+      "record_count": 1762,
+      "scratch_count": 1762,
+      "reread_count": 1762,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55083",
+      "name": "Oconto",
+      "record_count": 1700,
+      "scratch_count": 1700,
+      "reread_count": 1700,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55085",
+      "name": "Oneida",
+      "record_count": 2393,
+      "scratch_count": 2393,
+      "reread_count": 2393,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55087",
+      "name": "Outagamie",
+      "record_count": 5734,
+      "scratch_count": 5734,
+      "reread_count": 5734,
+      "pass": false,
+      "reason": "County-level re-read is 5734 and matches the scratch count and the 2026-11-03 record, but the per-file re-read does not. Snapshot index 82 holds 1996 parcels and re-reads to 1997; index 83 holds 1738 and re-reads to 1779. Those extra ids repeat a parcel id from an earlier Outagamie page. The adapter keeps the first row; audit re-read runs each file alone. One repeated id is classed F2 on the kept row and F1 on the later row. The same re-read flags APNs rail (3 in-scope rows, 1 kept) and building (28 in-scope rows, 1 kept) because they are only letters, which the audit treats as a column heading. Both are inside the record's 5734. Adapter not modified."
+    },
+    {
+      "fips": "55089",
+      "name": "Ozaukee",
+      "record_count": 2673,
+      "scratch_count": 2673,
+      "reread_count": 2673,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55091",
+      "name": "Pepin",
+      "record_count": 426,
+      "scratch_count": 426,
+      "reread_count": 426,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55093",
+      "name": "Pierce",
+      "record_count": 1260,
+      "scratch_count": 1260,
+      "reread_count": 1260,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55095",
+      "name": "Polk",
+      "record_count": 1836,
+      "scratch_count": 1836,
+      "reread_count": 1836,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55097",
+      "name": "Portage",
+      "record_count": 2380,
+      "scratch_count": 2380,
+      "reread_count": 2380,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55099",
+      "name": "Price",
+      "record_count": 977,
+      "scratch_count": 977,
+      "reread_count": 977,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55101",
+      "name": "Racine",
+      "record_count": 5095,
+      "scratch_count": 5095,
+      "reread_count": 5095,
+      "pass": false,
+      "reason": "County-level re-read is 5095 and matches the scratch count and the 2026-11-03 record, but the per-file re-read does not. Snapshot index 93 holds 1977 parcels and re-reads to 1980; index 94 holds 1150 and re-reads to 1158. Those extra ids repeat a parcel id from an earlier Racine page. The adapter keeps the first row; audit re-read runs each file alone. Adapter not modified."
+    },
+    {
+      "fips": "55103",
+      "name": "Richland",
+      "record_count": 657,
+      "scratch_count": 657,
+      "reread_count": 657,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55105",
+      "name": "Rock",
+      "record_count": 4324,
+      "scratch_count": 4324,
+      "reread_count": 4324,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55107",
+      "name": "Rusk",
+      "record_count": 860,
+      "scratch_count": 860,
+      "reread_count": 860,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55109",
+      "name": "St. Croix",
+      "record_count": 3057,
+      "scratch_count": 3057,
+      "reread_count": 3057,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55111",
+      "name": "Sauk",
+      "record_count": 4305,
+      "scratch_count": 4305,
+      "reread_count": 4305,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55113",
+      "name": "Sawyer",
+      "record_count": 1721,
+      "scratch_count": 1721,
+      "reread_count": 1721,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55115",
+      "name": "Shawano",
+      "record_count": 1696,
+      "scratch_count": 1696,
+      "reread_count": 1696,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0. 25 repeated rows are inside one page and are dropped by both ingest and the per-file re-read."
+    },
+    {
+      "fips": "55117",
+      "name": "Sheboygan",
+      "record_count": 3669,
+      "scratch_count": 3669,
+      "reread_count": 3669,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55119",
+      "name": "Taylor",
+      "record_count": 887,
+      "scratch_count": 887,
+      "reread_count": 887,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55121",
+      "name": "Trempealeau",
+      "record_count": 1607,
+      "scratch_count": 1607,
+      "reread_count": 1607,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55123",
+      "name": "Vernon",
+      "record_count": 1153,
+      "scratch_count": 1153,
+      "reread_count": 1153,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55125",
+      "name": "Vilas",
+      "record_count": 1726,
+      "scratch_count": 1726,
+      "reread_count": 1726,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55127",
+      "name": "Walworth",
+      "record_count": 3772,
+      "scratch_count": 3772,
+      "reread_count": 3772,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55129",
+      "name": "Washburn",
+      "record_count": 930,
+      "scratch_count": 930,
+      "reread_count": 930,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55131",
+      "name": "Washington",
+      "record_count": 3482,
+      "scratch_count": 3482,
+      "reread_count": 3482,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55133",
+      "name": "Waukesha",
+      "record_count": 8981,
+      "scratch_count": 8981,
+      "reread_count": 8981,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55135",
+      "name": "Waupaca",
+      "record_count": 2095,
+      "scratch_count": 2095,
+      "reread_count": 2095,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55137",
+      "name": "Waushara",
+      "record_count": 1107,
+      "scratch_count": 1107,
+      "reread_count": 1107,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55139",
+      "name": "Winnebago",
+      "record_count": 5286,
+      "scratch_count": 5286,
+      "reread_count": 5286,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    },
+    {
+      "fips": "55141",
+      "name": "Wood",
+      "record_count": 2675,
+      "scratch_count": 2675,
+      "reread_count": 2675,
+      "pass": true,
+      "reason": "Record count, scratch count, and county-level re-read match. Each snapshot file re-reads to the parcels that snapshot holds. as-of 2026-06-30 is 127 days before 2026-11-04. Person-like owner facts: 0."
+    }
+  ],
+  "denominator": {
+    "publisher": "Wisconsin Department of Revenue Statement of Assessment",
+    "year": 2025,
+    "url": "https://www.revenue.wi.gov/Pages/SLF/SOA.aspx",
+    "pdf_pattern": "https://www.revenue.wi.gov/SLFReportscotvc/2025SOA{COUNTY}.PDF",
+    "column": "Line 2 COMMERCIAL - Class 2 and Line 3 MANUFACTURING - Class 3, first integer (Col A), summed across municipal statements. No county total page is included.",
+    "read": "2026-11-06",
+    "statewide_commercial_col_a": 183173,
+    "statewide_manufacturing_col_a": 9823,
+    "counties_parsed": 72,
+    "problems": [],
+    "note": "These are municipal tax-roll parcel counts. They are not the GIS feature count and are not forced to equal F1 or F2. 2026 SOA PDFs are linked from the same page (72 files) and were not summed; V12 TAXROLLYEAR is 2025.",
+    "by_county": [
+      {
+        "fips": "55001",
+        "name": "Adams",
+        "statements": 20,
+        "commercial_col_a": 1047,
+        "manufacturing_col_a": 22,
+        "gis_f1": 699,
+        "gis_f2": 22
+      },
+      {
+        "fips": "55003",
+        "name": "Ashland",
+        "statements": 16,
+        "commercial_col_a": 796,
+        "manufacturing_col_a": 37,
+        "gis_f1": 796,
+        "gis_f2": 38
+      },
+      {
+        "fips": "55005",
+        "name": "Barron",
+        "statements": 36,
+        "commercial_col_a": 2220,
+        "manufacturing_col_a": 112,
+        "gis_f1": 2217,
+        "gis_f2": 114
+      },
+      {
+        "fips": "55007",
+        "name": "Bayfield",
+        "statements": 29,
+        "commercial_col_a": 1021,
+        "manufacturing_col_a": 10,
+        "gis_f1": 1060,
+        "gis_f2": 12
+      },
+      {
+        "fips": "55009",
+        "name": "Brown",
+        "statements": 25,
+        "commercial_col_a": 6812,
+        "manufacturing_col_a": 477,
+        "gis_f1": 6745,
+        "gis_f2": 467
+      },
+      {
+        "fips": "55011",
+        "name": "Buffalo",
+        "statements": 23,
+        "commercial_col_a": 741,
+        "manufacturing_col_a": 26,
+        "gis_f1": 731,
+        "gis_f2": 34
+      },
+      {
+        "fips": "55013",
+        "name": "Burnett",
+        "statements": 24,
+        "commercial_col_a": 783,
+        "manufacturing_col_a": 27,
+        "gis_f1": 772,
+        "gis_f2": 27
+      },
+      {
+        "fips": "55015",
+        "name": "Calumet",
+        "statements": 21,
+        "commercial_col_a": 1474,
+        "manufacturing_col_a": 82,
+        "gis_f1": 1450,
+        "gis_f2": 97
+      },
+      {
+        "fips": "55017",
+        "name": "Chippewa",
+        "statements": 32,
+        "commercial_col_a": 2572,
+        "manufacturing_col_a": 181,
+        "gis_f1": 2538,
+        "gis_f2": 174
+      },
+      {
+        "fips": "55019",
+        "name": "Clark",
+        "statements": 46,
+        "commercial_col_a": 1458,
+        "manufacturing_col_a": 138,
+        "gis_f1": 1420,
+        "gis_f2": 141
+      },
+      {
+        "fips": "55021",
+        "name": "Columbia",
+        "statements": 35,
+        "commercial_col_a": 2392,
+        "manufacturing_col_a": 132,
+        "gis_f1": 2362,
+        "gis_f2": 123
+      },
+      {
+        "fips": "55023",
+        "name": "Crawford",
+        "statements": 22,
+        "commercial_col_a": 868,
+        "manufacturing_col_a": 45,
+        "gis_f1": 867,
+        "gis_f2": 49
+      },
+      {
+        "fips": "55025",
+        "name": "Dane",
+        "statements": 60,
+        "commercial_col_a": 13828,
+        "manufacturing_col_a": 448,
+        "gis_f1": 13693,
+        "gis_f2": 444
+      },
+      {
+        "fips": "55027",
+        "name": "Dodge",
+        "statements": 43,
+        "commercial_col_a": 2749,
+        "manufacturing_col_a": 181,
+        "gis_f1": 2764,
+        "gis_f2": 176
+      },
+      {
+        "fips": "55029",
+        "name": "Door",
+        "statements": 19,
+        "commercial_col_a": 2977,
+        "manufacturing_col_a": 37,
+        "gis_f1": 2893,
+        "gis_f2": 36
+      },
+      {
+        "fips": "55031",
+        "name": "Douglas",
+        "statements": 22,
+        "commercial_col_a": 2369,
+        "manufacturing_col_a": 74,
+        "gis_f1": 2326,
+        "gis_f2": 106
+      },
+      {
+        "fips": "55033",
+        "name": "Dunn",
+        "statements": 30,
+        "commercial_col_a": 1452,
+        "manufacturing_col_a": 83,
+        "gis_f1": 1427,
+        "gis_f2": 77
+      },
+      {
+        "fips": "55035",
+        "name": "Eau Claire",
+        "statements": 19,
+        "commercial_col_a": 3403,
+        "manufacturing_col_a": 113,
+        "gis_f1": 3361,
+        "gis_f2": 113
+      },
+      {
+        "fips": "55037",
+        "name": "Florence",
+        "statements": 8,
+        "commercial_col_a": 261,
+        "manufacturing_col_a": 11,
+        "gis_f1": 260,
+        "gis_f2": 12
+      },
+      {
+        "fips": "55039",
+        "name": "Fond du Lac",
+        "statements": 34,
+        "commercial_col_a": 3516,
+        "manufacturing_col_a": 232,
+        "gis_f1": 3478,
+        "gis_f2": 227
+      },
+      {
+        "fips": "55041",
+        "name": "Forest",
+        "statements": 15,
+        "commercial_col_a": 606,
+        "manufacturing_col_a": 26,
+        "gis_f1": 605,
+        "gis_f2": 26
+      },
+      {
+        "fips": "55043",
+        "name": "Grant",
+        "statements": 52,
+        "commercial_col_a": 2306,
+        "manufacturing_col_a": 76,
+        "gis_f1": 2294,
+        "gis_f2": 73
+      },
+      {
+        "fips": "55045",
+        "name": "Green",
+        "statements": 24,
+        "commercial_col_a": 1415,
+        "manufacturing_col_a": 70,
+        "gis_f1": 1412,
+        "gis_f2": 70
+      },
+      {
+        "fips": "55047",
+        "name": "Green Lake",
+        "statements": 16,
+        "commercial_col_a": 1063,
+        "manufacturing_col_a": 54,
+        "gis_f1": 1055,
+        "gis_f2": 54
+      },
+      {
+        "fips": "55049",
+        "name": "Iowa",
+        "statements": 29,
+        "commercial_col_a": 1170,
+        "manufacturing_col_a": 60,
+        "gis_f1": 1143,
+        "gis_f2": 52
+      },
+      {
+        "fips": "55051",
+        "name": "Iron",
+        "statements": 12,
+        "commercial_col_a": 583,
+        "manufacturing_col_a": 19,
+        "gis_f1": 529,
+        "gis_f2": 18
+      },
+      {
+        "fips": "55053",
+        "name": "Jackson",
+        "statements": 27,
+        "commercial_col_a": 908,
+        "manufacturing_col_a": 59,
+        "gis_f1": 911,
+        "gis_f2": 58
+      },
+      {
+        "fips": "55055",
+        "name": "Jefferson",
+        "statements": 27,
+        "commercial_col_a": 2874,
+        "manufacturing_col_a": 157,
+        "gis_f1": 2856,
+        "gis_f2": 157
+      },
+      {
+        "fips": "55057",
+        "name": "Juneau",
+        "statements": 29,
+        "commercial_col_a": 1036,
+        "manufacturing_col_a": 51,
+        "gis_f1": 1032,
+        "gis_f2": 50
+      },
+      {
+        "fips": "55059",
+        "name": "Kenosha",
+        "statements": 13,
+        "commercial_col_a": 3913,
+        "manufacturing_col_a": 155,
+        "gis_f1": 3878,
+        "gis_f2": 153
+      },
+      {
+        "fips": "55061",
+        "name": "Kewaunee",
+        "statements": 14,
+        "commercial_col_a": 809,
+        "manufacturing_col_a": 42,
+        "gis_f1": 796,
+        "gis_f2": 43
+      },
+      {
+        "fips": "55063",
+        "name": "La Crosse",
+        "statements": 18,
+        "commercial_col_a": 3926,
+        "manufacturing_col_a": 183,
+        "gis_f1": 3885,
+        "gis_f2": 183
+      },
+      {
+        "fips": "55065",
+        "name": "Lafayette",
+        "statements": 28,
+        "commercial_col_a": 877,
+        "manufacturing_col_a": 36,
+        "gis_f1": 867,
+        "gis_f2": 36
+      },
+      {
+        "fips": "55067",
+        "name": "Langlade",
+        "statements": 19,
+        "commercial_col_a": 924,
+        "manufacturing_col_a": 49,
+        "gis_f1": 913,
+        "gis_f2": 49
+      },
+      {
+        "fips": "55069",
+        "name": "Lincoln",
+        "statements": 18,
+        "commercial_col_a": 1141,
+        "manufacturing_col_a": 55,
+        "gis_f1": 1114,
+        "gis_f2": 55
+      },
+      {
+        "fips": "55071",
+        "name": "Manitowoc",
+        "statements": 30,
+        "commercial_col_a": 2715,
+        "manufacturing_col_a": 237,
+        "gis_f1": 2680,
+        "gis_f2": 237
+      },
+      {
+        "fips": "55073",
+        "name": "Marathon",
+        "statements": 61,
+        "commercial_col_a": 4359,
+        "manufacturing_col_a": 426,
+        "gis_f1": 4292,
+        "gis_f2": 419
+      },
+      {
+        "fips": "55075",
+        "name": "Marinette",
+        "statements": 25,
+        "commercial_col_a": 1877,
+        "manufacturing_col_a": 103,
+        "gis_f1": 1877,
+        "gis_f2": 103
+      },
+      {
+        "fips": "55077",
+        "name": "Marquette",
+        "statements": 19,
+        "commercial_col_a": 592,
+        "manufacturing_col_a": 13,
+        "gis_f1": 597,
+        "gis_f2": 13
+      },
+      {
+        "fips": "55078",
+        "name": "Menominee",
+        "statements": 1,
+        "commercial_col_a": 15,
+        "manufacturing_col_a": 0,
+        "gis_f1": 15,
+        "gis_f2": 0
+      },
+      {
+        "fips": "55079",
+        "name": "Milwaukee",
+        "statements": 19,
+        "commercial_col_a": 21092,
+        "manufacturing_col_a": 853,
+        "gis_f1": 15726,
+        "gis_f2": 854
+      },
+      {
+        "fips": "55081",
+        "name": "Monroe",
+        "statements": 36,
+        "commercial_col_a": 1662,
+        "manufacturing_col_a": 112,
+        "gis_f1": 1650,
+        "gis_f2": 112
+      },
+      {
+        "fips": "55083",
+        "name": "Oconto",
+        "statements": 29,
+        "commercial_col_a": 1615,
+        "manufacturing_col_a": 70,
+        "gis_f1": 1596,
+        "gis_f2": 104
+      },
+      {
+        "fips": "55085",
+        "name": "Oneida",
+        "statements": 21,
+        "commercial_col_a": 2349,
+        "manufacturing_col_a": 51,
+        "gis_f1": 2342,
+        "gis_f2": 51
+      },
+      {
+        "fips": "55087",
+        "name": "Outagamie",
+        "statements": 36,
+        "commercial_col_a": 5437,
+        "manufacturing_col_a": 435,
+        "gis_f1": 5286,
+        "gis_f2": 448
+      },
+      {
+        "fips": "55089",
+        "name": "Ozaukee",
+        "statements": 16,
+        "commercial_col_a": 2535,
+        "manufacturing_col_a": 154,
+        "gis_f1": 2519,
+        "gis_f2": 154
+      },
+      {
+        "fips": "55091",
+        "name": "Pepin",
+        "statements": 11,
+        "commercial_col_a": 413,
+        "manufacturing_col_a": 22,
+        "gis_f1": 405,
+        "gis_f2": 21
+      },
+      {
+        "fips": "55093",
+        "name": "Pierce",
+        "statements": 25,
+        "commercial_col_a": 1228,
+        "manufacturing_col_a": 33,
+        "gis_f1": 1227,
+        "gis_f2": 33
+      },
+      {
+        "fips": "55095",
+        "name": "Polk",
+        "statements": 36,
+        "commercial_col_a": 1706,
+        "manufacturing_col_a": 106,
+        "gis_f1": 1710,
+        "gis_f2": 126
+      },
+      {
+        "fips": "55097",
+        "name": "Portage",
+        "statements": 28,
+        "commercial_col_a": 2289,
+        "manufacturing_col_a": 127,
+        "gis_f1": 2259,
+        "gis_f2": 121
+      },
+      {
+        "fips": "55099",
+        "name": "Price",
+        "statements": 22,
+        "commercial_col_a": 878,
+        "manufacturing_col_a": 56,
+        "gis_f1": 921,
+        "gis_f2": 56
+      },
+      {
+        "fips": "55101",
+        "name": "Racine",
+        "statements": 17,
+        "commercial_col_a": 4869,
+        "manufacturing_col_a": 285,
+        "gis_f1": 4811,
+        "gis_f2": 284
+      },
+      {
+        "fips": "55103",
+        "name": "Richland",
+        "statements": 22,
+        "commercial_col_a": 625,
+        "manufacturing_col_a": 30,
+        "gis_f1": 627,
+        "gis_f2": 30
+      },
+      {
+        "fips": "55105",
+        "name": "Rock",
+        "statements": 29,
+        "commercial_col_a": 4086,
+        "manufacturing_col_a": 228,
+        "gis_f1": 4099,
+        "gis_f2": 225
+      },
+      {
+        "fips": "55107",
+        "name": "Rusk",
+        "statements": 33,
+        "commercial_col_a": 824,
+        "manufacturing_col_a": 42,
+        "gis_f1": 818,
+        "gis_f2": 42
+      },
+      {
+        "fips": "55109",
+        "name": "St. Croix",
+        "statements": 35,
+        "commercial_col_a": 2934,
+        "manufacturing_col_a": 150,
+        "gis_f1": 2908,
+        "gis_f2": 149
+      },
+      {
+        "fips": "55111",
+        "name": "Sauk",
+        "statements": 39,
+        "commercial_col_a": 4265,
+        "manufacturing_col_a": 125,
+        "gis_f1": 4178,
+        "gis_f2": 127
+      },
+      {
+        "fips": "55113",
+        "name": "Sawyer",
+        "statements": 21,
+        "commercial_col_a": 1625,
+        "manufacturing_col_a": 24,
+        "gis_f1": 1697,
+        "gis_f2": 24
+      },
+      {
+        "fips": "55115",
+        "name": "Shawano",
+        "statements": 38,
+        "commercial_col_a": 1617,
+        "manufacturing_col_a": 82,
+        "gis_f1": 1615,
+        "gis_f2": 81
+      },
+      {
+        "fips": "55117",
+        "name": "Sheboygan",
+        "statements": 28,
+        "commercial_col_a": 3451,
+        "manufacturing_col_a": 257,
+        "gis_f1": 3419,
+        "gis_f2": 250
+      },
+      {
+        "fips": "55119",
+        "name": "Taylor",
+        "statements": 27,
+        "commercial_col_a": 845,
+        "manufacturing_col_a": 43,
+        "gis_f1": 844,
+        "gis_f2": 43
+      },
+      {
+        "fips": "55121",
+        "name": "Trempealeau",
+        "statements": 26,
+        "commercial_col_a": 1455,
+        "manufacturing_col_a": 132,
+        "gis_f1": 1458,
+        "gis_f2": 149
+      },
+      {
+        "fips": "55123",
+        "name": "Vernon",
+        "statements": 33,
+        "commercial_col_a": 1096,
+        "manufacturing_col_a": 52,
+        "gis_f1": 1103,
+        "gis_f2": 50
+      },
+      {
+        "fips": "55125",
+        "name": "Vilas",
+        "statements": 15,
+        "commercial_col_a": 1724,
+        "manufacturing_col_a": 19,
+        "gis_f1": 1690,
+        "gis_f2": 36
+      },
+      {
+        "fips": "55127",
+        "name": "Walworth",
+        "statements": 30,
+        "commercial_col_a": 3673,
+        "manufacturing_col_a": 188,
+        "gis_f1": 3579,
+        "gis_f2": 193
+      },
+      {
+        "fips": "55129",
+        "name": "Washburn",
+        "statements": 25,
+        "commercial_col_a": 894,
+        "manufacturing_col_a": 33,
+        "gis_f1": 895,
+        "gis_f2": 35
+      },
+      {
+        "fips": "55131",
+        "name": "Washington",
+        "statements": 21,
+        "commercial_col_a": 3174,
+        "manufacturing_col_a": 314,
+        "gis_f1": 3167,
+        "gis_f2": 315
+      },
+      {
+        "fips": "55133",
+        "name": "Waukesha",
+        "statements": 38,
+        "commercial_col_a": 8398,
+        "manufacturing_col_a": 795,
+        "gis_f1": 8195,
+        "gis_f2": 786
+      },
+      {
+        "fips": "55135",
+        "name": "Waupaca",
+        "statements": 34,
+        "commercial_col_a": 1998,
+        "manufacturing_col_a": 114,
+        "gis_f1": 1983,
+        "gis_f2": 112
+      },
+      {
+        "fips": "55137",
+        "name": "Waushara",
+        "statements": 26,
+        "commercial_col_a": 1101,
+        "manufacturing_col_a": 27,
+        "gis_f1": 1080,
+        "gis_f2": 27
+      },
+      {
+        "fips": "55139",
+        "name": "Winnebago",
+        "statements": 22,
+        "commercial_col_a": 4941,
+        "manufacturing_col_a": 351,
+        "gis_f1": 4912,
+        "gis_f2": 374
+      },
+      {
+        "fips": "55141",
+        "name": "Wood",
+        "statements": 34,
+        "commercial_col_a": 2526,
+        "manufacturing_col_a": 174,
+        "gis_f1": 2506,
+        "gis_f2": 169
+      }
+    ]
+  },
+  "blockers": [
+    "factlot.collector snapshot refused every services3.arcgis.com URL: getaddrinfo returned 198.18.0.1, which the collector treats as a non-public address. That is this environment's DNS result, not a publisher 403. The 130 configured URLs were then archived with the same User-Agent and a 2 second gap. robots.txt was not bypassed.",
+    "python -m factlot.registry.audit --reread does not import factlot.registry.adapters.wi_statewide. adapter_for only loads _READER_MODULES, and wi_statewide is not in that tuple, so all 130 source_file entries say 'no adapter registered for this source' and matches_registry is absent. audit.py and the adapter were not modified. The per-file comparison below calls audit.reread_source_file on the adapter module directly.",
+    "Outagamie (55087) and Racine (55101) fail the per-file re-read. Repeated PARCELIDs span pages. The adapter keeps the first row; a single-file re-read of a later page still yields the repeat. County-level re-read matches the registry. Not fixed.",
+    "No Wisconsin entity registry is in the scratch file. link_owners matched 0 of 125,238 organisation owners. wi-dfi-entities is a paid file and was not purchased. Link rate is n/a, not a parcel-count failure."
+  ]
+}

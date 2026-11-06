@@ -341,3 +341,17 @@ By county (county from `CONAME`, as fixed in the statewide extension):
 - `owner_of_record` names are as the county supplies them (truncated in Milwaukee). A parcel id repeated within a county (two in Milwaukee) keeps its first row.
 - V12 is the 2025 roll in most counties; refresh yearly after the June release.
 - The Wisconsin DFI corporate file is sold (`wi-dfi-entities`), so Milwaukee owners link to entities only after that purchase.
+
+## Correction 2026-11-06
+
+Re-measured from the publisher on 2026-11-06. Distinct commercial parcels are unchanged: 169,174 in the 71
+counties and 16,580 in Milwaukee (185,754 statewide). No count in the tables above is changed. Evidence:
+`docs/registry/quality/surge-2026-11/wi-statewide-parcels.md`.
+
+The class note above, "apartment buildings are class 2", is incomplete. The Wisconsin Property Assessment
+Manual, Chapter 7 (<https://www.revenue.wi.gov/Documents/wpam26.pdf>, Last-Modified Wed, 17 Dec 2025, read
+2026-11-06), says "Apartment buildings of up to three units are also classified as residential" and
+"Apartment buildings of four or more units, hotels, summer resorts, and mobile home courts should be
+classified as commercial property." Class 1 is outside this load. Four-or-more-unit apartments stay in
+class 2 and cannot be separated from other commercial parcels. Chapter 13 also puts vacant land whose most
+likely use is commercial in class 2. The schema has no vacant-commercial code.
