@@ -353,18 +353,8 @@ def build(root: Path) -> dict[str, Any]:
             {
                 "id": "2026-11-06-cited-facts",
                 "date": "2026-11-06",
-                "effect": "Cited commercial facts may be kept from a public file whose publisher does not grant redistribution in writing.",
-                "covers": [
-                    "pa-philadelphia-opa", "il-cook-assessor", "ga-fulton-assessor", "fl-dor-nal",
-                    "mi-wayne-parcels", "va-fairfax-assessor", "ca-riverside-assessor", "ca-san-bernardino-assessor",
-                ],
-                "does_not_cover": [
-                    "paid extracts and subscriptions",
-                    "click-through gates that have not been accepted",
-                    "hosts that block automated clients",
-                    "Arizona commercial-purpose filing",
-                    "an unlisted roll the publisher sells",
-                ],
+                "effect": "Withdrawn. A general surge message is not a redistribution grant. The eight terms-gated sources stay gated. Staging counts from them are not publishable totals.",
+                "publishable": False,
             }
         ],
     }
@@ -471,11 +461,11 @@ def render_markdown(matrix: dict[str, Any]) -> str:
         lines.append(f"- FIPS {item['state_fips']}: {item['census_county_equivalents']} county equivalents, {item['status']}.")
     lines += [
         "",
-        "## Decision of 2026-11-06",
+        "## Terms gates",
         "",
-        "Cited commercial facts may be kept from a public file whose publisher does not grant redistribution in writing. "
+        "A general request to finish the registry is not a redistribution grant. Sources whose own terms do not grant redistribution stay gated. "
         "Paid extracts, click-through gates, automated-access blocks, Arizona's commercial-purpose filing, and a roll the publisher sells stay closed. "
-        "A source is still unverified until a real download confirms its file.",
+        "A staging count is not a publishable total.",
         "",
         "## Proposals not adopted",
         "",

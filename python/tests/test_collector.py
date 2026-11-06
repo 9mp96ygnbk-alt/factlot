@@ -12,7 +12,7 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 from factlot.collector import CollectorConfig, PoliteFetcher, SourceSpec, discover, snapshot
-from factlot.collector.core import _host_ok
+from factlot.collector.core import _host_ok, limit_saturated, query_limit
 
 REQUESTS: list[tuple[str, str]] = []
 TRUNCATE: list[int] = []
@@ -322,6 +322,16 @@ class SourceConfigs(unittest.TestCase):
             for name in ("Real_acct_owner.zip", "Real_building_land.zip"):
                 self.assertIn(f"https://download.hcad.org/data/CAMA/{year}/{name}", harris.files)
         self.assertTrue(all(_host_ok(u, harris) for u in harris.files))
+
+
+class QueryLimit(unittest.TestCase):
+    def test_a_full_page_is_not_a_complete_extract(self):
+        url = "https://example.invalid/resource/x.csv?$limit=500000"
+        self.assertEqual(query_limit(url), 500000)
+        self.assertTrue(limit_saturated(url, 500000))
+        self.assertFalse(limit_saturated(url, 116495))
+        self.assertIsNone(query_limit("https://example.invalid/file.zip"))
+        self.assertFalse(limit_saturated("https://example.invalid/file.zip", 500000))
 
 
 if __name__ == "__main__":

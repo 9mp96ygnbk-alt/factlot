@@ -430,6 +430,25 @@ def _attachment_name(disposition: str | None) -> str | None:
     return safe_filename(m.group(1).strip()) if m else None
 
 
+def query_limit(url: str) -> int | None:
+    """The ``$limit`` or ``limit`` query parameter, if it is a positive integer.
+
+    A paged API that is asked for at most N rows can answer HTTP 200 with exactly N rows
+    while more rows match. Equality with this cap means the extract may be truncated.
+    """
+    params = urllib.parse.parse_qs(urllib.parse.urlsplit(url).query)
+    raw = (params.get("$limit") or params.get("limit") or [None])[0]
+    if raw is not None and str(raw).isdigit() and int(raw) > 0:
+        return int(raw)
+    return None
+
+
+def limit_saturated(url: str, row_count: int) -> bool:
+    """True when ``row_count`` reached the URL's row cap, so the extract must not be called complete."""
+    cap = query_limit(url)
+    return cap is not None and row_count >= cap
+
+
 def _range_start(content_range: str | None) -> int | None:
     """First byte offset of a 206 response (``Content-Range: bytes 1048576-2097151/2097152``)."""
     m = re.match(r"bytes (\d+)-", content_range or "")

@@ -227,9 +227,9 @@ These Census prefixes are in the county file and are not in the registry state t
 - FIPS 74: 1 county equivalents, outside_product_state_table.
 - FIPS 78: 3 county equivalents, outside_product_state_table.
 
-## Decision of 2026-11-06
+## Terms gates
 
-Cited commercial facts may be kept from a public file whose publisher does not grant redistribution in writing. Paid extracts, click-through gates, automated-access blocks, Arizona's commercial-purpose filing, and a roll the publisher sells stay closed. A source is still unverified until a real download confirms its file.
+A general request to finish the registry is not a redistribution grant. Sources whose own terms do not grant redistribution stay gated. Paid extracts, click-through gates, automated-access blocks, Arizona's commercial-purpose filing, and a roll the publisher sells stay closed. A staging count is not a publishable total.
 
 ## Proposals not adopted
 

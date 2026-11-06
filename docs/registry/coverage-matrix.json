@@ -3,26 +3,10 @@
   "compiled_note": "Compiled from the review records, source configs and Census county file in this repository. No publisher file was downloaded to produce these figures.",
   "decisions": [
     {
-      "covers": [
-        "pa-philadelphia-opa",
-        "il-cook-assessor",
-        "ga-fulton-assessor",
-        "fl-dor-nal",
-        "mi-wayne-parcels",
-        "va-fairfax-assessor",
-        "ca-riverside-assessor",
-        "ca-san-bernardino-assessor"
-      ],
       "date": "2026-11-06",
-      "does_not_cover": [
-        "paid extracts and subscriptions",
-        "click-through gates that have not been accepted",
-        "hosts that block automated clients",
-        "Arizona commercial-purpose filing",
-        "an unlisted roll the publisher sells"
-      ],
-      "effect": "Cited commercial facts may be kept from a public file whose publisher does not grant redistribution in writing.",
-      "id": "2026-11-06-cited-facts"
+      "effect": "Withdrawn. A general surge message is not a redistribution grant. The eight terms-gated sources stay gated. Staging counts from them are not publishable totals.",
+      "id": "2026-11-06-cited-facts",
+      "publishable": false
     }
   ],
   "folklore_used_as_target": false,
