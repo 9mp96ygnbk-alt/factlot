@@ -56,7 +56,7 @@ SOURCE = Source(
     county_fips=COUNTY_FIPS,
     license="Public record (Tex. Gov't Code ch. 552); no license or terms of use stated. "
             "robots.txt Content-Signal: search=yes, ai-train=no, use=reference",
-    ai_use="unknown",  # the publisher signals no AI training and allows use as reference; the registry does not train
+    ai_use="unknown",  # the publisher signals ai-train=no; use=reference is undefined and ai-input is not stated
     redistribution="unknown",  # not addressed; public record
     attribution="Tarrant Appraisal District",
     terms_reviewed="2026-11-02",

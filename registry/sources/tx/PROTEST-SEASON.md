@@ -1,10 +1,10 @@
 # Texas protest season: comparable-property fields, 2027 roll timing, Tarrant signals
 
-Data work for the Texas commercial protest kit (spec P3b and P4, gates G3 and G4). Written
+Data work for the Texas unequal-appraisal tools (`registry_tx_equity_candidates`, value history). Written
 2026-11-06. Every publisher page cited below was read on 2026-11-06 unless another date is given;
 anything not established from the publisher's own page is marked **unconfirmed**.
 
-## 1. Neighborhood code and building class (P3b)
+## 1. Neighborhood code and building class
 
 Two string predicates, added to `Predicates.parcel` (`packages/schema/src/index.ts`),
 `ENRICHMENT_PREDICATES` (`python/src/factlot/registry/store.py`) and `docs/fact-model.md`:
@@ -63,12 +63,12 @@ layout `TP_Legacy8.0.32-AppraisalExportLayout.xlsx` inside it) does: `hood_cd` a
 `Imprv_det_class_cd` at 76–85 of `..._APPRAISAL_IMPROVEMENT_DETAIL.TXT`; its `prop_id` equals
 PropertyData's `Account_Num`. `APPRAISAL_INFO.TXT` is 14,009,929,130 bytes uncompressed. Wiring it
 means a second registry source for that file, as for Harris's buildings file; not done here, and
-Tarrant's use in P3 waits on G4 in any case.
+Tarrant is not served by the candidates tool in any case until its signals are clarified (section 3).
 
 Denton, Williamson and Fort Bend were outside this pass (their archives are not in the local
 `collected/` folder).
 
-## 2. Preliminary 2027 rolls and value history (G3)
+## 2. Preliminary 2027 rolls and value history
 
 ### What the collector picks up
 
@@ -91,7 +91,7 @@ The collector downloads only the explicit `files` of each source (discovery down
   in `TABLES AND FIELD NAMES.xlsx`, shipped in the zip) next to `TOT_VAL`. In the archived
   `DCAD2026_CURRENT.ZIP` it is filled on all 59,645 in-scope accounts and differs from `TOT_VAL` on
   11,765 of them (about a fifth; for example `B12` duplexes). The adapter still skips it; it is the
-  candidate for `parcel.appraised_value` (P4), a change to loaded facts left for review.
+  candidate for `parcel.appraised_value`, a change to loaded facts left for review.
 - **Fort Bend** — no separate appraised-value column, but the owner record carries the cap
   adjustments: `HSCapAdj` ("Homestead Cap Adjustment for this owner") and `CBLCapAdj` ("Circuit
   Breaker Limitation Cap Adjustment for this owner", the §23.231 cap), per the `Orion Appraisal
@@ -133,7 +133,7 @@ Consequences readers should know:
 - A parcel can now have current facts from two tax years (2026 certified and 2027 preliminary).
   `Registry.facts` / `registry_get` return the newest per predicate, so `parcel.tax_year` can be
   2027 while `parcel.market_value` is still the 2026 figure when the 2027 file has no value yet.
-  The P4 value-history view should group by the source document's tax year, not take the newest
+  The value-history view should group by the source document's tax year, not take the newest
   of each predicate.
 - Nothing retires a year's facts once the next year is loaded: the 2026 certified facts stay
   current (as the 2026 roll) after 2027 lands, by design, so the value history keeps both. A
@@ -154,7 +154,7 @@ Consequences readers should know:
 - Collin's Access export is being retired; the data.texas.gov datasets are its successor.
 - Denton: the district's domain appears to have lapsed; a person should find its current site.
 
-## 3. Tarrant robots.txt and terms (G4)
+## 3. Tarrant robots.txt and terms
 
 `https://www.tad.org/robots.txt`, read 2026-11-06. The section for all agents, which covers the
 collector (`FactLotRegistryBot`), is:
@@ -192,4 +192,4 @@ comparable-property lookups: retrieval, not training.
 Finding: not inconsistent with any stated directive, but not affirmatively allowed either
 (`ai-input` is silent and `use=reference` is undefined). This is not decided here. Options for a
 person: ask TAD (the PIA form or its data contact) whether serving roll values as cited facts to
-AI agents is acceptable, or keep Tarrant out of P3 until then.
+AI agents is acceptable, or keep Tarrant out of the candidates tool until then (which the tool now does).
