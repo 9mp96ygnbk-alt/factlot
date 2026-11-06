@@ -1,0 +1,1165 @@
+{
+  "audited_on": "2026-11-06",
+  "database": "scratch.db",
+  "entity_registries_by_state": {},
+  "sources": [
+    {
+      "ai_use": "unknown",
+      "citations": {
+        "as_of_differs_from_snapshot": 0,
+        "document_not_a_snapshot": 0,
+        "facts": 1927578,
+        "links": 0,
+        "links_document_not_a_snapshot": 0,
+        "links_without_basis": 0,
+        "without_locator": 0,
+        "without_method": 0,
+        "without_valid_as_of": 0
+      },
+      "counties": [
+        "us-36001",
+        "us-36003",
+        "us-36007",
+        "us-36009",
+        "us-36011",
+        "us-36013",
+        "us-36015",
+        "us-36017",
+        "us-36019",
+        "us-36021",
+        "us-36023",
+        "us-36025",
+        "us-36027",
+        "us-36029",
+        "us-36031",
+        "us-36033",
+        "us-36035",
+        "us-36037",
+        "us-36039",
+        "us-36041",
+        "us-36043",
+        "us-36045",
+        "us-36049",
+        "us-36051",
+        "us-36053",
+        "us-36055",
+        "us-36057",
+        "us-36059",
+        "us-36063",
+        "us-36065",
+        "us-36067",
+        "us-36069",
+        "us-36071",
+        "us-36073",
+        "us-36075",
+        "us-36077",
+        "us-36079",
+        "us-36083",
+        "us-36087",
+        "us-36089",
+        "us-36091",
+        "us-36093",
+        "us-36095",
+        "us-36097",
+        "us-36099",
+        "us-36101",
+        "us-36103",
+        "us-36105",
+        "us-36107",
+        "us-36109",
+        "us-36111",
+        "us-36113",
+        "us-36115",
+        "us-36117",
+        "us-36119",
+        "us-36121",
+        "us-36123"
+      ],
+      "county_fips": null,
+      "findings": [],
+      "implausible_facts": {
+        "area": 0,
+        "out_of_scope_category": 0,
+        "tax_year": 0,
+        "value": 0,
+        "year_built": 0
+      },
+      "kind": "parcels",
+      "license": "OPEN-NY Terms of Use (non-exclusive, revocable licence; no attribution, share-alike or pre-approval requirement; lawful use only)",
+      "links": {
+        "by_confidence": {},
+        "by_rule": {},
+        "entity_registry_loaded_for": [],
+        "link_rate_pct": null,
+        "linked_parcels": 0,
+        "note": "no entity registry is loaded for this state, so owners cannot be linked",
+        "organisation_owner_parcels": 153899
+      },
+      "lookups": {
+        "parcels_with_account_crosswalk": 275995,
+        "parcels_with_address_index": 275951
+      },
+      "owners": {
+        "orphan_mailing_addresses": 0,
+        "owner_facts": 153899,
+        "person_like": 0
+      },
+      "parcels": {
+        "absent_from_latest_snapshot": 0,
+        "conflicting_facts": 0,
+        "count": 275995,
+        "fields": {
+          "apn": {
+            "missing": 0,
+            "parcels": 275995,
+            "pct_present": 100.0
+          },
+          "appraised_value": {
+            "missing": 275995,
+            "parcels": 0,
+            "pct_present": 0.0
+          },
+          "improvement_area_sf": {
+            "missing": 275995,
+            "parcels": 0,
+            "pct_present": 0.0
+          },
+          "land_area_sf": {
+            "missing": 275995,
+            "parcels": 0,
+            "pct_present": 0.0
+          },
+          "market_value": {
+            "missing": 36123,
+            "parcels": 239872,
+            "pct_present": 86.91
+          },
+          "owner_of_record": {
+            "missing": 122096,
+            "parcels": 153899,
+            "pct_present": 55.76
+          },
+          "situs_address": {
+            "missing": 44,
+            "parcels": 275951,
+            "pct_present": 99.98
+          },
+          "state_property_category": {
+            "missing": 0,
+            "parcels": 275995,
+            "pct_present": 100.0
+          },
+          "tax_year": {
+            "missing": 0,
+            "parcels": 275995,
+            "pct_present": 100.0
+          },
+          "year_built": {
+            "missing": 275995,
+            "parcels": 0,
+            "pct_present": 0.0
+          }
+        },
+        "missing_address": 44,
+        "missing_as_of": 0,
+        "no_organisation_owner": 122096
+      },
+      "publisher": "New York State Department of Taxation and Finance, Office of Real Property Tax Services",
+      "redistribution": "permitted",
+      "review_queue": {
+        "accepted": 0,
+        "pending": 0,
+        "pending_by_rule": {},
+        "pending_owners": 0,
+        "rejected": 0
+      },
+      "snapshots": [
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 209478,
+          "document_id": "fl:document:sha256-06624bf5c7ef34293ffa121a35f3d69d5f7cb94b1f8fef8d2b1cf2636af09a8f",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 5476,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 774,
+          "retrieved_at": "2026-11-06T22:59:19+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 64580,
+          "document_id": "fl:document:sha256-1554a509708c850e4a6258a11318b7b5e17fadb70ac5d35accca5cb3cdbac05c",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 1942,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 276,
+          "retrieved_at": "2026-11-06T22:58:31+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 712115,
+          "document_id": "fl:document:sha256-17e6397a2964d0a08a9240d6ebd410359220032749abf4b034c45c0f071df2d1",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 21738,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 3096,
+          "retrieved_at": "2026-11-06T22:59:22+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 249313,
+          "document_id": "fl:document:sha256-1ab2f4fa4ffaa20037659e57e380ea3d13b5edee089af4113fb50c7fcc112438",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7542,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 1076,
+          "retrieved_at": "2026-11-06T22:59:28+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 9655351,
+          "document_id": "fl:document:sha256-1e1010c25009dd71daee640b5e73920a59ff35db9a89551222c36beb7d303c72",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 179913,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 27373,
+          "retrieved_at": "2026-11-06T22:57:31+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 309424,
+          "document_id": "fl:document:sha256-235aaab8d07084cb85db1974fe352dfe39370437edabdfcadc4c91f6ba978297",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 9143,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 1303,
+          "retrieved_at": "2026-11-06T22:58:07+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 133691,
+          "document_id": "fl:document:sha256-2669a8f73b1b875a49c466e49eb14833e72b4402f3ff1108ac9f469d23b762eb",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 3992,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 567,
+          "retrieved_at": "2026-11-06T22:58:37+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 488198,
+          "document_id": "fl:document:sha256-2f53deae50f38c93a33255767e3a82498c3aba7470118bfe2c14fcf2dedef132",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 15032,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 2093,
+          "retrieved_at": "2026-11-06T22:59:37+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 3187375,
+          "document_id": "fl:document:sha256-4236cb1446cf5859dbcdff205e17bf576a1e77fa10a0f5082483d1ae5bf91636",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 94669,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 14438,
+          "retrieved_at": "2026-11-06T22:59:07+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 332621,
+          "document_id": "fl:document:sha256-42432bce16191b781c9b8cca1e69056c48510583cd0db40f3ffaff76705052ab",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 10172,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 1440,
+          "retrieved_at": "2026-11-06T22:58:43+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 1041544,
+          "document_id": "fl:document:sha256-4290060e45795921bb69b9bb2c5bfb0cffa01380cbbe5068f45259b493ab2454",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 33007,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 4540,
+          "retrieved_at": "2026-11-06T22:59:32+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 117347,
+          "document_id": "fl:document:sha256-432ebe9c061d85053e6a1d1b3c0bc7443269f29e8a6b676e08b715046dcb519f",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 3320,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 464,
+          "retrieved_at": "2026-11-06T22:59:18+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 708814,
+          "document_id": "fl:document:sha256-4616fa024f6cb6478005d8a7c9a135a2913c991e5a5e245b358c789e9cae9e76",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 21868,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 3157,
+          "retrieved_at": "2026-11-06T22:59:26+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 1897561,
+          "document_id": "fl:document:sha256-47916b131d8ec16d992a145bb2c719c727ee0309d278d79f86feeff421c8caed",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 60126,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 8310,
+          "retrieved_at": "2026-11-06T22:57:55+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 755436,
+          "document_id": "fl:document:sha256-48d62a3c8d746712741e6f106edcf03be5f8569d85ac9ff579913c2d25a1aa8f",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 22666,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 3164,
+          "retrieved_at": "2026-11-06T22:59:14+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 8409239,
+          "document_id": "fl:document:sha256-4cc95600e3af42ea36edacfa88a72ddd91bd96a7fde3327bf69035b6d2f17fcf",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 235286,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 37456,
+          "retrieved_at": "2026-11-06T22:57:48+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 367152,
+          "document_id": "fl:document:sha256-5982c2adcabe510ce85e2c716eda50b2be5aa4503c52b3a56067ea3ce0c58397",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 11046,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 1578,
+          "retrieved_at": "2026-11-06T22:58:24+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 144765,
+          "document_id": "fl:document:sha256-5bf973e6d3240b4ae280134a061b281ebb04c833b4d8e90a6cbeaacca610fca6",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 4408,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 631,
+          "retrieved_at": "2026-11-06T22:59:42+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 595327,
+          "document_id": "fl:document:sha256-5c40cfb01a3b6839785e4097700ca2147edae41ab911d4d4ce8bd9f46c7b90df",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 16480,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 2344,
+          "retrieved_at": "2026-11-06T22:59:24+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 372781,
+          "document_id": "fl:document:sha256-623580039b6a56edc1ced75b2f2a5fb7dadf73a96df21b2f307b49e07bcee23e",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 11274,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 1582,
+          "retrieved_at": "2026-11-06T22:58:41+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 665761,
+          "document_id": "fl:document:sha256-63a30771f4e137c134e5c8d46cb50f109e88d3ef0396d42ec279cfc0050a3eb7",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 20619,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 2872,
+          "retrieved_at": "2026-11-06T22:58:34+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 184168,
+          "document_id": "fl:document:sha256-6f086aea7b633ee399c8230e1cbd6dea055046045435aa18f363e1f6a91d80d6",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 5602,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 793,
+          "retrieved_at": "2026-11-06T22:59:16+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 344004,
+          "document_id": "fl:document:sha256-794911d7dee7d76de2612f419736c247ce1927ea5a7582b3c164091e07e1913c",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 10670,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 1520,
+          "retrieved_at": "2026-11-06T22:58:15+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 844528,
+          "document_id": "fl:document:sha256-821c6f8bab82071e34dae392005d98a0cfab553977ce4b8bff6ded182c9ffc96",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 26226,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 3649,
+          "retrieved_at": "2026-11-06T22:59:05+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 367846,
+          "document_id": "fl:document:sha256-84bc2806d8d731c842dc389bdf256a0050412fddc8f7137c45104ccad758d8f0",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 11236,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 1578,
+          "retrieved_at": "2026-11-06T22:58:01+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 302121,
+          "document_id": "fl:document:sha256-881f292b972b6312ca281c319589150a736d6536cd1a78a3346e0c82364a97e6",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 9873,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 1314,
+          "retrieved_at": "2026-11-06T22:59:02+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 6838782,
+          "document_id": "fl:document:sha256-8c7c38ccbbd2f56d81596317aec14143812401d4693f11178c3fd0a7936b80bd",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 175417,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 23449,
+          "retrieved_at": "2026-11-06T22:57:45+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 282793,
+          "document_id": "fl:document:sha256-8e3097665b919574fd45c3f63f158afc56ad95b83530ef053e3b4dcc4f875299",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 6471,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 909,
+          "retrieved_at": "2026-11-06T22:59:40+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 693827,
+          "document_id": "fl:document:sha256-9a22d645e9d46536b4bb027d71ac1dd8e11c01906e38606aca5ec38811562583",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 15582,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 2228,
+          "retrieved_at": "2026-11-06T22:57:59+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 1412607,
+          "document_id": "fl:document:sha256-9af99d122858fda4faca73896f38c0cd236dc719b6e53a20c9a108ab7efffc08",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 43779,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 6222,
+          "retrieved_at": "2026-11-06T22:58:47+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 190972,
+          "document_id": "fl:document:sha256-a197a33e26b620d210de4f0286c7aa0b6d463146cffb0fb6e29d60b0c0e6eb4d",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 5837,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 827,
+          "retrieved_at": "2026-11-06T22:58:56+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 532936,
+          "document_id": "fl:document:sha256-a28659e7536b40ba1b72dcc82d8e5c1cf7bfbae5cedfccf65cf3779fe3900b64",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 16889,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 2314,
+          "retrieved_at": "2026-11-06T22:59:34+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 348154,
+          "document_id": "fl:document:sha256-a6ef3c08c7de0d43cf3bf97ac60975fe7ee3371907f14ec4ed2a0897b7584348",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 10522,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 1486,
+          "retrieved_at": "2026-11-06T22:59:36+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 520925,
+          "document_id": "fl:document:sha256-acf4f4e55a8c639922275b5b2fbe08995e3b4ad1e9d7013a3caf530c2e4dfc3a",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 15644,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 2179,
+          "retrieved_at": "2026-11-06T22:58:06+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 3208024,
+          "document_id": "fl:document:sha256-b38f57c1305654853edfbb09c7821f4a9707d1930492f18557782128ac3c76c8",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 100715,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 13601,
+          "retrieved_at": "2026-11-06T22:57:52+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 301004,
+          "document_id": "fl:document:sha256-b50c6dff2d4f432da9202423508065bd609e2cb4172c9ac2a4abcfe9ae25bda8",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 9332,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 1311,
+          "retrieved_at": "2026-11-06T22:58:22+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 1748056,
+          "document_id": "fl:document:sha256-b51e2f8398aa8fac8b045d4048ab763cae2d4c46a841bf6afdf3f670bad1aa36",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 56874,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 7727,
+          "retrieved_at": "2026-11-06T22:58:55+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 1208943,
+          "document_id": "fl:document:sha256-b708b559bf106f878bc1acb0a1a590388313768c36bdb24aa7f957468ce44033",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 38930,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 5311,
+          "retrieved_at": "2026-11-06T22:57:57+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 1384143,
+          "document_id": "fl:document:sha256-b74ee6238b1d7c64a1a58358560d83c8a0ca445b79536e195f19bb2ac280e0fb",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 40940,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 5781,
+          "retrieved_at": "2026-11-06T22:58:45+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 331258,
+          "document_id": "fl:document:sha256-bd53e9602fc9b2d29e5f7f315a8a3282bb2ac659a371f5d26e486320bd8e90f2",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 10228,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 1406,
+          "retrieved_at": "2026-11-06T22:58:13+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 5880903,
+          "document_id": "fl:document:sha256-beceb1fbccf335d3b1958f0ab588d756b6a5ad2218c0d8346b52155ff4773cc1",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 170844,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 24108,
+          "retrieved_at": "2026-11-06T22:57:51+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 501782,
+          "document_id": "fl:document:sha256-c240c03b5a5210c00df11692329e70bc8f4e24ad8ab8feb1938c7dc5b724e8bd",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 15410,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 2158,
+          "retrieved_at": "2026-11-06T22:58:09+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 362191,
+          "document_id": "fl:document:sha256-c4e41b38ba0be69573ead3bfc549724aa2324e772c6d8fb7b0efd1dffaef9474",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 10064,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 1403,
+          "retrieved_at": "2026-11-06T22:58:39+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 565744,
+          "document_id": "fl:document:sha256-c8eadd2ca0fcc8dd9667fbd2234669ed9ef5297f72ef492b2215b916237b6051",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 18214,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 2511,
+          "retrieved_at": "2026-11-06T22:59:30+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 1793959,
+          "document_id": "fl:document:sha256-c95db8504875c78192b2e666e985284c8e04d3808e522e84ebf78e1c7c9daf81",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 29406,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 4155,
+          "retrieved_at": "2026-11-06T22:58:04+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 376728,
+          "document_id": "fl:document:sha256-ca2a05b0253aed88980704402542b8048e0df468aa936082573642f7e0c273e2",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 11554,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 1637,
+          "retrieved_at": "2026-11-06T22:59:01+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 298697,
+          "document_id": "fl:document:sha256-cf7a1140c89765ee41078b65ee245aedd3267c50fe2605d817567ff8f3e9ae13",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 7845,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 1138,
+          "retrieved_at": "2026-11-06T22:57:55+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 2627568,
+          "document_id": "fl:document:sha256-d290c75eeea6561591152b995780146265caafee016807a2e10532c3b0d7bc7f",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 80310,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 11033,
+          "retrieved_at": "2026-11-06T22:58:49+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 1818496,
+          "document_id": "fl:document:sha256-d5b24ae242be0a938604817feefca6383180b73d06101121a7c523defabb406e",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 53360,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 7530,
+          "retrieved_at": "2026-11-06T22:58:17+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 451548,
+          "document_id": "fl:document:sha256-d9338e92bef4dc72b395af026b379b4b46e2caf0037f1feb4f9d9d9a9ddcb713",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 14294,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 2050,
+          "retrieved_at": "2026-11-06T22:58:29+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 668823,
+          "document_id": "fl:document:sha256-da1c1733f514329455930113270a4808233fd1ad2114d52d2368111707724f42",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 20188,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 2781,
+          "retrieved_at": "2026-11-06T22:58:54+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 599389,
+          "document_id": "fl:document:sha256-dfbc5864a2dd422cd70f80788027548a8b34ef2bb4a57d0f0ee000d019ae6c8d",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 18715,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 2637,
+          "retrieved_at": "2026-11-06T22:58:58+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 385509,
+          "document_id": "fl:document:sha256-e2b5241693d806a3afadc6d741fa0e2c94104074c4f62f4bfa7f5d6c92d6cf0a",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 11682,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 1675,
+          "retrieved_at": "2026-11-06T22:58:32+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 1054275,
+          "document_id": "fl:document:sha256-e5027e274cc5ad114a4f2d339ea0c9f62427132bbd07540137c54b9d2d099b49",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 32353,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 4496,
+          "retrieved_at": "2026-11-06T22:59:13+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 411130,
+          "document_id": "fl:document:sha256-ea9534b887881a1f861be858d6aa9f8d4d1b18753d47e905a86c0d2ca8850c5c",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 13130,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 1805,
+          "retrieved_at": "2026-11-06T22:58:12+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 303311,
+          "document_id": "fl:document:sha256-f1b3e6a44add3021b722b9a2f4d4ef1deb356aec3bcf9215383fb5473952488f",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 8558,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 1211,
+          "retrieved_at": "2026-11-06T22:58:22+00:00"
+        },
+        {
+          "age_days": 196,
+          "as_of": "2026-04-24",
+          "bytes": 465499,
+          "document_id": "fl:document:sha256-f3ed25d66a5fa62fd750ffb0faa1725bdfcf6c6903f0d81eab8d8b9fc2403dd3",
+          "document_id_is_sha256": true,
+          "entities": 0,
+          "facts": 11165,
+          "filename": "7vem-aaz7.csv",
+          "parcels": 1528,
+          "retrieved_at": "2026-11-06T22:58:26+00:00"
+        }
+      ],
+      "source_file": [
+        {
+          "document_id": "f2636af09a8f",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "5cb3cdbac05c",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "5c0f071df2d1",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "0c7fcc112438",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "6beb7d303c72",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "91f6ba978297",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "469d23b762eb",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "fcf2dedef132",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "d1ae5bf91636",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "ff76705052ab",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "59b493ab2454",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "15046dcb519f",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "789e9cae9e76",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "eff421c8caed",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "3c2d25a1aa8f",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "35b6d2f17fcf",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "ea3ce0c58397",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "aacca610fca6",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "d9f46c7b90df",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "49e07bcee23e",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "cfc0050a3eb7",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "e1f6a91d80d6",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "091e07e1913c",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "ed182c9ffc96",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "4ccad758d8f0",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "0c82364a97e6",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "d0a7936b80bd",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "4dcc4f875299",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "c38811562583",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "08ab7efffc08",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "60b0c0e6eb4d",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "779fe3900b64",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "0897b7584348",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "530c2e4dfc3a",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "2128ac3c76c8",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "cfe9ae25bda8",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "f670bad1aa36",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "57468ce44033",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "bb2ac280e0fb",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "6320bd8e90f2",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "155ff4773cc1",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "7dc5b724e8bd",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "d1dffaef9474",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "b916237b6051",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "8e1c7c9daf81",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "42f7e0c273e2",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "7ff8f3e9ae13",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "32c3b0d7bc7f",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "23defabb406e",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "9d9a9ddcb713",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "111707724f42",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "00d019ae6c8d",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "5d6c92d6cf0a",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "4b9d2d099b49",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "0d2ca8850c5c",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "b5473952488f",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        },
+        {
+          "document_id": "8b9fc2403dd3",
+          "error": "no adapter registered for this source",
+          "file": "7vem-aaz7.csv"
+        }
+      ],
+      "source_id": "ny-orpts-rolls",
+      "state_fips": "36",
+      "terms_reviewed": "2026-11-03",
+      "url": "https://data.ny.gov/Government-Finance/Property-Assessment-Data-from-Local-Assessment-Rolls/7vem-aaz7"
+    }
+  ],
+  "stats": {
+    "entities": 0,
+    "facts": 1927578,
+    "links": 0,
+    "parcels": 275995,
+    "review_pending": 0,
+    "snapshots": 57
+  },
+  "violations": [],
+  "warnings": []
+}
