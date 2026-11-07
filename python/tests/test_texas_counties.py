@@ -103,6 +103,11 @@ class TexasCountyMatrix(unittest.TestCase):
         self.assertIsNone(by["48179"]["staged_parcels"])
         self.assertEqual(by["48003"]["staged_parcels"], 938)
         self.assertEqual(by["48003"]["reuse"], "private")
+        self.assertEqual(by["48335"]["staged_parcels"], 758)
+        self.assertEqual(by["48127"]["staged_parcels"], 930)
+        self.assertEqual(by["48501"]["staged_parcels"], 727)
+        for fips in ("48237", "48009", "48083", "48405", "48307", "48495", "48175", "48429", "48193"):
+            self.assertIsNone(by[fips]["staged_parcels"])
         self.assertIsNone(by["48003"]["commercial_universe"])
         self.assertIsNone(by["48117"]["staged_parcels"])
         self.assertIsNone(by["48503"]["staged_parcels"])

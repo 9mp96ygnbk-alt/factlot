@@ -754,6 +754,67 @@ NUECES = CountyExport(
     account_system="ncad_prop_id",
 )
 
+# Local codes whose own labels are not the Comptroller category the PTD column names.
+# Mitchell F3/F4 are improvement-only. Dimmit F3 is mineral mapped to F2. Yoakum F3/F4
+# are improvement-only; Yoakum F2 itself stays, and FOR has no PTD code so it never maps.
+MITCHELL_EXCLUDE = frozenset({"F3", "F4"})
+DIMMIT_EXCLUDE = frozenset({"F3"})
+YOAKUM_EXCLUDE = frozenset({"F3", "F4"})
+
+MITCHELL = CountyExport(
+    source=Source(
+        source_id="tx-mitchell-cad",
+        publisher="Mitchell County Appraisal District",
+        title="2026 supplement 2 full-county export (PACS 8.0.34). Not established as the latest complete roll",
+        url="https://mitchellcad.org/",
+        state_fips="48",
+        county_fips="335",
+        license="No license stated on the pages read (2026-11-06). Public redistribution is not stated",
+        ai_use="unknown",
+        redistribution="unknown",
+        attribution="Mitchell County Appraisal District",
+        terms_reviewed="2026-11-06",
+    ),
+    county_fips="335",
+    account_system="mitchell_prop_id",
+)
+
+DIMMIT = CountyExport(
+    source=Source(
+        source_id="tx-dimmit-cad",
+        publisher="Dimmit Central Appraisal District",
+        title="2026 real and manufactured-housing certified values, supplement 0 (PACS 8.0.34)",
+        url="https://dimmit-cad.org/data-downloads/",
+        state_fips="48",
+        county_fips="127",
+        license="No license stated on the data-downloads page (read 2026-11-06). Public redistribution is not stated",
+        ai_use="unknown",
+        redistribution="unknown",
+        attribution="Dimmit Central Appraisal District",
+        terms_reviewed="2026-11-06",
+    ),
+    county_fips="127",
+    account_system="dimmit_prop_id",
+)
+
+YOAKUM = CountyExport(
+    source=Source(
+        source_id="tx-yoakum-cad",
+        publisher="Yoakum County Appraisal District",
+        title="2026 certified-values export, supplement 0 (PACS 8.0.34). Mineral accounts are in the file and filtered by code",
+        url="https://yoakumcad.org/",
+        state_fips="48",
+        county_fips="501",
+        license="No license stated on the pages read (2026-11-06). Public redistribution is not stated",
+        ai_use="unknown",
+        redistribution="unknown",
+        attribution="Yoakum County Appraisal District",
+        terms_reviewed="2026-11-06",
+    ),
+    county_fips="501",
+    account_system="yoakum_prop_id",
+)
+
 
 def _member(path: str | Path, suffix: str) -> str | None:
     """The one archive member whose name ends with ``suffix``. Entity files are never selected."""
