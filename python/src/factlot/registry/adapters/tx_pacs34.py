@@ -430,6 +430,78 @@ LAMAR = CountyExport(
     account_system="lamar_prop_id",
 )
 
+HOCKLEY = CountyExport(
+    source=Source(
+        source_id="tx-hockley-cad",
+        publisher="Hockley County Appraisal District",
+        title="2026 certified appraisal roll (PACS 8.0.34 record length)",
+        url="https://www.hockleycad.org/tax-information/",
+        state_fips="48",
+        county_fips="219",
+        license="No license stated on the tax-information page (read 2026-11-06). Public redistribution is not stated",
+        ai_use="unknown",
+        redistribution="unknown",
+        attribution="Hockley County Appraisal District",
+        terms_reviewed="2026-11-06",
+    ),
+    county_fips="219",
+    account_system="hockley_prop_id",
+)
+
+LAVACA = CountyExport(
+    source=Source(
+        source_id="tx-lavaca-cad",
+        publisher="Lavaca County Central Appraisal District",
+        title="2026 real-property-only certified file (PACS 8.0.34 record length)",
+        url="https://lavacacad.com/certified-appraisal-rolls/",
+        state_fips="48",
+        county_fips="285",
+        license="No license stated on the certified-rolls page (read 2026-11-06). Public redistribution is not stated",
+        ai_use="unknown",
+        redistribution="unknown",
+        attribution="Lavaca County Central Appraisal District",
+        terms_reviewed="2026-11-06",
+    ),
+    county_fips="285",
+    account_system="lavaca_prop_id",
+)
+
+GAINES = CountyExport(
+    source=Source(
+        source_id="tx-gaines-cad",
+        publisher="Gaines County Appraisal District",
+        title="2026 certified real-property data (PACS 8.0.34 record length)",
+        url="https://gainescad.org/data-downloads/",
+        state_fips="48",
+        county_fips="165",
+        license="No license stated on the data-downloads page (read 2026-11-06). Public redistribution is not stated",
+        ai_use="unknown",
+        redistribution="unknown",
+        attribution="Gaines County Appraisal District",
+        terms_reviewed="2026-11-06",
+    ),
+    county_fips="165",
+    account_system="gaines_prop_id",
+)
+
+BANDERA = CountyExport(
+    source=Source(
+        source_id="tx-bandera-cad",
+        publisher="Bandera Central Appraisal District",
+        title="2026 certified roll (PACS 8.0.34 record length)",
+        url="https://bancad.org/downloads-data-download-disclaimer/",
+        state_fips="48",
+        county_fips="019",
+        license="Website download disclaimer, 2021 pdf: public-service access, no warranty, users are responsible for dissemination. Not a license grant. Public redistribution is not stated",
+        ai_use="unknown",
+        redistribution="unknown",
+        attribution="Bandera Central Appraisal District",
+        terms_reviewed="2026-11-06",
+    ),
+    county_fips="019",
+    account_system="bandera_prop_id",
+)
+
 HOWARD = CountyExport(
     source=Source(
         source_id="tx-howard-cad",

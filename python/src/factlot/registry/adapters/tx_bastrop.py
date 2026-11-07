@@ -62,7 +62,8 @@ def _situs(row: dict[str, str]) -> str | None:
     return f"{street}, {tail}" if tail else street
 
 
-def read_roll(path: str | Path, tally: dict | None = None) -> Iterator[ParcelRecord]:
+def read_roll(path: str | Path, tally: dict | None = None, *, county_fips: str = "021",
+              id_field: str = "PARCEL ID") -> Iterator[ParcelRecord]:
     """Yield one commercial real-property row per parcel id. The first row wins."""
     tally = tally if tally is not None else {}
     p = Path(path)
@@ -72,7 +73,7 @@ def read_roll(path: str | Path, tally: dict | None = None) -> Iterator[ParcelRec
     with _open(p, _NAL) as raw:
         for row in csv.DictReader(raw, delimiter="\t"):
             rows += 1
-            pid = (row.get("PARCEL ID") or "").strip()
+            pid = (row.get(id_field) or "").strip()
             code = (row.get("PARCEL USE CD") or "").strip().upper()
             if not pid or not is_commercial(code):
                 out += 1
@@ -106,7 +107,7 @@ def read_roll(path: str | Path, tally: dict | None = None) -> Iterator[ParcelRec
         heat = _positive(row.get("BLDG HEAT AREA"))
         year = _positive(row.get("YEAR_BUILT"))
         yield ParcelRecord(
-            county_fips="021",
+            county_fips=county_fips,
             apn=pid,
             state_category="B" if code.startswith("B") else code,
             account=pid,

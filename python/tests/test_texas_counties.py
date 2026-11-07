@@ -17,7 +17,7 @@ class TexasCountyMatrix(unittest.TestCase):
 
     def test_unknown_counties_have_no_invented_parcel_total(self):
         unknown = [r for r in matrix() if r["reuse"] == "unknown"]
-        self.assertGreater(len(unknown), 200)
+        self.assertGreater(len(unknown), 150)
         for row in unknown:
             self.assertIsNone(row["commercial_universe"])
             self.assertIsNone(row["staged_parcels"])
@@ -86,9 +86,13 @@ class TexasCountyMatrix(unittest.TestCase):
         self.assertIsNone(by["48265"]["staged_parcels"])
         self.assertIsNone(by["48373"]["staged_parcels"])
         self.assertEqual(by["48213"]["reuse"], "blocked")
-        self.assertIsNone(by["48361"]["staged_parcels"])
-        self.assertIsNone(by["48183"]["staged_parcels"])
-        self.assertIsNone(by["48251"]["staged_parcels"])
+        self.assertEqual(by["48361"]["staged_parcels"], 2348)
+        self.assertEqual(by["48183"]["staged_parcels"], 6435)
+        self.assertEqual(by["48251"]["staged_parcels"], 4416)
+        self.assertEqual(by["48219"]["staged_parcels"], 1475)
+        self.assertEqual(by["48285"]["staged_parcels"], 1371)
+        self.assertEqual(by["48165"]["staged_parcels"], 1292)
+        self.assertEqual(by["48019"]["staged_parcels"], 888)
         self.assertIsNone(by["48231"]["staged_parcels"])
         self.assertIsNone(by["48397"]["staged_parcels"])
         self.assertIsNone(by["48139"]["staged_parcels"])
