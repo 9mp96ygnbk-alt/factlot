@@ -21,9 +21,22 @@ export function formEncode(params: Params): string {
   return out.toString();
 }
 
+export interface CallOptions {
+  /** Abort the call after this long (default 10 s). */
+  timeoutMs?: number;
+}
+
 export interface StripeClient {
-  get(path: string, params?: Params): Promise<Record<string, unknown>>;
-  post(path: string, params?: Params): Promise<Record<string, unknown>>;
+  get(
+    path: string,
+    params?: Params,
+    opts?: CallOptions,
+  ): Promise<Record<string, unknown>>;
+  post(
+    path: string,
+    params?: Params,
+    opts?: CallOptions,
+  ): Promise<Record<string, unknown>>;
 }
 
 export function stripeClient(
@@ -34,6 +47,7 @@ export function stripeClient(
     method: "GET" | "POST",
     path: string,
     params: Params = {},
+    opts: CallOptions = {},
   ) => {
     const query = method === "GET" ? formEncode(params) : "";
     const res = await fetchImpl(`${API}${path}${query ? `?${query}` : ""}`, {
@@ -43,8 +57,12 @@ export function stripeClient(
         "content-type": "application/x-www-form-urlencoded",
       },
       body: method === "POST" ? formEncode(params) : undefined,
+      signal: AbortSignal.timeout(opts.timeoutMs ?? 10_000),
     });
-    const body = (await res.json()) as Record<string, unknown>;
+    const body = (await res.json().catch(() => ({}))) as Record<
+      string,
+      unknown
+    >;
     if (!res.ok) {
       const err = body.error as { message?: string; type?: string } | undefined;
       // Stripe's message names the problem (bad price, portal not configured); it never echoes the key.
@@ -53,8 +71,8 @@ export function stripeClient(
     return body;
   };
   return {
-    get: (path, params) => call("GET", path, params),
-    post: (path, params) => call("POST", path, params),
+    get: (path, params, opts) => call("GET", path, params, opts),
+    post: (path, params, opts) => call("POST", path, params, opts),
   };
 }
 
