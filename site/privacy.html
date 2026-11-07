@@ -75,9 +75,11 @@
             </li>
             <li>
               <strong>Lookup quota counters.</strong> To enforce registry lookup
-              quotas, lookups are counted per IP address for the current day on
-              the Free plan, and per subscription for the current month on paid
-              plans. A counter is deleted when its window ends.
+              quotas, lookups are counted for the current day on the Free plan,
+              keyed by a hash of the IP address (for IPv6, of its /64 prefix),
+              never the address itself, and per subscription for the current
+              month on paid plans. Days and months are UTC. A counter is deleted
+              when its window ends.
             </li>
             <li>
               <strong>Error logs.</strong> When a request fails, the Worker logs
@@ -88,7 +90,10 @@
               <strong>Key records.</strong> For each paid key we store a SHA-256
               hash of the key, the plan, the key's status, the Stripe customer
               and subscription IDs, the subscription status, the date the key
-              was created and the time of the last subscription check.
+              was created, the time of the last subscription check, the time the
+              key was revoked (<code>revoked_at</code>), whether a refund or
+              payment dispute has put the key on hold, and the time a payment
+              last failed (<code>payment_failed_at</code>).
             </li>
           </ul>
           <h3>Billing</h3>
@@ -129,11 +134,11 @@
             <li>Cookies, tracking pixels or advertising identifiers.</li>
             <li>
               Natural-person names in the registry. The registry holds
-              commercial property and the organisations that own it. A person's
-              name is never stored or indexed, and owner records a source
-              withheld are never recovered or inferred. If you believe a record
-              names you as a person, or is wrong, email us and we will review
-              and remove or correct it.
+              commercial property and the organisations that own it. It is built
+              to keep owners that are organisations and to exclude natural
+              persons' names, and owner records a source withheld are never
+              recovered or inferred. If a record names you as a person, or is
+              wrong, email contact@factlot.com and we will remove or correct it.
             </li>
           </ul>
           <p>
@@ -285,32 +290,35 @@
             <li>stop using it for a purpose you object to.</li>
           </ul>
           <p>
-            <strong>California residents</strong> have these rights under the
-            California Consumer Privacy Act as amended by the California Privacy
-            Rights Act: to know what personal information we collect, use and
-            disclose; to delete it; to correct it; to opt out of its sale or
-            sharing; and to limit the use of sensitive personal information. We
-            do not sell or share personal information and do not use sensitive
-            personal information, so there is nothing to opt out of or limit.
+            We give everyone the rights above. Where the California Consumer
+            Privacy Act or the Texas Data Privacy and Security Act applies, they
+            include the rights that law sets out.
           </p>
           <p>
-            <strong>Texas residents</strong> have these rights under the Texas
-            Data Privacy and Security Act: to confirm whether we process your
-            personal data and to access it; to correct it; to delete it; to get
-            a portable copy; and to opt out of targeted advertising, sale, and
-            profiling that has legal or similarly significant effects. We do
-            none of those three. If we decline your request, you may appeal by
-            replying to our answer with the word "Appeal"; we answer an appeal
-            within 60 days. If you are not satisfied with that answer, you can
-            contact the
+            <strong>California Consumer Privacy Act</strong> (as amended by the
+            California Privacy Rights Act): the rights to know what personal
+            information we collect, use and disclose; to delete it; to correct
+            it; to opt out of its sale or sharing; and to limit the use of
+            sensitive personal information. We do not sell or share personal
+            information and do not use sensitive personal information, so there
+            is nothing to opt out of or limit.
+          </p>
+          <p>
+            <strong>Texas Data Privacy and Security Act</strong>: the rights to
+            confirm whether we process your personal data and to access it; to
+            correct it; to delete it; to get a portable copy; and to opt out of
+            targeted advertising, sale, and profiling that has legal or
+            similarly significant effects. We do none of those three. If we
+            decline your request, you may appeal by replying to our answer with
+            the word "Appeal"; we answer an appeal within 60 days. If you are
+            not satisfied with that answer, you can contact the
             <a href="https://www.texasattorneygeneral.gov/consumer-protection"
               >Texas Attorney General</a
             >.
           </p>
           <p>
             We will not treat you differently, charge you more or give you a
-            worse service for using any of these rights. We give them to
-            everyone, whether or not a law requires it.
+            worse service for using any of these rights.
           </p>
 
           <h2 id="exercise">How to use your rights</h2>
