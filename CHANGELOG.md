@@ -13,6 +13,10 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 
 ## [Unreleased]
 
+### Added
+
+- Registry audit records of 2026-11-06 (`docs/registry/quality/audit-2026-11-06/`): Maryland SDAT, 57 New York ORPTS counties, MassGIS (no county passes) and six single-county loads; an Indiana statewide parcels adapter with an unverified source config (the licence text states no licence to copy or redistribute); review records, nothing loaded, for 13 Indiana counties and two Florida sources (Hillsborough, Miami-Dade).
+
 ### Changed
 
 - Tool input: a `null` for a field the input schema names is treated as the field left out, in TypeScript and Python alike (shared vectors in `spec/vectors/tools.json`). Some agent frameworks (the `crewai-tools` MCP adapter) send `null` for every optional field the model skips, which used to fail with "expected number, received null". A required field sent as `null` is reported as missing; a misspelled field is still reported even when `null`; open objects (facts, fact packages) keep their nulls, since a package's signature covers them.
