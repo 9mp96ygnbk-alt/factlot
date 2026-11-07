@@ -1,0 +1,11 @@
+{
+  "audited_on": "2026-11-06",
+  "source_id": "ma-massgis-parcels",
+  "method": "factlot.registry.audit.reread_source_file on factlot.registry.adapters.ma_massgis",
+  "why_not_the_audit_json": "audit.adapter_for only imports the original Tier 1 adapter modules, and ma_massgis is not among them, so the audit JSON records 'no adapter registered' for every file.",
+  "files": 350,
+  "matched_registry": 350,
+  "mismatched": 0,
+  "missing_files": 0,
+  "header_like_apns": 0
+}

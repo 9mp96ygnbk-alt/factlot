@@ -796,9 +796,9 @@ By town (`County` is the 3-digit county FIPS; `Kept` is in-scope records):
 
 ## Known gaps
 
-- **The 174 towns added on 2026-11-03 are not loaded yet**; they are in the config and follow the same
-  layout. Their in-scope counts are unknown until the collector archives them. Chatham and Pelham's files
-  date from 2021 (FY2018, FY2019).
+- **The 174 towns added on 2026-11-03 are loaded.** The sentence that they were not loaded yet was overtaken
+  the same day by the statewide full load above, and the 2026-11-06 collection below archived the same 350
+  files again. Chatham and Pelham remain the old files (FY2018, as-of 2017-01-01; FY2019, as-of 2018-01-01).
 - **Towns update on their own schedules**: file dates in the bucket run from 2021 to 2026, and a town's
   fiscal year may be a year behind (Framingham is FY2025). Each snapshot carries its own as-of date; no
   statewide "current" date exists.
@@ -816,3 +816,26 @@ By town (`County` is the 3-digit county FIPS; `Kept` is in-scope records):
   town id outside 1-351 raises one unless `--county-fips` is given.
 - Local codes outside the DOR scheme (`110`, `109C`, `1132`; see the statewide extension) stay out of scope,
   including Middleborough's "APT 4-8 RES".
+
+## Release collected 2026-11-06
+
+The S3 listing was read again on 2026-11-06 (`list-type=2`, prefix `shapefiles/l3parcels/L3_SHP_M`,
+`IsTruncated` false): 351 zips, 934,157,232 bytes, `Last-Modified` from 2021-09-08 through 2026-10-30,
+the same byte total as the 2026-11-03 listing. `L3_SHP_M035_BOSTON.zip` (31,023,097 bytes, modified
+2026-10-30) was left in the bucket. The collector archived the other 350 files (903,134,135 bytes, every
+size matching the listing, every `sha16` matching the November 3 paths). The registry built from that
+archive holds the same 127,922 parcels. The Tier 1 audit and the pass/fail by county
+are in [ma-massgis-parcels.md](../quality/audit-2026-11-06/ma-massgis-parcels.md). No county passes: the audit
+has one violation (57 extra facts where a repeated `PROP_ID` kept two values), and every county includes a
+town whose assessment as-of is more than 400 days before 2026-11-06.
+
+The as-of date is 1 January of the year before the file's `FY` column, which matches the `FY##` in the
+Assess filename wherever the filename has one. Sixty-six towns are FY2027 (as-of 2026-01-01, 309 days
+before 2026-11-06). The other 284 are older: FY2026 215 towns, FY2025 56, FY2024 8, FY2022 3, FY2019 1
+(Pelham), FY2018 1 (Chatham).
+
+Each zip's Assess table metadata still contains the recorded public-domain sentence, read 2026-11-06 in all
+350 files. The Massachusetts DOR use-code mapping used for the counts is documented in the quality note. A
+published commercial-parcel total is unavailable (the mass.gov page returns 403 and the zips have no
+summary count). Counted from these Assess tables, the publisher's commercial series 300–393 is 77,695
+records, the industrial series 400–452 is 24,055, and apartment codes 111, 112 and 114 are 26,190.
