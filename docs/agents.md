@@ -215,8 +215,8 @@ Conventions:
 ## Texas unequal-appraisal candidates
 
 `registry_tx_equity_candidates` lists candidate comparable parcels for a Texas unequal-appraisal
-comparison (Tax Code §41.43(b)(3)) from a local registry file (`FACTLOT_REGISTRY_DB`; the hosted
-API has no registry loaded). Give the subject as `urn`, or as `county_fips` and `apn`. Parcels
+comparison (Tax Code §41.43(b)(3)) from a registry file (`FACTLOT_REGISTRY_DB`) on a self-hosted FactLot. The
+hosted API lists the tool but has no Texas registry yet, so it returns a coverage miss there. Give the subject as `urn`, or as `county_fips` and `apn`. Parcels
 outside Texas are an input error, and so are Tarrant County parcels: Tarrant Appraisal District's
 published signals do not say whether serving its data to AI agents is allowed, so FactLot does not
 serve Tarrant comparables until that is clarified.
@@ -257,7 +257,7 @@ serve Tarrant comparables until that is clarified.
 ## Example: Claude Messages API with the Python SDK
 
 Requires `pip install anthropic` and an `ANTHROPIC_API_KEY`. The loop passes every tool, so the
-model may call a `registry_*` tool; without a registry it gets `RegistryUnavailable` and moves on.
+model may call a `registry_*` tool; on a server with no registry it gets `RegistryUnavailable`, and for a region the registry does not hold it gets a coverage miss. Either way it moves on. On the hosted API, call `registry_coverage` first.
 
 ```python
 import json

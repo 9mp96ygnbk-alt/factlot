@@ -1100,9 +1100,19 @@
     }
   ],
   "queryable": {
-    "dc-otr-real-property": "Yes: the DC registry sample (a downloadable file you run locally; hosted lookups are not open)",
-    "dc-dcgis-zoning": "Yes: in the DC registry sample",
-    "dc-dlcp-entities": "Yes: in the DC registry sample"
+    "dc-otr-real-property": "Yes: hosted on api.factlot.com, and the same data as the downloadable DC registry sample",
+    "dc-dcgis-zoning": "Yes: hosted on api.factlot.com, and in the DC registry sample",
+    "dc-dlcp-entities": "Yes: hosted on api.factlot.com, and in the DC registry sample"
+  },
+  "hosted_areas": {
+    "md-sdat-real-property": {
+      "areas": "all",
+      "text": "Yes: hosted on api.factlot.com (all Maryland jurisdictions)"
+    },
+    "ut-ugrc-lir": {
+      "areas": ["49023", "49043"],
+      "text": "Yes: hosted on api.factlot.com (Juab and Summit counties only)"
+    }
   },
   "queryable_cite": {
     "doc": "llms.txt",

@@ -15,6 +15,7 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 
 ### Added
 
+- Hosted registry lookups on api.factlot.com for Maryland, DC and two Utah counties (128,854 parcels), on every plan.
 - Registry: a Texas appraisal-roll reader for the PACS 8.0.34 export layout (`tx_pacs34`). It maps a district's own state-code table to Comptroller categories, leaves out codes the table does not list, and stores organisation owners only.
 - Registry: Andrews County appraisal-roll adapter (`tx_andrews`), reading the 2026 real-property workbook with the district's 2025 state-code table. Local codes the table does not map to one Comptroller category are left out.
 - Registry: Bastrop appraisal-roll adapter (`tx_bastrop`), reading the vendor tab export by its parcel-use code.

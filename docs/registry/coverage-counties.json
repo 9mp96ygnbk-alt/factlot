@@ -3,14 +3,14 @@
   "reference_date": "2026-11-06",
   "max_age_days": 400,
   "classes": {
-    "published_sample": "Published for download today (CC BY 4.0 sample database). Hosted lookups are not open.",
-    "audited_load": "Whole-county load from a verified source; the quality audit re-read the archived publisher file and found the registry holds exactly its in-scope parcels, with 0 violations. Built, not yet hosted.",
-    "cited_load": "Whole-county load from a verified source with a per-county count and as-of date in the record; not yet covered by the quality audit. Built, not yet hosted."
+    "hosted": "Registry lookups for this county are served by the hosted API at api.factlot.com on every plan; call registry_coverage to list what is hosted. DC's data is also the downloadable CC BY 4.0 sample database.",
+    "audited_load": "Whole-county load from a verified source; the quality audit re-read the archived publisher file and found the registry holds exactly its in-scope parcels, with 0 violations. Built, not yet hosted (run it on a self-hosted FactLot).",
+    "cited_load": "Whole-county load from a verified source with a per-county count and as-of date in the record; not yet covered by the quality audit. Built, not yet hosted (run it on a self-hosted FactLot)."
   },
   "counts": {
     "audited_load": 15,
-    "cited_load": 114,
-    "published_sample": 1
+    "cited_load": 88,
+    "hosted": 27
   },
   "geography": "US Census 2020 county FIPS codes (spec/registry/county-names.tsv, 3,235 county equivalents incl. territories)",
   "counties": {
@@ -73,7 +73,7 @@
     "11001": {
       "name": "District of Columbia",
       "state": "DC",
-      "class": "published_sample",
+      "class": "hosted",
       "source_id": "dc-otr-real-property",
       "commercial_parcels": 18077,
       "organisation_owners_row": 11572,
@@ -81,7 +81,7 @@
       "entity_links": "8,377 linked to the DC DLCP file",
       "owner_link_rate_audited": "72.39%",
       "data_as_of": "2026-11-02",
-      "hosted": "download only (hosted lookups not open)",
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/dc-otr-real-property.md"
     },
     "13089": {
@@ -115,7 +115,7 @@
     "24001": {
       "name": "Allegany County",
       "state": "MD",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "md-sdat-real-property",
       "commercial_parcels": 3433,
       "organisation_owners_row": 0,
@@ -123,13 +123,13 @@
       "entity_links": "0 ownership links",
       "owner_link_rate_audited": null,
       "data_as_of": "2026-10-05",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/md-sdat-real-property.md"
     },
     "24003": {
       "name": "Anne Arundel County",
       "state": "MD",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "md-sdat-real-property",
       "commercial_parcels": 9046,
       "organisation_owners_row": 0,
@@ -137,13 +137,13 @@
       "entity_links": "0 ownership links",
       "owner_link_rate_audited": null,
       "data_as_of": "2026-10-05",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/md-sdat-real-property.md"
     },
     "24005": {
       "name": "Baltimore County",
       "state": "MD",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "md-sdat-real-property",
       "commercial_parcels": 14494,
       "organisation_owners_row": null,
@@ -151,13 +151,13 @@
       "entity_links": "none: owner names withheld",
       "owner_link_rate_audited": null,
       "data_as_of": "2026-10-05",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/tier2/README.md"
     },
     "24009": {
       "name": "Calvert County",
       "state": "MD",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "md-sdat-real-property",
       "commercial_parcels": 1042,
       "organisation_owners_row": 0,
@@ -165,13 +165,13 @@
       "entity_links": "0 ownership links",
       "owner_link_rate_audited": null,
       "data_as_of": "2026-10-05",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/md-sdat-real-property.md"
     },
     "24011": {
       "name": "Caroline County",
       "state": "MD",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "md-sdat-real-property",
       "commercial_parcels": 891,
       "organisation_owners_row": 0,
@@ -179,13 +179,13 @@
       "entity_links": "0 ownership links",
       "owner_link_rate_audited": null,
       "data_as_of": "2026-10-05",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/md-sdat-real-property.md"
     },
     "24013": {
       "name": "Carroll County",
       "state": "MD",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "md-sdat-real-property",
       "commercial_parcels": 3318,
       "organisation_owners_row": 0,
@@ -193,13 +193,13 @@
       "entity_links": "0 ownership links",
       "owner_link_rate_audited": null,
       "data_as_of": "2026-10-05",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/md-sdat-real-property.md"
     },
     "24015": {
       "name": "Cecil County",
       "state": "MD",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "md-sdat-real-property",
       "commercial_parcels": 2605,
       "organisation_owners_row": 0,
@@ -207,13 +207,13 @@
       "entity_links": "0 ownership links",
       "owner_link_rate_audited": null,
       "data_as_of": "2026-10-05",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/md-sdat-real-property.md"
     },
     "24017": {
       "name": "Charles County",
       "state": "MD",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "md-sdat-real-property",
       "commercial_parcels": 3044,
       "organisation_owners_row": 0,
@@ -221,13 +221,13 @@
       "entity_links": "0 ownership links",
       "owner_link_rate_audited": null,
       "data_as_of": "2026-10-05",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/md-sdat-real-property.md"
     },
     "24019": {
       "name": "Dorchester County",
       "state": "MD",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "md-sdat-real-property",
       "commercial_parcels": 1131,
       "organisation_owners_row": 0,
@@ -235,13 +235,13 @@
       "entity_links": "0 ownership links",
       "owner_link_rate_audited": null,
       "data_as_of": "2026-10-05",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/md-sdat-real-property.md"
     },
     "24021": {
       "name": "Frederick County",
       "state": "MD",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "md-sdat-real-property",
       "commercial_parcels": 4353,
       "organisation_owners_row": 0,
@@ -249,13 +249,13 @@
       "entity_links": "0 ownership links",
       "owner_link_rate_audited": null,
       "data_as_of": "2026-10-05",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/md-sdat-real-property.md"
     },
     "24023": {
       "name": "Garrett County",
       "state": "MD",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "md-sdat-real-property",
       "commercial_parcels": 1445,
       "organisation_owners_row": 0,
@@ -263,13 +263,13 @@
       "entity_links": "0 ownership links",
       "owner_link_rate_audited": null,
       "data_as_of": "2026-10-05",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/md-sdat-real-property.md"
     },
     "24025": {
       "name": "Harford County",
       "state": "MD",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "md-sdat-real-property",
       "commercial_parcels": 3735,
       "organisation_owners_row": 0,
@@ -277,13 +277,13 @@
       "entity_links": "0 ownership links",
       "owner_link_rate_audited": null,
       "data_as_of": "2026-10-05",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/md-sdat-real-property.md"
     },
     "24027": {
       "name": "Howard County",
       "state": "MD",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "md-sdat-real-property",
       "commercial_parcels": 4226,
       "organisation_owners_row": 0,
@@ -291,13 +291,13 @@
       "entity_links": "0 ownership links",
       "owner_link_rate_audited": null,
       "data_as_of": "2026-10-05",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/md-sdat-real-property.md"
     },
     "24029": {
       "name": "Kent County",
       "state": "MD",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "md-sdat-real-property",
       "commercial_parcels": 676,
       "organisation_owners_row": 0,
@@ -305,13 +305,13 @@
       "entity_links": "0 ownership links",
       "owner_link_rate_audited": null,
       "data_as_of": "2026-10-05",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/md-sdat-real-property.md"
     },
     "24031": {
       "name": "Montgomery County",
       "state": "MD",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "md-sdat-real-property",
       "commercial_parcels": 11578,
       "organisation_owners_row": null,
@@ -319,13 +319,13 @@
       "entity_links": "none: owner names withheld",
       "owner_link_rate_audited": null,
       "data_as_of": "2026-10-05",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/tier2/README.md"
     },
     "24033": {
       "name": "Prince George's County",
       "state": "MD",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "md-sdat-real-property",
       "commercial_parcels": 13023,
       "organisation_owners_row": null,
@@ -333,13 +333,13 @@
       "entity_links": "none: owner names withheld",
       "owner_link_rate_audited": null,
       "data_as_of": "2026-10-05",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/tier2/README.md"
     },
     "24035": {
       "name": "Queen Anne's County",
       "state": "MD",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "md-sdat-real-property",
       "commercial_parcels": 1528,
       "organisation_owners_row": 0,
@@ -347,13 +347,13 @@
       "entity_links": "0 ownership links",
       "owner_link_rate_audited": null,
       "data_as_of": "2026-10-05",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/md-sdat-real-property.md"
     },
     "24037": {
       "name": "St. Mary's County",
       "state": "MD",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "md-sdat-real-property",
       "commercial_parcels": 1945,
       "organisation_owners_row": 0,
@@ -361,13 +361,13 @@
       "entity_links": "0 ownership links",
       "owner_link_rate_audited": null,
       "data_as_of": "2026-10-05",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/md-sdat-real-property.md"
     },
     "24039": {
       "name": "Somerset County",
       "state": "MD",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "md-sdat-real-property",
       "commercial_parcels": 994,
       "organisation_owners_row": 0,
@@ -375,13 +375,13 @@
       "entity_links": "0 ownership links",
       "owner_link_rate_audited": null,
       "data_as_of": "2026-10-05",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/md-sdat-real-property.md"
     },
     "24041": {
       "name": "Talbot County",
       "state": "MD",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "md-sdat-real-property",
       "commercial_parcels": 1418,
       "organisation_owners_row": 0,
@@ -389,13 +389,13 @@
       "entity_links": "0 ownership links",
       "owner_link_rate_audited": null,
       "data_as_of": "2026-10-05",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/md-sdat-real-property.md"
     },
     "24043": {
       "name": "Washington County",
       "state": "MD",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "md-sdat-real-property",
       "commercial_parcels": 3690,
       "organisation_owners_row": 0,
@@ -403,13 +403,13 @@
       "entity_links": "0 ownership links",
       "owner_link_rate_audited": null,
       "data_as_of": "2026-10-05",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/md-sdat-real-property.md"
     },
     "24045": {
       "name": "Wicomico County",
       "state": "MD",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "md-sdat-real-property",
       "commercial_parcels": 3204,
       "organisation_owners_row": 0,
@@ -417,13 +417,13 @@
       "entity_links": "0 ownership links",
       "owner_link_rate_audited": null,
       "data_as_of": "2026-10-05",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/md-sdat-real-property.md"
     },
     "24047": {
       "name": "Worcester County",
       "state": "MD",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "md-sdat-real-property",
       "commercial_parcels": 3594,
       "organisation_owners_row": 0,
@@ -431,13 +431,13 @@
       "entity_links": "0 ownership links",
       "owner_link_rate_audited": null,
       "data_as_of": "2026-10-05",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/md-sdat-real-property.md"
     },
     "24510": {
       "name": "Baltimore city",
       "state": "MD",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "md-sdat-real-property",
       "commercial_parcels": 14832,
       "organisation_owners_row": 0,
@@ -445,7 +445,7 @@
       "entity_links": "0 ownership links",
       "owner_link_rate_audited": null,
       "data_as_of": "2026-10-05",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/md-sdat-real-property.md"
     },
     "26125": {
@@ -1613,7 +1613,7 @@
     "49023": {
       "name": "Juab County",
       "state": "UT",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "ut-ugrc-lir",
       "commercial_parcels": 359,
       "organisation_owners_row": 0,
@@ -1621,7 +1621,7 @@
       "entity_links": "0 ownership links",
       "owner_link_rate_audited": null,
       "data_as_of": "2025-11-26",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/ut-ugrc-lir.md"
     },
     "49025": {
@@ -1725,7 +1725,7 @@
     "49043": {
       "name": "Summit County",
       "state": "UT",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "ut-ugrc-lir",
       "commercial_parcels": 1169,
       "organisation_owners_row": 0,
@@ -1733,7 +1733,7 @@
       "entity_links": "0 ownership links",
       "owner_link_rate_audited": null,
       "data_as_of": "2025-11-26",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/ut-ugrc-lir.md"
     },
     "49045": {

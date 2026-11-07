@@ -1,20 +1,22 @@
 # Getting started
 
 Three ways to use FactLot, depending on where your agent runs. All three serve the same core
-tools from one catalog: twenty-five calculators, a Texas protest-deadline rule, FactLot IDs, and fact
-validation. The MCP servers (local and `/mcp`) always add `search`/`fetch`/`schema_get`. The six
-`registry_*` tools are listed (in MCP `tools/list`, `GET /v1/tools`, and both OpenAPI documents)
-only when a registry database is configured (`FACTLOT_REGISTRY_DB`); without one, their REST routes
-answer `503 RegistryUnavailable`. The hosted API does not serve the registry yet, so it lists 44
-tools over REST and 47 over MCP. The TypeScript and Python tool exports always include the registry
-tools. For which tool to call when, see [agents.md](agents.md).
+tools from one catalog: twenty-six calculators, a Texas protest-deadline rule, FactLot IDs, fact
+validation, document tools and lease comps (45 tools). The MCP servers (local and `/mcp`) always add
+`search`/`fetch`/`schema_get`. The eight `registry_*` tools are listed (in MCP `tools/list`,
+`GET /v1/tools`, and both OpenAPI documents) only when a registry is available: a registry database
+configured with `FACTLOT_REGISTRY_DB`, or the hosted API's registry service. Without one, their REST
+routes answer `503 RegistryUnavailable`. The hosted API at `https://api.factlot.com` serves the
+regions `registry_coverage` lists (Maryland, the District of Columbia and Juab and Summit counties in
+Utah), so it lists 53 tools over REST and 56 over MCP. The TypeScript and Python tool exports always
+include the registry tools. For which tool to call when, see [agents.md](agents.md).
 
 ## 0. The hosted API (nothing to install)
 
 `https://api.factlot.com` serves the same tools, free at 60 requests a minute per IP with no key
 (Pro and Team keys raise the limit). Remote MCP is `https://api.factlot.com/mcp`; REST is
 `POST https://api.factlot.com/v1/<group>/<name>` (paths in `GET /v1/tools`); OpenAPI is
-`/openapi.json` (3.1, every tool) and `/openapi-3.0.json` (the Custom GPT subset).
+`/openapi.json` (3.1, every tool) and `/openapi-3.0.json` (the Custom GPT subset of 30 operations).
 
 ```bash
 curl -s https://api.factlot.com/v1/calc/irr -H 'content-type: application/json' \

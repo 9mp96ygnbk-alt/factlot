@@ -68,7 +68,29 @@ curl -fLO https://github.com/9mp96ygnbk-alt/factlot/releases/download/registry-s
 FACTLOT_REGISTRY_DB="$PWD/factlot-registry-sample-dc-2026-11-04.db" npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.4.0/factlot-mcp-standalone-0.4.0.tgz
 ```
 
-**Paid plans:** [Pro $49 a month and Team $599 a month](https://factlot.com/#pricing) raise the hosted limits and include hosted registry lookups as each region opens (none is open yet). Enterprise and private deployments: [contact@factlot.com](mailto:contact@factlot.com?subject=FactLot%20hosted%20registry%20early%20access). Questions and bug reports go in [GitHub Discussions](https://github.com/9mp96ygnbk-alt/factlot/discussions) and Issues.
+**Paid plans:** [Pro $49 a month and Team $599 a month](https://factlot.com/#pricing) raise the hosted limits; registry lookups are on every plan, including the free tier. Enterprise, private deployments and further hosted regions: [contact@factlot.com](mailto:contact@factlot.com?subject=FactLot%20hosted%20registry%20regions). Questions and bug reports go in [GitHub Discussions](https://github.com/9mp96ygnbk-alt/factlot/discussions) and Issues.
+
+## Hosted registry
+
+The hosted API at `https://api.factlot.com` answers registry lookups on every plan, including the
+free tier with no key (60 requests a minute per IP). These regions are hosted:
+
+| Region               | Hosted data                                                                                                                                            | Licence                          |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------- |
+| Maryland             | All 24 jurisdictions: 109,249 commercial parcels and 2,812 buildings, SDAT data as of 2026-11-05                                                       | Public domain                    |
+| District of Columbia | 18,077 commercial parcels, 5,513 registered business entities and 396 buildings, with owners of record (organisations only), zoning and recorded sales | CC BY 4.0                        |
+| Utah                 | Juab and Summit counties: 1,528 parcels, snapshot as of 2025-11-26                                                                                     | CC BY 4.0, "State of Utah, SGID" |
+
+That is 128,854 parcels in 27 counties. Call `registry_coverage` first: it lists exactly what is
+hosted, and a lookup outside it returns a coverage miss. Every answer cites its source file and the
+licence or attribution that goes with it. Owners are organisations only; a natural person's name is
+never stored, and the Maryland and Utah files carry no owner names. The DC data is the same as the
+downloadable sample registry-sample-dc-2026-11-04.
+
+The other regions in the project's pipeline (Texas, New York City and more) are available only on a
+self-hosted FactLot with a registry file; more hosted regions open as their terms allow.
+`registry_tx_equity_candidates` is listed on the hosted API, but no Texas region is hosted yet, so
+it returns a coverage miss there.
 
 ## What FactLot is
 
@@ -94,7 +116,7 @@ Be clear about scope before adopting it:
 
 - **Calculators, IDs, and the fact model work anywhere.** They need no data and no API key, and
   they run offline in both SDKs with identical results.
-- **The registry covers the largest metros, unevenly, and most of it is not queryable yet.** The
+- **The registry covers the largest metros, unevenly, and most of it is not hosted yet.** The
   project's registry pipeline has built and verified 1,733,923 commercial, industrial and
   multifamily parcels in 330 counties (19 states and DC) from 40 public-record sources, with 14.2
   million registered entities from Texas, New York, Colorado, Pennsylvania, DC and Connecticut for
@@ -104,8 +126,7 @@ Be clear about scope before adopting it:
   Massachusetts, Vermont, Arkansas and Connecticut, most of Utah, 24 Minnesota counties
   and Montana's apartments and industrial parcels
   ([catalog](docs/registry/sources/README.md), [quality report](docs/registry/quality/tier1-2026-11-03.md)).
-  **What you can query today** is the downloadable District of Columbia sample (18,077 parcels)
-  on a self-hosted FactLot; hosted registry lookups are not open yet. Cook County, Florida, Fulton,
+  **What you can query today** on the hosted API is Maryland, the District of Columbia and Juab and Summit counties in Utah (128,854 parcels; see [Hosted registry](#hosted-registry)); every other region needs a self-hosted FactLot with a registry file. Cook County, Florida, Fulton,
   Maricopa, Wayne, Fairfax, King and much of California wait on a licence decision, a form or a
   purchase. Several public files omit owner names (Maryland, Utah, Los Angeles, San Francisco); zoning, recorded sales, deeds and mortgages,
   energy benchmarks and CMBS loan data only for some metros ([coverage](docs/registry/coverage.md)); no tenant rosters. See
@@ -118,8 +139,8 @@ Be clear about scope before adopting it:
   [privacy notice](https://factlot.com/privacy)); for confidential documents, self-host FactLot so
   nothing leaves your network.
 - **Hosted, but not yet on npm or PyPI.** The hosted endpoint at `https://api.factlot.com` serves
-  the calculators, IDs and fact tools (free at 60 requests a minute); registry tools need a
-  self-hosted copy with a registry file. To run it yourself, install from the
+  the calculators, IDs, fact tools and registry lookups for the regions above (free at 60 requests a
+  minute); registry regions not hosted need a self-hosted copy with a registry file. To run it yourself, install from the
   [v0.4.0 release](https://github.com/9mp96ygnbk-alt/factlot/releases/tag/v0.4.0), from git, from
   source, or with Docker ([getting started](docs/getting-started.md)).
 
@@ -188,9 +209,10 @@ The server provides these tools:
 - **Documents:** `doc_verify_facts`, `doc_abstract_lease`, `doc_compare`, `doc_verify_claim`,
   `doc_spread_statement`, `doc_check_use_conflict`
 - **Discovery:** `search`, `fetch`, `schema_get`
-- **Registry** (when `FACTLOT_REGISTRY_DB` points at a registry file): `registry_get`,
-  `registry_resolve_parcel`, `registry_resolve_external`, `registry_search_address`,
-  `registry_search_entities`, `registry_owned_by`, `registry_coverage`
+- **Registry** (hosted for the regions `registry_coverage` lists, and on a self-hosted FactLot when
+  `FACTLOT_REGISTRY_DB` points at a registry file): `registry_get`, `registry_resolve_parcel`,
+  `registry_resolve_external`, `registry_search_address`, `registry_search_entities`,
+  `registry_owned_by`, `registry_coverage`, `registry_tx_equity_candidates`
 
 ## Quick start: Python agents
 

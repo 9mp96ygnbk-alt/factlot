@@ -164,7 +164,10 @@ const READ_ONLY = {
 } as const;
 
 export interface CreateServerOptions {
-  /** Register registry_* tools. Default: only when a registry is configured (FACTLOT_REGISTRY_DB). */
+  /**
+   * Register registry_* tools. Default: only when a registry is available: a registry file
+   * (FACTLOT_REGISTRY_DB) or the registry service the hosted API attaches.
+   */
   registry?: boolean;
   /**
    * Register the tools that read files on this machine (doc_read_pdf, fact_package_sign). Only the

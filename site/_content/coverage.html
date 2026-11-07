@@ -9,8 +9,8 @@
   <figcaption id="covmap-cap">
     <ul class="covlegend" aria-label="Legend">
       <li>
-        <span class="sw cov-published_sample" aria-hidden="true"></span>Download
-        today <span class="n">{{COV_N_PUBLISHED}}</span>
+        <span class="sw cov-hosted" aria-hidden="true"></span>Hosted lookups
+        <span class="n">{{COV_N_HOSTED}}</span>
       </li>
       <li>
         <span class="sw cov-audited_load" aria-hidden="true"></span>Audited, not
@@ -35,8 +35,11 @@
 <h2 id="meaning">What the colors mean</h2>
 <ul class="plain">
   <li>
-    <strong>Download today.</strong> Published as an open sample database (CC BY
-    4.0) you can run with the FactLot MCP server.
+    <strong>Hosted lookups.</strong> Served by the hosted API at
+    <code>api.factlot.com</code> on every plan, including the free tier. Call
+    <code>registry_coverage</code> to list what is hosted. DC's data is also
+    published as an open sample database (CC BY 4.0) you can run with the
+    FactLot MCP server.
   </li>
   <li>
     <strong>Audited, not yet hosted.</strong> The whole county's commercial roll
@@ -56,7 +59,9 @@
   </li>
 </ul>
 <p>
-  Hosted lookups are not open yet. To ask for early access for a county,
+  Hosted lookups are open now for the counties marked hosted: Maryland, the
+  District of Columbia, and Juab and Summit counties in Utah. To ask for another
+  county,
   <a href="mailto:contact@factlot.com?subject=FactLot%20county%20coverage"
     >email us</a
   >.

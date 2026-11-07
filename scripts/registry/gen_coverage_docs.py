@@ -413,6 +413,17 @@ def gen_rights(configs: list[dict]) -> str:
 # ------------------------------------------------------------------ coverage.md
 
 
+def hosted_area(data: dict, sid: str, area: str) -> dict | None:
+    """The coverage-data.json `hosted_areas` entry for `sid` when it covers the county row `area` (None if not hosted)."""
+    h = data.get("hosted_areas", {}).get(sid)
+    if not h:
+        return None
+    if h["areas"] == "all":
+        return h
+    m = re.search(r"\((\d{5})\)", area or "")
+    return h if m and m.group(1) in h["areas"] else None
+
+
 def coverage_rows(configs: list[dict]) -> tuple[dict, dict, dict[str, list[dict]]]:
     """The checked coverage rows, by state: curated loads plus the per-county tables of the statewide records.
 
@@ -480,6 +491,24 @@ def gen_coverage(configs: list[dict]) -> str:
     entity_sources = [s for s in configs if "entities" in s["source_id"] or s["source_id"] == "tx-comptroller-franchise"]
     queryable = data["queryable"]
 
+    def queryable_text(sid: str, area: str = "") -> str | None:
+        """The 'Queryable today' cell for a source (and, for a partly hosted source, a county row), or None."""
+        if sid in queryable:
+            return queryable[sid]
+        h = hosted_area(data, sid, area)
+        return h["text"] if h else None
+
+    def hosted_state(st: str, state_rows: list[dict]) -> str:
+        """The state's 'Queryable today' cell in the summary table: 'Yes', 'Partly' (some counties) or 'No'."""
+        flags = [queryable_text(r["source_id"], r["area"]) is not None for r in state_rows]
+        if not any(flags):
+            return "No: not hosted"
+        if st == "DC":
+            return "Yes: hosted (and a downloadable sample)"
+        if all(flags):
+            return "Yes: hosted"
+        return f"Partly: hosted for {sum(flags)} of {len(flags)} rows"
+
     def licence_short(sid: str) -> str:
         s = cfg[CFG_ALIAS.get(sid, sid)]
         return cell(clause(s.get("license"), 60)) + ("" if s.get("verified") else " (gated)")
@@ -515,10 +544,13 @@ def gen_coverage(configs: list[dict]) -> str:
         "",
         "## Read this first",
         "",
-        "- **Queryable today.** The only registry data published for you to query is the **DC sample**: a 23.4 MB database file (CC BY 4.0)",
-        "  you download and point the MCP server at (`FACTLOT_REGISTRY_DB`). **No other region is hosted**, and hosted registry lookups are not",
-        "  open yet. Every row other than the District of Columbia says so. The counts below are what the project's own pipeline built into",
-        "  scratch registries from the publishers' files; those files are not published and cannot be queried by anyone else yet.",
+        "- **Queryable today.** The hosted API at `https://api.factlot.com` answers registry lookups, on every plan including the free tier,",
+        "  for **Maryland** (all 24 jurisdictions), the **District of Columbia** and **Juab and Summit counties in Utah**: 128,854 parcels in 27",
+        "  counties. Call `registry_coverage` first: it lists exactly what is hosted. The DC data is also the downloadable **DC sample**, a 23.4 MB",
+        "  database file (CC BY 4.0) you can run yourself (`FACTLOT_REGISTRY_DB`). **No other region is hosted**: Texas, New York City and the rest",
+        "  run only on a self-hosted FactLot with a registry file, and more hosted regions open as their terms allow. Every row says which it is.",
+        "  The counts below are what the project's own pipeline built into scratch registries from the publishers' files; the hosted counts and",
+        "  data dates for Maryland and Utah can differ slightly from the recorded loads.",
         "- **Counts are as recorded.** Each number is quoted from a review record or the source catalog (see `coverage-data.json`, which the",
         "  generator checks against the documents) or read from a per-county table in a statewide record. They are **commercial** parcels",
         "  (state categories B, F1, F2: apartments and multifamily, commercial improved, industrial improved) in scope of FactLot's data policy,",
@@ -561,7 +593,7 @@ def gen_coverage(configs: list[dict]) -> str:
             num(sum(r["parcels"] or 0 for r in rows)) if rows else "none loaded",
             ("sample only" if samples and not rows else "no") if not rows else "yes",
             (f"{ents[0]['entities']:,} entities" if ents else "none loaded"),
-            "Yes (DC sample)" if st == "DC" else "No: not hosted",
+            hosted_state(st, rows + samples),
         ])
     L += [table(["State", "Parcel sources reviewed", "Verified", "Rows loaded", "Commercial parcels loaded", "Loaded", "Entity registry", "Queryable today"], summary), ""]
 
@@ -587,7 +619,7 @@ def gen_coverage(configs: list[dict]) -> str:
                     as_of(r),
                     licence_short(sid),
                     ai_short(sid),
-                    cell(queryable.get(sid, "No: not hosted, not in a published sample")),
+                    cell(queryable_text(sid, r["area"]) or "No: not hosted, not in a published sample"),
                 ])
             L += [table(["County or area", "Source", "Commercial parcels", "Owner names", "Organisation owners", "Entity links",
                          "Zoning", "Sales", "Building facts", "As-of", "Licence", "AI use", "Queryable today"], body), ""]

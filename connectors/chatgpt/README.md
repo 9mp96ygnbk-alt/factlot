@@ -41,9 +41,10 @@ in catalog order (a test keeps it at 30 or fewer and checks that this page lists
 - Hotels and rules: `calc_hotel_metrics`, `rules_tx_property_tax_protest_deadline`
 - IDs and documents: `id_parcel`, `id_space`, `id_document`, `doc_verify_facts`,
   `doc_abstract_lease`, `doc_predicates` (the lease predicate catalog: shapes, examples, what is checked)
-- Registry, only on a server with a registry loaded: `registry_search_address`, `registry_get`,
-  `registry_search_entities`, `registry_resolve_parcel`. The hosted API has no registry yet, so its
-  `/openapi-3.0.json` has the other 26 operations.
+- Registry: `registry_search_address`, `registry_get`, `registry_search_entities`,
+  `registry_resolve_parcel`. The hosted API serves them for the regions `registry_coverage` lists, so
+  its `/openapi-3.0.json` has all 30 operations. A server with no registry omits these four and has
+  the other 26.
 
 Everything else, such as `calc_lease_vs_own`, `calc_prepayment_and_defeasance`, `calc_capex_recovery`,
 `calc_critical_dates`, `id_building`, `fact_validate`, `doc_compare`, `lease_comp_search`, and the other registry tools, is in the complete OpenAPI 3.1 document

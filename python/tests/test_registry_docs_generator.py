@@ -32,13 +32,16 @@ class RegistryDocsGenerator(unittest.TestCase):
             self.assertIn(f"`{s['source_id']}`", text)
         self.assertIn("not legal advice", text)
 
-    def test_coverage_quotes_verify_and_dc_is_the_only_queryable_region(self):
+    def test_coverage_quotes_verify_and_only_the_hosted_regions_are_queryable(self):
         text = self.gen.gen_coverage(self.configs)  # raises SystemExit if a quote or number does not check out
         self.assertIn("No other region is hosted", text)
-        queryable_rows = [ln for ln in text.splitlines() if ln.startswith("| ") and "Yes: the DC registry sample" in ln]
+        queryable_rows = [ln for ln in text.splitlines() if ln.startswith("| ") and "Yes: hosted on api.factlot.com" in ln]
         self.assertTrue(queryable_rows)
         for ln in queryable_rows:
-            self.assertIn("dc-", ln)
+            self.assertTrue("dc-" in ln or "md-sdat-real-property" in ln or "ut-ugrc-lir" in ln, ln)
+        utah = [ln for ln in queryable_rows if "ut-ugrc-lir" in ln]
+        self.assertEqual(len(utah), 2)  # Juab and Summit only
+        self.assertTrue(all("Juab" in ln or "Summit" in ln for ln in utah))
 
     def test_an_unquoted_count_is_rejected(self):
         entry = {"source_id": "x", "parcels": 123456789, "cites": [{"doc": "docs/registry/sources/README.md", "quote": "87,717; 56,792"}]}
@@ -64,8 +67,12 @@ class CoverageMapGenerator(unittest.TestCase):
         r = subprocess.run([sys.executable, str(ROOT / "scripts" / "registry" / "gen_coverage_map.py"), "--check"], capture_output=True, text=True)
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         data = json.loads((ROOT / "docs" / "registry" / "coverage-counties.json").read_text(encoding="utf-8"))
-        published = [f for f, c in data["counties"].items() if c["class"] == "published_sample"]
-        self.assertEqual(published, ["11001"])  # only the DC sample is published
+        hosted = sorted(f for f, c in data["counties"].items() if c["class"] == "hosted")
+        # Maryland's 24 jurisdictions, DC, and Juab and Summit counties in Utah
+        self.assertEqual(len(hosted), 27)
+        self.assertIn("11001", hosted)
+        self.assertEqual([f for f in hosted if f.startswith("49")], ["49023", "49043"])
+        self.assertEqual(len([f for f in hosted if f.startswith("24")]), 24)
         for fips, c in data["counties"].items():
             self.assertRegex(fips, r"^\d{5}$")
             self.assertGreater(c["commercial_parcels"], 0)

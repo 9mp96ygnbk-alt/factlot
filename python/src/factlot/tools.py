@@ -473,7 +473,7 @@ def _registry():
     if not path:
         raise _RegistryUnavailable(
             "this FactLot server has no registry loaded. Registry tools read a registry file: download one (sample: https://github.com/9mp96ygnbk-alt/fac"
-            "tlot/releases/tag/registry-sample-dc-2026-11-04) and run FactLot yourself with FACTLOT_REGISTRY_DB pointing at it. The hosted API does not serve the registry yet.")
+            "tlot/releases/tag/registry-sample-dc-2026-11-04) and run FactLot yourself with FACTLOT_REGISTRY_DB pointing at it. The hosted API at https://api.factlot.com serves the regions listed by registry_coverage.")
     if _registry_cache.get("path") != path:
         from .registry import Registry
 

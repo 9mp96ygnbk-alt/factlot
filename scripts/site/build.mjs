@@ -470,9 +470,9 @@ let coverageJson;
   const geoRel = "site/_content/coverage-geometry.json";
   const cov = readJson(covRel);
   const geo = readJson(geoRel);
-  const CLASSES = ["published_sample", "audited_load", "cited_load"];
+  const CLASSES = ["hosted", "audited_load", "cited_load"];
   const LABEL = {
-    published_sample: "Download today",
+    hosted: "Hosted lookups",
     audited_load: "Audited, not yet hosted",
     cited_load: "Loaded, not yet audited",
   };
@@ -535,7 +535,7 @@ let coverageJson;
     throw new Error("coverage: geometry county count changed");
   const svg = `<svg class="covsvg" viewBox="${geo.viewBox}" role="img" aria-labelledby="covsvg-t covsvg-d" xmlns="http://www.w3.org/2000/svg">
 <title id="covsvg-t">FactLot commercial property data coverage by US county</title>
-<desc id="covsvg-d">${n.published_sample} county available to download, ${n.audited_load} audited, ${n.cited_load} loaded but not yet audited; the other ${total - entries.length} counties are grey. The full list is below the map.</desc>
+<desc id="covsvg-d">${n.hosted} counties with hosted lookups, ${n.audited_load} audited, ${n.cited_load} loaded but not yet audited; the other ${total - entries.length} counties are grey. The full list is below the map.</desc>
 <path class="nation" d="${geo.nation}"/>
 ${shapes}
 <path class="cmesh" d="${geo.countyMesh}"/>
@@ -597,7 +597,7 @@ ${Object.keys(byState)
     {
       urlPath: "/coverage/",
       title: "County coverage map: commercial property data | FactLot",
-      description: `Which US counties FactLot holds checked commercial property data for: ${n.published_sample + n.audited_load + n.cited_load} counties with whole-county loads, as of ${long}. Everything else is grey.`,
+      description: `Which US counties FactLot holds checked commercial property data for: ${n.hosted + n.audited_load + n.cited_load} counties with whole-county loads, as of ${long}. Everything else is grey.`,
       h1: "County coverage",
       crumbs: [["/coverage/", "County coverage"]],
       jsonld: [
@@ -622,7 +622,7 @@ ${Object.keys(byState)
       ],
       body: fill(read("site/_content/coverage.html"), {
         COV_SVG: svg,
-        COV_N_PUBLISHED: String(n.published_sample),
+        COV_N_HOSTED: String(n.hosted),
         COV_N_AUDITED: String(n.audited_load),
         COV_N_CITED: String(n.cited_load),
         COV_N_GREY: fmtN(total - entries.length),

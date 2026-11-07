@@ -303,9 +303,9 @@ reg.get(reg.resolve_external("tx-harris-cad-account", "0420150000012"))
 
 ## Agent tools
 
-When a registry file is configured (`FACTLOT_REGISTRY_DB`, or `configureRegistry()` /
-`configure_registry()`), the catalog gains seven tools. They are served over MCP and REST, and in
-both SDKs:
+When a registry is available (a registry file configured with `FACTLOT_REGISTRY_DB`, or
+`configureRegistry()` / `configure_registry()`, or the hosted API's registry service), the catalog
+gains eight tools. They are served over MCP and REST, and in both SDKs:
 
 - `registry_get`
 - `registry_resolve_parcel`
@@ -314,6 +314,7 @@ both SDKs:
 - `registry_search_entities`
 - `registry_owned_by`
 - `registry_coverage`
+- `registry_tx_equity_candidates`
 
 Without a registry, the MCP server does not list them, REST returns 503, and the SDKs return
 `RegistryUnavailable`.
@@ -366,5 +367,8 @@ return.
    written against the real file layouts once the domains are allowed.
 2. **Parcel lineage.** Record splits and merges, linking old parcels to new ones, once real rolls
    show how each county reports them.
-3. **Hosted registry.** Serve the built database from `@factlot/server` with
-   `FACTLOT_REGISTRY_DB`.
+3. **More hosted regions.** The hosted registry at `https://api.factlot.com` is a query-only
+   service built from registry files: the registry tools run against it and the files are not
+   downloadable from it. It serves Maryland, the District of Columbia and Juab and Summit counties
+   in Utah; `registry_coverage` lists exactly what is hosted. More regions open as their terms
+   allow. A self-hosted `@factlot/server` serves any registry file with `FACTLOT_REGISTRY_DB`.

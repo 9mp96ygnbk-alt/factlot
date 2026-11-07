@@ -395,7 +395,7 @@ ul.principles li {
   --cov-grey: #dfe2e7;
   --cov-cited: #a9c7f2;
   --cov-audited: #3b76d9;
-  --cov-published: #0b2f73;
+  --cov-hosted: #0b2f73;
   --cov-line: #ffffff;
 }
 
@@ -404,7 +404,7 @@ ul.principles li {
     --cov-grey: #2a2f37;
     --cov-cited: #38557f;
     --cov-audited: #5b8def;
-    --cov-published: #b9d2fb;
+    --cov-hosted: #b9d2fb;
     --cov-line: #0f1115;
   }
 }
@@ -455,11 +455,11 @@ ul.principles li {
   stroke-width: 1;
 }
 
-.cov-published_sample,
-.covsvg .cov-published_sample path,
-.covsvg .cov-published_sample .dot {
-  fill: var(--cov-published);
-  background: var(--cov-published);
+.cov-hosted,
+.covsvg .cov-hosted path,
+.covsvg .cov-hosted .dot {
+  fill: var(--cov-hosted);
+  background: var(--cov-hosted);
 }
 
 .cov-audited_load,

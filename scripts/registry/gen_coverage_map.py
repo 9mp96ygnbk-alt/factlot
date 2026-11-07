@@ -11,7 +11,8 @@ Python standard library only, and nothing is invented. The rows come from gen_co
 
 Classes (the reference date is the latest `reviewed` date among the source configs, so the file is stable):
 
-* published_sample: the county's registry data is published for download today (coverage-data.json "queryable").
+* hosted: the county's registry data is served by the hosted API today (coverage-data.json "queryable" and
+  "hosted_areas"), whatever its audit state. DC's data is also the downloadable sample.
 * audited_load: a whole-county load from a verified source that the Tier 1 quality audit re-read against the
   archived publisher file (the registry holds exactly the parcels the adapter yields), with 0 audit violations
   after the pass and a data as-of date no more than MAX_AGE_DAYS before the reference date. Not hosted.
@@ -223,8 +224,11 @@ def main(argv: list[str]) -> int:
                 skip(r, "no commercial parcel count recorded")
                 continue
             a = audit.get(sid)
-            if sid in queryable and str(queryable[sid]).startswith("Yes"):
-                cls = "published_sample"
+            hosted_fips = {f for f in parts if g.hosted_area(data, sid, f"({f})")}
+            if hosted_fips and hosted_fips != set(parts):
+                raise SystemExit(f"{r['area']}: only part of the row is hosted")
+            if (sid in queryable and str(queryable[sid]).startswith("Yes")) or hosted_fips:
+                cls = "hosted"
             elif a and a["violations_after"] == 0 and sid in reread:
                 cls = "audited_load"
             else:
@@ -244,7 +248,7 @@ def main(argv: list[str]) -> int:
                     "entity_links": r["entity_links"] if len(parts) == 1 else r["entity_links"] + " (whole row)",
                     "owner_link_rate_audited": a["owner_link_rate_after"] if a else None,
                     "data_as_of": dates[-1],
-                    "hosted": False if cls != "published_sample" else "download only (hosted lookups not open)",
+                    "hosted": cls == "hosted" and "hosted on api.factlot.com" or False,
                     "evidence": evidence,
                 }
 
@@ -264,11 +268,12 @@ def main(argv: list[str]) -> int:
         "reference_date": ref,
         "max_age_days": MAX_AGE_DAYS,
         "classes": {
-            "published_sample": "Published for download today (CC BY 4.0 sample database). Hosted lookups are not open.",
+            "hosted": "Registry lookups for this county are served by the hosted API at api.factlot.com on every plan; call registry_coverage to list "
+                      "what is hosted. DC's data is also the downloadable CC BY 4.0 sample database.",
             "audited_load": "Whole-county load from a verified source; the quality audit re-read the archived publisher file and "
-                            "found the registry holds exactly its in-scope parcels, with 0 violations. Built, not yet hosted.",
+                            "found the registry holds exactly its in-scope parcels, with 0 violations. Built, not yet hosted (run it on a self-hosted FactLot).",
             "cited_load": "Whole-county load from a verified source with a per-county count and as-of date in the record; not yet "
-                          "covered by the quality audit. Built, not yet hosted.",
+                          "covered by the quality audit. Built, not yet hosted (run it on a self-hosted FactLot).",
         },
         "counts": dict(sorted(by_class.items())),
         "geography": "US Census 2020 county FIPS codes (spec/registry/county-names.tsv, 3,235 county equivalents incl. territories)",

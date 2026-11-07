@@ -69,14 +69,14 @@ and the state property category code (for example F1 commercial, F2 industrial, 
 
 ## 3. Candidate comparables
 
-With a registry loaded (`FACTLOT_REGISTRY_DB`, self-hosted or local), call
+With a Texas registry loaded (`FACTLOT_REGISTRY_DB`, self-hosted or local), call
 `registry_tx_equity_candidates` for the subject. Show the effective selection rule it returns (same
 county and tax year, same category, area band, year band, neighborhood and ZIP tiers) and say it is
 FactLot's default screen, not a legal standard of comparability. List the candidates with their
 values, areas, year built, situs address and citation; no owner data. Relay each source's
 attribution, licence and AI-use terms from the result's `sources` with the data.
 
-The hosted endpoint has no Texas registry loaded yet. If the tool is unavailable or returns a miss,
+The hosted endpoint has no Texas registry yet; self-hosted with a Texas registry file can list candidates. If the tool is unavailable or returns a miss,
 the user can look up comparables themselves on the appraisal district's public property search and
 give you the values; record where each one came from.
 

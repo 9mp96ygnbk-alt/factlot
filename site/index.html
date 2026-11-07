@@ -240,13 +240,15 @@
                   href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/registry/coverage.md"
                   >coverage page</a
                 >
-                lists. What you can query today: the 6,994 GSA lease comps on
-                the hosted API (<code>lease_comp_search</code>; the federal
-                government is the tenant, so they are not private-market comps)
-                and the downloadable District of Columbia sample (18,077
-                parcels) on your own FactLot. The full registry is built and
-                verified in the project's pipeline; hosted registry lookups are
-                not open yet.
+                lists. What you can query today on the hosted API: Maryland (all
+                24 jurisdictions), the District of Columbia and Juab and Summit
+                counties in Utah, 128,854 parcels in 27 counties, with the 6,994
+                GSA lease comps (<code>lease_comp_search</code>; the federal
+                government is the tenant, so they are not private-market comps).
+                Call <code>registry_coverage</code> first to see what is hosted.
+                The other regions are built and verified in the project's
+                pipeline and run on your own FactLot with a registry file; more
+                hosted regions open as their terms allow.
               </p>
               <p>
                 <a
@@ -584,8 +586,9 @@
               <code>fetch</code>, <code>schema_get</code>
             </li>
             <li>
-              <strong>Registry</strong>: seven <code>registry_*</code> lookups,
-              added when a registry database is configured
+              <strong>Registry</strong>: eight <code>registry_*</code> lookups,
+              hosted for the regions <code>registry_coverage</code> lists and
+              available on a self-hosted FactLot with a registry file
             </li>
           </ul>
           <p class="small">
@@ -610,15 +613,15 @@
           <p>
             The tools are open source and free to run yourself. The hosted
             endpoint at <code>https://api.factlot.com</code> saves you running
-            it, and paid plans raise the limits and include hosted registry
-            lookups as each region opens (none is open yet).
+            it, and paid plans raise the limits. Registry lookups for the hosted
+            regions are on every plan.
           </p>
           <div class="cards">
             <article class="card">
               <h3>Free</h3>
               <p><strong>$0</strong></p>
               <p>
-                Every calculator, ID and fact tool, hosted at
+                Every calculator, ID, fact and registry tool, hosted at
                 <code>https://api.factlot.com/mcp</code> with no key: 60
                 requests a minute per address. Or run it locally with no limit.
               </p>
@@ -633,8 +636,8 @@
               <h3>Pro</h3>
               <p><strong>$49 a month</strong></p>
               <p>
-                An API key with 600 requests a minute, hosted registry lookups
-                as each region opens (none is open yet), and email support.
+                An API key with 600 requests a minute, hosted registry lookups,
+                and email support.
               </p>
               <p>
                 <a
@@ -649,9 +652,8 @@
               <h3>Team</h3>
               <p><strong>$599 a month</strong></p>
               <p>
-                3,000 requests a minute, hosted registry lookups as each region
-                opens (none is open yet), priority support, and input on which
-                regions open next.
+                3,000 requests a minute, hosted registry lookups, priority
+                support, and input on which regions open next.
               </p>
               <p>
                 <a
@@ -672,10 +674,10 @@
           </p>
           <h3 id="early-access">Enterprise and hosted registry</h3>
           <p>
-            Need a region that is not open yet, private deployment, invoicing,
+            Need a region that is not hosted yet, private deployment, invoicing,
             or no-training terms? Email
             <a
-              href="mailto:contact@factlot.com?subject=FactLot%20hosted%20registry%20early%20access&amp;body=Company%3A%0AUse%20case%3A%0AMetros%20or%20counties%3A%0AApproximate%20lookups%20per%20month%3A%0A"
+              href="mailto:contact@factlot.com?subject=FactLot%20hosted%20registry%20regions&amp;body=Company%3A%0AUse%20case%3A%0AMetros%20or%20counties%3A%0AApproximate%20lookups%20per%20month%3A%0A"
               >contact@factlot.com</a
             >
             with your company, use case, metros, and lookups per month, or ask
@@ -706,8 +708,8 @@
             </li>
             <li>
               <strong>Hosted</strong>: <code>https://api.factlot.com</code>,
-              free at 60 requests a minute, with paid plans for higher limits
-              and hosted registry lookups.
+              free at 60 requests a minute, with paid plans for higher limits.
+              Registry lookups are on every plan.
             </li>
           </ul>
           <p>

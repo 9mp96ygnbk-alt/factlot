@@ -1,6 +1,6 @@
 # @factlot/tools
 
-The FactLot tool catalog: 21 core tools (14 calculators, 1 rules pack, 5 FactLot ID tools, and fact validation), plus 6 registry tools that need a registry database. Every tool has
+The FactLot tool catalog: 45 core tools (26 calculators, 1 rules pack, 6 FactLot ID tools, 3 fact tools, 7 document tools and 2 lease comp tools), plus 8 registry tools that answer from a registry database or from the hosted registry service. Every tool has
 native definitions for every major AI platform, and one dispatcher, `runTool`, runs them all.
 
 ```ts
