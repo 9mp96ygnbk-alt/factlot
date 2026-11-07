@@ -685,6 +685,20 @@ EXTRACTS: list[dict] = [
         "kept": 638,
         "duplicate_stored_ids": 0,
     },
+    {
+        "source_id": "tx-andrews-cad",
+        "sha256": "dee81144bdc334fc5f85f7f715c068edfe3ae9a7672ff3a55fcd52e32df25ecc",
+        "bytes": 2618613,
+        "layout": "2026 workbook state_cd classified with the 2025-07-23 supplement-2 code table; L3, N, and Y excluded; not a 2026 code file",
+        "header_run_date": None,
+        "http_last_modified": "2026-07-23",
+        "input_records": 12846,
+        "input_kind": "workbook rows",
+        "drops": {"not_real": 1271, "missing_id": 0, "duplicate_ids": 0, "ambiguous": 0, "unmapped": 0, "out_of_scope": 10637},
+        "eligible_unique": 938,
+        "kept": 938,
+        "duplicate_stored_ids": 0,
+    },
 ]
 
 
