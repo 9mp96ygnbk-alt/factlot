@@ -92,7 +92,7 @@ export const ProposalComparisonInput = z
       .lt(1)
       .default(0.08)
       .describe(
-        "Annual discount rate as a decimal, e.g. 0.08, applied to every proposal (monthly rate = annual ÷ 12, cash flows at the start of each month).",
+        "Annual discount rate as a decimal, e.g. 0.08, applied to every proposal (monthly rate = annual ÷ 12, cash flows at the start of each month). Default 0.08, named in warnings when omitted: the ranking can change with the rate.",
       ),
     area_basis: z
       .enum(["rentable", "usable"])
@@ -447,9 +447,26 @@ export function compareProposals(
     t.warn(
       `Base-year proposal(s) ${flatBase.map((p) => p.name).join(", ")} have growth_rate_annual 0, so no expense increases over the base year are priced.`,
     );
+  // A gross proposal's expense estimate is the landlord's cost: it never reaches the tenant's metric.
+  const grossPriced = withOpex.filter(
+    (p) =>
+      p.operating_expenses?.type === "gross" &&
+      p.operating_expenses.expense_psf_annual > 0,
+  );
+  if (tenant && grossPriced.length)
+    t.warn(
+      `${grossPriced.map((p) => p.name).join(", ")} ${grossPriced.length > 1 ? "are" : "is"} full-service gross (operating_expenses.type gross): the landlord pays the operating expenses, so expense_psf_annual is not charged to the tenant. If the tenant pays them, set type nnn, base_year or expense_stop.`,
+    );
   if (tenant && input.proposals.some((p) => p.downtime_months > 0))
     t.warn(
       "downtime_months applies to the landlord perspective only; ignored for the tenant.",
+    );
+  if (
+    (raw as { discount_rate_annual?: unknown }).discount_rate_annual ===
+    undefined
+  )
+    t.warn(
+      `discount_rate_annual not given: the default ${fmtNum(input.discount_rate_annual)} was used. The ranking can change with the rate; pass the ${input.perspective}'s own rate.`,
     );
   const terms = input.proposals.map((p) => p.schedule.term_months);
   const shortest = Math.min(...terms);

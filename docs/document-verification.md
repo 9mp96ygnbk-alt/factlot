@@ -470,7 +470,9 @@ The statement's own totals are lines too, with the total as their category
 
 Each line is checked in order, and a line that fails is left out of the spread with its reason:
 
-1. the quote is on the page (the rules above);
+1. the quote is on the page (the rules above, with one difference: a statement row is often shorter
+   than 12 characters, so a shorter quote, "R&M 310,411", is accepted where it appears as whole
+   words, not inside a longer word or number: "HVAC 52" is not found in "HVAC 52,000");
 2. the amount is written in the quote, in any common form ("245,000", "$245,000.00");
 3. the label is written in the quote, as the statement prints it.
 
@@ -494,7 +496,9 @@ the statement writes them. Any other amount the quote writes as negative, `(4,00
 | hotel                   | total operating revenue, departmental expenses, departmental profit, undistributed operating expenses, gross operating profit, management fees, income before non-operating income and expenses, non-operating, EBITDA, replacement reserve, net operating income (EBITDA less the replacement reserve) |
 
 Debt service, depreciation and owner costs are kept apart and never enter NOI. A total the
-statement states foots when it is within the tolerance of the computed one; a subtotal foots when
+statement states foots when it is within the tolerance of the computed one; when it does not, its
+`does_not_foot` exception lists the lines of that period left out of the spread, with their
+amounts, since a left-out line is the usual cause; a subtotal foots when
 its size matches the sum of its lines. The default tolerance is 0.5 for each line added (each
 rounded line can be off by half a unit); pass `tolerance` to change it. A line whose label starts
 with "Total" but is spread as an ordinary line gets a `possible_subtotal` exception, since it may

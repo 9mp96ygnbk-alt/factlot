@@ -15,7 +15,12 @@ an identifier. This page covers which tool to call, when, and how to report the 
    `calc.debt_sizing@3`; `formula` holds the same as `{id, version}`) and point to `steps`.
    A human can check every intermediate value without redoing the work.
 3. **Surface warnings.** `warnings` lists assumptions that need a human, such as the order of a
-   CAM cap versus the base year, or a prorated breakpoint.
+   CAM cap versus the base year, or a prorated breakpoint. A field left to a default that changes
+   the result, and that the result does not echo, is named there with the default used: for
+   example `calc_compare_proposals`' `discount_rate_annual` (0.08), and `calc_cam_reconciliation`'s
+   `controllable` (true, under a cap), `variable` (false, with a gross-up) and
+   `gross_up.target_occupancy` (0.95). So is a value that cannot affect the answer, such as a gross
+   proposal's `expense_psf_annual` from the tenant's side. Pass the field to make the warning go away.
    Pass rates as decimals (0.065 for 6.5%): every `calc_*` tool and `lease_comp_validate` rejects a
    rate field above 1 in absolute value, and a `min_dscr` above 10, with an error that names the
    decimal you probably meant. Shares and ratios (`pro_rata_share`, `max_ltv`, occupancy) are
@@ -383,7 +388,9 @@ Conventions:
 `registry_tx_equity_candidates` lists candidate parcels from an appraisal-district roll for an
 unequal-appraisal comparison (Tax Code §41.43(b)(3)), on the hosted API for the Texas counties
 `registry_coverage` lists and on a self-hosted FactLot with a registry file (`FACTLOT_REGISTRY_DB`).
-For a county it does not hold, it returns a coverage miss. Give the subject as `urn`, or as
+For a parcel or county it does not hold, it answers as `registry_get` does: a `NotFound` error with
+a `coverage` object saying whether the county is loaded (HTTP 404 on the REST API; the same object
+with `isError` over MCP). Give the subject as `urn`, or as
 `county_fips` and `apn`. Parcels outside Texas are an input error, and so are Tarrant County
 parcels on every server: Tarrant County is not served by the hosted registry while the publisher's
 terms for AI use are unclear.

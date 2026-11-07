@@ -306,7 +306,7 @@ test("batch statements equal the single-tenant calculator, and reasons sum to un
   r.value.tenants.forEach((t, i) => {
     assert.deepEqual(
       t.statement,
-      camReconciliation(camBatchTenantInput(parsed, i)),
+      camReconciliation(camBatchTenantInput(parsed, i, BATCH)),
     );
   });
   // The same tenant entered by hand as a single-tenant input.

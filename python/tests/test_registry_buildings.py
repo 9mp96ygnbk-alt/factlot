@@ -107,6 +107,30 @@ class Rollup(unittest.TestCase):
         self.assertEqual(self.reg.rollup_buildings()["buildings"], 2)
         self.assertEqual(self.reg.stats()["parcels"], 9)
 
+    def test_a_land_account_names_the_improvement_account_of_its_building(self):
+        """One building assessed on two accounts at one address (as 100 Light St, Baltimore, is in SDAT)."""
+        self.reg.ingest_parcels([
+            ParcelRecord("001", "0997 0001", "F1", situs_address="50 EXAMPLE ST NW WASHINGTON DC 20001",
+                         land_area_sf=85000, market_value=4300000),
+            ParcelRecord("001", "0997 0001A", "F1", situs_address="50 EXAMPLE ST NW WASHINGTON DC 20001",
+                         improvement_area_sf=680000, year_built=1975, market_value=25700000),
+        ], self.dc, state_fips="11")
+        self.reg.rollup_buildings()
+        land = factlot.parcel_id("11", "001", "0997 0001").urn
+        improvements = factlot.parcel_id("11", "001", "0997 0001A").urn
+        building = factlot.building_id("11", "001", "20001", "50 Example St NW").urn
+        warnings = self.reg.get(land)["warnings"]
+        self.assertEqual(warnings, [
+            "This parcel record has no improvement facts (parcel.improvement_area_sf, parcel.year_built), so its "
+            f"values may be for the land only. Another parcel of building {building} at the same address has them: "
+            f"{improvements}. The building is probably assessed on that account; get it for the building's area, age "
+            "and value."])
+        self.assertEqual(self.reg.get(improvements)["warnings"], [])
+        # Alone at its address, a record without improvement facts gets the general warning.
+        alone = self.reg.get(factlot.parcel_id("11", "001", "0999 0011").urn)["warnings"]
+        self.assertEqual(len(alone), 1)
+        self.assertIn("it may be vacant land", alone[0])
+
     def test_coverage_is_stored_and_matches_a_fresh_computation(self):
         self.reg.rollup_buildings()
         computed = coverage.compute(self.reg.db)

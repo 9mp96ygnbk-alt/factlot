@@ -6,7 +6,7 @@ import test from "node:test";
 
 import { DOC_LIMITS, runTool, runToolAsync, tools } from "./index.ts";
 import { canonicalJson } from "./packages.ts";
-import { checkConsistency, norm } from "./quotes.ts";
+import { checkConsistency, norm, wholeWordsAt } from "./quotes.ts";
 
 interface Case {
   name: string;
@@ -193,4 +193,14 @@ test("descriptions say the agent extracts and FactLot verifies", () => {
     tools.find((t) => t.name === "doc_verify_facts")!.description,
     /YOU extracted/,
   );
+});
+
+test("wholeWordsAt: a short quote counts only where it is not part of a longer word or number", () => {
+  assert.equal(wholeWordsAt("r&m 310,411 hvac 52,000", "r&m 310,411"), 0);
+  assert.equal(wholeWordsAt("hvac 52,000", "hvac 52"), -1);
+  assert.equal(wholeWordsAt("hvac 520", "hvac 52"), -1);
+  assert.equal(wholeWordsAt("phvac 52", "hvac 52"), -1);
+  assert.equal(wholeWordsAt("total 1,310,411", "310,411"), -1);
+  assert.equal(wholeWordsAt("hvac 52.50 hvac 52. x", "hvac 52"), 11);
+  assert.equal(wholeWordsAt("hvac 52,000; hvac 52, net", "hvac 52"), 13);
 });

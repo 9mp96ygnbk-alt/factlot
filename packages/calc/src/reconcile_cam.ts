@@ -193,7 +193,8 @@ const MONEY: [keyof OtherRow, keyof CamReconciliation][] = [
 export function reconcileCam(raw: ReconcileCamInput): CalcResult<ReconcileCam> {
   const input = parseInput(ReconcileCamInput, raw);
   const t = new Trace();
-  const batch = camReconciliationBatch(input.cam);
+  // The cam input as sent, so the statements name the flags it left to their defaults.
+  const batch = camReconciliationBatch(raw.cam);
   const cam = input.cam;
   const tolAbs = input.tolerance.absolute;
   const tolRel = input.tolerance.relative;

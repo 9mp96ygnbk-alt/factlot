@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 
 import factlot
-from factlot.docverify import DOC_LIMITS, check_consistency_any, js_json
+from factlot.docverify import DOC_LIMITS, _whole_words_at, check_consistency_any, js_json
 from factlot.factpackage import canonical_json
 from factlot.facts import validate_fact
 from factlot.ingest.verify import _norm
@@ -146,3 +146,15 @@ class FactSchema(unittest.TestCase):
                                             "quote": "expire on June 30, 2031", "ocr": True}]},
                 "rights": {"ai_use": "permitted", "redistribution": "prohibited"}, "supersedes": ["flf_y"]}
         self.assertEqual(validate_fact(fact), {"valid": True, "issues": []})
+
+
+class WholeWords(unittest.TestCase):
+    def test_short_quote_counts_only_as_whole_words(self):
+        """The same cases as quotes.ts wholeWordsAt (packages/tools/src/documents.test.ts)."""
+        self.assertEqual(_whole_words_at("r&m 310,411 hvac 52,000", "r&m 310,411"), 0)
+        self.assertEqual(_whole_words_at("hvac 52,000", "hvac 52"), -1)
+        self.assertEqual(_whole_words_at("hvac 520", "hvac 52"), -1)
+        self.assertEqual(_whole_words_at("phvac 52", "hvac 52"), -1)
+        self.assertEqual(_whole_words_at("total 1,310,411", "310,411"), -1)
+        self.assertEqual(_whole_words_at("hvac 52.50 hvac 52. x", "hvac 52"), 11)
+        self.assertEqual(_whole_words_at("hvac 52,000; hvac 52, net", "hvac 52"), 13)

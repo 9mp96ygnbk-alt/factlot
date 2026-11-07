@@ -414,8 +414,67 @@ export function registryGet(urn: string, asOf?: string): Row | null {
     relationships: state === "not_yet_recorded" ? [] : relationships,
     crosswalk,
     ...extra,
-    warnings: areaWarnings(facts),
+    warnings: [
+      ...areaWarnings(facts),
+      ...(subj.kind === "parcel"
+        ? improvementWarnings(
+            facts,
+            extra.building as Row | null,
+            extra.building
+              ? improvedSiblings(d, String((extra.building as Row).urn), urn)
+              : [],
+          )
+        : []),
+    ],
   };
+}
+
+/** Parcels of a building, other than `parcelUrn`, whose current facts include improvement facts (at most 5). */
+function improvedSiblings(
+  d: Database,
+  buildingUrn: string,
+  parcelUrn: string,
+): string[] {
+  return d
+    .prepare(
+      "SELECT DISTINCT m.parcel_urn AS urn FROM building_members m JOIN current_facts f ON f.subject = m.parcel_urn " +
+        "WHERE m.building_urn = ? AND m.parcel_urn <> ? AND (f.predicate = 'parcel.year_built' OR " +
+        "(f.predicate = 'parcel.improvement_area_sf' AND CAST(f.value_json AS REAL) > 0)) ORDER BY m.parcel_urn LIMIT 5",
+    )
+    .all(buildingUrn, parcelUrn)
+    .map((r) => String(r.urn));
+}
+
+/**
+ * A warning when a parcel record carries no improvement facts (`improvement_warnings` in Python):
+ * its values may be for the land only. `siblings` are parcels of its building that do carry them,
+ * where the improvements are probably assessed (a land account and a separate improvement account at
+ * one address, for example).
+ */
+export function improvementWarnings(
+  facts: Row[],
+  building: Row | null,
+  siblings: string[],
+): string[] {
+  if (!facts.length) return [];
+  const improved = facts.some(
+    (f) =>
+      (f.predicate === "parcel.year_built" && finite(f.value) !== null) ||
+      (f.predicate === "parcel.improvement_area_sf" &&
+        (finite(f.value) ?? 0) > 0),
+  );
+  if (improved) return [];
+  const base =
+    "This parcel record has no improvement facts (parcel.improvement_area_sf, parcel.year_built), so its values may be for the land only";
+  if (building && siblings.length) {
+    const one = siblings.length === 1;
+    return [
+      `${base}. ${one ? "Another parcel" : "Other parcels"} of building ${String(building.urn)} at the same address ${one ? "has" : "have"} them: ${siblings.join(", ")}. The building is probably assessed on ${one ? "that account" : "those accounts"}; get ${one ? "it" : "them"} for the building's area, age and value.`,
+    ];
+  }
+  return [
+    `${base}: it may be vacant land, the source may not publish building facts for it, or the building may be assessed on another account.`,
+  ];
 }
 
 // --- value history (Registry.value_history) ------------------------------------------------------

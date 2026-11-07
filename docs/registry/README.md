@@ -107,6 +107,16 @@ a `warnings` list (empty when nothing is wrong) when they fail a sanity check:
 The thresholds are `MAX_PLAUSIBLE_FAR` in both readers (`packages/tools/src/registry.ts`,
 `factlot.registry.store`). A warning never changes or hides a fact.
 
+**Land-only records.** A parcel record with facts but no improvement fact (no positive
+`parcel.improvement_area_sf` and no `parcel.year_built`) gets a warning that its values may be for
+the land only. When another parcel of the same rolled-up building carries improvement facts, the
+warning names it (at most five): a county can assess one building on a land account and a separate
+improvement account at the same address. In the Maryland file, 100 Light St in Baltimore is two
+accounts, `0304110671-001` (85,073 sf of land, $4,275,000) and `0304110671-001a` (686,947 sf built
+in 1975, $25,730,600); `registry_get` on the first names the second. Otherwise the warning says the
+parcel may be vacant land, that the source may not publish building facts for it, or that the
+building may be assessed on another account.
+
 ## Upgrading a registry after a rule change
 
 Owner names are stored only for organisations. If the person-detection rule (`is_organization`)
@@ -143,8 +153,9 @@ idempotent. `python -m factlot.registry.audit registry.db` measures the result (
 A registry file holds some counties and some entity registries, not the country. Every registry
 tool says so on a miss instead of answering `null` or `[]` alone: `registry_resolve_parcel`,
 `registry_resolve_external`, `registry_search_address`, `registry_search_entities` and
-`registry_owned_by` add a `coverage` object to an empty result, and `registry_get` adds it to its
-`NotFound` error. It says whether the county (or entity registry, or crosswalk system) asked about
+`registry_owned_by` add a `coverage` object to an empty result (HTTP 200), and `registry_get` and
+`registry_tx_equity_candidates`, which need one record, add it to their `NotFound` error (HTTP 404 on
+the REST API, `isError` over MCP, the same object either way). It says whether the county (or entity registry, or crosswalk system) asked about
 is loaded, and its `message` says so in words, naming counties by their Census name, for example
 "Pinal County, AZ (04021) is not loaded in this registry; loaded: District of Columbia, DC
 (11001, 18077 parcels)". `registry_coverage` gives each county's `name` too. The names come from

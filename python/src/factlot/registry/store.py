@@ -29,6 +29,7 @@ from .normalize import (
     address_query,
     address_state,
     distinctive_tokens,
+    scrub_mailing_address,
     entity_standing,
     entity_state,
     is_commercial,
@@ -285,6 +286,9 @@ _LINK_AT = (
     "AND f.document_id = r.document_id AND f.as_of <= ? AND f.as_of = (SELECT MAX(c.as_of) FROM coverage c "
     "WHERE c.subject = f.subject AND c.source_id = s.source_id AND c.as_of <= ?)))"
 )
+# Mailing-address predicates: stored without the contact names in them that are not organisations
+# (``normalize.scrub_mailing_address``).
+MAILING_PREDICATES = ("ownership.owner_mailing_address", "entity.mailing_address")
 # Floor-area ratio (improvement area ÷ land area) above which ``get`` warns (MAX_PLAUSIBLE_FAR in TypeScript).
 MAX_PLAUSIBLE_FAR = 40
 
@@ -312,6 +316,42 @@ def area_warnings(facts: list[dict[str, Any]]) -> list[str]:
                    "condominium unit's record, for example, can carry the whole building's area against the unit's "
                    "share of the land); check the source before using either")
     return out
+
+
+def _improved_siblings(db: sqlite3.Connection, building_urn: str, parcel_urn: str) -> list[str]:
+    """Parcels of a building, other than ``parcel_urn``, whose current facts include improvement facts (at most 5)."""
+    return [r[0] for r in db.execute(
+        "SELECT DISTINCT m.parcel_urn AS urn FROM building_members m JOIN current_facts f ON f.subject = m.parcel_urn "
+        "WHERE m.building_urn = ? AND m.parcel_urn <> ? AND (f.predicate = 'parcel.year_built' OR "
+        "(f.predicate = 'parcel.improvement_area_sf' AND CAST(f.value_json AS REAL) > 0)) ORDER BY m.parcel_urn LIMIT 5",
+        (building_urn, parcel_urn))]
+
+
+def improvement_warnings(facts: list[dict[str, Any]], building: dict[str, Any] | None,
+                         siblings: list[str]) -> list[str]:
+    """A warning when a parcel record carries no improvement facts (``improvementWarnings`` in TypeScript).
+
+    Its values may be for the land only. ``siblings`` are parcels of its building that do carry them, where
+    the improvements are probably assessed (a land account and a separate improvement account at one
+    address, for example).
+    """
+    if not facts:
+        return []
+    improved = any((f["predicate"] == "parcel.year_built" and _area_value([f], "parcel.year_built") is not None)
+                   or (f["predicate"] == "parcel.improvement_area_sf"
+                       and (_area_value([f], "parcel.improvement_area_sf") or 0) > 0) for f in facts)
+    if improved:
+        return []
+    base = ("This parcel record has no improvement facts (parcel.improvement_area_sf, parcel.year_built), so its "
+            "values may be for the land only")
+    if building and siblings:
+        one = len(siblings) == 1
+        return [f"{base}. {'Another parcel' if one else 'Other parcels'} of building {building['urn']} at the same "
+                f"address {'has' if one else 'have'} them: {', '.join(siblings)}. The building is probably assessed "
+                f"on {'that account' if one else 'those accounts'}; get {'it' if one else 'them'} for the building's "
+                "area, age and value."]
+    return [f"{base}: it may be vacant land, the source may not publish building facts for it, or the building may "
+            "be assessed on another account."]
 
 
 def _newest_first(facts: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -480,6 +520,8 @@ class Registry:
 
     def _fact(self, subject: str, predicate: str, value: Any, snap: Snapshot, *, unit: str | None = None,
               method: str = "public_record", confidence: float | None = None, locator: str | None = None) -> int:
+        if predicate in MAILING_PREDICATES and isinstance(value, str):
+            value, _ = scrub_mailing_address(value)  # no natural person's name on a stored address (policy §3)
         if value is None or value == "":
             return 0
         value_json = json.dumps(value, sort_keys=True)
@@ -1333,6 +1375,10 @@ class Registry:
         elif subj["kind"] == "building":
             record["building"] = _buildings.building_detail(self.db, urn)
         record["warnings"] = area_warnings(facts)
+        if subj["kind"] == "parcel":
+            building = record["building"]
+            siblings = _improved_siblings(self.db, building["urn"], urn) if building else []
+            record["warnings"] += improvement_warnings(facts, building, siblings)
         return record
 
     def value_history(self, urn: str, as_of: str | None = None) -> list[dict[str, Any]]:
@@ -1413,9 +1459,12 @@ class Registry:
         individuals it once read as organisations ("SMITH JOHN CO-TRUSTEE"). This deletes, for
         each such fact: the owner-of-record fact, the mailing-address fact from the same
         document, any ownership link inferred from it, and any review-queue rows for that name.
+        It also removes, from every stored owner and entity mailing address, the contact names
+        ("ATTN JANE DOE", "C/O JOHN SMITH") that ``scrub_mailing_address`` does not read as
+        organisations, as ingest now does (``contact_names``; an address left empty is deleted).
         The parcel and its other facts stay. Run it once after upgrading; it is idempotent.
         """
-        result = {"owner_facts": 0, "mailing_facts": 0, "ownership_links": 0, "review_rows": 0}
+        result = {"owner_facts": 0, "mailing_facts": 0, "ownership_links": 0, "review_rows": 0, "contact_names": 0}
         rows = self.db.execute(
             "SELECT fact_id, subject, value_json, document_id FROM facts WHERE predicate = 'ownership.owner_of_record'"
         ).fetchall()
@@ -1436,6 +1485,24 @@ class Registry:
             for k in keys:
                 result["review_rows"] += self.db.execute(
                     "DELETE FROM owner_match_review WHERE owner_key = ?", (k,)).rowcount
+        rows = self.db.execute(
+            f"SELECT fact_id, subject, predicate, value_json, document_id FROM facts WHERE predicate IN "
+            f"({','.join('?' * len(MAILING_PREDICATES))})", MAILING_PREDICATES).fetchall()
+        for r in rows:
+            old = json.loads(r["value_json"])
+            new, removed = scrub_mailing_address(old) if isinstance(old, str) else (old, 0)
+            if not removed:
+                continue
+            result["contact_names"] += removed
+            if new is None:
+                self.db.execute("DELETE FROM facts WHERE fact_id = ?", (r["fact_id"],))
+                continue
+            value_json = json.dumps(new, sort_keys=True)
+            cur = self.db.execute("UPDATE OR IGNORE facts SET value_json = ?, fact_id = ? WHERE fact_id = ?",
+                                  (value_json, _fact_id(r["subject"], r["predicate"], value_json, r["document_id"]),
+                                   r["fact_id"]))
+            if cur.rowcount == 0:  # the scrubbed fact is already there
+                self.db.execute("DELETE FROM facts WHERE fact_id = ?", (r["fact_id"],))
         self.db.commit()
         return result
 
