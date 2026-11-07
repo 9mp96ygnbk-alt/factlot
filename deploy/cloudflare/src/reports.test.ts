@@ -560,6 +560,57 @@ describe("POST /v1/reports and downloads", () => {
     assert.equal(ae.issues[0]?.path, "arguments");
   });
 
+  it("tx_protest_deadline: an ICS from the rule, billed as one report; bad arguments answer 400 free", async () => {
+    const t = env();
+    const ok = await call(t, "/v1/reports", {
+      body: {
+        kind: "tx_protest_deadline",
+        format: "ics",
+        arguments: {
+          items: [
+            { id: "HCAD 0412340010025", tax_year: 2027 },
+            { id: "TAD 41234567", tax_year: 2026 },
+          ],
+        },
+        inline: true,
+      },
+    });
+    assert.equal(ok.status, 201);
+    const body = (await ok.json()) as Created & { billed: boolean };
+    assert.equal(body.billed, true);
+    assert.equal(body.content_type, "text/calendar; charset=utf-8");
+    assert.equal(body.source, "rules_tx_property_tax_protest_deadline_batch@1");
+    assert.deepEqual([body.reports.used, body.reports.remaining], [1, 2]);
+    const ics = new TextDecoder().decode(
+      Uint8Array.from(atob(body.content_base64!), (c) => c.charCodeAt(0)),
+    );
+    // Status measured from the Worker's clock (2026-11-07), not the machine's.
+    assert.match(ics.replace(/\r\n /g, ""), /Status as of 2026-11-07/);
+    assert.match(
+      ics,
+      /SUMMARY:Texas protest filing deadline\\, tax year 2027 \(TAD 41234567\)/,
+    );
+    const bad = await call(t, "/v1/reports", {
+      body: {
+        kind: "tx_protest_deadline",
+        format: "ics",
+        arguments: { items: [{ id: "A", tax_year: 1999 }] },
+      },
+    });
+    assert.equal(bad.status, 400);
+    const err = (await bad.json()) as {
+      code: string;
+      billed: boolean;
+      issues: { path: string }[];
+      next: string;
+    };
+    assert.equal(err.code, "ArgumentsError");
+    assert.equal(err.billed, false);
+    assert.equal(err.issues[0]?.path, "arguments.items.0.tax_year");
+    assert.match(err.next, /rules_tx_property_tax_protest_deadline_batch/);
+    assert.equal(bad.headers.get("x-factlot-reports-quota-remaining"), "2");
+  });
+
   it("a fault while building answers 500 ReportFailed with no detail, logs only the error's name, and gives the report back", async () => {
     const t = env();
     const subject = "ipm:fault-test";
@@ -651,6 +702,9 @@ describe("MCP report_create", () => {
       "inline",
     ])
       assert.ok(p in tool.inputSchema!.properties, p);
+    const kinds = (tool.inputSchema!.properties.kind as { enum: string[] })
+      .enum;
+    assert.ok(kinds.includes("tx_protest_deadline"));
 
     const before = inner.seen.length;
     const ans = (await (

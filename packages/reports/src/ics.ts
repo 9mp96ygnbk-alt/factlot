@@ -34,6 +34,22 @@ export interface IcsCalendar {
   events: IcsEvent[];
 }
 
+/**
+ * A stable event UID from its identifying parts (never the generation time), so a calendar
+ * generated again updates its events instead of duplicating them.
+ */
+export async function eventUid(parts: string[]): Promise<string> {
+  const d = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(parts.join("\u001f")),
+  );
+  return `${[...new Uint8Array(d).slice(0, 16)].map((b) => b.toString(16).padStart(2, "0")).join("")}@factlot.com`;
+}
+
+/** Days since the epoch of a YYYY-MM-DD date. */
+export const dayNumber = (iso: string): number =>
+  Date.parse(`${iso}T00:00:00Z`) / 86_400_000;
+
 export function escapeText(s: string): string {
   return stripControls(s)
     .replace(/\t/g, " ")

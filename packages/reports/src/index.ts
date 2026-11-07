@@ -32,6 +32,7 @@ import {
   proposalsDoc,
 } from "./kinds/finance.ts";
 import { datesDoc, datesIcs, leaseDoc } from "./kinds/lease.ts";
+import { protestDoc, protestIcs } from "./kinds/protest.ts";
 import { TX_DISCLAIMER, txDoc, txXlsx } from "./kinds/tx.ts";
 import {
   COMPUTED_KINDS,
@@ -63,6 +64,7 @@ export {
 export { jsonEqual } from "./validate.ts";
 export { unzip } from "./zip.ts";
 export { TX_DISCLAIMER } from "./kinds/tx.ts";
+export { TX_SOFTWARE } from "./kinds/protest.ts";
 
 /** KV's largest value; a larger document is refused. */
 export const MAX_REPORT_BYTES = 25 * 1024 * 1024;
@@ -91,13 +93,16 @@ export const KIND_TITLES: Record<ReportKind, string> = {
   compare_proposals: "Lease proposals compared",
   dcf_summary: "DCF summary",
   critical_dates: "Lease critical dates",
+  tx_protest_deadline: "Texas protest deadline",
 };
 
 export const ReportRequest = z.strictObject({
   kind: z.enum(REPORT_KINDS).describe("Which report."),
   format: z
     .enum(REPORT_FORMATS)
-    .describe("xlsx, pdf, or ics (critical_dates only)."),
+    .describe(
+      "xlsx, pdf, or ics (critical_dates and tx_protest_deadline). tx_protest_deadline comes as ics or pdf.",
+    ),
   input: z
     .unknown()
     .optional()
@@ -108,7 +113,7 @@ export const ReportRequest = z.strictObject({
     .unknown()
     .optional()
     .describe(
-      "The tool's arguments. Required for every kind but lease_abstract: FactLot runs the tool on them and builds the document from that run only.",
+      "The tool's arguments. Required for every kind but lease_abstract: FactLot runs the tool on them and builds the document from that run only. tx_protest_deadline: rules_tx_property_tax_protest_deadline's (tax_year, notice_delivered_date?, as_of?), or with items the _batch rule's (items: [{id, tax_year, notice_delivered_date?}], as_of?).",
     ),
   context: ReportContext.optional().describe(
     "Optional title, prepared-for line, and citations (text only).",
@@ -117,7 +122,7 @@ export const ReportRequest = z.strictObject({
     .boolean()
     .optional()
     .describe(
-      "critical_dates ics only: also put dates before today (UTC) in the calendar. By default they are left out.",
+      "ics only: also put dates before today in the calendar (critical_dates: today in UTC; tx_protest_deadline: today in US Central time, and the passed tax year's dates beside next season's). By default they are left out.",
     ),
 });
 export type ReportRequest = z.input<typeof ReportRequest>;
@@ -198,7 +203,10 @@ export interface PreparedReport {
  * Check a request and compute (or check) its result: everything short of building the file.
  * Cheap next to rendering; throws ReportInputError for anything an agent can fix.
  */
-export function prepareReport(request: unknown): PreparedReport {
+export function prepareReport(
+  request: unknown,
+  opts: Pick<CreateOptions, "now"> = {},
+): PreparedReport {
   const parsed = ReportRequest.safeParse(request);
   if (!parsed.success) {
     const r = request as { kind?: unknown } | null;
@@ -233,7 +241,7 @@ export function prepareReport(request: unknown): PreparedReport {
       `send "format" as one of ${KIND_FORMATS[kind].map((f) => `"${f}"`).join(", ")}`,
     );
   checkCallerText(kind, ctx, args);
-  const checked = checkInput(kind, input, args);
+  const checked = checkInput(kind, input, args, opts.now ?? Date.now());
   if (kind === "tx_unequal_appraisal" && format === "pdf")
     txPdfLimits(checked.result as TxResult);
   return {
@@ -282,7 +290,7 @@ export async function createReport(
   request: unknown,
   opts: CreateOptions = {},
 ): Promise<ReportFile> {
-  return renderReport(prepareReport(request), opts);
+  return renderReport(prepareReport(request, opts), opts);
 }
 
 /**
@@ -307,11 +315,14 @@ export async function renderReport(
   const footer =
     kind === "lease_abstract"
       ? `${checked.check === "supplied" ? SUPPLIED_LABEL : LEASE_COMPUTED_LABEL} ${generated}; see ${TERMS_URL}`
-      : `${generated}; numbers are the tool's results; see ${TERMS_URL}`;
+      : kind === "tx_protest_deadline"
+        ? `${generated}; dates are the rule's results; see ${TERMS_URL}`
+        : `${generated}; numbers are the tool's results; see ${TERMS_URL}`;
   // A Texas PDF carries the disclaimer twice: on the cover and in every page's footer.
   const p: Provenance = {
     footer:
-      kind === "tx_unequal_appraisal" && format === "pdf"
+      (kind === "tx_unequal_appraisal" || kind === "tx_protest_deadline") &&
+      format === "pdf"
         ? `${footer}. ${TX_DISCLAIMER}`
         : footer,
     version,
@@ -328,7 +339,9 @@ export async function renderReport(
   };
 
   let bytes: Uint8Array;
-  if (format === "ics") bytes = await datesIcs(k);
+  if (format === "ics")
+    bytes =
+      kind === "tx_protest_deadline" ? await protestIcs(k) : await datesIcs(k);
   else if (kind === "tx_unequal_appraisal" && format === "xlsx")
     bytes = await txXlsx(k);
   else {
@@ -376,6 +389,7 @@ const BUILDERS: Record<ReportKind, (k: KindInput) => ReportDoc> = {
   compare_proposals: proposalsDoc,
   dcf_summary: dcfDoc,
   critical_dates: datesDoc,
+  tx_protest_deadline: protestDoc,
 };
 
 /**

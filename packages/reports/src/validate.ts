@@ -19,6 +19,7 @@ import {
   TX_EVIDENCE_NOTICE,
   TX_UNEQUAL_APPRAISAL_LAW,
   round,
+  texasToday,
 } from "@factlot/calc";
 import { getTool, runTool } from "@factlot/tools";
 import { z } from "zod";
@@ -32,6 +33,7 @@ export const REPORT_KINDS = [
   "compare_proposals",
   "dcf_summary",
   "critical_dates",
+  "tx_protest_deadline",
 ] as const;
 export type ReportKind = (typeof REPORT_KINDS)[number];
 
@@ -51,6 +53,10 @@ export const KIND_TOOLS: Record<ReportKind, readonly string[]> = {
   compare_proposals: ["calc_compare_proposals"],
   dcf_summary: ["calc_dcf_pro_forma"],
   critical_dates: ["calc_critical_dates"],
+  tx_protest_deadline: [
+    "rules_tx_property_tax_protest_deadline",
+    "rules_tx_property_tax_protest_deadline_batch",
+  ],
 };
 
 export const KIND_FORMATS: Record<ReportKind, readonly ReportFormat[]> = {
@@ -62,6 +68,7 @@ export const KIND_FORMATS: Record<ReportKind, readonly ReportFormat[]> = {
   compare_proposals: ["xlsx", "pdf"],
   dcf_summary: ["xlsx", "pdf"],
   critical_dates: ["xlsx", "pdf", "ics"],
+  tx_protest_deadline: ["ics", "pdf"],
 };
 
 export interface Issue {
@@ -473,6 +480,78 @@ const DatesValue = z.strictObject({
   conventions: z.array(z.string()),
 });
 
+/**
+ * rules_tx_property_tax_protest_deadline (and its _batch): always FactLot's own run (the kind
+ * requires arguments), so these shapes pass through fields a newer rule adds and list only the
+ * fields a report reads.
+ */
+const ProtestStatus = z.enum(["open", "passed", "not_yet_open"]);
+const ProtestNextSeason = z.looseObject({
+  tax_year: Int,
+  deadline: IsoDate,
+  conservative_file_by: IsoDate,
+  basis: z.literal("may_15"),
+});
+const ProtestDeadlineFields = {
+  deadline: IsoDate,
+  unadjusted_deadline: IsoDate,
+  governing_basis: z.enum(["may_15", "30_days_after_notice"]),
+  conservative_file_by: IsoDate,
+  skipped_non_business_days: z.array(
+    z.looseObject({ date: IsoDate, reason: z.string() }),
+  ),
+  status: ProtestStatus,
+  days_remaining: Int.nullable(),
+  next_season: ProtestNextSeason.nullable(),
+};
+const RuleMeta = z.looseObject({
+  id: z.string(),
+  version: Int,
+  title: z.string(),
+  citations: z.array(z.looseObject({ law: z.string(), url: z.string() })),
+  verification: z.looseObject({
+    status: z.string(),
+    verified_by: z.string().optional(),
+    verified_at: z.string().optional(),
+    notes: z.string().optional(),
+  }),
+});
+const ProtestValue = z.looseObject({
+  ...ProtestDeadlineFields,
+  as_of: IsoDate,
+  notes: z.array(z.string()),
+  disclaimer: z.string(),
+  rule: RuleMeta,
+});
+const ProtestBatchItem = z.looseObject({
+  id: z.string(),
+  ...ProtestDeadlineFields,
+  warnings: z.array(z.string()),
+});
+const ProtestBatchError = z.looseObject({
+  id: z.string(),
+  error: z.looseObject({
+    message: z.string(),
+    issues: z.array(z.looseObject({ path: z.string(), message: z.string() })),
+  }),
+});
+const ProtestBatchValue = z.looseObject({
+  results: z.array(z.union([ProtestBatchError, ProtestBatchItem])).min(1),
+  summary: z.looseObject({ items: Int, answered: Int, errors: Int }),
+  as_of: IsoDate,
+  notes: z.array(z.string()),
+  disclaimer: z.string(),
+  rule: RuleMeta,
+});
+const ProtestResult = calcResult(
+  "rules.tx.property_tax_protest_deadline",
+  ProtestValue,
+);
+const ProtestBatchResult = calcResult(
+  "rules.tx.property_tax_protest_deadline_batch",
+  ProtestBatchValue,
+);
+
 const Obj = z.record(z.string(), z.unknown());
 const LeaseSource = z.looseObject({
   document: Int,
@@ -547,6 +626,11 @@ export type DatesResult = z.output<
 >;
 export type LeaseAbstractResult = z.output<typeof LeaseAbstract>;
 export type CriticalEventT = z.output<typeof CriticalEvent>;
+export type ProtestResult = z.output<typeof ProtestResult>;
+export type ProtestBatchResult = z.output<typeof ProtestBatchResult>;
+export type ProtestDeadlineT = z.output<
+  z.ZodObject<typeof ProtestDeadlineFields>
+>;
 
 const SCHEMAS: Record<string, z.ZodType> = {
   calc_tx_unequal_appraisal: calcResult("calc.tx_unequal_appraisal", TxValue),
@@ -563,6 +647,8 @@ const SCHEMAS: Record<string, z.ZodType> = {
   calc_compare_proposals: calcResult("calc.compare_proposals", ProposalsValue),
   calc_dcf_pro_forma: calcResult("calc.dcf_pro_forma", DcfValue),
   calc_critical_dates: calcResult("calc.critical_dates", DatesValue),
+  rules_tx_property_tax_protest_deadline: ProtestResult,
+  rules_tx_property_tax_protest_deadline_batch: ProtestBatchResult,
   doc_abstract_lease: LeaseAbstract,
 };
 
@@ -838,6 +924,43 @@ function datesLinks(r: DatesResult, bad: Issue[]): void {
     }
 }
 
+/** A protest deadline's dates and status agree with each other. */
+function protestLinks(d: ProtestDeadlineT, at: string, bad: Issue[]): void {
+  if (d.conservative_file_by > d.deadline)
+    bad.push({
+      path: `${at}.conservative_file_by`,
+      message: "is after the deadline",
+    });
+  if (d.unadjusted_deadline > d.deadline)
+    bad.push({
+      path: `${at}.unadjusted_deadline`,
+      message: "is after the deadline",
+    });
+  if ((d.status === "passed") !== (d.days_remaining === null))
+    bad.push({
+      path: `${at}.days_remaining`,
+      message: "is null exactly when the deadline has passed",
+    });
+  if ((d.status === "passed") !== (d.next_season !== null))
+    bad.push({
+      path: `${at}.next_season`,
+      message: "is given exactly when the deadline has passed",
+    });
+}
+
+function protestBatchLinks(r: ProtestBatchResult, bad: Issue[]): void {
+  const v = r.value;
+  if (v.summary.items !== v.results.length)
+    bad.push({
+      path: "value.summary.items",
+      message: "does not match the results listed",
+    });
+  v.results.forEach((x, i) => {
+    if (!("error" in x))
+      protestLinks(x as ProtestDeadlineT, `value.results.${i}`, bad);
+  });
+}
+
 function leaseLinks(r: LeaseAbstractResult, bad: Issue[]): void {
   const s = r.summary;
   const pairs: [string, number, number][] = [
@@ -864,6 +987,9 @@ const LINKS: Record<string, (r: never, bad: Issue[]) => void> = {
   calc_compare_proposals: proposalsLinks,
   calc_dcf_pro_forma: dcfLinks,
   calc_critical_dates: datesLinks,
+  rules_tx_property_tax_protest_deadline: (r: ProtestResult, bad) =>
+    protestLinks(r.value, "value", bad),
+  rules_tx_property_tax_protest_deadline_batch: protestBatchLinks,
   doc_abstract_lease: leaseLinks,
 };
 
@@ -907,9 +1033,16 @@ function withoutProvenance(r: unknown): unknown {
 function toolFor(kind: ReportKind, input: unknown, args: unknown): string {
   const tools = KIND_TOOLS[kind];
   if (tools.length === 1) return tools[0]!;
-  // cam_reconciliation: one tenant or a whole pool, as the arguments say.
   void input;
-  return typeof args === "object" && args !== null && "tenants" in args
+  const has = (key: string) =>
+    typeof args === "object" && args !== null && key in args;
+  // tx_protest_deadline: one notice, or a portfolio (items).
+  if (kind === "tx_protest_deadline")
+    return has("items")
+      ? "rules_tx_property_tax_protest_deadline_batch"
+      : "rules_tx_property_tax_protest_deadline";
+  // cam_reconciliation: one tenant or a whole pool, as the arguments say.
+  return has("tenants")
     ? "calc_cam_reconciliation_batch"
     : "calc_cam_reconciliation";
 }
@@ -946,6 +1079,7 @@ export function checkInput(
   kind: ReportKind,
   input: unknown,
   args: unknown,
+  now?: number,
 ): Checked {
   const tool = toolFor(kind, input, args);
   const spec = getTool(tool);
@@ -965,17 +1099,20 @@ export function checkInput(
       );
     return { tool, result: checkSupplied(tool, input), check: "supplied" };
   }
-  const out = runTool(tool, args);
+  const out = runTool(tool, runArgs(kind, args, now));
   if (!out.ok)
     throw new ReportInputError(
       "ArgumentsError",
       `${tool} refused the arguments: ${out.error.message}`,
-      out.error.issues.map((i) => ({
-        path: under("arguments", i.path),
-        message: issueMessage(i.message),
-      })),
+      out.error.issues.length
+        ? out.error.issues.map((i) => ({
+            path: under("arguments", i.path),
+            message: issueMessage(i.message),
+          }))
+        : [{ path: "arguments", message: out.error.message }],
       `fix the fields listed in issues and retry; ${tool}'s arguments schema is the inputSchema of its entry in GET ${TOOLS_URL} (the arguments are the ones you would call the tool with)`,
     );
+  if (kind === "tx_protest_deadline") protestItemErrors(out.result);
   // FactLot's own result: a failed check here is a fault in FactLot, not in the request.
   const parsed = SCHEMAS[tool]!.safeParse(out.result);
   if (!parsed.success)
@@ -998,6 +1135,60 @@ export function checkInput(
         }
       : {}),
   };
+}
+
+/**
+ * The arguments a tool is run on: as sent, except that a protest deadline without `as_of` is
+ * measured from the generation day in US Central time (the rule's own default, fixed to the
+ * report's clock so the same request at the same time gives the same document).
+ */
+function runArgs(kind: ReportKind, args: unknown, now?: number): unknown {
+  if (
+    kind !== "tx_protest_deadline" ||
+    now === undefined ||
+    typeof args !== "object" ||
+    args === null ||
+    Array.isArray(args) ||
+    (args as { as_of?: unknown }).as_of != null
+  )
+    return args;
+  return { ...args, as_of: texasToday(new Date(now)) };
+}
+
+/**
+ * A batch item the rule could not answer: refused with its issues (never left out of a calendar
+ * without a word).
+ */
+function protestItemErrors(result: unknown): void {
+  const results = (result as { value?: { results?: unknown } } | null)?.value
+    ?.results;
+  if (!Array.isArray(results)) return;
+  const issues: Issue[] = [];
+  results.forEach((x: unknown, i) => {
+    const e = (x as { error?: { message?: unknown; issues?: unknown } }).error;
+    if (!e) return;
+    const its = Array.isArray(e.issues)
+      ? (e.issues as { path?: unknown; message?: unknown }[])
+      : [];
+    if (its.length)
+      for (const it of its)
+        issues.push({
+          path: under(`arguments.items.${i}`, String(it.path ?? "")),
+          message: issueMessage(String(it.message ?? "")),
+        });
+    else
+      issues.push({
+        path: `arguments.items.${i}`,
+        message: String(e.message ?? "invalid item"),
+      });
+  });
+  if (issues.length)
+    throw new ReportInputError(
+      "ArgumentsError",
+      `rules_tx_property_tax_protest_deadline_batch could not answer ${issues.length === 1 ? "an item" : "some items"}: ${issues[0]!.path}: ${issues[0]!.message}`,
+      issues.slice(0, 20),
+      `fix the items listed in issues and retry; the arguments schema is the inputSchema of rules_tx_property_tax_protest_deadline_batch in GET ${TOOLS_URL}`,
+    );
 }
 
 /** A result the caller sent (lease_abstract only): its exact shape, formula version and counts. */

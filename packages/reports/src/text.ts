@@ -41,9 +41,17 @@ const ADVICE: RegExp[] = [
 /** Proper names that contain an advice phrase; removed before the test ("Fort Worth $5M"). */
 const NAMES = /\b(fort worth)\b/gi;
 
+/**
+ * Statutory wording that contains a valuation phrase only to deny it: the Texas disclaimer
+ * "not an appraisal or an opinion of value (Tex. Occ. Code §1103.003(1))". Removed before the
+ * test, so a document's own disclaimer passes; "an opinion of value" alone is still refused.
+ */
+const DENIALS =
+  /\bnot (?:an appraisal or )?an opinion of (?:market )?value\b/gi;
+
 /** The advice or valuation phrase in `s`, if any. */
 export function adviceIn(s: string): string | undefined {
-  const t = s.replace(NAMES, " ").replace(/\s+/g, " ");
+  const t = s.replace(NAMES, " ").replace(DENIALS, " ").replace(/\s+/g, " ");
   for (const re of ADVICE) {
     const m = re.exec(t);
     if (m) return (m[1] ?? m[0]).trim();
@@ -109,6 +117,17 @@ function txArgFields(args: unknown): Field[] {
   return out;
 }
 
+/** tx_protest_deadline: each batch item's id is printed as the notice's label. */
+function protestArgFields(args: unknown): Field[] {
+  const items = isObj(args) && Array.isArray(args.items) ? args.items : [];
+  return items.flatMap((x, i): Field[] => {
+    const id = isObj(x) ? str(x.id) : undefined;
+    return id === undefined
+      ? []
+      : [{ path: `arguments.items.${i}.id`, text: id }];
+  });
+}
+
 interface CitationLike {
   locator?: string | undefined;
 }
@@ -148,6 +167,7 @@ export function checkCallerText(
       });
   }
   if (kind === "tx_unequal_appraisal") fields.push(...txArgFields(args));
+  if (kind === "tx_protest_deadline") fields.push(...protestArgFields(args));
 
   const long: Issue[] = fields
     .filter((f) => f.max !== undefined && f.text.length > f.max)

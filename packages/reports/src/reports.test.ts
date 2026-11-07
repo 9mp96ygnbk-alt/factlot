@@ -10,6 +10,7 @@ import { PDFDocument, PDFRawStream } from "pdf-lib";
 
 import { fold } from "./ics.ts";
 import { adviceIn } from "./text.ts";
+import { TX_SOFTWARE } from "./kinds/protest.ts";
 import { txDoc } from "./kinds/tx.ts";
 import { MAX_CELL_CHARS, MAX_PDF_LINES, PdfWriter } from "./pdf.ts";
 import { Workbook, fx } from "./xlsx.ts";
@@ -29,6 +30,26 @@ const VECTORS = new URL("../../../spec/vectors/", import.meta.url);
 const NOW = Date.UTC(2026, 10, 7, 12, 0, 0);
 
 type Json = Record<string, unknown>;
+
+/**
+ * The rule vectors a report builds from: each case with as_of (the generation day, 2026-11-07,
+ * when the case has none) and, for a batch, every item answered.
+ */
+function ruleCases(name: string): Json[] {
+  const d = JSON.parse(
+    readFileSync(new URL(`rules/${name}.json`, VECTORS), "utf8"),
+  ) as { cases: { input: Json }[] };
+  return d.cases
+    .map((c) => ({ as_of: "2026-11-07", ...c.input }))
+    .filter((i) => {
+      const out = runTool(`rules_${name}`, i);
+      const results =
+        (out.ok &&
+          (out.result as { value: { results?: Json[] } }).value.results) ||
+        [];
+      return out.ok && !results.some((r) => "error" in r);
+    });
+}
 
 function calcCases(name: string): Json[] {
   const d = JSON.parse(
@@ -113,6 +134,21 @@ const SAMPLES: { kind: ReportKind; tool: string; args: Json }[] = [
     kind: "critical_dates",
     tool: "calc_critical_dates",
     args: largest(calcCases("critical_dates")),
+  },
+  {
+    kind: "tx_protest_deadline",
+    tool: "rules_tx_property_tax_protest_deadline",
+    args: { tax_year: 2027, notice_delivered_date: "2027-04-28" },
+  },
+  {
+    kind: "tx_protest_deadline",
+    tool: "rules_tx_property_tax_protest_deadline_batch",
+    args: {
+      items: [
+        { id: "HCAD 0412340010025", tax_year: 2027 },
+        { id: "TAD 41234567", tax_year: 2026 },
+      ],
+    },
   },
 ];
 
@@ -334,9 +370,13 @@ describe("format", () => {
 describe("input checks", () => {
   for (const s of SAMPLES)
     it(`${s.tool}: every successful vector case builds from FactLot's run; a result alone is ${s.kind === "lease_abstract" ? "accepted as supplied" : "refused"}`, async () => {
-      const name = s.tool.replace(/^calc_/, "");
+      const name = s.tool.replace(/^(calc|rules)_/, "");
       const all =
-        s.tool === "doc_abstract_lease" ? abstractCases : calcCases(name);
+        s.tool === "doc_abstract_lease"
+          ? abstractCases
+          : s.tool.startsWith("rules_")
+            ? ruleCases(name)
+            : calcCases(name);
       assert.ok(all.length > 0);
       for (const args of all) {
         const input = resultOf(s.tool, args);
@@ -552,7 +592,10 @@ describe("input checks", () => {
       /context/,
     );
     assert.deepEqual(KIND_FORMATS.critical_dates, ["xlsx", "pdf", "ics"]);
-    for (const k of REPORT_KINDS.filter((k) => k !== "critical_dates"))
+    assert.deepEqual(KIND_FORMATS.tx_protest_deadline, ["ics", "pdf"]);
+    for (const k of REPORT_KINDS.filter(
+      (k) => k !== "critical_dates" && k !== "tx_protest_deadline",
+    ))
       assert.ok(!KIND_FORMATS[k].includes("ics"));
   });
 });
@@ -947,9 +990,10 @@ describe("documents", () => {
     const times: number[] = [];
     for (let i = 0; i < 20; i++)
       for (const s of SAMPLES) {
+        const formats = KIND_FORMATS[s.kind];
         const req = {
           kind: s.kind,
-          format: i % 2 ? "pdf" : "xlsx",
+          format: formats[i % formats.length],
           arguments: s.args,
         };
         const t = performance.now();
@@ -1867,5 +1911,418 @@ describe("QA fixes", () => {
     assert.ok(
       x.values("Inputs").includes("proposals[0].schedule.abated_months[8]"),
     );
+  });
+});
+
+// --- tx_protest_deadline -------------------------------------------------------------------------
+
+interface IcsEv {
+  uid: string;
+  start: string;
+  summary: string;
+  description: string;
+  triggers: string[];
+}
+
+const unescapeIcs = (v: string) =>
+  v.replace(/\\(n|,|;|\\)/g, (_, c: string) => (c === "n" ? "\n" : c));
+
+/** The events of a calendar, with their text unescaped. */
+function protestEvents(lines: string[]): IcsEv[] {
+  const out: IcsEv[] = [];
+  let cur: IcsEv | undefined;
+  for (const l of lines) {
+    if (l === "BEGIN:VEVENT")
+      cur = { uid: "", start: "", summary: "", description: "", triggers: [] };
+    else if (l === "END:VEVENT" && cur) {
+      out.push(cur);
+      cur = undefined;
+    } else if (cur) {
+      const at = l.indexOf(":");
+      const [name, value] = [l.slice(0, at), l.slice(at + 1)];
+      if (name === "UID") cur.uid = value;
+      else if (name === "DTSTART;VALUE=DATE") cur.start = value;
+      else if (name === "SUMMARY") cur.summary = unescapeIcs(value);
+      else if (name === "DESCRIPTION" && !cur.description)
+        cur.description = unescapeIcs(value);
+      else if (name.startsWith("TRIGGER")) cur.triggers.push(l);
+    }
+  }
+  return out;
+}
+
+const PROTEST = (args: unknown, over: Json = {}) => ({
+  kind: "tx_protest_deadline",
+  format: "ics",
+  arguments: args,
+  ...over,
+});
+/** 2027-05-01 15:00 UTC: tax year 2027's deadline is open, 16 days away. */
+const MAY_1 = Date.UTC(2027, 4, 1, 15, 0, 0);
+
+async function protestCal(req: unknown, now = NOW) {
+  const f = await createReport(req, { now });
+  const lines = readIcs(f.bytes);
+  return { f, lines, events: protestEvents(lines) };
+}
+
+describe("tx_protest_deadline", () => {
+  it("one notice: the statutory deadline and the conservative file-by date, short summaries, the rule's facts in each description", async () => {
+    const { f, lines, events } = await protestCal(
+      PROTEST({ tax_year: 2027 }),
+      MAY_1,
+    );
+    assert.equal(f.source, "rules_tx_property_tax_protest_deadline@2");
+    assert.equal(f.content_type, "text/calendar; charset=utf-8");
+    assert.ok(lines.includes("X-WR-CALNAME:Texas protest deadlines"));
+    assert.deepEqual(
+      events.map((e) => [e.summary, e.start]),
+      [
+        ["Texas protest filing deadline, tax year 2027", "20270517"],
+        ["Conservative file-by date, tax year 2027", "20270514"],
+      ],
+    );
+    const [deadline, fileBy] = events as [IcsEv, IcsEv];
+    // The rule's facts: basis, the §1.06 move, status and days remaining as of generation.
+    assert.match(deadline.description, /Basis: May 15 of the tax year/);
+    assert.match(deadline.description, /2027-05-15 \(Saturday\)/);
+    assert.match(
+      deadline.description,
+      /As of 2027-05-01: status open; 16 days to the deadline\./,
+    );
+    assert.match(
+      deadline.description,
+      /§41\.44\(a\)\(1\) \(the later of May 15/,
+    );
+    assert.match(
+      deadline.description,
+      /No notice delivery date given: if the notice was delivered after April 15/,
+      "the rule's warning",
+    );
+    assert.match(deadline.description, /does not cover late protests/);
+    assert.match(deadline.description, /§41\.44\(b\)-\(c-3\) and §25\.25/);
+    assert.match(
+      fileBy.description,
+      /Earlier than the statutory deadline 2027-05-17/,
+    );
+    assert.match(fileBy.description, /2027-05-15 is a Saturday/);
+    for (const e of events) {
+      assert.ok(e.description.includes(TX_DISCLAIMER), "disclaimer");
+      assert.ok(e.description.includes(TX_SOFTWARE), "ch. 1152 sentence");
+      assert.match(
+        e.description,
+        /not a substitute for the advice of an attorney/,
+      );
+      assert.match(
+        e.description,
+        /not an appraisal or an opinion of value \(Tex\. Occ\. Code §1103\.003\(1\)\)/i,
+      );
+      assert.match(e.description, /It does not say whether to protest\./);
+      assert.ok(
+        !/\.\n\nAs of/.test(e.description),
+        "no blank line inside a section",
+      );
+      assert.match(
+        e.description,
+        /dates are the rule's results; see https:\/\/factlot\.com\/terms$/,
+      );
+      // No advice: the whole description passes the caller-text filter, statute terms included.
+      assert.equal(adviceIn(e.description), undefined, e.description);
+      assert.ok(!/you should|recommend|protest your/i.test(e.description));
+    }
+    assert.ok(!/you should|recommend|protest your/i.test(lines.join("\n")));
+  });
+
+  it("alarms: 30 and 7 days before the file-by date, plus one an hour after generation when it is under 30 days away", async () => {
+    const near = await protestCal(PROTEST({ tax_year: 2027 }), MAY_1);
+    const [deadline, fileBy] = near.events as [IcsEv, IcsEv];
+    assert.deepEqual(
+      deadline.triggers,
+      [],
+      "the reminders are on the file-by date",
+    );
+    assert.deepEqual(fileBy.triggers, [
+      "TRIGGER;RELATED=START:-P30D",
+      "TRIGGER;RELATED=START:-P7D",
+      "TRIGGER;VALUE=DATE-TIME:20270501T160000Z",
+    ]);
+    assert.ok(
+      near.lines.includes(
+        "DESCRIPTION:In 13 days: conservative file-by date for the Texas protest\\, tax year 2027\\, is 2027-05-14 (statutory deadline 2027-05-17)",
+      ),
+    );
+    const far = await protestCal(PROTEST({ tax_year: 2027 }), NOW);
+    assert.deepEqual(far.events[1]!.triggers, [
+      "TRIGGER;RELATED=START:-P30D",
+      "TRIGGER;RELATED=START:-P7D",
+    ]);
+    // A file-by date already behind (the weekend before a Monday deadline): the reminder moves to the deadline.
+    const weekend = await protestCal(
+      PROTEST({ tax_year: 2027 }),
+      Date.UTC(2027, 4, 15, 15),
+    );
+    assert.deepEqual(
+      weekend.events.map((e) => e.summary),
+      ["Texas protest filing deadline, tax year 2027"],
+    );
+    assert.ok(
+      weekend.events[0]!.triggers.includes(
+        "TRIGGER;VALUE=DATE-TIME:20270515T160000Z",
+      ),
+    );
+    assert.ok(
+      weekend.lines.some((l) => /1 date before 2027-05-15 is left out/.test(l)),
+    );
+  });
+
+  it("a passed tax year: next season's pair instead, with the passed year said in each description; include_past keeps the passed pair", async () => {
+    const { lines, events } = await protestCal(PROTEST({ tax_year: 2026 }));
+    assert.deepEqual(
+      events.map((e) => [e.summary, e.start]),
+      [
+        ["Texas protest filing deadline, tax year 2027", "20270517"],
+        ["Conservative file-by date, tax year 2027", "20270514"],
+      ],
+    );
+    for (const e of events) {
+      assert.match(
+        e.description,
+        /Tax year 2026: its deadline 2026-05-15 passed \(status passed as of 2026-11-07\)\. These dates are the rule's next_season for tax year 2027\./,
+      );
+      assert.match(
+        e.description,
+        /next_season is computed with no notice delivery date/,
+      );
+    }
+    assert.ok(
+      lines.some((l) => /requested tax year's deadline has passed/.test(l)),
+    );
+    const all = await protestCal(
+      PROTEST({ tax_year: 2026 }, { include_past: true }),
+    );
+    assert.deepEqual(
+      all.events.map((e) => [e.summary, e.start, e.triggers.length]),
+      [
+        ["Texas protest filing deadline, tax year 2026", "20260515", 0],
+        ["Conservative file-by date, tax year 2026", "20260515", 0],
+        ["Texas protest filing deadline, tax year 2027", "20270517", 0],
+        ["Conservative file-by date, tax year 2027", "20270514", 2],
+      ],
+    );
+    assert.match(
+      all.events[0]!.description,
+      /This deadline passed: status passed as of 2026-11-07\./,
+    );
+    assert.match(
+      all.events[1]!.description,
+      /The same day as the statutory deadline: 2026-05-15 is a business day/,
+    );
+  });
+
+  it("a portfolio (batch): one calendar, each event labelled by the item's id, the notice date as the basis", async () => {
+    const items = [
+      {
+        id: "HCAD 0412340010025",
+        tax_year: 2027,
+        notice_delivered_date: "2027-04-28",
+      },
+      { id: "TAD 41234567", tax_year: 2027 },
+      { id: "DCAD 00000776533000000", tax_year: 2026 },
+    ];
+    const { f, lines, events } = await protestCal(
+      PROTEST({ items }, { context: { title: "Gulf Coast portfolio 2027" } }),
+    );
+    assert.equal(f.source, "rules_tx_property_tax_protest_deadline_batch@1");
+    assert.ok(lines.includes("X-WR-CALNAME:Gulf Coast portfolio 2027"));
+    assert.deepEqual(
+      events.map((e) => [e.summary, e.start]),
+      [
+        [
+          "Texas protest filing deadline, tax year 2027 (HCAD 0412340010025)",
+          "20270528",
+        ],
+        [
+          "Conservative file-by date, tax year 2027 (HCAD 0412340010025)",
+          "20270528",
+        ],
+        [
+          "Texas protest filing deadline, tax year 2027 (TAD 41234567)",
+          "20270517",
+        ],
+        ["Conservative file-by date, tax year 2027 (TAD 41234567)", "20270514"],
+        [
+          "Texas protest filing deadline, tax year 2027 (DCAD 00000776533000000)",
+          "20270517",
+        ],
+        [
+          "Conservative file-by date, tax year 2027 (DCAD 00000776533000000)",
+          "20270514",
+        ],
+      ],
+    );
+    assert.match(
+      events[0]!.description,
+      /the 30th day after the notice of appraised value was delivered \(2027-04-28\)/,
+    );
+    assert.match(
+      events[2]!.description,
+      /No notice delivery date given/,
+      "the item's own warning",
+    );
+    assert.ok(
+      !events[0]!.description.includes("No notice delivery date given"),
+    );
+    assert.match(
+      events[4]!.description,
+      /Tax year 2026: its deadline 2026-05-15 passed/,
+    );
+    for (const e of events) {
+      assert.ok(e.description.includes(TX_DISCLAIMER));
+      assert.ok(e.description.includes(TX_SOFTWARE));
+      assert.equal(adviceIn(e.description), undefined);
+      assert.ok(
+        !/\n\nAs of/.test(e.description),
+        "no blank line where a fact is absent",
+      );
+    }
+    const uids = events.map((e) => e.uid);
+    assert.equal(new Set(uids).size, uids.length, "unique UIDs");
+  });
+
+  it("UIDs are stable per (notice, tax year, event): the same on another day, in another order, after a date changes", async () => {
+    const items = [
+      { id: "A-1", tax_year: 2027 },
+      { id: "B-2", tax_year: 2027 },
+    ];
+    const byKey = (evs: IcsEv[]) =>
+      Object.fromEntries(evs.map((e) => [e.summary, e.uid]));
+    const a = byKey((await protestCal(PROTEST({ items }))).events);
+    const b = byKey(
+      (
+        await protestCal(
+          PROTEST({
+            items: [
+              { id: "B-2", tax_year: 2027 },
+              {
+                id: "A-1",
+                tax_year: 2027,
+                notice_delivered_date: "2027-05-03",
+              },
+            ],
+          }),
+          MAY_1,
+        )
+      ).events,
+    );
+    assert.deepEqual(b, a, "a later notice date moves the event, not its UID");
+    // A passed year's next season has the UIDs a calendar for that year has.
+    const next = byKey(
+      (await protestCal(PROTEST({ items: [{ id: "A-1", tax_year: 2026 }] })))
+        .events,
+    );
+    assert.equal(
+      next["Texas protest filing deadline, tax year 2027 (A-1)"],
+      a["Texas protest filing deadline, tax year 2027 (A-1)"],
+    );
+    const single = async (args: Json, now = NOW) =>
+      (
+        await protestCal(
+          PROTEST(args, { context: { title: "HCAD 0412340010025" } }),
+          now,
+        )
+      ).events.map((e) => e.uid);
+    assert.deepEqual(
+      await single({ tax_year: 2027 }),
+      await single(
+        { tax_year: 2027, notice_delivered_date: "2027-05-01" },
+        MAY_1,
+      ),
+    );
+    assert.notDeepEqual(
+      await single({ tax_year: 2027 }),
+      await single({ tax_year: 2028 }),
+    );
+  });
+
+  it("validation: 400 with issues and next; a batch item the rule cannot answer is refused, never left out", async () => {
+    const e1 = await rejects(
+      PROTEST({ tax_year: 1999 }),
+      "ArgumentsError",
+      /^arguments\.tax_year$/,
+    );
+    assert.match(e1.next ?? "", /rules_tx_property_tax_protest_deadline/);
+    const e2 = await rejects(
+      PROTEST({ tax_year: 2027, notice_delivered_date: "2026-04-01" }),
+      "ArgumentsError",
+    );
+    assert.ok(e2.issues.length > 0);
+    await rejects(
+      PROTEST({ tax_year: 2027, county: "201" }),
+      "ArgumentsError",
+      /county/,
+    );
+    await rejects(PROTEST(undefined), "ArgumentsRequired", /^arguments$/);
+    const e3 = await rejects(
+      {
+        kind: "tx_protest_deadline",
+        format: "xlsx",
+        arguments: { tax_year: 2027 },
+      },
+      "InputError",
+      /^format$/,
+    );
+    assert.match(e3.next ?? "", /"ics", "pdf"/);
+    const e4 = await rejects(
+      PROTEST({
+        items: [
+          { id: "A", tax_year: 2027 },
+          { id: "B", tax_year: 1999 },
+        ],
+      }),
+      "ArgumentsError",
+      /^arguments\.items\.1\.tax_year$/,
+    );
+    assert.match(e4.next ?? "", /_batch/);
+    await rejects(
+      PROTEST({
+        items: [{ id: "Owner A: you should protest", tax_year: 2027 }],
+      }),
+      "TextNotAllowed",
+      /^arguments\.items\.0\.id$/,
+    );
+  });
+
+  it("PDF: a one-page deadline sheet with both disclaimers, the ch. 1152 sentence and the rule's dates", async () => {
+    const f = await createReport(
+      {
+        kind: "tx_protest_deadline",
+        format: "pdf",
+        arguments: { tax_year: 2027 },
+      },
+      { now: MAY_1 },
+    );
+    const p = await readPdf(f.bytes);
+    const text = p.text.replace(/\s+/g, " ");
+    // The sheet is the first page; the audit trail, inputs and provenance follow.
+    assert.ok(p.pages <= 2, `${p.pages} pages`);
+    assert.ok(text.includes("2027-05-17") && text.includes("2027-05-14"));
+    assert.ok(text.includes("not a substitute for the advice of an attorney"));
+    assert.ok(text.includes("§1103.003(1)"));
+    assert.ok(text.includes("chapter 1152"));
+    assert.ok(!/you should|recommend|protest your/i.test(text));
+  });
+
+  it("the advice filter takes the Texas disclaimer and the statute terms, and still refuses a valuation", () => {
+    assert.equal(adviceIn(TX_DISCLAIMER), undefined);
+    assert.equal(adviceIn(TX_SOFTWARE), undefined);
+    for (const ok of [
+      "Texas protest filing deadline, tax year 2027",
+      "protest with the appraisal review board",
+      "notice of appraised value",
+      "Conservative file-by date",
+    ])
+      assert.equal(adviceIn(ok), undefined, ok);
+    assert.equal(adviceIn("our opinion of value is $4M"), "opinion of value");
+    assert.equal(adviceIn("an opinion of value"), "opinion of value");
   });
 });

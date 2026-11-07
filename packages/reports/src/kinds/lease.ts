@@ -1,7 +1,7 @@
 /** lease_abstract (from doc_abstract_lease) and critical_dates (with an iCalendar file). */
 import type { Block, Fmt, Raw, ReportDoc } from "../doc.ts";
 import { jsonText } from "../format.ts";
-import { calendar, type IcsEvent } from "../ics.ts";
+import { calendar, dayNumber, eventUid, type IcsEvent } from "../ics.ts";
 import type {
   CriticalEventT,
   DatesResult,
@@ -428,13 +428,7 @@ export function datesDoc(k: KindInput): ReportDoc {
   };
 }
 
-async function uid(parts: string[]): Promise<string> {
-  const d = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(parts.join("\u001f")),
-  );
-  return `${[...new Uint8Array(d).slice(0, 16)].map((b) => b.toString(16).padStart(2, "0")).join("")}@factlot.com`;
-}
+const uid = eventUid;
 
 /** Days before a notice event its reminder fires. */
 export const REMINDER_DAYS = 30;
@@ -470,9 +464,6 @@ function warningsFor(
   const ds = dates.filter((d): d is string => Boolean(d));
   return warnings.filter((w) => ds.some((d) => w.includes(d)));
 }
-
-const DAY_MS = 86_400_000;
-const dayNumber = (iso: string) => Date.parse(`${iso}T00:00:00Z`) / DAY_MS;
 
 export async function datesIcs(k: KindInput): Promise<Uint8Array> {
   const r = k.checked.result as DatesResult;

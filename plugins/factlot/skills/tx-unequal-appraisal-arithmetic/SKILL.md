@@ -58,7 +58,10 @@ public property search and give them to you; record where each one came from, an
 Call `rules_tx_property_tax_protest_deadline` with `tax_year` and, if the user has it, the date the
 notice of appraised value was delivered (follow the `tx-property-tax-protest` skill). Give the
 deadline and the conservative file-by date (`conservative_file_by`) with the statute citations,
-and `status`, `days_remaining` and, once passed, `next_season` as returned.
+and `status`, `days_remaining` and, once passed, `next_season` as returned. For a calendar file,
+call `report_create` with `kind` `tx_protest_deadline`, `format` `ics` and the same arguments (or
+the `_batch` arguments with `items` for several notices) instead of writing one: FactLot builds it
+from the rule's dates, with reminders before the file-by date and the disclaimers in each event.
 
 Tax Code §41.43(a-3) and §41.67(d) attach conditions to evidence exchanged by the 14th day before
 a hearing; FactLot's draft rule `rules.tx.protest_evidence_dates` (SDKs only, not verified, not a

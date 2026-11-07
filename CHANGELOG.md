@@ -46,6 +46,19 @@ conservative_file_by, basis}` for the next tax year when the deadline has passed
   and `summary.by_status`.
 - Reports: every `/v1/reports` and `report_create` answer has `billed` (`true` when the request
   counted against the month).
+- Reports: new kind `tx_protest_deadline` (`ics` or `pdf`), built from FactLot's run of
+  `rules_tx_property_tax_protest_deadline` on `tax_year`, `notice_delivered_date` and `as_of`, or
+  of its `_batch` when `arguments` has `items` (one calendar for a portfolio, each event labelled
+  by the item's `id`). Each notice gets two all-day events, the statutory deadline and the
+  conservative file-by date, with the basis, the rule's statute text and verification, the status
+  and days remaining, every warning and note, both Texas disclaimer sentences and the chapter 1152
+  sentence in the description; reminders 30 and 7 days before the file-by date, and one an hour
+  after generation when it is under 30 days away. A passed tax year gives the rule's
+  `next_season` dates, with the passed year said in each description (`include_past: true` keeps
+  the passed dates too). UIDs are stable per notice, tax year and event. Without `as_of` the
+  status is measured from the generation day in US Central time. A batch item the rule cannot
+  answer is a 400 `ArgumentsError` naming it; item ids go through the caller-text filter, which
+  now passes the negated disclaimer ("not an appraisal or an opinion of value").
 
 ### Changed
 
