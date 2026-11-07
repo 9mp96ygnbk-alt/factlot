@@ -22,9 +22,12 @@ import { basename, join, resolve } from "node:path";
 import { cpuUsage } from "node:process";
 
 import {
+  computeRegistryCoverage,
   configureRegistry,
   getTool,
+  parcelMiss,
   runTool,
+  type RegistryCoverage,
 } from "../../packages/tools/src/index.ts";
 import { fileAssets } from "../../deploy/registry/src/file_assets.ts";
 import { Pack } from "../../deploy/registry/src/store.ts";
@@ -273,6 +276,8 @@ async function run(
     calls.push({ tool: "registry_get", args: { urn } });
   d.close();
 
+  configureRegistry(merged);
+  const mergedCoverage: RegistryCoverage = computeRegistryCoverage();
   const stats = new Map<
     string,
     { n: number; bad: number; cpu: number[]; reads: number[] }
@@ -287,7 +292,21 @@ async function run(
     }
     const parsed = getTool(c.tool)!.input.safeParse(c.args);
     if (!parsed.success) continue;
-    const want = runTool(c.tool, c.args);
+    let want = runTool(c.tool, c.args);
+    // resolve_parcel: the URN from the county's own file (its parcel rule), and on a miss the coverage of the file
+    // holding every region.
+    if (c.db && want.ok && (want.result as Row).urn === null)
+      want = {
+        ok: true,
+        result: {
+          urn: null,
+          coverage: parcelMiss(
+            mergedCoverage,
+            String(c.args.state_fips),
+            String(c.args.county_fips),
+          ),
+        },
+      };
     // Cold: a fresh pack reader, so every file is read and parsed (the manifest read is excluded below).
     const pack = new Pack(fileAssets(packDir));
     await pack.manifest();
