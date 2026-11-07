@@ -54,6 +54,7 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 
 ### Changed
 
+- Hosted API: `registry_tx_equity_candidates_batch` is answered subject by subject: the API checks the batch input as the SDK does, then asks the registry service for each subject's `registry_tx_equity_candidates` answer (at most 4 at a time) and assembles the batch answer in the SDK's shape, so a large batch no longer runs as one registry request. Answers, per-subject errors and metering (one lookup per answered subject) are unchanged; a subject the registry cannot answer still fails the whole call as `RegistryUnavailable`.
 - Hosted API: `registry_tx_equity_candidates_batch` reserves one registry lookup per subject before it runs and keeps one per answered subject; a batch larger than what remains is refused whole (`RegistryQuotaExceeded`, saying how many subjects fit) and takes nothing. `account_usage` records each charged subject with its region.
 - Hosted API: the Worker bundle is minified (with the report engine and pdf.js it was near 8 MB unminified).
 - Hosted API: the free tier's registry quota is now 25 lookups a day per IP address (was 100); Pro (5,000 a month) and Team (100,000 a month) are unchanged. A lookup is charged only when answered: `registry_coverage`, coverage misses (a county or system that is not loaded) and input errors are not counted.

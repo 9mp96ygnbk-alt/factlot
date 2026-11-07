@@ -1,5 +1,22 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, readFileSync } from "node:fs";
+import { createServer } from "node:http";
+import type { AddressInfo } from "node:net";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, it } from "node:test";
+import { fileURLToPath } from "node:url";
+
+import { createHandler } from "@factlot/server";
+import {
+  TX_EQUITY_NOTICE,
+  TX_EQUITY_RULE,
+  configureRegistry,
+  configureRegistryRunner,
+  runTool,
+  runToolAsync,
+} from "@factlot/tools";
 
 import {
   RECHECK_BACKOFF_MS,
@@ -43,7 +60,12 @@ import { WHATS_NEW } from "./news.ts";
 import { EXTRACT_LEASE_STEP } from "./onboarding.ts";
 import { REPORT_RULE, escapeHtml } from "./pages.ts";
 import { PLANS } from "./plans.ts";
-import { REGISTRY_RUN_URL, registryRunner } from "./registry.ts";
+import {
+  BATCH_CONCURRENCY,
+  REGISTRY_RUN_URL,
+  TX_EQUITY_BATCH_TOOL,
+  registryRunner,
+} from "./registry.ts";
 import { handle } from "./router.ts";
 import {
   STRIPE_API_VERSION,
@@ -2474,6 +2496,396 @@ describe("registry runner", () => {
       fetch: async () => new Response(JSON.stringify({ hello: 1 })),
     });
     await assert.rejects(malformed("registry_coverage", {}));
+  });
+});
+
+describe("registry runner: the candidate batch, one service call per subject", () => {
+  const BATCH = TX_EQUITY_BATCH_TOOL;
+  const SINGLE = "registry_tx_equity_candidates";
+  const PATH = "/v1/registry/tx_equity_candidates/batch";
+  const specDir = fileURLToPath(
+    new URL("../../../spec/registry/", import.meta.url),
+  );
+  // The shared registry fixture (Texas county 997), built once; the fake registry service answers
+  // each single-subject call from it with the SDK, as the registry Worker answers from its pack.
+  let fixture: string | undefined;
+  const fixtureDb = () =>
+    (fixture ??= (() => {
+      const db = join(mkdtempSync(join(tmpdir(), "factlot-fanout-")), "f.db");
+      execFileSync("python3", [join(specDir, "build_fixture.py"), db]);
+      return db;
+    })());
+
+  /** A fake REGISTRY binding: counts calls and the most in flight at once. */
+  function registryService(
+    opts: {
+      /** Milliseconds the k-th call (0-based) takes. */
+      delay?: (k: number) => number;
+      /** The answer to a call; the SDK's runTool on the fixture by default. */
+      answer?: (tool: string, input: unknown) => unknown;
+    } = {},
+  ) {
+    const calls: { tool: string; input: Record<string, unknown> }[] = [];
+    const stats = { inFlight: 0, maxInFlight: 0 };
+    const binding = {
+      async fetch(r: Request) {
+        assert.equal(r.url, REGISTRY_RUN_URL);
+        const { tool, input } = (await r.json()) as {
+          tool: string;
+          input: Record<string, unknown>;
+        };
+        const k = calls.push({ tool, input }) - 1;
+        stats.inFlight++;
+        stats.maxInFlight = Math.max(stats.maxInFlight, stats.inFlight);
+        try {
+          await new Promise((res) => setTimeout(res, opts.delay?.(k) ?? 0));
+          const a = opts.answer
+            ? opts.answer(tool, input)
+            : runTool(tool, input);
+          return a instanceof Response ? a : new Response(JSON.stringify(a));
+        } finally {
+          stats.inFlight--;
+        }
+      },
+    };
+    return { calls, stats, binding };
+  }
+
+  /** Run `fn` with the fixture loaded and the hosted runner over `binding`; restore after. */
+  async function withRunner<T>(
+    binding: { fetch(r: Request): Promise<Response> },
+    fn: () => Promise<T>,
+  ): Promise<T> {
+    configureRegistry(fixtureDb());
+    configureRegistryRunner(registryRunner(binding));
+    try {
+      return await fn();
+    } finally {
+      configureRegistryRunner(undefined);
+      configureRegistry(undefined);
+    }
+  }
+
+  const vectors = JSON.parse(
+    readFileSync(join(specDir, "calls_tx_batch.json"), "utf8"),
+  ) as { tool: string; arguments: Record<string, unknown> }[];
+
+  it("answers every shared batch vector exactly as the SDK's batch, subject by subject", async () => {
+    for (const v of vectors) {
+      const label = JSON.stringify(v.arguments).slice(0, 120);
+      // The SDK's own batch against the same fixture (runTool never uses the runner).
+      configureRegistry(fixtureDb());
+      const sdk = runTool(v.tool, v.arguments);
+      configureRegistry(undefined);
+      // Later calls finish first, so the answers come back out of order.
+      const service = registryService({ delay: (k) => Math.max(0, 12 - k) });
+      const hosted = await withRunner(service.binding, () =>
+        runToolAsync(v.tool, v.arguments),
+      );
+      assert.equal(JSON.stringify(hosted), JSON.stringify(sdk), label);
+      if (!sdk.ok) {
+        // The batch envelope's input errors (0 or 51 subjects, a duplicate id, a missing id,
+        // unknown fields, a whole-number band) are answered here, before any service call.
+        assert.equal(service.calls.length, 0, label);
+        continue;
+      }
+      // One single-subject call per subject, never the batch tool, with the shared parameters
+      // and the defaults the catalog applied to the batch.
+      const { subjects, ...params } = v.arguments as {
+        subjects: Record<string, unknown>[];
+      };
+      assert.equal(service.calls.length, subjects.length, label);
+      assert.ok(
+        service.calls.every((c) => c.tool === SINGLE),
+        label,
+      );
+      assert.ok(service.stats.maxInFlight <= BATCH_CONCURRENCY, label);
+      for (const { id: _id, ...subject } of subjects) {
+        void _id;
+        const input = service.calls.find((c) =>
+          Object.entries(subject).every(([k, val]) => c.input[k] === val),
+        )?.input;
+        assert.ok(input, `${label}: a call for ${JSON.stringify(subject)}`);
+        assert.equal(input.id, undefined, "the batch id is not sent");
+        for (const [k, val] of Object.entries(params))
+          assert.deepEqual(input[k], val, `${label}: ${k}`);
+        assert.equal(typeof input.area_band, "number");
+        assert.equal(typeof input.year_band, "number");
+        assert.equal(typeof input.min_matches, "number");
+        assert.equal(typeof input.limit, "number");
+      }
+    }
+  });
+
+  it("keeps input order, strips notice and selection.rule, and runs at most 4 calls at once", async () => {
+    const service = registryService({ delay: (k) => (k % 3) * 4 });
+    const subjects = [
+      { id: "A", urn: "fl:parcel:us-48997:1000001" },
+      { id: "T", urn: "fl:parcel:us-48439:00001234" }, // Tarrant: withheld
+      { id: "B", county_fips: "997", apn: "1000004" },
+      { id: "X", urn: "fl:parcel:us-04021:50101001" }, // not Texas
+      { id: "M", urn: "fl:parcel:us-48997:9999999" }, // not in the registry
+      { id: "W", urn: "fl:parcel:us-48997:1000001", apn: "1000001" }, // which parcel?
+      { id: "C", urn: "fl:parcel:us-48997:1000010" },
+      { id: "D", urn: "fl:parcel:us-48997:1000001" },
+      { id: "E", urn: "fl:parcel:us-48997:1000010" },
+      { id: "F", county_fips: "997", apn: "1000004" },
+    ];
+    const out = await withRunner(service.binding, () =>
+      runToolAsync(BATCH, { subjects, tax_year: 2026 }),
+    );
+    assert.ok(out.ok);
+    assert.equal(service.calls.length, 10);
+    assert.equal(service.stats.maxInFlight, BATCH_CONCURRENCY);
+    const r = out.result as {
+      results: Record<string, unknown>[];
+      summary: unknown;
+      rule: string;
+      notice: string;
+    };
+    assert.deepEqual(Object.keys(r), ["results", "summary", "rule", "notice"]);
+    assert.deepEqual(
+      r.results.map((x) => x.id),
+      subjects.map((s) => s.id),
+    );
+    assert.deepEqual(r.summary, { subjects: 10, answered: 6, errors: 4 });
+    assert.equal(r.rule, TX_EQUITY_RULE);
+    assert.equal(r.notice, TX_EQUITY_NOTICE);
+    configureRegistry(fixtureDb());
+    try {
+      for (const [k, s] of subjects.entries()) {
+        const { id, ...subject } = s;
+        const single = runTool(SINGLE, { ...subject, tax_year: 2026 });
+        if (!single.ok) {
+          // The subject's own error object, coverage and all.
+          assert.deepEqual(r.results[k], { id, error: single.error }, id);
+          continue;
+        }
+        const { notice, selection, ...rest } = single.result as Record<
+          string,
+          unknown
+        >;
+        const { rule, ...perSubject } = selection as Record<string, unknown>;
+        assert.equal(notice, TX_EQUITY_NOTICE);
+        assert.equal(rule, TX_EQUITY_RULE);
+        assert.deepEqual(r.results[k], { id, ...rest, selection: perSubject });
+        assert.equal(Object.keys(r.results[k]!).at(-1), "selection");
+        assert.ok(!("notice" in r.results[k]!));
+      }
+      const err = (id: string) =>
+        r.results.find((x) => x.id === id)!.error as {
+          error: string;
+          message: string;
+          coverage?: unknown;
+        };
+      assert.match(err("T").message, /Tarrant/);
+      assert.equal(err("X").error, "InputError");
+      assert.equal(err("M").error, "NotFound");
+      assert.ok(err("M").coverage, "a miss carries coverage");
+      assert.equal(err("W").error, "InputError");
+    } finally {
+      configureRegistry(undefined);
+    }
+  });
+
+  it("a subject the registry cannot answer fails the whole call, as the SDK's batch does", async () => {
+    const subjects = Array.from({ length: 12 }, (_, i) => ({
+      id: `s${i}`,
+      urn: `fl:parcel:us-48997:${1000001 + i}`,
+    }));
+    const unavailable = {
+      ok: false,
+      error: {
+        error: "RegistryUnavailable",
+        message: "the hosted registry cannot answer this subject",
+        issues: [],
+      },
+    };
+    // The registry answers RegistryUnavailable for one subject: that outcome is the call's.
+    const one = registryService({
+      answer: (tool, input) =>
+        (input as { urn?: string }).urn === subjects[1]!.urn
+          ? unavailable
+          : runTool(tool, input),
+    });
+    const out = await withRunner(one.binding, () =>
+      runToolAsync(BATCH, { subjects }),
+    );
+    assert.deepEqual(out, unavailable);
+    assert.ok(
+      one.calls.length < subjects.length,
+      `no further subjects are sent (${one.calls.length} calls)`,
+    );
+    // The service fails for one subject (a 503 from the binding): the catalog's RegistryUnavailable.
+    const down = registryService({
+      answer: (tool, input) =>
+        (input as { urn?: string }).urn === subjects[2]!.urn
+          ? new Response("no", { status: 503 })
+          : runTool(tool, input),
+    });
+    const out2 = await withRunner(down.binding, () =>
+      runToolAsync(BATCH, { subjects }),
+    );
+    assert.equal(out2.ok, false);
+    if (!out2.ok) {
+      assert.equal(out2.error.error, "RegistryUnavailable");
+      assert.equal(
+        out2.error.message,
+        "the registry service did not answer; retry in a moment",
+      );
+    }
+    assert.ok(down.calls.length < subjects.length);
+    // The single tool still goes through as one call.
+    const single = registryService();
+    const s = await withRunner(single.binding, () =>
+      runToolAsync(SINGLE, { urn: subjects[0]!.urn }),
+    );
+    assert.equal(s.ok, true);
+    assert.deepEqual(
+      single.calls.map((c) => c.tool),
+      [SINGLE],
+    );
+  });
+
+  /** The real @factlot/server handler, as the Worker runs it, on a local port. */
+  async function realInnerApi(): Promise<{
+    api: { fetch(r: Request): Promise<Response> };
+    close: () => void;
+  }> {
+    const handler = createHandler({
+      maxBodyBytes: 1024 * 1024,
+      trustProxy: true,
+      logSink: () => {},
+    });
+    const server = createServer((req, res) => void handler(req, res));
+    await new Promise<void>((res) => server.listen(0, "127.0.0.1", res));
+    const { port } = server.address() as AddressInfo;
+    return {
+      close: () => server.close(),
+      api: {
+        fetch: async (r: Request) => {
+          const u = new URL(r.url);
+          const headers = new Headers(r.headers);
+          headers.delete("host");
+          headers.delete("content-length");
+          return fetch(`http://127.0.0.1:${port}${u.pathname}${u.search}`, {
+            method: r.method,
+            headers,
+            body:
+              r.method === "GET" || r.method === "HEAD"
+                ? undefined
+                : await r.text(),
+          });
+        },
+      },
+    };
+  }
+  const usedThisMonth = (e: ReturnType<typeof env>) =>
+    e.limiter.object("meter:sub:sub_1").store.counts.get("month:2026-11") ?? 0;
+
+  it("through the router: one lookup per answered subject, REST and MCP", async () => {
+    const subjects = [
+      { id: "A", urn: "fl:parcel:us-48997:1000001" },
+      { id: "B", county_fips: "997", apn: "1000004" },
+      { id: "C", urn: "fl:parcel:us-48997:1000010" },
+      { id: "D", urn: "fl:parcel:us-48439:00001234" }, // Tarrant
+      { id: "E", urn: "fl:parcel:us-04021:50101001" }, // not Texas
+      { id: "F", urn: "fl:parcel:us-48997:9999999" }, // a miss
+    ];
+    const inner = await realInnerApi();
+    const service = registryService();
+    try {
+      await withRunner(service.binding, async () => {
+        const e = env();
+        const { key } = await issue(e);
+        const res = await call(e, inner.api, PATH, {
+          key,
+          body: { subjects },
+        });
+        assert.equal(res.status, 200);
+        const body = (await res.json()) as { summary: unknown };
+        assert.deepEqual(body.summary, {
+          subjects: 6,
+          answered: 3,
+          errors: 3,
+        });
+        assert.equal(service.calls.length, 6, "one service call per subject");
+        assert.equal(usedThisMonth(e), 3, "three answered subjects charged");
+        assert.equal(
+          res.headers.get("x-factlot-registry-quota-remaining"),
+          "4997",
+        );
+
+        const mcp = await handle(
+          new Request("https://api.factlot.com/mcp", {
+            method: "POST",
+            body: JSON.stringify({
+              jsonrpc: "2.0",
+              id: 1,
+              method: "tools/call",
+              params: { name: BATCH, arguments: { subjects } },
+            }),
+            headers: {
+              "content-type": "application/json",
+              accept: "application/json, text/event-stream",
+              "cf-connecting-ip": IP,
+              authorization: `Bearer ${key}`,
+            },
+          }),
+          e,
+          inner.api,
+          { now: () => e.clock.t },
+        );
+        assert.equal(mcp.status, 200);
+        const m = (await mcp.json()) as {
+          result: { isError?: boolean; content: { text: string }[] };
+        };
+        assert.notEqual(m.result.isError, true);
+        assert.deepEqual(
+          (JSON.parse(m.result.content[0]!.text) as { summary: unknown })
+            .summary,
+          { subjects: 6, answered: 3, errors: 3 },
+        );
+        assert.equal(service.calls.length, 12);
+        assert.equal(usedThisMonth(e), 6);
+      });
+    } finally {
+      inner.close();
+    }
+  });
+
+  it("through the router: a service failure answers RegistryUnavailable and charges nothing", async () => {
+    const inner = await realInnerApi();
+    const service = registryService({
+      answer: () => new Response("no", { status: 503 }),
+    });
+    try {
+      await withRunner(service.binding, async () => {
+        const e = env();
+        const { key } = await issue(e);
+        const res = await call(e, inner.api, PATH, {
+          key,
+          body: {
+            subjects: [
+              { id: "A", urn: "fl:parcel:us-48997:1000001" },
+              { id: "C", urn: "fl:parcel:us-48997:1000010" },
+            ],
+          },
+        });
+        assert.equal(res.status, 503);
+        assert.equal(
+          ((await res.json()) as { error: string }).error,
+          "RegistryUnavailable",
+        );
+        assert.equal(usedThisMonth(e), 0);
+        assert.equal(
+          res.headers.get("x-factlot-registry-quota-remaining"),
+          "5000",
+        );
+      });
+    } finally {
+      inner.close();
+    }
   });
 });
 
