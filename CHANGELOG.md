@@ -15,7 +15,7 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 
 ### Added
 
-- Hosted API: registry lookups are metered. Without a key, 100 a day per IP address (UTC day); Pro 5,000 and Team 100,000 a month per subscription (calendar month, UTC), shared by its keys. `registry_coverage` is not counted. Over the cap a registry call answers 429 `RegistryQuotaExceeded` (an MCP tool error with `isError`), naming the cap, the reset time and the plan that lifts it; other tools keep working. Registry responses carry `X-FactLot-Registry-Quota-Limit`, `-Remaining` and `-Reset`.
+- Hosted API: registry lookups are metered. Without a key, 25 a day per IP address (UTC day); Pro 5,000 and Team 100,000 a month per subscription (calendar month, UTC), shared by its keys. `registry_coverage` is not counted. Over the cap a registry call answers 429 `RegistryQuotaExceeded` (an MCP tool error with `isError`), naming the cap, the reset time and the plan that lifts it; other tools keep working. Registry responses carry `X-FactLot-Registry-Quota-Limit`, `-Remaining` and `-Reset`.
 - Hosted API: `/v1/plans` lists each plan's registry lookups and key count, a `quotas` object with the counting rules, and `checkout_open`; the API root carries `checkout_open` too.
 - Hosted API: `/v1/account` reports `registry_lookups` (used, limit, resets_at), the subscription's keys (count, limit, ids and dates) and when an inactive record is deleted.
 - Hosted API: Team subscriptions hold up to 5 keys: `POST /v1/billing/keys` adds one (shown once) and `DELETE /v1/billing/keys/{id}` revokes one, never the last.
@@ -33,6 +33,7 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 
 ### Changed
 
+- Hosted API: the free tier's registry quota is now 25 lookups a day per IP address (was 100); Pro (5,000 a month) and Team (100,000 a month) are unchanged. A lookup is charged only when answered: `registry_coverage`, coverage misses (a county or system that is not loaded) and input errors are not counted.
 - Site: new terms of service and privacy notice (operator named, Texas law, plans, automatic renewal, cancellation and refunds, acceptable use, source rights, the Texas professional disclaimers, a retention period for every record, subprocessors, and California and Texas privacy rights). The pricing section, README and llms.txt state the Free, Pro, Team, Enterprise and registry download licence terms, with registry lookup quotas as hard caps.
 - Hosted API: plan changes made in the billing portal (Pro to Team and back) change the key's limits; a subscription with paused collection, a fully refunded payment or a disputed payment stops its keys; a lapsed key can still open the billing portal and `/v1/account`, while tool calls answer 403 `SubscriptionInactive`.
 - Hosted API: checkout stays closed (503 `CheckoutClosed`) until a live Stripe key is configured. Checkout asks for agreement to the terms, states the monthly renewal, collects a billing address when needed, and accepts tax IDs and promotion codes. The key page links to factlot.com/account.

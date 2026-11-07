@@ -13,8 +13,8 @@ include the registry tools. For which tool to call when, see [agents.md](agents.
 
 ## 0. The hosted API (nothing to install)
 
-`https://api.factlot.com` serves the same tools, free with no key at 60 requests a minute and 100
-registry lookups a day per IP address ([Pro and Team keys](https://factlot.com/#pricing) raise both). Remote MCP is `https://api.factlot.com/mcp`; REST is
+`https://api.factlot.com` serves the same tools, free with no key at 60 requests a minute and 25
+registry lookups a day per IP address ([Pro and Team keys](https://factlot.com/#pricing) raise both). A lookup is one answered call to a `registry_` tool. `registry_coverage`, coverage misses (a county or system that is not loaded) and input errors are not counted. Remote MCP is `https://api.factlot.com/mcp`; REST is
 `POST https://api.factlot.com/v1/<group>/<name>` (paths in `GET /v1/tools`); OpenAPI is
 `/openapi.json` (3.1, every tool) and `/openapi-3.0.json` (the Custom GPT subset of 30 operations).
 

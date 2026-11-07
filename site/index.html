@@ -85,7 +85,7 @@
           {
             "@type": "Offer",
             "name": "Free",
-            "description": "Every calculator, ID, fact, rules and document tool at 60 requests a minute per IP address, and 100 registry lookups a day per IP address. No key.",
+            "description": "Every calculator, ID, fact, rules and document tool at 60 requests a minute per IP address, and 25 registry lookups a day per IP address. No key.",
             "price": "0",
             "priceCurrency": "USD",
             "url": "https://factlot.com/#pricing"
@@ -664,7 +664,7 @@
               <ul class="plain">
                 <li>Every calculator, ID, fact, rules and document tool</li>
                 <li>60 requests a minute per IP address</li>
-                <li>100 registry lookups a day per IP address</li>
+                <li>25 registry lookups a day per IP address</li>
               </ul>
               <p>
                 <a
@@ -750,10 +750,13 @@
             <strong>How quotas work.</strong> Limits are hard caps with no
             overage charges. Free registry lookups count per IP address per day;
             paid lookups count per subscription per month, shared by a plan's
-            keys. <code>registry_coverage</code>, the discovery call, never
-            counts. Days and months are UTC. At a cap the call returns HTTP 429
-            with the reset time and a link to this page. Calculator, ID, fact,
-            rules and document tools never count toward a lookup quota.
+            keys. A lookup is one answered call to a
+            <code>registry_</code> tool. <code>registry_coverage</code>,
+            coverage misses (a county or system that is not loaded) and input
+            errors are not counted. Days and months are UTC. At a cap the call
+            returns HTTP 429 with the reset time and a link to this page.
+            Calculator, ID, fact, rules and document tools never count toward a
+            lookup quota.
           </p>
           <p class="small">
             Checkout is by Stripe; prices are in US dollars and exclude taxes.
@@ -807,7 +810,7 @@
             <li>
               <strong>Hosted</strong>: <code>https://api.factlot.com</code>,
               free at 60 requests a minute, with paid plans for higher limits.
-              Registry lookups are on every plan: 100 a day free, 5,000 a month
+              Registry lookups are on every plan: 25 a day free, 5,000 a month
               on Pro, 100,000 a month on Team.
             </li>
           </ul>
