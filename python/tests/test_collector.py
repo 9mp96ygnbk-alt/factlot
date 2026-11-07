@@ -12,7 +12,7 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 from factlot.collector import CollectorConfig, PoliteFetcher, SourceSpec, discover, snapshot
-from factlot.collector.core import _host_ok
+from factlot.collector.core import _host_ok, limit_saturated, query_limit
 
 REQUESTS: list[tuple[str, str]] = []
 TRUNCATE: list[int] = []
@@ -24,6 +24,8 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         REQUESTS.append((self.path, self.headers.get("User-Agent", "")))
+        if "&$limit=" in self.path:
+            self.path = self.path.split("&$limit=", 1)[0]
         if self.path == "/export?type=3":  # a script that serves a file and names it in a header
             body = (Path(self.directory) / "files" / "roll_2026.zip").read_bytes()
             self.send_response(200)
@@ -288,6 +290,13 @@ class Collector(unittest.TestCase):
         self.assertEqual(clean_url(raw), "https://cad.example/View.aspx?type=3&id=%5C%5CSRV%5CDATA%20PRODUCTS%5CROLL.ZIP")
         self.assertEqual(clean_url(clean_url(raw)), clean_url(raw), "idempotent")
 
+    def test_an_archived_page_records_its_row_cap(self):
+        out = Path(tempfile.mkdtemp())
+        spec = SourceSpec("cap-cad", "Cap CAD", [f"{self.base}/"], ["127.0.0.1"], link_patterns=[r"type=3"])
+        [rec] = snapshot(PoliteFetcher(self.cfg), spec, [f"{self.base}/export?type=3&$limit=2"], out)
+        self.assertEqual(rec.get("row_cap"), 2)
+        self.assertEqual(rec["status"], "archived")
+
 
 class SourceConfigs(unittest.TestCase):
     def test_every_source_config_is_valid_and_reviewed(self):
@@ -322,6 +331,16 @@ class SourceConfigs(unittest.TestCase):
             for name in ("Real_acct_owner.zip", "Real_building_land.zip"):
                 self.assertIn(f"https://download.hcad.org/data/CAMA/{year}/{name}", harris.files)
         self.assertTrue(all(_host_ok(u, harris) for u in harris.files))
+
+
+class QueryLimit(unittest.TestCase):
+    def test_a_full_page_is_not_a_complete_extract(self):
+        url = "https://example.invalid/resource/x.csv?$limit=500000"
+        self.assertEqual(query_limit(url), 500000)
+        self.assertTrue(limit_saturated(url, 500000))
+        self.assertFalse(limit_saturated(url, 116495))
+        self.assertIsNone(query_limit("https://example.invalid/file.zip"))
+        self.assertFalse(limit_saturated("https://example.invalid/file.zip", 500000))
 
 
 if __name__ == "__main__":

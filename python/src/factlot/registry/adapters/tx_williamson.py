@@ -125,12 +125,24 @@ def improvement_categories(path: str | Path) -> dict[str, tuple[str, str, float 
     return out
 
 
+def _bare(pid: str, category: str, local: str, area: float | None) -> ParcelRecord:
+    """An in-scope improvement with no PropOwner row. The property id is enough to keep it."""
+    return ParcelRecord(
+        county_fips=COUNTY_FIPS, apn=pid, state_category=category, account=pid,
+        improvement_area_sf=area, locator=f"Improvement propertyid {pid}", local_use_code=local,
+    )
+
+
 def read_roll(improvements: str | Path, owners: str | Path | Iterable[str | Path], *,
-              categories: Iterable[str] | None = COMMERCIAL_CATEGORIES) -> Iterator[ParcelRecord]:
-    """Yield one ``ParcelRecord`` per property in scope found in the PropOwner file(s).
+              categories: Iterable[str] | None = COMMERCIAL_CATEGORIES,
+              include_without_owner: bool = True, only_without_owner: bool = False) -> Iterator[ParcelRecord]:
+    """Yield one ``ParcelRecord`` per in-scope improvement.
 
     ``categories`` limits the properties kept by Comptroller category (default: the registry's
-    commercial scope). A repeated ``propertyid`` collapses to the primary owner's row.
+    commercial scope). A repeated ``propertyid`` collapses to the primary owner's row. A property
+    the improvement file identifies and the owner file does not is still yielded, without an
+    owner or a situs: absence of an owner is not a reason to drop the parcel. An owner row with
+    no in-scope improvement is not a parcel.
     """
     if categories is COMMERCIAL_CATEGORIES:
         keep = is_commercial
@@ -149,31 +161,36 @@ def read_roll(improvements: str | Path, owners: str | Path | Iterable[str | Path
             prev = chosen.get(pid)
             if prev is None or (_squeeze(prev.get("primaryowner")) != "1" and _squeeze(r.get("primaryowner")) == "1"):
                 chosen[pid] = r
-    for pid, r in chosen.items():
-        category, local, area = cats[pid]
-        confidential = _squeeze(r.get("issecured")) == "1"
-        name = None if confidential else (_squeeze(r.get("fullname")) or None)
-        if name and name.upper() in _PLACEHOLDER_OWNERS:
-            name = None
-        acres = _positive(r.get("acres"))
-        yield ParcelRecord(
-            county_fips=COUNTY_FIPS,
-            apn=pid,
-            state_category=category,
-            account=pid,
-            situs_address=None if confidential else _situs(r),
-            owner_name=name,
-            owner_mailing_address=_mailing_address(r) if name else None,
-            owner_confidential=confidential,
-            land_area_sf=round(acres * _SQFT_PER_ACRE, 2) if acres else None,
-            improvement_area_sf=area,
-            year_built=None,
-            market_value=_num(r.get("totalpropmktvalue")),
-            appraised_value=_num(r.get("totalassessedvalue")),
-            tax_year=int(y) if (y := _num(r.get("tax_year"))) else None,
-            locator=f"PropOwner propertyid {pid}",
-            local_use_code=local,
-        )
+    if not only_without_owner:
+        for pid, r in chosen.items():
+            category, local, area = cats[pid]
+            confidential = _squeeze(r.get("issecured")) == "1"
+            name = None if confidential else (_squeeze(r.get("fullname")) or None)
+            if name and name.upper() in _PLACEHOLDER_OWNERS:
+                name = None
+            acres = _positive(r.get("acres"))
+            yield ParcelRecord(
+                county_fips=COUNTY_FIPS,
+                apn=pid,
+                state_category=category,
+                account=pid,
+                situs_address=None if confidential else _situs(r),
+                owner_name=name,
+                owner_mailing_address=_mailing_address(r) if name else None,
+                owner_confidential=confidential,
+                land_area_sf=round(acres * _SQFT_PER_ACRE, 2) if acres else None,
+                improvement_area_sf=area,
+                year_built=None,
+                market_value=_num(r.get("totalpropmktvalue")),
+                appraised_value=_num(r.get("totalassessedvalue")),
+                tax_year=int(y) if (y := _num(r.get("tax_year"))) else None,
+                locator=f"PropOwner propertyid {pid}",
+                local_use_code=local,
+            )
+    if include_without_owner or only_without_owner:
+        for pid, (category, local, area) in cats.items():
+            if pid not in chosen:
+                yield _bare(pid, category, local, area)
 
 
 def build(improvements: str | Path, owner_paths: Iterable[str | Path], db_path: str | Path, *, as_of: str,
@@ -186,10 +203,13 @@ def build(improvements: str | Path, owner_paths: Iterable[str | Path], db_path: 
     total = IngestStats()
     reg = Registry(db_path)
     try:
-        for page in owner_paths:
+        pages = list(owner_paths)
+        for page in pages:
             # One registry source per tax year (store.roll_source): next year's pages never supersede this year's.
-            stats = reg.ingest_roll(SOURCE, page, read_roll(improvements, page), as_of=as_of, retrieved_at=retrieved_at,
-                                    state_fips=STATE_FIPS, account_system=ACCOUNT_SYSTEM, full_roll=False, base_year=BASE_TAX_YEAR)
+            # Ownerless parcels are not repeated on every page; they are cited to the improvement file below.
+            stats = reg.ingest_roll(SOURCE, page, read_roll(improvements, page, include_without_owner=False),
+                                    as_of=as_of, retrieved_at=retrieved_at, state_fips=STATE_FIPS,
+                                    account_system=ACCOUNT_SYSTEM, full_roll=False, base_year=BASE_TAX_YEAR)
             for k, v in asdict(stats).items():
                 if k in ("source_id", "tax_year"):
                     setattr(total, k, v)
@@ -197,6 +217,17 @@ def build(improvements: str | Path, owner_paths: Iterable[str | Path], db_path: 
                     setattr(total, k, getattr(total, k) + v)
                 elif isinstance(v, list):
                     getattr(total, k).extend(v)
+        stats = reg.ingest_roll(
+            SOURCE, improvements, read_roll(improvements, pages, only_without_owner=True),
+            as_of=as_of, retrieved_at=retrieved_at, state_fips=STATE_FIPS,
+            account_system=ACCOUNT_SYSTEM, full_roll=False, base_year=BASE_TAX_YEAR)
+        for k, v in asdict(stats).items():
+            if k in ("source_id", "tax_year"):
+                setattr(total, k, v)
+            elif isinstance(v, int):
+                setattr(total, k, getattr(total, k) + v)
+            elif isinstance(v, list):
+                getattr(total, k).extend(v)
     finally:
         reg.close()
     return total
