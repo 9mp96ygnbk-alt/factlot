@@ -27,6 +27,7 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 
 ### Changed
 
+- Site: new terms of service and privacy notice (operator named, Texas law, plans, automatic renewal, cancellation and refunds, acceptable use, source rights, the Texas professional disclaimers, a retention period for every record, subprocessors, and California and Texas privacy rights). The pricing section, README and llms.txt state the Free, Pro, Team, Enterprise and registry download licence terms, with registry lookup quotas as hard caps.
 - Registry: the Williamson adapter keeps an in-scope improvement that the owner file has no row for, without an owner or address.
 - Tool input: a `null` for a field the input schema names is treated as the field left out, in TypeScript and Python alike (shared vectors in `spec/vectors/tools.json`). Some agent frameworks (the `crewai-tools` MCP adapter) send `null` for every optional field the model skips, which used to fail with "expected number, received null". A required field sent as `null` is reported as missing; a misspelled field is still reported even when `null`; open objects (facts, fact packages) keep their nulls, since a package's signature covers them.
 

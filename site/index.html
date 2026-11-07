@@ -81,11 +81,52 @@
         "codeRepository": "https://github.com/9mp96ygnbk-alt/factlot",
         "license": "https://www.apache.org/licenses/LICENSE-2.0",
         "isAccessibleForFree": true,
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "USD"
-        }
+        "offers": [
+          {
+            "@type": "Offer",
+            "name": "Free",
+            "description": "Every calculator, ID, fact, rules and document tool at 60 requests a minute per IP address, and 100 registry lookups a day per IP address. No key.",
+            "price": "0",
+            "priceCurrency": "USD",
+            "url": "https://factlot.com/#pricing"
+          },
+          {
+            "@type": "Offer",
+            "name": "Pro",
+            "description": "1 API key, 600 requests a minute, 5,000 registry lookups a month, email support. Renews monthly until cancelled.",
+            "price": "49",
+            "priceCurrency": "USD",
+            "priceSpecification": {
+              "@type": "UnitPriceSpecification",
+              "price": "49",
+              "priceCurrency": "USD",
+              "referenceQuantity": {
+                "@type": "QuantitativeValue",
+                "value": 1,
+                "unitCode": "MON"
+              }
+            },
+            "url": "https://factlot.com/#pricing"
+          },
+          {
+            "@type": "Offer",
+            "name": "Team",
+            "description": "Up to 5 API keys, 3,000 requests a minute, 100,000 registry lookups a month, priority support, and a vote on which regions open next. Renews monthly until cancelled.",
+            "price": "599",
+            "priceCurrency": "USD",
+            "priceSpecification": {
+              "@type": "UnitPriceSpecification",
+              "price": "599",
+              "priceCurrency": "USD",
+              "referenceQuantity": {
+                "@type": "QuantitativeValue",
+                "value": 1,
+                "unitCode": "MON"
+              }
+            },
+            "url": "https://factlot.com/#pricing"
+          }
+        ]
       }
     </script>
   </head>
@@ -611,20 +652,20 @@
         <div class="wrap">
           <h2 id="pricing-title">Pricing</h2>
           <p>
-            The tools are open source and free to run yourself. The hosted
-            endpoint at <code>https://api.factlot.com</code> saves you running
-            it, and paid plans raise the limits. Registry lookups for the hosted
-            regions are on every plan.
+            The tools are open source and free to run yourself, with no limits.
+            The hosted endpoint at <code>https://api.factlot.com</code> saves
+            you running it. Every plan has every tool; plans differ in request
+            rate, registry lookups, keys and support.
           </p>
           <div class="cards">
-            <article class="card">
+            <article class="card" id="plan-free">
               <h3>Free</h3>
-              <p><strong>$0</strong></p>
-              <p>
-                Every calculator, ID, fact and registry tool, hosted at
-                <code>https://api.factlot.com/mcp</code> with no key: 60
-                requests a minute per address. Or run it locally with no limit.
-              </p>
+              <p><strong>$0</strong>, no key</p>
+              <ul class="plain">
+                <li>Every calculator, ID, fact, rules and document tool</li>
+                <li>60 requests a minute per IP address</li>
+                <li>100 registry lookups a day per IP address</li>
+              </ul>
               <p>
                 <a
                   href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/getting-started.md"
@@ -632,13 +673,15 @@
                 >
               </p>
             </article>
-            <article class="card">
+            <article class="card" id="plan-pro">
               <h3>Pro</h3>
               <p><strong>$49 a month</strong></p>
-              <p>
-                An API key with 600 requests a minute, hosted registry lookups,
-                and email support.
-              </p>
+              <ul class="plain">
+                <li>1 API key</li>
+                <li>600 requests a minute</li>
+                <li>5,000 registry lookups a month</li>
+                <li>Email support</li>
+              </ul>
               <p>
                 <a
                   class="button primary"
@@ -647,14 +690,21 @@
                   >Start Pro</a
                 >
               </p>
+              <p class="small">
+                $49 a month, renews monthly until cancelled. Cancel any time.
+                <a href="https://factlot.com/terms#billing">Terms</a>
+              </p>
             </article>
-            <article class="card">
+            <article class="card" id="plan-team">
               <h3>Team</h3>
               <p><strong>$599 a month</strong></p>
-              <p>
-                3,000 requests a minute, hosted registry lookups, priority
-                support, and input on which regions open next.
-              </p>
+              <ul class="plain">
+                <li>Up to 5 API keys</li>
+                <li>3,000 requests a minute</li>
+                <li>100,000 registry lookups a month</li>
+                <li>Priority support</li>
+                <li>A vote on which regions open next</li>
+              </ul>
               <p>
                 <a
                   class="button"
@@ -663,19 +713,59 @@
                   >Start Team</a
                 >
               </p>
+              <p class="small">
+                $599 a month, renews monthly until cancelled. Cancel any time.
+                <a href="https://factlot.com/terms#billing">Terms</a>
+              </p>
+            </article>
+            <article class="card" id="plan-enterprise">
+              <h3>Enterprise and data licence</h3>
+              <p><strong>By quote</strong></p>
+              <ul class="plain">
+                <li>
+                  Enterprise: private deployment, invoicing, no-training terms
+                  and SSO
+                </li>
+                <li>
+                  Registry download licence: $2,400 a year per state file,
+                  refreshed weekly, for internal use (not redistribution).
+                  Available on request.
+                </li>
+              </ul>
+              <p>
+                <a
+                  class="button"
+                  href="mailto:contact@factlot.com?subject=FactLot%20Enterprise%20or%20registry%20licence"
+                  >Email contact@factlot.com</a
+                >
+              </p>
             </article>
           </div>
           <p class="small">
-            Checkout is by Stripe. Your API key is shown once on the page Stripe
-            returns you to; FactLot stores only a hash of it. Cancel any time
-            from the billing portal. Agents can start checkout with
-            <code>POST https://api.factlot.com/v1/billing/checkout</code> and
-            hand the link to their human.
+            <strong>How quotas work.</strong> Limits are hard caps with no
+            overage charges. Free registry lookups count per IP address per day;
+            paid lookups count per subscription per month, shared by a plan's
+            keys. At a cap the call returns HTTP 429 with the reset time and a
+            link to this page. Calculator, ID, fact, rules and document tools
+            never count toward a lookup quota.
           </p>
-          <h3 id="early-access">Enterprise and hosted registry</h3>
+          <p class="small">
+            Checkout is by Stripe; prices are in US dollars and exclude taxes.
+            Your API key is shown once on the page Stripe returns you to;
+            FactLot stores only a hash of it, and a new key can take up to a
+            minute to start working. Cancel any time at
+            <a href="https://factlot.com/account">factlot.com/account</a> or in
+            the Stripe billing portal; your key works to the end of the paid
+            month, and there are no refunds for a partial month. Agents can
+            start checkout with
+            <code>POST https://api.factlot.com/v1/billing/checkout</code> and
+            hand the link to their human. See the
+            <a href="https://factlot.com/terms">terms</a> and the
+            <a href="https://factlot.com/privacy">privacy notice</a>.
+          </p>
+          <h3 id="early-access">Regions not hosted yet</h3>
           <p>
-            Need a region that is not hosted yet, private deployment, invoicing,
-            or no-training terms? Email
+            Need a region that is not hosted yet? Email
             <a
               href="mailto:contact@factlot.com?subject=FactLot%20hosted%20registry%20regions&amp;body=Company%3A%0AUse%20case%3A%0AMetros%20or%20counties%3A%0AApproximate%20lookups%20per%20month%3A%0A"
               >contact@factlot.com</a
@@ -709,7 +799,8 @@
             <li>
               <strong>Hosted</strong>: <code>https://api.factlot.com</code>,
               free at 60 requests a minute, with paid plans for higher limits.
-              Registry lookups are on every plan.
+              Registry lookups are on every plan: 100 a day free, 5,000 a month
+              on Pro, 100,000 a month on Team.
             </li>
           </ul>
           <p>

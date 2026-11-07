@@ -68,12 +68,12 @@ curl -fLO https://github.com/9mp96ygnbk-alt/factlot/releases/download/registry-s
 FACTLOT_REGISTRY_DB="$PWD/factlot-registry-sample-dc-2026-11-04.db" npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.4.0/factlot-mcp-standalone-0.4.0.tgz
 ```
 
-**Paid plans:** [Pro $49 a month and Team $599 a month](https://factlot.com/#pricing) raise the hosted limits; registry lookups are on every plan, including the free tier. Enterprise, private deployments and further hosted regions: [contact@factlot.com](mailto:contact@factlot.com?subject=FactLot%20hosted%20registry%20regions). Questions and bug reports go in [GitHub Discussions](https://github.com/9mp96ygnbk-alt/factlot/discussions) and Issues.
+**Plans:** the hosted endpoint is free with no key: every calculator, ID, fact, rules and document tool at 60 requests a minute per IP address, and 100 registry lookups a day per IP address. [Pro, $49 a month](https://factlot.com/#pricing): 1 API key, 600 requests a minute, 5,000 registry lookups a month, email support. [Team, $599 a month](https://factlot.com/#pricing): up to 5 API keys, 3,000 requests a minute, 100,000 registry lookups a month, priority support, and a vote on which regions open next. Limits are hard caps with no overage charges; at a cap the call returns HTTP 429 with the reset time. Paid plans renew monthly until cancelled; cancel any time. A registry download licence ($2,400 a year per state file, refreshed weekly, for internal use, not redistribution) is available on request, and Enterprise (private deployment, invoicing, no-training terms and SSO) is by quote: [contact@factlot.com](mailto:contact@factlot.com?subject=FactLot%20Enterprise%20or%20registry%20licence). [Terms](https://factlot.com/terms) · [Privacy](https://factlot.com/privacy). Questions and bug reports go in [GitHub Discussions](https://github.com/9mp96ygnbk-alt/factlot/discussions) and Issues.
 
 ## Hosted registry
 
 The hosted API at `https://api.factlot.com` answers registry lookups on every plan, including the
-free tier with no key (60 requests a minute per IP). These regions are hosted:
+free tier with no key (100 registry lookups a day per IP address). These regions are hosted:
 
 | Region               | Hosted data                                                                                                                                            | Licence                          |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------- |
