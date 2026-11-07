@@ -54,7 +54,7 @@ import type {
 } from "./types.ts";
 
 const T0 = Date.UTC(2026, 10, 7, 12, 0, 0);
-const KEY = { ANTHROPIC_API_KEY: "sk-ant-test-not-a-real-key" };
+const KEY = { ANTHROPIC_API_KEY: "fake-model-key-for-tests" };
 
 // --- Fakes ------------------------------------------------------------------------------------
 
@@ -1029,7 +1029,7 @@ describe("model tools on the hosted API", () => {
       "9,999,999",
       "You should",
       "Term",
-      "sk-ant",
+      "fake-model-key",
     ])
       assert.ok(!all.includes(secret), `log contains ${secret}`);
     for (const line of lines) {
