@@ -1102,7 +1102,8 @@
   "queryable": {
     "dc-otr-real-property": "Yes: hosted on api.factlot.com, and the same data as the downloadable DC registry sample",
     "dc-dcgis-zoning": "Yes: hosted on api.factlot.com, and in the DC registry sample",
-    "dc-dlcp-entities": "Yes: hosted on api.factlot.com, and in the DC registry sample"
+    "dc-dlcp-entities": "Yes: hosted on api.factlot.com, and in the DC registry sample",
+    "tx-comptroller-franchise": "Partly: hosted on api.factlot.com for the entities that own a hosted Texas parcel"
   },
   "hosted_areas": {
     "md-sdat-real-property": {
@@ -1112,6 +1113,35 @@
     "ut-ugrc-lir": {
       "areas": ["49023", "49043"],
       "text": "Yes: hosted on api.factlot.com (Juab and Summit counties only)"
+    },
+    "tx-harris-cad": {
+      "areas": "all",
+      "text": "Yes: hosted on api.factlot.com"
+    },
+    "tx-dallas-cad": {
+      "areas": "all",
+      "text": "Yes: hosted on api.factlot.com"
+    },
+    "tx-travis-cad": {
+      "areas": "all",
+      "text": "Yes: hosted on api.factlot.com"
+    },
+    "tx-collin-cad": {
+      "areas": "all",
+      "text": "Yes: hosted on api.factlot.com"
+    },
+    "tx-denton-cad": {
+      "areas": "all",
+      "text": "Yes: hosted on api.factlot.com (2027 preliminary roll)"
+    },
+    "tx-williamson-cad": {
+      "areas": "all",
+      "text": "Yes: hosted on api.factlot.com (2027 preliminary roll)"
+    }
+  },
+  "withheld_areas": {
+    "tx-tarrant-ad": {
+      "text": "No: not served by the hosted registry while the publisher's terms for AI use are unclear"
     }
   },
   "queryable_cite": {

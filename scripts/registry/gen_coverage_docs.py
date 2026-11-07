@@ -491,16 +491,21 @@ def gen_coverage(configs: list[dict]) -> str:
     entity_sources = [s for s in configs if "entities" in s["source_id"] or s["source_id"] == "tx-comptroller-franchise"]
     queryable = data["queryable"]
 
-    def queryable_text(sid: str, area: str = "") -> str | None:
-        """The 'Queryable today' cell for a source (and, for a partly hosted source, a county row), or None."""
+    def hosted_text(sid: str, area: str = "") -> str | None:
+        """The 'Queryable today' cell for a hosted source (and, for a partly hosted source, a county row), or None."""
         if sid in queryable:
             return queryable[sid]
         h = hosted_area(data, sid, area)
         return h["text"] if h else None
 
+    def queryable_text(sid: str, area: str = "") -> str | None:
+        """The 'Queryable today' cell: hosted, or withheld from the hosted registry with the reason, or None."""
+        w = data.get("withheld_areas", {}).get(sid)
+        return hosted_text(sid, area) or (w["text"] if w else None)
+
     def hosted_state(st: str, state_rows: list[dict]) -> str:
         """The state's 'Queryable today' cell in the summary table: 'Yes', 'Partly' (some counties) or 'No'."""
-        flags = [queryable_text(r["source_id"], r["area"]) is not None for r in state_rows]
+        flags = [hosted_text(r["source_id"], r["area"]) is not None for r in state_rows]
         if not any(flags):
             return "No: not hosted"
         if st == "DC":
@@ -545,14 +550,14 @@ def gen_coverage(configs: list[dict]) -> str:
         "## Read this first",
         "",
         "- **Queryable today.** The hosted API at `https://api.factlot.com` answers registry lookups, on every plan, metered by plan,",
-        "  for **Maryland** (all 24 jurisdictions), the **District of Columbia** and **Juab and Summit counties in Utah**: 128,854 parcels in 27",
+        "  for **Maryland** (all 24 jurisdictions), the **District of Columbia**, **Juab and Summit counties in Utah** and **Harris, Dallas,",
+        "  Travis, Collin, Denton and Williamson counties in Texas** (Denton and Williamson from 2027 preliminary rolls): 349,869 parcels in 33",
         "  counties. Call `registry_coverage` first: it lists exactly what is hosted. The DC data is also the downloadable **DC sample**, a 23.4 MB",
-        "  database file (CC BY 4.0) you can run yourself (`FACTLOT_REGISTRY_DB`). Texas hosting opens with this release; `registry_coverage`",
-        "  lists each Texas county once it is hosted. Tarrant County is not served by the hosted registry while the publisher's terms for AI use",
-        "  are unclear. New York City and the rest run only on a self-hosted FactLot with a registry file, and more hosted regions open as their",
-        "  terms allow. Every row says which it is.",
+        "  database file (CC BY 4.0) you can run yourself (`FACTLOT_REGISTRY_DB`). Tarrant County is not served by the hosted registry while the",
+        "  publisher's terms for AI use are unclear. New York City and the rest run only on a self-hosted FactLot with a registry file, and more",
+        "  hosted regions open as their terms allow. Every row says which it is.",
         "  The counts below are what the project's own pipeline built into scratch registries from the publishers' files; the hosted counts and",
-        "  data dates for Maryland and Utah can differ slightly from the recorded loads.",
+        "  data dates for Maryland, Utah and Texas can differ slightly from the recorded loads.",
         "- **Counts are as recorded.** Each number is quoted from a review record or the source catalog (see `coverage-data.json`, which the",
         "  generator checks against the documents) or read from a per-county table in a statewide record. They are **commercial** parcels",
         "  (state categories B, F1, F2: apartments and multifamily, commercial improved, industrial improved) in scope of FactLot's data policy,",

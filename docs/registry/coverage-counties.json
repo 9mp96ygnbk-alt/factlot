@@ -8,9 +8,9 @@
     "cited_load": "Whole-county load from a verified source with a per-county count and as-of date in the record; not yet covered by the quality audit. Built, not yet hosted (run it on a self-hosted FactLot)."
   },
   "counts": {
-    "audited_load": 15,
-    "cited_load": 88,
-    "hosted": 27
+    "audited_load": 11,
+    "cited_load": 86,
+    "hosted": 33
   },
   "geography": "US Census 2020 county FIPS codes (spec/registry/county-names.tsv, 3,235 county equivalents incl. territories)",
   "counties": {
@@ -1417,7 +1417,7 @@
     "48085": {
       "name": "Collin County",
       "state": "TX",
-      "class": "audited_load",
+      "class": "hosted",
       "source_id": "tx-collin-cad",
       "commercial_parcels": 18035,
       "organisation_owners_row": 13165,
@@ -1425,13 +1425,13 @@
       "entity_links": "85.4% linked",
       "owner_link_rate_audited": "85.41%",
       "data_as_of": "2026-11-02",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/README.md"
     },
     "48113": {
       "name": "Dallas County",
       "state": "TX",
-      "class": "audited_load",
+      "class": "hosted",
       "source_id": "tx-dallas-cad",
       "commercial_parcels": 59645,
       "organisation_owners_row": 33386,
@@ -1439,13 +1439,13 @@
       "entity_links": "71.6% linked",
       "owner_link_rate_audited": "71.57%",
       "data_as_of": "2026-10-12",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/README.md"
     },
     "48121": {
       "name": "Denton County",
       "state": "TX",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "tx-denton-cad",
       "commercial_parcels": 13304,
       "organisation_owners_row": 9484,
@@ -1453,7 +1453,7 @@
       "entity_links": "not recorded for this county (the Texas entity file is loaded)",
       "owner_link_rate_audited": null,
       "data_as_of": "2026-11-03",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/tier2/README.md"
     },
     "48157": {
@@ -1473,7 +1473,7 @@
     "48201": {
       "name": "Harris County",
       "state": "TX",
-      "class": "audited_load",
+      "class": "hosted",
       "source_id": "tx-harris-cad",
       "commercial_parcels": 87717,
       "organisation_owners_row": 56792,
@@ -1481,7 +1481,7 @@
       "entity_links": "79.7% of organisation owners linked to the Comptroller file",
       "owner_link_rate_audited": "79.69%",
       "data_as_of": "2026-11-01",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/README.md"
     },
     "48439": {
@@ -1496,12 +1496,13 @@
       "owner_link_rate_audited": "71.61%",
       "data_as_of": "2026-11-02",
       "hosted": false,
-      "evidence": "docs/registry/sources/README.md"
+      "evidence": "docs/registry/sources/README.md",
+      "withheld": "not served by the hosted registry while the publisher's terms for AI use are unclear"
     },
     "48453": {
       "name": "Travis County",
       "state": "TX",
-      "class": "audited_load",
+      "class": "hosted",
       "source_id": "tx-travis-cad",
       "commercial_parcels": 30555,
       "organisation_owners_row": 17972,
@@ -1509,13 +1510,13 @@
       "entity_links": "78.4% linked",
       "owner_link_rate_audited": "78.36%",
       "data_as_of": "2026-07-18",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/README.md"
     },
     "48491": {
       "name": "Williamson County",
       "state": "TX",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "tx-williamson-cad",
       "commercial_parcels": 11699,
       "organisation_owners_row": 8114,
@@ -1523,7 +1524,7 @@
       "entity_links": "not recorded for this county (the Texas entity file is loaded)",
       "owner_link_rate_audited": null,
       "data_as_of": "2026-11-03",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/tier2/README.md"
     },
     "49001": {

@@ -524,7 +524,7 @@ let coverageJson;
   );
   const shapes = ordered
     .map(([fips, c]) => {
-      const t = `<title>${esc(c.name)}, ${esc(c.state)}: ${LABEL[c.class]}. ${fmtN(c.commercial_parcels)} commercial parcels, data as of ${c.data_as_of}.</title>`;
+      const t = `<title>${esc(c.name)}, ${esc(c.state)}: ${LABEL[c.class]}${c.withheld ? ` (${esc(c.withheld)})` : ""}. ${fmtN(c.commercial_parcels)} commercial parcels, data as of ${c.data_as_of}.</title>`;
       const b = box(geo.counties[fips].d);
       const dot =
         Math.max(b.x1 - b.x0, b.y1 - b.y0) < 6
@@ -560,7 +560,7 @@ ${Object.keys(byState)
       .sort((a, b) => a[1].name.localeCompare(b[1].name))
       .map(
         ([fips, c]) =>
-          `<tr><th scope="row">${esc(c.name)}, ${esc(c.state)}</th><td>${fips}</td><td><span class="sw sm cov-${c.class}" aria-hidden="true"></span>${LABEL[c.class]}</td><td>${fmtN(c.commercial_parcels)}</td><td>${c.data_as_of}</td></tr>`,
+          `<tr><th scope="row">${esc(c.name)}, ${esc(c.state)}</th><td>${fips}</td><td><span class="sw sm cov-${c.class}" aria-hidden="true"></span>${LABEL[c.class]}${c.withheld ? `: ${esc(c.withheld)}` : ""}</td><td>${fmtN(c.commercial_parcels)}</td><td>${c.data_as_of}</td></tr>`,
       )
       .join("\n"),
   )
@@ -591,6 +591,7 @@ ${Object.keys(byState)
             source_id: c.source_id,
             owner_names: c.owner_names,
             hosted: c.hosted,
+            ...(c.withheld ? { withheld: c.withheld } : {}),
           },
         ]),
       ),
