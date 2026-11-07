@@ -74,7 +74,7 @@ def unequal(inp: dict) -> dict:
         median, pair = q((lo + hi) / 2, 2), [lo, hi]
     diff = q(dec(s["value"]) - median, 2)
 
-    warnings = [NOTICE]
+    warnings = []
     basis = s["value_basis"]
     other = [x["label"] for x in comps if x["c"]["value_basis"] != basis]
     if other:
