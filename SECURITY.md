@@ -6,8 +6,8 @@ Please report vulnerabilities privately, never in a public issue, pull request, 
 
 - **Email:** contact@factlot.com, with "SECURITY" at the start of the subject line.
 
-GitHub's private vulnerability reporting is not switched on for this repository, so email is the
-only private channel today.
+GitHub's private vulnerability reporting is on for this repository: you can also report through the
+repository's Security tab ("Report a vulnerability").
 
 Include the affected package and version (or commit), the steps or input that reproduce the
 problem, and what you expected instead. We aim to acknowledge a report within three business days,

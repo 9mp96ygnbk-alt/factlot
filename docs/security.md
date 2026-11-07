@@ -151,8 +151,8 @@ in [SECURITY.md](../SECURITY.md).
   warning, ID collisions, input that causes unbounded CPU or memory use or leaks internal detail, ways
   around key authentication or limits, and anything that lets document text reach a log.
 
-GitHub's private vulnerability reporting is not switched on for the repository, so email is the only
-private channel today.
+GitHub's private vulnerability reporting is on for the repository: you can also report through the
+repository's Security tab ("Report a vulnerability").
 
 ## What is not in place yet
 
@@ -166,8 +166,6 @@ private channel today.
 - The API does not send a `Strict-Transport-Security` header, and the static site sends no
   `Content-Security-Policy` header (it runs no scripts). The plain-HTTP redirect above is what
   protects first visits.
-- GitHub's Dependabot security-updates setting is off. Weekly version updates are on and will usually
-  propose a fix, but a security advisory alone does not open a pull request.
 - Enterprise customers can ask about a signed data-processing agreement and private deployment
   (contact@factlot.com); neither is published terms today.
 
