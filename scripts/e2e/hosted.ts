@@ -43,7 +43,12 @@ const HOSTED_REGISTRY_CASES: {
   {
     tool: "registry_coverage",
     arguments: {},
-    expect: { "totals.parcels": 128854, "totals.counties": 27 },
+    // Texas pack (see below): 128,854 MD, DC and UT parcels plus 221,015 Texas parcels in six counties.
+    expect: {
+      "totals.parcels": 349869,
+      "totals.counties": 33,
+      "hosted.withheld_counties.0.region": "us-48439",
+    },
   },
   {
     tool: "registry_get",
@@ -75,7 +80,111 @@ const HOSTED_REGISTRY_CASES: {
     tool: "registry_owned_by",
     arguments: { entity_urn: "fl:entity:us-dc:c00008141728" },
   },
-  // No Texas region is hosted: a coverage miss, not a failure of the service.
+  // Texas. Values from the pack built 2026-11-07 from tx-2026-11-07.db (with md.db, ut.db, dc.db;
+  // --exclude-county 48439): Harris, Dallas, Travis and Collin 2026 rolls, Denton and Williamson 2027
+  // preliminary rolls, the Comptroller entities that own a hosted parcel.
+  {
+    tool: "registry_get",
+    arguments: { urn: "fl:parcel:us-48201:0180580000001" },
+    expect: {
+      status: "current",
+      kind: "parcel",
+      "value_history.0.tax_year": 2026,
+      "value_history.0.market_value": 2748333,
+    },
+  },
+  {
+    tool: "registry_resolve_parcel",
+    arguments: {
+      state_fips: "48",
+      county_fips: "113",
+      apn: "00000100057000000",
+    },
+    expect: { urn: "fl:parcel:us-48113:00000100057000000" },
+  },
+  {
+    tool: "registry_search_address",
+    arguments: { query: "1201 S Lamar Blvd", limit: 3 },
+    expect: { "results.0.urn": "fl:parcel:us-48453:100008" },
+  },
+  {
+    tool: "registry_search_address",
+    arguments: { query: "1706 W University Dr", limit: 3 },
+    expect: { "results.0.urn": "fl:parcel:us-48085:10000" },
+  },
+  {
+    tool: "registry_search_entities",
+    arguments: { query: "holdings", limit: 3 },
+    expect: { "results.0.urn": "fl:entity:us-tx:0804844512" },
+  },
+  {
+    tool: "registry_owned_by",
+    arguments: { entity_urn: "fl:entity:us-tx:0000452810" },
+    expect: { "results.0.urn": "fl:parcel:us-48453:126012" },
+  },
+  {
+    tool: "registry_tx_equity_candidates",
+    arguments: { urn: "fl:parcel:us-48201:0180580000001" },
+    expect: {
+      "selection.tax_year": 2026,
+      "selection.roll_sources.0": "tx-harris-cad",
+      "selection.building_class_sources.0": "tx-harris-cad-buildings",
+      "selection.tiers.0.matched": 6,
+      "selection.tiers.2.matched": 293,
+      "selection.widened_to_county": true,
+      "selection.returned": 50,
+      "candidates.0.id": "fl:parcel:us-48201:0540160000008",
+      "sources.0.rights.attribution": "Harris Central Appraisal District",
+    },
+  },
+  {
+    tool: "registry_tx_equity_candidates",
+    arguments: {
+      urn: "fl:parcel:us-48201:0180580000001",
+      area_band: 0.2,
+      year_band: 10,
+      limit: 5,
+    },
+    expect: {
+      "selection.returned": 5,
+      "candidates.0.id": "fl:parcel:us-48201:0540160000008",
+    },
+  },
+  {
+    tool: "registry_tx_equity_candidates",
+    arguments: { county_fips: "113", apn: "00000100057000000" },
+    expect: {
+      "selection.tax_year": 2026,
+      "selection.matched": 54,
+      "selection.returned": 50,
+      "candidates.0.id": "fl:parcel:us-48113:000010001301a0000",
+    },
+  },
+  // Denton: a 2027 preliminary roll, compared in that year only.
+  {
+    tool: "registry_tx_equity_candidates",
+    arguments: { urn: "fl:parcel:us-48121:1002521" },
+    expect: {
+      "selection.tax_year": 2027,
+      "selection.available_tax_years.0": 2027,
+      "subject.value_history.0.tax_year": 2027,
+      "selection.returned": 14,
+      "candidates.0.id": "fl:parcel:us-48121:565139",
+      "candidates.0.tax_year": 2027,
+    },
+  },
+  // Tarrant is withheld: an input error from the candidate tool, a miss that says why elsewhere.
+  {
+    tool: "registry_tx_equity_candidates",
+    arguments: { urn: "fl:parcel:us-48439:00001234" },
+    expect_error: "InputError",
+  },
+  {
+    tool: "registry_get",
+    arguments: { urn: "fl:parcel:us-48439:00001234" },
+    expect_error: "NotFound",
+  },
+  // A Texas parcel the registry does not hold (residential): a coverage miss, not a failure.
   {
     tool: "registry_tx_equity_candidates",
     arguments: { urn: "fl:parcel:us-48201:1" },
