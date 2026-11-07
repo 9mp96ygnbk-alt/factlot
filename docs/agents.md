@@ -388,6 +388,19 @@ For a county it does not hold, it returns a coverage miss. Give the subject as `
 parcels on every server: Tarrant County is not served by the hosted registry while the publisher's
 terms for AI use are unclear.
 
+**Many clients at once.** `registry_tx_equity_candidates_batch` takes up to 50 `subjects` (each
+with your `id` and its `urn`, or `county_fips` and `apn`) and the rule parameters once; each entry
+of `results` is that subject's answer from `registry_tx_equity_candidates` (minus the `notice` and
+`selection.rule`, given once at the top) or that subject's error, so one parcel outside Texas, in
+Tarrant County or not in the registry does not fail the others. It returns candidates per subject
+only and never runs `calc_tx_unequal_appraisal`: a person still chooses each subject's comparables.
+On the hosted API each answered subject counts as one registry lookup. Likewise
+`rules_tx_property_tax_protest_deadline_batch` takes up to 200 `items` (`id`, `tax_year`,
+optional `notice_delivered_date`) and answers each under `rules.tx.property_tax_protest_deadline@2`
+exactly as the single tool would, with an invalid item carrying its own `error`, a `summary` of
+items per deadline, and the rule, citations and disclaimer once; it is a rules tool, never a
+lookup.
+
 - **One tax year.** Each tax year's roll is its own registry source, so a parcel can carry a
   certified roll and next year's preliminary roll at once. The tool compares within one year: the
   newest tax year whose roll gives the subject a positive market or appraised value, or the

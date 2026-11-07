@@ -86,7 +86,10 @@ same category code, area band, year band, then neighborhood, ZIP and county tier
 these are candidates under FactLot's default rule, a design choice, not a legal standard; a person
 decides. List the candidates with their values, areas, year built, situs address and citation.
 Relay each source's attribution, licence and AI-use terms from the result's `sources` with the
-data.
+data. For several subjects (a client list), `registry_tx_equity_candidates_batch` takes up to 50
+`subjects` (each `id` plus `urn`, or `county_fips` and `apn`) and the parameters once, returning
+each subject's candidates or its own error; it never chooses comparables or runs the calculation,
+and on the hosted API each answered subject counts as one lookup.
 
 ## 5. The unequal-appraisal calculation
 

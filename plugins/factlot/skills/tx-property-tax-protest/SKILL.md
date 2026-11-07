@@ -56,5 +56,9 @@ appraisal district's notice and instructions govern the user's own case.
 - Surface every entry in `warnings` and the verification status.
 - The rule covers the general deadline only, not the other §41.44 deadlines, §25.25 corrections,
   or late-protest relief. Do not say whether to protest or how to file.
+- For several notices at once (a client list), call `rules_tx_property_tax_protest_deadline_batch`
+  with `items` (up to 200, each `id`, `tax_year`, optional `notice_delivered_date`): each result is
+  the single tool's answer for that item, an invalid item carries its own `error`, and the rule,
+  citations and disclaimer come once; report every item's deadline and warnings the same way.
 - If the FactLot MCP tools are unavailable, POST the same arguments to
   `https://api.factlot.com/v1/rules/tx_property_tax_protest_deadline`.
