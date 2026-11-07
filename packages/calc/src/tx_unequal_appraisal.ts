@@ -20,7 +20,7 @@ import {
 } from "./core.ts";
 import type { CalcResult } from "./core.ts";
 
-/** First warning on every result. */
+/** The `disclaimer` on every result. */
 export const TX_EVIDENCE_NOTICE =
   "Evidence calculation only: arithmetic on the values and adjustments supplied. It is not an appraisal or an opinion of value (Occupations Code §1103.003(1)), it is not legal or tax advice, and it is not a substitute for the advice of an attorney. It does not say whether to protest or what value to claim. FactLot does not represent property owners.";
 
@@ -289,6 +289,7 @@ export interface TxUnequalAppraisal {
   subject_value: number;
   subject_value_basis: "appraised" | "market";
   subject_minus_median: number;
+  /** (subject value − median) ÷ median, 6 decimals, as a fraction like every FactLot rate: 0.1554 is 15.54%. */
   subject_minus_median_pct: number;
   law: { section: string; url: string; covers: string }[];
 }
@@ -368,7 +369,6 @@ export function txUnequalAppraisal(
   const input = parseInput(TxUnequalAppraisalInput, raw);
   checkInput(input);
   const t = new Trace();
-  t.warn(TX_EVIDENCE_NOTICE);
   const subject = input.subject;
   const by = input.normalize_by;
   const subjectArea = by === "none" ? 0 : (areaOf(subject, by) as number);

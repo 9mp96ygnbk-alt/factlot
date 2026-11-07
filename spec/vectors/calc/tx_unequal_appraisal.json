@@ -143,9 +143,7 @@
         "value.law.1.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.42.htm#42.26",
         "value.law.3.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.41.htm#41.66",
         "value.law.4.url": "https://statutes.capitol.texas.gov/Docs/OC/htm/OC.1103.htm#1103.003",
-        "warnings": [
-          "Evidence calculation only: arithmetic on the values and adjustments supplied. It is not an appraisal or an opinion of value (Occupations Code §1103.003(1)), it is not legal or tax advice, and it is not a substitute for the advice of an attorney. It does not say whether to protest or what value to claim. FactLot does not represent property owners."
-        ]
+        "warnings": []
       }
     },
     {
@@ -289,9 +287,7 @@
         "value.law.1.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.42.htm#42.26",
         "value.law.3.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.41.htm#41.66",
         "value.law.4.url": "https://statutes.capitol.texas.gov/Docs/OC/htm/OC.1103.htm#1103.003",
-        "warnings": [
-          "Evidence calculation only: arithmetic on the values and adjustments supplied. It is not an appraisal or an opinion of value (Occupations Code §1103.003(1)), it is not legal or tax advice, and it is not a substitute for the advice of an attorney. It does not say whether to protest or what value to claim. FactLot does not represent property owners."
-        ]
+        "warnings": []
       }
     },
     {
@@ -412,7 +408,6 @@
         "value.law.3.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.41.htm#41.66",
         "value.law.4.url": "https://statutes.capitol.texas.gov/Docs/OC/htm/OC.1103.htm#1103.003",
         "warnings": [
-          "Evidence calculation only: arithmetic on the values and adjustments supplied. It is not an appraisal or an opinion of value (Occupations Code §1103.003(1)), it is not legal or tax advice, and it is not a substitute for the advice of an attorney. It does not say whether to protest or what value to claim. FactLot does not represent property owners.",
           "Only 4 comparables: §41.43(b)(3) and §42.26(a)(3) call for \"a reasonable number\" and the statute does not define it. FactLot's minimum of 3 is a product floor, not a rule of law."
         ],
         "value.comparables.0.citation": {
@@ -572,9 +567,7 @@
         "value.law.1.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.42.htm#42.26",
         "value.law.3.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.41.htm#41.66",
         "value.law.4.url": "https://statutes.capitol.texas.gov/Docs/OC/htm/OC.1103.htm#1103.003",
-        "warnings": [
-          "Evidence calculation only: arithmetic on the values and adjustments supplied. It is not an appraisal or an opinion of value (Occupations Code §1103.003(1)), it is not legal or tax advice, and it is not a substitute for the advice of an attorney. It does not say whether to protest or what value to claim. FactLot does not represent property owners."
-        ]
+        "warnings": []
       }
     },
     {
@@ -685,7 +678,6 @@
         "value.law.3.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.41.htm#41.66",
         "value.law.4.url": "https://statutes.capitol.texas.gov/Docs/OC/htm/OC.1103.htm#1103.003",
         "warnings": [
-          "Evidence calculation only: arithmetic on the values and adjustments supplied. It is not an appraisal or an opinion of value (Occupations Code §1103.003(1)), it is not legal or tax advice, and it is not a substitute for the advice of an attorney. It does not say whether to protest or what value to claim. FactLot does not represent property owners.",
           "Value basis differs from the subject's (appraised) for comparable W2: compare the same kind of value for the subject and every comparable.",
           "Tax year 2026: on appeal under §42.26, §42.26(d) (text in effect until 2027-01-01) requires market value for the subject and the comparables when the property is subject to the §23.231 limitation, and the subject, comparable W1, comparable W3, comparable W4, comparable W5 use appraised value; appraisal review board practice may differ.",
           "In a different county from the subject (FIPS 201): comparable W3. Unequal-appraisal comparisons are made within the appraisal district.",
@@ -772,7 +764,6 @@
         "value.law.3.url": "https://statutes.capitol.texas.gov/Docs/TX/htm/TX.41.htm#41.66",
         "value.law.4.url": "https://statutes.capitol.texas.gov/Docs/OC/htm/OC.1103.htm#1103.003",
         "warnings": [
-          "Evidence calculation only: arithmetic on the values and adjustments supplied. It is not an appraisal or an opinion of value (Occupations Code §1103.003(1)), it is not legal or tax advice, and it is not a substitute for the advice of an attorney. It does not say whether to protest or what value to claim. FactLot does not represent property owners.",
           "Tax year 2027: the subject is marked as subject to the §23.231 limitation, but §23.231(k) says \"This section expires December 31, 2026\", and §42.26(d) and §41.41(a) as in effect from 2027-01-01 no longer refer to §23.231; check whether the limitation applies and which value is compared.",
           "Only 3 comparables: §41.43(b)(3) and §42.26(a)(3) call for \"a reasonable number\" and the statute does not define it. FactLot's minimum of 3 is a product floor, not a rule of law."
         ]

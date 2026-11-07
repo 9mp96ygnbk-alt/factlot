@@ -129,7 +129,7 @@ Offer two artifacts:
   chose. Keep only facts whose `predicate` starts with `parcel.`. Drop every `ownership.*` fact,
   the ownership links and any entity record, and never show them. Then call `fact_package_create`
   with the kept facts and the title "Unequal-appraisal arithmetic, tax year N" (the tax year
-  compared). Each fact stays cited to the appraisal-roll file, with its source's rights. Anyone can
+  compared). Each fact stays cited to the appraisal-roll file, with its source's rights. A package shows the facts were not changed after packaging (its digest, and the holder's signature if they sign it) and carries their citations; it does not itself prove they match the roll, so cite the roll record for each value. Anyone can
   check the package with `fact_package_verify`. FactLot never signs it; the holder signs with their
   own key if they choose to.
 - **An Excel workbook**: with the Python SDK checked out, `python3

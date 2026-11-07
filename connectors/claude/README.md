@@ -30,7 +30,7 @@ no account, no API key, and no network access.
 ## Claude Code
 
 ```bash
-# Remote
+# Remote (free, keyless)
 claude mcp add --transport http factlot https://api.factlot.com/mcp
 # Local, from a GitHub release (no npm account needed)
 claude mcp add factlot -- npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.4.0/factlot-mcp-standalone-0.4.0.tgz
@@ -39,6 +39,16 @@ claude mcp add factlot -- node "$PWD/packages/mcp/dist/bin.js"
 # Local, after first publish to npm
 claude mcp add factlot -- npx -y @factlot/mcp
 ```
+
+### Using a paid key
+
+Add the server under the name `factlot` with your key in the header:
+
+```bash
+claude mcp add --scope user --transport http factlot https://api.factlot.com/mcp --header "Authorization: Bearer <key>"
+```
+
+If you also installed the [FactLot plugin](../../plugins/factlot/README.md), keep this one server name, `factlot`, and run `/mcp`: turn off the plugin's keyless `factlot` server if it is still listed (Claude Code skips a plugin server that points at the same URL as an enabled server of yours). The plugin's skills call tools by name, so they use your server and stay installed. The plugin cannot carry the key itself.
 
 ## Claude API
 

@@ -4727,7 +4727,7 @@
       {
         "toolSpec": {
           "name": "calc_tx_unequal_appraisal",
-          "description": "Evidence calculation only: not an appraisal or an opinion of value, not legal or tax advice, and not a substitute for the advice of an attorney. The arithmetic of Tex. Tax Code §41.43(b)(3) and §42.26(a)(3), the subject's value against the median appraised value of a reasonable number of comparable properties appropriately adjusted. Takes 3–200 comparables chosen by the caller, each with its roll value and the caller's adjustments (percent, USD amount, or $/SF, each with a reason); optionally normalizes each comparable to value per SF of improvement or land area times the subject's area; applies percentages summed or compounded, then amounts; and returns every comparable's normalized and adjusted value, the sorted list, the median (for an even count, the mean of the two middle values), and the subject's value minus the median in USD and percent, with the statutes cited. Warns on mixed value bases, §42.26(d) and the §23.231 limitation, comparables in another county, fewer than 5 comparables, total adjustments over 25%, and a comparable identical to the subject. It does not choose comparables, invent adjustments, or say whether to protest. Deterministic: use this instead of doing the math yourself; cite formula calc.tx_unequal_appraisal@1 and the returned steps, and surface any warnings.",
+          "description": "Evidence calculation only: not an appraisal or an opinion of value, not legal or tax advice, and not a substitute for the advice of an attorney. The arithmetic of Tex. Tax Code §41.43(b)(3) and §42.26(a)(3), the subject's value against the median appraised value of a reasonable number of comparable properties appropriately adjusted. Takes 3–200 comparables chosen by the caller, each with its roll value and the caller's adjustments (percent, USD amount, or $/SF, each with a reason); optionally normalizes each comparable to value per SF of improvement or land area times the subject's area; applies percentages summed or compounded, then amounts; and returns every comparable's normalized and adjusted value, the sorted list, the median (for an even count, the mean of the two middle values), and the subject's value minus the median in USD (subject_minus_median) and as a fraction of the median (subject_minus_median_pct: 0.1554 means 15.54%, a decimal like every rate in FactLot, not 0.1554%), with the statutes cited. Warns on mixed value bases, §42.26(d) and the §23.231 limitation, comparables in another county, fewer than 5 comparables, total adjustments over 25%, and a comparable identical to the subject. It does not choose comparables, invent adjustments, or say whether to protest. Deterministic: use this instead of doing the math yourself; cite formula calc.tx_unequal_appraisal@1 and the returned steps, and surface any warnings.",
           "inputSchema": {
             "json": {
               "type": "object",
@@ -6190,7 +6190,7 @@
       {
         "toolSpec": {
           "name": "registry_resolve_external",
-          "description": "Find the FactLot URN for an ID from another system, e.g. system \"tx-harris-cad-account\" or \"us-tx-taxpayer\". Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
+          "description": "Find the FactLot URN for an ID from another system, e.g. system \"sdat_account\" (a Maryland SDAT account number) or, where Texas is hosted, \"tx-harris-cad-account\" (a Harris CAD account number). Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
           "inputSchema": {
             "json": {
               "type": "object",
@@ -6198,7 +6198,7 @@
                 "system": {
                   "type": "string",
                   "maxLength": 100,
-                  "description": "Crosswalk system name, e.g. \"tx-harris-cad-account\"."
+                  "description": "Crosswalk system name, e.g. \"sdat_account\" (Maryland), or \"tx-harris-cad-account\" where Texas is hosted."
                 },
                 "external_id": {
                   "type": "string",
