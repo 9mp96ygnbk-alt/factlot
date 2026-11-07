@@ -15,6 +15,7 @@ import { join, relative } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
+import { packProblems } from "../../../scripts/registry/deploy.ts";
 import { buildPack } from "../../../scripts/registry/pack.ts";
 import {
   computeRegistryCoverage,
@@ -452,6 +453,7 @@ test("a withheld county and an entity registry served in part", async () => {
     excludeCounties: ["48439"],
     entityWholeMax: 0,
   });
+  assert.deepEqual(packProblems(pack), []);
   const served = join(`${pack}.work`, "x.db");
   const m = stats.manifest;
   assert.match(m.withheld["48439"]!, /Tarrant Appraisal District/);

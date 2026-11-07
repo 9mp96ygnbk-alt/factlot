@@ -17,6 +17,9 @@ import {
 
 const MAX_FILES = 20_000;
 const MAX_FILE_BYTES = 25 * 1024 * 1024;
+/** The files a pack holds: manifest, records, crosswalk, address and name indexes, candidate pools. */
+const PACK_PATH =
+  /^(manifest\.json|n\/df\.json|[gxan](\/[0-9a-z]+)*\/[0-9]+\.json|q\/[0-9]{5}-[0-9a-z]+(-[0-9]+)?\/(h|b[0-9]+|(all|g[0-9a-z]+)\/[rc][0-9]+)\.json)$/;
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {
@@ -48,8 +51,7 @@ export function packProblems(dir: string): string[] {
     const rel = relative(dir, f);
     if (statSync(f).size > MAX_FILE_BYTES)
       problems.push(`${rel} is over 25 MiB`);
-    if (!/^(manifest\.json|[gxan](\/[0-9a-z]+)*\/[0-9]+\.json)$/.test(rel))
-      problems.push(`${rel} is not a pack file`);
+    if (!PACK_PATH.test(rel)) problems.push(`${rel} is not a pack file`);
   }
   for (let k = 0; k < m.dbs.length; k++)
     if (!existsSync(join(dir, "g", String(k))))
