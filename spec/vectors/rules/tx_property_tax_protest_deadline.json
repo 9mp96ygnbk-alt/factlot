@@ -1,7 +1,7 @@
 {
   "calculator": "rules.tx.property_tax_protest_deadline",
   "rule": "tx_property_tax_protest_deadline",
-  "version": 1,
+  "version": 2,
   "cases": [
     {
       "name": "notice early in the year: May 15 governs",
@@ -13,7 +13,7 @@
         "value.deadline": "2026-05-15",
         "value.unadjusted_deadline": "2026-05-15",
         "value.governing_basis": "may_15",
-        "value.recommended_file_by": "2026-05-15",
+        "value.conservative_file_by": "2026-05-15",
         "value.skipped_non_business_days": []
       }
     },
@@ -27,7 +27,7 @@
         "value.deadline": "2026-06-01",
         "value.unadjusted_deadline": "2026-05-31",
         "value.governing_basis": "30_days_after_notice",
-        "value.recommended_file_by": "2026-05-29"
+        "value.conservative_file_by": "2026-05-29"
       }
     },
     {
@@ -37,7 +37,7 @@
       },
       "expect": {
         "value.deadline": "2027-05-17",
-        "value.recommended_file_by": "2027-05-14",
+        "value.conservative_file_by": "2027-05-14",
         "value.skipped_non_business_days.0.reason": "Saturday",
         "value.skipped_non_business_days.1.reason": "Sunday"
       }
@@ -51,8 +51,12 @@
       "expect": {
         "value.deadline": "2026-06-22",
         "value.unadjusted_deadline": "2026-06-19",
-        "value.recommended_file_by": "2026-06-18",
-        "value.skipped_non_business_days.0.date": "2026-06-19"
+        "value.conservative_file_by": "2026-06-18",
+        "value.skipped_non_business_days.0.date": "2026-06-19",
+        "steps.4.label": "Conservative file-by date",
+        "warnings": [
+          "2026-06-18 is the last business day on or before the unadjusted date 2026-06-19; the statutory deadline is 2026-06-22 under §1.06."
+        ]
       }
     },
     {
@@ -63,7 +67,7 @@
       },
       "expect": {
         "value.deadline": "2026-05-26",
-        "value.recommended_file_by": "2026-05-22",
+        "value.conservative_file_by": "2026-05-22",
         "value.skipped_non_business_days.0.reason": "Memorial Day"
       }
     },
@@ -77,7 +81,9 @@
         "value.rule.verification.status": "verified",
         "value.rule.verification.verified_at": "2026-11-02",
         "value.rule.citations.0.law": "Tex. Tax Code §41.44(a)(1)",
-        "formula.id": "rules.tx.property_tax_protest_deadline"
+        "value.disclaimer": "Information about a statutory deadline computed from the statute text as checked on 2026-11-02: not legal or tax advice and not a substitute for the advice of an attorney. Confirm the date on the notice you received and with the appraisal district.",
+        "formula.id": "rules.tx.property_tax_protest_deadline",
+        "formula.version": 2
       }
     },
     {

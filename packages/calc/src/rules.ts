@@ -114,7 +114,7 @@ export function nonBusinessReason(date: string): string | undefined {
 
 export const TX_PROTEST_DEADLINE: RuleMeta = {
   id: "rules.tx.property_tax_protest_deadline",
-  version: 1,
+  version: 2,
   jurisdiction: "us-tx",
   title: "Texas property tax protest deadline",
   citations: [
@@ -159,9 +159,16 @@ export interface TxProtestDeadline {
   /** The later of May 15 and notice + 30 days, before rollover. */
   unadjusted_deadline: string;
   governing_basis: "may_15" | "30_days_after_notice";
-  /** Latest business day on or before the unadjusted deadline: safe even if the holiday list is wrong. */
-  recommended_file_by: string;
+  /** Last business day on or before the unadjusted deadline: not later than the deadline even if the holiday list is wrong. */
+  conservative_file_by: string;
   skipped_non_business_days: { date: string; reason: string }[];
+  /** What this result is and is not: information about a statutory deadline, not legal or tax advice. */
+  disclaimer: string;
+}
+
+/** The disclaimer every protest-deadline result carries, dated by the rule's verification date. */
+export function txProtestDeadlineDisclaimer(checkedOn: string): string {
+  return `Information about a statutory deadline computed from the statute text as checked on ${checkedOn}: not legal or tax advice and not a substitute for the advice of an attorney. Confirm the date on the notice you received and with the appraisal district.`;
 }
 
 export function txProtestDeadline(
@@ -217,19 +224,24 @@ export function txProtestDeadline(
   let safe = unadjusted;
   while (nonBusinessReason(safe)) safe = addDays(safe, -1);
   t.step(
-    "Recommended file-by date",
+    "Conservative file-by date",
     safe,
     "latest business day on or before the unadjusted deadline",
   );
   if (skipped.length)
-    t.warn(`Filing by ${safe} avoids relying on the weekend/holiday rollover.`);
+    t.warn(
+      `${safe} is the last business day on or before the unadjusted date ${unadjusted}; the statutory deadline is ${deadline} under §1.06.`,
+    );
 
   return ruleResult(t, TX_PROTEST_DEADLINE, {
     deadline,
     unadjusted_deadline: unadjusted,
     governing_basis: basis,
-    recommended_file_by: safe,
+    conservative_file_by: safe,
     skipped_non_business_days: skipped,
+    disclaimer: txProtestDeadlineDisclaimer(
+      TX_PROTEST_DEADLINE.verification.verified_at ?? "an unrecorded date",
+    ),
   });
 }
 
@@ -238,7 +250,7 @@ export const rulePacks = {
   tx_property_tax_protest_deadline: {
     ...TX_PROTEST_DEADLINE,
     description:
-      "Deadline to file a Texas property tax protest with the appraisal review board: the later of May 15 or 30 days after the notice of appraised value was delivered, rolled past weekends and Texas legal holidays, plus a conservative file-by date. Returns the statute citations and the rule's verification status.",
+      "Deadline to file a Texas property tax protest with the appraisal review board: the later of May 15 or 30 days after the notice of appraised value was delivered, rolled past weekends and Texas legal holidays, plus a conservative file-by date (the last business day on or before the unadjusted deadline). Returns the statute citations, the rule's verification status and a disclaimer. Information about a statutory deadline: not legal or tax advice and not a substitute for the advice of an attorney.",
     input: TxProtestDeadlineInput,
     run: txProtestDeadline,
   },

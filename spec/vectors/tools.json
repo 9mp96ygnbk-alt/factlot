@@ -230,7 +230,7 @@
       },
       "expect": {
         "value.deadline": "2026-06-01",
-        "provenance.formula": "rules.tx.property_tax_protest_deadline@1"
+        "provenance.formula": "rules.tx.property_tax_protest_deadline@2"
       }
     },
     {

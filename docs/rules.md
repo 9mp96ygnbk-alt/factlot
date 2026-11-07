@@ -27,8 +27,11 @@ Observed (shifted) holidays and Columbus Day are not treated as holidays. That i
 when it's unclear whether a day is a holiday, assuming a business day can only make the deadline
 earlier.
 
-The rule also returns `recommended_file_by`, the last business day on or before the unadjusted
-deadline. This date is safe even if the holiday list is wrong.
+The rule also returns `conservative_file_by`, the last business day on or before the unadjusted
+deadline. It is not later than the deadline even if the holiday list is wrong. Every result carries
+a `disclaimer`: information about a statutory deadline computed from the statute text as checked on
+the verification date, not legal or tax advice and not a substitute for the advice of an attorney.
+Version 2 renamed `recommended_file_by` to `conservative_file_by` and added `disclaimer`.
 
 Not covered:
 
@@ -43,8 +46,8 @@ Not covered:
 - A full 2026 holiday calendar vector.
 - A TypeScript/Python differential test on random inputs from 2000 to 2100.
 - An exhaustive invariant check over every notice date from 2000 to 2100. It confirms the deadline
-  is always a business day, never before May 15, and that the recommended date is never later than
-  the deadline.
+  is always a business day, never before May 15, and that the conservative file-by date is never
+  later than the deadline.
 
 ## Draft packs
 

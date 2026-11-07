@@ -29,6 +29,7 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 
 - Registry: the Williamson adapter keeps an in-scope improvement that the owner file has no row for, without an owner or address.
 - Tool input: a `null` for a field the input schema names is treated as the field left out, in TypeScript and Python alike (shared vectors in `spec/vectors/tools.json`). Some agent frameworks (the `crewai-tools` MCP adapter) send `null` for every optional field the model skips, which used to fail with "expected number, received null". A required field sent as `null` is reported as missing; a misspelled field is still reported even when `null`; open objects (facts, fact packages) keep their nulls, since a package's signature covers them.
+- `rules_tx_property_tax_protest_deadline` (`rules.tx.property_tax_protest_deadline@2`): `recommended_file_by` is renamed `conservative_file_by` (same date: the last business day on or before the unadjusted deadline), and its step is labelled "Conservative file-by date". The rollover warning states the dates instead of advising ("2026-06-18 is the last business day on or before the unadjusted date 2026-06-19; the statutory deadline is 2026-06-22 under §1.06."). Every result has a `disclaimer`: information about a statutory deadline computed from the statute text as checked on the rule's verification date, not legal or tax advice and not a substitute for the advice of an attorney. A client reading `recommended_file_by` must read `conservative_file_by`.
 
 ### Fixed
 

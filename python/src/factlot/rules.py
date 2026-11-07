@@ -89,7 +89,7 @@ def _add(iso: str, days: int) -> str:
 
 TX_PROTEST_DEADLINE: dict[str, Any] = {
     "id": "rules.tx.property_tax_protest_deadline",
-    "version": 1,
+    "version": 2,
     "jurisdiction": "us-tx",
     "title": "Texas property tax protest deadline",
     "citations": [
@@ -112,6 +112,15 @@ TX_PROTEST_DEADLINE: dict[str, Any] = {
         ),
     },
 }
+
+
+def tx_protest_deadline_disclaimer(checked_on: str) -> str:
+    """The disclaimer every protest-deadline result carries, dated by the rule's verification date."""
+    return (
+        f"Information about a statutory deadline computed from the statute text as checked on {checked_on}: "
+        "not legal or tax advice and not a substitute for the advice of an attorney. Confirm the date on the "
+        "notice you received and with the appraisal district."
+    )
 
 
 def tx_property_tax_protest_deadline(raw: Any) -> dict[str, Any]:
@@ -142,15 +151,18 @@ def tx_property_tax_protest_deadline(raw: Any) -> dict[str, Any]:
     safe = unadjusted
     while _non_business(safe):
         safe = _add(safe, -1)
-    t.step("Recommended file-by date", safe, "latest business day on or before the unadjusted deadline")
+    t.step("Conservative file-by date", safe, "latest business day on or before the unadjusted deadline")
     if skipped:
-        t.warn(f"Filing by {safe} avoids relying on the weekend/holiday rollover.")
+        t.warn(f"{safe} is the last business day on or before the unadjusted date {unadjusted}; "
+               f"the statutory deadline is {deadline} under §1.06.")
     return _ruled(t, TX_PROTEST_DEADLINE, {
         "deadline": deadline,
         "unadjusted_deadline": unadjusted,
         "governing_basis": basis,
-        "recommended_file_by": safe,
+        "conservative_file_by": safe,
         "skipped_non_business_days": skipped,
+        "disclaimer": tx_protest_deadline_disclaimer(
+            TX_PROTEST_DEADLINE["verification"].get("verified_at") or "an unrecorded date"),
     })
 
 
@@ -160,4 +172,10 @@ RULES: dict[str, tuple[Callable[[Any], dict[str, Any]], str, int]] = {
                                          TX_PROTEST_DEADLINE["version"]),
 }
 
-__all__ = ["RULES", "TX_PROTEST_DEADLINE", "texas_holidays", "tx_property_tax_protest_deadline"]
+__all__ = [
+    "RULES",
+    "TX_PROTEST_DEADLINE",
+    "texas_holidays",
+    "tx_property_tax_protest_deadline",
+    "tx_protest_deadline_disclaimer",
+]
