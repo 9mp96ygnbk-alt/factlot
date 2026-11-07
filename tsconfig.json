@@ -4,5 +4,9 @@
     "noEmit": true,
     "customConditions": ["factlot-source"]
   },
-  "include": ["packages/*/src/**/*.ts", "scripts/**/*.ts"]
+  "include": [
+    "packages/*/src/**/*.ts",
+    "scripts/**/*.ts",
+    "deploy/registry/src/**/*.ts"
+  ]
 }
