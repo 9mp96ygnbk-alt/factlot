@@ -223,12 +223,22 @@ calls below are in order; each result is reported as returned, with its warnings
    standard; a person decides which, if any, to use. `selection` echoes the rule and its
    parameters, and `sources` gives each roll's licence, attribution and AI-use terms.
 
+   `calc_args` is the same subject and candidates in `calc_tx_unequal_appraisal`'s input shape:
+   `tax_year`, `subject` and `comparables` with exactly the calculator's fields (`id` the FactLot
+   URN, `label` the situs address, `county_fips`, `value`, `value_basis`, the areas, and a
+   comparable's `citation`; nulls left out; no adjustments). It is the default rule's list, not a
+   selection by FactLot. `selection_rule` restates the parameters used (tax year, category code,
+   area band and year band with their bounds, counts per tier) with a `notice` saying so. The
+   order is: candidates, the person's review (remove, add or edit comparables, add adjustments
+   with reasons), `calc_tx_unequal_appraisal` with the reviewed `calc_args`, then `report_create`.
+
 4. `calc_tx_unequal_appraisal` with the comparables the user chose and the adjustments the user
    supplied, each with a reason. The figures below are the inputs of the first case in
-   `spec/vectors/calc/tx_unequal_appraisal.json`, not roll values. With real data, pass from each
-   chosen candidate in step 3 only `id`, `county_fips`, `value`, `value_basis`,
-   `improvement_area_sf`, `land_area_sf` and `citation`; the tool rejects any other field, and a
-   `null` (leave those out, including a `null` `locator` inside `citation`).
+   `spec/vectors/calc/tx_unequal_appraisal.json`, not roll values. With real data, start from the
+   reviewed `calc_args` of step 3, which keeps only the calculator's fields; by hand, pass from each
+   chosen candidate only `id`, `county_fips`, `value`, `value_basis`, `improvement_area_sf`,
+   `land_area_sf`, `citation` and optionally `label` and `address`; the tool rejects any other
+   field, and a `null` (leave those out, including a `null` `locator` inside `citation`).
 
    ```json
    {

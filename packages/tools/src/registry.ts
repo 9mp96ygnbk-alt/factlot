@@ -1678,6 +1678,116 @@ export const TX_EQUITY_RULE =
 export const TX_EQUITY_NOTICE =
   "Candidates only: a person decides which, if any, to use as comparables. The selection rule is FactLot's default, not a legal standard of comparability. For evidence calculations only: FactLot does not represent property owners, file protests, or advise whether to protest or what value to claim. Owner names and mailing addresses are never returned. Not an appraisal or an opinion of value (Tex. Occ. Code §1103.003(1)); not legal or tax advice and not a substitute for the advice of an attorney. FactLot is software, not a property tax consultant under Texas Occupations Code chapter 1152; it does not prepare, file or advise on protests.";
 
+export const TX_EQUITY_CALC_ARGS_NOTICE =
+  "calc_args is the candidate list under FactLot's default rule (selection_rule) in calc_tx_unequal_appraisal's input shape, not a selection of comparables by FactLot: the caller reviews it, may remove, add or edit comparables, and adds any adjustments, each with a reason, before calling calc_tx_unequal_appraisal (which needs at least 3 comparables). The order of operations is registry_tx_equity_candidates, review, calc_tx_unequal_appraisal with the reviewed calc_args, then report_create.";
+
+/** Longest `label` calc_tx_unequal_appraisal accepts. */
+const CALC_LABEL_MAX = 80;
+
+/** The citation keys calc_tx_unequal_appraisal accepts, in its order. */
+const CALC_CITATION_KEYS = ["fact_id", "document_id", "locator", "as_of"];
+
+/**
+ * A subject or candidate row as a calc_tx_unequal_appraisal subject or comparable (`_calc_party` in Python): only the
+ * calculator's fields, nulls left out (the calculator rejects them), `id` the FactLot URN and `label` the situs
+ * address (cut to 80 characters with "…" when longer); the citation of the value for a comparable only (the
+ * calculator's subject has no citation field).
+ */
+function calcParty(row: Row, withCitation: boolean): Row {
+  const out: Row = { id: row.id };
+  const situs = nonEmptyString(row.situs_address);
+  if (situs !== null)
+    out.label =
+      situs.length > CALC_LABEL_MAX
+        ? `${situs.slice(0, CALC_LABEL_MAX - 1)}…`
+        : situs;
+  for (const k of [
+    "county_fips",
+    "value",
+    "value_basis",
+    "improvement_area_sf",
+    "land_area_sf",
+  ])
+    if (row[k] !== null && row[k] !== undefined && row[k] !== "")
+      out[k] = row[k];
+  const cite = row.citation as Row | null | undefined;
+  if (withCitation && cite) {
+    const c: Row = {};
+    for (const k of CALC_CITATION_KEYS)
+      if (cite[k] !== null && cite[k] !== undefined && cite[k] !== "")
+        c[k] = cite[k];
+    out.citation = c;
+  }
+  return out;
+}
+
+/**
+ * `calc_args` and `selection_rule` of a `registry_tx_equity_candidates` answer, from the answer's own `subject`,
+ * `candidates` and `selection` (`equity_calc_args` in Python), so the hosted API can add them to an answer that
+ * lacks them. `calc_args` is null when the subject has no value or no roll year.
+ */
+export function txEquityCalcArgs(answer: Row): {
+  calc_args: Row | null;
+  selection_rule: Row;
+} {
+  const subject = answer.subject as Row;
+  const candidates = (answer.candidates as Row[]) ?? [];
+  const selection = answer.selection as Row;
+  const criteria = selection.criteria as Row;
+  const parameters = selection.parameters as Row;
+  const area = criteria.improvement_area_sf as Row | null;
+  const year = criteria.year_built as Row | null;
+  const taxYear = (selection.tax_year ?? subject.tax_year) as number | null;
+  const calcArgs =
+    subject.value === null || taxYear === null
+      ? null
+      : {
+          tax_year: taxYear,
+          subject: calcParty(subject, false),
+          comparables: candidates.map((c) => calcParty(c, true)),
+        };
+  return {
+    calc_args: calcArgs,
+    selection_rule: {
+      tax_year: selection.tax_year,
+      state_property_category: criteria.state_property_category,
+      area_band: {
+        share: parameters.area_band,
+        min_sf: area === null ? null : area.min,
+        max_sf: area === null ? null : area.max,
+      },
+      year_band: {
+        years: parameters.year_band,
+        min: year === null ? null : year.min,
+        max: year === null ? null : year.max,
+      },
+      min_matches: parameters.min_matches,
+      limit: parameters.limit,
+      tiers: (selection.tiers as Row[]).map((t) => ({
+        tier: t.tier,
+        key: t.key,
+        applied: t.applied,
+        matched: t.matched,
+        returned: t.returned,
+      })),
+      widened_to_county: selection.widened_to_county,
+      matched: selection.matched,
+      returned: selection.returned,
+      notice: TX_EQUITY_CALC_ARGS_NOTICE,
+    },
+  };
+}
+
+/**
+ * An answer with `calc_args` and `selection_rule` added at the end when it lacks them (an answer from a registry
+ * service built before they existed); an answer that has them is returned as is.
+ */
+export function withTxEquityCalcArgs(answer: Row): Row {
+  if ("calc_args" in answer || typeof answer.selection !== "object")
+    return answer;
+  return { ...answer, ...txEquityCalcArgs(answer) };
+}
+
 /** The 5-digit ZIP code of a situs address (`situs_zip5` in Python): after the first comma, or after a state. */
 export function situsZip5(situs: unknown): string | null {
   if (typeof situs !== "string") return null;
@@ -2128,7 +2238,7 @@ export function assembleTxEquity(
   for (const e of subject.value_history as Row[])
     for (const cite of Object.values(e.citations as Row))
       if (cite) docs.add(String((cite as Row).document_id));
-  return {
+  return withTxEquityCalcArgs({
     subject,
     candidates,
     selection: {
@@ -2154,7 +2264,7 @@ export function assembleTxEquity(
     sources: sources(docs),
     notice: TX_EQUITY_NOTICE,
     warnings,
-  };
+  });
 }
 
 /** The first `limit` matches the rule includes, and the per-tier counts, from all matches in order. */

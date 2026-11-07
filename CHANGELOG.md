@@ -32,6 +32,15 @@ conservative_file_by, basis}` for the next tax year when the deadline has passed
   median is unadjusted; quotes "appropriately adjusted" from §41.43(b)(3) and §42.26(a)(3)), and,
   with `normalize_by` `none`, a comparable area more than 25% from the subject's. The report
   validator accepts results with and without the new fields.
+- `registry_tx_equity_candidates` and each answered subject of its batch: `calc_args`
+  (`{tax_year, subject, comparables}` with exactly `calc_tx_unequal_appraisal`'s fields: `id` the
+  FactLot URN, `label` the situs address, nulls left out, no adjustments; `null` when the subject
+  has no value or roll year) and `selection_rule` (tax year, category, area and year bands with
+  bounds, `min_matches`, `limit`, counts per tier, and a `notice` that the list is the default
+  rule's output for the caller to review, not a selection by FactLot). The hosted API builds both
+  from the registry service's answer when the service does not send them, so no registry
+  redeploy is needed. Tool descriptions give the order: candidates, review,
+  `calc_tx_unequal_appraisal` with `calc_args`, `report_create`.
 - `rules_tx_property_tax_protest_deadline_batch` (still `@1`): optional `as_of` for every item;
   each item adds `status`, `days_remaining` and `next_season`; the result adds `as_of`, `notes`
   and `summary.by_status`.

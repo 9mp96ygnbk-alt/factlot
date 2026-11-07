@@ -60,6 +60,7 @@ import {
   TX_EQUITY_WHICH_PARCEL,
   txEquityWithheld,
   txEquitySubjectUrn,
+  withTxEquityCalcArgs,
 } from "./registry.ts";
 import {
   INPUT_LIMITS,
@@ -807,7 +808,7 @@ const registryTools: ToolSpec[] = [
     name: "registry_tx_equity_candidates",
     title: "Texas unequal-appraisal candidates",
     description:
-      "Candidate comparable parcels for a Texas unequal-appraisal comparison (Tax Code §41.43(b)(3)), from one tax year of the subject's appraisal district roll (the newest year whose roll gives the subject a value, or tax_year), with every field of the subject and the candidates read from that year's roll only: same county and tax year, the same state property category code, improvement area within area_band of the subject's, year built within year_band years when both are known; parcels sharing the subject's neighborhood code first (when the roll gives one), then its ZIP code, then the rest of the county if fewer than min_matches. Each candidate and the subject are shaped for calc_tx_unequal_appraisal (id, value and value_basis, areas, year built, codes, citation of the value fact); the subject adds its value history by tax year. selection echoes the rule, the effective parameters, the tax year and roll sources used, and which tier each candidate came from; Each candidate's citation.document_id names its entry in sources, which gives that snapshot's license, attribution, ai_use and redistribution: relay them with the candidate. Candidates under FactLot's default rule, a design choice, not a legal standard; a person decides which, if any, to use. For evidence calculations only: FactLot does not represent property owners, file protests, or advise whether to protest. Not an appraisal or an opinion of value (Tex. Occ. Code §1103.003(1)); not legal or tax advice and not a substitute for the advice of an attorney. Never returns owner names, mailing addresses, or ownership facts. Do not look up the owners of candidate parcels; ownership is not needed for this comparison. Texas parcels only. Tarrant County is not served by the hosted registry while the publisher's terms for AI use are unclear." +
+      "Candidate comparable parcels for a Texas unequal-appraisal comparison (Tax Code §41.43(b)(3)), from one tax year of the subject's appraisal district roll (the newest year whose roll gives the subject a value, or tax_year), with every field of the subject and the candidates read from that year's roll only: same county and tax year, the same state property category code, improvement area within area_band of the subject's, year built within year_band years when both are known; parcels sharing the subject's neighborhood code first (when the roll gives one), then its ZIP code, then the rest of the county if fewer than min_matches. Each candidate and the subject carry their roll fields (id, value and value_basis, market and appraised value, areas, year built, codes, situs address, tax year, citation of the value fact); the subject adds its value history by tax year. calc_args gives the same subject and candidates with exactly calc_tx_unequal_appraisal's input fields (tax_year, subject, comparables; id = the FactLot URN, label = the situs address, nulls left out, no adjustments): the candidate list under the default rule, not a selection by FactLot, for the caller to review and edit (remove, add or adjust comparables, each adjustment with a reason) before passing it to calc_tx_unequal_appraisal. Order of operations: registry_tx_equity_candidates, then the person's review, then calc_tx_unequal_appraisal with the reviewed calc_args, then report_create. selection echoes the rule, the effective parameters, the tax year and roll sources used, and which tier each candidate came from; selection_rule restates the parameters used (tax year, category, area band and year band with their bounds, counts per tier) with a notice that the list is the default rule's output. Each candidate's citation.document_id names its entry in sources, which gives that snapshot's license, attribution, ai_use and redistribution: relay them with the candidate. Candidates under FactLot's default rule, a design choice, not a legal standard; a person decides which, if any, to use. For evidence calculations only: FactLot does not represent property owners, file protests, or advise whether to protest. Not an appraisal or an opinion of value (Tex. Occ. Code §1103.003(1)); not legal or tax advice and not a substitute for the advice of an attorney. Never returns owner names, mailing addresses, or ownership facts. Do not look up the owners of candidate parcels; ownership is not needed for this comparison. Texas parcels only. Tarrant County is not served by the hosted registry while the publisher's terms for AI use are unclear." +
       REGISTRY_NOTE,
     input: z.object({ ...TxEquitySubjectFields, ...TxEquityParamFields }),
     path: "/v1/registry/tx_equity_candidates",
@@ -818,7 +819,7 @@ const registryTools: ToolSpec[] = [
     name: "registry_tx_equity_candidates_batch",
     title: "Texas unequal-appraisal candidates (batch)",
     description:
-      "registry_tx_equity_candidates for many subjects in one call (1–50, e.g. a consultant's client parcels): each subject's id (your label, echoed back) and its urn, or county_fips and apn, plus the rule parameters once for every subject (area_band, year_band, min_matches, limit, tax_year). Each entry of results is that subject's answer from registry_tx_equity_candidates (subject, candidates, selection, sources, warnings) or that subject's error (error, message, issues, and coverage on a miss), so one subject outside Texas, in Tarrant County, or not in the registry does not fail the others; the Texas-only and Tarrant checks apply to each subject. The selection rule and the notice appear once at the top (rule, notice) instead of in every answer; summary counts subjects, answered and errors. Candidates per subject only: this tool never runs calc_tx_unequal_appraisal and never picks comparables; a person decides, for each subject, which candidates (if any) to use, and only those go to calc_tx_unequal_appraisal. Relay each candidate's source rights from that subject's sources. For evidence calculations only: FactLot does not represent property owners, file protests, or advise whether to protest. Not an appraisal or an opinion of value (Tex. Occ. Code §1103.003(1)); not legal or tax advice and not a substitute for the advice of an attorney. Never returns owner names, mailing addresses, or ownership facts; do not look up the owners of candidate parcels. On the hosted API each answered subject counts as one registry lookup (a subject with an error is not counted)." +
+      "registry_tx_equity_candidates for many subjects in one call (1–50, e.g. a consultant's client parcels): each subject's id (your label, echoed back) and its urn, or county_fips and apn, plus the rule parameters once for every subject (area_band, year_band, min_matches, limit, tax_year). Each entry of results is that subject's answer from registry_tx_equity_candidates (subject, candidates, calc_args, selection, selection_rule, sources, warnings) or that subject's error (error, message, issues, and coverage on a miss), so one subject outside Texas, in Tarrant County, or not in the registry does not fail the others; the Texas-only and Tarrant checks apply to each subject. The selection rule and the notice appear once at the top (rule, notice) instead of in every answer; summary counts subjects, answered and errors. Candidates per subject only: this tool never runs calc_tx_unequal_appraisal and never picks comparables; a person decides, for each subject, which candidates (if any) to use, and only those go to calc_tx_unequal_appraisal (each subject's calc_args is its candidate list in that tool's input shape, for review and editing first). Relay each candidate's source rights from that subject's sources. For evidence calculations only: FactLot does not represent property owners, file protests, or advise whether to protest. Not an appraisal or an opinion of value (Tex. Occ. Code §1103.003(1)); not legal or tax advice and not a substitute for the advice of an attorney. Never returns owner names, mailing addresses, or ownership facts; do not look up the owners of candidate parcels. On the hosted API each answered subject counts as one registry lookup (a subject with an error is not counted)." +
       REGISTRY_NOTE,
     input: z
       .object({
@@ -1127,6 +1128,32 @@ export function registryAvailable(): boolean {
   return registryRunner !== undefined || registryPath() !== undefined;
 }
 
+/**
+ * A registry service's candidate answer with `calc_args` and `selection_rule`, built here from the answer's own
+ * fields when the service (a registry Worker deployed before they existed) left them out: single answers and each
+ * answered subject of a batch. Answers that carry them, and every other outcome, pass through unchanged.
+ */
+function withCalcArgs(name: string, outcome: ToolOutcome): ToolOutcome {
+  if (!outcome.ok) return outcome;
+  const result = outcome.result as Record<string, unknown>;
+  if (name === "registry_tx_equity_candidates")
+    return { ok: true, result: withTxEquityCalcArgs(result) };
+  if (
+    name === "registry_tx_equity_candidates_batch" &&
+    Array.isArray(result.results)
+  )
+    return {
+      ok: true,
+      result: {
+        ...result,
+        results: (result.results as Record<string, unknown>[]).map((r) =>
+          "error" in r ? r : withTxEquityCalcArgs(r),
+        ),
+      },
+    };
+  return outcome;
+}
+
 /** runTool for every tool, including asynchronous ones. The MCP server and REST API use this. */
 export async function runToolAsync(
   name: string,
@@ -1136,7 +1163,7 @@ export async function runToolAsync(
   if ("error" in c) return c.error;
   if (c.tool.requires === "registry" && registryRunner) {
     try {
-      return await registryRunner(name, inputFor(c));
+      return withCalcArgs(name, await registryRunner(name, inputFor(c)));
     } catch {
       return {
         ok: false,

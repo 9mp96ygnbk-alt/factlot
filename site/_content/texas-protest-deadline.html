@@ -107,10 +107,12 @@
     appraised value by tax year, each cited to that year's roll.
   </li>
   <li>
-    <strong>Candidates.</strong> <code>registry_tx_equity_candidates</code>
-    returns candidates under FactLot's default rule, a design choice, not a
-    legal standard; a person decides. It returns no owner names, mailing
-    addresses or ownership facts.
+    <strong>Candidates.</strong>
+    <code>registry_tx_equity_candidates</code> returns candidates under
+    FactLot's default rule, a design choice, not a legal standard; a person
+    decides. Its <code>calc_args</code> is that list in the calculator's input
+    shape, for the person to review and edit before the calculation. It returns
+    no owner names, mailing addresses or ownership facts.
   </li>
   <li>
     <strong>Calculator.</strong> <code>calc_tx_unequal_appraisal</code> does the
