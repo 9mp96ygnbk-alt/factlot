@@ -23,6 +23,15 @@ conservative_file_by, basis}` for the next tax year when the deadline has passed
   and `notes` (what the rule does not cover, with the sections: §41.44(b)-(c-3) and §25.25). The
   warning that a notice delivered after April 15 moves the deadline now appears only while the
   deadline is open or not yet open.
+- `calc_tx_unequal_appraisal` (still `calc.tx_unequal_appraisal@1`; no number changes): optional
+  `label` (up to 80 characters) and `address` (up to 120) on the subject and each comparable,
+  echoed as `subject_label`, `subject_address` and each comparable row's `label` and `address`;
+  each comparable row adds `flags` (`{code, message}`: `value_psf_above_2x`,
+  `value_psf_below_half`, `land_ratio_above_2x`, `land_ratio_below_half`, `missing_area`), facts
+  about the inputs that never drop a comparable. Two new warnings: no adjustments at all (the
+  median is unadjusted; quotes "appropriately adjusted" from §41.43(b)(3) and §42.26(a)(3)), and,
+  with `normalize_by` `none`, a comparable area more than 25% from the subject's. The report
+  validator accepts results with and without the new fields.
 - `rules_tx_property_tax_protest_deadline_batch` (still `@1`): optional `as_of` for every item;
   each item adds `status`, `days_remaining` and `next_season`; the result adds `as_of`, `notes`
   and `summary.by_status`.

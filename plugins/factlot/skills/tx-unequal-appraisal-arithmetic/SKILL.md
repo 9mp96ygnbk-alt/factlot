@@ -57,7 +57,8 @@ public property search and give them to you; record where each one came from, an
 
 Call `rules_tx_property_tax_protest_deadline` with `tax_year` and, if the user has it, the date the
 notice of appraised value was delivered (follow the `tx-property-tax-protest` skill). Give the
-deadline and the conservative file-by date (`conservative_file_by`) with the statute citations.
+deadline and the conservative file-by date (`conservative_file_by`) with the statute citations,
+and `status`, `days_remaining` and, once passed, `next_season` as returned.
 
 Tax Code §41.43(a-3) and §41.67(d) attach conditions to evidence exchanged by the 14th day before
 a hearing; FactLot's draft rule `rules.tx.protest_evidence_dates` (SDKs only, not verified, not a
@@ -105,15 +106,18 @@ comparables are given.
 - `adjustment_combine`: `sum` (percentages added, then applied once) or `compound` (each applied in
   turn);
 - `comparables`: from each chosen candidate pass only `id`, `county_fips`, `value`,
-  `value_basis`, `improvement_area_sf`, `land_area_sf` and `citation`; the tool rejects any other
-  field. Leave out any of them that is `null` (and a `null` `locator` inside `citation`): the tool
+  `value_basis`, `improvement_area_sf`, `land_area_sf` and `citation`, plus an optional `label`
+  (up to 80 characters, e.g. the situs address) and `address` (up to 120) to print in reports; the
+  tool rejects any other field. Leave out any of them that is `null` (and a `null` `locator` inside `citation`): the tool
   rejects nulls too. For a comparable the user gives by hand, pass the same fields. Add to each the
   user's `adjustments`: `label`, `kind` (`percent` as a decimal, `amount` in USD, or `psf`), `value` and
   `reason`.
 
 Report each comparable's normalized and adjusted value, the sorted list, `median_adjusted_value`
 (for an even count, the mean of the two middle values, both shown), the subject's value minus the
-median in dollars and percent, every warning, and the `law` citations. Describe the median only as
+median in dollars and percent, every warning, each comparable's `flags` (facts about the inputs,
+such as a value per SF more than twice the subject's; relay them, and leave the choice of
+comparables to the user), and the `law` citations. Describe the median only as
 the comparison figure Tax Code §41.43(b)(3) and §42.26(a)(3) use. Do not call it a target, a claim,
 or what the property "should" be valued at.
 

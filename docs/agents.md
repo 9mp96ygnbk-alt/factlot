@@ -388,6 +388,24 @@ Conventions:
   comparable whose total adjustment exceeds 25% (a FactLot flag, not a legal limit), and a
   comparable with the same value, basis and areas as the subject. A comparable with the subject's
   `id`, or two with the same `id`, is an input error.
+- **No adjustments.** When no comparable has an adjustment, a warning says the median is of
+  unadjusted values and quotes the statute's words, "the median appraised value of a reasonable
+  number of comparable properties appropriately adjusted".
+- **Area spread.** With `normalize_by` `none`, a comparable whose improvement area (or land area,
+  when the subject gives only that) differs from the subject's by more than 25% draws a warning that
+  a median of whole values and a median of values per SF can differ materially, and that
+  `normalize_by` compares values per SF. The 25% is a FactLot flag, not a legal limit.
+- **Flags.** Each comparable row has `flags`, a list of `{code, message}` facts about the inputs.
+  They never remove a comparable or change a number: `value_psf_above_2x` and
+  `value_psf_below_half` (value per SF of the normalizing area, or of improvement area with
+  `normalize_by` `none`, more than twice or less than half the subject's), `land_ratio_above_2x`
+  and `land_ratio_below_half` (land-to-improvement area ratio against the subject's), and
+  `missing_area` (with `normalize_by` `none`, an area the subject has and the comparable lacks).
+  The thresholds are FactLot's, not law.
+- **Labels and addresses.** The subject and each comparable take an optional `label` (up to 80
+  characters) and `address` (up to 120), echoed as `subject_label`, `subject_address` and each
+  row's `label` and `address` so a report can print them. Neither enters the arithmetic. Any other
+  field is still rejected by name.
 - **Citations.** Each comparable's `citation` (`fact_id`, `document_id`, `locator`, `as_of`) is
   passed through to the output unchanged, and `law` lists the sections relied on with their
   official URLs.

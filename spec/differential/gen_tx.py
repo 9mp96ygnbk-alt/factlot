@@ -41,6 +41,10 @@ def unequal_appraisal(r):
             subject[k] = r.choice([r.randint(500, 400000), round(r.uniform(500, 400000), 2)])
     if r.random() < 0.6:
         subject["id"] = "S"
+    if r.random() < 0.3:
+        subject["label"] = r.choice(["1000 Louisiana St", "Subject", "Acct 0011440000001"])
+        if r.random() < 0.5:
+            subject["address"] = "1000 Louisiana St, Houston, TX 77002"
     if r.random() < 0.5:
         subject["county_fips"] = r.choice(_FIPS[:3])
     if r.random() < 0.3:
@@ -50,6 +54,10 @@ def unequal_appraisal(r):
         c = {"value": _money(r, 1e5, 6e7), "value_basis": basis if r.random() < 0.9 else r.choice(["appraised", "market"])}
         if r.random() < 0.85:
             c["id"] = f"C{i + 1}"
+        if r.random() < 0.2:
+            c["label"] = f"Comp {i + 1}"
+            if r.random() < 0.5:
+                c["address"] = f"{r.randint(1, 9999)} Main St, Houston, TX 77002"
         for k in ("improvement_area_sf", "land_area_sf"):
             if k == by or r.random() < 0.3:
                 c[k] = r.choice([r.randint(500, 400000), round(r.uniform(500, 400000), 2)])
