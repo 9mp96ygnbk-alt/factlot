@@ -35,6 +35,33 @@ including Python's `urllib`, are accepted.
 > files, a release such as `v0.1.0` to exist. Every path here was run end to end; see
 > [install-verification.md](install-verification.md).
 
+### After you buy
+
+The page Stripe returns to after checkout shows your API key **once**, with copy buttons, setup for
+Claude Code, Claude Desktop and claude.ai, ChatGPT, Cursor and VS Code, Python and curl, and a
+"Test my key" button that calls `GET /v1/account`. FactLot keeps only a hash of the key. A new key
+can take up to a minute to work everywhere.
+
+- **Connect.** Send the key as `Authorization: Bearer <key>` to `https://api.factlot.com/mcp` (or
+  any `/v1/…` route). Claude Code, Cursor, VS Code, Windsurf, agent SDKs and REST clients send the
+  header; Claude custom connectors and ChatGPT developer-mode apps have no header field, so use a
+  header-capable client or the `mcp-remote` bridge the setup page shows for Claude Desktop.
+- **Give the guide to your agent.** `GET https://api.factlot.com/v1/onboarding?plan=pro` returns
+  the same steps as JSON (`Accept: text/markdown` for Markdown), with `<key>` placeholders.
+- **If an agent bought the plan,** it collects the key from the `claim_url` that
+  `POST /v1/billing/checkout` returned, and the success page says so instead of showing the key.
+  See [connectors/README.md](../connectors/README.md#agents-buy-and-collect-a-key).
+- **What counts.** A lookup is one answered call to a registry tool; coverage checks, misses
+  outside the loaded coverage and input errors are free. Calculators and other tools never count.
+- **Your account.** <https://factlot.com/account>: paste the key to see the plan, this month's
+  lookups, a 30-day history, keys and their last use, the renewal date, and to manage billing,
+  cancel, replace or add keys. Agents read the same from `GET /v1/account`,
+  `GET /v1/account/usage`, or the `account_status` and `account_usage` MCP tools.
+- **Lost the key.** On the account page, enter the email you paid with. If it has a subscription,
+  a link arrives that works once for 15 minutes; it shows the account and issues a new key (on a
+  plan at its key limit, the new key replaces the oldest one). No email ever contains a key.
+  Until email is set up, write to contact@factlot.com from that address.
+
 ## 1. Hosted connector in Docker (remote MCP, REST, OpenAPI)
 
 Build and run the remote connector from the repository root:
