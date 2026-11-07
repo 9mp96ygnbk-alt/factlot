@@ -720,11 +720,16 @@
             </article>
             <article class="card" id="plan-enterprise">
               <h3>Enterprise and data licence</h3>
-              <p><strong>By quote</strong></p>
+              <p>
+                <strong
+                  >By quote; data licence $2,400 a year per state file</strong
+                >
+              </p>
               <ul class="plain">
                 <li>
-                  Enterprise: private deployment, invoicing, no-training terms
-                  and SSO
+                  Enterprise: private deployment, invoicing, a signed
+                  data-processing agreement with a no-training commitment, and
+                  SSO
                 </li>
                 <li>
                   Registry download licence: $2,400 a year per state file,
@@ -746,19 +751,21 @@
             overage charges. Free registry lookups count per IP address per day;
             paid lookups count per subscription per month, shared by a plan's
             keys. <code>registry_coverage</code>, the discovery call, never
-            counts. At a cap the call returns HTTP 429 with the reset time and a
-            link to this page. Calculator, ID, fact, rules and document tools
-            never count toward a lookup quota.
+            counts. Days and months are UTC. At a cap the call returns HTTP 429
+            with the reset time and a link to this page. Calculator, ID, fact,
+            rules and document tools never count toward a lookup quota.
           </p>
           <p class="small">
             Checkout is by Stripe; prices are in US dollars and exclude taxes.
             Your API key is shown once on the page Stripe returns you to;
             FactLot stores only a hash of it, and a new key can take up to a
             minute to start working. Cancel any time at
-            <a href="https://factlot.com/account">factlot.com/account</a> or in
-            the Stripe billing portal; your key works to the end of the paid
-            month, and there are no refunds for a partial month. Agents can
-            start checkout with
+            <a href="https://factlot.com/account">factlot.com/account</a>, in
+            the Stripe billing portal, or by email to contact@factlot.com with
+            the subject "Cancel" from your account email; your key works to the
+            end of the paid month, and there are no refunds for a partial month
+            except as the <a href="https://factlot.com/terms#billing">terms</a>
+            say. Agents can start checkout with
             <code>POST https://api.factlot.com/v1/billing/checkout</code> and
             hand the link to their human. See the
             <a href="https://factlot.com/terms">terms</a> and the
@@ -837,10 +844,12 @@
               redistribution or AI use.
             </li>
             <li>
-              <strong>No natural-person names.</strong> The registry keeps
-              commercial parcels and the organisations that own them. A person's
-              name is never stored or indexed, and withheld owner records are
-              never recovered or inferred.
+              <strong>Organisations, not people.</strong> The registry keeps
+              commercial parcels and the organisations that own them. It is
+              built to exclude natural persons' names, and withheld owner
+              records are never recovered or inferred. If a record names you as
+              a person, or is wrong, email contact@factlot.com and we will
+              remove or correct it.
             </li>
             <li>
               <strong>Everything cited.</strong> Uncited facts are rejected:
