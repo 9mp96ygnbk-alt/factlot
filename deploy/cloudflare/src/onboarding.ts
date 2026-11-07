@@ -7,7 +7,10 @@ import { CONTACT } from "./contact.ts";
 import {
   ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY,
   ANONYMOUS_REQUESTS_PER_MINUTE,
+  MODEL_ALLOWANCES,
   PLANS,
+  REPORTS_PER_MONTH,
+  REPORT_DOWNLOAD_HOURS,
   QUOTA_RULES,
   priceText,
   type Plan,
@@ -63,6 +66,23 @@ export interface Guide {
     expect: string;
     curl: string;
   };
+  /** The optional step for the model-backed doc_extract_lease (Pro and Team). */
+  extract_lease: {
+    title: string;
+    /** Whether the hosted API has a model now (the tool is listed and answers). */
+    available: boolean;
+    text: string;
+    mcp_tool: "doc_extract_lease";
+    rest: string;
+    pages_per_month: { pro: number; team: number };
+  };
+  /** report_create: client-ready XLSX, PDF and ICS documents from a tool result. */
+  reports: {
+    mcp_tool: "report_create";
+    rest: string;
+    text: string;
+    per_month: { free: number; pro: number; team: number };
+  };
   lookups: typeof QUOTA_RULES;
   limits: {
     free: { requests_per_minute: number; registry_lookups_per_day: number };
@@ -85,7 +105,7 @@ export interface Guide {
 const REPO = "https://github.com/9mp96ygnbk-alt/factlot";
 
 export const HEADER_CLIENTS =
-  "Clients that send the Authorization header: Claude Code, Cursor, VS Code, Windsurf, agent SDKs and any REST client. Claude Desktop and claude.ai custom connectors and ChatGPT developer-mode apps have no header field today, so a paid key needs a header-capable client or the mcp-remote stdio bridge (Claude Desktop below).";
+  "Clients that send the Authorization header: Claude Code, Cursor, VS Code, Windsurf, agent SDKs and any REST client. Claude Desktop and claude.ai custom connectors and ChatGPT developer-mode apps have no header field: they sign in instead (add the connector URL ending in /mcp/signin, then paste your key once on the sign-in page).";
 
 export const PLUGIN_NOTE =
   "If you installed the FactLot plugin, its server is keyless; after adding your key, disable the plugin's server in /mcp (or remove the plugin) so lookups use your plan.";
@@ -108,6 +128,8 @@ export function setupGuide(o: {
   /** The real key (only on the page that reveals it); otherwise `placeholder` is used. */
   key?: string;
   placeholder?: string;
+  /** Whether the hosted API has a model (ANTHROPIC_API_KEY): the model-backed tools answer. */
+  model?: boolean;
 }): Guide {
   const api = o.api.replace(/\/$/, "");
   const site = o.site.replace(/\/$/, "");
@@ -138,10 +160,21 @@ export function setupGuide(o: {
       id: "claude",
       name: "Claude Desktop and claude.ai",
       steps: [
-        "Claude Desktop and claude.ai custom connectors have no header field today, so a connector added there runs on the free tier. For your key, Claude Desktop runs the mcp-remote bridge (needs Node.js), which sends the header for it.",
-        "Claude Desktop: Settings → Developer → Edit Config, add this server to claude_desktop_config.json, then restart Claude. The key sits in env and reaches the header through ${AUTH_HEADER} (no space after the colon), which also works on Windows.",
+        "Settings → Connectors → Add custom connector. Name it FactLot and enter the sign-in URL below; leave the OAuth client id and secret empty.",
+        "Click Connect: a FactLot page opens. Paste your key once and choose Connect with my key. The connection is tied to your subscription, not to the key, so replacing the key keeps it working; see or disconnect it at " +
+          site +
+          "/account.",
+        "The plain URL " +
+          mcp +
+          " also works there, on the free tier without sign-in. Claude Desktop can instead run the mcp-remote bridge (needs Node.js), which sends the key header: Settings → Developer → Edit Config, add the server below to claude_desktop_config.json, then restart Claude.",
       ],
       snippets: [
+        {
+          id: "claude-signin-url",
+          label: "Connector URL (sign in with your key)",
+          lang: "text",
+          code: `${mcp}/signin`,
+        },
         {
           id: "claude-desktop-config",
           label: "claude_desktop_config.json",
@@ -169,12 +202,19 @@ export function setupGuide(o: {
       id: "chatgpt",
       name: "ChatGPT",
       steps: [
-        "ChatGPT developer-mode apps have no header field today, so an app added with the URL " +
+        "Settings → Apps → Advanced settings → Developer mode on, then Create: name it FactLot, enter the sign-in URL below, and choose OAuth for authentication (no client id or secret: ChatGPT registers itself).",
+        "Click Create, then Connect: a FactLot page opens. Paste your key once and choose Connect with my key. The plain URL " +
           mcp +
-          " runs on the free tier.",
-        "For your key, use a Custom GPT: Configure → Actions → Create new action → Import from URL, enter the OpenAPI URL below, then set Authentication to API Key, Auth Type Bearer, and paste your key.",
+          " with No authentication works on the free tier.",
+        "Custom GPTs (Actions) take the key directly: Configure → Actions → Create new action → Import from URL with the OpenAPI URL below, then Authentication API Key, Auth Type Bearer.",
       ],
       snippets: [
+        {
+          id: "chatgpt-signin-url",
+          label: "Connector URL (sign in with your key)",
+          lang: "text",
+          code: `${mcp}/signin`,
+        },
         {
           id: "chatgpt-openapi",
           label: "OpenAPI URL (GPT Actions subset)",
@@ -308,6 +348,27 @@ export function setupGuide(o: {
         "200 with plan, plan_name, requests_per_minute and registry_lookups {used, limit, resets_at}. 401 means the key is wrong or not active yet (wait a minute).",
       curl: `curl -s ${api}/v1/account -H "${header}"`,
     },
+    extract_lease: {
+      title: EXTRACT_LEASE_STEP,
+      available: o.model === true,
+      text: `With a Pro or Team key, ask your agent to extract a lease: doc_extract_lease sends the lease to Claude, which proposes each value, and FactLot keeps only the values it finds verbatim in the page text, each with its page and quote. ${o.model === true ? "It is on now." : "It is not switched on yet; doc_abstract_lease and doc_verify_facts (free) work meanwhile."} It counts pages, not registry lookups.`,
+      mcp_tool: "doc_extract_lease",
+      rest: `POST ${api}/v1/doc/extract_lease`,
+      pages_per_month: {
+        pro: MODEL_ALLOWANCES.pro.ingest_pages_per_month,
+        team: MODEL_ALLOWANCES.team.ingest_pages_per_month,
+      },
+    },
+    reports: {
+      mcp_tool: "report_create",
+      rest: `POST ${api}/v1/reports`,
+      text: `Ask for a client-ready document from a result: report_create builds an XLSX workbook, PDF or ICS calendar by code (no model) and returns a download link that works ${REPORT_DOWNLOAD_HOURS} hours. One report counts once against reports a month (${REPORTS_PER_MONTH.anonymous} free, ${REPORTS_PER_MONTH.pro.toLocaleString("en-US")} on Pro, ${REPORTS_PER_MONTH.team.toLocaleString("en-US")} on Team); input errors are free and reports never count as registry lookups.`,
+      per_month: {
+        free: REPORTS_PER_MONTH.anonymous,
+        pro: REPORTS_PER_MONTH.pro,
+        team: REPORTS_PER_MONTH.team,
+      },
+    },
     lookups: QUOTA_RULES,
     limits: {
       free: {
@@ -339,6 +400,9 @@ export function setupGuide(o: {
     },
   };
 }
+
+export const EXTRACT_LEASE_STEP =
+  "Extract a lease with Claude, verified by FactLot (Pro and Team)";
 
 /** The guide as Markdown (`Accept: text/markdown`). */
 export function guideMarkdown(g: Guide): string {
@@ -382,9 +446,15 @@ export function guideMarkdown(g: Guide): string {
     "",
     g.test.expect,
     "",
+    `## ${g.extract_lease.title}`,
+    "",
+    g.extract_lease.text,
+    `MCP tool \`${g.extract_lease.mcp_tool}\`; REST \`${g.extract_lease.rest}\`; ${g.extract_lease.pages_per_month.pro.toLocaleString("en-US")} pages a month on Pro, ${g.extract_lease.pages_per_month.team.toLocaleString("en-US")} on Team.`,
+    "",
     "## 4. Know your limits",
     "",
     ...Object.values(g.lookups).map((r) => `- ${r}`),
+    `- ${g.reports.text} MCP tool \`${g.reports.mcp_tool}\`; REST \`${g.reports.rest}\`.`,
     ...g.pricing.map((r) => `- ${r}`),
     "",
     "## Links",

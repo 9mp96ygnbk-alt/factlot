@@ -312,6 +312,16 @@
               we do record.
             </li>
             <li>
+              Only when you call <code>doc_extract_lease</code> or
+              <code>report_narrative</code> do we send what you submit to them
+              (a document's text, or a tool result) to Anthropic PBC's API for
+              model inference; Anthropic does not train models on API inputs and
+              keeps them only as its API data-retention terms allow. We store
+              nothing from these calls. Model output is returned only as far as
+              FactLot's checks verify it, and it can still be wrong. Every other
+              tool runs without any model.
+            </li>
+            <li>
               When you or your agent pass on an output that carries a citation,
               keep the citation, source, date and rights notice as returned. Do
               not alter them or attach them to a different value.

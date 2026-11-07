@@ -19,6 +19,7 @@
  *
  * Off (the form says so) until both the Email Service binding (EMAIL) and the secret are set.
  */
+import { modelEnabled } from "./model.ts";
 import {
   accountSummary,
   billingDeps,
@@ -375,5 +376,6 @@ export async function recoverLinkRoute(
     site: siteUrl(env),
     title: "Your new key",
     notice: { title: "Access recovered", text: note },
+    model: modelEnabled(env),
   });
 }

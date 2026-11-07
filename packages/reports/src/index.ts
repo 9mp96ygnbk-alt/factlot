@@ -1,0 +1,321 @@
+/**
+ * @factlot/reports: client-ready XLSX, PDF and ICS documents from FactLot tool results.
+ *
+ * Deterministic and model-free. A calculator report is a layout of FactLot's own run of the
+ * tool on the arguments sent (a result sent alongside is only compared, never used). A lease
+ * abstract is built from the documents' text when sent, else from a supplied result that is
+ * checked and labelled as the caller's on every page. Apart from the generation time printed in
+ * the footer (and an ICS file's DTSTAMP), the same request gives the same bytes.
+ */
+import { CATALOG_VERSION, getTool } from "@factlot/tools";
+import { z } from "zod";
+
+import {
+  renderPdf,
+  renderXlsx,
+  type Provenance,
+  type ReportDoc,
+} from "./doc.ts";
+import { slug, utcStamp } from "./format.ts";
+import { checkCallerText } from "./text.ts";
+import {
+  LEASE_COMPUTED_LABEL,
+  ReportContext,
+  SUPPLIED_LABEL,
+  type KindInput,
+} from "./kinds/common.ts";
+import {
+  asc842Doc,
+  camDoc,
+  dcfDoc,
+  debtDoc,
+  proposalsDoc,
+} from "./kinds/finance.ts";
+import { datesDoc, datesIcs, leaseDoc } from "./kinds/lease.ts";
+import { txDoc, txXlsx } from "./kinds/tx.ts";
+import {
+  COMPUTED_KINDS,
+  KIND_FORMATS,
+  KIND_TOOLS,
+  REPORT_FORMATS,
+  REPORT_KINDS,
+  ReportInputError,
+  checkInput,
+  type ReportFormat,
+  type TxResult,
+  type ReportKind,
+} from "./validate.ts";
+
+export {
+  COMPUTED_KINDS,
+  KIND_FORMATS,
+  KIND_TOOLS,
+  REPORT_FORMATS,
+  REPORT_KINDS,
+  ReportContext,
+  ReportInputError,
+  type ReportFormat,
+  type ReportKind,
+};
+export { jsonEqual } from "./validate.ts";
+export { unzip } from "./zip.ts";
+export { TX_DISCLAIMER } from "./kinds/tx.ts";
+
+/** KV's largest value; a larger document is refused. */
+export const MAX_REPORT_BYTES = 25 * 1024 * 1024;
+
+/**
+ * The Texas evidence packet (PDF) lays out at most this many comparables, each with at most
+ * this many adjustments; the workbook takes the tool's full set (up to 200 comparables).
+ */
+export const TX_PDF_MAX_COMPARABLES = 60;
+export const TX_PDF_MAX_ADJUSTMENTS = 10;
+
+export const TERMS_URL = "https://factlot.com/terms";
+
+export const CONTENT_TYPES: Record<ReportFormat, string> = {
+  xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  pdf: "application/pdf",
+  ics: "text/calendar; charset=utf-8",
+};
+
+export const KIND_TITLES: Record<ReportKind, string> = {
+  tx_unequal_appraisal: "Texas unequal-appraisal evidence",
+  lease_abstract: "Lease abstract",
+  cam_reconciliation: "CAM reconciliation",
+  debt_sizing: "Debt sizing",
+  asc842_schedule: "ASC 842 schedule",
+  compare_proposals: "Lease proposals compared",
+  dcf_summary: "DCF summary",
+  critical_dates: "Lease critical dates",
+};
+
+export const ReportRequest = z.strictObject({
+  kind: z.enum(REPORT_KINDS).describe("Which report."),
+  format: z
+    .enum(REPORT_FORMATS)
+    .describe("xlsx, pdf, or ics (critical_dates only)."),
+  input: z
+    .unknown()
+    .optional()
+    .describe(
+      "lease_abstract only: the doc_abstract_lease result, used when arguments are not sent (each page then says the values are the caller's). For other kinds a result sent here is not used; the answer says whether it matches FactLot's run (result_mismatch).",
+    ),
+  arguments: z
+    .unknown()
+    .optional()
+    .describe(
+      "The tool's arguments. Required for every kind but lease_abstract: FactLot runs the tool on them and builds the document from that run only.",
+    ),
+  context: ReportContext.optional().describe(
+    "Optional title, prepared-for line, and citations (text only).",
+  ),
+});
+export type ReportRequest = z.input<typeof ReportRequest>;
+
+export interface ReportFile {
+  bytes: Uint8Array;
+  filename: string;
+  content_type: string;
+  kind: ReportKind;
+  format: ReportFormat;
+  /** e.g. calc_debt_sizing@3 */
+  source: string;
+  /**
+   * "computed": built from FactLot's run of the tool on the arguments. "supplied": a lease
+   * abstract built from the result the caller sent (checked, not recomputed).
+   */
+  check: "computed" | "supplied";
+  /** Present when a result was sent with the arguments: true when it differs from FactLot's run. */
+  result_mismatch?: boolean;
+  generated_at: string;
+}
+
+export interface CreateOptions {
+  /** FactLot version printed in the footer (default: the tool catalog's). */
+  version?: string;
+  /** Generation time, ms since epoch (default: now). */
+  now?: number;
+}
+
+/** The report request as JSON Schema (for the MCP tool), plus `inline`. */
+export function reportRequestJsonSchema(): Record<string, unknown> {
+  const schema = z.toJSONSchema(ReportRequest, {
+    io: "input",
+    unrepresentable: "any",
+  }) as Record<string, unknown>;
+  delete schema.$schema;
+  return schema;
+}
+
+function issuesOf(err: z.ZodError) {
+  return err.issues
+    .slice(0, 20)
+    .map((i) => ({ path: i.path.map(String).join("."), message: i.message }));
+}
+
+/** A request that passed every input check, ready to render. */
+export interface PreparedReport {
+  kind: ReportKind;
+  format: ReportFormat;
+  ctx: ReportContext;
+  checked: KindInput["checked"];
+}
+
+/**
+ * Check a request and compute (or check) its result: everything short of building the file.
+ * Cheap next to rendering; throws ReportInputError for anything an agent can fix.
+ */
+export function prepareReport(request: unknown): PreparedReport {
+  const parsed = ReportRequest.safeParse(request);
+  if (!parsed.success)
+    throw new ReportInputError(
+      "InputError",
+      "invalid report request",
+      issuesOf(parsed.error),
+    );
+  const { kind, format, input, arguments: args } = parsed.data;
+  const ctx = parsed.data.context ?? {};
+  if (!KIND_FORMATS[kind].includes(format))
+    throw new ReportInputError(
+      "InputError",
+      `${kind} reports come as ${KIND_FORMATS[kind].join(" or ")}, not ${format}`,
+      [{ path: "format", message: `one of ${KIND_FORMATS[kind].join(", ")}` }],
+    );
+  checkCallerText(kind, ctx, args);
+  const checked = checkInput(kind, input, args);
+  if (kind === "tx_unequal_appraisal" && format === "pdf")
+    txPdfLimits(checked.result as TxResult);
+  return { kind, format, ctx, checked };
+}
+
+/** Refuse a Texas evidence packet too large to lay out as a PDF (413; the workbook takes it). */
+function txPdfLimits(r: TxResult): void {
+  const comps = r.value.comparables;
+  const issues = [
+    ...(comps.length > TX_PDF_MAX_COMPARABLES
+      ? [
+          {
+            path: "arguments.comparables",
+            message: `${comps.length} comparables; the PDF lays out at most ${TX_PDF_MAX_COMPARABLES}`,
+          },
+        ]
+      : []),
+    ...comps.flatMap((c, i) =>
+      c.adjustments.length > TX_PDF_MAX_ADJUSTMENTS
+        ? [
+            {
+              path: `arguments.comparables.${i}.adjustments`,
+              message: `${c.adjustments.length} adjustments; the PDF lays out at most ${TX_PDF_MAX_ADJUSTMENTS} per comparable`,
+            },
+          ]
+        : [],
+    ),
+  ];
+  if (issues.length)
+    throw new ReportInputError(
+      "TooLarge",
+      `a tx_unequal_appraisal PDF lays out at most ${TX_PDF_MAX_COMPARABLES} comparables with at most ${TX_PDF_MAX_ADJUSTMENTS} adjustments each; the xlsx workbook takes the full set (up to 200 comparables)`,
+      issues.slice(0, 20),
+      'ask for "format": "xlsx" (the adjustment-grid workbook takes every comparable and adjustment), or send fewer comparables or adjustments for the PDF',
+    );
+}
+
+/** Build one document. Throws ReportInputError for anything an agent can fix. */
+export async function createReport(
+  request: unknown,
+  opts: CreateOptions = {},
+): Promise<ReportFile> {
+  return renderReport(prepareReport(request), opts);
+}
+
+/**
+ * Build the file for a prepared request. A document over a size limit throws ReportInputError
+ * (TooLarge); anything else thrown is a fault in FactLot, not in the request.
+ */
+export async function renderReport(
+  prepared: PreparedReport,
+  opts: CreateOptions = {},
+): Promise<ReportFile> {
+  const { kind, format, ctx, checked } = prepared;
+  const version = opts.version ?? CATALOG_VERSION;
+  const now = opts.now ?? Date.now();
+  const generatedAt = new Date(now);
+  const formula = getTool(checked.tool)?.formula;
+  const toolRef = `${checked.tool}@${formula ? formula.version : version}`;
+  // Only a document built from FactLot's own run says its numbers are the tool's results. A
+  // lease abstract leads every page's footer with where its values came from.
+  const generated = `Generated by FactLot ${version} on ${utcStamp(now)} from ${toolRef}`;
+  const footer =
+    kind === "lease_abstract"
+      ? `${checked.check === "supplied" ? SUPPLIED_LABEL : LEASE_COMPUTED_LABEL} ${generated}; see ${TERMS_URL}`
+      : `${generated}; numbers are the tool's results; see ${TERMS_URL}`;
+  const p: Provenance = {
+    footer,
+    version,
+    toolRef,
+    generatedAt,
+    header: `FactLot | ${KIND_TITLES[kind]}${ctx.title ? ` | ${ctx.title}` : ""}`,
+    keywords: ["FactLot", kind, toolRef],
+  };
+  const k: KindInput = { checked, ctx, p };
+
+  let bytes: Uint8Array;
+  if (format === "ics") bytes = await datesIcs(k);
+  else if (kind === "tx_unequal_appraisal" && format === "xlsx")
+    bytes = await txXlsx(k);
+  else {
+    const doc = BUILDERS[kind](k);
+    bytes =
+      format === "pdf" ? await renderPdf(doc, p) : await renderXlsx(doc, p);
+  }
+  if (bytes.byteLength > MAX_REPORT_BYTES)
+    throw new ReportInputError(
+      "TooLarge",
+      `the ${format} file would be ${bytes.byteLength} bytes; the limit is ${MAX_REPORT_BYTES} (25 MiB)`,
+    );
+
+  const subject = ctx.title ?? subjectOf(kind, checked.result);
+  const filename = [
+    "factlot",
+    slug(kind),
+    ...(subject ? [slug(subject, 32)] : []),
+    generatedAt.toISOString().slice(0, 10),
+  ]
+    .filter(Boolean)
+    .join("-");
+  return {
+    bytes,
+    filename: `${filename}.${format}`,
+    content_type: CONTENT_TYPES[format],
+    kind,
+    format,
+    source: toolRef,
+    check: checked.check,
+    ...(checked.result_mismatch !== undefined
+      ? { result_mismatch: checked.result_mismatch }
+      : {}),
+    generated_at: generatedAt.toISOString(),
+  };
+}
+
+const BUILDERS: Record<ReportKind, (k: KindInput) => ReportDoc> = {
+  tx_unequal_appraisal: txDoc,
+  lease_abstract: leaseDoc,
+  cam_reconciliation: camDoc,
+  debt_sizing: debtDoc,
+  asc842_schedule: asc842Doc,
+  compare_proposals: proposalsDoc,
+  dcf_summary: dcfDoc,
+  critical_dates: datesDoc,
+};
+
+function subjectOf(kind: ReportKind, result: unknown): string | undefined {
+  const r = result as { value?: { subject_id?: unknown; tax_year?: unknown } };
+  if (kind === "tx_unequal_appraisal") {
+    const id =
+      typeof r.value?.subject_id === "string" ? r.value.subject_id : "";
+    return `${String(r.value?.tax_year ?? "")}${id ? `-${id}` : ""}`;
+  }
+  return undefined;
+}

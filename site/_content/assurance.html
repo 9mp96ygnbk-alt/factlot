@@ -1,0 +1,330 @@
+<p class="lede">
+  How FactLot's numbers are checked, what each check does and does not show, how
+  to repeat every check yourself, and what is not proven. A check that is not
+  listed here has not been done.
+</p>
+<p class="small">
+  Trust pages: <a href="/status/">Status</a> ·
+  <a href="/security/">Security</a> · <a href="/sla/">Service levels</a> ·
+  Assurance. Written 7 November 2026, for release {{VERSION}} and the changes
+  the <a href="{{REPO}}/blob/main/CHANGELOG.md">changelog</a> lists as
+  unreleased. Sizes marked "counted at build" are counted from the repository
+  when this site is built; the rest are measured figures with their date.
+</p>
+
+<h2 id="checks">The checks</h2>
+<h3>Shared test vectors</h3>
+<p>
+  <strong>What it shows.</strong> Fixed inputs with fixed expected outputs, in
+  language-neutral JSON, that every implementation must reproduce. Expected
+  values are computed by hand or with exact decimal arithmetic, not by running
+  FactLot (a project rule;
+  <a href="{{REPO}}/blob/main/spec/README.md">spec/README.md</a>).
+</p>
+<p>
+  <strong>Size.</strong> {{VECTOR_CASES}} cases in {{VECTOR_FILES}} files, one
+  file for each of the {{CALC_COUNT}} calculators (counted at build).
+</p>
+<p>
+  <strong>Repeat it.</strong> <code>npm test</code> and
+  <code>npm run test:python</code>.
+</p>
+
+<h3>Two implementations</h3>
+<p>
+  <strong>What it shows.</strong> The calculators, IDs and tools exist twice:
+  TypeScript (<code>packages/</code>) and Python
+  (<code>python/src/factlot</code>). Any change goes into both, and both must
+  pass the same vectors.
+</p>
+<p>
+  <strong>Size.</strong> TypeScript: 328 tests. Python: 785 tests, 2 skipped.
+  Both measured 7 November 2026.
+</p>
+<p>
+  <strong>Repeat it.</strong> <code>npm test</code> and
+  <code>npm run test:python</code>.
+</p>
+
+<h3>Differential test</h3>
+<p>
+  <strong>What it shows.</strong> Random inputs are generated, run through both
+  implementations, and every field of every result is compared. A single
+  difference fails it. It finds disagreements that no hand-written vector
+  anticipated.
+</p>
+<p>
+  <strong>Size.</strong> 9,808 cases from seed 1 and count 1500, with 0
+  differences (7 November 2026). CI runs seed 1 and count 3000 on every change.
+</p>
+<p><strong>Repeat it.</strong> <code>npm run differential -- 1 1500</code>.</p>
+
+<h3>Excel reconciliation</h3>
+<p>
+  <strong>What it shows.</strong> Workbooks that rebuild a calculator's answer
+  in live Excel formulas beside FactLot's numbers, with a Difference column. A
+  workbook is not written unless every difference is zero, and a test fails if a
+  committed file is stale. Inputs are synthetic.
+</p>
+<p>
+  <strong>Size.</strong> {{WORKBOOKS}} workbooks, {{WORKBOOK_ROWS}} rows
+  reconciled, all differences 0 (counted at build).
+</p>
+<p>
+  <strong>Repeat it.</strong>
+  <code>python3 examples/reconciliation/build.py --check</code>, or open a
+  workbook in Excel.
+</p>
+
+<h3>Live suite on the hosted API</h3>
+<p>
+  <strong>What it shows.</strong> Replays the vectors against api.factlot.com,
+  calls every MCP tool and checks it equals the REST answer, and does real
+  registry lookups. It shows that the deployed service gives the same answers as
+  the repository.
+</p>
+<p>
+  <strong>Size.</strong> 4,447 checks passed, 0 failed, in the last full run (7
+  November 2026). Run by the maintainer after a deploy, not on a schedule.
+</p>
+<p>
+  <strong>Repeat it.</strong> <code>npm run test:hosted</code>. It is paced to
+  stay under the free 60 requests a minute, and it uses your address's free
+  registry quota.
+</p>
+
+<h3>Continuous integration</h3>
+<p>
+  <strong>What it shows.</strong> Lint, formatting, types, the TypeScript and
+  Python tests (which include the vectors and the workbook check), the
+  differential test, the site build, the MCP end-to-end test, OpenAPI validation
+  and a check that generated schemas are current. Required on <code>main</code>.
+  Not in CI: the live suite, and opening the workbooks in Excel.
+</p>
+<p>
+  <strong>Size.</strong>
+  <a href="https://github.com/9mp96ygnbk-alt/factlot/actions/workflows/ci.yml"
+    >Every run is public on GitHub</a
+  >.
+</p>
+
+<h3>Bench</h3>
+<p>
+  <strong>What it shows.</strong> 14 realistic commercial real estate agent
+  tasks, with answers computed independently of FactLot, each run once with the
+  model alone and once with FactLot's tools; a task passes only if every answer
+  field is right. The repository's offline tests check that each answer is
+  reachable through FactLot's tools and that scoring is strict.
+</p>
+<p><strong>Size.</strong> No accuracy number is published.</p>
+<p>
+  <strong>Repeat it.</strong> <code>npm run test:bench</code> (offline tests
+  only).
+</p>
+<p>
+  To start from nothing:
+  <code
+    >git clone {{REPO}}.git &amp;&amp; cd factlot &amp;&amp; npm ci &amp;&amp;
+    npm run build</code
+  >
+  needs Node.js 22.6 or newer and Python 3.10 or newer, then run the commands in
+  the last column. The tests and the differential suite run locally; only the
+  live suite calls the hosted service.
+</p>
+
+<h2 id="rules">Rules checked against statute text</h2>
+<p>
+  A rules pack turns law into code. It is called <code>draft</code> until a
+  maintainer has read each cited section in its official source and recorded who
+  checked it and when, and only then does it become a tool. Every result carries
+  the rule's verification status and date.
+</p>
+<ul class="plain">
+  <li>
+    <strong>Texas property tax protest deadline</strong>
+    (<code>{{RULE_ID}}</code>): <strong>verified</strong> {{RULE_VERIFIED}}
+    against the official text, by "FactLot maintainers" (the rule records no
+    individual's name). Law: {{RULE_LAWS}}.
+  </li>
+  <li>
+    <strong>{{DRAFT_PACKS}} other packs: draft, not verified.</strong> NYC Local
+    Law 97, Washington Clean Buildings (WAC 194-50), Boston BERDO 2.0 and Texas
+    protest evidence dates. They are not tools. They run only on an explicit
+    opt-in and put a warning in every result that the pack is a draft not
+    verified against the official text. See
+    <a href="{{REPO}}/blob/main/docs/rules.md">rules packs</a>.
+  </li>
+</ul>
+<p>
+  The Texas deadline rule is also tested against a full holiday calendar, a
+  differential run over random dates from 2000 to 2100, and an exhaustive check
+  of every notice date in that range (the deadline is always a business day,
+  never before May 15, and the conservative file-by date is never later than the
+  deadline). It is a date calculation, not legal or tax advice.
+</p>
+
+<h2 id="facts">How facts are cited</h2>
+<ul class="plain">
+  <li>
+    <strong>No uncited facts.</strong> A fact must name its source (document,
+    page, section, verbatim quote), except a computed fact, which names its
+    formula and inputs. The schema rejects the rest.
+    <a href="{{REPO}}/blob/main/docs/fact-model.md">Fact model</a>.
+  </li>
+  <li>
+    <strong>Every fact says how it was made.</strong> The method is one of
+    <code>human_verified</code>, <code>public_record</code>,
+    <code>computed</code>, <code>extracted</code>, <code>reported</code> or
+    <code>inferred</code>, so an agent can tell which ones to send to a person.
+  </li>
+  <li>
+    <strong>Rights travel with the fact.</strong> Each fact carries the source's
+    licence and its AI-use and redistribution status.
+  </li>
+  <li>
+    <strong>Registry facts cite the public file.</strong> The citation holds the
+    publisher's URL, the file's content hash and the record locator, so you can
+    fetch the same file from the publisher and check it.
+  </li>
+  <li>
+    <strong>Document checks are textual.</strong> The document tools confirm
+    that the quote an agent supplied is on the page it names and that the quote
+    states the value. They do not find terms the agent missed, and they do not
+    judge what a clause means.
+  </li>
+</ul>
+
+<h2 id="versions">Formula versions</h2>
+<p>
+  Every result names its formula, for example
+  <code>calc.net_effective_rent@1</code>. A change that could alter any output
+  increases the version and is listed under "Changed" in the
+  <a href="{{REPO}}/blob/main/CHANGELOG.md">changelog</a>; the rules are in
+  <a href="{{REPO}}/blob/main/docs/release-process.md#versioning-rules"
+    >docs/release-process.md</a
+  >. This is used: {{REVISED_COUNT}} of the {{TOOL_COUNT}} tools are on a
+  version above 1 ({{REVISED_LIST}}). See
+  <a href="/sla/#versioning">service levels</a> for what that means for the
+  hosted API.
+</p>
+
+<h2 id="not-proven">What is not proven</h2>
+<ul class="plain">
+  <li>
+    <strong>ARGUS and Yardi parity is untested.</strong> No ARGUS or Yardi
+    export has been run through FactLot, and FactLot does not claim to match
+    either product. The tie-out tools exist and were tested only on synthetic
+    files built from FactLot's own output with one convention changed on
+    purpose. <a href="{{REPO}}/blob/main/docs/reconciliation.md">Details</a>.
+  </li>
+  <li>
+    <strong>OCR accuracy is not measured.</strong> Scanned pages can be read
+    through a pluggable OCR backend on your own machine; facts from OCR pages
+    are flagged so a person can check them, but no accuracy figure exists.
+  </li>
+  <li>
+    <strong>Lease extraction accuracy is not measured.</strong> There is no
+    hand-labelled set of real leases, so no accuracy number is published (<a
+      href="{{REPO}}/blob/main/docs/ingest.md"
+      >ingest</a
+    >).
+  </li>
+  <li>
+    <strong>No bench result is published.</strong> The bench exists and its
+    tests pass, but no accuracy figure from running it is published, so this
+    site makes no claim about how often an agent with or without FactLot gets
+    the right number.
+  </li>
+  <li>
+    <strong>The Excel check was done in Excel once.</strong> On 3 November 2026
+    the seven workbooks then published were opened in Microsoft Excel for Mac
+    and recalculated: every difference was 0. The Texas unequal-appraisal
+    workbook was added later and is checked by the repository's own formula
+    evaluator, which is what runs on every change, not by Excel.
+  </li>
+  <li>
+    <strong>Expected values are independent by rule, not by audit.</strong> The
+    project requires vectors to be computed outside FactLot's code, and
+    reference scripts for some are in
+    <a href="{{REPO}}/tree/main/spec/vectors/calc/reference"
+      >spec/vectors/calc/reference</a
+    >. No outside party has reviewed the calculators.
+  </li>
+  <li>
+    <strong>A calculator is conventions, not judgment.</strong> Each calculator
+    follows stated conventions (how rent is prorated, when cash flows are
+    discounted, how rounding works), shown in its steps. Whether they fit your
+    lease or your lender is for you to decide; a result that agrees with another
+    model on the same inputs does not show that either is right for the deal.
+  </li>
+  <li>
+    <strong>Registry data are only as good as the public record.</strong> Public
+    records are incomplete, out of date or wrong at times. Each fact shows its
+    source and date. Counties marked "audited" on the
+    <a href="/coverage/">coverage map</a> had the registry compared with the
+    publisher's file; the others have not been.
+  </li>
+  <li>
+    <strong>Only one rule is verified.</strong> The other rules packs are
+    drafts. Nothing here is legal, tax, appraisal or accounting advice.
+  </li>
+</ul>
+
+<h2 id="report">Report a wrong number</h2>
+<p>
+  A wrong result matters more than any other bug. To report one, email
+  <a href="mailto:contact@factlot.com?subject=WRONG%20NUMBER"
+    >contact@factlot.com</a
+  >
+  with "WRONG NUMBER" at the start of the subject, or open a
+  <a href="{{REPO}}/issues/new/choose">bug report</a> if the inputs can be
+  public. Please include:
+</p>
+<ul class="plain">
+  <li>the tool, and the <code>formula</code> ID and version it returned;</li>
+  <li>
+    the exact input (use invented figures if the real ones are confidential);
+  </li>
+  <li>the result you got, and the result you expected;</li>
+  <li>
+    how you know: a statute or contract clause, a hand calculation, or another
+    system's figure with its settings.
+  </li>
+</ul>
+<p>
+  A confirmed error is fixed in both implementations, gets a new test vector,
+  increases the formula's version, and is recorded in the changelog. A wrong
+  result that comes with no warning is in scope of the
+  <a href="/security/#disclosure">security policy</a> too, and you can report it
+  privately the same way. Paid plans' support targets are on
+  <a href="/sla/#support">service levels</a> (draft).
+</p>
+
+<h2 id="links">Read more</h2>
+<ul class="plain">
+  <li>
+    <a href="{{REPO}}/blob/main/CHANGELOG.md">Changelog</a>, and the
+    <a href="{{REPO}}/blob/main/docs/release-process.md#versioning-rules"
+      >formula versioning rules</a
+    >
+  </li>
+  <li>
+    <a href="{{REPO}}/blob/main/spec/README.md">Conformance vectors</a> and the
+    <a href="{{REPO}}/tree/main/spec/differential">differential test</a>
+  </li>
+  <li>
+    <a href="{{REPO}}/blob/main/examples/reconciliation/README.md"
+      >Excel reconciliation workbooks</a
+    >
+    and <a href="{{REPO}}/blob/main/docs/reconciliation.md">tie-out guide</a>
+  </li>
+  <li>
+    <a href="{{REPO}}/blob/main/docs/install-verification.md"
+      >Install verification</a
+    >
+    (a dated record of every install path, run on release 0.1.0)
+  </li>
+  <li>
+    <a href="{{REPO}}/blob/main/bench/README.md">FactLot Bench</a>
+  </li>
+</ul>

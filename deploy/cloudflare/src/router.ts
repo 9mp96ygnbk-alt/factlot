@@ -13,12 +13,13 @@
  * read /v1/account and open the billing portal to fix its card.
  *
  * Registry lookups (answered calls of registry_* tools; registry_coverage, input errors, misses
- * outside loaded coverage and unanswered calls are given back) are metered on top: per
+ * outside loaded coverage and unanswered calls are given back; a batch tool reserves one per
+ * subject and keeps one per answered subject) are metered on top: per
  * address per UTC day without a key, per subscription per calendar month with one. A request
  * over the cap gets 429 RegistryQuotaExceeded (REST) or the same error as an MCP tool result
  * with isError; other tools keep working.
  */
-import { tools } from "@factlot/tools";
+import { TX_EQUITY_BATCH_MAX_SUBJECTS, tools } from "@factlot/tools";
 
 import {
   CONTACT,
@@ -60,7 +61,31 @@ import {
   regionOf,
 } from "./account-tools.ts";
 import { claimRoute, CLAIM_POLL_MS, CLAIM_TTL_SECONDS } from "./claim.ts";
+import {
+  MCP_SIGNIN_PATH,
+  disconnect,
+  isOAuthPath,
+  isOAuthToken,
+  listConnections,
+  oauthRoute,
+  resolveOAuthToken,
+  signInChallenge,
+  wwwAuthenticate,
+  type OAuthCaller,
+} from "./oauth.ts";
 import { addressSubject } from "./limiter.ts";
+import { modelEnabled, type ModelDeps } from "./model.ts";
+import {
+  MAX_MODEL_CALLS_PER_REQUEST,
+  MODEL_MAX_BODY_BYTES,
+  MODEL_PATHS,
+  answerModelCall,
+  isModelCall,
+  modelRestRoute,
+  modelToolsFor,
+  type ModelCaller,
+} from "./model-tools.ts";
+import { withHostedOperations } from "./openapi-hosted.ts";
 import { KEY_PLACEHOLDER, guideMarkdown, setupGuide } from "./onboarding.ts";
 import { accountFormPage, accountPage } from "./pages.ts";
 import {
@@ -76,9 +101,23 @@ import {
   PRICING_URL,
   QUOTA_RULES,
   isMeteredRegistryTool,
+  modelPlansInfo,
   publicPlans,
+  reportLimits,
   type Tier,
 } from "./plans.ts";
+import {
+  DOWNLOAD_PATH,
+  REPORT_QUOTA_HEADERS,
+  REPORT_TOOL,
+  answerReportCall,
+  downloadLimitKey,
+  isReportCall,
+  reportDownload,
+  reportsRest,
+  type ReportCaller,
+  reportsEnabled,
+} from "./reports.ts";
 import type {
   Env,
   Fetcher,
@@ -143,11 +182,15 @@ function corsHeaders(): Record<string, string> {
       "content-type, authorization, mcp-session-id, mcp-protocol-version, last-event-id",
     "access-control-expose-headers": [
       "mcp-session-id",
+      "www-authenticate",
       "mcp-protocol-version",
       "retry-after",
       "x-ratelimit-limit",
       "x-factlot-tier",
       ...QUOTA_HEADERS,
+      ...REPORT_QUOTA_HEADERS,
+      "content-disposition",
+      "x-factlot-report-sha256",
     ].join(", "),
   };
 }
@@ -180,8 +223,17 @@ function errorResponse(
   );
 }
 
-function rateLimited(path: string, limit: number, tier: Tier): Response {
-  const scope = tier === "anonymous" ? "per address" : "per key";
+function rateLimited(
+  path: string,
+  limit: number,
+  tier: Tier,
+  connection = false,
+): Response {
+  const scope = connection
+    ? "per connection"
+    : tier === "anonymous"
+      ? "per address"
+      : "per key";
   const message =
     `rate limit of ${limit} requests per minute ${scope} exceeded for the ${tier} tier; retry in 60s. ${tier === "anonymous" ? UPGRADE_HINT : ""}`.trim();
   return errorResponse(
@@ -201,8 +253,22 @@ function rateLimited(path: string, limit: number, tier: Tier): Response {
   );
 }
 
-function unauthorized(path: string): Response {
-  const message = `invalid or inactive FactLot API key. Free use needs no key; paid keys come from ${PRICING_URL}. Help: ${CONTACT} or ${DISCUSSIONS}`;
+function unauthorized(path: string, env: Env, oauth = false): Response {
+  const message = oauth
+    ? path === "/mcp"
+      ? "this sign-in has expired or was disconnected: connect again (sign in with your FactLot key, or continue on the free tier)."
+      : "OAuth access tokens work only at /mcp; use a FactLot API key for the REST API."
+    : `invalid or inactive FactLot API key. Free use needs no key; paid keys come from ${PRICING_URL}. Help: ${CONTACT} or ${DISCUSSIONS}`;
+  // At /mcp the challenge also says where sign-in starts (RFC 9728), so a client can reconnect.
+  const challenge =
+    path === "/mcp"
+      ? wwwAuthenticate(env, {
+          code: "invalid_token",
+          description: oauth
+            ? "The access token is invalid, expired or revoked"
+            : "Invalid or inactive FactLot API key",
+        })
+      : 'Bearer realm="factlot"';
   return errorResponse(
     path,
     401,
@@ -212,7 +278,7 @@ function unauthorized(path: string): Response {
       message,
       next: "send no Authorization header for the free tier, or a live key; lost it? https://factlot.com/account#recover",
     },
-    { "www-authenticate": 'Bearer realm="factlot"' },
+    { "www-authenticate": challenge },
   );
 }
 
@@ -263,6 +329,8 @@ export interface HandleOptions {
   now?: () => number;
   /** ctx.waitUntil: work that runs after the response (emails). */
   waitUntil?: (work: Promise<unknown>) => void;
+  /** The model-backed tools' transport, clock and document fetch (tests). */
+  model?: ModelDeps;
 }
 
 /** Run `work` after the response when the runtime allows, never failing the request. */
@@ -351,6 +419,101 @@ function callsRegistry(item: unknown): boolean {
   );
 }
 
+/**
+ * Registry tools that answer many subjects in one call, by the input field that lists them: a
+ * call reserves one lookup per subject before it runs and keeps one per answered subject.
+ */
+const BATCH_REGISTRY_TOOLS: ReadonlyMap<
+  string,
+  { field: string; max: number }
+> = new Map([
+  [
+    "registry_tx_equity_candidates_batch",
+    { field: "subjects", max: TX_EQUITY_BATCH_MAX_SUBJECTS },
+  ],
+]);
+
+/** The subjects of a batch registry call, when its list is valid in length (else undefined). */
+function batchSubjects(tool: string, args: unknown): unknown[] | undefined {
+  const batch = BATCH_REGISTRY_TOOLS.get(tool);
+  if (!batch || typeof args !== "object" || args === null) return undefined;
+  const list = (args as Record<string, unknown>)[batch.field];
+  return Array.isArray(list) && list.length >= 1 && list.length <= batch.max
+    ? list
+    : undefined;
+}
+
+/**
+ * The lookups a metered registry call reserves: one per subject of a batch tool, otherwise one
+ * (a batch with an invalid subject list is an input error, which is given back).
+ */
+export function lookupsReserved(tool: string, args: unknown): number {
+  return batchSubjects(tool, args)?.length ?? 1;
+}
+
+/** The lookups a metered MCP call reserves. */
+function callReserves(item: unknown): number {
+  const params = (item as { params?: { name?: unknown; arguments?: unknown } })
+    .params;
+  return lookupsReserved(String(params?.name), params?.arguments);
+}
+
+/**
+ * The metered calls of an MCP request that the `granted` lookups cover, in order, each with what
+ * it reserves: a call runs only when all of its reservation fits; a call that does not fit is
+ * refused and later, smaller calls may still run.
+ */
+function admittedCalls(
+  items: unknown[],
+  granted: number,
+): Map<unknown, number> {
+  const admitted = new Map<unknown, number>();
+  let budget = granted;
+  for (const item of items) {
+    if (!isMeteredCall(item)) continue;
+    const n = callReserves(item);
+    if (n <= budget) {
+      admitted.set(item, n);
+      budget -= n;
+    }
+  }
+  return admitted;
+}
+
+/**
+ * The charged part of a batch registry answer: one entry per answered subject (an entry of
+ * `results` without an `error`), with that subject's own arguments. Texas batch subjects given by
+ * county and APN are in state 48 (the tool's default), which names their region.
+ */
+function batchCharges(
+  tool: string,
+  args: unknown,
+  answer: unknown,
+): { tool: string; args: unknown }[] {
+  const subjects = batchSubjects(tool, args) ?? [];
+  const byId = new Map(
+    subjects.map((s) => [(s as { id?: unknown } | null)?.id, s]),
+  );
+  const results = (answer as { results?: unknown } | null)?.results;
+  if (!Array.isArray(results)) return [];
+  return results
+    .filter((r) => typeof r === "object" && r !== null && !("error" in r))
+    .slice(0, subjects.length)
+    .map((r) => {
+      const { id: _id, ...subject } = (byId.get((r as { id?: unknown }).id) ??
+        {}) as Record<string, unknown>;
+      void _id;
+      return {
+        tool,
+        args:
+          tool === "registry_tx_equity_candidates_batch" &&
+          subject.urn === undefined
+            ? { state_fips: "48", ...subject }
+            : subject,
+      };
+    });
+}
+
 function quotaHeaders(q: QuotaState): Record<string, string> {
   return {
     "x-factlot-registry-quota-limit": String(q.limit),
@@ -359,28 +522,48 @@ function quotaHeaders(q: QuotaState): Record<string, string> {
   };
 }
 
-/** The RegistryQuotaExceeded error object (REST body and MCP tool error alike). */
-export function quotaError(q: QuotaState, tier: Tier, now: number) {
+/**
+ * The RegistryQuotaExceeded error object (REST body and MCP tool error alike). `needed`: the
+ * lookups the refused call reserves (one per subject for a per-subject tool); when some are
+ * left but fewer than that, the message names the shortfall instead of saying they are used up.
+ * `connection`: the free lookups are counted per OAuth connection, not per IP address.
+ */
+export function quotaError(
+  q: QuotaState,
+  tier: Tier,
+  now: number,
+  opts: { needed?: number; connection?: boolean } = {},
+) {
+  const { needed = 1, connection = false } = opts;
+  const per = connection ? "connection" : "IP address";
   const resets = q.resets_at;
   const limit = q.limit.toLocaleString("en-US");
   const free =
     "Only answered lookups count: coverage checks, misses and input errors are free.";
+  const short = q.remaining > 0 && needed > q.remaining;
+  const left = q.remaining.toLocaleString("en-US");
+  const shortfall = (whose: string) =>
+    `This call needs ${needed.toLocaleString("en-US")} registry lookups (one per subject) but only ${left} of ${whose} are left, so it was not run and nothing was counted. Send ${left} subjects or fewer, or wait until ${resets}.`;
   const message =
     tier === "anonymous"
-      ? `The free registry lookups for today are used up: ${limit} a day per IP address. They reset at ${resets}. A Pro key (${PLANS.pro.registryLookupsPerMonth.toLocaleString("en-US")} a month) or Team key (${PLANS.team.registryLookupsPerMonth.toLocaleString("en-US")} a month) lifts the cap: ${PRICING_URL}. Other tools keep working. ${free}`
-      : tier === "pro"
-        ? `This subscription's ${limit} registry lookups for the month are used up. They reset at ${resets}. Team (${PLANS.team.registryLookupsPerMonth.toLocaleString("en-US")} a month) lifts the cap: ${PRICING_URL}. Other tools keep working. ${free}`
-        : `This subscription's ${limit} registry lookups for the month are used up. They reset at ${resets}. Team is the largest plan; for more, email ${CONTACT} (${PRICING_URL}). Other tools keep working. ${free}`;
+      ? `${short ? shortfall(`today's ${limit} free lookups for this ${per}`) : `The free registry lookups for today are used up: ${limit} a day per ${per}. They reset at ${resets}.`} A Pro key (${PLANS.pro.registryLookupsPerMonth.toLocaleString("en-US")} a month) or Team key (${PLANS.team.registryLookupsPerMonth.toLocaleString("en-US")} a month) lifts the cap: ${PRICING_URL}. Other tools keep working. ${free}`
+      : `${short ? shortfall(`this subscription's ${limit} for the month`) : `This subscription's ${limit} registry lookups for the month are used up. They reset at ${resets}.`} ${
+          tier === "pro"
+            ? `Team (${PLANS.team.registryLookupsPerMonth.toLocaleString("en-US")} a month) lifts the cap: ${PRICING_URL}.`
+            : `Team is the largest plan; for more, email ${CONTACT} (${PRICING_URL}).`
+        } Other tools keep working. ${free}`;
   return {
     error: "RegistryQuotaExceeded",
     code: "RegistryQuotaExceeded",
     message,
-    next:
-      tier === "team"
+    next: short
+      ? `send ${left} subjects or fewer, wait until ${resets}, or ${tier === "team" ? `email ${CONTACT}` : `upgrade: ${PRICING_URL}`}`
+      : tier === "team"
         ? `wait until ${resets}, or email ${CONTACT}`
         : `wait until ${resets}, or upgrade: ${PRICING_URL}`,
     limit: q.limit,
     used: q.used,
+    ...(needed > 1 ? { needed, available: q.remaining } : {}),
     resets_at: resets,
     retry_after_seconds: retryAfter(q, now),
     upgrade: PRICING_URL,
@@ -411,7 +594,18 @@ export async function handle(
   api: Fetcher,
   opts: HandleOptions = {},
 ): Promise<Response> {
-  const path = new URL(request.url).pathname.replace(/\/+$/, "") || "/";
+  const url = new URL(request.url);
+  let path = url.pathname.replace(/\/+$/, "") || "/";
+  // /mcp/signin is /mcp for a header-less client that should sign in: without credentials it
+  // gets the 401 challenge that starts OAuth (bare /mcp stays open for the free tier). Like
+  // /mcp it answers on every host; the challenge names the API host's metadata.
+  if (path === MCP_SIGNIN_PATH) {
+    if (request.method === "OPTIONS")
+      return new Response(null, { status: 204, headers: corsHeaders() });
+    if (!request.headers.get("authorization")) return signInChallenge(env);
+    request = new Request(`${url.origin}/mcp${url.search}`, request);
+    path = "/mcp";
+  }
   try {
     return await route(request, env, api, opts);
   } catch (err) {
@@ -485,6 +679,16 @@ async function route(
     return handleWebhook(env, request, now, opts.fetchImpl);
   }
 
+  // OAuth 2.1 for header-less MCP clients (oauth.ts), on the API host.
+  if (isApiHost(host) && isOAuthPath(path))
+    return (await oauthRoute(request, env, url, path, {
+      resolveKey,
+      fetchImpl: opts.fetchImpl,
+      now,
+      defer: deferWith(opts),
+      waitUntil: opts.waitUntil,
+    }))!;
+
   // Landing page on the apex and www hosts.
   if (!isApiHost(host) && !isApiPath(path) && env.ASSETS)
     return env.ASSETS.fetch(request);
@@ -502,7 +706,14 @@ async function route(
     const checkout = checkoutInfo(apiBase);
     if (path === "/v1/plans")
       return withHeaders(
-        json(200, { plans, quotas: QUOTA_RULES, checkout_open, checkout }),
+        json(200, {
+          plans,
+          quotas: QUOTA_RULES,
+          model_tools: modelPlansInfo(modelEnabled(env)),
+          reports: { available: reportsEnabled(env), ...reportLimits() },
+          checkout_open,
+          checkout,
+        }),
         corsHeaders(),
       );
     return withHeaders(
@@ -603,6 +814,7 @@ async function route(
       site,
       plan: isPlanId(planParam) ? PLANS[planParam] : undefined,
       placeholder: KEY_PLACEHOLDER,
+      model: modelEnabled(env),
     });
     const markdown =
       (request.headers.get("accept") ?? "").includes("text/markdown") ||
@@ -622,10 +834,32 @@ async function route(
     );
   }
 
+  // Report downloads: the link is the credential (a 256-bit token), so no key is read. Limited
+  // per address and per token (named by the token's hash).
+  if (path.startsWith(DOWNLOAD_PATH)) {
+    const token = path.slice(DOWNLOAD_PATH.length);
+    const byAddress = await metered(
+      env.RL_ANON.limit({ key: `reportdl-ip:${await addressKey()}` }),
+    );
+    const byToken =
+      byAddress.success &&
+      (await metered(
+        env.RL_ANON.limit({ key: await downloadLimitKey(token) }),
+      ));
+    if (!byAddress.success || !byToken || !byToken.success)
+      return rateLimited(path, ANONYMOUS_REQUESTS_PER_MINUTE, "anonymous");
+    return withHeaders(
+      await reportDownload(request, env, token, now()),
+      corsHeaders(),
+    );
+  }
+
   // Who is calling. Rejected tokens spend a per-address budget, checked before the key store
   // is read, so a flood of made-up keys is refused cheaply.
   const token = bearer(request.headers.get("authorization"));
   let paid: PaidCaller | undefined;
+  // An OAuth access token (header-less clients, /mcp only): a subscription or a free connection.
+  let oauth: OAuthCaller | undefined;
   if (token !== undefined) {
     const failKey = `authfail:${await addressKey()}`;
     if (!(await metered(env.RL_ANON.peek({ key: failKey }))).success)
@@ -642,10 +876,26 @@ async function route(
         },
         { "retry-after": "60" },
       );
-    paid = await resolveKey(env, token, opts);
-    if (!paid) {
-      await metered(env.RL_ANON.limit({ key: failKey }));
-      return unauthorized(path);
+    if (isOAuthToken(token)) {
+      oauth =
+        path === "/mcp"
+          ? await resolveOAuthToken(env, token, {
+              fetchImpl: opts.fetchImpl,
+              now: opts.now,
+              defer: deferWith(opts),
+            })
+          : undefined;
+      if (!oauth) {
+        await metered(env.RL_ANON.limit({ key: failKey }));
+        return unauthorized(path, env, true);
+      }
+      if (oauth.tier === "paid") paid = oauth.paid;
+    } else {
+      paid = await resolveKey(env, token, opts);
+      if (!paid) {
+        await metered(env.RL_ANON.limit({ key: failKey }));
+        return unauthorized(path, env);
+      }
     }
   }
 
@@ -655,7 +905,8 @@ async function route(
     path === "/v1/billing/portal" ||
     path === "/v1/billing/rotate" ||
     path === "/v1/billing/keys" ||
-    path.startsWith("/v1/billing/keys/");
+    path.startsWith("/v1/billing/keys/") ||
+    path.startsWith("/v1/account/connections/");
   if (accountPath) {
     if (!paid)
       return withHeaders(
@@ -674,6 +925,13 @@ async function route(
 
   if (paid && !paid.active) return inactive(path, paid.record, site);
   const tier: Tier = paid ? paid.record.plan : "anonymous";
+  // The model-backed tools (doc_extract_lease, report_narrative): paid callers only.
+  const modelCaller: ModelCaller | undefined = paid
+    ? {
+        plan: paid.record.plan,
+        subject: meterSubject(paid.record, paid.hash),
+      }
+    : undefined;
   const perMinute = paid
     ? PLANS[paid.record.plan].requestsPerMinute
     : ANONYMOUS_REQUESTS_PER_MINUTE;
@@ -684,17 +942,23 @@ async function route(
   let restText: string | undefined;
   let registryRequest = false;
   let wanted = 0;
-  // Hosted account tools (with a key): answered here, never by the inner handler.
+  // Hosted tools, answered here, never by the inner handler: the account tools (with a key) and
+  // report_create (everyone).
   let accountCalls: AccountCall[] = [];
+  let reportCalls: AccountCall[] = [];
   let listIds: unknown[] = [];
   let mcpBatch = false;
   let onlyAccount = false;
   if (path === "/mcp" && request.method === "POST") {
-    mcpText = await readBody(request, MAX_BODY_BYTES);
+    // A paid caller may send a PDF to doc_extract_lease; that call is answered here, and what
+    // goes on to the inner handler must still fit its 1 MB.
+    const bodyLimit =
+      paid && modelEnabled(env) ? MODEL_MAX_BODY_BYTES : MAX_BODY_BYTES;
+    mcpText = await readBody(request, bodyLimit);
     if (mcpText === undefined)
       return errorResponse(path, 413, -32600, {
         error: "PayloadTooLarge",
-        message: "request body over 1 MB",
+        message: `request body over ${bodyLimit / 1024 / 1024} MB`,
       });
     try {
       mcpBody = JSON.parse(mcpText);
@@ -710,9 +974,16 @@ async function route(
     mcpBatch = Array.isArray(mcpBody);
     const items: unknown[] = Array.isArray(mcpBody) ? mcpBody : [mcpBody];
     registryRequest = items.some(callsRegistry);
-    wanted = items.filter(isMeteredCall).length;
-    if (paid && mcpBody !== undefined) {
-      accountCalls = items.filter(isAccountCall);
+    wanted = items
+      .filter(isMeteredCall)
+      .reduce((n, m) => n + callReserves(m), 0);
+    // Hosted tools answered here: account tools (with a key), the model-backed tools (any
+    // caller: without a key they answer PlanRequired, without the model ModelUnavailable) and
+    // report_create (any caller).
+    const hosted = (m: unknown) => (paid && isAccountCall(m)) || isModelCall(m);
+    if (mcpBody !== undefined) {
+      accountCalls = items.filter(hosted);
+      reportCalls = reportsEnabled(env) ? items.filter(isReportCall) : [];
       listIds = items
         .filter(
           (m) =>
@@ -720,25 +991,53 @@ async function route(
             (m as { id?: unknown }).id !== undefined,
         )
         .map((m) => (m as { id: unknown }).id);
-      if (accountCalls.length > 0) {
-        const kept = items.filter((m) => !isAccountCall(m));
+      if (accountCalls.length > 0 || reportCalls.length > 0) {
+        const kept = items.filter(
+          (m) => !hosted(m) && !(reportsEnabled(env) && isReportCall(m)),
+        );
         onlyAccount = kept.length === 0;
         mcpBody = mcpBatch ? kept : kept[0];
         mcpText = onlyAccount ? undefined : JSON.stringify(mcpBody);
       }
     }
+    if (mcpText !== undefined && mcpText.length > MAX_BODY_BYTES)
+      return errorResponse(path, 413, -32600, {
+        error: "PayloadTooLarge",
+        message:
+          "request body over 1 MB (only doc_extract_lease calls may be larger)",
+      });
   } else if (REGISTRY_TOOLS.has(path) && request.method === "POST") {
     registryRequest = true;
-    wanted = isMeteredRegistryTool(REGISTRY_TOOLS.get(path)) ? 1 : 0;
     restText = await readBody(request, MAX_BODY_BYTES);
     if (restText === undefined)
       return errorResponse(path, 413, -32600, {
         error: "PayloadTooLarge",
         message: "request body over 1 MB",
       });
+    const tool = REGISTRY_TOOLS.get(path)!;
+    wanted = isMeteredRegistryTool(tool)
+      ? lookupsReserved(tool, parseArgs(restText))
+      : 0;
   }
 
-  // Minute limit (per address or per key), then registry quota (per address or subscription).
+  // Minute limit (per address, key or connection), then registry quota (per address, free
+  // connection or subscription).
+  const freeSubject = async () => oauth?.subject ?? (await addressKey());
+  // Give back `n` lookups taken in the window that ends at `resetsAt`.
+  const giveBack = async (n: number, resetsAt: string) => {
+    try {
+      await env.METER.refund(
+        paid ? meterSubject(paid.record, paid.hash) : await freeSubject(),
+        paid ? "month" : "day",
+        n,
+        resetsAt,
+      );
+      return true;
+    } catch {
+      console.error(JSON.stringify({ msg: "quota refund failed" }));
+      return false;
+    }
+  };
   let hit: HitResult;
   if (!paid) {
     const quota: QuotaSpec | undefined = registryRequest
@@ -748,9 +1047,11 @@ async function route(
           n: wanted,
         }
       : undefined;
-    hit = await metered(env.METER.hit(await addressKey(), perMinute, quota));
+    hit = await metered(env.METER.hit(await freeSubject(), perMinute, quota));
   } else {
-    hit = await metered(env.METER.hit(`key:${keyId(paid.hash)}`, perMinute));
+    hit = await metered(
+      env.METER.hit(oauth?.subject ?? `key:${keyId(paid.hash)}`, perMinute),
+    );
     if (hit.ok && registryRequest)
       hit = await metered(
         env.METER.consume(meterSubject(paid.record, paid.hash), {
@@ -760,7 +1061,41 @@ async function route(
         }),
       );
   }
-  if (!hit.ok) return rateLimited(path, perMinute, tier);
+  if (!hit.ok) return rateLimited(path, perMinute, tier, oauth !== undefined);
+
+  // Reports: metered per month against reports_per_month (reports.ts).
+  const reportCaller: ReportCaller = {
+    tier,
+    subject: async () =>
+      paid
+        ? meterSubject(paid.record, paid.hash)
+        : (oauth?.subject ??
+          addressSubject(
+            clientAddress(request),
+            now(),
+            env.IP_HASH_SALT,
+            "month",
+          )),
+  };
+  const reportOpts = { apiBase, now };
+  if (path === "/v1/reports" && !reportsEnabled(env))
+    return withHeaders(
+      json(503, {
+        error: "ReportsUnavailable",
+        code: "ReportsUnavailable",
+        message: "Reports are not open on the hosted API yet.",
+        next: "https://factlot.com/#pricing",
+      }),
+      { ...corsHeaders(), "x-factlot-tier": tier },
+    );
+  if (path === "/v1/reports")
+    return withHeaders(
+      await reportsRest(request, env, reportCaller, {
+        ...reportOpts,
+        maxBodyBytes: MAX_BODY_BYTES,
+      }),
+      { ...corsHeaders(), "x-factlot-tier": tier },
+    );
 
   const headers: Record<string, string> = {
     "x-factlot-tier": tier,
@@ -770,15 +1105,35 @@ async function route(
   if (hit.quota) {
     Object.assign(headers, quotaHeaders(hit.quota));
     if (hit.granted < wanted) {
-      deniedError = quotaError(hit.quota, tier, now());
+      deniedError = quotaError(hit.quota, tier, now(), {
+        connection: oauth !== undefined,
+      });
       headers["retry-after"] = String(deniedError.retry_after_seconds);
     }
   }
-  if (deniedError && path !== "/mcp")
-    return withHeaders(json(429, deniedError), {
+  // The error of a refused call that reserves `needed` lookups when `left` were free for it.
+  const denial = (needed: number, left: number) =>
+    hit.quota && needed > 1
+      ? quotaError(
+          { ...hit.quota, remaining: left, used: hit.quota.limit - left },
+          tier,
+          now(),
+          { needed, connection: oauth !== undefined },
+        )
+      : deniedError!;
+  if (deniedError && path !== "/mcp") {
+    // A batch call that does not fit runs not at all: give back what was taken for it.
+    if (hit.granted > 0 && hit.quota) {
+      await giveBack(hit.granted, hit.quota.resets_at);
+      headers["x-factlot-registry-quota-remaining"] = String(
+        Math.min(hit.quota.limit, hit.quota.remaining + hit.granted),
+      );
+    }
+    return withHeaders(json(429, denial(wanted, hit.granted)), {
       ...corsHeaders(),
       ...headers,
     });
+  }
 
   // The inner handler runs open (no keys of its own): this layer already decided access.
   // It trusts forwarding headers (worker.ts sets trustProxy), so this layer replaces anything
@@ -807,16 +1162,44 @@ async function route(
   };
   const meterUsage = (status: number) =>
     env.USAGE?.writeDataPoint({
-      indexes: [paid ? keyId(paid.hash) : "anonymous"],
+      indexes: [
+        oauth ? `oauth-${oauth.tier}` : paid ? keyId(paid.hash) : "anonymous",
+      ],
       blobs: [tier, path.slice(0, 96), request.method],
       doubles: [status, 1],
     });
 
+  // REST routes of the model-backed tools, answered here (never by the inner handler).
+  if (MODEL_PATHS.has(path)) {
+    const res = await modelRestRoute(
+      request,
+      env,
+      path,
+      modelCaller,
+      opts.model,
+    );
+    meterUsage(res.status);
+    return withHeaders(res, { ...corsHeaders(), ...headers });
+  }
+
   let res: Response;
   if (onlyAccount) res = new Response(null, { status: 202 });
   else if (deniedError) {
-    res = await mcpWithDenials(mcpBody, hit.granted, deniedError, forward);
+    res = await mcpWithDenials(mcpBody, hit.granted, denial, forward);
   } else res = await forward(mcpText ?? restText);
+  // Reports and the model-backed tools are answered here, so their operations are added here.
+  if (
+    request.method === "GET" &&
+    res.status === 200 &&
+    (path === "/openapi.json" ||
+      (path === "/openapi-3.0.json" &&
+        url.searchParams.get("operations") === "all"))
+  )
+    res = await withHostedOperations(
+      res,
+      path === "/openapi.json" ? "3.1" : "3.0",
+      modelEnabled(env),
+    );
   meterUsage(res.status);
 
   // Only real answers are charged: a lookup that was refused as invalid, missed outside the
@@ -825,7 +1208,12 @@ async function route(
     const counted =
       path === "/mcp"
         ? await mcpCharges(res, mcpBody, hit.granted)
-        : await restCharge(res, REGISTRY_TOOLS.get(path) ?? "", restText);
+        : await restCharge(
+            res,
+            REGISTRY_TOOLS.get(path) ?? "",
+            restText,
+            hit.granted,
+          );
     res = counted.res;
     const unanswered = counted.free;
     // The subscription's daily usage (by tool and region) for /account and account_usage.
@@ -839,33 +1227,44 @@ async function route(
           })),
         ),
       );
-    if (unanswered > 0) {
-      try {
-        await env.METER.refund(
-          paid ? meterSubject(paid.record, paid.hash) : await addressKey(),
-          paid ? "month" : "day",
-          unanswered,
-          hit.quota.resets_at,
-        );
-        headers["x-factlot-registry-quota-remaining"] = String(
-          Math.min(hit.quota.limit, hit.quota.remaining + unanswered),
-        );
-      } catch {
-        console.error(JSON.stringify({ msg: "quota refund failed" }));
-      }
-    }
+    if (unanswered > 0 && (await giveBack(unanswered, hit.quota.resets_at)))
+      headers["x-factlot-registry-quota-remaining"] = String(
+        Math.min(hit.quota.limit, hit.quota.remaining + unanswered),
+      );
   }
-  if (paid && (accountCalls.length > 0 || listIds.length > 0))
+  if (accountCalls.length > 0 || reportCalls.length > 0 || listIds.length > 0) {
+    let modelCalls = 0;
     res = await withAccountTools(
       res,
-      await Promise.all(
-        accountCalls.map((m) =>
-          metered(answerAccountCall(env, paid.hash, paid.record, m)),
-        ),
-      ),
+      [
+        ...(await Promise.all(
+          accountCalls.map((m) =>
+            isModelCall(m)
+              ? answerModelCall(
+                  env,
+                  modelCaller,
+                  m,
+                  opts.model,
+                  ++modelCalls > MAX_MODEL_CALLS_PER_REQUEST,
+                )
+              : metered(answerAccountCall(env, paid!.hash, paid!.record, m)),
+          ),
+        )),
+        ...(await Promise.all(
+          reportCalls.map((m) =>
+            answerReportCall(env, reportCaller, m, reportOpts),
+          ),
+        )),
+      ],
       listIds,
       mcpBatch,
+      [
+        ...(paid ? ACCOUNT_TOOLS : []),
+        ...(reportsEnabled(env) ? [REPORT_TOOL] : []),
+        ...modelToolsFor(env, modelCaller),
+      ],
     );
+  }
   // Browsers read only the headers listed here: add this layer's to the inner handler's list.
   const expose = new Set(
     [
@@ -884,34 +1283,38 @@ async function route(
 }
 
 /**
- * Run an MCP request of which only the first `granted` metered registry calls fit the quota:
+ * Run an MCP request of which only the metered registry calls that `granted` covers fit the quota:
  * the rest are answered here as tool errors (isError, the same error object REST returns), the
  * remaining messages go to the inner handler, and the answers are merged.
  */
 async function mcpWithDenials(
   body: unknown,
   granted: number,
-  error: ReturnType<typeof quotaError>,
+  error: (needed: number, left: number) => ReturnType<typeof quotaError>,
   forward: (body?: string) => Promise<Response>,
 ): Promise<Response> {
   const batch = Array.isArray(body);
   const items: unknown[] = batch ? body : [body];
   const kept: unknown[] = [];
   const denied: { id: string | number }[] = [];
-  let budget = granted;
+  const admitted = admittedCalls(items, granted);
+  let left = granted;
+  for (const n of admitted.values()) left -= n;
   for (const item of items) {
-    if (!isMeteredCall(item)) kept.push(item);
-    else if (budget > 0) {
-      budget--;
-      kept.push(item);
-    } else denied.push(item);
+    if (!isMeteredCall(item) || admitted.has(item)) kept.push(item);
+    else denied.push(item);
   }
   const answers = denied.map((m) => ({
     jsonrpc: "2.0",
     id: m.id,
     result: {
       isError: true,
-      content: [{ type: "text", text: JSON.stringify(error, null, 2) }],
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(error(callReserves(m), left), null, 2),
+        },
+      ],
     },
   }));
   const answer = (body: unknown) => withHeaders(json(200, body), corsHeaders());
@@ -970,89 +1373,117 @@ function parseArgs(text: string | undefined): unknown {
   }
 }
 
-/** A REST registry answer: charged only for a 200 with a real answer. Returns a readable copy. */
+/**
+ * A REST registry answer: charged only for a 200 with a real answer (a batch: one per answered
+ * subject), and `granted` minus what is charged is given back. Returns a readable copy.
+ */
 async function restCharge(
   res: Response,
   tool: string,
   body: string | undefined,
+  granted: number,
 ): Promise<Charges> {
-  const charged = [{ tool, args: parseArgs(body) }];
-  if (res.status !== 200) return { res, free: 1, charged: [] };
+  const args = parseArgs(body);
+  const charged = (answer: unknown) =>
+    BATCH_REGISTRY_TOOLS.has(tool)
+      ? batchCharges(tool, args, answer)
+      : isChargedAnswer(answer)
+        ? [{ tool, args }]
+        : [];
+  const outcome = (res: Response, c: Charges["charged"]): Charges => ({
+    res,
+    free: Math.max(0, granted - c.length),
+    charged: c,
+  });
+  if (res.status !== 200) return outcome(res, []);
   const text = await res.text();
   const copy = new Response(text, res);
+  let answer: unknown;
   try {
-    return isChargedAnswer(JSON.parse(text))
-      ? { res: copy, free: 0, charged }
-      : { res: copy, free: 1, charged: [] };
+    answer = JSON.parse(text);
   } catch {
-    return { res: copy, free: 0, charged };
+    // Not JSON: an answer all the same.
+    return outcome(copy, Array(granted).fill({ tool, args }));
   }
+  return outcome(copy, charged(answer).slice(0, granted));
 }
 
 /**
- * Which of the first `granted` metered registry calls of an MCP request were real answers, and
- * how many were not: a JSON-RPC error (invalid params), a tool error (isError: bad input,
- * malformed URN, RegistryUnavailable), a coverage miss, or no answer at all. Reads the answer,
- * so it returns a fresh copy of the response.
+ * Which of the metered registry calls of an MCP request that `granted` covers were real answers:
+ * not a JSON-RPC error (invalid params), a tool error (isError: bad input, malformed URN,
+ * RegistryUnavailable), a coverage miss, or no answer at all; a batch call counts its answered
+ * subjects. Everything else of `granted` is given back. Reads the answer, so it returns a fresh
+ * copy of the response.
  */
 async function mcpCharges(
   res: Response,
   body: unknown,
   granted: number,
 ): Promise<Charges> {
-  const calls = (Array.isArray(body) ? body : [body])
-    .filter(isMeteredCall)
-    .slice(0, granted) as {
+  const admitted = admittedCalls(Array.isArray(body) ? body : [body], granted);
+  const calls = [...admitted.keys()] as {
     id: string | number;
     params: { name: string; arguments?: unknown };
   }[];
-  const all = calls.map((m) => ({
-    tool: m.params.name,
-    args: m.params.arguments,
-  }));
+  // Every reserved lookup of every admitted call, as charged when the answer cannot be read.
+  const all = calls.flatMap((m) => {
+    const tool = m.params.name;
+    const args = m.params.arguments;
+    const subjects = batchSubjects(tool, args);
+    return subjects
+      ? batchCharges(tool, args, {
+          results: subjects.map((s) => ({ id: (s as { id?: unknown })?.id })),
+        })
+      : [{ tool, args }];
+  });
+  const outcome = (res: Response, charged: Charges["charged"]): Charges => ({
+    res,
+    free: Math.max(0, granted - charged.length),
+    charged,
+  });
   if (
     res.status !== 200 ||
     !(res.headers.get("content-type") ?? "").includes("application/json")
   )
-    return res.status >= 400
-      ? { res, free: calls.length, charged: [] }
-      : { res, free: 0, charged: all };
+    return outcome(res, res.status >= 400 ? [] : all);
   const text = await res.text();
   const copy = new Response(text, res);
   let parsed: unknown;
   try {
     parsed = JSON.parse(text);
   } catch {
-    return { res: copy, free: 0, charged: all };
+    return outcome(copy, all);
   }
   const answers = new Map<unknown, unknown>();
   for (const m of Array.isArray(parsed) ? parsed : [parsed]) {
     const id = (m as { id?: unknown } | null)?.id;
     if (id !== undefined) answers.set(id, m);
   }
-  let free = 0;
   const charged: Charges["charged"] = [];
-  for (const [i, call] of calls.entries()) {
+  for (const call of calls) {
     const m = answers.get(call.id) as
       | {
           error?: unknown;
           result?: { isError?: boolean; content?: { text?: unknown }[] };
         }
       | undefined;
-    if (!m || m.error !== undefined || !m.result || m.result.isError === true) {
-      free++;
+    if (!m || m.error !== undefined || !m.result || m.result.isError === true)
       continue;
-    }
-    let real = true;
+    const tool = call.params.name;
+    const args = call.params.arguments;
+    let answer: unknown;
     try {
-      real = isChargedAnswer(JSON.parse(String(m.result.content?.[0]?.text)));
+      answer = JSON.parse(String(m.result.content?.[0]?.text));
     } catch {
       // Not JSON: an answer all the same.
+      charged.push({ tool, args });
+      continue;
     }
-    if (real) charged.push(all[i]!);
-    else free++;
+    if (BATCH_REGISTRY_TOOLS.has(tool))
+      charged.push(...batchCharges(tool, args, answer));
+    else if (isChargedAnswer(answer)) charged.push({ tool, args });
   }
-  return { res: copy, free, charged };
+  return outcome(copy, charged);
 }
 
 type AccountCall = {
@@ -1076,14 +1507,15 @@ function isAccountCall(item: unknown): item is AccountCall {
 }
 
 /**
- * Merge the account tools into an MCP answer: their calls' answers, and their definitions at the
- * end of a tools/list result (the last page, when the list is paged).
+ * Merge the hosted tools into an MCP answer: their calls' answers, and the definitions in
+ * `listed` at the end of a tools/list result (the last page, when the list is paged).
  */
 async function withAccountTools(
   res: Response,
   answers: unknown[],
   listIds: unknown[],
   batch: boolean,
+  listed: unknown[],
 ): Promise<Response> {
   const answer = (body: unknown) => withHeaders(json(200, body), corsHeaders());
   if (res.status === 202 && answers.length > 0)
@@ -1109,7 +1541,7 @@ async function withAccountTools(
       Array.isArray(m.result?.tools) &&
       !m.result.nextCursor
     )
-      m.result.tools.push(...ACCOUNT_TOOLS);
+      m.result.tools.push(...listed);
   const all = [...inner, ...answers];
   return answer(batch ? all : all[0]);
 }
@@ -1137,7 +1569,27 @@ async function accountApi(
   if (path === "/v1/account") {
     if (request.method !== "GET" && request.method !== "POST")
       return wrongMethod("GET");
-    return json(200, await metered(accountSummary(env, hash, record)));
+    const [summary, connections] = await Promise.all([
+      metered(accountSummary(env, hash, record)),
+      listConnections(env, record.subscription),
+    ]);
+    return json(200, { ...summary, connections });
+  }
+  // DELETE /v1/account/connections/{id}: disconnect an app signed in with OAuth.
+  if (path.startsWith("/v1/account/connections/")) {
+    if (request.method !== "DELETE") return wrongMethod("DELETE");
+    const id = path.slice("/v1/account/connections/".length);
+    if (!(await disconnect(env, record.subscription, id)))
+      return apiError(
+        404,
+        "NotFound",
+        "no connected app with that id on this subscription (ids are in GET /v1/account, connections)",
+        "GET /v1/account",
+      );
+    return json(200, {
+      disconnected: id,
+      note: "The app's access ends at once (allow up to a minute everywhere); it can connect again by signing in.",
+    });
   }
   if (path === "/v1/account/usage") {
     if (request.method !== "GET") return wrongMethod("GET");
@@ -1292,16 +1744,18 @@ async function accountRoute(
       /\/$/,
       "",
     );
-    const [summary, receipts, usage, regions] = await Promise.all([
+    const [summary, receipts, usage, regions, connections] = await Promise.all([
       metered(accountSummary(env, h, r)),
       receiptEmail(billingDeps(env, opts.fetchImpl, now), r.customer),
       env.METER.usage(meterSubject(r, h), 30).catch(() => undefined),
       hostedRegions(api, apiBase, now()),
+      listConnections(env, r.subscription).catch(() => undefined),
     ]);
     return accountPage(summary, k, {
       receipts,
       usage,
       regions,
+      connections,
       api: apiBase,
       ...o,
     });
@@ -1327,6 +1781,15 @@ async function accountRoute(
         notice: `Stripe did not answer. Try again in a minute, or email ${CONTACT}.`,
       });
     }
+  }
+  if (action === "disconnect") {
+    const id = form.get("id") ?? "";
+    const ok = await disconnect(env, record.subscription, id);
+    return show(key, hash, record, {
+      notice: ok
+        ? "The app is disconnected (allow up to a minute everywhere). It can connect again by signing in."
+        : "No connected app with that id.",
+    });
   }
   if (action === "rotate" || action === "mint" || action === "revoke") {
     if (!paid.active)

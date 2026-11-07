@@ -1,0 +1,344 @@
+<p class="lede">
+  How FactLot's hosted service is run, what it keeps and does not keep, how keys
+  and secrets are handled, and what is not in place yet. Everything here can be
+  checked in the open-source repository or on the live service; where a claim
+  rests on a GitHub setting or on a live response instead, the text says so.
+</p>
+<p class="small">
+  Trust pages: <a href="/status/">Status</a> · Security ·
+  <a href="/sla/">Service levels</a> · <a href="/assurance/">Assurance</a>.
+  Written 7 November 2026. The same text is in the repository as
+  <a href="{{REPO}}/blob/main/docs/security.md">docs/security.md</a>.
+</p>
+
+<h2 id="summary">In short</h2>
+<ul class="plain">
+  <li>
+    The hosted service runs on Cloudflare Workers. A sole proprietor operates
+    it. There is no SOC 2 report yet; for confidential documents, run FactLot
+    yourself.
+  </li>
+  <li>
+    It stores no request bodies, tool inputs or outputs, and no documents. It
+    stores API keys only as hashes, and usage metadata without IP addresses.
+  </li>
+  <li>
+    The hosted API runs no AI model and sends your tool inputs to no model
+    provider and no other third party.
+  </li>
+  <li>
+    All code that runs the service is in the public repository. You can read it,
+    and run the same code on your own machine.
+  </li>
+  <li>
+    Report a vulnerability by email, privately.
+    <a href="#disclosure">Details below.</a>
+  </li>
+</ul>
+
+<h2 id="hosting">Where it runs</h2>
+<ul class="plain">
+  <li>
+    <strong><code>factlot-api</code> Worker (Cloudflare Workers).</strong>
+    Serves factlot.com and api.factlot.com: the pages, REST, OpenAPI, the MCP
+    endpoint, billing and account routes. Holds nothing between requests except
+    what the stores below keep. Source:
+    <a href="{{REPO}}/tree/main/deploy/cloudflare">deploy/cloudflare</a>.
+  </li>
+  <li>
+    <strong><code>factlot-registry</code> Worker.</strong> Answers registry
+    lookups from a prebuilt data pack of public-record registry data (see
+    <a href="#public-records">public records</a>). It has no public route, no
+    workers.dev address and no preview address: only the API Worker can call it,
+    through a service binding. Source:
+    <a href="{{REPO}}/tree/main/deploy/registry">deploy/registry</a>.
+  </li>
+  <li>
+    <strong>Cloudflare KV.</strong> Key records for paid plans: a SHA-256 hash
+    of each key, plan, status, Stripe customer and subscription IDs, and dates.
+    Never a key.
+  </li>
+  <li>
+    <strong>Cloudflare Durable Objects.</strong> Per-minute rate limits and
+    registry lookup quotas: counters for the current window only, keyed by key
+    ID or by a hash of the IP address.
+  </li>
+  <li>
+    <strong>Cloudflare Analytics Engine.</strong> Usage records for capacity
+    planning: time, key ID, plan, path, method and status. No IP address. Kept
+    90 days.
+  </li>
+</ul>
+<p>
+  Cloudflare is a United States company and serves requests from its global
+  network. FactLot sets no data-location restriction on any of these stores. The
+  <a href="/privacy">privacy notice</a> lists every record, how long it is kept,
+  and the subprocessors (Cloudflare, Stripe, GitHub). Stripe handles card data;
+  FactLot never sees a card number.
+</p>
+
+<h2 id="stored">What is stored, and what is not</h2>
+<h3>Not stored or logged</h3>
+<ul class="plain">
+  <li>Request bodies, tool inputs and outputs</li>
+  <li>Documents and their text, quotes and extracted facts</li>
+  <li>Request headers (the key is read to authorise, then dropped)</li>
+  <li>IP addresses in usage records</li>
+  <li>API keys in readable form</li>
+  <li>Cookies, tracking, analytics on factlot.com</li>
+</ul>
+<h3>Stored</h3>
+<ul class="plain">
+  <li>Usage metadata: time, key ID, plan, path, method, status (90 days)</li>
+  <li>
+    Key hashes and subscription records for paid plans, until the subscription
+    ends and then for up to 12 months
+  </li>
+  <li>Rate-limit and quota counters, deleted when their window ends</li>
+  <li>Error names (never messages), as long as Cloudflare keeps logs</li>
+</ul>
+<p>
+  Two pieces of code enforce this. The server's request log has a fixed list of
+  fields (<a href="{{REPO}}/blob/main/packages/server/src/index.ts"
+    ><code>REQUEST_LOG_FIELDS</code></a
+  >), and a test fails if a request body, a tool argument or a bearer token
+  reaches a log line. The Worker's error handler logs the error's name only.
+</p>
+<p>
+  <strong>No model on the hosted API.</strong> The hosted tools are
+  deterministic code. None calls an AI model, and none sends your input to a
+  model provider. The only model-backed feature in the project, lease extraction
+  in <code>factlot.ingest</code>, runs only on your own machine and only when
+  you pass it a model; it is not available on the hosted service. See the
+  <a href="{{REPO}}/blob/main/docs/customer-documents.md"
+    >customer documents policy</a
+  >.
+</p>
+
+<h2 id="transport">Transport</h2>
+<ul class="plain">
+  <li>
+    Both factlot.com and api.factlot.com are served over TLS by Cloudflare. A
+    request to the plain <code>http://</code> address is answered with a
+    redirect to <code>https://</code> (checked on the live service on 7 November
+    2026).
+  </li>
+  <li>
+    TLS ends at Cloudflare. As our host, Cloudflare handles request content in
+    memory while it answers the request.
+  </li>
+  <li>
+    API responses carry
+    <code>content-security-policy: default-src 'none'</code>,
+    <code>x-content-type-options: nosniff</code>,
+    <code>referrer-policy: no-referrer</code> and
+    <code>x-frame-options: DENY</code>. They allow cross-origin calls from any
+    site (<code>access-control-allow-origin: *</code>) because callers
+    authenticate with a bearer key in a header, not with cookies.
+  </li>
+  <li>
+    The API refuses request bodies over 1 MB and MCP batches over 20 messages,
+    and validates every tool input against its published schema before running
+    it.
+  </li>
+</ul>
+
+<h2 id="keys">API keys</h2>
+<ul class="plain">
+  <li>
+    A paid key is <code>fl_live_</code> followed by 32 random bytes (256 bits).
+    It is shown once, when it is created. Only its SHA-256 hash is stored, so
+    FactLot cannot show a key again; a lost key is replaced, not recovered.
+  </li>
+  <li>
+    The "key ID" in usage records and responses is the first 16 characters of
+    that hash. It identifies a key without revealing it.
+  </li>
+  <li>
+    You can replace a key at any time (<code>POST /v1/billing/rotate</code>);
+    the old key stops working at once. Team plans can add and revoke keys (up to
+    five).
+  </li>
+  <li>
+    Failed key attempts are rate limited per address before the key store is
+    read. Keyless callers are limited per IP address (per /64 for IPv6).
+  </li>
+  <li>
+    Stripe webhooks are accepted only with a valid signature, and a refunded or
+    disputed payment stops the subscription's keys.
+  </li>
+  <li>
+    Please never send a key in an email or a public issue. If one leaks, rotate
+    it, then tell us.
+  </li>
+</ul>
+
+<h2 id="secrets">Secrets management</h2>
+<ul class="plain">
+  <li>
+    The Stripe secret key, the Stripe webhook secret and the other signing and
+    hashing secrets are Cloudflare Worker secrets, set by the maintainer with
+    <code>wrangler secret put</code>. They are not in the repository; the Worker
+    configuration only names them (<a
+      href="{{REPO}}/blob/main/deploy/cloudflare/wrangler.jsonc"
+      >wrangler.jsonc</a
+    >).
+  </li>
+  <li>
+    The repository's GitHub secret scanning and push protection are on (a
+    repository setting, checked on 7 November 2026).
+  </li>
+  <li>
+    The CI workflow runs with read-only repository permission and does not keep
+    the checkout token on disk. The weekly data collector gives its one write
+    token only to the steps that publish its release, never to the steps that
+    download and parse publishers' files.
+  </li>
+</ul>
+
+<h2 id="dependencies">Dependencies and supply chain</h2>
+<ul class="plain">
+  <li>
+    The lockfile is committed and CI installs with <code>npm ci</code>. The
+    <code>@factlot/*</code> packages depend on each other at exact versions.
+  </li>
+  <li>
+    The Python SDK has no runtime dependencies. Its two optional extras are
+    <code>pypdf</code> (reading PDFs) and <code>cryptography</code> (signing).
+    The TypeScript packages depend on <code>zod</code> and the official MCP SDK.
+  </li>
+  <li>
+    Every GitHub Action in the workflows is pinned to a full commit SHA, with
+    the version in a comment.
+  </li>
+  <li>
+    <a href="{{REPO}}/blob/main/.github/dependabot.yml">Dependabot</a> proposes
+    updates weekly for npm, Python, GitHub Actions and the Docker base image.
+    For npm and Actions it waits seven days after a release before proposing it,
+    so a hijacked release is usually pulled before it reaches us.
+  </li>
+  <li>
+    <code>main</code> requires the three CI checks to pass before a change
+    merges, and force pushes and deletions of <code>main</code> are blocked (a
+    repository setting, checked on 7 November 2026). The maintainer is the sole
+    code owner and can override these rules.
+  </li>
+  <li>
+    Releases are published as GitHub release assets. The release workflow can
+    publish to npm with provenance and to PyPI with trusted publishing; the
+    packages are not on those registries yet.
+  </li>
+</ul>
+
+<h2 id="open-source">What you can review</h2>
+<p>
+  The Worker that serves the hosted API, its billing and rate-limit code, the
+  registry Worker, the calculators, the collector and every workflow are in the
+  <a href="{{REPO}}">public repository</a> under Apache-2.0 and MIT. What is not
+  public: the registry data pack the registry Worker serves, the maintainers'
+  private release drafts of raw source files (they name natural persons; see
+  below), and the secrets. The repository does not publish a reproducible-build
+  proof that the deployed Worker equals a given commit.
+</p>
+
+<h2 id="disclosure">Responsible disclosure</h2>
+<p>
+  Report vulnerabilities privately, never in a public issue, pull request or
+  discussion. The policy is in
+  <a href="{{REPO}}/blob/main/SECURITY.md">SECURITY.md</a>.
+</p>
+<ul class="plain">
+  <li>
+    Email
+    <a href="mailto:contact@factlot.com?subject=SECURITY"
+      >contact@factlot.com</a
+    >
+    with "SECURITY" at the start of the subject line.
+  </li>
+  <li>
+    Include the affected package and version (or commit), the steps or input
+    that reproduce the problem, and what you expected.
+  </li>
+  <li>
+    We aim to acknowledge a report within three business days, keep you informed
+    while we fix it, and credit you in the release notes unless you ask us not
+    to. Please give us a reasonable time to fix a problem before you disclose
+    it.
+  </li>
+  <li>
+    In scope: the hosted service, the MCP and REST servers, the Python SDK and
+    collector, the Docker image and the workflows. Especially welcome: a
+    calculator returning a wrong result without a warning, ID collisions, input
+    that causes unbounded CPU or memory use or leaks internal detail, ways
+    around key authentication or limits, and anything that lets document text
+    reach a log.
+  </li>
+</ul>
+<p>
+  GitHub's private vulnerability reporting is on for the repository: you can
+  also report through the repository's Security tab ("Report a vulnerability").
+</p>
+
+<h2 id="not-yet">What is not in place yet</h2>
+<ul class="plain">
+  <li>
+    <strong>No SOC 2 report</strong>, no ISO 27001 certificate, and no published
+    independent penetration test. FactLot is run by one person; there is no
+    separation of duties inside the company.
+  </li>
+  <li>
+    <strong>What that means for confidential documents.</strong> The hosted
+    document tools check text in memory and keep nothing, and the code is open
+    for you to confirm that. But a security review that requires an audited
+    vendor cannot be satisfied by this page. For leases and other documents that
+    must not leave your network, self-host: the same tools run on your machine
+    and make no network calls. Please do not email confidential documents to us.
+  </li>
+  <li>
+    The API does not send a <code>Strict-Transport-Security</code> header, and
+    the static site sends no <code>Content-Security-Policy</code> header (it
+    runs no scripts). The plain-HTTP redirect above is what protects first
+    visits.
+  </li>
+  <li>
+    Enterprise customers can ask about a signed data-processing agreement and
+    private deployment (<a href="mailto:contact@factlot.com"
+      >contact@factlot.com</a
+    >); neither is published terms today.
+  </li>
+</ul>
+
+<h2 id="public-records">Public records and natural persons</h2>
+<p>
+  The registry holds commercial, industrial and multifamily parcels and the
+  organisations that own them, built only from public records obtained under the
+  <a href="{{REPO}}/blob/main/docs/registry/data-policy.md"
+    >registry data policy</a
+  >.
+</p>
+<ul class="plain">
+  <li>
+    When the owner of record is a natural person, the registry keeps the parcel
+    but drops the person's name, mailing address and any ownership link. It is
+    built to keep organisations and to exclude natural persons' names.
+  </li>
+  <li>
+    Owners that a source withheld (for example under Texas Tax Code §25.025) are
+    never recovered, inferred or cross-referenced.
+  </li>
+  <li>
+    The collector identifies itself, obeys robots.txt, rate limits itself and
+    never bypasses access controls. Sources whose terms are unclear, or do not
+    allow us to serve their data, are not served.
+  </li>
+  <li>
+    Every fact cites its source file and record and carries the source's licence
+    and AI-use rights. The raw source files stay in private drafts, not in the
+    public repository.
+  </li>
+  <li>
+    If a record names you as a person, or is wrong, email
+    <a href="mailto:contact@factlot.com">contact@factlot.com</a> and we will
+    remove or correct it. Requests about natural persons are honoured promptly.
+  </li>
+</ul>

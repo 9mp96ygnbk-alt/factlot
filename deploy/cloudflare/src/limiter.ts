@@ -17,12 +17,22 @@
  *   pruned by the alarm.
  * - Last use (keys only): the minute a key last made a request, written at most once a minute and
  *   deleted 90 days after the key's last use.
+ * - Model-backed tool allowances (subscriptions only): doc_extract_lease pages and report_narrative
+ *   calls per calendar month (UTC), each in its own object (`meter:ingest_pages:sub:<id>`,
+ *   `meter:narratives:sub:<id>`, see `modelSubject`) with the same window, refund and alarm rules
+ *   as registry lookups.
+ * - Model-call gate (subscriptions only): calls in flight (`slots`, in memory, each released when
+ *   the call ends and expiring on its own after the call's deadline, so a lost release never
+ *   locks a subscription out), calls started per minute, and failed calls per UTC day, each
+ *   in its own object (`meter:model_inflight:sub:<id>`, `meter:model_calls:sub:<id>`,
+ *   `meter:model_failures:sub:<id>`).
  *
  * The plain per-minute limiter (`objectLimiter`) uses the same class without touching storage.
  */
 import type {
   HitResult,
   MeterService,
+  QuotaCounter,
   QuotaKind,
   QuotaSpec,
   QuotaState,
@@ -101,6 +111,19 @@ export function quotaWindow(
     window: `month:${d.toISOString().slice(0, 7)}`,
     resetsAt: Date.UTC(y, m + 1, 1),
   };
+}
+
+/**
+ * The stored name of a counter's window: `month:2026-11` for registry lookups, and the same
+ * window prefixed `reports:` for the reports counter, so the two never share a count.
+ */
+export function counterWindow(
+  kind: QuotaKind,
+  now: number,
+  counter: QuotaCounter = "lookups",
+): { window: string; resetsAt: number } {
+  const w = quotaWindow(kind, now);
+  return counter === "reports" ? { ...w, window: `reports:${w.window}` } : w;
 }
 
 /** Durable counters and claims for one object. Synchronous, so a read-modify-write is atomic. */
@@ -278,6 +301,37 @@ export class Meter {
     return this.storeInstance;
   }
 
+  /** Calls in flight: slot id -> when it expires on its own. Memory only (eviction frees them). */
+  private readonly slots = new Map<string, number>();
+
+  /**
+   * Take one of `limit` slots for `ttlMs` (a call in flight). When none is free, `retry_after`
+   * is the seconds until the oldest slot expires at the latest.
+   */
+  acquireSlot(
+    limit: number,
+    ttlMs: number,
+  ): { ok: boolean; id?: string; retry_after: number } {
+    const now = this.now();
+    for (const [id, until] of this.slots)
+      if (until <= now) this.slots.delete(id);
+    if (this.slots.size >= limit) {
+      const first = Math.min(...this.slots.values());
+      return {
+        ok: false,
+        retry_after: Math.max(1, Math.ceil((first - now) / 1000)),
+      };
+    }
+    const id = crypto.randomUUID();
+    this.slots.set(id, now + ttlMs);
+    return { ok: true, id, retry_after: 0 };
+  }
+
+  /** Free a slot taken by `acquireSlot` (unknown or expired ids are ignored). */
+  releaseSlot(id: string): void {
+    this.slots.delete(id);
+  }
+
   /** Plain fixed-window limiter (a minute unless `periodMs` says otherwise); `peek` counts nothing. */
   minuteOnly(limit: number, peek: boolean, periodMs = 60_000): boolean {
     return peek
@@ -298,7 +352,7 @@ export class Meter {
     const ok =
       perMinute === null ? true : this.minute.hit(perMinute, 60_000, now);
     if (!quota) return { ok, granted: 0 };
-    const { window, resetsAt } = quotaWindow(quota.kind, now);
+    const { window, resetsAt } = counterWindow(quota.kind, now, quota.counter);
     this.store.pruneBefore(window);
     const used = this.store.getCount(window);
     const granted = ok ? Math.max(0, Math.min(quota.n, quota.limit - used)) : 0;
@@ -317,8 +371,13 @@ export class Meter {
    * Give back `n` lookups taken in the window that ends at `resetsAt` (the registry could not
    * answer). Nothing happens once that window has ended.
    */
-  refund(kind: QuotaKind, n: number, resetsAt: string): QuotaState | undefined {
-    const { window, resetsAt: end } = quotaWindow(kind, this.now());
+  refund(
+    kind: QuotaKind,
+    n: number,
+    resetsAt: string,
+    counter?: QuotaCounter,
+  ): QuotaState | undefined {
+    const { window, resetsAt: end } = counterWindow(kind, this.now(), counter);
     if (new Date(end).toISOString() !== resetsAt || n <= 0) return undefined;
     const used = Math.max(0, this.store.getCount(window) - n);
     this.store.setCount(window, used);
@@ -410,6 +469,7 @@ export class Meter {
     const now = this.now();
     this.store.pruneBefore(quotaWindow("day", now).window);
     this.store.pruneBefore(quotaWindow("month", now).window);
+    this.store.pruneBefore(counterWindow("month", now, "reports").window);
     this.store.clearClaims();
     this.store.pruneUsageBefore(
       new Date(now - (USAGE_RETENTION_DAYS - 1) * DAY_MS)
@@ -438,8 +498,12 @@ export class Meter {
   }
 
   /** The current window's usage, counting nothing; `window_ends` as for `hit`. */
-  quota(kind: QuotaKind, limit: number): QuotaState & { window_ends: number } {
-    const { window, resetsAt } = quotaWindow(kind, this.now());
+  quota(
+    kind: QuotaKind,
+    limit: number,
+    counter?: QuotaCounter,
+  ): QuotaState & { window_ends: number } {
+    const { window, resetsAt } = counterWindow(kind, this.now(), counter);
     return {
       ...quotaState(this.store.getCount(window), limit, resetsAt),
       window_ends: resetsAt,
@@ -530,8 +594,16 @@ export class RateLimiterObject {
       return jsonResponse({ last_used_at: this.meter.lastUsed() ?? null });
     }
     if (url.pathname === "/quota") {
-      const b = (await request.json()) as { kind: QuotaKind; limit: number };
-      const { window_ends, ...state } = this.meter.quota(b.kind, b.limit);
+      const b = (await request.json()) as {
+        kind: QuotaKind;
+        limit: number;
+        counter?: QuotaCounter;
+      };
+      const { window_ends, ...state } = this.meter.quota(
+        b.kind,
+        b.limit,
+        b.counter,
+      );
       await this.alarmBy(window_ends);
       return jsonResponse(state);
     }
@@ -540,10 +612,27 @@ export class RateLimiterObject {
         kind: QuotaKind;
         n: number;
         resets_at: string;
+        counter?: QuotaCounter;
       };
       return jsonResponse({
-        refunded: this.meter.refund(b.kind, b.n, b.resets_at) !== undefined,
+        refunded:
+          this.meter.refund(b.kind, b.n, b.resets_at, b.counter) !== undefined,
       });
+    }
+    if (url.pathname === "/slot") {
+      const b = (await request.json()) as
+        | { op: "acquire"; limit: number; ttl_ms: number }
+        | { op: "release"; id: string };
+      if (b.op === "release") {
+        this.meter.releaseSlot(String(b.id));
+        return jsonResponse({ released: true });
+      }
+      return jsonResponse(
+        this.meter.acquireSlot(
+          Math.max(0, Math.floor(Number(b.limit))),
+          Math.min(10 * 60_000, Math.max(1_000, Number(b.ttl_ms))),
+        ),
+      );
     }
     if (url.pathname === "/claim") {
       const b = (await request.json()) as { name: string; value: string };
@@ -602,15 +691,47 @@ export function objectLimiter(
   };
 }
 
+/** Calls in flight per subject: at most `limit` at once, each slot expiring after `ttlMs`. */
+export interface ModelGate {
+  acquireSlot(
+    subject: string,
+    limit: number,
+    ttlMs: number,
+  ): Promise<{ ok: boolean; id?: string; retry_after: number }>;
+  releaseSlot(subject: string, id: string): Promise<void>;
+}
+
+/** The meter's call-in-flight gate, when it has one (objectMeter does). */
+export function modelGate(meter: MeterService): ModelGate | undefined {
+  const g = meter as MeterService & Partial<ModelGate>;
+  return typeof g.acquireSlot === "function" &&
+    typeof g.releaseSlot === "function"
+    ? (g as MeterService & ModelGate)
+    : undefined;
+}
+
 /** The caller meter (minute limit + registry quota) and claims, backed by the LIMITER namespace. */
-export function objectMeter(ns: DurableObjectNamespaceLike): MeterService {
+export function objectMeter(
+  ns: DurableObjectNamespaceLike,
+): MeterService & ModelGate {
   return {
+    acquireSlot: (subject, limit, ttlMs) =>
+      call(ns, `meter:${subject}`, "/slot", {
+        op: "acquire",
+        limit,
+        ttl_ms: ttlMs,
+      }),
+    releaseSlot: async (subject, id) => {
+      await call(ns, `meter:${subject}`, "/slot", { op: "release", id });
+    },
     hit: (subject, perMinute, quota) =>
       call<HitResult>(ns, `meter:${subject}`, "/hit", {
         perMinute,
         quota,
-        // A key's last use is account data; an address's never is.
-        ...(subject.startsWith("key:") ? { touch: true } : {}),
+        // A key's or a paid connection's last use is account data; an address's never is.
+        ...(subject.startsWith("key:") || subject.startsWith("oauth:")
+          ? { touch: true }
+          : {}),
       }),
     record: async (subject, items) => {
       await call(ns, `meter:${subject}`, "/usage/record", { items });
@@ -631,11 +752,20 @@ export function objectMeter(ns: DurableObjectNamespaceLike): MeterService {
         perMinute: null,
         quota,
       }),
-    refund: async (subject, kind, n, resets_at) => {
-      await call(ns, `meter:${subject}`, "/refund", { kind, n, resets_at });
+    refund: async (subject, kind, n, resets_at, counter) => {
+      await call(ns, `meter:${subject}`, "/refund", {
+        kind,
+        n,
+        resets_at,
+        ...(counter ? { counter } : {}),
+      });
     },
-    quota: (subject, kind, limit) =>
-      call<QuotaState>(ns, `meter:${subject}`, "/quota", { kind, limit }),
+    quota: (subject, kind, limit, counter) =>
+      call<QuotaState>(ns, `meter:${subject}`, "/quota", {
+        kind,
+        limit,
+        ...(counter ? { counter } : {}),
+      }),
     claim: async (name, value) =>
       (
         await call<{ value: string }>(ns, `claim:${name}`, "/claim", {
@@ -644,6 +774,25 @@ export function objectMeter(ns: DurableObjectNamespaceLike): MeterService {
         })
       ).value,
   };
+}
+
+/**
+ * The counters of the model-backed tools, kept apart from registry lookups: the monthly
+ * allowances, and the call gate (in flight, started per minute, failed per UTC day).
+ */
+export type ModelCounter =
+  | "ingest_pages"
+  | "narratives"
+  | "model_inflight"
+  | "model_calls"
+  | "model_failures";
+
+/**
+ * The meter subject of a model-backed tool's monthly allowance for `subject` (`sub:<id>`): its
+ * own Durable Object, so the count never mixes with registry lookups and uses the same windows.
+ */
+export function modelSubject(counter: ModelCounter, subject: string): string {
+  return `${counter}:${subject}`;
 }
 
 /**
@@ -698,6 +847,12 @@ export async function addressSubject(
   address: string,
   now: number = Date.now(),
   secret?: string,
+  /**
+   * "day" (the default) for the daily lookup quota. "month" for a monthly quota per address (the
+   * free reports): the hash is salted with the month instead of the day, so it stays the same
+   * all month; its subject is `ipm:<hash>`, a separate meter.
+   */
+  period: QuotaKind = "day",
 ): Promise<string> {
   if (!secret && !warnedNoSalt) {
     warnedNoSalt = true;
@@ -707,15 +862,15 @@ export async function addressSubject(
       }),
     );
   }
-  const day = quotaWindow("day", now).window;
+  const window = quotaWindow(period, now).window;
   const digest = await crypto.subtle.digest(
     "SHA-256",
     new TextEncoder().encode(
-      `factlot-meter|${secret ?? ""}|${day}|${ipBucket(address)}`,
+      `factlot-meter|${secret ?? ""}|${window}|${ipBucket(address)}`,
     ),
   );
   const hex = [...new Uint8Array(digest)]
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
-  return `ip:${hex.slice(0, 32)}`;
+  return `${period === "day" ? "ip" : "ipm"}:${hex.slice(0, 32)}`;
 }

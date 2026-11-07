@@ -21,11 +21,16 @@ export interface RateLimit {
 
 export type QuotaKind = "day" | "month";
 
+/** Which counter a quota uses: registry lookups (the default) or reports. */
+export type QuotaCounter = "lookups" | "reports";
+
 export interface QuotaSpec {
   kind: QuotaKind;
   limit: number;
-  /** Lookups this request wants. */
+  /** Lookups (or reports) this request wants. */
   n: number;
+  /** Default "lookups". */
+  counter?: QuotaCounter;
 }
 
 export interface QuotaState {
@@ -57,13 +62,19 @@ export interface MeterService {
   ): Promise<HitResult>;
   /** Registry lookups only (no minute limit), for `sub:<subscription>`. */
   consume(subject: string, quota: QuotaSpec): Promise<HitResult>;
-  quota(subject: string, kind: QuotaKind, limit: number): Promise<QuotaState>;
+  quota(
+    subject: string,
+    kind: QuotaKind,
+    limit: number,
+    counter?: QuotaCounter,
+  ): Promise<QuotaState>;
   /** Give back lookups the registry could not answer (same window only). */
   refund(
     subject: string,
     kind: QuotaKind,
     n: number,
     resets_at: string,
+    counter?: QuotaCounter,
   ): Promise<void>;
   /** First writer wins, strongly consistent: returns the value stored under `name`. */
   claim(name: string, value: string): Promise<string>;
@@ -159,4 +170,12 @@ export interface Env {
   EMAIL?: SendEmail;
   /** Secret: signs account-recovery links. Without it email recovery stays off. */
   RECOVERY_SIGNING_SECRET?: string;
+  /**
+   * Secret, optional: Anthropic API key for the two model-backed tools (doc_extract_lease,
+   * report_narrative). Without it they are not listed and their routes answer 503
+   * ModelUnavailable; every other tool runs without a model either way.
+   */
+  ANTHROPIC_API_KEY?: string;
+  /** "true" opens report_create and POST /v1/reports; anything else keeps them closed (downloads still serve). */
+  REPORTS_ENABLED?: string;
 }

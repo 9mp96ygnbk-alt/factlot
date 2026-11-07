@@ -236,6 +236,28 @@ function getCalls(): Call[] {
     out.push({ tool: "registry_resolve_parcel", args });
     out.push({ tool: "registry_tx_equity_candidates", args });
   }
+  // Batches: misses and input errors only (answered per subject), and one with every subject.
+  out.push({
+    tool: "registry_tx_equity_candidates_batch",
+    args: {
+      subjects: [
+        { id: "a", state_fips: "48", county_fips: "999", apn: "nope-1" },
+        { id: "b", county_fips: "439", apn: "1" },
+        { id: "c", urn: "fl:parcel:us-04021:501-01-001" },
+        { id: "d", urn: "fl:entity:us-tx:0000000001" },
+        { id: "e", county_fips: "999" },
+      ],
+      area_band: 0.2,
+    },
+  });
+  out.push({
+    tool: "registry_tx_equity_candidates_batch",
+    args: {
+      subjects: rows("SELECT urn FROM subjects WHERE kind = 'parcel'")
+        .map((r, n) => ({ id: `s${n}`, urn: String(r.urn) }))
+        .slice(0, 50),
+    },
+  });
   return out;
 }
 

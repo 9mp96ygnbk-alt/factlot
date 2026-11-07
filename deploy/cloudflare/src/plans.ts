@@ -73,6 +73,8 @@ export function isMeteredRegistryTool(
 export const QUOTA_RULES = {
   counted:
     "A lookup is one answered call to a registry_* tool: a record, a resolved ID, owners, or a search that ran inside loaded coverage (even with no results). Free: registry_coverage, input errors, misses outside loaded coverage (county, state, entity registry or ID system not loaded) and calls the registry could not answer.",
+  batch:
+    "registry_tx_equity_candidates_batch counts one lookup per answered subject: it needs one free lookup per subject to run (a batch larger than what remains is refused whole), and subjects with an error are given back.",
   free: `Without a key, ${ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY} lookups a day per IP address (stored only as a hash; IPv6 per /64), counted per UTC day and reset at 00:00 UTC.`,
   paid: "With a key, lookups count per subscription per calendar month (UTC), shared by all of its keys; requests a minute count per key.",
   at_cap:
@@ -117,5 +119,80 @@ export function publicPlans(checkoutBase: string) {
         },
       ]),
     ),
+  };
+}
+
+// --- Model-backed tools ---------------------------------------------------------------------------
+
+/**
+ * Monthly allowances of the two hosted tools that call a model (doc_extract_lease,
+ * report_narrative). Counted per subscription per calendar month (UTC), like registry lookups,
+ * in their own counters. The free tier has none: these tools spend model tokens.
+ */
+export interface ModelAllowance {
+  /** Pages with text read by doc_extract_lease. */
+  ingest_pages_per_month: number;
+  /** report_narrative calls. */
+  narratives_per_month: number;
+}
+
+export const MODEL_ALLOWANCES: Record<Tier, ModelAllowance> = {
+  anonymous: { ingest_pages_per_month: 0, narratives_per_month: 0 },
+  pro: { ingest_pages_per_month: 100, narratives_per_month: 50 },
+  team: { ingest_pages_per_month: 2_000, narratives_per_month: 1_000 },
+};
+
+/** How the model-backed tools are counted, one sentence each (in /v1/plans). */
+export const MODEL_QUOTA_RULES = {
+  tools:
+    "doc_extract_lease (a model reads a lease, FactLot verifies every value against the page text) and report_narrative (a model drafts prose from a result, FactLot verifies every figure) are hosted only, for Pro and Team keys.",
+  ingest_pages:
+    "Each page with text that doc_extract_lease reads counts once, charged when the model is called; scanned pages, input errors and calls the model could not answer are not counted.",
+  narratives:
+    "Each report_narrative call that returns a narrative counts once; input errors and calls the model could not answer are not counted.",
+  at_cap:
+    "At a cap these tools answer 429 until the month resets at 00:00 UTC on the 1st; every other tool keeps working and nothing extra is billed.",
+};
+
+/** The two hosted tools that call a model. */
+export const MODEL_TOOLS = ["doc_extract_lease", "report_narrative"];
+
+/** The model-backed tools' allowances by plan, for /v1/plans (`available`: the server has a model). */
+export function modelPlansInfo(available: boolean) {
+  return {
+    available,
+    tools: MODEL_TOOLS,
+    free: MODEL_ALLOWANCES.anonymous,
+    pro: MODEL_ALLOWANCES.pro,
+    team: MODEL_ALLOWANCES.team,
+    rules: MODEL_QUOTA_RULES,
+  };
+}
+
+// --- Reports ------------------------------------------------------------------------------------
+
+/**
+ * Reports (report_create over MCP, POST /v1/reports) per calendar month (UTC): without a key per
+ * IP address (a month-salted hash of it), with one per subscription, shared by its keys. Only a
+ * report that was built and stored counts; input errors are free.
+ */
+export const REPORTS_PER_MONTH: Record<Tier, number> = {
+  anonymous: 3,
+  pro: 50,
+  team: 1_000,
+};
+
+/** Hours a report's download link works. */
+export const REPORT_DOWNLOAD_HOURS = 24;
+
+/** The reports block of /v1/plans. */
+export function reportLimits() {
+  return {
+    per_month: {
+      free: REPORTS_PER_MONTH.anonymous,
+      pro: REPORTS_PER_MONTH.pro,
+      team: REPORTS_PER_MONTH.team,
+    },
+    counted: `One report is one document built and stored (report_create or POST /v1/reports). Without a key, per IP address (stored only as a hash) per calendar month (UTC); with a key, per subscription per calendar month (UTC). Input errors are free. Download links work for ${REPORT_DOWNLOAD_HOURS} hours.`,
   };
 }
