@@ -17,6 +17,10 @@
  *   pruned by the alarm.
  * - Last use (keys only): the minute a key last made a request, written at most once a minute and
  *   deleted 90 days after the key's last use.
+ * - Model-backed tool allowances (subscriptions only): doc_extract_lease pages and report_narrative
+ *   calls per calendar month (UTC), each in its own object (`meter:ingest_pages:sub:<id>`,
+ *   `meter:narratives:sub:<id>`, see `modelSubject`) with the same window, refund and alarm rules
+ *   as registry lookups.
  *
  * The plain per-minute limiter (`objectLimiter`) uses the same class without touching storage.
  */
@@ -646,6 +650,17 @@ export function objectMeter(ns: DurableObjectNamespaceLike): MeterService {
         })
       ).value,
   };
+}
+
+/** The counters of the model-backed tools, kept apart from registry lookups. */
+export type ModelCounter = "ingest_pages" | "narratives";
+
+/**
+ * The meter subject of a model-backed tool's monthly allowance for `subject` (`sub:<id>`): its
+ * own Durable Object, so the count never mixes with registry lookups and uses the same windows.
+ */
+export function modelSubject(counter: ModelCounter, subject: string): string {
+  return `${counter}:${subject}`;
 }
 
 /**

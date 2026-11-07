@@ -159,4 +159,10 @@ export interface Env {
   EMAIL?: SendEmail;
   /** Secret: signs account-recovery links. Without it email recovery stays off. */
   RECOVERY_SIGNING_SECRET?: string;
+  /**
+   * Secret, optional: Anthropic API key for the two model-backed tools (doc_extract_lease,
+   * report_narrative). Without it they are not listed and their routes answer 503
+   * ModelUnavailable; every other tool runs without a model either way.
+   */
+  ANTHROPIC_API_KEY?: string;
 }

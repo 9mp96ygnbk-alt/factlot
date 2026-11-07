@@ -9,6 +9,11 @@
 // lost-key recovery links and the OAuth "Email me a sign-in link" option. Without it, and
 // without the EMAIL binding below, /account says email recovery is being set up and the OAuth
 // sign-in page offers the key and the free tier only).
+// ANTHROPIC_API_KEY (optional; an API key from FactLot's commercial Anthropic organization, set
+// with `npx wrangler@4 secret put ANTHROPIC_API_KEY`). It turns on the two model-backed tools,
+// doc_extract_lease and report_narrative (Pro and Team only). Without it they are not listed and
+// their routes answer 503 ModelUnavailable, so deploying before it is set is safe; every other
+// tool runs without a model either way. Delete the secret to turn them off again.
 //
 // OAuth 2.1 for header-less MCP clients (src/oauth.ts) needs no new binding: its records live in
 // the KEYS namespace under the `oauth:` prefix. It does need `global_fetch_strictly_public`

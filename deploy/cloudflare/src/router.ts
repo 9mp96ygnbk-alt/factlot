@@ -73,6 +73,17 @@ import {
   type OAuthCaller,
 } from "./oauth.ts";
 import { addressSubject } from "./limiter.ts";
+import { modelEnabled, type ModelDeps } from "./model.ts";
+import {
+  MAX_MODEL_CALLS_PER_REQUEST,
+  MODEL_MAX_BODY_BYTES,
+  MODEL_PATHS,
+  answerModelCall,
+  isModelCall,
+  modelRestRoute,
+  modelToolsFor,
+  type ModelCaller,
+} from "./model-tools.ts";
 import { KEY_PLACEHOLDER, guideMarkdown, setupGuide } from "./onboarding.ts";
 import { accountFormPage, accountPage } from "./pages.ts";
 import {
@@ -88,6 +99,7 @@ import {
   PRICING_URL,
   QUOTA_RULES,
   isMeteredRegistryTool,
+  modelPlansInfo,
   publicPlans,
   type Tier,
 } from "./plans.ts";
@@ -299,6 +311,8 @@ export interface HandleOptions {
   now?: () => number;
   /** ctx.waitUntil: work that runs after the response (emails). */
   waitUntil?: (work: Promise<unknown>) => void;
+  /** The model-backed tools' transport, clock and document fetch (tests). */
+  model?: ModelDeps;
 }
 
 /** Run `work` after the response when the runtime allows, never failing the request. */
@@ -564,7 +578,13 @@ async function route(
     const checkout = checkoutInfo(apiBase);
     if (path === "/v1/plans")
       return withHeaders(
-        json(200, { plans, quotas: QUOTA_RULES, checkout_open, checkout }),
+        json(200, {
+          plans,
+          quotas: QUOTA_RULES,
+          model_tools: modelPlansInfo(modelEnabled(env)),
+          checkout_open,
+          checkout,
+        }),
         corsHeaders(),
       );
     return withHeaders(
@@ -755,6 +775,13 @@ async function route(
 
   if (paid && !paid.active) return inactive(path, paid.record, site);
   const tier: Tier = paid ? paid.record.plan : "anonymous";
+  // The model-backed tools (doc_extract_lease, report_narrative): paid callers only.
+  const modelCaller: ModelCaller | undefined = paid
+    ? {
+        plan: paid.record.plan,
+        subject: meterSubject(paid.record, paid.hash),
+      }
+    : undefined;
   const perMinute = paid
     ? PLANS[paid.record.plan].requestsPerMinute
     : ANONYMOUS_REQUESTS_PER_MINUTE;
@@ -771,11 +798,15 @@ async function route(
   let mcpBatch = false;
   let onlyAccount = false;
   if (path === "/mcp" && request.method === "POST") {
-    mcpText = await readBody(request, MAX_BODY_BYTES);
+    // A paid caller may send a PDF to doc_extract_lease; that call is answered here, and what
+    // goes on to the inner handler must still fit its 1 MB.
+    const bodyLimit =
+      paid && modelEnabled(env) ? MODEL_MAX_BODY_BYTES : MAX_BODY_BYTES;
+    mcpText = await readBody(request, bodyLimit);
     if (mcpText === undefined)
       return errorResponse(path, 413, -32600, {
         error: "PayloadTooLarge",
-        message: "request body over 1 MB",
+        message: `request body over ${bodyLimit / 1024 / 1024} MB`,
       });
     try {
       mcpBody = JSON.parse(mcpText);
@@ -792,22 +823,32 @@ async function route(
     const items: unknown[] = Array.isArray(mcpBody) ? mcpBody : [mcpBody];
     registryRequest = items.some(callsRegistry);
     wanted = items.filter(isMeteredCall).length;
-    if (paid && mcpBody !== undefined) {
-      accountCalls = items.filter(isAccountCall);
-      listIds = items
-        .filter(
-          (m) =>
-            (m as { method?: unknown } | null)?.method === "tools/list" &&
-            (m as { id?: unknown }).id !== undefined,
-        )
-        .map((m) => (m as { id: unknown }).id);
+    // Hosted tools answered here: account tools (with a key) and the model-backed tools (any
+    // caller: without a key they answer PlanRequired, without the model ModelUnavailable).
+    const hosted = (m: unknown) => (paid && isAccountCall(m)) || isModelCall(m);
+    if (mcpBody !== undefined) {
+      accountCalls = items.filter(hosted);
+      if (paid)
+        listIds = items
+          .filter(
+            (m) =>
+              (m as { method?: unknown } | null)?.method === "tools/list" &&
+              (m as { id?: unknown }).id !== undefined,
+          )
+          .map((m) => (m as { id: unknown }).id);
       if (accountCalls.length > 0) {
-        const kept = items.filter((m) => !isAccountCall(m));
+        const kept = items.filter((m) => !hosted(m));
         onlyAccount = kept.length === 0;
         mcpBody = mcpBatch ? kept : kept[0];
         mcpText = onlyAccount ? undefined : JSON.stringify(mcpBody);
       }
     }
+    if (mcpText !== undefined && mcpText.length > MAX_BODY_BYTES)
+      return errorResponse(path, 413, -32600, {
+        error: "PayloadTooLarge",
+        message:
+          "request body over 1 MB (only doc_extract_lease calls may be larger)",
+      });
   } else if (REGISTRY_TOOLS.has(path) && request.method === "POST") {
     registryRequest = true;
     wanted = isMeteredRegistryTool(REGISTRY_TOOLS.get(path)) ? 1 : 0;
@@ -899,6 +940,19 @@ async function route(
       doubles: [status, 1],
     });
 
+  // REST routes of the model-backed tools, answered here (never by the inner handler).
+  if (MODEL_PATHS.has(path)) {
+    const res = await modelRestRoute(
+      request,
+      env,
+      path,
+      modelCaller,
+      opts.model,
+    );
+    meterUsage(res.status);
+    return withHeaders(res, { ...corsHeaders(), ...headers });
+  }
+
   let res: Response;
   if (onlyAccount) res = new Response(null, { status: 202 });
   else if (deniedError) {
@@ -942,17 +996,28 @@ async function route(
       }
     }
   }
-  if (paid && (accountCalls.length > 0 || listIds.length > 0))
+  if (accountCalls.length > 0 || listIds.length > 0) {
+    let modelCalls = 0;
     res = await withAccountTools(
       res,
       await Promise.all(
         accountCalls.map((m) =>
-          metered(answerAccountCall(env, paid.hash, paid.record, m)),
+          isModelCall(m)
+            ? answerModelCall(
+                env,
+                modelCaller,
+                m,
+                opts.model,
+                ++modelCalls > MAX_MODEL_CALLS_PER_REQUEST,
+              )
+            : metered(answerAccountCall(env, paid!.hash, paid!.record, m)),
         ),
       ),
       listIds,
       mcpBatch,
+      [...ACCOUNT_TOOLS, ...modelToolsFor(env, modelCaller)],
     );
+  }
   // Browsers read only the headers listed here: add this layer's to the inner handler's list.
   const expose = new Set(
     [
@@ -1171,6 +1236,7 @@ async function withAccountTools(
   answers: unknown[],
   listIds: unknown[],
   batch: boolean,
+  hostedTools: unknown[] = ACCOUNT_TOOLS,
 ): Promise<Response> {
   const answer = (body: unknown) => withHeaders(json(200, body), corsHeaders());
   if (res.status === 202 && answers.length > 0)
@@ -1196,7 +1262,7 @@ async function withAccountTools(
       Array.isArray(m.result?.tools) &&
       !m.result.nextCursor
     )
-      m.result.tools.push(...ACCOUNT_TOOLS);
+      m.result.tools.push(...hostedTools);
   const all = [...inner, ...answers];
   return answer(batch ? all : all[0]);
 }
