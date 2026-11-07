@@ -106,3 +106,50 @@ def tx_cases(seed, count):
         out.append({"tool": "calc_tx_unequal_appraisal", "arguments": inp})
         out.append({"draft": "tx_protest_evidence_dates", "input": evidence_dates(r)})
     return out
+
+
+def _batch_item(r, i):
+    y = r.randint(2000, 2100)
+    item = {"id": r.choice([f"client-{i}", f"acct {i:04d}", f"P{i}"]), "tax_year": y}
+    if r.random() < 0.85:
+        item["notice_delivered_date"] = (date(y, 1, 1) + timedelta(days=r.randint(0, 364))).isoformat()
+    roll = r.random()
+    if roll < 0.03:
+        item["tax_year"] = r.choice([1999, 2101, 2026.5, "2026", None, True, 0, 2026.0])
+    elif roll < 0.06:
+        item["notice_delivered_date"] = r.choice(["2026-02-30", "0000-01-01", "2026-5-1", 5, None, "2024-02-29",
+                                                  "2023-02-29", "05/01/2026", f"{y - 1}-12-31", ""])
+    return item
+
+
+def deadline_batch(r):
+    n = r.choice([1, 2, 3, 5, 8, 12, r.randint(1, 40), r.randint(1, 200)])
+    inp = {"items": [_batch_item(r, i) for i in range(n)]}
+    roll = r.random()
+    if roll < 0.01:
+        inp["items"] = []
+    elif roll < 0.02:
+        inp["items"] = [_batch_item(r, i) for i in range(201)]
+    elif roll < 0.03 and n > 1:
+        inp["items"][-1]["id"] = inp["items"][0]["id"]  # duplicate id
+    elif roll < 0.04:
+        inp["items"][0].pop("tax_year")
+    elif roll < 0.05:
+        inp["items"][0]["id"] = r.choice(["", 7, None])
+    elif roll < 0.06:
+        inp["items"][0]["notice_date"] = "2026-05-01"  # unknown field
+    elif roll < 0.07:
+        inp["items"][0] = r.choice([3, "x", None, []])
+    return inp
+
+
+def deadline_batch_cases(seed, count):
+    """rules_tx_property_tax_protest_deadline_batch, through the tool (whole result compared: every per-item error
+    message) and run directly; on its own random stream."""
+    r = random.Random(f"tx-deadline-batch-{seed}")
+    out = []
+    for _ in range(max(1, count // 20)):
+        inp = deadline_batch(r)
+        out.append({"tool": "rules_tx_property_tax_protest_deadline_batch", "arguments": inp})
+        out.append({"rule": "tx_property_tax_protest_deadline_batch", "input": inp})
+    return out

@@ -4801,6 +4801,45 @@
       }
     },
     {
+      "name": "rules_tx_property_tax_protest_deadline_batch",
+      "description": "Texas property tax protest deadlines for many notices in one call (1–200 items, e.g. a consultant's client list): each item's id, tax year and, if known, notice delivery date. Each result is exactly what rules_tx_property_tax_protest_deadline returns for that item under rule rules.tx.property_tax_protest_deadline@2 (deadline, unadjusted deadline, governing basis, conservative file-by date, skipped days, the item's warnings), echoed with its id; an item with invalid input carries its error and the others are still answered. summary counts the items per deadline, earliest first, with the earliest and latest deadline. The statute citations, the rule's verification status and the disclaimer appear once (value.rule, value.disclaimer). A rules tool: never a registry lookup. Information about statutory deadlines: not legal or tax advice and not a substitute for the advice of an attorney; it does not say whether to protest. Verification status: verified. Cite rule rules.tx.property_tax_protest_deadline_batch@1 and its statutes.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "minItems": 1,
+            "maxItems": 200,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "Your label for this notice (a client, account or parcel number), echoed back with its result. Unique within the batch."
+                },
+                "tax_year": {
+                  "type": "integer",
+                  "minimum": 2000,
+                  "maximum": 2100,
+                  "description": "Tax year being protested, e.g. 2026 (2000–2100). An invalid value is an error for this item only."
+                },
+                "notice_delivered_date": {
+                  "type": "string",
+                  "format": "date",
+                  "description": "Date the appraisal district's notice of appraised value was delivered (Tax Code §25.19), YYYY-MM-DD. A mailed notice is presumed delivered on the day it was deposited in the mail (§1.07(c)). Omit if unknown (May 15 is then the only basis). An invalid date is an error for this item only."
+                }
+              },
+              "required": ["id", "tax_year"]
+            },
+            "description": "The notices to compute deadlines for (1–200): each one's id, tax year and, if known, notice delivery date. Each result equals rules_tx_property_tax_protest_deadline for that item."
+          }
+        },
+        "required": ["items"]
+      }
+    },
+    {
       "name": "id_parcel",
       "description": "Deterministic FactLot ID for a parcel from state FIPS, county FIPS, and the assessor's parcel number (APN). The same parcel always yields the same ID, offline. Use it as the join key across systems. APNs that differ only in where a separator falls (\"12-34\", \"1-234\") get different IDs; in a county with a documented fixed-width format the variants of one APN converge (NYC BBL \"3-1234-56\" = \"3012340056\").",
       "input_schema": {
@@ -6121,6 +6160,88 @@
             "maximum": 2100
           }
         }
+      }
+    },
+    {
+      "name": "registry_tx_equity_candidates_batch",
+      "description": "registry_tx_equity_candidates for many subjects in one call (1–50, e.g. a consultant's client parcels): each subject's id (your label, echoed back) and its urn, or county_fips and apn, plus the rule parameters once for every subject (area_band, year_band, min_matches, limit, tax_year). Each entry of results is that subject's answer from registry_tx_equity_candidates (subject, candidates, selection, sources, warnings) or that subject's error (error, message, issues, and coverage on a miss), so one subject outside Texas, in Tarrant County, or not in the registry does not fail the others; the Texas-only and Tarrant checks apply to each subject. The selection rule and the notice appear once at the top (rule, notice) instead of in every answer; summary counts subjects, answered and errors. Candidates per subject only: this tool never runs calc_tx_unequal_appraisal and never picks comparables; a person decides, for each subject, which candidates (if any) to use, and only those go to calc_tx_unequal_appraisal. Relay each candidate's source rights from that subject's sources. For evidence calculations only: FactLot does not represent property owners, file protests, or advise whether to protest. Not an appraisal or an opinion of value (Tex. Occ. Code §1103.003(1)); not legal or tax advice and not a substitute for the advice of an attorney. Never returns owner names, mailing addresses, or ownership facts; do not look up the owners of candidate parcels. On the hosted API each answered subject counts as one registry lookup (a subject with an error is not counted). Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "subjects": {
+            "minItems": 1,
+            "maxItems": 50,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "Your label for this subject (a client or account), echoed back with its answer. Unique within the batch."
+                },
+                "urn": {
+                  "description": "FactLot parcel URN of the subject, e.g. fl:parcel:us-48201:0420150000012. Give this, or county_fips and apn.",
+                  "type": "string",
+                  "maxLength": 500
+                },
+                "state_fips": {
+                  "description": "With county_fips and apn: \"48\" (Texas), the only state served.",
+                  "type": "string",
+                  "maxLength": 16
+                },
+                "county_fips": {
+                  "description": "3-digit Texas county FIPS, e.g. \"201\" for Harris County.",
+                  "type": "string",
+                  "maxLength": 16
+                },
+                "apn": {
+                  "description": "Appraisal district account number as the district prints it.",
+                  "type": "string",
+                  "maxLength": 200
+                }
+              },
+              "required": ["id"]
+            },
+            "description": "The subject parcels (1–50): each one's id and its urn, or county_fips and apn (with state_fips 48, or none)."
+          },
+          "area_band": {
+            "default": 0.35,
+            "description": "Improvement area band as a share of the subject's (0.35: within ±35%).",
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "maximum": 1
+          },
+          "year_band": {
+            "default": 15,
+            "description": "Year-built band in years, applied when both the subject's and the candidate's are known.",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "min_matches": {
+            "default": 10,
+            "description": "Widen from the neighborhood and ZIP code tiers to the whole county when they hold fewer than this.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200
+          },
+          "limit": {
+            "default": 50,
+            "description": "Maximum candidates returned (1–200).",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200
+          },
+          "tax_year": {
+            "description": "Roll year to compare in. Default: the newest tax year whose roll gives the subject a positive value.",
+            "type": "integer",
+            "minimum": 1900,
+            "maximum": 2100
+          }
+        },
+        "required": ["subjects"]
       }
     }
   ]

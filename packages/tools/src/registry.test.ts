@@ -25,10 +25,15 @@ import {
 } from "./index.ts";
 
 const spec = fileURLToPath(new URL("../../../spec/registry/", import.meta.url));
-const calls = JSON.parse(readFileSync(join(spec, "calls.json"), "utf8")) as {
-  tool: string;
-  arguments: unknown;
-}[];
+// calls.json is what every surface answers (the registry Worker replays it too); calls_tx_batch.json
+// holds registry_tx_equity_candidates_batch, which the SDKs answer and the Worker does not yet.
+const calls = ["calls.json", "calls_tx_batch.json"].flatMap(
+  (name) =>
+    JSON.parse(readFileSync(join(spec, name), "utf8")) as {
+      tool: string;
+      arguments: unknown;
+    }[],
+);
 
 test("registry tools without a registry report RegistryUnavailable", () => {
   configureRegistry(undefined);
@@ -262,6 +267,41 @@ test("registry tools: TypeScript matches Python on the shared fixture", () => {
       tarrant.ok ? "" : tarrant.error.message,
       /Tarrant Appraisal District's published signals do not say whether serving its data to AI agents is allowed/,
     );
+    // The batch: each subject answered exactly as the single tool answers it, minus the notice and
+    // selection rule given once at the top; a subject's error stays in its entry.
+    const batch = runTool("registry_tx_equity_candidates_batch", {
+      subjects: [
+        { id: "A", urn: subject },
+        { id: "T", urn: "fl:parcel:us-48439:00001234" },
+        { id: "M", urn: "fl:parcel:us-48997:9999999" },
+      ],
+      tax_year: 2026,
+    });
+    assert.ok(batch.ok);
+    const b = batch.result as {
+      results: Record<string, unknown>[];
+      summary: { subjects: number; answered: number; errors: number };
+      rule: string;
+      notice: string;
+    };
+    const single = eq.result as Record<string, unknown>;
+    const { notice: _n, selection: sel, ...rest } = single;
+    const { rule: _r, ...selNoRule } = sel as Record<string, unknown>;
+    void _n;
+    void _r;
+    assert.deepEqual(b.results[0], { id: "A", ...rest, selection: selNoRule });
+    assert.equal(b.notice, single.notice);
+    assert.equal(b.rule, (sel as { rule: string }).rule);
+    assert.ok(!tarrant.ok);
+    assert.deepEqual(b.results[1], {
+      id: "T",
+      error: tarrant.ok ? null : tarrant.error,
+    });
+    assert.equal((b.results[2]?.error as { error: string }).error, "NotFound");
+    // Answered subjects are what the hosted API meters, one lookup each.
+    assert.deepEqual(b.summary, { subjects: 3, answered: 1, errors: 2 });
+    // Candidates only: nothing from calc_tx_unequal_appraisal (no formula, no computed values).
+    assert.ok(!JSON.stringify(b).includes("calc.tx_unequal_appraisal"));
     // No owner data in any equity output (TypeScript's own run): every ownership.* fact ID and value in
     // the file, what the roll gave for the owners the registry does not keep (a natural person, an owner
     // withheld under Tax Code §25.025), and in a result any entity URN.
@@ -309,7 +349,9 @@ test("registry tools: TypeScript matches Python on the shared fixture", () => {
         ),
     );
     const equityCalls = [
-      ...calls.filter((c) => c.tool === "registry_tx_equity_candidates"),
+      ...calls.filter((c) =>
+        c.tool.startsWith("registry_tx_equity_candidates"),
+      ),
       { tool: "registry_tx_equity_candidates", arguments: { urn: person } },
       { tool: "registry_tx_equity_candidates", arguments: { urn: withheld } },
     ];
@@ -322,9 +364,19 @@ test("registry tools: TypeScript matches Python on the shared fixture", () => {
       for (const b of banned)
         assert.ok(!text.includes(b.toUpperCase()), `${label}: ${b}`);
       assert.ok(!text.includes("OWNERSHIP."), `${label}: ownership.`);
-      // An error may quote the entity URN it was given; a result names no entity.
-      if (out.ok)
-        assert.ok(!text.includes("FL:ENTITY:"), `${label}: entity URN`);
+      // An error may quote the entity URN it was given (a batch subject's too); a result names no entity.
+      const answers = !out.ok
+        ? []
+        : c.tool.endsWith("_batch")
+          ? (
+              out.result as { results: Record<string, unknown>[] }
+            ).results.filter((r) => !("error" in r))
+          : [out.result];
+      for (const a of answers)
+        assert.ok(
+          !JSON.stringify(a).toUpperCase().includes("FL:ENTITY:"),
+          `${label}: entity URN`,
+        );
     }
   } finally {
     configureRegistry(undefined);

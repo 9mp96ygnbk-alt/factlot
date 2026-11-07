@@ -1,0 +1,352 @@
+[
+  {
+    "tool": "registry_tx_equity_candidates_batch",
+    "arguments": {
+      "subjects": [
+        {
+          "id": "client-1",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "client-2",
+          "urn": "fl:parcel:us-48997:1000010"
+        }
+      ]
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates_batch",
+    "arguments": {
+      "subjects": [
+        {
+          "id": "A",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "B",
+          "county_fips": "997",
+          "apn": "1000004"
+        },
+        {
+          "id": "C",
+          "urn": "fl:parcel:us-48997:9999999"
+        },
+        {
+          "id": "D",
+          "urn": "fl:parcel:us-48439:00001234"
+        },
+        {
+          "id": "E",
+          "urn": "fl:parcel:us-04021:50101001"
+        },
+        {
+          "id": "F",
+          "urn": "fl:entity:us-tx:0807777777"
+        },
+        {
+          "id": "G",
+          "urn": "fl:parcel:us-48997"
+        },
+        {
+          "id": "H"
+        },
+        {
+          "id": "I",
+          "state_fips": "06",
+          "county_fips": "037",
+          "apn": "5101001001"
+        },
+        {
+          "id": "J",
+          "county_fips": "439",
+          "apn": "00001234"
+        },
+        {
+          "id": "K",
+          "urn": "fl:parcel:us-48997:1000001",
+          "apn": "1000001"
+        },
+        {
+          "id": "L",
+          "county_fips": "997",
+          "apn": "9999999"
+        }
+      ],
+      "min_matches": 5,
+      "limit": 3,
+      "tax_year": 2026
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates_batch",
+    "arguments": {
+      "subjects": []
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates_batch",
+    "arguments": {
+      "subjects": [
+        {
+          "id": "s0",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s1",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s2",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s3",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s4",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s5",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s6",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s7",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s8",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s9",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s10",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s11",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s12",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s13",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s14",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s15",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s16",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s17",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s18",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s19",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s20",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s21",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s22",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s23",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s24",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s25",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s26",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s27",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s28",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s29",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s30",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s31",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s32",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s33",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s34",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s35",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s36",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s37",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s38",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s39",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s40",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s41",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s42",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s43",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s44",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s45",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s46",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s47",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s48",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s49",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "s50",
+          "urn": "fl:parcel:us-48997:1000001"
+        }
+      ]
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates_batch",
+    "arguments": {
+      "subjects": [
+        {
+          "id": "A",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "A",
+          "urn": "fl:parcel:us-48997:1000010"
+        }
+      ]
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates_batch",
+    "arguments": {
+      "subjects": [
+        {
+          "urn": "fl:parcel:us-48997:1000001"
+        }
+      ]
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates_batch",
+    "arguments": {
+      "subjects": [
+        {
+          "id": "A",
+          "urn": "fl:parcel:us-48997:1000001",
+          "tax_yr": 2026
+        }
+      ]
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates_batch",
+    "arguments": {
+      "subjects": [
+        {
+          "id": "A",
+          "urn": "fl:parcel:us-48997:1000001"
+        }
+      ],
+      "area_band": 35
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates_batch",
+    "arguments": {
+      "urn": "fl:parcel:us-48997:1000001"
+    }
+  }
+]
