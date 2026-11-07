@@ -533,6 +533,33 @@ describe("POST /v1/reports and downloads", () => {
     assert.match(a.next, /remove the advice/);
   });
 
+  it("every answer says whether it was billed; a refused request carries the quota headers", async () => {
+    const t = env();
+    const ok = await call(t, "/v1/reports", { body: request() });
+    assert.equal(ok.status, 201);
+    assert.equal(((await ok.json()) as { billed: boolean }).billed, true);
+    const bad = await call(t, "/v1/reports", {
+      body: request({ format: "ics" }),
+    });
+    assert.equal(bad.status, 400);
+    const err = (await bad.json()) as { billed: boolean; next: string };
+    assert.equal(err.billed, false);
+    assert.match(err.next, /"xlsx", "pdf"/);
+    assert.equal(bad.headers.get("x-factlot-reports-quota-remaining"), "2");
+    assert.equal(bad.headers.get("x-factlot-reports-quota-limit"), "3");
+    const args = await call(t, "/v1/reports", {
+      body: request({ arguments: 7 }),
+    });
+    const ae = (await args.json()) as {
+      code: string;
+      billed: boolean;
+      issues: { path: string }[];
+    };
+    assert.equal(ae.code, "ArgumentsError");
+    assert.equal(ae.billed, false);
+    assert.equal(ae.issues[0]?.path, "arguments");
+  });
+
   it("a fault while building answers 500 ReportFailed with no detail, logs only the error's name, and gives the report back", async () => {
     const t = env();
     const subject = "ipm:fault-test";

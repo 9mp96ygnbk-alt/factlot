@@ -40,6 +40,8 @@ const NUMERIC = /^[-+(]?-?\$?-?[\d,]*\.?\d+(?:%|x|\/SF|\))?$/;
 /** Characters after which a long word may break (identifiers, URLs, paths). */
 const BREAK_AFTER = /(?<=[_\-/.:;,?&=#@|])/;
 const URL = /^https?:\/\/\S+$/;
+/** An ISO date, kept on one line. */
+const DATE = /^\d{4}-\d{2}-\d{2}[,;.)]?$/;
 
 const INK = rgb(0.1, 0.1, 0.12);
 const GREY = rgb(0.38, 0.38, 0.42);
@@ -149,6 +151,9 @@ export class PdfWriter {
   private readonly meta: PdfMeta;
   /** Glyph advance widths at size 1, per font, measured once per character. */
   private readonly advance = new Map<PDFFont, Map<string, number>>();
+  /** The last heading drawn, while nothing has been drawn after it (keep-with-next). */
+  private lastHeading:
+    { page: Page; from: number; to: number; redraw: () => void } | undefined;
 
   private constructor(meta: PdfMeta) {
     this.meta = meta;
@@ -347,7 +352,7 @@ export class PdfWriter {
     if (numeric && NUMERIC.test(t)) return this.width(t, size, font);
     let m = 0;
     for (const word of t.split(/[ \n]+/))
-      for (const piece of word.split(BREAK_AFTER))
+      for (const piece of DATE.test(word) ? [word] : word.split(BREAK_AFTER))
         m = Math.max(m, this.width(piece, size, font));
     return m;
   }
@@ -440,22 +445,49 @@ export class PdfWriter {
   heading(text: string, keep = 60): void {
     const lines = this.wrap(text, 12, this.cw, this.bold);
     this.ensure(8 + lines.length * 16 + keep);
+    const from = this.cur.ops.length;
     this.y -= 6;
     for (const line of lines) {
       this.text(line, MARGIN, this.y - 12, 12, this.bold, NAVY);
       this.y -= 16;
     }
     this.y -= 2;
+    this.markHeading(from, () => this.heading(text, keep));
   }
 
   subheading(text: string, keep = 40): void {
     const lines = this.wrap(text, 10, this.cw, this.bold);
     this.ensure(lines.length * 13 + keep);
+    const from = this.cur.ops.length;
     for (const line of lines) {
       this.text(line, MARGIN, this.y - 10, 10, this.bold);
       this.y -= 13;
     }
     this.y -= 1;
+    this.markHeading(from, () => this.subheading(text, keep));
+  }
+
+  private markHeading(from: number, redraw: () => void): void {
+    this.lastHeading = {
+      page: this.cur,
+      from,
+      to: this.cur.ops.length,
+      redraw,
+    };
+  }
+
+  /**
+   * Start a new page; a heading drawn just before (with nothing after it) moves along, so a
+   * heading is never left alone at the foot of a page.
+   */
+  private newPageKeepingHeading(): void {
+    const h = this.lastHeading;
+    if (h && h.page === this.cur && h.to === this.cur.ops.length) {
+      this.cur.ops.splice(h.from);
+      this.lastHeading = undefined;
+      this.newPage();
+      h.redraw();
+    } else this.newPage();
   }
 
   para(
@@ -638,7 +670,7 @@ export class PdfWriter {
       );
       const h =
         Math.max(1, ...lines.map((l) => l.length)) * hsize * 1.3 + 2 * pad;
-      this.ensure(h + lh + 2 * pad);
+      if (this.y - (h + lh + 2 * pad) < BOTTOM) this.newPageKeepingHeading();
       drawRow(lines, this.bold, hsize, NAVY, rgb(1, 1, 1));
     };
     // Keep a short table together: start it on a new page rather than split a few rows off.
@@ -658,7 +690,7 @@ export class PdfWriter {
       tableHeight < (this.top - BOTTOM) * 0.45 &&
       this.y < this.top - 1
     )
-      this.newPage();
+      this.newPageKeepingHeading();
     header();
     rows.forEach((row, r) => {
       const font = opts.bold?.has(r) ? this.bold : this.regular;
@@ -742,7 +774,7 @@ export class PdfWriter {
         RULE,
       );
       footerLines
-        .slice(0, 3)
+        .slice(0, 4)
         .forEach((l, k) =>
           this.text(
             l,

@@ -92,6 +92,7 @@ const NUMFMT_CODES: Record<number, string> = {
   172: '0.00"x"',
   173: "#,##0.0000",
   174: "0.000000%",
+  175: "#,##0.0#####",
 };
 const NUMFMTS = {
   general: 0,
@@ -106,6 +107,7 @@ const NUMFMTS = {
   times: 172,
   psf: 173,
   pct6: 174,
+  num_s: 175,
 } as const;
 type Font = (typeof FONTS)[number];
 type Fill = (typeof FILLS)[number];
@@ -132,10 +134,12 @@ const STYLE_TABLE = {
   date: ["normal", "none", "date", false],
   times: ["normal", "none", "times", false],
   psf: ["normal", "none", "psf", false],
+  num_s: ["normal", "none", "num_s", false],
   in_text: ["blue", "input", "general", false],
   in_money: ["blue", "input", "money", false],
   in_num4: ["blue", "input", "num4", false],
   in_pct4: ["blue", "input", "pct4", false],
+  in_pct2: ["blue", "input", "pct2", false],
   in_int: ["blue", "input", "int", false],
   in_date: ["blue", "input", "date", false],
   fl_money: ["bold", "good", "money", false],

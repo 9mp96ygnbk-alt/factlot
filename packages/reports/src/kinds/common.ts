@@ -1,7 +1,8 @@
 /** Pieces every report kind shares: the audit trail, warnings, and how the input was checked. */
 import { z } from "zod";
 
-import type { Block, Provenance, ReportDoc } from "../doc.ts";
+import type { Block, Fmt, Provenance, ReportDoc } from "../doc.ts";
+import { isRounded, roundInText, ungrouped } from "../format.ts";
 import { TEXT_LIMITS } from "../text.ts";
 import { TxCitation, type Checked } from "../validate.ts";
 
@@ -49,6 +50,8 @@ export interface KindInput {
   checked: Checked;
   ctx: ReportContext;
   p: Provenance;
+  /** critical_dates ics: keep events dated before the generation day. */
+  include_past?: boolean;
 }
 
 /** The label on every page of a lease abstract built from a result the caller sent. */
@@ -67,14 +70,25 @@ export function checkSentence(c: KindInput["checked"], tool: string): string {
       : c.result_mismatch
         ? " A result was sent with the request too; it differs from this run and was not used."
         : " A result was sent with the request too; it matches this run and was not used.";
+  if (tool === "doc_abstract_lease")
+    return `Checked: FactLot ran ${tool} on the documents' text sent with this request. The values are the ones supplied with the documents, each kept only where its quote was found on the cited page; FactLot did not compute them.${sent}`;
   return `Computed: FactLot ran ${tool} on the arguments sent with this request; every figure in this document is from that run.${sent}`;
 }
 
 export const TRACE_SENTENCE =
-  "Every computed number in this document is a figure from FactLot's run of the tool, printed as returned (rates are decimals in the result and percentages here: 0.0625 is 6.25%); an Inputs section lists the arguments as sent. Nothing is estimated, rounded further or written by a model.";
+  "Every computed number in this document is a figure from FactLot's run of the tool. Money is shown to the cent, rates as percentages to two decimals (0.0625 is 6.25%), ratios to two decimals and audit-trail values to 6 significant digits; the full precision is in the tool result and in the workbook's cells. An Inputs section lists the arguments as sent. Nothing is estimated or written by a model.";
 
 export const SUPPLIED_TRACE_SENTENCE =
   "The values in this document are printed as the result states them. Nothing is estimated or written by a model.";
+
+/** The note under an audit trail whose values are rounded for display. */
+export const STEPS_NOTE =
+  "Values are rounded to 6 significant digits (money to the cent); the full precision is in the tool result.";
+
+/** A step's text as printed: money with its sign first, long decimals rounded, neutral words. */
+function stepText(s: string): string {
+  return roundInText(s).replace(/^Best\b/, "First-ranked");
+}
 
 export function stepsBlock(
   steps: {
@@ -84,28 +98,52 @@ export function stepsBlock(
     unit?: string;
   }[],
 ): Block {
+  const usdUnit = (u?: string) => /^USD\b/.test(u ?? "");
   return {
     t: "table",
     sheet: "Steps",
     columns: [
       { header: "Step", fmt: "text", width: 2.2 },
-      { header: "Value", fmt: "num", width: 1.3 },
+      { header: "Value", fmt: "step", width: 1.3 },
       { header: "Unit", fmt: "text", width: 0.7 },
       { header: "How it was reached", fmt: "text", width: 3.6 },
     ],
     // A long text value reads better in the wide column, ahead of how it was reached.
-    rows: steps.map((s) =>
-      typeof s.value === "string" && s.value.length > 28
+    rows: steps.map((s) => {
+      const label = stepText(s.label);
+      const formula = s.formula ? stepText(s.formula) : "";
+      return typeof s.value === "string" && s.value.length > 28
         ? [
-            s.label,
+            label,
             "",
             s.unit ?? "",
-            s.formula ? `${s.value}\n${s.formula}` : s.value,
+            formula ? `${stepText(s.value)}\n${formula}` : stepText(s.value),
           ]
-        : [s.label, s.value, s.unit ?? "", s.formula ?? ""],
-    ),
+        : [
+            label,
+            typeof s.value === "string" ? stepText(s.value) : s.value,
+            s.unit ?? "",
+            formula,
+          ];
+    }),
+    fmts: steps.map((s): (Fmt | undefined)[] => [
+      undefined,
+      usdUnit(s.unit) ? "usd" : undefined,
+    ]),
     size: 7,
   };
+}
+
+/** Whether a step list shows any value rounded for display. */
+function stepsRounded(steps: Parameters<typeof stepsBlock>[0]): boolean {
+  return steps.some(
+    (s) =>
+      (typeof s.value === "number" &&
+        (/^USD\b/.test(s.unit ?? "")
+          ? Math.round(s.value * 100) / 100 !== s.value
+          : isRounded(s.value))) ||
+      /\d\.\d{7,}/.test(`${s.formula ?? ""} ${String(s.value)}`),
+  );
 }
 
 export function warningsBlocks(
@@ -130,6 +168,14 @@ export function closingBlocks(
   if (steps?.length) {
     out.push({ t: "heading", text: "Audit trail (the tool's steps)" });
     out.push(stepsBlock(steps));
+    out.push({
+      t: "para",
+      grey: true,
+      text: stepsRounded(steps)
+        ? STEPS_NOTE
+        : "Values as the tool returned them (money to the cent).",
+      only: "pdf",
+    });
   }
   out.push(...inputsBlocks(k.checked.args));
   out.push({ t: "heading", text: "Provenance" });
@@ -165,14 +211,20 @@ const MAX_ARG_ROWS = 400;
 export function inputsBlocks(args: unknown): Block[] {
   if (args === undefined) return [];
   const rows: (string | number)[][] = [];
+  const fmts: (Fmt | undefined)[][] = [];
   const walk = (v: unknown, path: string) => {
     if (rows.length >= MAX_ARG_ROWS) return;
     if (Array.isArray(v)) v.forEach((x, i) => walk(x, `${path}[${i}]`));
     else if (typeof v === "object" && v !== null)
       for (const [key, x] of Object.entries(v))
         walk(x, path ? `${path}.${key}` : key);
-    else if (typeof v === "number") rows.push([path, v]);
-    else {
+    else if (typeof v === "number") {
+      fmts[rows.length] = [
+        undefined,
+        Number.isInteger(v) && ungrouped(path) ? "plain" : undefined,
+      ];
+      rows.push([path, v]);
+    } else {
       const text = typeof v === "boolean" ? String(v) : String(v ?? "");
       rows.push([
         path,
@@ -191,12 +243,13 @@ export function inputsBlocks(args: unknown): Block[] {
       size: 7,
       columns: [
         { header: "Argument", fmt: "text", width: 2.4 },
-        { header: "Value", fmt: "num", width: 2.4 },
+        { header: "Value", fmt: "exact", width: 2.4 },
       ],
       rows:
         rows.length >= MAX_ARG_ROWS
           ? [...rows, [`(first ${MAX_ARG_ROWS} values shown)`, ""]]
           : rows,
+      fmts: Array.from({ length: rows.length }, (_, i) => fmts[i] ?? []),
     },
   ];
 }

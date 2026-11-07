@@ -102,6 +102,23 @@ export class ReportInputError extends Error {
   }
 }
 
+/** Where a report request's shape is documented (each kind's arguments are its tool's). */
+export const REPORTS_DOCS =
+  "https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/reports.md";
+export const TOOLS_URL = "https://api.factlot.com/v1/tools";
+
+/** "missing" for a required field that was not sent, else the message as given. */
+export function issueMessage(message: string): string {
+  return /received undefined$/i.test(message)
+    ? "missing: this field is required"
+    : message;
+}
+
+/** A path under a prefix: "arguments" itself, or "arguments.x.y". */
+export function under(prefix: string, path: string): string {
+  return path ? `${prefix}.${path}` : prefix;
+}
+
 // --- shapes -------------------------------------------------------------------------------------
 
 const N = z.number().finite();
@@ -902,7 +919,7 @@ export interface Checked {
 function zodIssues(err: z.ZodError, prefix: string): Issue[] {
   return err.issues.slice(0, 20).map((i) => ({
     path: [prefix, ...i.path.map(String)].filter(Boolean).join("."),
-    message: i.message,
+    message: issueMessage(i.message),
   }));
 }
 
@@ -941,9 +958,10 @@ export function checkInput(
       "ArgumentsError",
       `${tool} refused the arguments: ${out.error.message}`,
       out.error.issues.map((i) => ({
-        path: `arguments.${i.path}`,
-        message: i.message,
+        path: under("arguments", i.path),
+        message: issueMessage(i.message),
       })),
+      `fix the fields listed in issues and retry; ${tool}'s arguments schema is the inputSchema of its entry in GET ${TOOLS_URL} (the arguments are the ones you would call the tool with)`,
     );
   // FactLot's own result: a failed check here is a fault in FactLot, not in the request.
   const parsed = SCHEMAS[tool]!.safeParse(out.result);

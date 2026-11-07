@@ -13,6 +13,11 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 
 ## [Unreleased]
 
+### Added
+
+- Reports: every `/v1/reports` and `report_create` answer has `billed` (`true` when the request
+  counted against the month).
+
 ### Changed
 
 - Hosted API: **reports are open.** `report_create` is listed over MCP, `POST /v1/reports` builds
@@ -39,6 +44,27 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
   caller's title and prepared-for line are printed on ReadMe and Grid.
 - Reports, PDF: a table with more than 10 columns (the debt-sizing stress table) is laid out on
   landscape pages, and columns are sized so a number is never broken across lines.
+- Reports, numbers: one convention in every PDF and workbook (money to the cent with the sign
+  first, percentages to two decimals, ratios to two, audit-trail values to 6 significant digits
+  with a note); years and counts are no longer printed as "2,026".
+- Reports, PDF layout: columns are sized to their longest number or word, long identifiers break
+  only at separators, statute URLs are links, and a heading is never left alone at a page foot.
+- Reports, Texas: the workbook adds adjusted $/SF and the $/SF adjustment total, the PDF the
+  normalizing area and each comparable's area; optional `label` and `address` print beside ids;
+  the statutes column is "Source (URL)"; the §41.66(l) description follows the statute and
+  §42.26(d) says which text a report of its tax year is printed against; the disclaimer appears
+  on the cover and in each footer (no longer three times); an empty warnings list says "none".
+- Reports, CAM: the statement lists the pro rata share, gross-up occupancies and factor, cap
+  method and rate, and admin fee rate. Proposals: "first-ranked" replaces "best" in the audit
+  trail; commissions and downtime are listed with the terms. Lease abstract: dates are date cells,
+  money terms say USD, the ReadMe names only sheets that exist, the provenance says the values
+  were supplied (not computed), and `source` is `doc_abstract_lease` (no package version).
+- Reports, calendar: shorter event titles, no one-day duplicate of a renewal window, and dates
+  before today left out unless `include_past` is sent.
+- Reports, filenames cut at word boundaries and drop a trailing year the date repeats.
+- Reports, errors: a missing field says "missing", non-object arguments are reported at
+  `arguments`, `next` points to the request shape and the tool's schema (and lists the formats
+  for a wrong `format`), and refusals carry the report-quota headers.
 
 ## [0.5.0] - 2026-11-07
 

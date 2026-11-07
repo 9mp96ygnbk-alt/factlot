@@ -32,15 +32,18 @@ import {
   proposalsDoc,
 } from "./kinds/finance.ts";
 import { datesDoc, datesIcs, leaseDoc } from "./kinds/lease.ts";
-import { txDoc, txXlsx } from "./kinds/tx.ts";
+import { TX_DISCLAIMER, txDoc, txXlsx } from "./kinds/tx.ts";
 import {
   COMPUTED_KINDS,
   KIND_FORMATS,
   KIND_TOOLS,
   REPORT_FORMATS,
   REPORT_KINDS,
+  REPORTS_DOCS,
   ReportInputError,
+  TOOLS_URL,
   checkInput,
+  issueMessage,
   type ReportFormat,
   type TxResult,
   type ReportKind,
@@ -110,6 +113,12 @@ export const ReportRequest = z.strictObject({
   context: ReportContext.optional().describe(
     "Optional title, prepared-for line, and citations (text only).",
   ),
+  include_past: z
+    .boolean()
+    .optional()
+    .describe(
+      "critical_dates ics only: also put dates before today (UTC) in the calendar. By default they are left out.",
+    ),
 });
 export type ReportRequest = z.input<typeof ReportRequest>;
 
@@ -148,10 +157,32 @@ export function reportRequestJsonSchema(): Record<string, unknown> {
   return schema;
 }
 
-function issuesOf(err: z.ZodError) {
-  return err.issues
-    .slice(0, 20)
-    .map((i) => ({ path: i.path.map(String).join("."), message: i.message }));
+/** The value at a path of a parsed JSON value (undefined when any step is missing). */
+function at(v: unknown, path: readonly PropertyKey[]): unknown {
+  let cur = v;
+  for (const key of path) {
+    if (typeof cur !== "object" || cur === null) return undefined;
+    cur = (cur as Record<PropertyKey, unknown>)[key];
+  }
+  return cur;
+}
+
+function issuesOf(err: z.ZodError, request: unknown) {
+  return err.issues.slice(0, 20).map((i) => ({
+    path: i.path.map(String).join("."),
+    message:
+      i.code !== "unrecognized_keys" &&
+      i.path.length > 0 &&
+      at(request, i.path) === undefined
+        ? "missing: this field is required"
+        : issueMessage(i.message),
+  }));
+}
+
+/** Where to look for a kind's request shape and its tool's arguments. */
+function schemaNext(kind?: ReportKind): string {
+  const tools = kind ? KIND_TOOLS[kind].join(" or ") : undefined;
+  return `fix the fields listed in issues and retry; the request shape is in ${REPORTS_DOCS}#what-a-report-accepts${tools ? `, and the arguments are ${tools}'s (its inputSchema in GET ${TOOLS_URL})` : ""}`;
 }
 
 /** A request that passed every input check, ready to render. */
@@ -160,6 +191,7 @@ export interface PreparedReport {
   format: ReportFormat;
   ctx: ReportContext;
   checked: KindInput["checked"];
+  include_past?: boolean;
 }
 
 /**
@@ -168,12 +200,29 @@ export interface PreparedReport {
  */
 export function prepareReport(request: unknown): PreparedReport {
   const parsed = ReportRequest.safeParse(request);
-  if (!parsed.success)
+  if (!parsed.success) {
+    const r = request as { kind?: unknown } | null;
+    const kind = REPORT_KINDS.find((k) => k === r?.kind);
+    const issues = issuesOf(parsed.error, request).map((i) =>
+      i.path === "format" && kind
+        ? {
+            ...i,
+            message: `${i.message}; ${kind} comes as ${KIND_FORMATS[kind].join(", ")}`,
+          }
+        : i,
+    );
     throw new ReportInputError(
       "InputError",
-      "invalid report request",
-      issuesOf(parsed.error),
+      issues.some((i) => i.message.startsWith("missing"))
+        ? `invalid report request: missing ${issues
+            .filter((i) => i.message.startsWith("missing"))
+            .map((i) => i.path)
+            .join(", ")}`
+        : "invalid report request",
+      issues,
+      schemaNext(kind),
     );
+  }
   const { kind, format, input, arguments: args } = parsed.data;
   const ctx = parsed.data.context ?? {};
   if (!KIND_FORMATS[kind].includes(format))
@@ -181,12 +230,19 @@ export function prepareReport(request: unknown): PreparedReport {
       "InputError",
       `${kind} reports come as ${KIND_FORMATS[kind].join(" or ")}, not ${format}`,
       [{ path: "format", message: `one of ${KIND_FORMATS[kind].join(", ")}` }],
+      `send "format" as one of ${KIND_FORMATS[kind].map((f) => `"${f}"`).join(", ")}`,
     );
   checkCallerText(kind, ctx, args);
   const checked = checkInput(kind, input, args);
   if (kind === "tx_unequal_appraisal" && format === "pdf")
     txPdfLimits(checked.result as TxResult);
-  return { kind, format, ctx, checked };
+  return {
+    kind,
+    format,
+    ctx,
+    checked,
+    ...(parsed.data.include_past ? { include_past: true } : {}),
+  };
 }
 
 /** Refuse a Texas evidence packet too large to lay out as a PDF (413; the workbook takes it). */
@@ -242,7 +298,9 @@ export async function renderReport(
   const now = opts.now ?? Date.now();
   const generatedAt = new Date(now);
   const formula = getTool(checked.tool)?.formula;
-  const toolRef = `${checked.tool}@${formula ? formula.version : version}`;
+  // A calculator is named with its formula version; a tool without one (doc_abstract_lease) by
+  // name only: the package version is not a version of the tool's output.
+  const toolRef = formula ? `${checked.tool}@${formula.version}` : checked.tool;
   // Only a document built from FactLot's own run says its numbers are the tool's results. A
   // lease abstract leads every page's footer with where its values came from.
   const generated = `Generated by FactLot ${version} on ${utcStamp(now)} from ${toolRef}`;
@@ -250,15 +308,24 @@ export async function renderReport(
     kind === "lease_abstract"
       ? `${checked.check === "supplied" ? SUPPLIED_LABEL : LEASE_COMPUTED_LABEL} ${generated}; see ${TERMS_URL}`
       : `${generated}; numbers are the tool's results; see ${TERMS_URL}`;
+  // A Texas PDF carries the disclaimer twice: on the cover and in every page's footer.
   const p: Provenance = {
-    footer,
+    footer:
+      kind === "tx_unequal_appraisal" && format === "pdf"
+        ? `${footer}. ${TX_DISCLAIMER}`
+        : footer,
     version,
     toolRef,
     generatedAt,
     header: `FactLot | ${KIND_TITLES[kind]}${ctx.title ? ` | ${ctx.title}` : ""}`,
     keywords: ["FactLot", kind, toolRef],
   };
-  const k: KindInput = { checked, ctx, p };
+  const k: KindInput = {
+    checked,
+    ctx,
+    p,
+    ...(prepared.include_past ? { include_past: true } : {}),
+  };
 
   let bytes: Uint8Array;
   if (format === "ics") bytes = await datesIcs(k);
@@ -276,11 +343,12 @@ export async function renderReport(
     );
 
   const subject = ctx.title ?? subjectOf(kind, checked.result);
+  const date = generatedAt.toISOString().slice(0, 10);
   const filename = [
     "factlot",
     slug(kind),
-    ...(subject ? [slug(subject, 32)] : []),
-    generatedAt.toISOString().slice(0, 10),
+    ...(subject ? [subjectSlug(subject, kind, date)] : []),
+    date,
   ]
     .filter(Boolean)
     .join("-");
@@ -309,6 +377,26 @@ const BUILDERS: Record<ReportKind, (k: KindInput) => ReportDoc> = {
   dcf_summary: dcfDoc,
   critical_dates: datesDoc,
 };
+
+/**
+ * The subject part of a filename: cut at a word boundary, without the kind's own words repeated
+ * and without a trailing year that the date after it repeats ("…-tax-year-2026-2026-11-07").
+ */
+export function subjectSlug(
+  subject: string,
+  kind: ReportKind,
+  date: string,
+): string {
+  let s = slug(subject, 200);
+  const kindWords = slug(kind).replace(/^tx-/, "");
+  s = s.replace(new RegExp(`(^|-)${kindWords}(?=-|$)`), "$1");
+  s = s.replace(/^-+|-+$/g, "").replace(/-{2,}/g, "-");
+  const year = date.slice(0, 4);
+  const trailingYear = new RegExp(`-?(?:(?:tax-)?year-)?${year}$`);
+  return slug(s.replace(trailingYear, ""), 40)
+    .replace(trailingYear, "")
+    .replace(/-+$/g, "");
+}
 
 function subjectOf(kind: ReportKind, result: unknown): string | undefined {
   const r = result as { value?: { subject_id?: unknown; tax_year?: unknown } };

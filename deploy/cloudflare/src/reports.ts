@@ -267,6 +267,17 @@ export async function runReport(
   request: unknown,
   o: ReportOptions,
 ): Promise<ReportOutcome> {
+  const out = await runReportInner(env, caller, request, o);
+  // Every answer says whether it counted against the month: only a stored build does.
+  return { ...out, body: { ...out.body, billed: out.ok } } as ReportOutcome;
+}
+
+async function runReportInner(
+  env: Env,
+  caller: ReportCaller,
+  request: unknown,
+  o: ReportOptions,
+): Promise<ReportOutcome> {
   try {
     return await buildAndStore(env, caller, request, o);
   } catch (err) {
@@ -337,7 +348,9 @@ async function buildAndStore(
   try {
     prepared = prepareReport(rest);
   } catch (err) {
-    if (err instanceof ReportInputError) return inputError(err);
+    // The quota is known here, so a refused request carries the quota headers too.
+    if (err instanceof ReportInputError)
+      return { ...inputError(err), quota: before } as ReportOutcome;
     throw err;
   }
   // Charge before building: a build the runtime kills is not free.
@@ -357,7 +370,15 @@ async function buildAndStore(
       throw new ReportInputError("TooLarge", "the report is over 25 MiB");
   } catch (err) {
     await refundReport(env, subject, quota);
-    if (err instanceof ReportInputError) return inputError(err);
+    if (err instanceof ReportInputError)
+      return {
+        ...inputError(err),
+        quota: {
+          ...quota,
+          used: quota.used - 1,
+          remaining: quota.remaining + 1,
+        },
+      } as ReportOutcome;
     throw err;
   }
   const token = randomToken();

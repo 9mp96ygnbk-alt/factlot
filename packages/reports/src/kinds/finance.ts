@@ -2,7 +2,7 @@
 import { runTool } from "@factlot/tools";
 
 import type { Block, Check, Kv, Raw, ReportDoc, TableColumn } from "../doc.ts";
-import { num, pct, usd } from "../format.ts";
+import { num, pct, roundInText, usd } from "../format.ts";
 import type {
   Asc842Result,
   CamBatchResult,
@@ -82,6 +82,87 @@ function camStatementRows(v: CamValue): Kv[] {
   ];
 }
 
+/** The share, gross-up, cap and admin-fee terms as sent in the arguments (D10). */
+function camTerms(
+  args: unknown,
+  v: CamValue,
+  steps: CamResult["steps"],
+): Block[] {
+  if (!isObj(args)) return [];
+  const rows: Kv[] = [];
+  if (typeof args.pro_rata_share === "number")
+    rows.push({
+      label: "Pro rata share",
+      value: args.pro_rata_share,
+      fmt: "pct4",
+    });
+  const g = isObj(args.gross_up) ? args.gross_up : undefined;
+  if (g) {
+    const actual =
+      typeof g.actual_occupancy === "number" ? g.actual_occupancy : undefined;
+    const target =
+      typeof g.target_occupancy === "number" ? g.target_occupancy : undefined;
+    if (actual !== undefined)
+      rows.push({
+        label: "Gross-up: actual occupancy",
+        value: actual,
+        fmt: "pct",
+      });
+    if (target !== undefined)
+      rows.push({
+        label: "Gross-up: target occupancy",
+        value: target,
+        fmt: "pct",
+      });
+    const factor = steps.find((x) => /^Gross-up factor/i.test(x.label));
+    if (factor && typeof factor.value === "number")
+      rows.push({
+        label: "Gross-up factor on variable expenses (from the tool)",
+        value: factor.value,
+        fmt: "factor",
+      });
+  } else rows.push({ label: "Gross-up", value: "none sent", fmt: "text" });
+  rows.push({
+    label: "Tenant occupancy fraction (from the tool)",
+    value: v.occupancy_fraction,
+    fmt: "pct",
+  });
+  const cap = isObj(args.cap) ? args.cap : undefined;
+  if (cap) {
+    rows.push({
+      label: "Cap method",
+      value: String(cap.method ?? "").replace(/_/g, " "),
+      fmt: "text",
+    });
+    if (typeof cap.rate === "number")
+      rows.push({ label: "Cap rate", value: cap.rate, fmt: "pct" });
+    if (typeof cap.reference_amount === "number")
+      rows.push({
+        label: "Cap reference amount",
+        value: cap.reference_amount,
+        fmt: "usd",
+      });
+  } else rows.push({ label: "Cap", value: "none sent", fmt: "text" });
+  const fee = isObj(args.admin_fee) ? args.admin_fee : undefined;
+  if (fee) {
+    if (typeof fee.rate === "number")
+      rows.push({ label: "Admin fee rate", value: fee.rate, fmt: "pct" });
+    if (typeof fee.applied === "string")
+      rows.push({
+        label: "Admin fee applied",
+        value: fee.applied.replace(/_/g, " "),
+        fmt: "text",
+      });
+  } else rows.push({ label: "Admin fee", value: "none sent", fmt: "text" });
+  return [
+    {
+      t: "heading",
+      text: "Share, gross-up, cap and admin fee (as sent in the arguments)",
+    },
+    { t: "kv", rows },
+  ];
+}
+
 function expenseLines(args: unknown): Block[] {
   const lines =
     isObj(args) && Array.isArray(args.expenses) ? (args.expenses as Obj[]) : [];
@@ -123,6 +204,7 @@ export function camDoc(k: KindInput): ReportDoc {
   const blocks: Block[] = [
     { t: "heading", text: "Tenant statement" },
     { t: "kv", rows: camStatementRows(v) },
+    ...camTerms(k.checked.args, v, r.steps),
     ...expenseLines(k.checked.args),
     ...warningsBlocks(r.warnings),
     ...closingBlocks(k, "calc_cam_reconciliation", r.steps),
@@ -279,10 +361,18 @@ function camBatchDoc(k: KindInput): ReportDoc {
       size: 7,
       columns: [
         { header: "Step", fmt: "text", width: 2.2 },
-        { header: "Value", fmt: "num", width: 1.2 },
+        { header: "Value", fmt: "step", width: 1.2 },
         { header: "How it was reached", fmt: "text", width: 3.6 },
       ],
-      rows: t.statement.steps.map((s) => [s.label, s.value, s.formula ?? ""]),
+      rows: t.statement.steps.map((s) => [
+        s.label,
+        s.value,
+        roundInText(s.formula ?? ""),
+      ]),
+      fmts: t.statement.steps.map((s) => [
+        undefined,
+        s.unit === "USD" ? "usd" : undefined,
+      ]),
     });
   }
   blocks.push(...expenseLines(k.checked.args));
@@ -364,7 +454,7 @@ function amortizationBlocks(k: KindInput, maxLoan: number): Block[] {
   const rows: Kv[] = [
     { label: "Loan (the max loan above)", value: maxLoan, fmt: "usd" },
     { label: "Monthly payment", value: v.amortizing_payment, fmt: "usd" },
-    { label: "Payments", value: v.periods, fmt: "int" },
+    { label: "Payments", value: v.periods, fmt: "plain" },
     {
       label: "Total interest over the amortization",
       value: v.total_interest,
@@ -410,7 +500,11 @@ export function debtDoc(k: KindInput): ReportDoc {
           value: TEST_LABEL[v.binding_constraint] ?? v.binding_constraint,
           fmt: "text",
         },
-        { label: "Annual loan constant", value: v.annual_constant, fmt: "pct" },
+        {
+          label: "Annual loan constant",
+          value: v.annual_constant,
+          fmt: "pct4",
+        },
         {
           label: "Annual debt service",
           value: v.annual_debt_service,
@@ -574,8 +668,16 @@ export function asc842Doc(k: KindInput): ReportDoc {
       t: "kv",
       rows: [
         { label: "Classification", value: v.classification, fmt: "text" },
-        { label: "Remaining periods", value: v.remaining_periods, fmt: "int" },
-        { label: "Periodic discount rate", value: v.periodic_rate, fmt: "pct" },
+        {
+          label: "Remaining periods",
+          value: v.remaining_periods,
+          fmt: "plain",
+        },
+        {
+          label: "Periodic discount rate",
+          value: v.periodic_rate,
+          fmt: "pct4",
+        },
         {
           label: "Total remaining payments",
           value: v.total_remaining_payments,
@@ -630,7 +732,7 @@ export function asc842Doc(k: KindInput): ReportDoc {
       sheet: "Schedule",
       size: 7,
       columns: [
-        { header: "Period", fmt: "int", width: 0.6 },
+        { header: "Period", fmt: "plain", width: 0.6 },
         { header: "Opening liability", fmt: "usd", width: 1.3 },
         { header: "Payment", fmt: "usd", width: 1.05, name: "payments" },
         { header: "Interest", fmt: "usd", width: 1.05, name: "interest" },
@@ -737,12 +839,12 @@ export function proposalsDoc(k: KindInput): ReportDoc {
         { header: "Proposal", fmt: "text", width: 1.7 },
         { header: `${metric} (${unit})`, fmt: "num", width: 1.3 },
         { header: "Total net", fmt: "usd", width: 1.3 },
-        { header: "Term (months)", fmt: "int", width: 0.75 },
+        { header: "Term (months)", fmt: "plain", width: 0.75 },
         { header: "Rentable area", fmt: "int", width: 0.9 },
         { header: "Usable area", fmt: "int", width: 0.8 },
         { header: "Load factor", fmt: "num", width: 0.6 },
         { header: "Opex", fmt: "text", width: 0.9 },
-        { header: "Downtime (months)", fmt: "int", width: 0.75 },
+        { header: "Downtime (months)", fmt: "plain", width: 0.75 },
       ],
       rows: v.ranking.map((p) => [
         p.rank,
@@ -785,6 +887,8 @@ export function proposalsDoc(k: KindInput): ReportDoc {
         typeof opex.type === "string"
           ? `${opex.type}${typeof opex.expense_psf_annual === "number" ? ` ${usd(opex.expense_psf_annual)}/SF` : ""}`
           : "",
+        typeof p.leasing_commissions === "number" ? p.leasing_commissions : 0,
+        typeof p.downtime_months === "number" ? p.downtime_months : 0,
       ];
     });
     blocks.push(
@@ -794,13 +898,15 @@ export function proposalsDoc(k: KindInput): ReportDoc {
         size: 7,
         columns: [
           { header: "Proposal", fmt: "text", width: 1.5 },
-          { header: "Starting rent ($/SF/yr)", fmt: "num", width: 0.9 },
+          { header: "Starting rent ($/SF/yr)", fmt: "usd", width: 0.9 },
           { header: "Commencement", fmt: "date", width: 0.9 },
-          { header: "Term (months)", fmt: "int", width: 0.7 },
+          { header: "Term (months)", fmt: "plain", width: 0.7 },
           { header: "Escalation", fmt: "text", width: 1.3 },
           { header: "Abated months", fmt: "int", width: 0.7 },
-          { header: "TI ($/SF)", fmt: "num", width: 0.7 },
+          { header: "TI ($/SF)", fmt: "usd", width: 0.7 },
           { header: "Operating expenses", fmt: "text", width: 1.2 },
+          { header: "Leasing commissions", fmt: "usd", width: 1 },
+          { header: "Downtime (months)", fmt: "plain", width: 0.7 },
         ],
         rows,
       },
@@ -923,7 +1029,7 @@ export function dcfDoc(k: KindInput): ReportDoc {
           value: v.timing === "mid_year" ? "mid-year" : "end of year",
           fmt: "text",
         },
-        { label: "Hold (years)", value: v.hold_years, fmt: "int" },
+        { label: "Hold (years)", value: v.hold_years, fmt: "plain" },
         {
           label: "Building area (SF)",
           value: v.building_area_sf,
@@ -980,8 +1086,8 @@ export function dcfDoc(k: KindInput): ReportDoc {
       columns: [
         { header: "Lease", fmt: "text", width: 1.6 },
         { header: "Kind", fmt: "text", width: 0.8 },
-        { header: "Start month", fmt: "int", width: 0.7 },
-        { header: "End month", fmt: "int", width: 0.7 },
+        { header: "Start month", fmt: "plain", width: 0.7 },
+        { header: "End month", fmt: "plain", width: 0.7 },
         { header: "Renewal probability", fmt: "pct", width: 0.8 },
         { header: "Downtime (months)", fmt: "num", width: 0.8 },
         { header: "Free rent (months)", fmt: "num", width: 0.8 },
