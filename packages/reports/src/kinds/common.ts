@@ -208,37 +208,55 @@ const MAX_ARG_TEXT = 300;
 const MAX_ARG_ROWS = 400;
 
 /** The tool's arguments, when sent, flattened to one row per value. */
+/** A list of plain values longer than this is one row in the PDF (all of it in the workbook). */
+const PDF_LIST_SHOWN = 6;
+
 export function inputsBlocks(args: unknown): Block[] {
   if (args === undefined) return [];
-  const rows: (string | number)[][] = [];
-  const fmts: (Fmt | undefined)[][] = [];
-  const walk = (v: unknown, path: string) => {
-    if (rows.length >= MAX_ARG_ROWS) return;
-    if (Array.isArray(v)) v.forEach((x, i) => walk(x, `${path}[${i}]`));
-    else if (typeof v === "object" && v !== null)
-      for (const [key, x] of Object.entries(v))
-        walk(x, path ? `${path}.${key}` : key);
-    else if (typeof v === "number") {
-      fmts[rows.length] = [
-        undefined,
-        Number.isInteger(v) && ungrouped(path) ? "plain" : undefined,
-      ];
-      rows.push([path, v]);
-    } else {
-      const text = typeof v === "boolean" ? String(v) : String(v ?? "");
-      rows.push([
-        path,
-        text.length > MAX_ARG_TEXT
-          ? `(${text.length} characters of text, not shown)`
-          : text,
-      ]);
-    }
-  };
-  walk(args, "");
-  return [
-    { t: "heading", text: "Inputs: the arguments the tool was run on" },
-    {
+  const table = (compact: boolean): Block => {
+    const rows: (string | number)[][] = [];
+    const fmts: (Fmt | undefined)[][] = [];
+    const scalar = (v: unknown) => typeof v !== "object" || v === null;
+    const walk = (v: unknown, path: string) => {
+      if (rows.length >= MAX_ARG_ROWS) return;
+      if (
+        compact &&
+        Array.isArray(v) &&
+        v.length > PDF_LIST_SHOWN &&
+        v.every(scalar)
+      ) {
+        rows.push([
+          `${path} (${v.length} values)`,
+          `${v
+            .slice(0, PDF_LIST_SHOWN)
+            .map((x) => (typeof x === "string" ? x : String(x)))
+            .join(", ")}, … (all ${v.length} in the workbook's Inputs sheet)`,
+        ]);
+      } else if (Array.isArray(v))
+        v.forEach((x, i) => walk(x, `${path}[${i}]`));
+      else if (typeof v === "object" && v !== null)
+        for (const [key, x] of Object.entries(v))
+          walk(x, path ? `${path}.${key}` : key);
+      else if (typeof v === "number") {
+        fmts[rows.length] = [
+          undefined,
+          Number.isInteger(v) && ungrouped(path) ? "plain" : undefined,
+        ];
+        rows.push([path, v]);
+      } else {
+        const text = typeof v === "boolean" ? String(v) : String(v ?? "");
+        rows.push([
+          path,
+          text.length > MAX_ARG_TEXT
+            ? `(${text.length} characters of text, not shown)`
+            : text,
+        ]);
+      }
+    };
+    walk(args, "");
+    return {
       t: "table",
+      only: compact ? "pdf" : "xlsx",
       sheet: "Inputs",
       size: 7,
       columns: [
@@ -250,7 +268,12 @@ export function inputsBlocks(args: unknown): Block[] {
           ? [...rows, [`(first ${MAX_ARG_ROWS} values shown)`, ""]]
           : rows,
       fmts: Array.from({ length: rows.length }, (_, i) => fmts[i] ?? []),
-    },
+    };
+  };
+  return [
+    { t: "heading", text: "Inputs: the arguments the tool was run on" },
+    table(true),
+    table(false),
   ];
 }
 

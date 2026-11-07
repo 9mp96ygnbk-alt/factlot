@@ -61,6 +61,10 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
   were supplied (not computed), and `source` is `doc_abstract_lease` (no package version).
 - Reports, calendar: shorter event titles, no one-day duplicate of a renewal window, and dates
   before today left out unless `include_past` is sent.
+- Reports, workbooks: the DCF CashFlows subtotals are live formulas, with each year's NOI and cash
+  flow tied out on Checks, and the CAM statement's charge is checked by a live formula; the docs
+  now say which kinds carry live formulas and which are value workbooks with live checks. In the
+  PDF a long list in Inputs is one row with its count (all values stay in the workbook).
 - Reports, filenames cut at word boundaries and drop a trailing year the date repeats.
 - Reports, errors: a missing field says "missing", non-object arguments are reported at
   `arguments`, `next` points to the request shape and the tool's schema (and lists the formats

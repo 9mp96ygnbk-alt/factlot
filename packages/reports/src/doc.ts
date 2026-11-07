@@ -81,6 +81,14 @@ type BlockBody =
       size?: number;
       /** Per-cell formats overriding the column's, by row then column. */
       fmts?: (Fmt | undefined)[][];
+      /**
+       * Workbook only: rows written as live formulas over other rows of the same column, by row
+       * index. "{3}" is that column's cell in row 3; e.g. "ROUND({0}+{1}+{2},2)". Applied to
+       * every numeric column; names "<prefix>_<column>" each such cell for check formulas.
+       */
+      rowFormulas?: Record<number, string>;
+      /** Names each cell of these rows "<name>_<column index>" (from 1) for check formulas. */
+      rowNames?: Record<number, string>;
     }
   | { t: "pagebreak" };
 
@@ -372,16 +380,23 @@ export function appendBlocks(
         const fmt = b.fmts?.[k]?.[i] ?? b.columns[i]!.fmt;
         if (v === null || v === undefined) return;
         const st = styleFor(v, fmt);
-        sh.put(
+        const live = typeof v === "number" ? b.rowFormulas?.[k] : undefined;
+        const ref = sh.put(
           row,
           i + 1,
-          cellValue(v, fmt),
+          live
+            ? fx(
+                `=${live.replace(/\{(\d+)\}/g, (_, j: string) => addr(first + Number(j), i + 1))}`,
+              )
+            : cellValue(v, fmt),
           bold.has(k) && st === "money"
             ? "total_money"
             : bold.has(k) && st === "text"
               ? "total_text"
               : st,
         );
+        const rn = b.rowNames?.[k];
+        if (rn && typeof v === "number") names.set(`${rn}_${i}`, ref);
       });
       row++;
     });

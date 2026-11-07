@@ -1,8 +1,9 @@
 # Reports: XLSX, PDF and ICS from FactLot results
 
 `report_create` (MCP) and `POST /v1/reports` (REST) turn a FactLot tool result into the document a
-CRE analyst or a Texas property tax consultant would otherwise build by hand: a workbook with live
-formulas, a paginated PDF, or a calendar. Hosted only (api.factlot.com).
+CRE analyst or a Texas property tax consultant would otherwise build by hand: a workbook (with live
+formulas where the arithmetic is simple, and live checks everywhere), a paginated PDF, or a
+calendar. Hosted only (api.factlot.com).
 
 **Status:** open on api.factlot.com since 2026-11-07. `/v1/plans` shows `reports.available: true`
 and the per-plan monthly allowance. (A self-hosted deployment without `REPORTS_ENABLED` answers
@@ -88,12 +89,23 @@ document also says it is not an appraisal or an opinion of value (Tex. Occ. Code
 legal or tax advice, and not a substitute for the advice of an attorney. Nothing in a report
 recommends anything.
 
-Workbooks keep the tool's figures as numbers with number formats, and each one has a Steps sheet
-with the tool's audit trail. Live Excel formulas tie the figures out on a Checks sheet, or on the
-Reconcile sheet in the Texas workbook. A check puts the formula's result beside the number FactLot
-returned, with a Difference column and a Status. FactLot evaluates every formula before it writes
-the file, so a viewer that does not recalculate still shows numbers. Excel recalculates the formulas
-when the file opens. When the arguments are sent, an Inputs section lists them as sent.
+Workbooks keep the tool's figures as numbers with number formats, and each calculator workbook
+has a Steps sheet with the tool's audit trail. Which cells are live Excel formulas depends on the
+kind:
+
+- `tx_unequal_appraisal`: the Grid is live arithmetic from the inputs (normalization, factors,
+  adjusted values, $/SF, the median and the difference), reconciled on the Reconcile sheet.
+- `dcf_summary`: on the CashFlows sheet the subtotals (gross revenue, effective gross revenue, net
+  operating income, cash flow before debt service) are live formulas over the lines above them.
+- The other kinds are value workbooks: their figures are FactLot's numbers, tied out by live
+  formulas on a Checks sheet (a CAM statement's charge and balance, a debt sizing's binding test,
+  an ASC 842 schedule's totals, a DCF's value, net sale proceeds and each year's NOI and cash flow).
+
+A check puts the formula's result beside the number FactLot returned, with a Difference column and
+a Status. FactLot evaluates every formula before it writes the file, so a viewer that does not
+recalculate still shows numbers. Excel recalculates the formulas when the file opens. When the
+arguments are sent, an Inputs section lists them as sent; in the PDF a list of more than six plain
+values is one row with its count and first values, and the workbook's Inputs sheet has all of them.
 
 ## What a report accepts
 

@@ -1808,4 +1808,64 @@ describe("QA fixes", () => {
     );
     assert.match(fmt.next ?? "", /"xlsx", "pdf"/);
   });
+
+  it("D6 live formulas: DCF subtotals and the CAM charge tie out to FactLot's figures on every vector", async () => {
+    const cases: [ReportKind, Json][] = [
+      ...calcCases("dcf_pro_forma").map((a): [ReportKind, Json] => [
+        "dcf_summary",
+        a,
+      ]),
+      ...calcCases("cam_reconciliation").map((a): [ReportKind, Json] => [
+        "cam_reconciliation",
+        a,
+      ]),
+    ];
+    assert.ok(cases.length > 2);
+    for (const [kind, args] of cases) {
+      const x = await readXlsx(
+        (
+          await createReport(
+            { kind, format: "xlsx", arguments: args },
+            { now: NOW },
+          )
+        ).bytes,
+      );
+      const status = x
+        .values("Checks")
+        .filter((v) => v === "match" || v === "DIFFERENT");
+      assert.ok(status.length > 0, kind);
+      assert.ok(
+        status.every((v) => v === "match"),
+        `${kind}: ${JSON.stringify(args).slice(0, 80)}`,
+      );
+      if (kind === "dcf_summary") {
+        const cf = x.xml.get(
+          `xl/worksheets/sheet${x.sheets.indexOf("CashFlows") + 1}.xml`,
+        )!;
+        assert.match(cf, /<f>ROUND\(B\d+\+B\d+\+B\d+,2\)<\/f>/);
+      }
+    }
+  });
+
+  it("D15 PDF Inputs: a long list is one row with a count; the workbook keeps every value", async () => {
+    const s = SAMPLES.find((x) => x.kind === "compare_proposals")!;
+    const args = structuredClone(s.args) as {
+      proposals: { schedule: { abated_months?: number[] } }[];
+    };
+    args.proposals[0]!.schedule.abated_months = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+    const req = { kind: "compare_proposals", arguments: args };
+    const pdf = (
+      await readPdf(
+        (await createReport({ ...req, format: "pdf" }, { now: NOW })).bytes,
+      )
+    ).text.replace(/\s+/g, " ");
+    assert.match(pdf, /abated_months \(9 values\)/);
+    assert.ok(!pdf.includes("abated_months[8]"));
+    const x = await readXlsx(
+      (await createReport({ ...req, format: "xlsx" }, { now: NOW })).bytes,
+    );
+    assert.ok(
+      x.values("Inputs").includes("proposals[0].schedule.abated_months[8]"),
+    );
+  });
 });

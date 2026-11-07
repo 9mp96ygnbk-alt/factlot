@@ -42,24 +42,32 @@ function camStatementRows(v: CamValue): Kv[] {
       label: "Tenant share of controllable expenses",
       value: v.tenant_share_controllable,
       fmt: "usd",
+      name: "share_ctrl",
     },
     {
       label: "Cap limit",
       value: v.cap_limit ?? "no cap",
       fmt: v.cap_limit === null ? "text" : "usd",
     },
-    { label: "Cap reduction (deducted)", value: v.cap_reduction, fmt: "usd" },
+    {
+      label: "Cap reduction (deducted)",
+      value: v.cap_reduction,
+      fmt: "usd",
+      name: "cap_reduction",
+    },
     {
       label: "Tenant share of uncontrollable expenses",
       value: v.tenant_share_uncontrollable,
       fmt: "usd",
+      name: "share_unctrl",
     },
-    { label: "Admin fee", value: v.admin_fee, fmt: "usd" },
+    { label: "Admin fee", value: v.admin_fee, fmt: "usd", name: "admin_fee" },
     { label: "Occupancy fraction", value: v.occupancy_fraction, fmt: "pct" },
     {
       label: "Base-year or expense-stop deduction",
       value: v.structure_deduction,
       fmt: "usd",
+      name: "deduction",
     },
     {
       label: "Tenant CAM charge",
@@ -221,6 +229,15 @@ export function camDoc(k: KindInput): ReportDoc {
     ),
     blocks,
     checks: [
+      {
+        label:
+          "Tenant charge = shares − cap reduction + admin fee − deduction (not below 0)",
+        formula:
+          "ROUND(MAX(0,{share_ctrl}-{cap_reduction}+{share_unctrl}+{admin_fee}-{deduction}),2)",
+        factlot: v.tenant_charge,
+        dp: 2,
+        field: "value.tenant_charge",
+      },
       {
         label: "Balance due = charge − estimates paid",
         formula: "ROUND({charge}-{estimates},2)",
@@ -950,6 +967,25 @@ const DCF_LINES: [keyof DcfResult["value"]["cash_flows"][number], string][] = [
   ["capital_reserves", "Capital reserves"],
   ["cash_flow_before_debt", "Cash flow before debt service"],
 ];
+type DcfLine = (typeof DCF_LINES)[number][0];
+/** Each subtotal line of the cash flows and the lines it adds (amounts are signed). */
+const DCF_SUBTOTALS: Partial<Record<DcfLine, DcfLine[]>> = {
+  gross_revenue: ["potential_base_rent", "free_rent", "expense_recoveries"],
+  effective_gross_revenue: ["gross_revenue", "general_vacancy", "credit_loss"],
+  net_operating_income: [
+    "effective_gross_revenue",
+    "operating_expenses",
+    "management_fee",
+  ],
+  cash_flow_before_debt: [
+    "net_operating_income",
+    "tenant_improvements",
+    "leasing_commissions",
+    "capital_reserves",
+  ],
+};
+const lineIndex = (key: DcfLine) => DCF_LINES.findIndex(([k]) => k === key);
+
 const DCF_BOLD = new Set([
   "gross_revenue",
   "effective_gross_revenue",
@@ -989,6 +1025,23 @@ export function dcfDoc(k: KindInput): ReportDoc {
     bold: DCF_LINES.map(([key], i) => (DCF_BOLD.has(key) ? i : -1)).filter(
       (i) => i >= 0,
     ),
+    ...(only === "xlsx"
+      ? {
+          // The subtotals are live formulas over the lines above them (signed amounts).
+          rowFormulas: Object.fromEntries(
+            (Object.entries(DCF_SUBTOTALS) as [DcfLine, DcfLine[]][]).map(
+              ([key, parts]) => [
+                lineIndex(key),
+                `ROUND(${parts.map((x) => `{${lineIndex(x)}}`).join("+")},2)`,
+              ],
+            ),
+          ),
+          rowNames: {
+            [lineIndex("net_operating_income")]: "noi",
+            [lineIndex("cash_flow_before_debt")]: "cfbd",
+          },
+        }
+      : {}),
   });
   const blocks: Block[] = [
     { t: "heading", text: "Value" },
@@ -1123,6 +1176,22 @@ export function dcfDoc(k: KindInput): ReportDoc {
     ),
     blocks,
     checks: [
+      ...v.cash_flows.flatMap((y, i): Check[] => [
+        {
+          label: `Year ${y.year}: net operating income (live subtotal on CashFlows)`,
+          formula: `{noi_${i + 1}}`,
+          factlot: y.net_operating_income,
+          dp: 2,
+          field: `value.cash_flows[${i}].net_operating_income`,
+        },
+        {
+          label: `Year ${y.year}: cash flow before debt service (live subtotal on CashFlows)`,
+          formula: `{cfbd_${i + 1}}`,
+          factlot: y.cash_flow_before_debt,
+          dp: 2,
+          field: `value.cash_flows[${i}].cash_flow_before_debt`,
+        },
+      ]),
       {
         label: "Value = PV of cash flows + PV of reversion",
         formula: "ROUND({pv_cf}+{pv_rev},2)",
