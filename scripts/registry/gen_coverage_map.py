@@ -268,7 +268,7 @@ def main(argv: list[str]) -> int:
         "reference_date": ref,
         "max_age_days": MAX_AGE_DAYS,
         "classes": {
-            "hosted": "Registry lookups for this county are served by the hosted API at api.factlot.com on every plan; call registry_coverage to list "
+            "hosted": "Registry lookups for this county are served by the hosted API at api.factlot.com on every plan, metered by plan; call registry_coverage to list "
                       "what is hosted. DC's data is also the downloadable CC BY 4.0 sample database.",
             "audited_load": "Whole-county load from a verified source; the quality audit re-read the archived publisher file and "
                             "found the registry holds exactly its in-scope parcels, with 0 violations. Built, not yet hosted (run it on a self-hosted FactLot).",
