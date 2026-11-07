@@ -47,7 +47,7 @@ them, and do not shorten it:
 
 ## 1. Coverage
 
-Call `registry_coverage`. Texas hosting opens with this release; `registry_coverage` lists each Texas county once it is hosted. Tarrant County is not served by the hosted registry while the publisher's terms for AI use are unclear. `registry_tx_equity_candidates` refuses Tarrant parcels on every server. A self-hosted FactLot with a Texas registry file
+Call `registry_coverage`. The hosted API serves Harris, Dallas, Travis, Collin, Denton and Williamson counties (Denton and Williamson from 2027 preliminary rolls); `registry_coverage` lists exactly what is hosted. Tarrant County is not served by the hosted registry while the publisher's terms for AI use are unclear. `registry_tx_equity_candidates` refuses Tarrant parcels on every server. A self-hosted FactLot with a Texas registry file
 (`FACTLOT_REGISTRY_DB`) works the same way for the districts it holds.
 
 If the subject's county is not covered, the user can read values from the appraisal district's own

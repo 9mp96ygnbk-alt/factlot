@@ -12,7 +12,8 @@ Python standard library only, and nothing is invented. The rows come from gen_co
 Classes (the reference date is the latest `reviewed` date among the source configs, so the file is stable):
 
 * hosted: the county's registry data is served by the hosted API today (coverage-data.json "queryable" and
-  "hosted_areas"), whatever its audit state. DC's data is also the downloadable sample.
+  "hosted_areas"), whatever its audit state. DC's data is also the downloadable sample. A county the hosted registry
+  withholds (coverage-data.json "withheld_areas") keeps its audit class and carries the reason in `withheld`.
 * audited_load: a whole-county load from a verified source that the Tier 1 quality audit re-read against the
   archived publisher file (the registry holds exactly the parcels the adapter yields), with 0 audit violations
   after the pass and a data as-of date no more than MAX_AGE_DAYS before the reference date. Not hosted.
@@ -251,6 +252,11 @@ def main(argv: list[str]) -> int:
                     "hosted": cls == "hosted" and "hosted on api.factlot.com" or False,
                     "evidence": evidence,
                 }
+                w = data.get("withheld_areas", {}).get(sid)
+                if w:
+                    if cls == "hosted":
+                        raise SystemExit(f"{r['area']}: both hosted and withheld")
+                    counties[f]["withheld"] = re.sub(r"^No: ", "", w["text"])
 
     sources = {}
     for sid in sorted(used_sources):

@@ -4025,7 +4025,10 @@ describe("account usage, tools and page", () => {
       html,
       /<strong>MD<\/strong>: 2 counties, 3,534 parcels, as of 2026-11-05/,
     );
-    assert.match(html, /Texas hosting opens with this release\./);
+    assert.match(
+      html,
+      /Texas is hosted: Harris, Dallas, Travis, Collin, Denton and Williamson counties\./,
+    );
     assert.match(html, /What's new/);
     assert.match(html, /Get help/);
     assert.doesNotMatch(html, / style="/);
