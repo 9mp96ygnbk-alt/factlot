@@ -15,6 +15,8 @@ import {
   type RGB,
 } from "pdf-lib";
 
+import { ReportInputError } from "./validate.ts";
+
 const PAGE_W = 612; // US Letter
 const PAGE_H = 792;
 const MARGIN = 50;
@@ -33,6 +35,17 @@ const NOTICE_FILL = rgb(0.992, 0.937, 0.89);
 const NOTICE_EDGE = rgb(0.75, 0.0, 0.0);
 const INFO_FILL = rgb(0.91, 0.95, 0.89);
 const INFO_EDGE = rgb(0.33, 0.51, 0.21);
+
+/** Longest text drawn from one cell or paragraph; longer text is cut with a note. */
+export const MAX_CELL_CHARS = 2_000;
+/** Most lines of text one document draws (an ASC 842 schedule of 1,200 periods draws ~12,000). */
+export const MAX_PDF_LINES = 60_000;
+
+/** Text cut to MAX_CELL_CHARS, with an ellipsis and a note saying how much there was. */
+export function capText(s: string): string {
+  if (s.length <= MAX_CELL_CHARS) return s;
+  return `${s.slice(0, MAX_CELL_CHARS)}… [cut: ${s.length.toLocaleString("en-US")} characters in all; the PDF shows the first ${MAX_CELL_CHARS.toLocaleString("en-US")}]`;
+}
 
 /** Unicode → WinAnsi-safe text. */
 const REPLACE: Record<string, string> = {
@@ -108,7 +121,10 @@ export class PdfWriter {
   private charset!: Set<number>;
   private page!: PDFPage;
   private y = TOP;
+  private lines = 0;
   private readonly meta: PdfMeta;
+  /** Glyph advance widths at size 1, per font, measured once per character. */
+  private readonly advance = new Map<PDFFont, Map<string, number>>();
 
   private constructor(meta: PdfMeta) {
     this.meta = meta;
@@ -151,11 +167,29 @@ export class PdfWriter {
     if (this.y - h < BOTTOM) this.newPage();
   }
 
-  private width(s: string, size: number, font: PDFFont): number {
-    return font.widthOfTextAtSize(s, size);
+  /** One character's advance at size 1 (the PDF draws glyphs without kerning). */
+  private charWidth(ch: string, font: PDFFont): number {
+    let m = this.advance.get(font);
+    if (!m) this.advance.set(font, (m = new Map()));
+    let w = m.get(ch);
+    if (w === undefined) {
+      w = font.widthOfTextAtSize(ch, 1);
+      m.set(ch, w);
+    }
+    return w;
   }
 
-  /** Wrap cleaned text into lines no wider than `w`. */
+  /** Width of cleaned text: the sum of its glyphs' advances, in one pass. */
+  private width(s: string, size: number, font: PDFFont): number {
+    let w = 0;
+    for (const ch of s) w += this.charWidth(ch, font);
+    return w * size;
+  }
+
+  /**
+   * Wrap text into lines no wider than `w`, in one pass over its characters (each glyph is
+   * measured once). Text over MAX_CELL_CHARS is cut first (capText).
+   */
   wrap(
     text: string,
     size: number,
@@ -163,28 +197,40 @@ export class PdfWriter {
     font: PDFFont = this.regular,
   ): string[] {
     const lines: string[] = [];
-    for (const para of this.clean(text).split("\n")) {
+    const space = this.charWidth(" ", font) * size;
+    for (const para of this.clean(capText(text)).split("\n")) {
       if (para === "") {
         lines.push("");
         continue;
       }
       let line = "";
+      let lineW = 0;
       for (const word of para.split(/ +/)) {
-        const candidate = line ? `${line} ${word}` : word;
-        if (this.width(candidate, size, font) <= w) {
-          line = candidate;
+        const wordW = this.width(word, size, font);
+        if (line && lineW + space + wordW <= w) {
+          line += ` ${word}`;
+          lineW += space + wordW;
           continue;
         }
         if (line) lines.push(line);
-        // A word longer than the line is broken by characters.
-        let rest = word;
-        while (this.width(rest, size, font) > w && rest.length > 1) {
-          let k = rest.length - 1;
-          while (k > 1 && this.width(rest.slice(0, k), size, font) > w) k--;
-          lines.push(rest.slice(0, k));
-          rest = rest.slice(k);
+        if (wordW <= w) {
+          line = word;
+          lineW = wordW;
+          continue;
         }
-        line = rest;
+        // A word longer than the line is broken by characters; the rest starts the next line.
+        line = "";
+        lineW = 0;
+        for (const ch of word) {
+          const cw = this.charWidth(ch, font) * size;
+          if (line && lineW + cw > w) {
+            lines.push(line);
+            line = "";
+            lineW = 0;
+          }
+          line += ch;
+          lineW += cw;
+        }
       }
       lines.push(line);
     }
@@ -199,7 +245,13 @@ export class PdfWriter {
     font: PDFFont,
     color: RGB = INK,
   ): void {
-    if (s) this.page.drawText(s, { x, y, size, font, color });
+    if (!s) return;
+    if (++this.lines > MAX_PDF_LINES)
+      throw new ReportInputError(
+        "TooLarge",
+        `the PDF would draw more than ${MAX_PDF_LINES.toLocaleString("en-US")} lines of text; ask for the xlsx format, or send less text`,
+      );
+    this.page.drawText(s, { x, y, size, font, color });
   }
 
   title(text: string, subtitle?: string): void {

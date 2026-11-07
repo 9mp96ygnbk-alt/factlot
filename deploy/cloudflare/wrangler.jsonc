@@ -14,6 +14,11 @@
   "main": "src/worker.ts",
   "compatibility_date": "2026-10-01",
   "compatibility_flags": ["nodejs_compat"],
+  // CPU time per request, in ms. Reports (POST /v1/reports, report_create) build PDF and XLSX
+  // files in the Worker; the largest allowed document takes well under a second, and this
+  // ceiling keeps a pathological one from running long. A cpu_ms above the free plan's 10 ms
+  // needs the Workers Paid plan (the owner is enabling it); deploy this setting only on Paid.
+  "limits": { "cpu_ms": 30000 },
   "workers_dev": false,
   "routes": [
     { "pattern": "api.factlot.com", "custom_domain": true },

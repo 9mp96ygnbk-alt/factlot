@@ -9,6 +9,7 @@ import { build } from "esbuild";
 import { PDFDocument, PDFRawStream } from "pdf-lib";
 
 import { fold } from "./ics.ts";
+import { MAX_CELL_CHARS, MAX_PDF_LINES, PdfWriter } from "./pdf.ts";
 import { pct, usd, num } from "./format.ts";
 import {
   KIND_FORMATS,
@@ -711,6 +712,65 @@ describe("documents", () => {
     times.sort((a, b) => a - b);
     const p95 = times[Math.floor(times.length * 0.95)]!;
     assert.ok(p95 < 250, `p95 ${p95.toFixed(1)} ms`);
+  });
+});
+
+describe("PDF text limits", () => {
+  const writer = () =>
+    PdfWriter.create({
+      title: "t",
+      subject: "s",
+      header: "h",
+      footer: "f",
+      producer: "p",
+      keywords: [],
+      created: new Date(NOW),
+    });
+
+  it("wraps in one pass: a long unbroken token and long paragraphs take milliseconds", async () => {
+    const w = await writer();
+    for (const text of [
+      "W".repeat(4_000),
+      "W".repeat(20_000),
+      "W".repeat(MAX_CELL_CHARS),
+      `${"word ".repeat(400)}${"x".repeat(1_900)}`,
+    ]) {
+      const t = performance.now();
+      const lines = w.wrap(text, 7, 60);
+      const ms = performance.now() - t;
+      assert.ok(ms < 100, `${text.length} chars: ${ms.toFixed(1)} ms`);
+      assert.ok(lines.length > 1);
+    }
+  });
+
+  it("breaks a word longer than the line by characters, and keeps every character", async () => {
+    const w = await writer();
+    const lines = w.wrap(`ab ${"W".repeat(300)} cd`, 9, 100);
+    assert.equal(lines.join("").replace(/ /g, ""), `ab${"W".repeat(300)}cd`);
+    assert.ok(lines.length > 3);
+  });
+
+  it(`cuts text over ${MAX_CELL_CHARS} characters with an ellipsis and a note`, async () => {
+    const w = await writer();
+    const text = w.wrap("A".repeat(5_000), 9, 10_000).join("");
+    assert.ok(text.startsWith("A".repeat(MAX_CELL_CHARS)));
+    assert.ok(!text.includes("A".repeat(MAX_CELL_CHARS + 1)));
+    assert.match(
+      text,
+      /\[cut: 5,000 characters in all; the PDF shows the first 2,000\]$/,
+    );
+  });
+
+  it(`refuses a document that would draw over ${MAX_PDF_LINES} lines (TooLarge)`, async () => {
+    const w = await writer();
+    const t = performance.now();
+    assert.throws(
+      () => {
+        for (let i = 0; i < MAX_PDF_LINES + 10; i++) w.para("x");
+      },
+      (e: unknown) => e instanceof ReportInputError && e.code === "TooLarge",
+    );
+    assert.ok(performance.now() - t < 5_000);
   });
 });
 
