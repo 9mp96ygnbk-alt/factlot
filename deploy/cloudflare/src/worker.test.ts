@@ -19,6 +19,7 @@ import {
 } from "./keys.ts";
 import { WindowCounter } from "./limiter.ts";
 import { escapeHtml } from "./pages.ts";
+import { REGISTRY_RUN_URL, registryRunner } from "./registry.ts";
 import { handle } from "./router.ts";
 import { hmacSha256Hex, verifyStripeSignature } from "./stripe.ts";
 import type { Env, KV, RateLimit } from "./types.ts";
@@ -514,5 +515,39 @@ describe("WindowCounter", () => {
     for (let i = 0; i < 60; i++) assert.equal(c.hit(60, 60_000, t0 + i), true);
     assert.equal(c.hit(60, 60_000, t0 + 100), false);
     assert.equal(c.hit(60, 60_000, t0 + 60_000), true);
+  });
+});
+
+describe("registry runner", () => {
+  it("posts the tool and checked input to the registry service and returns its outcome", async () => {
+    const seen: { url: string; body: unknown }[] = [];
+    const service = {
+      async fetch(r: Request) {
+        seen.push({ url: r.url, body: await r.json() });
+        return new Response(JSON.stringify({ ok: true, result: { n: 1 } }));
+      },
+    };
+    const run = registryRunner(service);
+    assert.deepEqual(await run("registry_coverage", {}), {
+      ok: true,
+      result: { n: 1 },
+    });
+    assert.deepEqual(seen, [
+      {
+        url: REGISTRY_RUN_URL,
+        body: { tool: "registry_coverage", input: {} },
+      },
+    ]);
+  });
+
+  it("throws on a failed or malformed answer so the catalog reports RegistryUnavailable", async () => {
+    const failing = registryRunner({
+      fetch: async () => new Response("no", { status: 503 }),
+    });
+    await assert.rejects(failing("registry_coverage", {}));
+    const malformed = registryRunner({
+      fetch: async () => new Response(JSON.stringify({ hello: 1 })),
+    });
+    await assert.rejects(malformed("registry_coverage", {}));
   });
 });

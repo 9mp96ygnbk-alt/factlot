@@ -28,7 +28,7 @@ import {
   openApi30,
   openApi31,
   runToolAsync,
-  registryPath,
+  registryAvailable,
   tools,
 } from "@factlot/tools";
 
@@ -491,7 +491,7 @@ export function createHandler(opts: FactLotServerOptions = {}) {
         const api = {
           serverUrl: baseUrl(req, opts),
           filter: (t: (typeof tools)[number]) =>
-            t.requires !== "registry" || registryPath() !== undefined,
+            t.requires !== "registry" || registryAvailable(),
           ...(url.searchParams.get("operations") === "all"
             ? { operations: "all" as const }
             : {}),
@@ -599,7 +599,7 @@ export function createHandler(opts: FactLotServerOptions = {}) {
       if (path === "/v1/tools") {
         // Same list as MCP tools/list: registry tools only when a registry is loaded.
         const listed = tools.filter(
-          (t) => t.requires !== "registry" || registryPath() !== undefined,
+          (t) => t.requires !== "registry" || registryAvailable(),
         );
         send(res, 200, {
           tools: listed.map((t) => ({

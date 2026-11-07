@@ -45,6 +45,7 @@ import {
   registryFacts,
   registryGet,
   registryOwnedByResult,
+  registryPath,
   registryRecordMiss,
   registryResolveExternalResult,
   registryResolveParcelResult,
@@ -1007,6 +1008,29 @@ export function runTool(name: string, args: unknown): ToolOutcome {
   }
 }
 
+/**
+ * Answers a registry tool somewhere else (the hosted API's registry service). It receives the
+ * input after the checks and schema defaults, and returns the outcome runTool would return.
+ */
+export type RegistryRunner = (
+  name: string,
+  input: unknown,
+) => Promise<ToolOutcome>;
+
+let registryRunner: RegistryRunner | undefined;
+
+/** Send registry tools to a runner instead of a local file (undefined: back to the local file). */
+export function configureRegistryRunner(
+  runner: RegistryRunner | undefined,
+): void {
+  registryRunner = runner;
+}
+
+/** Whether registry tools can answer here: a registry runner, or a registry file. */
+export function registryAvailable(): boolean {
+  return registryRunner !== undefined || registryPath() !== undefined;
+}
+
 /** runTool for every tool, including asynchronous ones. The MCP server and REST API use this. */
 export async function runToolAsync(
   name: string,
@@ -1014,6 +1038,20 @@ export async function runToolAsync(
 ): Promise<ToolOutcome> {
   const c = checkInput(name, args);
   if ("error" in c) return c.error;
+  if (c.tool.requires === "registry" && registryRunner) {
+    try {
+      return await registryRunner(name, inputFor(c));
+    } catch {
+      return {
+        ok: false,
+        error: {
+          error: "RegistryUnavailable",
+          message: "the registry service did not answer; retry in a moment",
+          issues: [],
+        },
+      };
+    }
+  }
   try {
     return {
       ok: true,

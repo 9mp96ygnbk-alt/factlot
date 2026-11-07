@@ -5,9 +5,11 @@
 import { createServer } from "node:http";
 import { httpServerHandler } from "cloudflare:node";
 import { createHandler } from "@factlot/server";
+import { configureRegistryRunner } from "@factlot/tools";
 
 import { objectLimiter, type DurableObjectNamespaceLike } from "./limiter.ts";
 import { ANONYMOUS_REQUESTS_PER_MINUTE, PLANS } from "./plans.ts";
+import { registryRunner } from "./registry.ts";
 import { handle } from "./router.ts";
 import type { Env, Fetcher } from "./types.ts";
 
@@ -19,6 +21,8 @@ createServer((req, res) => void handler(req, res)).listen(PORT);
 const node = httpServerHandler({ port: PORT }) as {
   fetch(request: Request, env: unknown, ctx: unknown): Promise<Response>;
 };
+
+let boundRegistry: Fetcher | undefined;
 
 export default {
   async fetch(
@@ -38,6 +42,11 @@ export default {
       RL_PRO: objectLimiter(raw.LIMITER, "pro", PLANS.pro.requestsPerMinute),
       RL_TEAM: objectLimiter(raw.LIMITER, "team", PLANS.team.requestsPerMinute),
     };
+    // The binding is the same object on every request; the runner closes over it.
+    if (raw.REGISTRY && raw.REGISTRY !== boundRegistry) {
+      boundRegistry = raw.REGISTRY;
+      configureRegistryRunner(registryRunner(raw.REGISTRY));
+    }
     const api: Fetcher = { fetch: (r) => node.fetch(r, raw, ctx) };
     try {
       return await handle(request, env, api);

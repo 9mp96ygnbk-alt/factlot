@@ -250,6 +250,12 @@ async function main(): Promise<void> {
       }
     }
   }
+  // Whether this deployment serves the registry (a registry service bound to the Worker).
+  const hostedRegistry =
+    (await post("/v1/registry/coverage", {})).status === 200;
+  notes.push(
+    hostedRegistry ? "hosted registry: served" : "hosted registry: not bound",
+  );
   const toolsSpec = readJson("spec/vectors/tools.json") as { cases: Case[] };
   for (const c of toolsSpec.cases) {
     vectorCount++;
@@ -265,11 +271,15 @@ async function main(): Promise<void> {
     }
     const { status, json } = await post(path, c.arguments);
     if (tool.startsWith("registry_") && !c.expect_error) {
-      // The hosted free endpoint carries no registry database yet: it must say so clearly.
+      // These vectors are written against a test registry file, not the hosted regions. With a
+      // registry service, the hosted answer is a result or a NotFound that carries coverage;
+      // without one, it must say clearly that no registry is loaded.
+      const error = (json as { error?: string })?.error;
       ok(
-        status === 503 &&
-          (json as { error?: string })?.error === "RegistryUnavailable",
-        `${label}: hosted registry answer ${status}`,
+        hostedRegistry
+          ? status === 200 || (status === 404 && error === "NotFound")
+          : status === 503 && error === "RegistryUnavailable",
+        `${label}: hosted registry answer ${status} ${error ?? ""}`,
       );
       continue;
     }

@@ -14,7 +14,7 @@ import {
 import { jsonSchemas } from "@factlot/schema";
 import {
   RegistryUnavailableError,
-  registryPath,
+  registryAvailable,
   registrySnapshot,
   runToolAsync,
   tools,
@@ -174,7 +174,7 @@ export interface CreateServerOptions {
 }
 
 export function createServer(opts: CreateServerOptions = {}): McpServer {
-  const withRegistry = opts.registry ?? registryPath() !== undefined;
+  const withRegistry = opts.registry ?? registryAvailable();
   const server = new McpServer(
     { name: SERVER_NAME, version: SERVER_VERSION },
     { instructions: SERVER_INSTRUCTIONS },

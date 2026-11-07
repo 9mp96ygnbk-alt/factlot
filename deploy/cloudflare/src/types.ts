@@ -36,6 +36,11 @@ export interface Env {
   RL_TEAM: RateLimit;
   /** Optional usage metering (Workers Analytics Engine). */
   USAGE?: AnalyticsDataset;
+  /**
+   * Optional: the registry service (Worker factlot-registry, bound by service binding). When set,
+   * the registry tools answer from it; without it they report that no registry is loaded.
+   */
+  REGISTRY?: Fetcher;
   /** Static landing page (Workers static assets). */
   ASSETS?: Fetcher;
   /** Secret. Billing answers 503 "not open yet" until it is set. */
