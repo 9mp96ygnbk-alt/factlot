@@ -2,7 +2,9 @@
 
 import unittest
 
-from factlot.registry.adapters.tx_pacs34 import DIMMIT_EXCLUDE, KIMBLE_EXCLUDE, MITCHELL_EXCLUDE, YOAKUM_EXCLUDE
+from factlot.registry.adapters.tx_pacs34 import (
+    DIMMIT_EXCLUDE, KIMBLE_EXCLUDE, MITCHELL_EXCLUDE, SHACKELFORD_EXCLUDE, YOAKUM_EXCLUDE,
+)
 
 
 class Batch13Exclusions(unittest.TestCase):
@@ -26,6 +28,15 @@ class Batch13Exclusions(unittest.TestCase):
         self.assertNotIn("F1", KIMBLE_EXCLUDE)
         self.assertIn("2 N", KIMBLE_EXCLUDE)
         self.assertIn("L2A", KIMBLE_EXCLUDE)
+
+    def test_shackelford_does_not_treat_vacant_lots_as_commercial(self):
+        self.assertNotIn("C1C", SHACKELFORD_EXCLUDE)
+        self.assertNotIn("C2", SHACKELFORD_EXCLUDE)
+        self.assertNotIn("F1", SHACKELFORD_EXCLUDE)
+        self.assertNotIn("F2", SHACKELFORD_EXCLUDE)
+        self.assertNotIn("B1", SHACKELFORD_EXCLUDE)
+        for code in ("EX1", "EX8", "G1", "G2", "G3", "L2A", "L4"):
+            self.assertIn(code, SHACKELFORD_EXCLUDE)
 
 
 if __name__ == "__main__":

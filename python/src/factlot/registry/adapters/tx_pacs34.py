@@ -765,6 +765,13 @@ YOAKUM_EXCLUDE = frozenset({"F3", "F4"})
 # not added onto another account. Conversion labels and the unidentified
 # "2 N" code are not used.
 KIMBLE_EXCLUDE = frozenset({"2 N", "L2A", "L2C", "L2G", "L2H", "L2J", "L2M", "L2P", "L2Q", "L2T"})
+# Shackelford's own table: C1C and C2 are vacant lots (C1), not commercial.
+# EX1–EX8 are exempt. G1–G3 are minerals. L2* conversion labels are not commercial.
+SHACKELFORD_EXCLUDE = frozenset({
+    "EX1", "EX2", "EX3", "EX4", "EX5", "EX6", "EX7", "EX8",
+    "G1", "G2", "G3",
+    "L2A", "L2C", "L2D", "L2E", "L2F", "L2G", "L2J", "L2K", "L2L", "L2M", "L2O", "L2P", "L2Q", "L2S", "L2T", "L4",
+})
 
 MITCHELL = CountyExport(
     source=Source(
@@ -836,6 +843,24 @@ KIMBLE = CountyExport(
     ),
     county_fips="267",
     account_system="kimble_prop_id",
+)
+
+SHACKELFORD = CountyExport(
+    source=Source(
+        source_id="tx-shackelford-cad",
+        publisher="Shackelford County Appraisal District",
+        title="2026 certified export, supplement 0, header as of supplement (PACS 8.0.34)",
+        url="https://shackelfordcad.com/",
+        state_fips="48",
+        county_fips="417",
+        license="No license stated on the pages read (2026-11-06). Public redistribution is not stated",
+        ai_use="unknown",
+        redistribution="unknown",
+        attribution="Shackelford County Appraisal District",
+        terms_reviewed="2026-11-06",
+    ),
+    county_fips="417",
+    account_system="shackelford_prop_id",
 )
 
 

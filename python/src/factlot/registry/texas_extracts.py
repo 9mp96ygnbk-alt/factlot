@@ -759,6 +759,21 @@ EXTRACTS: list[dict] = [
         "kept": 474,
         "duplicate_stored_ids": 0,
     },
+    {
+        "source_id": "tx-shackelford-cad",
+        "sha256": "9152cbf9b8860fe7fe0b89dbccd18c9b6a4df92c9f089cf3a3fda9e3a80be66a",
+        "bytes": 5985205,
+        "layout": "PACS header 8.0.0.34; 9714-character records. Used columns match the 8.0.34 layout dated 2026-01-23. The local 8.0.31 layout ends at character 9262 and adds no moved columns among the fields read. C1C and C2 map to C1. EX1-EX8, G1-G3, and L2 conversion codes excluded. Agent, UDI, deferral, and entity files not opened",
+        "header_run_date": "2026-08-03",
+        "http_last_modified": "2026-09-09",
+        "input_records": 13930,
+        "input_kind": "property records in supplement 0",
+        "drops": {"not_real": 7965, "out_of_scope": 5446, "opaque_code": 158, "short": 0, "deleted": 0,
+                  "duplicate_ids": 0, "unmapped_code": 0},
+        "eligible_unique": 361,
+        "kept": 361,
+        "duplicate_stored_ids": 0,
+    },
 ]
 
 
