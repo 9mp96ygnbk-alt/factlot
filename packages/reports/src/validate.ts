@@ -915,7 +915,7 @@ export function checkInput(
     if (kind !== "lease_abstract")
       throw new ReportInputError(
         "ArgumentsRequired",
-        `a ${kind} report is built only from FactLot's own run of ${KIND_TOOLS[kind].join(" or ")}: send the tool's arguments as arguments (a result alone is not accepted, so the document never carries a number FactLot did not compute)`,
+        `${kind} reports are built only from FactLot's own run of ${KIND_TOOLS[kind].join(" or ")}: send the tool's arguments as arguments (a result alone is not accepted, so the document never carries a number FactLot did not compute)`,
         [{ path: "arguments", message: `required for ${kind}` }],
       );
     if (input === undefined)
