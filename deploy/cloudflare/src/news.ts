@@ -8,7 +8,7 @@ export const HOSTING_NOTE = "Texas hosting opens with this release.";
 export const WHATS_NEW: { text: string; changelog: string }[] = [
   {
     text: "Only answered registry lookups count: coverage checks, misses and input errors are free.",
-    changelog: "registry lookup is charged only when it returns a real answer",
+    changelog: "charged only when answered",
   },
   {
     text: "Lost your key? Recover access here with the email you paid with.",
