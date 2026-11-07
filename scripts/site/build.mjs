@@ -70,6 +70,14 @@ const NAV = [
   ["/#pricing", "Pricing"],
 ];
 
+/** The trust package, in reading order: how it is run, what is promised, how numbers are proven. */
+const TRUST = [
+  ["/status/", "Status"],
+  ["/security/", "Security"],
+  ["/sla/", "Service levels"],
+  ["/assurance/", "Assurance"],
+];
+
 function layout({
   urlPath,
   title,
@@ -151,6 +159,9 @@ ${body}
 <a href="/privacy">Privacy</a> ·
 <a href="/terms">Terms</a> ·
 <a href="${REPO}/blob/main/LICENSE">Apache-2.0 (platform) and MIT (schema and SDKs)</a>
+</p>
+<p>
+Trust: ${TRUST.map(([p, name]) => `<a href="${p}">${name}</a>`).join(" · ")}
 </p>
 <p class="small">"FactLot" and the FactLot logo are trademarks of their owner. The open-source licences cover the code, not the name.</p>
 </div>
@@ -261,6 +272,8 @@ ${shown.map((s) => `<tr><th scope="row">${esc(s.label)}</th><td>${fmt(s.value, s
 </tbody>
 </table>${steps.length > MAX_STEPS ? `\n<p class="small">First ${MAX_STEPS} of ${steps.length} steps shown; the tool returns all of them.</p>` : ""}`;
 }
+
+let txRule; // the verified Texas rule's metadata, set when its page is built
 
 // --- /mcp-server/ ---------------------------------------------------------------------------------
 
@@ -409,6 +422,7 @@ ${calcTools.map((t) => `<tr><th scope="row">${esc(t.title)}</th><td><code>${esc(
       "texas: no vector case covers the years on the page; add one",
     );
   const rule = rows[0].value.rule;
+  txRule = rule;
   const long = (iso) =>
     new Date(`${iso}T12:00:00Z`).toLocaleDateString("en-US", {
       weekday: "long",
@@ -640,6 +654,122 @@ ${Object.keys(byState)
       }),
     },
     ["site/_content/coverage.html", covRel, geoRel],
+  );
+}
+
+// --- Trust package: /status/, /security/, /sla/, /assurance/ ----------------------------------
+// The first three are prose. The assurance page quotes sizes (vectors, workbooks, tools, the
+// verified rule), and every one of them is counted here from the repository, so the page cannot
+// say a number the repository does not back. Run-time figures (differential cases, test counts,
+// the live suite) are dated on the page, because they come from running something.
+
+{
+  const trustCrumb = (slug, name) => [[`/${slug}/`, name]];
+  const trustPage = (slug, title, description, h1, fragment, vars = {}) =>
+    addPage(
+      {
+        urlPath: `/${slug}/`,
+        title: `${title} | FactLot`,
+        description,
+        h1,
+        crumbs: trustCrumb(slug, title),
+        body: fill(read(`site/_content/${fragment}`), {
+          VERSION,
+          REPO,
+          ...vars,
+        }),
+      },
+      [`site/_content/${fragment}`],
+    );
+
+  trustPage(
+    "status",
+    "Service status",
+    "How FactLot's hosted service is checked, the live health endpoint, the incident history and how to report a problem. No uptime percentage is shown because none is measured.",
+    "Service status",
+    "status.html",
+  );
+  trustPage(
+    "security",
+    "Security",
+    "How FactLot's hosted service is run: where it runs, what it stores and does not store, how keys and secrets are handled, dependencies, disclosure, and what is not in place yet (no SOC 2).",
+    "Security",
+    "security.html",
+  );
+  trustPage(
+    "sla",
+    "Service levels",
+    "What FactLot promises today (no service-level agreement), the draft service-level terms for paid plans, support targets, versioning and deprecation, and data refresh.",
+    "Service levels",
+    "sla.html",
+  );
+
+  // Conformance vectors: every JSON file under spec/vectors with a list of cases.
+  const vectorsDir = path.join(root, "spec/vectors");
+  let vectorFiles = 0;
+  let vectorCases = 0;
+  const calcVectorFiles = new Set();
+  for (const rel of fs.readdirSync(vectorsDir, { recursive: true })) {
+    if (!String(rel).endsWith(".json")) continue;
+    const v = JSON.parse(fs.readFileSync(path.join(vectorsDir, rel), "utf8"));
+    const cases = Array.isArray(v) ? v : v?.cases;
+    if (!Array.isArray(cases)) continue; // lookup tables, not cases
+    vectorFiles += 1;
+    vectorCases += cases.length;
+    if (String(rel).startsWith("calc/")) calcVectorFiles.add(String(rel));
+  }
+  for (const t of calcTools) {
+    const f = `calc/${t.formula.id.replace(/^calc\./, "")}.json`;
+    if (!calcVectorFiles.has(f))
+      throw new Error(`assurance: ${t.name} has no vector file ${f}`);
+  }
+
+  // Excel reconciliation workbooks and the rows each one reconciles (from its README table).
+  const reconDir = "examples/reconciliation";
+  const workbooks = fs
+    .readdirSync(path.join(root, reconDir))
+    .filter((f) => f.endsWith(".xlsx"));
+  const reconRows = [
+    ...read(`${reconDir}/README.md`).matchAll(
+      /^\| \[[^\]]+\.xlsx\]\([^)]*\)[^\n]*\| (\d+) +\|$/gm,
+    ),
+  ].map((m) => Number(m[1]));
+  if (reconRows.length !== workbooks.length)
+    throw new Error(
+      `assurance: ${workbooks.length} workbooks but ${reconRows.length} rows in the reconciliation README`,
+    );
+
+  const draftPacks = fs
+    .readdirSync(path.join(vectorsDir, "rules/drafts"))
+    .filter((f) => f.endsWith(".json") && !f.endsWith(".tables.json")).length;
+  const revised = tools.filter((t) => t.formula && t.formula.version > 1);
+  if (txRule?.verification?.status !== "verified")
+    throw new Error("assurance: the Texas rule is not verified");
+
+  trustPage(
+    "assurance",
+    "How the numbers are proven",
+    "How FactLot's numbers are checked: shared test vectors, a TypeScript and Python differential test, Excel reconciliation workbooks, a live suite against the hosted API, and what is not proven.",
+    "How the numbers are proven",
+    "assurance.html",
+    {
+      VECTOR_FILES: String(vectorFiles),
+      VECTOR_CASES: String(vectorCases),
+      CALC_COUNT: String(calcTools.length),
+      TOOL_COUNT: String(tools.length),
+      WORKBOOKS: String(workbooks.length),
+      WORKBOOK_ROWS: String(reconRows.reduce((a, b) => a + b, 0)),
+      RULE_ID: esc(`${txRule.id}@${txRule.version}`),
+      RULE_VERIFIED: esc(txRule.verification.verified_at),
+      RULE_LAWS: txRule.citations.map((c) => esc(c.law)).join("; "),
+      DRAFT_PACKS: String(draftPacks),
+      REVISED_COUNT: String(revised.length),
+      REVISED_LIST: revised
+        .map(
+          (t) => `<code>${esc(`${t.formula.id}@${t.formula.version}`)}</code>`,
+        )
+        .join(", "),
+    },
   );
 }
 

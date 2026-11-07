@@ -1,0 +1,162 @@
+<p class="lede">
+  How to check whether FactLot's hosted service is up, what is watched, what has
+  gone wrong before, and how to tell us about a problem. This page shows no
+  uptime percentage, because FactLot does not measure one yet.
+</p>
+<p class="small">
+  Trust pages: Status · <a href="/security/">Security</a> ·
+  <a href="/sla/">Service levels</a> · <a href="/assurance/">Assurance</a>.
+  Written 7 November 2026.
+</p>
+
+<h2 id="now">Check it now</h2>
+<p>
+  This site runs no scripts, so this page cannot show live status. The live
+  check is the service's own health endpoint:
+</p>
+<pre><code>curl -s https://api.factlot.com/health
+{"ok":true,"version":"{{VERSION}}"}</code></pre>
+<p>
+  <a href="https://api.factlot.com/health">api.factlot.com/health</a> answers
+  with <code>"ok": true</code> and the running version when the hosted API is
+  up. It needs no key, and it counts toward the free tier's 60 requests a minute
+  like any other request.
+</p>
+<p>
+  The version above is the one this page was built from. The number changes only
+  when a release is tagged, so the hosted service can run changes that the
+  <a href="{{REPO}}/blob/main/CHANGELOG.md">changelog</a> lists under
+  "Unreleased" before the next tag.
+</p>
+
+<h2 id="monitored">What is checked, and how</h2>
+<h3>Health endpoint</h3>
+<p>
+  <code>GET /health</code>, answered by the API itself. It shows that the API is
+  up and which version is running. It does not test the registry or billing.
+  <strong>How often:</strong> whenever anyone calls it. Nothing polls it for us.
+</p>
+
+<h3>Live suite</h3>
+<p>
+  <code>npm run test:hosted</code> (<a
+    href="{{REPO}}/blob/main/scripts/e2e/hosted.ts"
+    >scripts/e2e/hosted.ts</a
+  >) replays every shared test vector against the hosted REST API, calls every
+  MCP tool and checks the MCP answer equals the REST answer, does real registry
+  lookups in the hosted regions, and fetches the main site pages and the home
+  page's links. It exits with an error on any failure. Its last full run, on 7
+  November 2026 after the hosted registry opened, passed 4,447 checks and failed
+  none. <strong>How often:</strong> run by the maintainer after a deploy. It is
+  not on a schedule, so it shows the state at the time of the run, not today.
+</p>
+
+<h3>Continuous integration</h3>
+<p>
+  The
+  <a href="https://github.com/9mp96ygnbk-alt/factlot/actions/workflows/ci.yml"
+    >CI workflow on GitHub Actions</a
+  >
+  runs lint, formatting, type checks, the TypeScript and Python tests, the site
+  build, the MCP end-to-end test, OpenAPI validation and the
+  TypeScript-versus-Python differential test (<a href="/assurance/">details</a
+  >). It checks the code, not the running service. It is linked as text, not as
+  a status badge, because a badge image would make your browser contact GitHub
+  when you read this page. <strong>How often:</strong> on every push to
+  <code>main</code> and every pull request.
+</p>
+
+<h3>Worker logs and errors</h3>
+<p>
+  Cloudflare Workers observability is on for the API. A failed request logs only
+  the error's name, never its message or any request content. Usage records hold
+  the time, key ID, plan, path, method and status, with no IP address (see the
+  <a href="/privacy">privacy notice</a>). <strong>How often:</strong>
+  continuous; a person reads them when something is reported.
+</p>
+<p>
+  There is no automated uptime monitor in the repository, and nothing in the
+  repository sends an alert when the service is down. An outage that lasted
+  minutes and that nobody reported would not appear in the history below. That
+  is why there is no availability figure on this page, and why the
+  <a href="/sla/">service levels</a> do not promise one yet.
+</p>
+
+<h2 id="dependencies">What FactLot depends on</h2>
+<p>
+  The hosted service runs on Cloudflare, bills through Stripe, and keeps its
+  source on GitHub. When one of them has an incident, FactLot can be affected,
+  and their own status pages are the first place to look:
+</p>
+<ul class="plain">
+  <li>
+    <a href="https://www.cloudflarestatus.com/">Cloudflare status</a> (hosting
+    for factlot.com and api.factlot.com)
+  </li>
+  <li>
+    <a href="https://status.stripe.com/">Stripe status</a> (checkout and
+    billing)
+  </li>
+  <li>
+    <a href="https://www.githubstatus.com/">GitHub status</a> (source, releases,
+    issues)
+  </li>
+</ul>
+
+<h2 id="incidents">Incident history</h2>
+<table>
+  <caption class="visually-hidden">
+    Incidents since the hosted service opened
+  </caption>
+  <thead>
+    <tr>
+      <th scope="col">Date</th>
+      <th scope="col">What happened</th>
+      <th scope="col">Who was affected</th>
+      <th scope="col">Cause and fix</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td colspan="4">
+        None recorded since the hosted service opened on 3 November 2026.
+      </td>
+    </tr>
+  </tbody>
+</table>
+<p>
+  "Recorded" has a limit, explained above: without a monitor, only an incident
+  that someone saw or reported can be recorded. When one happens, it is added
+  here in plain language with the date, how long it lasted, what was affected,
+  the cause and what changed. Bugs that were found and fixed without a service
+  interruption are not incidents; they are in the
+  <a href="{{REPO}}/blob/main/CHANGELOG.md">changelog</a> under "Fixed".
+</p>
+
+<h2 id="report">Report a problem</h2>
+<ul class="plain">
+  <li>
+    <strong>Service down, slow or wrong:</strong> email
+    <a href="mailto:contact@factlot.com?subject=STATUS">contact@factlot.com</a>
+    with "STATUS" at the start of the subject. Say when it happened (with time
+    zone), the URL or tool you called, the HTTP status or error you saw, and
+    your key ID if you have a paid plan. Never send the key itself.
+  </li>
+  <li>
+    <strong>A wrong number from a calculator:</strong> see
+    <a href="/assurance/#report">how to report a wrong number</a>.
+  </li>
+  <li>
+    <strong>A security problem:</strong> do not use a public channel; follow the
+    <a href="/security/#disclosure">disclosure process</a>.
+  </li>
+  <li>
+    <strong>Anything that is fine to be public:</strong>
+    <a href="{{REPO}}/issues">GitHub issues</a> or
+    <a href="{{REPO}}/discussions">discussions</a>.
+  </li>
+</ul>
+<p>
+  Response targets for paid plans are in the draft
+  <a href="/sla/#support">service levels</a>.
+</p>
