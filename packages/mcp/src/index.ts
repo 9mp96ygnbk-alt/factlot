@@ -31,8 +31,27 @@ export type { KnowledgeDoc } from "./knowledge.ts";
 export const SERVER_NAME = "factlot";
 export const SERVER_VERSION = "0.5.0";
 
-export const SERVER_INSTRUCTIONS =
-  "FactLot: commercial real estate (CRE) tools with deterministic, cited results. Covers net effective rent, rent schedules, CAM reconciliation, debt sizing (DSCR, LTV, debt yield), loan amortization, yield maintenance and defeasance, ASC 842 lease remeasurement, WALT, NPV, IRR, DCF pro forma, direct capitalization (cap rate), LP/GP equity waterfalls, 1031 exchange deadlines, hotel RevPAR and ADR, multifamily rent rolls, lease critical dates, lease abstract verification, GSA lease comps, Texas property tax protest deadlines, Texas unequal-appraisal arithmetic, and parcel and owner IDs. Use calc_* tools for this math instead of computing in context; cite the returned formula ID and steps, and surface every warning. To read a lease or other document, extract each value with its verbatim quote and page, then call doc_verify_facts (doc_abstract_lease for a lease and its amendments, doc_compare for an estoppel or rent roll, doc_verify_claim for one claim, doc_spread_statement for a T-12, doc_check_use_conflict for exclusives); FactLot checks each value against its quote and returns cited facts. Use id_* for canonical IDs of parcels, entities, buildings, spaces and documents, rules_* for statutory deadlines, lease_comp_search for comps, and fact_validate or fact_package_create before handing facts on. For a Texas unequal-appraisal comparison, registry_tx_equity_candidates lists candidate parcels from the subject's appraisal district roll, and calc_tx_unequal_appraisal does the arithmetic on the comparables and adjustments the person chose. registry_coverage lists the regions the hosted registry holds and is never metered: call it before a registry lookup. Use search and fetch to find the right tool.";
+/** The Texas unequal-appraisal recipe, in order, for agents that see the whole tool list at once. */
+export const TX_PACKET_INSTRUCTIONS = [
+  "Texas unequal-appraisal packet, in order:",
+  "1 registry_resolve_parcel (county_fips and apn) or registry_search_address gives the parcel URN.",
+  "2 registry_get gives the cited facts; its value_history lists values by tax year.",
+  "3 registry_tx_equity_candidates lists candidates under FactLot's default rule; the person reviews and may edit the list. FactLot does not select comparables.",
+  "4 calc_tx_unequal_appraisal on the reviewed list (normalize_by improvement_area_sf when areas differ; adjustments only with a reason and evidence).",
+  "5 rules_tx_property_tax_protest_deadline (tax_year, notice_delivered_date if known): compare its deadline with today's date, since the season may have passed.",
+  "6 report_create kind tx_unequal_appraisal with the step 4 arguments: format pdf (evidence packet) or xlsx (adjustment grid).",
+  "calc_critical_dates and its ICS calendar are for lease notice windows, not protests.",
+].join("\n");
+
+/** Rules that hold for every tool. */
+export const GENERAL_INSTRUCTIONS =
+  "Results are facts and arithmetic, not appraisal, legal or tax advice. Relay every warning and each source's rights (ai_use, redistribution) to the person. Registry lookups and reports are metered (account_usage shows use, with a key); input errors are free.";
+
+export const SERVER_INSTRUCTIONS = [
+  "FactLot: commercial real estate (CRE) tools with deterministic, cited results. Covers net effective rent, rent schedules, CAM reconciliation, debt sizing (DSCR, LTV, debt yield), loan amortization, yield maintenance and defeasance, ASC 842 lease remeasurement, WALT, NPV, IRR, DCF pro forma, direct capitalization (cap rate), LP/GP equity waterfalls, 1031 exchange deadlines, hotel RevPAR and ADR, multifamily rent rolls, lease critical dates, lease abstract verification, GSA lease comps, Texas property tax protest deadlines, Texas unequal-appraisal arithmetic, and parcel and owner IDs. Use calc_* tools for this math instead of computing in context; cite the returned formula ID and steps, and surface every warning. To read a lease or other document, extract each value with its verbatim quote and page, then call doc_verify_facts (doc_abstract_lease for a lease and its amendments, doc_compare for an estoppel or rent roll, doc_verify_claim for one claim, doc_spread_statement for a T-12, doc_check_use_conflict for exclusives); FactLot checks each value against its quote and returns cited facts. Use id_* for canonical IDs of parcels, entities, buildings, spaces and documents, rules_* for statutory deadlines, lease_comp_search for comps, and fact_validate or fact_package_create before handing facts on. For a Texas unequal-appraisal comparison, registry_tx_equity_candidates lists candidate parcels from the subject's appraisal district roll, and calc_tx_unequal_appraisal does the arithmetic on the comparables and adjustments the person chose. registry_coverage lists the regions the hosted registry holds and is never metered: call it before a registry lookup. Use search and fetch to find the right tool.",
+  TX_PACKET_INSTRUCTIONS,
+  GENERAL_INSTRUCTIONS,
+].join("\n\n");
 
 function json(data: unknown): CallToolResult {
   // structuredContent plus the same JSON as text: the MCP spec (2025-06-18) asks a tool that

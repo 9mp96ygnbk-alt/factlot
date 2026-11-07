@@ -4,7 +4,12 @@ import test from "node:test";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 
-import { createServer } from "./index.ts";
+import {
+  GENERAL_INSTRUCTIONS,
+  SERVER_INSTRUCTIONS,
+  TX_PACKET_INSTRUCTIONS,
+  createServer,
+} from "./index.ts";
 
 async function connect(): Promise<Client> {
   const [clientTransport, serverTransport] =
@@ -14,6 +19,55 @@ async function connect(): Promise<Client> {
   await client.connect(clientTransport);
   return client;
 }
+
+test("initialize instructions give the Texas packet order and the general rules", async () => {
+  const client = await connect();
+  const text = client.getInstructions() ?? "";
+  assert.equal(text, SERVER_INSTRUCTIONS);
+  assert.ok(text.includes(TX_PACKET_INSTRUCTIONS));
+  assert.ok(text.includes(GENERAL_INSTRUCTIONS));
+  assert.ok(
+    TX_PACKET_INSTRUCTIONS.length <= 900,
+    `Texas section is ${TX_PACKET_INSTRUCTIONS.length} characters`,
+  );
+  // The steps appear in order.
+  const order = [
+    "1 registry_resolve_parcel",
+    "2 registry_get",
+    "3 registry_tx_equity_candidates",
+    "4 calc_tx_unequal_appraisal",
+    "5 rules_tx_property_tax_protest_deadline",
+    "6 report_create kind tx_unequal_appraisal",
+  ].map((step) => TX_PACKET_INSTRUCTIONS.indexOf(step));
+  assert.ok(
+    order.every((i) => i >= 0),
+    "every step is named",
+  );
+  assert.deepEqual(
+    order,
+    [...order].sort((a, b) => a - b),
+  );
+  for (const phrase of ["ai_use", "redistribution", "account_usage", "free"]) {
+    assert.ok(GENERAL_INSTRUCTIONS.includes(phrase), phrase);
+  }
+});
+
+test("every tool the instructions name exists in the catalog or the hosted extras", async () => {
+  const client = await connect();
+  const { tools } = await client.listTools();
+  const listed = new Set(tools.map((t) => t.name));
+  // report_create and account_usage are hosted-only tools added by the Worker, not this server.
+  const hostedOnly = new Set(["report_create", "account_usage"]);
+  const named = SERVER_INSTRUCTIONS.match(
+    /\b(?:calc|rules|registry|doc|fact|id|lease)_[a-z0-9_]+/g,
+  );
+  for (const name of new Set(named ?? [])) {
+    if (hostedOnly.has(name)) continue;
+    // registry tools are listed only when a registry is configured; the name must still exist.
+    if (name.startsWith("registry_")) continue;
+    assert.ok(listed.has(name), `${name} is not a listed tool`);
+  }
+});
 
 type ToolResult = {
   isError?: boolean;
