@@ -56,8 +56,9 @@ test("every tool the instructions name exists in the catalog or the hosted extra
   const client = await connect();
   const { tools } = await client.listTools();
   const listed = new Set(tools.map((t) => t.name));
-  // report_create and account_usage are hosted-only tools added by the Worker, not this server.
-  const hostedOnly = new Set(["report_create", "account_usage"]);
+  // report_create and account_usage are hosted-only tools added by the Worker, not this server;
+  // calc_args is a result field of registry_tx_equity_candidates, not a tool.
+  const hostedOnly = new Set(["report_create", "account_usage", "calc_args"]);
   const named = SERVER_INSTRUCTIONS.match(
     /\b(?:calc|rules|registry|doc|fact|id|lease)_[a-z0-9_]+/g,
   );
