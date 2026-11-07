@@ -60,6 +60,18 @@ import {
   regionOf,
 } from "./account-tools.ts";
 import { claimRoute, CLAIM_POLL_MS, CLAIM_TTL_SECONDS } from "./claim.ts";
+import {
+  MCP_SIGNIN_PATH,
+  disconnect,
+  isOAuthPath,
+  isOAuthToken,
+  listConnections,
+  oauthRoute,
+  resolveOAuthToken,
+  signInChallenge,
+  wwwAuthenticate,
+  type OAuthCaller,
+} from "./oauth.ts";
 import { addressSubject } from "./limiter.ts";
 import { KEY_PLACEHOLDER, guideMarkdown, setupGuide } from "./onboarding.ts";
 import { accountFormPage, accountPage } from "./pages.ts";
@@ -143,6 +155,7 @@ function corsHeaders(): Record<string, string> {
       "content-type, authorization, mcp-session-id, mcp-protocol-version, last-event-id",
     "access-control-expose-headers": [
       "mcp-session-id",
+      "www-authenticate",
       "mcp-protocol-version",
       "retry-after",
       "x-ratelimit-limit",
@@ -180,8 +193,17 @@ function errorResponse(
   );
 }
 
-function rateLimited(path: string, limit: number, tier: Tier): Response {
-  const scope = tier === "anonymous" ? "per address" : "per key";
+function rateLimited(
+  path: string,
+  limit: number,
+  tier: Tier,
+  connection = false,
+): Response {
+  const scope = connection
+    ? "per connection"
+    : tier === "anonymous"
+      ? "per address"
+      : "per key";
   const message =
     `rate limit of ${limit} requests per minute ${scope} exceeded for the ${tier} tier; retry in 60s. ${tier === "anonymous" ? UPGRADE_HINT : ""}`.trim();
   return errorResponse(
@@ -201,8 +223,22 @@ function rateLimited(path: string, limit: number, tier: Tier): Response {
   );
 }
 
-function unauthorized(path: string): Response {
-  const message = `invalid or inactive FactLot API key. Free use needs no key; paid keys come from ${PRICING_URL}. Help: ${CONTACT} or ${DISCUSSIONS}`;
+function unauthorized(path: string, env: Env, oauth = false): Response {
+  const message = oauth
+    ? path === "/mcp"
+      ? "this sign-in has expired or was disconnected: connect again (sign in with your FactLot key, or continue on the free tier)."
+      : "OAuth access tokens work only at /mcp; use a FactLot API key for the REST API."
+    : `invalid or inactive FactLot API key. Free use needs no key; paid keys come from ${PRICING_URL}. Help: ${CONTACT} or ${DISCUSSIONS}`;
+  // At /mcp the challenge also says where sign-in starts (RFC 9728), so a client can reconnect.
+  const challenge =
+    path === "/mcp"
+      ? wwwAuthenticate(env, {
+          code: "invalid_token",
+          description: oauth
+            ? "The access token is invalid, expired or revoked"
+            : "Invalid or inactive FactLot API key",
+        })
+      : 'Bearer realm="factlot"';
   return errorResponse(
     path,
     401,
@@ -212,7 +248,7 @@ function unauthorized(path: string): Response {
       message,
       next: "send no Authorization header for the free tier, or a live key; lost it? https://factlot.com/account#recover",
     },
-    { "www-authenticate": 'Bearer realm="factlot"' },
+    { "www-authenticate": challenge },
   );
 }
 
@@ -360,14 +396,19 @@ function quotaHeaders(q: QuotaState): Record<string, string> {
 }
 
 /** The RegistryQuotaExceeded error object (REST body and MCP tool error alike). */
-export function quotaError(q: QuotaState, tier: Tier, now: number) {
+export function quotaError(
+  q: QuotaState,
+  tier: Tier,
+  now: number,
+  connection = false,
+) {
   const resets = q.resets_at;
   const limit = q.limit.toLocaleString("en-US");
   const free =
     "Only answered lookups count: coverage checks, misses and input errors are free.";
   const message =
     tier === "anonymous"
-      ? `The free registry lookups for today are used up: ${limit} a day per IP address. They reset at ${resets}. A Pro key (${PLANS.pro.registryLookupsPerMonth.toLocaleString("en-US")} a month) or Team key (${PLANS.team.registryLookupsPerMonth.toLocaleString("en-US")} a month) lifts the cap: ${PRICING_URL}. Other tools keep working. ${free}`
+      ? `The free registry lookups for today are used up: ${limit} a day per ${connection ? "connection" : "IP address"}. They reset at ${resets}. A Pro key (${PLANS.pro.registryLookupsPerMonth.toLocaleString("en-US")} a month) or Team key (${PLANS.team.registryLookupsPerMonth.toLocaleString("en-US")} a month) lifts the cap: ${PRICING_URL}. Other tools keep working. ${free}`
       : tier === "pro"
         ? `This subscription's ${limit} registry lookups for the month are used up. They reset at ${resets}. Team (${PLANS.team.registryLookupsPerMonth.toLocaleString("en-US")} a month) lifts the cap: ${PRICING_URL}. Other tools keep working. ${free}`
         : `This subscription's ${limit} registry lookups for the month are used up. They reset at ${resets}. Team is the largest plan; for more, email ${CONTACT} (${PRICING_URL}). Other tools keep working. ${free}`;
@@ -411,7 +452,18 @@ export async function handle(
   api: Fetcher,
   opts: HandleOptions = {},
 ): Promise<Response> {
-  const path = new URL(request.url).pathname.replace(/\/+$/, "") || "/";
+  const url = new URL(request.url);
+  let path = url.pathname.replace(/\/+$/, "") || "/";
+  // /mcp/signin is /mcp for a header-less client that should sign in: without credentials it
+  // gets the 401 challenge that starts OAuth (bare /mcp stays open for the free tier). Like
+  // /mcp it answers on every host; the challenge names the API host's metadata.
+  if (path === MCP_SIGNIN_PATH) {
+    if (request.method === "OPTIONS")
+      return new Response(null, { status: 204, headers: corsHeaders() });
+    if (!request.headers.get("authorization")) return signInChallenge(env);
+    request = new Request(`${url.origin}/mcp${url.search}`, request);
+    path = "/mcp";
+  }
   try {
     return await route(request, env, api, opts);
   } catch (err) {
@@ -484,6 +536,16 @@ async function route(
       );
     return handleWebhook(env, request, now, opts.fetchImpl);
   }
+
+  // OAuth 2.1 for header-less MCP clients (oauth.ts), on the API host.
+  if (isApiHost(host) && isOAuthPath(path))
+    return (await oauthRoute(request, env, url, path, {
+      resolveKey,
+      fetchImpl: opts.fetchImpl,
+      now,
+      defer: deferWith(opts),
+      waitUntil: opts.waitUntil,
+    }))!;
 
   // Landing page on the apex and www hosts.
   if (!isApiHost(host) && !isApiPath(path) && env.ASSETS)
@@ -626,6 +688,8 @@ async function route(
   // is read, so a flood of made-up keys is refused cheaply.
   const token = bearer(request.headers.get("authorization"));
   let paid: PaidCaller | undefined;
+  // An OAuth access token (header-less clients, /mcp only): a subscription or a free connection.
+  let oauth: OAuthCaller | undefined;
   if (token !== undefined) {
     const failKey = `authfail:${await addressKey()}`;
     if (!(await metered(env.RL_ANON.peek({ key: failKey }))).success)
@@ -642,10 +706,26 @@ async function route(
         },
         { "retry-after": "60" },
       );
-    paid = await resolveKey(env, token, opts);
-    if (!paid) {
-      await metered(env.RL_ANON.limit({ key: failKey }));
-      return unauthorized(path);
+    if (isOAuthToken(token)) {
+      oauth =
+        path === "/mcp"
+          ? await resolveOAuthToken(env, token, {
+              fetchImpl: opts.fetchImpl,
+              now: opts.now,
+              defer: deferWith(opts),
+            })
+          : undefined;
+      if (!oauth) {
+        await metered(env.RL_ANON.limit({ key: failKey }));
+        return unauthorized(path, env, true);
+      }
+      if (oauth.tier === "paid") paid = oauth.paid;
+    } else {
+      paid = await resolveKey(env, token, opts);
+      if (!paid) {
+        await metered(env.RL_ANON.limit({ key: failKey }));
+        return unauthorized(path, env);
+      }
     }
   }
 
@@ -655,7 +735,8 @@ async function route(
     path === "/v1/billing/portal" ||
     path === "/v1/billing/rotate" ||
     path === "/v1/billing/keys" ||
-    path.startsWith("/v1/billing/keys/");
+    path.startsWith("/v1/billing/keys/") ||
+    path.startsWith("/v1/account/connections/");
   if (accountPath) {
     if (!paid)
       return withHeaders(
@@ -738,7 +819,9 @@ async function route(
       });
   }
 
-  // Minute limit (per address or per key), then registry quota (per address or subscription).
+  // Minute limit (per address, key or connection), then registry quota (per address, free
+  // connection or subscription).
+  const freeSubject = async () => oauth?.subject ?? (await addressKey());
   let hit: HitResult;
   if (!paid) {
     const quota: QuotaSpec | undefined = registryRequest
@@ -748,9 +831,11 @@ async function route(
           n: wanted,
         }
       : undefined;
-    hit = await metered(env.METER.hit(await addressKey(), perMinute, quota));
+    hit = await metered(env.METER.hit(await freeSubject(), perMinute, quota));
   } else {
-    hit = await metered(env.METER.hit(`key:${keyId(paid.hash)}`, perMinute));
+    hit = await metered(
+      env.METER.hit(oauth?.subject ?? `key:${keyId(paid.hash)}`, perMinute),
+    );
     if (hit.ok && registryRequest)
       hit = await metered(
         env.METER.consume(meterSubject(paid.record, paid.hash), {
@@ -760,7 +845,7 @@ async function route(
         }),
       );
   }
-  if (!hit.ok) return rateLimited(path, perMinute, tier);
+  if (!hit.ok) return rateLimited(path, perMinute, tier, oauth !== undefined);
 
   const headers: Record<string, string> = {
     "x-factlot-tier": tier,
@@ -770,7 +855,7 @@ async function route(
   if (hit.quota) {
     Object.assign(headers, quotaHeaders(hit.quota));
     if (hit.granted < wanted) {
-      deniedError = quotaError(hit.quota, tier, now());
+      deniedError = quotaError(hit.quota, tier, now(), oauth !== undefined);
       headers["retry-after"] = String(deniedError.retry_after_seconds);
     }
   }
@@ -807,7 +892,9 @@ async function route(
   };
   const meterUsage = (status: number) =>
     env.USAGE?.writeDataPoint({
-      indexes: [paid ? keyId(paid.hash) : "anonymous"],
+      indexes: [
+        oauth ? `oauth-${oauth.tier}` : paid ? keyId(paid.hash) : "anonymous",
+      ],
       blobs: [tier, path.slice(0, 96), request.method],
       doubles: [status, 1],
     });
@@ -842,7 +929,7 @@ async function route(
     if (unanswered > 0) {
       try {
         await env.METER.refund(
-          paid ? meterSubject(paid.record, paid.hash) : await addressKey(),
+          paid ? meterSubject(paid.record, paid.hash) : await freeSubject(),
           paid ? "month" : "day",
           unanswered,
           hit.quota.resets_at,
@@ -1137,7 +1224,27 @@ async function accountApi(
   if (path === "/v1/account") {
     if (request.method !== "GET" && request.method !== "POST")
       return wrongMethod("GET");
-    return json(200, await metered(accountSummary(env, hash, record)));
+    const [summary, connections] = await Promise.all([
+      metered(accountSummary(env, hash, record)),
+      listConnections(env, record.subscription),
+    ]);
+    return json(200, { ...summary, connections });
+  }
+  // DELETE /v1/account/connections/{id}: disconnect an app signed in with OAuth.
+  if (path.startsWith("/v1/account/connections/")) {
+    if (request.method !== "DELETE") return wrongMethod("DELETE");
+    const id = path.slice("/v1/account/connections/".length);
+    if (!(await disconnect(env, record.subscription, id)))
+      return apiError(
+        404,
+        "NotFound",
+        "no connected app with that id on this subscription (ids are in GET /v1/account, connections)",
+        "GET /v1/account",
+      );
+    return json(200, {
+      disconnected: id,
+      note: "The app's access ends at once (allow up to a minute everywhere); it can connect again by signing in.",
+    });
   }
   if (path === "/v1/account/usage") {
     if (request.method !== "GET") return wrongMethod("GET");
@@ -1292,16 +1399,18 @@ async function accountRoute(
       /\/$/,
       "",
     );
-    const [summary, receipts, usage, regions] = await Promise.all([
+    const [summary, receipts, usage, regions, connections] = await Promise.all([
       metered(accountSummary(env, h, r)),
       receiptEmail(billingDeps(env, opts.fetchImpl, now), r.customer),
       env.METER.usage(meterSubject(r, h), 30).catch(() => undefined),
       hostedRegions(api, apiBase, now()),
+      listConnections(env, r.subscription).catch(() => undefined),
     ]);
     return accountPage(summary, k, {
       receipts,
       usage,
       regions,
+      connections,
       api: apiBase,
       ...o,
     });
@@ -1327,6 +1436,15 @@ async function accountRoute(
         notice: `Stripe did not answer. Try again in a minute, or email ${CONTACT}.`,
       });
     }
+  }
+  if (action === "disconnect") {
+    const id = form.get("id") ?? "";
+    const ok = await disconnect(env, record.subscription, id);
+    return show(key, hash, record, {
+      notice: ok
+        ? "The app is disconnected (allow up to a minute everywhere). It can connect again by signing in."
+        : "No connected app with that id.",
+    });
   }
   if (action === "rotate" || action === "mint" || action === "revoke") {
     if (!paid.active)

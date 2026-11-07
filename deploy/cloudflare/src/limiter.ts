@@ -609,8 +609,10 @@ export function objectMeter(ns: DurableObjectNamespaceLike): MeterService {
       call<HitResult>(ns, `meter:${subject}`, "/hit", {
         perMinute,
         quota,
-        // A key's last use is account data; an address's never is.
-        ...(subject.startsWith("key:") ? { touch: true } : {}),
+        // A key's or a paid connection's last use is account data; an address's never is.
+        ...(subject.startsWith("key:") || subject.startsWith("oauth:")
+          ? { touch: true }
+          : {}),
       }),
     record: async (subject, items) => {
       await call(ns, `meter:${subject}`, "/usage/record", { items });

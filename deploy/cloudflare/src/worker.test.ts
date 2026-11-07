@@ -65,6 +65,13 @@ class MemoryKV implements KV {
   async delete(k: string) {
     this.data.delete(k);
   }
+  async list(o: { prefix?: string } = {}) {
+    const keys = [...this.data.keys()]
+      .filter((k) => k.startsWith(o.prefix ?? ""))
+      .sort()
+      .map((name) => ({ name }));
+    return { keys, list_complete: true };
+  }
 }
 
 class CountingLimit implements RateLimit {
@@ -2864,8 +2871,9 @@ describe("onboarding page", () => {
     );
     assert.match(
       html,
-      /ChatGPT developer-mode apps have no header field today/,
+      /ChatGPT developer-mode apps have no header field: they sign in instead/,
     );
+    assert.ok(html.includes("https://api.factlot.com/mcp/signin"));
     assert.ok(
       html.includes(
         "&quot;-y&quot;,\n        &quot;mcp-remote&quot;,\n        &quot;https://api.factlot.com/mcp&quot;,\n        &quot;--header&quot;,\n        &quot;Authorization:${AUTH_HEADER}&quot;",
