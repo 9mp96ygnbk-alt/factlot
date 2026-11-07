@@ -30,6 +30,8 @@ From a shell: `claude plugin marketplace add 9mp96ygnbk-alt/factlot` then `claud
 | `tx-property-tax-protest`         | Texas ARB protest filing deadline                                                                                                                                                                                                                                                                             | `rules_tx_property_tax_protest_deadline`                                                                  |
 | `tx-unequal-appraisal-arithmetic` | The arithmetic of Tax Code §41.43(b)(3) and §42.26(a)(3) on comparables and adjustments you or your consultant choose, the filing-deadline rule, candidate parcels from the appraisal roll, and a cited workbook. Not an appraisal or an opinion of value, and not a substitute for the advice of an attorney | `calc_tx_unequal_appraisal`, `registry_tx_equity_candidates`, `fact_package_create`                       |
 
+The two Texas skills, `tx-property-tax-protest` and `tx-unequal-appraisal-arithmetic`: FactLot is software. It is not a property tax consultant under Texas Occupations Code chapter 1152, does not prepare, file or advise on protests, and does not represent owners before an appraisal review board. If you provide property tax services to others for compensation, your own registration obligations apply.
+
 Every skill follows the same rules: never compute the figures in-context, report the tool's value as returned, cite the formula ID (for example `calc.debt_sizing@3`), and surface every warning. The MCP server also exposes the ID tools (`id_parcel`, `id_entity`, `id_space`, `id_document`, `id_parse`), `fact_validate`, `search`, `fetch`, and `schema_get`.
 
 ## How it connects
