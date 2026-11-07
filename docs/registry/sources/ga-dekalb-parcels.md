@@ -101,3 +101,7 @@ PYTHONPATH=python/src python3 -m factlot.registry.adapters.ga_dekalb <collector 
 - Each condominium unit is a row, but only the first row for a `PARCELID` is kept.
 - The layer does not state its tax year; `parcel.tax_year` is empty.
 - Owners that look tax exempt (a university, development authorities) appear in class `C` and stay in `F1`.
+
+## Tier 1 audit (2026-11-06)
+
+The configured Hub export was collected again. The file is the same sha256 as the full load above (`6b569f0b50728ba3…`, 5,001,349 bytes). The feature service's class C/I count was 11,352 and the layer total was 246,494, both unchanged, and `dataLastEditDate` was still 2026-11-01 02:34 UTC. Parcels kept **11,351** (F1 9,099, F2 2,252, B 0). `--as-of` stays **2026-11-01**. Audit violations 0, person-like owner facts 0. The class C/I set is fully loaded; it is not a land-use-complete commercial universe, because the file still has no use code. Evidence: [ga-dekalb-parcels.md](../quality/audit-2026-11-06/ga-dekalb-parcels.md) and [ga-dekalb-parcels-audit.json](../quality/audit-2026-11-06/ga-dekalb-parcels-audit.json). Item `licenseInfo` re-read the same day is still `CC0`.

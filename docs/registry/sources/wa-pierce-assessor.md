@@ -145,3 +145,7 @@ PYTHONPATH=python/src python3 -m factlot.registry.adapters.wa_pierce <tax_accoun
   (several parcels valued as one economic unit) repeat nothing but are not merged.
 - The statewide layer [wa-state-parcels.md](wa-state-parcels.md) (gated on terms) covers Pierce's land use and values too,
   without area or year.
+
+## Tier 1 audit (2026-11-06)
+
+The four Data Mart tables were downloaded again. The downloads page listed **Date Extracted 11/06/2026** (the full load above was the 2026-10-30 extract). `tax_account.zip` is a new file (sha256 `a3193ad97e345bdf…`, 9,135,364 bytes) with 354,193 rows; 5 more rows than the 354,188 above, all out of scope. Parcels kept **12,530** (F1 9,745, B 2,288, F2 497), the same split. `--as-of` for this extract is **2026-11-06**. Facts written 120,668. Audit violations 0, person-like owner facts 0. The county does not publish a commercial parcel total; 12,530 is the non-exempt subset of the county use-code map, out of 13,487 accounts in that map before the exemption screen. Evidence: [wa-pierce-assessor.md](../quality/audit-2026-11-06/wa-pierce-assessor.md) and [wa-pierce-assessor-audit.json](../quality/audit-2026-11-06/wa-pierce-assessor-audit.json). The downloads-page disclaimer is unchanged. The copyright page is still unread, the same open item as in Gates.

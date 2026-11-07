@@ -117,4 +117,8 @@ PYTHONPATH=python/src python3 -m factlot.registry.adapters.tn_davidson <csv> reg
 - Condominium units each count as a parcel (749 office condominium units in `036`).
 - The roll is "updated daily" but the registry takes the Hub export at collection time; `--as-of` is the service's
   data last-edit date.
-- The Hub export for the full 287,827-row roll was not downloaded; only land-use codes 021-079 were.
+- The Hub export for the full roll was not downloaded; only land-use codes 021-079 were. On 2026-11-06 the unfiltered layer count was 287,888 (287,827 on 2026-11-03).
+
+## Tier 1 audit (2026-11-06)
+
+The configured Hub export was collected again. The CSV is a new file (sha256 `7d73ada67b98d397…`, 5,823,139 bytes; the full-load file above was `53b25baeeea770bf…`). The service's filter count was still 13,627 rows, of which 516 are vacant land or greenhouses and are dropped. Parcels kept **13,111** (B 973, F1 10,766, F2 1,372), the same split as the 2026-11-03 load. `dataLastEditDate` was 2026-11-06 11:09 UTC, so `--as-of` for this export is **2026-11-06** rather than 2026-11-02. Organisation owners stored 8,548 (the full load above, on the older file, stored 8,557). Audit violations 0, person-like owner facts 0. Evidence: [tn-davidson-assessor.md](../quality/audit-2026-11-06/tn-davidson-assessor.md) and [tn-davidson-assessor-audit.json](../quality/audit-2026-11-06/tn-davidson-assessor-audit.json). The Nashville.gov terms sentence that excludes Open Data Portal data from the commercial-use prohibition, re-read the same day, is unchanged.

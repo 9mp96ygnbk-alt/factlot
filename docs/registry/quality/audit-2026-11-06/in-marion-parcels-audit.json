@@ -1,0 +1,13 @@
+{
+  "audited_on": "2026-11-06",
+  "stats": {
+    "entities": 0,
+    "facts": 155917,
+    "links": 0,
+    "parcels": 20626,
+    "review_pending": 0,
+    "snapshots": 21
+  },
+  "violations": [],
+  "warnings": ["in-marion-parcels: 2 parcels have an implausible area"]
+}

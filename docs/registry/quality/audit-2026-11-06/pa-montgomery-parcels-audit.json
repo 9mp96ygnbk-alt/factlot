@@ -1,0 +1,13 @@
+{
+  "audited_on": "2026-11-06",
+  "stats": {
+    "entities": 0,
+    "facts": 153874,
+    "links": 0,
+    "parcels": 15584,
+    "review_pending": 0,
+    "snapshots": 3
+  },
+  "violations": [],
+  "warnings": []
+}

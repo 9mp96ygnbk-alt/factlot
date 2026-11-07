@@ -161,3 +161,7 @@ PYTHONPATH=python/src python3 -m factlot.registry.adapters.pa_montgomery <class 
   persons and are dropped by the registry (5,363 of 15,584 here).
 - The assessment table item (more records than the GIS layer) was not examined for parcels that have no
   polygon.
+
+## Tier 1 audit (2026-11-06)
+
+The three class files were collected again. Each is the same sha256 as the full load above, and the live feature service still counts class A 692, C 12,393 and I 2,705. `dataLastEditDate` is still 2026-10-05 15:19 UTC, so `--as-of` stays **2026-10-05**. Parcels kept **15,584** (B 678, F1 12,244, F2 2,662). Audit violations 0, person-like owner facts 0. A rebuild with the current owner rule stores 10,246 organisation owners; the real-run table above, on these same files, recorded 10,221. Evidence: [pa-montgomery-parcels.md](../quality/audit-2026-11-06/pa-montgomery-parcels.md) and [pa-montgomery-parcels-audit.json](../quality/audit-2026-11-06/pa-montgomery-parcels-audit.json). The item `licenseInfo`, re-read the same day, is still the "free and open resource" paragraph quoted under Terms.
