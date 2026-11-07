@@ -119,3 +119,31 @@ export function publicPlans(checkoutBase: string) {
     ),
   };
 }
+
+// --- Reports ------------------------------------------------------------------------------------
+
+/**
+ * Reports (report_create over MCP, POST /v1/reports) per calendar month (UTC): without a key per
+ * IP address (a month-salted hash of it), with one per subscription, shared by its keys. Only a
+ * report that was built and stored counts; input errors are free.
+ */
+export const REPORTS_PER_MONTH: Record<Tier, number> = {
+  anonymous: 3,
+  pro: 50,
+  team: 1_000,
+};
+
+/** Hours a report's download link works. */
+export const REPORT_DOWNLOAD_HOURS = 24;
+
+/** The reports block of /v1/plans. */
+export function reportLimits() {
+  return {
+    per_month: {
+      free: REPORTS_PER_MONTH.anonymous,
+      pro: REPORTS_PER_MONTH.pro,
+      team: REPORTS_PER_MONTH.team,
+    },
+    counted: `One report is one document built and stored (report_create or POST /v1/reports). Without a key, per IP address (stored only as a hash) per calendar month (UTC); with a key, per subscription per calendar month (UTC). Input errors are free. Download links work for ${REPORT_DOWNLOAD_HOURS} hours.`,
+  };
+}

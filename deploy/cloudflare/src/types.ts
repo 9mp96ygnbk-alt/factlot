@@ -21,11 +21,16 @@ export interface RateLimit {
 
 export type QuotaKind = "day" | "month";
 
+/** Which counter a quota uses: registry lookups (the default) or reports. */
+export type QuotaCounter = "lookups" | "reports";
+
 export interface QuotaSpec {
   kind: QuotaKind;
   limit: number;
-  /** Lookups this request wants. */
+  /** Lookups (or reports) this request wants. */
   n: number;
+  /** Default "lookups". */
+  counter?: QuotaCounter;
 }
 
 export interface QuotaState {
@@ -57,13 +62,19 @@ export interface MeterService {
   ): Promise<HitResult>;
   /** Registry lookups only (no minute limit), for `sub:<subscription>`. */
   consume(subject: string, quota: QuotaSpec): Promise<HitResult>;
-  quota(subject: string, kind: QuotaKind, limit: number): Promise<QuotaState>;
+  quota(
+    subject: string,
+    kind: QuotaKind,
+    limit: number,
+    counter?: QuotaCounter,
+  ): Promise<QuotaState>;
   /** Give back lookups the registry could not answer (same window only). */
   refund(
     subject: string,
     kind: QuotaKind,
     n: number,
     resets_at: string,
+    counter?: QuotaCounter,
   ): Promise<void>;
   /** First writer wins, strongly consistent: returns the value stored under `name`. */
   claim(name: string, value: string): Promise<string>;

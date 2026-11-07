@@ -23,6 +23,7 @@
 import type {
   HitResult,
   MeterService,
+  QuotaCounter,
   QuotaKind,
   QuotaSpec,
   QuotaState,
@@ -101,6 +102,19 @@ export function quotaWindow(
     window: `month:${d.toISOString().slice(0, 7)}`,
     resetsAt: Date.UTC(y, m + 1, 1),
   };
+}
+
+/**
+ * The stored name of a counter's window: `month:2026-11` for registry lookups, and the same
+ * window prefixed `reports:` for the reports counter, so the two never share a count.
+ */
+export function counterWindow(
+  kind: QuotaKind,
+  now: number,
+  counter: QuotaCounter = "lookups",
+): { window: string; resetsAt: number } {
+  const w = quotaWindow(kind, now);
+  return counter === "reports" ? { ...w, window: `reports:${w.window}` } : w;
 }
 
 /** Durable counters and claims for one object. Synchronous, so a read-modify-write is atomic. */
@@ -298,7 +312,7 @@ export class Meter {
     const ok =
       perMinute === null ? true : this.minute.hit(perMinute, 60_000, now);
     if (!quota) return { ok, granted: 0 };
-    const { window, resetsAt } = quotaWindow(quota.kind, now);
+    const { window, resetsAt } = counterWindow(quota.kind, now, quota.counter);
     this.store.pruneBefore(window);
     const used = this.store.getCount(window);
     const granted = ok ? Math.max(0, Math.min(quota.n, quota.limit - used)) : 0;
@@ -317,8 +331,13 @@ export class Meter {
    * Give back `n` lookups taken in the window that ends at `resetsAt` (the registry could not
    * answer). Nothing happens once that window has ended.
    */
-  refund(kind: QuotaKind, n: number, resetsAt: string): QuotaState | undefined {
-    const { window, resetsAt: end } = quotaWindow(kind, this.now());
+  refund(
+    kind: QuotaKind,
+    n: number,
+    resetsAt: string,
+    counter?: QuotaCounter,
+  ): QuotaState | undefined {
+    const { window, resetsAt: end } = counterWindow(kind, this.now(), counter);
     if (new Date(end).toISOString() !== resetsAt || n <= 0) return undefined;
     const used = Math.max(0, this.store.getCount(window) - n);
     this.store.setCount(window, used);
@@ -410,6 +429,7 @@ export class Meter {
     const now = this.now();
     this.store.pruneBefore(quotaWindow("day", now).window);
     this.store.pruneBefore(quotaWindow("month", now).window);
+    this.store.pruneBefore(counterWindow("month", now, "reports").window);
     this.store.clearClaims();
     this.store.pruneUsageBefore(
       new Date(now - (USAGE_RETENTION_DAYS - 1) * DAY_MS)
@@ -438,8 +458,12 @@ export class Meter {
   }
 
   /** The current window's usage, counting nothing; `window_ends` as for `hit`. */
-  quota(kind: QuotaKind, limit: number): QuotaState & { window_ends: number } {
-    const { window, resetsAt } = quotaWindow(kind, this.now());
+  quota(
+    kind: QuotaKind,
+    limit: number,
+    counter?: QuotaCounter,
+  ): QuotaState & { window_ends: number } {
+    const { window, resetsAt } = counterWindow(kind, this.now(), counter);
     return {
       ...quotaState(this.store.getCount(window), limit, resetsAt),
       window_ends: resetsAt,
@@ -530,8 +554,16 @@ export class RateLimiterObject {
       return jsonResponse({ last_used_at: this.meter.lastUsed() ?? null });
     }
     if (url.pathname === "/quota") {
-      const b = (await request.json()) as { kind: QuotaKind; limit: number };
-      const { window_ends, ...state } = this.meter.quota(b.kind, b.limit);
+      const b = (await request.json()) as {
+        kind: QuotaKind;
+        limit: number;
+        counter?: QuotaCounter;
+      };
+      const { window_ends, ...state } = this.meter.quota(
+        b.kind,
+        b.limit,
+        b.counter,
+      );
       await this.alarmBy(window_ends);
       return jsonResponse(state);
     }
@@ -540,9 +572,11 @@ export class RateLimiterObject {
         kind: QuotaKind;
         n: number;
         resets_at: string;
+        counter?: QuotaCounter;
       };
       return jsonResponse({
-        refunded: this.meter.refund(b.kind, b.n, b.resets_at) !== undefined,
+        refunded:
+          this.meter.refund(b.kind, b.n, b.resets_at, b.counter) !== undefined,
       });
     }
     if (url.pathname === "/claim") {
@@ -631,11 +665,20 @@ export function objectMeter(ns: DurableObjectNamespaceLike): MeterService {
         perMinute: null,
         quota,
       }),
-    refund: async (subject, kind, n, resets_at) => {
-      await call(ns, `meter:${subject}`, "/refund", { kind, n, resets_at });
+    refund: async (subject, kind, n, resets_at, counter) => {
+      await call(ns, `meter:${subject}`, "/refund", {
+        kind,
+        n,
+        resets_at,
+        ...(counter ? { counter } : {}),
+      });
     },
-    quota: (subject, kind, limit) =>
-      call<QuotaState>(ns, `meter:${subject}`, "/quota", { kind, limit }),
+    quota: (subject, kind, limit, counter) =>
+      call<QuotaState>(ns, `meter:${subject}`, "/quota", {
+        kind,
+        limit,
+        ...(counter ? { counter } : {}),
+      }),
     claim: async (name, value) =>
       (
         await call<{ value: string }>(ns, `claim:${name}`, "/claim", {
@@ -698,6 +741,12 @@ export async function addressSubject(
   address: string,
   now: number = Date.now(),
   secret?: string,
+  /**
+   * "day" (the default) for the daily lookup quota. "month" for a monthly quota per address (the
+   * free reports): the hash is salted with the month instead of the day, so it stays the same
+   * all month; its subject is `ipm:<hash>`, a separate meter.
+   */
+  period: QuotaKind = "day",
 ): Promise<string> {
   if (!secret && !warnedNoSalt) {
     warnedNoSalt = true;
@@ -707,15 +756,15 @@ export async function addressSubject(
       }),
     );
   }
-  const day = quotaWindow("day", now).window;
+  const window = quotaWindow(period, now).window;
   const digest = await crypto.subtle.digest(
     "SHA-256",
     new TextEncoder().encode(
-      `factlot-meter|${secret ?? ""}|${day}|${ipBucket(address)}`,
+      `factlot-meter|${secret ?? ""}|${window}|${ipBucket(address)}`,
     ),
   );
   const hex = [...new Uint8Array(digest)]
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
-  return `ip:${hex.slice(0, 32)}`;
+  return `${period === "day" ? "ip" : "ipm"}:${hex.slice(0, 32)}`;
 }
