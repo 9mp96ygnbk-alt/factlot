@@ -916,9 +916,10 @@ describe("model tools on the hosted API", () => {
         innerApi,
       )
     ).json()) as { result: { tools: { name: string }[] } };
+    // report_create is listed for every caller; the model-backed tools are not.
     assert.deepEqual(
       anonList.result.tools.map((t) => t.name),
-      ["calc_irr"],
+      ["calc_irr", "report_create"],
     );
   });
 

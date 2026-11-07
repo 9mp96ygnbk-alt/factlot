@@ -102,8 +102,20 @@ import {
   isMeteredRegistryTool,
   modelPlansInfo,
   publicPlans,
+  reportLimits,
   type Tier,
 } from "./plans.ts";
+import {
+  DOWNLOAD_PATH,
+  REPORT_QUOTA_HEADERS,
+  REPORT_TOOL,
+  answerReportCall,
+  downloadLimitKey,
+  isReportCall,
+  reportDownload,
+  reportsRest,
+  type ReportCaller,
+} from "./reports.ts";
 import type {
   Env,
   Fetcher,
@@ -174,6 +186,9 @@ function corsHeaders(): Record<string, string> {
       "x-ratelimit-limit",
       "x-factlot-tier",
       ...QUOTA_HEADERS,
+      ...REPORT_QUOTA_HEADERS,
+      "content-disposition",
+      "x-factlot-report-sha256",
     ].join(", "),
   };
 }
@@ -678,6 +693,7 @@ async function route(
           plans,
           quotas: QUOTA_RULES,
           model_tools: modelPlansInfo(modelEnabled(env)),
+          reports: reportLimits(),
           checkout_open,
           checkout,
         }),
@@ -800,6 +816,26 @@ async function route(
     );
   }
 
+  // Report downloads: the link is the credential (a 256-bit token), so no key is read. Limited
+  // per address and per token (named by the token's hash).
+  if (path.startsWith(DOWNLOAD_PATH)) {
+    const token = path.slice(DOWNLOAD_PATH.length);
+    const byAddress = await metered(
+      env.RL_ANON.limit({ key: `reportdl-ip:${await addressKey()}` }),
+    );
+    const byToken =
+      byAddress.success &&
+      (await metered(
+        env.RL_ANON.limit({ key: await downloadLimitKey(token) }),
+      ));
+    if (!byAddress.success || !byToken || !byToken.success)
+      return rateLimited(path, ANONYMOUS_REQUESTS_PER_MINUTE, "anonymous");
+    return withHeaders(
+      await reportDownload(request, env, token, now()),
+      corsHeaders(),
+    );
+  }
+
   // Who is calling. Rejected tokens spend a per-address budget, checked before the key store
   // is read, so a flood of made-up keys is refused cheaply.
   const token = bearer(request.headers.get("authorization"));
@@ -888,8 +924,10 @@ async function route(
   let restText: string | undefined;
   let registryRequest = false;
   let wanted = 0;
-  // Hosted account tools (with a key): answered here, never by the inner handler.
+  // Hosted tools, answered here, never by the inner handler: the account tools (with a key) and
+  // report_create (everyone).
   let accountCalls: AccountCall[] = [];
+  let reportCalls: AccountCall[] = [];
   let listIds: unknown[] = [];
   let mcpBatch = false;
   let onlyAccount = false;
@@ -921,21 +959,22 @@ async function route(
     wanted = items
       .filter(isMeteredCall)
       .reduce((n, m) => n + callReserves(m), 0);
-    // Hosted tools answered here: account tools (with a key) and the model-backed tools (any
-    // caller: without a key they answer PlanRequired, without the model ModelUnavailable).
+    // Hosted tools answered here: account tools (with a key), the model-backed tools (any
+    // caller: without a key they answer PlanRequired, without the model ModelUnavailable) and
+    // report_create (any caller).
     const hosted = (m: unknown) => (paid && isAccountCall(m)) || isModelCall(m);
     if (mcpBody !== undefined) {
       accountCalls = items.filter(hosted);
-      if (paid)
-        listIds = items
-          .filter(
-            (m) =>
-              (m as { method?: unknown } | null)?.method === "tools/list" &&
-              (m as { id?: unknown }).id !== undefined,
-          )
-          .map((m) => (m as { id: unknown }).id);
-      if (accountCalls.length > 0) {
-        const kept = items.filter((m) => !hosted(m));
+      reportCalls = items.filter(isReportCall);
+      listIds = items
+        .filter(
+          (m) =>
+            (m as { method?: unknown } | null)?.method === "tools/list" &&
+            (m as { id?: unknown }).id !== undefined,
+        )
+        .map((m) => (m as { id: unknown }).id);
+      if (accountCalls.length > 0 || reportCalls.length > 0) {
+        const kept = items.filter((m) => !hosted(m) && !isReportCall(m));
         onlyAccount = kept.length === 0;
         mcpBody = mcpBatch ? kept : kept[0];
         mcpText = onlyAccount ? undefined : JSON.stringify(mcpBody);
@@ -1003,6 +1042,30 @@ async function route(
       );
   }
   if (!hit.ok) return rateLimited(path, perMinute, tier, oauth !== undefined);
+
+  // Reports: metered per month against reports_per_month (reports.ts).
+  const reportCaller: ReportCaller = {
+    tier,
+    subject: async () =>
+      paid
+        ? meterSubject(paid.record, paid.hash)
+        : (oauth?.subject ??
+          addressSubject(
+            clientAddress(request),
+            now(),
+            env.IP_HASH_SALT,
+            "month",
+          )),
+  };
+  const reportOpts = { apiBase, now };
+  if (path === "/v1/reports")
+    return withHeaders(
+      await reportsRest(request, env, reportCaller, {
+        ...reportOpts,
+        maxBodyBytes: MAX_BODY_BYTES,
+      }),
+      { ...corsHeaders(), "x-factlot-tier": tier },
+    );
 
   const headers: Record<string, string> = {
     "x-factlot-tier": tier,
@@ -1117,26 +1180,37 @@ async function route(
         Math.min(hit.quota.limit, hit.quota.remaining + unanswered),
       );
   }
-  if (accountCalls.length > 0 || listIds.length > 0) {
+  if (accountCalls.length > 0 || reportCalls.length > 0 || listIds.length > 0) {
     let modelCalls = 0;
     res = await withAccountTools(
       res,
-      await Promise.all(
-        accountCalls.map((m) =>
-          isModelCall(m)
-            ? answerModelCall(
-                env,
-                modelCaller,
-                m,
-                opts.model,
-                ++modelCalls > MAX_MODEL_CALLS_PER_REQUEST,
-              )
-            : metered(answerAccountCall(env, paid!.hash, paid!.record, m)),
-        ),
-      ),
+      [
+        ...(await Promise.all(
+          accountCalls.map((m) =>
+            isModelCall(m)
+              ? answerModelCall(
+                  env,
+                  modelCaller,
+                  m,
+                  opts.model,
+                  ++modelCalls > MAX_MODEL_CALLS_PER_REQUEST,
+                )
+              : metered(answerAccountCall(env, paid!.hash, paid!.record, m)),
+          ),
+        )),
+        ...(await Promise.all(
+          reportCalls.map((m) =>
+            answerReportCall(env, reportCaller, m, reportOpts),
+          ),
+        )),
+      ],
       listIds,
       mcpBatch,
-      [...ACCOUNT_TOOLS, ...modelToolsFor(env, modelCaller)],
+      [
+        ...(paid ? ACCOUNT_TOOLS : []),
+        REPORT_TOOL,
+        ...modelToolsFor(env, modelCaller),
+      ],
     );
   }
   // Browsers read only the headers listed here: add this layer's to the inner handler's list.
@@ -1402,15 +1476,15 @@ function isAccountCall(item: unknown): item is AccountCall {
 }
 
 /**
- * Merge the account tools into an MCP answer: their calls' answers, and their definitions at the
- * end of a tools/list result (the last page, when the list is paged).
+ * Merge the hosted tools into an MCP answer: their calls' answers, and the definitions in
+ * `listed` at the end of a tools/list result (the last page, when the list is paged).
  */
 async function withAccountTools(
   res: Response,
   answers: unknown[],
   listIds: unknown[],
   batch: boolean,
-  hostedTools: unknown[] = ACCOUNT_TOOLS,
+  listed: unknown[],
 ): Promise<Response> {
   const answer = (body: unknown) => withHeaders(json(200, body), corsHeaders());
   if (res.status === 202 && answers.length > 0)
@@ -1436,7 +1510,7 @@ async function withAccountTools(
       Array.isArray(m.result?.tools) &&
       !m.result.nextCursor
     )
-      m.result.tools.push(...hostedTools);
+      m.result.tools.push(...listed);
   const all = [...inner, ...answers];
   return answer(batch ? all : all[0]);
 }
