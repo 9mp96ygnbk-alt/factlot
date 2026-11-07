@@ -48,8 +48,10 @@ reg.ingest_parcels([
     ParcelRecord("999", "0001-000-0004", "B", account="A4", situs_address="200 River Road", owner_name="John Example",
                  market_value=4100000, tax_year=2026),
     # Three condominium units and the common lot of one building (rolled up by its street address).
+    # The common lot carries the building's year built; the unit records carry none (registry_get on a unit
+    # warns that its values may be for the land only and names the common lot).
     ParcelRecord("999", "0002-000-1000", "F1", account="A10", situs_address="300 Harbor Drive, Example City TX 77999",
-                 owner_name="Harbor Point Condominium Association", market_value=1000, tax_year=2026),
+                 owner_name="Harbor Point Condominium Association", year_built=1984, market_value=1000, tax_year=2026),
     ParcelRecord("999", "0002-000-1001", "F1", account="A11", situs_address="300 Harbor Dr Unit 101, Example City TX 77999",
                  owner_name="Harbor Office Condos LLC", market_value=850000, tax_year=2026),
     ParcelRecord("999", "0002-000-1002", "F1", account="A12", situs_address="300 Harbor Dr Ste 102, Example City TX 77999-1234",

@@ -13,7 +13,8 @@ from importlib import resources
 from typing import Any
 
 from ._core import round_
-from .docverify import DocInputError, _cap_characters, _characters, _describe, _load_document, locate_quote
+from .docverify import MIN_QUOTE_CHARS, DocInputError, _cap_characters, _characters, _describe, _load_document, \
+    locate_quote
 from .ingest.verify import _NUMBER_TOKEN, _decimal, _missing, _norm, show_value
 from .words import KeywordIndex, words
 
@@ -62,7 +63,8 @@ def _written_negative(q: str, amount: float) -> bool:
 
 
 def _cite(doc: dict[str, Any], page: int, q: str, line: dict[str, Any]) -> dict[str, Any]:
-    span = doc["text"].span(page, q)
+    # A short quote is located where it stands as whole words (locate_quote).
+    span = doc["text"].span(page, q, len(q) < MIN_QUOTE_CHARS)
     out: dict[str, Any] = {"document_id": doc["id"]}
     if "title" in doc:
         out["title"] = doc["title"]
@@ -107,7 +109,7 @@ def spread_statement(args: dict[str, Any]) -> dict[str, Any]:
     def check(i: int, line: dict[str, Any]) -> dict[str, Any]:
         base = {"index": i, "line": line, "period": period_of(line)}
         at = {"line": i}
-        loc = locate_quote(doc["text"], line["quote"], line["page"])
+        loc = locate_quote(doc["text"], line["quote"], line["page"], short_whole_words=True)
         if not loc["ok"]:
             flag("quote", loc["reason"], at)
             return {**base, "kind": "excluded", "reason": loc["reason"]}
@@ -183,6 +185,12 @@ def spread_statement(args: dict[str, Any]) -> dict[str, Any]:
         def at_of(i: int, label: str | None = label) -> dict[str, Any]:
             return {"line": i, "period": label} if label is not None else {"line": i}
         in_period = [c for c in checked if c["period"] == key]
+        # Lines left out of this period's spread: a total that does not foot names them.
+        left = [c for c in in_period if c["kind"] == "excluded"]
+        left_out = (f"; {'line' if len(left) == 1 else 'lines'} left out of the spread in this period: "
+                    + ", ".join(f"{c['index']} ({c['line']['label']}, {show_value(c['line']['amount'])})"
+                                for c in left[:5])
+                    + (f" and {len(left) - 5} more" if len(left) > 5 else "")) if left else ""
         section_amount: dict[str, float] = {}
         section_lines: dict[str, int] = {}
         sections = []
@@ -222,7 +230,7 @@ def spread_statement(args: dict[str, Any]) -> dict[str, Any]:
                     all_foot = False
                     flag("does_not_foot", f"{c['line']['label']} is {show_value(c['signed'])} on the statement; the "
                                           f"lines spread here give {show_value(amount)} (difference "
-                                          f"{show_value(difference)}, tolerance {show_value(tolerance)})",
+                                          f"{show_value(difference)}, tolerance {show_value(tolerance)}){left_out}",
                          at_of(c["index"]))
                 stated.append({"line": c["index"], "amount": c["signed"], "difference": difference,
                                "tolerance": tolerance, "foots": foots})

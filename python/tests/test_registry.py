@@ -11,7 +11,7 @@ from pathlib import Path
 
 import factlot
 from factlot.registry.county_names import county_name
-from factlot.registry.normalize import address_query, legacy_address_key, legacy_name_key
+from factlot.registry.normalize import address_query, legacy_address_key, legacy_name_key, scrub_mailing_address
 from factlot.registry import (
     EntityRecord,
     ParcelRecord,
@@ -469,6 +469,39 @@ class RegistryCore(unittest.TestCase):
         lonestar = factlot.entity_id("us-tx", "0801111111").urn
         self.assertEqual(len(self.reg.parcels_owned_by(lonestar)), 1, "organisation owners are untouched")
         self.assertEqual(self.reg.purge_person_owners()["owner_facts"], 0, "idempotent")
+
+    def test_mailing_address_contact_names_that_are_not_organisations_are_not_stored(self):
+        cases = {
+            "2906 SE LOOP 820 SUITE G, ATTN CONNIE SMITH, FORT WORTH, TX 76140":
+                ("2906 SE LOOP 820 SUITE G, FORT WORTH, TX 76140", 1),
+            "4514 COLE AVE STE 826, ATTN: JANE EXAMPLE, DALLAS, TX 75205": ("4514 COLE AVE STE 826, DALLAS, TX 75205", 1),
+            "7101 WISCONSIN AVE C/O JOHN EXAMPLE STE 700, BETHESDA MD 20814": ("7101 WISCONSIN AVE STE 700, BETHESDA MD 20814", 1),
+            "c/o Kenneth Example, 1642 R St NW, Washington, DC 20009": ("1642 R St NW, Washington, DC 20009", 1),
+            "ATTN MR JOHN EXAMPLE": (None, 1),
+            # Organisations stay, including a suffix written after a comma; a marker with no name is left alone.
+            "C/O ALTUS GROUP PO BOX 92129, SOUTHLAKE TX 76092": ("C/O ALTUS GROUP PO BOX 92129, SOUTHLAKE TX 76092", 0),
+            "c/o National Registered Agents, Inc., 1209 Orange Street, Wilmington, DE 19801":
+                ("c/o National Registered Agents, Inc., 1209 Orange Street, Wilmington, DE 19801", 0),
+            "11200 FUQUA ST STE 100 C/O BOX 118, HOUSTON, TX 77089": ("11200 FUQUA ST STE 100 C/O BOX 118, HOUSTON, TX 77089", 0),
+            "PO BOX 1, HOUSTON, TX 77002": ("PO BOX 1, HOUSTON, TX 77002", 0),
+        }
+        for given, expected in cases.items():
+            self.assertEqual(scrub_mailing_address(given), expected, given)
+        # Ingest stores the scrubbed address; purge_person_owners scrubs a file written before.
+        record = ParcelRecord("999", "0009-000-0001", "F1", account="A90", situs_address="9 Example Way",
+                              owner_name="Example Holdings LLC", owner_mailing_address="1 Elm St, ATTN JANE EXAMPLE, Example TX 77999",
+                              market_value=1000000)
+        self.reg.ingest_parcels([record], self.snap25, state_fips="48")
+        parcel = factlot.parcel_id("48", "999", "0009-000-0001").urn
+        mailing = lambda: [f["value"] for f in self.reg.facts(parcel) if f["predicate"] == "ownership.owner_mailing_address"]  # noqa: E731
+        self.assertEqual(mailing(), ["1 Elm St, Example TX 77999"])
+        self.reg.db.execute("UPDATE facts SET value_json = ? WHERE subject = ? AND predicate = 'ownership.owner_mailing_address'",
+                            (json.dumps("1 Elm St, ATTN JANE EXAMPLE, Example TX 77999"), parcel))
+        self.reg.db.commit()
+        self.assertEqual(self.reg.purge_person_owners()["contact_names"], 1)
+        self.assertEqual(mailing(), ["1 Elm St, Example TX 77999"])
+        self.assertNotIn("JANE", str(self.reg.get(parcel)))
+        self.assertEqual(self.reg.purge_person_owners()["contact_names"], 0, "idempotent")
 
     def test_reingest_is_idempotent_and_newer_snapshot_wins(self):
         self.reg.ingest_parcels(ROLL_2025, self.snap25, state_fips="48")

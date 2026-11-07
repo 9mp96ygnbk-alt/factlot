@@ -70,6 +70,9 @@
       "SHOPPING CENTER LEASE (SYNTHETIC TEST DOCUMENT - NOT A REAL LEASE)\n\n1.3 Commencement Date. The Commencement Date is July 1, 2026.\n1.4 Term. Ten (10) Lease Years.",
       "4.1 Base Rent. Tenant shall pay Base Rent as follows:\nLease Years 1–5: $34.50 per rentable square foot per annum;\nLease Years 6–10: $38.00 per rentable square foot per annum.\n4.2 CAM Cap. Controllable Common Area Charges shall not increase by more than five percent (5%) over the prior year.",
       "EXHIBIT C (SYNTHETIC). Kiosk license. The License Commencement Date is February 29, 2028. License Years 1–2: $40.00 per square foot; License Years 3–4: $42.00 per square foot."
+    ],
+    "short_lines_statement": [
+      "HARBOR OFFICE CENTER (SYNTHETIC TEST DOCUMENT - NOT A REAL PROPERTY) - T-12 Oct 2025 - Sep 2026\nRental Income 2,450,000\nVacancy (180,000)\nEffective Gross Income 2,270,000\nReal Estate Taxes 245,000\nInsurance 61,200\nR&M 310,411\nHVAC 52,000\nSecurity 41,000\nTotal Operating Expenses 709,611\nNet Operating Income 1,560,389"
     ]
   },
   "consistency": [
@@ -5080,13 +5083,13 @@
             "line": 5,
             "period": "2025",
             "kind": "does_not_foot",
-            "message": "Total Expenses is 30500 on the statement; the lines spread here give 28700 (difference 1800, tolerance 0)"
+            "message": "Total Expenses is 30500 on the statement; the lines spread here give 28700 (difference 1800, tolerance 0); lines left out of the spread in this period: 1 (Parking Lot Repairs, 4000), 3 (Pool Service, 2500)"
           },
           {
             "line": 6,
             "period": "2025",
             "kind": "does_not_foot",
-            "message": "Net Operating Income is 469500 on the statement; the lines spread here give 471300 (difference -1800, tolerance 0)"
+            "message": "Net Operating Income is 469500 on the statement; the lines spread here give 471300 (difference -1800, tolerance 0); lines left out of the spread in this period: 1 (Parking Lot Repairs, 4000), 3 (Pool Service, 2500)"
           },
           {
             "line": 8,
@@ -5097,6 +5100,123 @@
         ],
         "lines.3.status": "excluded",
         "lines.3.reason": "the label matches no category in the chart; give a category"
+      }
+    },
+    {
+      "name": "spread short statement rows: a quote under 12 characters is accepted where it stands as whole words (R&M 310,411), rejected where it is only part of a longer number (HVAC 52 in HVAC 52,000), and a total that does not foot names the line left out",
+      "tool": "doc_spread_statement",
+      "arguments": {
+        "document": {
+          "pages": {
+            "$pages": "short_lines_statement"
+          }
+        },
+        "property_type": "commercial",
+        "statement_type": "t12",
+        "lines": [
+          {
+            "label": "Rental Income",
+            "amount": 2450000,
+            "quote": "Rental Income 2,450,000",
+            "page": 1
+          },
+          {
+            "label": "Vacancy",
+            "amount": -180000,
+            "quote": "Vacancy (180,000)",
+            "page": 1
+          },
+          {
+            "label": "Effective Gross Income",
+            "amount": 2270000,
+            "quote": "Effective Gross Income 2,270,000",
+            "page": 1,
+            "category": "effective_gross_income"
+          },
+          {
+            "label": "Real Estate Taxes",
+            "amount": 245000,
+            "quote": "Real Estate Taxes 245,000",
+            "page": 1
+          },
+          {
+            "label": "Insurance",
+            "amount": 61200,
+            "quote": "Insurance 61,200",
+            "page": 1
+          },
+          {
+            "label": "R&M",
+            "amount": 310411,
+            "quote": "R&M 310,411",
+            "page": 1,
+            "category": "repairs_maintenance"
+          },
+          {
+            "label": "HVAC",
+            "amount": 52,
+            "quote": "HVAC 52",
+            "page": 1,
+            "category": "repairs_maintenance"
+          },
+          {
+            "label": "Security",
+            "amount": 41000,
+            "quote": "Security 41,000",
+            "page": 1
+          },
+          {
+            "label": "Total Operating Expenses",
+            "amount": 709611,
+            "quote": "Total Operating Expenses 709,611",
+            "page": 1,
+            "category": "total_operating_expenses"
+          },
+          {
+            "label": "Net Operating Income",
+            "amount": 1560389,
+            "quote": "Net Operating Income 1,560,389",
+            "page": 1,
+            "category": "net_operating_income"
+          }
+        ]
+      },
+      "expect": {
+        "summary": {
+          "lines": 10,
+          "included": 6,
+          "totals": 3,
+          "subtotals": 0,
+          "memo": 0,
+          "excluded": 1,
+          "exceptions": 3,
+          "foots": false
+        },
+        "lines.5.status": "included",
+        "lines.5.spread_amount": 310411,
+        "lines.5.citation.span": {
+          "start": 214,
+          "end": 225
+        },
+        "lines.6.status": "excluded",
+        "lines.6.reason": "quote shorter than 12 characters is found only inside a longer word or number; quote more of the line",
+        "exceptions": [
+          {
+            "line": 6,
+            "kind": "quote",
+            "message": "quote shorter than 12 characters is found only inside a longer word or number; quote more of the line"
+          },
+          {
+            "line": 8,
+            "kind": "does_not_foot",
+            "message": "Total Operating Expenses is 709611 on the statement; the lines spread here give 657611 (difference 52000, tolerance 2); line left out of the spread in this period: 6 (HVAC, 52)"
+          },
+          {
+            "line": 9,
+            "kind": "does_not_foot",
+            "message": "Net Operating Income is 1560389 on the statement; the lines spread here give 1612389 (difference -52000, tolerance 3); line left out of the spread in this period: 6 (HVAC, 52)"
+          }
+        ]
       }
     },
     {

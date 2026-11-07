@@ -46,6 +46,16 @@ Not allowed:
   link are dropped, not just left out of search. A name is read as a person unless it is clearly
   an organisation; a trade name that is a person's own name and a generic business word ("SMITH
   JOHN PROPERTIES") is read as a person. It never compiles profiles of individuals.
+- **No person on a stored address.** An organisation's mailing address can name a person ("ATTN
+  JANE DOE", "C/O JOHN SMITH"). Ingest removes each such contact, with its marker, unless the name
+  is clearly an organisation ("C/O ACME MANAGEMENT LLC"). The rest of the address stays. For a file
+  built before this rule, the maintenance step `--purge-persons` does the same.
+- **No grouping by mailing address.** No registry tool finds or groups owners by mailing address:
+  `registry_owned_by` follows ownership links to one registered entity, buildings group parcels by
+  their situs address, and the owner-match review uses only the mailing address's state. A small
+  organisation's mailing address can be a person's home, so a portfolio view built by shared
+  mailing address could point at a person. Any such feature must stay limited to organisation
+  owners, show the shared address only as a stored fact, and never list or rank the people behind it.
 - **Raw archives stay private.** The collector's archived source files (the evidence each fact
   cites) are kept as draft releases that only maintainers can see, because complete appraisal
   rolls name natural-person owners. FactLot publishes the facts and their citations (document
