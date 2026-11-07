@@ -272,6 +272,29 @@ class TxEquity(unittest.TestCase):
         copy["48439"] = "changed"
         self.assertEqual(hosted_withheld_counties(), HOSTED_WITHHELD_COUNTIES)
 
+    def test_batch_answers_each_subject_as_the_single_tool(self):
+        single = self.run_tool({"urn": SUBJECT, "tax_year": 2026, "limit": 3})
+        tarrant = self.run_tool({"urn": "fl:parcel:us-48439:00001234"})
+        out = factlot.run_tool(TOOL + "_batch", {
+            "subjects": [{"id": "A", "urn": SUBJECT}, {"id": "T", "urn": "fl:parcel:us-48439:00001234"},
+                         {"id": "N", "county_fips": "997", "apn": "9999999"}],
+            "tax_year": 2026, "limit": 3})
+        expected = {k: v for k, v in single.items() if k != "notice"}
+        expected["selection"] = {k: v for k, v in single["selection"].items() if k != "rule"}
+        self.assertEqual(out["results"][0], {"id": "A", **expected})
+        self.assertEqual(out["results"][1], {"id": "T", "error": tarrant})
+        self.assertEqual(out["results"][2]["error"]["error"], "NotFound")
+        self.assertEqual((out["notice"], out["rule"]), (NOTICE, single["selection"]["rule"]))
+        # Answered subjects are what the hosted API meters, one lookup each.
+        self.assertEqual(out["summary"], {"subjects": 3, "answered": 1, "errors": 2})
+        # Candidates only: the batch never runs calc_tx_unequal_appraisal.
+        self.assertNotIn("calc.tx_unequal_appraisal", json.dumps(out))
+
+    def test_batch_limits(self):
+        many = [{"id": f"s{i}", "urn": SUBJECT} for i in range(51)]
+        for args in ({"subjects": []}, {"subjects": many}, {"subjects": [{"id": "A", "urn": SUBJECT}] * 2}):
+            self.assertEqual(factlot.run_tool(TOOL + "_batch", args)["error"], "InputError")
+
 
 if __name__ == "__main__":
     unittest.main()

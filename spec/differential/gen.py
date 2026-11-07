@@ -151,4 +151,7 @@ cases.extend(round4_cases(int(sys.argv[1]), int(sys.argv[2]) // 2))
 # tie-out calculators (reconcile_dcf, reconcile_cam): their own stream
 from gen_reconcile import reconcile_cases
 cases.extend(reconcile_cases(int(sys.argv[1]), int(sys.argv[2])))
+# rules_tx_property_tax_protest_deadline_batch: its own stream, after every other
+from gen_tx import deadline_batch_cases
+cases.extend(deadline_batch_cases(int(sys.argv[1]), int(sys.argv[2])))
 json.dump(cases,open(sys.argv[3],"w"))

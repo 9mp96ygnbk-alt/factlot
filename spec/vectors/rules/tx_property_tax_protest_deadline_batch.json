@@ -1,0 +1,486 @@
+{
+  "calculator": "rules.tx.property_tax_protest_deadline_batch",
+  "rule": "tx_property_tax_protest_deadline_batch",
+  "version": 1,
+  "description": "Protest deadlines for many notices in one call. Each answered item equals rules.tx.property_tax_protest_deadline@2 for that item; expected dates were worked out by hand from the statute (later of May 15 and notice + 30 days, rolled past weekends and Texas legal holidays) and the weekdays checked with Python datetime, not by running FactLot.",
+  "cases": [
+    {
+      "name": "a client list: every item answered, counted per deadline",
+      "input": {
+        "items": [
+          {
+            "id": "c-01",
+            "tax_year": 2026,
+            "notice_delivered_date": "2026-04-10"
+          },
+          {
+            "id": "c-02",
+            "tax_year": 2026,
+            "notice_delivered_date": "2026-05-01"
+          },
+          {
+            "id": "c-03",
+            "tax_year": 2026,
+            "notice_delivered_date": "2026-05-20"
+          },
+          {
+            "id": "c-04",
+            "tax_year": 2027
+          },
+          {
+            "id": "c-05",
+            "tax_year": 2026,
+            "notice_delivered_date": "2026-04-25"
+          },
+          {
+            "id": "c-06",
+            "tax_year": 2026,
+            "notice_delivered_date": "2026-05-02"
+          }
+        ]
+      },
+      "expect": {
+        "formula.id": "rules.tx.property_tax_protest_deadline_batch",
+        "formula.version": 1,
+        "value.results.0.id": "c-01",
+        "value.results.0.deadline": "2026-05-15",
+        "value.results.0.governing_basis": "may_15",
+        "value.results.0.conservative_file_by": "2026-05-15",
+        "value.results.0.warnings": [],
+        "value.results.1.deadline": "2026-06-01",
+        "value.results.1.unadjusted_deadline": "2026-05-31",
+        "value.results.1.governing_basis": "30_days_after_notice",
+        "value.results.1.conservative_file_by": "2026-05-29",
+        "value.results.2.deadline": "2026-06-22",
+        "value.results.2.unadjusted_deadline": "2026-06-19",
+        "value.results.2.conservative_file_by": "2026-06-18",
+        "value.results.2.skipped_non_business_days": [
+          {
+            "date": "2026-06-19",
+            "reason": "Emancipation Day (Juneteenth)"
+          },
+          {
+            "date": "2026-06-20",
+            "reason": "Saturday"
+          },
+          {
+            "date": "2026-06-21",
+            "reason": "Sunday"
+          }
+        ],
+        "value.results.3.id": "c-04",
+        "value.results.3.deadline": "2027-05-17",
+        "value.results.3.conservative_file_by": "2027-05-14",
+        "value.results.3.warnings.0": "No notice delivery date given: if the notice was delivered after April 15, the deadline is later than May 15.",
+        "value.results.4.deadline": "2026-05-26",
+        "value.results.4.conservative_file_by": "2026-05-22",
+        "value.results.4.skipped_non_business_days.0.reason": "Memorial Day",
+        "value.results.5.deadline": "2026-06-01",
+        "value.results.5.skipped_non_business_days": [],
+        "value.summary": {
+          "items": 6,
+          "answered": 6,
+          "errors": 0,
+          "by_deadline": [
+            {
+              "deadline": "2026-05-15",
+              "count": 1
+            },
+            {
+              "deadline": "2026-05-26",
+              "count": 1
+            },
+            {
+              "deadline": "2026-06-01",
+              "count": 2
+            },
+            {
+              "deadline": "2026-06-22",
+              "count": 1
+            },
+            {
+              "deadline": "2027-05-17",
+              "count": 1
+            }
+          ],
+          "earliest": "2026-05-15",
+          "latest": "2027-05-17"
+        },
+        "value.rule.id": "rules.tx.property_tax_protest_deadline",
+        "value.rule.version": 2,
+        "value.rule.verification.status": "verified",
+        "value.disclaimer": "Information about a statutory deadline computed from the statute text as checked on 2026-11-02: not legal or tax advice and not a substitute for the advice of an attorney. Confirm the date on the notice you received and with the appraisal district.",
+        "warnings": [
+          "Results for c-02, c-03, c-04, c-05 carry warnings (results[i].warnings); relay them with each deadline."
+        ]
+      }
+    },
+    {
+      "name": "mixed valid and invalid items: each bad item carries its error, the rest are answered",
+      "input": {
+        "items": [
+          {
+            "id": "ok",
+            "tax_year": 2026,
+            "notice_delivered_date": "2026-05-01"
+          },
+          {
+            "id": "old-year",
+            "tax_year": 1999
+          },
+          {
+            "id": "wrong-year",
+            "tax_year": 2026,
+            "notice_delivered_date": "2025-12-01"
+          },
+          {
+            "id": "no-such-day",
+            "tax_year": 2026,
+            "notice_delivered_date": "2026-02-30"
+          },
+          {
+            "id": "half-year",
+            "tax_year": 2026.5,
+            "notice_delivered_date": "05/01/2026"
+          }
+        ]
+      },
+      "expect": {
+        "value.results.0": {
+          "id": "ok",
+          "deadline": "2026-06-01",
+          "unadjusted_deadline": "2026-05-31",
+          "governing_basis": "30_days_after_notice",
+          "conservative_file_by": "2026-05-29",
+          "skipped_non_business_days": [
+            {
+              "date": "2026-05-31",
+              "reason": "Sunday"
+            }
+          ],
+          "warnings": [
+            "2026-05-29 is the last business day on or before the unadjusted date 2026-05-31; the statutory deadline is 2026-06-01 under §1.06."
+          ]
+        },
+        "value.results.1": {
+          "id": "old-year",
+          "error": {
+            "error": "CalcInputError",
+            "message": "invalid input: tax_year: expected an integer from 2000 to 2100",
+            "issues": [
+              {
+                "path": "tax_year",
+                "message": "expected an integer from 2000 to 2100"
+              }
+            ]
+          }
+        },
+        "value.results.2": {
+          "id": "wrong-year",
+          "error": {
+            "error": "CalcInputError",
+            "message": "notice_delivered_date 2025-12-01 is not in tax year 2026",
+            "issues": []
+          }
+        },
+        "value.results.3.error.issues": [
+          {
+            "path": "notice_delivered_date",
+            "message": "expected a valid YYYY-MM-DD date"
+          }
+        ],
+        "value.results.4.error.issues": [
+          {
+            "path": "tax_year",
+            "message": "expected an integer from 2000 to 2100"
+          },
+          {
+            "path": "notice_delivered_date",
+            "message": "expected a valid YYYY-MM-DD date"
+          }
+        ],
+        "value.summary": {
+          "items": 5,
+          "answered": 1,
+          "errors": 4,
+          "by_deadline": [
+            {
+              "deadline": "2026-06-01",
+              "count": 1
+            }
+          ],
+          "earliest": "2026-06-01",
+          "latest": "2026-06-01"
+        },
+        "warnings": [
+          "4 of 5 items have an input error (results[i].error) and no deadline; the other items are answered.",
+          "Results for ok carry warnings (results[i].warnings); relay them with each deadline."
+        ]
+      }
+    },
+    {
+      "name": "every item invalid: no deadline, earliest and latest null",
+      "input": {
+        "items": [
+          {
+            "id": "x",
+            "tax_year": 2101
+          }
+        ]
+      },
+      "expect": {
+        "value.summary": {
+          "items": 1,
+          "answered": 0,
+          "errors": 1,
+          "by_deadline": [],
+          "earliest": null,
+          "latest": null
+        }
+      }
+    },
+    {
+      "name": "no items is a batch error",
+      "input": {
+        "items": []
+      },
+      "expect_error": true
+    },
+    {
+      "name": "more than 200 items is a batch error",
+      "input": {
+        "items": [
+          { "id": "1", "tax_year": 2026 },
+          { "id": "2", "tax_year": 2026 },
+          { "id": "3", "tax_year": 2026 },
+          { "id": "4", "tax_year": 2026 },
+          { "id": "5", "tax_year": 2026 },
+          { "id": "6", "tax_year": 2026 },
+          { "id": "7", "tax_year": 2026 },
+          { "id": "8", "tax_year": 2026 },
+          { "id": "9", "tax_year": 2026 },
+          { "id": "10", "tax_year": 2026 },
+          { "id": "11", "tax_year": 2026 },
+          { "id": "12", "tax_year": 2026 },
+          { "id": "13", "tax_year": 2026 },
+          { "id": "14", "tax_year": 2026 },
+          { "id": "15", "tax_year": 2026 },
+          { "id": "16", "tax_year": 2026 },
+          { "id": "17", "tax_year": 2026 },
+          { "id": "18", "tax_year": 2026 },
+          { "id": "19", "tax_year": 2026 },
+          { "id": "20", "tax_year": 2026 },
+          { "id": "21", "tax_year": 2026 },
+          { "id": "22", "tax_year": 2026 },
+          { "id": "23", "tax_year": 2026 },
+          { "id": "24", "tax_year": 2026 },
+          { "id": "25", "tax_year": 2026 },
+          { "id": "26", "tax_year": 2026 },
+          { "id": "27", "tax_year": 2026 },
+          { "id": "28", "tax_year": 2026 },
+          { "id": "29", "tax_year": 2026 },
+          { "id": "30", "tax_year": 2026 },
+          { "id": "31", "tax_year": 2026 },
+          { "id": "32", "tax_year": 2026 },
+          { "id": "33", "tax_year": 2026 },
+          { "id": "34", "tax_year": 2026 },
+          { "id": "35", "tax_year": 2026 },
+          { "id": "36", "tax_year": 2026 },
+          { "id": "37", "tax_year": 2026 },
+          { "id": "38", "tax_year": 2026 },
+          { "id": "39", "tax_year": 2026 },
+          { "id": "40", "tax_year": 2026 },
+          { "id": "41", "tax_year": 2026 },
+          { "id": "42", "tax_year": 2026 },
+          { "id": "43", "tax_year": 2026 },
+          { "id": "44", "tax_year": 2026 },
+          { "id": "45", "tax_year": 2026 },
+          { "id": "46", "tax_year": 2026 },
+          { "id": "47", "tax_year": 2026 },
+          { "id": "48", "tax_year": 2026 },
+          { "id": "49", "tax_year": 2026 },
+          { "id": "50", "tax_year": 2026 },
+          { "id": "51", "tax_year": 2026 },
+          { "id": "52", "tax_year": 2026 },
+          { "id": "53", "tax_year": 2026 },
+          { "id": "54", "tax_year": 2026 },
+          { "id": "55", "tax_year": 2026 },
+          { "id": "56", "tax_year": 2026 },
+          { "id": "57", "tax_year": 2026 },
+          { "id": "58", "tax_year": 2026 },
+          { "id": "59", "tax_year": 2026 },
+          { "id": "60", "tax_year": 2026 },
+          { "id": "61", "tax_year": 2026 },
+          { "id": "62", "tax_year": 2026 },
+          { "id": "63", "tax_year": 2026 },
+          { "id": "64", "tax_year": 2026 },
+          { "id": "65", "tax_year": 2026 },
+          { "id": "66", "tax_year": 2026 },
+          { "id": "67", "tax_year": 2026 },
+          { "id": "68", "tax_year": 2026 },
+          { "id": "69", "tax_year": 2026 },
+          { "id": "70", "tax_year": 2026 },
+          { "id": "71", "tax_year": 2026 },
+          { "id": "72", "tax_year": 2026 },
+          { "id": "73", "tax_year": 2026 },
+          { "id": "74", "tax_year": 2026 },
+          { "id": "75", "tax_year": 2026 },
+          { "id": "76", "tax_year": 2026 },
+          { "id": "77", "tax_year": 2026 },
+          { "id": "78", "tax_year": 2026 },
+          { "id": "79", "tax_year": 2026 },
+          { "id": "80", "tax_year": 2026 },
+          { "id": "81", "tax_year": 2026 },
+          { "id": "82", "tax_year": 2026 },
+          { "id": "83", "tax_year": 2026 },
+          { "id": "84", "tax_year": 2026 },
+          { "id": "85", "tax_year": 2026 },
+          { "id": "86", "tax_year": 2026 },
+          { "id": "87", "tax_year": 2026 },
+          { "id": "88", "tax_year": 2026 },
+          { "id": "89", "tax_year": 2026 },
+          { "id": "90", "tax_year": 2026 },
+          { "id": "91", "tax_year": 2026 },
+          { "id": "92", "tax_year": 2026 },
+          { "id": "93", "tax_year": 2026 },
+          { "id": "94", "tax_year": 2026 },
+          { "id": "95", "tax_year": 2026 },
+          { "id": "96", "tax_year": 2026 },
+          { "id": "97", "tax_year": 2026 },
+          { "id": "98", "tax_year": 2026 },
+          { "id": "99", "tax_year": 2026 },
+          { "id": "100", "tax_year": 2026 },
+          { "id": "101", "tax_year": 2026 },
+          { "id": "102", "tax_year": 2026 },
+          { "id": "103", "tax_year": 2026 },
+          { "id": "104", "tax_year": 2026 },
+          { "id": "105", "tax_year": 2026 },
+          { "id": "106", "tax_year": 2026 },
+          { "id": "107", "tax_year": 2026 },
+          { "id": "108", "tax_year": 2026 },
+          { "id": "109", "tax_year": 2026 },
+          { "id": "110", "tax_year": 2026 },
+          { "id": "111", "tax_year": 2026 },
+          { "id": "112", "tax_year": 2026 },
+          { "id": "113", "tax_year": 2026 },
+          { "id": "114", "tax_year": 2026 },
+          { "id": "115", "tax_year": 2026 },
+          { "id": "116", "tax_year": 2026 },
+          { "id": "117", "tax_year": 2026 },
+          { "id": "118", "tax_year": 2026 },
+          { "id": "119", "tax_year": 2026 },
+          { "id": "120", "tax_year": 2026 },
+          { "id": "121", "tax_year": 2026 },
+          { "id": "122", "tax_year": 2026 },
+          { "id": "123", "tax_year": 2026 },
+          { "id": "124", "tax_year": 2026 },
+          { "id": "125", "tax_year": 2026 },
+          { "id": "126", "tax_year": 2026 },
+          { "id": "127", "tax_year": 2026 },
+          { "id": "128", "tax_year": 2026 },
+          { "id": "129", "tax_year": 2026 },
+          { "id": "130", "tax_year": 2026 },
+          { "id": "131", "tax_year": 2026 },
+          { "id": "132", "tax_year": 2026 },
+          { "id": "133", "tax_year": 2026 },
+          { "id": "134", "tax_year": 2026 },
+          { "id": "135", "tax_year": 2026 },
+          { "id": "136", "tax_year": 2026 },
+          { "id": "137", "tax_year": 2026 },
+          { "id": "138", "tax_year": 2026 },
+          { "id": "139", "tax_year": 2026 },
+          { "id": "140", "tax_year": 2026 },
+          { "id": "141", "tax_year": 2026 },
+          { "id": "142", "tax_year": 2026 },
+          { "id": "143", "tax_year": 2026 },
+          { "id": "144", "tax_year": 2026 },
+          { "id": "145", "tax_year": 2026 },
+          { "id": "146", "tax_year": 2026 },
+          { "id": "147", "tax_year": 2026 },
+          { "id": "148", "tax_year": 2026 },
+          { "id": "149", "tax_year": 2026 },
+          { "id": "150", "tax_year": 2026 },
+          { "id": "151", "tax_year": 2026 },
+          { "id": "152", "tax_year": 2026 },
+          { "id": "153", "tax_year": 2026 },
+          { "id": "154", "tax_year": 2026 },
+          { "id": "155", "tax_year": 2026 },
+          { "id": "156", "tax_year": 2026 },
+          { "id": "157", "tax_year": 2026 },
+          { "id": "158", "tax_year": 2026 },
+          { "id": "159", "tax_year": 2026 },
+          { "id": "160", "tax_year": 2026 },
+          { "id": "161", "tax_year": 2026 },
+          { "id": "162", "tax_year": 2026 },
+          { "id": "163", "tax_year": 2026 },
+          { "id": "164", "tax_year": 2026 },
+          { "id": "165", "tax_year": 2026 },
+          { "id": "166", "tax_year": 2026 },
+          { "id": "167", "tax_year": 2026 },
+          { "id": "168", "tax_year": 2026 },
+          { "id": "169", "tax_year": 2026 },
+          { "id": "170", "tax_year": 2026 },
+          { "id": "171", "tax_year": 2026 },
+          { "id": "172", "tax_year": 2026 },
+          { "id": "173", "tax_year": 2026 },
+          { "id": "174", "tax_year": 2026 },
+          { "id": "175", "tax_year": 2026 },
+          { "id": "176", "tax_year": 2026 },
+          { "id": "177", "tax_year": 2026 },
+          { "id": "178", "tax_year": 2026 },
+          { "id": "179", "tax_year": 2026 },
+          { "id": "180", "tax_year": 2026 },
+          { "id": "181", "tax_year": 2026 },
+          { "id": "182", "tax_year": 2026 },
+          { "id": "183", "tax_year": 2026 },
+          { "id": "184", "tax_year": 2026 },
+          { "id": "185", "tax_year": 2026 },
+          { "id": "186", "tax_year": 2026 },
+          { "id": "187", "tax_year": 2026 },
+          { "id": "188", "tax_year": 2026 },
+          { "id": "189", "tax_year": 2026 },
+          { "id": "190", "tax_year": 2026 },
+          { "id": "191", "tax_year": 2026 },
+          { "id": "192", "tax_year": 2026 },
+          { "id": "193", "tax_year": 2026 },
+          { "id": "194", "tax_year": 2026 },
+          { "id": "195", "tax_year": 2026 },
+          { "id": "196", "tax_year": 2026 },
+          { "id": "197", "tax_year": 2026 },
+          { "id": "198", "tax_year": 2026 },
+          { "id": "199", "tax_year": 2026 },
+          { "id": "200", "tax_year": 2026 },
+          { "id": "201", "tax_year": 2026 }
+        ]
+      },
+      "expect_error": true
+    },
+    {
+      "name": "duplicate ids are a batch error",
+      "input": {
+        "items": [
+          {
+            "id": "a",
+            "tax_year": 2026
+          },
+          {
+            "id": "a",
+            "tax_year": 2027
+          }
+        ]
+      },
+      "expect_error": true
+    },
+    {
+      "name": "an item without id or tax_year is a batch error",
+      "input": {
+        "items": [
+          {
+            "id": "a"
+          }
+        ]
+      },
+      "expect_error": true
+    }
+  ]
+}

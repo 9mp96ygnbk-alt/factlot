@@ -245,6 +245,229 @@ export function txProtestDeadline(
   });
 }
 
+// --- Texas: protest deadlines for many notices at once ------------------------------------------
+
+/** The batch's own formula identity; every item is answered under TX_PROTEST_DEADLINE (@2). */
+export const TX_PROTEST_DEADLINE_BATCH: RuleMeta = {
+  ...TX_PROTEST_DEADLINE,
+  id: "rules.tx.property_tax_protest_deadline_batch",
+  version: 1,
+  title: "Texas property tax protest deadlines (batch)",
+};
+
+/** Most items in one rules_tx_property_tax_protest_deadline_batch call. */
+export const TX_PROTEST_DEADLINE_BATCH_MAX_ITEMS = 200;
+
+const TAX_YEAR_ISSUE = "expected an integer from 2000 to 2100";
+const DATE_ISSUE = "expected a valid YYYY-MM-DD date";
+
+export const TxProtestDeadlineBatchItem = z.object({
+  id: z
+    .string()
+    .min(1)
+    .max(200)
+    .describe(
+      "Your label for this notice (a client, account or parcel number), echoed back with its result. Unique within the batch.",
+    ),
+  // Required here; its value is checked per item, so a bad value gives that item an error
+  // instead of failing the batch.
+  tax_year: z
+    .unknown()
+    .meta({ type: "integer", minimum: 2000, maximum: 2100 })
+    .describe(
+      "Tax year being protested, e.g. 2026 (2000–2100). An invalid value is an error for this item only.",
+    ),
+  notice_delivered_date: z
+    .unknown()
+    .optional()
+    .meta({ type: "string", format: "date" })
+    .describe(
+      "Date the appraisal district's notice of appraised value was delivered (Tax Code §25.19), YYYY-MM-DD. A mailed notice is presumed delivered on the day it was deposited in the mail (§1.07(c)). Omit if unknown (May 15 is then the only basis). An invalid date is an error for this item only.",
+    ),
+});
+
+export const TxProtestDeadlineBatchInput = z
+  .object({
+    items: z
+      .array(TxProtestDeadlineBatchItem)
+      .min(1)
+      .max(TX_PROTEST_DEADLINE_BATCH_MAX_ITEMS)
+      .describe(
+        "The notices to compute deadlines for (1–200): each one's id, tax year and, if known, notice delivery date. Each result equals rules_tx_property_tax_protest_deadline for that item.",
+      ),
+  })
+  .superRefine((v, ctx) => {
+    const ids = new Set<string>();
+    v.items.forEach((x, i) => {
+      if (ids.has(x.id))
+        ctx.addIssue({
+          code: "custom",
+          path: ["items", i, "id"],
+          message: `duplicate id "${x.id}"`,
+        });
+      ids.add(x.id);
+    });
+  });
+export type TxProtestDeadlineBatchInput = z.input<
+  typeof TxProtestDeadlineBatchInput
+>;
+
+type DeadlineFields = Omit<TxProtestDeadline, "disclaimer">;
+
+/** One item of a batch: its deadline (as the single rule returns it) or its input error. */
+export type TxProtestDeadlineBatchResult =
+  | ({ id: string } & DeadlineFields & { warnings: string[] })
+  | {
+      id: string;
+      error: {
+        error: "CalcInputError";
+        message: string;
+        issues: { path: string; message: string }[];
+      };
+    };
+
+export interface TxProtestDeadlineBatch {
+  results: TxProtestDeadlineBatchResult[];
+  summary: {
+    items: number;
+    answered: number;
+    errors: number;
+    /** Answered items per deadline, earliest first. */
+    by_deadline: { deadline: string; count: number }[];
+    earliest: string | null;
+    latest: string | null;
+  };
+  disclaimer: string;
+}
+
+/** A YYYY-MM-DD string naming a real calendar day (year 1 or later), as `_valid_date` in Python. */
+function validDate(v: unknown): v is string {
+  if (typeof v !== "string" || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(v))
+    return false;
+  const [y, m, d] = v.split("-").map(Number) as [number, number, number];
+  const leap = (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
+  const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  return y >= 1 && m >= 1 && m <= 12 && d >= 1 && d <= (days[m - 1] ?? 0);
+}
+
+/** One item's deadline, or its input error; the same text in both SDKs. */
+function batchItem(item: {
+  id: string;
+  tax_year?: unknown;
+  notice_delivered_date?: unknown;
+}): TxProtestDeadlineBatchResult {
+  const issues: { path: string; message: string }[] = [];
+  const year = item.tax_year;
+  if (
+    typeof year !== "number" ||
+    !Number.isInteger(year) ||
+    year < 2000 ||
+    year > 2100
+  )
+    issues.push({ path: "tax_year", message: TAX_YEAR_ISSUE });
+  const notice = item.notice_delivered_date ?? undefined;
+  if (notice !== undefined && !validDate(notice))
+    issues.push({ path: "notice_delivered_date", message: DATE_ISSUE });
+  if (issues.length)
+    return {
+      id: item.id,
+      error: {
+        error: "CalcInputError",
+        message: `invalid input: ${issues.map((i) => `${i.path}: ${i.message}`).join("; ")}`,
+        issues,
+      },
+    };
+  try {
+    const r = txProtestDeadline({
+      tax_year: year as number,
+      ...(notice === undefined
+        ? {}
+        : { notice_delivered_date: notice as string }),
+    });
+    const { rule: _rule, disclaimer: _disclaimer, ...fields } = r.value;
+    void _rule;
+    void _disclaimer;
+    return { id: item.id, ...fields, warnings: r.warnings };
+  } catch (err) {
+    if (!(err instanceof CalcInputError)) throw err;
+    return {
+      id: item.id,
+      error: {
+        error: "CalcInputError",
+        message: err.message,
+        issues: err.issues,
+      },
+    };
+  }
+}
+
+/**
+ * Protest deadlines for many notices in one call (a consultant's client list): each item is
+ * answered by txProtestDeadline (rule rules.tx.property_tax_protest_deadline@2) exactly as a
+ * single call would answer it, an item with bad input carries its error without failing the
+ * others, and a summary counts the items per deadline.
+ */
+export function txProtestDeadlineBatch(
+  raw: TxProtestDeadlineBatchInput,
+): CalcResult<TxProtestDeadlineBatch & { rule: RuleMeta }> {
+  const input = parseInput(TxProtestDeadlineBatchInput, raw);
+  const t = new Trace();
+  const results = input.items.map(batchItem);
+  const answered = results.flatMap((r) => ("error" in r ? [] : [r]));
+  const counts = new Map<string, number>();
+  for (const r of answered)
+    counts.set(r.deadline, (counts.get(r.deadline) ?? 0) + 1);
+  const byDeadline = [...counts.keys()]
+    .sort()
+    .map((deadline) => ({ deadline, count: counts.get(deadline) ?? 0 }));
+  const errors = results.length - answered.length;
+  t.step("Items", results.length, "notices given");
+  t.step(
+    "Deadlines computed",
+    answered.length,
+    `${TX_PROTEST_DEADLINE.id}@${TX_PROTEST_DEADLINE.version} for each item`,
+  );
+  t.step("Items with an input error", errors, "results[i].error");
+  const earliest = byDeadline[0]?.deadline ?? null;
+  const latest = byDeadline[byDeadline.length - 1]?.deadline ?? null;
+  if (earliest !== null && latest !== null) {
+    t.step("Earliest deadline", earliest, "earliest answered deadline");
+    t.step("Latest deadline", latest, "latest answered deadline");
+  }
+  if (errors)
+    t.warn(
+      `${errors} of ${results.length} items have an input error (results[i].error) and no deadline; the other items are answered.`,
+    );
+  const warned = answered.filter((r) => r.warnings.length > 0).map((r) => r.id);
+  if (warned.length)
+    t.warn(
+      `Results for ${warned.slice(0, 10).join(", ")}${warned.length > 10 ? ` and ${warned.length - 10} more` : ""} carry warnings (results[i].warnings); relay them with each deadline.`,
+    );
+  if (TX_PROTEST_DEADLINE.verification.status !== "verified")
+    t.warn(
+      `Rule ${TX_PROTEST_DEADLINE.id}@${TX_PROTEST_DEADLINE.version} is a DRAFT: not yet verified against ${TX_PROTEST_DEADLINE.citations.map((c) => c.law).join("; ")}. Confirm with the official text or a professional before relying on it.`,
+    );
+  return t.result(
+    TX_PROTEST_DEADLINE_BATCH.id,
+    TX_PROTEST_DEADLINE_BATCH.version,
+    {
+      results,
+      summary: {
+        items: results.length,
+        answered: answered.length,
+        errors,
+        by_deadline: byDeadline,
+        earliest,
+        latest,
+      },
+      disclaimer: txProtestDeadlineDisclaimer(
+        TX_PROTEST_DEADLINE.verification.verified_at ?? "an unrecorded date",
+      ),
+      rule: TX_PROTEST_DEADLINE,
+    },
+  );
+}
+
 /** Registry of rule packs, for tool servers and docs generators. */
 export const rulePacks = {
   tx_property_tax_protest_deadline: {
@@ -253,5 +476,13 @@ export const rulePacks = {
       "Deadline to file a Texas property tax protest with the appraisal review board: the later of May 15 or 30 days after the notice of appraised value was delivered, rolled past weekends and Texas legal holidays, plus a conservative file-by date (the last business day on or before the unadjusted deadline). Returns the statute citations, the rule's verification status and a disclaimer. Information about a statutory deadline: not legal or tax advice and not a substitute for the advice of an attorney.",
     input: TxProtestDeadlineInput,
     run: txProtestDeadline,
+  },
+  tx_property_tax_protest_deadline_batch: {
+    ...TX_PROTEST_DEADLINE_BATCH,
+    path: "/v1/rules/tx_property_tax_protest_deadline/batch",
+    description:
+      "Texas property tax protest deadlines for many notices in one call (1–200 items, e.g. a consultant's client list): each item's id, tax year and, if known, notice delivery date. Each result is exactly what rules_tx_property_tax_protest_deadline returns for that item under rule rules.tx.property_tax_protest_deadline@2 (deadline, unadjusted deadline, governing basis, conservative file-by date, skipped days, the item's warnings), echoed with its id; an item with invalid input carries its error and the others are still answered. summary counts the items per deadline, earliest first, with the earliest and latest deadline. The statute citations, the rule's verification status and the disclaimer appear once (value.rule, value.disclaimer). A rules tool: never a registry lookup. Information about statutory deadlines: not legal or tax advice and not a substitute for the advice of an attorney; it does not say whether to protest.",
+    input: TxProtestDeadlineBatchInput,
+    run: txProtestDeadlineBatch,
   },
 } as const;

@@ -55,6 +55,8 @@ import {
   texasOnly,
   TEXAS_FIPS,
   TX_EQUITY_DEFAULTS,
+  TX_EQUITY_NOTICE,
+  TX_EQUITY_RULE,
   TX_EQUITY_WHICH_PARCEL,
   txEquityWithheld,
   txEquitySubjectUrn,
@@ -142,7 +144,7 @@ const ruleTools: ToolSpec[] = Object.entries(rulePacks).map(([name, r]) => ({
   title: r.title,
   description: `${r.description} Verification status: ${r.verification.status}. Cite rule ${r.id}@${r.version} and its statutes.`,
   input: r.input,
-  path: `/v1/rules/${name}`,
+  path: "path" in r ? r.path : `/v1/rules/${name}`,
   formula: { id: r.id, version: r.version },
   run: (input: never) => {
     const result = (
@@ -496,6 +498,149 @@ const Limit = z
   .default(20)
   .describe("Maximum results (1–100).");
 
+/** The subject fields of registry_tx_equity_candidates (and of each batch subject). */
+const TxEquitySubjectFields = {
+  urn: z
+    .string()
+    .max(500)
+    .optional()
+    .describe(
+      "FactLot parcel URN of the subject, e.g. fl:parcel:us-48201:0420150000012. Give this, or county_fips and apn.",
+    ),
+  state_fips: z
+    .string()
+    .max(16)
+    .optional()
+    .describe('With county_fips and apn: "48" (Texas), the only state served.'),
+  county_fips: z
+    .string()
+    .max(16)
+    .optional()
+    .describe('3-digit Texas county FIPS, e.g. "201" for Harris County.'),
+  apn: z
+    .string()
+    .max(200)
+    .optional()
+    .describe("Appraisal district account number as the district prints it."),
+};
+
+/** The rule parameters of registry_tx_equity_candidates, shared by every subject of a batch. */
+const TxEquityParamFields = {
+  area_band: z
+    .number()
+    .gt(0)
+    .max(1)
+    .default(TX_EQUITY_DEFAULTS.area_band)
+    .describe(
+      "Improvement area band as a share of the subject's (0.35: within ±35%).",
+    ),
+  year_band: z
+    .number()
+    .int()
+    .min(0)
+    .max(100)
+    .default(TX_EQUITY_DEFAULTS.year_band)
+    .describe(
+      "Year-built band in years, applied when both the subject's and the candidate's are known.",
+    ),
+  min_matches: z
+    .number()
+    .int()
+    .min(1)
+    .max(200)
+    .default(TX_EQUITY_DEFAULTS.min_matches)
+    .describe(
+      "Widen from the neighborhood and ZIP code tiers to the whole county when they hold fewer than this.",
+    ),
+  limit: z
+    .number()
+    .int()
+    .min(1)
+    .max(200)
+    .default(TX_EQUITY_DEFAULTS.limit)
+    .describe("Maximum candidates returned (1–200)."),
+  tax_year: z
+    .number()
+    .int()
+    .min(1900)
+    .max(2100)
+    .optional()
+    .describe(
+      "Roll year to compare in. Default: the newest tax year whose roll gives the subject a positive value.",
+    ),
+};
+
+/** Most subjects in one registry_tx_equity_candidates_batch call. */
+export const TX_EQUITY_BATCH_MAX_SUBJECTS = 50;
+
+interface TxEquityCall {
+  urn?: string;
+  state_fips?: string;
+  county_fips?: string;
+  apn?: string;
+  area_band: number;
+  year_band: number;
+  min_matches: number;
+  limit: number;
+  tax_year?: number;
+}
+
+/**
+ * registry_tx_equity_candidates for one subject after schema validation: the which-parcel, Texas-only
+ * and withheld-county checks, then the candidates. Throws the tool's errors.
+ */
+function txEquityCandidatesFor(v: TxEquityCall): Record<string, unknown> {
+  const byApn =
+    v.state_fips !== undefined ||
+    v.county_fips !== undefined ||
+    v.apn !== undefined;
+  if (
+    (v.urn !== undefined) === byApn ||
+    (byApn && (v.county_fips === undefined || v.apn === undefined))
+  )
+    throw new ToolInputError([{ path: "", message: TX_EQUITY_WHICH_PARCEL }]);
+  let urn: string;
+  if (v.urn !== undefined) {
+    const { kind, parts } = parse(v.urn);
+    if (kind !== "parcel")
+      throw new FactLotIdError(
+        `"${v.urn}" is a ${kind} URN; registry_tx_equity_candidates needs a parcel URN`,
+      );
+    const state = (parts[0] ?? "").slice(3, 5);
+    if (state !== TEXAS_FIPS)
+      throw new ToolInputError([{ path: "urn", message: texasOnly(state) }]);
+    const withheld = txEquityWithheld((parts[0] ?? "").slice(5, 8));
+    if (withheld)
+      throw new ToolInputError([{ path: "urn", message: withheld }]);
+    urn = v.urn;
+  } else {
+    const state = v.state_fips ?? TEXAS_FIPS;
+    if (state !== TEXAS_FIPS)
+      throw new ToolInputError([
+        { path: "state_fips", message: texasOnly(state) },
+      ]);
+    const withheld = txEquityWithheld(v.county_fips!);
+    if (withheld)
+      throw new ToolInputError([{ path: "county_fips", message: withheld }]);
+    urn = txEquitySubjectUrn(state, v.county_fips!, v.apn!);
+  }
+  const result = registryTxEquityCandidates(urn, {
+    area_band: v.area_band,
+    year_band: v.year_band,
+    min_matches: v.min_matches,
+    limit: v.limit,
+    ...(v.tax_year === undefined ? {} : { tax_year: v.tax_year }),
+  });
+  if (!result) {
+    const coverage = registryRecordMiss(urn);
+    throw new NotFoundError(
+      `no registry record for ${urn}: ${String(coverage.message)}`,
+      coverage,
+    );
+  }
+  return result;
+}
+
 const registryTools: ToolSpec[] = [
   {
     name: "registry_get",
@@ -664,145 +809,94 @@ const registryTools: ToolSpec[] = [
     description:
       "Candidate comparable parcels for a Texas unequal-appraisal comparison (Tax Code §41.43(b)(3)), from one tax year of the subject's appraisal district roll (the newest year whose roll gives the subject a value, or tax_year), with every field of the subject and the candidates read from that year's roll only: same county and tax year, the same state property category code, improvement area within area_band of the subject's, year built within year_band years when both are known; parcels sharing the subject's neighborhood code first (when the roll gives one), then its ZIP code, then the rest of the county if fewer than min_matches. Each candidate and the subject are shaped for calc_tx_unequal_appraisal (id, value and value_basis, areas, year built, codes, citation of the value fact); the subject adds its value history by tax year. selection echoes the rule, the effective parameters, the tax year and roll sources used, and which tier each candidate came from; Each candidate's citation.document_id names its entry in sources, which gives that snapshot's license, attribution, ai_use and redistribution: relay them with the candidate. Candidates under FactLot's default rule, a design choice, not a legal standard; a person decides which, if any, to use. For evidence calculations only: FactLot does not represent property owners, file protests, or advise whether to protest. Not an appraisal or an opinion of value (Tex. Occ. Code §1103.003(1)); not legal or tax advice and not a substitute for the advice of an attorney. Never returns owner names, mailing addresses, or ownership facts. Do not look up the owners of candidate parcels; ownership is not needed for this comparison. Texas parcels only. Tarrant County is not served by the hosted registry while the publisher's terms for AI use are unclear." +
       REGISTRY_NOTE,
-    input: z.object({
-      urn: z
-        .string()
-        .max(500)
-        .optional()
-        .describe(
-          "FactLot parcel URN of the subject, e.g. fl:parcel:us-48201:0420150000012. Give this, or county_fips and apn.",
-        ),
-      state_fips: z
-        .string()
-        .max(16)
-        .optional()
-        .describe(
-          'With county_fips and apn: "48" (Texas), the only state served.',
-        ),
-      county_fips: z
-        .string()
-        .max(16)
-        .optional()
-        .describe('3-digit Texas county FIPS, e.g. "201" for Harris County.'),
-      apn: z
-        .string()
-        .max(200)
-        .optional()
-        .describe(
-          "Appraisal district account number as the district prints it.",
-        ),
-      area_band: z
-        .number()
-        .gt(0)
-        .max(1)
-        .default(TX_EQUITY_DEFAULTS.area_band)
-        .describe(
-          "Improvement area band as a share of the subject's (0.35: within ±35%).",
-        ),
-      year_band: z
-        .number()
-        .int()
-        .min(0)
-        .max(100)
-        .default(TX_EQUITY_DEFAULTS.year_band)
-        .describe(
-          "Year-built band in years, applied when both the subject's and the candidate's are known.",
-        ),
-      min_matches: z
-        .number()
-        .int()
-        .min(1)
-        .max(200)
-        .default(TX_EQUITY_DEFAULTS.min_matches)
-        .describe(
-          "Widen from the neighborhood and ZIP code tiers to the whole county when they hold fewer than this.",
-        ),
-      limit: z
-        .number()
-        .int()
-        .min(1)
-        .max(200)
-        .default(TX_EQUITY_DEFAULTS.limit)
-        .describe("Maximum candidates returned (1–200)."),
-      tax_year: z
-        .number()
-        .int()
-        .min(1900)
-        .max(2100)
-        .optional()
-        .describe(
-          "Roll year to compare in. Default: the newest tax year whose roll gives the subject a positive value.",
-        ),
-    }),
+    input: z.object({ ...TxEquitySubjectFields, ...TxEquityParamFields }),
     path: "/v1/registry/tx_equity_candidates",
     requires: "registry",
+    run: (i: never) => txEquityCandidatesFor(i as TxEquityCall),
+  },
+  {
+    name: "registry_tx_equity_candidates_batch",
+    title: "Texas unequal-appraisal candidates (batch)",
+    description:
+      "registry_tx_equity_candidates for many subjects in one call (1–50, e.g. a consultant's client parcels): each subject's id (your label, echoed back) and its urn, or county_fips and apn, plus the rule parameters once for every subject (area_band, year_band, min_matches, limit, tax_year). Each entry of results is that subject's answer from registry_tx_equity_candidates (subject, candidates, selection, sources, warnings) or that subject's error (error, message, issues, and coverage on a miss), so one subject outside Texas, in Tarrant County, or not in the registry does not fail the others; the Texas-only and Tarrant checks apply to each subject. The selection rule and the notice appear once at the top (rule, notice) instead of in every answer; summary counts subjects, answered and errors. Candidates per subject only: this tool never runs calc_tx_unequal_appraisal and never picks comparables; a person decides, for each subject, which candidates (if any) to use, and only those go to calc_tx_unequal_appraisal. Relay each candidate's source rights from that subject's sources. For evidence calculations only: FactLot does not represent property owners, file protests, or advise whether to protest. Not an appraisal or an opinion of value (Tex. Occ. Code §1103.003(1)); not legal or tax advice and not a substitute for the advice of an attorney. Never returns owner names, mailing addresses, or ownership facts; do not look up the owners of candidate parcels. On the hosted API each answered subject counts as one registry lookup (a subject with an error is not counted)." +
+      REGISTRY_NOTE,
+    input: z
+      .object({
+        subjects: z
+          .array(
+            z.object({
+              id: z
+                .string()
+                .min(1)
+                .max(200)
+                .describe(
+                  "Your label for this subject (a client or account), echoed back with its answer. Unique within the batch.",
+                ),
+              ...TxEquitySubjectFields,
+            }),
+          )
+          .min(1)
+          .max(TX_EQUITY_BATCH_MAX_SUBJECTS)
+          .describe(
+            "The subject parcels (1–50): each one's id and its urn, or county_fips and apn (with state_fips 48, or none).",
+          ),
+        ...TxEquityParamFields,
+      })
+      .superRefine((v, ctx) => {
+        const ids = new Set<string>();
+        v.subjects.forEach((s, i) => {
+          if (ids.has(s.id))
+            ctx.addIssue({
+              code: "custom",
+              path: ["subjects", i, "id"],
+              message: `duplicate id "${s.id}"`,
+            });
+          ids.add(s.id);
+        });
+      }),
+    path: "/v1/registry/tx_equity_candidates/batch",
+    requires: "registry",
     run: (i: never) => {
-      const v = i as {
-        urn?: string;
-        state_fips?: string;
-        county_fips?: string;
-        apn?: string;
-        area_band: number;
-        year_band: number;
-        min_matches: number;
-        limit: number;
-        tax_year?: number;
+      const { subjects, ...params } = i as Omit<
+        TxEquityCall,
+        "urn" | "state_fips" | "county_fips" | "apn"
+      > & {
+        subjects: ({ id: string } & Pick<
+          TxEquityCall,
+          "urn" | "state_fips" | "county_fips" | "apn"
+        >)[];
       };
-      const byApn =
-        v.state_fips !== undefined ||
-        v.county_fips !== undefined ||
-        v.apn !== undefined;
-      if (
-        (v.urn !== undefined) === byApn ||
-        (byApn && (v.county_fips === undefined || v.apn === undefined))
-      )
-        throw new ToolInputError([
-          { path: "", message: TX_EQUITY_WHICH_PARCEL },
-        ]);
-      let urn: string;
-      if (v.urn !== undefined) {
-        const { kind, parts } = parse(v.urn);
-        if (kind !== "parcel")
-          throw new FactLotIdError(
-            `"${v.urn}" is a ${kind} URN; registry_tx_equity_candidates needs a parcel URN`,
-          );
-        const state = (parts[0] ?? "").slice(3, 5);
-        if (state !== TEXAS_FIPS)
-          throw new ToolInputError([
-            { path: "urn", message: texasOnly(state) },
-          ]);
-        const withheld = txEquityWithheld((parts[0] ?? "").slice(5, 8));
-        if (withheld)
-          throw new ToolInputError([{ path: "urn", message: withheld }]);
-        urn = v.urn;
-      } else {
-        const state = v.state_fips ?? TEXAS_FIPS;
-        if (state !== TEXAS_FIPS)
-          throw new ToolInputError([
-            { path: "state_fips", message: texasOnly(state) },
-          ]);
-        const withheld = txEquityWithheld(v.county_fips!);
-        if (withheld)
-          throw new ToolInputError([
-            { path: "county_fips", message: withheld },
-          ]);
-        urn = txEquitySubjectUrn(state, v.county_fips!, v.apn!);
-      }
-      const result = registryTxEquityCandidates(urn, {
-        area_band: v.area_band,
-        year_band: v.year_band,
-        min_matches: v.min_matches,
-        limit: v.limit,
-        ...(v.tax_year === undefined ? {} : { tax_year: v.tax_year }),
+      const results = subjects.map(({ id, ...subject }) => {
+        let answer: Record<string, unknown>;
+        try {
+          answer = txEquityCandidatesFor({ ...subject, ...params });
+        } catch (err) {
+          // No registry is no answer for any subject: the whole call fails, as the single tool does.
+          if (err instanceof RegistryUnavailableError) throw err;
+          const outcome = errorOutcome(err);
+          if (outcome.ok) throw err;
+          return { id, error: outcome.error };
+        }
+        const { notice: _notice, selection, ...rest } = answer;
+        const { rule: _rule, ...perSubject } = selection as Record<
+          string,
+          unknown
+        >;
+        void _notice;
+        void _rule;
+        return { id, ...rest, selection: perSubject };
       });
-      if (!result) {
-        const coverage = registryRecordMiss(urn);
-        throw new NotFoundError(
-          `no registry record for ${urn}: ${String(coverage.message)}`,
-          coverage,
-        );
-      }
-      return result;
+      const errors = results.filter((r) => "error" in r).length;
+      return {
+        results,
+        summary: {
+          subjects: results.length,
+          answered: results.length - errors,
+          errors,
+        },
+        rule: TX_EQUITY_RULE,
+        notice: TX_EQUITY_NOTICE,
+      };
     },
   },
 ];

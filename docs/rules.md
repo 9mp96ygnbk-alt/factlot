@@ -11,9 +11,10 @@ calculator that also declares:
 Every result returns the rule's metadata. Draft rules always add a warning. Where a mistake could
 cost someone a legal deadline, the rule also returns a conservative answer that can't be late.
 
-| Pack                                                                                    | Tool                                     | Status                                                                                                  |
-| --------------------------------------------------------------------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| Texas property tax protest deadline (Tax Code §41.44(a)(1), §1.06; Gov't Code §662.003) | `rules_tx_property_tax_protest_deadline` | **verified** 2026-11-02 against the official text (§1.06 as amended by H.B. 1392, effective 2026-01-01) |
+| Pack                                                                                    | Tool                                           | Status                                                                                                  |
+| --------------------------------------------------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Texas property tax protest deadline (Tax Code §41.44(a)(1), §1.06; Gov't Code §662.003) | `rules_tx_property_tax_protest_deadline`       | **verified** 2026-11-02 against the official text (§1.06 as amended by H.B. 1392, effective 2026-01-01) |
+| The same deadline for up to 200 notices in one call                                     | `rules_tx_property_tax_protest_deadline_batch` | each item answered under `rules.tx.property_tax_protest_deadline@2`, the verified rule above            |
 
 Draft packs are listed under [Draft packs](#draft-packs). They are not tools.
 
@@ -46,6 +47,18 @@ Not covered:
 
 The result is a date calculation: not legal or tax advice, and not a substitute for the advice of
 an attorney. It does not say whether to protest.
+
+`rules_tx_property_tax_protest_deadline_batch` answers the same question for a list: 1 to 200
+`items`, each with your `id` (echoed back), `tax_year` and, if known, `notice_delivered_date`.
+Every item is computed by the single rule above (`rules.tx.property_tax_protest_deadline@2`) and
+returns exactly its fields plus that item's warnings; an item with an invalid tax year or date, or
+a notice date outside its tax year, carries its own `error` while the rest are answered. `summary`
+counts the answered items per deadline, earliest first, with the earliest and latest. The rule
+metadata, citations and `disclaimer` appear once, in `value.rule` and `value.disclaimer`. The
+batch has its own formula ID (`rules.tx.property_tax_protest_deadline_batch@1`) so its shape can
+be versioned apart from the rule; it is a rules tool, never a registry lookup, and it is tested by
+the shared vectors in `spec/vectors/rules/tx_property_tax_protest_deadline_batch.json` and the
+differential test.
 
 ### How it was tested
 
