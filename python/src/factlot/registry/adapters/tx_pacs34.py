@@ -430,6 +430,114 @@ LAMAR = CountyExport(
     account_system="lamar_prop_id",
 )
 
+HOWARD = CountyExport(
+    source=Source(
+        source_id="tx-howard-cad",
+        publisher="Howard County Appraisal District",
+        title="2026 certified appraisal roll with supplements (PACS 8.0.34)",
+        url="https://howardcad.org/appraisal-rolls/",
+        state_fips="48",
+        county_fips="227",
+        license="No license stated on the appraisal-rolls page (read 2026-11-06). Public redistribution is not stated",
+        ai_use="unknown",
+        redistribution="unknown",
+        attribution="Howard County Appraisal District",
+        terms_reviewed="2026-11-06",
+    ),
+    county_fips="227",
+    account_system="howard_prop_id",
+)
+
+GILLESPIE = CountyExport(
+    source=Source(
+        source_id="tx-gillespie-cad",
+        publisher="Gillespie Central Appraisal District",
+        title="2026 certified data export (PACS 8.0.34 record length)",
+        url="https://gillespiecad.org/public-information/",
+        state_fips="48",
+        county_fips="171",
+        license="Data-download disclaimer, May 15, 2019 pdf: public-service access, no warranty of accuracy or completeness. No prohibition is stated. Public redistribution is not granted",
+        ai_use="unknown",
+        redistribution="unknown",
+        attribution="Gillespie Central Appraisal District",
+        terms_reviewed="2026-11-06",
+    ),
+    county_fips="171",
+    account_system="gillespie_prop_id",
+)
+
+TITUS = CountyExport(
+    source=Source(
+        source_id="tx-titus-cad",
+        publisher="Titus County Appraisal District",
+        title="2026 certified roll (PACS 8.0.34 record length)",
+        url="https://titus-cad.org/download-data/",
+        state_fips="48",
+        county_fips="449",
+        license="No license stated on the download page (read 2026-11-06). A records form prices custom copies. Public redistribution is not stated",
+        ai_use="unknown",
+        redistribution="unknown",
+        attribution="Titus County Appraisal District",
+        terms_reviewed="2026-11-06",
+    ),
+    county_fips="449",
+    account_system="titus_prop_id",
+)
+
+BEE = CountyExport(
+    source=Source(
+        source_id="tx-bee-cad",
+        publisher="Bee County Appraisal District",
+        title="2026 certification export (PACS 8.0.34 record length)",
+        url="https://beecad.org/data-and-records/",
+        state_fips="48",
+        county_fips="025",
+        license="No license stated on the data page (read 2026-11-06). A charges sheet prices a CD copy. Public redistribution is not stated",
+        ai_use="unknown",
+        redistribution="unknown",
+        attribution="Bee County Appraisal District",
+        terms_reviewed="2026-11-06",
+    ),
+    county_fips="025",
+    account_system="bee_prop_id",
+)
+
+SHELBY = CountyExport(
+    source=Source(
+        source_id="tx-shelby-cad",
+        publisher="Shelby County Appraisal District",
+        title="2026 certified roll, supplement 3 (PACS 8.0.34 record length)",
+        url="https://www.shelbycad.com/open-records",
+        state_fips="48",
+        county_fips="419",
+        license="No license stated on the open-records page (read 2026-11-06). Public redistribution is not stated",
+        ai_use="unknown",
+        redistribution="unknown",
+        attribution="Shelby County Appraisal District",
+        terms_reviewed="2026-11-06",
+    ),
+    county_fips="419",
+    account_system="shelby_prop_id",
+)
+
+SAN_JACINTO = CountyExport(
+    source=Source(
+        source_id="tx-sanjacinto-cad",
+        publisher="San Jacinto County Appraisal District",
+        title="2026 county export, header 2026-07-09 (PACS 8.0.34 record length), not labeled certified in the header",
+        url="https://sjcad.org/certified-appraisal-rolls/",
+        state_fips="48",
+        county_fips="407",
+        license="No license stated on the rolls page (read 2026-11-06). Public redistribution is not stated",
+        ai_use="unknown",
+        redistribution="unknown",
+        attribution="San Jacinto County Appraisal District",
+        terms_reviewed="2026-11-06",
+    ),
+    county_fips="407",
+    account_system="sanjacinto_prop_id",
+)
+
 WASHINGTON = CountyExport(
     source=Source(
         source_id="tx-washington-cad",
