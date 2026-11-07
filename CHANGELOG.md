@@ -17,6 +17,10 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 
 - Tool input: a `null` for a field the input schema names is treated as the field left out, in TypeScript and Python alike (shared vectors in `spec/vectors/tools.json`). Some agent frameworks (the `crewai-tools` MCP adapter) send `null` for every optional field the model skips, which used to fail with "expected number, received null". A required field sent as `null` is reported as missing; a misspelled field is still reported even when `null`; open objects (facts, fact packages) keep their nulls, since a package's signature covers them.
 
+### Fixed
+
+- Registry source rights (review of 2026-11-06). `or-metro-rlis-taxlots`: the licence is Metro's RLIS Open Database End User License Agreement (revised February 2023), not ODbL; it prohibits sublicensing and does not license the database's individual contents, so the source is gated on terms (`verified: false`); its current count is 34,210 parcels from the live layer (as of 2026-11-02). `wi-statewide-parcels`: the publisher states no licence ("free of charge", "free for public consumption"), which does not clearly permit redistribution, so the source is gated on terms. `ma-massgis-parcels` stays verified; its record now states that the public-domain data may be redistributed free or at reproduction cost and that charging for these facts beyond reproduction costs is outside the publisher's statement. Verified registry totals are now 1,733,923 commercial parcels in 330 counties (19 states and DC) from 40 sources (were 1,953,805, 405 counties, 21 states, 42 sources); `rights.md`, `coverage.md` and `coverage-counties.json` are regenerated.
+
 ## [0.4.0] - 2026-11-06
 
 ### Added

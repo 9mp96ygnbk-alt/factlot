@@ -78,6 +78,9 @@ commercial parcels (`B`, `F1`, `F2`).
 | WA    | `wa-pierce-assessor`                                    | Pierce                                        | 12,530                                                                                  | no                             |
 | OR    | `or-metro-rlis-taxlots` (Portland metro)                | Multnomah                                     | Multnomah 20,618 (the layer's Clackamas 6,085 and Washington 7,425 loaded too)          | no                             |
 
+Since the rights review of 2026-11-06, `wi-statewide-parcels` and `or-metro-rlis-taxlots` in this table are no longer
+verified: both are gated on terms (see their records). Their counts are kept as the record of the 2026-11-03 load.
+
 New entity registry: `ct-sos-entities` (Connecticut, public domain, 1,305,856 rows; full load:
 1,305,836 entities kept, 20 skipped for a placeholder account number). Every other new state's entity register is sold or not published; prices and
 order routes are in the region files.
@@ -130,8 +133,9 @@ statewide but not extended: North Carolina OneMap (100 counties, county use code
 Tennessee Comptroller (86 of 95 counties, not yet reviewed in full).
 
 **Licence points** (also in each record): MassGIS asks that its data not be
-redistributed "for a fee beyond reproduction costs"; the Portland metro RLIS data is ODbL
-(share-alike); Fort Bend's export carries a hold-harmless and indemnity clause; Davidson's
+redistributed "for a fee beyond reproduction costs" (free redistribution fits; charging for these facts
+does not); the Portland metro RLIS data is under Metro's RLIS Open Database End User License Agreement,
+not ODbL as first recorded, and is gated on terms since 2026-11-06; Fort Bend's export carries a hold-harmless and indemnity clause; Davidson's
 verification rests on Nashville's terms excluding open-portal data from its commercial-use ban.
 
 ## Expansion (2026-11-03)
@@ -157,4 +161,4 @@ same-name entities because the others have ended (31,770 current ownership links
 review); **27,513 of the links are on the new Connecticut parcels**, because Connecticut is the only entity registry loaded; Vermont 110, Minnesota 124, Arkansas 66 and North Carolina 84 link to Connecticut
 entities of the same name. `purge_person_owners()` removed nothing (0 owner facts, 0 mailing facts, 0 links): every new adapter stores organisations only. Added to the earlier combined figures (1,716,664
 parcels, 223 counties, 17 states and the District of Columbia, 37 verified sources), the expansion brings the totals to **1,945,117 parcels, 405 counties, 21 states and the District of Columbia, 47 verified sources**
-(five new sources, five North Carolina county sources; Garfield is an existing source). The Tier 1 quality pass later corrected the total to 1,953,805: Tarrant's full set is 45,976 parcels, not the 37,292 in the earlier figures, and Travis supplement 3 added 4 ([quality report](../quality/tier1-2026-11-03.md)).
+(five new sources, five North Carolina county sources; Garfield is an existing source). The Tier 1 quality pass later corrected the total to 1,953,805: Tarrant's full set is 45,976 parcels, not the 37,292 in the earlier figures, and Travis supplement 3 added 4 ([quality report](../quality/tier1-2026-11-03.md)). The rights review of 2026-11-06 then took two sources out of the verified figures: `or-metro-rlis-taxlots` (Metro's RLIS licence agreement, not ODbL; 3 counties) and `wi-statewide-parcels` (no licence stated; 72 counties, 185,754 parcels) are gated on terms. The verified total is now **1,733,923 parcels, 330 counties, 19 states and the District of Columbia, 40 verified sources**; the Oregon and Wisconsin loads stay in the records for review only.

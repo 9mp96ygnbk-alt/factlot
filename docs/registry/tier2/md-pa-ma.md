@@ -30,8 +30,9 @@ How to read the table:
 - **Massachusetts.** MassGIS's Level 3 town files (one zip per municipality, from a public bucket, with
   owner names and addresses) cover Middlesex, Worcester, Essex and Norfolk: 176 files, 514.6 MB, none over
   13.5 MB. Only 10 towns were downloaded; the other 166 are in the config. The fee clause in the layer
-  metadata ("should not be redistributed for a fee beyond reproduction costs") is the one open licence
-  question; the open registry is free, so the source is `verified: true`. mass.gov blocks the collector,
+  metadata ("should not be redistributed for a fee beyond reproduction costs") permits free redistribution,
+  so the source is `verified: true`; charging for these facts beyond reproduction costs (as part of what a
+  paid plan sells) is outside it (rights review of 2026-11-06, in the record). mass.gov blocks the collector,
   so the licence was read from the metadata inside the downloads.
 - `B` here is each publisher's own apartment class; the unit-count test for apartments (five or more)
   are noted in each record's Known gaps (Maryland `M` often shows fewer than five dwelling units;

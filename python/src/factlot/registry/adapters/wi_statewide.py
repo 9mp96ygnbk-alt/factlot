@@ -66,10 +66,10 @@ SOURCE = Source(
     license="No formal licence; 'free of charge' and 'free for public consumption' (publisher's data page and ArcGIS item "
             "metadata). Accuracy and warranty disclaimer only",
     ai_use="unknown",  # the publisher does not address AI use
-    redistribution="permitted",  # no restriction stated; free for public consumption
+    redistribution="unknown",  # no licence stated; not cleared (gated on terms, see the review record)
     attribution="Wisconsin State Cartographer's Office / Department of Administration, Wisconsin Land Information "
                 "Program (V12 Statewide Parcel Map Database Project)",
-    terms_reviewed="2026-11-03",
+    terms_reviewed="2026-11-06",
 )
 
 # Schema Table B-1, "County Naming and FIPS Codes" (V12 schema documentation): CONAME → county FIPS.

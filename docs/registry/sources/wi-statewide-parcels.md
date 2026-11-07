@@ -1,12 +1,15 @@
 # wi-statewide-parcels: Wisconsin Statewide Parcel Map Initiative (V12), all counties incl. Milwaukee (FIPS 55079)
 
-Reviewed 2026-11-03. Machine-readable copy: [`registry/sources/wi/wi-statewide-parcels.json`](../../../registry/sources/wi/wi-statewide-parcels.json).
+Reviewed 2026-11-03; rights review 2026-11-06. Machine-readable copy: [`registry/sources/wi/wi-statewide-parcels.json`](../../../registry/sources/wi/wi-statewide-parcels.json).
 Adapter: `factlot.registry.adapters.wi_statewide` (account system `wi_parcelid`, `<county FIPS>:<the county's parcel id>`).
 
-**Status: `verified: true`.** One review clears all 72 Wisconsin counties: the State Cartographer's Office and the
+**Status: `verified: false`, gated: terms (rights review of 2026-11-06).** The State Cartographer's Office and the
 Department of Administration aggregate every county's parcel and tax-roll data once a year. The publisher states no
-licence, only that the data is "free"; the registry treats that as no restriction (see Terms). Milwaukee County is
-the Tier 2 county; since the statewide extension of 2026-11-03 the config lists all 72 counties.
+licence and no permission to redistribute, only that the data is "free" (see Terms). On 2026-11-03 this record treated
+that as no restriction and set `verified: true`; that reading went further than the publisher's words, so the source
+is unverified until a written statement on redistribution is recorded. The scratch loads below were built for review
+only; nothing from this source is published or hosted. Milwaukee County is the Tier 2 county; since the statewide
+extension of 2026-11-03 the config lists all 72 counties.
 
 ## Publisher and URLs
 
@@ -31,9 +34,13 @@ the Tier 2 county; since the statewide extension of 2026-11-03 the config lists 
   only: "No warranty, expressed or implied, is made regarding accuracy, completeness, or legality of the information
   herein." Nothing addresses redistribution or AI use. The feedback form is a request, not a condition; a courtesy
   attribution is carried in the Source record.
-- **Why verified.** The data is a statutory statewide aggregation of public records, offered free to the public with no
-  restriction stated. This is the same footing as `mn-hennepin-assessor` (public government data, disclaimer only). If a
-  person wants an express statement, ask WLIP (`wlip@wisconsin.gov`); this is a confirmation, not a gate.
+- **Why not verified (2026-11-06).** The registry's `verified` status requires that the licence permits redistribution
+  of the facts (see the [source catalog](README.md)). "Provided free of charge" and "free for public consumption" speak
+  to price and access; neither grants or addresses republication. The layer aggregates data contributed by 72 counties,
+  whose own terms are not recorded here. The 2026-11-03 version of this bullet treated the absence of a stated
+  restriction as permission and called an express statement a confirmation rather than a gate; it is now the gate.
+  The terms were re-read on 2026-11-06 (data page, Access and Use Constraints modal, ArcGIS item) and add nothing on
+  redistribution.
 - **robots.txt.** `www.sco.wisc.edu`: `User-agent: *` with `Disallow: /wp-admin/` and `/wp-login.php` only. `web.s3.wisc.edu`:
   none (S3 `NoSuchBucket` 404). `services3.arcgis.com`: none. `discover` reported the data page `ok`.
 
@@ -63,7 +70,10 @@ value; `CNTASSDVALUE` the total assessed value; the roll year is `TAXROLLYEAR` (
 
 ## Gates
 
-None for the data. Only a courtesy: the publisher asks users to fill in its feedback form (<https://www.sco.wisc.edu/parcels/data/>).
+**Terms.** No licence grants redistribution. A written statement from the Wisconsin Land Information Program
+(`wlip@wisconsin.gov`) or the State Cartographer's Office (`help@sco.wisc.edu`) on whether the V12 parcel facts may be
+republished (as a downloadable release and through hosted lookups) would clear it. Until one is recorded here,
+`verified` stays false. The publisher also asks users to fill in its feedback form (<https://www.sco.wisc.edu/parcels/data/>).
 
 ## Real run
 
@@ -333,6 +343,8 @@ By county (county from `CONAME`, as fixed in the statewide extension):
 
 ## Known gaps
 
+- Rights (2026-11-06): the source is gated on terms (see Gates). The counts in this record describe scratch loads made
+  for review; no Wisconsin parcel is published or available through FactLot.
 - Resolved 2026-11-03: this bullet said only Milwaukee County was loaded. The other 71 counties' 121 pages were archived
   and loaded the same day (Statewide full load above: 169,174 parcels in 71 counties; 185,754 in 72 with Milwaukee).
 - The page list is cut to V12's counts; a county that grows before V13 would lose its last rows until the list is

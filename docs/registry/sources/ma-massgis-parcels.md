@@ -1,6 +1,6 @@
 # ma-massgis-parcels: MassGIS Level 3 assessors' parcels, Assess table (every town but Boston)
 
-Review record for the source `ma-massgis-parcels` (data policy §5). Reviewed 2026-11-03. Machine-readable
+Review record for the source `ma-massgis-parcels` (data policy §5). Reviewed 2026-11-03; rights review 2026-11-06. Machine-readable
 copy: [`registry/sources/ma/ma-massgis-parcels.json`](../../../registry/sources/ma/ma-massgis-parcels.json).
 Adapter: `python/src/factlot/registry/adapters/ma_massgis.py` (account system `massgis_prop_id`);
 tests: `python/tests/test_adapter_ma_massgis.py`.
@@ -42,10 +42,19 @@ lists all 350 towns except Boston (see that section).
   appropriate for planning purposes. It should not be utilized where legal and surveyed property
   boundaries are required." The abstract adds: "This data enters the public domain as a valuable
   resource for mapping, planning, and analysis at all levels."
-- AI use: not addressed. Redistribution: permitted (public domain). **Licence point:** the "not
-  redistributed for a fee beyond reproduction costs" sentence limits selling the parcel data itself. The
-  open registry is free, so `verified: true`; a paid tier that resells these facts needs a reading of
-  that sentence (or MassGIS's view) first.
+- Re-read 2026-11-06: the same sentence is in the Assess-table metadata (`M###Assess_*.dbf.xml`) of all 350
+  town files; 39 of the 350 TaxPar layer metadata files do not repeat the words "public domain", and none adds
+  a restriction beyond the fee clause.
+- AI use: not addressed. **Redistribution (rights review of 2026-11-06).** The data is stated to be in the
+  public domain; the only limit the publisher states is that it "should not be redistributed for a fee beyond
+  reproduction costs". Read against FactLot's uses:
+  - A free public download of these facts, or free hosted lookups, is redistribution without a fee: permitted.
+    This is the basis of `verified: true`.
+  - Charging for access to these facts beyond reproduction costs, for example making them part of what a paid
+    hosted plan sells, is redistribution for a fee and outside the clause's wording. A paid plan could serve
+    MassGIS-derived facts only if they are not part of what is charged for (offered on the same free terms as
+    the open registry), or with MassGIS's written view that the use fits the clause.
+  - The clause limits the fee charged for redistributing the data; it states no other restriction on use.
 - Attribution given anyway: "MassGIS and the municipal assessing departments". The layer metadata
   credits each municipality (for Cambridge: "City of Cambridge, MA").
 - robots.txt: the S3 endpoint answers `403 AccessDenied` to `/robots.txt` (the collector reads a 4xx as
@@ -100,7 +109,7 @@ None for the downloads. Two things a person should know:
 1. **mass.gov blocks automated clients**, so the data page, the Standard for Digital Parcels and the
    MassGIS FAQ were not read; nothing in this source needs them, but a person confirming the licence
    would find the same sentence on the data page.
-2. **The fee clause** under Terms (above).
+2. **The fee clause** under Terms (above): no gate for the free registry; it limits charging for these facts.
 
 ## Real run
 
