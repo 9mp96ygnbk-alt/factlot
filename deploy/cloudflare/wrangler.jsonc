@@ -1,13 +1,14 @@
 // Hosted FactLot: api.factlot.com (MCP, REST, OpenAPI, billing) and the landing page.
 // Deploy: npm run deploy:cloudflare (from the repo root). Secrets (set by a maintainer, never in
-// this file): STRIPE_SECRET_KEY (required for billing), STRIPE_WEBHOOK_SECRET (optional).
+// this file): STRIPE_SECRET_KEY (required for billing; checkout opens only with a live key),
+// STRIPE_WEBHOOK_SECRET (recommended: plan changes, refunds and disputes apply at once).
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "factlot-api",
   "main": "src/worker.ts",
   "compatibility_date": "2026-10-01",
   "compatibility_flags": ["nodejs_compat"],
-  "workers_dev": true,
+  "workers_dev": false,
   "routes": [
     { "pattern": "api.factlot.com", "custom_domain": true },
     { "pattern": "factlot.com", "custom_domain": true },
@@ -23,6 +24,8 @@
   // Registry tools answer from the factlot-registry Worker (deploy/registry), reachable only
   // through this binding. Deploy it first: npm run deploy:registry -- <pack dir>.
   "services": [{ "binding": "REGISTRY", "service": "factlot-registry" }],
+  // LIMITER: per-minute limits (memory), registry lookup quotas and checkout-session claims
+  // (SQLite storage of the same class; no new migration needed).
   "durable_objects": {
     "bindings": [{ "name": "LIMITER", "class_name": "RateLimiterObject" }],
   },
@@ -36,5 +39,5 @@
     "run_worker_first": true,
     "not_found_handling": "404-page",
   },
-  "observability": { "enabled": false },
+  "observability": { "enabled": true },
 }
