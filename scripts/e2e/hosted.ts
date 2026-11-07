@@ -89,9 +89,9 @@ function ok(cond: unknown, label: string): void {
 }
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-// With FACTLOT_API_KEY set, every call carries the key: the suite then runs on that plan's quotas
-// instead of the free tier's 25 registry lookups a day per address (several runs a day from one
-// machine exhaust the free quota and every registry check answers 429).
+// With FACTLOT_API_KEY set, every call (REST and MCP) carries the key: the suite then runs on that
+// plan's quotas instead of the free tier's 25 registry lookups a day per address (several runs a
+// day from one machine exhaust the free quota and every registry check answers 429).
 const KEY = process.env.FACTLOT_API_KEY;
 async function api(path: string, init?: RequestInit): Promise<Response> {
   await sleep(DELAY);
@@ -479,8 +479,14 @@ async function main(): Promise<void> {
   // requests at once, so start it in a fresh rate window.
   await sleep(Math.max(DELAY, 61_000));
   const client = new Client({ name: "factlot-hosted-e2e", version: "1.0.0" });
+  // With FACTLOT_API_KEY set, MCP carries the key as well (registry tools are metered here too).
   await client.connect(
-    new StreamableHTTPClientTransport(new URL(`${API}/mcp`)),
+    new StreamableHTTPClientTransport(
+      new URL(`${API}/mcp`),
+      KEY
+        ? { requestInit: { headers: { authorization: `Bearer ${KEY}` } } }
+        : {},
+    ),
   );
   await sleep(DELAY * 2);
   const { tools } = await client.listTools();
