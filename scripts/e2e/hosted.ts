@@ -32,6 +32,57 @@ const root = fileURLToPath(new URL("../..", import.meta.url));
 let passed = 0;
 const failures: string[] = [];
 const notes: string[] = [];
+// Real lookups in the hosted regions (DC, MD, UT). Values come from the registry files the hosted
+// pack is built from; update them when the pack is rebuilt.
+const HOSTED_REGISTRY_CASES: {
+  tool: string;
+  arguments: Record<string, unknown>;
+  expect?: Record<string, unknown>;
+  expect_error?: string;
+}[] = [
+  {
+    tool: "registry_coverage",
+    arguments: {},
+    expect: { "totals.parcels": 128854, "totals.counties": 27 },
+  },
+  {
+    tool: "registry_get",
+    arguments: { urn: "fl:parcel:us-11001:02570824" },
+    expect: { status: "current", kind: "parcel" },
+  },
+  {
+    tool: "registry_resolve_parcel",
+    arguments: { state_fips: "11", county_fips: "001", apn: "0257 0824" },
+    expect: { urn: "fl:parcel:us-11001:02570824" },
+  },
+  {
+    tool: "registry_resolve_external",
+    arguments: { system: "dc_ssl", external_id: "0257 0824" },
+    expect: { urn: "fl:parcel:us-11001:02570824" },
+  },
+  {
+    tool: "registry_search_address",
+    arguments: { query: "1300 Pennsylvania Ave NW", limit: 3 },
+    expect: { "results.0.urn": "fl:parcel:us-11001:02570824" },
+  },
+  {
+    tool: "registry_search_address",
+    arguments: { query: "100 Light St", limit: 2 },
+    expect: { "results.0.urn": "fl:parcel:us-24510:0304110671-001" },
+  },
+  { tool: "registry_search_entities", arguments: { query: "LLC", limit: 5 } },
+  {
+    tool: "registry_owned_by",
+    arguments: { entity_urn: "fl:entity:us-dc:c00008141728" },
+  },
+  // No Texas region is hosted: a coverage miss, not a failure of the service.
+  {
+    tool: "registry_tx_equity_candidates",
+    arguments: { urn: "fl:parcel:us-48201:1" },
+    expect_error: "NotFound",
+  },
+];
+
 function ok(cond: unknown, label: string): void {
   if (cond) passed++;
   else failures.push(label);
@@ -284,9 +335,15 @@ async function main(): Promise<void> {
       continue;
     }
     if (c.expect_error) {
+      // A registry vector that expects "no registry loaded" gets a NotFound with coverage from a
+      // deployment that serves the registry.
+      const want =
+        hostedRegistry && c.expect_error === "RegistryUnavailable"
+          ? "NotFound"
+          : c.expect_error;
       ok(
-        status >= 400 && (json as { error?: string })?.error === c.expect_error,
-        `${label}: want ${c.expect_error}, got ${status} ${JSON.stringify(json).slice(0, 120)}`,
+        status >= 400 && (json as { error?: string })?.error === want,
+        `${label}: want ${want}, got ${status} ${JSON.stringify(json).slice(0, 120)}`,
       );
       continue;
     }
@@ -301,6 +358,32 @@ async function main(): Promise<void> {
       restArgs.set(tool, c.arguments);
     }
   }
+  // Hosted registry regions (registry_coverage lists them): one real lookup per tool, with
+  // values read from the source files. These also give the MCP section its registry inputs.
+  if (hostedRegistry)
+    for (const c of HOSTED_REGISTRY_CASES) {
+      vectorCount++;
+      const label = `hosted ${c.tool} ${JSON.stringify(c.arguments).slice(0, 80)}`;
+      const { status, json } = await post(pathOf.get(c.tool)!, c.arguments);
+      if (c.expect_error) {
+        ok(
+          status >= 400 &&
+            (json as { error?: string })?.error === c.expect_error,
+          `${label}: want ${c.expect_error}, got ${status}`,
+        );
+        continue;
+      }
+      ok(status === 200, `${label}: HTTP ${status}`);
+      for (const [k, v] of Object.entries(c.expect ?? {}))
+        ok(
+          same(at(json, k), v),
+          `${label} ${k}: got ${JSON.stringify(at(json, k))}`,
+        );
+      if (status === 200 && !restResults.has(c.tool)) {
+        restResults.set(c.tool, json);
+        restArgs.set(c.tool, c.arguments);
+      }
+    }
   // Lease-comp vectors (spec/vectors/lease_comps.json, lease_comp_search.json): same case shape
   // as tools.json.
   const compCases = ["lease_comps.json", "lease_comp_search.json"].flatMap(
@@ -399,7 +482,27 @@ async function main(): Promise<void> {
     fetch: { id: "tool:calc_cam_reconciliation" },
     schema_get: {},
   };
+  // Tools whose only hosted input is a coverage miss: MCP must report it as a tool error.
+  const mcpMiss = new Map(
+    HOSTED_REGISTRY_CASES.filter((c) => c.expect_error).map((c) => [
+      c.tool,
+      c.arguments,
+    ]),
+  );
   for (const t of tools) {
+    const miss = hostedRegistry ? mcpMiss.get(t.name) : undefined;
+    if (miss && !restArgs.has(t.name)) {
+      await sleep(DELAY);
+      const r = (await client.callTool({ name: t.name, arguments: miss })) as {
+        isError?: boolean;
+        content: { type: string; text: string }[];
+      };
+      ok(
+        r.isError && /NotFound/.test(r.content?.[0]?.text ?? ""),
+        `MCP ${t.name}: want a NotFound tool error, got ${r.content?.[0]?.text?.slice(0, 160)}`,
+      );
+      continue;
+    }
     const args = restArgs.get(t.name) ?? extra[t.name];
     if (args === undefined) {
       failures.push(`MCP ${t.name}: no test input (add a vector)`);
