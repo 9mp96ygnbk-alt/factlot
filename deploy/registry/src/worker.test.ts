@@ -116,6 +116,8 @@ async function compare(
       )
         continue;
       const sdk = runTool(tool, args);
+      // runToolAsync (the API) rejects unknown fields, nested ones included, before the registry runner.
+      if (!sdk.ok && sdk.error.message.includes("unknown field")) continue;
       const want = scope ? hostedOutcome(scope, cov!, tool, args, sdk) : sdk;
       const got = await worker(assets, tool, parsed.data);
       if (got !== JSON.stringify(want))
@@ -306,13 +308,20 @@ function runToolOn(db: string, c: Call) {
   }
 }
 
-const shared: Call[] = calls
+const batchCalls = JSON.parse(
+  readFileSync(join(spec, "calls_tx_batch.json"), "utf8"),
+) as typeof calls;
+const shared: Call[] = [...calls, ...batchCalls]
   .filter((c) => c.tool.startsWith("registry_"))
   .map((c) => ({ tool: c.tool, args: c.arguments }));
 
 test("the Worker answers like runTool on the shared fixture", async () => {
   const pack = join(dir, "pack");
   buildPack([{ name: "fixture", path: fixture }], pack);
+  assert.ok(
+    shared.filter((c) => c.tool === "registry_tx_equity_candidates_batch")
+      .length >= 2,
+  );
   const list = [...shared, ...getCalls(), ...searchCalls()];
   const bad = await compare(pack, fixture, list);
   assert.ok(list.length > 2000, `${list.length} calls`);

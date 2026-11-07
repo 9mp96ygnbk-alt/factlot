@@ -163,7 +163,21 @@ export function hostedOutcome<T extends Outcome>(
     return out;
   }
   const r = out.result as Row;
-  if (tool === "registry_coverage")
+  if (tool === "registry_tx_equity_candidates_batch") {
+    // Each subject's error is the single tool's.
+    for (const entry of r.results as Row[])
+      if (entry.error)
+        entry.error = hostedOutcome(
+          scope,
+          cov,
+          "registry_tx_equity_candidates",
+          {},
+          {
+            ok: false,
+            error: entry.error as Outcome["error"],
+          },
+        ).error;
+  } else if (tool === "registry_coverage")
     out.result = hostedCoverageResult(scope, cov, r);
   else if (tool === "registry_resolve_parcel" && r.urn === null)
     r.coverage = hostedParcelMiss(

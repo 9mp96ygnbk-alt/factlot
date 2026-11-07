@@ -343,6 +343,7 @@ async function run(
     { tax_year: 2025 },
   ];
   let equitySubjects = 0;
+  const equityUrns: string[] = [];
   for (const k of [...strata.keys()].sort()) {
     const list = strata.get(k)!;
     const n = Math.min(
@@ -352,6 +353,7 @@ async function run(
     for (let i = 0; i < n; i++) {
       const urn = list.splice(Math.floor(rand() * list.length), 1)[0]!;
       equitySubjects += 1;
+      equityUrns.push(urn);
       calls.push(
         {
           tool: "registry_tx_equity_candidates",
@@ -389,6 +391,26 @@ async function run(
   console.log(
     `${equitySubjects} Texas candidate subjects from ${strata.size} county and category strata`,
   );
+  // Batches: Texas subjects with the subjects a batch answers with an error (withheld county, outside Texas,
+  // not in the registry, not a parcel) mixed in.
+  const odd: Row[] = [
+    { urn: `fl:parcel:us-${o.exclude[0] ?? "48439"}:1` },
+    { urn: "fl:parcel:us-24005:1" },
+    { urn: "fl:parcel:us-48201:1" },
+    { urn: "fl:entity:us-tx:1" },
+    { county_fips: "201", apn: "0000000000000" },
+  ];
+  for (let b = 0; b < 40 && equityUrns.length; b++) {
+    const subjects: Row[] = [];
+    for (let j = 0; j < 6; j++)
+      subjects.push({ id: `s${j}`, urn: pick(equityUrns) });
+    if (b % 2 === 0) subjects.push({ id: "odd", ...pick(odd) });
+    calls.push({
+      tool: "registry_tx_equity_candidates_batch",
+      args: { subjects, ...(b % 3 === 0 ? pick(tighter) : {}) },
+      label: "equity batch",
+    });
+  }
   // Address searches from real keys.
   const streetTypes =
     /^(ALY|AVE|BLVD|BYP|CIR|CSWY|CT|DR|EXPY|FWY|HWY|LN|LOOP|PATH|PIKE|PKWY|PL|PLZ|RD|ROW|RUN|SQ|ST|TER|TPKE|TRL|WALK|WAY|XING)$/;

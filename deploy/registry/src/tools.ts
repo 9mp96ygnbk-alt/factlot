@@ -7,6 +7,8 @@ import { FactLotIdError, parse } from "@factlot/id";
 
 import {
   TEXAS_FIPS,
+  TX_EQUITY_NOTICE,
+  TX_EQUITY_RULE,
   TX_EQUITY_WHICH_PARCEL,
   addressMiss,
   externalMiss,
@@ -50,6 +52,7 @@ export const REGISTRY_TOOLS = [
   "registry_owned_by",
   "registry_coverage",
   "registry_tx_equity_candidates",
+  "registry_tx_equity_candidates_batch",
 ] as const;
 
 /** The parcel rule the pack's file for a county was built with; a county the pack lacks gets the current rule. */
@@ -183,6 +186,8 @@ async function run(pack: Pack, tool: string, i: Input): Promise<unknown> {
       return m.coverage_result;
     case "registry_tx_equity_candidates":
       return txEquity(pack, i);
+    case "registry_tx_equity_candidates_batch":
+      return txEquityBatch(pack, i);
   }
   throw new Error(`unhandled tool ${tool}`);
 }
@@ -240,6 +245,72 @@ async function txEquity(pack: Pack, i: Input): Promise<unknown> {
   });
 }
 
+/** A tool error as runTool reports it, or undefined for an error that is not a tool outcome. */
+function toolError(err: unknown): ToolError | undefined {
+  if (err instanceof FactLotIdError)
+    return { error: "FactLotIdError", message: err.message, issues: [] };
+  if (err instanceof InputIssue)
+    return { error: "InputError", message: err.message, issues: err.issues };
+  if (err instanceof Missing)
+    return {
+      error: "NotFound",
+      message: err.message,
+      issues: [],
+      coverage: err.coverage,
+    };
+  if (err instanceof Unavailable)
+    return { error: "RegistryUnavailable", message: err.message, issues: [] };
+  return undefined;
+}
+
+const TX_EQUITY_PARAMS = [
+  "area_band",
+  "year_band",
+  "min_matches",
+  "limit",
+  "tax_year",
+] as const;
+
+// registry_tx_equity_candidates_batch (catalog.ts): each subject through the single-subject path, with its own
+// checks and errors; the rule and notice once at the top.
+async function txEquityBatch(pack: Pack, i: Input): Promise<unknown> {
+  const subjects = i.subjects;
+  if (!Array.isArray(subjects))
+    throw new InputIssue([{ path: "subjects", message: "expected array" }]);
+  const params: Input = {};
+  for (const k of TX_EQUITY_PARAMS) if (i[k] !== undefined) params[k] = i[k];
+  const results: Input[] = [];
+  for (const raw of subjects as Input[]) {
+    const { id, ...subject } = raw;
+    let answer: Input;
+    try {
+      answer = (await txEquity(pack, { ...subject, ...params })) as Input;
+    } catch (err) {
+      const error = toolError(err);
+      // No registry is no answer for any subject: the whole call fails, as the single tool does.
+      if (!error || error.error === "RegistryUnavailable") throw err;
+      results.push({ id, error });
+      continue;
+    }
+    const { notice: _notice, selection, ...rest } = answer;
+    const { rule: _rule, ...perSubject } = selection as Input;
+    void _notice;
+    void _rule;
+    results.push({ id, ...rest, selection: perSubject });
+  }
+  const errors = results.filter((r) => "error" in r).length;
+  return {
+    results,
+    summary: {
+      subjects: results.length,
+      answered: results.length - errors,
+      errors,
+    },
+    rule: TX_EQUITY_RULE,
+    notice: TX_EQUITY_NOTICE,
+  };
+}
+
 /** One registry tool call, as a ToolOutcome. Errors that are not tool outcomes are thrown. */
 export async function runRegistryTool(
   pack: Pack,
@@ -261,39 +332,8 @@ export async function runRegistryTool(
   try {
     return { ok: true, result: await run(pack, tool, i) };
   } catch (err) {
-    if (err instanceof FactLotIdError)
-      return {
-        ok: false,
-        error: { error: "FactLotIdError", message: err.message, issues: [] },
-      };
-    if (err instanceof InputIssue)
-      return {
-        ok: false,
-        error: {
-          error: "InputError",
-          message: err.message,
-          issues: err.issues,
-        },
-      };
-    if (err instanceof Missing)
-      return {
-        ok: false,
-        error: {
-          error: "NotFound",
-          message: err.message,
-          issues: [],
-          coverage: err.coverage,
-        },
-      };
-    if (err instanceof Unavailable)
-      return {
-        ok: false,
-        error: {
-          error: "RegistryUnavailable",
-          message: err.message,
-          issues: [],
-        },
-      };
+    const error = toolError(err);
+    if (error) return { ok: false, error };
     throw err;
   }
 }
