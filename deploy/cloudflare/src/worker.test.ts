@@ -4452,12 +4452,13 @@ describe("account usage, tools and page", () => {
       new URL("../../../CHANGELOG.md", import.meta.url),
       "utf8",
     );
-    const unreleased = changelog.slice(
-      changelog.indexOf("## [Unreleased]"),
-      changelog.indexOf("\n## [", changelog.indexOf("## [Unreleased]") + 5),
-    );
+    // Unreleased and the latest release: a release moves the lines out of Unreleased.
+    const start = changelog.indexOf("## [Unreleased]");
+    const latest = changelog.indexOf("\n## [", start + 5);
+    const end = changelog.indexOf("\n## [", latest + 5);
+    const recent = changelog.slice(start, end === -1 ? undefined : end);
     for (const w of WHATS_NEW)
-      assert.ok(unreleased.includes(w.changelog), w.changelog);
+      assert.ok(recent.includes(w.changelog), w.changelog);
   });
 
   it("billing and account errors carry code, message and next", async () => {

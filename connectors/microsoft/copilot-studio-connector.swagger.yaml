@@ -6,7 +6,7 @@ info:
     (rent schedules, NER, proposal comparison, CAM reconciliation, percentage rent, loan sizing,
     WALT, NPV, IRR) with audit trails, canonical FactLot IDs, and cited-fact validation, served
     over the Model Context Protocol.
-  version: 0.4.0
+  version: 0.5.0
   contact:
     name: FactLot
     url: https://factlot.com

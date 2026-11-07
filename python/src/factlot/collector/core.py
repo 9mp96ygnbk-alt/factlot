@@ -37,7 +37,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
 
-VERSION = "0.4"
+VERSION = "0.5"
 
 
 @dataclass

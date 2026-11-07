@@ -71,7 +71,7 @@ import {
   withRateHints,
 } from "./limits.ts";
 
-export const CATALOG_VERSION = "0.4.0";
+export const CATALOG_VERSION = "0.5.0";
 
 export interface ToolSpec {
   name: string;

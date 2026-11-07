@@ -13,84 +13,368 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-07
+
+This release brings Texas to the hosted registry, paid Pro and Team plans with metered registry
+lookups, sign-in from Claude and ChatGPT without a key header, two model-backed tools for Pro and
+Team, and batch tools for Texas protest work. The hosted registry serves Maryland, the District of
+Columbia, Juab and Summit counties in Utah, and Harris, Dallas, Travis, Collin, Denton and
+Williamson counties in Texas: 349,869 commercial parcels in 33 counties. **Tarrant County is not
+served** while the publisher's terms for AI use are unclear. **Hosted reports are deployed but not
+yet open:** until they open, `report_create` is not listed and `POST /v1/reports` answers 503
+`ReportsUnavailable`.
+
+No calculator's numbers change. Two changes need action from some users: the Texas deadline rule
+renames `recommended_file_by` to `conservative_file_by`, and a registry file built with an earlier
+release should be run through `python -m factlot.registry.maintain <db> --purge-persons` (see
+**Changed**).
+
 ### Added
 
-- factlot.com trust pages: `/status/` (the live health endpoint, what is and is not monitored, the live suite, an incident history that records none since 2026-11-03, how to report a problem), `/security/` and `docs/security.md` (hosting, what is stored and not stored, transport, keys, secrets, dependencies, disclosure, what is not in place: no SOC 2), `/sla/` and `docs/sla.md` (no service-level agreement today; draft terms of a 99.9% monthly target, a 10% credit under 99.5% and support targets, not in force until the Terms refer to them; versioning, deprecation, data refresh) and `/assurance/` (vectors, the differential test, the Excel workbooks, the live suite, the verified rule, and what is not proven, with the commands to repeat each check). Every size the assurance page quotes from the repository is counted by the site build. The site footer, `llms.txt` and `SECURITY.md` link to them.
-- `rules_tx_property_tax_protest_deadline_batch` (`POST /v1/rules/tx_property_tax_protest_deadline/batch`): Texas protest deadlines for 1–200 notices in one call. Each item (`id`, `tax_year`, optional `notice_delivered_date`) is answered under `rules.tx.property_tax_protest_deadline@2` exactly as the single tool answers it, echoed with its `id`; an item with invalid input carries its own `error` and the others are still answered. `summary` counts items per deadline with the earliest and latest; the rule, citations and disclaimer appear once. A rules tool, never a registry lookup. Formula `rules.tx.property_tax_protest_deadline_batch@1`; shared vectors in `spec/vectors/rules/tx_property_tax_protest_deadline_batch.json`.
-- `registry_tx_equity_candidates_batch` (`POST /v1/registry/tx_equity_candidates/batch`): `registry_tx_equity_candidates` for 1–50 subjects in one call, each with your `id` and its `urn`, or `county_fips` and `apn`, and the rule parameters once. Each entry of `results` is that subject's answer or its own error (Texas-only and Tarrant checks per subject; a miss carries `coverage`); the selection rule and the notice are given once. Candidates per subject only: it never runs `calc_tx_unequal_appraisal` or picks comparables. On the hosted API each answered subject counts as one registry lookup.
-- Hosted API: sign in with OAuth 2.1, so Claude (Desktop, claude.ai, mobile) custom connectors and ChatGPT developer-mode apps, which cannot send a key header, can connect a paid plan. Add the connector `https://api.factlot.com/mcp/signin` and click Connect; a FactLot page shows which app is asking and where access goes, and offers **Connect with my key** (the key is pasted once, in a POST), **Continue on the free tier**, and, once email is set up, **Email me a sign-in link**. A connection is tied to the subscription, not the key: it has the plan's limits and quotas exactly as a key does, keeps working when the key is replaced, answers 403 while billing is failing, and is revoked when the subscription ends. A free connection gets the free limits (60 requests a minute, 25 registry lookups a day) counted per connection instead of per address. Access tokens last an hour; refresh tokens 30 days, rotated on every refresh. Standards: PKCE (S256 only), exact redirect URIs, RFC 8414 metadata at `/.well-known/oauth-authorization-server`, RFC 9728 metadata at `/.well-known/oauth-protected-resource/mcp`, dynamic client registration (`/register`) and Client ID Metadata Documents, RFC 7009 revocation and RFC 8707 resource indicators at `/token`, `iss` on the authorization response; one scope, `mcp`. Built on `@cloudflare/workers-oauth-provider`; its records live in the existing KV namespace under `oauth:`, tokens only as hashes.
-- Hosted API: a `401` from `/mcp` carries `WWW-Authenticate: Bearer resource_metadata="…/.well-known/oauth-protected-resource/mcp", scope="mcp"` (with `error="invalid_token"` for a rejected key or token). `/mcp` without credentials stays open on the free tier; `/mcp/signin` is the same endpoint but answers `401` without credentials, which is what starts sign-in in Claude.
-- factlot.com/account and `GET /v1/account`: connected apps (name, connected, last used) with **Disconnect** (`DELETE /v1/account/connections/{id}`).
-- Hosted API: `doc_extract_lease` (`POST /v1/doc/extract_lease`), for Pro and Team keys. Send a lease as page text, a PDF (base64, at most 10 MB, 200 pages and 400,000 characters of text, read page by page and refused as soon as the text passes the cap) or an https URL; a model proposes each term with its quote and page, and FactLot returns only what `doc_verify_facts` verifies under `facts`, the rest under `needs_review` (`verified: false`) with the failed check, `unextracted`, the page count and the model's token use. A fact keeps the model's `section` only when it is a short label written on the cited page. A scanned PDF answers `NeedsOcr`. A call counts max(pages with text, characters ÷ 4,000) pages against a monthly allowance (Pro 100, Team 2,000), and has 120 seconds. Nothing is stored or logged. See `docs/ingestion-hosted.md`.
-- Hosted API: `report_narrative` (`POST /v1/report/narrative`), for Pro and Team keys: prose (`summary`, `client_memo` or `plain_english`) drafted by a model from one FactLot tool result, or from its input (FactLot recomputes the result; required for Texas tools, which otherwise answer 422 `InputRequired`). Every number, percentage, money amount, date and citation in the prose is checked against the result's values (not its free text or array lengths): at least two significant digits or within 5%, with sign, percentages only as ratios, dates and ranges read whole, number words, fractions and multipliers counted, citations whole and in the code named; sentences that fail are removed and listed, advice and valuation wording causes a redraft and is then removed, and Texas tools carry the calculator's notice. The label says "figures verified by FactLot" only for a recomputed result, and "figures matched against the result you supplied (not recomputed by FactLot)" otherwise. 60 seconds a call. Monthly allowance: Pro 50, Team 1,000.
-- Hosted API: both model-backed tools are off unless the `ANTHROPIC_API_KEY` Worker secret is set; without it they are not listed and answer 503 `ModelUnavailable`. `/v1/plans` lists their allowances under `model_tools`. Per subscription, at most 2 model-backed calls run at once and 6 start a minute (429 `ModelRateLimited` with `retry_after_seconds`); a failed call is given back for the first 5 failures of a UTC day, and counted from the 6th. Every request asks Anthropic for US inference (`inference_geo: "us"`); a provider 5xx is retried once only with 30 seconds left, and a 400 or 413 is not retried. Every other tool runs without a model.
-- Hosted API: reports. `report_create` (MCP, listed for every caller) and `POST /v1/reports` build a client-ready document by code, with no model: `tx_unequal_appraisal` (PDF evidence packet, or the adjustment-grid workbook with live formulas and evidence columns), `lease_abstract`, `cam_reconciliation`, `debt_sizing`, `asc842_schedule`, `compare_proposals`, `dcf_summary` and `critical_dates` (also as an ICS calendar with a reminder 30 days before each notice deadline and window), as XLSX or PDF. Every kind but `lease_abstract` requires the tool's `arguments` (400 `ArgumentsRequired` without them): FactLot runs the tool and builds the document from that run only; a result sent as `input` is not used, and `result_mismatch` says whether it differs. `lease_abstract` also accepts a `doc_abstract_lease` result alone (shape and counts checked), and then every page says the values are as supplied by the caller and were not recomputed. Caller text (title, prepared-for line, citation locators, comparable ids, adjustment labels and reasons) is labelled as supplied by the caller, capped, and refused with 422 `TextNotAllowed` when it reads as advice or a valuation. One report per request (one `report_create` per MCP batch). Size limits: a PDF shows at most 2,000 characters of one text and 60,000 lines; the Texas PDF takes at most 60 comparables of 10 adjustments (413 `TooLarge` naming the workbook, which takes up to 200). A fault on FactLot's side answers 500 `ReportFailed`. The answer gives `download_url` (24 hours, `GET /v1/reports/d/<token>`, rate limited), `expires_at`, `bytes`, `sha256` and `filename`; `inline: true` adds base64 for files under 1 MiB. Reports a month: Free 3 per IP address, Pro 50, Team 1,000 per subscription; input errors are free, a report is counted before it is built and given back if the build fails, and over the limit the answer is 429 `ReportQuotaExceeded`. `/v1/plans` lists them under `reports`. See `docs/reports.md`.
-- `@factlot/reports`: the report engine as a private workspace package (`createReport()`), Workers-compatible; its one new dependency is `pdf-lib` 1.17.1.
-- Hosted API: agents can buy a key themselves. `POST /v1/billing/checkout` also returns `claim_url` and `expires_at`; `GET /v1/billing/claim/<token>` answers 202 while the checkout is unpaid, the key once (200, with plan, limits, account and MCP URLs), then 410 with `by` (`agent` or `page`), and 404 when unknown or expired. Polling is limited to once every 2 seconds per claim. The API root and `/v1/plans` describe the flow in a `checkout` object.
-- factlot.com: the page after checkout is a setup guide: the key once with copy buttons, setup for Claude Code, Claude Desktop and claude.ai, ChatGPT, Cursor and VS Code, Python and curl, a "Test my key" button, and what counts as a lookup. A revisit shows the guide without the key and a link to recover access. `GET /v1/onboarding` (`?plan=pro|team`) serves the same guide as JSON, or as Markdown with `Accept: text/markdown`.
-- factlot.com/account: email recovery for a lost key. Enter the email you paid with; a signed link that works once for 15 minutes shows the account and issues a new key (at the plan's key limit it replaces the oldest key and says so). The answer is the same whether or not the address has a subscription. It needs the Email Service binding and the `RECOVERY_SIGNING_SECRET` Worker secret; until both are set the form says recovery is being set up.
-- Hosted API: a welcome email after purchase with the setup steps and a link to /account (never the key), once email is set up.
-- Hosted API: `account_status` and `account_usage` MCP tools, listed only to callers with a key and never counted as lookups, and `GET /v1/account/usage`: charged lookups per UTC day for the last 30 days (up to 90), by tool and by region prefix.
-- Hosted API: `/v1/account` adds `renewal_at` (or `ends_at` for a subscription set to cancel), `support`, `changelog`, and each key's `last_used_at`.
-- factlot.com/account: this month's lookups as a bar, a 30-day chart with lookups by tool and region, each key's last use, the renewal date, the masked address Stripe sends receipts to, the hosted regions with their source dates, what's new, and where to get help. The account pages share the site's stylesheet.
-- Hosted API: registry lookups are metered. Without a key, 25 a day per IP address (UTC day); Pro 5,000 and Team 100,000 a month per subscription (calendar month, UTC), shared by its keys. `registry_coverage` is not counted. Over the cap a registry call answers 429 `RegistryQuotaExceeded` (an MCP tool error with `isError`), naming the cap, the reset time and the plan that lifts it; other tools keep working. Registry responses carry `X-FactLot-Registry-Quota-Limit`, `-Remaining` and `-Reset`.
-- Hosted API: `/v1/plans` lists each plan's registry lookups and key count, a `quotas` object with the counting rules, and `checkout_open`; the API root carries `checkout_open` too.
-- Hosted API: `/v1/account` reports `registry_lookups` (used, limit, resets_at), the subscription's keys (count, limit, ids and dates) and when an inactive record is deleted.
-- Hosted API: Team subscriptions hold up to 5 keys: `POST /v1/billing/keys` adds one (shown once) and `DELETE /v1/billing/keys/{id}` revokes one, never the last.
-- factlot.com/account: paste a key to see plan, usage and keys, open the billing portal to change card or cancel, and replace or add keys.
-- Hosted registry lookups on api.factlot.com for Maryland, DC and two Utah counties (128,854 parcels), on every plan.
-- Hosted registry lookups on api.factlot.com for six Texas counties (Harris, Dallas, Travis, Collin, Denton and Williamson; 221,015 parcels), on every plan, with value history by tax year and `registry_tx_equity_candidates` with its batch form. Texas entity lookups cover the 68,804 Comptroller entities that own a hosted parcel. Tarrant County is not served while the publisher's terms for AI use are unclear.
-- Registry: a Texas appraisal-roll reader for the PACS 8.0.34 export layout (`tx_pacs34`). It maps a district's own state-code table to Comptroller categories, leaves out codes the table does not list, and stores organisation owners only.
-- Registry: Andrews County appraisal-roll adapter (`tx_andrews`), reading the 2026 real-property workbook with the district's 2025 state-code table. Local codes the table does not map to one Comptroller category are left out.
-- Registry: Bastrop appraisal-roll adapter (`tx_bastrop`), reading the vendor tab export by its parcel-use code.
-- Registry: Ector County appraisal-roll adapter (`tx_ector`), reading the certified real-property workbook. Only the commercial and multifamily classifications the file states are kept.
-- Registry: Midland web property file adapter (`tx_midland_web`). It refuses a file with a birth-date column and does not use mineral or personal-property codes for scope.
-- Registry: Orange County appraisal-export adapter (`tx_orange`), reading the property export's state codes. It reads no owner fields.
-- Collector: a download URL's `$limit` or `limit` is recorded as `row_cap` on the manifest, and `limit_saturated` tells a row count that reached the cap from a complete extract.
-- Registry audit records of 2026-11-06 (`docs/registry/quality/audit-2026-11-06/`): Maryland SDAT, 57 New York ORPTS counties, MassGIS (no county passes) and six single-county loads; an Indiana statewide parcels adapter with an unverified source config (the licence text states no licence to copy or redistribute); review records, nothing loaded, for 13 Indiana counties and two Florida sources (Hillsborough, Miami-Dade).
-- Hosted registry: Texas (Harris, Dallas, Travis, Collin, Denton and Williamson parcels, their value history, the Comptroller entities that own them, and `registry_tx_equity_candidates` with its batch form, each subject answered as the single tool answers it). The pack builder takes `--exclude-county` (Tarrant, 48439, is withheld: none of its parcels, links or IDs are in the pack, and `registry_coverage` and lookups in the county say why), keeps only the entities that own a hosted parcel when a file holds more than 50,000, and indexes entity names by 1–3-character grams so a search no longer scans every name. Candidates are computed with the SDK's rule from area-sorted comparable lists, so the hosted answer equals the SDK's for every parameter value. `registry_coverage` on the hosted API adds `hosted` (withheld counties, entity registries served in part).
-- `@factlot/tools`: the Texas candidate rule as pure functions (`selectEquityCandidates`, `equityReturned`, `assembleTxEquity` and the year, roll, shaping and tier helpers); `registryTxEquityCandidates` uses them and its output is unchanged.
-- `hostedWithheldCounties()` in `@factlot/tools` and `HOSTED_WITHHELD_COUNTIES` / `hosted_withheld_counties()` in `factlot.registry.tx_equity`: the counties a hosted FactLot service serves from no tool, keyed by 5-digit county FIPS with the reason (Tarrant, 48439, with the candidate tool's reason). Self-hosted use is unchanged; `registry_tx_equity_candidates` keeps its Tarrant error.
+**Hosted registry and Texas**
+
+- Hosted registry lookups on api.factlot.com, on every plan: Maryland, DC and two Utah counties
+  (128,854 parcels), and six Texas counties (Harris, Dallas, Travis, Collin, Denton and Williamson;
+  221,015 parcels) with value history by tax year and `registry_tx_equity_candidates` with its batch
+  form. Texas entity lookups cover the 68,804 Comptroller entities that own a hosted parcel. Tarrant
+  County (48439) is not served: none of its parcels, links or IDs are hosted, and
+  `registry_coverage` and lookups in the county say why. `registry_coverage` on the hosted API adds
+  `hosted` (withheld counties, and entity registries served in part). Hosted equity candidates are
+  computed with the SDK's rule, so the hosted answer equals the SDK's for every parameter value.
+- `registry_tx_equity_candidates_batch` (`POST /v1/registry/tx_equity_candidates/batch`):
+  `registry_tx_equity_candidates` for 1–50 subjects in one call, each with your `id` and its `urn`,
+  or `county_fips` and `apn`, and the rule parameters once. Each entry of `results` is that
+  subject's answer or its own error (Texas-only and Tarrant checks per subject; a miss carries
+  `coverage`); the selection rule and the notice are given once. Candidates per subject only: it
+  never runs `calc_tx_unequal_appraisal` or picks comparables. On the hosted API each answered
+  subject counts as one registry lookup.
+- `rules_tx_property_tax_protest_deadline_batch` (`POST /v1/rules/tx_property_tax_protest_deadline/batch`):
+  Texas protest deadlines for 1–200 notices in one call. Each item (`id`, `tax_year`, optional
+  `notice_delivered_date`) is answered under `rules.tx.property_tax_protest_deadline@2` exactly as
+  the single tool answers it, echoed with its `id`; an item with invalid input carries its own
+  `error` and the others are still answered. `summary` counts items per deadline with the earliest
+  and latest; the rule, citations and disclaimer appear once. A rules tool, never a registry lookup.
+  Formula `rules.tx.property_tax_protest_deadline_batch@1`; shared vectors in
+  `spec/vectors/rules/tx_property_tax_protest_deadline_batch.json`.
+- `@factlot/tools`: the Texas candidate rule as pure functions (`selectEquityCandidates`,
+  `equityReturned`, `assembleTxEquity` and the year, roll, shaping and tier helpers);
+  `registryTxEquityCandidates` uses them and its output is unchanged. `hostedWithheldCounties()`
+  (TypeScript) and `HOSTED_WITHHELD_COUNTIES` / `hosted_withheld_counties()` in
+  `factlot.registry.tx_equity` (Python) list the counties a hosted FactLot service does not serve,
+  by 5-digit county FIPS with the reason. Self-hosted use is unchanged;
+  `registry_tx_equity_candidates` keeps its Tarrant error.
+- Registry pack builder: `--exclude-county` leaves a county out of a hosted pack entirely; a file
+  with more than 50,000 entities keeps only those that own a hosted parcel; entity names are indexed
+  by 1–3-character grams, so a name search no longer scans every name.
+- Registry: Texas appraisal-roll readers. `tx_pacs34` reads the PACS 8.0.34 export layout, maps a
+  district's own state-code table to Comptroller categories, leaves out codes the table does not
+  list, and stores organisation owners only. County adapters: Andrews (`tx_andrews`, the 2026
+  real-property workbook with the district's 2025 state-code table), Bastrop (`tx_bastrop`, by
+  parcel-use code), Ector (`tx_ector`, only the commercial and multifamily classifications the file
+  states), Midland (`tx_midland_web`; it refuses a file with a birth-date column and does not use
+  mineral or personal-property codes for scope) and Orange (`tx_orange`, state codes; it reads no
+  owner fields).
+- Collector: a download URL's `$limit` or `limit` is recorded as `row_cap` on the manifest, and
+  `limit_saturated` tells a row count that reached the cap from a complete extract.
+- Registry source records (`docs/registry/quality/audit-2026-11-06/`): quality reviews of Maryland
+  SDAT, 57 New York ORPTS counties, MassGIS (no county passes) and six single-county loads; an
+  Indiana statewide parcels adapter whose source stays unverified (its licence text grants no right
+  to copy or redistribute); terms reviews, with nothing loaded, for 13 Indiana counties and two
+  Florida sources (Hillsborough, Miami-Dade).
+
+**Plans, keys and accounts**
+
+- Hosted API: registry lookups are metered. Without a key, 25 a day per IP address (UTC day); Pro
+  5,000 and Team 100,000 a month per subscription (calendar month, UTC), shared by its keys. A
+  lookup is charged only when answered: `registry_coverage`, coverage misses (a county or system
+  that is not loaded), input errors and `RegistryUnavailable` answers are not counted. Over the cap
+  a registry call answers 429 `RegistryQuotaExceeded` (an MCP tool error with `isError`), naming
+  the cap, the reset time and the plan that lifts it; other tools keep working. Registry responses
+  carry `X-FactLot-Registry-Quota-Limit`, `-Remaining` and `-Reset`.
+- Hosted API: `/v1/plans` lists each plan's registry lookups and key count, a `quotas` object with
+  the counting rules, and `checkout_open`; the API root carries `checkout_open` too.
+- Hosted API: agents can buy a key themselves. `POST /v1/billing/checkout` also returns `claim_url`
+  and `expires_at`; `GET /v1/billing/claim/<token>` answers 202 while the checkout is unpaid, the
+  key once (200, with plan, limits, account and MCP URLs), then 410 with `by` (`agent` or `page`),
+  and 404 when unknown or expired. Polling is limited to once every 2 seconds per claim. The API
+  root and `/v1/plans` describe the flow in a `checkout` object.
+- factlot.com: the page after checkout is a setup guide: the key once with copy buttons, setup for
+  Claude Code, Claude Desktop and claude.ai, ChatGPT, Cursor and VS Code, Python and curl, a "Test my
+  key" button, and what counts as a lookup. A revisit shows the guide without the key and a link to
+  recover access. `GET /v1/onboarding` (`?plan=pro|team`) serves the same guide as JSON, or as
+  Markdown with `Accept: text/markdown`.
+- Hosted API: Team subscriptions hold up to 5 keys: `POST /v1/billing/keys` adds one (shown once)
+  and `DELETE /v1/billing/keys/{id}` revokes one, never the last.
+- factlot.com/account: paste a key to see the plan, this month's lookups as a bar, a 30-day chart by
+  tool and region, each key and its last use, the renewal date, the masked address Stripe sends
+  receipts to, the hosted regions with their source dates, what's new and where to get help; open
+  the billing portal to change card or cancel; replace or add keys; see connected apps and
+  **Disconnect** them. The account pages share the site's stylesheet.
+- Hosted API: `/v1/account` reports `registry_lookups` (used, limit, resets_at), the subscription's
+  keys (count, limit, ids, dates and `last_used_at`), `renewal_at` (or `ends_at` for a subscription
+  set to cancel), `support`, `changelog`, connected apps (`DELETE /v1/account/connections/{id}`
+  disconnects one) and when an inactive record is deleted.
+- Hosted API: `account_status` and `account_usage` MCP tools, listed only to callers with a key and
+  never counted as lookups, and `GET /v1/account/usage`: charged lookups per UTC day for the last 30
+  days (up to 90), by tool and by region prefix.
+- factlot.com/account: email recovery for a lost key. Enter the email you paid with; a signed link
+  that works once for 15 minutes shows the account and issues a new key (at the plan's key limit it
+  replaces the oldest key and says so). The answer is the same whether or not the address has a
+  subscription. A welcome email after purchase gives the setup steps and a link to /account (never
+  the key). Email sending from factlot.com is not yet set up: until it is, the recovery form says
+  so and no welcome email is sent. A self-hosted deployment needs the Email Service binding and the
+  `RECOVERY_SIGNING_SECRET` secret.
+
+**Sign-in from Claude and ChatGPT**
+
+- Hosted API: sign in with OAuth 2.1, so Claude (Desktop, claude.ai, mobile) custom connectors and
+  ChatGPT developer-mode apps, which cannot send a key header, can connect a paid plan. Add the
+  connector `https://api.factlot.com/mcp/signin` and click Connect; a FactLot page shows which app
+  is asking and where access goes, and offers **Connect with my key** (the key is pasted once, in a
+  POST) and **Continue on the free tier** (an emailed sign-in link follows once email sending is set
+  up). A connection is tied to the subscription, not the key: it has the plan's limits and quotas
+  exactly as a key does, keeps working when the key is replaced, answers 403 while billing is
+  failing, and is revoked when the subscription ends. A free connection gets the free limits (60
+  requests a minute, 25 registry lookups a day) counted per connection instead of per address.
+  Access tokens last an hour; refresh tokens 30 days, rotated on every refresh. Standards: PKCE
+  (S256 only), exact redirect URIs, RFC 8414 metadata at `/.well-known/oauth-authorization-server`,
+  RFC 9728 metadata at `/.well-known/oauth-protected-resource/mcp`, dynamic client registration
+  (`/register`) and Client ID Metadata Documents, RFC 7009 revocation and RFC 8707 resource
+  indicators at `/token`, `iss` on the authorization response; one scope, `mcp`. Tokens are stored
+  only as hashes.
+- Hosted API: a `401` from `/mcp` carries `WWW-Authenticate: Bearer resource_metadata="…/.well-known/oauth-protected-resource/mcp", scope="mcp"`
+  (with `error="invalid_token"` for a rejected key or token). `/mcp` without credentials stays open
+  on the free tier; `/mcp/signin` is the same endpoint but answers `401` without credentials, which
+  is what starts sign-in in Claude.
+
+**Model-backed tools (Pro and Team)**
+
+- Hosted API: `doc_extract_lease` (`POST /v1/doc/extract_lease`). Send a lease as page text, a PDF
+  (base64, at most 10 MB, 200 pages and 400,000 characters of text, read page by page and refused
+  as soon as the text passes the cap) or an https URL; a model proposes each term with its quote
+  and page, and FactLot returns only what `doc_verify_facts` verifies under `facts`, the rest under
+  `needs_review` (`verified: false`) with the failed check, `unextracted`, the page count and the
+  model's token use. A fact keeps the model's `section` only when it is a short label written on
+  the cited page. A scanned PDF answers `NeedsOcr`. A call counts max(pages with text, characters ÷
+  4,000) pages against a monthly allowance (Pro 100, Team 2,000), and has 120 seconds. Nothing is
+  stored or logged. See `docs/ingestion-hosted.md`.
+- Hosted API: `report_narrative` (`POST /v1/report/narrative`): prose (`summary`, `client_memo` or
+  `plain_english`) drafted by a model from one FactLot tool result, or from its input (FactLot
+  recomputes the result; required for Texas tools, which otherwise answer 422 `InputRequired`).
+  Every number, percentage, money amount, date and citation in the prose is checked against the
+  result's values (not its free text or array lengths): at least two significant digits or within
+  5%, with sign, percentages only as ratios, dates and ranges read whole, number words, fractions
+  and multipliers counted, citations whole and in the code named; sentences that fail are removed
+  and listed, advice and valuation wording causes a redraft and is then removed, and Texas tools
+  carry the calculator's notice. The label says "figures verified by FactLot" only for a recomputed
+  result, and "figures matched against the result you supplied (not recomputed by FactLot)"
+  otherwise. 60 seconds a call. Monthly allowance: Pro 50, Team 1,000.
+- Both are listed to Pro and Team keys on api.factlot.com; `/v1/plans` lists their allowances under
+  `model_tools`. Per subscription, at most 2 model-backed calls run at once and 6 start a minute
+  (429 `ModelRateLimited` with `retry_after_seconds`); a failed call is given back for the first 5
+  failures of a UTC day, and counted from the 6th. Every request asks Anthropic for US inference; a
+  provider 5xx is retried once only with 30 seconds left, and a 400 or 413 is not retried. Every
+  other tool runs without a model. A self-hosted deployment turns them on with the
+  `ANTHROPIC_API_KEY` secret; without it they are not listed and answer 503 `ModelUnavailable`.
+
+**Reports (deployed, not yet open)**
+
+- Hosted API: reports, **deployed but not yet open**. Until they open, `report_create` is not
+  listed, `POST /v1/reports` answers 503 `ReportsUnavailable`, and `/v1/plans` shows
+  `reports.available: false`. When open, `report_create` (MCP, every plan) and `POST /v1/reports`
+  build a client-ready document by code, with no model: `tx_unequal_appraisal` (PDF evidence
+  packet, or the adjustment-grid workbook with live formulas and evidence columns),
+  `lease_abstract`, `cam_reconciliation`, `debt_sizing`, `asc842_schedule`, `compare_proposals`,
+  `dcf_summary` and `critical_dates` (also as an ICS calendar with a reminder 30 days before each
+  notice deadline and window), as XLSX or PDF. Every kind but `lease_abstract` requires the tool's
+  `arguments` (400 `ArgumentsRequired` without them): FactLot runs the tool and builds the document
+  from that run only; a result sent as `input` is not used, and `result_mismatch` says whether it
+  differs. `lease_abstract` also accepts a `doc_abstract_lease` result alone (shape and counts
+  checked), and then every page says the values are as supplied by the caller and were not
+  recomputed. Caller text (title, prepared-for line, citation locators, comparable ids, adjustment
+  labels and reasons) is labelled as supplied by the caller, capped, and refused with 422
+  `TextNotAllowed` when it reads as advice or a valuation. One report per request (one
+  `report_create` per MCP batch). Size limits: a PDF shows at most 2,000 characters of one text and
+  60,000 lines; the Texas PDF takes at most 60 comparables of 10 adjustments (413 `TooLarge` naming
+  the workbook, which takes up to 200). A fault on FactLot's side answers 500 `ReportFailed`. The
+  answer gives `download_url` (24 hours, `GET /v1/reports/d/<token>`, rate limited), `expires_at`,
+  `bytes`, `sha256` and `filename`; `inline: true` adds base64 for files under 1 MiB. Reports a
+  month: Free 3 per IP address, Pro 50, Team 1,000 per subscription; input errors are free, a
+  report is counted before it is built and given back if the build fails, and over the limit the
+  answer is 429 `ReportQuotaExceeded`. `/v1/plans` lists them under `reports`. See
+  `docs/reports.md`.
+- `@factlot/reports`: the report engine as a private workspace package (`createReport()`),
+  Workers-compatible; its one new dependency is `pdf-lib` 1.17.1.
+
+**Trust pages**
+
+- factlot.com: `/status/` (the live health endpoint, what is and is not monitored, the live test
+  suite, an incident history that records none since 2026-11-03, how to report a problem),
+  `/security/` and `docs/security.md` (hosting, what is stored and not stored, transport, keys,
+  secrets, dependencies, disclosure, and what is not in place: no SOC 2), `/sla/` and `docs/sla.md`
+  (no service-level agreement today; draft terms of a 99.9% monthly target, a 10% credit under 99.5%
+  and support targets, not in force until the Terms refer to them; versioning, deprecation, data
+  refresh) and `/assurance/` (vectors, the differential test, the Excel workbooks, the live test
+  suite, the verified rule, and what is not proven, with the commands to repeat each check). Every
+  size the assurance page quotes from the repository is counted by the site build. The site
+  footer, `llms.txt` and `SECURITY.md` link to them.
 
 ### Changed
 
-- Hosted API: `registry_tx_equity_candidates_batch` is answered subject by subject: the API checks the batch input as the SDK does, then asks the registry service for each subject's `registry_tx_equity_candidates` answer (at most 4 at a time) and assembles the batch answer in the SDK's shape, so a large batch no longer runs as one registry request. Answers, per-subject errors and metering (one lookup per answered subject) are unchanged; a subject the registry cannot answer still fails the whole call as `RegistryUnavailable`.
-- Hosted API: `registry_tx_equity_candidates_batch` reserves one registry lookup per subject before it runs and keeps one per answered subject; a batch larger than what remains is refused whole (`RegistryQuotaExceeded`, saying how many subjects fit) and takes nothing. `account_usage` records each charged subject with its region.
-- Hosted API: the Worker bundle is deployed unminified (about 7.9 MB, 1.9 MB gzipped, with the report engine and pdf.js): the minified bundle failed at module start, and the PDF writer is imported statically so the bundle stays one module.
-- Hosted API: the free tier's registry quota is now 25 lookups a day per IP address (was 100); Pro (5,000 a month) and Team (100,000 a month) are unchanged. A lookup is charged only when answered: `registry_coverage`, coverage misses (a county or system that is not loaded) and input errors are not counted.
-- `calc_tx_unequal_appraisal`: the evidence notice is returned once, in `value.disclaimer`, and no longer repeated as `warnings[0]`; the tool description says `subject_minus_median_pct` is a fraction of the median (0.1554 is 15.54%). No formula change.
-- `registry_resolve_external`: the example system is `sdat_account` (Maryland), with `hcad_account` (Harris CAD) named for where Texas is hosted.
-- MCP server instructions mention the unequal-appraisal calculator, Texas candidate parcels, and that `registry_coverage` lists hosted regions and is never metered.
-- `examples/reconciliation/build.py tx_unequal_appraisal --input`: the workbook is written for your data (ReadMe, Reconcile and Grid sheets), and the Grid carries the subject id, tax year and each comparable's document ID, locator, as-of date and fact ID.
-- Claude Code plugin and connector docs: one server name, `factlot`, and a section on using a paid key.
-- Hosted API: billing and account errors carry `code` and `next` (the URL or exact action that fixes them) next to `error` and `message`.
-- Site: new terms of service and privacy notice (operator named, Texas law, plans, automatic renewal, cancellation and refunds, acceptable use, source rights, the Texas professional disclaimers, a retention period for every record, subprocessors, and California and Texas privacy rights). The pricing section, README and llms.txt state the Free, Pro, Team, Enterprise and registry download licence terms, with registry lookup quotas as hard caps.
-- Hosted API: plan changes made in the billing portal (Pro to Team and back) change the key's limits; a subscription with paused collection, a fully refunded payment or a disputed payment stops its keys; a lapsed key can still open the billing portal and `/v1/account`, while tool calls answer 403 `SubscriptionInactive`.
-- Hosted API: checkout stays closed (503 `CheckoutClosed`) until a live Stripe key is configured. Checkout asks for agreement to the terms, states the monthly renewal, collects a billing address when needed, and accepts tax IDs and promotion codes. The key page links to factlot.com/account.
-- Hosted API: inactive key records are deleted 365 days after they become inactive.
-- Hosted API: a registry lookup the registry service could not answer (`RegistryUnavailable`) is not counted against the quota; a downgrade from Team to Pro keeps the subscription's oldest key and revokes the others.
-- Registry: the Williamson adapter keeps an in-scope improvement that the owner file has no row for, without an owner or address.
-- Tool input: a `null` for a field the input schema names is treated as the field left out, in TypeScript and Python alike (shared vectors in `spec/vectors/tools.json`). Some agent frameworks (the `crewai-tools` MCP adapter) send `null` for every optional field the model skips, which used to fail with "expected number, received null". A required field sent as `null` is reported as missing; a misspelled field is still reported even when `null`; open objects (facts, fact packages) keep their nulls, since a package's signature covers them.
-- Texas pages and plugin skills: the skill `tx-commercial-protest-evidence` is renamed `tx-unequal-appraisal-arithmetic`, described as the arithmetic of Tax Code §41.43(b)(3) and §42.26(a)(3) on comparables and adjustments the user or their consultant chooses, with the filing-deadline rule, candidate parcels from the appraisal roll and a cited workbook. Every Texas page and skill now states that FactLot is software, not a property tax consultant under Occupations Code chapter 1152, that its outputs are not an appraisal or an opinion of value, and that they are not a substitute for the advice of an attorney; the deadline skill and docs say "conservative file-by date". The Texas deadline page adds a sentence on the next season's deadline (computed by the rule) and a tool-by-tool workflow for consultants, appraisers and analysts, and the docs say that Texas counties served by the hosted registry are listed by `registry_coverage` and that Tarrant County is not served while the publisher's terms for AI use are unclear.
-- `rules_tx_property_tax_protest_deadline` (`rules.tx.property_tax_protest_deadline@2`): `recommended_file_by` is renamed `conservative_file_by` (same date: the last business day on or before the unadjusted deadline), and its step is labelled "Conservative file-by date". The rollover warning states the dates instead of advising ("2026-06-18 is the last business day on or before the unadjusted date 2026-06-19; the statutory deadline is 2026-06-22 under §1.06."). Every result has a `disclaimer`: information about a statutory deadline computed from the statute text as checked on the rule's verification date, not legal or tax advice and not a substitute for the advice of an attorney. A client reading `recommended_file_by` must read `conservative_file_by`.
-- `registry_tx_equity_candidates`: the result's `notice` (the same text in TypeScript and Python) and the tool description add that it is not an appraisal or an opinion of value (Tex. Occ. Code §1103.003(1)), not legal or tax advice and not a substitute for the advice of an attorney; the notice adds that FactLot is software, not a property tax consultant under Texas Occupations Code chapter 1152, and does not prepare, file or advise on protests. The description calls the results candidates under FactLot's default rule (a design choice, not a legal standard; a person decides which, if any, to use) and says Tarrant County is not served by the hosted registry while the publisher's terms for AI use are unclear.
-- Excel workbook `examples/reconciliation/tx_unequal_appraisal.py`: the workbook title is "Unequal-appraisal arithmetic, tax year <N>" (the year when the input gives one).
-- `calc_tx_unequal_appraisal`: the large-adjustment warning states the fact ("Total adjustments exceed 25% of the comparable's normalized value ...") without advising a second look. Values are unchanged (`calc.tx_unequal_appraisal@1`).
-- Registry owner rule (`is_organization`): a person's own name and a generic business word ("SMITH JOHN PROPERTIES", "GARCIA JOSE INVESTMENTS", "PATEL RAJESH HOLDINGS": two name words, one of them a listed given name, at most one initial or suffix, then a word such as PROPERTIES, HOLDINGS, INVESTMENTS, REALTY, ENTERPRISES, RENTALS or CO) is read as a sole proprietor, so the owner's name and mailing address are not stored. A legal form, "&"/"AND", "OF", a digit, an ordinal or a place or institution word keeps the organisation reading; "... BUSINESS TRUST" now reads as an organisation. Registries built earlier need `python -m factlot.registry.maintain <db> --purge-persons`. The bundled GSA lease comps drop one landlord the rule now reads as a person. Shared vectors in `spec/registry/organizations.json`.
+**Texas tools and wording**
+
+- `rules_tx_property_tax_protest_deadline` (`rules.tx.property_tax_protest_deadline@2`):
+  **`recommended_file_by` is renamed `conservative_file_by`** (same date: the last business day on
+  or before the unadjusted deadline), and its step is labelled "Conservative file-by date". A
+  client reading `recommended_file_by` must read `conservative_file_by`. The rollover warning states
+  the dates instead of advising ("2026-06-18 is the last business day on or before the unadjusted
+  date 2026-06-19; the statutory deadline is 2026-06-22 under §1.06."). Every result has a
+  `disclaimer`: information about a statutory deadline computed from the statute text as checked on
+  the rule's verification date, not legal or tax advice and not a substitute for the advice of an
+  attorney.
+- `registry_tx_equity_candidates`: the result's `notice` (the same text in TypeScript and Python)
+  and the tool description add that it is not an appraisal or an opinion of value (Tex. Occ. Code
+  §1103.003(1)), not legal or tax advice and not a substitute for the advice of an attorney; the
+  notice adds that FactLot is software, not a property tax consultant under Texas Occupations Code
+  chapter 1152, and does not prepare, file or advise on protests. The description calls the results
+  candidates under FactLot's default rule (a design choice, not a legal standard; a person decides
+  which, if any, to use) and says Tarrant County is not served by the hosted registry while the
+  publisher's terms for AI use are unclear.
+- `calc_tx_unequal_appraisal` (values unchanged, `calc.tx_unequal_appraisal@1`): the evidence notice
+  is returned once, in `value.disclaimer`, and no longer repeated as `warnings[0]`; the
+  large-adjustment warning states the fact ("Total adjustments exceed 25% of the comparable's
+  normalized value ...") without advising a second look; the tool description says
+  `subject_minus_median_pct` is a fraction of the median (0.1554 is 15.54%).
+- Texas pages and plugin skills: the skill `tx-commercial-protest-evidence` is renamed
+  `tx-unequal-appraisal-arithmetic`, described as the arithmetic of Tax Code §41.43(b)(3) and
+  §42.26(a)(3) on comparables and adjustments the user or their consultant chooses, with the
+  filing-deadline rule, candidate parcels from the appraisal roll and a cited workbook. Every Texas
+  page and skill now states that FactLot is software, not a property tax consultant under
+  Occupations Code chapter 1152, that its outputs are not an appraisal or an opinion of value, and
+  that they are not a substitute for the advice of an attorney; the deadline skill and docs say
+  "conservative file-by date". The Texas deadline page adds a sentence on the next season's
+  deadline (computed by the rule) and a tool-by-tool workflow for consultants, appraisers and
+  analysts, and the docs say that Texas counties served by the hosted registry are listed by
+  `registry_coverage` and that Tarrant County is not served while the publisher's terms for AI use
+  are unclear.
+- Excel workbook `examples/reconciliation/tx_unequal_appraisal.py`: the title is "Unequal-appraisal
+  arithmetic, tax year <N>" (the year when the input gives one). `build.py tx_unequal_appraisal --input`
+  writes the workbook for your data (ReadMe, Reconcile and Grid sheets), and the Grid
+  carries the subject id, tax year and each comparable's document ID, locator, as-of date and fact
+  ID.
+
+**Registry**
+
+- Registry owner rule (`is_organization`): a person's own name and a generic business word ("SMITH
+  JOHN PROPERTIES", "GARCIA JOSE INVESTMENTS", "PATEL RAJESH HOLDINGS": two name words, one of them
+  a listed given name, at most one initial or suffix, then a word such as PROPERTIES, HOLDINGS,
+  INVESTMENTS, REALTY, ENTERPRISES, RENTALS or CO) is read as a sole proprietor, so the owner's name
+  and mailing address are not stored. A legal form, "&"/"AND", "OF", a digit, an ordinal or a place
+  or institution word keeps the organisation reading; "... BUSINESS TRUST" now reads as an
+  organisation. **Registries built earlier need
+  `python -m factlot.registry.maintain <db> --purge-persons`.** The bundled GSA lease comps drop one landlord the rule now reads as a person.
+  Shared vectors in `spec/registry/organizations.json`.
+- Registry: the Williamson adapter keeps an in-scope improvement that the owner file has no row for,
+  without an owner or address.
+- `registry_resolve_external`: the example system is `sdat_account` (Maryland), with `hcad_account`
+  (Harris CAD) named for where Texas is hosted.
+
+**Hosted API, plans and billing**
+
+- Hosted API: `registry_tx_equity_candidates_batch` checks the batch input as the SDK does, then
+  answers each subject as `registry_tx_equity_candidates` does (at most 4 at a time) and assembles
+  the batch answer in the SDK's shape, so a large batch no longer runs as one registry request. It
+  reserves one registry lookup per subject before it runs and keeps one per answered subject; a
+  batch larger than what remains is refused whole (`RegistryQuotaExceeded`, saying how many
+  subjects fit) and takes nothing. `account_usage` records each charged subject with its region. A
+  subject the registry cannot answer fails the whole call as `RegistryUnavailable`.
+- Hosted API: checkout for Pro and Team is open. Checkout asks for agreement to the terms, states
+  the monthly renewal, collects a billing address when needed, and accepts tax IDs and promotion
+  codes; the key page links to factlot.com/account. A deployment without a live Stripe key answers
+  503 `CheckoutClosed`.
+- Hosted API: plan changes made in the billing portal (Pro to Team and back) change the key's
+  limits; a downgrade from Team to Pro keeps the subscription's oldest key and revokes the others.
+  A subscription with paused collection, a fully refunded payment or a disputed payment stops its
+  keys; a lapsed key can still open the billing portal and `/v1/account`, while tool calls answer
+  403 `SubscriptionInactive`. Inactive key records are deleted 365 days after they become inactive.
+- Hosted API: billing and account errors carry `code` and `next` (the URL or exact action that
+  fixes them) next to `error` and `message`.
+- Site: new terms of service and privacy notice (operator named, Texas law, plans, automatic
+  renewal, cancellation and refunds, acceptable use, source rights, the Texas professional
+  disclaimers, a retention period for every record, subprocessors, and California and Texas privacy
+  rights). The pricing section, README and llms.txt state the Free, Pro, Team, Enterprise and
+  registry download licence terms, with registry lookup quotas as hard caps.
+
+**Tools, docs and plugin**
+
+- Tool input: a `null` for a field the input schema names is treated as the field left out, in
+  TypeScript and Python alike (shared vectors in `spec/vectors/tools.json`). Some agent frameworks
+  (the `crewai-tools` MCP adapter) send `null` for every optional field the model skips, which used
+  to fail with "expected number, received null". A required field sent as `null` is reported as
+  missing; a misspelled field is still reported even when `null`; open objects (facts, fact
+  packages) keep their nulls, since a package's signature covers them.
+- MCP server instructions mention the unequal-appraisal calculator, Texas candidate parcels, and
+  that `registry_coverage` lists hosted regions and is never metered.
+- Claude Code plugin and connector docs: one server name, `factlot`, and a section on using a paid
+  key.
 
 ### Fixed
 
-- Hosted registry service: `registry_tx_equity_candidates_batch` answered `UnknownTool`; it now answers each subject as `registry_tx_equity_candidates` does.
-- `SECURITY.md` no longer says there has been no numbered release. GitHub private vulnerability reporting and Dependabot security updates are on for the repository: report privately through the Security tab or by email.
-- Hosted API: rejected API keys are rate limited per address before the key store is read; IPv6 callers are limited per /64; a limiter outage answers 503 `ServiceUnavailable` instead of 500.
-- Hosted API: the success page cannot mint two keys for one checkout when loaded twice at once, and says when a bank payment failed instead of "processing"; webhook events that arrive out of order are skipped, webhook bodies over 1 MB are refused, and a Stripe outage re-checks a key at most every 10 minutes.
-- Registry source rights (review of 2026-11-06). `or-metro-rlis-taxlots`: the licence is Metro's RLIS Open Database End User License Agreement (revised February 2023), not ODbL; it prohibits sublicensing and does not license the database's individual contents, so the source is gated on terms (`verified: false`); its current count is 34,210 parcels from the live layer (as of 2026-11-02). `wi-statewide-parcels`: the publisher states no licence ("free of charge", "free for public consumption"), which does not clearly permit redistribution, so the source is gated on terms. `ma-massgis-parcels` stays verified; its record now states that the public-domain data may be redistributed free or at reproduction cost and that charging for these facts beyond reproduction costs is outside the publisher's statement. Verified registry totals are now 1,733,923 commercial parcels in 330 counties (19 states and DC) from 40 sources (were 1,953,805, 405 counties, 21 states, 42 sources); `rights.md`, `coverage.md` and `coverage-counties.json` are regenerated.
-- Registry source config: the Texas Comptroller franchise-tax source (`tx-comptroller-franchise`) records `attribution` "Texas Comptroller of Public Accounts", which its terms ask for and which the adapter already stores.
-- `calc_compare_proposals` (`calc.compare_proposals@2`, numbers unchanged): a tenant-perspective proposal typed `gross` with an `expense_psf_annual` now draws a warning that the estimate is the landlord's and is not charged to the tenant (an NNN deal typed as gross used to rank first with no warning), and an omitted `discount_rate_annual` is named in a warning with the 0.08 default.
-- `calc_cam_reconciliation` and `calc_cam_reconciliation_batch` (`calc.cam_reconciliation@2`, `calc.cam_reconciliation_batch@1`, numbers unchanged): expense lines left without a `controllable` flag under a cap (treated as controllable), without a `variable` flag under a gross-up (not grossed up), and an omitted `gross_up.target_occupancy` (0.95) are named in warnings. Each batch statement carries the same warnings a single-tenant call with the same lines would.
-- `doc_spread_statement`: a statement row whose quote is shorter than 12 characters ("R&M 310,411") is no longer left out of the spread; it is accepted where it appears on the page as whole words. A stated total that does not foot now names the lines of its period left out of the spread.
-- `registry_get`: a parcel record with no improvement facts warns that its values may be for the land only, and names the parcels of the same building that carry the improvements (Maryland's 100 Light St is a land account and an improvement account).
-- Registry: contact names that are not organisations ("ATTN JANE DOE", "C/O JOHN SMITH") are removed from owner and entity mailing addresses at ingest; `python -m factlot.registry.maintain --purge-persons` removes them from a file built before.
+**Hosted API and security**
+
+- Hosted API: rejected API keys are rate limited per address before the key store is read; IPv6
+  callers are limited per /64; a limiter outage answers 503 `ServiceUnavailable` instead of 500.
+- Hosted API: the success page cannot mint two keys for one checkout when loaded twice at once, and
+  says when a bank payment failed instead of "processing"; webhook events that arrive out of order
+  are skipped, webhook bodies over 1 MB are refused, and a Stripe outage re-checks a key at most
+  every 10 minutes.
+- `SECURITY.md` no longer says there has been no numbered release. GitHub private vulnerability
+  reporting and Dependabot security updates are on for the repository: report privately through
+  the Security tab or by email.
+
+**Calculators and document tools (numbers unchanged)**
+
+- `calc_compare_proposals` (`calc.compare_proposals@2`): a tenant-perspective proposal typed
+  `gross` with an `expense_psf_annual` now draws a warning that the estimate is the landlord's and
+  is not charged to the tenant (an NNN deal typed as gross used to rank first with no warning), and
+  an omitted `discount_rate_annual` is named in a warning with the 0.08 default.
+- `calc_cam_reconciliation` and `calc_cam_reconciliation_batch` (`calc.cam_reconciliation@2`,
+  `calc.cam_reconciliation_batch@1`): expense lines left without a `controllable` flag under a cap
+  (treated as controllable), without a `variable` flag under a gross-up (not grossed up), and an
+  omitted `gross_up.target_occupancy` (0.95) are named in warnings. Each batch statement carries the
+  same warnings a single-tenant call with the same lines would.
+- `doc_spread_statement`: a statement row whose quote is shorter than 12 characters ("R&M 310,411")
+  is no longer left out of the spread; it is accepted where it appears on the page as whole words.
+  A stated total that does not foot now names the lines of its period left out of the spread.
+
+**Registry data and privacy**
+
+- Registry: contact names that are not organisations ("ATTN JANE DOE", "C/O JOHN SMITH") are
+  removed from owner and entity mailing addresses at ingest; `python -m factlot.registry.maintain --purge-persons`
+  removes them from a file built before. The DC registry sample is re-published as
+  `registry-sample-dc-2026-11-07`, built with the current owner rule and without contact names in
+  mailing addresses; the README, llms.txt, site and the registry-unavailable message link to it.
+- `registry_get`: a parcel record with no improvement facts warns that its values may be for the
+  land only, and names the parcels of the same building that carry the improvements (Maryland's 100
+  Light St is a land account and an improvement account).
+- Registry source rights (review of 2026-11-06). `or-metro-rlis-taxlots`: the licence is Metro's
+  RLIS Open Database End User License Agreement (revised February 2023), not ODbL; it prohibits
+  sublicensing and does not license the database's individual contents, so the source is gated on
+  terms (`verified: false`); its current count is 34,210 parcels from the live layer (as of
+  2026-11-02). `wi-statewide-parcels`: the publisher states no licence ("free of charge", "free for
+  public consumption"), which does not clearly permit redistribution, so the source is gated on
+  terms. `ma-massgis-parcels` stays verified; its record now states that the public-domain data may
+  be redistributed free or at reproduction cost and that charging for these facts beyond
+  reproduction costs is outside the publisher's statement. Verified registry totals are now
+  1,733,923 commercial parcels in 330 counties (19 states and DC) from 40 sources (were 1,953,805,
+  405 counties, 21 states, 42 sources); `rights.md`, `coverage.md` and `coverage-counties.json` are
+  regenerated.
+- Registry source config: the Texas Comptroller franchise-tax source (`tx-comptroller-franchise`)
+  records `attribution` "Texas Comptroller of Public Accounts", which its terms ask for and which
+  the adapter already stores.
+- Tool descriptions and docs: the Harris County example account is `0011440000001` (1000 Louisiana
+  St, a commercial parcel the registry holds); the previous example was a residential account the
+  registry never holds, so it always came back as a miss.
 
 ## [0.4.0] - 2026-11-06
 
@@ -423,7 +707,8 @@ From the security review of 2026-11-03:
   ended (dissolved, revoked, merged, withdrawn), the one still in existence is linked at
   confidence 0.85 (`linked_by_standing`); an unknown status anywhere leaves the name ambiguous.
 
-[Unreleased]: https://github.com/9mp96ygnbk-alt/factlot/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/9mp96ygnbk-alt/factlot/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/9mp96ygnbk-alt/factlot/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/9mp96ygnbk-alt/factlot/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/9mp96ygnbk-alt/factlot/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/9mp96ygnbk-alt/factlot/compare/v0.1.1...v0.2.0

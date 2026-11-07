@@ -99,11 +99,11 @@ Or pull the prebuilt image (linux/amd64 and linux/arm64), published to the GitHu
 Registry for each release:
 
 ```bash
-docker run --rm -p 8787:8787 ghcr.io/9mp96ygnbk-alt/factlot:0.4.0
+docker run --rm -p 8787:8787 ghcr.io/9mp96ygnbk-alt/factlot:0.5.0
 ```
 
 The same image also runs the stdio MCP server, for MCP clients that start servers with Docker:
-`docker run --rm -i ghcr.io/9mp96ygnbk-alt/factlot:0.4.0 node packages/mcp/dist/bin.js`.
+`docker run --rm -i ghcr.io/9mp96ygnbk-alt/factlot:0.5.0 node packages/mcp/dist/bin.js`.
 
 It listens on port **8787** and serves:
 
@@ -152,7 +152,7 @@ The server runs locally, needs no API key, and makes no network calls. Node.js 2
 `factlot-mcp-standalone-X.Y.Z.tgz`, the stdio server in one file with its dependencies bundled:
 
 ```bash
-claude mcp add factlot -- npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.4.0/factlot-mcp-standalone-0.4.0.tgz
+claude mcp add factlot -- npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.5.0/factlot-mcp-standalone-0.5.0.tgz
 ```
 
 ```json
@@ -162,7 +162,7 @@ claude mcp add factlot -- npx -y https://github.com/9mp96ygnbk-alt/factlot/relea
       "command": "npx",
       "args": [
         "-y",
-        "https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.4.0/factlot-mcp-standalone-0.4.0.tgz"
+        "https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.5.0/factlot-mcp-standalone-0.5.0.tgz"
       ]
     }
   }
@@ -188,7 +188,7 @@ claude mcp add factlot -- node "$PWD/packages/mcp/dist/bin.js"
 }
 ```
 
-**Claude Desktop extension.** Download `factlot-0.4.0.mcpb` from the release (or build it with
+**Claude Desktop extension.** Download `factlot-0.5.0.mcpb` from the release (or build it with
 `npm run build:mcpb`, which writes `dist/factlot.mcpb`) and open it with Claude Desktop, or use
 Settings, Extensions, Install.
 
@@ -215,10 +215,10 @@ release as the tarballs `npm pack` produces. Install the ones you need **in one 
 each depends on the others at the exact version:
 
 ```bash
-base=https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.4.0
-npm install $base/factlot-schema-0.4.0.tgz $base/factlot-id-0.4.0.tgz \
-  $base/factlot-calc-0.4.0.tgz $base/factlot-tools-0.4.0.tgz
-# add $base/factlot-mcp-0.4.0.tgz and $base/factlot-server-0.4.0.tgz for the servers
+base=https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.5.0
+npm install $base/factlot-schema-0.5.0.tgz $base/factlot-id-0.5.0.tgz \
+  $base/factlot-calc-0.5.0.tgz $base/factlot-tools-0.5.0.tgz
+# add $base/factlot-mcp-0.5.0.tgz and $base/factlot-server-0.5.0.tgz for the servers
 ```
 
 `@factlot/schema`, `id`, and `calc` stand alone; `tools` needs those three, and `mcp` and
@@ -232,9 +232,9 @@ npm install $base/factlot-schema-0.4.0.tgz $base/factlot-id-0.4.0.tgz \
 # From git (once the repository is public):
 pip install "git+https://github.com/9mp96ygnbk-alt/factlot.git#subdirectory=python"
 # Pin a release:
-pip install "factlot @ git+https://github.com/9mp96ygnbk-alt/factlot.git@v0.4.0#subdirectory=python"
+pip install "factlot @ git+https://github.com/9mp96ygnbk-alt/factlot.git@v0.5.0#subdirectory=python"
 # Or the wheel attached to a release:
-pip install https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.4.0/factlot-0.4.0-py3-none-any.whl
+pip install https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.5.0/factlot-0.5.0-py3-none-any.whl
 # From a clone:
 pip install ./python           # or: pip install -e ./python
 

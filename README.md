@@ -47,12 +47,12 @@ government-tenant leases, not market comps for every use. Search them from any a
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Claude Code plugin             | `/plugin marketplace add 9mp96ygnbk-alt/factlot`, then `/plugin install factlot@factlot`: twelve CRE skills (loan sizing, lease economics, CAM, ASC 842, returns and more) wired to the hosted tools ([plugin](plugins/factlot/README.md)) |
 | Claude Code                    | `claude mcp add --transport http factlot https://api.factlot.com/mcp`                                                                                                                                                                      |
-| Claude (web and Desktop)       | Settings, Connectors, Add custom connector: `https://api.factlot.com/mcp`. Or open [`factlot-0.4.0.mcpb`](https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.4.0/factlot-0.4.0.mcpb)                                           |
+| Claude (web and Desktop)       | Settings, Connectors, Add custom connector: `https://api.factlot.com/mcp`. Or open [`factlot-0.5.0.mcpb`](https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.5.0/factlot-0.5.0.mcpb)                                           |
 | ChatGPT                        | Developer mode app with `https://api.factlot.com/mcp`, or a Custom GPT Action importing `https://api.factlot.com/openapi-3.0.json`                                                                                                         |
 | Cursor, VS Code, other clients | Remote MCP URL `https://api.factlot.com/mcp` ([guides](connectors/README.md))                                                                                                                                                              |
-| Any MCP client, run locally    | `npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.4.0/factlot-mcp-standalone-0.4.0.tgz` (Node.js 22.6+, no network calls)                                                                                             |
-| Python agents                  | `pip install "git+https://github.com/9mp96ygnbk-alt/factlot.git@v0.4.0#subdirectory=python"`                                                                                                                                               |
-| Self-hosted REST and MCP       | `docker run -p 8787:8787 ghcr.io/9mp96ygnbk-alt/factlot:0.4.0`                                                                                                                                                                             |
+| Any MCP client, run locally    | `npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.5.0/factlot-mcp-standalone-0.5.0.tgz` (Node.js 22.6+, no network calls)                                                                                             |
+| Python agents                  | `pip install "git+https://github.com/9mp96ygnbk-alt/factlot.git@v0.5.0#subdirectory=python"`                                                                                                                                               |
+| Self-hosted REST and MCP       | `docker run -p 8787:8787 ghcr.io/9mp96ygnbk-alt/factlot:0.5.0`                                                                                                                                                                             |
 
 The hosted endpoint is free with no key at 60 requests a minute. It is listed in the
 [official MCP Registry](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.9mp96ygnbk-alt/factlot)
@@ -65,7 +65,7 @@ buildings, zoning districts for 16,648 parcels and the latest recorded sale for 
 
 ```bash
 curl -fLO https://github.com/9mp96ygnbk-alt/factlot/releases/download/registry-sample-dc-2026-11-07/factlot-registry-sample-dc-2026-11-07.db.gz && gunzip factlot-registry-sample-dc-2026-11-07.db.gz
-FACTLOT_REGISTRY_DB="$PWD/factlot-registry-sample-dc-2026-11-07.db" npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.4.0/factlot-mcp-standalone-0.4.0.tgz
+FACTLOT_REGISTRY_DB="$PWD/factlot-registry-sample-dc-2026-11-07.db" npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.5.0/factlot-mcp-standalone-0.5.0.tgz
 ```
 
 **Plans:** the hosted endpoint is free with no key: every calculator, ID, fact, rules and document tool at 60 requests a minute per IP address, and 25 registry lookups a day per IP address. [Pro, $49 a month](https://factlot.com/#pricing): 1 API key, 600 requests a minute, 5,000 registry lookups a month, email support. [Team, $599 a month](https://factlot.com/#pricing): up to 5 API keys, 3,000 requests a minute, 100,000 registry lookups a month, priority support, and a vote on which regions open next. Limits are hard caps with no overage charges; at a cap the call returns HTTP 429 with the reset time. Paid plans renew monthly until cancelled; cancel any time. A registry download licence ($2,400 a year per state file, refreshed weekly, for internal use, not redistribution) is available on request, and Enterprise (private deployment, invoicing, a signed data-processing agreement with a no-training commitment, and SSO) is by quote: [contact@factlot.com](mailto:contact@factlot.com?subject=FactLot%20Enterprise%20or%20registry%20licence). [Terms](https://factlot.com/terms) · [Privacy](https://factlot.com/privacy). Questions and bug reports go in [GitHub Discussions](https://github.com/9mp96ygnbk-alt/factlot/discussions) and Issues.
@@ -142,7 +142,7 @@ Be clear about scope before adopting it:
 - **Hosted, but not yet on npm or PyPI.** The hosted endpoint at `https://api.factlot.com` serves
   the calculators, IDs, fact tools and registry lookups for the regions above (free at 60 requests a
   minute); registry regions not hosted need a self-hosted copy with a registry file. To run it yourself, install from the
-  [v0.4.0 release](https://github.com/9mp96ygnbk-alt/factlot/releases/tag/v0.4.0), from git, from
+  [v0.5.0 release](https://github.com/9mp96ygnbk-alt/factlot/releases/tag/v0.5.0), from git, from
   source, or with Docker ([getting started](docs/getting-started.md)).
 
 ## Connect FactLot to any AI platform
@@ -166,7 +166,7 @@ from a GitHub release, from a clone, or in Docker. Each was run end to end
 
 ```bash
 # From the GitHub release: one file, dependencies bundled
-claude mcp add factlot -- npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.4.0/factlot-mcp-standalone-0.4.0.tgz
+claude mcp add factlot -- npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.5.0/factlot-mcp-standalone-0.5.0.tgz
 
 # From a clone
 git clone https://github.com/9mp96ygnbk-alt/factlot.git && cd factlot
@@ -174,10 +174,10 @@ npm install && npm run build
 claude mcp add factlot -- node "$PWD/packages/mcp/dist/bin.js"
 
 # Remote connector (Streamable HTTP MCP at /mcp, REST at /v1, OpenAPI)
-docker run --rm -p 8787:8787 ghcr.io/9mp96ygnbk-alt/factlot:0.4.0
+docker run --rm -p 8787:8787 ghcr.io/9mp96ygnbk-alt/factlot:0.5.0
 ```
 
-Claude Desktop users can install `factlot-0.4.0.mcpb` from the
+Claude Desktop users can install `factlot-0.5.0.mcpb` from the
 [release](https://github.com/9mp96ygnbk-alt/factlot/releases). For any other MCP client, use the
 same command in its config:
 

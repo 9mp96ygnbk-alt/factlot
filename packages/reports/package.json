@@ -1,6 +1,6 @@
 {
   "name": "@factlot/reports",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Client-ready XLSX, PDF and ICS documents from FactLot tool results, generated deterministically with no model.",
   "license": "Apache-2.0",
   "private": true,
@@ -34,8 +34,8 @@
     "build": "tsc -p tsconfig.build.json"
   },
   "dependencies": {
-    "@factlot/calc": "0.4.0",
-    "@factlot/tools": "0.4.0",
+    "@factlot/calc": "0.5.0",
+    "@factlot/tools": "0.5.0",
     "pdf-lib": "1.17.1",
     "zod": "^4.6.7"
   }

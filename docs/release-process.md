@@ -186,10 +186,10 @@ servers. It lists the packages that exist without npm or PyPI accounts:
   with its `fileSha256`. The URL must be a GitHub or GitLab release and contain "mcp" (the
   `.mcpb` extension does). The registry does not check the hash, but clients do before installing.
 
-The committed file holds version `0.1.0` and a placeholder SHA-256 of zeros. `mcp-registry.yml`
-rewrites the version, both identifiers, and `fileSha256` (from the downloaded release asset,
-cross-checked against `SHA256SUMS`) before it validates and publishes, so the file needs no edit
-per release.
+The committed file holds the version of the latest release (updated when a release is prepared, so
+it reads correctly) and a placeholder SHA-256 of zeros. `mcp-registry.yml` rewrites the version,
+both identifiers, and `fileSha256` (from the downloaded release asset, cross-checked against
+`SHA256SUMS`) before it validates and publishes, so a stale version in the file does no harm.
 
 **Namespace.** `io.github.<owner>/<name>` requires GitHub authentication as that owner. From
 Actions, `mcp-publisher login github-oidc` with `id-token: write` proves the repository owner

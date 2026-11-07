@@ -30,7 +30,7 @@ The release build runs as a stdio server with its dependencies bundled. It makes
       "command": "npx",
       "args": [
         "-y",
-        "https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.4.0/factlot-mcp-standalone-0.4.0.tgz"
+        "https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.5.0/factlot-mcp-standalone-0.5.0.tgz"
       ]
     }
   }
