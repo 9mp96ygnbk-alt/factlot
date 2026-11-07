@@ -113,6 +113,18 @@ async function post(
   return { status: res.status, json: await res.json().catch(() => undefined) };
 }
 
+// One unknown subject in a candidates batch: HTTP 200, the subject's own NotFound (with the
+// coverage that says why) in results[0].error, and summary.errors counting it.
+function batchMissShape(status: number, json: unknown): boolean {
+  const o = (v: unknown) => typeof v === "object" && v !== null;
+  return (
+    status === 200 &&
+    at(json, "results.0.error.error") === "NotFound" &&
+    (o(at(json, "results.0.error.coverage")) || o(at(json, "coverage"))) &&
+    at(json, "summary.errors") === 1
+  );
+}
+
 const at = (obj: unknown, path: string): unknown =>
   path
     .split(".")
@@ -248,12 +260,15 @@ async function main(): Promise<void> {
   ok(plans.status === 200, `/v1/plans ${plans.status}`);
   const plansDoc = (await plans.json().catch(() => ({}))) as {
     model_tools?: { available?: boolean };
-    reports?: { per_month?: Record<string, number> };
+    reports?: { available?: boolean; per_month?: Record<string, number> };
   };
   // Whether the hosted model-backed tools are on (ANTHROPIC_API_KEY set on the Worker).
   const modelOn = plansDoc.model_tools?.available === true;
   notes.push(`model-backed tools: ${modelOn ? "on" : "off"}`);
   ok(plansDoc.reports?.per_month, "/v1/plans lists reports per month");
+  // Whether the deployer opened reports (REPORTS_ENABLED=true); closed, /v1/reports answers 503.
+  const reportsOn = plansDoc.reports?.available !== false;
+  notes.push(`reports: ${reportsOn ? "open" : "closed"}`);
 
   // OAuth sign-in for header-less clients: metadata, and the 401 challenge at /mcp/signin.
   for (const doc of [
@@ -361,6 +376,9 @@ async function main(): Promise<void> {
   notes.push(
     hostedRegistry ? "hosted registry: served" : "hosted registry: not bound",
   );
+  // The batch candidates vector whose only subject is outside the hosted regions: its REST answer,
+  // kept for the MCP check.
+  let batchMiss: { args: unknown; json: unknown } | undefined;
   const toolsSpec = readJson("spec/vectors/tools.json") as { cases: Case[] };
   for (const c of toolsSpec.cases) {
     vectorCount++;
@@ -386,6 +404,21 @@ async function main(): Promise<void> {
           : status === 503 && error === "RegistryUnavailable",
         `${label}: hosted registry answer ${status} ${error ?? ""}`,
       );
+      continue;
+    }
+    if (
+      hostedRegistry &&
+      tool === "registry_tx_equity_candidates_batch" &&
+      c.expect_error === "RegistryUnavailable"
+    ) {
+      // A batch never fails as a whole for a coverage miss: it answers 200 and gives the subject
+      // its own NotFound (with coverage), counted under summary.errors.
+      ok(
+        batchMissShape(status, json),
+        `${label}: want 200 with results.0.error NotFound, got ${status} ${JSON.stringify(json).slice(0, 160)}`,
+      );
+      if (status === 200 && batchMiss === undefined)
+        batchMiss = { args: c.arguments, json };
       continue;
     }
     if (c.expect_error) {
@@ -571,7 +604,8 @@ async function main(): Promise<void> {
   }
   // Reports: one Texas evidence workbook from the calculator vector, and its download. A report
   // counts against reports a month (3 free per address); a used-up month is noted, not failed,
-  // on the free tier.
+  // on the free tier. Created reports answer 201. While the deployer has reports closed
+  // (/v1/plans reports.available false) the route answers 503 ReportsUnavailable: noted, not failed.
   {
     const vector = readJson("spec/vectors/calc/tx_unequal_appraisal.json") as {
       cases: Case[];
@@ -583,22 +617,38 @@ async function main(): Promise<void> {
       arguments: input,
     });
     const r = json as
-      | { download_url?: string; content_type?: string; error?: string }
+      | {
+          download_url?: string;
+          expires_at?: string;
+          bytes?: number;
+          sha256?: string;
+          content_type?: string;
+          error?: string;
+        }
       | undefined;
     const XLSX =
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-    if (status === 429 && !KEY)
+    if (!reportsOn) {
+      ok(
+        status === 503 && r?.error === "ReportsUnavailable",
+        `report_create xlsx while reports are closed: ${status} ${JSON.stringify(json).slice(0, 160)}`,
+      );
+      notes.push("report_create: reports closed: noted");
+    } else if (status === 429 && !KEY)
       notes.push(
         `report_create: free reports used up this month (${r?.error})`,
       );
     else {
       ok(
-        status === 200 &&
+        status === 201 &&
           typeof r?.download_url === "string" &&
+          typeof r.expires_at === "string" &&
+          typeof r.bytes === "number" &&
+          typeof r.sha256 === "string" &&
           r.content_type === XLSX,
         `report_create xlsx: ${status} ${JSON.stringify(json).slice(0, 160)}`,
       );
-      if (status === 200 && r?.download_url) {
+      if (status === 201 && r?.download_url) {
         await sleep(DELAY);
         const file = await fetch(r.download_url);
         const bytes = new Uint8Array(await file.arrayBuffer());
@@ -715,6 +765,45 @@ async function main(): Promise<void> {
     search: { query: "CAM cap non-cumulative" },
     fetch: { id: "tool:calc_cam_reconciliation" },
     schema_get: {},
+    // Hosted account tools: listed only for a key, so these inputs are used only then.
+    account_status: {},
+    account_usage: { days: 7 },
+  };
+  // Hosted-only tools that need a key. Without one they are not listed (or answer PlanRequired /
+  // ModelUnavailable, which the REST section above already checks): skipped with a note.
+  const keyOnly = new Set([
+    "account_status",
+    "account_usage",
+    "doc_extract_lease",
+    "report_narrative",
+  ]);
+  // The model-backed tools cost real model calls: one each per run, with a key.
+  const modelMcp: Record<string, Record<string, unknown>> = {
+    report_narrative: {
+      tool: "calc_debt_sizing",
+      input: {
+        noi: 1000000,
+        value: 15000000,
+        rate_annual: 0.065,
+        amortization_years: 30,
+        max_ltv: 0.65,
+        min_dscr: 1.25,
+      },
+      audience: "summary",
+      max_words: 80,
+    },
+    doc_extract_lease: {
+      document: {
+        pages: [
+          "SYNTHETIC TEST LEASE. 2.1 Term. The Term shall commence on March 1, 2026 (the Commencement Date) and shall expire on June 30, 2031. 3.1 Base Rent. Tenant shall pay Base Rent at the annual rate of $36.00 per rentable square foot from March 1, 2026 through June 30, 2031.",
+        ],
+      },
+      predicates: [
+        "lease.commencement_date",
+        "lease.expiration_date",
+        "lease.base_rent_schedule",
+      ],
+    },
   };
   // Tools whose only hosted input is a coverage miss: MCP must report it as a tool error.
   const mcpMiss = new Map(
@@ -750,6 +839,50 @@ async function main(): Promise<void> {
       );
       continue;
     }
+    if (keyOnly.has(t.name) && !KEY) {
+      notes.push(`MCP ${t.name}: skipped (needs FACTLOT_API_KEY)`);
+      continue;
+    }
+    if (modelMcp[t.name]) {
+      // The model may be off (503 ModelUnavailable) or rate-limited (429 ModelRateLimited, or a
+      // used-up allowance): those are tool errors, accepted. An answer must have its shape.
+      await sleep(DELAY);
+      const r = (await client.callTool({
+        name: t.name,
+        arguments: modelMcp[t.name]!,
+      })) as {
+        isError?: boolean;
+        content: { type: string; text: string }[];
+      };
+      const text = r.content?.[0]?.text ?? "";
+      let body: Record<string, unknown> = {};
+      try {
+        body = JSON.parse(text) as Record<string, unknown>;
+      } catch {
+        // checked below
+      }
+      if (r.isError) {
+        const accepted = [
+          "ModelUnavailable",
+          "ModelRateLimited",
+          "IngestQuotaExceeded",
+          "NarrativeQuotaExceeded",
+        ];
+        ok(
+          accepted.includes(String(body.error)),
+          `MCP ${t.name}: tool error ${text.slice(0, 160)}`,
+        );
+        notes.push(`MCP ${t.name}: ${String(body.error)}: noted`);
+      } else
+        ok(
+          body.nothing_stored === true &&
+            (t.name === "doc_extract_lease"
+              ? Array.isArray(body.facts) && Array.isArray(body.needs_review)
+              : typeof body.text === "string"),
+          `MCP ${t.name}: ${text.slice(0, 160)}`,
+        );
+      continue;
+    }
     const args = restArgs.get(t.name) ?? extra[t.name];
     if (args === undefined) {
       failures.push(`MCP ${t.name}: no test input (add a vector)`);
@@ -780,7 +913,43 @@ async function main(): Promise<void> {
         JSON.stringify(parsed) === JSON.stringify(restResults.get(t.name)),
         `MCP ${t.name}: answer differs from REST`,
       );
+    } else if (t.name === "account_status" || t.name === "account_usage") {
+      let body: unknown;
+      try {
+        body = JSON.parse(text);
+      } catch {
+        body = undefined;
+      }
+      ok(
+        t.name === "account_status"
+          ? typeof at(body, "model_tools") === "object" &&
+              typeof at(body, "reports") === "object"
+          : typeof at(body, "month.used") === "number" &&
+              typeof at(body, "month.limit") === "number",
+        `MCP ${t.name}: unexpected answer ${text.slice(0, 160)}`,
+      );
     } else ok(text.length > 20, `MCP ${t.name}: empty answer`);
+    // The candidates batch with one unknown subject: MCP gives the same answer as REST (a result
+    // with the subject's own NotFound, not a tool error).
+    if (t.name === "registry_tx_equity_candidates_batch" && batchMiss) {
+      await sleep(DELAY);
+      const m = (await client.callTool({
+        name: t.name,
+        arguments: batchMiss.args as Record<string, unknown>,
+      })) as { isError?: boolean; content: { type: string; text: string }[] };
+      let mb: unknown;
+      try {
+        mb = JSON.parse(m.content?.[0]?.text ?? "");
+      } catch {
+        mb = undefined;
+      }
+      ok(
+        !m.isError &&
+          batchMissShape(200, mb) &&
+          JSON.stringify(mb) === JSON.stringify(batchMiss.json),
+        `MCP ${t.name} unknown subject: ${m.content?.[0]?.text?.slice(0, 160)}`,
+      );
+    }
   }
   await client.close();
 
