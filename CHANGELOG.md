@@ -33,6 +33,11 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 
 ### Changed
 
+- `calc_tx_unequal_appraisal`: the evidence notice is returned once, in `value.disclaimer`, and no longer repeated as `warnings[0]`; the tool description says `subject_minus_median_pct` is a fraction of the median (0.1554 is 15.54%). No formula change.
+- `registry_resolve_external`: the example system is `sdat_account` (Maryland), with `tx-harris-cad-account` named for where Texas is hosted.
+- MCP server instructions mention the unequal-appraisal calculator, Texas candidate parcels, and that `registry_coverage` lists hosted regions and is never metered.
+- `examples/reconciliation/build.py tx_unequal_appraisal --input`: the workbook is written for your data (ReadMe, Reconcile and Grid sheets), and the Grid carries the subject id, tax year and each comparable's document ID, locator, as-of date and fact ID.
+- Claude Code plugin and connector docs: one server name, `factlot`, and a section on using a paid key.
 - Site: new terms of service and privacy notice (operator named, Texas law, plans, automatic renewal, cancellation and refunds, acceptable use, source rights, the Texas professional disclaimers, a retention period for every record, subprocessors, and California and Texas privacy rights). The pricing section, README and llms.txt state the Free, Pro, Team, Enterprise and registry download licence terms, with registry lookup quotas as hard caps.
 - Hosted API: plan changes made in the billing portal (Pro to Team and back) change the key's limits; a subscription with paused collection, a fully refunded payment or a disputed payment stops its keys; a lapsed key can still open the billing portal and `/v1/account`, while tool calls answer 403 `SubscriptionInactive`.
 - Hosted API: checkout stays closed (503 `CheckoutClosed`) until a live Stripe key is configured. Checkout asks for agreement to the terms, states the monthly renewal, collects a billing address when needed, and accepts tax IDs and promotion codes. The key page links to factlot.com/account.

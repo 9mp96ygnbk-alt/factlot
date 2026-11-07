@@ -168,7 +168,7 @@ tax advice, and not a substitute for the advice of an attorney (the statement Go
 §81.101(c) describes). No tool says whether to protest, what value to put forward, or how a
 protest might turn out. No Texas tool returns or looks up owners, files anything, signs a §1.111
 agent designation, or contacts an appraisal district. Every `calc_tx_unequal_appraisal` result
-carries this in `disclaimer` and in its first warning; pass it on.
+carries this in `disclaimer` (it is not repeated in `warnings`); pass it on.
 
 | Step                      | Tool                                                                                                       |
 | ------------------------- | ---------------------------------------------------------------------------------------------------------- |
@@ -313,7 +313,7 @@ calls below are in order; each result is reported as returned, with its warnings
    ```
 
    returns `median_adjusted_value` 990,000 (the third of 900,000; 902,500; 990,000; 1,050,000;
-   1,058,400), `subject_minus_median` 10,000 and `subject_minus_median_pct` 0.010101. Report the
+   1,058,400), `subject_minus_median` 10,000 and `subject_minus_median_pct` 0.010101 (a fraction of the median, 1.0101%). Report the
    median only as the comparison figure the statute uses.
 
 5. `rules_tx_property_tax_protest_deadline` with `{ "tax_year": 2027 }` returns `deadline`
@@ -325,7 +325,7 @@ calls below are in order; each result is reported as returned, with its warnings
    `registry_get` on the subject and on each comparable the user chose. Keep only facts whose
    `predicate` starts with `parcel.`. Drop every `ownership.*` fact, the ownership links and any
    entity record, and never show them. Then call `fact_package_create` with the kept facts and the
-   title "Unequal-appraisal arithmetic, tax year 2027". FactLot never signs it.
+   title "Unequal-appraisal arithmetic, tax year 2027". A package shows the facts were not changed after packaging (its digest, and the holder's signature if they sign it) and carries their citations; it does not itself prove they match the roll, so cite the roll record for each value. FactLot never signs it.
 
 The `tx-unequal-appraisal-arithmetic` and `tx-property-tax-protest` skills in the Claude Code
 plugin follow this sequence.
@@ -365,7 +365,8 @@ Conventions:
   value; for an even count it is the mean of the two middle values (to the cent), and both are
   returned in `median_pair`. Report `median_adjusted_value` only as the comparison figure the
   statute uses, with `subject_minus_median` and `subject_minus_median_pct` as what the arithmetic
-  shows.
+  shows. `subject_minus_median_pct` is a fraction of the median, like every FactLot rate: 0.1554 is
+  15.54%.
 - **How many comparables.** The statute says "a reasonable number" and does not define it. The tool
   requires at least 3 (a FactLot input floor, not law), takes up to 200, and warns when fewer than
   5 comparables are given.
