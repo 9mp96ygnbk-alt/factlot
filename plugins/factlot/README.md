@@ -30,15 +30,26 @@ From a shell: `claude plugin marketplace add 9mp96ygnbk-alt/factlot` then `claud
 | `tx-property-tax-protest`         | Texas ARB protest filing deadline                                                                                                                                                                                                                                                                             | `rules_tx_property_tax_protest_deadline`                                                                  |
 | `tx-unequal-appraisal-arithmetic` | The arithmetic of Tax Code §41.43(b)(3) and §42.26(a)(3) on comparables and adjustments you or your consultant choose, the filing-deadline rule, candidate parcels from the appraisal roll, and a cited workbook. Not an appraisal or an opinion of value, and not a substitute for the advice of an attorney | `calc_tx_unequal_appraisal`, `registry_tx_equity_candidates`, `fact_package_create`                       |
 
+The two Texas skills, `tx-property-tax-protest` and `tx-unequal-appraisal-arithmetic`: FactLot is software. It is not a property tax consultant under Texas Occupations Code chapter 1152, does not prepare, file or advise on protests, and does not represent owners before an appraisal review board. If you provide property tax services to others for compensation, your own registration obligations apply.
+
 Every skill follows the same rules: never compute the figures in-context, report the tool's value as returned, cite the formula ID (for example `calc.debt_sizing@3`), and surface every warning. The MCP server also exposes the ID tools (`id_parcel`, `id_entity`, `id_space`, `id_document`, `id_parse`), `fact_validate`, `search`, `fetch`, and `schema_get`.
 
 ## How it connects
 
 `.mcp.json` registers one remote server, `factlot`, at `https://api.factlot.com/mcp` (Streamable HTTP). It is free, needs no key, and is limited to 60 requests per minute. In Claude Code its tools appear as `mcp__plugin_factlot_factlot__<tool>`.
 
-- **Data leaves your machine.** Each tool call sends its arguments (rents, NOI, loan terms, and so on) to `api.factlot.com`. If that is a problem, run the local server instead: `claude mcp add factlot-local -- npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.4.0/factlot-mcp-standalone-0.4.0.tgz` (Node 22.6 or newer, no network calls), and disable the plugin's hosted server in `/mcp`.
-- **Paid key.** If you have a key, add your own server with the header instead of editing the plugin: `claude mcp add --transport http factlot-pro https://api.factlot.com/mcp --header "Authorization: Bearer <key>"`.
+- **Data leaves your machine.** Each tool call sends its arguments (rents, NOI, loan terms, and so on) to `api.factlot.com`. If that is a problem, run the local server instead: `claude mcp add --scope user factlot -- npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.4.0/factlot-mcp-standalone-0.4.0.tgz` (Node 22.6 or newer, no network calls), and disable the plugin's hosted server in `/mcp`.
 - **No MCP?** The same calculators are plain REST: `POST https://api.factlot.com/v1/calc/<name>`. `GET https://api.factlot.com/v1/tools` lists them with their input schemas.
+
+## Using a paid key
+
+The plugin's server is keyless and cannot carry your key (Claude Code sends an unset `${VAR}` in a plugin's `.mcp.json` header as literal text, so the plugin ships no header). Add your own server under the same name, `factlot`, at user scope:
+
+```bash
+claude mcp add --scope user --transport http factlot https://api.factlot.com/mcp --header "Authorization: Bearer <key>"
+```
+
+The skills call tools by name (`calc_debt_sizing`, `registry_tx_equity_candidates`, and so on), and your `factlot` server has the same tools, so they work unchanged and the plugin's server is not needed. Claude Code treats a plugin server that points at the same URL as an enabled server of yours as a duplicate and skips it. Run `/mcp` to check: if the plugin's `factlot` server is still listed and connected, turn it off there (the plugin and its skills stay installed). Your tools then appear as `mcp__factlot__<tool>` instead of `mcp__plugin_factlot_factlot__<tool>`.
 
 ## Verify the worked examples
 

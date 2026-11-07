@@ -6,7 +6,7 @@ formula ID whether it was called from Claude, ChatGPT, Gemini, Copilot, Bedrock,
 
 **Hosted endpoint:** `https://api.factlot.com` serves the remote MCP server at `/mcp` and REST
 and OpenAPI at `/v1/…` and `/openapi.json`. The free tier needs no key and allows 60 requests a
-minute and 100 registry lookups a day per address; paid keys go in `Authorization: Bearer <key>` ([plans](https://factlot.com/#pricing)).
+minute and 25 registry lookups a day per address; paid keys go in `Authorization: Bearer <key>` ([plans](https://factlot.com/#pricing)).
 To self-host, run the Docker image or `@factlot/server` and use your own host in place of
 `api.factlot.com` in every guide below.
 
@@ -28,6 +28,29 @@ To self-host, run the Docker image or `@factlot/server` and use your own host in
 - [Amazon Bedrock](amazon/README.md): Converse API, Bedrock Agents action group (Lambda)
 - [Mistral, xAI, Meta Llama, DeepSeek, and others](others/README.md)
 - [Agent frameworks](frameworks/README.md): LangGraph / LangChain, OpenAI Agents SDK, CrewAI, the MCP Python and TypeScript SDKs, and the Vercel AI SDK, with tested recipes, a 429 policy, and a rerunnable script
+
+## Agents: buy and collect a key
+
+An agent can start a paid plan and collect the key itself; a person only pays.
+
+1. `POST https://api.factlot.com/v1/billing/checkout` with `{"plan":"pro"}` or `{"plan":"team"}`.
+   The answer has `url` (the Stripe Checkout page: give it to your human), `claim_url` and
+   `expires_at` (the checkout and the claim last an hour).
+2. Poll `GET <claim_url>` at most every 2 seconds. It answers `202 {"status":"pending"}` until the
+   checkout is paid, then `200` once with `key`, `plan`, `plan_name`, `requests_per_minute`,
+   `registry_lookups_per_month`, `account` and `mcp`. Store the key at once: it is not shown again.
+3. Afterwards the claim answers `410 {"status":"claimed","by":"agent"}`; if the buyer's success page
+   showed the key first, `by` is `"page"` and your human has it. `404` means the claim is unknown or
+   expired; start a new checkout.
+4. Send the key as `Authorization: Bearer <key>`. `GET /v1/onboarding?plan=pro` is the whole setup
+   guide as JSON (`Accept: text/markdown` for Markdown), with client snippets and the limits.
+
+With a key, the MCP server also lists two hosted-only account tools, `account_status` (plan, limits,
+lookups used this month, renewal date, keys, holds) and `account_usage` (lookups per day for the last
+30 days, by tool and by region). Neither counts as a lookup. `GET /v1/account` and
+`GET /v1/account/usage` are the REST forms. Billing and account errors carry `code`, `message` and
+`next`, the URL or exact action that fixes them. A lost key is recovered by email at
+<https://factlot.com/account>.
 
 ## Run the remote connector
 

@@ -168,7 +168,7 @@ tax advice, and not a substitute for the advice of an attorney (the statement Go
 §81.101(c) describes). No tool says whether to protest, what value to put forward, or how a
 protest might turn out. No Texas tool returns or looks up owners, files anything, signs a §1.111
 agent designation, or contacts an appraisal district. Every `calc_tx_unequal_appraisal` result
-carries this in `disclaimer` and in its first warning; pass it on.
+carries this in `disclaimer` (it is not repeated in `warnings`); pass it on.
 
 | Step                      | Tool                                                                                                       |
 | ------------------------- | ---------------------------------------------------------------------------------------------------------- |
@@ -181,11 +181,7 @@ carries this in `disclaimer` and in its first warning; pass it on.
 | Workbook and fact package | `examples/reconciliation/build.py tx_unequal_appraisal`, `fact_package_create`                             |
 | Hearing evidence dates    | draft rule `tx_protest_evidence_dates` (SDKs only, not a tool; [docs](rules/tx-protest-evidence-dates.md)) |
 
-**Coverage.** Texas counties served by the hosted registry are listed by `registry_coverage`; its
-answer, not this page, is current. Hosted Texas coverage starts with the Harris, Dallas, Travis
-and Collin appraisal districts, then Denton, Fort Bend and Williamson; Bexar's roll needs a
-public-information request first. Tarrant County is not served by the hosted registry while the
-publisher's terms for AI use are unclear. A self-hosted FactLot with a Texas registry file
+**Coverage.** Texas hosting opens with this release; `registry_coverage` lists each Texas county once it is hosted. Tarrant County is not served by the hosted registry while the publisher's terms for AI use are unclear. A self-hosted FactLot with a Texas registry file
 (`FACTLOT_REGISTRY_DB`) answers the same tools for the districts it holds. For a county that is not
 covered, the user reads values from the appraisal district's own property search and passes them
 to the calculator directly.
@@ -222,8 +218,10 @@ calls below are in order; each result is reported as returned, with its warnings
 
 4. `calc_tx_unequal_appraisal` with the comparables the user chose and the adjustments the user
    supplied, each with a reason. The figures below are the inputs of the first case in
-   `spec/vectors/calc/tx_unequal_appraisal.json`, not roll values; with real data, `id`, `value`,
-   areas and `citation` come from step 3.
+   `spec/vectors/calc/tx_unequal_appraisal.json`, not roll values. With real data, pass from each
+   chosen candidate in step 3 only `id`, `county_fips`, `value`, `value_basis`,
+   `improvement_area_sf`, `land_area_sf` and `citation`; the tool rejects any other field, and a
+   `null` (leave those out, including a `null` `locator` inside `citation`).
 
    ```json
    {
@@ -315,7 +313,7 @@ calls below are in order; each result is reported as returned, with its warnings
    ```
 
    returns `median_adjusted_value` 990,000 (the third of 900,000; 902,500; 990,000; 1,050,000;
-   1,058,400), `subject_minus_median` 10,000 and `subject_minus_median_pct` 0.010101. Report the
+   1,058,400), `subject_minus_median` 10,000 and `subject_minus_median_pct` 0.010101 (a fraction of the median, 1.0101%). Report the
    median only as the comparison figure the statute uses.
 
 5. `rules_tx_property_tax_protest_deadline` with `{ "tax_year": 2027 }` returns `deadline`
@@ -323,9 +321,11 @@ calls below are in order; each result is reported as returned, with its warnings
    2027-05-14. A notice delivered after April 15 moves the deadline; pass `notice_delivered_date`.
 6. Save the step 4 arguments as `evidence.json` and run
    `python3 examples/reconciliation/build.py tx_unequal_appraisal --input evidence.json --out evidence.xlsx`
-   for a workbook with live Excel formulas beside FactLot's numbers. `fact_package_create` bundles
-   the cited roll facts under a title such as "Unequal-appraisal arithmetic, tax year 2027"; no
-   ownership facts go in it, and FactLot never signs it.
+   for a workbook with live Excel formulas beside FactLot's numbers. For a fact package, call
+   `registry_get` on the subject and on each comparable the user chose. Keep only facts whose
+   `predicate` starts with `parcel.`. Drop every `ownership.*` fact, the ownership links and any
+   entity record, and never show them. Then call `fact_package_create` with the kept facts and the
+   title "Unequal-appraisal arithmetic, tax year 2027". A package shows the facts were not changed after packaging (its digest, and the holder's signature if they sign it) and carries their citations; it does not itself prove they match the roll, so cite the roll record for each value. FactLot never signs it.
 
 The `tx-unequal-appraisal-arithmetic` and `tx-property-tax-protest` skills in the Claude Code
 plugin follow this sequence.
@@ -365,7 +365,8 @@ Conventions:
   value; for an even count it is the mean of the two middle values (to the cent), and both are
   returned in `median_pair`. Report `median_adjusted_value` only as the comparison figure the
   statute uses, with `subject_minus_median` and `subject_minus_median_pct` as what the arithmetic
-  shows.
+  shows. `subject_minus_median_pct` is a fraction of the median, like every FactLot rate: 0.1554 is
+  15.54%.
 - **How many comparables.** The statute says "a reasonable number" and does not define it. The tool
   requires at least 3 (a FactLot input floor, not law), takes up to 200, and warns when fewer than
   5 comparables are given.
@@ -417,7 +418,9 @@ terms for AI use are unclear.
   choice, not a legal standard; a person decides which to use and supplies any adjustments. The
   tool never returns owner names, mailing addresses, or ownership facts. Do not look up the owners
   of the subject or of candidate parcels (`registry_get` and `registry_owned_by` records can carry
-  the owner of record); ownership is not part of this comparison.
+  the owner of record); ownership is not part of this comparison. The one use of `registry_get`
+  in this workflow is the fact package in step 6 of the worked example, keeping only `parcel.*`
+  facts.
 
 ## Example: Claude Messages API with the Python SDK
 

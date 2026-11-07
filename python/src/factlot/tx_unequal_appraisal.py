@@ -32,7 +32,7 @@ from .rules_drafts._draft import strict
 
 Result = dict[str, Any]
 
-#: First warning on every result.
+#: The ``disclaimer`` on every result.
 EVIDENCE_NOTICE = (
     "Evidence calculation only: arithmetic on the values and adjustments supplied. It is not an appraisal or an opinion of value (Occupations Code §1103.003(1)), it is not legal or tax advice, and it is not a substitute for the advice of an attorney. It does not say whether to protest or what value to claim. FactLot does not represent property owners."
 )
@@ -186,7 +186,6 @@ def tx_unequal_appraisal(raw: Any) -> Result:
     inp = _parse(raw)
     _check(inp)
     t = Trace()
-    t.warn(EVIDENCE_NOTICE)
     subject = inp["subject"]
     by = inp["normalize_by"]
     subject_area = 0 if by == "none" else subject[by]
@@ -336,6 +335,7 @@ def tx_unequal_appraisal(raw: Any) -> Result:
         "subject_value": subject["value"],
         "subject_value_basis": subject["value_basis"],
         "subject_minus_median": diff,
+        # (subject value - median) / median, 6 decimals, a fraction like every FactLot rate: 0.1554 is 15.54%.
         "subject_minus_median_pct": diff_pct,
         "law": [dict(x) for x in LAW],
     })

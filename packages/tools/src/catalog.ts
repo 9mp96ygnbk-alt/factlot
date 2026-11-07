@@ -572,13 +572,15 @@ const registryTools: ToolSpec[] = [
     name: "registry_resolve_external",
     title: "Resolve an external ID",
     description:
-      'Find the FactLot URN for an ID from another system, e.g. system "tx-harris-cad-account" or "us-tx-taxpayer".' +
+      'Find the FactLot URN for an ID from another system, e.g. system "sdat_account" (a Maryland SDAT account number) or, where Texas is hosted, "tx-harris-cad-account" (a Harris CAD account number).' +
       REGISTRY_NOTE,
     input: z.object({
       system: z
         .string()
         .max(100)
-        .describe('Crosswalk system name, e.g. "tx-harris-cad-account".'),
+        .describe(
+          'Crosswalk system name, e.g. "sdat_account" (Maryland), or "tx-harris-cad-account" where Texas is hosted.',
+        ),
       external_id: z.string().max(200).describe("The ID in that system."),
     }),
     path: "/v1/registry/resolve_external",

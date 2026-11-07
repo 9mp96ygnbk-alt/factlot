@@ -1,6 +1,6 @@
 ---
 name: tx-unequal-appraisal-arithmetic
-description: The arithmetic of Texas Tax Code §41.43(b)(3) and §42.26(a)(3) on comparables and adjustments you or your consultant choose, the filing-deadline rule, candidate parcels from the appraisal roll, and a cited workbook. Use when a Texas property tax consultant, appraiser, attorney, CRE analyst or property owner wants the median of adjusted comparable values computed against a subject's roll value, candidate parcels listed from an appraisal-district roll, a parcel's value history by tax year, the protest filing deadline, or the inputs and results assembled into a cited fact package and Excel workbook. Calls FactLot registry_coverage, registry_resolve_parcel, registry_tx_equity_candidates, calc_tx_unequal_appraisal, rules_tx_property_tax_protest_deadline, calc_direct_cap and fact_package_create. Not an appraisal or an opinion of value, and not a substitute for the advice of an attorney; it does not prepare, file or advise on protests.
+description: The arithmetic of Texas Tax Code §41.43(b)(3) and §42.26(a)(3) on comparables and adjustments you or your consultant choose, the filing-deadline rule, candidate parcels from the appraisal roll, and a cited workbook. Use when a Texas property tax consultant, appraiser, attorney, CRE analyst or property owner wants the median of adjusted comparable values computed against a subject's roll value, candidate parcels listed from an appraisal-district roll, a parcel's value history by tax year, the protest filing deadline, or the inputs and results assembled into a cited fact package and Excel workbook. Calls FactLot registry_coverage, registry_resolve_parcel, registry_tx_equity_candidates, calc_tx_unequal_appraisal, rules_tx_property_tax_protest_deadline, calc_direct_cap, registry_get (parcel facts only, for the fact package) and fact_package_create. Not an appraisal or an opinion of value, and not a substitute for the advice of an attorney; it does not prepare, file or advise on protests.
 ---
 
 # Unequal-appraisal arithmetic (Texas)
@@ -35,7 +35,8 @@ them, and do not shorten it:
 - **No owner information.** Never look up, show, or discuss who owns the subject or a comparable;
   ownership is not part of this comparison. The tools in this workflow return none. Do not call
   `registry_get`, `registry_owned_by` or any other tool on the subject or a candidate, because
-  those records can include the owner of record.
+  those records can include the owner of record, except as step 7 allows, keeping only `parcel.*`
+  facts.
 - **Never file, sign a §1.111 agent designation, contact the appraisal district, or draft a
   communication to it.**
 - **Never call the output an appraisal, a valuation, or an opinion of value** (Occupations Code
@@ -46,12 +47,7 @@ them, and do not shorten it:
 
 ## 1. Coverage
 
-Call `registry_coverage`. Texas counties served by the hosted registry are listed by
-`registry_coverage`; treat its answer, not this page, as current. Hosted Texas coverage starts with
-the Harris, Dallas, Travis and Collin appraisal districts, then Denton, Fort Bend and Williamson;
-Bexar's roll needs a public-information request first. Tarrant County is not served by the hosted
-registry while the publisher's terms for AI use are unclear, and `registry_tx_equity_candidates`
-refuses Tarrant parcels on every server. A self-hosted FactLot with a Texas registry file
+Call `registry_coverage`. Texas hosting opens with this release; `registry_coverage` lists each Texas county once it is hosted. Tarrant County is not served by the hosted registry while the publisher's terms for AI use are unclear. `registry_tx_equity_candidates` refuses Tarrant parcels on every server. A self-hosted FactLot with a Texas registry file
 (`FACTLOT_REGISTRY_DB`) works the same way for the districts it holds.
 
 If the subject's county is not covered, the user can read values from the appraisal district's own
@@ -105,9 +101,12 @@ comparables are given.
   per land SF, `none` on whole values;
 - `adjustment_combine`: `sum` (percentages added, then applied once) or `compound` (each applied in
   turn);
-- `comparables`: as returned in step 4 (their `citation` passes through) or as the user gives
-  them, each with the user's `adjustments`: `label`, `kind` (`percent` as a decimal, `amount` in
-  USD, or `psf`), `value` and `reason`.
+- `comparables`: from each chosen candidate pass only `id`, `county_fips`, `value`,
+  `value_basis`, `improvement_area_sf`, `land_area_sf` and `citation`; the tool rejects any other
+  field. Leave out any of them that is `null` (and a `null` `locator` inside `citation`): the tool
+  rejects nulls too. For a comparable the user gives by hand, pass the same fields. Add to each the
+  user's `adjustments`: `label`, `kind` (`percent` as a decimal, `amount` in USD, or `psf`), `value` and
+  `reason`.
 
 Report each comparable's normalized and adjusted value, the sorted list, `median_adjusted_value`
 (for an even count, the mean of the two middle values, both shown), the subject's value minus the
@@ -126,11 +125,13 @@ do not suggest an NOI, a market rent or a cap rate.
 
 Offer two artifacts:
 
-- **A cited fact package**: `fact_package_create` with the subject's and comparables' facts as the
-  registry returned them (each cited to the appraisal-roll file, with its source's rights) and the
-  title "Unequal-appraisal arithmetic, tax year N" (the tax year compared). No ownership facts go
-  in it. Anyone can check it with `fact_package_verify`. FactLot never signs it; the holder signs
-  with their own key if they choose to.
+- **A cited fact package**: call `registry_get` on the subject and on each comparable the user
+  chose. Keep only facts whose `predicate` starts with `parcel.`. Drop every `ownership.*` fact,
+  the ownership links and any entity record, and never show them. Then call `fact_package_create`
+  with the kept facts and the title "Unequal-appraisal arithmetic, tax year N" (the tax year
+  compared). Each fact stays cited to the appraisal-roll file, with its source's rights. A package shows the facts were not changed after packaging (its digest, and the holder's signature if they sign it) and carries their citations; it does not itself prove they match the roll, so cite the roll record for each value. Anyone can
+  check the package with `fact_package_verify`. FactLot never signs it; the holder signs with their
+  own key if they choose to.
 - **An Excel workbook**: with the Python SDK checked out, `python3
 examples/reconciliation/build.py tx_unequal_appraisal --input evidence.json --out evidence.xlsx`
   writes the adjustment grid with live Excel formulas beside FactLot's numbers. The input file is

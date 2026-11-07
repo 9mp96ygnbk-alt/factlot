@@ -6,7 +6,8 @@
     python3 examples/reconciliation/build.py --check    # build in memory, verify, compare with the files on disk
     python3 examples/reconciliation/build.py tie_out    # only the synthetic tie-out fixtures (tie_out.py)
     python3 examples/reconciliation/build.py tx_unequal_appraisal --input args.json --out evidence.xlsx
-                                                        # your own calc_tx_unequal_appraisal arguments
+                                                        # your own calc_tx_unequal_appraisal arguments; the Grid sheet carries
+                                                        # the subject id, tax year and each comparable's citation
 
 Python standard library only. FactLot runs from this repository (python/src), no install needed.
 """
@@ -45,6 +46,9 @@ def build_from_input(name: str, input_path: str, out_path: str) -> int:
     import json
 
     mod = importlib.import_module(name)
+    if name != "tx_unequal_appraisal":
+        print(f"{name} cannot be built from --input; only tx_unequal_appraisal can", file=sys.stderr)
+        return 2
     with open(input_path, encoding="utf-8") as f:
         args = json.load(f)
     wb, rec = mod.build(args)

@@ -7,6 +7,7 @@
   "include": [
     "packages/*/src/**/*.ts",
     "scripts/**/*.ts",
-    "deploy/registry/src/**/*.ts"
+    "deploy/registry/src/**/*.ts",
+    "deploy/cloudflare/src/**/*.ts"
   ]
 }

@@ -127,17 +127,17 @@
           <ul class="plain">
             <li>
               <strong>Free, no key:</strong> every calculator, ID, fact, rules
-              and document tool at 60 requests a minute per IP address, and 100
-              registry lookups a day per IP address.
+              and document tool at 60 requests a minute per IP address, and 25
+              registry lookups a day (UTC) per IP address.
             </li>
             <li>
               <strong>Pro, $49 a month:</strong> 1 API key, 600 requests a
-              minute, 5,000 registry lookups a month, email support.
+              minute, 5,000 registry lookups a month (UTC), email support.
             </li>
             <li>
               <strong>Team, $599 a month:</strong> up to 5 API keys, 3,000
-              requests a minute, 100,000 registry lookups a month, priority
-              support, and a vote on which regions open next.
+              requests a minute, 100,000 registry lookups a month (UTC),
+              priority support, and a vote on which regions open next.
             </li>
             <li>
               <strong
@@ -149,18 +149,21 @@
             </li>
             <li>
               <strong>Enterprise, by quote:</strong> private deployment,
-              invoicing, no-training terms and SSO.
+              invoicing, a signed data-processing agreement with a no-training
+              commitment, and SSO.
             </li>
           </ul>
           <p>
             <strong>Limits are hard caps.</strong> We never charge for overage.
             When you reach a limit, the call returns HTTP 429 with the time the
             limit resets and a link to the pricing page. A registry lookup is
-            one call to a <code>registry_</code> tool other than
-            <code>registry_coverage</code>, the discovery call, which never
-            counts. Free lookups count per IP address per day; paid lookups
-            count per subscription per month, and a Team plan's keys share one
-            quota. Other tools never count toward a lookup quota.
+            one answered call to a <code>registry_</code> tool.
+            <code>registry_coverage</code>, coverage misses (a county or system
+            that is not loaded) and input errors are not counted. Free lookups
+            count per IP address per day; paid lookups count per subscription
+            per month, and a Team plan's keys share one quota. Lookup days and
+            months are counted, and reset, in UTC. Other tools never count
+            toward a lookup quota.
           </p>
           <p>
             <strong>Billing.</strong> Pro and Team are billed monthly in advance
@@ -181,14 +184,16 @@
             <strong>Cancellation.</strong> Cancel any time at
             <a href="https://factlot.com/account">factlot.com/account</a> or in
             the Stripe billing portal (<code>POST /v1/billing/portal</code> with
-            your key returns a link to it). Cancelling stops the next renewal.
-            Your keys keep working until the end of the month you have paid for,
-            then stop.
+            your key returns a link to it), or email contact@factlot.com with
+            the subject "Cancel" from your account email. Cancelling stops the
+            next renewal. Your keys keep working until the end of the month you
+            have paid for, then stop.
           </p>
           <p>
             <strong>Refunds.</strong> We do not refund part of a month. If we
             charge you in error, for example twice, the wrong amount, or after
-            you cancelled, email us and we will correct it.
+            you cancelled, email us and we will correct it. If a payment is
+            fully refunded or disputed, that subscription's keys stop working.
           </p>
           <p>
             <strong>Failed payments.</strong> If a payment fails, Stripe retries
@@ -271,9 +276,10 @@
               serve their data, are not served.
             </li>
             <li>
-              The registry stores organisation owners only and never stores the
-              name of a natural person. If a record names you as a person, or is
-              wrong, email us and we will review it and remove or correct it.
+              The registry is built to keep owners that are organisations and to
+              exclude natural persons' names. If a record names you as a person,
+              or is wrong, email contact@factlot.com and we will remove or
+              correct it.
             </li>
             <li>
               Public records can be incomplete, wrong or out of date, and
@@ -399,12 +405,14 @@
             You will defend FactLot against any third-party claim, and pay the
             resulting damages, fines, settlements and reasonable legal costs, to
             the extent the claim arises from: your breach of section 5 or of a
-            source's licence terms; your inputs; or your use of outputs in
-            services you provide to others, including property tax, appraisal or
-            brokerage services. We will tell you promptly about the claim, let
-            you control its defence, and cooperate at your cost. You may not
-            settle a claim in a way that admits fault for FactLot or binds it
-            without our written consent.
+            source's licence terms; inputs you had no right to submit; or your
+            unlawful use of the service. Your own professional work, and the
+            advice you give your clients, is yours and not covered by this
+            section either way: FactLot does not indemnify you for it, and you
+            do not indemnify FactLot for it. We will tell you promptly about the
+            claim, let you control its defence, and cooperate at your cost. You
+            may not settle a claim in a way that admits fault for FactLot or
+            binds it without our written consent.
           </p>
 
           <h2 id="termination">14. Suspension and termination</h2>

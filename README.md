@@ -68,12 +68,12 @@ curl -fLO https://github.com/9mp96ygnbk-alt/factlot/releases/download/registry-s
 FACTLOT_REGISTRY_DB="$PWD/factlot-registry-sample-dc-2026-11-04.db" npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.4.0/factlot-mcp-standalone-0.4.0.tgz
 ```
 
-**Plans:** the hosted endpoint is free with no key: every calculator, ID, fact, rules and document tool at 60 requests a minute per IP address, and 100 registry lookups a day per IP address. [Pro, $49 a month](https://factlot.com/#pricing): 1 API key, 600 requests a minute, 5,000 registry lookups a month, email support. [Team, $599 a month](https://factlot.com/#pricing): up to 5 API keys, 3,000 requests a minute, 100,000 registry lookups a month, priority support, and a vote on which regions open next. Limits are hard caps with no overage charges; at a cap the call returns HTTP 429 with the reset time. Paid plans renew monthly until cancelled; cancel any time. A registry download licence ($2,400 a year per state file, refreshed weekly, for internal use, not redistribution) is available on request, and Enterprise (private deployment, invoicing, no-training terms and SSO) is by quote: [contact@factlot.com](mailto:contact@factlot.com?subject=FactLot%20Enterprise%20or%20registry%20licence). [Terms](https://factlot.com/terms) · [Privacy](https://factlot.com/privacy). Questions and bug reports go in [GitHub Discussions](https://github.com/9mp96ygnbk-alt/factlot/discussions) and Issues.
+**Plans:** the hosted endpoint is free with no key: every calculator, ID, fact, rules and document tool at 60 requests a minute per IP address, and 25 registry lookups a day per IP address. [Pro, $49 a month](https://factlot.com/#pricing): 1 API key, 600 requests a minute, 5,000 registry lookups a month, email support. [Team, $599 a month](https://factlot.com/#pricing): up to 5 API keys, 3,000 requests a minute, 100,000 registry lookups a month, priority support, and a vote on which regions open next. Limits are hard caps with no overage charges; at a cap the call returns HTTP 429 with the reset time. Paid plans renew monthly until cancelled; cancel any time. A registry download licence ($2,400 a year per state file, refreshed weekly, for internal use, not redistribution) is available on request, and Enterprise (private deployment, invoicing, a signed data-processing agreement with a no-training commitment, and SSO) is by quote: [contact@factlot.com](mailto:contact@factlot.com?subject=FactLot%20Enterprise%20or%20registry%20licence). [Terms](https://factlot.com/terms) · [Privacy](https://factlot.com/privacy). Questions and bug reports go in [GitHub Discussions](https://github.com/9mp96ygnbk-alt/factlot/discussions) and Issues.
 
 ## Hosted registry
 
 The hosted API at `https://api.factlot.com` answers registry lookups on every plan, including the
-free tier with no key (100 registry lookups a day per IP address). These regions are hosted:
+free tier with no key (25 registry lookups a day per IP address). These regions are hosted:
 
 | Region               | Hosted data                                                                                                                                            | Licence                                   |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------- |
@@ -84,13 +84,14 @@ free tier with no key (100 registry lookups a day per IP address). These regions
 
 Maryland, DC and Utah hold 128,854 parcels in 27 counties. Call `registry_coverage` first: it lists exactly what is
 hosted, and a lookup outside it returns a coverage miss. Every answer cites its source file and the
-licence or attribution that goes with it. Owners are organisations only; a natural person's name is
-never stored, and the Maryland and Utah files carry no owner names. The DC data is the same as the
+licence or attribution that goes with it. The registry is built to keep owners that are organisations and to
+exclude natural persons' names (if a record names you as a person, or is wrong, email contact@factlot.com and
+we will remove or correct it), and the Maryland and Utah files carry no owner names. The DC data is the same as the
 downloadable sample registry-sample-dc-2026-11-04.
 
 The other regions in the project's pipeline (New York City and more) are available only on a
 self-hosted FactLot with a registry file; more hosted regions open as their terms allow.
-Texas counties served by the hosted registry are listed by `registry_coverage` (Harris, Dallas, Travis and Collin first). Tarrant County is not served by the hosted registry while the publisher's terms for AI use are unclear.
+Texas hosting opens with this release; `registry_coverage` lists each Texas county once it is hosted. Tarrant County is not served by the hosted registry while the publisher's terms for AI use are unclear.
 
 ## What FactLot is
 
@@ -126,7 +127,7 @@ Be clear about scope before adopting it:
   Massachusetts, Vermont, Arkansas and Connecticut, most of Utah, 24 Minnesota counties
   and Montana's apartments and industrial parcels
   ([catalog](docs/registry/sources/README.md), [quality report](docs/registry/quality/tier1-2026-11-03.md)).
-  **What you can query today** on the hosted API is Maryland, the District of Columbia and Juab and Summit counties in Utah (128,854 parcels), plus the Texas counties `registry_coverage` lists (see [Hosted registry](#hosted-registry)); every other region needs a self-hosted FactLot with a registry file. Cook County, Florida, Fulton,
+  **What you can query today** on the hosted API is Maryland, the District of Columbia and Juab and Summit counties in Utah (128,854 parcels). Texas hosting opens with this release; `registry_coverage` lists each Texas county once it is hosted. Tarrant County is not served by the hosted registry while the publisher's terms for AI use are unclear. Every other region needs a self-hosted FactLot with a registry file. Cook County, Florida, Fulton,
   Maricopa, Wayne, Fairfax, King and much of California wait on a licence decision, a form or a
   purchase. Several public files omit owner names (Maryland, Utah, Los Angeles, San Francisco); zoning, recorded sales, deeds and mortgages,
   energy benchmarks and CMBS loan data only for some metros ([coverage](docs/registry/coverage.md)); no tenant rosters. See
