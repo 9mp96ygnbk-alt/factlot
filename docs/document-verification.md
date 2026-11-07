@@ -7,6 +7,8 @@ returns facts it can cite, items a person should look at, and rejections, each w
 agent can act on. FactLot runs no model, so a verification costs no model spend and gives the
 same answer every time.
 
+On the hosted API, Pro and Team keys can also let FactLot do the reading: `doc_extract_lease` has a model propose the terms and returns only what these checks verify ([hosted ingestion](ingestion-hosted.md)).
+
 | Tool                        | Input                                                                                      | Output                                                                                                    |
 | --------------------------- | ------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
 | `doc_verify_facts`          | one document's pages, candidates `{predicate, value, quote, page}`, and `as_of` (required) | `verified` facts, `needs_review`, `rejected`, each with a reason                                          |
@@ -26,8 +28,8 @@ The first nine are in the MCP server, the REST API (`/v1/doc/verify_facts`,
 `/v1/doc/check_use_conflict`, `/v1/doc/predicates`, `/v1/facts/package`,
 `/v1/facts/package/verify`), every provider
 format, and the Python SDK (`factlot.run_tool`). The two marked local are registered only by the
-stdio MCP server (`factlot-mcp`), because they read files on the user's machine; the hosted API
-never reads files. In TypeScript, `fact_package_verify` checks signatures with WebCrypto, which is
+stdio MCP server (`factlot-mcp`), because they read files on the user's machine; no other hosted
+tool reads files (`doc_extract_lease` reads a PDF you send it, in memory). In TypeScript, `fact_package_verify` checks signatures with WebCrypto, which is
 asynchronous: call it through `runToolAsync` (the MCP server and REST API do). The checks are the ones FactLot Ingest has always run
 ([ingest.md](ingest.md)); the TypeScript code (`packages/tools/src/quotes.ts`,
 `documents.ts`) is a port of the Python verifier (`python/src/factlot/ingest/verify.py`,

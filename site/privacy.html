@@ -263,8 +263,26 @@
                 <td>Source code, releases, issues and discussions</td>
                 <td>United States</td>
               </tr>
+              <tr>
+                <th scope="row">Anthropic PBC</th>
+                <td>
+                  Model inference, only for <code>doc_extract_lease</code> and
+                  <code>report_narrative</code> when you call them
+                </td>
+                <td>United States</td>
+              </tr>
             </tbody>
           </table>
+          <p>
+            Two hosted tools use a model, and only when you call them:
+            <code>doc_extract_lease</code> sends the text of the document you
+            submit, and <code>report_narrative</code> sends the tool result you
+            submit, to Anthropic's API for model inference. Anthropic does not
+            train models on API inputs and keeps them only as its API
+            data-retention terms allow. FactLot stores neither the document, the
+            result nor the model's answer, and logs none of them. Every other
+            FactLot tool runs without any model.
+          </p>
           <p>
             We share personal information otherwise only when the law requires
             it, to protect the service or people's safety, or with a successor
