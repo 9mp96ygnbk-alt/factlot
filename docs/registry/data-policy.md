@@ -42,8 +42,10 @@ Not allowed:
   is commercial (F1), industrial (F2), or multifamily (B), plus the legal entities that own them.
   Single-family homes and other residential property are excluded by default.
 - **People are not the product.** When the owner of record is a natural person, the registry keeps
-  the parcel but does not index the person's name for search. It never compiles profiles of
-  individuals.
+  the parcel but does not store the owner: the person's name, mailing address and any ownership
+  link are dropped, not just left out of search. A name is read as a person unless it is clearly
+  an organisation; a trade name that is a person's own name and a generic business word ("SMITH
+  JOHN PROPERTIES") is read as a person. It never compiles profiles of individuals.
 - **Raw archives stay private.** The collector's archived source files (the evidence each fact
   cites) are kept as draft releases that only maintainers can see, because complete appraisal
   rolls name natural-person owners. FactLot publishes the facts and their citations (document

@@ -1,6 +1,6 @@
 ---
 name: tx-property-tax-protest
-description: Texas property tax protest filing deadline. Use when the user asks when a notice of protest to a Texas appraisal review board (ARB) is due, given a tax year and optionally the date the notice of appraised value was delivered. Calls FactLot rules_tx_property_tax_protest_deadline (rules.tx.property_tax_protest_deadline@1), which applies weekend and Texas legal holiday rollover and returns statute citations, instead of reasoning about dates in-context. A date calculation, not a substitute for the advice of an attorney.
+description: Texas property tax protest filing deadline. Use when the user asks when a notice of protest to a Texas appraisal review board (ARB) is due, given a tax year and optionally the date the notice of appraised value was delivered. Calls FactLot rules_tx_property_tax_protest_deadline (rules.tx.property_tax_protest_deadline@2), which applies weekend and Texas legal holiday rollover and returns statute citations, instead of reasoning about dates in-context. A date calculation, not a substitute for the advice of an attorney.
 ---
 
 # Texas property tax protest deadline
@@ -51,7 +51,7 @@ appraisal district's notice and instructions govern the user's own case.
 ## Rules
 
 - Never work out these dates in-context; report the tool's values as returned.
-- Cite the rule ID from `provenance.formula` (`rules.tx.property_tax_protest_deadline@1`) and the
+- Cite the rule ID from `provenance.formula` (`rules.tx.property_tax_protest_deadline@2`) and the
   statutes in `value.rule.citations`.
 - Surface every entry in `warnings` and the verification status.
 - The rule covers the general deadline only, not the other §41.44 deadlines, §25.25 corrections,

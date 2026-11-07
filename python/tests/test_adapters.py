@@ -222,6 +222,14 @@ class Comptroller(unittest.TestCase):
         self.csv = self.tmp / "export.csv"
         self.csv.write_text("\n".join([COMPTROLLER_HEADER, *COMPTROLLER_ROWS, ""]))
 
+    def test_source_config_names_the_attribution_the_adapter_records(self):
+        import json
+
+        config = json.loads((Path(__file__).resolve().parents[2] / "registry" / "sources" / "texas.json").read_text())
+        spec = next(s for s in config["sources"] if s["source_id"] == tx_comptroller.SOURCE.source_id)
+        self.assertEqual(spec["attribution"], "Texas Comptroller of Public Accounts")
+        self.assertEqual(tx_comptroller.SOURCE.attribution, spec["attribution"])
+
     def test_mapping(self):
         recs = list(tx_comptroller.read_entities(self.csv))
         self.assertEqual(len(recs), 3)

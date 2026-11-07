@@ -14,7 +14,14 @@ from pathlib import Path
 from typing import Any
 
 import factlot
-from factlot.registry.tx_equity import NOTICE, PARCEL_PREDICATES, situs_zip5
+from factlot.registry.tx_equity import (
+    HOSTED_WITHHELD_COUNTIES,
+    NOTICE,
+    PARCEL_PREDICATES,
+    WITHHELD_COUNTIES,
+    hosted_withheld_counties,
+    situs_zip5,
+)
 from factlot.tools import configure_registry
 
 SPEC = Path(__file__).resolve().parents[2] / "spec" / "registry"
@@ -249,6 +256,21 @@ class TxEquity(unittest.TestCase):
         self.assertIsNone(situs_zip5("100 Main Street, Suite 400"))
         self.assertIsNone(situs_zip5("12345 MAIN ST"))
         self.assertIsNone(situs_zip5(None))
+
+    def test_notice_says_what_the_result_is_not(self):
+        self.assertIn(
+            "Not an appraisal or an opinion of value (Tex. Occ. Code §1103.003(1)); not legal or tax advice and not a "
+            "substitute for the advice of an attorney.", NOTICE)
+        self.assertTrue(NOTICE.endswith(
+            "FactLot is software, not a property tax consultant under Texas Occupations Code chapter 1152; it does "
+            "not prepare, file or advise on protests."))
+
+    def test_hosted_withheld_counties(self):
+        # Owner decision of 2026-11-07: Tarrant is withheld from every hosted tool, with the candidate tool's reason.
+        self.assertEqual(HOSTED_WITHHELD_COUNTIES, {"48439": WITHHELD_COUNTIES["439"]})
+        copy = hosted_withheld_counties()
+        copy["48439"] = "changed"
+        self.assertEqual(hosted_withheld_counties(), HOSTED_WITHHELD_COUNTIES)
 
 
 if __name__ == "__main__":

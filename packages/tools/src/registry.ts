@@ -1535,6 +1535,21 @@ export const TX_EQUITY_WITHHELD_COUNTIES: Record<string, string> = {
     "Tarrant Appraisal District's published signals do not say whether serving its data to AI agents is allowed; FactLot does not serve Tarrant comparables until that is clarified",
 };
 
+/**
+ * Counties a hosted FactLot service serves from no tool (`HOSTED_WITHHELD_COUNTIES` /
+ * `hosted_withheld_counties()` in Python), keyed by 5-digit county FIPS, with the reason. Owner decision of
+ * 2026-11-07: Tarrant (48439) is withheld from every hosted tool, not only the candidate tool. Self-hosted
+ * SDKs are unaffected; the hosted pack builder imports this as its one source of truth. Returns a fresh copy.
+ */
+export function hostedWithheldCounties(): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(TX_EQUITY_WITHHELD_COUNTIES).map(([county, reason]) => [
+      `${TEXAS_FIPS}${county}`,
+      reason,
+    ]),
+  );
+}
+
 /** Why the candidate tool serves no parcel of this county, or undefined (own keys only, as a Python dict). */
 export function txEquityWithheld(countyFips: string): string | undefined {
   return Object.hasOwn(TX_EQUITY_WITHHELD_COUNTIES, countyFips)
@@ -1602,7 +1617,7 @@ const TIERS = ["neighborhood", "zip", "county"] as const;
 export const TX_EQUITY_RULE =
   "FactLot's default candidate rule (a design choice, not a legal standard): the subject's roll year is the newest tax year whose roll gives it a positive market or appraised value (or tax_year when given), and every field of the subject and the candidates is read from that year's roll (building class also from the district's buildings file for that year). Candidates are parcels on the same district's roll for that year with exactly the same state property category code, an improvement area within area_band (a share) of the subject's, a year built within year_band years of the subject's when both are known, and an appraised or market value. Tiers: parcels sharing the subject's neighborhood code (when it has one), then parcels in its 5-digit ZIP code, then the rest of the county only when the first two tiers hold fewer than min_matches. Ordered by tier, then nearest improvement area, then URN; at most limit returned.";
 export const TX_EQUITY_NOTICE =
-  "Candidates only: a person decides which, if any, to use as comparables. The selection rule is FactLot's default, not a legal standard of comparability. For evidence calculations only: FactLot does not represent property owners, file protests, or advise whether to protest or what value to claim. Owner names and mailing addresses are never returned.";
+  "Candidates only: a person decides which, if any, to use as comparables. The selection rule is FactLot's default, not a legal standard of comparability. For evidence calculations only: FactLot does not represent property owners, file protests, or advise whether to protest or what value to claim. Owner names and mailing addresses are never returned. Not an appraisal or an opinion of value (Tex. Occ. Code §1103.003(1)); not legal or tax advice and not a substitute for the advice of an attorney. FactLot is software, not a property tax consultant under Texas Occupations Code chapter 1152; it does not prepare, file or advise on protests.";
 
 /** The 5-digit ZIP code of a situs address (`situs_zip5` in Python): after the first comma, or after a state. */
 export function situsZip5(situs: unknown): string | null {

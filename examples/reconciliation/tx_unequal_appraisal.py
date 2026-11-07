@@ -229,7 +229,10 @@ def build(args: dict | None = None) -> tuple[Workbook, Recon]:
     synthetic = args is None
     scenarios = SCENARIOS if synthetic else [dict(sheet="Grid", title="Unequal-appraisal evidence calculation", args=args)]
     results = [run("calc_tx_unequal_appraisal", s["args"]) for s in scenarios]
-    wb = Workbook("FactLot evidence calculation: Texas unequal appraisal" + (" (synthetic)" if synthetic else ""))
+    years = {s["args"].get("tax_year") for s in scenarios}
+    year = years.pop() if len(years) == 1 else None
+    wb = Workbook("Unequal-appraisal arithmetic" + (f", tax year {year}" if year is not None else "")
+                  + (" (synthetic)" if synthetic else ""))
     readme_sheet(
         wb,
         "Texas unequal appraisal: adjustment grid and median (evidence calculation)",
