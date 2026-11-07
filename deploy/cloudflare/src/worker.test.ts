@@ -1273,7 +1273,7 @@ describe("router", () => {
     };
     assert.equal(
       body.plans.free!.note,
-      "Every calculator, ID, fact, rules and document tool at 60 requests a minute per IP address, and 100 registry lookups a day per IP address.",
+      "Every calculator, ID, fact, rules and document tool at 60 requests a minute per IP address, and 25 registry lookups a day per IP address.",
     );
     assert.equal(
       body.plans.pro!.note,
@@ -1448,14 +1448,14 @@ describe("registry quota", () => {
     }
   }
 
-  it("free: 100 lookups per address per UTC day, then 429 RegistryQuotaExceeded; other tools keep working", async () => {
+  it("free: 25 lookups per address per UTC day, then 429 RegistryQuotaExceeded; other tools keep working", async () => {
     const { api } = innerApi();
     const e = env();
     const first = await call(e, api, "/v1/registry/get", {
       body: { urn: "x" },
     });
-    assert.equal(first.headers.get("x-factlot-registry-quota-limit"), "100");
-    assert.equal(first.headers.get("x-factlot-registry-quota-remaining"), "99");
+    assert.equal(first.headers.get("x-factlot-registry-quota-limit"), "25");
+    assert.equal(first.headers.get("x-factlot-registry-quota-remaining"), "24");
     assert.match(
       first.headers.get("access-control-expose-headers") ?? "",
       /x-factlot-registry-quota-remaining/,
@@ -1465,7 +1465,7 @@ describe("registry quota", () => {
       first.headers.get("x-factlot-registry-quota-reset"),
       "2026-11-08T00:00:00.000Z",
     );
-    await spend(e, api, 99);
+    await spend(e, api, 24);
     e.clock.t += 60_000;
     const over = await call(e, api, "/v1/registry/search_address", {
       body: {},
@@ -1476,10 +1476,10 @@ describe("registry quota", () => {
     assert.equal(retry, (Date.UTC(2026, 10, 8) - e.clock.t) / 1000);
     const body = (await over.json()) as Record<string, unknown>;
     assert.equal(body.error, "RegistryQuotaExceeded");
-    assert.equal(body.limit, 100);
+    assert.equal(body.limit, 25);
     assert.equal(body.resets_at, "2026-11-08T00:00:00.000Z");
     assert.equal(body.upgrade, "https://factlot.com/#pricing");
-    assert.match(String(body.message), /100 a day per IP address/);
+    assert.match(String(body.message), /25 a day per IP address/);
     assert.match(String(body.message), /2026-11-08T00:00:00\.000Z/);
     assert.match(String(body.message), /Pro .*5,000.*Team .*100,000/);
     // Not counted, still answered: the discovery call and every other tool.
@@ -1510,7 +1510,7 @@ describe("registry quota", () => {
     const e = env();
     for (let i = 0; i < 3; i++) await call(e, api, "/v1/registry/coverage");
     const r = await call(e, api, "/v1/registry/get", { body: {} });
-    assert.equal(r.headers.get("x-factlot-registry-quota-remaining"), "99");
+    assert.equal(r.headers.get("x-factlot-registry-quota-remaining"), "24");
   });
 
   it("free: an IPv6 /64 shares one daily allowance", async () => {
@@ -1520,13 +1520,13 @@ describe("registry quota", () => {
     const other = await call(e, api, "/v1/registry/get", {
       ip: "2001:db8:1:2:aaaa:bbbb:cccc:dddd",
     });
-    assert.equal(other.headers.get("x-factlot-registry-quota-remaining"), "98");
+    assert.equal(other.headers.get("x-factlot-registry-quota-remaining"), "23");
     const elsewhere = await call(e, api, "/v1/registry/get", {
       ip: "2001:db8:1:3::1",
     });
     assert.equal(
       elsewhere.headers.get("x-factlot-registry-quota-remaining"),
-      "99",
+      "24",
     );
   });
 
@@ -2277,7 +2277,7 @@ describe("review fixes", () => {
     const e = env();
     const rest = await call(e, api, "/v1/registry/get", { body: {} });
     assert.equal(rest.status, 503);
-    assert.equal(rest.headers.get("x-factlot-registry-quota-remaining"), "100");
+    assert.equal(rest.headers.get("x-factlot-registry-quota-remaining"), "25");
     const anon = [...e.limiter.objects.entries()].find(([n]) =>
       n.startsWith("meter:ip:"),
     )![1];
@@ -3231,7 +3231,7 @@ describe("quota fairness: only answered lookups are charged", () => {
     e.RL_ANON = new CountingLimit(100);
     const api = fairApi();
     const got = await call(e, api, "/v1/registry/get", { body: { urn: "x" } });
-    assert.equal(remaining(got), 99, "a record is charged");
+    assert.equal(remaining(got), 24, "a record is charged");
     for (const p of [
       "/v1/registry/resolve_parcel",
       "/v1/registry/resolve_external",
@@ -3239,17 +3239,17 @@ describe("quota fairness: only answered lookups are charged", () => {
       "/v1/registry/owned_by",
     ]) {
       const r = await call(e, api, p, { body: {} });
-      assert.equal(remaining(r), 99, `${p} is free`);
+      assert.equal(remaining(r), 24, `${p} is free`);
     }
     const ran = await call(e, api, "/v1/registry/search_entities", {
       body: {},
     });
     assert.equal(
       remaining(ran),
-      98,
+      23,
       "a search inside coverage is charged with no results",
     );
-    const q = await e.METER.quota(await addressSubject(IP, T0), "day", 100);
+    const q = await e.METER.quota(await addressSubject(IP, T0), "day", 25);
     assert.equal(q.used, 2, "the meter agrees with the headers");
   });
 
@@ -3269,8 +3269,8 @@ describe("quota fairness: only answered lookups are charged", () => {
       ],
     });
     assert.equal(res.status, 200);
-    assert.equal(remaining(res), 98, "get and the entity search are charged");
-    const q = await e.METER.quota(await addressSubject(IP, T0), "day", 100);
+    assert.equal(remaining(res), 23, "get and the entity search are charged");
+    const q = await e.METER.quota(await addressSubject(IP, T0), "day", 25);
     assert.equal(q.used, 2);
   });
 
