@@ -139,6 +139,7 @@
       "license": "Public domain: the Comptroller's policy page states that information on its sites is public domain and may be copied and used as permitted by law. The dataset itself carries no license field on the portal",
       "ai_use": "Not addressed by the publisher",
       "redistribution": "Permitted (public domain statement); attribution: Texas Comptroller of Public Accounts",
+      "attribution": "Texas Comptroller of Public Accounts",
       "reviewed": "2026-11-02",
       "notes": "Dataset 9cir-efmm 'Active Franchise Taxpayers' (Tax Code ch. 171): taxpayer number, legal name, mailing address, organisational type, SOS file number and status, NAICS. Updated about monthly (last 2026-10-31). The classic /api/views/<id>/rows.csv export is marked deprecated by the platform, so the v3 export URL is used. The portal platform's own terms (socrata.com/terms-of-service) could not be read as text and should be reviewed by a person. robots.txt: Crawl-delay 1; /browse?…&q= is disallowed, so the dataset page is used instead of a search."
     },

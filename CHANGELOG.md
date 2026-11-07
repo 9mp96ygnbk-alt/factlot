@@ -39,6 +39,7 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 ### Fixed
 
 - Registry source rights (review of 2026-11-06). `or-metro-rlis-taxlots`: the licence is Metro's RLIS Open Database End User License Agreement (revised February 2023), not ODbL; it prohibits sublicensing and does not license the database's individual contents, so the source is gated on terms (`verified: false`); its current count is 34,210 parcels from the live layer (as of 2026-11-02). `wi-statewide-parcels`: the publisher states no licence ("free of charge", "free for public consumption"), which does not clearly permit redistribution, so the source is gated on terms. `ma-massgis-parcels` stays verified; its record now states that the public-domain data may be redistributed free or at reproduction cost and that charging for these facts beyond reproduction costs is outside the publisher's statement. Verified registry totals are now 1,733,923 commercial parcels in 330 counties (19 states and DC) from 40 sources (were 1,953,805, 405 counties, 21 states, 42 sources); `rights.md`, `coverage.md` and `coverage-counties.json` are regenerated.
+- Registry source config: the Texas Comptroller franchise-tax source (`tx-comptroller-franchise`) records `attribution` "Texas Comptroller of Public Accounts", which its terms ask for and which the adapter already stores.
 
 ## [0.4.0] - 2026-11-06
 
