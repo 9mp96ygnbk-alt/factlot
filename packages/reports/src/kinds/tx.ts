@@ -66,6 +66,57 @@ function citationOf(
   return { cite: c.citation, supplied };
 }
 
+/** The caller's title and prepared-for line, labelled as theirs. */
+export function callerLines(k: KindInput): string[] {
+  return [
+    ...(k.ctx.title ? [`Title (supplied by the caller): ${k.ctx.title}`] : []),
+    ...(k.ctx.prepared_for
+      ? [`Prepared for (supplied by the caller): ${k.ctx.prepared_for}`]
+      : []),
+  ];
+}
+
+type Named = { label?: unknown; address?: unknown };
+const textOf = (x: unknown): string | undefined =>
+  typeof x === "string" && x.trim() ? x : undefined;
+
+/** A comparable's caller-supplied label and address (from the result, else the arguments). */
+export function compNames(
+  c: Comp,
+  args: unknown,
+): { label?: string; address?: string } {
+  const a = (args as { comparables?: Named[] } | undefined)?.comparables?.[
+    c.index
+  ];
+  const label = textOf((c as Named).label) ?? textOf(a?.label);
+  const address = textOf((c as Named).address) ?? textOf(a?.address);
+  return {
+    ...(label ? { label } : {}),
+    ...(address ? { address } : {}),
+  };
+}
+
+function subjectLabel(r: TxResult, args: unknown): string | undefined {
+  return (
+    textOf((r.value as { subject_label?: unknown }).subject_label) ??
+    textOf((args as { subject?: Named } | undefined)?.subject?.label)
+  );
+}
+
+function subjectAddress(r: TxResult, args: unknown): string | undefined {
+  return (
+    textOf((r.value as { subject_address?: unknown }).subject_address) ??
+    textOf((args as { subject?: Named } | undefined)?.subject?.address)
+  );
+}
+
+/** "C-1 (Oak Plaza, 100 Main St)" when a label or address was supplied. */
+function displayName(c: Comp, args: unknown): string {
+  const n = compNames(c, args);
+  const extra = [n.label, n.address].filter(Boolean).join(", ");
+  return extra ? `${nameOf(c)} (${extra})` : nameOf(c);
+}
+
 function areaWord(by: string): string {
   return by === "improvement_area_sf"
     ? "improvement area"
@@ -77,7 +128,14 @@ function areaWord(by: string): string {
 export function txDoc(k: KindInput): ReportDoc {
   const r = k.checked.result as TxResult;
   const v = r.value;
-  const subjectName = v.subject_id ?? "the subject (no id given)";
+  const subjectName = [
+    v.subject_id ?? "the subject (no id given)",
+    [subjectLabel(r, k.checked.args), subjectAddress(r, k.checked.args)]
+      .filter(Boolean)
+      .join(", "),
+  ]
+    .filter(Boolean)
+    .join(": ");
   const blocks: Block[] = [];
   blocks.push({ t: "notice", text: TX_DISCLAIMER });
   blocks.push({
@@ -171,7 +229,7 @@ export function txDoc(k: KindInput): ReportDoc {
         : []),
     ],
     rows: v.comparables.map((c) => [
-      nameOf(c),
+      displayName(c, k.checked.args),
       c.value,
       c.value_basis,
       c.normalized_value,
@@ -239,7 +297,7 @@ export function txDoc(k: KindInput): ReportDoc {
     ],
     rows: order.map((c, i) => [
       i + 1,
-      nameOf(c),
+      displayName(c, k.checked.args),
       v.sorted_adjusted_values[i] ?? c.adjusted_value,
       mids.includes(i) ? (n % 2 ? "the median" : "middle value") : "",
     ]),
@@ -449,42 +507,6 @@ function gridSheet(
 
   const sh = wb.sheet("Grid");
   const title = `Unequal-appraisal arithmetic, tax year ${v.tax_year}`;
-  sh.put(1, 1, title, "title");
-  sh.put(
-    2,
-    1,
-    "Blue on yellow = inputs; the rest are live formulas. " + NOTICE,
-    "warn",
-  );
-  sh.put(3, 1, "Subject id", "text");
-  sh.put(3, 2, v.subject_id ?? "", "in_text");
-  sh.put(3, 3, "Tax year", "text");
-  sh.put(3, 4, String(v.tax_year), "in_text");
-  sh.put(4, 1, "Subject value", "text");
-  const subjValue = sh.put(4, 2, v.subject_value, "in_money");
-  sh.put(4, 3, v.subject_value_basis, "in_text");
-  let subjAreaRef: string | undefined;
-  if (by !== "none" && subjArea !== undefined) {
-    sh.put(
-      5,
-      1,
-      `Subject ${by.replace("_sf", "").replace(/_/g, " ")} (SF)`,
-      "text",
-    );
-    subjAreaRef = sh.put(5, 2, subjArea, "in_int");
-  }
-  sh.put(
-    6,
-    1,
-    `Normalize by: ${by}. Percentages: ${v.adjustment_combine}.` +
-      (by !== "none" && !fromArgs
-        ? " Normalized values are FactLot's (the areas were not sent with the request)."
-        : "") +
-      (psfAsTotal
-        ? " $/SF adjustments are in FactLot's amount total (the subject's area was not sent)."
-        : ""),
-    "note",
-  );
 
   const headers = [
     "Comparable",
@@ -512,6 +534,59 @@ function gridSheet(
     sh.put(hr, i + 1, h, "header");
     sh.width(i + 1, i === 0 ? 22 : i + 1 >= evidenceStart ? 28 : 14);
   });
+  // The rows above the grid have explicit heights and the long texts are merged across the
+  // grid's width, so Excel never autofits them tall: only the header row and the id column
+  // stay frozen, with a short block above.
+  const across = Math.max(8, Math.min(headers.length, 14));
+  sh.put(1, 1, title, "title");
+  sh.height(1, 20);
+  sh.banner(
+    2,
+    1,
+    across,
+    "Blue on yellow = inputs; the rest are live formulas. " + NOTICE,
+    "warn",
+  );
+  const supplied = callerLines(k);
+  if (supplied.length) sh.banner(3, 1, across, supplied.join(" | "), "note");
+  sh.put(4, 1, "Subject id", "text");
+  sh.put(4, 2, v.subject_id ?? "", "in_text");
+  sh.put(4, 3, "Tax year", "text");
+  sh.put(4, 4, String(v.tax_year), "in_text");
+  const subjName = [subjectLabel(r, args), subjectAddress(r, args)]
+    .filter(Boolean)
+    .join(", ");
+  if (subjName) {
+    sh.put(4, 5, "Subject (supplied by the caller)", "text");
+    sh.put(4, 7, subjName, "in_text");
+  }
+  sh.put(5, 1, "Subject value", "text");
+  const subjValue = sh.put(5, 2, v.subject_value, "in_money");
+  sh.put(5, 3, v.subject_value_basis, "in_text");
+  let subjAreaRef: string | undefined;
+  if (by !== "none" && subjArea !== undefined) {
+    sh.put(
+      6,
+      1,
+      `Subject ${by.replace("_sf", "").replace(/_/g, " ")} (SF)`,
+      "text",
+    );
+    subjAreaRef = sh.put(6, 2, subjArea, "in_int");
+  }
+  for (const row of [4, 5, 6]) sh.height(row, 15);
+  sh.banner(
+    7,
+    1,
+    across,
+    `Normalize by: ${by}. Percentages: ${v.adjustment_combine}.` +
+      (by !== "none" && !fromArgs
+        ? " Normalized values are FactLot's (the areas were not sent with the request)."
+        : "") +
+      (psfAsTotal
+        ? " $/SF adjustments are in FactLot's amount total (the subject's area was not sent)."
+        : ""),
+    "note",
+  );
   sh.freeze = `B${hr + 1}`;
   sh.landscape = true;
 
@@ -680,14 +755,17 @@ function userReadme(
   r: TxResult,
   p: Provenance,
   fromArgs: boolean,
+  k: KindInput,
 ): void {
   const v = r.value;
   const sh = wb.sheet("ReadMe");
   sh.width(1, 120);
   sh.put(1, 1, `Unequal-appraisal arithmetic, tax year ${v.tax_year}`, "title");
-  sh.put(2, 1, NOTICE, "warn");
-  sh.put(4, 1, "What this workbook is", "bold");
-  let row = putLines(sh, 5, [
+  sh.banner(2, 1, 1, NOTICE, "warn");
+  let row = putLines(sh, 3, callerLines(k), "note");
+  row++;
+  sh.put(row++, 1, "What this workbook is", "bold");
+  row = putLines(sh, row, [
     "The arithmetic of Tax Code §41.43(b)(3) and §42.26(a)(3) on the comparables and adjustments you chose, " +
       "reconciled to calc_tx_unequal_appraisal with zero difference.",
     "FactLot did not choose the comparables, the values or the adjustments: they are the ones in the " +
@@ -736,7 +814,7 @@ export async function txXlsx(k: KindInput): Promise<Uint8Array> {
     created: k.p.generatedAt.toISOString().replace(/\.\d+Z$/, "Z"),
     footer: k.p.footer,
   });
-  userReadme(wb, r, k.p, args !== undefined);
+  userReadme(wb, r, k.p, args !== undefined, k);
   const rec = new Recon(wb);
   rec.section(`Unequal-appraisal arithmetic, tax year ${v.tax_year}`);
   gridSheet(wb, rec, r, args, k);

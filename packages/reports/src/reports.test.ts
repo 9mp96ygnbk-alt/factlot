@@ -9,6 +9,7 @@ import { build } from "esbuild";
 import { PDFDocument, PDFRawStream } from "pdf-lib";
 
 import { fold } from "./ics.ts";
+import { adviceIn } from "./text.ts";
 import { MAX_CELL_CHARS, MAX_PDF_LINES, PdfWriter } from "./pdf.ts";
 import { Workbook, fx } from "./xlsx.ts";
 import { pct, usd, num } from "./format.ts";
@@ -960,7 +961,7 @@ describe("caller text", () => {
       "it should be lower",
       "grounds to protest",
       "worth $1",
-      "per the appraisal",
+      "our appraisal says so",
       "our opinion of value",
       "the market value is $2",
       "you save $500",
@@ -1248,5 +1249,274 @@ describe("bundle", () => {
     });
     const bytes = out.outputFiles[0]!.contents.byteLength;
     assert.ok(bytes < 1_000_000, `${bytes} bytes`);
+  });
+});
+
+// --- QA pass, 2026-11-07 -------------------------------------------------------------------------
+
+/** The QA pass's critical-dates request (mcp.call.req.json): a following-day roll, US holidays. */
+const QA_DATES = {
+  kind: "critical_dates",
+  format: "ics",
+  context: {
+    title: "Suite 400 lease critical dates",
+    prepared_for: "Westchase Tower lease admin",
+  },
+  arguments: {
+    commencement_date: "2026-03-01",
+    expiration_date: "2031-06-30",
+    as_of: "2026-11-07",
+    renewal_option: {
+      count: 2,
+      term_months: 60,
+      notice_window: { earliest_months_before: 18, latest_months_before: 12 },
+    },
+    termination_options: [
+      {
+        effective_date: "2029-06-30",
+        notice_months: 9,
+        label: "Early termination right",
+      },
+    ],
+    expansion_option_deadline: "2027-09-30",
+    other_deadlines: [
+      {
+        label: "Estoppel certificate due",
+        from_date: "2026-11-01",
+        days_after: 30,
+      },
+      { label: "Insurance renewal", date: "2027-03-01" },
+    ],
+    business_day_roll: "following",
+    holidays: "us_federal",
+  },
+};
+
+/** Each VEVENT's unfolded properties (the first of each name) and its alarm triggers. */
+function icsEvents(
+  lines: string[],
+): { props: Map<string, string>; triggers: string[] }[] {
+  const out: { props: Map<string, string>; triggers: string[] }[] = [];
+  let cur: { props: Map<string, string>; triggers: string[] } | undefined;
+  let inAlarm = false;
+  for (const l of lines) {
+    if (l === "BEGIN:VEVENT") cur = { props: new Map(), triggers: [] };
+    else if (l === "END:VEVENT") {
+      out.push(cur!);
+      cur = undefined;
+    } else if (l === "BEGIN:VALARM") inAlarm = true;
+    else if (l === "END:VALARM") inAlarm = false;
+    else if (cur && l.startsWith("TRIGGER")) cur.triggers.push(l);
+    else if (cur && !inAlarm) {
+      const i = l.indexOf(":");
+      const key = l.slice(0, i);
+      if (!cur.props.has(key)) cur.props.set(key, l.slice(i + 1));
+    }
+  }
+  return out;
+}
+
+describe("QA fixes", () => {
+  it("D4 ICS: a deadline rolled later is dated on its contractual day, with the roll and the tool's warning in the description", async () => {
+    const f = await createReport(QA_DATES, { now: NOW });
+    const events = icsEvents(readIcs(f.bytes));
+    const find = (label: RegExp) => {
+      const e = events.find((x) => label.test(x.props.get("SUMMARY") ?? ""));
+      assert.ok(e, String(label));
+      return e;
+    };
+    const unescape = (t: string) =>
+      t.replace(/\\n/g, "\n").replace(/\\([,;\\])/g, "$1");
+
+    const renewal = find(/Renewal option 1: last day to give notice/);
+    assert.equal(renewal.props.get("DTSTART;VALUE=DATE"), "20300630");
+    const d = unescape(renewal.props.get("DESCRIPTION")!);
+    assert.match(d, /Dated on 2030-06-30/);
+    assert.match(d, /gives 2030-07-01/);
+    assert.match(
+      d,
+      /Only a lease clause that extends a deadline falling on a non-business day allows that/,
+      "the tool's warning is carried",
+    );
+
+    const term = find(/Early termination right: last day to give notice/);
+    assert.equal(term.props.get("DTSTART;VALUE=DATE"), "20280930");
+    assert.match(
+      unescape(term.props.get("DESCRIPTION")!),
+      /from 2028-09-30 to 2028-10-02/,
+    );
+
+    // The renewal window ends on the contractual last day too (DTEND is exclusive).
+    const window = find(/renewal option 1 notice window/);
+    assert.equal(window.props.get("DTEND;VALUE=DATE"), "20300701");
+
+    // Under 30 days away: a reminder an hour after generation as well as the -P30D one.
+    const estoppel = find(/Estoppel certificate due/);
+    assert.deepEqual(estoppel.triggers, [
+      "TRIGGER;RELATED=START:-P30D",
+      "TRIGGER;VALUE=DATE-TIME:20261107T130000Z",
+    ]);
+    assert.deepEqual(find(/Insurance renewal/).triggers, [
+      "TRIGGER;RELATED=START:-P30D",
+    ]);
+
+    // UIDs: unique, and the same when the calendar is generated again later.
+    const uids = events.map((e) => e.props.get("UID"));
+    assert.equal(new Set(uids).size, uids.length);
+    const again = icsEvents(
+      readIcs((await createReport(QA_DATES, { now: NOW + 3_600_000 })).bytes),
+    ).map((e) => e.props.get("UID"));
+    assert.deepEqual(new Set(again), new Set(uids));
+  });
+
+  it("D3 advice filter: phrases are refused, names and statutory terms pass (table)", async () => {
+    const refused: [string, string][] = [
+      ["You should file by May 15", "You should"],
+      ["We recommend a hearing", "We recommend"],
+      ["Protest recommended", "recommended"],
+      ["This one will win", "will win"],
+      ["Worth $4.2M at most", "Worth $"],
+      ["The subject is worth less", "is worth"],
+      ["Our opinion of value", "opinion of value"],
+      ["Per our appraisal", "our appraisal"],
+      ["Appraised at $3,900,000 last year", "Appraised at $3"],
+      ["Protest your value today", "Protest your"],
+      ["You can save thousands", "You can save"],
+      ["Savings of $12,000", "Savings of"],
+      ["it should be lower", "should"],
+    ];
+    for (const [text, phrase] of refused)
+      assert.equal(adviceIn(text), phrase, text);
+    const allowed = [
+      "Worthington Plaza",
+      "Worth Avenue",
+      "First Savings Bank",
+      "Protestant Church",
+      "Saved by the Bell",
+      "Appraisal notice 2026",
+      "Unequal appraisal workbook",
+      "Protest packet 2026",
+      "100 Worthington Dr",
+      "unequal appraisal",
+      "Harris Central Appraisal District",
+      "appraisal review board hearing",
+      "notice of appraised value",
+      "appraisal roll 2026",
+      "protest deadline May 15",
+      "protest hearing exhibits",
+      "2026 tax protest",
+      "Fort Worth office",
+      "value as appraised at the hearing",
+    ];
+    for (const text of allowed) assert.equal(adviceIn(text), undefined, text);
+
+    // End to end: a comparable id and titles that tripped the old filter now build.
+    const args = structuredClone(SAMPLES[0]!.args) as {
+      comparables: { id?: string }[];
+    };
+    args.comparables[0]!.id = "100 Worthington Dr";
+    await createReport(
+      {
+        kind: "tx_unequal_appraisal",
+        format: "pdf",
+        arguments: args,
+        context: {
+          title: "Protest packet 2026",
+          prepared_for: "First Savings Bank",
+        },
+      },
+      { now: NOW },
+    );
+    const err = await rejects(
+      {
+        kind: "tx_unequal_appraisal",
+        format: "pdf",
+        arguments: SAMPLES[0]!.args,
+        context: { title: "Worthington Plaza: you should file" },
+      },
+      "TextNotAllowed",
+      /^context\.title$/,
+    );
+    assert.match(err.message, /"you should"/);
+  });
+
+  it("D1/D2 tx workbook: the disclaimer is a merged row of set height, only the header and id column are frozen, and the caller's title and prepared-for line are printed", async () => {
+    const f = await createReport(
+      {
+        kind: "tx_unequal_appraisal",
+        format: "xlsx",
+        arguments: SAMPLES[0]!.args,
+        context: { title: "Oak Plaza 2026", prepared_for: "Asset management" },
+      },
+      { now: NOW },
+    );
+    const x = await readXlsx(f.bytes);
+    const grid = x.xml.get(
+      `xl/worksheets/sheet${x.sheets.indexOf("Grid") + 1}.xml`,
+    )!;
+    const ht = /<row r="2" ht="([\d.]+)" customHeight="1">/.exec(grid);
+    assert.ok(ht, "row 2 has an explicit height");
+    assert.ok(Number(ht[1]) <= 62, `row 2 is ${ht[1]} pt`);
+    assert.match(grid, /<mergeCell ref="A2:[A-Z]+2"\/>/);
+    assert.match(grid, /<pane xSplit="1" ySplit="8" topLeftCell="B9"/);
+    for (const sheet of ["ReadMe", "Grid"]) {
+      const vals = x.values(sheet).join("\n");
+      assert.match(vals, /Title \(supplied by the caller\): Oak Plaza 2026/);
+      assert.match(
+        vals,
+        /Prepared for \(supplied by the caller\): Asset management/,
+      );
+    }
+    // Both disclaimer sentences survive on the Grid and the ReadMe.
+    for (const sheet of ["ReadMe", "Grid"]) {
+      const vals = x.values(sheet).join(" ");
+      assert.match(vals, /not a substitute for the advice of an attorney/);
+      assert.match(vals, /not an appraisal or an opinion of value/);
+      assert.match(vals, /1103\.003\(1\)/);
+    }
+  });
+
+  it("D5 a wide table goes on a landscape page and no number is broken across lines", async () => {
+    const args = {
+      noi: 2205000,
+      value: 36000000,
+      rate_annual: 0.0625,
+      amortization_years: 30,
+      max_ltv: 0.7,
+      min_dscr: 1.25,
+      min_debt_yield: 0.085,
+      round_down_to: 1000,
+      existing_loan_balance: 21500000,
+      stress: {
+        noi_shocks: [-0.1, -0.2],
+        rate_shocks: [0.01, 0.02],
+        value_shocks: [-0.1],
+      },
+    };
+    const r = resultOf("calc_debt_sizing", args) as {
+      value: { stress: { max_loan: number; annual_debt_service: number }[] };
+    };
+    const f = await createReport(
+      { kind: "debt_sizing", format: "pdf", arguments: args },
+      { now: NOW },
+    );
+    const doc = await PDFDocument.load(f.bytes);
+    const sizes = doc.getPages().map((p) => p.getSize());
+    assert.ok(
+      sizes.some((s) => s.width > s.height),
+      "a landscape page for the stress table",
+    );
+    assert.ok(
+      sizes.some((s) => s.width < s.height),
+      "portrait pages too",
+    );
+    const lines = (await readPdf(f.bytes)).text.split("\n");
+    for (const s of r.value.stress) {
+      assert.ok(lines.includes(usd(s.max_loan)), usd(s.max_loan));
+      assert.ok(
+        lines.includes(usd(s.annual_debt_service)),
+        usd(s.annual_debt_service),
+      );
+    }
   });
 });

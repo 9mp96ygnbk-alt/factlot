@@ -24,6 +24,22 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
   send what you submit to a model provider; reports are listed in the tool lists, plans, setup
   guide and Texas protest-kit docs.
 
+### Fixed
+
+- Reports, `critical_dates` calendar: a notice deadline that `business_day_roll` moves to a later
+  business day is now dated on its contractual date (the later date is described, not
+  scheduled), each event carries the tool's warnings about its dates, and a deadline under 30
+  days away gets a reminder an hour after generation as well as the 30-day one.
+- Reports, caller text: the advice filter matches whole advice phrases ("you should", "is worth",
+  "worth $", "appraised at $…", "protest your", "savings of"…) instead of word stems, so names
+  such as Worthington Plaza, First Savings Bank or Protestant Church and terms such as appraisal
+  notice, protest packet or tax protest are no longer refused. The error names the phrase.
+- Reports, Texas workbook: the Grid notice no longer makes Excel autofit row 2 to 256 pt (it is a
+  merged row of set height; only the header row and comparable column are frozen), and the
+  caller's title and prepared-for line are printed on ReadMe and Grid.
+- Reports, PDF: a table with more than 10 columns (the debt-sizing stress table) is laid out on
+  landscape pages, and columns are sized so a number is never broken across lines.
+
 ## [0.5.0] - 2026-11-07
 
 This release brings Texas to the hosted registry, paid Pro and Team plans with metered registry

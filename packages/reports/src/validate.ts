@@ -145,9 +145,16 @@ export const TxCitation = z.strictObject({
   locator: z.string().min(1).max(500).optional(),
   as_of: IsoDate.optional(),
 });
-const TxComparable = z.strictObject({
+/**
+ * tx_unequal_appraisal results are always FactLot's own run (the kind requires arguments), so
+ * these two shapes pass through fields a newer calculator adds: a report built from them reads
+ * only the fields listed. `label` and `address` are the caller's optional names for a property.
+ */
+const TxComparable = z.looseObject({
   index: Int.min(0),
   id: z.string().nullable(),
+  label: z.string().nullable().optional(),
+  address: z.string().nullable().optional(),
   county_fips: z.string().nullable(),
   value: N.positive(),
   value_basis: Basis,
@@ -161,7 +168,7 @@ const TxComparable = z.strictObject({
   adjustments: z.array(TxAdjustment),
   citation: TxCitation.nullable(),
 });
-const TxValue = z.strictObject({
+const TxValue = z.looseObject({
   disclaimer: z.string(),
   tax_year: Int,
   normalize_by: z.enum(["none", "improvement_area_sf", "land_area_sf"]),
@@ -172,6 +179,8 @@ const TxValue = z.strictObject({
   median_adjusted_value: N,
   median_pair: z.tuple([N, N]).nullable(),
   subject_id: z.string().nullable(),
+  subject_label: z.string().nullable().optional(),
+  subject_address: z.string().nullable().optional(),
   subject_value: N.positive(),
   subject_value_basis: Basis,
   subject_minus_median: N,

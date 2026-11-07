@@ -6,7 +6,7 @@
  */
 import { decimalsOf, int, num, pct, times, usd } from "./format.ts";
 // pdf.ts (and pdf-lib) load on the first PDF only: an XLSX or ICS request never evaluates them.
-import { PdfWriter, type Column } from "./pdf.ts";
+import { PdfWriter, WIDE_TABLE_COLUMNS, type Column } from "./pdf.ts";
 import {
   Workbook,
   addr,
@@ -140,8 +140,13 @@ export async function renderPdf(
     created: p.generatedAt,
   });
   w.title(doc.title, doc.subtitle);
-  for (const b of doc.blocks) {
-    if (b.only === "xlsx") continue;
+  const blocks = doc.blocks.filter((b) => b.only !== "xlsx");
+  for (const [i, b] of blocks.entries()) {
+    // A wide table (and the heading just before it) goes on landscape pages; what follows
+    // returns to portrait.
+    const wide = (x: Block | undefined) =>
+      x?.t === "table" && x.columns.length > WIDE_TABLE_COLUMNS;
+    w.orientation(wide(b) || (b.t === "heading" && wide(blocks[i + 1])));
     switch (b.t) {
       case "heading":
         w.heading(b.text);
