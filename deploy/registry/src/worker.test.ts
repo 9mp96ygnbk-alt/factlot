@@ -21,7 +21,10 @@ import { addressListKey } from "./search.ts";
 import { handle } from "./worker.ts";
 
 const spec = fileURLToPath(new URL("../../../spec/registry/", import.meta.url));
-const calls = JSON.parse(readFileSync(join(spec, "calls.json"), "utf8")) as {
+const calls = [
+  ...JSON.parse(readFileSync(join(spec, "calls.json"), "utf8")),
+  ...JSON.parse(readFileSync(join(spec, "calls_tx_batch.json"), "utf8")),
+] as {
   tool: string;
   arguments: Record<string, unknown>;
 }[];
@@ -90,8 +93,18 @@ async function compare(
       )
         continue;
       const want = runTool(tool, args);
+      // Unknown fields inside a batch's subjects: also rejected by the API's input check.
+      if (!want.ok && /unknown field/.test(want.error.message)) continue;
       const got = await worker(assets, tool, parsed.data);
-      if (tool === "registry_tx_equity_candidates" && want.ok) {
+      // A batch with a subject the pack holds: the whole call is RegistryUnavailable, as above.
+      const heldSubject =
+        tool === "registry_tx_equity_candidates_batch" &&
+        want.ok &&
+        (want.result as { summary: { answered: number } }).summary.answered > 0;
+      if (
+        (tool === "registry_tx_equity_candidates" && want.ok) ||
+        heldSubject
+      ) {
         // A subject the pack holds: the hosted registry does not compute candidates.
         if (JSON.parse(got).error?.error !== "RegistryUnavailable")
           bad.push(
@@ -200,6 +213,28 @@ function getCalls(): Call[] {
     out.push({ tool: "registry_resolve_parcel", args });
     out.push({ tool: "registry_tx_equity_candidates", args });
   }
+  // Batches: misses and input errors only (answered per subject), and one with every subject.
+  out.push({
+    tool: "registry_tx_equity_candidates_batch",
+    args: {
+      subjects: [
+        { id: "a", state_fips: "48", county_fips: "999", apn: "nope-1" },
+        { id: "b", county_fips: "439", apn: "1" },
+        { id: "c", urn: "fl:parcel:us-04021:501-01-001" },
+        { id: "d", urn: "fl:entity:us-tx:0000000001" },
+        { id: "e", county_fips: "999" },
+      ],
+      area_band: 0.2,
+    },
+  });
+  out.push({
+    tool: "registry_tx_equity_candidates_batch",
+    args: {
+      subjects: rows("SELECT urn FROM subjects WHERE kind = 'parcel'")
+        .map((r, n) => ({ id: `s${n}`, urn: String(r.urn) }))
+        .slice(0, 50),
+    },
+  });
   return out;
 }
 
