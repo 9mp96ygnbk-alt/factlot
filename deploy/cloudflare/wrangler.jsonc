@@ -30,8 +30,10 @@
   // report engine (pdf-lib) and pdf.js (unpdf) the upload is near 8 MB (about 1.9 MB gzipped).
   "minify": false,
   // Reports and the model-backed tools build files and read PDFs in the Worker, which takes more
-  // than the free plan's 10 ms of CPU per request. On the Workers Paid plan add a limits block
-  // with cpu_ms 30000 and set REPORTS_ENABLED to "true" in vars; on the free plan leave both out.
+  // than the free plan's 10 ms of CPU per request. The account is on the Workers Paid plan, so the
+  // limit is raised and reports are open (REPORTS_ENABLED in vars). On a free-plan deployment
+  // remove the limits block and the var: reports then answer 503 ReportsUnavailable.
+  "limits": { "cpu_ms": 30000 },
   "workers_dev": false,
   "routes": [
     { "pattern": "api.factlot.com", "custom_domain": true },
@@ -41,6 +43,7 @@
   "vars": {
     "SITE_URL": "https://factlot.com",
     "API_URL": "https://api.factlot.com",
+    "REPORTS_ENABLED": "true",
   },
   // KEYS also holds the OAuth server's records (clients, grants, hashed tokens) under the `oauth:`
   // prefix (src/oauth.ts), so OAuth needs no binding of its own.

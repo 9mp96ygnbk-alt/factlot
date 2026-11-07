@@ -4,9 +4,9 @@
 CRE analyst or a Texas property tax consultant would otherwise build by hand: a workbook with live
 formulas, a paginated PDF, or a calendar. Hosted only (api.factlot.com).
 
-**Status:** reports are deployed but not yet open. Until they open, `POST /v1/reports` answers
-503 `ReportsUnavailable`, `report_create` is not listed over MCP, and `/v1/plans` shows
-`reports.available: false`.
+**Status:** open on api.factlot.com since 2026-11-07. `/v1/plans` shows `reports.available: true`
+and the per-plan monthly allowance. (A self-hosted deployment without `REPORTS_ENABLED` answers
+503 `ReportsUnavailable` and does not list `report_create`.)
 
 Reports are **deterministic** and **built by code, with no model**. The same request gives the same
 document. The only exception is the generation time: it is printed in the footer, stamped in the PDF

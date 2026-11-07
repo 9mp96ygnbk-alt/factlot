@@ -13,6 +13,13 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 
 ## [Unreleased]
 
+### Changed
+
+- Hosted API: **reports are open.** `report_create` is listed over MCP, `POST /v1/reports` builds
+  the document, and `/v1/plans` shows `reports.available: true` with the monthly allowance (3 free
+  per IP address, 50 on Pro, 1,000 on Team). The 0.5.0 notes below describe the state at release,
+  when reports were deployed but closed.
+
 ## [0.5.0] - 2026-11-07
 
 This release brings Texas to the hosted registry, paid Pro and Team plans with metered registry
