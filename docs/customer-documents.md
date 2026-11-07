@@ -21,7 +21,10 @@ not yet available; the hosted sections below describe the rules it will operate 
 terms it extracted in a single request; FactLot checks them in memory, returns the answer, and
 keeps nothing: no document text, quotes or facts are stored or logged, and the only record of the
 request is its metadata (time, route, status, plan, a hashed key ID). No model runs and no third
-party receives the text. These tools are stateless, so the storage and retention rules below for
+party receives the text. Two other hosted tools, `doc_extract_lease` and `report_narrative` (Pro and Team;
+[hosted ingestion](ingestion-hosted.md)), and only these, send the submitted document or tool
+result to Anthropic's API for model inference, and only when the customer opts in by calling
+them; FactLot stores and logs neither the document, the result nor the model's answer. These tools are stateless, so the storage and retention rules below for
 FactLot Cloud do not apply to them. For documents that must not leave the customer's network,
 run the same tools self-hosted.
 

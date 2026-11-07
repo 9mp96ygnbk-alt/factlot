@@ -29,6 +29,7 @@ import {
   WindowCounter,
   addressSubject,
   ipBucket,
+  modelSubject,
   objectLimiter,
   objectMeter,
   quotaWindow,
@@ -39,7 +40,8 @@ import {
 import { resetCoverageCache } from "./account-tools.ts";
 import { CLAIM_POLL_MS } from "./claim.ts";
 import { WHATS_NEW } from "./news.ts";
-import { escapeHtml } from "./pages.ts";
+import { EXTRACT_LEASE_STEP } from "./onboarding.ts";
+import { REPORT_RULE, escapeHtml } from "./pages.ts";
 import { PLANS } from "./plans.ts";
 import { REGISTRY_RUN_URL, registryRunner } from "./registry.ts";
 import { handle } from "./router.ts";
@@ -3607,6 +3609,120 @@ describe("batch registry tools: one lookup per answered subject", () => {
       24,
       "only the record is charged; the unused lookup is given back",
     );
+  });
+});
+
+describe("account, onboarding and OpenAPI: reports and the model-backed tools", () => {
+  const MODEL = { ANTHROPIC_API_KEY: "test-placeholder" };
+  async function used(e: ReturnType<typeof env>) {
+    await e.METER.consume(modelSubject("ingest_pages", "sub:sub_1"), {
+      kind: "month",
+      limit: 100,
+      n: 7,
+    });
+    await e.METER.consume("sub:sub_1", {
+      kind: "month",
+      limit: 50,
+      n: 1,
+      counter: "reports",
+    });
+  }
+  type Summary = {
+    model_tools: { available: boolean; tools: string[] };
+    ingest_pages: { used: number; limit: number; resets_at: string };
+    narratives: { used: number; limit: number };
+    reports: { used: number; limit: number };
+    registry_lookups: { used: number };
+  };
+
+  it("/v1/account and account_status: allowances used, the model tools while they are on", async () => {
+    const e = env(MODEL);
+    const { key } = await issue(e);
+    await used(e);
+    const { api } = innerApi();
+    const a = (await (
+      await call(e, api, "/v1/account", { key, method: "GET" })
+    ).json()) as Summary;
+    assert.deepEqual(a.model_tools, {
+      available: true,
+      tools: ["doc_extract_lease", "report_narrative"],
+    });
+    assert.deepEqual([a.ingest_pages.used, a.ingest_pages.limit], [7, 100]);
+    assert.equal(a.ingest_pages.resets_at, "2026-12-01T00:00:00.000Z");
+    assert.deepEqual([a.narratives.used, a.narratives.limit], [0, 50]);
+    assert.deepEqual([a.reports.used, a.reports.limit], [1, 50]);
+    assert.equal(a.registry_lookups.used, 0, "counters stay apart");
+    const status = (await (
+      await call(e, api, "/mcp", { key, body: toolCall("account_status") })
+    ).json()) as { result: { structuredContent: Summary } };
+    assert.deepEqual(
+      status.result.structuredContent.model_tools,
+      a.model_tools,
+    );
+    assert.equal(status.result.structuredContent.reports.used, 1);
+    const off = env();
+    const k2 = (await issue(off)).key;
+    const b = (await (
+      await call(off, api, "/v1/account", { key: k2, method: "GET" })
+    ).json()) as Summary;
+    assert.deepEqual(b.model_tools, { available: false, tools: [] });
+    assert.equal(
+      b.ingest_pages.limit,
+      100,
+      "the allowance is shown either way",
+    );
+  });
+
+  it("/account shows reports, the model tools and what counts", async () => {
+    const e = env(MODEL);
+    e.RL_ANON = new CountingLimit(100);
+    const { key } = await issue(e);
+    await used(e);
+    const res = await handle(
+      new Request("https://factlot.com/account", {
+        method: "POST",
+        body: new URLSearchParams({ key }).toString(),
+        headers: { origin: "https://factlot.com", "cf-connecting-ip": IP },
+      }),
+      e,
+      innerApi().api,
+      { now: () => T0 },
+    );
+    const html = await res.text();
+    assert.match(
+      html,
+      /1 of 50 built this month with <code>report_create<\/code>/,
+    );
+    assert.match(html, /<code>doc_extract_lease<\/code>: 7 of 100 pages used/);
+    assert.ok(html.includes(escapeHtml(REPORT_RULE)));
+  });
+
+  it("/v1/onboarding: the extract-lease step and report_create, in JSON and Markdown", async () => {
+    const e = env();
+    const { api } = innerApi();
+    const g = (await (
+      await call(e, api, "/v1/onboarding?plan=pro", { method: "GET" })
+    ).json()) as {
+      extract_lease: { title: string; available: boolean; rest: string };
+      reports: { mcp_tool: string; per_month: { pro: number } };
+    };
+    assert.equal(g.extract_lease.title, EXTRACT_LEASE_STEP);
+    assert.equal(g.extract_lease.available, false);
+    assert.equal(
+      g.extract_lease.rest,
+      "POST https://api.factlot.com/v1/doc/extract_lease",
+    );
+    assert.equal(g.reports.mcp_tool, "report_create");
+    assert.equal(g.reports.per_month.pro, 50);
+    const md = await (
+      await call(e, api, "/v1/onboarding?format=md", { method: "GET" })
+    ).text();
+    assert.ok(md.includes(`## ${EXTRACT_LEASE_STEP}`));
+    assert.match(md, /report_create/);
+    const on = (await (
+      await call(env(MODEL), api, "/v1/onboarding", { method: "GET" })
+    ).json()) as { extract_lease: { available: boolean } };
+    assert.equal(on.extract_lease.available, true);
   });
 });
 

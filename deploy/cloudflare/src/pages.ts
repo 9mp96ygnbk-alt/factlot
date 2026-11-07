@@ -24,6 +24,9 @@ export { escapeHtml };
 export const LOOKUP_RULE =
   "A lookup is one answered call to a registry tool; coverage checks, misses and input errors are free.";
 
+export const REPORT_RULE =
+  "A report is one document report_create builds and stores; input errors are free, and reports never count as lookups.";
+
 const DEFAULT_SITE = "https://factlot.com";
 const DEFAULT_API = "https://api.factlot.com";
 const trim = (u: string) => u.replace(/\/$/, "");
@@ -172,6 +175,8 @@ export interface OnboardingOptions {
   /** Shown above the steps (for example: the agent already collected the key). */
   notice?: { title?: string; text: string; warn?: boolean };
   status?: number;
+  /** Whether the hosted API has a model (the model-backed tools answer). */
+  model?: boolean;
 }
 
 /**
@@ -188,6 +193,7 @@ export function onboardingPage(o: OnboardingOptions): Response {
     plan: o.plan,
     key: o.key,
     placeholder: "<your key>",
+    model: o.model,
   });
   const plan = o.plan;
   const h1 = o.title ?? (o.key && plan ? `Welcome to ${plan.name}` : g.title);
@@ -231,9 +237,12 @@ ${clients}
 <p id="test-out" class="out" role="status" aria-live="polite"></p>
 ${block("test-curl", "Or from a terminal", g.test.curl)}
 </section>
+<section class="step" aria-labelledby="h-extract"><h2 id="h-extract">${escapeHtml(g.extract_lease.title)}</h2>
+<p>${escapeHtml(g.extract_lease.text)}</p>
+</section>
 <section class="step" aria-labelledby="h-limits"><h2 id="h-limits"><span class="n">4</span>Know your limits</h2>
 ${facts}
-<ul class="plain"><li>${escapeHtml(LOOKUP_RULE)}</li><li>${escapeHtml(QUOTA_RULES.at_cap)}</li><li>Calculators, IDs, documents and rules tools never count.</li></ul>
+<ul class="plain"><li>${escapeHtml(LOOKUP_RULE)}</li><li>${escapeHtml(QUOTA_RULES.at_cap)}</li><li>Calculators, IDs, documents and rules tools never count.</li><li>${escapeHtml(g.reports.text)}</li></ul>
 <div class="buttons"><a class="button primary" href="${escapeHtml(site)}/account">Manage billing / cancel</a></div>
 <p class="small">Questions: <a href="mailto:${CONTACT}">${CONTACT}</a>${plan?.id === "team" ? " (priority support)" : ""}. What changed lately: <a href="${CHANGELOG_URL}">changelog</a>.</p>
 </section>`,
@@ -362,6 +371,16 @@ const day = (iso: string) =>
     timeZone: "UTC",
   });
 
+/** doc_extract_lease and report_narrative: this month's use of each allowance, or that they are off. */
+function modelFacts(s: AccountSummary): string {
+  const n = (x: number) => x.toLocaleString("en-US");
+  const pages = s.ingest_pages;
+  const narr = s.narratives;
+  if (!s.model_tools.available)
+    return `<code>doc_extract_lease</code> (${n(pages.limit)} pages a month) and <code>report_narrative</code> (${n(narr.limit)} a month) are not switched on yet; every other tool works without them.`;
+  return `<code>doc_extract_lease</code>: ${n(pages.used)} of ${n(pages.limit)} pages used this month. <code>report_narrative</code>: ${n(narr.used)} of ${n(narr.limit)} narratives. Both reset ${escapeHtml(utc(pages.resets_at))} and never count as registry lookups.`;
+}
+
 /** The plan, status and usage rows shared by /account and the recovery page. */
 function accountFacts(s: AccountSummary, receipts?: string): string {
   const st = statusText(s);
@@ -375,8 +394,10 @@ ${s.ends_at ? `<dt>Ends</dt><dd class="warn">Ends on ${escapeHtml(day(s.ends_at)
 ${receipts ? `<dt>Receipts</dt><dd>Stripe emails receipts to ${escapeHtml(receipts)}</dd>` : ""}
 <dt>Rate limit</dt><dd>${s.requests_per_minute.toLocaleString("en-US")} requests a minute per key</dd>
 <dt>Registry lookups</dt><dd><progress max="${q.limit}" value="${Math.min(q.used, q.limit)}" aria-label="Registry lookups used">${q.used} of ${q.limit}</progress><br>${q.used.toLocaleString("en-US")} of ${q.limit.toLocaleString("en-US")} used this month (${left.toLocaleString("en-US")} left); resets ${escapeHtml(utc(q.resets_at))}</dd>
+<dt>Reports</dt><dd>${s.reports.used.toLocaleString("en-US")} of ${s.reports.limit.toLocaleString("en-US")} built this month with <code>report_create</code> (XLSX, PDF, ICS); resets ${escapeHtml(utc(s.reports.resets_at))}</dd>
+<dt>Model-backed tools</dt><dd>${modelFacts(s)}</dd>
 <dt>Keys</dt><dd>${s.keys.count} of ${s.keys.limit}</dd>
-<dt>What counts</dt><dd>${escapeHtml(LOOKUP_RULE)}</dd>
+<dt>What counts</dt><dd>${escapeHtml(LOOKUP_RULE)} ${escapeHtml(REPORT_RULE)}</dd>
 ${s.payment_failed_at ? `<dt>Last failed payment</dt><dd class="warn">${escapeHtml(utc(s.payment_failed_at))}</dd>` : ""}
 ${s.deletes_at ? `<dt>Record deleted</dt><dd>${escapeHtml(utc(s.deletes_at))} unless the key is active again</dd>` : ""}
 </dl>`;

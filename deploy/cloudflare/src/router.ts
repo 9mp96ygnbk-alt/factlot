@@ -797,6 +797,7 @@ async function route(
       site,
       plan: isPlanId(planParam) ? PLANS[planParam] : undefined,
       placeholder: KEY_PLACEHOLDER,
+      model: modelEnabled(env),
     });
     const markdown =
       (request.headers.get("accept") ?? "").includes("text/markdown") ||

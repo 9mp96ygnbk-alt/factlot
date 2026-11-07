@@ -35,8 +35,13 @@ import {
   writeKey,
   type KeyRecord,
 } from "./keys.ts";
+import { modelSubject } from "./limiter.ts";
+import { modelEnabled } from "./model.ts";
 import {
+  MODEL_ALLOWANCES,
+  MODEL_TOOLS,
   PLANS,
+  REPORTS_PER_MONTH,
   isPlanId,
   planForLookupKey,
   priceText,
@@ -900,6 +905,15 @@ export interface AccountSummary {
   created: string;
   key_id: string;
   registry_lookups: { used: number; limit: number; resets_at: string };
+  /**
+   * The model-backed hosted tools: which are on for this plan (none while the server has no
+   * model), and their monthly allowances (pages read by doc_extract_lease, report_narrative calls).
+   */
+  model_tools: { available: boolean; tools: string[] };
+  ingest_pages: { used: number; limit: number; resets_at: string };
+  narratives: { used: number; limit: number; resets_at: string };
+  /** report_create / POST /v1/reports: documents built this month. */
+  reports: { used: number; limit: number; resets_at: string };
   keys: {
     count: number;
     limit: number;
@@ -931,12 +945,29 @@ export async function accountSummary(
   record: KeyRecord,
 ): Promise<AccountSummary> {
   const plan = PLANS[record.plan];
-  const keys = await liveKeys(env.KEYS, record.subscription);
-  const q = await env.METER.quota(
-    meterSubject(record, hash),
-    "month",
-    plan.registryLookupsPerMonth,
-  );
+  const subject = meterSubject(record, hash);
+  const allowance = MODEL_ALLOWANCES[record.plan];
+  const [keys, q, pages, narratives, reports] = await Promise.all([
+    liveKeys(env.KEYS, record.subscription),
+    env.METER.quota(subject, "month", plan.registryLookupsPerMonth),
+    env.METER.quota(
+      modelSubject("ingest_pages", subject),
+      "month",
+      allowance.ingest_pages_per_month,
+    ),
+    env.METER.quota(
+      modelSubject("narratives", subject),
+      "month",
+      allowance.narratives_per_month,
+    ),
+    env.METER.quota(
+      subject,
+      "month",
+      REPORTS_PER_MONTH[record.plan],
+      "reports",
+    ),
+  ]);
+  const available = modelEnabled(env);
   return {
     plan: plan.id,
     plan_name: plan.name,
@@ -952,6 +983,31 @@ export async function accountSummary(
     created: record.created,
     key_id: keyId(hash),
     registry_lookups: { used: q.used, limit: q.limit, resets_at: q.resets_at },
+    model_tools: {
+      available,
+      tools: available
+        ? MODEL_TOOLS.filter((t) =>
+            t === "doc_extract_lease"
+              ? allowance.ingest_pages_per_month > 0
+              : allowance.narratives_per_month > 0,
+          )
+        : [],
+    },
+    ingest_pages: {
+      used: pages.used,
+      limit: pages.limit,
+      resets_at: pages.resets_at,
+    },
+    narratives: {
+      used: narratives.used,
+      limit: narratives.limit,
+      resets_at: narratives.resets_at,
+    },
+    reports: {
+      used: reports.used,
+      limit: reports.limit,
+      resets_at: reports.resets_at,
+    },
     keys: {
       count: keys.length,
       limit: plan.maxKeys,
@@ -1092,6 +1148,7 @@ export async function successRoute(
       plan: PLANS[result.plan],
       api,
       site,
+      model: modelEnabled(env),
     });
   // A revisit after the key was shown (here or to the buyer's agent): the guide, without the key.
   if (result.status === 409)
@@ -1099,6 +1156,7 @@ export async function successRoute(
       plan: result.plan ? PLANS[result.plan] : undefined,
       api,
       site,
+      model: modelEnabled(env),
       notice:
         result.by === "agent"
           ? {

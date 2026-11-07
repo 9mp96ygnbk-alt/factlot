@@ -24,7 +24,7 @@ export const ACCOUNT_TOOLS = [
     name: "account_status",
     title: "FactLot account status",
     description:
-      "Hosted FactLot account tool (only on api.factlot.com with an API key; not a CRE tool). Returns the plan of the key this connection uses: status, price, requests a minute, registry lookups used this month with the limit and reset time, renewal date, the subscription's keys (created, last used) and any billing hold. Free: never counts as a lookup.",
+      "Hosted FactLot account tool (only on api.factlot.com with an API key; not a CRE tool). Returns the plan of the key this connection uses: status, price, requests a minute, registry lookups used this month with the limit and reset time, the model-backed tools on this plan (doc_extract_lease, report_narrative; none while they are off) with their monthly allowances used (ingest_pages, narratives), reports built this month with report_create (reports), renewal date, the subscription's keys (created, last used) and any billing hold. Free: never counts as a lookup.",
     inputSchema: {
       type: "object",
       properties: {},

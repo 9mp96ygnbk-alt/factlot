@@ -154,11 +154,14 @@ export const MODEL_QUOTA_RULES = {
     "At a cap these tools answer 429 until the month resets at 00:00 UTC on the 1st; every other tool keeps working and nothing extra is billed.",
 };
 
+/** The two hosted tools that call a model. */
+export const MODEL_TOOLS = ["doc_extract_lease", "report_narrative"];
+
 /** The model-backed tools' allowances by plan, for /v1/plans (`available`: the server has a model). */
 export function modelPlansInfo(available: boolean) {
   return {
     available,
-    tools: ["doc_extract_lease", "report_narrative"],
+    tools: MODEL_TOOLS,
     free: MODEL_ALLOWANCES.anonymous,
     pro: MODEL_ALLOWANCES.pro,
     team: MODEL_ALLOWANCES.team,
