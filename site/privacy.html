@@ -7,7 +7,7 @@
     <title>Privacy · FactLot</title>
     <meta
       name="description"
-      content="How FactLot handles data on factlot.com, the hosted API and paid plans."
+      content="What FactLot collects on factlot.com, the hosted API and paid plans, why, for how long, who processes it, and how to use your privacy rights."
     />
     <link rel="canonical" href="https://factlot.com/privacy" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
+    <a class="skip" href="#main">Skip to content</a>
     <header class="site-header">
       <div class="wrap row">
         <a class="brand" href="https://factlot.com/">FactLot</a>
@@ -25,64 +26,365 @@
       <section>
         <div class="wrap">
           <h1>Privacy</h1>
-          <p class="small">Effective 3 November 2026.</p>
-          <p>
-            FactLot collects as little as it can. This page covers factlot.com,
-            the hosted API at api.factlot.com, and paid plans. The open-source
-            packages you run yourself make no network calls and send FactLot
-            nothing.
+          <p class="small">
+            Effective 7 November 2026. The revision history is at the end.
           </p>
-          <h2>The website</h2>
           <p>
-            factlot.com sets no cookies, runs no scripts, and uses no analytics
-            or tracking. Cloudflare, which hosts it, processes your IP address
-            to deliver the page and protect it from abuse.
+            FactLot collects as little as it can. This notice covers
+            factlot.com, the hosted API and MCP server at api.factlot.com, and
+            paid plans. The open-source packages you run yourself make no
+            network calls and send FactLot nothing.
           </p>
-          <h2>The hosted API</h2>
-          <ul>
+
+          <h2 id="who">Who we are</h2>
+          <p>
+            factlot.com and api.factlot.com are run by Robert Stovall, a sole
+            proprietor in Texas, USA, doing business as FactLot ("FactLot",
+            "we"). FactLot decides how the information described here is used.
+          </p>
+          <p>
+            Email:
+            <a href="mailto:contact@factlot.com">contact@factlot.com</a><br />
+            Postal address: pending.
+          </p>
+
+          <h2 id="collect">What we collect</h2>
+          <h3>The website</h3>
+          <p>
+            factlot.com sets no cookies, runs no scripts, and uses no analytics,
+            advertising or tracking. Cloudflare, which hosts it, processes your
+            IP address, browser user agent and the page you ask for, to deliver
+            the page and protect the site from abuse. Cloudflare may keep
+            request logs under its own privacy policy; FactLot keeps no access
+            log of its own.
+          </p>
+          <h3>The hosted API</h3>
+          <ul class="plain">
             <li>
-              <strong>Not logged:</strong> request bodies, tool arguments,
-              results, and headers. Documents you send are processed in memory
-              to answer the request and are not stored.
+              <strong>Usage records.</strong> For each request we record the
+              time, the API key ID (the first 16 characters of a SHA-256 hash of
+              the key, never the key itself, or "anonymous" when there is no
+              key), the plan tier, the path, the HTTP method and the response
+              status code. No IP address is recorded. These records are kept in
+              a Cloudflare Workers Analytics Engine dataset.
             </li>
             <li>
-              <strong>Metered:</strong> for each request, the time, path, plan
-              tier, response status, and the first 16 characters of a one-way
-              hash of your API key (never the key). This is kept for usage
-              reporting and abuse prevention.
+              <strong>Rate-limit counters.</strong> To enforce the per-minute
+              limit, requests are counted per IP address on the Free plan and
+              per key on paid plans, for the current one-minute window only.
             </li>
             <li>
-              <strong>Rate limits:</strong> free-tier requests are counted per
-              IP address for one minute, in memory, then discarded.
+              <strong>Lookup quota counters.</strong> To enforce registry lookup
+              quotas, lookups are counted per IP address for the current day on
+              the Free plan, and per subscription for the current month on paid
+              plans. A counter is deleted when its window ends.
+            </li>
+            <li>
+              <strong>Error logs.</strong> When a request fails, the Worker logs
+              only the error's name (for example <code>TypeError</code>), never
+              its message or any request content.
+            </li>
+            <li>
+              <strong>Key records.</strong> For each paid key we store a SHA-256
+              hash of the key, the plan, the key's status, the Stripe customer
+              and subscription IDs, the subscription status, the date the key
+              was created and the time of the last subscription check.
             </li>
           </ul>
-          <h2>Paid plans</h2>
+          <h3>Billing</h3>
           <p>
-            Stripe processes payments; FactLot never sees your card number.
-            FactLot stores your Stripe customer and subscription IDs, your plan,
-            and a SHA-256 hash of your API key. Stripe's privacy policy covers
-            what Stripe collects.
+            Stripe runs checkout and billing and collects what it needs to take
+            payment: your email address, name, card or bank details, billing
+            address, and a tax ID if checkout asks for one. Stripe handles these
+            under its own privacy policy. In Stripe, FactLot can see your email,
+            name and billing address as you entered them, your subscription
+            status, your invoices, and your card's brand and last four digits.
+            FactLot never sees or stores your full card number.
           </p>
-          <h2>Registry data</h2>
+          <h3>Email</h3>
           <p>
-            The FactLot Registry holds public records about commercial property.
-            It stores owner names only for organisations and never for natural
-            persons. If you believe a record names you as a person, or is wrong,
-            email contact@factlot.com and we will review and remove it.
+            If you write to contact@factlot.com, we receive your email address,
+            your message and anything you attach. Cloudflare Email Routing
+            forwards it to the operator's mailbox. Please do not send
+            confidential leases or personal data by email.
           </p>
-          <h2>Email</h2>
+          <h3>GitHub</h3>
           <p>
-            If you write to contact@factlot.com, we keep your message to answer
-            it. Please do not send confidential leases or personal data by
-            email.
+            Issues and Discussions on GitHub are public and covered by GitHub's
+            privacy statement. Anything you post there can be read by anyone.
           </p>
-          <h2>Sharing and your rights</h2>
+
+          <h2 id="not-collected">What we do not collect</h2>
+          <ul class="plain">
+            <li>
+              Request bodies, tool inputs and outputs, and documents. Document
+              text is processed in memory to answer the request and is not
+              stored or logged.
+            </li>
+            <li>
+              Request headers, other than reading the key to authorise the
+              request.
+            </li>
+            <li>IP addresses in usage records.</li>
+            <li>Cookies, tracking pixels or advertising identifiers.</li>
+            <li>
+              Natural-person names in the registry. The registry holds
+              commercial property and the organisations that own it. A person's
+              name is never stored or indexed, and owner records a source
+              withheld are never recovered or inferred. If you believe a record
+              names you as a person, or is wrong, email us and we will review
+              and remove or correct it.
+            </li>
+          </ul>
           <p>
-            FactLot does not sell or share personal data, and does not use your
-            API requests to train models. You can ask what we hold about you, or
-            ask us to delete it, at contact@factlot.com. We will update this
-            page and its date when practices change.
+            We do not use your requests or documents to train models, and we do
+            not build profiles of you.
           </p>
+
+          <h2 id="purposes">Why we use it</h2>
+          <ul class="plain">
+            <li>
+              <strong>To provide the service you asked for</strong>: answering
+              requests, checking keys, applying your plan. This is needed to
+              perform our agreement with you.
+            </li>
+            <li>
+              <strong>To keep the service working and fair</strong>: rate
+              limits, quotas, abuse prevention and fixing errors. This is our
+              legitimate interest in running a reliable service.
+            </li>
+            <li>
+              <strong>To bill you and keep tax records</strong>: needed to
+              perform our agreement and required by law.
+            </li>
+            <li>
+              <strong>To answer you</strong> when you write to us, and to send
+              notices about your plan, these terms or a security problem.
+            </li>
+            <li>
+              <strong>To plan capacity</strong>: counting requests by tool path,
+              plan and status, with no IP address.
+            </li>
+          </ul>
+          <p>
+            We do not sell personal information, do not use it for advertising,
+            and make no automated decisions about you with legal or similar
+            effects.
+          </p>
+
+          <h2 id="retention">How long we keep it</h2>
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">What</th>
+                <th scope="col">Kept for</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Usage records</th>
+                <td>90 days</td>
+              </tr>
+              <tr>
+                <th scope="row">Rate-limit counters</th>
+                <td>The current one-minute window</td>
+              </tr>
+              <tr>
+                <th scope="row">Lookup quota counters</th>
+                <td>Until the day (Free) or month (paid) resets</td>
+              </tr>
+              <tr>
+                <th scope="row">Error logs</th>
+                <td>
+                  As long as Cloudflare keeps Worker logs, at most 30 days
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Key records</th>
+                <td>
+                  While the subscription is active, then up to 12 months to
+                  answer billing questions
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Billing records</th>
+                <td>
+                  As long as tax and accounting law requires, generally 7 years;
+                  Stripe keeps its own records under its terms
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Email</th>
+                <td>As long as needed to answer it, at most 24 months</td>
+              </tr>
+              <tr>
+                <th scope="row">Cloudflare request logs</th>
+                <td>Under Cloudflare's own policy</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h2 id="sharing">Sharing and subprocessors</h2>
+          <p>
+            These companies process information for FactLot to run the service:
+          </p>
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Company</th>
+                <th scope="col">What for</th>
+                <th scope="col">Where</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Cloudflare</th>
+                <td>
+                  Hosting factlot.com and api.factlot.com (Workers, KV, Durable
+                  Objects, Analytics Engine) and email routing for
+                  contact@factlot.com
+                </td>
+                <td>
+                  United States; requests are served from its global network
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Stripe</th>
+                <td>Checkout, subscriptions, invoices and payments</td>
+                <td>United States</td>
+              </tr>
+              <tr>
+                <th scope="row">GitHub</th>
+                <td>Source code, releases, issues and discussions</td>
+                <td>United States</td>
+              </tr>
+            </tbody>
+          </table>
+          <p>
+            We share personal information otherwise only when the law requires
+            it, to protect the service or people's safety, or with a successor
+            if the FactLot business is transferred, in which case we tell you
+            first.
+            <strong>We do not sell or share personal information</strong>, in
+            the meaning of California law or any other law.
+          </p>
+
+          <h2 id="rights">Your rights</h2>
+          <p>Anyone can ask us to:</p>
+          <ul class="plain">
+            <li>
+              tell you what personal information we hold about you and give you
+              a copy (access);
+            </li>
+            <li>correct it (correction);</li>
+            <li>delete it (deletion);</li>
+            <li>
+              give it to you in a portable, machine-readable form (portability);
+              and
+            </li>
+            <li>stop using it for a purpose you object to.</li>
+          </ul>
+          <p>
+            <strong>California residents</strong> have these rights under the
+            California Consumer Privacy Act as amended by the California Privacy
+            Rights Act: to know what personal information we collect, use and
+            disclose; to delete it; to correct it; to opt out of its sale or
+            sharing; and to limit the use of sensitive personal information. We
+            do not sell or share personal information and do not use sensitive
+            personal information, so there is nothing to opt out of or limit.
+          </p>
+          <p>
+            <strong>Texas residents</strong> have these rights under the Texas
+            Data Privacy and Security Act: to confirm whether we process your
+            personal data and to access it; to correct it; to delete it; to get
+            a portable copy; and to opt out of targeted advertising, sale, and
+            profiling that has legal or similarly significant effects. We do
+            none of those three. If we decline your request, you may appeal by
+            replying to our answer with the word "Appeal"; we answer an appeal
+            within 60 days. If you are not satisfied with that answer, you can
+            contact the
+            <a href="https://www.texasattorneygeneral.gov/consumer-protection"
+              >Texas Attorney General</a
+            >.
+          </p>
+          <p>
+            We will not treat you differently, charge you more or give you a
+            worse service for using any of these rights. We give them to
+            everyone, whether or not a law requires it.
+          </p>
+
+          <h2 id="exercise">How to use your rights</h2>
+          <p>
+            Email
+            <a href="mailto:contact@factlot.com">contact@factlot.com</a> from
+            the address on your account, or include your API key ID from a
+            response or your Stripe receipt. Never send us the key itself. We
+            confirm who you are by replying to that address, answer within 45
+            days (once extendable by another 45 days if we tell you why), and
+            charge nothing. An authorised agent may ask for you with your
+            written permission.
+          </p>
+
+          <h2 id="security">Security</h2>
+          <ul class="plain">
+            <li>
+              API keys are random, shown once, and stored only as a SHA-256
+              hash.
+            </li>
+            <li>
+              Every connection to factlot.com and api.factlot.com is encrypted
+              with TLS.
+            </li>
+            <li>
+              We keep as little as possible: no request content, no documents,
+              no IP addresses in usage records, and no card numbers.
+            </li>
+            <li>Stripe handles all card data.</li>
+          </ul>
+          <p>
+            No system is perfectly secure. If a breach affects your personal
+            information, we will tell you as the law requires. To report a
+            vulnerability, see
+            <a
+              href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/SECURITY.md"
+              >SECURITY.md</a
+            >.
+          </p>
+
+          <h2 id="children">Children</h2>
+          <p>
+            FactLot is a business service for people aged 18 or older. It is not
+            directed to children, and we do not knowingly collect information
+            from anyone under 18. If you believe a child has sent us personal
+            information, email us and we will delete it.
+          </p>
+
+          <h2 id="international">International use</h2>
+          <p>
+            FactLot is run from the United States. Cloudflare serves requests
+            from the data centre nearest you on its global network, and
+            Cloudflare, Stripe and GitHub are United States companies. If you
+            use FactLot from outside the United States, your information is
+            processed in the United States.
+          </p>
+
+          <h2 id="changes">Changes to this notice</h2>
+          <p>
+            We post changes here with a new effective date. For a material
+            change we email paid subscribers at least 30 days before it takes
+            effect.
+          </p>
+
+          <h2 id="history">Revision history</h2>
+          <ul class="plain small">
+            <li>
+              7 November 2026: named the operator; listed every record the
+              hosted API keeps, with a retention period for each; added lookup
+              quota counters, billing detail, subprocessors, purposes, and
+              California and Texas privacy rights with how to use them. Replaces
+              the notice of 3 November 2026.
+            </li>
+          </ul>
         </div>
       </section>
     </main>
@@ -90,6 +392,7 @@
       <div class="wrap">
         <p>
           <a href="https://factlot.com/">Home</a> ·
+          <a href="https://factlot.com/#pricing">Pricing</a> ·
           <a href="https://factlot.com/privacy">Privacy</a> ·
           <a href="https://factlot.com/terms">Terms</a> ·
           <a href="mailto:contact@factlot.com">contact@factlot.com</a>

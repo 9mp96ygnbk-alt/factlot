@@ -7,7 +7,7 @@
     <title>Terms of service · FactLot</title>
     <meta
       name="description"
-      content="Terms for the hosted FactLot API and paid plans."
+      content="Terms for the hosted FactLot API and MCP server, the Free, Pro and Team plans, the registry download licence and Enterprise."
     />
     <link rel="canonical" href="https://factlot.com/terms" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
+    <a class="skip" href="#main">Skip to content</a>
     <header class="site-header">
       <div class="wrap row">
         <a class="brand" href="https://factlot.com/">FactLot</a>
@@ -25,54 +26,510 @@
       <section>
         <div class="wrap">
           <h1>Terms of service</h1>
-          <p class="small">Effective 3 November 2026.</p>
-          <p>
-            These terms cover the hosted FactLot service: the API at
-            api.factlot.com and paid plans. The open-source code is governed by
-            its licences (Apache-2.0 and MIT), not by these terms.
+          <p class="small">
+            Effective 7 November 2026. The revision history is at the end.
           </p>
-          <h2>The service</h2>
           <p>
-            FactLot returns deterministic calculations, identifiers, and cited
-            public-record facts. It is a tool, not advice: results are not
-            legal, tax, accounting, appraisal, lending, or investment advice. A
-            qualified person should review any result used for a decision. Read
-            the warnings each result returns.
+            These terms cover the hosted FactLot service. Headings are for
+            finding your way; the text under them is what counts.
           </p>
-          <h2>Data and sources</h2>
+          <ol class="small">
+            <li><a href="#parties">Parties and acceptance</a></li>
+            <li><a href="#service">The service</a></li>
+            <li><a href="#keys">Accounts and API keys</a></li>
+            <li><a href="#billing">Plans, fees and billing</a></li>
+            <li><a href="#acceptable-use">Acceptable use</a></li>
+            <li><a href="#data">Public-record data and rights</a></li>
+            <li><a href="#outputs">Your inputs and outputs</a></li>
+            <li><a href="#disclaimers">Professional disclaimers</a></li>
+            <li><a href="#documents">Confidential documents</a></li>
+            <li><a href="#privacy">Privacy</a></li>
+            <li><a href="#warranty">Warranty disclaimer</a></li>
+            <li><a href="#liability">Limitation of liability</a></li>
+            <li><a href="#indemnity">Indemnity</a></li>
+            <li><a href="#termination">Suspension and termination</a></li>
+            <li>
+              <a href="#changes">Changes to the service and these terms</a>
+            </li>
+            <li><a href="#law">Governing law and venue</a></li>
+            <li><a href="#notices">Notices and contact</a></li>
+            <li><a href="#copyright">Copyright notices</a></li>
+            <li><a href="#general">General</a></li>
+          </ol>
+
+          <h2 id="parties">1. Parties and acceptance</h2>
           <p>
-            Registry facts come from public records, and each carries its
-            source's licence. You agree to follow those licences, including
-            attribution where a source requires it. Public records can be wrong
-            or out of date; each fact shows its source and date so you can check
-            it.
+            These terms are an agreement between you and Robert Stovall, a sole
+            proprietor in Texas, USA, doing business as FactLot ("FactLot",
+            "we", "us"). "You" means the person who accepts them. If you accept
+            them for a company or other organisation, "you" means that
+            organisation, and you confirm that you have authority to bind it.
           </p>
-          <h2>Acceptable use</h2>
           <p>
-            Do not attack, overload, or probe the service; do not get around
-            rate limits or share a paid key outside your organisation; do not
-            use FactLot to identify, profile, or contact private individuals. We
-            may suspend access that breaks these rules.
+            You accept these terms when you use the hosted service, start a paid
+            plan, or use an API key. If you do not agree, do not use the hosted
+            service. The service is for business and professional use by people
+            aged 18 or older.
           </p>
-          <h2>Paid plans</h2>
+
+          <h2 id="service">2. The service</h2>
           <p>
-            Plans are billed monthly in advance through Stripe and renew until
-            cancelled. Cancel any time from the billing portal; access continues
-            to the end of the paid period. For billing problems or refunds,
-            email contact@factlot.com. We will give at least 30 days' notice of
-            a price change for existing subscribers.
+            The hosted service is the FactLot API and remote MCP server at
+            api.factlot.com, the checkout and account pages at factlot.com, and
+            any registry download file we license to you. It returns
+            deterministic calculations, identifiers, rule results, document
+            checks and cited public-record facts.
           </p>
-          <h2>Availability and changes</h2>
           <p>
-            We work to keep the service available but do not guarantee it. The
-            service is provided "as is", without warranties of any kind, to the
-            extent the law allows. FactLot's total liability for any claim is
-            limited to the fees you paid in the three months before it. We may
-            change these terms; material changes will be posted here with a new
-            date.
+            The FactLot software is open source and licensed separately: the
+            platform under Apache-2.0, the schema and SDKs under MIT. Those
+            licences, not these terms, govern the code and any copy of it you
+            run yourself. These terms cover only the service we run for you.
           </p>
-          <h2>Contact</h2>
-          <p>contact@factlot.com</p>
+
+          <h2 id="keys">3. Accounts and API keys</h2>
+          <ul class="plain">
+            <li>
+              The Free plan needs no key. A paid plan gives you API keys: 1 on
+              Pro, up to 5 on Team. Each key is for one person or one
+              application under your control. Do not share a key outside your
+              organisation.
+            </li>
+            <li>
+              The email address you give Stripe at checkout is your account
+              email. We send notices to it, so keep it current.
+            </li>
+            <li>
+              A key is shown once, on the page Stripe returns you to after
+              checkout. We store only a one-way hash of it and cannot show it
+              again. A new key can take up to a minute to start working.
+            </li>
+            <li>
+              Keep your keys secret. You are responsible for use of your keys
+              until you replace them or tell us they are compromised. To replace
+              a key, call <code>POST /v1/billing/rotate</code> with it or email
+              us; the old key then stops working.
+            </li>
+            <li>
+              We may suspend or revoke a key that is used for abuse, breaks
+              these terms, or puts the service or other users at risk. Where we
+              reasonably can, we tell you by email first.
+            </li>
+          </ul>
+
+          <h2 id="billing">4. Plans, fees and billing</h2>
+          <p>
+            The plans and their limits are on the
+            <a href="https://factlot.com/#pricing">pricing page</a> and at
+            <code>https://api.factlot.com/v1/plans</code>. On the effective date
+            they are:
+          </p>
+          <ul class="plain">
+            <li>
+              <strong>Free, no key:</strong> every calculator, ID, fact, rules
+              and document tool at 60 requests a minute per IP address, and 100
+              registry lookups a day per IP address.
+            </li>
+            <li>
+              <strong>Pro, $49 a month:</strong> 1 API key, 600 requests a
+              minute, 5,000 registry lookups a month, email support.
+            </li>
+            <li>
+              <strong>Team, $599 a month:</strong> up to 5 API keys, 3,000
+              requests a minute, 100,000 registry lookups a month, priority
+              support, and a vote on which regions open next.
+            </li>
+            <li>
+              <strong
+                >Registry download licence, $2,400 a year per state
+                file:</strong
+              >
+              a state registry file refreshed weekly, licensed for your internal
+              use and not for redistribution. Available on request.
+            </li>
+            <li>
+              <strong>Enterprise, by quote:</strong> private deployment,
+              invoicing, no-training terms and SSO.
+            </li>
+          </ul>
+          <p>
+            <strong>Limits are hard caps.</strong> We never charge for overage.
+            When you reach a limit, the call returns HTTP 429 with the time the
+            limit resets and a link to the pricing page. A registry lookup is
+            one call to a <code>registry_</code> tool. Free lookups count per IP
+            address per day; paid lookups count per subscription per month, and
+            a Team plan's keys share one quota. Other tools never count toward a
+            lookup quota.
+          </p>
+          <p>
+            <strong>Billing.</strong> Pro and Team are billed monthly in advance
+            through Stripe Checkout, in US dollars. Stripe processes your
+            payment under its own terms; we never see your full card number.
+            Prices exclude taxes.
+          </p>
+          <p>
+            <strong
+              >Automatic renewal. Your subscription renews automatically every
+              month, and Stripe charges your payment method the monthly price on
+              each renewal date, until you cancel.</strong
+            >
+            The price, the renewal period and how to cancel are shown next to
+            each Start button before you go to checkout.
+          </p>
+          <p>
+            <strong>Cancellation.</strong> Cancel any time at
+            <a href="https://factlot.com/account">factlot.com/account</a> or in
+            the Stripe billing portal (<code>POST /v1/billing/portal</code> with
+            your key returns a link to it). Cancelling stops the next renewal.
+            Your keys keep working until the end of the month you have paid for,
+            then stop.
+          </p>
+          <p>
+            <strong>Refunds.</strong> We do not refund part of a month. If we
+            charge you in error, for example twice, the wrong amount, or after
+            you cancelled, email us and we will correct it.
+          </p>
+          <p>
+            <strong>Failed payments.</strong> If a payment fails, Stripe retries
+            it and your keys keep working while it does. If the subscription
+            ends unpaid, the keys stop working.
+          </p>
+          <p>
+            <strong>Taxes.</strong> You are responsible for sales, use,
+            value-added and similar taxes on your purchase, other than taxes on
+            our income. Where we must collect a tax, it is shown at checkout. If
+            checkout asks for a tax ID and you give one, it appears on your
+            invoices.
+          </p>
+          <p>
+            <strong>Price changes.</strong> We may change prices. For an
+            existing subscription we email your account email at least 30 days
+            before the new price applies; it applies from your first renewal
+            after that notice. If you do not accept it, cancel before that
+            renewal.
+          </p>
+          <p>
+            <strong>Download licences and Enterprise.</strong> A registry
+            download licence or an Enterprise service is ordered by email to
+            contact@factlot.com. It is governed by these terms plus the order or
+            written agreement we both sign; where they differ, the signed
+            document governs.
+          </p>
+
+          <h2 id="acceptable-use">5. Acceptable use</h2>
+          <p>You must not:</p>
+          <ul class="plain">
+            <li>
+              resell, sublicense or redistribute raw registry data, such as
+              records, files or bulk results, as a dataset or as part of a
+              service that competes with FactLot;
+            </li>
+            <li>
+              try to reconstruct the registry, or a substantial part of it, by
+              bulk or systematic extraction beyond your plan's quotas, including
+              by spreading requests over several keys, accounts or IP addresses;
+            </li>
+            <li>get around rate limits or quotas in any other way;</li>
+            <li>
+              use the service to identify, locate, profile or contact natural
+              persons, or to recover or infer an owner name a source withheld;
+            </li>
+            <li>
+              use the service for anything unlawful, including in breach of fair
+              housing, credit reporting, privacy or consumer-protection law;
+            </li>
+            <li>
+              attack, overload, probe or scan the service, or interfere with
+              other users; or
+            </li>
+            <li>
+              remove or alter the citations, warnings or rights notices on an
+              output, or present an output as something it is not.
+            </li>
+          </ul>
+          <p>
+            Using results in your own analyses and work product, within your
+            plan, is the intended use and is fine.
+          </p>
+
+          <h2 id="data">6. Public-record data and rights</h2>
+          <ul class="plain">
+            <li>
+              Registry facts come from public records published by government
+              bodies and other public sources, as each fact cites. FactLot does
+              not create those records.
+            </li>
+            <li>
+              Each fact carries a <code>rights</code> field with its source's
+              stated licence and any attribution the source requires. FactLot
+              passes these through. You must honour them when you use or share
+              the fact.
+            </li>
+            <li>
+              Sources whose terms are unclear, or whose terms do not allow us to
+              serve their data, are not served.
+            </li>
+            <li>
+              The registry stores organisation owners only and never stores the
+              name of a natural person. If a record names you as a person, or is
+              wrong, email us and we will review it and remove or correct it.
+            </li>
+            <li>
+              Public records can be incomplete, wrong or out of date, and
+              sources change without notice. We do not warrant that registry
+              data is complete, accurate or current. Each fact shows its source
+              and date so you can check it. A registry fact is a record of what
+              a source published; it is not a substitute for the advice of an
+              attorney or for checking the source.
+            </li>
+            <li>
+              We claim no rights in the underlying public records. To the extent
+              we have rights in the registry's selection, structure and
+              identifiers, you may use them under these terms.
+            </li>
+          </ul>
+
+          <h2 id="outputs">7. Your inputs and outputs</h2>
+          <ul class="plain">
+            <li>
+              You own what you send us (inputs). You give us only the permission
+              needed to process each request and answer it.
+            </li>
+            <li>
+              You may use what the service returns (outputs) for any lawful
+              purpose, subject to sections 5 and 6.
+            </li>
+            <li>
+              We keep no copy of your inputs or outputs and do not use them to
+              train models. The <a href="#privacy">privacy section</a> says what
+              we do record.
+            </li>
+            <li>
+              When you or your agent pass on an output that carries a citation,
+              keep the citation, source, date and rights notice as returned. Do
+              not alter them or attach them to a different value.
+            </li>
+          </ul>
+
+          <h2 id="disclaimers">8. Professional disclaimers</h2>
+          <p>
+            FactLot does arithmetic and returns cited records. Its outputs are
+            information. They are not legal, tax, accounting, investment,
+            appraisal or brokerage advice, and they are not a substitute for the
+            advice of an attorney.
+          </p>
+          <p>
+            Outputs are not an appraisal or an opinion of value (Tex. Occ. Code
+            §1103.003(1)).
+          </p>
+          <p>
+            FactLot is software. It is not a property tax consultant under Texas
+            Occupations Code chapter 1152, does not prepare, file or advise on
+            protests, and does not represent owners before an appraisal review
+            board. If you provide property tax services to others for
+            compensation, your own registration obligations apply.
+          </p>
+          <p>
+            FactLot is not a law firm, appraiser, broker, accountant or
+            investment adviser, and using it creates no professional
+            relationship. Read the warnings each result returns, and have a
+            qualified person review any result before you rely on it for a
+            decision.
+          </p>
+
+          <h2 id="documents">9. Confidential documents</h2>
+          <p>
+            The document tools check the text you send in memory to answer the
+            request; nothing is stored or logged. For leases or other documents
+            that must not leave your network, run FactLot yourself: the same
+            tools run self-hosted and make no network calls. Please do not email
+            confidential documents or personal data to contact@factlot.com.
+          </p>
+
+          <h2 id="privacy">10. Privacy</h2>
+          <p>
+            The <a href="https://factlot.com/privacy">privacy notice</a> says
+            what we collect, why, for how long, and who processes it for us. It
+            is part of these terms.
+          </p>
+
+          <h2 id="warranty">11. Warranty disclaimer</h2>
+          <p>
+            <strong
+              >TO THE FULLEST EXTENT THE LAW ALLOWS, THE SERVICE, ITS OUTPUTS
+              AND ALL REGISTRY DATA ARE PROVIDED "AS IS" AND "AS AVAILABLE",
+              WITH ALL FAULTS AND WITHOUT WARRANTIES OF ANY KIND, WHETHER
+              EXPRESS, IMPLIED OR STATUTORY. FACTLOT DISCLAIMS ALL IMPLIED
+              WARRANTIES, INCLUDING THE WARRANTIES OF MERCHANTABILITY, FITNESS
+              FOR A PARTICULAR PURPOSE, TITLE AND NON-INFRINGEMENT. FACTLOT DOES
+              NOT WARRANT THAT THE SERVICE WILL BE UNINTERRUPTED OR ERROR-FREE,
+              OR THAT PUBLIC RECORDS, REGISTRY DATA OR OUTPUTS ARE ACCURATE,
+              COMPLETE OR CURRENT.</strong
+            >
+          </p>
+          <p>
+            Outputs are not a substitute for the advice of an attorney. The
+            Free, Pro and Team plans come with no service-level commitment; we
+            work to keep the service available but do not guarantee it.
+          </p>
+
+          <h2 id="liability">12. Limitation of liability</h2>
+          <p>
+            <strong
+              >TO THE FULLEST EXTENT THE LAW ALLOWS: (A) NEITHER PARTY IS LIABLE
+              FOR INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, EXEMPLARY OR
+              PUNITIVE DAMAGES, OR FOR LOST PROFITS, REVENUE, DATA OR GOODWILL,
+              EVEN IF TOLD THEY WERE POSSIBLE; AND (B) FACTLOT'S TOTAL LIABILITY
+              FOR ALL CLAIMS ARISING OUT OF OR RELATING TO THE SERVICE OR THESE
+              TERMS IS LIMITED TO THE FEES YOU PAID FACTLOT IN THE 12 MONTHS
+              BEFORE THE CLAIM AROSE, OR US $100 IF YOU PAID NOTHING.</strong
+            >
+          </p>
+          <p>
+            Part (A) does not limit your duty to pay fees, your indemnity in
+            section 13, or your liability for breaking section 5. These limits
+            apply whatever the legal theory, and even if a remedy fails of its
+            essential purpose. Some places do not allow some of these
+            exclusions; there they apply only as far as the law allows.
+          </p>
+
+          <h2 id="indemnity">13. Indemnity</h2>
+          <p>
+            You will defend FactLot against any third-party claim, and pay the
+            resulting damages, fines, settlements and reasonable legal costs, to
+            the extent the claim arises from: your breach of section 5 or of a
+            source's licence terms; your inputs; or your use of outputs in
+            services you provide to others, including property tax, appraisal or
+            brokerage services. We will tell you promptly about the claim, let
+            you control its defence, and cooperate at your cost. You may not
+            settle a claim in a way that admits fault for FactLot or binds it
+            without our written consent.
+          </p>
+
+          <h2 id="termination">14. Suspension and termination</h2>
+          <ul class="plain">
+            <li>
+              You may stop using the service at any time. To end a paid plan,
+              cancel it as section 4 describes.
+            </li>
+            <li>
+              We may suspend or end your access at once if you break section 5,
+              do not pay, put the service or other users at risk, or if the law
+              requires it. Otherwise we give paid subscribers at least 30 days'
+              notice by email.
+            </li>
+            <li>
+              If we end a paid plan for any reason other than your breach, we
+              refund the unused part of any fee you paid in advance.
+            </li>
+            <li>
+              When access ends, your keys stop working. We hold none of your
+              inputs or outputs, so there is nothing to return; billing records
+              are kept as the privacy notice says.
+            </li>
+            <li>
+              Sections 4 (for amounts owed and refunds), 5 to 8 and 11 to 19
+              survive the end of these terms.
+            </li>
+          </ul>
+
+          <h2 id="changes">15. Changes to the service and these terms</h2>
+          <p>
+            We may add, change or remove features. Before removing a feature or
+            lowering a limit in a way that materially reduces a paid plan, we
+            email paid subscribers at least 30 days ahead.
+          </p>
+          <p>
+            We post changes to these terms here with a new effective date. For a
+            material change we also email paid subscribers and post a notice on
+            factlot.com at least 30 days before it takes effect. A change the
+            law requires, or one that fixes a security problem, may take effect
+            sooner. If you keep using the service after a change takes effect,
+            you accept it; if you do not accept it, cancel before then.
+          </p>
+
+          <h2 id="law">16. Governing law and venue</h2>
+          <p>
+            The laws of the State of Texas govern these terms and any dispute
+            about them or the service, without regard to conflict-of-laws rules.
+            The United Nations Convention on Contracts for the International
+            Sale of Goods does not apply. Any dispute will be brought only in
+            the state or federal courts located in Texas, and both parties
+            consent to those courts' jurisdiction.
+          </p>
+
+          <h2 id="notices">17. Notices and contact</h2>
+          <p>
+            Operator: Robert Stovall, doing business as FactLot, Texas, USA.<br />
+            Email:
+            <a href="mailto:contact@factlot.com">contact@factlot.com</a><br />
+            Postal address: pending.
+          </p>
+          <p>
+            We send notices to your account email (section 3), or to the address
+            you wrote to us from. You send notices to contact@factlot.com. An
+            email notice is given when it is sent, unless the sender receives a
+            delivery failure.
+          </p>
+
+          <h2 id="copyright">18. Copyright notices</h2>
+          <p>
+            If you believe material served by FactLot infringes your copyright,
+            email contact@factlot.com with the subject "Copyright notice" and
+            include what 17 U.S.C. §512(c)(3) requires: your physical or
+            electronic signature; the work you say is infringed; the material
+            and where it appears, such as the fact ID or URL; your contact
+            details; a statement that you believe in good faith the use is not
+            authorised; and a statement, under penalty of perjury, that your
+            notice is accurate and that you are the owner or authorised to act
+            for the owner. Postal address: pending.
+          </p>
+
+          <h2 id="general">19. General</h2>
+          <ul class="plain">
+            <li>
+              <strong>Entire agreement.</strong> These terms, the privacy notice
+              and any order or agreement we both sign are the whole agreement
+              about the hosted service. Terms on your purchase orders do not
+              apply.
+            </li>
+            <li>
+              <strong>Assignment.</strong> You may not transfer these terms
+              without our written consent, except to a successor to your
+              business. We may transfer them to a successor to the FactLot
+              business, including a company formed to run it, and will tell you
+              by email.
+            </li>
+            <li>
+              <strong>Severability.</strong> If a court finds part of these
+              terms unenforceable, that part is enforced as far as the law
+              allows and the rest stays in effect.
+            </li>
+            <li>
+              <strong>No waiver.</strong> Not enforcing a term at one time does
+              not waive it.
+            </li>
+            <li>
+              <strong>Events beyond control.</strong> Neither party is liable
+              for a delay or failure caused by events beyond its reasonable
+              control, such as an outage of a hosting provider. This does not
+              excuse a failure to pay.
+            </li>
+          </ul>
+
+          <h2 id="history">Revision history</h2>
+          <ul class="plain small">
+            <li>
+              7 November 2026: rewritten for the Free, Pro and Team plans,
+              registry lookup quotas, the registry download licence and
+              Enterprise; named the operator; added automatic renewal,
+              cancellation, refund, tax and price-change terms, acceptable use,
+              source rights, the Texas professional disclaimers, indemnity,
+              Texas law and venue, and copyright notices; set the liability cap
+              at the fees paid in the previous 12 months or US $100. Replaces
+              the terms of 3 November 2026.
+            </li>
+          </ul>
         </div>
       </section>
     </main>
@@ -80,6 +537,7 @@
       <div class="wrap">
         <p>
           <a href="https://factlot.com/">Home</a> ·
+          <a href="https://factlot.com/#pricing">Pricing</a> ·
           <a href="https://factlot.com/privacy">Privacy</a> ·
           <a href="https://factlot.com/terms">Terms</a> ·
           <a href="mailto:contact@factlot.com">contact@factlot.com</a>
