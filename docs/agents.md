@@ -222,8 +222,10 @@ calls below are in order; each result is reported as returned, with its warnings
 
 4. `calc_tx_unequal_appraisal` with the comparables the user chose and the adjustments the user
    supplied, each with a reason. The figures below are the inputs of the first case in
-   `spec/vectors/calc/tx_unequal_appraisal.json`, not roll values; with real data, `id`, `value`,
-   areas and `citation` come from step 3.
+   `spec/vectors/calc/tx_unequal_appraisal.json`, not roll values. With real data, pass from each
+   chosen candidate in step 3 only `id`, `county_fips`, `value`, `value_basis`,
+   `improvement_area_sf`, `land_area_sf` and `citation`; the tool rejects any other field, and a
+   `null` (leave those out, including a `null` `locator` inside `citation`).
 
    ```json
    {
@@ -323,9 +325,11 @@ calls below are in order; each result is reported as returned, with its warnings
    2027-05-14. A notice delivered after April 15 moves the deadline; pass `notice_delivered_date`.
 6. Save the step 4 arguments as `evidence.json` and run
    `python3 examples/reconciliation/build.py tx_unequal_appraisal --input evidence.json --out evidence.xlsx`
-   for a workbook with live Excel formulas beside FactLot's numbers. `fact_package_create` bundles
-   the cited roll facts under a title such as "Unequal-appraisal arithmetic, tax year 2027"; no
-   ownership facts go in it, and FactLot never signs it.
+   for a workbook with live Excel formulas beside FactLot's numbers. For a fact package, call
+   `registry_get` on the subject and on each comparable the user chose. Keep only facts whose
+   `predicate` starts with `parcel.`. Drop every `ownership.*` fact, the ownership links and any
+   entity record, and never show them. Then call `fact_package_create` with the kept facts and the
+   title "Unequal-appraisal arithmetic, tax year 2027". FactLot never signs it.
 
 The `tx-unequal-appraisal-arithmetic` and `tx-property-tax-protest` skills in the Claude Code
 plugin follow this sequence.
@@ -417,7 +421,9 @@ terms for AI use are unclear.
   choice, not a legal standard; a person decides which to use and supplies any adjustments. The
   tool never returns owner names, mailing addresses, or ownership facts. Do not look up the owners
   of the subject or of candidate parcels (`registry_get` and `registry_owned_by` records can carry
-  the owner of record); ownership is not part of this comparison.
+  the owner of record); ownership is not part of this comparison. The one use of `registry_get`
+  in this workflow is the fact package in step 6 of the worked example, keeping only `parcel.*`
+  facts.
 
 ## Example: Claude Messages API with the Python SDK
 

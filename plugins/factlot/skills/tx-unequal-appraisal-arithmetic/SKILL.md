@@ -35,7 +35,8 @@ them, and do not shorten it:
 - **No owner information.** Never look up, show, or discuss who owns the subject or a comparable;
   ownership is not part of this comparison. The tools in this workflow return none. Do not call
   `registry_get`, `registry_owned_by` or any other tool on the subject or a candidate, because
-  those records can include the owner of record.
+  those records can include the owner of record, except as step 7 allows, keeping only `parcel.*`
+  facts.
 - **Never file, sign a §1.111 agent designation, contact the appraisal district, or draft a
   communication to it.**
 - **Never call the output an appraisal, a valuation, or an opinion of value** (Occupations Code
@@ -105,9 +106,12 @@ comparables are given.
   per land SF, `none` on whole values;
 - `adjustment_combine`: `sum` (percentages added, then applied once) or `compound` (each applied in
   turn);
-- `comparables`: as returned in step 4 (their `citation` passes through) or as the user gives
-  them, each with the user's `adjustments`: `label`, `kind` (`percent` as a decimal, `amount` in
-  USD, or `psf`), `value` and `reason`.
+- `comparables`: from each chosen candidate pass only `id`, `county_fips`, `value`,
+  `value_basis`, `improvement_area_sf`, `land_area_sf` and `citation`; the tool rejects any other
+  field. Leave out any of them that is `null` (and a `null` `locator` inside `citation`): the tool
+  rejects nulls too. For a comparable the user gives by hand, pass the same fields. Add to each the
+  user's `adjustments`: `label`, `kind` (`percent` as a decimal, `amount` in USD, or `psf`), `value` and
+  `reason`.
 
 Report each comparable's normalized and adjusted value, the sorted list, `median_adjusted_value`
 (for an even count, the mean of the two middle values, both shown), the subject's value minus the
@@ -126,11 +130,13 @@ do not suggest an NOI, a market rent or a cap rate.
 
 Offer two artifacts:
 
-- **A cited fact package**: `fact_package_create` with the subject's and comparables' facts as the
-  registry returned them (each cited to the appraisal-roll file, with its source's rights) and the
-  title "Unequal-appraisal arithmetic, tax year N" (the tax year compared). No ownership facts go
-  in it. Anyone can check it with `fact_package_verify`. FactLot never signs it; the holder signs
-  with their own key if they choose to.
+- **A cited fact package**: call `registry_get` on the subject and on each comparable the user
+  chose. Keep only facts whose `predicate` starts with `parcel.`. Drop every `ownership.*` fact,
+  the ownership links and any entity record, and never show them. Then call `fact_package_create`
+  with the kept facts and the title "Unequal-appraisal arithmetic, tax year N" (the tax year
+  compared). Each fact stays cited to the appraisal-roll file, with its source's rights. Anyone can
+  check the package with `fact_package_verify`. FactLot never signs it; the holder signs with their
+  own key if they choose to.
 - **An Excel workbook**: with the Python SDK checked out, `python3
 examples/reconciliation/build.py tx_unequal_appraisal --input evidence.json --out evidence.xlsx`
   writes the adjustment grid with live Excel formulas beside FactLot's numbers. The input file is
