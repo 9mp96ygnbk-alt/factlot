@@ -79,6 +79,7 @@ export * from "./rent.ts";
 export * from "./tx_unequal_appraisal.ts";
 export * from "./waterfall.ts";
 export * from "./units.ts";
+export { harrisBuildingAreaReadiness } from "./harris_building_area_readiness.ts";
 
 export interface Calculator {
   id: string;

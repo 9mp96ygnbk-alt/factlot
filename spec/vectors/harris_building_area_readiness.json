@@ -1,0 +1,1423 @@
+{
+  "note": "Hand-written expected diagnostics, by hand from the field rules. These checks are not a valuation and were not produced by running FactLot. Values are synthetic. A recognized base_ar label is caller-supplied format, not publisher verification. $special in an input is revived by the test into NaN or an infinity before the call. $def and $issue appear only in expected objects and are expanded by the test.",
+  "secrets": [
+    "Ada Owner",
+    "99 Hidden Mail",
+    "SECRET-ASK",
+    "SECRET-EXTRA",
+    "SECRET-RULE",
+    "SECRET-LABEL",
+    "SECRET-COMM",
+    "ROW-OWNER",
+    "STRING-AREA",
+    "424242",
+    "434343",
+    "333333",
+    "222222",
+    "232323",
+    "111111",
+    "121212",
+    "8888881",
+    "7777771",
+    "50000000001",
+    "654321",
+    "616161",
+    "626262",
+    "636363",
+    "646464",
+    "647464",
+    "656565",
+    "666666",
+    "676767",
+    "686868",
+    "696969",
+    "515151",
+    "24680",
+    "13579",
+    "9.25",
+    "-5",
+    "87717",
+    "75796",
+    "11921",
+    "86583",
+    "NaN",
+    "Infinity"
+  ],
+  "definitions": {
+    "commercial": "Caller-supplied HCAD base_ar (Base Area). HCAD Definition_help states that Base Area equals Building Area for commercial properties. A recognized label is a caller-supplied format check only and does not verify the figure against the publisher. Not actual area (act_ar), not account bld_ar, not rentable area, and not a sum of building rows."
+  },
+  "issue_library": {
+    "input": {
+      "class": "invalid",
+      "code": "input",
+      "field": "input",
+      "message": "input must be an object of caller-supplied fields."
+    },
+    "unknown_input": {
+      "class": "invalid",
+      "code": "unknown_property",
+      "field": "input",
+      "message": "The input includes a property this diagnostic does not accept. That property was ignored and was not copied into the result."
+    },
+    "unknown_row": {
+      "class": "invalid",
+      "code": "unknown_property",
+      "field": "building_row",
+      "message": "A building row includes a property this diagnostic does not accept. That row was not used and was not copied into the result."
+    },
+    "owner": {
+      "class": "refused",
+      "code": "owner_not_returned",
+      "field": "ownership",
+      "message": "Owner names and mailing addresses are not read and are not returned."
+    },
+    "bad_fips": {
+      "class": "invalid",
+      "code": "county_fips",
+      "field": "county_fips",
+      "message": "county_fips must be a 3-digit string. Harris County is 201. Other types are not coerced, and other counties are not assessed."
+    },
+    "jurisdiction": {
+      "class": "mismatched",
+      "code": "jurisdiction",
+      "field": "county_fips",
+      "message": "This diagnostic is only for Harris County, Texas (FIPS 201). It does not assess other counties, does not use their published counts, and does not acquire their data."
+    },
+    "commercial_type": {
+      "class": "invalid",
+      "code": "commercial",
+      "field": "commercial",
+      "message": "commercial must be a boolean when it is present. Other types are not coerced."
+    },
+    "requested_type": {
+      "class": "invalid",
+      "code": "requested",
+      "field": "requested",
+      "message": "requested must be a list of names when it is present."
+    },
+    "generic": {
+      "class": "refused",
+      "code": "unsupported",
+      "field": "requested",
+      "message": "This diagnostic only checks the format of a caller-supplied Harris commercial building area. It does not compute an area, does not fetch county data, and does not treat unknown as zero."
+    },
+    "tax_rate": {
+      "class": "refused",
+      "code": "unsupported",
+      "field": "tax_rate",
+      "message": "No tax rate is evaluated. Nothing is fetched. Unknown is not zero."
+    },
+    "exemption": {
+      "class": "refused",
+      "code": "unsupported",
+      "field": "exemption",
+      "message": "Exemption eligibility is not determined. Unknown is not no exemption. Nothing is fetched."
+    },
+    "sale": {
+      "class": "refused",
+      "code": "unsupported",
+      "field": "sale",
+      "message": "No sale price is read. Roll market value is not a sale. Nothing is fetched."
+    },
+    "rent": {
+      "class": "refused",
+      "code": "unsupported",
+      "field": "rent",
+      "message": "Rent is not inferred. Nothing is fetched."
+    },
+    "noi": {
+      "class": "refused",
+      "code": "unsupported",
+      "field": "noi",
+      "message": "NOI is not inferred. Nothing is fetched."
+    },
+    "cap_rate": {
+      "class": "refused",
+      "code": "unsupported",
+      "field": "cap_rate",
+      "message": "A cap rate is not inferred. Nothing is fetched."
+    },
+    "flood": {
+      "class": "refused",
+      "code": "unsupported",
+      "field": "flood",
+      "message": "Flood status is not determined. Nothing is fetched."
+    },
+    "elevation": {
+      "class": "refused",
+      "code": "unsupported",
+      "field": "elevation",
+      "message": "Elevation is not determined. Nothing is fetched."
+    },
+    "insurance": {
+      "class": "refused",
+      "code": "unsupported",
+      "field": "insurance",
+      "message": "Insurance conclusions are not made. Nothing is fetched."
+    },
+    "buildability": {
+      "class": "refused",
+      "code": "unsupported",
+      "field": "buildability",
+      "message": "Buildability is not determined. Nothing is fetched."
+    },
+    "valuation": {
+      "class": "refused",
+      "code": "unsupported",
+      "field": "valuation",
+      "message": "No automatic valuation is made. This diagnostic does not conclude value. Nothing is fetched."
+    },
+    "aggregation": {
+      "class": "limitation",
+      "code": "aggregation",
+      "field": "aggregation_rule",
+      "message": "An aggregation rule was supplied. It is not an official rule and was not applied. Building rows were not summed."
+    },
+    "row_count": {
+      "class": "invalid",
+      "code": "row_count",
+      "field": "building_row_count",
+      "message": "building_row_count must be an integer of 0 or more. Text and booleans are not coerced."
+    },
+    "multi_type": {
+      "class": "invalid",
+      "code": "multi_building",
+      "field": "multi_building",
+      "message": "multi_building must be a boolean when it is present."
+    },
+    "rows_type": {
+      "class": "invalid",
+      "code": "building_rows",
+      "field": "building_rows",
+      "message": "building_rows must be a list when it is present."
+    },
+    "row_shape": {
+      "class": "invalid",
+      "code": "row_shape",
+      "field": "building_rows",
+      "message": "Each building row must be an object. That row was not used."
+    },
+    "row_contradiction": {
+      "class": "invalid",
+      "code": "row_contradiction",
+      "field": "building_rows",
+      "message": "The building-row count and the building-row list disagree. No area was selected and rows were not summed."
+    },
+    "multi": {
+      "class": "limitation",
+      "code": "multi_row",
+      "field": "building_rows",
+      "message": "The caller indicated more than one building row or a multi-building account. No official aggregation rule is applied, so the rows are not summed and no building area is filled."
+    },
+    "no_row": {
+      "class": "missing",
+      "code": "no_building_row",
+      "field": "building_rows",
+      "message": "The caller reported no building row. No building area was invented."
+    },
+    "act_ar": {
+      "class": "limitation",
+      "code": "act_ar",
+      "field": "act_ar",
+      "message": "act_ar is not a recommended commercial Total Building Area fill. Empirical agreement with bld_ar is not semantic equivalence. The figure was not copied and was not substituted for base_ar."
+    },
+    "money": {
+      "class": "limitation",
+      "code": "not_building_area",
+      "field": "market_value",
+      "message": "Market value and appraised value are not building area. They were not copied into the result."
+    },
+    "money_label": {
+      "class": "invalid",
+      "code": "not_building_area",
+      "field": "commercial_building_area",
+      "message": "A market or appraised value was supplied as the area candidate. It is not a building area and was not copied."
+    },
+    "bld_not_used": {
+      "class": "limitation",
+      "code": "not_substituted",
+      "field": "bld_ar",
+      "message": "Account bld_ar is not the commercial Base Area. It was not substituted for base_ar and was not summed with it."
+    },
+    "not_repair": {
+      "class": "limitation",
+      "code": "not_a_repair",
+      "field": "bld_ar",
+      "message": "bld_ar is 0. The filled commercial candidate is the caller-supplied base area only. It does not repair or replace the zero account bld_ar."
+    },
+    "strict": {
+      "class": "limitation",
+      "code": "candidate_label_only",
+      "field": "commercial_building_area",
+      "message": "Exactly one building row was asserted, bld_ar is 0, and base_ar is a positive finite square-foot figure. The commercial candidate label is recorded only. The figure was not copied into a filled value and is not a repair of bld_ar."
+    },
+    "second": {
+      "class": "limitation",
+      "code": "not_substituted",
+      "field": "commercial_building_area",
+      "message": "A second area figure was not substituted for base_ar and was not summed with it."
+    },
+    "blank": {
+      "class": "invalid",
+      "code": "blank",
+      "field": "commercial_building_area",
+      "message": "The commercial building-area candidate is blank. Blank is not a building area and was not copied."
+    },
+    "zero": {
+      "class": "invalid",
+      "code": "zero",
+      "field": "commercial_building_area",
+      "message": "The commercial building-area candidate is 0. Zero is not a building area and is not treated as missing. The figure was not copied."
+    },
+    "wrong_type": {
+      "class": "invalid",
+      "code": "wrong_type",
+      "field": "commercial_building_area",
+      "message": "The commercial building-area candidate must be a number. Text, booleans, and other values are not coerced and were not copied."
+    },
+    "non_finite": {
+      "class": "invalid",
+      "code": "non_finite",
+      "field": "commercial_building_area",
+      "message": "The commercial building-area candidate is not finite. It was not coerced and was not copied."
+    },
+    "negative": {
+      "class": "invalid",
+      "code": "negative",
+      "field": "commercial_building_area",
+      "message": "The commercial building-area candidate is negative. A negative figure is not a building area and was not copied."
+    },
+    "implausible": {
+      "class": "invalid",
+      "code": "implausible",
+      "field": "commercial_building_area",
+      "message": "The commercial building-area candidate exceeds 500000000 sf, the registry audit's implausible-area line. It is not filled."
+    },
+    "units": {
+      "class": "invalid",
+      "code": "units",
+      "field": "commercial_building_area",
+      "message": "The commercial building-area candidate is not in square feet. Acres are not converted, and an unrecognized unit is not assumed. The figure was not copied."
+    },
+    "missing": {
+      "class": "missing",
+      "code": "absent",
+      "field": "commercial_building_area",
+      "message": "No caller-supplied commercial base_ar (Base Area) was recognized. act_ar and bld_ar are not substituted. Nothing was fetched."
+    },
+    "not_commercial": {
+      "class": "invalid",
+      "code": "not_commercial",
+      "field": "commercial_building_area",
+      "message": "The Building Area label is a commercial candidate only when commercial is true. The figure was not copied."
+    },
+    "acreage_only": {
+      "class": "invalid",
+      "code": "units",
+      "field": "acreage",
+      "message": "Acreage was supplied without a square-foot commercial building area. Acres are not converted into building area and were not copied."
+    },
+    "acreage_beside": {
+      "class": "limitation",
+      "code": "acres",
+      "field": "acreage",
+      "message": "Acreage was not converted into commercial building area and was not copied."
+    },
+    "unrecognized": {
+      "class": "limitation",
+      "code": "unrecognized_label",
+      "field": "commercial_building_area",
+      "message": "The supplied label is not a Harris commercial base-area or building-area field. The figure was not copied."
+    },
+    "unlabeled": {
+      "class": "limitation",
+      "code": "unlabeled",
+      "field": "commercial_building_area",
+      "message": "An unlabeled value is not a commercial building area. It was not copied."
+    }
+  },
+  "shell": {
+    "diagnostic": "harris_commercial_building_area_readiness",
+    "not_county_complete": true,
+    "queryable": false,
+    "verified_against_publisher": false,
+    "publisher_content_checked": false,
+    "coverage_claim": "field_diagnostic_only",
+    "check_kind": "caller_supplied_format",
+    "computed": false,
+    "imputed": false,
+    "substituted": false,
+    "summed": false,
+    "repair_claimed": false,
+    "act_ar_recommended_commercial_fill": false,
+    "county_fips": null,
+    "jurisdiction_status": "unchecked",
+    "status": "invalid",
+    "commercial_candidate_label": null,
+    "filled": null,
+    "issues": []
+  },
+  "cases": [
+    {
+      "name": "positive base_ar in square feet is echoed and not certified",
+      "input": { "county_fips": "201", "base_ar": 12500, "unit": "sf" },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "filled_recognized",
+        "commercial_candidate_label": "base_ar",
+        "filled": {
+          "field": "base_ar",
+          "value": 12500,
+          "unit": "sf",
+          "definition": { "$def": "commercial" },
+          "evidence": "caller_supplied_format",
+          "verified_against_publisher": false
+        }
+      }
+    },
+    {
+      "name": "omitted unit on base_ar stays square feet and is not an acreage conversion",
+      "input": { "county_fips": "201", "base_ar": 40000 },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "filled_recognized",
+        "commercial_candidate_label": "base_ar",
+        "filled": {
+          "field": "base_ar",
+          "value": 40000,
+          "unit": "sf",
+          "definition": { "$def": "commercial" },
+          "evidence": "caller_supplied_format",
+          "verified_against_publisher": false
+        }
+      }
+    },
+    {
+      "name": "a non-integer square-foot base_ar is echoed as supplied",
+      "input": { "county_fips": "201", "base_ar": 1500.5, "unit": "sf" },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "filled_recognized",
+        "commercial_candidate_label": "base_ar",
+        "filled": {
+          "field": "base_ar",
+          "value": 1500.5,
+          "unit": "sf",
+          "definition": { "$def": "commercial" },
+          "evidence": "caller_supplied_format",
+          "verified_against_publisher": false
+        }
+      }
+    },
+    {
+      "name": "Base Area label is the commercial candidate",
+      "input": {
+        "county_fips": "201",
+        "label": "Base Area",
+        "value": 80,
+        "unit": "sf"
+      },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "filled_recognized",
+        "commercial_candidate_label": "Base Area",
+        "filled": {
+          "field": "Base Area",
+          "value": 80,
+          "unit": "sf",
+          "definition": { "$def": "commercial" },
+          "evidence": "caller_supplied_format",
+          "verified_against_publisher": false
+        }
+      }
+    },
+    {
+      "name": "Building Area is recognized only when the caller marks commercial",
+      "input": {
+        "county_fips": "201",
+        "label": "Building Area",
+        "value": 9000,
+        "unit": "sf",
+        "commercial": true
+      },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "filled_recognized",
+        "commercial_candidate_label": "Building Area",
+        "filled": {
+          "field": "Building Area",
+          "value": 9000,
+          "unit": "sf",
+          "definition": { "$def": "commercial" },
+          "evidence": "caller_supplied_format",
+          "verified_against_publisher": false
+        }
+      }
+    },
+    {
+      "name": "the implausible-area line itself is still a caller-supplied figure",
+      "input": { "county_fips": "201", "base_ar": 500000000, "unit": "sf" },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "filled_recognized",
+        "commercial_candidate_label": "base_ar",
+        "filled": {
+          "field": "base_ar",
+          "value": 500000000,
+          "unit": "sf",
+          "definition": { "$def": "commercial" },
+          "evidence": "caller_supplied_format",
+          "verified_against_publisher": false
+        }
+      }
+    },
+    {
+      "name": "Building Area without commercial true is not filled",
+      "input": {
+        "county_fips": "201",
+        "label": "Building Area",
+        "value": 24680,
+        "unit": "sf",
+        "commercial": false
+      },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "invalid",
+        "issues": [{ "$issue": "not_commercial" }]
+      }
+    },
+    {
+      "name": "Building Area with commercial omitted is not filled",
+      "input": {
+        "county_fips": "201",
+        "label": "Building Area",
+        "value": 13579,
+        "unit": "sf"
+      },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "invalid",
+        "issues": [{ "$issue": "not_commercial" }]
+      }
+    },
+    {
+      "name": "act_ar alone is not a commercial building area",
+      "input": { "county_fips": "201", "act_ar": 424242 },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "missing",
+        "issues": [{ "$issue": "missing" }, { "$issue": "act_ar" }]
+      }
+    },
+    {
+      "name": "act_ar is not substituted when base_ar is present",
+      "input": {
+        "county_fips": "201",
+        "base_ar": 12500,
+        "unit": "sf",
+        "act_ar": 424242
+      },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "filled_recognized",
+        "commercial_candidate_label": "base_ar",
+        "filled": {
+          "field": "base_ar",
+          "value": 12500,
+          "unit": "sf",
+          "definition": { "$def": "commercial" },
+          "evidence": "caller_supplied_format",
+          "verified_against_publisher": false
+        },
+        "issues": [{ "$issue": "act_ar" }]
+      }
+    },
+    {
+      "name": "Actual Area label is not a recommended commercial fill",
+      "input": {
+        "county_fips": "201",
+        "label": "Actual Area",
+        "value": 434343,
+        "unit": "sf"
+      },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "missing",
+        "issues": [{ "$issue": "act_ar" }]
+      }
+    },
+    {
+      "name": "Total Building Area label is not filled from act_ar semantics",
+      "input": {
+        "county_fips": "201",
+        "label": "Total Building Area",
+        "value": 434343
+      },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "missing",
+        "issues": [{ "$issue": "act_ar" }]
+      }
+    },
+    {
+      "name": "account bld_ar alone is not the commercial base area",
+      "input": { "county_fips": "201", "bld_ar": 333333 },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "missing",
+        "issues": [{ "$issue": "missing" }, { "$issue": "bld_not_used" }]
+      }
+    },
+    {
+      "name": "one row, zero bld_ar, and positive base_ar is a label only",
+      "input": {
+        "county_fips": "201",
+        "building_row_count": 1,
+        "bld_ar": 0,
+        "base_ar": 222222,
+        "unit": "sf"
+      },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "strict_single_row_base_ar_candidate_label_only",
+        "commercial_candidate_label": "base_ar",
+        "issues": [{ "$issue": "strict" }]
+      }
+    },
+    {
+      "name": "one building row object with zero bld_ar does not copy base_ar",
+      "input": {
+        "county_fips": "201",
+        "building_row_count": 1,
+        "building_rows": [{ "base_ar": 232323, "bld_ar": 0 }]
+      },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "strict_single_row_base_ar_candidate_label_only",
+        "commercial_candidate_label": "base_ar",
+        "issues": [{ "$issue": "strict" }]
+      }
+    },
+    {
+      "name": "zero bld_ar without a single-row assertion does not claim a repair",
+      "input": {
+        "county_fips": "201",
+        "bld_ar": 0,
+        "base_ar": 12500,
+        "unit": "sf"
+      },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "filled_recognized",
+        "commercial_candidate_label": "base_ar",
+        "filled": {
+          "field": "base_ar",
+          "value": 12500,
+          "unit": "sf",
+          "definition": { "$def": "commercial" },
+          "evidence": "caller_supplied_format",
+          "verified_against_publisher": false
+        },
+        "issues": [{ "$issue": "not_repair" }]
+      }
+    },
+    {
+      "name": "a string zero bld_ar is not the numeric zero that triggers the label-only status",
+      "input": {
+        "county_fips": "201",
+        "building_row_count": 1,
+        "bld_ar": "0",
+        "base_ar": 12500,
+        "unit": "sf"
+      },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "filled_recognized",
+        "commercial_candidate_label": "base_ar",
+        "filled": {
+          "field": "base_ar",
+          "value": 12500,
+          "unit": "sf",
+          "definition": { "$def": "commercial" },
+          "evidence": "caller_supplied_format",
+          "verified_against_publisher": false
+        },
+        "issues": [{ "$issue": "bld_not_used" }]
+      }
+    },
+    {
+      "name": "multi_building does not sum or fill",
+      "input": {
+        "county_fips": "201",
+        "multi_building": true,
+        "base_ar": 616161
+      },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "multi_row_unknown",
+        "issues": [{ "$issue": "multi" }]
+      }
+    },
+    {
+      "name": "two building rows are not summed",
+      "input": {
+        "county_fips": "201",
+        "building_row_count": 2,
+        "building_rows": [{ "base_ar": 111111 }, { "base_ar": 121212 }]
+      },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "multi_row_unknown",
+        "issues": [{ "$issue": "multi" }]
+      }
+    },
+    {
+      "name": "no building row does not invent an area from account fields",
+      "input": {
+        "county_fips": "201",
+        "building_row_count": 0,
+        "base_ar": 626262,
+        "bld_ar": 333333
+      },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "no_building_row",
+        "issues": [{ "$issue": "no_row" }]
+      }
+    },
+    {
+      "name": "an empty building-row list is no building row",
+      "input": { "county_fips": "201", "building_rows": [] },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "no_building_row",
+        "issues": [{ "$issue": "no_row" }]
+      }
+    },
+    {
+      "name": "numeric zero is not a building area",
+      "input": { "county_fips": "201", "base_ar": 0, "unit": "sf" },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "zero",
+        "commercial_candidate_label": "base_ar",
+        "issues": [{ "$issue": "zero" }]
+      }
+    },
+    {
+      "name": "null base_ar is blank",
+      "input": { "county_fips": "201", "base_ar": null },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "blank",
+        "commercial_candidate_label": "base_ar",
+        "issues": [{ "$issue": "blank" }]
+      }
+    },
+    {
+      "name": "an empty base_ar string is blank",
+      "input": { "county_fips": "201", "base_ar": "" },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "blank",
+        "commercial_candidate_label": "base_ar",
+        "issues": [{ "$issue": "blank" }]
+      }
+    },
+    {
+      "name": "whitespace base_ar is blank",
+      "input": { "county_fips": "201", "base_ar": "  " },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "blank",
+        "commercial_candidate_label": "base_ar",
+        "issues": [{ "$issue": "blank" }]
+      }
+    },
+    {
+      "name": "a numeric string is not coerced",
+      "input": { "county_fips": "201", "base_ar": "STRING-AREA", "unit": "sf" },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "invalid",
+        "commercial_candidate_label": "base_ar",
+        "issues": [{ "$issue": "wrong_type" }]
+      }
+    },
+    {
+      "name": "a boolean is not a building area",
+      "input": { "county_fips": "201", "base_ar": true },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "invalid",
+        "commercial_candidate_label": "base_ar",
+        "issues": [{ "$issue": "wrong_type" }]
+      }
+    },
+    {
+      "name": "the string zero is not numeric zero",
+      "input": { "county_fips": "201", "base_ar": "0", "unit": "sf" },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "invalid",
+        "commercial_candidate_label": "base_ar",
+        "issues": [{ "$issue": "wrong_type" }]
+      }
+    },
+    {
+      "name": "NaN is not finite and is not copied",
+      "input": { "county_fips": "201", "base_ar": { "$special": "nan" } },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "invalid",
+        "commercial_candidate_label": "base_ar",
+        "issues": [{ "$issue": "non_finite" }]
+      }
+    },
+    {
+      "name": "infinity is not finite and is not copied",
+      "input": { "county_fips": "201", "base_ar": { "$special": "inf" } },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "invalid",
+        "commercial_candidate_label": "base_ar",
+        "issues": [{ "$issue": "non_finite" }]
+      }
+    },
+    {
+      "name": "negative infinity is not finite and is not copied",
+      "input": { "county_fips": "201", "base_ar": { "$special": "-inf" } },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "invalid",
+        "commercial_candidate_label": "base_ar",
+        "issues": [{ "$issue": "non_finite" }]
+      }
+    },
+    {
+      "name": "a negative figure is not a building area",
+      "input": { "county_fips": "201", "base_ar": -5, "unit": "sf" },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "invalid",
+        "commercial_candidate_label": "base_ar",
+        "issues": [{ "$issue": "negative" }]
+      }
+    },
+    {
+      "name": "acres are not converted",
+      "input": { "county_fips": "201", "base_ar": 646464, "unit": "acres" },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "units_unknown",
+        "commercial_candidate_label": "base_ar",
+        "issues": [{ "$issue": "units" }]
+      }
+    },
+    {
+      "name": "an uppercase SF unit is not assumed",
+      "input": { "county_fips": "201", "base_ar": 647464, "unit": "SF" },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "units_unknown",
+        "commercial_candidate_label": "base_ar",
+        "issues": [{ "$issue": "units" }]
+      }
+    },
+    {
+      "name": "acreage alone is not a square-foot building area",
+      "input": { "county_fips": "201", "acreage": 9.25 },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "units_unknown",
+        "issues": [{ "$issue": "acreage_only" }]
+      }
+    },
+    {
+      "name": "acreage beside base_ar is not converted or summed",
+      "input": {
+        "county_fips": "201",
+        "base_ar": 12500,
+        "unit": "sf",
+        "acreage": 9.25
+      },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "filled_recognized",
+        "commercial_candidate_label": "base_ar",
+        "filled": {
+          "field": "base_ar",
+          "value": 12500,
+          "unit": "sf",
+          "definition": { "$def": "commercial" },
+          "evidence": "caller_supplied_format",
+          "verified_against_publisher": false
+        },
+        "issues": [{ "$issue": "acreage_beside" }]
+      }
+    },
+    {
+      "name": "a market-value label is not building area",
+      "input": {
+        "county_fips": "201",
+        "label": "market_value",
+        "value": 8888881,
+        "unit": "sf"
+      },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "invalid",
+        "issues": [{ "$issue": "money_label" }]
+      }
+    },
+    {
+      "name": "market and appraised amounts beside base_ar are not copied",
+      "input": {
+        "county_fips": "201",
+        "base_ar": 12500,
+        "unit": "sf",
+        "market_value": 8888881,
+        "appraised_value": 7777771
+      },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "filled_recognized",
+        "commercial_candidate_label": "base_ar",
+        "filled": {
+          "field": "base_ar",
+          "value": 12500,
+          "unit": "sf",
+          "definition": { "$def": "commercial" },
+          "evidence": "caller_supplied_format",
+          "verified_against_publisher": false
+        },
+        "issues": [{ "$issue": "money" }]
+      }
+    },
+    {
+      "name": "another county is not assessed and no count is embedded",
+      "input": { "county_fips": "453", "base_ar": 616161 },
+      "set": {
+        "county_fips": "453",
+        "jurisdiction_status": "not_harris",
+        "status": "not_harris",
+        "issues": [{ "$issue": "jurisdiction" }]
+      }
+    },
+    {
+      "name": "a missing county is not treated as Harris",
+      "input": {},
+      "set": { "issues": [{ "$issue": "bad_fips" }] }
+    },
+    {
+      "name": "a numeric FIPS is not coerced",
+      "input": { "county_fips": 201, "base_ar": 12500 },
+      "set": { "issues": [{ "$issue": "bad_fips" }] }
+    },
+    {
+      "name": "a short FIPS is not Harris and is not another-county assessment",
+      "input": { "county_fips": "20" },
+      "set": { "issues": [{ "$issue": "bad_fips" }] }
+    },
+    {
+      "name": "null input is invalid",
+      "input": null,
+      "set": { "issues": [{ "$issue": "input" }] }
+    },
+    {
+      "name": "an array input is invalid",
+      "input": [],
+      "set": { "issues": [{ "$issue": "input" }] }
+    },
+    {
+      "name": "owner fields are refused and not returned",
+      "input": {
+        "county_fips": "201",
+        "base_ar": 12500,
+        "unit": "sf",
+        "owner_name": "Ada Owner",
+        "owner_mailing_address": "99 Hidden Mail",
+        "owner": "Ada Owner"
+      },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "filled_recognized",
+        "commercial_candidate_label": "base_ar",
+        "filled": {
+          "field": "base_ar",
+          "value": 12500,
+          "unit": "sf",
+          "definition": { "$def": "commercial" },
+          "evidence": "caller_supplied_format",
+          "verified_against_publisher": false
+        },
+        "issues": [{ "$issue": "owner" }]
+      }
+    },
+    {
+      "name": "an owner on another county is not returned",
+      "input": { "county_fips": "305", "owner_name": "Ada Owner" },
+      "set": {
+        "county_fips": "305",
+        "jurisdiction_status": "not_harris",
+        "status": "not_harris",
+        "issues": [{ "$issue": "jurisdiction" }, { "$issue": "owner" }]
+      }
+    },
+    {
+      "name": "a tax-rate request is refused and the area is not filled",
+      "input": {
+        "county_fips": "201",
+        "requested": ["tax_rate"],
+        "base_ar": 636363
+      },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "refused",
+        "issues": [{ "$issue": "tax_rate" }]
+      }
+    },
+    {
+      "name": "repeated tax-rate requests collapse to one refusal",
+      "input": {
+        "county_fips": "201",
+        "requested": ["tax_rate", "parcel.tax_rate"]
+      },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "refused",
+        "issues": [{ "$issue": "tax_rate" }]
+      }
+    },
+    {
+      "name": "valuation and other prohibited conclusions are refused",
+      "input": {
+        "county_fips": "201",
+        "requested": [
+          "tax_rate",
+          "exemption",
+          "sale",
+          "sale_price",
+          "rent",
+          "lease.rent",
+          "noi",
+          "cap_rate",
+          "flood",
+          "elevation",
+          "insurance",
+          "buildability",
+          "valuation",
+          "avm",
+          "automatic_valuation",
+          "SECRET-ASK"
+        ],
+        "base_ar": 636363
+      },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "refused",
+        "issues": [
+          { "$issue": "buildability" },
+          { "$issue": "cap_rate" },
+          { "$issue": "elevation" },
+          { "$issue": "exemption" },
+          { "$issue": "flood" },
+          { "$issue": "insurance" },
+          { "$issue": "noi" },
+          { "$issue": "rent" },
+          { "$issue": "generic" },
+          { "$issue": "sale" },
+          { "$issue": "tax_rate" },
+          { "$issue": "valuation" }
+        ]
+      }
+    },
+    {
+      "name": "an unknown property is ignored and not copied",
+      "input": {
+        "county_fips": "201",
+        "base_ar": 12500,
+        "unit": "sf",
+        "extra": "SECRET-EXTRA"
+      },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "filled_recognized",
+        "commercial_candidate_label": "base_ar",
+        "filled": {
+          "field": "base_ar",
+          "value": 12500,
+          "unit": "sf",
+          "definition": { "$def": "commercial" },
+          "evidence": "caller_supplied_format",
+          "verified_against_publisher": false
+        },
+        "issues": [{ "$issue": "unknown_input" }]
+      }
+    },
+    {
+      "name": "an implausible area is not filled",
+      "input": { "county_fips": "201", "base_ar": 50000000001, "unit": "sf" },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "invalid",
+        "commercial_candidate_label": "base_ar",
+        "issues": [{ "$issue": "implausible" }]
+      }
+    },
+    {
+      "name": "a zero count and one row are not reconciled",
+      "input": {
+        "county_fips": "201",
+        "building_row_count": 0,
+        "building_rows": [{ "base_ar": 656565 }]
+      },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "invalid",
+        "issues": [{ "$issue": "row_contradiction" }]
+      }
+    },
+    {
+      "name": "a single count with multi_building stays unresolved",
+      "input": {
+        "county_fips": "201",
+        "building_row_count": 1,
+        "multi_building": true,
+        "base_ar": 666666
+      },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "multi_row_unknown",
+        "issues": [{ "$issue": "multi" }]
+      }
+    },
+    {
+      "name": "a caller aggregation rule is not applied",
+      "input": {
+        "county_fips": "201",
+        "aggregation_rule": "SECRET-RULE",
+        "building_rows": [{ "base_ar": 111111 }, { "base_ar": 121212 }]
+      },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "multi_row_unknown",
+        "issues": [{ "$issue": "aggregation" }, { "$issue": "multi" }]
+      }
+    },
+    {
+      "name": "BASE_AR is not the Harris base_ar label",
+      "input": { "county_fips": "201", "label": "BASE_AR", "value": 654321 },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "missing",
+        "issues": [{ "$issue": "unrecognized" }]
+      }
+    },
+    {
+      "name": "positive account bld_ar is not substituted for base_ar",
+      "input": {
+        "county_fips": "201",
+        "building_row_count": 1,
+        "bld_ar": 333333,
+        "base_ar": 12500,
+        "unit": "sf"
+      },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "filled_recognized",
+        "commercial_candidate_label": "base_ar",
+        "filled": {
+          "field": "base_ar",
+          "value": 12500,
+          "unit": "sf",
+          "definition": { "$def": "commercial" },
+          "evidence": "caller_supplied_format",
+          "verified_against_publisher": false
+        },
+        "issues": [{ "$issue": "bld_not_used" }]
+      }
+    },
+    {
+      "name": "a second labeled figure is not summed with base_ar",
+      "input": {
+        "county_fips": "201",
+        "base_ar": 12500,
+        "unit": "sf",
+        "label": "Base Area",
+        "value": 515151
+      },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "filled_recognized",
+        "commercial_candidate_label": "base_ar",
+        "filled": {
+          "field": "base_ar",
+          "value": 12500,
+          "unit": "sf",
+          "definition": { "$def": "commercial" },
+          "evidence": "caller_supplied_format",
+          "verified_against_publisher": false
+        },
+        "issues": [{ "$issue": "second" }]
+      }
+    },
+    {
+      "name": "a non-boolean commercial flag is not copied",
+      "input": {
+        "county_fips": "201",
+        "base_ar": 12500,
+        "unit": "sf",
+        "commercial": "SECRET-COMM"
+      },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "filled_recognized",
+        "commercial_candidate_label": "base_ar",
+        "filled": {
+          "field": "base_ar",
+          "value": 12500,
+          "unit": "sf",
+          "definition": { "$def": "commercial" },
+          "evidence": "caller_supplied_format",
+          "verified_against_publisher": false
+        },
+        "issues": [{ "$issue": "commercial_type" }]
+      }
+    },
+    {
+      "name": "label base_ar with a value is the same commercial candidate",
+      "input": { "county_fips": "201", "label": "base_ar", "value": 80 },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "filled_recognized",
+        "commercial_candidate_label": "base_ar",
+        "filled": {
+          "field": "base_ar",
+          "value": 80,
+          "unit": "sf",
+          "definition": { "$def": "commercial" },
+          "evidence": "caller_supplied_format",
+          "verified_against_publisher": false
+        }
+      }
+    },
+    {
+      "name": "acres on a single zero-bld row are not the label-only repair",
+      "input": {
+        "county_fips": "201",
+        "building_row_count": 1,
+        "bld_ar": 0,
+        "base_ar": 676767,
+        "unit": "acres"
+      },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "units_unknown",
+        "commercial_candidate_label": "base_ar",
+        "issues": [{ "$issue": "units" }, { "$issue": "bld_not_used" }]
+      }
+    },
+    {
+      "name": "a building row that carries an owner is not used as the area source",
+      "input": {
+        "county_fips": "201",
+        "building_rows": [{ "base_ar": 686868, "owner_name": "ROW-OWNER" }]
+      },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "missing",
+        "issues": [
+          { "$issue": "unknown_row" },
+          { "$issue": "missing" },
+          { "$issue": "owner" }
+        ]
+      }
+    },
+    {
+      "name": "a non-object building row is not read",
+      "input": {
+        "county_fips": "201",
+        "building_rows": [null],
+        "base_ar": 696969
+      },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "invalid",
+        "issues": [{ "$issue": "row_shape" }]
+      }
+    },
+    {
+      "name": "requested must be a list",
+      "input": {
+        "county_fips": "201",
+        "requested": "SECRET-ASK",
+        "base_ar": 636363
+      },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "invalid",
+        "issues": [{ "$issue": "requested_type" }]
+      }
+    },
+    {
+      "name": "a non-boolean multi_building flag is not treated as multi",
+      "input": { "county_fips": "201", "multi_building": "yes" },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "invalid",
+        "issues": [{ "$issue": "multi_type" }]
+      }
+    },
+    {
+      "name": "a text row count is not coerced into multi",
+      "input": { "county_fips": "201", "building_row_count": "2" },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "invalid",
+        "issues": [{ "$issue": "row_count" }]
+      }
+    },
+    {
+      "name": "real multiple rows stay unresolved even if the count is text",
+      "input": {
+        "county_fips": "201",
+        "building_row_count": "2",
+        "building_rows": [{ "base_ar": 111111 }, { "base_ar": 121212 }]
+      },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "multi_row_unknown",
+        "issues": [{ "$issue": "row_count" }, { "$issue": "multi" }]
+      }
+    },
+    {
+      "name": "a row base_ar is preferred over an unrecognized card label",
+      "input": {
+        "county_fips": "201",
+        "building_row_count": 1,
+        "label": "SECRET-LABEL",
+        "value": 515151,
+        "building_rows": [{ "base_ar": 12500, "unit": "sf" }]
+      },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "filled_recognized",
+        "commercial_candidate_label": "base_ar",
+        "filled": {
+          "field": "base_ar",
+          "value": 12500,
+          "unit": "sf",
+          "definition": { "$def": "commercial" },
+          "evidence": "caller_supplied_format",
+          "verified_against_publisher": false
+        },
+        "issues": [{ "$issue": "second" }]
+      }
+    },
+    {
+      "name": "a Base Area label with no figure is missing",
+      "input": { "county_fips": "201", "label": "Base Area" },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "missing",
+        "commercial_candidate_label": "Base Area",
+        "issues": [{ "$issue": "missing" }]
+      }
+    },
+    {
+      "name": "an empty request list does not refuse a base_ar",
+      "input": {
+        "county_fips": "201",
+        "requested": [],
+        "base_ar": 12500,
+        "unit": "sf"
+      },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "filled_recognized",
+        "commercial_candidate_label": "base_ar",
+        "filled": {
+          "field": "base_ar",
+          "value": 12500,
+          "unit": "sf",
+          "definition": { "$def": "commercial" },
+          "evidence": "caller_supplied_format",
+          "verified_against_publisher": false
+        }
+      }
+    },
+    {
+      "name": "an unlabeled value is not a commercial building area",
+      "input": { "county_fips": "201", "value": 515151 },
+      "set": {
+        "county_fips": "201",
+        "jurisdiction_status": "harris",
+        "status": "missing",
+        "issues": [{ "$issue": "unlabeled" }]
+      }
+    }
+  ]
+}

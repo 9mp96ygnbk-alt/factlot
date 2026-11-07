@@ -70,6 +70,7 @@ from .tools import (  # noqa: E402
     run_tool,
     tool_definitions,
 )
+from .harris_building_area_readiness import harris_building_area_readiness  # noqa: E402
 
 __all__ = [
     "CALCULATORS",
@@ -130,4 +131,5 @@ __all__ = [
     "tx_property_tax_protest_deadline",
     "validate_fact",
     "walt",
+    "harris_building_area_readiness",
 ]
