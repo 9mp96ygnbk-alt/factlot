@@ -8,10 +8,14 @@
  * open). The evaluator supports exactly the syntax this package writes: numbers, "strings",
  * references and ranges (Sheet!$A$1:$B$2), + - * / & = <> < > <= >=, unary minus, and ROUND,
  * SUM, PRODUCT, MEDIAN, MIN, MAX, ABS, IF and COUNTIF (exact-match criteria). Anything else
- * throws, so a workbook never holds a formula this module did not evaluate.
+ * throws, so a workbook never holds a formula this module did not evaluate. Where Excel itself
+ * gives an error value (a division by zero is #DIV/0!, arithmetic on text #VALUE!), so does
+ * the evaluator: the cell caches the error and the formulas that read it carry it on, as in
+ * Excel; nothing throws.
  */
 import { round } from "@factlot/calc";
 
+import { stripControls } from "./format.ts";
 import { zip } from "./zip.ts";
 
 // --- addresses ----------------------------------------------------------------------------------
@@ -149,10 +153,9 @@ export type Style = keyof typeof STYLE_TABLE;
 const STYLE_NAMES = Object.keys(STYLE_TABLE) as Style[];
 
 const esc = (s: string) =>
-  s
-    // XML 1.0 forbids most control characters.
-    // eslint-disable-next-line no-control-regex
-    .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f￾￿]/g, "")
+  // XML 1.0 forbids most control characters; bidirectional controls are removed too.
+  stripControls(s)
+    .replace(/[\ufffe\uffff]/g, "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
@@ -212,6 +215,16 @@ function stylesXml(): string {
 
 export type CellValue = number | string | boolean | null;
 
+/** An Excel error value, cached in the cell as Excel would show it. */
+export class XlError extends Error {
+  override name = "XlError";
+  readonly code: "#DIV/0!" | "#VALUE!" | "#NUM!";
+  constructor(code: "#DIV/0!" | "#VALUE!" | "#NUM!") {
+    super(code);
+    this.code = code;
+  }
+}
+
 export interface Formula {
   formula: string;
 }
@@ -223,7 +236,7 @@ interface Cell {
   value: CellValue;
   formula?: string;
   style: Style;
-  cached?: CellValue;
+  cached?: CellValue | XlError;
 }
 
 /** Excel's limit on a cell's text. */
@@ -327,7 +340,7 @@ export class Workbook {
   }
 
   /** The value at Sheet!$A$1 (a formula's cached result). */
-  valueAt(ref: string): CellValue {
+  valueAt(ref: string): CellValue | XlError {
     const [sheet, a] = ref.replace(/\$/g, "").split("!") as [string, string];
     const { row, col } = splitAddr(a);
     const cell = this.getSheet(sheet).get(row, col);
@@ -457,7 +470,11 @@ function sheetXml(s: Sheet, footer: string | undefined): string {
       if (cell.formula !== undefined) {
         const v = cell.cached;
         const f = esc(cell.formula);
-        if (typeof v === "boolean")
+        if (v instanceof XlError)
+          out.push(
+            `<c r="${a}" s="${sid}" t="e"><f>${f}</f><v>${esc(v.code)}</v></c>`,
+          );
+        else if (typeof v === "boolean")
           out.push(
             `<c r="${a}" s="${sid}" t="b"><f>${f}</f><v>${v ? 1 : 0}</v></c>`,
           );
@@ -500,7 +517,7 @@ function sheetXml(s: Sheet, footer: string | undefined): string {
 
 // --- evaluator ----------------------------------------------------------------------------------
 
-type Value = CellValue | Value[][];
+type Value = CellValue | XlError | Value[][];
 
 type Node =
   | { t: "num"; v: number }
@@ -601,7 +618,9 @@ function parse(src: string, sheet: string): Node {
   return node;
 }
 
+/** A number from a value; an error value propagates (it is thrown to the cell being computed). */
 const numOf = (v: Value): number => {
+  if (v instanceof XlError) throw v;
   if (v === null || v === "") return 0;
   if (typeof v === "boolean") return v ? 1 : 0;
   if (typeof v === "number") return v;
@@ -609,23 +628,32 @@ const numOf = (v: Value): number => {
     const n = Number(v);
     if (Number.isFinite(n)) return n;
   }
-  throw new Error(`not a number: ${JSON.stringify(v)}`);
+  throw new XlError("#VALUE!");
 };
 
-/** Numbers in arguments (ranges skip text and blanks, as Excel's SUM does). */
+/** A finite result, else #NUM! (as Excel shows an overflow). */
+const finite = (x: number): number => {
+  if (!Number.isFinite(x)) throw new XlError("#NUM!");
+  return x;
+};
+
+/** Numbers in arguments (ranges skip text and blanks, as Excel's SUM does; errors propagate). */
 function numbers(args: Value[]): number[] {
   const out: number[] = [];
   for (const a of args)
     if (Array.isArray(a)) {
       for (const row of a)
-        for (const v of row) if (typeof v === "number") out.push(v);
+        for (const v of row) {
+          if (v instanceof XlError) throw v;
+          if (typeof v === "number") out.push(v);
+        }
     } else out.push(numOf(a));
   return out;
 }
 
 class Evaluator {
   private readonly wb: Workbook;
-  private readonly memo = new Map<string, CellValue>();
+  private readonly memo = new Map<string, CellValue | XlError>();
   private readonly busy = new Set<string>();
   private readonly parsed = new Map<string, Node>();
 
@@ -633,7 +661,7 @@ class Evaluator {
     this.wb = wb;
   }
 
-  cellValue(sheet: string, row: number, col: number): CellValue {
+  cellValue(sheet: string, row: number, col: number): CellValue | XlError {
     const key = `${sheet}!${row},${col}`;
     if (this.memo.has(key)) return this.memo.get(key)!;
     const cell = this.wb.getSheet(sheet).get(row, col);
@@ -646,8 +674,16 @@ class Evaluator {
       node = parse(cell.formula, sheet);
       this.parsed.set(key, node);
     }
-    const v = this.eval(node);
-    this.busy.delete(key);
+    let v: Value;
+    try {
+      v = this.eval(node);
+      if (typeof v === "number") v = finite(v);
+    } catch (err) {
+      if (!(err instanceof XlError)) throw err;
+      v = err;
+    } finally {
+      this.busy.delete(key);
+    }
     if (Array.isArray(v)) throw new Error(`range as a value at ${key}`);
     const out = typeof v === "number" && Object.is(v, -0) ? 0 : v;
     this.memo.set(key, out);
@@ -664,7 +700,11 @@ class Evaluator {
         return -numOf(this.eval(n.e));
       case "ref": {
         const a = splitAddr(n.a);
-        if (!n.b) return this.cellValue(n.sheet, a.row, a.col);
+        if (!n.b) {
+          const v = this.cellValue(n.sheet, a.row, a.col);
+          if (v instanceof XlError) throw v;
+          return v;
+        }
         const b = splitAddr(n.b);
         const rows: Value[][] = [];
         for (let r = Math.min(a.row, b.row); r <= Math.max(a.row, b.row); r++) {
@@ -687,12 +727,17 @@ class Evaluator {
             return numOf(l) * numOf(r);
           case "/": {
             const d = numOf(r);
-            if (d === 0) throw new Error("division by zero");
-            return numOf(l) / d;
+            const x = numOf(l);
+            if (d === 0) throw new XlError("#DIV/0!");
+            return x / d;
           }
           case "&":
+            if (l instanceof XlError) throw l;
+            if (r instanceof XlError) throw r;
             return `${String(l ?? "")}${String(r ?? "")}`;
           default: {
+            if (l instanceof XlError) throw l;
+            if (r instanceof XlError) throw r;
             const cmp =
               typeof l === "string" || typeof r === "string"
                 ? String(l ?? "").localeCompare(String(r ?? ""))
@@ -732,7 +777,7 @@ class Evaluator {
             return Math.abs(numOf(args[0]!));
           case "MEDIAN": {
             const xs = numbers(args).sort((a, b) => a - b);
-            if (!xs.length) throw new Error("MEDIAN of nothing");
+            if (!xs.length) throw new XlError("#NUM!");
             const m = xs.length >> 1;
             return xs.length % 2 ? xs[m]! : (xs[m - 1]! + xs[m]!) / 2;
           }

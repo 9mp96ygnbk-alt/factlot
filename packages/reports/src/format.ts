@@ -15,6 +15,20 @@ export function decimalsOf(x: number): number {
   return Math.max(0, frac - exp);
 }
 
+/**
+ * Text with control characters (C0 but tab, line feed and carriage return; DEL; C1) and the
+ * bidirectional embedding, override and isolate controls (U+202A–U+202E, U+2066–U+2069)
+ * removed, so supplied text cannot hide or reorder what a document shows.
+ */
+/* eslint-disable no-control-regex */
+export function stripControls(s: string): string {
+  return s.replace(
+    /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g,
+    "",
+  );
+}
+/* eslint-enable no-control-regex */
+
 function group(int: string): string {
   return int.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }

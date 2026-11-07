@@ -6,7 +6,7 @@
 import type { TxUnequalAppraisalInput } from "@factlot/calc";
 
 import type { Block, Provenance, ReportDoc } from "../doc.ts";
-import { putLines } from "../doc.ts";
+import { appendBlocks, putLines } from "../doc.ts";
 import { usd, pct } from "../format.ts";
 import type { TxResult } from "../validate.ts";
 import { Workbook, addr, fx, range, type Sheet } from "../xlsx.ts";
@@ -132,7 +132,7 @@ export function txDoc(k: KindInput): ReportDoc {
   if (k.ctx.subject_citation) {
     blocks.push({
       t: "subheading",
-      text: "Subject value source (supplied with the request)",
+      text: "Subject value source (supplied by the caller)",
     });
     blocks.push({
       t: "kv",
@@ -147,6 +147,11 @@ export function txDoc(k: KindInput): ReportDoc {
   }
 
   blocks.push({ t: "heading", text: "Comparables grid" });
+  blocks.push({
+    t: "para",
+    grey: true,
+    text: "Supplied by the caller: the comparables, their ids and values, the adjustments with their labels and reasons, and the citations. FactLot computed the rest.",
+  });
   const norm = v.normalize_by !== "none";
   blocks.push({
     t: "table",
@@ -179,7 +184,10 @@ export function txDoc(k: KindInput): ReportDoc {
     ]),
   });
 
-  blocks.push({ t: "heading", text: "Adjustments and reasons (the user's)" });
+  blocks.push({
+    t: "heading",
+    text: "Adjustments and reasons (supplied by the caller)",
+  });
   const adj = v.comparables.flatMap((c) =>
     c.adjustments.map((a) => [
       nameOf(c),
@@ -261,7 +269,7 @@ export function txDoc(k: KindInput): ReportDoc {
 
   blocks.push(...warningsBlocks(r.warnings));
 
-  blocks.push({ t: "heading", text: "Citations" });
+  blocks.push({ t: "heading", text: "Citations (supplied by the caller)" });
   const citeRows: (string | null)[][] = [];
   if (k.ctx.subject_citation)
     citeRows.push([
@@ -648,7 +656,7 @@ function gridSheet(
   );
 
   row += 4;
-  sh.put(row++, 1, "Adjustments and reasons (the user's)", "bold");
+  sh.put(row++, 1, "Adjustments and reasons (supplied by the caller)", "bold");
   ["Comparable", "Kind", "Label", "Value", "Reason"].forEach((h, i) =>
     sh.put(row, i + 1, h, "header"),
   );
@@ -697,7 +705,8 @@ function userReadme(
       "and a Status. Difference is ROUND(Excel - FactLot, n), n shown in the Tolerance column; 0 means the two agree.",
     "If you change an input on Grid, the FactLot column on Reconcile does not change (it is a recorded output); " +
       "call calc_tx_unequal_appraisal again to refresh it.",
-    "Steps: the tool's audit trail. Law: the statutes the tool cites.",
+    "Steps: the tool's audit trail. Law: the statutes the tool cites. Provenance: how the figures were " +
+      "reached (FactLot's run of the tool on the arguments, listed on Inputs as sent) and when.",
   ]);
   row++;
   sh.put(row, 1, `FactLot version ${p.version}. Calculator reconciled`, "bold");
@@ -767,5 +776,18 @@ export async function txXlsx(k: KindInput): Promise<Uint8Array> {
     law.put(4 + i, 2, l.covers, "text");
     law.put(4 + i, 3, l.url, "text");
   });
+
+  // How the figures were reached: the input check, the arguments as sent, provenance.
+  const prov = wb.sheet("Provenance");
+  [46, 22, 60].forEach((w, i) => prov.width(i + 1, w));
+  prov.put(1, 1, "Input check and provenance", "title");
+  appendBlocks(
+    wb,
+    prov,
+    2,
+    closingBlocks(k, "calc_tx_unequal_appraisal"),
+    `Unequal-appraisal arithmetic, tax year ${v.tax_year}`,
+    new Map(),
+  );
   return wb.bytes();
 }

@@ -9,6 +9,8 @@ import { build } from "esbuild";
 import { PDFDocument, PDFRawStream } from "pdf-lib";
 
 import { fold } from "./ics.ts";
+import { MAX_CELL_CHARS, MAX_PDF_LINES, PdfWriter } from "./pdf.ts";
+import { Workbook, fx } from "./xlsx.ts";
 import { pct, usd, num } from "./format.ts";
 import {
   KIND_FORMATS,
@@ -301,7 +303,7 @@ describe("format", () => {
 
 describe("input checks", () => {
   for (const s of SAMPLES)
-    it(`${s.tool}: every successful vector case passes, with and without arguments`, async () => {
+    it(`${s.tool}: every successful vector case builds from FactLot's run; a result alone is ${s.kind === "lease_abstract" ? "accepted as supplied" : "refused"}`, async () => {
       const name = s.tool.replace(/^calc_/, "");
       const all =
         s.tool === "doc_abstract_lease" ? abstractCases : calcCases(name);
@@ -309,15 +311,33 @@ describe("input checks", () => {
       for (const args of all) {
         const input = resultOf(s.tool, args);
         const a = await createReport(
-          { kind: s.kind, format: "pdf", input },
+          { kind: s.kind, format: "pdf", arguments: args },
           { now: NOW },
         );
-        assert.equal(a.check, "checked");
+        assert.equal(a.check, "computed");
+        assert.equal(a.result_mismatch, undefined);
         const b = await createReport(
           { kind: s.kind, format: "pdf", input, arguments: args },
           { now: NOW },
         );
-        assert.equal(b.check, "recomputed");
+        assert.equal(b.check, "computed");
+        assert.equal(b.result_mismatch, false);
+        if (s.kind === "lease_abstract")
+          assert.equal(
+            (
+              await createReport(
+                { kind: s.kind, format: "pdf", input },
+                { now: NOW },
+              )
+            ).check,
+            "supplied",
+          );
+        else
+          await rejects(
+            { kind: s.kind, format: "pdf", input },
+            "ArgumentsRequired",
+            /^arguments$/,
+          );
       }
     });
 
@@ -327,6 +347,7 @@ describe("input checks", () => {
       value: Json;
       formula: Json;
       steps: unknown[];
+      warnings: string[];
     };
 
   it("arguments alone: FactLot computes the result", async () => {
@@ -338,70 +359,131 @@ describe("input checks", () => {
     assert.equal(f.source, "calc_debt_sizing@3");
   });
 
-  it("a hand-edited figure is refused", async () => {
+  it("a tampered result sent with the arguments is never used: the document has FactLot's figures and result_mismatch is true", async () => {
     const r = txResult();
-    r.value.median_adjusted_value =
-      (r.value.median_adjusted_value as number) - 1000;
-    await rejects(
-      { kind: "tx_unequal_appraisal", format: "pdf", input: r },
-      "NotAToolResult",
-      /median_adjusted_value/,
+    const median = r.value.median_adjusted_value as number;
+    // A coherent fabrication: the subject tripled, with the figures that follow from it.
+    r.value.subject_value = (r.value.subject_value as number) * 3;
+    r.value.subject_minus_median = (r.value.subject_value as number) - median;
+    r.warnings = ["FactLot recommends you protest."];
+    const f = await createReport(
+      {
+        kind: "tx_unequal_appraisal",
+        format: "pdf",
+        input: r,
+        arguments: tx.args,
+      },
+      { now: NOW },
     );
+    assert.equal(f.check, "computed");
+    assert.equal(f.result_mismatch, true);
+    const flat = (await readPdf(f.bytes)).text.replace(/\s+/g, " ");
+    const real = resultOf(tx.tool, tx.args) as {
+      value: { subject_value: number };
+    };
+    assert.ok(
+      flat.includes(usd(real.value.subject_value)),
+      "FactLot's subject value",
+    );
+    assert.ok(
+      !flat.includes(usd(r.value.subject_value as number)),
+      "not the tampered one",
+    );
+    assert.ok(!flat.includes("recommends"), "not the tampered warning");
+    assert.ok(flat.includes("it differs from this run and was not used"));
     const d = structuredClone(
       resultOf("calc_dcf_pro_forma", SAMPLES[7]!.args),
-    ) as { value: Json };
-    d.value.value = (d.value.value as number) * 1.1;
+    ) as {
+      value: Json;
+    };
+    d.value.unlevered_irr = 0.4242;
+    const x = await createReport(
+      {
+        kind: "dcf_summary",
+        format: "xlsx",
+        input: d,
+        arguments: SAMPLES[7]!.args,
+      },
+      { now: NOW },
+    );
+    assert.equal(x.result_mismatch, true);
+    const all = [...(await readXlsx(x.bytes)).xml.values()].join("");
+    assert.ok(
+      !all.includes("0.4242"),
+      "the tampered IRR is not in the workbook",
+    );
+  });
+
+  it("lease_abstract: a supplied result with an unknown field or edited counts is refused", async () => {
+    const r = structuredClone(
+      resultOf("doc_abstract_lease", abstractCases[0]!),
+    ) as {
+      summary: Json;
+    } & Json;
+    (r as Json).recommendation = "renew";
     await rejects(
-      { kind: "dcf_summary", format: "xlsx", input: d },
+      { kind: "lease_abstract", format: "pdf", input: r },
       "NotAToolResult",
-      /value\.value/,
     );
     const c = structuredClone(
-      resultOf("calc_cam_reconciliation", SAMPLES[2]!.args),
-    ) as { value: Json };
-    c.value.balance_due = 1;
+      resultOf("doc_abstract_lease", abstractCases[0]!),
+    ) as {
+      summary: { fields: number };
+    };
+    c.summary.fields += 1;
     await rejects(
-      { kind: "cam_reconciliation", format: "pdf", input: c },
+      { kind: "lease_abstract", format: "pdf", input: c },
       "NotAToolResult",
-      /balance_due/,
+      /summary\.fields/,
     );
   });
 
-  it("an unknown field, a wrong formula or another tool's result is refused", async () => {
-    const r = txResult();
-    (r.value as Json).recommendation = "protest";
-    await rejects(
-      { kind: "tx_unequal_appraisal", format: "pdf", input: r },
-      "NotAToolResult",
-    );
-    const v = txResult();
-    v.formula.version = 99;
-    await rejects(
-      { kind: "tx_unequal_appraisal", format: "pdf", input: v },
-      "FormulaVersion",
-    );
-    await rejects(
-      {
-        kind: "debt_sizing",
-        format: "pdf",
-        input: resultOf("calc_dcf_pro_forma", SAMPLES[7]!.args),
-      },
-      "NotAToolResult",
-    );
-    await rejects(
-      { kind: "debt_sizing", format: "pdf", input: { value: { max_loan: 1 } } },
-      "NotAToolResult",
-    );
+  it("lease_abstract: every page says where the values came from, never that the numbers are the tool's results", async () => {
+    const args = abstractCases[0]!;
+    const input = resultOf("doc_abstract_lease", args);
+    for (const [req, label] of [
+      [
+        { input },
+        "Abstract values as supplied by the caller; FactLot did not recompute them.",
+      ],
+      [
+        { arguments: args },
+        "Abstract values as supplied by the caller and checked against the lease text sent.",
+      ],
+    ] as const) {
+      const pdf = await createReport(
+        { kind: "lease_abstract", format: "pdf", ...req },
+        { now: NOW },
+      );
+      const p = await readPdf(pdf.bytes);
+      const flat = p.text.replace(/\s+/g, " ");
+      assert.ok(
+        flat.split(label).length - 1 >= p.pages,
+        `label on each of ${p.pages} pages`,
+      );
+      assert.ok(!flat.includes("numbers are the tool's results"));
+      const xl = await createReport(
+        { kind: "lease_abstract", format: "xlsx", ...req },
+        { now: NOW },
+      );
+      const x = await readXlsx(xl.bytes);
+      const all = [...x.xml.values()].join("");
+      assert.ok(!all.includes("numbers are the tool"));
+      for (const [name, xml] of x.xml)
+        if (name.startsWith("xl/worksheets/"))
+          assert.ok(xml.includes(`&amp;8${label}`), `${name} print footer`);
+    }
   });
 
-  it("a result that does not match its arguments is refused", async () => {
+  it("a result that does not match its arguments is flagged, not used", async () => {
     const args = structuredClone(SAMPLES[4]!.args);
     const input = resultOf("calc_debt_sizing", args);
     (args as Json).noi = (args.noi as number) + 1;
-    await rejects(
+    const f = await createReport(
       { kind: "debt_sizing", format: "pdf", input, arguments: args },
-      "ResultMismatch",
+      { now: NOW },
     );
+    assert.equal(f.result_mismatch, true);
     await rejects(
       { kind: "debt_sizing", format: "pdf", arguments: { noi: -1 } },
       "ArgumentsError",
@@ -422,8 +504,13 @@ describe("input checks", () => {
     );
     await rejects(
       { kind: "debt_sizing", format: "pdf" },
+      "ArgumentsRequired",
+      /arguments/,
+    );
+    await rejects(
+      { kind: "lease_abstract", format: "pdf" },
       "InputError",
-      /input/,
+      /arguments/,
     );
     await rejects(
       { kind: "debt_sizing", format: "pdf", input: {}, extra: 1 },
@@ -454,7 +541,10 @@ describe("documents", () => {
           f.filename,
           /^factlot-[a-z0-9-]+-2026-11-07\.(xlsx|pdf|ics)$/,
         );
-        const footer = `Generated by FactLot 0.4.0 on 2026-11-07 12:00:00 UTC from ${f.source}; numbers are the tool's results; see https://factlot.com/terms`;
+        const footer =
+          s.kind === "lease_abstract"
+            ? `Abstract values as supplied by the caller and checked against the lease text sent. Generated by FactLot 0.4.0 on 2026-11-07 12:00:00 UTC from ${f.source}`
+            : `Generated by FactLot 0.4.0 on 2026-11-07 12:00:00 UTC from ${f.source}; numbers are the tool's results; see https://factlot.com/terms`;
         if (format === "xlsx") {
           const x = await readXlsx(f.bytes);
           assert.ok(x.sheets.includes("ReadMe"));
@@ -516,7 +606,7 @@ describe("documents", () => {
       {
         kind: "tx_unequal_appraisal",
         format: "pdf",
-        input: r,
+        arguments: s.args,
         context: {
           subject_citation: {
             document_id: "fl:document:sha256-abc",
@@ -553,14 +643,9 @@ describe("documents", () => {
     const r = resultOf(s.tool, s.args) as {
       value: { median_adjusted_value: number };
     };
-    for (const args of [s.args, undefined]) {
+    {
       const f = await createReport(
-        {
-          kind: "tx_unequal_appraisal",
-          format: "xlsx",
-          input: r,
-          ...(args ? { arguments: args } : {}),
-        },
+        { kind: "tx_unequal_appraisal", format: "xlsx", arguments: s.args },
         { now: NOW },
       );
       const x = await readXlsx(f.bytes);
@@ -570,7 +655,22 @@ describe("documents", () => {
         "Grid",
         "Steps",
         "Law",
+        "Provenance",
+        "Inputs",
       ]);
+      const prov = x.values("Provenance");
+      assert.ok(
+        prov.some((v) =>
+          v.startsWith(
+            "Computed: FactLot ran calc_tx_unequal_appraisal on the arguments",
+          ),
+        ),
+        "the input check",
+      );
+      assert.ok(
+        prov.includes("calc_tx_unequal_appraisal@1"),
+        "tool and formula",
+      );
       const grid = x.xml.get(
         `xl/worksheets/sheet${x.sheets.indexOf("Grid") + 1}.xml`,
       )!;
@@ -614,7 +714,7 @@ describe("documents", () => {
       {
         kind: "critical_dates",
         format: "ics",
-        input: r,
+        arguments: s.args,
         context: { title: "Suite 400, 100 Main" },
       },
       { now: NOW },
@@ -647,7 +747,7 @@ describe("documents", () => {
   it("is deterministic: the same request at the same time gives the same bytes", async () => {
     for (const s of SAMPLES)
       for (const format of KIND_FORMATS[s.kind]) {
-        const req = { kind: s.kind, format, input: resultOf(s.tool, s.args) };
+        const req = { kind: s.kind, format, arguments: s.args };
         const a = await createReport(req, { now: NOW });
         const b = await createReport(req, { now: NOW });
         assert.deepEqual(a.bytes, b.bytes, `${s.tool} ${format}`);
@@ -657,11 +757,15 @@ describe("documents", () => {
   it("supplied text never becomes a formula and odd characters are written safely", async () => {
     const title = '=HYPERLINK("http://x","y") & <b> "Café" — 5 ≤ 6 中';
     const s = SAMPLES[4]!;
-    const input = resultOf(s.tool, s.args);
     const x = await readXlsx(
       (
         await createReport(
-          { kind: "debt_sizing", format: "xlsx", input, context: { title } },
+          {
+            kind: "debt_sizing",
+            format: "xlsx",
+            arguments: s.args,
+            context: { title },
+          },
           { now: NOW },
         )
       ).bytes,
@@ -676,7 +780,12 @@ describe("documents", () => {
     const p = await readPdf(
       (
         await createReport(
-          { kind: "debt_sizing", format: "pdf", input, context: { title } },
+          {
+            kind: "debt_sizing",
+            format: "pdf",
+            arguments: s.args,
+            context: { title },
+          },
           { now: NOW },
         )
       ).bytes,
@@ -686,6 +795,106 @@ describe("documents", () => {
       p.text.includes("5 <= 6 ?"),
       "math sign spelled out, CJK replaced",
     );
+  });
+
+  it("lease_abstract workbook: numeric values are numbers, not text", async () => {
+    const found = abstractCases
+      .map((a) => ({
+        a,
+        r: resultOf("doc_abstract_lease", a) as {
+          fields: { predicate: string; value: unknown }[];
+        },
+      }))
+      .flatMap(({ a, r }) =>
+        r.fields
+          .filter((f) => typeof f.value === "number")
+          .map((f) => ({ a, value: f.value as number })),
+      );
+    assert.ok(found.length > 0, "a vector with a numeric term");
+    const { a, value } = found[0]!;
+    const x = await readXlsx(
+      (
+        await createReport(
+          { kind: "lease_abstract", format: "xlsx", arguments: a },
+          { now: NOW },
+        )
+      ).bytes,
+    );
+    const terms = x.xml.get(
+      `xl/worksheets/sheet${x.sheets.indexOf("Terms") + 1}.xml`,
+    )!;
+    assert.match(
+      terms,
+      new RegExp(`<c r="B\\d+" s="\\d+"><v>${String(value)}</v></c>`),
+    );
+  });
+
+  it("ICS: two deadlines with the same label get distinct UIDs", async () => {
+    const args = structuredClone(SAMPLES[8]!.args) as Json;
+    args.other_deadlines = [
+      { label: "ROFO response", date: "2027-03-01" },
+      { label: "ROFO response", date: "2028-03-01" },
+    ];
+    const lines = readIcs(
+      (
+        await createReport(
+          { kind: "critical_dates", format: "ics", arguments: args },
+          { now: NOW },
+        )
+      ).bytes,
+    );
+    const uids = lines.filter((l) => l.startsWith("UID:"));
+    assert.ok(uids.length >= 2);
+    assert.equal(new Set(uids).size, uids.length);
+  });
+
+  it("control characters and bidirectional overrides never reach a document", async () => {
+    const bad = "A\u0007B\u202eC\u2066D\u0000E\u009bF";
+    const ics = new TextDecoder().decode(
+      (
+        await createReport(
+          {
+            kind: "critical_dates",
+            format: "ics",
+            arguments: SAMPLES[8]!.args,
+            context: { title: `X;Y,Z\\W\n${bad}` },
+          },
+          { now: NOW },
+        )
+      ).bytes,
+    );
+    assert.ok(
+      ics.replace(/\r\n /g, "").includes("X\\;Y\\,Z\\\\W\\nABCDEF"),
+      "escaped and stripped",
+    );
+    const tx = structuredClone(SAMPLES[0]!.args) as {
+      comparables: { adjustments?: Json[] }[];
+    };
+    tx.comparables[0]!.adjustments = [
+      { label: "size", kind: "amount", value: 100, reason: `r ${bad}` },
+    ];
+    for (const format of ["pdf", "xlsx"] as const) {
+      const f = await createReport(
+        {
+          kind: "tx_unequal_appraisal",
+          format,
+          arguments: tx,
+          context: { prepared_for: bad },
+        },
+        { now: NOW },
+      );
+      const text =
+        format === "pdf"
+          ? (await readPdf(f.bytes)).text
+          : [...(await readXlsx(f.bytes)).xml.values()].join("");
+      assert.ok(text.includes("ABCDEF"), format);
+      /* eslint-disable no-control-regex */
+      assert.ok(
+        !/[\u0000-\u0008\u0080-\u009f\u202a-\u202e\u2066-\u2069]/.test(text),
+        format,
+      );
+      /* eslint-enable no-control-regex */
+    }
   });
 
   it("ICS folding never splits a UTF-8 character", () => {
@@ -702,7 +911,7 @@ describe("documents", () => {
         const req = {
           kind: s.kind,
           format: i % 2 ? "pdf" : "xlsx",
-          input: resultOf(s.tool, s.args),
+          arguments: s.args,
         };
         const t = performance.now();
         await createReport(req, { now: NOW });
@@ -711,6 +920,315 @@ describe("documents", () => {
     times.sort((a, b) => a - b);
     const p95 = times[Math.floor(times.length * 0.95)]!;
     assert.ok(p95 < 250, `p95 ${p95.toFixed(1)} ms`);
+  });
+});
+
+describe("caller text", () => {
+  const tx = SAMPLES[0]!;
+  const req = (over: Json = {}, args: Json = tx.args) => ({
+    kind: "tx_unequal_appraisal",
+    format: "pdf",
+    arguments: args,
+    ...over,
+  });
+
+  it("refuses advice or valuation wording, naming the field (TextNotAllowed)", async () => {
+    // The reviewer's context (adv.ts), less the control characters.
+    await rejects(
+      req({
+        context: { title: "Market value $1,000,000 - protest recommended" },
+      }),
+      "TextNotAllowed",
+      /^context\.title$/,
+    );
+    await rejects(
+      req({ context: { prepared_for: "Owner: you should file" } }),
+      "TextNotAllowed",
+      /^context\.prepared_for$/,
+    );
+    await rejects(
+      req({
+        context: {
+          subject_citation: { locator: "ARB will reduce it; you should file" },
+        },
+      }),
+      "TextNotAllowed",
+      /^context\.subject_citation\.locator$/,
+    );
+    for (const phrase of [
+      "we recommend this",
+      "it should be lower",
+      "grounds to protest",
+      "worth $1",
+      "per the appraisal",
+      "our opinion of value",
+      "the market value is $2",
+      "you save $500",
+      "tax savings",
+    ]) {
+      const args = structuredClone(tx.args) as {
+        comparables: { id?: string; adjustments?: Json[] }[];
+      };
+      args.comparables[1]!.adjustments = [
+        { label: "size", kind: "amount", value: 100, reason: phrase },
+      ];
+      const err = await rejects(
+        req({}, args as unknown as Json),
+        "TextNotAllowed",
+      );
+      assert.equal(
+        err.issues[0]!.path,
+        "arguments.comparables.1.adjustments.0.reason",
+        phrase,
+      );
+    }
+    const ids = structuredClone(tx.args) as { comparables: { id?: string }[] };
+    ids.comparables[0]!.id = "Should win";
+    await rejects(
+      req({}, ids as unknown as Json),
+      "TextNotAllowed",
+      /comparables\.0\.id$/,
+    );
+  });
+
+  it("passes names that contain such a word, and plain text", async () => {
+    const f = await createReport(
+      req({
+        context: {
+          title: "Fort Worth office, tax year 2027",
+          prepared_for: "Asset management",
+          subject_citation: {
+            locator: "Tarrant Appraisal District, account 0042",
+          },
+        },
+      }),
+      { now: NOW },
+    );
+    const flat = (await readPdf(f.bytes)).text.replace(/\s+/g, " ");
+    assert.ok(
+      flat.includes("Title and prepared-for line supplied by the caller"),
+    );
+    assert.ok(flat.includes("Citations (supplied by the caller)"));
+    assert.ok(
+      flat.includes("Adjustments and reasons (supplied by the caller)"),
+    );
+  });
+
+  it("caps caller text: title and prepared_for 120, reasons and locators 200", async () => {
+    await rejects(
+      req({ context: { title: "T".repeat(121) } }),
+      "InputError",
+      /context/,
+    );
+    await rejects(
+      req({ context: { prepared_for: "P".repeat(121) } }),
+      "InputError",
+      /context/,
+    );
+    await rejects(
+      req({ context: { subject_citation: { locator: "L".repeat(201) } } }),
+      "InputError",
+      /context/,
+    );
+    const args = structuredClone(tx.args) as {
+      comparables: { adjustments?: Json[]; citation?: Json }[];
+    };
+    args.comparables[0]!.adjustments = [
+      { label: "size", kind: "amount", value: 100, reason: "R".repeat(201) },
+    ];
+    await rejects(
+      req({}, args as unknown as Json),
+      "InputError",
+      /^arguments\.comparables\.0\.adjustments\.0\.reason$/,
+    );
+    const loc = structuredClone(tx.args) as {
+      comparables: { citation?: Json }[];
+    };
+    loc.comparables[0]!.citation = { locator: "L".repeat(201) };
+    await rejects(
+      req({}, loc as unknown as Json),
+      "InputError",
+      /^arguments\.comparables\.0\.citation\.locator$/,
+    );
+  });
+});
+
+describe("size limits", () => {
+  const tx = SAMPLES[0]!;
+  /** The tx sample with n comparables of a adjustments each, every text at its cap. */
+  const many = (n: number, a: number, spaced = false): Json => {
+    const args = structuredClone(tx.args) as { comparables: Json[] };
+    const base = args.comparables[0]!;
+    args.comparables = Array.from({ length: n }, (_, i) => ({
+      ...structuredClone(base),
+      id: `C${i}`.padEnd(200, "X"),
+      citation: {
+        document_id: "D".repeat(200),
+        locator: (spaced ? "page " : "L").repeat(200).slice(0, 200),
+      },
+      adjustments: Array.from({ length: a }, (_, j) => ({
+        label: `adj${j}`,
+        kind: "amount",
+        value: 10 * j,
+        reason: (spaced ? "reason " : "R").repeat(200).slice(0, 200),
+      })),
+    }));
+    return args as unknown as Json;
+  };
+
+  it("the Texas PDF takes at most 60 comparables of 10 adjustments; above, 413 TooLarge naming the xlsx", async () => {
+    for (const [n, a, path] of [
+      [61, 1, /^arguments\.comparables$/],
+      [10, 11, /^arguments\.comparables\.0\.adjustments$/],
+    ] as const) {
+      const err = await rejects(
+        { kind: "tx_unequal_appraisal", format: "pdf", arguments: many(n, a) },
+        "TooLarge",
+        path,
+      );
+      assert.match(err.next ?? "", /"format": "xlsx"/);
+    }
+  });
+
+  it("the largest Texas PDF allowed (60 × 10, every text at its cap) builds in well under a second", async () => {
+    for (const spaced of [false, true]) {
+      const t = performance.now();
+      const f = await createReport(
+        {
+          kind: "tx_unequal_appraisal",
+          format: "pdf",
+          arguments: many(60, 10, spaced),
+        },
+        { now: NOW },
+      );
+      const ms = performance.now() - t;
+      assert.ok(ms < 3_000, `${ms.toFixed(0)} ms`);
+      assert.ok((await readPdf(f.bytes)).pages > 5);
+    }
+  });
+
+  it("the Texas workbook takes the tool's full set: 200 comparables", async () => {
+    const f = await createReport(
+      {
+        kind: "tx_unequal_appraisal",
+        format: "xlsx",
+        arguments: many(200, 3, true),
+      },
+      { now: NOW },
+    );
+    const x = await readXlsx(f.bytes);
+    assert.equal(x.cell("Reconcile", "C4"), "0", "rows that differ");
+  });
+});
+
+describe("workbook formulas", () => {
+  it("a division by zero is #DIV/0! in the cell and in what reads it, as in Excel; nothing throws", async () => {
+    const wb = new Workbook({
+      title: "t",
+      creator: "c",
+      created: "2026-11-07T12:00:00Z",
+    });
+    const sh = wb.sheet("S");
+    const zero = sh.put(1, 1, 0);
+    const v = sh.put(1, 2, 10);
+    const q = sh.put(2, 1, fx(`=ROUND(${v}/${zero},2)`));
+    sh.put(2, 2, fx(`=${q}+1`));
+    sh.put(2, 3, fx(`=SUM(S!$A$2:$B$2)`));
+    sh.put(2, 4, fx(`=IF(${q}=0,"match","DIFFERENT")`));
+    sh.put(2, 5, fx(`=COUNTIF(S!$A$2:$B$2,"match")`));
+    sh.put(2, 6, fx(`=${v}*"text"`));
+    sh.put(2, 7, fx(`=ROUND(${v}/4,2)`));
+    const x = await readXlsx(await wb.bytes());
+    const xml = x.xml.get("xl/worksheets/sheet1.xml")!;
+    for (const a of ["A2", "B2", "C2", "D2"])
+      assert.match(
+        xml,
+        new RegExp(`<c r="${a}" s="\\d+" t="e"><f>[^<]+</f><v>#DIV/0!</v>`),
+        a,
+      );
+    assert.equal(x.cell("S", "E2"), "0", "COUNTIF skips errors");
+    assert.match(xml, /<c r="F2" s="\d+" t="e"><f>[^<]+<\/f><v>#VALUE!<\/v>/);
+    assert.equal(x.cell("S", "G2"), "2.5");
+  });
+
+  it("a supplied result with a zero area cannot reach the workbook (the reviewer's crash)", async () => {
+    const d = structuredClone(
+      resultOf("calc_dcf_pro_forma", SAMPLES[7]!.args),
+    ) as { value: Json };
+    d.value.building_area_sf = 0;
+    await rejects(
+      { kind: "dcf_summary", format: "xlsx", input: d },
+      "ArgumentsRequired",
+    );
+    const f = await createReport(
+      {
+        kind: "dcf_summary",
+        format: "xlsx",
+        input: d,
+        arguments: SAMPLES[7]!.args,
+      },
+      { now: NOW },
+    );
+    assert.equal(f.result_mismatch, true);
+  });
+});
+
+describe("PDF text limits", () => {
+  const writer = () =>
+    PdfWriter.create({
+      title: "t",
+      subject: "s",
+      header: "h",
+      footer: "f",
+      producer: "p",
+      keywords: [],
+      created: new Date(NOW),
+    });
+
+  it("wraps in one pass: a long unbroken token and long paragraphs take milliseconds", async () => {
+    const w = await writer();
+    for (const text of [
+      "W".repeat(4_000),
+      "W".repeat(20_000),
+      "W".repeat(MAX_CELL_CHARS),
+      `${"word ".repeat(400)}${"x".repeat(1_900)}`,
+    ]) {
+      const t = performance.now();
+      const lines = w.wrap(text, 7, 60);
+      const ms = performance.now() - t;
+      assert.ok(ms < 100, `${text.length} chars: ${ms.toFixed(1)} ms`);
+      assert.ok(lines.length > 1);
+    }
+  });
+
+  it("breaks a word longer than the line by characters, and keeps every character", async () => {
+    const w = await writer();
+    const lines = w.wrap(`ab ${"W".repeat(300)} cd`, 9, 100);
+    assert.equal(lines.join("").replace(/ /g, ""), `ab${"W".repeat(300)}cd`);
+    assert.ok(lines.length > 3);
+  });
+
+  it(`cuts text over ${MAX_CELL_CHARS} characters with an ellipsis and a note`, async () => {
+    const w = await writer();
+    const text = w.wrap("A".repeat(5_000), 9, 10_000).join("");
+    assert.ok(text.startsWith("A".repeat(MAX_CELL_CHARS)));
+    assert.ok(!text.includes("A".repeat(MAX_CELL_CHARS + 1)));
+    assert.match(
+      text,
+      /\[cut: 5,000 characters in all; the PDF shows the first 2,000\]$/,
+    );
+  });
+
+  it(`refuses a document that would draw over ${MAX_PDF_LINES} lines (TooLarge)`, async () => {
+    const w = await writer();
+    const t = performance.now();
+    assert.throws(
+      () => {
+        for (let i = 0; i < MAX_PDF_LINES + 10; i++) w.para("x");
+      },
+      (e: unknown) => e instanceof ReportInputError && e.code === "TooLarge",
+    );
+    assert.ok(performance.now() - t < 5_000);
   });
 });
 
@@ -730,5 +1248,33 @@ describe("bundle", () => {
     });
     const bytes = out.outputFiles[0]!.contents.byteLength;
     assert.ok(bytes < 1_000_000, `${bytes} bytes`);
+  });
+
+  it("loads pdf-lib only for a PDF: it sits behind a dynamic import, outside the entry chunk", async () => {
+    const out = await build({
+      entryPoints: [new URL("./index.ts", import.meta.url).pathname],
+      bundle: true,
+      splitting: true,
+      outdir: "/tmp/factlot-reports-split",
+      write: false,
+      metafile: true,
+      format: "esm",
+      platform: "neutral",
+      conditions: ["factlot-source", "worker", "browser"],
+      mainFields: ["module", "main"],
+      external: ["@factlot/calc", "@factlot/tools", "zod"],
+      logLevel: "silent",
+    });
+    const outputs = Object.values(out.metafile.outputs);
+    const entry = outputs.find((o) => o.entryPoint)!;
+    const inputs = (o: (typeof outputs)[number]) => Object.keys(o.inputs);
+    assert.ok(
+      !inputs(entry).some((i) => i.includes("pdf-lib") || i.endsWith("pdf.ts")),
+      "the entry chunk holds no pdf-lib",
+    );
+    assert.ok(
+      outputs.some((o) => inputs(o).some((i) => i.includes("pdf-lib"))),
+      "pdf-lib is in a lazily loaded chunk",
+    );
   });
 });

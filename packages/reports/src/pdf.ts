@@ -5,15 +5,23 @@
  * and "Page n of N". Text uses the PDF standard fonts (Helvetica), so nothing is embedded and
  * the file stays small; characters outside their WinAnsi set are written as close ASCII
  * equivalents ("−" as "-", "≥" as ">=") or "?".
+ *
+ * Page content is written as PDF operator text, one short string per line or shape, and turned
+ * into one compressed stream per page at the end: pdf-lib's drawing calls build about ten
+ * objects per line of text, which for a long table cost tens of megabytes.
  */
 import {
   PDFDocument,
+  PDFName,
   StandardFonts,
   rgb,
   type PDFFont,
   type PDFPage,
   type RGB,
 } from "pdf-lib";
+
+import { stripControls } from "./format.ts";
+import { ReportInputError } from "./validate.ts";
 
 const PAGE_W = 612; // US Letter
 const PAGE_H = 792;
@@ -33,6 +41,24 @@ const NOTICE_FILL = rgb(0.992, 0.937, 0.89);
 const NOTICE_EDGE = rgb(0.75, 0.0, 0.0);
 const INFO_FILL = rgb(0.91, 0.95, 0.89);
 const INFO_EDGE = rgb(0.33, 0.51, 0.21);
+
+/** Longest text drawn from one cell or paragraph; longer text is cut with a note. */
+export const MAX_CELL_CHARS = 2_000;
+/** A number as PDF operator text: at most three decimals, never an exponent. */
+const n = (x: number): string => {
+  const s = (Math.round(x * 1000) / 1000).toFixed(3).replace(/\.?0+$/, "");
+  return s === "-0" ? "0" : s;
+};
+const rgbOp = (c: RGB): string => `${n(c.red)} ${n(c.green)} ${n(c.blue)}`;
+
+/** Most lines of text one document draws (an ASC 842 schedule of 1,200 periods draws ~12,000). */
+export const MAX_PDF_LINES = 60_000;
+
+/** Text cut to MAX_CELL_CHARS, with an ellipsis and a note saying how much there was. */
+export function capText(s: string): string {
+  if (s.length <= MAX_CELL_CHARS) return s;
+  return `${s.slice(0, MAX_CELL_CHARS)}… [cut: ${s.length.toLocaleString("en-US")} characters in all; the PDF shows the first ${MAX_CELL_CHARS.toLocaleString("en-US")}]`;
+}
 
 /** Unicode → WinAnsi-safe text. */
 const REPLACE: Record<string, string> = {
@@ -106,9 +132,14 @@ export class PdfWriter {
   private regular!: PDFFont;
   private bold!: PDFFont;
   private charset!: Set<number>;
-  private page!: PDFPage;
+  /** The page being written and its content operators. */
+  private cur!: { page: PDFPage; ops: string[] };
+  private readonly pages: { page: PDFPage; ops: string[] }[] = [];
   private y = TOP;
+  private lines = 0;
   private readonly meta: PdfMeta;
+  /** Glyph advance widths at size 1, per font, measured once per character. */
+  private readonly advance = new Map<PDFFont, Map<string, number>>();
 
   private constructor(meta: PdfMeta) {
     this.meta = meta;
@@ -127,7 +158,10 @@ export class PdfWriter {
   /** Text the standard fonts can encode. */
   clean(s: string): string {
     let out = "";
-    for (const ch of s.replace(/\r\n?/g, "\n").replace(/\t/g, "    ")) {
+    for (const ch of stripControls(s.replace(/\r\n?/g, "\n")).replace(
+      /\t/g,
+      "    ",
+    )) {
       const cp = ch.codePointAt(0)!;
       if (ch === "\n" || this.charset.has(cp)) out += ch;
       else if (REPLACE[ch] !== undefined) out += REPLACE[ch];
@@ -143,19 +177,59 @@ export class PdfWriter {
   }
 
   private newPage(): void {
-    this.page = this.doc.addPage([PAGE_W, PAGE_H]);
+    this.cur = { page: this.doc.addPage([PAGE_W, PAGE_H]), ops: [] };
+    this.pages.push(this.cur);
     this.y = TOP;
+  }
+
+  /** A filled rectangle. */
+  private rect(x: number, y: number, w: number, h: number, color: RGB): void {
+    this.cur.ops.push(
+      `${rgbOp(color)} rg ${n(x)} ${n(y)} ${n(w)} ${n(h)} re f`,
+    );
+  }
+
+  /** A stroked line. */
+  private line(
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number,
+    thickness: number,
+    color: RGB,
+  ): void {
+    this.cur.ops.push(
+      `${rgbOp(color)} RG ${n(thickness)} w ${n(x1)} ${n(y1)} m ${n(x2)} ${n(y2)} l S`,
+    );
   }
 
   private ensure(h: number): void {
     if (this.y - h < BOTTOM) this.newPage();
   }
 
-  private width(s: string, size: number, font: PDFFont): number {
-    return font.widthOfTextAtSize(s, size);
+  /** One character's advance at size 1 (the PDF draws glyphs without kerning). */
+  private charWidth(ch: string, font: PDFFont): number {
+    let m = this.advance.get(font);
+    if (!m) this.advance.set(font, (m = new Map()));
+    let w = m.get(ch);
+    if (w === undefined) {
+      w = font.widthOfTextAtSize(ch, 1);
+      m.set(ch, w);
+    }
+    return w;
   }
 
-  /** Wrap cleaned text into lines no wider than `w`. */
+  /** Width of cleaned text: the sum of its glyphs' advances, in one pass. */
+  private width(s: string, size: number, font: PDFFont): number {
+    let w = 0;
+    for (const ch of s) w += this.charWidth(ch, font);
+    return w * size;
+  }
+
+  /**
+   * Wrap text into lines no wider than `w`, in one pass over its characters (each glyph is
+   * measured once). Text over MAX_CELL_CHARS is cut first (capText).
+   */
   wrap(
     text: string,
     size: number,
@@ -163,28 +237,40 @@ export class PdfWriter {
     font: PDFFont = this.regular,
   ): string[] {
     const lines: string[] = [];
-    for (const para of this.clean(text).split("\n")) {
+    const space = this.charWidth(" ", font) * size;
+    for (const para of this.clean(capText(text)).split("\n")) {
       if (para === "") {
         lines.push("");
         continue;
       }
       let line = "";
+      let lineW = 0;
       for (const word of para.split(/ +/)) {
-        const candidate = line ? `${line} ${word}` : word;
-        if (this.width(candidate, size, font) <= w) {
-          line = candidate;
+        const wordW = this.width(word, size, font);
+        if (line && lineW + space + wordW <= w) {
+          line += ` ${word}`;
+          lineW += space + wordW;
           continue;
         }
         if (line) lines.push(line);
-        // A word longer than the line is broken by characters.
-        let rest = word;
-        while (this.width(rest, size, font) > w && rest.length > 1) {
-          let k = rest.length - 1;
-          while (k > 1 && this.width(rest.slice(0, k), size, font) > w) k--;
-          lines.push(rest.slice(0, k));
-          rest = rest.slice(k);
+        if (wordW <= w) {
+          line = word;
+          lineW = wordW;
+          continue;
         }
-        line = rest;
+        // A word longer than the line is broken by characters; the rest starts the next line.
+        line = "";
+        lineW = 0;
+        for (const ch of word) {
+          const cw = this.charWidth(ch, font) * size;
+          if (line && lineW + cw > w) {
+            lines.push(line);
+            line = "";
+            lineW = 0;
+          }
+          line += ch;
+          lineW += cw;
+        }
       }
       lines.push(line);
     }
@@ -199,7 +285,16 @@ export class PdfWriter {
     font: PDFFont,
     color: RGB = INK,
   ): void {
-    if (s) this.page.drawText(s, { x, y, size, font, color });
+    if (!s) return;
+    if (++this.lines > MAX_PDF_LINES)
+      throw new ReportInputError(
+        "TooLarge",
+        `the PDF would draw more than ${MAX_PDF_LINES.toLocaleString("en-US")} lines of text; ask for the xlsx format, or send less text`,
+      );
+    const key = font === this.bold ? "F2" : "F1";
+    this.cur.ops.push(
+      `${rgbOp(color)} rg BT /${key} ${n(size)} Tf ${n(x)} ${n(y)} Td ${font.encodeText(s).toString()} Tj ET`,
+    );
   }
 
   title(text: string, subtitle?: string): void {
@@ -216,12 +311,7 @@ export class PdfWriter {
       }
     }
     this.y -= 6;
-    this.page.drawLine({
-      start: { x: MARGIN, y: this.y },
-      end: { x: PAGE_W - MARGIN, y: this.y },
-      thickness: 1,
-      color: NAVY,
-    });
+    this.line(MARGIN, this.y, PAGE_W - MARGIN, this.y, 1, NAVY);
     this.y -= 10;
   }
 
@@ -235,20 +325,20 @@ export class PdfWriter {
       const fit = Math.max(1, Math.floor((this.y - BOTTOM - 10) / lh));
       const chunk = lines.slice(i, i + fit);
       const h = chunk.length * lh + 10;
-      this.page.drawRectangle({
-        x: MARGIN,
-        y: this.y - h,
-        width: CONTENT_W,
-        height: h,
-        color: tone === "warn" ? NOTICE_FILL : INFO_FILL,
-      });
-      this.page.drawRectangle({
-        x: MARGIN,
-        y: this.y - h,
-        width: 3,
-        height: h,
-        color: tone === "warn" ? NOTICE_EDGE : INFO_EDGE,
-      });
+      this.rect(
+        MARGIN,
+        this.y - h,
+        CONTENT_W,
+        h,
+        tone === "warn" ? NOTICE_FILL : INFO_FILL,
+      );
+      this.rect(
+        MARGIN,
+        this.y - h,
+        3,
+        h,
+        tone === "warn" ? NOTICE_EDGE : INFO_EDGE,
+      );
       chunk.forEach((l, k) =>
         this.text(
           l,
@@ -363,14 +453,7 @@ export class PdfWriter {
       color: RGB = INK,
     ) => {
       const h = Math.max(1, ...lines.map((l) => l.length)) * sz * 1.3 + 2 * pad;
-      if (fill)
-        this.page.drawRectangle({
-          x: MARGIN,
-          y: this.y - h,
-          width: CONTENT_W,
-          height: h,
-          color: fill,
-        });
+      if (fill) this.rect(MARGIN, this.y - h, CONTENT_W, h, fill);
       lines.forEach((ls, i) => {
         const align = columns[i]!.align ?? "left";
         ls.forEach((line, k) => {
@@ -454,12 +537,7 @@ export class PdfWriter {
       }
       drawRow(lines, font, size, r % 2 ? BAND : undefined);
     });
-    this.page.drawLine({
-      start: { x: MARGIN, y: this.y },
-      end: { x: PAGE_W - MARGIN, y: this.y },
-      thickness: 0.5,
-      color: RULE,
-    });
+    this.line(MARGIN, this.y, PAGE_W - MARGIN, this.y, 0.5, RULE);
     this.y -= 10;
   }
 
@@ -472,10 +550,10 @@ export class PdfWriter {
   }
 
   async bytes(): Promise<Uint8Array> {
-    const pages = this.doc.getPages();
+    const pages = this.pages;
     const footerLines = this.wrap(this.meta.footer, 6.5, CONTENT_W - 60);
     pages.forEach((p, i) => {
-      this.page = p;
+      this.cur = p;
       this.text(
         this.clean(this.meta.header),
         MARGIN,
@@ -484,18 +562,22 @@ export class PdfWriter {
         this.regular,
         GREY,
       );
-      p.drawLine({
-        start: { x: MARGIN, y: PAGE_H - MARGIN - 13 },
-        end: { x: PAGE_W - MARGIN, y: PAGE_H - MARGIN - 13 },
-        thickness: 0.5,
-        color: RULE,
-      });
-      p.drawLine({
-        start: { x: MARGIN, y: MARGIN + FOOTER_H - 8 },
-        end: { x: PAGE_W - MARGIN, y: MARGIN + FOOTER_H - 8 },
-        thickness: 0.5,
-        color: RULE,
-      });
+      this.line(
+        MARGIN,
+        PAGE_H - MARGIN - 13,
+        PAGE_W - MARGIN,
+        PAGE_H - MARGIN - 13,
+        0.5,
+        RULE,
+      );
+      this.line(
+        MARGIN,
+        MARGIN + FOOTER_H - 8,
+        PAGE_W - MARGIN,
+        MARGIN + FOOTER_H - 8,
+        0.5,
+        RULE,
+      );
       footerLines
         .slice(0, 3)
         .forEach((l, k) =>
@@ -518,6 +600,15 @@ export class PdfWriter {
         GREY,
       );
     });
+    const ctx = this.doc.context;
+    for (const p of pages) {
+      p.page.node.setFontDictionary(PDFName.of("F1"), this.regular.ref);
+      p.page.node.setFontDictionary(PDFName.of("F2"), this.bold.ref);
+      p.page.node.addContentStream(
+        ctx.register(ctx.flateStream(p.ops.join("\n"))),
+      );
+      p.ops = [];
+    }
     const m = this.meta;
     this.doc.setTitle(this.clean(m.title), { showInWindowTitleBar: true });
     this.doc.setSubject(this.clean(m.subject));

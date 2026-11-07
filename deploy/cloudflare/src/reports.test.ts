@@ -14,7 +14,7 @@ import {
   type DurableObjectNamespaceLike,
 } from "./limiter.ts";
 import { REPORTS_PER_MONTH } from "./plans.ts";
-import { REPORT_TTL_SECONDS } from "./reports.ts";
+import { REPORT_TTL_SECONDS, runReport } from "./reports.ts";
 import { handle } from "./router.ts";
 import type { Env, KV, RateLimit } from "./types.ts";
 
@@ -242,7 +242,7 @@ const debtResult = (() => {
 const request = (over: Record<string, unknown> = {}) => ({
   kind: "debt_sizing",
   format: "pdf",
-  input: debtResult,
+  arguments: debtArgs,
   ...over,
 });
 
@@ -260,6 +260,7 @@ type Created = {
   content_type: string;
   source: string;
   check: string;
+  result_mismatch?: boolean;
   reports: { used: number; limit: number; remaining: number };
   content_base64?: string;
 };
@@ -331,7 +332,8 @@ describe("POST /v1/reports and downloads", () => {
     );
     assert.equal(body.content_type, "application/pdf");
     assert.equal(body.source, "calc_debt_sizing@3");
-    assert.equal(body.check, "checked");
+    assert.equal(body.check, "computed");
+    assert.equal(body.result_mismatch, undefined);
     assert.deepEqual(
       [body.reports.used, body.reports.limit, body.reports.remaining],
       [1, 3, 2],
@@ -423,12 +425,12 @@ describe("POST /v1/reports and downloads", () => {
     const t = env();
     for (let i = 0; i < 3; i++) {
       const bad = await call(t, "/v1/reports", {
-        body: request({ input: { value: {} } }),
+        body: request({ arguments: undefined, input: debtResult }),
       });
       assert.equal(bad.status, 400);
       assert.equal(
         ((await bad.json()) as { code: string }).code,
-        "NotAToolResult",
+        "ArgumentsRequired",
       );
       assert.equal(
         (await call(t, "/v1/reports", { body: request() })).status,
@@ -469,7 +471,7 @@ describe("POST /v1/reports and downloads", () => {
     const key = await issue(t.e, "pro");
     const res = await call(t, "/v1/reports", {
       key,
-      body: request({ arguments: debtArgs }),
+      body: request({ input: debtResult }),
     });
     assert.equal(res.status, 201);
     assert.equal(
@@ -477,7 +479,9 @@ describe("POST /v1/reports and downloads", () => {
       String(REPORTS_PER_MONTH.pro),
     );
     assert.equal(res.headers.get("x-factlot-tier"), "pro");
-    assert.equal(((await res.json()) as Created).check, "recomputed");
+    const made = (await res.json()) as Created;
+    assert.equal(made.check, "computed");
+    assert.equal(made.result_mismatch, false);
     assert.equal(
       (await t.e.METER.quota("sub:sub_1", "month", 50, "reports")).used,
       1,
@@ -515,6 +519,65 @@ describe("POST /v1/reports and downloads", () => {
       400,
     );
     assert.equal((await call(t, "/v1/reports", { method: "GET" })).status, 405);
+    const advice = await call(t, "/v1/reports", {
+      body: request({ context: { title: "Refinance: we recommend it" } }),
+    });
+    assert.equal(advice.status, 422);
+    const a = (await advice.json()) as {
+      code: string;
+      issues: { path: string }[];
+      next: string;
+    };
+    assert.equal(a.code, "TextNotAllowed");
+    assert.equal(a.issues[0]?.path, "context.title");
+    assert.match(a.next, /remove the advice/);
+  });
+
+  it("a fault while building answers 500 ReportFailed with no detail, logs only the error's name, and gives the report back", async () => {
+    const t = env();
+    const subject = "ipm:fault-test";
+    const logged: string[] = [];
+    const error = console.error;
+    console.error = (...a: unknown[]) =>
+      void logged.push(a.map(String).join(" "));
+    let out: Awaited<ReturnType<typeof runReport>>;
+    try {
+      out = await runReport(
+        t.e,
+        { tier: "anonymous", subject: async () => subject },
+        request(),
+        {
+          apiBase: "https://api.factlot.com",
+          // Read once the report is charged, to build it: a stand-in for a fault in the engine.
+          now: () => {
+            throw new RangeError("secret internal detail");
+          },
+        },
+      );
+    } finally {
+      console.error = error;
+    }
+    assert.equal(out.ok, false);
+    assert.ok(!out.ok);
+    assert.equal(out.status, 500);
+    assert.equal(out.body.code, "ReportFailed");
+    assert.ok(!JSON.stringify(out.body).includes("secret"), "no detail");
+    assert.deepEqual(logged, [
+      JSON.stringify({ msg: "reports: build failed", error: "RangeError" }),
+    ]);
+    assert.equal(
+      (await t.e.METER.quota(subject, "month", 3, "reports")).used,
+      0,
+      "given back",
+    );
+    // An input error before the charge is free and never logged as a fault.
+    const bad = await runReport(
+      t.e,
+      { tier: "anonymous", subject: async () => subject },
+      request({ format: "ics" }),
+      { apiBase: "https://api.factlot.com", now: () => T0 },
+    );
+    assert.ok(!bad.ok && bad.status === 400);
   });
 
   it("/v1/plans states the report limits", async () => {
@@ -595,11 +658,49 @@ describe("MCP report_create", () => {
     );
   });
 
+  it("one report per request: a batch's second report_create is a tool error, not run and not charged", async () => {
+    const t = env();
+    const answers = (await (
+      await call(t, "/mcp", {
+        body: [
+          rpc(1, "report_create", request()),
+          rpc(2, "calc_irr", { cash_flows: [-1, 2] }),
+          rpc(3, "report_create", request({ format: "xlsx" })),
+          rpc(4, "report_create", request()),
+        ],
+      })
+    ).json()) as {
+      id: number;
+      result: { isError?: boolean; content: { text: string }[] };
+    }[];
+    const by = (id: number) => answers.find((a) => a.id === id)!;
+    assert.ok(!by(1).result.isError, "the first is built");
+    assert.ok(!by(2).result.isError, "other tools still answer");
+    for (const id of [3, 4]) {
+      assert.equal(by(id).result.isError, true);
+      assert.equal(
+        (JSON.parse(by(id).result.content[0]!.text) as { code: string }).code,
+        "OneReportPerRequest",
+      );
+    }
+    const subject = await addressSubject(IP, T0, undefined, "month");
+    assert.equal(
+      (await t.e.METER.quota(subject, "month", 3, "reports")).used,
+      1,
+      "only one charged",
+    );
+    // The next request may build one again.
+    const next = (await (
+      await call(t, "/mcp", { body: rpc(5, "report_create", request()) })
+    ).json()) as { result: { isError?: boolean } };
+    assert.ok(!next.result.isError);
+  });
+
   it("errors are tool errors, never charged; a batch mixes it with other tools; the quota applies", async () => {
     const t = env();
     const bad = (await (
       await call(t, "/mcp", {
-        body: rpc(1, "report_create", request({ input: {} })),
+        body: rpc(1, "report_create", request({ arguments: { noi: -1 } })),
       })
     ).json()) as {
       result: { isError: boolean; content: { text: string }[] };
@@ -607,7 +708,7 @@ describe("MCP report_create", () => {
     assert.equal(bad.result.isError, true);
     assert.equal(
       (JSON.parse(bad.result.content[0]!.text) as { code: string }).code,
-      "NotAToolResult",
+      "ArgumentsError",
     );
     const mixed = (await (
       await call(t, "/mcp", {

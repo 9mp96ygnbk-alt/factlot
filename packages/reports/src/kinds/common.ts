@@ -2,14 +2,23 @@
 import { z } from "zod";
 
 import type { Block, Provenance, ReportDoc } from "../doc.ts";
+import { TEXT_LIMITS } from "../text.ts";
 import { TxCitation, type Checked } from "../validate.ts";
 
-/** Optional text the caller adds to a report. Never numbers that go into a calculation. */
+/** A citation the caller adds: its locator is capped tighter than a tool result's. */
+const ContextCitation = TxCitation.extend({
+  locator: z.string().min(1).max(TEXT_LIMITS.locator).optional(),
+});
+
+/**
+ * Optional text the caller adds to a report, printed as supplied by the caller. Never numbers
+ * that go into a calculation; advice or valuation wording is refused (text.ts).
+ */
 export const ReportContext = z.strictObject({
   title: z
     .string()
     .min(1)
-    .max(160)
+    .max(TEXT_LIMITS.title)
     .optional()
     .describe(
       "Report title shown on the cover, e.g. the property or lease name. Defaults to one from the result.",
@@ -17,14 +26,14 @@ export const ReportContext = z.strictObject({
   prepared_for: z
     .string()
     .min(1)
-    .max(160)
+    .max(TEXT_LIMITS.prepared_for)
     .optional()
     .describe("Who the report is prepared for, printed under the title."),
-  subject_citation: TxCitation.optional().describe(
+  subject_citation: ContextCitation.optional().describe(
     "tx_unequal_appraisal: where the subject's value comes from (document_id, locator, as_of, fact_id).",
   ),
   comparable_citations: z
-    .record(z.string().min(1).max(200), TxCitation)
+    .record(z.string().min(1).max(200), ContextCitation)
     .optional()
     .refine(
       (r) => r === undefined || Object.keys(r).length <= 200,
@@ -37,23 +46,35 @@ export const ReportContext = z.strictObject({
 export type ReportContext = z.output<typeof ReportContext>;
 
 export interface KindInput {
-  checked: Checked & { source: "input" | "arguments" | "both" };
+  checked: Checked;
   ctx: ReportContext;
   p: Provenance;
 }
 
+/** The label on every page of a lease abstract built from a result the caller sent. */
+export const SUPPLIED_LABEL =
+  "Abstract values as supplied by the caller; FactLot did not recompute them.";
+/** The label on every page of a lease abstract FactLot ran from the documents' text. */
+export const LEASE_COMPUTED_LABEL =
+  "Abstract values as supplied by the caller and checked against the lease text sent.";
+
 export function checkSentence(c: KindInput["checked"], tool: string): string {
-  if (c.source === "arguments")
-    return `Computed: FactLot ran ${tool} on the arguments sent with this request; the figures are that run's result.`;
-  if (c.source === "both")
-    return `Recomputed: FactLot ran ${tool} again on the arguments sent with this request and its result matched the supplied result exactly.`;
-  return tool.startsWith("calc_")
-    ? `Checked: the supplied result's shape, formula version and the arithmetic links between its figures were verified. The tool's arguments were not sent, so ${tool} was not run again.`
-    : `Checked: the supplied result's shape and its counts were verified. The tool's arguments were not sent, so ${tool} was not run again.`;
+  if (c.check === "supplied")
+    return `Supplied: the ${tool} result the caller sent. FactLot checked its shape and counts but did not recompute it: the lease documents were not sent.`;
+  const sent =
+    c.result_mismatch === undefined
+      ? ""
+      : c.result_mismatch
+        ? " A result was sent with the request too; it differs from this run and was not used."
+        : " A result was sent with the request too; it matches this run and was not used.";
+  return `Computed: FactLot ran ${tool} on the arguments sent with this request; every figure in this document is from that run.${sent}`;
 }
 
 export const TRACE_SENTENCE =
-  "Every computed number in this document is a figure from the tool result, printed as returned (rates are decimals in the result and percentages here: 0.0625 is 6.25%); an Inputs section lists the arguments as sent. Nothing is estimated, rounded further or written by a model.";
+  "Every computed number in this document is a figure from FactLot's run of the tool, printed as returned (rates are decimals in the result and percentages here: 0.0625 is 6.25%); an Inputs section lists the arguments as sent. Nothing is estimated, rounded further or written by a model.";
+
+export const SUPPLIED_TRACE_SENTENCE =
+  "The values in this document are printed as the result states them. Nothing is estimated or written by a model.";
 
 export function stepsBlock(
   steps: {
@@ -128,7 +149,11 @@ export function closingBlocks(
     ],
   });
   out.push({ t: "para", text: checkSentence(k.checked, tool) });
-  out.push({ t: "para", text: TRACE_SENTENCE, grey: true });
+  out.push({
+    t: "para",
+    text: tool.startsWith("calc_") ? TRACE_SENTENCE : SUPPLIED_TRACE_SENTENCE,
+    grey: true,
+  });
   return out;
 }
 
@@ -180,9 +205,18 @@ export function subtitle(
   parts: (string | undefined | false)[],
   ctx: ReportContext,
 ): string {
+  const supplied =
+    ctx.title && ctx.prepared_for
+      ? "Title and prepared-for line supplied by the caller"
+      : ctx.title
+        ? "Title supplied by the caller"
+        : ctx.prepared_for
+          ? "Prepared-for line supplied by the caller"
+          : undefined;
   return [
     ...(ctx.prepared_for ? [`Prepared for ${ctx.prepared_for}`] : []),
     ...parts.filter(Boolean),
+    ...(supplied ? [supplied] : []),
   ].join(" | ");
 }
 

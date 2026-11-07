@@ -1,9 +1,10 @@
 /**
  * @factlot/reports: client-ready XLSX, PDF and ICS documents from FactLot tool results.
  *
- * Deterministic and model-free: a report is a layout of a tool result that FactLot checks first
- * (the exact result shape, the formula version, and the arithmetic links between its figures;
- * with the tool's arguments, a rerun that must match). Apart from the generation time printed in
+ * Deterministic and model-free. A calculator report is a layout of FactLot's own run of the
+ * tool on the arguments sent (a result sent alongside is only compared, never used). A lease
+ * abstract is built from the documents' text when sent, else from a supplied result that is
+ * checked and labelled as the caller's on every page. Apart from the generation time printed in
  * the footer (and an ICS file's DTSTAMP), the same request gives the same bytes.
  */
 import { CATALOG_VERSION, getTool } from "@factlot/tools";
@@ -16,7 +17,13 @@ import {
   type ReportDoc,
 } from "./doc.ts";
 import { slug, utcStamp } from "./format.ts";
-import { ReportContext, type KindInput } from "./kinds/common.ts";
+import { checkCallerText } from "./text.ts";
+import {
+  LEASE_COMPUTED_LABEL,
+  ReportContext,
+  SUPPLIED_LABEL,
+  type KindInput,
+} from "./kinds/common.ts";
 import {
   asc842Doc,
   camDoc,
@@ -27,6 +34,7 @@ import {
 import { datesDoc, datesIcs, leaseDoc } from "./kinds/lease.ts";
 import { txDoc, txXlsx } from "./kinds/tx.ts";
 import {
+  COMPUTED_KINDS,
   KIND_FORMATS,
   KIND_TOOLS,
   REPORT_FORMATS,
@@ -34,10 +42,12 @@ import {
   ReportInputError,
   checkInput,
   type ReportFormat,
+  type TxResult,
   type ReportKind,
 } from "./validate.ts";
 
 export {
+  COMPUTED_KINDS,
   KIND_FORMATS,
   KIND_TOOLS,
   REPORT_FORMATS,
@@ -53,6 +63,13 @@ export { TX_DISCLAIMER } from "./kinds/tx.ts";
 
 /** KV's largest value; a larger document is refused. */
 export const MAX_REPORT_BYTES = 25 * 1024 * 1024;
+
+/**
+ * The Texas evidence packet (PDF) lays out at most this many comparables, each with at most
+ * this many adjustments; the workbook takes the tool's full set (up to 200 comparables).
+ */
+export const TX_PDF_MAX_COMPARABLES = 60;
+export const TX_PDF_MAX_ADJUSTMENTS = 10;
 
 export const TERMS_URL = "https://factlot.com/terms";
 
@@ -82,13 +99,13 @@ export const ReportRequest = z.strictObject({
     .unknown()
     .optional()
     .describe(
-      "The tool's result, unchanged (value, formula, steps, warnings; provenance may be included).",
+      "lease_abstract only: the doc_abstract_lease result, used when arguments are not sent (each page then says the values are the caller's). For other kinds a result sent here is not used; the answer says whether it matches FactLot's run (result_mismatch).",
     ),
   arguments: z
     .unknown()
     .optional()
     .describe(
-      "The tool's arguments. With them FactLot runs the tool again and the result must match input exactly; without input, FactLot computes the result from them.",
+      "The tool's arguments. Required for every kind but lease_abstract: FactLot runs the tool on them and builds the document from that run only.",
     ),
   context: ReportContext.optional().describe(
     "Optional title, prepared-for line, and citations (text only).",
@@ -104,8 +121,13 @@ export interface ReportFile {
   format: ReportFormat;
   /** e.g. calc_debt_sizing@3 */
   source: string;
-  /** How the input was checked: "recomputed", "computed" (arguments only) or "checked". */
-  check: "recomputed" | "computed" | "checked";
+  /**
+   * "computed": built from FactLot's run of the tool on the arguments. "supplied": a lease
+   * abstract built from the result the caller sent (checked, not recomputed).
+   */
+  check: "computed" | "supplied";
+  /** Present when a result was sent with the arguments: true when it differs from FactLot's run. */
+  result_mismatch?: boolean;
   generated_at: string;
 }
 
@@ -132,11 +154,19 @@ function issuesOf(err: z.ZodError) {
     .map((i) => ({ path: i.path.map(String).join("."), message: i.message }));
 }
 
-/** Build one document. Throws ReportInputError for anything an agent can fix. */
-export async function createReport(
-  request: unknown,
-  opts: CreateOptions = {},
-): Promise<ReportFile> {
+/** A request that passed every input check, ready to render. */
+export interface PreparedReport {
+  kind: ReportKind;
+  format: ReportFormat;
+  ctx: ReportContext;
+  checked: KindInput["checked"];
+}
+
+/**
+ * Check a request and compute (or check) its result: everything short of building the file.
+ * Cheap next to rendering; throws ReportInputError for anything an agent can fix.
+ */
+export function prepareReport(request: unknown): PreparedReport {
   const parsed = ReportRequest.safeParse(request);
   if (!parsed.success)
     throw new ReportInputError(
@@ -152,15 +182,74 @@ export async function createReport(
       `${kind} reports come as ${KIND_FORMATS[kind].join(" or ")}, not ${format}`,
       [{ path: "format", message: `one of ${KIND_FORMATS[kind].join(", ")}` }],
     );
+  checkCallerText(kind, ctx, args);
   const checked = checkInput(kind, input, args);
-  const source: KindInput["checked"]["source"] =
-    input === undefined ? "arguments" : args === undefined ? "input" : "both";
+  if (kind === "tx_unequal_appraisal" && format === "pdf")
+    txPdfLimits(checked.result as TxResult);
+  return { kind, format, ctx, checked };
+}
+
+/** Refuse a Texas evidence packet too large to lay out as a PDF (413; the workbook takes it). */
+function txPdfLimits(r: TxResult): void {
+  const comps = r.value.comparables;
+  const issues = [
+    ...(comps.length > TX_PDF_MAX_COMPARABLES
+      ? [
+          {
+            path: "arguments.comparables",
+            message: `${comps.length} comparables; the PDF lays out at most ${TX_PDF_MAX_COMPARABLES}`,
+          },
+        ]
+      : []),
+    ...comps.flatMap((c, i) =>
+      c.adjustments.length > TX_PDF_MAX_ADJUSTMENTS
+        ? [
+            {
+              path: `arguments.comparables.${i}.adjustments`,
+              message: `${c.adjustments.length} adjustments; the PDF lays out at most ${TX_PDF_MAX_ADJUSTMENTS} per comparable`,
+            },
+          ]
+        : [],
+    ),
+  ];
+  if (issues.length)
+    throw new ReportInputError(
+      "TooLarge",
+      `a tx_unequal_appraisal PDF lays out at most ${TX_PDF_MAX_COMPARABLES} comparables with at most ${TX_PDF_MAX_ADJUSTMENTS} adjustments each; the xlsx workbook takes the full set (up to 200 comparables)`,
+      issues.slice(0, 20),
+      'ask for "format": "xlsx" (the adjustment-grid workbook takes every comparable and adjustment), or send fewer comparables or adjustments for the PDF',
+    );
+}
+
+/** Build one document. Throws ReportInputError for anything an agent can fix. */
+export async function createReport(
+  request: unknown,
+  opts: CreateOptions = {},
+): Promise<ReportFile> {
+  return renderReport(prepareReport(request), opts);
+}
+
+/**
+ * Build the file for a prepared request. A document over a size limit throws ReportInputError
+ * (TooLarge); anything else thrown is a fault in FactLot, not in the request.
+ */
+export async function renderReport(
+  prepared: PreparedReport,
+  opts: CreateOptions = {},
+): Promise<ReportFile> {
+  const { kind, format, ctx, checked } = prepared;
   const version = opts.version ?? CATALOG_VERSION;
   const now = opts.now ?? Date.now();
   const generatedAt = new Date(now);
   const formula = getTool(checked.tool)?.formula;
   const toolRef = `${checked.tool}@${formula ? formula.version : version}`;
-  const footer = `Generated by FactLot ${version} on ${utcStamp(now)} from ${toolRef}; numbers are the tool's results; see ${TERMS_URL}`;
+  // Only a document built from FactLot's own run says its numbers are the tool's results. A
+  // lease abstract leads every page's footer with where its values came from.
+  const generated = `Generated by FactLot ${version} on ${utcStamp(now)} from ${toolRef}`;
+  const footer =
+    kind === "lease_abstract"
+      ? `${checked.check === "supplied" ? SUPPLIED_LABEL : LEASE_COMPUTED_LABEL} ${generated}; see ${TERMS_URL}`
+      : `${generated}; numbers are the tool's results; see ${TERMS_URL}`;
   const p: Provenance = {
     footer,
     version,
@@ -169,7 +258,7 @@ export async function createReport(
     header: `FactLot | ${KIND_TITLES[kind]}${ctx.title ? ` | ${ctx.title}` : ""}`,
     keywords: ["FactLot", kind, toolRef],
   };
-  const k: KindInput = { checked: { ...checked, source }, ctx, p };
+  const k: KindInput = { checked, ctx, p };
 
   let bytes: Uint8Array;
   if (format === "ics") bytes = await datesIcs(k);
@@ -202,7 +291,10 @@ export async function createReport(
     kind,
     format,
     source: toolRef,
-    check: source === "arguments" ? "computed" : checked.check,
+    check: checked.check,
+    ...(checked.result_mismatch !== undefined
+      ? { result_mismatch: checked.result_mismatch }
+      : {}),
     generated_at: generatedAt.toISOString(),
   };
 }
