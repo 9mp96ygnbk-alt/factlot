@@ -77,6 +77,21 @@ export function json(
   });
 }
 
+/**
+ * A JSON error in the shape every billing and account route uses: `code` (also kept as `error`
+ * for older clients), a plain `message`, and `next`: the URL or exact action that fixes it.
+ */
+export function apiError(
+  status: number,
+  code: string,
+  message: string,
+  next: string,
+  extra: Record<string, unknown> = {},
+  headers: Record<string, string> = {},
+): Response {
+  return json(status, { error: code, code, message, next, ...extra }, headers);
+}
+
 export function billingClosed(): Response {
   return json(503, {
     error: "BillingNotOpen",
@@ -888,7 +903,13 @@ export interface AccountSummary {
   keys: {
     count: number;
     limit: number;
-    items: { id: string; created: string; current: boolean }[];
+    items: {
+      id: string;
+      created: string;
+      current: boolean;
+      /** ISO, to the minute; null when unknown (never used, or before this was recorded). */
+      last_used_at: string | null;
+    }[];
   };
   /** ISO: when the subscription renews (Stripe current_period_end); null when it will not or is unknown. */
   renewal_at: string | null;
@@ -934,11 +955,17 @@ export async function accountSummary(
     keys: {
       count: keys.length,
       limit: plan.maxKeys,
-      items: keys.map((k) => ({
-        id: keyId(k.hash),
-        created: k.record.created,
-        current: k.hash === hash,
-      })),
+      items: await Promise.all(
+        keys.map(async (k) => ({
+          id: keyId(k.hash),
+          created: k.record.created,
+          current: k.hash === hash,
+          last_used_at:
+            (await env.METER.lastUsed(`key:${keyId(k.hash)}`).catch(
+              () => undefined,
+            )) ?? null,
+        })),
+      ),
     },
     renewal_at:
       record.period_end &&

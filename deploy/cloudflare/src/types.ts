@@ -67,6 +67,24 @@ export interface MeterService {
   ): Promise<void>;
   /** First writer wins, strongly consistent: returns the value stored under `name`. */
   claim(name: string, value: string): Promise<string>;
+  /** Record charged registry lookups for `sub:<subscription>` (tool name, region prefix). */
+  record(
+    subject: string,
+    items: { tool: string; region: string }[],
+  ): Promise<void>;
+  /** Daily lookups and totals by tool and region for the last `days` UTC days. */
+  usage(subject: string, days: number): Promise<UsageSummary>;
+  /** When `key:<key id>` last made a request (ISO, to the minute). */
+  lastUsed(subject: string): Promise<string | undefined>;
+}
+
+export interface UsageSummary {
+  from: string;
+  to: string;
+  daily: { date: string; lookups: number }[];
+  by_tool: Record<string, number>;
+  by_region: Record<string, number>;
+  total: number;
 }
 
 export interface AnalyticsDataset {

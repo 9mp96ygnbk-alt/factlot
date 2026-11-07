@@ -7,12 +7,15 @@
  * only do two things: copy a block to the clipboard and call GET /v1/account for "Test your key".
  * Forms post to the Worker; a key never travels in a URL.
  */
+import type { HostedRegion } from "./account-tools.ts";
 import type { AccountSummary } from "./billing.ts";
 import { CHANGELOG_URL, CONTACT, REPO } from "./contact.ts";
 import { escapeHtml } from "./html.ts";
 import { base64url } from "./keys.ts";
+import { HOSTING_NOTE, WHATS_NEW } from "./news.ts";
 import { setupGuide, type Snippet } from "./onboarding.ts";
 import { PLANS, QUOTA_RULES, priceText, type Plan } from "./plans.ts";
+import type { UsageSummary } from "./types.ts";
 
 export { escapeHtml };
 
@@ -371,23 +374,61 @@ ${s.deletes_at ? `<dt>Record deleted</dt><dd>${escapeHtml(utc(s.deletes_at))} un
 </dl>`;
 }
 
+/** A 30-day bar sparkline of daily lookups (SVG attributes only: no inline styles under the CSP). */
+function sparkline(u: UsageSummary): string {
+  const max = Math.max(1, ...u.daily.map((d) => d.lookups));
+  const w = 300 / u.daily.length;
+  const peak = u.daily.reduce((a, b) => (b.lookups > a.lookups ? b : a));
+  const bars = u.daily
+    .map((d, i) => {
+      const h = d.lookups === 0 ? 1 : Math.max(2, (d.lookups / max) * 52);
+      return `<rect x="${(i * w + 1).toFixed(1)}" y="${(56 - h).toFixed(1)}" width="${(w - 2).toFixed(1)}" height="${h.toFixed(1)}"${d.lookups === 0 ? ' opacity="0.3"' : ""}><title>${d.date}: ${d.lookups}</title></rect>`;
+    })
+    .join("");
+  const label =
+    u.total === 0
+      ? `No registry lookups from ${u.from} to ${u.to}`
+      : `${u.total} registry lookup${u.total === 1 ? "" : "s"} from ${u.from} to ${u.to}; most on ${peak.date} (${peak.lookups})`;
+  return `<svg class="spark" viewBox="0 0 300 56" preserveAspectRatio="none" role="img" aria-label="${escapeHtml(label)}" fill="currentColor">${bars}</svg>`;
+}
+
+function tally(t: Record<string, number>): string {
+  const rows = Object.entries(t).sort((a, b) => b[1] - a[1]);
+  return rows.length
+    ? rows
+        .map(
+          ([k, n]) =>
+            `<li><code>${escapeHtml(k)}</code> ${n.toLocaleString("en-US")}</li>`,
+        )
+        .join("")
+    : "<li>None yet</li>";
+}
+
+export interface AccountPageOptions {
+  notice?: string;
+  newKey?: string;
+  status?: number;
+  /** Masked address Stripe sends receipts to. */
+  receipts?: string;
+  /** The subscription's last 30 days. */
+  usage?: UsageSummary;
+  /** The hosted registry's coverage, by state. */
+  regions?: HostedRegion[];
+  api?: string;
+}
+
 /** The account page for a known key; `newKey` is shown once after a rotation or a new key. */
 export function accountPage(
   s: AccountSummary,
   key: string,
-  opts: {
-    notice?: string;
-    newKey?: string;
-    status?: number;
-    /** Masked address Stripe sends receipts to. */
-    receipts?: string;
-  } = {},
+  opts: AccountPageOptions = {},
 ): Response {
   const active = s.status === "active";
+  const api = trim(opts.api ?? DEFAULT_API);
   const rows = s.keys.items
     .map(
       (k) =>
-        `<tr><td><code>${escapeHtml(k.id)}</code>${k.current ? " (this key)" : ""}</td><td>${escapeHtml(k.created.slice(0, 10))}</td><td>${
+        `<tr><td><code>${escapeHtml(k.id)}</code>${k.current ? " (this key)" : ""}</td><td>${escapeHtml(k.created.slice(0, 10))}</td><td>${k.last_used_at ? escapeHtml(utc(k.last_used_at)) : "Not yet"}</td><td>${
           active && s.keys.count > 1
             ? actionForm(
                 key,
@@ -403,17 +444,36 @@ export function accountPage(
   const newKey = opts.newKey
     ? `<section class="step" aria-labelledby="h-new"><h2 id="h-new">Your new key</h2><div class="block key"><pre class="key" id="new-key">${escapeHtml(opts.newKey)}</pre><button type="button" class="copy" data-copy="new-key">Copy</button></div><p>Shown <strong>once</strong>: copy it now. It can take up to a minute to activate everywhere.</p></section>`
     : "";
+  const u = opts.usage;
+  const usage = u
+    ? `<section class="step" aria-labelledby="h-usage"><h2 id="h-usage">Last 30 days</h2>
+${sparkline(u)}
+<p class="small">${u.total.toLocaleString("en-US")} charged lookups from ${escapeHtml(u.from)} to ${escapeHtml(u.to)} (UTC days). The same data: <code>GET ${escapeHtml(api)}/v1/account/usage</code> or the <code>account_usage</code> MCP tool.</p>
+<details class="client"><summary>By tool and region</summary><p>By tool</p><ul class="plain">${tally(u.by_tool)}</ul><p>By region (state FIPS prefix; searches are <code>search</code>)</p><ul class="plain">${tally(u.by_region)}</ul></details>
+</section>`
+    : "";
+  const regions = opts.regions?.length
+    ? `<section class="step" aria-labelledby="h-regions"><h2 id="h-regions">Hosted regions</h2>
+<ul class="plain">${opts.regions
+        .map(
+          (r) =>
+            `<li><strong>${escapeHtml(r.state)}</strong>: ${r.counties} ${r.counties === 1 ? "county" : "counties"}, ${r.parcels.toLocaleString("en-US")} parcels${r.as_of ? `, as of ${escapeHtml(r.as_of)}` : ""}</li>`,
+        )
+        .join("")}</ul>
+<p class="small">${escapeHtml(HOSTING_NOTE)} From <code>registry_coverage</code>, which is free.</p></section>`
+    : "";
   return page(
     "Your FactLot account",
     `<h1>${escapeHtml(s.plan_name)}</h1>
 ${opts.notice ? notice(opts.notice, (opts.status ?? 200) >= 400) : ""}
 ${newKey}
 ${accountFacts(s, opts.receipts)}
+${usage}
 <section class="step" aria-labelledby="h-billing"><h2 id="h-billing">Billing</h2>
 <p>Change your card, see invoices, switch plans or cancel in Stripe's billing portal.</p>
 <div class="buttons">${actionForm(key, "portal", "Manage billing / cancel", "", "primary")}</div></section>
 <section class="step" aria-labelledby="h-keys"><h2 id="h-keys">Keys</h2>
-<table class="keys"><thead><tr><th>Key id</th><th>Created</th><th></th></tr></thead><tbody>${rows}</tbody></table>
+<table class="keys"><thead><tr><th>Key id</th><th>Created</th><th>Last used</th><th></th></tr></thead><tbody>${rows}</tbody></table>
 ${
   active
     ? `<div class="buttons">${actionForm(key, "rotate", "Replace this key")}${
@@ -422,7 +482,12 @@ ${
 <p class="small">Replacing a key stops the old one at once (allow a minute everywhere). ${s.keys.limit > 1 ? `Your plan includes up to ${s.keys.limit} keys; they share the monthly registry lookups.` : `Team includes up to ${PLANS.team.maxKeys} keys.`}</p>`
     : ""
 }</section>
-<p class="small">Questions: <a href="mailto:${CONTACT}">${CONTACT}</a>${s.plan === "team" ? " (priority support)" : ""}.</p>`,
+${regions}
+<section class="step" aria-labelledby="h-new-things"><h2 id="h-new-things">What's new</h2>
+<ul class="plain">${WHATS_NEW.map((w) => `<li>${escapeHtml(w.text)}</li>`).join("")}</ul>
+<p class="small"><a href="${escapeHtml(s.changelog)}">Full changelog</a></p></section>
+<section class="step" aria-labelledby="h-help"><h2 id="h-help">Get help</h2>
+<p>Email <a href="mailto:${CONTACT}">${CONTACT}</a>${s.plan === "team" ? " (priority support)" : ""}, ask in <a href="${REPO}/discussions">GitHub Discussions</a>, or give your agent the setup guide: <code>${escapeHtml(api)}/v1/onboarding?plan=${escapeHtml(s.plan)}</code>.</p></section>`,
     { status: opts.status, formAction: ACCOUNT_FORM_ACTION, copy: true },
   );
 }

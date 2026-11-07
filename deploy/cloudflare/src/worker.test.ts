@@ -36,7 +36,9 @@ import {
   type CounterStore,
   type DurableObjectNamespaceLike,
 } from "./limiter.ts";
+import { resetCoverageCache } from "./account-tools.ts";
 import { CLAIM_POLL_MS } from "./claim.ts";
+import { WHATS_NEW } from "./news.ts";
 import { escapeHtml } from "./pages.ts";
 import { PLANS } from "./plans.ts";
 import { REGISTRY_RUN_URL, registryRunner } from "./registry.ts";
@@ -100,8 +102,38 @@ class MemoryStore implements CounterStore {
   setClaim(n: string, v: string) {
     if (!this.claims.has(n)) this.claims.set(n, v);
   }
+  readonly usage = new Map<string, number>();
+  readonly meta = new Map<string, string>();
+  addUsage(day: string, tool: string, region: string, n: number) {
+    const k = `${day}|${tool}|${region}`;
+    this.usage.set(k, (this.usage.get(k) ?? 0) + n);
+  }
+  readUsage(fromDay: string) {
+    return [...this.usage.entries()]
+      .map(([k, n]) => {
+        const [day, tool, region] = k.split("|") as [string, string, string];
+        return { day, tool, region, n };
+      })
+      .filter((r) => r.day >= fromDay)
+      .sort((a, b) => a.day.localeCompare(b.day));
+  }
+  pruneUsageBefore(day: string) {
+    for (const k of [...this.usage.keys()])
+      if (k.split("|")[0]! < day) this.usage.delete(k);
+  }
+  getMeta(n: string) {
+    return this.meta.get(n);
+  }
+  setMeta(n: string, v: string) {
+    this.meta.set(n, v);
+  }
+  deleteMeta(n: string) {
+    this.meta.delete(n);
+  }
   size() {
-    return this.counts.size + this.claims.size;
+    return (
+      this.counts.size + this.claims.size + this.usage.size + this.meta.size
+    );
   }
   clearClaims() {
     this.claims.clear();
@@ -145,6 +177,8 @@ function fakeLimiter(clock: Clock) {
             deleteAll: async () => {
               store.counts.clear();
               store.claims.clear();
+              store.usage.clear();
+              store.meta.clear();
               entry.alarm = null;
             },
           },
@@ -1185,6 +1219,25 @@ describe("meter", () => {
       "October's counts and the claim are gone",
     );
     assert.equal(store.size(), 0);
+    // Usage and last-use rows on the same SQLite: kept 90 days, then pruned by the alarm.
+    m.record([
+      { tool: "registry_get", region: "us-24" },
+      { tool: "registry_get", region: "us-24" },
+      { tool: "registry_search_address", region: "search" },
+    ]);
+    assert.ok(m.touch());
+    assert.equal(m.touch(), false, "at most one write a minute");
+    const u = m.usage(30);
+    assert.equal(u.total, 3);
+    assert.deepEqual(u.by_region, { "us-24": 2, search: 1 });
+    assert.equal(u.daily.at(-1)!.date, "2026-11-01");
+    assert.equal(u.daily.at(-1)!.lookups, 3);
+    assert.equal(m.lastUsed(), "2026-11-01T00:00:00.000Z");
+    clock.t += 89 * 24 * 3600_000;
+    assert.notEqual(m.cleanup(), undefined, "still kept on day 90");
+    clock.t += 2 * 24 * 3600_000;
+    assert.equal(m.cleanup(), undefined, "gone after 90 days");
+    assert.equal(store.size(), 0);
   });
 });
 
@@ -1396,6 +1449,15 @@ describe("router", () => {
         throw new Error("DO down");
       },
       quota: async () => {
+        throw new Error("DO down");
+      },
+      record: async () => {
+        throw new Error("DO down");
+      },
+      usage: async () => {
+        throw new Error("DO down");
+      },
+      lastUsed: async () => {
         throw new Error("DO down");
       },
       claim: async () => {
@@ -1802,7 +1864,13 @@ describe("accounts and keys", () => {
       count: 1,
       limit: 1,
       items: [
-        { id: keyId(hash), created: "2026-11-03T00:00:00Z", current: true },
+        {
+          id: keyId(hash),
+          created: "2026-11-03T00:00:00Z",
+          current: true,
+          // This very request used the key (stored to the minute).
+          last_used_at: "2026-11-07T12:00:00.000Z",
+        },
       ],
     });
     assert.match(String(acct.data_retention), /365 days/);
@@ -3409,5 +3477,241 @@ describe("renewal date and receipts", () => {
     assert.match(html, /Renews on December 3, 2026/);
     assert.match(html, /Stripe emails receipts to b•••r@example\.com/);
     assert.ok(!html.includes("buyer@example.com"));
+  });
+});
+
+describe("account usage, tools and page", () => {
+  const regionsApi = (counties: unknown[]) => {
+    const base = innerApi().api;
+    return {
+      fetch: async (r: Request) =>
+        new URL(r.url).pathname === "/v1/registry/coverage"
+          ? new Response(JSON.stringify({ counties }), {
+              headers: { "content-type": "application/json" },
+            })
+          : base.fetch(r),
+    };
+  };
+  const flush = () => new Promise((r) => setTimeout(r, 0));
+
+  it("records charged lookups by tool and region; /v1/account/usage reports 30 days", async () => {
+    const e = env();
+    const { key } = await issue(e);
+    const { api } = innerApi();
+    await call(e, api, "/v1/registry/get", {
+      key,
+      body: { urn: "fl:parcel:us-24510:0001" },
+    });
+    await call(e, api, "/v1/registry/resolve_parcel", {
+      key,
+      body: { state_fips: "11", county_fips: "001", apn: "x" },
+    });
+    await call(e, api, "/mcp", {
+      key,
+      body: [
+        toolCall("registry_search_address", 1),
+        toolCall("registry_coverage", 2),
+      ],
+    });
+    await flush();
+    const res = await call(e, api, "/v1/account/usage", {
+      key,
+      method: "GET",
+    });
+    assert.equal(res.status, 200);
+    const u = (await res.json()) as {
+      daily: { date: string; lookups: number }[];
+      by_tool: Record<string, number>;
+      by_region: Record<string, number>;
+      total: number;
+      month: { used: number; limit: number };
+    };
+    assert.equal(u.daily.length, 30);
+    assert.equal(u.daily.at(-1)!.date, "2026-11-07");
+    assert.equal(u.total, 3);
+    assert.deepEqual(u.by_tool, {
+      registry_get: 1,
+      registry_resolve_parcel: 1,
+      registry_search_address: 1,
+    });
+    assert.deepEqual(u.by_region, { "us-24": 1, "us-11": 1, search: 1 });
+    assert.deepEqual(
+      [u.month.used, u.month.limit],
+      [3, 5000],
+      "agrees with the quota",
+    );
+    const anon = await call(e, api, "/v1/account/usage", { method: "GET" });
+    assert.equal(anon.status, 401);
+    const err = (await anon.json()) as Record<string, string>;
+    assert.equal(err.code, "Unauthorized");
+    assert.match(err.next!, /Bearer/);
+  });
+
+  it("MCP: account tools are listed only with a key, answered here, and never metered", async () => {
+    const e = env();
+    const { key } = await issue(e, { plan: "team" });
+    const { api, seen } = innerApi();
+    const listApi = {
+      fetch: async (r: Request) => {
+        const body = JSON.parse(await r.clone().text()) as { method?: string };
+        if (body.method === "tools/list")
+          return new Response(
+            JSON.stringify({
+              jsonrpc: "2.0",
+              id: 1,
+              result: { tools: [{ name: "calc_irr" }] },
+            }),
+            { headers: { "content-type": "application/json" } },
+          );
+        return api.fetch(r);
+      },
+    };
+    const list = { jsonrpc: "2.0", id: 1, method: "tools/list" };
+    const keyed = (await (
+      await call(e, listApi, "/mcp", { key, body: list })
+    ).json()) as { result: { tools: { name: string }[] } };
+    assert.deepEqual(
+      keyed.result.tools.map((t) => t.name),
+      ["calc_irr", "account_status", "account_usage"],
+    );
+    const anon = (await (
+      await call(e, listApi, "/mcp", { body: list })
+    ).json()) as { result: { tools: { name: string }[] } };
+    assert.deepEqual(
+      anon.result.tools.map((t) => t.name),
+      ["calc_irr"],
+    );
+    const before = seen.length;
+    const status = (await (
+      await call(e, api, "/mcp", { key, body: toolCall("account_status", 7) })
+    ).json()) as {
+      id: number;
+      result: { structuredContent: Record<string, unknown> };
+    };
+    assert.equal(seen.length, before, "the inner handler never sees it");
+    assert.equal(status.id, 7);
+    assert.equal(status.result.structuredContent.plan, "team");
+    assert.ok(status.result.structuredContent.registry_lookups);
+    const mixed = (await (
+      await call(e, api, "/mcp", {
+        key,
+        body: [toolCall("calc_irr", 1), toolCall("account_usage", 2)],
+      })
+    ).json()) as {
+      id: number;
+      result: { structuredContent?: { daily: unknown[] } };
+    }[];
+    assert.deepEqual(mixed.map((m) => m.id).sort(), [1, 2]);
+    assert.equal(
+      mixed.find((m) => m.id === 2)!.result.structuredContent!.daily.length,
+      30,
+    );
+    const q = await e.METER.quota("sub:sub_1", "month", 100_000);
+    assert.equal(q.used, 0, "account tools are free");
+  });
+
+  it("/account shows the month's bar, 30 days, keys with last use, hosted regions and what's new", async () => {
+    resetCoverageCache();
+    const e = env();
+    e.RL_ANON = new CountingLimit(100);
+    const { key } = await issue(e, { plan: "team" });
+    const api = regionsApi([
+      { state: "DC", parcels: 18077, sources: [{ as_of: "2026-11-04" }] },
+      { state: "MD", parcels: 3434, sources: [{ as_of: "2026-11-05" }] },
+      { state: "MD", parcels: 100, sources: [{ as_of: "2026-11-02" }] },
+    ]);
+    await call(e, api, "/v1/registry/get", {
+      key,
+      body: { urn: "fl:parcel:us-11001:02570824" },
+    });
+    await flush();
+    const res = await handle(
+      new Request("https://factlot.com/account", {
+        method: "POST",
+        body: new URLSearchParams({ key }).toString(),
+        headers: { origin: "https://factlot.com", "cf-connecting-ip": IP },
+      }),
+      e,
+      api,
+      { now: () => T0 },
+    );
+    const html = await res.text();
+    resetCoverageCache();
+    assert.match(html, /<progress max="100000" value="1"/);
+    assert.match(
+      html,
+      /<svg class="spark"[^>]*aria-label="1 registry lookup from 2026-10-09 to 2026-11-07; most on 2026-11-07 \(1\)"/,
+    );
+    assert.match(html, /<code>us-11<\/code> 1/);
+    assert.match(html, /2026-11-07 12:00 UTC/, "the key's last use");
+    assert.match(
+      html,
+      /<strong>DC<\/strong>: 1 county, 18,077 parcels, as of 2026-11-04/,
+    );
+    assert.match(
+      html,
+      /<strong>MD<\/strong>: 2 counties, 3,534 parcels, as of 2026-11-05/,
+    );
+    assert.match(html, /Texas hosting opens with this release\./);
+    assert.match(html, /What's new/);
+    assert.match(html, /Get help/);
+    assert.doesNotMatch(html, / style="/);
+  });
+
+  it("every What's new line is recorded in CHANGELOG.md", async () => {
+    const { readFileSync } = await import("node:fs");
+    const changelog = readFileSync(
+      new URL("../../../CHANGELOG.md", import.meta.url),
+      "utf8",
+    );
+    const unreleased = changelog.slice(
+      changelog.indexOf("## [Unreleased]"),
+      changelog.indexOf("\n## [", changelog.indexOf("## [Unreleased]") + 5),
+    );
+    for (const w of WHATS_NEW)
+      assert.ok(unreleased.includes(w.changelog), w.changelog);
+  });
+
+  it("billing and account errors carry code, message and next", async () => {
+    const e = env({ STRIPE_SECRET_KEY: "sk_live_x" });
+    const { key } = await issue(e);
+    const { api } = innerApi();
+    const checks: [Response, string][] = [
+      [
+        await call(e, api, "/v1/billing/checkout", { body: { plan: "gold" } }),
+        "BadRequest",
+      ],
+      [await call(e, api, "/v1/billing/keys", { key }), "KeyLimitReached"],
+      [
+        await call(e, api, "/v1/billing/keys/0000000000000000", {
+          key,
+          method: "DELETE",
+        }),
+        "NotFound",
+      ],
+      [
+        await call(e, api, "/v1/billing/rotate", { key, method: "GET" }),
+        "MethodNotAllowed",
+      ],
+      [
+        await call(e, api, `/v1/billing/claim/${"A".repeat(43)}`, {
+          method: "GET",
+        }),
+        "NotFound",
+      ],
+      [
+        await call(e, api, "/v1/account", {
+          key: `fl_live_${"Z".repeat(43)}`,
+          method: "GET",
+        }),
+        "Unauthorized",
+      ],
+    ];
+    for (const [res, code] of checks) {
+      const body = (await res.json()) as Record<string, unknown>;
+      assert.equal(body.code, code, JSON.stringify(body));
+      assert.equal(typeof body.message, "string");
+      assert.ok(typeof body.next === "string" && body.next.length > 0, code);
+    }
   });
 });
