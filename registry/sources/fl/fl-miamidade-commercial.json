@@ -1,0 +1,27 @@
+{
+  "description": "Miami-Dade County (FIPS 12086) 'Commercial Property' point layer of commercial business locations. Review record only: licenseInfo is an 'as is' disclaimer and grants no licence. See docs/registry/sources/fl-miamidade-commercial.md. Nothing is collected while verified is false.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "fl-miamidade-commercial",
+      "publisher": "Miami-Dade County ITD - Geospatial Infrastructure Support Group",
+      "landing_pages": [
+        "https://www.arcgis.com/sharing/rest/content/items/fb8303c577c24ea386a91be7329842be?f=json",
+        "https://services.arcgis.com/8Pc9XBTAsYuxx9Ny/arcgis/rest/services/CommercialProperty_gdb/FeatureServer"
+      ],
+      "allowed_hosts": ["www.arcgis.com", "services.arcgis.com"],
+      "files": [],
+      "verified": false,
+      "gate": "Terms: no reuse licence is stated. The ArcGIS item fb8303c577c24ea386a91be7329842be licenseInfo, read 2026-11-06, is only an 'as is' disclaimer: 'Miami-Dade County provides this data for use \"as is\".' It grants no licence to copy or redistribute and does not mention AI. Not loaded. No features were queried or exported. The layer is business-location points, not a parcel roll; USECODE has no coded domain, so no Florida DOR map was made and the Texas B/F1/F2 categories must not be reused as a nationwide crosswalk. Layer editingInfo.dataLastEditDate is 2022-07-26, more than 400 days before the read date.",
+      "terms_url": "https://www.arcgis.com/sharing/rest/content/items/fb8303c577c24ea386a91be7329842be?f=json",
+      "license": "No licence stated. Item licenseInfo, read 2026-11-06: 'Miami-Dade County provides this data for use \"as is\". The areas depicted by this map/data are approximate, and are not accurate to surveying or engineering standards. The maps/data shown here are for illustration purposes only and are not suitable for site-specific decision making. Information found here should not be used for making financial or any other commitments. Miami-Dade County provides this information with the understanding that it is not guaranteed to be accurate, correct or complete and conclusions drawn from such information are the sole responsibility of the user. While every effort has been made to ensure the accuracy, correctness and timeliness of materials presented, Miami-Dade County assumes no responsibility for errors or omissions, even if Miami-Dade County is advised of the possibility of such damage.'",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not granted. The item states an 'as is' disclaimer only and no licence to copy or redistribute",
+      "notes": "verified=false. Terms read 2026-11-06; the date is in the review record. Review record only. No feature query and no export. Item description: 'A point feature class of Commercial Business locations within Miami-Dade County' and 'Updated: Annually'. Service layer CommercialProperty is esriGeometryPoint. Fields include FOLIO, BUSNAME1, BUSNAME2, PHONE, USECODE, CODE, BUSCODE; no field domain was published, and no code values were read. Commercial-universe denominator unavailable: the metadata publishes no feature count (item size 66912256 is bytes). Freshness, not a loaded as-of: item modified 2026-09-10T13:20:37Z; editingInfo.dataLastEditDate 2022-07-26T03:18:45.696Z; lastEditDate and schemaLastEditDate 2023-04-05T16:09:18.559Z. www.arcgis.com robots.txt has no Disallow; services.arcgis.com/robots.txt returned HTTP 403 'Invalid URL'. Not loaded: no reuse licence is stated."
+    }
+  ]
+}
