@@ -4,6 +4,11 @@ Data work for the Texas unequal-appraisal tools (`registry_tx_equity_candidates`
 2026-11-06. Every publisher page cited below was read on 2026-11-06 unless another date is given;
 anything not established from the publisher's own page is marked **unconfirmed**.
 
+FactLot is software. It is not a property tax consultant under Texas Occupations Code chapter 1152,
+does not prepare, file or advise on protests, and does not represent owners before an appraisal
+review board. If you provide property tax services to others for compensation, your own
+registration obligations apply.
+
 ## 1. Neighborhood code and building class
 
 Two string predicates, added to `Predicates.parcel` (`packages/schema/src/index.ts`),
@@ -62,8 +67,9 @@ layout `TP_Legacy8.0.32-AppraisalExportLayout.xlsx` inside it) does: `hood_cd` a
 1686–1695 of `2026-10-30_2026_APPRAISAL_INFO.TXT` (sample values `1H040N`, `3H020A`) and
 `Imprv_det_class_cd` at 76–85 of `..._APPRAISAL_IMPROVEMENT_DETAIL.TXT`; its `prop_id` equals
 PropertyData's `Account_Num`. `APPRAISAL_INFO.TXT` is 14,009,929,130 bytes uncompressed. Wiring it
-means a second registry source for that file, as for Harris's buildings file; not done here, and
-Tarrant is not served by the candidates tool in any case until its signals are clarified (section 3).
+means a second registry source for that file, as for Harris's buildings file; not done here.
+Tarrant County is not served by the hosted registry while the publisher's terms for AI use are
+unclear (section 3).
 
 Denton, Williamson and Fort Bend were outside this pass (their archives are not in the local
 `collected/` folder).
@@ -176,11 +182,10 @@ the restrictions express reservations of rights under Article 4 of EU Directive 
 The data-downloads page (`https://www.tad.org/resources/data-downloads`) states no licence, terms
 or disclaimer for the files and links no terms page (only the Public Information Act request form).
 
-Is the kit's use consistent? The kit serves Tarrant roll values to agents as cited facts for
-comparable-property lookups: retrieval, not training.
+Would serving Tarrant data be consistent with them? The use in question is serving roll values to
+agents as cited facts for comparable-property lookups: retrieval, not training.
 
-- `ai-train=no`: consistent. FactLot does not train or fine-tune models on the data, and nothing
-  in the kit does.
+- `ai-train=no`: consistent. FactLot does not train or fine-tune models on the data.
 - `ai-input`: not stated. This use is exactly what the file defines as `ai-input` (content put into
   a model for grounding or RAG). By the file's own rule an absent signal neither grants nor
   restricts, so it is neither permitted nor forbidden by the signals.
@@ -189,6 +194,9 @@ comparable-property lookups: retrieval, not training.
   serving many comps in bulk is less clearly "reference". **Unclear.**
 
 Finding: not inconsistent with any stated directive, but not affirmatively allowed either
-(`ai-input` is silent and `use=reference` is undefined). This is not decided here. Options for a
-person: ask TAD (the PIA form or its data contact) whether serving roll values as cited facts to
-AI agents is acceptable, or keep Tarrant out of the candidates tool until then (which the tool now does).
+(`ai-input` is silent and `use=reference` is undefined).
+
+Status: Tarrant County is not served by the hosted registry while the publisher's terms for AI use
+are unclear. This applies to every hosted tool, and `registry_tx_equity_candidates` refuses Tarrant
+parcels on every server. It stays so until the district states in writing whether reference use by
+AI agents is permitted.

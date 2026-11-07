@@ -9,7 +9,7 @@ an identifier. This page covers which tool to call, when, and how to report the 
    rent, loan sizing, loan amortization schedules, ASC 842 remeasurement, prepayment and defeasance,
    WALT, NPV, IRR, property DCFs, direct-cap values, LP/GP waterfalls, 1031 exchange deadlines and
    boot, lease-versus-own, renew-versus-relocate, hotel metrics, multifamily rent rolls, capital
-   expenditure recovery, and Texas unequal-appraisal evidence.
+   expenditure recovery, and the Texas unequal-appraisal arithmetic.
    Models drift on compounding, caps, and amortization. The calculators don't.
 2. **Cite the method.** Report the formula ID (`provenance.formula`, for example
    `calc.debt_sizing@3`; `formula` holds the same as `{id, version}`) and point to `steps`.
@@ -53,7 +53,7 @@ an identifier. This page covers which tool to call, when, and how to report the 
 | "Value at a 6.5% cap" or "what cap rate does this price imply?"                          | `calc_direct_cap`                                   |
 | "How do the LP and GP split it?" (pref, catch-up, promote)                               | `calc_equity_waterfall`                             |
 | "When are my 1031 deadlines?" or "do I have boot?" (not tax advice)                      | `calc_exchange_1031`                                |
-| Compare a Texas property's value with the median of adjusted comparables (evidence only) | `calc_tx_unequal_appraisal`                         |
+| Texas unequal-appraisal arithmetic: the value against the median of adjusted comparables | `calc_tx_unequal_appraisal`                         |
 | "When is a Texas protest due?"                                                           | `rules_tx_property_tax_protest_deadline`            |
 | "Should we buy the building or keep leasing?"                                            | `calc_lease_vs_own`                                 |
 | "Should we renew or move?" or "what rent makes moving worth it?"                         | `calc_renew_vs_relocate`                            |
@@ -153,28 +153,192 @@ spreadsheet or another model before relying on a figure:
   and tests (and listed under `late_identifications`); one received after the exchange deadline does
   not count toward the 95% exception. It does not move deadlines for weekends, holidays, or disaster relief.
 
-## Texas unequal appraisal
+## Texas property tax
+
+FactLot is software. It is not a property tax consultant under Texas Occupations Code chapter 1152,
+does not prepare, file or advise on protests, and does not represent owners before an appraisal
+review board. If you provide property tax services to others for compensation, your own
+registration obligations apply.
+
+The Texas tools are built for the people who do this work: registered property tax consultants,
+appraisers, attorneys and CRE analysts who run the software themselves. They compute a deadline,
+list parcels from a public roll, and do the arithmetic of a comparison the user sets up. Their
+outputs are not an appraisal or an opinion of value (Occupations Code §1103.003(1)), not legal or
+tax advice, and not a substitute for the advice of an attorney (the statement Government Code
+§81.101(c) describes). No tool says whether to protest, what value to put forward, or how a
+protest might turn out. No Texas tool returns or looks up owners, files anything, signs a §1.111
+agent designation, or contacts an appraisal district. Every `calc_tx_unequal_appraisal` result
+carries this in `disclaimer` and in its first warning; pass it on.
+
+| Step                      | Tool                                                                                                       |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| What is covered           | `registry_coverage`                                                                                        |
+| Find the subject's URN    | `registry_resolve_parcel`                                                                                  |
+| Subject's value history   | `registry_tx_equity_candidates` (`subject.value_history`)                                                  |
+| Candidate parcels         | `registry_tx_equity_candidates` (`candidates`)                                                             |
+| The comparison arithmetic | `calc_tx_unequal_appraisal`, on comparables and adjustments the user chose                                 |
+| Filing deadline           | `rules_tx_property_tax_protest_deadline` (verified)                                                        |
+| Workbook and fact package | `examples/reconciliation/build.py tx_unequal_appraisal`, `fact_package_create`                             |
+| Hearing evidence dates    | draft rule `tx_protest_evidence_dates` (SDKs only, not a tool; [docs](rules/tx-protest-evidence-dates.md)) |
+
+**Coverage.** Texas counties served by the hosted registry are listed by `registry_coverage`; its
+answer, not this page, is current. Hosted Texas coverage starts with the Harris, Dallas, Travis
+and Collin appraisal districts, then Denton, Fort Bend and Williamson; Bexar's roll needs a
+public-information request first. Tarrant County is not served by the hosted registry while the
+publisher's terms for AI use are unclear. A self-hosted FactLot with a Texas registry file
+(`FACTLOT_REGISTRY_DB`) answers the same tools for the districts it holds. For a county that is not
+covered, the user reads values from the appraisal district's own property search and passes them
+to the calculator directly.
+
+### Worked example: a Harris County parcel
+
+Harris Central Appraisal District account numbers are 13 digits, as printed on the notice. The
+calls below are in order; each result is reported as returned, with its warnings.
+
+1. `registry_coverage` with `{}`. Confirm Harris County (FIPS 48201) is listed before treating a
+   miss as meaningful.
+2. `registry_resolve_parcel`:
+
+   ```json
+   { "state_fips": "48", "county_fips": "201", "apn": "0420150000012" }
+   ```
+
+   returns `urn` `fl:parcel:us-48201:0420150000012`, or `urn: null` with the county's coverage.
+
+3. `registry_tx_equity_candidates`:
+
+   ```json
+   { "urn": "fl:parcel:us-48201:0420150000012" }
+   ```
+
+   Without `tax_year` it compares in the newest tax year whose roll gives the subject a value; pass
+   `tax_year` to pin one.
+
+   `subject` carries the roll value, `value_basis`, areas, year built, state property category
+   code and `value_history` (market and appraised value by tax year, each cited to that year's
+   roll). `candidates` are candidates under FactLot's default rule, a design choice, not a legal
+   standard; a person decides which, if any, to use. `selection` echoes the rule and its
+   parameters, and `sources` gives each roll's licence, attribution and AI-use terms.
+
+4. `calc_tx_unequal_appraisal` with the comparables the user chose and the adjustments the user
+   supplied, each with a reason. The figures below are the inputs of the first case in
+   `spec/vectors/calc/tx_unequal_appraisal.json`, not roll values; with real data, `id`, `value`,
+   areas and `citation` come from step 3.
+
+   ```json
+   {
+     "tax_year": 2027,
+     "subject": {
+       "id": "S",
+       "county_fips": "201",
+       "value": 1000000,
+       "value_basis": "appraised"
+     },
+     "adjustment_combine": "sum",
+     "comparables": [
+       {
+         "id": "A",
+         "county_fips": "201",
+         "value": 900000,
+         "value_basis": "appraised",
+         "adjustments": [
+           {
+             "label": "location",
+             "kind": "percent",
+             "value": 0.2,
+             "reason": "comp on a weaker corridor"
+           },
+           {
+             "label": "age",
+             "kind": "percent",
+             "value": -0.1,
+             "reason": "comp newer"
+           }
+         ]
+       },
+       {
+         "id": "B",
+         "county_fips": "201",
+         "value": 950000,
+         "value_basis": "appraised",
+         "adjustments": [
+           {
+             "label": "condition",
+             "kind": "percent",
+             "value": -0.05,
+             "reason": "comp renovated 2024"
+           }
+         ]
+       },
+       {
+         "id": "C",
+         "county_fips": "201",
+         "value": 1050000,
+         "value_basis": "appraised"
+       },
+       {
+         "id": "D",
+         "county_fips": "201",
+         "value": 980000,
+         "value_basis": "appraised",
+         "adjustments": [
+           {
+             "label": "age",
+             "kind": "percent",
+             "value": 0.05,
+             "reason": "comp older"
+           },
+           {
+             "label": "parking",
+             "kind": "percent",
+             "value": 0.03,
+             "reason": "comp has less parking"
+           }
+         ]
+       },
+       {
+         "id": "E",
+         "county_fips": "201",
+         "value": 920000,
+         "value_basis": "appraised",
+         "adjustments": [
+           {
+             "label": "excess land",
+             "kind": "amount",
+             "value": -20000,
+             "reason": "comp has a surplus pad site"
+           }
+         ]
+       }
+     ]
+   }
+   ```
+
+   returns `median_adjusted_value` 990,000 (the third of 900,000; 902,500; 990,000; 1,050,000;
+   1,058,400), `subject_minus_median` 10,000 and `subject_minus_median_pct` 0.010101. Report the
+   median only as the comparison figure the statute uses.
+
+5. `rules_tx_property_tax_protest_deadline` with `{ "tax_year": 2027 }` returns `deadline`
+   2027-05-17 (May 15 is a Saturday) and the conservative file-by date (`conservative_file_by`)
+   2027-05-14. A notice delivered after April 15 moves the deadline; pass `notice_delivered_date`.
+6. Save the step 4 arguments as `evidence.json` and run
+   `python3 examples/reconciliation/build.py tx_unequal_appraisal --input evidence.json --out evidence.xlsx`
+   for a workbook with live Excel formulas beside FactLot's numbers. `fact_package_create` bundles
+   the cited roll facts under a title such as "Unequal-appraisal arithmetic, tax year 2027"; no
+   ownership facts go in it, and FactLot never signs it.
+
+The `tx-unequal-appraisal-arithmetic` and `tx-property-tax-protest` skills in the Claude Code
+plugin follow this sequence.
+
+### Unequal-appraisal arithmetic
 
 `calc_tx_unequal_appraisal` (`calc.tx_unequal_appraisal@1`) does the arithmetic of Tex. Tax Code
 §41.43(b)(3) and §42.26(a)(3): the subject's value against "the median appraised value of a
-reasonable number of comparable properties appropriately adjusted". It is an **evidence
-calculation only**: not an appraisal or an opinion of value (Occupations Code §1103.003(1)), not
-legal or tax advice, and not a substitute for the advice of an attorney. It never says whether to
-protest, what value to put forward, or how a protest might turn out. FactLot does not represent
-property owners; the person files through the appraisal district's own process, themselves or
-through a registered property tax consultant or an attorney. Every result says so in `disclaimer`
-and in its first warning; pass that on.
-
-Which tool when:
-
-- **The filing deadline**: `rules_tx_property_tax_protest_deadline` (verified).
-- **The comparison itself**: `calc_tx_unequal_appraisal`, with comparables and adjustments the
-  user chose or confirmed. The tool never picks comparables or invents an adjustment, and each
-  adjustment needs a `reason` in the user's words.
-- **Evidence dates before the hearing** (the owner's 14-day date and the §41.67(d)
-  requested-information cutoff): the draft
-  rule pack `tx_protest_evidence_dates`, opt-in through `runDraftRule` / `run_draft_rule` with the
-  draft acknowledged; it is not a tool yet ([docs](rules/tx-protest-evidence-dates.md)).
+reasonable number of comparable properties appropriately adjusted". The tool never picks
+comparables or invents an adjustment, and each adjustment needs a `reason` in the user's words.
+Tax Code §41.43(a-3) and §41.67(d) attach conditions to evidence exchanged by the 14th day before
+a hearing; the draft rule `rules.tx.protest_evidence_dates` computes those dates and is not
+verified.
 
 Conventions:
 
@@ -192,9 +356,9 @@ Conventions:
 - **Order of adjustments.** Percentages first, then USD amounts and $/SF adjustments (a $/SF
   adjustment is × the subject's normalizing area, so it needs `normalize_by`). Percentages are
   decimals between −1 and 1 (0.05 for +5%); 5 is rejected.
-- **Sum or compound** (`adjustment_combine`). `sum` (the default, as most adjustment grids work)
-  adds a comparable's percentages and applies the total once: +10% and −10% leave the value
-  unchanged. `compound` multiplies (1 + each): 1.10 × 0.90 = 0.99.
+- **Sum or compound** (`adjustment_combine`). `sum` (the default) adds a comparable's percentages
+  and applies the total once: +10% and −10% leave the value unchanged. `compound` multiplies
+  (1 + each): 1.10 × 0.90 = 0.99.
 - **Rounding.** Normalized, after-percentage and adjusted values are rounded to the cent at each
   step and the percentage factor to six decimals, the same in every SDK.
 - **The median.** Adjusted values are sorted ascending. For an odd count the median is the middle
@@ -203,7 +367,8 @@ Conventions:
   statute uses, with `subject_minus_median` and `subject_minus_median_pct` as what the arithmetic
   shows.
 - **How many comparables.** The statute says "a reasonable number" and does not define it. The tool
-  requires at least 3 (a FactLot product floor, not law), takes up to 200, and warns below 5.
+  requires at least 3 (a FactLot input floor, not law), takes up to 200, and warns when fewer than
+  5 comparables are given.
 - **Other warnings.** A comparable in a different county (appraisal district) from the subject, a
   comparable whose total adjustment exceeds 25% (a FactLot flag, not a legal limit), and a
   comparable with the same value, basis and areas as the subject. A comparable with the subject's
@@ -212,14 +377,15 @@ Conventions:
   passed through to the output unchanged, and `law` lists the sections relied on with their
   official URLs.
 
-## Texas unequal-appraisal candidates
+### Candidate parcels
 
-`registry_tx_equity_candidates` lists candidate comparable parcels for a Texas unequal-appraisal
-comparison (Tax Code §41.43(b)(3)) from a registry file (`FACTLOT_REGISTRY_DB`) on a self-hosted FactLot. The
-hosted API lists the tool but has no Texas registry yet, so it returns a coverage miss there. Give the subject as `urn`, or as `county_fips` and `apn`. Parcels
-outside Texas are an input error, and so are Tarrant County parcels: Tarrant Appraisal District's
-published signals do not say whether serving its data to AI agents is allowed, so FactLot does not
-serve Tarrant comparables until that is clarified.
+`registry_tx_equity_candidates` lists candidate parcels from an appraisal-district roll for an
+unequal-appraisal comparison (Tax Code §41.43(b)(3)), on the hosted API for the Texas counties
+`registry_coverage` lists and on a self-hosted FactLot with a registry file (`FACTLOT_REGISTRY_DB`).
+For a county it does not hold, it returns a coverage miss. Give the subject as `urn`, or as
+`county_fips` and `apn`. Parcels outside Texas are an input error, and so are Tarrant County
+parcels on every server: Tarrant County is not served by the hosted registry while the publisher's
+terms for AI use are unclear.
 
 - **One tax year.** Each tax year's roll is its own registry source, so a parcel can carry a
   certified roll and next year's preliminary roll at once. The tool compares within one year: the
@@ -228,12 +394,12 @@ serve Tarrant comparables until that is clarified.
   (building class also from the district's buildings file for that year), and candidates come only
   from the same district's roll for that year. `selection.tax_year`, `available_tax_years`,
   `roll_sources`, and `building_class_sources` say what was used.
-
-- **Default rule** (FactLot's design, not a legal standard; every parameter is optional and echoed
-  in `selection.parameters`): same appraisal district (county) and roll year as the subject; exactly the same `parcel.state_property_category` code; improvement area within
-  `area_band` (0.35, a share) of the subject's; year built within `year_band` (15) years when both
-  are known; an appraised or market value. Parcels sharing the subject's `parcel.neighborhood_code`
-  come first when the registry holds one, then the subject's 5-digit ZIP code, then the rest of the
+- **Default rule** (a FactLot design choice, not a legal standard; every parameter is optional and
+  echoed in `selection.parameters`): same appraisal district (county) and roll year as the subject;
+  exactly the same `parcel.state_property_category` code; improvement area within `area_band`
+  (0.35, a share) of the subject's; year built within `year_band` (15) years when both are known;
+  an appraised or market value. Parcels sharing the subject's `parcel.neighborhood_code` are listed
+  first when the registry holds one, then the subject's 5-digit ZIP code, then the rest of the
   county only when those tiers hold fewer than `min_matches` (10). Within a tier, nearest
   improvement area first, then URN; at most `limit` (50, up to 200).
 - **Output.** `subject` and each of `candidates` carry `id`, `county_fips`, `value` and
@@ -244,15 +410,14 @@ serve Tarrant comparables until that is clarified.
   `citation.document_id` names its entry in `sources`, which gives that snapshot's `license`,
   `attribution` (null when the source asks for none), `ai_use`, and `redistribution`: relay them
   with the candidate.
-- **Value history.** The subject, and every parcel's `registry_get` record, carry `value_history`:
-  market and appraised value by tax year from every snapshot, newest first, each value cited to the
-  roll of that tax year. A tax year two snapshots value differently is listed once per value.
-- **Boundaries.** These are candidates: the user, or the consultant or attorney working for them,
-  decides which to use and supplies any adjustments. Say that the selection rule is FactLot's
-  default, that the output is evidence for a calculation, not an appraisal, and that FactLot does
-  not represent property owners, file protests, or advise whether to protest. The tool never
-  returns owner names, mailing addresses, or ownership facts. Do not look up the owners of
-  candidate parcels; ownership is not needed for this comparison.
+- **Value history.** The subject carries `value_history`: market and appraised value by tax year
+  from every snapshot, newest first, each value cited to the roll of that tax year. A tax year two
+  snapshots value differently is listed once per value.
+- **Boundaries.** The output is a list of candidates under FactLot's default rule, a design
+  choice, not a legal standard; a person decides which to use and supplies any adjustments. The
+  tool never returns owner names, mailing addresses, or ownership facts. Do not look up the owners
+  of the subject or of candidate parcels (`registry_get` and `registry_owned_by` records can carry
+  the owner of record); ownership is not part of this comparison.
 
 ## Example: Claude Messages API with the Python SDK
 

@@ -4,6 +4,13 @@
 rely on it. Every result says `status: "draft"` and starts its warnings with "DRAFT — not verified
 against the official text; do not rely on it."
 
+FactLot is software. It is not a property tax consultant under Texas Occupations Code chapter 1152,
+does not prepare, file or advise on protests, and does not represent owners before an appraisal
+review board. If you provide property tax services to others for compensation, your own
+registration obligations apply. The pack computes dates: it is not legal advice and not a
+substitute for the advice of an attorney, and whether a section applies to a protest is for the
+person handling it to determine.
+
 |                   |                                                                                                               |
 | ----------------- | ------------------------------------------------------------------------------------------------------------- |
 | Pack              | `tx_protest_evidence_dates`                                                                                   |
