@@ -11,6 +11,7 @@ import { PDFDocument, PDFRawStream } from "pdf-lib";
 import { fold } from "./ics.ts";
 import { adviceIn } from "./text.ts";
 import { TX_SOFTWARE } from "./kinds/protest.ts";
+import { RIGHTS_UNKNOWN, SOURCE_NOT_SENT } from "./kinds/tx.ts";
 import { txDoc } from "./kinds/tx.ts";
 import { MAX_CELL_CHARS, MAX_PDF_LINES, PdfWriter } from "./pdf.ts";
 import { Workbook, fx } from "./xlsx.ts";
@@ -2324,5 +2325,214 @@ describe("tx_protest_deadline", () => {
       assert.equal(adviceIn(ok), undefined, ok);
     assert.equal(adviceIn("our opinion of value is $4M"), "opinion of value");
     assert.equal(adviceIn("an opinion of value"), "opinion of value");
+  });
+});
+
+// --- Texas packet: sources and rights ------------------------------------------------------------
+
+const DOC_ROLL =
+  "fl:document:sha256-1d126a7c278cfd3998a899c06b8eea84cb0621ea1a1ef56a6c1bbb7ef616f0ff";
+const DOC_BLDG = `fl:document:sha256-${"ab".repeat(32)}`;
+const DOC_OTHER = `fl:document:sha256-${"cd".repeat(32)}`;
+const comp = (id: string, value: number, area: number, citation?: Json) => ({
+  id,
+  county_fips: "201",
+  value,
+  value_basis: "appraised",
+  improvement_area_sf: area,
+  ...(citation ? { citation } : {}),
+});
+/** A registry-built packet (the QA request's shape): citations on some comparables, sources with rights. */
+const TX_CITED = {
+  kind: "tx_unequal_appraisal",
+  context: {
+    title: "HCAD 0412340010025, tax year 2026",
+    sources: [
+      {
+        document_id: DOC_ROLL,
+        source_id: "tx-hcad-roll",
+        title: "Harris Central Appraisal District: Real property roll 2026",
+        uri: "https://hcad.org/pdata/",
+        retrieved_at: "2026-11-01T00:00:00Z",
+        as_of: "2026-04-15",
+        rights: {
+          ai_use: "permitted",
+          redistribution: "attribution_required",
+          license: "Texas Public Information Act",
+          attribution: "Harris Central Appraisal District",
+        },
+      },
+      {
+        document_id: DOC_BLDG,
+        source_id: "tx-hcad-bldg",
+        title: "Harris Central Appraisal District: Building file 2026",
+        uri: "https://hcad.org/bldg/",
+        as_of: "2026-04-16",
+        rights: {
+          ai_use: "unknown",
+          redistribution: "unknown",
+          license: null,
+          attribution: null,
+        },
+      },
+    ],
+  },
+  arguments: {
+    tax_year: 2026,
+    subject: {
+      id: "HCAD 0412340010025",
+      county_fips: "201",
+      value: 4850000,
+      value_basis: "appraised",
+      improvement_area_sf: 42500,
+    },
+    normalize_by: "improvement_area_sf",
+    comparables: [
+      comp("HCAD 0412340010031", 4120000, 39800, {
+        document_id: DOC_ROLL,
+        locator: "account 0412340010031",
+        as_of: "2026-04-15",
+      }),
+      comp("HCAD 0412340020012", 3650000, 36200, {
+        document_id: DOC_ROLL,
+        as_of: "2026-04-15",
+      }),
+      comp("HCAD 0412350030007", 5300000, 47000, {
+        document_id: DOC_BLDG,
+        as_of: "2026-04-16",
+      }),
+      comp("HCAD 0412350040019", 4410000, 41000, {
+        document_id: DOC_OTHER,
+        as_of: "2026-04-15",
+      }),
+      comp("HCAD 0412360050003", 3980000, 38500, { fact_id: "fl:fact:x1" }),
+      comp("HCAD 0412360060021", 4675000, 43100),
+    ],
+  },
+};
+
+describe("Texas packet: sources and rights", () => {
+  it("PDF: after the grid, each cited source with its as-of date, URL and rights; unknown rights said so; every comparable kept", async () => {
+    const f = await createReport({ ...TX_CITED, format: "pdf" }, { now: NOW });
+    const text = (await readPdf(f.bytes)).text.replace(/\s+/g, " ");
+    const at = (x: string) => {
+      const i = text.indexOf(x);
+      assert.ok(i >= 0, x);
+      return i;
+    };
+    assert.ok(at("Comparables grid") < at("Sources and rights"));
+    assert.ok(at("Sources and rights") < at("Adjustments and reasons"));
+    // A URL wraps in its narrow column: look for it with the line breaks taken out.
+    const joined = text.replace(/ /g, "");
+    for (const url of ["https://hcad.org/pdata/", "https://hcad.org/bldg/"])
+      assert.ok(joined.includes(url), url);
+    for (const x of [
+      "Real property roll 2026",
+      "2026-04-15",
+      "2026-04-16",
+      "AI use: permitted;",
+      "attribution_required;",
+      "Texas Public Information Act",
+      RIGHTS_UNKNOWN,
+      "Cited without a source document ID: HCAD 0412360050003.",
+      "No citation given (kept in the grid): HCAD 0412360060021.",
+    ])
+      at(x);
+    for (const c of TX_CITED.arguments.comparables)
+      assert.ok(
+        text.split(c.id).length - 1 >= 3,
+        `${c.id} in the grid, the adjusted list and the citations`,
+      );
+    assert.ok(!/you should|recommend|protest your/i.test(text));
+  });
+
+  it("workbook: the Provenance sheet has the same block, rights word for word", async () => {
+    const x = await readXlsx(
+      (await createReport({ ...TX_CITED, format: "xlsx" }, { now: NOW })).bytes,
+    );
+    const prov = x.values("Provenance");
+    assert.ok(prov.includes("Sources and rights"));
+    assert.ok(
+      prov.includes(
+        "AI use: permitted; redistribution: attribution_required; license: Texas Public Information Act; attribution: Harris Central Appraisal District",
+      ),
+    );
+    assert.ok(prov.includes(RIGHTS_UNKNOWN));
+    assert.ok(
+      prov.includes(SOURCE_NOT_SENT),
+      "a cited document without a sources entry",
+    );
+    assert.ok(prov.includes("https://hcad.org/bldg/"));
+    assert.ok(prov.includes(DOC_OTHER));
+    assert.ok(
+      prov.includes("HCAD 0412340010031, HCAD 0412340020012"),
+      "one row per source, naming what cites it",
+    );
+    assert.equal(
+      prov.filter((v) => v.startsWith("fl:document:")).length,
+      3,
+      "each distinct source once",
+    );
+    const grid = x.values("Grid");
+    for (const c of TX_CITED.arguments.comparables)
+      assert.ok(grid.includes(c.id), c.id);
+  });
+
+  it("one right unknown: the other is printed as stated; no sources sent: each cited document says so", async () => {
+    assert.equal(
+      (await import("./kinds/tx.ts")).rightsText({
+        ai_use: "permitted",
+        redistribution: "unknown",
+      }),
+      `AI use: permitted; redistribution: ${RIGHTS_UNKNOWN}`,
+    );
+    const x = await readXlsx(
+      (
+        await createReport(
+          {
+            ...TX_CITED,
+            format: "xlsx",
+            context: { title: TX_CITED.context.title },
+          },
+          { now: NOW },
+        )
+      ).bytes,
+    );
+    assert.equal(
+      x.values("Provenance").filter((v) => v === SOURCE_NOT_SENT).length,
+      3,
+    );
+  });
+
+  it("context.sources is checked: a URL must be http(s), and advice wording is refused like other caller text", async () => {
+    const src = TX_CITED.context.sources[0]!;
+    await rejects(
+      {
+        ...TX_CITED,
+        format: "pdf",
+        context: { sources: [{ ...src, uri: "javascript:alert(1)" }] },
+      },
+      "InputError",
+      /^context\.sources\.0\.uri$/,
+    );
+    await rejects(
+      {
+        ...TX_CITED,
+        format: "pdf",
+        context: {
+          sources: [
+            {
+              ...src,
+              rights: {
+                ...src.rights,
+                license: "you should protest your value",
+              },
+            },
+          ],
+        },
+      },
+      "TextNotAllowed",
+      /^context\.sources\.0\.rights\.license$/,
+    );
   });
 });

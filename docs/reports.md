@@ -48,7 +48,17 @@ exactly as sent.
   comparable's area and adjusted $/SF; the workbook also has the $/SF adjustment total and
   reconciles the adjusted $/SF. A comparable's or the subject's `label` and `address`, when sent,
   are printed next to its id. The statutes table's last column is the source URL (a link in the
-  PDF). The Texas disclaimer is on the PDF's cover and in every page's footer.
+  PDF). The Texas disclaimer is on the PDF's cover and in every page's footer. A **Sources and
+  rights** block (in the PDF after the grid, in the workbook at the top of the Provenance sheet)
+  lists each distinct source document the subject's and the comparables' citations name, with
+  its title, as-of date, URL, the rights its publisher states word for word (AI use,
+  redistribution, license, attribution) and which properties cite it. The source details come
+  from `context.sources`: send the `sources` of `registry_tx_equity_candidates` as returned. A
+  right of `unknown`, or a source sent without rights, is printed as "rights not stated by the
+  publisher: relay to the recipient"; a cited document with no entry in `context.sources` says
+  that its source and rights were not sent. Comparables without a citation, or cited without a
+  document ID, are named below the table and stay in the grid: no comparable is left out
+  because of its source's rights.
 - **lease_abstract.** The documents in the order applied. Each current term comes with its quote,
   page and document, what it superseded, conflicts and open items. Then come the values that need
   review and any pending amendments.
@@ -165,6 +175,9 @@ values is one row with its count and first values, and the workbook's Inputs she
 - `context` (optional) is text only: `title` and `prepared_for` (at most 120 characters each). For
   `tx_unequal_appraisal` it can also carry a `subject_citation` and `comparable_citations`, keyed by
   comparable id (or `#1`, `#2`… for a comparable without one); a locator is at most 200 characters.
+  And `sources` (up to 200): `registry_tx_equity_candidates`' `sources` entries as returned
+  (`document_id`, `title`, `uri` as an http(s) URL, `as_of`, `rights`), printed in the Sources and
+  rights block; their text goes through the same advice filter as other caller text.
 - `inline: true` also returns the file as base64 when it is under 1 MiB: `content_base64` over
   REST, an embedded resource over MCP.
 - `include_past: true` (`ics` only: `critical_dates` and `tx_protest_deadline`) keeps dates before

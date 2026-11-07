@@ -59,6 +59,11 @@ conservative_file_by, basis}` for the next tax year when the deadline has passed
   status is measured from the generation day in US Central time. A batch item the rule cannot
   answer is a 400 `ArgumentsError` naming it; item ids go through the caller-text filter, which
   now passes the negated disclaimer ("not an appraisal or an opinion of value").
+- Reports, Texas packet: a "Sources and rights" block (PDF after the grid; workbook on the
+  Provenance sheet) lists each source document the citations name with its as-of date, URL and
+  the publisher's rights word for word, from the new optional `context.sources` (the `sources` of
+  `registry_tx_equity_candidates` as returned). Unknown rights read "rights not stated by the
+  publisher: relay to the recipient"; comparables without a citation are named and kept.
 
 ### Changed
 

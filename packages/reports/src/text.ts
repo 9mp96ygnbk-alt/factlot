@@ -131,7 +131,21 @@ function protestArgFields(args: unknown): Field[] {
 interface CitationLike {
   locator?: string | undefined;
 }
+interface SourceLike {
+  title?: string | null | undefined;
+  uri?: string | null | undefined;
+  rights?:
+    | {
+        ai_use?: string | null | undefined;
+        redistribution?: string | null | undefined;
+        license?: string | null | undefined;
+        attribution?: string | null | undefined;
+      }
+    | null
+    | undefined;
+}
 interface ContextLike {
+  sources?: SourceLike[] | undefined;
   title?: string | undefined;
   prepared_for?: string | undefined;
   subject_citation?: CitationLike | undefined;
@@ -166,6 +180,18 @@ export function checkCallerText(
         text: c.locator,
       });
   }
+  (ctx.sources ?? []).forEach((src, i) => {
+    const at = `context.sources.${i}`;
+    for (const [key, text] of [
+      ["title", src.title],
+      ["uri", src.uri],
+      ["rights.ai_use", src.rights?.ai_use],
+      ["rights.redistribution", src.rights?.redistribution],
+      ["rights.license", src.rights?.license],
+      ["rights.attribution", src.rights?.attribution],
+    ] as const)
+      if (typeof text === "string") fields.push({ path: `${at}.${key}`, text });
+  });
   if (kind === "tx_unequal_appraisal") fields.push(...txArgFields(args));
   if (kind === "tx_protest_deadline") fields.push(...protestArgFields(args));
 

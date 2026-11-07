@@ -11,6 +11,45 @@ const ContextCitation = TxCitation.extend({
   locator: z.string().min(1).max(TEXT_LIMITS.locator).optional(),
 });
 
+/** Longest text of a source entry (title, license, attribution) and of its URL. */
+export const SOURCE_TEXT_MAX = 300;
+export const SOURCE_URL_MAX = 500;
+
+const SourceText = z.string().max(SOURCE_TEXT_MAX).nullable().optional();
+
+/**
+ * One entry of registry_tx_equity_candidates' `sources` (or registry_get's), as returned: the
+ * snapshot a citation's document_id names, its publisher's URL and as-of date, and the rights
+ * the publisher states. Fields a newer registry adds pass through unread.
+ */
+export const ContextSource = z.looseObject({
+  document_id: z.string().min(1).max(200),
+  source_id: SourceText,
+  title: SourceText,
+  uri: z
+    .string()
+    .max(SOURCE_URL_MAX)
+    .regex(/^https?:\/\/\S+$/, "an http or https URL")
+    .nullable()
+    .optional(),
+  retrieved_at: z.string().max(40).nullable().optional(),
+  as_of: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .nullable()
+    .optional(),
+  rights: z
+    .looseObject({
+      ai_use: z.string().max(64).nullable().optional(),
+      redistribution: z.string().max(64).nullable().optional(),
+      license: SourceText,
+      attribution: SourceText,
+    })
+    .nullable()
+    .optional(),
+});
+export type ContextSource = z.output<typeof ContextSource>;
+
 /**
  * Optional text the caller adds to a report, printed as supplied by the caller. Never numbers
  * that go into a calculation; advice or valuation wording is refused (text.ts).
@@ -42,6 +81,13 @@ export const ReportContext = z.strictObject({
     )
     .describe(
       "tx_unequal_appraisal: citations by comparable id (or #1, #2 … for comparables without an id), for comparables whose result carries none. A citation in the result is kept; one here for the same comparable is listed beside it.",
+    ),
+  sources: z
+    .array(ContextSource)
+    .max(200)
+    .optional()
+    .describe(
+      'tx_unequal_appraisal: the `sources` of registry_tx_equity_candidates (or registry_get) as returned: each cited document_id with its title, uri, as_of and rights (ai_use, redistribution, license, attribution). The packet\'s Sources and rights block prints each cited source with its as-of date, URL and rights; a source sent without rights, or a right of "unknown", is printed as not stated by the publisher.',
     ),
 });
 export type ReportContext = z.output<typeof ReportContext>;

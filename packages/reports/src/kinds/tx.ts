@@ -14,6 +14,7 @@ import {
   closingBlocks,
   subtitle,
   warningsBlocks,
+  type ContextSource,
   type KindInput,
 } from "./common.ts";
 
@@ -108,6 +109,127 @@ function subjectAddress(r: TxResult, args: unknown): string | undefined {
     textOf((r.value as { subject_address?: unknown }).subject_address) ??
     textOf((args as { subject?: Named } | undefined)?.subject?.address)
   );
+}
+
+/** Printed for a right that is unknown or not stated. */
+export const RIGHTS_UNKNOWN =
+  "rights not stated by the publisher: relay to the recipient";
+/** Printed for a cited document whose source entry was not sent. */
+export const SOURCE_NOT_SENT =
+  "source and rights not sent with this request (context.sources): relay to the recipient";
+
+const known = (x: unknown): x is string =>
+  typeof x === "string" && x.trim() !== "" && x.trim() !== "unknown";
+
+/** A source's rights as the publisher states them, word for word; unknown ones said so. */
+export function rightsText(rights: ContextSource["rights"]): string {
+  const r = rights ?? {};
+  const extra = [
+    ...(known(r.license) ? [`license: ${r.license}`] : []),
+    ...(known(r.attribution) ? [`attribution: ${r.attribution}`] : []),
+  ];
+  if (!known(r.ai_use) && !known(r.redistribution))
+    return [RIGHTS_UNKNOWN, ...extra].join("; ");
+  return [
+    `AI use: ${known(r.ai_use) ? r.ai_use : RIGHTS_UNKNOWN}`,
+    `redistribution: ${known(r.redistribution) ? r.redistribution : RIGHTS_UNKNOWN}`,
+    ...extra,
+  ].join("; ");
+}
+
+/** Up to 8 names, then a count. */
+function names(xs: string[]): string {
+  return xs.length > 8
+    ? `${xs.slice(0, 8).join(", ")} and ${xs.length - 8} more`
+    : xs.join(", ");
+}
+
+/**
+ * "Sources and rights": each distinct source document the subject's and the comparables'
+ * citations name, with its as-of date, URL and rights (from context.sources, as the registry
+ * returned them). Facts only: no comparable is dropped or flagged for its source's rights.
+ */
+export function sourcesBlocks(k: KindInput, r: TxResult): Block[] {
+  const v = r.value;
+  const byDoc = new Map<string, { cited: string[]; asOf: Set<string> }>();
+  const noDoc: string[] = [];
+  const uncited: string[] = [];
+  const cite = (who: string, c: Cite | null | undefined) => {
+    if (!c) return false;
+    if (!c.document_id) {
+      noDoc.push(who);
+      return true;
+    }
+    const e = byDoc.get(c.document_id) ?? { cited: [], asOf: new Set() };
+    if (!e.cited.includes(who)) e.cited.push(who);
+    if (c.as_of) e.asOf.add(c.as_of);
+    byDoc.set(c.document_id, e);
+    return true;
+  };
+  cite(
+    v.subject_id ? `${v.subject_id} (subject)` : "the subject",
+    k.ctx.subject_citation,
+  );
+  for (const c of v.comparables) {
+    const { cite: inResult, supplied } = citationOf(c, k);
+    const a = cite(nameOf(c), inResult);
+    const b = cite(nameOf(c), supplied);
+    if (!a && !b) uncited.push(nameOf(c));
+  }
+  const sent = new Map<string, ContextSource>();
+  for (const s of k.ctx.sources ?? [])
+    if (!sent.has(s.document_id)) sent.set(s.document_id, s);
+  const rows = [...byDoc.entries()].map(([doc, e]) => {
+    const s = sent.get(doc);
+    return [
+      s?.title ?? "(title not sent)",
+      doc,
+      s?.as_of ?? ([...e.asOf].sort().join(", ") || ""),
+      s?.uri ?? "(not sent)",
+      s ? rightsText(s.rights) : SOURCE_NOT_SENT,
+      names(e.cited),
+    ];
+  });
+  const out: Block[] = [
+    { t: "heading", text: "Sources and rights" },
+    {
+      t: "para",
+      grey: true,
+      text: "Each source document the citations name, with its as-of date, URL and the rights its publisher states, as registry_tx_equity_candidates returned them in sources and the caller sent them in context.sources. A source's rights are printed as stated; no comparable is left out because of them.",
+    },
+  ];
+  out.push(
+    rows.length
+      ? {
+          t: "table",
+          size: 7,
+          columns: [
+            { header: "Source", fmt: "text", width: 1.6 },
+            { header: "Document ID", fmt: "text", width: 1.6 },
+            { header: "As of", fmt: "text", width: 0.75 },
+            { header: "URL", fmt: "text", width: 1.6 },
+            { header: "Rights", fmt: "text", width: 1.9 },
+            { header: "Cited for", fmt: "text", width: 1.2 },
+          ],
+          rows,
+        }
+      : {
+          t: "para",
+          text: "No citation names a source document.",
+          grey: true,
+        },
+  );
+  if (noDoc.length)
+    out.push({
+      t: "para",
+      text: `Cited without a source document ID: ${names(noDoc)}.`,
+    });
+  if (uncited.length)
+    out.push({
+      t: "para",
+      text: `No citation given (kept in the grid): ${names(uncited)}.`,
+    });
+  return out;
 }
 
 /** "C-1 (Oak Plaza, 100 Main St)" when a label or address was supplied. */
@@ -287,6 +409,8 @@ export function txDoc(k: KindInput): ReportDoc {
       ...(norm ? [c.adjusted_value_psf] : []),
     ]),
   });
+
+  blocks.push(...sourcesBlocks(k, r));
 
   blocks.push({
     t: "heading",
@@ -864,8 +988,9 @@ function userReadme(
       "and a Status. Difference is ROUND(Excel - FactLot, n), n shown in the Tolerance column; 0 means the two agree.",
     "If you change an input on Grid, the FactLot column on Reconcile does not change (it is a recorded output); " +
       "call calc_tx_unequal_appraisal again to refresh it.",
-    "Steps: the tool's audit trail. Law: the statutes the tool cites. Provenance: how the figures were " +
-      "reached (FactLot's run of the tool on the arguments, listed on Inputs as sent) and when.",
+    "Steps: the tool's audit trail. Law: the statutes the tool cites. Provenance: each cited source with its " +
+      "as-of date, URL and rights, then how the figures were reached (FactLot's run of the tool on the " +
+      "arguments, listed on Inputs as sent) and when.",
   ]);
   row++;
   sh.put(row, 1, `FactLot version ${p.version}. Calculator reconciled`, "bold");
@@ -947,12 +1072,12 @@ export async function txXlsx(k: KindInput): Promise<Uint8Array> {
   // How the figures were reached: the input check, the arguments as sent, provenance.
   const prov = wb.sheet("Provenance");
   [46, 22, 60].forEach((w, i) => prov.width(i + 1, w));
-  prov.put(1, 1, "Input check and provenance", "title");
+  prov.put(1, 1, "Sources, rights, input check and provenance", "title");
   appendBlocks(
     wb,
     prov,
     2,
-    closingBlocks(k, "calc_tx_unequal_appraisal"),
+    [...sourcesBlocks(k, r), ...closingBlocks(k, "calc_tx_unequal_appraisal")],
     `Unequal-appraisal arithmetic, tax year ${v.tax_year}`,
     new Map(),
   );
