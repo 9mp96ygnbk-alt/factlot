@@ -140,6 +140,8 @@ def deadline_batch(r):
         inp["items"][0]["notice_date"] = "2026-05-01"  # unknown field
     elif roll < 0.07:
         inp["items"][0] = r.choice([3, "x", None, []])
+    if r.random() < 0.6:  # one date for every item: before, inside and after the protest season
+        inp["as_of"] = (date(2000, 1, 1) + timedelta(days=r.randint(0, 365 * 101))).isoformat()
     return inp
 
 

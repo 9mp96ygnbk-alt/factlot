@@ -326,6 +326,9 @@ calls below are in order; each result is reported as returned, with its warnings
 5. `rules_tx_property_tax_protest_deadline` with `{ "tax_year": 2027 }` returns `deadline`
    2027-05-17 (May 15 is a Saturday) and the conservative file-by date (`conservative_file_by`)
    2027-05-14. A notice delivered after April 15 moves the deadline; pass `notice_delivered_date`.
+   `status` (`open`, `passed` or `not_yet_open`), `days_remaining` and, once the deadline has
+   passed, `next_season` say where the deadline stands on `as_of` (default: today in US Central
+   time; pass it to fix the date), and `notes` lists what the rule does not cover.
 6. On the hosted API, call `report_create` with `kind` `tx_unequal_appraisal`, `format` `pdf` or
    `xlsx`, and the step 4 arguments as `arguments`: it builds the evidence packet (PDF) or the
    adjustment-grid workbook with live Excel formulas beside FactLot's numbers, and returns a link
@@ -426,9 +429,10 @@ Tarrant County or not in the registry does not fail the others. It returns candi
 only and never runs `calc_tx_unequal_appraisal`: a person still chooses each subject's comparables.
 On the hosted API each answered subject counts as one registry lookup. Likewise
 `rules_tx_property_tax_protest_deadline_batch` takes up to 200 `items` (`id`, `tax_year`,
-optional `notice_delivered_date`) and answers each under `rules.tx.property_tax_protest_deadline@2`
-exactly as the single tool would, with an invalid item carrying its own `error`, a `summary` of
-items per deadline, and the rule, citations and disclaimer once; it is a rules tool, never a
+optional `notice_delivered_date`, plus one optional `as_of` for all) and answers each under
+`rules.tx.property_tax_protest_deadline@2` exactly as the single tool would, with an invalid item
+carrying its own `error`, a `summary` of items per deadline and per status, and the rule,
+citations, disclaimer, `as_of` and `notes` once; it is a rules tool, never a
 lookup.
 
 - **One tax year.** Each tax year's roll is its own registry source, so a parcel can carry a

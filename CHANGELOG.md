@@ -13,6 +13,20 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 
 ## [Unreleased]
 
+### Added
+
+- `rules_tx_property_tax_protest_deadline` (still `rules.tx.property_tax_protest_deadline@2`; every
+  earlier field keeps its value): optional input `as_of` (default: the current date in US Central
+  time), and in the result `as_of` (the date used), `status` (`open`, `passed` or `not_yet_open`),
+  `days_remaining` (`null` once passed), `next_season` (`{tax_year, deadline,
+conservative_file_by, basis}` for the next tax year when the deadline has passed, else `null`)
+  and `notes` (what the rule does not cover, with the sections: §41.44(b)-(c-3) and §25.25). The
+  warning that a notice delivered after April 15 moves the deadline now appears only while the
+  deadline is open or not yet open.
+- `rules_tx_property_tax_protest_deadline_batch` (still `@1`): optional `as_of` for every item;
+  each item adds `status`, `days_remaining` and `next_season`; the result adds `as_of`, `notes`
+  and `summary.by_status`.
+
 ### Changed
 
 - Hosted API: **reports are open.** `report_create` is listed over MCP, `POST /v1/reports` builds

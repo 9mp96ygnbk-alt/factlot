@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import copy
 import re
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import Any, Callable
 
 from ._core import CalcInputError, Trace, iso_date, number, obj
@@ -124,10 +124,49 @@ def tx_protest_deadline_disclaimer(checked_on: str) -> str:
     )
 
 
+#: The ``notes`` entry every protest-deadline result carries.
+TX_PROTEST_DEADLINE_NOT_COVERED = (
+    "The rule does not cover late protests, the other protest deadlines of §41.44(a)(2)-(5), or motions to correct "
+    "the appraisal roll; see Tax Code §41.44(b)-(c-3) and §25.25."
+)
+#: The ``notes`` entry added when ``next_season`` is given.
+TX_PROTEST_NEXT_SEASON_NOTE = (
+    "next_season is computed with no notice delivery date (May 15 basis): if that tax year's notice of appraised "
+    "value is delivered after April 15, its deadline is later than May 15."
+)
+
+
+def texas_today(now: datetime | None = None) -> str:
+    """Today's date in US Central time (``texasToday`` in TS): UTC-5 from the second Sunday of March at 08:00 UTC
+    until the first Sunday of November at 07:00 UTC, UTC-6 otherwise; no time-zone database, so both SDKs agree."""
+    now = now or datetime.now(timezone.utc)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+    now = now.astimezone(timezone.utc)
+    y = now.year
+    start = datetime.combine(_nth_weekday(y, 3, 0, 2), datetime.min.time(), timezone.utc) + timedelta(hours=8)
+    end = datetime.combine(_nth_weekday(y, 11, 0, 1), datetime.min.time(), timezone.utc) + timedelta(hours=7)
+    offset = 5 if start <= now < end else 6
+    return (now - timedelta(hours=offset)).date().isoformat()
+
+
+def _rollover(unadjusted: str) -> tuple[str, list[dict[str, str]], str]:
+    """The deadline after §1.06 rollover, the days skipped, and the conservative file-by date (``rollover`` in TS)."""
+    deadline, skipped = unadjusted, []
+    while (reason := _non_business(deadline)) is not None:
+        skipped.append({"date": deadline, "reason": reason})
+        deadline = _add(deadline, 1)
+    safe = unadjusted
+    while _non_business(safe):
+        safe = _add(safe, -1)
+    return deadline, skipped, safe
+
+
 def tx_property_tax_protest_deadline(raw: Any) -> dict[str, Any]:
     d = obj(raw)
     year = number(d, "tax_year", integer=True, ge=2000, le=2100)
     notice = iso_date(d, "notice_delivered_date") if d.get("notice_delivered_date") is not None else None
+    as_of_in = iso_date(d, "as_of") if d.get("as_of") is not None else None
     t = Trace()
     may15 = date(year, 5, 15).isoformat()
     unadjusted, basis = may15, "may_15"
@@ -139,20 +178,31 @@ def tx_property_tax_protest_deadline(raw: Any) -> dict[str, Any]:
         t.step("30th day after notice delivered", plus30, f"{notice} + 30 days")
         if plus30 > may15:
             unadjusted, basis = plus30, "30_days_after_notice"
-    else:
-        t.warn("No notice delivery date given: if the notice was delivered after April 15, the deadline is later than May 15.")
     t.step("Unadjusted deadline", unadjusted, "later of the two dates")
-    deadline, skipped = unadjusted, []
-    while (reason := _non_business(deadline)) is not None:
-        skipped.append({"date": deadline, "reason": reason})
-        deadline = _add(deadline, 1)
+    deadline, skipped, safe = _rollover(unadjusted)
     t.step("Deadline", deadline,
            ("rolled past " + ", ".join(f"{s['date']} ({s['reason']})" for s in skipped) + " per §1.06") if skipped
            else "no rollover needed")
-    safe = unadjusted
-    while _non_business(safe):
-        safe = _add(safe, -1)
     t.step("Conservative file-by date", safe, "latest business day on or before the unadjusted deadline")
+    as_of = as_of_in if as_of_in is not None else texas_today()
+    t.step("As of", as_of, "current date in US Central time (as_of not given)" if as_of_in is None else "as_of given")
+    year_start = date(year, 1, 1).isoformat()
+    status = "passed" if as_of > deadline else "not_yet_open" if as_of < year_start else "open"
+    t.step("Status", status,
+           f"{as_of} is after the deadline {deadline}" if status == "passed" else
+           f"{as_of} is before January 1 of tax year {year}" if status == "not_yet_open" else
+           f"{as_of} is on or after {year_start} and on or before the deadline {deadline}")
+    days_remaining = None if status == "passed" else (date.fromisoformat(deadline) - date.fromisoformat(as_of)).days
+    if days_remaining is not None:
+        t.step("Days remaining", days_remaining, f"{as_of} to {deadline}", "days")
+    next_season = None
+    if status == "passed":
+        next_deadline, _skipped, next_safe = _rollover(date(year + 1, 5, 15).isoformat())
+        next_season = {"tax_year": year + 1, "deadline": next_deadline, "conservative_file_by": next_safe,
+                       "basis": "may_15"}
+        t.step("Next season deadline", next_deadline, f"tax year {year + 1}, May 15 basis (no notice date)")
+    if not notice and status != "passed":
+        t.warn("No notice delivery date given: if the notice was delivered after April 15, the deadline is later than May 15.")
     if skipped:
         t.warn(f"{safe} is the last business day on or before the unadjusted date {unadjusted}; "
                f"the statutory deadline is {deadline} under §1.06.")
@@ -162,6 +212,11 @@ def tx_property_tax_protest_deadline(raw: Any) -> dict[str, Any]:
         "governing_basis": basis,
         "conservative_file_by": safe,
         "skipped_non_business_days": skipped,
+        "as_of": as_of,
+        "status": status,
+        "days_remaining": days_remaining,
+        "next_season": next_season,
+        "notes": [TX_PROTEST_DEADLINE_NOT_COVERED, *([TX_PROTEST_NEXT_SEASON_NOTE] if next_season else [])],
         "disclaimer": tx_protest_deadline_disclaimer(
             TX_PROTEST_DEADLINE["verification"].get("verified_at") or "an unrecorded date"),
     })
@@ -226,7 +281,7 @@ def _batch_items(raw: Any) -> list[dict[str, Any]]:
     return items
 
 
-def _batch_item(item: dict[str, Any]) -> dict[str, Any]:
+def _batch_item(item: dict[str, Any], as_of: str) -> dict[str, Any]:
     """One item's deadline, or its input error (``batchItem`` in TS)."""
     issues = []
     year = item.get("tax_year")
@@ -242,11 +297,11 @@ def _batch_item(item: dict[str, Any]) -> dict[str, Any]:
             "message": "invalid input: " + "; ".join(f"{i['path']}: {i['message']}" for i in issues),
             "issues": issues}}
     try:
-        r = tx_property_tax_protest_deadline({"tax_year": int(year), **({} if notice is None else
-                                                                       {"notice_delivered_date": notice})})
+        r = tx_property_tax_protest_deadline({"tax_year": int(year), "as_of": as_of,
+                                              **({} if notice is None else {"notice_delivered_date": notice})})
     except CalcInputError as e:
         return {"id": item["id"], "error": {"error": "CalcInputError", "message": str(e), "issues": e.issues}}
-    fields = {k: v for k, v in r["value"].items() if k not in ("rule", "disclaimer")}
+    fields = {k: v for k, v in r["value"].items() if k not in ("rule", "disclaimer", "notes", "as_of")}
     return {"id": item["id"], **fields, "warnings": r["warnings"]}
 
 
@@ -254,8 +309,10 @@ def tx_property_tax_protest_deadline_batch(raw: Any) -> dict[str, Any]:
     """Protest deadlines for many notices in one call (``txProtestDeadlineBatch`` in TS): each item answered by
     ``tx_property_tax_protest_deadline`` exactly as a single call, an item with bad input carrying its error."""
     items = _batch_items(raw)
+    as_of_in = iso_date(raw, "as_of") if raw.get("as_of") is not None else None
+    as_of = as_of_in if as_of_in is not None else texas_today()
     t = Trace()
-    results = [_batch_item(item) for item in items]
+    results = [_batch_item(item, as_of) for item in items]
     answered = [r for r in results if "error" not in r]
     counts: dict[str, int] = {}
     for r in answered:
@@ -271,6 +328,10 @@ def tx_property_tax_protest_deadline_batch(raw: Any) -> dict[str, Any]:
     if earliest is not None:
         t.step("Earliest deadline", earliest, "earliest answered deadline")
         t.step("Latest deadline", latest, "latest answered deadline")
+    t.step("As of", as_of, "current date in US Central time (as_of not given)" if as_of_in is None else "as_of given")
+    by_status = {"open": 0, "passed": 0, "not_yet_open": 0}
+    for r in answered:
+        by_status[r["status"]] += 1
     if errors:
         t.warn(f"{errors} of {len(results)} items have an input error (results[i].error) and no deadline; "
                "the other items are answered.")
@@ -286,7 +347,10 @@ def tx_property_tax_protest_deadline_batch(raw: Any) -> dict[str, Any]:
     return t.result(TX_PROTEST_DEADLINE_BATCH["id"], TX_PROTEST_DEADLINE_BATCH["version"], {
         "results": results,
         "summary": {"items": len(results), "answered": len(answered), "errors": errors, "by_deadline": by_deadline,
-                    "earliest": earliest, "latest": latest},
+                    "earliest": earliest, "latest": latest, "by_status": by_status},
+        "as_of": as_of,
+        "notes": [TX_PROTEST_DEADLINE_NOT_COVERED,
+                  *([TX_PROTEST_NEXT_SEASON_NOTE] if any(r["next_season"] is not None for r in answered) else [])],
         "disclaimer": tx_protest_deadline_disclaimer(
             TX_PROTEST_DEADLINE["verification"].get("verified_at") or "an unrecorded date"),
         "rule": copy.deepcopy(TX_PROTEST_DEADLINE),
@@ -305,7 +369,10 @@ __all__ = [
     "RULES",
     "TX_PROTEST_DEADLINE",
     "TX_PROTEST_DEADLINE_BATCH",
+    "TX_PROTEST_DEADLINE_NOT_COVERED",
+    "TX_PROTEST_NEXT_SEASON_NOTE",
     "texas_holidays",
+    "texas_today",
     "tx_property_tax_protest_deadline",
     "tx_property_tax_protest_deadline_batch",
     "tx_protest_deadline_disclaimer",

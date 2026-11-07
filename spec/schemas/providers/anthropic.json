@@ -4780,7 +4780,7 @@
     },
     {
       "name": "rules_tx_property_tax_protest_deadline",
-      "description": "Deadline to file a Texas property tax protest with the appraisal review board: the later of May 15 or 30 days after the notice of appraised value was delivered, rolled past weekends and Texas legal holidays, plus a conservative file-by date (the last business day on or before the unadjusted deadline). Returns the statute citations, the rule's verification status and a disclaimer. Information about a statutory deadline: not legal or tax advice and not a substitute for the advice of an attorney. Verification status: verified. Cite rule rules.tx.property_tax_protest_deadline@2 and its statutes.",
+      "description": "Deadline to file a Texas property tax protest with the appraisal review board: the later of May 15 or 30 days after the notice of appraised value was delivered, rolled past weekends and Texas legal holidays, plus a conservative file-by date (the last business day on or before the unadjusted deadline). status says where as_of (default: today in US Central time; echoed in as_of) falls: not_yet_open before January 1 of the tax year, open from then through the deadline, passed after it; days_remaining counts the days to the deadline (null once passed), and once passed next_season gives the same rule for the next tax year (May 15 basis). notes says what the rule does not cover (late protests, other §41.44 deadlines, §25.25 corrections) and which sections to read. Returns the statute citations, the rule's verification status and a disclaimer. Information about a statutory deadline: not legal or tax advice and not a substitute for the advice of an attorney. Verification status: verified. Cite rule rules.tx.property_tax_protest_deadline@2 and its statutes.",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -4795,6 +4795,12 @@
             "type": "string",
             "format": "date",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          },
+          "as_of": {
+            "description": "Date the status is measured from, YYYY-MM-DD. Default: the current date in US Central time (America/Chicago), when the call is answered; pass it to fix the date (for a report, or for El Paso and Hudspeth counties, which keep Mountain time).",
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
           }
         },
         "required": ["tax_year"]
@@ -4802,7 +4808,7 @@
     },
     {
       "name": "rules_tx_property_tax_protest_deadline_batch",
-      "description": "Texas property tax protest deadlines for many notices in one call (1–200 items, e.g. a consultant's client list): each item's id, tax year and, if known, notice delivery date. Each result is exactly what rules_tx_property_tax_protest_deadline returns for that item under rule rules.tx.property_tax_protest_deadline@2 (deadline, unadjusted deadline, governing basis, conservative file-by date, skipped days, the item's warnings), echoed with its id; an item with invalid input carries its error and the others are still answered. summary counts the items per deadline, earliest first, with the earliest and latest deadline. The statute citations, the rule's verification status and the disclaimer appear once (value.rule, value.disclaimer). A rules tool: never a registry lookup. Information about statutory deadlines: not legal or tax advice and not a substitute for the advice of an attorney; it does not say whether to protest. Verification status: verified. Cite rule rules.tx.property_tax_protest_deadline_batch@1 and its statutes.",
+      "description": "Texas property tax protest deadlines for many notices in one call (1–200 items, e.g. a consultant's client list): each item's id, tax year and, if known, notice delivery date. Each result is exactly what rules_tx_property_tax_protest_deadline returns for that item under rule rules.tx.property_tax_protest_deadline@2 (deadline, unadjusted deadline, governing basis, conservative file-by date, skipped days, status, days_remaining, next_season, the item's warnings), echoed with its id; an item with invalid input carries its error and the others are still answered. One as_of (default: today in US Central time) applies to every item. summary counts the items per deadline, earliest first, with the earliest and latest deadline, and per status (by_status). The as_of used, the notes, the statute citations, the rule's verification status and the disclaimer appear once (value.as_of, value.notes, value.rule, value.disclaimer). A rules tool: never a registry lookup. Information about statutory deadlines: not legal or tax advice and not a substitute for the advice of an attorney; it does not say whether to protest. Verification status: verified. Cite rule rules.tx.property_tax_protest_deadline_batch@1 and its statutes.",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -4834,6 +4840,12 @@
               "required": ["id", "tax_year"]
             },
             "description": "The notices to compute deadlines for (1–200): each one's id, tax year and, if known, notice delivery date. Each result equals rules_tx_property_tax_protest_deadline for that item."
+          },
+          "as_of": {
+            "description": "Date the status is measured from, YYYY-MM-DD. Default: the current date in US Central time (America/Chicago), when the call is answered; pass it to fix the date (for a report, or for El Paso and Hudspeth counties, which keep Mountain time). One date for every item.",
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
           }
         },
         "required": ["items"]

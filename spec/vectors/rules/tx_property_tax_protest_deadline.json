@@ -83,7 +83,109 @@
         "value.rule.citations.0.law": "Tex. Tax Code §41.44(a)(1)",
         "value.disclaimer": "Information about a statutory deadline computed from the statute text as checked on 2026-11-02: not legal or tax advice and not a substitute for the advice of an attorney. Confirm the date on the notice you received and with the appraisal district.",
         "formula.id": "rules.tx.property_tax_protest_deadline",
-        "formula.version": 2
+        "formula.version": 2,
+        "value.notes.0": "The rule does not cover late protests, the other protest deadlines of §41.44(a)(2)-(5), or motions to correct the appraisal roll; see Tax Code §41.44(b)-(c-3) and §25.25."
+      }
+    },
+    {
+      "name": "status passed: the 2026 deadline as of 2026-11-07, with next season's deadline and no April 15 warning",
+      "input": {
+        "tax_year": 2026,
+        "as_of": "2026-11-07"
+      },
+      "expect": {
+        "value.deadline": "2026-05-15",
+        "value.conservative_file_by": "2026-05-15",
+        "value.as_of": "2026-11-07",
+        "value.status": "passed",
+        "value.days_remaining": null,
+        "value.next_season": {
+          "tax_year": 2027,
+          "deadline": "2027-05-17",
+          "conservative_file_by": "2027-05-14",
+          "basis": "may_15"
+        },
+        "value.notes": [
+          "The rule does not cover late protests, the other protest deadlines of §41.44(a)(2)-(5), or motions to correct the appraisal roll; see Tax Code §41.44(b)-(c-3) and §25.25.",
+          "next_season is computed with no notice delivery date (May 15 basis): if that tax year's notice of appraised value is delivered after April 15, its deadline is later than May 15."
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "name": "status open on the deadline itself: 0 days remaining",
+      "input": {
+        "tax_year": 2026,
+        "notice_delivered_date": "2026-05-01",
+        "as_of": "2026-06-01"
+      },
+      "expect": {
+        "value.deadline": "2026-06-01",
+        "value.status": "open",
+        "value.days_remaining": 0,
+        "value.next_season": null,
+        "value.notes": [
+          "The rule does not cover late protests, the other protest deadlines of §41.44(a)(2)-(5), or motions to correct the appraisal roll; see Tax Code §41.44(b)-(c-3) and §25.25."
+        ]
+      }
+    },
+    {
+      "name": "status passed the day after the deadline",
+      "input": {
+        "tax_year": 2026,
+        "notice_delivered_date": "2026-05-01",
+        "as_of": "2026-06-02"
+      },
+      "expect": {
+        "value.deadline": "2026-06-01",
+        "value.status": "passed",
+        "value.days_remaining": null,
+        "value.next_season.deadline": "2027-05-17",
+        "warnings": [
+          "2026-05-29 is the last business day on or before the unadjusted date 2026-05-31; the statutory deadline is 2026-06-01 under §1.06."
+        ]
+      }
+    },
+    {
+      "name": "status open with no notice date keeps the April 15 warning",
+      "input": {
+        "tax_year": 2027,
+        "as_of": "2027-03-01"
+      },
+      "expect": {
+        "value.deadline": "2027-05-17",
+        "value.status": "open",
+        "value.days_remaining": 77,
+        "value.next_season": null,
+        "warnings": [
+          "No notice delivery date given: if the notice was delivered after April 15, the deadline is later than May 15.",
+          "2027-05-14 is the last business day on or before the unadjusted date 2027-05-15; the statutory deadline is 2027-05-17 under §1.06."
+        ]
+      }
+    },
+    {
+      "name": "status not_yet_open before January 1 of the tax year",
+      "input": {
+        "tax_year": 2027,
+        "as_of": "2026-11-07"
+      },
+      "expect": {
+        "value.deadline": "2027-05-17",
+        "value.status": "not_yet_open",
+        "value.days_remaining": 191,
+        "value.next_season": null,
+        "warnings.0": "No notice delivery date given: if the notice was delivered after April 15, the deadline is later than May 15."
+      }
+    },
+    {
+      "name": "status open from January 1 of the tax year",
+      "input": {
+        "tax_year": 2027,
+        "as_of": "2027-01-01"
+      },
+      "expect": {
+        "value.status": "open",
+        "value.days_remaining": 136
       }
     },
     {
@@ -99,6 +201,14 @@
       "input": {
         "tax_year": 2026,
         "notice_delivered_date": "2026-02-30"
+      },
+      "expect_error": true
+    },
+    {
+      "name": "an impossible as_of date is an input error",
+      "input": {
+        "tax_year": 2026,
+        "as_of": "2026-02-30"
       },
       "expect_error": true
     }
