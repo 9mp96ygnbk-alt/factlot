@@ -28,6 +28,7 @@ import {
   checkoutRoute,
   handleWebhook,
   json,
+  logStripeError,
   mintKey,
   portalUrl,
   refreshIfStale,
@@ -87,6 +88,9 @@ const REGISTRY_TOOLS = new Map(
     .map((t) => [t.path, t.name]),
 );
 const REGISTRY_NAMES = new Set(REGISTRY_TOOLS.values());
+
+/** The inner handler's limit on messages in one MCP batch (createHandler's maxMcpBatch). */
+const MAX_MCP_BATCH = 20;
 
 /** The inner handler refuses larger bodies; /mcp bodies are read here to count registry calls. */
 const MAX_BODY_BYTES = 1024 * 1024;
@@ -360,7 +364,11 @@ async function route(
   const site = siteUrl(env);
   let subject: string | undefined;
   const addressKey = async () =>
-    (subject ??= await addressSubject(clientAddress(request), now()));
+    (subject ??= await addressSubject(
+      clientAddress(request),
+      now(),
+      env.IP_HASH_SALT,
+    ));
 
   if (request.method === "OPTIONS" && (isApiPath(path) || isApiHost(host)))
     return new Response(null, { status: 204, headers: corsHeaders() });
@@ -513,6 +521,12 @@ async function route(
     } catch {
       mcpBody = undefined; // the inner handler answers the parse error
     }
+    // The inner handler refuses these too; refusing here first means nothing is metered.
+    if (Array.isArray(mcpBody) && mcpBody.length > MAX_MCP_BATCH)
+      return errorResponse(path, 400, -32600, {
+        error: "BadRequest",
+        message: `invalid request: a batch may hold at most ${MAX_MCP_BATCH} messages`,
+      });
     const items = Array.isArray(mcpBody) ? mcpBody : [mcpBody];
     registryRequest = items.some(callsRegistry);
     wanted = items.filter(isMeteredCall).length;
@@ -600,6 +614,33 @@ async function route(
     res = await mcpWithDenials(mcpBody, hit.granted, deniedError, forward);
   } else res = await forward(mcpText);
   meterUsage(res.status);
+
+  // A lookup the registry could not answer (RegistryUnavailable: our outage, not the caller's
+  // use) is given back.
+  if (hit.quota && hit.granted > 0) {
+    let unanswered: number;
+    if (path !== "/mcp") unanswered = res.status === 503 ? 1 : 0;
+    else {
+      const counted = await unavailableAnswers(res, mcpBody, hit.granted);
+      res = counted.res;
+      unanswered = counted.n;
+    }
+    if (unanswered > 0) {
+      try {
+        await env.METER.refund(
+          paid ? meterSubject(paid.record, paid.hash) : await addressKey(),
+          paid ? "month" : "day",
+          unanswered,
+          hit.quota.resets_at,
+        );
+        headers["x-factlot-registry-quota-remaining"] = String(
+          Math.min(hit.quota.limit, hit.quota.remaining + unanswered),
+        );
+      } catch {
+        console.error(JSON.stringify({ msg: "quota refund failed" }));
+      }
+    }
+  }
   // Browsers read only the headers listed here: add this layer's to the inner handler's list.
   const expose = new Set(
     [
@@ -648,16 +689,67 @@ async function mcpWithDenials(
       content: [{ type: "text", text: JSON.stringify(error, null, 2) }],
     },
   }));
-  if (kept.length === 0) return json(200, batch ? answers : answers[0]);
+  const answer = (body: unknown) => withHeaders(json(200, body), corsHeaders());
+  if (kept.length === 0) return answer(batch ? answers : answers[0]);
   const res = await forward(JSON.stringify(batch ? kept : kept[0]));
-  if (res.status === 202) return json(200, answers);
+  if (res.status === 202) return answer(answers);
   if (
     res.status !== 200 ||
     !(res.headers.get("content-type") ?? "").includes("application/json")
   )
     return res;
   const inner = (await res.json()) as unknown;
-  return json(200, [...(Array.isArray(inner) ? inner : [inner]), ...answers]);
+  return answer([...(Array.isArray(inner) ? inner : [inner]), ...answers]);
+}
+
+/**
+ * How many of the first `granted` metered registry calls of an MCP request came back as
+ * RegistryUnavailable. Reads the answer, so it returns a fresh copy of the response.
+ */
+async function unavailableAnswers(
+  res: Response,
+  body: unknown,
+  granted: number,
+): Promise<{ res: Response; n: number }> {
+  if (
+    res.status !== 200 ||
+    !(res.headers.get("content-type") ?? "").includes("application/json")
+  )
+    return { res, n: 0 };
+  const ids = new Set(
+    (Array.isArray(body) ? body : [body])
+      .filter(isMeteredCall)
+      .slice(0, granted)
+      .map((m) => m.id),
+  );
+  const text = await res.text();
+  const copy = new Response(text, res);
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    return { res: copy, n: 0 };
+  }
+  let n = 0;
+  for (const m of Array.isArray(parsed) ? parsed : [parsed]) {
+    const { id, result } = (m ?? {}) as {
+      id?: string | number;
+      result?: { isError?: boolean; content?: { text?: unknown }[] };
+    };
+    if (id === undefined || !ids.has(id) || result?.isError !== true) continue;
+    try {
+      const err = JSON.parse(String(result.content?.[0]?.text)) as {
+        error?: unknown;
+      };
+      if (err.error === "RegistryUnavailable") {
+        n++;
+        ids.delete(id);
+      }
+    } catch {
+      // not a FactLot error object
+    }
+  }
+  return { res: copy, n };
 }
 
 /** /v1/account and the key-management endpoints, for a live key. */
@@ -686,7 +778,8 @@ async function accountApi(
       });
     try {
       return json(200, { url: await portalUrl(d, record) });
-    } catch {
+    } catch (err) {
+      logStripeError("portal session", err);
       return json(502, {
         error: "BillingFailed",
         message: `Stripe did not answer. Email ${CONTACT}.`,
@@ -763,7 +856,11 @@ async function accountRoute(
   const origin = request.headers.get("origin");
   if (origin && origin !== "null" && origin !== url.origin)
     return accountFormPage(403, "This form only works on its own page.");
-  const address = await addressSubject(clientAddress(request), now());
+  const address = await addressSubject(
+    clientAddress(request),
+    now(),
+    env.IP_HASH_SALT,
+  );
   if (
     !(await metered(env.RL_ANON.limit({ key: `account:${address}` }))).success
   )
@@ -811,7 +908,8 @@ async function accountRoute(
         status: 303,
         headers: { location: portal, "cache-control": "no-store" },
       });
-    } catch {
+    } catch (err) {
+      logStripeError("portal session", err);
       return show(key, hash, record, {
         status: 502,
         notice: `Stripe did not answer. Try again in a minute, or email ${CONTACT}.`,

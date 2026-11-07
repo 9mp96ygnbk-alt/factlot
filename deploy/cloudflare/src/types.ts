@@ -58,6 +58,13 @@ export interface MeterService {
   /** Registry lookups only (no minute limit), for `sub:<subscription>`. */
   consume(subject: string, quota: QuotaSpec): Promise<HitResult>;
   quota(subject: string, kind: QuotaKind, limit: number): Promise<QuotaState>;
+  /** Give back lookups the registry could not answer (same window only). */
+  refund(
+    subject: string,
+    kind: QuotaKind,
+    n: number,
+    resets_at: string,
+  ): Promise<void>;
   /** First writer wins, strongly consistent: returns the value stored under `name`. */
   claim(name: string, value: string): Promise<string>;
 }
@@ -97,6 +104,8 @@ export interface Env {
   STRIPE_SECRET_KEY?: string;
   /** Secret, optional: verifies Stripe webhooks at /v1/billing/webhook. */
   STRIPE_WEBHOOK_SECRET?: string;
+  /** Secret: salts the hash that names a keyless caller's meter (never the raw address). */
+  IP_HASH_SALT?: string;
   /** Public site origin used in checkout return URLs (default https://factlot.com). */
   SITE_URL?: string;
   /** Public API origin advertised to agents (default https://api.factlot.com). */
