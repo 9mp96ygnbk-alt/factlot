@@ -152,6 +152,10 @@ for an unknown token, the answer is `404`. Downloads are rate limited per link a
 FactLot keeps the file for those 24 hours only, under a hash of the link's random 256-bit token.
 Nothing else about the request is stored. Files over 25 MiB are refused.
 
+The file is stored in Workers KV, which takes up to about a minute to reach every Cloudflare
+location. A download from somewhere other than where the report was made can answer `404` for that
+first minute; retry it then.
+
 ## Limits
 
 | Plan | Reports a month                                  |
@@ -160,11 +164,27 @@ Nothing else about the request is stored. Files over 25 MiB are refused.
 | Pro  | 50 per subscription, shared by its keys          |
 | Team | 1,000 per subscription, shared by its keys       |
 
-Months are calendar months (UTC). A report counts once it is built and stored; requests with input
-errors are free. Over the limit the answer is `429 ReportQuotaExceeded` over REST, or the same error
+Months are calendar months (UTC). A month that is used up is refused before any work. A request is
+checked first, and requests with input errors are free. The report is then counted and built; if
+building fails in a way FactLot sees (a size limit, a fault in FactLot, storage), it is given back.
+A fault on FactLot's side answers `500 ReportFailed` (an `isError` tool result over MCP) with no
+internal detail. Over the limit the answer is `429 ReportQuotaExceeded` over REST, or the same error
 as an MCP tool result with `isError`, naming the reset time; every other tool keeps working.
 Responses carry `X-FactLot-Reports-Quota-Limit`, `-Remaining` and `-Reset`. `GET /v1/plans` lists
 the limits under `reports`.
+
+One request builds one report: in an MCP batch, the first `report_create` is built and any other
+answers `isError` `OneReportPerRequest`, not run and not counted.
+
+Size limits, so every document builds in well under a second:
+
+- A PDF shows at most 2,000 characters of any one text (a reason, a quote, a warning); longer text
+  is cut with an ellipsis and a note saying how long it was. The workbook keeps the full text.
+- A PDF draws at most 60,000 lines of text; a larger one is refused with `413 TooLarge`.
+- The `tx_unequal_appraisal` PDF lays out at most 60 comparables with at most 10 adjustments each.
+  Above that the answer is `413 TooLarge`, and its `next` asks for `"format": "xlsx"`: the workbook
+  takes the tool's full set, up to 200 comparables.
+- The request body is at most 1 MB.
 
 ## Examples
 
@@ -251,6 +271,7 @@ also has the file as an embedded resource (`mimeType`, base64 `blob`).
 
 ## Running it yourself
 
-The engine is the `@factlot/reports` workspace package (`createReport()`). It runs anywhere
-JavaScript runs, Workers included, and its only new dependency is `pdf-lib`, pinned. The hosted
-layer adds the quota, the 24-hour storage and the download links.
+The engine is the `@factlot/reports` workspace package (`createReport()`). It is private to this
+repository (not published to npm) and runs in Node 22 and in Workers; its only new dependency is
+`pdf-lib`, pinned, loaded only when a PDF is built. The hosted layer adds the quota, the 24-hour
+storage and the download links.
