@@ -26,6 +26,9 @@
   "main": "src/worker.ts",
   "compatibility_date": "2026-10-01",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  // Minified: the report engine (pdf-lib) and pdf.js (unpdf) put the unminified bundle near
+  // 8 MB; minifying keeps the upload well under the Worker size limit.
+  "minify": true,
   "workers_dev": false,
   "routes": [
     { "pattern": "api.factlot.com", "custom_domain": true },
