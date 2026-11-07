@@ -587,7 +587,7 @@ export function txUnequalAppraisal(
     );
   if (large.length > 0)
     t.warn(
-      `Total adjustment over 25% (adjusted ÷ normalized − 1) for ${named(large)}. This is a FactLot flag, not a legal limit; large adjustments deserve a second look.`,
+      `Total adjustments exceed 25% of the comparable's normalized value (adjusted ÷ normalized − 1) for ${named(large)}. This is a FactLot flag, not a legal limit.`,
     );
   const same = labels(
     (c) =>

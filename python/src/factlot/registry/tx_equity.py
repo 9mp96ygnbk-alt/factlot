@@ -35,6 +35,16 @@ WITHHELD_COUNTIES = {
             "allowed; FactLot does not serve Tarrant comparables until that is clarified"),
 }
 
+# Counties a hosted FactLot service serves from no tool (``hostedWithheldCounties()`` in TS), keyed by 5-digit county
+# FIPS, with the reason. Owner decision of 2026-11-07: Tarrant (48439) is withheld from every hosted tool, not only
+# this one. Self-hosted SDKs are unaffected; the hosted pack builder imports this as its one source of truth.
+HOSTED_WITHHELD_COUNTIES = {f"{TEXAS_FIPS}{county}": reason for county, reason in WITHHELD_COUNTIES.items()}
+
+
+def hosted_withheld_counties() -> dict[str, str]:
+    """A fresh copy of ``HOSTED_WITHHELD_COUNTIES`` (``hostedWithheldCounties()`` in TS)."""
+    return dict(HOSTED_WITHHELD_COUNTIES)
+
 
 def texas_only(state_fips: str) -> str:
     """The error for a parcel outside Texas (``texasOnly`` in TS)."""
@@ -89,7 +99,9 @@ NOTICE = (
     "Candidates only: a person decides which, if any, to use as comparables. The selection rule is FactLot's "
     "default, not a legal standard of comparability. For evidence calculations only: FactLot does not represent "
     "property owners, file protests, or advise whether to protest or what value to claim. Owner names and mailing "
-    "addresses are never returned."
+    "addresses are never returned. Not an appraisal or an opinion of value (Tex. Occ. Code §1103.003(1)); not legal "
+    "or tax advice and not a substitute for the advice of an attorney. FactLot is software, not a property tax "
+    "consultant under Texas Occupations Code chapter 1152; it does not prepare, file or advise on protests."
 )
 
 

@@ -99,8 +99,8 @@ def unequal(inp: dict) -> dict:
                         "statute does not define it. FactLot's minimum of 3 is a product floor, not a rule of law.")
     big = [x["label"] for x in comps if abs(x["pct"]) > D("0.25")]
     if big:
-        warnings.append(f"Total adjustment over 25% (adjusted ÷ normalized − 1) for {named(big)}. This is a FactLot "
-                        "flag, not a legal limit; large adjustments deserve a second look.")
+        warnings.append(f"Total adjustments exceed 25% of the comparable's normalized value (adjusted ÷ normalized "
+                        f"− 1) for {named(big)}. This is a FactLot flag, not a legal limit.")
     same = [x["label"] for x in comps
             if dec(x["c"]["value"]) == dec(s["value"]) and x["c"]["value_basis"] == basis
             and x["c"].get("improvement_area_sf") == s.get("improvement_area_sf")

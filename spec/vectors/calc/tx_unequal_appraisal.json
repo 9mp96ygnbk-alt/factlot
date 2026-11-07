@@ -689,7 +689,7 @@
           "Value basis differs from the subject's (appraised) for comparable W2: compare the same kind of value for the subject and every comparable.",
           "Tax year 2026: on appeal under §42.26, §42.26(d) (text in effect until 2027-01-01) requires market value for the subject and the comparables when the property is subject to the §23.231 limitation, and the subject, comparable W1, comparable W3, comparable W4, comparable W5 use appraised value; appraisal review board practice may differ.",
           "In a different county from the subject (FIPS 201): comparable W3. Unequal-appraisal comparisons are made within the appraisal district.",
-          "Total adjustment over 25% (adjusted ÷ normalized − 1) for comparable W4. This is a FactLot flag, not a legal limit; large adjustments deserve a second look.",
+          "Total adjustments exceed 25% of the comparable's normalized value (adjusted ÷ normalized − 1) for comparable W4. This is a FactLot flag, not a legal limit.",
           "Same value, value basis and areas as the subject: comparable W5. Check that the subject is not among its own comparables."
         ]
       }

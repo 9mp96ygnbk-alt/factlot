@@ -12,8 +12,11 @@ import { fileURLToPath } from "node:url";
 import { countyName } from "./county_names.ts";
 
 import {
+  TX_EQUITY_NOTICE,
+  TX_EQUITY_WITHHELD_COUNTIES,
   addressQuery,
   configureRegistry,
+  hostedWithheldCounties,
   legacyNormalizeAddress,
   legacyNormalizeName,
   normalizeAddress,
@@ -34,6 +37,44 @@ test("registry tools without a registry report RegistryUnavailable", () => {
   const r = runTool("registry_get", { urn: "fl:parcel:us-48201:1" });
   assert.equal(!r.ok && r.error.error, "RegistryUnavailable");
   if (saved !== undefined) process.env.FACTLOT_REGISTRY_DB = saved;
+});
+
+test("hosted withheld counties and the equity notice match Python", () => {
+  const hosted = hostedWithheldCounties();
+  assert.deepEqual(Object.keys(hosted), ["48439"]);
+  assert.equal(hosted["48439"], TX_EQUITY_WITHHELD_COUNTIES["439"]);
+  hosted["48439"] = "changed";
+  assert.notEqual(hostedWithheldCounties()["48439"], "changed", "a fresh copy");
+  assert.ok(
+    TX_EQUITY_NOTICE.includes(
+      "Not an appraisal or an opinion of value (Tex. Occ. Code §1103.003(1)); not legal or tax advice and not a substitute for the advice of an attorney.",
+    ),
+  );
+  assert.ok(
+    TX_EQUITY_NOTICE.endsWith(
+      "FactLot is software, not a property tax consultant under Texas Occupations Code chapter 1152; it does not prepare, file or advise on protests.",
+    ),
+  );
+  const python = JSON.parse(
+    execFileSync(
+      "python3",
+      [
+        "-c",
+        "import json; from factlot.registry.tx_equity import NOTICE, hosted_withheld_counties; print(json.dumps({'notice': NOTICE, 'hosted': hosted_withheld_counties()}))",
+      ],
+      {
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          PYTHONPATH: fileURLToPath(
+            new URL("../../../python/src", import.meta.url),
+          ),
+        },
+      },
+    ),
+  ) as { notice: string; hosted: Record<string, string> };
+  assert.equal(python.notice, TX_EQUITY_NOTICE);
+  assert.deepEqual(python.hosted, hostedWithheldCounties());
 });
 
 test("registry tools: TypeScript matches Python on the shared fixture", () => {

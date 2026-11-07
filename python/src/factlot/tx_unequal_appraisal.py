@@ -313,8 +313,8 @@ def tx_unequal_appraisal(raw: Any) -> Result:
     large = [_label(inp["comparables"][c["index"]], c["index"]) for c in comps
              if abs(c["total_adjustment_pct"]) > _LARGE_ADJUSTMENT]
     if large:
-        t.warn(f"Total adjustment over 25% (adjusted ÷ normalized − 1) for {_named(large)}. This is a FactLot flag, not "
-               "a legal limit; large adjustments deserve a second look.")
+        t.warn(f"Total adjustments exceed 25% of the comparable's normalized value (adjusted ÷ normalized − 1) for "
+               f"{_named(large)}. This is a FactLot flag, not a legal limit.")
     same = labels(lambda c: c["value"] == subject["value"] and c["value_basis"] == subject["value_basis"]
                   and c["improvement_area_sf"] == subject["improvement_area_sf"]
                   and c["land_area_sf"] == subject["land_area_sf"])
