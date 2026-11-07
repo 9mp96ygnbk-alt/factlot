@@ -3146,3 +3146,157 @@ describe("welcome email", () => {
     assert.ok(!logs.includes("buyer@example.com"));
   });
 });
+
+describe("quota fairness: only answered lookups are charged", () => {
+  const miss = (coverage: Record<string, unknown>, extra = {}) => ({
+    ...extra,
+    coverage,
+  });
+  // What the inner handler answers, by REST path (MCP uses the same table by tool name).
+  const answers: Record<string, [number, unknown]> = {
+    "/v1/registry/get": [200, { record: { urn: "fl:parcel:us-11001:x" } }],
+    "/v1/registry/resolve_parcel": [
+      200,
+      miss({ county_loaded: false, state_loaded: false }, { urn: null }),
+    ],
+    "/v1/registry/resolve_external": [
+      200,
+      miss({ system: "x", system_loaded: false }, { urn: null }),
+    ],
+    "/v1/registry/search_address": [
+      200,
+      miss({ state: "TX", state_loaded: false }, { results: [] }),
+    ],
+    "/v1/registry/search_entities": [
+      200,
+      miss({ loaded_jurisdictions: ["us-md"] }, { results: [] }),
+    ],
+    "/v1/registry/owned_by": [
+      400,
+      { error: "BadRequest", message: '"x" is not a FactLot URN' },
+    ],
+  };
+  const toolOf = (p: string) => `registry_${p.split("/").pop()}`;
+  function fairApi() {
+    return {
+      fetch: async (r: Request) => {
+        const path = new URL(r.url).pathname;
+        const text = await r.text();
+        if (path === "/mcp") {
+          const parsed = JSON.parse(text) as unknown;
+          const items = (Array.isArray(parsed) ? parsed : [parsed]) as {
+            id: number;
+            params: { name: string };
+          }[];
+          const out = items.map((m) => {
+            const entry = Object.entries(answers).find(
+              ([p]) => toolOf(p) === m.params.name,
+            );
+            const [status, body] = entry?.[1] ?? [200, {}];
+            if (m.id === 7)
+              return {
+                jsonrpc: "2.0",
+                id: m.id,
+                error: { code: -32602, message: "invalid params" },
+              };
+            return {
+              jsonrpc: "2.0",
+              id: m.id,
+              result: {
+                ...(status !== 200 ? { isError: true } : {}),
+                content: [{ type: "text", text: JSON.stringify(body) }],
+              },
+            };
+          });
+          return new Response(
+            JSON.stringify(Array.isArray(parsed) ? out : out[0]),
+            {
+              headers: { "content-type": "application/json" },
+            },
+          );
+        }
+        const [status, body] = answers[path] ?? [200, {}];
+        return new Response(JSON.stringify(body), {
+          status,
+          headers: { "content-type": "application/json" },
+        });
+      },
+    };
+  }
+  const remaining = (r: Response) =>
+    Number(r.headers.get("x-factlot-registry-quota-remaining"));
+
+  it("REST: a real answer and a search inside coverage are charged; misses and errors are free", async () => {
+    const e = env();
+    e.RL_ANON = new CountingLimit(100);
+    const api = fairApi();
+    const got = await call(e, api, "/v1/registry/get", { body: { urn: "x" } });
+    assert.equal(remaining(got), 99, "a record is charged");
+    for (const p of [
+      "/v1/registry/resolve_parcel",
+      "/v1/registry/resolve_external",
+      "/v1/registry/search_address",
+      "/v1/registry/owned_by",
+    ]) {
+      const r = await call(e, api, p, { body: {} });
+      assert.equal(remaining(r), 99, `${p} is free`);
+    }
+    const ran = await call(e, api, "/v1/registry/search_entities", {
+      body: {},
+    });
+    assert.equal(
+      remaining(ran),
+      98,
+      "a search inside coverage is charged with no results",
+    );
+    const q = await e.METER.quota(await addressSubject(IP, T0), "day", 100);
+    assert.equal(q.used, 2, "the meter agrees with the headers");
+  });
+
+  it("MCP batch: charges the answers, gives back misses, tool errors and invalid params", async () => {
+    const e = env();
+    e.RL_ANON = new CountingLimit(100);
+    const api = fairApi();
+    const res = await call(e, api, "/mcp", {
+      body: [
+        toolCall("registry_get", 1),
+        toolCall("registry_resolve_parcel", 2),
+        toolCall("registry_search_address", 3),
+        toolCall("registry_owned_by", 4),
+        toolCall("registry_search_entities", 5),
+        toolCall("registry_coverage", 6),
+        toolCall("registry_get", 7), // answered with a JSON-RPC invalid-params error
+      ],
+    });
+    assert.equal(res.status, 200);
+    assert.equal(remaining(res), 98, "get and the entity search are charged");
+    const q = await e.METER.quota(await addressSubject(IP, T0), "day", 100);
+    assert.equal(q.used, 2);
+  });
+
+  it("paid: the monthly quota and the 429 text state the rule", async () => {
+    const e = env();
+    const { key } = await issue(e);
+    const api = fairApi();
+    const r = await call(e, api, "/v1/registry/resolve_parcel", {
+      key,
+      body: {},
+    });
+    assert.equal(remaining(r), 5000);
+    const plans = (await (
+      await call(e, innerApi().api, "/v1/plans", { method: "GET" })
+    ).json()) as { quotas: { counted: string } };
+    assert.match(plans.quotas.counted, /answered call/);
+    assert.match(
+      plans.quotas.counted,
+      /input errors, misses outside loaded coverage/,
+    );
+    await e.METER.consume(`sub:sub_1`, { kind: "month", limit: 5000, n: 5000 });
+    const over = await call(e, api, "/v1/registry/get", { key, body: {} });
+    assert.equal(over.status, 429);
+    assert.match(
+      String(((await over.json()) as { message: string }).message),
+      /coverage checks, misses and input errors are free/,
+    );
+  });
+});

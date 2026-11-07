@@ -12,7 +12,8 @@
  * the key store is read. A known key whose subscription lapsed gets 403 for tools but can still
  * read /v1/account and open the billing portal to fix its card.
  *
- * Registry lookups (every registry_* tool except registry_coverage) are metered on top: per
+ * Registry lookups (answered calls of registry_* tools; registry_coverage, input errors, misses
+ * outside loaded coverage and unanswered calls are given back) are metered on top: per
  * address per UTC day without a key, per subscription per calendar month with one. A request
  * over the cap gets 429 RegistryQuotaExceeded (REST) or the same error as an MCP tool result
  * with isError; other tools keep working.
@@ -337,12 +338,14 @@ function quotaHeaders(q: QuotaState): Record<string, string> {
 export function quotaError(q: QuotaState, tier: Tier, now: number) {
   const resets = q.resets_at;
   const limit = q.limit.toLocaleString("en-US");
+  const free =
+    "Only answered lookups count: coverage checks, misses and input errors are free.";
   const message =
     tier === "anonymous"
-      ? `The free registry lookups for today are used up: ${limit} a day per IP address. They reset at ${resets}. A Pro key (${PLANS.pro.registryLookupsPerMonth.toLocaleString("en-US")} a month) or Team key (${PLANS.team.registryLookupsPerMonth.toLocaleString("en-US")} a month) lifts the cap: ${PRICING_URL}. Other tools keep working.`
+      ? `The free registry lookups for today are used up: ${limit} a day per IP address. They reset at ${resets}. A Pro key (${PLANS.pro.registryLookupsPerMonth.toLocaleString("en-US")} a month) or Team key (${PLANS.team.registryLookupsPerMonth.toLocaleString("en-US")} a month) lifts the cap: ${PRICING_URL}. Other tools keep working. ${free}`
       : tier === "pro"
-        ? `This subscription's ${limit} registry lookups for the month are used up. They reset at ${resets}. Team (${PLANS.team.registryLookupsPerMonth.toLocaleString("en-US")} a month) lifts the cap: ${PRICING_URL}. Other tools keep working.`
-        : `This subscription's ${limit} registry lookups for the month are used up. They reset at ${resets}. Team is the largest plan; for more, email ${CONTACT} (${PRICING_URL}). Other tools keep working.`;
+        ? `This subscription's ${limit} registry lookups for the month are used up. They reset at ${resets}. Team (${PLANS.team.registryLookupsPerMonth.toLocaleString("en-US")} a month) lifts the cap: ${PRICING_URL}. Other tools keep working. ${free}`
+        : `This subscription's ${limit} registry lookups for the month are used up. They reset at ${resets}. Team is the largest plan; for more, email ${CONTACT} (${PRICING_URL}). Other tools keep working. ${free}`;
   return {
     error: "RegistryQuotaExceeded",
     message,
@@ -738,16 +741,15 @@ async function route(
   } else res = await forward(mcpText);
   meterUsage(res.status);
 
-  // A lookup the registry could not answer (RegistryUnavailable: our outage, not the caller's
-  // use) is given back.
+  // Only real answers are charged: a lookup that was refused as invalid, missed outside the
+  // loaded coverage, or could not be answered (RegistryUnavailable) is given back.
   if (hit.quota && hit.granted > 0) {
-    let unanswered: number;
-    if (path !== "/mcp") unanswered = res.status === 503 ? 1 : 0;
-    else {
-      const counted = await unavailableAnswers(res, mcpBody, hit.granted);
-      res = counted.res;
-      unanswered = counted.n;
-    }
+    const counted =
+      path === "/mcp"
+        ? await mcpCharges(res, mcpBody, hit.granted)
+        : await restCharge(res);
+    res = counted.res;
+    const unanswered = counted.free;
     if (unanswered > 0) {
       try {
         await env.METER.refund(
@@ -826,53 +828,99 @@ async function mcpWithDenials(
 }
 
 /**
- * How many of the first `granted` metered registry calls of an MCP request came back as
- * RegistryUnavailable. Reads the answer, so it returns a fresh copy of the response.
+ * Whether a registry tool's answer is a real answer (charged as a lookup). Free: a miss whose
+ * `coverage` says the county, state, entity registry or ID system asked about is not loaded.
+ * Charged: a record, a resolved URN, owners, and a search that ran inside loaded coverage, even
+ * with no results.
  */
-async function unavailableAnswers(
+export function isChargedAnswer(answer: unknown): boolean {
+  if (typeof answer !== "object" || answer === null) return true;
+  const { coverage, results } = answer as {
+    coverage?: Record<string, unknown> | null;
+    results?: unknown;
+  };
+  if (typeof coverage !== "object" || coverage === null) return true;
+  if (
+    coverage.county_loaded === false ||
+    coverage.system_loaded === false ||
+    coverage.loaded === false
+  )
+    return false;
+  if (
+    coverage.state_loaded === false &&
+    (!Array.isArray(results) || results.length === 0)
+  )
+    return false;
+  return true;
+}
+
+/** A REST registry answer: charged only for a 200 with a real answer. Returns a readable copy. */
+async function restCharge(
+  res: Response,
+): Promise<{ res: Response; free: number }> {
+  if (res.status !== 200) return { res, free: 1 };
+  const text = await res.text();
+  const copy = new Response(text, res);
+  try {
+    return { res: copy, free: isChargedAnswer(JSON.parse(text)) ? 0 : 1 };
+  } catch {
+    return { res: copy, free: 0 };
+  }
+}
+
+/**
+ * How many of the first `granted` metered registry calls of an MCP request were not real
+ * answers: a JSON-RPC error (invalid params), a tool error (isError: bad input, malformed URN,
+ * RegistryUnavailable), a coverage miss, or no answer at all. Reads the answer, so it returns a
+ * fresh copy of the response.
+ */
+async function mcpCharges(
   res: Response,
   body: unknown,
   granted: number,
-): Promise<{ res: Response; n: number }> {
+): Promise<{ res: Response; free: number }> {
+  const ids = (Array.isArray(body) ? body : [body])
+    .filter(isMeteredCall)
+    .slice(0, granted)
+    .map((m) => m.id);
   if (
     res.status !== 200 ||
     !(res.headers.get("content-type") ?? "").includes("application/json")
   )
-    return { res, n: 0 };
-  const ids = new Set(
-    (Array.isArray(body) ? body : [body])
-      .filter(isMeteredCall)
-      .slice(0, granted)
-      .map((m) => m.id),
-  );
+    return { res, free: res.status >= 400 ? ids.length : 0 };
   const text = await res.text();
   const copy = new Response(text, res);
   let parsed: unknown;
   try {
     parsed = JSON.parse(text);
   } catch {
-    return { res: copy, n: 0 };
+    return { res: copy, free: 0 };
   }
-  let n = 0;
+  const answers = new Map<unknown, unknown>();
   for (const m of Array.isArray(parsed) ? parsed : [parsed]) {
-    const { id, result } = (m ?? {}) as {
-      id?: string | number;
-      result?: { isError?: boolean; content?: { text?: unknown }[] };
-    };
-    if (id === undefined || !ids.has(id) || result?.isError !== true) continue;
+    const id = (m as { id?: unknown } | null)?.id;
+    if (id !== undefined) answers.set(id, m);
+  }
+  let free = 0;
+  for (const id of ids) {
+    const m = answers.get(id) as
+      | {
+          error?: unknown;
+          result?: { isError?: boolean; content?: { text?: unknown }[] };
+        }
+      | undefined;
+    if (!m || m.error !== undefined || !m.result || m.result.isError === true) {
+      free++;
+      continue;
+    }
     try {
-      const err = JSON.parse(String(result.content?.[0]?.text)) as {
-        error?: unknown;
-      };
-      if (err.error === "RegistryUnavailable") {
-        n++;
-        ids.delete(id);
-      }
+      if (!isChargedAnswer(JSON.parse(String(m.result.content?.[0]?.text))))
+        free++;
     } catch {
-      // not a FactLot error object
+      // Not JSON: an answer all the same.
     }
   }
-  return { res: copy, n };
+  return { res: copy, free };
 }
 
 /** /v1/account and the key-management endpoints, for a live key. */
