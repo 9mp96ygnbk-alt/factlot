@@ -24,7 +24,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const WORKSPACES = ["schema", "id", "calc", "tools", "mcp", "server"];
+const WORKSPACES = ["schema", "id", "calc", "tools", "mcp", "server", "reports"];
 const SEMVER = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?$/;
 
 function usage(message) {
