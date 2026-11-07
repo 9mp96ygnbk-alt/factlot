@@ -853,15 +853,15 @@
       "state": "OR",
       "area": "Multnomah County (Portland metro layer)",
       "kind": "load",
-      "parcels": 20618,
+      "parcels": 20684,
       "org_owners": null,
       "owner_names": "no (no owner column)",
       "entity_links": "none",
       "notes": "",
       "cites": [
         {
-          "doc": "docs/registry/tier2/README.md",
-          "quote": "OR | or-metro-rlis-taxlots (Portland metro) | Multnomah | Multnomah 20,618 (the layer's Clackamas 6,085 and Washington 7,425 loaded too) | no"
+          "doc": "docs/registry/sources/or-metro-rlis-taxlots.md",
+          "quote": "Multnomah (41051) 20,684"
         }
       ]
     },
@@ -870,15 +870,15 @@
       "state": "OR",
       "area": "Clackamas County (Portland metro layer)",
       "kind": "load",
-      "parcels": 6085,
+      "parcels": 6090,
       "org_owners": null,
       "owner_names": "no (no owner column)",
       "entity_links": "none",
       "notes": "",
       "cites": [
         {
-          "doc": "docs/registry/tier2/README.md",
-          "quote": "OR | or-metro-rlis-taxlots (Portland metro) | Multnomah | Multnomah 20,618 (the layer's Clackamas 6,085 and Washington 7,425 loaded too) | no"
+          "doc": "docs/registry/sources/or-metro-rlis-taxlots.md",
+          "quote": "Clackamas (41005) 6,090"
         }
       ]
     },
@@ -887,15 +887,15 @@
       "state": "OR",
       "area": "Washington County (Portland metro layer)",
       "kind": "load",
-      "parcels": 7425,
+      "parcels": 7436,
       "org_owners": null,
       "owner_names": "no (no owner column)",
       "entity_links": "none",
       "notes": "",
       "cites": [
         {
-          "doc": "docs/registry/tier2/README.md",
-          "quote": "OR | or-metro-rlis-taxlots (Portland metro) | Multnomah | Multnomah 20,618 (the layer's Clackamas 6,085 and Washington 7,425 loaded too) | no"
+          "doc": "docs/registry/sources/or-metro-rlis-taxlots.md",
+          "quote": "Washington (41067) 7,436"
         }
       ]
     },

@@ -67,7 +67,7 @@ SOURCE = Source(
     license="Public domain, stated in the layer metadata ('This parcel data is in the public domain and should not be "
             "redistributed for a fee beyond reproduction costs')",
     ai_use="unknown",  # not addressed by the publisher
-    redistribution="permitted",  # public domain; fee clause noted in the review record
+    redistribution="permitted",  # public domain; not for a fee beyond reproduction costs (see the review record)
     attribution="MassGIS and the municipal assessing departments",
     terms_reviewed="2026-11-03",
 )

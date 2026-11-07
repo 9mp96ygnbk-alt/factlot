@@ -1,10 +1,18 @@
 # or-metro-rlis-taxlots: Metro RLIS Taxlots (Public), Multnomah County (41051), also Washington (41067) and Clackamas (41005)
 
-Review record for the FactLot Registry (data policy §5). Reviewed 2026-11-03. Machine-readable copy:
+Review record for the FactLot Registry (data policy §5). Reviewed 2026-11-03; rights review 2026-11-06. Machine-readable copy:
 [`registry/sources/or/or-metro-rlis-taxlots.json`](../../../registry/sources/or/or-metro-rlis-taxlots.json).
 Adapter: `python/src/factlot/registry/adapters/or_metro_rlis.py` (account system `or_metro_account`, account
 `<county FIPS>:<PRIMACCNUM>`); tests: `python/tests/test_adapter_or_metro_rlis.py`. Tier 2, west region
 ([`../tier2/west.md`](../tier2/west.md)).
+
+**Status: `verified: false`, gated: terms (rights review of 2026-11-06).** The licence is Metro's RLIS Open
+Database End User License Agreement (revised February 2023), read in full on 2026-11-06; it is not the Open
+Database License (ODbL) that this record inferred on 2026-11-03 from search results. The agreement is a
+limited, revocable licence that prohibits sublicensing and does not cover the individual contents of the
+database (see Terms). The record holds no written statement from Metro on whether, and in what form, FactLot
+may carry the derived parcel facts, so nothing from this source is published in a downloadable release or
+served by hosted lookups. The loads below were built for review only.
 
 ## Publisher and URLs
 
@@ -30,12 +38,34 @@ Adapter: `python/src/factlot/registry/adapters/or_metro_rlis.py` (account system
   metadata repeats it and adds: "The information in this file was derived from digital databases on Metro's GIS. Care
   was taken in the creation of this file. Metro cannot accept any responsibility for errors, omissions, or positional
   accuracy. There are no warranties, expressed or implied."
-- The license page is a JavaScript application; its text could not be read by the collector or the page fetcher.
-  Search results about it say it is the Open Database License (ODbL) v1.0 (OpenAddresses lists Metro's address file
-  as ODbL v1.0; a Washington County service record names ODbL v1 and DbCL v1) and that Metro also has a separate 2021
-  "RLIS Limited Use License" for the paid products (credit line "(c) Oregon Metro www.oregonmetro.gov/rlis").
-  ODbL permits redistribution and commercial use with attribution and share-alike for derived databases and does not
-  restrict AI use. **A person should read the license page to confirm** (see Gates).
+- The license page is a JavaScript application (an ArcGIS Hub shell). On 2026-11-03 its text could not be read, and
+  this record inferred from search results that it was the Open Database License (ODbL) v1.0. **That was wrong.**
+  On 2026-11-06 the agreement was read from the public Hub page item `43a73dbe46e644a9a8204afc4cbeb525`
+  (<https://www.arcgis.com/sharing/rest/content/items/43a73dbe46e644a9a8204afc4cbeb525/data>): it is Metro's
+  **RLIS Open Database End User License Agreement, revised February 2023**. Its operative terms:
+  - Grant: "Metro grants you a limited, worldwide, royalty-free, non-exclusive, revocable license" to copy, publish,
+    distribute and share the Data, to extract, modify and adapt it, and to combine it with other data or include it
+    in "your own product or application". When doing so you must act "only under the terms of this License" and give
+    Metro's attribution statement: "Regional Land Information System data are a product of Metro and made publicly
+    available according to the license agreement found in https://rlisdiscovery.oregonmetro.gov/pages/open-database-license."
+  - Limits: "Sublicensing the Data is prohibited." Each time the Data is communicated, Metro offers the recipient a
+    licence on the same terms. The licence does not cover personal data, third-party rights Metro is not authorized to
+    license, other intellectual property rights, or "Rights to individual contents contained in the database". Rights
+    terminate automatically on non-compliance, and Metro may release the Data under different terms or stop
+    distributing it. Acceptance is by accessing or using the Data.
+  - The agreement says it is compatible with CC BY 4.0 and the Open Data Commons Attribution License. It does not
+    mention share-alike, and it does not mention AI.
+  - The layer's FGDC supplemental information adds: "This Product contains information retrieved from and copyrighted
+    by County of Clackamas".
+  - A separate RLIS Limited Use License (revised September 2021, `/pages/terms-of-use`) governs Metro's account-based
+    and sold products; the Taxlots (Public) `licenseInfo` points at the Open Database agreement, not at it.
+- What this means for the registry: the agreement allows redistribution only on its own terms (no sublicence, Metro's
+  licence passing directly to each recipient, revocable), and it does not license the individual contents. The
+  registry configuration has no field for a narrower permission (for example hosted lookups without a downloadable
+  file), so the source stays unverified and nothing from it is published or hosted until a written statement of scope
+  from Metro is recorded here.
+- AI use: the agreement is silent. `gis.oregonmetro.gov/robots.txt` (Metro's metadata host, Cloudflare-managed) sets
+  `Content-Signal: search=yes,ai-train=no,use=reference` for all user agents.
 - robots.txt: `rlisdiscovery.oregonmetro.gov` and `hub.arcgis.com` both `Crawl-delay: 60`, disallow `/sites/`, `/admin/`,
   `/sessions/`, `/groups/`, `/people/`, `/workspace/`; the download API is allowed. `services2.arcgis.com` has none.
 
@@ -73,11 +103,13 @@ only, 9 manufactured structure.
 
 ## Gates
 
-None for the download itself: no account, login, click-through, fee or CAPTCHA. For a person:
+None for the download itself: no account, login, click-through, fee or CAPTCHA. Open points:
 
-1. Read <https://rlisdiscovery.oregonmetro.gov/pages/open-database-license> and confirm it is ODbL (share-alike, attribution)
-   and that FactLot's open registry can carry the derived facts under it. If the registry is published under another
-   license, ODbL's share-alike clause applies to a derived database; decide how to meet it.
+1. **Terms (the gate).** The RLIS Open Database End User License Agreement (revised February 2023, quoted under Terms)
+   prohibits sublicensing, does not license the individual contents of the database and is revocable, and the FGDC
+   metadata asserts Clackamas County copyright. Whether, and in what form (downloadable release, hosted lookups,
+   attribution wording), FactLot may carry the derived parcel facts needs a written statement from Metro's Data
+   Resource Center (drc@oregonmetro.gov). Until it is recorded here, `verified` stays false.
 2. Confirm `202` ("Commercial, vacant, condominium" in Metro's list) is an improved commercial condominium in Multnomah (832 lots). The adapter treats `x02` as improved.
 3. Owners: Multnomah County's Division of Assessment, Recording and Taxation sells data files on a fee schedule (a
    county-wide general property data report, land characteristics, improvement characteristics and values, tax bill
@@ -123,7 +155,27 @@ PYTHONPATH=python/src python3 -m factlot.registry.adapters.or_metro_rlis <csv> r
 - Facts written: 261,146. Seconds: 17.3. Invalid ids, errors, retired: 0, 0, 0.
 - Organisation owners stored (current owner-of-record facts): 0; natural persons or withheld owners not stored (names not kept): 0. The layer has no owner column.
 - Ownership links to registered entities after `link_owners()`: 0 (the only entity registry in the scratch file is `ct-sos-entities`).
-- Tier 2 covers Multnomah only; Clackamas and Washington parcels come with the same file and are loaded and counted above (ODbL share-alike applies to all of them; see Terms).
+- Tier 2 covers Multnomah only; Clackamas and Washington parcels come with the same file and are loaded and counted above (the same licence agreement applies to all of them; see Terms).
+
+## Live-layer load (2026-11-06)
+
+The Hub CSV export behind the configured file URL still carried `Last-Modified` 2026-02-19, while the publisher's
+content date is now 2026-11-02 (item description and FGDC `time-period-of-content` `20261102`). The in-scope tax lots
+(`PROP_CODE` beginning `2`, `3` or `7`; 40,593 rows) were therefore read from the live feature service, layer 3, in
+pages of 2,000 ordered by `FID`, without geometry, into one CSV with the same field names (document
+`fl:document:sha256-037a4b3277870fa83a9a56acc922e79cb030d5fb9f1bb00416a561c4a965af18`), and loaded into a scratch
+registry for review. Nothing from it is published or hosted (see Status).
+
+```
+PYTHONPATH=python/src python3 -m factlot.registry.adapters.or_metro_rlis <live in-scope CSV> registry.db --as-of 2026-11-02
+```
+
+- Parcels kept: **34,210** distinct commercial parcels (`B` 6,435, `F1` 26,126, `F2` 1,649). Facts written: 260,421.
+- By county: Clackamas (41005) 6,090 (`B` 922, `F1` 3,702, `F2` 1,466); Multnomah (41051) 20,684 (`B` 4,357, `F1` 16,249,
+  `F2` 78); Washington (41067) 7,436 (`B` 1,156, `F1` 6,175, `F2` 105).
+- Owner facts 0 (the layer has no owner column); person-like owner facts 0. Audit: 0 violations; one warning, 40 parcels
+  with an implausible year built.
+- These counts replace the 2026-11-03 figures (34,128) as the record's current count for this source.
 
 ## Known gaps
 

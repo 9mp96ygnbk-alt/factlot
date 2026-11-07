@@ -28,4 +28,4 @@ None. No adapter (file layout unseen).
 
 ## Known gaps
 
-Exact columns and delimiter (the page says `.txt`), registered-agent handling (natural persons must not be read), terms. Milwaukee County parcels are already loaded (`wi-statewide-parcels`) and will link to entities after this purchase.
+Exact columns and delimiter (the page says `.txt`), registered-agent handling (natural persons must not be read), terms. Wisconsin parcels (`wi-statewide-parcels`) are gated on terms since 2026-11-06 and are not published; owner linking would also need that gate cleared.

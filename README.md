@@ -95,13 +95,13 @@ Be clear about scope before adopting it:
 - **Calculators, IDs, and the fact model work anywhere.** They need no data and no API key, and
   they run offline in both SDKs with identical results.
 - **The registry covers the largest metros, unevenly, and most of it is not queryable yet.** The
-  project's registry pipeline has built and verified 1,953,805 commercial, industrial and
-  multifamily parcels in 405 counties (21 states and DC) from 42 public-record sources, with 14.2
+  project's registry pipeline has built and verified 1,733,923 commercial, industrial and
+  multifamily parcels in 330 counties (19 states and DC) from 40 public-record sources, with 14.2
   million registered entities from Texas, New York, Colorado, Pennsylvania, DC and Connecticut for
   owner resolution: the largest metros (Harris, Dallas, Tarrant, Travis and Collin in Texas, New
   York City, Los Angeles, Boston, San Francisco, Denver, Charlotte, Minneapolis and DC), the rest of
   the top 100 counties where the licence allows, and statewide files for New York, Maryland,
-  Wisconsin, Massachusetts, Vermont, Arkansas and Connecticut, most of Utah, 24 Minnesota counties
+  Massachusetts, Vermont, Arkansas and Connecticut, most of Utah, 24 Minnesota counties
   and Montana's apartments and industrial parcels
   ([catalog](docs/registry/sources/README.md), [quality report](docs/registry/quality/tier1-2026-11-03.md)).
   **What you can query today** is the downloadable District of Columbia sample (18,077 parcels)
