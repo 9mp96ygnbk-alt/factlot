@@ -71,6 +71,7 @@ import {
   PAGE_ROWS,
   SHARD_TARGET_BYTES,
   ShardEncoder,
+  SharedPages,
   decodeEntry,
   getResult,
   shardOf,
@@ -500,6 +501,7 @@ function buildEquity(
         county: spec.county,
         category: spec.category,
         tax_year: spec.taxYear,
+        locs: [],
       };
       const rows: EqRow[] = [];
       const inPool = new Set<string>();
@@ -526,7 +528,14 @@ function buildEquity(
           c.value === null
         )
           continue;
-        const enc = encodeRow(lo, c, equityFactDocs(facts).map(di), di);
+        const enc = encodeRow(
+          lo,
+          c,
+          equityFactDocs(facts).map(di),
+          di,
+          m,
+          h.locs,
+        );
         if (
           JSON.stringify(decodeRow(h as PoolHeader, m, enc)) !==
           JSON.stringify(c)
@@ -614,7 +623,7 @@ function writeNameIndex(
     }
   const df: Record<string, number> = {};
   const dict: [string, Posting][] = [];
-  let page = 0;
+  const pages = new SharedPages<PostedRow>();
   for (const g of [...lists.keys()].sort()) {
     const list = lists.get(g)!;
     df[g] = list.length;
@@ -623,13 +632,9 @@ function writeNameIndex(
       dict.push([g, list]);
       continue;
     }
-    const p: number[] = [];
-    for (let i = 0; i < list.length; i += NAME_PAGE_ROWS) {
-      w.write(`n/p/${page}.json`, list.slice(i, i + NAME_PAGE_ROWS));
-      p.push(page++);
-    }
-    dict.push([g, { n: list.length, p }]);
+    dict.push([g, pages.add(list)]);
   }
+  pages.write("n/p", NAME_PAGE_ROWS, (path, v) => w.write(path, v));
   w.write("n/df.json", df);
   const bucketed = <T>(prefix: string, entries: [string, T][]): number => {
     const bytes = entries.reduce(
@@ -1018,19 +1023,15 @@ export function buildPack(
       lists.set(key, rows.slice(0, n));
     }
     const dict: [string, unknown][] = [];
-    let page = 0;
+    const pages = new SharedPages<AddressRow>();
     for (const [key, rows] of lists) {
       if (rows.length <= INLINE_ROWS) {
         dict.push([key, rows]);
         continue;
       }
-      const p: number[] = [];
-      for (let i = 0; i < rows.length; i += PAGE_ROWS) {
-        w.write(`a/p/${page}.json`, rows.slice(i, i + PAGE_ROWS));
-        p.push(page++);
-      }
-      dict.push([key, { n: rows.length, p }]);
+      dict.push([key, pages.add(rows)]);
     }
+    pages.write("a/p", PAGE_ROWS, (path, v) => w.write(path, v));
     for (const [key, list] of exact) dict.push([`E:${key}`, list]);
     const aBytes = dict.reduce(
       (a, [k, v]) => a + k.length + JSON.stringify(v).length + 4,

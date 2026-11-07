@@ -14,7 +14,7 @@ export const PACK_FORMAT = 2;
 
 /** Target size of one shard file, in bytes (the builder sizes shard counts from it). */
 export const SHARD_TARGET_BYTES = 96 * 1024;
-/** Rows per page of a long address list. */
+/** Rows per page of the long address lists, which follow each other through the pages. */
 export const PAGE_ROWS = 700;
 /** Rows kept inline in an address dictionary shard before a list moves to its own pages. */
 export const INLINE_ROWS = 120;
@@ -26,7 +26,7 @@ export const NAME_CHUNK_ROWS = 1400;
  * or two.
  */
 export const NAME_POSTING_MAX = 8000;
-/** Rows per page of a long posting list, and the longest list kept inline in a bucket. */
+/** Rows per page of the long posting lists (one after another through the pages), and the longest list kept inline in a bucket. */
 export const NAME_PAGE_ROWS = 1600;
 export const NAME_INLINE_ROWS = 160;
 /** Target size of a name posting or exact-key bucket file. */
@@ -125,6 +125,56 @@ export function upperAscii(s: string): string {
 /** "fl:parcel:us-24005" for "fl:parcel:us-24005:…": which file of the pack holds a URN. */
 export function urnPrefix(urn: string): string {
   return urn.split(":", 3).join(":");
+}
+
+// --- shared pages ------------------------------------------------------------------------------
+//
+// Long lists are written one after another into one sequence of rows, cut into pages of a fixed number of rows
+// (<prefix>/<page>.json), so a list just over the inline size does not take a file of its own. A list is { n, s }:
+// its n rows start at row s of the sequence.
+
+/** A long list's place in its pages. */
+export interface PagedList {
+  n: number;
+  s: number;
+}
+
+/** Collects long lists into shared pages (the pack builder). */
+export class SharedPages<T> {
+  private readonly rows: T[] = [];
+  add(list: T[]): PagedList {
+    const s = this.rows.length;
+    for (const r of list) this.rows.push(r);
+    return { n: list.length, s };
+  }
+  /** Write the pages; returns how many. */
+  write(
+    prefix: string,
+    perPage: number,
+    write: (path: string, value: unknown) => void,
+  ): number {
+    let page = 0;
+    for (let i = 0; i < this.rows.length; i += perPage)
+      write(`${prefix}/${page++}.json`, this.rows.slice(i, i + perPage));
+    return page;
+  }
+}
+
+/** The pages of a list, in order, each cut to the list's rows. */
+export async function* listPages<T>(
+  pack: { file<V>(path: string): Promise<V | undefined> },
+  prefix: string,
+  perPage: number,
+  list: PagedList,
+): AsyncGenerator<T[]> {
+  const end = list.s + list.n;
+  for (let page = Math.floor(list.s / perPage); page * perPage < end; page++) {
+    const rows = await pack.file<T[]>(`${prefix}/${page}.json`);
+    if (!rows) throw new Error(`pack page ${prefix}/${page}.json is missing`);
+    const from = Math.max(0, list.s - page * perPage);
+    const to = Math.min(rows.length, end - page * perPage);
+    yield from === 0 && to === rows.length ? rows : rows.slice(from, to);
+  }
 }
 
 // --- shard encoding -----------------------------------------------------------------------------

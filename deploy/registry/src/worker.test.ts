@@ -36,6 +36,7 @@ import {
   type PoolHeader,
 } from "./equity.ts";
 import { fileAssets } from "./file_assets.ts";
+import { SharedPages, listPages } from "./format.ts";
 import { hostedOutcome, type HostedScope } from "./hosted.ts";
 import { addressListKey } from "./search.ts";
 import { Pack } from "./store.ts";
@@ -603,6 +604,7 @@ test("candidate lists split into chunks count and order like the whole list", as
       county: "997",
       category: "F1",
       tax_year: 2026,
+      locs: [],
       all: list,
       buckets: 1,
     };
@@ -646,5 +648,26 @@ test("candidate lists split into chunks count and order like the whole list", as
         JSON.stringify(params),
       );
     }
+  }
+});
+
+test("long lists share pages and read back whole", async () => {
+  const root = mkdtempSync(join(tmpdir(), "factlot-pages-"));
+  const pages = new SharedPages<number>();
+  const lists = [5, 1, 12, 7, 30, 1, 4].map((n, i) =>
+    Array.from({ length: n }, (_, j) => i * 100 + j),
+  );
+  const at = lists.map((l) => pages.add(l));
+  const written = pages.write("p", 6, (path, v) => {
+    execFileSync("mkdir", ["-p", join(root, path, "..")]);
+    writeFileSync(join(root, path), JSON.stringify(v));
+  });
+  assert.equal(written, Math.ceil(60 / 6));
+  const pack = new Pack(fileAssets(root));
+  for (const [i, list] of lists.entries()) {
+    const got: number[] = [];
+    for await (const rows of listPages<number>(pack, "p", 6, at[i]!))
+      got.push(...rows);
+    assert.deepEqual(got, list);
   }
 });

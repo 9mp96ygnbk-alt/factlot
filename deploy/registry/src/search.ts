@@ -23,13 +23,22 @@ import {
   nameSearchKeyFor,
 } from "../../../packages/tools/src/registry.ts";
 
-import { shardOf, sqliteCompare, upperAscii, type Manifest } from "./format.ts";
+import {
+  NAME_PAGE_ROWS,
+  PAGE_ROWS,
+  listPages,
+  shardOf,
+  sqliteCompare,
+  upperAscii,
+  type Manifest,
+  type PagedList,
+} from "./format.ts";
 import type { Pack } from "./store.ts";
 
 /** [urn, label, key] */
 export type AddressRow = [string, string | null, string];
-/** Inline rows, or the count and page files of a long list. */
-export type AddressList = AddressRow[] | { n: number; p: number[] };
+/** Inline rows, or where a long list is in the shared pages. */
+export type AddressList = AddressRow[] | PagedList;
 /** [urn, label] of each URN whose address key is exactly the list's key. */
 export type ExactList = [string, string | null][];
 
@@ -114,11 +123,13 @@ export async function searchAddress(
     };
     if (Array.isArray(list)) take(list);
     else
-      for (const page of list.p) {
-        const rows = await pack.file<AddressRow[]>(`a/p/${page}.json`);
-        if (!rows) throw new Error(`pack page a/p/${page}.json is missing`);
+      for await (const rows of listPages<AddressRow>(
+        pack,
+        "a/p",
+        PAGE_ROWS,
+        list,
+      ))
         if (take(rows)) break;
-      }
   }
   return out.slice(0, limit);
 }
@@ -130,7 +141,7 @@ export type PostedRow =
   | [string, string, string | null, number]
   | [string, string, string | null, number, string];
 /** Inline posting rows, or the count and page files of a long list. */
-export type Posting = PostedRow[] | { n: number; p: number[] };
+export type Posting = PostedRow[] | PagedList;
 /** [urn, label, position] of each entity whose first row matching a key is that key exactly, by label. */
 export type ExactNames = [string, string | null, number][];
 
@@ -189,15 +200,16 @@ export async function searchEntities(
       `n/b/${shardOf(rarest, m.names.gram_buckets)}.json`,
     );
     const posting = shard && Object.hasOwn(shard, rarest) ? shard[rarest]! : [];
-    const pages = Array.isArray(posting)
-      ? [posting]
-      : await Promise.all(
-          posting.p.map(async (p) => {
-            const rows = await pack.file<PostedRow[]>(`n/p/${p}.json`);
-            if (!rows) throw new Error(`pack page n/p/${p}.json is missing`);
-            return rows;
-          }),
-        );
+    const pages: PostedRow[][] = [];
+    if (Array.isArray(posting)) pages.push(posting);
+    else
+      for await (const rows of listPages<PostedRow>(
+        pack,
+        "n/p",
+        NAME_PAGE_ROWS,
+        posting,
+      ))
+        pages.push(rows);
     // Rows in scan order; the first matching row of each entity decides whether it is an exact match.
     const seen = new Set<string>();
     const hits: Hit[] = [];

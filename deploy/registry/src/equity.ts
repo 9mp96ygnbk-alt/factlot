@@ -49,11 +49,16 @@ export interface EquityManifest {
   pools: number;
 }
 
-/** [fact_id, document index, locator, as_of] */
-export type EqCitation = [string, number, string | null, string];
+/**
+ * [fact_id, document index, locator, as_of]. A locator that is a prefix of the pool's `locs` followed by the URN
+ * tail is stored as that prefix's index (the tail upper-cased) or -(index + 1) (the tail as is); an as_of equal to
+ * the document's is stored as 0.
+ */
+export type EqCitation = [string, number, string | number | null, string | 0];
 /**
  * An eligible comparable: [URN after the pool's prefix, market value, appraised value, improvement area, land area,
- * year built, neighborhood code, building class, situs address, citation, document indexes of its facts].
+ * year built, neighborhood code, building class, situs address, citation, document indexes of its facts (0: only
+ * the cited document)].
  */
 export type EqRow = [
   string,
@@ -66,7 +71,7 @@ export type EqRow = [
   string | null,
   string | null,
   EqCitation | null,
-  number[],
+  number[] | 0,
 ];
 
 /** Year built (null: unknown) → rows, for counting a chunk wholly inside the area band. */
@@ -85,6 +90,8 @@ export interface PoolHeader {
   county: string;
   category: string;
   tax_year: number;
+  /** Locator prefixes (see EqCitation). */
+  locs: string[];
   all: SortedList;
   /** Group bucket files q/<pool>/b<i>.json. */
   buckets: number;
@@ -107,12 +114,42 @@ export function encodeRow(
   c: Row,
   docs: number[],
   docIndex: (documentId: string) => number,
+  m: EquityManifest,
+  locs: string[],
 ): EqRow {
   const id = String(c.id);
   if (!id.startsWith(prefix)) throw new Error(`${id} is not under ${prefix}`);
+  const tail = id.slice(prefix.length);
   const cite = c.citation as Row | null;
+  let citation: EqCitation | null = null;
+  if (cite) {
+    const doc = docIndex(String(cite.document_id));
+    const loc = cite.locator as string | null;
+    let locator: string | number | null = loc;
+    for (const [t, sign] of [
+      [tail.toUpperCase(), 1],
+      [tail, -1],
+    ] as [string, number][])
+      if (
+        typeof locator === "string" &&
+        loc!.endsWith(t) &&
+        loc!.length > t.length
+      ) {
+        const head = loc!.slice(0, loc!.length - t.length);
+        let i = locs.indexOf(head);
+        if (i < 0) i = locs.push(head) - 1;
+        locator = sign > 0 ? i : -(i + 1);
+      }
+    const asOf = String(cite.as_of);
+    citation = [
+      String(cite.fact_id),
+      doc,
+      locator,
+      asOf === m.docs[doc]![1].as_of ? 0 : asOf,
+    ];
+  }
   return [
-    id.slice(prefix.length),
+    tail,
     c.market_value as number | null,
     c.appraised_value as number | null,
     c.improvement_area_sf as number,
@@ -121,16 +158,14 @@ export function encodeRow(
     c.neighborhood_code as string | null,
     c.building_class as string | null,
     c.situs_address as string | null,
-    cite
-      ? [
-          String(cite.fact_id),
-          docIndex(String(cite.document_id)),
-          cite.locator as string | null,
-          String(cite.as_of),
-        ]
-      : null,
-    docs,
+    citation,
+    citation && docs.length === 1 && docs[0] === citation[1] ? 0 : docs,
   ];
+}
+
+/** The document indexes of an encoded row's facts. */
+export function rowDocs(r: EqRow): number[] {
+  return r[10] === 0 ? [r[9]![1]] : r[10];
 }
 
 /** The shaped comparable (equityComparable's object, key order included) of an encoded row. */
@@ -138,6 +173,22 @@ export function decodeRow(h: PoolHeader, m: EquityManifest, r: EqRow): Row {
   const [tail, market, appraised, area, land, year, nbhd, cls, situs, cite] = r;
   const basis =
     appraised !== null ? "appraised" : market !== null ? "market" : null;
+  let citation: Row | null = null;
+  if (cite) {
+    const [factId, doc, loc, asOf] = cite;
+    const [documentId, source] = m.docs[doc]!;
+    citation = {
+      fact_id: factId,
+      document_id: documentId,
+      locator:
+        typeof loc !== "number"
+          ? loc
+          : loc >= 0
+            ? h.locs[loc]! + tail.toUpperCase()
+            : h.locs[-loc - 1]! + tail,
+      as_of: asOf === 0 ? source.as_of : asOf,
+    };
+  }
   return {
     id: h.u + tail,
     county_fips: h.county,
@@ -153,14 +204,7 @@ export function decodeRow(h: PoolHeader, m: EquityManifest, r: EqRow): Row {
     building_class: cls,
     situs_address: situs,
     tax_year: h.tax_year,
-    citation: cite
-      ? {
-          fact_id: cite[0],
-          document_id: m.docs[cite[1]]![0],
-          locator: cite[2],
-          as_of: cite[3],
-        }
-      : null,
+    citation,
   };
 }
 
@@ -320,7 +364,7 @@ export async function listNearest(
       const match = equityMatch(rule, {
         urn: h.u + r[0],
         row: decodeRow(h, m, r),
-        docs: r[10].map((i) => m.docs[i]![0]),
+        docs: rowDocs(r).map((i) => m.docs[i]![0]),
       });
       if (match && match.tier === tier) best.push(match);
     }
@@ -350,6 +394,9 @@ export async function listNearest(
     const d = Math.min(dl, dr);
     if (d === Infinity || d > kth()) break;
     const i = dr <= dl ? right++ : left--;
+    // A chunk whose year counts leave no row within the year band holds no match.
+    const years = rc[i]![3];
+    if (years && countYears(rule, rc[i]![2], years) === 0) continue;
     take(await chunk<EqRow[]>(pack, `${list.f}/r${i}.json`));
   }
   return best;

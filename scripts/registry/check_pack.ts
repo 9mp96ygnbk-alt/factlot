@@ -175,10 +175,12 @@ async function run(
   const all = (sql: string, ...p: unknown[]) => d.prepare(sql).all(...p);
   const manifest = (await new Pack(fileAssets(packDir)).manifest()) as Manifest;
   const calls: Call[] = [];
+  // A seeded order, so every --part process draws the same calls.
+  const shuffle = `((rowid * 1103515245 + ${seed}) % 2147483629)`;
 
   // Records.
   const subjects = all(
-    "SELECT urn, kind FROM subjects ORDER BY random() LIMIT ?",
+    `SELECT urn, kind FROM subjects ORDER BY ${shuffle} LIMIT ?`,
     samples,
   );
   const dates = [...new Set(manifest.dbs.flatMap((db) => db.dates))];
@@ -194,18 +196,18 @@ async function run(
     calls.push({ tool: "registry_tx_equity_candidates", args: { urn } });
   }
   for (const r of all(
-    "SELECT urn FROM subjects WHERE kind = 'entity' ORDER BY random() LIMIT ?",
+    `SELECT urn FROM subjects WHERE kind = 'entity' ORDER BY ${shuffle} LIMIT ?`,
     samples,
   ))
     calls.push({ tool: "registry_owned_by", args: { entity_urn: r.urn } });
   for (const r of all(
-    "SELECT DISTINCT from_urn FROM relationships WHERE type = 'owns' ORDER BY random() LIMIT ?",
+    `SELECT DISTINCT from_urn FROM relationships WHERE type = 'owns' ORDER BY ${shuffle} LIMIT ?`,
     samples,
   ))
     calls.push({ tool: "registry_owned_by", args: { entity_urn: r.from_urn } });
   // Crosswalk.
   for (const r of all(
-    "SELECT system, external_id FROM crosswalk ORDER BY random() LIMIT ?",
+    `SELECT system, external_id FROM crosswalk ORDER BY ${shuffle} LIMIT ?`,
     samples,
   )) {
     calls.push({
@@ -222,7 +224,7 @@ async function run(
     const db = new DatabaseSync(f.served, { readOnly: true });
     for (const r of db
       .prepare(
-        "SELECT f.subject, f.value_json FROM facts f WHERE f.predicate = 'parcel.apn' ORDER BY random() LIMIT ?",
+        `SELECT f.subject, f.value_json FROM facts f WHERE f.predicate = 'parcel.apn' ORDER BY ${shuffle} LIMIT ?`,
       )
       .all(Math.ceil(samples / files.length))) {
       const region = String(r.subject).split(":")[2]!;
@@ -342,16 +344,18 @@ async function run(
           args: { urn, ...pick(tighter) },
           label: "equity tighter",
         },
-        {
+      );
+      // Wider bands, a forced county tier and explicit tax years on every third subject.
+      if (equitySubjects % 3 === 0)
+        calls.push({
           tool: "registry_tx_equity_candidates",
           args: { urn, ...pick(other) },
           label: "equity other",
-        },
-      );
+        });
     }
   }
   for (const r of all(
-    "SELECT f.subject, f.value_json FROM facts f WHERE f.subject >= 'fl:parcel:us-48' AND f.subject < 'fl:parcel:us-49' AND f.predicate = 'parcel.apn' ORDER BY random() LIMIT 50",
+    `SELECT f.subject, f.value_json FROM facts f WHERE f.subject >= 'fl:parcel:us-48' AND f.subject < 'fl:parcel:us-49' AND f.predicate = 'parcel.apn' ORDER BY ${shuffle} LIMIT 50`,
   )) {
     const region = String(r.subject).split(":")[2]!;
     calls.push({
@@ -370,7 +374,7 @@ async function run(
   const streetTypes =
     /^(ALY|AVE|BLVD|BYP|CIR|CSWY|CT|DR|EXPY|FWY|HWY|LN|LOOP|PATH|PIKE|PKWY|PL|PLZ|RD|ROW|RUN|SQ|ST|TER|TPKE|TRL|WALK|WAY|XING)$/;
   for (const r of all(
-    "SELECT key FROM address_index ORDER BY random() LIMIT ?",
+    `SELECT key FROM address_index ORDER BY ${shuffle} LIMIT ?`,
     samples,
   )) {
     const t = String(r.key).split(" ");
@@ -412,7 +416,7 @@ async function run(
     });
   // Entity searches from real name keys.
   for (const r of all(
-    "SELECT key FROM name_index ORDER BY random() LIMIT ?",
+    `SELECT key FROM name_index ORDER BY ${shuffle} LIMIT ?`,
     Math.ceil(samples / 4),
   )) {
     const k = String(r.key);
@@ -453,6 +457,7 @@ async function run(
     { n: number; bad: number; cpu: number[]; reads: number[] }
   >();
   const mismatches: string[] = [];
+  const slow: string[] = [];
   let current: string | undefined;
   for (const [ci, c] of calls.entries()) {
     if (ci % parts !== part) continue;
@@ -484,6 +489,15 @@ async function run(
     s.n += 1;
     s.cpu.push((dt.user + dt.system) / 1000);
     s.reads.push(pack.reads - before);
+    if (s.cpu[s.cpu.length - 1]! > 5 || pack.reads - before > 8)
+      slow.push(
+        JSON.stringify({
+          tool: c.tool,
+          args: c.args,
+          cpu_ms: s.cpu[s.cpu.length - 1],
+          reads: pack.reads - before,
+        }),
+      );
     if (JSON.stringify(got) !== JSON.stringify(want)) {
       s.bad += 1;
       mismatches.push(
@@ -504,6 +518,10 @@ async function run(
     parts > 1 ? `mismatches-${part}.jsonl` : "mismatches.jsonl",
   );
   writeFileSync(out, mismatches.join("\n"));
+  writeFileSync(
+    join(scratch, parts > 1 ? `slow-${part}.jsonl` : "slow.jsonl"),
+    slow.join("\n"),
+  );
   const q = (a: number[], p: number) =>
     [...a].sort((x, y) => x - y)[
       Math.min(a.length - 1, Math.floor(a.length * p))
