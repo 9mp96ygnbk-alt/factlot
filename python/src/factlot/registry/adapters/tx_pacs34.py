@@ -760,6 +760,11 @@ NUECES = CountyExport(
 MITCHELL_EXCLUDE = frozenset({"F3", "F4"})
 DIMMIT_EXCLUDE = frozenset({"F3"})
 YOAKUM_EXCLUDE = frozenset({"F3", "F4"})
+# Kimble's own table: C2 is vacant lots (C1), not commercial. F3 and F4 are
+# improvement-only accounts with their own property ids, so they are kept and
+# not added onto another account. Conversion labels and the unidentified
+# "2 N" code are not used.
+KIMBLE_EXCLUDE = frozenset({"2 N", "L2A", "L2C", "L2G", "L2H", "L2J", "L2M", "L2P", "L2Q", "L2T"})
 
 MITCHELL = CountyExport(
     source=Source(
@@ -813,6 +818,24 @@ YOAKUM = CountyExport(
     ),
     county_fips="501",
     account_system="yoakum_prop_id",
+)
+
+KIMBLE = CountyExport(
+    source=Source(
+        source_id="tx-kimble-cad",
+        publisher="Kimble Central Appraisal District",
+        title="2026 certified roll, supplement 0, header as of supplement (PACS 8.0.34)",
+        url="https://kimblecad.org/downloads/",
+        state_fips="48",
+        county_fips="267",
+        license="The 2020 data-download disclaimer says there is no warranty and the user is responsible for interpreting codes. No assent control was required for the file. Public redistribution is not stated",
+        ai_use="unknown",
+        redistribution="unknown",
+        attribution="Kimble Central Appraisal District",
+        terms_reviewed="2026-11-06",
+    ),
+    county_fips="267",
+    account_system="kimble_prop_id",
 )
 
 

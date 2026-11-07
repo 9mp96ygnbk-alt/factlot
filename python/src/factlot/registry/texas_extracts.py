@@ -744,6 +744,21 @@ EXTRACTS: list[dict] = [
         "kept": 727,
         "duplicate_stored_ids": 0,
     },
+    {
+        "source_id": "tx-kimble-cad",
+        "sha256": "f1e0a1081eda132a82411769727d7148120cd2d3b7f32af98dacb41357f4d4e9",
+        "bytes": 6703284,
+        "layout": "PACS header 8.0.0.34; 9714-character records; positions match the 8.0.34 layout dated 2026-01-23. Own 70-row code table. C2 maps to C1. F3 kept on its own id. Conversion codes excluded. Agent, UDI, and deferral files not opened",
+        "header_run_date": "2026-08-20",
+        "http_last_modified": "2026-09-30",
+        "input_records": 10780,
+        "input_kind": "property records in supplement 0",
+        "drops": {"not_real": 1039, "out_of_scope": 9267, "opaque_code": 0, "short": 0, "deleted": 0,
+                  "duplicate_ids": 0, "unmapped_code": 0},
+        "eligible_unique": 474,
+        "kept": 474,
+        "duplicate_stored_ids": 0,
+    },
 ]
 
 
