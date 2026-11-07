@@ -560,17 +560,32 @@ function parcelUrn(
   countyFips: string,
   apn: string,
 ): string {
-  // A file without parcel_rule was built with parcel rule 1 (ID spec 0.1-0.2) and keeps its URNs.
   const rule = d
     .prepare("SELECT value FROM meta WHERE key = 'parcel_rule'")
     .get();
+  return parcelUrnForRule(
+    rule ? String(rule.value) : null,
+    stateFips,
+    countyFips,
+    apn,
+  );
+}
+
+/**
+ * The parcel URN for an APN under a file's meta `parcel_rule` (null: a file without one, built with parcel rule 1
+ * under ID spec 0.1-0.2, which keeps its URNs). Throws FactLotIdError for an APN or FIPS code the rule rejects.
+ */
+export function parcelUrnForRule(
+  rule: string | null,
+  stateFips: string,
+  countyFips: string,
+  apn: string,
+): string {
   return parcelId({
     stateFips,
     countyFips,
     apn,
-    ...(rule && String(rule.value) === PARCEL_RULE
-      ? {}
-      : { normalize: normalizeApnV1 }),
+    ...(rule === PARCEL_RULE ? {} : { normalize: normalizeApnV1 }),
   }).urn;
 }
 
@@ -616,7 +631,12 @@ function nameSearchKey(d: Database, name: string): string {
   const row = d
     .prepare("SELECT value FROM meta WHERE key = 'name_key_version'")
     .get();
-  return row && String(row.value) === NAME_KEY_VERSION
+  return nameSearchKeyFor(row ? String(row.value) : null, name);
+}
+
+/** The entity search key for a name in a file whose meta `name_key_version` is `version` (null: none). */
+export function nameSearchKeyFor(version: string | null, name: string): string {
+  return version === NAME_KEY_VERSION
     ? normalizeName(name)
     : legacyNormalizeName(name);
 }
@@ -641,18 +661,26 @@ function addressSearchKeys(d: Database, address: string): string[] {
   const row = d
     .prepare("SELECT value FROM meta WHERE key = 'address_key_version'")
     .get();
+  return addressSearchKeysFor(row ? String(row.value) : null, address);
+}
+
+/**
+ * The address keys a street line is searched by in a file whose meta `address_key_version` is `version`
+ * (null: none): the current key, and for a file not yet re-keyed the version 1 key too.
+ */
+export function addressSearchKeysFor(
+  version: string | null,
+  address: string,
+): string[] {
   const keys = [normalizeAddress(address)];
   const legacy = legacyNormalizeAddress(address);
-  if (
-    !(row && String(row.value) === ADDRESS_KEY_VERSION) &&
-    !keys.includes(legacy)
-  )
+  if (version !== ADDRESS_KEY_VERSION && !keys.includes(legacy))
     keys.push(legacy);
   return keys;
 }
 
 /** Street types: a query without a house number must name one ("Main St", not "Main"). */
-const STREET_TYPES = new Set([
+const STREET_TYPES: ReadonlySet<string> = new Set([
   "ALY",
   "AVE",
   "BLVD",
@@ -683,6 +711,9 @@ const STREET_TYPES = new Set([
   "WAY",
   "XING",
 ]);
+
+/** The street types an address query without a house number must name (`STREET_TYPES` in Python). */
+export const ADDRESS_STREET_TYPES: ReadonlySet<string> = STREET_TYPES;
 
 export interface AddressQuery {
   /** "house_number": the first word is a number; "street": a street name with its type; null: neither. */
@@ -825,11 +856,11 @@ const LIST_CAP = 10;
 export const REGISTRY_SCOPE =
   "Commercial, industrial and multifamily parcels only (no single-family homes), each fact cited to its source file; owners of record are kept only for organisations, never natural persons.";
 
-interface CoverageSource {
+export interface CoverageSource {
   source_id: string;
   as_of: string;
 }
-interface CountyCoverage {
+export interface CountyCoverage {
   region: string;
   state_fips: string;
   county_fips: string;
@@ -838,7 +869,7 @@ interface CountyCoverage {
   buildings: number;
   sources: CoverageSource[];
 }
-interface RegistryCoverage {
+export interface RegistryCoverage {
   counties: CountyCoverage[];
   entity_registries: {
     jurisdiction: string;
@@ -912,6 +943,11 @@ function coverageSources(
     out.set(k, list);
   }
   return out;
+}
+
+/** What the configured file holds, computed from its tables (never the stored meta summary). */
+export function computeRegistryCoverage(): RegistryCoverage {
+  return computeCoverage(open());
 }
 
 function computeCoverage(d: Database): RegistryCoverage {
@@ -1029,16 +1065,117 @@ export function registryCoverage(): Row {
       .all()
       .map((r) => [String(r.key), String(r.value)]),
   );
-  const cov = coverage(d);
+  return coverageReport(coverage(d), {
+    name_key_version: versions.get("name_key_version") ?? null,
+    address_key_version: versions.get("address_key_version") ?? null,
+  });
+}
+
+/** The `registry_coverage` answer for a coverage summary and the file's key versions (null: not set). */
+export function coverageReport(
+  cov: RegistryCoverage,
+  versions: {
+    name_key_version: string | null;
+    address_key_version: string | null;
+  },
+): Row {
   return {
     ...cov,
     counties: cov.counties.map((c) => ({
       ...c,
       name: countyName(`${c.state_fips}${c.county_fips}`) ?? null,
     })),
-    name_key_version: versions.get("name_key_version") ?? "1",
-    address_key_version: versions.get("address_key_version") ?? "1",
+    name_key_version: versions.name_key_version ?? "1",
+    address_key_version: versions.address_key_version ?? "1",
     scope: REGISTRY_SCOPE,
+  };
+}
+
+// SQLite's default (BINARY) text order: UTF-8 bytes, which is code point order.
+function binaryCompare(a: string, b: string): number {
+  const n = Math.min(a.length, b.length);
+  for (let i = 0; i < n; i++) {
+    const x = a.charCodeAt(i);
+    const y = b.charCodeAt(i);
+    if (x === y) continue;
+    const fx =
+      x >= 0xd800 && x <= 0xdfff ? x + 0x2000 : x >= 0xe000 ? x - 0x800 : x;
+    const fy =
+      y >= 0xd800 && y <= 0xdfff ? y + 0x2000 : y >= 0xe000 ? y - 0x800 : y;
+    return fx - fy;
+  }
+  return a.length - b.length;
+}
+
+function mergeSources(lists: CoverageSource[][]): CoverageSource[] {
+  const latest = new Map<string, string>();
+  for (const list of lists)
+    for (const s of list) {
+      const was = latest.get(s.source_id);
+      if (was === undefined || binaryCompare(s.as_of, was) > 0)
+        latest.set(s.source_id, s.as_of);
+    }
+  return [...latest.keys()]
+    .sort(binaryCompare)
+    .map((source_id) => ({ source_id, as_of: latest.get(source_id)! }));
+}
+
+/**
+ * The coverage of one file holding everything the given files hold, as `registry_coverage` would compute it on
+ * read. The files must hold disjoint subjects and crosswalk IDs, and no region split across files.
+ */
+export function mergeCoverage(parts: RegistryCoverage[]): RegistryCoverage {
+  const counties = new Map<string, CountyCoverage[]>();
+  const registries = new Map<string, RegistryCoverage["entity_registries"]>();
+  const systems = new Map<string, number>();
+  for (const p of parts) {
+    for (const c of p.counties)
+      counties.set(c.region, [...(counties.get(c.region) ?? []), c]);
+    for (const r of p.entity_registries)
+      registries.set(r.jurisdiction, [
+        ...(registries.get(r.jurisdiction) ?? []),
+        r,
+      ]);
+    for (const s of p.crosswalk_systems)
+      systems.set(s.system, (systems.get(s.system) ?? 0) + s.ids);
+  }
+  const mergedCounties: CountyCoverage[] = [...counties.keys()]
+    .sort(binaryCompare)
+    .map((region) => {
+      const list = counties.get(region)!;
+      return {
+        ...list[0]!,
+        parcels: list.reduce((a, c) => a + c.parcels, 0),
+        buildings: list.reduce((a, c) => a + c.buildings, 0),
+        sources: mergeSources(list.map((c) => c.sources)),
+      };
+    });
+  const mergedRegistries = [...registries.keys()]
+    .sort(binaryCompare)
+    .map((jurisdiction) => {
+      const list = registries.get(jurisdiction)!;
+      return {
+        jurisdiction,
+        entities: list.reduce((a, r) => a + r.entities, 0),
+        sources: mergeSources(list.map((r) => r.sources)),
+      };
+    });
+  const states = [
+    ...new Set(mergedCounties.map((c) => c.state ?? `state ${c.state_fips}`)),
+  ].sort();
+  return {
+    counties: mergedCounties,
+    entity_registries: mergedRegistries,
+    crosswalk_systems: [...systems.keys()]
+      .sort(binaryCompare)
+      .map((system) => ({ system, ids: systems.get(system)! })),
+    totals: {
+      parcels: mergedCounties.reduce((a, c) => a + c.parcels, 0),
+      entities: mergedRegistries.reduce((a, r) => a + r.entities, 0),
+      buildings: parts.reduce((a, p) => a + p.totals.buildings, 0),
+      counties: mergedCounties.length,
+      states,
+    },
   };
 }
 
@@ -1074,7 +1211,8 @@ function latestAsOf(sources: CoverageSource[]): string {
   );
 }
 
-function parcelMiss(
+/** Pure: the `coverage` object of a miss, from a coverage summary. */
+export function parcelMiss(
   cov: RegistryCoverage,
   stateFips: string,
   countyFips: string,
@@ -1095,7 +1233,8 @@ function parcelMiss(
   };
 }
 
-function entityMiss(
+/** Pure: the `coverage` object of a miss, from a coverage summary. */
+export function entityMiss(
   cov: RegistryCoverage,
   jurisdiction: string,
   known: boolean,
@@ -1127,7 +1266,8 @@ export function queryState(query: string): string | null {
   return st && STATES.has(st) ? st : null;
 }
 
-function addressMiss(cov: RegistryCoverage, query: string): Row {
+/** Pure: the `coverage` object of a miss, from a coverage summary. */
+export function addressMiss(cov: RegistryCoverage, query: string): Row {
   const st = queryState(query);
   const states = cov.totals.states;
   const loaded = st ? states.includes(st) : null;
@@ -1140,14 +1280,16 @@ function addressMiss(cov: RegistryCoverage, query: string): Row {
   return { state: st, state_loaded: loaded, loaded_states: states, message };
 }
 
-function entitiesMiss(cov: RegistryCoverage): Row {
+/** Pure: the `coverage` object of a miss, from a coverage summary. */
+export function entitiesMiss(cov: RegistryCoverage): Row {
   return {
     loaded_jurisdictions: cov.entity_registries.map((r) => r.jurisdiction),
     message: `no registered entity matched; entity registries loaded: ${registriesSummary(cov)}. Natural persons are never searchable`,
   };
 }
 
-function externalMiss(
+/** Pure: the `coverage` object of a miss, from a coverage summary. */
+export function externalMiss(
   cov: RegistryCoverage,
   system: string,
   externalId: string,
@@ -1167,8 +1309,13 @@ function externalMiss(
  * so a typo is reported as a format error rather than as a missing record.
  */
 export function registryRecordMiss(urn: string): Row {
+  parse(urn);
+  return recordMiss(coverage(open()), urn);
+}
+
+/** Pure `registryRecordMiss` over a coverage summary; throws FactLotIdError for a malformed URN. */
+export function recordMiss(cov: RegistryCoverage, urn: string): Row {
   const { kind, parts } = parse(urn);
-  const cov = coverage(open());
   const region = parts[0] ?? "";
   if (kind === "parcel")
     return parcelMiss(cov, region.slice(3, 5), region.slice(5, 8));

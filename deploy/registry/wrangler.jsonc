@@ -1,0 +1,20 @@
+// factlot-registry: answers the registry_* tools for factlot-api from a precomputed pack, served to this Worker
+// only (static assets with run_worker_first; the Worker never returns pack files). No routes and no workers.dev or
+// preview URL: factlot-api reaches it through a service binding,
+//   "services": [{ "binding": "REGISTRY", "service": "factlot-registry" }]
+// The pack holds registry data and is never committed. Build it with `npm run pack:registry`, then deploy with
+// `npm run deploy:registry -- <pack dir>`, which passes the directory to wrangler as --assets.
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "factlot-registry",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "preview_urls": false,
+  "assets": {
+    "binding": "ASSETS",
+    "run_worker_first": true,
+  },
+  "observability": { "enabled": false },
+}
