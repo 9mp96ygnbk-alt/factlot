@@ -60,12 +60,11 @@
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["RateLimiterObject"] }],
   // Email (welcome email after purchase, lost-key recovery links), through Cloudflare Email
-  // Service. The owner enables it: onboard factlot.com under Compute > Email Service > Email
-  // Sending in the dashboard (it adds the cf-bounce MX, SPF, DKIM and the _dmarc records), set
-  // RECOVERY_SIGNING_SECRET, then uncomment this binding and deploy. Sending to customers needs
-  // the Workers Paid plan. Until then the Worker skips the welcome email and /account says
-  // recovery is being set up, so deploying without it is safe.
-  // "send_email": [{ "name": "EMAIL" }],
+  // Service: factlot.com is onboarded for Email Sending (Compute > Email Service > Email Sending;
+  // the cf-bounce MX, SPF, DKIM and _dmarc records are managed there) and RECOVERY_SIGNING_SECRET
+  // is set. Sending from accounts@factlot.com needs the Workers Paid plan. Without this binding
+  // the Worker skips the welcome email and /account says recovery is being set up.
+  "send_email": [{ "name": "EMAIL" }],
   "analytics_engine_datasets": [
     { "binding": "USAGE", "dataset": "factlot_usage" },
   ],
