@@ -29,12 +29,16 @@ import {
   WindowCounter,
   addressSubject,
   ipBucket,
+  objectLimiter,
   objectMeter,
   quotaWindow,
   sqlStore,
   type CounterStore,
   type DurableObjectNamespaceLike,
 } from "./limiter.ts";
+import { resetCoverageCache } from "./account-tools.ts";
+import { CLAIM_POLL_MS } from "./claim.ts";
+import { WHATS_NEW } from "./news.ts";
 import { escapeHtml } from "./pages.ts";
 import { PLANS } from "./plans.ts";
 import { REGISTRY_RUN_URL, registryRunner } from "./registry.ts";
@@ -98,8 +102,38 @@ class MemoryStore implements CounterStore {
   setClaim(n: string, v: string) {
     if (!this.claims.has(n)) this.claims.set(n, v);
   }
+  readonly usage = new Map<string, number>();
+  readonly meta = new Map<string, string>();
+  addUsage(day: string, tool: string, region: string, n: number) {
+    const k = `${day}|${tool}|${region}`;
+    this.usage.set(k, (this.usage.get(k) ?? 0) + n);
+  }
+  readUsage(fromDay: string) {
+    return [...this.usage.entries()]
+      .map(([k, n]) => {
+        const [day, tool, region] = k.split("|") as [string, string, string];
+        return { day, tool, region, n };
+      })
+      .filter((r) => r.day >= fromDay)
+      .sort((a, b) => a.day.localeCompare(b.day));
+  }
+  pruneUsageBefore(day: string) {
+    for (const k of [...this.usage.keys()])
+      if (k.split("|")[0]! < day) this.usage.delete(k);
+  }
+  getMeta(n: string) {
+    return this.meta.get(n);
+  }
+  setMeta(n: string, v: string) {
+    this.meta.set(n, v);
+  }
+  deleteMeta(n: string) {
+    this.meta.delete(n);
+  }
   size() {
-    return this.counts.size + this.claims.size;
+    return (
+      this.counts.size + this.claims.size + this.usage.size + this.meta.size
+    );
   }
   clearClaims() {
     this.claims.clear();
@@ -143,6 +177,8 @@ function fakeLimiter(clock: Clock) {
             deleteAll: async () => {
               store.counts.clear();
               store.claims.clear();
+              store.usage.clear();
+              store.meta.clear();
               entry.alarm = null;
             },
           },
@@ -210,6 +246,7 @@ function env(
   return {
     KEYS: new MemoryKV(),
     RL_ANON: new CountingLimit(2),
+    RL_CLAIM: objectLimiter(limiter.ns, "claim", 1, CLAIM_POLL_MS),
     METER: objectMeter(limiter.ns),
     ...overrides,
     limiter,
@@ -1182,6 +1219,25 @@ describe("meter", () => {
       "October's counts and the claim are gone",
     );
     assert.equal(store.size(), 0);
+    // Usage and last-use rows on the same SQLite: kept 90 days, then pruned by the alarm.
+    m.record([
+      { tool: "registry_get", region: "us-24" },
+      { tool: "registry_get", region: "us-24" },
+      { tool: "registry_search_address", region: "search" },
+    ]);
+    assert.ok(m.touch());
+    assert.equal(m.touch(), false, "at most one write a minute");
+    const u = m.usage(30);
+    assert.equal(u.total, 3);
+    assert.deepEqual(u.by_region, { "us-24": 2, search: 1 });
+    assert.equal(u.daily.at(-1)!.date, "2026-11-01");
+    assert.equal(u.daily.at(-1)!.lookups, 3);
+    assert.equal(m.lastUsed(), "2026-11-01T00:00:00.000Z");
+    clock.t += 89 * 24 * 3600_000;
+    assert.notEqual(m.cleanup(), undefined, "still kept on day 90");
+    clock.t += 2 * 24 * 3600_000;
+    assert.equal(m.cleanup(), undefined, "gone after 90 days");
+    assert.equal(store.size(), 0);
   });
 });
 
@@ -1270,7 +1326,7 @@ describe("router", () => {
     };
     assert.equal(
       body.plans.free!.note,
-      "Every calculator, ID, fact, rules and document tool at 60 requests a minute per IP address, and 100 registry lookups a day per IP address.",
+      "Every calculator, ID, fact, rules and document tool at 60 requests a minute per IP address, and 25 registry lookups a day per IP address.",
     );
     assert.equal(
       body.plans.pro!.note,
@@ -1395,6 +1451,15 @@ describe("router", () => {
       quota: async () => {
         throw new Error("DO down");
       },
+      record: async () => {
+        throw new Error("DO down");
+      },
+      usage: async () => {
+        throw new Error("DO down");
+      },
+      lastUsed: async () => {
+        throw new Error("DO down");
+      },
       claim: async () => {
         throw new Error("DO down");
       },
@@ -1445,14 +1510,14 @@ describe("registry quota", () => {
     }
   }
 
-  it("free: 100 lookups per address per UTC day, then 429 RegistryQuotaExceeded; other tools keep working", async () => {
+  it("free: 25 lookups per address per UTC day, then 429 RegistryQuotaExceeded; other tools keep working", async () => {
     const { api } = innerApi();
     const e = env();
     const first = await call(e, api, "/v1/registry/get", {
       body: { urn: "x" },
     });
-    assert.equal(first.headers.get("x-factlot-registry-quota-limit"), "100");
-    assert.equal(first.headers.get("x-factlot-registry-quota-remaining"), "99");
+    assert.equal(first.headers.get("x-factlot-registry-quota-limit"), "25");
+    assert.equal(first.headers.get("x-factlot-registry-quota-remaining"), "24");
     assert.match(
       first.headers.get("access-control-expose-headers") ?? "",
       /x-factlot-registry-quota-remaining/,
@@ -1462,7 +1527,7 @@ describe("registry quota", () => {
       first.headers.get("x-factlot-registry-quota-reset"),
       "2026-11-08T00:00:00.000Z",
     );
-    await spend(e, api, 99);
+    await spend(e, api, 24);
     e.clock.t += 60_000;
     const over = await call(e, api, "/v1/registry/search_address", {
       body: {},
@@ -1473,10 +1538,10 @@ describe("registry quota", () => {
     assert.equal(retry, (Date.UTC(2026, 10, 8) - e.clock.t) / 1000);
     const body = (await over.json()) as Record<string, unknown>;
     assert.equal(body.error, "RegistryQuotaExceeded");
-    assert.equal(body.limit, 100);
+    assert.equal(body.limit, 25);
     assert.equal(body.resets_at, "2026-11-08T00:00:00.000Z");
     assert.equal(body.upgrade, "https://factlot.com/#pricing");
-    assert.match(String(body.message), /100 a day per IP address/);
+    assert.match(String(body.message), /25 a day per IP address/);
     assert.match(String(body.message), /2026-11-08T00:00:00\.000Z/);
     assert.match(String(body.message), /Pro .*5,000.*Team .*100,000/);
     // Not counted, still answered: the discovery call and every other tool.
@@ -1507,7 +1572,7 @@ describe("registry quota", () => {
     const e = env();
     for (let i = 0; i < 3; i++) await call(e, api, "/v1/registry/coverage");
     const r = await call(e, api, "/v1/registry/get", { body: {} });
-    assert.equal(r.headers.get("x-factlot-registry-quota-remaining"), "99");
+    assert.equal(r.headers.get("x-factlot-registry-quota-remaining"), "24");
   });
 
   it("free: an IPv6 /64 shares one daily allowance", async () => {
@@ -1517,13 +1582,13 @@ describe("registry quota", () => {
     const other = await call(e, api, "/v1/registry/get", {
       ip: "2001:db8:1:2:aaaa:bbbb:cccc:dddd",
     });
-    assert.equal(other.headers.get("x-factlot-registry-quota-remaining"), "98");
+    assert.equal(other.headers.get("x-factlot-registry-quota-remaining"), "23");
     const elsewhere = await call(e, api, "/v1/registry/get", {
       ip: "2001:db8:1:3::1",
     });
     assert.equal(
       elsewhere.headers.get("x-factlot-registry-quota-remaining"),
-      "99",
+      "24",
     );
   });
 
@@ -1690,7 +1755,9 @@ describe("checkout gate", () => {
       assert.equal(res.status, 503);
       assert.deepEqual(await res.json(), {
         error: "CheckoutClosed",
+        code: "CheckoutClosed",
         message: closedText,
+        next: "mailto:contact@factlot.com",
       });
       const page = await handle(
         new Request("https://factlot.com/billing/checkout?plan=pro"),
@@ -1797,7 +1864,13 @@ describe("accounts and keys", () => {
       count: 1,
       limit: 1,
       items: [
-        { id: keyId(hash), created: "2026-11-03T00:00:00Z", current: true },
+        {
+          id: keyId(hash),
+          created: "2026-11-03T00:00:00Z",
+          current: true,
+          // This very request used the key (stored to the minute).
+          last_used_at: "2026-11-07T12:00:00.000Z",
+        },
       ],
     });
     assert.match(String(acct.data_retention), /365 days/);
@@ -2061,7 +2134,7 @@ describe("pages", () => {
     const mint = await handle(form({ key, action: "mint" }), e, api, opts);
     const html = await mint.text();
     const shown = html.match(
-      /<pre class="key">(fl_live_[A-Za-z0-9_-]{43})<\/pre>/,
+      /<pre class="key" id="new-key">(fl_live_[A-Za-z0-9_-]{43})<\/pre>/,
     )?.[1];
     assert.ok(shown, "the new key is on the page");
     assert.equal(
@@ -2272,7 +2345,7 @@ describe("review fixes", () => {
     const e = env();
     const rest = await call(e, api, "/v1/registry/get", { body: {} });
     assert.equal(rest.status, 503);
-    assert.equal(rest.headers.get("x-factlot-registry-quota-remaining"), "100");
+    assert.equal(rest.headers.get("x-factlot-registry-quota-remaining"), "25");
     const anon = [...e.limiter.objects.entries()].find(([n]) =>
       n.startsWith("meter:ip:"),
     )![1];
@@ -2391,5 +2464,1254 @@ describe("registry runner", () => {
       fetch: async () => new Response(JSON.stringify({ hello: 1 })),
     });
     await assert.rejects(malformed("registry_coverage", {}));
+  });
+});
+
+// --- Onboarding: agent claims, the onboarding page, recovery by email ---------------------------
+
+/** A fake Email Service binding that records what it sends. */
+function fakeEmail(fail?: string) {
+  const sent: { to: string; subject: string; text: string; html?: string }[] =
+    [];
+  return {
+    sent,
+    binding: {
+      send: async (m: {
+        to: unknown;
+        subject: string;
+        text: string;
+        html?: string;
+      }) => {
+        if (fail) throw Object.assign(new Error("send failed"), { code: fail });
+        sent.push({
+          to: String(m.to),
+          subject: m.subject,
+          text: m.text,
+          html: m.html,
+        });
+        return { messageId: `m${sent.length}` };
+      },
+    },
+  };
+}
+
+/** Run `handle` collecting the work it defers (emails), and wait for it. */
+async function run(
+  e: ReturnType<typeof env>,
+  request: Request,
+  fetchImpl?: typeof fetch,
+): Promise<Response> {
+  const deferred: Promise<unknown>[] = [];
+  const { api } = innerApi();
+  const res = await handle(request, e, api, {
+    fetchImpl,
+    now: () => e.clock.t,
+    waitUntil: (p) => deferred.push(p),
+  });
+  await Promise.all(deferred);
+  return res;
+}
+
+/** Everything the Worker writes to the console while `fn` runs. */
+async function captureLogs(fn: () => Promise<void>): Promise<string> {
+  const lines: string[] = [];
+  const orig = {
+    log: console.log,
+    warn: console.warn,
+    error: console.error,
+    info: console.info,
+  };
+  const grab = (...a: unknown[]) => void lines.push(a.map(String).join(" "));
+  console.log = console.warn = console.error = console.info = grab;
+  try {
+    await fn();
+  } finally {
+    Object.assign(console, orig);
+  }
+  return lines.join("\n");
+}
+
+describe("agent claim flow", () => {
+  const paid = {
+    id: SESSION,
+    status: "complete",
+    payment_status: "paid",
+    mode: "subscription",
+    subscription: "sub_1",
+    customer: "cus_1",
+    customer_details: { email: "buyer@example.com" },
+    metadata: { factlot_plan: "pro" },
+  };
+  function stripe(state: { session: Record<string, unknown> }) {
+    let checkoutBody: URLSearchParams | undefined;
+    const s = fakeStripe({
+      "GET /prices": () => [200, { data: [{ id: "price_pro" }] }],
+      "POST /checkout/sessions": (b) => {
+        checkoutBody = b;
+        return [
+          200,
+          { id: SESSION, url: `https://checkout.stripe.com/c/pay/${SESSION}` },
+        ];
+      },
+      [`GET /checkout/sessions/${SESSION}`]: () => [200, state.session],
+    });
+    return { ...s, body: () => checkoutBody };
+  }
+  const open = { ...paid, status: "open", payment_status: "unpaid" };
+
+  async function start(e: ReturnType<typeof env>, fetchImpl: typeof fetch) {
+    const res = await run(
+      e,
+      new Request("https://api.factlot.com/v1/billing/checkout", {
+        method: "POST",
+        body: '{"plan":"pro"}',
+        headers: { "cf-connecting-ip": IP },
+      }),
+      fetchImpl,
+    );
+    assert.equal(res.status, 200);
+    return (await res.json()) as {
+      url: string;
+      claim_url: string;
+      expires_at: string;
+    };
+  }
+  const poll = (e: ReturnType<typeof env>, url: string, f: typeof fetch) =>
+    run(e, new Request(url, { headers: { "cf-connecting-ip": IP } }), f);
+
+  it("checkout returns url, claim_url and expires_at; only the token's hash is stored", async () => {
+    const state = { session: open as Record<string, unknown> };
+    const s = stripe(state);
+    const e = env({ STRIPE_SECRET_KEY: "sk_live_x" });
+    e.RL_ANON = new CountingLimit(100);
+    const out = await start(e, s.fetchImpl);
+    assert.equal(out.url, `https://checkout.stripe.com/c/pay/${SESSION}`);
+    const m = out.claim_url.match(
+      /^https:\/\/api\.factlot\.com\/v1\/billing\/claim\/([A-Za-z0-9_-]{43})$/,
+    );
+    assert.ok(m, out.claim_url);
+    const token = m[1]!;
+    assert.equal(Date.parse(out.expires_at), T0 + 3600_000);
+    const hash = await hashKey(token);
+    assert.equal(s.body()?.get("metadata[factlot_claim]"), hash.slice(0, 16));
+    assert.equal(s.body()?.get("expires_at"), String(T0 / 1000 + 3600));
+    const stored = JSON.parse(e.KEYS.data.get(`claim:${hash}`)!);
+    assert.equal(stored.session, SESSION);
+    assert.equal(e.KEYS.ttl.get(`claim:${hash}`), 3600 + 900);
+    for (const [k, v] of e.KEYS.data)
+      assert.ok(!k.includes(token) && !v.includes(token), "no plaintext token");
+  });
+
+  it("pending until paid, the key once, then 410 by agent; the success page then has no key", async () => {
+    const state = { session: open as Record<string, unknown> };
+    const s = stripe(state);
+    const mail = fakeEmail();
+    const e = env({ STRIPE_SECRET_KEY: "sk_live_x", EMAIL: mail.binding });
+    e.RL_ANON = new CountingLimit(100);
+    const { claim_url } = await start(e, s.fetchImpl);
+    const pending = await poll(e, claim_url, s.fetchImpl);
+    assert.equal(pending.status, 202);
+    assert.equal(
+      ((await pending.json()) as { status: string }).status,
+      "pending",
+    );
+    assert.equal(pending.headers.get("retry-after"), "2");
+    state.session = paid;
+    e.clock.t += CLAIM_POLL_MS;
+    const got = await poll(e, claim_url, s.fetchImpl);
+    assert.equal(got.status, 200);
+    const body = (await got.json()) as Record<string, unknown>;
+    assert.ok(looksLikeKey(String(body.key)));
+    assert.equal(body.plan, "pro");
+    assert.equal(body.plan_name, "FactLot Pro");
+    assert.equal(body.requests_per_minute, 600);
+    assert.equal(body.registry_lookups_per_month, 5000);
+    assert.equal(body.account, "https://factlot.com/account");
+    assert.equal(body.mcp, "https://api.factlot.com/mcp");
+    assert.equal(
+      (await call(e, innerApi().api, "/v1/calc/irr", { key: String(body.key) }))
+        .status,
+      200,
+    );
+    e.clock.t += CLAIM_POLL_MS;
+    const again = await poll(e, claim_url, s.fetchImpl);
+    assert.equal(again.status, 410);
+    assert.deepEqual(
+      ((await again.json()) as { status: string; by: string }).by,
+      "agent",
+    );
+    const page = await run(
+      e,
+      new Request(`https://factlot.com/billing/success?session_id=${SESSION}`, {
+        headers: { "cf-connecting-ip": IP },
+      }),
+      s.fetchImpl,
+    );
+    assert.equal(page.status, 200);
+    const html = await page.text();
+    assert.match(html, /Your agent already collected this key/);
+    assert.doesNotMatch(html, /fl_live_[A-Za-z0-9_-]{43}/);
+    assert.match(html, /&lt;your key&gt;/);
+    assert.equal(mail.sent.length, 1, "one welcome email, on the redemption");
+    assert.ok(!mail.sent[0]!.text.includes(String(body.key)));
+  });
+
+  it("the page first: a later agent claim gets 410 by page", async () => {
+    const s = stripe({ session: paid });
+    const e = env({ STRIPE_SECRET_KEY: "sk_live_x" });
+    e.RL_ANON = new CountingLimit(100);
+    const { claim_url } = await start(e, s.fetchImpl);
+    const page = await run(
+      e,
+      new Request(`https://factlot.com/billing/success?session_id=${SESSION}`, {
+        headers: { "cf-connecting-ip": IP },
+      }),
+      s.fetchImpl,
+    );
+    assert.match(await page.text(), /<pre id="key"><code>fl_live_/);
+    const res = await poll(e, claim_url, s.fetchImpl);
+    assert.equal(res.status, 410);
+    const b = (await res.json()) as Record<string, unknown>;
+    assert.equal(b.status, "claimed");
+    assert.equal(b.by, "page");
+    assert.ok(b.next, "tells the agent what to do next");
+  });
+
+  it("the page and the agent at the same moment: exactly one key", async () => {
+    const s = stripe({ session: paid });
+    const e = env({ STRIPE_SECRET_KEY: "sk_live_x" });
+    e.RL_ANON = new CountingLimit(100);
+    const { claim_url } = await start(e, s.fetchImpl);
+    const [a, p] = await Promise.all([
+      poll(e, claim_url, s.fetchImpl),
+      run(
+        e,
+        new Request(
+          `https://factlot.com/billing/success?session_id=${SESSION}`,
+        ),
+        s.fetchImpl,
+      ),
+    ]);
+    const shown = [
+      a.status === 200,
+      /<pre id="key">/.test(await p.text()),
+    ].filter(Boolean);
+    assert.equal(shown.length, 1);
+    assert.equal(
+      [...e.KEYS.data.keys()].filter((k) => k.startsWith("key:")).length,
+      1,
+    );
+  });
+
+  it("404 for an unknown or malformed token and for an expired, unpaid claim", async () => {
+    const state = { session: open as Record<string, unknown> };
+    const s = stripe(state);
+    const e = env({ STRIPE_SECRET_KEY: "sk_live_x" });
+    e.RL_ANON = new CountingLimit(100);
+    const { claim_url } = await start(e, s.fetchImpl);
+    const unknown = await poll(
+      e,
+      `https://api.factlot.com/v1/billing/claim/${"A".repeat(43)}`,
+      s.fetchImpl,
+    );
+    assert.equal(unknown.status, 404);
+    const bad = await poll(
+      e,
+      "https://api.factlot.com/v1/billing/claim/short",
+      s.fetchImpl,
+    );
+    assert.equal(bad.status, 404);
+    e.clock.t += 3600_000 + 1000;
+    state.session = { ...open, status: "expired" };
+    const expired = await poll(e, claim_url, s.fetchImpl);
+    assert.equal(expired.status, 404);
+    // Once KV drops the record (after the grace), it is unknown too.
+    e.KEYS.data.clear();
+    e.clock.t += CLAIM_POLL_MS;
+    assert.equal((await poll(e, claim_url, s.fetchImpl)).status, 404);
+  });
+
+  it("a payment finished just before expiry is still collected during the grace", async () => {
+    const s = stripe({ session: paid });
+    const e = env({ STRIPE_SECRET_KEY: "sk_live_x" });
+    e.RL_ANON = new CountingLimit(100);
+    const { claim_url } = await start(e, s.fetchImpl);
+    e.clock.t += 3600_000 + 60_000;
+    assert.equal((await poll(e, claim_url, s.fetchImpl)).status, 200);
+  });
+
+  it("rate-limits polling to one request per 2 seconds per token, and per address", async () => {
+    const s = stripe({ session: open });
+    const e = env({ STRIPE_SECRET_KEY: "sk_live_x" });
+    e.RL_ANON = new CountingLimit(100);
+    const { claim_url } = await start(e, s.fetchImpl);
+    assert.equal((await poll(e, claim_url, s.fetchImpl)).status, 202);
+    const fast = await poll(e, claim_url, s.fetchImpl);
+    assert.equal(fast.status, 429);
+    assert.equal(fast.headers.get("retry-after"), "2");
+    e.clock.t += CLAIM_POLL_MS;
+    assert.equal((await poll(e, claim_url, s.fetchImpl)).status, 202);
+    e.RL_ANON = new CountingLimit(0);
+    e.clock.t += CLAIM_POLL_MS;
+    assert.equal((await poll(e, claim_url, s.fetchImpl)).status, 429);
+  });
+
+  it("never logs the claim token or the key, even when Stripe fails", async () => {
+    const state = { session: paid as Record<string, unknown> };
+    let fail = true;
+    const s = fakeStripe({
+      "GET /prices": () => [200, { data: [{ id: "price_pro" }] }],
+      "POST /checkout/sessions": () => [
+        200,
+        { id: SESSION, url: "https://checkout.stripe.com/c/pay/x" },
+      ],
+      [`GET /checkout/sessions/${SESSION}`]: () =>
+        fail ? [500, { error: { message: "boom" } }] : [200, state.session],
+    });
+    const e = env({ STRIPE_SECRET_KEY: "sk_live_x" });
+    e.RL_ANON = new CountingLimit(100);
+    let token = "";
+    let key = "";
+    const logs = await captureLogs(async () => {
+      const { claim_url } = await start(e, s.fetchImpl);
+      token = claim_url.split("/").pop()!;
+      assert.equal((await poll(e, claim_url, s.fetchImpl)).status, 502);
+      fail = false;
+      e.clock.t += CLAIM_POLL_MS;
+      key = String(
+        (
+          (await (await poll(e, claim_url, s.fetchImpl)).json()) as {
+            key: string;
+          }
+        ).key,
+      );
+    });
+    assert.ok(logs.includes("stripe call failed"), "the failure is logged");
+    assert.ok(!logs.includes(token), "no token in logs");
+    assert.ok(!logs.includes(key), "no key in logs");
+  });
+
+  it("documents the checkout object in the API root and /v1/plans", async () => {
+    const e = env();
+    const { api } = innerApi();
+    for (const path of ["/", "/v1/plans"]) {
+      const body = (await (
+        await call(e, api, path, { method: "GET" })
+      ).json()) as {
+        checkout: {
+          method: string;
+          url: string;
+          claim: Record<string, string>;
+        };
+      };
+      assert.equal(body.checkout.method, "POST");
+      assert.equal(
+        body.checkout.url,
+        "https://api.factlot.com/v1/billing/checkout",
+      );
+      assert.match(body.checkout.claim.claimed!, /410/);
+    }
+  });
+});
+
+describe("onboarding page", () => {
+  const paidSession = {
+    status: "complete",
+    payment_status: "paid",
+    mode: "subscription",
+    subscription: "sub_1",
+    customer: "cus_1",
+    metadata: { factlot_plan: "team" },
+  };
+
+  it("shows the key once with copy buttons, per-client setup with the real key, and a key test", async () => {
+    const s = fakeStripe({
+      [`GET /checkout/sessions/${SESSION}`]: () => [200, paidSession],
+    });
+    const e = env({ STRIPE_SECRET_KEY: "sk_test_x" });
+    const res = await successRoute(
+      e,
+      new URL(`https://factlot.com/billing/success?session_id=${SESSION}`),
+      s.fetchImpl,
+    );
+    const html = await res.text();
+    const key = html.match(
+      /<pre id="key"><code>(fl_live_[A-Za-z0-9_-]{43})</,
+    )?.[1];
+    assert.ok(key);
+    for (const client of [
+      "Claude Code",
+      "Claude Desktop and claude.ai",
+      "ChatGPT",
+      "Cursor and VS Code",
+      "Python",
+      "curl",
+    ])
+      assert.ok(html.includes(`<summary>${client}</summary>`), client);
+    assert.ok(
+      html.includes(
+        `claude mcp add --scope user --transport http factlot https://api.factlot.com/mcp --header &quot;Authorization: Bearer ${key}&quot;`,
+      ),
+    );
+    assert.match(
+      html,
+      /Then open Claude Code and type \/mcp; factlot should show as connected\./,
+    );
+    assert.match(html, /never paste its output into email/);
+    assert.match(
+      html,
+      /Claude Code, Cursor, VS Code, Windsurf, agent SDKs and any REST client/,
+    );
+    assert.match(
+      html,
+      /ChatGPT developer-mode apps have no header field today/,
+    );
+    assert.ok(
+      html.includes(
+        "&quot;-y&quot;,\n        &quot;mcp-remote&quot;,\n        &quot;https://api.factlot.com/mcp&quot;,\n        &quot;--header&quot;,\n        &quot;Authorization:${AUTH_HEADER}&quot;",
+      ),
+    );
+    assert.ok(
+      html.includes(`&quot;AUTH_HEADER&quot;: &quot;Bearer ${key}&quot;`),
+    );
+    assert.match(html, /its server is keyless; after adding your key, disable/);
+    assert.match(
+      html,
+      /When is my 2027 Texas protest deadline if the notice arrived April 28\?/,
+    );
+    assert.match(html, /1300 Pennsylvania Ave NW in Washington, DC/);
+    assert.match(
+      html,
+      /A lookup is one answered call to a registry tool; coverage checks, misses and input errors are free\./,
+    );
+    assert.ok(html.includes(`export FACTLOT_API_KEY=&quot;${key}&quot;`));
+    assert.ok(
+      !html.includes("&lt;your key&gt;"),
+      "no placeholder when the key is known",
+    );
+    assert.match(
+      html,
+      /<button type="button" class="copy" data-copy="key">Copy<\/button>/,
+    );
+    assert.match(html, /id="test-key" type="password"[^>]* value="fl_live_/);
+    assert.match(html, /Give this URL to your agent/);
+    assert.ok(html.includes("https://api.factlot.com/v1/onboarding?plan=team"));
+    assert.match(html, /<link rel="stylesheet" href="\/styles.css">/);
+    const csp = res.headers.get("content-security-policy")!;
+    const nonce = csp.match(/script-src 'nonce-([A-Za-z0-9_-]+)'/)?.[1];
+    assert.ok(nonce);
+    assert.ok(html.includes(`<script nonce="${nonce}">`));
+    assert.ok(html.includes(`<style nonce="${nonce}">`));
+    assert.match(csp, /connect-src https:\/\/api\.factlot\.com;/);
+    assert.match(csp, /default-src 'none'/);
+    assert.doesNotMatch(csp, /unsafe-inline/);
+    assert.doesNotMatch(html, / style="/, "no inline style attributes (CSP)");
+    assert.equal(res.headers.get("cache-control"), "no-store");
+  });
+
+  it("a revisit after the page showed the key renders the guide with a recovery link, not a bare 409", async () => {
+    const s = fakeStripe({
+      [`GET /checkout/sessions/${SESSION}`]: () => [200, paidSession],
+    });
+    const e = env({ STRIPE_SECRET_KEY: "sk_test_x" });
+    const url = new URL(
+      `https://factlot.com/billing/success?session_id=${SESSION}`,
+    );
+    await (await successRoute(e, url, s.fetchImpl)).text();
+    const again = await successRoute(e, url, s.fetchImpl);
+    assert.equal(again.status, 200);
+    const html = await again.text();
+    assert.match(html, /Your key was already shown/);
+    assert.match(
+      html,
+      /href="https:\/\/factlot\.com\/account#recover">Recover access</,
+    );
+    assert.match(html, /Set up FactLot Team/);
+    assert.doesNotMatch(html, /fl_live_[A-Za-z0-9_-]{43}/);
+    assert.match(html, /Bearer &lt;your key&gt;/);
+  });
+
+  it("GET /v1/onboarding: the guide as JSON with <key> placeholders, or Markdown", async () => {
+    const e = env();
+    const { api } = innerApi();
+    const res = await call(e, api, "/v1/onboarding?plan=pro", {
+      method: "GET",
+    });
+    assert.equal(res.status, 200);
+    const g = (await res.json()) as {
+      plan: { id: string; registry_lookups_per_month: number };
+      clients: { id: string; snippets: { code: string }[] }[];
+      test: { url: string };
+      lookups: Record<string, string>;
+      links: Record<string, string>;
+    };
+    assert.equal(g.plan.id, "pro");
+    assert.equal(g.plan.registry_lookups_per_month, 5000);
+    assert.deepEqual(
+      g.clients.map((c) => c.id),
+      ["claude-code", "claude", "chatgpt", "cursor-vscode", "python", "curl"],
+    );
+    assert.ok(
+      g.clients.every((c) =>
+        c.snippets.every((sn) => !/fl_live_/.test(sn.code)),
+      ),
+    );
+    assert.match(g.clients[0]!.snippets[0]!.code, /Bearer <key>/);
+    assert.equal(g.test.url, "https://api.factlot.com/v1/account");
+    assert.match(g.lookups.counted!, /registry_coverage/);
+    assert.equal(g.links.account, "https://factlot.com/account");
+    const md = await handle(
+      new Request("https://api.factlot.com/v1/onboarding", {
+        headers: { accept: "text/markdown" },
+      }),
+      e,
+      api,
+    );
+    assert.match(md.headers.get("content-type")!, /text\/markdown/);
+    const text = await md.text();
+    assert.match(text, /^# Set up FactLot/);
+    assert.match(text, /## 2\. Connect your client/);
+    assert.match(text, /```bash\nclaude mcp add/);
+  });
+});
+
+describe("recovery by email", () => {
+  const SECRET = "test-recovery-secret";
+  function setup(
+    over: Partial<Env> = {},
+    customers: Record<string, string[]> = { "buyer@example.com": ["cus_1"] },
+  ) {
+    const s = fakeStripe({
+      "GET /customers": (q) => [
+        200,
+        { data: (customers[q.get("email") ?? ""] ?? []).map((id) => ({ id })) },
+      ],
+      "GET /subscriptions": (q) => [
+        200,
+        {
+          data:
+            q.get("customer") === "cus_1"
+              ? [{ id: "sub_1" }, { id: "sub_gone" }]
+              : [],
+        },
+      ],
+      "POST /billing_portal/sessions": () => [
+        200,
+        { url: "https://billing.stripe.com/p/session/r" },
+      ],
+    });
+    const mail = fakeEmail();
+    const e = env({
+      STRIPE_SECRET_KEY: "sk_live_x",
+      EMAIL: mail.binding,
+      RECOVERY_SIGNING_SECRET: SECRET,
+      ...over,
+    });
+    e.RL_ANON = new CountingLimit(100);
+    return { s, mail, e };
+  }
+  const ask = (e: ReturnType<typeof env>, email: string, f: typeof fetch) =>
+    run(
+      e,
+      new Request("https://factlot.com/account/recover", {
+        method: "POST",
+        body: new URLSearchParams({ email }).toString(),
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+          origin: "https://factlot.com",
+          "cf-connecting-ip": IP,
+        },
+      }),
+      f,
+    );
+  const link = (text: string) =>
+    text.match(
+      /https:\/\/factlot\.com\/account\/recover\/([A-Za-z0-9_.-]+)/,
+    )?.[0];
+  const issueVia = (e: ReturnType<typeof env>, url: string, f: typeof fetch) =>
+    run(
+      e,
+      new Request(url, {
+        method: "POST",
+        body: "action=issue",
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+          origin: "https://factlot.com",
+          "cf-connecting-ip": IP,
+        },
+      }),
+      f,
+    );
+
+  it("the form is off with a clear notice until the binding and the secret are set", async () => {
+    for (const over of [
+      { EMAIL: undefined },
+      { RECOVERY_SIGNING_SECRET: undefined },
+    ]) {
+      const { e, s } = setup(over);
+      const form = await run(e, new Request("https://factlot.com/account"));
+      const html = await form.text();
+      assert.match(
+        html,
+        /Email recovery is being set up; email contact@factlot\.com/,
+      );
+      assert.doesNotMatch(html, /action="\/account\/recover"/);
+      const post = await ask(e, "buyer@example.com", s.fetchImpl);
+      assert.equal(post.status, 503);
+      assert.equal(s.calls.length, 0, "Stripe is never asked");
+    }
+    const { e } = setup();
+    const on = await (
+      await run(e, new Request("https://factlot.com/account"))
+    ).text();
+    assert.match(on, /<form method="post" action="\/account\/recover">/);
+  });
+
+  it("answers the same for an unknown email and sends nothing", async () => {
+    const { e, s, mail } = setup();
+    await issue(e);
+    const known = await ask(e, "buyer@example.com", s.fetchImpl);
+    const unknown = await ask(e, "nobody@example.com", s.fetchImpl);
+    assert.equal(known.status, unknown.status);
+    const a = (await known.text()).replace(/nonce="[^"]*"/g, "");
+    const b = (await unknown.text()).replace(/nonce="[^"]*"/g, "");
+    assert.equal(a, b, "identical pages");
+    assert.match(
+      a,
+      /If that email has a FactLot subscription, a link is on its way/,
+    );
+    assert.equal(mail.sent.length, 1);
+    assert.equal(mail.sent[0]!.to, "buyer@example.com");
+  });
+
+  it("a link shows the account; issuing consumes it; Pro's one key is replaced and says so", async () => {
+    const { e, s, mail } = setup();
+    const { key: old } = await issue(e);
+    const logs = await captureLogs(async () => {
+      await ask(e, "buyer@example.com", s.fetchImpl);
+    });
+    const url = link(mail.sent[0]!.text)!;
+    assert.ok(url);
+    assert.ok(!mail.sent[0]!.text.includes("fl_live_"), "no key in the email");
+    assert.ok(!logs.includes(url.split("/").pop()!), "no token in logs");
+    assert.ok(!logs.includes("buyer@example.com"), "no address in logs");
+    const view = await run(e, new Request(url), s.fetchImpl);
+    assert.equal(view.status, 200);
+    const page = await view.text();
+    assert.match(page, /FactLot Pro/);
+    assert.match(
+      page,
+      /replaces key <code>[0-9a-f]{16}<\/code>, which stops working/,
+    );
+    assert.match(page, /value="issue"/);
+    const done = await issueVia(e, url, s.fetchImpl);
+    const html = await done.text();
+    const fresh = html.match(
+      /<pre id="key"><code>(fl_live_[A-Za-z0-9_-]{43})</,
+    )?.[1];
+    assert.ok(fresh, "the new key is shown");
+    assert.match(html, /no longer works/);
+    const { api } = innerApi();
+    assert.equal(
+      (await call(e, api, "/v1/calc/irr", { key: fresh })).status,
+      200,
+    );
+    assert.equal(
+      (await call(e, api, "/v1/calc/irr", { key: old })).status,
+      401,
+    );
+    const reuse = await issueVia(e, url, s.fetchImpl);
+    assert.equal(reuse.status, 410);
+    assert.match(await reuse.text(), /already used/);
+    assert.equal((await run(e, new Request(url), s.fetchImpl)).status, 410);
+  });
+
+  it("Team with room adds a key and keeps the others working", async () => {
+    const { e, s, mail } = setup();
+    const { key: old } = await issue(e, { plan: "team" });
+    await ask(e, "buyer@example.com", s.fetchImpl);
+    const url = link(mail.sent[0]!.text)!;
+    const html = await (await issueVia(e, url, s.fetchImpl)).text();
+    assert.match(html, /Your other keys keep working/);
+    const { api } = innerApi();
+    assert.equal(
+      (await call(e, api, "/v1/calc/irr", { key: old })).status,
+      200,
+    );
+  });
+
+  it("links expire after 15 minutes; forged links are refused before KV is read", async () => {
+    const { e, s, mail } = setup();
+    await issue(e);
+    await ask(e, "buyer@example.com", s.fetchImpl);
+    const url = link(mail.sent[0]!.text)!;
+    const [id, sig] = url.split("/").pop()!.split(".");
+    const forged = `https://factlot.com/account/recover/${id}.${sig!.slice(1)}A`;
+    const reads = e.KEYS.reads;
+    assert.equal((await run(e, new Request(forged), s.fetchImpl)).status, 404);
+    assert.equal(e.KEYS.reads, reads, "no KV read for a bad signature");
+    e.clock.t += 15 * 60_000 + 1000;
+    const late = await run(e, new Request(url), s.fetchImpl);
+    assert.equal(late.status, 410);
+    assert.match(await late.text(), /expired/);
+  });
+
+  it("one email per address every 5 minutes", async () => {
+    const { e, s, mail } = setup();
+    await issue(e);
+    await ask(e, "buyer@example.com", s.fetchImpl);
+    await ask(e, "Buyer@Example.com", s.fetchImpl);
+    assert.equal(mail.sent.length, 1);
+  });
+
+  it("refuses a recovery POST from another site", async () => {
+    const { e, s } = setup();
+    const res = await run(
+      e,
+      new Request("https://factlot.com/account/recover", {
+        method: "POST",
+        body: "email=buyer%40example.com",
+        headers: { origin: "https://evil.example", "cf-connecting-ip": IP },
+      }),
+      s.fetchImpl,
+    );
+    assert.equal(res.status, 403);
+  });
+});
+
+describe("welcome email", () => {
+  const paid = {
+    status: "complete",
+    payment_status: "paid",
+    mode: "subscription",
+    subscription: "sub_1",
+    customer: "cus_1",
+    customer_details: { email: "buyer@example.com" },
+    metadata: { factlot_plan: "pro" },
+  };
+
+  it("is sent on redemption with the setup steps and the account link, never the key", async () => {
+    const s = fakeStripe({
+      [`GET /checkout/sessions/${SESSION}`]: () => [200, paid],
+    });
+    const mail = fakeEmail();
+    const e = env({ STRIPE_SECRET_KEY: "sk_test_x", EMAIL: mail.binding });
+    const res = await run(
+      e,
+      new Request(`https://factlot.com/billing/success?session_id=${SESSION}`),
+      s.fetchImpl,
+    );
+    const key = (await res.text()).match(/fl_live_[A-Za-z0-9_-]{43}/)?.[0];
+    assert.ok(key);
+    assert.equal(mail.sent.length, 1);
+    const m = mail.sent[0]!;
+    assert.equal(m.to, "buyer@example.com");
+    assert.equal(m.subject, "Welcome to FactLot Pro");
+    assert.match(m.text, /https:\/\/factlot\.com\/account/);
+    assert.match(m.text, /https:\/\/api\.factlot\.com\/mcp/);
+    assert.doesNotMatch(
+      m.text,
+      /recover\//,
+      "no recovery token in the welcome email",
+    );
+    assert.ok(!m.text.includes(key) && !(m.html ?? "").includes(key));
+  });
+
+  it("is skipped without the binding, and a failed send never fails the page", async () => {
+    const s = fakeStripe({
+      [`GET /checkout/sessions/${SESSION}`]: () => [200, paid],
+    });
+    const e = env({ STRIPE_SECRET_KEY: "sk_test_x" });
+    const ok = await run(
+      e,
+      new Request(`https://factlot.com/billing/success?session_id=${SESSION}`),
+      s.fetchImpl,
+    );
+    assert.equal(ok.status, 200);
+    const broken = fakeEmail("E_SENDER_NOT_VERIFIED");
+    const e2 = env({ STRIPE_SECRET_KEY: "sk_test_x", EMAIL: broken.binding });
+    let res: Response | undefined;
+    const logs = await captureLogs(async () => {
+      res = await run(
+        e2,
+        new Request(
+          `https://factlot.com/billing/success?session_id=${SESSION}`,
+        ),
+        s.fetchImpl,
+      );
+    });
+    assert.equal(res!.status, 200);
+    assert.match(logs, /"code":"E_SENDER_NOT_VERIFIED"/);
+    assert.ok(!logs.includes("buyer@example.com"));
+  });
+});
+
+describe("quota fairness: only answered lookups are charged", () => {
+  const miss = (coverage: Record<string, unknown>, extra = {}) => ({
+    ...extra,
+    coverage,
+  });
+  // What the inner handler answers, by REST path (MCP uses the same table by tool name).
+  const answers: Record<string, [number, unknown]> = {
+    "/v1/registry/get": [200, { record: { urn: "fl:parcel:us-11001:x" } }],
+    "/v1/registry/resolve_parcel": [
+      200,
+      miss({ county_loaded: false, state_loaded: false }, { urn: null }),
+    ],
+    "/v1/registry/resolve_external": [
+      200,
+      miss({ system: "x", system_loaded: false }, { urn: null }),
+    ],
+    "/v1/registry/search_address": [
+      200,
+      miss({ state: "TX", state_loaded: false }, { results: [] }),
+    ],
+    "/v1/registry/search_entities": [
+      200,
+      miss({ loaded_jurisdictions: ["us-md"] }, { results: [] }),
+    ],
+    "/v1/registry/owned_by": [
+      400,
+      { error: "BadRequest", message: '"x" is not a FactLot URN' },
+    ],
+  };
+  const toolOf = (p: string) => `registry_${p.split("/").pop()}`;
+  function fairApi() {
+    return {
+      fetch: async (r: Request) => {
+        const path = new URL(r.url).pathname;
+        const text = await r.text();
+        if (path === "/mcp") {
+          const parsed = JSON.parse(text) as unknown;
+          const items = (Array.isArray(parsed) ? parsed : [parsed]) as {
+            id: number;
+            params: { name: string };
+          }[];
+          const out = items.map((m) => {
+            const entry = Object.entries(answers).find(
+              ([p]) => toolOf(p) === m.params.name,
+            );
+            const [status, body] = entry?.[1] ?? [200, {}];
+            if (m.id === 7)
+              return {
+                jsonrpc: "2.0",
+                id: m.id,
+                error: { code: -32602, message: "invalid params" },
+              };
+            return {
+              jsonrpc: "2.0",
+              id: m.id,
+              result: {
+                ...(status !== 200 ? { isError: true } : {}),
+                content: [{ type: "text", text: JSON.stringify(body) }],
+              },
+            };
+          });
+          return new Response(
+            JSON.stringify(Array.isArray(parsed) ? out : out[0]),
+            {
+              headers: { "content-type": "application/json" },
+            },
+          );
+        }
+        const [status, body] = answers[path] ?? [200, {}];
+        return new Response(JSON.stringify(body), {
+          status,
+          headers: { "content-type": "application/json" },
+        });
+      },
+    };
+  }
+  const remaining = (r: Response) =>
+    Number(r.headers.get("x-factlot-registry-quota-remaining"));
+
+  it("REST: a real answer and a search inside coverage are charged; misses and errors are free", async () => {
+    const e = env();
+    e.RL_ANON = new CountingLimit(100);
+    const api = fairApi();
+    const got = await call(e, api, "/v1/registry/get", { body: { urn: "x" } });
+    assert.equal(remaining(got), 24, "a record is charged");
+    for (const p of [
+      "/v1/registry/resolve_parcel",
+      "/v1/registry/resolve_external",
+      "/v1/registry/search_address",
+      "/v1/registry/owned_by",
+    ]) {
+      const r = await call(e, api, p, { body: {} });
+      assert.equal(remaining(r), 24, `${p} is free`);
+    }
+    const ran = await call(e, api, "/v1/registry/search_entities", {
+      body: {},
+    });
+    assert.equal(
+      remaining(ran),
+      23,
+      "a search inside coverage is charged with no results",
+    );
+    const q = await e.METER.quota(await addressSubject(IP, T0), "day", 25);
+    assert.equal(q.used, 2, "the meter agrees with the headers");
+  });
+
+  it("MCP batch: charges the answers, gives back misses, tool errors and invalid params", async () => {
+    const e = env();
+    e.RL_ANON = new CountingLimit(100);
+    const api = fairApi();
+    const res = await call(e, api, "/mcp", {
+      body: [
+        toolCall("registry_get", 1),
+        toolCall("registry_resolve_parcel", 2),
+        toolCall("registry_search_address", 3),
+        toolCall("registry_owned_by", 4),
+        toolCall("registry_search_entities", 5),
+        toolCall("registry_coverage", 6),
+        toolCall("registry_get", 7), // answered with a JSON-RPC invalid-params error
+      ],
+    });
+    assert.equal(res.status, 200);
+    assert.equal(remaining(res), 23, "get and the entity search are charged");
+    const q = await e.METER.quota(await addressSubject(IP, T0), "day", 25);
+    assert.equal(q.used, 2);
+  });
+
+  it("paid: the monthly quota and the 429 text state the rule", async () => {
+    const e = env();
+    const { key } = await issue(e);
+    const api = fairApi();
+    const r = await call(e, api, "/v1/registry/resolve_parcel", {
+      key,
+      body: {},
+    });
+    assert.equal(remaining(r), 5000);
+    const plans = (await (
+      await call(e, innerApi().api, "/v1/plans", { method: "GET" })
+    ).json()) as { quotas: { counted: string } };
+    assert.match(plans.quotas.counted, /answered call/);
+    assert.match(
+      plans.quotas.counted,
+      /input errors, misses outside loaded coverage/,
+    );
+    await e.METER.consume(`sub:sub_1`, { kind: "month", limit: 5000, n: 5000 });
+    const over = await call(e, api, "/v1/registry/get", { key, body: {} });
+    assert.equal(over.status, 429);
+    assert.match(
+      String(((await over.json()) as { message: string }).message),
+      /coverage checks, misses and input errors are free/,
+    );
+  });
+});
+
+describe("renewal date and receipts", () => {
+  const END = Date.UTC(2026, 11, 3) / 1000;
+  it("a subscription webhook stores the period end; /v1/account reports renewal_at, support and changelog", async () => {
+    const e = env({ STRIPE_WEBHOOK_SECRET: "whsec_x" });
+    const { key, hash } = await issue(e);
+    const res = await handleWebhook(
+      e,
+      await signed({
+        type: "customer.subscription.updated",
+        created: Math.floor(T0 / 1000),
+        data: {
+          object: {
+            id: "sub_1",
+            status: "active",
+            items: {
+              data: [
+                {
+                  current_period_end: END,
+                  price: { lookup_key: "factlot_pro_monthly_v1" },
+                },
+              ],
+            },
+          },
+        },
+      }),
+      () => T0,
+    );
+    assert.equal(res.status, 200);
+    assert.equal(
+      (await readKey(e.KEYS, hash))?.period_end,
+      "2026-12-03T00:00:00.000Z",
+    );
+    const body = (await (
+      await call(e, innerApi().api, "/v1/account", { key, method: "GET" })
+    ).json()) as Record<string, unknown>;
+    assert.equal(body.renewal_at, "2026-12-03T00:00:00.000Z");
+    assert.equal(body.support, "mailto:contact@factlot.com");
+    assert.match(String(body.changelog), /CHANGELOG\.md$/);
+  });
+
+  it("a subscription set to cancel has no renewal date, only an end date", async () => {
+    const e = env();
+    const { key } = await issue(e, {
+      period_end: "2026-12-03T00:00:00.000Z",
+      cancel_at_period_end: true,
+    });
+    const body = (await (
+      await call(e, innerApi().api, "/v1/account", { key, method: "GET" })
+    ).json()) as Record<string, unknown>;
+    assert.equal(body.renewal_at, null);
+    assert.equal(body.ends_at, "2026-12-03T00:00:00.000Z");
+  });
+
+  it("/account shows the renewal date and the masked receipt address", async () => {
+    const s = fakeStripe({
+      "GET /customers/cus_1": () => [
+        200,
+        { id: "cus_1", email: "buyer@example.com" },
+      ],
+    });
+    const e = env({ STRIPE_SECRET_KEY: "sk_live_x" });
+    e.RL_ANON = new CountingLimit(100);
+    const { key } = await issue(e, { period_end: "2026-12-03T00:00:00.000Z" });
+    const res = await handle(
+      new Request("https://factlot.com/account", {
+        method: "POST",
+        body: new URLSearchParams({ key }).toString(),
+        headers: { origin: "https://factlot.com", "cf-connecting-ip": IP },
+      }),
+      e,
+      innerApi().api,
+      { fetchImpl: s.fetchImpl, now: () => T0 },
+    );
+    const html = await res.text();
+    assert.match(html, /Renews on December 3, 2026/);
+    assert.match(html, /Stripe emails receipts to b•••r@example\.com/);
+    assert.ok(!html.includes("buyer@example.com"));
+  });
+});
+
+describe("account usage, tools and page", () => {
+  const regionsApi = (counties: unknown[]) => {
+    const base = innerApi().api;
+    return {
+      fetch: async (r: Request) =>
+        new URL(r.url).pathname === "/v1/registry/coverage"
+          ? new Response(JSON.stringify({ counties }), {
+              headers: { "content-type": "application/json" },
+            })
+          : base.fetch(r),
+    };
+  };
+  const flush = () => new Promise((r) => setTimeout(r, 0));
+
+  it("records charged lookups by tool and region; /v1/account/usage reports 30 days", async () => {
+    const e = env();
+    const { key } = await issue(e);
+    const { api } = innerApi();
+    await call(e, api, "/v1/registry/get", {
+      key,
+      body: { urn: "fl:parcel:us-24510:0001" },
+    });
+    await call(e, api, "/v1/registry/resolve_parcel", {
+      key,
+      body: { state_fips: "11", county_fips: "001", apn: "x" },
+    });
+    await call(e, api, "/mcp", {
+      key,
+      body: [
+        toolCall("registry_search_address", 1),
+        toolCall("registry_coverage", 2),
+      ],
+    });
+    await flush();
+    const res = await call(e, api, "/v1/account/usage", {
+      key,
+      method: "GET",
+    });
+    assert.equal(res.status, 200);
+    const u = (await res.json()) as {
+      daily: { date: string; lookups: number }[];
+      by_tool: Record<string, number>;
+      by_region: Record<string, number>;
+      total: number;
+      month: { used: number; limit: number };
+    };
+    assert.equal(u.daily.length, 30);
+    assert.equal(u.daily.at(-1)!.date, "2026-11-07");
+    assert.equal(u.total, 3);
+    assert.deepEqual(u.by_tool, {
+      registry_get: 1,
+      registry_resolve_parcel: 1,
+      registry_search_address: 1,
+    });
+    assert.deepEqual(u.by_region, { "us-24": 1, "us-11": 1, search: 1 });
+    assert.deepEqual(
+      [u.month.used, u.month.limit],
+      [3, 5000],
+      "agrees with the quota",
+    );
+    const anon = await call(e, api, "/v1/account/usage", { method: "GET" });
+    assert.equal(anon.status, 401);
+    const err = (await anon.json()) as Record<string, string>;
+    assert.equal(err.code, "Unauthorized");
+    assert.match(err.next!, /Bearer/);
+  });
+
+  it("MCP: account tools are listed only with a key, answered here, and never metered", async () => {
+    const e = env();
+    const { key } = await issue(e, { plan: "team" });
+    const { api, seen } = innerApi();
+    const listApi = {
+      fetch: async (r: Request) => {
+        const body = JSON.parse(await r.clone().text()) as { method?: string };
+        if (body.method === "tools/list")
+          return new Response(
+            JSON.stringify({
+              jsonrpc: "2.0",
+              id: 1,
+              result: { tools: [{ name: "calc_irr" }] },
+            }),
+            { headers: { "content-type": "application/json" } },
+          );
+        return api.fetch(r);
+      },
+    };
+    const list = { jsonrpc: "2.0", id: 1, method: "tools/list" };
+    const keyed = (await (
+      await call(e, listApi, "/mcp", { key, body: list })
+    ).json()) as { result: { tools: { name: string }[] } };
+    assert.deepEqual(
+      keyed.result.tools.map((t) => t.name),
+      ["calc_irr", "account_status", "account_usage"],
+    );
+    const anon = (await (
+      await call(e, listApi, "/mcp", { body: list })
+    ).json()) as { result: { tools: { name: string }[] } };
+    assert.deepEqual(
+      anon.result.tools.map((t) => t.name),
+      ["calc_irr"],
+    );
+    const before = seen.length;
+    const status = (await (
+      await call(e, api, "/mcp", { key, body: toolCall("account_status", 7) })
+    ).json()) as {
+      id: number;
+      result: { structuredContent: Record<string, unknown> };
+    };
+    assert.equal(seen.length, before, "the inner handler never sees it");
+    assert.equal(status.id, 7);
+    assert.equal(status.result.structuredContent.plan, "team");
+    assert.ok(status.result.structuredContent.registry_lookups);
+    const mixed = (await (
+      await call(e, api, "/mcp", {
+        key,
+        body: [toolCall("calc_irr", 1), toolCall("account_usage", 2)],
+      })
+    ).json()) as {
+      id: number;
+      result: { structuredContent?: { daily: unknown[] } };
+    }[];
+    assert.deepEqual(mixed.map((m) => m.id).sort(), [1, 2]);
+    assert.equal(
+      mixed.find((m) => m.id === 2)!.result.structuredContent!.daily.length,
+      30,
+    );
+    const q = await e.METER.quota("sub:sub_1", "month", 100_000);
+    assert.equal(q.used, 0, "account tools are free");
+  });
+
+  it("/account shows the month's bar, 30 days, keys with last use, hosted regions and what's new", async () => {
+    resetCoverageCache();
+    const e = env();
+    e.RL_ANON = new CountingLimit(100);
+    const { key } = await issue(e, { plan: "team" });
+    const api = regionsApi([
+      { state: "DC", parcels: 18077, sources: [{ as_of: "2026-11-04" }] },
+      { state: "MD", parcels: 3434, sources: [{ as_of: "2026-11-05" }] },
+      { state: "MD", parcels: 100, sources: [{ as_of: "2026-11-02" }] },
+    ]);
+    await call(e, api, "/v1/registry/get", {
+      key,
+      body: { urn: "fl:parcel:us-11001:02570824" },
+    });
+    await flush();
+    const res = await handle(
+      new Request("https://factlot.com/account", {
+        method: "POST",
+        body: new URLSearchParams({ key }).toString(),
+        headers: { origin: "https://factlot.com", "cf-connecting-ip": IP },
+      }),
+      e,
+      api,
+      { now: () => T0 },
+    );
+    const html = await res.text();
+    resetCoverageCache();
+    assert.match(html, /<progress max="100000" value="1"/);
+    assert.match(
+      html,
+      /<svg class="spark"[^>]*aria-label="1 registry lookup from 2026-10-09 to 2026-11-07; most on 2026-11-07 \(1\)"/,
+    );
+    assert.match(html, /<code>us-11<\/code> 1/);
+    assert.match(html, /2026-11-07 12:00 UTC/, "the key's last use");
+    assert.match(
+      html,
+      /<strong>DC<\/strong>: 1 county, 18,077 parcels, as of 2026-11-04/,
+    );
+    assert.match(
+      html,
+      /<strong>MD<\/strong>: 2 counties, 3,534 parcels, as of 2026-11-05/,
+    );
+    assert.match(html, /Texas hosting opens with this release\./);
+    assert.match(html, /What's new/);
+    assert.match(html, /Get help/);
+    assert.doesNotMatch(html, / style="/);
+  });
+
+  it("every What's new line is recorded in CHANGELOG.md", async () => {
+    const { readFileSync } = await import("node:fs");
+    const changelog = readFileSync(
+      new URL("../../../CHANGELOG.md", import.meta.url),
+      "utf8",
+    );
+    const unreleased = changelog.slice(
+      changelog.indexOf("## [Unreleased]"),
+      changelog.indexOf("\n## [", changelog.indexOf("## [Unreleased]") + 5),
+    );
+    for (const w of WHATS_NEW)
+      assert.ok(unreleased.includes(w.changelog), w.changelog);
+  });
+
+  it("billing and account errors carry code, message and next", async () => {
+    const e = env({ STRIPE_SECRET_KEY: "sk_live_x" });
+    const { key } = await issue(e);
+    const { api } = innerApi();
+    const checks: [Response, string][] = [
+      [
+        await call(e, api, "/v1/billing/checkout", { body: { plan: "gold" } }),
+        "BadRequest",
+      ],
+      [await call(e, api, "/v1/billing/keys", { key }), "KeyLimitReached"],
+      [
+        await call(e, api, "/v1/billing/keys/0000000000000000", {
+          key,
+          method: "DELETE",
+        }),
+        "NotFound",
+      ],
+      [
+        await call(e, api, "/v1/billing/rotate", { key, method: "GET" }),
+        "MethodNotAllowed",
+      ],
+      [
+        await call(e, api, `/v1/billing/claim/${"A".repeat(43)}`, {
+          method: "GET",
+        }),
+        "NotFound",
+      ],
+      [
+        await call(e, api, "/v1/account", {
+          key: `fl_live_${"Z".repeat(43)}`,
+          method: "GET",
+        }),
+        "Unauthorized",
+      ],
+    ];
+    for (const [res, code] of checks) {
+      const body = (await res.json()) as Record<string, unknown>;
+      assert.equal(body.code, code, JSON.stringify(body));
+      assert.equal(typeof body.message, "string");
+      assert.ok(typeof body.next === "string" && body.next.length > 0, code);
+    }
   });
 });

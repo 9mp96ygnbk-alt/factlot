@@ -12,7 +12,8 @@
  * the key store is read. A known key whose subscription lapsed gets 403 for tools but can still
  * read /v1/account and open the billing portal to fix its card.
  *
- * Registry lookups (every registry_* tool except registry_coverage) are metered on top: per
+ * Registry lookups (answered calls of registry_* tools; registry_coverage, input errors, misses
+ * outside loaded coverage and unanswered calls are given back) are metered on top: per
  * address per UTC day without a key, per subscription per calendar month with one. A request
  * over the cap gets 429 RegistryQuotaExceeded (REST) or the same error as an MCP tool result
  * with isError; other tools keep working.
@@ -23,6 +24,7 @@ import {
   CONTACT,
   DISCUSSIONS,
   accountSummary,
+  apiError,
   billingDeps,
   checkoutOpen,
   checkoutRoute,
@@ -31,6 +33,7 @@ import {
   logStripeError,
   mintKey,
   portalUrl,
+  receiptEmail,
   refreshIfStale,
   revokeKey,
   rotateKey,
@@ -48,12 +51,28 @@ import {
   readKey,
   type KeyRecord,
 } from "./keys.ts";
+import {
+  ACCOUNT_TOOLS,
+  ACCOUNT_TOOL_NAMES,
+  accountUsage,
+  answerAccountCall,
+  hostedRegions,
+  regionOf,
+} from "./account-tools.ts";
+import { claimRoute, CLAIM_POLL_MS, CLAIM_TTL_SECONDS } from "./claim.ts";
 import { addressSubject } from "./limiter.ts";
+import { KEY_PLACEHOLDER, guideMarkdown, setupGuide } from "./onboarding.ts";
 import { accountFormPage, accountPage } from "./pages.ts";
+import {
+  recoverLinkRoute,
+  recoverRequestRoute,
+  recoveryState,
+} from "./recovery.ts";
 import {
   ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY,
   ANONYMOUS_REQUESTS_PER_MINUTE,
   PLANS,
+  isPlanId,
   PRICING_URL,
   QUOTA_RULES,
   isMeteredRegistryTool,
@@ -144,9 +163,10 @@ function errorResponse(
   path: string,
   status: number,
   rpcCode: number,
-  body: { error: string; message: string } & Record<string, unknown>,
+  raw: { error: string; message: string } & Record<string, unknown>,
   headers: Record<string, string> = {},
 ): Response {
+  const body = { ...raw, code: raw.code ?? raw.error };
   const { message, ...data } = body;
   return withHeaders(
     json(
@@ -168,7 +188,15 @@ function rateLimited(path: string, limit: number, tier: Tier): Response {
     path,
     429,
     -32000,
-    { error: "RateLimited", message, retry_after_seconds: 60 },
+    {
+      error: "RateLimited",
+      message,
+      retry_after_seconds: 60,
+      next:
+        tier === "anonymous"
+          ? `retry after 60 seconds, or get a key: ${PRICING_URL}`
+          : "retry after 60 seconds",
+    },
     { "retry-after": "60", "x-ratelimit-limit": String(limit) },
   );
 }
@@ -179,7 +207,11 @@ function unauthorized(path: string): Response {
     path,
     401,
     -32001,
-    { error: "Unauthorized", message },
+    {
+      error: "Unauthorized",
+      message,
+      next: "send no Authorization header for the free tier, or a live key; lost it? https://factlot.com/account#recover",
+    },
     { "www-authenticate": 'Bearer realm="factlot"' },
   );
 }
@@ -190,6 +222,7 @@ function inactive(path: string, record: KeyRecord, site: string): Response {
     error: "SubscriptionInactive",
     message: `this FactLot key's subscription is not active (${why}). Paste the key at ${site}/account to fix billing, or email ${CONTACT}.`,
     stripe_status: record.stripe_status,
+    next: `${site}/account`,
   });
 }
 
@@ -214,6 +247,7 @@ function serviceUnavailable(path: string): Response {
       message:
         "the rate limiter is briefly unavailable, so the request was not run; retry in a few seconds.",
       retry_after_seconds: 5,
+      next: "retry after 5 seconds",
     },
     { "retry-after": "5" },
   );
@@ -227,6 +261,38 @@ export interface HandleOptions {
   /** Stripe's fetch (tests). */
   fetchImpl?: typeof fetch;
   now?: () => number;
+  /** ctx.waitUntil: work that runs after the response (emails). */
+  waitUntil?: (work: Promise<unknown>) => void;
+}
+
+/** Run `work` after the response when the runtime allows, never failing the request. */
+function deferWith(opts: HandleOptions): (work: Promise<unknown>) => void {
+  return (work) => {
+    const safe = work.catch(() => {});
+    if (opts.waitUntil) opts.waitUntil(safe);
+  };
+}
+
+/** How an agent buys a key: the `checkout` object of the API root and /v1/plans. */
+function checkoutInfo(apiBase: string) {
+  return {
+    method: "POST",
+    url: `${apiBase}/v1/billing/checkout`,
+    body: { plan: "pro | team" },
+    returns: {
+      url: "Stripe Checkout link: give it to your human to pay",
+      claim_url: `${apiBase}/v1/billing/claim/<token>: GET it every ${CLAIM_POLL_MS / 1000} seconds or slower`,
+      expires_at: `ISO time; the checkout and the claim last ${CLAIM_TTL_SECONDS / 60} minutes`,
+    },
+    claim: {
+      pending: '202 {"status":"pending"} until the checkout is paid',
+      paid: "200 {key, plan, plan_name, requests_per_minute, registry_lookups_per_month, account, mcp}, exactly once: store the key at once",
+      claimed:
+        '410 {"status":"claimed","by":"agent"|"page"} afterwards (the success page may have shown it first)',
+      unknown: "404 when the token is unknown or expired",
+    },
+    onboarding: `${apiBase}/v1/onboarding`,
+  };
 }
 
 /** A paid caller: a live key (it may be inactive for billing reasons). */
@@ -297,15 +363,22 @@ function quotaHeaders(q: QuotaState): Record<string, string> {
 export function quotaError(q: QuotaState, tier: Tier, now: number) {
   const resets = q.resets_at;
   const limit = q.limit.toLocaleString("en-US");
+  const free =
+    "Only answered lookups count: coverage checks, misses and input errors are free.";
   const message =
     tier === "anonymous"
-      ? `The free registry lookups for today are used up: ${limit} a day per IP address. They reset at ${resets}. A Pro key (${PLANS.pro.registryLookupsPerMonth.toLocaleString("en-US")} a month) or Team key (${PLANS.team.registryLookupsPerMonth.toLocaleString("en-US")} a month) lifts the cap: ${PRICING_URL}. Other tools keep working.`
+      ? `The free registry lookups for today are used up: ${limit} a day per IP address. They reset at ${resets}. A Pro key (${PLANS.pro.registryLookupsPerMonth.toLocaleString("en-US")} a month) or Team key (${PLANS.team.registryLookupsPerMonth.toLocaleString("en-US")} a month) lifts the cap: ${PRICING_URL}. Other tools keep working. ${free}`
       : tier === "pro"
-        ? `This subscription's ${limit} registry lookups for the month are used up. They reset at ${resets}. Team (${PLANS.team.registryLookupsPerMonth.toLocaleString("en-US")} a month) lifts the cap: ${PRICING_URL}. Other tools keep working.`
-        : `This subscription's ${limit} registry lookups for the month are used up. They reset at ${resets}. Team is the largest plan; for more, email ${CONTACT} (${PRICING_URL}). Other tools keep working.`;
+        ? `This subscription's ${limit} registry lookups for the month are used up. They reset at ${resets}. Team (${PLANS.team.registryLookupsPerMonth.toLocaleString("en-US")} a month) lifts the cap: ${PRICING_URL}. Other tools keep working. ${free}`
+        : `This subscription's ${limit} registry lookups for the month are used up. They reset at ${resets}. Team is the largest plan; for more, email ${CONTACT} (${PRICING_URL}). Other tools keep working. ${free}`;
   return {
     error: "RegistryQuotaExceeded",
+    code: "RegistryQuotaExceeded",
     message,
+    next:
+      tier === "team"
+        ? `wait until ${resets}, or email ${CONTACT}`
+        : `wait until ${resets}, or upgrade: ${PRICING_URL}`,
     limit: q.limit,
     used: q.used,
     resets_at: resets,
@@ -379,6 +452,11 @@ async function route(
       301,
     );
 
+  // The pages' stylesheet and icon, on every host (billing and account pages can be served on
+  // the API host too).
+  if ((path === "/styles.css" || path === "/favicon.svg") && env.ASSETS)
+    return env.ASSETS.fetch(request);
+
   // Billing pages for people (any host). Both reach Stripe, so both count against the
   // per-address free-tier budget: a crawler following "Start Pro" cannot open sessions in bulk.
   if (path === "/billing/checkout" || path === "/billing/success") {
@@ -388,13 +466,22 @@ async function route(
     if (!ok.success)
       return rateLimited(path, ANONYMOUS_REQUESTS_PER_MINUTE, "anonymous");
     return path === "/billing/checkout"
-      ? checkoutRoute(env, request, url, opts.fetchImpl)
-      : successRoute(env, url, opts.fetchImpl);
+      ? checkoutRoute(env, request, url, opts.fetchImpl, now)
+      : successRoute(env, url, opts.fetchImpl, deferWith(opts));
   }
-  if (path === "/account") return accountRoute(request, env, url, opts);
+  if (path === "/account/recover" || path.startsWith("/account/recover/"))
+    return recoverRoute(request, env, url, path, opts);
+  if (path === "/account") return accountRoute(request, env, url, api, opts);
   if (path === "/v1/billing/webhook") {
     if (request.method !== "POST")
-      return json(405, { error: "MethodNotAllowed" }, { allow: "POST" });
+      return apiError(
+        405,
+        "MethodNotAllowed",
+        `use POST for ${path}`,
+        `POST ${path}`,
+        {},
+        { allow: "POST" },
+      );
     return handleWebhook(env, request, now, opts.fetchImpl);
   }
 
@@ -412,9 +499,10 @@ async function route(
   if (path === "/v1/plans" || (path === "/" && request.method === "GET")) {
     const plans = publicPlans(apiBase.replace("://api.", "://"));
     const checkout_open = checkoutOpen(env);
+    const checkout = checkoutInfo(apiBase);
     if (path === "/v1/plans")
       return withHeaders(
-        json(200, { plans, quotas: QUOTA_RULES, checkout_open }),
+        json(200, { plans, quotas: QUOTA_RULES, checkout_open, checkout }),
         corsHeaders(),
       );
     return withHeaders(
@@ -430,6 +518,8 @@ async function route(
         plans,
         quotas: QUOTA_RULES,
         checkout_open,
+        checkout,
+        onboarding: `${apiBase}/v1/onboarding`,
         account: `${site}/account`,
         source: "https://github.com/9mp96ygnbk-alt/factlot",
         docs: "https://factlot.com/llms.txt",
@@ -440,15 +530,95 @@ async function route(
   }
   if (path === "/v1/billing/checkout") {
     if (request.method !== "POST")
-      return json(405, { error: "MethodNotAllowed" }, { allow: "POST" });
+      return apiError(
+        405,
+        "MethodNotAllowed",
+        `use POST for ${path}`,
+        `POST ${path}`,
+        {},
+        { allow: "POST" },
+      );
     const ok = await metered(
       env.RL_ANON.limit({ key: `checkout:${await addressKey()}` }),
     );
     if (!ok.success)
       return rateLimited(path, ANONYMOUS_REQUESTS_PER_MINUTE, "anonymous");
     return withHeaders(
-      await checkoutRoute(env, request, url, opts.fetchImpl),
+      await checkoutRoute(env, request, url, opts.fetchImpl, now),
       corsHeaders(),
+    );
+  }
+  if (path.startsWith("/v1/billing/claim/")) {
+    if (request.method !== "GET" && request.method !== "HEAD")
+      return withHeaders(
+        json(
+          405,
+          {
+            error: "MethodNotAllowed",
+            code: "MethodNotAllowed",
+            message: "GET this URL",
+            next: "GET",
+          },
+          { allow: "GET" },
+        ),
+        corsHeaders(),
+      );
+    const ok = await metered(
+      env.RL_ANON.limit({ key: `claim:${await addressKey()}` }),
+    );
+    if (!ok.success)
+      return rateLimited(path, ANONYMOUS_REQUESTS_PER_MINUTE, "anonymous");
+    const token = path.slice("/v1/billing/claim/".length);
+    // One poll per token every 2 seconds (named by the token's hash, never the token).
+    const perToken = await metered(
+      env.RL_CLAIM.limit({ key: await hashKey(token) }),
+    );
+    if (!perToken.success)
+      return errorResponse(
+        path,
+        429,
+        -32000,
+        {
+          error: "RateLimited",
+          code: "RateLimited",
+          message: `poll a claim URL at most once every ${CLAIM_POLL_MS / 1000} seconds`,
+          retry_after_seconds: CLAIM_POLL_MS / 1000,
+          next: "wait, then GET this URL again",
+        },
+        { "retry-after": String(CLAIM_POLL_MS / 1000) },
+      );
+    return withHeaders(
+      await claimRoute(env, token, {
+        fetchImpl: opts.fetchImpl,
+        now,
+        defer: deferWith(opts),
+      }),
+      corsHeaders(),
+    );
+  }
+  if (path === "/v1/onboarding") {
+    const planParam = url.searchParams.get("plan");
+    const guide = setupGuide({
+      api: apiBase,
+      site,
+      plan: isPlanId(planParam) ? PLANS[planParam] : undefined,
+      placeholder: KEY_PLACEHOLDER,
+    });
+    const markdown =
+      (request.headers.get("accept") ?? "").includes("text/markdown") ||
+      url.searchParams.get("format") === "md";
+    return new Response(
+      markdown ? guideMarkdown(guide) : JSON.stringify(guide, null, 2),
+      {
+        headers: {
+          ...corsHeaders(),
+          "content-type": markdown
+            ? "text/markdown; charset=utf-8"
+            : "application/json; charset=utf-8",
+          "cache-control": "public, max-age=300",
+          vary: "accept",
+        },
+      },
     );
   }
 
@@ -468,6 +638,7 @@ async function route(
           message:
             "too many rejected API keys from this address; retry in 60s.",
           retry_after_seconds: 60,
+          next: "check the key, then retry after 60 seconds",
         },
         { "retry-after": "60" },
       );
@@ -480,6 +651,7 @@ async function route(
 
   const accountPath =
     path === "/v1/account" ||
+    path === "/v1/account/usage" ||
     path === "/v1/billing/portal" ||
     path === "/v1/billing/rotate" ||
     path === "/v1/billing/keys" ||
@@ -487,10 +659,12 @@ async function route(
   if (accountPath) {
     if (!paid)
       return withHeaders(
-        json(401, {
-          error: "Unauthorized",
-          message: "send your FactLot key as a bearer token",
-        }),
+        apiError(
+          401,
+          "Unauthorized",
+          "send your FactLot key as a bearer token",
+          "Authorization: Bearer <key>; lost it? " + `${site}/account#recover`,
+        ),
         corsHeaders(),
       );
     return withHeaders(await accountApi(request, env, path, paid, opts), {
@@ -507,8 +681,14 @@ async function route(
   // What the request asks of the registry.
   let mcpBody: unknown;
   let mcpText: string | undefined;
+  let restText: string | undefined;
   let registryRequest = false;
   let wanted = 0;
+  // Hosted account tools (with a key): answered here, never by the inner handler.
+  let accountCalls: AccountCall[] = [];
+  let listIds: unknown[] = [];
+  let mcpBatch = false;
+  let onlyAccount = false;
   if (path === "/mcp" && request.method === "POST") {
     mcpText = await readBody(request, MAX_BODY_BYTES);
     if (mcpText === undefined)
@@ -527,12 +707,35 @@ async function route(
         error: "BadRequest",
         message: `invalid request: a batch may hold at most ${MAX_MCP_BATCH} messages`,
       });
-    const items = Array.isArray(mcpBody) ? mcpBody : [mcpBody];
+    mcpBatch = Array.isArray(mcpBody);
+    const items: unknown[] = Array.isArray(mcpBody) ? mcpBody : [mcpBody];
     registryRequest = items.some(callsRegistry);
     wanted = items.filter(isMeteredCall).length;
+    if (paid && mcpBody !== undefined) {
+      accountCalls = items.filter(isAccountCall);
+      listIds = items
+        .filter(
+          (m) =>
+            (m as { method?: unknown } | null)?.method === "tools/list" &&
+            (m as { id?: unknown }).id !== undefined,
+        )
+        .map((m) => (m as { id: unknown }).id);
+      if (accountCalls.length > 0) {
+        const kept = items.filter((m) => !isAccountCall(m));
+        onlyAccount = kept.length === 0;
+        mcpBody = mcpBatch ? kept : kept[0];
+        mcpText = onlyAccount ? undefined : JSON.stringify(mcpBody);
+      }
+    }
   } else if (REGISTRY_TOOLS.has(path) && request.method === "POST") {
     registryRequest = true;
     wanted = isMeteredRegistryTool(REGISTRY_TOOLS.get(path)) ? 1 : 0;
+    restText = await readBody(request, MAX_BODY_BYTES);
+    if (restText === undefined)
+      return errorResponse(path, 413, -32600, {
+        error: "PayloadTooLarge",
+        message: "request body over 1 MB",
+      });
   }
 
   // Minute limit (per address or per key), then registry quota (per address or subscription).
@@ -610,21 +813,32 @@ async function route(
     });
 
   let res: Response;
-  if (deniedError) {
+  if (onlyAccount) res = new Response(null, { status: 202 });
+  else if (deniedError) {
     res = await mcpWithDenials(mcpBody, hit.granted, deniedError, forward);
-  } else res = await forward(mcpText);
+  } else res = await forward(mcpText ?? restText);
   meterUsage(res.status);
 
-  // A lookup the registry could not answer (RegistryUnavailable: our outage, not the caller's
-  // use) is given back.
+  // Only real answers are charged: a lookup that was refused as invalid, missed outside the
+  // loaded coverage, or could not be answered (RegistryUnavailable) is given back.
   if (hit.quota && hit.granted > 0) {
-    let unanswered: number;
-    if (path !== "/mcp") unanswered = res.status === 503 ? 1 : 0;
-    else {
-      const counted = await unavailableAnswers(res, mcpBody, hit.granted);
-      res = counted.res;
-      unanswered = counted.n;
-    }
+    const counted =
+      path === "/mcp"
+        ? await mcpCharges(res, mcpBody, hit.granted)
+        : await restCharge(res, REGISTRY_TOOLS.get(path) ?? "", restText);
+    res = counted.res;
+    const unanswered = counted.free;
+    // The subscription's daily usage (by tool and region) for /account and account_usage.
+    if (paid && counted.charged.length > 0)
+      deferWith(opts)(
+        env.METER.record(
+          meterSubject(paid.record, paid.hash),
+          counted.charged.map((c) => ({
+            tool: c.tool,
+            region: regionOf(c.tool, c.args),
+          })),
+        ),
+      );
     if (unanswered > 0) {
       try {
         await env.METER.refund(
@@ -641,6 +855,17 @@ async function route(
       }
     }
   }
+  if (paid && (accountCalls.length > 0 || listIds.length > 0))
+    res = await withAccountTools(
+      res,
+      await Promise.all(
+        accountCalls.map((m) =>
+          metered(answerAccountCall(env, paid.hash, paid.record, m)),
+        ),
+      ),
+      listIds,
+      mcpBatch,
+    );
   // Browsers read only the headers listed here: add this layer's to the inner handler's list.
   const expose = new Set(
     [
@@ -703,56 +928,193 @@ async function mcpWithDenials(
 }
 
 /**
- * How many of the first `granted` metered registry calls of an MCP request came back as
- * RegistryUnavailable. Reads the answer, so it returns a fresh copy of the response.
+ * Whether a registry tool's answer is a real answer (charged as a lookup). Free: a miss whose
+ * `coverage` says the county, state, entity registry or ID system asked about is not loaded.
+ * Charged: a record, a resolved URN, owners, and a search that ran inside loaded coverage, even
+ * with no results.
  */
-async function unavailableAnswers(
+export function isChargedAnswer(answer: unknown): boolean {
+  if (typeof answer !== "object" || answer === null) return true;
+  const { coverage, results } = answer as {
+    coverage?: Record<string, unknown> | null;
+    results?: unknown;
+  };
+  if (typeof coverage !== "object" || coverage === null) return true;
+  if (
+    coverage.county_loaded === false ||
+    coverage.system_loaded === false ||
+    coverage.loaded === false
+  )
+    return false;
+  if (
+    coverage.state_loaded === false &&
+    (!Array.isArray(results) || results.length === 0)
+  )
+    return false;
+  return true;
+}
+
+interface Charges {
+  res: Response;
+  /** Lookups to give back. */
+  free: number;
+  /** The calls that were charged: tool name and arguments. */
+  charged: { tool: string; args: unknown }[];
+}
+
+function parseArgs(text: string | undefined): unknown {
+  try {
+    return JSON.parse(text ?? "{}");
+  } catch {
+    return {};
+  }
+}
+
+/** A REST registry answer: charged only for a 200 with a real answer. Returns a readable copy. */
+async function restCharge(
+  res: Response,
+  tool: string,
+  body: string | undefined,
+): Promise<Charges> {
+  const charged = [{ tool, args: parseArgs(body) }];
+  if (res.status !== 200) return { res, free: 1, charged: [] };
+  const text = await res.text();
+  const copy = new Response(text, res);
+  try {
+    return isChargedAnswer(JSON.parse(text))
+      ? { res: copy, free: 0, charged }
+      : { res: copy, free: 1, charged: [] };
+  } catch {
+    return { res: copy, free: 0, charged };
+  }
+}
+
+/**
+ * Which of the first `granted` metered registry calls of an MCP request were real answers, and
+ * how many were not: a JSON-RPC error (invalid params), a tool error (isError: bad input,
+ * malformed URN, RegistryUnavailable), a coverage miss, or no answer at all. Reads the answer,
+ * so it returns a fresh copy of the response.
+ */
+async function mcpCharges(
   res: Response,
   body: unknown,
   granted: number,
-): Promise<{ res: Response; n: number }> {
+): Promise<Charges> {
+  const calls = (Array.isArray(body) ? body : [body])
+    .filter(isMeteredCall)
+    .slice(0, granted) as {
+    id: string | number;
+    params: { name: string; arguments?: unknown };
+  }[];
+  const all = calls.map((m) => ({
+    tool: m.params.name,
+    args: m.params.arguments,
+  }));
   if (
     res.status !== 200 ||
     !(res.headers.get("content-type") ?? "").includes("application/json")
   )
-    return { res, n: 0 };
-  const ids = new Set(
-    (Array.isArray(body) ? body : [body])
-      .filter(isMeteredCall)
-      .slice(0, granted)
-      .map((m) => m.id),
-  );
+    return res.status >= 400
+      ? { res, free: calls.length, charged: [] }
+      : { res, free: 0, charged: all };
   const text = await res.text();
   const copy = new Response(text, res);
   let parsed: unknown;
   try {
     parsed = JSON.parse(text);
   } catch {
-    return { res: copy, n: 0 };
+    return { res: copy, free: 0, charged: all };
   }
-  let n = 0;
+  const answers = new Map<unknown, unknown>();
   for (const m of Array.isArray(parsed) ? parsed : [parsed]) {
-    const { id, result } = (m ?? {}) as {
-      id?: string | number;
-      result?: { isError?: boolean; content?: { text?: unknown }[] };
-    };
-    if (id === undefined || !ids.has(id) || result?.isError !== true) continue;
-    try {
-      const err = JSON.parse(String(result.content?.[0]?.text)) as {
-        error?: unknown;
-      };
-      if (err.error === "RegistryUnavailable") {
-        n++;
-        ids.delete(id);
-      }
-    } catch {
-      // not a FactLot error object
-    }
+    const id = (m as { id?: unknown } | null)?.id;
+    if (id !== undefined) answers.set(id, m);
   }
-  return { res: copy, n };
+  let free = 0;
+  const charged: Charges["charged"] = [];
+  for (const [i, call] of calls.entries()) {
+    const m = answers.get(call.id) as
+      | {
+          error?: unknown;
+          result?: { isError?: boolean; content?: { text?: unknown }[] };
+        }
+      | undefined;
+    if (!m || m.error !== undefined || !m.result || m.result.isError === true) {
+      free++;
+      continue;
+    }
+    let real = true;
+    try {
+      real = isChargedAnswer(JSON.parse(String(m.result.content?.[0]?.text)));
+    } catch {
+      // Not JSON: an answer all the same.
+    }
+    if (real) charged.push(all[i]!);
+    else free++;
+  }
+  return { res: copy, free, charged };
 }
 
-/** /v1/account and the key-management endpoints, for a live key. */
+type AccountCall = {
+  id: string | number;
+  params: { name: string; arguments?: unknown };
+};
+
+function isAccountCall(item: unknown): item is AccountCall {
+  if (typeof item !== "object" || item === null) return false;
+  const { id, method, params } = item as {
+    id?: unknown;
+    method?: unknown;
+    params?: { name?: unknown } | null;
+  };
+  return (
+    method === "tools/call" &&
+    (typeof id === "string" || typeof id === "number") &&
+    typeof params?.name === "string" &&
+    ACCOUNT_TOOL_NAMES.has(params.name)
+  );
+}
+
+/**
+ * Merge the account tools into an MCP answer: their calls' answers, and their definitions at the
+ * end of a tools/list result (the last page, when the list is paged).
+ */
+async function withAccountTools(
+  res: Response,
+  answers: unknown[],
+  listIds: unknown[],
+  batch: boolean,
+): Promise<Response> {
+  const answer = (body: unknown) => withHeaders(json(200, body), corsHeaders());
+  if (res.status === 202 && answers.length > 0)
+    return answer(batch ? answers : answers[0]);
+  if (
+    res.status !== 200 ||
+    !(res.headers.get("content-type") ?? "").includes("application/json")
+  )
+    return res;
+  let parsed: unknown;
+  try {
+    parsed = await res.clone().json();
+  } catch {
+    return res;
+  }
+  const inner = Array.isArray(parsed) ? parsed : [parsed];
+  for (const m of inner as {
+    id?: unknown;
+    result?: { tools?: unknown[]; nextCursor?: unknown };
+  }[])
+    if (
+      listIds.includes(m?.id) &&
+      Array.isArray(m.result?.tools) &&
+      !m.result.nextCursor
+    )
+      m.result.tools.push(...ACCOUNT_TOOLS);
+  const all = [...inner, ...answers];
+  return answer(batch ? all : all[0]);
+}
+
+/** /v1/account, /v1/account/usage and the key-management endpoints, for a live key. */
 async function accountApi(
   request: Request,
   env: Env,
@@ -762,36 +1124,63 @@ async function accountApi(
 ): Promise<Response> {
   const { hash, record } = paid;
   const now = opts.now ?? Date.now;
+  const site = siteUrl(env);
+  const wrongMethod = (allow: string) =>
+    apiError(
+      405,
+      "MethodNotAllowed",
+      `use ${allow} for ${path}`,
+      `${allow} ${path}`,
+      {},
+      { allow },
+    );
   if (path === "/v1/account") {
     if (request.method !== "GET" && request.method !== "POST")
-      return json(405, { error: "MethodNotAllowed" }, { allow: "GET" });
+      return wrongMethod("GET");
     return json(200, await metered(accountSummary(env, hash, record)));
   }
+  if (path === "/v1/account/usage") {
+    if (request.method !== "GET") return wrongMethod("GET");
+    const days = Number(new URL(request.url).searchParams.get("days") ?? "30");
+    return json(
+      200,
+      await metered(
+        accountUsage(
+          env,
+          hash,
+          record,
+          Number.isInteger(days) ? Math.min(90, Math.max(1, days)) : 30,
+        ),
+      ),
+    );
+  }
   if (path === "/v1/billing/portal") {
-    if (request.method !== "POST")
-      return json(405, { error: "MethodNotAllowed" }, { allow: "POST" });
+    if (request.method !== "POST") return wrongMethod("POST");
     const d = billingDeps(env, opts.fetchImpl, now);
     if (!d)
-      return json(503, {
-        error: "BillingNotOpen",
-        message: `Email ${CONTACT}.`,
-      });
+      return apiError(
+        503,
+        "BillingNotOpen",
+        `Billing is not configured. Email ${CONTACT}.`,
+        `mailto:${CONTACT}`,
+      );
     try {
       return json(200, { url: await portalUrl(d, record) });
     } catch (err) {
       logStripeError("portal session", err);
-      return json(502, {
-        error: "BillingFailed",
-        message: `Stripe did not answer. Email ${CONTACT}.`,
-      });
+      return apiError(
+        502,
+        "BillingFailed",
+        `Stripe did not answer. Try again in a minute, or email ${CONTACT}.`,
+        "POST /v1/billing/portal again in a minute",
+      );
     }
   }
   // Changing keys needs an active subscription.
-  if (!paid.active) return inactive(path, record, siteUrl(env));
+  if (!paid.active) return inactive(path, record, site);
   const deps = { env, now };
   if (path === "/v1/billing/rotate") {
-    if (request.method !== "POST")
-      return json(405, { error: "MethodNotAllowed" }, { allow: "POST" });
+    if (request.method !== "POST") return wrongMethod("POST");
     const key = await rotateKey(deps, hash, record);
     return json(200, {
       key,
@@ -800,15 +1189,16 @@ async function accountApi(
     });
   }
   if (path === "/v1/billing/keys") {
-    if (request.method !== "POST")
-      return json(405, { error: "MethodNotAllowed" }, { allow: "POST" });
+    if (request.method !== "POST") return wrongMethod("POST");
     const minted = await mintKey(deps, record);
     if (!minted.ok)
-      return json(409, {
-        error: "KeyLimitReached",
-        message: `${PLANS[record.plan].name} includes ${minted.limit} key${minted.limit === 1 ? "" : "s"}. Revoke one (DELETE /v1/billing/keys/{id}), replace this one (POST /v1/billing/rotate), or switch plans at ${siteUrl(env)}/account.`,
-        limit: minted.limit,
-      });
+      return apiError(
+        409,
+        "KeyLimitReached",
+        `${PLANS[record.plan].name} includes ${minted.limit} key${minted.limit === 1 ? "" : "s"}. Revoke one (DELETE /v1/billing/keys/{id}), replace this one (POST /v1/billing/rotate), or switch plans at ${site}/account.`,
+        "POST /v1/billing/rotate",
+        { limit: minted.limit },
+      );
     return json(201, {
       key: minted.key,
       id: minted.id,
@@ -816,24 +1206,25 @@ async function accountApi(
     });
   }
   // DELETE /v1/billing/keys/{id}
-  if (request.method !== "DELETE")
-    return json(405, { error: "MethodNotAllowed" }, { allow: "DELETE" });
+  if (request.method !== "DELETE") return wrongMethod("DELETE");
   const id = path.slice("/v1/billing/keys/".length);
   const outcome = /^[0-9a-f]{16}$/.test(id)
     ? await revokeKey(deps, record, id)
     : "not_found";
   if (outcome === "not_found")
-    return json(404, {
-      error: "NotFound",
-      message:
-        "no live key with that id on this subscription (ids are in GET /v1/account)",
-    });
+    return apiError(
+      404,
+      "NotFound",
+      "no live key with that id on this subscription (ids are in GET /v1/account)",
+      "GET /v1/account",
+    );
   if (outcome === "last_key")
-    return json(409, {
-      error: "LastKey",
-      message:
-        "this is the subscription's only key; replace it with POST /v1/billing/rotate, or cancel the subscription in the billing portal",
-    });
+    return apiError(
+      409,
+      "LastKey",
+      "this is the subscription's only key; replace it with POST /v1/billing/rotate, or cancel the subscription in the billing portal",
+      "POST /v1/billing/rotate",
+    );
   return json(200, { revoked: id });
 }
 
@@ -845,17 +1236,26 @@ async function accountRoute(
   request: Request,
   env: Env,
   url: URL,
+  api: Fetcher,
   opts: HandleOptions,
 ): Promise<Response> {
   const now = opts.now ?? Date.now;
-  if (request.method === "GET" || request.method === "HEAD")
-    return accountFormPage();
+  const formPage = (status?: number, notice?: string) =>
+    accountFormPage(status, notice, recoveryState(env));
+  if (request.method === "GET" || request.method === "HEAD") return formPage();
   if (request.method !== "POST")
-    return json(405, { error: "MethodNotAllowed" }, { allow: "GET, POST" });
+    return apiError(
+      405,
+      "MethodNotAllowed",
+      "use GET or POST",
+      "GET this page in a browser",
+      {},
+      { allow: "GET, POST" },
+    );
   // A form on another site cannot drive this page (it would need the key anyway).
   const origin = request.headers.get("origin");
   if (origin && origin !== "null" && origin !== url.origin)
-    return accountFormPage(403, "This form only works on its own page.");
+    return formPage(403, "This form only works on its own page.");
   const address = await addressSubject(
     clientAddress(request),
     now(),
@@ -864,25 +1264,19 @@ async function accountRoute(
   if (
     !(await metered(env.RL_ANON.limit({ key: `account:${address}` }))).success
   )
-    return accountFormPage(
-      429,
-      "Too many tries from this address. Wait a minute.",
-    );
+    return formPage(429, "Too many tries from this address. Wait a minute.");
   const failKey = `authfail:${address}`;
   if (!(await metered(env.RL_ANON.peek({ key: failKey }))).success)
-    return accountFormPage(
-      429,
-      "Too many keys that did not match. Wait a minute.",
-    );
+    return formPage(429, "Too many keys that did not match. Wait a minute.");
   const text = await readBody(request, 16 * 1024);
-  if (text === undefined) return accountFormPage(413, "The form is too large.");
+  if (text === undefined) return formPage(413, "The form is too large.");
   const form = new URLSearchParams(text);
   const key = (form.get("key") ?? "").trim();
   const action = form.get("action") ?? "view";
   const paid = await resolveKey(env, key, opts);
   if (!paid) {
     await metered(env.RL_ANON.limit({ key: failKey }));
-    return accountFormPage(
+    return formPage(
       401,
       `That key was not found. Check it and try again, or email ${CONTACT} from the address you paid with.`,
     );
@@ -893,7 +1287,25 @@ async function accountRoute(
     h: string,
     r: KeyRecord,
     o: Parameters<typeof accountPage>[2] = {},
-  ) => accountPage(await metered(accountSummary(env, h, r)), k, o);
+  ) => {
+    const apiBase = (env.API_URL ?? "https://api.factlot.com").replace(
+      /\/$/,
+      "",
+    );
+    const [summary, receipts, usage, regions] = await Promise.all([
+      metered(accountSummary(env, h, r)),
+      receiptEmail(billingDeps(env, opts.fetchImpl, now), r.customer),
+      env.METER.usage(meterSubject(r, h), 30).catch(() => undefined),
+      hostedRegions(api, apiBase, now()),
+    ]);
+    return accountPage(summary, k, {
+      receipts,
+      usage,
+      regions,
+      api: apiBase,
+      ...o,
+    });
+  };
 
   if (action === "portal") {
     const d = billingDeps(env, opts.fetchImpl, now);
@@ -944,10 +1356,7 @@ async function accountRoute(
     const id = form.get("id") ?? "";
     const outcome = await revokeKey(deps, record, id);
     if (outcome === "revoked" && id === keyId(hash))
-      return accountFormPage(
-        200,
-        "That key is revoked. Sign in with another key.",
-      );
+      return formPage(200, "That key is revoked. Sign in with another key.");
     return show(key, hash, record, {
       notice:
         outcome === "revoked"
@@ -958,4 +1367,64 @@ async function accountRoute(
     });
   }
   return show(key, hash, record);
+}
+
+/** /account/recover and /account/recover/<token>: lost-key recovery by email (recovery.ts). */
+async function recoverRoute(
+  request: Request,
+  env: Env,
+  url: URL,
+  path: string,
+  opts: HandleOptions,
+): Promise<Response> {
+  const now = opts.now ?? Date.now;
+  const token =
+    path === "/account/recover"
+      ? undefined
+      : path.slice("/account/recover/".length);
+  if (token === undefined && request.method !== "POST")
+    return Response.redirect(`${url.origin}/account#recover`, 303);
+  if (
+    request.method !== "GET" &&
+    request.method !== "HEAD" &&
+    request.method !== "POST"
+  )
+    return apiError(
+      405,
+      "MethodNotAllowed",
+      "use GET or POST",
+      "GET this page in a browser",
+      {},
+      { allow: "GET, POST" },
+    );
+  const ropts = { fetchImpl: opts.fetchImpl, now, defer: deferWith(opts) };
+  let body: string | undefined;
+  if (request.method === "POST") {
+    const origin = request.headers.get("origin");
+    if (origin && origin !== "null" && origin !== url.origin)
+      return accountFormPage(
+        403,
+        "This form only works on its own page.",
+        recoveryState(env),
+      );
+    const address = await addressSubject(
+      clientAddress(request),
+      now(),
+      env.IP_HASH_SALT,
+    );
+    if (
+      !(await metered(env.RL_ANON.limit({ key: `recover:${address}` }))).success
+    )
+      return accountFormPage(
+        429,
+        "Too many tries from this address. Wait a minute.",
+        recoveryState(env),
+      );
+    body = await readBody(request, 4 * 1024);
+    if (body === undefined)
+      return accountFormPage(413, "The form is too large.", recoveryState(env));
+  }
+  if (token === undefined)
+    return recoverRequestRoute(env, request, body ?? "", ropts);
+  return recoverLinkRoute(env, request, token, body, ropts);
 }

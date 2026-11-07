@@ -12,6 +12,7 @@ import {
   objectMeter,
   type DurableObjectNamespaceLike,
 } from "./limiter.ts";
+import { CLAIM_POLL_MS } from "./claim.ts";
 import { ANONYMOUS_REQUESTS_PER_MINUTE } from "./plans.ts";
 import { registryRunner } from "./registry.ts";
 import { handle } from "./router.ts";
@@ -31,7 +32,7 @@ let boundRegistry: Fetcher | undefined;
 export default {
   async fetch(
     request: Request,
-    raw: Omit<Env, "RL_ANON" | "METER"> & {
+    raw: Omit<Env, "RL_ANON" | "RL_CLAIM" | "METER"> & {
       LIMITER: DurableObjectNamespaceLike;
     },
     ctx: unknown,
@@ -43,6 +44,7 @@ export default {
         "anon",
         ANONYMOUS_REQUESTS_PER_MINUTE,
       ),
+      RL_CLAIM: objectLimiter(raw.LIMITER, "claim", 1, CLAIM_POLL_MS),
       METER: objectMeter(raw.LIMITER),
     };
     // The binding is the same object on every request; the runner closes over it.
@@ -52,7 +54,11 @@ export default {
     }
     const api: Fetcher = { fetch: (r) => node.fetch(r, raw, ctx) };
     try {
-      return await handle(request, env, api);
+      const waitUntil = (ctx as { waitUntil?: (p: Promise<unknown>) => void })
+        ?.waitUntil;
+      return await handle(request, env, api, {
+        waitUntil: waitUntil ? (p) => waitUntil.call(ctx, p) : undefined,
+      });
     } catch (err) {
       // The error name only: messages can carry request content.
       console.error(

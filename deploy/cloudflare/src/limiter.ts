@@ -12,6 +12,11 @@
  *   day counts go when the day ends and month counts when the month ends).
  * - Claims: first-writer-wins markers (`claim:<name>`), used where KV's eventual consistency is
  *   not enough (redeeming one checkout session from two regions at once). Deleted after 30 days.
+ * - Usage (subscriptions only): charged registry lookups per UTC day, by tool and by region
+ *   prefix (`us-24`, `us-md`), for the account page and the account_usage tool. Kept 90 days,
+ *   pruned by the alarm.
+ * - Last use (keys only): the minute a key last made a request, written at most once a minute and
+ *   deleted 90 days after the key's last use.
  *
  * The plain per-minute limiter (`objectLimiter`) uses the same class without touching storage.
  */
@@ -22,6 +27,7 @@ import type {
   QuotaSpec,
   QuotaState,
   RateLimit,
+  UsageSummary,
 } from "./types.ts";
 
 export interface DurableObjectStubLike {
@@ -45,6 +51,10 @@ export interface DurableObjectStateLike {
     deleteAll(): Promise<void>;
   };
 }
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+/** How long daily usage and a key's last-use mark are kept. */
+export const USAGE_RETENTION_DAYS = 90;
 
 /** How long a claim is kept; the KV marker written after it covers later reloads. */
 export const CLAIM_TTL_MS = 30 * 24 * 60 * 60 * 1000;
@@ -94,6 +104,13 @@ export function quotaWindow(
 }
 
 /** Durable counters and claims for one object. Synchronous, so a read-modify-write is atomic. */
+export interface UsageRow {
+  day: string;
+  tool: string;
+  region: string;
+  n: number;
+}
+
 export interface CounterStore {
   getCount(window: string): number;
   setCount(window: string, used: number): void;
@@ -101,7 +118,15 @@ export interface CounterStore {
   pruneBefore(window: string): void;
   getClaim(name: string): string | undefined;
   setClaim(name: string, value: string): void;
-  /** Counter and claim rows held. */
+  /** Add `n` charged lookups to a day, tool and region. */
+  addUsage(day: string, tool: string, region: string, n: number): void;
+  /** Usage rows from `fromDay` on (inclusive). */
+  readUsage(fromDay: string): UsageRow[];
+  pruneUsageBefore(day: string): void;
+  getMeta(name: string): string | undefined;
+  setMeta(name: string, value: string): void;
+  deleteMeta(name: string): void;
+  /** Rows held, in every table. */
   size(): number;
   clearClaims(): void;
   /** The object's storage was wiped (deleteAll): forget anything cached about it. */
@@ -121,6 +146,12 @@ export function sqlStore(sql: SqlStorageLike): CounterStore {
       );
       sql.exec(
         "CREATE TABLE IF NOT EXISTS claim (name TEXT PRIMARY KEY, value TEXT NOT NULL)",
+      );
+      sql.exec(
+        "CREATE TABLE IF NOT EXISTS usage (day TEXT NOT NULL, tool TEXT NOT NULL, region TEXT NOT NULL, n INTEGER NOT NULL, PRIMARY KEY (day, tool, region))",
+      );
+      sql.exec(
+        "CREATE TABLE IF NOT EXISTS meta (name TEXT PRIMARY KEY, value TEXT NOT NULL)",
       );
       ready = true;
     }
@@ -165,10 +196,52 @@ export function sqlStore(sql: SqlStorageLike): CounterStore {
         value,
       );
     },
+    addUsage(day, tool, region, n) {
+      db().exec(
+        "INSERT INTO usage (day, tool, region, n) VALUES (?, ?, ?, ?) ON CONFLICT(day, tool, region) DO UPDATE SET n = n + excluded.n",
+        day,
+        tool,
+        region,
+        n,
+      );
+    },
+    readUsage(fromDay) {
+      return db()
+        .exec(
+          "SELECT day, tool, region, n FROM usage WHERE day >= ? ORDER BY day",
+          fromDay,
+        )
+        .toArray()
+        .map((r) => ({
+          day: String(r.day),
+          tool: String(r.tool),
+          region: String(r.region),
+          n: Number(r.n),
+        }));
+    },
+    pruneUsageBefore(day) {
+      db().exec("DELETE FROM usage WHERE day < ?", day);
+    },
+    getMeta(name) {
+      const row = db()
+        .exec("SELECT value FROM meta WHERE name = ?", name)
+        .toArray()[0];
+      return row ? String(row.value) : undefined;
+    },
+    setMeta(name, value) {
+      db().exec(
+        "INSERT INTO meta (name, value) VALUES (?, ?) ON CONFLICT(name) DO UPDATE SET value = excluded.value",
+        name,
+        value,
+      );
+    },
+    deleteMeta(name) {
+      db().exec("DELETE FROM meta WHERE name = ?", name);
+    },
     size() {
       const row = db()
         .exec(
-          "SELECT (SELECT COUNT(*) FROM quota) + (SELECT COUNT(*) FROM claim) AS n",
+          "SELECT (SELECT COUNT(*) FROM quota) + (SELECT COUNT(*) FROM claim) + (SELECT COUNT(*) FROM usage) + (SELECT COUNT(*) FROM meta) AS n",
         )
         .toArray()[0];
       return Number(row?.n ?? 0);
@@ -205,11 +278,11 @@ export class Meter {
     return this.storeInstance;
   }
 
-  /** Plain per-minute limiter; `peek` checks without counting. */
-  minuteOnly(limit: number, peek: boolean): boolean {
+  /** Plain fixed-window limiter (a minute unless `periodMs` says otherwise); `peek` counts nothing. */
+  minuteOnly(limit: number, peek: boolean, periodMs = 60_000): boolean {
     return peek
-      ? this.minute.peek(limit, 60_000, this.now())
-      : this.minute.hit(limit, 60_000, this.now());
+      ? this.minute.peek(limit, periodMs, this.now())
+      : this.minute.hit(limit, periodMs, this.now());
   }
 
   /**
@@ -255,6 +328,78 @@ export class Meter {
   /** The store was wiped. */
   storageCleared(): void {
     this.storeInstance?.reset();
+    this.lastUseWritten = 0;
+  }
+
+  /** Record charged lookups for today (UTC). */
+  record(items: { tool: string; region: string }[]): void {
+    const day = quotaWindow("day", this.now()).window.slice(4);
+    const counts = new Map<
+      string,
+      { tool: string; region: string; n: number }
+    >();
+    for (const { tool, region } of items) {
+      const k = `${tool}|${region}`;
+      const c = counts.get(k) ?? { tool, region, n: 0 };
+      c.n++;
+      counts.set(k, c);
+    }
+    for (const c of counts.values())
+      this.store.addUsage(day, c.tool, c.region, c.n);
+  }
+
+  /**
+   * The last `days` UTC days (today included): lookups per day (zero-filled), and totals by
+   * tool and by region over the same days.
+   */
+  usage(days: number): UsageSummary {
+    const n = Math.max(1, Math.min(USAGE_RETENTION_DAYS, Math.floor(days)));
+    const today = Date.parse(
+      `${quotaWindow("day", this.now()).window.slice(4)}T00:00:00Z`,
+    );
+    const dayAt = (i: number) =>
+      new Date(today - (n - 1 - i) * DAY_MS).toISOString().slice(0, 10);
+    const from = dayAt(0);
+    const rows = this.store.readUsage(from);
+    const perDay = new Map<string, number>();
+    const byTool: Record<string, number> = {};
+    const byRegion: Record<string, number> = {};
+    let total = 0;
+    for (const r of rows) {
+      perDay.set(r.day, (perDay.get(r.day) ?? 0) + r.n);
+      byTool[r.tool] = (byTool[r.tool] ?? 0) + r.n;
+      byRegion[r.region] = (byRegion[r.region] ?? 0) + r.n;
+      total += r.n;
+    }
+    return {
+      from,
+      to: dayAt(n - 1),
+      daily: Array.from({ length: n }, (_, i) => ({
+        date: dayAt(i),
+        lookups: perDay.get(dayAt(i)) ?? 0,
+      })),
+      by_tool: byTool,
+      by_region: byRegion,
+      total,
+    };
+  }
+
+  private lastUseWritten = 0;
+
+  /** Note a request now; storage is written at most once a minute. */
+  touch(): boolean {
+    const now = this.now();
+    if (now - this.lastUseWritten < 60_000) return false;
+    this.lastUseWritten = now;
+    this.store.setMeta(
+      "last_used",
+      new Date(now - (now % 60_000)).toISOString(),
+    );
+    return true;
+  }
+
+  lastUsed(): string | undefined {
+    return this.store.getMeta("last_used");
   }
 
   /**
@@ -266,12 +411,30 @@ export class Meter {
     this.store.pruneBefore(quotaWindow("day", now).window);
     this.store.pruneBefore(quotaWindow("month", now).window);
     this.store.clearClaims();
+    this.store.pruneUsageBefore(
+      new Date(now - (USAGE_RETENTION_DAYS - 1) * DAY_MS)
+        .toISOString()
+        .slice(0, 10),
+    );
+    const last = this.store.getMeta("last_used");
+    if (last && now - Date.parse(last) >= USAGE_RETENTION_DAYS * DAY_MS) {
+      this.store.deleteMeta("last_used");
+      this.lastUseWritten = 0;
+    }
     if (this.store.size() === 0) return undefined;
     // What is left is the current window: of the day if a day counter is, else of the month.
     const day = quotaWindow("day", now);
-    return this.store.getCount(day.window) > 0
-      ? day.resetsAt
-      : quotaWindow("month", now).resetsAt;
+    let next =
+      this.store.getCount(day.window) > 0
+        ? day.resetsAt
+        : quotaWindow("month", now).resetsAt;
+    // Usage is pruned day by day; a last-use mark goes 90 days after it was written.
+    if (this.store.readUsage("0000").length > 0)
+      next = Math.min(next, day.resetsAt);
+    const mark = this.store.getMeta("last_used");
+    if (mark)
+      next = Math.min(next, Date.parse(mark) + USAGE_RETENTION_DAYS * DAY_MS);
+    return next;
   }
 
   /** The current window's usage, counting nothing; `window_ends` as for `hit`. */
@@ -343,10 +506,28 @@ export class RateLimiterObject {
       const b = (await request.json()) as {
         perMinute: number | null;
         quota?: QuotaSpec;
+        touch?: boolean;
       };
       const { window_ends, ...result } = this.meter.hit(b.perMinute, b.quota);
       if (window_ends !== undefined) await this.alarmBy(window_ends);
+      if (b.touch && this.meter.touch())
+        await this.alarmBy(this.now() + USAGE_RETENTION_DAYS * DAY_MS);
       return jsonResponse(result);
+    }
+    if (url.pathname === "/usage/record") {
+      const b = (await request.json()) as {
+        items: { tool: string; region: string }[];
+      };
+      this.meter.record(b.items.slice(0, 100));
+      await this.alarmBy(quotaWindow("day", this.now()).resetsAt);
+      return jsonResponse({ recorded: true });
+    }
+    if (url.pathname === "/usage") {
+      const b = (await request.json()) as { days: number };
+      return jsonResponse(this.meter.usage(b.days));
+    }
+    if (url.pathname === "/last-used") {
+      return jsonResponse({ last_used_at: this.meter.lastUsed() ?? null });
     }
     if (url.pathname === "/quota") {
       const b = (await request.json()) as { kind: QuotaKind; limit: number };
@@ -371,7 +552,12 @@ export class RateLimiterObject {
       return jsonResponse({ value });
     }
     const limit = Number(url.searchParams.get("limit") ?? "60");
-    const ok = this.meter.minuteOnly(limit, url.searchParams.has("peek"));
+    const period = Number(url.searchParams.get("period") ?? "60000");
+    const ok = this.meter.minuteOnly(
+      limit,
+      url.searchParams.has("peek"),
+      Number.isFinite(period) && period >= 1000 ? period : 60_000,
+    );
     return new Response(ok ? "1" : "0");
   }
 }
@@ -393,16 +579,20 @@ async function call<T>(
   return (await res.json()) as T;
 }
 
-/** A per-minute RateLimit backed by the LIMITER namespace; `prefix` keeps uses apart. */
+/**
+ * A fixed-window RateLimit backed by the LIMITER namespace (`limit` per `periodMs`, a minute by
+ * default); `prefix` keeps uses apart.
+ */
 export function objectLimiter(
   ns: DurableObjectNamespaceLike,
   prefix: string,
   limit: number,
+  periodMs = 60_000,
 ): RateLimit {
   const ask = async (key: string, peek: boolean) => {
     const stub = ns.get(ns.idFromName(`${prefix}:${key}`));
     const res = await stub.fetch(
-      `https://limiter/?limit=${limit}${peek ? "&peek=1" : ""}`,
+      `https://limiter/?limit=${limit}${periodMs === 60_000 ? "" : `&period=${periodMs}`}${peek ? "&peek=1" : ""}`,
     );
     return { success: (await res.text()) === "1" };
   };
@@ -416,7 +606,26 @@ export function objectLimiter(
 export function objectMeter(ns: DurableObjectNamespaceLike): MeterService {
   return {
     hit: (subject, perMinute, quota) =>
-      call<HitResult>(ns, `meter:${subject}`, "/hit", { perMinute, quota }),
+      call<HitResult>(ns, `meter:${subject}`, "/hit", {
+        perMinute,
+        quota,
+        // A key's last use is account data; an address's never is.
+        ...(subject.startsWith("key:") ? { touch: true } : {}),
+      }),
+    record: async (subject, items) => {
+      await call(ns, `meter:${subject}`, "/usage/record", { items });
+    },
+    usage: (subject, days) =>
+      call<UsageSummary>(ns, `meter:${subject}`, "/usage", { days }),
+    lastUsed: async (subject) =>
+      (
+        await call<{ last_used_at: string | null }>(
+          ns,
+          `meter:${subject}`,
+          "/last-used",
+          {},
+        )
+      ).last_used_at ?? undefined,
     consume: (subject, quota) =>
       call<HitResult>(ns, `meter:${subject}`, "/hit", {
         perMinute: null,

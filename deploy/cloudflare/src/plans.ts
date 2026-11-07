@@ -25,7 +25,7 @@ export interface Plan {
 
 export const ANONYMOUS_REQUESTS_PER_MINUTE = 60;
 /** Registry lookups per UTC day for one client address (IPv6: per /64) without a key. */
-export const ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY = 100;
+export const ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY = 25;
 export const PRICING_URL = "https://factlot.com/#pricing";
 
 export const PLANS: Record<PlanId, Plan> = {
@@ -72,8 +72,8 @@ export function isMeteredRegistryTool(
 /** How registry lookups are counted, one sentence each (in /v1/plans). */
 export const QUOTA_RULES = {
   counted:
-    "Each call of a registry_* tool counts one lookup, except registry_coverage, which is not counted.",
-  free: "Without a key, lookups count per IP address (stored only as a hash; IPv6 per /64) per UTC day and reset at 00:00 UTC.",
+    "A lookup is one answered call to a registry_* tool: a record, a resolved ID, owners, or a search that ran inside loaded coverage (even with no results). Free: registry_coverage, input errors, misses outside loaded coverage (county, state, entity registry or ID system not loaded) and calls the registry could not answer.",
+  free: `Without a key, ${ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY} lookups a day per IP address (stored only as a hash; IPv6 per /64), counted per UTC day and reset at 00:00 UTC.`,
   paid: "With a key, lookups count per subscription per calendar month (UTC), shared by all of its keys; requests a minute count per key.",
   at_cap:
     "At a cap, registry calls answer 429 RegistryQuotaExceeded until the reset, other tools keep working, and nothing extra is billed.",
@@ -101,7 +101,7 @@ export function publicPlans(checkoutBase: string) {
       requests_per_minute: ANONYMOUS_REQUESTS_PER_MINUTE,
       registry_lookups_per_day: ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY,
       auth: "none",
-      note: "Every calculator, ID, fact, rules and document tool at 60 requests a minute per IP address, and 100 registry lookups a day per IP address.",
+      note: `Every calculator, ID, fact, rules and document tool at ${ANONYMOUS_REQUESTS_PER_MINUTE} requests a minute per IP address, and ${ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY} registry lookups a day per IP address.`,
     },
     ...Object.fromEntries(
       Object.values(PLANS).map((p) => [

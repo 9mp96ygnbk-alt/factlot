@@ -5,6 +5,9 @@
 // IP_HASH_SALT (a long random string, e.g. `openssl rand -hex 32`; salts the hash that names a
 // keyless caller's meter, so stored names cannot be traced back to an address. Set it once with
 // `npx wrangler@4 secret put IP_HASH_SALT`; changing it restarts that day's free counts).
+// RECOVERY_SIGNING_SECRET (a long random string, e.g. `openssl rand -hex 32`; signs the
+// lost-key recovery links. Without it, and without the EMAIL binding below, /account says email
+// recovery is being set up).
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "factlot-api",
@@ -33,6 +36,13 @@
     "bindings": [{ "name": "LIMITER", "class_name": "RateLimiterObject" }],
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["RateLimiterObject"] }],
+  // Email (welcome email after purchase, lost-key recovery links), through Cloudflare Email
+  // Service. The owner enables it: onboard factlot.com under Compute > Email Service > Email
+  // Sending in the dashboard (it adds the cf-bounce MX, SPF, DKIM and the _dmarc records), set
+  // RECOVERY_SIGNING_SECRET, then uncomment this binding and deploy. Sending to customers needs
+  // the Workers Paid plan. Until then the Worker skips the welcome email and /account says
+  // recovery is being set up, so deploying without it is safe.
+  // "send_email": [{ "name": "EMAIL" }],
   "analytics_engine_datasets": [
     { "binding": "USAGE", "dataset": "factlot_usage" },
   ],
