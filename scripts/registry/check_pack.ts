@@ -195,6 +195,25 @@ async function run(
     });
     calls.push({ tool: "registry_tx_equity_candidates", args: { urn } });
   }
+  // Parcels with no improvement facts (registry_get's land-only warning), alone and in a building.
+  for (const r of all(
+    `SELECT s.urn, EXISTS (SELECT 1 FROM building_members m WHERE m.parcel_urn = s.urn) AS b FROM subjects s WHERE s.kind = 'parcel' AND NOT EXISTS (SELECT 1 FROM facts f WHERE f.subject = s.urn AND f.predicate IN ('parcel.year_built', 'parcel.improvement_area_sf')) ORDER BY ${shuffle} LIMIT ?`,
+    Math.ceil(samples / 4),
+  ))
+    calls.push({
+      tool: "registry_get",
+      args: { urn: r.urn },
+      label: r.b ? "land-only get, building" : "land-only get",
+    });
+  for (const r of all(
+    `SELECT DISTINCT m.parcel_urn AS urn FROM building_members m WHERE NOT EXISTS (SELECT 1 FROM facts f WHERE f.subject = m.parcel_urn AND f.predicate IN ('parcel.year_built', 'parcel.improvement_area_sf')) ORDER BY ${shuffle.replace("rowid", "m.rowid")} LIMIT ?`,
+    Math.ceil(samples / 8),
+  ))
+    calls.push({
+      tool: "registry_get",
+      args: { urn: r.urn, include_history: true },
+      label: "land-only get, building",
+    });
   for (const r of all(
     `SELECT urn FROM subjects WHERE kind = 'entity' ORDER BY ${shuffle} LIMIT ?`,
     samples,
@@ -452,6 +471,7 @@ async function run(
   const pinned = new Map<string, unknown>();
   const [part, parts] = o.part;
   let valueHistories = 0;
+  let landOnly = 0;
   const stats = new Map<
     string,
     { n: number; bad: number; cpu: number[]; reads: number[] }
@@ -510,6 +530,15 @@ async function run(
       ((want.result as Row).value_history as unknown[] | undefined)?.length
     )
       valueHistories += 1;
+    if (
+      c.tool === "registry_get" &&
+      want.ok &&
+      JSON.stringify((want.result as Row).warnings ?? []).includes(
+        "may be for the land only",
+      ) &&
+      JSON.stringify(got) === JSON.stringify(want)
+    )
+      landOnly += 1;
     stats.set(c.label ?? c.tool, s);
   }
   configureRegistry(undefined);
@@ -539,6 +568,7 @@ async function run(
   console.log(
     `Texas parcel records with a value history, matched: ${valueHistories}`,
   );
+  console.log(`records with the land-only warning, matched: ${landOnly}`);
   if (!existsSync(merged)) console.log("merged file missing");
 }
 
