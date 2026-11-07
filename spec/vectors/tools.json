@@ -241,6 +241,379 @@
       "expect_error": "CalcInputError"
     },
     {
+      "tool": "rules_tx_property_tax_protest_deadline_batch",
+      "arguments": {
+        "items": [
+          {
+            "id": "client-7",
+            "tax_year": 2026,
+            "notice_delivered_date": "2026-05-01"
+          },
+          {
+            "id": "client-8",
+            "tax_year": 2027,
+            "notice_delivered_date": null
+          }
+        ]
+      },
+      "expect": {
+        "provenance.formula": "rules.tx.property_tax_protest_deadline_batch@1",
+        "value.results.0.id": "client-7",
+        "value.results.0.deadline": "2026-06-01",
+        "value.results.1.deadline": "2027-05-17",
+        "value.summary.answered": 2,
+        "value.rule.id": "rules.tx.property_tax_protest_deadline",
+        "value.rule.version": 2
+      }
+    },
+    {
+      "tool": "rules_tx_property_tax_protest_deadline_batch",
+      "arguments": {
+        "items": [
+          {
+            "id": "good",
+            "tax_year": 2026
+          },
+          {
+            "id": "bad",
+            "tax_year": 2026,
+            "notice_delivered_date": "2026-13-01"
+          }
+        ]
+      },
+      "expect": {
+        "value.results.0.deadline": "2026-05-15",
+        "value.results.1.error.error": "CalcInputError",
+        "value.results.1.error.issues": [
+          {
+            "path": "notice_delivered_date",
+            "message": "expected a valid YYYY-MM-DD date"
+          }
+        ],
+        "value.summary.errors": 1
+      }
+    },
+    {
+      "tool": "rules_tx_property_tax_protest_deadline_batch",
+      "arguments": {
+        "items": []
+      },
+      "expect_error": "CalcInputError"
+    },
+    {
+      "tool": "rules_tx_property_tax_protest_deadline_batch",
+      "arguments": {
+        "items": [
+          { "id": "0", "tax_year": 2026 },
+          { "id": "1", "tax_year": 2026 },
+          { "id": "2", "tax_year": 2026 },
+          { "id": "3", "tax_year": 2026 },
+          { "id": "4", "tax_year": 2026 },
+          { "id": "5", "tax_year": 2026 },
+          { "id": "6", "tax_year": 2026 },
+          { "id": "7", "tax_year": 2026 },
+          { "id": "8", "tax_year": 2026 },
+          { "id": "9", "tax_year": 2026 },
+          { "id": "10", "tax_year": 2026 },
+          { "id": "11", "tax_year": 2026 },
+          { "id": "12", "tax_year": 2026 },
+          { "id": "13", "tax_year": 2026 },
+          { "id": "14", "tax_year": 2026 },
+          { "id": "15", "tax_year": 2026 },
+          { "id": "16", "tax_year": 2026 },
+          { "id": "17", "tax_year": 2026 },
+          { "id": "18", "tax_year": 2026 },
+          { "id": "19", "tax_year": 2026 },
+          { "id": "20", "tax_year": 2026 },
+          { "id": "21", "tax_year": 2026 },
+          { "id": "22", "tax_year": 2026 },
+          { "id": "23", "tax_year": 2026 },
+          { "id": "24", "tax_year": 2026 },
+          { "id": "25", "tax_year": 2026 },
+          { "id": "26", "tax_year": 2026 },
+          { "id": "27", "tax_year": 2026 },
+          { "id": "28", "tax_year": 2026 },
+          { "id": "29", "tax_year": 2026 },
+          { "id": "30", "tax_year": 2026 },
+          { "id": "31", "tax_year": 2026 },
+          { "id": "32", "tax_year": 2026 },
+          { "id": "33", "tax_year": 2026 },
+          { "id": "34", "tax_year": 2026 },
+          { "id": "35", "tax_year": 2026 },
+          { "id": "36", "tax_year": 2026 },
+          { "id": "37", "tax_year": 2026 },
+          { "id": "38", "tax_year": 2026 },
+          { "id": "39", "tax_year": 2026 },
+          { "id": "40", "tax_year": 2026 },
+          { "id": "41", "tax_year": 2026 },
+          { "id": "42", "tax_year": 2026 },
+          { "id": "43", "tax_year": 2026 },
+          { "id": "44", "tax_year": 2026 },
+          { "id": "45", "tax_year": 2026 },
+          { "id": "46", "tax_year": 2026 },
+          { "id": "47", "tax_year": 2026 },
+          { "id": "48", "tax_year": 2026 },
+          { "id": "49", "tax_year": 2026 },
+          { "id": "50", "tax_year": 2026 },
+          { "id": "51", "tax_year": 2026 },
+          { "id": "52", "tax_year": 2026 },
+          { "id": "53", "tax_year": 2026 },
+          { "id": "54", "tax_year": 2026 },
+          { "id": "55", "tax_year": 2026 },
+          { "id": "56", "tax_year": 2026 },
+          { "id": "57", "tax_year": 2026 },
+          { "id": "58", "tax_year": 2026 },
+          { "id": "59", "tax_year": 2026 },
+          { "id": "60", "tax_year": 2026 },
+          { "id": "61", "tax_year": 2026 },
+          { "id": "62", "tax_year": 2026 },
+          { "id": "63", "tax_year": 2026 },
+          { "id": "64", "tax_year": 2026 },
+          { "id": "65", "tax_year": 2026 },
+          { "id": "66", "tax_year": 2026 },
+          { "id": "67", "tax_year": 2026 },
+          { "id": "68", "tax_year": 2026 },
+          { "id": "69", "tax_year": 2026 },
+          { "id": "70", "tax_year": 2026 },
+          { "id": "71", "tax_year": 2026 },
+          { "id": "72", "tax_year": 2026 },
+          { "id": "73", "tax_year": 2026 },
+          { "id": "74", "tax_year": 2026 },
+          { "id": "75", "tax_year": 2026 },
+          { "id": "76", "tax_year": 2026 },
+          { "id": "77", "tax_year": 2026 },
+          { "id": "78", "tax_year": 2026 },
+          { "id": "79", "tax_year": 2026 },
+          { "id": "80", "tax_year": 2026 },
+          { "id": "81", "tax_year": 2026 },
+          { "id": "82", "tax_year": 2026 },
+          { "id": "83", "tax_year": 2026 },
+          { "id": "84", "tax_year": 2026 },
+          { "id": "85", "tax_year": 2026 },
+          { "id": "86", "tax_year": 2026 },
+          { "id": "87", "tax_year": 2026 },
+          { "id": "88", "tax_year": 2026 },
+          { "id": "89", "tax_year": 2026 },
+          { "id": "90", "tax_year": 2026 },
+          { "id": "91", "tax_year": 2026 },
+          { "id": "92", "tax_year": 2026 },
+          { "id": "93", "tax_year": 2026 },
+          { "id": "94", "tax_year": 2026 },
+          { "id": "95", "tax_year": 2026 },
+          { "id": "96", "tax_year": 2026 },
+          { "id": "97", "tax_year": 2026 },
+          { "id": "98", "tax_year": 2026 },
+          { "id": "99", "tax_year": 2026 },
+          { "id": "100", "tax_year": 2026 },
+          { "id": "101", "tax_year": 2026 },
+          { "id": "102", "tax_year": 2026 },
+          { "id": "103", "tax_year": 2026 },
+          { "id": "104", "tax_year": 2026 },
+          { "id": "105", "tax_year": 2026 },
+          { "id": "106", "tax_year": 2026 },
+          { "id": "107", "tax_year": 2026 },
+          { "id": "108", "tax_year": 2026 },
+          { "id": "109", "tax_year": 2026 },
+          { "id": "110", "tax_year": 2026 },
+          { "id": "111", "tax_year": 2026 },
+          { "id": "112", "tax_year": 2026 },
+          { "id": "113", "tax_year": 2026 },
+          { "id": "114", "tax_year": 2026 },
+          { "id": "115", "tax_year": 2026 },
+          { "id": "116", "tax_year": 2026 },
+          { "id": "117", "tax_year": 2026 },
+          { "id": "118", "tax_year": 2026 },
+          { "id": "119", "tax_year": 2026 },
+          { "id": "120", "tax_year": 2026 },
+          { "id": "121", "tax_year": 2026 },
+          { "id": "122", "tax_year": 2026 },
+          { "id": "123", "tax_year": 2026 },
+          { "id": "124", "tax_year": 2026 },
+          { "id": "125", "tax_year": 2026 },
+          { "id": "126", "tax_year": 2026 },
+          { "id": "127", "tax_year": 2026 },
+          { "id": "128", "tax_year": 2026 },
+          { "id": "129", "tax_year": 2026 },
+          { "id": "130", "tax_year": 2026 },
+          { "id": "131", "tax_year": 2026 },
+          { "id": "132", "tax_year": 2026 },
+          { "id": "133", "tax_year": 2026 },
+          { "id": "134", "tax_year": 2026 },
+          { "id": "135", "tax_year": 2026 },
+          { "id": "136", "tax_year": 2026 },
+          { "id": "137", "tax_year": 2026 },
+          { "id": "138", "tax_year": 2026 },
+          { "id": "139", "tax_year": 2026 },
+          { "id": "140", "tax_year": 2026 },
+          { "id": "141", "tax_year": 2026 },
+          { "id": "142", "tax_year": 2026 },
+          { "id": "143", "tax_year": 2026 },
+          { "id": "144", "tax_year": 2026 },
+          { "id": "145", "tax_year": 2026 },
+          { "id": "146", "tax_year": 2026 },
+          { "id": "147", "tax_year": 2026 },
+          { "id": "148", "tax_year": 2026 },
+          { "id": "149", "tax_year": 2026 },
+          { "id": "150", "tax_year": 2026 },
+          { "id": "151", "tax_year": 2026 },
+          { "id": "152", "tax_year": 2026 },
+          { "id": "153", "tax_year": 2026 },
+          { "id": "154", "tax_year": 2026 },
+          { "id": "155", "tax_year": 2026 },
+          { "id": "156", "tax_year": 2026 },
+          { "id": "157", "tax_year": 2026 },
+          { "id": "158", "tax_year": 2026 },
+          { "id": "159", "tax_year": 2026 },
+          { "id": "160", "tax_year": 2026 },
+          { "id": "161", "tax_year": 2026 },
+          { "id": "162", "tax_year": 2026 },
+          { "id": "163", "tax_year": 2026 },
+          { "id": "164", "tax_year": 2026 },
+          { "id": "165", "tax_year": 2026 },
+          { "id": "166", "tax_year": 2026 },
+          { "id": "167", "tax_year": 2026 },
+          { "id": "168", "tax_year": 2026 },
+          { "id": "169", "tax_year": 2026 },
+          { "id": "170", "tax_year": 2026 },
+          { "id": "171", "tax_year": 2026 },
+          { "id": "172", "tax_year": 2026 },
+          { "id": "173", "tax_year": 2026 },
+          { "id": "174", "tax_year": 2026 },
+          { "id": "175", "tax_year": 2026 },
+          { "id": "176", "tax_year": 2026 },
+          { "id": "177", "tax_year": 2026 },
+          { "id": "178", "tax_year": 2026 },
+          { "id": "179", "tax_year": 2026 },
+          { "id": "180", "tax_year": 2026 },
+          { "id": "181", "tax_year": 2026 },
+          { "id": "182", "tax_year": 2026 },
+          { "id": "183", "tax_year": 2026 },
+          { "id": "184", "tax_year": 2026 },
+          { "id": "185", "tax_year": 2026 },
+          { "id": "186", "tax_year": 2026 },
+          { "id": "187", "tax_year": 2026 },
+          { "id": "188", "tax_year": 2026 },
+          { "id": "189", "tax_year": 2026 },
+          { "id": "190", "tax_year": 2026 },
+          { "id": "191", "tax_year": 2026 },
+          { "id": "192", "tax_year": 2026 },
+          { "id": "193", "tax_year": 2026 },
+          { "id": "194", "tax_year": 2026 },
+          { "id": "195", "tax_year": 2026 },
+          { "id": "196", "tax_year": 2026 },
+          { "id": "197", "tax_year": 2026 },
+          { "id": "198", "tax_year": 2026 },
+          { "id": "199", "tax_year": 2026 },
+          { "id": "200", "tax_year": 2026 }
+        ]
+      },
+      "expect_error": "CalcInputError"
+    },
+    {
+      "tool": "rules_tx_property_tax_protest_deadline_batch",
+      "arguments": {
+        "items": [
+          {
+            "id": "a",
+            "tax_year": 2026,
+            "notice_date": "2026-05-01"
+          }
+        ]
+      },
+      "expect_error": "CalcInputError",
+      "expect_message_contains": ["items.0.notice_date"]
+    },
+    {
+      "tool": "rules_tx_property_tax_protest_deadline_batch",
+      "arguments": {
+        "items": [
+          {
+            "id": "a"
+          }
+        ]
+      },
+      "expect_error": "CalcInputError",
+      "expect_message_contains": ["items.0.tax_year"]
+    },
+    {
+      "tool": "registry_tx_equity_candidates_batch",
+      "arguments": {
+        "subjects": [
+          {
+            "id": "A",
+            "urn": "fl:parcel:us-48201:1"
+          }
+        ]
+      },
+      "expect_error": "RegistryUnavailable"
+    },
+    {
+      "tool": "registry_tx_equity_candidates_batch",
+      "arguments": {
+        "subjects": []
+      },
+      "expect_error": "InputError"
+    },
+    {
+      "tool": "registry_tx_equity_candidates_batch",
+      "arguments": {
+        "subjects": [
+          { "id": "s0", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s1", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s2", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s3", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s4", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s5", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s6", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s7", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s8", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s9", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s10", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s11", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s12", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s13", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s14", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s15", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s16", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s17", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s18", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s19", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s20", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s21", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s22", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s23", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s24", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s25", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s26", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s27", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s28", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s29", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s30", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s31", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s32", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s33", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s34", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s35", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s36", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s37", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s38", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s39", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s40", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s41", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s42", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s43", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s44", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s45", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s46", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s47", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s48", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s49", "urn": "fl:parcel:us-48201:1" },
+          { "id": "s50", "urn": "fl:parcel:us-48201:1" }
+        ]
+      },
+      "expect_error": "InputError"
+    },
+    {
       "tool": "calc_cam_reconciliation",
       "arguments": {
         "year": 2026,

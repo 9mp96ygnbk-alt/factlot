@@ -6403,6 +6403,103 @@
         }
       }
     },
+    "/v1/rules/tx_property_tax_protest_deadline/batch": {
+      "post": {
+        "operationId": "rules_tx_property_tax_protest_deadline_batch",
+        "summary": "Texas property tax protest deadlines (batch)",
+        "description": "Texas property tax protest deadlines for many notices in one call (1–200 items, e.g. a consultant's client list): each item's id, tax year and, if known, notice delivery date. Each result is exactly what rules_tx_property_tax_protest_deadline returns for that item under rule rules.tx.property_tax_protest_deadline@2 (deadline, unadjusted deadline, governing basis, conservative file-by date, skipped days, the item's warnings), echoed with its id; an item with invalid input carries its error and the others are still answered. summary counts the items per deadline, earliest first, with the earliest and latest deadline. The statute citations, the rule's verification status and the disclaimer appear once (value.rule, value.disclaimer). A rules tool: never a registry lookup. Information about statutory deadlines: not legal or tax advice and not a substitute for the advice of an attorney; it does not say whether to protest. Verification status: verified. Cite rule rules.tx.property_tax_protest_deadline_batch@1 and its statutes.",
+        "x-openai-isConsequential": false,
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "items": {
+                    "minItems": 1,
+                    "maxItems": 200,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200,
+                          "description": "Your label for this notice (a client, account or parcel number), echoed back with its result. Unique within the batch."
+                        },
+                        "tax_year": {
+                          "type": "integer",
+                          "minimum": 2000,
+                          "maximum": 2100,
+                          "description": "Tax year being protested, e.g. 2026 (2000–2100). An invalid value is an error for this item only."
+                        },
+                        "notice_delivered_date": {
+                          "type": "string",
+                          "format": "date",
+                          "description": "Date the appraisal district's notice of appraised value was delivered (Tax Code §25.19), YYYY-MM-DD. A mailed notice is presumed delivered on the day it was deposited in the mail (§1.07(c)). Omit if unknown (May 15 is then the only basis). An invalid date is an error for this item only."
+                        }
+                      },
+                      "required": ["id", "tax_year"]
+                    },
+                    "description": "The notices to compute deadlines for (1–200): each one's id, tax year and, if known, notice delivery date. Each result equals rules_tx_property_tax_protest_deadline for that item."
+                  }
+                },
+                "required": ["items"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Result: { value, formula, steps, warnings, provenance }.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input; read `issues`, fix the arguments, and retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "CalcInputError, FactLotIdError, InputError, or UnknownTool"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "issues": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "path": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error", "message"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/id/parcel": {
       "post": {
         "operationId": "id_parcel",

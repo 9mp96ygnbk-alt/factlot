@@ -53,6 +53,10 @@ def texas_only(state_fips: str) -> str:
 
 
 DEFAULTS = {"area_band": 0.35, "year_band": 15, "min_matches": 10, "limit": 50}
+#: Most subjects in one ``registry_tx_equity_candidates_batch`` call (``TX_EQUITY_BATCH_MAX_SUBJECTS`` in TS).
+BATCH_MAX_SUBJECTS = 50
+#: The rule parameters a batch applies to every subject.
+BATCH_PARAMS = ("area_band", "year_band", "min_matches", "limit", "tax_year")
 # The only predicates this tool reads (never ownership.*).
 PARCEL_PREDICATES = (
     "parcel.tax_year", "parcel.state_property_category", "parcel.market_value", "parcel.appraised_value",
@@ -103,6 +107,14 @@ NOTICE = (
     "or tax advice and not a substitute for the advice of an attorney. FactLot is software, not a property tax "
     "consultant under Texas Occupations Code chapter 1152; it does not prepare, file or advise on protests."
 )
+
+
+def batch_answer(answer: dict[str, Any]) -> dict[str, Any]:
+    """One subject's answer inside a batch: the single answer without ``notice`` and ``selection.rule``, which the
+    batch gives once at the top."""
+    out = {k: v for k, v in answer.items() if k != "notice"}
+    out["selection"] = {k: v for k, v in answer["selection"].items() if k != "rule"}
+    return out
 
 
 def situs_zip5(situs: Any) -> str | None:

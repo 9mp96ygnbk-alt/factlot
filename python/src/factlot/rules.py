@@ -7,6 +7,7 @@ citations, and draft rules always warn.
 from __future__ import annotations
 
 import copy
+import re
 from datetime import date, timedelta
 from typing import Any, Callable
 
@@ -166,16 +167,146 @@ def tx_property_tax_protest_deadline(raw: Any) -> dict[str, Any]:
     })
 
 
+# --- Texas: protest deadlines for many notices at once ---------------------------------------
+
+#: The batch's own formula identity; every item is answered under TX_PROTEST_DEADLINE (@2).
+TX_PROTEST_DEADLINE_BATCH: dict[str, Any] = {
+    **copy.deepcopy(TX_PROTEST_DEADLINE),
+    "id": "rules.tx.property_tax_protest_deadline_batch",
+    "version": 1,
+    "title": "Texas property tax protest deadlines (batch)",
+}
+TX_PROTEST_DEADLINE_BATCH_MAX_ITEMS = 200
+_TAX_YEAR_ISSUE = "expected an integer from 2000 to 2100"
+_DATE_ISSUE = "expected a valid YYYY-MM-DD date"
+_ASCII_DATE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
+
+
+def _valid_date(v: Any) -> bool:
+    """A YYYY-MM-DD string naming a real calendar day (``validDate`` in TS)."""
+    if not isinstance(v, str) or not _ASCII_DATE.fullmatch(v):
+        return False
+    try:
+        date(int(v[:4]), int(v[5:7]), int(v[8:]))
+    except ValueError:
+        return False
+    return True
+
+
+def _batch_items(raw: Any) -> list[dict[str, Any]]:
+    """The items of a batch call, checked as ``TxProtestDeadlineBatchInput`` checks them (same issue paths)."""
+    if not isinstance(raw, dict):
+        raise CalcInputError("invalid input: (root): expected object", [{"path": "", "message": "expected object"}])
+    items = raw.get("items")
+
+    def fail(issues: list[dict[str, str]]) -> None:
+        raise CalcInputError("invalid input: " + "; ".join(f"{i['path']}: {i['message']}" for i in issues), issues)
+
+    if not isinstance(items, list):
+        fail([{"path": "items", "message": "expected array"}])
+    if not 1 <= len(items) <= TX_PROTEST_DEADLINE_BATCH_MAX_ITEMS:
+        fail([{"path": "items", "message": f"expected 1 to {TX_PROTEST_DEADLINE_BATCH_MAX_ITEMS} items"}])
+    issues: list[dict[str, str]] = []
+    for i, item in enumerate(items):
+        if not isinstance(item, dict):
+            issues.append({"path": f"items.{i}", "message": "expected object"})
+        else:
+            if not isinstance(item.get("id"), str) or not 1 <= len(item["id"]) <= 200:
+                issues.append({"path": f"items.{i}.id", "message": "expected a string of 1 to 200 characters"})
+            if "tax_year" not in item:  # a present but invalid tax_year is the item's own error
+                issues.append({"path": f"items.{i}.tax_year", "message": "required"})
+    if not issues:
+        seen: set[str] = set()
+        for i, item in enumerate(items):
+            if item["id"] in seen:
+                issues.append({"path": f"items.{i}.id", "message": f'duplicate id "{item["id"]}"'})
+            seen.add(item["id"])
+    if issues:
+        fail(issues)
+    return items
+
+
+def _batch_item(item: dict[str, Any]) -> dict[str, Any]:
+    """One item's deadline, or its input error (``batchItem`` in TS)."""
+    issues = []
+    year = item.get("tax_year")
+    if (isinstance(year, bool) or not isinstance(year, (int, float))
+            or (isinstance(year, float) and not year.is_integer()) or not 2000 <= year <= 2100):
+        issues.append({"path": "tax_year", "message": _TAX_YEAR_ISSUE})
+    notice = item.get("notice_delivered_date")
+    if notice is not None and not _valid_date(notice):
+        issues.append({"path": "notice_delivered_date", "message": _DATE_ISSUE})
+    if issues:
+        return {"id": item["id"], "error": {
+            "error": "CalcInputError",
+            "message": "invalid input: " + "; ".join(f"{i['path']}: {i['message']}" for i in issues),
+            "issues": issues}}
+    try:
+        r = tx_property_tax_protest_deadline({"tax_year": int(year), **({} if notice is None else
+                                                                       {"notice_delivered_date": notice})})
+    except CalcInputError as e:
+        return {"id": item["id"], "error": {"error": "CalcInputError", "message": str(e), "issues": e.issues}}
+    fields = {k: v for k, v in r["value"].items() if k not in ("rule", "disclaimer")}
+    return {"id": item["id"], **fields, "warnings": r["warnings"]}
+
+
+def tx_property_tax_protest_deadline_batch(raw: Any) -> dict[str, Any]:
+    """Protest deadlines for many notices in one call (``txProtestDeadlineBatch`` in TS): each item answered by
+    ``tx_property_tax_protest_deadline`` exactly as a single call, an item with bad input carrying its error."""
+    items = _batch_items(raw)
+    t = Trace()
+    results = [_batch_item(item) for item in items]
+    answered = [r for r in results if "error" not in r]
+    counts: dict[str, int] = {}
+    for r in answered:
+        counts[r["deadline"]] = counts.get(r["deadline"], 0) + 1
+    by_deadline = [{"deadline": d, "count": counts[d]} for d in sorted(counts)]
+    errors = len(results) - len(answered)
+    t.step("Items", len(results), "notices given")
+    t.step("Deadlines computed", len(answered),
+           f"{TX_PROTEST_DEADLINE['id']}@{TX_PROTEST_DEADLINE['version']} for each item")
+    t.step("Items with an input error", errors, "results[i].error")
+    earliest = by_deadline[0]["deadline"] if by_deadline else None
+    latest = by_deadline[-1]["deadline"] if by_deadline else None
+    if earliest is not None:
+        t.step("Earliest deadline", earliest, "earliest answered deadline")
+        t.step("Latest deadline", latest, "latest answered deadline")
+    if errors:
+        t.warn(f"{errors} of {len(results)} items have an input error (results[i].error) and no deadline; "
+               "the other items are answered.")
+    warned = [r["id"] for r in answered if r["warnings"]]
+    if warned:
+        more = f" and {len(warned) - 10} more" if len(warned) > 10 else ""
+        t.warn(f"Results for {', '.join(warned[:10])}{more} carry warnings (results[i].warnings); "
+               "relay them with each deadline.")
+    if TX_PROTEST_DEADLINE["verification"]["status"] != "verified":
+        laws = "; ".join(c["law"] for c in TX_PROTEST_DEADLINE["citations"])
+        t.warn(f"Rule {TX_PROTEST_DEADLINE['id']}@{TX_PROTEST_DEADLINE['version']} is a DRAFT: not yet verified "
+               f"against {laws}. Confirm with the official text or a professional before relying on it.")
+    return t.result(TX_PROTEST_DEADLINE_BATCH["id"], TX_PROTEST_DEADLINE_BATCH["version"], {
+        "results": results,
+        "summary": {"items": len(results), "answered": len(answered), "errors": errors, "by_deadline": by_deadline,
+                    "earliest": earliest, "latest": latest},
+        "disclaimer": tx_protest_deadline_disclaimer(
+            TX_PROTEST_DEADLINE["verification"].get("verified_at") or "an unrecorded date"),
+        "rule": copy.deepcopy(TX_PROTEST_DEADLINE),
+    })
+
+
 #: name -> (function, rule id, version). Names match the TypeScript `rulePacks` registry.
 RULES: dict[str, tuple[Callable[[Any], dict[str, Any]], str, int]] = {
     "tx_property_tax_protest_deadline": (tx_property_tax_protest_deadline, TX_PROTEST_DEADLINE["id"],
                                          TX_PROTEST_DEADLINE["version"]),
+    "tx_property_tax_protest_deadline_batch": (tx_property_tax_protest_deadline_batch,
+                                               TX_PROTEST_DEADLINE_BATCH["id"], TX_PROTEST_DEADLINE_BATCH["version"]),
 }
 
 __all__ = [
     "RULES",
     "TX_PROTEST_DEADLINE",
+    "TX_PROTEST_DEADLINE_BATCH",
     "texas_holidays",
     "tx_property_tax_protest_deadline",
+    "tx_property_tax_protest_deadline_batch",
     "tx_protest_deadline_disclaimer",
 ]

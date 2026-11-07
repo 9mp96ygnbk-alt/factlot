@@ -651,6 +651,55 @@ def _tx_equity_candidates(args: dict[str, Any]) -> dict[str, Any]:
     return tx_equity.equity_candidates(reg, urn, **params)
 
 
+def _subject_error(err: Exception) -> dict[str, Any]:
+    """A batch subject's error, as ``run_tool`` returns it for the single tool (``errorOutcome`` in TS)."""
+    if isinstance(err, FactLotIdError):
+        return {"error": "FactLotIdError", "message": str(err), "issues": []}
+    if isinstance(err, _InputError):
+        issues = err.issues
+        return {"error": "InputError",
+                "message": "invalid input: " + "; ".join(f"{i['path'] or '(root)'}: {i['message']}" for i in issues),
+                "issues": issues}
+    if isinstance(err, _NotFound):
+        out = {"error": "NotFound", "message": str(err), "issues": []}
+        if err.coverage is not None:
+            out["coverage"] = err.coverage
+        return out
+    raise err
+
+
+def _tx_equity_candidates_batch(args: dict[str, Any]) -> dict[str, Any]:
+    from .registry import tx_equity
+
+    invalid = input_schema_issues(_input_schemas()["registry_tx_equity_candidates_batch"], args)[:20]
+    if not invalid:
+        seen: set[str] = set()
+        for i, s in enumerate(args["subjects"]):
+            if s["id"] in seen:
+                invalid.append({"path": f"subjects.{i}.id", "message": f'duplicate id "{s["id"]}"'})
+            seen.add(s["id"])
+    if invalid:
+        raise _MultiInputError(invalid[:20])
+    shared = {k: args[k] for k in tx_equity.BATCH_PARAMS if k in args}
+    results = []
+    for s in args["subjects"]:
+        subject = {k: v for k, v in s.items() if k != "id"}
+        try:
+            answer = _tx_equity_candidates({**subject, **shared})
+        except (FactLotIdError, _InputError, _NotFound) as e:
+            # No registry is no answer for any subject: _RegistryUnavailable fails the call, as for the single tool.
+            results.append({"id": s["id"], "error": _subject_error(e)})
+            continue
+        results.append({"id": s["id"], **tx_equity.batch_answer(answer)})
+    errors = sum(1 for r in results if "error" in r)
+    return {
+        "results": results,
+        "summary": {"subjects": len(results), "answered": len(results) - errors, "errors": errors},
+        "rule": tx_equity.RULE,
+        "notice": tx_equity.NOTICE,
+    }
+
+
 _REGISTRY_TOOLS = {
     "registry_get": _registry_get,
     "registry_resolve_parcel": _resolve_parcel,
@@ -660,6 +709,7 @@ _REGISTRY_TOOLS = {
     "registry_owned_by": _owned_by,
     "registry_coverage": _registry_coverage,
     "registry_tx_equity_candidates": _tx_equity_candidates,
+    "registry_tx_equity_candidates_batch": _tx_equity_candidates_batch,
 }
 
 _OTHER_TOOLS = {
