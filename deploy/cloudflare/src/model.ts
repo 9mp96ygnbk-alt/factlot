@@ -6,12 +6,15 @@
  * Rules this module keeps:
  * - Off unless the Worker secret ANTHROPIC_API_KEY is set: the tools are not listed and their
  *   routes answer 503 ModelUnavailable.
- * - One deadline per tool call (60 s by default) covers every attempt; a request that runs past it
- *   is aborted.
+ * - One deadline per tool call covers every attempt (doc_extract_lease 120 s, report_narrative
+ *   60 s); a request that runs past it is aborted. A 5xx/529 is retried once, and only while at
+ *   least 30 s of the deadline remain. A 400 or 413 is never retried.
+ * - Every request asks for inference in the United States (`inference_geo: "us"`).
  * - Nothing the customer sent or the model returned is logged: `logModelCall` takes only counts,
  *   latencies and fixed outcome names, so no document text, quote, figure or prose can reach a log.
- * - The system prompt is sent as a cached block (prompt caching), so repeated calls pay the
- *   cache-read rate for it.
+ * - The system prompt is sent as a cached block (prompt caching), and so is the request data
+ *   (the document or result) as the first user block: a retry or redraft note goes after it, so
+ *   the second attempt reads the document from the cache.
  */
 import type { Env } from "./types.ts";
 
@@ -29,19 +32,26 @@ export const MODEL_IDS = {
 
 /** Per-call budgets. Effort `low` is the recommended start for extraction and short writing. */
 export const MODEL_BUDGETS = {
-  /** Wall time for one tool call, every attempt included. */
-  timeoutMs: 60_000,
-  extraction: { maxTokens: 12_000, effort: "low" },
-  narrative: { maxTokens: 4_000, effort: "low" },
+  extraction: { maxTokens: 12_000, effort: "low", timeoutMs: 120_000 },
+  narrative: { maxTokens: 4_000, effort: "low", timeoutMs: 60_000 },
+  /** A 5xx/529 is retried only while at least this much of the deadline remains. */
+  retryMinRemainingMs: 30_000,
 } as const;
 
-/** Published prices (USD per million tokens) used for the cost estimates in the docs. */
+/** Where inference runs: the United States (Messages API `inference_geo`). */
+export const INFERENCE_GEO = "us";
+
+/**
+ * Published prices (USD per million tokens) used for the cost estimates in the docs. US-only
+ * inference (`inference_geo: "us"`) multiplies every category by `usInferenceMultiplier`.
+ */
 export const MODEL_PRICES_PER_MTOK = {
   "claude-sonnet-5-5": {
     input: 2,
     output: 10,
     cacheWrite: 2.5,
-    cacheRead: 0.2,
+    cacheRead: 0.1,
+    usInferenceMultiplier: 1.1,
   },
 } as const;
 
@@ -91,7 +101,7 @@ export const fetchTransport: ModelTransport = async (body, init) => {
 export interface ModelDeps {
   transport?: ModelTransport;
   now?: () => number;
-  /** Override MODEL_BUDGETS.timeoutMs (tests). */
+  /** Override the tool's deadline (MODEL_BUDGETS.*.timeoutMs) (tests). */
   timeoutMs?: number;
   /** fetch for `document.url` (tests). */
   fetchDocument?: typeof fetch;
@@ -106,16 +116,20 @@ export type ModelFailure =
   | "timeout" // the deadline passed
   | "refused" // stop_reason refusal
   | "truncated" // stop_reason max_tokens
-  | "upstream"; // anything else (a 400, an unreadable answer)
+  | "too_large" // 413 from the provider: the request is too large (not retried)
+  | "upstream"; // anything else (a 400, an unreadable answer; a 400 is not retried)
 
 export class ModelError extends Error {
   readonly kind: ModelFailure;
   readonly retryAfterSeconds?: number;
-  constructor(kind: ModelFailure, retryAfterSeconds?: number) {
+  /** The provider's HTTP status, when it answered. */
+  readonly status?: number;
+  constructor(kind: ModelFailure, retryAfterSeconds?: number, status?: number) {
     super(kind);
     this.name = "ModelError";
     this.kind = kind;
     this.retryAfterSeconds = retryAfterSeconds;
+    this.status = status;
   }
 }
 
@@ -171,8 +185,10 @@ export interface ModelRequest {
   model: string;
   /** Fixed instructions: sent as one cached system block. Never put request data here. */
   system: string;
-  /** The user turn (request data). */
+  /** The user turn's request data (the document or result): sent first, as a cached block. */
   user: string;
+  /** A retry or redraft note, sent after the cached data so the data still reads from cache. */
+  note?: string;
   /** JSON Schema for structured output (output_config.format). */
   schema: Record<string, unknown>;
   maxTokens: number;
@@ -192,13 +208,48 @@ function num(v: unknown): number {
   return typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : 0;
 }
 
-function usageOf(body: unknown): Usage {
-  const u = (body as { usage?: Record<string, unknown> } | undefined)?.usage;
+function usageFields(u: Record<string, unknown> | undefined): Usage {
   return {
     input_tokens: num(u?.input_tokens),
     output_tokens: num(u?.output_tokens),
     cache_read_input_tokens: num(u?.cache_read_input_tokens),
     cache_creation_input_tokens: num(u?.cache_creation_input_tokens),
+  };
+}
+
+/**
+ * Tokens of one answer. A request that ran more than one step server-side (a fallback, for
+ * example) itemizes them under `usage.iterations`: their sum is used, or the top-level count
+ * where that is larger, so no step goes uncounted.
+ */
+export function usageOf(body: unknown): Usage {
+  const u = (body as { usage?: Record<string, unknown> } | undefined)?.usage;
+  const top = usageFields(u);
+  const its = u?.iterations;
+  if (!Array.isArray(its) || its.length === 0) return top;
+  const sum = its.reduce<Usage>(
+    (acc, it) =>
+      addUsage(
+        acc,
+        usageFields(
+          it && typeof it === "object"
+            ? (it as Record<string, unknown>)
+            : undefined,
+        ),
+      ),
+    emptyUsage(),
+  );
+  return {
+    input_tokens: Math.max(top.input_tokens, sum.input_tokens),
+    output_tokens: Math.max(top.output_tokens, sum.output_tokens),
+    cache_read_input_tokens: Math.max(
+      top.cache_read_input_tokens,
+      sum.cache_read_input_tokens,
+    ),
+    cache_creation_input_tokens: Math.max(
+      top.cache_creation_input_tokens,
+      sum.cache_creation_input_tokens,
+    ),
   };
 }
 
@@ -210,17 +261,19 @@ function retryAfter(headers: Headers): number | undefined {
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /**
- * Open a session for one tool call. Each `call` is one Messages request, retried once on a 5xx or
- * 529 when at least 10 seconds of the deadline remain. A 429 is not retried here: the caller is
- * told when to come back.
+ * Open a session for one tool call with `timeoutMs` for every attempt together. Each `call` is one
+ * Messages request, retried once on a 5xx or 529 when at least 30 seconds of the deadline remain.
+ * A 429 is not retried here (the caller is told when to come back), nor is a 400 or 413 (the same
+ * request would fail the same way).
  */
 export function modelSession(
   env: Pick<Env, "ANTHROPIC_API_KEY">,
   deps: ModelDeps = {},
+  timeoutMs: number = MODEL_BUDGETS.narrative.timeoutMs,
 ): ModelSession {
   const now = deps.now ?? Date.now;
   const transport = deps.transport ?? fetchTransport;
-  const deadline = now() + (deps.timeoutMs ?? MODEL_BUDGETS.timeoutMs);
+  const deadline = now() + (deps.timeoutMs ?? timeoutMs);
   let total = emptyUsage();
   let attempts = 0;
   const apiKey = env.ANTHROPIC_API_KEY?.trim() ?? "";
@@ -259,7 +312,9 @@ export function modelSession(
       throw new ModelError("rate_limited", retryAfter(res.headers) ?? 30);
     if (res.status >= 500)
       throw new ModelError("overloaded", retryAfter(res.headers) ?? 10);
-    if (res.status !== 200) throw new ModelError("upstream");
+    if (res.status === 413) throw new ModelError("too_large", undefined, 413);
+    if (res.status !== 200)
+      throw new ModelError("upstream", undefined, res.status);
     const b = res.body as {
       model?: unknown;
       stop_reason?: unknown;
@@ -294,11 +349,24 @@ export function modelSession(
             cache_control: { type: "ephemeral" },
           },
         ],
-        messages: [{ role: "user", content: req.user }],
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: req.user,
+                cache_control: { type: "ephemeral" },
+              },
+              ...(req.note ? [{ type: "text", text: req.note }] : []),
+            ],
+          },
+        ],
         output_config: {
           effort: req.effort,
           format: { type: "json_schema", schema: req.schema },
         },
+        inference_geo: INFERENCE_GEO,
         fallbacks: "default",
       };
       try {
@@ -307,7 +375,7 @@ export function modelSession(
         if (
           err instanceof ModelError &&
           err.kind === "overloaded" &&
-          deadline - now() > 10_000
+          deadline - now() >= MODEL_BUDGETS.retryMinRemainingMs
         ) {
           await sleep(500);
           return once(body);
@@ -376,7 +444,7 @@ export function modelFailureAnswer(
         body: {
           error: "ModelTimeout",
           code: "ModelTimeout",
-          message: `${tool} did not finish within ${MODEL_BUDGETS.timeoutMs / 1000} seconds; nothing was counted.`,
+          message: `${tool} did not finish within ${(tool === "doc_extract_lease" ? MODEL_BUDGETS.extraction.timeoutMs : MODEL_BUDGETS.narrative.timeoutMs) / 1000} seconds; nothing was counted.`,
           next:
             tool === "doc_extract_lease"
               ? "retry with fewer predicates or a shorter document (split it), or " +
@@ -407,6 +475,19 @@ export function modelFailureAnswer(
               : "ask for fewer words (max_words)",
         },
       };
+    case "too_large":
+      return {
+        status: 413,
+        body: {
+          error: "ModelInputTooLarge",
+          code: "ModelInputTooLarge",
+          message: `the model provider refused this request as too large, so ${tool} did not run; nothing was counted. Retrying the same request fails the same way.`,
+          next:
+            tool === "doc_extract_lease"
+              ? "split the document (fewer pages per call), then combine the facts with doc_abstract_lease"
+              : "narrate a smaller result",
+        },
+      };
     default:
       return {
         status: 502,
@@ -414,10 +495,26 @@ export function modelFailureAnswer(
           error: "ModelError",
           code: "ModelError",
           message: `the model step of ${tool} failed; nothing was counted.`,
-          next: `retry once, or ${fallback}`,
+          // A 400 is the request itself: the same request fails the same way.
+          next: err.status === 400 ? fallback : `retry once, or ${fallback}`,
         },
       };
   }
+}
+
+/**
+ * A failed call's answer once its charge is settled: when the charge was not given back (the
+ * subscription's daily refund cap is used up), say so instead of "nothing was counted".
+ */
+export function settledFailure<
+  T extends { status: number; body: Record<string, unknown> },
+>(answer: T, refunded: boolean): T {
+  if (refunded) return answer;
+  const message = String(answer.body.message ?? "").replace(
+    /nothing was counted/,
+    "this call was counted: more than 5 model-backed calls failed for this subscription today (UTC), and failed calls are given back again from 00:00 UTC",
+  );
+  return { ...answer, body: { ...answer.body, message, counted: true } };
 }
 
 /** 503 when the feature is off (no ANTHROPIC_API_KEY): safe to deploy before the key is set. */

@@ -17,21 +17,26 @@ import {
   objectLimiter,
   type CounterStore,
   type DurableObjectNamespaceLike,
+  type ModelGate,
 } from "./limiter.ts";
 import {
   EXTRACT_LEASE_TOOL,
+  INGEST_LIMITS,
+  decodeBase64,
   extractLease,
   extractionSchema,
   extractionSystemPrompt,
+  readPagesCapped,
   type ChargedAllowance,
 } from "./ingest.ts";
 import {
   ModelError,
   modelSession,
+  usageOf,
   type ModelTransport,
   type TransportResponse,
 } from "./model.ts";
-import { runModelTool } from "./model-tools.ts";
+import { MODEL_CALL_LIMITS, runModelTool } from "./model-tools.ts";
 import {
   adviceIn,
   extractFigures,
@@ -162,7 +167,10 @@ function memoryMeter(now = () => T0) {
     void _;
     return rest;
   };
-  const service: MeterService = {
+  const service: MeterService & ModelGate = {
+    acquireSlot: async (s: string, limit: number, ttlMs: number) =>
+      m(s).acquireSlot(limit, ttlMs),
+    releaseSlot: async (s: string, id: string) => m(s).releaseSlot(id),
     hit: async (s: string, perMinute: number, q?: QuotaSpec) =>
       strip(m(s).hit(perMinute, q)),
     consume: async (s: string, q: QuotaSpec) => strip(m(s).hit(null, q)),
@@ -268,6 +276,7 @@ function freeAllowance() {
       quota: { test: { used: n } },
       refund: async () => {
         log.refunded += n;
+        return true;
       },
     };
   };
@@ -486,8 +495,8 @@ describe("model client", () => {
 
 describe("doc_extract_lease", () => {
   it("returns only what FactLot verified; wrong quotes and wrong numbers go to needs_review", async () => {
-    // The value that is not JSON costs one retry; the second answer is the same.
-    const fake = fakeAnthropic([message(MODEL_FACTS), message(MODEL_FACTS)]);
+    // The value that is not JSON is one rejected item: no second request.
+    const fake = fakeAnthropic([message(MODEL_FACTS)]);
     const allowance = freeAllowance();
     const a = await extractLease(
       KEY,
@@ -533,12 +542,14 @@ describe("doc_extract_lease", () => {
     assert.equal(b.nothing_stored, true);
     assert.deepEqual(b.model, {
       id: "claude-sonnet-5-5",
-      input_tokens: 4200,
-      output_tokens: 600,
-      cache_read_input_tokens: 1800,
+      input_tokens: 2100,
+      output_tokens: 300,
+      cache_read_input_tokens: 900,
     });
     assert.match(b.document.document_id, /^fl:document:sha256-[a-f0-9]{64}$/);
-    assert.equal(fake.requests.length, 2);
+    assert.equal(fake.requests.length, 1);
+    for (const r of b.needs_review)
+      assert.equal((r as { verified?: unknown }).verified, false);
   });
 
   it("the prompt: cached catalog in the system block, the document only in the user turn", async () => {
@@ -554,7 +565,16 @@ describe("doc_extract_lease", () => {
     assert.equal(system, extractionSystemPrompt());
     assert.ok(!system.includes("Harbor Point"));
     assert.ok(system.includes("lease.base_rent_schedule"));
-    const user = (body.messages as { content: string }[])[0]!.content;
+    const content = (
+      body.messages as {
+        content: { text: string; cache_control?: unknown }[];
+      }[]
+    )[0]!.content;
+    // The document is the first user block, cached; nothing else is sent on a first attempt.
+    assert.equal(content.length, 1);
+    assert.deepEqual(content[0]!.cache_control, { type: "ephemeral" });
+    assert.equal(body.inference_geo, "us");
+    const user = content[0]!.text;
     assert.ok(user.includes("[Page 2]\n1. Term."));
     assert.ok(user.includes("Requested predicates: lease.tenant"));
     // The schema does not change with the predicates asked for (cache-stable).
@@ -574,9 +594,18 @@ describe("doc_extract_lease", () => {
     );
     assert.equal(a.status, 200);
     assert.equal(fake.requests.length, 2);
-    const retryUser = (fake.requests[1]!.messages as { content: string }[])[0]!
-      .content;
-    assert.match(retryUser, /^Your previous answer was not valid/);
+    const first = (
+      fake.requests[0]!.messages as { content: { text: string }[] }[]
+    )[0]!.content;
+    const retry = (
+      fake.requests[1]!.messages as {
+        content: { text: string; cache_control?: unknown }[];
+      }[]
+    )[0]!.content;
+    // The document block is unchanged (read from the cache); the note comes after it.
+    assert.deepEqual(retry[0], first[0]);
+    assert.match(retry[1]!.text, /^Your previous answer was not valid/);
+    assert.equal(retry[1]!.cache_control, undefined);
   });
 
   it("invalid JSON twice: 502, and the pages are given back", async () => {
@@ -1197,8 +1226,9 @@ describe("report_narrative", () => {
       { transport: fake.transport, log: () => {} },
     );
     assert.equal(fake.requests.length, 2);
-    const redraft = (fake.requests[1]!.messages as { content: string }[])[0]!
-      .content;
+    const redraft = (
+      fake.requests[1]!.messages as { content: { text: string }[] }[]
+    )[0]!.content[1]!.text;
     assert.match(redraft, /^Rewrite: a previous draft used advice/);
     assert.match(redraft, /"You should"/);
     const b = a.body as {
@@ -1232,7 +1262,7 @@ describe("report_narrative", () => {
   });
 
   it("Texas tools: arithmetic only, with the §81.101(c) notice in text and notice", async () => {
-    const result = runTool("calc_tx_unequal_appraisal", {
+    const txInput = {
       tax_year: 2027,
       subject: {
         id: "S",
@@ -1246,8 +1276,7 @@ describe("report_narrative", () => {
         value: 900000 + i * 50000,
         value_basis: "appraised",
       })),
-    });
-    assert.equal(result.ok, true);
+    };
     const fake = fakeAnthropic([
       message({
         paragraphs: [
@@ -1265,7 +1294,7 @@ describe("report_narrative", () => {
       KEY,
       {
         tool: "calc_tx_unequal_appraisal",
-        result: (result as { result: Record<string, unknown> }).result,
+        input: txInput,
         audience: "summary",
       },
       freeAllowance().take,
@@ -1428,5 +1457,529 @@ describe("tool definitions", () => {
     walk(extractionSchema());
     assert.equal(optional, 0);
     assert.equal(unions, 0);
+  });
+});
+
+// --- Fixes from review ------------------------------------------------------------------------
+
+/** A Messages answer that is a clean narrative ($17.63 is calc_npv's value for npvInput). */
+const CLEAN_NARRATIVE = () =>
+  message({ paragraphs: ["The NPV is $17.63 at an 8% rate."] });
+const NPV_INPUT = { rate: 0.08, cash_flows: [-1000, 300, 400, 500] };
+
+/** routerEnv on a clock the test moves. */
+function clockEnv() {
+  const clock = { t: T0 };
+  const meter = memoryMeter(() => clock.t);
+  const { env } = routerEnv({ ...KEY, METER: meter.service });
+  const caller = { plan: "pro" as const, subject: "sub:sub_gate" };
+  const narratives = () =>
+    meter.meters
+      .get(modelSubject("narratives", caller.subject))
+      ?.quota("month", 50).used ?? 0;
+  return { clock, env, caller, narratives };
+}
+
+describe("review fixes: report_narrative checks", () => {
+  it("(1) a Texas result without input is refused; a shape-checked label names the check", async () => {
+    const fake = fakeAnthropic([CLEAN_NARRATIVE()]);
+    const allowance = freeAllowance();
+    const tx = runTool("rules_tx_property_tax_protest_deadline", {
+      tax_year: 2027,
+    }) as { result: Record<string, unknown> };
+    for (const tool of [
+      "rules_tx_property_tax_protest_deadline",
+      "calc_tx_unequal_appraisal",
+      "registry_tx_equity_candidates",
+    ]) {
+      const a = await reportNarrative(
+        KEY,
+        { tool, result: tx.result, audience: "summary" },
+        allowance.take,
+        { transport: fake.transport, log: () => {} },
+      );
+      assert.equal(a.status, 422, tool);
+      assert.equal(a.body.error, "InputRequired");
+      assert.equal(typeof a.body.next, "string");
+    }
+    assert.equal(fake.requests.length, 0);
+    assert.equal(allowance.log.charged, 0);
+
+    // A non-Texas result given as is: narrated, and the label says it was not recomputed.
+    const real = (runTool("calc_npv", NPV_INPUT) as { result: unknown }).result;
+    const a = await reportNarrative(
+      KEY,
+      { tool: "calc_npv", result: real, audience: "summary" },
+      allowance.take,
+      {
+        transport: fakeAnthropic([
+          message({ paragraphs: ["The NPV is $17.63."] }),
+        ]).transport,
+        log: () => {},
+      },
+    );
+    assert.equal(a.status, 200);
+    assert.equal(
+      a.body.label,
+      "Drafted by a model; figures matched against the result you supplied (not recomputed by FactLot)",
+    );
+    assert.doesNotMatch(String(a.body.label), /verified by FactLot/);
+    assert.equal(
+      (a.body.source as { result_check: string }).result_check,
+      "shape",
+    );
+  });
+
+  it("(2) wrong figures do not survive", () => {
+    const ok = (s: string, result: unknown) => {
+      const facts = resultFacts(result);
+      const figs = extractFigures(s);
+      return figs.length > 0 && figs.every((f) => figureMatches(f, facts));
+    };
+    const removed: [string, unknown][] = [
+      ["3%", { rate: 0.0896, count: 3 }],
+      ["$1 million", { price: 742000 }],
+      ["1/1/26", { count: 1, year: 26 }],
+      ["5-9%", { low: 0.05 }],
+      [".5%", { rate: 0.05, n: 5 }],
+      ["-$73,000", { gap: 73000 }],
+      ["3 comparables", { comparables: ["a", "b", "c"] }],
+      ["$742,000", { note: "the cap is $742,000 this year" }],
+      ["two million", { price: 742000 }],
+      ["half", { n: 2 }],
+      ["12/40/7", { n: 12 }],
+      ["§41.4", { law: "Tex. Tax Code §41.43(b)(3)" }],
+    ];
+    for (const [s, r] of removed) {
+      assert.equal(ok(s, r), false, s);
+      const v = verifyProse([`The figure is ${s} here.`], resultFacts(r), {
+        keepUnverified: false,
+        maxWords: 100,
+      });
+      assert.equal(v.text, "", s);
+    }
+    const kept: [string, unknown][] = [
+      ["8.96%", { rate: 0.0896 }],
+      ["$742,000", { price: 742000 }],
+      ["$0.74 million", { price: 742000 }],
+      ["$2 million", { price: 1_960_000 }],
+      ["1/1/26", { on: "2026-01-01" }],
+      ["5-9%", { low: 0.05, high: 0.09 }],
+      ["-$73,000", { gap: -73000 }],
+      ["$73,000", { gap: -73000 }],
+      ["6.5%", { cap_rate_percent: 6.5 }],
+      ["half", { share: 0.5 }],
+      ["two million", { price: 2_000_000 }],
+      ["3 comparables", { comparables_count: 3 }],
+    ];
+    for (const [s, r] of kept) assert.equal(ok(s, r), true, s);
+  });
+
+  it("(3) citations match whole, with the code the prose names", () => {
+    const facts = resultFacts({
+      law: [
+        { section: "Tex. Tax Code §41.43(b)(3)" },
+        { section: "Tex. Occ. Code §1103.003(1)" },
+      ],
+    });
+    const ok = (s: string) =>
+      extractFigures(s).every((f) => figureMatches(f, facts));
+    for (const s of [
+      "§41.43(b)(3)",
+      "Tax Code §41.43(b)(3)",
+      "Tex. Tax Code §41.43(b)(3)",
+      "Occupations Code §1103.003(1)",
+    ])
+      assert.ok(ok(s), s);
+    for (const s of [
+      "§41.4",
+      "§41.43",
+      "Property Code §41.43(b)(3)",
+      "Tax Code §1103.003(1)",
+    ])
+      assert.ok(!ok(s), s);
+  });
+
+  it("(4) advice and valuation wording; only an adjacent negation is allowed", () => {
+    for (const s of [
+      "The value should fall.",
+      "The owner ought to file.",
+      "It would be prudent to file.",
+      "A wise owner files.",
+      "A reduction is warranted.",
+      "The tax savings are large.",
+      "The owner can save money.",
+      "The savings are $5,000.",
+      "The property is over-assessed.",
+      "The property is overvalued.",
+      "The assessment is excessive.",
+      "The value is too high.",
+      "The market value of the property is $900,000.",
+      "Its true value is lower.",
+      "The building is worth $900,000.",
+      "The owner is entitled to a reduction.",
+      "The best course is a protest.",
+      "The best option is a protest.",
+      "The next step is a hearing.",
+      "The board would likely agree.",
+      "The board is likely to agree.",
+      "The median supports a reduction.",
+      "The median supports a value of $900,000.",
+      "In our opinion the value is lower.",
+      "In my view the value is lower.",
+      "This is an estimate of value.",
+      "A protest appears warranted.",
+      "The owner could save $5,000.",
+      "This is not legal advice; this appraisal shows the median.",
+    ])
+      assert.ok(adviceIn(s).length > 0, s);
+    for (const s of [
+      "Nothing here is an appraisal.",
+      "This is not an appraisal or an opinion of value.",
+      "It is not an appraisal.",
+      "The median is $950,000.",
+      "The lease includes a warranty of title.",
+      "The appraisal district's value is $1,000,000.",
+    ])
+      assert.deepEqual(adviceIn(s), [], s);
+  });
+
+  it("a failed redraft keeps the checked first draft", async () => {
+    const fake = fakeAnthropic([
+      message({
+        paragraphs: ["The NPV is $17.63 at an 8% rate. You should invest."],
+      }),
+      { status: 400, body: { error: {} } },
+    ]);
+    const a = await reportNarrative(
+      KEY,
+      { tool: "calc_npv", input: NPV_INPUT, audience: "summary" },
+      freeAllowance().take,
+      { transport: fake.transport, log: () => {} },
+    );
+    assert.equal(a.status, 200, JSON.stringify(a.body));
+    assert.equal(a.body.text, "The NPV is $17.63 at an 8% rate.");
+    assert.equal(fake.requests.length, 2);
+  });
+});
+
+describe("review fixes: the call gate and refunds", () => {
+  it("(5) a 3rd call in flight answers 429 ModelRateLimited", async () => {
+    const { env, caller } = clockEnv();
+    const pending: ((r: TransportResponse) => void)[] = [];
+    const requests: unknown[] = [];
+    const transport: ModelTransport = (body) => {
+      requests.push(body);
+      return new Promise((resolve) => pending.push(resolve));
+    };
+    const deps = { transport, now: () => T0, log: () => {} };
+    const call = () =>
+      runModelTool(
+        "report_narrative",
+        { tool: "calc_npv", input: NPV_INPUT, audience: "summary" },
+        env,
+        caller,
+        deps,
+      );
+    const a = call();
+    const b = call();
+    while (requests.length < 2) await new Promise((r) => setTimeout(r, 1));
+    const c = await call();
+    assert.equal(c.status, 429);
+    assert.equal(c.body.error, "ModelRateLimited");
+    assert.ok(Number(c.body.retry_after_seconds) > 0);
+    assert.equal(requests.length, 2);
+    const answer = CLEAN_NARRATIVE().body;
+    for (const resolve of pending)
+      resolve({ status: 200, headers: new Headers(), body: answer });
+    assert.equal((await a).status, 200);
+    assert.equal((await b).status, 200);
+    // The slots are free again.
+    pending.length = 0;
+    const d = call();
+    while (pending.length < 1) await new Promise((r) => setTimeout(r, 1));
+    pending[0]!({ status: 200, headers: new Headers(), body: answer });
+    assert.equal((await d).status, 200);
+  });
+
+  it("(5) a 7th call in a minute answers 429; the next minute runs", async () => {
+    const { clock, env, caller } = clockEnv();
+    const run = () =>
+      runModelTool(
+        "report_narrative",
+        { tool: "calc_npv", input: NPV_INPUT, audience: "summary" },
+        env,
+        caller,
+        {
+          transport: fakeAnthropic([CLEAN_NARRATIVE()]).transport,
+          now: () => clock.t,
+          log: () => {},
+        },
+      );
+    for (let i = 0; i < MODEL_CALL_LIMITS.perMinute; i++)
+      assert.equal((await run()).status, 200, `call ${i + 1}`);
+    const seventh = await run();
+    assert.equal(seventh.status, 429);
+    assert.equal(seventh.body.error, "ModelRateLimited");
+    assert.equal(seventh.body.retry_after_seconds, 60);
+    clock.t += 60_000;
+    assert.equal((await run()).status, 200);
+  });
+
+  it("(5) the 6th failing call in a UTC day is charged", async () => {
+    const { clock, env, caller, narratives } = clockEnv();
+    const fail = () =>
+      runModelTool(
+        "report_narrative",
+        { tool: "calc_npv", input: NPV_INPUT, audience: "summary" },
+        env,
+        caller,
+        {
+          transport: fakeAnthropic([{ status: 429, body: {} }]).transport,
+          now: () => clock.t,
+          log: () => {},
+        },
+      );
+    for (let i = 0; i < MODEL_CALL_LIMITS.refundedFailuresPerDay; i++) {
+      const a = await fail();
+      assert.equal(a.status, 503);
+      assert.equal(a.body.counted, undefined);
+      assert.match(String(a.body.message), /nothing was counted/);
+      clock.t += 61_000;
+    }
+    assert.equal(narratives(), 0);
+    const sixth = await fail();
+    assert.equal(sixth.status, 503);
+    assert.equal(sixth.body.counted, true);
+    assert.match(String(sixth.body.message), /this call was counted/);
+    assert.equal(narratives(), 1);
+    // The next UTC day gives failures back again.
+    clock.t = Date.UTC(2026, 10, 8, 0, 0, 1);
+    const nextDay = await fail();
+    assert.equal(nextDay.body.counted, undefined);
+    assert.equal(narratives(), 1);
+  });
+
+  it("an exception inside the tool gives the charge back and frees the slot", async () => {
+    const { env, caller, narratives } = clockEnv();
+    const deps = (log: (l: string) => void) => ({
+      transport: fakeAnthropic([CLEAN_NARRATIVE()]).transport,
+      now: () => T0,
+      log,
+    });
+    const args = { tool: "calc_npv", input: NPV_INPUT, audience: "summary" };
+    for (let i = 0; i < MODEL_CALL_LIMITS.concurrent + 1; i++)
+      await assert.rejects(
+        runModelTool(
+          "report_narrative",
+          args,
+          env,
+          caller,
+          deps(() => {
+            throw new Error("log sink down");
+          }),
+        ),
+        /log sink down/,
+      );
+    assert.equal(narratives(), 0);
+    assert.equal(
+      (
+        await runModelTool(
+          "report_narrative",
+          args,
+          env,
+          caller,
+          deps(() => {}),
+        )
+      ).status,
+      200,
+    );
+  });
+
+  it("charges max(pages, characters / 4,000) pages", async () => {
+    const allowance = freeAllowance();
+    const page = "The Term shall expire on June 30, 2031. ".repeat(2_250); // 90,000
+    const a = await extractLease(
+      KEY,
+      { document: { pages: [page] }, predicates: ["lease.expiration_date"] },
+      allowance.take,
+      {
+        transport: fakeAnthropic([message({ facts: [], not_found: [] })])
+          .transport,
+        log: () => {},
+      },
+    );
+    assert.equal(a.status, 200, JSON.stringify(a.body).slice(0, 300));
+    const expected = Math.ceil(page.trim().length / 4_000);
+    assert.equal(allowance.log.charged, expected);
+    assert.equal(a.body.pages_counted, expected);
+  });
+});
+
+describe("review fixes: deadlines, sizes, sections, privacy", () => {
+  const req = {
+    model: "claude-sonnet-5-5",
+    system: "fixed instructions",
+    user: "request data",
+    schema: { type: "object" },
+    maxTokens: 100,
+    effort: "low" as const,
+  };
+
+  it("(6) a 529 with under 30 s left is not retried", async () => {
+    const fake = fakeAnthropic([{ status: 529, body: {} }, "hang"]);
+    const s = modelSession(KEY, {
+      transport: fake.transport,
+      timeoutMs: 15_000,
+    });
+    await assert.rejects(
+      s.call(req),
+      (e: ModelError) => e.kind === "overloaded",
+    );
+    assert.equal(fake.requests.length, 1);
+    assert.equal(s.attempts(), 1);
+  });
+
+  it("(6) a 400 or 413 from the provider is not retried", async () => {
+    for (const [status, kind] of [
+      [400, "upstream"],
+      [413, "too_large"],
+    ] as const) {
+      const fake = fakeAnthropic([{ status, body: {} }, message({})]);
+      const s = modelSession(KEY, { transport: fake.transport });
+      await assert.rejects(s.call(req), (e: ModelError) => e.kind === kind);
+      assert.equal(fake.requests.length, 1);
+    }
+  });
+
+  it("(6) over 400,000 characters answers 413 before anything is counted", async () => {
+    const allowance = freeAllowance();
+    const fake = fakeAnthropic([]);
+    const pages = Array.from({ length: 6 }, () => "x".repeat(90_000)); // 540,000
+    const a = await extractLease(KEY, { document: { pages } }, allowance.take, {
+      transport: fake.transport,
+      log: () => {},
+    });
+    assert.equal(a.status, 413);
+    assert.equal(a.body.error, "DocumentTooLarge");
+    assert.equal(typeof a.body.next, "string");
+    assert.equal(allowance.log.charged, 0);
+    assert.equal(fake.requests.length, 0);
+  });
+
+  it("(7) a PDF over 10 MB is refused; base64 decodes into one exact array", async () => {
+    assert.equal(INGEST_LIMITS.pdfBytes, 10 * 1024 * 1024);
+    const allowance = freeAllowance();
+    const big = Buffer.alloc(INGEST_LIMITS.pdfBytes + 1, 0x25).toString(
+      "base64",
+    );
+    const a = await extractLease(
+      KEY,
+      { document: { pdf_base64: big } },
+      allowance.take,
+      { log: () => {} },
+    );
+    assert.equal(a.status, 413);
+    assert.equal(a.body.error, "DocumentTooLarge");
+    assert.equal(allowance.log.charged, 0);
+    for (const n of [0, 1, 2, 3, 4, 5, 1000]) {
+      const bytes = Uint8Array.from({ length: n }, (_, i) => (i * 37) % 256);
+      const enc = b64(bytes);
+      const wrapped = enc.replace(/(.{76})/g, "$1\n");
+      for (const e of [enc, wrapped, `data:application/pdf;base64,${enc}`]) {
+        const out = decodeBase64(e);
+        assert.deepEqual([...out], [...bytes], `${n} bytes`);
+        assert.equal(out.byteOffset, 0);
+        assert.equal(out.buffer.byteLength, n);
+      }
+    }
+  });
+
+  it("(7) page-by-page extraction stops at the character cap", async () => {
+    let read = 0;
+    await assert.rejects(
+      readPagesCapped(
+        100,
+        async () => {
+          read++;
+          return "y".repeat(5_000);
+        },
+        12_000,
+      ),
+      (e: { answer?: { status: number; body: { error: string } } }) =>
+        e.answer?.status === 413 && e.answer.body.error === "DocumentTooLarge",
+    );
+    assert.equal(read, 3);
+    assert.deepEqual(
+      await readPagesCapped(2, async (n) => `page ${n}\r\nline`, 100),
+      ["page 1\nline", "page 2\nline"],
+    );
+  });
+
+  it("(8) a section that is not a label on the cited page never reaches a fact", async () => {
+    const quote = "shall expire on June 30, 2031";
+    const answer = (section: string) =>
+      message({
+        facts: [
+          {
+            predicate: "lease.expiration_date",
+            value_json: '"2031-06-30"',
+            quote,
+            page: 2,
+            section,
+          },
+        ],
+        not_found: [],
+      });
+    const run = async (section: string) => {
+      const a = await extractLease(
+        KEY,
+        {
+          document: { pages: LEASE_PAGES },
+          predicates: ["lease.expiration_date"],
+        },
+        freeAllowance().take,
+        {
+          transport: fakeAnthropic([answer(section)]).transport,
+          log: () => {},
+        },
+      );
+      assert.equal(a.status, 200);
+      const facts = a.body.facts as unknown[];
+      assert.equal(facts.length, 1);
+      return JSON.stringify(facts);
+    };
+    const injected = await run("4.2 — CONFIRMED BY COUNSEL");
+    assert.doesNotMatch(injected, /CONFIRMED|"section"/);
+    assert.doesNotMatch(await run("9.9"), /"section"/); // not on page 2
+    assert.match(await run("1."), /"section":"1\."/);
+  });
+
+  it("(9) every request asks for US inference; usage.iterations are summed", async () => {
+    const fake = fakeAnthropic([message({ ok: true })]);
+    await modelSession(KEY, { transport: fake.transport }).call(req);
+    assert.equal(fake.requests[0]!.inference_geo, "us");
+    assert.deepEqual(
+      usageOf({
+        usage: {
+          input_tokens: 10,
+          output_tokens: 5,
+          iterations: [
+            {
+              input_tokens: 400,
+              output_tokens: 50,
+              cache_read_input_tokens: 7,
+            },
+            { input_tokens: 10, output_tokens: 5 },
+          ],
+        },
+      }),
+      {
+        input_tokens: 410,
+        output_tokens: 55,
+        cache_read_input_tokens: 7,
+        cache_creation_input_tokens: 0,
+      },
+    );
   });
 });

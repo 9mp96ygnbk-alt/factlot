@@ -21,6 +21,11 @@
  *   calls per calendar month (UTC), each in its own object (`meter:ingest_pages:sub:<id>`,
  *   `meter:narratives:sub:<id>`, see `modelSubject`) with the same window, refund and alarm rules
  *   as registry lookups.
+ * - Model-call gate (subscriptions only): calls in flight (`slots`, in memory, each released when
+ *   the call ends and expiring on its own after the call's deadline, so a lost release never
+ *   locks a subscription out), calls started per minute, and failed calls per UTC day, each
+ *   in its own object (`meter:model_inflight:sub:<id>`, `meter:model_calls:sub:<id>`,
+ *   `meter:model_failures:sub:<id>`).
  *
  * The plain per-minute limiter (`objectLimiter`) uses the same class without touching storage.
  */
@@ -294,6 +299,37 @@ export class Meter {
   private get store(): CounterStore {
     this.storeInstance ??= this.storeFactory();
     return this.storeInstance;
+  }
+
+  /** Calls in flight: slot id -> when it expires on its own. Memory only (eviction frees them). */
+  private readonly slots = new Map<string, number>();
+
+  /**
+   * Take one of `limit` slots for `ttlMs` (a call in flight). When none is free, `retry_after`
+   * is the seconds until the oldest slot expires at the latest.
+   */
+  acquireSlot(
+    limit: number,
+    ttlMs: number,
+  ): { ok: boolean; id?: string; retry_after: number } {
+    const now = this.now();
+    for (const [id, until] of this.slots)
+      if (until <= now) this.slots.delete(id);
+    if (this.slots.size >= limit) {
+      const first = Math.min(...this.slots.values());
+      return {
+        ok: false,
+        retry_after: Math.max(1, Math.ceil((first - now) / 1000)),
+      };
+    }
+    const id = crypto.randomUUID();
+    this.slots.set(id, now + ttlMs);
+    return { ok: true, id, retry_after: 0 };
+  }
+
+  /** Free a slot taken by `acquireSlot` (unknown or expired ids are ignored). */
+  releaseSlot(id: string): void {
+    this.slots.delete(id);
   }
 
   /** Plain fixed-window limiter (a minute unless `periodMs` says otherwise); `peek` counts nothing. */
@@ -583,6 +619,21 @@ export class RateLimiterObject {
           this.meter.refund(b.kind, b.n, b.resets_at, b.counter) !== undefined,
       });
     }
+    if (url.pathname === "/slot") {
+      const b = (await request.json()) as
+        | { op: "acquire"; limit: number; ttl_ms: number }
+        | { op: "release"; id: string };
+      if (b.op === "release") {
+        this.meter.releaseSlot(String(b.id));
+        return jsonResponse({ released: true });
+      }
+      return jsonResponse(
+        this.meter.acquireSlot(
+          Math.max(0, Math.floor(Number(b.limit))),
+          Math.min(10 * 60_000, Math.max(1_000, Number(b.ttl_ms))),
+        ),
+      );
+    }
     if (url.pathname === "/claim") {
       const b = (await request.json()) as { name: string; value: string };
       const value = this.meter.claim(b.name, b.value);
@@ -640,9 +691,39 @@ export function objectLimiter(
   };
 }
 
+/** Calls in flight per subject: at most `limit` at once, each slot expiring after `ttlMs`. */
+export interface ModelGate {
+  acquireSlot(
+    subject: string,
+    limit: number,
+    ttlMs: number,
+  ): Promise<{ ok: boolean; id?: string; retry_after: number }>;
+  releaseSlot(subject: string, id: string): Promise<void>;
+}
+
+/** The meter's call-in-flight gate, when it has one (objectMeter does). */
+export function modelGate(meter: MeterService): ModelGate | undefined {
+  const g = meter as MeterService & Partial<ModelGate>;
+  return typeof g.acquireSlot === "function" &&
+    typeof g.releaseSlot === "function"
+    ? (g as MeterService & ModelGate)
+    : undefined;
+}
+
 /** The caller meter (minute limit + registry quota) and claims, backed by the LIMITER namespace. */
-export function objectMeter(ns: DurableObjectNamespaceLike): MeterService {
+export function objectMeter(
+  ns: DurableObjectNamespaceLike,
+): MeterService & ModelGate {
   return {
+    acquireSlot: (subject, limit, ttlMs) =>
+      call(ns, `meter:${subject}`, "/slot", {
+        op: "acquire",
+        limit,
+        ttl_ms: ttlMs,
+      }),
+    releaseSlot: async (subject, id) => {
+      await call(ns, `meter:${subject}`, "/slot", { op: "release", id });
+    },
     hit: (subject, perMinute, quota) =>
       call<HitResult>(ns, `meter:${subject}`, "/hit", {
         perMinute,
@@ -695,8 +776,16 @@ export function objectMeter(ns: DurableObjectNamespaceLike): MeterService {
   };
 }
 
-/** The counters of the model-backed tools, kept apart from registry lookups. */
-export type ModelCounter = "ingest_pages" | "narratives";
+/**
+ * The counters of the model-backed tools, kept apart from registry lookups: the monthly
+ * allowances, and the call gate (in flight, started per minute, failed per UTC day).
+ */
+export type ModelCounter =
+  | "ingest_pages"
+  | "narratives"
+  | "model_inflight"
+  | "model_calls"
+  | "model_failures";
 
 /**
  * The meter subject of a model-backed tool's monthly allowance for `subject` (`sub:<id>`): its

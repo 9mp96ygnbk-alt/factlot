@@ -9,7 +9,8 @@
  *
  * Page text: `document.pages` (one string per page, as the doc_* tools take it), `document.text`
  * (pages separated by form feeds), `document.pdf_base64`, or `document.url` (https, fetched here).
- * A PDF's text layer is read with pdf.js (unpdf); a scanned PDF without one answers NeedsOcr.
+ * A PDF's text layer is read with pdf.js (unpdf), page by page, stopping as soon as the text
+ * passes the character cap; a scanned PDF without one answers NeedsOcr.
  */
 import { Buffer } from "node:buffer";
 
@@ -30,6 +31,7 @@ import {
   modelFailureAnswer,
   modelSession,
   modelSummary,
+  settledFailure,
   type ModelDeps,
 } from "./model.ts";
 import type { Env } from "./types.ts";
@@ -38,10 +40,12 @@ export const EXTRACT_LEASE = "doc_extract_lease";
 
 /** Limits of one doc_extract_lease call. */
 export const INGEST_LIMITS = {
-  pdfBytes: 20 * 1024 * 1024,
+  pdfBytes: 10 * 1024 * 1024,
   pages: 200,
-  /** All page text sent to the model, in characters. */
-  characters: 1_000_000,
+  /** All page text sent to the model, in characters (a PDF's extraction stops past it). */
+  characters: 400_000,
+  /** A call is charged max(pages with text, ceil(characters / this)) pages. */
+  charactersPerChargedPage: 4_000,
   /** How long the URL fetch may take, at most (it also shares the call's deadline). */
   urlTimeoutMs: 15_000,
   urlRedirects: 3,
@@ -64,7 +68,7 @@ export const EXTRACT_LEASE_TOOL = {
   name: EXTRACT_LEASE,
   title: "Extract lease terms (model) and verify them",
   description:
-    "Hosted FactLot tool (api.factlot.com, Pro and Team keys; counts pages against the plan's monthly ingest allowance). Send one lease or amendment: page text (document.pages or document.text with form feeds between pages), a PDF (document.pdf_base64, at most 20 MB and 200 pages) or an https URL to one (document.url). A model (Anthropic Claude, called by FactLot for this request only) reads the pages and proposes each lease term with its verbatim quote and page; FactLot then checks every proposal with doc_verify_facts, deterministically. Returns facts (verified FactLot facts citing document, page, quote and span), needs_review (each with the check that failed: quote, consistency, coverage, value), unextracted (requested predicates the model found nothing for), the page count and the model's token use, and nothing_stored: true. FactLot stores nothing and logs no document content. A scanned PDF without a text layer answers NeedsOcr: OCR it first (doc_read_pdf on the local server) and send the pages. Restrict predicates (see doc_predicates) to save tokens.",
+    "Hosted FactLot tool (api.factlot.com, Pro and Team keys; counts pages against the plan's monthly ingest allowance). Send one lease or amendment: page text (document.pages or document.text with form feeds between pages), a PDF (document.pdf_base64, at most 10 MB, 200 pages and 400,000 characters of text) or an https URL to one (document.url). A call is charged max(pages with text, characters / 4,000 rounded up) pages. A model (Anthropic Claude, called by FactLot for this request only) reads the pages and proposes each lease term with its verbatim quote and page; FactLot then checks every proposal with doc_verify_facts, deterministically. Returns facts (verified FactLot facts citing document, page, quote and span), needs_review (each with the check that failed: quote, consistency, coverage, value), unextracted (requested predicates the model found nothing for), the page count and the model's token use, and nothing_stored: true. FactLot stores nothing and logs no document content. A scanned PDF without a text layer answers NeedsOcr: OCR it first (doc_read_pdf on the local server) and send the pages. Restrict predicates (see doc_predicates) to save tokens.",
   inputSchema: {
     type: "object",
     properties: {
@@ -88,13 +92,13 @@ export const EXTRACT_LEASE_TOOL = {
           pdf_base64: {
             type: "string",
             description:
-              "The PDF file as base64 (at most 20 MB decoded, 200 pages). Its text layer is read; scanned pages need OCR first.",
+              "The PDF file as base64 (at most 10 MB decoded, 200 pages, 400,000 characters of text). Its text layer is read; scanned pages need OCR first.",
           },
           url: {
             type: "string",
             format: "uri",
             description:
-              "An https URL of the PDF (or a text/plain file), fetched by FactLot for this request: at most 20 MB, 200 pages, 3 redirects.",
+              "An https URL of the PDF (or a text/plain file), fetched by FactLot for this request: at most 10 MB, 200 pages, 3 redirects.",
           },
           title: {
             type: "string",
@@ -350,22 +354,40 @@ async function sha256Hex(bytes: Uint8Array): Promise<string> {
     .join("");
 }
 
-function decodeBase64(raw: string): Uint8Array {
-  const s = raw
-    .replace(/^data:application\/pdf;base64,/i, "")
-    .replace(/\s+/g, "");
-  if (s.length > Math.ceil((INGEST_LIMITS.pdfBytes * 4) / 3) + 4)
-    throw problem(
-      413,
-      "DocumentTooLarge",
-      `the PDF is over ${INGEST_LIMITS.pdfBytes / 1024 / 1024} MB`,
-      "split it, or send the page text (document.pages)",
-    );
+const tooLarge = () =>
+  problem(
+    413,
+    "DocumentTooLarge",
+    `the PDF is over ${INGEST_LIMITS.pdfBytes / 1024 / 1024} MB`,
+    "split it, or send the page text (document.pages)",
+  );
+
+/**
+ * Decode base64 straight into one exactly-sized Uint8Array (no intermediate Buffer copy). The
+ * size is checked before anything is allocated.
+ */
+export function decodeBase64(raw: string): Uint8Array {
+  const encoded = Math.ceil((INGEST_LIMITS.pdfBytes * 4) / 3) + 4;
+  let s = raw.replace(/^data:application\/pdf;base64,/i, "");
+  // Room for line breaks; anything longer is refused before it is scanned or copied.
+  if (s.length > encoded * 1.1) throw tooLarge();
+  // Only an encoded string with line breaks is copied to strip them.
+  if (/\s/.test(s)) s = s.replace(/\s+/g, "");
+  if (s.length > encoded) throw tooLarge();
   if (!/^[A-Za-z0-9+/]*={0,2}$/.test(s) || s.length % 4 === 1)
     throw new DocumentProblem(
       inputError("not valid base64", "document.pdf_base64"),
     );
-  return new Uint8Array(Buffer.from(s, "base64"));
+  const padding = s.endsWith("==") ? 2 : s.endsWith("=") ? 1 : 0;
+  const size = Math.floor((s.length * 3) / 4) - padding;
+  if (size > INGEST_LIMITS.pdfBytes) throw tooLarge();
+  const out = new Uint8Array(size);
+  const written = Buffer.from(out.buffer, out.byteOffset, out.byteLength).write(
+    s,
+    0,
+    "base64",
+  );
+  return written === size ? out : out.subarray(0, written);
 }
 
 async function readCapped(res: Response, max: number): Promise<Uint8Array> {
@@ -476,6 +498,32 @@ async function fetchDocument(
   );
 }
 
+/**
+ * Read `numPages` pages one at a time, stopping with 413 as soon as their text passes
+ * `maxCharacters` (a small PDF that expands into a huge text layer is never read to the end).
+ */
+export async function readPagesCapped(
+  numPages: number,
+  pageText: (pageNumber: number) => Promise<string>,
+  maxCharacters: number = INGEST_LIMITS.characters,
+): Promise<string[]> {
+  const pages: string[] = [];
+  let total = 0;
+  for (let i = 1; i <= numPages; i++) {
+    const t = (await pageText(i)).replace(/\r\n?/g, "\n");
+    total += t.length;
+    if (total > maxCharacters)
+      throw problem(
+        413,
+        "DocumentTooLarge",
+        `the PDF's text passes ${maxCharacters.toLocaleString("en-US")} characters by page ${i}; doc_extract_lease reads at most ${maxCharacters.toLocaleString("en-US")} per call`,
+        "split it (the lease and each amendment separately), then combine with doc_abstract_lease",
+      );
+    pages.push(t);
+  }
+  return pages;
+}
+
 /** A PDF's text layer, one string per page (pdf.js through unpdf; no eval, no fonts). */
 export async function pdfPages(bytes: Uint8Array): Promise<string[]> {
   if (!isPdfBytes(bytes))
@@ -485,7 +533,7 @@ export async function pdfPages(bytes: Uint8Array): Promise<string[]> {
       "this is not a PDF (it does not start with %PDF-)",
       "send a PDF, or the page text (document.pages)",
     );
-  const { getDocumentProxy, extractText } = await import("unpdf");
+  const { getDocumentProxy } = await import("unpdf");
   let pdf: Awaited<ReturnType<typeof getDocumentProxy>>;
   try {
     // Text only: no font loading. (unpdf's serverless build already avoids eval.)
@@ -519,8 +567,23 @@ export async function pdfPages(bytes: Uint8Array): Promise<string[]> {
         `the PDF has ${pdf.numPages} pages; doc_extract_lease reads at most ${INGEST_LIMITS.pages}`,
         "split it (the lease and each amendment separately), then combine with doc_abstract_lease",
       );
-    const { text } = await extractText(pdf, { mergePages: false });
-    return text.map((t) => t.replace(/\r\n?/g, "\n"));
+    // Page by page (unpdf's extractText reads every page at once), as it joins the items.
+    const doc = pdf;
+    return await readPagesCapped(doc.numPages, async (n) => {
+      const page = await doc.getPage(n);
+      try {
+        const content = await page.getTextContent();
+        return content.items
+          .map((item) =>
+            "str" in item && item.str != null
+              ? item.str + (item.hasEOL ? "\n" : "")
+              : "",
+          )
+          .join("");
+      } finally {
+        page.cleanup();
+      }
+    });
   } finally {
     await pdf.loadingTask.destroy().catch(() => {});
   }
@@ -539,13 +602,6 @@ async function pageText(
     };
   if (doc.pdf_base64 !== undefined) {
     const bytes = decodeBase64(doc.pdf_base64);
-    if (bytes.byteLength > INGEST_LIMITS.pdfBytes)
-      throw problem(
-        413,
-        "DocumentTooLarge",
-        `the PDF is over ${INGEST_LIMITS.pdfBytes / 1024 / 1024} MB`,
-        "split it, or send the page text (document.pages)",
-      );
     // Hash first: pdf.js takes over (detaches) the buffer it is given.
     const sha256 = await sha256Hex(bytes);
     return { pages: await pdfPages(bytes), sha256, source: "pdf" };
@@ -631,7 +687,7 @@ For each term give:
 - value_json: the value as JSON text, in that predicate's value_json schema. Dates are YYYY-MM-DD; money, areas and counts are plain numbers (1250000, not "$1.25M"); shares and rates are decimals (0.03 for 3%). Names are written exactly as in the document.
 - quote: an exact, verbatim excerpt of the page that states the value, at least 12 characters. Copy the characters exactly: no paraphrase, no ellipses, no text joined from two places. The quote must contain every number, date and name of the value as the page writes them.
 - page: the number in the [Page N] marker of the page the quote is on.
-- section: the section or clause number as written (e.g. "4.2(b)"), or "" if none.
+- section: the section or clause number exactly as the page writes it (e.g. "4.2(b)"), at most 20 characters, or "" if none.
 
 Do not compute, convert or infer a value the text does not state (no date arithmetic, no totals). A rent schedule goes in as dated steps only when the page writes the dates; if it is written by lease year, leave it out. If a predicate is not stated, list it under not_found instead. One fact per predicate unless the document states several distinct values (for example two renewal options).
 
@@ -670,18 +726,30 @@ export function extractionSchema(): Record<string, unknown> {
   };
 }
 
+/** The user turn's data block: identical on a retry, so the retry reads it from the cache. */
 export function extractionUserTurn(
   title: string | undefined,
   predicates: string[],
   pages: string[],
-  retryNote?: string,
 ): string {
   const all = predicates.length === EXTRACTABLE_PREDICATES.length;
   const body = pages.map((t, i) => `[Page ${i + 1}]\n${t}`).join("\n\n");
-  return `${retryNote ? `${retryNote}\n\n` : ""}Requested predicates: ${all ? "all listed predicates" : predicates.join(", ")}
+  return `Requested predicates: ${all ? "all listed predicates" : predicates.join(", ")}
 Document title: ${title ?? "(none given)"}
 
 ${body}`;
+}
+
+/** A section label kept on a fact: short, label characters only, and written on the cited page. */
+const SECTION_RE = /^[0-9A-Za-z.()§-]{1,20}$/;
+export function sectionOnPage(
+  section: unknown,
+  pageText: string | undefined,
+): string | undefined {
+  if (typeof section !== "string") return undefined;
+  const s = section.trim();
+  if (!SECTION_RE.test(s) || pageText === undefined) return undefined;
+  return pageText.includes(s) ? s : undefined;
 }
 
 interface Proposed {
@@ -704,10 +772,15 @@ interface ParsedOutput {
   }[];
 }
 
-/** Parse the model's JSON; undefined when the envelope itself is wrong. */
+/**
+ * Parse the model's JSON; undefined when the envelope itself is wrong. A bad item (a value_json
+ * that is not JSON, a page out of range) is kept as a rejected item and does not fail the rest.
+ * A section is kept only when `sectionOnPage` accepts it.
+ */
 export function parseExtraction(
   text: string,
   requested: ReadonlySet<string>,
+  pages: readonly string[] = [],
 ): ParsedOutput | undefined {
   let raw: unknown;
   try {
@@ -759,14 +832,13 @@ export function parseExtraction(
       bad("value_json", "the model's value was not valid JSON");
       continue;
     }
+    const kept = sectionOnPage(section, pages[page - 1]);
     out.candidates.push({
       predicate,
       value,
       quote,
       page,
-      ...(typeof section === "string" && section.trim()
-        ? { section: section.trim().slice(0, 200) }
-        : {}),
+      ...(kept !== undefined ? { section: kept } : {}),
     });
   }
   out.candidates = out.candidates.slice(0, DOC_LIMITS.candidatesPerDocument);
@@ -777,7 +849,12 @@ export function parseExtraction(
 
 export interface ChargedAllowance {
   quota: Record<string, unknown>;
-  refund(): Promise<void>;
+  /**
+   * Give the charge back (at most once): true when given back, false when it was kept because
+   * the subscription's refunded failures for the day are used up. `internal`: FactLot's own
+   * failure, always given back.
+   */
+  refund(opts?: { internal?: boolean }): Promise<boolean>;
 }
 
 /**
@@ -805,7 +882,7 @@ export async function extractLease(
     new Date(started).toISOString().slice(0, 10),
   );
   if ("status" in args) return args;
-  const session = modelSession(env, deps);
+  const session = modelSession(env, deps, MODEL_BUDGETS.extraction.timeoutMs);
   let text: PageText;
   try {
     text = await pageText(args.document, session.deadline, deps);
@@ -860,40 +937,51 @@ export async function extractLease(
     };
   }
 
-  const charged = await takePages(withText);
+  // A page is the unit, but a long page costs more: max(pages, characters / 4,000).
+  const pagesCharged = Math.max(
+    withText,
+    Math.ceil(chars / INGEST_LIMITS.charactersPerChargedPage),
+  );
+  const charged = await takePages(pagesCharged);
   if ("status" in charged) return charged;
 
   const requested = new Set(args.predicates);
   const system = extractionSystemPrompt();
   const schema = extractionSchema();
   const { maxTokens, effort } = MODEL_BUDGETS.extraction;
+  const user = extractionUserTurn(
+    args.document.title,
+    args.predicates,
+    text.pages,
+  );
   let parsed: ParsedOutput | undefined;
   let modelId: string = MODEL_IDS.extraction;
   try {
-    for (let attempt = 0; attempt < 2; attempt++) {
+    // A second request only when the whole answer was unreadable; a single bad item is kept
+    // as a rejected item instead.
+    for (let attempt = 0; attempt < 2 && !parsed; attempt++) {
       const reply = await session.call({
         model: MODEL_IDS.extraction,
         system,
         schema,
         maxTokens,
         effort,
-        user: extractionUserTurn(
-          args.document.title,
-          args.predicates,
-          text.pages,
-          attempt === 0
-            ? undefined
-            : "Your previous answer was not valid: every value_json must be valid JSON text and every field must be present. Answer again.",
-        ),
+        user,
+        ...(attempt === 0
+          ? {}
+          : {
+              note: "Your previous answer was not valid JSON in the required shape: every field must be present. Answer again.",
+            }),
       });
       modelId = reply.model;
-      const p = parseExtraction(reply.text, requested);
-      if (p) parsed = p;
-      if (p && !p.badValues.some((b) => b.check === "value_json")) break;
+      parsed = parseExtraction(reply.text, requested, text.pages);
     }
   } catch (err) {
-    await charged.refund();
-    if (!(err instanceof ModelError)) throw err;
+    if (!(err instanceof ModelError)) {
+      await charged.refund({ internal: true });
+      throw err;
+    }
+    const refunded = await charged.refund();
     logModelCall(
       {
         tool: EXTRACT_LEASE,
@@ -907,11 +995,11 @@ export async function extractLease(
       },
       deps,
     );
-    return modelFailureAnswer(err, EXTRACT_LEASE);
+    return settledFailure(modelFailureAnswer(err, EXTRACT_LEASE), refunded);
   }
   const usage = session.usage();
   if (!parsed) {
-    await charged.refund();
+    const refunded = await charged.refund();
     logModelCall(
       {
         tool: EXTRACT_LEASE,
@@ -925,16 +1013,19 @@ export async function extractLease(
       },
       deps,
     );
-    return {
-      status: 502,
-      body: {
-        error: "ModelOutputInvalid",
-        code: "ModelOutputInvalid",
-        message:
-          "the model's answer was not valid JSON twice, so nothing was extracted; nothing was counted.",
-        next: "retry once, or extract the terms with your own model and check them with doc_verify_facts",
+    return settledFailure(
+      {
+        status: 502,
+        body: {
+          error: "ModelOutputInvalid",
+          code: "ModelOutputInvalid",
+          message:
+            "the model's answer was not valid JSON twice, so nothing was extracted; nothing was counted.",
+          next: "retry once, or extract the terms with your own model and check them with doc_verify_facts",
+        },
       },
-    };
+      refunded,
+    );
   }
 
   const document = {
@@ -956,7 +1047,7 @@ export async function extractLease(
     });
     if (!outcome.ok) {
       // The candidates are shaped here, so an input error is a bug; never leak their content.
-      await charged.refund();
+      await charged.refund({ internal: true });
       throw new Error(
         `doc_verify_facts refused the candidates: ${outcome.error.error}`,
       );
@@ -970,10 +1061,12 @@ export async function extractLease(
     documentIdUrn = r.document.document_id;
     verified = r.verified;
     for (const n of r.needs_review)
-      review.push({ status: "needs_review", ...n });
-    for (const n of r.rejected) review.push({ status: "rejected", ...n });
+      review.push({ status: "needs_review", verified: false, ...n });
+    for (const n of r.rejected)
+      review.push({ status: "rejected", verified: false, ...n });
   }
-  for (const b of parsed.badValues) review.push({ status: "rejected", ...b });
+  for (const b of parsed.badValues)
+    review.push({ status: "rejected", verified: false, ...b });
   const found = new Set<string>();
   for (const c of parsed.candidates) found.add(c.predicate);
   for (const b of parsed.badValues) found.add(b.predicate);
@@ -1019,7 +1112,7 @@ export async function extractLease(
         unextracted: unextracted.length,
       },
       pages: text.pages.length,
-      pages_counted: withText,
+      pages_counted: pagesCharged,
       pages_without_text: withoutText,
       model: summary,
       verified_by: { tool: "doc_verify_facts", version: CATALOG_VERSION },

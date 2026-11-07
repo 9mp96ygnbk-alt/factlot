@@ -277,11 +277,15 @@
             Two hosted tools use a model, and only when you call them:
             <code>doc_extract_lease</code> sends the text of the document you
             submit, and <code>report_narrative</code> sends the tool result you
-            submit, to Anthropic's API for model inference. Anthropic does not
-            train models on API inputs and keeps them only as its API
-            data-retention terms allow. FactLot stores neither the document, the
-            result nor the model's answer, and logs none of them. Every other
-            FactLot tool runs without any model.
+            submit, to Anthropic's API for model inference. Every request asks
+            Anthropic to run the inference in the United States. Anthropic does
+            not train models on API inputs. Under its published API retention
+            policy it deletes API inputs and outputs within 30 days of receipt
+            or generation, unless it must keep them longer by law or to enforce
+            its Usage Policy (inputs and outputs that its safety systems flag
+            may be kept for up to 2 years). FactLot stores neither the document,
+            the result nor the model's answer, and logs none of them. Every
+            other FactLot tool runs without any model.
           </p>
           <p>
             We share personal information otherwise only when the law requires

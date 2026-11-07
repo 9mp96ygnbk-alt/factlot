@@ -8,6 +8,11 @@
  *
  * Both are listed in MCP tools/list only for a Pro or Team key while ANTHROPIC_API_KEY is set.
  * Without the secret both routes (and MCP calls) answer 503 ModelUnavailable.
+ *
+ * Per subscription, across both tools: at most 2 calls in flight and 6 started a minute (429
+ * ModelRateLimited with retry_after_seconds), and a failed call's charge is given back for the
+ * first 5 failures of a UTC day only (the 6th and later are charged), so failures cannot be
+ * used to run the model for free.
  */
 import {
   EXTRACT_LEASE,
@@ -16,8 +21,13 @@ import {
   type ChargedAllowance,
   type ToolAnswer,
 } from "./ingest.ts";
-import { modelSubject, type ModelCounter } from "./limiter.ts";
-import { modelEnabled, modelUnavailable, type ModelDeps } from "./model.ts";
+import { modelGate, modelSubject, type ModelCounter } from "./limiter.ts";
+import {
+  MODEL_BUDGETS,
+  modelEnabled,
+  modelUnavailable,
+  type ModelDeps,
+} from "./model.ts";
 import {
   REPORT_NARRATIVE,
   REPORT_NARRATIVE_TOOL,
@@ -33,8 +43,20 @@ export const MODEL_PATHS = new Map([
   ["/v1/report/narrative", REPORT_NARRATIVE],
 ]);
 
-/** Request bodies for these tools may carry a 20 MB PDF as base64 (about 27 MB) plus JSON. */
-export const MODEL_MAX_BODY_BYTES = 28 * 1024 * 1024;
+/** Request bodies for these tools may carry a 10 MB PDF as base64 (about 13.4 MB) plus JSON. */
+export const MODEL_MAX_BODY_BYTES = 15 * 1024 * 1024;
+
+/** The per-subscription call gate (both tools together). */
+export const MODEL_CALL_LIMITS = {
+  /** Calls in flight at once. */
+  concurrent: 2,
+  /** Calls started per minute. */
+  perMinute: 6,
+  /** Failed calls a UTC day whose charge is given back; later failures are charged. */
+  refundedFailuresPerDay: 5,
+  /** A slot expires on its own after the longest deadline plus a margin (a lost release). */
+  slotTtlMs: MODEL_BUDGETS.extraction.timeoutMs + 30_000,
+} as const;
 
 /** Model-backed calls answered per MCP request; further ones get an error to send separately. */
 export const MAX_MODEL_CALLS_PER_REQUEST = 2;
@@ -130,6 +152,46 @@ const meterDown: ToolAnswer = {
   },
 };
 
+function rateLimited(
+  why: "concurrent" | "minute",
+  retryAfter: number,
+): ToolAnswer {
+  const retry = Math.max(1, Math.ceil(retryAfter));
+  return {
+    status: 429,
+    body: {
+      error: "ModelRateLimited",
+      code: "ModelRateLimited",
+      message:
+        why === "concurrent"
+          ? `${MODEL_CALL_LIMITS.concurrent} model-backed calls are already running for this subscription (at most ${MODEL_CALL_LIMITS.concurrent} at once); this one did not run and nothing was counted.`
+          : `this subscription started ${MODEL_CALL_LIMITS.perMinute} model-backed calls in the last minute (at most ${MODEL_CALL_LIMITS.perMinute} a minute); this one did not run and nothing was counted.`,
+      retry_after_seconds: retry,
+      next: `retry after ${retry} seconds${why === "concurrent" ? ", once a running call has finished" : ""}`,
+    },
+  };
+}
+
+/**
+ * Give a failed call's charge back unless the subscription already had its refunded failures
+ * today; true when it was given back. Meter errors give it back (the customer's favour).
+ */
+async function refundAllowed(env: Env, caller: ModelCaller): Promise<boolean> {
+  try {
+    const hit = await env.METER.consume(
+      modelSubject("model_failures", caller.subject),
+      {
+        kind: "day",
+        limit: MODEL_CALL_LIMITS.refundedFailuresPerDay,
+        n: 1,
+      },
+    );
+    return hit.granted > 0;
+  } catch {
+    return true;
+  }
+}
+
 /** Take `n` from the caller's allowance for `tool`: the charge (refundable) or the refusal. */
 async function take(
   env: Env,
@@ -180,7 +242,25 @@ async function take(
         resets_at: q.resets_at,
       },
     },
-    refund: () => giveBack(n),
+    refund: () => giveBack(n).then(() => true),
+  };
+}
+
+/** `charged`, refundable once, within the daily cap of refunded failures. */
+function capped(
+  env: Env,
+  caller: ModelCaller,
+  charged: ChargedAllowance,
+): ChargedAllowance {
+  let settled: Promise<boolean> | undefined;
+  return {
+    quota: charged.quota,
+    refund: (opts = {}) =>
+      (settled ??= (async () => {
+        if (!opts.internal && !(await refundAllowed(env, caller))) return false;
+        await charged.refund();
+        return true;
+      })()),
   };
 }
 
@@ -196,39 +276,103 @@ export async function runModelTool(
   if (!caller || COUNTERS[name]!.limit(caller.plan) <= 0)
     return planRequired(name);
   const now = deps.now ?? Date.now;
-  if (name === EXTRACT_LEASE)
-    return extractLease(
-      env,
-      args,
-      (pages) => take(env, name, caller, pages, now()),
-      deps,
+
+  // The call gate: a slot (calls in flight), then the minute count.
+  const gate = modelGate(env.METER);
+  if (!gate) return meterDown;
+  const slotSubject = modelSubject("model_inflight", caller.subject);
+  let slot;
+  let minute;
+  try {
+    slot = await gate.acquireSlot(
+      slotSubject,
+      MODEL_CALL_LIMITS.concurrent,
+      MODEL_CALL_LIMITS.slotTtlMs,
     );
-  return reportNarrative(
-    env,
-    args,
-    () => take(env, name, caller, 1, now()),
-    deps,
-  );
+  } catch {
+    return meterDown;
+  }
+  if (!slot.ok || !slot.id) return rateLimited("concurrent", slot.retry_after);
+  const slotId = slot.id;
+  const release = () =>
+    gate.releaseSlot(slotSubject, slotId).catch(() => {
+      console.error(JSON.stringify({ msg: "model slot release failed" }));
+    });
+  try {
+    minute = await env.METER.hit(
+      modelSubject("model_calls", caller.subject),
+      MODEL_CALL_LIMITS.perMinute,
+    );
+  } catch {
+    await release();
+    return meterDown;
+  }
+  if (!minute.ok) {
+    await release();
+    return rateLimited("minute", 60 - Math.floor((now() % 60_000) / 1000));
+  }
+
+  let charge: ChargedAllowance | undefined;
+  const takeN = async (n: number) => {
+    const c = await take(env, name, caller, n, now());
+    if ("status" in c) return c;
+    charge = capped(env, caller, c);
+    return charge;
+  };
+  try {
+    return name === EXTRACT_LEASE
+      ? await extractLease(env, args, takeN, deps)
+      : await reportNarrative(env, args, () => takeN(1), deps);
+  } catch (err) {
+    // Our own failure, not the caller's: give the charge back, outside the daily cap.
+    await charge?.refund({ internal: true });
+    throw err;
+  } finally {
+    await release();
+  }
 }
 
-const jsonResponse = (status: number, body: unknown) =>
-  new Response(JSON.stringify(body, null, 2), {
+const jsonResponse = (status: number, body: Record<string, unknown>) => {
+  const retry = body.retry_after_seconds;
+  return new Response(JSON.stringify(body, null, 2), {
     status,
     headers: {
       "content-type": "application/json; charset=utf-8",
       "cache-control": "no-store",
+      ...((status === 429 || status === 503) && typeof retry === "number"
+        ? { "retry-after": String(retry) }
+        : {}),
     },
   });
+};
 
-/** Read a body of at most `max` bytes; undefined when longer. */
+/**
+ * Read a body of at most `max` bytes, stopping as soon as it is longer (undefined then): a body
+ * without content-length is never read past the limit.
+ */
 async function readCapped(
   request: Request,
   max: number,
 ): Promise<string | undefined> {
   if (Number(request.headers.get("content-length") ?? "0") > max)
     return undefined;
-  const buf = new Uint8Array(await request.arrayBuffer());
-  return buf.byteLength > max ? undefined : new TextDecoder().decode(buf);
+  const reader = request.body?.getReader();
+  if (!reader) return "";
+  const decoder = new TextDecoder();
+  const parts: string[] = [];
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > max) {
+      await reader.cancel().catch(() => {});
+      return undefined;
+    }
+    parts.push(decoder.decode(value, { stream: true }));
+  }
+  parts.push(decoder.decode());
+  return parts.join("");
 }
 
 /** POST /v1/doc/extract_lease and POST /v1/report/narrative. */
@@ -271,7 +415,7 @@ export async function modelRestRoute(
       error: "PayloadTooLarge",
       code: "PayloadTooLarge",
       message: `request body over ${MODEL_MAX_BODY_BYTES / 1024 / 1024} MB`,
-      next: "send a smaller PDF (at most 20 MB), a URL to it, or the page text",
+      next: "send a smaller PDF (at most 10 MB), a URL to it, or the page text",
     });
   let args: unknown;
   try {
