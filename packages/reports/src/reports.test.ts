@@ -10,6 +10,7 @@ import { PDFDocument, PDFRawStream } from "pdf-lib";
 
 import { fold } from "./ics.ts";
 import { MAX_CELL_CHARS, MAX_PDF_LINES, PdfWriter } from "./pdf.ts";
+import { Workbook, fx } from "./xlsx.ts";
 import { pct, usd, num } from "./format.ts";
 import {
   KIND_FORMATS,
@@ -712,6 +713,49 @@ describe("documents", () => {
     times.sort((a, b) => a - b);
     const p95 = times[Math.floor(times.length * 0.95)]!;
     assert.ok(p95 < 250, `p95 ${p95.toFixed(1)} ms`);
+  });
+});
+
+describe("workbook formulas", () => {
+  it("a division by zero is #DIV/0! in the cell and in what reads it, as in Excel; nothing throws", async () => {
+    const wb = new Workbook({
+      title: "t",
+      creator: "c",
+      created: "2026-11-07T12:00:00Z",
+    });
+    const sh = wb.sheet("S");
+    const zero = sh.put(1, 1, 0);
+    const v = sh.put(1, 2, 10);
+    const q = sh.put(2, 1, fx(`=ROUND(${v}/${zero},2)`));
+    sh.put(2, 2, fx(`=${q}+1`));
+    sh.put(2, 3, fx(`=SUM(S!$A$2:$B$2)`));
+    sh.put(2, 4, fx(`=IF(${q}=0,"match","DIFFERENT")`));
+    sh.put(2, 5, fx(`=COUNTIF(S!$A$2:$B$2,"match")`));
+    sh.put(2, 6, fx(`=${v}*"text"`));
+    sh.put(2, 7, fx(`=ROUND(${v}/4,2)`));
+    const x = await readXlsx(await wb.bytes());
+    const xml = x.xml.get("xl/worksheets/sheet1.xml")!;
+    for (const a of ["A2", "B2", "C2", "D2"])
+      assert.match(
+        xml,
+        new RegExp(`<c r="${a}" s="\\d+" t="e"><f>[^<]+</f><v>#DIV/0!</v>`),
+        a,
+      );
+    assert.equal(x.cell("S", "E2"), "0", "COUNTIF skips errors");
+    assert.match(xml, /<c r="F2" s="\d+" t="e"><f>[^<]+<\/f><v>#VALUE!<\/v>/);
+    assert.equal(x.cell("S", "G2"), "2.5");
+  });
+
+  it("a result with a zero or negative area is refused before any division", async () => {
+    const d = structuredClone(
+      resultOf("calc_dcf_pro_forma", SAMPLES[7]!.args),
+    ) as { value: Json };
+    d.value.building_area_sf = 0;
+    await rejects(
+      { kind: "dcf_summary", format: "xlsx", input: d },
+      "NotAToolResult",
+      /building_area_sf/,
+    );
   });
 });
 

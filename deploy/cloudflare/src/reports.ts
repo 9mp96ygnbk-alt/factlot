@@ -14,14 +14,19 @@
  * MCP).
  *
  * Quota: without a key, per IP address per calendar month (a month-salted hash, `ipm:`), with a
- * key per subscription per month. The quota is checked before the document is built and charged
- * only once it is built and stored; input errors are free.
+ * key per subscription per month. A used-up month is refused before any work. The request is
+ * then checked (input errors are free), the report is charged, and only then is the file built:
+ * a build that is killed (CPU or memory limit) stays charged, so it cannot be repeated for free.
+ * A failure this code sees (a size limit, a fault in the engine, the store) gives the report
+ * back, as the registry gives back unanswered lookups.
  */
 import {
   MAX_REPORT_BYTES,
   ReportInputError,
-  createReport,
+  prepareReport,
+  renderReport,
   reportRequestJsonSchema,
+  type PreparedReport,
   type ReportFile,
 } from "@factlot/reports";
 
@@ -198,6 +203,19 @@ const UNAVAILABLE: ReportOutcome = {
   },
 };
 
+const FAILED: ReportOutcome = {
+  ok: false,
+  status: 500,
+  body: {
+    error: "ReportFailed",
+    code: "ReportFailed",
+    message:
+      "FactLot could not build this report (a fault on our side, not in the request). Nothing was charged.",
+    next: `retry once; if it fails again, email ${CONTACT}`,
+    issues: [],
+  },
+};
+
 class Unavailable extends Error {}
 
 /** A meter or KV call; a failure becomes a 503 (nothing charged that was not given back). */
@@ -247,7 +265,27 @@ export async function runReport(
       );
       return UNAVAILABLE;
     }
-    throw err;
+    // A fault in the engine: the caller gets no internal detail, and the log only its name.
+    console.error(
+      JSON.stringify({
+        msg: "reports: build failed",
+        error: err instanceof Error ? err.name : typeof err,
+      }),
+    );
+    return FAILED;
+  }
+}
+
+/** Give one charged report back; a failure to do so is logged, never thrown. */
+async function refundReport(
+  env: Env,
+  subject: string,
+  quota: QuotaState,
+): Promise<void> {
+  try {
+    await env.METER.refund(subject, "month", 1, quota.resets_at, "reports");
+  } catch {
+    console.error(JSON.stringify({ msg: "reports: refund failed" }));
   }
 }
 
@@ -284,17 +322,14 @@ async function buildAndStore(
       body: reportQuotaError(before, caller.tier, o.now()),
       quota: before,
     };
-  let file: ReportFile;
+  let prepared: PreparedReport;
   try {
-    file = await createReport(rest, { now: o.now() });
+    prepared = prepareReport(rest);
   } catch (err) {
     if (err instanceof ReportInputError) return inputError(err);
     throw err;
   }
-  if (file.bytes.byteLength > MAX_REPORT_BYTES)
-    return inputError(
-      new ReportInputError("TooLarge", "the report is over 25 MiB"),
-    );
+  // Charge before building: a build the runtime kills is not free.
   const charged = await infra(env.METER.consume(subject, spec));
   if (charged.granted < 1 || !charged.quota)
     return {
@@ -304,6 +339,16 @@ async function buildAndStore(
       ...(charged.quota ? { quota: charged.quota } : {}),
     };
   const quota = charged.quota;
+  let file: ReportFile;
+  try {
+    file = await renderReport(prepared, { now: o.now() });
+    if (file.bytes.byteLength > MAX_REPORT_BYTES)
+      throw new ReportInputError("TooLarge", "the report is over 25 MiB");
+  } catch (err) {
+    await refundReport(env, subject, quota);
+    if (err instanceof ReportInputError) return inputError(err);
+    throw err;
+  }
   const token = randomToken();
   const sha256 = hex(
     await crypto.subtle.digest("SHA-256", file.bytes as unknown as ArrayBuffer),
@@ -324,13 +369,7 @@ async function buildAndStore(
     );
   } catch {
     // Not stored: give the report back.
-    await env.METER.refund(
-      subject,
-      "month",
-      1,
-      quota.resets_at,
-      "reports",
-    ).catch(() => {});
+    await refundReport(env, subject, quota);
     throw new Unavailable("store");
   }
   const body: Record<string, unknown> = {

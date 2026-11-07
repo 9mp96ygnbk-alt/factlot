@@ -14,7 +14,7 @@ import {
   type DurableObjectNamespaceLike,
 } from "./limiter.ts";
 import { REPORTS_PER_MONTH } from "./plans.ts";
-import { REPORT_TTL_SECONDS } from "./reports.ts";
+import { REPORT_TTL_SECONDS, runReport } from "./reports.ts";
 import { handle } from "./router.ts";
 import type { Env, KV, RateLimit } from "./types.ts";
 
@@ -513,6 +513,53 @@ describe("POST /v1/reports and downloads", () => {
       400,
     );
     assert.equal((await call(t, "/v1/reports", { method: "GET" })).status, 405);
+  });
+
+  it("a fault while building answers 500 ReportFailed with no detail, logs only the error's name, and gives the report back", async () => {
+    const t = env();
+    const subject = "ipm:fault-test";
+    const logged: string[] = [];
+    const error = console.error;
+    console.error = (...a: unknown[]) =>
+      void logged.push(a.map(String).join(" "));
+    let out: Awaited<ReturnType<typeof runReport>>;
+    try {
+      out = await runReport(
+        t.e,
+        { tier: "anonymous", subject: async () => subject },
+        request(),
+        {
+          apiBase: "https://api.factlot.com",
+          // Read once the report is charged, to build it: a stand-in for a fault in the engine.
+          now: () => {
+            throw new RangeError("secret internal detail");
+          },
+        },
+      );
+    } finally {
+      console.error = error;
+    }
+    assert.equal(out.ok, false);
+    assert.ok(!out.ok);
+    assert.equal(out.status, 500);
+    assert.equal(out.body.code, "ReportFailed");
+    assert.ok(!JSON.stringify(out.body).includes("secret"), "no detail");
+    assert.deepEqual(logged, [
+      JSON.stringify({ msg: "reports: build failed", error: "RangeError" }),
+    ]);
+    assert.equal(
+      (await t.e.METER.quota(subject, "month", 3, "reports")).used,
+      0,
+      "given back",
+    );
+    // An input error before the charge is free and never logged as a fault.
+    const bad = await runReport(
+      t.e,
+      { tier: "anonymous", subject: async () => subject },
+      request({ format: "ics" }),
+      { apiBase: "https://api.factlot.com", now: () => T0 },
+    );
+    assert.ok(!bad.ok && bad.status === 400);
   });
 
   it("/v1/plans states the report limits", async () => {

@@ -290,10 +290,10 @@ const ProposalsValue = z.strictObject({
         metric_psf_annual: N,
         total_net: N,
         term_months: Int,
-        area_sf: N,
+        area_sf: N.positive(),
         usable_sf: N.nullable(),
         load_factor: N.nullable(),
-        basis_area_sf: N,
+        basis_area_sf: N.positive(),
         opex_structure: z
           .enum(["gross", "nnn", "base_year", "expense_stop"])
           .nullable(),
@@ -326,7 +326,7 @@ const DcfYear = z.strictObject({
 });
 const DcfValue = z.strictObject({
   hold_years: Int,
-  building_area_sf: N,
+  building_area_sf: N.positive(),
   cash_flows: z.array(DcfYear).min(2),
   noi_year_1: N,
   exit: z.strictObject({

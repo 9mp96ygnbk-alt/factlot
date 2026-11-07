@@ -132,11 +132,19 @@ function issuesOf(err: z.ZodError) {
     .map((i) => ({ path: i.path.map(String).join("."), message: i.message }));
 }
 
-/** Build one document. Throws ReportInputError for anything an agent can fix. */
-export async function createReport(
-  request: unknown,
-  opts: CreateOptions = {},
-): Promise<ReportFile> {
+/** A request that passed every input check, ready to render. */
+export interface PreparedReport {
+  kind: ReportKind;
+  format: ReportFormat;
+  ctx: ReportContext;
+  checked: KindInput["checked"];
+}
+
+/**
+ * Check a request and compute (or check) its result: everything short of building the file.
+ * Cheap next to rendering; throws ReportInputError for anything an agent can fix.
+ */
+export function prepareReport(request: unknown): PreparedReport {
   const parsed = ReportRequest.safeParse(request);
   if (!parsed.success)
     throw new ReportInputError(
@@ -155,6 +163,27 @@ export async function createReport(
   const checked = checkInput(kind, input, args);
   const source: KindInput["checked"]["source"] =
     input === undefined ? "arguments" : args === undefined ? "input" : "both";
+  return { kind, format, ctx, checked: { ...checked, source } };
+}
+
+/** Build one document. Throws ReportInputError for anything an agent can fix. */
+export async function createReport(
+  request: unknown,
+  opts: CreateOptions = {},
+): Promise<ReportFile> {
+  return renderReport(prepareReport(request), opts);
+}
+
+/**
+ * Build the file for a prepared request. A document over a size limit throws ReportInputError
+ * (TooLarge); anything else thrown is a fault in FactLot, not in the request.
+ */
+export async function renderReport(
+  prepared: PreparedReport,
+  opts: CreateOptions = {},
+): Promise<ReportFile> {
+  const { kind, format, ctx, checked } = prepared;
+  const { source } = checked;
   const version = opts.version ?? CATALOG_VERSION;
   const now = opts.now ?? Date.now();
   const generatedAt = new Date(now);
@@ -169,7 +198,7 @@ export async function createReport(
     header: `FactLot | ${KIND_TITLES[kind]}${ctx.title ? ` | ${ctx.title}` : ""}`,
     keywords: ["FactLot", kind, toolRef],
   };
-  const k: KindInput = { checked: { ...checked, source }, ctx, p };
+  const k: KindInput = { checked, ctx, p };
 
   let bytes: Uint8Array;
   if (format === "ics") bytes = await datesIcs(k);
