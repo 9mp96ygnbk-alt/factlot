@@ -1,0 +1,141 @@
+---
+name: tx-unequal-appraisal-arithmetic
+description: The arithmetic of Texas Tax Code §41.43(b)(3) and §42.26(a)(3) on comparables and adjustments you or your consultant choose, the filing-deadline rule, candidate parcels from the appraisal roll, and a cited workbook. Use when a Texas property tax consultant, appraiser, attorney, CRE analyst or property owner wants the median of adjusted comparable values computed against a subject's roll value, candidate parcels listed from an appraisal-district roll, a parcel's value history by tax year, the protest filing deadline, or the inputs and results assembled into a cited fact package and Excel workbook. Calls FactLot registry_coverage, registry_resolve_parcel, registry_tx_equity_candidates, calc_tx_unequal_appraisal, rules_tx_property_tax_protest_deadline, calc_direct_cap and fact_package_create. Not an appraisal or an opinion of value, and not a substitute for the advice of an attorney; it does not prepare, file or advise on protests.
+---
+
+# Unequal-appraisal arithmetic (Texas)
+
+This skill runs the arithmetic of Tax Code §41.43(b)(3) and §42.26(a)(3) and gathers public-record
+facts. The person using it chooses the comparables and every adjustment, and decides what to do
+with the result. Say this once at the start, before any numbers, in these words or very close to
+them, and do not shorten it:
+
+> **This is not a substitute for the advice of an attorney.** These are calculations on public
+> appraisal-roll data and on the figures you supply. They are not an appraisal or an opinion of
+> value (Texas Occupations Code §1103.003(1)), and not legal or tax advice. They do not say whether
+> to protest, what value to put forward, or how a hearing may go.
+>
+> FactLot is software. It is not a property tax consultant under Texas Occupations Code chapter
+> 1152, does not prepare, file or advise on protests, and does not represent owners before an
+> appraisal review board. If you provide property tax services to others for compensation, your own
+> registration obligations apply.
+
+## Hard rules
+
+- **No recommendations.** Do not say whether to protest, what value to claim, the odds or likely
+  outcome, or that a different number or set of comparables would change how the evidence is
+  received, even if asked directly. If asked, repeat the statement above and offer to explain what
+  the numbers show.
+- **The person chooses the comparables.** `registry_tx_equity_candidates` returns candidates under
+  FactLot's default rule, a design choice, not a legal standard; a person decides which, if any, to
+  use. Never propose a set yourself.
+- **The person supplies every adjustment.** Adjustments (age, size, condition, location, class)
+  are judgment calls. Ask for each one with its reason; you may name these categories neutrally,
+  but never propose a percentage or amount.
+- **No owner information.** Never look up, show, or discuss who owns the subject or a comparable;
+  ownership is not part of this comparison. The tools in this workflow return none. Do not call
+  `registry_get`, `registry_owned_by` or any other tool on the subject or a candidate, because
+  those records can include the owner of record.
+- **Never file, sign a §1.111 agent designation, contact the appraisal district, or draft a
+  communication to it.**
+- **Never call the output an appraisal, a valuation, or an opinion of value** (Occupations Code
+  §1103.003(1) defines an appraisal as an opinion of value). Call it the unequal-appraisal
+  arithmetic or a calculation.
+- Report every tool's values, formula or rule ID, and every warning as returned. Do the arithmetic
+  only through the tools, never in-context.
+
+## 1. Coverage
+
+Call `registry_coverage`. Texas counties served by the hosted registry are listed by
+`registry_coverage`; treat its answer, not this page, as current. Hosted Texas coverage starts with
+the Harris, Dallas, Travis and Collin appraisal districts, then Denton, Fort Bend and Williamson;
+Bexar's roll needs a public-information request first. Tarrant County is not served by the hosted
+registry while the publisher's terms for AI use are unclear, and `registry_tx_equity_candidates`
+refuses Tarrant parcels on every server. A self-hosted FactLot with a Texas registry file
+(`FACTLOT_REGISTRY_DB`) works the same way for the districts it holds.
+
+If the subject's county is not covered, the user can read values from the appraisal district's own
+public property search and give them to you; record where each one came from, and go to step 5.
+
+## 2. The filing deadline
+
+Call `rules_tx_property_tax_protest_deadline` with `tax_year` and, if the user has it, the date the
+notice of appraised value was delivered (follow the `tx-property-tax-protest` skill). Give the
+deadline and the conservative file-by date (`conservative_file_by`) with the statute citations.
+
+Tax Code §41.43(a-3) and §41.67(d) attach conditions to evidence exchanged by the 14th day before
+a hearing; FactLot's draft rule `rules.tx.protest_evidence_dates` (SDKs only, not verified, not a
+tool) computes those dates, and whether either section applies is for the user to determine.
+
+## 3. The subject property
+
+Ask for the county and the appraisal district account number (on the notice). Call
+`registry_resolve_parcel` with `state_fips` `"48"`, the 3-digit `county_fips` and the account
+number as `apn`. A miss returns `urn: null` with whether the county is loaded.
+
+With a URN, the `subject` that `registry_tx_equity_candidates` returns (step 4) carries the
+subject's cited roll value and `value_basis`, areas, year built, state property category code and
+`value_history`: market and appraised value by tax year, each cited to that year's roll. Show the
+history as returned.
+
+Without a registry, ask for the values on the notice: the appraised value, the market value,
+improvement (building) area and land area in SF, year built, and the state property category code
+(for example F1 commercial, F2 industrial, B multifamily).
+
+## 4. Candidate parcels
+
+Call `registry_tx_equity_candidates` with the subject's `urn` (or `state_fips`, `county_fips` and
+`apn`). Show the effective selection rule it returns in `selection` (same county and tax year,
+same category code, area band, year band, then neighborhood, ZIP and county tiers) and say that
+these are candidates under FactLot's default rule, a design choice, not a legal standard; a person
+decides. List the candidates with their values, areas, year built, situs address and citation.
+Relay each source's attribution, licence and AI-use terms from the result's `sources` with the
+data.
+
+## 5. The unequal-appraisal calculation
+
+When the user has chosen comparables and supplied each adjustment with a reason, call
+`calc_tx_unequal_appraisal`. The statute says "a reasonable number" and does not define it; the
+calculator requires at least 3 (a FactLot input floor, not law) and warns when fewer than 5
+comparables are given.
+
+- `tax_year`; `subject` with `value`, `value_basis` (`appraised` or `market`), areas, `county_fips`,
+  and `circuit_breaker_23_231` if the property is under the §23.231 limitation;
+- `normalize_by`: `improvement_area_sf` compares on value per building SF, `land_area_sf` on value
+  per land SF, `none` on whole values;
+- `adjustment_combine`: `sum` (percentages added, then applied once) or `compound` (each applied in
+  turn);
+- `comparables`: as returned in step 4 (their `citation` passes through) or as the user gives
+  them, each with the user's `adjustments`: `label`, `kind` (`percent` as a decimal, `amount` in
+  USD, or `psf`), `value` and `reason`.
+
+Report each comparable's normalized and adjusted value, the sorted list, `median_adjusted_value`
+(for an even count, the mean of the two middle values, both shown), the subject's value minus the
+median in dollars and percent, every warning, and the `law` citations. Describe the median only as
+the comparison figure Tax Code §41.43(b)(3) and §42.26(a)(3) use. Do not call it a target, a claim,
+or what the property "should" be valued at.
+
+## 6. Direct-capitalization arithmetic (optional)
+
+If the user asks for it, `calc_direct_cap` divides an NOI by a cap rate (follow the `cre-valuation`
+skill). The user supplies the NOI, the cap rate and its basis from their own records. Present the
+result as the arithmetic of those inputs, not as a value of the property or a value to claim, and
+do not suggest an NOI, a market rent or a cap rate.
+
+## 7. Fact package and workbook
+
+Offer two artifacts:
+
+- **A cited fact package**: `fact_package_create` with the subject's and comparables' facts as the
+  registry returned them (each cited to the appraisal-roll file, with its source's rights) and the
+  title "Unequal-appraisal arithmetic, tax year N" (the tax year compared). No ownership facts go
+  in it. Anyone can check it with `fact_package_verify`. FactLot never signs it; the holder signs
+  with their own key if they choose to.
+- **An Excel workbook**: with the Python SDK checked out, `python3
+examples/reconciliation/build.py tx_unequal_appraisal --input evidence.json --out evidence.xlsx`
+  writes the adjustment grid with live Excel formulas beside FactLot's numbers. The input file is
+  the `calc_tx_unequal_appraisal` arguments.
+
+End by repeating that this is not a substitute for the advice of an attorney, and that filing is
+done through the appraisal district's own process, by the owner or by a registered property tax
+consultant or an attorney.
