@@ -6158,14 +6158,14 @@
       "type": "function",
       "function": {
         "name": "registry_resolve_external",
-        "description": "Find the FactLot URN for an ID from another system, e.g. system \"sdat_account\" (a Maryland SDAT account number) or, where Texas is hosted, \"tx-harris-cad-account\" (a Harris CAD account number). Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
+        "description": "Find the FactLot URN for an ID from another system, e.g. system \"sdat_account\" (a Maryland SDAT account number) or, where Texas is hosted, \"hcad_account\" (a Harris CAD account number). Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
         "parameters": {
           "type": "object",
           "properties": {
             "system": {
               "type": "string",
               "maxLength": 100,
-              "description": "Crosswalk system name, e.g. \"sdat_account\" (Maryland), or \"tx-harris-cad-account\" where Texas is hosted."
+              "description": "Crosswalk system name, e.g. \"sdat_account\" (Maryland), or \"hcad_account\" where Texas is hosted."
             },
             "external_id": {
               "type": "string",

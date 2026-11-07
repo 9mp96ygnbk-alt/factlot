@@ -58,7 +58,7 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 - Hosted API: the Worker bundle is minified (with the report engine and pdf.js it was near 8 MB unminified).
 - Hosted API: the free tier's registry quota is now 25 lookups a day per IP address (was 100); Pro (5,000 a month) and Team (100,000 a month) are unchanged. A lookup is charged only when answered: `registry_coverage`, coverage misses (a county or system that is not loaded) and input errors are not counted.
 - `calc_tx_unequal_appraisal`: the evidence notice is returned once, in `value.disclaimer`, and no longer repeated as `warnings[0]`; the tool description says `subject_minus_median_pct` is a fraction of the median (0.1554 is 15.54%). No formula change.
-- `registry_resolve_external`: the example system is `sdat_account` (Maryland), with `tx-harris-cad-account` named for where Texas is hosted.
+- `registry_resolve_external`: the example system is `sdat_account` (Maryland), with `hcad_account` (Harris CAD) named for where Texas is hosted.
 - MCP server instructions mention the unequal-appraisal calculator, Texas candidate parcels, and that `registry_coverage` lists hosted regions and is never metered.
 - `examples/reconciliation/build.py tx_unequal_appraisal --input`: the workbook is written for your data (ReadMe, Reconcile and Grid sheets), and the Grid carries the subject id, tax year and each comparable's document ID, locator, as-of date and fact ID.
 - Claude Code plugin and connector docs: one server name, `factlot`, and a section on using a paid key.
