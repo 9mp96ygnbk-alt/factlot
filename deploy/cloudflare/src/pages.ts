@@ -32,7 +32,7 @@ const EXTRA_CSS = `
 .narrow{max-width:46rem}
 .flow h1{margin-bottom:1rem}
 .lead{font-size:1.1rem;color:var(--muted);max-width:60ch}
-.step{margin:2.75rem 0 0}
+.flow section.step{margin:2.5rem 0 0;padding:0;border:0;background:none}
 .step>h2{font-size:1.35rem;display:flex;gap:.6rem;align-items:baseline;margin-bottom:.6rem}
 .step>h2 .n{color:var(--muted);font-size:1rem;font-variant-numeric:tabular-nums}
 .block{position:relative;margin:.5rem 0 1rem}
@@ -62,7 +62,8 @@ progress{width:100%;height:.7rem;accent-color:var(--accent)}
 .out{min-height:1.5rem}
 .spark{display:block;width:100%;height:56px;color:var(--accent)}
 table.keys td,table.keys th{padding-right:1rem}
-@media (max-width:40rem){dl.facts{grid-template-columns:1fr;gap:.1rem}dl.facts dd{margin-bottom:.6rem}}
+table.keys form{display:inline}
+@media (max-width:40rem){dl.facts{grid-template-columns:1fr;gap:.1rem}dl.facts dd{margin-bottom:.6rem}table.keys td[data-label]::before{content:attr(data-label) ": ";color:var(--muted)}}
 `;
 
 const COPY_JS = `document.querySelectorAll("button.copy").forEach(function(b){b.addEventListener("click",function(){var t=document.getElementById(b.getAttribute("data-copy"));if(!t)return;var done=function(m){b.textContent=m;setTimeout(function(){b.textContent="Copy"},2000)};if(navigator.clipboard){navigator.clipboard.writeText(t.textContent).then(function(){done("Copied")},function(){done("Select and copy")})}else done("Select and copy")})});`;
@@ -161,6 +162,8 @@ export interface OnboardingOptions {
   plan?: Plan;
   /** The key, on the one page that reveals it. */
   key?: string;
+  /** The page heading (default: "Welcome to <plan>" with a key, "Set up <plan>" without). */
+  title?: string;
   /** Shown above the steps (for example: the agent already collected the key). */
   notice?: { title?: string; text: string; warn?: boolean };
   status?: number;
@@ -182,7 +185,7 @@ export function onboardingPage(o: OnboardingOptions): Response {
     placeholder: "<your key>",
   });
   const plan = o.plan;
-  const h1 = o.key && plan ? `Welcome to ${plan.name}` : g.title;
+  const h1 = o.title ?? (o.key && plan ? `Welcome to ${plan.name}` : g.title);
   const keyStep = o.key
     ? `${block("key", "", o.key, "key")}
 <p>This is your API key. It is shown <strong>once</strong>: copy it into a password manager or your agent's secret store now. FactLot keeps only a hash of it.</p>
@@ -428,7 +431,7 @@ export function accountPage(
   const rows = s.keys.items
     .map(
       (k) =>
-        `<tr><td><code>${escapeHtml(k.id)}</code>${k.current ? " (this key)" : ""}</td><td>${escapeHtml(k.created.slice(0, 10))}</td><td>${k.last_used_at ? escapeHtml(utc(k.last_used_at)) : "Not yet"}</td><td>${
+        `<tr><td><code>${escapeHtml(k.id)}</code>${k.current ? " (this key)" : ""}</td><td data-label="Created">${escapeHtml(k.created.slice(0, 10))}</td><td data-label="Last used">${k.last_used_at ? escapeHtml(utc(k.last_used_at)) : "Not yet"}</td><td>${
           active && s.keys.count > 1
             ? actionForm(
                 key,
@@ -514,7 +517,7 @@ export function recoveryPage(
   const rows = s.keys.items
     .map(
       (k) =>
-        `<tr><td><code>${escapeHtml(k.id)}</code></td><td>${escapeHtml(k.created.slice(0, 10))}</td></tr>`,
+        `<tr><td><code>${escapeHtml(k.id)}</code></td><td data-label="Created">${escapeHtml(k.created.slice(0, 10))}</td></tr>`,
     )
     .join("");
   const effect = o.replaces
@@ -524,7 +527,7 @@ export function recoveryPage(
     "Recover your account",
     `<h1>Recover your account</h1>
 ${o.notice ? notice(o.notice, (o.status ?? 200) >= 400) : ""}
-<p class="lead">${escapeHtml(s.plan_name)}.</p>
+<p class="lead">Plan: ${escapeHtml(s.plan_name)}.</p>
 ${accountFacts(s)}
 <table class="keys"><thead><tr><th>Key id</th><th>Created</th></tr></thead><tbody>${rows}</tbody></table>
 <section class="step" aria-labelledby="h-issue"><h2 id="h-issue">Issue a new key</h2>

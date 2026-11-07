@@ -373,6 +373,7 @@ export async function recoverLinkRoute(
     plan,
     api: env.API_URL ?? "https://api.factlot.com",
     site: siteUrl(env),
+    title: "Your new key",
     notice: { title: "Access recovered", text: note },
   });
 }
