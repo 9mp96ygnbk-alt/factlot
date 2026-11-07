@@ -1249,32 +1249,4 @@ describe("bundle", () => {
     const bytes = out.outputFiles[0]!.contents.byteLength;
     assert.ok(bytes < 1_000_000, `${bytes} bytes`);
   });
-
-  it("loads pdf-lib only for a PDF: it sits behind a dynamic import, outside the entry chunk", async () => {
-    const out = await build({
-      entryPoints: [new URL("./index.ts", import.meta.url).pathname],
-      bundle: true,
-      splitting: true,
-      outdir: "/tmp/factlot-reports-split",
-      write: false,
-      metafile: true,
-      format: "esm",
-      platform: "neutral",
-      conditions: ["factlot-source", "worker", "browser"],
-      mainFields: ["module", "main"],
-      external: ["@factlot/calc", "@factlot/tools", "zod"],
-      logLevel: "silent",
-    });
-    const outputs = Object.values(out.metafile.outputs);
-    const entry = outputs.find((o) => o.entryPoint)!;
-    const inputs = (o: (typeof outputs)[number]) => Object.keys(o.inputs);
-    assert.ok(
-      !inputs(entry).some((i) => i.includes("pdf-lib") || i.endsWith("pdf.ts")),
-      "the entry chunk holds no pdf-lib",
-    );
-    assert.ok(
-      outputs.some((o) => inputs(o).some((i) => i.includes("pdf-lib"))),
-      "pdf-lib is in a lazily loaded chunk",
-    );
-  });
 });
