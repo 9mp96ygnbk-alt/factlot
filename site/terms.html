@@ -308,18 +308,25 @@
             </li>
             <li>
               We keep no copy of your inputs or outputs and do not use them to
-              train models. The <a href="#privacy">privacy section</a> says what
-              we do record.
+              train models, with one exception: a report you build with
+              <code>report_create</code> is a file that contains the figures and
+              any text you passed (a title, citations, adjustment reasons). We
+              keep that file for 24 hours so you can download it, then delete
+              it. We also keep the monthly report counter, per subscription or
+              as a hash of the IP address. The
+              <a href="#privacy">privacy section</a> says what we do record.
             </li>
             <li>
               Only when you call <code>doc_extract_lease</code> or
               <code>report_narrative</code> do we send what you submit to them
-              (a document's text, or a tool result) to Anthropic PBC's API for
-              model inference; Anthropic does not train models on API inputs and
-              keeps them only as its API data-retention terms allow. We store
-              nothing from these calls. Model output is returned only as far as
-              FactLot's checks verify it, and it can still be wrong. Every other
-              tool runs without any model.
+              (a document's text, or a tool result) to a model provider's API
+              for model inference (the
+              <a href="/privacy">privacy notice</a> names the provider); it does
+              not train models on API inputs and keeps them only as its API
+              data-retention terms allow. We store nothing from these calls.
+              Model output is returned only as far as FactLot's checks verify
+              it, and it can still be wrong. Every other tool runs without any
+              model.
             </li>
             <li>
               When you or your agent pass on an output that carries a citation,
@@ -443,8 +450,9 @@
             </li>
             <li>
               When access ends, your keys stop working. We hold none of your
-              inputs or outputs, so there is nothing to return; billing records
-              are kept as the privacy notice says.
+              inputs or outputs apart from a report file, which is deleted 24
+              hours after it is built, so there is nothing to return; billing
+              records are kept as the privacy notice says.
             </li>
             <li>
               Sections 4 (for amounts owed and refunds), 5 to 8 and 11 to 19

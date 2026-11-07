@@ -82,6 +82,23 @@
               when its window ends.
             </li>
             <li>
+              <strong>Report counters.</strong> To enforce the monthly report
+              allowance, reports are counted for the current month, keyed by a
+              hash of the IP address (for IPv6, of its /64 prefix), never the
+              address itself, on the Free plan and per subscription on paid
+              plans. Months are UTC. A counter is deleted when its month ends.
+            </li>
+            <li>
+              <strong>Report files.</strong> When you build a report with
+              <code>report_create</code>, we store the generated file (an XLSX
+              workbook, PDF or ICS calendar) for 24 hours so you can download
+              it, then delete it. The file contains the figures and any text you
+              passed (a title, citations, adjustment reasons). It is stored
+              under a hash of the download link's random token, and nothing else
+              about the request is stored. Anyone who has the link can download
+              the file until it is deleted.
+            </li>
+            <li>
               <strong>Error logs.</strong> When a request fails, the Worker logs
               only the error's name (for example <code>TypeError</code>), never
               its message or any request content.
@@ -124,7 +141,9 @@
             <li>
               Request bodies, tool inputs and outputs, and documents. Document
               text is processed in memory to answer the request and is not
-              stored or logged.
+              stored or logged. The one exception is a report you build with
+              <code>report_create</code>: the generated file is kept for 24
+              hours (see "The hosted API" above).
             </li>
             <li>
               Request headers, other than reading the key to authorise the
@@ -197,6 +216,14 @@
               <tr>
                 <th scope="row">Lookup quota counters</th>
                 <td>Until the day (Free) or month (paid) resets</td>
+              </tr>
+              <tr>
+                <th scope="row">Report counters</th>
+                <td>Until the month resets</td>
+              </tr>
+              <tr>
+                <th scope="row">Report files</th>
+                <td>24 hours, then deleted</td>
               </tr>
               <tr>
                 <th scope="row">Error logs</th>
@@ -407,6 +434,11 @@
 
           <h2 id="history">Revision history</h2>
           <ul class="plain small">
+            <li>
+              7 November 2026 (update): added report files, kept 24 hours so you
+              can download them, and the monthly report counters, for the hosted
+              reports that opened that day.
+            </li>
             <li>
               7 November 2026: named the operator; listed every record the
               hosted API keeps, with a retention period for each; added lookup

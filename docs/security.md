@@ -13,10 +13,12 @@ Related: [service status](https://factlot.com/status/), [service levels](sla.md)
 
 - The hosted service runs on Cloudflare Workers. A sole proprietor operates it. There is no SOC 2
   report yet; for confidential documents, run FactLot yourself.
-- It stores no request bodies, tool inputs or outputs, and no documents. It stores API keys only as
-  hashes, and usage metadata without IP addresses.
-- The hosted API runs no AI model and sends your tool inputs to no model provider and no other third
-  party.
+- It stores no request bodies, tool inputs or outputs, and no documents, except a report you build
+  with `report_create`: that file is kept for 24 hours so you can download it, then deleted. It
+  stores API keys only as hashes, and usage metadata without IP addresses.
+- Every tool runs without a model, except `doc_extract_lease` and `report_narrative` (Pro and Team,
+  and only when you call them), which send what you submit to a model provider. See the
+  [privacy notice](https://factlot.com/privacy).
 - All code that runs the service is in this repository. You can read it, and run the same code on
   your own machine.
 - Report a vulnerability by email, privately. [Details below](#responsible-disclosure).
@@ -31,9 +33,10 @@ Related: [service status](https://factlot.com/status/), [service levels](sla.md)
   no workers.dev address and no preview address: only the API Worker can call it, through a service
   binding. Source: [`deploy/registry`](../deploy/registry).
 - **Cloudflare KV.** Key records for paid plans: a SHA-256 hash of each key, plan, status, Stripe
-  customer and subscription IDs, and dates. Never a key.
-- **Cloudflare Durable Objects.** Per-minute rate limits and registry lookup quotas: counters for the
-  current window only, keyed by key ID or by a hash of the IP address.
+  customer and subscription IDs, and dates. Never a key. Also the report files built with
+  `report_create`, for 24 hours.
+- **Cloudflare Durable Objects.** Per-minute rate limits, registry lookup quotas and monthly report
+  counters: counters for the current window only, keyed by key ID or by a hash of the IP address.
 - **Cloudflare Analytics Engine.** Usage records for capacity planning: time, key ID, plan, path,
   method and status. No IP address. Kept 90 days.
 
@@ -46,7 +49,7 @@ handles card data; FactLot never sees a card number.
 
 Not stored or logged:
 
-- Request bodies, tool inputs and outputs
+- Request bodies, tool inputs and outputs (a built report file is the exception, below)
 - Documents and their text, quotes and extracted facts
 - Request headers (the key is read to authorise, then dropped)
 - IP addresses in usage records
@@ -58,17 +61,24 @@ Stored:
 - Usage metadata: time, key ID, plan, path, method, status (90 days)
 - Key hashes and subscription records for paid plans, until the subscription ends and then for up to
   12 months
-- Rate-limit and quota counters, deleted when their window ends
+- Rate-limit, lookup and report counters, deleted when their window ends (the free report counter is
+  keyed by a hash of the IP address)
+- A report file built with `report_create`: the generated workbook, PDF or calendar, with its figures
+  and any text you passed, for 24 hours, then deleted. It is stored under a hash of the download
+  link's token.
 - Error names (never messages), as long as Cloudflare keeps logs
 
 Two pieces of code enforce this. The server's request log has a fixed list of fields
 ([`REQUEST_LOG_FIELDS`](../packages/server/src/index.ts)), and a test fails if a request body, a tool
 argument or a bearer token reaches a log line. The Worker's error handler logs the error's name only.
 
-**No model on the hosted API.** The hosted tools are deterministic code. None calls an AI model, and
-none sends your input to a model provider. The only model-backed feature in the project, lease
-extraction in `factlot.ingest`, runs only on your own machine and only when you pass it a model; it is
-not available on the hosted service. See the [customer documents policy](customer-documents.md).
+**Models on the hosted API.** The hosted tools are deterministic code and run without a model,
+including `report_create`, with two exceptions: `doc_extract_lease` and `report_narrative` (Pro and
+Team, and only when you call them) send what you submit to a model provider for inference. FactLot
+stores neither the input nor the model's answer. The [privacy notice](https://factlot.com/privacy)
+names the provider and says how long it may keep what it receives. Lease extraction in
+`factlot.ingest` can also run on your own machine with a model you choose. See the
+[customer documents policy](customer-documents.md).
 
 ## Transport
 

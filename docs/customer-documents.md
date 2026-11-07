@@ -23,7 +23,7 @@ keeps nothing: no document text, quotes or facts are stored or logged, and the o
 request is its metadata (time, route, status, plan, a hashed key ID). No model runs and no third
 party receives the text. Two other hosted tools, `doc_extract_lease` and `report_narrative` (Pro and Team;
 [hosted ingestion](ingestion-hosted.md)), and only these, send the submitted document or tool
-result to Anthropic's API for model inference, and only when the customer opts in by calling
+result to a model provider's API for model inference, and only when the customer opts in by calling
 them; FactLot stores and logs neither the document, the result nor the model's answer. These tools are stateless, so the storage and retention rules below for
 FactLot Cloud do not apply to them. For documents that must not leave the customer's network,
 run the same tools self-hosted.
@@ -113,7 +113,7 @@ Extraction is the one step that sends document content anywhere. What goes, exac
 
 The extractor is pluggable. A customer may run their own extractor (any object with an
 `extract(doc)` method), including one that calls a model inside their own cloud account, and then
-nothing leaves their environment. The shipped extractor calls the Claude API, so its provider's
+nothing leaves their environment. The shipped extractor calls a model, so its provider's
 published terms are the ones that matter. Read on 2026-11-03:
 
 | Promise                                | What the provider publishes                                                                                                                                                                                                                                                                                                                                                                                           | Source                                                                                                               |

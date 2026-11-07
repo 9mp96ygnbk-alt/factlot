@@ -351,7 +351,7 @@ export function setupGuide(o: {
     extract_lease: {
       title: EXTRACT_LEASE_STEP,
       available: o.model === true,
-      text: `With a Pro or Team key, ask your agent to extract a lease: doc_extract_lease sends the lease to Claude, which proposes each value, and FactLot keeps only the values it finds verbatim in the page text, each with its page and quote. ${o.model === true ? "It is on now." : "It is not switched on yet; doc_abstract_lease and doc_verify_facts (free) work meanwhile."} It counts pages, not registry lookups.`,
+      text: `With a Pro or Team key, ask your agent to extract a lease: doc_extract_lease sends the lease to a model provider, which proposes each value, and FactLot keeps only the values it finds verbatim in the page text, each with its page and quote. ${o.model === true ? "It is on now." : "It is not switched on yet; doc_abstract_lease and doc_verify_facts (free) work meanwhile."} It counts pages, not registry lookups.`,
       mcp_tool: "doc_extract_lease",
       rest: `POST ${api}/v1/doc/extract_lease`,
       pages_per_month: {

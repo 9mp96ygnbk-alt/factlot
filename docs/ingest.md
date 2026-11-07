@@ -11,7 +11,7 @@ the same answers.
 
 ```
 pages ─▶ (OCR for pages with no text layer, if a backend is given)
-      ─▶ extractor (Claude, or your own) ─▶ candidates {predicate, value, verbatim quote, page}
+      ─▶ extractor (a model, or your own) ─▶ candidates {predicate, value, verbatim quote, page}
       ─▶ verifier: the value must have the right shape; the quote must appear on the cited page;
                    the numbers, dates, and names in the value must be written in the quote
       ─▶ review queue: a quote that is on the page but does not support the value, or a candidate
@@ -127,7 +127,7 @@ The model proposes and deterministic code decides:
 - **Confidence.** An extractor may put a `confidence` (0 to 1) on a candidate. A candidate that
   passes every check but reports a confidence below the threshold (`REVIEW_CONFIDENCE_THRESHOLD`,
   0.8, or `--confidence-threshold`) is queued for review instead of accepted. Candidates without
-  a confidence are not held back. The shipped Claude extractor does not ask the model for one.
+  a confidence are not held back. The shipped model extractor does not ask the model for one.
 
 - **CAM caps.** A cap must use one of FactLot's explicit methods, so the calculators can use it
   directly.
@@ -239,7 +239,7 @@ python -m factlot.ingest --review
 python -m factlot.ingest --accept rv_… --by "A. Reviewer"
 ```
 
-You need Claude API credentials. The model is always your choice. `--ocr` is resolved before
+You need API credentials for the model you pass. The model is always your choice. `--ocr` is resolved before
 anything else runs, so a missing `tesseract` fails fast with exit code 2. The output file holds
 the facts, the rejections, and the review queue; running the extraction again with the same
 `--out` reuses its lease URN and keeps every review decision. Amendments apply by their
@@ -265,7 +265,7 @@ keeps, and how a hosted version will store and delete documents are in the
 
 ## Status
 
-- The pipeline, verifier, supersession, CLI, and the Claude extractor's request and parsing are
+- The pipeline, verifier, supersession, CLI, and the model extractor's request and parsing are
   tested in `python/tests/test_ingest.py`. Those tests use a **synthetic** lease and a scripted
   extractor that includes deliberate model errors, including values that do not follow from their
   quotes. The consistency check's written forms and the OCR hook (with a fake backend and a

@@ -19,12 +19,16 @@
     yourself.
   </li>
   <li>
-    It stores no request bodies, tool inputs or outputs, and no documents. It
-    stores API keys only as hashes, and usage metadata without IP addresses.
+    It stores no request bodies, tool inputs or outputs, and no documents,
+    except a report you build with <code>report_create</code>: that file is kept
+    for 24 hours so you can download it, then deleted. It stores API keys only
+    as hashes, and usage metadata without IP addresses.
   </li>
   <li>
-    The hosted API runs no AI model and sends your tool inputs to no model
-    provider and no other third party.
+    Every tool runs without a model, except <code>doc_extract_lease</code> and
+    <code>report_narrative</code> (Pro and Team, and only when you call them),
+    which send what you submit to a model provider. See the
+    <a href="/privacy">privacy notice</a>.
   </li>
   <li>
     All code that runs the service is in the public repository. You can read it,
@@ -56,12 +60,13 @@
   <li>
     <strong>Cloudflare KV.</strong> Key records for paid plans: a SHA-256 hash
     of each key, plan, status, Stripe customer and subscription IDs, and dates.
-    Never a key.
+    Never a key. Also the report files built with <code>report_create</code>,
+    for 24 hours.
   </li>
   <li>
-    <strong>Cloudflare Durable Objects.</strong> Per-minute rate limits and
-    registry lookup quotas: counters for the current window only, keyed by key
-    ID or by a hash of the IP address.
+    <strong>Cloudflare Durable Objects.</strong> Per-minute rate limits,
+    registry lookup quotas and monthly report counters: counters for the current
+    window only, keyed by key ID or by a hash of the IP address.
   </li>
   <li>
     <strong>Cloudflare Analytics Engine.</strong> Usage records for capacity
@@ -80,7 +85,10 @@
 <h2 id="stored">What is stored, and what is not</h2>
 <h3>Not stored or logged</h3>
 <ul class="plain">
-  <li>Request bodies, tool inputs and outputs</li>
+  <li>
+    Request bodies, tool inputs and outputs (a built report file is the
+    exception, below)
+  </li>
   <li>Documents and their text, quotes and extracted facts</li>
   <li>Request headers (the key is read to authorise, then dropped)</li>
   <li>IP addresses in usage records</li>
@@ -94,7 +102,15 @@
     Key hashes and subscription records for paid plans, until the subscription
     ends and then for up to 12 months
   </li>
-  <li>Rate-limit and quota counters, deleted when their window ends</li>
+  <li>
+    Rate-limit, lookup and report counters, deleted when their window ends (the
+    free report counter is keyed by a hash of the IP address)
+  </li>
+  <li>
+    A report file built with <code>report_create</code>: the generated workbook,
+    PDF or calendar, with its figures and any text you passed, for 24 hours,
+    then deleted. It is stored under a hash of the download link's token.
+  </li>
   <li>Error names (never messages), as long as Cloudflare keeps logs</li>
 </ul>
 <p>
@@ -105,11 +121,15 @@
   reaches a log line. The Worker's error handler logs the error's name only.
 </p>
 <p>
-  <strong>No model on the hosted API.</strong> The hosted tools are
-  deterministic code. None calls an AI model, and none sends your input to a
-  model provider. The only model-backed feature in the project, lease extraction
-  in <code>factlot.ingest</code>, runs only on your own machine and only when
-  you pass it a model; it is not available on the hosted service. See the
+  <strong>Models on the hosted API.</strong> The hosted tools are deterministic
+  code and run without a model, including <code>report_create</code>, with two
+  exceptions: <code>doc_extract_lease</code> and
+  <code>report_narrative</code> (Pro and Team, and only when you call them) send
+  what you submit to a model provider for inference. FactLot stores neither the
+  input nor the model's answer. The <a href="/privacy">privacy notice</a> names
+  the provider and says how long it may keep what it receives. Lease extraction
+  in <code>factlot.ingest</code> can also run on your own machine with a model
+  you choose. See the
   <a href="{{REPO}}/blob/main/docs/customer-documents.md"
     >customer documents policy</a
   >.

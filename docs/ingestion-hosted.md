@@ -68,7 +68,7 @@ model is told not to compute dates); extract them yourself with `doc_verify_fact
 `commencement` form. Amendments: run each document separately and combine the facts with
 `doc_abstract_lease`.
 
-**How the model is called.** One request to Anthropic's Messages API with FactLot's fixed
+**How the model is called.** One request to a model provider's API with FactLot's fixed
 instructions and the predicate catalog (sent as a cached system prompt), then the requested
 predicate list, the title and the page text marked `[Page N]` (sent as a cached user block),
 asking for inference in the United States (`inference_geo: "us"`). The answer is constrained by a JSON schema
@@ -182,13 +182,13 @@ DocumentTooLarge` with a `next`), 120 seconds for `doc_extract_lease` and 60 sec
 - The document (or result) is held in memory for the request only. FactLot stores nothing: no
   page text, quote, fact, figure or prose is written to storage, and none reaches a log. The only
   log line is `{tool, outcome, model, pages, attempts, input_tokens, output_tokens, latency_ms}`.
-- For these two tools only, FactLot sends the page text (or the result) to Anthropic's API
-  (Anthropic PBC, United States) for model inference, through a commercial organization, and
-  every request asks for inference in the United States (`inference_geo: "us"`). Under
-  Anthropic's commercial terms it does not train models on API inputs, and under its published
-  API retention policy it deletes API inputs and outputs within 30 days of receipt or
-  generation, unless it must keep them longer by law or to enforce its Usage Policy (flagged
-  inputs and outputs up to 2 years). The PDF file itself is not sent; its text is.
+- For these two tools only, FactLot sends the page text (or the result) to a model provider's API
+  (named in the [privacy notice](https://factlot.com/privacy); United States) for model inference,
+  through a commercial organization, and every request asks for inference in the United States
+  (`inference_geo: "us"`). Under its commercial terms the provider does not train models on API
+  inputs, and under its published API retention policy it deletes API inputs and outputs within 30
+  days of receipt or generation, unless it must keep them longer by law or to enforce its usage
+  policy (flagged inputs and outputs up to 2 years). The PDF file itself is not sent; its text is.
 - A URL is fetched without cookies or credentials, from public hosts only.
 - Every other FactLot tool, hosted or self-hosted, runs without a model. For documents that must
   not leave your network, extract with your own model and check with `doc_verify_facts`
