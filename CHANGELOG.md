@@ -43,6 +43,7 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 
 ### Changed
 
+- Hosted API: `registry_tx_equity_candidates_batch` is metered per subject (REST and MCP). A call reserves one lookup per subject (at most 50; 1 when the body cannot be read), is charged one per answered subject, and gives back subjects with an error (coverage miss, Tarrant withheld, outside Texas, bad locator), as well as the whole reservation on an input error or `RegistryUnavailable`; `/account` usage records each answered subject under its region. A call needing more lookups than are left is refused whole with 429 `RegistryQuotaExceeded` (an MCP tool error) that gives `needed` and `available` and says how many subjects still fit; in an MCP batch, other calls that fit still run. `/v1/plans` `quotas.counted` states the rule.
 - Hosted API: the free tier's registry quota is now 25 lookups a day per IP address (was 100); Pro (5,000 a month) and Team (100,000 a month) are unchanged. A lookup is charged only when answered: `registry_coverage`, coverage misses (a county or system that is not loaded) and input errors are not counted.
 - `calc_tx_unequal_appraisal`: the evidence notice is returned once, in `value.disclaimer`, and no longer repeated as `warnings[0]`; the tool description says `subject_minus_median_pct` is a fraction of the median (0.1554 is 15.54%). No formula change.
 - `registry_resolve_external`: the example system is `sdat_account` (Maryland), with `tx-harris-cad-account` named for where Texas is hosted.
