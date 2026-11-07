@@ -90,7 +90,7 @@ downloadable sample registry-sample-dc-2026-11-04.
 
 The other regions in the project's pipeline (New York City and more) are available only on a
 self-hosted FactLot with a registry file; more hosted regions open as their terms allow.
-Texas counties served by the hosted registry are listed by `registry_coverage` (Harris, Dallas, Travis and Collin first). Tarrant County is not served by the hosted registry while the publisher's terms for AI use are unclear.
+Texas hosting opens with this release; `registry_coverage` lists each Texas county once it is hosted. Tarrant County is not served by the hosted registry while the publisher's terms for AI use are unclear.
 
 ## What FactLot is
 
@@ -126,7 +126,7 @@ Be clear about scope before adopting it:
   Massachusetts, Vermont, Arkansas and Connecticut, most of Utah, 24 Minnesota counties
   and Montana's apartments and industrial parcels
   ([catalog](docs/registry/sources/README.md), [quality report](docs/registry/quality/tier1-2026-11-03.md)).
-  **What you can query today** on the hosted API is Maryland, the District of Columbia and Juab and Summit counties in Utah (128,854 parcels), plus the Texas counties `registry_coverage` lists (see [Hosted registry](#hosted-registry)); every other region needs a self-hosted FactLot with a registry file. Cook County, Florida, Fulton,
+  **What you can query today** on the hosted API is Maryland, the District of Columbia and Juab and Summit counties in Utah (128,854 parcels). Texas hosting opens with this release; `registry_coverage` lists each Texas county once it is hosted. Tarrant County is not served by the hosted registry while the publisher's terms for AI use are unclear. Every other region needs a self-hosted FactLot with a registry file. Cook County, Florida, Fulton,
   Maricopa, Wayne, Fairfax, King and much of California wait on a licence decision, a form or a
   purchase. Several public files omit owner names (Maryland, Utah, Los Angeles, San Francisco); zoning, recorded sales, deeds and mortgages,
   energy benchmarks and CMBS loan data only for some metros ([coverage](docs/registry/coverage.md)); no tenant rosters. See
