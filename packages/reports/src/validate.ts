@@ -87,10 +87,18 @@ export class ReportInputError extends Error {
   override name = "ReportInputError";
   readonly code: ReportErrorCode;
   readonly issues: Issue[];
-  constructor(code: ReportErrorCode, message: string, issues: Issue[] = []) {
+  /** What to do instead, when the error knows better than its code (e.g. ask for xlsx). */
+  readonly next: string | undefined;
+  constructor(
+    code: ReportErrorCode,
+    message: string,
+    issues: Issue[] = [],
+    next?: string,
+  ) {
     super(message);
     this.code = code;
     this.issues = issues;
+    this.next = next;
   }
 }
 

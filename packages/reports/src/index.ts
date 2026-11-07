@@ -42,6 +42,7 @@ import {
   ReportInputError,
   checkInput,
   type ReportFormat,
+  type TxResult,
   type ReportKind,
 } from "./validate.ts";
 
@@ -62,6 +63,13 @@ export { TX_DISCLAIMER } from "./kinds/tx.ts";
 
 /** KV's largest value; a larger document is refused. */
 export const MAX_REPORT_BYTES = 25 * 1024 * 1024;
+
+/**
+ * The Texas evidence packet (PDF) lays out at most this many comparables, each with at most
+ * this many adjustments; the workbook takes the tool's full set (up to 200 comparables).
+ */
+export const TX_PDF_MAX_COMPARABLES = 60;
+export const TX_PDF_MAX_ADJUSTMENTS = 10;
 
 export const TERMS_URL = "https://factlot.com/terms";
 
@@ -175,7 +183,42 @@ export function prepareReport(request: unknown): PreparedReport {
       [{ path: "format", message: `one of ${KIND_FORMATS[kind].join(", ")}` }],
     );
   checkCallerText(kind, ctx, args);
-  return { kind, format, ctx, checked: checkInput(kind, input, args) };
+  const checked = checkInput(kind, input, args);
+  if (kind === "tx_unequal_appraisal" && format === "pdf")
+    txPdfLimits(checked.result as TxResult);
+  return { kind, format, ctx, checked };
+}
+
+/** Refuse a Texas evidence packet too large to lay out as a PDF (413; the workbook takes it). */
+function txPdfLimits(r: TxResult): void {
+  const comps = r.value.comparables;
+  const issues = [
+    ...(comps.length > TX_PDF_MAX_COMPARABLES
+      ? [
+          {
+            path: "arguments.comparables",
+            message: `${comps.length} comparables; the PDF lays out at most ${TX_PDF_MAX_COMPARABLES}`,
+          },
+        ]
+      : []),
+    ...comps.flatMap((c, i) =>
+      c.adjustments.length > TX_PDF_MAX_ADJUSTMENTS
+        ? [
+            {
+              path: `arguments.comparables.${i}.adjustments`,
+              message: `${c.adjustments.length} adjustments; the PDF lays out at most ${TX_PDF_MAX_ADJUSTMENTS} per comparable`,
+            },
+          ]
+        : [],
+    ),
+  ];
+  if (issues.length)
+    throw new ReportInputError(
+      "TooLarge",
+      `a tx_unequal_appraisal PDF lays out at most ${TX_PDF_MAX_COMPARABLES} comparables with at most ${TX_PDF_MAX_ADJUSTMENTS} adjustments each; the xlsx workbook takes the full set (up to 200 comparables)`,
+      issues.slice(0, 20),
+      'ask for "format": "xlsx" (the adjustment-grid workbook takes every comparable and adjustment), or send fewer comparables or adjustments for the PDF',
+    );
 }
 
 /** Build one document. Throws ReportInputError for anything an agent can fix. */

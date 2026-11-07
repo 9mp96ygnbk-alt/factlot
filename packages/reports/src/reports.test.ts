@@ -938,6 +938,74 @@ describe("caller text", () => {
   });
 });
 
+describe("size limits", () => {
+  const tx = SAMPLES[0]!;
+  /** The tx sample with n comparables of a adjustments each, every text at its cap. */
+  const many = (n: number, a: number, spaced = false): Json => {
+    const args = structuredClone(tx.args) as { comparables: Json[] };
+    const base = args.comparables[0]!;
+    args.comparables = Array.from({ length: n }, (_, i) => ({
+      ...structuredClone(base),
+      id: `C${i}`.padEnd(200, "X"),
+      citation: {
+        document_id: "D".repeat(200),
+        locator: (spaced ? "page " : "L").repeat(200).slice(0, 200),
+      },
+      adjustments: Array.from({ length: a }, (_, j) => ({
+        label: `adj${j}`,
+        kind: "amount",
+        value: 10 * j,
+        reason: (spaced ? "reason " : "R").repeat(200).slice(0, 200),
+      })),
+    }));
+    return args as unknown as Json;
+  };
+
+  it("the Texas PDF takes at most 60 comparables of 10 adjustments; above, 413 TooLarge naming the xlsx", async () => {
+    for (const [n, a, path] of [
+      [61, 1, /^arguments\.comparables$/],
+      [10, 11, /^arguments\.comparables\.0\.adjustments$/],
+    ] as const) {
+      const err = await rejects(
+        { kind: "tx_unequal_appraisal", format: "pdf", arguments: many(n, a) },
+        "TooLarge",
+        path,
+      );
+      assert.match(err.next ?? "", /"format": "xlsx"/);
+    }
+  });
+
+  it("the largest Texas PDF allowed (60 × 10, every text at its cap) builds in well under a second", async () => {
+    for (const spaced of [false, true]) {
+      const t = performance.now();
+      const f = await createReport(
+        {
+          kind: "tx_unequal_appraisal",
+          format: "pdf",
+          arguments: many(60, 10, spaced),
+        },
+        { now: NOW },
+      );
+      const ms = performance.now() - t;
+      assert.ok(ms < 3_000, `${ms.toFixed(0)} ms`);
+      assert.ok((await readPdf(f.bytes)).pages > 5);
+    }
+  });
+
+  it("the Texas workbook takes the tool's full set: 200 comparables", async () => {
+    const f = await createReport(
+      {
+        kind: "tx_unequal_appraisal",
+        format: "xlsx",
+        arguments: many(200, 3, true),
+      },
+      { now: NOW },
+    );
+    const x = await readXlsx(f.bytes);
+    assert.equal(x.cell("Reconcile", "C4"), "0", "rows that differ");
+  });
+});
+
 describe("workbook formulas", () => {
   it("a division by zero is #DIV/0! in the cell and in what reads it, as in Excel; nothing throws", async () => {
     const wb = new Workbook({

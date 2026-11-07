@@ -238,7 +238,8 @@ function inputError(err: ReportInputError): ReportOutcome {
       message: err.message,
       issues: err.issues,
       next:
-        err.code === "ArgumentsRequired"
+        err.next ??
+        (err.code === "ArgumentsRequired"
           ? "send the tool's arguments as arguments (the same arguments you called the tool with)"
           : err.code === "FormulaVersion"
             ? "call the tool again and send its result unchanged (or send its arguments)"
@@ -246,7 +247,7 @@ function inputError(err: ReportInputError): ReportOutcome {
               ? "send the tool's result exactly as it was returned, or send the tool's arguments instead"
               : err.code === "TextNotAllowed"
                 ? "remove the advice or valuation wording from the fields listed in issues and retry"
-                : "fix the fields listed in issues and retry",
+                : "fix the fields listed in issues and retry"),
     },
   };
 }
