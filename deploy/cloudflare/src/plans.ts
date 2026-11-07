@@ -73,6 +73,8 @@ export function isMeteredRegistryTool(
 export const QUOTA_RULES = {
   counted:
     "A lookup is one answered call to a registry_* tool: a record, a resolved ID, owners, or a search that ran inside loaded coverage (even with no results). Free: registry_coverage, input errors, misses outside loaded coverage (county, state, entity registry or ID system not loaded) and calls the registry could not answer.",
+  batch:
+    "registry_tx_equity_candidates_batch counts one lookup per answered subject: it needs one free lookup per subject to run (a batch larger than what remains is refused whole), and subjects with an error are given back.",
   free: `Without a key, ${ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY} lookups a day per IP address (stored only as a hash; IPv6 per /64), counted per UTC day and reset at 00:00 UTC.`,
   paid: "With a key, lookups count per subscription per calendar month (UTC), shared by all of its keys; requests a minute count per key.",
   at_cap:

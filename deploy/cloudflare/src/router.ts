@@ -13,12 +13,13 @@
  * read /v1/account and open the billing portal to fix its card.
  *
  * Registry lookups (answered calls of registry_* tools; registry_coverage, input errors, misses
- * outside loaded coverage and unanswered calls are given back) are metered on top: per
+ * outside loaded coverage and unanswered calls are given back; a batch tool reserves one per
+ * subject and keeps one per answered subject) are metered on top: per
  * address per UTC day without a key, per subscription per calendar month with one. A request
  * over the cap gets 429 RegistryQuotaExceeded (REST) or the same error as an MCP tool result
  * with isError; other tools keep working.
  */
-import { tools } from "@factlot/tools";
+import { TX_EQUITY_BATCH_MAX_SUBJECTS, tools } from "@factlot/tools";
 
 import {
   CONTACT,
@@ -399,6 +400,101 @@ function callsRegistry(item: unknown): boolean {
     typeof params?.name === "string" &&
     REGISTRY_NAMES.has(params.name)
   );
+}
+
+/**
+ * Registry tools that answer many subjects in one call, by the input field that lists them: a
+ * call reserves one lookup per subject before it runs and keeps one per answered subject.
+ */
+const BATCH_REGISTRY_TOOLS: ReadonlyMap<
+  string,
+  { field: string; max: number }
+> = new Map([
+  [
+    "registry_tx_equity_candidates_batch",
+    { field: "subjects", max: TX_EQUITY_BATCH_MAX_SUBJECTS },
+  ],
+]);
+
+/** The subjects of a batch registry call, when its list is valid in length (else undefined). */
+function batchSubjects(tool: string, args: unknown): unknown[] | undefined {
+  const batch = BATCH_REGISTRY_TOOLS.get(tool);
+  if (!batch || typeof args !== "object" || args === null) return undefined;
+  const list = (args as Record<string, unknown>)[batch.field];
+  return Array.isArray(list) && list.length >= 1 && list.length <= batch.max
+    ? list
+    : undefined;
+}
+
+/**
+ * The lookups a metered registry call reserves: one per subject of a batch tool, otherwise one
+ * (a batch with an invalid subject list is an input error, which is given back).
+ */
+export function lookupsReserved(tool: string, args: unknown): number {
+  return batchSubjects(tool, args)?.length ?? 1;
+}
+
+/** The lookups a metered MCP call reserves. */
+function callReserves(item: unknown): number {
+  const params = (item as { params?: { name?: unknown; arguments?: unknown } })
+    .params;
+  return lookupsReserved(String(params?.name), params?.arguments);
+}
+
+/**
+ * The metered calls of an MCP request that the `granted` lookups cover, in order, each with what
+ * it reserves: a call runs only when all of its reservation fits; a call that does not fit is
+ * refused and later, smaller calls may still run.
+ */
+function admittedCalls(
+  items: unknown[],
+  granted: number,
+): Map<unknown, number> {
+  const admitted = new Map<unknown, number>();
+  let budget = granted;
+  for (const item of items) {
+    if (!isMeteredCall(item)) continue;
+    const n = callReserves(item);
+    if (n <= budget) {
+      admitted.set(item, n);
+      budget -= n;
+    }
+  }
+  return admitted;
+}
+
+/**
+ * The charged part of a batch registry answer: one entry per answered subject (an entry of
+ * `results` without an `error`), with that subject's own arguments. Texas batch subjects given by
+ * county and APN are in state 48 (the tool's default), which names their region.
+ */
+function batchCharges(
+  tool: string,
+  args: unknown,
+  answer: unknown,
+): { tool: string; args: unknown }[] {
+  const subjects = batchSubjects(tool, args) ?? [];
+  const byId = new Map(
+    subjects.map((s) => [(s as { id?: unknown } | null)?.id, s]),
+  );
+  const results = (answer as { results?: unknown } | null)?.results;
+  if (!Array.isArray(results)) return [];
+  return results
+    .filter((r) => typeof r === "object" && r !== null && !("error" in r))
+    .slice(0, subjects.length)
+    .map((r) => {
+      const { id: _id, ...subject } = (byId.get((r as { id?: unknown }).id) ??
+        {}) as Record<string, unknown>;
+      void _id;
+      return {
+        tool,
+        args:
+          tool === "registry_tx_equity_candidates_batch" &&
+          subject.urn === undefined
+            ? { state_fips: "48", ...subject }
+            : subject,
+      };
+    });
 }
 
 function quotaHeaders(q: QuotaState): Record<string, string> {
@@ -822,7 +918,9 @@ async function route(
     mcpBatch = Array.isArray(mcpBody);
     const items: unknown[] = Array.isArray(mcpBody) ? mcpBody : [mcpBody];
     registryRequest = items.some(callsRegistry);
-    wanted = items.filter(isMeteredCall).length;
+    wanted = items
+      .filter(isMeteredCall)
+      .reduce((n, m) => n + callReserves(m), 0);
     // Hosted tools answered here: account tools (with a key) and the model-backed tools (any
     // caller: without a key they answer PlanRequired, without the model ModelUnavailable).
     const hosted = (m: unknown) => (paid && isAccountCall(m)) || isModelCall(m);
@@ -851,18 +949,36 @@ async function route(
       });
   } else if (REGISTRY_TOOLS.has(path) && request.method === "POST") {
     registryRequest = true;
-    wanted = isMeteredRegistryTool(REGISTRY_TOOLS.get(path)) ? 1 : 0;
     restText = await readBody(request, MAX_BODY_BYTES);
     if (restText === undefined)
       return errorResponse(path, 413, -32600, {
         error: "PayloadTooLarge",
         message: "request body over 1 MB",
       });
+    const tool = REGISTRY_TOOLS.get(path)!;
+    wanted = isMeteredRegistryTool(tool)
+      ? lookupsReserved(tool, parseArgs(restText))
+      : 0;
   }
 
   // Minute limit (per address, key or connection), then registry quota (per address, free
   // connection or subscription).
   const freeSubject = async () => oauth?.subject ?? (await addressKey());
+  // Give back `n` lookups taken in the window that ends at `resetsAt`.
+  const giveBack = async (n: number, resetsAt: string) => {
+    try {
+      await env.METER.refund(
+        paid ? meterSubject(paid.record, paid.hash) : await freeSubject(),
+        paid ? "month" : "day",
+        n,
+        resetsAt,
+      );
+      return true;
+    } catch {
+      console.error(JSON.stringify({ msg: "quota refund failed" }));
+      return false;
+    }
+  };
   let hit: HitResult;
   if (!paid) {
     const quota: QuotaSpec | undefined = registryRequest
@@ -900,11 +1016,22 @@ async function route(
       headers["retry-after"] = String(deniedError.retry_after_seconds);
     }
   }
-  if (deniedError && path !== "/mcp")
-    return withHeaders(json(429, deniedError), {
-      ...corsHeaders(),
-      ...headers,
-    });
+  if (deniedError && path !== "/mcp") {
+    // A batch call that does not fit runs not at all: give back what was taken for it.
+    if (hit.granted > 0 && hit.quota) {
+      await giveBack(hit.granted, hit.quota.resets_at);
+      headers["x-factlot-registry-quota-remaining"] = String(
+        Math.min(hit.quota.limit, hit.quota.remaining + hit.granted),
+      );
+    }
+    return withHeaders(
+      json(429, batchDenial(deniedError, wanted, hit.granted)),
+      {
+        ...corsHeaders(),
+        ...headers,
+      },
+    );
+  }
 
   // The inner handler runs open (no keys of its own): this layer already decided access.
   // It trusts forwarding headers (worker.ts sets trustProxy), so this layer replaces anything
@@ -966,7 +1093,12 @@ async function route(
     const counted =
       path === "/mcp"
         ? await mcpCharges(res, mcpBody, hit.granted)
-        : await restCharge(res, REGISTRY_TOOLS.get(path) ?? "", restText);
+        : await restCharge(
+            res,
+            REGISTRY_TOOLS.get(path) ?? "",
+            restText,
+            hit.granted,
+          );
     res = counted.res;
     const unanswered = counted.free;
     // The subscription's daily usage (by tool and region) for /account and account_usage.
@@ -980,21 +1112,10 @@ async function route(
           })),
         ),
       );
-    if (unanswered > 0) {
-      try {
-        await env.METER.refund(
-          paid ? meterSubject(paid.record, paid.hash) : await freeSubject(),
-          paid ? "month" : "day",
-          unanswered,
-          hit.quota.resets_at,
-        );
-        headers["x-factlot-registry-quota-remaining"] = String(
-          Math.min(hit.quota.limit, hit.quota.remaining + unanswered),
-        );
-      } catch {
-        console.error(JSON.stringify({ msg: "quota refund failed" }));
-      }
-    }
+    if (unanswered > 0 && (await giveBack(unanswered, hit.quota.resets_at)))
+      headers["x-factlot-registry-quota-remaining"] = String(
+        Math.min(hit.quota.limit, hit.quota.remaining + unanswered),
+      );
   }
   if (accountCalls.length > 0 || listIds.length > 0) {
     let modelCalls = 0;
@@ -1036,7 +1157,24 @@ async function route(
 }
 
 /**
- * Run an MCP request of which only the first `granted` metered registry calls fit the quota:
+ * The quota error of a refused call that reserves `n` lookups when `left` were still free for it:
+ * a batch that does not fit says how many subjects would.
+ */
+function batchDenial(
+  error: ReturnType<typeof quotaError>,
+  n: number,
+  left: number,
+): ReturnType<typeof quotaError> {
+  if (n <= 1 || left <= 0) return error;
+  return {
+    ...error,
+    message: `This batch call needs ${n} registry lookups (one per subject) and ${left} of ${error.limit.toLocaleString("en-US")} remain until ${error.resets_at}: send at most ${left} subjects, or wait for the reset. Only answered subjects count; the rest are given back. Other tools keep working.`,
+    used: error.limit - left,
+  };
+}
+
+/**
+ * Run an MCP request of which only the metered registry calls that `granted` covers fit the quota:
  * the rest are answered here as tool errors (isError, the same error object REST returns), the
  * remaining messages go to the inner handler, and the answers are merged.
  */
@@ -1050,20 +1188,28 @@ async function mcpWithDenials(
   const items: unknown[] = batch ? body : [body];
   const kept: unknown[] = [];
   const denied: { id: string | number }[] = [];
-  let budget = granted;
+  const admitted = admittedCalls(items, granted);
+  let left = granted;
+  for (const n of admitted.values()) left -= n;
   for (const item of items) {
-    if (!isMeteredCall(item)) kept.push(item);
-    else if (budget > 0) {
-      budget--;
-      kept.push(item);
-    } else denied.push(item);
+    if (!isMeteredCall(item) || admitted.has(item)) kept.push(item);
+    else denied.push(item);
   }
   const answers = denied.map((m) => ({
     jsonrpc: "2.0",
     id: m.id,
     result: {
       isError: true,
-      content: [{ type: "text", text: JSON.stringify(error, null, 2) }],
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(
+            batchDenial(error, callReserves(m), left),
+            null,
+            2,
+          ),
+        },
+      ],
     },
   }));
   const answer = (body: unknown) => withHeaders(json(200, body), corsHeaders());
@@ -1122,89 +1268,117 @@ function parseArgs(text: string | undefined): unknown {
   }
 }
 
-/** A REST registry answer: charged only for a 200 with a real answer. Returns a readable copy. */
+/**
+ * A REST registry answer: charged only for a 200 with a real answer (a batch: one per answered
+ * subject), and `granted` minus what is charged is given back. Returns a readable copy.
+ */
 async function restCharge(
   res: Response,
   tool: string,
   body: string | undefined,
+  granted: number,
 ): Promise<Charges> {
-  const charged = [{ tool, args: parseArgs(body) }];
-  if (res.status !== 200) return { res, free: 1, charged: [] };
+  const args = parseArgs(body);
+  const charged = (answer: unknown) =>
+    BATCH_REGISTRY_TOOLS.has(tool)
+      ? batchCharges(tool, args, answer)
+      : isChargedAnswer(answer)
+        ? [{ tool, args }]
+        : [];
+  const outcome = (res: Response, c: Charges["charged"]): Charges => ({
+    res,
+    free: Math.max(0, granted - c.length),
+    charged: c,
+  });
+  if (res.status !== 200) return outcome(res, []);
   const text = await res.text();
   const copy = new Response(text, res);
+  let answer: unknown;
   try {
-    return isChargedAnswer(JSON.parse(text))
-      ? { res: copy, free: 0, charged }
-      : { res: copy, free: 1, charged: [] };
+    answer = JSON.parse(text);
   } catch {
-    return { res: copy, free: 0, charged };
+    // Not JSON: an answer all the same.
+    return outcome(copy, Array(granted).fill({ tool, args }));
   }
+  return outcome(copy, charged(answer).slice(0, granted));
 }
 
 /**
- * Which of the first `granted` metered registry calls of an MCP request were real answers, and
- * how many were not: a JSON-RPC error (invalid params), a tool error (isError: bad input,
- * malformed URN, RegistryUnavailable), a coverage miss, or no answer at all. Reads the answer,
- * so it returns a fresh copy of the response.
+ * Which of the metered registry calls of an MCP request that `granted` covers were real answers:
+ * not a JSON-RPC error (invalid params), a tool error (isError: bad input, malformed URN,
+ * RegistryUnavailable), a coverage miss, or no answer at all; a batch call counts its answered
+ * subjects. Everything else of `granted` is given back. Reads the answer, so it returns a fresh
+ * copy of the response.
  */
 async function mcpCharges(
   res: Response,
   body: unknown,
   granted: number,
 ): Promise<Charges> {
-  const calls = (Array.isArray(body) ? body : [body])
-    .filter(isMeteredCall)
-    .slice(0, granted) as {
+  const admitted = admittedCalls(Array.isArray(body) ? body : [body], granted);
+  const calls = [...admitted.keys()] as {
     id: string | number;
     params: { name: string; arguments?: unknown };
   }[];
-  const all = calls.map((m) => ({
-    tool: m.params.name,
-    args: m.params.arguments,
-  }));
+  // Every reserved lookup of every admitted call, as charged when the answer cannot be read.
+  const all = calls.flatMap((m) => {
+    const tool = m.params.name;
+    const args = m.params.arguments;
+    const subjects = batchSubjects(tool, args);
+    return subjects
+      ? batchCharges(tool, args, {
+          results: subjects.map((s) => ({ id: (s as { id?: unknown })?.id })),
+        })
+      : [{ tool, args }];
+  });
+  const outcome = (res: Response, charged: Charges["charged"]): Charges => ({
+    res,
+    free: Math.max(0, granted - charged.length),
+    charged,
+  });
   if (
     res.status !== 200 ||
     !(res.headers.get("content-type") ?? "").includes("application/json")
   )
-    return res.status >= 400
-      ? { res, free: calls.length, charged: [] }
-      : { res, free: 0, charged: all };
+    return outcome(res, res.status >= 400 ? [] : all);
   const text = await res.text();
   const copy = new Response(text, res);
   let parsed: unknown;
   try {
     parsed = JSON.parse(text);
   } catch {
-    return { res: copy, free: 0, charged: all };
+    return outcome(copy, all);
   }
   const answers = new Map<unknown, unknown>();
   for (const m of Array.isArray(parsed) ? parsed : [parsed]) {
     const id = (m as { id?: unknown } | null)?.id;
     if (id !== undefined) answers.set(id, m);
   }
-  let free = 0;
   const charged: Charges["charged"] = [];
-  for (const [i, call] of calls.entries()) {
+  for (const call of calls) {
     const m = answers.get(call.id) as
       | {
           error?: unknown;
           result?: { isError?: boolean; content?: { text?: unknown }[] };
         }
       | undefined;
-    if (!m || m.error !== undefined || !m.result || m.result.isError === true) {
-      free++;
+    if (!m || m.error !== undefined || !m.result || m.result.isError === true)
       continue;
-    }
-    let real = true;
+    const tool = call.params.name;
+    const args = call.params.arguments;
+    let answer: unknown;
     try {
-      real = isChargedAnswer(JSON.parse(String(m.result.content?.[0]?.text)));
+      answer = JSON.parse(String(m.result.content?.[0]?.text));
     } catch {
       // Not JSON: an answer all the same.
+      charged.push({ tool, args });
+      continue;
     }
-    if (real) charged.push(all[i]!);
-    else free++;
+    if (BATCH_REGISTRY_TOOLS.has(tool))
+      charged.push(...batchCharges(tool, args, answer));
+    else if (isChargedAnswer(answer)) charged.push({ tool, args });
   }
-  return { res: copy, free, charged };
+  return outcome(copy, charged);
 }
 
 type AccountCall = {

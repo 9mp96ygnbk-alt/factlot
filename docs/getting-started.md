@@ -1,14 +1,16 @@
 # Getting started
 
 Three ways to use FactLot, depending on where your agent runs. All three serve the same core
-tools from one catalog: twenty-six calculators, a Texas protest-deadline rule, FactLot IDs, fact
-validation, document tools and lease comps (45 tools). The MCP servers (local and `/mcp`) always add
-`search`/`fetch`/`schema_get`. The eight `registry_*` tools are listed (in MCP `tools/list`,
+tools from one catalog: twenty-six calculators, the Texas protest-deadline rule and its batch form,
+FactLot IDs, fact validation, document tools and lease comps (46 tools). The MCP servers (local and `/mcp`) always add
+`search`/`fetch`/`schema_get`. The nine `registry_*` tools are listed (in MCP `tools/list`,
 `GET /v1/tools`, and both OpenAPI documents) only when a registry is available: a registry database
 configured with `FACTLOT_REGISTRY_DB`, or the hosted API's registry service. Without one, their REST
 routes answer `503 RegistryUnavailable`. The hosted API at `https://api.factlot.com` serves the
 regions `registry_coverage` lists (Maryland, the District of Columbia and Juab and Summit counties in
-Utah), so it lists 53 tools over REST and 56 over MCP. The TypeScript and Python tool exports always
+Utah), so it lists 55 tools over REST and 58 over MCP (a key adds `account_status` and
+`account_usage` over MCP, and on Pro and Team `doc_extract_lease` and `report_narrative` once the
+model-backed tools are on). The TypeScript and Python tool exports always
 include the registry tools. For which tool to call when, see [agents.md](agents.md).
 
 ## 0. The hosted API (nothing to install)
