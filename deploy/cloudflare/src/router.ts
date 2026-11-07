@@ -85,6 +85,7 @@ import {
   modelToolsFor,
   type ModelCaller,
 } from "./model-tools.ts";
+import { withHostedOperations } from "./openapi-hosted.ts";
 import { KEY_PLACEHOLDER, guideMarkdown, setupGuide } from "./onboarding.ts";
 import { accountFormPage, accountPage } from "./pages.ts";
 import {
@@ -1149,6 +1150,19 @@ async function route(
   else if (deniedError) {
     res = await mcpWithDenials(mcpBody, hit.granted, deniedError, forward);
   } else res = await forward(mcpText ?? restText);
+  // Reports and the model-backed tools are answered here, so their operations are added here.
+  if (
+    request.method === "GET" &&
+    res.status === 200 &&
+    (path === "/openapi.json" ||
+      (path === "/openapi-3.0.json" &&
+        url.searchParams.get("operations") === "all"))
+  )
+    res = await withHostedOperations(
+      res,
+      path === "/openapi.json" ? "3.1" : "3.0",
+      modelEnabled(env),
+    );
   meterUsage(res.status);
 
   // Only real answers are charged: a lookup that was refused as invalid, missed outside the

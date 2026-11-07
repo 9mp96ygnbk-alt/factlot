@@ -10,14 +10,30 @@ minute and 25 registry lookups a day per address; paid keys go in `Authorization
 To self-host, run the Docker image or `@factlot/server` and use your own host in place of
 `api.factlot.com` in every guide below.
 
+**Sign in with OAuth (hosted).** Clients that cannot send a key header (Claude Desktop, claude.ai
+and mobile custom connectors, ChatGPT developer-mode apps) connect to
+`https://api.factlot.com/mcp/signin`. Without credentials it answers `401` with
+`WWW-Authenticate: Bearer resource_metadata="https://api.factlot.com/.well-known/oauth-protected-resource/mcp", scope="mcp"`,
+which starts OAuth 2.1 in the client: protected-resource metadata (RFC 9728) at
+`/.well-known/oauth-protected-resource` and `/.well-known/oauth-protected-resource/mcp`,
+authorization-server metadata (RFC 8414) at `/.well-known/oauth-authorization-server`, the
+sign-in page at `/authorize` (paste a key once, continue on the free tier, or, once email is set
+up, get a sign-in link), code and refresh grants and revocation (RFC 7009) at `/token`, and
+dynamic client registration at `/register` (Client ID Metadata Documents also work). PKCE S256
+only, exact redirect URIs, one scope (`mcp`); access tokens last an hour and refresh tokens 30
+days, rotated on each refresh. A connection carries its subscription's plan, keeps working when
+the key is replaced, and is listed with **Disconnect** at factlot.com/account
+(`DELETE /v1/account/connections/{id}`). Tokens work only at `/mcp`; bare `/mcp` stays open on the
+free tier.
+
 ## Three ways to connect
 
-| Surface                                               | What it is                                                                                                                                                                                 | Use it from                                                                                                                                       |
-| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Remote MCP** (`https://api.factlot.com/mcp`)        | Streamable HTTP and stateless. Serves 45 tools plus 8 registry tools (53 in all) and `search`, `fetch`, and `schema_get`. Registry tools answer for the regions `registry_coverage` lists. | Claude custom connectors, ChatGPT apps (developer mode, deep research), Microsoft Copilot Studio, Gemini CLI, Mistral Le Chat, Cursor, VS Code    |
-| **Local MCP** (stdio)                                 | `npx -y <release URL>/factlot-mcp-standalone-X.Y.Z.tgz` (`npx -y @factlot/mcp` after first publish), or a one-click Claude Desktop extension (`factlot-X.Y.Z.mcpb`).                       | Claude Desktop, Claude Code, Cursor, Windsurf, VS Code, Gemini CLI                                                                                |
-| **REST and OpenAPI** (`https://api.factlot.com/v1/…`) | One POST endpoint per tool. `/openapi.json` (3.1, all tools); `/openapi-3.0.json` (the GPT Actions subset; `?operations=all` for all).                                                     | Custom GPT Actions, Amazon Bedrock Agents, Microsoft API plugins, Vertex AI, any HTTP client                                                      |
-| **Native function calling**                           | Tool definitions in each provider's own format, plus `run_tool()` in Python and `runTool()` in TypeScript.                                                                                 | Claude API, OpenAI (Chat Completions and Responses), Gemini API, Bedrock Converse, Mistral, xAI, DeepSeek, Groq, and other OpenAI-compatible APIs |
+| Surface                                               | What it is                                                                                                                                                                                                          | Use it from                                                                                                                                       |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Remote MCP** (`https://api.factlot.com/mcp`)        | Streamable HTTP and stateless. Serves 46 tools plus 9 registry tools (55 in all), `search`, `fetch`, `schema_get`, and the hosted `report_create`. Registry tools answer for the regions `registry_coverage` lists. | Claude custom connectors, ChatGPT apps (developer mode, deep research), Microsoft Copilot Studio, Gemini CLI, Mistral Le Chat, Cursor, VS Code    |
+| **Local MCP** (stdio)                                 | `npx -y <release URL>/factlot-mcp-standalone-X.Y.Z.tgz` (`npx -y @factlot/mcp` after first publish), or a one-click Claude Desktop extension (`factlot-X.Y.Z.mcpb`).                                                | Claude Desktop, Claude Code, Cursor, Windsurf, VS Code, Gemini CLI                                                                                |
+| **REST and OpenAPI** (`https://api.factlot.com/v1/…`) | One POST endpoint per tool. `/openapi.json` (3.1, all tools); `/openapi-3.0.json` (the GPT Actions subset; `?operations=all` for all).                                                                              | Custom GPT Actions, Amazon Bedrock Agents, Microsoft API plugins, Vertex AI, any HTTP client                                                      |
+| **Native function calling**                           | Tool definitions in each provider's own format, plus `run_tool()` in Python and `runTool()` in TypeScript.                                                                                                          | Claude API, OpenAI (Chat Completions and Responses), Gemini API, Bedrock Converse, Mistral, xAI, DeepSeek, Groq, and other OpenAI-compatible APIs |
 
 ## Per-platform guides
 
@@ -105,8 +121,9 @@ any load balancer; rate-limit windows and usage counts are per instance and in m
 usage log file is the durable record. Remote platforms connect from their own cloud, so the
 server must be reachable on a public HTTPS URL.
 
-**Not provided yet:** OAuth 2.1 / SSO for the MCP endpoint (bearer keys only; put an OAuth
-gateway in front if a platform or a security review requires it), runtime key issuance or
+**Not provided yet (self-hosted server):** OAuth 2.1 / SSO for the MCP endpoint (bearer keys
+only; the hosted API's OAuth sign-in is not part of `@factlot/server`; put an OAuth gateway in
+front if a platform or a security review requires it), runtime key issuance or
 revocation (keys are static config), shared or persistent rate-limit state, and any SOC 2 or
 similar attestation.
 

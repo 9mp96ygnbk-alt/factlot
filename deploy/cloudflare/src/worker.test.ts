@@ -3724,6 +3724,49 @@ describe("account, onboarding and OpenAPI: reports and the model-backed tools", 
     ).json()) as { extract_lease: { available: boolean } };
     assert.equal(on.extract_lease.available, true);
   });
+
+  it("OpenAPI: report_create always, the model tools while they are on", async () => {
+    const inner = {
+      fetch: async (r: Request) =>
+        new Response(
+          JSON.stringify({
+            openapi:
+              new URL(r.url).pathname === "/openapi.json" ? "3.1.0" : "3.0.3",
+            paths: { "/v1/calc/irr": { post: { operationId: "calc_irr" } } },
+          }),
+          { headers: { "content-type": "application/json" } },
+        ),
+    };
+    const paths = async (e: ReturnType<typeof env>, doc: string) =>
+      (
+        (await (await call(e, inner, doc, { method: "GET" })).json()) as {
+          paths: Record<string, { post?: { operationId: string } }>;
+        }
+      ).paths;
+    const on = await paths(env(MODEL), "/openapi.json");
+    assert.equal(on["/v1/calc/irr"]!.post!.operationId, "calc_irr");
+    assert.equal(on["/v1/reports"]!.post!.operationId, "report_create");
+    assert.ok(on["/v1/reports/d/{token}"]);
+    assert.equal(
+      on["/v1/doc/extract_lease"]!.post!.operationId,
+      "doc_extract_lease",
+    );
+    assert.equal(
+      on["/v1/report/narrative"]!.post!.operationId,
+      "report_narrative",
+    );
+    const off = await paths(env(), "/openapi.json");
+    assert.ok(off["/v1/reports"]);
+    assert.equal(off["/v1/doc/extract_lease"], undefined);
+    const all30 = await paths(env(MODEL), "/openapi-3.0.json?operations=all");
+    assert.ok(all30["/v1/doc/extract_lease"] && all30["/v1/reports"]);
+    const subset = await paths(env(MODEL), "/openapi-3.0.json");
+    assert.deepEqual(
+      Object.keys(subset),
+      ["/v1/calc/irr"],
+      "the GPT subset is unchanged",
+    );
+  });
 });
 
 describe("renewal date and receipts", () => {
