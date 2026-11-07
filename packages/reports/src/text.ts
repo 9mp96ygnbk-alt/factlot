@@ -1,9 +1,14 @@
 /**
  * Text the caller supplies (a title, a prepared-for line, citation locators, comparable ids,
- * adjustment labels and reasons) is printed as theirs, never as FactLot's. A report states
- * arithmetic only, so caller text that reads as advice or a valuation is refused: the document
- * would otherwise carry it under FactLot's name. Names that merely contain such a word (Fort
- * Worth, an appraisal district, the appraisal review board) are not advice and pass.
+ * labels, addresses, adjustment labels and reasons) is printed as theirs, never as FactLot's. A
+ * report states arithmetic only, so caller text that reads as advice or a valuation is refused:
+ * the document would otherwise carry it under FactLot's name.
+ *
+ * The test is phrase-aware and whole-word: it looks for advice and valuation phrases ("you
+ * should", "we recommend", "is worth", "worth $", "appraised at $1", "protest your", "savings
+ * of"…), not for the stems those phrases share with names and statutory terms. So "Worthington
+ * Plaza", "First Savings Bank", "Protestant Church", "Appraisal notice 2026", "unequal appraisal",
+ * "appraisal review board", "protest deadline" and "tax protest" all pass.
  */
 import { ReportInputError, type Issue, type ReportKind } from "./validate.ts";
 
@@ -13,17 +18,37 @@ export const TEXT_LIMITS = {
   prepared_for: 120,
   reason: 200,
   locator: 200,
+  /** tx_unequal_appraisal: a subject's or comparable's label and address. */
+  label: 80,
+  address: 120,
 } as const;
 
-const ADVICE =
-  /\b(recommend\w*|should|protest\w*|worth\w*|appraisals?|opinion of value|market value is|sav(?:e[sd]?|ing|ings))\b/i;
-/** Proper names that contain one of the words above; removed before the test. */
-const NAMES =
-  /\b(fort worth|appraisal districts?|appraisal review boards?)\b/gi;
+/**
+ * Advice and valuation phrases, each matched as whole words (case-insensitive). The first
+ * capture is the phrase the error names.
+ */
+const ADVICE: RegExp[] = [
+  /\b(you should|you shall|we recommend|i recommend|recommend(?:s|ed|ing|ation|ations)?)\b/i,
+  /\b(should)\b/i,
+  /\b((?:you|we|they|owners?) (?:will|would|are likely to|can|could) win|will win|sure to win|guaranteed to win)\b/i,
+  /\b(worth ?(?:\$|\d)|(?:is|are|was|were|be) worth\b)/i,
+  /\b(opinion of (?:market )?value|market value is|(?:our|my) appraisal(?! district| review board| notice| roll))\b/i,
+  /\b(appraised at ?(?:\$ ?)?\d)/i,
+  /\b(protest your|grounds (?:to|for) (?:a )?protest|win (?:a|your|the|this) protest)\b/i,
+  /\b(you (?:(?:can|could|will|would|may|might) )?save|save you|savings of|tax savings|(?:will|would|could) save)\b/i,
+];
 
-/** The advice or valuation wording in `s`, if any. */
+/** Proper names that contain an advice phrase; removed before the test ("Fort Worth $5M"). */
+const NAMES = /\b(fort worth)\b/gi;
+
+/** The advice or valuation phrase in `s`, if any. */
 export function adviceIn(s: string): string | undefined {
-  return ADVICE.exec(s.replace(NAMES, " "))?.[1];
+  const t = s.replace(NAMES, " ").replace(/\s+/g, " ");
+  for (const re of ADVICE) {
+    const m = re.exec(t);
+    if (m) return (m[1] ?? m[0]).trim();
+  }
+  return undefined;
 }
 
 type Field = { path: string; text: string; max?: number };
@@ -40,6 +65,14 @@ function txArgFields(args: unknown): Field[] {
   const subject = isObj(args.subject) ? args.subject : undefined;
   const sid = str(subject?.id);
   if (sid !== undefined) out.push({ path: "arguments.subject.id", text: sid });
+  const named = (o: Record<string, unknown> | undefined, at: string) => {
+    for (const key of ["label", "address"] as const) {
+      const t = str(o?.[key]);
+      if (t !== undefined)
+        out.push({ path: `${at}.${key}`, text: t, max: TEXT_LIMITS[key] });
+    }
+  };
+  named(subject, "arguments.subject");
   const cites = (c: unknown, at: string) => {
     const loc = isObj(c) ? str(c.locator) : undefined;
     if (loc !== undefined)
@@ -56,6 +89,7 @@ function txArgFields(args: unknown): Field[] {
     const at = `arguments.comparables.${i}`;
     const id = str(c.id);
     if (id !== undefined) out.push({ path: `${at}.id`, text: id });
+    named(c, at);
     cites(c.citation, `${at}.citation`);
     const adj = Array.isArray(c.adjustments) ? c.adjustments : [];
     adj.forEach((a, j) => {

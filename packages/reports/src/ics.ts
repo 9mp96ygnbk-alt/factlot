@@ -6,8 +6,10 @@
 import { stripControls } from "./format.ts";
 
 export interface IcsAlarm {
-  /** Days before the event's start. */
-  daysBefore: number;
+  /** Days before the event's start (a relative trigger). */
+  daysBefore?: number;
+  /** An absolute time (UTC) instead: for a deadline too close for a relative reminder to fire. */
+  at?: Date;
   description: string;
 }
 
@@ -105,7 +107,9 @@ export function calendar(cal: IcsCalendar): string {
       lines.push(
         "BEGIN:VALARM",
         "ACTION:DISPLAY",
-        `TRIGGER;RELATED=START:-P${a.daysBefore}D`,
+        a.at
+          ? `TRIGGER;VALUE=DATE-TIME:${stampText(a.at)}`
+          : `TRIGGER;RELATED=START:-P${a.daysBefore ?? 0}D`,
         `DESCRIPTION:${escapeText(a.description)}`,
         "END:VALARM",
       );

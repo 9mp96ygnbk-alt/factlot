@@ -9,15 +9,18 @@ import { build } from "esbuild";
 import { PDFDocument, PDFRawStream } from "pdf-lib";
 
 import { fold } from "./ics.ts";
+import { adviceIn } from "./text.ts";
+import { txDoc } from "./kinds/tx.ts";
 import { MAX_CELL_CHARS, MAX_PDF_LINES, PdfWriter } from "./pdf.ts";
 import { Workbook, fx } from "./xlsx.ts";
-import { pct, usd, num } from "./format.ts";
+import { num, pct, roundInText, sig, times, ungrouped, usd } from "./format.ts";
 import {
   KIND_FORMATS,
   REPORT_KINDS,
   ReportInputError,
   TX_DISCLAIMER,
   createReport,
+  subjectSlug,
   unzip,
   type ReportKind,
 } from "./index.ts";
@@ -289,15 +292,42 @@ function readIcs(bytes: Uint8Array): string[] {
 // --- tests --------------------------------------------------------------------------------------
 
 describe("format", () => {
-  it("prints the tool's numbers exactly", () => {
+  it("one convention: money to the cent with the sign first, percentages to 2 decimals, steps to 6 significant digits", () => {
     assert.equal(pct(0.1554), "15.54%");
-    assert.equal(pct(0.07388606), "7.388606%");
-    assert.equal(pct(-0.061033), "-6.1033%");
-    assert.equal(pct(1.25), "125%");
+    assert.equal(pct(0.07388606), "7.39%");
+    assert.equal(pct(0.07388606, 4), "7.3886%");
+    assert.equal(pct(-0.061033), "-6.10%");
+    assert.equal(pct(1.25), "125.00%");
+    assert.equal(pct(0.532), "53.20%");
     assert.equal(usd(-130000), "-$130,000.00");
     assert.equal(usd(1989999.5), "$1,989,999.50");
+    assert.equal(usd(-0.001), "$0.00");
+    assert.equal(times(1.2501), "1.25x");
     assert.equal(num(1e-7), "0.0000001");
     assert.equal(num(23874596.957531843), "23,874,596.957531843");
+    assert.equal(sig(0.07388606405116722), "0.0738861");
+    assert.equal(sig(23874596.957531843), "23,874,597");
+    assert.equal(sig(1.03), "1.03");
+    assert.equal(sig(2026), "2,026");
+    assert.equal(
+      roundInText(
+        "$4,531,482.41 + $-25,000.00 amount adjustments × 0.07388606405116722",
+      ),
+      "$4,531,482.41 + -$25,000.00 amount adjustments × 0.0738861",
+    );
+    for (const name of [
+      "tax_year",
+      "year",
+      "fiscal_year",
+      "periods",
+      "term_months",
+      "hold_years",
+      "renewal_option.count",
+      "payments[3].period",
+    ])
+      assert.ok(ungrouped(name), name);
+    for (const name of ["noi", "value", "area_sf", "amount"])
+      assert.ok(!ungrouped(name), name);
   });
 });
 
@@ -716,13 +746,18 @@ describe("documents", () => {
         format: "ics",
         arguments: s.args,
         context: { title: "Suite 400, 100 Main" },
+        include_past: true,
       },
       { now: NOW },
     );
     const lines = readIcs(f.bytes);
     const events = lines.filter((l) => l === "BEGIN:VEVENT").length;
     const windows = r.value.renewal_terms.filter((t) => t.window_opens).length;
-    assert.equal(events, r.value.events.length + windows);
+    // A window is one multi-day event: its single-day "window opens" date is not repeated.
+    const opens = r.value.events.filter(
+      (e) => e.kind === "renewal_window_opens",
+    ).length;
+    assert.equal(events, r.value.events.length + windows - opens);
     const deadlines = r.value.events.filter((e) =>
       /deadline/.test(e.kind),
     ).length;
@@ -738,8 +773,12 @@ describe("documents", () => {
       ),
     );
     assert.ok(
-      lines.some((l) => l.startsWith("SUMMARY:Suite 400\\, 100 Main:")),
+      lines.includes("X-WR-CALNAME:Suite 400\\, 100 Main"),
       "commas escaped",
+    );
+    assert.ok(
+      lines.every((l) => !l.startsWith("SUMMARY:Suite 400")),
+      "the calendar name is not repeated in each summary",
     );
     assert.ok(lines.includes(`DTSTAMP:20261107T120000Z`));
   });
@@ -960,7 +999,7 @@ describe("caller text", () => {
       "it should be lower",
       "grounds to protest",
       "worth $1",
-      "per the appraisal",
+      "our appraisal says so",
       "our opinion of value",
       "the market value is $2",
       "you save $500",
@@ -1248,5 +1287,585 @@ describe("bundle", () => {
     });
     const bytes = out.outputFiles[0]!.contents.byteLength;
     assert.ok(bytes < 1_000_000, `${bytes} bytes`);
+  });
+});
+
+// --- QA pass, 2026-11-07 -------------------------------------------------------------------------
+
+/** The QA pass's critical-dates request (mcp.call.req.json): a following-day roll, US holidays. */
+const QA_DATES = {
+  kind: "critical_dates",
+  format: "ics",
+  context: {
+    title: "Suite 400 lease critical dates",
+    prepared_for: "Westchase Tower lease admin",
+  },
+  arguments: {
+    commencement_date: "2026-03-01",
+    expiration_date: "2031-06-30",
+    as_of: "2026-11-07",
+    renewal_option: {
+      count: 2,
+      term_months: 60,
+      notice_window: { earliest_months_before: 18, latest_months_before: 12 },
+    },
+    termination_options: [
+      {
+        effective_date: "2029-06-30",
+        notice_months: 9,
+        label: "Early termination right",
+      },
+    ],
+    expansion_option_deadline: "2027-09-30",
+    other_deadlines: [
+      {
+        label: "Estoppel certificate due",
+        from_date: "2026-11-01",
+        days_after: 30,
+      },
+      { label: "Insurance renewal", date: "2027-03-01" },
+    ],
+    business_day_roll: "following",
+    holidays: "us_federal",
+  },
+};
+
+/** Each VEVENT's unfolded properties (the first of each name) and its alarm triggers. */
+function icsEvents(
+  lines: string[],
+): { props: Map<string, string>; triggers: string[] }[] {
+  const out: { props: Map<string, string>; triggers: string[] }[] = [];
+  let cur: { props: Map<string, string>; triggers: string[] } | undefined;
+  let inAlarm = false;
+  for (const l of lines) {
+    if (l === "BEGIN:VEVENT") cur = { props: new Map(), triggers: [] };
+    else if (l === "END:VEVENT") {
+      out.push(cur!);
+      cur = undefined;
+    } else if (l === "BEGIN:VALARM") inAlarm = true;
+    else if (l === "END:VALARM") inAlarm = false;
+    else if (cur && l.startsWith("TRIGGER")) cur.triggers.push(l);
+    else if (cur && !inAlarm) {
+      const i = l.indexOf(":");
+      const key = l.slice(0, i);
+      if (!cur.props.has(key)) cur.props.set(key, l.slice(i + 1));
+    }
+  }
+  return out;
+}
+
+describe("QA fixes", () => {
+  it("D4 ICS: a deadline rolled later is dated on its contractual day, with the roll and the tool's warning in the description", async () => {
+    const f = await createReport(QA_DATES, { now: NOW });
+    const events = icsEvents(readIcs(f.bytes));
+    const find = (label: RegExp) => {
+      const e = events.find((x) => label.test(x.props.get("SUMMARY") ?? ""));
+      assert.ok(e, String(label));
+      return e;
+    };
+    const unescape = (t: string) =>
+      t.replace(/\\n/g, "\n").replace(/\\([,;\\])/g, "$1");
+
+    const renewal = find(/Renewal option 1: last day to give notice/);
+    assert.equal(renewal.props.get("DTSTART;VALUE=DATE"), "20300630");
+    const d = unescape(renewal.props.get("DESCRIPTION")!);
+    assert.match(d, /Dated on 2030-06-30/);
+    assert.match(d, /gives 2030-07-01/);
+    assert.match(
+      d,
+      /Only a lease clause that extends a deadline falling on a non-business day allows that/,
+      "the tool's warning is carried",
+    );
+
+    const term = find(/Early termination right: last day to give notice/);
+    assert.equal(term.props.get("DTSTART;VALUE=DATE"), "20280930");
+    assert.match(
+      unescape(term.props.get("DESCRIPTION")!),
+      /from 2028-09-30 to 2028-10-02/,
+    );
+
+    // The renewal window ends on the contractual last day too (DTEND is exclusive).
+    const window = find(/Renewal option 1 notice window/);
+    assert.equal(window.props.get("DTEND;VALUE=DATE"), "20300701");
+
+    // Under 30 days away: a reminder an hour after generation as well as the -P30D one.
+    const estoppel = find(/Estoppel certificate due/);
+    assert.deepEqual(estoppel.triggers, [
+      "TRIGGER;RELATED=START:-P30D",
+      "TRIGGER;VALUE=DATE-TIME:20261107T130000Z",
+    ]);
+    assert.deepEqual(find(/Insurance renewal/).triggers, [
+      "TRIGGER;RELATED=START:-P30D",
+    ]);
+
+    // UIDs: unique, and the same when the calendar is generated again later.
+    const uids = events.map((e) => e.props.get("UID"));
+    assert.equal(new Set(uids).size, uids.length);
+    const again = icsEvents(
+      readIcs((await createReport(QA_DATES, { now: NOW + 3_600_000 })).bytes),
+    ).map((e) => e.props.get("UID"));
+    assert.deepEqual(new Set(again), new Set(uids));
+  });
+
+  it("D3 advice filter: phrases are refused, names and statutory terms pass (table)", async () => {
+    const refused: [string, string][] = [
+      ["You should file by May 15", "You should"],
+      ["We recommend a hearing", "We recommend"],
+      ["Protest recommended", "recommended"],
+      ["This one will win", "will win"],
+      ["Worth $4.2M at most", "Worth $"],
+      ["The subject is worth less", "is worth"],
+      ["Our opinion of value", "opinion of value"],
+      ["Per our appraisal", "our appraisal"],
+      ["Appraised at $3,900,000 last year", "Appraised at $3"],
+      ["Protest your value today", "Protest your"],
+      ["You can save thousands", "You can save"],
+      ["Savings of $12,000", "Savings of"],
+      ["it should be lower", "should"],
+    ];
+    for (const [text, phrase] of refused)
+      assert.equal(adviceIn(text), phrase, text);
+    const allowed = [
+      "Worthington Plaza",
+      "Worth Avenue",
+      "First Savings Bank",
+      "Protestant Church",
+      "Saved by the Bell",
+      "Appraisal notice 2026",
+      "Unequal appraisal workbook",
+      "Protest packet 2026",
+      "100 Worthington Dr",
+      "unequal appraisal",
+      "Harris Central Appraisal District",
+      "appraisal review board hearing",
+      "notice of appraised value",
+      "appraisal roll 2026",
+      "protest deadline May 15",
+      "protest hearing exhibits",
+      "2026 tax protest",
+      "Fort Worth office",
+      "value as appraised at the hearing",
+    ];
+    for (const text of allowed) assert.equal(adviceIn(text), undefined, text);
+
+    // End to end: a comparable id and titles that tripped the old filter now build.
+    const args = structuredClone(SAMPLES[0]!.args) as {
+      comparables: { id?: string }[];
+    };
+    args.comparables[0]!.id = "100 Worthington Dr";
+    await createReport(
+      {
+        kind: "tx_unequal_appraisal",
+        format: "pdf",
+        arguments: args,
+        context: {
+          title: "Protest packet 2026",
+          prepared_for: "First Savings Bank",
+        },
+      },
+      { now: NOW },
+    );
+    const err = await rejects(
+      {
+        kind: "tx_unequal_appraisal",
+        format: "pdf",
+        arguments: SAMPLES[0]!.args,
+        context: { title: "Worthington Plaza: you should file" },
+      },
+      "TextNotAllowed",
+      /^context\.title$/,
+    );
+    assert.match(err.message, /"you should"/);
+  });
+
+  it("D1/D2 tx workbook: the disclaimer is a merged row of set height, only the header and id column are frozen, and the caller's title and prepared-for line are printed", async () => {
+    const f = await createReport(
+      {
+        kind: "tx_unequal_appraisal",
+        format: "xlsx",
+        arguments: SAMPLES[0]!.args,
+        context: { title: "Oak Plaza 2026", prepared_for: "Asset management" },
+      },
+      { now: NOW },
+    );
+    const x = await readXlsx(f.bytes);
+    const grid = x.xml.get(
+      `xl/worksheets/sheet${x.sheets.indexOf("Grid") + 1}.xml`,
+    )!;
+    const ht = /<row r="2" ht="([\d.]+)" customHeight="1">/.exec(grid);
+    assert.ok(ht, "row 2 has an explicit height");
+    assert.ok(Number(ht[1]) <= 62, `row 2 is ${ht[1]} pt`);
+    assert.match(grid, /<mergeCell ref="A2:[A-Z]+2"\/>/);
+    assert.match(grid, /<pane xSplit="1" ySplit="8" topLeftCell="B9"/);
+    for (const sheet of ["ReadMe", "Grid"]) {
+      const vals = x.values(sheet).join("\n");
+      assert.match(vals, /Title \(supplied by the caller\): Oak Plaza 2026/);
+      assert.match(
+        vals,
+        /Prepared for \(supplied by the caller\): Asset management/,
+      );
+    }
+    // Both disclaimer sentences survive on the Grid and the ReadMe.
+    for (const sheet of ["ReadMe", "Grid"]) {
+      const vals = x.values(sheet).join(" ");
+      assert.match(vals, /not a substitute for the advice of an attorney/);
+      assert.match(vals, /not an appraisal or an opinion of value/);
+      assert.match(vals, /1103\.003\(1\)/);
+    }
+  });
+
+  it("D5 a wide table goes on a landscape page and no number is broken across lines", async () => {
+    const args = {
+      noi: 2205000,
+      value: 36000000,
+      rate_annual: 0.0625,
+      amortization_years: 30,
+      max_ltv: 0.7,
+      min_dscr: 1.25,
+      min_debt_yield: 0.085,
+      round_down_to: 1000,
+      existing_loan_balance: 21500000,
+      stress: {
+        noi_shocks: [-0.1, -0.2],
+        rate_shocks: [0.01, 0.02],
+        value_shocks: [-0.1],
+      },
+    };
+    const r = resultOf("calc_debt_sizing", args) as {
+      value: { stress: { max_loan: number; annual_debt_service: number }[] };
+    };
+    const f = await createReport(
+      { kind: "debt_sizing", format: "pdf", arguments: args },
+      { now: NOW },
+    );
+    const doc = await PDFDocument.load(f.bytes);
+    const sizes = doc.getPages().map((p) => p.getSize());
+    assert.ok(
+      sizes.some((s) => s.width > s.height),
+      "a landscape page for the stress table",
+    );
+    assert.ok(
+      sizes.some((s) => s.width < s.height),
+      "portrait pages too",
+    );
+    const lines = (await readPdf(f.bytes)).text.split("\n");
+    for (const s of r.value.stress) {
+      assert.ok(lines.includes(usd(s.max_loan)), usd(s.max_loan));
+      assert.ok(
+        lines.includes(usd(s.annual_debt_service)),
+        usd(s.annual_debt_service),
+      );
+    }
+  });
+
+  it("D18 ICS: short summaries, no single-day duplicate of a window, past dates left out unless include_past", async () => {
+    const lines = readIcs((await createReport(QA_DATES, { now: NOW })).bytes);
+    const summaries = lines.filter((l) => l.startsWith("SUMMARY:"));
+    assert.ok(
+      summaries.every((l) => !l.includes("Suite 400 lease critical dates")),
+      "no calendar-name prefix",
+    );
+    assert.ok(lines.includes("X-WR-CALNAME:Suite 400 lease critical dates"));
+    assert.ok(
+      !summaries.some((l) => /notice window opens/.test(l)),
+      "the window event is not repeated as a single day",
+    );
+    assert.ok(
+      !summaries.some((l) => /Commencement date/.test(l)),
+      "2026-03-01 is before the generation day",
+    );
+    assert.ok(lines.some((l) => /left out \(send include_past/.test(l)));
+    const all = readIcs(
+      (await createReport({ ...QA_DATES, include_past: true }, { now: NOW }))
+        .bytes,
+    );
+    assert.ok(all.some((l) => l === "SUMMARY:Commencement date"));
+  });
+
+  it("D7/D8/D9 PDF: years ungrouped, money sign first, rounded audit trail with its note, statute URLs are links", async () => {
+    const s = SAMPLES[0]!;
+    const f = await createReport(
+      { kind: "tx_unequal_appraisal", format: "pdf", arguments: s.args },
+      { now: NOW },
+    );
+    const { text } = await readPdf(f.bytes);
+    const year = (s.args as { tax_year: number }).tax_year;
+    assert.ok(!text.includes(num(year)), `no ${num(year)}`);
+    assert.ok(!/\$-\d/.test(text), "no $-");
+    assert.ok(!/\d\.\d{7,}/.test(text), "no raw floats");
+    const raw = Buffer.from(f.bytes).toString("latin1");
+    assert.match(raw, /\/Subtype \/Link/);
+    assert.match(raw, /\/URI \(https:\/\/statutes\.capitol\.texas\.gov/);
+    // DCF: a long audit trail with long decimals is rounded and says where the full precision is.
+    const dcf = SAMPLES.find((x) => x.kind === "dcf_summary")!;
+    const d = (
+      await readPdf(
+        (
+          await createReport(
+            { kind: "dcf_summary", format: "pdf", arguments: dcf.args },
+            { now: NOW },
+          )
+        ).bytes,
+      )
+    ).text;
+    assert.ok(!/\d\.\d{7,}/.test(d), "no raw floats in the DCF PDF");
+  });
+
+  it("D11/D13/D14 Texas: $/SF parity, normalizing area, statutes restated, disclaimer on the cover and every footer only", async () => {
+    const s = SAMPLES[0]!;
+    const r = resultOf(s.tool, s.args) as {
+      value: { normalize_by: string };
+      warnings: string[];
+    };
+    const x = await readXlsx(
+      (
+        await createReport(
+          { kind: "tx_unequal_appraisal", format: "xlsx", arguments: s.args },
+          { now: NOW },
+        )
+      ).bytes,
+    );
+    if (r.value.normalize_by !== "none") {
+      assert.ok(x.values("Grid").includes("Adjusted $/SF"));
+      assert.ok(x.values("Reconcile").some((v) => v.endsWith("adjusted $/SF")));
+    }
+    assert.equal(x.cell("Reconcile", "C4"), "0", "rows that differ");
+    assert.ok(x.values("Law").includes("Source (URL)"));
+    assert.ok(!x.values("Law").includes("Text"));
+    if (!r.warnings.length) {
+      const g = x.values("Grid");
+      assert.equal(g[g.indexOf("FactLot warnings") + 1], "none");
+    }
+    const f = await createReport(
+      { kind: "tx_unequal_appraisal", format: "pdf", arguments: s.args },
+      { now: NOW },
+    );
+    const { text, pages } = await readPdf(f.bytes);
+    const flat = text.replace(/\s+/g, " ");
+    assert.match(flat, /Source \(URL\)/);
+    assert.match(flat, /not subject to Occupations Code ch\. 1103/);
+    assert.match(flat, /text in effect from 2027-01-01/);
+    if (r.value.normalize_by !== "none")
+      assert.match(flat, /the normalizing area/);
+    const squash = text.replace(/\s+/g, "");
+    const count =
+      squash.split("notasubstitutefortheadviceofanattorney").length - 1;
+    assert.equal(count, pages + 1, "cover once, then each page's footer");
+  });
+
+  it("D11 Texas: a label and address are printed next to the id when present", async () => {
+    const s = SAMPLES[0]!;
+    const result = structuredClone(resultOf(s.tool, s.args)) as {
+      value: { comparables: Record<string, unknown>[] };
+    };
+    result.value.comparables[0]!.label = "Oak Plaza";
+    result.value.comparables[0]!.address = "100 Main St";
+    const doc = txDoc({
+      checked: {
+        tool: s.tool,
+        result,
+        check: "computed",
+        args: s.args,
+      },
+      ctx: {},
+      p: {
+        footer: "f",
+        version: "0",
+        toolRef: "t",
+        generatedAt: new Date(NOW),
+        header: "h",
+        keywords: [],
+      },
+    });
+    const cells = doc.blocks
+      .flatMap((b) => (b.t === "table" ? b.rows.flat() : []))
+      .map(String);
+    assert.ok(cells.some((c) => c.endsWith("(Oak Plaza, 100 Main St)")));
+    // Without them nothing changes.
+    const plain = txDoc({
+      checked: {
+        tool: s.tool,
+        result: resultOf(s.tool, s.args),
+        check: "computed",
+        args: s.args,
+      },
+      ctx: {},
+      p: {
+        footer: "f",
+        version: "0",
+        toolRef: "t",
+        generatedAt: new Date(NOW),
+        header: "h",
+        keywords: [],
+      },
+    });
+    assert.ok(
+      !plain.blocks
+        .flatMap((b) => (b.t === "table" ? b.rows.flat() : []))
+        .some((c) => String(c).includes("(Oak")),
+    );
+  });
+
+  it("D12 lease abstract workbook: no Steps sheet named, 'supplied' wording, no package version, dates as dates", async () => {
+    const s = SAMPLES[1]!;
+    const f = await createReport(
+      { kind: "lease_abstract", format: "xlsx", arguments: s.args },
+      { now: NOW },
+    );
+    assert.equal(f.source, "doc_abstract_lease");
+    const x = await readXlsx(f.bytes);
+    if (!x.sheets.includes("Steps"))
+      assert.ok(!x.values("ReadMe").some((v) => v.startsWith("Steps:")));
+    const report = x.values("Report");
+    assert.ok(report.some((v) => v.startsWith("Checked: FactLot ran")));
+    assert.ok(
+      !report.some((v) =>
+        /every figure in this document is from that run/.test(v),
+      ),
+    );
+    const terms = x.xml.get(
+      `xl/worksheets/sheet${x.sheets.indexOf("Terms") + 1}.xml`,
+    )!;
+    const iso =
+      /<c r="B\d+"[^>]*t="inlineStr"><is><t[^>]*>\d{4}-\d{2}-\d{2}<\/t>/;
+    assert.ok(
+      !iso.test(terms),
+      "no ISO date stored as text in the Value column",
+    );
+  });
+
+  it("D14 proposals: one neutral ranking word, commissions and downtime as sent", async () => {
+    const s = SAMPLES.find((x) => x.kind === "compare_proposals")!;
+    const { text } = await readPdf(
+      (
+        await createReport(
+          { kind: "compare_proposals", format: "pdf", arguments: s.args },
+          { now: NOW },
+        )
+      ).bytes,
+    );
+    assert.ok(!/\bBest\b/.test(text), "never 'Best'");
+    const flat = text.replace(/\s+/g, " ");
+    assert.match(flat, /Leasing commissions/);
+    assert.match(flat, /Downtime \(months\)/);
+  });
+
+  it("D16 filenames cut at word boundaries and drop a year the date repeats", async () => {
+    const f = await createReport(
+      {
+        kind: "tx_unequal_appraisal",
+        format: "pdf",
+        arguments: SAMPLES[0]!.args,
+        context: { title: "Harris appraisal district evidence, tax year 2026" },
+      },
+      { now: NOW },
+    );
+    assert.equal(
+      f.filename,
+      "factlot-tx-unequal-appraisal-harris-appraisal-district-evidence-2026-11-07.pdf",
+    );
+    assert.equal(
+      subjectSlug(
+        "Suite 210 CAM reconciliation 2025, Westchase",
+        "cam_reconciliation",
+        "2026-11-07",
+      ),
+      "suite-210-2025-westchase",
+    );
+  });
+
+  it("D17 validation: missing says missing, non-object arguments name 'arguments', a wrong format lists the formats", async () => {
+    const miss = await rejects(
+      { kind: "debt_sizing" },
+      "InputError",
+      /^format$/,
+    );
+    assert.match(
+      miss.issues.find((i) => i.path === "format")!.message,
+      /^missing/,
+    );
+    assert.match(miss.message, /missing format/);
+    assert.match(miss.next ?? "", /docs\/reports\.md#what-a-report-accepts/);
+    assert.match(miss.next ?? "", /calc_debt_sizing/);
+    const args = await rejects(
+      { kind: "debt_sizing", format: "pdf", arguments: 7 },
+      "ArgumentsError",
+    );
+    assert.equal(args.issues[0]!.path, "arguments");
+    assert.match(args.next ?? "", /v1\/tools/);
+    const absent = await rejects(
+      { kind: "debt_sizing", format: "pdf", arguments: { value: 1 } },
+      "ArgumentsError",
+    );
+    assert.ok(
+      absent.issues.some((i) => /^missing/.test(i.message)),
+      JSON.stringify(absent.issues),
+    );
+    const fmt = await rejects(
+      { kind: "debt_sizing", format: "ics", arguments: {} },
+      "InputError",
+      /^format$/,
+    );
+    assert.match(fmt.next ?? "", /"xlsx", "pdf"/);
+  });
+
+  it("D6 live formulas: DCF subtotals and the CAM charge tie out to FactLot's figures on every vector", async () => {
+    const cases: [ReportKind, Json][] = [
+      ...calcCases("dcf_pro_forma").map((a): [ReportKind, Json] => [
+        "dcf_summary",
+        a,
+      ]),
+      ...calcCases("cam_reconciliation").map((a): [ReportKind, Json] => [
+        "cam_reconciliation",
+        a,
+      ]),
+    ];
+    assert.ok(cases.length > 2);
+    for (const [kind, args] of cases) {
+      const x = await readXlsx(
+        (
+          await createReport(
+            { kind, format: "xlsx", arguments: args },
+            { now: NOW },
+          )
+        ).bytes,
+      );
+      const status = x
+        .values("Checks")
+        .filter((v) => v === "match" || v === "DIFFERENT");
+      assert.ok(status.length > 0, kind);
+      assert.ok(
+        status.every((v) => v === "match"),
+        `${kind}: ${JSON.stringify(args).slice(0, 80)}`,
+      );
+      if (kind === "dcf_summary") {
+        const cf = x.xml.get(
+          `xl/worksheets/sheet${x.sheets.indexOf("CashFlows") + 1}.xml`,
+        )!;
+        assert.match(cf, /<f>ROUND\(B\d+\+B\d+\+B\d+,2\)<\/f>/);
+      }
+    }
+  });
+
+  it("D15 PDF Inputs: a long list is one row with a count; the workbook keeps every value", async () => {
+    const s = SAMPLES.find((x) => x.kind === "compare_proposals")!;
+    const args = structuredClone(s.args) as {
+      proposals: { schedule: { abated_months?: number[] } }[];
+    };
+    args.proposals[0]!.schedule.abated_months = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+    const req = { kind: "compare_proposals", arguments: args };
+    const pdf = (
+      await readPdf(
+        (await createReport({ ...req, format: "pdf" }, { now: NOW })).bytes,
+      )
+    ).text.replace(/\s+/g, " ");
+    assert.match(pdf, /abated_months \(9 values\)/);
+    assert.ok(!pdf.includes("abated_months[8]"));
+    const x = await readXlsx(
+      (await createReport({ ...req, format: "xlsx" }, { now: NOW })).bytes,
+    );
+    assert.ok(
+      x.values("Inputs").includes("proposals[0].schedule.abated_months[8]"),
+    );
   });
 });

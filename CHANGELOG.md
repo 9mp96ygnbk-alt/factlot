@@ -44,6 +44,8 @@ conservative_file_by, basis}` for the next tax year when the deadline has passed
 - `rules_tx_property_tax_protest_deadline_batch` (still `@1`): optional `as_of` for every item;
   each item adds `status`, `days_remaining` and `next_season`; the result adds `as_of`, `notes`
   and `summary.by_status`.
+- Reports: every `/v1/reports` and `report_create` answer has `billed` (`true` when the request
+  counted against the month).
 
 ### Changed
 
@@ -55,6 +57,47 @@ conservative_file_by, basis}` for the next tax year when the deadline has passed
   kept for 24 hours (then deleted) and that two tools, `doc_extract_lease` and `report_narrative`,
   send what you submit to a model provider; reports are listed in the tool lists, plans, setup
   guide and Texas protest-kit docs.
+
+### Fixed
+
+- Reports, `critical_dates` calendar: a notice deadline that `business_day_roll` moves to a later
+  business day is now dated on its contractual date (the later date is described, not
+  scheduled), each event carries the tool's warnings about its dates, and a deadline under 30
+  days away gets a reminder an hour after generation as well as the 30-day one.
+- Reports, caller text: the advice filter matches whole advice phrases ("you should", "is worth",
+  "worth $", "appraised at $…", "protest your", "savings of"…) instead of word stems, so names
+  such as Worthington Plaza, First Savings Bank or Protestant Church and terms such as appraisal
+  notice, protest packet or tax protest are no longer refused. The error names the phrase.
+- Reports, Texas workbook: the Grid notice no longer makes Excel autofit row 2 to 256 pt (it is a
+  merged row of set height; only the header row and comparable column are frozen), and the
+  caller's title and prepared-for line are printed on ReadMe and Grid.
+- Reports, PDF: a table with more than 10 columns (the debt-sizing stress table) is laid out on
+  landscape pages, and columns are sized so a number is never broken across lines.
+- Reports, numbers: one convention in every PDF and workbook (money to the cent with the sign
+  first, percentages to two decimals, ratios to two, audit-trail values to 6 significant digits
+  with a note); years and counts are no longer printed as "2,026".
+- Reports, PDF layout: columns are sized to their longest number or word, long identifiers break
+  only at separators, statute URLs are links, and a heading is never left alone at a page foot.
+- Reports, Texas: the workbook adds adjusted $/SF and the $/SF adjustment total, the PDF the
+  normalizing area and each comparable's area; optional `label` and `address` print beside ids;
+  the statutes column is "Source (URL)"; the §41.66(l) description follows the statute and
+  §42.26(d) says which text a report of its tax year is printed against; the disclaimer appears
+  on the cover and in each footer (no longer three times); an empty warnings list says "none".
+- Reports, CAM: the statement lists the pro rata share, gross-up occupancies and factor, cap
+  method and rate, and admin fee rate. Proposals: "first-ranked" replaces "best" in the audit
+  trail; commissions and downtime are listed with the terms. Lease abstract: dates are date cells,
+  money terms say USD, the ReadMe names only sheets that exist, the provenance says the values
+  were supplied (not computed), and `source` is `doc_abstract_lease` (no package version).
+- Reports, calendar: shorter event titles, no one-day duplicate of a renewal window, and dates
+  before today left out unless `include_past` is sent.
+- Reports, workbooks: the DCF CashFlows subtotals are live formulas, with each year's NOI and cash
+  flow tied out on Checks, and the CAM statement's charge is checked by a live formula; the docs
+  now say which kinds carry live formulas and which are value workbooks with live checks. In the
+  PDF a long list in Inputs is one row with its count (all values stay in the workbook).
+- Reports, filenames cut at word boundaries and drop a trailing year the date repeats.
+- Reports, errors: a missing field says "missing", non-object arguments are reported at
+  `arguments`, `next` points to the request shape and the tool's schema (and lists the formats
+  for a wrong `format`), and refusals carry the report-quota headers.
 
 ## [0.5.0] - 2026-11-07
 

@@ -66,7 +66,7 @@ export const REPORT_TOOL = {
   name: REPORT_TOOL_NAME,
   title: "Create a client-ready report (XLSX, PDF, ICS)",
   description:
-    "Hosted FactLot tool (api.factlot.com only). Builds a client-ready document by code, with no model: tx_unequal_appraisal (calc_tx_unequal_appraisal: evidence packet PDF or adjustment-grid workbook with live formulas), lease_abstract (doc_abstract_lease), cam_reconciliation (calc_cam_reconciliation or _batch), debt_sizing (calc_debt_sizing), asc842_schedule (calc_lease_remeasurement_asc842), compare_proposals (calc_compare_proposals), dcf_summary (calc_dcf_pro_forma), critical_dates (calc_critical_dates; also ics: a calendar with each notice window and deadline and a reminder 30 days before). Every kind but lease_abstract requires the tool's arguments: FactLot runs the tool on them and builds the document from that run only, so its numbers are FactLot's results; a result sent as input is not used (the answer's result_mismatch says whether it differs). lease_abstract takes doc_abstract_lease's arguments, or its result as input: built from a supplied result, every page says the abstract values are as supplied by the caller and FactLot did not recompute them. Caller text (title, prepared_for, citation locators, comparable ids, labels and reasons) is printed as supplied by the caller; advice or valuation wording in it is refused (TextNotAllowed). One report per request (one report_create per MCP batch). Returns download_url (works 24 hours), expires_at, bytes, sha256 and filename; inline: true also returns files under 1 MiB as base64. Counts against reports_per_month (free: 3 a month per IP address; Pro 50; Team 1,000); input errors are free.",
+    "Hosted FactLot tool (api.factlot.com only). Builds a client-ready document by code, with no model: tx_unequal_appraisal (calc_tx_unequal_appraisal: evidence packet PDF or adjustment-grid workbook with live formulas), lease_abstract (doc_abstract_lease), cam_reconciliation (calc_cam_reconciliation or _batch), debt_sizing (calc_debt_sizing), asc842_schedule (calc_lease_remeasurement_asc842), compare_proposals (calc_compare_proposals), dcf_summary (calc_dcf_pro_forma), critical_dates (calc_critical_dates; also ics: a calendar with each notice window and deadline dated on its contractual day and a reminder 30 days before; dates before today are left out unless include_past is true). Every kind but lease_abstract requires the tool's arguments: FactLot runs the tool on them and builds the document from that run only, so its numbers are FactLot's results; a result sent as input is not used (the answer's result_mismatch says whether it differs). lease_abstract takes doc_abstract_lease's arguments, or its result as input: built from a supplied result, every page says the abstract values are as supplied by the caller and FactLot did not recompute them. Caller text (title, prepared_for, citation locators, comparable ids, labels and reasons) is printed as supplied by the caller; advice or valuation wording in it is refused (TextNotAllowed). One report per request (one report_create per MCP batch). Returns download_url (works 24 hours), expires_at, bytes, sha256, filename and billed (true when this request counted against the month; every refusal has billed: false); inline: true also returns files under 1 MiB as base64. Counts against reports_per_month (free: 3 a month per IP address; Pro 50; Team 1,000); input errors are free.",
   inputSchema: (() => {
     const s = reportRequestJsonSchema() as {
       properties: Record<string, unknown>;
@@ -267,6 +267,17 @@ export async function runReport(
   request: unknown,
   o: ReportOptions,
 ): Promise<ReportOutcome> {
+  const out = await runReportInner(env, caller, request, o);
+  // Every answer says whether it counted against the month: only a stored build does.
+  return { ...out, body: { ...out.body, billed: out.ok } } as ReportOutcome;
+}
+
+async function runReportInner(
+  env: Env,
+  caller: ReportCaller,
+  request: unknown,
+  o: ReportOptions,
+): Promise<ReportOutcome> {
   try {
     return await buildAndStore(env, caller, request, o);
   } catch (err) {
@@ -337,7 +348,9 @@ async function buildAndStore(
   try {
     prepared = prepareReport(rest);
   } catch (err) {
-    if (err instanceof ReportInputError) return inputError(err);
+    // The quota is known here, so a refused request carries the quota headers too.
+    if (err instanceof ReportInputError)
+      return { ...inputError(err), quota: before } as ReportOutcome;
     throw err;
   }
   // Charge before building: a build the runtime kills is not free.
@@ -357,7 +370,15 @@ async function buildAndStore(
       throw new ReportInputError("TooLarge", "the report is over 25 MiB");
   } catch (err) {
     await refundReport(env, subject, quota);
-    if (err instanceof ReportInputError) return inputError(err);
+    if (err instanceof ReportInputError)
+      return {
+        ...inputError(err),
+        quota: {
+          ...quota,
+          used: quota.used - 1,
+          remaining: quota.remaining + 1,
+        },
+      } as ReportOutcome;
     throw err;
   }
   const token = randomToken();

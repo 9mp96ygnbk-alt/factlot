@@ -1,8 +1,9 @@
 # Reports: XLSX, PDF and ICS from FactLot results
 
 `report_create` (MCP) and `POST /v1/reports` (REST) turn a FactLot tool result into the document a
-CRE analyst or a Texas property tax consultant would otherwise build by hand: a workbook with live
-formulas, a paginated PDF, or a calendar. Hosted only (api.factlot.com).
+CRE analyst or a Texas property tax consultant would otherwise build by hand: a workbook (with live
+formulas where the arithmetic is simple, and live checks everywhere), a paginated PDF, or a
+calendar. Hosted only (api.factlot.com).
 
 **Status:** open on api.factlot.com since 2026-11-07. `/v1/plans` shows `reports.available: true`
 and the per-plan monthly allowance. (A self-hosted deployment without `REPORTS_ENABLED` answers
@@ -12,8 +13,13 @@ Reports are **deterministic** and **built by code, with no model**. The same req
 document. The only exception is the generation time: it is printed in the footer, stamped in the PDF
 metadata and in each ICS event's `DTSTAMP`. Every kind but `lease_abstract` is built from FactLot's
 own run of the tool on the `arguments` you send, so every computed number in it is a figure FactLot
-computed, printed as returned. Rates are decimals in the result and percentages in the document:
-0.0625 is 6.25%.
+computed. Numbers follow one convention in every PDF and workbook: money to the cent with the sign
+first (`-$25,000.00`); rates as percentages to two decimals (0.0625 is 6.25%), or four for a fine
+rate such as a periodic discount rate; ratios such as a DSCR to two decimals (`1.25x`); audit-trail
+values to 6 significant digits, with a note that the full precision is in the tool result; years,
+periods, months and counts without digit grouping (`2026`). A workbook cell holds the tool's full
+number and only its number format follows the convention. The Inputs section shows the arguments
+exactly as sent.
 
 ## Kinds
 
@@ -34,12 +40,21 @@ computed, printed as returned. Rates are decimals in the result and percentages 
   steps. The workbook follows the layout of
   [`examples/reconciliation/tx_unequal_appraisal.py`](../examples/reconciliation/tx_unequal_appraisal.py):
   ReadMe, Reconcile, and Grid with live formulas and the evidence-trail columns. Steps and Law
-  sheets follow. The grid normalizes from each comparable's area as the example does.
+  sheets follow. The grid normalizes from each comparable's area as the example does. On Grid the
+  notice is one merged row of fixed height above a short subject block, and only the header row
+  and the comparable column are frozen. The title and prepared-for line, when sent, are printed on
+  ReadMe and Grid as supplied by the caller. Both documents show the normalizing area, each
+  comparable's area and adjusted $/SF; the workbook also has the $/SF adjustment total and
+  reconciles the adjusted $/SF. A comparable's or the subject's `label` and `address`, when sent,
+  are printed next to its id. The statutes table's last column is the source URL (a link in the
+  PDF). The Texas disclaimer is on the PDF's cover and in every page's footer.
 - **lease_abstract.** The documents in the order applied. Each current term comes with its quote,
   page and document, what it superseded, conflicts and open items. Then come the values that need
   review and any pending amendments.
 - **cam_reconciliation.** One tenant's statement: shares, gross-up, cap, admin fee, base-year or stop
-  deduction, charge, estimates and balance due. For a whole pool: the building totals, why expenses
+  deduction, charge, estimates and balance due, then the terms as sent: pro rata share, gross-up
+  occupancies and the tool's gross-up factor, the tenant's occupancy fraction, the cap method, rate
+  and reference amount, and the admin fee rate and when it applies. For a whole pool: the building totals, why expenses
   were not recovered, and every tenant's statement.
 - **debt_sizing.** The loan each test allows, the binding constraint, the resulting metrics, and any
   refinance gap and stress table. With the arguments, an amortization summary from
@@ -47,11 +62,21 @@ computed, printed as returned. Rates are decimals in the result and percentages 
 - **asc842_schedule.** The remeasurement, and the liability and right-of-use schedules by period.
 - **compare_proposals.** The proposals side by side on the tool's metric (discounted net effective
   rent, or effective occupancy cost), with the audit trail. With the arguments, each proposal's
-  terms.
+  terms, leasing commissions and downtime. The proposal the metric ranks first is called
+  "first-ranked", never "best".
 - **dcf_summary.** Value, reversion, the annual cash flows and the lease events.
 - **critical_dates.** The dated list and the renewal and termination options. The `ics` calendar has
   an event for each date and each renewal notice window as one multi-day event. Every notice
-  deadline and window has a reminder 30 days before.
+  deadline and window has a reminder 30 days before; a deadline less than 30 days after the
+  report is generated also gets a reminder an hour after generation, so one always fires. When
+  `business_day_roll` moves a notice deadline to a **later** business day, the calendar event is
+  dated on the contractual (unrolled) date and the later date is only described: only a lease
+  clause that extends a deadline falling on a non-business day allows it. Each event's
+  description carries the tool's warnings about its dates (a warning that names no date is put on
+  every deadline). UIDs do not change when the calendar is generated again. Event titles are short
+  (the calendar's name is its `X-WR-CALNAME`), and a renewal window is one multi-day event, not
+  also a one-day "window opens" event. Dates before the day the calendar is generated are left
+  out; send `"include_past": true` to keep them.
 
 Every calculator document has the line `Generated by FactLot <version> on <UTC time> from
 <tool>@<formula version>; numbers are the tool's results; see https://factlot.com/terms`. It is in
@@ -64,12 +89,23 @@ document also says it is not an appraisal or an opinion of value (Tex. Occ. Code
 legal or tax advice, and not a substitute for the advice of an attorney. Nothing in a report
 recommends anything.
 
-Workbooks keep the tool's figures as numbers with number formats, and each one has a Steps sheet
-with the tool's audit trail. Live Excel formulas tie the figures out on a Checks sheet, or on the
-Reconcile sheet in the Texas workbook. A check puts the formula's result beside the number FactLot
-returned, with a Difference column and a Status. FactLot evaluates every formula before it writes
-the file, so a viewer that does not recalculate still shows numbers. Excel recalculates the formulas
-when the file opens. When the arguments are sent, an Inputs section lists them as sent.
+Workbooks keep the tool's figures as numbers with number formats, and each calculator workbook
+has a Steps sheet with the tool's audit trail. Which cells are live Excel formulas depends on the
+kind:
+
+- `tx_unequal_appraisal`: the Grid is live arithmetic from the inputs (normalization, factors,
+  adjusted values, $/SF, the median and the difference), reconciled on the Reconcile sheet.
+- `dcf_summary`: on the CashFlows sheet the subtotals (gross revenue, effective gross revenue, net
+  operating income, cash flow before debt service) are live formulas over the lines above them.
+- The other kinds are value workbooks: their figures are FactLot's numbers, tied out by live
+  formulas on a Checks sheet (a CAM statement's charge and balance, a debt sizing's binding test,
+  an ASC 842 schedule's totals, a DCF's value, net sale proceeds and each year's NOI and cash flow).
+
+A check puts the formula's result beside the number FactLot returned, with a Difference column and
+a Status. FactLot evaluates every formula before it writes the file, so a viewer that does not
+recalculate still shows numbers. Excel recalculates the formulas when the file opens. When the
+arguments are sent, an Inputs section lists them as sent; in the PDF a list of more than six plain
+values is one row with its count and first values, and the workbook's Inputs sheet has all of them.
 
 ## What a report accepts
 
@@ -100,14 +136,21 @@ when the file opens. When the arguments are sent, an Inputs section lists them a
   comparable id (or `#1`, `#2`… for a comparable without one); a locator is at most 200 characters.
 - `inline: true` also returns the file as base64 when it is under 1 MiB: `content_base64` over
   REST, an embedded resource over MCP.
+- `include_past: true` (`critical_dates` with `ics` only) keeps dates before today in the calendar.
 
 Text you supply is printed as yours: the document labels it "supplied by the caller". That covers
 the title and prepared-for line, citations and their locators, and for `tx_unequal_appraisal` the
-comparable and subject ids and each adjustment's label and reason (a reason is at most 200
-characters). A report states arithmetic only, so such text is refused when it reads as advice or a
-valuation: it may not contain `recommend`, `should`, `protest`, `worth`, `appraisal`, `opinion of
-value`, `market value is`, `save` or `savings`. Names that contain one of those words pass: Fort
-Worth, an appraisal district, the appraisal review board.
+comparable and subject ids, their optional `label` (at most 80 characters) and `address` (at most
+120), and each adjustment's label and reason (a reason is at most 200 characters). A report
+states arithmetic only, so such text is refused when it reads as advice or a valuation. The test
+looks for whole advice phrases, not word stems: `you should` or `should`, `we recommend` or
+`recommended`, `will win`, `worth $…`, `is worth`, `opinion of value`, `market value is`, `our
+appraisal`, `appraised at` followed by a figure, `protest your`, `grounds to protest`, `you can
+save`, `savings of`, `tax savings`. Names and statutory terms pass: Worthington Plaza, First
+Savings Bank, Protestant Church, Fort Worth, an appraisal district, the appraisal review board, an
+appraisal notice or notice of appraised value, the appraisal roll, unequal appraisal, a protest
+packet, deadline or hearing, a tax protest. A refusal is `422 TextNotAllowed` and names the field
+and the phrase.
 
 A calculator report never carries numbers FactLot did not compute. Refusals say why in `issues`:
 
@@ -119,6 +162,11 @@ A calculator report never carries numbers FactLot did not compute. Refusals say 
 | `FormulaVersion`    | `lease_abstract` only: the `input` is from another version of the formula; call the tool again.                               |
 | `TextNotAllowed`    | `422`: caller text with advice or valuation wording; `issues` names each field.                                               |
 | `InputError`        | The request itself: unknown `kind`, a `format` the kind does not offer, bad `context`, caller text over its length limit.     |
+
+Each issue names its path (`arguments` itself when the arguments are not an object) and says
+`missing` for a required field that was not sent. `next` says where the shape is: this page for
+the request, and the tool's `inputSchema` in `GET https://api.factlot.com/v1/tools` for its
+arguments; for a wrong `format` it lists the formats the kind offers.
 
 ## The answer and the download
 
@@ -135,6 +183,7 @@ A calculator report never carries numbers FactLot did not compute. Refusals say 
   "source": "calc_debt_sizing@3",
   "check": "computed",
   "generated_at": "2026-11-07T12:00:00.000Z",
+  "billed": true,
   "reports": {
     "used": 1,
     "limit": 50,
@@ -143,6 +192,10 @@ A calculator report never carries numbers FactLot did not compute. Refusals say 
   }
 }
 ```
+
+`billed` is in every answer, refusals included: `true` when this request counted against the month
+(a report built and stored), `false` otherwise. `source` names the tool and its formula version; a
+lease abstract's is `doc_abstract_lease` (the abstract has no formula version).
 
 `check` is `computed` when the document is built from FactLot's run of the tool on `arguments`, and
 `supplied` for a lease abstract built from the result you sent. `result_mismatch` is there when you
@@ -174,7 +227,8 @@ building fails in a way FactLot sees (a size limit, a fault in FactLot, storage)
 A fault on FactLot's side answers `500 ReportFailed` (an `isError` tool result over MCP) with no
 internal detail. Over the limit the answer is `429 ReportQuotaExceeded` over REST, or the same error
 as an MCP tool result with `isError`, naming the reset time; every other tool keeps working.
-Responses carry `X-FactLot-Reports-Quota-Limit`, `-Remaining` and `-Reset`. `GET /v1/plans` lists
+Responses carry `X-FactLot-Reports-Quota-Limit`, `-Remaining` and `-Reset`, refusals of a
+request's input included. `GET /v1/plans` lists
 the limits under `reports`.
 
 One request builds one report: in an MCP batch, the first `report_create` is built and any other

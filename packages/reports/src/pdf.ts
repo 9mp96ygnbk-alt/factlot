@@ -11,8 +11,10 @@
  * objects per line of text, which for a long table cost tens of megabytes.
  */
 import {
+  PDFArray,
   PDFDocument,
   PDFName,
+  PDFString,
   StandardFonts,
   rgb,
   type PDFFont,
@@ -23,14 +25,23 @@ import {
 import { stripControls } from "./format.ts";
 import { ReportInputError } from "./validate.ts";
 
-const PAGE_W = 612; // US Letter
+const PAGE_W = 612; // US Letter, portrait; a landscape page swaps the two
 const PAGE_H = 792;
 const MARGIN = 50;
 const HEADER_H = 22;
 const FOOTER_H = 34;
-const CONTENT_W = PAGE_W - 2 * MARGIN;
-const TOP = PAGE_H - MARGIN - HEADER_H;
 const BOTTOM = MARGIN + FOOTER_H;
+/** Smallest text a table shrinks to so its numbers fit their columns. */
+const MIN_TABLE_SIZE = 5.5;
+/** A table with more columns than this is laid out on landscape pages. */
+export const WIDE_TABLE_COLUMNS = 10;
+/** A number as a cell shows it: never broken across lines. */
+const NUMERIC = /^[-+(]?-?\$?-?[\d,]*\.?\d+(?:%|x|\/SF|\))?$/;
+/** Characters after which a long word may break (identifiers, URLs, paths). */
+const BREAK_AFTER = /(?<=[_\-/.:;,?&=#@|])/;
+const URL = /^https?:\/\/\S+$/;
+/** An ISO date, kept on one line. */
+const DATE = /^\d{4}-\d{2}-\d{2}[,;.)]?$/;
 
 const INK = rgb(0.1, 0.1, 0.12);
 const GREY = rgb(0.38, 0.38, 0.42);
@@ -133,13 +144,16 @@ export class PdfWriter {
   private bold!: PDFFont;
   private charset!: Set<number>;
   /** The page being written and its content operators. */
-  private cur!: { page: PDFPage; ops: string[] };
-  private readonly pages: { page: PDFPage; ops: string[] }[] = [];
-  private y = TOP;
+  private cur!: Page;
+  private readonly pages: Page[] = [];
+  private y = PAGE_H - MARGIN - HEADER_H;
   private lines = 0;
   private readonly meta: PdfMeta;
   /** Glyph advance widths at size 1, per font, measured once per character. */
   private readonly advance = new Map<PDFFont, Map<string, number>>();
+  /** The last heading drawn, while nothing has been drawn after it (keep-with-next). */
+  private lastHeading:
+    { page: Page; from: number; to: number; redraw: () => void } | undefined;
 
   private constructor(meta: PdfMeta) {
     this.meta = meta;
@@ -153,6 +167,17 @@ export class PdfWriter {
     w.charset = new Set(w.regular.getCharacterSet());
     w.newPage();
     return w;
+  }
+
+  /** The current page's width, height, content width and top of content. */
+  private get pw(): number {
+    return this.cur.w;
+  }
+  private get cw(): number {
+    return this.cur.w - 2 * MARGIN;
+  }
+  private get top(): number {
+    return this.cur.h - MARGIN - HEADER_H;
   }
 
   /** Text the standard fonts can encode. */
@@ -176,10 +201,31 @@ export class PdfWriter {
     return out;
   }
 
-  private newPage(): void {
-    this.cur = { page: this.doc.addPage([PAGE_W, PAGE_H]), ops: [] };
+  private newPage(landscape = this.cur?.landscape ?? false): void {
+    const [w, h] = landscape ? [PAGE_H, PAGE_W] : [PAGE_W, PAGE_H];
+    this.cur = {
+      page: this.doc.addPage([w, h]),
+      ops: [],
+      links: [],
+      w,
+      h,
+      landscape,
+    };
     this.pages.push(this.cur);
-    this.y = TOP;
+    this.y = this.top;
+  }
+
+  /**
+   * Continue on pages of this orientation: a new page when it changes, unless the current page
+   * is still empty (then it is replaced).
+   */
+  orientation(landscape: boolean): void {
+    if (this.cur.landscape === landscape) return;
+    if (this.cur.ops.length === 0 && this.y >= this.top - 0.5) {
+      this.doc.removePage(this.pages.length - 1);
+      this.pages.pop();
+    }
+    this.newPage(landscape);
   }
 
   /** A filled rectangle. */
@@ -228,7 +274,9 @@ export class PdfWriter {
 
   /**
    * Wrap text into lines no wider than `w`, in one pass over its characters (each glyph is
-   * measured once). Text over MAX_CELL_CHARS is cut first (capText).
+   * measured once). Lines break at spaces; a word longer than the line breaks after a
+   * separator (_ - / . : and the like), and only a piece still too long breaks by characters.
+   * Text over MAX_CELL_CHARS is cut first (capText).
    */
   wrap(
     text: string,
@@ -258,23 +306,55 @@ export class PdfWriter {
           lineW = wordW;
           continue;
         }
-        // A word longer than the line is broken by characters; the rest starts the next line.
+        // A word longer than the line: break after separators, then by characters.
         line = "";
         lineW = 0;
-        for (const ch of word) {
-          const cw = this.charWidth(ch, font) * size;
-          if (line && lineW + cw > w) {
-            lines.push(line);
-            line = "";
-            lineW = 0;
+        for (const piece of word.split(BREAK_AFTER)) {
+          const pw = this.width(piece, size, font);
+          if (lineW + pw <= w) {
+            line += piece;
+            lineW += pw;
+            continue;
           }
-          line += ch;
-          lineW += cw;
+          if (line) lines.push(line);
+          line = "";
+          lineW = 0;
+          if (pw <= w) {
+            line = piece;
+            lineW = pw;
+            continue;
+          }
+          for (const ch of piece) {
+            const cw = this.charWidth(ch, font) * size;
+            if (line && lineW + cw > w) {
+              lines.push(line);
+              line = "";
+              lineW = 0;
+            }
+            line += ch;
+            lineW += cw;
+          }
         }
       }
       lines.push(line);
     }
     return lines;
+  }
+
+  /** The widest piece of text that may not be broken: a number whole, else a word's pieces. */
+  private unbreakable(
+    text: string,
+    size: number,
+    font: PDFFont,
+    numeric: boolean,
+  ): number {
+    const t = this.clean(capText(text));
+    if (numeric && NUMERIC.test(t)) return this.width(t, size, font);
+    let m = 0;
+    for (const word of t.split(/[ \n]+/))
+      for (const piece of DATE.test(word) ? [word] : word.split(BREAK_AFTER))
+        m = Math.max(m, this.width(piece, size, font));
+    return m;
   }
 
   private text(
@@ -297,27 +377,32 @@ export class PdfWriter {
     );
   }
 
+  /** A clickable link over a rectangle of the current page. */
+  private link(x: number, y: number, w: number, h: number, uri: string): void {
+    this.cur.links.push({ rect: [x, y, x + w, y + h], uri });
+  }
+
   title(text: string, subtitle?: string): void {
-    for (const line of this.wrap(text, 17, CONTENT_W, this.bold)) {
+    for (const line of this.wrap(text, 17, this.cw, this.bold)) {
       this.ensure(22);
       this.text(line, MARGIN, this.y - 17, 17, this.bold, NAVY);
       this.y -= 22;
     }
     if (subtitle) {
-      for (const line of this.wrap(subtitle, 9.5, CONTENT_W)) {
+      for (const line of this.wrap(subtitle, 9.5, this.cw)) {
         this.ensure(13);
         this.text(line, MARGIN, this.y - 10, 9.5, this.regular, GREY);
         this.y -= 13;
       }
     }
     this.y -= 6;
-    this.line(MARGIN, this.y, PAGE_W - MARGIN, this.y, 1, NAVY);
+    this.line(MARGIN, this.y, this.pw - MARGIN, this.y, 1, NAVY);
     this.y -= 10;
   }
 
   /** A boxed notice: "warn" (red edge) for disclaimers, "info" (green edge) for checks. */
   notice(text: string, tone: "warn" | "info" = "warn", size = 8.5): void {
-    const lines = this.wrap(text, size, CONTENT_W - 16);
+    const lines = this.wrap(text, size, this.cw - 16);
     const lh = size * 1.3;
     let i = 0;
     while (i < lines.length) {
@@ -328,7 +413,7 @@ export class PdfWriter {
       this.rect(
         MARGIN,
         this.y - h,
-        CONTENT_W,
+        this.cw,
         h,
         tone === "warn" ? NOTICE_FILL : INFO_FILL,
       );
@@ -353,24 +438,56 @@ export class PdfWriter {
     }
   }
 
-  heading(text: string): void {
-    // Keep a heading with at least a few lines of what follows.
-    this.ensure(60);
+  /**
+   * Height a heading needs below it: `keep` points of what follows stay on its page (the
+   * caller passes the first block's height when it knows it).
+   */
+  heading(text: string, keep = 60): void {
+    const lines = this.wrap(text, 12, this.cw, this.bold);
+    this.ensure(8 + lines.length * 16 + keep);
+    const from = this.cur.ops.length;
     this.y -= 6;
-    for (const line of this.wrap(text, 12, CONTENT_W, this.bold)) {
+    for (const line of lines) {
       this.text(line, MARGIN, this.y - 12, 12, this.bold, NAVY);
       this.y -= 16;
     }
     this.y -= 2;
+    this.markHeading(from, () => this.heading(text, keep));
   }
 
-  subheading(text: string): void {
-    this.ensure(40);
-    for (const line of this.wrap(text, 10, CONTENT_W, this.bold)) {
+  subheading(text: string, keep = 40): void {
+    const lines = this.wrap(text, 10, this.cw, this.bold);
+    this.ensure(lines.length * 13 + keep);
+    const from = this.cur.ops.length;
+    for (const line of lines) {
       this.text(line, MARGIN, this.y - 10, 10, this.bold);
       this.y -= 13;
     }
     this.y -= 1;
+    this.markHeading(from, () => this.subheading(text, keep));
+  }
+
+  private markHeading(from: number, redraw: () => void): void {
+    this.lastHeading = {
+      page: this.cur,
+      from,
+      to: this.cur.ops.length,
+      redraw,
+    };
+  }
+
+  /**
+   * Start a new page; a heading drawn just before (with nothing after it) moves along, so a
+   * heading is never left alone at the foot of a page.
+   */
+  private newPageKeepingHeading(): void {
+    const h = this.lastHeading;
+    if (h && h.page === this.cur && h.to === this.cur.ops.length) {
+      this.cur.ops.splice(h.from);
+      this.lastHeading = undefined;
+      this.newPage();
+      h.redraw();
+    } else this.newPage();
   }
 
   para(
@@ -380,7 +497,7 @@ export class PdfWriter {
     const size = opts.size ?? 9;
     const font = opts.bold ? this.bold : this.regular;
     const lh = size * 1.35;
-    for (const line of this.wrap(text, size, CONTENT_W, font)) {
+    for (const line of this.wrap(text, size, this.cw, font)) {
       this.ensure(lh);
       this.text(
         line,
@@ -398,7 +515,7 @@ export class PdfWriter {
   bullets(items: string[], size = 9): void {
     const lh = size * 1.35;
     for (const item of items) {
-      const lines = this.wrap(item, size, CONTENT_W - 12);
+      const lines = this.wrap(item, size, this.cw - 12);
       lines.forEach((line, k) => {
         this.ensure(lh);
         if (k === 0)
@@ -426,23 +543,92 @@ export class PdfWriter {
     );
   }
 
+  /**
+   * Column widths and a text size at which every number fits its column on one line and every
+   * word (or separator-delimited piece of one) fits its column: the shares are the starting
+   * point, columns that need more take it from columns with room, and when the page is too
+   * narrow for all of them the text shrinks (down to MIN_TABLE_SIZE).
+   */
+  private layout(
+    columns: Column[],
+    rows: string[][],
+    size: number,
+    hsize: number,
+    pad: number,
+    headerless: boolean,
+  ): { widths: number[]; size: number; hsize: number } {
+    const cw = this.cw;
+    const total = columns.reduce((s, c) => s + c.width, 0);
+    const desired = columns.map((c) => (c.width / total) * cw);
+    const need = (sz: number, hsz: number) =>
+      columns.map((c, i) => {
+        const numeric = c.align === "right";
+        let m = headerless
+          ? 0
+          : this.unbreakable(c.header, hsz, this.bold, false);
+        for (const row of rows)
+          m = Math.max(
+            m,
+            this.unbreakable(row[i] ?? "", sz, this.bold, numeric),
+          );
+        // A text column never claims more than 40% of the page for one long token.
+        return Math.min(m + 2 * pad + 0.5, numeric ? cw : cw * 0.4);
+      });
+    let sz = size;
+    let hsz = hsize;
+    let min = need(sz, hsz);
+    let sum = min.reduce((s, x) => s + x, 0);
+    if (sum > cw) {
+      const k = Math.max(MIN_TABLE_SIZE / sz, (cw / sum) * 0.98);
+      sz = Math.max(MIN_TABLE_SIZE, sz * k);
+      hsz = Math.max(MIN_TABLE_SIZE, hsz * k);
+      min = need(sz, hsz);
+      sum = min.reduce((s, x) => s + x, 0);
+    }
+    if (sum > cw) {
+      // Still too wide at the smallest size: share the page by need.
+      return { widths: min.map((m) => (m / sum) * cw), size: sz, hsize: hsz };
+    }
+    const widths = desired.map((d, i) => Math.max(d, min[i]!));
+    const excess = widths.reduce((s, x) => s + x, 0) - cw;
+    if (excess > 0) {
+      const slack = widths.map((w, i) => w - min[i]!);
+      const room = slack.reduce((s, x) => s + x, 0);
+      for (let i = 0; i < widths.length; i++)
+        widths[i] = widths[i]! - (excess * slack[i]!) / room;
+    }
+    return { widths, size: sz, hsize: hsz };
+  }
+
   table(
     columns: Column[],
     rows: string[][],
     opts: TableOptions & { headerless?: boolean } = {},
   ): void {
-    const size = opts.size ?? 8;
-    const hsize = opts.headerSize ?? size;
-    const lh = size * 1.3;
     const pad = 3;
-    const total = columns.reduce((s, c) => s + c.width, 0);
-    const widths = columns.map((c) => (c.width / total) * CONTENT_W);
+    const fit = this.layout(
+      columns,
+      rows,
+      opts.size ?? 8,
+      opts.headerSize ?? opts.size ?? 8,
+      pad,
+      opts.headerless ?? false,
+    );
+    const size = fit.size;
+    const hsize = fit.hsize;
+    const lh = size * 1.3;
+    const widths = fit.widths;
     const xs = widths.map(
       (_, i) => MARGIN + widths.slice(0, i).reduce((s, w) => s + w, 0),
     );
+    /** A number in a right-aligned column is one line, shrunk if it still does not fit. */
+    const isNumber = (i: number, cell: string) =>
+      columns[i]!.align === "right" && NUMERIC.test(this.clean(cell));
     const cellLines = (row: string[], font: PDFFont, sz: number) =>
       row.map((cell, i) =>
-        this.wrap(cell ?? "", sz, widths[i]! - 2 * pad, font),
+        isNumber(i, cell ?? "")
+          ? [this.clean(cell)]
+          : this.wrap(cell ?? "", sz, widths[i]! - 2 * pad, font),
       );
 
     const drawRow = (
@@ -451,23 +637,27 @@ export class PdfWriter {
       sz: number,
       fill?: RGB,
       color: RGB = INK,
+      raw?: string[],
     ) => {
       const h = Math.max(1, ...lines.map((l) => l.length)) * sz * 1.3 + 2 * pad;
-      if (fill) this.rect(MARGIN, this.y - h, CONTENT_W, h, fill);
+      if (fill) this.rect(MARGIN, this.y - h, this.cw, h, fill);
       lines.forEach((ls, i) => {
         const align = columns[i]!.align ?? "left";
+        const room = widths[i]! - 2 * pad;
+        const uri =
+          raw && URL.test((raw[i] ?? "").trim()) ? raw[i]!.trim() : "";
         ls.forEach((line, k) => {
-          const w = this.width(line, sz, font);
+          let csz = sz;
+          let w = this.width(line, csz, font);
+          if (w > room && ls.length === 1 && isNumber(i, line)) {
+            csz = (sz * room) / w;
+            w = room;
+          }
           const x =
             align === "right" ? xs[i]! + widths[i]! - pad - w : xs[i]! + pad;
-          this.text(
-            line,
-            x,
-            this.y - pad - (k + 1) * sz * 1.3 + sz * 0.3,
-            sz,
-            font,
-            color,
-          );
+          const baseline = this.y - pad - (k + 1) * sz * 1.3 + sz * 0.3;
+          this.text(line, x, baseline, csz, font, uri ? NAVY : color);
+          if (uri && line) this.link(x, baseline - sz * 0.25, w, sz * 1.2, uri);
         });
       });
       this.y -= h;
@@ -475,14 +665,12 @@ export class PdfWriter {
     };
     const header = () => {
       if (opts.headerless) return;
-      const lines = cellLines(
-        columns.map((c) => c.header),
-        this.bold,
-        hsize,
+      const lines = columns.map((c, i) =>
+        this.wrap(c.header, hsize, widths[i]! - 2 * pad, this.bold),
       );
       const h =
         Math.max(1, ...lines.map((l) => l.length)) * hsize * 1.3 + 2 * pad;
-      this.ensure(h + lh + 2 * pad);
+      if (this.y - (h + lh + 2 * pad) < BOTTOM) this.newPageKeepingHeading();
       drawRow(lines, this.bold, hsize, NAVY, rgb(1, 1, 1));
     };
     // Keep a short table together: start it on a new page rather than split a few rows off.
@@ -499,17 +687,17 @@ export class PdfWriter {
       (opts.headerless ? 0 : hsize * 2.6 + 2 * pad);
     if (
       this.y - tableHeight < BOTTOM &&
-      tableHeight < (TOP - BOTTOM) * 0.45 &&
-      this.y < TOP - 1
+      tableHeight < (this.top - BOTTOM) * 0.45 &&
+      this.y < this.top - 1
     )
-      this.newPage();
+      this.newPageKeepingHeading();
     header();
     rows.forEach((row, r) => {
       const font = opts.bold?.has(r) ? this.bold : this.regular;
       const lines = cellLines(row, font, size);
       const h = Math.max(1, ...lines.map((l) => l.length)) * lh + 2 * pad;
       if (this.y - h < BOTTOM) {
-        if (h > TOP - BOTTOM - 40) {
+        if (h > this.top - BOTTOM - 40) {
           // A row taller than a page: split its lines over pages.
           let start = 0;
           const max = Math.max(...lines.map((l) => l.length));
@@ -527,6 +715,8 @@ export class PdfWriter {
               font,
               size,
               r % 2 ? BAND : undefined,
+              INK,
+              row,
             );
             start += fit;
           }
@@ -535,9 +725,9 @@ export class PdfWriter {
         this.newPage();
         header();
       }
-      drawRow(lines, font, size, r % 2 ? BAND : undefined);
+      drawRow(lines, font, size, r % 2 ? BAND : undefined, INK, row);
     });
-    this.line(MARGIN, this.y, PAGE_W - MARGIN, this.y, 0.5, RULE);
+    this.line(MARGIN, this.y, this.pw - MARGIN, this.y, 0.5, RULE);
     this.y -= 10;
   }
 
@@ -549,37 +739,42 @@ export class PdfWriter {
     this.newPage();
   }
 
+  /** Space left on the current page, in points. */
+  get room(): number {
+    return this.y - BOTTOM;
+  }
+
   async bytes(): Promise<Uint8Array> {
     const pages = this.pages;
-    const footerLines = this.wrap(this.meta.footer, 6.5, CONTENT_W - 60);
     pages.forEach((p, i) => {
       this.cur = p;
+      const footerLines = this.wrap(this.meta.footer, 6.5, this.cw - 60);
       this.text(
         this.clean(this.meta.header),
         MARGIN,
-        PAGE_H - MARGIN - 8,
+        p.h - MARGIN - 8,
         7.5,
         this.regular,
         GREY,
       );
       this.line(
         MARGIN,
-        PAGE_H - MARGIN - 13,
-        PAGE_W - MARGIN,
-        PAGE_H - MARGIN - 13,
+        p.h - MARGIN - 13,
+        p.w - MARGIN,
+        p.h - MARGIN - 13,
         0.5,
         RULE,
       );
       this.line(
         MARGIN,
         MARGIN + FOOTER_H - 8,
-        PAGE_W - MARGIN,
+        p.w - MARGIN,
         MARGIN + FOOTER_H - 8,
         0.5,
         RULE,
       );
       footerLines
-        .slice(0, 3)
+        .slice(0, 4)
         .forEach((l, k) =>
           this.text(
             l,
@@ -593,7 +788,7 @@ export class PdfWriter {
       const label = `Page ${i + 1} of ${pages.length}`;
       this.text(
         label,
-        PAGE_W - MARGIN - this.width(label, 7.5, this.regular),
+        p.w - MARGIN - this.width(label, 7.5, this.regular),
         MARGIN + FOOTER_H - 17,
         7.5,
         this.regular,
@@ -608,6 +803,26 @@ export class PdfWriter {
         ctx.register(ctx.flateStream(p.ops.join("\n"))),
       );
       p.ops = [];
+      if (p.links.length) {
+        const annots = ctx.obj([]) as PDFArray;
+        for (const l of p.links)
+          annots.push(
+            ctx.register(
+              ctx.obj({
+                Type: "Annot",
+                Subtype: "Link",
+                Rect: l.rect.map((x) => Math.round(x * 100) / 100),
+                Border: [0, 0, 0],
+                A: {
+                  Type: "Action",
+                  S: "URI",
+                  URI: PDFString.of(l.uri),
+                },
+              }),
+            ),
+          );
+        p.page.node.set(PDFName.of("Annots"), annots);
+      }
     }
     const m = this.meta;
     this.doc.setTitle(this.clean(m.title), { showInWindowTitleBar: true });
@@ -620,4 +835,13 @@ export class PdfWriter {
     this.doc.setModificationDate(m.created);
     return this.doc.save({ useObjectStreams: false });
   }
+}
+
+interface Page {
+  page: PDFPage;
+  ops: string[];
+  links: { rect: number[]; uri: string }[];
+  w: number;
+  h: number;
+  landscape: boolean;
 }

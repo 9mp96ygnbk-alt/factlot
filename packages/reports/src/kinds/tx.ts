@@ -7,7 +7,7 @@ import type { TxUnequalAppraisalInput } from "@factlot/calc";
 
 import type { Block, Provenance, ReportDoc } from "../doc.ts";
 import { appendBlocks, putLines } from "../doc.ts";
-import { usd, pct } from "../format.ts";
+import { pct, roundInText, usd } from "../format.ts";
 import type { TxResult } from "../validate.ts";
 import { Workbook, addr, fx, range, type Sheet } from "../xlsx.ts";
 import {
@@ -66,6 +66,80 @@ function citationOf(
   return { cite: c.citation, supplied };
 }
 
+/** The caller's title and prepared-for line, labelled as theirs. */
+export function callerLines(k: KindInput): string[] {
+  return [
+    ...(k.ctx.title ? [`Title (supplied by the caller): ${k.ctx.title}`] : []),
+    ...(k.ctx.prepared_for
+      ? [`Prepared for (supplied by the caller): ${k.ctx.prepared_for}`]
+      : []),
+  ];
+}
+
+type Named = { label?: unknown; address?: unknown };
+const textOf = (x: unknown): string | undefined =>
+  typeof x === "string" && x.trim() ? x : undefined;
+
+/** A comparable's caller-supplied label and address (from the result, else the arguments). */
+export function compNames(
+  c: Comp,
+  args: unknown,
+): { label?: string; address?: string } {
+  const a = (args as { comparables?: Named[] } | undefined)?.comparables?.[
+    c.index
+  ];
+  const label = textOf((c as Named).label) ?? textOf(a?.label);
+  const address = textOf((c as Named).address) ?? textOf(a?.address);
+  return {
+    ...(label ? { label } : {}),
+    ...(address ? { address } : {}),
+  };
+}
+
+function subjectLabel(r: TxResult, args: unknown): string | undefined {
+  return (
+    textOf((r.value as { subject_label?: unknown }).subject_label) ??
+    textOf((args as { subject?: Named } | undefined)?.subject?.label)
+  );
+}
+
+function subjectAddress(r: TxResult, args: unknown): string | undefined {
+  return (
+    textOf((r.value as { subject_address?: unknown }).subject_address) ??
+    textOf((args as { subject?: Named } | undefined)?.subject?.address)
+  );
+}
+
+/** "C-1 (Oak Plaza, 100 Main St)" when a label or address was supplied. */
+function displayName(c: Comp, args: unknown): string {
+  const n = compNames(c, args);
+  const extra = [n.label, n.address].filter(Boolean).join(", ");
+  return extra ? `${nameOf(c)} (${extra})` : nameOf(c);
+}
+
+/**
+ * What a statute covers, as the report prints it. Two of the tool's descriptions are restated
+ * here: §41.66(l) from the statute's words, and §42.26(d) with which text a report of this tax
+ * year is printed against.
+ */
+export function lawCovers(
+  l: { section: string; covers: string },
+  taxYear: number,
+): string {
+  if (l.section.includes("41.66(l)"))
+    return "a property owner, attorney or agent offering evidence or argument in a protest under §41.41(a)(1) or (2) (value or unequal appraisal) is not subject to Occupations Code ch. 1103 (real estate appraisers) unless presenting as a licensed or certified appraiser; a license holder states the capacity in which they appear";
+  if (l.section.includes("42.26(d)")) {
+    const base = l.covers.replace(
+      /;\s*the text in effect from 2027-01-01.*$/,
+      "",
+    );
+    return taxYear < 2027
+      ? `${base}. This report is for tax year ${taxYear}: the text in effect until 2026-12-31 covers property under the §23.23 residence homestead limitation or the §23.231 limitation on other real property; the text in effect from 2027-01-01 refers only to a residence homestead under §23.23. Which text governs a particular appeal is a legal question.`
+      : `${base}. The text in effect from 2027-01-01 refers only to a residence homestead under §23.23 (the earlier text also covered the §23.231 limitation on other real property).`;
+  }
+  return l.covers;
+}
+
 function areaWord(by: string): string {
   return by === "improvement_area_sf"
     ? "improvement area"
@@ -77,12 +151,28 @@ function areaWord(by: string): string {
 export function txDoc(k: KindInput): ReportDoc {
   const r = k.checked.result as TxResult;
   const v = r.value;
-  const subjectName = v.subject_id ?? "the subject (no id given)";
+  const txArgs = k.checked.args as Args | undefined;
+  const subjArea =
+    txArgs && v.normalize_by !== "none"
+      ? areaOf(txArgs.subject, v.normalize_by)
+      : undefined;
+  const compArea = (c: Comp) =>
+    txArgs && v.normalize_by !== "none"
+      ? (areaOf(txArgs.comparables[c.index] ?? {}, v.normalize_by) ?? null)
+      : null;
+  const subjectName = [
+    v.subject_id ?? "the subject (no id given)",
+    [subjectLabel(r, k.checked.args), subjectAddress(r, k.checked.args)]
+      .filter(Boolean)
+      .join(", "),
+  ]
+    .filter(Boolean)
+    .join(": ");
   const blocks: Block[] = [];
   blocks.push({ t: "notice", text: TX_DISCLAIMER });
   blocks.push({
     t: "notice",
-    text: "Evidence calculation only: the arithmetic of Tex. Tax Code §41.43(b)(3) and §42.26(a)(3) on the comparables and adjustments supplied. It does not say whether to protest or what value to claim, and FactLot did not choose the comparables, values or adjustments.",
+    text: "Evidence calculation only: the arithmetic of Tex. Tax Code §41.43(b)(3) and §42.26(a)(3) on the comparables and adjustments supplied. It does not say whether to protest or what value to claim, and FactLot did not choose the comparables, values or adjustments. FactLot does not represent property owners.",
   });
 
   blocks.push({ t: "heading", text: "Summary" });
@@ -122,6 +212,15 @@ export function txDoc(k: KindInput): ReportDoc {
         fmt: "pct",
       },
       { label: "Normalized by", value: areaWord(v.normalize_by), fmt: "text" },
+      ...(subjArea !== undefined
+        ? [
+            {
+              label: `Subject ${areaWord(v.normalize_by)} (SF), the normalizing area`,
+              value: subjArea,
+              fmt: "int" as const,
+            },
+          ]
+        : []),
       {
         label: "Percentage adjustments",
         value: v.adjustment_combine === "sum" ? "summed" : "compounded",
@@ -153,6 +252,7 @@ export function txDoc(k: KindInput): ReportDoc {
     text: "Supplied by the caller: the comparables, their ids and values, the adjustments with their labels and reasons, and the citations. FactLot computed the rest.",
   });
   const norm = v.normalize_by !== "none";
+  const areas = norm && subjArea !== undefined;
   blocks.push({
     t: "table",
     size: 7,
@@ -160,8 +260,11 @@ export function txDoc(k: KindInput): ReportDoc {
       { header: "Comparable", fmt: "text", width: 1.5 },
       { header: "Roll value", fmt: "usd", width: 1.35 },
       { header: "Basis", fmt: "text", width: 0.85 },
+      ...(areas
+        ? [{ header: "Area (SF)", fmt: "int" as const, width: 0.8 }]
+        : []),
       { header: norm ? "Normalized" : "Value used", fmt: "usd", width: 1.35 },
-      { header: "% factor", fmt: "num", width: 0.85 },
+      { header: "% factor", fmt: "factor", width: 0.85 },
       { header: "After %", fmt: "usd", width: 1.35 },
       { header: "USD and $/SF adj.", fmt: "usd", width: 1.2 },
       { header: "Adjusted value", fmt: "usd", width: 1.4 },
@@ -171,9 +274,10 @@ export function txDoc(k: KindInput): ReportDoc {
         : []),
     ],
     rows: v.comparables.map((c) => [
-      nameOf(c),
+      displayName(c, k.checked.args),
       c.value,
       c.value_basis,
+      ...(areas ? [compArea(c)] : []),
       c.normalized_value,
       c.percent_factor,
       c.after_percent_value,
@@ -239,7 +343,7 @@ export function txDoc(k: KindInput): ReportDoc {
     ],
     rows: order.map((c, i) => [
       i + 1,
-      nameOf(c),
+      displayName(c, k.checked.args),
       v.sorted_adjusted_values[i] ?? c.adjusted_value,
       mids.includes(i) ? (n % 2 ? "the median" : "middle value") : "",
     ]),
@@ -315,14 +419,13 @@ export function txDoc(k: KindInput): ReportDoc {
     columns: [
       { header: "Section", fmt: "text", width: 1.4 },
       { header: "What it covers", fmt: "text", width: 3.4 },
-      { header: "Text", fmt: "text", width: 2 },
+      { header: "Source (URL)", fmt: "text", width: 2 },
     ],
-    rows: v.law.map((l) => [l.section, l.covers, l.url]),
+    rows: v.law.map((l) => [l.section, lawCovers(l, v.tax_year), l.url]),
   });
 
   blocks.push({ t: "heading", text: "Conventions (stated, not hidden)" });
   blocks.push({ t: "bullets", items: CONVENTIONS });
-  blocks.push({ t: "notice", text: v.disclaimer, tone: "info" });
   blocks.push(...closingBlocks(k, "calc_tx_unequal_appraisal", r.steps));
 
   return {
@@ -449,42 +552,6 @@ function gridSheet(
 
   const sh = wb.sheet("Grid");
   const title = `Unequal-appraisal arithmetic, tax year ${v.tax_year}`;
-  sh.put(1, 1, title, "title");
-  sh.put(
-    2,
-    1,
-    "Blue on yellow = inputs; the rest are live formulas. " + NOTICE,
-    "warn",
-  );
-  sh.put(3, 1, "Subject id", "text");
-  sh.put(3, 2, v.subject_id ?? "", "in_text");
-  sh.put(3, 3, "Tax year", "text");
-  sh.put(3, 4, String(v.tax_year), "in_text");
-  sh.put(4, 1, "Subject value", "text");
-  const subjValue = sh.put(4, 2, v.subject_value, "in_money");
-  sh.put(4, 3, v.subject_value_basis, "in_text");
-  let subjAreaRef: string | undefined;
-  if (by !== "none" && subjArea !== undefined) {
-    sh.put(
-      5,
-      1,
-      `Subject ${by.replace("_sf", "").replace(/_/g, " ")} (SF)`,
-      "text",
-    );
-    subjAreaRef = sh.put(5, 2, subjArea, "in_int");
-  }
-  sh.put(
-    6,
-    1,
-    `Normalize by: ${by}. Percentages: ${v.adjustment_combine}.` +
-      (by !== "none" && !fromArgs
-        ? " Normalized values are FactLot's (the areas were not sent with the request)."
-        : "") +
-      (psfAsTotal
-        ? " $/SF adjustments are in FactLot's amount total (the subject's area was not sent)."
-        : ""),
-    "note",
-  );
 
   const headers = [
     "Comparable",
@@ -503,15 +570,80 @@ function gridSheet(
     headers.push(
       ...Array.from({ length: amax }, (_, i) => `USD adj ${i + 1}`),
       ...Array.from({ length: pmax }, (_, i) => `$/SF adj ${i + 1}`),
+      ...(pmax ? ["$/SF adj total (USD)"] : []),
     );
   headers.push("Adjusted", "Total adj %");
+  const psfCol = subjArea !== undefined && by !== "none";
+  if (psfCol) headers.push("Adjusted $/SF");
   const evidenceStart = headers.length + 1;
   headers.push(...EVIDENCE_HEADERS);
+  const named = comps.map((c) => compNames(c, args));
+  const namesStart = headers.length + 1;
+  const hasNames = named.some((n) => n.label || n.address);
+  if (hasNames)
+    headers.push(
+      "Label (supplied by the caller)",
+      "Address (supplied by the caller)",
+    );
   const hr = 8;
   headers.forEach((h, i) => {
     sh.put(hr, i + 1, h, "header");
     sh.width(i + 1, i === 0 ? 22 : i + 1 >= evidenceStart ? 28 : 14);
+    if (i + 1 >= namesStart && hasNames) sh.width(i + 1, 36);
   });
+  // The rows above the grid have explicit heights and the long texts are merged across the
+  // grid's width, so Excel never autofits them tall: only the header row and the id column
+  // stay frozen, with a short block above.
+  const across = Math.max(8, Math.min(headers.length, 14));
+  sh.put(1, 1, title, "title");
+  sh.height(1, 20);
+  sh.banner(
+    2,
+    1,
+    across,
+    "Blue on yellow = inputs; the rest are live formulas. " + NOTICE,
+    "warn",
+  );
+  const supplied = callerLines(k);
+  if (supplied.length) sh.banner(3, 1, across, supplied.join(" | "), "note");
+  sh.put(4, 1, "Subject id", "text");
+  sh.put(4, 2, v.subject_id ?? "", "in_text");
+  sh.put(4, 3, "Tax year", "text");
+  sh.put(4, 4, String(v.tax_year), "in_text");
+  const subjName = [subjectLabel(r, args), subjectAddress(r, args)]
+    .filter(Boolean)
+    .join(", ");
+  if (subjName) {
+    sh.put(4, 5, "Subject (supplied by the caller)", "text");
+    sh.put(4, 7, subjName, "in_text");
+  }
+  sh.put(5, 1, "Subject value", "text");
+  const subjValue = sh.put(5, 2, v.subject_value, "in_money");
+  sh.put(5, 3, v.subject_value_basis, "in_text");
+  let subjAreaRef: string | undefined;
+  if (by !== "none" && subjArea !== undefined) {
+    sh.put(
+      6,
+      1,
+      `Subject ${by.replace("_sf", "").replace(/_/g, " ")} (SF)`,
+      "text",
+    );
+    subjAreaRef = sh.put(6, 2, subjArea, "in_int");
+  }
+  for (const row of [4, 5, 6]) sh.height(row, 15);
+  sh.banner(
+    7,
+    1,
+    across,
+    `Normalize by: ${by}. Percentages: ${v.adjustment_combine}.` +
+      (by !== "none" && !fromArgs
+        ? " Normalized values are FactLot's (the areas were not sent with the request)."
+        : "") +
+      (psfAsTotal
+        ? " $/SF adjustments are in FactLot's amount total (the subject's area was not sent)."
+        : ""),
+    "note",
+  );
   sh.freeze = `B${hr + 1}`;
   sh.landscape = true;
 
@@ -539,7 +671,7 @@ function gridSheet(
     const pref: string[] = [];
     for (let i = 0; i < kmax; i++)
       pref.push(
-        sh.put(row, col++, i < pcts.length ? pcts[i]!.value : 0, "in_num4"),
+        sh.put(row, col++, i < pcts.length ? pcts[i]!.value : 0, "in_pct2"),
       );
     const ftxt = !pref.length
       ? "=ROUND(1,6)"
@@ -572,12 +704,27 @@ function gridSheet(
         );
       if (aref.length)
         expr += `+SUM(${range(aref[0]!, aref[aref.length - 1]!)})`;
-      if (sref.length)
-        expr += `+SUM(${range(sref[0]!, sref[sref.length - 1]!)})*${subjAreaRef}`;
+      if (sref.length) {
+        const psfTotal = sh.put(
+          row,
+          col++,
+          fx(
+            `=ROUND(SUM(${range(sref[0]!, sref[sref.length - 1]!)})*${subjAreaRef},2)`,
+          ),
+          "money",
+        );
+        expr += `+${psfTotal}`;
+      }
     }
     const adjusted = sh.put(row, col++, fx(`=ROUND(${expr},2)`), "money");
-    sh.put(row, col, fx(`=ROUND(${adjusted}/${norm}-1,6)`), "num6");
+    sh.put(row, col++, fx(`=ROUND(${adjusted}/${norm}-1,6)`), "pct2");
     adjustedRefs.push(adjusted);
+    const psf = psfCol
+      ? sh.put(row, col, fx(`=ROUND(${adjusted}/${subjAreaRef},2)`), "money")
+      : undefined;
+    if (named[ci]?.label) sh.put(row, namesStart, named[ci].label, "in_text");
+    if (named[ci]?.address)
+      sh.put(row, namesStart + 1, named[ci].address, "in_text");
     const { cite, supplied } = citationOf(c, k);
     const evidence = cite ?? supplied;
     EVIDENCE_KEYS.forEach((key, i) => {
@@ -609,6 +756,14 @@ function gridSheet(
       c.adjusted_value,
       "adjusted_value",
     );
+    if (psf && c.adjusted_value_psf !== null)
+      rec.add(
+        `${name}: adjusted $/SF`,
+        "USD/SF",
+        psf,
+        c.adjusted_value_psf,
+        "adjusted_value_psf",
+      );
     row++;
   });
 
@@ -672,6 +827,7 @@ function gridSheet(
     }
   row++;
   sh.put(row++, 1, "FactLot warnings", "bold");
+  if (!r.warnings.length) sh.put(row++, 1, "none", "note");
   for (const w of r.warnings) sh.put(row++, 1, w, "note");
 }
 
@@ -680,14 +836,17 @@ function userReadme(
   r: TxResult,
   p: Provenance,
   fromArgs: boolean,
+  k: KindInput,
 ): void {
   const v = r.value;
   const sh = wb.sheet("ReadMe");
   sh.width(1, 120);
   sh.put(1, 1, `Unequal-appraisal arithmetic, tax year ${v.tax_year}`, "title");
-  sh.put(2, 1, NOTICE, "warn");
-  sh.put(4, 1, "What this workbook is", "bold");
-  let row = putLines(sh, 5, [
+  sh.banner(2, 1, 1, NOTICE, "warn");
+  let row = putLines(sh, 3, callerLines(k), "note");
+  row++;
+  sh.put(row++, 1, "What this workbook is", "bold");
+  row = putLines(sh, row, [
     "The arithmetic of Tax Code §41.43(b)(3) and §42.26(a)(3) on the comparables and adjustments you chose, " +
       "reconciled to calc_tx_unequal_appraisal with zero difference.",
     "FactLot did not choose the comparables, the values or the adjustments: they are the ones in the " +
@@ -736,7 +895,7 @@ export async function txXlsx(k: KindInput): Promise<Uint8Array> {
     created: k.p.generatedAt.toISOString().replace(/\.\d+Z$/, "Z"),
     footer: k.p.footer,
   });
-  userReadme(wb, r, k.p, args !== undefined);
+  userReadme(wb, r, k.p, args !== undefined, k);
   const rec = new Recon(wb);
   rec.section(`Unequal-appraisal arithmetic, tax year ${v.tax_year}`);
   gridSheet(wb, rec, r, args, k);
@@ -749,31 +908,39 @@ export async function txXlsx(k: KindInput): Promise<Uint8Array> {
     steps.put(3, i + 1, h, "header"),
   );
   r.steps.forEach((s, i) => {
-    steps.put(4 + i, 1, s.label, "text");
+    steps.put(4 + i, 1, roundInText(s.label), "text");
     steps.put(
       4 + i,
       2,
-      s.value,
+      typeof s.value === "number" ? s.value : roundInText(s.value),
       typeof s.value === "number"
         ? s.unit === "USD"
           ? "money"
-          : "default"
+          : Number.isInteger(s.value)
+            ? "int"
+            : "num_s"
         : "text",
     );
     steps.put(4 + i, 3, s.unit ?? "", "text");
-    steps.put(4 + i, 4, s.formula ?? "", "text");
+    steps.put(4 + i, 4, roundInText(s.formula ?? ""), "text");
   });
+  steps.put(
+    5 + r.steps.length,
+    1,
+    "Each cell holds the tool's full number; the text in How it was reached shows money to the cent and long decimals to 6 significant digits.",
+    "note",
+  );
   steps.freeze = "A4";
 
   const law = wb.sheet("Law");
   [34, 90, 60].forEach((w, i) => law.width(i + 1, w));
   law.put(1, 1, "Statutes cited by calc_tx_unequal_appraisal", "title");
-  ["Section", "What it covers", "Text"].forEach((h, i) =>
+  ["Section", "What it covers", "Source (URL)"].forEach((h, i) =>
     law.put(3, i + 1, h, "header"),
   );
   v.law.forEach((l, i) => {
     law.put(4 + i, 1, l.section, "text");
-    law.put(4 + i, 2, l.covers, "text");
+    law.put(4 + i, 2, lawCovers(l, v.tax_year), "text");
     law.put(4 + i, 3, l.url, "text");
   });
 

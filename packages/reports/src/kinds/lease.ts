@@ -1,5 +1,5 @@
 /** lease_abstract (from doc_abstract_lease) and critical_dates (with an iCalendar file). */
-import type { Block, Raw, ReportDoc } from "../doc.ts";
+import type { Block, Fmt, Raw, ReportDoc } from "../doc.ts";
 import { jsonText } from "../format.ts";
 import { calendar, type IcsEvent } from "../ics.ts";
 import type {
@@ -31,6 +31,18 @@ const str = (x: unknown) =>
   x === undefined || x === null ? "" : typeof x === "string" ? x : jsonText(x);
 /** A value as written to a cell: a number stays a number (the workbook stores it as one). */
 const cell = (x: unknown): Raw => (typeof x === "number" ? x : str(x));
+
+/** Predicates whose numeric value is an amount of money. */
+const MONEY_TERM =
+  /deposit|rent|amount|allowance|fee|price|payment|charge|cost|cap_amount|usd/;
+
+/** How a term's value is written: an ISO date as a date, money with its unit, a number as is. */
+function valueFmt(predicate: string, x: unknown): Fmt | undefined {
+  if (typeof x === "string" && /^\d{4}-\d{2}-\d{2}$/.test(x)) return "date";
+  if (typeof x === "number")
+    return MONEY_TERM.test(predicate) ? "usd" : "exact";
+  return undefined;
+}
 
 function docName(r: LeaseAbstractResult, index: unknown): string {
   const d = r.documents.find((x) => x.document === index) as Obj | undefined;
@@ -155,7 +167,7 @@ export function leaseDoc(k: KindInput): ReportDoc {
       if ((src as Obj).method === "human_verified")
         notes.push(`confirmed by ${str((src as Obj).verified_by)}`);
       return [
-        `${termLabel(f.predicate)}\n${f.predicate}`,
+        `${termLabel(f.predicate)}${valueFmt(f.predicate, f.value) === "usd" ? " (USD)" : ""}\n${f.predicate}`,
         cell(f.value),
         src.quote ?? "",
         src.page ?? null,
@@ -163,6 +175,7 @@ export function leaseDoc(k: KindInput): ReportDoc {
         notes.join("\n"),
       ];
     }),
+    fmts: r.fields.map((f) => [undefined, valueFmt(f.predicate, f.value)]),
   });
 
   const reviewRows = (items: Obj[]): Raw[][] =>
@@ -274,9 +287,13 @@ const DEADLINES = new Set<CriticalEventT["kind"]>([
 
 function eventNote(e: CriticalEventT): string {
   const parts: string[] = [];
-  if (e.unadjusted_date)
+  if (e.unadjusted_date && e.unadjusted_date < e.date)
     parts.push(
-      `moved from ${e.unadjusted_date} (${e.rolled_because ?? "not a business day"})`,
+      `moved later from ${e.unadjusted_date} (${e.rolled_because ?? "not a business day"}); only a lease clause that extends a deadline falling on a non-business day allows the later date, so the calendar file keeps ${e.unadjusted_date}`,
+    );
+  else if (e.unadjusted_date)
+    parts.push(
+      `moved earlier from ${e.unadjusted_date} (${e.rolled_because ?? "not a business day"})`,
     );
   if (e.non_business_day) parts.push(`falls on a ${e.non_business_day}`);
   return parts.join("; ");
@@ -422,6 +439,41 @@ async function uid(parts: string[]): Promise<string> {
 /** Days before a notice event its reminder fires. */
 export const REMINDER_DAYS = 30;
 
+/**
+ * The date a calendar event is dated on. A deadline the tool's business-day roll moved to a
+ * LATER day stays on its contractual date: only a lease clause that extends a deadline falling
+ * on a non-business day allows the later one, so a calendar must never put the reminder after
+ * the date the lease's words give. A roll to an earlier day is kept (it is the safer date).
+ */
+export function icsDate(e: CriticalEventT): string {
+  return e.unadjusted_date && e.unadjusted_date < e.date
+    ? e.unadjusted_date
+    : e.date;
+}
+
+/** The roll, as information beside a deadline dated on its contractual day. */
+function rollInfo(e: CriticalEventT, roll: string): string {
+  if (!e.unadjusted_date || e.unadjusted_date === e.date) return "";
+  const why = e.rolled_because
+    ? ` (${e.unadjusted_date} is a ${e.rolled_because})`
+    : "";
+  return e.unadjusted_date < e.date
+    ? `Dated on ${e.unadjusted_date}, the date the lease's terms give. The tool's business-day roll (${roll}) gives ${e.date}${why}; that later date is shown for information only: only a lease clause that extends a deadline falling on a non-business day allows it.`
+    : `The tool's business-day roll (${roll}) moved this from ${e.unadjusted_date} to the earlier ${e.date}${why}.`;
+}
+
+/** The tool's warnings that name one of these dates. */
+function warningsFor(
+  warnings: string[],
+  dates: (string | undefined)[],
+): string[] {
+  const ds = dates.filter((d): d is string => Boolean(d));
+  return warnings.filter((w) => ds.some((d) => w.includes(d)));
+}
+
+const DAY_MS = 86_400_000;
+const dayNumber = (iso: string) => Date.parse(`${iso}T00:00:00Z`) / DAY_MS;
+
 export async function datesIcs(k: KindInput): Promise<Uint8Array> {
   const r = k.checked.result as DatesResult;
   const v = r.value;
@@ -430,33 +482,103 @@ export async function datesIcs(k: KindInput): Promise<Uint8Array> {
     name,
     v.events.find((e) => e.kind === "expiration")?.date ?? "",
   ];
+  const generated = k.p.generatedAt;
+  const today = dayNumber(generated.toISOString().slice(0, 10));
+  // Warnings that name no event's date still reach every deadline: none is dropped.
+  const eventDates = (e: CriticalEventT) => [e.date, e.unadjusted_date];
+  const unmatched = r.warnings.filter(
+    (w) => !v.events.some((e) => warningsFor([w], eventDates(e)).length),
+  );
+  const warningText = (ws: string[]) =>
+    ws.length
+      ? `Warnings from the tool:\n${ws.map((w) => `- ${w}`).join("\n")}`
+      : "";
+  /** The 30-day reminder, and one an hour after generation when the deadline is under 30 days away. */
+  const remind = (what: string, on: string) => {
+    const days = dayNumber(on) - today;
+    return [
+      {
+        daysBefore: REMINDER_DAYS,
+        description: `In ${REMINDER_DAYS} days: ${what}`,
+      },
+      ...(days >= 0 && days < REMINDER_DAYS
+        ? [
+            {
+              at: new Date(generated.getTime() + 3_600_000),
+              description: `${days === 0 ? "Today" : `In ${days} day${days === 1 ? "" : "s"}`}: ${what}`,
+            },
+          ]
+        : []),
+    ];
+  };
   const events: IcsEvent[] = [];
-  const remind = (what: string) => [
-    {
-      daysBefore: REMINDER_DAYS,
-      description: `In ${REMINDER_DAYS} days: ${what}`,
-    },
-  ];
+  // Events that ended before the generation day are left out unless include_past is set.
+  const past = (last: string) => !k.include_past && dayNumber(last) < today;
+  let omitted = 0;
+  const windowed = new Set<number>();
   for (const t of v.renewal_terms)
     if (t.window_opens) {
-      const summary = `${name}: renewal option ${t.option} notice window (${t.window_opens} to ${t.notice_deadline})`;
+      const deadline = v.events.find(
+        (e) => e.kind === "renewal_notice_deadline" && e.option === t.option,
+      );
+      const last = deadline ? icsDate(deadline) : t.notice_deadline;
+      windowed.add(t.option);
+      if (past(last)) {
+        omitted++;
+        continue;
+      }
+      const roll = deadline ? rollInfo(deadline, v.business_day_roll) : "";
+      const ws = [
+        ...warningsFor(r.warnings, [
+          t.window_opens,
+          t.notice_deadline,
+          deadline?.unadjusted_date,
+        ]),
+        ...unmatched,
+      ];
       events.push({
         uid: await uid([...scope, "window", String(t.option)]),
         start: t.window_opens,
-        end: t.notice_deadline,
-        summary,
-        description: `Renewal option ${t.option}: notice may be given from ${t.window_opens} through ${t.notice_deadline}. Renewal term ${t.term_start} to ${t.term_end}.\n\n${k.p.footer}`,
+        end: last,
+        summary: `Renewal option ${t.option} notice window (${t.window_opens} to ${last})`,
+        description: [
+          `Renewal option ${t.option}: notice may be given from ${t.window_opens} through ${last}. Renewal term ${t.term_start} to ${t.term_end}.`,
+          roll,
+          warningText(ws),
+          "",
+          k.p.footer,
+        ]
+          .filter((x, i, a) => x !== "" || (i > 0 && a[i - 1] !== ""))
+          .join("\n"),
         categories: ["Lease", "Notice window"],
         alarms: remind(
           `renewal option ${t.option} notice window opens on ${t.window_opens}`,
+          t.window_opens,
         ),
       });
     }
   for (const [i, e] of v.events.entries()) {
+    // The multi-day window event already starts on the day a window opens.
+    if (
+      e.kind === "renewal_window_opens" &&
+      e.option !== undefined &&
+      windowed.has(e.option)
+    )
+      continue;
     const deadline = DEADLINES.has(e.kind);
-    const note = eventNote(e);
+    const on = icsDate(e);
+    if (past(on)) {
+      omitted++;
+      continue;
+    }
+    const roll = rollInfo(e, v.business_day_roll);
+    const ws = [
+      ...warningsFor(r.warnings, eventDates(e)),
+      ...(deadline ? unmatched : []),
+    ];
     events.push({
-      // Date and position too: two deadlines may share a label (and a kind).
+      // The tool's date and position too: two deadlines may share a label (and a kind). The
+      // UID does not change with the date the event is shown on.
       uid: await uid([
         ...scope,
         e.kind,
@@ -465,27 +587,31 @@ export async function datesIcs(k: KindInput): Promise<Uint8Array> {
         e.date,
         String(i),
       ]),
-      start: e.date,
-      summary: `${name}: ${e.label}`,
+      start: on,
+      summary: e.label,
       description: [
-        `${e.label} (${KIND_LABEL[e.kind]}): ${e.date}.`,
-        note ? `${note.charAt(0).toUpperCase()}${note.slice(1)}.` : "",
+        `${e.label} (${KIND_LABEL[e.kind]}): ${on}.`,
+        roll,
+        !roll && e.non_business_day
+          ? `Falls on a ${e.non_business_day}; not moved.`
+          : "",
         deadline
           ? "Confirm the deadline and how notice must be given against the lease's notice clause."
           : "",
+        warningText(ws),
         "",
         k.p.footer,
       ]
         .filter((x, i, a) => x !== "" || (i > 0 && a[i - 1] !== ""))
         .join("\n"),
       categories: ["Lease", deadline ? "Deadline" : "Date"],
-      ...(deadline ? { alarms: remind(`${e.label} on ${e.date}`) } : {}),
+      ...(deadline ? { alarms: remind(`${e.label} on ${on}`, on) } : {}),
     });
   }
   const text = calendar({
     prodId: `-//FactLot//Reports ${k.p.version}//EN`,
     name,
-    description: `Generated by FactLot from ${k.p.toolRef}. Notice deadlines and windows carry a reminder ${REMINDER_DAYS} days before.${k.ctx.title ? " The calendar name is supplied by the caller." : ""}`,
+    description: `Generated by FactLot from ${k.p.toolRef}. Notice deadlines and windows carry a reminder ${REMINDER_DAYS} days before (and one an hour after generation when under ${REMINDER_DAYS} days away). A deadline the business-day roll moved later is dated on its contractual date.${omitted ? ` ${omitted} date${omitted === 1 ? "" : "s"} before ${generated.toISOString().slice(0, 10)} ${omitted === 1 ? "is" : "are"} left out (send include_past: true to keep them).` : ""}${k.ctx.title ? " The calendar name is supplied by the caller." : ""}`,
     stamp: k.p.generatedAt,
     events,
   });

@@ -4,9 +4,9 @@
  * formulas that tie the figures out, and a ReadMe). A kind can replace the workbook with its own
  * (tx_unequal_appraisal does, to mirror the reconciliation example).
  */
-import { decimalsOf, int, num, pct, times, usd } from "./format.ts";
+import { int, num, pct, sig, times, usd } from "./format.ts";
 // pdf.ts (and pdf-lib) load on the first PDF only: an XLSX or ICS request never evaluates them.
-import { PdfWriter, type Column } from "./pdf.ts";
+import { PdfWriter, WIDE_TABLE_COLUMNS, type Column } from "./pdf.ts";
 import {
   Workbook,
   addr,
@@ -17,8 +17,26 @@ import {
   type Style,
 } from "./xlsx.ts";
 
+/**
+ * How a value is written (format.ts has the convention): usd to the cent, pct a percentage to
+ * 2 decimals (pct4: 4), times a ratio to 2, int a grouped whole number, plain a number as is
+ * with no grouping (years, periods, counts), exact a number as sent (grouped), factor at least 4 decimals, num (and step) a
+ * number to 6 significant digits.
+ */
 export type Fmt =
-  "usd" | "num" | "num4" | "int" | "pct" | "times" | "text" | "date";
+  | "usd"
+  | "num"
+  | "num4"
+  | "factor"
+  | "step"
+  | "int"
+  | "plain"
+  | "exact"
+  | "pct"
+  | "pct4"
+  | "times"
+  | "text"
+  | "date";
 export type Raw = number | string | null;
 
 export interface Kv {
@@ -61,6 +79,16 @@ type BlockBody =
       sheet?: string;
       /** PDF text size. */
       size?: number;
+      /** Per-cell formats overriding the column's, by row then column. */
+      fmts?: (Fmt | undefined)[][];
+      /**
+       * Workbook only: rows written as live formulas over other rows of the same column, by row
+       * index. "{3}" is that column's cell in row 3; e.g. "ROUND({0}+{1}+{2},2)". Applied to
+       * every numeric column; names "<prefix>_<column>" each such cell for check formulas.
+       */
+      rowFormulas?: Record<number, string>;
+      /** Names each cell of these rows "<name>_<column index>" (from 1) for check formulas. */
+      rowNames?: Record<number, string>;
     }
   | { t: "pagebreak" };
 
@@ -106,14 +134,22 @@ export function fmtText(v: Raw, fmt: Fmt): string {
       return usd(v);
     case "pct":
       return pct(v);
+    case "pct4":
+      return pct(v, 4);
     case "times":
       return times(v);
     case "int":
-      return int(v);
+      return Number.isInteger(v) ? int(v) : sig(v);
+    case "plain":
+      return String(v);
+    case "exact":
+      return num(v);
     case "num4":
       return num(v, 2);
+    case "factor":
+      return num(v, 4);
     default:
-      return num(v);
+      return sig(v);
   }
 }
 
@@ -121,8 +157,13 @@ const RIGHT: ReadonlySet<Fmt> = new Set([
   "usd",
   "num",
   "num4",
+  "factor",
+  "step",
   "int",
+  "plain",
+  "exact",
   "pct",
+  "pct4",
   "times",
 ]);
 
@@ -140,8 +181,20 @@ export async function renderPdf(
     created: p.generatedAt,
   });
   w.title(doc.title, doc.subtitle);
-  for (const b of doc.blocks) {
-    if (b.only === "xlsx") continue;
+  const blocks = doc.blocks.filter((b) => b.only !== "xlsx");
+  // A wide table goes on landscape pages, with the heading and text that introduce it; what
+  // follows returns to portrait.
+  const land: boolean[] = [];
+  let carry = false;
+  for (let i = blocks.length - 1; i >= 0; i--) {
+    const b = blocks[i]!;
+    if (b.t === "table" || b.t === "kv" || b.t === "pagebreak")
+      carry = b.t === "table" && b.columns.length > WIDE_TABLE_COLUMNS;
+    land[i] = carry;
+    if (b.t === "heading") carry = false;
+  }
+  for (const [i, b] of blocks.entries()) {
+    w.orientation(land[i]!);
     switch (b.t) {
       case "heading":
         w.heading(b.text);
@@ -174,7 +227,9 @@ export async function renderPdf(
         }));
         w.table(
           cols,
-          b.rows.map((r) => r.map((v, i) => fmtText(v, b.columns[i]!.fmt))),
+          b.rows.map((r, k) =>
+            r.map((v, i) => fmtText(v, b.fmts?.[k]?.[i] ?? b.columns[i]!.fmt)),
+          ),
           { size: b.size ?? 8, bold: new Set(b.bold ?? []) },
         );
         break;
@@ -197,17 +252,21 @@ export function styleFor(v: Raw, fmt: Fmt): Style {
     case "usd":
       return "money";
     case "int":
-      return Number.isInteger(v) ? "int" : "money";
-    case "pct": {
-      const d = decimalsOf(v);
-      return d <= 4 ? "pct2" : d <= 6 ? "pct4" : "pct6";
-    }
+      return Number.isInteger(v) ? "int" : "num_s";
+    case "plain":
+    case "exact":
+      return "default";
+    case "pct":
+      return "pct2";
+    case "pct4":
+      return "pct4";
     case "times":
       return "times";
     case "num4":
+    case "factor":
       return "num4";
     default:
-      return "default";
+      return Number.isInteger(v) ? "int" : "num_s";
   }
 }
 
@@ -228,6 +287,7 @@ const FL_STYLE: Partial<Record<Style, Style>> = {
   pct6: "fl_num8",
   int: "fl_int",
   default: "fl_num8",
+  num_s: "fl_num8",
   times: "fl_num4",
 };
 
@@ -260,9 +320,16 @@ function readmeSheet(
   r = putLines(sh, r, doc.readme);
   r++;
   sh.put(r++, 1, "How to read it", "bold");
+  const hasSteps = doc.blocks.some(
+    (b) => b.t === "table" && b.sheet === "Steps",
+  );
   r = putLines(sh, r, [
     "Report: the figures as the tool returned them, formatted. Long tables (schedules, cash flows, events) have their own sheets.",
-    "Steps: the tool's audit trail, each step's value and how it was reached.",
+    ...(hasSteps
+      ? [
+          "Steps: the tool's audit trail, each step's value and how it was reached.",
+        ]
+      : []),
     ...(hasChecks
       ? [
           "Checks: live Excel formulas over the Report figures next to the number FactLot returned, with a Difference column and a Status. Difference is ROUND(Excel - FactLot, n); 0 means they agree.",
@@ -310,19 +377,26 @@ export function appendBlocks(
     const bold = new Set(b.bold ?? []);
     b.rows.forEach((cells, k) => {
       cells.forEach((v, i) => {
-        const fmt = b.columns[i]!.fmt;
+        const fmt = b.fmts?.[k]?.[i] ?? b.columns[i]!.fmt;
         if (v === null || v === undefined) return;
         const st = styleFor(v, fmt);
-        sh.put(
+        const live = typeof v === "number" ? b.rowFormulas?.[k] : undefined;
+        const ref = sh.put(
           row,
           i + 1,
-          cellValue(v, fmt),
+          live
+            ? fx(
+                `=${live.replace(/\{(\d+)\}/g, (_, j: string) => addr(first + Number(j), i + 1))}`,
+              )
+            : cellValue(v, fmt),
           bold.has(k) && st === "money"
             ? "total_money"
             : bold.has(k) && st === "text"
               ? "total_text"
               : st,
         );
+        const rn = b.rowNames?.[k];
+        if (rn && typeof v === "number") names.set(`${rn}_${i}`, ref);
       });
       row++;
     });

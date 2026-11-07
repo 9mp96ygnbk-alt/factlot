@@ -92,6 +92,7 @@ const NUMFMT_CODES: Record<number, string> = {
   172: '0.00"x"',
   173: "#,##0.0000",
   174: "0.000000%",
+  175: "#,##0.0#####",
 };
 const NUMFMTS = {
   general: 0,
@@ -106,6 +107,7 @@ const NUMFMTS = {
   times: 172,
   psf: 173,
   pct6: 174,
+  num_s: 175,
 } as const;
 type Font = (typeof FONTS)[number];
 type Fill = (typeof FILLS)[number];
@@ -132,10 +134,12 @@ const STYLE_TABLE = {
   date: ["normal", "none", "date", false],
   times: ["normal", "none", "times", false],
   psf: ["normal", "none", "psf", false],
+  num_s: ["normal", "none", "num_s", false],
   in_text: ["blue", "input", "general", false],
   in_money: ["blue", "input", "money", false],
   in_num4: ["blue", "input", "num4", false],
   in_pct4: ["blue", "input", "pct4", false],
+  in_pct2: ["blue", "input", "pct2", false],
   in_int: ["blue", "input", "int", false],
   in_date: ["blue", "input", "date", false],
   fl_money: ["bold", "good", "money", false],
@@ -246,6 +250,10 @@ export class Sheet {
   readonly name: string;
   readonly cells = new Map<string, Cell>();
   readonly widths = new Map<number, number>();
+  /** Explicit row heights in points (Excel does not autofit them). */
+  readonly heights = new Map<number, number>();
+  /** Merged ranges, e.g. "A2:L2". */
+  readonly merges: string[] = [];
   freeze: string | undefined;
   landscape = false;
 
@@ -290,6 +298,38 @@ export class Sheet {
 
   width(col: number, w: number): void {
     this.widths.set(col, w);
+  }
+
+  /** Row height in points. */
+  height(row: number, pt: number): void {
+    this.heights.set(row, pt);
+  }
+
+  /**
+   * Text across columns `from`..`to` of one row, merged, with a row height that fits it (from
+   * the columns' widths; 15 pt a line), so Excel never autofits a wrapped cell to a tall row.
+   */
+  banner(
+    row: number,
+    from: number,
+    to: number,
+    text: string,
+    style: Style = "text",
+    minLines = 1,
+  ): string {
+    const ref = this.put(row, from, text, style);
+    if (to > from) this.merges.push(`${addr(row, from)}:${addr(row, to)}`);
+    let chars = 0;
+    for (let c = from; c <= to; c++) chars += this.widths.get(c) ?? 8.43;
+    const lines = text
+      .split("\n")
+      .reduce(
+        (n, l) =>
+          n + Math.max(1, Math.ceil((l.length * 1.1) / Math.max(10, chars))),
+        0,
+      );
+    this.height(row, 15 * Math.max(minLines, lines) + 2);
+    return ref;
   }
 
   get(row: number, col: number): Cell | undefined {
@@ -462,7 +502,12 @@ function sheetXml(s: Sheet, footer: string | undefined): string {
     rows.set(r, list);
   }
   for (const r of [...rows.keys()].sort((a, b) => a - b)) {
-    out.push(`<row r="${r}">`);
+    const ht = s.heights.get(r);
+    out.push(
+      ht === undefined
+        ? `<row r="${r}">`
+        : `<row r="${r}" ht="${ht}" customHeight="1">`,
+    );
     for (const c of rows.get(r)!.sort((a, b) => a - b)) {
       const cell = s.get(r, c)!;
       const sid = STYLE_NAMES.indexOf(cell.style);
@@ -501,6 +546,10 @@ function sheetXml(s: Sheet, footer: string | undefined): string {
     out.push("</row>");
   }
   out.push("</sheetData>");
+  if (s.merges.length)
+    out.push(
+      `<mergeCells count="${s.merges.length}">${s.merges.map((m) => `<mergeCell ref="${m}"/>`).join("")}</mergeCells>`,
+    );
   out.push(
     '<pageMargins left="0.5" right="0.5" top="0.6" bottom="0.75" header="0.3" footer="0.3"/>',
   );
