@@ -127,7 +127,7 @@
           <ul class="plain">
             <li>
               <strong>Free, no key:</strong> every calculator, ID, fact, rules
-              and document tool at 60 requests a minute per IP address, and 100
+              and document tool at 60 requests a minute per IP address, and 25
               registry lookups a day (UTC) per IP address.
             </li>
             <li>
@@ -157,12 +157,13 @@
             <strong>Limits are hard caps.</strong> We never charge for overage.
             When you reach a limit, the call returns HTTP 429 with the time the
             limit resets and a link to the pricing page. A registry lookup is
-            one call to a <code>registry_</code> tool other than
-            <code>registry_coverage</code>, the discovery call, which never
-            counts. Free lookups count per IP address per day; paid lookups
-            count per subscription per month, and a Team plan's keys share one
-            quota. Lookup days and months are counted, and reset, in UTC. Other
-            tools never count toward a lookup quota.
+            one answered call to a <code>registry_</code> tool.
+            <code>registry_coverage</code>, coverage misses (a county or system
+            that is not loaded) and input errors are not counted. Free lookups
+            count per IP address per day; paid lookups count per subscription
+            per month, and a Team plan's keys share one quota. Lookup days and
+            months are counted, and reset, in UTC. Other tools never count
+            toward a lookup quota.
           </p>
           <p>
             <strong>Billing.</strong> Pro and Team are billed monthly in advance

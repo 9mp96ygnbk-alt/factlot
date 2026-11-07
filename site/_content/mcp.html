@@ -238,9 +238,11 @@
     the tool list.
   </li>
   <li>
-    Registry lookups are on every plan, metered by plan: 100 a day per IP
-    address on the free tier, 5,000 a month on Pro and 100,000 a month on Team.
-    <code>registry_coverage</code> never counts. Call
+    Registry lookups are on every plan, metered by plan: 25 a day per IP address
+    on the free tier, 5,000 a month on Pro and 100,000 a month on Team. A lookup
+    is one answered call to a <code>registry_</code> tool.
+    <code>registry_coverage</code>, coverage misses (a county or system that is
+    not loaded) and input errors are not counted. Call
     <code>registry_coverage</code> first: it lists what is hosted. The
     <a
       href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/registry/coverage.md"
