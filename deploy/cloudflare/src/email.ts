@@ -21,7 +21,7 @@ export function emailConfigured(env: Env): boolean {
 /** Send one message; false (and one log line without personal data) when it fails. */
 export async function sendEmail(
   env: Env,
-  kind: "welcome" | "recovery",
+  kind: "welcome" | "recovery" | "signin",
   message: Omit<EmailMessageBuilder, "from" | "replyTo">,
 ): Promise<boolean> {
   if (!env.EMAIL) return false;

@@ -5,8 +5,16 @@
 ChatGPT calls connectors "apps". FactLot's MCP server works with ChatGPT in two ways:
 
 - **Developer mode.** Every FactLot tool is available. Open **Settings → Apps → Advanced settings →
-  Developer mode**, create an app, and enter `https://api.factlot.com/mcp`. Developer mode requires a
-  paid plan; availability varies by plan.
+  Developer mode** and create an app. Developer mode requires a paid ChatGPT plan; availability
+  varies by plan.
+  - **With a FactLot plan:** enter `https://api.factlot.com/mcp/signin` and choose **OAuth**
+    authentication; leave the client ID and secret empty (ChatGPT registers itself). Click
+    **Connect**: a FactLot page opens. Paste your FactLot API key once and choose **Connect with my
+    key**. The app gets your plan's limits and is tied to your subscription, not to the key, so
+    replacing the key keeps it connected. See or disconnect it at <https://factlot.com/account>.
+  - **Free:** enter `https://api.factlot.com/mcp` with **No authentication**, or sign in as above and
+    choose **Continue on the free tier** (60 requests a minute and 25 registry lookups a day for that
+    connection).
 - **Deep research and company knowledge.** These only use read-only `search` and `fetch` tools.
   FactLot implements both over its knowledge base (tools, inputs, CRE predicates, and the ID and
   fact specs). `search` returns `{"results": [{id, title, url}]}`, and `fetch` returns
@@ -20,8 +28,9 @@ ChatGPT calls connectors "apps". FactLot's MCP server works with ChatGPT in two 
    FactLot has more tools than that, so this document lists the most-used ones (below). Do not import
    `/openapi.json`: it is the complete OpenAPI 3.1 document and has more than 30 operations.
 3. Authentication:
-   - **None** for an open server.
-   - **API Key → Bearer** if you set `FACTLOT_API_KEY`.
+   - **None** for an open server, and for the hosted API's free tier.
+   - **API Key → Bearer** with your FactLot key on the hosted API (Actions send the header, so no
+     sign-in is needed), or if you set `FACTLOT_API_KEY` on your own server.
 4. Paste [`gpt-instructions.md`](gpt-instructions.md) into the GPT's instructions.
 5. A public GPT needs a privacy policy URL. FactLot stores nothing, so state that in the policy.
 

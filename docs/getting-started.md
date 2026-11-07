@@ -44,8 +44,26 @@ can take up to a minute to work everywhere.
 
 - **Connect.** Send the key as `Authorization: Bearer <key>` to `https://api.factlot.com/mcp` (or
   any `/v1/…` route). Claude Code, Cursor, VS Code, Windsurf, agent SDKs and REST clients send the
-  header; Claude custom connectors and ChatGPT developer-mode apps have no header field, so use a
-  header-capable client or the `mcp-remote` bridge the setup page shows for Claude Desktop.
+  header. Claude (Desktop, claude.ai and mobile custom connectors) and ChatGPT developer-mode apps
+  have no header field: they **sign in** instead (below).
+- **Connect Claude or ChatGPT by signing in.** Add a custom connector with the URL
+  `https://api.factlot.com/mcp/signin`, then click **Connect**. A FactLot page opens: paste your key
+  once and choose **Connect with my key** (or **Continue on the free tier** without a plan). The
+  connection gets your plan's limits and is tied to your subscription, not to the key: replacing the
+  key keeps it connected, cancelling the subscription ends it, and factlot.com/account lists
+  connected apps with a **Disconnect** button.
+  - Claude Desktop, claude.ai, Claude mobile: **Settings → Connectors → Add custom connector** →
+    URL `https://api.factlot.com/mcp/signin` (leave the OAuth client ID and secret empty) →
+    **Add** → **Connect** → sign in with your FactLot key, or continue free.
+  - ChatGPT developer mode: **Settings → Apps → Advanced settings → Developer mode**, then create an
+    app with the same URL and **OAuth** authentication (no client ID or secret: ChatGPT registers
+    itself) → **Connect** → sign in.
+  - Why `/mcp/signin`: Claude starts sign-in only when the server answers `401`, and the plain
+    `/mcp` stays open for the free tier without signing in. `/mcp/signin` is the same server; it asks
+    a client without credentials to sign in. Both accept a key header or a sign-in token.
+  - Use the header, not sign-in, for Claude Code, Cursor, VS Code and agent SDKs (they take the key
+    in their MCP config), Custom GPT Actions (API key, Bearer) and REST clients. Sign-in tokens work
+    only at `/mcp`, not on the REST API.
 - **Give the guide to your agent.** `GET https://api.factlot.com/v1/onboarding?plan=pro` returns
   the same steps as JSON (`Accept: text/markdown` for Markdown), with `<key>` placeholders.
 - **If an agent bought the plan,** it collects the key from the `claim_url` that
@@ -54,8 +72,8 @@ can take up to a minute to work everywhere.
 - **What counts.** A lookup is one answered call to a registry tool; coverage checks, misses
   outside the loaded coverage and input errors are free. Calculators and other tools never count.
 - **Your account.** <https://factlot.com/account>: paste the key to see the plan, this month's
-  lookups, a 30-day history, keys and their last use, the renewal date, and to manage billing,
-  cancel, replace or add keys. Agents read the same from `GET /v1/account`,
+  lookups, a 30-day history, keys and their last use, connected apps, the renewal date, and to
+  manage billing, cancel, replace or add keys, or disconnect an app. Agents read the same from `GET /v1/account`,
   `GET /v1/account/usage`, or the `account_status` and `account_usage` MCP tools.
 - **Lost the key.** On the account page, enter the email you paid with. If it has a subscription,
   a link arrives that works once for 15 minutes; it shows the account and issues a new key (on a
