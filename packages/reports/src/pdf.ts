@@ -20,6 +20,7 @@ import {
   type RGB,
 } from "pdf-lib";
 
+import { stripControls } from "./format.ts";
 import { ReportInputError } from "./validate.ts";
 
 const PAGE_W = 612; // US Letter
@@ -157,7 +158,10 @@ export class PdfWriter {
   /** Text the standard fonts can encode. */
   clean(s: string): string {
     let out = "";
-    for (const ch of s.replace(/\r\n?/g, "\n").replace(/\t/g, "    ")) {
+    for (const ch of stripControls(s.replace(/\r\n?/g, "\n")).replace(
+      /\t/g,
+      "    ",
+    )) {
       const cp = ch.codePointAt(0)!;
       if (ch === "\n" || this.charset.has(cp)) out += ch;
       else if (REPLACE[ch] !== undefined) out += REPLACE[ch];

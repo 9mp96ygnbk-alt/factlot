@@ -1,8 +1,9 @@
 /**
  * iCalendar (RFC 5545) text: all-day events with optional display alarms. Lines end in CRLF and
  * are folded at 75 octets (never inside a UTF-8 sequence); TEXT values escape backslash,
- * semicolon, comma and newlines.
+ * semicolon, comma and newlines; control characters and bidirectional controls are removed.
  */
+import { stripControls } from "./format.ts";
 
 export interface IcsAlarm {
   /** Days before the event's start. */
@@ -32,7 +33,8 @@ export interface IcsCalendar {
 }
 
 export function escapeText(s: string): string {
-  return s
+  return stripControls(s)
+    .replace(/\t/g, " ")
     .replace(/\\/g, "\\\\")
     .replace(/;/g, "\\;")
     .replace(/,/g, "\\,")

@@ -15,6 +15,7 @@
  */
 import { round } from "@factlot/calc";
 
+import { stripControls } from "./format.ts";
 import { zip } from "./zip.ts";
 
 // --- addresses ----------------------------------------------------------------------------------
@@ -152,10 +153,9 @@ export type Style = keyof typeof STYLE_TABLE;
 const STYLE_NAMES = Object.keys(STYLE_TABLE) as Style[];
 
 const esc = (s: string) =>
-  s
-    // XML 1.0 forbids most control characters.
-    // eslint-disable-next-line no-control-regex
-    .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f￾￿]/g, "")
+  // XML 1.0 forbids most control characters; bidirectional controls are removed too.
+  stripControls(s)
+    .replace(/[\ufffe\uffff]/g, "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")

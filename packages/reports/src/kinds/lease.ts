@@ -450,11 +450,19 @@ export async function datesIcs(k: KindInput): Promise<Uint8Array> {
         ),
       });
     }
-  for (const e of v.events) {
+  for (const [i, e] of v.events.entries()) {
     const deadline = DEADLINES.has(e.kind);
     const note = eventNote(e);
     events.push({
-      uid: await uid([...scope, e.kind, String(e.option ?? ""), e.label]),
+      // Date and position too: two deadlines may share a label (and a kind).
+      uid: await uid([
+        ...scope,
+        e.kind,
+        String(e.option ?? ""),
+        e.label,
+        e.date,
+        String(i),
+      ]),
       start: e.date,
       summary: `${name}: ${e.label}`,
       description: [

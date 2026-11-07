@@ -782,6 +782,74 @@ describe("documents", () => {
     );
   });
 
+  it("ICS: two deadlines with the same label get distinct UIDs", async () => {
+    const args = structuredClone(SAMPLES[8]!.args) as Json;
+    args.other_deadlines = [
+      { label: "ROFO response", date: "2027-03-01" },
+      { label: "ROFO response", date: "2028-03-01" },
+    ];
+    const lines = readIcs(
+      (
+        await createReport(
+          { kind: "critical_dates", format: "ics", arguments: args },
+          { now: NOW },
+        )
+      ).bytes,
+    );
+    const uids = lines.filter((l) => l.startsWith("UID:"));
+    assert.ok(uids.length >= 2);
+    assert.equal(new Set(uids).size, uids.length);
+  });
+
+  it("control characters and bidirectional overrides never reach a document", async () => {
+    const bad = "A\u0007B\u202eC\u2066D\u0000E\u009bF";
+    const ics = new TextDecoder().decode(
+      (
+        await createReport(
+          {
+            kind: "critical_dates",
+            format: "ics",
+            arguments: SAMPLES[8]!.args,
+            context: { title: `X;Y,Z\\W\n${bad}` },
+          },
+          { now: NOW },
+        )
+      ).bytes,
+    );
+    assert.ok(
+      ics.replace(/\r\n /g, "").includes("X\\;Y\\,Z\\\\W\\nABCDEF"),
+      "escaped and stripped",
+    );
+    const tx = structuredClone(SAMPLES[0]!.args) as {
+      comparables: { adjustments?: Json[] }[];
+    };
+    tx.comparables[0]!.adjustments = [
+      { label: "size", kind: "amount", value: 100, reason: `r ${bad}` },
+    ];
+    for (const format of ["pdf", "xlsx"] as const) {
+      const f = await createReport(
+        {
+          kind: "tx_unequal_appraisal",
+          format,
+          arguments: tx,
+          context: { prepared_for: bad },
+        },
+        { now: NOW },
+      );
+      const text =
+        format === "pdf"
+          ? (await readPdf(f.bytes)).text
+          : [...(await readXlsx(f.bytes)).xml.values()].join("");
+      assert.ok(text.includes("ABCDEF"), format);
+      /* eslint-disable no-control-regex */
+      assert.ok(
+        !/[\u0000-\u0008\u0080-\u009f\u202a-\u202e\u2066-\u2069]/.test(text),
+        format,
+      );
+      /* eslint-enable no-control-regex */
+    }
+  });
+
   it("ICS folding never splits a UTF-8 character", () => {
     const line = `DESCRIPTION:${"é".repeat(100)}`;
     const folded = fold(line).split("\r\n");
