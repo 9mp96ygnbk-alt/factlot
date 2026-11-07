@@ -517,6 +517,18 @@ describe("POST /v1/reports and downloads", () => {
       400,
     );
     assert.equal((await call(t, "/v1/reports", { method: "GET" })).status, 405);
+    const advice = await call(t, "/v1/reports", {
+      body: request({ context: { title: "Refinance: we recommend it" } }),
+    });
+    assert.equal(advice.status, 422);
+    const a = (await advice.json()) as {
+      code: string;
+      issues: { path: string }[];
+      next: string;
+    };
+    assert.equal(a.code, "TextNotAllowed");
+    assert.equal(a.issues[0]?.path, "context.title");
+    assert.match(a.next, /remove the advice/);
   });
 
   it("a fault while building answers 500 ReportFailed with no detail, logs only the error's name, and gives the report back", async () => {

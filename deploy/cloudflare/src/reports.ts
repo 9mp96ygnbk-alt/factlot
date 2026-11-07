@@ -230,7 +230,8 @@ async function infra<T>(p: Promise<T>): Promise<T> {
 function inputError(err: ReportInputError): ReportOutcome {
   return {
     ok: false,
-    status: err.code === "TooLarge" ? 413 : 400,
+    status:
+      err.code === "TooLarge" ? 413 : err.code === "TextNotAllowed" ? 422 : 400,
     body: {
       error: err.code,
       code: err.code,
@@ -243,7 +244,9 @@ function inputError(err: ReportInputError): ReportOutcome {
             ? "call the tool again and send its result unchanged (or send its arguments)"
             : err.code === "NotAToolResult"
               ? "send the tool's result exactly as it was returned, or send the tool's arguments instead"
-              : "fix the fields listed in issues and retry",
+              : err.code === "TextNotAllowed"
+                ? "remove the advice or valuation wording from the fields listed in issues and retry"
+                : "fix the fields listed in issues and retry",
     },
   };
 }

@@ -808,6 +808,136 @@ describe("documents", () => {
   });
 });
 
+describe("caller text", () => {
+  const tx = SAMPLES[0]!;
+  const req = (over: Json = {}, args: Json = tx.args) => ({
+    kind: "tx_unequal_appraisal",
+    format: "pdf",
+    arguments: args,
+    ...over,
+  });
+
+  it("refuses advice or valuation wording, naming the field (TextNotAllowed)", async () => {
+    // The reviewer's context (adv.ts), less the control characters.
+    await rejects(
+      req({
+        context: { title: "Market value $1,000,000 - protest recommended" },
+      }),
+      "TextNotAllowed",
+      /^context\.title$/,
+    );
+    await rejects(
+      req({ context: { prepared_for: "Owner: you should file" } }),
+      "TextNotAllowed",
+      /^context\.prepared_for$/,
+    );
+    await rejects(
+      req({
+        context: {
+          subject_citation: { locator: "ARB will reduce it; you should file" },
+        },
+      }),
+      "TextNotAllowed",
+      /^context\.subject_citation\.locator$/,
+    );
+    for (const phrase of [
+      "we recommend this",
+      "it should be lower",
+      "grounds to protest",
+      "worth $1",
+      "per the appraisal",
+      "our opinion of value",
+      "the market value is $2",
+      "you save $500",
+      "tax savings",
+    ]) {
+      const args = structuredClone(tx.args) as {
+        comparables: { id?: string; adjustments?: Json[] }[];
+      };
+      args.comparables[1]!.adjustments = [
+        { label: "size", kind: "amount", value: 100, reason: phrase },
+      ];
+      const err = await rejects(
+        req({}, args as unknown as Json),
+        "TextNotAllowed",
+      );
+      assert.equal(
+        err.issues[0]!.path,
+        "arguments.comparables.1.adjustments.0.reason",
+        phrase,
+      );
+    }
+    const ids = structuredClone(tx.args) as { comparables: { id?: string }[] };
+    ids.comparables[0]!.id = "Should win";
+    await rejects(
+      req({}, ids as unknown as Json),
+      "TextNotAllowed",
+      /comparables\.0\.id$/,
+    );
+  });
+
+  it("passes names that contain such a word, and plain text", async () => {
+    const f = await createReport(
+      req({
+        context: {
+          title: "Fort Worth office, tax year 2027",
+          prepared_for: "Asset management",
+          subject_citation: {
+            locator: "Tarrant Appraisal District, account 0042",
+          },
+        },
+      }),
+      { now: NOW },
+    );
+    const flat = (await readPdf(f.bytes)).text.replace(/\s+/g, " ");
+    assert.ok(
+      flat.includes("Title and prepared-for line supplied by the caller"),
+    );
+    assert.ok(flat.includes("Citations (supplied by the caller)"));
+    assert.ok(
+      flat.includes("Adjustments and reasons (supplied by the caller)"),
+    );
+  });
+
+  it("caps caller text: title and prepared_for 120, reasons and locators 200", async () => {
+    await rejects(
+      req({ context: { title: "T".repeat(121) } }),
+      "InputError",
+      /context/,
+    );
+    await rejects(
+      req({ context: { prepared_for: "P".repeat(121) } }),
+      "InputError",
+      /context/,
+    );
+    await rejects(
+      req({ context: { subject_citation: { locator: "L".repeat(201) } } }),
+      "InputError",
+      /context/,
+    );
+    const args = structuredClone(tx.args) as {
+      comparables: { adjustments?: Json[]; citation?: Json }[];
+    };
+    args.comparables[0]!.adjustments = [
+      { label: "size", kind: "amount", value: 100, reason: "R".repeat(201) },
+    ];
+    await rejects(
+      req({}, args as unknown as Json),
+      "InputError",
+      /^arguments\.comparables\.0\.adjustments\.0\.reason$/,
+    );
+    const loc = structuredClone(tx.args) as {
+      comparables: { citation?: Json }[];
+    };
+    loc.comparables[0]!.citation = { locator: "L".repeat(201) };
+    await rejects(
+      req({}, loc as unknown as Json),
+      "InputError",
+      /^arguments\.comparables\.0\.citation\.locator$/,
+    );
+  });
+});
+
 describe("workbook formulas", () => {
   it("a division by zero is #DIV/0! in the cell and in what reads it, as in Excel; nothing throws", async () => {
     const wb = new Workbook({

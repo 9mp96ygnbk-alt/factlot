@@ -132,7 +132,7 @@ export function txDoc(k: KindInput): ReportDoc {
   if (k.ctx.subject_citation) {
     blocks.push({
       t: "subheading",
-      text: "Subject value source (supplied with the request)",
+      text: "Subject value source (supplied by the caller)",
     });
     blocks.push({
       t: "kv",
@@ -147,6 +147,11 @@ export function txDoc(k: KindInput): ReportDoc {
   }
 
   blocks.push({ t: "heading", text: "Comparables grid" });
+  blocks.push({
+    t: "para",
+    grey: true,
+    text: "Supplied by the caller: the comparables, their ids and values, the adjustments with their labels and reasons, and the citations. FactLot computed the rest.",
+  });
   const norm = v.normalize_by !== "none";
   blocks.push({
     t: "table",
@@ -179,7 +184,10 @@ export function txDoc(k: KindInput): ReportDoc {
     ]),
   });
 
-  blocks.push({ t: "heading", text: "Adjustments and reasons (the user's)" });
+  blocks.push({
+    t: "heading",
+    text: "Adjustments and reasons (supplied by the caller)",
+  });
   const adj = v.comparables.flatMap((c) =>
     c.adjustments.map((a) => [
       nameOf(c),
@@ -261,7 +269,7 @@ export function txDoc(k: KindInput): ReportDoc {
 
   blocks.push(...warningsBlocks(r.warnings));
 
-  blocks.push({ t: "heading", text: "Citations" });
+  blocks.push({ t: "heading", text: "Citations (supplied by the caller)" });
   const citeRows: (string | null)[][] = [];
   if (k.ctx.subject_citation)
     citeRows.push([
@@ -648,7 +656,7 @@ function gridSheet(
   );
 
   row += 4;
-  sh.put(row++, 1, "Adjustments and reasons (the user's)", "bold");
+  sh.put(row++, 1, "Adjustments and reasons (supplied by the caller)", "bold");
   ["Comparable", "Kind", "Label", "Value", "Reason"].forEach((h, i) =>
     sh.put(row, i + 1, h, "header"),
   );

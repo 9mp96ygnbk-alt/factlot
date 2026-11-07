@@ -91,11 +91,19 @@ when the file opens. When the arguments are sent, an Inputs section lists them a
   documents' text, so it also accepts the `doc_abstract_lease` result as `input` alone. It checks
   that result's exact shape (no extra fields) and its counts, and labels every page as described
   above. You can send the MCP `structuredContent` or the REST body; `provenance` may be included.
-- `context` (optional) is text only: `title` and `prepared_for`. For `tx_unequal_appraisal` it can
-  also carry a `subject_citation` and `comparable_citations`, keyed by comparable id (or `#1`,
-  `#2`… for a comparable without one).
+- `context` (optional) is text only: `title` and `prepared_for` (at most 120 characters each). For
+  `tx_unequal_appraisal` it can also carry a `subject_citation` and `comparable_citations`, keyed by
+  comparable id (or `#1`, `#2`… for a comparable without one); a locator is at most 200 characters.
 - `inline: true` also returns the file as base64 when it is under 1 MiB: `content_base64` over
   REST, an embedded resource over MCP.
+
+Text you supply is printed as yours: the document labels it "supplied by the caller". That covers
+the title and prepared-for line, citations and their locators, and for `tx_unequal_appraisal` the
+comparable and subject ids and each adjustment's label and reason (a reason is at most 200
+characters). A report states arithmetic only, so such text is refused when it reads as advice or a
+valuation: it may not contain `recommend`, `should`, `protest`, `worth`, `appraisal`, `opinion of
+value`, `market value is`, `save` or `savings`. Names that contain one of those words pass: Fort
+Worth, an appraisal district, the appraisal review board.
 
 A calculator report never carries numbers FactLot did not compute. Refusals say why in `issues`:
 
@@ -105,7 +113,8 @@ A calculator report never carries numbers FactLot did not compute. Refusals say 
 | `ArgumentsError`    | The tool refused `arguments` (its own `issues`, under `arguments.`).                                                          |
 | `NotAToolResult`    | `lease_abstract` only: the `input` is not the tool's result (a missing or extra field), or its counts do not match its lists. |
 | `FormulaVersion`    | `lease_abstract` only: the `input` is from another version of the formula; call the tool again.                               |
-| `InputError`        | The request itself: unknown `kind`, a `format` the kind does not offer, bad `context`.                                        |
+| `TextNotAllowed`    | `422`: caller text with advice or valuation wording; `issues` names each field.                                               |
+| `InputError`        | The request itself: unknown `kind`, a `format` the kind does not offer, bad `context`, caller text over its length limit.     |
 
 ## The answer and the download
 

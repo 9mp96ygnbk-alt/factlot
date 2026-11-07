@@ -17,6 +17,7 @@ import {
   type ReportDoc,
 } from "./doc.ts";
 import { slug, utcStamp } from "./format.ts";
+import { checkCallerText } from "./text.ts";
 import {
   LEASE_COMPUTED_LABEL,
   ReportContext,
@@ -173,6 +174,7 @@ export function prepareReport(request: unknown): PreparedReport {
       `${kind} reports come as ${KIND_FORMATS[kind].join(" or ")}, not ${format}`,
       [{ path: "format", message: `one of ${KIND_FORMATS[kind].join(", ")}` }],
     );
+  checkCallerText(kind, ctx, args);
   return { kind, format, ctx, checked: checkInput(kind, input, args) };
 }
 

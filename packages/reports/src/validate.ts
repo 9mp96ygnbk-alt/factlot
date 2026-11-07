@@ -80,6 +80,7 @@ export type ReportErrorCode =
   | "NotAToolResult"
   | "FormulaVersion"
   | "ArgumentsError"
+  | "TextNotAllowed"
   | "TooLarge";
 
 export class ReportInputError extends Error {

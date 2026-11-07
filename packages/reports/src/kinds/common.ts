@@ -2,14 +2,23 @@
 import { z } from "zod";
 
 import type { Block, Provenance, ReportDoc } from "../doc.ts";
+import { TEXT_LIMITS } from "../text.ts";
 import { TxCitation, type Checked } from "../validate.ts";
 
-/** Optional text the caller adds to a report. Never numbers that go into a calculation. */
+/** A citation the caller adds: its locator is capped tighter than a tool result's. */
+const ContextCitation = TxCitation.extend({
+  locator: z.string().min(1).max(TEXT_LIMITS.locator).optional(),
+});
+
+/**
+ * Optional text the caller adds to a report, printed as supplied by the caller. Never numbers
+ * that go into a calculation; advice or valuation wording is refused (text.ts).
+ */
 export const ReportContext = z.strictObject({
   title: z
     .string()
     .min(1)
-    .max(160)
+    .max(TEXT_LIMITS.title)
     .optional()
     .describe(
       "Report title shown on the cover, e.g. the property or lease name. Defaults to one from the result.",
@@ -17,14 +26,14 @@ export const ReportContext = z.strictObject({
   prepared_for: z
     .string()
     .min(1)
-    .max(160)
+    .max(TEXT_LIMITS.prepared_for)
     .optional()
     .describe("Who the report is prepared for, printed under the title."),
-  subject_citation: TxCitation.optional().describe(
+  subject_citation: ContextCitation.optional().describe(
     "tx_unequal_appraisal: where the subject's value comes from (document_id, locator, as_of, fact_id).",
   ),
   comparable_citations: z
-    .record(z.string().min(1).max(200), TxCitation)
+    .record(z.string().min(1).max(200), ContextCitation)
     .optional()
     .refine(
       (r) => r === undefined || Object.keys(r).length <= 200,
@@ -196,9 +205,18 @@ export function subtitle(
   parts: (string | undefined | false)[],
   ctx: ReportContext,
 ): string {
+  const supplied =
+    ctx.title && ctx.prepared_for
+      ? "Title and prepared-for line supplied by the caller"
+      : ctx.title
+        ? "Title supplied by the caller"
+        : ctx.prepared_for
+          ? "Prepared-for line supplied by the caller"
+          : undefined;
   return [
     ...(ctx.prepared_for ? [`Prepared for ${ctx.prepared_for}`] : []),
     ...parts.filter(Boolean),
+    ...(supplied ? [supplied] : []),
   ].join(" | ");
 }
 
