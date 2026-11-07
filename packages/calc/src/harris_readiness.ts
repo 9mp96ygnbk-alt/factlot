@@ -606,8 +606,9 @@ export function harrisReadiness(raw: unknown): Record<string, unknown> {
   noteOwners(card, issues);
   if (Object.keys(card).some((key) => !CARD_KEYS.has(key)))
     addIssue(issues, "invalid", "unknown_property", "input", UNKNOWN_INPUT);
-  let requested = card.requested ?? [];
-  if (!Array.isArray(requested)) {
+  const requestedRaw: unknown = card.requested ?? [];
+  let requested: unknown[];
+  if (!Array.isArray(requestedRaw)) {
     addIssue(
       issues,
       "invalid",
@@ -616,6 +617,8 @@ export function harrisReadiness(raw: unknown): Record<string, unknown> {
       "requested must be a list of field names when it is present.",
     );
     requested = [];
+  } else {
+    requested = requestedRaw;
   }
   for (const name of requested) {
     if (typeof name === "string") refuseName(name, issues);
@@ -633,7 +636,8 @@ export function harrisReadiness(raw: unknown): Record<string, unknown> {
     out.issues = sortIssues(issues);
     return out;
   }
-  out.evaluation_date = evaluation;
+  const evaluationDate: string = evaluation;
+  out.evaluation_date = evaluationDate;
   const fips = card.county_fips;
   if (typeof fips === "string" && FIPS.test(fips)) out.county_fips = fips;
   if (out.county_fips !== HARRIS_FIPS) {
@@ -661,7 +665,8 @@ export function harrisReadiness(raw: unknown): Record<string, unknown> {
     out.issues = sortIssues(issues);
     return out;
   }
-  out.tax_year = taxYear;
+  const year: number = taxYear;
+  out.tax_year = year;
   let prefer = "prefer" in card ? card.prefer : "appraised";
   if (prefer !== "appraised" && prefer !== "market") {
     addIssue(
@@ -674,8 +679,9 @@ export function harrisReadiness(raw: unknown): Record<string, unknown> {
     prefer = null;
   }
   out.prefer = prefer;
-  let facts = card.facts ?? [];
-  if (!Array.isArray(facts)) {
+  const factsRaw: unknown = card.facts ?? [];
+  let facts: unknown[];
+  if (!Array.isArray(factsRaw)) {
     addIssue(
       issues,
       "invalid",
@@ -684,6 +690,8 @@ export function harrisReadiness(raw: unknown): Record<string, unknown> {
       "facts must be a list of caller-supplied fact objects.",
     );
     facts = [];
+  } else {
+    facts = factsRaw;
   }
   const grouped = new Map<string, Fact[]>();
   for (const fact of facts) {
@@ -755,7 +763,7 @@ export function harrisReadiness(raw: unknown): Record<string, unknown> {
       );
       return null;
     }
-    const problem = screenFact(fact, predicate, taxYear as number, evaluation);
+    const problem = screenFact(fact, predicate, year, evaluationDate);
     if (problem) {
       addIssue(
         issues,
