@@ -656,6 +656,44 @@ describe("MCP report_create", () => {
     );
   });
 
+  it("one report per request: a batch's second report_create is a tool error, not run and not charged", async () => {
+    const t = env();
+    const answers = (await (
+      await call(t, "/mcp", {
+        body: [
+          rpc(1, "report_create", request()),
+          rpc(2, "calc_irr", { cash_flows: [-1, 2] }),
+          rpc(3, "report_create", request({ format: "xlsx" })),
+          rpc(4, "report_create", request()),
+        ],
+      })
+    ).json()) as {
+      id: number;
+      result: { isError?: boolean; content: { text: string }[] };
+    }[];
+    const by = (id: number) => answers.find((a) => a.id === id)!;
+    assert.ok(!by(1).result.isError, "the first is built");
+    assert.ok(!by(2).result.isError, "other tools still answer");
+    for (const id of [3, 4]) {
+      assert.equal(by(id).result.isError, true);
+      assert.equal(
+        (JSON.parse(by(id).result.content[0]!.text) as { code: string }).code,
+        "OneReportPerRequest",
+      );
+    }
+    const subject = await addressSubject(IP, T0, undefined, "month");
+    assert.equal(
+      (await t.e.METER.quota(subject, "month", 3, "reports")).used,
+      1,
+      "only one charged",
+    );
+    // The next request may build one again.
+    const next = (await (
+      await call(t, "/mcp", { body: rpc(5, "report_create", request()) })
+    ).json()) as { result: { isError?: boolean } };
+    assert.ok(!next.result.isError);
+  });
+
   it("errors are tool errors, never charged; a batch mixes it with other tools; the quota applies", async () => {
     const t = env();
     const bad = (await (

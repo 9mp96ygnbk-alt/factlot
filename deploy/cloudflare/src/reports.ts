@@ -465,6 +465,23 @@ export async function reportsRest(
   );
 }
 
+/**
+ * Requests that already build a report. The router makes one ReportOptions object per HTTP
+ * request and passes it to every report_create call of an MCP batch, so it names the request:
+ * the first call claims it (synchronously, before any await) and the others are refused, which
+ * keeps one request from building a batch's worth of documents at once.
+ */
+const claimed = new WeakSet<ReportOptions>();
+
+export const ONE_REPORT_PER_REQUEST = {
+  error: "OneReportPerRequest",
+  code: "OneReportPerRequest",
+  message:
+    "one report per request: this MCP batch already has a report_create call, so this one was not run and nothing was charged.",
+  next: "send each report_create in its own request",
+  issues: [] as unknown[],
+};
+
 /** The answer to one report_create MCP call (a JSON-RPC message). */
 export async function answerReportCall(
   env: Env,
@@ -472,6 +489,21 @@ export async function answerReportCall(
   message: { id: string | number; params?: { arguments?: unknown } },
   o: ReportOptions,
 ): Promise<unknown> {
+  if (claimed.has(o))
+    return {
+      jsonrpc: "2.0",
+      id: message.id,
+      result: {
+        isError: true,
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(ONE_REPORT_PER_REQUEST, null, 2),
+          },
+        ],
+      },
+    };
+  claimed.add(o);
   const out = await runReport(env, caller, message.params?.arguments ?? {}, o);
   if (!out.ok)
     return {
