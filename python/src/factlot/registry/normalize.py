@@ -172,6 +172,7 @@ _STRUCTURAL_ORGANIZATION = re.compile(
     r"|\bMORTGAGE ELECTRONIC REGISTRATION\b|^MERS$|\bMERS AS (?:NOMINEE|MORTGAGEE)\b"
     r"|\bFEDERAL NATIONAL MORTGAGE\b|\bFEDERAL HOME LOAN MORTGAGE\b|\bGOVERNMENT NATIONAL MORTGAGE\b"
     r"|\bPASS THROUGH\b|\bASSET BACKED\b|\bMORTGAGE (?:LOAN |SECURITIES |ASSET )?TRUST\b|\bCERTIFICATES SERIES\b"
+    r"|\bBUSINESS TRUST\b"
 )
 # "N.A." (national association) ends the name of a bank, but it also reads as a person's two initials
 # ("DOE JOHN N A"), so it counts only after a word that names a bank: CITIBANK, CITIMORTGAGE, a savings or
@@ -229,6 +230,64 @@ def _only_given_names(tokens: list[str]) -> bool:
         t in _GIVEN_NAMES or t in _NAME_SUFFIXES or (len(t) == 1 and t.isalpha()) for t in tokens)
 
 
+# A sole proprietor's trade name is often the owner's own name and a generic business word: "SMITH JOHN
+# PROPERTIES", "GARCIA JOSE INVESTMENTS", "PATEL RAJESH HOLDINGS". Such a name identifies a natural person, so it
+# is read as one. The words are those ``_ENTITY_TOKENS`` would otherwise count as an organisation (and a few that
+# it does not, so the list says what the rule means): a generic word, not a legal form.
+_GENERIC_BUSINESS_WORDS = frozenset(
+    "PROPERTIES PROPERTY HOLDINGS HOLDING INVESTMENTS INVESTMENT ENTERPRISES ENTERPRISE RENTALS RENTAL REALTY "
+    "VENTURES VENTURE GROUP CO ASSOCIATES CAPITAL FARMS FARM RANCH RANCHES INTERESTS LAND MANAGEMENT".split()
+)
+# Given names that, beside a surname, make the name part a person's: ``_GIVEN_NAMES`` and common given names it
+# leaves out (Spanish, South Asian, Vietnamese and short English forms). A name part without one ("PACIFIC COAST",
+# "UNION STATION", "SUMMIT GROVE") keeps the usual reading, so an organisation named for two places or words is
+# not lost; a person whose given name is not listed is not caught by this rule.
+_TRADE_NAME_GIVEN_NAMES = _GIVEN_NAMES | frozenset(
+    "JUAN CARLOS LUIS JORGE MIGUEL JESUS ANTONIO FRANCISCO MANUEL PEDRO RAMON RAUL RICARDO ROBERTO RAFAEL "
+    "FERNANDO SERGIO ARTURO ALEJANDRO EDUARDO ENRIQUE JAVIER HECTOR ARMANDO OSCAR RUBEN ALFREDO GUILLERMO "
+    "GUADALUPE ROSA CARMEN ANA JUANA ELENA YOLANDA ALMA LETICIA LUZ VERONICA MARTA GABRIELA "
+    "RAJESH RAJ RAVI SANJAY SURESH RAMESH AMIT ANIL SUNIL VIJAY ASHOK MAHESH DINESH PRAKASH MUKESH NARESH "
+    "HARESH HITESH KISHORE MANOJ RAKESH SATISH PRIYA ANITA SUNITA "
+    "MINH TUAN THANH HUNG DUNG QUANG PHUONG TRANG HUONG "
+    "DON JON TED ED AL HANK RICK RICH DICK JEFF GREG RON KEN JOHNNIE "
+    "BETH SUE PAT PEGGY".split()
+)
+# Words a person's name part never holds here: legal forms, connectors, ordinals, directions, and words that name
+# an institution, a place or a business (with ``NAME_STOP_TOKENS``, ``_LP_CONTEXT`` and ``_ENTITY_TOKENS``).
+_NOT_A_NAME_WORD = frozenset(
+    "LLC LLP LLLP LP INC CORP LTD PLLC PC PA NA REIT TRUST TRUSTS TRUSTEE TRUSTEES TR TRS TTEE TTEES PARTNERSHIP "
+    "PARTNERS ASSOCIATION FOUNDATION FUND AND OF THE DBA ETAL "
+    "FIRST SECOND THIRD FOURTH FIFTH SIXTH SEVENTH EIGHTH NINTH TENTH "
+    "NORTH SOUTH EAST WEST NORTHEAST NORTHWEST SOUTHEAST SOUTHWEST "
+    "CHRIST BAPTIST METHODIST CATHOLIC LUTHERAN PRESBYTERIAN EPISCOPAL MINISTRY MINISTRIES SCHOOL COLLEGE "
+    "ACADEMY INSTITUTE SOCIETY CLUB LODGE COUNCIL HOSPITAL UNIVERSITY ENERGY OIL GAS PETROLEUM".split()
+)
+
+
+def _sole_proprietor_trade_name(s: str) -> bool:
+    """Whether a cleaned name is a person's name and a generic business word (``_GENERIC_BUSINESS_WORDS``).
+
+    The name, without a trailing "ET AL", must be two name words (surname and given name, either order, the given
+    name one of ``_TRADE_NAME_GIVEN_NAMES``), at most one middle initial or suffix (JR, SR, II, ...), then one
+    generic business word. Any legal form, "AND", "OF",
+    a digit, an ordinal or a word that names a place, an institution or a business keeps the usual reading.
+    """
+    tokens = re.sub(r"\s(?:ET AL|ETAL)$", "", s).split()
+    if not 3 <= len(tokens) <= 4 or tokens[-1] not in _GENERIC_BUSINESS_WORDS:
+        return False
+    head = tokens[:-1]
+    names = [t for t in head if len(t) > 1 and t not in _NAME_SUFFIXES]
+    extras = [t for t in head if len(t) == 1 or t in _NAME_SUFFIXES]
+    if len(names) != 2 or len(extras) > 1 or any(not t.isalpha() for t in head):
+        return False
+    if _ENTITY_TOKENS.search(" ".join(head)):
+        return False
+    if not any(t in _TRADE_NAME_GIVEN_NAMES for t in names):
+        return False
+    return not any(t in _NOT_A_NAME_WORD or t in NAME_STOP_TOKENS or t in _LP_CONTEXT
+                   or t in _GENERIC_BUSINESS_WORDS for t in names)
+
+
 def _structurally_organization(s: str) -> bool:
     if _PERSON_MARKER.search(s):
         return False
@@ -248,7 +307,8 @@ def is_organization(name: str) -> bool:
     Family and personal trusts ("SMITH FAMILY TRUST") are treated as persons; real estate
     investment trusts are organisations. Only the part before a "DBA" counts, since a sole
     proprietor's trade name ("JOHN SMITH DBA SMITH PROPERTIES") does not make them an
-    organisation. An apostrophe separates words here ("OWNERS'CORP" ends in CORP), unlike in
+    organisation, and neither does a trade name that is a person's own name and a generic business
+    word ("SMITH JOHN PROPERTIES", ``_sole_proprietor_trade_name``). An apostrophe separates words here ("OWNERS'CORP" ends in CORP), unlike in
     ``normalize_name``, where it is dropped. "L.P." with a dot, "LP", and "Limited Partnership" are partnerships. A bare spaced
     "L P" is a partnership only with evidence (``_spaced_lp_is_partnership``), because it is also
     how a roll writes a person's initials ("GARCIA MARIA L P").
@@ -264,6 +324,8 @@ def is_organization(name: str) -> bool:
     if _PERSONAL_TRUST.search(s) and not _COMPANY_WORD.search(s):
         return False
     if _is_surname_collision(s):
+        return False
+    if _sole_proprietor_trade_name(s):
         return False
     return bool(_ENTITY_TOKENS.search(s)) or _structurally_organization(s)
 

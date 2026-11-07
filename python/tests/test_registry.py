@@ -186,6 +186,22 @@ class OrganizationRule(unittest.TestCase):
         for name in ("DOE, JOHN N A", "ROE, N A", "N A"):
             self.assertFalse(is_organization(name), name)
 
+    def test_a_persons_own_name_and_a_generic_business_word_is_a_person(self):
+        # A sole proprietor's trade name: storing it would store the person's name and mailing address.
+        for name in ("SMITH JOHN PROPERTIES", "GARCIA JOSE INVESTMENTS", "PATEL RAJESH HOLDINGS",
+                     "JOHN SMITH PROPERTIES", "SMITH JOHN A PROPERTIES", "SMITH JOHN JR REALTY",
+                     "SMITH JOHN COMPANY", "DOE JANE ENTERPRISES", "SMITH JOHN PROPERTIES ET AL"):
+            self.assertFalse(is_organization(name), name)
+        # A legal form, "&"/"AND", "OF", a digit, an ordinal, a place or institution word, or no given name
+        # keeps the organisation reading.
+        for name in ("CHURCH OF CHRIST PROPERTIES", "CITY OF HOUSTON", "WALMART REAL ESTATE BUSINESS TRUST",
+                     "1234 MAIN ST HOLDINGS LLC", "SMITH JOHN PROPERTIES LLC", "SMITH JOHN HOLDINGS INC",
+                     "SMITH & JOHN PROPERTIES", "SMITH AND JONES PROPERTIES", "JOHN FIRST PROPERTIES",
+                     "JOHN NORTH TEXAS PROPERTIES", "PACIFIC COAST PROPERTIES", "UNION STATION VENTURE",
+                     "ANCIENT MARINER HOLDINGS", "SMITH PROPERTIES", "BAYLOR UNIVERSITY PROPERTIES",
+                     "JOHN SMITH PARTNERS"):
+            self.assertTrue(is_organization(name), name)
+
     def test_widened_forms_do_not_override_the_personal_trust_rule(self):
         for name in ("SMITH FAMILY TRUST", "DOE JANE SEPARATE PROPERTY TRUST", "ESTATE OF JOHN SMITH CONDOMINIUM",
                      "DOE JANE REVOCABLE TRUST CREDIT UNION"):
