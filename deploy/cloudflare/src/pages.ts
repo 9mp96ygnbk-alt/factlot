@@ -13,6 +13,7 @@ import { CHANGELOG_URL, CONTACT, REPO } from "./contact.ts";
 import { escapeHtml } from "./html.ts";
 import { base64url } from "./keys.ts";
 import { HOSTING_NOTE, WHATS_NEW } from "./news.ts";
+import type { Connection } from "./oauth.ts";
 import { setupGuide, type Snippet } from "./onboarding.ts";
 import { PLANS, QUOTA_RULES, priceText, type Plan } from "./plans.ts";
 import type { UsageSummary } from "./types.ts";
@@ -72,7 +73,7 @@ function testJs(api: string): string {
   return `(function(){var API=${JSON.stringify(api).replaceAll("<", "\\u003c")};var f=document.getElementById("test");if(!f)return;f.addEventListener("submit",function(e){e.preventDefault();var out=document.getElementById("test-out");var k=document.getElementById("test-key").value.trim();out.className="out";out.textContent="Checking…";fetch(API+"/v1/account",{headers:{authorization:"Bearer "+k}}).then(function(r){return r.json().then(function(j){if(!r.ok){out.className="out warn";out.textContent=(j&&j.message?j.message:"HTTP "+r.status)+(r.status===401?" A new key can take a minute to activate: try again shortly.":"");return}var q=j.registry_lookups;out.textContent="Works. "+j.plan_name+": "+j.requests_per_minute.toLocaleString("en-US")+" requests a minute; "+q.used.toLocaleString("en-US")+" of "+q.limit.toLocaleString("en-US")+" registry lookups used this month, resets "+q.resets_at.slice(0,10)+"."})}).catch(function(){out.className="out warn";out.textContent="Could not reach "+API+". Check your connection and try again."})})})();`;
 }
 
-interface PageOptions {
+export interface PageOptions {
   status?: number;
   /** CSP form-action sources. */
   formAction?: string;
@@ -83,7 +84,11 @@ interface PageOptions {
   testApi?: string;
 }
 
-function page(title: string, body: string, o: PageOptions = {}): Response {
+export function page(
+  title: string,
+  body: string,
+  o: PageOptions = {},
+): Response {
   const nonce = base64url(crypto.getRandomValues(new Uint8Array(16)));
   const site = escapeHtml(trim(o.site ?? DEFAULT_SITE));
   const scripts = [o.copy ? COPY_JS : "", o.testApi ? testJs(o.testApi) : ""]
@@ -126,7 +131,7 @@ function block(id: string, label: string, code: string, cls = ""): string {
   return `<div class="block${cls ? ` ${cls}` : ""}">${label ? `<p class="label">${escapeHtml(label)}</p>` : ""}<pre id="${escapeHtml(id)}"><code>${escapeHtml(code)}</code></pre><button type="button" class="copy" data-copy="${escapeHtml(id)}">Copy</button></div>`;
 }
 
-function notice(text: string, warn = false, title?: string): string {
+export function notice(text: string, warn = false, title?: string): string {
   return `<div class="notice${warn ? " warn" : ""}" role="status">${title ? `<p><strong>${escapeHtml(title)}</strong></p>` : ""}<p>${escapeHtml(text)}</p></div>`;
 }
 
@@ -212,7 +217,7 @@ ${block("agent-url", "Give this URL to your agent", g.links.onboarding)}
 ${keyStep}
 </section>
 <section class="step" aria-labelledby="h-connect"><h2 id="h-connect"><span class="n">2</span>Connect your client</h2>
-<p>Every client uses the MCP server <code>${escapeHtml(g.links.mcp)}</code> with the header <code>Authorization: Bearer &lt;key&gt;</code>.</p>
+<p>Clients that send headers use the MCP server <code>${escapeHtml(g.links.mcp)}</code> with the header <code>Authorization: Bearer &lt;key&gt;</code>. Claude (Desktop, claude.ai, mobile) and ChatGPT sign in instead: add <code>${escapeHtml(g.links.mcp)}/signin</code> as a connector and paste the key once on the sign-in page.</p>
 <p>${escapeHtml(g.header_clients)}</p>
 ${clients}
 <p class="small">${escapeHtml(g.plugin_note)}</p>
@@ -417,7 +422,37 @@ export interface AccountPageOptions {
   usage?: UsageSummary;
   /** The hosted registry's coverage, by state. */
   regions?: HostedRegion[];
+  /** Apps connected to the subscription by OAuth sign-in. */
+  connections?: Connection[];
   api?: string;
+}
+
+/** Connected apps (OAuth sign-ins) with a Disconnect button each. */
+function connectionsSection(
+  key: string,
+  api: string,
+  connections: Connection[],
+): string {
+  const rows = connections
+    .map(
+      (c) =>
+        `<tr><td>${escapeHtml(c.client)}</td><td data-label="Connected">${escapeHtml(c.connected_at.slice(0, 10))}</td><td data-label="Last used">${c.last_used_at ? escapeHtml(utc(c.last_used_at)) : "Not yet"}</td><td>${actionForm(
+          key,
+          "disconnect",
+          "Disconnect",
+          `<input type="hidden" name="id" value="${escapeHtml(c.id)}">`,
+          "link",
+        )}</td></tr>`,
+    )
+    .join("");
+  return `<section class="step" aria-labelledby="h-apps"><h2 id="h-apps">Connected apps</h2>
+${
+  connections.length
+    ? `<table class="keys"><thead><tr><th>App</th><th>Connected</th><th>Last used</th><th></th></tr></thead><tbody>${rows}</tbody></table>
+<p class="small">Apps that signed in with this subscription. They keep working when you replace a key; disconnecting ends an app's access at once (allow a minute everywhere).</p>`
+    : `<p>None yet.</p>`
+}
+<p class="small">Claude (Desktop, web and mobile) and ChatGPT cannot send a key header: add the custom connector <code>${escapeHtml(api)}/mcp/signin</code> and sign in with your key. Its plan applies.</p></section>`;
 }
 
 /** The account page for a known key; `newKey` is shown once after a rotation or a new key. */
@@ -485,6 +520,7 @@ ${
 <p class="small">Replacing a key stops the old one at once (allow a minute everywhere). ${s.keys.limit > 1 ? `Your plan includes up to ${s.keys.limit} keys; they share the monthly registry lookups.` : `Team includes up to ${PLANS.team.maxKeys} keys.`}</p>`
     : ""
 }</section>
+${opts.connections ? connectionsSection(key, api, opts.connections) : ""}
 ${regions}
 <section class="step" aria-labelledby="h-new-things"><h2 id="h-new-things">What's new</h2>
 <ul class="plain">${WHATS_NEW.map((w) => `<li>${escapeHtml(w.text)}</li>`).join("")}</ul>

@@ -6,14 +6,21 @@
 // keyless caller's meter, so stored names cannot be traced back to an address. Set it once with
 // `npx wrangler@4 secret put IP_HASH_SALT`; changing it restarts that day's free counts).
 // RECOVERY_SIGNING_SECRET (a long random string, e.g. `openssl rand -hex 32`; signs the
-// lost-key recovery links. Without it, and without the EMAIL binding below, /account says email
-// recovery is being set up).
+// lost-key recovery links and the OAuth "Email me a sign-in link" option. Without it, and
+// without the EMAIL binding below, /account says email recovery is being set up and the OAuth
+// sign-in page offers the key and the free tier only).
+//
+// OAuth 2.1 for header-less MCP clients (src/oauth.ts) needs no new binding: its records live in
+// the KEYS namespace under the `oauth:` prefix. It does need `global_fetch_strictly_public`
+// below, which lets the authorization server verify Client ID Metadata Documents (ChatGPT's
+// client id is one) without same-zone origin routing. The flag only concerns global fetch();
+// this Worker reaches its own services through bindings (REGISTRY, ASSETS, the Node handler).
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "factlot-api",
   "main": "src/worker.ts",
   "compatibility_date": "2026-10-01",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "workers_dev": false,
   "routes": [
     { "pattern": "api.factlot.com", "custom_domain": true },
@@ -24,6 +31,8 @@
     "SITE_URL": "https://factlot.com",
     "API_URL": "https://api.factlot.com",
   },
+  // KEYS also holds the OAuth server's records (clients, grants, hashed tokens) under the `oauth:`
+  // prefix (src/oauth.ts), so OAuth needs no binding of its own.
   "kv_namespaces": [
     { "binding": "KEYS", "id": "c49c4b0d0bd94c52b1d2d474ad499fcb" },
   ],
