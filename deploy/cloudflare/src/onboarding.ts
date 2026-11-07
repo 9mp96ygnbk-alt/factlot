@@ -85,7 +85,7 @@ export interface Guide {
 const REPO = "https://github.com/9mp96ygnbk-alt/factlot";
 
 export const HEADER_CLIENTS =
-  "Clients that send the Authorization header: Claude Code, Cursor, VS Code, Windsurf, agent SDKs and any REST client. Claude Desktop and claude.ai custom connectors and ChatGPT developer-mode apps have no header field today, so a paid key needs a header-capable client or the mcp-remote stdio bridge (Claude Desktop below).";
+  "Clients that send the Authorization header: Claude Code, Cursor, VS Code, Windsurf, agent SDKs and any REST client. Claude Desktop and claude.ai custom connectors and ChatGPT developer-mode apps have no header field: they sign in instead (add the connector URL ending in /mcp/signin, then paste your key once on the sign-in page).";
 
 export const PLUGIN_NOTE =
   "If you installed the FactLot plugin, its server is keyless; after adding your key, disable the plugin's server in /mcp (or remove the plugin) so lookups use your plan.";
@@ -138,10 +138,21 @@ export function setupGuide(o: {
       id: "claude",
       name: "Claude Desktop and claude.ai",
       steps: [
-        "Claude Desktop and claude.ai custom connectors have no header field today, so a connector added there runs on the free tier. For your key, Claude Desktop runs the mcp-remote bridge (needs Node.js), which sends the header for it.",
-        "Claude Desktop: Settings → Developer → Edit Config, add this server to claude_desktop_config.json, then restart Claude. The key sits in env and reaches the header through ${AUTH_HEADER} (no space after the colon), which also works on Windows.",
+        "Settings → Connectors → Add custom connector. Name it FactLot and enter the sign-in URL below; leave the OAuth client id and secret empty.",
+        "Click Connect: a FactLot page opens. Paste your key once and choose Connect with my key. The connection is tied to your subscription, not to the key, so replacing the key keeps it working; see or disconnect it at " +
+          site +
+          "/account.",
+        "The plain URL " +
+          mcp +
+          " also works there, on the free tier without sign-in. Claude Desktop can instead run the mcp-remote bridge (needs Node.js), which sends the key header: Settings → Developer → Edit Config, add the server below to claude_desktop_config.json, then restart Claude.",
       ],
       snippets: [
+        {
+          id: "claude-signin-url",
+          label: "Connector URL (sign in with your key)",
+          lang: "text",
+          code: `${mcp}/signin`,
+        },
         {
           id: "claude-desktop-config",
           label: "claude_desktop_config.json",
@@ -169,12 +180,19 @@ export function setupGuide(o: {
       id: "chatgpt",
       name: "ChatGPT",
       steps: [
-        "ChatGPT developer-mode apps have no header field today, so an app added with the URL " +
+        "Settings → Apps → Advanced settings → Developer mode on, then Create: name it FactLot, enter the sign-in URL below, and choose OAuth for authentication (no client id or secret: ChatGPT registers itself).",
+        "Click Create, then Connect: a FactLot page opens. Paste your key once and choose Connect with my key. The plain URL " +
           mcp +
-          " runs on the free tier.",
-        "For your key, use a Custom GPT: Configure → Actions → Create new action → Import from URL, enter the OpenAPI URL below, then set Authentication to API Key, Auth Type Bearer, and paste your key.",
+          " with No authentication works on the free tier.",
+        "Custom GPTs (Actions) take the key directly: Configure → Actions → Create new action → Import from URL with the OpenAPI URL below, then Authentication API Key, Auth Type Bearer.",
       ],
       snippets: [
+        {
+          id: "chatgpt-signin-url",
+          label: "Connector URL (sign in with your key)",
+          lang: "text",
+          code: `${mcp}/signin`,
+        },
         {
           id: "chatgpt-openapi",
           label: "OpenAPI URL (GPT Actions subset)",

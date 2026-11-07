@@ -2,10 +2,30 @@
 
 ## Claude.ai, Claude Desktop, and mobile: custom connector (remote MCP)
 
+Custom connectors cannot send an API-key header, so a paid plan connects by signing in (OAuth 2.1):
+
 1. In Claude, open **Settings → Connectors → Add custom connector**.
-2. Enter the URL `https://api.factlot.com/mcp` (the hosted service; nothing to deploy). Leave OAuth
-   empty.
-3. Enable FactLot in a chat from the tools menu.
+2. Name it FactLot and enter the URL `https://api.factlot.com/mcp/signin`. Leave the OAuth client ID
+   and secret empty: Claude registers itself.
+3. Click **Connect**. A FactLot page opens and shows which app is asking and where access goes.
+   - **Connect with my key**: paste your FactLot API key once. The connection gets your plan (Pro or
+     Team limits, the subscription's monthly registry lookups, the `account_status` and
+     `account_usage` tools). It is tied to your subscription, not to the key: replacing the key keeps
+     it connected; if the subscription ends, the connection ends and Claude asks you to connect
+     again. While a payment is failing, tool calls answer that the subscription is not active.
+   - **Continue on the free tier**: no key. The connection gets the free limits (60 requests a minute
+     and 25 registry lookups a day), counted for this connection.
+   - **Email me a sign-in link** (once email is set up on the hosted service): a link to the address
+     you paid with connects your subscription; open it in the same browser within 10 minutes.
+4. Enable FactLot in a chat from the tools menu.
+
+Connected apps are listed at <https://factlot.com/account> (and in `GET /v1/account`, under
+`connections`), each with a **Disconnect** button (`DELETE /v1/account/connections/{id}`).
+
+The plain URL `https://api.factlot.com/mcp` also works here, on the free tier without signing in:
+Claude starts sign-in only when a server answers `401`, and `/mcp` stays open to keyless use.
+`/mcp/signin` is the same server; it answers `401` (with the OAuth discovery header) to a client that
+sends no credentials.
 
 To use your own server instead, deploy the remote connector (see [connectors/README.md](../README.md))
 on a public HTTPS URL and enter that URL in step 2. Claude connects from Anthropic's cloud, not from
@@ -42,7 +62,8 @@ claude mcp add factlot -- npx -y @factlot/mcp
 
 ### Using a paid key
 
-Add the server under the name `factlot` with your key in the header:
+Claude Code sends headers, so it takes the key directly (no sign-in needed). Add the server under the
+name `factlot` with your key in the header:
 
 ```bash
 claude mcp add --scope user --transport http factlot https://api.factlot.com/mcp --header "Authorization: Bearer <key>"
