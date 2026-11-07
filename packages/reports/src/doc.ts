@@ -6,7 +6,7 @@
  */
 import { decimalsOf, int, num, pct, times, usd } from "./format.ts";
 // pdf.ts (and pdf-lib) load on the first PDF only: an XLSX or ICS request never evaluates them.
-import type { Column } from "./pdf.ts";
+import { PdfWriter, type Column } from "./pdf.ts";
 import {
   Workbook,
   addr,
@@ -130,7 +130,6 @@ export async function renderPdf(
   doc: ReportDoc,
   p: Provenance,
 ): Promise<Uint8Array> {
-  const { PdfWriter } = await import("./pdf.ts");
   const w = await PdfWriter.create({
     title: doc.title,
     subject: doc.subtitle,
