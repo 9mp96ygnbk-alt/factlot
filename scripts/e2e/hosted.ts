@@ -89,9 +89,17 @@ function ok(cond: unknown, label: string): void {
 }
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+// With FACTLOT_API_KEY set, every call carries the key: the suite then runs on that plan's quotas
+// instead of the free tier's 25 registry lookups a day per address (several runs a day from one
+// machine exhaust the free quota and every registry check answers 429).
+const KEY = process.env.FACTLOT_API_KEY;
 async function api(path: string, init?: RequestInit): Promise<Response> {
   await sleep(DELAY);
-  return fetch(`${API}${path}`, init);
+  if (!KEY) return fetch(`${API}${path}`, init);
+  const headers = new Headers(init?.headers);
+  if (!headers.has("authorization"))
+    headers.set("authorization", `Bearer ${KEY}`);
+  return fetch(`${API}${path}`, { ...init, headers });
 }
 async function post(
   path: string,
