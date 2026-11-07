@@ -8,6 +8,8 @@ import type {
   LeaseAbstractResult,
 } from "../validate.ts";
 import {
+  LEASE_COMPUTED_LABEL,
+  SUPPLIED_LABEL,
   closingBlocks,
   subtitle,
   warningsBlocks,
@@ -38,6 +40,13 @@ export function leaseDoc(k: KindInput): ReportDoc {
   const r = k.checked.result as LeaseAbstractResult;
   const s = r.summary;
   const blocks: Block[] = [];
+  blocks.push({
+    t: "notice",
+    text:
+      k.checked.check === "supplied"
+        ? `${SUPPLIED_LABEL} They are the doc_abstract_lease result sent with the request; FactLot checked its shape and counts only, because the lease documents were not sent.`
+        : `${LEASE_COMPUTED_LABEL} FactLot ran doc_abstract_lease on the documents' text sent with the request; it did not see the signed lease.`,
+  });
   blocks.push({
     t: "notice",
     tone: "info",

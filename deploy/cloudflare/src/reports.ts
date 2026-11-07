@@ -61,7 +61,7 @@ export const REPORT_TOOL = {
   name: REPORT_TOOL_NAME,
   title: "Create a client-ready report (XLSX, PDF, ICS)",
   description:
-    "Hosted FactLot tool (api.factlot.com only). Turns a FactLot tool result into a client-ready document, built by code with no model: tx_unequal_appraisal (calc_tx_unequal_appraisal: evidence packet PDF or adjustment-grid workbook with live formulas), lease_abstract (doc_abstract_lease), cam_reconciliation (calc_cam_reconciliation or _batch), debt_sizing (calc_debt_sizing), asc842_schedule (calc_lease_remeasurement_asc842), compare_proposals (calc_compare_proposals), dcf_summary (calc_dcf_pro_forma), critical_dates (calc_critical_dates; also ics: a calendar with each notice window and deadline and a reminder 30 days before). Pass the tool's result unchanged as input; also pass the tool's arguments to have FactLot rerun the tool and prove the match (or pass arguments alone and FactLot computes the result). Anything that is not a genuine result of the named tool is refused, so a report never carries numbers FactLot did not compute. Returns download_url (works 24 hours), expires_at, bytes, sha256 and filename; inline: true also returns files under 1 MiB as base64. Counts against reports_per_month (free: 3 a month per IP address; Pro 50; Team 1,000); input errors are free.",
+    "Hosted FactLot tool (api.factlot.com only). Builds a client-ready document by code, with no model: tx_unequal_appraisal (calc_tx_unequal_appraisal: evidence packet PDF or adjustment-grid workbook with live formulas), lease_abstract (doc_abstract_lease), cam_reconciliation (calc_cam_reconciliation or _batch), debt_sizing (calc_debt_sizing), asc842_schedule (calc_lease_remeasurement_asc842), compare_proposals (calc_compare_proposals), dcf_summary (calc_dcf_pro_forma), critical_dates (calc_critical_dates; also ics: a calendar with each notice window and deadline and a reminder 30 days before). Every kind but lease_abstract requires the tool's arguments: FactLot runs the tool on them and builds the document from that run only, so its numbers are FactLot's results; a result sent as input is not used (the answer's result_mismatch says whether it differs). lease_abstract takes doc_abstract_lease's arguments, or its result as input: built from a supplied result, every page says the abstract values are as supplied by the caller and FactLot did not recompute them. Caller text (title, prepared_for, citation locators, comparable ids, labels and reasons) is printed as supplied by the caller; advice or valuation wording in it is refused (TextNotAllowed). One report per request (one report_create per MCP batch). Returns download_url (works 24 hours), expires_at, bytes, sha256 and filename; inline: true also returns files under 1 MiB as base64. Counts against reports_per_month (free: 3 a month per IP address; Pro 50; Team 1,000); input errors are free.",
   inputSchema: (() => {
     const s = reportRequestJsonSchema() as {
       properties: Record<string, unknown>;
@@ -237,11 +237,13 @@ function inputError(err: ReportInputError): ReportOutcome {
       message: err.message,
       issues: err.issues,
       next:
-        err.code === "FormulaVersion" || err.code === "ResultMismatch"
-          ? "call the tool again and send its result unchanged (or send only its arguments)"
-          : err.code === "NotAToolResult"
-            ? "send the tool's result exactly as it was returned, or send the tool's arguments instead"
-            : "fix the fields listed in issues and retry",
+        err.code === "ArgumentsRequired"
+          ? "send the tool's arguments as arguments (the same arguments you called the tool with)"
+          : err.code === "FormulaVersion"
+            ? "call the tool again and send its result unchanged (or send its arguments)"
+            : err.code === "NotAToolResult"
+              ? "send the tool's result exactly as it was returned, or send the tool's arguments instead"
+              : "fix the fields listed in issues and retry",
     },
   };
 }
@@ -383,6 +385,9 @@ async function buildAndStore(
     format: file.format,
     source: file.source,
     check: file.check,
+    ...(file.result_mismatch !== undefined
+      ? { result_mismatch: file.result_mismatch }
+      : {}),
     generated_at: file.generated_at,
     reports: {
       used: quota.used,

@@ -240,7 +240,7 @@ const debtResult = (() => {
 const request = (over: Record<string, unknown> = {}) => ({
   kind: "debt_sizing",
   format: "pdf",
-  input: debtResult,
+  arguments: debtArgs,
   ...over,
 });
 
@@ -258,6 +258,7 @@ type Created = {
   content_type: string;
   source: string;
   check: string;
+  result_mismatch?: boolean;
   reports: { used: number; limit: number; remaining: number };
   content_base64?: string;
 };
@@ -329,7 +330,8 @@ describe("POST /v1/reports and downloads", () => {
     );
     assert.equal(body.content_type, "application/pdf");
     assert.equal(body.source, "calc_debt_sizing@3");
-    assert.equal(body.check, "checked");
+    assert.equal(body.check, "computed");
+    assert.equal(body.result_mismatch, undefined);
     assert.deepEqual(
       [body.reports.used, body.reports.limit, body.reports.remaining],
       [1, 3, 2],
@@ -421,12 +423,12 @@ describe("POST /v1/reports and downloads", () => {
     const t = env();
     for (let i = 0; i < 3; i++) {
       const bad = await call(t, "/v1/reports", {
-        body: request({ input: { value: {} } }),
+        body: request({ arguments: undefined, input: debtResult }),
       });
       assert.equal(bad.status, 400);
       assert.equal(
         ((await bad.json()) as { code: string }).code,
-        "NotAToolResult",
+        "ArgumentsRequired",
       );
       assert.equal(
         (await call(t, "/v1/reports", { body: request() })).status,
@@ -467,7 +469,7 @@ describe("POST /v1/reports and downloads", () => {
     const key = await issue(t.e, "pro");
     const res = await call(t, "/v1/reports", {
       key,
-      body: request({ arguments: debtArgs }),
+      body: request({ input: debtResult }),
     });
     assert.equal(res.status, 201);
     assert.equal(
@@ -475,7 +477,9 @@ describe("POST /v1/reports and downloads", () => {
       String(REPORTS_PER_MONTH.pro),
     );
     assert.equal(res.headers.get("x-factlot-tier"), "pro");
-    assert.equal(((await res.json()) as Created).check, "recomputed");
+    const made = (await res.json()) as Created;
+    assert.equal(made.check, "computed");
+    assert.equal(made.result_mismatch, false);
     assert.equal(
       (await t.e.METER.quota("sub:sub_1", "month", 50, "reports")).used,
       1,
@@ -644,7 +648,7 @@ describe("MCP report_create", () => {
     const t = env();
     const bad = (await (
       await call(t, "/mcp", {
-        body: rpc(1, "report_create", request({ input: {} })),
+        body: rpc(1, "report_create", request({ arguments: { noi: -1 } })),
       })
     ).json()) as {
       result: { isError: boolean; content: { text: string }[] };
@@ -652,7 +656,7 @@ describe("MCP report_create", () => {
     assert.equal(bad.result.isError, true);
     assert.equal(
       (JSON.parse(bad.result.content[0]!.text) as { code: string }).code,
-      "NotAToolResult",
+      "ArgumentsError",
     );
     const mixed = (await (
       await call(t, "/mcp", {

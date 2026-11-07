@@ -303,7 +303,7 @@ describe("format", () => {
 
 describe("input checks", () => {
   for (const s of SAMPLES)
-    it(`${s.tool}: every successful vector case passes, with and without arguments`, async () => {
+    it(`${s.tool}: every successful vector case builds from FactLot's run; a result alone is ${s.kind === "lease_abstract" ? "accepted as supplied" : "refused"}`, async () => {
       const name = s.tool.replace(/^calc_/, "");
       const all =
         s.tool === "doc_abstract_lease" ? abstractCases : calcCases(name);
@@ -311,15 +311,33 @@ describe("input checks", () => {
       for (const args of all) {
         const input = resultOf(s.tool, args);
         const a = await createReport(
-          { kind: s.kind, format: "pdf", input },
+          { kind: s.kind, format: "pdf", arguments: args },
           { now: NOW },
         );
-        assert.equal(a.check, "checked");
+        assert.equal(a.check, "computed");
+        assert.equal(a.result_mismatch, undefined);
         const b = await createReport(
           { kind: s.kind, format: "pdf", input, arguments: args },
           { now: NOW },
         );
-        assert.equal(b.check, "recomputed");
+        assert.equal(b.check, "computed");
+        assert.equal(b.result_mismatch, false);
+        if (s.kind === "lease_abstract")
+          assert.equal(
+            (
+              await createReport(
+                { kind: s.kind, format: "pdf", input },
+                { now: NOW },
+              )
+            ).check,
+            "supplied",
+          );
+        else
+          await rejects(
+            { kind: s.kind, format: "pdf", input },
+            "ArgumentsRequired",
+            /^arguments$/,
+          );
       }
     });
 
@@ -329,6 +347,7 @@ describe("input checks", () => {
       value: Json;
       formula: Json;
       steps: unknown[];
+      warnings: string[];
     };
 
   it("arguments alone: FactLot computes the result", async () => {
@@ -340,70 +359,131 @@ describe("input checks", () => {
     assert.equal(f.source, "calc_debt_sizing@3");
   });
 
-  it("a hand-edited figure is refused", async () => {
+  it("a tampered result sent with the arguments is never used: the document has FactLot's figures and result_mismatch is true", async () => {
     const r = txResult();
-    r.value.median_adjusted_value =
-      (r.value.median_adjusted_value as number) - 1000;
-    await rejects(
-      { kind: "tx_unequal_appraisal", format: "pdf", input: r },
-      "NotAToolResult",
-      /median_adjusted_value/,
+    const median = r.value.median_adjusted_value as number;
+    // A coherent fabrication: the subject tripled, with the figures that follow from it.
+    r.value.subject_value = (r.value.subject_value as number) * 3;
+    r.value.subject_minus_median = (r.value.subject_value as number) - median;
+    r.warnings = ["FactLot recommends you protest."];
+    const f = await createReport(
+      {
+        kind: "tx_unequal_appraisal",
+        format: "pdf",
+        input: r,
+        arguments: tx.args,
+      },
+      { now: NOW },
     );
+    assert.equal(f.check, "computed");
+    assert.equal(f.result_mismatch, true);
+    const flat = (await readPdf(f.bytes)).text.replace(/\s+/g, " ");
+    const real = resultOf(tx.tool, tx.args) as {
+      value: { subject_value: number };
+    };
+    assert.ok(
+      flat.includes(usd(real.value.subject_value)),
+      "FactLot's subject value",
+    );
+    assert.ok(
+      !flat.includes(usd(r.value.subject_value as number)),
+      "not the tampered one",
+    );
+    assert.ok(!flat.includes("recommends"), "not the tampered warning");
+    assert.ok(flat.includes("it differs from this run and was not used"));
     const d = structuredClone(
       resultOf("calc_dcf_pro_forma", SAMPLES[7]!.args),
-    ) as { value: Json };
-    d.value.value = (d.value.value as number) * 1.1;
+    ) as {
+      value: Json;
+    };
+    d.value.unlevered_irr = 0.4242;
+    const x = await createReport(
+      {
+        kind: "dcf_summary",
+        format: "xlsx",
+        input: d,
+        arguments: SAMPLES[7]!.args,
+      },
+      { now: NOW },
+    );
+    assert.equal(x.result_mismatch, true);
+    const all = [...(await readXlsx(x.bytes)).xml.values()].join("");
+    assert.ok(
+      !all.includes("0.4242"),
+      "the tampered IRR is not in the workbook",
+    );
+  });
+
+  it("lease_abstract: a supplied result with an unknown field or edited counts is refused", async () => {
+    const r = structuredClone(
+      resultOf("doc_abstract_lease", abstractCases[0]!),
+    ) as {
+      summary: Json;
+    } & Json;
+    (r as Json).recommendation = "renew";
     await rejects(
-      { kind: "dcf_summary", format: "xlsx", input: d },
+      { kind: "lease_abstract", format: "pdf", input: r },
       "NotAToolResult",
-      /value\.value/,
     );
     const c = structuredClone(
-      resultOf("calc_cam_reconciliation", SAMPLES[2]!.args),
-    ) as { value: Json };
-    c.value.balance_due = 1;
+      resultOf("doc_abstract_lease", abstractCases[0]!),
+    ) as {
+      summary: { fields: number };
+    };
+    c.summary.fields += 1;
     await rejects(
-      { kind: "cam_reconciliation", format: "pdf", input: c },
+      { kind: "lease_abstract", format: "pdf", input: c },
       "NotAToolResult",
-      /balance_due/,
+      /summary\.fields/,
     );
   });
 
-  it("an unknown field, a wrong formula or another tool's result is refused", async () => {
-    const r = txResult();
-    (r.value as Json).recommendation = "protest";
-    await rejects(
-      { kind: "tx_unequal_appraisal", format: "pdf", input: r },
-      "NotAToolResult",
-    );
-    const v = txResult();
-    v.formula.version = 99;
-    await rejects(
-      { kind: "tx_unequal_appraisal", format: "pdf", input: v },
-      "FormulaVersion",
-    );
-    await rejects(
-      {
-        kind: "debt_sizing",
-        format: "pdf",
-        input: resultOf("calc_dcf_pro_forma", SAMPLES[7]!.args),
-      },
-      "NotAToolResult",
-    );
-    await rejects(
-      { kind: "debt_sizing", format: "pdf", input: { value: { max_loan: 1 } } },
-      "NotAToolResult",
-    );
+  it("lease_abstract: every page says where the values came from, never that the numbers are the tool's results", async () => {
+    const args = abstractCases[0]!;
+    const input = resultOf("doc_abstract_lease", args);
+    for (const [req, label] of [
+      [
+        { input },
+        "Abstract values as supplied by the caller; FactLot did not recompute them.",
+      ],
+      [
+        { arguments: args },
+        "Abstract values as supplied by the caller and checked against the lease text sent.",
+      ],
+    ] as const) {
+      const pdf = await createReport(
+        { kind: "lease_abstract", format: "pdf", ...req },
+        { now: NOW },
+      );
+      const p = await readPdf(pdf.bytes);
+      const flat = p.text.replace(/\s+/g, " ");
+      assert.ok(
+        flat.split(label).length - 1 >= p.pages,
+        `label on each of ${p.pages} pages`,
+      );
+      assert.ok(!flat.includes("numbers are the tool's results"));
+      const xl = await createReport(
+        { kind: "lease_abstract", format: "xlsx", ...req },
+        { now: NOW },
+      );
+      const x = await readXlsx(xl.bytes);
+      const all = [...x.xml.values()].join("");
+      assert.ok(!all.includes("numbers are the tool"));
+      for (const [name, xml] of x.xml)
+        if (name.startsWith("xl/worksheets/"))
+          assert.ok(xml.includes(`&amp;8${label}`), `${name} print footer`);
+    }
   });
 
-  it("a result that does not match its arguments is refused", async () => {
+  it("a result that does not match its arguments is flagged, not used", async () => {
     const args = structuredClone(SAMPLES[4]!.args);
     const input = resultOf("calc_debt_sizing", args);
     (args as Json).noi = (args.noi as number) + 1;
-    await rejects(
+    const f = await createReport(
       { kind: "debt_sizing", format: "pdf", input, arguments: args },
-      "ResultMismatch",
+      { now: NOW },
     );
+    assert.equal(f.result_mismatch, true);
     await rejects(
       { kind: "debt_sizing", format: "pdf", arguments: { noi: -1 } },
       "ArgumentsError",
@@ -424,8 +504,13 @@ describe("input checks", () => {
     );
     await rejects(
       { kind: "debt_sizing", format: "pdf" },
+      "ArgumentsRequired",
+      /arguments/,
+    );
+    await rejects(
+      { kind: "lease_abstract", format: "pdf" },
       "InputError",
-      /input/,
+      /arguments/,
     );
     await rejects(
       { kind: "debt_sizing", format: "pdf", input: {}, extra: 1 },
@@ -456,7 +541,10 @@ describe("documents", () => {
           f.filename,
           /^factlot-[a-z0-9-]+-2026-11-07\.(xlsx|pdf|ics)$/,
         );
-        const footer = `Generated by FactLot 0.4.0 on 2026-11-07 12:00:00 UTC from ${f.source}; numbers are the tool's results; see https://factlot.com/terms`;
+        const footer =
+          s.kind === "lease_abstract"
+            ? `Abstract values as supplied by the caller and checked against the lease text sent. Generated by FactLot 0.4.0 on 2026-11-07 12:00:00 UTC from ${f.source}`
+            : `Generated by FactLot 0.4.0 on 2026-11-07 12:00:00 UTC from ${f.source}; numbers are the tool's results; see https://factlot.com/terms`;
         if (format === "xlsx") {
           const x = await readXlsx(f.bytes);
           assert.ok(x.sheets.includes("ReadMe"));
@@ -518,7 +606,7 @@ describe("documents", () => {
       {
         kind: "tx_unequal_appraisal",
         format: "pdf",
-        input: r,
+        arguments: s.args,
         context: {
           subject_citation: {
             document_id: "fl:document:sha256-abc",
@@ -555,14 +643,9 @@ describe("documents", () => {
     const r = resultOf(s.tool, s.args) as {
       value: { median_adjusted_value: number };
     };
-    for (const args of [s.args, undefined]) {
+    {
       const f = await createReport(
-        {
-          kind: "tx_unequal_appraisal",
-          format: "xlsx",
-          input: r,
-          ...(args ? { arguments: args } : {}),
-        },
+        { kind: "tx_unequal_appraisal", format: "xlsx", arguments: s.args },
         { now: NOW },
       );
       const x = await readXlsx(f.bytes);
@@ -616,7 +699,7 @@ describe("documents", () => {
       {
         kind: "critical_dates",
         format: "ics",
-        input: r,
+        arguments: s.args,
         context: { title: "Suite 400, 100 Main" },
       },
       { now: NOW },
@@ -649,7 +732,7 @@ describe("documents", () => {
   it("is deterministic: the same request at the same time gives the same bytes", async () => {
     for (const s of SAMPLES)
       for (const format of KIND_FORMATS[s.kind]) {
-        const req = { kind: s.kind, format, input: resultOf(s.tool, s.args) };
+        const req = { kind: s.kind, format, arguments: s.args };
         const a = await createReport(req, { now: NOW });
         const b = await createReport(req, { now: NOW });
         assert.deepEqual(a.bytes, b.bytes, `${s.tool} ${format}`);
@@ -659,11 +742,15 @@ describe("documents", () => {
   it("supplied text never becomes a formula and odd characters are written safely", async () => {
     const title = '=HYPERLINK("http://x","y") & <b> "Café" — 5 ≤ 6 中';
     const s = SAMPLES[4]!;
-    const input = resultOf(s.tool, s.args);
     const x = await readXlsx(
       (
         await createReport(
-          { kind: "debt_sizing", format: "xlsx", input, context: { title } },
+          {
+            kind: "debt_sizing",
+            format: "xlsx",
+            arguments: s.args,
+            context: { title },
+          },
           { now: NOW },
         )
       ).bytes,
@@ -678,7 +765,12 @@ describe("documents", () => {
     const p = await readPdf(
       (
         await createReport(
-          { kind: "debt_sizing", format: "pdf", input, context: { title } },
+          {
+            kind: "debt_sizing",
+            format: "pdf",
+            arguments: s.args,
+            context: { title },
+          },
           { now: NOW },
         )
       ).bytes,
@@ -704,7 +796,7 @@ describe("documents", () => {
         const req = {
           kind: s.kind,
           format: i % 2 ? "pdf" : "xlsx",
-          input: resultOf(s.tool, s.args),
+          arguments: s.args,
         };
         const t = performance.now();
         await createReport(req, { now: NOW });
@@ -746,16 +838,25 @@ describe("workbook formulas", () => {
     assert.equal(x.cell("S", "G2"), "2.5");
   });
 
-  it("a result with a zero or negative area is refused before any division", async () => {
+  it("a supplied result with a zero area cannot reach the workbook (the reviewer's crash)", async () => {
     const d = structuredClone(
       resultOf("calc_dcf_pro_forma", SAMPLES[7]!.args),
     ) as { value: Json };
     d.value.building_area_sf = 0;
     await rejects(
       { kind: "dcf_summary", format: "xlsx", input: d },
-      "NotAToolResult",
-      /building_area_sf/,
+      "ArgumentsRequired",
     );
+    const f = await createReport(
+      {
+        kind: "dcf_summary",
+        format: "xlsx",
+        input: d,
+        arguments: SAMPLES[7]!.args,
+      },
+      { now: NOW },
+    );
+    assert.equal(f.result_mismatch, true);
   });
 });
 

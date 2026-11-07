@@ -1,11 +1,19 @@
 /**
- * Which tool each report kind reads, and the check that a report's input is a genuine result of
- * that tool: the result's exact shape (strict: no unknown fields, finite numbers), the formula
- * identity and version the running FactLot computes, and the arithmetic links between its
- * figures that every real result satisfies (a median that is the median of the sorted values, a
- * balance that is the charge less the estimates). A hand-edited figure breaks a link and is
- * refused. When the caller also sends the tool's arguments, the tool is run again here and the
- * result must match it exactly.
+ * Which tool each report kind reads, and where a report's figures come from.
+ *
+ * Every calculator kind is built from FactLot's own run of its tool: the caller sends the tool's
+ * arguments and the tool runs here. A result sent alongside is never used; the answer only says
+ * whether it matched (result_mismatch). So a calculator report carries no number FactLot did
+ * not compute.
+ *
+ * lease_abstract is the exception: its result comes from lease documents FactLot cannot reread
+ * without them. With the tool's arguments (the documents' text) it is run here too; with only a
+ * result, that result is accepted after a check of its exact shape (strict: no unknown fields),
+ * the formula version and its counts, and every page of the document says the values are the
+ * caller's and were not recomputed.
+ *
+ * The shapes and arithmetic links below also check every result FactLot computes before a
+ * document is built from it.
  */
 import {
   TX_EVIDENCE_NOTICE,
@@ -61,12 +69,17 @@ export interface Issue {
   message: string;
 }
 
+/** The kinds built from a calculator FactLot reruns: arguments are required. */
+export const COMPUTED_KINDS: readonly ReportKind[] = REPORT_KINDS.filter(
+  (k) => k !== "lease_abstract",
+);
+
 export type ReportErrorCode =
   | "InputError"
+  | "ArgumentsRequired"
   | "NotAToolResult"
   | "FormulaVersion"
   | "ArgumentsError"
-  | "ResultMismatch"
   | "TooLarge";
 
 export class ReportInputError extends Error {
@@ -846,28 +859,26 @@ function withoutProvenance(r: unknown): unknown {
 function toolFor(kind: ReportKind, input: unknown, args: unknown): string {
   const tools = KIND_TOOLS[kind];
   if (tools.length === 1) return tools[0]!;
-  // cam_reconciliation: one tenant or a whole pool.
-  const id = (input as { formula?: { id?: unknown } } | null)?.formula?.id;
-  if (id === "calc.cam_reconciliation_batch")
-    return "calc_cam_reconciliation_batch";
-  if (id === "calc.cam_reconciliation") return "calc_cam_reconciliation";
-  if (
-    input === undefined &&
-    typeof args === "object" &&
-    args !== null &&
-    "tenants" in args
-  )
-    return "calc_cam_reconciliation_batch";
-  return "calc_cam_reconciliation";
+  // cam_reconciliation: one tenant or a whole pool, as the arguments say.
+  void input;
+  return typeof args === "object" && args !== null && "tenants" in args
+    ? "calc_cam_reconciliation_batch"
+    : "calc_cam_reconciliation";
 }
 
 export interface Checked {
   tool: string;
   result: unknown;
-  /** "recomputed": the tool was run again on the arguments and matched; "checked": shape and links. */
-  check: "recomputed" | "checked";
+  /**
+   * "computed": FactLot ran the tool on the arguments sent and the document is built from that
+   * run. "supplied": a lease abstract result the caller sent, checked (shape, formula version,
+   * counts) but not recomputed.
+   */
+  check: "computed" | "supplied";
   /** The tool's arguments when given (validated by the tool). */
   args?: unknown;
+  /** A result was sent with the arguments: true when it differs from FactLot's run (unused). */
+  result_mismatch?: boolean;
 }
 
 function zodIssues(err: z.ZodError, prefix: string): Issue[] {
@@ -878,8 +889,10 @@ function zodIssues(err: z.ZodError, prefix: string): Issue[] {
 }
 
 /**
- * Check `input` (a tool result) and/or `args` (the tool's arguments) for a report kind. Returns
- * the result to report on. Throws ReportInputError with issues an agent can act on.
+ * The result a report is built from. Calculator kinds: FactLot's run of the tool on `args`
+ * (required); a supplied `input` is compared, never used. lease_abstract: the run on `args` when
+ * given, else the supplied `input`, checked. Throws ReportInputError with issues an agent can
+ * act on.
  */
 export function checkInput(
   kind: ReportKind,
@@ -889,27 +902,58 @@ export function checkInput(
   const tool = toolFor(kind, input, args);
   const spec = getTool(tool);
   if (!spec) throw new ReportInputError("InputError", `unknown tool ${tool}`);
-  let recomputed: unknown;
-  if (args !== undefined) {
-    const out = runTool(tool, args);
-    if (!out.ok)
+  if (args === undefined) {
+    if (kind !== "lease_abstract")
       throw new ReportInputError(
-        "ArgumentsError",
-        `${tool} refused the arguments: ${out.error.message}`,
-        out.error.issues.map((i) => ({
-          path: `arguments.${i.path}`,
-          message: i.message,
-        })),
+        "ArgumentsRequired",
+        `a ${kind} report is built only from FactLot's own run of ${KIND_TOOLS[kind].join(" or ")}: send the tool's arguments as arguments (a result alone is not accepted, so the document never carries a number FactLot did not compute)`,
+        [{ path: "arguments", message: `required for ${kind}` }],
       );
-    recomputed = out.result;
+    if (input === undefined)
+      throw new ReportInputError(
+        "InputError",
+        "give arguments (doc_abstract_lease's arguments) or input (its result)",
+        [{ path: "arguments", message: "required unless input is given" }],
+      );
+    return { tool, result: checkSupplied(tool, input), check: "supplied" };
   }
-  const result = input === undefined ? recomputed : input;
-  if (result === undefined)
+  const out = runTool(tool, args);
+  if (!out.ok)
     throw new ReportInputError(
-      "InputError",
-      "give input (the tool's result), arguments (the tool's arguments), or both",
-      [{ path: "input", message: "required unless arguments are given" }],
+      "ArgumentsError",
+      `${tool} refused the arguments: ${out.error.message}`,
+      out.error.issues.map((i) => ({
+        path: `arguments.${i.path}`,
+        message: i.message,
+      })),
     );
+  // FactLot's own result: a failed check here is a fault in FactLot, not in the request.
+  const parsed = SCHEMAS[tool]!.safeParse(out.result);
+  if (!parsed.success)
+    throw new Error(`${tool}: its result does not have the shape reports read`);
+  const bad: Issue[] = [];
+  LINKS[tool]!(parsed.data as never, bad);
+  if (bad.length)
+    throw new Error(`${tool}: its result fails a consistency check`);
+  return {
+    tool,
+    result: parsed.data,
+    check: "computed",
+    args,
+    ...(input !== undefined
+      ? {
+          result_mismatch: !jsonEqual(
+            withoutProvenance(out.result),
+            withoutProvenance(input),
+          ),
+        }
+      : {}),
+  };
+}
+
+/** A result the caller sent (lease_abstract only): its exact shape, formula version and counts. */
+function checkSupplied(tool: string, result: unknown): unknown {
+  const spec = getTool(tool)!;
   const formula = (
     result as { formula?: { id?: unknown; version?: unknown } } | null
   )?.formula;
@@ -920,7 +964,7 @@ export function checkInput(
   )
     throw new ReportInputError(
       "NotAToolResult",
-      `input is a result of ${formula.id}, not of ${tool} (${spec.formula.id}); a ${kind} report reads ${KIND_TOOLS[kind].join(" or ")}`,
+      `input is a result of ${formula.id}, not of ${tool} (${spec.formula.id})`,
       [{ path: "input.formula.id", message: `expected ${spec.formula.id}` }],
     );
   const version = formula?.version;
@@ -954,25 +998,5 @@ export function checkInput(
       `input is not an unmodified ${tool} result: its figures do not agree with each other (send the tool's result unchanged)`,
       bad.slice(0, 20).map((b) => ({ ...b, path: `input.${b.path}` })),
     );
-  if (
-    recomputed !== undefined &&
-    input !== undefined &&
-    !jsonEqual(withoutProvenance(recomputed), withoutProvenance(input))
-  )
-    throw new ReportInputError(
-      "ResultMismatch",
-      `input differs from what ${tool} returns for these arguments; send the result of this exact call, or leave input out and FactLot will compute it`,
-      [
-        {
-          path: "input",
-          message: "does not match the tool's result for arguments",
-        },
-      ],
-    );
-  return {
-    tool,
-    result: parsed.data,
-    check: recomputed !== undefined ? "recomputed" : "checked",
-    ...(args !== undefined ? { args } : {}),
-  };
+  return parsed.data;
 }
