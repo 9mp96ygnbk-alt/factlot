@@ -7,8 +7,9 @@ validation, document tools and lease comps (45 tools). The MCP servers (local an
 `GET /v1/tools`, and both OpenAPI documents) only when a registry is available: a registry database
 configured with `FACTLOT_REGISTRY_DB`, or the hosted API's registry service. Without one, their REST
 routes answer `503 RegistryUnavailable`. The hosted API at `https://api.factlot.com` serves the
-regions `registry_coverage` lists (Maryland, the District of Columbia and Juab and Summit counties in
-Utah), so it lists 53 tools over REST and 56 over MCP. The TypeScript and Python tool exports always
+regions `registry_coverage` lists (Maryland, the District of Columbia, Juab and Summit counties in
+Utah, and Harris, Dallas, Travis, Collin, Denton and Williamson counties in Texas; Tarrant County is
+not served by the hosted registry while the publisher's terms for AI use are unclear), so it lists 53 tools over REST and 56 over MCP. The TypeScript and Python tool exports always
 include the registry tools. For which tool to call when, see [agents.md](agents.md).
 
 ## 0. The hosted API (nothing to install)

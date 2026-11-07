@@ -3,9 +3,14 @@
  * WHATS_NEW entry names the CHANGELOG.md phrase it summarises; a test checks that the phrase is
  * in the changelog, so the page cannot announce something the changelog does not record.
  */
-export const HOSTING_NOTE = "Texas hosting opens with this release.";
+export const HOSTING_NOTE =
+  "Texas is hosted: Harris, Dallas, Travis, Collin, Denton and Williamson counties. Tarrant County is not served while the publisher's terms for AI use are unclear.";
 
 export const WHATS_NEW: { text: string; changelog: string }[] = [
+  {
+    text: "Texas registry lookups: six counties with value history and equity candidates.",
+    changelog: "six Texas counties",
+  },
   {
     text: "Only answered registry lookups count: coverage checks, misses and input errors are free.",
     changelog: "charged only when answered",
