@@ -75,22 +75,22 @@ FACTLOT_REGISTRY_DB="$PWD/factlot-registry-sample-dc-2026-11-04.db" npx -y https
 The hosted API at `https://api.factlot.com` answers registry lookups on every plan, including the
 free tier with no key (100 registry lookups a day per IP address). These regions are hosted:
 
-| Region               | Hosted data                                                                                                                                            | Licence                          |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------- |
-| Maryland             | All 24 jurisdictions: 109,249 commercial parcels and 2,812 buildings, SDAT data as of 2026-11-05                                                       | Public domain                    |
-| District of Columbia | 18,077 commercial parcels, 5,513 registered business entities and 396 buildings, with owners of record (organisations only), zoning and recorded sales | CC BY 4.0                        |
-| Utah                 | Juab and Summit counties: 1,528 parcels, snapshot as of 2025-11-26                                                                                     | CC BY 4.0, "State of Utah, SGID" |
+| Region               | Hosted data                                                                                                                                            | Licence                                   |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------- |
+| Maryland             | All 24 jurisdictions: 109,249 commercial parcels and 2,812 buildings, SDAT data as of 2026-11-05                                                       | Public domain                             |
+| District of Columbia | 18,077 commercial parcels, 5,513 registered business entities and 396 buildings, with owners of record (organisations only), zoning and recorded sales | CC BY 4.0                                 |
+| Utah                 | Juab and Summit counties: 1,528 parcels, snapshot as of 2025-11-26                                                                                     | CC BY 4.0, "State of Utah, SGID"          |
+| Texas                | Opening with this release; see `registry_coverage`. Tarrant County is not served                                                                       | Per source, in each fact's `rights` field |
 
-That is 128,854 parcels in 27 counties. Call `registry_coverage` first: it lists exactly what is
+Maryland, DC and Utah hold 128,854 parcels in 27 counties. Call `registry_coverage` first: it lists exactly what is
 hosted, and a lookup outside it returns a coverage miss. Every answer cites its source file and the
 licence or attribution that goes with it. Owners are organisations only; a natural person's name is
 never stored, and the Maryland and Utah files carry no owner names. The DC data is the same as the
 downloadable sample registry-sample-dc-2026-11-04.
 
-The other regions in the project's pipeline (Texas, New York City and more) are available only on a
+The other regions in the project's pipeline (New York City and more) are available only on a
 self-hosted FactLot with a registry file; more hosted regions open as their terms allow.
-`registry_tx_equity_candidates` is listed on the hosted API, but no Texas region is hosted yet, so
-it returns a coverage miss there.
+Texas counties served by the hosted registry are listed by `registry_coverage` (Harris, Dallas, Travis and Collin first). Tarrant County is not served by the hosted registry while the publisher's terms for AI use are unclear.
 
 ## What FactLot is
 
@@ -120,13 +120,13 @@ Be clear about scope before adopting it:
   project's registry pipeline has built and verified 1,733,923 commercial, industrial and
   multifamily parcels in 330 counties (19 states and DC) from 40 public-record sources, with 14.2
   million registered entities from Texas, New York, Colorado, Pennsylvania, DC and Connecticut for
-  owner resolution: the largest metros (Harris, Dallas, Tarrant, Travis and Collin in Texas, New
+  owner resolution: the largest metros (Harris, Dallas, Tarrant (not served by the hosted registry), Travis and Collin in Texas, New
   York City, Los Angeles, Boston, San Francisco, Denver, Charlotte, Minneapolis and DC), the rest of
   the top 100 counties where the licence allows, and statewide files for New York, Maryland,
   Massachusetts, Vermont, Arkansas and Connecticut, most of Utah, 24 Minnesota counties
   and Montana's apartments and industrial parcels
   ([catalog](docs/registry/sources/README.md), [quality report](docs/registry/quality/tier1-2026-11-03.md)).
-  **What you can query today** on the hosted API is Maryland, the District of Columbia and Juab and Summit counties in Utah (128,854 parcels; see [Hosted registry](#hosted-registry)); every other region needs a self-hosted FactLot with a registry file. Cook County, Florida, Fulton,
+  **What you can query today** on the hosted API is Maryland, the District of Columbia and Juab and Summit counties in Utah (128,854 parcels), plus the Texas counties `registry_coverage` lists (see [Hosted registry](#hosted-registry)); every other region needs a self-hosted FactLot with a registry file. Cook County, Florida, Fulton,
   Maricopa, Wayne, Fairfax, King and much of California wait on a licence decision, a form or a
   purchase. Several public files omit owner names (Maryland, Utah, Los Angeles, San Francisco); zoning, recorded sales, deeds and mortgages,
   energy benchmarks and CMBS loan data only for some metros ([coverage](docs/registry/coverage.md)); no tenant rosters. See

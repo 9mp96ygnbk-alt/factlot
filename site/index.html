@@ -745,7 +745,8 @@
             <strong>How quotas work.</strong> Limits are hard caps with no
             overage charges. Free registry lookups count per IP address per day;
             paid lookups count per subscription per month, shared by a plan's
-            keys. At a cap the call returns HTTP 429 with the reset time and a
+            keys. <code>registry_coverage</code>, the discovery call, never
+            counts. At a cap the call returns HTTP 429 with the reset time and a
             link to this page. Calculator, ID, fact, rules and document tools
             never count toward a lookup quota.
           </p>

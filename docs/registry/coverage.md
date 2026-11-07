@@ -6,7 +6,7 @@ Licence and AI-use detail per source: [rights.md](rights.md).
 
 ## Read this first
 
-- **Queryable today.** The hosted API at `https://api.factlot.com` answers registry lookups, on every plan including the free tier,
+- **Queryable today.** The hosted API at `https://api.factlot.com` answers registry lookups, on every plan, metered by plan,
   for **Maryland** (all 24 jurisdictions), the **District of Columbia** and **Juab and Summit counties in Utah**: 128,854 parcels in 27
   counties. Call `registry_coverage` first: it lists exactly what is hosted. The DC data is also the downloadable **DC sample**, a 23.4 MB
   database file (CC BY 4.0) you can run yourself (`FACTLOT_REGISTRY_DB`). **No other region is hosted**: Texas, New York City and the rest

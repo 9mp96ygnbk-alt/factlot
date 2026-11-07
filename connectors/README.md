@@ -6,7 +6,7 @@ formula ID whether it was called from Claude, ChatGPT, Gemini, Copilot, Bedrock,
 
 **Hosted endpoint:** `https://api.factlot.com` serves the remote MCP server at `/mcp` and REST
 and OpenAPI at `/v1/…` and `/openapi.json`. The free tier needs no key and allows 60 requests a
-minute per address; paid keys go in `Authorization: Bearer <key>` ([plans](https://factlot.com/#pricing)).
+minute and 100 registry lookups a day per address; paid keys go in `Authorization: Bearer <key>` ([plans](https://factlot.com/#pricing)).
 To self-host, run the Docker image or `@factlot/server` and use your own host in place of
 `api.factlot.com` in every guide below.
 

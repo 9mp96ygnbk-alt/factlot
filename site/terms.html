@@ -156,10 +156,11 @@
             <strong>Limits are hard caps.</strong> We never charge for overage.
             When you reach a limit, the call returns HTTP 429 with the time the
             limit resets and a link to the pricing page. A registry lookup is
-            one call to a <code>registry_</code> tool. Free lookups count per IP
-            address per day; paid lookups count per subscription per month, and
-            a Team plan's keys share one quota. Other tools never count toward a
-            lookup quota.
+            one call to a <code>registry_</code> tool other than
+            <code>registry_coverage</code>, the discovery call, which never
+            counts. Free lookups count per IP address per day; paid lookups
+            count per subscription per month, and a Team plan's keys share one
+            quota. Other tools never count toward a lookup quota.
           </p>
           <p>
             <strong>Billing.</strong> Pro and Team are billed monthly in advance
