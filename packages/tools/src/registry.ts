@@ -1631,7 +1631,8 @@ export function situsZip5(situs: unknown): string | null {
   return m ? m[1]! : null;
 }
 
-function bySubject(rows: Row[]): Map<string, Row[]> {
+/** Fact rows grouped by subject, each subject's rows in their query order. */
+export function equityRowsBySubject(rows: Row[]): Map<string, Row[]> {
   const out = new Map<string, Row[]>();
   for (const r of rows) {
     const subject = String(r.subject);
@@ -1642,8 +1643,12 @@ function bySubject(rows: Row[]): Map<string, Row[]> {
   return out;
 }
 
-/** source → [tax year, has a positive value] for each source whose current facts give the parcel a tax year. */
-function rollYears(rows: Row[]): Map<string, [number, boolean]> {
+/**
+ * source → [tax year, has a positive value] for each source whose current facts give the parcel a tax year. `rows`
+ * are one parcel's current facts of `TX_EQUITY_PREDICATES` with their `source_id`, in `f.predicate, f.as_of DESC,
+ * f.fact_id` order.
+ */
+export function equityRollYears(rows: Row[]): Map<string, [number, boolean]> {
   const first = new Map<string, Map<string, Row>>();
   for (const r of rows) {
     const src = String(r.source_id);
@@ -1663,8 +1668,61 @@ function rollYears(rows: Row[]): Map<string, [number, boolean]> {
   return out;
 }
 
+/** The roll year the rule compares in, the subject's roll years (newest first), and a warning for a missing year. */
+export function equityYearUsed(
+  years: Map<string, [number, boolean]>,
+  taxYear: number | null,
+): { yearUsed: number | null; available: number[]; warnings: string[] } {
+  const available = [...new Set([...years.values()].map(([y]) => y))].sort(
+    (a, b) => b - a,
+  );
+  const valued = [...years.values()].filter(([, v]) => v).map(([y]) => y);
+  const warnings: string[] = [];
+  let yearUsed: number | null;
+  if (taxYear !== null) {
+    yearUsed = available.includes(taxYear) ? taxYear : null;
+    if (yearUsed === null)
+      warnings.push(
+        `the subject is on no current roll for tax year ${taxYear}; its roll years: ${available.map((y) => String(Math.trunc(y))).join(", ") || "none"}`,
+      );
+  } else {
+    yearUsed = valued.length
+      ? Math.max(...valued)
+      : available.length
+        ? available[0]!
+        : null;
+  }
+  return { yearUsed, available, warnings };
+}
+
+/** The subject's roll sources for a year (sorted). */
+export function equityRolls(
+  years: Map<string, [number, boolean]>,
+  yearUsed: number | null,
+): string[] {
+  return [...years.entries()]
+    .filter(([, [y]]) => y === yearUsed)
+    .map(([src]) => src)
+    .sort();
+}
+
+/** The county's companion sources (building files) of the same tax year as the rolls, in `countySources` order. */
+export function equityCompanions(
+  countySources: string[],
+  rolls: string[],
+  yearUsed: number | null,
+): string[] {
+  return countySources.filter(
+    (c) =>
+      !rolls.includes(c) &&
+      yearUsed !== null &&
+      sourceTaxYear(c) === yearUsed &&
+      rolls.some((r) => c.startsWith(r.replace(YEAR_SUFFIX, "") + "-")),
+  );
+}
+
 /** predicate → newest fact from the year's roll sources; building class from a companion when the roll has none. */
-function yearFacts(
+export function equityYearFacts(
   rows: Row[],
   rolls: string[],
   companions: string[],
@@ -1694,7 +1752,7 @@ function positive(v: unknown): number | null {
 }
 
 /** A parcel shaped as a `calc_tx_unequal_appraisal` subject or comparable; missing facts are null. */
-function comparable(urn: string, facts: Map<string, Row>): Row {
+export function equityComparable(urn: string, facts: Map<string, Row>): Row {
   const val = (p: string) => rowValue(facts.get(p));
   const market = finite(val("parcel.market_value"));
   const appraised = finite(val("parcel.appraised_value"));
@@ -1728,30 +1786,42 @@ function comparable(urn: string, facts: Map<string, Row>): Row {
   };
 }
 
+/** The snapshots the facts come from (document IDs, sorted, once each). */
+export function equityFactDocs(facts: Map<string, Row>): string[] {
+  return [
+    ...new Set([...facts.values()].map((f) => String(f.document_id))),
+  ].sort();
+}
+
 /** The cited snapshots with their source's rights, as `registry_get` gives each fact's `rights`. */
 function equitySources(d: Database, documentIds: Set<string>): Row[] {
   const out: Row[] = [];
   for (const doc of [...documentIds].sort()) {
     const row = d.prepare(EQUITY_SOURCE_SQL).get(doc);
     if (!row) continue;
-    // Every right is stated, attribution included (null when the source asks for none), so an agent can relay them.
-    const r: Row = {
-      ai_use: row.ai_use,
-      redistribution: row.redistribution,
-      license: row.license,
-      attribution: row.attribution || null,
-    };
-    out.push({
-      document_id: doc,
-      source_id: row.source_id,
-      title: `${row.publisher}: ${row.title} (${row.filename})`,
-      uri: row.url,
-      retrieved_at: row.retrieved_at,
-      as_of: row.as_of,
-      rights: r,
-    });
+    out.push(equitySource(doc, row));
   }
   return out;
+}
+
+/** One `sources` entry from a row of `EQUITY_SOURCE_SQL`. */
+export function equitySource(doc: string, row: Row): Row {
+  // Every right is stated, attribution included (null when the source asks for none), so an agent can relay them.
+  const r: Row = {
+    ai_use: row.ai_use,
+    redistribution: row.redistribution,
+    license: row.license,
+    attribution: row.attribution || null,
+  };
+  return {
+    document_id: doc,
+    source_id: row.source_id,
+    title: `${row.publisher}: ${row.title} (${row.filename})`,
+    uri: row.url,
+    retrieved_at: row.retrieved_at,
+    as_of: row.as_of,
+    rights: r,
+  };
 }
 
 export interface TxEquityParams {
@@ -1771,62 +1841,170 @@ export function txEquitySubjectUrn(
   return parcelUrn(open(), stateFips, countyFips, apn);
 }
 
-/**
- * Candidate comparables for a Texas unequal-appraisal comparison (`equity_candidates` in Python). The caller
- * has checked that `urn` is a Texas parcel; a parcel this file does not hold is null.
- */
-export function registryTxEquityCandidates(
+/** A comparable the rule may select, with the snapshots its facts come from. */
+export interface EquityCandidate {
+  urn: string;
+  row: Row;
+  docs: string[];
+}
+
+/** A selected comparable: its tier (0 neighborhood, 1 ZIP code, 2 county) and distance in improvement area. */
+export interface EquityMatch extends EquityCandidate {
+  tier: number;
+  distance: number;
+}
+
+/** The rule's tests for one subject and parameters (`null` when the subject lacks a fact the rule needs). */
+export interface EquityRule {
+  urn: string;
+  category: unknown;
+  taxYear: unknown;
+  area: number;
+  lo: number;
+  hi: number;
+  year: number | null;
+  yearBand: number;
+  neighborhood: string | null;
+  zip: string | null;
+}
+
+/** The facts the rule needs that the subject lacks (an improvement area must be positive). */
+export function equityMissing(subject: Row): string[] {
+  return (
+    [
+      ["parcel.tax_year", subject.tax_year],
+      ["parcel.state_property_category", subject.state_property_category],
+      ["parcel.improvement_area_sf", positive(subject.improvement_area_sf)],
+    ] as [string, unknown][]
+  )
+    .filter(([, v]) => v === null)
+    .map(([p]) => p);
+}
+
+export function equityRule(
   urn: string,
+  subject: Row,
   params: TxEquityParams,
-): Row | null {
-  const d = open();
-  if (!d.prepare("SELECT 1 AS x FROM subjects WHERE urn = ?").get(urn))
-    return null;
+): EquityRule | null {
+  if (equityMissing(subject).length) return null;
+  const area = positive(subject.improvement_area_sf) as number;
+  return {
+    urn,
+    category: subject.state_property_category,
+    taxYear: subject.tax_year,
+    area,
+    lo: area * (1 - params.area_band),
+    hi: area * (1 + params.area_band),
+    year: subject.year_built as number | null,
+    yearBand: params.year_band,
+    neighborhood: subject.neighborhood_code as string | null,
+    zip: situsZip5(subject.situs_address),
+  };
+}
+
+/** Whether a comparable (not the subject itself) meets the rule's category, year, area, value and year-built tests. */
+export function equityAccepts(rule: EquityRule, c: Row): boolean {
+  const cArea = positive(c.improvement_area_sf);
+  if (
+    c.state_property_category !== rule.category ||
+    c.tax_year !== rule.taxYear ||
+    cArea === null ||
+    !(rule.lo <= cArea && cArea <= rule.hi) ||
+    c.value === null
+  )
+    return false;
+  return !(
+    rule.year !== null &&
+    c.year_built !== null &&
+    Math.abs((c.year_built as number) - rule.year) > rule.yearBand
+  );
+}
+
+/** The tier of an accepted comparable: 0 the subject's neighborhood, 1 its ZIP code, 2 the rest of the county. */
+export function equityTier(rule: EquityRule, c: Row): number {
+  return rule.neighborhood !== null && c.neighborhood_code === rule.neighborhood
+    ? 0
+    : rule.zip !== null && situsZip5(c.situs_address) === rule.zip
+      ? 1
+      : 2;
+}
+
+/** Tier, then nearest improvement area, then URN. */
+export function equityCompare(a: EquityMatch, b: EquityMatch): number {
+  return (
+    a.tier - b.tier ||
+    a.distance - b.distance ||
+    (a.urn < b.urn ? -1 : a.urn > b.urn ? 1 : 0)
+  );
+}
+
+/** One comparable as a match, or null when the rule rejects it (the subject itself included). */
+export function equityMatch(
+  rule: EquityRule,
+  cand: EquityCandidate,
+): EquityMatch | null {
+  if (cand.urn === rule.urn || !equityAccepts(rule, cand.row)) return null;
+  return {
+    ...cand,
+    tier: equityTier(rule, cand.row),
+    distance: Math.abs(
+      (positive(cand.row.improvement_area_sf) as number) - rule.area,
+    ),
+  };
+}
+
+/**
+ * The candidate selection, pure: every comparable of `pool` the rule accepts for `subject`, in tier, distance and
+ * URN order. The SDK passes the whole county pool; the hosted registry passes the rows its indexes give.
+ */
+export function selectEquityCandidates(
+  urn: string,
+  subject: Row,
+  pool: Iterable<EquityCandidate>,
+  params: TxEquityParams,
+): EquityMatch[] {
+  const rule = equityRule(urn, subject, params);
+  if (!rule) return [];
+  const matched: EquityMatch[] = [];
+  for (const cand of pool) {
+    const m = equityMatch(rule, cand);
+    if (m) matched.push(m);
+  }
+  return matched.sort(equityCompare);
+}
+
+/** Whether the rule widens to the county tier, from the per-tier match counts. */
+export function equityWidened(counts: number[], minMatches: number): boolean {
+  return counts[0]! + counts[1]! < minMatches;
+}
+
+/** What a `registry_tx_equity_candidates` answer is made from, however the matches were found. */
+export interface TxEquityParts {
+  /** The shaped subject, with its value history. */
+  subject: Row;
+  subjectDocs: string[];
+  params: TxEquityParams;
+  yearUsed: number | null;
+  available: number[];
+  rolls: string[];
+  companions: string[];
+  /** Warnings before the selection (a tax year the subject is on no roll for). */
+  warnings: string[];
+  /** Matches per tier (0 when the subject lacks a fact the rule needs). */
+  counts: number[];
+  /** The first `limit` matches the rule includes, in `equityCompare` order. */
+  returned: EquityMatch[];
+}
+
+/** The `registry_tx_equity_candidates` result from its parts; `sources` gives each cited snapshot's entry. */
+export function assembleTxEquity(
+  p: TxEquityParts,
+  sources: (documentIds: Set<string>) => Row[],
+): Row {
+  const { subject, params, counts, returned, yearUsed } = p;
   const { area_band, year_band, min_matches, limit } = params;
   const taxYear = params.tax_year ?? null;
-  const region = urn.split(":")[2] ?? "";
-  const subjectRows =
-    bySubject(d.prepare(EQUITY_SUBJECT_SQL).all(urn)).get(urn) ?? [];
-  const years = rollYears(subjectRows);
-  const available = [...new Set([...years.values()].map(([y]) => y))].sort(
-    (a, b) => b - a,
-  );
-  const valued = [...years.values()].filter(([, v]) => v).map(([y]) => y);
-  const warnings: string[] = [];
-  let yearUsed: number | null;
-  if (taxYear !== null) {
-    yearUsed = available.includes(taxYear) ? taxYear : null;
-    if (yearUsed === null)
-      warnings.push(
-        `the subject is on no current roll for tax year ${taxYear}; its roll years: ${available.map((y) => String(Math.trunc(y))).join(", ") || "none"}`,
-      );
-  } else {
-    yearUsed = valued.length
-      ? Math.max(...valued)
-      : available.length
-        ? available[0]!
-        : null;
-  }
-  const rolls = [...years.entries()]
-    .filter(([, [y]]) => y === yearUsed)
-    .map(([src]) => src)
-    .sort();
-  const countySources = d
-    .prepare(EQUITY_COUNTY_SOURCES_SQL)
-    .all(region.slice(3, 5), region.slice(5, 8))
-    .map((r) => String(r.source_id));
-  const companions = countySources.filter(
-    (c) =>
-      !rolls.includes(c) &&
-      yearUsed !== null &&
-      sourceTaxYear(c) === yearUsed &&
-      rolls.some((r) => c.startsWith(r.replace(YEAR_SUFFIX, "") + "-")),
-  );
-  const subjectFacts = yearFacts(subjectRows, rolls, companions);
-  const subject: Row = {
-    ...comparable(urn, subjectFacts),
-    value_history: registryValueHistory(urn),
-  };
+  const warnings = [...p.warnings];
   const area = positive(subject.improvement_area_sf);
   const year = subject.year_built as number | null;
   const zip5 = situsZip5(subject.situs_address);
@@ -1850,82 +2028,17 @@ export function registryTxEquityCandidates(
     neighborhood_code: subject.neighborhood_code,
     zip: zip5,
   };
-  const missing = (
-    [
-      ["parcel.tax_year", subject.tax_year],
-      ["parcel.state_property_category", subject.state_property_category],
-      ["parcel.improvement_area_sf", area],
-    ] as [string, unknown][]
-  )
-    .filter(([, v]) => v === null)
-    .map(([p]) => p);
+  const missing = equityMissing(subject);
   if (subject.value === null)
     warnings.push(
       "the subject has no current parcel.appraised_value or parcel.market_value fact",
     );
-  type Match = [number, number, string, Row, Map<string, Row>];
-  const matched: Match[] = [];
-  if (missing.length) {
+  if (missing.length)
     warnings.push(
       `no candidates selected: the subject has no current ${missing.join(", ")} fact (an improvement area must be positive), which the rule needs`,
     );
-  } else {
-    const { min: lo, max: hi } = areaBand as { min: number; max: number };
-    const pool = bySubject(
-      d
-        .prepare(equityPoolSql(rolls.length, rolls.length + companions.length))
-        .all(
-          `fl:parcel:${region}:`,
-          `fl:parcel:${region};`,
-          subjectFacts.get("parcel.state_property_category")!.value_json,
-          ...rolls,
-          ...rolls,
-          ...companions,
-        ),
-    );
-    for (const [candUrn, candRows] of pool) {
-      if (candUrn === urn) continue;
-      const facts = yearFacts(candRows, rolls, companions);
-      const c = comparable(candUrn, facts);
-      const cArea = positive(c.improvement_area_sf);
-      if (
-        c.state_property_category !== subject.state_property_category ||
-        c.tax_year !== subject.tax_year ||
-        cArea === null ||
-        !(lo <= cArea && cArea <= hi) ||
-        c.value === null
-      )
-        continue;
-      if (
-        year !== null &&
-        c.year_built !== null &&
-        Math.abs((c.year_built as number) - year) > year_band
-      )
-        continue;
-      const tier =
-        subject.neighborhood_code !== null &&
-        c.neighborhood_code === subject.neighborhood_code
-          ? 0
-          : zip5 !== null && situsZip5(c.situs_address) === zip5
-            ? 1
-            : 2;
-      matched.push([
-        tier,
-        Math.abs(cArea - (area as number)),
-        candUrn,
-        c,
-        facts,
-      ]);
-    }
-  }
-  matched.sort(
-    (a, b) =>
-      a[0] - b[0] || a[1] - b[1] || (a[2] < b[2] ? -1 : a[2] > b[2] ? 1 : 0),
-  );
-  const counts = [0, 1, 2].map((t) => matched.filter((m) => m[0] === t).length);
-  const widened = counts[0]! + counts[1]! < min_matches;
-  const included = matched.filter((m) => m[0] < 2 || widened);
-  const returned = included.slice(0, limit);
+  const widened = equityWidened(counts, min_matches);
+  const included = counts[0]! + counts[1]! + (widened ? counts[2]! : 0);
   const keys = [subject.neighborhood_code, zip5, subject.county_fips];
   const applied = [keys[0] !== null, keys[1] !== null, widened];
   const tiers = [0, 1, 2].map((t) => ({
@@ -1933,13 +2046,13 @@ export function registryTxEquityCandidates(
     key: keys[t],
     applied: applied[t]! && !missing.length,
     matched: counts[t],
-    returned: returned.filter((m) => m[0] === t).length,
-    ids: returned.filter((m) => m[0] === t).map((m) => m[2]),
+    returned: returned.filter((m) => m.tier === t).length,
+    ids: returned.filter((m) => m.tier === t).map((m) => m.urn),
   }));
-  const candidates = returned.map((m) => m[3]);
-  if (!missing.length && included.length < min_matches)
+  const candidates = returned.map((m) => m.row);
+  if (!missing.length && included < min_matches)
     warnings.push(
-      `${included.length} candidates meet the rule in the whole county, fewer than min_matches (${min_matches}); the statute does not define a reasonable number of comparables`,
+      `${included} candidates meet the rule in the whole county, fewer than min_matches (${min_matches}); the statute does not define a reasonable number of comparables`,
     );
   if (subject.value_basis !== null) {
     const other = candidates.filter(
@@ -1951,9 +2064,8 @@ export function registryTxEquityCandidates(
       );
   }
   // Every snapshot a returned fact comes from, with its source's rights.
-  const docs = new Set<string>();
-  for (const facts of [subjectFacts, ...returned.map((m) => m[4])])
-    for (const f of facts.values()) docs.add(String(f.document_id));
+  const docs = new Set<string>(p.subjectDocs);
+  for (const m of returned) for (const doc of m.docs) docs.add(doc);
   for (const e of subject.value_history as Row[])
     for (const cite of Object.values(e.citations as Row))
       if (cite) docs.add(String((cite as Row).document_id));
@@ -1970,18 +2082,133 @@ export function registryTxEquityCandidates(
         tax_year: taxYear,
       },
       tax_year: yearUsed,
-      available_tax_years: available,
-      roll_sources: rolls,
-      building_class_sources: companions,
+      available_tax_years: p.available,
+      roll_sources: p.rolls,
+      building_class_sources: p.companions,
       criteria,
       tiers,
       widened_to_county: widened && !missing.length,
-      matched: included.length,
+      matched: included,
       returned: returned.length,
-      truncated: included.length > returned.length,
+      truncated: included > returned.length,
     },
-    sources: equitySources(d, docs),
+    sources: sources(docs),
     notice: TX_EQUITY_NOTICE,
     warnings,
   };
+}
+
+/** The first `limit` matches the rule includes, and the per-tier counts, from all matches in order. */
+export function equityReturned(
+  matched: EquityMatch[],
+  params: TxEquityParams,
+): { counts: number[]; returned: EquityMatch[] } {
+  const counts = [0, 1, 2].map(
+    (t) => matched.filter((m) => m.tier === t).length,
+  );
+  const widened = equityWidened(counts, params.min_matches);
+  const returned = matched
+    .filter((m) => m.tier < 2 || widened)
+    .slice(0, params.limit);
+  return { counts, returned };
+}
+
+/** The pool query for a subject's roll year: parcels of the county with its category code on one of the rolls. */
+export function equityPoolQuery(
+  region: string,
+  categoryJson: unknown,
+  rolls: string[],
+  companions: string[],
+): { sql: string; params: unknown[] } {
+  return {
+    sql: equityPoolSql(rolls.length, rolls.length + companions.length),
+    params: [
+      `fl:parcel:${region}:`,
+      `fl:parcel:${region};`,
+      categoryJson,
+      ...rolls,
+      ...rolls,
+      ...companions,
+    ],
+  };
+}
+
+/** The county's sources, sorted (the companions are chosen from these). */
+export const TX_EQUITY_COUNTY_SOURCES_SQL = EQUITY_COUNTY_SOURCES_SQL;
+/** A parcel's current facts for the rule, with their source (one parameter: the URN). */
+export const TX_EQUITY_SUBJECT_SQL = EQUITY_SUBJECT_SQL;
+/** A snapshot with its source's rights (one parameter: the document ID), for `equitySource`. */
+export const TX_EQUITY_SOURCE_SQL = EQUITY_SOURCE_SQL;
+
+/**
+ * Candidate comparables for a Texas unequal-appraisal comparison (`equity_candidates` in Python). The caller
+ * has checked that `urn` is a Texas parcel; a parcel this file does not hold is null.
+ */
+export function registryTxEquityCandidates(
+  urn: string,
+  params: TxEquityParams,
+): Row | null {
+  const d = open();
+  if (!d.prepare("SELECT 1 AS x FROM subjects WHERE urn = ?").get(urn))
+    return null;
+  const region = urn.split(":")[2] ?? "";
+  const subjectRows =
+    equityRowsBySubject(d.prepare(EQUITY_SUBJECT_SQL).all(urn)).get(urn) ?? [];
+  const years = equityRollYears(subjectRows);
+  const { yearUsed, available, warnings } = equityYearUsed(
+    years,
+    params.tax_year ?? null,
+  );
+  const rolls = equityRolls(years, yearUsed);
+  const countySources = d
+    .prepare(EQUITY_COUNTY_SOURCES_SQL)
+    .all(region.slice(3, 5), region.slice(5, 8))
+    .map((r) => String(r.source_id));
+  const companions = equityCompanions(countySources, rolls, yearUsed);
+  const subjectFacts = equityYearFacts(subjectRows, rolls, companions);
+  const subject: Row = {
+    ...equityComparable(urn, subjectFacts),
+    value_history: registryValueHistory(urn),
+  };
+  let matched: EquityMatch[] = [];
+  if (!equityMissing(subject).length) {
+    const q = equityPoolQuery(
+      region,
+      subjectFacts.get("parcel.state_property_category")!.value_json,
+      rolls,
+      companions,
+    );
+    const pool = equityRowsBySubject(d.prepare(q.sql).all(...q.params));
+    matched = selectEquityCandidates(
+      urn,
+      subject,
+      (function* () {
+        for (const [candUrn, candRows] of pool) {
+          const facts = equityYearFacts(candRows, rolls, companions);
+          yield {
+            urn: candUrn,
+            row: equityComparable(candUrn, facts),
+            docs: equityFactDocs(facts),
+          };
+        }
+      })(),
+      params,
+    );
+  }
+  const { counts, returned } = equityReturned(matched, params);
+  return assembleTxEquity(
+    {
+      subject,
+      subjectDocs: equityFactDocs(subjectFacts),
+      params,
+      yearUsed,
+      available,
+      rolls,
+      companions,
+      warnings,
+      counts,
+      returned,
+    },
+    (docs) => equitySources(d, docs),
+  );
 }
