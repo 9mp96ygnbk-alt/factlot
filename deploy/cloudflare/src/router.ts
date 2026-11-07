@@ -521,33 +521,48 @@ function quotaHeaders(q: QuotaState): Record<string, string> {
   };
 }
 
-/** The RegistryQuotaExceeded error object (REST body and MCP tool error alike). */
+/**
+ * The RegistryQuotaExceeded error object (REST body and MCP tool error alike). `needed`: the
+ * lookups the refused call reserves (one per subject for a per-subject tool); when some are
+ * left but fewer than that, the message names the shortfall instead of saying they are used up.
+ * `connection`: the free lookups are counted per OAuth connection, not per IP address.
+ */
 export function quotaError(
   q: QuotaState,
   tier: Tier,
   now: number,
-  connection = false,
+  opts: { needed?: number; connection?: boolean } = {},
 ) {
+  const { needed = 1, connection = false } = opts;
+  const per = connection ? "connection" : "IP address";
   const resets = q.resets_at;
   const limit = q.limit.toLocaleString("en-US");
   const free =
     "Only answered lookups count: coverage checks, misses and input errors are free.";
+  const short = q.remaining > 0 && needed > q.remaining;
+  const left = q.remaining.toLocaleString("en-US");
+  const shortfall = (whose: string) =>
+    `This call needs ${needed.toLocaleString("en-US")} registry lookups (one per subject) but only ${left} of ${whose} are left, so it was not run and nothing was counted. Send ${left} subjects or fewer, or wait until ${resets}.`;
   const message =
     tier === "anonymous"
-      ? `The free registry lookups for today are used up: ${limit} a day per ${connection ? "connection" : "IP address"}. They reset at ${resets}. A Pro key (${PLANS.pro.registryLookupsPerMonth.toLocaleString("en-US")} a month) or Team key (${PLANS.team.registryLookupsPerMonth.toLocaleString("en-US")} a month) lifts the cap: ${PRICING_URL}. Other tools keep working. ${free}`
-      : tier === "pro"
-        ? `This subscription's ${limit} registry lookups for the month are used up. They reset at ${resets}. Team (${PLANS.team.registryLookupsPerMonth.toLocaleString("en-US")} a month) lifts the cap: ${PRICING_URL}. Other tools keep working. ${free}`
-        : `This subscription's ${limit} registry lookups for the month are used up. They reset at ${resets}. Team is the largest plan; for more, email ${CONTACT} (${PRICING_URL}). Other tools keep working. ${free}`;
+      ? `${short ? shortfall(`today's ${limit} free lookups for this ${per}`) : `The free registry lookups for today are used up: ${limit} a day per ${per}. They reset at ${resets}.`} A Pro key (${PLANS.pro.registryLookupsPerMonth.toLocaleString("en-US")} a month) or Team key (${PLANS.team.registryLookupsPerMonth.toLocaleString("en-US")} a month) lifts the cap: ${PRICING_URL}. Other tools keep working. ${free}`
+      : `${short ? shortfall(`this subscription's ${limit} for the month`) : `This subscription's ${limit} registry lookups for the month are used up. They reset at ${resets}.`} ${
+          tier === "pro"
+            ? `Team (${PLANS.team.registryLookupsPerMonth.toLocaleString("en-US")} a month) lifts the cap: ${PRICING_URL}.`
+            : `Team is the largest plan; for more, email ${CONTACT} (${PRICING_URL}).`
+        } Other tools keep working. ${free}`;
   return {
     error: "RegistryQuotaExceeded",
     code: "RegistryQuotaExceeded",
     message,
-    next:
-      tier === "team"
+    next: short
+      ? `send ${left} subjects or fewer, wait until ${resets}, or ${tier === "team" ? `email ${CONTACT}` : `upgrade: ${PRICING_URL}`}`
+      : tier === "team"
         ? `wait until ${resets}, or email ${CONTACT}`
         : `wait until ${resets}, or upgrade: ${PRICING_URL}`,
     limit: q.limit,
     used: q.used,
+    ...(needed > 1 ? { needed, available: q.remaining } : {}),
     resets_at: resets,
     retry_after_seconds: retryAfter(q, now),
     upgrade: PRICING_URL,
@@ -1077,10 +1092,22 @@ async function route(
   if (hit.quota) {
     Object.assign(headers, quotaHeaders(hit.quota));
     if (hit.granted < wanted) {
-      deniedError = quotaError(hit.quota, tier, now(), oauth !== undefined);
+      deniedError = quotaError(hit.quota, tier, now(), {
+        connection: oauth !== undefined,
+      });
       headers["retry-after"] = String(deniedError.retry_after_seconds);
     }
   }
+  // The error of a refused call that reserves `needed` lookups when `left` were free for it.
+  const denial = (needed: number, left: number) =>
+    hit.quota && needed > 1
+      ? quotaError(
+          { ...hit.quota, remaining: left, used: hit.quota.limit - left },
+          tier,
+          now(),
+          { needed, connection: oauth !== undefined },
+        )
+      : deniedError!;
   if (deniedError && path !== "/mcp") {
     // A batch call that does not fit runs not at all: give back what was taken for it.
     if (hit.granted > 0 && hit.quota) {
@@ -1089,13 +1116,10 @@ async function route(
         Math.min(hit.quota.limit, hit.quota.remaining + hit.granted),
       );
     }
-    return withHeaders(
-      json(429, batchDenial(deniedError, wanted, hit.granted)),
-      {
-        ...corsHeaders(),
-        ...headers,
-      },
-    );
+    return withHeaders(json(429, denial(wanted, hit.granted)), {
+      ...corsHeaders(),
+      ...headers,
+    });
   }
 
   // The inner handler runs open (no keys of its own): this layer already decided access.
@@ -1148,7 +1172,7 @@ async function route(
   let res: Response;
   if (onlyAccount) res = new Response(null, { status: 202 });
   else if (deniedError) {
-    res = await mcpWithDenials(mcpBody, hit.granted, deniedError, forward);
+    res = await mcpWithDenials(mcpBody, hit.granted, denial, forward);
   } else res = await forward(mcpText ?? restText);
   // Reports and the model-backed tools are answered here, so their operations are added here.
   if (
@@ -1246,23 +1270,6 @@ async function route(
 }
 
 /**
- * The quota error of a refused call that reserves `n` lookups when `left` were still free for it:
- * a batch that does not fit says how many subjects would.
- */
-function batchDenial(
-  error: ReturnType<typeof quotaError>,
-  n: number,
-  left: number,
-): ReturnType<typeof quotaError> {
-  if (n <= 1 || left <= 0) return error;
-  return {
-    ...error,
-    message: `This batch call needs ${n} registry lookups (one per subject) and ${left} of ${error.limit.toLocaleString("en-US")} remain until ${error.resets_at}: send at most ${left} subjects, or wait for the reset. Only answered subjects count; the rest are given back. Other tools keep working.`,
-    used: error.limit - left,
-  };
-}
-
-/**
  * Run an MCP request of which only the metered registry calls that `granted` covers fit the quota:
  * the rest are answered here as tool errors (isError, the same error object REST returns), the
  * remaining messages go to the inner handler, and the answers are merged.
@@ -1270,7 +1277,7 @@ function batchDenial(
 async function mcpWithDenials(
   body: unknown,
   granted: number,
-  error: ReturnType<typeof quotaError>,
+  error: (needed: number, left: number) => ReturnType<typeof quotaError>,
   forward: (body?: string) => Promise<Response>,
 ): Promise<Response> {
   const batch = Array.isArray(body);
@@ -1292,11 +1299,7 @@ async function mcpWithDenials(
       content: [
         {
           type: "text",
-          text: JSON.stringify(
-            batchDenial(error, callReserves(m), left),
-            null,
-            2,
-          ),
+          text: JSON.stringify(error(callReserves(m), left), null, 2),
         },
       ],
     },

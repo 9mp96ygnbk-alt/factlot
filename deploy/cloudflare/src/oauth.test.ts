@@ -889,6 +889,49 @@ describe("free tier through OAuth", () => {
     assert.equal(body.result.isError, true);
     assert.match(body.result.content[0]!.text, /25 a day per connection/);
   });
+
+  it("gives unanswered per-subject lookups back to the connection, and names its shortfall", async () => {
+    const e = env();
+    const { tokens } = await connect(e, { decision: "free" });
+    const batch = (id: number, n: number) => ({
+      jsonrpc: "2.0",
+      id,
+      method: "tools/call",
+      params: {
+        name: "registry_tx_equity_candidates_batch",
+        arguments: {
+          subjects: Array.from({ length: n }, (_, i) => ({
+            id: `s${i}`,
+            county_fips: "48453",
+            apn: String(i),
+          })),
+        },
+      },
+    });
+    // The stub answers without `results`: all three reserved lookups go back to this connection.
+    const res = await mcp(e, tokens.access_token, batch(1, 3));
+    assert.equal(res.headers.get("x-factlot-registry-quota-remaining"), "25");
+    const next = await mcp(e, tokens.access_token, lookup(2));
+    assert.equal(next.headers.get("x-factlot-registry-quota-remaining"), "24");
+    for (let i = 0; i < 22; i++)
+      await mcp(e, tokens.access_token, lookup(i + 10));
+    const short = await mcp(e, tokens.access_token, batch(3, 3));
+    const body = (await short.json()) as {
+      result: { isError: boolean; content: { text: string }[] };
+    };
+    assert.equal(body.result.isError, true);
+    const error = JSON.parse(body.result.content[0]!.text) as {
+      message: string;
+      needed: number;
+      available: number;
+    };
+    assert.match(
+      error.message,
+      /needs 3 registry lookups .* only 2 of today's 25 free lookups for this connection are left/,
+    );
+    assert.equal(error.needed, 3);
+    assert.equal(error.available, 2);
+  });
 });
 
 describe("quota accounting", () => {

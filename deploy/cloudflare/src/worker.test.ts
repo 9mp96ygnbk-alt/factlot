@@ -3538,8 +3538,11 @@ describe("batch registry tools: one lookup per answered subject", () => {
     assert.equal(res.status, 429);
     const err = (await res.json()) as { error: string; message: string };
     assert.equal(err.error, "RegistryQuotaExceeded");
-    assert.match(err.message, /needs 2 registry lookups .* 1 of 25 remain/);
-    assert.match(err.message, /send at most 1 subjects/);
+    assert.match(
+      err.message,
+      /needs 2 registry lookups \(one per subject\) but only 1 of today's 25 free lookups for this IP address are left/,
+    );
+    assert.match(err.message, /Send 1 subjects or fewer/);
     assert.equal(remaining(res), 1);
     assert.deepEqual(api.seen, [], "the inner handler never ran");
     assert.equal((await e.METER.quota(who, "day", 25)).used, 24);
@@ -4082,5 +4085,316 @@ describe("account usage, tools and page", () => {
       assert.equal(typeof body.message, "string");
       assert.ok(typeof body.next === "string" && body.next.length > 0, code);
     }
+  });
+});
+
+describe("per-subject metering: registry_tx_equity_candidates_batch", () => {
+  const BATCH = "registry_tx_equity_candidates_batch";
+  const PATH = "/v1/registry/tx_equity_candidates/batch";
+  const flush = () => new Promise((r) => setTimeout(r, 0));
+  type Subject = {
+    id: string;
+    urn?: string;
+    county_fips?: string;
+    apn?: string;
+  };
+  // Loaded: county 997 in Texas. Anything else is a per-subject error.
+  const loaded = (s: Subject) =>
+    s.urn?.startsWith("fl:parcel:us-48997:") === true ||
+    s.county_fips === "997";
+  const batchAnswer = (args: { subjects?: Subject[] }) => {
+    const subjects = args.subjects ?? [];
+    const results = subjects.map((s) =>
+      loaded(s)
+        ? { id: s.id, subject: { id: s.urn ?? s.apn }, candidates: [] }
+        : {
+            id: s.id,
+            error: {
+              error: "NotFound",
+              message: "not in the registry",
+              coverage: { county_loaded: false },
+            },
+          },
+    );
+    const answered = results.filter((r) => !("error" in r)).length;
+    return {
+      results,
+      summary: {
+        subjects: subjects.length,
+        answered,
+        errors: subjects.length - answered,
+      },
+      rule: "rule",
+      notice: "notice",
+    };
+  };
+  /** Lookups taken from sub_1's month at this moment. */
+  const used = (e: ReturnType<typeof env>) =>
+    e.limiter.object("meter:sub:sub_1").store.counts.get("month:2026-11") ?? 0;
+  /** The inner handler; `seen` records each forwarded request and the lookups held meanwhile. */
+  function batchApi(e: ReturnType<typeof env>, opts: { down?: boolean } = {}) {
+    const seen: { path: string; body: string; held: number }[] = [];
+    const reply = (status: number, body: unknown) =>
+      new Response(JSON.stringify(body), {
+        status,
+        headers: { "content-type": "application/json" },
+      });
+    const api = {
+      fetch: async (r: Request) => {
+        const path = new URL(r.url).pathname;
+        const body = await r.text();
+        seen.push({ path, body, held: used(e) });
+        if (opts.down)
+          return reply(503, {
+            error: "RegistryUnavailable",
+            message: "registry service answered 503",
+            issues: [],
+          });
+        if (path === PATH) {
+          try {
+            return reply(200, batchAnswer(JSON.parse(body)));
+          } catch {
+            return reply(400, { error: "BadRequest", message: "not JSON" });
+          }
+        }
+        if (path === "/mcp") {
+          const parsed = JSON.parse(body) as unknown;
+          const items = (Array.isArray(parsed) ? parsed : [parsed]) as {
+            id: number;
+            params: { name: string; arguments?: { subjects?: Subject[] } };
+          }[];
+          const out = items.map((m) => ({
+            jsonrpc: "2.0",
+            id: m.id,
+            result: {
+              content: [
+                {
+                  type: "text",
+                  text: JSON.stringify(
+                    m.params.name === BATCH
+                      ? batchAnswer(m.params.arguments ?? {})
+                      : { record: { urn: "fl:parcel:us-24510:0001" } },
+                  ),
+                },
+              ],
+            },
+          }));
+          return reply(200, Array.isArray(parsed) ? out : out[0]);
+        }
+        return reply(200, {});
+      },
+    };
+    return { api, seen };
+  }
+  const five: Subject[] = [
+    { id: "A", urn: "fl:parcel:us-48997:1000001" },
+    { id: "B", county_fips: "997", apn: "1000004" },
+    { id: "C", urn: "fl:parcel:us-48997:1000010" },
+    { id: "D", urn: "fl:parcel:us-48439:00001234" }, // Tarrant: withheld
+    { id: "E", urn: "fl:parcel:us-04021:50101001" }, // not Texas
+  ];
+  const remaining = (r: Response) =>
+    r.headers.get("x-factlot-registry-quota-remaining");
+  async function usage(e: ReturnType<typeof env>, key: string) {
+    await flush();
+    const res = await call(e, innerApi().api, "/v1/account/usage", {
+      key,
+      method: "GET",
+    });
+    return (await res.json()) as {
+      total: number;
+      by_tool: Record<string, number>;
+      by_region: Record<string, number>;
+    };
+  }
+
+  it("REST: 5 subjects, 3 answered: 5 held, 3 charged, 2 given back, usage ×3 in us-48", async () => {
+    const e = env();
+    const { key } = await issue(e);
+    const { api, seen } = batchApi(e);
+    const res = await call(e, api, PATH, { key, body: { subjects: five } });
+    assert.equal(res.status, 200);
+    assert.equal(
+      seen[0]!.held,
+      5,
+      "the whole batch was reserved before it ran",
+    );
+    assert.deepEqual(
+      (JSON.parse(seen[0]!.body) as { subjects: Subject[] }).subjects,
+      five,
+      "the body reached the inner handler unchanged",
+    );
+    assert.equal(used(e), 3);
+    assert.equal(remaining(res), "4997");
+    const body = (await res.json()) as { summary: { answered: number } };
+    assert.equal(body.summary.answered, 3, "the answer is readable");
+    const u = await usage(e, key);
+    assert.equal(u.total, 3);
+    assert.deepEqual(u.by_tool, { [BATCH]: 3 });
+    assert.deepEqual(u.by_region, { "us-48": 3 });
+  });
+
+  it("REST: a batch where every subject misses is free", async () => {
+    const e = env();
+    const { key } = await issue(e);
+    const { api, seen } = batchApi(e);
+    const res = await call(e, api, PATH, {
+      key,
+      body: { subjects: five.slice(3) },
+    });
+    assert.equal(res.status, 200);
+    assert.equal(seen[0]!.held, 2);
+    assert.equal(used(e), 0);
+    assert.equal(remaining(res), "5000");
+    assert.equal((await usage(e, key)).total, 0);
+  });
+
+  it("REST: an unreadable body holds 1 lookup and gives it back on the 4xx", async () => {
+    const e = env();
+    const { key } = await issue(e);
+    const { api, seen } = batchApi(e);
+    const res = await handle(
+      new Request(`https://api.factlot.com${PATH}`, {
+        method: "POST",
+        body: "{not json",
+        headers: {
+          "content-type": "application/json",
+          "cf-connecting-ip": IP,
+          authorization: `Bearer ${key}`,
+        },
+      }),
+      e,
+      api,
+      { now: () => e.clock.t },
+    );
+    assert.equal(res.status, 400);
+    assert.equal(seen[0]!.held, 1);
+    assert.equal(used(e), 0);
+    assert.equal(remaining(res), "5000");
+  });
+
+  it("REST: RegistryUnavailable gives every reserved lookup back", async () => {
+    const e = env();
+    const { key } = await issue(e);
+    const { api, seen } = batchApi(e, { down: true });
+    const res = await call(e, api, PATH, { key, body: { subjects: five } });
+    assert.equal(res.status, 503);
+    assert.equal(seen[0]!.held, 5);
+    assert.equal(used(e), 0);
+    assert.equal(remaining(res), "5000");
+  });
+
+  it("MCP: a 4-subject batch call and a registry_get hold 5 and are charged per answer", async () => {
+    const e = env();
+    const { key } = await issue(e);
+    const { api, seen } = batchApi(e);
+    const res = await call(e, api, "/mcp", {
+      key,
+      body: [
+        {
+          ...toolCall(BATCH, 1),
+          params: { name: BATCH, arguments: { subjects: five.slice(1) } },
+        },
+        toolCall("registry_get", 2),
+        toolCall("calc_irr", 3),
+      ],
+    });
+    assert.equal(res.status, 200);
+    assert.equal(seen[0]!.held, 5);
+    assert.equal(used(e), 3, "B and C answered, plus the record");
+    assert.equal(remaining(res), "4997");
+    const u = await usage(e, key);
+    assert.deepEqual(u.by_tool, { [BATCH]: 2, registry_get: 1 });
+    assert.deepEqual(u.by_region, { "us-48": 2, other: 1 });
+  });
+
+  it("over the cap: fewer lookups left than subjects refuses the whole call and names the shortfall", async () => {
+    const e = env();
+    const { key } = await issue(e);
+    e.limiter.object("meter:sub:sub_1").store.setCount("month:2026-11", 4_998);
+    const { api, seen } = batchApi(e);
+    const res = await call(e, api, PATH, { key, body: { subjects: five } });
+    assert.equal(res.status, 429);
+    assert.equal(seen.length, 0, "nothing ran");
+    assert.equal(used(e), 4_998, "the 2 granted were given back");
+    assert.equal(remaining(res), "2");
+    assert.ok(Number(res.headers.get("retry-after")) > 0);
+    const err = (await res.json()) as {
+      error: string;
+      message: string;
+      needed: number;
+      available: number;
+      next: string;
+    };
+    assert.equal(err.error, "RegistryQuotaExceeded");
+    assert.deepEqual([err.needed, err.available], [5, 2]);
+    assert.match(err.message, /needs 5 registry lookups \(one per subject\)/);
+    assert.match(err.message, /only 2 of this subscription's 5,000/);
+    assert.match(err.next, /send 2 subjects or fewer/);
+    // Two subjects still fit.
+    const ok = await call(e, api, PATH, {
+      key,
+      body: { subjects: five.slice(0, 2) },
+    });
+    assert.equal(ok.status, 200);
+    assert.equal(used(e), 5_000);
+  });
+
+  it("over the cap on MCP: the batch call is a tool error; a call that fits still runs", async () => {
+    const e = env();
+    const { key } = await issue(e);
+    e.limiter.object("meter:sub:sub_1").store.setCount("month:2026-11", 4_998);
+    const { api, seen } = batchApi(e);
+    const res = await call(e, api, "/mcp", {
+      key,
+      body: [
+        {
+          ...toolCall(BATCH, 1),
+          params: { name: BATCH, arguments: { subjects: five } },
+        },
+        toolCall("registry_get", 2),
+      ],
+    });
+    assert.equal(res.status, 200);
+    assert.deepEqual(
+      (JSON.parse(seen[0]!.body) as { id: number }[]).map((m) => m.id),
+      [2],
+    );
+    const answers = (await res.json()) as {
+      id: number;
+      result: { isError?: boolean; content: { text: string }[] };
+    }[];
+    const refused = answers.find((a) => a.id === 1)!;
+    assert.equal(refused.result.isError, true);
+    const err = JSON.parse(refused.result.content[0]!.text) as {
+      error: string;
+      needed: number;
+      available: number;
+    };
+    assert.equal(err.error, "RegistryQuotaExceeded");
+    assert.equal(err.needed, 5);
+    assert.equal(
+      used(e),
+      4_999,
+      "the record is charged; the unused one went back",
+    );
+    assert.equal(remaining(res), "1");
+  });
+
+  it("free tier: 50 subjects need more than the 25 a day; refused whole", async () => {
+    const e = env();
+    const { api, seen } = batchApi(e);
+    const subjects = Array.from({ length: 50 }, (_, i) => ({
+      id: `s${i}`,
+      urn: `fl:parcel:us-48997:${1000000 + i}`,
+    }));
+    const res = await call(e, api, PATH, { body: { subjects } });
+    assert.equal(res.status, 429);
+    assert.equal(seen.length, 0);
+    assert.equal(remaining(res), "25");
+    const err = (await res.json()) as { needed: number; available: number };
+    assert.deepEqual([err.needed, err.available], [50, 25]);
+    const q = await e.METER.quota(await addressSubject(IP, T0), "day", 25);
+    assert.equal(q.used, 0);
   });
 });
