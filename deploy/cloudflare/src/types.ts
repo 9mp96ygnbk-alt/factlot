@@ -81,6 +81,28 @@ export interface Fetcher {
   fetch(request: Request): Promise<Response>;
 }
 
+/** One address, optionally with a display name (Cloudflare Email Service). */
+export interface EmailAddress {
+  email: string;
+  name?: string;
+}
+
+/** The structured message of the Email Service `send_email` binding. */
+export interface EmailMessageBuilder {
+  to: string | EmailAddress;
+  from: string | EmailAddress;
+  subject: string;
+  text: string;
+  html?: string;
+  replyTo?: string | EmailAddress;
+  headers?: Record<string, string>;
+}
+
+/** The `send_email` binding (Cloudflare Email Service). Errors carry a `code` such as E_SENDER_NOT_VERIFIED. */
+export interface SendEmail {
+  send(message: EmailMessageBuilder): Promise<{ messageId: string }>;
+}
+
 export interface Env {
   /** API-key records, Stripe checkout sessions already redeemed, cached price IDs. */
   KEYS: KV;
@@ -88,6 +110,8 @@ export interface Env {
   RL_ANON: RateLimit;
   /** Per-caller minute limits and registry quotas. */
   METER: MeterService;
+  /** Per agent-claim token: one poll every 2 seconds. */
+  RL_CLAIM: RateLimit;
   /** Optional usage metering (Workers Analytics Engine). */
   USAGE?: AnalyticsDataset;
   /**
@@ -110,4 +134,11 @@ export interface Env {
   SITE_URL?: string;
   /** Public API origin advertised to agents (default https://api.factlot.com). */
   API_URL?: string;
+  /**
+   * Optional: Cloudflare Email Service binding (wrangler.jsonc `send_email`). Without it the
+   * welcome email is skipped and email recovery says it is being set up.
+   */
+  EMAIL?: SendEmail;
+  /** Secret: signs account-recovery links. Without it email recovery stays off. */
+  RECOVERY_SIGNING_SECRET?: string;
 }

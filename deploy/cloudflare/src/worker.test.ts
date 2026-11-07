@@ -29,12 +29,14 @@ import {
   WindowCounter,
   addressSubject,
   ipBucket,
+  objectLimiter,
   objectMeter,
   quotaWindow,
   sqlStore,
   type CounterStore,
   type DurableObjectNamespaceLike,
 } from "./limiter.ts";
+import { CLAIM_POLL_MS } from "./claim.ts";
 import { escapeHtml } from "./pages.ts";
 import { PLANS } from "./plans.ts";
 import { REGISTRY_RUN_URL, registryRunner } from "./registry.ts";
@@ -210,6 +212,7 @@ function env(
   return {
     KEYS: new MemoryKV(),
     RL_ANON: new CountingLimit(2),
+    RL_CLAIM: objectLimiter(limiter.ns, "claim", 1, CLAIM_POLL_MS),
     METER: objectMeter(limiter.ns),
     ...overrides,
     limiter,
@@ -1690,7 +1693,9 @@ describe("checkout gate", () => {
       assert.equal(res.status, 503);
       assert.deepEqual(await res.json(), {
         error: "CheckoutClosed",
+        code: "CheckoutClosed",
         message: closedText,
+        next: "mailto:contact@factlot.com",
       });
       const page = await handle(
         new Request("https://factlot.com/billing/checkout?plan=pro"),
@@ -2061,7 +2066,7 @@ describe("pages", () => {
     const mint = await handle(form({ key, action: "mint" }), e, api, opts);
     const html = await mint.text();
     const shown = html.match(
-      /<pre class="key">(fl_live_[A-Za-z0-9_-]{43})<\/pre>/,
+      /<pre class="key" id="new-key">(fl_live_[A-Za-z0-9_-]{43})<\/pre>/,
     )?.[1];
     assert.ok(shown, "the new key is on the page");
     assert.equal(
@@ -2391,5 +2396,753 @@ describe("registry runner", () => {
       fetch: async () => new Response(JSON.stringify({ hello: 1 })),
     });
     await assert.rejects(malformed("registry_coverage", {}));
+  });
+});
+
+// --- Onboarding: agent claims, the onboarding page, recovery by email ---------------------------
+
+/** A fake Email Service binding that records what it sends. */
+function fakeEmail(fail?: string) {
+  const sent: { to: string; subject: string; text: string; html?: string }[] =
+    [];
+  return {
+    sent,
+    binding: {
+      send: async (m: {
+        to: unknown;
+        subject: string;
+        text: string;
+        html?: string;
+      }) => {
+        if (fail) throw Object.assign(new Error("send failed"), { code: fail });
+        sent.push({
+          to: String(m.to),
+          subject: m.subject,
+          text: m.text,
+          html: m.html,
+        });
+        return { messageId: `m${sent.length}` };
+      },
+    },
+  };
+}
+
+/** Run `handle` collecting the work it defers (emails), and wait for it. */
+async function run(
+  e: ReturnType<typeof env>,
+  request: Request,
+  fetchImpl?: typeof fetch,
+): Promise<Response> {
+  const deferred: Promise<unknown>[] = [];
+  const { api } = innerApi();
+  const res = await handle(request, e, api, {
+    fetchImpl,
+    now: () => e.clock.t,
+    waitUntil: (p) => deferred.push(p),
+  });
+  await Promise.all(deferred);
+  return res;
+}
+
+/** Everything the Worker writes to the console while `fn` runs. */
+async function captureLogs(fn: () => Promise<void>): Promise<string> {
+  const lines: string[] = [];
+  const orig = {
+    log: console.log,
+    warn: console.warn,
+    error: console.error,
+    info: console.info,
+  };
+  const grab = (...a: unknown[]) => void lines.push(a.map(String).join(" "));
+  console.log = console.warn = console.error = console.info = grab;
+  try {
+    await fn();
+  } finally {
+    Object.assign(console, orig);
+  }
+  return lines.join("\n");
+}
+
+describe("agent claim flow", () => {
+  const paid = {
+    id: SESSION,
+    status: "complete",
+    payment_status: "paid",
+    mode: "subscription",
+    subscription: "sub_1",
+    customer: "cus_1",
+    customer_details: { email: "buyer@example.com" },
+    metadata: { factlot_plan: "pro" },
+  };
+  function stripe(state: { session: Record<string, unknown> }) {
+    let checkoutBody: URLSearchParams | undefined;
+    const s = fakeStripe({
+      "GET /prices": () => [200, { data: [{ id: "price_pro" }] }],
+      "POST /checkout/sessions": (b) => {
+        checkoutBody = b;
+        return [
+          200,
+          { id: SESSION, url: `https://checkout.stripe.com/c/pay/${SESSION}` },
+        ];
+      },
+      [`GET /checkout/sessions/${SESSION}`]: () => [200, state.session],
+    });
+    return { ...s, body: () => checkoutBody };
+  }
+  const open = { ...paid, status: "open", payment_status: "unpaid" };
+
+  async function start(e: ReturnType<typeof env>, fetchImpl: typeof fetch) {
+    const res = await run(
+      e,
+      new Request("https://api.factlot.com/v1/billing/checkout", {
+        method: "POST",
+        body: '{"plan":"pro"}',
+        headers: { "cf-connecting-ip": IP },
+      }),
+      fetchImpl,
+    );
+    assert.equal(res.status, 200);
+    return (await res.json()) as {
+      url: string;
+      claim_url: string;
+      expires_at: string;
+    };
+  }
+  const poll = (e: ReturnType<typeof env>, url: string, f: typeof fetch) =>
+    run(e, new Request(url, { headers: { "cf-connecting-ip": IP } }), f);
+
+  it("checkout returns url, claim_url and expires_at; only the token's hash is stored", async () => {
+    const state = { session: open as Record<string, unknown> };
+    const s = stripe(state);
+    const e = env({ STRIPE_SECRET_KEY: "sk_live_x" });
+    e.RL_ANON = new CountingLimit(100);
+    const out = await start(e, s.fetchImpl);
+    assert.equal(out.url, `https://checkout.stripe.com/c/pay/${SESSION}`);
+    const m = out.claim_url.match(
+      /^https:\/\/api\.factlot\.com\/v1\/billing\/claim\/([A-Za-z0-9_-]{43})$/,
+    );
+    assert.ok(m, out.claim_url);
+    const token = m[1]!;
+    assert.equal(Date.parse(out.expires_at), T0 + 3600_000);
+    const hash = await hashKey(token);
+    assert.equal(s.body()?.get("metadata[factlot_claim]"), hash.slice(0, 16));
+    assert.equal(s.body()?.get("expires_at"), String(T0 / 1000 + 3600));
+    const stored = JSON.parse(e.KEYS.data.get(`claim:${hash}`)!);
+    assert.equal(stored.session, SESSION);
+    assert.equal(e.KEYS.ttl.get(`claim:${hash}`), 3600 + 900);
+    for (const [k, v] of e.KEYS.data)
+      assert.ok(!k.includes(token) && !v.includes(token), "no plaintext token");
+  });
+
+  it("pending until paid, the key once, then 410 by agent; the success page then has no key", async () => {
+    const state = { session: open as Record<string, unknown> };
+    const s = stripe(state);
+    const mail = fakeEmail();
+    const e = env({ STRIPE_SECRET_KEY: "sk_live_x", EMAIL: mail.binding });
+    e.RL_ANON = new CountingLimit(100);
+    const { claim_url } = await start(e, s.fetchImpl);
+    const pending = await poll(e, claim_url, s.fetchImpl);
+    assert.equal(pending.status, 202);
+    assert.equal(
+      ((await pending.json()) as { status: string }).status,
+      "pending",
+    );
+    assert.equal(pending.headers.get("retry-after"), "2");
+    state.session = paid;
+    e.clock.t += CLAIM_POLL_MS;
+    const got = await poll(e, claim_url, s.fetchImpl);
+    assert.equal(got.status, 200);
+    const body = (await got.json()) as Record<string, unknown>;
+    assert.ok(looksLikeKey(String(body.key)));
+    assert.equal(body.plan, "pro");
+    assert.equal(body.plan_name, "FactLot Pro");
+    assert.equal(body.requests_per_minute, 600);
+    assert.equal(body.registry_lookups_per_month, 5000);
+    assert.equal(body.account, "https://factlot.com/account");
+    assert.equal(body.mcp, "https://api.factlot.com/mcp");
+    assert.equal(
+      (await call(e, innerApi().api, "/v1/calc/irr", { key: String(body.key) }))
+        .status,
+      200,
+    );
+    e.clock.t += CLAIM_POLL_MS;
+    const again = await poll(e, claim_url, s.fetchImpl);
+    assert.equal(again.status, 410);
+    assert.deepEqual(
+      ((await again.json()) as { status: string; by: string }).by,
+      "agent",
+    );
+    const page = await run(
+      e,
+      new Request(`https://factlot.com/billing/success?session_id=${SESSION}`, {
+        headers: { "cf-connecting-ip": IP },
+      }),
+      s.fetchImpl,
+    );
+    assert.equal(page.status, 200);
+    const html = await page.text();
+    assert.match(html, /Your agent already collected this key/);
+    assert.doesNotMatch(html, /fl_live_[A-Za-z0-9_-]{43}/);
+    assert.match(html, /&lt;your key&gt;/);
+    assert.equal(mail.sent.length, 1, "one welcome email, on the redemption");
+    assert.ok(!mail.sent[0]!.text.includes(String(body.key)));
+  });
+
+  it("the page first: a later agent claim gets 410 by page", async () => {
+    const s = stripe({ session: paid });
+    const e = env({ STRIPE_SECRET_KEY: "sk_live_x" });
+    e.RL_ANON = new CountingLimit(100);
+    const { claim_url } = await start(e, s.fetchImpl);
+    const page = await run(
+      e,
+      new Request(`https://factlot.com/billing/success?session_id=${SESSION}`, {
+        headers: { "cf-connecting-ip": IP },
+      }),
+      s.fetchImpl,
+    );
+    assert.match(await page.text(), /<pre id="key"><code>fl_live_/);
+    const res = await poll(e, claim_url, s.fetchImpl);
+    assert.equal(res.status, 410);
+    const b = (await res.json()) as Record<string, unknown>;
+    assert.equal(b.status, "claimed");
+    assert.equal(b.by, "page");
+    assert.ok(b.next, "tells the agent what to do next");
+  });
+
+  it("the page and the agent at the same moment: exactly one key", async () => {
+    const s = stripe({ session: paid });
+    const e = env({ STRIPE_SECRET_KEY: "sk_live_x" });
+    e.RL_ANON = new CountingLimit(100);
+    const { claim_url } = await start(e, s.fetchImpl);
+    const [a, p] = await Promise.all([
+      poll(e, claim_url, s.fetchImpl),
+      run(
+        e,
+        new Request(
+          `https://factlot.com/billing/success?session_id=${SESSION}`,
+        ),
+        s.fetchImpl,
+      ),
+    ]);
+    const shown = [
+      a.status === 200,
+      /<pre id="key">/.test(await p.text()),
+    ].filter(Boolean);
+    assert.equal(shown.length, 1);
+    assert.equal(
+      [...e.KEYS.data.keys()].filter((k) => k.startsWith("key:")).length,
+      1,
+    );
+  });
+
+  it("404 for an unknown or malformed token and for an expired, unpaid claim", async () => {
+    const state = { session: open as Record<string, unknown> };
+    const s = stripe(state);
+    const e = env({ STRIPE_SECRET_KEY: "sk_live_x" });
+    e.RL_ANON = new CountingLimit(100);
+    const { claim_url } = await start(e, s.fetchImpl);
+    const unknown = await poll(
+      e,
+      `https://api.factlot.com/v1/billing/claim/${"A".repeat(43)}`,
+      s.fetchImpl,
+    );
+    assert.equal(unknown.status, 404);
+    const bad = await poll(
+      e,
+      "https://api.factlot.com/v1/billing/claim/short",
+      s.fetchImpl,
+    );
+    assert.equal(bad.status, 404);
+    e.clock.t += 3600_000 + 1000;
+    state.session = { ...open, status: "expired" };
+    const expired = await poll(e, claim_url, s.fetchImpl);
+    assert.equal(expired.status, 404);
+    // Once KV drops the record (after the grace), it is unknown too.
+    e.KEYS.data.clear();
+    e.clock.t += CLAIM_POLL_MS;
+    assert.equal((await poll(e, claim_url, s.fetchImpl)).status, 404);
+  });
+
+  it("a payment finished just before expiry is still collected during the grace", async () => {
+    const s = stripe({ session: paid });
+    const e = env({ STRIPE_SECRET_KEY: "sk_live_x" });
+    e.RL_ANON = new CountingLimit(100);
+    const { claim_url } = await start(e, s.fetchImpl);
+    e.clock.t += 3600_000 + 60_000;
+    assert.equal((await poll(e, claim_url, s.fetchImpl)).status, 200);
+  });
+
+  it("rate-limits polling to one request per 2 seconds per token, and per address", async () => {
+    const s = stripe({ session: open });
+    const e = env({ STRIPE_SECRET_KEY: "sk_live_x" });
+    e.RL_ANON = new CountingLimit(100);
+    const { claim_url } = await start(e, s.fetchImpl);
+    assert.equal((await poll(e, claim_url, s.fetchImpl)).status, 202);
+    const fast = await poll(e, claim_url, s.fetchImpl);
+    assert.equal(fast.status, 429);
+    assert.equal(fast.headers.get("retry-after"), "2");
+    e.clock.t += CLAIM_POLL_MS;
+    assert.equal((await poll(e, claim_url, s.fetchImpl)).status, 202);
+    e.RL_ANON = new CountingLimit(0);
+    e.clock.t += CLAIM_POLL_MS;
+    assert.equal((await poll(e, claim_url, s.fetchImpl)).status, 429);
+  });
+
+  it("never logs the claim token or the key, even when Stripe fails", async () => {
+    const state = { session: paid as Record<string, unknown> };
+    let fail = true;
+    const s = fakeStripe({
+      "GET /prices": () => [200, { data: [{ id: "price_pro" }] }],
+      "POST /checkout/sessions": () => [
+        200,
+        { id: SESSION, url: "https://checkout.stripe.com/c/pay/x" },
+      ],
+      [`GET /checkout/sessions/${SESSION}`]: () =>
+        fail ? [500, { error: { message: "boom" } }] : [200, state.session],
+    });
+    const e = env({ STRIPE_SECRET_KEY: "sk_live_x" });
+    e.RL_ANON = new CountingLimit(100);
+    let token = "";
+    let key = "";
+    const logs = await captureLogs(async () => {
+      const { claim_url } = await start(e, s.fetchImpl);
+      token = claim_url.split("/").pop()!;
+      assert.equal((await poll(e, claim_url, s.fetchImpl)).status, 502);
+      fail = false;
+      e.clock.t += CLAIM_POLL_MS;
+      key = String(
+        (
+          (await (await poll(e, claim_url, s.fetchImpl)).json()) as {
+            key: string;
+          }
+        ).key,
+      );
+    });
+    assert.ok(logs.includes("stripe call failed"), "the failure is logged");
+    assert.ok(!logs.includes(token), "no token in logs");
+    assert.ok(!logs.includes(key), "no key in logs");
+  });
+
+  it("documents the checkout object in the API root and /v1/plans", async () => {
+    const e = env();
+    const { api } = innerApi();
+    for (const path of ["/", "/v1/plans"]) {
+      const body = (await (
+        await call(e, api, path, { method: "GET" })
+      ).json()) as {
+        checkout: {
+          method: string;
+          url: string;
+          claim: Record<string, string>;
+        };
+      };
+      assert.equal(body.checkout.method, "POST");
+      assert.equal(
+        body.checkout.url,
+        "https://api.factlot.com/v1/billing/checkout",
+      );
+      assert.match(body.checkout.claim.claimed!, /410/);
+    }
+  });
+});
+
+describe("onboarding page", () => {
+  const paidSession = {
+    status: "complete",
+    payment_status: "paid",
+    mode: "subscription",
+    subscription: "sub_1",
+    customer: "cus_1",
+    metadata: { factlot_plan: "team" },
+  };
+
+  it("shows the key once with copy buttons, per-client setup with the real key, and a key test", async () => {
+    const s = fakeStripe({
+      [`GET /checkout/sessions/${SESSION}`]: () => [200, paidSession],
+    });
+    const e = env({ STRIPE_SECRET_KEY: "sk_test_x" });
+    const res = await successRoute(
+      e,
+      new URL(`https://factlot.com/billing/success?session_id=${SESSION}`),
+      s.fetchImpl,
+    );
+    const html = await res.text();
+    const key = html.match(
+      /<pre id="key"><code>(fl_live_[A-Za-z0-9_-]{43})</,
+    )?.[1];
+    assert.ok(key);
+    for (const client of [
+      "Claude Code",
+      "Claude Desktop and claude.ai",
+      "ChatGPT",
+      "Cursor and VS Code",
+      "Python",
+      "curl",
+    ])
+      assert.ok(html.includes(`<summary>${client}</summary>`), client);
+    assert.ok(
+      html.includes(
+        `claude mcp add --transport http factlot https://api.factlot.com/mcp --header &quot;Authorization: Bearer ${key}&quot;`,
+      ),
+    );
+    assert.ok(html.includes(`export FACTLOT_API_KEY=&quot;${key}&quot;`));
+    assert.ok(
+      !html.includes("&lt;your key&gt;"),
+      "no placeholder when the key is known",
+    );
+    assert.match(
+      html,
+      /<button type="button" class="copy" data-copy="key">Copy<\/button>/,
+    );
+    assert.match(html, /id="test-key" type="password"[^>]* value="fl_live_/);
+    assert.match(html, /Give this URL to your agent/);
+    assert.ok(html.includes("https://api.factlot.com/v1/onboarding?plan=team"));
+    assert.match(html, /<link rel="stylesheet" href="\/styles.css">/);
+    const csp = res.headers.get("content-security-policy")!;
+    const nonce = csp.match(/script-src 'nonce-([A-Za-z0-9_-]+)'/)?.[1];
+    assert.ok(nonce);
+    assert.ok(html.includes(`<script nonce="${nonce}">`));
+    assert.ok(html.includes(`<style nonce="${nonce}">`));
+    assert.match(csp, /connect-src https:\/\/api\.factlot\.com;/);
+    assert.match(csp, /default-src 'none'/);
+    assert.doesNotMatch(csp, /unsafe-inline/);
+    assert.doesNotMatch(html, / style="/, "no inline style attributes (CSP)");
+    assert.equal(res.headers.get("cache-control"), "no-store");
+  });
+
+  it("a revisit after the page showed the key renders the guide with a recovery link, not a bare 409", async () => {
+    const s = fakeStripe({
+      [`GET /checkout/sessions/${SESSION}`]: () => [200, paidSession],
+    });
+    const e = env({ STRIPE_SECRET_KEY: "sk_test_x" });
+    const url = new URL(
+      `https://factlot.com/billing/success?session_id=${SESSION}`,
+    );
+    await (await successRoute(e, url, s.fetchImpl)).text();
+    const again = await successRoute(e, url, s.fetchImpl);
+    assert.equal(again.status, 200);
+    const html = await again.text();
+    assert.match(html, /Your key was already shown/);
+    assert.match(
+      html,
+      /href="https:\/\/factlot\.com\/account#recover">Recover access</,
+    );
+    assert.match(html, /Set up FactLot Team/);
+    assert.doesNotMatch(html, /fl_live_[A-Za-z0-9_-]{43}/);
+    assert.match(html, /Bearer &lt;your key&gt;/);
+  });
+
+  it("GET /v1/onboarding: the guide as JSON with <key> placeholders, or Markdown", async () => {
+    const e = env();
+    const { api } = innerApi();
+    const res = await call(e, api, "/v1/onboarding?plan=pro", {
+      method: "GET",
+    });
+    assert.equal(res.status, 200);
+    const g = (await res.json()) as {
+      plan: { id: string; registry_lookups_per_month: number };
+      clients: { id: string; snippets: { code: string }[] }[];
+      test: { url: string };
+      lookups: Record<string, string>;
+      links: Record<string, string>;
+    };
+    assert.equal(g.plan.id, "pro");
+    assert.equal(g.plan.registry_lookups_per_month, 5000);
+    assert.deepEqual(
+      g.clients.map((c) => c.id),
+      ["claude-code", "claude", "chatgpt", "cursor-vscode", "python", "curl"],
+    );
+    assert.ok(
+      g.clients.every((c) =>
+        c.snippets.every((sn) => !/fl_live_/.test(sn.code)),
+      ),
+    );
+    assert.match(g.clients[0]!.snippets[0]!.code, /Bearer <key>/);
+    assert.equal(g.test.url, "https://api.factlot.com/v1/account");
+    assert.match(g.lookups.counted!, /registry_coverage/);
+    assert.equal(g.links.account, "https://factlot.com/account");
+    const md = await handle(
+      new Request("https://api.factlot.com/v1/onboarding", {
+        headers: { accept: "text/markdown" },
+      }),
+      e,
+      api,
+    );
+    assert.match(md.headers.get("content-type")!, /text\/markdown/);
+    const text = await md.text();
+    assert.match(text, /^# Set up FactLot/);
+    assert.match(text, /## 2\. Connect your client/);
+    assert.match(text, /```bash\nclaude mcp add/);
+  });
+});
+
+describe("recovery by email", () => {
+  const SECRET = "test-recovery-secret";
+  function setup(
+    over: Partial<Env> = {},
+    customers: Record<string, string[]> = { "buyer@example.com": ["cus_1"] },
+  ) {
+    const s = fakeStripe({
+      "GET /customers": (q) => [
+        200,
+        { data: (customers[q.get("email") ?? ""] ?? []).map((id) => ({ id })) },
+      ],
+      "GET /subscriptions": (q) => [
+        200,
+        {
+          data:
+            q.get("customer") === "cus_1"
+              ? [{ id: "sub_1" }, { id: "sub_gone" }]
+              : [],
+        },
+      ],
+      "POST /billing_portal/sessions": () => [
+        200,
+        { url: "https://billing.stripe.com/p/session/r" },
+      ],
+    });
+    const mail = fakeEmail();
+    const e = env({
+      STRIPE_SECRET_KEY: "sk_live_x",
+      EMAIL: mail.binding,
+      RECOVERY_SIGNING_SECRET: SECRET,
+      ...over,
+    });
+    e.RL_ANON = new CountingLimit(100);
+    return { s, mail, e };
+  }
+  const ask = (e: ReturnType<typeof env>, email: string, f: typeof fetch) =>
+    run(
+      e,
+      new Request("https://factlot.com/account/recover", {
+        method: "POST",
+        body: new URLSearchParams({ email }).toString(),
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+          origin: "https://factlot.com",
+          "cf-connecting-ip": IP,
+        },
+      }),
+      f,
+    );
+  const link = (text: string) =>
+    text.match(
+      /https:\/\/factlot\.com\/account\/recover\/([A-Za-z0-9_.-]+)/,
+    )?.[0];
+  const issueVia = (e: ReturnType<typeof env>, url: string, f: typeof fetch) =>
+    run(
+      e,
+      new Request(url, {
+        method: "POST",
+        body: "action=issue",
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+          origin: "https://factlot.com",
+          "cf-connecting-ip": IP,
+        },
+      }),
+      f,
+    );
+
+  it("the form is off with a clear notice until the binding and the secret are set", async () => {
+    for (const over of [
+      { EMAIL: undefined },
+      { RECOVERY_SIGNING_SECRET: undefined },
+    ]) {
+      const { e, s } = setup(over);
+      const form = await run(e, new Request("https://factlot.com/account"));
+      const html = await form.text();
+      assert.match(
+        html,
+        /Email recovery is being set up; email contact@factlot\.com/,
+      );
+      assert.doesNotMatch(html, /action="\/account\/recover"/);
+      const post = await ask(e, "buyer@example.com", s.fetchImpl);
+      assert.equal(post.status, 503);
+      assert.equal(s.calls.length, 0, "Stripe is never asked");
+    }
+    const { e } = setup();
+    const on = await (
+      await run(e, new Request("https://factlot.com/account"))
+    ).text();
+    assert.match(on, /<form method="post" action="\/account\/recover">/);
+  });
+
+  it("answers the same for an unknown email and sends nothing", async () => {
+    const { e, s, mail } = setup();
+    await issue(e);
+    const known = await ask(e, "buyer@example.com", s.fetchImpl);
+    const unknown = await ask(e, "nobody@example.com", s.fetchImpl);
+    assert.equal(known.status, unknown.status);
+    const a = (await known.text()).replace(/nonce="[^"]*"/g, "");
+    const b = (await unknown.text()).replace(/nonce="[^"]*"/g, "");
+    assert.equal(a, b, "identical pages");
+    assert.match(
+      a,
+      /If that email has a FactLot subscription, a link is on its way/,
+    );
+    assert.equal(mail.sent.length, 1);
+    assert.equal(mail.sent[0]!.to, "buyer@example.com");
+  });
+
+  it("a link shows the account; issuing consumes it; Pro's one key is replaced and says so", async () => {
+    const { e, s, mail } = setup();
+    const { key: old } = await issue(e);
+    const logs = await captureLogs(async () => {
+      await ask(e, "buyer@example.com", s.fetchImpl);
+    });
+    const url = link(mail.sent[0]!.text)!;
+    assert.ok(url);
+    assert.ok(!mail.sent[0]!.text.includes("fl_live_"), "no key in the email");
+    assert.ok(!logs.includes(url.split("/").pop()!), "no token in logs");
+    assert.ok(!logs.includes("buyer@example.com"), "no address in logs");
+    const view = await run(e, new Request(url), s.fetchImpl);
+    assert.equal(view.status, 200);
+    const page = await view.text();
+    assert.match(page, /FactLot Pro/);
+    assert.match(
+      page,
+      /replaces key <code>[0-9a-f]{16}<\/code>, which stops working/,
+    );
+    assert.match(page, /value="issue"/);
+    const done = await issueVia(e, url, s.fetchImpl);
+    const html = await done.text();
+    const fresh = html.match(
+      /<pre id="key"><code>(fl_live_[A-Za-z0-9_-]{43})</,
+    )?.[1];
+    assert.ok(fresh, "the new key is shown");
+    assert.match(html, /no longer works/);
+    const { api } = innerApi();
+    assert.equal(
+      (await call(e, api, "/v1/calc/irr", { key: fresh })).status,
+      200,
+    );
+    assert.equal(
+      (await call(e, api, "/v1/calc/irr", { key: old })).status,
+      401,
+    );
+    const reuse = await issueVia(e, url, s.fetchImpl);
+    assert.equal(reuse.status, 410);
+    assert.match(await reuse.text(), /already used/);
+    assert.equal((await run(e, new Request(url), s.fetchImpl)).status, 410);
+  });
+
+  it("Team with room adds a key and keeps the others working", async () => {
+    const { e, s, mail } = setup();
+    const { key: old } = await issue(e, { plan: "team" });
+    await ask(e, "buyer@example.com", s.fetchImpl);
+    const url = link(mail.sent[0]!.text)!;
+    const html = await (await issueVia(e, url, s.fetchImpl)).text();
+    assert.match(html, /Your other keys keep working/);
+    const { api } = innerApi();
+    assert.equal(
+      (await call(e, api, "/v1/calc/irr", { key: old })).status,
+      200,
+    );
+  });
+
+  it("links expire after 15 minutes; forged links are refused before KV is read", async () => {
+    const { e, s, mail } = setup();
+    await issue(e);
+    await ask(e, "buyer@example.com", s.fetchImpl);
+    const url = link(mail.sent[0]!.text)!;
+    const [id, sig] = url.split("/").pop()!.split(".");
+    const forged = `https://factlot.com/account/recover/${id}.${sig!.slice(1)}A`;
+    const reads = e.KEYS.reads;
+    assert.equal((await run(e, new Request(forged), s.fetchImpl)).status, 404);
+    assert.equal(e.KEYS.reads, reads, "no KV read for a bad signature");
+    e.clock.t += 15 * 60_000 + 1000;
+    const late = await run(e, new Request(url), s.fetchImpl);
+    assert.equal(late.status, 410);
+    assert.match(await late.text(), /expired/);
+  });
+
+  it("one email per address every 5 minutes", async () => {
+    const { e, s, mail } = setup();
+    await issue(e);
+    await ask(e, "buyer@example.com", s.fetchImpl);
+    await ask(e, "Buyer@Example.com", s.fetchImpl);
+    assert.equal(mail.sent.length, 1);
+  });
+
+  it("refuses a recovery POST from another site", async () => {
+    const { e, s } = setup();
+    const res = await run(
+      e,
+      new Request("https://factlot.com/account/recover", {
+        method: "POST",
+        body: "email=buyer%40example.com",
+        headers: { origin: "https://evil.example", "cf-connecting-ip": IP },
+      }),
+      s.fetchImpl,
+    );
+    assert.equal(res.status, 403);
+  });
+});
+
+describe("welcome email", () => {
+  const paid = {
+    status: "complete",
+    payment_status: "paid",
+    mode: "subscription",
+    subscription: "sub_1",
+    customer: "cus_1",
+    customer_details: { email: "buyer@example.com" },
+    metadata: { factlot_plan: "pro" },
+  };
+
+  it("is sent on redemption with the setup steps and the account link, never the key", async () => {
+    const s = fakeStripe({
+      [`GET /checkout/sessions/${SESSION}`]: () => [200, paid],
+    });
+    const mail = fakeEmail();
+    const e = env({ STRIPE_SECRET_KEY: "sk_test_x", EMAIL: mail.binding });
+    const res = await run(
+      e,
+      new Request(`https://factlot.com/billing/success?session_id=${SESSION}`),
+      s.fetchImpl,
+    );
+    const key = (await res.text()).match(/fl_live_[A-Za-z0-9_-]{43}/)?.[0];
+    assert.ok(key);
+    assert.equal(mail.sent.length, 1);
+    const m = mail.sent[0]!;
+    assert.equal(m.to, "buyer@example.com");
+    assert.equal(m.subject, "Welcome to FactLot Pro");
+    assert.match(m.text, /https:\/\/factlot\.com\/account/);
+    assert.match(m.text, /https:\/\/api\.factlot\.com\/mcp/);
+    assert.doesNotMatch(
+      m.text,
+      /recover\//,
+      "no recovery token in the welcome email",
+    );
+    assert.ok(!m.text.includes(key) && !(m.html ?? "").includes(key));
+  });
+
+  it("is skipped without the binding, and a failed send never fails the page", async () => {
+    const s = fakeStripe({
+      [`GET /checkout/sessions/${SESSION}`]: () => [200, paid],
+    });
+    const e = env({ STRIPE_SECRET_KEY: "sk_test_x" });
+    const ok = await run(
+      e,
+      new Request(`https://factlot.com/billing/success?session_id=${SESSION}`),
+      s.fetchImpl,
+    );
+    assert.equal(ok.status, 200);
+    const broken = fakeEmail("E_SENDER_NOT_VERIFIED");
+    const e2 = env({ STRIPE_SECRET_KEY: "sk_test_x", EMAIL: broken.binding });
+    let res: Response | undefined;
+    const logs = await captureLogs(async () => {
+      res = await run(
+        e2,
+        new Request(
+          `https://factlot.com/billing/success?session_id=${SESSION}`,
+        ),
+        s.fetchImpl,
+      );
+    });
+    assert.equal(res!.status, 200);
+    assert.match(logs, /"code":"E_SENDER_NOT_VERIFIED"/);
+    assert.ok(!logs.includes("buyer@example.com"));
   });
 });

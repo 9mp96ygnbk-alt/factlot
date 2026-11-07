@@ -1,71 +1,146 @@
 /**
- * The small HTML pages billing returns: messages, the key page after checkout, and /account.
- * Every interpolated value is escaped. No scripts: forms post to the Worker.
+ * The HTML pages the Worker serves: onboarding after checkout, /account, recovery and messages.
+ *
+ * They share the site's look: the served /styles.css (tokens, header, footer, dark mode) plus a
+ * small nonce'd style block for the parts the landing page does not have (steps, copy buttons,
+ * forms). Every interpolated value is escaped. Scripts run only with the response's nonce and
+ * only do two things: copy a block to the clipboard and call GET /v1/account for "Test your key".
+ * Forms post to the Worker; a key never travels in a URL.
  */
 import type { AccountSummary } from "./billing.ts";
-import { priceText, type Plan } from "./plans.ts";
+import { CHANGELOG_URL, CONTACT, REPO } from "./contact.ts";
+import { escapeHtml } from "./html.ts";
+import { base64url } from "./keys.ts";
+import { setupGuide, type Snippet } from "./onboarding.ts";
+import { PLANS, QUOTA_RULES, priceText, type Plan } from "./plans.ts";
 
-export function escapeHtml(s: string): string {
-  return s
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
-}
+export { escapeHtml };
 
-const CONTACT = "contact@factlot.com";
+const DEFAULT_SITE = "https://factlot.com";
+const DEFAULT_API = "https://api.factlot.com";
+const trim = (u: string) => u.replace(/\/$/, "");
 
-const STYLE = `
-:root{--bg:#fbfaf7;--fg:#1c1b19;--muted:#5d5a54;--card:#fff;--line:#e4e0d8;--accent:#1d4ed8;--on-accent:#fff;--warn:#9a3412}
-@media (prefers-color-scheme:dark){:root{--bg:#121211;--fg:#f1efe9;--muted:#a9a59c;--card:#1b1b19;--line:#2e2d2a;--accent:#8ab4ff;--on-accent:#0b1220;--warn:#fdba74}}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,-apple-system,Segoe UI,sans-serif}
-main{max-width:720px;margin:0 auto;padding:48px 16px}h1{font-size:1.6rem;margin:0 0 12px}h2{font-size:1.15rem;margin:28px 0 8px}
-p{color:var(--muted)}a{color:var(--accent)}
-pre,code{font:14px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
-pre{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:14px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;color:var(--fg)}
-.key{font-size:15px;border-color:var(--accent)}
-dl{display:grid;grid-template-columns:minmax(120px,max-content) 1fr;gap:6px 16px;margin:0}dt{color:var(--muted)}dd{margin:0}
-form{margin:0}.row{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}
-input[type=password]{width:100%;font:15px ui-monospace,Menlo,monospace;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--fg)}
-button{font:inherit;padding:9px 14px;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:var(--on-accent);cursor:pointer}
-button.plain{background:transparent;color:var(--accent)}
-.warn{color:var(--warn)}
-table{border-collapse:collapse;width:100%}td,th{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}th{color:var(--muted);font-weight:normal}
+const EXTRA_CSS = `
+.flow{padding:2.25rem 0 3rem;border-bottom:0;background:var(--bg)}
+.narrow{max-width:46rem}
+.flow h1{margin-bottom:1rem}
+.lead{font-size:1.1rem;color:var(--muted);max-width:60ch}
+.step{margin:2.75rem 0 0}
+.step>h2{font-size:1.35rem;display:flex;gap:.6rem;align-items:baseline;margin-bottom:.6rem}
+.step>h2 .n{color:var(--muted);font-size:1rem;font-variant-numeric:tabular-nums}
+.block{position:relative;margin:.5rem 0 1rem}
+.block .label{margin:0 0 .25rem;font-size:.85rem;color:var(--muted)}
+.block pre{margin:0;padding-right:4.75rem;white-space:pre-wrap;word-break:break-all}
+.block.key pre{border:2px solid var(--accent);font-size:1rem}
+.copy{position:absolute;right:.5rem;bottom:.5rem;font:inherit;font-size:.8rem;padding:.25rem .6rem;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);cursor:pointer}
+.notice{border-left:3px solid var(--accent);background:var(--bg-alt);padding:.75rem 1rem;border-radius:0 6px 6px 0;margin:0 0 1.5rem}
+.notice.warn{border-left-color:var(--focus)}
+.notice p:last-child{margin:0}
+.warn{color:var(--focus)}
+details.client{border:1px solid var(--border);border-radius:8px;margin:.5rem 0;padding:0 1rem}
+details.client>summary{cursor:pointer;padding:.8rem 0;font-weight:600}
+details.client[open]>summary{border-bottom:1px solid var(--border);margin-bottom:.75rem}
+details.client ol{padding-left:1.25rem}
+dl.facts{display:grid;grid-template-columns:minmax(8.5rem,max-content) 1fr;gap:.45rem 1.25rem;margin:0 0 1rem}
+dl.facts dt{color:var(--muted)}dl.facts dd{margin:0}
+label{display:block;font-weight:600;margin:0 0 .35rem}
+input[type=password],input[type=email],input[type=text]{width:100%;font:1rem ui-monospace,SFMono-Regular,Menlo,monospace;padding:.65rem .75rem;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text)}
+input[type=email]{font-family:inherit}
+form{margin:0}
+.buttons{display:flex;flex-wrap:wrap;gap:.75rem;align-items:center;margin:1rem 0}
+button.button{font:inherit;font-weight:600;cursor:pointer;background:transparent}
+button.button.primary{background:var(--accent);color:var(--accent-text)}
+button.link{font:inherit;background:none;border:0;padding:0;color:var(--accent);text-decoration:underline;cursor:pointer}
+progress{width:100%;height:.7rem;accent-color:var(--accent)}
+.out{min-height:1.5rem}
+.spark{display:block;width:100%;height:56px;color:var(--accent)}
+table.keys td,table.keys th{padding-right:1rem}
+@media (max-width:40rem){dl.facts{grid-template-columns:1fr;gap:.1rem}dl.facts dd{margin-bottom:.6rem}}
 `;
 
-const BASE_CSP =
-  "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'; base-uri 'none'";
+const COPY_JS = `document.querySelectorAll("button.copy").forEach(function(b){b.addEventListener("click",function(){var t=document.getElementById(b.getAttribute("data-copy"));if(!t)return;var done=function(m){b.textContent=m;setTimeout(function(){b.textContent="Copy"},2000)};if(navigator.clipboard){navigator.clipboard.writeText(t.textContent).then(function(){done("Copied")},function(){done("Select and copy")})}else done("Select and copy")})});`;
 
-function page(
-  status: number,
-  title: string,
-  body: string,
-  formAction = "'none'",
-): Response {
-  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>${escapeHtml(title)} · FactLot</title><style>${STYLE}</style></head><body><main>${body}</main></body></html>`;
+function testJs(api: string): string {
+  return `(function(){var API=${JSON.stringify(api).replaceAll("<", "\\u003c")};var f=document.getElementById("test");if(!f)return;f.addEventListener("submit",function(e){e.preventDefault();var out=document.getElementById("test-out");var k=document.getElementById("test-key").value.trim();out.className="out";out.textContent="Checking…";fetch(API+"/v1/account",{headers:{authorization:"Bearer "+k}}).then(function(r){return r.json().then(function(j){if(!r.ok){out.className="out warn";out.textContent=(j&&j.message?j.message:"HTTP "+r.status)+(r.status===401?" A new key can take a minute to activate: try again shortly.":"");return}var q=j.registry_lookups;out.textContent="Works. "+j.plan_name+": "+j.requests_per_minute.toLocaleString("en-US")+" requests a minute; "+q.used.toLocaleString("en-US")+" of "+q.limit.toLocaleString("en-US")+" registry lookups used this month, resets "+q.resets_at.slice(0,10)+"."})}).catch(function(){out.className="out warn";out.textContent="Could not reach "+API+". Check your connection and try again."})})})();`;
+}
+
+interface PageOptions {
+  status?: number;
+  /** CSP form-action sources. */
+  formAction?: string;
+  site?: string;
+  /** Adds the copy-button script. */
+  copy?: boolean;
+  /** Adds the "Test your key" script, which may call this API origin. */
+  testApi?: string;
+}
+
+function page(title: string, body: string, o: PageOptions = {}): Response {
+  const nonce = base64url(crypto.getRandomValues(new Uint8Array(16)));
+  const site = escapeHtml(trim(o.site ?? DEFAULT_SITE));
+  const scripts = [o.copy ? COPY_JS : "", o.testApi ? testJs(o.testApi) : ""]
+    .filter(Boolean)
+    .join("\n");
+  const html = `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark"><meta name="robots" content="noindex"><title>${escapeHtml(title)} · FactLot</title><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/styles.css"><style nonce="${nonce}">${EXTRA_CSS}</style></head>
+<body><a class="skip" href="#main">Skip to content</a>
+<header class="site-header"><div class="wrap row"><a class="brand" href="${site}/" aria-label="FactLot home">FactLot</a><nav aria-label="Site"><ul><li><a href="${site}/#pricing">Pricing</a></li><li><a href="${site}/account">Account</a></li><li><a href="mailto:${CONTACT}">Help</a></li></ul></nav></div></header>
+<main id="main"><section class="flow"><div class="wrap narrow">
+${body}
+</div></section></main>
+<footer class="site-footer"><div class="wrap"><p><a href="${REPO}">GitHub</a> · <a href="mailto:${CONTACT}">${CONTACT}</a> · <a href="${site}/privacy">Privacy</a> · <a href="${site}/terms">Terms</a></p></div></footer>
+${scripts ? `<script nonce="${nonce}">${scripts}</script>` : ""}
+</body></html>`;
+  const csp = [
+    "default-src 'none'",
+    `style-src 'self' 'nonce-${nonce}'`,
+    "img-src 'self'",
+    `script-src 'nonce-${nonce}'`,
+    `connect-src ${o.testApi ? trim(o.testApi) : "'none'"}`,
+    `form-action ${o.formAction ?? "'none'"}`,
+    "frame-ancestors 'none'",
+    "base-uri 'none'",
+  ].join("; ");
   return new Response(html, {
-    status,
+    status: o.status ?? 200,
     headers: {
       "content-type": "text/html; charset=utf-8",
       "cache-control": "no-store",
       "referrer-policy": "no-referrer",
       "x-content-type-options": "nosniff",
       "x-frame-options": "DENY",
-      "content-security-policy": `${BASE_CSP}; form-action ${formAction}`,
+      "content-security-policy": csp,
     },
   });
+}
+
+function block(id: string, label: string, code: string, cls = ""): string {
+  return `<div class="block${cls ? ` ${cls}` : ""}">${label ? `<p class="label">${escapeHtml(label)}</p>` : ""}<pre id="${escapeHtml(id)}"><code>${escapeHtml(code)}</code></pre><button type="button" class="copy" data-copy="${escapeHtml(id)}">Copy</button></div>`;
+}
+
+function notice(text: string, warn = false, title?: string): string {
+  return `<div class="notice${warn ? " warn" : ""}" role="status">${title ? `<p><strong>${escapeHtml(title)}</strong></p>` : ""}<p>${escapeHtml(text)}</p></div>`;
+}
+
+/** Inline code in a sentence: `x` becomes <code>x</code>; the rest is escaped. */
+function prose(s: string): string {
+  return escapeHtml(s).replace(/`([^`]+)`/g, "<code>$1</code>");
 }
 
 export function messagePage(
   status: number,
   title: string,
   message: string,
+  o: { site?: string; next?: { href: string; label: string } } = {},
 ): Response {
+  const site = trim(o.site ?? DEFAULT_SITE);
   return page(
-    status,
     title,
-    `<h1>${escapeHtml(title)}</h1><p>${escapeHtml(message)}</p><p>Questions: <a href="mailto:${CONTACT}">${CONTACT}</a> or <a href="https://github.com/9mp96ygnbk-alt/factlot/discussions">GitHub Discussions</a>.</p><p><a href="https://factlot.com/">factlot.com</a></p>`,
+    `<h1>${escapeHtml(title)}</h1>
+<p class="lead">${escapeHtml(message)}</p>
+<div class="buttons">${o.next ? `<a class="button primary" href="${escapeHtml(o.next.href)}">${escapeHtml(o.next.label)}</a>` : ""}<a class="button" href="${escapeHtml(site)}/">factlot.com</a></div>
+<p class="small">Questions: <a href="mailto:${CONTACT}">${CONTACT}</a> or <a href="${REPO}/discussions">GitHub Discussions</a>.</p>`,
+    { status, site },
   );
 }
 
@@ -73,29 +148,76 @@ export function messagePage(
 const accountText = (site: string) =>
   `${site.replace(/^https?:\/\//, "").replace(/\/$/, "")}/account`;
 
-export function keyPage(
-  key: string,
-  plan: Plan,
-  apiUrl: string,
-  siteUrl = "https://factlot.com",
-): Response {
-  const k = escapeHtml(key);
-  const api = escapeHtml(apiUrl.replace(/\/$/, ""));
-  const site = escapeHtml(siteUrl.replace(/\/$/, ""));
-  const account = escapeHtml(accountText(siteUrl));
-  return page(
-    200,
-    "Your FactLot API key",
-    `<h1>Welcome to ${escapeHtml(plan.name)}</h1>
+export interface OnboardingOptions {
+  api?: string;
+  site?: string;
+  plan?: Plan;
+  /** The key, on the one page that reveals it. */
+  key?: string;
+  /** Shown above the steps (for example: the agent already collected the key). */
+  notice?: { title?: string; text: string; warn?: boolean };
+  status?: number;
+}
+
+/**
+ * The page after checkout (and after a recovery or a new key): the key once, then setup for each
+ * client, a live key test, and what the plan includes. Without `key` it is the same guide with
+ * placeholders and a recovery link.
+ */
+export function onboardingPage(o: OnboardingOptions): Response {
+  const api = trim(o.api ?? DEFAULT_API);
+  const site = trim(o.site ?? DEFAULT_SITE);
+  const g = setupGuide({
+    api,
+    site,
+    plan: o.plan,
+    key: o.key,
+    placeholder: "<your key>",
+  });
+  const plan = o.plan;
+  const h1 = o.key && plan ? `Welcome to ${plan.name}` : g.title;
+  const keyStep = o.key
+    ? `${block("key", "", o.key, "key")}
 <p>This is your API key. It is shown <strong>once</strong>: copy it into a password manager or your agent's secret store now. FactLot keeps only a hash of it.</p>
-<pre class="key">${k}</pre>
-<p>Your key can take up to a minute to activate everywhere.</p>
-<p>Remote MCP (Claude, ChatGPT, Cursor and other MCP clients): server URL <code>${api}/mcp</code> with the header <code>Authorization: Bearer &lt;key&gt;</code>.</p>
-<pre>claude mcp add --transport http factlot ${api}/mcp --header "Authorization: Bearer ${k}"</pre>
-<p>REST and OpenAPI: <code>${api}/openapi.json</code>, same header.</p>
-<p>Your plan: ${escapeHtml(plan.summary)}</p>
-<p>${escapeHtml(priceText(plan))}, renews monthly until cancelled; cancel any time at <a href="${site}/account">${account}</a>.</p>
-<p><a href="${site}/account">Manage billing / cancel</a> · Questions: <a href="mailto:${CONTACT}">${CONTACT}</a></p>`,
+<p class="small">Your key can take up to a minute to activate everywhere.</p>`
+    : `<p>Use the key you saved when you bought: it was shown once. The snippets below say <code>&lt;your key&gt;</code> where it goes.</p>
+<p><a href="${escapeHtml(site)}/account#recover">Recover access</a> if you no longer have it: we email a sign-in link to the address you paid with.</p>`;
+  const clients = g.clients
+    .map(
+      (c, i) =>
+        `<details class="client"${i === 0 ? " open" : ""}><summary>${escapeHtml(c.name)}</summary><ol>${c.steps.map((s) => `<li>${prose(s)}</li>`).join("")}</ol>${c.snippets.map((s: Snippet) => block(`s-${s.id}`, s.label, s.code)).join("")}<p class="small"><a href="${escapeHtml(c.docs)}">More for ${escapeHtml(c.name)}</a></p></details>`,
+    )
+    .join("\n");
+  const facts = plan
+    ? `<dl class="facts"><dt>Requests</dt><dd>${plan.requestsPerMinute.toLocaleString("en-US")} a minute per key</dd><dt>Registry lookups</dt><dd>${plan.registryLookupsPerMonth.toLocaleString("en-US")} a month, shared by the plan's keys</dd><dt>Keys</dt><dd>${plan.maxKeys === 1 ? "1 key" : `Up to ${plan.maxKeys} keys`}</dd></dl>
+<p>${escapeHtml(priceText(plan))}, renews monthly until cancelled; cancel any time at <a href="${escapeHtml(site)}/account">${escapeHtml(accountText(site))}</a>.</p>`
+    : "";
+  return page(
+    h1,
+    `<h1>${escapeHtml(h1)}</h1>
+${o.notice ? notice(o.notice.text, o.notice.warn, o.notice.title) : ""}
+<p class="lead">Four steps, about five minutes. An agent can read the same guide as JSON or Markdown:</p>
+${block("agent-url", "Give this URL to your agent", g.links.onboarding)}
+<section class="step" aria-labelledby="h-key"><h2 id="h-key"><span class="n">1</span>Save your key</h2>
+${keyStep}
+</section>
+<section class="step" aria-labelledby="h-connect"><h2 id="h-connect"><span class="n">2</span>Connect your client</h2>
+<p>Every client uses the MCP server <code>${escapeHtml(g.links.mcp)}</code> with the header <code>Authorization: Bearer &lt;key&gt;</code>.</p>
+${clients}
+</section>
+<section class="step" aria-labelledby="h-test"><h2 id="h-test"><span class="n">3</span>Test your key</h2>
+<form id="test" autocomplete="off"><label for="test-key">API key</label><input id="test-key" type="password" spellcheck="false" placeholder="fl_live_..." required${o.key ? ` value="${escapeHtml(o.key)}"` : ""}>
+<div class="buttons"><button type="submit" class="button primary">Test my key</button></div></form>
+<p id="test-out" class="out" role="status" aria-live="polite"></p>
+${block("test-curl", "Or from a terminal", g.test.curl)}
+</section>
+<section class="step" aria-labelledby="h-limits"><h2 id="h-limits"><span class="n">4</span>Know your limits</h2>
+${facts}
+<ul class="plain"><li>${escapeHtml(QUOTA_RULES.counted)}</li><li>${escapeHtml(QUOTA_RULES.at_cap)}</li><li>Calculators, IDs, documents and rules tools never count.</li></ul>
+<div class="buttons"><a class="button primary" href="${escapeHtml(site)}/account">Manage billing / cancel</a></div>
+<p class="small">Questions: <a href="mailto:${CONTACT}">${CONTACT}</a>${plan?.id === "team" ? " (priority support)" : ""}. What changed lately: <a href="${CHANGELOG_URL}">changelog</a>.</p>
+</section>`,
+    { status: o.status, site, copy: true, testApi: api },
   );
 }
 
@@ -160,21 +282,40 @@ export function statusText(s: AccountSummary): { text: string; warn: boolean } {
   }
 }
 
+/** Whether the "Lost your key?" form can send email, and why not. */
+export type RecoveryState = "on" | "no-email" | "no-secret";
+
+export const RECOVERY_SETUP_NOTICE = `Email recovery is being set up; email ${CONTACT}.`;
+
+function recoverSection(state: RecoveryState): string {
+  const form =
+    state === "on"
+      ? `<form method="post" action="/account/recover"><label for="email">Email you paid with</label><input id="email" name="email" type="email" autocomplete="email" required maxlength="254">
+<div class="buttons"><button type="submit" class="button">Email me a link</button></div></form>
+<p class="small">The link works once, for 15 minutes, and lets you issue a new key.</p>`
+      : `<p>${escapeHtml(RECOVERY_SETUP_NOTICE)}</p>`;
+  return `<section class="step" id="recover" aria-labelledby="h-recover"><h2 id="h-recover">Lost your key?</h2>${form}</section>`;
+}
+
 /** The key-entry form of /account. The key travels in a POST body, never in the URL. */
-export function accountFormPage(status = 200, notice?: string): Response {
+export function accountFormPage(
+  status = 200,
+  message?: string,
+  recovery: RecoveryState = "no-email",
+): Response {
   return page(
-    status,
     "Your FactLot account",
-    `<h1>Your FactLot account</h1>
-${notice ? `<p class="warn">${escapeHtml(notice)}</p>` : ""}
-<p>Paste your API key to see your plan and usage, manage billing or cancel, and replace or add keys.</p>
+    `<h1>Your account</h1>
+${message ? notice(message, status >= 400) : ""}
+<p class="lead">Paste your API key to see your plan and usage, manage billing or cancel, and replace or add keys.</p>
 <form method="post" action="/account">
 <label for="key">API key</label>
 <input id="key" name="key" type="password" autocomplete="off" spellcheck="false" placeholder="fl_live_..." required>
-<div class="row"><button type="submit" name="action" value="view">Show my account</button></div>
+<div class="buttons"><button type="submit" class="button primary" name="action" value="view">Show my account</button></div>
 </form>
-<p>Lost your key? Email <a href="mailto:${CONTACT}">${CONTACT}</a> from the address you paid with. No plan yet? See <a href="https://factlot.com/#pricing">pricing</a>.</p>`,
-    ACCOUNT_FORM_ACTION,
+${recoverSection(recovery)}
+<p class="small">No plan yet? See <a href="https://factlot.com/#pricing">pricing</a>. Questions: <a href="mailto:${CONTACT}">${CONTACT}</a>.</p>`,
+    { status, formAction: ACCOUNT_FORM_ACTION },
   );
 }
 
@@ -183,9 +324,30 @@ function actionForm(
   action: string,
   label: string,
   extra = "",
-  plain = false,
+  style: "primary" | "plain" | "link" = "plain",
+  formAction = "/account",
 ): string {
-  return `<form method="post" action="/account"><input type="hidden" name="key" value="${escapeHtml(key)}">${extra}<button type="submit" name="action" value="${action}"${plain ? ' class="plain"' : ""}>${escapeHtml(label)}</button></form>`;
+  const cls =
+    style === "link"
+      ? "link"
+      : `button${style === "primary" ? " primary" : ""}`;
+  return `<form method="post" action="${escapeHtml(formAction)}">${key ? `<input type="hidden" name="key" value="${escapeHtml(key)}">` : ""}${extra}<button type="submit" class="${cls}" name="action" value="${action}">${escapeHtml(label)}</button></form>`;
+}
+
+/** The plan, status and usage rows shared by /account and the recovery page. */
+function accountFacts(s: AccountSummary): string {
+  const st = statusText(s);
+  const q = s.registry_lookups;
+  const left = Math.max(0, q.limit - q.used);
+  return `<dl class="facts">
+<dt>Status</dt><dd${st.warn ? ' class="warn"' : ""}>${escapeHtml(st.text)}</dd>
+<dt>Price</dt><dd>${escapeHtml(s.price)}, renews monthly until cancelled</dd>
+<dt>Rate limit</dt><dd>${s.requests_per_minute.toLocaleString("en-US")} requests a minute per key</dd>
+<dt>Registry lookups</dt><dd><progress max="${q.limit}" value="${Math.min(q.used, q.limit)}" aria-label="Registry lookups used">${q.used} of ${q.limit}</progress><br>${q.used.toLocaleString("en-US")} of ${q.limit.toLocaleString("en-US")} used this month (${left.toLocaleString("en-US")} left); resets ${escapeHtml(utc(q.resets_at))}</dd>
+<dt>Keys</dt><dd>${s.keys.count} of ${s.keys.limit}</dd>
+${s.payment_failed_at ? `<dt>Last failed payment</dt><dd class="warn">${escapeHtml(utc(s.payment_failed_at))}</dd>` : ""}
+${s.deletes_at ? `<dt>Record deleted</dt><dd>${escapeHtml(utc(s.deletes_at))} unless the key is active again</dd>` : ""}
+</dl>`;
 }
 
 /** The account page for a known key; `newKey` is shown once after a rotation or a new key. */
@@ -194,62 +356,95 @@ export function accountPage(
   key: string,
   opts: { notice?: string; newKey?: string; status?: number } = {},
 ): Response {
-  const st = statusText(s);
   const active = s.status === "active";
-  const lookupsLeft = Math.max(
-    0,
-    s.registry_lookups.limit - s.registry_lookups.used,
-  );
   const rows = s.keys.items
     .map(
       (k) =>
-        `<tr><td><code>${escapeHtml(k.id)}</code>${k.current ? " (this key)" : ""}</td><td style="white-space:nowrap">${escapeHtml(k.created.slice(0, 10))}</td><td>${
+        `<tr><td><code>${escapeHtml(k.id)}</code>${k.current ? " (this key)" : ""}</td><td>${escapeHtml(k.created.slice(0, 10))}</td><td>${
           active && s.keys.count > 1
             ? actionForm(
                 key,
                 "revoke",
                 "Revoke",
                 `<input type="hidden" name="id" value="${escapeHtml(k.id)}">`,
-                true,
+                "link",
               )
             : ""
         }</td></tr>`,
     )
     .join("");
   const newKey = opts.newKey
-    ? `<h2>Your new key</h2><p>Shown <strong>once</strong>: copy it now. It can take up to a minute to activate everywhere.</p><pre class="key">${escapeHtml(opts.newKey)}</pre>`
+    ? `<section class="step" aria-labelledby="h-new"><h2 id="h-new">Your new key</h2><div class="block key"><pre class="key" id="new-key">${escapeHtml(opts.newKey)}</pre><button type="button" class="copy" data-copy="new-key">Copy</button></div><p>Shown <strong>once</strong>: copy it now. It can take up to a minute to activate everywhere.</p></section>`
     : "";
   return page(
-    opts.status ?? 200,
     "Your FactLot account",
     `<h1>${escapeHtml(s.plan_name)}</h1>
-${opts.notice ? `<p class="warn">${escapeHtml(opts.notice)}</p>` : ""}
+${opts.notice ? notice(opts.notice, (opts.status ?? 200) >= 400) : ""}
 ${newKey}
-<dl>
-<dt>Status</dt><dd${st.warn ? ' class="warn"' : ""}>${escapeHtml(st.text)}</dd>
-<dt>Price</dt><dd>${escapeHtml(s.price)}, renews monthly until cancelled</dd>
-<dt>Rate limit</dt><dd>${s.requests_per_minute.toLocaleString("en-US")} requests a minute per key</dd>
-<dt>Registry lookups</dt><dd>${s.registry_lookups.used.toLocaleString("en-US")} of ${s.registry_lookups.limit.toLocaleString("en-US")} used this month (${lookupsLeft.toLocaleString("en-US")} left); resets ${escapeHtml(utc(s.registry_lookups.resets_at))}</dd>
-<dt>Keys</dt><dd>${s.keys.count} of ${s.keys.limit}</dd>
-${s.payment_failed_at ? `<dt>Last failed payment</dt><dd class="warn">${escapeHtml(utc(s.payment_failed_at))}</dd>` : ""}
-${s.deletes_at ? `<dt>Record deleted</dt><dd>${escapeHtml(utc(s.deletes_at))} unless the key is active again</dd>` : ""}
-</dl>
-<h2>Billing</h2>
+${accountFacts(s)}
+<section class="step" aria-labelledby="h-billing"><h2 id="h-billing">Billing</h2>
 <p>Change your card, see invoices, switch plans or cancel in Stripe's billing portal.</p>
-<div class="row">${actionForm(key, "portal", "Manage billing / cancel")}</div>
-<h2>Keys</h2>
-<table><tr><th>Key id</th><th>Created</th><th></th></tr>${rows}</table>
+<div class="buttons">${actionForm(key, "portal", "Manage billing / cancel", "", "primary")}</div></section>
+<section class="step" aria-labelledby="h-keys"><h2 id="h-keys">Keys</h2>
+<table class="keys"><thead><tr><th>Key id</th><th>Created</th><th></th></tr></thead><tbody>${rows}</tbody></table>
 ${
   active
-    ? `<div class="row">${actionForm(key, "rotate", "Replace this key", "", true)}${
-        s.keys.count < s.keys.limit
-          ? actionForm(key, "mint", "Add a key", "", true)
-          : ""
+    ? `<div class="buttons">${actionForm(key, "rotate", "Replace this key")}${
+        s.keys.count < s.keys.limit ? actionForm(key, "mint", "Add a key") : ""
       }</div>
-<p>Replacing a key stops the old one at once (allow a minute everywhere). ${s.keys.limit > 1 ? `Your plan includes up to ${s.keys.limit} keys; they share the monthly registry lookups.` : `Team includes up to 5 keys.`}</p>`
+<p class="small">Replacing a key stops the old one at once (allow a minute everywhere). ${s.keys.limit > 1 ? `Your plan includes up to ${s.keys.limit} keys; they share the monthly registry lookups.` : `Team includes up to ${PLANS.team.maxKeys} keys.`}</p>`
     : ""
+}</section>
+<p class="small">Questions: <a href="mailto:${CONTACT}">${CONTACT}</a>${s.plan === "team" ? " (priority support)" : ""}.</p>`,
+    { status: opts.status, formAction: ACCOUNT_FORM_ACTION, copy: true },
+  );
 }
-<p>Questions: <a href="mailto:${CONTACT}">${CONTACT}</a>${s.plan === "team" ? " (priority support)" : ""}.</p>`,
-    ACCOUNT_FORM_ACTION,
+
+/** After POST /account/recover: the same answer whether or not the address has a subscription. */
+export const RECOVERY_SENT =
+  "If that email has a FactLot subscription, a link is on its way. It works once and expires in 15 minutes.";
+
+export function recoverySentPage(status = 200): Response {
+  return messagePage(status, "Check your email", RECOVERY_SENT);
+}
+
+/**
+ * The page a recovery link opens: the account, and one button that issues a new key (consuming
+ * the link). `replaces` names the key a new one would replace when the plan is at its key limit.
+ */
+export function recoveryPage(
+  s: AccountSummary,
+  token: string,
+  o: { replaces?: string; notice?: string; status?: number } = {},
+): Response {
+  const action = `/account/recover/${token}`;
+  const active = s.status === "active";
+  const rows = s.keys.items
+    .map(
+      (k) =>
+        `<tr><td><code>${escapeHtml(k.id)}</code></td><td>${escapeHtml(k.created.slice(0, 10))}</td></tr>`,
+    )
+    .join("");
+  const effect = o.replaces
+    ? `Your plan holds ${s.keys.limit} key${s.keys.limit === 1 ? "" : "s"}, so the new key replaces key <code>${escapeHtml(o.replaces)}</code>, which stops working.`
+    : "Your other keys keep working.";
+  return page(
+    "Recover your account",
+    `<h1>Recover your account</h1>
+${o.notice ? notice(o.notice, (o.status ?? 200) >= 400) : ""}
+<p class="lead">${escapeHtml(s.plan_name)}.</p>
+${accountFacts(s)}
+<table class="keys"><thead><tr><th>Key id</th><th>Created</th></tr></thead><tbody>${rows}</tbody></table>
+<section class="step" aria-labelledby="h-issue"><h2 id="h-issue">Issue a new key</h2>
+${
+  active
+    ? `<p>${effect} The new key is shown once, on the next page. This link then stops working.</p>
+<div class="buttons">${actionForm("", "issue", "Issue a new key", "", "primary", action)}</div>`
+    : `<p class="warn">Keys can be issued only while the subscription is active. Fix billing first, then open this page again.</p>`
+}
+</section>
+<section class="step" aria-labelledby="h-billing"><h2 id="h-billing">Billing</h2>
+<div class="buttons">${actionForm("", "portal", "Manage billing / cancel", "", "plain", action)}</div></section>`,
+    { status: o.status, formAction: ACCOUNT_FORM_ACTION },
   );
 }

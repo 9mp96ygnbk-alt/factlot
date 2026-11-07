@@ -205,11 +205,11 @@ export class Meter {
     return this.storeInstance;
   }
 
-  /** Plain per-minute limiter; `peek` checks without counting. */
-  minuteOnly(limit: number, peek: boolean): boolean {
+  /** Plain fixed-window limiter (a minute unless `periodMs` says otherwise); `peek` counts nothing. */
+  minuteOnly(limit: number, peek: boolean, periodMs = 60_000): boolean {
     return peek
-      ? this.minute.peek(limit, 60_000, this.now())
-      : this.minute.hit(limit, 60_000, this.now());
+      ? this.minute.peek(limit, periodMs, this.now())
+      : this.minute.hit(limit, periodMs, this.now());
   }
 
   /**
@@ -371,7 +371,12 @@ export class RateLimiterObject {
       return jsonResponse({ value });
     }
     const limit = Number(url.searchParams.get("limit") ?? "60");
-    const ok = this.meter.minuteOnly(limit, url.searchParams.has("peek"));
+    const period = Number(url.searchParams.get("period") ?? "60000");
+    const ok = this.meter.minuteOnly(
+      limit,
+      url.searchParams.has("peek"),
+      Number.isFinite(period) && period >= 1000 ? period : 60_000,
+    );
     return new Response(ok ? "1" : "0");
   }
 }
@@ -393,16 +398,20 @@ async function call<T>(
   return (await res.json()) as T;
 }
 
-/** A per-minute RateLimit backed by the LIMITER namespace; `prefix` keeps uses apart. */
+/**
+ * A fixed-window RateLimit backed by the LIMITER namespace (`limit` per `periodMs`, a minute by
+ * default); `prefix` keeps uses apart.
+ */
 export function objectLimiter(
   ns: DurableObjectNamespaceLike,
   prefix: string,
   limit: number,
+  periodMs = 60_000,
 ): RateLimit {
   const ask = async (key: string, peek: boolean) => {
     const stub = ns.get(ns.idFromName(`${prefix}:${key}`));
     const res = await stub.fetch(
-      `https://limiter/?limit=${limit}${peek ? "&peek=1" : ""}`,
+      `https://limiter/?limit=${limit}${periodMs === 60_000 ? "" : `&period=${periodMs}`}${peek ? "&peek=1" : ""}`,
     );
     return { success: (await res.text()) === "1" };
   };

@@ -46,6 +46,10 @@ export interface KeyRecord {
   payment_failed_at?: string;
   /** ISO time the record became inactive; it is deleted 365 days later. */
   inactive_since?: string;
+  /** ISO end of the subscription's current billing period (renewal date), from Stripe. */
+  period_end?: string;
+  /** The subscription ends at period_end instead of renewing. */
+  cancel_at_period_end?: boolean;
 }
 
 /** How long KV keeps a record that is no longer active. */
@@ -57,11 +61,18 @@ function base64url(bytes: Uint8Array): string {
   return btoa(s).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "");
 }
 
-export function generateKey(): string {
+/** 256 random bits, base64url (43 characters): claim and recovery tokens. */
+export function randomToken(): string {
   const bytes = new Uint8Array(32);
   crypto.getRandomValues(bytes);
-  return KEY_PREFIX + base64url(bytes);
+  return base64url(bytes);
 }
+
+export function generateKey(): string {
+  return KEY_PREFIX + randomToken();
+}
+
+export { base64url };
 
 export function looksLikeKey(token: string): boolean {
   return KEY_RE.test(token);

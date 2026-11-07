@@ -48,12 +48,20 @@ import {
   readKey,
   type KeyRecord,
 } from "./keys.ts";
+import { claimRoute, CLAIM_POLL_MS, CLAIM_TTL_SECONDS } from "./claim.ts";
 import { addressSubject } from "./limiter.ts";
+import { KEY_PLACEHOLDER, guideMarkdown, setupGuide } from "./onboarding.ts";
 import { accountFormPage, accountPage } from "./pages.ts";
+import {
+  recoverLinkRoute,
+  recoverRequestRoute,
+  recoveryState,
+} from "./recovery.ts";
 import {
   ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY,
   ANONYMOUS_REQUESTS_PER_MINUTE,
   PLANS,
+  isPlanId,
   PRICING_URL,
   QUOTA_RULES,
   isMeteredRegistryTool,
@@ -227,6 +235,38 @@ export interface HandleOptions {
   /** Stripe's fetch (tests). */
   fetchImpl?: typeof fetch;
   now?: () => number;
+  /** ctx.waitUntil: work that runs after the response (emails). */
+  waitUntil?: (work: Promise<unknown>) => void;
+}
+
+/** Run `work` after the response when the runtime allows, never failing the request. */
+function deferWith(opts: HandleOptions): (work: Promise<unknown>) => void {
+  return (work) => {
+    const safe = work.catch(() => {});
+    if (opts.waitUntil) opts.waitUntil(safe);
+  };
+}
+
+/** How an agent buys a key: the `checkout` object of the API root and /v1/plans. */
+function checkoutInfo(apiBase: string) {
+  return {
+    method: "POST",
+    url: `${apiBase}/v1/billing/checkout`,
+    body: { plan: "pro | team" },
+    returns: {
+      url: "Stripe Checkout link: give it to your human to pay",
+      claim_url: `${apiBase}/v1/billing/claim/<token>: GET it every ${CLAIM_POLL_MS / 1000} seconds or slower`,
+      expires_at: `ISO time; the checkout and the claim last ${CLAIM_TTL_SECONDS / 60} minutes`,
+    },
+    claim: {
+      pending: '202 {"status":"pending"} until the checkout is paid',
+      paid: "200 {key, plan, plan_name, requests_per_minute, registry_lookups_per_month, account, mcp}, exactly once: store the key at once",
+      claimed:
+        '410 {"status":"claimed","by":"agent"|"page"} afterwards (the success page may have shown it first)',
+      unknown: "404 when the token is unknown or expired",
+    },
+    onboarding: `${apiBase}/v1/onboarding`,
+  };
 }
 
 /** A paid caller: a live key (it may be inactive for billing reasons). */
@@ -379,6 +419,11 @@ async function route(
       301,
     );
 
+  // The pages' stylesheet and icon, on every host (billing and account pages can be served on
+  // the API host too).
+  if ((path === "/styles.css" || path === "/favicon.svg") && env.ASSETS)
+    return env.ASSETS.fetch(request);
+
   // Billing pages for people (any host). Both reach Stripe, so both count against the
   // per-address free-tier budget: a crawler following "Start Pro" cannot open sessions in bulk.
   if (path === "/billing/checkout" || path === "/billing/success") {
@@ -388,9 +433,11 @@ async function route(
     if (!ok.success)
       return rateLimited(path, ANONYMOUS_REQUESTS_PER_MINUTE, "anonymous");
     return path === "/billing/checkout"
-      ? checkoutRoute(env, request, url, opts.fetchImpl)
-      : successRoute(env, url, opts.fetchImpl);
+      ? checkoutRoute(env, request, url, opts.fetchImpl, now)
+      : successRoute(env, url, opts.fetchImpl, deferWith(opts));
   }
+  if (path === "/account/recover" || path.startsWith("/account/recover/"))
+    return recoverRoute(request, env, url, path, opts);
   if (path === "/account") return accountRoute(request, env, url, opts);
   if (path === "/v1/billing/webhook") {
     if (request.method !== "POST")
@@ -412,9 +459,10 @@ async function route(
   if (path === "/v1/plans" || (path === "/" && request.method === "GET")) {
     const plans = publicPlans(apiBase.replace("://api.", "://"));
     const checkout_open = checkoutOpen(env);
+    const checkout = checkoutInfo(apiBase);
     if (path === "/v1/plans")
       return withHeaders(
-        json(200, { plans, quotas: QUOTA_RULES, checkout_open }),
+        json(200, { plans, quotas: QUOTA_RULES, checkout_open, checkout }),
         corsHeaders(),
       );
     return withHeaders(
@@ -430,6 +478,8 @@ async function route(
         plans,
         quotas: QUOTA_RULES,
         checkout_open,
+        checkout,
+        onboarding: `${apiBase}/v1/onboarding`,
         account: `${site}/account`,
         source: "https://github.com/9mp96ygnbk-alt/factlot",
         docs: "https://factlot.com/llms.txt",
@@ -447,8 +497,81 @@ async function route(
     if (!ok.success)
       return rateLimited(path, ANONYMOUS_REQUESTS_PER_MINUTE, "anonymous");
     return withHeaders(
-      await checkoutRoute(env, request, url, opts.fetchImpl),
+      await checkoutRoute(env, request, url, opts.fetchImpl, now),
       corsHeaders(),
+    );
+  }
+  if (path.startsWith("/v1/billing/claim/")) {
+    if (request.method !== "GET" && request.method !== "HEAD")
+      return withHeaders(
+        json(
+          405,
+          {
+            error: "MethodNotAllowed",
+            code: "MethodNotAllowed",
+            message: "GET this URL",
+            next: "GET",
+          },
+          { allow: "GET" },
+        ),
+        corsHeaders(),
+      );
+    const ok = await metered(
+      env.RL_ANON.limit({ key: `claim:${await addressKey()}` }),
+    );
+    if (!ok.success)
+      return rateLimited(path, ANONYMOUS_REQUESTS_PER_MINUTE, "anonymous");
+    const token = path.slice("/v1/billing/claim/".length);
+    // One poll per token every 2 seconds (named by the token's hash, never the token).
+    const perToken = await metered(
+      env.RL_CLAIM.limit({ key: await hashKey(token) }),
+    );
+    if (!perToken.success)
+      return errorResponse(
+        path,
+        429,
+        -32000,
+        {
+          error: "RateLimited",
+          code: "RateLimited",
+          message: `poll a claim URL at most once every ${CLAIM_POLL_MS / 1000} seconds`,
+          retry_after_seconds: CLAIM_POLL_MS / 1000,
+          next: "wait, then GET this URL again",
+        },
+        { "retry-after": String(CLAIM_POLL_MS / 1000) },
+      );
+    return withHeaders(
+      await claimRoute(env, token, {
+        fetchImpl: opts.fetchImpl,
+        now,
+        defer: deferWith(opts),
+      }),
+      corsHeaders(),
+    );
+  }
+  if (path === "/v1/onboarding") {
+    const planParam = url.searchParams.get("plan");
+    const guide = setupGuide({
+      api: apiBase,
+      site,
+      plan: isPlanId(planParam) ? PLANS[planParam] : undefined,
+      placeholder: KEY_PLACEHOLDER,
+    });
+    const markdown =
+      (request.headers.get("accept") ?? "").includes("text/markdown") ||
+      url.searchParams.get("format") === "md";
+    return new Response(
+      markdown ? guideMarkdown(guide) : JSON.stringify(guide, null, 2),
+      {
+        headers: {
+          ...corsHeaders(),
+          "content-type": markdown
+            ? "text/markdown; charset=utf-8"
+            : "application/json; charset=utf-8",
+          "cache-control": "public, max-age=300",
+          vary: "accept",
+        },
+      },
     );
   }
 
@@ -848,14 +971,15 @@ async function accountRoute(
   opts: HandleOptions,
 ): Promise<Response> {
   const now = opts.now ?? Date.now;
-  if (request.method === "GET" || request.method === "HEAD")
-    return accountFormPage();
+  const formPage = (status?: number, notice?: string) =>
+    accountFormPage(status, notice, recoveryState(env));
+  if (request.method === "GET" || request.method === "HEAD") return formPage();
   if (request.method !== "POST")
     return json(405, { error: "MethodNotAllowed" }, { allow: "GET, POST" });
   // A form on another site cannot drive this page (it would need the key anyway).
   const origin = request.headers.get("origin");
   if (origin && origin !== "null" && origin !== url.origin)
-    return accountFormPage(403, "This form only works on its own page.");
+    return formPage(403, "This form only works on its own page.");
   const address = await addressSubject(
     clientAddress(request),
     now(),
@@ -864,25 +988,19 @@ async function accountRoute(
   if (
     !(await metered(env.RL_ANON.limit({ key: `account:${address}` }))).success
   )
-    return accountFormPage(
-      429,
-      "Too many tries from this address. Wait a minute.",
-    );
+    return formPage(429, "Too many tries from this address. Wait a minute.");
   const failKey = `authfail:${address}`;
   if (!(await metered(env.RL_ANON.peek({ key: failKey }))).success)
-    return accountFormPage(
-      429,
-      "Too many keys that did not match. Wait a minute.",
-    );
+    return formPage(429, "Too many keys that did not match. Wait a minute.");
   const text = await readBody(request, 16 * 1024);
-  if (text === undefined) return accountFormPage(413, "The form is too large.");
+  if (text === undefined) return formPage(413, "The form is too large.");
   const form = new URLSearchParams(text);
   const key = (form.get("key") ?? "").trim();
   const action = form.get("action") ?? "view";
   const paid = await resolveKey(env, key, opts);
   if (!paid) {
     await metered(env.RL_ANON.limit({ key: failKey }));
-    return accountFormPage(
+    return formPage(
       401,
       `That key was not found. Check it and try again, or email ${CONTACT} from the address you paid with.`,
     );
@@ -944,10 +1062,7 @@ async function accountRoute(
     const id = form.get("id") ?? "";
     const outcome = await revokeKey(deps, record, id);
     if (outcome === "revoked" && id === keyId(hash))
-      return accountFormPage(
-        200,
-        "That key is revoked. Sign in with another key.",
-      );
+      return formPage(200, "That key is revoked. Sign in with another key.");
     return show(key, hash, record, {
       notice:
         outcome === "revoked"
@@ -958,4 +1073,57 @@ async function accountRoute(
     });
   }
   return show(key, hash, record);
+}
+
+/** /account/recover and /account/recover/<token>: lost-key recovery by email (recovery.ts). */
+async function recoverRoute(
+  request: Request,
+  env: Env,
+  url: URL,
+  path: string,
+  opts: HandleOptions,
+): Promise<Response> {
+  const now = opts.now ?? Date.now;
+  const token =
+    path === "/account/recover"
+      ? undefined
+      : path.slice("/account/recover/".length);
+  if (token === undefined && request.method !== "POST")
+    return Response.redirect(`${url.origin}/account#recover`, 303);
+  if (
+    request.method !== "GET" &&
+    request.method !== "HEAD" &&
+    request.method !== "POST"
+  )
+    return json(405, { error: "MethodNotAllowed" }, { allow: "GET, POST" });
+  const ropts = { fetchImpl: opts.fetchImpl, now, defer: deferWith(opts) };
+  let body: string | undefined;
+  if (request.method === "POST") {
+    const origin = request.headers.get("origin");
+    if (origin && origin !== "null" && origin !== url.origin)
+      return accountFormPage(
+        403,
+        "This form only works on its own page.",
+        recoveryState(env),
+      );
+    const address = await addressSubject(
+      clientAddress(request),
+      now(),
+      env.IP_HASH_SALT,
+    );
+    if (
+      !(await metered(env.RL_ANON.limit({ key: `recover:${address}` }))).success
+    )
+      return accountFormPage(
+        429,
+        "Too many tries from this address. Wait a minute.",
+        recoveryState(env),
+      );
+    body = await readBody(request, 4 * 1024);
+    if (body === undefined)
+      return accountFormPage(413, "The form is too large.", recoveryState(env));
+  }
+  if (token === undefined)
+    return recoverRequestRoute(env, request, body ?? "", ropts);
+  return recoverLinkRoute(env, request, token, body, ropts);
 }

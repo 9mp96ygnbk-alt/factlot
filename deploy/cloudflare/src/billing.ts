@@ -45,7 +45,10 @@ import {
 import { StripeError, stripeClient, verifyStripeSignature } from "./stripe.ts";
 import type { StripeClient } from "./stripe.ts";
 import type { Env, KV } from "./types.ts";
-import { keyPage, messagePage } from "./pages.ts";
+import { CONTACT, DISCUSSIONS } from "./contact.ts";
+import { sendWelcomeEmail } from "./email.ts";
+import { messagePage, onboardingPage } from "./pages.ts";
+import { claimUrl, newClaim, storeClaim } from "./claim.ts";
 
 /** How long a key's subscription status is trusted before it is re-checked with Stripe. */
 export const RECHECK_MS = 6 * 60 * 60 * 1000;
@@ -56,9 +59,7 @@ export const RECHECK_TIMEOUT_MS = 5_000;
 /** Stripe events are far smaller; anything larger is refused before the signature is computed. */
 export const WEBHOOK_MAX_BYTES = 1024 * 1024;
 const SESSION_RE = /^cs_(live|test)_[A-Za-z0-9]{10,200}$/;
-export const CONTACT = "contact@factlot.com";
-export const DISCUSSIONS =
-  "https://github.com/9mp96ygnbk-alt/factlot/discussions";
+export { CONTACT, DISCUSSIONS };
 export const CHECKOUT_CLOSED_MESSAGE = `Paid plans open shortly. Email ${CONTACT} to be told when they do.`;
 
 export function json(
@@ -92,15 +93,26 @@ export interface BillingDeps {
   env: Env;
   stripe: StripeClient;
   now: () => number;
+  /**
+   * Run work after the response (ctx.waitUntil in the Worker). Failures are the work's own to
+   * log; without a context (tests, scripts) it is awaited by whoever holds the promise.
+   */
+  defer: (work: Promise<unknown>) => void;
 }
 
 export function billingDeps(
   env: Env,
   fetchImpl: typeof fetch = fetch,
   now: () => number = Date.now,
+  defer: (work: Promise<unknown>) => void = (w) => void w.catch(() => {}),
 ): BillingDeps | undefined {
   if (!env.STRIPE_SECRET_KEY) return undefined;
-  return { env, stripe: stripeClient(env.STRIPE_SECRET_KEY, fetchImpl), now };
+  return {
+    env,
+    stripe: stripeClient(env.STRIPE_SECRET_KEY, fetchImpl),
+    now,
+    defer,
+  };
 }
 
 export const siteUrl = (env: Env) =>
@@ -143,10 +155,19 @@ export async function ensurePrice(
   return id;
 }
 
-export async function createCheckout(
+/** Options for an agent's checkout: the claim it can poll and when the session expires. */
+export interface CheckoutExtras {
+  /** Public id of the agent claim (first 16 hex of the token's hash), kept in the session metadata. */
+  claimId?: string;
+  /** Unix seconds; Stripe accepts 30 minutes to 24 hours from now. */
+  expiresAt?: number;
+}
+
+export async function startCheckout(
   d: BillingDeps,
   plan: PlanId,
-): Promise<string> {
+  extras: CheckoutExtras = {},
+): Promise<{ url: string; id: string }> {
   const price = await ensurePrice(d, plan);
   const site = siteUrl(d.env);
   const session = await d.stripe.post("/checkout/sessions", {
@@ -163,9 +184,18 @@ export async function createCheckout(
     "custom_text[terms_of_service_acceptance][message]": `I agree to the [FactLot Terms of Service](${site}/terms).`,
     "custom_text[submit][message]": `${priceText(PLANS[plan])}, renews monthly until cancelled. Cancel any time at ${siteHost(d.env)}/account.`,
     "metadata[factlot_plan]": plan,
+    "metadata[factlot_claim]": extras.claimId,
+    expires_at: extras.expiresAt,
     "subscription_data[metadata][factlot_plan]": plan,
   });
-  return String(session.url);
+  return { url: String(session.url), id: String(session.id ?? "") };
+}
+
+export async function createCheckout(
+  d: BillingDeps,
+  plan: PlanId,
+): Promise<string> {
+  return (await startCheckout(d, plan)).url;
 }
 
 /** What a Stripe subscription object says about access. */
@@ -173,6 +203,10 @@ export interface SubscriptionState {
   stripe_status: string;
   plan?: PlanId;
   paused: boolean;
+  /** ISO end of the current billing period (the renewal date), when Stripe gives one. */
+  period_end?: string;
+  /** The subscription ends at period_end instead of renewing. */
+  cancel_at_period_end?: boolean;
 }
 
 /**
@@ -202,10 +236,19 @@ export function planFromSubscription(
 export function subscriptionState(
   sub: Record<string, unknown>,
 ): SubscriptionState {
+  // Since API 2025-03-31 the period lives on the subscription item; older shapes keep it on top.
+  const item = (sub.items as { data?: Record<string, unknown>[] } | undefined)
+    ?.data?.[0];
+  const end = [sub.current_period_end, item?.current_period_end].find(
+    (v): v is number => typeof v === "number" && v > 0,
+  );
   return {
     stripe_status: String(sub.status ?? "unknown"),
     plan: planFromSubscription(sub),
     paused: sub.pause_collection !== undefined && sub.pause_collection !== null,
+    ...(end ? { period_end: new Date(end * 1000).toISOString() } : {}),
+    cancel_at_period_end:
+      sub.cancel_at_period_end === true || typeof sub.cancel_at === "number",
   };
 }
 
@@ -228,26 +271,49 @@ function applyState(
   };
   if (s.paused) next.paused = true;
   else delete next.paused;
+  if (s.period_end) next.period_end = s.period_end;
+  if (s.cancel_at_period_end) next.cancel_at_period_end = true;
+  else delete next.cancel_at_period_end;
   if (stripe_status === "active" || stripe_status === "trialing")
     delete next.payment_failed_at;
   return settle(next, checkedAt);
 }
 
-type Redeemed =
-  | { ok: true; key: string; plan: PlanId }
-  | { ok: false; status: number; message: string };
+/** Who collected a checkout's key: the success page or an agent polling its claim URL. */
+export type RedeemedBy = "page" | "agent";
 
-const ALREADY_SHOWN = `The key for this purchase was already shown. Lost it? Email ${CONTACT} from the address you paid with and we will issue a new one.`;
+export type Redeemed =
+  | { ok: true; key: string; plan: PlanId }
+  | {
+      ok: false;
+      status: number;
+      message: string;
+      /** On 409: who collected the key ("page" for sessions redeemed before this was recorded). */
+      by?: RedeemedBy;
+      /** On 409 when known: the plan bought. */
+      plan?: PlanId;
+      /** On 402: Stripe's session status (open, expired, complete). */
+      session_status?: string;
+    };
+
+export const ALREADY_SHOWN = `The key for this purchase was already shown. Lost it? Recover access at factlot.com/account with the email you paid with, or email ${CONTACT}.`;
+
+/** The value a redemption stores in its Durable Object claim: `<key id>|<by>`. */
+const claimValue = (id: string, by: RedeemedBy) => `${id}|${by}`;
+const claimedBy = (value: string): RedeemedBy =>
+  value.split("|")[1] === "agent" ? "agent" : "page";
 
 /**
  * Redeem a completed checkout session for an API key, once. Two loads of the success page at the
- * same moment (two tabs, or two regions) both pass the KV check, so the session is claimed in a
- * Durable Object (strongly consistent) and only the winner's key is kept. The key record is
- * written before the claim, so a shown key always has a record; a loser deletes its record.
+ * same moment (two tabs, or two regions), or the page and an agent's claim poll, both pass the KV
+ * check, so the session is claimed in a Durable Object (strongly consistent) and only the
+ * winner's key is kept. The key record is written before the claim, so a shown key always has a
+ * record; a loser deletes its record and learns from the claim who won.
  */
 export async function redeemSession(
   d: BillingDeps,
   sessionId: string,
+  by: RedeemedBy = "page",
 ): Promise<Redeemed> {
   const kv = d.env.KEYS;
   if (!SESSION_RE.test(sessionId))
@@ -256,8 +322,17 @@ export async function redeemSession(
       status: 400,
       message: "That checkout link is not valid.",
     };
-  if (await kv.get(`session:${sessionId}`))
-    return { ok: false, status: 409, message: ALREADY_SHOWN };
+  const marker = await kv.get(`session:${sessionId}`);
+  if (marker) {
+    const m = JSON.parse(marker) as { by?: unknown; plan?: unknown };
+    return {
+      ok: false,
+      status: 409,
+      message: ALREADY_SHOWN,
+      by: m.by === "agent" ? "agent" : "page",
+      ...(isPlanId(m.plan) ? { plan: m.plan } : {}),
+    };
+  }
   let session: Record<string, unknown>;
   try {
     session = await d.stripe.get(`/checkout/sessions/${sessionId}`, {
@@ -290,6 +365,7 @@ export async function redeemSession(
       return {
         ok: false,
         status: 402,
+        session_status: "payment_failed",
         message: `Your bank payment did not go through, so no key was issued and nothing was charged. Start again at ${siteUrl(d.env)}/#pricing with another payment method, or email ${CONTACT}.`,
       };
     return {
@@ -303,6 +379,7 @@ export async function redeemSession(
     return {
       ok: false,
       status: 402,
+      session_status: String(session.status ?? "unknown"),
       message:
         "This checkout is not complete yet. If you just paid, reload this page in a minute.",
     };
@@ -337,22 +414,40 @@ export async function redeemSession(
   await writeKey(kv, hash, applyState(base, state, d.now()), d.now());
   let winner: string;
   try {
-    winner = await d.env.METER.claim(`session:${sessionId}`, id);
+    winner = await d.env.METER.claim(
+      `session:${sessionId}`,
+      claimValue(id, by),
+    );
   } catch (err) {
     await kv.delete(`key:${hash}`); // never shown, so never kept
     throw err;
   }
-  if (winner !== id) {
+  if (winner !== claimValue(id, by)) {
     await kv.delete(`key:${hash}`);
-    return { ok: false, status: 409, message: ALREADY_SHOWN };
+    return {
+      ok: false,
+      status: 409,
+      message: ALREADY_SHOWN,
+      by: claimedBy(winner),
+      plan,
+    };
   }
   await addSubscriptionKey(kv, subscription, hash);
   await kv.put(
     `session:${sessionId}`,
-    JSON.stringify({ key_id: id, redeemed_at: base.created }),
+    JSON.stringify({ key_id: id, redeemed_at: base.created, by, plan }),
     { expirationTtl: INACTIVE_RETENTION_SECONDS },
   );
+  const email = buyerEmail(session);
+  if (email) d.defer(sendWelcomeEmail(d.env, email, PLANS[plan]));
   return { ok: true, key, plan };
+}
+
+/** The address the buyer gave Stripe Checkout. */
+function buyerEmail(session: Record<string, unknown>): string | undefined {
+  const details = session.customer_details as { email?: unknown } | undefined;
+  const email = details?.email ?? session.customer_email;
+  return typeof email === "string" && email.includes("@") ? email : undefined;
 }
 
 /**
@@ -853,6 +948,7 @@ export async function checkoutRoute(
   request: Request,
   url: URL,
   fetchImpl: typeof fetch = fetch,
+  now: () => number = Date.now,
 ): Promise<Response> {
   const isGet = request.method === "GET";
   let plan: unknown = url.searchParams.get("plan");
@@ -867,28 +963,46 @@ export async function checkoutRoute(
     const message = 'plan must be "pro" or "team"';
     return isGet
       ? messagePage(400, "Choose a plan", message)
-      : json(400, { error: "BadRequest", message });
+      : json(400, {
+          error: "BadRequest",
+          code: "BadRequest",
+          message,
+          next: 'POST /v1/billing/checkout {"plan":"pro"} or {"plan":"team"}',
+        });
   }
-  const d = billingDeps(env, fetchImpl);
+  const d = billingDeps(env, fetchImpl, now);
   if (!d || !checkoutOpen(env))
     return isGet
       ? messagePage(503, "Paid plans open shortly", CHECKOUT_CLOSED_MESSAGE)
       : json(503, {
           error: "CheckoutClosed",
+          code: "CheckoutClosed",
           message: CHECKOUT_CLOSED_MESSAGE,
+          next: `mailto:${CONTACT}`,
         });
   try {
-    const checkout = await createCheckout(d, plan);
-    return isGet
-      ? new Response(null, {
-          status: 303,
-          headers: { location: checkout, "cache-control": "no-store" },
-        })
-      : json(200, {
-          url: checkout,
-          plan,
-          note: "Open this link in a browser to pay; the API key is shown on the page Stripe returns to.",
-        });
+    if (isGet)
+      return new Response(null, {
+        status: 303,
+        headers: {
+          location: await createCheckout(d, plan),
+          "cache-control": "no-store",
+        },
+      });
+    // Agents also get a claim URL to collect the key once their human has paid.
+    const claim = await newClaim(now());
+    const checkout = await startCheckout(d, plan, {
+      claimId: claim.id,
+      expiresAt: claim.expiresAt,
+    });
+    await storeClaim(env, claim, checkout.id);
+    return json(200, {
+      url: checkout.url,
+      plan,
+      claim_url: claimUrl(env, claim.token),
+      expires_at: new Date(claim.expiresAt * 1000).toISOString(),
+      note: "Give url to your human to pay. Then poll claim_url (GET, at most every 2 seconds): 202 while unpaid, 200 with the API key once (store it at once), 410 if it was already collected. The checkout and the claim expire at expires_at.",
+    });
   } catch (err) {
     logStripeError("checkout create", err);
     const message =
@@ -897,7 +1011,12 @@ export async function checkoutRoute(
         : "Checkout failed.";
     return isGet
       ? messagePage(502, "Checkout failed", `${message} Email ${CONTACT}.`)
-      : json(502, { error: "CheckoutFailed", message });
+      : json(502, {
+          error: "CheckoutFailed",
+          code: "CheckoutFailed",
+          message,
+          next: `retry in a minute, or email ${CONTACT}`,
+        });
   }
 }
 
@@ -905,8 +1024,9 @@ export async function successRoute(
   env: Env,
   url: URL,
   fetchImpl: typeof fetch = fetch,
+  defer?: BillingDeps["defer"],
 ): Promise<Response> {
-  const d = billingDeps(env, fetchImpl);
+  const d = billingDeps(env, fetchImpl, Date.now, defer);
   if (!d)
     return messagePage(503, "Paid plans open shortly", CHECKOUT_CLOSED_MESSAGE);
   let result: Redeemed;
@@ -920,12 +1040,31 @@ export async function successRoute(
       `We could not reach Stripe or our key store. Your payment is safe: reload this page in a minute, or email ${CONTACT}.`,
     );
   }
-  if (!result.ok)
-    return messagePage(result.status, "About your FactLot key", result.message);
-  return keyPage(
-    result.key,
-    PLANS[result.plan],
-    env.API_URL ?? "https://api.factlot.com",
-    siteUrl(env),
-  );
+  const site = siteUrl(env);
+  const api = env.API_URL ?? "https://api.factlot.com";
+  if (result.ok)
+    return onboardingPage({
+      key: result.key,
+      plan: PLANS[result.plan],
+      api,
+      site,
+    });
+  // A revisit after the key was shown (here or to the buyer's agent): the guide, without the key.
+  if (result.status === 409)
+    return onboardingPage({
+      plan: result.plan ? PLANS[result.plan] : undefined,
+      api,
+      site,
+      notice:
+        result.by === "agent"
+          ? {
+              title: "Your agent already collected this key",
+              text: "It is in your agent's secret store, not on this page. The guide below shows how to connect other clients with it.",
+            }
+          : {
+              title: "Your key was already shown",
+              text: "It is shown once. If you did not save it, recover access with the email you paid with.",
+            },
+    });
+  return messagePage(result.status, "About your FactLot key", result.message);
 }
