@@ -3,6 +3,11 @@
  * No SDK: the Workers bundle stays small and every call is visible here.
  */
 const API = "https://api.stripe.com/v1";
+/**
+ * Every call names its API version, so a dashboard upgrade cannot change the objects this code
+ * reads. Webhook payloads follow the endpoint's own version (set when it is created).
+ */
+export const STRIPE_API_VERSION = "2026-07-29.dahlia";
 
 export class StripeError extends Error {
   readonly status: number;
@@ -55,6 +60,7 @@ export function stripeClient(
       headers: {
         authorization: `Bearer ${secretKey}`,
         "content-type": "application/x-www-form-urlencoded",
+        "stripe-version": STRIPE_API_VERSION,
       },
       body: method === "POST" ? formEncode(params) : undefined,
       signal: AbortSignal.timeout(opts.timeoutMs ?? 10_000),

@@ -1,7 +1,10 @@
 // Hosted FactLot: api.factlot.com (MCP, REST, OpenAPI, billing) and the landing page.
 // Deploy: npm run deploy:cloudflare (from the repo root). Secrets (set by a maintainer, never in
 // this file): STRIPE_SECRET_KEY (required for billing; checkout opens only with a live key),
-// STRIPE_WEBHOOK_SECRET (recommended: plan changes, refunds and disputes apply at once).
+// STRIPE_WEBHOOK_SECRET (recommended: plan changes, refunds and disputes apply at once),
+// IP_HASH_SALT (a long random string, e.g. `openssl rand -hex 32`; salts the hash that names a
+// keyless caller's meter, so stored names cannot be traced back to an address. Set it once with
+// `npx wrangler@4 secret put IP_HASH_SALT`; changing it restarts that day's free counts).
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "factlot-api",
@@ -39,5 +42,6 @@
     "run_worker_first": true,
     "not_found_handling": "404-page",
   },
-  "observability": { "enabled": true },
+  // Query strings are left out of logs and traces: /billing/success carries a checkout session id.
+  "observability": { "enabled": true, "redact_query_string": true },
 }

@@ -39,7 +39,11 @@ import { escapeHtml } from "./pages.ts";
 import { PLANS } from "./plans.ts";
 import { REGISTRY_RUN_URL, registryRunner } from "./registry.ts";
 import { handle } from "./router.ts";
-import { hmacSha256Hex, verifyStripeSignature } from "./stripe.ts";
+import {
+  STRIPE_API_VERSION,
+  hmacSha256Hex,
+  verifyStripeSignature,
+} from "./stripe.ts";
 import type { Env, KV, MeterService, RateLimit } from "./types.ts";
 
 class MemoryKV implements KV {
@@ -100,6 +104,7 @@ class MemoryStore implements CounterStore {
   clearClaims() {
     this.claims.clear();
   }
+  reset() {}
 }
 
 /** 2026-11-07 12:00 UTC, moved by tests. */
@@ -256,23 +261,41 @@ async function signed(
 }
 
 /** The inner handler: REST answers {ok:true}; MCP answers each request message. */
-function innerApi() {
+function innerApi(opts: { registryDown?: boolean } = {}) {
   const seen: { request: Request; body: string }[] = [];
+  const unavailable = JSON.stringify({
+    error: "RegistryUnavailable",
+    message: "registry service answered 503",
+    issues: [],
+  });
   const api = {
     fetch: async (r: Request) => {
       const body = await r.text();
       seen.push({ request: r, body });
-      if (new URL(r.url).pathname === "/mcp") {
+      const path = new URL(r.url).pathname;
+      if (opts.registryDown && path.startsWith("/v1/registry/"))
+        return new Response(unavailable, {
+          status: 503,
+          headers: { "content-type": "application/json" },
+        });
+      if (path === "/mcp") {
         const parsed = JSON.parse(body) as unknown;
         const items = (Array.isArray(parsed) ? parsed : [parsed]) as {
           id?: unknown;
+          params?: { name?: string };
         }[];
         const answers = items
           .filter((m) => m.id !== undefined)
           .map((m) => ({
             jsonrpc: "2.0",
             id: m.id,
-            result: { content: [{ type: "text", text: "{}" }] },
+            result:
+              opts.registryDown && m.params?.name?.startsWith("registry_")
+                ? {
+                    isError: true,
+                    content: [{ type: "text", text: unavailable }],
+                  }
+                : { content: [{ type: "text", text: "{}" }] },
           }));
         if (answers.length === 0) return new Response(null, { status: 202 });
         return new Response(
@@ -1375,6 +1398,9 @@ describe("router", () => {
       claim: async () => {
         throw new Error("DO down");
       },
+      refund: async () => {
+        throw new Error("DO down");
+      },
     };
     const e = env({ METER: broken });
     const res = await call(e, api, "/v1/calc/irr");
@@ -2046,6 +2072,279 @@ describe("pages", () => {
     assert.match(await rotate.text(), /previous key no longer works/);
     assert.equal((await call(e, api, "/v1/calc/irr", { key })).status, 401);
     assert.equal(PLANS.team.maxKeys, 5);
+  });
+});
+
+/** A Durable Object state over real SQLite; deleteAll drops the tables, as Cloudflare's does. */
+async function sqliteState() {
+  const { DatabaseSync } = (await import("node:sqlite")) as unknown as {
+    DatabaseSync: new (p: string) => {
+      prepare(q: string): { all(...b: unknown[]): Record<string, unknown>[] };
+      exec(q: string): void;
+    };
+  };
+  const db = new DatabaseSync(":memory:");
+  let alarm: number | null = null;
+  const tables = () =>
+    db
+      .prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
+      .all()
+      .map((r) => String(r.name));
+  const state = {
+    storage: {
+      sql: {
+        exec: (q: string, ...b: (string | number)[]) => {
+          const rows = db.prepare(q).all(...b);
+          return { toArray: () => rows };
+        },
+      },
+      getAlarm: async () => alarm,
+      setAlarm: async (t: number) => {
+        alarm = t;
+      },
+      deleteAll: async () => {
+        for (const t of tables()) db.exec(`DROP TABLE "${t}"`);
+        alarm = null;
+      },
+    },
+  };
+  return { state, tables, alarm: () => alarm };
+}
+
+let sqliteAvailable = true;
+try {
+  await import("node:sqlite");
+} catch {
+  sqliteAvailable = false;
+}
+
+describe("review fixes", () => {
+  const hitReq = (n: number) =>
+    new Request("https://limiter/hit", {
+      method: "POST",
+      body: JSON.stringify({
+        perMinute: 60,
+        quota: { kind: "day", limit: 100, n },
+      }),
+    });
+
+  it(
+    "a resident object keeps counting after its alarm wiped the storage (SQLite)",
+    { skip: !sqliteAvailable },
+    async () => {
+      const clock = { t: T0 };
+      const sql = await sqliteState();
+      const obj = new RateLimiterObject(sql.state, {}, { now: () => clock.t });
+      const first = (await (await obj.fetch(hitReq(1))).json()) as {
+        granted: number;
+      };
+      assert.equal(first.granted, 1);
+      assert.equal(sql.alarm(), Date.UTC(2026, 10, 8));
+      clock.t = Date.UTC(2026, 10, 8, 0, 0, 1);
+      await obj.alarm();
+      assert.deepEqual(sql.tables(), [], "deleteAll dropped the tables");
+      const again = await obj.fetch(hitReq(1));
+      assert.equal(again.status, 200);
+      const body = (await again.json()) as {
+        granted: number;
+        quota: { used: number };
+      };
+      assert.equal(body.granted, 1);
+      assert.equal(body.quota.used, 1, "a new day's count");
+      const quota = await obj.fetch(
+        new Request("https://limiter/quota", {
+          method: "POST",
+          body: JSON.stringify({ kind: "month", limit: 5 }),
+        }),
+      );
+      assert.equal(quota.status, 200);
+    },
+  );
+
+  it(
+    "an object touched without counting (coverage, over the cap) still empties at the window end",
+    { skip: !sqliteAvailable },
+    async () => {
+      const clock = { t: T0 };
+      const sql = await sqliteState();
+      const obj = new RateLimiterObject(sql.state, {}, { now: () => clock.t });
+      await obj.fetch(hitReq(0));
+      assert.ok(sql.tables().length > 0, "the read created the tables");
+      assert.equal(sql.alarm(), Date.UTC(2026, 10, 8), "and scheduled cleanup");
+      clock.t = Date.UTC(2026, 10, 8, 0, 0, 1);
+      await obj.alarm();
+      assert.deepEqual(sql.tables(), []);
+    },
+  );
+
+  it("a re-check never erases a hold, revocation or rotation written while Stripe answered", async () => {
+    const s = fakeStripe({
+      "GET /subscriptions/sub_1": () => [200, { status: "active" }],
+    });
+    const e = env({ STRIPE_SECRET_KEY: "rk_test_x" });
+    const stale = record({ checked_at: 0 });
+    await writeKey(e.KEYS, "h", { ...stale, hold: "refunded" }, T0);
+    const d = billingDeps(e, s.fetchImpl, () => T0 + RECHECK_MS)!;
+    const next = await refreshIfStale(d, "h", stale);
+    assert.equal(next.hold, "refunded");
+    assert.equal(next.status, "inactive");
+    assert.equal((await readKey(e.KEYS, "h"))?.hold, "refunded");
+
+    await writeKey(
+      e.KEYS,
+      "r",
+      { ...stale, revoked_at: "2026-11-07T00:00:00.000Z" },
+      T0,
+    );
+    const before = e.KEYS.data.get("key:r");
+    const revoked = await refreshIfStale(d, "r", stale);
+    assert.equal(revoked.status, "inactive");
+    assert.equal(e.KEYS.data.get("key:r"), before, "a dead key is not written");
+  });
+
+  it("pins the Stripe API version and logs Stripe's status and message on failure", async (t) => {
+    const headers: Headers[] = [];
+    const fetchImpl = (async (_: string | URL, init?: RequestInit) => {
+      headers.push(new Headers(init?.headers));
+      return new Response(
+        JSON.stringify({
+          error: { message: "No configuration provided for the portal" },
+        }),
+        { status: 400 },
+      );
+    }) as typeof fetch;
+    const logged: string[] = [];
+    t.mock.method(console, "error", (line: string) => logged.push(line));
+    const e = env({ STRIPE_SECRET_KEY: "sk_live_x" });
+    const { key } = await issue(e);
+    const { api } = innerApi();
+    const res = await handle(
+      new Request("https://api.factlot.com/v1/billing/portal", {
+        method: "POST",
+        headers: { authorization: `Bearer ${key}` },
+      }),
+      e,
+      api,
+      { fetchImpl, now: () => T0 },
+    );
+    assert.equal(res.status, 502);
+    assert.equal(headers[0]?.get("stripe-version"), STRIPE_API_VERSION);
+    assert.equal(STRIPE_API_VERSION, "2026-07-29.dahlia");
+    const entry = JSON.parse(logged.at(-1)!) as Record<string, unknown>;
+    assert.equal(entry.where, "portal session");
+    assert.equal(entry.status, 400);
+    assert.match(String(entry.error), /No configuration provided/);
+  });
+
+  it("MCP quota answers carry CORS headers (all denied, and a mixed batch)", async () => {
+    const { api } = innerApi();
+    const e = env();
+    const { key } = await issue(e);
+    e.limiter.object("meter:sub:sub_1").store.setCount("month:2026-11", 5_000);
+    const all = await call(e, api, "/mcp", {
+      key,
+      body: toolCall("registry_get"),
+    });
+    assert.equal(all.headers.get("access-control-allow-origin"), "*");
+    const mixed = await call(e, api, "/mcp", {
+      key,
+      body: [toolCall("registry_get", 1), toolCall("calc_irr", 2)],
+    });
+    assert.equal(mixed.headers.get("access-control-allow-origin"), "*");
+  });
+
+  it("refuses an MCP batch over 20 messages before metering anything", async () => {
+    const { api, seen } = innerApi();
+    const e = env();
+    const batch = Array.from({ length: 21 }, (_, i) =>
+      toolCall("registry_get", i),
+    );
+    const res = await call(e, api, "/mcp", { body: batch });
+    assert.equal(res.status, 400);
+    const body = (await res.json()) as { error: { code: number } };
+    assert.equal(body.error.code, -32600);
+    assert.equal(e.limiter.objects.size, 0, "no meter was touched");
+    assert.equal(seen.length, 0);
+  });
+
+  it("gives back a lookup the registry could not answer (REST 503, MCP RegistryUnavailable)", async () => {
+    const { api } = innerApi({ registryDown: true });
+    const e = env();
+    const rest = await call(e, api, "/v1/registry/get", { body: {} });
+    assert.equal(rest.status, 503);
+    assert.equal(rest.headers.get("x-factlot-registry-quota-remaining"), "100");
+    const anon = [...e.limiter.objects.entries()].find(([n]) =>
+      n.startsWith("meter:ip:"),
+    )![1];
+    assert.equal(anon.store.counts.get("day:2026-11-07"), 0);
+
+    const { key } = await issue(e);
+    const mcp = await call(e, api, "/mcp", {
+      key,
+      body: [
+        toolCall("registry_get", 1),
+        toolCall("registry_owned_by", 2),
+        toolCall("calc_irr", 3),
+      ],
+    });
+    assert.equal(mcp.status, 200);
+    assert.equal(mcp.headers.get("x-factlot-registry-quota-remaining"), "5000");
+    assert.equal(
+      e.limiter.object("meter:sub:sub_1").store.counts.get("month:2026-11"),
+      0,
+    );
+    const answers = (await mcp.json()) as { id: number }[];
+    assert.equal(answers.length, 3, "the answers are passed on unchanged");
+  });
+
+  it("salts the address hash with the IP_HASH_SALT secret", async () => {
+    const ip = "198.51.100.20";
+    const a = await addressSubject(ip, T0, "secret-one");
+    assert.notEqual(a, await addressSubject(ip, T0, "secret-two"));
+    assert.notEqual(a, await addressSubject(ip, T0));
+    assert.equal(a, await addressSubject(ip, T0, "secret-one"));
+  });
+
+  it("a downgrade to Pro keeps the oldest key and revokes the rest", async () => {
+    const e = env({ STRIPE_WEBHOOK_SECRET: "whsec_x" });
+    const keys = [];
+    for (const day of ["01", "02", "03"])
+      keys.push(
+        await issue(e, {
+          plan: "team",
+          created: `2026-11-${day}T00:00:00.000Z`,
+        }),
+      );
+    const res = await handleWebhook(
+      e,
+      await signed({
+        type: "customer.subscription.updated",
+        created: 100,
+        data: {
+          object: {
+            id: "sub_1",
+            status: "active",
+            items: {
+              data: [{ price: { lookup_key: "factlot_pro_monthly_v1" } }],
+            },
+          },
+        },
+      }),
+      () => T0,
+    );
+    assert.equal(
+      ((await res.json()) as { keys_revoked: number }).keys_revoked,
+      2,
+    );
+    const { api } = innerApi();
+    assert.equal(
+      (await call(e, api, "/v1/calc/irr", { key: keys[0]!.key })).status,
+      200,
+    );
+    assert.equal(
+      (await call(e, api, "/v1/calc/irr", { key: keys[2]!.key })).status,
+      401,
+    );
   });
 });
 

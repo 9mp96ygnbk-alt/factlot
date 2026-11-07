@@ -270,6 +270,7 @@ export async function redeemSession(
         status: 404,
         message: "We could not find that checkout.",
       };
+    logStripeError("checkout session read", err);
     throw err;
   }
   const meta = (session.metadata ?? {}) as Record<string, string>;
@@ -354,7 +355,15 @@ export async function redeemSession(
   return { ok: true, key, plan };
 }
 
-/** Re-check a key's subscription with Stripe when the cached status is older than RECHECK_MS. */
+/**
+ * Re-check a key's subscription with Stripe when the cached status is older than RECHECK_MS.
+ *
+ * The Stripe call takes time, and meanwhile a webhook (refund, dispute), a revocation or a
+ * rotation may have written the record; `record` itself may be a stale KV read. So the record is
+ * read again just before writing, only the fields Stripe decides (status, plan, pause, the
+ * failed-payment marker, checked_at) are applied to that fresh copy, and a key that is no longer
+ * live is never written.
+ */
 export async function refreshIfStale(
   d: BillingDeps,
   hash: string,
@@ -362,37 +371,68 @@ export async function refreshIfStale(
 ): Promise<KeyRecord> {
   if (!isLiveKey(record) || d.now() - record.checked_at < RECHECK_MS)
     return record;
-  let next: KeyRecord;
+  let update: (fresh: KeyRecord) => KeyRecord;
   try {
     const sub = await d.stripe.get(
       `/subscriptions/${record.subscription}`,
       {},
       { timeoutMs: RECHECK_TIMEOUT_MS },
     );
-    next = applyState(record, subscriptionState(sub), d.now());
+    const state = subscriptionState(sub);
+    update = (fresh) => applyState(fresh, state, d.now());
   } catch (err) {
     if (err instanceof StripeError && err.status === 404) {
       // Stripe does not know the subscription (for example a sandbox purchase checked with a
       // live key): the key is not backed by a payment, so it stops working.
-      next = settle(
-        { ...record, stripe_status: "missing", checked_at: d.now() },
-        d.now(),
-      );
+      update = (fresh) =>
+        settle(
+          { ...fresh, stripe_status: "missing", checked_at: d.now() },
+          d.now(),
+        );
     } else {
+      logStripeError("subscription re-check", err);
       // Stripe unreachable or slow: keep the last known status (never lock a paying customer
       // out for Stripe's outage) and try again after the backoff, not on every request.
-      next = {
-        ...record,
+      update = (fresh) => ({
+        ...fresh,
         checked_at: d.now() - RECHECK_MS + RECHECK_BACKOFF_MS,
-      };
+      });
     }
   }
+  let fresh = record;
+  try {
+    fresh = (await readKey(d.env.KEYS, hash)) ?? record;
+  } catch {
+    // Keep the copy in hand; the write below is skipped only for a key known not to be live.
+  }
+  if (!isLiveKey(fresh)) return settle(fresh, d.now());
+  const next = update(fresh);
   try {
     await writeKey(d.env.KEYS, hash, next, d.now());
   } catch {
     // A KV write limit (one write per key per second) must not fail the customer's request.
   }
   return next;
+}
+
+/**
+ * Log a failed Stripe call: where, the HTTP status and Stripe's message (which names the
+ * problem, such as an unconfigured portal, and never contains a key).
+ */
+export function logStripeError(where: string, err: unknown): void {
+  console.error(
+    JSON.stringify({
+      msg: "stripe call failed",
+      where,
+      status: err instanceof StripeError ? err.status : undefined,
+      error:
+        err instanceof StripeError
+          ? err.message.slice(0, 300)
+          : err instanceof Error
+            ? err.name
+            : typeof err,
+    }),
+  );
 }
 
 /** Apply `change` to every live key of the subscriptions; returns how many records changed. */
@@ -554,11 +594,32 @@ export async function handleWebhook(
         (rec) => applyState(rec, state, now()),
         now(),
       );
+      // A downgrade (Team to Pro) keeps the oldest keys the new plan allows; newer ones stop.
+      let revoked = 0;
+      if (state.plan) {
+        const extra = (await liveKeys(kv, sub)).slice(
+          PLANS[state.plan].maxKeys,
+        );
+        for (const k of extra) {
+          await writeKey(
+            kv,
+            k.hash,
+            { ...k.record, revoked_at: new Date(now()).toISOString() },
+            now(),
+          );
+          await removeSubscriptionKey(kv, sub, k.hash);
+          revoked++;
+        }
+      }
       if (created)
         await kv.put(`subevt:${sub}`, String(created), {
           expirationTtl: INACTIVE_RETENTION_SECONDS,
         });
-      return json(200, { received: true, keys_updated: updated });
+      return json(200, {
+        received: true,
+        keys_updated: updated,
+        ...(revoked ? { keys_revoked: revoked } : {}),
+      });
     }
     if (
       event.type === "charge.refunded" ||
@@ -614,7 +675,13 @@ export async function handleWebhook(
       JSON.stringify({
         msg: "webhook failed",
         type: String(event.type ?? "").slice(0, 64),
-        error: err instanceof Error ? err.name : typeof err,
+        status: err instanceof StripeError ? err.status : undefined,
+        error:
+          err instanceof StripeError
+            ? err.message.slice(0, 300)
+            : err instanceof Error
+              ? err.name
+              : typeof err,
       }),
     );
     // 5xx: Stripe retries the event with backoff.
@@ -823,6 +890,7 @@ export async function checkoutRoute(
           note: "Open this link in a browser to pay; the API key is shown on the page Stripe returns to.",
         });
   } catch (err) {
+    logStripeError("checkout create", err);
     const message =
       err instanceof StripeError
         ? "Stripe could not start checkout."
@@ -844,7 +912,8 @@ export async function successRoute(
   let result: Redeemed;
   try {
     result = await redeemSession(d, url.searchParams.get("session_id") ?? "");
-  } catch {
+  } catch (err) {
+    if (!(err instanceof StripeError)) logStripeError("key issue", err);
     return messagePage(
       502,
       "About your FactLot key",

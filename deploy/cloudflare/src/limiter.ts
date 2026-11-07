@@ -104,9 +104,14 @@ export interface CounterStore {
   /** Counter and claim rows held. */
   size(): number;
   clearClaims(): void;
+  /** The object's storage was wiped (deleteAll): forget anything cached about it. */
+  reset(): void;
 }
 
-/** CounterStore over a Durable Object's SQLite storage. Tables are created on first use. */
+/**
+ * CounterStore over a Durable Object's SQLite storage. Tables are created on first use and again
+ * after `reset()`: `deleteAll()` drops them, and the object can stay resident afterwards.
+ */
 export function sqlStore(sql: SqlStorageLike): CounterStore {
   let ready = false;
   const db = () => {
@@ -122,6 +127,9 @@ export function sqlStore(sql: SqlStorageLike): CounterStore {
     return sql;
   };
   return {
+    reset() {
+      ready = false;
+    },
     getCount(window) {
       const row = db()
         .exec("SELECT used FROM quota WHERE period = ?", window)
@@ -222,12 +230,31 @@ export class Meter {
     const used = this.store.getCount(window);
     const granted = ok ? Math.max(0, Math.min(quota.n, quota.limit - used)) : 0;
     if (granted > 0) this.store.setCount(window, used + granted);
+    // The store was touched (tables exist even when nothing was counted): the caller schedules
+    // the end-of-window alarm, which empties the object once nothing is left.
     return {
       ok,
       granted,
       quota: quotaState(used + granted, quota.limit, resetsAt),
-      ...(granted > 0 ? { window_ends: resetsAt } : {}),
+      window_ends: resetsAt,
     };
+  }
+
+  /**
+   * Give back `n` lookups taken in the window that ends at `resetsAt` (the registry could not
+   * answer). Nothing happens once that window has ended.
+   */
+  refund(kind: QuotaKind, n: number, resetsAt: string): QuotaState | undefined {
+    const { window, resetsAt: end } = quotaWindow(kind, this.now());
+    if (new Date(end).toISOString() !== resetsAt || n <= 0) return undefined;
+    const used = Math.max(0, this.store.getCount(window) - n);
+    this.store.setCount(window, used);
+    return quotaState(used, 0, end);
+  }
+
+  /** The store was wiped. */
+  storageCleared(): void {
+    this.storeInstance?.reset();
   }
 
   /**
@@ -247,10 +274,13 @@ export class Meter {
       : quotaWindow("month", now).resetsAt;
   }
 
-  /** The current window's usage, counting nothing. */
-  quota(kind: QuotaKind, limit: number): QuotaState {
+  /** The current window's usage, counting nothing; `window_ends` as for `hit`. */
+  quota(kind: QuotaKind, limit: number): QuotaState & { window_ends: number } {
     const { window, resetsAt } = quotaWindow(kind, this.now());
-    return quotaState(this.store.getCount(window), limit, resetsAt);
+    return {
+      ...quotaState(this.store.getCount(window), limit, resetsAt),
+      window_ends: resetsAt,
+    };
   }
 
   /** Store `value` under `name` unless something is stored already; returns what is stored. */
@@ -300,8 +330,11 @@ export class RateLimiterObject {
   async alarm(): Promise<void> {
     this.alarmAt = null;
     const next = this.meter.cleanup();
-    if (next === undefined) await this.state.storage.deleteAll();
-    else await this.alarmBy(next);
+    if (next === undefined) {
+      await this.state.storage.deleteAll();
+      // deleteAll dropped the tables; the next request recreates them.
+      this.meter.storageCleared();
+    } else await this.alarmBy(next);
   }
 
   async fetch(request: Request): Promise<Response> {
@@ -317,7 +350,19 @@ export class RateLimiterObject {
     }
     if (url.pathname === "/quota") {
       const b = (await request.json()) as { kind: QuotaKind; limit: number };
-      return jsonResponse(this.meter.quota(b.kind, b.limit));
+      const { window_ends, ...state } = this.meter.quota(b.kind, b.limit);
+      await this.alarmBy(window_ends);
+      return jsonResponse(state);
+    }
+    if (url.pathname === "/refund") {
+      const b = (await request.json()) as {
+        kind: QuotaKind;
+        n: number;
+        resets_at: string;
+      };
+      return jsonResponse({
+        refunded: this.meter.refund(b.kind, b.n, b.resets_at) !== undefined,
+      });
     }
     if (url.pathname === "/claim") {
       const b = (await request.json()) as { name: string; value: string };
@@ -377,6 +422,9 @@ export function objectMeter(ns: DurableObjectNamespaceLike): MeterService {
         perMinute: null,
         quota,
       }),
+    refund: async (subject, kind, n, resets_at) => {
+      await call(ns, `meter:${subject}`, "/refund", { kind, n, resets_at });
+    },
     quota: (subject, kind, limit) =>
       call<QuotaState>(ns, `meter:${subject}`, "/quota", { kind, limit }),
     claim: async (name, value) =>
@@ -429,19 +477,33 @@ export function ipBucket(address: string): string {
   return `${groups.slice(0, 4).join(":")}::/64`;
 }
 
+let warnedNoSalt = false;
+
 /**
  * The meter subject for a caller without a key: a hash of the address bucket (IPv6: the /64),
- * salted with the UTC day. The raw address is never a storage or object name, and a day's
- * counts cannot be linked to another day's.
+ * salted with a secret (Worker secret IP_HASH_SALT) and the UTC day. The raw address is never a
+ * storage or object name, a day's counts cannot be linked to another day's, and without the
+ * secret the hash cannot be reversed by hashing every IPv4 address.
  */
 export async function addressSubject(
   address: string,
   now: number = Date.now(),
+  secret?: string,
 ): Promise<string> {
-  const salt = quotaWindow("day", now).window;
+  if (!secret && !warnedNoSalt) {
+    warnedNoSalt = true;
+    console.warn(
+      JSON.stringify({
+        msg: "IP_HASH_SALT is not set; address hashes use the date only",
+      }),
+    );
+  }
+  const day = quotaWindow("day", now).window;
   const digest = await crypto.subtle.digest(
     "SHA-256",
-    new TextEncoder().encode(`factlot-meter|${salt}|${ipBucket(address)}`),
+    new TextEncoder().encode(
+      `factlot-meter|${secret ?? ""}|${day}|${ipBucket(address)}`,
+    ),
   );
   const hex = [...new Uint8Array(digest)]
     .map((b) => b.toString(16).padStart(2, "0"))

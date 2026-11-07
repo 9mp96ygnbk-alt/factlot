@@ -1,11 +1,13 @@
 // Maintainer CLI for hosted API keys: lost-key support and billing holds.
 //
 //   node --experimental-strip-types scripts/billing/mint-key.ts show <sub_...>
-//   node --experimental-strip-types scripts/billing/mint-key.ts mint <sub_...> [--keep]
+//   node --experimental-strip-types scripts/billing/mint-key.ts mint <sub_...> [--keep] [--out <file>]
 //   node --experimental-strip-types scripts/billing/mint-key.ts clear-hold <sub_...>
 //
-// mint     issues a new key for the subscription and prints it once (send it to the customer
-//          from contact@factlot.com, to the email Stripe has for the subscription). By default
+// mint     issues a new key for the subscription and prints it once on stdout, or with --out
+//          writes it to a new file readable only by you (mode 0600) and prints nothing secret.
+//          Send it to the customer from contact@factlot.com, to the email Stripe has for the
+//          subscription, then delete the file. By default
 //          the subscription's other keys are replaced (a lost key may be a leaked key); --keep
 //          leaves them working. Plan, customer and status come from the subscription's newest
 //          key record; with no record, from Stripe (needs STRIPE_SECRET_KEY in the environment,
@@ -16,8 +18,10 @@
 //
 // Storage goes through `npx wrangler@4 kv key ...` against the production KEYS namespace (it
 // uses your wrangler login). Add --local [--persist-to <dir>] to work on `wrangler dev` state.
+// Any wrangler failure (login, network, namespace) stops the script before it writes anything
+// further; only "Value not found" counts as an empty key.
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { closeSync, openSync, readFileSync, writeSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import {
@@ -43,7 +47,7 @@ const workerDir = fileURLToPath(
 
 function usage(message: string): never {
   console.error(
-    `${message}\nusage: mint-key.ts show|mint|clear-hold <sub_...> [--keep] [--plan pro|team --customer cus_...] [--local [--persist-to dir]]`,
+    `${message}\nusage: mint-key.ts show|mint|clear-hold <sub_...> [--keep] [--out file] [--plan pro|team --customer cus_...] [--local [--persist-to dir]]`,
   );
   process.exit(2);
 }
@@ -65,6 +69,20 @@ const namespaceId = readFileSync(`${workerDir}wrangler.jsonc`, "utf8").match(
 )?.[1];
 if (!namespaceId)
   usage("no KEYS namespace id in deploy/cloudflare/wrangler.jsonc");
+const outFile = option("out");
+if (flag("out") && (!outFile || outFile.startsWith("--")))
+  usage("--out needs a file name");
+// Opened (created, mode 0600) before anything is written to KV, so a bad path cannot leave a
+// minted key that nobody can read.
+let outFd: number | undefined;
+if (outFile && command === "mint")
+  try {
+    outFd = openSync(outFile, "wx", 0o600);
+  } catch (err) {
+    usage(
+      `cannot create ${outFile}: ${(err as Error).message} (it must not exist yet)`,
+    );
+  }
 
 const where = flag("local")
   ? [
@@ -73,32 +91,38 @@ const where = flag("local")
     ]
   : ["--remote"];
 
+/** Run `wrangler kv key ...`; any failure ends the script with wrangler's own message. */
 function wrangler(...rest: string[]): string {
-  return execFileSync(
-    "npx",
-    [
-      "-y",
-      "wrangler@4",
-      "kv",
-      "key",
-      ...rest,
-      "--namespace-id",
-      namespaceId!,
-      ...where,
-    ],
-    { cwd: workerDir, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
-  );
+  try {
+    return execFileSync(
+      "npx",
+      [
+        "-y",
+        "wrangler@4",
+        "kv",
+        "key",
+        ...rest,
+        "--namespace-id",
+        namespaceId!,
+        ...where,
+      ],
+      { cwd: workerDir, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+    );
+  } catch (err) {
+    const e = err as { stderr?: string; stdout?: string; status?: number };
+    // The value (argument 3 of a put) is a key record; never echo the command.
+    console.error(
+      `wrangler kv key ${rest[0]} ${rest[1]} failed (exit ${e.status ?? "?"}):\n${(e.stderr || e.stdout || String(err)).trim()}`,
+    );
+    process.exit(1);
+  }
 }
 
 /** The KEYS namespace through wrangler, in the shape keys.ts expects. */
 const kv: KV = {
   async get(key) {
-    try {
-      const out = wrangler("get", key, "--text").trim();
-      return out === "" || out === "Value not found" ? null : out;
-    } catch {
-      return null;
-    }
+    const out = wrangler("get", key, "--text").trim();
+    return out === "Value not found" ? null : out;
   },
   async put(key, value, options) {
     wrangler(
@@ -209,7 +233,14 @@ if (!flag("keep"))
     );
 await settleSubscription(kv, subscription);
 
-console.error(
-  `new key ${keyId(hash)} for ${subscription} (${fresh.plan}, ${fresh.stripe_status})${flag("keep") ? "" : `; replaced ${keys.length} older key(s)`}. It can take a minute to work everywhere. Shown once:`,
-);
-console.log(key);
+const summary = `new key ${keyId(hash)} for ${subscription} (${fresh.plan}, ${fresh.stripe_status})${flag("keep") ? "" : `; replaced ${keys.length} older key(s)`}. It can take a minute to work everywhere.`;
+if (outFd !== undefined) {
+  writeSync(outFd, `${key}\n`);
+  closeSync(outFd);
+  console.error(
+    `${summary} Written to ${outFile} (mode 0600); delete it once sent.`,
+  );
+} else {
+  console.error(`${summary} Shown once:`);
+  console.log(key);
+}
