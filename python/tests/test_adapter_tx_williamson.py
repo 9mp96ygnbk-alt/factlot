@@ -41,7 +41,9 @@ IMPROVEMENTS = [
     imp("1004", "F2", "40000.000000"),
     imp("1004", "F1", "500.000000", seq="2.000000"),
     imp("1005", "F1", "0.000000"),
-    imp("1006", "F1", "1200.000000"),   # no PropOwner row
+    imp("1006", "F1", "1200.000000"),   # no PropOwner row; the property id is still enough
+    imp("", "F1", "10.000000"),         # no identifier
+    imp("000", "F1", "10.000000"),      # zeros are not an identifier
     imp("1007", "F1", "800.000000"),    # secured owner
     imp("1008", "A1", "2000.000000"),   # out of scope
     imp("1009", "F3", "300.000000"),    # unmapped code: out of scope
@@ -90,8 +92,13 @@ class Williamson(unittest.TestCase):
 
     def test_mapping(self):
         recs = {r.apn: r for r in tx_williamson.read_roll(self.imp, self.own)}
-        self.assertEqual(sorted(recs), ["1001", "1002", "1003", "1004", "1005", "1007"],
-                         "F1, B1, B2, F2+F1, a blank F1 and a secured owner kept; A1, F3, no owner row and no improvement row dropped")
+        self.assertEqual(sorted(recs), ["1001", "1002", "1003", "1004", "1005", "1006", "1007"],
+                         "in-scope improvements are kept, including one with no owner row; A1, F3, a blank id and an owner-only row are not")
+        missing = recs["1006"]
+        self.assertEqual((missing.state_category, missing.local_use_code, missing.improvement_area_sf), ("F1", "F1", 1200))
+        self.assertEqual((missing.owner_name, missing.situs_address, missing.owner_confidential), (None, None, False))
+        self.assertEqual(missing.locator, "Improvement propertyid 1006")
+        self.assertNotIn("9999", recs)
         retail = recs["1001"]
         self.assertEqual(retail.county_fips, "491")
         self.assertEqual((retail.account, retail.state_category, retail.local_use_code, retail.tax_year),
@@ -138,7 +145,7 @@ class Williamson(unittest.TestCase):
     def test_build(self):
         db = self.tmp / "registry.db"
         stats = tx_williamson.build(self.imp, [self.own], db, as_of="2026-11-03")
-        self.assertEqual((stats.seen, stats.kept, stats.skipped_invalid, stats.retired), (6, 6, 0, 0))
+        self.assertEqual((stats.seen, stats.kept, stats.skipped_invalid, stats.retired), (7, 7, 0, 0))
         self.assertEqual(stats.owners_person_or_withheld, 1, "the secured owner; the placeholder is not counted")
         reg = Registry.open_readonly(db)
         try:
@@ -154,6 +161,11 @@ class Williamson(unittest.TestCase):
             owners = reg.db.execute(
                 "SELECT count(*) FROM current_facts WHERE predicate = 'ownership.owner_of_record'").fetchone()[0]
             self.assertEqual(owners, 4, "retail, apartments, duplex holdings and logistics")
+            bare = reg.db.execute(
+                "SELECT urn FROM crosswalk WHERE system = 'wcad_property_id' AND external_id = '1006'").fetchone()[0]
+            self.assertIsNone(reg.db.execute(
+                "SELECT value_json FROM current_facts WHERE subject = ? AND predicate = 'ownership.owner_of_record'",
+                (bare,)).fetchone())
         finally:
             reg.close()
 

@@ -13,8 +13,19 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 
 ## [Unreleased]
 
+### Added
+
+- Registry: a Texas appraisal-roll reader for the PACS 8.0.34 export layout (`tx_pacs34`). It maps a district's own state-code table to Comptroller categories, leaves out codes the table does not list, and stores organisation owners only.
+- Registry: Andrews County appraisal-roll adapter (`tx_andrews`), reading the 2026 real-property workbook with the district's 2025 state-code table. Local codes the table does not map to one Comptroller category are left out.
+- Registry: Bastrop appraisal-roll adapter (`tx_bastrop`), reading the vendor tab export by its parcel-use code.
+- Registry: Ector County appraisal-roll adapter (`tx_ector`), reading the certified real-property workbook. Only the commercial and multifamily classifications the file states are kept.
+- Registry: Midland web property file adapter (`tx_midland_web`). It refuses a file with a birth-date column and does not use mineral or personal-property codes for scope.
+- Registry: Orange County appraisal-export adapter (`tx_orange`), reading the property export's state codes. It reads no owner fields.
+- Collector: a download URL's `$limit` or `limit` is recorded as `row_cap` on the manifest, and `limit_saturated` tells a row count that reached the cap from a complete extract.
+
 ### Changed
 
+- Registry: the Williamson adapter keeps an in-scope improvement that the owner file has no row for, without an owner or address.
 - Tool input: a `null` for a field the input schema names is treated as the field left out, in TypeScript and Python alike (shared vectors in `spec/vectors/tools.json`). Some agent frameworks (the `crewai-tools` MCP adapter) send `null` for every optional field the model skips, which used to fail with "expected number, received null". A required field sent as `null` is reported as missing; a misspelled field is still reported even when `null`; open objects (facts, fact packages) keep their nulls, since a package's signature covers them.
 
 ## [0.4.0] - 2026-11-06
