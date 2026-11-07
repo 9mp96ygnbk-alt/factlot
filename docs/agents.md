@@ -223,12 +223,22 @@ calls below are in order; each result is reported as returned, with its warnings
    standard; a person decides which, if any, to use. `selection` echoes the rule and its
    parameters, and `sources` gives each roll's licence, attribution and AI-use terms.
 
+   `calc_args` is the same subject and candidates in `calc_tx_unequal_appraisal`'s input shape:
+   `tax_year`, `subject` and `comparables` with exactly the calculator's fields (`id` the FactLot
+   URN, `label` the situs address, `county_fips`, `value`, `value_basis`, the areas, and a
+   comparable's `citation`; nulls left out; no adjustments). It is the default rule's list, not a
+   selection by FactLot. `selection_rule` restates the parameters used (tax year, category code,
+   area band and year band with their bounds, counts per tier) with a `notice` saying so. The
+   order is: candidates, the person's review (remove, add or edit comparables, add adjustments
+   with reasons), `calc_tx_unequal_appraisal` with the reviewed `calc_args`, then `report_create`.
+
 4. `calc_tx_unequal_appraisal` with the comparables the user chose and the adjustments the user
    supplied, each with a reason. The figures below are the inputs of the first case in
-   `spec/vectors/calc/tx_unequal_appraisal.json`, not roll values. With real data, pass from each
-   chosen candidate in step 3 only `id`, `county_fips`, `value`, `value_basis`,
-   `improvement_area_sf`, `land_area_sf` and `citation`; the tool rejects any other field, and a
-   `null` (leave those out, including a `null` `locator` inside `citation`).
+   `spec/vectors/calc/tx_unequal_appraisal.json`, not roll values. With real data, start from the
+   reviewed `calc_args` of step 3, which keeps only the calculator's fields; by hand, pass from each
+   chosen candidate only `id`, `county_fips`, `value`, `value_basis`, `improvement_area_sf`,
+   `land_area_sf`, `citation` and optionally `label` and `address`; the tool rejects any other
+   field, and a `null` (leave those out, including a `null` `locator` inside `citation`).
 
    ```json
    {
@@ -326,6 +336,9 @@ calls below are in order; each result is reported as returned, with its warnings
 5. `rules_tx_property_tax_protest_deadline` with `{ "tax_year": 2027 }` returns `deadline`
    2027-05-17 (May 15 is a Saturday) and the conservative file-by date (`conservative_file_by`)
    2027-05-14. A notice delivered after April 15 moves the deadline; pass `notice_delivered_date`.
+   `status` (`open`, `passed` or `not_yet_open`), `days_remaining` and, once the deadline has
+   passed, `next_season` say where the deadline stands on `as_of` (default: today in US Central
+   time; pass it to fix the date), and `notes` lists what the rule does not cover.
 6. On the hosted API, call `report_create` with `kind` `tx_unequal_appraisal`, `format` `pdf` or
    `xlsx`, and the step 4 arguments as `arguments`: it builds the evidence packet (PDF) or the
    adjustment-grid workbook with live Excel formulas beside FactLot's numbers, and returns a link
@@ -385,6 +398,24 @@ Conventions:
   comparable whose total adjustment exceeds 25% (a FactLot flag, not a legal limit), and a
   comparable with the same value, basis and areas as the subject. A comparable with the subject's
   `id`, or two with the same `id`, is an input error.
+- **No adjustments.** When no comparable has an adjustment, a warning says the median is of
+  unadjusted values and quotes the statute's words, "the median appraised value of a reasonable
+  number of comparable properties appropriately adjusted".
+- **Area spread.** With `normalize_by` `none`, a comparable whose improvement area (or land area,
+  when the subject gives only that) differs from the subject's by more than 25% draws a warning that
+  a median of whole values and a median of values per SF can differ materially, and that
+  `normalize_by` compares values per SF. The 25% is a FactLot flag, not a legal limit.
+- **Flags.** Each comparable row has `flags`, a list of `{code, message}` facts about the inputs.
+  They never remove a comparable or change a number: `value_psf_above_2x` and
+  `value_psf_below_half` (value per SF of the normalizing area, or of improvement area with
+  `normalize_by` `none`, more than twice or less than half the subject's), `land_ratio_above_2x`
+  and `land_ratio_below_half` (land-to-improvement area ratio against the subject's), and
+  `missing_area` (with `normalize_by` `none`, an area the subject has and the comparable lacks).
+  The thresholds are FactLot's, not law.
+- **Labels and addresses.** The subject and each comparable take an optional `label` (up to 80
+  characters) and `address` (up to 120), echoed as `subject_label`, `subject_address` and each
+  row's `label` and `address` so a report can print them. Neither enters the arithmetic. Any other
+  field is still rejected by name.
 - **Citations.** Each comparable's `citation` (`fact_id`, `document_id`, `locator`, `as_of`) is
   passed through to the output unchanged, and `law` lists the sections relied on with their
   official URLs.
@@ -426,9 +457,10 @@ Tarrant County or not in the registry does not fail the others. It returns candi
 only and never runs `calc_tx_unequal_appraisal`: a person still chooses each subject's comparables.
 On the hosted API each answered subject counts as one registry lookup. Likewise
 `rules_tx_property_tax_protest_deadline_batch` takes up to 200 `items` (`id`, `tax_year`,
-optional `notice_delivered_date`) and answers each under `rules.tx.property_tax_protest_deadline@2`
-exactly as the single tool would, with an invalid item carrying its own `error`, a `summary` of
-items per deadline, and the rule, citations and disclaimer once; it is a rules tool, never a
+optional `notice_delivered_date`, plus one optional `as_of` for all) and answers each under
+`rules.tx.property_tax_protest_deadline@2` exactly as the single tool would, with an invalid item
+carrying its own `error`, a `summary` of items per deadline and per status, and the rule,
+citations, disclaimer, `as_of` and `notes` once; it is a rules tool, never a
 lookup.
 
 - **One tax year.** Each tax year's roll is its own registry source, so a parcel can carry a

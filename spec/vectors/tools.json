@@ -1328,7 +1328,7 @@
       "expect_issues": [
         {
           "path": "comparables.0.adjustment",
-          "message": "unknown field (did you mean \"adjustments\"?); known fields here: id, county_fips, value, value_basis, improvement_area_sf, land_area_sf, citation, adjustments"
+          "message": "unknown field (did you mean \"adjustments\"?); known fields here: id, label, address, county_fips, value, value_basis, improvement_area_sf, land_area_sf, citation, adjustments"
         }
       ]
     },

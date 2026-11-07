@@ -145,9 +145,23 @@ export const TxCitation = z.strictObject({
   locator: z.string().min(1).max(500).optional(),
   as_of: IsoDate.optional(),
 });
+// Added to calc.tx_unequal_appraisal@1 without a version change: optional here so a result from
+// before the addition is still accepted.
+const TxFlag = z.strictObject({
+  code: z.enum([
+    "value_psf_above_2x",
+    "value_psf_below_half",
+    "land_ratio_above_2x",
+    "land_ratio_below_half",
+    "missing_area",
+  ]),
+  message: z.string(),
+});
 const TxComparable = z.strictObject({
   index: Int.min(0),
   id: z.string().nullable(),
+  label: z.string().max(80).nullable().optional(),
+  address: z.string().max(120).nullable().optional(),
   county_fips: z.string().nullable(),
   value: N.positive(),
   value_basis: Basis,
@@ -160,6 +174,7 @@ const TxComparable = z.strictObject({
   total_adjustment_pct: N,
   adjustments: z.array(TxAdjustment),
   citation: TxCitation.nullable(),
+  flags: z.array(TxFlag).optional(),
 });
 const TxValue = z.strictObject({
   disclaimer: z.string(),
@@ -172,6 +187,8 @@ const TxValue = z.strictObject({
   median_adjusted_value: N,
   median_pair: z.tuple([N, N]).nullable(),
   subject_id: z.string().nullable(),
+  subject_label: z.string().max(80).nullable().optional(),
+  subject_address: z.string().max(120).nullable().optional(),
   subject_value: N.positive(),
   subject_value_basis: Basis,
   subject_minus_median: N,

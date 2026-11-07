@@ -10,7 +10,7 @@ import { z } from "zod";
 
 import { CalcInputError, IsoDate, Trace, parseInput } from "./core.ts";
 import type { CalcResult } from "./core.ts";
-import { addDays } from "./dates.ts";
+import { addDays, daysBetween } from "./dates.ts";
 
 export interface RuleMeta {
   id: string;
@@ -140,6 +140,10 @@ export const TX_PROTEST_DEADLINE: RuleMeta = {
   },
 };
 
+const AS_OF_TEXT =
+  "Date the status is measured from, YYYY-MM-DD. Default: the current date in US Central time (America/Chicago), when the call is answered; pass it to fix the date (for a report, or for El Paso and Hudspeth counties, which keep Mountain time).";
+const AsOf = IsoDate.optional().describe(AS_OF_TEXT);
+
 export const TxProtestDeadlineInput = z.object({
   tax_year: z
     .number()
@@ -150,6 +154,7 @@ export const TxProtestDeadlineInput = z.object({
   notice_delivered_date: IsoDate.optional().describe(
     "Date the appraisal district's notice of appraised value was delivered (Tax Code §25.19), YYYY-MM-DD. A mailed notice is presumed delivered on the day it was deposited in the mail (§1.07(c)). Omit if unknown (May 15 is then the only basis).",
   ),
+  as_of: AsOf,
 });
 export type TxProtestDeadlineInput = z.input<typeof TxProtestDeadlineInput>;
 
@@ -162,8 +167,70 @@ export interface TxProtestDeadline {
   /** Last business day on or before the unadjusted deadline: not later than the deadline even if the holiday list is wrong. */
   conservative_file_by: string;
   skipped_non_business_days: { date: string; reason: string }[];
+  /** The date status and days_remaining are measured from: the caller's as_of, or texasToday(). */
+  as_of: string;
+  /** Where as_of falls: before January 1 of the tax year, from then through the deadline, or after it. */
+  status: TxProtestDeadlineStatus;
+  /** Days from as_of to the deadline (0 on the deadline itself); null when the deadline has passed. */
+  days_remaining: number | null;
+  /** When the deadline has passed: the same rule for tax_year + 1 with no notice date (May 15 basis); else null. */
+  next_season: TxProtestNextSeason | null;
+  /** Plain statements of what the rule does not cover, with the sections to read. */
+  notes: string[];
   /** What this result is and is not: information about a statutory deadline, not legal or tax advice. */
   disclaimer: string;
+}
+
+export type TxProtestDeadlineStatus = "open" | "passed" | "not_yet_open";
+
+export interface TxProtestNextSeason {
+  tax_year: number;
+  deadline: string;
+  conservative_file_by: string;
+  basis: "may_15";
+}
+
+/** The `notes` entry every protest-deadline result carries. */
+export const TX_PROTEST_DEADLINE_NOT_COVERED =
+  "The rule does not cover late protests, the other protest deadlines of §41.44(a)(2)-(5), or motions to correct the appraisal roll; see Tax Code §41.44(b)-(c-3) and §25.25.";
+
+/** The `notes` entry added when next_season is given. */
+export const TX_PROTEST_NEXT_SEASON_NOTE =
+  "next_season is computed with no notice delivery date (May 15 basis): if that tax year's notice of appraised value is delivered after April 15, its deadline is later than May 15.";
+
+/**
+ * Today's date (YYYY-MM-DD) in US Central time, the time zone of most of Texas (`texas_today` in Python): UTC−5
+ * from the second Sunday of March at 2:00 a.m. local (08:00 UTC) until the first Sunday of November at 2:00 a.m.
+ * local (07:00 UTC), UTC−6 otherwise. Computed without a time-zone database so both SDKs agree.
+ */
+export function texasToday(now: Date = new Date()): string {
+  const y = now.getUTCFullYear();
+  const dstStart = Date.parse(`${nthWeekday(y, 3, 0, 2)}T08:00:00Z`);
+  const dstEnd = Date.parse(`${nthWeekday(y, 11, 0, 1)}T07:00:00Z`);
+  const t = now.getTime();
+  const offsetHours = t >= dstStart && t < dstEnd ? 5 : 6;
+  return new Date(t - offsetHours * 3_600_000).toISOString().slice(0, 10);
+}
+
+/** The deadline after §1.06 rollover, the days skipped, and the conservative file-by date, for an unadjusted date. */
+function rollover(unadjusted: string): {
+  deadline: string;
+  skipped: { date: string; reason: string }[];
+  safe: string;
+} {
+  let deadline = unadjusted;
+  const skipped: { date: string; reason: string }[] = [];
+  for (
+    let reason = nonBusinessReason(deadline);
+    reason;
+    reason = nonBusinessReason(deadline)
+  ) {
+    skipped.push({ date: deadline, reason });
+    deadline = addDays(deadline, 1);
+  }
+  let safe = unadjusted;
+  while (nonBusinessReason(safe)) safe = addDays(safe, -1);
+  return { deadline, skipped, safe };
 }
 
 /** The disclaimer every protest-deadline result carries, dated by the rule's verification date. */
@@ -196,23 +263,10 @@ export function txProtestDeadline(
       unadjusted = plus30;
       basis = "30_days_after_notice";
     }
-  } else {
-    t.warn(
-      "No notice delivery date given: if the notice was delivered after April 15, the deadline is later than May 15.",
-    );
   }
   t.step("Unadjusted deadline", unadjusted, "later of the two dates");
 
-  let deadline = unadjusted;
-  const skipped: { date: string; reason: string }[] = [];
-  for (
-    let reason = nonBusinessReason(deadline);
-    reason;
-    reason = nonBusinessReason(deadline)
-  ) {
-    skipped.push({ date: deadline, reason });
-    deadline = addDays(deadline, 1);
-  }
+  const { deadline, skipped, safe } = rollover(unadjusted);
   t.step(
     "Deadline",
     deadline,
@@ -220,14 +274,57 @@ export function txProtestDeadline(
       ? `rolled past ${skipped.map((s) => `${s.date} (${s.reason})`).join(", ")} per §1.06`
       : "no rollover needed",
   );
-
-  let safe = unadjusted;
-  while (nonBusinessReason(safe)) safe = addDays(safe, -1);
   t.step(
     "Conservative file-by date",
     safe,
     "latest business day on or before the unadjusted deadline",
   );
+
+  const asOf = input.as_of ?? texasToday();
+  t.step(
+    "As of",
+    asOf,
+    input.as_of === undefined
+      ? "current date in US Central time (as_of not given)"
+      : "as_of given",
+  );
+  const yearStart = iso(input.tax_year, 1, 1);
+  const status: TxProtestDeadlineStatus =
+    asOf > deadline ? "passed" : asOf < yearStart ? "not_yet_open" : "open";
+  t.step(
+    "Status",
+    status,
+    status === "passed"
+      ? `${asOf} is after the deadline ${deadline}`
+      : status === "not_yet_open"
+        ? `${asOf} is before January 1 of tax year ${input.tax_year}`
+        : `${asOf} is on or after ${yearStart} and on or before the deadline ${deadline}`,
+  );
+  const daysRemaining =
+    status === "passed" ? null : daysBetween(asOf, deadline);
+  if (daysRemaining !== null)
+    t.step("Days remaining", daysRemaining, `${asOf} to ${deadline}`, "days");
+  let nextSeason: TxProtestNextSeason | null = null;
+  if (status === "passed") {
+    const nextYear = input.tax_year + 1;
+    const next = rollover(iso(nextYear, 5, 15));
+    nextSeason = {
+      tax_year: nextYear,
+      deadline: next.deadline,
+      conservative_file_by: next.safe,
+      basis: "may_15",
+    };
+    t.step(
+      "Next season deadline",
+      next.deadline,
+      `tax year ${nextYear}, May 15 basis (no notice date)`,
+    );
+  }
+
+  if (!input.notice_delivered_date && status !== "passed")
+    t.warn(
+      "No notice delivery date given: if the notice was delivered after April 15, the deadline is later than May 15.",
+    );
   if (skipped.length)
     t.warn(
       `${safe} is the last business day on or before the unadjusted date ${unadjusted}; the statutory deadline is ${deadline} under §1.06.`,
@@ -239,6 +336,14 @@ export function txProtestDeadline(
     governing_basis: basis,
     conservative_file_by: safe,
     skipped_non_business_days: skipped,
+    as_of: asOf,
+    status,
+    days_remaining: daysRemaining,
+    next_season: nextSeason,
+    notes: [
+      TX_PROTEST_DEADLINE_NOT_COVERED,
+      ...(nextSeason ? [TX_PROTEST_NEXT_SEASON_NOTE] : []),
+    ],
     disclaimer: txProtestDeadlineDisclaimer(
       TX_PROTEST_DEADLINE.verification.verified_at ?? "an unrecorded date",
     ),
@@ -295,6 +400,9 @@ export const TxProtestDeadlineBatchInput = z
       .describe(
         "The notices to compute deadlines for (1–200): each one's id, tax year and, if known, notice delivery date. Each result equals rules_tx_property_tax_protest_deadline for that item.",
       ),
+    as_of: IsoDate.optional().describe(
+      `${AS_OF_TEXT} One date for every item.`,
+    ),
   })
   .superRefine((v, ctx) => {
     const ids = new Set<string>();
@@ -312,7 +420,7 @@ export type TxProtestDeadlineBatchInput = z.input<
   typeof TxProtestDeadlineBatchInput
 >;
 
-type DeadlineFields = Omit<TxProtestDeadline, "disclaimer">;
+type DeadlineFields = Omit<TxProtestDeadline, "disclaimer" | "notes" | "as_of">;
 
 /** One item of a batch: its deadline (as the single rule returns it) or its input error. */
 export type TxProtestDeadlineBatchResult =
@@ -336,7 +444,13 @@ export interface TxProtestDeadlineBatch {
     by_deadline: { deadline: string; count: number }[];
     earliest: string | null;
     latest: string | null;
+    /** Answered items per status relative to as_of. */
+    by_status: Record<TxProtestDeadlineStatus, number>;
   };
+  /** The date every item's status is measured from. */
+  as_of: string;
+  /** The rule's notes, once for every item. */
+  notes: string[];
   disclaimer: string;
 }
 
@@ -351,11 +465,14 @@ function validDate(v: unknown): v is string {
 }
 
 /** One item's deadline, or its input error; the same text in both SDKs. */
-function batchItem(item: {
-  id: string;
-  tax_year?: unknown;
-  notice_delivered_date?: unknown;
-}): TxProtestDeadlineBatchResult {
+function batchItem(
+  item: {
+    id: string;
+    tax_year?: unknown;
+    notice_delivered_date?: unknown;
+  },
+  asOf: string,
+): TxProtestDeadlineBatchResult {
   const issues: { path: string; message: string }[] = [];
   const year = item.tax_year;
   if (
@@ -383,10 +500,19 @@ function batchItem(item: {
       ...(notice === undefined
         ? {}
         : { notice_delivered_date: notice as string }),
+      as_of: asOf,
     });
-    const { rule: _rule, disclaimer: _disclaimer, ...fields } = r.value;
+    const {
+      rule: _rule,
+      disclaimer: _disclaimer,
+      notes: _notes,
+      as_of: _asOf,
+      ...fields
+    } = r.value;
     void _rule;
     void _disclaimer;
+    void _notes;
+    void _asOf;
     return { id: item.id, ...fields, warnings: r.warnings };
   } catch (err) {
     if (!(err instanceof CalcInputError)) throw err;
@@ -412,7 +538,8 @@ export function txProtestDeadlineBatch(
 ): CalcResult<TxProtestDeadlineBatch & { rule: RuleMeta }> {
   const input = parseInput(TxProtestDeadlineBatchInput, raw);
   const t = new Trace();
-  const results = input.items.map(batchItem);
+  const asOf = input.as_of ?? texasToday();
+  const results = input.items.map((item) => batchItem(item, asOf));
   const answered = results.flatMap((r) => ("error" in r ? [] : [r]));
   const counts = new Map<string, number>();
   for (const r of answered)
@@ -434,6 +561,19 @@ export function txProtestDeadlineBatch(
     t.step("Earliest deadline", earliest, "earliest answered deadline");
     t.step("Latest deadline", latest, "latest answered deadline");
   }
+  t.step(
+    "As of",
+    asOf,
+    input.as_of === undefined
+      ? "current date in US Central time (as_of not given)"
+      : "as_of given",
+  );
+  const byStatus: Record<TxProtestDeadlineStatus, number> = {
+    open: 0,
+    passed: 0,
+    not_yet_open: 0,
+  };
+  for (const r of answered) byStatus[r.status] += 1;
   if (errors)
     t.warn(
       `${errors} of ${results.length} items have an input error (results[i].error) and no deadline; the other items are answered.`,
@@ -459,7 +599,15 @@ export function txProtestDeadlineBatch(
         by_deadline: byDeadline,
         earliest,
         latest,
+        by_status: byStatus,
       },
+      as_of: asOf,
+      notes: [
+        TX_PROTEST_DEADLINE_NOT_COVERED,
+        ...(answered.some((r) => r.next_season !== null)
+          ? [TX_PROTEST_NEXT_SEASON_NOTE]
+          : []),
+      ],
       disclaimer: txProtestDeadlineDisclaimer(
         TX_PROTEST_DEADLINE.verification.verified_at ?? "an unrecorded date",
       ),
@@ -473,7 +621,7 @@ export const rulePacks = {
   tx_property_tax_protest_deadline: {
     ...TX_PROTEST_DEADLINE,
     description:
-      "Deadline to file a Texas property tax protest with the appraisal review board: the later of May 15 or 30 days after the notice of appraised value was delivered, rolled past weekends and Texas legal holidays, plus a conservative file-by date (the last business day on or before the unadjusted deadline). Returns the statute citations, the rule's verification status and a disclaimer. Information about a statutory deadline: not legal or tax advice and not a substitute for the advice of an attorney.",
+      "Deadline to file a Texas property tax protest with the appraisal review board: the later of May 15 or 30 days after the notice of appraised value was delivered, rolled past weekends and Texas legal holidays, plus a conservative file-by date (the last business day on or before the unadjusted deadline). status says where as_of (default: today in US Central time; echoed in as_of) falls: not_yet_open before January 1 of the tax year, open from then through the deadline, passed after it; days_remaining counts the days to the deadline (null once passed), and once passed next_season gives the same rule for the next tax year (May 15 basis). notes says what the rule does not cover (late protests, other §41.44 deadlines, §25.25 corrections) and which sections to read. Returns the statute citations, the rule's verification status and a disclaimer. Information about a statutory deadline: not legal or tax advice and not a substitute for the advice of an attorney.",
     input: TxProtestDeadlineInput,
     run: txProtestDeadline,
   },
@@ -481,7 +629,7 @@ export const rulePacks = {
     ...TX_PROTEST_DEADLINE_BATCH,
     path: "/v1/rules/tx_property_tax_protest_deadline/batch",
     description:
-      "Texas property tax protest deadlines for many notices in one call (1–200 items, e.g. a consultant's client list): each item's id, tax year and, if known, notice delivery date. Each result is exactly what rules_tx_property_tax_protest_deadline returns for that item under rule rules.tx.property_tax_protest_deadline@2 (deadline, unadjusted deadline, governing basis, conservative file-by date, skipped days, the item's warnings), echoed with its id; an item with invalid input carries its error and the others are still answered. summary counts the items per deadline, earliest first, with the earliest and latest deadline. The statute citations, the rule's verification status and the disclaimer appear once (value.rule, value.disclaimer). A rules tool: never a registry lookup. Information about statutory deadlines: not legal or tax advice and not a substitute for the advice of an attorney; it does not say whether to protest.",
+      "Texas property tax protest deadlines for many notices in one call (1–200 items, e.g. a consultant's client list): each item's id, tax year and, if known, notice delivery date. Each result is exactly what rules_tx_property_tax_protest_deadline returns for that item under rule rules.tx.property_tax_protest_deadline@2 (deadline, unadjusted deadline, governing basis, conservative file-by date, skipped days, status, days_remaining, next_season, the item's warnings), echoed with its id; an item with invalid input carries its error and the others are still answered. One as_of (default: today in US Central time) applies to every item. summary counts the items per deadline, earliest first, with the earliest and latest deadline, and per status (by_status). The as_of used, the notes, the statute citations, the rule's verification status and the disclaimer appear once (value.as_of, value.notes, value.rule, value.disclaimer). A rules tool: never a registry lookup. Information about statutory deadlines: not legal or tax advice and not a substitute for the advice of an attorney; it does not say whether to protest.",
     input: TxProtestDeadlineBatchInput,
     run: txProtestDeadlineBatch,
   },

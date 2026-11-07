@@ -770,6 +770,158 @@
       }
     },
     {
+      "name": "no adjustments, whole values with areas: the unadjusted-median and area-spread warnings, per-comparable flags, and label and address echoed",
+      "input": {
+        "tax_year": 2027,
+        "subject": {
+          "id": "S",
+          "label": "1000 Louisiana St",
+          "address": "1000 Louisiana St, Houston, TX 77002",
+          "value": 1000000,
+          "value_basis": "appraised",
+          "improvement_area_sf": 10000,
+          "land_area_sf": 20000
+        },
+        "comparables": [
+          {
+            "id": "A",
+            "label": "Comp A",
+            "address": "1 Main St, Houston, TX 77002",
+            "value": 900000,
+            "value_basis": "appraised",
+            "improvement_area_sf": 10000,
+            "land_area_sf": 20000
+          },
+          {
+            "id": "B",
+            "value": 2600000,
+            "value_basis": "appraised",
+            "improvement_area_sf": 12000,
+            "land_area_sf": 24000
+          },
+          {
+            "id": "C",
+            "value": 950000,
+            "value_basis": "appraised",
+            "improvement_area_sf": 5000,
+            "land_area_sf": 30000
+          },
+          {
+            "id": "D",
+            "value": 1100000,
+            "value_basis": "appraised"
+          },
+          {
+            "id": "E",
+            "value": 400000,
+            "value_basis": "appraised",
+            "improvement_area_sf": 9000,
+            "land_area_sf": 18000
+          }
+        ]
+      },
+      "expect": {
+        "formula.version": 1,
+        "value.median_adjusted_value": 950000,
+        "value.sorted_adjusted_values": [
+          400000, 900000, 950000, 1100000, 2600000
+        ],
+        "value.subject_minus_median": 50000,
+        "value.subject_minus_median_pct": 0.052632,
+        "value.subject_label": "1000 Louisiana St",
+        "value.subject_address": "1000 Louisiana St, Houston, TX 77002",
+        "value.comparables.0.label": "Comp A",
+        "value.comparables.0.address": "1 Main St, Houston, TX 77002",
+        "value.comparables.1.label": null,
+        "value.comparables.1.address": null,
+        "value.comparables.0.flags": [],
+        "value.comparables.1.flags": [
+          {
+            "code": "value_psf_above_2x",
+            "message": "Value per SF of improvement area ($216.67) is more than twice the subject's ($100.00)."
+          }
+        ],
+        "value.comparables.2.flags": [
+          {
+            "code": "land_ratio_above_2x",
+            "message": "Land-to-improvement area ratio (6) is more than twice the subject's (2)."
+          }
+        ],
+        "value.comparables.3.flags": [
+          {
+            "code": "missing_area",
+            "message": "No improvement_area_sf given while the subject has one: value per SF is not compared, and normalize_by improvement_area_sf would need it."
+          }
+        ],
+        "value.comparables.4.flags": [
+          {
+            "code": "value_psf_below_half",
+            "message": "Value per SF of improvement area ($44.44) is less than half the subject's ($100.00)."
+          }
+        ],
+        "warnings": [
+          "No adjustments were supplied: the median is of unadjusted values. §41.43(b)(3) and §42.26(a)(3) refer to \"the median appraised value of a reasonable number of comparable properties appropriately adjusted\".",
+          "Values are compared whole (normalize_by \"none\"), and the improvement area of comparable C differs from the subject's (10000 SF) by more than 25%: a median of whole values and a median of values per SF can differ materially. normalize_by \"improvement_area_sf\" compares values per SF of that area. The 25% is a FactLot flag, not a legal limit."
+        ]
+      }
+    },
+    {
+      "name": "normalized by land area with no adjustments: the warning names the normalization, flags use land value per SF",
+      "input": {
+        "tax_year": 2027,
+        "normalize_by": "land_area_sf",
+        "subject": {
+          "value": 2000000,
+          "value_basis": "market",
+          "land_area_sf": 100000
+        },
+        "comparables": [
+          {
+            "id": "L1",
+            "value": 1100000,
+            "value_basis": "market",
+            "land_area_sf": 50000
+          },
+          {
+            "id": "L2",
+            "value": 500000,
+            "value_basis": "market",
+            "land_area_sf": 120000
+          },
+          {
+            "id": "L3",
+            "value": 1800000,
+            "value_basis": "market",
+            "land_area_sf": 80000
+          },
+          {
+            "id": "L4",
+            "value": 3150000,
+            "value_basis": "market",
+            "land_area_sf": 150000
+          },
+          {
+            "id": "L5",
+            "value": 950000,
+            "value_basis": "market",
+            "land_area_sf": 40000
+          }
+        ]
+      },
+      "expect": {
+        "value.comparables.1.flags": [
+          {
+            "code": "value_psf_below_half",
+            "message": "Value per SF of land area ($4.17) is less than half the subject's ($20.00)."
+          }
+        ],
+        "value.comparables.0.flags": [],
+        "warnings": [
+          "No adjustments were supplied: the median is of values normalized by land_area_sf and otherwise unadjusted. §41.43(b)(3) and §42.26(a)(3) refer to \"the median appraised value of a reasonable number of comparable properties appropriately adjusted\"."
+        ]
+      }
+    },
+    {
       "name": "fewer than 3 comparables (a FactLot product floor, not law)",
       "input": {
         "tax_year": 2027,
@@ -1198,6 +1350,32 @@
             "id": "K3",
             "value": 1030000,
             "value_basis": "appraised"
+          }
+        ]
+      },
+      "expect_error": true
+    },
+    {
+      "name": "a label longer than 80 characters is an input error",
+      "input": {
+        "tax_year": 2027,
+        "subject": {
+          "value": 1,
+          "value_basis": "market",
+          "label": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        },
+        "comparables": [
+          {
+            "value": 1,
+            "value_basis": "market"
+          },
+          {
+            "value": 2,
+            "value_basis": "market"
+          },
+          {
+            "value": 3,
+            "value_basis": "market"
           }
         ]
       },

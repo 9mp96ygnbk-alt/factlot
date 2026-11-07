@@ -73,6 +73,11 @@
 <p>
   The result names the governing basis (May 15 or the 30-day rule), every
   skipped weekend day or holiday, the statute citations, and the rule's version.
+  It also gives the deadline's <code>status</code> on a date
+  (<code>as_of</code>, today in US Central time unless given):
+  <code>not_yet_open</code>, <code>open</code> or <code>passed</code>, with
+  <code>days_remaining</code>, and once the deadline has passed the next tax
+  year's deadline under the same rule (<code>next_season</code>).
 </p>
 
 <h2 id="professionals">For consultants, appraisers and analysts</h2>
@@ -102,10 +107,12 @@
     appraised value by tax year, each cited to that year's roll.
   </li>
   <li>
-    <strong>Candidates.</strong> <code>registry_tx_equity_candidates</code>
-    returns candidates under FactLot's default rule, a design choice, not a
-    legal standard; a person decides. It returns no owner names, mailing
-    addresses or ownership facts.
+    <strong>Candidates.</strong>
+    <code>registry_tx_equity_candidates</code> returns candidates under
+    FactLot's default rule, a design choice, not a legal standard; a person
+    decides. Its <code>calc_args</code> is that list in the calculator's input
+    shape, for the person to review and edit before the calculation. It returns
+    no owner names, mailing addresses or ownership facts.
   </li>
   <li>
     <strong>Calculator.</strong> <code>calc_tx_unequal_appraisal</code> does the

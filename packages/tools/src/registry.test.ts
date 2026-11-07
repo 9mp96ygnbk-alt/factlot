@@ -22,6 +22,7 @@ import {
   normalizeAddress,
   normalizeName,
   runTool,
+  withTxEquityCalcArgs,
 } from "./index.ts";
 
 const spec = fileURLToPath(new URL("../../../spec/registry/", import.meta.url));
@@ -240,6 +241,69 @@ test("registry tools: TypeScript matches Python on the shared fixture", () => {
         ["county", 1],
       ],
     );
+    // calc_args: paste-ready for calc_tx_unequal_appraisal, with exactly its fields.
+    const full = eq.result as {
+      subject: Record<string, unknown>;
+      candidates: Record<string, unknown>[];
+      calc_args: {
+        tax_year: number;
+        subject: Record<string, unknown>;
+        comparables: Record<string, unknown>[];
+      };
+      selection_rule: {
+        tax_year: number;
+        tiers: { tier: string; matched: number; returned: number }[];
+        notice: string;
+      };
+    };
+    const allowed = new Set([
+      "id",
+      "label",
+      "county_fips",
+      "value",
+      "value_basis",
+      "improvement_area_sf",
+      "land_area_sf",
+      "citation",
+    ]);
+    assert.equal(full.calc_args.tax_year, 2026);
+    assert.equal(full.calc_args.subject.id, subject);
+    assert.deepEqual(
+      full.calc_args.comparables.map((c) => c.id),
+      full.candidates.map((c) => c.id),
+    );
+    for (const [i, c] of [
+      full.calc_args.subject,
+      ...full.calc_args.comparables,
+    ].entries()) {
+      for (const k of Object.keys(c)) assert.ok(allowed.has(k), `${i}: ${k}`);
+      for (const v of Object.values(c)) assert.notEqual(v, null);
+      const row = i === 0 ? full.subject : full.candidates[i - 1]!;
+      if (typeof row.situs_address === "string")
+        assert.equal(c.label, (row.situs_address as string).slice(0, 80));
+    }
+    const calc = runTool("calc_tx_unequal_appraisal", full.calc_args);
+    assert.ok(calc.ok, JSON.stringify(calc.ok ? "" : calc.error));
+    assert.equal(full.selection_rule.tax_year, 2026);
+    assert.deepEqual(
+      full.selection_rule.tiers.map((t) => [t.tier, t.returned]),
+      [
+        ["neighborhood", 2],
+        ["zip", 4],
+        ["county", 1],
+      ],
+    );
+    assert.match(
+      full.selection_rule.notice,
+      /not a selection of comparables by FactLot/,
+    );
+    // An answer from a registry service that predates calc_args gets the same fields back.
+    const { calc_args: _ca, selection_rule: _sr, ...old } = full;
+    void [_ca, _sr];
+    const rebuilt = withTxEquityCalcArgs(old) as typeof full;
+    assert.deepEqual(rebuilt.calc_args, full.calc_args);
+    assert.deepEqual(rebuilt.selection_rule, full.selection_rule);
+    assert.equal(withTxEquityCalcArgs(full), full);
     // One tax year at a time: the 2027 preliminary roll's codes and class, never 2026's.
     const y2027 = runTool("registry_tx_equity_candidates", { urn: subject });
     assert.ok(y2027.ok);

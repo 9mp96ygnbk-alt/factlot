@@ -42,6 +42,11 @@ MIN_COMPARABLES = 3
 _MAX_COMPARABLES = 200
 _FEW_COMPARABLES = 5
 _LARGE_ADJUSTMENT = 0.25
+_AREA_SPREAD = 0.25  # areas further than this share from the subject's draw a warning when values are compared whole
+_FLAG_RATIO = 2  # value per SF or land-to-improvement ratio beyond this multiple (or below its inverse) is flagged
+_APPROPRIATELY_ADJUSTED = ("the median appraised value of a reasonable number of comparable properties appropriately "
+                           "adjusted")
+_AREA_WORD = {"improvement_area_sf": "improvement", "land_area_sf": "land"}
 _STATUTES = "https://statutes.capitol.texas.gov/Docs/TX/htm"
 
 LAW: tuple[dict[str, str], ...] = (
@@ -75,6 +80,8 @@ def _fips(d: dict[str, Any], path: str) -> str | None:
 def _property(d: dict[str, Any], path: str) -> dict[str, Any]:
     return {
         "id": string(d, "id", path, optional=True, min_len=1, max_len=200),
+        "label": string(d, "label", path, optional=True, min_len=1, max_len=80),
+        "address": string(d, "address", path, optional=True, min_len=1, max_len=120),
         "county_fips": _fips(d, path),
         "value": number(d, "value", path, gt=0),
         "value_basis": enum(d, "value_basis", _BASES, path),
@@ -97,8 +104,8 @@ def _citation(raw: Any, path: str) -> dict[str, Any]:
 
 def _comparable(raw: Any, path: str) -> dict[str, Any]:
     d = obj(raw, path)
-    strict(d, ("id", "county_fips", "value", "value_basis", "improvement_area_sf", "land_area_sf", "citation",
-               "adjustments"), path)
+    strict(d, ("id", "label", "address", "county_fips", "value", "value_basis", "improvement_area_sf", "land_area_sf",
+               "citation", "adjustments"), path)
     c = _property(d, path)
     c["citation"] = _citation(d["citation"], join(path, "citation")) if "citation" in d else None
     adjustments = []
@@ -123,7 +130,7 @@ def _parse(raw: Any) -> dict[str, Any]:
     if "subject" not in d:
         fail("subject", "required")
     s = obj(d["subject"], "subject")
-    strict(s, ("id", "county_fips", "value", "value_basis", "improvement_area_sf", "land_area_sf",
+    strict(s, ("id", "label", "address", "county_fips", "value", "value_basis", "improvement_area_sf", "land_area_sf",
                "circuit_breaker_23_231"), "subject")
     subject = _property(s, "subject")
     subject["circuit_breaker_23_231"] = boolean(s, "circuit_breaker_23_231", "subject", default=False)
@@ -180,6 +187,42 @@ def _check(inp: dict[str, Any]) -> None:
                                           "improvement_area_sf or land_area_sf, or use an amount adjustment"})
     if issues:
         raise CalcInputError("invalid input: " + "; ".join(f"{i['path']}: {i['message']}" for i in issues), issues)
+
+
+def _flags(subject: dict[str, Any], c: dict[str, Any], by: str) -> list[dict[str, str]]:
+    """A comparable's data-quality flags (``comparableFlags`` in TS): facts about the inputs, FactLot thresholds."""
+    flags: list[dict[str, str]] = []
+    key = "improvement_area_sf" if by == "none" else by
+    word = _AREA_WORD[key]
+    s_area, c_area = subject[key], c[key]
+    if s_area is not None and c_area is not None:
+        s_psf = subject["value"] / s_area
+        c_psf = c["value"] / c_area
+        if c_psf > _FLAG_RATIO * s_psf:
+            flags.append({"code": "value_psf_above_2x",
+                          "message": f"Value per SF of {word} area ({fmt_money(c_psf)}) is more than twice the "
+                                     f"subject's ({fmt_money(s_psf)})."})
+        elif c_psf < s_psf / _FLAG_RATIO:
+            flags.append({"code": "value_psf_below_half",
+                          "message": f"Value per SF of {word} area ({fmt_money(c_psf)}) is less than half the "
+                                     f"subject's ({fmt_money(s_psf)})."})
+    elif by == "none" and s_area is not None and c_area is None:
+        flags.append({"code": "missing_area",
+                      "message": f"No {key} given while the subject has one: value per SF is not compared, and "
+                                 f"normalize_by {key} would need it."})
+    if (subject["land_area_sf"] is not None and subject["improvement_area_sf"] is not None
+            and c["land_area_sf"] is not None and c["improvement_area_sf"] is not None):
+        s_ratio = subject["land_area_sf"] / subject["improvement_area_sf"]
+        c_ratio = c["land_area_sf"] / c["improvement_area_sf"]
+        if c_ratio > _FLAG_RATIO * s_ratio:
+            flags.append({"code": "land_ratio_above_2x",
+                          "message": f"Land-to-improvement area ratio ({fmt_num(c_ratio, 2)}) is more than twice the "
+                                     f"subject's ({fmt_num(s_ratio, 2)})."})
+        elif c_ratio < s_ratio / _FLAG_RATIO:
+            flags.append({"code": "land_ratio_below_half",
+                          "message": f"Land-to-improvement area ratio ({fmt_num(c_ratio, 2)}) is less than half the "
+                                     f"subject's ({fmt_num(s_ratio, 2)})."})
+    return flags
 
 
 def tx_unequal_appraisal(raw: Any) -> Result:
@@ -253,6 +296,8 @@ def tx_unequal_appraisal(raw: Any) -> Result:
         comps.append({
             "index": i,
             "id": c["id"],
+            "label": c["label"],
+            "address": c["address"],
             "county_fips": c["county_fips"],
             "value": c["value"],
             "value_basis": c["value_basis"],
@@ -265,6 +310,7 @@ def tx_unequal_appraisal(raw: Any) -> Result:
             "total_adjustment_pct": round_(adjusted / normalized - 1, 6),
             "adjustments": [dict(a) for a in c["adjustments"]],
             "citation": dict(c["citation"]) if c["citation"] is not None else None,
+            "flags": _flags(subject, c, by),
         })
 
     ordered = sorted(c["adjusted_value"] for c in comps)  # stable: ties stay in input order
@@ -320,6 +366,22 @@ def tx_unequal_appraisal(raw: Any) -> Result:
     if same:
         t.warn(f"Same value, value basis and areas as the subject: {_named(same)}. Check that the subject is not among "
                "its own comparables.")
+    if all(not c["adjustments"] for c in inp["comparables"]):
+        what = "unadjusted values" if by == "none" else f"values normalized by {by} and otherwise unadjusted"
+        t.warn(f"No adjustments were supplied: the median is of {what}. §41.43(b)(3) and §42.26(a)(3) refer to "
+               f'"{_APPROPRIATELY_ADJUSTED}".')
+    if by == "none":
+        key = ("improvement_area_sf" if subject["improvement_area_sf"] is not None else
+               "land_area_sf" if subject["land_area_sf"] is not None else None)
+        if key is not None:
+            s_area = subject[key]
+            spread = labels(lambda c: c[key] is not None and abs(c[key] / s_area - 1) > _AREA_SPREAD)
+            if spread:
+                t.warn(f'Values are compared whole (normalize_by "none"), and the {_AREA_WORD[key]} area of '
+                       f"{_named(spread)} differs from the subject's ({fmt_num(s_area)} SF) by more than 25%: a median "
+                       "of whole values and a median of values per SF can differ materially. "
+                       f'normalize_by "{key}" compares values per SF of that area. The 25% is a FactLot flag, not a '
+                       "legal limit.")
 
     return t.result("calc.tx_unequal_appraisal", 1, {
         "disclaimer": EVIDENCE_NOTICE,
@@ -332,6 +394,8 @@ def tx_unequal_appraisal(raw: Any) -> Result:
         "median_adjusted_value": median,
         "median_pair": pair,
         "subject_id": subject["id"],
+        "subject_label": subject["label"],
+        "subject_address": subject["address"],
         "subject_value": subject["value"],
         "subject_value_basis": subject["value_basis"],
         "subject_minus_median": diff,

@@ -109,6 +109,64 @@ NOTICE = (
 )
 
 
+CALC_ARGS_NOTICE = (
+    "calc_args is the candidate list under FactLot's default rule (selection_rule) in calc_tx_unequal_appraisal's "
+    "input shape, not a selection of comparables by FactLot: the caller reviews it, may remove, add or edit "
+    "comparables, and adds any adjustments, each with a reason, before calling calc_tx_unequal_appraisal (which "
+    "needs at least 3 comparables). The order of operations is registry_tx_equity_candidates, review, "
+    "calc_tx_unequal_appraisal with the reviewed calc_args, then report_create."
+)
+_CALC_LABEL_MAX = 80
+_CALC_FIELDS = ("county_fips", "value", "value_basis", "improvement_area_sf", "land_area_sf")
+_CALC_CITATION_KEYS = ("fact_id", "document_id", "locator", "as_of")
+
+
+def _calc_party(row: dict[str, Any], with_citation: bool) -> dict[str, Any]:
+    """A subject or candidate as a ``calc_tx_unequal_appraisal`` subject or comparable (``calcParty`` in TS)."""
+    out: dict[str, Any] = {"id": row["id"]}
+    situs = _string(row.get("situs_address"))
+    if situs is not None:
+        out["label"] = situs if len(situs) <= _CALC_LABEL_MAX else situs[:_CALC_LABEL_MAX - 1] + "…"
+    for k in _CALC_FIELDS:
+        if row.get(k) not in (None, ""):
+            out[k] = row[k]
+    cite = row.get("citation")
+    if with_citation and cite:
+        out["citation"] = {k: cite[k] for k in _CALC_CITATION_KEYS if cite.get(k) not in (None, "")}
+    return out
+
+
+def equity_calc_args(answer: dict[str, Any]) -> dict[str, Any]:
+    """``calc_args`` and ``selection_rule`` from an answer's own fields (``txEquityCalcArgs`` in TS)."""
+    subject, selection = answer["subject"], answer["selection"]
+    criteria, parameters = selection["criteria"], selection["parameters"]
+    area, year = criteria["improvement_area_sf"], criteria["year_built"]
+    tax_year = selection["tax_year"] if selection["tax_year"] is not None else subject["tax_year"]
+    calc_args = None if subject["value"] is None or tax_year is None else {
+        "tax_year": tax_year,
+        "subject": _calc_party(subject, False),
+        "comparables": [_calc_party(c, True) for c in answer["candidates"]],
+    }
+    return {
+        "calc_args": calc_args,
+        "selection_rule": {
+            "tax_year": selection["tax_year"],
+            "state_property_category": criteria["state_property_category"],
+            "area_band": {"share": parameters["area_band"], "min_sf": None if area is None else area["min"],
+                          "max_sf": None if area is None else area["max"]},
+            "year_band": {"years": parameters["year_band"], "min": None if year is None else year["min"],
+                          "max": None if year is None else year["max"]},
+            "min_matches": parameters["min_matches"],
+            "limit": parameters["limit"],
+            "tiers": [{k: t[k] for k in ("tier", "key", "applied", "matched", "returned")} for t in selection["tiers"]],
+            "widened_to_county": selection["widened_to_county"],
+            "matched": selection["matched"],
+            "returned": selection["returned"],
+            "notice": CALC_ARGS_NOTICE,
+        },
+    }
+
+
 def batch_answer(answer: dict[str, Any]) -> dict[str, Any]:
     """One subject's answer inside a batch: the single answer without ``notice`` and ``selection.rule``, which the
     batch gives once at the top."""
@@ -316,7 +374,7 @@ def equity_candidates(reg: Registry, urn: str, *, area_band: float = DEFAULTS["a
     # Every snapshot a returned fact comes from, with its source's rights.
     docs = {f["document_id"] for facts in [subject_facts, *(m[4] for m in returned)] for f in facts.values()}
     docs |= {cite["document_id"] for e in subject["value_history"] for cite in e["citations"].values() if cite}
-    return {
+    answer = {
         "subject": subject,
         "candidates": candidates,
         "selection": {"rule": RULE, "parameters": parameters, "tax_year": year_used, "available_tax_years": available,
@@ -327,3 +385,4 @@ def equity_candidates(reg: Registry, urn: str, *, area_band: float = DEFAULTS["a
         "notice": NOTICE,
         "warnings": warnings,
     }
+    return {**answer, **equity_calc_args(answer)}

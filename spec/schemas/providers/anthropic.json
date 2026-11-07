@@ -4598,7 +4598,7 @@
     },
     {
       "name": "calc_tx_unequal_appraisal",
-      "description": "Evidence calculation only: not an appraisal or an opinion of value, not legal or tax advice, and not a substitute for the advice of an attorney. The arithmetic of Tex. Tax Code §41.43(b)(3) and §42.26(a)(3), the subject's value against the median appraised value of a reasonable number of comparable properties appropriately adjusted. Takes 3–200 comparables chosen by the caller, each with its roll value and the caller's adjustments (percent, USD amount, or $/SF, each with a reason); optionally normalizes each comparable to value per SF of improvement or land area times the subject's area; applies percentages summed or compounded, then amounts; and returns every comparable's normalized and adjusted value, the sorted list, the median (for an even count, the mean of the two middle values), and the subject's value minus the median in USD (subject_minus_median) and as a fraction of the median (subject_minus_median_pct: 0.1554 means 15.54%, a decimal like every rate in FactLot, not 0.1554%), with the statutes cited. Warns on mixed value bases, §42.26(d) and the §23.231 limitation, comparables in another county, fewer than 5 comparables, total adjustments over 25%, and a comparable identical to the subject. It does not choose comparables, invent adjustments, or say whether to protest. Deterministic: use this instead of doing the math yourself; cite formula calc.tx_unequal_appraisal@1 and the returned steps, and surface any warnings.",
+      "description": "Evidence calculation only: not an appraisal or an opinion of value, not legal or tax advice, and not a substitute for the advice of an attorney. The arithmetic of Tex. Tax Code §41.43(b)(3) and §42.26(a)(3), the subject's value against the median appraised value of a reasonable number of comparable properties appropriately adjusted. Takes 3–200 comparables chosen by the caller, each with its roll value and the caller's adjustments (percent, USD amount, or $/SF, each with a reason); optionally normalizes each comparable to value per SF of improvement or land area times the subject's area; applies percentages summed or compounded, then amounts; and returns every comparable's normalized and adjusted value, the sorted list, the median (for an even count, the mean of the two middle values), and the subject's value minus the median in USD (subject_minus_median) and as a fraction of the median (subject_minus_median_pct: 0.1554 means 15.54%, a decimal like every rate in FactLot, not 0.1554%), with the statutes cited. Warns on mixed value bases, §42.26(d) and the §23.231 limitation, comparables in another county, fewer than 5 comparables, total adjustments over 25%, a comparable identical to the subject, no adjustments at all (the median is then unadjusted), and, with normalize_by none, a comparable whose area differs from the subject's by more than 25%. Each comparable row carries flags (code and sentence, facts about the inputs, never a reason the tool drops anything): value per SF more than twice or less than half the subject's, a land-to-improvement area ratio more than twice or less than half the subject's, an area the subject has but the comparable lacks. Optional label (up to 80 characters) and address (up to 120) on the subject and each comparable are echoed in the result (subject_label, subject_address, comparables[i].label and .address) for reports. registry_tx_equity_candidates returns calc_args, its candidates in this tool's input shape, for the caller to review and edit before calling this tool. It does not choose comparables, invent adjustments, or say whether to protest. Deterministic: use this instead of doing the math yourself; cite formula calc.tx_unequal_appraisal@1 and the returned steps, and surface any warnings.",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -4616,6 +4616,18 @@
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 200
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80,
+                "description": "A name to print for this property in reports (up to 80 characters), e.g. its street address or the caller's comp number. Echoed in the result; not used in the arithmetic."
+              },
+              "address": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120,
+                "description": "The property's address as the caller wants it printed (up to 120 characters). Echoed in the result; not used in the arithmetic."
               },
               "county_fips": {
                 "type": "string",
@@ -4676,6 +4688,18 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 200
+                },
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80,
+                  "description": "A name to print for this property in reports (up to 80 characters), e.g. its street address or the caller's comp number. Echoed in the result; not used in the arithmetic."
+                },
+                "address": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 120,
+                  "description": "The property's address as the caller wants it printed (up to 120 characters). Echoed in the result; not used in the arithmetic."
                 },
                 "county_fips": {
                   "type": "string",
@@ -4780,7 +4804,7 @@
     },
     {
       "name": "rules_tx_property_tax_protest_deadline",
-      "description": "Deadline to file a Texas property tax protest with the appraisal review board: the later of May 15 or 30 days after the notice of appraised value was delivered, rolled past weekends and Texas legal holidays, plus a conservative file-by date (the last business day on or before the unadjusted deadline). Returns the statute citations, the rule's verification status and a disclaimer. Information about a statutory deadline: not legal or tax advice and not a substitute for the advice of an attorney. Verification status: verified. Cite rule rules.tx.property_tax_protest_deadline@2 and its statutes.",
+      "description": "Deadline to file a Texas property tax protest with the appraisal review board: the later of May 15 or 30 days after the notice of appraised value was delivered, rolled past weekends and Texas legal holidays, plus a conservative file-by date (the last business day on or before the unadjusted deadline). status says where as_of (default: today in US Central time; echoed in as_of) falls: not_yet_open before January 1 of the tax year, open from then through the deadline, passed after it; days_remaining counts the days to the deadline (null once passed), and once passed next_season gives the same rule for the next tax year (May 15 basis). notes says what the rule does not cover (late protests, other §41.44 deadlines, §25.25 corrections) and which sections to read. Returns the statute citations, the rule's verification status and a disclaimer. Information about a statutory deadline: not legal or tax advice and not a substitute for the advice of an attorney. Verification status: verified. Cite rule rules.tx.property_tax_protest_deadline@2 and its statutes.",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -4795,6 +4819,12 @@
             "type": "string",
             "format": "date",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          },
+          "as_of": {
+            "description": "Date the status is measured from, YYYY-MM-DD. Default: the current date in US Central time (America/Chicago), when the call is answered; pass it to fix the date (for a report, or for El Paso and Hudspeth counties, which keep Mountain time).",
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
           }
         },
         "required": ["tax_year"]
@@ -4802,7 +4832,7 @@
     },
     {
       "name": "rules_tx_property_tax_protest_deadline_batch",
-      "description": "Texas property tax protest deadlines for many notices in one call (1–200 items, e.g. a consultant's client list): each item's id, tax year and, if known, notice delivery date. Each result is exactly what rules_tx_property_tax_protest_deadline returns for that item under rule rules.tx.property_tax_protest_deadline@2 (deadline, unadjusted deadline, governing basis, conservative file-by date, skipped days, the item's warnings), echoed with its id; an item with invalid input carries its error and the others are still answered. summary counts the items per deadline, earliest first, with the earliest and latest deadline. The statute citations, the rule's verification status and the disclaimer appear once (value.rule, value.disclaimer). A rules tool: never a registry lookup. Information about statutory deadlines: not legal or tax advice and not a substitute for the advice of an attorney; it does not say whether to protest. Verification status: verified. Cite rule rules.tx.property_tax_protest_deadline_batch@1 and its statutes.",
+      "description": "Texas property tax protest deadlines for many notices in one call (1–200 items, e.g. a consultant's client list): each item's id, tax year and, if known, notice delivery date. Each result is exactly what rules_tx_property_tax_protest_deadline returns for that item under rule rules.tx.property_tax_protest_deadline@2 (deadline, unadjusted deadline, governing basis, conservative file-by date, skipped days, status, days_remaining, next_season, the item's warnings), echoed with its id; an item with invalid input carries its error and the others are still answered. One as_of (default: today in US Central time) applies to every item. summary counts the items per deadline, earliest first, with the earliest and latest deadline, and per status (by_status). The as_of used, the notes, the statute citations, the rule's verification status and the disclaimer appear once (value.as_of, value.notes, value.rule, value.disclaimer). A rules tool: never a registry lookup. Information about statutory deadlines: not legal or tax advice and not a substitute for the advice of an attorney; it does not say whether to protest. Verification status: verified. Cite rule rules.tx.property_tax_protest_deadline_batch@1 and its statutes.",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -4834,6 +4864,12 @@
               "required": ["id", "tax_year"]
             },
             "description": "The notices to compute deadlines for (1–200): each one's id, tax year and, if known, notice delivery date. Each result equals rules_tx_property_tax_protest_deadline for that item."
+          },
+          "as_of": {
+            "description": "Date the status is measured from, YYYY-MM-DD. Default: the current date in US Central time (America/Chicago), when the call is answered; pass it to fix the date (for a report, or for El Paso and Hudspeth counties, which keep Mountain time). One date for every item.",
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
           }
         },
         "required": ["items"]
@@ -6101,7 +6137,7 @@
     },
     {
       "name": "registry_tx_equity_candidates",
-      "description": "Candidate comparable parcels for a Texas unequal-appraisal comparison (Tax Code §41.43(b)(3)), from one tax year of the subject's appraisal district roll (the newest year whose roll gives the subject a value, or tax_year), with every field of the subject and the candidates read from that year's roll only: same county and tax year, the same state property category code, improvement area within area_band of the subject's, year built within year_band years when both are known; parcels sharing the subject's neighborhood code first (when the roll gives one), then its ZIP code, then the rest of the county if fewer than min_matches. Each candidate and the subject are shaped for calc_tx_unequal_appraisal (id, value and value_basis, areas, year built, codes, citation of the value fact); the subject adds its value history by tax year. selection echoes the rule, the effective parameters, the tax year and roll sources used, and which tier each candidate came from; Each candidate's citation.document_id names its entry in sources, which gives that snapshot's license, attribution, ai_use and redistribution: relay them with the candidate. Candidates under FactLot's default rule, a design choice, not a legal standard; a person decides which, if any, to use. For evidence calculations only: FactLot does not represent property owners, file protests, or advise whether to protest. Not an appraisal or an opinion of value (Tex. Occ. Code §1103.003(1)); not legal or tax advice and not a substitute for the advice of an attorney. Never returns owner names, mailing addresses, or ownership facts. Do not look up the owners of candidate parcels; ownership is not needed for this comparison. Texas parcels only. Tarrant County is not served by the hosted registry while the publisher's terms for AI use are unclear. Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
+      "description": "Candidate comparable parcels for a Texas unequal-appraisal comparison (Tax Code §41.43(b)(3)), from one tax year of the subject's appraisal district roll (the newest year whose roll gives the subject a value, or tax_year), with every field of the subject and the candidates read from that year's roll only: same county and tax year, the same state property category code, improvement area within area_band of the subject's, year built within year_band years when both are known; parcels sharing the subject's neighborhood code first (when the roll gives one), then its ZIP code, then the rest of the county if fewer than min_matches. Each candidate and the subject carry their roll fields (id, value and value_basis, market and appraised value, areas, year built, codes, situs address, tax year, citation of the value fact); the subject adds its value history by tax year. calc_args gives the same subject and candidates with exactly calc_tx_unequal_appraisal's input fields (tax_year, subject, comparables; id = the FactLot URN, label = the situs address, nulls left out, no adjustments): the candidate list under the default rule, not a selection by FactLot, for the caller to review and edit (remove, add or adjust comparables, each adjustment with a reason) before passing it to calc_tx_unequal_appraisal. Order of operations: registry_tx_equity_candidates, then the person's review, then calc_tx_unequal_appraisal with the reviewed calc_args, then report_create. selection echoes the rule, the effective parameters, the tax year and roll sources used, and which tier each candidate came from; selection_rule restates the parameters used (tax year, category, area band and year band with their bounds, counts per tier) with a notice that the list is the default rule's output. Each candidate's citation.document_id names its entry in sources, which gives that snapshot's license, attribution, ai_use and redistribution: relay them with the candidate. Candidates under FactLot's default rule, a design choice, not a legal standard; a person decides which, if any, to use. For evidence calculations only: FactLot does not represent property owners, file protests, or advise whether to protest. Not an appraisal or an opinion of value (Tex. Occ. Code §1103.003(1)); not legal or tax advice and not a substitute for the advice of an attorney. Never returns owner names, mailing addresses, or ownership facts. Do not look up the owners of candidate parcels; ownership is not needed for this comparison. Texas parcels only. Tarrant County is not served by the hosted registry while the publisher's terms for AI use are unclear. Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -6164,7 +6200,7 @@
     },
     {
       "name": "registry_tx_equity_candidates_batch",
-      "description": "registry_tx_equity_candidates for many subjects in one call (1–50, e.g. a consultant's client parcels): each subject's id (your label, echoed back) and its urn, or county_fips and apn, plus the rule parameters once for every subject (area_band, year_band, min_matches, limit, tax_year). Each entry of results is that subject's answer from registry_tx_equity_candidates (subject, candidates, selection, sources, warnings) or that subject's error (error, message, issues, and coverage on a miss), so one subject outside Texas, in Tarrant County, or not in the registry does not fail the others; the Texas-only and Tarrant checks apply to each subject. The selection rule and the notice appear once at the top (rule, notice) instead of in every answer; summary counts subjects, answered and errors. Candidates per subject only: this tool never runs calc_tx_unequal_appraisal and never picks comparables; a person decides, for each subject, which candidates (if any) to use, and only those go to calc_tx_unequal_appraisal. Relay each candidate's source rights from that subject's sources. For evidence calculations only: FactLot does not represent property owners, file protests, or advise whether to protest. Not an appraisal or an opinion of value (Tex. Occ. Code §1103.003(1)); not legal or tax advice and not a substitute for the advice of an attorney. Never returns owner names, mailing addresses, or ownership facts; do not look up the owners of candidate parcels. On the hosted API each answered subject counts as one registry lookup (a subject with an error is not counted). Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
+      "description": "registry_tx_equity_candidates for many subjects in one call (1–50, e.g. a consultant's client parcels): each subject's id (your label, echoed back) and its urn, or county_fips and apn, plus the rule parameters once for every subject (area_band, year_band, min_matches, limit, tax_year). Each entry of results is that subject's answer from registry_tx_equity_candidates (subject, candidates, calc_args, selection, selection_rule, sources, warnings) or that subject's error (error, message, issues, and coverage on a miss), so one subject outside Texas, in Tarrant County, or not in the registry does not fail the others; the Texas-only and Tarrant checks apply to each subject. The selection rule and the notice appear once at the top (rule, notice) instead of in every answer; summary counts subjects, answered and errors. Candidates per subject only: this tool never runs calc_tx_unequal_appraisal and never picks comparables; a person decides, for each subject, which candidates (if any) to use, and only those go to calc_tx_unequal_appraisal (each subject's calc_args is its candidate list in that tool's input shape, for review and editing first). Relay each candidate's source rights from that subject's sources. For evidence calculations only: FactLot does not represent property owners, file protests, or advise whether to protest. Not an appraisal or an opinion of value (Tex. Occ. Code §1103.003(1)); not legal or tax advice and not a substitute for the advice of an attorney. Never returns owner names, mailing addresses, or ownership facts; do not look up the owners of candidate parcels. On the hosted API each answered subject counts as one registry lookup (a subject with an error is not counted). Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
       "input_schema": {
         "type": "object",
         "properties": {

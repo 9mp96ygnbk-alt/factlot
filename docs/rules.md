@@ -39,6 +39,28 @@ a `disclaimer`: information about a statutory deadline computed from the statute
 the verification date, not legal or tax advice and not a substitute for the advice of an attorney.
 Version 2 renamed `recommended_file_by` to `conservative_file_by` and added `disclaimer`.
 
+Each result also says where the deadline stands on a date, `as_of` (YYYY-MM-DD). Pass it to fix
+the date; without it the rule uses the current date in US Central time (America/Chicago, computed
+from the U.S. daylight-saving rule without a time-zone database, the same in both SDKs) at the
+moment of the call, and echoes the date it used in `as_of`. El Paso and Hudspeth counties keep
+Mountain time, so pass `as_of` there.
+
+- `status`: `not_yet_open` when `as_of` is before January 1 of the tax year, `open` from January 1
+  through the deadline, `passed` after it. These are positions on the calendar, not a statement of
+  what anyone may file.
+- `days_remaining`: days from `as_of` to the deadline (0 on the deadline itself), `null` once it
+  has passed.
+- `next_season`: once the deadline has passed, `{tax_year, deadline, conservative_file_by, basis}`
+  for the next tax year under the same rule with no notice date (`basis` `may_15`); otherwise
+  `null`. A `notes` entry says that a notice delivered after April 15 of that year makes its
+  deadline later.
+- `notes`: plain statements of what the rule does not cover, with the sections to read (late
+  protests and the other §41.44 deadlines, §41.44(b)-(c-3); roll corrections, §25.25).
+
+The warning that a notice delivered after April 15 moves the deadline later appears only when no
+notice date is given and the deadline is open or not yet open. These fields were added without a
+version change: every earlier field keeps its value and meaning.
+
 Not covered:
 
 - other §41.44 deadlines, such as protests of changes made after notice and §25.25 corrections;
@@ -53,8 +75,10 @@ an attorney. It does not say whether to protest.
 Every item is computed by the single rule above (`rules.tx.property_tax_protest_deadline@2`) and
 returns exactly its fields plus that item's warnings; an item with an invalid tax year or date, or
 a notice date outside its tax year, carries its own `error` while the rest are answered. `summary`
-counts the answered items per deadline, earliest first, with the earliest and latest. The rule
-metadata, citations and `disclaimer` appear once, in `value.rule` and `value.disclaimer`. The
+counts the answered items per deadline, earliest first, with the earliest and latest, and per
+status (`by_status`). One `as_of` (optional, same default) applies to every item. The `as_of` used,
+the `notes`, the rule metadata, citations and `disclaimer` appear once, in `value.as_of`,
+`value.notes`, `value.rule` and `value.disclaimer`. The
 batch has its own formula ID (`rules.tx.property_tax_protest_deadline_batch@1`) so its shape can
 be versioned apart from the rule; it is a rules tool, never a registry lookup, and it is tested by
 the shared vectors in `spec/vectors/rules/tx_property_tax_protest_deadline_batch.json` and the

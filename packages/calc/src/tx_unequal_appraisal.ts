@@ -31,6 +31,13 @@ const MAX_COMPARABLES = 200;
 const FEW_COMPARABLES = 5;
 /** Total adjustment above this share (either way) draws a warning: a FactLot flag, not law. */
 const LARGE_ADJUSTMENT = 0.25;
+/** Areas further than this share from the subject's draw a warning when values are compared whole: a FactLot flag. */
+const AREA_SPREAD = 0.25;
+/** A comparable's value per SF or land-to-improvement ratio beyond this multiple (or below its inverse) is flagged. */
+const FLAG_RATIO = 2;
+/** The words of §41.43(b)(3) and §42.26(a)(3) the comparison uses, as quoted in TX_UNEQUAL_APPRAISAL_LAW. */
+const APPROPRIATELY_ADJUSTED =
+  "the median appraised value of a reasonable number of comparable properties appropriately adjusted";
 
 const STATUTES = "https://statutes.capitol.texas.gov/Docs/TX/htm";
 
@@ -84,6 +91,21 @@ const CountyFips = z
   );
 
 const Area = z.number().finite().positive();
+
+const Label = z
+  .string()
+  .min(1)
+  .max(80)
+  .describe(
+    "A name to print for this property in reports (up to 80 characters), e.g. its street address or the caller's comp number. Echoed in the result; not used in the arithmetic.",
+  );
+const Address = z
+  .string()
+  .min(1)
+  .max(120)
+  .describe(
+    "The property's address as the caller wants it printed (up to 120 characters). Echoed in the result; not used in the arithmetic.",
+  );
 
 const Adjustment = z.strictObject({
   label: z
@@ -152,6 +174,8 @@ const Comparable = z.strictObject({
     .describe(
       "Identifier of the comparable, e.g. its FactLot parcel ID or account number. Must differ from the subject's and from every other comparable's.",
     ),
+  label: Label.optional(),
+  address: Address.optional(),
   county_fips: CountyFips.optional(),
   value: z
     .number()
@@ -194,6 +218,8 @@ export const TxUnequalAppraisalInput = z.strictObject({
         .describe(
           "Identifier of the subject property, e.g. its FactLot parcel ID.",
         ),
+      label: Label.optional(),
+      address: Address.optional(),
       county_fips: CountyFips.optional(),
       value: z
         .number()
@@ -248,6 +274,9 @@ export interface TxUnequalAppraisalComparable {
   /** Position in the input list, from 0. */
   index: number;
   id: string | null;
+  /** The caller's label and address, echoed for reports; null when not given. */
+  label: string | null;
+  address: string | null;
   county_fips: string | null;
   value: number;
   value_basis: "appraised" | "market";
@@ -270,6 +299,20 @@ export interface TxUnequalAppraisalComparable {
     reason: string;
   }[];
   citation: z.output<typeof Citation> | null;
+  /** Data-quality flags (FactLot checks, not legal tests): facts about the inputs, never a reason to drop a comparable. */
+  flags: TxComparableFlag[];
+}
+
+export type TxComparableFlagCode =
+  | "value_psf_above_2x"
+  | "value_psf_below_half"
+  | "land_ratio_above_2x"
+  | "land_ratio_below_half"
+  | "missing_area";
+
+export interface TxComparableFlag {
+  code: TxComparableFlagCode;
+  message: string;
 }
 
 export interface TxUnequalAppraisal {
@@ -286,6 +329,8 @@ export interface TxUnequalAppraisal {
   /** The two middle values when the count is even (the median is their mean); null when odd. */
   median_pair: [number, number] | null;
   subject_id: string | null;
+  subject_label: string | null;
+  subject_address: string | null;
   subject_value: number;
   subject_value_basis: "appraised" | "market";
   subject_minus_median: number;
@@ -360,6 +405,67 @@ function checkInput(input: z.output<typeof TxUnequalAppraisalInput>): void {
       `invalid input: ${issues.map((i) => `${i.path}: ${i.message}`).join("; ")}`,
       issues,
     );
+}
+
+const AREA_WORD = {
+  improvement_area_sf: "improvement",
+  land_area_sf: "land",
+} as const;
+
+/**
+ * A comparable's data-quality flags (`_flags` in Python): its value per SF of the normalizing area (improvement area
+ * when normalize_by is "none") more than twice or less than half the subject's, its land-to-improvement area ratio
+ * more than twice or less than half the subject's, and, when values are compared whole, a missing area the subject
+ * has. Facts about the inputs only; FactLot thresholds, not legal tests.
+ */
+function comparableFlags(
+  subject: z.output<typeof TxUnequalAppraisalInput>["subject"],
+  c: ParsedComparable,
+  by: "none" | "improvement_area_sf" | "land_area_sf",
+): TxComparableFlag[] {
+  const flags: TxComparableFlag[] = [];
+  const key = by === "none" ? "improvement_area_sf" : by;
+  const word = AREA_WORD[key];
+  const sArea = subject[key];
+  const cArea = c[key];
+  if (sArea !== undefined && cArea !== undefined) {
+    const sPsf = subject.value / sArea;
+    const cPsf = c.value / cArea;
+    if (cPsf > FLAG_RATIO * sPsf)
+      flags.push({
+        code: "value_psf_above_2x",
+        message: `Value per SF of ${word} area (${fmtMoney(cPsf)}) is more than twice the subject's (${fmtMoney(sPsf)}).`,
+      });
+    else if (cPsf < sPsf / FLAG_RATIO)
+      flags.push({
+        code: "value_psf_below_half",
+        message: `Value per SF of ${word} area (${fmtMoney(cPsf)}) is less than half the subject's (${fmtMoney(sPsf)}).`,
+      });
+  } else if (by === "none" && sArea !== undefined && cArea === undefined)
+    flags.push({
+      code: "missing_area",
+      message: `No ${key} given while the subject has one: value per SF is not compared, and normalize_by ${key} would need it.`,
+    });
+  if (
+    subject.land_area_sf !== undefined &&
+    subject.improvement_area_sf !== undefined &&
+    c.land_area_sf !== undefined &&
+    c.improvement_area_sf !== undefined
+  ) {
+    const sRatio = subject.land_area_sf / subject.improvement_area_sf;
+    const cRatio = c.land_area_sf / c.improvement_area_sf;
+    if (cRatio > FLAG_RATIO * sRatio)
+      flags.push({
+        code: "land_ratio_above_2x",
+        message: `Land-to-improvement area ratio (${fmtNum(cRatio, 2)}) is more than twice the subject's (${fmtNum(sRatio, 2)}).`,
+      });
+    else if (cRatio < sRatio / FLAG_RATIO)
+      flags.push({
+        code: "land_ratio_below_half",
+        message: `Land-to-improvement area ratio (${fmtNum(cRatio, 2)}) is less than half the subject's (${fmtNum(sRatio, 2)}).`,
+      });
+  }
+  return flags;
 }
 
 /** Texas unequal-appraisal arithmetic (§41.43(b)(3), §42.26(a)(3)): median of adjusted comparables. */
@@ -478,6 +584,8 @@ export function txUnequalAppraisal(
     comps.push({
       index: i,
       id: c.id ?? null,
+      label: c.label ?? null,
+      address: c.address ?? null,
       county_fips: c.county_fips ?? null,
       value: c.value,
       value_basis: c.value_basis,
@@ -496,6 +604,7 @@ export function txUnequalAppraisal(
         reason: a.reason,
       })),
       citation: c.citation ? { ...c.citation } : null,
+      flags: comparableFlags(subject, c, by),
     });
   });
 
@@ -600,6 +709,29 @@ export function txUnequalAppraisal(
     t.warn(
       `Same value, value basis and areas as the subject: ${named(same)}. Check that the subject is not among its own comparables.`,
     );
+  if (input.comparables.every((c) => c.adjustments.length === 0))
+    t.warn(
+      `No adjustments were supplied: the median is of ${by === "none" ? "unadjusted values" : `values normalized by ${by} and otherwise unadjusted`}. §41.43(b)(3) and §42.26(a)(3) refer to "${APPROPRIATELY_ADJUSTED}".`,
+    );
+  if (by === "none") {
+    const key =
+      subject.improvement_area_sf !== undefined
+        ? "improvement_area_sf"
+        : subject.land_area_sf !== undefined
+          ? "land_area_sf"
+          : undefined;
+    if (key !== undefined) {
+      const sArea = subject[key] as number;
+      const spread = labels((c) => {
+        const a = c[key];
+        return a !== undefined && Math.abs(a / sArea - 1) > AREA_SPREAD;
+      });
+      if (spread.length > 0)
+        t.warn(
+          `Values are compared whole (normalize_by "none"), and the ${AREA_WORD[key]} area of ${named(spread)} differs from the subject's (${fmtNum(sArea)} SF) by more than 25%: a median of whole values and a median of values per SF can differ materially. normalize_by "${key}" compares values per SF of that area. The 25% is a FactLot flag, not a legal limit.`,
+        );
+    }
+  }
 
   return t.result("calc.tx_unequal_appraisal", 1, {
     disclaimer: TX_EVIDENCE_NOTICE,
@@ -612,6 +744,8 @@ export function txUnequalAppraisal(
     median_adjusted_value: median,
     median_pair: pair,
     subject_id: subject.id ?? null,
+    subject_label: subject.label ?? null,
+    subject_address: subject.address ?? null,
     subject_value: subject.value,
     subject_value_basis: subject.value_basis,
     subject_minus_median: diff,

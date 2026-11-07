@@ -43,7 +43,10 @@ returns `deadline` 2027-05-17 (May 15 falls on a Saturday) and conservative file
 ## Report
 
 Give the deadline and the conservative file-by date (`conservative_file_by`), name the governing
-basis, list the skipped days, and quote the statutes in `value.rule.citations` and the rule's
+basis, list the skipped days, give `status` (`open`, `passed` or `not_yet_open` relative to
+`as_of`, which defaults to today in US Central time) and `days_remaining`; when the deadline has
+passed, also give `next_season` (the next tax year's deadline under the same rule, May 15 basis) and
+relay `notes` (what the rule does not cover, with the sections to read), and quote the statutes in `value.rule.citations` and the rule's
 verification status (`value.rule.verification.status`) as returned. Say that this is a date
 calculation, not legal advice and not a substitute for the advice of an attorney, and that the
 appraisal district's notice and instructions govern the user's own case.
@@ -55,10 +58,14 @@ appraisal district's notice and instructions govern the user's own case.
   statutes in `value.rule.citations`.
 - Surface every entry in `warnings` and the verification status.
 - The rule covers the general deadline only, not the other §41.44 deadlines, §25.25 corrections,
-  or late-protest relief. Do not say whether to protest or how to file.
+  or late-protest relief (`notes` says so with the sections). Do not say whether to protest or how
+  to file, and do not say what a person can still do after the deadline.
+- Pass `as_of` when the date matters for a record (a report, a client letter); the result echoes
+  the date it used.
 - For several notices at once (a client list), call `rules_tx_property_tax_protest_deadline_batch`
   with `items` (up to 200, each `id`, `tax_year`, optional `notice_delivered_date`): each result is
   the single tool's answer for that item, an invalid item carries its own `error`, and the rule,
-  citations and disclaimer come once; report every item's deadline and warnings the same way.
+  citations, disclaimer, `as_of` and `notes` come once; `summary.by_status` counts open, passed and
+  not-yet-open items; report every item's deadline, status and warnings the same way.
 - If the FactLot MCP tools are unavailable, POST the same arguments to
   `https://api.factlot.com/v1/rules/tx_property_tax_protest_deadline`.
