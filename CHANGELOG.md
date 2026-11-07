@@ -22,6 +22,7 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 - Registry: Midland web property file adapter (`tx_midland_web`). It refuses a file with a birth-date column and does not use mineral or personal-property codes for scope.
 - Registry: Orange County appraisal-export adapter (`tx_orange`), reading the property export's state codes. It reads no owner fields.
 - Collector: a download URL's `$limit` or `limit` is recorded as `row_cap` on the manifest, and `limit_saturated` tells a row count that reached the cap from a complete extract.
+- Registry audit records of 2026-11-06 (`docs/registry/quality/audit-2026-11-06/`): Maryland SDAT, 57 New York ORPTS counties, MassGIS (no county passes) and six single-county loads; an Indiana statewide parcels adapter with an unverified source config (the licence text states no licence to copy or redistribute); review records, nothing loaded, for 13 Indiana counties and two Florida sources (Hillsborough, Miami-Dade).
 
 ### Changed
 

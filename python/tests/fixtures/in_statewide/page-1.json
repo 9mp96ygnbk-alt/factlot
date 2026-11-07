@@ -1,0 +1,237 @@
+{
+  "objectIdFieldName": "objectid",
+  "features": [
+    {
+      "attributes": {
+        "state_parcel_id": "01-00-00-000-001.000-001",
+        "parcel_id": "LOCAL-1",
+        "county_fips": "18003",
+        "dlgf_prop_class_code": "403",
+        "prop_add": "100 EXAMPLE ST",
+        "prop_city": "FORT WAYNE",
+        "prop_state": "IN",
+        "prop_zip": "46802",
+        "loaddate": 1756425600000,
+        "owner_name": "EXAMPLE, ALEX"
+      }
+    },
+    {
+      "attributes": {
+        "state_parcel_id": "01-00-00-000-001.000-001",
+        "county_fips": "18003",
+        "dlgf_prop_class_code": "403",
+        "prop_add": "102 EXAMPLE ST",
+        "prop_city": "FORT WAYNE",
+        "prop_state": "IN",
+        "prop_zip": "46802",
+        "loaddate": 1756425600000
+      }
+    },
+    {
+      "attributes": {
+        "state_parcel_id": "01-00-00-000-002.000-001",
+        "county_fips": "18003",
+        "dlgf_prop_class_code": "350",
+        "prop_add": "200 FACTORY RD",
+        "prop_city": "FORT WAYNE",
+        "prop_state": "IN",
+        "prop_zip": "46803",
+        "loaddate": 1756425600000,
+        "owner_name": "EXAMPLE WORKS LLC"
+      }
+    },
+    {
+      "attributes": {
+        "state_parcel_id": "32-00-00-000-003.000-001",
+        "county_fips": "18063",
+        "dlgf_prop_class_code": "447",
+        "prop_add": "",
+        "dlgf_prop_address": "200 SAMPLE AVE",
+        "dlgf_prop_address_city": "AVON",
+        "dlgf_prop_address_state": "IN",
+        "dlgf_prop_address_zip": "46123",
+        "loaddate": 1756425600000
+      }
+    },
+    {
+      "attributes": {
+        "state_parcel_id": "01-00-00-000-004.000-001",
+        "county_fips": "18003",
+        "dlgf_prop_class_code": "400",
+        "prop_add": "",
+        "dlgf_prop_address": "",
+        "loaddate": 1756425600000
+      }
+    },
+    {
+      "attributes": {
+        "state_parcel_id": "01-00-00-000-005.000-001",
+        "county_fips": "18003",
+        "dlgf_prop_class_code": "401",
+        "prop_add": "5 FLAT ST",
+        "prop_city": "FORT WAYNE",
+        "prop_state": "IN",
+        "prop_zip": "46802",
+        "loaddate": 1756425600000
+      }
+    },
+    {
+      "attributes": {
+        "state_parcel_id": "01-00-00-000-006.000-001",
+        "county_fips": "18003",
+        "dlgf_prop_class_code": "402",
+        "prop_add": "6 FLAT ST",
+        "prop_city": "FORT WAYNE",
+        "prop_state": "IN",
+        "prop_zip": "46802",
+        "loaddate": 1756425600000
+      }
+    },
+    {
+      "attributes": {
+        "state_parcel_id": "01-00-00-000-007.000-001",
+        "county_fips": "18003",
+        "dlgf_prop_class_code": "300",
+        "prop_add": "7 VACANT RD",
+        "prop_city": "FORT WAYNE",
+        "prop_state": "IN",
+        "prop_zip": "46802",
+        "loaddate": 1756425600000
+      }
+    },
+    {
+      "attributes": {
+        "state_parcel_id": "01-00-00-000-008.000-001",
+        "county_fips": "18003",
+        "dlgf_prop_class_code": "309",
+        "prop_add": "8 SUPPORT RD",
+        "prop_city": "FORT WAYNE",
+        "prop_state": "IN",
+        "prop_zip": "46802",
+        "loaddate": 1756425600000
+      }
+    },
+    {
+      "attributes": {
+        "state_parcel_id": "01-00-00-000-009.000-001",
+        "county_fips": "18003",
+        "dlgf_prop_class_code": "395",
+        "prop_add": "9 OTHER RD",
+        "prop_city": "FORT WAYNE",
+        "prop_state": "IN",
+        "prop_zip": "46802",
+        "loaddate": 1756425600000
+      }
+    },
+    {
+      "attributes": {
+        "state_parcel_id": "01-00-00-000-010.000-001",
+        "county_fips": "18003",
+        "dlgf_prop_class_code": "510",
+        "prop_add": "10 HOUSE ST",
+        "prop_city": "FORT WAYNE",
+        "prop_state": "IN",
+        "prop_zip": "46802",
+        "owner_name": "EXAMPLE, ALEX",
+        "loaddate": 1756425600000
+      }
+    },
+    {
+      "attributes": {
+        "state_parcel_id": "01-00-00-000-011.000-001",
+        "county_fips": "18003",
+        "dlgf_prop_class_code": "101",
+        "loaddate": 1756425600000
+      }
+    },
+    {
+      "attributes": {
+        "state_parcel_id": "01-00-00-000-012.000-001",
+        "county_fips": "18003",
+        "dlgf_prop_class_code": "200",
+        "loaddate": 1756425600000
+      }
+    },
+    {
+      "attributes": {
+        "state_parcel_id": "01-00-00-000-013.000-001",
+        "county_fips": "18003",
+        "dlgf_prop_class_code": "640",
+        "loaddate": 1756425600000
+      }
+    },
+    {
+      "attributes": {
+        "state_parcel_id": "01-00-00-000-014.000-001",
+        "county_fips": "18003",
+        "dlgf_prop_class_code": "820",
+        "loaddate": 1756425600000
+      }
+    },
+    {
+      "attributes": {
+        "state_parcel_id": "01-00-00-000-015.000-001",
+        "county_fips": "18003",
+        "dlgf_prop_class_code": "40",
+        "loaddate": 1756425600000
+      }
+    },
+    {
+      "attributes": {
+        "state_parcel_id": "01-00-00-000-016.000-001",
+        "county_fips": "18003",
+        "dlgf_prop_class_code": "",
+        "loaddate": 1756425600000
+      }
+    },
+    {
+      "attributes": {
+        "state_parcel_id": "49-00-00-000-017.000-001",
+        "county_fips": "18097",
+        "dlgf_prop_class_code": "447",
+        "prop_add": "17 MARKET ST",
+        "prop_city": "INDIANAPOLIS",
+        "prop_state": "IN",
+        "prop_zip": "46204",
+        "loaddate": 1755993600000
+      }
+    },
+    {
+      "attributes": {
+        "state_parcel_id": "",
+        "parcel_id": "LOCAL-ONLY",
+        "county_fips": "18003",
+        "dlgf_prop_class_code": "420",
+        "loaddate": 1756425600000
+      }
+    },
+    {
+      "attributes": {
+        "state_parcel_id": "---",
+        "county_fips": "18003",
+        "dlgf_prop_class_code": "420",
+        "prop_add": "20 BAD ID ST",
+        "prop_city": "FORT WAYNE",
+        "prop_state": "IN",
+        "prop_zip": "46802",
+        "loaddate": 1756425600000
+      }
+    },
+    {
+      "attributes": {
+        "state_parcel_id": "17-00-00-000-021.000-001",
+        "county_fips": "17031",
+        "dlgf_prop_class_code": "400",
+        "loaddate": 1756425600000
+      }
+    },
+    {
+      "attributes": {
+        "state_parcel_id": "97-00-00-000-022.000-001",
+        "county_fips": "097",
+        "dlgf_prop_class_code": "400",
+        "loaddate": 1756425600000
+      }
+    }
+  ]
+}

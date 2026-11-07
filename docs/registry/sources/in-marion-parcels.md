@@ -104,3 +104,7 @@ PYTHONPATH=python/src python3 -m factlot.registry.adapters.in_marion <21 page fi
 - `FULLOWNERNAME` joins lines with a comma, so a name containing a comma that is not a company suffix keeps only its first segment (a person's "LAST, FIRST" becomes "LAST", which is dropped as a person anyway).
 - Only the 300-499 classes were pulled; 4-unit apartments (code 401) are the publisher's multifamily class, so they are B though the registry's apartment threshold is 5+ units.
 - Indiana's other counties are not covered; the statewide IndianaMap layer has no owners.
+
+## Tier 1 audit (2026-11-06)
+
+The 21 configured pages were collected again. The layer's count query returned **20,862** polygons of class 300–499 (20,626 distinct state parcel numbers). The 2026-11-03 load above was 20,866 polygons and 20,630 parcels. Kept on this retrieval: **20,626** (B 1,357, F1 15,496, F2 3,773). `--as-of` is **2026-11-06**, the retrieval date; the layer is described as updated nightly and its JSON has no editing date. Audit violations 0, person-like owner facts 0. Two parcels have a summed `ESTSQFT` over 500 million square feet; the audit warns and the figures were left as published. Evidence: [in-marion-parcels.md](../quality/audit-2026-11-06/in-marion-parcels.md) and [in-marion-parcels-audit.json](../quality/audit-2026-11-06/in-marion-parcels-audit.json). The item's "no restrictions on the use of Data" sentence, re-read the same day, is unchanged.

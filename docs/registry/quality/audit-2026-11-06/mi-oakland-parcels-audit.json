@@ -1,0 +1,15 @@
+{
+  "audited_on": "2026-11-06",
+  "stats": {
+    "entities": 0,
+    "facts": 124851,
+    "links": 0,
+    "parcels": 26122,
+    "review_pending": 0,
+    "snapshots": 14
+  },
+  "violations": [],
+  "warnings": [
+    "mi-oakland-parcels: 4211 of 26122 parcels have no situs address"
+  ]
+}

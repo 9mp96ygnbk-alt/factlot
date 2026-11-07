@@ -1,0 +1,29 @@
+{
+  "description": "Hillsborough County, Florida (FIPS 12057) Property Appraiser public downloads. Review record only: the download terms do not grant free use. See docs/registry/sources/fl-hillsborough-pa.md. Nothing is collected while verified is false.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "fl-hillsborough-pa",
+      "publisher": "Hillsborough County Property Appraiser",
+      "landing_pages": [
+        "https://downloads.hcpafl.org/",
+        "https://www.hcpafl.org/Downloads/Maps-Data",
+        "https://www.hcpafl.org/Disclaimer",
+        "https://www.hcpafl.org/Home/Privacy-and-Security-Notice"
+      ],
+      "allowed_hosts": ["downloads.hcpafl.org", "www.hcpafl.org"],
+      "files": [],
+      "verified": false,
+      "gate": "Terms: no reuse licence is stated. The public-downloads page (https://downloads.hcpafl.org/, read 2026-11-06) says 'Copyright ©2026 Hillsborough County Property Appraiser. All Rights Reserved.' The disclaimer (https://www.hcpafl.org/Disclaimer) says 'No warranties, expressed or implied, are provided for the data herein, its use, or its interpretation' and grants no licence. The Maps and Data page prices assessment data, the certified roll, the tangible roll and an ordered parcel shapefile at $125, and marks shapefiles reached through the downloads site 'No charge', which is a fee, not a reuse licence. The privacy notice cites chapter 119, Florida Statutes, as a right of access, not as permission to copy or redistribute. Whether that access right overrides the copyright notice is undecided. Not loaded. No Florida DOR use-code map was made; do not reuse the Texas B/F1/F2 categories as a nationwide crosswalk.",
+      "terms_url": "https://downloads.hcpafl.org/",
+      "license": "No reuse licence stated. Downloads page footer, read 2026-11-06: 'Copyright ©2026 Hillsborough County Property Appraiser. All Rights Reserved.' Disclaimer (https://www.hcpafl.org/Disclaimer): 'No warranties, expressed or implied, are provided for the data herein, its use, or its interpretation.' Shapefiles via the GIS Data link are priced 'No charge'; assessment data and an ordered parcel shapefile are priced $125. The privacy notice cites chapter 119, Florida Statutes, as a right of access to public records.",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not granted. The downloads page reserves copyright ('All Rights Reserved'). Whether chapter 119, Florida Statutes, overrides that notice is undecided",
+      "notes": "verified=false. Terms read 2026-11-06; the date is in the review record. Review record only. No file was downloaded and no adapter was written. The root listing names parcels_11_06_2026.zip and HCparcel_4_public_11_06_2026.zip (both Last Updated 11/6/2026 2:27AM), PARCEL_SPREADSHEET.xls (Last Updated 9/18/2026 7:14AM) and _DOR_Code_Manual.docx (Last Updated 10/7/2021 9:44AM); those are the page's timestamps, and the files were not opened, so there is no commercial or industrial parcel count and no DOR code map. gis.hcpafl.org robots.txt is 'User-agent: *' 'Disallow: /' and is not an allowed host. The commercial-universe denominator is unavailable: Table 2 for fiscal year 2024-25 is a distribution of taxes levied, not a parcel count. The 2025 tax rolls were certified for collection on 10/5/2025 (Budget / Tax Roll Stats page). Not loaded: no reuse licence is stated."
+    }
+  ]
+}

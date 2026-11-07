@@ -1,0 +1,16 @@
+{
+  "audited_on": "2026-11-06",
+  "stats": {
+    "entities": 0,
+    "facts": 878548,
+    "links": 0,
+    "parcels": 109249,
+    "review_pending": 0,
+    "snapshots": 24
+  },
+  "violations": [],
+  "warnings": [
+    "md-sdat-real-property: 4 parcels have an implausible year built",
+    "md-sdat-real-property: 7 parcels have an implausible area"
+  ]
+}

@@ -31,7 +31,7 @@ Licence and AI-use detail per source: [rights.md](rights.md).
 
 ## Summary
 
-137 sources are reviewed (62 verified). The rows below record **2,031,091** commercial parcels in
+140 sources are reviewed (62 verified). The rows below record **2,031,091** commercial parcels in
 228 county or county-group rows, in 21 states and the District of Columbia. Rows from verified sources add up to
 **1,953,805** (the figure the project's Tier 2 notes give for the combined load of verified sources); the other 77,286
 come from `pa-philadelphia-opa` (loaded, but not verified: gated on terms). Statewide aggregate rows (Vermont, Minnesota, Arkansas, Montana,
@@ -45,12 +45,12 @@ Connecticut, North Carolina) stand for several counties each; the record names t
 | [Colorado](#colorado)                         | 3                       | 2        | 1           | 13,539                    | yes         | 3,132,612 entities | No: not hosted  |
 | [Connecticut](#connecticut)                   | 2                       | 1        | 1           | 43,390                    | yes         | 1,305,836 entities | No: not hosted  |
 | [District of Columbia](#district-of-columbia) | 3                       | 3        | 1           | 18,077                    | yes         | 506,305 entities   | Yes (DC sample) |
-| [Florida](#florida)                           | 1                       | 0        | 0           | none loaded               | sample only | none loaded        | No: not hosted  |
+| [Florida](#florida)                           | 3                       | 0        | 0           | none loaded               | sample only | none loaded        | No: not hosted  |
 | [GSA](#gsa)                                   | 2                       | 2        | 0           | none loaded               | no          | none loaded        | No: not hosted  |
 | [Georgia](#georgia)                           | 4                       | 1        | 1           | 11,351                    | yes         | none loaded        | No: not hosted  |
 | [Hawaii](#hawaii)                             | 1                       | 0        | 0           | none loaded               | no          | none loaded        | No: not hosted  |
 | [Illinois](#illinois)                         | 4                       | 0        | 0           | none loaded               | sample only | none loaded        | No: not hosted  |
-| [Indiana](#indiana)                           | 1                       | 1        | 1           | 20,630                    | yes         | none loaded        | No: not hosted  |
+| [Indiana](#indiana)                           | 2                       | 1        | 1           | 20,630                    | yes         | none loaded        | No: not hosted  |
 | [Kentucky](#kentucky)                         | 1                       | 0        | 0           | none loaded               | no          | none loaded        | No: not hosted  |
 | [Maryland](#maryland)                         | 1                       | 1        | 24          | 109,245                   | yes         | none loaded        | No: not hosted  |
 | [Massachusetts](#massachusetts)               | 2                       | 2        | 15          | 141,218                   | yes         | none loaded        | No: not hosted  |
@@ -182,9 +182,11 @@ Entity registry loaded: none for this state.
 
 Reviewed, nothing loaded:
 
-| Source            | Holds    | Publisher                                                      | Status              | Licence                                                   | Reviewed   | Record                               |
-| ----------------- | -------- | -------------------------------------------------------------- | ------------------- | --------------------------------------------------------- | ---------- | ------------------------------------ |
-| `fl-dos-entities` | entities | Florida Department of State, Division of Corporations (Sunbiz) | gated: terms unread | Public record (Fla. Stat. ch. 119). No licence stated ... | 2026-11-02 | [record](sources/fl-dos-entities.md) |
+| Source                    | Holds    | Publisher                                                       | Status                                                                  | Licence                                                             | Reviewed     | Record                                       |
+| ------------------------- | -------- | --------------------------------------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------ | -------------------------------------------- |
+| `fl-hillsborough-pa`      | parcels  | Hillsborough County Property Appraiser                          | gated: Terms: no reuse licence is stated. The public-downloads page ... | No reuse licence stated. Downloads page footer, read 2026-11-06 ... | not recorded | [record](sources/fl-hillsborough-pa.md)      |
+| `fl-miamidade-commercial` | parcels  | Miami-Dade County ITD - Geospatial Infrastructure Support Group | gated: Terms: no reuse licence is stated. The ArcGIS item ...           | No licence stated. Item licenseInfo, read 2026-11-06 ...            | not recorded | [record](sources/fl-miamidade-commercial.md) |
+| `fl-dos-entities`         | entities | Florida Department of State, Division of Corporations (Sunbiz)  | gated: terms unread                                                     | Public record (Fla. Stat. ch. 119). No licence stated ...           | 2026-11-02   | [record](sources/fl-dos-entities.md)         |
 
 ## GSA
 
@@ -256,9 +258,10 @@ Entity registry loaded: none for this state.
 
 Reviewed, nothing loaded:
 
-| Source            | Holds    | Publisher                                                      | Status                      | Licence                                      | Reviewed   | Record                               |
-| ----------------- | -------- | -------------------------------------------------------------- | --------------------------- | -------------------------------------------- | ---------- | ------------------------------------ |
-| `in-sos-entities` | entities | Indiana Secretary of State, Business Services Division (INBiz) | gated: purchase and account | Not read; sold product (order terms unknown) | 2026-11-03 | [record](sources/in-sos-entities.md) |
+| Source                 | Holds    | Publisher                                                                      | Status                                                         | Licence                                           | Reviewed     | Record                                    |
+| ---------------------- | -------- | ------------------------------------------------------------------------------ | -------------------------------------------------------------- | ------------------------------------------------- | ------------ | ----------------------------------------- |
+| `in-statewide-parcels` | parcels  | Indiana Geographic Information Office (IGIO), Indiana GIS Data Harvest Program | gated: Terms: no licence to copy or redistribute is stated ... | Service iteminfo licenseInfo, read 2026-11-06 ... | not recorded | [record](sources/in-statewide-parcels.md) |
+| `in-sos-entities`      | entities | Indiana Secretary of State, Business Services Division (INBiz)                 | gated: purchase and account                                    | Not read; sold product (order terms unknown)      | 2026-11-03   | [record](sources/in-sos-entities.md)      |
 
 ## Kentucky
 
