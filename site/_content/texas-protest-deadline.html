@@ -4,6 +4,13 @@
   is in Tax Code §41.44(a)(1). FactLot computes it from the statute text, rolls
   it past weekends and legal holidays, and cites the sections it relied on.
 </p>
+<p>
+  FactLot is software. It is not a property tax consultant under Texas
+  Occupations Code chapter 1152, does not prepare, file or advise on protests,
+  and does not represent owners before an appraisal review board. If you provide
+  property tax services to others for compensation, your own registration
+  obligations apply.
+</p>
 
 <h2 id="dates">General deadline by tax year</h2>
 <p>
@@ -12,6 +19,7 @@
   <code>{{TX_RULE_ID}}</code> when this page is built.
 </p>
 {{TX_TABLE}}
+<p>{{TX_NEXT_SUMMARY}}</p>
 <p class="small">
   "Statutory deadline" is the last day a notice of protest is timely under the
   general rule. "Conservative file-by date" is the latest business day on or
@@ -67,25 +75,67 @@
   skipped weekend day or holiday, the statute citations, and the rule's version.
 </p>
 
-<h2 id="comparables">Comparing a property with comparable properties</h2>
+<h2 id="professionals">For consultants, appraisers and analysts</h2>
 <p>
-  For an unequal-appraisal comparison, the
-  <code>calc_tx_unequal_appraisal</code> calculator does the arithmetic of Tax
-  Code §41.43(b)(3) and §42.26(a)(3): each comparable's value, normalized by
-  area if asked and adjusted by the amounts and reasons the user supplies, then
-  the median of the adjusted values and the subject's value minus that median.
-  The user chooses the comparables and every adjustment; the tool chooses
-  neither. A self-hosted FactLot with a Texas registry file can also list
-  candidate comparables from the appraisal roll
-  (<code>registry_tx_equity_candidates</code>), without owner information; the
-  hosted endpoint has no Texas registry yet.
+  The same tools serve registered property tax consultants, appraisers,
+  attorneys and CRE analysts who run an unequal-appraisal comparison in their
+  own agent, over <a href="/mcp-server/">MCP</a> or REST. Each step names the
+  tool that does it; the person running it chooses the comparables and every
+  adjustment.
+</p>
+<ol>
+  <li>
+    <strong>Coverage.</strong> <code>registry_coverage</code> lists the Texas
+    counties the hosted registry serves; its answer is current, this page is
+    not. Hosted Texas coverage starts with the Harris, Dallas, Travis and Collin
+    appraisal districts, then Denton, Fort Bend and Williamson; Bexar's roll
+    needs a public-information request first. Tarrant County is not served by
+    the hosted registry while the publisher's terms for AI use are unclear.
+  </li>
+  <li>
+    <strong>Resolve the parcel.</strong>
+    <code>registry_resolve_parcel</code> turns the county and the appraisal
+    district account number on the notice into a FactLot parcel ID.
+  </li>
+  <li>
+    <strong>Value history.</strong> The subject that
+    <code>registry_tx_equity_candidates</code> returns carries its market and
+    appraised value by tax year, each cited to that year's roll.
+  </li>
+  <li>
+    <strong>Candidates.</strong> <code>registry_tx_equity_candidates</code>
+    returns candidates under FactLot's default rule, a design choice, not a
+    legal standard; a person decides. It returns no owner names, mailing
+    addresses or ownership facts.
+  </li>
+  <li>
+    <strong>Calculator.</strong> <code>calc_tx_unequal_appraisal</code> does the
+    arithmetic of Tax Code §41.43(b)(3) and §42.26(a)(3) on the comparables and
+    adjustments the user supplies: each comparable's value, normalized by area
+    if asked and adjusted with a stated reason, then the median of the adjusted
+    values and the subject's value minus that median. It warns when fewer than 5
+    comparables are given.
+  </li>
+  <li>
+    <strong>Workbook and fact package.</strong> The workbook builder (<code
+      >examples/reconciliation/build.py tx_unequal_appraisal</code
+    >) writes the adjustment grid with live Excel formulas beside FactLot's
+    numbers, and <code>fact_package_create</code> bundles the cited roll facts
+    into a package anyone can check with <code>fact_package_verify</code>.
+  </li>
+</ol>
+<p>
+  The Claude Code plugin's <code>tx-unequal-appraisal-arithmetic</code> skill
+  runs these steps in order. Registry lookups are metered by plan; see
+  <a href="/#pricing">pricing</a>.
 </p>
 <p>
-  These are evidence calculations: not an appraisal or an opinion of value, not
-  legal or tax advice, and not a substitute for the advice of an attorney. They
-  do not say whether to protest, what value to ask for, or how a hearing may go,
-  and FactLot does not represent property owners. To file, use the appraisal
-  district's own protest process, yourself or through a property tax consultant
+  These outputs are not an appraisal or an opinion of value (Occupations Code
+  §1103.003(1)), not legal or tax advice, and not a substitute for the advice of
+  an attorney. They do not say whether to protest, what value to put forward, or
+  how a hearing may go. FactLot does not file protests, sign agent designations
+  under §1.111, or contact appraisal districts. Filing is done through the
+  appraisal district's own process, by the owner or by a property tax consultant
   registered with the Texas Department of Licensing and Regulation, or an
   attorney. See the <a href="/calculators/">calculators</a>.
 </p>

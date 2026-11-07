@@ -417,6 +417,8 @@ ${calcTools.map((t) => `<tr><th scope="row">${esc(t.title)}</th><td><code>${esc(
       day: "numeric",
       timeZone: "UTC",
     });
+  // Older builds of the rule call the conservative date recommended_file_by.
+  const fileBy = (v) => v.conservative_file_by ?? v.recommended_file_by;
   const table = `<table>
 <caption class="visually-hidden">Texas protest deadlines by tax year</caption>
 <thead><tr><th scope="col">Tax year</th><th scope="col">Statutory deadline</th><th scope="col">Conservative file-by date</th><th scope="col">Why</th></tr></thead>
@@ -427,13 +429,16 @@ ${rows
     const why = v.skipped_non_business_days.length
       ? `May 15 falls on a ${v.skipped_non_business_days[0].reason}; skipped ${v.skipped_non_business_days.map((s) => `${s.date} (${esc(s.reason)})`).join(", ")}`
       : "May 15 is a business day";
-    return `<tr><th scope="row">${years[i]}</th><td>${long(v.deadline)}</td><td>${long(v.recommended_file_by)}</td><td>${why}</td></tr>`;
+    return `<tr><th scope="row">${years[i]}</th><td>${long(v.deadline)}</td><td>${long(fileBy(v))}</td><td>${why}</td></tr>`;
   })
   .join("\n")}
 </tbody>
 </table>`;
   const sources = `<ul>\n${rule.citations.map((c) => `<li><a href="${esc(c.url)}">${esc(c.law)}</a></li>`).join("\n")}\n</ul>`;
   const next = rows[0].value;
+  const nextSummary = next.skipped_non_business_days.length
+    ? `For tax year ${years[0]}, May 15 falls on a ${esc(next.skipped_non_business_days[0].reason)}, so under §1.06 the general deadline is ${long(next.deadline)}. The conservative file-by date is ${long(fileBy(next))}.`
+    : `For tax year ${years[0]}, May 15 is a business day, so the general deadline is ${long(next.deadline)}.`;
   addPage(
     {
       urlPath: "/texas/property-tax-protest-deadline/",
@@ -450,6 +455,7 @@ ${rows
         TX_RULE_ID: esc(`${rule.id}@${rule.version}`),
         TX_TABLE: table,
         TX_NEXT_YEAR: String(years[0]),
+        TX_NEXT_SUMMARY: nextSummary,
         TX_SOURCES: sources,
         TX_CHECKED: long(rule.verification.verified_at),
       }),

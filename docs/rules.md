@@ -19,6 +19,11 @@ Draft packs are listed under [Draft packs](#draft-packs). They are not tools.
 
 ## Texas protest deadline
 
+FactLot is software. It is not a property tax consultant under Texas Occupations Code chapter 1152,
+does not prepare, file or advise on protests, and does not represent owners before an appraisal
+review board. If you provide property tax services to others for compensation, your own
+registration obligations apply.
+
 The deadline is the later of May 15 and the 30th day after the notice of appraised value was
 delivered. It then rolls forward past Saturdays, Sundays, and Texas legal holidays, using actual
 holiday dates.
@@ -27,14 +32,17 @@ Observed (shifted) holidays and Columbus Day are not treated as holidays. That i
 when it's unclear whether a day is a holiday, assuming a business day can only make the deadline
 earlier.
 
-The rule also returns `recommended_file_by`, the last business day on or before the unadjusted
-deadline. This date is safe even if the holiday list is wrong.
+The rule also returns the conservative file-by date (`conservative_file_by`), the last business
+day on or before the unadjusted deadline. This date is timely even if the holiday list is wrong.
 
 Not covered:
 
 - other §41.44 deadlines, such as protests of changes made after notice and §25.25 corrections;
 - late-protest relief;
 - county-specific practice.
+
+The result is a date calculation: not legal or tax advice, and not a substitute for the advice of
+an attorney. It does not say whether to protest.
 
 ### How it was tested
 
@@ -43,8 +51,8 @@ Not covered:
 - A full 2026 holiday calendar vector.
 - A TypeScript/Python differential test on random inputs from 2000 to 2100.
 - An exhaustive invariant check over every notice date from 2000 to 2100. It confirms the deadline
-  is always a business day, never before May 15, and that the recommended date is never later than
-  the deadline.
+  is always a business day, never before May 15, and that the conservative file-by date is never
+  later than the deadline.
 
 ## Draft packs
 
