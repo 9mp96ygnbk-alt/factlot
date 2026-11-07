@@ -119,3 +119,47 @@ export function publicPlans(checkoutBase: string) {
     ),
   };
 }
+
+// --- Model-backed tools ---------------------------------------------------------------------------
+
+/**
+ * Monthly allowances of the two hosted tools that call a model (doc_extract_lease,
+ * report_narrative). Counted per subscription per calendar month (UTC), like registry lookups,
+ * in their own counters. The free tier has none: these tools spend model tokens.
+ */
+export interface ModelAllowance {
+  /** Pages with text read by doc_extract_lease. */
+  ingest_pages_per_month: number;
+  /** report_narrative calls. */
+  narratives_per_month: number;
+}
+
+export const MODEL_ALLOWANCES: Record<Tier, ModelAllowance> = {
+  anonymous: { ingest_pages_per_month: 0, narratives_per_month: 0 },
+  pro: { ingest_pages_per_month: 100, narratives_per_month: 50 },
+  team: { ingest_pages_per_month: 2_000, narratives_per_month: 1_000 },
+};
+
+/** How the model-backed tools are counted, one sentence each (in /v1/plans). */
+export const MODEL_QUOTA_RULES = {
+  tools:
+    "doc_extract_lease (a model reads a lease, FactLot verifies every value against the page text) and report_narrative (a model drafts prose from a result, FactLot verifies every figure) are hosted only, for Pro and Team keys.",
+  ingest_pages:
+    "Each page with text that doc_extract_lease reads counts once, charged when the model is called; scanned pages, input errors and calls the model could not answer are not counted.",
+  narratives:
+    "Each report_narrative call that returns a narrative counts once; input errors and calls the model could not answer are not counted.",
+  at_cap:
+    "At a cap these tools answer 429 until the month resets at 00:00 UTC on the 1st; every other tool keeps working and nothing extra is billed.",
+};
+
+/** The model-backed tools' allowances by plan, for /v1/plans (`available`: the server has a model). */
+export function modelPlansInfo(available: boolean) {
+  return {
+    available,
+    tools: ["doc_extract_lease", "report_narrative"],
+    free: MODEL_ALLOWANCES.anonymous,
+    pro: MODEL_ALLOWANCES.pro,
+    team: MODEL_ALLOWANCES.team,
+    rules: MODEL_QUOTA_RULES,
+  };
+}
