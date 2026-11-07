@@ -430,6 +430,78 @@ LAMAR = CountyExport(
     account_system="lamar_prop_id",
 )
 
+SCURRY = CountyExport(
+    source=Source(
+        source_id="tx-scurry-cad",
+        publisher="Scurry County Appraisal District",
+        title="2026 certified real roll, supplement 11 (PACS 8.0.34)",
+        url="https://scurrytex.com/",
+        state_fips="48",
+        county_fips="415",
+        license="No license stated on the pages read 2026-11-06. Public redistribution is not stated",
+        ai_use="unknown",
+        redistribution="unknown",
+        attribution="Scurry County Appraisal District",
+        terms_reviewed="2026-11-06",
+    ),
+    county_fips="415",
+    account_system="scurry_prop_id",
+)
+
+TRINITY = CountyExport(
+    source=Source(
+        source_id="tx-trinity-cad",
+        publisher="Trinity County Appraisal District",
+        title="2026 certified appraisal roll (PACS 8.0.34 record length)",
+        url="https://trinitycad.net/",
+        state_fips="48",
+        county_fips="455",
+        license="No license stated on the pages read 2026-11-06. Public redistribution is not stated",
+        ai_use="unknown",
+        redistribution="unknown",
+        attribution="Trinity County Appraisal District",
+        terms_reviewed="2026-11-06",
+    ),
+    county_fips="455",
+    account_system="trinity_prop_id",
+)
+
+COMANCHE = CountyExport(
+    source=Source(
+        source_id="tx-comanche-cad",
+        publisher="Comanche Central Appraisal District",
+        title="2026 real certified roll (PACS 8.0.34 record length)",
+        url="https://comanchecad.org/",
+        state_fips="48",
+        county_fips="093",
+        license="No license stated on the pages read 2026-11-06. Public redistribution is not stated",
+        ai_use="unknown",
+        redistribution="unknown",
+        attribution="Comanche Central Appraisal District",
+        terms_reviewed="2026-11-06",
+    ),
+    county_fips="093",
+    account_system="comanche_prop_id",
+)
+
+CAMP = CountyExport(
+    source=Source(
+        source_id="tx-camp-cad",
+        publisher="Camp Central Appraisal District",
+        title="2026 roll as of certification, supplement 1 (PACS 8.0.34 record length)",
+        url="https://campcad.org/",
+        state_fips="48",
+        county_fips="063",
+        license="The shapefile page disclaimer is informational and not a survey, and says the district cannot provide technical support for shapefiles (read 2026-11-06). No redistribution license is stated",
+        ai_use="unknown",
+        redistribution="unknown",
+        attribution="Camp Central Appraisal District",
+        terms_reviewed="2026-11-06",
+    ),
+    county_fips="063",
+    account_system="camp_prop_id",
+)
+
 HOCKLEY = CountyExport(
     source=Source(
         source_id="tx-hockley-cad",
