@@ -201,15 +201,15 @@ calls below are in order; each result is reported as returned, with its warnings
 2. `registry_resolve_parcel`:
 
    ```json
-   { "state_fips": "48", "county_fips": "201", "apn": "0420150000012" }
+   { "state_fips": "48", "county_fips": "201", "apn": "0011440000001" }
    ```
 
-   returns `urn` `fl:parcel:us-48201:0420150000012`, or `urn: null` with the county's coverage.
+   returns `urn` `fl:parcel:us-48201:0011440000001`, or `urn: null` with the county's coverage.
 
 3. `registry_tx_equity_candidates`:
 
    ```json
-   { "urn": "fl:parcel:us-48201:0420150000012" }
+   { "urn": "fl:parcel:us-48201:0011440000001" }
    ```
 
    Without `tax_year` it compares in the newest tax year whose roll gives the subject a value; pass

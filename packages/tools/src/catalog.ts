@@ -505,7 +505,7 @@ const TxEquitySubjectFields = {
     .max(500)
     .optional()
     .describe(
-      "FactLot parcel URN of the subject, e.g. fl:parcel:us-48201:0420150000012. Give this, or county_fips and apn.",
+      "FactLot parcel URN of the subject, e.g. fl:parcel:us-48201:0011440000001. Give this, or county_fips and apn.",
     ),
   state_fips: z
     .string()
@@ -653,7 +653,7 @@ const registryTools: ToolSpec[] = [
         .string()
         .max(500)
         .describe(
-          "FactLot URN of a parcel, entity, or building, e.g. fl:parcel:us-48201:0420150000012.",
+          "FactLot URN of a parcel, entity, or building, e.g. fl:parcel:us-48201:0011440000001.",
         ),
       include_history: z
         .boolean()

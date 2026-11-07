@@ -59,13 +59,13 @@ The hosted endpoint is free with no key at 60 requests a minute. It is listed in
 as `io.github.9mp96ygnbk-alt/factlot`. Runnable examples for REST, Python and agent SDKs are in
 [`examples/`](examples/).
 
-**Try the registry tools on real data:** the [DC registry sample](https://github.com/9mp96ygnbk-alt/factlot/releases/tag/registry-sample-dc-2026-11-04) (23.4 MB, CC BY 4.0) holds
+**Try the registry tools on real data:** the [DC registry sample](https://github.com/9mp96ygnbk-alt/factlot/releases/tag/registry-sample-dc-2026-11-07) (23.5 MB, CC BY 4.0) holds
 18,077 District of Columbia commercial parcels, 5,513 owning entities, 7,931 cited ownership links, 396
 buildings, zoning districts for 16,648 parcels and the latest recorded sale for 12,594.
 
 ```bash
-curl -fLO https://github.com/9mp96ygnbk-alt/factlot/releases/download/registry-sample-dc-2026-11-04/factlot-registry-sample-dc-2026-11-04.db.gz && gunzip factlot-registry-sample-dc-2026-11-04.db.gz
-FACTLOT_REGISTRY_DB="$PWD/factlot-registry-sample-dc-2026-11-04.db" npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.4.0/factlot-mcp-standalone-0.4.0.tgz
+curl -fLO https://github.com/9mp96ygnbk-alt/factlot/releases/download/registry-sample-dc-2026-11-07/factlot-registry-sample-dc-2026-11-07.db.gz && gunzip factlot-registry-sample-dc-2026-11-07.db.gz
+FACTLOT_REGISTRY_DB="$PWD/factlot-registry-sample-dc-2026-11-07.db" npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.4.0/factlot-mcp-standalone-0.4.0.tgz
 ```
 
 **Plans:** the hosted endpoint is free with no key: every calculator, ID, fact, rules and document tool at 60 requests a minute per IP address, and 25 registry lookups a day per IP address. [Pro, $49 a month](https://factlot.com/#pricing): 1 API key, 600 requests a minute, 5,000 registry lookups a month, email support. [Team, $599 a month](https://factlot.com/#pricing): up to 5 API keys, 3,000 requests a minute, 100,000 registry lookups a month, priority support, and a vote on which regions open next. Limits are hard caps with no overage charges; at a cap the call returns HTTP 429 with the reset time. Paid plans renew monthly until cancelled; cancel any time. A registry download licence ($2,400 a year per state file, refreshed weekly, for internal use, not redistribution) is available on request, and Enterprise (private deployment, invoicing, a signed data-processing agreement with a no-training commitment, and SSO) is by quote: [contact@factlot.com](mailto:contact@factlot.com?subject=FactLot%20Enterprise%20or%20registry%20licence). [Terms](https://factlot.com/terms) · [Privacy](https://factlot.com/privacy). Questions and bug reports go in [GitHub Discussions](https://github.com/9mp96ygnbk-alt/factlot/discussions) and Issues.
@@ -87,7 +87,7 @@ hosted, and a lookup outside it returns a coverage miss. Every answer cites its 
 licence or attribution that goes with it. The registry is built to keep owners that are organisations and to
 exclude natural persons' names (if a record names you as a person, or is wrong, email contact@factlot.com and
 we will remove or correct it), and the Maryland and Utah files carry no owner names. The DC data is the same as the
-downloadable sample registry-sample-dc-2026-11-04.
+downloadable sample registry-sample-dc-2026-11-07.
 
 The other regions in the project's pipeline (New York City and more) are available only on a
 self-hosted FactLot with a registry file; more hosted regions open as their terms allow.

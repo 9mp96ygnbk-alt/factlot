@@ -5968,7 +5968,7 @@
           "urn": {
             "type": "string",
             "maxLength": 500,
-            "description": "FactLot URN of a parcel, entity, or building, e.g. fl:parcel:us-48201:0420150000012."
+            "description": "FactLot URN of a parcel, entity, or building, e.g. fl:parcel:us-48201:0011440000001."
           },
           "include_history": {
             "default": false,
@@ -6106,7 +6106,7 @@
         "type": "object",
         "properties": {
           "urn": {
-            "description": "FactLot parcel URN of the subject, e.g. fl:parcel:us-48201:0420150000012. Give this, or county_fips and apn.",
+            "description": "FactLot parcel URN of the subject, e.g. fl:parcel:us-48201:0011440000001. Give this, or county_fips and apn.",
             "type": "string",
             "maxLength": 500
           },
@@ -6182,7 +6182,7 @@
                   "description": "Your label for this subject (a client or account), echoed back with its answer. Unique within the batch."
                 },
                 "urn": {
-                  "description": "FactLot parcel URN of the subject, e.g. fl:parcel:us-48201:0420150000012. Give this, or county_fips and apn.",
+                  "description": "FactLot parcel URN of the subject, e.g. fl:parcel:us-48201:0011440000001. Give this, or county_fips and apn.",
                   "type": "string",
                   "maxLength": 500
                 },

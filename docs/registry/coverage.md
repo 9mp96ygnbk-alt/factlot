@@ -9,7 +9,7 @@ Licence and AI-use detail per source: [rights.md](rights.md).
 - **Queryable today.** The hosted API at `https://api.factlot.com` answers registry lookups, on every plan, metered by plan,
   for **Maryland** (all 24 jurisdictions), the **District of Columbia**, **Juab and Summit counties in Utah** and **Harris, Dallas,
   Travis, Collin, Denton and Williamson counties in Texas** (Denton and Williamson from 2027 preliminary rolls): 349,869 parcels in 33
-  counties. Call `registry_coverage` first: it lists exactly what is hosted. The DC data is also the downloadable **DC sample**, a 23.4 MB
+  counties. Call `registry_coverage` first: it lists exactly what is hosted. The DC data is also the downloadable **DC sample**, a 23.5 MB
   database file (CC BY 4.0) you can run yourself (`FACTLOT_REGISTRY_DB`). Tarrant County is not served by the hosted registry while the
   publisher's terms for AI use are unclear. New York City and the rest run only on a self-hosted FactLot with a registry file, and more
   hosted regions open as their terms allow. Every row says which it is.

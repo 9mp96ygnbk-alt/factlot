@@ -77,7 +77,7 @@ and "PLC". A surname that is also an organisation word does not make a person an
 
 - its method: `public_record` for facts read from a file, `inferred` with a confidence for
   ownership links;
-- the snapshot document ID, plus a record locator such as `account 0420150000012`;
+- the snapshot document ID, plus a record locator such as `account 0011440000001`;
 - the source's license, AI-use status, redistribution status, and attribution.
 
 Every fact passes `fact_validate`.
@@ -314,7 +314,7 @@ reg.add_source(Source("tx-harris-cad-roll", "Harris Central Appraisal District",
 snap = reg.add_snapshot("tx-harris-cad-roll", "downloads/real_acct.zip", as_of="2026-07-25")
 stats = reg.ingest_parcels(adapter_records, snap, state_fips="48", account_system="tx-harris-cad-account")
 reg.link_owners()
-reg.get(reg.resolve_external("tx-harris-cad-account", "0420150000012"))
+reg.get(reg.resolve_external("tx-harris-cad-account", "0011440000001"))
 ```
 
 ## Agent tools

@@ -5441,7 +5441,7 @@
             "properties": {
               "urn": {
                 "type": "string",
-                "description": "FactLot URN of a parcel, entity, or building, e.g. fl:parcel:us-48201:0420150000012."
+                "description": "FactLot URN of a parcel, entity, or building, e.g. fl:parcel:us-48201:0011440000001."
               },
               "include_history": {
                 "description": "Also return every fact from every snapshot, superseded ones included (history lists current facts too; a source loaded once has no superseded facts). Default: false.",
@@ -5564,7 +5564,7 @@
             "type": "object",
             "properties": {
               "urn": {
-                "description": "FactLot parcel URN of the subject, e.g. fl:parcel:us-48201:0420150000012. Give this, or county_fips and apn.",
+                "description": "FactLot parcel URN of the subject, e.g. fl:parcel:us-48201:0011440000001. Give this, or county_fips and apn.",
                 "type": "string"
               },
               "state_fips": {
@@ -5630,7 +5630,7 @@
                       "description": "Your label for this subject (a client or account), echoed back with its answer. Unique within the batch."
                     },
                     "urn": {
-                      "description": "FactLot parcel URN of the subject, e.g. fl:parcel:us-48201:0420150000012. Give this, or county_fips and apn.",
+                      "description": "FactLot parcel URN of the subject, e.g. fl:parcel:us-48201:0011440000001. Give this, or county_fips and apn.",
                       "type": "string"
                     },
                     "state_fips": {
