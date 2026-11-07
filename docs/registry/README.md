@@ -375,7 +375,8 @@ return.
 3. **More hosted regions.** The hosted registry at `https://api.factlot.com` is a query-only
    service built from registry files: the registry tools run against it and the files are not
    downloadable from it. It serves Maryland, the District of Columbia, Juab and Summit counties
-   in Utah, and Harris, Dallas, Travis and Collin counties in Texas; `registry_coverage` lists
+   in Utah, and Harris, Dallas, Travis, Collin, Denton and Williamson counties in Texas (Denton and
+   Williamson from 2027 preliminary rolls, the others from 2026 rolls); `registry_coverage` lists
    exactly what is hosted. More regions open as their terms allow. A self-hosted
    `@factlot/server` serves any registry file with `FACTLOT_REGISTRY_DB`.
 
