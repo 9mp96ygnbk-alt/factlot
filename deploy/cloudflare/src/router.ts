@@ -77,8 +77,20 @@ import {
   QUOTA_RULES,
   isMeteredRegistryTool,
   publicPlans,
+  reportLimits,
   type Tier,
 } from "./plans.ts";
+import {
+  DOWNLOAD_PATH,
+  REPORT_QUOTA_HEADERS,
+  REPORT_TOOL,
+  answerReportCall,
+  downloadLimitKey,
+  isReportCall,
+  reportDownload,
+  reportsRest,
+  type ReportCaller,
+} from "./reports.ts";
 import type {
   Env,
   Fetcher,
@@ -148,6 +160,9 @@ function corsHeaders(): Record<string, string> {
       "x-ratelimit-limit",
       "x-factlot-tier",
       ...QUOTA_HEADERS,
+      ...REPORT_QUOTA_HEADERS,
+      "content-disposition",
+      "x-factlot-report-sha256",
     ].join(", "),
   };
 }
@@ -502,7 +517,13 @@ async function route(
     const checkout = checkoutInfo(apiBase);
     if (path === "/v1/plans")
       return withHeaders(
-        json(200, { plans, quotas: QUOTA_RULES, checkout_open, checkout }),
+        json(200, {
+          plans,
+          quotas: QUOTA_RULES,
+          reports: reportLimits(),
+          checkout_open,
+          checkout,
+        }),
         corsHeaders(),
       );
     return withHeaders(
@@ -622,6 +643,26 @@ async function route(
     );
   }
 
+  // Report downloads: the link is the credential (a 256-bit token), so no key is read. Limited
+  // per address and per token (named by the token's hash).
+  if (path.startsWith(DOWNLOAD_PATH)) {
+    const token = path.slice(DOWNLOAD_PATH.length);
+    const byAddress = await metered(
+      env.RL_ANON.limit({ key: `reportdl-ip:${await addressKey()}` }),
+    );
+    const byToken =
+      byAddress.success &&
+      (await metered(
+        env.RL_ANON.limit({ key: await downloadLimitKey(token) }),
+      ));
+    if (!byAddress.success || !byToken || !byToken.success)
+      return rateLimited(path, ANONYMOUS_REQUESTS_PER_MINUTE, "anonymous");
+    return withHeaders(
+      await reportDownload(request, env, token, now()),
+      corsHeaders(),
+    );
+  }
+
   // Who is calling. Rejected tokens spend a per-address budget, checked before the key store
   // is read, so a flood of made-up keys is refused cheaply.
   const token = bearer(request.headers.get("authorization"));
@@ -684,8 +725,10 @@ async function route(
   let restText: string | undefined;
   let registryRequest = false;
   let wanted = 0;
-  // Hosted account tools (with a key): answered here, never by the inner handler.
+  // Hosted tools, answered here, never by the inner handler: the account tools (with a key) and
+  // report_create (everyone).
   let accountCalls: AccountCall[] = [];
+  let reportCalls: AccountCall[] = [];
   let listIds: unknown[] = [];
   let mcpBatch = false;
   let onlyAccount = false;
@@ -711,8 +754,9 @@ async function route(
     const items: unknown[] = Array.isArray(mcpBody) ? mcpBody : [mcpBody];
     registryRequest = items.some(callsRegistry);
     wanted = items.filter(isMeteredCall).length;
-    if (paid && mcpBody !== undefined) {
-      accountCalls = items.filter(isAccountCall);
+    if (mcpBody !== undefined) {
+      if (paid) accountCalls = items.filter(isAccountCall);
+      reportCalls = items.filter(isReportCall);
       listIds = items
         .filter(
           (m) =>
@@ -720,8 +764,10 @@ async function route(
             (m as { id?: unknown }).id !== undefined,
         )
         .map((m) => (m as { id: unknown }).id);
-      if (accountCalls.length > 0) {
-        const kept = items.filter((m) => !isAccountCall(m));
+      if (accountCalls.length > 0 || reportCalls.length > 0) {
+        const kept = items.filter(
+          (m) => !(paid && isAccountCall(m)) && !isReportCall(m),
+        );
         onlyAccount = kept.length === 0;
         mcpBody = mcpBatch ? kept : kept[0];
         mcpText = onlyAccount ? undefined : JSON.stringify(mcpBody);
@@ -761,6 +807,29 @@ async function route(
       );
   }
   if (!hit.ok) return rateLimited(path, perMinute, tier);
+
+  // Reports: metered per month against reports_per_month (reports.ts).
+  const reportCaller: ReportCaller = {
+    tier,
+    subject: async () =>
+      paid
+        ? meterSubject(paid.record, paid.hash)
+        : addressSubject(
+            clientAddress(request),
+            now(),
+            env.IP_HASH_SALT,
+            "month",
+          ),
+  };
+  const reportOpts = { apiBase, now };
+  if (path === "/v1/reports")
+    return withHeaders(
+      await reportsRest(request, env, reportCaller, {
+        ...reportOpts,
+        maxBodyBytes: MAX_BODY_BYTES,
+      }),
+      { ...corsHeaders(), "x-factlot-tier": tier },
+    );
 
   const headers: Record<string, string> = {
     "x-factlot-tier": tier,
@@ -855,16 +924,24 @@ async function route(
       }
     }
   }
-  if (paid && (accountCalls.length > 0 || listIds.length > 0))
+  if (accountCalls.length > 0 || reportCalls.length > 0 || listIds.length > 0)
     res = await withAccountTools(
       res,
-      await Promise.all(
-        accountCalls.map((m) =>
-          metered(answerAccountCall(env, paid.hash, paid.record, m)),
-        ),
-      ),
+      [
+        ...(await Promise.all(
+          accountCalls.map((m) =>
+            metered(answerAccountCall(env, paid!.hash, paid!.record, m)),
+          ),
+        )),
+        ...(await Promise.all(
+          reportCalls.map((m) =>
+            answerReportCall(env, reportCaller, m, reportOpts),
+          ),
+        )),
+      ],
       listIds,
       mcpBatch,
+      paid ? [...ACCOUNT_TOOLS, REPORT_TOOL] : [REPORT_TOOL],
     );
   // Browsers read only the headers listed here: add this layer's to the inner handler's list.
   const expose = new Set(
@@ -1076,14 +1153,15 @@ function isAccountCall(item: unknown): item is AccountCall {
 }
 
 /**
- * Merge the account tools into an MCP answer: their calls' answers, and their definitions at the
- * end of a tools/list result (the last page, when the list is paged).
+ * Merge the hosted tools into an MCP answer: their calls' answers, and the definitions in
+ * `listed` at the end of a tools/list result (the last page, when the list is paged).
  */
 async function withAccountTools(
   res: Response,
   answers: unknown[],
   listIds: unknown[],
   batch: boolean,
+  listed: unknown[],
 ): Promise<Response> {
   const answer = (body: unknown) => withHeaders(json(200, body), corsHeaders());
   if (res.status === 202 && answers.length > 0)
@@ -1109,7 +1187,7 @@ async function withAccountTools(
       Array.isArray(m.result?.tools) &&
       !m.result.nextCursor
     )
-      m.result.tools.push(...ACCOUNT_TOOLS);
+      m.result.tools.push(...listed);
   const all = [...inner, ...answers];
   return answer(batch ? all : all[0]);
 }

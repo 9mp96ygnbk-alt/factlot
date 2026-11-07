@@ -3547,7 +3547,7 @@ describe("account usage, tools and page", () => {
     assert.match(err.next!, /Bearer/);
   });
 
-  it("MCP: account tools are listed only with a key, answered here, and never metered", async () => {
+  it("MCP: account tools are listed only with a key (report_create for everyone), answered here, and never metered", async () => {
     const e = env();
     const { key } = await issue(e, { plan: "team" });
     const { api, seen } = innerApi();
@@ -3572,14 +3572,14 @@ describe("account usage, tools and page", () => {
     ).json()) as { result: { tools: { name: string }[] } };
     assert.deepEqual(
       keyed.result.tools.map((t) => t.name),
-      ["calc_irr", "account_status", "account_usage"],
+      ["calc_irr", "account_status", "account_usage", "report_create"],
     );
     const anon = (await (
       await call(e, listApi, "/mcp", { body: list })
     ).json()) as { result: { tools: { name: string }[] } };
     assert.deepEqual(
       anon.result.tools.map((t) => t.name),
-      ["calc_irr"],
+      ["calc_irr", "report_create"],
     );
     const before = seen.length;
     const status = (await (
