@@ -5,8 +5,9 @@
 Please report vulnerabilities privately, never in a public issue, pull request, or discussion:
 
 - **Email:** contact@factlot.com, with "SECURITY" at the start of the subject line.
-- **GitHub:** private vulnerability reporting on this repository ("Security" tab, "Report a
-  vulnerability").
+
+GitHub's private vulnerability reporting is not switched on for this repository, so email is the
+only private channel today.
 
 Include the affected package and version (or commit), the steps or input that reproduce the
 problem, and what you expected instead. We aim to acknowledge a report within three business days,
@@ -15,8 +16,8 @@ Please give us a reasonable time to release a fix before you disclose the issue 
 
 ## Supported versions
 
-FactLot has not had a numbered release yet. Until 1.0, security fixes go into the latest release
-and the `main` branch only; earlier `0.x` releases are not patched. Every package in this
+Until 1.0, security fixes go into the latest release and the `main` branch only; earlier `0.x`
+releases are not patched. Every package in this
 repository (`@factlot/*` on npm and `factlot` on PyPI) shares one version number.
 
 | Version               | Supported |
@@ -42,6 +43,15 @@ Please report especially:
 
 A self-hosted public deployment must handle TLS termination, an edge firewall or rate limit,
 and log retention itself.
+
+## How the hosted service is run
+
+[docs/security.md](docs/security.md) (also at [factlot.com/security](https://factlot.com/security/))
+describes how the hosted service is run: where it runs, what it stores and does not store, key and
+secret handling, dependencies, and what is not in place yet (there is no SOC 2 report). Service
+status, service levels and how the numbers are proven are at
+[factlot.com/status](https://factlot.com/status/), [docs/sla.md](docs/sla.md) and
+[factlot.com/assurance](https://factlot.com/assurance/).
 
 ## Customer documents
 
