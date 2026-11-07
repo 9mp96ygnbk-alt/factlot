@@ -5,7 +5,8 @@
  * (tx_unequal_appraisal does, to mirror the reconciliation example).
  */
 import { decimalsOf, int, num, pct, times, usd } from "./format.ts";
-import { PdfWriter, type Column } from "./pdf.ts";
+// pdf.ts (and pdf-lib) load on the first PDF only: an XLSX or ICS request never evaluates them.
+import type { Column } from "./pdf.ts";
 import {
   Workbook,
   addr,
@@ -129,6 +130,7 @@ export async function renderPdf(
   doc: ReportDoc,
   p: Provenance,
 ): Promise<Uint8Array> {
+  const { PdfWriter } = await import("./pdf.ts");
   const w = await PdfWriter.create({
     title: doc.title,
     subject: doc.subtitle,
@@ -278,29 +280,20 @@ function readmeSheet(
   sh.put(r, 1, p.footer, "note");
 }
 
-/** A workbook from the generic model. */
-export async function renderXlsx(
-  doc: ReportDoc,
-  p: Provenance,
-): Promise<Uint8Array> {
-  const wb = new Workbook({
-    title: doc.title,
-    creator: `FactLot ${p.version}`,
-    created: p.generatedAt.toISOString().replace(/\.\d+Z$/, "Z"),
-    footer: p.footer,
-  });
-  const notices = doc.blocks
-    .filter((b) => b.t === "notice" && (b.tone ?? "warn") === "warn")
-    .map((b) => (b as { text: string }).text);
-  readmeSheet(wb, doc, p, notices, Boolean(doc.checks?.length));
-  const main = wb.sheet("Report");
-  main.width(1, 46);
-  main.width(2, 22);
-  main.width(3, 60);
-  main.put(1, 1, doc.title, "title");
-  main.put(2, 1, doc.subtitle, "note");
-  let r = 4;
-  const names = new Map<string, string>();
+/**
+ * Write blocks down a sheet from row `r` (headings, text, label/value rows, tables; a table
+ * with a sheet name gets its own sheet). Named cells and ranges go into `names`. Returns the
+ * next free row.
+ */
+export function appendBlocks(
+  wb: Workbook,
+  main: Sheet,
+  start: number,
+  blocks: Block[],
+  title: string,
+  names: Map<string, string>,
+): number {
+  let r = start;
   const tableSheet = (
     b: Extract<Block, { t: "table" }>,
     sh: Sheet,
@@ -346,7 +339,7 @@ export async function renderXlsx(
     });
     return row;
   };
-  for (const b of doc.blocks) {
+  for (const b of blocks) {
     if (b.only === "pdf") continue;
     switch (b.t) {
       case "heading":
@@ -389,7 +382,7 @@ export async function renderXlsx(
       case "table":
         if (b.sheet) {
           const sh = wb.sheet(b.sheet);
-          sh.put(1, 1, `${doc.title}: ${b.sheet.replace(/_/g, " ")}`, "title");
+          sh.put(1, 1, `${title}: ${b.sheet.replace(/_/g, " ")}`, "title");
           tableSheet(b, sh, 3);
           main.put(
             r++,
@@ -404,6 +397,32 @@ export async function renderXlsx(
         break;
     }
   }
+  return r;
+}
+
+/** A workbook from the generic model. */
+export async function renderXlsx(
+  doc: ReportDoc,
+  p: Provenance,
+): Promise<Uint8Array> {
+  const wb = new Workbook({
+    title: doc.title,
+    creator: `FactLot ${p.version}`,
+    created: p.generatedAt.toISOString().replace(/\.\d+Z$/, "Z"),
+    footer: p.footer,
+  });
+  const notices = doc.blocks
+    .filter((b) => b.t === "notice" && (b.tone ?? "warn") === "warn")
+    .map((b) => (b as { text: string }).text);
+  readmeSheet(wb, doc, p, notices, Boolean(doc.checks?.length));
+  const main = wb.sheet("Report");
+  main.width(1, 46);
+  main.width(2, 22);
+  main.width(3, 60);
+  main.put(1, 1, doc.title, "title");
+  main.put(2, 1, doc.subtitle, "note");
+  const names = new Map<string, string>();
+  appendBlocks(wb, main, 4, doc.blocks, doc.title, names);
   if (doc.checks?.length) {
     const sh = wb.sheet("Checks");
     [46, 22, 22, 14, 12, 40].forEach((w, i) => sh.width(i + 1, w));

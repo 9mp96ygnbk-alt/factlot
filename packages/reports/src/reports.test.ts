@@ -655,7 +655,22 @@ describe("documents", () => {
         "Grid",
         "Steps",
         "Law",
+        "Provenance",
+        "Inputs",
       ]);
+      const prov = x.values("Provenance");
+      assert.ok(
+        prov.some((v) =>
+          v.startsWith(
+            "Computed: FactLot ran calc_tx_unequal_appraisal on the arguments",
+          ),
+        ),
+        "the input check",
+      );
+      assert.ok(
+        prov.includes("calc_tx_unequal_appraisal@1"),
+        "tool and formula",
+      );
       const grid = x.xml.get(
         `xl/worksheets/sheet${x.sheets.indexOf("Grid") + 1}.xml`,
       )!;
@@ -779,6 +794,38 @@ describe("documents", () => {
     assert.ok(
       p.text.includes("5 <= 6 ?"),
       "math sign spelled out, CJK replaced",
+    );
+  });
+
+  it("lease_abstract workbook: numeric values are numbers, not text", async () => {
+    const found = abstractCases
+      .map((a) => ({
+        a,
+        r: resultOf("doc_abstract_lease", a) as {
+          fields: { predicate: string; value: unknown }[];
+        },
+      }))
+      .flatMap(({ a, r }) =>
+        r.fields
+          .filter((f) => typeof f.value === "number")
+          .map((f) => ({ a, value: f.value as number })),
+      );
+    assert.ok(found.length > 0, "a vector with a numeric term");
+    const { a, value } = found[0]!;
+    const x = await readXlsx(
+      (
+        await createReport(
+          { kind: "lease_abstract", format: "xlsx", arguments: a },
+          { now: NOW },
+        )
+      ).bytes,
+    );
+    const terms = x.xml.get(
+      `xl/worksheets/sheet${x.sheets.indexOf("Terms") + 1}.xml`,
+    )!;
+    assert.match(
+      terms,
+      new RegExp(`<c r="B\\d+" s="\\d+"><v>${String(value)}</v></c>`),
     );
   });
 
@@ -1201,5 +1248,33 @@ describe("bundle", () => {
     });
     const bytes = out.outputFiles[0]!.contents.byteLength;
     assert.ok(bytes < 1_000_000, `${bytes} bytes`);
+  });
+
+  it("loads pdf-lib only for a PDF: it sits behind a dynamic import, outside the entry chunk", async () => {
+    const out = await build({
+      entryPoints: [new URL("./index.ts", import.meta.url).pathname],
+      bundle: true,
+      splitting: true,
+      outdir: "/tmp/factlot-reports-split",
+      write: false,
+      metafile: true,
+      format: "esm",
+      platform: "neutral",
+      conditions: ["factlot-source", "worker", "browser"],
+      mainFields: ["module", "main"],
+      external: ["@factlot/calc", "@factlot/tools", "zod"],
+      logLevel: "silent",
+    });
+    const outputs = Object.values(out.metafile.outputs);
+    const entry = outputs.find((o) => o.entryPoint)!;
+    const inputs = (o: (typeof outputs)[number]) => Object.keys(o.inputs);
+    assert.ok(
+      !inputs(entry).some((i) => i.includes("pdf-lib") || i.endsWith("pdf.ts")),
+      "the entry chunk holds no pdf-lib",
+    );
+    assert.ok(
+      outputs.some((o) => inputs(o).some((i) => i.includes("pdf-lib"))),
+      "pdf-lib is in a lazily loaded chunk",
+    );
   });
 });

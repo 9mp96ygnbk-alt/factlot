@@ -29,6 +29,8 @@ export function termLabel(predicate: string): string {
 
 const str = (x: unknown) =>
   x === undefined || x === null ? "" : typeof x === "string" ? x : jsonText(x);
+/** A value as written to a cell: a number stays a number (the workbook stores it as one). */
+const cell = (x: unknown): Raw => (typeof x === "number" ? x : str(x));
 
 function docName(r: LeaseAbstractResult, index: unknown): string {
   const d = r.documents.find((x) => x.document === index) as Obj | undefined;
@@ -154,7 +156,7 @@ export function leaseDoc(k: KindInput): ReportDoc {
         notes.push(`confirmed by ${str((src as Obj).verified_by)}`);
       return [
         `${termLabel(f.predicate)}\n${f.predicate}`,
-        str(f.value),
+        cell(f.value),
         src.quote ?? "",
         src.page ?? null,
         `${docName(r, src.document)}${src.section ? `, ${src.section}` : ""}`,
@@ -166,7 +168,7 @@ export function leaseDoc(k: KindInput): ReportDoc {
   const reviewRows = (items: Obj[]): Raw[][] =>
     items.map((x) => [
       termLabel(str(x.predicate)),
-      str(x.value),
+      cell(x.value),
       str(x.quote),
       typeof x.page === "number" ? x.page : null,
       docName(r, x.document),
@@ -222,7 +224,7 @@ export function leaseDoc(k: KindInput): ReportDoc {
         ],
         rows: r.pending.map((p) => [
           termLabel(str(p.predicate)),
-          str(p.value),
+          cell(p.value),
           typeof p.effective_date === "string" ? p.effective_date : null,
           str(p.quote),
           typeof p.page === "number" ? p.page : null,

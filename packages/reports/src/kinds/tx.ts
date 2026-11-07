@@ -6,7 +6,7 @@
 import type { TxUnequalAppraisalInput } from "@factlot/calc";
 
 import type { Block, Provenance, ReportDoc } from "../doc.ts";
-import { putLines } from "../doc.ts";
+import { appendBlocks, putLines } from "../doc.ts";
 import { usd, pct } from "../format.ts";
 import type { TxResult } from "../validate.ts";
 import { Workbook, addr, fx, range, type Sheet } from "../xlsx.ts";
@@ -705,7 +705,8 @@ function userReadme(
       "and a Status. Difference is ROUND(Excel - FactLot, n), n shown in the Tolerance column; 0 means the two agree.",
     "If you change an input on Grid, the FactLot column on Reconcile does not change (it is a recorded output); " +
       "call calc_tx_unequal_appraisal again to refresh it.",
-    "Steps: the tool's audit trail. Law: the statutes the tool cites.",
+    "Steps: the tool's audit trail. Law: the statutes the tool cites. Provenance: how the figures were " +
+      "reached (FactLot's run of the tool on the arguments, listed on Inputs as sent) and when.",
   ]);
   row++;
   sh.put(row, 1, `FactLot version ${p.version}. Calculator reconciled`, "bold");
@@ -775,5 +776,18 @@ export async function txXlsx(k: KindInput): Promise<Uint8Array> {
     law.put(4 + i, 2, l.covers, "text");
     law.put(4 + i, 3, l.url, "text");
   });
+
+  // How the figures were reached: the input check, the arguments as sent, provenance.
+  const prov = wb.sheet("Provenance");
+  [46, 22, 60].forEach((w, i) => prov.width(i + 1, w));
+  prov.put(1, 1, "Input check and provenance", "title");
+  appendBlocks(
+    wb,
+    prov,
+    2,
+    closingBlocks(k, "calc_tx_unequal_appraisal"),
+    `Unequal-appraisal arithmetic, tax year ${v.tax_year}`,
+    new Map(),
+  );
   return wb.bytes();
 }
