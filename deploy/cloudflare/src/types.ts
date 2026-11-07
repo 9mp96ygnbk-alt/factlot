@@ -176,4 +176,6 @@ export interface Env {
    * ModelUnavailable; every other tool runs without a model either way.
    */
   ANTHROPIC_API_KEY?: string;
+  /** "true" opens report_create and POST /v1/reports; anything else keeps them closed (downloads still serve). */
+  REPORTS_ENABLED?: string;
 }

@@ -38,6 +38,11 @@ import type { Env, QuotaSpec, QuotaState } from "./types.ts";
 
 export const REPORT_TOOL_NAME = "report_create";
 
+/** Reports are open only when the deployer sets REPORTS_ENABLED to "true" (a kill switch while the engine is reviewed). */
+export function reportsEnabled(env: Pick<Env, "REPORTS_ENABLED">): boolean {
+  return env.REPORTS_ENABLED === "true";
+}
+
 /** Seconds a stored report lives. */
 export const REPORT_TTL_SECONDS = REPORT_DOWNLOAD_HOURS * 60 * 60;
 /** Largest file returned inline (base64). */

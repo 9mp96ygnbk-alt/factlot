@@ -257,6 +257,7 @@ function env(
     RL_ANON: new CountingLimit(2),
     RL_CLAIM: objectLimiter(limiter.ns, "claim", 1, CLAIM_POLL_MS),
     METER: objectMeter(limiter.ns),
+    REPORTS_ENABLED: "true",
     ...overrides,
     limiter,
     clock,

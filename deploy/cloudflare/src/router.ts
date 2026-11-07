@@ -116,6 +116,7 @@ import {
   reportDownload,
   reportsRest,
   type ReportCaller,
+  reportsEnabled,
 } from "./reports.ts";
 import type {
   Env,
@@ -709,7 +710,7 @@ async function route(
           plans,
           quotas: QUOTA_RULES,
           model_tools: modelPlansInfo(modelEnabled(env)),
-          reports: reportLimits(),
+          reports: { available: reportsEnabled(env), ...reportLimits() },
           checkout_open,
           checkout,
         }),
@@ -982,7 +983,7 @@ async function route(
     const hosted = (m: unknown) => (paid && isAccountCall(m)) || isModelCall(m);
     if (mcpBody !== undefined) {
       accountCalls = items.filter(hosted);
-      reportCalls = items.filter(isReportCall);
+      reportCalls = reportsEnabled(env) ? items.filter(isReportCall) : [];
       listIds = items
         .filter(
           (m) =>
@@ -991,7 +992,9 @@ async function route(
         )
         .map((m) => (m as { id: unknown }).id);
       if (accountCalls.length > 0 || reportCalls.length > 0) {
-        const kept = items.filter((m) => !hosted(m) && !isReportCall(m));
+        const kept = items.filter(
+          (m) => !hosted(m) && !(reportsEnabled(env) && isReportCall(m)),
+        );
         onlyAccount = kept.length === 0;
         mcpBody = mcpBatch ? kept : kept[0];
         mcpText = onlyAccount ? undefined : JSON.stringify(mcpBody);
@@ -1075,6 +1078,16 @@ async function route(
           )),
   };
   const reportOpts = { apiBase, now };
+  if (path === "/v1/reports" && !reportsEnabled(env))
+    return withHeaders(
+      json(503, {
+        error: "ReportsUnavailable",
+        code: "ReportsUnavailable",
+        message: "Reports are not open on the hosted API yet.",
+        next: "https://factlot.com/#pricing",
+      }),
+      { ...corsHeaders(), "x-factlot-tier": tier },
+    );
   if (path === "/v1/reports")
     return withHeaders(
       await reportsRest(request, env, reportCaller, {
@@ -1247,7 +1260,7 @@ async function route(
       mcpBatch,
       [
         ...(paid ? ACCOUNT_TOOLS : []),
-        REPORT_TOOL,
+        ...(reportsEnabled(env) ? [REPORT_TOOL] : []),
         ...modelToolsFor(env, modelCaller),
       ],
     );

@@ -145,6 +145,8 @@ function env(clock = { t: T0 }) {
   const kv = new MemoryKV();
   const e = {
     KEYS: kv,
+
+    REPORTS_ENABLED: "true",
     RL_ANON: new CountingLimit(100),
     RL_CLAIM: new CountingLimit(100),
     METER: objectMeter(ns),
@@ -629,5 +631,27 @@ describe("MCP report_create", () => {
       (JSON.parse(over.result.content[0]!.text) as { code: string }).code,
       "ReportQuotaExceeded",
     );
+  });
+});
+
+describe("reports kill switch", () => {
+  it("without REPORTS_ENABLED the route answers 503, plans say unavailable, downloads still serve", async () => {
+    const t = env();
+    (t.e as { REPORTS_ENABLED?: string }).REPORTS_ENABLED = undefined;
+    const res = await call(t, "/v1/reports", { body: request() });
+    assert.equal(res.status, 503);
+    const body = (await res.json()) as { code: string; next: string };
+    assert.equal(body.code, "ReportsUnavailable");
+    assert.ok(body.next);
+    const plans = (await (
+      await call(t, "/v1/plans", { method: "GET" })
+    ).json()) as {
+      reports: { available: boolean };
+    };
+    assert.equal(plans.reports.available, false);
+    const dl = await call(t, "/v1/reports/d/0123456789abcdef0123456789abcdef", {
+      method: "GET",
+    });
+    assert.equal(dl.status, 404);
   });
 });
