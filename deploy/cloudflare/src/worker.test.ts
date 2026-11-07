@@ -2782,8 +2782,39 @@ describe("onboarding page", () => {
       assert.ok(html.includes(`<summary>${client}</summary>`), client);
     assert.ok(
       html.includes(
-        `claude mcp add --transport http factlot https://api.factlot.com/mcp --header &quot;Authorization: Bearer ${key}&quot;`,
+        `claude mcp add --scope user --transport http factlot https://api.factlot.com/mcp --header &quot;Authorization: Bearer ${key}&quot;`,
       ),
+    );
+    assert.match(
+      html,
+      /Then open Claude Code and type \/mcp; factlot should show as connected\./,
+    );
+    assert.match(html, /never paste its output into email/);
+    assert.match(
+      html,
+      /Claude Code, Cursor, VS Code, Windsurf, agent SDKs and any REST client/,
+    );
+    assert.match(
+      html,
+      /ChatGPT developer-mode apps have no header field today/,
+    );
+    assert.ok(
+      html.includes(
+        "&quot;-y&quot;,\n        &quot;mcp-remote&quot;,\n        &quot;https://api.factlot.com/mcp&quot;,\n        &quot;--header&quot;,\n        &quot;Authorization:${AUTH_HEADER}&quot;",
+      ),
+    );
+    assert.ok(
+      html.includes(`&quot;AUTH_HEADER&quot;: &quot;Bearer ${key}&quot;`),
+    );
+    assert.match(html, /its server is keyless; after adding your key, disable/);
+    assert.match(
+      html,
+      /When is my 2027 Texas protest deadline if the notice arrived April 28\?/,
+    );
+    assert.match(html, /1300 Pennsylvania Ave NW in Washington, DC/);
+    assert.match(
+      html,
+      /A lookup is one answered call to a registry tool; coverage checks, misses and input errors are free\./,
     );
     assert.ok(html.includes(`export FACTLOT_API_KEY=&quot;${key}&quot;`));
     assert.ok(
@@ -3298,5 +3329,85 @@ describe("quota fairness: only answered lookups are charged", () => {
       String(((await over.json()) as { message: string }).message),
       /coverage checks, misses and input errors are free/,
     );
+  });
+});
+
+describe("renewal date and receipts", () => {
+  const END = Date.UTC(2026, 11, 3) / 1000;
+  it("a subscription webhook stores the period end; /v1/account reports renewal_at, support and changelog", async () => {
+    const e = env({ STRIPE_WEBHOOK_SECRET: "whsec_x" });
+    const { key, hash } = await issue(e);
+    const res = await handleWebhook(
+      e,
+      await signed({
+        type: "customer.subscription.updated",
+        created: Math.floor(T0 / 1000),
+        data: {
+          object: {
+            id: "sub_1",
+            status: "active",
+            items: {
+              data: [
+                {
+                  current_period_end: END,
+                  price: { lookup_key: "factlot_pro_monthly_v1" },
+                },
+              ],
+            },
+          },
+        },
+      }),
+      () => T0,
+    );
+    assert.equal(res.status, 200);
+    assert.equal(
+      (await readKey(e.KEYS, hash))?.period_end,
+      "2026-12-03T00:00:00.000Z",
+    );
+    const body = (await (
+      await call(e, innerApi().api, "/v1/account", { key, method: "GET" })
+    ).json()) as Record<string, unknown>;
+    assert.equal(body.renewal_at, "2026-12-03T00:00:00.000Z");
+    assert.equal(body.support, "mailto:contact@factlot.com");
+    assert.match(String(body.changelog), /CHANGELOG\.md$/);
+  });
+
+  it("a subscription set to cancel has no renewal date, only an end date", async () => {
+    const e = env();
+    const { key } = await issue(e, {
+      period_end: "2026-12-03T00:00:00.000Z",
+      cancel_at_period_end: true,
+    });
+    const body = (await (
+      await call(e, innerApi().api, "/v1/account", { key, method: "GET" })
+    ).json()) as Record<string, unknown>;
+    assert.equal(body.renewal_at, null);
+    assert.equal(body.ends_at, "2026-12-03T00:00:00.000Z");
+  });
+
+  it("/account shows the renewal date and the masked receipt address", async () => {
+    const s = fakeStripe({
+      "GET /customers/cus_1": () => [
+        200,
+        { id: "cus_1", email: "buyer@example.com" },
+      ],
+    });
+    const e = env({ STRIPE_SECRET_KEY: "sk_live_x" });
+    e.RL_ANON = new CountingLimit(100);
+    const { key } = await issue(e, { period_end: "2026-12-03T00:00:00.000Z" });
+    const res = await handle(
+      new Request("https://factlot.com/account", {
+        method: "POST",
+        body: new URLSearchParams({ key }).toString(),
+        headers: { origin: "https://factlot.com", "cf-connecting-ip": IP },
+      }),
+      e,
+      innerApi().api,
+      { fetchImpl: s.fetchImpl, now: () => T0 },
+    );
+    const html = await res.text();
+    assert.match(html, /Renews on December 3, 2026/);
+    assert.match(html, /Stripe emails receipts to b•••r@example\.com/);
+    assert.ok(!html.includes("buyer@example.com"));
   });
 });

@@ -49,7 +49,13 @@ export interface Guide {
     header: string;
     notes: string[];
   };
+  /** Which clients can send the Authorization header, and what to do with those that cannot. */
+  header_clients: string;
+  /** For buyers who installed the keyless FactLot plugin first. */
+  plugin_note: string;
   clients: ClientSetup[];
+  /** Prompts to try once connected (one Texas rules answer, one hosted DC registry lookup). */
+  try_first: string[];
   test: {
     method: "GET";
     url: string;
@@ -78,6 +84,17 @@ export interface Guide {
 
 const REPO = "https://github.com/9mp96ygnbk-alt/factlot";
 
+export const HEADER_CLIENTS =
+  "Clients that send the Authorization header: Claude Code, Cursor, VS Code, Windsurf, agent SDKs and any REST client. Claude Desktop and claude.ai custom connectors and ChatGPT developer-mode apps have no header field today, so a paid key needs a header-capable client or the mcp-remote stdio bridge (Claude Desktop below).";
+
+export const PLUGIN_NOTE =
+  "If you installed the FactLot plugin, its server is keyless; after adding your key, disable the plugin's server in /mcp (or remove the plugin) so lookups use your plan.";
+
+export const TRY_FIRST = [
+  "When is my 2027 Texas protest deadline if the notice arrived April 28?",
+  "What does FactLot know about 1300 Pennsylvania Ave NW in Washington, DC?",
+];
+
 /** "$0.0098" for 4900 cents over 5000 lookups. */
 function perLookup(plan: Plan): string {
   const dollars = plan.monthlyCents / 100 / plan.registryLookupsPerMonth;
@@ -103,15 +120,16 @@ export function setupGuide(o: {
       id: "claude-code",
       name: "Claude Code",
       steps: [
-        "Run this once in a terminal.",
-        "Check it with `claude mcp list`: factlot shows as connected.",
+        "Run this once in a terminal. `--scope user` makes the server available in every folder, not only the one you ran it in.",
+        "Then open Claude Code and type /mcp; factlot should show as connected.",
+        "`claude mcp get factlot` prints the key in plain text: never paste its output into email or a chat.",
       ],
       snippets: [
         {
           id: "claude-code-add",
           label: "Terminal",
           lang: "bash",
-          code: `claude mcp add --transport http factlot ${mcp} --header "${header}"`,
+          code: `claude mcp add --scope user --transport http factlot ${mcp} --header "${header}"`,
         },
       ],
       docs: `${REPO}/blob/main/connectors/claude/README.md`,
@@ -120,8 +138,8 @@ export function setupGuide(o: {
       id: "claude",
       name: "Claude Desktop and claude.ai",
       steps: [
-        "Claude Desktop: Settings → Developer → Edit Config, add this server to claude_desktop_config.json, then restart Claude. It runs the mcp-remote bridge (needs Node.js), which sends your key as a header.",
-        `claude.ai and mobile: Settings → Connectors → Add custom connector, URL ${mcp}. That form has fields for a URL and OAuth only, not a header, so a connector added there runs on the free tier.`,
+        "Claude Desktop and claude.ai custom connectors have no header field today, so a connector added there runs on the free tier. For your key, Claude Desktop runs the mcp-remote bridge (needs Node.js), which sends the header for it.",
+        "Claude Desktop: Settings → Developer → Edit Config, add this server to claude_desktop_config.json, then restart Claude. The key sits in env and reaches the header through ${AUTH_HEADER} (no space after the colon), which also works on Windows.",
       ],
       snippets: [
         {
@@ -151,8 +169,10 @@ export function setupGuide(o: {
       id: "chatgpt",
       name: "ChatGPT",
       steps: [
-        "Custom GPT (uses your key): Configure → Actions → Create new action → Import from URL, enter the OpenAPI URL below, then set Authentication to API Key, Auth Type Bearer, and paste your key.",
-        `Developer mode app: Settings → Apps → Advanced settings → Developer mode, create an app with the URL ${mcp}. If the form has no API key or header field, the app runs on the free tier.`,
+        "ChatGPT developer-mode apps have no header field today, so an app added with the URL " +
+          mcp +
+          " runs on the free tier.",
+        "For your key, use a Custom GPT: Configure → Actions → Create new action → Import from URL, enter the OpenAPI URL below, then set Authentication to API Key, Auth Type Bearer, and paste your key.",
       ],
       snippets: [
         {
@@ -276,7 +296,10 @@ export function setupGuide(o: {
         `Lost it? Recover access at ${site}/account with the email you paid with.`,
       ],
     },
+    header_clients: HEADER_CLIENTS,
+    plugin_note: PLUGIN_NOTE,
     clients,
+    try_first: TRY_FIRST,
     test: {
       method: "GET",
       url: `${api}/v1/account`,
@@ -333,6 +356,10 @@ export function guideMarkdown(g: Guide): string {
     "",
     "## 2. Connect your client",
     "",
+    g.header_clients,
+    "",
+    g.plugin_note,
+    "",
   );
   for (const c of g.clients) {
     out.push(`### ${c.name}`, "", ...c.steps.map((s) => `- ${s}`), "");
@@ -342,6 +369,12 @@ export function guideMarkdown(g: Guide): string {
   }
   out.push(
     "## 3. Test your key",
+    "",
+    "Ask your agent:",
+    "",
+    ...g.try_first.map((t) => `- ${t}`),
+    "",
+    "Or check the key itself:",
     "",
     "```bash",
     g.test.curl,

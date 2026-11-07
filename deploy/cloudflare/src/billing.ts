@@ -45,7 +45,7 @@ import {
 import { StripeError, stripeClient, verifyStripeSignature } from "./stripe.ts";
 import type { StripeClient } from "./stripe.ts";
 import type { Env, KV } from "./types.ts";
-import { CONTACT, DISCUSSIONS } from "./contact.ts";
+import { CHANGELOG_URL, CONTACT, DISCUSSIONS, SUPPORT_URL } from "./contact.ts";
 import { sendWelcomeEmail } from "./email.ts";
 import { messagePage, onboardingPage } from "./pages.ts";
 import { claimUrl, newClaim, storeClaim } from "./claim.ts";
@@ -890,7 +890,13 @@ export interface AccountSummary {
     limit: number;
     items: { id: string; created: string; current: boolean }[];
   };
+  /** ISO: when the subscription renews (Stripe current_period_end); null when it will not or is unknown. */
+  renewal_at: string | null;
+  /** ISO: when a subscription set to cancel ends. */
+  ends_at?: string;
   manage: string;
+  support: string;
+  changelog: string;
   /** Set while the key is inactive: when the record is deleted. */
   inactive_since?: string;
   deletes_at?: string;
@@ -934,7 +940,18 @@ export async function accountSummary(
         current: k.hash === hash,
       })),
     },
+    renewal_at:
+      record.period_end &&
+      !record.cancel_at_period_end &&
+      deriveStatus(record) === "active"
+        ? record.period_end
+        : null,
+    ...(record.period_end && record.cancel_at_period_end
+      ? { ends_at: record.period_end }
+      : {}),
     manage: `${siteUrl(env)}/account`,
+    support: SUPPORT_URL,
+    changelog: CHANGELOG_URL,
     ...(record.inactive_since
       ? { inactive_since: record.inactive_since, deletes_at: deletesAt(record) }
       : {}),
@@ -1067,4 +1084,35 @@ export async function successRoute(
             },
     });
   return messagePage(result.status, "About your FactLot key", result.message);
+}
+
+/** "b•••r@example.com": enough to recognise the inbox, not enough to read it off a screen share. */
+export function maskEmail(email: string): string {
+  const at = email.lastIndexOf("@");
+  if (at < 1) return "•••";
+  const local = email.slice(0, at);
+  const shown =
+    local.length <= 2 ? `${local[0]}•••` : `${local[0]}•••${local.at(-1)}`;
+  return `${shown}${email.slice(at)}`;
+}
+
+/** The masked address Stripe sends receipts to, or undefined (no billing, Stripe slow or silent). */
+export async function receiptEmail(
+  d: BillingDeps | undefined,
+  customer: string,
+): Promise<string | undefined> {
+  if (!d || !/^cus_[A-Za-z0-9]+$/.test(customer)) return undefined;
+  try {
+    const c = await d.stripe.get(
+      `/customers/${customer}`,
+      {},
+      { timeoutMs: 3_000 },
+    );
+    return typeof c.email === "string" && c.email.includes("@")
+      ? maskEmail(c.email)
+      : undefined;
+  } catch (err) {
+    logStripeError("customer read", err);
+    return undefined;
+  }
 }

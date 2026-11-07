@@ -32,6 +32,7 @@ import {
   logStripeError,
   mintKey,
   portalUrl,
+  receiptEmail,
   refreshIfStale,
   revokeKey,
   rotateKey,
@@ -1059,7 +1060,13 @@ async function accountRoute(
     h: string,
     r: KeyRecord,
     o: Parameters<typeof accountPage>[2] = {},
-  ) => accountPage(await metered(accountSummary(env, h, r)), k, o);
+  ) => {
+    const [summary, receipts] = await Promise.all([
+      metered(accountSummary(env, h, r)),
+      receiptEmail(billingDeps(env, opts.fetchImpl, now), r.customer),
+    ]);
+    return accountPage(summary, k, { receipts, ...o });
+  };
 
   if (action === "portal") {
     const d = billingDeps(env, opts.fetchImpl, now);

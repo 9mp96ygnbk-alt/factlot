@@ -16,6 +16,10 @@ import { PLANS, QUOTA_RULES, priceText, type Plan } from "./plans.ts";
 
 export { escapeHtml };
 
+/** The one-line counting rule on the onboarding and account pages. */
+export const LOOKUP_RULE =
+  "A lookup is one answered call to a registry tool; coverage checks, misses and input errors are free.";
+
 const DEFAULT_SITE = "https://factlot.com";
 const DEFAULT_API = "https://api.factlot.com";
 const trim = (u: string) => u.replace(/\/$/, "");
@@ -203,9 +207,14 @@ ${keyStep}
 </section>
 <section class="step" aria-labelledby="h-connect"><h2 id="h-connect"><span class="n">2</span>Connect your client</h2>
 <p>Every client uses the MCP server <code>${escapeHtml(g.links.mcp)}</code> with the header <code>Authorization: Bearer &lt;key&gt;</code>.</p>
+<p>${escapeHtml(g.header_clients)}</p>
 ${clients}
+<p class="small">${escapeHtml(g.plugin_note)}</p>
 </section>
 <section class="step" aria-labelledby="h-test"><h2 id="h-test"><span class="n">3</span>Test your key</h2>
+<p>Try first. Ask your agent:</p>
+<ul class="plain">${g.try_first.map((t) => `<li>${escapeHtml(t)}</li>`).join("")}</ul>
+<p>Or check the key itself:</p>
 <form id="test" autocomplete="off"><label for="test-key">API key</label><input id="test-key" type="password" spellcheck="false" placeholder="fl_live_..." required${o.key ? ` value="${escapeHtml(o.key)}"` : ""}>
 <div class="buttons"><button type="submit" class="button primary">Test my key</button></div></form>
 <p id="test-out" class="out" role="status" aria-live="polite"></p>
@@ -213,7 +222,7 @@ ${block("test-curl", "Or from a terminal", g.test.curl)}
 </section>
 <section class="step" aria-labelledby="h-limits"><h2 id="h-limits"><span class="n">4</span>Know your limits</h2>
 ${facts}
-<ul class="plain"><li>${escapeHtml(QUOTA_RULES.counted)}</li><li>${escapeHtml(QUOTA_RULES.at_cap)}</li><li>Calculators, IDs, documents and rules tools never count.</li></ul>
+<ul class="plain"><li>${escapeHtml(LOOKUP_RULE)}</li><li>${escapeHtml(QUOTA_RULES.at_cap)}</li><li>Calculators, IDs, documents and rules tools never count.</li></ul>
 <div class="buttons"><a class="button primary" href="${escapeHtml(site)}/account">Manage billing / cancel</a></div>
 <p class="small">Questions: <a href="mailto:${CONTACT}">${CONTACT}</a>${plan?.id === "team" ? " (priority support)" : ""}. What changed lately: <a href="${CHANGELOG_URL}">changelog</a>.</p>
 </section>`,
@@ -334,17 +343,29 @@ function actionForm(
   return `<form method="post" action="${escapeHtml(formAction)}">${key ? `<input type="hidden" name="key" value="${escapeHtml(key)}">` : ""}${extra}<button type="submit" class="${cls}" name="action" value="${action}">${escapeHtml(label)}</button></form>`;
 }
 
+const day = (iso: string) =>
+  new Date(iso).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    timeZone: "UTC",
+  });
+
 /** The plan, status and usage rows shared by /account and the recovery page. */
-function accountFacts(s: AccountSummary): string {
+function accountFacts(s: AccountSummary, receipts?: string): string {
   const st = statusText(s);
   const q = s.registry_lookups;
   const left = Math.max(0, q.limit - q.used);
   return `<dl class="facts">
 <dt>Status</dt><dd${st.warn ? ' class="warn"' : ""}>${escapeHtml(st.text)}</dd>
 <dt>Price</dt><dd>${escapeHtml(s.price)}, renews monthly until cancelled</dd>
+${s.renewal_at ? `<dt>Renewal</dt><dd>Renews on ${escapeHtml(day(s.renewal_at))}</dd>` : ""}
+${s.ends_at ? `<dt>Ends</dt><dd class="warn">Ends on ${escapeHtml(day(s.ends_at))}; it will not renew</dd>` : ""}
+${receipts ? `<dt>Receipts</dt><dd>Stripe emails receipts to ${escapeHtml(receipts)}</dd>` : ""}
 <dt>Rate limit</dt><dd>${s.requests_per_minute.toLocaleString("en-US")} requests a minute per key</dd>
 <dt>Registry lookups</dt><dd><progress max="${q.limit}" value="${Math.min(q.used, q.limit)}" aria-label="Registry lookups used">${q.used} of ${q.limit}</progress><br>${q.used.toLocaleString("en-US")} of ${q.limit.toLocaleString("en-US")} used this month (${left.toLocaleString("en-US")} left); resets ${escapeHtml(utc(q.resets_at))}</dd>
 <dt>Keys</dt><dd>${s.keys.count} of ${s.keys.limit}</dd>
+<dt>What counts</dt><dd>${escapeHtml(LOOKUP_RULE)}</dd>
 ${s.payment_failed_at ? `<dt>Last failed payment</dt><dd class="warn">${escapeHtml(utc(s.payment_failed_at))}</dd>` : ""}
 ${s.deletes_at ? `<dt>Record deleted</dt><dd>${escapeHtml(utc(s.deletes_at))} unless the key is active again</dd>` : ""}
 </dl>`;
@@ -354,7 +375,13 @@ ${s.deletes_at ? `<dt>Record deleted</dt><dd>${escapeHtml(utc(s.deletes_at))} un
 export function accountPage(
   s: AccountSummary,
   key: string,
-  opts: { notice?: string; newKey?: string; status?: number } = {},
+  opts: {
+    notice?: string;
+    newKey?: string;
+    status?: number;
+    /** Masked address Stripe sends receipts to. */
+    receipts?: string;
+  } = {},
 ): Response {
   const active = s.status === "active";
   const rows = s.keys.items
@@ -381,7 +408,7 @@ export function accountPage(
     `<h1>${escapeHtml(s.plan_name)}</h1>
 ${opts.notice ? notice(opts.notice, (opts.status ?? 200) >= 400) : ""}
 ${newKey}
-${accountFacts(s)}
+${accountFacts(s, opts.receipts)}
 <section class="step" aria-labelledby="h-billing"><h2 id="h-billing">Billing</h2>
 <p>Change your card, see invoices, switch plans or cancel in Stripe's billing portal.</p>
 <div class="buttons">${actionForm(key, "portal", "Manage billing / cancel", "", "primary")}</div></section>
