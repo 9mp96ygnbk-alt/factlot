@@ -34,7 +34,7 @@ class RegistryDocsGenerator(unittest.TestCase):
 
     def test_coverage_quotes_verify_and_only_the_hosted_regions_are_queryable(self):
         text = self.gen.gen_coverage(self.configs)  # raises SystemExit if a quote or number does not check out
-        self.assertIn("No other region is hosted", text)
+        self.assertIn("run only on a self-hosted FactLot", text)
         queryable_rows = [ln for ln in text.splitlines() if ln.startswith("| ") and "Yes: hosted on api.factlot.com" in ln]
         self.assertTrue(queryable_rows)
         for ln in queryable_rows:
