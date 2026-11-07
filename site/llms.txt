@@ -51,6 +51,7 @@ Further hosted registry regions, enterprise terms, and private deployments: emai
 - [FactLot ID spec](https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/id-spec.md): URN and short-ID formats and normalization rules
 - [Registry and source catalog](https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/registry/sources/README.md): 40 verified public-record sources, 1,733,923 commercial parcels in 330 counties (19 states and DC) built in the project's pipeline, and 14.2 million registered entities (queryable today on the hosted API: Maryland, the District of Columbia and Juab and Summit counties in Utah; every other region needs a self-hosted FactLot with a registry file), with the licence and AI-use status of each source
 - [Conformance vectors](https://github.com/9mp96ygnbk-alt/factlot/blob/main/spec/README.md): shared test cases every SDK must pass
+- Trust: [status](https://factlot.com/status/) (live health endpoint, incident history), [security](https://factlot.com/security/) (what is stored, keys, disclosure, no SOC 2 yet), [service levels](https://factlot.com/sla/) (no SLA today, draft terms, versioning), [assurance](https://factlot.com/assurance/) (how the numbers are proven and what is not)
 
 ## Optional
 
