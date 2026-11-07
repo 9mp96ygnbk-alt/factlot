@@ -102,7 +102,10 @@ interface Db {
   close(): void;
 }
 const { DatabaseSync } = createRequire(import.meta.url)("node:sqlite") as {
-  DatabaseSync: new (p: string, o?: { readOnly?: boolean }) => Db;
+  DatabaseSync: new (
+    p: string,
+    o?: { readOnly?: boolean; timeout?: number },
+  ) => Db;
 };
 
 /** A date before any snapshot: the dated variant for "before this file's first date". */
@@ -280,7 +283,8 @@ export function filterRegistry(
     };
   rmSync(out, { force: true });
   mkdirSync(join(out, ".."), { recursive: true });
-  const d = new DatabaseSync(out);
+  // Another process may be reading the same source (a parity check, a maintain step finishing): wait for its lock.
+  const d = new DatabaseSync(out, { timeout: 120_000 });
   try {
     d.exec(
       "PRAGMA journal_mode = OFF; PRAGMA synchronous = OFF; PRAGMA foreign_keys = OFF;",
