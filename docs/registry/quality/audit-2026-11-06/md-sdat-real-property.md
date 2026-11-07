@@ -244,7 +244,7 @@ PDF, HTTP 200, <https://opendata.maryland.gov/api/views/ed4q-f8tm/files/5064508a
 
 > MDP does not provide any guaranty of accuracy or completeness regarding the map information.
 
-The same PDF says the dataset joins SDAT records (updated daily) with MDP parcel records (updated approximately annually), and that property records in the open-data dataset may not exactly match external property records. The PDF has no public-domain clause of its own. The address caveat already in the source record (MDP street address can fall back to an owner address for some owner-occupied accounts) is still in that PDF. This lane did not re-quote the whole address paragraph.
+The same PDF says the dataset joins SDAT records (updated daily) with MDP parcel records (updated approximately annually), and that property records in the open-data dataset may not exactly match external property records. The PDF has no public-domain clause of its own. The address caveat already in the source record (MDP street address can fall back to an owner address for some owner-occupied accounts) is still in that PDF.
 
 robots.txt, HTTP 200, <https://opendata.maryland.gov/robots.txt>:
 
