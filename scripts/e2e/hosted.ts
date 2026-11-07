@@ -152,6 +152,10 @@ async function main(): Promise<void> {
     ["/", "text/html"],
     ["/privacy", "text/html"],
     ["/terms", "text/html"],
+    ["/status/", "text/html"],
+    ["/security/", "text/html"],
+    ["/sla/", "text/html"],
+    ["/assurance/", "text/html"],
     ["/llms.txt", "text/plain"],
     ["/robots.txt", "text/plain"],
     ["/sitemap.xml", "xml"],
@@ -242,6 +246,48 @@ async function main(): Promise<void> {
   }
   const plans = await api("/v1/plans");
   ok(plans.status === 200, `/v1/plans ${plans.status}`);
+  const plansDoc = (await plans.json().catch(() => ({}))) as {
+    model_tools?: { available?: boolean };
+    reports?: { per_month?: Record<string, number> };
+  };
+  // Whether the hosted model-backed tools are on (ANTHROPIC_API_KEY set on the Worker).
+  const modelOn = plansDoc.model_tools?.available === true;
+  notes.push(`model-backed tools: ${modelOn ? "on" : "off"}`);
+  ok(plansDoc.reports?.per_month, "/v1/plans lists reports per month");
+
+  // OAuth sign-in for header-less clients: metadata, and the 401 challenge at /mcp/signin.
+  for (const doc of [
+    "/.well-known/oauth-protected-resource",
+    "/.well-known/oauth-authorization-server",
+  ]) {
+    await sleep(DELAY);
+    const r = await fetch(`${API}${doc}`);
+    const j = (await r.json().catch(() => undefined)) as
+      Record<string, unknown> | undefined;
+    ok(
+      r.status === 200 &&
+        (doc.endsWith("protected-resource")
+          ? Array.isArray(j?.authorization_servers)
+          : typeof j?.token_endpoint === "string"),
+      `${doc}: ${r.status} ${JSON.stringify(j).slice(0, 120)}`,
+    );
+  }
+  await sleep(DELAY);
+  const signin = await fetch(`${API}/mcp/signin`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      accept: "application/json, text/event-stream",
+    },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }),
+  });
+  const challenge = signin.headers.get("www-authenticate") ?? "";
+  ok(
+    signin.status === 401 &&
+      /^Bearer /.test(challenge) &&
+      challenge.includes("resource_metadata="),
+    `/mcp/signin without credentials: ${signin.status} ${challenge.slice(0, 120)}`,
+  );
   const pre = await api("/mcp", {
     method: "OPTIONS",
     headers: {
@@ -392,6 +438,180 @@ async function main(): Promise<void> {
         restArgs.set(c.tool, c.arguments);
       }
     }
+  // The Texas batch tools: two items, two subjects. The rule answers both; the candidates batch
+  // answers each subject or gives it its own error (a coverage miss where Texas is not hosted), so
+  // only the shape is checked.
+  {
+    const tool = "rules_tx_property_tax_protest_deadline_batch";
+    const args = {
+      items: [
+        { id: "a", tax_year: 2026, notice_delivered_date: "2026-05-01" },
+        { id: "b", tax_year: 2027 },
+      ],
+    };
+    const { status, json } = await post(
+      pathOf.get(tool) ?? "/v1/rules/tx_property_tax_protest_deadline/batch",
+      args,
+    );
+    const v = at(json, "value") as
+      | { results?: { id?: string }[]; summary?: { answered?: number } }
+      | undefined;
+    ok(
+      status === 200 &&
+        v?.results?.map((r) => r.id).join() === "a,b" &&
+        v.summary?.answered === 2,
+      `${tool}: ${status} ${JSON.stringify(json).slice(0, 160)}`,
+    );
+    if (status === 200 && !restResults.has(tool)) {
+      restResults.set(tool, json);
+      restArgs.set(tool, args);
+    }
+  }
+  {
+    const tool = "registry_tx_equity_candidates_batch";
+    const args = {
+      subjects: [
+        { id: "a", urn: "fl:parcel:us-48201:1" },
+        { id: "b", county_fips: "113", apn: "1" },
+      ],
+    };
+    const { status, json } = await post(
+      pathOf.get(tool) ?? "/v1/registry/tx_equity_candidates/batch",
+      args,
+    );
+    const b = json as
+      | {
+          error?: string;
+          results?: Record<string, unknown>[];
+          summary?: { subjects?: number; answered?: number; errors?: number };
+          rule?: unknown;
+          notice?: unknown;
+        }
+      | undefined;
+    if (!hostedRegistry)
+      ok(
+        status === 503 && b?.error === "RegistryUnavailable",
+        `${tool} without a registry: ${status} ${b?.error}`,
+      );
+    else {
+      const each = (b?.results ?? []).every(
+        (r) =>
+          (typeof r.error === "object" && r.error !== null) ||
+          Array.isArray(r.candidates),
+      );
+      ok(
+        status === 200 &&
+          b?.results?.map((r) => r.id).join() === "a,b" &&
+          each &&
+          b.summary?.subjects === 2 &&
+          (b.summary.answered ?? 0) + (b.summary.errors ?? 0) === 2 &&
+          typeof b.rule === "string" &&
+          typeof b.notice === "string",
+        `${tool}: ${status} ${JSON.stringify(json).slice(0, 160)}`,
+      );
+      if (status === 200 && !restResults.has(tool)) {
+        restResults.set(tool, json);
+        restArgs.set(tool, args);
+      }
+    }
+  }
+  // The model-backed tools: without a key 403 PlanRequired while they are on (503
+  // ModelUnavailable while they are off); with FACTLOT_API_KEY, an answer or 503.
+  const modelCalls: [string, unknown][] = [
+    [
+      "/v1/doc/extract_lease",
+      {
+        document: {
+          pages: [
+            "1.2 Term. The Term shall commence on March 1, 2026 and shall expire on June 30, 2031.",
+          ],
+        },
+        predicates: ["lease.expiration_date"],
+      },
+    ],
+    [
+      "/v1/report/narrative",
+      {
+        tool: "calc_irr",
+        input: { cash_flows: [-100, 10, 10, 110] },
+        audience: "summary",
+      },
+    ],
+  ];
+  for (const [path, body] of modelCalls) {
+    await sleep(DELAY);
+    const anon = await fetch(`${API}${path}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const anonError = (
+      (await anon.json().catch(() => ({}))) as { error?: string }
+    ).error;
+    ok(
+      modelOn
+        ? anon.status === 403 && anonError === "PlanRequired"
+        : anon.status === 503 && anonError === "ModelUnavailable",
+      `${path} without a key: ${anon.status} ${anonError}`,
+    );
+    if (KEY) {
+      const { status, json } = await post(path, body);
+      const r = json as Record<string, unknown> | undefined;
+      ok(
+        status === 503
+          ? r?.error === "ModelUnavailable"
+          : status === 200 &&
+              r?.nothing_stored === true &&
+              (path.endsWith("extract_lease")
+                ? Array.isArray(r.facts)
+                : typeof r.text === "string"),
+        `${path} with a key: ${status} ${JSON.stringify(json).slice(0, 160)}`,
+      );
+    }
+  }
+  // Reports: one Texas evidence workbook from the calculator vector, and its download. A report
+  // counts against reports a month (3 free per address); a used-up month is noted, not failed,
+  // on the free tier.
+  {
+    const vector = readJson("spec/vectors/calc/tx_unequal_appraisal.json") as {
+      cases: Case[];
+    };
+    const input = vector.cases.find((c) => !c.expect_error)!.input;
+    const { status, json } = await post("/v1/reports", {
+      kind: "tx_unequal_appraisal",
+      format: "xlsx",
+      arguments: input,
+    });
+    const r = json as
+      | { download_url?: string; content_type?: string; error?: string }
+      | undefined;
+    const XLSX =
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    if (status === 429 && !KEY)
+      notes.push(
+        `report_create: free reports used up this month (${r?.error})`,
+      );
+    else {
+      ok(
+        status === 200 &&
+          typeof r?.download_url === "string" &&
+          r.content_type === XLSX,
+        `report_create xlsx: ${status} ${JSON.stringify(json).slice(0, 160)}`,
+      );
+      if (status === 200 && r?.download_url) {
+        await sleep(DELAY);
+        const file = await fetch(r.download_url);
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        ok(
+          file.status === 200 &&
+            (file.headers.get("content-type") ?? "").startsWith(XLSX) &&
+            bytes[0] === 0x50 &&
+            bytes[1] === 0x4b,
+          `report download: ${file.status} ${file.headers.get("content-type")}`,
+        );
+      }
+    }
+  }
   // Lease-comp vectors (spec/vectors/lease_comps.json, lease_comp_search.json): same case shape
   // as tools.json.
   const compCases = ["lease_comps.json", "lease_comp_search.json"].flatMap(
@@ -498,6 +718,19 @@ async function main(): Promise<void> {
     ]),
   );
   for (const t of tools) {
+    // report_create: an input error is free, so the check spends no report.
+    if (t.name === "report_create") {
+      await sleep(DELAY);
+      const r = (await client.callTool({
+        name: t.name,
+        arguments: { kind: "no_such_kind", format: "xlsx" },
+      })) as { isError?: boolean; content: { type: string; text: string }[] };
+      ok(
+        r.isError && /error/i.test(r.content?.[0]?.text ?? ""),
+        `MCP report_create: want an input error, got ${r.content?.[0]?.text?.slice(0, 160)}`,
+      );
+      continue;
+    }
     const miss = hostedRegistry ? mcpMiss.get(t.name) : undefined;
     if (miss && !restArgs.has(t.name)) {
       await sleep(DELAY);
