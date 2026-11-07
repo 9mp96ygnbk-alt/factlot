@@ -1,0 +1,41 @@
+{
+  "objectIdFieldName": "objectid",
+  "features": [
+    {
+      "attributes": {
+        "state_parcel_id": "01-00-00-000-002.000-001",
+        "county_fips": "18003",
+        "dlgf_prop_class_code": "350",
+        "prop_add": "200 FACTORY RD",
+        "prop_city": "FORT WAYNE",
+        "prop_state": "IN",
+        "prop_zip": "46803",
+        "loaddate": 1756425600000
+      }
+    },
+    {
+      "attributes": {
+        "state_parcel_id": "45-00-00-000-023.000-001",
+        "county_fips": "18089",
+        "dlgf_prop_class_code": "499",
+        "prop_add": "23 OTHER AVE",
+        "prop_city": "GARY",
+        "prop_state": "IN",
+        "prop_zip": "46402",
+        "loaddate": 1756425600000
+      }
+    },
+    {
+      "attributes": {
+        "state_parcel_id": "45-00-00-000-024.000-001",
+        "county_fips": "18089",
+        "dlgf_prop_class_code": "410",
+        "prop_add": "24 CABIN RD",
+        "prop_city": "GARY",
+        "prop_state": "IN",
+        "prop_zip": "46402",
+        "loaddate": 1756425600000
+      }
+    }
+  ]
+}
