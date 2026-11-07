@@ -217,7 +217,7 @@ export function onboardingPage(o: OnboardingOptions): Response {
     h1,
     `<h1>${escapeHtml(h1)}</h1>
 ${o.notice ? notice(o.notice.text, o.notice.warn, o.notice.title) : ""}
-<p class="lead">Four steps, about five minutes. An agent can read the same guide as JSON or Markdown:</p>
+<p class="lead">Five steps, about five minutes. An agent can read the same guide as JSON or Markdown:</p>
 ${block("agent-url", "Give this URL to your agent", g.links.onboarding)}
 <section class="step" aria-labelledby="h-key"><h2 id="h-key"><span class="n">1</span>Save your key</h2>
 ${keyStep}
@@ -240,9 +240,13 @@ ${block("test-curl", "Or from a terminal", g.test.curl)}
 <section class="step" aria-labelledby="h-extract"><h2 id="h-extract">${escapeHtml(g.extract_lease.title)}</h2>
 <p>${escapeHtml(g.extract_lease.text)}</p>
 </section>
-<section class="step" aria-labelledby="h-limits"><h2 id="h-limits"><span class="n">4</span>Know your limits</h2>
+<section class="step" aria-labelledby="h-reports"><h2 id="h-reports"><span class="n">4</span>${escapeHtml(g.reports.title)}</h2>
+<p>${escapeHtml(g.reports.text)}</p>
+<p class="small">MCP tool <code>${g.reports.mcp_tool}</code>; REST <code>${escapeHtml(g.reports.rest)}</code>.</p>
+</section>
+<section class="step" aria-labelledby="h-limits"><h2 id="h-limits"><span class="n">5</span>Know your limits</h2>
 ${facts}
-<ul class="plain"><li>${escapeHtml(LOOKUP_RULE)}</li><li>${escapeHtml(QUOTA_RULES.at_cap)}</li><li>Calculators, IDs, documents and rules tools never count.</li><li>${escapeHtml(g.reports.text)}</li></ul>
+<ul class="plain"><li>${escapeHtml(LOOKUP_RULE)}</li><li>${escapeHtml(QUOTA_RULES.at_cap)}</li><li>Calculators, IDs, documents and rules tools never count.</li><li>${escapeHtml(REPORT_RULE)}</li></ul>
 <div class="buttons"><a class="button primary" href="${escapeHtml(site)}/account">Manage billing / cancel</a></div>
 <p class="small">Questions: <a href="mailto:${CONTACT}">${CONTACT}</a>${plan?.id === "team" ? " (priority support)" : ""}. What changed lately: <a href="${CHANGELOG_URL}">changelog</a>.</p>
 </section>`,

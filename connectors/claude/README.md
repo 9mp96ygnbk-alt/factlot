@@ -31,8 +31,9 @@ To use your own server instead, deploy the remote connector (see [connectors/REA
 on a public HTTPS URL and enter that URL in step 2. Claude connects from Anthropic's cloud, not from
 your device, so the URL must be publicly reachable.
 
-FactLot's tools are read-only computations. Each one is annotated `readOnlyHint: true`, so Claude
-can call them without a confirmation step, depending on your settings.
+FactLot's tools are read-only computations, annotated `readOnlyHint: true`, so Claude can call
+them without a confirmation step, depending on your settings. The exception is the hosted
+`report_create`, which builds a file and keeps it for 24 hours; it is not annotated read-only.
 
 ## Claude Desktop: one-click extension (local, no server)
 

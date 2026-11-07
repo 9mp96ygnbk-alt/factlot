@@ -32,7 +32,7 @@ ChatGPT calls connectors "apps". FactLot's MCP server works with ChatGPT in two 
    - **API Key → Bearer** with your FactLot key on the hosted API (Actions send the header, so no
      sign-in is needed), or if you set `FACTLOT_API_KEY` on your own server.
 4. Paste [`gpt-instructions.md`](gpt-instructions.md) into the GPT's instructions.
-5. A public GPT needs a privacy policy URL. FactLot stores nothing, so state that in the policy.
+5. A public GPT needs a privacy policy URL. FactLot stores no inputs or outputs, except a report file built with `report_create`, which is kept for 24 hours and then deleted, so state that in the policy.
 
 Every operation is marked `x-openai-isConsequential: false`, because every operation is a read-only
 computation.

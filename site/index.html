@@ -602,12 +602,13 @@
               <code>calc_amortization_schedule</code>,
               <code>calc_equity_waterfall</code>,
               <code>calc_exchange_1031</code>, <code>calc_critical_dates</code>,
-              <code>calc_reconcile_dcf</code>,
-              <code>calc_reconcile_cam</code>
+              <code>calc_reconcile_dcf</code>, <code>calc_reconcile_cam</code>,
+              <code>calc_tx_unequal_appraisal</code>
             </li>
             <li>
               <strong>Rules</strong>:
-              <code>rules_tx_property_tax_protest_deadline</code>
+              <code>rules_tx_property_tax_protest_deadline</code>,
+              <code>rules_tx_property_tax_protest_deadline_batch</code>
             </li>
             <li>
               <strong>IDs and facts</strong>: <code>id_parcel</code>,
@@ -626,11 +627,16 @@
               <code>doc_check_use_conflict</code>, <code>doc_predicates</code>
             </li>
             <li>
+              <strong>Reports</strong> (hosted only): <code>report_create</code>
+              builds an XLSX, PDF or ICS file from a tool result, by code with
+              no model
+            </li>
+            <li>
               <strong>Discovery</strong>: <code>search</code>,
               <code>fetch</code>, <code>schema_get</code>
             </li>
             <li>
-              <strong>Registry</strong>: eight <code>registry_*</code> lookups,
+              <strong>Registry</strong>: nine <code>registry_*</code> lookups,
               hosted for the regions <code>registry_coverage</code> lists and
               available on a self-hosted FactLot with a registry file
             </li>
@@ -657,8 +663,10 @@
           <p>
             The tools are open source and free to run yourself, with no limits.
             The hosted endpoint at <code>https://api.factlot.com</code> saves
-            you running it. Every plan has every tool; plans differ in request
-            rate, registry lookups, keys and support.
+            you running it. Every plan has every tool, except that the two
+            model-backed tools are for Pro and Team; plans differ in request
+            rate, registry lookups, reports, model-backed tools, keys and
+            support.
           </p>
           <div class="cards">
             <article class="card" id="plan-free">
@@ -668,6 +676,7 @@
                 <li>Every calculator, ID, fact, rules and document tool</li>
                 <li>60 requests a minute per IP address</li>
                 <li>25 registry lookups a day per IP address</li>
+                <li>3 reports a month per IP address</li>
               </ul>
               <p>
                 <a
@@ -683,6 +692,7 @@
                 <li>1 API key</li>
                 <li>600 requests a minute</li>
                 <li>5,000 registry lookups a month</li>
+                <li>50 reports a month</li>
                 <li>Email support</li>
               </ul>
               <p>
@@ -705,6 +715,7 @@
                 <li>Up to 5 API keys</li>
                 <li>3,000 requests a minute</li>
                 <li>100,000 registry lookups a month</li>
+                <li>1,000 reports a month</li>
                 <li>Priority support</li>
                 <li>A vote on which regions open next</li>
               </ul>

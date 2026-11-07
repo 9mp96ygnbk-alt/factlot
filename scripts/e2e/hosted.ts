@@ -713,8 +713,9 @@ async function main(): Promise<void> {
   }
   // Reports: one Texas evidence workbook from the calculator vector, and its download. A report
   // counts against reports a month (3 free per address); a used-up month is noted, not failed,
-  // on the free tier. Created reports answer 201. While the deployer has reports closed
-  // (/v1/plans reports.available false) the route answers 503 ReportsUnavailable: noted, not failed.
+  // on the free tier. Created reports answer 201. Reports are open on api.factlot.com; a
+  // deployment that has them closed (/v1/plans reports.available false) answers 503
+  // ReportsUnavailable: noted, not failed.
   {
     const vector = readJson("spec/vectors/calc/tx_unequal_appraisal.json") as {
       cases: Case[];

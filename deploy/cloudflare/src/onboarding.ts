@@ -78,6 +78,7 @@ export interface Guide {
   };
   /** report_create: client-ready XLSX, PDF and ICS documents from a tool result. */
   reports: {
+    title: string;
     mcp_tool: "report_create";
     rest: string;
     text: string;
@@ -113,6 +114,7 @@ export const PLUGIN_NOTE =
 export const TRY_FIRST = [
   "When is my 2027 Texas protest deadline if the notice arrived April 28?",
   "What does FactLot know about 1300 Pennsylvania Ave NW in Washington, DC?",
+  "Build the critical-dates calendar for this lease as an ICS file.",
 ];
 
 /** "$0.0098" for 4900 cents over 5000 lookups. */
@@ -360,6 +362,7 @@ export function setupGuide(o: {
       },
     },
     reports: {
+      title: REPORTS_STEP,
       mcp_tool: "report_create",
       rest: `POST ${api}/v1/reports`,
       text: `Ask for a client-ready document from a result: report_create builds an XLSX workbook, PDF or ICS calendar by code (no model) and returns a download link that works ${REPORT_DOWNLOAD_HOURS} hours. One report counts once against reports a month (${REPORTS_PER_MONTH.anonymous} free, ${REPORTS_PER_MONTH.pro.toLocaleString("en-US")} on Pro, ${REPORTS_PER_MONTH.team.toLocaleString("en-US")} on Team); input errors are free and reports never count as registry lookups.`,
@@ -386,7 +389,7 @@ export function setupGuide(o: {
     },
     pricing: [PLANS.pro, PLANS.team].map(
       (plan) =>
-        `${plan.name}: ${priceText(plan)} for ${plan.registryLookupsPerMonth.toLocaleString("en-US")} registry lookups (${perLookup(plan)} a lookup at the full allowance); calculators and other tools do not count.`,
+        `${plan.name}: ${priceText(plan)} for ${plan.registryLookupsPerMonth.toLocaleString("en-US")} registry lookups (${perLookup(plan)} a lookup at the full allowance); calculators and other tools do not count. ${REPORTS_PER_MONTH[plan.id].toLocaleString("en-US")} reports a month, built by code with no model.`,
     ),
     links: {
       account: `${site}/account`,
@@ -401,8 +404,10 @@ export function setupGuide(o: {
   };
 }
 
+export const REPORTS_STEP = "Build a report: XLSX, PDF or ICS";
+
 export const EXTRACT_LEASE_STEP =
-  "Extract a lease with Claude, verified by FactLot (Pro and Team)";
+  "Extract a lease with a model, verified by FactLot (Pro and Team)";
 
 /** The guide as Markdown (`Accept: text/markdown`). */
 export function guideMarkdown(g: Guide): string {
@@ -451,10 +456,15 @@ export function guideMarkdown(g: Guide): string {
     g.extract_lease.text,
     `MCP tool \`${g.extract_lease.mcp_tool}\`; REST \`${g.extract_lease.rest}\`; ${g.extract_lease.pages_per_month.pro.toLocaleString("en-US")} pages a month on Pro, ${g.extract_lease.pages_per_month.team.toLocaleString("en-US")} on Team.`,
     "",
-    "## 4. Know your limits",
+    `## 4. ${g.reports.title}`,
+    "",
+    g.reports.text,
+    `MCP tool \`${g.reports.mcp_tool}\`; REST \`${g.reports.rest}\`; ${g.reports.per_month.free} a month free per IP address, ${g.reports.per_month.pro.toLocaleString("en-US")} on Pro, ${g.reports.per_month.team.toLocaleString("en-US")} on Team.`,
+    "",
+    "## 5. Know your limits",
     "",
     ...Object.values(g.lookups).map((r) => `- ${r}`),
-    `- ${g.reports.text} MCP tool \`${g.reports.mcp_tool}\`; REST \`${g.reports.rest}\`.`,
+    "- A report is one document report_create builds and stores; input errors are free, and reports never count as lookups.",
     ...g.pricing.map((r) => `- ${r}`),
     "",
     "## Links",

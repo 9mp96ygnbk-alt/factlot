@@ -69,6 +69,7 @@ an identifier. This page covers which tool to call, when, and how to report the 
 | "Abstract this lease" (you read the pages and propose each term with a quote)            | `doc_verify_facts`, `doc_abstract_lease`            |
 | "Does the estoppel / rent roll match the lease?"                                         | `doc_compare`                                       |
 | "Is this claim supported by the document?"                                               | `doc_verify_claim`                                  |
+| "Give me this as a workbook, a PDF or a calendar file" (hosted only)                     | `report_create`                                     |
 
 ## Mapping lease language to inputs
 
@@ -183,7 +184,8 @@ carries this in `disclaimer` (it is not repeated in `warnings`); pass it on.
 | Candidate parcels         | `registry_tx_equity_candidates` (`candidates`)                                                             |
 | The comparison arithmetic | `calc_tx_unequal_appraisal`, on comparables and adjustments the user chose                                 |
 | Filing deadline           | `rules_tx_property_tax_protest_deadline` (verified)                                                        |
-| Workbook and fact package | `examples/reconciliation/build.py tx_unequal_appraisal`, `fact_package_create`                             |
+| PDF packet and workbook   | `report_create` (hosted), or `examples/reconciliation/build.py tx_unequal_appraisal` (self-hosted)         |
+| Fact package              | `fact_package_create`                                                                                      |
 | Hearing evidence dates    | draft rule `tx_protest_evidence_dates` (SDKs only, not a tool; [docs](rules/tx-protest-evidence-dates.md)) |
 
 **Coverage.** The hosted API serves Harris, Dallas, Travis, Collin, Denton and Williamson counties (Denton and Williamson from 2027 preliminary rolls); `registry_coverage` lists exactly what is hosted. Tarrant County is not served by the hosted registry while the publisher's terms for AI use are unclear. A self-hosted FactLot with a Texas registry file
@@ -324,9 +326,13 @@ calls below are in order; each result is reported as returned, with its warnings
 5. `rules_tx_property_tax_protest_deadline` with `{ "tax_year": 2027 }` returns `deadline`
    2027-05-17 (May 15 is a Saturday) and the conservative file-by date (`conservative_file_by`)
    2027-05-14. A notice delivered after April 15 moves the deadline; pass `notice_delivered_date`.
-6. Save the step 4 arguments as `evidence.json` and run
+6. On the hosted API, call `report_create` with `kind` `tx_unequal_appraisal`, `format` `pdf` or
+   `xlsx`, and the step 4 arguments as `arguments`: it builds the evidence packet (PDF) or the
+   adjustment-grid workbook with live Excel formulas beside FactLot's numbers, and returns a link
+   that works 24 hours. On a self-hosted FactLot, save the step 4 arguments as `evidence.json` and
+   run
    `python3 examples/reconciliation/build.py tx_unequal_appraisal --input evidence.json --out evidence.xlsx`
-   for a workbook with live Excel formulas beside FactLot's numbers. For a fact package, call
+   for the workbook. For a fact package, call
    `registry_get` on the subject and on each comparable the user chose. Keep only facts whose
    `predicate` starts with `parcel.`. Drop every `ownership.*` fact, the ownership links and any
    entity record, and never show them. Then call `fact_package_create` with the kept facts and the
@@ -382,6 +388,23 @@ Conventions:
 - **Citations.** Each comparable's `citation` (`fact_id`, `document_id`, `locator`, `as_of`) is
   passed through to the output unchanged, and `law` lists the sections relied on with their
   official URLs.
+
+### The evidence packet and the workbook
+
+The hosted `report_create` (MCP) and `POST /v1/reports` (REST) build the documents from the same
+arithmetic, by code with no model. With `kind` `tx_unequal_appraisal` the `pdf` is the packet: the
+subject, the comparables grid, each adjustment with its reason, the adjusted values in ascending
+order, the median and the difference, the warnings, every citation and the statutes cited. The
+`xlsx` is the adjustment-grid workbook (ReadMe, Reconcile and Grid sheets with live formulas, then
+Steps and Law). Send the `calc_tx_unequal_appraisal` arguments as `arguments`; FactLot runs the
+tool itself and prints only its figures. The optional `context` takes a `title`, a `prepared_for`
+line and citations, and caller text is refused when it reads as advice or a valuation (for example
+`recommend`, `should`, `protest`, `worth`, `appraisal`, `save`). Each document states that it is
+not an appraisal or an opinion of value, and not legal or tax advice. The link works for 24 hours,
+then the file is deleted; a report counts against the plan's monthly allowance (3 free per IP
+address, 50 on Pro, 1,000 on Team) and never as a registry lookup. See
+[reports](reports.md). The self-hosted path is `examples/reconciliation/build.py
+tx_unequal_appraisal`.
 
 ### Candidate parcels
 

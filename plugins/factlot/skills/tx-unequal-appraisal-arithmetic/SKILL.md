@@ -126,7 +126,7 @@ do not suggest an NOI, a market rent or a cap rate.
 
 ## 7. Fact package and workbook
 
-Offer two artifacts:
+Offer these artifacts:
 
 - **A cited fact package**: call `registry_get` on the subject and on each comparable the user
   chose. Keep only facts whose `predicate` starts with `parcel.`. Drop every `ownership.*` fact,
@@ -135,7 +135,15 @@ Offer two artifacts:
   compared). Each fact stays cited to the appraisal-roll file, with its source's rights. A package shows the facts were not changed after packaging (its digest, and the holder's signature if they sign it) and carries their citations; it does not itself prove they match the roll, so cite the roll record for each value. Anyone can
   check the package with `fact_package_verify`. FactLot never signs it; the holder signs with their
   own key if they choose to.
-- **An Excel workbook**: with the Python SDK checked out, `python3
+- **A PDF packet or workbook from the hosted API**: call `report_create` with `kind`
+  `tx_unequal_appraisal`, `format` `pdf` (the evidence packet) or `xlsx` (the adjustment grid with
+  live Excel formulas), and the `calc_tx_unequal_appraisal` arguments as `arguments`. FactLot runs
+  the tool itself and prints only its figures, with no model. Pass only a neutral `title` and
+  `prepared_for` in `context`; text that reads as advice or a valuation is refused. It returns a
+  download link that works 24 hours, then the file is deleted; reports are 3 a month free per IP
+  address, 50 on Pro and 1,000 on Team, and never count as registry lookups. Hand the user the link
+  and the file's `sha256`.
+- **An Excel workbook, self-hosted**: with the Python SDK checked out, `python3
 examples/reconciliation/build.py tx_unequal_appraisal --input evidence.json --out evidence.xlsx`
   writes the adjustment grid with live Excel formulas beside FactLot's numbers. The input file is
   the `calc_tx_unequal_appraisal` arguments.

@@ -8,6 +8,10 @@ export const HOSTING_NOTE =
 
 export const WHATS_NEW: { text: string; changelog: string }[] = [
   {
+    text: "Reports are open (7 November 2026): call report_create, or POST /v1/reports, to get an XLSX, PDF or ICS file built by code from a tool result. Links work 24 hours; 3 a month free per IP address, 50 on Pro, 1,000 on Team.",
+    changelog: "reports are open",
+  },
+  {
     text: "Texas registry lookups: six counties with value history and equity candidates.",
     changelog: "six Texas counties",
   },

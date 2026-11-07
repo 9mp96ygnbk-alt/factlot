@@ -57,8 +57,8 @@ import {
 import { resetCoverageCache } from "./account-tools.ts";
 import { CLAIM_POLL_MS } from "./claim.ts";
 import { WHATS_NEW } from "./news.ts";
-import { EXTRACT_LEASE_STEP } from "./onboarding.ts";
-import { REPORT_RULE, escapeHtml } from "./pages.ts";
+import { EXTRACT_LEASE_STEP, REPORTS_STEP } from "./onboarding.ts";
+import { REPORT_RULE, escapeHtml, onboardingPage } from "./pages.ts";
 import { PLANS } from "./plans.ts";
 import {
   BATCH_CONCURRENCY,
@@ -4113,6 +4113,18 @@ describe("account, onboarding and OpenAPI: reports and the model-backed tools", 
     assert.ok(html.includes(escapeHtml(REPORT_RULE)));
   });
 
+  it("the key page numbers the reports step and keeps the limits step last", async () => {
+    const html = await onboardingPage({}).text();
+    assert.match(html, /Five steps/);
+    assert.match(
+      html,
+      /<span class="n">4<\/span>Build a report: XLSX, PDF or ICS/,
+    );
+    assert.match(html, /<span class="n">5<\/span>Know your limits/);
+    assert.match(html, /critical-dates calendar for this lease as an ICS file/);
+    assert.ok(!/Claude, which/.test(html));
+  });
+
   it("/v1/onboarding: the extract-lease step and report_create, in JSON and Markdown", async () => {
     const e = env();
     const { api } = innerApi();
@@ -4135,6 +4147,13 @@ describe("account, onboarding and OpenAPI: reports and the model-backed tools", 
     ).text();
     assert.ok(md.includes(`## ${EXTRACT_LEASE_STEP}`));
     assert.match(md, /report_create/);
+    assert.ok(md.includes(`## 4. ${REPORTS_STEP}`));
+    assert.ok(md.includes("## 5. Know your limits"));
+    assert.match(
+      md,
+      /Pro: \$49 a month for 5,000 registry lookups.*50 reports a month/,
+    );
+    assert.ok(!/Claude, which|with Claude, verified/.test(md));
     const on = (await (
       await call(env(MODEL), api, "/v1/onboarding", { method: "GET" })
     ).json()) as { extract_lease: { available: boolean } };

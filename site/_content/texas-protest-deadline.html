@@ -116,17 +116,21 @@
     comparables are given.
   </li>
   <li>
-    <strong>Workbook and fact package.</strong> The workbook builder (<code
-      >examples/reconciliation/build.py tx_unequal_appraisal</code
-    >) writes the adjustment grid with live Excel formulas beside FactLot's
-    numbers, and <code>fact_package_create</code> bundles the cited roll facts
-    into a package anyone can check with <code>fact_package_verify</code>.
+    <strong>PDF packet, workbook and fact package.</strong> The hosted
+    <code>report_create</code> (kind <code>tx_unequal_appraisal</code>) builds
+    the evidence packet as a PDF, or the adjustment grid as an XLSX workbook
+    with live Excel formulas beside FactLot's numbers, from the same arguments
+    as the calculator, by code with no model. The link works 24 hours, then the
+    file is deleted. A self-hosted FactLot builds the workbook with
+    <code>examples/reconciliation/build.py tx_unequal_appraisal</code>.
+    <code>fact_package_create</code> bundles the cited roll facts into a package
+    anyone can check with <code>fact_package_verify</code>.
   </li>
 </ol>
 <p>
   The Claude Code plugin's <code>tx-unequal-appraisal-arithmetic</code> skill
-  runs these steps in order. Registry lookups are metered by plan; see
-  <a href="/#pricing">pricing</a>.
+  runs these steps in order. Registry lookups and reports are metered by plan (3
+  reports a month free per IP address); see <a href="/#pricing">pricing</a>.
 </p>
 <p>
   These outputs are not an appraisal or an opinion of value (Occupations Code

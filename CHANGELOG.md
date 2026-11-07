@@ -19,6 +19,10 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
   the document, and `/v1/plans` shows `reports.available: true` with the monthly allowance (3 free
   per IP address, 50 on Pro, 1,000 on Team). The 0.5.0 notes below describe the state at release,
   when reports were deployed but closed.
+- Public copy: the terms, privacy notice, security page and docs now say that a report file is
+  kept for 24 hours (then deleted) and that two tools, `doc_extract_lease` and `report_narrative`,
+  send what you submit to a model provider; reports are listed in the tool lists, plans, setup
+  guide and Texas protest-kit docs.
 
 ## [0.5.0] - 2026-11-07
 

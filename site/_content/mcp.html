@@ -38,7 +38,11 @@
     </tr>
     <tr>
       <th scope="row">Tool annotations</th>
-      <td>Every tool is read-only and has a title</td>
+      <td>
+        Every tool has a title and is read-only, except the hosted
+        <code>report_create</code>, which builds a file and keeps it for 24
+        hours
+      </td>
     </tr>
     <tr>
       <th scope="row">Licence</th>
@@ -183,6 +187,16 @@
     the quote is on that page and states the value, and returns a cited fact or
     the reason it could not. No model runs on FactLot's side and nothing is
     stored.
+  </li>
+  <li>
+    <strong>Reports</strong> (hosted only): <code>report_create</code> builds an
+    XLSX workbook, a PDF or an ICS calendar from a tool result, by code with no
+    model. It returns a download link that works 24 hours, after which the file
+    is deleted. 3 a month free per IP address, 50 on Pro, 1,000 on Team. See the
+    <a
+      href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/reports.md"
+      >reports guide</a
+    >.
   </li>
   <li>
     <strong>IDs and facts</strong> (<code>id_*</code>, <code>fact_*</code>):

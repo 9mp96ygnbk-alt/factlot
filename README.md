@@ -68,7 +68,7 @@ curl -fLO https://github.com/9mp96ygnbk-alt/factlot/releases/download/registry-s
 FACTLOT_REGISTRY_DB="$PWD/factlot-registry-sample-dc-2026-11-07.db" npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.5.0/factlot-mcp-standalone-0.5.0.tgz
 ```
 
-**Plans:** the hosted endpoint is free with no key: every calculator, ID, fact, rules and document tool at 60 requests a minute per IP address, and 25 registry lookups a day per IP address. [Pro, $49 a month](https://factlot.com/#pricing): 1 API key, 600 requests a minute, 5,000 registry lookups a month, email support. [Team, $599 a month](https://factlot.com/#pricing): up to 5 API keys, 3,000 requests a minute, 100,000 registry lookups a month, priority support, and a vote on which regions open next. Limits are hard caps with no overage charges; at a cap the call returns HTTP 429 with the reset time. Paid plans renew monthly until cancelled; cancel any time. A registry download licence ($2,400 a year per state file, refreshed weekly, for internal use, not redistribution) is available on request, and Enterprise (private deployment, invoicing, a signed data-processing agreement with a no-training commitment, and SSO) is by quote: [contact@factlot.com](mailto:contact@factlot.com?subject=FactLot%20Enterprise%20or%20registry%20licence). [Terms](https://factlot.com/terms) · [Privacy](https://factlot.com/privacy). Questions and bug reports go in [GitHub Discussions](https://github.com/9mp96ygnbk-alt/factlot/discussions) and Issues.
+**Plans:** the hosted endpoint is free with no key: every calculator, ID, fact, rules and document tool at 60 requests a minute per IP address, 25 registry lookups a day per IP address, and 3 reports a month per IP address. [Pro, $49 a month](https://factlot.com/#pricing): 1 API key, 600 requests a minute, 5,000 registry lookups a month, 50 reports a month, email support. [Team, $599 a month](https://factlot.com/#pricing): up to 5 API keys, 3,000 requests a minute, 100,000 registry lookups a month, 1,000 reports a month, priority support, and a vote on which regions open next. Limits are hard caps with no overage charges; at a cap the call returns HTTP 429 with the reset time. Paid plans renew monthly until cancelled; cancel any time. A registry download licence ($2,400 a year per state file, refreshed weekly, for internal use, not redistribution) is available on request, and Enterprise (private deployment, invoicing, a signed data-processing agreement with a no-training commitment, and SSO) is by quote: [contact@factlot.com](mailto:contact@factlot.com?subject=FactLot%20Enterprise%20or%20registry%20licence). [Terms](https://factlot.com/terms) · [Privacy](https://factlot.com/privacy). Questions and bug reports go in [GitHub Discussions](https://github.com/9mp96ygnbk-alt/factlot/discussions) and Issues.
 
 ## Hosted registry
 
@@ -140,8 +140,8 @@ Be clear about scope before adopting it:
   [privacy notice](https://factlot.com/privacy)); for confidential documents, self-host FactLot so
   nothing leaves your network.
 - **Hosted, but not yet on npm or PyPI.** The hosted endpoint at `https://api.factlot.com` serves
-  the calculators, IDs, fact tools and registry lookups for the regions above (free at 60 requests a
-  minute); registry regions not hosted need a self-hosted copy with a registry file. To run it yourself, install from the
+  the calculators, IDs, fact tools, reports and registry lookups for the regions above (free at 60
+  requests a minute); registry regions not hosted need a self-hosted copy with a registry file. To run it yourself, install from the
   [v0.5.0 release](https://github.com/9mp96ygnbk-alt/factlot/releases/tag/v0.5.0), from git, from
   source, or with Docker ([getting started](docs/getting-started.md)).
 
@@ -203,17 +203,22 @@ The server provides these tools:
   `calc_lease_remeasurement_asc842`, `calc_prepayment_and_defeasance`, `calc_walt`, `calc_npv`,
   `calc_irr`, `calc_lease_vs_own`, `calc_renew_vs_relocate`, `calc_hotel_metrics`,
   `calc_dcf_pro_forma`, `calc_direct_cap`, `calc_amortization_schedule`, `calc_equity_waterfall`,
-  `calc_exchange_1031`
-- **Rules:** `rules_tx_property_tax_protest_deadline`
+  `calc_exchange_1031`, `calc_critical_dates`, `calc_reconcile_dcf`, `calc_reconcile_cam`,
+  `calc_tx_unequal_appraisal`
+- **Rules:** `rules_tx_property_tax_protest_deadline`, `rules_tx_property_tax_protest_deadline_batch`
 - **IDs and facts:** `id_parcel`, `id_entity`, `id_space`, `id_building`, `id_document`,
   `id_parse`, `fact_validate`, `fact_package_create`, `fact_package_verify`, `lease_comp_validate`
 - **Documents:** `doc_verify_facts`, `doc_abstract_lease`, `doc_compare`, `doc_verify_claim`,
-  `doc_spread_statement`, `doc_check_use_conflict`
+  `doc_spread_statement`, `doc_check_use_conflict`, `doc_predicates`
+- **Reports** (hosted only, every plan: 3 a month free per IP address, 50 on Pro, 1,000 on Team):
+  `report_create` builds an XLSX, PDF or ICS file from a tool result, by code with no model, and
+  returns a download link that works 24 hours ([docs/reports.md](docs/reports.md))
 - **Discovery:** `search`, `fetch`, `schema_get`
 - **Registry** (hosted for the regions `registry_coverage` lists, and on a self-hosted FactLot when
   `FACTLOT_REGISTRY_DB` points at a registry file): `registry_get`, `registry_resolve_parcel`,
   `registry_resolve_external`, `registry_search_address`, `registry_search_entities`,
-  `registry_owned_by`, `registry_coverage`, `registry_tx_equity_candidates`
+  `registry_owned_by`, `registry_coverage`, `registry_tx_equity_candidates`,
+  `registry_tx_equity_candidates_batch`
 
 ## Quick start: Python agents
 
