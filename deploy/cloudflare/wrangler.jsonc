@@ -28,7 +28,7 @@
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   // Minified: the report engine (pdf-lib) and pdf.js (unpdf) put the unminified bundle near
   // 8 MB; minifying keeps the upload well under the Worker size limit.
-  "minify": true,
+  "minify": false,
   // Reports and the model-backed tools build files and read PDFs in the Worker, which takes more
   // than the free plan's 10 ms of CPU per request. On the Workers Paid plan add a limits block
   // with cpu_ms 30000 and set REPORTS_ENABLED to "true" in vars; on the free plan leave both out.
