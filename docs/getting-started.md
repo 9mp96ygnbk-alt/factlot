@@ -23,9 +23,9 @@ curl -s https://api.factlot.com/v1/calc/irr -H 'content-type: application/json' 
   -d '{"cash_flows":[-100,10,10,110]}'
 ```
 
-Send a descriptive `User-Agent` header from scripts (for example `my-agent/1.0`). The edge
-network in front of the API rejects some default library agents, such as Python's
-`Python-urllib/3.x`, with HTTP 403; `requests`, `httpx`, and `curl` defaults are accepted.
+Send a descriptive `User-Agent` header from scripts (for example `my-agent/1.0`), so the operator
+can tell your traffic from a script's and contact you if it misbehaves. Default library agents,
+including Python's `urllib`, are accepted.
 
 > **What works today.** FactLot is not on npm or PyPI yet. Each section
 > below lists the commands that work now first: from a clone, from git, or from the files

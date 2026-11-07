@@ -73,8 +73,8 @@ console. See their own guides for the steps.
   At 60 a minute, that is about ten sessions a minute from one address, or 15 calls through
   `get_tools()`. Keep sessions open, share one list, and use a key for anything bigger.
 
-- **Python's default `urllib` User-Agent gets HTTP 403** at the edge. `httpx`, `requests` and `curl`
-  defaults are accepted, but name your client anyway ([below](#set-a-user-agent)).
+- **Name your client.** Default library agents are accepted, but send a descriptive `User-Agent`
+  anyway ([below](#set-a-user-agent)).
 - **Pass rates as decimals** (0.065, not 6.5). Tools reject whole-number percentages; see
   [docs/agents.md](../../docs/agents.md).
 
@@ -676,10 +676,9 @@ tests, so its 60-second wait is from the worker's code, not an observation. Crew
 ## Set a User-Agent
 
 Send a descriptive `User-Agent` such as `my-agent/1.0 (you@example.com)`, so the operator can tell
-your traffic from a script's and contact you if it misbehaves. The edge in front of the hosted API
-rejects some default library agents (Python's `Python-urllib/3.x`) with HTTP 403. The recipes above
-set it in the HTTP client factory or the fetch wrapper; CrewAI's `mcps=` takes it in
-`MCPServerHTTP(headers=...)`.
+your traffic from a script's and contact you if it misbehaves. Default library agents, including
+Python's `urllib`, are accepted. The recipes above set it in the HTTP client factory or the fetch
+wrapper; CrewAI's `mcps=` takes it in `MCPServerHTTP(headers=...)`.
 
 ## Use an API key
 
@@ -735,7 +734,6 @@ rejection messages to correct it.
 
 | Symptom                                                                           | Cause and fix                                                                                                                                           |
 | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `403` from `api.factlot.com` in a Python script                                   | The default `urllib` User-Agent. Send your own ([above](#set-a-user-agent)).                                                                            |
 | `ImportError: cannot import name 'RequestContext'`                                | `langchain-mcp-adapters` 0.3.1 with `mcp` 2.x. Install `langchain-mcp-adapters` 0.3.2 and `mcp<2`.                                                      |
 | `MCP Python SDK v2 requires httpx_client_factory to return an httpx2.AsyncClient` | Use `import httpx2 as httpx` in the factory, or pin `mcp<2`.                                                                                            |
 | `Error converting MCP schema to strict mode` (INFO, OpenAI Agents)                | Only with `convert_schemas_to_strict` on. Expected for 8 tools; they run non-strict.                                                                    |
