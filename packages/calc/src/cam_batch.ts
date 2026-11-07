@@ -126,27 +126,52 @@ export interface CamReconciliationBatch {
 
 type BatchInput = z.output<typeof CamReconciliationBatchInput>;
 
-/** The single-tenant calc_cam_reconciliation input for tenant `i` of a batch. */
+/**
+ * The single-tenant calc_cam_reconciliation input for tenant `i` of a batch. With `raw` (the batch input
+ * as sent), the `controllable` and `variable` flags and `gross_up.target_occupancy` the caller left out
+ * stay out, so the statement carries the same default warnings a single-tenant call would.
+ */
 export function camBatchTenantInput(
   input: BatchInput,
   i: number,
+  raw?: unknown,
 ): z.output<typeof CamReconciliationInput> {
   const t = input.tenants[i];
   if (!t) throw new CalcInputError(`no tenant ${i}`);
   const excluded = new Set(t.excluded_categories);
   const noFee = new Set(t.admin_fee_excluded_categories);
+  const sent = raw as
+    | {
+        expenses?: Record<string, unknown>[];
+        gross_up?: Record<string, unknown>;
+      }
+    | undefined;
   const out: z.output<typeof CamReconciliationInput> = {
     year: input.year,
     pro_rata_share: t.pro_rata_share,
-    expenses: input.expenses.map((e) => ({
-      ...e,
-      recoverable: e.recoverable && !excluded.has(e.category),
-      admin_fee_applies: e.admin_fee_applies && !noFee.has(e.category),
-    })),
+    expenses: input.expenses.map((e, j) => {
+      const line: Record<string, unknown> = {
+        ...e,
+        recoverable: e.recoverable && !excluded.has(e.category),
+        admin_fee_applies: e.admin_fee_applies && !noFee.has(e.category),
+      };
+      const given = sent?.expenses?.[j];
+      if (given)
+        for (const key of ["controllable", "variable"])
+          if (given[key] === undefined) delete line[key];
+      return line as z.output<
+        typeof CamReconciliationInput
+      >["expenses"][number];
+    }),
     structure: t.structure,
     estimates_paid: t.estimates_paid,
   };
-  if (input.gross_up) out.gross_up = input.gross_up;
+  if (input.gross_up)
+    out.gross_up = (
+      sent?.gross_up && sent.gross_up.target_occupancy === undefined
+        ? { actual_occupancy: input.gross_up.actual_occupancy }
+        : input.gross_up
+    ) as typeof input.gross_up;
   if (t.cap) out.cap = t.cap;
   if (t.admin_fee) out.admin_fee = t.admin_fee;
   if (t.occupancy) out.occupancy = t.occupancy;
@@ -182,7 +207,7 @@ export function camReconciliationBatch(
   const statements: CamTenantStatement[] = input.tenants.map((x, i) => {
     let statement: CalcResult<CamReconciliation>;
     try {
-      statement = camReconciliation(camBatchTenantInput(input, i));
+      statement = camReconciliation(camBatchTenantInput(input, i, raw));
     } catch (err) {
       if (err instanceof CalcInputError) throw inTenant(i, err);
       throw err;

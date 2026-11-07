@@ -332,7 +332,9 @@
         "value.ranking.3.metric_psf_annual": 33.0698,
         "value.ranking.3.total_net": 2504379.36,
         "value.ranking.0.opex_structure": "base_year",
-        "warnings": []
+        "warnings": [
+          "Gross Tower is full-service gross (operating_expenses.type gross): the landlord pays the operating expenses, so expense_psf_annual is not charged to the tenant. If the tenant pays them, set type nnn, base_year or expense_stop."
+        ]
       }
     },
     {
@@ -866,6 +868,58 @@
         "area_basis": "usable"
       },
       "expect_error": true
+    },
+    {
+      "name": "an NNN deal typed as gross: its expense estimate is not charged to the tenant, and two warnings say so (the gross structure and the defaulted discount rate)",
+      "input": {
+        "proposals": [
+          {
+            "name": "Greenway",
+            "schedule": {
+              "commencement_date": "2027-01-01",
+              "term_months": 84,
+              "area_sf": 12000,
+              "starting_rent_psf_annual": 28,
+              "escalation": {
+                "type": "percent",
+                "rate": 0.03
+              }
+            },
+            "ti_allowance_psf": 40,
+            "operating_expenses": {
+              "type": "gross",
+              "expense_psf_annual": 12
+            }
+          },
+          {
+            "name": "Galleria",
+            "schedule": {
+              "commencement_date": "2027-01-01",
+              "term_months": 84,
+              "area_sf": 12000,
+              "starting_rent_psf_annual": 14,
+              "escalation": {
+                "type": "percent",
+                "rate": 0.03
+              }
+            },
+            "ti_allowance_psf": 45,
+            "operating_expenses": {
+              "type": "gross",
+              "expense_psf_annual": 14
+            }
+          }
+        ]
+      },
+      "expect": {
+        "value.best": "Galleria",
+        "value.ranking.0.metric_psf_annual": 6.8208,
+        "value.ranking.1.metric_psf_annual": 22.9313,
+        "warnings": [
+          "Greenway, Galleria are full-service gross (operating_expenses.type gross): the landlord pays the operating expenses, so expense_psf_annual is not charged to the tenant. If the tenant pays them, set type nnn, base_year or expense_stop.",
+          "discount_rate_annual not given: the default 0.08 was used. The ranking can change with the rate; pass the tenant's own rate."
+        ]
+      }
     }
   ]
 }

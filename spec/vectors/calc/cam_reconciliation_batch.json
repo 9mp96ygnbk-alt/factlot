@@ -434,6 +434,66 @@
         "tenants": []
       },
       "expect_error": true
+    },
+    {
+      "name": "flags left to their defaults: each tenant's statement names them as a single-tenant call would (controllable only under a cap), and the building points to the statements",
+      "input": {
+        "year": 2026,
+        "expenses": [
+          {
+            "category": "real estate taxes",
+            "amount": 300000,
+            "controllable": false
+          },
+          {
+            "category": "utilities",
+            "amount": 120000,
+            "variable": true
+          },
+          {
+            "category": "janitorial",
+            "amount": 80000,
+            "controllable": true,
+            "variable": true
+          }
+        ],
+        "gross_up": {
+          "actual_occupancy": 0.8
+        },
+        "tenants": [
+          {
+            "name": "Capped",
+            "pro_rata_share": 0.25,
+            "cap": {
+              "method": "year_over_year",
+              "rate": 0.05,
+              "reference_amount": 40000
+            }
+          },
+          {
+            "name": "Uncapped",
+            "pro_rata_share": 0.25
+          }
+        ]
+      },
+      "expect": {
+        "value.tenants.0.statement.value.tenant_share_controllable": 59375,
+        "value.tenants.0.statement.value.cap_limit": 42000,
+        "value.tenants.0.statement.value.cap_reduction": 17375,
+        "value.tenants.0.statement.warnings": [
+          "gross_up.target_occupancy not given: the default 0.95 was used; confirm the occupancy the lease grosses up to (commonly 0.95 or 1.0).",
+          "No variable flag on real estate taxes: not grossed up (the default is false). Set variable true on lines that vary with occupancy, such as janitorial, utilities and the management fee.",
+          "No controllable flag on utilities: treated as controllable (the default is true), so they count toward the cap. Taxes, insurance and utilities are usually uncontrollable; set controllable on every line."
+        ],
+        "value.tenants.1.statement.warnings": [
+          "gross_up.target_occupancy not given: the default 0.95 was used; confirm the occupancy the lease grosses up to (commonly 0.95 or 1.0).",
+          "No variable flag on real estate taxes: not grossed up (the default is false). Set variable true on lines that vary with occupancy, such as janitorial, utilities and the management fee.",
+          "No CAM cap supplied; confirm the lease has none."
+        ],
+        "warnings": [
+          "Statements for Capped, Uncapped carry warnings (tenants[i].statement.warnings); relay them with each statement."
+        ]
+      }
     }
   ]
 }

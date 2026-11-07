@@ -698,6 +698,74 @@
         }
       },
       "expect_error": true
+    },
+    {
+      "name": "lines without a controllable or variable flag under a cap and a gross-up: the defaults (controllable true, variable false, target 0.95) apply and each is named in a warning",
+      "input": {
+        "year": 2026,
+        "pro_rata_share": 0.08,
+        "expenses": [
+          {
+            "category": "janitorial",
+            "amount": 400000,
+            "controllable": true,
+            "variable": true
+          },
+          {
+            "category": "utilities",
+            "amount": 600000,
+            "variable": true
+          },
+          {
+            "category": "management fee",
+            "amount": 250000,
+            "variable": true,
+            "admin_fee_applies": false
+          },
+          {
+            "category": "real estate taxes",
+            "amount": 700000,
+            "controllable": false,
+            "admin_fee_applies": false
+          },
+          {
+            "category": "insurance",
+            "amount": 90000,
+            "controllable": false,
+            "variable": false,
+            "admin_fee_applies": false
+          }
+        ],
+        "gross_up": {
+          "actual_occupancy": 0.82
+        },
+        "cap": {
+          "method": "compounding_from_base",
+          "rate": 0.05,
+          "reference_amount": 60000,
+          "years_elapsed": 3
+        },
+        "admin_fee": {
+          "rate": 0.1
+        },
+        "estimates_paid": 175000
+      },
+      "expect": {
+        "value.grossed_up_expenses": 2238170.73,
+        "value.tenant_share_controllable": 115853.66,
+        "value.tenant_share_uncontrollable": 63200.0,
+        "value.cap_limit": 69457.5,
+        "value.cap_reduction": 46396.16,
+        "value.admin_fee": 5556.6,
+        "value.tenant_charge": 138214.1,
+        "value.balance_due": -36785.9,
+        "warnings": [
+          "Admin fee on controllable lines computed after the cap and added outside it; confirm the lease's order of operations.",
+          "gross_up.target_occupancy not given: the default 0.95 was used; confirm the occupancy the lease grosses up to (commonly 0.95 or 1.0).",
+          "No variable flag on real estate taxes: not grossed up (the default is false). Set variable true on lines that vary with occupancy, such as janitorial, utilities and the management fee.",
+          "No controllable flag on utilities, management fee: treated as controllable (the default is true), so they count toward the cap. Taxes, insurance and utilities are usually uncontrollable; set controllable on every line."
+        ]
+      }
     }
   ]
 }

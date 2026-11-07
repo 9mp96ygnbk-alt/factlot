@@ -61,7 +61,7 @@ export const CamReconciliationInput = z.object({
           .boolean()
           .default(true)
           .describe(
-            "Subject to the cap. Taxes, insurance, and utilities are typically uncontrollable.",
+            "Subject to the cap. Taxes, insurance, and utilities are typically uncontrollable. Default true; under a cap, lines left unset are named in warnings.",
           ),
         recoverable: z
           .boolean()
@@ -73,7 +73,7 @@ export const CamReconciliationInput = z.object({
           .boolean()
           .default(false)
           .describe(
-            "Varies with occupancy, so eligible for gross-up (janitorial, utilities, management fee).",
+            "Varies with occupancy, so eligible for gross-up (janitorial, utilities, management fee). Default false; with a gross-up, lines left unset are named in warnings.",
           ),
         admin_fee_applies: z
           .boolean()
@@ -255,6 +255,50 @@ export function occupancyFraction(
       `Prorated for partial occupancy (${occupiedDays} of ${periodDays} days): the tenant's share, the cap limit, and any base-year or stop deduction are each scaled by the same fraction; confirm the lease prorates by days and that cap.reference_amount is a full-year amount.`,
     );
   return f;
+}
+
+/** Up to ten names, then how many more. */
+function listed(names: string[]): string {
+  return `${names.slice(0, 10).join(", ")}${names.length > 10 ? ` and ${names.length - 10} more` : ""}`;
+}
+
+/**
+ * Warnings that name the expense flags and gross-up target left to their defaults, where the default
+ * changes the charge: `controllable` (true) when a cap applies, `variable` (false) when expenses are
+ * grossed up, and `gross_up.target_occupancy` (0.95). `raw` is the input as the caller sent it;
+ * `expenses` the same lines parsed, in the same order (`_cam_default_warnings` in Python).
+ */
+function camDefaultWarnings(
+  raw: unknown,
+  expenses: readonly { category: string; recoverable: boolean }[],
+  capped: boolean,
+  factor: number,
+): string[] {
+  const r = raw as {
+    expenses?: Record<string, unknown>[];
+    gross_up?: Record<string, unknown>;
+  };
+  const rawLines = r.expenses ?? [];
+  const unset = (key: string): string[] =>
+    expenses
+      .filter((e, i) => e.recoverable && rawLines[i]?.[key] === undefined)
+      .map((e) => e.category);
+  const out: string[] = [];
+  if (r.gross_up && r.gross_up.target_occupancy === undefined)
+    out.push(
+      "gross_up.target_occupancy not given: the default 0.95 was used; confirm the occupancy the lease grosses up to (commonly 0.95 or 1.0).",
+    );
+  const fixed = factor > 1 ? unset("variable") : [];
+  if (fixed.length)
+    out.push(
+      `No variable flag on ${listed(fixed)}: not grossed up (the default is false). Set variable true on lines that vary with occupancy, such as janitorial, utilities and the management fee.`,
+    );
+  const assumed = capped ? unset("controllable") : [];
+  if (assumed.length)
+    out.push(
+      `No controllable flag on ${listed(assumed)}: treated as controllable (the default is true), so they count toward the cap. Taxes, insurance and utilities are usually uncontrollable; set controllable on every line.`,
+    );
+  return out;
 }
 
 export function camReconciliation(
@@ -494,6 +538,13 @@ export function camReconciliation(
         "Admin fee base includes uncontrollable lines; many leases exclude taxes, insurance, and utilities from the fee. Set admin_fee_applies false on lines the lease excludes.",
       );
   }
+  for (const w of camDefaultWarnings(
+    raw,
+    input.expenses,
+    input.cap !== undefined,
+    factor,
+  ))
+    t.warn(w);
 
   const charge = t.step(
     "Tenant CAM charge",

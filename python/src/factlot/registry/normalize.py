@@ -579,6 +579,66 @@ def address_state(address: str | None) -> str | None:
     return st if st in STATES else None
 
 
+# --- contact names inside mailing addresses -----------------------------------------------------
+
+# "ATTN JANE DOE", "ATTENTION: TAX DEPT", "C/O ACME MANAGEMENT LLC", "CARE OF ...": a routing line that
+# can name a natural person. The name runs to a comma or to the next address part (a number, a unit or
+# post-office box word).
+_CONTACT_MARK = re.compile(r"(?<![A-Z0-9])(?:ATTN|ATTENTION|C\s*/\s*O|CARE\s+OF)(?![A-Z0-9])\s*:?\s*", re.I)
+_ADDRESS_PART = re.compile(r"(?:\d\S*|#\S*|(?:STE|SUITE|UNIT|APT|FL|FLR|FLOOR|RM|ROOM|BLDG|PO|P\.O\.?|BOX|PMB|DRAWER)"
+                           r"\b\.?)$", re.I)
+# An entity suffix written after a comma ("NATIONAL REGISTERED AGENTS, INC."): still part of the name.
+_SUFFIX_SEGMENT = re.compile(r",\s*(?:INC|INCORPORATED|LLC|L\.\s*L\.\s*C|LP|L\.\s*P|LLP|PLLC|PC|CORP|CORPORATION|CO|"
+                             r"COMPANY|LTD|LIMITED|N\.?\s*A)\.?(?=\s*(?:,|$))", re.I)
+
+
+def scrub_mailing_address(address: str | None) -> tuple[str | None, int]:
+    """A mailing address without the contact names in it that are not clearly organisations.
+
+    Data policy: owners of record are kept only for organisations, never natural persons, and the
+    same holds for a person named on an organisation's mailing address ("ATTN JANE DOE", "C/O JOHN
+    SMITH"). A contact that ``is_organization`` reads as an organisation ("C/O ACME MANAGEMENT LLC")
+    stays; any other ("ATTN TAX DEPT" too, conservatively) is removed with its marker. Returns the
+    address (None when nothing is left) and the number of contacts removed.
+    """
+    if not address:
+        return address, 0
+    out, removed, pos = [], 0, 0
+    for m in _CONTACT_MARK.finditer(address):
+        if m.start() < pos:
+            continue
+        rest = address[m.end():]
+        stop = len(rest)
+        comma = rest.find(",")
+        while comma >= 0:
+            suffix = _SUFFIX_SEGMENT.match(rest, comma)
+            if not suffix:
+                break
+            comma = rest.find(",", suffix.end())
+        if comma >= 0:
+            stop = comma
+        for w in re.finditer(r"\S+", rest[:stop]):
+            if _ADDRESS_PART.match(w.group()):
+                stop = w.start()
+                break
+        name = rest[:stop].strip()
+        out.append(address[pos:m.start()])
+        if not name:  # a marker with no name after it ("C/O BOX 118"): drop the marker only
+            pos = m.end()
+            continue
+        if is_organization(name):
+            out.append(address[m.start():m.end() + stop])
+        else:
+            removed += 1
+        pos = m.end() + stop
+    out.append(address[pos:])
+    if not removed:
+        return address, 0
+    text = re.sub(r"\s+", " ", "".join(out))
+    text = re.sub(r"\s*,\s*(?:,\s*)*", ", ", text).strip(" ,")
+    return (text or None), removed
+
+
 # --- entity standing, for disambiguating same-name entities ------------------------------------
 
 # Status words the adapters write (lower case, underscores), grouped by whether the entity still

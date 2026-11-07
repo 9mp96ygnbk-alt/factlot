@@ -332,31 +332,78 @@ class PageText:
             self._hyphenated = [[_norm(t) for t in _hyphen_readings(p)] for p in self.pages]
         return [i + 1 for i, readings in enumerate(self._hyphenated) if any(q in t for t in readings)]
 
-    def span(self, page: int, q: str) -> dict[str, int] | None:
-        """Code-point offsets of the normalized quote within the document text (pages joined by \\f)."""
+    def span(self, page: int, q: str, whole_words: bool = False) -> dict[str, int] | None:
+        """Code-point offsets of the normalized quote within the document text (pages joined by \\f).
+
+        With ``whole_words``, of its first occurrence that is not part of a longer word or number.
+        """
         if page not in self._maps:
             self._maps[page] = _span_map(self.pages[page - 1])
         text, start, end = self._maps[page]
         if text != self.normalized[page - 1]:
             return None
-        at = text.find(q)
+        at = _whole_words_at(text, q) if whole_words else text.find(q)
         if at < 0:
             return None
         offset = sum(len(p) + 1 for p in self.pages[: page - 1])
         return {"start": offset + start[at], "end": offset + end[at + len(q) - 1]}
 
 
-def locate_quote(doc: PageText, quote: str, claimed_page: int) -> dict[str, Any]:
-    """Where the quote is (the quote part of ``factlot.ingest.verify.verify``)."""
+def _letter_or_number(c: str | None) -> bool:
+    return c is not None and unicodedata.category(c)[0] in "LN"
+
+
+def _number_char(c: str | None) -> bool:
+    return c is not None and unicodedata.category(c)[0] == "N"
+
+
+def _whole_words_at(text: str, q: str) -> int:
+    """Index of the first occurrence of ``q`` in ``text`` not part of a longer word or number, or -1
+    (quotes.ts ``wholeWordsAt``): the characters on either side are not letters or digits, and not a
+    comma or point that continues a number ("310,411" is not whole in "310,411,000")."""
+    def at_(i: int) -> str | None:
+        return text[i] if 0 <= i < len(text) else None
+
+    at = text.find(q)
+    while at >= 0:
+        end = at + len(q)
+        b1, a1 = at_(at - 1), at_(end)
+        bounded = not (_letter_or_number(b1) or _letter_or_number(a1))
+        if bounded and b1 in (",", ".") and _number_char(at_(at - 2)) and _number_char(at_(at)):
+            bounded = False
+        if bounded and a1 in (",", ".") and _number_char(at_(end + 1)) and _number_char(at_(end - 1)):
+            bounded = False
+        if bounded:
+            return at
+        at = text.find(q, at + 1)
+    return -1
+
+
+def locate_quote(doc: PageText, quote: str, claimed_page: int, short_whole_words: bool = False) -> dict[str, Any]:
+    """Where the quote is (the quote part of ``factlot.ingest.verify.verify``).
+
+    With ``short_whole_words`` (statement lines, whose quote must also hold the label and the amount), a
+    quote shorter than MIN_QUOTE_CHARS is accepted where it appears as whole words, not inside a longer
+    word or number; otherwise it is rejected as too short.
+    """
     q = _norm(quote)
-    if len(q) < MIN_QUOTE_CHARS:
+    short = len(q) < MIN_QUOTE_CHARS
+    if short and (not short_whole_words or not q):
         return {"ok": False, "reason": f"quote shorter than {MIN_QUOTE_CHARS} characters"}
-    if 1 <= claimed_page <= len(doc.normalized) and q in doc.normalized[claimed_page - 1]:
+
+    def has(t: str) -> bool:
+        return _whole_words_at(t, q) >= 0 if short else q in t
+
+    if 1 <= claimed_page <= len(doc.normalized) and has(doc.normalized[claimed_page - 1]):
         return {"ok": True, "page": claimed_page, "corrected": False, "q": q}
-    hits = [i + 1 for i, t in enumerate(doc.normalized) if q in t]
+    hits = [i + 1 for i, t in enumerate(doc.normalized) if has(t)]
     if len(hits) > 1:
         return {"ok": False, "reason": f"quote appears on several pages [{', '.join(map(str, hits))}]; "
                                        f"cannot cite a single page"}
+    if not hits and short:
+        return {"ok": False, "reason": f"quote shorter than {MIN_QUOTE_CHARS} characters is found only inside a "
+                                       "longer word or number; quote more of the line"
+                if any(q in t for t in doc.normalized) else "quote not found in the document"}
     if not hits:
         joined = doc.hyphenation_hits(q)
         if joined:

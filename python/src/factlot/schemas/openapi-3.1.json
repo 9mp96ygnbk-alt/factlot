@@ -454,7 +454,7 @@
                   },
                   "discount_rate_annual": {
                     "default": 0.08,
-                    "description": "Annual discount rate as a decimal, e.g. 0.08, applied to every proposal (monthly rate = annual ÷ 12, cash flows at the start of each month).",
+                    "description": "Annual discount rate as a decimal, e.g. 0.08, applied to every proposal (monthly rate = annual ÷ 12, cash flows at the start of each month). Default 0.08, named in warnings when omitted: the ranking can change with the rate.",
                     "type": "number",
                     "minimum": 0,
                     "exclusiveMaximum": 1
@@ -1317,7 +1317,7 @@
                         },
                         "controllable": {
                           "default": true,
-                          "description": "Subject to the cap. Taxes, insurance, and utilities are typically uncontrollable.",
+                          "description": "Subject to the cap. Taxes, insurance, and utilities are typically uncontrollable. Default true; under a cap, lines left unset are named in warnings.",
                           "type": "boolean"
                         },
                         "recoverable": {
@@ -1327,7 +1327,7 @@
                         },
                         "variable": {
                           "default": false,
-                          "description": "Varies with occupancy, so eligible for gross-up (janitorial, utilities, management fee).",
+                          "description": "Varies with occupancy, so eligible for gross-up (janitorial, utilities, management fee). Default false; with a gross-up, lines left unset are named in warnings.",
                           "type": "boolean"
                         },
                         "admin_fee_applies": {
@@ -1598,7 +1598,7 @@
                         },
                         "controllable": {
                           "default": true,
-                          "description": "Subject to the cap. Taxes, insurance, and utilities are typically uncontrollable.",
+                          "description": "Subject to the cap. Taxes, insurance, and utilities are typically uncontrollable. Default true; under a cap, lines left unset are named in warnings.",
                           "type": "boolean"
                         },
                         "recoverable": {
@@ -1608,7 +1608,7 @@
                         },
                         "variable": {
                           "default": false,
-                          "description": "Varies with occupancy, so eligible for gross-up (janitorial, utilities, management fee).",
+                          "description": "Varies with occupancy, so eligible for gross-up (janitorial, utilities, management fee). Default false; with a gross-up, lines left unset are named in warnings.",
                           "type": "boolean"
                         },
                         "admin_fee_applies": {
@@ -5659,7 +5659,7 @@
                             },
                             "controllable": {
                               "default": true,
-                              "description": "Subject to the cap. Taxes, insurance, and utilities are typically uncontrollable.",
+                              "description": "Subject to the cap. Taxes, insurance, and utilities are typically uncontrollable. Default true; under a cap, lines left unset are named in warnings.",
                               "type": "boolean"
                             },
                             "recoverable": {
@@ -5669,7 +5669,7 @@
                             },
                             "variable": {
                               "default": false,
-                              "description": "Varies with occupancy, so eligible for gross-up (janitorial, utilities, management fee).",
+                              "description": "Varies with occupancy, so eligible for gross-up (janitorial, utilities, management fee). Default false; with a gross-up, lines left unset are named in warnings.",
                               "type": "boolean"
                             },
                             "admin_fee_applies": {
@@ -7687,7 +7687,7 @@
       "post": {
         "operationId": "doc_spread_statement",
         "summary": "Spread an operating statement",
-        "description": "Spread a T-12, operating statement, budget or rent roll summary YOU read, onto FactLot's published chart of accounts (multifamily, commercial, or hotel after the USALI summary), deterministically; FactLot runs no model. Send the pages as text and one line per item: {label, amount, quote, page}, optionally your category, a period column, and for a subtotal the indexes of the lines it sums; give the statement's own totals (effective_gross_income, total_operating_expenses, net_operating_income, ebitda, ...) as lines with that total as category. Each line is checked: the quote is on the page, the amount (as a number, any common written form; (1,200) and -1,200 read as negative) and the label are written in it; a line that fails is excluded with the reason. The label is mapped to the chart by keywords: your category is used when it is in the chart, and an exception flags it for review when the dictionary maps the label elsewhere; an ambiguous or unknown label without a category is excluded. Vacancy, concessions, credit loss and other contra lines are always subtracted. Returns per period the sections, the computed totals (EGI, operating expenses, NOI, capital items, net cash flow; for hotels departmental profit, GOP, EBITDA and NOI after the replacement reserve), whether each total and subtotal the statement states foots (within 0.5 per line added, or your tolerance), every line with its citation (document, page, quote, span) and status, statistics (units, occupancy, ADR), and exceptions to review. Not checked: whether the agent missed lines, and meaning beyond the written amount and label.",
+        "description": "Spread a T-12, operating statement, budget or rent roll summary YOU read, onto FactLot's published chart of accounts (multifamily, commercial, or hotel after the USALI summary), deterministically; FactLot runs no model. Send the pages as text and one line per item: {label, amount, quote, page}, optionally your category, a period column, and for a subtotal the indexes of the lines it sums; give the statement's own totals (effective_gross_income, total_operating_expenses, net_operating_income, ebitda, ...) as lines with that total as category. Each line is checked: the quote is on the page (a quote under 12 characters, such as a short row, only where it stands as whole words), the amount (as a number, any common written form; (1,200) and -1,200 read as negative) and the label are written in it; a line that fails is excluded with the reason, and a stated total that does not foot names the lines left out. The label is mapped to the chart by keywords: your category is used when it is in the chart, and an exception flags it for review when the dictionary maps the label elsewhere; an ambiguous or unknown label without a category is excluded. Vacancy, concessions, credit loss and other contra lines are always subtracted. Returns per period the sections, the computed totals (EGI, operating expenses, NOI, capital items, net cash flow; for hotels departmental profit, GOP, EBITDA and NOI after the replacement reserve), whether each total and subtotal the statement states foots (within 0.5 per line added, or your tolerance), every line with its citation (document, page, quote, span) and status, statistics (units, occupancy, ADR), and exceptions to review. Not checked: whether the agent missed lines, and meaning beyond the written amount and label.",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,
@@ -7775,7 +7775,7 @@
                         "quote": {
                           "type": "string",
                           "maxLength": 5000,
-                          "description": "Verbatim text from the page with the label and the amount, e.g. \"Real Estate Taxes 245,000\"."
+                          "description": "Verbatim text from the page with the label and the amount, e.g. \"Real Estate Taxes 245,000\". A row shorter than 12 characters (\"R&M 310,411\") is accepted where it appears on the page as whole words."
                         },
                         "page": {
                           "type": "integer",

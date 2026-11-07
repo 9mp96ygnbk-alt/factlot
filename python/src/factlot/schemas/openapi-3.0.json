@@ -469,7 +469,7 @@
                   },
                   "discount_rate_annual": {
                     "default": 0.08,
-                    "description": "Annual discount rate as a decimal, e.g. 0.08, applied to every proposal (monthly rate = annual ÷ 12, cash flows at the start of each month).",
+                    "description": "Annual discount rate as a decimal, e.g. 0.08, applied to every proposal (monthly rate = annual ÷ 12, cash flows at the start of each month). Default 0.08, named in warnings when omitted: the ranking can change with the rate.",
                     "type": "number",
                     "minimum": 0,
                     "exclusiveMaximum": true,
@@ -1361,7 +1361,7 @@
                         },
                         "controllable": {
                           "default": true,
-                          "description": "Subject to the cap. Taxes, insurance, and utilities are typically uncontrollable.",
+                          "description": "Subject to the cap. Taxes, insurance, and utilities are typically uncontrollable. Default true; under a cap, lines left unset are named in warnings.",
                           "type": "boolean"
                         },
                         "recoverable": {
@@ -1371,7 +1371,7 @@
                         },
                         "variable": {
                           "default": false,
-                          "description": "Varies with occupancy, so eligible for gross-up (janitorial, utilities, management fee).",
+                          "description": "Varies with occupancy, so eligible for gross-up (janitorial, utilities, management fee). Default false; with a gross-up, lines left unset are named in warnings.",
                           "type": "boolean"
                         },
                         "admin_fee_applies": {
@@ -1648,7 +1648,7 @@
                         },
                         "controllable": {
                           "default": true,
-                          "description": "Subject to the cap. Taxes, insurance, and utilities are typically uncontrollable.",
+                          "description": "Subject to the cap. Taxes, insurance, and utilities are typically uncontrollable. Default true; under a cap, lines left unset are named in warnings.",
                           "type": "boolean"
                         },
                         "recoverable": {
@@ -1658,7 +1658,7 @@
                         },
                         "variable": {
                           "default": false,
-                          "description": "Varies with occupancy, so eligible for gross-up (janitorial, utilities, management fee).",
+                          "description": "Varies with occupancy, so eligible for gross-up (janitorial, utilities, management fee). Default false; with a gross-up, lines left unset are named in warnings.",
                           "type": "boolean"
                         },
                         "admin_fee_applies": {

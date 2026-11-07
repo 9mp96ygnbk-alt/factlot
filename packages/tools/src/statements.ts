@@ -20,6 +20,7 @@ import {
 import type { Doc, Json } from "./documents.ts";
 import { suggest } from "./limits.ts";
 import {
+  MIN_QUOTE_CHARS,
   NUMBER_TOKEN,
   decimalKey,
   locateQuote,
@@ -50,7 +51,7 @@ const Line = z.object({
     .string()
     .max(DOC_LIMITS.quoteCharacters)
     .describe(
-      'Verbatim text from the page with the label and the amount, e.g. "Real Estate Taxes 245,000".',
+      'Verbatim text from the page with the label and the amount, e.g. "Real Estate Taxes 245,000". A row shorter than 12 characters ("R&M 310,411") is accepted where it appears on the page as whole words.',
     ),
   page: z
     .number()
@@ -198,7 +199,8 @@ interface Checked {
 }
 
 function cite(doc: Doc, page: number, q: string, line: LineIn): Json {
-  const span = doc.text.span(page, q);
+  // A short quote is located where it stands as whole words (locateQuote).
+  const span = doc.text.span(page, q, [...q].length < MIN_QUOTE_CHARS);
   return {
     document_id: doc.id,
     ...(doc.title !== undefined ? { title: doc.title } : {}),
@@ -245,7 +247,9 @@ export function spreadStatement(
   const checked: Checked[] = lines.map((line, i): Checked => {
     const base = { index: i, line, period: periodOf(line) };
     const at = { line: i };
-    const loc = locateQuote(doc.text, line.quote, line.page);
+    const loc = locateQuote(doc.text, line.quote, line.page, {
+      shortWholeWords: true,
+    });
     if (!loc.ok) {
       flag("quote", loc.reason, at);
       return { ...base, kind: "excluded", reason: loc.reason };
@@ -357,6 +361,16 @@ export function spreadStatement(
       ...(label !== null ? { period: label } : {}),
     });
     const inPeriod = checked.filter((c) => c.period === key);
+    // Lines left out of this period's spread: a total that does not foot names them.
+    const left = inPeriod.filter((c) => c.kind === "excluded");
+    const leftOut = left.length
+      ? `; ${left.length === 1 ? "line" : "lines"} left out of the spread in this period: ${left
+          .slice(0, 5)
+          .map(
+            (c) => `${c.index} (${c.line.label}, ${showValue(c.line.amount)})`,
+          )
+          .join(", ")}${left.length > 5 ? ` and ${left.length - 5} more` : ""}`
+      : "";
     const sectionAmount = new Map<string, number>();
     const sectionLines = new Map<string, number>();
     const sections = p.chart.sections
@@ -402,7 +416,7 @@ export function spreadStatement(
             allFoot = false;
             flag(
               "does_not_foot",
-              `${c.line.label} is ${showValue(c.signed)} on the statement; the lines spread here give ${showValue(amount)} (difference ${showValue(difference)}, tolerance ${showValue(tolerance)})`,
+              `${c.line.label} is ${showValue(c.signed)} on the statement; the lines spread here give ${showValue(amount)} (difference ${showValue(difference)}, tolerance ${showValue(tolerance)})${leftOut}`,
               atOf(c.index),
             );
           }

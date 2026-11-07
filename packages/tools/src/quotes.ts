@@ -1193,13 +1193,20 @@ export class PageText {
     return hits;
   }
 
-  /** Code-point offsets of the normalized quote within the document text (pages joined by \f). */
-  span(page: number, q: string): { start: number; end: number } | undefined {
+  /**
+   * Code-point offsets of the normalized quote within the document text (pages joined by \f). With
+   * `wholeWords`, of its first occurrence that is not part of a longer word or number.
+   */
+  span(
+    page: number,
+    q: string,
+    wholeWords = false,
+  ): { start: number; end: number } | undefined {
     if (!this.maps.has(page))
       this.maps.set(page, spanMap(this.pages[page - 1]!));
     const map = this.maps.get(page);
     if (!map || map.text !== this.normalized[page - 1]) return undefined;
-    const at = map.text.indexOf(q);
+    const at = wholeWords ? wholeWordsAt(map.text, q) : map.text.indexOf(q);
     if (at < 0) return undefined;
     if (!this.offsets) {
       // Where each page starts in the pages joined by \f, in code points (computed once).
@@ -1215,6 +1222,58 @@ export class PageText {
       end: offset + map.end[at + q.length - 1]!,
     };
   }
+}
+
+const LETTER_OR_NUMBER = /^[\p{L}\p{N}]$/u;
+const NUMBER_CHAR = /^\p{N}$/u;
+
+/** The code point that ends just before UTF-16 index `at`, or undefined at the start. */
+function codePointBefore(text: string, at: number): string | undefined {
+  if (at <= 0) return undefined;
+  const lo = text.charCodeAt(at - 1);
+  if (lo >= 0xdc00 && lo <= 0xdfff && at >= 2) {
+    const hi = text.charCodeAt(at - 2);
+    if (hi >= 0xd800 && hi <= 0xdbff) return text.slice(at - 2, at);
+  }
+  return text[at - 1];
+}
+
+/** The code point that starts at UTF-16 index `at`, or undefined at the end. */
+function codePointAt(text: string, at: number): string | undefined {
+  const c = text.codePointAt(at);
+  return c === undefined ? undefined : String.fromCodePoint(c);
+}
+
+/**
+ * Index of the first occurrence of `q` in `text` that is not part of a longer word or number, or
+ * -1 (`_whole_words_at` in Python): the characters on either side are not letters or digits, and
+ * not a comma or point that continues a number ("310,411" is not whole in "310,411,000").
+ */
+export function wholeWordsAt(text: string, q: string): number {
+  const word = (c: string | undefined): boolean =>
+    c !== undefined && LETTER_OR_NUMBER.test(c);
+  const digit = (c: string | undefined): boolean =>
+    c !== undefined && NUMBER_CHAR.test(c);
+  for (let at = text.indexOf(q); at >= 0; at = text.indexOf(q, at + 1)) {
+    const end = at + q.length;
+    const b1 = codePointBefore(text, at);
+    const a1 = codePointAt(text, end);
+    if (word(b1) || word(a1)) continue;
+    if (
+      (b1 === "," || b1 === ".") &&
+      digit(codePointBefore(text, at - 1)) &&
+      digit(codePointAt(text, at))
+    )
+      continue;
+    if (
+      (a1 === "," || a1 === ".") &&
+      digit(codePointAt(text, end + 1)) &&
+      digit(codePointBefore(text, end))
+    )
+      continue;
+    return at;
+  }
+  return -1;
 }
 
 /** Length in code points, as Python counts. */
@@ -1332,28 +1391,44 @@ export type Location =
   | { ok: true; page: number; corrected: boolean; q: string }
   | { ok: false; reason: string };
 
+/**
+ * Where a quote is. With `shortWholeWords` (statement lines, whose quote must also hold the label and
+ * the amount), a quote shorter than MIN_QUOTE_CHARS is accepted where it appears as whole words, not
+ * inside a longer word or number; otherwise it is rejected as too short.
+ */
 export function locateQuote(
   doc: PageText,
   quote: string,
   claimedPage: number,
+  opts: { shortWholeWords?: boolean } = {},
 ): Location {
   const q = norm(quote);
-  if ([...q].length < MIN_QUOTE_CHARS)
+  const short = [...q].length < MIN_QUOTE_CHARS;
+  if (short && (!opts.shortWholeWords || q.length === 0))
     return {
       ok: false,
       reason: `quote shorter than ${MIN_QUOTE_CHARS} characters`,
     };
+  const has = (t: string): boolean =>
+    short ? wholeWordsAt(t, q) >= 0 : t.includes(q);
   const claimed = doc.normalized[claimedPage - 1];
-  if (claimedPage >= 1 && claimed !== undefined && claimed.includes(q))
+  if (claimedPage >= 1 && claimed !== undefined && has(claimed))
     return { ok: true, page: claimedPage, corrected: false, q };
   const hits: number[] = [];
   doc.normalized.forEach((t, i) => {
-    if (t.includes(q)) hits.push(i + 1);
+    if (has(t)) hits.push(i + 1);
   });
   if (hits.length > 1)
     return {
       ok: false,
       reason: `quote appears on several pages [${hits.join(", ")}]; cannot cite a single page`,
+    };
+  if (hits.length === 0 && short)
+    return {
+      ok: false,
+      reason: doc.normalized.some((t) => t.includes(q))
+        ? `quote shorter than ${MIN_QUOTE_CHARS} characters is found only inside a longer word or number; quote more of the line`
+        : "quote not found in the document",
     };
   if (hits.length === 0) {
     const joined = doc.hyphenationHits(q);

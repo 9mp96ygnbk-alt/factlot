@@ -133,6 +133,12 @@
   {
     "tool": "registry_get",
     "arguments": {
+      "urn": "fl:parcel:us-48999:0002-000-1000"
+    }
+  },
+  {
+    "tool": "registry_get",
+    "arguments": {
       "urn": "fl:building:us-48999:77999:1-nowhere-rd"
     }
   },

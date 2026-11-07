@@ -149,9 +149,23 @@ test("registry tools: TypeScript matches Python on the shared fixture", () => {
       tower.facts?.find((f) => f.predicate === "parcel.land_area_sf")?.value,
       150,
     );
+    // Two unusable areas, and so no usable improvement fact either.
     assert.equal(
       at({ urn: "fl:parcel:us-48999:0004-000-0002" }).warnings?.length,
-      2,
+      3,
+    );
+    // A unit record with no improvement facts warns and names the parcel of its building that has
+    // them (here the common lot); that parcel does not warn.
+    const unit = at({ urn: "fl:parcel:us-48999:0002-000-1002" }).warnings;
+    assert.equal(unit?.length, 1);
+    assert.match(unit?.[0] ?? "", /values may be for the land only/);
+    assert.match(
+      unit?.[0] ?? "",
+      /has them: fl:parcel:us-48999:0002-000-1000\./,
+    );
+    assert.deepEqual(
+      at({ urn: "fl:parcel:us-48999:0002-000-1000" }).warnings,
+      [],
     );
     // Address search by whole words: a bare name or a partial word finds nothing.
     assert.deepEqual(at({ query: "Main" }).results, []);

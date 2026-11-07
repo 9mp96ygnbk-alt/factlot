@@ -636,6 +636,40 @@ def _occupancy_fraction(d: dict[str, Any], year: int, t: Trace) -> float:
     return f
 
 
+def _listed(names: list[str]) -> str:
+    """Up to ten names, then how many more."""
+    return ", ".join(names[:10]) + (f" and {len(names) - 10} more" if len(names) > 10 else "")
+
+
+def _cam_default_warnings(raw: dict[str, Any], expenses: list[dict[str, Any]], capped: bool, factor: float) -> list[str]:
+    """Warnings naming the expense flags and gross-up target left to their defaults (``camDefaultWarnings``).
+
+    Only where the default changes the charge: ``controllable`` (true) under a cap, ``variable`` (false)
+    when expenses are grossed up, and ``gross_up.target_occupancy`` (0.95). ``raw`` is the input as sent.
+    """
+    raw_lines = raw.get("expenses") or []
+
+    def unset(key: str) -> list[str]:
+        return [e["category"] for e, r in zip(expenses, raw_lines)
+                if e["recoverable"] and (not isinstance(r, dict) or r.get(key) is None)]
+
+    out = []
+    g = raw.get("gross_up")
+    if isinstance(g, dict) and g.get("target_occupancy") is None:
+        out.append("gross_up.target_occupancy not given: the default 0.95 was used; confirm the occupancy the lease "
+                   "grosses up to (commonly 0.95 or 1.0).")
+    fixed = unset("variable") if factor > 1 else []
+    if fixed:
+        out.append(f"No variable flag on {_listed(fixed)}: not grossed up (the default is false). Set variable true on "
+                   "lines that vary with occupancy, such as janitorial, utilities and the management fee.")
+    assumed = unset("controllable") if capped else []
+    if assumed:
+        out.append(f"No controllable flag on {_listed(assumed)}: treated as controllable (the default is true), so "
+                   "they count toward the cap. Taxes, insurance and utilities are usually uncontrollable; set "
+                   "controllable on every line.")
+    return out
+
+
 def cam_reconciliation(raw: Any) -> Result:
     d = obj(raw)
     year = number(d, "year", integer=True, ge=1900, le=2200)
@@ -790,6 +824,8 @@ def cam_reconciliation(raw: Any) -> Result:
         if any(not e["controllable"] and e["admin_fee_applies"] for e in adjusted):
             t.warn("Admin fee base includes uncontrollable lines; many leases exclude taxes, insurance, and utilities "
                    "from the fee. Set admin_fee_applies false on lines the lease excludes.")
+    for w in _cam_default_warnings(d, expenses, cap is not None, factor):
+        t.warn(w)
     charge = t.step("Tenant CAM charge", round_(max(0, capped + fee_outside + unctrl_share + fee_unctrl - deduction), 2),
                     f"max(0, {fmt_money(capped)} + {fmt_money(fee_outside)} fee + {fmt_money(unctrl_share)} + "
                     f"{fmt_money(fee_unctrl)} fee − {fmt_money(deduction)})" if fee else
@@ -825,23 +861,34 @@ def _string_list(d: dict[str, Any], key: str, path: str) -> list[str]:
     return [string({"v": v}, "v", join(p, j), min_len=1, max_len=200) for j, v in enumerate(items)]
 
 
-def _batch_tenant_input(d: dict[str, Any], tenant: dict[str, Any]) -> dict[str, Any]:
-    """The single-tenant cam_reconciliation input for one batch tenant (as ``camBatchTenantInput``)."""
+def _batch_tenant_input(d: dict[str, Any], tenant: dict[str, Any], as_sent: bool = False) -> dict[str, Any]:
+    """The single-tenant cam_reconciliation input for one batch tenant (as ``camBatchTenantInput``).
+
+    With ``as_sent``, the ``controllable`` and ``variable`` flags and ``gross_up.target_occupancy`` the caller
+    left out stay out, so the statement carries the same default warnings a single-tenant call would.
+    """
     excluded = set(tenant["excluded_categories"])
     no_fee = set(tenant["admin_fee_excluded_categories"])
+    sent = d["raw"]
+    lines = []
+    for e, given in zip(d["expenses"], sent.get("expenses") or []):
+        line = {**e, "recoverable": e["recoverable"] and e["category"] not in excluded,
+                "admin_fee_applies": e["admin_fee_applies"] and e["category"] not in no_fee}
+        for key in ("controllable", "variable"):
+            if as_sent and given.get(key) is None:
+                del line[key]
+        lines.append(line)
     out: dict[str, Any] = {
         "year": d["year"],
         "pro_rata_share": tenant["raw"].get("pro_rata_share"),
-        "expenses": [{**e, "recoverable": e["recoverable"] and e["category"] not in excluded,
-                      "admin_fee_applies": e["admin_fee_applies"] and e["category"] not in no_fee}
-                     for e in d["expenses"]],
+        "expenses": lines,
         "estimates_paid": tenant["raw"].get("estimates_paid"),
     }
     for key in ("structure", "cap", "admin_fee", "occupancy"):
         if tenant["raw"].get(key) is not None:
             out[key] = tenant["raw"][key]
     if d.get("gross_up") is not None:
-        out["gross_up"] = d["gross_up"]
+        out["gross_up"] = sent["gross_up"] if as_sent else d["gross_up"]
     return out
 
 
@@ -884,7 +931,7 @@ def _cam_batch_parse(raw: Any) -> tuple[dict[str, Any], list[dict[str, Any]]]:
                 if c not in categories:
                     fail(join(join(p, key), j), f"\"{c}\" is not a category in expenses")
         tenants.append(tenant)
-    return {"year": year, "expenses": expenses, "gross_up": gross_up}, tenants
+    return {"year": year, "expenses": expenses, "gross_up": gross_up, "raw": d}, tenants
 
 
 def cam_reconciliation_batch(raw: Any) -> Result:
@@ -894,7 +941,7 @@ def cam_reconciliation_batch(raw: Any) -> Result:
     statements = []
     for i, tenant in enumerate(tenants):
         try:
-            statement = cam_reconciliation(_batch_tenant_input(base, tenant))
+            statement = cam_reconciliation(_batch_tenant_input(base, tenant, as_sent=True))
         except CalcInputError as err:
             issues = [{"path": f"tenants.{i}.{x['path']}", "message": x["message"]} for x in err.issues]
             message = ("invalid input: " + "; ".join(f"{x['path']}: {x['message']}" for x in issues) if issues
@@ -2024,8 +2071,18 @@ def compare_proposals(raw: Any) -> Result:
     if flat_base:
         t.warn(f"Base-year proposal(s) {', '.join(flat_base)} have growth_rate_annual 0, so no expense increases over "
                "the base year are priced.")
+    # A gross proposal's expense estimate is the landlord's cost: it never reaches the tenant's metric.
+    gross_priced = [p["name"] for p in with_opex
+                    if p["operating_expenses"]["type"] == "gross" and p["operating_expenses"]["expense_psf_annual"] > 0]
+    if tenant and gross_priced:
+        t.warn(f"{', '.join(gross_priced)} {'are' if len(gross_priced) > 1 else 'is'} full-service gross "
+               "(operating_expenses.type gross): the landlord pays the operating expenses, so expense_psf_annual is "
+               "not charged to the tenant. If the tenant pays them, set type nnn, base_year or expense_stop.")
     if tenant and any(p["downtime_months"] > 0 for p in proposals):
         t.warn("downtime_months applies to the landlord perspective only; ignored for the tenant.")
+    if d.get("discount_rate_annual") is None:
+        t.warn(f"discount_rate_annual not given: the default {fmt_num(disc)} was used. The ranking can change with "
+               f"the rate; pass the {perspective}'s own rate.")
     terms = [p["schedule"]["term_months"] for p in proposals]
     if max(terms) - min(terms) >= 12:
         t.warn(f"Terms differ ({min(terms)} to {max(terms)} months); annualizing compares cost per year but does not "
