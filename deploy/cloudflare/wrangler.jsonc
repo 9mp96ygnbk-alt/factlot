@@ -20,6 +20,9 @@
   "kv_namespaces": [
     { "binding": "KEYS", "id": "c49c4b0d0bd94c52b1d2d474ad499fcb" },
   ],
+  // Registry tools answer from the factlot-registry Worker (deploy/registry), reachable only
+  // through this binding. Deploy it first: npm run deploy:registry -- <pack dir>.
+  "services": [{ "binding": "REGISTRY", "service": "factlot-registry" }],
   "durable_objects": {
     "bindings": [{ "name": "LIMITER", "class_name": "RateLimiterObject" }],
   },
