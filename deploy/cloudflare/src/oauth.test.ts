@@ -177,6 +177,8 @@ function env(over: Partial<Env> = {}): TestEnv {
   const ns = fakeLimiter();
   return {
     KEYS: new MemoryKV(),
+
+    REPORTS_ENABLED: "true",
     RL_ANON: new CountingLimit(20),
     RL_CLAIM: objectLimiter(ns, "claim", 1, 2000),
     METER: objectMeter(ns),

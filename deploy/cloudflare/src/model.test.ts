@@ -227,6 +227,8 @@ function routerEnv(over: Partial<Env> = {}) {
   };
   const env: Env = {
     KEYS: new MemoryKV(),
+
+    REPORTS_ENABLED: "true",
     RL_ANON: allow,
     RL_CLAIM: objectLimiter(ns, "claim", 1),
     METER: meter.service,
