@@ -16,5 +16,5 @@
     "binding": "ASSETS",
     "run_worker_first": true,
   },
-  "observability": { "enabled": false },
+  "observability": { "enabled": true },
 }

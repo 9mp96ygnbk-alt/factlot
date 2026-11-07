@@ -12,7 +12,9 @@
  * gives the URNs whose key equals the query's key exactly, which go first.
  *
  * Entities: SQLite LIKE '%key%' on name keys, DISTINCT URN in scan (rowid) order, then exact key first, then label,
- * ties in scan order. The name rows are scanned in full.
+ * ties in scan order (of each entity's first matching row). Rows are found through posting lists of the 1- to
+ * 3-character grams of the upper-cased keys (n/df.json gives each gram's row count, n/b/ and n/p/ the lists), or,
+ * for a query whose grams are all very common, read in label order (n/l/) after its exact matches (n/e/).
  */
 import {
   ADDRESS_STREET_TYPES,
@@ -123,7 +125,40 @@ export async function searchAddress(
 
 /** [key, urn, label] in the file's scan order. */
 export type NameRow = [string, string, string | null];
+/** A name row with its position in scan order, and its upper-cased key when that differs from the key. */
+export type PostedRow =
+  | [string, string, string | null, number]
+  | [string, string, string | null, number, string];
+/** Inline posting rows, or the count and page files of a long list. */
+export type Posting = PostedRow[] | { n: number; p: number[] };
+/** [urn, label, position] of each entity whose first row matching a key is that key exactly, by label. */
+export type ExactNames = [string, string | null, number][];
 
+/** The grams of an upper-cased name key the index holds: every substring of 1 to 3 characters. */
+export function nameGrams(upper: string, n?: number): Set<string> {
+  const out = new Set<string>();
+  for (const len of n === undefined ? [1, 2, 3] : [n])
+    for (let i = 0; i + len <= upper.length; i++)
+      out.add(upper.slice(i, i + len));
+  return out;
+}
+
+interface Hit {
+  urn: string;
+  label: string | null;
+  exact: boolean;
+}
+
+// A stable sort keeps scan order (of each entity's first matching row) among ties, as SQLite's sorter does.
+const byExactThenLabel = (a: Hit, b: Hit): number =>
+  Number(b.exact) - Number(a.exact) || sqliteCompare(a.label, b.label);
+
+/**
+ * Entity search. Every row the query can match holds each of the query's grams, so the rows of its least
+ * common gram, checked with the LIKE rule, are every match. A query whose grams are all too common to have a
+ * posting list matches many rows: those come from the label-ordered list, after the entities whose first matching
+ * row is the key itself.
+ */
 export async function searchEntities(
   pack: Pack,
   query: string,
@@ -132,21 +167,70 @@ export async function searchEntities(
   const m = await pack.manifest();
   const key = nameSearchKeyFor(m.versions.name_key_version, query);
   const needle = upperAscii(key);
+  if (!m.names.rows) return [];
+  const n = Math.min(3, needle.length);
+  let rarest: string | undefined;
+  if (n > 0) {
+    const df = await pack.file<Record<string, number>>("n/df.json", true);
+    if (!df) throw new Error("pack file n/df.json is missing");
+    let best = Infinity;
+    for (const g of nameGrams(needle, n)) {
+      const c = Object.hasOwn(df, g) ? df[g]! : 0;
+      if (c === 0) return [];
+      if (c < best) {
+        best = c;
+        rarest = g;
+      }
+    }
+    if (best > m.names.posting_max) rarest = undefined;
+  }
+  if (rarest !== undefined) {
+    const shard = await pack.file<Record<string, Posting>>(
+      `n/b/${shardOf(rarest, m.names.gram_buckets)}.json`,
+    );
+    const posting = shard && Object.hasOwn(shard, rarest) ? shard[rarest]! : [];
+    const pages = Array.isArray(posting)
+      ? [posting]
+      : await Promise.all(
+          posting.p.map(async (p) => {
+            const rows = await pack.file<PostedRow[]>(`n/p/${p}.json`);
+            if (!rows) throw new Error(`pack page n/p/${p}.json is missing`);
+            return rows;
+          }),
+        );
+    // Rows in scan order; the first matching row of each entity decides whether it is an exact match.
+    const seen = new Set<string>();
+    const hits: Hit[] = [];
+    for (const rows of pages)
+      for (const row of rows) {
+        const urn = row[1];
+        if (seen.has(urn) || !(row[4] ?? row[0]).includes(needle)) continue;
+        seen.add(urn);
+        hits.push({ urn, label: row[2], exact: row[0] === key });
+      }
+    hits.sort(byExactThenLabel);
+    return hits.slice(0, limit).map(({ urn, label }) => ({ urn, label }));
+  }
+  // A common query: the exact matches, then the label-ordered rows.
+  const eshard = await pack.file<Record<string, ExactNames>>(
+    `n/e/${shardOf(key, m.names.exact_buckets)}.json`,
+  );
+  const exact = eshard && Object.hasOwn(eshard, key) ? eshard[key]! : [];
+  const out: Match[] = exact
+    .slice(0, limit)
+    .map(([urn, label]) => ({ urn, label }));
   const seen = new Set<string>();
-  const hits: { urn: string; label: string | null; exact: boolean }[] = [];
-  for (let c = 0; c < m.name_chunks; c++) {
-    const rows = await pack.file<NameRow[]>(`n/${c}.json`);
-    if (!rows) throw new Error(`pack chunk n/${c}.json is missing`);
-    for (const [k, urn, label] of rows) {
-      if (seen.has(urn) || !upperAscii(k).includes(needle)) continue;
+  for (let c = 0; c < m.names.label_chunks && out.length < limit; c++) {
+    const rows = await pack.file<PostedRow[]>(`n/l/${c}.json`);
+    if (!rows) throw new Error(`pack chunk n/l/${c}.json is missing`);
+    for (const row of rows) {
+      const urn = row[1];
+      if (seen.has(urn) || !(row[4] ?? row[0]).includes(needle)) continue;
       seen.add(urn);
-      hits.push({ urn, label, exact: k === key });
+      if (row[0] === key) continue; // listed with the exact matches
+      out.push({ urn, label: row[2] });
+      if (out.length >= limit) break;
     }
   }
-  // A stable sort keeps scan order among ties, as SQLite's sorter does.
-  hits.sort(
-    (a, b) =>
-      Number(b.exact) - Number(a.exact) || sqliteCompare(a.label, b.label),
-  );
-  return hits.slice(0, limit).map(({ urn, label }) => ({ urn, label }));
+  return out;
 }

@@ -9,17 +9,20 @@ import {
   TEXAS_FIPS,
   TX_EQUITY_WHICH_PARCEL,
   addressMiss,
-  entitiesMiss,
-  entityMiss,
   externalMiss,
-  parcelMiss,
   parcelUrnForRule,
-  recordMiss,
   texasOnly,
   txEquityWithheld,
 } from "../../../packages/tools/src/registry.ts";
 
+import { equityFromPack } from "./equity.ts";
 import { MAX_LIMIT, getResult } from "./format.ts";
+import {
+  hostedEntitiesMiss,
+  hostedEntityMiss,
+  hostedParcelMiss,
+  hostedRecordMiss,
+} from "./hosted.ts";
 import { searchAddress, searchEntities } from "./search.ts";
 import type { Pack } from "./store.ts";
 
@@ -106,7 +109,8 @@ async function parcelUrn(
 }
 
 async function notFound(pack: Pack, urn: string): Promise<never> {
-  const coverage = recordMiss((await pack.manifest()).coverage, urn);
+  const m = await pack.manifest();
+  const coverage = hostedRecordMiss(m, m.coverage, urn);
   throw new Missing(
     `no registry record for ${urn}: ${String(coverage.message)}`,
     coverage,
@@ -136,7 +140,7 @@ async function run(pack: Pack, tool: string, i: Input): Promise<unknown> {
       const urn = await parcelUrn(pack, s, c, str(i, "apn"));
       return (await pack.entry(urn))
         ? { urn }
-        : { urn: null, coverage: parcelMiss(cov, s, c) };
+        : { urn: null, coverage: hostedParcelMiss(m, cov, s, c) };
     }
     case "registry_resolve_external": {
       const system = str(i, "system");
@@ -157,7 +161,7 @@ async function run(pack: Pack, tool: string, i: Input): Promise<unknown> {
       const results = await searchEntities(pack, str(i, "query"), limitOf(i));
       return results.length
         ? { results }
-        : { results, coverage: entitiesMiss(cov) };
+        : { results, coverage: hostedEntitiesMiss(m, cov) };
     }
     case "registry_owned_by": {
       const urn = str(i, "entity_urn");
@@ -172,7 +176,7 @@ async function run(pack: Pack, tool: string, i: Input): Promise<unknown> {
       return {
         results: [],
         buildings: [],
-        coverage: entityMiss(cov, parts[0] ?? "", entry !== undefined),
+        coverage: hostedEntityMiss(m, cov, parts[0] ?? "", entry !== undefined),
       };
     }
     case "registry_coverage":
@@ -183,8 +187,8 @@ async function run(pack: Pack, tool: string, i: Input): Promise<unknown> {
   throw new Error(`unhandled tool ${tool}`);
 }
 
-// The catalog's registry_tx_equity_candidates checks, in its order. The pack holds no candidate data, so a subject
-// it holds cannot be answered here; one it does not hold is the SDK's NotFound.
+// The catalog's registry_tx_equity_candidates checks, in its order; then the candidates from the pack (equity.ts), or
+// the SDK's NotFound for a parcel the pack does not hold.
 async function txEquity(pack: Pack, i: Input): Promise<unknown> {
   const urnIn = optStr(i, "urn");
   const stateIn = optStr(i, "state_fips");
@@ -219,11 +223,21 @@ async function txEquity(pack: Pack, i: Input): Promise<unknown> {
       throw new InputIssue([{ path: "county_fips", message: withheld }]);
     urn = await parcelUrn(pack, state, countyIn!, apnIn!);
   }
-  if (await pack.entry(urn))
-    throw new Unavailable(
-      "the hosted registry does not compute Texas unequal-appraisal candidates; run FactLot with a registry file that holds this county (FACTLOT_REGISTRY_DB) to get them",
-    );
-  return notFound(pack, urn);
+  const entry = await pack.entry(urn);
+  if (!entry) return notFound(pack, urn);
+  const num = (k: string): number => {
+    const v = i[k];
+    if (typeof v !== "number")
+      throw new InputIssue([{ path: k, message: "expected number" }]);
+    return v;
+  };
+  return equityFromPack(pack, urn, entry, {
+    area_band: num("area_band"),
+    year_band: num("year_band"),
+    min_matches: num("min_matches"),
+    limit: num("limit"),
+    ...(i.tax_year === undefined ? {} : { tax_year: num("tax_year") }),
+  });
 }
 
 /** One registry tool call, as a ToolOutcome. Errors that are not tool outcomes are thrown. */

@@ -22,17 +22,51 @@ import { fileURLToPath } from "node:url";
 
 import {
   ADDRESS_STREET_TYPES,
+  TX_EQUITY_COUNTY_SOURCES_SQL,
+  TX_EQUITY_RANGE_SQL,
+  TX_EQUITY_SOURCE_SQL,
   computeRegistryCoverage,
   configureRegistry,
   coverageReport,
+  equityCompanions,
+  equityComparable,
+  equityFactDocs,
+  equityMissing,
+  equityRollYears,
+  equityRolls,
+  equityRowsBySubject,
+  equitySource,
+  equityYearFacts,
+  hostedWithheldCounties,
   mergeCoverage,
   runTool,
+  situsZip5,
   type RegistryCoverage,
 } from "../../packages/tools/src/index.ts";
 import {
+  EQUITY_BUCKET_BYTES,
+  buildList,
+  byArea,
+  decodeRow,
+  encodeRow,
+  groupBucket,
+  groupDir,
+  poolName,
+  type EqRow,
+  type EquityManifest,
+  type EquitySubject,
+  type PoolHeader,
+  type SortedList,
+} from "../../deploy/registry/src/equity.ts";
+import { hostedCoverageResult } from "../../deploy/registry/src/hosted.ts";
+import {
   INLINE_ROWS,
   MAX_LIMIT,
+  NAME_BUCKET_BYTES,
   NAME_CHUNK_ROWS,
+  NAME_INLINE_ROWS,
+  NAME_PAGE_ROWS,
+  NAME_POSTING_MAX,
   PACK_FORMAT,
   PAGE_ROWS,
   SHARD_TARGET_BYTES,
@@ -47,14 +81,19 @@ import {
   type Manifest,
   type PackDb,
 } from "../../deploy/registry/src/format.ts";
-import type {
-  AddressRow,
-  ExactList,
-  NameRow,
+import {
+  nameGrams,
+  type AddressRow,
+  type ExactList,
+  type ExactNames,
+  type NameRow,
+  type PostedRow,
+  type Posting,
 } from "../../deploy/registry/src/search.ts";
 
 type Row = Record<string, unknown>;
 interface Db {
+  exec(sql: string): void;
   prepare(sql: string): {
     get(...p: unknown[]): Row | undefined;
     all(...p: unknown[]): Row[];
@@ -125,11 +164,13 @@ function subjectEntry(
   kind: string,
   dbIndex: number,
   dates: string[],
+  q?: EquitySubject,
 ): { entry: GetEntry; expect: [boolean, string | undefined, string][] } {
   const base = ok("registry_get", { urn, include_history: true });
   const rec = withoutKeys(base, "history");
   const hist = base.history as unknown[];
   const entry: GetEntry = { k: dbIndex, r: rec, v: [] };
+  if (q) entry.q = q;
   if (!same(hist, rec.facts)) entry.h = hist;
   const expect: [boolean, string | undefined, string][] = [
     [true, undefined, JSON.stringify(base)],
@@ -172,6 +213,479 @@ function checkEntry(
   }
 }
 
+/** A file with more entities than this keeps only the entities that own a parcel the pack holds. */
+export const ENTITY_WHOLE_MAX = 50_000;
+
+export interface FilterResult {
+  /** The file to pack: the source itself when nothing is dropped, else the filtered copy. */
+  path: string;
+  parcels_dropped: number;
+  buildings_dropped: number;
+  /** Entity jurisdiction → [entities kept, entities in the source] for a jurisdiction kept only in part. */
+  entity_scope: Record<string, { served: number; total: number }>;
+}
+
+const sqlText = (s: string): string => `'${s.replaceAll("'", "''")}'`;
+
+/**
+ * The registry file the pack is built from: `src` without the parcels and buildings of `excludeCounties` (5-digit
+ * FIPS), and, when it holds more than ENTITY_WHOLE_MAX entities, without the entities that own none of its
+ * remaining parcels. Everything attached to a dropped subject goes with it (facts, coverage, links, crosswalk IDs,
+ * index rows, building members), as do the sources and snapshots of an excluded county. Rows keep their order.
+ * When nothing would be dropped the source itself is returned. `src` is only read.
+ */
+export function filterRegistry(
+  src: string,
+  out: string,
+  excludeCounties: string[],
+  entityWholeMax = ENTITY_WHOLE_MAX,
+): FilterResult {
+  const probe = new DatabaseSync(src, { readOnly: true });
+  const excludedRanges = excludeCounties.flatMap((fips) =>
+    ["parcel", "building"].map(
+      (kind) =>
+        `(urn >= ${sqlText(`fl:${kind}:us-${fips}:`)} AND urn < ${sqlText(`fl:${kind}:us-${fips};`)})`,
+    ),
+  );
+  const excluded = excludedRanges.length
+    ? `(${excludedRanges.join(" OR ")})`
+    : "0";
+  let dropCount: number;
+  let entities: { j: string; n: number }[];
+  try {
+    dropCount = Number(
+      probe
+        .prepare(`SELECT COUNT(*) AS n FROM subjects WHERE ${excluded}`)
+        .get()?.n,
+    );
+    entities = probe
+      .prepare(
+        "SELECT substr(urn, 11, instr(substr(urn, 11), ':') - 1) AS j, COUNT(*) AS n FROM subjects " +
+          "WHERE kind = 'entity' GROUP BY j ORDER BY j",
+      )
+      .all()
+      .map((r) => ({ j: String(r.j), n: Number(r.n) }));
+  } finally {
+    probe.close();
+  }
+  const total = entities.reduce((a, e) => a + e.n, 0);
+  const trim = total > entityWholeMax;
+  if (!dropCount && !trim)
+    return {
+      path: src,
+      parcels_dropped: 0,
+      buildings_dropped: 0,
+      entity_scope: {},
+    };
+  rmSync(out, { force: true });
+  mkdirSync(join(out, ".."), { recursive: true });
+  const d = new DatabaseSync(out);
+  try {
+    d.exec(
+      "PRAGMA journal_mode = OFF; PRAGMA synchronous = OFF; PRAGMA foreign_keys = OFF;",
+    );
+    d.exec(`ATTACH ${sqlText(src)} AS s`);
+    const schema = d
+      .prepare(
+        "SELECT type, name, sql FROM s.sqlite_master WHERE sql IS NOT NULL AND name NOT LIKE 'sqlite_%' ORDER BY rowid",
+      )
+      .all();
+    for (const type of ["table", "index", "view"])
+      for (const r of schema) if (r.type === type) d.exec(String(r.sql));
+    const counts = (where: string) =>
+      Number(
+        d
+          .prepare(
+            `SELECT COUNT(*) AS n FROM s.subjects WHERE kind = ? AND ${excluded}`,
+          )
+          .get(where)?.n,
+      );
+    const parcelsDropped = counts("parcel");
+    const buildingsDropped = counts("building");
+    // The subjects kept, and the source subjects dropped (a link to a subject the file never held stays).
+    d.exec(
+      `CREATE TEMP TABLE keep (urn TEXT PRIMARY KEY); INSERT INTO keep SELECT urn FROM s.subjects WHERE kind != 'entity' AND NOT ${excluded}`,
+    );
+    if (trim)
+      d.exec(
+        "INSERT OR IGNORE INTO keep SELECT r.from_urn FROM s.relationships r JOIN s.subjects e ON e.urn = r.from_urn " +
+          "WHERE e.kind = 'entity' AND r.type = 'owns' AND r.to_urn IN (SELECT urn FROM keep)",
+      );
+    else
+      d.exec(
+        "INSERT INTO keep SELECT urn FROM s.subjects WHERE kind = 'entity'",
+      );
+    const kept = (col: string) =>
+      `(${col} IN (SELECT urn FROM keep) OR NOT EXISTS (SELECT 1 FROM s.subjects x WHERE x.urn = ${col}))`;
+    const sourceKept = excludeCounties.length
+      ? `(county_fips IS NULL OR state_fips || county_fips NOT IN (${excludeCounties.map(sqlText).join(", ")}))`
+      : "1";
+    for (const sql of [
+      `INSERT INTO meta SELECT * FROM s.meta WHERE key != 'coverage' ORDER BY rowid`,
+      `INSERT INTO sources SELECT * FROM s.sources WHERE ${sourceKept} ORDER BY rowid`,
+      "INSERT INTO snapshots SELECT * FROM s.snapshots WHERE source_id IN (SELECT source_id FROM main.sources) ORDER BY rowid",
+      "INSERT INTO subjects SELECT * FROM s.subjects WHERE urn IN (SELECT urn FROM keep) ORDER BY rowid",
+      "INSERT INTO facts SELECT * FROM s.facts WHERE subject IN (SELECT urn FROM keep) ORDER BY rowid",
+      `INSERT INTO coverage SELECT * FROM s.coverage WHERE ${kept("subject")} ORDER BY rowid`,
+      `INSERT INTO relationships SELECT * FROM s.relationships WHERE ${kept("from_urn")} AND ${kept("to_urn")} ORDER BY rowid`,
+      `INSERT INTO crosswalk SELECT * FROM s.crosswalk WHERE ${kept("urn")} ORDER BY rowid`,
+      "INSERT INTO address_index SELECT * FROM s.address_index WHERE urn IN (SELECT urn FROM keep) ORDER BY rowid",
+      "INSERT INTO name_index SELECT * FROM s.name_index WHERE urn IN (SELECT urn FROM keep) ORDER BY rowid",
+      `INSERT INTO building_members SELECT * FROM s.building_members WHERE ${kept("building_urn")} AND ${kept("parcel_urn")} ORDER BY rowid`,
+    ]) {
+      const table = /^INSERT INTO (\w+)/.exec(sql)![1]!;
+      const has = d
+        .prepare(
+          "SELECT 1 AS x FROM s.sqlite_master WHERE type = 'table' AND name = ?",
+        )
+        .get(table);
+      if (has) d.exec(sql);
+    }
+    const scope: FilterResult["entity_scope"] = {};
+    if (trim)
+      for (const e of entities)
+        scope[e.j] = {
+          served: Number(
+            d
+              .prepare(
+                "SELECT COUNT(*) AS n FROM main.subjects WHERE kind = 'entity' AND urn >= ? AND urn < ?",
+              )
+              .get(`fl:entity:${e.j}:`, `fl:entity:${e.j};`)?.n,
+          ),
+          total: e.n,
+        };
+    d.exec("DETACH s");
+    return {
+      path: out,
+      parcels_dropped: parcelsDropped,
+      buildings_dropped: buildingsDropped,
+      entity_scope: scope,
+    };
+  } catch (err) {
+    d.close();
+    rmSync(out, { force: true });
+    throw err;
+  } finally {
+    try {
+      d.close();
+    } catch {
+      // closed above
+    }
+  }
+}
+
+/** The `sources` entries of every snapshot of a file's Texas sources, by document ID. */
+function texasDocs(d: Db): [string, Row][] {
+  return d
+    .prepare(
+      "SELECT s.document_id FROM snapshots s JOIN sources src USING (source_id) WHERE src.state_fips = '48' ORDER BY s.document_id",
+    )
+    .all()
+    .map((r) => {
+      const doc = String(r.document_id);
+      return [
+        doc,
+        equitySource(doc, d.prepare(TX_EQUITY_SOURCE_SQL).get(doc)!),
+      ];
+    });
+}
+
+interface PoolSpec {
+  county: string;
+  region: string;
+  rolls: string[];
+  companions: string[];
+  categoryJson: unknown;
+  category: string;
+  taxYear: number;
+}
+
+/**
+ * The candidate data of one file's Texas counties: each parcel's EquitySubject (returned) and the pools (written),
+ * made with the SDK's own rule functions from the rows its SQL reads, and checked to decode back to them.
+ */
+function buildEquity(
+  d: Db,
+  regions: string[],
+  w: Writer,
+  m: EquityManifest,
+  docIndex: Map<string, number>,
+  poolNames: Set<string>,
+  log: (line: string) => void,
+): Map<string, EquitySubject> {
+  const out = new Map<string, EquitySubject>();
+  const di = (doc: string): number => {
+    const i = docIndex.get(doc);
+    if (i === undefined) throw new Error(`${doc} is not a Texas snapshot`);
+    return i;
+  };
+  for (const region of regions) {
+    const started = Date.now();
+    const lo = `fl:parcel:${region}:`;
+    const hi = `fl:parcel:${region};`;
+    const countySources = d
+      .prepare(TX_EQUITY_COUNTY_SOURCES_SQL)
+      .all(region.slice(3, 5), region.slice(5, 8))
+      .map((r) => String(r.source_id));
+    const rowsBy = equityRowsBySubject(
+      d.prepare(TX_EQUITY_RANGE_SQL).all(lo, hi),
+    );
+    const parcels = d
+      .prepare(
+        "SELECT urn FROM subjects WHERE kind = 'parcel' AND urn >= ? AND urn < ? ORDER BY urn",
+      )
+      .all(lo, hi)
+      .map((r) => String(r.urn));
+    const specs = new Map<string, PoolSpec>();
+    const pending: [string, EquitySubject][] = [];
+    for (const urn of parcels) {
+      const rows = rowsBy.get(urn) ?? [];
+      const years = equityRollYears(rows);
+      const q: EquitySubject = {
+        y: [...years.entries()].map(([src, [y, v]]) => [src, y, v]),
+        e: [],
+      };
+      for (const year of [...new Set([...years.values()].map(([y]) => y))]) {
+        const rolls = equityRolls(years, year);
+        const companions = equityCompanions(countySources, rolls, year);
+        const facts = equityYearFacts(rows, rolls, companions);
+        const shaped = equityComparable(urn, facts);
+        let key: string | null = null;
+        if (!equityMissing(shaped).length) {
+          const categoryJson = facts.get(
+            "parcel.state_property_category",
+          )!.value_json;
+          key = JSON.stringify([
+            region,
+            rolls,
+            companions,
+            categoryJson,
+            shaped.tax_year,
+          ]);
+          if (!specs.has(key))
+            specs.set(key, {
+              county: region.slice(5, 8),
+              region,
+              rolls,
+              companions,
+              categoryJson,
+              category: shaped.state_property_category as string,
+              taxYear: shaped.tax_year as number,
+            });
+        }
+        q.e.push([
+          year,
+          rolls,
+          companions,
+          shaped,
+          equityFactDocs(facts).map(di),
+          key,
+          0,
+        ]);
+      }
+      pending.push([urn, q]);
+    }
+    // Pools: the comparables of each subject year, as the SDK's pool query selects them.
+    const names = new Map<string, string>();
+    const members = new Map<string, Set<string>>();
+    for (const key of [...specs.keys()].sort()) {
+      const spec = specs.get(key)!;
+      let name = poolName(region.slice(3), key);
+      for (let i = 2; poolNames.has(name); i++)
+        name = `${poolName(region.slice(3), key)}-${i}`;
+      poolNames.add(name);
+      names.set(key, name);
+      const h: Omit<PoolHeader, "all" | "buckets"> = {
+        u: lo,
+        county: spec.county,
+        category: spec.category,
+        tax_year: spec.taxYear,
+      };
+      const rows: EqRow[] = [];
+      const inPool = new Set<string>();
+      for (const urn of parcels) {
+        const prs = rowsBy.get(urn);
+        if (
+          !prs?.some(
+            (r) =>
+              r.predicate === "parcel.state_property_category" &&
+              r.value_json === spec.categoryJson &&
+              spec.rolls.includes(String(r.source_id)),
+          )
+        )
+          continue;
+        const facts = equityYearFacts(prs, spec.rolls, spec.companions);
+        const c = equityComparable(urn, facts);
+        const area = c.improvement_area_sf as number | null;
+        // What the rule requires whatever the parameters: the pool's category and tax year, a positive area, a value.
+        if (
+          c.state_property_category !== spec.category ||
+          c.tax_year !== spec.taxYear ||
+          area === null ||
+          !(area > 0) ||
+          c.value === null
+        )
+          continue;
+        const enc = encodeRow(lo, c, equityFactDocs(facts).map(di), di);
+        if (
+          JSON.stringify(decodeRow(h as PoolHeader, m, enc)) !==
+          JSON.stringify(c)
+        )
+          throw new Error(
+            `${urn}: the encoded comparable does not decode to the SDK's`,
+          );
+        rows.push(enc);
+        inPool.add(urn);
+      }
+      members.set(key, inPool);
+      rows.sort(byArea);
+      const write = (path: string, value: unknown) => w.write(path, value);
+      const all = buildList(rows, `q/${name}/all`, write);
+      const groups = new Map<string, EqRow[]>();
+      const add = (g: string, r: EqRow) => {
+        const list = groups.get(g);
+        if (list) list.push(r);
+        else groups.set(g, [r]);
+      };
+      for (const r of rows) {
+        const zip = situsZip5(r[8]);
+        if (r[6] !== null) add(`N:${r[6]}`, r);
+        if (zip !== null) add(`Z:${zip}`, r);
+        if (r[6] !== null && zip !== null) add(`X:${r[6]}\u0000${zip}`, r);
+      }
+      const dirs = new Set<string>();
+      const lists: [string, SortedList][] = [];
+      for (const g of [...groups.keys()].sort()) {
+        const dir = groupDir(name, g);
+        if (dirs.has(dir))
+          throw new Error(`pool ${name}: two groups share ${dir}`);
+        dirs.add(dir);
+        lists.push([
+          g,
+          buildList(groups.get(g)!, dir, write, g.startsWith("X:")),
+        ]);
+      }
+      const bytes = lists.reduce(
+        (a, [g, l]) => a + g.length + JSON.stringify(l).length + 4,
+        0,
+      );
+      const buckets = Math.max(1, Math.ceil(bytes / EQUITY_BUCKET_BYTES));
+      const files: Record<string, SortedList>[] = Array.from(
+        { length: buckets },
+        () => ({}),
+      );
+      for (const [g, l] of lists) files[groupBucket(g, buckets)]![g] = l;
+      files.forEach((f, i) => w.write(`q/${name}/b${i}.json`, f));
+      w.write(`q/${name}/h.json`, { ...h, all, buckets } satisfies PoolHeader);
+      m.pools += 1;
+    }
+    for (const [urn, q] of pending) {
+      for (const e of q.e)
+        if (e[5] !== null) {
+          e[6] = members.get(e[5])!.has(urn) ? 1 : 0;
+          e[5] = names.get(e[5])!;
+        }
+      out.set(urn, q);
+    }
+    log(
+      `  ${region}: candidate data for ${parcels.length} parcels in ${specs.size} pools (${Math.round((Date.now() - started) / 1000)} s)`,
+    );
+  }
+  return out;
+}
+
+/** Write the entity name index that search.ts reads; rows are in scan order. */
+function writeNameIndex(
+  w: Writer,
+  rows: NameRow[],
+  postingMax = NAME_POSTING_MAX,
+): Manifest["names"] {
+  const posted: PostedRow[] = rows.map(([k, urn, label], i) => {
+    const up = upperAscii(k);
+    return up === k ? [k, urn, label, i] : [k, urn, label, i, up];
+  });
+  // Posting lists, in scan order, of every gram that is not too common.
+  const lists = new Map<string, PostedRow[]>();
+  for (const r of posted)
+    for (const g of nameGrams(r[4] ?? r[0])) {
+      const list = lists.get(g);
+      if (list) list.push(r);
+      else lists.set(g, [r]);
+    }
+  const df: Record<string, number> = {};
+  const dict: [string, Posting][] = [];
+  let page = 0;
+  for (const g of [...lists.keys()].sort()) {
+    const list = lists.get(g)!;
+    df[g] = list.length;
+    if (list.length > postingMax) continue;
+    if (list.length <= NAME_INLINE_ROWS) {
+      dict.push([g, list]);
+      continue;
+    }
+    const p: number[] = [];
+    for (let i = 0; i < list.length; i += NAME_PAGE_ROWS) {
+      w.write(`n/p/${page}.json`, list.slice(i, i + NAME_PAGE_ROWS));
+      p.push(page++);
+    }
+    dict.push([g, { n: list.length, p }]);
+  }
+  w.write("n/df.json", df);
+  const bucketed = <T>(prefix: string, entries: [string, T][]): number => {
+    const bytes = entries.reduce(
+      (a, [k, v]) => a + k.length + JSON.stringify(v).length + 4,
+      0,
+    );
+    const n = Math.max(1, Math.ceil(bytes / NAME_BUCKET_BYTES));
+    const groups: Record<string, T>[] = Array.from({ length: n }, () => ({}));
+    for (const [k, v] of entries) groups[shardOf(k, n)]![k] = v;
+    groups.forEach((g, i) => w.write(`${prefix}/${i}.json`, g));
+    return n;
+  };
+  const gramBuckets = bucketed("n/b", dict);
+  // Exact keys: an entity is an exact match for key K when its first row matching K is K itself.
+  const byUrn = new Map<string, PostedRow[]>();
+  for (const r of posted) {
+    const list = byUrn.get(r[1]);
+    if (list) list.push(r);
+    else byUrn.set(r[1], [r]);
+  }
+  const exact = new Map<string, ExactNames>();
+  for (const r of posted) {
+    const k = r[0];
+    const needle = upperAscii(k);
+    const first = byUrn
+      .get(r[1])!
+      .find((x) => (x[4] ?? x[0]).includes(needle))!;
+    if (first !== r) continue;
+    const list = exact.get(k);
+    if (list) list.push([r[1], r[2], r[3]]);
+    else exact.set(k, [[r[1], r[2], r[3]]]);
+  }
+  for (const list of exact.values())
+    list.sort((a, b) => sqliteCompare(a[1], b[1]) || a[2] - b[2]);
+  const exactBuckets = bucketed(
+    "n/e",
+    [...exact.keys()]
+      .sort()
+      .map((k) => [k, exact.get(k)!] as [string, ExactNames]),
+  );
+  // Every row by label, then scan order.
+  const byLabel = [...posted].sort(
+    (a, b) => sqliteCompare(a[2], b[2]) || a[3] - b[3],
+  );
+  let chunks = 0;
+  for (let i = 0; i < byLabel.length; i += NAME_CHUNK_ROWS)
+    w.write(`n/l/${chunks++}.json`, byLabel.slice(i, i + NAME_CHUNK_ROWS));
+  return {
+    rows: rows.length,
+    posting_max: postingMax,
+    gram_buckets: gramBuckets,
+    exact_buckets: exactBuckets,
+    label_chunks: chunks,
+  };
+}
+
 function meta(d: Db): Map<string, string> {
   return new Map(
     d
@@ -181,12 +695,36 @@ function meta(d: Db): Map<string, string> {
   );
 }
 
+export interface PackOptions {
+  /** 5-digit county FIPS the pack serves nothing of; each needs a reason in hostedWithheldCounties(). */
+  excludeCounties?: string[];
+  /** Where the filtered copies of the files are written (default: next to the pack, "<out>.work"). */
+  work?: string;
+  /** A file with more entities keeps only those owning a packed parcel (default ENTITY_WHOLE_MAX). */
+  entityWholeMax?: number;
+  /** The longest name posting list (default NAME_POSTING_MAX); tests lower it to exercise the label-ordered path. */
+  namePostingMax?: number;
+}
+
 export function buildPack(
   sources: PackSource[],
   out: string,
   log: (line: string) => void = () => {},
+  options: PackOptions = {},
 ): PackStats {
   if (!sources.length) throw new Error("no registry files given");
+  const exclude = [...new Set(options.excludeCounties ?? [])].sort();
+  const reasons = hostedWithheldCounties();
+  const withheld: Record<string, string> = {};
+  for (const fips of exclude) {
+    if (!/^[0-9]{5}$/.test(fips))
+      throw new Error(`--exclude-county ${fips}: give a 5-digit county FIPS`);
+    if (!Object.hasOwn(reasons, fips))
+      throw new Error(
+        `--exclude-county ${fips}: no reason in hostedWithheldCounties() for withholding it`,
+      );
+    withheld[fips] = reasons[fips]!;
+  }
   const names = new Set<string>();
   for (const s of sources) {
     if (!/^[a-z0-9-]+$/.test(s.name))
@@ -205,6 +743,33 @@ export function buildPack(
   const tmp = `${target}.building-${process.pid}`;
   rmSync(tmp, { recursive: true, force: true });
   const w = new Writer(tmp);
+  const work = resolve(options.work ?? `${target}.work`);
+  const entityScope: Manifest["entity_scope"] = {};
+  sources = sources.map((s) => {
+    const f = filterRegistry(
+      s.path,
+      join(work, `${s.name}.db`),
+      exclude,
+      options.entityWholeMax,
+    );
+    if (f.path !== s.path)
+      log(
+        `${s.name}: filtered copy ${f.path} (${f.parcels_dropped} parcels and ${f.buildings_dropped} buildings withheld; entities: ${
+          Object.entries(f.entity_scope)
+            .map(([j, e]) => `${j} ${e.served} of ${e.total}`)
+            .join(", ") || "all"
+        })`,
+      );
+    for (const [j, e] of Object.entries(f.entity_scope)) {
+      if (Object.hasOwn(entityScope, j))
+        throw new Error(`entity registry ${j} is in two files`);
+      entityScope[j] = e;
+    }
+    return { name: s.name, path: f.path };
+  });
+  const equity: EquityManifest = { docs: [], pools: 0 };
+  const docIndex = new Map<string, number>();
+  const poolNames = new Set<string>();
 
   const dbs: PackDb[] = [];
   const covs: RegistryCoverage[] = [];
@@ -251,6 +816,26 @@ export function buildPack(
           counties[c.region] = k;
           if (c.state_fips === "48") texas += c.parcels;
         }
+        const texasRegions = cov.counties
+          .filter((c) => c.state_fips === "48")
+          .map((c) => c.region);
+        let eq: Map<string, EquitySubject> | undefined;
+        if (texasRegions.length) {
+          for (const [doc, entry] of texasDocs(d))
+            if (!docIndex.has(doc)) {
+              docIndex.set(doc, equity.docs.length);
+              equity.docs.push([doc, entry]);
+            }
+          eq = buildEquity(
+            d,
+            texasRegions,
+            w,
+            equity,
+            docIndex,
+            poolNames,
+            log,
+          );
+        }
         const subjects = d
           .prepare("SELECT urn, kind FROM subjects ORDER BY urn")
           .all()
@@ -269,7 +854,10 @@ export function buildPack(
         let sampled = 0;
         for (let i = 0; i < subjects.length; i += step) {
           const [urn, kind] = subjects[i]!;
-          sample.add(urn, subjectEntry(urn, kind, k, dates).entry);
+          sample.add(
+            urn,
+            subjectEntry(urn, kind, k, dates, eq?.get(urn)).entry,
+          );
           sampled += 1;
         }
         const perSubject = sampled
@@ -293,7 +881,13 @@ export function buildPack(
             [boolean, string | undefined, string][],
           ][] = [];
           for (const [urn, kind] of group) {
-            const { entry, expect } = subjectEntry(urn, kind, k, dates);
+            const { entry, expect } = subjectEntry(
+              urn,
+              kind,
+              k,
+              dates,
+              eq?.get(urn),
+            );
             enc.add(urn, entry);
             checks.push([urn, entry, expect]);
           }
@@ -362,7 +956,7 @@ export function buildPack(
     });
     if (texas)
       log(
-        `note: ${texas} Texas parcels; registry_tx_equity_candidates answers RegistryUnavailable for them`,
+        `${texas} Texas parcels with candidate data in ${equity.pools} pools`,
       );
 
     // Crosswalk shards.
@@ -450,10 +1044,8 @@ export function buildPack(
     for (const [key, v] of dict) aGroups[shardOf(key, aShards)]![key] = v;
     aGroups.forEach((g, i) => w.write(`a/${i}.json`, g));
 
-    // Entity name rows in scan order.
-    let chunks = 0;
-    for (let i = 0; i < nameRows.length; i += NAME_CHUNK_ROWS)
-      w.write(`n/${chunks++}.json`, nameRows.slice(i, i + NAME_CHUNK_ROWS));
+    // Entity name index.
+    const names = writeNameIndex(w, nameRows, options.namePostingMax);
 
     const coverage = mergeCoverage(covs);
     const versions = {
@@ -468,10 +1060,17 @@ export function buildPack(
       counties,
       versions,
       coverage,
-      coverage_result: coverageReport(coverage, versions),
+      coverage_result: hostedCoverageResult(
+        { withheld, entity_scope: entityScope },
+        coverage,
+        coverageReport(coverage, versions),
+      ),
       crosswalk_shards: xShards,
       address_shards: aShards,
-      name_chunks: chunks,
+      names,
+      withheld,
+      entity_scope: entityScope,
+      equity: equity.docs.length ? equity : null,
       counts: {
         parcels: coverage.totals.parcels,
         entities: coverage.totals.entities,
@@ -494,11 +1093,15 @@ export function buildPack(
 
 function main(argv: string[]): void {
   let out: string | undefined;
+  let work: string | undefined;
+  const excludeCounties: string[] = [];
   const sources: PackSource[] = [];
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]!;
     if (a === "--out") out = argv[++i];
     else if (a.startsWith("--out=")) out = a.slice(6);
+    else if (a === "--exclude-county") excludeCounties.push(argv[++i] ?? "");
+    else if (a === "--work") work = argv[++i];
     else if (a.startsWith("-")) throw new Error(`unknown option ${a}`);
     else {
       const eq = a.indexOf("=");
@@ -510,12 +1113,15 @@ function main(argv: string[]): void {
   }
   if (!out || !sources.length) {
     console.error(
-      "usage: node scripts/registry/pack.ts --out <dir> <db | name=db>...",
+      "usage: node scripts/registry/pack.ts --out <dir> [--exclude-county <5-digit FIPS>]... [--work <dir>] <db | name=db>...",
     );
     process.exit(2);
   }
   const started = Date.now();
-  const stats = buildPack(sources, out, (l) => console.log(l));
+  const stats = buildPack(sources, out, (l) => console.log(l), {
+    excludeCounties,
+    work,
+  });
   console.log(
     `pack: ${stats.files} files, ${(stats.bytes / 1048576).toFixed(1)} MiB, largest ${stats.largest.path} ${(stats.largest.bytes / 1024).toFixed(1)} KiB, regions ${stats.manifest.dbs.map((d) => d.name).join(", ")} (${Math.round((Date.now() - started) / 1000)} s)`,
   );

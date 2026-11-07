@@ -8,7 +8,9 @@
  */
 import type { RegistryCoverage } from "../../../packages/tools/src/registry.ts";
 
-export const PACK_FORMAT = 1;
+import type { EquityManifest, EquitySubject } from "./equity.ts";
+
+export const PACK_FORMAT = 2;
 
 /** Target size of one shard file, in bytes (the builder sizes shard counts from it). */
 export const SHARD_TARGET_BYTES = 96 * 1024;
@@ -16,8 +18,19 @@ export const SHARD_TARGET_BYTES = 96 * 1024;
 export const PAGE_ROWS = 700;
 /** Rows kept inline in an address dictionary shard before a list moves to its own pages. */
 export const INLINE_ROWS = 120;
-/** Entity name rows per chunk file. */
+/** Entity name rows per chunk of the label-ordered list. */
 export const NAME_CHUNK_ROWS = 1400;
+/**
+ * A name gram (1 to 3 characters of an upper-cased name key) held by more rows than this has no posting list: a
+ * query whose every gram is that common matches so many rows that the label-ordered list answers it in a chunk
+ * or two.
+ */
+export const NAME_POSTING_MAX = 8000;
+/** Rows per page of a long posting list, and the longest list kept inline in a bucket. */
+export const NAME_PAGE_ROWS = 1600;
+export const NAME_INLINE_ROWS = 160;
+/** Target size of a name posting or exact-key bucket file. */
+export const NAME_BUCKET_BYTES = 128 * 1024;
 /** The largest `limit` a registry search accepts (the catalog's schema). */
 export const MAX_LIMIT = 100;
 
@@ -53,7 +66,21 @@ export interface Manifest {
   coverage_result: unknown;
   crosswalk_shards: number;
   address_shards: number;
-  name_chunks: number;
+  /** The entity name index (search.ts): bucket and chunk counts. */
+  names: {
+    rows: number;
+    /** The most rows a gram's posting list holds (NAME_POSTING_MAX unless the build set another). */
+    posting_max: number;
+    gram_buckets: number;
+    exact_buckets: number;
+    label_chunks: number;
+  };
+  /** Counties withheld from the hosted registry (5-digit FIPS → reason); see hosted.ts. */
+  withheld: Record<string, string>;
+  /** Entity registries served in part (jurisdiction → served and total entities); see hosted.ts. */
+  entity_scope: Record<string, { served: number; total: number }>;
+  /** Texas unequal-appraisal candidate data (equity.ts), or null when the pack holds no Texas parcel. */
+  equity: EquityManifest | null;
   counts: Record<string, number>;
 }
 
@@ -260,6 +287,8 @@ export interface GetEntry {
   h?: unknown[];
   v: (0 | [Rec | 0, 0 | 1 | unknown[]])[];
   o?: { results: unknown[]; buildings: unknown[] };
+  /** A Texas parcel's registry_tx_equity_candidates data (equity.ts). */
+  q?: EquitySubject;
 }
 
 /** Index into GetEntry.v for a dated lookup: the interval of `dates` that `asOf` falls in. */

@@ -20,16 +20,21 @@ const CACHE_FILES = 48;
 export class Pack {
   private manifestPromise: Promise<Manifest> | undefined;
   private readonly cache = new Map<string, unknown>();
+  private readonly pinned: Map<string, unknown>;
   /** Files read from the assets binding since the pack was opened (for tests and timing). */
   reads = 0;
 
   private readonly assets: AssetFetcher;
 
-  constructor(assets: AssetFetcher) {
+  /** `pinned`: files kept from an earlier reader of the same pack (the checker uses it to time a warm isolate). */
+  constructor(assets: AssetFetcher, pinned = new Map<string, unknown>()) {
     this.assets = assets;
+    this.pinned = pinned;
   }
 
-  async file<T>(path: string): Promise<T | undefined> {
+  /** A pack file, parsed; `pin` keeps it for the life of the isolate (a small file read on most requests). */
+  async file<T>(path: string, pin = false): Promise<T | undefined> {
+    if (this.pinned.has(path)) return this.pinned.get(path) as T;
     if (this.cache.has(path)) {
       const v = this.cache.get(path);
       this.cache.delete(path);
@@ -41,6 +46,10 @@ export class Pack {
     if (res.status === 404) return undefined;
     if (!res.ok) throw new Error(`pack file ${path}: HTTP ${res.status}`);
     const v = JSON.parse(await res.text()) as T;
+    if (pin) {
+      this.pinned.set(path, v);
+      return v;
+    }
     this.cache.set(path, v);
     if (this.cache.size > CACHE_FILES)
       this.cache.delete(this.cache.keys().next().value as string);

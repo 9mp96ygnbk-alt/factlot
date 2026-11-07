@@ -2137,6 +2137,11 @@ export function equityPoolQuery(
 export const TX_EQUITY_COUNTY_SOURCES_SQL = EQUITY_COUNTY_SOURCES_SQL;
 /** A parcel's current facts for the rule, with their source (one parameter: the URN). */
 export const TX_EQUITY_SUBJECT_SQL = EQUITY_SUBJECT_SQL;
+/** The same rows for every parcel with a URN in [?, ?), grouped by parcel (equityRowsBySubject). */
+export const TX_EQUITY_RANGE_SQL = EQUITY_SUBJECT_SQL.replace(
+  "WHERE f.subject = ?",
+  "WHERE f.subject >= ? AND f.subject < ?",
+);
 /** A snapshot with its source's rights (one parameter: the document ID), for `equitySource`. */
 export const TX_EQUITY_SOURCE_SQL = EQUITY_SOURCE_SQL;
 

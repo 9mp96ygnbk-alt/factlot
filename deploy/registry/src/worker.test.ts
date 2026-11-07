@@ -2,22 +2,43 @@
 // runTool returns against the fixture itself, for every record and a battery of searches, misses and dated lookups.
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { copyFileSync, mkdtempSync, readFileSync } from "node:fs";
+import {
+  copyFileSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  writeFileSync,
+} from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { buildPack } from "../../../scripts/registry/pack.ts";
 import {
+  computeRegistryCoverage,
   configureRegistry,
+  equityRule,
   getTool,
   runTool,
+  selectEquityCandidates,
 } from "../../../packages/tools/src/index.ts";
 
+import {
+  EQUITY_CHUNK_ROWS,
+  buildList,
+  byArea,
+  listCount,
+  listNearest,
+  type EqRow,
+  type EquityManifest,
+  type PoolHeader,
+} from "./equity.ts";
 import { fileAssets } from "./file_assets.ts";
+import { hostedOutcome, type HostedScope } from "./hosted.ts";
 import { addressListKey } from "./search.ts";
+import { Pack } from "./store.ts";
 import { handle } from "./worker.ts";
 
 const spec = fileURLToPath(new URL("../../../spec/registry/", import.meta.url));
@@ -40,8 +61,9 @@ const dir = mkdtempSync(join(tmpdir(), "factlot-registry-pack-"));
 const fixture = join(dir, "fixture.db");
 execFileSync("python3", [join(spec, "build_fixture.py"), fixture]);
 
+let rowsFrom = fixture;
 function rows(sql: string): Row[] {
-  const d = new DatabaseSync(fixture, { readOnly: true });
+  const d = new DatabaseSync(rowsFrom, { readOnly: true });
   try {
     return d.prepare(sql).all();
   } finally {
@@ -75,10 +97,12 @@ async function compare(
   pack: string,
   db: string,
   list: Call[],
+  scope?: HostedScope,
 ): Promise<string[]> {
   const assets = fileAssets(pack);
   const bad: string[] = [];
   configureRegistry(db);
+  const cov = scope ? computeRegistryCoverage() : undefined;
   try {
     for (const { tool, args } of list) {
       const schema = getTool(tool)!.input as unknown as { shape: Row };
@@ -89,16 +113,9 @@ async function compare(
         Object.keys(args).some((k) => !(k in schema.shape))
       )
         continue;
-      const want = runTool(tool, args);
+      const sdk = runTool(tool, args);
+      const want = scope ? hostedOutcome(scope, cov!, tool, args, sdk) : sdk;
       const got = await worker(assets, tool, parsed.data);
-      if (tool === "registry_tx_equity_candidates" && want.ok) {
-        // A subject the pack holds: the hosted registry does not compute candidates.
-        if (JSON.parse(got).error?.error !== "RegistryUnavailable")
-          bad.push(
-            `${tool} ${JSON.stringify(args)}: expected RegistryUnavailable`,
-          );
-        continue;
-      }
       if (got !== JSON.stringify(want))
         bad.push(
           `${tool} ${JSON.stringify(args)}\n  worker ${got}\n  sdk    ${JSON.stringify(want)}`,
@@ -115,6 +132,20 @@ function dayBefore(d: string): string {
   t.setUTCDate(t.getUTCDate() - 1);
   return t.toISOString().slice(0, 10);
 }
+
+// Defaults, tighter and wider bands, a short limit, a high min_matches (the county tier), each roll year.
+const EQUITY_PARAMS: Record<string, unknown>[] = [
+  {},
+  { area_band: 0.1, year_band: 3 },
+  { area_band: 1, year_band: 100, limit: 200 },
+  { limit: 1 },
+  { limit: 3, min_matches: 200 },
+  { min_matches: 1 },
+  { tax_year: 2025 },
+  { tax_year: 2026, area_band: 0.2 },
+  { tax_year: 2027, min_matches: 50 },
+  { tax_year: 2024 },
+];
 
 function getCalls(): Call[] {
   const dates = rows(
@@ -136,7 +167,8 @@ function getCalls(): Call[] {
           args: { urn, include_history, ...(as_of ? { as_of } : {}) },
         });
     out.push({ tool: "registry_owned_by", args: { entity_urn: urn } });
-    out.push({ tool: "registry_tx_equity_candidates", args: { urn } });
+    for (const p of EQUITY_PARAMS)
+      out.push({ tool: "registry_tx_equity_candidates", args: { urn, ...p } });
   }
   for (const urn of [
     "fl:parcel:us-48999:9999-000-0001",
@@ -289,6 +321,23 @@ test("the Worker answers like runTool on the shared fixture", async () => {
   );
 });
 
+test("entity search through the label-ordered list answers like runTool", async () => {
+  // Posting lists of at most 2 rows: most queries take the label-ordered path.
+  const pack = join(dir, "pack-names");
+  buildPack([{ name: "fixture", path: fixture }], pack, () => {}, {
+    namePostingMax: 2,
+  });
+  const list = searchCalls().filter(
+    (c) => c.tool === "registry_search_entities",
+  );
+  const bad = await compare(pack, fixture, list);
+  assert.deepEqual(
+    bad.slice(0, 5),
+    [],
+    `${bad.length} of ${list.length} differ`,
+  );
+});
+
 test("a pack of two files answers like one file holding both (coverage, misses, searches)", async () => {
   // Split the fixture: county 48999 and its buildings in one file, everything else in the other.
   const a = join(dir, "a.db");
@@ -362,4 +411,240 @@ test("HTTP: /run, /health and nothing else", async () => {
     ((await unknown.json()) as { error: { error: string } }).error.error,
     "UnknownTool",
   );
+});
+
+function allFiles(root: string): string[] {
+  return readdirSync(root, { withFileTypes: true }).flatMap((e) =>
+    e.isDirectory() ? allFiles(join(root, e.name)) : [join(root, e.name)],
+  );
+}
+
+test("a withheld county and an entity registry served in part", async () => {
+  // The fixture with its county 48999 renamed Tarrant (48439), the county the hosted registry withholds.
+  const x = join(dir, "tarrant.db");
+  copyFileSync(fixture, x);
+  const d = new DatabaseSync(x);
+  d.exec("PRAGMA foreign_keys = OFF");
+  const rename = (table: string, col: string) =>
+    d.exec(
+      `UPDATE ${table} SET ${col} = replace(${col}, 'us-48999:', 'us-48439:') WHERE ${col} LIKE '%us-48999:%'`,
+    );
+  for (const [t, c] of [
+    ["subjects", "urn"],
+    ["facts", "subject"],
+    ["coverage", "subject"],
+    ["relationships", "from_urn"],
+    ["relationships", "to_urn"],
+    ["crosswalk", "urn"],
+    ["address_index", "urn"],
+    ["name_index", "urn"],
+    ["building_members", "building_urn"],
+    ["building_members", "parcel_urn"],
+  ])
+    rename(t!, c!);
+  d.exec(
+    "UPDATE sources SET county_fips = '439' WHERE county_fips = '999'; DELETE FROM meta WHERE key = 'coverage'",
+  );
+  d.close();
+  const pack = join(dir, "pack-tarrant");
+  const stats = buildPack([{ name: "x", path: x }], pack, () => {}, {
+    excludeCounties: ["48439"],
+    entityWholeMax: 0,
+  });
+  const served = join(`${pack}.work`, "x.db");
+  const m = stats.manifest;
+  assert.match(m.withheld["48439"]!, /Tarrant Appraisal District/);
+  const scope = m.entity_scope["us-tx"]!;
+  assert.ok(
+    scope && scope.served < scope.total,
+    JSON.stringify(m.entity_scope),
+  );
+  // Nothing of the county is in the pack.
+  for (const f of allFiles(pack)) {
+    const text = readFileSync(f, "utf8");
+    assert.ok(!/fl:(parcel|building):us-48439/.test(text), relative(pack, f));
+  }
+  // Everything else answers as runTool on the served data, with the hosted misses; calls drawn from the full file.
+  rowsFrom = x;
+  try {
+    const list = [...shared, ...getCalls(), ...searchCalls()];
+    const bad = await compare(pack, served, list, m);
+    assert.deepEqual(
+      bad.slice(0, 5),
+      [],
+      `${bad.length} of ${list.length} differ`,
+    );
+  } finally {
+    rowsFrom = fixture;
+  }
+  const assets = fileAssets(pack);
+  const call = async (tool: string, input: Row) =>
+    JSON.parse(
+      await worker(assets, tool, getTool(tool)!.input.parse(input)),
+    ) as { ok: boolean; result?: Row; error?: Row };
+  const tarrantUrn = rows(
+    "SELECT urn FROM subjects WHERE urn LIKE 'fl:parcel:us-48999:%' LIMIT 1",
+  )[0]!.urn as string;
+  const withheld =
+    /Tarrant County, TX \(48439\) is not served by the hosted registry while the publisher's terms for AI use are unclear: Tarrant Appraisal District/;
+  const get = await call("registry_get", {
+    urn: tarrantUrn.replace("us-48999", "us-48439"),
+  });
+  assert.equal(get.error?.error, "NotFound");
+  assert.match(String(get.error?.message), withheld);
+  const resolve = await call("registry_resolve_parcel", {
+    state_fips: "48",
+    county_fips: "439",
+    apn: "1",
+  });
+  assert.match(String((resolve.result!.coverage as Row).message), withheld);
+  const cov = await call("registry_coverage", {});
+  const hosted = cov.result!.hosted as {
+    withheld_counties: Row[];
+    entity_registries: Row[];
+  };
+  assert.equal(hosted.withheld_counties[0]!.region, "us-48439");
+  assert.match(String(hosted.withheld_counties[0]!.message), withheld);
+  assert.ok(hosted.entity_registries.some((r) => r.jurisdiction === "us-tx"));
+  const equity = await call("registry_tx_equity_candidates", {
+    urn: tarrantUrn.replace("us-48999", "us-48439"),
+  });
+  assert.equal(equity.error?.error, "InputError");
+  assert.match(String(equity.error?.message), /Tarrant Appraisal District/);
+  // An entity that owns no served parcel: a miss that says what entity lookups cover.
+  const droppedEntity = new DatabaseSync(x, { readOnly: true })
+    .prepare(
+      "SELECT urn FROM subjects WHERE kind = 'entity' AND urn LIKE 'fl:entity:us-tx:%' AND urn NOT IN (SELECT r.from_urn FROM relationships r WHERE r.type = 'owns' AND r.to_urn NOT LIKE '%us-48439:%') LIMIT 1",
+    )
+    .all()[0]!.urn as string;
+  const gone = await call("registry_get", { urn: droppedEntity });
+  assert.equal(gone.error?.error, "NotFound");
+  assert.match(
+    String(gone.error?.message),
+    /entity lookups cover entities that own a hosted parcel/,
+  );
+  const owned = await call("registry_owned_by", { entity_urn: droppedEntity });
+  assert.match(
+    String((owned.result!.coverage as Row).message),
+    /entity lookups cover entities that own a hosted parcel/,
+  );
+});
+
+test("candidates: non-Texas and withheld parcels are input errors, as in the SDK", async () => {
+  const assets = fileAssets(join(dir, "pack"));
+  for (const [input, path, pattern] of [
+    [{ urn: "fl:parcel:us-24005:1" }, "urn", /Texas-only/],
+    [
+      { state_fips: "24", county_fips: "005", apn: "1" },
+      "state_fips",
+      /Texas-only/,
+    ],
+    [{ urn: "fl:parcel:us-48439:1" }, "urn", /Tarrant Appraisal District/],
+    [
+      { county_fips: "439", apn: "1" },
+      "county_fips",
+      /Tarrant Appraisal District/,
+    ],
+  ] as [Row, string, RegExp][]) {
+    const got = JSON.parse(
+      await worker(
+        assets,
+        "registry_tx_equity_candidates",
+        getTool("registry_tx_equity_candidates")!.input.parse(input),
+      ),
+    ) as { error: { error: string; message: string; issues: Row[] } };
+    assert.equal(got.error.error, "InputError");
+    assert.equal(got.error.issues[0]!.path, path);
+    assert.match(got.error.message, pattern);
+  }
+});
+
+test("candidate lists split into chunks count and order like the whole list", async () => {
+  // Synthetic pools large enough for chunked lists (with and without count chunks); every count and nearest-row
+  // answer is checked against the SDK's selection over the decoded rows.
+  let seed = 3;
+  const rand = () =>
+    (seed = (Math.imul(seed, 1103515245) + 12345) >>> 0) / 2 ** 32;
+  const docs: EquityManifest = {
+    docs: [["doc-0", { document_id: "doc-0" }]],
+    pools: 1,
+  };
+  for (const n of [EQUITY_CHUNK_ROWS * 4 + 17, 21000]) {
+    const root = mkdtempSync(join(tmpdir(), "factlot-equity-"));
+    const rowsOf: EqRow[] = [];
+    for (let i = 0; i < n; i++) {
+      const area = Math.round(1000 + rand() * 50000) * (rand() < 0.1 ? 1 : 1);
+      const year = rand() < 0.15 ? null : 1950 + Math.floor(rand() * 75);
+      rowsOf.push([
+        String(100000 + i),
+        rand() < 0.5 ? 1000 + i : null,
+        500 + i,
+        rand() < 0.05 ? 20000 : area,
+        null,
+        year,
+        rand() < 0.5 ? `N${i % 7}` : null,
+        null,
+        `${i} Main St, Example TX 7700${i % 3}`,
+        ["f" + i, 0, null, "2026-01-01"],
+        [0],
+      ]);
+    }
+    rowsOf.sort(byArea);
+    const write = (path: string, value: unknown) => {
+      const full = join(root, path);
+      execFileSync("mkdir", ["-p", join(full, "..")]);
+      writeFileSync(full, JSON.stringify(value));
+    };
+    const list = buildList(rowsOf, "q/p/all", write);
+    assert.ok(!("r" in list) && !("a" in list));
+    assert.equal("cc" in list && list.cc !== undefined, n > 20000);
+    const h: PoolHeader = {
+      u: "fl:parcel:us-48997:",
+      county: "997",
+      category: "F1",
+      tax_year: 2026,
+      all: list,
+      buckets: 1,
+    };
+    const { decodeRow } = await import("./equity.ts");
+    const pool = rowsOf.map((r) => ({
+      urn: h.u + r[0],
+      row: decodeRow(h, docs, r),
+      docs: ["doc-0"],
+    }));
+    const pack = new Pack(fileAssets(root));
+    for (let t = 0; t < 40; t++) {
+      const subject = pool[Math.floor(rand() * pool.length)]!;
+      const params = {
+        area_band: [0.01, 0.1, 0.35, 1][t % 4]!,
+        year_band: [0, 5, 15, 100][Math.floor(t / 4) % 4]!,
+        min_matches: 10,
+        limit: [1, 10, 200][t % 3]!,
+      };
+      // A subject outside the pool's neighborhoods and ZIP codes: every match is tier 2.
+      const s = {
+        ...subject.row,
+        neighborhood_code: null,
+        situs_address: null,
+      };
+      const rule = equityRule(subject.urn, s, params)!;
+      const want = selectEquityCandidates(subject.urn, s, pool, params);
+      const count = await listCount(pack, list, rule);
+      assert.equal(count - 1, want.length, `count ${JSON.stringify(params)}`);
+      const near = await listNearest(
+        pack,
+        h,
+        docs,
+        list,
+        rule,
+        2,
+        params.limit,
+      );
+      assert.deepEqual(
+        near.map((m) => m.urn),
+        want.slice(0, params.limit).map((m) => m.urn),
+        JSON.stringify(params),
+      );
+    }
+  }
 });

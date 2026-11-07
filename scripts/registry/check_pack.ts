@@ -2,13 +2,20 @@
  * Sampled parity check of a built pack against the registry files it was built from.
  *
  *   node --experimental-strip-types --conditions=factlot-source scripts/registry/check_pack.ts \
- *     --pack <dir> --scratch <dir> [--samples 2000] [--seed 1] <db | name=db>...
+ *     --pack <dir> --scratch <dir> [--exclude-county <FIPS>]... [--samples 2000] [--equity 2000] [--seed 1] \
+ *     [--part i/n] [--reuse] <db | name=db>...
  *
- * Merges the files into <scratch>/merged.db (one registry file holding every region, as the hosted registry is
- * meant to answer) and compares the Worker's answers with runTool's on it: records (undated, with history, and
- * dated), ownership, crosswalk IDs, address and entity searches drawn from the files' own keys, coverage and
- * misses. resolve_parcel is compared with each county's own file, since its parcel rule is per file. Prints counts
- * and timings only (never a name or a record); mismatches go to <scratch>/mismatches.jsonl.
+ * Filters the files as pack.ts does (the same --exclude-county; entities of a large registry kept only where they
+ * own a served parcel) and merges them into <scratch>/merged.db (one registry file holding every served region, as
+ * the hosted registry is meant to answer; --reuse keeps an earlier one). Compares the Worker's answers with
+ * runTool's on it, with the hosted misses and coverage (hosted.ts): records (undated, with history and value
+ * history, and dated), ownership, crosswalk IDs, address and entity searches drawn from the files' own keys,
+ * coverage and misses, parcels of withheld counties and entities not served (drawn from the unfiltered files), and
+ * Texas unequal-appraisal candidates for --equity subjects spread over every county and category code, at default,
+ * tighter and other parameters. resolve_parcel is compared with each county's own file, since its parcel rule is per
+ * file. --part i/n checks every n-th call from the i-th (run n processes to share the work). Prints counts and
+ * timings only (never a name or a record); mismatches go to <scratch>/mismatches[-i].jsonl. CPU times are per call
+ * on a fresh pack reader (every file read and parsed) except the name gram counts, which a Worker isolate keeps.
  */
 import {
   copyFileSync,
@@ -25,12 +32,13 @@ import {
   computeRegistryCoverage,
   configureRegistry,
   getTool,
-  parcelMiss,
   runTool,
   type RegistryCoverage,
 } from "../../packages/tools/src/index.ts";
 import { fileAssets } from "../../deploy/registry/src/file_assets.ts";
+import { hostedOutcome } from "../../deploy/registry/src/hosted.ts";
 import { Pack } from "../../deploy/registry/src/store.ts";
+import { filterRegistry } from "./pack.ts";
 import { runRegistryTool } from "../../deploy/registry/src/tools.ts";
 import type { Manifest } from "../../deploy/registry/src/format.ts";
 
@@ -85,20 +93,44 @@ interface Call {
   tool: string;
   args: Row;
   db?: string;
+  /** The row of the report (default: the tool). */
+  label?: string;
+}
+
+interface Options {
+  pack: string;
+  scratch: string;
+  samples: number;
+  equity: number;
+  exclude: string[];
+  part: [number, number];
+  reuse: boolean;
 }
 
 function main(argv: string[]): void {
-  let pack = "";
-  let scratch = "";
-  let samples = 2000;
+  const o: Options = {
+    pack: "",
+    scratch: "",
+    samples: 2000,
+    equity: 2000,
+    exclude: [],
+    part: [0, 1],
+    reuse: false,
+  };
   const files: { name: string; path: string }[] = [];
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]!;
-    if (a === "--pack") pack = resolve(argv[++i]!);
-    else if (a === "--scratch") scratch = resolve(argv[++i]!);
-    else if (a === "--samples") samples = Number(argv[++i]);
+    if (a === "--pack") o.pack = resolve(argv[++i]!);
+    else if (a === "--scratch") o.scratch = resolve(argv[++i]!);
+    else if (a === "--samples") o.samples = Number(argv[++i]);
+    else if (a === "--equity") o.equity = Number(argv[++i]);
     else if (a === "--seed") seed = Number(argv[++i]);
-    else {
+    else if (a === "--exclude-county") o.exclude.push(argv[++i]!);
+    else if (a === "--reuse") o.reuse = true;
+    else if (a === "--part") {
+      const [x, n] = argv[++i]!.split("/").map(Number);
+      o.part = [x!, n!];
+    } else {
       const eq = a.indexOf("=");
       const path = resolve(eq > 0 ? a.slice(eq + 1) : a);
       files.push({
@@ -107,29 +139,38 @@ function main(argv: string[]): void {
       });
     }
   }
-  if (!pack || !scratch || !files.length) {
+  if (!o.pack || !o.scratch || !files.length) {
     console.error(
-      "usage: check_pack.ts --pack <dir> --scratch <dir> [--samples N] <db>...",
+      "usage: check_pack.ts --pack <dir> --scratch <dir> [--exclude-county FIPS]... [--samples N] [--equity N] [--part i/n] [--reuse] <db>...",
     );
     process.exit(2);
   }
-  mkdirSync(scratch, { recursive: true });
-  const merged = join(scratch, "merged.db");
-  console.log("merging the files...");
-  merge(
-    files.map((f) => f.path),
-    merged,
-  );
-  void run(pack, scratch, merged, files, samples);
+  mkdirSync(o.scratch, { recursive: true });
+  const merged = join(o.scratch, "merged.db");
+  const served = files.map((f) => ({
+    ...f,
+    served: join(o.scratch, `served-${f.name}.db`),
+  }));
+  if (!(o.reuse && existsSync(merged))) {
+    console.log("filtering and merging the files...");
+    for (const f of served) {
+      const r = filterRegistry(f.path, f.served, o.exclude);
+      if (r.path !== f.served) copyFileSync(f.path, f.served);
+    }
+    merge(
+      served.map((f) => f.served),
+      merged,
+    );
+  }
+  void run(o, merged, served);
 }
 
 async function run(
-  packDir: string,
-  scratch: string,
+  o: Options,
   merged: string,
-  files: { name: string; path: string }[],
-  samples: number,
+  files: { name: string; path: string; served: string }[],
 ): Promise<void> {
+  const { pack: packDir, scratch, samples } = o;
   const d = new DatabaseSync(merged, { readOnly: true });
   const all = (sql: string, ...p: unknown[]) => d.prepare(sql).all(...p);
   const manifest = (await new Pack(fileAssets(packDir)).manifest()) as Manifest;
@@ -178,7 +219,7 @@ async function run(
   }
   // Parcels by APN, against each county's own file.
   for (const f of files) {
-    const db = new DatabaseSync(f.path, { readOnly: true });
+    const db = new DatabaseSync(f.served, { readOnly: true });
     for (const r of db
       .prepare(
         "SELECT f.subject, f.value_json FROM facts f WHERE f.predicate = 'parcel.apn' ORDER BY random() LIMIT ?",
@@ -194,11 +235,137 @@ async function run(
             county_fips: region.slice(5, 8),
             apn: a,
           },
-          db: f.path,
+          db: f.served,
         });
     }
     db.close();
   }
+  // What the pack does not serve, drawn from the unfiltered files: parcels of withheld counties (records, APNs,
+  // candidates) and entities that own no served parcel.
+  for (const f of files) {
+    const db = new DatabaseSync(f.path, { readOnly: true });
+    for (const fips of o.exclude) {
+      for (const r of db
+        .prepare(
+          "SELECT f.subject, f.value_json FROM facts f WHERE f.subject >= ? AND f.subject < ? AND f.predicate = 'parcel.apn' LIMIT ?",
+        )
+        .all(`fl:parcel:us-${fips}:`, `fl:parcel:us-${fips};`, 100)) {
+        const urn = String(r.subject);
+        const apn = JSON.parse(String(r.value_json)) as string;
+        calls.push(
+          { tool: "registry_get", args: { urn }, label: "withheld get" },
+          {
+            tool: "registry_resolve_parcel",
+            args: {
+              state_fips: fips.slice(0, 2),
+              county_fips: fips.slice(2),
+              apn,
+            },
+            db: f.served,
+            label: "withheld resolve",
+          },
+          {
+            tool: "registry_tx_equity_candidates",
+            args: { urn },
+            label: "withheld equity",
+          },
+        );
+      }
+    }
+    if (Object.keys(manifest.entity_scope).length) {
+      const servedDb = new DatabaseSync(f.served, { readOnly: true });
+      const gone = (urn: string) =>
+        !servedDb.prepare("SELECT 1 AS x FROM subjects WHERE urn = ?").get(urn);
+      let n = 0;
+      for (const r of db
+        .prepare(
+          "SELECT urn FROM subjects WHERE kind = 'entity' AND rowid % 997 = 0 LIMIT 2000",
+        )
+        .all()) {
+        const urn = String(r.urn);
+        if (!gone(urn) || n >= 200) continue;
+        n += 1;
+        calls.push(
+          { tool: "registry_get", args: { urn }, label: "unserved entity get" },
+          {
+            tool: "registry_owned_by",
+            args: { entity_urn: urn },
+            label: "unserved entity owned_by",
+          },
+        );
+      }
+      servedDb.close();
+    }
+    db.close();
+  }
+  // Texas candidates: subjects from every county and category code (each at least a few), at several parameters.
+  const strata = new Map<string, string[]>();
+  for (const r of all(
+    "SELECT f.subject, f.value_json FROM facts f WHERE f.subject >= 'fl:parcel:us-48' AND f.subject < 'fl:parcel:us-49' AND f.predicate = 'parcel.state_property_category' GROUP BY f.subject",
+  )) {
+    const k = `${String(r.subject).slice(13, 18)} ${String(r.value_json)}`;
+    const list = strata.get(k) ?? [];
+    list.push(String(r.subject));
+    strata.set(k, list);
+  }
+  const txTotal = [...strata.values()].reduce((a, l) => a + l.length, 0);
+  const tighter = [
+    { area_band: 0.2, year_band: 8, limit: 20, min_matches: 5 },
+    { area_band: 0.1, year_band: 5, limit: 10 },
+    { area_band: 0.3, year_band: 0, min_matches: 3, limit: 50 },
+  ];
+  const other = [
+    { area_band: 0.6, year_band: 30, limit: 100 },
+    { min_matches: 100, limit: 200 },
+    { area_band: 1, year_band: 100, min_matches: 200, limit: 200 },
+    { tax_year: 2026 },
+    { tax_year: 2025 },
+  ];
+  let equitySubjects = 0;
+  for (const k of [...strata.keys()].sort()) {
+    const list = strata.get(k)!;
+    const n = Math.min(
+      list.length,
+      Math.max(5, Math.round((o.equity * list.length) / Math.max(1, txTotal))),
+    );
+    for (let i = 0; i < n; i++) {
+      const urn = list.splice(Math.floor(rand() * list.length), 1)[0]!;
+      equitySubjects += 1;
+      calls.push(
+        {
+          tool: "registry_tx_equity_candidates",
+          args: { urn },
+          label: "equity default",
+        },
+        {
+          tool: "registry_tx_equity_candidates",
+          args: { urn, ...pick(tighter) },
+          label: "equity tighter",
+        },
+        {
+          tool: "registry_tx_equity_candidates",
+          args: { urn, ...pick(other) },
+          label: "equity other",
+        },
+      );
+    }
+  }
+  for (const r of all(
+    "SELECT f.subject, f.value_json FROM facts f WHERE f.subject >= 'fl:parcel:us-48' AND f.subject < 'fl:parcel:us-49' AND f.predicate = 'parcel.apn' ORDER BY random() LIMIT 50",
+  )) {
+    const region = String(r.subject).split(":")[2]!;
+    calls.push({
+      tool: "registry_tx_equity_candidates",
+      args: {
+        county_fips: region.slice(5, 8),
+        apn: JSON.parse(String(r.value_json)),
+      },
+      label: "equity by apn",
+    });
+  }
+  console.log(
+    `${equitySubjects} Texas candidate subjects from ${strata.size} county and category strata`,
+  );
   // Address searches from real keys.
   const streetTypes =
     /^(ALY|AVE|BLVD|BYP|CIR|CSWY|CT|DR|EXPY|FWY|HWY|LN|LOOP|PATH|PIKE|PKWY|PL|PLZ|RD|ROW|RUN|SQ|ST|TER|TPKE|TRL|WALK|WAY|XING)$/;
@@ -278,13 +445,17 @@ async function run(
 
   configureRegistry(merged);
   const mergedCoverage: RegistryCoverage = computeRegistryCoverage();
+  const pinned = new Map<string, unknown>();
+  const [part, parts] = o.part;
+  let valueHistories = 0;
   const stats = new Map<
     string,
     { n: number; bad: number; cpu: number[]; reads: number[] }
   >();
   const mismatches: string[] = [];
   let current: string | undefined;
-  for (const c of calls) {
+  for (const [ci, c] of calls.entries()) {
+    if (ci % parts !== part) continue;
     const db = c.db ?? merged;
     if (db !== current) {
       configureRegistry(db);
@@ -295,44 +466,44 @@ async function run(
     let want = runTool(c.tool, c.args);
     // resolve_parcel: the URN from the county's own file (its parcel rule), and on a miss the coverage of the file
     // holding every region.
-    if (c.db && want.ok && (want.result as Row).urn === null)
-      want = {
-        ok: true,
-        result: {
-          urn: null,
-          coverage: parcelMiss(
-            mergedCoverage,
-            String(c.args.state_fips),
-            String(c.args.county_fips),
-          ),
-        },
-      };
+    if (c.db && want.ok && (want.result as Row).urn === null) {
+      configureRegistry(merged);
+      current = merged;
+      want = runTool(c.tool, c.args);
+    }
+    want = hostedOutcome(manifest, mergedCoverage, c.tool, c.args, want);
     // Cold: a fresh pack reader, so every file is read and parsed (the manifest read is excluded below).
-    const pack = new Pack(fileAssets(packDir));
+    const pack = new Pack(fileAssets(packDir), pinned);
     await pack.manifest();
     const before = pack.reads;
     const t0 = cpuUsage();
     const got = await runRegistryTool(pack, c.tool, parsed.data);
     const dt = cpuUsage(t0);
-    const s = stats.get(c.tool) ?? { n: 0, bad: 0, cpu: [], reads: [] };
+    const label = c.label ?? c.tool;
+    const s = stats.get(label) ?? { n: 0, bad: 0, cpu: [], reads: [] };
     s.n += 1;
     s.cpu.push((dt.user + dt.system) / 1000);
     s.reads.push(pack.reads - before);
-    const unanswerable = c.tool === "registry_tx_equity_candidates" && want.ok;
-    if (
-      unanswerable
-        ? got.ok || got.error.error !== "RegistryUnavailable"
-        : JSON.stringify(got) !== JSON.stringify(want)
-    ) {
+    if (JSON.stringify(got) !== JSON.stringify(want)) {
       s.bad += 1;
       mismatches.push(
         JSON.stringify({ tool: c.tool, args: c.args, got, want }),
       );
-    }
-    stats.set(c.tool, s);
+    } else if (
+      c.tool === "registry_get" &&
+      want.ok &&
+      String(c.args.urn).startsWith("fl:parcel:us-48") &&
+      ((want.result as Row).value_history as unknown[] | undefined)?.length
+    )
+      valueHistories += 1;
+    stats.set(c.label ?? c.tool, s);
   }
   configureRegistry(undefined);
-  writeFileSync(join(scratch, "mismatches.jsonl"), mismatches.join("\n"));
+  const out = join(
+    scratch,
+    parts > 1 ? `mismatches-${part}.jsonl` : "mismatches.jsonl",
+  );
+  writeFileSync(out, mismatches.join("\n"));
   const q = (a: number[], p: number) =>
     [...a].sort((x, y) => x - y)[
       Math.min(a.length - 1, Math.floor(a.length * p))
@@ -345,7 +516,10 @@ async function run(
       `${tool.padEnd(32)}${String(s.n).padStart(5)}  ${String(s.bad).padStart(10)}  ${q(s.cpu, 0.5).toFixed(2)} / ${q(s.cpu, 0.95).toFixed(2)} / ${Math.max(...s.cpu).toFixed(2)}   ${Math.max(...s.reads)}`,
     );
   console.log(
-    `total mismatches: ${mismatches.length}${mismatches.length ? ` (see ${join(scratch, "mismatches.jsonl")})` : ""}`,
+    `total mismatches: ${mismatches.length}${mismatches.length ? ` (see ${out})` : ""}`,
+  );
+  console.log(
+    `Texas parcel records with a value history, matched: ${valueHistories}`,
   );
   if (!existsSync(merged)) console.log("merged file missing");
 }

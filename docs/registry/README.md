@@ -374,6 +374,28 @@ return.
    show how each county reports them.
 3. **More hosted regions.** The hosted registry at `https://api.factlot.com` is a query-only
    service built from registry files: the registry tools run against it and the files are not
-   downloadable from it. It serves Maryland, the District of Columbia and Juab and Summit counties
-   in Utah; `registry_coverage` lists exactly what is hosted. More regions open as their terms
-   allow. A self-hosted `@factlot/server` serves any registry file with `FACTLOT_REGISTRY_DB`.
+   downloadable from it. It serves Maryland, the District of Columbia, Juab and Summit counties
+   in Utah, and Harris, Dallas, Travis and Collin counties in Texas; `registry_coverage` lists
+   exactly what is hosted. More regions open as their terms allow. A self-hosted
+   `@factlot/server` serves any registry file with `FACTLOT_REGISTRY_DB`.
+
+   Hosted pack notes (`scripts/registry/pack.ts`, Worker `deploy/registry`):
+   - **Withheld counties.** `--exclude-county <FIPS>` leaves out every parcel and building of a
+     county with what hangs off them (facts, coverage rows, links, crosswalk IDs, index rows), and
+     the entities that owned only those parcels. The reason comes from `hostedWithheldCounties()`;
+     `registry_coverage` lists the county under `hosted.withheld_counties` and a lookup in it
+     says why. Tarrant County (48439) is withheld while the publisher's terms for AI use are
+     unclear.
+   - **Entities.** A file with more than 50,000 entities (the Texas Comptroller's 3.3 million)
+     keeps only the entities that own a hosted parcel; `registry_coverage` gives the served and
+     total counts under `hosted.entity_registries`, and a lookup of another entity says that
+     hosted entity lookups cover owners of hosted parcels. Smaller registries (DC) are kept whole.
+   - **Entity search** reads the posting list of the query's least common 1–3-character gram and
+     applies the SQL `LIKE` rule to it, so results and order are those of the SDK; a query made
+     only of very common grams (such as "LLC") reads names in label order instead.
+   - **Texas candidates.** `registry_tx_equity_candidates` is answered with the SDK's own rule
+     (`selectEquityCandidates`, `assembleTxEquity`) from area-sorted comparable lists per roll,
+     category code, tax year, neighborhood code and ZIP code, so every parameter value gives the
+     SDK's answer, including the county tier.
+   - **Dated lookups.** `as_of` answers are stored per date at which a file's data changes, for
+     Texas as for the other regions.
