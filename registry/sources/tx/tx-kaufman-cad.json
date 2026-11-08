@@ -1,0 +1,33 @@
+{
+  "description": "Kaufman CAD certified export files (PACS 8.0.33).",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "tx-kaufman-cad",
+      "publisher": "Kaufman Central Appraisal District",
+      "landing_pages": [
+        "https://kaufman-cad.org/public-info/"
+      ],
+      "allowed_hosts": [
+        "kaufman-cad.org"
+      ],
+      "files": [
+        "https://kaufman-cad.org/wp-content/uploads/2026/04/Appraisal-Export-Layout-8.0.33-2026.xlsx",
+        "https://kaufman-cad.org/wp-content/uploads/2026/07/2026-Certified-Export-Files.zip",
+        "https://kaufman-cad.org/wp-content/uploads/2026/01/2025-Complete-Roll-as-of-01202026.zip",
+        "https://kaufman-cad.org/wp-content/uploads/2025/02/2024-Certified-Files-as-of-Supplement-423-02242025.zip"
+      ],
+      "verified": true,
+      "terms_url": "https://kaufman-cad.org/public-info/",
+      "license": "Public record (Tex. Gov't Code ch. 552); no licence stated; page: \"All files are AS IS!!!\"",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not addressed by the publisher; public record",
+      "reviewed": "2026-11-07",
+      "notes": "Card steps 3-4: layout xlsx, 2026 certified, 2025, 2024. GIS click-through NOT included. robots.txt: WordPress default. Config added 2026-11-07 by the gathering run (FACTLOT-TX-DATA-GAPS-2026-11-07.md card C.2, owner instruction t470u); uncommitted. File URLs and sizes confirmed by HEAD 200 on 2026-11-07 with the FactLot bot user agent."
+    }
+  ]
+}

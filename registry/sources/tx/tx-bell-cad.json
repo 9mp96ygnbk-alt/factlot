@@ -1,0 +1,33 @@
+{
+  "description": "Bell County certified appraisal exports (layout 8.0.33; zip/7z/rar).",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "tx-bell-cad",
+      "publisher": "Tax Appraisal District of Bell County",
+      "landing_pages": [
+        "https://bellcad.org/data-portal/"
+      ],
+      "allowed_hosts": [
+        "bellcad.org"
+      ],
+      "files": [
+        "https://bellcad.org/wp-content/uploads/2026/02/Appraisal-Export-Layout-8.0.33.xlsx",
+        "https://bellcad.org/wp-content/uploads/2019/06/2026-Bell-County-Certified-Export-3.zip",
+        "https://bellcad.org/wp-content/uploads/2025/07/2025-Bell-County-Certified-Export.7z",
+        "https://bellcad.org/wp-content/uploads/2024/07/BellCAD-Certified-Appraisal-Export-2024.rar"
+      ],
+      "verified": true,
+      "terms_url": "https://bellcad.org/data-portal/",
+      "license": "Public record (Tex. Gov't Code ch. 552); no terms stated on the data page",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not addressed by the publisher; public record",
+      "reviewed": "2026-11-07",
+      "notes": "Card step 3: layout xlsx and 2026 certified zip, then the 2025 and 2024 certified archives (7z, rar). robots.txt: WordPress default. Config added 2026-11-07 by the gathering run (FACTLOT-TX-DATA-GAPS-2026-11-07.md card C.1, owner instruction t470u); uncommitted. File URLs and sizes confirmed by HEAD 200 on 2026-11-07 with the FactLot bot user agent."
+    }
+  ]
+}

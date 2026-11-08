@@ -1,0 +1,32 @@
+{
+  "description": "Johnson CAD certified data rolls (contents unverified; vendor change in 2026).",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "tx-johnson-cad",
+      "publisher": "Central Appraisal District of Johnson County",
+      "landing_pages": [
+        "https://johnsoncad.com/downloads/"
+      ],
+      "allowed_hosts": [
+        "johnsoncad.com"
+      ],
+      "files": [
+        "https://johnsoncad.com/wp-content/uploads/2026/08/BATCH_896.all_.zip",
+        "https://johnsoncad.com/wp-content/uploads/2025/08/2025-Certified-Data-Roll.zip",
+        "https://johnsoncad.com/wp-content/uploads/2025/06/2024-Certified-Data-Roll-1.zip"
+      ],
+      "verified": true,
+      "terms_url": "https://johnsoncad.com/downloads/",
+      "license": "Public record (Tex. Gov't Code ch. 552); no licence stated",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not addressed by the publisher; public record",
+      "reviewed": "2026-11-07",
+      "notes": "Card step 4: 2026 Certified, then 2025, 2024. District states online data during the 2026 system change 'should be considered informational only'. robots.txt: WordPress default. Config added 2026-11-07 by the gathering run (FACTLOT-TX-DATA-GAPS-2026-11-07.md card C.2, owner instruction t470u); uncommitted. File URLs and sizes confirmed by HEAD 200 on 2026-11-07 with the FactLot bot user agent."
+    }
+  ]
+}

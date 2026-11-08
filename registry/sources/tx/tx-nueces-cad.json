@@ -1,0 +1,37 @@
+{
+  "description": "Nueces Central Appraisal District certified public exports (PACS 8.0.33).",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "tx-nueces-cad",
+      "publisher": "Nueces Central Appraisal District",
+      "landing_pages": [
+        "https://nuecescad.net/downloads-reports/"
+      ],
+      "allowed_hosts": [
+        "nuecescad.net"
+      ],
+      "files": [
+        "https://nuecescad.net/wp-content/uploads/2026/04/Export-Layout-Files-8.0.33.zip",
+        "https://nuecescad.net/wp-content/uploads/2026/10/Certified-Public-Export-2026.zip",
+        "https://nuecescad.net/wp-content/uploads/2025/09/2025-Certified-Public-Export.zip",
+        "https://nuecescad.net/wp-content/uploads/2024/07/2024-Certified-Appraisal-Roll-Public-Export.zip",
+        "https://nuecescad.net/wp-content/uploads/2024/01/2023.0-Certified-Roll-40k-HS.zip",
+        "https://nuecescad.net/wp-content/uploads/2024/02/2023.1-Certified-Roll-with-new-HS.zip",
+        "https://nuecescad.net/wp-content/uploads/2024/01/2022-Certified-Public-Export.zip",
+        "https://nuecescad.net/wp-content/uploads/2024/01/2021-Certified-Public-Export-v2.zip"
+      ],
+      "verified": true,
+      "terms_url": "https://nuecescad.net/downloads-reports/",
+      "license": "Public record (Tex. Gov't Code ch. 552); page states only: \"Nueces Central Appraisal District cannot offer technical support for reading, loading, or manipulating our data exports.\"",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not addressed by the publisher; public record",
+      "reviewed": "2026-11-07",
+      "notes": "Card step 3: layout zip, then certified 2026, 2025, 2024, 2023 (both posted versions), 2022, 2021. robots.txt: WordPress default. Config added 2026-11-07 by the gathering run (FACTLOT-TX-DATA-GAPS-2026-11-07.md card C.1, owner instruction t470u); uncommitted. File URLs and sizes confirmed by HEAD 200 on 2026-11-07 with the FactLot bot user agent."
+    }
+  ]
+}

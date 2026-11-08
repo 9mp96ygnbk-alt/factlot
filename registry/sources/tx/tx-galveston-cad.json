@@ -1,0 +1,36 @@
+{
+  "description": "Galveston Central Appraisal District certified roll exports (PACS 8.0.34 family).",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "tx-galveston-cad",
+      "publisher": "Galveston Central Appraisal District",
+      "landing_pages": [
+        "https://galvestoncad.org/public-data/",
+        "https://galvestoncad.org/preliminary-and-certified-roll-export-data/",
+        "https://galvestoncad.org/current-and-historical-supplement-roll-export-data/"
+      ],
+      "allowed_hosts": [
+        "galvestoncad.org"
+      ],
+      "files": [
+        "https://galvestoncad.org/wp-content/uploads/2026/06/2026-June-Layout-Changes-8_0_34.zip",
+        "https://galvestoncad.org/wp-content/uploads/2026/08/2026-CERTIFIED-ROLL-WEB-EXPORT-W-EXPORT-LAYOUT.zip",
+        "https://galvestoncad.org/wp-content/uploads/2025/08/2025_Cert_Web_Export.zip",
+        "https://galvestoncad.org/wp-content/uploads/2024/08/2024_Cert_Web_Export.zip",
+        "https://galvestoncad.org/wp-content/uploads/2023/07/2023-07-26_002061_CERTIFIED-ROLL.zip"
+      ],
+      "verified": true,
+      "terms_url": "https://galvestoncad.org/public-data/",
+      "license": "Public record (Tex. Gov't Code ch. 552); no terms stated on the data pages",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not addressed by the publisher; public record",
+      "reviewed": "2026-11-07",
+      "notes": "Card step 4: layout zip, 2026 certified, then 2025, 2024, 2023 certified. robots.txt: WordPress default (Disallow /wp-admin/ only), no Content-Signal. Config added 2026-11-07 by the gathering run (FACTLOT-TX-DATA-GAPS-2026-11-07.md card C.1, owner instruction t470u); uncommitted. File URLs and sizes confirmed by HEAD 200 on 2026-11-07 with the FactLot bot user agent."
+    }
+  ]
+}

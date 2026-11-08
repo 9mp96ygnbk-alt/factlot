@@ -1,0 +1,36 @@
+{
+  "description": "Ector CAD 2026 certified real-estate roll and appraisal rolls 2022-2026.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "tx-ector-cad",
+      "publisher": "Ector County Appraisal District",
+      "landing_pages": [
+        "https://www.ectorcad.org/home/downloads",
+        "https://www.ectorcad.org/home/appraisalroll"
+      ],
+      "allowed_hosts": [
+        "www.ectorcad.org"
+      ],
+      "files": [
+        "https://www.ectorcad.org/downloads/car/2026_CERTIFIED_RE_APPRAISAL_ROLL-7222026.ZIP",
+        "https://www.ectorcad.org/downloads/rolls/2026_Appraisal_Roll.zip",
+        "https://www.ectorcad.org/downloads/rolls/2025_Appraisal_Roll.zip",
+        "https://www.ectorcad.org/downloads/rolls/2024_Appraisal_Roll.zip",
+        "https://www.ectorcad.org/downloads/rolls/2023_Appraisal_Roll.zip",
+        "https://www.ectorcad.org/downloads/rolls/2022_Appraisal_Roll.zip"
+      ],
+      "verified": true,
+      "terms_url": "https://www.ectorcad.org/home/downloads",
+      "license": "Public record (Tex. Gov't Code ch. 552); no licence stated",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not addressed by the publisher; public record",
+      "reviewed": "2026-11-07",
+      "notes": "Card steps 2 and 4: 2026 certified RE zip, 2026_Appraisal_Roll.zip, then 2022-2025. Use www (apex resets). robots.txt: 404. Config added 2026-11-07 by the gathering run (FACTLOT-TX-DATA-GAPS-2026-11-07.md card C.2, owner instruction t470u); uncommitted. File URLs and sizes confirmed by HEAD 200 on 2026-11-07 with the FactLot bot user agent."
+    }
+  ]
+}

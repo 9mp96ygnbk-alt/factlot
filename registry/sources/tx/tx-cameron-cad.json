@@ -1,0 +1,30 @@
+{
+  "description": "Cameron Appraisal District 2026 certified appraisal export (text files, record layout included).",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "tx-cameron-cad",
+      "publisher": "Cameron Appraisal District",
+      "landing_pages": [
+        "https://www.cameroncad.org/Pages/Data"
+      ],
+      "allowed_hosts": [
+        "www.cameroncad.org"
+      ],
+      "files": [
+        "https://www.cameroncad.org/cad/exports/certified/2026/cameron-2026-certified-appraisal-export-20260723.zip"
+      ],
+      "verified": true,
+      "terms_url": "https://www.cameroncad.org/Pages/Data",
+      "license": "Public domain per the publisher: \"All information contained herein, is considered in the public domain and is distributed without warranty of any kind, implied, expressed or statutory.\"",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not addressed by the publisher; public record",
+      "reviewed": "2026-11-07",
+      "notes": "Card step 3: 2026 certified appraisal export only (JSON export and GIS not fetched). robots.txt: 404. Config added 2026-11-07 by the gathering run (FACTLOT-TX-DATA-GAPS-2026-11-07.md card C.1, owner instruction t470u); uncommitted. File URLs and sizes confirmed by HEAD 200 on 2026-11-07 with the FactLot bot user agent."
+    }
+  ]
+}

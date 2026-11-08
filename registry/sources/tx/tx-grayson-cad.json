@@ -1,0 +1,32 @@
+{
+  "description": "Grayson CAD certified export (replaced in place) and code list.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "tx-grayson-cad",
+      "publisher": "Grayson Central Appraisal District",
+      "landing_pages": [
+        "https://graysonappraisal.org/public-information/"
+      ],
+      "allowed_hosts": [
+        "graysonappraisal.org",
+        "maps.graysonappraisal.org"
+      ],
+      "files": [
+        "https://maps.graysonappraisal.org/ORR_Export/GCAD_Export.zip",
+        "https://graysonappraisal.org/wp-content/uploads/2026/10/Website-Code-List-1-1-1.xlsx"
+      ],
+      "verified": true,
+      "terms_url": "https://graysonappraisal.org/public-information/",
+      "license": "Public record (Tex. Gov't Code ch. 552); no licence stated",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not addressed by the publisher; public record",
+      "reviewed": "2026-11-07",
+      "notes": "Card step 3: GCAD_Export.zip (overwritten in place: record sha256 and Last-Modified every pull) and the code-list xlsx. robots: WordPress default; maps host 404. Config added 2026-11-07 by the gathering run (FACTLOT-TX-DATA-GAPS-2026-11-07.md card C.2, owner instruction t470u); uncommitted. File URLs and sizes confirmed by HEAD 200 on 2026-11-07 with the FactLot bot user agent."
+    }
+  ]
+}

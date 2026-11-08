@@ -1,0 +1,31 @@
+{
+  "description": "Guadalupe AD certified appraisal rolls (PACS 8.0.34 per adapter config).",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "tx-guadalupe-cad",
+      "publisher": "Guadalupe Appraisal District",
+      "landing_pages": [
+        "https://guadalupead.org/certified-appraisal-roll/"
+      ],
+      "allowed_hosts": [
+        "guadalupead.org"
+      ],
+      "files": [
+        "https://guadalupead.org/wp-content/uploads/2026/07/2026-GCO-Certified-Appraisal-Roll-Supp-0.zip",
+        "https://guadalupead.org/wp-content/uploads/2026/06/2025-GCO-CERTF-APPR-ROLL-SUPP0.zip"
+      ],
+      "verified": true,
+      "terms_url": "https://guadalupead.org/certified-appraisal-roll/",
+      "license": "Public record (Tex. Gov't Code ch. 552); no licence stated",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not addressed by the publisher; public record",
+      "reviewed": "2026-11-07",
+      "notes": "Card step 4: 2026 Supp 0, then 2025 (Supp 0). robots.txt: WordPress default. Config added 2026-11-07 by the gathering run (FACTLOT-TX-DATA-GAPS-2026-11-07.md card C.2, owner instruction t470u); uncommitted. File URLs and sizes confirmed by HEAD 200 on 2026-11-07 with the FactLot bot user agent."
+    }
+  ]
+}

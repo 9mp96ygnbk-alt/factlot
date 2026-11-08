@@ -1,0 +1,41 @@
+{
+  "description": "Brazos CAD certified exports 2016-2026 and 2026 layout.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "tx-brazos-cad",
+      "publisher": "Brazos Central Appraisal District",
+      "landing_pages": [
+        "https://brazoscad.org/certified-data-downloads/"
+      ],
+      "allowed_hosts": [
+        "brazoscad.org"
+      ],
+      "files": [
+        "https://brazoscad.org/wp-content/uploads/2026/08/2026-Export-Layout-as-of-7.-2026.zip",
+        "https://brazoscad.org/wp-content/uploads/2025/08/2025-CERTIFIED-EXPORT.zip",
+        "https://brazoscad.org/wp-content/uploads/2026/08/2026-CERTIFIED-ROLL-TOTALS-ALL-ENTITIES.zip",
+        "https://brazoscad.org/wp-content/uploads/2024/08/2024-CERTIFICATION-EXPORT.zip",
+        "https://brazoscad.org/wp-content/uploads/2023/08/2023-CERTIFIED-EXPORT.zip",
+        "https://brazoscad.org/wp-content/uploads/2023/08/2022-CERTIFIED-DATA-DOWNLOAD.zip",
+        "https://brazoscad.org/wp-content/uploads/2023/08/2021-CERTIFICATION-EXPORT.zip",
+        "https://brazoscad.org/wp-content/uploads/2023/08/2020-CERTIFICATION-EXPORTS-1.zip",
+        "https://brazoscad.org/wp-content/uploads/2023/08/2019-CERTIFED-APPRAISAL-EXPORT-1.zip",
+        "https://brazoscad.org/wp-content/uploads/2023/08/2018-Certified-All-Detail.zip",
+        "https://brazoscad.org/wp-content/uploads/2023/08/2017-Certified-Export.zip",
+        "https://brazoscad.org/wp-content/uploads/2023/08/Brazos-2016-Certified-Export.zip"
+      ],
+      "verified": true,
+      "terms_url": "https://brazoscad.org/certified-data-downloads/",
+      "license": "Public record (Tex. Gov't Code ch. 552); no licence stated; page: \"Brazos Central Appraisal District claims no responsibility for the downloading of this data.\"",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not addressed by the publisher; public record",
+      "reviewed": "2026-11-07",
+      "notes": "Card step 4 order: layout, 2025, 2026 (contents confirmed 2026-11-07 from the zip central directory: PACS APPRAISAL_*.TXT files plus certified roll/totals PDFs), then earlier years. robots.txt: WordPress default. Config added 2026-11-07 by the gathering run (FACTLOT-TX-DATA-GAPS-2026-11-07.md card C.2, owner instruction t470u); uncommitted. File URLs and sizes confirmed by HEAD 200 on 2026-11-07 with the FactLot bot user agent."
+    }
+  ]
+}

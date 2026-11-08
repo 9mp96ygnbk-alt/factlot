@@ -1,0 +1,32 @@
+{
+  "description": "Jefferson Central Appraisal District certified and supplemented exports.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "tx-jefferson-cad",
+      "publisher": "Jefferson Central Appraisal District",
+      "landing_pages": [
+        "https://jcad.org/data-download/"
+      ],
+      "allowed_hosts": [
+        "jcad.org"
+      ],
+      "files": [
+        "https://jcad.org/wp-content/uploads/2026/07/CERTIFIED-2026_0_PUBLIC.zip",
+        "https://jcad.org/wp-content/uploads/2026/10/SUPL_GRP_2026_05_PUBLIC.zip",
+        "https://jcad.org/wp-content/uploads/2025/10/2025-CERTIFIED_2025_0_PUBLIC.zip"
+      ],
+      "verified": true,
+      "terms_url": "https://jcad.org/data-download/",
+      "license": "Public record (Tex. Gov't Code ch. 552); no terms stated on the data page",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not addressed by the publisher; public record",
+      "reviewed": "2026-11-07",
+      "notes": "Card step 3: 2026 certified, newest supplemented file, then 2025 certified. Layout not posted. robots.txt: WordPress default. Config added 2026-11-07 by the gathering run (FACTLOT-TX-DATA-GAPS-2026-11-07.md card C.1, owner instruction t470u); uncommitted. File URLs and sizes confirmed by HEAD 200 on 2026-11-07 with the FactLot bot user agent."
+    }
+  ]
+}

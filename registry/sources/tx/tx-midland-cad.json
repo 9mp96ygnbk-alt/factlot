@@ -1,0 +1,32 @@
+{
+  "description": "Midland CAD certified WEB files only (never the COLLECTORS file: birth dates).",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "tx-midland-cad",
+      "publisher": "Midland Central Appraisal District",
+      "landing_pages": [
+        "https://midcad.org/open-records/"
+      ],
+      "allowed_hosts": [
+        "midcad.org"
+      ],
+      "files": [
+        "https://midcad.org/wp-content/uploads/2026/08/2026-MIDLAND-CERTIFIED-WEB-3.zip",
+        "https://midcad.org/wp-content/uploads/2025/11/2025-MCAD-Web-File.zip",
+        "https://midcad.org/wp-content/uploads/2025/01/2024-Midland-Web-File-12.30.24-1.zip"
+      ],
+      "verified": true,
+      "terms_url": "https://midcad.org/open-records/",
+      "license": "Public record (Tex. Gov't Code ch. 552); no licence stated; footer: provided \"as is\" without warranty",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not addressed by the publisher; public record",
+      "reviewed": "2026-11-07",
+      "notes": "Card step 4: 2026 WEB file and prior-year WEB files only. The COLLECTORS files are deliberately excluded (birth dates). robots.txt: WordPress default. Config added 2026-11-07 by the gathering run (FACTLOT-TX-DATA-GAPS-2026-11-07.md card C.2, owner instruction t470u); uncommitted. File URLs and sizes confirmed by HEAD 200 on 2026-11-07 with the FactLot bot user agent."
+    }
+  ]
+}
