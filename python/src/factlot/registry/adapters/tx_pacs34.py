@@ -41,6 +41,19 @@ from .tx_travis import (
 # Last column this reader touches (situs_unit). A shorter record is not this layout.
 _MIN_RECORD = 4479
 
+# "Current Appraisal Owner" block of the 8.0.34 property record (layout: appr_owner_name 4492-4561,
+# address 4562-4857, confidential flag 4859, address-suppress flag 4860). Some districts export the
+# property-year owner block (609-678) as "Not Available" on every row and put the owner here
+# (Jefferson 2025 and 2026). The block is read with the same keys, so the person rule and the
+# mailing-address rule apply unchanged.
+_APPR_OWNER_FIELDS = {
+    "py_owner_name": (4492, 4561), "py_addr_line1": (4562, 4621), "py_addr_line2": (4622, 4681),
+    "py_addr_line3": (4682, 4741), "py_addr_city": (4742, 4791), "py_addr_state": (4792, 4841),
+    "py_addr_country": (4842, 4846), "py_addr_zip": (4847, 4851), "py_addr_zip_cass": (4852, 4855),
+    "py_confidential_flag": (4859, 4859), "py_address_suppress_flag": (4860, 4860),
+}
+_APPR_BLOCK_END = 4860
+
 _INFO = "APPRAISAL_INFO.TXT"
 _STATE = "APPRAISAL_STATE_CODE.TXT"
 _LAND = "APPRAISAL_LAND_DETAIL.TXT"
@@ -60,6 +73,7 @@ class ExportTally:
     opaque_code: int = 0
     out_of_scope: int = 0
     kept: int = 0
+    owner_from_appraisal_block: int = 0
     local_codes: dict[str, int] = field(default_factory=dict)
 
 
@@ -68,6 +82,11 @@ class CountyExport:
     source: Source
     county_fips: str
     account_system: str
+    # Improvement-detail type codes this district uses for building floor area, as its own
+    # APPRAISAL_IMPROVEMENT_DETAIL descriptions label them ("COMMERCIAL BUILDING", "OFFICE",
+    # "LIVING AREA"). Added to the generic main-area rule; measured on the kept commercial parcels
+    # of each 2026 roll on 2026-11-08. A code not listed here is left out, not guessed.
+    building_detail_types: frozenset[str] = frozenset()
 
 
 GALVESTON = CountyExport(
@@ -104,6 +123,7 @@ GUADALUPE = CountyExport(
     ),
     county_fips="187",
     account_system="gcad_gco_prop_id",
+    building_detail_types=frozenset({"COM", "CUPS", "APT", "APT2", "DUP1", "RES1"}),
 )
 
 CAMERON = CountyExport(
@@ -140,6 +160,7 @@ BRAZOS = CountyExport(
     ),
     county_fips="041",
     account_system="brazoscad_prop_id",
+    building_detail_types=frozenset({"MA", "MA2", "WAREHOUSE", "OFFICE", "APT", "RETAIL", "CHURCH", "SHOP CENTE", "CONV STORE"}),
 )
 
 GRAYSON = CountyExport(
@@ -158,6 +179,7 @@ GRAYSON = CountyExport(
     ),
     county_fips="181",
     account_system="grayson_prop_id",
+    building_detail_types=frozenset({"COMM", "LA", "APT", "LVM", "ZROW-S", "ZROW1", "Z-ROWT"}),
 )
 
 TAYLOR = CountyExport(
@@ -212,6 +234,7 @@ JEFFERSON = CountyExport(
     ),
     county_fips="245",
     account_system="jcad_prop_id",
+    building_detail_types=frozenset({"COM", "SEC", "DUP", "HSE"}),
 )
 
 LIBERTY = CountyExport(
@@ -734,6 +757,7 @@ KAUFMAN = CountyExport(
     ),
     county_fips="257",
     account_system="kaufman_prop_id",
+    building_detail_types=frozenset({"CM", "CS", "LA", "STR2"}),
 )
 
 NUECES = CountyExport(
@@ -752,6 +776,7 @@ NUECES = CountyExport(
     ),
     county_fips="355",
     account_system="ncad_prop_id",
+    building_detail_types=frozenset({"MA", "MA2", "OFF", "LIB", "APT", "SHOP", "WHSE", "CHURCH", "REST", "MINISTG", "ST"}),
 )
 
 # Local codes whose own labels are not the Comptroller category the PTD column names.
@@ -952,7 +977,8 @@ def state_table(path: str | Path) -> dict[str, str]:
 
 
 def read_roll(path: str | Path, county_fips: str, tally: ExportTally | None = None, *,
-              exclude_local: frozenset[str] = frozenset()) -> Iterator[ParcelRecord]:
+              exclude_local: frozenset[str] = frozenset(),
+              building_types: frozenset[str] = frozenset()) -> Iterator[ParcelRecord]:
     """Yield one commercial real-property record per account. The first row wins."""
     tally = tally if tally is not None else ExportTally()
     table = state_table(path)
@@ -984,6 +1010,11 @@ def read_roll(path: str | Path, county_fips: str, tally: ExportTally | None = No
             tally.out_of_scope += 1
             continue
         row = {name: _field(line, span) for name, span in PROP_FIELDS.items()}
+        if _squeeze(row["py_owner_name"]).upper() in ("", "NOT AVAILABLE") and len(line) >= _APPR_BLOCK_END:
+            appr = {name: _field(line, span) for name, span in _APPR_OWNER_FIELDS.items()}
+            if _squeeze(appr["py_owner_name"]):
+                row.update(appr)
+                tally.owner_from_appraisal_block += 1
         row["_code"], row["_category"] = local, category
         kept[pid] = row
         tally.kept += 1
@@ -1009,7 +1040,7 @@ def read_roll(path: str | Path, county_fips: str, tally: ExportTally | None = No
         # describe them as main area. Porches, garages and pools stay out of the sum.
         detail_type = _field(line, IMP_DET_FIELDS["imprv_det_type_cd"]).upper()
         detail_desc = line[50:75].strip().upper()
-        if detail_type not in _FLOOR_DETAIL_TYPES and "MAIN AREA" not in detail_desc:
+        if detail_type not in _FLOOR_DETAIL_TYPES and detail_type not in building_types and "MAIN AREA" not in detail_desc:
             continue
         if a := _positive(_field(line, IMP_DET_FIELDS["imprv_det_area"])):
             area[pid] += a
@@ -1049,7 +1080,8 @@ def build(snapshot_path: str | Path, db_path: str | Path, county: CountyExport, 
     reg = Registry(db_path)
     try:
         stats = reg.ingest_roll(
-            county.source, snapshot_path, read_roll(snapshot_path, county.county_fips, tally, exclude_local=exclude_local),
+            county.source, snapshot_path, read_roll(snapshot_path, county.county_fips, tally, exclude_local=exclude_local,
+                      building_types=county.building_detail_types),
             as_of=as_of, retrieved_at=retrieved_at, state_fips="48", account_system=county.account_system,
             full_roll=True,
         )

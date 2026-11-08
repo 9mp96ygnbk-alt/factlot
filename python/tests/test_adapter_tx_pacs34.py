@@ -5,7 +5,7 @@ import unittest
 import zipfile
 from pathlib import Path
 
-from factlot.registry.adapters.tx_pacs34 import GALVESTON, ExportTally, read_roll
+from factlot.registry.adapters.tx_pacs34 import GALVESTON, JEFFERSON, ExportTally, read_roll
 from factlot.registry.store import Registry
 
 
@@ -133,3 +133,43 @@ class UnzipFallbackTest(unittest.TestCase):
             via_unzip = list(_lines_via_unzip(path, "2026_APPRAISAL_INFO.TXT"))
             self.assertEqual(via_unzip, ["A" * 20, "B\nb", "CCC"])
             self.assertEqual(via_unzip, list(_lines(path, "APPRAISAL_INFO.TXT")))
+
+
+class AppraisalOwnerBlockTest(unittest.TestCase):
+    """A roll whose property-year owner reads "Not Available" gives its owner in the appraisal-owner block."""
+
+    def test_owner_falls_back_to_the_appraisal_owner_block(self):
+        line = list(_info("77", "R", "F1", "Not Available"))
+        def put(start: int, text: str) -> None:
+            line[start - 1:start - 1 + len(text)] = list(text)
+        put(4492, f"{'ACME HOLDINGS LLC':<70}")
+        put(4562, f"{'PO BOX 9':<60}")
+        put(4742, f"{'BEAUMONT':<50}")
+        put(4792, f"{'TX':<50}")
+        put(4847, "77701")
+        put(4859, "F")
+        put(4860, "F")
+        person = list(_info("78", "R", "F1", "Not Available"))
+        person[4491:4491 + 70] = list(f"{'JANE Q PERSON':<70}")
+        person[4858:4860] = list("FF")
+        with tempfile.TemporaryDirectory() as d:
+            path = Path(d) / "roll.zip"
+            with zipfile.ZipFile(path, "w") as zf:
+                zf.writestr("2026_APPRAISAL_INFO.TXT", "".join(line) + "\r\n" + "".join(person) + "\r\n")
+                zf.writestr("2026_APPRAISAL_STATE_CODE.TXT", _state("F1", "F1") + "\r\n")
+            tally = ExportTally()
+            rows = {r.apn: r for r in read_roll(path, "245", tally)}
+            self.assertEqual(tally.owner_from_appraisal_block, 2)
+            self.assertEqual(rows["77"].owner_name, "ACME HOLDINGS LLC")
+            self.assertEqual(rows["77"].owner_mailing_address, "PO BOX 9, BEAUMONT, TX 77701")
+            # The person rule applies at ingest, exactly as for the property-year owner block.
+            db = Path(d) / "reg.db"
+            reg = Registry(db)
+            try:
+                reg.ingest_roll(JEFFERSON.source, path, read_roll(path, "245"), as_of="2026-07-21",
+                                state_fips="48", account_system="jcad_prop_id", full_roll=True)
+            finally:
+                reg.close()
+            blob = db.read_bytes()
+            self.assertIn(b"ACME HOLDINGS LLC", blob)
+            self.assertNotIn(b"JANE Q PERSON", blob)
