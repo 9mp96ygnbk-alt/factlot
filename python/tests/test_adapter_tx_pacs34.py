@@ -113,3 +113,23 @@ class Pacs34(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class UnzipFallbackTest(unittest.TestCase):
+    """Members the standard library cannot decompress (Deflate64) stream through Info-ZIP's unzip."""
+
+    def test_unzip_stream_yields_the_same_crlf_records_as_zipfile(self):
+        import shutil
+
+        from factlot.registry.adapters.tx_pacs34 import _lines, _lines_via_unzip
+
+        if shutil.which("unzip") is None:
+            self.skipTest("unzip is not installed")
+        with tempfile.TemporaryDirectory() as d:
+            path = Path(d) / "roll.zip"
+            body = b"A" * 20 + b"\r\n" + b"B\nb" + b"\r\n" + b"C" * 3
+            with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as zf:
+                zf.writestr("2026_APPRAISAL_INFO.TXT", body)
+            via_unzip = list(_lines_via_unzip(path, "2026_APPRAISAL_INFO.TXT"))
+            self.assertEqual(via_unzip, ["A" * 20, "B\nb", "CCC"])
+            self.assertEqual(via_unzip, list(_lines(path, "APPRAISAL_INFO.TXT")))

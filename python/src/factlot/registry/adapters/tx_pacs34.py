@@ -903,9 +903,39 @@ def _lines(path: str | Path, suffix: str) -> Iterator[str]:
             for rec in _crlf_records(raw):
                 yield rec.decode("latin-1")
         return
-    with zipfile.ZipFile(p) as zf, zf.open(name) as raw:
-        for rec in _crlf_records(raw):
+    with zipfile.ZipFile(p) as zf:
+        info = zf.getinfo(name)
+        if info.compress_type in _UNZIP_ONLY:
+            yield from _lines_via_unzip(p, name)
+            return
+        with zf.open(name) as raw:
+            for rec in _crlf_records(raw):
+                yield rec.decode("latin-1")
+
+
+# Compression methods the standard library cannot read: 9 is Deflate64, which some districts' zips use
+# (Galveston 2023 and 2024, Nueces 2021). Info-ZIP's unzip, present on macOS and Linux, streams them.
+_UNZIP_ONLY = frozenset({9})
+
+
+def _lines_via_unzip(path: Path, name: str) -> Iterator[str]:
+    """Stream one member through ``unzip -p``; the archive hash and citations are unchanged."""
+    import shutil
+    import subprocess
+
+    exe = shutil.which("unzip")
+    if exe is None:
+        raise NotImplementedError(f"{path.name}: member {name} uses a compression method the standard library cannot read and unzip is not installed")
+    proc = subprocess.Popen([exe, "-p", str(path), name], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    try:
+        assert proc.stdout is not None
+        for rec in _crlf_records(proc.stdout):
             yield rec.decode("latin-1")
+    finally:
+        proc.stdout.close()
+        rc = proc.wait()
+        if rc not in (0, 1):  # 1 = warnings only
+            raise RuntimeError(f"unzip exited {rc} reading {name} from {path}")
 
 
 def state_table(path: str | Path) -> dict[str, str]:
