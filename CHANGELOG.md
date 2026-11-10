@@ -64,6 +64,12 @@ conservative_file_by, basis}` for the next tax year when the deadline has passed
   the publisher's rights word for word, from the new optional `context.sources` (the `sources` of
   `registry_tx_equity_candidates` as returned). Unknown rights read "rights not stated by the
   publisher: relay to the recipient"; comparables without a citation are named and kept.
+- Site: a `/pricing/` page (the plan table, what counts as a registry lookup, cancelling and
+  refunds, checkout links) and a `/texas/` page (the six hosted counties with parcel counts, the
+  Texas tools, how to connect). A test checks the pricing numbers against `plans.ts`.
+- Hosted API: a browser that opens `GET /mcp` (an `accept` header with `text/html`) gets a short
+  page pointing to the connector steps; every other GET keeps the JSON-RPC 405. `HEAD /health`
+  answers 200.
 
 ### Changed
 
@@ -75,6 +81,10 @@ conservative_file_by, basis}` for the next tax year when the deadline has passed
   kept for 24 hours (then deleted) and that two tools, `doc_extract_lease` and `report_narrative`,
   send what you submit to a model provider; reports are listed in the tool lists, plans, setup
   guide and Texas protest-kit docs.
+- Site: the home page's registry figures are the hosted ones (349,869 commercial parcels, 33
+  counties, 6 Texas counties); the self-hosting totals are a separate, labelled line. The top nav
+  has Texas and Pricing (`/pricing/`); `/#pricing` still works. The status and assurance pages
+  cite the live suite's run of 8 November 2026 (4,635 checks passed, 0 failed).
 
 ### Fixed
 

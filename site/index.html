@@ -140,12 +140,13 @@
           <ul>
             <li><a href="/calculators/">Calculators</a></li>
             <li><a href="/mcp-server/">MCP server</a></li>
+            <li><a href="/texas/">Texas</a></li>
             <li><a href="/coverage/">Coverage</a></li>
             <li><a href="#layers">Layers</a></li>
             <li><a href="#how">How it works</a></li>
             <li><a href="#connect">Connect</a></li>
             <li><a href="#agents">For AI agents</a></li>
-            <li><a href="#pricing">Pricing</a></li>
+            <li><a href="/pricing/">Pricing</a></li>
             <li><a href="#open-source">Open source</a></li>
             <li><a href="#principles">Principles</a></li>
           </ul>
@@ -248,30 +249,31 @@
               </p>
               <dl class="stats">
                 <div>
-                  <dt>Commercial parcels</dt>
-                  <dd>1,733,923</dd>
+                  <dt>Commercial parcels on the hosted API</dt>
+                  <dd>349,869</dd>
                 </div>
                 <div>
-                  <dt>Registered entities</dt>
-                  <dd>14.2 M</dd>
+                  <dt>Counties hosted</dt>
+                  <dd>33</dd>
                 </div>
                 <div>
-                  <dt>Verified sources</dt>
-                  <dd>40</dd>
+                  <dt>Texas counties hosted</dt>
+                  <dd>6</dd>
                 </div>
               </dl>
               <p class="small">
-                Loaded in full on 2026-11-03 across 330 counties in 19 states
-                and the District of Columbia: the largest metros (Harris,
-                Dallas, Tarrant, Travis, New York City, Los Angeles, Boston, San
-                Francisco, Denver, Charlotte, Minneapolis, DC), the rest of the
-                top 100 counties where the licence allows, and every county of
-                New York State, Maryland, Massachusetts, Vermont, Arkansas and
-                Connecticut, most of Utah, 24 Minnesota counties, and Montana's
-                apartments and industrial parcels. Entity registries from Texas,
-                New York, Colorado, Pennsylvania, DC and Connecticut.
-                Commercial, industrial, and multifamily parcels only; some
-                public files omit owner names.
+                Hosted: Maryland (24 jurisdictions), the District of Columbia,
+                Juab and Summit counties in Utah, and Harris, Dallas, Travis,
+                Collin, Denton and Williamson counties in Texas. Commercial,
+                industrial, and multifamily parcels only; some public files omit
+                owner names.
+              </p>
+              <p class="small">
+                Built and documented for self-hosting; not on the hosted API:
+                1,733,923 commercial parcels, 14.2 M registered entities and 330
+                counties in 19 states and the District of Columbia (loaded
+                2026-11-03). See the
+                <a href="/coverage/">coverage map</a>.
               </p>
               <p class="small">
                 The pipeline also holds zoning, recorded sales, deeds and
@@ -281,18 +283,15 @@
                   href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/registry/coverage.md"
                   >coverage page</a
                 >
-                lists. What you can query today on the hosted API: Maryland (all
-                24 jurisdictions), the District of Columbia, Juab and Summit
-                counties in Utah, and Harris, Dallas, Travis, Collin, Denton and
-                Williamson counties in Texas, 349,869 parcels in 33 counties,
-                with the 6,994 GSA lease comps (<code>lease_comp_search</code>;
-                the federal government is the tenant, so they are not
-                private-market comps). Tarrant County is not served by the
-                hosted registry while the publisher's terms for AI use are
-                unclear. Call <code>registry_coverage</code> first to see what
-                is hosted. The other regions are built and verified in the
-                project's pipeline and run on your own FactLot with a registry
-                file; more hosted regions open as their terms allow.
+                lists. The hosted API also serves the 6,994 GSA lease comps
+                (<code>lease_comp_search</code>; the federal government is the
+                tenant, so they are not private-market comps). Tarrant County is
+                not served by the hosted registry while the publisher's terms
+                for AI use are unclear. Call
+                <code>registry_coverage</code> first to see what is hosted. The
+                other regions are built and verified in the project's pipeline
+                and run on your own FactLot with a registry file; more hosted
+                regions open as their terms allow.
               </p>
               <p>
                 <a

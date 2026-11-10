@@ -1312,6 +1312,73 @@ describe("router", () => {
     assert.match(await res.text(), /User-agent: \*\nAllow: \//);
   });
 
+  it("answers a browser's GET /mcp with a page, and keeps the JSON-RPC 405 for other GETs", async () => {
+    const rpc405 = JSON.stringify({
+      jsonrpc: "2.0",
+      error: { code: -32000, message: "Method not allowed" },
+      id: null,
+    });
+    const api = {
+      fetch: async () =>
+        new Response(rpc405, {
+          status: 405,
+          headers: { "content-type": "application/json", allow: "POST" },
+        }),
+    };
+    const e = env({ ASSETS: assets });
+    for (const host of ["api.factlot.com", "factlot.com"]) {
+      const res = await handle(
+        new Request(`https://${host}/mcp`, {
+          headers: { accept: "text/html,application/xhtml+xml;q=0.9" },
+        }),
+        e,
+        api,
+      );
+      assert.equal(res.status, 200);
+      assert.match(res.headers.get("content-type") ?? "", /text\/html/);
+      const html = await res.text();
+      assert.match(html, /https:\/\/factlot\.com\/mcp-server\//);
+      assert.match(html, /Add custom connector/);
+    }
+    for (const accept of [undefined, "application/json", "text/event-stream"]) {
+      const res = await handle(
+        new Request("https://api.factlot.com/mcp", {
+          headers: accept ? { accept } : {},
+        }),
+        e,
+        api,
+      );
+      assert.equal(res.status, 405);
+      assert.equal(await res.text(), rpc405);
+    }
+  });
+
+  it("answers HEAD /health with 200 and no body", async () => {
+    const api = {
+      fetch: async (r: Request) =>
+        r.method === "GET"
+          ? new Response(JSON.stringify({ ok: true }), {
+              headers: { "content-type": "application/json" },
+            })
+          : new Response("{}", { status: 405 }),
+    };
+    const e = env({ ASSETS: assets });
+    const head = await handle(
+      new Request("https://api.factlot.com/health", { method: "HEAD" }),
+      e,
+      api,
+    );
+    assert.equal(head.status, 200);
+    assert.equal(await head.text(), "");
+    const get = await handle(
+      new Request("https://api.factlot.com/health"),
+      e,
+      api,
+    );
+    assert.equal(get.status, 200);
+    assert.deepEqual(await get.json(), { ok: true });
+  });
+
   it("serves the landing page on the apex host and the API on api.", async () => {
     const { api } = innerApi();
     const e = env({ ASSETS: assets });

@@ -87,7 +87,7 @@ import {
 } from "./model-tools.ts";
 import { withHostedOperations } from "./openapi-hosted.ts";
 import { KEY_PLACEHOLDER, guideMarkdown, setupGuide } from "./onboarding.ts";
-import { accountFormPage, accountPage } from "./pages.ts";
+import { accountFormPage, accountPage, escapeHtml, page } from "./pages.ts";
 import {
   recoverLinkRoute,
   recoverRequestRoute,
@@ -607,6 +607,24 @@ async function readBody(
 
 // --- Routes -------------------------------------------------------------------------------------
 
+/** What a browser sees at the MCP URL: it is an endpoint for AI clients, not a web page. */
+function mcpBrowserPage(siteBase: string, apiBase: string): Response {
+  const site = escapeHtml(siteBase.replace(/\/$/, ""));
+  const url = escapeHtml(`${apiBase}/mcp`);
+  return page(
+    "MCP endpoint",
+    `<h1>This is the FactLot MCP endpoint</h1>
+<p class="lead">It is the address an AI client connects to, not a page to read. Instructions for each client are at <a href="${site}/mcp-server/">${site.replace(/^https?:\/\//, "")}/mcp-server/</a>.</p>
+<ol>
+<li>Claude (web, Desktop, mobile): Settings, Connectors, Add custom connector, then enter <code>${url}/signin</code> and sign in.</li>
+<li>ChatGPT: Settings, Apps, Advanced settings, Developer mode; create an app with <code>${url}/signin</code>.</li>
+<li>Claude Code and other clients that send headers: <code>claude mcp add --transport http factlot ${url}</code>.</li>
+</ol>
+<div class="buttons"><a class="button primary" href="${site}/mcp-server/">Connect a client</a><a class="button" href="${site}/">factlot.com</a></div>`,
+    { site: siteBase },
+  );
+}
+
 export async function handle(
   request: Request,
   env: Env,
@@ -626,6 +644,16 @@ export async function handle(
     path = "/mcp";
   }
   try {
+    // Uptime monitors probe with HEAD: answer it as the GET (same limits, same status), no body.
+    if (request.method === "HEAD" && path === "/health") {
+      const res = await route(
+        new Request(request.url, { method: "GET", headers: request.headers }),
+        env,
+        api,
+        opts,
+      );
+      return new Response(null, { status: res.status, headers: res.headers });
+    }
     return await route(request, env, api, opts);
   } catch (err) {
     if (err instanceof MeterUnavailable) {
@@ -664,6 +692,15 @@ async function route(
       `https://factlot.com${url.pathname}${url.search}`,
       301,
     );
+
+  // A person who opens the MCP URL in a browser gets directions; every other GET keeps the
+  // JSON-RPC 405 an MCP client expects.
+  if (
+    path === "/mcp" &&
+    request.method === "GET" &&
+    (request.headers.get("accept") ?? "").toLowerCase().includes("text/html")
+  )
+    return mcpBrowserPage(site, apiBase);
 
   // The pages' stylesheet and icon, on every host (billing and account pages can be served on
   // the API host too).

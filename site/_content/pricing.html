@@ -1,0 +1,158 @@
+<p class="lede">
+  The tools are open source and free to run yourself, with no limits. The hosted
+  endpoint at <code>https://api.factlot.com</code> saves you running it. Every
+  plan has every tool, except that the two model-backed tools are for Pro and
+  Team. Plans differ in request rate, registry lookups, reports, model-backed
+  tools, keys and support.
+</p>
+
+<table>
+  <caption class="visually-hidden">
+    Hosted plans
+  </caption>
+  <thead>
+    <tr>
+      <th scope="col"></th>
+      <th scope="col">Free</th>
+      <th scope="col">Pro</th>
+      <th scope="col">Team</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th scope="row">Price</th>
+      <td>$0, no key</td>
+      <td>$49 a month</td>
+      <td>$599 a month</td>
+    </tr>
+    <tr>
+      <th scope="row">API keys</th>
+      <td>none</td>
+      <td>1</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <th scope="row">Requests a minute</th>
+      <td>60 per IP address</td>
+      <td>600 per key</td>
+      <td>3,000 per key</td>
+    </tr>
+    <tr>
+      <th scope="row">Registry lookups</th>
+      <td>25 a day per IP address</td>
+      <td>5,000 a month</td>
+      <td>100,000 a month</td>
+    </tr>
+    <tr>
+      <th scope="row">Reports</th>
+      <td>3 a month per IP address</td>
+      <td>50 a month</td>
+      <td>1,000 a month</td>
+    </tr>
+    <tr>
+      <th scope="row">Model-backed tools</th>
+      <td>not included</td>
+      <td>100 lease pages and 50 narratives a month</td>
+      <td>2,000 lease pages and 1,000 narratives a month</td>
+    </tr>
+    <tr>
+      <th scope="row">Support</th>
+      <td>GitHub Discussions</td>
+      <td>Email</td>
+      <td>Priority</td>
+    </tr>
+    <tr>
+      <th scope="row"></th>
+      <td>
+        <a href="{{REPO}}/blob/main/docs/getting-started.md">Get started</a>
+      </td>
+      <td>
+        <a
+          class="button primary"
+          rel="nofollow"
+          href="https://api.factlot.com/billing/checkout?plan=pro"
+          >Start Pro</a
+        >
+      </td>
+      <td>
+        <a
+          class="button"
+          rel="nofollow"
+          href="https://api.factlot.com/billing/checkout?plan=team"
+          >Start Team</a
+        >
+      </td>
+    </tr>
+  </tbody>
+</table>
+<p class="small">
+  Pro: $49 a month, renews monthly until cancelled. Cancel any time. Team: $599
+  a month, renews monthly until cancelled. Cancel any time.
+  <a href="/terms#billing">Terms</a>
+</p>
+<p>
+  The calculators, ID, fact, rules and document tools never count toward a
+  registry lookup quota. Team also gets a vote on which regions open next. For a
+  private deployment, invoicing, a signed data-processing agreement or SSO,
+  email <a href="mailto:contact@factlot.com">contact@factlot.com</a>. A registry
+  download licence is $2,400 a year per state file, refreshed weekly, for
+  internal use (not redistribution), available on request.
+</p>
+
+<h2 id="lookups">What counts as a registry lookup</h2>
+<ul>
+  <li>
+    A lookup is one answered call to a <code>registry_*</code> tool: a record, a
+    resolved ID, owners, or a search that ran inside loaded coverage (even with
+    no results). Free: <code>registry_coverage</code>, input errors, misses
+    outside loaded coverage (county, state, entity registry or ID system not
+    loaded) and calls the registry could not answer.
+  </li>
+  <li>
+    <code>registry_tx_equity_candidates_batch</code> counts one lookup per
+    answered subject: it needs one free lookup per subject to run (a batch
+    larger than what remains is refused whole), and subjects with an error are
+    given back.
+  </li>
+  <li>
+    Without a key, 25 lookups a day per IP address (stored only as a hash; IPv6
+    per /64), counted per UTC day and reset at 00:00 UTC.
+  </li>
+  <li>
+    With a key, lookups count per subscription per calendar month (UTC), shared
+    by all of its keys; requests a minute count per key.
+  </li>
+  <li>
+    At a cap, registry calls answer 429 RegistryQuotaExceeded until the reset,
+    other tools keep working, and nothing extra is billed.
+  </li>
+</ul>
+<p class="small">
+  The same rules are served as JSON at
+  <a href="https://api.factlot.com/v1/plans">api.factlot.com/v1/plans</a>.
+</p>
+
+<h2 id="billing">Billing, cancelling and refunds</h2>
+<p>
+  Checkout is by Stripe; prices are in US dollars and exclude taxes. The Start
+  buttons open Stripe Checkout. Your API key is shown once on the page Stripe
+  returns you to; FactLot stores only a hash of it, and a new key can take up to
+  a minute to start working.
+</p>
+<p>
+  Cancel any time at
+  <a href="https://factlot.com/account">factlot.com/account</a>, in the Stripe
+  billing portal, or by email to contact@factlot.com with the subject "Cancel"
+  from your account email. Cancelling stops the next renewal, and your keys work
+  to the end of the month you have paid for. There are no refunds for a partial
+  month; if you are charged in error, for example twice, the wrong amount, or
+  after you cancelled, email us and we will correct it. See the
+  <a href="/terms#billing">terms</a> and the
+  <a href="/privacy">privacy notice</a>.
+</p>
+<p>
+  Agents can start checkout with
+  <code>POST https://api.factlot.com/v1/billing/checkout</code>, hand the link
+  to their human, and collect the key from the <code>claim_url</code> it
+  returns.
+</p>

@@ -64,10 +64,10 @@ function fill(template, vars) {
 const NAV = [
   ["/calculators/", "Calculators"],
   ["/mcp-server/", "MCP server"],
-  ["/texas/property-tax-protest-deadline/", "Texas protest deadline"],
+  ["/texas/", "Texas"],
   ["/coverage/", "Coverage"],
   [`${REPO}/blob/main/docs/getting-started.md`, "Docs"],
-  ["/#pricing", "Pricing"],
+  ["/pricing/", "Pricing"],
 ];
 
 /** The trust package, in reading order: how it is run, what is promised, how numbers are proven. */
@@ -290,6 +290,23 @@ addPage(
   ["site/_content/mcp.html"],
 );
 
+// --- /pricing/ ------------------------------------------------------------------------------------
+// The plan numbers are written in the fragment; site.test.ts checks them against
+// deploy/cloudflare/src/plans.ts, so the page cannot drift from what the Worker enforces.
+
+addPage(
+  {
+    urlPath: "/pricing/",
+    title: "Pricing: hosted plans and registry lookups | FactLot",
+    description:
+      "FactLot's hosted API: Free, Pro ($49 a month) and Team ($599 a month). Request rates, registry lookups, reports, what counts as a lookup, and how to cancel.",
+    h1: "Pricing",
+    crumbs: [["/pricing/", "Pricing"]],
+    body: fill(read("site/_content/pricing.html"), { REPO }),
+  },
+  ["site/_content/pricing.html", "deploy/cloudflare/src/plans.ts"],
+);
+
 // --- calculators ---------------------------------------------------------------------------
 
 const manifest = readJson("site/_content/calculators/manifest.json");
@@ -460,6 +477,7 @@ ${rows
       description: `The ${years[0]} Texas property tax protest deadline is ${long(next.deadline)} under Tax Code §41.44 and §1.06, unless a later notice moves it. Statute citations included.`,
       h1: `Texas property tax protest deadline (${years[0]})`,
       crumbs: [
+        ["/texas/", "Texas"],
         [
           "/texas/property-tax-protest-deadline/",
           "Texas property tax protest deadline",
@@ -481,6 +499,21 @@ ${rows
     ],
   );
 }
+
+// --- /texas/ hub ------------------------------------------------------------------------------------
+
+addPage(
+  {
+    urlPath: "/texas/",
+    title: "Texas commercial property data and tools | FactLot",
+    description:
+      "What FactLot hosts for Texas: 221,015 commercial parcels in six counties, the unequal-appraisal calculator, the protest-deadline rule, reports, and how to connect.",
+    h1: "Texas",
+    crumbs: [["/texas/", "Texas"]],
+    body: read("site/_content/texas.html"),
+  },
+  ["site/_content/texas.html"],
+);
 
 // --- County coverage map -------------------------------------------------------------------
 

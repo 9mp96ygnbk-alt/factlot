@@ -1,0 +1,135 @@
+<p class="lede">
+  FactLot's hosted registry holds commercial parcels from six Texas counties,
+  with value history by tax year, organisation owners only, and the Texas
+  Comptroller entities that own a hosted parcel. Alongside it are tools for the
+  protest-deadline rule and the unequal-appraisal arithmetic.
+</p>
+<p>
+  FactLot is software. It is not a property tax consultant under Texas
+  Occupations Code chapter 1152, does not prepare, file or advise on protests,
+  and does not represent owners before an appraisal review board. If you provide
+  property tax services to others for compensation, your own registration
+  obligations apply.
+</p>
+
+<h2 id="hosted">What is hosted in Texas</h2>
+<table>
+  <caption class="visually-hidden">
+    Hosted Texas counties
+  </caption>
+  <thead>
+    <tr>
+      <th scope="col">County</th>
+      <th scope="col">Commercial parcels</th>
+      <th scope="col">Roll</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th scope="row">Harris</th>
+      <td>87,717</td>
+      <td>one roll year</td>
+    </tr>
+    <tr>
+      <th scope="row">Dallas</th>
+      <td>59,645</td>
+      <td>one roll year</td>
+    </tr>
+    <tr>
+      <th scope="row">Travis</th>
+      <td>30,556</td>
+      <td>one roll year</td>
+    </tr>
+    <tr>
+      <th scope="row">Collin</th>
+      <td>18,035</td>
+      <td>one roll year</td>
+    </tr>
+    <tr>
+      <th scope="row">Denton</th>
+      <td>13,304</td>
+      <td>one roll year (2027 preliminary)</td>
+    </tr>
+    <tr>
+      <th scope="row">Williamson</th>
+      <td>11,758</td>
+      <td>one roll year (2027 preliminary)</td>
+    </tr>
+    <tr>
+      <th scope="row">Total</th>
+      <td>221,015</td>
+      <td></td>
+    </tr>
+  </tbody>
+</table>
+<p>
+  Each of the six counties holds one roll year. Every fact cites the roll it was
+  read from. Tarrant County is not served by the hosted registry while the
+  publisher's terms for AI use are unclear. <code>registry_coverage</code> lists
+  exactly what is hosted, and the <a href="/coverage/">coverage map</a> shows
+  every county.
+</p>
+
+<h2 id="tools">Tools</h2>
+<ul>
+  <li>
+    <code>registry_get</code>: a parcel, legal entity or building by FactLot ID,
+    with its status, current cited facts and ownership links.
+  </li>
+  <li>
+    <code>registry_tx_equity_candidates</code> (and its batch form): candidate
+    comparables for a subject parcel under a stated default rule, returned in
+    the input shape of the calculator below for a person to review and edit.
+  </li>
+  <li>
+    <code>calc_tx_unequal_appraisal</code>: the arithmetic of Tax Code
+    §41.43(b)(3) and §42.26(a)(3) over comparables the person chose, with every
+    step shown.
+  </li>
+  <li>
+    <code>rules_tx_property_tax_protest_deadline</code>: the protest deadline
+    computed from the statute text, with citations. See the
+    <a href="/texas/property-tax-protest-deadline/"
+      >Texas property tax protest deadline</a
+    >
+    page.
+  </li>
+  <li>
+    <code>report_create</code> kinds <code>tx_protest_deadline</code> (a
+    calendar or PDF of the deadline) and <code>tx_unequal_appraisal</code> (an
+    evidence packet as a PDF, or the Texas workbook, an XLSX with live Excel
+    formulas beside FactLot's numbers), built by code with no model.
+  </li>
+</ul>
+<p>
+  Registry lookups and reports are metered by plan; see
+  <a href="/pricing/">pricing</a>.
+</p>
+
+<h2 id="connect">Connect</h2>
+<ul>
+  <li>
+    Any MCP client: <code>https://api.factlot.com/mcp</code>, no key for the
+    free tier.
+  </li>
+  <li>
+    Claude (web, Desktop, mobile) and ChatGPT cannot send a key header: add the
+    connector <code>https://api.factlot.com/mcp/signin</code> and sign in.
+  </li>
+  <li>
+    Step-by-step instructions for each client are on the
+    <a href="/mcp-server/">MCP server</a> page.
+  </li>
+</ul>
+
+<h2 id="limits">What this is and is not</h2>
+<p>
+  These outputs are not an appraisal or an opinion of value (Occupations Code
+  §1103.003(1)), not legal or tax advice, and not a substitute for the advice of
+  an attorney. They do not say whether to protest, what value to put forward, or
+  how a hearing may go. FactLot does not file protests, sign agent designations
+  under §1.111, or contact appraisal districts. Filing is done through the
+  appraisal district's own process, by the owner or by a property tax consultant
+  registered with the Texas Department of Licensing and Regulation, or an
+  attorney. See the <a href="/calculators/">calculators</a>.
+</p>
