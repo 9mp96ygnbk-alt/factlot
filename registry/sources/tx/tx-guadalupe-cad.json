@@ -9,12 +9,8 @@
     {
       "source_id": "tx-guadalupe-cad",
       "publisher": "Guadalupe Appraisal District",
-      "landing_pages": [
-        "https://guadalupead.org/certified-appraisal-roll/"
-      ],
-      "allowed_hosts": [
-        "guadalupead.org"
-      ],
+      "landing_pages": ["https://guadalupead.org/certified-appraisal-roll/"],
+      "allowed_hosts": ["guadalupead.org"],
       "files": [
         "https://guadalupead.org/wp-content/uploads/2026/07/2026-GCO-Certified-Appraisal-Roll-Supp-0.zip",
         "https://guadalupead.org/wp-content/uploads/2026/06/2025-GCO-CERTF-APPR-ROLL-SUPP0.zip"

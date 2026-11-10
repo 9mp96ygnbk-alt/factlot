@@ -230,7 +230,9 @@ function rateLimited(
   connection = false,
 ): Response {
   const scope = connection
-    ? "per connection"
+    ? tier === "anonymous"
+      ? "for the free connections started from one address"
+      : "per connection"
     : tier === "anonymous"
       ? "per address"
       : "per key";
@@ -390,6 +392,21 @@ export async function resolveKey(
 
 // --- Registry metering ------------------------------------------------------------------------
 
+/** Whether two requests of a batch share an id (notifications, with no id, are left out). */
+export function hasDuplicateIds(items: unknown[]): boolean {
+  const seen = new Set<string>();
+  for (const item of items) {
+    if (typeof item !== "object" || item === null) continue;
+    const id = (item as { id?: unknown }).id;
+    if (id === undefined || id === null) continue;
+    // 1 and "1" are different JSON-RPC ids.
+    const k = `${typeof id}:${String(id)}`;
+    if (seen.has(k)) return true;
+    seen.add(k);
+  }
+  return false;
+}
+
 /** A JSON-RPC message that calls a metered registry tool and expects an answer. */
 function isMeteredCall(item: unknown): item is { id: string | number } {
   if (typeof item !== "object" || item === null) return false;
@@ -535,7 +552,9 @@ export function quotaError(
   opts: { needed?: number; connection?: boolean } = {},
 ) {
   const { needed = 1, connection = false } = opts;
-  const per = connection ? "connection" : "IP address";
+  const per = connection
+    ? "sign-in address (shared by its free connections)"
+    : "IP address";
   const resets = q.resets_at;
   const limit = q.limit.toLocaleString("en-US");
   const free =
@@ -973,6 +992,14 @@ async function route(
       });
     mcpBatch = Array.isArray(mcpBody);
     const items: unknown[] = Array.isArray(mcpBody) ? mcpBody : [mcpBody];
+    // Answers are matched to calls by id when lookups are charged, so two requests with one id
+    // would let an error answer stand for a real one. JSON-RPC ids must be unique in a batch.
+    if (mcpBatch && hasDuplicateIds(items))
+      return errorResponse(path, 400, -32600, {
+        error: "BadRequest",
+        message:
+          "invalid request: every request in a batch needs its own id (two or more share one)",
+      });
     registryRequest = items.some(callsRegistry);
     wanted = items
       .filter(isMeteredCall)

@@ -9,12 +9,8 @@
     {
       "source_id": "tx-bell-cad",
       "publisher": "Tax Appraisal District of Bell County",
-      "landing_pages": [
-        "https://bellcad.org/data-portal/"
-      ],
-      "allowed_hosts": [
-        "bellcad.org"
-      ],
+      "landing_pages": ["https://bellcad.org/data-portal/"],
+      "allowed_hosts": ["bellcad.org"],
       "files": [
         "https://bellcad.org/wp-content/uploads/2026/02/Appraisal-Export-Layout-8.0.33.xlsx",
         "https://bellcad.org/wp-content/uploads/2019/06/2026-Bell-County-Certified-Export-3.zip",

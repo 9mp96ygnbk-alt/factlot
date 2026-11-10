@@ -9,12 +9,8 @@
     {
       "source_id": "tx-kaufman-cad",
       "publisher": "Kaufman Central Appraisal District",
-      "landing_pages": [
-        "https://kaufman-cad.org/public-info/"
-      ],
-      "allowed_hosts": [
-        "kaufman-cad.org"
-      ],
+      "landing_pages": ["https://kaufman-cad.org/public-info/"],
+      "allowed_hosts": ["kaufman-cad.org"],
       "files": [
         "https://kaufman-cad.org/wp-content/uploads/2026/04/Appraisal-Export-Layout-8.0.33-2026.xlsx",
         "https://kaufman-cad.org/wp-content/uploads/2026/07/2026-Certified-Export-Files.zip",

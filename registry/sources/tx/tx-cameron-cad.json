@@ -9,12 +9,8 @@
     {
       "source_id": "tx-cameron-cad",
       "publisher": "Cameron Appraisal District",
-      "landing_pages": [
-        "https://www.cameroncad.org/Pages/Data"
-      ],
-      "allowed_hosts": [
-        "www.cameroncad.org"
-      ],
+      "landing_pages": ["https://www.cameroncad.org/Pages/Data"],
+      "allowed_hosts": ["www.cameroncad.org"],
       "files": [
         "https://www.cameroncad.org/cad/exports/certified/2026/cameron-2026-certified-appraisal-export-20260723.zip"
       ],

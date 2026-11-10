@@ -9,12 +9,8 @@
     {
       "source_id": "tx-nueces-cad",
       "publisher": "Nueces Central Appraisal District",
-      "landing_pages": [
-        "https://nuecescad.net/downloads-reports/"
-      ],
-      "allowed_hosts": [
-        "nuecescad.net"
-      ],
+      "landing_pages": ["https://nuecescad.net/downloads-reports/"],
+      "allowed_hosts": ["nuecescad.net"],
       "files": [
         "https://nuecescad.net/wp-content/uploads/2026/04/Export-Layout-Files-8.0.33.zip",
         "https://nuecescad.net/wp-content/uploads/2026/10/Certified-Public-Export-2026.zip",

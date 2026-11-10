@@ -316,9 +316,11 @@ function decide(
   c: Consent,
   fields: Record<string, string>,
   headers: Record<string, string> = {},
+  ip?: string,
 ): Promise<Response> {
   return send(e, "/authorize", {
     method: "POST",
+    ...(ip ? { ip } : {}),
     headers: {
       "content-type": "application/x-www-form-urlencoded",
       origin: API,
@@ -356,11 +358,13 @@ async function token(
 async function connect(
   e: Env,
   fields: Record<string, string>,
+  /** The address the person signs in from (the consent page). */
+  ip?: string,
 ): Promise<{ client_id: string; tokens: Tokens }> {
   const { client_id } = await register(e);
   const p = await pkce();
   const c = await authorize(e, client_id, p.challenge);
-  const res = await decide(e, c, fields);
+  const res = await decide(e, c, fields, {}, ip);
   assert.equal(res.status, 302, await res.clone().text());
   const code = new URL(res.headers.get("location")!).searchParams.get("code")!;
   const { body } = await token(e, {
@@ -843,7 +847,7 @@ describe("the connection follows the subscription, not the key", () => {
 });
 
 describe("free tier through OAuth", () => {
-  it("issues a token with the anonymous limits, metered per connection", async () => {
+  it("issues a token with the anonymous limits, one allowance per sign-in address", async () => {
     const e = env();
     const a = await connect(e, { decision: "free" });
     const b = await connect(e, { decision: "free" });
@@ -853,19 +857,30 @@ describe("free tier through OAuth", () => {
     assert.equal(res.headers.get("x-ratelimit-limit"), "60");
     assert.equal(res.headers.get("x-factlot-registry-quota-limit"), "25");
     assert.equal(res.headers.get("x-factlot-registry-quota-remaining"), "24");
-    // A second connection from the same address, and keyless calls, count apart.
+    // A second free connection started from the same address shares the allowance: a new
+    // connection is not a new day's lookups. Keyless calls (a hosted client's own address)
+    // count apart.
     const other = await mcp(e, b.tokens.access_token, lookup(2));
-    assert.equal(other.headers.get("x-factlot-registry-quota-remaining"), "24");
+    assert.equal(other.headers.get("x-factlot-registry-quota-remaining"), "23");
     const keyless = await mcp(e, undefined, lookup(3));
     assert.equal(
       keyless.headers.get("x-factlot-registry-quota-remaining"),
       "24",
     );
     const again = await mcp(e, a.tokens.access_token, lookup(4));
-    assert.equal(again.headers.get("x-factlot-registry-quota-remaining"), "23");
+    assert.equal(again.headers.get("x-factlot-registry-quota-remaining"), "22");
     // No account tools for a free connection.
     const list = await mcp(e, a.tokens.access_token, LIST);
     assert.doesNotMatch(await list.text(), /account_status/);
+  });
+
+  it("gives free connections started from different addresses their own allowance", async () => {
+    const e = env();
+    const a = await connect(e, { decision: "free" });
+    const b = await connect(e, { decision: "free" }, "198.51.100.77");
+    await mcp(e, a.tokens.access_token, lookup(1));
+    const res = await mcp(e, b.tokens.access_token, lookup(2));
+    assert.equal(res.headers.get("x-factlot-registry-quota-remaining"), "24");
   });
 
   it("caps new free connections per address per day", async () => {
@@ -889,7 +904,10 @@ describe("free tier through OAuth", () => {
       result: { isError: boolean; content: { text: string }[] };
     };
     assert.equal(body.result.isError, true);
-    assert.match(body.result.content[0]!.text, /25 a day per connection/);
+    assert.match(
+      body.result.content[0]!.text,
+      /25 a day per sign-in address \(shared by its free connections\)/,
+    );
   });
 
   it("gives unanswered per-subject lookups back to the connection, and names its shortfall", async () => {
@@ -929,7 +947,7 @@ describe("free tier through OAuth", () => {
     };
     assert.match(
       error.message,
-      /needs 3 registry lookups .* only 2 of today's 25 free lookups for this connection are left/,
+      /needs 3 registry lookups .* only 2 of today's 25 free lookups for this sign-in address \(shared by its free connections\) are left/,
     );
     assert.equal(error.needed, 3);
     assert.equal(error.available, 2);

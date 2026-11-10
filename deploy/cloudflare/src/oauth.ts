@@ -62,7 +62,7 @@ import {
   stripeStatusIsTerminal,
   type KeyRecord,
 } from "./keys.ts";
-import { addressSubject } from "./limiter.ts";
+import { addressSubject, ipBucket } from "./limiter.ts";
 import {
   consentPage,
   emailLinkPage,
@@ -273,7 +273,37 @@ export function oauthHelpers(env: Env): OAuthHelpers {
 
 /** Stored encrypted with the grant: the subscription, never a key. */
 type OAuthProps =
-  { v: 1; tier: "paid"; subscription: string } | { v: 1; tier: "free" };
+  | { v: 1; tier: "paid"; subscription: string }
+  | {
+      v: 1;
+      tier: "free";
+      /**
+       * The meter every free connection started from one address shares (freeConnectionMeter).
+       * Grants made before it existed have none and must sign in again.
+       */
+      meter?: string;
+    };
+
+/**
+ * The shared meter of the free connections started from one address (IPv6: its /64): a salted
+ * hash, so the address itself is never stored. Without it each new free connection would bring a
+ * fresh daily allowance, and ten connections a day would give one address ten allowances.
+ */
+export async function freeConnectionMeter(
+  address: string,
+  secret?: string,
+): Promise<string> {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(
+      `factlot-oauthfree|${secret ?? ""}|${ipBucket(address)}`,
+    ),
+  );
+  return [...new Uint8Array(digest)]
+    .slice(0, 16)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
 
 /** Grant metadata (storage-visible, unencrypted): what /account shows. */
 interface GrantMeta {
@@ -302,7 +332,10 @@ export type OAuthCaller =
       tier: "free";
       grantId: string;
       clientId: string;
-      /** Meter subject: minute limit and daily registry lookups, per connection. */
+      /**
+       * Meter subject: minute limit, daily registry lookups and monthly reports, shared by every
+       * free connection started from the same address.
+       */
       subject: string;
     }
   | {
@@ -342,13 +375,17 @@ export async function resolveOAuthToken(
   if (!v || !v.scope.includes(OAUTH_SCOPE)) return undefined;
   const grantId = token.split(":")[1]!;
   const props = v.props as OAuthProps | undefined;
-  if (props?.tier === "free")
+  if (props?.tier === "free") {
+    // A free grant from before the shared meter: no allowance of its own any more. The client
+    // gets 401 and signs in again, which records the meter.
+    if (typeof props.meter !== "string" || props.meter === "") return undefined;
     return {
       tier: "free",
       grantId,
       clientId: v.clientId,
-      subject: `oauthfree:${grantId}`,
+      subject: `oauthfree:${props.meter}`,
     };
+  }
   if (props?.tier !== "paid" || typeof props.subscription !== "string")
     return undefined;
   const ended = () => {
@@ -650,13 +687,13 @@ async function grant(
   approved: { request: AuthRequest; headers: Headers },
   who:
     | { tier: "paid"; subscription: string; via: "key" | "email" }
-    | { tier: "free" },
+    | { tier: "free"; meter: string },
   view: ConsentView,
 ): Promise<Response> {
   const props: OAuthProps =
     who.tier === "paid"
       ? { v: 1, tier: "paid", subscription: who.subscription }
-      : { v: 1, tier: "free" };
+      : { v: 1, tier: "free", meter: who.meter };
   const metadata: GrantMeta = {
     tier: who.tier,
     client_name: view.client.slice(0, 100),
@@ -776,7 +813,11 @@ async function authorizeRoute(
       const approved = await helpers.approveConsent(request, handle, {
         scope: [OAUTH_SCOPE],
       });
-      return await grant(env, approved, { tier: "free" }, view);
+      const meter = await freeConnectionMeter(
+        clientAddress(request),
+        env.IP_HASH_SALT,
+      );
+      return await grant(env, approved, { tier: "free", meter }, view);
     }
 
     if (decision === "email") {

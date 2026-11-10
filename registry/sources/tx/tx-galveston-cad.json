@@ -14,9 +14,7 @@
         "https://galvestoncad.org/preliminary-and-certified-roll-export-data/",
         "https://galvestoncad.org/current-and-historical-supplement-roll-export-data/"
       ],
-      "allowed_hosts": [
-        "galvestoncad.org"
-      ],
+      "allowed_hosts": ["galvestoncad.org"],
       "files": [
         "https://galvestoncad.org/wp-content/uploads/2026/06/2026-June-Layout-Changes-8_0_34.zip",
         "https://galvestoncad.org/wp-content/uploads/2026/08/2026-CERTIFIED-ROLL-WEB-EXPORT-W-EXPORT-LAYOUT.zip",

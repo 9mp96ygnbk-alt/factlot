@@ -78,6 +78,14 @@ conservative_file_by, basis}` for the next tax year when the deadline has passed
 
 ### Fixed
 
+- Hosted API: free OAuth connections (header-less clients that sign in on the free tier) started
+  from one address now share that address's daily registry lookups and monthly reports, instead
+  of each connection bringing its own; free connections made before this change sign in again
+  once. Keyless calls keep their own per-address allowance.
+- Hosted API: an MCP batch in which two requests share an id is refused with -32600 before
+  anything is metered (answers are matched to calls by id).
+- Texas source configs for 13 appraisal districts are formatted like the rest of the repository
+  (CI's format check failed on them).
 - Reports, `critical_dates` calendar: a notice deadline that `business_day_roll` moves to a later
   business day is now dated on its contractual date (the later date is described, not
   scheduled), each event carries the tool's warnings about its dates, and a deadline under 30

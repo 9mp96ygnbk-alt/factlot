@@ -9,12 +9,8 @@
     {
       "source_id": "tx-johnson-cad",
       "publisher": "Central Appraisal District of Johnson County",
-      "landing_pages": [
-        "https://johnsoncad.com/downloads/"
-      ],
-      "allowed_hosts": [
-        "johnsoncad.com"
-      ],
+      "landing_pages": ["https://johnsoncad.com/downloads/"],
+      "allowed_hosts": ["johnsoncad.com"],
       "files": [
         "https://johnsoncad.com/wp-content/uploads/2026/08/BATCH_896.all_.zip",
         "https://johnsoncad.com/wp-content/uploads/2025/08/2025-Certified-Data-Roll.zip",

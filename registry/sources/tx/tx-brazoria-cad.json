@@ -12,9 +12,7 @@
       "landing_pages": [
         "https://brazoriacad.org/public-gis-and-property-data-downloads/"
       ],
-      "allowed_hosts": [
-        "brazoriacad.org"
-      ],
+      "allowed_hosts": ["brazoriacad.org"],
       "files": [
         "https://brazoriacad.org/wp-content/uploads/2026/11/ProTax_November_2026.zip",
         "https://brazoriacad.org/wp-content/uploads/2026/05/Notices-05.26.2026.xlsx",

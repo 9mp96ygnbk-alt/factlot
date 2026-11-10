@@ -2372,6 +2372,34 @@ describe("review fixes", () => {
     assert.equal(seen.length, 0);
   });
 
+  it("refuses an MCP batch whose requests share an id, before metering anything", async () => {
+    const { api, seen } = innerApi();
+    const e = env();
+    // A real lookup and a malformed call under one id: matching answers by id would let the
+    // error answer stand for the real one, and the lookup would go uncharged.
+    const res = await call(e, api, "/mcp", {
+      body: [toolCall("registry_get", 1), toolCall("registry_get", 1)],
+    });
+    assert.equal(res.status, 400);
+    const body = (await res.json()) as {
+      error: { code: number; message: string };
+    };
+    assert.equal(body.error.code, -32600);
+    assert.match(body.error.message, /its own id/);
+    assert.equal(e.limiter.objects.size, 0, "no meter was touched");
+    assert.equal(seen.length, 0);
+    // 1 and "1" are different ids; notifications (no id) may repeat.
+    const ok = await call(e, api, "/mcp", {
+      body: [
+        toolCall("calc_irr", 1),
+        toolCall("calc_irr", "1"),
+        { jsonrpc: "2.0", method: "notifications/initialized" },
+        { jsonrpc: "2.0", method: "notifications/initialized" },
+      ],
+    });
+    assert.notEqual(ok.status, 400);
+  });
+
   it("gives back a lookup the registry could not answer (REST 503, MCP RegistryUnavailable)", async () => {
     const { api } = innerApi({ registryDown: true });
     const e = env();

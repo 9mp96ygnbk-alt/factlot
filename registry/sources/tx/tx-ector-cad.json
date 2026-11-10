@@ -13,9 +13,7 @@
         "https://www.ectorcad.org/home/downloads",
         "https://www.ectorcad.org/home/appraisalroll"
       ],
-      "allowed_hosts": [
-        "www.ectorcad.org"
-      ],
+      "allowed_hosts": ["www.ectorcad.org"],
       "files": [
         "https://www.ectorcad.org/downloads/car/2026_CERTIFIED_RE_APPRAISAL_ROLL-7222026.ZIP",
         "https://www.ectorcad.org/downloads/rolls/2026_Appraisal_Roll.zip",

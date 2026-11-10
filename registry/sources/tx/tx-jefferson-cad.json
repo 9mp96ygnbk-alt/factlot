@@ -9,12 +9,8 @@
     {
       "source_id": "tx-jefferson-cad",
       "publisher": "Jefferson Central Appraisal District",
-      "landing_pages": [
-        "https://jcad.org/data-download/"
-      ],
-      "allowed_hosts": [
-        "jcad.org"
-      ],
+      "landing_pages": ["https://jcad.org/data-download/"],
+      "allowed_hosts": ["jcad.org"],
       "files": [
         "https://jcad.org/wp-content/uploads/2026/07/CERTIFIED-2026_0_PUBLIC.zip",
         "https://jcad.org/wp-content/uploads/2026/10/SUPL_GRP_2026_05_PUBLIC.zip",

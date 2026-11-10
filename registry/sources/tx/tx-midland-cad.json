@@ -9,12 +9,8 @@
     {
       "source_id": "tx-midland-cad",
       "publisher": "Midland Central Appraisal District",
-      "landing_pages": [
-        "https://midcad.org/open-records/"
-      ],
-      "allowed_hosts": [
-        "midcad.org"
-      ],
+      "landing_pages": ["https://midcad.org/open-records/"],
+      "allowed_hosts": ["midcad.org"],
       "files": [
         "https://midcad.org/wp-content/uploads/2026/08/2026-MIDLAND-CERTIFIED-WEB-3.zip",
         "https://midcad.org/wp-content/uploads/2025/11/2025-MCAD-Web-File.zip",

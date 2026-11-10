@@ -9,13 +9,8 @@
     {
       "source_id": "tx-grayson-cad",
       "publisher": "Grayson Central Appraisal District",
-      "landing_pages": [
-        "https://graysonappraisal.org/public-information/"
-      ],
-      "allowed_hosts": [
-        "graysonappraisal.org",
-        "maps.graysonappraisal.org"
-      ],
+      "landing_pages": ["https://graysonappraisal.org/public-information/"],
+      "allowed_hosts": ["graysonappraisal.org", "maps.graysonappraisal.org"],
       "files": [
         "https://maps.graysonappraisal.org/ORR_Export/GCAD_Export.zip",
         "https://graysonappraisal.org/wp-content/uploads/2026/10/Website-Code-List-1-1-1.xlsx"

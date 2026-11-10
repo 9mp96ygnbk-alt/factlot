@@ -9,12 +9,8 @@
     {
       "source_id": "tx-brazos-cad",
       "publisher": "Brazos Central Appraisal District",
-      "landing_pages": [
-        "https://brazoscad.org/certified-data-downloads/"
-      ],
-      "allowed_hosts": [
-        "brazoscad.org"
-      ],
+      "landing_pages": ["https://brazoscad.org/certified-data-downloads/"],
+      "allowed_hosts": ["brazoscad.org"],
       "files": [
         "https://brazoscad.org/wp-content/uploads/2026/08/2026-Export-Layout-as-of-7.-2026.zip",
         "https://brazoscad.org/wp-content/uploads/2025/08/2025-CERTIFIED-EXPORT.zip",
