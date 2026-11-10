@@ -38,6 +38,7 @@ from .normalize import (
     legacy_name_key,
     name_similarity,
     normalize_address,
+    personal_style_organization,
     normalize_name,
     parcel_state,
 )
@@ -569,7 +570,8 @@ class Registry:
             n = self._fact(urn, "entity.legal_name", r.legal_name.strip(), snap, locator=loc)
             n += self._fact(urn, "entity.registry_number", r.registry_number, snap, locator=loc)
             n += self._fact(urn, "entity.state_of_formation", r.state_of_formation, snap, locator=loc)
-            n += self._fact(urn, "entity.mailing_address", r.mailing_address, snap, locator=loc)
+            if not personal_style_organization(r.legal_name):  # likely a home address (policy section 3)
+                n += self._fact(urn, "entity.mailing_address", r.mailing_address, snap, locator=loc)
             n += self._fact(urn, "entity.status", r.status, snap, locator=loc)
             stats.facts_written += n
             if r.taxpayer_number:
@@ -819,7 +821,8 @@ class Registry:
                 self._drop_stale(urn, snap, old_ids)
                 continue
             n += self._fact(urn, "ownership.owner_of_record", r.owner_name.strip(), snap, locator=loc)
-            n += self._fact(urn, "ownership.owner_mailing_address", r.owner_mailing_address, snap, locator=loc)
+            if not personal_style_organization(r.owner_name):  # likely a home address (policy section 3)
+                n += self._fact(urn, "ownership.owner_mailing_address", r.owner_mailing_address, snap, locator=loc)
             stats.facts_written += n
             self._drop_stale(urn, snap, old_ids)
         if full_roll:
@@ -1461,10 +1464,14 @@ class Registry:
         document, any ownership link inferred from it, and any review-queue rows for that name.
         It also removes, from every stored owner and entity mailing address, the contact names
         ("ATTN JANE DOE", "C/O JOHN SMITH") that ``scrub_mailing_address`` does not read as
-        organisations, as ingest now does (``contact_names``; an address left empty is deleted).
-        The parcel and its other facts stay. Run it once after upgrading; it is idempotent.
+        organisations, as ingest now does (``contact_names``; an address left empty is deleted),
+        and deletes the mailing address of every owner and entity whose name reads as a person's or
+        a family's (``personal_style_organization``: "JOHN SMITH LLC", "SMITH FAMILY LP"), as ingest
+        now does (``personal_addresses``). The parcel and its other facts stay. Run it once after
+        upgrading; it is idempotent.
         """
-        result = {"owner_facts": 0, "mailing_facts": 0, "ownership_links": 0, "review_rows": 0, "contact_names": 0}
+        result = {"owner_facts": 0, "mailing_facts": 0, "ownership_links": 0, "review_rows": 0, "contact_names": 0,
+                  "personal_addresses": 0}
         rows = self.db.execute(
             "SELECT fact_id, subject, value_json, document_id FROM facts WHERE predicate = 'ownership.owner_of_record'"
         ).fetchall()
@@ -1503,6 +1510,17 @@ class Registry:
                                    r["fact_id"]))
             if cur.rowcount == 0:  # the scrubbed fact is already there
                 self.db.execute("DELETE FROM facts WHERE fact_id = ?", (r["fact_id"],))
+        for name_predicate, mailing in (("ownership.owner_of_record", "ownership.owner_mailing_address"),
+                                        ("entity.legal_name", "entity.mailing_address")):
+            for r in self.db.execute(
+                    "SELECT f.subject, f.value_json, f.document_id FROM facts f WHERE f.predicate = ? AND EXISTS "
+                    "(SELECT 1 FROM facts m WHERE m.subject = f.subject AND m.document_id = f.document_id "
+                    "AND m.predicate = ?)", (name_predicate, mailing)).fetchall():
+                name = json.loads(r["value_json"])
+                if isinstance(name, str) and personal_style_organization(name):
+                    result["personal_addresses"] += self.db.execute(
+                        "DELETE FROM facts WHERE subject = ? AND document_id = ? AND predicate = ?",
+                        (r["subject"], r["document_id"], mailing)).rowcount
         self.db.commit()
         return result
 

@@ -250,7 +250,10 @@ _TRADE_NAME_GIVEN_NAMES = _GIVEN_NAMES | frozenset(
     "HARESH HITESH KISHORE MANOJ RAKESH SATISH PRIYA ANITA SUNITA "
     "MINH TUAN THANH HUNG DUNG QUANG PHUONG TRANG HUONG "
     "DON JON TED ED AL HANK RICK RICH DICK JEFF GREG RON KEN JOHNNIE "
-    "BETH SUE PAT PEGGY".split()
+    "BETH SUE PAT PEGGY "
+    "RANDY RANDALL CURTIS TROY DALE GLENN CRAIG TODD BRAD BRETT DEAN DUANE DWAYNE CLINT CODY JOEL MARCUS "
+    "RICKY TOMMY BILLY DANNY LANCE NEIL PHIL GRACE TAMMY TINA WENDY VICKI CINDY SHERRY TERRI SHEILA RHONDA "
+    "BONNIE".split()
 )
 # Words a person's name part never holds here: legal forms, connectors, ordinals, directions, and words that name
 # an institution, a place or a business (with ``NAME_STOP_TOKENS``, ``_LP_CONTEXT`` and ``_ENTITY_TOKENS``).
@@ -278,9 +281,14 @@ def _sole_proprietor_trade_name(s: str) -> bool:
     head = tokens[:-1]
     names = [t for t in head if len(t) > 1 and t not in _NAME_SUFFIXES]
     extras = [t for t in head if len(t) == 1 or t in _NAME_SUFFIXES]
-    if len(names) != 2 or len(extras) > 1 or any(not t.isalpha() for t in head):
+    if any(not t.isalpha() for t in head) or _ENTITY_TOKENS.search(" ".join(head)):
         return False
-    if _ENTITY_TOKENS.search(" ".join(head)):
+    # A surname and two initials ("SMITH J R PROPERTIES") is how a roll writes a person with no given name.
+    if len(names) == 1 and len(extras) == 2 and all(len(t) == 1 for t in extras):
+        t = names[0]
+        return not (t in _NOT_A_NAME_WORD or t in NAME_STOP_TOKENS or t in _LP_CONTEXT
+                    or t in _GENERIC_BUSINESS_WORDS)
+    if len(names) != 2 or len(extras) > 1:
         return False
     if not any(t in _TRADE_NAME_GIVEN_NAMES for t in names):
         return False
@@ -328,6 +336,34 @@ def is_organization(name: str) -> bool:
     if _sole_proprietor_trade_name(s):
         return False
     return bool(_ENTITY_TOKENS.search(s)) or _structurally_organization(s)
+
+
+# Words that make an organisation's name read as a family's or a person's: its mailing address is likely a home.
+_FAMILY_WORDS = frozenset("FAMILY FAMILIES ESTATE HEIRS".split())
+
+
+def personal_style_organization(name: str) -> bool:
+    """Whether an organisation's name reads as a person's or a family's ("JOHN SMITH LLC", "SMITH FAMILY LP",
+    "SMITH J R HOLDINGS LLC"): the name is an organisation (``is_organization``), and apart from its legal form
+    and business words it holds a given name (``_TRADE_NAME_GIVEN_NAMES``), FAMILY/ESTATE/HEIRS, or is one
+    surname and two initials. Such an owner is kept (it is a legal organisation), but its mailing address is not stored or
+    served, because for a one-person company it is most often the person's home (data policy section 3).
+    Deliberately broad: a company named for its founder ("DAVID WEEKLEY HOMES") loses only its mailing address.
+    """
+    if not is_organization(name):
+        return False
+    raw = _DBA.split(name.upper().replace("&", " AND "), maxsplit=1)[0]
+    tokens = re.sub(r"\s+", " ", re.sub(r"[^A-Z0-9 ]+", " ", raw)).split()
+    words = [t for t in tokens if t not in _NOT_A_NAME_WORD and t not in NAME_STOP_TOKENS
+             and t not in _GENERIC_BUSINESS_WORDS and t not in _LP_CONTEXT]
+    if any(t in _FAMILY_WORDS for t in tokens):
+        return True
+    if any(t in _TRADE_NAME_GIVEN_NAMES for t in words):
+        return True
+    # A surname and two initials ("SMITH J R"), nothing else: "J P MORGAN CHASE BANK" and "A T T" are not.
+    initials = [t for t in words if len(t) == 1 and t.isalpha()]
+    others = [t for t in words if len(t) > 1 and t not in _NAME_SUFFIXES]
+    return len(initials) == 2 and len(others) == 1
 
 
 def legacy_name_key(name: str) -> str:

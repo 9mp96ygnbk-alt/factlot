@@ -86,6 +86,19 @@ conservative_file_by, basis}` for the next tax year when the deadline has passed
   anything is metered (answers are matched to calls by id).
 - Texas source configs for 13 appraisal districts are formatted like the rest of the repository
   (CI's format check failed on them).
+- Registry privacy: an owner of record that is a surname with two initials and a business word
+  ("SMITH J R PROPERTIES") is read as a person, and more given names are recognised in trade names.
+  An organisation whose name reads as a person's or a family's ("JOHN SMITH LLC", "SMITH FAMILY
+  LP") keeps its name, but its mailing address (owner or entity) is no longer stored or served,
+  since it is most often a home; `maintain --purge-persons` removes such addresses from existing
+  files, and `audit` reports any left as a violation.
+- Hosted registry packs: every county the hosted registry withholds (Tarrant, 48439) is excluded
+  from every pack whether or not `--exclude-county` is given; `deploy:registry` refuses a pack
+  that serves one or does not record it as withheld; the registry Worker answers nothing of one.
+  The file limit is 100,000 (Workers Paid). `pack.ts` runs the new privacy scan
+  (`python -m factlot.registry.privacy_scan`) on every file and refuses one with a person owner or
+  a personal-style mailing address, and takes `--suppress <file>`: a private removal list of
+  subjects and owner names that are not served (`check_pack.ts` takes the same flag).
 - Reports, `critical_dates` calendar: a notice deadline that `business_day_roll` moves to a later
   business day is now dated on its contractual date (the later date is described, not
   scheduled), each event carries the tool's warnings about its dates, and a deadline under 30

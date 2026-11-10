@@ -50,7 +50,7 @@ from pathlib import Path
 from typing import Any, Callable, Iterable
 
 from ..ids import FactLotIdError, entity_id, parcel_id
-from .normalize import STATE_BY_FIPS, is_commercial, is_organization, normalize_name
+from .normalize import STATE_BY_FIPS, is_commercial, is_organization, normalize_name, personal_style_organization
 from .store import EXACT_MATCH_BASIS
 
 DOCUMENT_ID = re.compile(r"^fl:document:sha256-[0-9a-f]{64}$")
@@ -121,6 +121,15 @@ def _connect(path: str | Path) -> sqlite3.Connection:
 
     db.create_function("fl_is_org", 1, org_json, deterministic=True)
     db.create_function("fl_is_org_name", 1, lambda n: 1 if n and is_organization(n) else 0, deterministic=True)
+
+    def personal_json(value_json: str) -> int:
+        try:
+            v = json.loads(value_json)
+        except (TypeError, ValueError):
+            return 0
+        return 1 if isinstance(v, str) and personal_style_organization(v) else 0
+
+    db.create_function("fl_personal_style", 1, personal_json, deterministic=True)
     return db
 
 
@@ -361,6 +370,12 @@ def _audit(db: sqlite3.Connection, path: Path, today: date, collected: str | Pat
         "AND m.predicate = 'ownership.owner_mailing_address' AND NOT EXISTS (SELECT 1 FROM facts o "
         "WHERE o.subject = m.subject AND o.predicate = 'ownership.owner_of_record' AND o.document_id = m.document_id) "
         "GROUP BY m.document_id", *_PARCEL)}
+    # Mailing addresses of owners whose name reads as a person's or a family's: likely homes (must be zero).
+    personal_mailing = {r["document_id"]: r["n"] for r in q(
+        "SELECT m.document_id, COUNT(*) n FROM facts m JOIN facts o ON o.subject = m.subject "
+        "AND o.document_id = m.document_id AND o.predicate = 'ownership.owner_of_record' "
+        "WHERE m.subject >= ? AND m.subject < ? AND m.predicate = 'ownership.owner_mailing_address' "
+        "AND fl_personal_style(o.value_json) = 1 GROUP BY m.document_id", *_PARCEL)}
 
     # Citations over every fact (parcels and entities): one pass over the table.
     cite = {r["document_id"]: dict(r) for r in q(
@@ -499,6 +514,7 @@ def _audit(db: sqlite3.Connection, path: Path, today: date, collected: str | Pat
             totals["bad_loc_parcels"] += bad_loc_parcels.get(doc, 0)
             totals["bad_date_parcels"] += bad_date_parcels.get(doc, 0)
             totals["orphan_mailing"] += orphan_mailing.get(doc, 0)
+            totals["personal_mailing"] += personal_mailing.get(doc, 0)
             totals["persons"] += persons.get(doc, {}).get("person_like", 0)
             totals["owner_facts"] += persons.get(doc, {}).get("owner_facts", 0)
             totals["links"] += links.get(doc, {}).get("links", 0)
@@ -531,7 +547,8 @@ def _audit(db: sqlite3.Connection, path: Path, today: date, collected: str | Pat
                 if n:
                     find.append(("warning", f"{n} parcels have an implausible {k.replace('_', ' ')}"))
             entry["owners"] = {"owner_facts": totals["owner_facts"], "person_like": totals["persons"],
-                               "orphan_mailing_addresses": totals["orphan_mailing"]}
+                               "orphan_mailing_addresses": totals["orphan_mailing"],
+                               "personal_style_mailing_addresses": totals["personal_mailing"]}
             sample = [x for s in docs for x in persons.get(s["document_id"], {}).get("sample_parcels", [])][:5]
             if sample:
                 entry["owners"]["sample_parcels"] = sample
@@ -539,6 +556,9 @@ def _audit(db: sqlite3.Connection, path: Path, today: date, collected: str | Pat
                 find.append(("violation", f"{totals['persons']} owner-of-record facts read as natural persons"))
             if totals["orphan_mailing"]:
                 find.append(("violation", f"{totals['orphan_mailing']} owner mailing addresses with no owner fact"))
+            if totals["personal_mailing"]:
+                find.append(("violation", f"{totals['personal_mailing']} mailing addresses of owners whose name "
+                                          "reads as a person's or a family's (run maintain --purge-persons)"))
             if conflicting:
                 find.append(("violation", f"{conflicting} extra facts: parcels with two different values for one "
                                           "single-valued fact in one document"))

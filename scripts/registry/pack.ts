@@ -8,9 +8,11 @@
  * (configureRegistry + runTool on each file) and checked back after encoding; searches get indexes that follow the
  * SQL in packages/tools/src/registry.ts. The pack holds registry data: keep it out of git and never publish it.
  */
+import { spawnSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
+  readFileSync,
   readdirSync,
   renameSync,
   rmSync,
@@ -98,6 +100,8 @@ interface Db {
   prepare(sql: string): {
     get(...p: unknown[]): Row | undefined;
     all(...p: unknown[]): Row[];
+    iterate(...p: unknown[]): IterableIterator<Row>;
+    run(...p: unknown[]): unknown;
   };
   close(): void;
 }
@@ -227,6 +231,46 @@ export interface FilterResult {
   buildings_dropped: number;
   /** Entity jurisdiction → [entities kept, entities in the source] for a jurisdiction kept only in part. */
   entity_scope: Record<string, { served: number; total: number }>;
+  /** What the suppression list removed: entities dropped, and parcels whose owner facts were dropped. */
+  suppressed: { entities: number; parcel_owners: number };
+}
+
+/**
+ * A removal list (data policy section 4, "Corrections and takedowns"). It names people, so it lives outside the
+ * repository, next to the registry files, and is passed with --suppress. Entities and buildings in `subjects` are
+ * not served at all; a parcel in `subjects`, or one whose owner of record matches `owner_names` (case, spacing
+ * and punctuation ignored), keeps its parcel facts and loses its owner, mailing address and ownership links; an
+ * entity whose legal name matches `owner_names` is not served.
+ */
+export interface Suppression {
+  subjects: string[];
+  owner_names: string[];
+}
+
+/** The comparison form of an owner name for the suppression list. */
+export function suppressionKey(name: string): string {
+  return name
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, " ")
+    .trim();
+}
+
+/** Reads and checks a suppression file: {"subjects": [...URNs], "owner_names": [...]} (either may be absent). */
+export function readSuppression(path: string): Suppression {
+  const raw = JSON.parse(readFileSync(path, "utf8")) as Partial<
+    Record<keyof Suppression, unknown>
+  >;
+  const list = (v: unknown, what: string): string[] => {
+    if (v === undefined) return [];
+    if (!Array.isArray(v) || v.some((x) => typeof x !== "string" || !x.trim()))
+      throw new Error(`${path}: "${what}" must be a list of non-empty strings`);
+    return v as string[];
+  };
+  const subjects = list(raw.subjects, "subjects");
+  for (const u of subjects)
+    if (!/^fl:(entity|parcel|building):[^:]+:.+/.test(u))
+      throw new Error(`${path}: ${u} is not an entity, parcel or building URN`);
+  return { subjects, owner_names: list(raw.owner_names, "owner_names") };
 }
 
 const sqlText = (s: string): string => `'${s.replaceAll("'", "''")}'`;
@@ -243,8 +287,17 @@ export function filterRegistry(
   out: string,
   excludeCounties: string[],
   entityWholeMax = ENTITY_WHOLE_MAX,
+  suppression: Suppression = { subjects: [], owner_names: [] },
 ): FilterResult {
   const probe = new DatabaseSync(src, { readOnly: true });
+  // The suppression list, resolved against this file: entities (and buildings) to drop, parcels to strip of owners.
+  const names = new Set(suppression.owner_names.map(suppressionKey));
+  const dropSubjects = new Set(
+    suppression.subjects.filter((u) => !u.startsWith("fl:parcel:")),
+  );
+  const ownerParcels = new Set(
+    suppression.subjects.filter((u) => u.startsWith("fl:parcel:")),
+  );
   const excludedRanges = excludeCounties.flatMap((fips) =>
     ["parcel", "building"].map(
       (kind) =>
@@ -269,17 +322,44 @@ export function filterRegistry(
       )
       .all()
       .map((r) => ({ j: String(r.j), n: Number(r.n) }));
+    if (names.size) {
+      for (const r of probe
+        .prepare(
+          "SELECT subject, predicate, value_json FROM facts WHERE predicate IN ('ownership.owner_of_record', 'entity.legal_name')",
+        )
+        .iterate()) {
+        let v: unknown;
+        try {
+          v = JSON.parse(String(r.value_json));
+        } catch {
+          continue;
+        }
+        if (typeof v !== "string" || !names.has(suppressionKey(v))) continue;
+        if (r.predicate === "entity.legal_name")
+          dropSubjects.add(String(r.subject));
+        else ownerParcels.add(String(r.subject));
+      }
+    }
+    const present = (urns: Set<string>) => {
+      const q = probe.prepare("SELECT 1 AS x FROM subjects WHERE urn = ?");
+      return [...urns].filter((u) => q.get(u) !== undefined);
+    };
+    for (const u of [...dropSubjects])
+      if (!present(new Set([u])).length) dropSubjects.delete(u);
+    for (const u of [...ownerParcels])
+      if (!present(new Set([u])).length) ownerParcels.delete(u);
   } finally {
     probe.close();
   }
   const total = entities.reduce((a, e) => a + e.n, 0);
   const trim = total > entityWholeMax;
-  if (!dropCount && !trim)
+  if (!dropCount && !trim && !dropSubjects.size && !ownerParcels.size)
     return {
       path: src,
       parcels_dropped: 0,
       buildings_dropped: 0,
       entity_scope: {},
+      suppressed: { entities: 0, parcel_owners: 0 },
     };
   rmSync(out, { force: true });
   mkdirSync(join(out, ".."), { recursive: true });
@@ -309,7 +389,16 @@ export function filterRegistry(
     const buildingsDropped = counts("building");
     // The subjects kept, and the source subjects dropped (a link to a subject the file never held stays).
     d.exec(
-      `CREATE TEMP TABLE keep (urn TEXT PRIMARY KEY); INSERT INTO keep SELECT urn FROM s.subjects WHERE kind != 'entity' AND NOT ${excluded}`,
+      "CREATE TEMP TABLE suppressed (urn TEXT PRIMARY KEY); CREATE TEMP TABLE suppressed_owner (urn TEXT PRIMARY KEY)",
+    );
+    const addSup = d.prepare("INSERT OR IGNORE INTO suppressed VALUES (?)");
+    for (const u of dropSubjects) addSup.run(u);
+    const addOwner = d.prepare(
+      "INSERT OR IGNORE INTO suppressed_owner VALUES (?)",
+    );
+    for (const u of ownerParcels) addOwner.run(u);
+    d.exec(
+      `CREATE TEMP TABLE keep (urn TEXT PRIMARY KEY); INSERT INTO keep SELECT urn FROM s.subjects WHERE kind != 'entity' AND NOT ${excluded} AND urn NOT IN (SELECT urn FROM suppressed)`,
     );
     if (trim)
       d.exec(
@@ -320,6 +409,7 @@ export function filterRegistry(
       d.exec(
         "INSERT INTO keep SELECT urn FROM s.subjects WHERE kind = 'entity'",
       );
+    d.exec("DELETE FROM keep WHERE urn IN (SELECT urn FROM suppressed)");
     const kept = (col: string) =>
       `(${col} IN (SELECT urn FROM keep) OR NOT EXISTS (SELECT 1 FROM s.subjects x WHERE x.urn = ${col}))`;
     const sourceKept = excludeCounties.length
@@ -346,6 +436,13 @@ export function filterRegistry(
         .get(table);
       if (has) d.exec(sql);
     }
+    // A suppressed parcel keeps its parcel facts, without its owner, mailing address or ownership links.
+    d.exec(
+      "DELETE FROM main.facts WHERE subject IN (SELECT urn FROM suppressed_owner) AND predicate LIKE 'ownership.%'",
+    );
+    d.exec(
+      "DELETE FROM main.relationships WHERE type = 'owns' AND to_urn IN (SELECT urn FROM suppressed_owner)",
+    );
     const scope: FilterResult["entity_scope"] = {};
     if (trim)
       for (const e of entities)
@@ -365,6 +462,10 @@ export function filterRegistry(
       parcels_dropped: parcelsDropped,
       buildings_dropped: buildingsDropped,
       entity_scope: scope,
+      suppressed: {
+        entities: dropSubjects.size,
+        parcel_owners: ownerParcels.size,
+      },
     };
   } catch (err) {
     d.close();
@@ -705,8 +806,18 @@ function meta(d: Db): Map<string, string> {
 }
 
 export interface PackOptions {
-  /** 5-digit county FIPS the pack serves nothing of; each needs a reason in hostedWithheldCounties(). */
+  /**
+   * 5-digit county FIPS the pack serves nothing of; each needs a reason in hostedWithheldCounties(). Every county
+   * of hostedWithheldCounties() is excluded whether or not it is listed here: a pack never serves one.
+   */
   excludeCounties?: string[];
+  /** Subjects and owner names never served (a removal request); see readSuppression. */
+  suppression?: Suppression;
+  /**
+   * Checks each (filtered) registry file before it is packed and returns what is wrong with it (empty: fine); a
+   * finding stops the build. The CLI passes the Python privacy scan (factlot.registry.privacy_scan).
+   */
+  privacyCheck?: (dbPath: string) => string[];
   /** Where the filtered copies of the files are written (default: next to the pack, "<out>.work"). */
   work?: string;
   /** A file with more entities keeps only those owning a packed parcel (default ENTITY_WHOLE_MAX). */
@@ -722,8 +833,10 @@ export function buildPack(
   options: PackOptions = {},
 ): PackStats {
   if (!sources.length) throw new Error("no registry files given");
-  const exclude = [...new Set(options.excludeCounties ?? [])].sort();
   const reasons = hostedWithheldCounties();
+  const exclude = [
+    ...new Set([...(options.excludeCounties ?? []), ...Object.keys(reasons)]),
+  ].sort();
   const withheld: Record<string, string> = {};
   for (const fips of exclude) {
     if (!/^[0-9]{5}$/.test(fips))
@@ -760,7 +873,18 @@ export function buildPack(
       join(work, `${s.name}.db`),
       exclude,
       options.entityWholeMax,
+      options.suppression,
     );
+    const problems = options.privacyCheck?.(f.path) ?? [];
+    if (problems.length)
+      throw new Error(
+        `${s.name}: the privacy scan refused ${f.path}:\n  ${problems.join("\n  ")}\n` +
+          "Run python3 -m factlot.registry.maintain <db> --purge-persons on the source file, then pack again.",
+      );
+    if (f.suppressed.entities || f.suppressed.parcel_owners)
+      log(
+        `${s.name}: suppressed ${f.suppressed.entities} entities and the owner facts of ${f.suppressed.parcel_owners} parcels`,
+      );
     if (f.path !== s.path)
       log(
         `${s.name}: filtered copy ${f.path} (${f.parcels_dropped} parcels and ${f.buildings_dropped} buildings withheld; entities: ${
@@ -1096,16 +1220,45 @@ export function buildPack(
   }
 }
 
+/**
+ * The Python privacy scan of a registry file (python -m factlot.registry.privacy_scan): owner facts the person
+ * rule reads as natural persons, and mailing addresses of owners and entities whose names read as a person's or a
+ * family's. The rules live in Python (normalize.py), where ingest applies them, so the pack uses the same code.
+ */
+export function pythonPrivacyScan(dbPath: string): string[] {
+  const root = fileURLToPath(new URL("../../", import.meta.url));
+  const r = spawnSync(
+    "python3",
+    ["-m", "factlot.registry.privacy_scan", "--json", dbPath],
+    {
+      cwd: root,
+      env: { ...process.env, PYTHONPATH: join(root, "python/src") },
+      encoding: "utf8",
+      maxBuffer: 16 * 1024 * 1024,
+    },
+  );
+  if (r.error || (r.status !== 0 && r.status !== 1))
+    return [
+      `the privacy scan did not run (${r.error?.message ?? `exit ${r.status}: ${r.stderr.trim().slice(0, 300)}`}); pass --skip-privacy-scan only if you know why`,
+    ];
+  const report = JSON.parse(r.stdout) as { problems: string[] };
+  return report.problems;
+}
+
 function main(argv: string[]): void {
   let out: string | undefined;
   let work: string | undefined;
   const excludeCounties: string[] = [];
   const sources: PackSource[] = [];
+  let suppress: string | undefined;
+  let privacyScan = true;
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]!;
     if (a === "--out") out = argv[++i];
     else if (a.startsWith("--out=")) out = a.slice(6);
     else if (a === "--exclude-county") excludeCounties.push(argv[++i] ?? "");
+    else if (a === "--suppress") suppress = argv[++i];
+    else if (a === "--skip-privacy-scan") privacyScan = false;
     else if (a === "--work") work = argv[++i];
     else if (a.startsWith("-")) throw new Error(`unknown option ${a}`);
     else {
@@ -1118,14 +1271,20 @@ function main(argv: string[]): void {
   }
   if (!out || !sources.length) {
     console.error(
-      "usage: node scripts/registry/pack.ts --out <dir> [--exclude-county <5-digit FIPS>]... [--work <dir>] <db | name=db>...",
+      "usage: node scripts/registry/pack.ts --out <dir> [--exclude-county <5-digit FIPS>]... [--suppress <file>] [--work <dir>] [--skip-privacy-scan] <db | name=db>...",
     );
     process.exit(2);
   }
   const started = Date.now();
+  if (!privacyScan)
+    console.warn(
+      "pack: --skip-privacy-scan: the files are packed without the person and home-address check",
+    );
   const stats = buildPack(sources, out, (l) => console.log(l), {
     excludeCounties,
     work,
+    suppression: suppress ? readSuppression(resolve(suppress)) : undefined,
+    privacyCheck: privacyScan ? pythonPrivacyScan : undefined,
   });
   console.log(
     `pack: ${stats.files} files, ${(stats.bytes / 1048576).toFixed(1)} MiB, largest ${stats.largest.path} ${(stats.largest.bytes / 1024).toFixed(1)} KiB, regions ${stats.manifest.dbs.map((d) => d.name).join(", ")} (${Math.round((Date.now() - started) / 1000)} s)`,

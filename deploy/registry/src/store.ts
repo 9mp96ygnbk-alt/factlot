@@ -10,6 +10,10 @@ import {
   type GetEntry,
   type Manifest,
 } from "./format.ts";
+import { hostedWithheldCounties } from "../../../packages/tools/src/registry.ts";
+
+/** Counties the hosted registry never answers (see hostedWithheldCounties). */
+const WITHHELD = hostedWithheldCounties();
 
 export interface AssetFetcher {
   fetch(request: Request | string): Promise<Response>;
@@ -69,6 +73,14 @@ export class Pack {
     const m = await this.manifest();
     const prefix = urnPrefix(urn);
     if (!Object.hasOwn(m.prefixes, prefix)) return undefined;
+    // A withheld county is never answered, even from a pack built without excluding it.
+    const county = /^fl:(?:parcel|building):us-([0-9]{5})$/.exec(prefix)?.[1];
+    if (
+      county &&
+      (Object.hasOwn(m.withheld ?? {}, county) ||
+        Object.hasOwn(WITHHELD, county))
+    )
+      return undefined;
     const db = m.prefixes[prefix]!;
     const shard = await this.file<EncodedShard>(
       `g/${db}/${shardOf(urn, m.dbs[db]!.shards)}.json`,

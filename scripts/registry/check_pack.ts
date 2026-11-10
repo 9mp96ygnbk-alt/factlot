@@ -38,7 +38,8 @@ import {
 import { fileAssets } from "../../deploy/registry/src/file_assets.ts";
 import { hostedOutcome } from "../../deploy/registry/src/hosted.ts";
 import { Pack } from "../../deploy/registry/src/store.ts";
-import { filterRegistry } from "./pack.ts";
+import { hostedWithheldCounties } from "../../packages/tools/src/registry.ts";
+import { filterRegistry, readSuppression } from "./pack.ts";
 import { runRegistryTool } from "../../deploy/registry/src/tools.ts";
 import type { Manifest } from "../../deploy/registry/src/format.ts";
 
@@ -105,6 +106,8 @@ interface Options {
   exclude: string[];
   part: [number, number];
   reuse: boolean;
+  /** The suppression file the pack was built with (pack.ts --suppress). */
+  suppress?: string;
 }
 
 function main(argv: string[]): void {
@@ -126,6 +129,7 @@ function main(argv: string[]): void {
     else if (a === "--equity") o.equity = Number(argv[++i]);
     else if (a === "--seed") seed = Number(argv[++i]);
     else if (a === "--exclude-county") o.exclude.push(argv[++i]!);
+    else if (a === "--suppress") o.suppress = resolve(argv[++i]!);
     else if (a === "--reuse") o.reuse = true;
     else if (a === "--part") {
       const [x, n] = argv[++i]!.split("/").map(Number);
@@ -141,7 +145,7 @@ function main(argv: string[]): void {
   }
   if (!o.pack || !o.scratch || !files.length) {
     console.error(
-      "usage: check_pack.ts --pack <dir> --scratch <dir> [--exclude-county FIPS]... [--samples N] [--equity N] [--part i/n] [--reuse] <db>...",
+      "usage: check_pack.ts --pack <dir> --scratch <dir> [--exclude-county FIPS]... [--suppress <file>] [--samples N] [--equity N] [--part i/n] [--reuse] <db>...",
     );
     process.exit(2);
   }
@@ -153,8 +157,19 @@ function main(argv: string[]): void {
   }));
   if (!(o.reuse && existsSync(merged))) {
     console.log("filtering and merging the files...");
+    // The same filter as pack.ts: every withheld county, the given ones, and the suppression list.
+    const exclude = [
+      ...new Set([...o.exclude, ...Object.keys(hostedWithheldCounties())]),
+    ];
+    const suppression = o.suppress ? readSuppression(o.suppress) : undefined;
     for (const f of served) {
-      const r = filterRegistry(f.path, f.served, o.exclude);
+      const r = filterRegistry(
+        f.path,
+        f.served,
+        exclude,
+        undefined,
+        suppression,
+      );
       if (r.path !== f.served) copyFileSync(f.path, f.served);
     }
     merge(

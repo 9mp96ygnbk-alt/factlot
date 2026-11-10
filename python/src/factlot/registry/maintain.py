@@ -5,7 +5,9 @@ idempotent and safe to repeat after any rule change or new ingest:
 
 1. ``--purge-persons``: delete owner-of-record facts the current ``is_organization`` rule reads as
    natural persons, with their mailing addresses, links and review rows, and remove contact names that
-   are not organisations ("ATTN JANE DOE") from stored mailing addresses (``Registry.purge_person_owners``).
+   are not organisations ("ATTN JANE DOE") from stored mailing addresses, and delete the mailing address of
+   owners and entities whose name reads as a person's or a family's ("JOHN SMITH LLC", "SMITH FAMILY LP")
+   (``Registry.purge_person_owners``).
 2. ``--clean-entity-names``: for each entity registry whose adapter defines ``clean_legal_name`` (an
    adapter fix that changed what the legal name is), rewrite the stored names in place
    (``Registry.rewrite_entity_names``).

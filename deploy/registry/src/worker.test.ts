@@ -37,7 +37,7 @@ import {
   type PoolHeader,
 } from "./equity.ts";
 import { fileAssets } from "./file_assets.ts";
-import { SharedPages, listPages } from "./format.ts";
+import { SharedPages, listPages, type Manifest } from "./format.ts";
 import { hostedOutcome, type HostedScope } from "./hosted.ts";
 import { addressListKey } from "./search.ts";
 import { Pack } from "./store.ts";
@@ -52,7 +52,10 @@ const calls = JSON.parse(readFileSync(join(spec, "calls.json"), "utf8")) as {
 type Row = Record<string, unknown>;
 interface Db {
   exec(sql: string): void;
-  prepare(sql: string): { all(...p: unknown[]): Row[] };
+  prepare(sql: string): {
+    all(...p: unknown[]): Row[];
+    get(...p: unknown[]): Row | undefined;
+  };
   close(): void;
 }
 const { DatabaseSync } = createRequire(import.meta.url)("node:sqlite") as {
@@ -103,6 +106,17 @@ async function compare(
 ): Promise<string[]> {
   const assets = fileAssets(pack);
   const bad: string[] = [];
+  // Every pack withholds the counties of hostedWithheldCounties(), so its answers carry that scope.
+  if (!scope) {
+    const m = JSON.parse(
+      readFileSync(join(pack, "manifest.json"), "utf8"),
+    ) as Manifest;
+    if (
+      Object.keys(m.withheld ?? {}).length ||
+      Object.keys(m.entity_scope ?? {}).length
+    )
+      scope = { withheld: m.withheld, entity_scope: m.entity_scope };
+  }
   configureRegistry(db);
   const cov = scope ? computeRegistryCoverage() : undefined;
   try {
@@ -703,4 +717,105 @@ test("long lists share pages and read back whole", async () => {
       got.push(...rows);
     assert.deepEqual(got, list);
   }
+});
+
+test("every pack withholds Tarrant, even when --exclude-county is left out", async () => {
+  const x = join(dir, "tarrant-default.db");
+  copyFileSync(fixture, x);
+  const d = new DatabaseSync(x);
+  d.exec("PRAGMA foreign_keys = OFF");
+  for (const [t, c] of [
+    ["subjects", "urn"],
+    ["facts", "subject"],
+    ["coverage", "subject"],
+    ["relationships", "from_urn"],
+    ["relationships", "to_urn"],
+    ["crosswalk", "urn"],
+    ["address_index", "urn"],
+    ["name_index", "urn"],
+    ["building_members", "building_urn"],
+    ["building_members", "parcel_urn"],
+  ])
+    d.exec(
+      `UPDATE ${t} SET ${c} = replace(${c}, 'us-48999:', 'us-48439:') WHERE ${c} LIKE '%us-48999:%'`,
+    );
+  d.exec(
+    "UPDATE sources SET county_fips = '439' WHERE county_fips = '999'; DELETE FROM meta WHERE key = 'coverage'",
+  );
+  d.close();
+  const pack = join(dir, "pack-tarrant-default");
+  buildPack([{ name: "x", path: x }], pack); // no excludeCounties
+  assert.deepEqual(packProblems(pack), []);
+  for (const f of allFiles(pack))
+    assert.ok(
+      !/fl:(parcel|building):us-48439/.test(readFileSync(f, "utf8")),
+      relative(pack, f),
+    );
+  // deploy.ts refuses a pack whose manifest serves the county or does not record it as withheld.
+  const m = JSON.parse(
+    readFileSync(join(pack, "manifest.json"), "utf8"),
+  ) as Manifest;
+  const bad = {
+    ...m,
+    withheld: {},
+    counties: { ...m.counties, "us-48439": 0 },
+  };
+  writeFileSync(join(pack, "manifest.json"), JSON.stringify(bad));
+  const problems = packProblems(pack);
+  assert.ok(
+    problems.some((p) => /serves county 48439/.test(p)),
+    problems.join("\n"),
+  );
+  // And the Worker answers nothing of a withheld county, even from such a pack.
+  const store = new Pack(fileAssets(pack));
+  assert.equal(await store.entry("fl:parcel:us-48439:1"), undefined);
+});
+
+test("the suppression list: an entity is not served, a parcel loses its owner but keeps its facts", async () => {
+  configureRegistry(fixture);
+  let owned: { urn: string; owner: string } | undefined;
+  let entity: string | undefined;
+  try {
+    const db = new DatabaseSync(fixture, { readOnly: true });
+    const row = db
+      .prepare(
+        "SELECT subject, value_json FROM facts WHERE predicate = 'ownership.owner_of_record' LIMIT 1",
+      )
+      .get();
+    owned = {
+      urn: String(row!.subject),
+      owner: JSON.parse(String(row!.value_json)) as string,
+    };
+    entity = String(
+      db
+        .prepare(
+          "SELECT from_urn FROM relationships WHERE type = 'owns' AND from_urn LIKE 'fl:entity:%' LIMIT 1",
+        )
+        .get()!.from_urn,
+    );
+    db.close();
+  } finally {
+    configureRegistry(undefined);
+  }
+  const pack = join(dir, "pack-suppressed");
+  const stats = buildPack(
+    [{ name: "fixture", path: fixture }],
+    pack,
+    () => {},
+    {
+      suppression: {
+        subjects: [entity!],
+        owner_names: [owned!.owner.toLowerCase()],
+      },
+    },
+  );
+  assert.ok(stats.files > 0);
+  const store = new Pack(fileAssets(pack));
+  assert.equal(await store.entry(entity!), undefined, "the entity is gone");
+  const parcel = await store.entry(owned!.urn);
+  assert.ok(parcel, "the parcel is still served");
+  const text = JSON.stringify(parcel);
+  assert.ok(!text.includes("ownership.owner_of_record"), text.slice(0, 300));
+  assert.ok(!text.includes("ownership.owner_mailing_address"));
+  assert.ok(text.includes("parcel."), "its parcel facts stay");
 });

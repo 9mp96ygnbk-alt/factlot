@@ -202,6 +202,23 @@ class OrganizationRule(unittest.TestCase):
                      "JOHN SMITH PARTNERS"):
             self.assertTrue(is_organization(name), name)
 
+    def test_a_surname_with_two_initials_and_a_business_word_is_a_person(self):
+        for name in ("SMITH J R PROPERTIES", "GARCIA M A INVESTMENTS", "SMITH RANDY PROPERTIES"):
+            self.assertFalse(is_organization(name), name)
+        for name in ("SMITH J R PROPERTIES LLC", "J R PROPERTIES", "A B C PROPERTIES"):
+            self.assertTrue(is_organization(name), name)
+
+    def test_personal_style_organizations_keep_the_name_but_not_the_address(self):
+        from factlot.registry.normalize import personal_style_organization as personal
+        for name in ("JOHN SMITH LLC", "SMITH FAMILY LP", "SMITH FAMILY HOLDINGS", "SMITH JOHN & MARY LLC",
+                     "SMITH ESTATE LLC", "SMITH J R HOLDINGS LLC", "GARCIA JOSE INVESTMENTS INC"):
+            self.assertTrue(is_organization(name), name)
+            self.assertTrue(personal(name), name)
+        for name in ("WALMART STORES INC", "HINES REIT PROPERTIES LP", "UNION PACIFIC RAILROAD CO",
+                     "A T AND T CORP", "J P MORGAN CHASE BANK N A", "CITY OF HOUSTON", "PACIFIC COAST PROPERTIES",
+                     "SMITH JOHN PROPERTIES"):  # the last is a person: not an organisation at all
+            self.assertFalse(personal(name), name)
+
     def test_widened_forms_do_not_override_the_personal_trust_rule(self):
         for name in ("SMITH FAMILY TRUST", "DOE JANE SEPARATE PROPERTY TRUST", "ESTATE OF JOHN SMITH CONDOMINIUM",
                      "DOE JANE REVOCABLE TRUST CREDIT UNION"):
@@ -469,6 +486,44 @@ class RegistryCore(unittest.TestCase):
         lonestar = factlot.entity_id("us-tx", "0801111111").urn
         self.assertEqual(len(self.reg.parcels_owned_by(lonestar)), 1, "organisation owners are untouched")
         self.assertEqual(self.reg.purge_person_owners()["owner_facts"], 0, "idempotent")
+
+    def test_personal_style_owner_keeps_its_name_but_not_its_mailing_address(self):
+        roll = [ParcelRecord("999", "0001-000-0009", "F1", account="A9", situs_address="9 Oak Street",
+                             owner_name="JOHN SMITH LLC", owner_mailing_address="1 Elm St, Example TX")]
+        self.reg.ingest_parcels(roll, self.snap25, state_fips="48")
+        parcel = factlot.parcel_id("48", "999", "0001-000-0009").urn
+        predicates = {f["predicate"] for f in self.reg.facts(parcel, history=True)}
+        self.assertIn("ownership.owner_of_record", predicates, "a legal organisation stays")
+        self.assertNotIn("ownership.owner_mailing_address", predicates, "its likely home address is not stored")
+        # A file written before the rule: the address is there; the maintain step removes it, once.
+        self.reg.db.execute(
+            "INSERT INTO facts SELECT fact_id || 'm', subject, 'ownership.owner_mailing_address', ?, unit, as_of, method, "
+            "confidence, document_id, locator FROM facts WHERE subject = ? AND predicate = 'ownership.owner_of_record'",
+            (json.dumps("1 Elm St, Example TX"), parcel))
+        self.reg.db.commit()
+        self.assertEqual(self.reg.purge_person_owners()["personal_addresses"], 1)
+        self.assertEqual(self.reg.purge_person_owners()["personal_addresses"], 0, "idempotent")
+        self.assertIn("ownership.owner_of_record", {f["predicate"] for f in self.reg.facts(parcel, history=True)})
+
+    def test_privacy_scan_reports_what_maintain_removes(self):
+        from factlot.registry import privacy_scan
+        roll = [ParcelRecord("999", "0001-000-0009", "F1", account="A9", situs_address="9 Oak Street",
+                             owner_name="JOHN SMITH LLC", owner_mailing_address="1 Elm St, Example TX")]
+        self.reg.ingest_parcels(roll, self.snap25, state_fips="48")
+        parcel = factlot.parcel_id("48", "999", "0001-000-0009").urn
+        self.reg.db.execute(
+            "INSERT INTO facts SELECT fact_id || 'm', subject, 'ownership.owner_mailing_address', ?, unit, as_of, method, "
+            "confidence, document_id, locator FROM facts WHERE subject = ? AND predicate = 'ownership.owner_of_record'",
+            (json.dumps("1 Elm St, Example TX"), parcel))
+        self.reg.db.commit()
+        path = self.tmp / "registry.db"
+        report = privacy_scan.scan(path)
+        self.assertEqual(report["personal_style_mailing_addresses"], 1)
+        self.assertEqual(report["person_owner_samples"], [])
+        self.assertEqual(privacy_scan.main(["--json", str(path)]), 1)
+        self.reg.purge_person_owners()
+        self.assertEqual(privacy_scan.scan(path)["personal_style_mailing_addresses"], 0)
+        self.assertEqual(privacy_scan.main([str(path)]), 0)
 
     def test_mailing_address_contact_names_that_are_not_organisations_are_not_stored(self):
         cases = {

@@ -50,6 +50,12 @@ Not allowed:
   JANE DOE", "C/O JOHN SMITH"). Ingest removes each such contact, with its marker, unless the name
   is clearly an organisation ("C/O ACME MANAGEMENT LLC"). The rest of the address stays. For a file
   built before this rule, the maintenance step `--purge-persons` does the same.
+- **No home address behind a person's company name.** An organisation whose name reads as a
+  person's or a family's ("JOHN SMITH LLC", "SMITH FAMILY LP", "SMITH J R HOLDINGS LLC") is kept,
+  because it is a legal organisation, but its mailing address is not stored or served: for a
+  one-person company it is most often the person's home. The rule is deliberately broad, so a
+  company named for its founder loses only its mailing address. `--purge-persons` applies it to
+  files built earlier, and the hosted registry refuses to pack a file that still holds one.
 - **No grouping by mailing address.** No registry tool finds or groups owners by mailing address:
   `registry_owned_by` follows ownership links to one registered entity, buildings group parcels by
   their situs address, and the owner-match review uses only the mailing address's state. A small
@@ -75,8 +81,10 @@ Not allowed:
   example is matching an owner-of-record name to a company registration.
 - **Rights travel with every fact.** Each fact carries the source's license, AI-use status, and
   redistribution status, plus any attribution the publisher requires.
-- **Corrections and takedowns.** Anyone can request a correction or removal. Requests about
-  natural persons are honoured promptly and without argument.
+- **Corrections and takedowns.** Anyone can request a correction or removal by email to
+  contact@factlot.com. Requests about natural persons are honoured promptly and without argument:
+  the subject or owner name goes on a private removal list that every hosted registry build
+  applies, so it is not served again after a rebuild.
 
 ## 5. Review before a source goes live
 

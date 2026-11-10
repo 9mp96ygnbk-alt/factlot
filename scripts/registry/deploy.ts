@@ -3,7 +3,8 @@
  *
  *   npm run deploy:registry -- <pack dir> [--dry-run]
  *
- * Refuses a missing or malformed pack, or one over the Workers static-assets limits (20,000 files, 25 MiB each).
+ * Refuses a missing or malformed pack, one over the Workers static-assets limits on the Workers Paid plan (100,000
+ * files, 25 MiB each), or one that serves a county of hostedWithheldCounties().
  */
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
@@ -14,8 +15,10 @@ import {
   PACK_FORMAT,
   type Manifest,
 } from "../../deploy/registry/src/format.ts";
+import { hostedWithheldCounties } from "../../packages/tools/src/registry.ts";
 
-const MAX_FILES = 20_000;
+/** Workers Paid: 100,000 static-asset files per Worker version (the free plan allows 20,000). */
+const MAX_FILES = 100_000;
 const MAX_FILE_BYTES = 25 * 1024 * 1024;
 /** The files a pack holds: manifest, records, crosswalk, address and name indexes, candidate pools. */
 const PACK_PATH =
@@ -52,6 +55,19 @@ export function packProblems(dir: string): string[] {
     if (statSync(f).size > MAX_FILE_BYTES)
       problems.push(`${rel} is over 25 MiB`);
     if (!PACK_PATH.test(rel)) problems.push(`${rel} is not a pack file`);
+  }
+  for (const fips of Object.keys(hostedWithheldCounties())) {
+    const served =
+      Object.hasOwn(m.counties, `us-${fips}`) ||
+      Object.keys(m.prefixes).some((p) => p.endsWith(`:us-${fips}`));
+    if (served)
+      problems.push(
+        `the pack serves county ${fips}, which the hosted registry withholds (hostedWithheldCounties); rebuild it`,
+      );
+    else if (!Object.hasOwn(m.withheld ?? {}, fips))
+      problems.push(
+        `the pack does not record county ${fips} as withheld; rebuild it with the current pack.ts`,
+      );
   }
   for (let k = 0; k < m.dbs.length; k++)
     if (!existsSync(join(dir, "g", String(k))))
