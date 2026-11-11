@@ -76,6 +76,7 @@ function fill(template, vars) {
 }
 
 const NAV = [
+  ["/try/", "Try it"],
   ["/calculators/", "Calculators"],
   ["/mcp-server/", "MCP server"],
   ["/texas/", "Texas"],
@@ -100,6 +101,7 @@ function layout({
   body,
   crumbs,
   jsonld = [],
+  scripts = [],
 }) {
   const url = SITE + urlPath;
   const breadcrumb = {
@@ -143,6 +145,7 @@ function layout({
 <meta name="twitter:card" content="summary_large_image" />
 <link rel="stylesheet" href="/styles.css" />
 ${ld}
+${scripts.map((src) => `<script src="${src}" defer></script>`).join("\n")}
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -302,6 +305,25 @@ addPage(
     body: fill(read("site/_content/mcp.html"), { VERSION }),
   },
   ["site/_content/mcp.html"],
+);
+
+// --- /try/ ----------------------------------------------------------------------------------------
+// One address search against the hosted free tier, from the visitor's browser. The page calls the
+// same-origin /v1/registry routes the Worker already serves on factlot.com; /try/try.js is its only
+// script and is copied from site/try/.
+
+addPage(
+  {
+    urlPath: "/try/",
+    title: "Try a lookup: cited property records, no key | FactLot",
+    description:
+      "Look up a commercial property by address on FactLot's hosted free tier: parcel ID, situs address, roll values, building facts and the source citations, with the raw JSON an agent receives.",
+    h1: "Try a lookup",
+    crumbs: [["/try/", "Try a lookup"]],
+    body: read("site/_content/try.html"),
+    scripts: ["/try/try.js"],
+  },
+  ["site/_content/try.html", "site/try/try.js"],
 );
 
 // --- /pricing/ ------------------------------------------------------------------------------------
@@ -953,10 +975,15 @@ for (const f of fs
   for (const [tag] of html.matchAll(
     /<script\b[^>]*>|<link\b[^>]*rel="stylesheet"[^>]*>/g,
   )) {
-    if (/src=|href="(?:https?:)?\/\//.test(tag))
+    if (/(?:src|href)="(?:https?:)?\/\//.test(tag))
       problems.push(`${f}: external resource ${tag}`);
-    if (tag.startsWith("<script") && !tag.includes("application/ld+json"))
-      problems.push(`${f}: script that is not JSON-LD`);
+    // The only scripts besides JSON-LD are same-origin files under /try/.
+    if (
+      tag.startsWith("<script") &&
+      !tag.includes("application/ld+json") &&
+      !/^<script src="\/try\/[a-z-]+\.js" defer>$/.test(tag)
+    )
+      problems.push(`${f}: script that is not JSON-LD or a /try/ file`);
   }
   for (const [, j] of html.matchAll(
     /<script type="application\/ld\+json">([\s\S]*?)<\/script>/g,

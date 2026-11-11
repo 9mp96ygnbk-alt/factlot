@@ -44,6 +44,7 @@ Further hosted registry regions, enterprise terms, and private deployments: emai
 
 ## Use it
 
+- [Try a lookup](https://factlot.com/try/): look up a commercial property by address on the hosted free tier, with no key, and see the cited record and the raw JSON an agent receives
 - [Hosted MCP server](https://factlot.com/mcp-server/): hosted remote MCP at `https://api.factlot.com/mcp`, no key; per-client setup for Claude, Claude Code, ChatGPT, Cursor, VS Code, Gemini CLI and agent frameworks
 - [Calculators](https://factlot.com/calculators/): every calculator, with worked examples and audit trails for net effective rent, debt sizing, CAM, yield maintenance, ASC 842, WALT, direct cap and equity waterfalls
 - [Texas property tax protest deadline](https://factlot.com/texas/property-tax-protest-deadline/): the next three seasons' deadlines with statute citations

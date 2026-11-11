@@ -174,7 +174,7 @@ repository's Security tab ("Report a vulnerability").
   your network, self-host: the same tools run on your machine and make no network calls. Please do not
   email confidential documents to us.
 - The API does not send a `Strict-Transport-Security` header, and the static site sends no
-  `Content-Security-Policy` header (it runs no scripts). The plain-HTTP redirect above is what
+  `Content-Security-Policy` header (its only script is the same-origin file behind the /try/ page, which writes API answers as text, never as HTML). The plain-HTTP redirect above is what
   protects first visits.
 - Enterprise customers can ask about a signed data-processing agreement and private deployment
   (contact@factlot.com); neither is published terms today.

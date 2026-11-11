@@ -8,6 +8,19 @@ export default tseslint.config(
   tseslint.configs.recommended,
   eslintConfigPrettier,
   {
+    files: ["site/try/*.js"],
+    languageOptions: {
+      sourceType: "script",
+      globals: {
+        document: "readonly",
+        fetch: "readonly",
+        AbortController: "readonly",
+        setTimeout: "readonly",
+        clearTimeout: "readonly",
+      },
+    },
+  },
+  {
     files: ["**/*.mjs"],
     languageOptions: { globals: { process: "readonly", console: "readonly" } },
   },

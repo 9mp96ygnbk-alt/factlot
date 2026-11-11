@@ -535,3 +535,136 @@ ul.principles li {
 .covtable th[scope="row"] {
   font-weight: 500;
 }
+
+/* Try a lookup */
+
+.try-form label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+
+.try-row {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.try-row input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0.65rem 0.75rem;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 2px solid var(--border);
+  border-radius: 6px;
+}
+
+.try-row input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.try-row button {
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.try-row button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.try-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 1rem;
+}
+
+.try-chip {
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--accent);
+  background: transparent;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  padding: 0.4rem 0.8rem;
+  cursor: pointer;
+}
+
+.try-chip:hover {
+  text-decoration: underline;
+}
+
+.try-status {
+  min-height: 1.5rem;
+  color: var(--muted);
+}
+
+.try-results {
+  margin: 0.5rem 0 1.5rem;
+}
+
+.try-problem {
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+}
+
+.try-ids {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.25rem 1rem;
+  margin: 0.5rem 0 1rem;
+}
+
+.try-ids dt {
+  font-weight: 600;
+}
+
+.try-ids dd {
+  margin: 0;
+}
+
+.try-wrap {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.875em;
+  overflow-wrap: anywhere;
+}
+
+.try-table {
+  overflow-x: auto;
+}
+
+.try-sources li {
+  margin-bottom: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+.try-raw {
+  margin: 1rem 0;
+}
+
+.try-raw summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.try-raw pre {
+  max-height: 28rem;
+  overflow: auto;
+}
+
+@media (max-width: 30rem) {
+  .try-row {
+    flex-direction: column;
+  }
+  .try-ids {
+    grid-template-columns: 1fr;
+  }
+}

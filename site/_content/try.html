@@ -1,0 +1,94 @@
+<p class="lede">
+  Type a commercial property address in a loaded county, or pick a sample, and
+  run a real lookup against FactLot's hosted API. You get the cited public
+  record that an AI agent would get, with no account and no API key.
+</p>
+
+<form id="try-form" class="try-form" action="/try/" method="get" novalidate>
+  <label for="try-q">Property address</label>
+  <div class="try-row">
+    <input
+      id="try-q"
+      name="q"
+      type="text"
+      inputmode="text"
+      autocomplete="off"
+      autocapitalize="off"
+      spellcheck="false"
+      maxlength="200"
+      placeholder="1000 Louisiana St"
+      aria-describedby="try-hint"
+    />
+    <button class="button primary" type="submit" id="try-go">Look up</button>
+  </div>
+  <p id="try-hint" class="small">
+    A house number and street, such as <code>1200 Main St</code>. Commercial,
+    industrial and multifamily parcels only; a city alone matches nothing.
+  </p>
+</form>
+
+<p class="small" id="try-samples-label">
+  Samples from the Texas worked examples:
+</p>
+<ul class="try-chips" aria-labelledby="try-samples-label">
+  <li>
+    <button type="button" class="try-chip" data-q="1000 Louisiana St">
+      1000 Louisiana St, Houston (Harris)
+    </button>
+  </li>
+  <li>
+    <button type="button" class="try-chip" data-q="600 Travis St">
+      600 Travis St, Houston (Harris)
+    </button>
+  </li>
+  <li>
+    <button type="button" class="try-chip" data-q="1130 E Arapaho Rd">
+      1130 E Arapaho Rd, Richardson (Dallas)
+    </button>
+  </li>
+  <li>
+    <button type="button" class="try-chip" data-q="2323 N Central Expy">
+      2323 N Central Expy, Richardson (Dallas)
+    </button>
+  </li>
+</ul>
+
+<p class="small try-quota" id="try-quota">
+  The free tier allows 25 registry lookups a day per IP address. A search that
+  finds a parcel counts as one lookup and fetching its record counts as another,
+  so one try uses two. Misses and input errors are free.
+</p>
+
+<noscript>
+  <p class="note">
+    This page needs JavaScript to send the lookup. Without it, the same calls
+    are one line each; see
+    <a href="/mcp-server/">the MCP server page</a> or the
+    <a href="https://api.factlot.com/openapi.json">OpenAPI description</a>.
+  </p>
+</noscript>
+
+<div id="try-status" class="try-status" role="status" aria-live="polite"></div>
+<div id="try-results" class="try-results"></div>
+
+<h2 id="next">Next step</h2>
+<p class="actions">
+  <a class="button primary" href="/mcp-server/">Connect your agent</a>
+  <a class="button" href="/pricing/">Plans and limits</a>
+  <a class="button" href="/coverage/">County coverage</a>
+</p>
+<p>
+  The lookup above is the same <code>registry_search_address</code> and
+  <code>registry_get</code> that your agent calls over MCP, sent from your
+  browser to <code>factlot.com/v1/registry/&hellip;</code>. Your address search
+  goes to FactLot's API and is counted against your IP address's free lookups;
+  nothing is stored in your browser and no cookie is set.
+</p>
+<p class="small">
+  FactLot is software. It is not a property tax consultant under Texas
+  Occupations Code chapter 1152, does not prepare, file or advise on protests,
+  and does not represent owners. A record shown here is a public-record fact as
+  the county published it, not an appraisal or an opinion of value (Occupations
+  Code §1103.003(1)), not legal or tax advice, and not a substitute for the
+  advice of an attorney.
+</p>

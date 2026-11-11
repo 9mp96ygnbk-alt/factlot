@@ -7,7 +7,10 @@ import { existsSync, mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { describe, it } from "node:test";
 
-import { QUOTA_RULES } from "../../deploy/cloudflare/src/plans.ts";
+import {
+  ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY,
+  QUOTA_RULES,
+} from "../../deploy/cloudflare/src/plans.ts";
 import {
   countyBody,
   exampleBody,
@@ -409,4 +412,96 @@ describe("pricing page alternatives", () => {
     assert.ok(html.includes("$12.49 per month per county, billed annually"));
     assert.ok(html.includes("Tax Code §41.461"));
   });
+});
+
+describe("/try/ page", () => {
+  const FORBIDDEN = [
+    "median_adjusted_value",
+    "subject_minus_median",
+    "over_assess",
+    "equity_candidates",
+    "calc_tx_unequal_appraisal",
+  ];
+  const html = read("site/_content/try.html");
+  const js = read("site/try/try.js");
+
+  it("calls only the two same-origin registry routes, with no key, storage or HTML injection", () => {
+    const paths = [...js.matchAll(/"(\/v1\/[^"]*)"/g)].map((m) => m[1]);
+    assert.deepEqual(paths.sort(), [
+      "/v1/registry/get",
+      "/v1/registry/search_address",
+    ]);
+    assert.ok(!/https?:\/\//.test(js), "no absolute URL in the script");
+    for (const bad of [
+      "authorization",
+      "api_key",
+      "localStorage",
+      "sessionStorage",
+      "document.cookie",
+      "innerHTML",
+      "outerHTML",
+      "insertAdjacentHTML",
+      "eval(",
+    ])
+      assert.ok(!js.toLowerCase().includes(bad.toLowerCase()), bad);
+    assert.match(js, /credentials: "omit"/);
+  });
+  it("shows no calculator result for a real property", () => {
+    for (const f of FORBIDDEN) {
+      assert.ok(!html.includes(f), `try.html has ${f}`);
+      assert.ok(!js.includes(f), `try.js has ${f}`);
+    }
+  });
+  it("names the free quota, the pricing link and the coverage link", () => {
+    assert.match(html, /25 registry lookups a day per IP address/);
+    assert.equal(ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY, 25);
+    assert.ok(js.includes('"/pricing/"') && js.includes('"/coverage/"'));
+    assert.ok(html.includes('href="/mcp-server/"'));
+  });
+  it("carries the disclaimers word for word", () => {
+    const flat = html.replace(/\s+/g, " ");
+    for (const sentence of SENTENCES) assert.ok(flat.includes(sentence));
+  });
+  it("is linked from the home page and listed in llms.txt", () => {
+    assert.ok(read("site/index.html").includes('href="/try/"'));
+    assert.ok(read("llms.txt").includes("https://factlot.com/try/"));
+  });
+  it(
+    "is built into the site with no external resource",
+    { skip: !existsSync(new URL("packages/tools/dist/index.js", root)) },
+    () => {
+      const out = mkdtempSync(`${tmpdir()}/factlot-site-`);
+      execFileSync("node", ["scripts/site/build.mjs", out], {
+        cwd: root,
+        stdio: "pipe",
+      });
+      const page = readFileSync(`${out}/try/index.html`, "utf8");
+      const script = readFileSync(`${out}/try/try.js`, "utf8");
+      assert.equal(script, js);
+      const scripts = [...page.matchAll(/<script\b[^>]*>/g)].map((m) => m[0]);
+      assert.ok(scripts.includes('<script src="/try/try.js" defer>'));
+      for (const tag of scripts)
+        assert.ok(
+          tag === '<script src="/try/try.js" defer>' ||
+            tag === '<script type="application/ld+json">',
+          tag,
+        );
+      const loaded = [
+        ...page.matchAll(
+          /<(?:script|link|img|iframe|source|video|audio|object|embed)\b[^>]*>/g,
+        ),
+      ]
+        .map((m) => m[0])
+        .filter((tag) => !tag.includes('rel="canonical"'));
+      for (const tag of loaded)
+        assert.ok(!/(?:src|href|srcset)="(?:https?:)?\/\//.test(tag), tag);
+      assert.ok(!/@import|url\(\s*["']?https?:/.test(page));
+      for (const f of FORBIDDEN) assert.ok(!page.includes(f), f);
+      assert.ok(
+        page.includes('<a href="/try/" aria-current="page">Try it</a>'),
+      );
+      const sitemap = readFileSync(`${out}/sitemap.xml`, "utf8");
+      assert.ok(sitemap.includes("<loc>https://factlot.com/try/</loc>"));
+    },
+  );
 });

@@ -1,13 +1,16 @@
 # factlot.com
 
-The site is static HTML with no JavaScript, no framework, no external scripts or fonts, and no
-tracking. The only `<script>` elements are `application/ld+json` blocks (schema.org data), which
-the browser does not execute.
+The site is static HTML with no framework, no external scripts or fonts, and no tracking. The
+`<script>` elements are `application/ld+json` blocks (schema.org data), which the browser does not
+execute, and one same-origin file, `/try/try.js`, on the Try a lookup page (`/try/`). That page posts
+to the Worker's own `/v1/registry/search_address` and `/v1/registry/get` routes on the page's origin,
+so it needs no CORS and no key, and the free tier meters it like any other keyless caller. The
+build fails on any other script.
 
 - `site/` holds the hand-written pages (`index.html`, `privacy.html`, `terms.html`, `404.html`),
   `styles.css`, icons, `robots.txt`, the IndexNow key file, and `llms.txt` (a copy of the
   repository's `llms.txt`; a test fails if they differ).
-- `site/_content/` holds the prose for generated pages: `mcp.html`, `texas-protest-deadline.html`,
+- `site/_content/` holds the prose for generated pages: `mcp.html`, `try.html`, `texas-protest-deadline.html`,
   and `calculators/` (one fragment per calculator page plus `manifest.json`).
 - `scripts/site/build.mjs` copies `site/` without `_content/` and the `.md` notes, renders
   `/mcp/`, `/calculators/`, the calculator pages and the Texas deadline page, and writes

@@ -1640,6 +1640,103 @@ describe("router", () => {
   });
 });
 
+describe("same-origin registry lookups for the /try/ page", () => {
+  const post = (
+    host: string,
+    path: string,
+    e: ReturnType<typeof env>,
+    api: ReturnType<typeof innerApi>["api"],
+    headers: Record<string, string> = {},
+  ) =>
+    handle(
+      new Request(`https://${host}${path}`, {
+        method: "POST",
+        body: JSON.stringify({ query: "1000 Louisiana St" }),
+        headers: {
+          "content-type": "application/json",
+          "cf-connecting-ip": IP,
+          origin: "https://factlot.com",
+          ...headers,
+        },
+      }),
+      e,
+      api,
+      { now: () => e.clock.t },
+    );
+
+  it("factlot.com answers the two registry routes from the API, not the static site", async () => {
+    const { api, seen } = innerApi();
+    const e = env({ ASSETS: { fetch: async () => new Response("site") } });
+    for (const path of ["/v1/registry/search_address", "/v1/registry/get"]) {
+      const r = await post("factlot.com", path, e, api);
+      assert.equal(r.status, 200, path);
+      assert.equal(await r.text(), '{"ok":true}', path);
+    }
+    assert.equal(seen.length, 2);
+    const page = await handle(new Request("https://factlot.com/try/"), e, api);
+    assert.equal(await page.text(), "site");
+  });
+
+  it("meters a keyless page visitor exactly like a keyless API caller, one counter for both hosts", async () => {
+    const { api } = innerApi();
+    const e = env({ ASSETS: { fetch: async () => new Response("site") } });
+    const first = await post(
+      "factlot.com",
+      "/v1/registry/search_address",
+      e,
+      api,
+    );
+    assert.equal(first.headers.get("x-factlot-tier"), "anonymous");
+    assert.equal(first.headers.get("x-factlot-registry-quota-limit"), "25");
+    assert.equal(first.headers.get("x-factlot-registry-quota-remaining"), "24");
+    const viaApiHost = await post(
+      "api.factlot.com",
+      "/v1/registry/get",
+      e,
+      api,
+    );
+    assert.equal(
+      viaApiHost.headers.get("x-factlot-registry-quota-remaining"),
+      "23",
+    );
+    for (let i = 0; i < 23; i++) {
+      if (i % 50 === 49) e.clock.t += 60_000;
+      assert.equal(
+        (await post("factlot.com", "/v1/registry/get", e, api)).status,
+        200,
+      );
+    }
+    const over = await post("factlot.com", "/v1/registry/get", e, api);
+    assert.equal(over.status, 429);
+    const body = (await over.json()) as Record<string, unknown>;
+    assert.equal(body.error, "RegistryQuotaExceeded");
+    assert.equal(typeof body.message, "string");
+    assert.equal(body.upgrade, "https://factlot.com/#pricing");
+    assert.match(
+      over.headers.get("access-control-expose-headers") ?? "",
+      /x-factlot-registry-quota-remaining/,
+    );
+  });
+
+  it("needs no key and never sets a cookie or allows credentialed CORS", async () => {
+    const { api } = innerApi();
+    const e = env({ ASSETS: { fetch: async () => new Response("site") } });
+    const r = await post("factlot.com", "/v1/registry/get", e, api);
+    assert.equal(r.headers.get("set-cookie"), null);
+    assert.equal(r.headers.get("access-control-allow-credentials"), null);
+  });
+
+  it("a page does not need CORS, and the routes that move money or accounts stay without a wildcard origin on the site host", async () => {
+    const { api } = innerApi();
+    const e = env({ ASSETS: { fetch: async () => new Response("site") } });
+    // Billing and account pages are served for people on factlot.com, not as cross-origin reads.
+    for (const path of ["/account", "/billing/success"]) {
+      const r = await handle(new Request(`https://factlot.com${path}`), e, api);
+      assert.equal(r.headers.get("access-control-allow-origin"), null, path);
+    }
+  });
+});
+
 describe("registry quota", () => {
   /** Calls spread over minutes so the 60/min free limit never interferes. */
   async function spend(
