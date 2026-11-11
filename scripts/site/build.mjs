@@ -10,6 +10,16 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
+import {
+  countyBody,
+  countyDescription,
+  countyTitle,
+  exampleBody,
+  exampleDescription,
+  exampleTitle,
+  otherDistrictsTable,
+} from "./texas-pages.mjs";
+
 const root = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../..",
@@ -510,10 +520,68 @@ addPage(
       "What FactLot hosts for Texas: 221,015 commercial parcels in six counties, the unequal-appraisal calculator, the protest-deadline rule, reports, and how to connect.",
     h1: "Texas",
     crumbs: [["/texas/", "Texas"]],
-    body: read("site/_content/texas.html"),
+    body: fill(read("site/_content/texas.html"), {
+      OTHER_DISTRICTS: otherDistrictsTable(),
+    }),
   },
   ["site/_content/texas.html"],
 );
+
+// --- /texas/<county>/ and /texas/<county>/example/ ----------------------------------------------
+// Figures come from site/_data/texas-counties.json and texas-examples.json, which
+// scripts/site/gen-texas-counties.ts and gen-texas-examples.ts write from a built registry file.
+
+{
+  const countiesRel = "site/_data/texas-counties.json";
+  const examplesRel = "site/_data/texas-examples.json";
+  const counties = readJson(countiesRel).counties;
+  const examples = new Map(
+    readJson(examplesRel).examples.map((e) => [e.county, e]),
+  );
+  const countyTpl = read("site/_content/texas-county.html");
+  const exampleTpl = read("site/_content/texas-example.html");
+  for (const c of counties) {
+    const e = examples.get(c.slug);
+    addPage(
+      {
+        urlPath: `/texas/${c.slug}/`,
+        title: countyTitle(c),
+        description: countyDescription(c),
+        h1: `${c.name} County, Texas`,
+        crumbs: [
+          ["/texas/", "Texas"],
+          [`/texas/${c.slug}/`, `${c.name} County`],
+        ],
+        body: countyBody(c, countyTpl, Boolean(e)),
+      },
+      [
+        "site/_content/texas-county.html",
+        countiesRel,
+        "scripts/site/texas-pages.mjs",
+      ],
+    );
+    if (e)
+      addPage(
+        {
+          urlPath: `/texas/${c.slug}/example/`,
+          title: exampleTitle(c),
+          description: exampleDescription(c),
+          h1: `${c.name} County worked example`,
+          crumbs: [
+            ["/texas/", "Texas"],
+            [`/texas/${c.slug}/`, `${c.name} County`],
+            [`/texas/${c.slug}/example/`, "Worked example"],
+          ],
+          body: exampleBody(c, e, exampleTpl),
+        },
+        [
+          "site/_content/texas-example.html",
+          examplesRel,
+          "scripts/site/texas-pages.mjs",
+        ],
+      );
+  }
+}
 
 // --- County coverage map -------------------------------------------------------------------
 
@@ -814,7 +882,11 @@ fs.cpSync(path.join(root, "site"), out, {
   recursive: true,
   filter: (src) => {
     const rel = path.relative(path.join(root, "site"), src);
-    return !rel.startsWith("_content") && !rel.endsWith(".md");
+    return (
+      !rel.startsWith("_content") &&
+      !rel.startsWith("_data") &&
+      !rel.endsWith(".md")
+    );
   },
 });
 for (const p of pages) {

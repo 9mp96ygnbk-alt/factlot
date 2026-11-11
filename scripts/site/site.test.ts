@@ -2,10 +2,18 @@
 // fail when either drifts from the tool catalog or the packages, so a new tool or a release
 // cannot leave the site saying something untrue.
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { existsSync, mkdtempSync, readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { describe, it } from "node:test";
 
 import { QUOTA_RULES } from "../../deploy/cloudflare/src/plans.ts";
+import {
+  countyBody,
+  exampleBody,
+  OTHER_DISTRICTS,
+  otherDistrictsTable,
+} from "./texas-pages.mjs";
 
 const root = new URL("../../", import.meta.url);
 const read = (rel: string) => readFileSync(new URL(rel, root), "utf8");
@@ -164,5 +172,198 @@ describe("trust pages", () => {
       assert.ok(t.includes("8 November 2026"), f);
       assert.ok(!t.includes("4,447"), f);
     }
+  });
+});
+
+interface County {
+  slug: string;
+  name: string;
+  publisher: string;
+  license: string;
+  terms_url: string;
+  source_url: string;
+  hosted_parcels: number;
+  neighborhood_tier: boolean;
+  rolls: { tax_year: number; as_of: string; parcels: number }[];
+}
+interface Example {
+  county: string;
+  parcel_facts: { predicate: string }[];
+  candidates: unknown[];
+  calc_args: { comparables: { adjustments?: unknown }[] };
+}
+const counties = (
+  JSON.parse(read("site/_data/texas-counties.json")) as {
+    total_hosted_parcels: number;
+    counties: County[];
+  }
+).counties;
+const examples = (
+  JSON.parse(read("site/_data/texas-examples.json")) as { examples: Example[] }
+).examples;
+const SENTENCES = [
+  "FactLot is software. It is not a property tax consultant under Texas Occupations Code chapter 1152",
+  "not an appraisal or an opinion of value (Occupations Code §1103.003(1)), not legal or tax advice, and not a substitute for the advice of an attorney.",
+];
+const group = (n: number) => n.toLocaleString("en-US");
+
+describe("texas county pages", () => {
+  const hub = flat("site/_content/texas.html");
+  const tpl = read("site/_content/texas-county.html");
+  const flatten = (h: string) => h.replace(/\s+/g, " ");
+  it("cover the six hosted counties and match the hub", () => {
+    assert.deepEqual(
+      counties.map((c) => c.slug),
+      ["harris", "dallas", "travis", "collin", "denton", "williamson"],
+    );
+    for (const c of counties) {
+      assert.ok(
+        hub.includes(
+          `<th scope="row">${c.name}</th> <td>${group(c.hosted_parcels)}</td>`,
+        ),
+        `hub row ${c.name}`,
+      );
+      assert.ok(hub.includes(`/texas/${c.slug}/`), `hub links ${c.slug}`);
+    }
+  });
+  it("state exactly the numbers in texas-counties.json", () => {
+    for (const c of counties) {
+      const body = flatten(countyBody(c, tpl, true));
+      assert.ok(body.includes(group(c.hosted_parcels)), c.slug);
+      for (const r of c.rolls) {
+        assert.ok(body.includes(`<th scope="row">${r.tax_year}`), c.slug);
+        assert.ok(body.includes(group(r.parcels)), c.slug);
+      }
+      assert.ok(body.includes(c.publisher.replaceAll("&", "&amp;")), c.slug);
+      assert.ok(
+        body.includes(`href="${c.terms_url.replaceAll("&", "&amp;")}"`),
+        c.slug,
+      );
+      assert.equal(
+        body.includes("Neighborhood code: not available"),
+        !c.neighborhood_tier,
+        c.slug,
+      );
+    }
+    assert.deepEqual(
+      counties.filter((c) => c.neighborhood_tier).map((c) => c.slug),
+      ["harris", "dallas", "travis"],
+    );
+  });
+  it("lists Tarrant withheld and ten districts as not yet hosted", () => {
+    const t = flatten(otherDistrictsTable());
+    assert.ok(t.includes("Tarrant"));
+    assert.equal(OTHER_DISTRICTS.length, 10);
+    for (const n of OTHER_DISTRICTS) assert.ok(t.includes(`>${n}</th>`), n);
+    assert.ok(hub.includes("{{OTHER_DISTRICTS}}"));
+  });
+  it("carry the disclaimers word for word", () => {
+    for (const c of counties) {
+      const body = flatten(countyBody(c, tpl, true));
+      for (const sentence of SENTENCES)
+        assert.ok(body.includes(sentence), c.slug);
+    }
+  });
+  it(
+    "are built into the site",
+    { skip: !existsSync(new URL("packages/tools/dist/index.js", root)) },
+    () => {
+      const out = mkdtempSync(`${tmpdir()}/factlot-site-`);
+      execFileSync("node", ["scripts/site/build.mjs", out], {
+        cwd: root,
+        stdio: "pipe",
+      });
+      for (const c of counties) {
+        const page = readFileSync(`${out}/texas/${c.slug}/index.html`, "utf8");
+        assert.ok(page.includes(group(c.hosted_parcels)), c.slug);
+        for (const sentence of SENTENCES)
+          assert.ok(flatten(page).includes(sentence), c.slug);
+      }
+      for (const e of examples) {
+        const page = readFileSync(
+          `${out}/texas/${e.county}/example/index.html`,
+          "utf8",
+        );
+        for (const sentence of SENTENCES)
+          assert.ok(flatten(page).includes(sentence), e.county);
+        assert.ok(!/ownership\./.test(page), e.county);
+      }
+    },
+  );
+});
+
+describe("texas worked examples", () => {
+  const tpl = read("site/_content/texas-example.html");
+  const raw = read("site/_data/texas-examples.json");
+  it("are one Harris and one Dallas parcel", () => {
+    assert.deepEqual(
+      examples.map((e) => e.county),
+      ["harris", "dallas"],
+    );
+  });
+  it("hold parcel facts only, with no ownership key and no owner name", () => {
+    const names =
+      /\b(?:LLC|L\.L\.C|LP|L\.P|INC|LTD|CORP|CORPORATION|TRUST|HOLDINGS|PARTNERS|PARTNERSHIP|ESTATE|FOUNDATION)\b/;
+    const walk = (v: unknown, path: string) => {
+      if (Array.isArray(v)) v.forEach((x, i) => walk(x, `${path}[${i}]`));
+      else if (v && typeof v === "object")
+        for (const [k, x] of Object.entries(v)) {
+          assert.ok(!/owner|mailing/i.test(k), `${path}.${k}`);
+          walk(x, `${path}.${k}`);
+        }
+      else if (typeof v === "string") {
+        assert.ok(!/ownership\./.test(v), `${path} names an ownership fact`);
+        if (!/notice|disclaimer/.test(path))
+          assert.ok(!names.test(v), `${path} looks like an owner name: ${v}`);
+      }
+    };
+    assert.ok(
+      !/median_adjusted_value|subject_minus_median|calc_result/.test(raw),
+    );
+    walk(JSON.parse(raw), "examples");
+    for (const e of examples)
+      for (const f of e.parcel_facts)
+        assert.ok(f.predicate.startsWith("parcel."), f.predicate);
+  });
+  it("hold the calculator input for ten candidates with no adjustments and no result", () => {
+    for (const e of examples) {
+      assert.equal(e.candidates.length, 10);
+      assert.equal(e.calc_args.comparables.length, 10);
+      for (const c of e.calc_args.comparables)
+        assert.equal(c.adjustments, undefined);
+    }
+  });
+  it("render the disclaimers verbatim and no computed result", () => {
+    const counts = new Map(counties.map((c) => [c.slug, c]));
+    for (const e of examples) {
+      const body = exampleBody(counts.get(e.county), e, tpl).replace(
+        /\s+/g,
+        " ",
+      );
+      for (const sentence of SENTENCES)
+        assert.ok(body.includes(sentence), e.county);
+      assert.ok(
+        body.includes("after the user reviews, removes or adds comparables"),
+      );
+      assert.ok(body.includes("does not show a result for a real property"));
+      assert.ok(body.includes("spec/vectors/calc/tx_unequal_appraisal.json"));
+      assert.ok(
+        !/median_adjusted_value|subject_minus_median|normalize_by|calc_result/.test(
+          body,
+        ),
+        e.county,
+      );
+      assert.ok(!/ownership\.|owner_of_record/.test(body), e.county);
+    }
+  });
+});
+
+describe("pricing page alternatives", () => {
+  const html = flat("site/_content/pricing.html");
+  it("compares the free sources, the district packet and TaxNetUSA with a cited price", () => {
+    assert.ok(html.includes("What you would otherwise use"));
+    assert.ok(html.includes("https://www.taxnetusa.com/pricing/pro.php"));
+    assert.ok(html.includes("$12.49 per month per county, billed annually"));
+    assert.ok(html.includes("Tax Code §41.461"));
   });
 });

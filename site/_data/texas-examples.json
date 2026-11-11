@@ -1,0 +1,935 @@
+{
+  "generated_with": "scripts/site/gen-texas-examples.ts",
+  "examples": [
+    {
+      "county": "harris",
+      "urn": "fl:parcel:us-48201:0011440000001",
+      "label": "1000 LOUISIANA ST, HOUSTON TX 77002",
+      "status": "current",
+      "parcel_facts": [
+        {
+          "fact_id": "flf_pg37rn2qwnf8amqb895z2nnw",
+          "predicate": "parcel.apn",
+          "value": "0011440000001",
+          "unit": null,
+          "as_of": "2026-11-01",
+          "document_id": "fl:document:sha256-b74be6977d4f078d0302652e86533885326deb4daa220f0e63dc05f548611506",
+          "locator": "real_acct.txt acct 0011440000001"
+        },
+        {
+          "fact_id": "flf_pb61ghtwjjk6zsk6ct5dwfj3",
+          "predicate": "parcel.appraised_value",
+          "value": 303755215,
+          "unit": "USD",
+          "as_of": "2026-11-01",
+          "document_id": "fl:document:sha256-b74be6977d4f078d0302652e86533885326deb4daa220f0e63dc05f548611506",
+          "locator": "real_acct.txt acct 0011440000001"
+        },
+        {
+          "fact_id": "flf_rx6et85bf78xcyjhndzz0mbs",
+          "predicate": "parcel.building_class",
+          "value": "A",
+          "unit": null,
+          "as_of": "2026-11-01",
+          "document_id": "fl:document:sha256-223bcbe4adef726b3468f78f053aa397946ea75fb3e806e27d4306c73f8c1778",
+          "locator": "building_other.txt acct 0011440000001 bld_num 1"
+        },
+        {
+          "fact_id": "flf_j00m7asgbtevcc0s0wxweart",
+          "predicate": "parcel.improvement_area_sf",
+          "value": 1871418,
+          "unit": "sf",
+          "as_of": "2026-11-01",
+          "document_id": "fl:document:sha256-b74be6977d4f078d0302652e86533885326deb4daa220f0e63dc05f548611506",
+          "locator": "real_acct.txt acct 0011440000001"
+        },
+        {
+          "fact_id": "flf_13n6b0zjt0kzgjx7vzphn8e2",
+          "predicate": "parcel.land_area_sf",
+          "value": 62500,
+          "unit": "sf",
+          "as_of": "2026-11-01",
+          "document_id": "fl:document:sha256-b74be6977d4f078d0302652e86533885326deb4daa220f0e63dc05f548611506",
+          "locator": "real_acct.txt acct 0011440000001"
+        },
+        {
+          "fact_id": "flf_yerqedca5ncw0gsdmv4pnbgv",
+          "predicate": "parcel.market_value",
+          "value": 303755215,
+          "unit": "USD",
+          "as_of": "2026-11-01",
+          "document_id": "fl:document:sha256-b74be6977d4f078d0302652e86533885326deb4daa220f0e63dc05f548611506",
+          "locator": "real_acct.txt acct 0011440000001"
+        },
+        {
+          "fact_id": "flf_ctgq44scrfajjy4kytxnk9rn",
+          "predicate": "parcel.neighborhood_code",
+          "value": "5900.00",
+          "unit": null,
+          "as_of": "2026-11-01",
+          "document_id": "fl:document:sha256-b74be6977d4f078d0302652e86533885326deb4daa220f0e63dc05f548611506",
+          "locator": "real_acct.txt acct 0011440000001"
+        },
+        {
+          "fact_id": "flf_vy3wmqpbyg7y06sg2yj6qyry",
+          "predicate": "parcel.situs_address",
+          "value": "1000 LOUISIANA ST, HOUSTON TX 77002",
+          "unit": null,
+          "as_of": "2026-11-01",
+          "document_id": "fl:document:sha256-b74be6977d4f078d0302652e86533885326deb4daa220f0e63dc05f548611506",
+          "locator": "real_acct.txt acct 0011440000001"
+        },
+        {
+          "fact_id": "flf_qz2nd665x6aem84xnhwnvz1g",
+          "predicate": "parcel.state_property_category",
+          "value": "F1",
+          "unit": null,
+          "as_of": "2026-11-01",
+          "document_id": "fl:document:sha256-b74be6977d4f078d0302652e86533885326deb4daa220f0e63dc05f548611506",
+          "locator": "real_acct.txt acct 0011440000001"
+        },
+        {
+          "fact_id": "flf_bctb28jm0d9xx4t0vpth3zqj",
+          "predicate": "parcel.tax_year",
+          "value": 2026,
+          "unit": null,
+          "as_of": "2026-11-01",
+          "document_id": "fl:document:sha256-b74be6977d4f078d0302652e86533885326deb4daa220f0e63dc05f548611506",
+          "locator": "real_acct.txt acct 0011440000001"
+        },
+        {
+          "fact_id": "flf_va48188rq761230tpr88zxpr",
+          "predicate": "parcel.year_built",
+          "value": 1983,
+          "unit": null,
+          "as_of": "2026-11-01",
+          "document_id": "fl:document:sha256-b74be6977d4f078d0302652e86533885326deb4daa220f0e63dc05f548611506",
+          "locator": "real_acct.txt acct 0011440000001"
+        }
+      ],
+      "documents": {
+        "fl:document:sha256-b74be6977d4f078d0302652e86533885326deb4daa220f0e63dc05f548611506": {
+          "title": "Harris Central Appraisal District: Real property appraisal roll export (Real_acct_owner.zip) (Real_acct_owner.zip)",
+          "uri": "https://hcad.org/pdata/pdata-property-downloads.html",
+          "retrieved_at": "2026-11-02T23:07:43+00:00",
+          "license": "Public record (Tex. Gov't Code ch. 552); no license or terms of use stated",
+          "attribution": "Harris Central Appraisal District",
+          "ai_use": "unknown",
+          "redistribution": "unknown"
+        },
+        "fl:document:sha256-223bcbe4adef726b3468f78f053aa397946ea75fb3e806e27d4306c73f8c1778": {
+          "title": "Harris Central Appraisal District: Real property building and land export (Real_building_land.zip) (Real_building_land.zip)",
+          "uri": "https://hcad.org/pdata/pdata-property-downloads.html",
+          "retrieved_at": "2026-11-02T23:07:43+00:00",
+          "license": "Public record (Tex. Gov't Code ch. 552); no license or terms of use stated",
+          "attribution": "Harris Central Appraisal District",
+          "ai_use": "unknown",
+          "redistribution": "unknown"
+        }
+      },
+      "candidates_call": {
+        "urn": "fl:parcel:us-48201:0011440000001"
+      },
+      "selection_rule": {
+        "tax_year": 2026,
+        "state_property_category": "F1",
+        "area_band": {
+          "share": 0.35,
+          "min_sf": 1216421.7,
+          "max_sf": 2526414.3000000003
+        },
+        "year_band": {
+          "years": 15,
+          "min": 1968,
+          "max": 1998
+        },
+        "min_matches": 10,
+        "limit": 50,
+        "tiers": [
+          {
+            "tier": "neighborhood",
+            "key": "5900.00",
+            "applied": true,
+            "matched": 8,
+            "returned": 8
+          },
+          {
+            "tier": "zip",
+            "key": "77002",
+            "applied": true,
+            "matched": 2,
+            "returned": 2
+          },
+          {
+            "tier": "county",
+            "key": "201",
+            "applied": false,
+            "matched": 7,
+            "returned": 0
+          }
+        ],
+        "widened_to_county": false,
+        "matched": 10,
+        "returned": 10,
+        "notice": "calc_args is the candidate list under FactLot's default rule (selection_rule) in calc_tx_unequal_appraisal's input shape, not a selection of comparables by FactLot: the caller reviews it, may remove, add or edit comparables, and adds any adjustments, each with a reason, before calling calc_tx_unequal_appraisal (which needs at least 3 comparables). The order of operations is registry_tx_equity_candidates, review, calc_tx_unequal_appraisal with the reviewed calc_args, then report_create."
+      },
+      "selection_tiers": [
+        {
+          "tier": "neighborhood",
+          "key": "5900.00",
+          "applied": true,
+          "matched": 8,
+          "returned": 8
+        },
+        {
+          "tier": "zip",
+          "key": "77002",
+          "applied": true,
+          "matched": 2,
+          "returned": 2
+        },
+        {
+          "tier": "county",
+          "key": "201",
+          "applied": false,
+          "matched": 7,
+          "returned": 0
+        }
+      ],
+      "candidates_total_returned": 10,
+      "candidates_notice": "Candidates only: a person decides which, if any, to use as comparables. The selection rule is FactLot's default, not a legal standard of comparability. For evidence calculations only: FactLot does not represent property owners, file protests, or advise whether to protest or what value to claim. Owner names and mailing addresses are never returned. Not an appraisal or an opinion of value (Tex. Occ. Code §1103.003(1)); not legal or tax advice and not a substitute for the advice of an attorney. FactLot is software, not a property tax consultant under Texas Occupations Code chapter 1152; it does not prepare, file or advise on protests.",
+      "candidates": [
+        {
+          "id": "fl:parcel:us-48201:0010830000001",
+          "situs_address": "711 LOUISIANA ST, HOUSTON TX 77002",
+          "tier": "neighborhood",
+          "value": 196316575,
+          "improvement_area_sf": 1657484,
+          "value_per_sf": 118.44,
+          "year_built": 1975,
+          "neighborhood_code": "5900.00",
+          "fact_id": "flf_2ss7msf2313014mvgb0mc4fk"
+        },
+        {
+          "id": "fl:parcel:us-48201:0010670000001",
+          "situs_address": "600 TRAVIS ST, HOUSTON TX 77002",
+          "tier": "neighborhood",
+          "value": 312114940,
+          "improvement_area_sf": 2171696,
+          "value_per_sf": 143.72,
+          "year_built": 1981,
+          "neighborhood_code": "5900.00",
+          "fact_id": "flf_5zbf3b33ymzm4k0xhqyktgv9"
+        },
+        {
+          "id": "fl:parcel:us-48201:0011450000001",
+          "situs_address": "900 LOUISIANA ST, HOUSTON TX 77002",
+          "tier": "neighborhood",
+          "value": 187092171,
+          "improvement_area_sf": 1436400,
+          "value_per_sf": 130.25,
+          "year_built": 1968,
+          "neighborhood_code": "5900.00",
+          "fact_id": "flf_4ws7spq2hxg662bpqxfpjgsv"
+        },
+        {
+          "id": "fl:parcel:us-48201:0010840000015",
+          "situs_address": "700 LOUISIANA ST, HOUSTON TX 77002",
+          "tier": "neighborhood",
+          "value": 214388305,
+          "improvement_area_sf": 1422695,
+          "value_per_sf": 150.69,
+          "year_built": 1983,
+          "neighborhood_code": "5900.00",
+          "fact_id": "flf_nnwg5334w80y84n3hmeej1e0"
+        },
+        {
+          "id": "fl:parcel:us-48201:0012460000001",
+          "situs_address": "1111 LOUISIANA ST, HOUSTON TX 77002",
+          "tier": "neighborhood",
+          "value": 177908648,
+          "improvement_area_sf": 1419050,
+          "value_per_sf": 125.37,
+          "year_built": 1972,
+          "neighborhood_code": "5900.00",
+          "fact_id": "flf_vfkc43c1ae95t3pf09sjq4n6"
+        },
+        {
+          "id": "fl:parcel:us-48201:0012490000001",
+          "situs_address": "1111 BAGBY ST, HOUSTON TX 77002",
+          "tier": "neighborhood",
+          "value": 212895732,
+          "improvement_area_sf": 2324097,
+          "value_per_sf": 91.6,
+          "year_built": 1986,
+          "neighborhood_code": "5900.00",
+          "fact_id": "flf_8nq1vad6p9tq6gb6wydvranx"
+        },
+        {
+          "id": "fl:parcel:us-48201:0012470000001",
+          "situs_address": "1100 LOUISIANA ST, SOUTH HOUSTON TX 77587",
+          "tier": "neighborhood",
+          "value": 212438677,
+          "improvement_area_sf": 1376357,
+          "value_per_sf": 154.35,
+          "year_built": 1980,
+          "neighborhood_code": "5900.00",
+          "fact_id": "flf_x73smkaf3fqyvxv2j6psgkzt"
+        },
+        {
+          "id": "fl:parcel:us-48201:0010680000006",
+          "situs_address": "601 TRAVIS ST, HOUSTON TX 77002",
+          "tier": "neighborhood",
+          "value": 65796092,
+          "improvement_area_sf": 1288826,
+          "value_per_sf": 51.05,
+          "year_built": 1982,
+          "neighborhood_code": "5900.00",
+          "fact_id": "flf_aymab0mam7z7rx7c8j6psmwa"
+        },
+        {
+          "id": "fl:parcel:us-48201:0011350000001",
+          "situs_address": "1001 FANNIN ST, HOUSTON TX 77002",
+          "tier": "zip",
+          "value": 169816682,
+          "improvement_area_sf": 1693710,
+          "value_per_sf": 100.26,
+          "year_built": 1980,
+          "neighborhood_code": "5900.02",
+          "fact_id": "flf_jvr4vr8a9nx72vchhbn7qs4r"
+        },
+        {
+          "id": "fl:parcel:us-48201:1035350000018",
+          "situs_address": "333 CLAY ST, HOUSTON TX 77002",
+          "tier": "zip",
+          "value": 187443908,
+          "improvement_area_sf": 1529898,
+          "value_per_sf": 122.52,
+          "year_built": 1980,
+          "neighborhood_code": "5900.01",
+          "fact_id": "flf_v1emh438q8hkegzsxd9y50ac"
+        }
+      ],
+      "calc_args": {
+        "tax_year": 2026,
+        "subject": {
+          "id": "fl:parcel:us-48201:0011440000001",
+          "label": "1000 LOUISIANA ST, HOUSTON TX 77002",
+          "county_fips": "201",
+          "value": 303755215,
+          "value_basis": "appraised",
+          "improvement_area_sf": 1871418,
+          "land_area_sf": 62500
+        },
+        "comparables": [
+          {
+            "id": "fl:parcel:us-48201:0010830000001",
+            "label": "711 LOUISIANA ST, HOUSTON TX 77002",
+            "county_fips": "201",
+            "value": 196316575,
+            "value_basis": "appraised",
+            "improvement_area_sf": 1657484,
+            "land_area_sf": 62500,
+            "citation": {
+              "fact_id": "flf_2ss7msf2313014mvgb0mc4fk",
+              "document_id": "fl:document:sha256-b74be6977d4f078d0302652e86533885326deb4daa220f0e63dc05f548611506",
+              "locator": "real_acct.txt acct 0010830000001",
+              "as_of": "2026-11-01"
+            }
+          },
+          {
+            "id": "fl:parcel:us-48201:0010670000001",
+            "label": "600 TRAVIS ST, HOUSTON TX 77002",
+            "county_fips": "201",
+            "value": 312114940,
+            "value_basis": "appraised",
+            "improvement_area_sf": 2171696,
+            "land_area_sf": 63378,
+            "citation": {
+              "fact_id": "flf_5zbf3b33ymzm4k0xhqyktgv9",
+              "document_id": "fl:document:sha256-b74be6977d4f078d0302652e86533885326deb4daa220f0e63dc05f548611506",
+              "locator": "real_acct.txt acct 0010670000001",
+              "as_of": "2026-11-01"
+            }
+          },
+          {
+            "id": "fl:parcel:us-48201:0011450000001",
+            "label": "900 LOUISIANA ST, HOUSTON TX 77002",
+            "county_fips": "201",
+            "value": 187092171,
+            "value_basis": "appraised",
+            "improvement_area_sf": 1436400,
+            "land_area_sf": 62500,
+            "citation": {
+              "fact_id": "flf_4ws7spq2hxg662bpqxfpjgsv",
+              "document_id": "fl:document:sha256-b74be6977d4f078d0302652e86533885326deb4daa220f0e63dc05f548611506",
+              "locator": "real_acct.txt acct 0011450000001",
+              "as_of": "2026-11-01"
+            }
+          },
+          {
+            "id": "fl:parcel:us-48201:0010840000015",
+            "label": "700 LOUISIANA ST, HOUSTON TX 77002",
+            "county_fips": "201",
+            "value": 214388305,
+            "value_basis": "appraised",
+            "improvement_area_sf": 1422695,
+            "land_area_sf": 63500,
+            "citation": {
+              "fact_id": "flf_nnwg5334w80y84n3hmeej1e0",
+              "document_id": "fl:document:sha256-b74be6977d4f078d0302652e86533885326deb4daa220f0e63dc05f548611506",
+              "locator": "real_acct.txt acct 0010840000015",
+              "as_of": "2026-11-01"
+            }
+          },
+          {
+            "id": "fl:parcel:us-48201:0012460000001",
+            "label": "1111 LOUISIANA ST, HOUSTON TX 77002",
+            "county_fips": "201",
+            "value": 177908648,
+            "value_basis": "appraised",
+            "improvement_area_sf": 1419050,
+            "land_area_sf": 62500,
+            "citation": {
+              "fact_id": "flf_vfkc43c1ae95t3pf09sjq4n6",
+              "document_id": "fl:document:sha256-b74be6977d4f078d0302652e86533885326deb4daa220f0e63dc05f548611506",
+              "locator": "real_acct.txt acct 0012460000001",
+              "as_of": "2026-11-01"
+            }
+          },
+          {
+            "id": "fl:parcel:us-48201:0012490000001",
+            "label": "1111 BAGBY ST, HOUSTON TX 77002",
+            "county_fips": "201",
+            "value": 212895732,
+            "value_basis": "appraised",
+            "improvement_area_sf": 2324097,
+            "land_area_sf": 62500,
+            "citation": {
+              "fact_id": "flf_8nq1vad6p9tq6gb6wydvranx",
+              "document_id": "fl:document:sha256-b74be6977d4f078d0302652e86533885326deb4daa220f0e63dc05f548611506",
+              "locator": "real_acct.txt acct 0012490000001",
+              "as_of": "2026-11-01"
+            }
+          },
+          {
+            "id": "fl:parcel:us-48201:0012470000001",
+            "label": "1100 LOUISIANA ST, SOUTH HOUSTON TX 77587",
+            "county_fips": "201",
+            "value": 212438677,
+            "value_basis": "appraised",
+            "improvement_area_sf": 1376357,
+            "land_area_sf": 62500,
+            "citation": {
+              "fact_id": "flf_x73smkaf3fqyvxv2j6psgkzt",
+              "document_id": "fl:document:sha256-b74be6977d4f078d0302652e86533885326deb4daa220f0e63dc05f548611506",
+              "locator": "real_acct.txt acct 0012470000001",
+              "as_of": "2026-11-01"
+            }
+          },
+          {
+            "id": "fl:parcel:us-48201:0010680000006",
+            "label": "601 TRAVIS ST, HOUSTON TX 77002",
+            "county_fips": "201",
+            "value": 65796092,
+            "value_basis": "appraised",
+            "improvement_area_sf": 1288826,
+            "land_area_sf": 22281,
+            "citation": {
+              "fact_id": "flf_aymab0mam7z7rx7c8j6psmwa",
+              "document_id": "fl:document:sha256-b74be6977d4f078d0302652e86533885326deb4daa220f0e63dc05f548611506",
+              "locator": "real_acct.txt acct 0010680000006",
+              "as_of": "2026-11-01"
+            }
+          },
+          {
+            "id": "fl:parcel:us-48201:0011350000001",
+            "label": "1001 FANNIN ST, HOUSTON TX 77002",
+            "county_fips": "201",
+            "value": 169816682,
+            "value_basis": "appraised",
+            "improvement_area_sf": 1693710,
+            "land_area_sf": 62500,
+            "citation": {
+              "fact_id": "flf_jvr4vr8a9nx72vchhbn7qs4r",
+              "document_id": "fl:document:sha256-b74be6977d4f078d0302652e86533885326deb4daa220f0e63dc05f548611506",
+              "locator": "real_acct.txt acct 0011350000001",
+              "as_of": "2026-11-01"
+            }
+          },
+          {
+            "id": "fl:parcel:us-48201:1035350000018",
+            "label": "333 CLAY ST, HOUSTON TX 77002",
+            "county_fips": "201",
+            "value": 187443908,
+            "value_basis": "appraised",
+            "improvement_area_sf": 1529898,
+            "land_area_sf": 119202,
+            "citation": {
+              "fact_id": "flf_v1emh438q8hkegzsxd9y50ac",
+              "document_id": "fl:document:sha256-b74be6977d4f078d0302652e86533885326deb4daa220f0e63dc05f548611506",
+              "locator": "real_acct.txt acct 1035350000018",
+              "as_of": "2026-11-01"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "county": "dallas",
+      "urn": "fl:parcel:us-48113:42196540010020000",
+      "label": "1130 E ARAPAHO RD, RICHARDSON TX 750812323",
+      "status": "current",
+      "parcel_facts": [
+        {
+          "fact_id": "flf_sv8xh18vnxnz06xszvbs0yn1",
+          "predicate": "parcel.apn",
+          "value": "42196540010020000",
+          "unit": null,
+          "as_of": "2026-10-12",
+          "document_id": "fl:document:sha256-b5d6913e4e69fb8ee36c1f8307d0fc893778213e05842dd58244822e36df0c42",
+          "locator": "ACCOUNT_INFO.CSV account 42196540010020000"
+        },
+        {
+          "fact_id": "flf_p08w6t545f6wmmfcbtrypxt8",
+          "predicate": "parcel.building_class",
+          "value": "OFFICE BUILDING",
+          "unit": null,
+          "as_of": "2026-10-12",
+          "document_id": "fl:document:sha256-b5d6913e4e69fb8ee36c1f8307d0fc893778213e05842dd58244822e36df0c42",
+          "locator": "ACCOUNT_INFO.CSV account 42196540010020000"
+        },
+        {
+          "fact_id": "flf_7bj7drptqsacw64ynj4bf2za",
+          "predicate": "parcel.improvement_area_sf",
+          "value": 117078,
+          "unit": "sf",
+          "as_of": "2026-10-12",
+          "document_id": "fl:document:sha256-b5d6913e4e69fb8ee36c1f8307d0fc893778213e05842dd58244822e36df0c42",
+          "locator": "ACCOUNT_INFO.CSV account 42196540010020000"
+        },
+        {
+          "fact_id": "flf_etjy056905d04r2yp38z6w4v",
+          "predicate": "parcel.land_area_sf",
+          "value": 183566,
+          "unit": "sf",
+          "as_of": "2026-10-12",
+          "document_id": "fl:document:sha256-b5d6913e4e69fb8ee36c1f8307d0fc893778213e05842dd58244822e36df0c42",
+          "locator": "ACCOUNT_INFO.CSV account 42196540010020000"
+        },
+        {
+          "fact_id": "flf_x9yng263px2hykzxjz16r182",
+          "predicate": "parcel.market_value",
+          "value": 7750000,
+          "unit": "USD",
+          "as_of": "2026-10-12",
+          "document_id": "fl:document:sha256-b5d6913e4e69fb8ee36c1f8307d0fc893778213e05842dd58244822e36df0c42",
+          "locator": "ACCOUNT_INFO.CSV account 42196540010020000"
+        },
+        {
+          "fact_id": "flf_c54g33c1wtth7c3npj2tprs5",
+          "predicate": "parcel.neighborhood_code",
+          "value": "211400",
+          "unit": null,
+          "as_of": "2026-10-12",
+          "document_id": "fl:document:sha256-b5d6913e4e69fb8ee36c1f8307d0fc893778213e05842dd58244822e36df0c42",
+          "locator": "ACCOUNT_INFO.CSV account 42196540010020000"
+        },
+        {
+          "fact_id": "flf_zd3s4n7g6e0egmm93xft1r6f",
+          "predicate": "parcel.situs_address",
+          "value": "1130 E ARAPAHO RD, RICHARDSON TX 750812323",
+          "unit": null,
+          "as_of": "2026-10-12",
+          "document_id": "fl:document:sha256-b5d6913e4e69fb8ee36c1f8307d0fc893778213e05842dd58244822e36df0c42",
+          "locator": "ACCOUNT_INFO.CSV account 42196540010020000"
+        },
+        {
+          "fact_id": "flf_t5etgvkmqhzpz1w47gvfgddm",
+          "predicate": "parcel.state_property_category",
+          "value": "F10",
+          "unit": null,
+          "as_of": "2026-10-12",
+          "document_id": "fl:document:sha256-b5d6913e4e69fb8ee36c1f8307d0fc893778213e05842dd58244822e36df0c42",
+          "locator": "ACCOUNT_INFO.CSV account 42196540010020000"
+        },
+        {
+          "fact_id": "flf_t0pdcqsv80bd8ypssb2x56hf",
+          "predicate": "parcel.tax_year",
+          "value": 2026,
+          "unit": null,
+          "as_of": "2026-10-12",
+          "document_id": "fl:document:sha256-b5d6913e4e69fb8ee36c1f8307d0fc893778213e05842dd58244822e36df0c42",
+          "locator": "ACCOUNT_INFO.CSV account 42196540010020000"
+        },
+        {
+          "fact_id": "flf_yry503fv774se9e15ts53hd7",
+          "predicate": "parcel.year_built",
+          "value": 1985,
+          "unit": null,
+          "as_of": "2026-10-12",
+          "document_id": "fl:document:sha256-b5d6913e4e69fb8ee36c1f8307d0fc893778213e05842dd58244822e36df0c42",
+          "locator": "ACCOUNT_INFO.CSV account 42196540010020000"
+        }
+      ],
+      "documents": {
+        "fl:document:sha256-b5d6913e4e69fb8ee36c1f8307d0fc893778213e05842dd58244822e36df0c42": {
+          "title": "Dallas Central Appraisal District: Appraisal data export (DCAD<year>_CURRENT.ZIP) (ViewPDFs.aspx)",
+          "uri": "https://www.dallascad.org/DataProducts.aspx",
+          "retrieved_at": "2026-11-02T23:15:54+00:00",
+          "license": "Public record (Tex. Gov't Code ch. 552); no license or terms of use stated",
+          "attribution": "Dallas Central Appraisal District",
+          "ai_use": "unknown",
+          "redistribution": "unknown"
+        }
+      },
+      "candidates_call": {
+        "urn": "fl:parcel:us-48113:42196540010020000"
+      },
+      "selection_rule": {
+        "tax_year": 2026,
+        "state_property_category": "F10",
+        "area_band": {
+          "share": 0.35,
+          "min_sf": 76100.7,
+          "max_sf": 158055.30000000002
+        },
+        "year_band": {
+          "years": 15,
+          "min": 1970,
+          "max": 2000
+        },
+        "min_matches": 10,
+        "limit": 50,
+        "tiers": [
+          {
+            "tier": "neighborhood",
+            "key": "211400",
+            "applied": true,
+            "matched": 20,
+            "returned": 20
+          },
+          {
+            "tier": "zip",
+            "key": "75081",
+            "applied": true,
+            "matched": 39,
+            "returned": 30
+          },
+          {
+            "tier": "county",
+            "key": "113",
+            "applied": false,
+            "matched": 1022,
+            "returned": 0
+          }
+        ],
+        "widened_to_county": false,
+        "matched": 59,
+        "returned": 50,
+        "notice": "calc_args is the candidate list under FactLot's default rule (selection_rule) in calc_tx_unequal_appraisal's input shape, not a selection of comparables by FactLot: the caller reviews it, may remove, add or edit comparables, and adds any adjustments, each with a reason, before calling calc_tx_unequal_appraisal (which needs at least 3 comparables). The order of operations is registry_tx_equity_candidates, review, calc_tx_unequal_appraisal with the reviewed calc_args, then report_create."
+      },
+      "selection_tiers": [
+        {
+          "tier": "neighborhood",
+          "key": "211400",
+          "applied": true,
+          "matched": 20,
+          "returned": 20
+        },
+        {
+          "tier": "zip",
+          "key": "75081",
+          "applied": true,
+          "matched": 39,
+          "returned": 30
+        },
+        {
+          "tier": "county",
+          "key": "113",
+          "applied": false,
+          "matched": 1022,
+          "returned": 0
+        }
+      ],
+      "candidates_total_returned": 50,
+      "candidates_notice": "Candidates only: a person decides which, if any, to use as comparables. The selection rule is FactLot's default, not a legal standard of comparability. For evidence calculations only: FactLot does not represent property owners, file protests, or advise whether to protest or what value to claim. Owner names and mailing addresses are never returned. Not an appraisal or an opinion of value (Tex. Occ. Code §1103.003(1)); not legal or tax advice and not a substitute for the advice of an attorney. FactLot is software, not a property tax consultant under Texas Occupations Code chapter 1152; it does not prepare, file or advise on protests.",
+      "candidates": [
+        {
+          "id": "fl:parcel:us-48113:421243300b04b0000",
+          "situs_address": "2200 N GREENVILLE AVE, RICHARDSON TX",
+          "tier": "neighborhood",
+          "value": 5586340,
+          "improvement_area_sf": 117746,
+          "value_per_sf": 47.44,
+          "year_built": 1984,
+          "neighborhood_code": "211400",
+          "fact_id": "flf_kxjqb6aa95w7rzxvgh2f1hpp"
+        },
+        {
+          "id": "fl:parcel:us-48113:42048680010010000",
+          "situs_address": "1701 N COLLINS BLVD, RICHARDSON TX 750803564",
+          "tier": "neighborhood",
+          "value": 6200000,
+          "improvement_area_sf": 115818,
+          "value_per_sf": 53.53,
+          "year_built": 1985,
+          "neighborhood_code": "211400",
+          "fact_id": "flf_efjnx9zx8c2xz4tjdd0rw7hs"
+        },
+        {
+          "id": "fl:parcel:us-48113:420190000a07a0000",
+          "situs_address": "1201 E CAMPBELL RD, RICHARDSON TX 750811936",
+          "tier": "neighborhood",
+          "value": 14338000,
+          "improvement_area_sf": 113891,
+          "value_per_sf": 125.89,
+          "year_built": 1997,
+          "neighborhood_code": "211400",
+          "fact_id": "flf_fhzvzc3pg1pw1kkjhq0e4nn6"
+        },
+        {
+          "id": "fl:parcel:us-48113:422446100a03a0000",
+          "situs_address": "275 W CAMPBELL RD, RICHARDSON TX",
+          "tier": "neighborhood",
+          "value": 7100000,
+          "improvement_area_sf": 122893,
+          "value_per_sf": 57.77,
+          "year_built": 1982,
+          "neighborhood_code": "211400",
+          "fact_id": "flf_tjqtnsk1s6fc769yfkcvxt6s"
+        },
+        {
+          "id": "fl:parcel:us-48113:42051500080090000",
+          "situs_address": "1301 E ARAPAHO RD, RICHARDSON TX 750812497",
+          "tier": "neighborhood",
+          "value": 4600000,
+          "improvement_area_sf": 127660,
+          "value_per_sf": 36.03,
+          "year_built": 1987,
+          "neighborhood_code": "211400",
+          "fact_id": "flf_p7k2wh45f4pn4xwvg6wg4r2t"
+        },
+        {
+          "id": "fl:parcel:us-48113:42051500050100100",
+          "situs_address": "1101 E ARAPAHO RD, RICHARDSON TX 750812352",
+          "tier": "neighborhood",
+          "value": 7329080,
+          "improvement_area_sf": 106304,
+          "value_per_sf": 68.94,
+          "year_built": 1979,
+          "neighborhood_code": "211400",
+          "fact_id": "flf_48jw4bf6x8gxjb0fcrgpwt9t"
+        },
+        {
+          "id": "fl:parcel:us-48113:422684800a0010000",
+          "situs_address": "2323 N CENTRAL EXPY, RICHARDSON TX 75080",
+          "tier": "neighborhood",
+          "value": 16612690,
+          "improvement_area_sf": 130000,
+          "value_per_sf": 127.79,
+          "year_built": 1985,
+          "neighborhood_code": "211400",
+          "fact_id": "flf_jtdnkqafdpdgvp0cqkbrt4dy"
+        },
+        {
+          "id": "fl:parcel:us-48113:42074620000010000",
+          "situs_address": "2201 N CENTRAL EXPY, RICHARDSON TX 750802754",
+          "tier": "neighborhood",
+          "value": 7641020,
+          "improvement_area_sf": 103916,
+          "value_per_sf": 73.53,
+          "year_built": 1981,
+          "neighborhood_code": "211400",
+          "fact_id": "flf_w1p4n4x8mgpc0tns7n8s1kzx"
+        },
+        {
+          "id": "fl:parcel:us-48113:420766800602b0000",
+          "situs_address": "2301 N GREENVILLE AVE, RICHARDSON TX 750824437",
+          "tier": "neighborhood",
+          "value": 10023220,
+          "improvement_area_sf": 100000,
+          "value_per_sf": 100.23,
+          "year_built": 1998,
+          "neighborhood_code": "211400",
+          "fact_id": "flf_vy18zms8je4pe1yx4yvnv3sz"
+        },
+        {
+          "id": "fl:parcel:us-48113:420415500b08a0000",
+          "situs_address": "800 E CAMPBELL RD, RICHARDSON TX 75081",
+          "tier": "neighborhood",
+          "value": 14000000,
+          "improvement_area_sf": 141438,
+          "value_per_sf": 98.98,
+          "year_built": 1982,
+          "neighborhood_code": "211400",
+          "fact_id": "flf_6sewpkw2rfnrq004p384n90g"
+        }
+      ],
+      "calc_args": {
+        "tax_year": 2026,
+        "subject": {
+          "id": "fl:parcel:us-48113:42196540010020000",
+          "label": "1130 E ARAPAHO RD, RICHARDSON TX 750812323",
+          "county_fips": "113",
+          "value": 7750000,
+          "value_basis": "market",
+          "improvement_area_sf": 117078,
+          "land_area_sf": 183566
+        },
+        "comparables": [
+          {
+            "id": "fl:parcel:us-48113:421243300b04b0000",
+            "label": "2200 N GREENVILLE AVE, RICHARDSON TX",
+            "county_fips": "113",
+            "value": 5586340,
+            "value_basis": "market",
+            "improvement_area_sf": 117746,
+            "land_area_sf": 250164,
+            "citation": {
+              "fact_id": "flf_kxjqb6aa95w7rzxvgh2f1hpp",
+              "document_id": "fl:document:sha256-b5d6913e4e69fb8ee36c1f8307d0fc893778213e05842dd58244822e36df0c42",
+              "locator": "ACCOUNT_INFO.CSV account 421243300B04B0000",
+              "as_of": "2026-10-12"
+            }
+          },
+          {
+            "id": "fl:parcel:us-48113:42048680010010000",
+            "label": "1701 N COLLINS BLVD, RICHARDSON TX 750803564",
+            "county_fips": "113",
+            "value": 6200000,
+            "value_basis": "market",
+            "improvement_area_sf": 115818,
+            "land_area_sf": 211963,
+            "citation": {
+              "fact_id": "flf_efjnx9zx8c2xz4tjdd0rw7hs",
+              "document_id": "fl:document:sha256-b5d6913e4e69fb8ee36c1f8307d0fc893778213e05842dd58244822e36df0c42",
+              "locator": "ACCOUNT_INFO.CSV account 42048680010010000",
+              "as_of": "2026-10-12"
+            }
+          },
+          {
+            "id": "fl:parcel:us-48113:420190000a07a0000",
+            "label": "1201 E CAMPBELL RD, RICHARDSON TX 750811936",
+            "county_fips": "113",
+            "value": 14338000,
+            "value_basis": "market",
+            "improvement_area_sf": 113891,
+            "land_area_sf": 222156,
+            "citation": {
+              "fact_id": "flf_fhzvzc3pg1pw1kkjhq0e4nn6",
+              "document_id": "fl:document:sha256-b5d6913e4e69fb8ee36c1f8307d0fc893778213e05842dd58244822e36df0c42",
+              "locator": "ACCOUNT_INFO.CSV account 420190000A07A0000",
+              "as_of": "2026-10-12"
+            }
+          },
+          {
+            "id": "fl:parcel:us-48113:422446100a03a0000",
+            "label": "275 W CAMPBELL RD, RICHARDSON TX",
+            "county_fips": "113",
+            "value": 7100000,
+            "value_basis": "market",
+            "improvement_area_sf": 122893,
+            "land_area_sf": 189730,
+            "citation": {
+              "fact_id": "flf_tjqtnsk1s6fc769yfkcvxt6s",
+              "document_id": "fl:document:sha256-b5d6913e4e69fb8ee36c1f8307d0fc893778213e05842dd58244822e36df0c42",
+              "locator": "ACCOUNT_INFO.CSV account 422446100A03A0000",
+              "as_of": "2026-10-12"
+            }
+          },
+          {
+            "id": "fl:parcel:us-48113:42051500080090000",
+            "label": "1301 E ARAPAHO RD, RICHARDSON TX 750812497",
+            "county_fips": "113",
+            "value": 4600000,
+            "value_basis": "market",
+            "improvement_area_sf": 127660,
+            "land_area_sf": 278457,
+            "citation": {
+              "fact_id": "flf_p7k2wh45f4pn4xwvg6wg4r2t",
+              "document_id": "fl:document:sha256-b5d6913e4e69fb8ee36c1f8307d0fc893778213e05842dd58244822e36df0c42",
+              "locator": "ACCOUNT_INFO.CSV account 42051500080090000",
+              "as_of": "2026-10-12"
+            }
+          },
+          {
+            "id": "fl:parcel:us-48113:42051500050100100",
+            "label": "1101 E ARAPAHO RD, RICHARDSON TX 750812352",
+            "county_fips": "113",
+            "value": 7329080,
+            "value_basis": "market",
+            "improvement_area_sf": 106304,
+            "land_area_sf": 257832,
+            "citation": {
+              "fact_id": "flf_48jw4bf6x8gxjb0fcrgpwt9t",
+              "document_id": "fl:document:sha256-b5d6913e4e69fb8ee36c1f8307d0fc893778213e05842dd58244822e36df0c42",
+              "locator": "ACCOUNT_INFO.CSV account 42051500050100100",
+              "as_of": "2026-10-12"
+            }
+          },
+          {
+            "id": "fl:parcel:us-48113:422684800a0010000",
+            "label": "2323 N CENTRAL EXPY, RICHARDSON TX 75080",
+            "county_fips": "113",
+            "value": 16612690,
+            "value_basis": "market",
+            "improvement_area_sf": 130000,
+            "land_area_sf": 780761,
+            "citation": {
+              "fact_id": "flf_jtdnkqafdpdgvp0cqkbrt4dy",
+              "document_id": "fl:document:sha256-b5d6913e4e69fb8ee36c1f8307d0fc893778213e05842dd58244822e36df0c42",
+              "locator": "ACCOUNT_INFO.CSV account 422684800A0010000",
+              "as_of": "2026-10-12"
+            }
+          },
+          {
+            "id": "fl:parcel:us-48113:42074620000010000",
+            "label": "2201 N CENTRAL EXPY, RICHARDSON TX 750802754",
+            "county_fips": "113",
+            "value": 7641020,
+            "value_basis": "market",
+            "improvement_area_sf": 103916,
+            "land_area_sf": 309541,
+            "citation": {
+              "fact_id": "flf_w1p4n4x8mgpc0tns7n8s1kzx",
+              "document_id": "fl:document:sha256-b5d6913e4e69fb8ee36c1f8307d0fc893778213e05842dd58244822e36df0c42",
+              "locator": "ACCOUNT_INFO.CSV account 42074620000010000",
+              "as_of": "2026-10-12"
+            }
+          },
+          {
+            "id": "fl:parcel:us-48113:420766800602b0000",
+            "label": "2301 N GREENVILLE AVE, RICHARDSON TX 750824437",
+            "county_fips": "113",
+            "value": 10023220,
+            "value_basis": "market",
+            "improvement_area_sf": 100000,
+            "land_area_sf": 246418,
+            "citation": {
+              "fact_id": "flf_vy18zms8je4pe1yx4yvnv3sz",
+              "document_id": "fl:document:sha256-b5d6913e4e69fb8ee36c1f8307d0fc893778213e05842dd58244822e36df0c42",
+              "locator": "ACCOUNT_INFO.CSV account 420766800602B0000",
+              "as_of": "2026-10-12"
+            }
+          },
+          {
+            "id": "fl:parcel:us-48113:420415500b08a0000",
+            "label": "800 E CAMPBELL RD, RICHARDSON TX 75081",
+            "county_fips": "113",
+            "value": 14000000,
+            "value_basis": "market",
+            "improvement_area_sf": 141438,
+            "land_area_sf": 310757,
+            "citation": {
+              "fact_id": "flf_6sewpkw2rfnrq004p384n90g",
+              "document_id": "fl:document:sha256-b5d6913e4e69fb8ee36c1f8307d0fc893778213e05842dd58244822e36df0c42",
+              "locator": "ACCOUNT_INFO.CSV account 420415500B08A0000",
+              "as_of": "2026-10-12"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

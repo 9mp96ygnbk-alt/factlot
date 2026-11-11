@@ -1,0 +1,87 @@
+<p class="lede">
+  One {{COUNTY}} County commercial parcel, shown end to end as an agent would
+  receive it: the parcel's cited roll facts, the candidates returned under
+  FactLot's default rule for a person to review, and the input to the
+  unequal-appraisal calculator. The output below was produced by the tools
+  themselves from the hosted registry file and is stored with this site.
+</p>
+<p>
+  FactLot is software. It is not a property tax consultant under Texas
+  Occupations Code chapter 1152, does not prepare, file or advise on protests,
+  and does not represent owners before an appraisal review board. If you provide
+  property tax services to others for compensation, your own registration
+  obligations apply.
+</p>
+<p>
+  The parcel is shown by its roll facts only. FactLot's ownership facts are not
+  part of this protest workflow and are not shown.
+</p>
+
+<h2 id="parcel">1. The parcel: <code>registry_get</code></h2>
+<p>
+  Parcel <code>{{URN}}</code>. Only <code>parcel.*</code> facts are shown. Each
+  cites the roll file and the record it was read from.
+</p>
+{{FACTS}}
+<h3>Sources of these facts</h3>
+{{SOURCES}}
+
+<h2 id="candidates">
+  2. The candidates: <code>registry_tx_equity_candidates</code>
+</h2>
+<p>
+  Candidates under FactLot's default rule, for a person to review. The rule is a
+  design choice, not a legal standard of comparability. The tool returned
+  {{CANDIDATE_COUNT}} candidates; the first ten are shown, in the order
+  returned. This is the <code>selection_rule</code> it returned:
+</p>
+{{RULE}}
+<h3>The first ten candidates</h3>
+{{CANDIDATES}}
+
+<h2 id="arithmetic">
+  3. The arithmetic: <code>calc_tx_unequal_appraisal</code>
+</h2>
+<p>
+  This is the input an agent would pass to
+  <code>calc_tx_unequal_appraisal</code> — the subject and the candidates above,
+  in the tool's input shape, as
+  <code>registry_tx_equity_candidates</code> returns it in
+  <code>calc_args</code> — after the user reviews, removes or adds comparables
+  and supplies adjustments, each with a reason. It is shown as returned, with no
+  adjustments.
+</p>
+{{CALC_ARGS}}
+<p>
+  FactLot does not show a result for a real property here, because the
+  comparables and adjustments are the user's choice. To see the arithmetic on
+  invented numbers, read the calculator's
+  <a
+    href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/spec/vectors/calc/tx_unequal_appraisal.json"
+    >documented synthetic test cases</a
+  >.
+</p>
+
+<h2 id="limits">What this is and is not</h2>
+<p>
+  These outputs are not an appraisal or an opinion of value (Occupations Code
+  §1103.003(1)), not legal or tax advice, and not a substitute for the advice of
+  an attorney. They do not say whether to protest, what value to put forward, or
+  how a hearing may go. FactLot does not file protests, sign agent designations
+  under §1.111, or contact appraisal districts. Filing is done through the
+  appraisal district's own process, by the owner or by a property tax consultant
+  registered with the Texas Department of Licensing and Regulation, or an
+  attorney. See the <a href="/calculators/">calculators</a>.
+</p>
+
+<h2 id="more">More</h2>
+<ul>
+  <li><a href="/texas/{{SLUG}}/">{{COUNTY}} County: what is hosted</a></li>
+  <li><a href="/texas/">Texas hub</a></li>
+  <li>
+    <a href="/texas/property-tax-protest-deadline/"
+      >Texas property tax protest deadline</a
+    >
+  </li>
+  <li><a href="/pricing/">Pricing and registry lookups</a></li>
+</ul>
