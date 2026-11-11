@@ -316,9 +316,10 @@
   </li>
   <li>
     The API does not send a <code>Strict-Transport-Security</code> header, and
-    the static site sends no <code>Content-Security-Policy</code> header (it
-    runs no scripts). The plain-HTTP redirect above is what protects first
-    visits.
+    the static site sends no <code>Content-Security-Policy</code> header (its
+    only script is the same-origin file behind the Try a lookup page, which
+    writes API answers as text, never as HTML). The plain-HTTP redirect above is
+    what protects first visits.
   </li>
   <li>
     Enterprise customers can ask about a signed data-processing agreement and
