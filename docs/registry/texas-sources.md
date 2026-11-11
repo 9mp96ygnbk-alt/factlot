@@ -95,6 +95,13 @@ include later corrections, and `hcad.org` robots.txt now sets `Crawl-Delay: 3`. 
 2005 to 2021 and Collin 2020 to 2021 (`hkzz-rrn8`, `cwex-zmku`); they are not configured. Dallas
 `ViewPDFs.aspx` sends no Last-Modified and ignores Range requests.
 
+Loading a prior-year file into a registry is history only: `python -m factlot.registry.adapters.tx_harris
+Real_acct_owner.zip registry.db --as-of <date> --history-only <year>` (and the same flag on `tx_dallas`). It reads
+only the tax year and the values, adds `parcel.tax_year`, `parcel.market_value` and `parcel.appraised_value` facts
+under the `<id>-<year>` source to parcels the registry already holds, and writes no other fact, parcel, owner,
+address, link or coverage row, so an older roll can never change or outrank the current record
+(`Registry.ingest_value_history`). A row whose year is not the one named is refused.
+
 Run one year with the workflow (unverified sources need the collector's `--include-unverified`
 flag, which the workflow does not pass, so they stay skipped until flipped):
 

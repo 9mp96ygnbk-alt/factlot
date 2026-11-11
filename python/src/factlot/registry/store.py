@@ -191,6 +191,21 @@ class ParcelFacts:
 
 
 @dataclass
+class ParcelValues:
+    """One earlier tax year's values for a parcel the registry already holds (``Registry.ingest_value_history``).
+
+    Carries nothing but the figures of the value history: no owner, address, area or building facts.
+    """
+
+    county_fips: str
+    apn: str
+    tax_year: int | None
+    market_value: float | None = None
+    appraised_value: float | None = None
+    locator: str | None = None
+
+
+@dataclass
 class BuildingFacts:
     """Facts about a building subject, from a source that is not an appraisal roll (SEC CMBS loan data).
 
@@ -829,6 +844,54 @@ class Registry:
             stats.retired = self._retire_absent(snap)
         self.db.commit()
         return stats
+
+    def ingest_value_history(self, records: Iterable[ParcelValues], snap: Snapshot, *, state_fips: str) -> IngestStats:
+        """Add one earlier tax year's values to parcels the registry already holds, and nothing else.
+
+        This is the safe path for a prior-year roll. It writes only ``parcel.tax_year``, ``parcel.market_value``
+        and ``parcel.appraised_value`` facts, each citing ``snap``, and it never creates a subject, a crosswalk
+        or search-index row, a relationship, or an owner, address, area or building fact, so an older roll cannot
+        change the current record. It writes no ``coverage`` row either: a fact is current only through
+        coverage (``current_facts``), so these stay history, and ``value_history`` reads them from ``facts``.
+        A record whose parcel is not a registry parcel is counted in ``skipped_out_of_scope`` and dropped;
+        one with no value is counted in ``skipped_invalid``. Re-ingesting a document makes the registry hold
+        what the records yield now.
+        """
+        stats = IngestStats()
+        replaced: set[str] = set()
+        self._tracking = True
+        try:
+            for r in records:
+                stats.seen += 1
+                try:
+                    urn = self.parcel_urn(state_fips, r.county_fips, r.apn)
+                except FactLotIdError as e:
+                    stats.skipped_invalid += 1
+                    stats.errors.append(f"{r.locator or r.apn}: {e}")
+                    continue
+                if not self.db.execute("SELECT 1 FROM subjects WHERE urn = ? AND kind = 'parcel'", (urn,)).fetchone():
+                    stats.skipped_out_of_scope += 1
+                    continue
+                if r.market_value is None and r.appraised_value is None:
+                    stats.skipped_invalid += 1
+                    continue
+                stats.kept += 1
+                old_ids: set[str] | None = None
+                if urn not in replaced:
+                    replaced.add(urn)
+                    old_ids = {row[0] for row in self.db.execute(
+                        "SELECT fact_id FROM facts WHERE subject = ? AND document_id = ?", (urn, snap.document_id))}
+                    self._written = set()
+                loc = r.locator or f"apn {r.apn}"
+                n = self._fact(urn, "parcel.tax_year", r.tax_year, snap, locator=loc)
+                n += self._fact(urn, "parcel.market_value", r.market_value, snap, unit="USD", locator=loc)
+                n += self._fact(urn, "parcel.appraised_value", r.appraised_value, snap, unit="USD", locator=loc)
+                stats.facts_written += n
+                self._drop_stale(urn, snap, old_ids)
+            self.db.commit()
+            return stats
+        finally:
+            self._tracking = False
 
     def ingest_parcel_facts(self, records: Iterable[ParcelFacts], snap: Snapshot, *, state_fips: str,
                             full_roll: bool = False) -> IngestStats:

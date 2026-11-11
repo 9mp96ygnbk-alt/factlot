@@ -45,7 +45,7 @@ from dataclasses import asdict
 from pathlib import Path
 
 from ..normalize import COMMERCIAL_CATEGORIES, is_commercial
-from ..store import IngestStats, ParcelFacts, ParcelRecord, Registry, Source, roll_source
+from ..store import IngestStats, ParcelFacts, ParcelRecord, ParcelValues, Registry, Source, roll_source
 
 STATE_FIPS = "48"
 COUNTY_FIPS = "201"
@@ -187,6 +187,25 @@ def read_roll(path: str | Path, *, categories: Iterable[str] | None = COMMERCIAL
         )
 
 
+def read_value_history(path: str | Path, accounts: Iterable[str]) -> Iterator[ParcelValues]:
+    """Yield each listed account's tax year and values from ``real_acct.txt``, and nothing else.
+
+    For a prior-year roll (``Registry.ingest_value_history``): ``owners.txt`` and the owner and address
+    columns of ``real_acct.txt`` are never read. A value of 0 is not a figure (see ``_positive``).
+    """
+    wanted = frozenset(accounts)
+    for r in _rows(path, "real_acct.txt"):
+        acct = r["acct"].strip()
+        if acct not in wanted:
+            continue
+        yield ParcelValues(
+            county_fips=COUNTY_FIPS, apn=acct,
+            tax_year=int(y) if (y := _num(r.get("yr"))) else None,
+            market_value=_positive(r.get("tot_mkt_val")), appraised_value=_positive(r.get("tot_appr_val")),
+            locator=f"real_acct.txt acct {acct}",
+        )
+
+
 def _neighborhoods(path: str | Path) -> frozenset[str] | None:
     """The neighborhood codes ``real_neighborhood_code.txt`` lists, or ``None`` when the file has no such member."""
     p = Path(path)
@@ -242,6 +261,38 @@ def build(snapshot_path: str | Path, db_path: str | Path, *, as_of: str, retriev
         reg.close()
 
 
+def build_history(snapshot_path: str | Path, db_path: str | Path, *, as_of: str, tax_year: int,
+                  retrieved_at: str | None = None) -> IngestStats:
+    """Add one prior year's values from an archived ``Real_acct_owner.zip`` to the Harris parcels already loaded.
+
+    History only (``Registry.ingest_value_history``): the current record, owners and addresses are not touched.
+    A row whose ``yr`` is not ``tax_year`` is not loaded and is named in ``stats.errors``.
+    """
+    reg = Registry(db_path)
+    try:
+        src = roll_source(SOURCE, tax_year)
+        reg.add_source(src)
+        snap = reg.add_snapshot(src.source_id, snapshot_path, as_of, retrieved_at)
+        accounts = [row[0] for row in reg.db.execute("SELECT external_id FROM crosswalk WHERE system = ?", (ACCOUNT_SYSTEM,))]
+        wrong: list[str] = []
+
+        def in_year(rows: Iterable[ParcelValues]) -> Iterator[ParcelValues]:
+            for r in rows:
+                if r.tax_year == tax_year:
+                    yield r
+                else:
+                    wrong.append(f"{r.locator}: tax year {r.tax_year}, expected {tax_year}")
+
+        stats = reg.ingest_value_history(in_year(read_value_history(snapshot_path, accounts)), snap, state_fips=STATE_FIPS)
+        stats.seen += len(wrong)
+        stats.skipped_invalid += len(wrong)
+        stats.errors.extend(wrong[:20])
+        stats.source_id, stats.tax_year = src.source_id, tax_year
+        return stats
+    finally:
+        reg.close()
+
+
 def build_buildings(buildings_path: str | Path, db_path: str | Path, *, as_of: str, tax_year: int | None,
                     retrieved_at: str | None = None, full_roll: bool = True) -> IngestStats:
     """Add building classes from an archived ``Real_building_land.zip`` to the Harris parcels already loaded.
@@ -273,8 +324,17 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--retrieved-at", help="ISO timestamp from the collector manifest")
     ap.add_argument("--partial", action="store_true", help="do not retire parcels missing from this file")
     ap.add_argument("--buildings", help="Real_building_land.zip from the same folder: adds building classes")
+    ap.add_argument("--history-only", type=int, metavar="TAX_YEAR",
+                    help="the file is the roll of this earlier tax year: add its values to parcels already loaded and "
+                         "change nothing else (owners, addresses, other facts and parcels are not written)")
     ap.add_argument("--buildings-as-of", help="its 'last updated' date, YYYY-MM-DD (default: --as-of)")
     args = ap.parse_args(argv)
+    if args.history_only:
+        if args.buildings:
+            ap.error("--history-only does not take --buildings")
+        print(json.dumps(asdict(build_history(args.snapshot, args.db, as_of=args.as_of, tax_year=args.history_only,
+                                              retrieved_at=args.retrieved_at)), indent=2))
+        return 0
     stats = build(args.snapshot, args.db, as_of=args.as_of, retrieved_at=args.retrieved_at, full_roll=not args.partial)
     out = {"roll": asdict(stats)}
     if args.buildings:

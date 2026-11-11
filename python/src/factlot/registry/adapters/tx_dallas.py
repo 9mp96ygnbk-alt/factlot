@@ -37,12 +37,12 @@ import io
 import json
 import zipfile
 from collections import defaultdict
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from dataclasses import asdict
 from pathlib import Path
 
 from ..normalize import is_commercial
-from ..store import IngestStats, ParcelRecord, Registry, Source
+from ..store import IngestStats, ParcelRecord, ParcelValues, Registry, Source, roll_source
 
 STATE_FIPS = "48"
 COUNTY_FIPS = "113"
@@ -192,6 +192,57 @@ def read_roll(path: str | Path) -> Iterator[ParcelRecord]:
         )
 
 
+def read_value_history(path: str | Path, accounts: Iterable[str]) -> Iterator[ParcelValues]:
+    """Yield each listed account's tax year and market value from ``ACCOUNT_APPRL_YEAR.CSV``, and nothing else.
+
+    For a prior-year roll (``Registry.ingest_value_history``): ``ACCOUNT_INFO.CSV`` (owners, addresses) is never
+    read. Business personal property is skipped; a ``TOT_VAL`` of 0 is not a value.
+    """
+    wanted = frozenset(accounts)
+    for r in _rows(path, "ACCOUNT_APPRL_YEAR.CSV"):
+        acct = r["ACCOUNT_NUM"].strip()
+        if acct not in wanted or r.get("DIVISION_CD", "").strip().upper() == "BPP":
+            continue
+        yield ParcelValues(
+            county_fips=COUNTY_FIPS, apn=acct,
+            tax_year=int(y) if (y := _num(r.get("APPRAISAL_YR"))) else None,
+            market_value=_positive(r.get("TOT_VAL")),
+            locator=f"ACCOUNT_APPRL_YEAR.CSV account {acct}",
+        )
+
+
+def build_history(snapshot_path: str | Path, db_path: str | Path, *, as_of: str, tax_year: int,
+                  retrieved_at: str | None = None) -> IngestStats:
+    """Add one prior year's market values from an archived DCAD export to the Dallas parcels already loaded.
+
+    History only (``Registry.ingest_value_history``): the current record, owners and addresses are not touched.
+    A row whose ``APPRAISAL_YR`` is not ``tax_year`` is not loaded and is named in ``stats.errors``.
+    """
+    reg = Registry(db_path)
+    try:
+        src = roll_source(SOURCE, tax_year)
+        reg.add_source(src)
+        snap = reg.add_snapshot(src.source_id, snapshot_path, as_of, retrieved_at)
+        accounts = [row[0] for row in reg.db.execute("SELECT external_id FROM crosswalk WHERE system = ?", (ACCOUNT_SYSTEM,))]
+        wrong: list[str] = []
+
+        def in_year(rows: Iterable[ParcelValues]) -> Iterator[ParcelValues]:
+            for r in rows:
+                if r.tax_year == tax_year:
+                    yield r
+                else:
+                    wrong.append(f"{r.locator}: tax year {r.tax_year}, expected {tax_year}")
+
+        stats = reg.ingest_value_history(in_year(read_value_history(snapshot_path, accounts)), snap, state_fips=STATE_FIPS)
+        stats.seen += len(wrong)
+        stats.skipped_invalid += len(wrong)
+        stats.errors.extend(wrong[:20])
+        stats.source_id, stats.tax_year = src.source_id, tax_year
+        return stats
+    finally:
+        reg.close()
+
+
 def build(snapshot_path: str | Path, db_path: str | Path, *, as_of: str, retrieved_at: str | None = None,
           full_roll: bool = True) -> IngestStats:
     """Ingest one archived DCAD export into a registry file (created if missing)."""
@@ -212,7 +263,14 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--as-of", required=True, help="export date, YYYY-MM-DD (the date on the files inside the zip)")
     ap.add_argument("--retrieved-at", help="ISO timestamp from the collector manifest")
     ap.add_argument("--partial", action="store_true", help="do not retire parcels missing from this file")
+    ap.add_argument("--history-only", type=int, metavar="TAX_YEAR",
+                    help="the file is the roll of this earlier tax year: add its values to parcels already loaded and "
+                         "change nothing else (owners, addresses, other facts and parcels are not written)")
     args = ap.parse_args(argv)
+    if args.history_only:
+        print(json.dumps(asdict(build_history(args.snapshot, args.db, as_of=args.as_of, tax_year=args.history_only,
+                                              retrieved_at=args.retrieved_at)), indent=2))
+        return 0
     stats = build(args.snapshot, args.db, as_of=args.as_of, retrieved_at=args.retrieved_at, full_roll=not args.partial)
     print(json.dumps(asdict(stats), indent=2))
     return 0

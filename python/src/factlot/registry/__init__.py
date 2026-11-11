@@ -6,13 +6,14 @@ privacy, owner resolution, storage, and queries.
 """
 
 from .normalize import COMMERCIAL_CATEGORIES, is_commercial, is_organization, normalize_address, normalize_name
-from .store import EntityRecord, IngestStats, ParcelFacts, ParcelRecord, Registry, Snapshot, Source, file_document_id
+from .store import EntityRecord, IngestStats, ParcelFacts, ParcelRecord, ParcelValues, Registry, Snapshot, Source, file_document_id
 
 __all__ = [
     "COMMERCIAL_CATEGORIES",
     "EntityRecord",
     "IngestStats",
     "ParcelFacts",
+    "ParcelValues",
     "ParcelRecord",
     "Registry",
     "Snapshot",
