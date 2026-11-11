@@ -1,0 +1,74 @@
+{
+  "description": "Travis Central Appraisal District EARS submissions for tax years 2022 to 2025 (one source per year). See docs/registry/texas-sources.md, 'Prior-year rolls'.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "tx-travis-cad-2022",
+      "publisher": "Travis Central Appraisal District",
+      "landing_pages": ["https://traviscad.org/publicinformation"],
+      "allowed_hosts": ["traviscad.org"],
+      "files": [
+        "https://traviscad.org/wp-content/largefiles/227EARS092822%20%282%29.zip"
+      ],
+      "verified": true,
+      "terms_url": "https://traviscad.org/privacy-policy/",
+      "license": "Public record; no license or terms of use stated for the exports (the privacy policy covers website use only)",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not addressed by the publisher; public record",
+      "reviewed": "2026-11-02",
+      "notes": "Tax year 2022: TCAD posts no prior-year Legacy 8.0.33 appraisal export; the only prior-year roll on publicinformation is the '2022 EARS Submission' (the electronic appraisal roll TCAD submits to the Comptroller), under the same host and path (wp-content/largefiles/) as the 2026 exports of tx-travis-cad, whose terms were reviewed 2026-11-02 (not re-read for this entry). HEAD 2026-11-10: 200, 149,778,982 B, Last-Modified Mon, 23 Jan 2023. LAYOUT DIFFERS from the PACS export tx_travis reads: EARS follows the Comptroller's Electronic Appraisal Roll Submission manual (96-1051); contents not opened, and no adapter reads it yet, so this entry archives only. robots.txt: Crawl-delay 10 (honoured), Disallow empty. A Public Information Act request for prior-year Legacy exports is the alternative route."
+    },
+    {
+      "source_id": "tx-travis-cad-2023",
+      "publisher": "Travis Central Appraisal District",
+      "landing_pages": ["https://traviscad.org/publicinformation"],
+      "allowed_hosts": ["traviscad.org"],
+      "files": [
+        "https://traviscad.org/wp-content/largefiles/227EARS082923%20%282%29.zip"
+      ],
+      "verified": true,
+      "terms_url": "https://traviscad.org/privacy-policy/",
+      "license": "Public record; no license or terms of use stated for the exports (the privacy policy covers website use only)",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not addressed by the publisher; public record",
+      "reviewed": "2026-11-02",
+      "notes": "Tax year 2023: TCAD posts no prior-year Legacy 8.0.33 appraisal export; the only prior-year roll on publicinformation is the '2023 EARS Submission' (the electronic appraisal roll TCAD submits to the Comptroller), under the same host and path (wp-content/largefiles/) as the 2026 exports of tx-travis-cad, whose terms were reviewed 2026-11-02 (not re-read for this entry). HEAD 2026-11-10: 200, 148,034,771 B, Last-Modified Wed, 30 Apr 2025. LAYOUT DIFFERS from the PACS export tx_travis reads: EARS follows the Comptroller's Electronic Appraisal Roll Submission manual (96-1051); contents not opened, and no adapter reads it yet, so this entry archives only. robots.txt: Crawl-delay 10 (honoured), Disallow empty. A Public Information Act request for prior-year Legacy exports is the alternative route."
+    },
+    {
+      "source_id": "tx-travis-cad-2024",
+      "publisher": "Travis Central Appraisal District",
+      "landing_pages": ["https://traviscad.org/publicinformation"],
+      "allowed_hosts": ["traviscad.org"],
+      "files": [
+        "https://traviscad.org/wp-content/largefiles/227EARS082824%20%282%29.zip"
+      ],
+      "verified": true,
+      "terms_url": "https://traviscad.org/privacy-policy/",
+      "license": "Public record; no license or terms of use stated for the exports (the privacy policy covers website use only)",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not addressed by the publisher; public record",
+      "reviewed": "2026-11-02",
+      "notes": "Tax year 2024: TCAD posts no prior-year Legacy 8.0.33 appraisal export; the only prior-year roll on publicinformation is the '2024 EARS Submission' (the electronic appraisal roll TCAD submits to the Comptroller), under the same host and path (wp-content/largefiles/) as the 2026 exports of tx-travis-cad, whose terms were reviewed 2026-11-02 (not re-read for this entry). HEAD 2026-11-10: 200, 69,767,285 B, Last-Modified Wed, 30 Apr 2025. LAYOUT DIFFERS from the PACS export tx_travis reads: EARS follows the Comptroller's Electronic Appraisal Roll Submission manual (96-1051); contents not opened, and no adapter reads it yet, so this entry archives only. robots.txt: Crawl-delay 10 (honoured), Disallow empty. A Public Information Act request for prior-year Legacy exports is the alternative route."
+    },
+    {
+      "source_id": "tx-travis-cad-2025",
+      "publisher": "Travis Central Appraisal District",
+      "landing_pages": ["https://traviscad.org/publicinformation"],
+      "allowed_hosts": ["traviscad.org"],
+      "files": [
+        "https://traviscad.org/wp-content/largefiles/227EARS090425.zip"
+      ],
+      "verified": true,
+      "terms_url": "https://traviscad.org/privacy-policy/",
+      "license": "Public record; no license or terms of use stated for the exports (the privacy policy covers website use only)",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not addressed by the publisher; public record",
+      "reviewed": "2026-11-02",
+      "notes": "Tax year 2025: TCAD posts no prior-year Legacy 8.0.33 appraisal export; the only prior-year roll on publicinformation is the '2025 EARS Submission' (the electronic appraisal roll TCAD submits to the Comptroller), under the same host and path (wp-content/largefiles/) as the 2026 exports of tx-travis-cad, whose terms were reviewed 2026-11-02 (not re-read for this entry). HEAD 2026-11-10: 200, 81,913,313 B, Last-Modified Tue, 09 Sep 2025. LAYOUT DIFFERS from the PACS export tx_travis reads: EARS follows the Comptroller's Electronic Appraisal Roll Submission manual (96-1051); contents not opened, and no adapter reads it yet, so this entry archives only. robots.txt: Crawl-delay 10 (honoured), Disallow empty. A Public Information Act request for prior-year Legacy exports is the alternative route."
+    }
+  ]
+}

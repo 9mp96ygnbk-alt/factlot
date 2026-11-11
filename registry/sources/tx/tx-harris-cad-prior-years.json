@@ -1,0 +1,94 @@
+{
+  "description": "Harris Central Appraisal District certified rolls for tax years 2022 to 2025 (one source per year). See docs/registry/texas-sources.md, 'Prior-year rolls'.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "tx-harris-cad-2022",
+      "publisher": "Harris Central Appraisal District",
+      "landing_pages": [
+        "https://hcad.org/actions/hcad-pdata/default/get-property-downloads?t=2022&c=CAMA&s=Real%20Property"
+      ],
+      "allowed_hosts": ["hcad.org"],
+      "files": [
+        "https://download.hcad.org/data/CAMA/2022/Real_acct_owner.zip",
+        "https://download.hcad.org/data/CAMA/2022/Real_building_land.zip",
+        "https://download.hcad.org/data/CAMA/2022/Real_jur_exempt.zip",
+        "https://download.hcad.org/data/CAMA/2022/Code_description_real.zip"
+      ],
+      "verified": true,
+      "terms_url": "https://hcad.org/hcad-privacy-policy",
+      "license": "Public record (Tex. Gov't Code ch. 552); no license or terms of use stated for the downloads",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not addressed by the publisher; public record",
+      "reviewed": "2026-11-02",
+      "notes": "Prior-year certified roll, tax year 2022: same host, path family (data/CAMA/<year>/) and file names as the 2026 files of tx-harris-cad, whose terms were reviewed 2026-11-02 (not re-read for this entry). HEAD 2026-11-10: all 200, Last-Modified 2026-11-09 (HCAD regenerated the prior-year folders on 2026-11-01 and again on 2026-11-09, so values may carry later corrections); Real_acct_owner 198,362,397 B, Real_building_land 192,940,974 B, Real_jur_exempt 104,986,999 B, Code_description_real 170,690 B. get-certification-flag?t=2022 answers certflg Y. Real_acct_ownership_history.zip is 404 for 2022 (only the current year has it); PP_files.zip and Hearing_files.zip are not listed here. File layout not opened (about 2.1 GB for the four years); sizes grow smoothly 2022 to 2026, so the same layout is expected. hcad.org robots.txt now carries 'Crawl-Delay: 3' (the collector honours it); download.hcad.org has no robots.txt (404). Older years (2005 to 2021) are listed by get-tax-years but not configured."
+    },
+    {
+      "source_id": "tx-harris-cad-2023",
+      "publisher": "Harris Central Appraisal District",
+      "landing_pages": [
+        "https://hcad.org/actions/hcad-pdata/default/get-property-downloads?t=2023&c=CAMA&s=Real%20Property"
+      ],
+      "allowed_hosts": ["hcad.org"],
+      "files": [
+        "https://download.hcad.org/data/CAMA/2023/Real_acct_owner.zip",
+        "https://download.hcad.org/data/CAMA/2023/Real_building_land.zip",
+        "https://download.hcad.org/data/CAMA/2023/Real_jur_exempt.zip",
+        "https://download.hcad.org/data/CAMA/2023/Code_description_real.zip"
+      ],
+      "verified": true,
+      "terms_url": "https://hcad.org/hcad-privacy-policy",
+      "license": "Public record (Tex. Gov't Code ch. 552); no license or terms of use stated for the downloads",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not addressed by the publisher; public record",
+      "reviewed": "2026-11-02",
+      "notes": "Prior-year certified roll, tax year 2023: same host, path family (data/CAMA/<year>/) and file names as the 2026 files of tx-harris-cad, whose terms were reviewed 2026-11-02 (not re-read for this entry). HEAD 2026-11-10: all 200, Last-Modified 2026-11-09 (HCAD regenerated the prior-year folders on 2026-11-01 and again on 2026-11-09, so values may carry later corrections); Real_acct_owner 204,581,907 B, Real_building_land 197,156,368 B, Real_jur_exempt 108,494,433 B, Code_description_real 169,695 B. get-certification-flag?t=2023 answers certflg Y. Real_acct_ownership_history.zip is 404 for 2023 (only the current year has it); PP_files.zip and Hearing_files.zip are not listed here. File layout not opened (about 2.1 GB for the four years); sizes grow smoothly 2022 to 2026, so the same layout is expected. hcad.org robots.txt now carries 'Crawl-Delay: 3' (the collector honours it); download.hcad.org has no robots.txt (404). Older years (2005 to 2021) are listed by get-tax-years but not configured."
+    },
+    {
+      "source_id": "tx-harris-cad-2024",
+      "publisher": "Harris Central Appraisal District",
+      "landing_pages": [
+        "https://hcad.org/actions/hcad-pdata/default/get-property-downloads?t=2024&c=CAMA&s=Real%20Property"
+      ],
+      "allowed_hosts": ["hcad.org"],
+      "files": [
+        "https://download.hcad.org/data/CAMA/2024/Real_acct_owner.zip",
+        "https://download.hcad.org/data/CAMA/2024/Real_building_land.zip",
+        "https://download.hcad.org/data/CAMA/2024/Real_jur_exempt.zip",
+        "https://download.hcad.org/data/CAMA/2024/Code_description_real.zip"
+      ],
+      "verified": true,
+      "terms_url": "https://hcad.org/hcad-privacy-policy",
+      "license": "Public record (Tex. Gov't Code ch. 552); no license or terms of use stated for the downloads",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not addressed by the publisher; public record",
+      "reviewed": "2026-11-02",
+      "notes": "Prior-year certified roll, tax year 2024: same host, path family (data/CAMA/<year>/) and file names as the 2026 files of tx-harris-cad, whose terms were reviewed 2026-11-02 (not re-read for this entry). HEAD 2026-11-10: all 200, Last-Modified 2026-11-09 (HCAD regenerated the prior-year folders on 2026-11-01 and again on 2026-11-09, so values may carry later corrections); Real_acct_owner 206,685,734 B, Real_building_land 200,987,267 B, Real_jur_exempt 110,892,416 B, Code_description_real 170,779 B. get-certification-flag?t=2024 answers certflg Y. Real_acct_ownership_history.zip is 404 for 2024 (only the current year has it); PP_files.zip and Hearing_files.zip are not listed here. File layout not opened (about 2.1 GB for the four years); sizes grow smoothly 2022 to 2026, so the same layout is expected. hcad.org robots.txt now carries 'Crawl-Delay: 3' (the collector honours it); download.hcad.org has no robots.txt (404). Older years (2005 to 2021) are listed by get-tax-years but not configured."
+    },
+    {
+      "source_id": "tx-harris-cad-2025",
+      "publisher": "Harris Central Appraisal District",
+      "landing_pages": [
+        "https://hcad.org/actions/hcad-pdata/default/get-property-downloads?t=2025&c=CAMA&s=Real%20Property"
+      ],
+      "allowed_hosts": ["hcad.org"],
+      "files": [
+        "https://download.hcad.org/data/CAMA/2025/Real_acct_owner.zip",
+        "https://download.hcad.org/data/CAMA/2025/Real_building_land.zip",
+        "https://download.hcad.org/data/CAMA/2025/Real_jur_exempt.zip",
+        "https://download.hcad.org/data/CAMA/2025/Code_description_real.zip"
+      ],
+      "verified": true,
+      "terms_url": "https://hcad.org/hcad-privacy-policy",
+      "license": "Public record (Tex. Gov't Code ch. 552); no license or terms of use stated for the downloads",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not addressed by the publisher; public record",
+      "reviewed": "2026-11-02",
+      "notes": "Prior-year certified roll, tax year 2025: same host, path family (data/CAMA/<year>/) and file names as the 2026 files of tx-harris-cad, whose terms were reviewed 2026-11-02 (not re-read for this entry). HEAD 2026-11-10: all 200, Last-Modified 2026-11-09 (HCAD regenerated the prior-year folders on 2026-11-01 and again on 2026-11-09, so values may carry later corrections); Real_acct_owner 209,502,018 B, Real_building_land 205,252,491 B, Real_jur_exempt 112,258,480 B, Code_description_real 172,047 B. get-certification-flag?t=2025 answers certflg Y. Real_acct_ownership_history.zip is 404 for 2025 (only the current year has it); PP_files.zip and Hearing_files.zip are not listed here. File layout not opened (about 2.1 GB for the four years); sizes grow smoothly 2022 to 2026, so the same layout is expected. hcad.org robots.txt now carries 'Crawl-Delay: 3' (the collector honours it); download.hcad.org has no robots.txt (404). Older years (2005 to 2021) are listed by get-tax-years but not configured."
+    }
+  ]
+}

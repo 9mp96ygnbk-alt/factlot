@@ -1,0 +1,78 @@
+{
+  "description": "Dallas Central Appraisal District certified data for tax years 2022 to 2025 (one source per year). See docs/registry/texas-sources.md, 'Prior-year rolls'.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "tx-dallas-cad-2022",
+      "publisher": "Dallas Central Appraisal District",
+      "landing_pages": ["https://www.dallascad.org/DataProducts.aspx"],
+      "allowed_hosts": ["dallascad.org"],
+      "files": [
+        "https://www.dallascad.org/ViewPDFs.aspx?type=3&id=%5C%5CDCAD.ORG%5CWEB%5CWEBDATA%5CWEBFORMS%5CDATA%20PRODUCTS%5CDCAD2022_CERTIFIED_07252022.ZIP",
+        "https://www.dallascad.org/ViewPDFs.aspx?type=3&id=%5C%5CDCAD.ORG%5CWEB%5CWEBDATA%5CWEBFORMS%5Cdata%20products%5CDCAD2022_CURRENT.zip"
+      ],
+      "verified": true,
+      "terms_url": "https://www.dallascad.org/DataProducts.aspx",
+      "license": "Public record; no license or terms of use stated. The page only notes that DCAD cannot provide technical support for use of the data",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not addressed by the publisher; public record",
+      "reviewed": "2026-11-02",
+      "notes": "Prior-year roll, tax year 2022: same host, page and ViewPDFs.aspx path as the 2026 files of tx-dallas-cad, whose terms were reviewed 2026-11-02 (not re-read for this entry). Links are the hrefs on DataProducts.aspx as of 2026-11-10 (folder case varies on the page; the 2022 _CURRENT link uses 'data products'). HEAD 2026-11-10: both 200; DCAD2022_CERTIFIED_07252022.ZIP 192,175,890 B (roll at certification), DCAD2022_CURRENT.zip 200,198,749 B (certified plus supplements). No Last-Modified header from DCAD. File layout not opened: ViewPDFs.aspx ignores Range requests, so a zip cannot be probed without downloading it; sizes are within 5 percent of the 2026 files, so the same layout is expected, and each zip ships its own layout documents. The separate 2022_REAL_PROPERTY_CERT_APPR_ROLL.zip and BPP files on the page are a different product and not configured. robots.txt disallows only staff/test paths and /Acct detail pages."
+    },
+    {
+      "source_id": "tx-dallas-cad-2023",
+      "publisher": "Dallas Central Appraisal District",
+      "landing_pages": ["https://www.dallascad.org/DataProducts.aspx"],
+      "allowed_hosts": ["dallascad.org"],
+      "files": [
+        "https://www.dallascad.org/ViewPDFs.aspx?type=3&id=%5C%5CDCAD.ORG%5CWEB%5CWEBDATA%5CWEBFORMS%5CDATA%20PRODUCTS%5CDCAD2023_CERTIFIED_07252023.zip",
+        "https://www.dallascad.org/ViewPDFs.aspx?type=3&id=%5C%5CDCAD.ORG%5CWEB%5CWEBDATA%5CWEBFORMS%5CDATA%20PRODUCTS%5CDCAD2023_CURRENT.ZIP"
+      ],
+      "verified": true,
+      "terms_url": "https://www.dallascad.org/DataProducts.aspx",
+      "license": "Public record; no license or terms of use stated. The page only notes that DCAD cannot provide technical support for use of the data",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not addressed by the publisher; public record",
+      "reviewed": "2026-11-02",
+      "notes": "Prior-year roll, tax year 2023: same host, page and ViewPDFs.aspx path as the 2026 files of tx-dallas-cad, whose terms were reviewed 2026-11-02 (not re-read for this entry). Links are the hrefs on DataProducts.aspx as of 2026-11-10 (folder case varies on the page). HEAD 2026-11-10: both 200; DCAD2023_CERTIFIED_07252023.zip 186,758,594 B (roll at certification), DCAD2023_CURRENT.ZIP 200,342,135 B (certified plus supplements). No Last-Modified header from DCAD. File layout not opened: ViewPDFs.aspx ignores Range requests, so a zip cannot be probed without downloading it; sizes are within 5 percent of the 2026 files, so the same layout is expected, and each zip ships its own layout documents. The separate 2023_REAL_PROPERTY_CERT_APPR_ROLL.zip and BPP files on the page are a different product and not configured. robots.txt disallows only staff/test paths and /Acct detail pages."
+    },
+    {
+      "source_id": "tx-dallas-cad-2024",
+      "publisher": "Dallas Central Appraisal District",
+      "landing_pages": ["https://www.dallascad.org/DataProducts.aspx"],
+      "allowed_hosts": ["dallascad.org"],
+      "files": [
+        "https://www.dallascad.org/ViewPDFs.aspx?type=3&id=%5C%5CDCAD.ORG%5CWEB%5CWEBDATA%5CWEBFORMS%5CDATA%20PRODUCTS%5CDCAD2024_CERTIFIED_07252024.zip",
+        "https://www.dallascad.org/ViewPDFs.aspx?type=3&id=%5C%5CDCAD.ORG%5CWEB%5CWEBDATA%5CWEBFORMS%5CDATA%20PRODUCTS%5CDCAD2024_CURRENT.ZIP"
+      ],
+      "verified": true,
+      "terms_url": "https://www.dallascad.org/DataProducts.aspx",
+      "license": "Public record; no license or terms of use stated. The page only notes that DCAD cannot provide technical support for use of the data",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not addressed by the publisher; public record",
+      "reviewed": "2026-11-02",
+      "notes": "Prior-year roll, tax year 2024: same host, page and ViewPDFs.aspx path as the 2026 files of tx-dallas-cad, whose terms were reviewed 2026-11-02 (not re-read for this entry). Links are the hrefs on DataProducts.aspx as of 2026-11-10 (folder case varies on the page). HEAD 2026-11-10: both 200; DCAD2024_CERTIFIED_07252024.zip 198,864,168 B (roll at certification), DCAD2024_CURRENT.ZIP 204,803,817 B (certified plus supplements). No Last-Modified header from DCAD. File layout not opened: ViewPDFs.aspx ignores Range requests, so a zip cannot be probed without downloading it; sizes are within 5 percent of the 2026 files, so the same layout is expected, and each zip ships its own layout documents. The separate 2024_REAL_PROPERTY_CERT_APPR_ROLL.zip and BPP files on the page are a different product and not configured. robots.txt disallows only staff/test paths and /Acct detail pages."
+    },
+    {
+      "source_id": "tx-dallas-cad-2025",
+      "publisher": "Dallas Central Appraisal District",
+      "landing_pages": ["https://www.dallascad.org/DataProducts.aspx"],
+      "allowed_hosts": ["dallascad.org"],
+      "files": [
+        "https://www.dallascad.org/ViewPDFs.aspx?type=3&id=%5C%5CDCAD.ORG%5CWEB%5CWEBDATA%5CWEBFORMS%5CDATA%20PRODUCTS%5CDCAD2025_CERTIFIED_07242025.zip",
+        "https://www.dallascad.org/ViewPDFs.aspx?type=3&id=%5C%5CDCAD.ORG%5CWEB%5CWEBDATA%5CWEBFORMS%5CDATA%20PRODUCTS%5CDCAD2025_CURRENT.ZIP"
+      ],
+      "verified": true,
+      "terms_url": "https://www.dallascad.org/DataProducts.aspx",
+      "license": "Public record; no license or terms of use stated. The page only notes that DCAD cannot provide technical support for use of the data",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not addressed by the publisher; public record",
+      "reviewed": "2026-11-02",
+      "notes": "Prior-year roll, tax year 2025: same host, page and ViewPDFs.aspx path as the 2026 files of tx-dallas-cad, whose terms were reviewed 2026-11-02 (not re-read for this entry). Links are the hrefs on DataProducts.aspx as of 2026-11-10 (folder case varies on the page). HEAD 2026-11-10: both 200; DCAD2025_CERTIFIED_07242025.zip 191,596,710 B (roll at certification), DCAD2025_CURRENT.ZIP 204,776,360 B (certified plus supplements). No Last-Modified header from DCAD. File layout not opened: ViewPDFs.aspx ignores Range requests, so a zip cannot be probed without downloading it; sizes are within 5 percent of the 2026 files, so the same layout is expected, and each zip ships its own layout documents. The separate 2025_REAL_PROPERTY_CERT_APPR_ROLL.zip and BPP files on the page are a different product and not configured. robots.txt disallows only staff/test paths and /Acct detail pages."
+    }
+  ]
+}

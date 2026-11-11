@@ -1,0 +1,40 @@
+{
+  "description": "Williamson Central Appraisal District certified roll text files, tax years 2024 and 2025 (unverified). See docs/registry/texas-sources.md, 'Prior-year rolls'.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "tx-williamson-cad-2024",
+      "publisher": "Williamson Central Appraisal District",
+      "landing_pages": ["https://documents.wcad.org/cert/"],
+      "allowed_hosts": ["documents.wcad.org"],
+      "files": [
+        "https://documents.wcad.org/cert/CertifiedAppraisalReport-OLD.txt"
+      ],
+      "verified": false,
+      "terms_url": "https://www.tylertech.com/terms",
+      "license": "Public record (Tex. Gov't Code ch. 552); WCAD states no license for the file. The data portal (data.wcad.org) footer links Tyler Technologies' terms (website use), which were not read as text",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not addressed by the publisher; public record",
+      "reviewed": "2026-11-03",
+      "notes": "NOT VERIFIED: different host (documents.wcad.org, not data.wcad.org where tx-williamson-cad was reviewed), no terms page for it was read, and the tax year is inferred. The Socrata datasets on data.wcad.org hold one year only (PropOwner absk-uy9g is tax year 2027 preliminary today), so the only prior-year account-level roll found is this text file, linked from the portal as dataset jcdz-74ne 'Certified Appraisal Roll' (the link is https://documents.wcad.org/cert/CertifiedAppraisalReport.txt) with an IIS directory listing at /cert/. Year 2024 is inferred from Last-Modified (Fri, 12 Jul 2024 19:43:28 GMT; WCAD certifies in late July); the file's header was not read. HEAD 2026-11-10: 200, 82,284,025 B. The -OLD name suggests the roll it replaced; layout (fixed-width or delimited text, not the Socrata CSV tx_williamson reads) is unknown and no adapter reads it. robots.txt on documents.wcad.org: 404 (none). Not configured: CertifiedValues2025.xlsx and CertifiedValues-OLD.xlsx (ISD-level aggregate values 1999 to 2025, not account level) and CertifiedAppraisalReport_underReview.txt (12 MB, last modified 2021)."
+    },
+    {
+      "source_id": "tx-williamson-cad-2025",
+      "publisher": "Williamson Central Appraisal District",
+      "landing_pages": ["https://documents.wcad.org/cert/"],
+      "allowed_hosts": ["documents.wcad.org"],
+      "files": ["https://documents.wcad.org/cert/CertifiedAppraisalReport.txt"],
+      "verified": false,
+      "terms_url": "https://www.tylertech.com/terms",
+      "license": "Public record (Tex. Gov't Code ch. 552); WCAD states no license for the file. The data portal (data.wcad.org) footer links Tyler Technologies' terms (website use), which were not read as text",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not addressed by the publisher; public record",
+      "reviewed": "2026-11-03",
+      "notes": "NOT VERIFIED: different host (documents.wcad.org, not data.wcad.org where tx-williamson-cad was reviewed), no terms page for it was read, and the tax year is inferred. The Socrata datasets on data.wcad.org hold one year only (PropOwner absk-uy9g is tax year 2027 preliminary today), so the only prior-year account-level roll found is this text file, linked from the portal as dataset jcdz-74ne 'Certified Appraisal Roll' (the link is https://documents.wcad.org/cert/CertifiedAppraisalReport.txt) with an IIS directory listing at /cert/. Year 2025 is inferred from Last-Modified (Sat, 12 Jul 2025 01:20:26 GMT; WCAD certifies in late July); the file's header was not read. HEAD 2026-11-10: 200, 65,231,077 B. This is the file the portal currently serves as the certified roll; layout (fixed-width or delimited text, not the Socrata CSV tx_williamson reads) is unknown and no adapter reads it. robots.txt on documents.wcad.org: 404 (none). Not configured: CertifiedValues2025.xlsx and CertifiedValues-OLD.xlsx (ISD-level aggregate values 1999 to 2025, not account level) and CertifiedAppraisalReport_underReview.txt (12 MB, last modified 2021)."
+    }
+  ]
+}

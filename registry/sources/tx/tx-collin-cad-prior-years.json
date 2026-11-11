@@ -1,0 +1,116 @@
+{
+  "description": "Collin Central Appraisal District appraisal data for tax years 2022 to 2025 from the Texas Open Data Portal (one source per year; unverified). See docs/registry/texas-sources.md, 'Prior-year rolls'.",
+  "collector": {
+    "contact": "contact@factlot.com",
+    "min_interval": 2.0,
+    "timeout": 600
+  },
+  "sources": [
+    {
+      "source_id": "tx-collin-cad-2022",
+      "publisher": "Collin Central Appraisal District (published on the Texas Open Data Portal, data.texas.gov)",
+      "landing_pages": [
+        "https://api.us.socrata.com/api/catalog/v1?ids=vtby-uz4n"
+      ],
+      "allowed_hosts": ["data.texas.gov", "api.us.socrata.com"],
+      "files": [
+        "https://data.texas.gov/resource/vtby-uz4n.csv?$order=:id&$limit=50000&$offset=0",
+        "https://data.texas.gov/resource/vtby-uz4n.csv?$order=:id&$limit=50000&$offset=50000",
+        "https://data.texas.gov/resource/vtby-uz4n.csv?$order=:id&$limit=50000&$offset=100000",
+        "https://data.texas.gov/resource/vtby-uz4n.csv?$order=:id&$limit=50000&$offset=150000",
+        "https://data.texas.gov/resource/vtby-uz4n.csv?$order=:id&$limit=50000&$offset=200000",
+        "https://data.texas.gov/resource/vtby-uz4n.csv?$order=:id&$limit=50000&$offset=250000",
+        "https://data.texas.gov/resource/vtby-uz4n.csv?$order=:id&$limit=50000&$offset=300000",
+        "https://data.texas.gov/resource/vtby-uz4n.csv?$order=:id&$limit=50000&$offset=350000",
+        "https://data.texas.gov/resource/vtby-uz4n.csv?$order=:id&$limit=50000&$offset=400000"
+      ],
+      "verified": false,
+      "terms_url": "https://collincad.org/open-data-portal/",
+      "license": "Public record. CCAD's open data page states the information is 'considered public domain' and distributed as is; the Socrata dataset has no license field (attribution: Collin Central Appraisal District)",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not addressed by the publisher; the CCAD page says public domain",
+      "reviewed": "2026-11-07",
+      "notes": "NOT VERIFIED because the host differs: the reviewed Collin source (tx-collin-cad) is files on link.collincad.org, while this is dataset vtby-uz4n (Appraisal Data 2022) on data.texas.gov, a platform whose own terms have not been read by a person (the same open item as the Comptroller entry). The publisher's page (collincad.org/open-data-portal, which links data.texas.gov/stories/s/mz7k-urqw) was read 2026-11-07 and again 2026-11-10 (text unchanged). Set verified to true once the Socrata terms are recorded. HEAD 2026-11-10: 200 with no Content-Length (Socrata streams CSV); size not published. count(*) = 416,572 rows; Last-Modified Sun, 08 Nov 2026 11:12:23 GMT. 9 pages of 50,000 rows ordered by :id (extend the list if the count passes 450,000). LAYOUT DIFFERS from the Access LiteDatabaseCurrent.zip that tx_collin reads: a flat per-property CSV with nbhdcode, marketareacode, imprvclasscd, imprvmainarea, imprvunits, curr/prev/notice value columns, deed fields and ownername and owner address columns (personal data; the raw file stays under FactLot control). Same columns for 2022 to 2024; 2025 adds proprefid1, proprefid2 and gispropid. No adapter reads it yet, so this entry archives only. robots.txt on data.texas.gov: Crawl-delay 1; /resource/ is not disallowed. 2020 (hkzz-rrn8) and 2021 (cwex-zmku) also exist and are not configured."
+    },
+    {
+      "source_id": "tx-collin-cad-2023",
+      "publisher": "Collin Central Appraisal District (published on the Texas Open Data Portal, data.texas.gov)",
+      "landing_pages": [
+        "https://api.us.socrata.com/api/catalog/v1?ids=khef-anha"
+      ],
+      "allowed_hosts": ["data.texas.gov", "api.us.socrata.com"],
+      "files": [
+        "https://data.texas.gov/resource/khef-anha.csv?$order=:id&$limit=50000&$offset=0",
+        "https://data.texas.gov/resource/khef-anha.csv?$order=:id&$limit=50000&$offset=50000",
+        "https://data.texas.gov/resource/khef-anha.csv?$order=:id&$limit=50000&$offset=100000",
+        "https://data.texas.gov/resource/khef-anha.csv?$order=:id&$limit=50000&$offset=150000",
+        "https://data.texas.gov/resource/khef-anha.csv?$order=:id&$limit=50000&$offset=200000",
+        "https://data.texas.gov/resource/khef-anha.csv?$order=:id&$limit=50000&$offset=250000",
+        "https://data.texas.gov/resource/khef-anha.csv?$order=:id&$limit=50000&$offset=300000",
+        "https://data.texas.gov/resource/khef-anha.csv?$order=:id&$limit=50000&$offset=350000",
+        "https://data.texas.gov/resource/khef-anha.csv?$order=:id&$limit=50000&$offset=400000"
+      ],
+      "verified": false,
+      "terms_url": "https://collincad.org/open-data-portal/",
+      "license": "Public record. CCAD's open data page states the information is 'considered public domain' and distributed as is; the Socrata dataset has no license field (attribution: Collin Central Appraisal District)",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not addressed by the publisher; the CCAD page says public domain",
+      "reviewed": "2026-11-07",
+      "notes": "NOT VERIFIED because the host differs: the reviewed Collin source (tx-collin-cad) is files on link.collincad.org, while this is dataset khef-anha (Appraisal Data 2023) on data.texas.gov, a platform whose own terms have not been read by a person (the same open item as the Comptroller entry). The publisher's page (collincad.org/open-data-portal, which links data.texas.gov/stories/s/mz7k-urqw) was read 2026-11-07 and again 2026-11-10 (text unchanged). Set verified to true once the Socrata terms are recorded. HEAD 2026-11-10: 200 with no Content-Length (Socrata streams CSV); size not published. count(*) = 434,366 rows; Last-Modified Sun, 08 Nov 2026 11:12:48 GMT. 9 pages of 50,000 rows ordered by :id (extend the list if the count passes 450,000). LAYOUT DIFFERS from the Access LiteDatabaseCurrent.zip that tx_collin reads: a flat per-property CSV with nbhdcode, marketareacode, imprvclasscd, imprvmainarea, imprvunits, curr/prev/notice value columns, deed fields and ownername and owner address columns (personal data; the raw file stays under FactLot control). Same columns for 2022 to 2024; 2025 adds proprefid1, proprefid2 and gispropid. No adapter reads it yet, so this entry archives only. robots.txt on data.texas.gov: Crawl-delay 1; /resource/ is not disallowed. 2020 (hkzz-rrn8) and 2021 (cwex-zmku) also exist and are not configured."
+    },
+    {
+      "source_id": "tx-collin-cad-2024",
+      "publisher": "Collin Central Appraisal District (published on the Texas Open Data Portal, data.texas.gov)",
+      "landing_pages": [
+        "https://api.us.socrata.com/api/catalog/v1?ids=6dqt-e958"
+      ],
+      "allowed_hosts": ["data.texas.gov", "api.us.socrata.com"],
+      "files": [
+        "https://data.texas.gov/resource/6dqt-e958.csv?$order=:id&$limit=50000&$offset=0",
+        "https://data.texas.gov/resource/6dqt-e958.csv?$order=:id&$limit=50000&$offset=50000",
+        "https://data.texas.gov/resource/6dqt-e958.csv?$order=:id&$limit=50000&$offset=100000",
+        "https://data.texas.gov/resource/6dqt-e958.csv?$order=:id&$limit=50000&$offset=150000",
+        "https://data.texas.gov/resource/6dqt-e958.csv?$order=:id&$limit=50000&$offset=200000",
+        "https://data.texas.gov/resource/6dqt-e958.csv?$order=:id&$limit=50000&$offset=250000",
+        "https://data.texas.gov/resource/6dqt-e958.csv?$order=:id&$limit=50000&$offset=300000",
+        "https://data.texas.gov/resource/6dqt-e958.csv?$order=:id&$limit=50000&$offset=350000",
+        "https://data.texas.gov/resource/6dqt-e958.csv?$order=:id&$limit=50000&$offset=400000",
+        "https://data.texas.gov/resource/6dqt-e958.csv?$order=:id&$limit=50000&$offset=450000"
+      ],
+      "verified": false,
+      "terms_url": "https://collincad.org/open-data-portal/",
+      "license": "Public record. CCAD's open data page states the information is 'considered public domain' and distributed as is; the Socrata dataset has no license field (attribution: Collin Central Appraisal District)",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not addressed by the publisher; the CCAD page says public domain",
+      "reviewed": "2026-11-07",
+      "notes": "NOT VERIFIED because the host differs: the reviewed Collin source (tx-collin-cad) is files on link.collincad.org, while this is dataset 6dqt-e958 (Appraisal Data 2024) on data.texas.gov, a platform whose own terms have not been read by a person (the same open item as the Comptroller entry). The publisher's page (collincad.org/open-data-portal, which links data.texas.gov/stories/s/mz7k-urqw) was read 2026-11-07 and again 2026-11-10 (text unchanged). Set verified to true once the Socrata terms are recorded. HEAD 2026-11-10: 200 with no Content-Length (Socrata streams CSV); size not published. count(*) = 455,272 rows; Last-Modified Sun, 08 Nov 2026 11:10:24 GMT. 10 pages of 50,000 rows ordered by :id (extend the list if the count passes 500,000). LAYOUT DIFFERS from the Access LiteDatabaseCurrent.zip that tx_collin reads: a flat per-property CSV with nbhdcode, marketareacode, imprvclasscd, imprvmainarea, imprvunits, curr/prev/notice value columns, deed fields and ownername and owner address columns (personal data; the raw file stays under FactLot control). Same columns for 2022 to 2024; 2025 adds proprefid1, proprefid2 and gispropid. No adapter reads it yet, so this entry archives only. robots.txt on data.texas.gov: Crawl-delay 1; /resource/ is not disallowed. 2020 (hkzz-rrn8) and 2021 (cwex-zmku) also exist and are not configured."
+    },
+    {
+      "source_id": "tx-collin-cad-2025",
+      "publisher": "Collin Central Appraisal District (published on the Texas Open Data Portal, data.texas.gov)",
+      "landing_pages": [
+        "https://api.us.socrata.com/api/catalog/v1?ids=vffy-snc6"
+      ],
+      "allowed_hosts": ["data.texas.gov", "api.us.socrata.com"],
+      "files": [
+        "https://data.texas.gov/resource/vffy-snc6.csv?$order=:id&$limit=50000&$offset=0",
+        "https://data.texas.gov/resource/vffy-snc6.csv?$order=:id&$limit=50000&$offset=50000",
+        "https://data.texas.gov/resource/vffy-snc6.csv?$order=:id&$limit=50000&$offset=100000",
+        "https://data.texas.gov/resource/vffy-snc6.csv?$order=:id&$limit=50000&$offset=150000",
+        "https://data.texas.gov/resource/vffy-snc6.csv?$order=:id&$limit=50000&$offset=200000",
+        "https://data.texas.gov/resource/vffy-snc6.csv?$order=:id&$limit=50000&$offset=250000",
+        "https://data.texas.gov/resource/vffy-snc6.csv?$order=:id&$limit=50000&$offset=300000",
+        "https://data.texas.gov/resource/vffy-snc6.csv?$order=:id&$limit=50000&$offset=350000",
+        "https://data.texas.gov/resource/vffy-snc6.csv?$order=:id&$limit=50000&$offset=400000",
+        "https://data.texas.gov/resource/vffy-snc6.csv?$order=:id&$limit=50000&$offset=450000"
+      ],
+      "verified": false,
+      "terms_url": "https://collincad.org/open-data-portal/",
+      "license": "Public record. CCAD's open data page states the information is 'considered public domain' and distributed as is; the Socrata dataset has no license field (attribution: Collin Central Appraisal District)",
+      "ai_use": "Not addressed by the publisher",
+      "redistribution": "Not addressed by the publisher; the CCAD page says public domain",
+      "reviewed": "2026-11-07",
+      "notes": "NOT VERIFIED because the host differs: the reviewed Collin source (tx-collin-cad) is files on link.collincad.org, while this is dataset vffy-snc6 (Appraisal Data 2025) on data.texas.gov, a platform whose own terms have not been read by a person (the same open item as the Comptroller entry). The publisher's page (collincad.org/open-data-portal, which links data.texas.gov/stories/s/mz7k-urqw) was read 2026-11-07 and again 2026-11-10 (text unchanged). Set verified to true once the Socrata terms are recorded. HEAD 2026-11-10: 200 with no Content-Length (Socrata streams CSV); size not published. count(*) = 479,375 rows; Last-Modified Sun, 08 Nov 2026 10:36:46 GMT. 10 pages of 50,000 rows ordered by :id (extend the list if the count passes 500,000). LAYOUT DIFFERS from the Access LiteDatabaseCurrent.zip that tx_collin reads: a flat per-property CSV with nbhdcode, marketareacode, imprvclasscd, imprvmainarea, imprvunits, curr/prev/notice value columns, deed fields and ownername and owner address columns (personal data; the raw file stays under FactLot control). Same columns for 2022 to 2024; 2025 adds proprefid1, proprefid2 and gispropid. No adapter reads it yet, so this entry archives only. robots.txt on data.texas.gov: Crawl-delay 1; /resource/ is not disallowed. 2020 (hkzz-rrn8) and 2021 (cwex-zmku) also exist and are not configured."
+    }
+  ]
+}

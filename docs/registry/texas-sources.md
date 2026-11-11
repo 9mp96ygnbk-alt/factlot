@@ -63,3 +63,41 @@ Domains the collector contacts: `hcad.org`, `download.hcad.org`, `www.dallascad.
 Start with Harris and Dallas. Together they are the two largest commercial markets in the state.
 Next add the Comptroller entity data, which turns owner names into resolvable legal entities.
 Then add Travis, Tarrant, and Collin. Bexar needs a records request.
+
+## Prior-year rolls (tax years 2022 to 2025)
+
+Added 2026-11-10 so the weekly collector can archive earlier certified rolls and `value_history`
+can span more than one year. Each (county, year) is its own collector source (`<id>-<year>`, for
+example `tx-harris-cad-2025`), in `registry/sources/tx/tx-<county>-cad-prior-years.json`. Files
+were checked with HEAD requests and small page fetches only; nothing was downloaded. "Verified"
+follows the rule in [data policy](data-policy.md) §5: terms already reviewed for that publisher and
+the files on the same host and path family as the reviewed source; anything else is `verified: false`
+and the weekly run skips it until a person reads the terms and flips it.
+
+| County     | Years     | Files                                                                           | Verified | Layout                                                           |
+| ---------- | --------- | ------------------------------------------------------------------------------- | -------- | ---------------------------------------------------------------- |
+| Harris     | 2022-2025 | `download.hcad.org/data/CAMA/<year>/` four Real Property zips (about 0.5 GB)    | yes      | Same file names as 2026; not opened                              |
+| Dallas     | 2022-2025 | `DCAD<year>_CERTIFIED_<date>.zip` and `DCAD<year>_CURRENT.zip` (about 0.4 GB)   | yes      | Sizes match 2026; not opened (Range ignored)                     |
+| Travis     | 2022-2025 | `227EARS<date>.zip`, the EARS submission to the Comptroller (70-150 MB)         | yes      | **Different**: EARS, not Legacy 8.0.33; no adapter               |
+| Collin     | 2022-2025 | `data.texas.gov/resource/<id>.csv` (9-10 pages of 50,000 rows each)             | **no**   | **Different**: flat per-property CSV, not the Access export      |
+| Williamson | 2024-2025 | `documents.wcad.org/cert/CertifiedAppraisalReport(-OLD).txt` (65-82 MB)         | **no**   | **Different**: text roll, year inferred from Last-Modified       |
+| Denton     | none      | the county layer holds one year (`pYear` 2027); dentoncad.com is a script shell | n/a      | no source added; the owner must ask DCAD for prior-year extracts |
+
+Why not verified: Collin's rolls are on the Texas Open Data Portal (a platform whose terms nobody
+has read, the same open item as the Comptroller entry) rather than on `link.collincad.org`;
+Williamson's text files are on `documents.wcad.org`, a host no terms review covers, and the file's
+tax year was inferred. Travis is marked verified because the EARS zips sit on the reviewed host and
+path, but the layout differs from the one its adapter reads, so they are archived only. Fort Bend
+and Tarrant are deliberately not included.
+
+Notes: Harris's prior-year folders were regenerated on 2026-11-09 (Last-Modified), so values may
+include later corrections, and `hcad.org` robots.txt now sets `Crawl-Delay: 3`. Harris also lists
+2005 to 2021 and Collin 2020 to 2021 (`hkzz-rrn8`, `cwex-zmku`); they are not configured. Dallas
+`ViewPDFs.aspx` sends no Last-Modified and ignores Range requests.
+
+Run one year with the workflow (unverified sources need the collector's `--include-unverified`
+flag, which the workflow does not pass, so they stay skipped until flipped):
+
+```
+gh workflow run collect.yml -f only=tx-harris-cad-2025,tx-harris-cad-2024,tx-harris-cad-2023,tx-harris-cad-2022
+```
