@@ -1017,6 +1017,186 @@
           "quote": "UT | ut-ugrc-lir (Garfield) | Garfield | 188 | 0"
         }
       ]
+    },
+    {
+      "source_id": "tx-cameron-cad",
+      "state": "TX",
+      "area": "Cameron County",
+      "kind": "load",
+      "parcels": 14173,
+      "org_owners": 7079,
+      "owner_names": "yes",
+      "entity_links": "not recorded for this county (the Texas entity file is loaded)",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/sources/tx-hosted-pack-2026-11-10.md",
+          "quote": "Cameron County (`tx-cameron-cad`): 14,173 commercial parcels; 7,079 with an organisation owner of record; data as of 2026-07-23"
+        }
+      ],
+      "as_of_override": "2026-07-23"
+    },
+    {
+      "source_id": "tx-nueces-cad",
+      "state": "TX",
+      "area": "Nueces County",
+      "kind": "load",
+      "parcels": 13634,
+      "org_owners": 8840,
+      "owner_names": "yes",
+      "entity_links": "not recorded for this county (the Texas entity file is loaded)",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/sources/tx-hosted-pack-2026-11-10.md",
+          "quote": "Nueces County (`tx-nueces-cad`): 13,634 commercial parcels; 8,840 with an organisation owner of record; data as of 2026-10-13"
+        }
+      ],
+      "as_of_override": "2026-10-13"
+    },
+    {
+      "source_id": "tx-galveston-cad",
+      "state": "TX",
+      "area": "Galveston County",
+      "kind": "load",
+      "parcels": 10088,
+      "org_owners": 5898,
+      "owner_names": "yes",
+      "entity_links": "not recorded for this county (the Texas entity file is loaded)",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/sources/tx-hosted-pack-2026-11-10.md",
+          "quote": "Galveston County (`tx-galveston-cad`): 10,088 commercial parcels; 5,898 with an organisation owner of record; data as of 2026-08-05"
+        }
+      ],
+      "as_of_override": "2026-08-05"
+    },
+    {
+      "source_id": "tx-jefferson-cad",
+      "state": "TX",
+      "area": "Jefferson County",
+      "kind": "load",
+      "parcels": 9594,
+      "org_owners": 5963,
+      "owner_names": "yes",
+      "entity_links": "not recorded for this county (the Texas entity file is loaded)",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/sources/tx-hosted-pack-2026-11-10.md",
+          "quote": "Jefferson County (`tx-jefferson-cad`): 9,594 commercial parcels; 5,963 with an organisation owner of record; data as of 2026-10-07"
+        }
+      ],
+      "as_of_override": "2026-10-07"
+    },
+    {
+      "source_id": "tx-brazos-cad",
+      "state": "TX",
+      "area": "Brazos County",
+      "kind": "load",
+      "parcels": 8252,
+      "org_owners": 5849,
+      "owner_names": "yes",
+      "entity_links": "not recorded for this county (the Texas entity file is loaded)",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/sources/tx-hosted-pack-2026-11-10.md",
+          "quote": "Brazos County (`tx-brazos-cad`): 8,252 commercial parcels; 5,849 with an organisation owner of record; data as of 2026-08-11"
+        }
+      ],
+      "as_of_override": "2026-08-11"
+    },
+    {
+      "source_id": "tx-midland-cad",
+      "state": "TX",
+      "area": "Midland County",
+      "kind": "load",
+      "parcels": 7641,
+      "org_owners": 5006,
+      "owner_names": "yes",
+      "entity_links": "not recorded for this county (the Texas entity file is loaded)",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/sources/tx-hosted-pack-2026-11-10.md",
+          "quote": "Midland County (`tx-midland-cad`): 7,641 commercial parcels; 5,006 with an organisation owner of record; data as of 2026-08-17"
+        }
+      ],
+      "as_of_override": "2026-08-17"
+    },
+    {
+      "source_id": "tx-ector-cad",
+      "state": "TX",
+      "area": "Ector County",
+      "kind": "load",
+      "parcels": 7036,
+      "org_owners": 3977,
+      "owner_names": "yes",
+      "entity_links": "not recorded for this county (the Texas entity file is loaded)",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/sources/tx-hosted-pack-2026-11-10.md",
+          "quote": "Ector County (`tx-ector-cad`): 7,036 commercial parcels; 3,977 with an organisation owner of record; data as of 2026-07-22"
+        }
+      ],
+      "as_of_override": "2026-07-22"
+    },
+    {
+      "source_id": "tx-grayson-cad",
+      "state": "TX",
+      "area": "Grayson County",
+      "kind": "load",
+      "parcels": 6613,
+      "org_owners": 3955,
+      "owner_names": "yes",
+      "entity_links": "not recorded for this county (the Texas entity file is loaded)",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/sources/tx-hosted-pack-2026-11-10.md",
+          "quote": "Grayson County (`tx-grayson-cad`): 6,613 commercial parcels; 3,955 with an organisation owner of record; data as of 2026-10-15"
+        }
+      ],
+      "as_of_override": "2026-10-15"
+    },
+    {
+      "source_id": "tx-guadalupe-cad",
+      "state": "TX",
+      "area": "Guadalupe County",
+      "kind": "load",
+      "parcels": 4081,
+      "org_owners": 2480,
+      "owner_names": "yes",
+      "entity_links": "not recorded for this county (the Texas entity file is loaded)",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/sources/tx-hosted-pack-2026-11-10.md",
+          "quote": "Guadalupe County (`tx-guadalupe-cad`): 4,081 commercial parcels; 2,480 with an organisation owner of record; data as of 2026-07-28"
+        }
+      ],
+      "as_of_override": "2026-07-28"
+    },
+    {
+      "source_id": "tx-kaufman-cad",
+      "state": "TX",
+      "area": "Kaufman County",
+      "kind": "load",
+      "parcels": 3557,
+      "org_owners": 2381,
+      "owner_names": "yes",
+      "entity_links": "not recorded for this county (the Texas entity file is loaded)",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/sources/tx-hosted-pack-2026-11-10.md",
+          "quote": "Kaufman County (`tx-kaufman-cad`): 3,557 commercial parcels; 2,381 with an organisation owner of record; data as of 2026-07-17"
+        }
+      ],
+      "as_of_override": "2026-07-17"
     }
   ],
   "entity_registries": [
@@ -1137,6 +1317,46 @@
     "tx-williamson-cad": {
       "areas": "all",
       "text": "Yes: hosted on api.factlot.com (2027 preliminary roll)"
+    },
+    "tx-cameron-cad": {
+      "areas": "all",
+      "text": "Yes: hosted on api.factlot.com"
+    },
+    "tx-nueces-cad": {
+      "areas": "all",
+      "text": "Yes: hosted on api.factlot.com"
+    },
+    "tx-galveston-cad": {
+      "areas": "all",
+      "text": "Yes: hosted on api.factlot.com"
+    },
+    "tx-jefferson-cad": {
+      "areas": "all",
+      "text": "Yes: hosted on api.factlot.com"
+    },
+    "tx-brazos-cad": {
+      "areas": "all",
+      "text": "Yes: hosted on api.factlot.com"
+    },
+    "tx-midland-cad": {
+      "areas": "all",
+      "text": "Yes: hosted on api.factlot.com (no values: the publisher's file has none)"
+    },
+    "tx-ector-cad": {
+      "areas": "all",
+      "text": "Yes: hosted on api.factlot.com"
+    },
+    "tx-grayson-cad": {
+      "areas": "all",
+      "text": "Yes: hosted on api.factlot.com"
+    },
+    "tx-guadalupe-cad": {
+      "areas": "all",
+      "text": "Yes: hosted on api.factlot.com"
+    },
+    "tx-kaufman-cad": {
+      "areas": "all",
+      "text": "Yes: hosted on api.factlot.com"
     }
   },
   "withheld_areas": {

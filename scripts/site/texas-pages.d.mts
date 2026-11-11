@@ -11,3 +11,10 @@ export function exampleTitle(c: unknown): string;
 export function exampleDescription(c: unknown): string;
 export function exampleBody(c: unknown, e: unknown, template: string): string;
 export function otherDistrictsTable(): string;
+export function countWord(n: number): string;
+export function hubHostedTable(counties: unknown[]): string;
+export function hubRollSentence(counties: unknown[]): string;
+export function hubCountyLinks(
+  counties: unknown[],
+  exampleSlugs: string[],
+): string;

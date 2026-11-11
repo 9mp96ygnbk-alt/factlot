@@ -4,16 +4,16 @@
  * in the changelog, so the page cannot announce something the changelog does not record.
  */
 export const HOSTING_NOTE =
-  "Texas is hosted: Harris, Dallas, Travis, Collin, Denton and Williamson counties. Tarrant County is not served while the publisher's terms for AI use are unclear.";
+  "Texas is hosted: sixteen counties (Harris, Dallas, Travis, Collin, Denton, Williamson, Cameron, Nueces, Galveston, Jefferson, Brazos, Midland, Ector, Grayson, Guadalupe and Kaufman). Tarrant County is not served while the publisher's terms for AI use are unclear.";
 
 export const WHATS_NEW: { text: string; changelog: string }[] = [
   {
-    text: "Reports are open (7 November 2026): call report_create, or POST /v1/reports, to get an XLSX, PDF or ICS file built by code from a tool result. Links work 24 hours; 3 a month free per IP address, 50 on Pro, 1,000 on Team.",
-    changelog: "reports are open",
+    text: "Texas registry grows to sixteen counties: Cameron, Nueces, Galveston, Jefferson, Brazos, Midland, Ector, Grayson, Guadalupe and Kaufman join, with several roll years in Brazos, Nueces, Galveston, Kaufman, Jefferson and Guadalupe. 434,538 parcels in 43 counties are hosted.",
+    changelog: "sixteen hosted counties",
   },
   {
-    text: "Texas registry lookups: six counties with value history and equity candidates.",
-    changelog: "six Texas counties",
+    text: "Reports are open (7 November 2026): call report_create, or POST /v1/reports, to get an XLSX, PDF or ICS file built by code from a tool result. Links work 24 hours; 3 a month free per IP address, 50 on Pro, 1,000 on Team.",
+    changelog: "reports are open",
   },
   {
     text: "Only answered registry lookups count: coverage checks, misses and input errors are free.",

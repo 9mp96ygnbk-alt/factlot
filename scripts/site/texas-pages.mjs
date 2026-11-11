@@ -29,18 +29,8 @@ export const longDate = (iso) =>
     timeZone: "UTC",
   });
 
-export const OTHER_DISTRICTS = [
-  "Cameron",
-  "Nueces",
-  "Galveston",
-  "Jefferson",
-  "Brazos",
-  "Midland",
-  "Ector",
-  "Grayson",
-  "Guadalupe",
-  "Kaufman",
-];
+/** Districts that are neither hosted nor withheld and are listed on the hub with a status. */
+export const OTHER_DISTRICTS = [];
 
 const fill = (template, vars) =>
   template.replace(/\{\{([A-Z_]+)\}\}/g, (m, k) => {
@@ -68,9 +58,19 @@ export function countyTitle(c) {
   return `${c.name} County, Texas: commercial property data | FactLot`;
 }
 
+const latestRoll = (c) => c.rolls[c.rolls.length - 1];
+const hasValues = (c) => c.rolls.length > 0;
+const rollSpan = (c) => {
+  const first = c.rolls[0].tax_year;
+  const last = latestRoll(c).tax_year;
+  return first === last ? `tax year ${last}` : `tax years ${first} to ${last}`;
+};
+
 export function countyDescription(c) {
-  const r = c.rolls[0];
-  return `What FactLot hosts for ${c.name} County, Texas: ${int.format(c.hosted_parcels)} commercial parcels from the ${c.publisher} roll (tax year ${r.tax_year}, as of ${longDate(r.as_of)}), the source and its terms, and the tools that answer for the county.`;
+  if (!hasValues(c))
+    return `What FactLot hosts for ${c.name} County, Texas: ${int.format(c.hosted_parcels)} commercial parcels from the ${c.publisher} roll (data as of ${longDate(c.data_as_of)}; the publisher's file has no values), the source and its terms, and the tools that answer for the county.`;
+  const r = latestRoll(c);
+  return `What FactLot hosts for ${c.name} County, Texas: ${int.format(c.hosted_parcels)} commercial parcels from the ${c.publisher} roll (${rollSpan(c)}, latest as of ${longDate(r.as_of)}), the source and its terms, and the tools that answer for the county.`;
 }
 
 export function countyBody(c, template, hasExample) {
@@ -80,14 +80,16 @@ export function countyBody(c, template, hasExample) {
         `<tr><th scope="row">${r.tax_year}${r.preliminary ? " (preliminary)" : ""}</th><td>${longDate(r.as_of)}</td><td>${int.format(r.parcels)}</td></tr>`,
     )
     .join("\n");
-  const hosted = `<p>${esc(c.name)} County holds <strong>${int.format(c.hosted_parcels)}</strong> commercial parcels in the hosted registry. Every fact cites the roll file it was read from.</p>
+  const hosted = hasValues(c)
+    ? `<p>${esc(c.name)} County holds <strong>${int.format(c.hosted_parcels)}</strong> commercial parcels in the hosted registry${c.rolls.length > 1 ? `, with ${c.rolls.length} roll years of values (${rollSpan(c)})` : ""}. Every fact cites the roll file it was read from.</p>
 <table>
 <caption class="visually-hidden">Roll years held for ${esc(c.name)} County</caption>
 <thead><tr><th scope="col">Roll (tax year)</th><th scope="col">Data as of</th><th scope="col">Parcels with a tax-year fact</th></tr></thead>
 <tbody>
 ${rolls}
 </tbody>
-</table>`;
+</table>`
+    : `<p>${esc(c.name)} County holds <strong>${int.format(c.hosted_parcels)}</strong> commercial parcels in the hosted registry, from the roll file as of ${longDate(c.data_as_of)}. Values are not in the publisher's file, so the registry holds no market value, appraised value or tax year for these parcels. It holds the account number, situs address, state property category, local use code and, where the file names an organisation, the owner of record. Every fact cites the roll file it was read from.</p>`;
   const source = table(
     `Source of the ${c.name} County roll`,
     ["", ""],
@@ -110,9 +112,11 @@ ${rolls}
     '<th scope="col"></th><th scope="col"></th>',
     '<th scope="col">Item</th><th scope="col">As recorded</th>',
   );
-  const tiers = c.neighborhood_tier
-    ? `<li>Neighborhood code: the roll gives ${int.format(c.neighborhood_code_parcels)} of this county's parcels a neighborhood code, so candidates sharing the subject's code come first, then its ZIP code, then the rest of the county only if fewer than 10 are found.</li>`
-    : `<li>Neighborhood code: not available for ${esc(c.name)} County, so the first tier is skipped. Candidates share the subject's ZIP code first, then the rest of the county only if fewer than 10 are found.</li>`;
+  const tiers = !hasValues(c)
+    ? `<li>Not available for ${esc(c.name)} County: candidates need market values and improvement areas, which the publisher's file does not carry.</li>`
+    : c.neighborhood_tier
+      ? `<li>Neighborhood code: the roll gives ${int.format(c.neighborhood_code_parcels)} of this county's parcels a neighborhood code, so candidates sharing the subject's code come first, then its ZIP code, then the rest of the county only if fewer than 10 are found.</li>`
+      : `<li>Neighborhood code: not available for ${esc(c.name)} County, so the first tier is skipped. Candidates share the subject's ZIP code first, then the rest of the county only if fewer than 10 are found.</li>`;
   const tools = `<ul>
 <li><code>registry_get</code>: a parcel in ${esc(c.name)} County by FactLot ID, with its cited roll facts.</li>
 <li><code>registry_tx_equity_candidates</code> and its batch form: candidates under FactLot's default rule, for a person to review. Tiers here:
@@ -128,7 +132,9 @@ ${tiers}
 <p>One ${esc(c.name)} County commercial parcel shown end to end, as an agent would receive it: <a href="/texas/${c.slug}/example/">${esc(c.name)} County worked example</a>.</p>`
     : "";
   return fill(template, {
-    LEDE: `${esc(c.name)} County, Texas: ${int.format(c.hosted_parcels)} commercial parcels from the ${esc(c.publisher)} roll, tax year ${c.rolls[0].tax_year}, as of ${longDate(c.rolls[0].as_of)}.`,
+    LEDE: hasValues(c)
+      ? `${esc(c.name)} County, Texas: ${int.format(c.hosted_parcels)} commercial parcels from the ${esc(c.publisher)} roll, ${rollSpan(c)}, latest as of ${longDate(latestRoll(c).as_of)}.`
+      : `${esc(c.name)} County, Texas: ${int.format(c.hosted_parcels)} commercial parcels from the ${esc(c.publisher)} roll as of ${longDate(c.data_as_of)}. Values are not in the publisher's file.`,
     HOSTED: hosted,
     SOURCE: source,
     TOOLS: tools,
@@ -230,7 +236,7 @@ ${e.candidates.map((x, i) => `<tr><th scope="row">${i + 1}</th><td><code>${esc(x
   });
 }
 
-/** The status table on the hub: Tarrant withheld, ten districts built but not hosted. */
+/** The status table on the hub: Tarrant withheld, plus any district listed in OTHER_DISTRICTS. */
 export function otherDistrictsTable() {
   const row = (name, status) =>
     `<tr><th scope="row">${name}</th><td>${status}</td></tr>`;
@@ -241,5 +247,92 @@ export function otherDistrictsTable() {
 ${row("Tarrant", "Withheld: not served by the hosted registry while the publisher's terms for AI use are unclear.")}
 ${OTHER_DISTRICTS.map((n) => row(n, "Built, not yet hosted. Coming to the hosted registry.")).join("\n")}
 </tbody>
+</table>`.replace("\n\n</tbody>", "\n</tbody>");
+}
+
+const WORDS = [
+  "zero",
+  "one",
+  "two",
+  "three",
+  "four",
+  "five",
+  "six",
+  "seven",
+  "eight",
+  "nine",
+  "ten",
+  "eleven",
+  "twelve",
+  "thirteen",
+  "fourteen",
+  "fifteen",
+  "sixteen",
+  "seventeen",
+  "eighteen",
+  "nineteen",
+  "twenty",
+];
+export const countWord = (n) => WORDS[n] ?? String(n);
+
+const rollText = (c) => {
+  if (!hasValues(c)) return "no values in the publisher's file";
+  const n = c.rolls.length;
+  const last = latestRoll(c);
+  const prelim = last.preliminary ? " (2027 preliminary)" : "";
+  return n === 1
+    ? `one roll year${prelim}`
+    : `${countWord(n)} roll years, ${rollSpan(c).replace("tax years ", "")}`;
+};
+
+/** The hub's table of hosted counties, from texas-counties.json. */
+export function hubHostedTable(counties) {
+  const total = counties.reduce((a, c) => a + c.hosted_parcels, 0);
+  const rows = [
+    ...counties.map(
+      (c) =>
+        `    <tr>\n      <th scope="row">${esc(c.name)}</th>\n      <td>${int.format(c.hosted_parcels)}</td>\n      <td>${rollText(c)}</td>\n    </tr>`,
+    ),
+    `    <tr>\n      <th scope="row">Total</th>\n      <td>${int.format(total)}</td>\n      <td></td>\n    </tr>`,
+  ];
+  return `<table>
+  <caption class="visually-hidden">
+    Hosted Texas counties
+  </caption>
+  <thead>
+    <tr>
+      <th scope="col">County</th>
+      <th scope="col">Commercial parcels</th>
+      <th scope="col">Roll</th>
+    </tr>
+  </thead>
+  <tbody>
+${rows.join("\n")}
+  </tbody>
 </table>`;
+}
+
+/** The hub's sentence about roll years, derived from the data. */
+export function hubRollSentence(counties) {
+  const multi = counties.filter((c) => c.rolls.length > 1);
+  const single = counties.filter((c) => c.rolls.length === 1);
+  const none = counties.filter((c) => !hasValues(c));
+  const parts = [
+    `${countWord(multi.length)} of the ${countWord(counties.length)} counties hold more than one roll year (${multi.map((c) => `${c.name} ${rollSpan(c).replace("tax years ", "")}`).join(", ")}), ${countWord(single.length)} hold one`,
+  ];
+  if (none.length)
+    parts[0] += `, and ${none.map((c) => c.name).join(" and ")} has no values because the publisher's file has none`;
+  return `${parts[0].charAt(0).toUpperCase()}${parts[0].slice(1)}.`;
+}
+
+/** The hub's list of county pages. */
+export function hubCountyLinks(counties, exampleSlugs) {
+  return `<ul>
+${counties
+  .map(
+    (c) =>
+      `  <li><a href="/texas/${c.slug}/">${esc(c.name)}</a>${exampleSlugs.includes(c.slug) ? ` (<a href="/texas/${c.slug}/example/">worked example</a>)` : ""}</li>`,
+  )
+  .join("\n")}
+</ul>`;
 }

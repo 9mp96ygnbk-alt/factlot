@@ -10,7 +10,7 @@
   "counts": {
     "audited_load": 11,
     "cited_load": 86,
-    "hosted": 33
+    "hosted": 43
   },
   "geography": "US Census 2020 county FIPS codes (spec/registry/county-names.tsv, 3,235 county equivalents incl. territories)",
   "counties": {
@@ -1414,6 +1414,34 @@
       "hosted": false,
       "evidence": "docs/registry/tier2/README.md"
     },
+    "48041": {
+      "name": "Brazos County",
+      "state": "TX",
+      "class": "hosted",
+      "source_id": "tx-brazos-cad",
+      "commercial_parcels": 8252,
+      "organisation_owners_row": 5849,
+      "owner_names": "yes",
+      "entity_links": "not recorded for this county (the Texas entity file is loaded)",
+      "owner_link_rate_audited": null,
+      "data_as_of": "2026-08-11",
+      "hosted": "hosted on api.factlot.com",
+      "evidence": "docs/registry/sources/tx-hosted-pack-2026-11-10.md"
+    },
+    "48061": {
+      "name": "Cameron County",
+      "state": "TX",
+      "class": "hosted",
+      "source_id": "tx-cameron-cad",
+      "commercial_parcels": 14173,
+      "organisation_owners_row": 7079,
+      "owner_names": "yes",
+      "entity_links": "not recorded for this county (the Texas entity file is loaded)",
+      "owner_link_rate_audited": null,
+      "data_as_of": "2026-07-23",
+      "hosted": "hosted on api.factlot.com",
+      "evidence": "docs/registry/sources/tx-hosted-pack-2026-11-10.md"
+    },
     "48085": {
       "name": "Collin County",
       "state": "TX",
@@ -1456,6 +1484,20 @@
       "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/tier2/README.md"
     },
+    "48135": {
+      "name": "Ector County",
+      "state": "TX",
+      "class": "hosted",
+      "source_id": "tx-ector-cad",
+      "commercial_parcels": 7036,
+      "organisation_owners_row": 3977,
+      "owner_names": "yes",
+      "entity_links": "not recorded for this county (the Texas entity file is loaded)",
+      "owner_link_rate_audited": null,
+      "data_as_of": "2026-07-22",
+      "hosted": "hosted on api.factlot.com",
+      "evidence": "docs/registry/sources/tx-hosted-pack-2026-11-10.md"
+    },
     "48157": {
       "name": "Fort Bend County",
       "state": "TX",
@@ -1470,6 +1512,48 @@
       "hosted": false,
       "evidence": "docs/registry/tier2/README.md"
     },
+    "48167": {
+      "name": "Galveston County",
+      "state": "TX",
+      "class": "hosted",
+      "source_id": "tx-galveston-cad",
+      "commercial_parcels": 10088,
+      "organisation_owners_row": 5898,
+      "owner_names": "yes",
+      "entity_links": "not recorded for this county (the Texas entity file is loaded)",
+      "owner_link_rate_audited": null,
+      "data_as_of": "2026-08-05",
+      "hosted": "hosted on api.factlot.com",
+      "evidence": "docs/registry/sources/tx-hosted-pack-2026-11-10.md"
+    },
+    "48181": {
+      "name": "Grayson County",
+      "state": "TX",
+      "class": "hosted",
+      "source_id": "tx-grayson-cad",
+      "commercial_parcels": 6613,
+      "organisation_owners_row": 3955,
+      "owner_names": "yes",
+      "entity_links": "not recorded for this county (the Texas entity file is loaded)",
+      "owner_link_rate_audited": null,
+      "data_as_of": "2026-10-15",
+      "hosted": "hosted on api.factlot.com",
+      "evidence": "docs/registry/sources/tx-hosted-pack-2026-11-10.md"
+    },
+    "48187": {
+      "name": "Guadalupe County",
+      "state": "TX",
+      "class": "hosted",
+      "source_id": "tx-guadalupe-cad",
+      "commercial_parcels": 4081,
+      "organisation_owners_row": 2480,
+      "owner_names": "yes",
+      "entity_links": "not recorded for this county (the Texas entity file is loaded)",
+      "owner_link_rate_audited": null,
+      "data_as_of": "2026-07-28",
+      "hosted": "hosted on api.factlot.com",
+      "evidence": "docs/registry/sources/tx-hosted-pack-2026-11-10.md"
+    },
     "48201": {
       "name": "Harris County",
       "state": "TX",
@@ -1483,6 +1567,62 @@
       "data_as_of": "2026-11-01",
       "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/README.md"
+    },
+    "48245": {
+      "name": "Jefferson County",
+      "state": "TX",
+      "class": "hosted",
+      "source_id": "tx-jefferson-cad",
+      "commercial_parcels": 9594,
+      "organisation_owners_row": 5963,
+      "owner_names": "yes",
+      "entity_links": "not recorded for this county (the Texas entity file is loaded)",
+      "owner_link_rate_audited": null,
+      "data_as_of": "2026-10-07",
+      "hosted": "hosted on api.factlot.com",
+      "evidence": "docs/registry/sources/tx-hosted-pack-2026-11-10.md"
+    },
+    "48257": {
+      "name": "Kaufman County",
+      "state": "TX",
+      "class": "hosted",
+      "source_id": "tx-kaufman-cad",
+      "commercial_parcels": 3557,
+      "organisation_owners_row": 2381,
+      "owner_names": "yes",
+      "entity_links": "not recorded for this county (the Texas entity file is loaded)",
+      "owner_link_rate_audited": null,
+      "data_as_of": "2026-07-17",
+      "hosted": "hosted on api.factlot.com",
+      "evidence": "docs/registry/sources/tx-hosted-pack-2026-11-10.md"
+    },
+    "48329": {
+      "name": "Midland County",
+      "state": "TX",
+      "class": "hosted",
+      "source_id": "tx-midland-cad",
+      "commercial_parcels": 7641,
+      "organisation_owners_row": 5006,
+      "owner_names": "yes",
+      "entity_links": "not recorded for this county (the Texas entity file is loaded)",
+      "owner_link_rate_audited": null,
+      "data_as_of": "2026-08-17",
+      "hosted": "hosted on api.factlot.com",
+      "evidence": "docs/registry/sources/tx-hosted-pack-2026-11-10.md"
+    },
+    "48355": {
+      "name": "Nueces County",
+      "state": "TX",
+      "class": "hosted",
+      "source_id": "tx-nueces-cad",
+      "commercial_parcels": 13634,
+      "organisation_owners_row": 8840,
+      "owner_names": "yes",
+      "entity_links": "not recorded for this county (the Texas entity file is loaded)",
+      "owner_link_rate_audited": null,
+      "data_as_of": "2026-10-13",
+      "hosted": "hosted on api.factlot.com",
+      "evidence": "docs/registry/sources/tx-hosted-pack-2026-11-10.md"
     },
     "48439": {
       "name": "Tarrant County",
@@ -2628,6 +2768,24 @@
       "reviewed": "2026-11-03",
       "record": "docs/registry/sources/tn-davidson-assessor.md"
     },
+    "tx-brazos-cad": {
+      "publisher": "Brazos Central Appraisal District",
+      "license": "Public record (Tex. Gov't Code ch. 552); no licence stated; page: \"Brazos Central Appraisal District claims no responsibility for the downloading of this data.\"",
+      "redistribution": "Not addressed by the publisher; public record",
+      "ai_use": "Not addressed by the publisher",
+      "terms_url": "https://brazoscad.org/certified-data-downloads/",
+      "reviewed": "2026-11-07",
+      "record": null
+    },
+    "tx-cameron-cad": {
+      "publisher": "Cameron Appraisal District",
+      "license": "Public domain per the publisher: \"All information contained herein, is considered in the public domain and is distributed without warranty of any kind, implied, expressed or statutory.\"",
+      "redistribution": "Not addressed by the publisher; public record",
+      "ai_use": "Not addressed by the publisher",
+      "terms_url": "https://www.cameroncad.org/Pages/Data",
+      "reviewed": "2026-11-07",
+      "record": null
+    },
     "tx-collin-cad": {
       "publisher": "Collin Central Appraisal District",
       "license": "Public record; no license or terms of use stated for the exports",
@@ -2655,6 +2813,15 @@
       "reviewed": "2026-11-03",
       "record": "docs/registry/sources/tx-denton-cad.md"
     },
+    "tx-ector-cad": {
+      "publisher": "Ector County Appraisal District",
+      "license": "Public record (Tex. Gov't Code ch. 552); no licence stated",
+      "redistribution": "Not addressed by the publisher; public record",
+      "ai_use": "Not addressed by the publisher",
+      "terms_url": "https://www.ectorcad.org/home/downloads",
+      "reviewed": "2026-11-07",
+      "record": null
+    },
     "tx-fortbend-cad": {
       "publisher": "Fort Bend Central Appraisal District",
       "license": "Public record (Tex. Gov't Code ch. 552); no license stated. The GIS data page (the only disclaimer found, applied by the district to its data files) provides them 'as is' and says the user shall hold harmless, indemnify and defend the district against claims arising from the request for or use of the data files. The certified-and-supplements page has no terms",
@@ -2664,6 +2831,33 @@
       "reviewed": "2026-11-03",
       "record": "docs/registry/sources/tx-fortbend-cad.md"
     },
+    "tx-galveston-cad": {
+      "publisher": "Galveston Central Appraisal District",
+      "license": "Public record (Tex. Gov't Code ch. 552); no terms stated on the data pages",
+      "redistribution": "Not addressed by the publisher; public record",
+      "ai_use": "Not addressed by the publisher",
+      "terms_url": "https://galvestoncad.org/public-data/",
+      "reviewed": "2026-11-07",
+      "record": null
+    },
+    "tx-grayson-cad": {
+      "publisher": "Grayson Central Appraisal District",
+      "license": "Public record (Tex. Gov't Code ch. 552); no licence stated",
+      "redistribution": "Not addressed by the publisher; public record",
+      "ai_use": "Not addressed by the publisher",
+      "terms_url": "https://graysonappraisal.org/public-information/",
+      "reviewed": "2026-11-07",
+      "record": null
+    },
+    "tx-guadalupe-cad": {
+      "publisher": "Guadalupe Appraisal District",
+      "license": "Public record (Tex. Gov't Code ch. 552); no licence stated",
+      "redistribution": "Not addressed by the publisher; public record",
+      "ai_use": "Not addressed by the publisher",
+      "terms_url": "https://guadalupead.org/certified-appraisal-roll/",
+      "reviewed": "2026-11-07",
+      "record": null
+    },
     "tx-harris-cad": {
       "publisher": "Harris Central Appraisal District",
       "license": "Public record (Tex. Gov't Code ch. 552); no license or terms of use stated for the downloads",
@@ -2672,6 +2866,42 @@
       "terms_url": "https://hcad.org/hcad-privacy-policy",
       "reviewed": "2026-11-02",
       "record": "docs/registry/texas-sources.md"
+    },
+    "tx-jefferson-cad": {
+      "publisher": "Jefferson Central Appraisal District",
+      "license": "Public record (Tex. Gov't Code ch. 552); no terms stated on the data page",
+      "redistribution": "Not addressed by the publisher; public record",
+      "ai_use": "Not addressed by the publisher",
+      "terms_url": "https://jcad.org/data-download/",
+      "reviewed": "2026-11-07",
+      "record": null
+    },
+    "tx-kaufman-cad": {
+      "publisher": "Kaufman Central Appraisal District",
+      "license": "Public record (Tex. Gov't Code ch. 552); no licence stated; page: \"All files are AS IS!!!\"",
+      "redistribution": "Not addressed by the publisher; public record",
+      "ai_use": "Not addressed by the publisher",
+      "terms_url": "https://kaufman-cad.org/public-info/",
+      "reviewed": "2026-11-07",
+      "record": null
+    },
+    "tx-midland-cad": {
+      "publisher": "Midland Central Appraisal District",
+      "license": "Public record (Tex. Gov't Code ch. 552); no licence stated; footer: provided \"as is\" without warranty",
+      "redistribution": "Not addressed by the publisher; public record",
+      "ai_use": "Not addressed by the publisher",
+      "terms_url": "https://midcad.org/open-records/",
+      "reviewed": "2026-11-07",
+      "record": null
+    },
+    "tx-nueces-cad": {
+      "publisher": "Nueces Central Appraisal District",
+      "license": "Public record (Tex. Gov't Code ch. 552); page states only: \"Nueces Central Appraisal District cannot offer technical support for reading, loading, or manipulating our data exports.\"",
+      "redistribution": "Not addressed by the publisher; public record",
+      "ai_use": "Not addressed by the publisher",
+      "terms_url": "https://nuecescad.net/downloads-reports/",
+      "reviewed": "2026-11-07",
+      "record": null
     },
     "tx-tarrant-ad": {
       "publisher": "Tarrant Appraisal District",

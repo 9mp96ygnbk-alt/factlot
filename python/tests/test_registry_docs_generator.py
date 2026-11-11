@@ -44,7 +44,13 @@ class RegistryDocsGenerator(unittest.TestCase):
         self.assertTrue(all("Juab" in ln or "Summit" in ln for ln in utah))
         # Texas: the six counties in the hosted pack, and never Tarrant (withheld)
         texas = sorted(ln.split("|")[1].strip() for ln in queryable_rows if "`tx-" in ln)
-        self.assertEqual(texas, ["Collin County", "Dallas County", "Denton County", "Harris County", "Travis County", "Williamson County"])
+        self.assertEqual(
+            texas,
+            sorted(f"{n} County" for n in [
+                "Harris", "Dallas", "Travis", "Collin", "Denton", "Williamson", "Cameron", "Nueces", "Galveston",
+                "Jefferson", "Brazos", "Midland", "Ector", "Grayson", "Guadalupe", "Kaufman",
+            ]),
+        )
         tarrant = [ln for ln in text.splitlines() if ln.startswith("| ") and "`tx-tarrant-ad`" in ln]
         self.assertTrue(tarrant)
         self.assertTrue(all("Yes: hosted" not in ln for ln in tarrant))
@@ -74,13 +80,18 @@ class CoverageMapGenerator(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         data = json.loads((ROOT / "docs" / "registry" / "coverage-counties.json").read_text(encoding="utf-8"))
         hosted = sorted(f for f, c in data["counties"].items() if c["class"] == "hosted")
-        # Maryland's 24 jurisdictions, DC, Juab and Summit counties in Utah, and six Texas counties
-        self.assertEqual(len(hosted), 33)
+        # Maryland's 24 jurisdictions, DC, Juab and Summit counties in Utah, and sixteen Texas counties
+        self.assertEqual(len(hosted), 43)
         self.assertIn("11001", hosted)
         self.assertEqual([f for f in hosted if f.startswith("49")], ["49023", "49043"])
         self.assertEqual(len([f for f in hosted if f.startswith("24")]), 24)
-        # Harris, Dallas, Travis, Collin, Denton and Williamson; Tarrant (48439) is withheld
-        self.assertEqual([f for f in hosted if f.startswith("48")], sorted(["48201", "48113", "48453", "48085", "48121", "48491"]))
+        # Harris, Dallas, Travis, Collin, Denton, Williamson, Cameron, Nueces, Galveston, Jefferson, Brazos,
+        # Midland, Ector, Grayson, Guadalupe and Kaufman; Tarrant (48439) is withheld
+        self.assertEqual(
+            [f for f in hosted if f.startswith("48")],
+            sorted(["48201", "48113", "48453", "48085", "48121", "48491", "48061", "48355", "48167", "48245",
+                    "48041", "48329", "48135", "48181", "48187", "48257"]),
+        )
         tarrant = data["counties"]["48439"]
         self.assertNotEqual(tarrant["class"], "hosted")
         self.assertFalse(tarrant["hosted"])

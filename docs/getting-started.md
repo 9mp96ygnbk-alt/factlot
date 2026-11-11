@@ -8,7 +8,7 @@ FactLot IDs, fact validation, document tools and lease comps (46 tools). The MCP
 configured with `FACTLOT_REGISTRY_DB`, or the hosted API's registry service. Without one, their REST
 routes answer `503 RegistryUnavailable`. The hosted API at `https://api.factlot.com` serves the
 regions `registry_coverage` lists (Maryland, the District of Columbia, Juab and Summit counties in
-Utah, and Harris, Dallas, Travis, Collin, Denton and Williamson counties in Texas; Tarrant County is
+Utah, and sixteen Texas counties (Harris, Dallas, Travis, Collin, Denton, Williamson, Cameron, Nueces, Galveston, Jefferson, Brazos, Midland, Ector, Grayson, Guadalupe and Kaufman); Tarrant County is
 not served by the hosted registry while the publisher's terms for AI use are unclear), so it lists
 55 tools over REST (`GET /v1/tools`) and 59 over MCP: those, `search`/`fetch`/`schema_get`, and the
 hosted `report_create` (also `POST /v1/reports`; see [reports](reports.md)). A key adds

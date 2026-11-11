@@ -26,6 +26,16 @@ const HOSTED = [
   ["collin", "Collin", "085", "tx-collin-cad", "ccad_prop_id"],
   ["denton", "Denton", "121", "tx-denton-cad", "dcad_prop_id"],
   ["williamson", "Williamson", "491", "tx-williamson-cad", "wcad_property_id"],
+  ["cameron", "Cameron", "061", "tx-cameron-cad", "cameron_prop_id"],
+  ["nueces", "Nueces", "355", "tx-nueces-cad", "ncad_prop_id"],
+  ["galveston", "Galveston", "167", "tx-galveston-cad", "gcad_prop_id"],
+  ["jefferson", "Jefferson", "245", "tx-jefferson-cad", "jcad_prop_id"],
+  ["brazos", "Brazos", "041", "tx-brazos-cad", "brazoscad_prop_id"],
+  ["midland", "Midland", "329", "tx-midland-cad", "midland_webprop_id"],
+  ["ector", "Ector", "135", "tx-ector-cad", "ector_account_number"],
+  ["grayson", "Grayson", "181", "tx-grayson-cad", "grayson_prop_id"],
+  ["guadalupe", "Guadalupe", "187", "tx-guadalupe-cad", "gcad_gco_prop_id"],
+  ["kaufman", "Kaufman", "257", "tx-kaufman-cad", "kaufman_prop_id"],
 ] as const;
 
 // registry/sources/texas.json holds the first counties; later ones have a file in tx/.
@@ -80,6 +90,14 @@ const counties = HOSTED.map(([slug, name, fips, sourceId, system]) => {
       )
       .all(system)[0]?.n,
   );
+  const dataAsOf = String(
+    db
+      .prepare(
+        `select max(f.as_of) a from crosswalk c join current_facts f on f.subject = c.urn
+         and f.predicate = 'parcel.apn' where c.system = ?`,
+      )
+      .all(system)[0]?.a,
+  );
   return {
     slug,
     name,
@@ -93,6 +111,7 @@ const counties = HOSTED.map(([slug, name, fips, sourceId, system]) => {
     redistribution: src.redistribution,
     terms_reviewed: src.reviewed,
     hosted_parcels: hosted,
+    data_as_of: dataAsOf,
     rolls,
     neighborhood_code_parcels: nb,
     neighborhood_tier: nb > 0,

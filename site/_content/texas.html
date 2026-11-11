@@ -1,9 +1,8 @@
 <p class="lede">
-  FactLot's hosted registry holds commercial parcels from six Texas counties,
-  with cited roll values (one roll year per county today), organisation owners
-  only, and the Texas Comptroller entities that own a hosted parcel. Alongside
-  it are tools for the protest-deadline rule and the unequal-appraisal
-  arithmetic.
+  FactLot's hosted registry holds commercial parcels from {{COUNTY_COUNT}} Texas
+  counties, with cited roll values by tax year, organisation owners only, and
+  the Texas Comptroller entities that own a hosted parcel. Alongside it are
+  tools for the protest-deadline rule and the unequal-appraisal arithmetic.
 </p>
 <p>
   FactLot is software. It is not a property tax consultant under Texas
@@ -14,80 +13,16 @@
 </p>
 
 <h2 id="hosted">What is hosted in Texas</h2>
-<table>
-  <caption class="visually-hidden">
-    Hosted Texas counties
-  </caption>
-  <thead>
-    <tr>
-      <th scope="col">County</th>
-      <th scope="col">Commercial parcels</th>
-      <th scope="col">Roll</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th scope="row">Harris</th>
-      <td>87,717</td>
-      <td>one roll year</td>
-    </tr>
-    <tr>
-      <th scope="row">Dallas</th>
-      <td>59,645</td>
-      <td>one roll year</td>
-    </tr>
-    <tr>
-      <th scope="row">Travis</th>
-      <td>30,556</td>
-      <td>one roll year</td>
-    </tr>
-    <tr>
-      <th scope="row">Collin</th>
-      <td>18,035</td>
-      <td>one roll year</td>
-    </tr>
-    <tr>
-      <th scope="row">Denton</th>
-      <td>13,304</td>
-      <td>one roll year (2027 preliminary)</td>
-    </tr>
-    <tr>
-      <th scope="row">Williamson</th>
-      <td>11,758</td>
-      <td>one roll year (2027 preliminary)</td>
-    </tr>
-    <tr>
-      <th scope="row">Total</th>
-      <td>221,015</td>
-      <td></td>
-    </tr>
-  </tbody>
-</table>
+{{HOSTED_TABLE}}
 <p>
-  Each of the six counties holds one roll year. Every fact cites the roll it was
-  read from. Tarrant County is not served by the hosted registry while the
-  publisher's terms for AI use are unclear. <code>registry_coverage</code> lists
-  exactly what is hosted, and the <a href="/coverage/">coverage map</a> shows
-  every county.
+  {{ROLL_SENTENCE}} Every fact cites the roll it was read from. Tarrant County
+  is not served by the hosted registry while the publisher's terms for AI use
+  are unclear. <code>registry_coverage</code> lists exactly what is hosted, and
+  the <a href="/coverage/">coverage map</a> shows every county.
 </p>
 
 <h2 id="counties">County pages</h2>
-<ul>
-  <li>
-    <a href="/texas/harris/">Harris</a> (<a href="/texas/harris/example/"
-      >worked example</a
-    >)
-  </li>
-  <li>
-    <a href="/texas/dallas/">Dallas</a> (<a href="/texas/dallas/example/"
-      >worked example</a
-    >)
-  </li>
-  <li><a href="/texas/travis/">Travis</a></li>
-  <li><a href="/texas/collin/">Collin</a></li>
-  <li><a href="/texas/denton/">Denton</a></li>
-  <li><a href="/texas/williamson/">Williamson</a></li>
-</ul>
+{{COUNTY_LINKS}}
 
 <h2 id="status">Other Texas districts</h2>
 {{OTHER_DISTRICTS}}

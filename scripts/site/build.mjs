@@ -18,6 +18,10 @@ import {
   exampleDescription,
   exampleTitle,
   otherDistrictsTable,
+  countWord,
+  hubHostedTable,
+  hubRollSentence,
+  hubCountyLinks,
 } from "./texas-pages.mjs";
 
 const root = path.resolve(
@@ -512,20 +516,34 @@ ${rows
 
 // --- /texas/ hub ------------------------------------------------------------------------------------
 
-addPage(
-  {
-    urlPath: "/texas/",
-    title: "Texas commercial property data and tools | FactLot",
-    description:
-      "What FactLot hosts for Texas: 221,015 commercial parcels in six counties, the unequal-appraisal calculator, the protest-deadline rule, reports, and how to connect.",
-    h1: "Texas",
-    crumbs: [["/texas/", "Texas"]],
-    body: fill(read("site/_content/texas.html"), {
-      OTHER_DISTRICTS: otherDistrictsTable(),
-    }),
-  },
-  ["site/_content/texas.html"],
-);
+{
+  const hubCounties = readJson("site/_data/texas-counties.json").counties;
+  const hubExamples = readJson("site/_data/texas-examples.json").examples.map(
+    (e) => e.county,
+  );
+  const hubTotal = hubCounties.reduce((a, c) => a + c.hosted_parcels, 0);
+  addPage(
+    {
+      urlPath: "/texas/",
+      title: "Texas commercial property data and tools | FactLot",
+      description: `What FactLot hosts for Texas: ${hubTotal.toLocaleString("en-US")} commercial parcels in ${countWord(hubCounties.length)} counties, the unequal-appraisal calculator, the protest-deadline rule, reports, and how to connect.`,
+      h1: "Texas",
+      crumbs: [["/texas/", "Texas"]],
+      body: fill(read("site/_content/texas.html"), {
+        COUNTY_COUNT: countWord(hubCounties.length),
+        HOSTED_TABLE: hubHostedTable(hubCounties),
+        ROLL_SENTENCE: hubRollSentence(hubCounties),
+        COUNTY_LINKS: hubCountyLinks(hubCounties, hubExamples),
+        OTHER_DISTRICTS: otherDistrictsTable(),
+      }),
+    },
+    [
+      "site/_content/texas.html",
+      "site/_data/texas-counties.json",
+      "scripts/site/texas-pages.mjs",
+    ],
+  );
+}
 
 // --- /texas/<county>/ and /texas/<county>/example/ ----------------------------------------------
 // Figures come from site/_data/texas-counties.json and texas-examples.json, which

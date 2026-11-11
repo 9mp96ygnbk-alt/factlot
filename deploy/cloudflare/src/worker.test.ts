@@ -4668,7 +4668,7 @@ describe("account usage, tools and page", () => {
     );
     assert.match(
       html,
-      /Texas is hosted: Harris, Dallas, Travis, Collin, Denton and Williamson counties\./,
+      /Texas is hosted: sixteen counties \(Harris, Dallas, Travis, Collin, Denton, Williamson, Cameron, Nueces, Galveston, Jefferson, Brazos, Midland, Ector, Grayson, Guadalupe and Kaufman\)\./,
     );
     assert.match(html, /What's new/);
     assert.match(html, /Get help/);

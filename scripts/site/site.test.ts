@@ -13,6 +13,9 @@ import {
   exampleBody,
   OTHER_DISTRICTS,
   otherDistrictsTable,
+  hubHostedTable,
+  hubRollSentence,
+  hubCountyLinks,
 } from "./texas-pages.mjs";
 
 const root = new URL("../../", import.meta.url);
@@ -131,16 +134,30 @@ describe("pricing page", () => {
 describe("texas hub", () => {
   const html = flat("site/_content/texas.html");
   const deadline = flat("site/_content/texas-protest-deadline.html");
-  it("lists the six hosted counties summing to 221,015", () => {
+  it("lists the sixteen hosted counties summing to 305,684", () => {
+    const data = JSON.parse(read("site/_data/texas-counties.json")) as {
+      total_hosted_parcels: number;
+      counties: { name: string; hosted_parcels: number; rolls: unknown[] }[];
+    };
+    const table = hubHostedTable(data.counties).replace(/\s+/g, " ");
     const rows = [
-      ...html.matchAll(/<th scope="row">(\w+)<\/th>\s*<td>([\d,]+)<\/td>/g),
+      ...table.matchAll(/<th scope="row">(\w+)<\/th> <td>([\d,]+)<\/td>/g),
     ].filter((m) => m[1] !== "Total");
-    assert.equal(rows.length, 6);
+    assert.equal(rows.length, 16);
     assert.equal(
       rows.reduce((a, m) => a + Number((m[2] ?? "").replaceAll(",", "")), 0),
-      221015,
+      305684,
     );
-    assert.ok(html.includes("<td>221,015</td>"));
+    assert.equal(data.total_hosted_parcels, 305684);
+    assert.ok(table.includes("<td>305,684</td>"));
+    assert.ok(html.includes("{{HOSTED_TABLE}}"));
+    // Midland has no values; the multi-year counties say so.
+    assert.ok(table.includes("no values in the publisher's file"));
+    assert.ok(table.includes("eleven roll years, 2016 to 2026"));
+    assert.ok(!html.includes("one roll year per county"));
+    assert.ok(
+      hubRollSentence(data.counties).startsWith("Six of the sixteen counties"),
+    );
   });
   it("keeps the legal disclaimers word for word", () => {
     for (const sentence of [
@@ -211,19 +228,38 @@ describe("texas county pages", () => {
   const hub = flat("site/_content/texas.html");
   const tpl = read("site/_content/texas-county.html");
   const flatten = (h: string) => h.replace(/\s+/g, " ");
-  it("cover the six hosted counties and match the hub", () => {
+  it("cover the sixteen hosted counties and match the hub", () => {
     assert.deepEqual(
       counties.map((c) => c.slug),
-      ["harris", "dallas", "travis", "collin", "denton", "williamson"],
+      [
+        "harris",
+        "dallas",
+        "travis",
+        "collin",
+        "denton",
+        "williamson",
+        "cameron",
+        "nueces",
+        "galveston",
+        "jefferson",
+        "brazos",
+        "midland",
+        "ector",
+        "grayson",
+        "guadalupe",
+        "kaufman",
+      ],
     );
+    const hubTable = hubHostedTable(counties).replace(/\s+/g, " ");
+    const hubLinks = hubCountyLinks(counties, ["harris", "dallas"]);
     for (const c of counties) {
       assert.ok(
-        hub.includes(
+        hubTable.includes(
           `<th scope="row">${c.name}</th> <td>${group(c.hosted_parcels)}</td>`,
         ),
         `hub row ${c.name}`,
       );
-      assert.ok(hub.includes(`/texas/${c.slug}/`), `hub links ${c.slug}`);
+      assert.ok(hubLinks.includes(`/texas/${c.slug}/`), `hub links ${c.slug}`);
     }
   });
   it("state exactly the numbers in texas-counties.json", () => {
@@ -234,6 +270,11 @@ describe("texas county pages", () => {
         assert.ok(body.includes(`<th scope="row">${r.tax_year}`), c.slug);
         assert.ok(body.includes(group(r.parcels)), c.slug);
       }
+      assert.equal(
+        body.includes("Values are not in the publisher's file"),
+        c.rolls.length === 0,
+        c.slug,
+      );
       assert.ok(body.includes(c.publisher.replaceAll("&", "&amp;")), c.slug);
       assert.ok(
         body.includes(`href="${c.terms_url.replaceAll("&", "&amp;")}"`),
@@ -241,7 +282,7 @@ describe("texas county pages", () => {
       );
       assert.equal(
         body.includes("Neighborhood code: not available"),
-        !c.neighborhood_tier,
+        !c.neighborhood_tier && c.rolls.length > 0,
         c.slug,
       );
     }
@@ -250,11 +291,13 @@ describe("texas county pages", () => {
       ["harris", "dallas", "travis"],
     );
   });
-  it("lists Tarrant withheld and ten districts as not yet hosted", () => {
+  it("lists Tarrant withheld and no hosted district as not yet hosted", () => {
     const t = flatten(otherDistrictsTable());
     assert.ok(t.includes("Tarrant"));
-    assert.equal(OTHER_DISTRICTS.length, 10);
-    for (const n of OTHER_DISTRICTS) assert.ok(t.includes(`>${n}</th>`), n);
+    assert.ok(t.includes("Withheld"));
+    assert.equal(OTHER_DISTRICTS.length, 0);
+    for (const c of counties) assert.ok(!t.includes(`>${c.name}</th>`), c.name);
+    assert.ok(!t.includes("not yet hosted"));
     assert.ok(hub.includes("{{OTHER_DISTRICTS}}"));
   });
   it("carry the disclaimers word for word", () => {

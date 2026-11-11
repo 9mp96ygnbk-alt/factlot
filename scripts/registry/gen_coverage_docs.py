@@ -454,7 +454,7 @@ def coverage_rows(configs: list[dict]) -> tuple[dict, dict, dict[str, list[dict]
         rows_by_state.setdefault(r["state"], []).append(r)
 
     for e in data["loads"]:
-        add_row({**e, "fips": None, "as_of_override": None})
+        add_row({**e, "fips": None, "as_of_override": e.get("as_of_override")})
     table_sources = {"ny-orpts-rolls": "NY", "md-sdat-real-property": "MD", "ut-ugrc-lir": "UT", "wi-statewide-parcels": "WI",
                      "ma-massgis-parcels": "MA"}
     owners_note = {"md-sdat-real-property": "no (withheld by the publisher)", "ut-ugrc-lir": "no (not in the file)"}
@@ -550,9 +550,10 @@ def gen_coverage(configs: list[dict]) -> str:
         "## Read this first",
         "",
         "- **Queryable today.** The hosted API at `https://api.factlot.com` answers registry lookups, on every plan, metered by plan,",
-        "  for **Maryland** (all 24 jurisdictions), the **District of Columbia**, **Juab and Summit counties in Utah** and **Harris, Dallas,",
-        "  Travis, Collin, Denton and Williamson counties in Texas** (Denton and Williamson from 2027 preliminary rolls): 349,869 parcels in 33",
-        "  counties. Call `registry_coverage` first: it lists exactly what is hosted. The DC data is also the downloadable **DC sample**, a 23.5 MB",
+        "  for **Maryland** (all 24 jurisdictions), the **District of Columbia**, **Juab and Summit counties in Utah** and **sixteen Texas",
+        "  counties** (Harris, Dallas, Travis, Collin, Denton, Williamson, Cameron, Nueces, Galveston, Jefferson, Brazos, Midland, Ector, Grayson,",
+        "  Guadalupe and Kaufman; Denton and Williamson from 2027 preliminary rolls; Midland without values, which its publisher's file lacks):",
+        "  434,538 parcels in 43 counties. Call `registry_coverage` first: it lists exactly what is hosted. The DC data is also the downloadable **DC sample**, a 23.5 MB",
         "  database file (CC BY 4.0) you can run yourself (`FACTLOT_REGISTRY_DB`). Tarrant County is not served by the hosted registry while the",
         "  publisher's terms for AI use are unclear. New York City and the rest run only on a self-hosted FactLot with a registry file, and more",
         "  hosted regions open as their terms allow. Every row says which it is.",

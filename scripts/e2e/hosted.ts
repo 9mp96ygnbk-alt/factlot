@@ -43,10 +43,12 @@ const HOSTED_REGISTRY_CASES: {
   {
     tool: "registry_coverage",
     arguments: {},
-    // Texas pack (see below): 128,854 MD, DC and UT parcels plus 221,015 Texas parcels in six counties.
+    // Pack of 2026-11-10 (manifest coverage_result.totals): 128,854 MD, DC and UT parcels plus
+    // 305,684 Texas parcels in sixteen counties; 93,689 entities.
     expect: {
-      "totals.parcels": 349869,
-      "totals.counties": 33,
+      "totals.parcels": 434538,
+      "totals.entities": 93689,
+      "totals.counties": 43,
       "hosted.withheld_counties.0.region": "us-48439",
     },
   },
@@ -80,9 +82,10 @@ const HOSTED_REGISTRY_CASES: {
     tool: "registry_owned_by",
     arguments: { entity_urn: "fl:entity:us-dc:c00008141728" },
   },
-  // Texas. Values from the pack built 2026-11-07 from tx-2026-11-07.db (with md.db, ut.db, dc.db;
-  // --exclude-county 48439): Harris, Dallas, Travis and Collin 2026 rolls, Denton and Williamson 2027
-  // preliminary rolls, the Comptroller entities that own a hosted parcel.
+  // Texas. Values from the pack of 2026-11-10 (release-2026-11-10 tx.db with md.db, ut.db, dc.db;
+  // Tarrant 48439 withheld): sixteen counties, Denton and Williamson 2027 preliminary rolls, the
+  // Comptroller entities that own a hosted parcel. Expectations were computed with runTool on the
+  // release copies.
   {
     tool: "registry_get",
     arguments: { urn: "fl:parcel:us-48201:0180580000001" },
@@ -92,6 +95,48 @@ const HOSTED_REGISTRY_CASES: {
       "value_history.0.tax_year": 2026,
       "value_history.0.market_value": 2748333,
     },
+  },
+  {
+    tool: "registry_get",
+    arguments: { urn: "fl:parcel:us-48201:0011440000001" },
+    expect: {
+      status: "current",
+      kind: "parcel",
+      "value_history.0.tax_year": 2026,
+      "value_history.0.market_value": 303755215,
+    },
+  },
+  // Brazos holds eleven roll years (2016 to 2026): value_history runs newest first.
+  {
+    tool: "registry_get",
+    arguments: { urn: "fl:parcel:us-48041:100022" },
+    expect: {
+      status: "current",
+      kind: "parcel",
+      "value_history.0.tax_year": 2026,
+      "value_history.0.market_value": 1268807,
+      "value_history.10.tax_year": 2016,
+      "value_history.10.market_value": 521990,
+    },
+  },
+  {
+    tool: "registry_tx_equity_candidates",
+    arguments: { urn: "fl:parcel:us-48041:100022" },
+    expect: {
+      "selection.tax_year": 2026,
+      "selection.available_tax_years.0": 2026,
+      "selection.available_tax_years.10": 2016,
+      "selection.roll_sources.0": "tx-brazos-cad",
+      "selection.returned": 38,
+      "candidates.0.id": "fl:parcel:us-48041:96141",
+      "sources.0.rights.attribution": "Brazos Central Appraisal District",
+    },
+  },
+  // Midland: the parcel is held, its publisher's file has no values.
+  {
+    tool: "registry_get",
+    arguments: { urn: "fl:parcel:us-48329:r000000017" },
+    expect: { status: "current", kind: "parcel" },
   },
   {
     tool: "registry_resolve_parcel",

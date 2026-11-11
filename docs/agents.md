@@ -188,7 +188,7 @@ carries this in `disclaimer` (it is not repeated in `warnings`); pass it on.
 | Fact package              | `fact_package_create`                                                                                      |
 | Hearing evidence dates    | draft rule `tx_protest_evidence_dates` (SDKs only, not a tool; [docs](rules/tx-protest-evidence-dates.md)) |
 
-**Coverage.** The hosted API serves Harris, Dallas, Travis, Collin, Denton and Williamson counties (Denton and Williamson from 2027 preliminary rolls); `registry_coverage` lists exactly what is hosted. Tarrant County is not served by the hosted registry while the publisher's terms for AI use are unclear. A self-hosted FactLot with a Texas registry file
+**Coverage.** The hosted API serves Harris, Dallas, Travis, Collin, Denton, Williamson, Cameron, Nueces, Galveston, Jefferson, Brazos, Midland, Ector, Grayson, Guadalupe and Kaufman counties (Denton and Williamson from 2027 preliminary rolls; Midland has no values because its publisher's file has none); `registry_coverage` lists exactly what is hosted. Tarrant County is not served by the hosted registry while the publisher's terms for AI use are unclear. A self-hosted FactLot with a Texas registry file
 (`FACTLOT_REGISTRY_DB`) answers the same tools for the districts it holds. For a county that is not
 covered, the user reads values from the appraisal district's own property search and passes them
 to the calculator directly.
