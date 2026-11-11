@@ -257,10 +257,16 @@
   <li>
     Registry lookups are on every plan, metered by plan: 25 a day per IP address
     on the free tier, 5,000 a month on Pro and 100,000 a month on Team. A lookup
-    is one answered call to a <code>registry_</code> tool.
-    <code>registry_coverage</code>, coverage misses (a county or system that is
-    not loaded) and input errors are not counted. Call
-    <code>registry_coverage</code> first: it lists what is hosted. The
+    is one answered call to a <code>registry_</code> tool. Two registry features
+    are for Pro and Team: the full multi-year value history from
+    <code>registry_get</code> (the free tier gets the current roll year, and the
+    answer says what was left out) and
+    <code>registry_tx_equity_candidates_batch</code> (without a key it answers
+    PlanRequired, and the answer links the
+    <a href="/pricing/">pricing page</a>). <code>registry_coverage</code>,
+    coverage misses (a county or system that is not loaded) and input errors are
+    not counted. Call <code>registry_coverage</code> first: it lists what is
+    hosted. The
     <a
       href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/registry/coverage.md"
       >coverage page</a

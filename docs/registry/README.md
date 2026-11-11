@@ -93,7 +93,7 @@ that date: the facts and ownership links current then, and the status then (`not
 before any snapshot covered the record). With `include_history` as well, the history stops at that
 date. The building roll-up and crosswalk IDs are the file's current ones. `include_history` lists
 every fact, current ones included, so on a file that loaded each source once (the DC sample) it
-returns the current facts again: there is nothing superseded yet.
+returns the current facts again: there is nothing superseded yet. On the hosted API, a call without a Pro or Team key gets the current roll year only in `value_history` and in `include_history`'s `history`, with `history_available` and `history_note` saying what was left out.
 
 **Area checks.** `registry_get` returns a parcel's area facts as the source publishes them and adds
 a `warnings` list (empty when nothing is wrong) when they fail a sanity check:

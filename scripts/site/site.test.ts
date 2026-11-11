@@ -132,6 +132,33 @@ describe("pricing page", () => {
     assert.ok(html.includes("api.factlot.com/billing/checkout?plan=pro"));
     assert.ok(html.includes("api.factlot.com/billing/checkout?plan=team"));
   });
+  it("has both Pro checkout links and states the two gated things and what stays free", () => {
+    const hrefs = [
+      ...html.matchAll(/href="([^"]*billing\/checkout[^"]*)"/g),
+    ].map((m) => m[1]);
+    assert.deepEqual(hrefs, [
+      "https://api.factlot.com/billing/checkout?plan=pro",
+      "https://api.factlot.com/billing/checkout?plan=pro&amp;interval=year",
+      "https://api.factlot.com/billing/checkout?plan=team",
+    ]);
+    const pro = read("deploy/cloudflare/src/plans.ts");
+    assert.match(pro, /cents: 49000/);
+    assert.match(pro, /monthlyCents: 4900/);
+    assert.ok(html.includes("$49 a month, or $490 a year"));
+    assert.ok(html.includes("two months free"));
+    assert.ok(html.includes("Every tax year and every snapshot"));
+    assert.ok(html.includes("The current roll year only"));
+    assert.ok(html.includes("registry_tx_equity_candidates_batch"));
+    assert.ok(html.includes('id="stays-free"'));
+    assert.ok(html.includes("What you would otherwise use"));
+    assert.ok(!/limited time|testimonial|hurry|last chance/i.test(html));
+  });
+  it("matches the gating the Worker applies", () => {
+    const gating = read("deploy/cloudflare/src/gating.ts");
+    assert.match(gating, /endsWith\("_batch"\)/);
+    assert.match(gating, /startsWith\("registry_"\)/);
+    assert.match(gating, /HISTORY_TOOL = "registry_get"/);
+  });
 });
 
 describe("texas hub", () => {

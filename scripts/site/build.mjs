@@ -335,7 +335,7 @@ addPage(
     urlPath: "/pricing/",
     title: "Pricing: hosted plans and registry lookups | FactLot",
     description:
-      "FactLot's hosted API: Free, Pro ($49 a month) and Team ($599 a month). Request rates, registry lookups, reports, what counts as a lookup, and how to cancel.",
+      "FactLot's hosted API: Free, Pro ($49 a month or $490 a year) and Team ($599 a month). What each plan includes, request rates, registry lookups, reports, what counts as a lookup, and how to cancel.",
     h1: "Pricing",
     crumbs: [["/pricing/", "Pricing"]],
     body: fill(read("site/_content/pricing.html"), { REPO }),

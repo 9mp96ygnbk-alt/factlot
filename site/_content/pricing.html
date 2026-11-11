@@ -1,9 +1,11 @@
 <p class="lede">
   The tools are open source and free to run yourself, with no limits. The hosted
-  endpoint at <code>https://api.factlot.com</code> saves you running it. Every
-  plan has every tool, except that the two model-backed tools are for Pro and
-  Team. Plans differ in request rate, registry lookups, reports, model-backed
-  tools, keys and support.
+  endpoint at <code>https://api.factlot.com</code> saves you running it. Free,
+  with no key, has every calculator, ID, fact, rules and document tool. Three
+  things are for Pro and Team only: the full multi-year value history from
+  <code>registry_get</code>, the batch lookup for working many parcels at once,
+  and the two model-backed tools. Plans also differ in request rate, registry
+  lookups, reports, keys and support.
 </p>
 
 <table>
@@ -22,7 +24,7 @@
     <tr>
       <th scope="row">Price</th>
       <td>$0, no key</td>
-      <td>$49 a month</td>
+      <td>$49 a month, or $490 a year</td>
       <td>$599 a month</td>
     </tr>
     <tr>
@@ -42,6 +44,21 @@
       <td>25 a day per IP address</td>
       <td>5,000 a month</td>
       <td>100,000 a month</td>
+    </tr>
+    <tr>
+      <th scope="row">Value history from <code>registry_get</code></th>
+      <td>The current roll year only</td>
+      <td>Every tax year and every snapshot</td>
+      <td>Every tax year and every snapshot</td>
+    </tr>
+    <tr>
+      <th scope="row">
+        Batch lookup of many parcels
+        (<code>registry_tx_equity_candidates_batch</code>)
+      </th>
+      <td>Not included; one parcel per call</td>
+      <td>Included, up to 50 parcels per call</td>
+      <td>Included, up to 50 parcels per call</td>
     </tr>
     <tr>
       <th scope="row">Reports</th>
@@ -71,7 +88,13 @@
           class="button primary"
           rel="nofollow"
           href="https://api.factlot.com/billing/checkout?plan=pro"
-          >Start Pro</a
+          >Start Pro monthly, $49</a
+        >
+        <a
+          class="button primary"
+          rel="nofollow"
+          href="https://api.factlot.com/billing/checkout?plan=pro&amp;interval=year"
+          >Start Pro yearly, $490</a
         >
       </td>
       <td>
@@ -86,9 +109,11 @@
   </tbody>
 </table>
 <p class="small">
-  Pro: $49 a month, renews monthly until cancelled. Cancel any time. Team: $599
-  a month, renews monthly until cancelled. Cancel any time.
-  <a href="/terms#billing">Terms</a>
+  Pro monthly: $49 a month, renews monthly until cancelled. Cancel any time. Pro
+  yearly: $490 a year, renews yearly until cancelled; two months free compared
+  with twelve monthly payments of $49 ($588). Same limits and features as
+  monthly Pro. Team: $599 a month, renews monthly until cancelled. Cancel any
+  time. <a href="/terms#billing">Terms</a>
 </p>
 <p>
   The calculators, ID, fact, rules and document tools never count toward a
@@ -97,6 +122,50 @@
   email <a href="mailto:contact@factlot.com">contact@factlot.com</a>. A registry
   download licence is $2,400 a year per state file, refreshed weekly, for
   internal use (not redistribution), available on request.
+</p>
+
+<h2 id="paid-features">What Pro and Team add</h2>
+<ul>
+  <li>
+    <strong>Full multi-year value history.</strong> On the free tier,
+    <code>registry_get</code> returns a parcel's market and appraised value for
+    the current roll year only, and <code>include_history</code> returns only
+    the current facts; the answer says what was left out and links here. With a
+    Pro or Team key it returns every tax year and every snapshot.
+  </li>
+  <li>
+    <strong>Batch lookup for many parcels at once.</strong>
+    <code>registry_tx_equity_candidates_batch</code> takes up to 50 parcels in
+    one call. Without a Pro or Team key it answers PlanRequired and counts
+    nothing; you can call <code>registry_tx_equity_candidates</code> once per
+    parcel within the free daily lookups. With a key, each answered parcel
+    counts as one registry lookup.
+  </li>
+</ul>
+<h2 id="stays-free">What stays free</h2>
+<ul>
+  <li>
+    Every calculator, ID, fact, rules and document tool, including the batch
+    forms of the CAM reconciliation and the Texas protest deadline tools.
+  </li>
+  <li>
+    <code>registry_coverage</code>, and <code>registry_get</code>,
+    <code>registry_resolve_parcel</code>, the address, entity and owner
+    searches, within 25 registry lookups a day per IP address.
+  </li>
+  <li>
+    <code>registry_tx_equity_candidates</code>, one parcel per call, within the
+    same free lookups; the subject it returns carries its market and appraised
+    value by tax year.
+  </li>
+  <li>
+    3 reports a month per IP address, including the Texas evidence packet and
+    workbook.
+  </li>
+</ul>
+<p>
+  FactLot provides tools and data: candidates are listed under a stated default
+  rule for a person to review, and nothing here is an appraisal or advice.
 </p>
 
 <h2 id="alternatives">What you would otherwise use</h2>
@@ -176,9 +245,9 @@
   </li>
   <li>
     <code>registry_tx_equity_candidates_batch</code> counts one lookup per
-    answered subject: it needs one free lookup per subject to run (a batch
-    larger than what remains is refused whole), and subjects with an error are
-    given back.
+    answered subject: it needs one lookup per subject left in the allowance to
+    run (a batch larger than what remains is refused whole), and subjects with
+    an error are given back. It is part of Pro and Team.
   </li>
   <li>
     Without a key, 25 lookups a day per IP address (stored only as a hash; IPv6
@@ -210,10 +279,10 @@
   <a href="https://factlot.com/account">factlot.com/account</a>, in the Stripe
   billing portal, or by email to contact@factlot.com with the subject "Cancel"
   from your account email. Cancelling stops the next renewal, and your keys work
-  to the end of the month you have paid for. There are no refunds for a partial
-  month; if you are charged in error, for example twice, the wrong amount, or
-  after you cancelled, email us and we will correct it. See the
-  <a href="/terms#billing">terms</a> and the
+  to the end of the period you have paid for (a month, or a year on Pro yearly).
+  There are no refunds for a partial month; if you are charged in error, for
+  example twice, the wrong amount, or after you cancelled, email us and we will
+  correct it. See the <a href="/terms#billing">terms</a> and the
   <a href="/privacy">privacy notice</a>.
 </p>
 <p>

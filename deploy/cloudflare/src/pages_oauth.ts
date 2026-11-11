@@ -94,7 +94,7 @@ ${whoIsAsking(view)}
 ${emailBlock}
 <section class="step" aria-labelledby="h-free"><h2 id="h-free">No plan?</h2>
 <div class="buttons"><button type="submit" class="button" name="decision" value="free" formnovalidate>Continue on the free tier</button></div>
-<p class="small">Every tool, ${n(ANONYMOUS_REQUESTS_PER_MINUTE)} requests a minute and ${n(ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY)} registry lookups a day for this connection. Paid plans: <a href="https://factlot.com/#pricing">factlot.com/#pricing</a>.</p>
+<p class="small">Every tool except the two model-backed tools and the registry batch lookup, ${n(ANONYMOUS_REQUESTS_PER_MINUTE)} requests a minute and ${n(ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY)} registry lookups a day for this connection, with the current roll year's value history. Paid plans: <a href="https://factlot.com/pricing/">factlot.com/pricing</a>.</p>
 </section>
 <div class="buttons"><button type="submit" class="link" name="decision" value="deny" formnovalidate>Cancel and go back</button></div>
 </form>

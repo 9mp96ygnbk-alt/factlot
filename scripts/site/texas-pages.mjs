@@ -118,8 +118,8 @@ ${rolls}
       ? `<li>Neighborhood code: the roll gives ${int.format(c.neighborhood_code_parcels)} of this county's parcels a neighborhood code, so candidates sharing the subject's code come first, then its ZIP code, then the rest of the county only if fewer than 10 are found.</li>`
       : `<li>Neighborhood code: not available for ${esc(c.name)} County, so the first tier is skipped. Candidates share the subject's ZIP code first, then the rest of the county only if fewer than 10 are found.</li>`;
   const tools = `<ul>
-<li><code>registry_get</code>: a parcel in ${esc(c.name)} County by FactLot ID, with its cited roll facts.</li>
-<li><code>registry_tx_equity_candidates</code> and its batch form: candidates under FactLot's default rule, for a person to review. Tiers here:
+<li><code>registry_get</code>: a parcel in ${esc(c.name)} County by FactLot ID, with its cited roll facts. Value history by tax year: every year with a Pro or Team key, the current roll year without one.</li>
+<li><code>registry_tx_equity_candidates</code> and its batch form (Pro and Team): candidates under FactLot's default rule, for a person to review; one parcel per call is within the free lookups. Tiers here:
 <ul>
 ${tiers}
 </ul>

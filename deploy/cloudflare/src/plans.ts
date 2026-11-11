@@ -26,9 +26,9 @@ export interface Plan {
 export const ANONYMOUS_REQUESTS_PER_MINUTE = 60;
 /** Registry lookups per UTC day for one client address (IPv6: per /64) without a key. */
 export const ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY = 25;
-export const PRICING_URL = "https://factlot.com/#pricing";
+export const PRICING_URL = "https://factlot.com/pricing/";
 /** Where plan rules (history, batch) are listed; used in the notes the gating adds. */
-export const GATING_PRICING_URL = "https://factlot.com/pricing/";
+export const GATING_PRICING_URL = PRICING_URL;
 
 /** Paid gating (Worker variable GATING_ENABLED = "true"; off when unset). */
 export function gatingEnabled(env: { GATING_ENABLED?: string }): boolean {
@@ -91,7 +91,7 @@ export const QUOTA_RULES = {
   counted:
     "A lookup is one answered call to a registry_* tool: a record, a resolved ID, owners, or a search that ran inside loaded coverage (even with no results). Free: registry_coverage, input errors, misses outside loaded coverage (county, state, entity registry or ID system not loaded) and calls the registry could not answer.",
   batch:
-    "registry_tx_equity_candidates_batch counts one lookup per answered subject: it needs one free lookup per subject to run (a batch larger than what remains is refused whole), and subjects with an error are given back.",
+    "registry_tx_equity_candidates_batch counts one lookup per answered subject: it needs one lookup per subject left in the allowance to run (a batch larger than what remains is refused whole), and subjects with an error are given back.",
   free: `Without a key, ${ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY} lookups a day per IP address (stored only as a hash; IPv6 per /64), counted per UTC day and reset at 00:00 UTC.`,
   paid: "With a key, lookups count per subscription per calendar month (UTC), shared by all of its keys; requests a minute count per key.",
   at_cap:
@@ -140,10 +140,20 @@ export function publicPlans(checkoutBase: string, gating = false) {
   };
   if (!gating) return plans;
   const pro = (plans as Record<string, Record<string, unknown>>).pro!;
+  const team = (plans as Record<string, Record<string, unknown>>).team!;
   return {
     ...plans,
+    free: {
+      ...plans.free,
+      note: `${plans.free.note} Registry value history is limited to the current roll year, and registry batch tools need Pro or Team.`,
+    },
+    team: {
+      ...team,
+      note: `${String(team.note)} Includes full registry value history and registry batch tools.`,
+    },
     pro: {
       ...pro,
+      note: `${String(pro.note)} Includes full registry value history and registry batch tools.`,
       price_yearly: `$${PRO_YEARLY.cents / 100} per year`,
       checkout_yearly: `${checkoutBase}/billing/checkout?plan=pro&interval=year`,
     },
@@ -155,6 +165,7 @@ export const GATING_INFO = {
   enabled: true,
   free_history: "current roll year only",
   batch: "Pro and Team",
+  pricing: GATING_PRICING_URL,
 };
 
 // --- Model-backed tools ---------------------------------------------------------------------------

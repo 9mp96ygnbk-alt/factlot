@@ -455,7 +455,7 @@ of `results` is that subject's answer from `registry_tx_equity_candidates` (minu
 `selection.rule`, given once at the top) or that subject's error, so one parcel outside Texas, in
 Tarrant County or not in the registry does not fail the others. It returns candidates per subject
 only and never runs `calc_tx_unequal_appraisal`: a person still chooses each subject's comparables.
-On the hosted API each answered subject counts as one registry lookup. Likewise
+On the hosted API it is part of Pro and Team (without a key it answers `PlanRequired`, with the pricing link; call `registry_tx_equity_candidates` once per subject within the free lookups), and each answered subject counts as one registry lookup. Likewise
 `rules_tx_property_tax_protest_deadline_batch` takes up to 200 `items` (`id`, `tax_year`,
 optional `notice_delivered_date`, plus one optional `as_of` for all) and answers each under
 `rules.tx.property_tax_protest_deadline@2` exactly as the single tool would, with an invalid item

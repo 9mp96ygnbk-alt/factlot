@@ -25,7 +25,7 @@ export function isBatchRegistryTool(name: unknown): name is string {
   );
 }
 
-const HISTORY_NOTE = `Value history before the current roll year is part of Pro and Team: ${GATING_PRICING_URL}`;
+const HISTORY_NOTE = `This answer was shortened because the call has no Pro or Team key: value_history (and history, if asked for) keep the current roll year only, and earlier years were left out. A Pro or Team key returns every year: ${GATING_PRICING_URL}`;
 
 /** PlanRequired for a batch tool, in the shape the model-backed tools use. */
 export function batchPlanRequired(tool: string): { status: 403; body: Json } {
@@ -34,7 +34,7 @@ export function batchPlanRequired(tool: string): { status: 403; body: Json } {
     body: {
       error: "PlanRequired",
       code: "PlanRequired",
-      message: `${tool} answers many subjects in one call, so it is part of the paid plans: Pro and Team. The single-subject registry tools stay available within the free daily lookups.`,
+      message: `${tool} answers many subjects in one call, so it is part of the paid plans: Pro and Team. Nothing was counted. The single-subject registry tools stay available within the free daily lookups.`,
       next: `send a Pro or Team key as Authorization: Bearer <key> (${GATING_PRICING_URL}), or call the single-subject tool once per subject`,
       upgrade: GATING_PRICING_URL,
     },

@@ -31,12 +31,16 @@
 <ul>
   <li>
     <code>registry_get</code>: a parcel, legal entity or building by FactLot ID,
-    with its status, current cited facts and ownership links.
+    with its status, current cited facts and ownership links. A parcel's value
+    history by tax year is every year with a Pro or Team key and the current
+    roll year without one.
   </li>
   <li>
-    <code>registry_tx_equity_candidates</code> (and its batch form): candidate
-    comparables for a subject parcel under a stated default rule, returned in
-    the input shape of the calculator below for a person to review and edit.
+    <code>registry_tx_equity_candidates</code> (and its batch form, which is for
+    Pro and Team): candidate comparables for a subject parcel under a stated
+    default rule, returned in the input shape of the calculator below for a
+    person to review and edit. One parcel per call is within the free lookups,
+    and the subject it returns carries its value history by tax year.
   </li>
   <li>
     <code>calc_tx_unequal_appraisal</code>: the arithmetic of Tax Code

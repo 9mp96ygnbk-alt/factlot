@@ -1465,7 +1465,7 @@ describe("router", () => {
     assert.equal(over.status, 429);
     assert.match(
       ((await over.json()) as { message: string }).message,
-      /factlot\.com\/#pricing/,
+      /factlot\.com\/pricing\//,
     );
     assert.equal(
       (await call(e, api, "/v1/calc/irr", { ip: "198.51.100.1" })).status,
@@ -1785,7 +1785,7 @@ describe("registry quota", () => {
     assert.equal(body.error, "RegistryQuotaExceeded");
     assert.equal(body.limit, 25);
     assert.equal(body.resets_at, "2026-11-08T00:00:00.000Z");
-    assert.equal(body.upgrade, "https://factlot.com/#pricing");
+    assert.equal(body.upgrade, "https://factlot.com/pricing/");
     assert.match(String(body.message), /25 a day per IP address/);
     assert.match(String(body.message), /2026-11-08T00:00:00\.000Z/);
     assert.match(String(body.message), /Pro .*5,000.*Team .*100,000/);
@@ -5209,6 +5209,8 @@ describe("paid gating (GATING_ENABLED)", () => {
       String(free.history_note),
       /https:\/\/factlot\.com\/pricing\//,
     );
+    assert.match(String(free.history_note), /no Pro or Team key/);
+    assert.match(String(free.history_note), /current roll year only/);
     assert.deepEqual(free.coverage, record.coverage);
     assert.deepEqual(free.facts, record.facts);
 
@@ -5265,9 +5267,17 @@ describe("paid gating (GATING_ENABLED)", () => {
       body: { subjects: [{ id: "a", urn: "x" }] },
     });
     assert.equal(res.status, 403);
-    const body = (await res.json()) as { error: string; upgrade: string };
+    const body = (await res.json()) as {
+      error: string;
+      upgrade: string;
+      message: string;
+      next: string;
+    };
     assert.equal(body.error, "PlanRequired");
     assert.equal(body.upgrade, "https://factlot.com/pricing/");
+    assert.match(body.message, /Pro and Team/);
+    assert.match(body.message, /Nothing was counted/);
+    assert.match(body.next, /https:\/\/factlot\.com\/pricing\//);
     assert.deepEqual(seen, []);
     assert.equal(
       (await e.METER.quota(await addressSubject(IP, T0), "day", 25)).used,
@@ -5416,6 +5426,33 @@ describe("paid gating (GATING_ENABLED)", () => {
     });
   });
 
+  it("the production wrangler config turns gating on, in the one vars block", () => {
+    const text = readFileSync(
+      new URL("../wrangler.jsonc", import.meta.url),
+      "utf8",
+    );
+    assert.match(text, /^\s*"GATING_ENABLED": "true",/m);
+    assert.equal(text.match(/"GATING_ENABLED"/g)?.length, 1);
+    assert.equal(text.match(/"vars"/g)?.length, 1);
+    assert.doesNotMatch(text, /^\s*"env"/m);
+  });
+
+  it("a free caller over the daily lookups is told what happened, what lifts it and where", async () => {
+    const { api } = historyApi();
+    const e = on();
+    for (let i = 0; i < 25; i++)
+      assert.equal(
+        (await call(e, api, "/v1/registry/get", { body: { urn: "x" } })).status,
+        200,
+      );
+    const over = await call(e, api, "/v1/registry/get", { body: { urn: "x" } });
+    assert.equal(over.status, 429);
+    const body = (await over.json()) as { message: string; upgrade: string };
+    assert.match(body.message, /free registry lookups for today are used up/);
+    assert.match(body.message, /Pro key .* or Team key .* lifts the cap/);
+    assert.equal(body.upgrade, "https://factlot.com/pricing/");
+  });
+
   it("the yearly lookup key maps to pro, so webhooks and rechecks give it the same limits", () => {
     assert.equal(planForLookupKey("factlot_pro_yearly_v1"), "pro");
     assert.equal(planForLookupKey("factlot_pro_monthly_v1"), "pro");
@@ -5426,8 +5463,17 @@ describe("paid gating (GATING_ENABLED)", () => {
   it("/v1/plans: gating block and the yearly price only when enabled", async () => {
     const { api } = historyApi();
     type P = {
-      gating?: { enabled: boolean; free_history: string; batch: string };
-      plans: { pro: Record<string, unknown> };
+      gating?: {
+        enabled: boolean;
+        free_history: string;
+        batch: string;
+        pricing: string;
+      };
+      plans: {
+        free: Record<string, unknown>;
+        pro: Record<string, unknown>;
+        team: Record<string, unknown>;
+      };
       quotas: unknown;
     };
     const enabled = (await (
@@ -5437,7 +5483,15 @@ describe("paid gating (GATING_ENABLED)", () => {
       enabled: true,
       free_history: "current roll year only",
       batch: "Pro and Team",
+      pricing: "https://factlot.com/pricing/",
     });
+    assert.match(String(enabled.plans.free.note), /current roll year/);
+    assert.match(
+      String(enabled.plans.free.note),
+      /batch tools need Pro or Team/,
+    );
+    for (const p of [enabled.plans.pro, enabled.plans.team])
+      assert.match(String(p.note), /full registry value history/);
     assert.equal(enabled.plans.pro.price_yearly, "$490 per year");
     assert.equal(
       enabled.plans.pro.checkout_yearly,
@@ -5447,6 +5501,7 @@ describe("paid gating (GATING_ENABLED)", () => {
       await call(env(), api, "/v1/plans", { method: "GET" })
     ).json()) as P;
     assert.equal(off.gating, undefined);
+    assert.doesNotMatch(String(off.plans.free.note), /roll year/);
     assert.equal(off.plans.pro.price_yearly, undefined);
     assert.deepEqual(off.quotas, enabled.quotas, "counting rules unchanged");
   });
