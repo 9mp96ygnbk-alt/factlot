@@ -41,6 +41,9 @@ import {
   MODEL_ALLOWANCES,
   MODEL_TOOLS,
   PLANS,
+  PRO_YEARLY,
+  gatingEnabled,
+  type BillingInterval,
   REPORTS_PER_MONTH,
   isPlanId,
   planForLookupKey,
@@ -143,13 +146,18 @@ const siteHost = (env: Env) => siteUrl(env).replace(/^https?:\/\//, "");
 export async function ensurePrice(
   d: BillingDeps,
   plan: PlanId,
+  interval: BillingInterval = "month",
 ): Promise<string> {
   const p = PLANS[plan];
-  const cacheKey = `price:${p.lookupKey}`;
+  const yearly = interval === "year";
+  if (yearly && plan !== PRO_YEARLY.plan)
+    throw new Error("only Pro has a yearly price");
+  const lookupKey = yearly ? PRO_YEARLY.lookupKey : p.lookupKey;
+  const cacheKey = `price:${lookupKey}`;
   const cached = await d.env.KEYS.get(cacheKey);
   if (cached) return cached;
   const found = (await d.stripe.get("/prices", {
-    "lookup_keys[]": p.lookupKey,
+    "lookup_keys[]": lookupKey,
     active: true,
     limit: 1,
   })) as { data?: { id: string }[] };
@@ -163,10 +171,10 @@ export async function ensurePrice(
     const price = await d.stripe.post("/prices", {
       product: String(product.id),
       currency: "usd",
-      unit_amount: p.monthlyCents,
-      "recurring[interval]": "month",
-      lookup_key: p.lookupKey,
-      nickname: `${p.name} monthly`,
+      unit_amount: yearly ? PRO_YEARLY.cents : p.monthlyCents,
+      "recurring[interval]": interval,
+      lookup_key: lookupKey,
+      nickname: `${p.name} ${yearly ? "yearly" : "monthly"}`,
       "metadata[factlot_plan]": p.id,
     });
     id = String(price.id);
@@ -181,6 +189,8 @@ export interface CheckoutExtras {
   claimId?: string;
   /** Unix seconds; Stripe accepts 30 minutes to 24 hours from now. */
   expiresAt?: number;
+  /** Billing interval; "year" is Pro only and needs paid gating on (checked by the route). */
+  interval?: BillingInterval;
 }
 
 export async function startCheckout(
@@ -188,7 +198,8 @@ export async function startCheckout(
   plan: PlanId,
   extras: CheckoutExtras = {},
 ): Promise<{ url: string; id: string }> {
-  const price = await ensurePrice(d, plan);
+  const interval = extras.interval ?? "month";
+  const price = await ensurePrice(d, plan, interval);
   const site = siteUrl(d.env);
   const session = await d.stripe.post("/checkout/sessions", {
     mode: "subscription",
@@ -202,8 +213,9 @@ export async function startCheckout(
     // Needs a terms of service URL in the Stripe dashboard (Settings > Business > Public details).
     "consent_collection[terms_of_service]": "required",
     "custom_text[terms_of_service_acceptance][message]": `I agree to the [FactLot Terms of Service](${site}/terms).`,
-    "custom_text[submit][message]": `${priceText(PLANS[plan])}, renews monthly until cancelled. Cancel any time at ${siteHost(d.env)}/account.`,
+    "custom_text[submit][message]": `${interval === "year" ? `$${PRO_YEARLY.cents / 100} a year` : priceText(PLANS[plan])}, renews ${interval === "year" ? "yearly" : "monthly"} until cancelled. Cancel any time at ${siteHost(d.env)}/account.`,
     "metadata[factlot_plan]": plan,
+    "metadata[factlot_interval]": interval === "year" ? "year" : undefined,
     "metadata[factlot_claim]": extras.claimId,
     expires_at: extras.expiresAt,
     "subscription_data[metadata][factlot_plan]": plan,
@@ -214,8 +226,9 @@ export async function startCheckout(
 export async function createCheckout(
   d: BillingDeps,
   plan: PlanId,
+  interval: BillingInterval = "month",
 ): Promise<string> {
-  return (await startCheckout(d, plan)).url;
+  return (await startCheckout(d, plan, { interval })).url;
 }
 
 /** What a Stripe subscription object says about access. */
@@ -1052,9 +1065,15 @@ export async function checkoutRoute(
 ): Promise<Response> {
   const isGet = request.method === "GET";
   let plan: unknown = url.searchParams.get("plan");
+  let interval: unknown = url.searchParams.get("interval") ?? undefined;
   if (!isGet) {
     try {
-      plan = ((await request.json()) as { plan?: unknown }).plan;
+      const body = (await request.json()) as {
+        plan?: unknown;
+        interval?: unknown;
+      };
+      plan = body.plan;
+      interval = body.interval;
     } catch {
       plan = undefined;
     }
@@ -1070,6 +1089,26 @@ export async function checkoutRoute(
           next: 'POST /v1/billing/checkout {"plan":"pro"} or {"plan":"team"}',
         });
   }
+  if (interval !== undefined && interval !== "month" && interval !== "year") {
+    const message = 'interval must be "month" or "year"';
+    return isGet
+      ? messagePage(400, "Choose a billing interval", message)
+      : json(400, { error: "BadRequest", code: "BadRequest", message });
+  }
+  if (interval === "year" && !(gatingEnabled(env) && plan === "pro")) {
+    const message = gatingEnabled(env)
+      ? 'yearly billing is available for plan "pro" only'
+      : "yearly billing is not available yet; use interval=month";
+    return isGet
+      ? messagePage(400, "Yearly billing is not available", message)
+      : json(400, {
+          error: "BadRequest",
+          code: "BadRequest",
+          message,
+          next: 'POST /v1/billing/checkout {"plan":"pro"}',
+        });
+  }
+  const billing: BillingInterval = interval === "year" ? "year" : "month";
   const d = billingDeps(env, fetchImpl, now);
   if (!d || !checkoutOpen(env))
     return isGet
@@ -1085,7 +1124,7 @@ export async function checkoutRoute(
       return new Response(null, {
         status: 303,
         headers: {
-          location: await createCheckout(d, plan),
+          location: await createCheckout(d, plan, billing),
           "cache-control": "no-store",
         },
       });
@@ -1094,11 +1133,13 @@ export async function checkoutRoute(
     const checkout = await startCheckout(d, plan, {
       claimId: claim.id,
       expiresAt: claim.expiresAt,
+      interval: billing,
     });
     await storeClaim(env, claim, checkout.id);
     return json(200, {
       url: checkout.url,
       plan,
+      ...(billing === "year" ? { interval: billing } : {}),
       claim_url: claimUrl(env, claim.token),
       expires_at: new Date(claim.expiresAt * 1000).toISOString(),
       note: "Give url to your human to pay. Then poll claim_url (GET, at most every 2 seconds): 202 while unpaid, 200 with the API key once (store it at once), 410 if it was already collected. The checkout and the claim expire at expires_at.",

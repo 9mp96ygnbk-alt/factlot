@@ -59,7 +59,7 @@ import { CLAIM_POLL_MS } from "./claim.ts";
 import { WHATS_NEW } from "./news.ts";
 import { EXTRACT_LEASE_STEP, REPORTS_STEP } from "./onboarding.ts";
 import { REPORT_RULE, escapeHtml, onboardingPage } from "./pages.ts";
-import { PLANS } from "./plans.ts";
+import { PLANS, planForLookupKey } from "./plans.ts";
 import {
   BATCH_CONCURRENCY,
   REGISTRY_RUN_URL,
@@ -4927,5 +4927,315 @@ describe("per-subject metering: registry_tx_equity_candidates_batch", () => {
     assert.deepEqual([err.needed, err.available], [50, 25]);
     const q = await e.METER.quota(await addressSubject(IP, T0), "day", 25);
     assert.equal(q.used, 0);
+  });
+});
+
+describe("paid gating (GATING_ENABLED)", () => {
+  const record = {
+    urn: "fl:parcel:us-48201:1",
+    facts: [{ id: "f2", predicate: "parcel.market_value", value: 200 }],
+    value_history: [
+      { tax_year: 2026, market_value: 200, appraised_value: 190 },
+      { tax_year: 2025, market_value: 150, appraised_value: 140 },
+      { tax_year: 2024, market_value: 100, appraised_value: 100 },
+    ],
+    history: [
+      { id: "f2", predicate: "parcel.market_value", value: 200 },
+      { id: "f1", predicate: "parcel.market_value", value: 150 },
+    ],
+    coverage: { county_loaded: true },
+  };
+  const BATCH = "registry_tx_equity_candidates_batch";
+  const BATCH_PATH = "/v1/registry/tx_equity_candidates/batch";
+
+  /** An inner handler that answers registry_get with a parcel carrying prior years. */
+  function historyApi() {
+    const seen: string[] = [];
+    const json = (b: unknown) =>
+      new Response(JSON.stringify(b), {
+        headers: { "content-type": "application/json" },
+      });
+    const api = {
+      fetch: async (r: Request) => {
+        const body = await r.text();
+        const path = new URL(r.url).pathname;
+        seen.push(path === "/mcp" ? `mcp:${body}` : path);
+        if (path === "/v1/registry/get") return json(record);
+        if (path === BATCH_PATH) return json({ results: [{ id: "a" }] });
+        if (path === "/mcp") {
+          const parsed = JSON.parse(body) as unknown;
+          const items = (Array.isArray(parsed) ? parsed : [parsed]) as {
+            id: number;
+          }[];
+          const answers = items.map((m) => ({
+            jsonrpc: "2.0",
+            id: m.id,
+            result: {
+              content: [{ type: "text", text: JSON.stringify(record) }],
+              structuredContent: record,
+            },
+          }));
+          return json(answers.length === 1 ? answers[0] : answers);
+        }
+        return json({ ok: true });
+      },
+    };
+    return { api, seen };
+  }
+
+  const on = () => env({ GATING_ENABLED: "true" });
+
+  it("REST: a free caller gets the current roll year only; Pro keeps everything", async () => {
+    const { api } = historyApi();
+    const free = (await (
+      await call(on(), api, "/v1/registry/get", { body: { urn: "x" } })
+    ).json()) as typeof record & Record<string, unknown>;
+    assert.deepEqual(free.value_history, [record.value_history[0]]);
+    assert.deepEqual(free.history, [record.history[0]]);
+    assert.equal(free.history_available, "pro");
+    assert.match(
+      String(free.history_note),
+      /https:\/\/factlot\.com\/pricing\//,
+    );
+    assert.deepEqual(free.coverage, record.coverage);
+    assert.deepEqual(free.facts, record.facts);
+
+    const e = on();
+    const { key } = await issue(e);
+    const pro = (await (
+      await call(e, api, "/v1/registry/get", { key, body: { urn: "x" } })
+    ).json()) as Record<string, unknown>;
+    assert.deepEqual(pro, record);
+  });
+
+  it("REST: flag unset or not exactly true leaves the answer as it is", async () => {
+    const { api } = historyApi();
+    for (const e of [env(), env({ GATING_ENABLED: "yes" })])
+      assert.deepEqual(
+        await (
+          await call(e, api, "/v1/registry/get", { body: { urn: "x" } })
+        ).json(),
+        record,
+      );
+  });
+
+  it("MCP: registry_get results (text and structuredContent) are cut for a free caller, in a batch too", async () => {
+    const { api } = historyApi();
+    const res = await call(on(), api, "/mcp", {
+      body: [toolCall("registry_get", 1), toolCall("calc_irr", 2)],
+    });
+    const [first] = (await res.json()) as {
+      result: { content: { text: string }[]; structuredContent: typeof record };
+    }[];
+    const text = JSON.parse(first!.result.content[0]!.text) as typeof record;
+    for (const a of [first!.result.structuredContent, text]) {
+      assert.equal(a.value_history.length, 1);
+      assert.equal(a.value_history[0]!.tax_year, 2026);
+      assert.equal(a.history.length, 1);
+      assert.equal((a as Record<string, unknown>).history_available, "pro");
+    }
+    const off = (await (
+      await call(env(), api, "/mcp", { body: toolCall("registry_get", 1) })
+    ).json()) as { result: { structuredContent: unknown } };
+    assert.deepEqual(off.result.structuredContent, record);
+    const e = on();
+    const { key } = await issue(e);
+    const pro = (await (
+      await call(e, api, "/mcp", { key, body: toolCall("registry_get", 1) })
+    ).json()) as { result: { structuredContent: unknown } };
+    assert.deepEqual(pro.result.structuredContent, record);
+  });
+
+  it("REST batch: a free caller gets 403 PlanRequired, nothing is metered and nothing reaches the registry", async () => {
+    const { api, seen } = historyApi();
+    const e = on();
+    const res = await call(e, api, BATCH_PATH, {
+      body: { subjects: [{ id: "a", urn: "x" }] },
+    });
+    assert.equal(res.status, 403);
+    const body = (await res.json()) as { error: string; upgrade: string };
+    assert.equal(body.error, "PlanRequired");
+    assert.equal(body.upgrade, "https://factlot.com/pricing/");
+    assert.deepEqual(seen, []);
+    assert.equal(
+      (await e.METER.quota(await addressSubject(IP, T0), "day", 25)).used,
+      0,
+    );
+    // Flag off: the call runs as before.
+    const off = await call(env(), api, BATCH_PATH, {
+      body: { subjects: [{ id: "a", urn: "x" }] },
+    });
+    assert.equal(off.status, 200);
+  });
+
+  it("MCP batch: a free caller's batch call answers PlanRequired as a tool error and costs no lookup; other calls in the request run", async () => {
+    const { api, seen } = historyApi();
+    const e = on();
+    const res = await call(e, api, "/mcp", {
+      body: [
+        {
+          jsonrpc: "2.0",
+          id: 1,
+          method: "tools/call",
+          params: { name: BATCH, arguments: { subjects: [{ id: "a" }] } },
+        },
+        toolCall("registry_get", 2),
+      ],
+    });
+    const answers = (await res.json()) as {
+      id: number;
+      result: { isError?: boolean; structuredContent: { error?: string } };
+    }[];
+    const refused = answers.find((a) => a.id === 1)!;
+    assert.equal(refused.result.isError, true);
+    assert.equal(refused.result.structuredContent.error, "PlanRequired");
+    assert.ok(answers.find((a) => a.id === 2));
+    assert.ok(!seen.join("").includes(BATCH), "never forwarded");
+    assert.equal(res.headers.get("x-factlot-registry-quota-remaining"), "24");
+    // Alone: no registry quota is touched at all.
+    const only = await call(on(), api, "/mcp", {
+      body: { ...toolCall(BATCH, 5), params: { name: BATCH, arguments: {} } },
+    });
+    assert.equal(only.status, 200);
+    assert.equal(only.headers.get("x-factlot-registry-quota-limit"), null);
+  });
+
+  it("batch tools stay available to Pro with gating on", async () => {
+    const { api, seen } = historyApi();
+    const e = on();
+    const { key } = await issue(e);
+    const res = await call(e, api, BATCH_PATH, {
+      key,
+      body: { subjects: [{ id: "a", urn: "x" }] },
+    });
+    assert.equal(res.status, 200);
+    assert.deepEqual(seen, [BATCH_PATH]);
+  });
+
+  describe("yearly Pro checkout", () => {
+    function yearlyStripe() {
+      let session: URLSearchParams | undefined;
+      let price: URLSearchParams | undefined;
+      const s = fakeStripe({
+        "GET /prices": () => [200, { data: [] }],
+        "POST /products": () => [200, { id: "prod_y" }],
+        "POST /prices": (b) => {
+          price = b;
+          return [200, { id: "price_year" }];
+        },
+        "POST /checkout/sessions": (b) => {
+          session = b;
+          return [
+            200,
+            { id: "cs_live_y", url: "https://checkout.stripe.com/y" },
+          ];
+        },
+      });
+      return { ...s, price: () => price, session: () => session };
+    }
+    const ask = (
+      e: ReturnType<typeof env>,
+      fetchImpl: typeof fetch,
+      method: "GET" | "POST",
+      plan: string,
+      interval?: string,
+    ) =>
+      handle(
+        method === "GET"
+          ? new Request(
+              `https://factlot.com/billing/checkout?plan=${plan}${interval ? `&interval=${interval}` : ""}`,
+            )
+          : new Request("https://api.factlot.com/v1/billing/checkout", {
+              method: "POST",
+              body: JSON.stringify({ plan, ...(interval ? { interval } : {}) }),
+              headers: { "cf-connecting-ip": IP },
+            }),
+        e,
+        innerApi().api,
+        { fetchImpl, now: () => T0 },
+      );
+
+    it("flag on: GET and POST accept interval=year and create the $490 yearly price under factlot_pro_yearly_v1", async () => {
+      const s = yearlyStripe();
+      const e = env({ STRIPE_SECRET_KEY: "sk_live_x", GATING_ENABLED: "true" });
+      const page = await ask(e, s.fetchImpl, "GET", "pro", "year");
+      assert.equal(page.status, 303);
+      assert.equal(s.price()?.get("unit_amount"), "49000");
+      assert.equal(s.price()?.get("recurring[interval]"), "year");
+      assert.equal(s.price()?.get("lookup_key"), "factlot_pro_yearly_v1");
+      assert.equal(s.session()?.get("line_items[0][price]"), "price_year");
+      assert.equal(s.session()?.get("metadata[factlot_plan]"), "pro");
+      const agent = await ask(e, s.fetchImpl, "POST", "pro", "year");
+      assert.equal(agent.status, 200);
+      assert.equal(
+        ((await agent.json()) as { interval: string }).interval,
+        "year",
+      );
+      const monthly = await ask(e, s.fetchImpl, "POST", "pro", "month");
+      assert.equal(monthly.status, 200);
+    });
+
+    it("flag on: yearly is Pro only, and the interval must be month or year", async () => {
+      const s = yearlyStripe();
+      const e = env({ STRIPE_SECRET_KEY: "sk_live_x", GATING_ENABLED: "true" });
+      assert.equal(
+        (await ask(e, s.fetchImpl, "POST", "team", "year")).status,
+        400,
+      );
+      assert.equal(
+        (await ask(e, s.fetchImpl, "POST", "pro", "week")).status,
+        400,
+      );
+      assert.equal(s.calls.length, 0, "Stripe is never asked");
+    });
+
+    it("flag off: interval=year answers 400 with a clear message and Stripe is not called", async () => {
+      const s = yearlyStripe();
+      const e = env({ STRIPE_SECRET_KEY: "sk_live_x" });
+      const agent = await ask(e, s.fetchImpl, "POST", "pro", "year");
+      assert.equal(agent.status, 400);
+      assert.match(
+        ((await agent.json()) as { message: string }).message,
+        /yearly billing is not available/,
+      );
+      const page = await ask(e, s.fetchImpl, "GET", "pro", "year");
+      assert.equal(page.status, 400);
+      assert.equal(s.calls.length, 0);
+    });
+  });
+
+  it("the yearly lookup key maps to pro, so webhooks and rechecks give it the same limits", () => {
+    assert.equal(planForLookupKey("factlot_pro_yearly_v1"), "pro");
+    assert.equal(planForLookupKey("factlot_pro_monthly_v1"), "pro");
+    assert.equal(planForLookupKey("factlot_team_monthly_v1"), "team");
+    assert.equal(planForLookupKey("factlot_team_yearly_v1"), undefined);
+  });
+
+  it("/v1/plans: gating block and the yearly price only when enabled", async () => {
+    const { api } = historyApi();
+    type P = {
+      gating?: { enabled: boolean; free_history: string; batch: string };
+      plans: { pro: Record<string, unknown> };
+      quotas: unknown;
+    };
+    const enabled = (await (
+      await call(on(), api, "/v1/plans", { method: "GET" })
+    ).json()) as P;
+    assert.deepEqual(enabled.gating, {
+      enabled: true,
+      free_history: "current roll year only",
+      batch: "Pro and Team",
+    });
+    assert.equal(enabled.plans.pro.price_yearly, "$490 per year");
+    assert.equal(
+      enabled.plans.pro.checkout_yearly,
+      "https://factlot.com/billing/checkout?plan=pro&interval=year",
+    );
+    const off = (await (
+      await call(env(), api, "/v1/plans", { method: "GET" })
+    ).json()) as P;
+    assert.equal(off.gating, undefined);
+    assert.equal(off.plans.pro.price_yearly, undefined);
+    assert.deepEqual(off.quotas, enabled.quotas, "counting rules unchanged");
   });
 });

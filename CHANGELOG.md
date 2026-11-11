@@ -15,6 +15,7 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 
 ### Added
 
+- Paid gating on the hosted API, behind the `GATING_ENABLED` Worker variable (off by default; nothing changes while it is unset). When on: keyless and free-OAuth `registry_get` answers keep only the current roll year in `value_history` and `history` and add `history_available` and `history_note`; registry batch tools (`registry_tx_equity_candidates_batch`) answer `PlanRequired` for free callers and are not metered; Pro can be billed yearly ($490 a year, Stripe price lookup key `factlot_pro_yearly_v1`, same limits as monthly Pro) through `/billing/checkout?plan=pro&interval=year`; `/v1/plans` lists the gating rules and the yearly price. Equity candidates stay available within the free daily lookups.
 - `rules_tx_property_tax_protest_deadline` (still `rules.tx.property_tax_protest_deadline@2`; every
   earlier field keeps its value): optional input `as_of` (default: the current date in US Central
   time), and in the result `as_of` (the date used), `status` (`open`, `passed` or `not_yet_open`),

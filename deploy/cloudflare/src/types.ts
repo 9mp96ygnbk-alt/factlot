@@ -178,4 +178,6 @@ export interface Env {
   ANTHROPIC_API_KEY?: string;
   /** "true" opens report_create and POST /v1/reports; anything else keeps them closed (downloads still serve). */
   REPORTS_ENABLED?: string;
+  /** "true" turns paid gating on: value history and batch registry tools for Pro and Team only. Unset: off. */
+  GATING_ENABLED?: string;
 }

@@ -14,6 +14,11 @@
 // doc_extract_lease and report_narrative (Pro and Team only). Without it they are not listed and
 // their routes answer 503 ModelUnavailable, so deploying before it is set is safe; every other
 // tool runs without a model either way. Delete the secret to turn them off again.
+// GATING_ENABLED (optional variable, not set in `vars` below, so it is off): "true" turns paid
+// gating on. Keyless and free-OAuth callers then get registry_get with the current roll year's
+// values only (value_history, history) and registry batch tools answer PlanRequired; Pro and
+// Team keep everything, and checkout accepts ?plan=pro&interval=year (price factlot_pro_yearly_v1).
+// Set it in the dashboard or with `--var GATING_ENABLED:true`; unset or any other value is off.
 //
 // OAuth 2.1 for header-less MCP clients (src/oauth.ts) needs no new binding: its records live in
 // the KEYS namespace under the `oauth:` prefix. It does need `global_fetch_strictly_public`

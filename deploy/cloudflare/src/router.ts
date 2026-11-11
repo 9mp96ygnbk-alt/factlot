@@ -94,6 +94,12 @@ import {
   recoveryState,
 } from "./recovery.ts";
 import {
+  batchPlanRequired,
+  isBatchRegistryTool,
+  limitMcpResponse,
+  limitRestResponse,
+} from "./gating.ts";
+import {
   ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY,
   ANONYMOUS_REQUESTS_PER_MINUTE,
   PLANS,
@@ -103,6 +109,8 @@ import {
   isMeteredRegistryTool,
   modelPlansInfo,
   publicPlans,
+  gatingEnabled,
+  GATING_INFO,
   reportLimits,
   type Tier,
 } from "./plans.ts";
@@ -757,7 +765,8 @@ async function route(
 
   // --- API ---------------------------------------------------------------------------------
   if (path === "/v1/plans" || (path === "/" && request.method === "GET")) {
-    const plans = publicPlans(apiBase.replace("://api.", "://"));
+    const gating = gatingEnabled(env);
+    const plans = publicPlans(apiBase.replace("://api.", "://"), gating);
     const checkout_open = checkoutOpen(env);
     const checkout = checkoutInfo(apiBase);
     if (path === "/v1/plans")
@@ -765,6 +774,7 @@ async function route(
         json(200, {
           plans,
           quotas: QUOTA_RULES,
+          ...(gating ? { gating: GATING_INFO } : {}),
           model_tools: modelPlansInfo(modelEnabled(env)),
           reports: { available: reportsEnabled(env), ...reportLimits() },
           checkout_open,
@@ -1005,6 +1015,19 @@ async function route(
   let listIds: unknown[] = [];
   let mcpBatch = false;
   let onlyAccount = false;
+  // Paid gating: a free caller's registry batch calls are refused here, never metered.
+  const gating = gatingEnabled(env);
+  const refusedBatch = (m: unknown): m is AccountCall =>
+    gating &&
+    !paid &&
+    typeof m === "object" &&
+    m !== null &&
+    (m as { method?: unknown }).method === "tools/call" &&
+    (typeof (m as { id?: unknown }).id === "string" ||
+      typeof (m as { id?: unknown }).id === "number") &&
+    isBatchRegistryTool((m as { params?: { name?: unknown } }).params?.name) &&
+    REGISTRY_NAMES.has(String((m as { params: { name: string } }).params.name));
+  let refuseRestBatch: string | undefined;
   if (path === "/mcp" && request.method === "POST") {
     // A paid caller may send a PDF to doc_extract_lease; that call is answered here, and what
     // goes on to the inner handler must still fit its 1 MB.
@@ -1037,14 +1060,18 @@ async function route(
         message:
           "invalid request: every request in a batch needs its own id (two or more share one)",
       });
-    registryRequest = items.some(callsRegistry);
+    registryRequest = items.some((m) => callsRegistry(m) && !refusedBatch(m));
     wanted = items
-      .filter(isMeteredCall)
+      .filter(
+        (m): m is { id: string | number } =>
+          isMeteredCall(m) && !refusedBatch(m),
+      )
       .reduce((n, m) => n + callReserves(m), 0);
     // Hosted tools answered here: account tools (with a key), the model-backed tools (any
     // caller: without a key they answer PlanRequired, without the model ModelUnavailable) and
     // report_create (any caller).
-    const hosted = (m: unknown) => (paid && isAccountCall(m)) || isModelCall(m);
+    const hosted = (m: unknown) =>
+      (paid && isAccountCall(m)) || isModelCall(m) || refusedBatch(m);
     if (mcpBody !== undefined) {
       accountCalls = items.filter(hosted);
       reportCalls = reportsEnabled(env) ? items.filter(isReportCall) : [];
@@ -1079,9 +1106,14 @@ async function route(
         message: "request body over 1 MB",
       });
     const tool = REGISTRY_TOOLS.get(path)!;
-    wanted = isMeteredRegistryTool(tool)
-      ? lookupsReserved(tool, parseArgs(restText))
-      : 0;
+    if (gating && !paid && isBatchRegistryTool(tool)) {
+      refuseRestBatch = tool;
+      registryRequest = false;
+    }
+    wanted =
+      isMeteredRegistryTool(tool) && !refuseRestBatch
+        ? lookupsReserved(tool, parseArgs(restText))
+        : 0;
   }
 
   // Minute limit (per address, key or connection), then registry quota (per address, free
@@ -1165,6 +1197,13 @@ async function route(
     "x-factlot-tier": tier,
     "x-ratelimit-limit": String(perMinute),
   };
+  if (refuseRestBatch) {
+    const refusal = batchPlanRequired(refuseRestBatch);
+    return withHeaders(json(refusal.status, refusal.body), {
+      ...corsHeaders(),
+      ...headers,
+    });
+  }
   let deniedError: ReturnType<typeof quotaError> | undefined;
   if (hit.quota) {
     Object.assign(headers, quotaHeaders(hit.quota));
@@ -1296,6 +1335,11 @@ async function route(
         Math.min(hit.quota.limit, hit.quota.remaining + unanswered),
       );
   }
+  // Paid gating: a free caller sees the current roll year's values only.
+  if (gating && !paid && res.status === 200) {
+    if (path === "/mcp") res = await limitMcpResponse(res, mcpBody);
+    else if (path === "/v1/registry/get") res = await limitRestResponse(res);
+  }
   if (accountCalls.length > 0 || reportCalls.length > 0 || listIds.length > 0) {
     let modelCalls = 0;
     res = await withAccountTools(
@@ -1303,15 +1347,17 @@ async function route(
       [
         ...(await Promise.all(
           accountCalls.map((m) =>
-            isModelCall(m)
-              ? answerModelCall(
-                  env,
-                  modelCaller,
-                  m,
-                  opts.model,
-                  ++modelCalls > MAX_MODEL_CALLS_PER_REQUEST,
-                )
-              : metered(answerAccountCall(env, paid!.hash, paid!.record, m)),
+            refusedBatch(m)
+              ? refusedBatchAnswer(m)
+              : isModelCall(m)
+                ? answerModelCall(
+                    env,
+                    modelCaller,
+                    m,
+                    opts.model,
+                    ++modelCalls > MAX_MODEL_CALLS_PER_REQUEST,
+                  )
+                : metered(answerAccountCall(env, paid!.hash, paid!.record, m)),
           ),
         )),
         ...(await Promise.all(
@@ -1427,6 +1473,20 @@ interface Charges {
   free: number;
   /** The calls that were charged: tool name and arguments. */
   charged: { tool: string; args: unknown }[];
+}
+
+/** The JSON-RPC answer to a refused registry batch call (a tool error, like the model-backed tools'). */
+function refusedBatchAnswer(m: AccountCall): unknown {
+  const a = batchPlanRequired(m.params.name);
+  return {
+    jsonrpc: "2.0",
+    id: m.id,
+    result: {
+      content: [{ type: "text", text: JSON.stringify(a.body, null, 2) }],
+      structuredContent: a.body,
+      isError: true,
+    },
+  };
 }
 
 function parseArgs(text: string | undefined): unknown {

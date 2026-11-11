@@ -27,6 +27,23 @@ export const ANONYMOUS_REQUESTS_PER_MINUTE = 60;
 /** Registry lookups per UTC day for one client address (IPv6: per /64) without a key. */
 export const ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY = 25;
 export const PRICING_URL = "https://factlot.com/#pricing";
+/** Where plan rules (history, batch) are listed; used in the notes the gating adds. */
+export const GATING_PRICING_URL = "https://factlot.com/pricing/";
+
+/** Paid gating (Worker variable GATING_ENABLED = "true"; off when unset). */
+export function gatingEnabled(env: { GATING_ENABLED?: string }): boolean {
+  return env.GATING_ENABLED === "true";
+}
+
+/** Pro billed yearly: the same plan and limits as monthly Pro, a different Stripe price. */
+export const PRO_YEARLY = {
+  plan: "pro" as PlanId,
+  interval: "year" as const,
+  /** USD cents per year. */
+  cents: 49000,
+  lookupKey: "factlot_pro_yearly_v1",
+};
+export type BillingInterval = "month" | "year";
 
 export const PLANS: Record<PlanId, Plan> = {
   pro: {
@@ -87,6 +104,7 @@ export function isPlanId(value: unknown): value is PlanId {
 
 /** The plan a Stripe price lookup key belongs to, if any. */
 export function planForLookupKey(lookupKey: unknown): PlanId | undefined {
+  if (lookupKey === PRO_YEARLY.lookupKey) return PRO_YEARLY.plan;
   return Object.values(PLANS).find((p) => p.lookupKey === lookupKey)?.id;
 }
 
@@ -96,8 +114,8 @@ export function priceText(plan: Plan): string {
 }
 
 /** Public plan list for agents and the site (no Stripe IDs). */
-export function publicPlans(checkoutBase: string) {
-  return {
+export function publicPlans(checkoutBase: string, gating = false) {
+  const plans = {
     free: {
       price: "$0",
       requests_per_minute: ANONYMOUS_REQUESTS_PER_MINUTE,
@@ -120,7 +138,24 @@ export function publicPlans(checkoutBase: string) {
       ]),
     ),
   };
+  if (!gating) return plans;
+  const pro = (plans as Record<string, Record<string, unknown>>).pro!;
+  return {
+    ...plans,
+    pro: {
+      ...pro,
+      price_yearly: `$${PRO_YEARLY.cents / 100} per year`,
+      checkout_yearly: `${checkoutBase}/billing/checkout?plan=pro&interval=year`,
+    },
+  };
 }
+
+/** The gating block of /v1/plans (present only when GATING_ENABLED is on). */
+export const GATING_INFO = {
+  enabled: true,
+  free_history: "current roll year only",
+  batch: "Pro and Team",
+};
 
 // --- Model-backed tools ---------------------------------------------------------------------------
 
