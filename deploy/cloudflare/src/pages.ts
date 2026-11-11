@@ -15,7 +15,16 @@ import { base64url } from "./keys.ts";
 import { HOSTING_NOTE, WHATS_NEW } from "./news.ts";
 import type { Connection } from "./oauth.ts";
 import { setupGuide, type Snippet } from "./onboarding.ts";
-import { PLANS, QUOTA_RULES, priceText, type Plan } from "./plans.ts";
+import {
+  ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY,
+  ANONYMOUS_REQUESTS_PER_MINUTE,
+  FREE_KEY_ADDRESS_LOOKUPS_PER_DAY,
+  PLANS,
+  QUOTA_RULES,
+  REPORTS_PER_MONTH,
+  priceText,
+  type Plan,
+} from "./plans.ts";
 import type { UsageSummary } from "./types.ts";
 
 export { escapeHtml };
@@ -330,6 +339,57 @@ function recoverSection(state: RecoveryState): string {
   return `<section class="step" id="recover" aria-labelledby="h-recover"><h2 id="h-recover">Lost your key?</h2>${form}</section>`;
 }
 
+export const FREE_KEY_SENT =
+  "If that address can receive email, a link is on its way. It works once and expires in 30 minutes.";
+
+function freeKeySection(state: RecoveryState): string {
+  const form =
+    state === "on"
+      ? `<p>No plan needed. A free key gives you the free limits (${ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY} registry lookups a day, ${REPORTS_PER_MONTH.anonymous} reports a month, ${ANONYMOUS_REQUESTS_PER_MINUTE} requests a minute) on your own meter instead of one shared with everyone on your network.</p>
+<form method="post" action="/account/free-key"><label for="free-email">Email</label><input id="free-email" name="email" type="email" autocomplete="email" required maxlength="254">
+<p><label><input type="checkbox" name="accept_terms" value="1" required> I accept the <a href="https://factlot.com/terms">terms</a> and <a href="https://factlot.com/privacy">privacy policy</a>.</label></p>
+<div class="buttons"><button type="submit" class="button">Email me a free key</button></div></form>
+<p class="small">We email one link, once. This is not a newsletter. A new key replaces your earlier free key.</p>`
+      : `<p>${escapeHtml(RECOVERY_SETUP_NOTICE)}</p>`;
+  return `<section class="step" id="free-key" aria-labelledby="h-free-key"><h2 id="h-free-key">Get a free key</h2>${form}</section>`;
+}
+
+export function freeKeySentPage(): Response {
+  return messagePage(202, "Check your email", FREE_KEY_SENT);
+}
+
+export function freeKeyConfirmPage(token: string): Response {
+  return page(
+    "Get a free key",
+    `<h1>Get your free key</h1>
+<p class="lead">Press the button to create your key. It is shown once on the next page, and this link then stops working. A new key replaces any earlier free key for your address.</p>
+<form method="post" action="/account/free-key/${escapeHtml(token)}"><div class="buttons"><button type="submit" class="button primary">Create my free key</button></div></form>`,
+    { formAction: "'self'" },
+  );
+}
+
+export function freeKeyIssuedPage(o: {
+  key: string;
+  replaced: boolean;
+  api: string;
+  site: string;
+}): Response {
+  const api = trim(o.api);
+  return page(
+    "Your free key",
+    `<h1>Your free key</h1>
+${o.replaced ? notice("Your earlier free key no longer works (allow a minute everywhere); this one replaces it.") : ""}
+${block("key", "", o.key, "key")}
+<p>This is your API key. It is shown <strong>once</strong>: copy it into a password manager or your agent's secret store now. FactLot keeps only a hash of it. It can take up to a minute to activate.</p>
+<h2>Use it</h2>
+<p>Send it as <code>Authorization: Bearer &lt;key&gt;</code> to the MCP server <code>${escapeHtml(api)}/mcp</code> or the REST API. Try:</p>
+${block("free-curl", "From a terminal", `curl -H "Authorization: Bearer ${o.key}" ${api}/v1/plans`)}
+<h2>Limits</h2>
+<ul class="plain"><li>${ANONYMOUS_REQUESTS_PER_MINUTE} requests a minute and ${ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY} registry lookups a day (UTC), counted for this key. All the free keys used from one network address share at most ${FREE_KEY_ADDRESS_LOOKUPS_PER_DAY} lookups a day.</li><li>${REPORTS_PER_MONTH.anonymous} reports a month.</li><li>Paid tools and account tools need a plan: <a href="${escapeHtml(trim(o.site))}/#pricing">pricing</a>.</li></ul>`,
+    { copy: true, site: o.site },
+  );
+}
+
 /** The key-entry form of /account. The key travels in a POST body, never in the URL. */
 export function accountFormPage(
   status = 200,
@@ -346,6 +406,7 @@ ${message ? notice(message, status >= 400) : ""}
 <input id="key" name="key" type="password" autocomplete="off" spellcheck="false" placeholder="fl_live_..." required>
 <div class="buttons"><button type="submit" class="button primary" name="action" value="view">Show my account</button></div>
 </form>
+${freeKeySection(recovery)}
 ${recoverSection(recovery)}
 <p class="small">No plan yet? See <a href="https://factlot.com/pricing/">pricing</a>. Questions: <a href="mailto:${CONTACT}">${CONTACT}</a>.</p>`,
     { status, formAction: ACCOUNT_FORM_ACTION },

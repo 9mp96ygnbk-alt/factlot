@@ -90,6 +90,14 @@ import { propertyPagesRoute } from "./property-pages.ts";
 import { KEY_PLACEHOLDER, guideMarkdown, setupGuide } from "./onboarding.ts";
 import { accountFormPage, accountPage, escapeHtml, page } from "./pages.ts";
 import {
+  FREE_KEY_ADDRESS_LOOKUPS_PER_DAY,
+  freeKeyLinkRoute,
+  freeKeyRequestRoute,
+  isFreeKeyToken,
+  resolveFreeKey,
+  type FreeKeyCaller,
+} from "./freekey.ts";
+import {
   recoverLinkRoute,
   recoverRequestRoute,
   recoveryState,
@@ -258,14 +266,17 @@ function rateLimited(
   limit: number,
   tier: Tier,
   connection = false,
+  scopeText?: string,
 ): Response {
-  const scope = connection
-    ? tier === "anonymous"
-      ? "for the free connections started from one address"
-      : "per connection"
-    : tier === "anonymous"
-      ? "per address"
-      : "per key";
+  const scope = scopeText
+    ? scopeText
+    : connection
+      ? tier === "anonymous"
+        ? "for the free connections started from one address"
+        : "per connection"
+      : tier === "anonymous"
+        ? "per address"
+        : "per key";
   const message =
     `rate limit of ${limit} requests per minute ${scope} exceeded for the ${tier} tier; retry in 60s. ${tier === "anonymous" ? UPGRADE_HINT : ""}`.trim();
   return errorResponse(
@@ -579,12 +590,14 @@ export function quotaError(
   q: QuotaState,
   tier: Tier,
   now: number,
-  opts: { needed?: number; connection?: boolean } = {},
+  opts: { needed?: number; connection?: boolean; per?: string } = {},
 ) {
   const { needed = 1, connection = false } = opts;
-  const per = connection
-    ? "sign-in address (shared by its free connections)"
-    : "IP address";
+  const per =
+    opts.per ??
+    (connection
+      ? "sign-in address (shared by its free connections)"
+      : "IP address");
   const resets = q.resets_at;
   const limit = q.limit.toLocaleString("en-US");
   const free =
@@ -770,6 +783,12 @@ async function route(
     }
     return successRoute(env, url, opts.fetchImpl, deferWith(opts));
   }
+  if (
+    path === "/v1/keys/free" ||
+    path === "/account/free-key" ||
+    path.startsWith("/account/free-key/")
+  )
+    return freeKeyRoute(request, env, url, path, opts, await addressKey());
   if (path === "/account/recover" || path.startsWith("/account/recover/"))
     return recoverRoute(request, env, url, path, opts);
   if (path === "/account") return accountRoute(request, env, url, api, opts);
@@ -1007,6 +1026,8 @@ async function route(
   let paid: PaidCaller | undefined;
   // An OAuth access token (header-less clients, /mcp only): a subscription or a free connection.
   let oauth: OAuthCaller | undefined;
+  // A free key (fl_free_..., issued by email): anonymous-tier limits on its own meter.
+  let freeKey: FreeKeyCaller | undefined;
   if (token !== undefined) {
     const failKey = `authfail:${await addressKey()}`;
     if (!(await metered(env.RL_ANON.peek({ key: failKey }))).success)
@@ -1037,6 +1058,12 @@ async function route(
         return unauthorized(path, env, true);
       }
       if (oauth.tier === "paid") paid = oauth.paid;
+    } else if (isFreeKeyToken(token)) {
+      freeKey = await resolveFreeKey(env, token);
+      if (!freeKey) {
+        await metered(env.RL_ANON.limit({ key: failKey }));
+        return unauthorized(path, env);
+      }
     } else {
       paid = await resolveKey(env, token, opts);
       if (!paid) {
@@ -1085,7 +1112,7 @@ async function route(
 
   // Usage counters (usage.ts): the caller's kind, for counts and the distinct-caller sketch.
   const kind: CallerKind = callerKind(
-    paid?.record.plan,
+    paid?.record.plan ?? (freeKey ? "free" : undefined),
     oauth !== undefined && !paid,
   );
   const noteRefusal = (tool: unknown, args: unknown) =>
@@ -1214,7 +1241,10 @@ async function route(
 
   // Minute limit (per address, key or connection), then registry quota (per address, free
   // connection or subscription).
-  const freeSubject = async () => oauth?.subject ?? (await addressKey());
+  const freeSubject = async () =>
+    oauth?.subject ?? freeKey?.subject ?? (await addressKey());
+  // A free key's lookups also count against its address's shared daily cap (`freeaddr:`).
+  const freeAddrSubject = async () => `freeaddr:${await addressKey()}`;
   // Give back `n` lookups taken in the window that ends at `resetsAt`.
   const giveBack = async (n: number, resetsAt: string) => {
     try {
@@ -1224,6 +1254,8 @@ async function route(
         n,
         resetsAt,
       );
+      if (freeKey)
+        await env.METER.refund(await freeAddrSubject(), "day", n, resetsAt);
       return true;
     } catch {
       console.error(JSON.stringify({ msg: "quota refund failed" }));
@@ -1231,6 +1263,7 @@ async function route(
     }
   };
   let hit: HitResult;
+  let addressCapped = false;
   if (!paid) {
     const quota: QuotaSpec | undefined = registryRequest
       ? {
@@ -1239,7 +1272,58 @@ async function route(
           n: wanted,
         }
       : undefined;
-    hit = await metered(env.METER.hit(await freeSubject(), perMinute, quota));
+    if (freeKey) {
+      // The stricter of the two: the address's minute limit and daily cap first (rotating keys
+      // from one address multiplies neither), then the key's own allowance for what was granted.
+      const addr = await metered(
+        env.METER.hit(
+          await freeAddrSubject(),
+          perMinute,
+          quota && { ...quota, limit: FREE_KEY_ADDRESS_LOOKUPS_PER_DAY },
+        ),
+      );
+      if (!addr.ok) hit = addr;
+      else {
+        const own = await metered(
+          env.METER.hit(
+            freeKey.subject,
+            perMinute,
+            quota && addr.granted > 0
+              ? { ...quota, n: addr.granted }
+              : undefined,
+          ),
+        );
+        if (!own.ok) {
+          if (addr.quota && addr.granted > 0)
+            await env.METER.refund(
+              await freeAddrSubject(),
+              "day",
+              addr.granted,
+              addr.quota.resets_at,
+            ).catch(() => {});
+          hit = own;
+        } else if (!quota || addr.granted === 0) {
+          hit = { ok: true, granted: 0, quota: addr.quota };
+          addressCapped = quota !== undefined && wanted > 0;
+        } else {
+          if (addr.quota && own.granted < addr.granted)
+            await env.METER.refund(
+              await freeAddrSubject(),
+              "day",
+              addr.granted - own.granted,
+              addr.quota.resets_at,
+            ).catch(() => {});
+          // Whichever cap ran short is the one the answer reports.
+          hit = {
+            ok: true,
+            granted: own.granted,
+            quota: addr.granted < wanted || !own.quota ? addr.quota : own.quota,
+          };
+          addressCapped = addr.granted < wanted;
+        }
+      }
+    } else
+      hit = await metered(env.METER.hit(await freeSubject(), perMinute, quota));
   } else {
     hit = await metered(
       env.METER.hit(oauth?.subject ?? `key:${keyId(paid.hash)}`, perMinute),
@@ -1254,7 +1338,14 @@ async function route(
       );
   }
   noteCaller(env, kind, paid ? `key:${keyId(paid.hash)}` : await freeSubject());
-  if (!hit.ok) return rateLimited(path, perMinute, tier, oauth !== undefined);
+  if (!hit.ok)
+    return rateLimited(
+      path,
+      perMinute,
+      tier,
+      oauth !== undefined,
+      freeKey ? "per free key and per address" : undefined,
+    );
 
   // Reports: metered per month against reports_per_month (reports.ts).
   const reportCaller: ReportCaller = {
@@ -1263,6 +1354,9 @@ async function route(
       paid
         ? meterSubject(paid.record, paid.hash)
         : (oauth?.subject ??
+          (freeKey
+            ? `freemail:${freeKey.email_hash.slice(0, 32)}`
+            : undefined) ??
           addressSubject(
             clientAddress(request),
             now(),
@@ -1307,6 +1401,11 @@ async function route(
     if (hit.granted < wanted) {
       deniedError = quotaError(hit.quota, tier, now(), {
         connection: oauth !== undefined,
+        per: freeKey
+          ? addressCapped
+            ? "IP address (all free keys used from it together)"
+            : "free key"
+          : undefined,
       });
       countEvent(env, "quota_exhausted", [kind, paid ? "month" : "day"]);
       headers["retry-after"] = String(deniedError.retry_after_seconds);
@@ -1319,7 +1418,15 @@ async function route(
           { ...hit.quota, remaining: left, used: hit.quota.limit - left },
           tier,
           now(),
-          { needed, connection: oauth !== undefined },
+          {
+            needed,
+            connection: oauth !== undefined,
+            per: freeKey
+              ? addressCapped
+                ? "IP address (all free keys used from it together)"
+                : "free key"
+              : undefined,
+          },
         )
       : deniedError!;
   if (deniedError && path !== "/mcp") {
@@ -1364,7 +1471,13 @@ async function route(
   const meterUsage = (status: number) =>
     env.USAGE?.writeDataPoint({
       indexes: [
-        oauth ? `oauth-${oauth.tier}` : paid ? keyId(paid.hash) : "anonymous",
+        oauth
+          ? `oauth-${oauth.tier}`
+          : paid
+            ? keyId(paid.hash)
+            : freeKey
+              ? "free-key"
+              : "anonymous",
       ],
       blobs: [tier, path.slice(0, 96), request.method],
       doubles: [status, 1],
@@ -2132,4 +2245,69 @@ async function recoverRoute(
   if (token === undefined)
     return recoverRequestRoute(env, request, body ?? "", ropts);
   return recoverLinkRoute(env, request, token, body, ropts);
+}
+
+/**
+ * /v1/keys/free, /account/free-key and /account/free-key/<token>: the free API key issued by
+ * email (freekey.ts). Requests and redemptions count against a per-address minute budget.
+ */
+async function freeKeyRoute(
+  request: Request,
+  env: Env,
+  url: URL,
+  path: string,
+  opts: HandleOptions,
+  address: string,
+): Promise<Response> {
+  const now = opts.now ?? Date.now;
+  const isApi = path === "/v1/keys/free";
+  const token = path.startsWith("/account/free-key/")
+    ? path.slice("/account/free-key/".length)
+    : undefined;
+  const cors = isApi ? corsHeaders() : undefined;
+  const fopts = { now, defer: deferWith(opts), address, cors };
+  const asJsonApi = (res: Response) => (cors ? withHeaders(res, cors) : res);
+  const allowed = token !== undefined ? ["GET", "HEAD", "POST"] : ["POST"];
+  if (!allowed.includes(request.method)) {
+    if (token === undefined && !isApi && request.method === "GET")
+      return Response.redirect(`${url.origin}/account#free-key`, 303);
+    return asJsonApi(
+      apiError(
+        405,
+        "MethodNotAllowed",
+        `use ${allowed.join(" or ")}`,
+        "POST /v1/keys/free",
+        {},
+        { allow: allowed.join(", ") },
+      ),
+    );
+  }
+  const formPage = (status: number, notice: string) =>
+    accountFormPage(status, notice, recoveryState(env));
+  if (request.method === "POST") {
+    const origin = request.headers.get("origin");
+    const jsonBody = (request.headers.get("content-type") ?? "").includes(
+      "application/json",
+    );
+    if (!jsonBody && origin && origin !== "null" && origin !== url.origin)
+      return formPage(403, "This form only works on its own page.");
+    if (
+      !(await metered(env.RL_ANON.limit({ key: `freekey:${address}` }))).success
+    )
+      return isApi
+        ? rateLimited(path, ANONYMOUS_REQUESTS_PER_MINUTE, "anonymous")
+        : formPage(429, "Too many tries from this address. Wait a minute.");
+    if (token === undefined) {
+      const body = await readBody(request, 4 * 1024);
+      if (body === undefined)
+        return isApi
+          ? errorResponse(path, 413, -32600, {
+              error: "PayloadTooLarge",
+              message: "request body over 4 KB",
+            })
+          : formPage(413, "The form is too large.");
+      return freeKeyRequestRoute(env, request, body, fopts);
+    }
+  }
+  return freeKeyLinkRoute(env, request, token!, fopts);
 }

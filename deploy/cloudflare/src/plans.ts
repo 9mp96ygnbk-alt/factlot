@@ -26,6 +26,9 @@ export interface Plan {
 export const ANONYMOUS_REQUESTS_PER_MINUTE = 60;
 /** Registry lookups per UTC day for one client address (IPv6: per /64) without a key. */
 export const ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY = 25;
+/** Registry lookups per UTC day that all the free keys used from one address share (4x the free day). */
+export const FREE_KEY_ADDRESS_LOOKUPS_PER_DAY =
+  4 * ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY;
 export const PRICING_URL = "https://factlot.com/pricing/";
 /** Where plan rules (history, batch) are listed; used in the notes the gating adds. */
 export const GATING_PRICING_URL = PRICING_URL;
@@ -122,6 +125,11 @@ export function publicPlans(checkoutBase: string, gating = false) {
       registry_lookups_per_day: ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY,
       auth: "none",
       note: `Every calculator, ID, fact, rules and document tool at ${ANONYMOUS_REQUESTS_PER_MINUTE} requests a minute per IP address, and ${ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY} registry lookups a day per IP address.`,
+      free_key: {
+        how: `${checkoutBase}/account#free-key, or POST /v1/keys/free {"email":"you@example.com","accept_terms":true}`,
+        note: `An optional free key (emailed link, shown once, one active key per address) gives the same free limits on your own meter instead of one shared per IP address: ${ANONYMOUS_REQUESTS_PER_MINUTE} requests a minute and ${ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY} registry lookups a day per key, ${reportLimits().per_month.free} reports a month. The free keys used from one IP address together share at most ${FREE_KEY_ADDRESS_LOOKUPS_PER_DAY} lookups a day. Free keys never reach paid tools.`,
+        auth: "bearer",
+      },
     },
     ...Object.fromEntries(
       Object.values(PLANS).map((p) => [

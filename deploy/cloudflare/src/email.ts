@@ -21,7 +21,7 @@ export function emailConfigured(env: Env): boolean {
 /** Send one message; false (and one log line without personal data) when it fails. */
 export async function sendEmail(
   env: Env,
-  kind: "welcome" | "recovery" | "signin",
+  kind: "welcome" | "recovery" | "signin" | "freekey",
   message: Omit<EmailMessageBuilder, "from" | "replyTo">,
 ): Promise<boolean> {
   if (!env.EMAIL) return false;
@@ -102,6 +102,21 @@ export function recoveryMessage(
           `${l.plan.name}: open this link to see the account and issue a new API key:\n${l.url}`,
       ),
       `The link works once and expires in ${minutes} minutes. If you did not ask for it, ignore this email: nothing changes until the link is used.`,
+      `Questions: reply to this email or write to ${CONTACT}.`,
+    ]),
+  };
+}
+
+export function freeKeyMessage(
+  url: string,
+  minutes: number,
+): { subject: string; text: string; html: string } {
+  return {
+    subject: "Your free FactLot API key",
+    ...body([
+      "This is a transactional message: someone (we hope you) asked for a free FactLot API key with this email address. We will not add you to any mailing list.",
+      `Open this link and press the button to get the key. It is shown once:\n${url}`,
+      `The link works once and expires in ${minutes} minutes. If you did not ask for it, ignore this email: nothing is created until the link is used. A new key replaces any earlier free key for this address.`,
       `Questions: reply to this email or write to ${CONTACT}.`,
     ]),
   };

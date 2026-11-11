@@ -61,6 +61,7 @@ import { WHATS_NEW } from "./news.ts";
 import { EXTRACT_LEASE_STEP, REPORTS_STEP } from "./onboarding.ts";
 import { REPORT_RULE, escapeHtml, onboardingPage } from "./pages.ts";
 import { PLANS, planForLookupKey } from "./plans.ts";
+import { createRecoveryToken } from "./recovery.ts";
 import {
   BATCH_CONCURRENCY,
   REGISTRY_RUN_URL,
@@ -5971,5 +5972,368 @@ describe("usage counters (USAGE_COUNTERS_ENABLED)", () => {
       text.replace(/\/\/[^\n]*/g, ""),
       /USAGE_COUNTERS_ENABLED/,
     );
+  });
+});
+
+describe("free key by email", () => {
+  const SECRET = "test-recovery-secret";
+  function setup(over: Partial<Env> = {}) {
+    const mail = fakeEmail();
+    const e = env({
+      EMAIL: mail.binding,
+      RECOVERY_SIGNING_SECRET: SECRET,
+      ...over,
+    });
+    e.RL_ANON = new CountingLimit(1000);
+    return { mail, e, api: innerApi().api };
+  }
+  const ask = (
+    e: ReturnType<typeof env>,
+    email: unknown,
+    ip = IP,
+    extra: Record<string, unknown> = { accept_terms: true },
+  ) =>
+    run(
+      e,
+      new Request("https://api.factlot.com/v1/keys/free", {
+        method: "POST",
+        body: JSON.stringify({ email, ...extra }),
+        headers: {
+          "content-type": "application/json",
+          "cf-connecting-ip": ip,
+        },
+      }),
+    );
+  /** MemoryKV ignores TTLs: drop the resend waits the way KV would after 5 minutes. */
+  const waitPassed = (e: ReturnType<typeof env>) => {
+    e.clock.t += 6 * 60_000;
+    for (const k of [...e.KEYS.data.keys()])
+      if (k.startsWith("freewait:")) e.KEYS.data.delete(k);
+  };
+  const linkOf = (text: string) =>
+    text.match(
+      /https:\/\/factlot\.com\/account\/free-key\/[A-Za-z0-9_.-]+/,
+    )?.[0];
+  const open = (
+    e: ReturnType<typeof env>,
+    url: string,
+    method = "GET",
+    ip = IP,
+  ) =>
+    run(
+      e,
+      new Request(url, {
+        method,
+        body: method === "POST" ? "" : undefined,
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+          origin: "https://factlot.com",
+          "cf-connecting-ip": ip,
+        },
+      }),
+    );
+  /** Ask for a link and redeem it; the key. */
+  async function mint(
+    e: ReturnType<typeof env>,
+    mail: ReturnType<typeof fakeEmail>,
+    email: string,
+    ip = IP,
+  ): Promise<string> {
+    const before = mail.sent.length;
+    assert.equal((await ask(e, email, ip)).status, 202);
+    assert.equal(mail.sent.length, before + 1, "one email");
+    const url = linkOf(mail.sent[before]!.text)!;
+    const res = await open(e, url, "POST", ip);
+    assert.equal(res.status, 200);
+    const key = (await res.text()).match(/fl_free_[A-Za-z0-9_-]{43}/)?.[0];
+    assert.ok(key, "key shown");
+    return key;
+  }
+  const lookups = (
+    e: ReturnType<typeof env>,
+    api: ReturnType<typeof innerApi>["api"],
+    key: string,
+    ip = IP,
+  ) => call(e, api, "/v1/registry/get", { key, ip, body: { urn: "x" } });
+
+  it("answers 202 sent_if_valid the same for every well-formed address, and sends one transactional email", async () => {
+    const { e, mail } = setup();
+    const a = await ask(e, "new@example.com");
+    const b = await ask(e, "someone.else@example.org");
+    assert.equal(a.status, 202);
+    assert.equal(b.status, 202);
+    const ja = (await a.json()) as { sent_if_valid: boolean };
+    assert.equal(ja.sent_if_valid, true);
+    assert.deepEqual(await b.json(), ja);
+    // After a key exists the answer is still the same.
+    const { mail: m2, e: e2 } = setup();
+    await mint(e2, m2, "have@example.com");
+    waitPassed(e2);
+    const again = await ask(e2, "have@example.com");
+    assert.equal(again.status, 202);
+    assert.deepEqual(await again.json(), ja);
+    const text = mail.sent[0]!.text;
+    assert.match(text, /transactional/);
+    assert.doesNotMatch(text, /fl_free_/, "no key in the email");
+    assert.doesNotMatch(text, /newsletter|subscribe|unsubscribe/i);
+    assert.ok(linkOf(text));
+    assert.match(text, /30 minutes/);
+  });
+
+  it("refuses a bad address or missing terms with 400, and says so when email is off", async () => {
+    const { e, mail } = setup();
+    assert.equal((await ask(e, "not-an-email")).status, 400);
+    assert.equal((await ask(e, 5)).status, 400);
+    assert.equal((await ask(e, "a@example.com", IP, {})).status, 400);
+    assert.equal(
+      (await ask(e, "a@example.com", IP, { accept_terms: "yes" })).status,
+      400,
+    );
+    assert.equal(mail.sent.length, 0);
+    for (const over of [
+      { EMAIL: undefined },
+      { RECOVERY_SIGNING_SECRET: undefined },
+    ]) {
+      const { e: off } = setup(over);
+      assert.equal((await ask(off, "a@example.com")).status, 503);
+    }
+  });
+
+  it("waits per address before sending again, and rate limits per network address", async () => {
+    const { e, mail } = setup();
+    await ask(e, "wait@example.com");
+    await ask(e, "WAIT@example.com");
+    assert.equal(
+      mail.sent.length,
+      1,
+      "same address (any case): one per 5 minutes",
+    );
+    waitPassed(e);
+    await ask(e, "wait@example.com");
+    assert.equal(mail.sent.length, 2);
+    const tight = setup();
+    tight.e.RL_ANON = new CountingLimit(2);
+    const ips = [IP, IP, IP].map((ip) => ask(tight.e, "x@example.com", ip));
+    const codes: number[] = [];
+    for (const r of ips) codes.push((await r).status);
+    assert.deepEqual(codes, [202, 202, 429]);
+  });
+
+  it("a GET or HEAD of the link redeems nothing; the POST does, once", async () => {
+    const { e, mail } = setup();
+    await ask(e, "once@example.com");
+    const url = linkOf(mail.sent[0]!.text)!;
+    for (const method of ["GET", "HEAD", "GET"]) {
+      const r = await open(e, url, method);
+      assert.equal(r.status, 200);
+      if (method === "GET")
+        assert.doesNotMatch(await r.text(), /fl_free_/, "no key on GET");
+    }
+    const kv = e.KEYS;
+    assert.equal(
+      [...kv.data.keys()].filter((k) => k.startsWith("freekey:")).length,
+      0,
+      "nothing minted yet",
+    );
+    const post = await open(e, url, "POST");
+    assert.equal(post.status, 200);
+    assert.match(await post.text(), /fl_free_[A-Za-z0-9_-]{43}/);
+    const second = await open(e, url, "POST");
+    assert.equal(second.status, 410);
+    assert.equal((await open(e, url, "GET")).status, 410);
+  });
+
+  it("rejects forged links, expired links, and a recovery link used here", async () => {
+    const { e, mail } = setup();
+    await ask(e, "forge@example.com");
+    const url = linkOf(mail.sent[0]!.text)!;
+    assert.equal((await open(e, `${url.slice(0, -1)}A`, "POST")).status, 404);
+    const rec = await createRecoveryToken(e, "sub_1", e.clock.t);
+    assert.equal(
+      (await open(e, `https://factlot.com/account/free-key/${rec}`, "POST"))
+        .status,
+      404,
+      "a recovery link is not a free-key link",
+    );
+    e.clock.t += 31 * 60_000;
+    assert.equal((await open(e, url, "POST")).status, 410);
+  });
+
+  it("refuses a link POST from another site", async () => {
+    const { e, mail } = setup();
+    await ask(e, "csrf@example.com");
+    const url = linkOf(mail.sent[0]!.text)!;
+    const r = await run(
+      e,
+      new Request(url, {
+        method: "POST",
+        headers: {
+          origin: "https://evil.example",
+          "cf-connecting-ip": IP,
+        },
+      }),
+    );
+    assert.equal(r.status, 403);
+  });
+
+  it("one active key per address: a new key revokes the old one", async () => {
+    const { e, mail, api } = setup();
+    const k1 = await mint(e, mail, "Pair@Example.com");
+    assert.equal((await lookups(e, api, k1)).status, 200);
+    waitPassed(e);
+    const k2 = await mint(e, mail, "pair@example.com");
+    assert.notEqual(k1, k2);
+    assert.equal((await lookups(e, api, k1)).status, 401, "old key revoked");
+    assert.equal((await lookups(e, api, k2)).status, 200);
+    // A different address has its own key and does not touch this one.
+    const k3 = await mint(e, mail, "other@example.com");
+    assert.equal((await lookups(e, api, k2)).status, 200);
+    assert.equal((await lookups(e, api, k3)).status, 200);
+  });
+
+  it("meters per key, not per address: the free day is 25 for each key", async () => {
+    const { e, mail, api } = setup();
+    const a = await mint(e, mail, "a@example.com", "203.0.113.1");
+    const b = await mint(e, mail, "b@example.com", "203.0.113.2");
+    const ip = "198.51.100.7";
+    for (let i = 0; i < 25; i++) {
+      if (i % 50 === 49) e.clock.t += 60_000;
+      assert.equal((await lookups(e, api, a, ip)).status, 200, `a ${i + 1}`);
+    }
+    const over = await lookups(e, api, a, ip);
+    assert.equal(over.status, 429);
+    const body = (await over.json()) as { error: string; message: string };
+    assert.equal(body.error, "RegistryQuotaExceeded");
+    assert.match(body.message, /25 a day per free key/);
+    // The other key, from the same address, still has its own allowance.
+    const other = await lookups(e, api, b, ip);
+    assert.equal(other.status, 200);
+    assert.equal(other.headers.get("x-factlot-tier"), "anonymous");
+    assert.equal(other.headers.get("x-factlot-registry-quota-limit"), "25");
+    assert.equal(other.headers.get("x-factlot-registry-quota-remaining"), "24");
+    // The per-IP anonymous allowance was never touched by free-key calls.
+    const anon = await call(e, api, "/v1/registry/get", {
+      ip,
+      body: { urn: "x" },
+    });
+    assert.equal(anon.headers.get("x-factlot-registry-quota-remaining"), "24");
+    // Next UTC day starts fresh.
+    e.clock.t = Date.UTC(2026, 10, 8, 0, 0, 0);
+    assert.equal((await lookups(e, api, a, ip)).status, 200);
+  });
+
+  it("caps all the free keys used from one address at 100 lookups a day", async () => {
+    const { e, mail, api } = setup();
+    const keys: string[] = [];
+    for (let i = 0; i < 5; i++)
+      keys.push(
+        await mint(e, mail, `k${i}@example.com`, `203.0.113.${20 + i}`),
+      );
+    const ip = "198.51.100.9";
+    let ok = 0;
+    for (const key of keys.slice(0, 4))
+      for (let i = 0; i < 25; i++) {
+        e.clock.t += 1_000;
+        if ((await lookups(e, api, key, ip)).status === 200) ok++;
+      }
+    assert.equal(ok, 100);
+    e.clock.t += 1_000;
+    const over = await lookups(e, api, keys[4]!, ip);
+    assert.equal(over.status, 429, "the fifth key's own allowance is blocked");
+    const body = (await over.json()) as { message: string; limit: number };
+    assert.equal(body.limit, 100);
+    assert.match(body.message, /IP address \(all free keys/);
+    // Another address is unaffected, and nothing was charged to the fifth key.
+    e.clock.t += 1_000;
+    const fresh = await lookups(e, api, keys[4]!, "198.51.100.10");
+    assert.equal(fresh.status, 200);
+    assert.equal(fresh.headers.get("x-factlot-registry-quota-remaining"), "24");
+  });
+
+  it("the minute limit is per key and per address: rotating keys does not multiply it", async () => {
+    const { e, mail, api } = setup();
+    const a = await mint(e, mail, "m1@example.com", "203.0.113.31");
+    const b = await mint(e, mail, "m2@example.com", "203.0.113.32");
+    const ip = "198.51.100.20";
+    const calc = (key: string, from = ip) =>
+      call(e, api, "/v1/calc/irr", { key, ip: from });
+    for (let i = 0; i < 60; i++)
+      assert.equal((await calc(a)).status, 200, `call ${i + 1}`);
+    assert.equal((await calc(a)).status, 429);
+    assert.equal((await calc(b)).status, 429, "same address, second key");
+    assert.equal((await calc(b, "198.51.100.21")).status, 200, "other address");
+    e.clock.t += 60_000;
+    assert.equal((await calc(b)).status, 200, "next minute");
+  });
+
+  it("mints at most 3 keys per address a day, and a refusal keeps the link", async () => {
+    const { e, mail } = setup();
+    const ip = "198.51.100.30";
+    for (let i = 0; i < 3; i++) await mint(e, mail, `d${i}@example.com`, ip);
+    await ask(e, "d3@example.com", ip);
+    const url = linkOf(mail.sent[3]!.text)!;
+    const refused = await open(e, url, "POST", ip);
+    assert.equal(refused.status, 429);
+    const elsewhere = await open(e, url, "POST", "198.51.100.31");
+    assert.equal(elsewhere.status, 200, "the link was not spent");
+    assert.match(await elsewhere.text(), /fl_free_/);
+  });
+
+  it("a free key never reaches account or paid features, and an unknown free key is 401", async () => {
+    const { e, mail, api } = setup();
+    const key = await mint(e, mail, "plain@example.com");
+    const acct = await call(e, api, "/v1/account", { key, method: "GET" });
+    assert.equal(acct.status, 401);
+    const bad = await lookups(e, api, `fl_free_${"A".repeat(43)}`);
+    assert.equal(bad.status, 401);
+    const plans = (await (
+      await call(e, api, "/v1/plans", { method: "GET" })
+    ).json()) as { plans: { free: { free_key: { note: string } } } };
+    assert.match(plans.plans.free.free_key.note, /100 lookups a day/);
+  });
+
+  it("stores no email address in KV, and logs none", async () => {
+    const { e, mail } = setup();
+    const logs = await captureLogs(async () => {
+      await mint(e, mail, "Secret.Person@Example.com");
+      waitPassed(e);
+      await mint(e, mail, "secret.person@example.com");
+    });
+    assert.doesNotMatch(logs, /secret\.person|example\.com/i);
+    const names = [...e.KEYS.data.keys()];
+    assert.ok(names.some((k) => k.startsWith("freekey:")));
+    assert.ok(names.some((k) => k.startsWith("freeemail:")));
+    for (const [k, v] of e.KEYS.data)
+      assert.doesNotMatch(
+        `${k} ${v}`,
+        /secret\.person|example\.com|@/i,
+        `no address in ${k.split(":")[0]}`,
+      );
+    for (const v of e.KEYS.data.values())
+      assert.doesNotMatch(v, /fl_free_/, "no plaintext key either");
+    const rec = [...e.KEYS.data.entries()].find(([k]) =>
+      k.startsWith("freekey:"),
+    )![1];
+    assert.deepEqual(
+      Object.keys(JSON.parse(rec)).sort(),
+      ["created", "email_hash", "revoked_at", "tier"]
+        .filter((k) => k in JSON.parse(rec))
+        .sort(),
+    );
+    assert.equal(JSON.parse(rec).tier, "free");
+  });
+
+  it("the /account page offers the form only when email can be sent", async () => {
+    const { e } = setup();
+    const on = await (
+      await run(e, new Request("https://factlot.com/account"))
+    ).text();
+    assert.match(on, /action="\/account\/free-key"/);
+    assert.match(on, /name="accept_terms"/);
+    const off = setup({ EMAIL: undefined });
+    const html = await (
+      await run(off.e, new Request("https://factlot.com/account"))
+    ).text();
+    assert.doesNotMatch(html, /action="\/account\/free-key"/);
   });
 });

@@ -60,8 +60,8 @@ export const RECOVERY_RESEND_SECONDS = 5 * 60;
 /** At most this many subscriptions (links) in one email. */
 const MAX_LINKS = 5;
 
-const TOKEN_RE = /^([A-Za-z0-9_-]{43})\.([A-Za-z0-9_-]{43})$/;
-const EMAIL_RE = /^[^\s@<>"]{1,64}@[^\s@<>"]{1,252}\.[^\s@<>"]{2,}$/;
+export const TOKEN_RE = /^([A-Za-z0-9_-]{43})\.([A-Za-z0-9_-]{43})$/;
+export const EMAIL_RE = /^[^\s@<>"]{1,64}@[^\s@<>"]{1,252}\.[^\s@<>"]{2,}$/;
 
 export function recoveryState(env: Env): RecoveryState {
   if (!env.EMAIL) return "no-email";
@@ -69,7 +69,12 @@ export function recoveryState(env: Env): RecoveryState {
   return "on";
 }
 
-async function sign(secret: string, id: string): Promise<string> {
+/** HMAC of a token id under the secret; `purpose` keeps links of different flows apart. */
+export async function sign(
+  secret: string,
+  id: string,
+  purpose = "factlot-recover",
+): Promise<string> {
   const key = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(secret),
@@ -82,13 +87,13 @@ async function sign(secret: string, id: string): Promise<string> {
       await crypto.subtle.sign(
         "HMAC",
         key,
-        new TextEncoder().encode(`factlot-recover|${id}`),
+        new TextEncoder().encode(`${purpose}|${id}`),
       ),
     ),
   );
 }
 
-function sameString(a: string, b: string): boolean {
+export function sameString(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
   let diff = 0;
   for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
