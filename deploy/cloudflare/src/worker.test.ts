@@ -41,6 +41,7 @@ import {
   type KeyRecord,
 } from "./keys.ts";
 import {
+  CLAIM_TTL_MS,
   Meter,
   RateLimiterObject,
   WindowCounter,
@@ -1201,10 +1202,11 @@ describe("meter", () => {
     clock.t = Date.UTC(2026, 11, 1, 0, 0, 1);
     await m.obj.alarm();
     assert.equal(m.store.counts.size, 0);
-    // Claims are deleted after 30 days.
+    // Claims outlive the 365-day KV marker (395 days), then are deleted.
     await meterService.claim("session:y", "k");
     const c = lim.object("claim:session:y");
-    assert.ok(c.alarm! > clock.t + 29 * 86_400_000);
+    assert.ok(c.alarm! >= clock.t + CLAIM_TTL_MS - 1000);
+    assert.ok(CLAIM_TTL_MS >= INACTIVE_RETENTION_SECONDS * 1000);
     await c.obj.alarm();
     assert.equal(c.store.claims.size, 0);
   });
@@ -1535,6 +1537,53 @@ describe("router", () => {
       (await call(e, api, "/v1/calc/irr")).status,
       200,
       "the same address without a key still works",
+    );
+  });
+
+  it("a present but malformed Authorization header answers 401 and spends no rejected-key budget", async () => {
+    const { api } = innerApi();
+    const e = env({ RL_ANON: new CountingLimit(60) });
+    const key = `fl_live_${"A".repeat(43)}`;
+    const send = (authorization: string, path = "/v1/calc/irr") =>
+      handle(
+        new Request(`https://api.factlot.com${path}`, {
+          method: "POST",
+          body: "{}",
+          headers: { authorization, "cf-connecting-ip": IP },
+        }),
+        e,
+        api,
+        { now: () => e.clock.t },
+      );
+    for (let i = 0; i < 100; i++) {
+      for (const h of [`Token ${key}`, "Bearer", "Bearer ", key, "Basic abc"]) {
+        const r = await send(h);
+        assert.equal(r.status, 401, h);
+        assert.equal(
+          r.headers.get("www-authenticate"),
+          'Bearer realm="factlot"',
+        );
+        assert.match(await r.text(), /Bearer <your FactLot key>/);
+      }
+    }
+    // No lockout: a client that fixes its header is served.
+    assert.equal((await call(e, api, "/v1/calc/irr")).status, 200);
+    // Public pages that ignore auth are untouched.
+    const plans = await handle(
+      new Request("https://api.factlot.com/v1/plans", {
+        headers: { authorization: `Token ${key}`, "cf-connecting-ip": IP },
+      }),
+      e,
+      api,
+      { now: () => e.clock.t },
+    );
+    assert.equal(plans.status, 200);
+    // /mcp keeps its OAuth path: an OAuth-shaped value without "Bearer" is not refused here.
+    const oauthShaped = `a:b:${"c".repeat(32)}`;
+    const mcp = await send(oauthShaped, "/mcp");
+    assert.notEqual(
+      (await mcp.clone().text()).includes("Bearer <your FactLot key>"),
+      true,
     );
   });
 
@@ -3328,6 +3377,72 @@ describe("agent claim flow", () => {
       );
       assert.match(body.checkout.claim.claimed!, /410/);
     }
+  });
+
+  it("HEAD (or any non-GET) on the claim URL and the success page never redeems; GET still yields the key", async () => {
+    const s = stripe({ session: paid });
+    const e = env({ STRIPE_SECRET_KEY: "sk_live_x" });
+    e.RL_ANON = new CountingLimit(100);
+    const { claim_url } = await start(e, s.fetchImpl);
+    const successUrl = `https://factlot.com/billing/success?session_id=${SESSION}`;
+    for (const method of ["HEAD", "POST", "PUT", "DELETE"]) {
+      e.clock.t += CLAIM_POLL_MS;
+      const r = await run(
+        e,
+        new Request(claim_url, {
+          method,
+          headers: { "cf-connecting-ip": IP },
+        }),
+        s.fetchImpl,
+      );
+      assert.equal(r.status, 405, `claim ${method}`);
+      assert.equal(r.headers.get("allow"), "GET");
+      const p = await run(
+        e,
+        new Request(successUrl, {
+          method,
+          headers: { "cf-connecting-ip": IP },
+        }),
+        s.fetchImpl,
+      );
+      assert.equal(p.status, 405, `success ${method}`);
+      assert.equal(p.headers.get("allow"), "GET");
+    }
+    assert.equal(
+      [...e.KEYS.data.keys()].filter((k) => k.startsWith("key:")).length,
+      0,
+      "nothing was redeemed",
+    );
+    assert.equal(e.KEYS.data.has(`session:${SESSION}`), false);
+    e.clock.t += CLAIM_POLL_MS;
+    const got = await poll(e, claim_url, s.fetchImpl);
+    assert.equal(got.status, 200);
+    assert.ok(
+      looksLikeKey(String(((await got.json()) as { key: string }).key)),
+    );
+  });
+
+  it("a paid session older than the 365-day marker cannot mint a key", async () => {
+    const s = stripe({
+      session: {
+        ...paid,
+        created: Math.floor(T0 / 1000) - 366 * 86_400,
+      },
+    });
+    const e = env({ STRIPE_SECRET_KEY: "sk_live_x" });
+    e.RL_ANON = new CountingLimit(100);
+    const page = await run(
+      e,
+      new Request(`https://factlot.com/billing/success?session_id=${SESSION}`, {
+        headers: { "cf-connecting-ip": IP },
+      }),
+      s.fetchImpl,
+    );
+    assert.equal(page.status, 410);
+    assert.equal(
+      [...e.KEYS.data.keys()].filter((k) => k.startsWith("key:")).length,
+      0,
+    );
   });
 });
 

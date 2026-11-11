@@ -718,6 +718,17 @@ async function route(
   // Billing pages for people (any host). Both reach Stripe, so both count against the
   // per-address free-tier budget: a crawler following "Start Pro" cannot open sessions in bulk.
   if (path === "/billing/checkout" || path === "/billing/success") {
+    // The success page redeems the checkout session (shows the one-time key), so only a real GET
+    // may reach it: a HEAD from a link prefetcher or preview bot must not spend the key.
+    if (path === "/billing/success" && request.method !== "GET")
+      return apiError(
+        405,
+        "MethodNotAllowed",
+        "GET this page",
+        "GET /billing/success",
+        {},
+        { allow: "GET" },
+      );
     const ok = await metered(
       env.RL_ANON.limit({ key: `billing:${await addressKey()}` }),
     );
@@ -826,7 +837,9 @@ async function route(
     );
   }
   if (path.startsWith("/v1/billing/claim/")) {
-    if (request.method !== "GET" && request.method !== "HEAD")
+    // GET only. HEAD also reaches this branch in a Worker, and redeeming on it would discard the
+    // one-time key into a response with no body (link prefetchers and uptime probes send HEAD).
+    if (request.method !== "GET")
       return withHeaders(
         json(
           405,
@@ -922,7 +935,32 @@ async function route(
 
   // Who is calling. Rejected tokens spend a per-address budget, checked before the key store
   // is read, so a flood of made-up keys is refused cheaply.
-  const token = bearer(request.headers.get("authorization"));
+  const authHeader = request.headers.get("authorization");
+  const token = bearer(authHeader);
+  // A header that is present but not "Bearer <token>" (a "Token ..." scheme, a bare key, "Bearer"
+  // alone) used to fall through to the free tier, hiding the mistake. Refuse it, unless /mcp got
+  // something shaped like an OAuth token (that route keeps its own handling). This answer does
+  // not spend the rejected-key budget (authfail): the caller has not tried a key yet, and fixing
+  // the header must not meet a lockout.
+  if (
+    token === undefined &&
+    authHeader !== null &&
+    authHeader.trim() !== "" &&
+    !(path === "/mcp" && isOAuthToken(authHeader.trim().split(/\s+/).pop()!))
+  )
+    return errorResponse(
+      path,
+      401,
+      -32001,
+      {
+        error: "Unauthorized",
+        code: "MalformedAuthorization",
+        message:
+          'the Authorization header must be "Bearer <your FactLot key>" (one space, no other scheme). Free use needs no header at all.',
+        next: "send Authorization: Bearer <key>, or remove the header for the free tier",
+      },
+      { "www-authenticate": 'Bearer realm="factlot"' },
+    );
   let paid: PaidCaller | undefined;
   // An OAuth access token (header-less clients, /mcp only): a subscription or a free connection.
   let oauth: OAuthCaller | undefined;

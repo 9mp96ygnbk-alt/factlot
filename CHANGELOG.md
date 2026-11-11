@@ -89,6 +89,12 @@ conservative_file_by, basis}` for the next tax year when the deadline has passed
 
 ### Fixed
 
+- Hosted API: HEAD (and any method but GET) on the one-time claim URL `/v1/billing/claim/<token>` and on `/billing/success` now answers 405 and no longer redeems the checkout session, so a link prefetcher or probe cannot burn the key.
+- Hosted API: an `Authorization` header that is present but not `Bearer <token>` (a `Token` scheme, a bare key, `Bearer` alone) now answers 401 with `WWW-Authenticate: Bearer` instead of silently serving the free tier. It does not count against the rejected-key limit. `/mcp` keeps its OAuth handling and public pages ignore the header.
+- `doc_extract_lease`: PDFs are limited to 5 MB (was 10 MB; MCP requests with a PDF to 8 MB, was 15 MB) and page reading stops with 422 `PdfTooSlow` after 20 seconds, checked between pages. pdf.js offers no cap on decompressed stream size; page and character caps still apply.
+- Hosted API: a paid checkout session older than a year can no longer be redeemed for a second key (the already-shown claim now outlives the 365-day KV marker, and sessions older than the marker answer 410).
+- Documented that Workers Logs cannot redact URL paths, so tokens in `/account/recover/`, `/v1/billing/claim/`, `/authorize/email/` and report download paths are logged (note in `wrangler.jsonc`).
+
 - Hosted API: free OAuth connections (header-less clients that sign in on the free tier) started
   from one address now share that address's daily registry lookups and monthly reports, instead
   of each connection bringing its own; free connections made before this change sign in again

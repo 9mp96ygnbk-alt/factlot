@@ -416,6 +416,17 @@ export async function redeemSession(
       message:
         "This checkout is not complete yet. If you just paid, reload this page in a minute.",
     };
+  // The "already shown" memory (KV marker, 365 days) is shorter than a paid session's life at
+  // Stripe, so a session older than the marker could be redeemed again for a second key. Refuse it.
+  if (
+    typeof session.created === "number" &&
+    d.now() - session.created * 1000 > INACTIVE_RETENTION_SECONDS * 1000
+  )
+    return {
+      ok: false,
+      status: 410,
+      message: `This checkout is too old to show a key. Recover access with the email you paid with, or email ${CONTACT}.`,
+    };
   const rawSub = session.subscription;
   const subObject =
     typeof rawSub === "object" && rawSub !== null

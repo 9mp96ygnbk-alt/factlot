@@ -1869,8 +1869,8 @@ describe("review fixes: deadlines, sizes, sections, privacy", () => {
     assert.equal(fake.requests.length, 0);
   });
 
-  it("(7) a PDF over 10 MB is refused; base64 decodes into one exact array", async () => {
-    assert.equal(INGEST_LIMITS.pdfBytes, 10 * 1024 * 1024);
+  it("(7) a PDF over 5 MB is refused; base64 decodes into one exact array", async () => {
+    assert.equal(INGEST_LIMITS.pdfBytes, 5 * 1024 * 1024);
     const allowance = freeAllowance();
     const big = Buffer.alloc(INGEST_LIMITS.pdfBytes + 1, 0x25).toString(
       "base64",
@@ -1915,6 +1915,34 @@ describe("review fixes: deadlines, sizes, sections, privacy", () => {
     assert.deepEqual(
       await readPagesCapped(2, async (n) => `page ${n}\r\nline`, 100),
       ["page 1\nline", "page 2\nline"],
+    );
+  });
+
+  it("(7) page-by-page extraction stops at the wall-clock deadline", async () => {
+    let t = 1_000;
+    let read = 0;
+    await assert.rejects(
+      readPagesCapped(
+        100,
+        async () => {
+          read++;
+          t += 6_000; // each page "takes" 6 s
+          return "page";
+        },
+        400_000,
+        { deadline: 1_000 + 20_000, now: () => t },
+      ),
+      (e: { answer?: { status: number; body: { error: string } } }) =>
+        e.answer?.status === 422 && e.answer.body.error === "PdfTooSlow",
+    );
+    assert.equal(read, 4, "stopped between pages, not after all 100");
+    assert.equal(INGEST_LIMITS.pdfParseMs, 20_000);
+    assert.deepEqual(
+      await readPagesCapped(2, async () => "p", 100, {
+        deadline: 10,
+        now: () => 0,
+      }),
+      ["p", "p"],
     );
   });
 

@@ -40,7 +40,7 @@ export const EXTRACT_LEASE = "doc_extract_lease";
 
 /** Limits of one doc_extract_lease call. */
 export const INGEST_LIMITS = {
-  pdfBytes: 10 * 1024 * 1024,
+  pdfBytes: 5 * 1024 * 1024,
   pages: 200,
   /** All page text sent to the model, in characters (a PDF's extraction stops past it). */
   characters: 400_000,
@@ -49,6 +49,8 @@ export const INGEST_LIMITS = {
   /** How long the URL fetch may take, at most (it also shares the call's deadline). */
   urlTimeoutMs: 15_000,
   urlRedirects: 3,
+  /** Wall-clock budget for reading a PDF's pages (checked between pages). */
+  pdfParseMs: 20_000,
   /** Below this many characters per page on average, a PDF counts as scanned. */
   minCharactersPerPage: 20,
 } as const;
@@ -68,7 +70,7 @@ export const EXTRACT_LEASE_TOOL = {
   name: EXTRACT_LEASE,
   title: "Extract lease terms (model) and verify them",
   description:
-    "Hosted FactLot tool (api.factlot.com, Pro and Team keys; counts pages against the plan's monthly ingest allowance). Send one lease or amendment: page text (document.pages or document.text with form feeds between pages), a PDF (document.pdf_base64, at most 10 MB, 200 pages and 400,000 characters of text) or an https URL to one (document.url). A call is charged max(pages with text, characters / 4,000 rounded up) pages. A model (called by FactLot for this request only) reads the pages and proposes each lease term with its verbatim quote and page; FactLot then checks every proposal with doc_verify_facts, deterministically. Returns facts (verified FactLot facts citing document, page, quote and span), needs_review (each with the check that failed: quote, consistency, coverage, value), unextracted (requested predicates the model found nothing for), the page count and the model's token use, and nothing_stored: true. FactLot stores nothing and logs no document content. A scanned PDF without a text layer answers NeedsOcr: OCR it first (doc_read_pdf on the local server) and send the pages. Restrict predicates (see doc_predicates) to save tokens.",
+    "Hosted FactLot tool (api.factlot.com, Pro and Team keys; counts pages against the plan's monthly ingest allowance). Send one lease or amendment: page text (document.pages or document.text with form feeds between pages), a PDF (document.pdf_base64, at most 5 MB, 200 pages and 400,000 characters of text) or an https URL to one (document.url). A call is charged max(pages with text, characters / 4,000 rounded up) pages. A model (called by FactLot for this request only) reads the pages and proposes each lease term with its verbatim quote and page; FactLot then checks every proposal with doc_verify_facts, deterministically. Returns facts (verified FactLot facts citing document, page, quote and span), needs_review (each with the check that failed: quote, consistency, coverage, value), unextracted (requested predicates the model found nothing for), the page count and the model's token use, and nothing_stored: true. FactLot stores nothing and logs no document content. A scanned PDF without a text layer answers NeedsOcr: OCR it first (doc_read_pdf on the local server) and send the pages. Restrict predicates (see doc_predicates) to save tokens.",
   inputSchema: {
     type: "object",
     properties: {
@@ -92,13 +94,13 @@ export const EXTRACT_LEASE_TOOL = {
           pdf_base64: {
             type: "string",
             description:
-              "The PDF file as base64 (at most 10 MB decoded, 200 pages, 400,000 characters of text). Its text layer is read; scanned pages need OCR first.",
+              "The PDF file as base64 (at most 5 MB decoded, 200 pages, 400,000 characters of text). Its text layer is read; scanned pages need OCR first.",
           },
           url: {
             type: "string",
             format: "uri",
             description:
-              "An https URL of the PDF (or a text/plain file), fetched by FactLot for this request: at most 10 MB, 200 pages, 3 redirects.",
+              "An https URL of the PDF (or a text/plain file), fetched by FactLot for this request: at most 5 MB, 200 pages, 3 redirects.",
           },
           title: {
             type: "string",
@@ -506,10 +508,23 @@ export async function readPagesCapped(
   numPages: number,
   pageText: (pageNumber: number) => Promise<string>,
   maxCharacters: number = INGEST_LIMITS.characters,
+  clock: { deadline: number; now: () => number } = {
+    deadline: Date.now() + INGEST_LIMITS.pdfParseMs,
+    now: Date.now,
+  },
 ): Promise<string[]> {
   const pages: string[] = [];
   let total = 0;
   for (let i = 1; i <= numPages; i++) {
+    // A hostile PDF can make one page cost seconds of CPU; stop between pages once the budget is
+    // spent so one call cannot hold the isolate (shared with other callers) for the whole job.
+    if (clock.now() > clock.deadline)
+      throw problem(
+        422,
+        "PdfTooSlow",
+        `reading the PDF took longer than ${INGEST_LIMITS.pdfParseMs / 1000} seconds (stopped at page ${i} of ${numPages})`,
+        "split it (the lease and each amendment separately), or send the page text",
+      );
     const t = (await pageText(i)).replace(/\r\n?/g, "\n");
     total += t.length;
     if (total > maxCharacters)
@@ -525,7 +540,10 @@ export async function readPagesCapped(
 }
 
 /** A PDF's text layer, one string per page (pdf.js through unpdf; no eval, no fonts). */
-export async function pdfPages(bytes: Uint8Array): Promise<string[]> {
+export async function pdfPages(
+  bytes: Uint8Array,
+  clock?: { deadline: number; now: () => number },
+): Promise<string[]> {
   if (!isPdfBytes(bytes))
     throw problem(
       400,
@@ -569,21 +587,31 @@ export async function pdfPages(bytes: Uint8Array): Promise<string[]> {
       );
     // Page by page (unpdf's extractText reads every page at once), as it joins the items.
     const doc = pdf;
-    return await readPagesCapped(doc.numPages, async (n) => {
-      const page = await doc.getPage(n);
-      try {
-        const content = await page.getTextContent();
-        return content.items
-          .map((item) =>
-            "str" in item && item.str != null
-              ? item.str + (item.hasEOL ? "\n" : "")
-              : "",
-          )
-          .join("");
-      } finally {
-        page.cleanup();
-      }
-    });
+    // Limits on hostile input: pages, characters and a wall-clock deadline are enforced here and
+    // the raw size is capped before parsing. pdf.js (through unpdf) exposes no option to cap the
+    // decompressed size of a stream (maxImageSize bounds images only), so a Flate bomb inside a
+    // 5 MB file is bounded only by those caps; the deadline is checked between pages, not inside
+    // one.
+    return await readPagesCapped(
+      doc.numPages,
+      async (n) => {
+        const page = await doc.getPage(n);
+        try {
+          const content = await page.getTextContent();
+          return content.items
+            .map((item) =>
+              "str" in item && item.str != null
+                ? item.str + (item.hasEOL ? "\n" : "")
+                : "",
+            )
+            .join("");
+        } finally {
+          page.cleanup();
+        }
+      },
+      INGEST_LIMITS.characters,
+      clock,
+    );
   } finally {
     await pdf.loadingTask.destroy().catch(() => {});
   }

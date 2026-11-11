@@ -80,5 +80,13 @@
     "not_found_handling": "404-page",
   },
   // Query strings are left out of logs and traces: /billing/success carries a checkout session id.
+  // Known gap: Workers Logs has no option to redact URL paths (checked against the Cloudflare
+  // docs, 2026-11-10: only `redact_query_string`, `head_sampling_rate`, `invocation_logs` and
+  // log destinations exist). Live tokens ride in paths and are therefore stored in invocation
+  // logs: /account/recover/<token>, /v1/billing/claim/<token>, /authorize/email/<link>,
+  // /v1/reports/<token>... They are one-time or short-lived and the logs are owner-only, but the
+  // exposure is real. Options, none applied here: set "invocation_logs": false inside "logs"
+  // (drops request URLs, and with them the request log), or move the tokens to POST bodies or
+  // URL fragments (a URL redesign).
   "observability": { "enabled": true, "redact_query_string": true },
 }

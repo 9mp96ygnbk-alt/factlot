@@ -43,8 +43,8 @@ export const MODEL_PATHS = new Map([
   ["/v1/report/narrative", REPORT_NARRATIVE],
 ]);
 
-/** Request bodies for these tools may carry a 10 MB PDF as base64 (about 13.4 MB) plus JSON. */
-export const MODEL_MAX_BODY_BYTES = 15 * 1024 * 1024;
+/** Request bodies for these tools may carry a 5 MB PDF as base64 (about 6.7 MB) plus JSON. */
+export const MODEL_MAX_BODY_BYTES = 8 * 1024 * 1024;
 
 /** The per-subscription call gate (both tools together). */
 export const MODEL_CALL_LIMITS = {
@@ -415,7 +415,7 @@ export async function modelRestRoute(
       error: "PayloadTooLarge",
       code: "PayloadTooLarge",
       message: `request body over ${MODEL_MAX_BODY_BYTES / 1024 / 1024} MB`,
-      next: "send a smaller PDF (at most 10 MB), a URL to it, or the page text",
+      next: "send a smaller PDF (at most 5 MB), a URL to it, or the page text",
     });
   let args: unknown;
   try {

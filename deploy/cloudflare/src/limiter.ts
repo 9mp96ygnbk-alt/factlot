@@ -66,8 +66,12 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 /** How long daily usage and a key's last-use mark are kept. */
 export const USAGE_RETENTION_DAYS = 90;
 
-/** How long a claim is kept; the KV marker written after it covers later reloads. */
-export const CLAIM_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+/**
+ * How long a claim is kept. The KV marker written after it (INACTIVE_RETENTION_SECONDS, 365 days)
+ * covers later reloads, so the claim must outlive the marker: 395 days. Redemption also refuses
+ * sessions older than the marker, so no window is left after both are gone.
+ */
+export const CLAIM_TTL_MS = 395 * 24 * 60 * 60 * 1000;
 
 export class WindowCounter {
   private windowStart = 0;

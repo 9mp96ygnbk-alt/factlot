@@ -27,11 +27,11 @@ document ─▶ page text (pages, text, or a PDF's text layer; a scanned PDF ans
 
 - `pages`: the text of each page, `pages[0]` is page 1 (the shape every `doc_*` tool takes);
 - `text`: the whole text with a form feed (`\f`) between pages (one page without form feeds);
-- `pdf_base64`: the PDF, at most 10 MB, 200 pages and 400,000 characters of text. Its text layer
+- `pdf_base64`: the PDF, at most 5 MB, 200 pages and 400,000 characters of text. Its text layer
   is read with pdf.js one page at a time, and reading stops (413 `DocumentTooLarge`) as soon as
   the text passes 400,000 characters;
 - `url`: an `https` URL of a PDF or a `text/plain` file, fetched by FactLot for this request
-  (public host names only, at most 3 redirects, each checked again, 10 MB, 200 pages);
+  (public host names only, at most 3 redirects, each checked again, 5 MB, 200 pages);
 
 plus an optional `title`. Optional `predicates` restricts the terms asked for (any of the 30 in
 `doc_predicates`; default all), `document_id` (`fl:document:sha256-<hex>`) ties page text to the
@@ -160,7 +160,7 @@ Per subscription, both tools together: at most 2 calls running at once and 6 sta
 over either, the call answers `429 ModelRateLimited` with `retry_after_seconds` (and a
 `retry-after` header on REST) and nothing is counted.
 
-Per call: 200 pages, 10 MB of PDF, 400,000 characters of page text (more answers `413
+Per call: 200 pages, 5 MB of PDF, 400,000 characters of page text (more answers `413
 DocumentTooLarge` with a `next`), 120 seconds for `doc_extract_lease` and 60 seconds for
 `report_narrative`. At most two model-backed calls are answered in one MCP request.
 
@@ -234,5 +234,5 @@ MCP (`https://api.factlot.com/mcp` with the key as a bearer token): the tools ap
 ```
 
 The answer is the same object as REST, in `structuredContent` (and as text); an error carries
-`isError: true`. An MCP request with a PDF may be up to 15 MB; every other MCP request keeps the
+`isError: true`. An MCP request with a PDF may be up to 8 MB; every other MCP request keeps the
 1 MB limit.
