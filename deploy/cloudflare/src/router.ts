@@ -1417,6 +1417,8 @@ async function route(
     );
 
   // Reports: metered per month against reports_per_month (reports.ts).
+  const reportAddressSubject = () =>
+    addressSubject(clientAddress(request), now(), env.IP_HASH_SALT, "month");
   const reportCaller: ReportCaller = {
     tier,
     per: freeKey ? "email address behind a free key" : undefined,
@@ -1427,12 +1429,16 @@ async function route(
           (freeKey
             ? `freemail:${freeKey.email_hash.slice(0, 32)}`
             : undefined) ??
-          addressSubject(
-            clientAddress(request),
-            now(),
-            env.IP_HASH_SALT,
-            "month",
-          )),
+          reportAddressSubject()),
+    // A free key's reports also count against its address's month, the meter keyless reports use.
+    ...(freeKey && !paid && !oauth
+      ? {
+          also: {
+            subject: reportAddressSubject,
+            per: "IP address (keyless and free-key reports together)",
+          },
+        }
+      : {}),
   };
   const reportOpts = { apiBase, now };
   if (path === "/v1/reports" && !reportsEnabled(env))

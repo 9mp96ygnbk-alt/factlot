@@ -183,9 +183,12 @@
               most 3), all keyed by a hash of the IP address as described for
               lookup quota counters, never the address itself. Reports are
               counted for the current UTC month under part of the address hash,
-              so that replacing a key does not restart the count. A counter is
-              deleted when its window ends, or when the free key is deleted (see
-              below), except the counters keyed by an IP address.
+              so that replacing a key does not restart the count, and also under
+              the hash of the IP address, the same monthly count that reports
+              made without a key use, so that several free keys used from one IP
+              address share it. A counter is deleted when its window ends, or
+              when the free key is deleted (see below), except the counters
+              keyed by an IP address.
             </li>
             <li>
               <strong>Deleting a free key.</strong> You can delete a free key

@@ -837,3 +837,107 @@ describe("reports kill switch", () => {
     assert.equal(dl.status, 404);
   });
 });
+
+describe("free-key reports count against the address's month too", () => {
+  /** A free key as freekey.ts stores it, for the (hashed) address `who`. */
+  async function freeKey(e: Env, who: string): Promise<string> {
+    const key = `fl_free_${(await hashKey(who))
+      .replace(/[^A-Za-z0-9]/g, "A")
+      .padEnd(43, "A")
+      .slice(0, 43)}`;
+    await e.KEYS.put(
+      `freekey:${await hashKey(key)}`,
+      JSON.stringify({
+        tier: "free",
+        email_hash: await hashKey(`audit-address-${who}`),
+        created: new Date(T0).toISOString(),
+      }),
+    );
+    return key;
+  }
+  const make = async (
+    t: ReturnType<typeof env>,
+    key: string | undefined,
+    ip = IP,
+  ) => {
+    const res = await call(t, "/v1/reports", {
+      body: request(),
+      ...(key ? { key } : {}),
+      ip,
+    });
+    await res.body?.cancel();
+    return res.status;
+  };
+
+  it("gating audit F2: five free keys used from one address together get the keyless month (3 reports), not 15", async () => {
+    const t = env();
+    (t.e as { FREE_KEY_ENABLED?: string }).FREE_KEY_ENABLED = "true";
+    let made = 0;
+    for (let k = 0; k < 5; k++) {
+      const key = await freeKey(t.e, `k${k}`);
+      for (let i = 0; i < 3; i++) if ((await make(t, key)) === 201) made++;
+    }
+    assert.equal(made, 3);
+  });
+
+  it("keyless and free-key reports from one address share the one month", async () => {
+    const t = env();
+    const key = await freeKey(t.e, "a");
+    assert.equal(await make(t, undefined), 201);
+    assert.equal(await make(t, undefined), 201);
+    assert.equal(await make(t, key), 201, "the third is the last");
+    const over = await call(t, "/v1/reports", { body: request(), key });
+    assert.equal(over.status, 429);
+    const body = (await over.json()) as { message: string };
+    assert.match(body.message, /keyless and free-key reports together/);
+    assert.equal(await make(t, undefined), 429, "keyless is used up too");
+  });
+
+  it("a new key for the same address (plus-addressing, delete and reissue) starts no new month", async () => {
+    const t = env();
+    const first = await freeKey(t.e, "one");
+    for (let i = 0; i < 3; i++) assert.equal(await make(t, first), 201);
+    assert.equal(await make(t, first), 429);
+    // Another address hash (a plus-addressed email) or a reissued key, from the same address.
+    const second = await freeKey(t.e, "one+tag");
+    assert.equal(await make(t, second), 429);
+  });
+
+  it("a different address is unaffected, and so is a different month", async () => {
+    const t = env();
+    const key = await freeKey(t.e, "x");
+    for (let i = 0; i < 3; i++) assert.equal(await make(t, key), 201);
+    assert.equal(await make(t, key), 429);
+    const other = await freeKey(t.e, "y");
+    assert.equal(await make(t, other, "203.0.113.77"), 201);
+    t.clock.t += 40 * DAY;
+    assert.equal(await make(t, key), 201, "the next month counts afresh");
+  });
+
+  it("a refused request charges neither meter, and the per-email count is kept", async () => {
+    const t = env();
+    const key = await freeKey(t.e, "p");
+    const bad = await call(t, "/v1/reports", {
+      body: request({ arguments: { noi: -1 } }),
+      key,
+    });
+    assert.equal(bad.status, 400);
+    await bad.body?.cancel();
+    const subject = await addressSubject(IP, T0, undefined, "month");
+    assert.equal(
+      (await t.e.METER.quota(subject, "month", 3, "reports")).used,
+      0,
+    );
+    // The address meter fills up from another key; this key's own month is still counted per email.
+    for (let i = 0; i < 3; i++) assert.equal(await make(t, key), 201);
+    const emailSubject = `freemail:${(await hashKey("audit-address-p")).slice(0, 32)}`;
+    assert.equal(
+      (await t.e.METER.quota(emailSubject, "month", 3, "reports")).used,
+      3,
+    );
+    assert.equal(
+      (await t.e.METER.quota(subject, "month", 3, "reports")).used,
+      3,
+    );
+  });
+});

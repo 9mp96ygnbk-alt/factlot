@@ -116,6 +116,12 @@ export interface ReportCaller {
   subject: () => Promise<string>;
   /** What the free allowance is counted per in the quota message (default "IP address"). */
   per?: string;
+  /**
+   * A second, shared meter the report is also charged to (a free key's network address, the same
+   * `ipm:` subject keyless callers use), so keys cannot multiply the free month per address. A
+   * report needs room in both; a refusal or a failed build gives both back.
+   */
+  also?: { subject: () => Promise<string>; per: string };
 }
 
 export interface ReportOptions {
@@ -341,6 +347,7 @@ async function buildAndStore(
       ]),
     );
   const subject = await caller.subject();
+  const alsoSubject = caller.also ? await caller.also.subject() : undefined;
   const spec = quotaSpec(caller.tier);
   // Refuse at once when the month is used up, before any work.
   const before = await infra(
@@ -353,6 +360,18 @@ async function buildAndStore(
       body: reportQuotaError(before, caller.tier, o.now(), caller.per),
       quota: before,
     };
+  if (alsoSubject !== undefined) {
+    const shared = await infra(
+      env.METER.quota(alsoSubject, "month", spec.limit, "reports"),
+    );
+    if (shared.remaining <= 0)
+      return {
+        ok: false,
+        status: 429,
+        body: reportQuotaError(shared, caller.tier, o.now(), caller.also!.per),
+        quota: shared,
+      };
+  }
   let prepared: PreparedReport;
   try {
     prepared = prepareReport(rest, { now: o.now() });
@@ -363,7 +382,27 @@ async function buildAndStore(
     throw err;
   }
   // Charge before building: a build the runtime kills is not free.
-  const charged = await infra(env.METER.consume(subject, spec));
+  let charged = await infra(env.METER.consume(subject, spec));
+  if (charged.granted >= 1 && charged.quota && alsoSubject !== undefined) {
+    const shared = await infra(env.METER.consume(alsoSubject, spec));
+    if (shared.granted < 1 || !shared.quota) {
+      await refundReport(env, subject, charged.quota);
+      return {
+        ok: false,
+        status: 429,
+        body: reportQuotaError(
+          shared.quota ?? before,
+          caller.tier,
+          o.now(),
+          caller.also!.per,
+        ),
+        ...(shared.quota ? { quota: shared.quota } : {}),
+      };
+    }
+    // Report the tighter of the two months.
+    if (shared.quota.remaining < charged.quota.remaining)
+      charged = { ...charged, quota: shared.quota };
+  }
   if (charged.granted < 1 || !charged.quota)
     return {
       ok: false,
@@ -377,13 +416,18 @@ async function buildAndStore(
       ...(charged.quota ? { quota: charged.quota } : {}),
     };
   const quota = charged.quota;
+  // Give a report back on every meter it was charged to.
+  const refundAll = async () => {
+    await refundReport(env, subject, quota);
+    if (alsoSubject !== undefined) await refundReport(env, alsoSubject, quota);
+  };
   let file: ReportFile;
   try {
     file = await renderReport(prepared, { now: o.now() });
     if (file.bytes.byteLength > MAX_REPORT_BYTES)
       throw new ReportInputError("TooLarge", "the report is over 25 MiB");
   } catch (err) {
-    await refundReport(env, subject, quota);
+    await refundAll();
     if (err instanceof ReportInputError)
       return {
         ...inputError(err),
@@ -415,7 +459,7 @@ async function buildAndStore(
     );
   } catch {
     // Not stored: give the report back.
-    await refundReport(env, subject, quota);
+    await refundAll();
     throw new Unavailable("store");
   }
   const body: Record<string, unknown> = {
