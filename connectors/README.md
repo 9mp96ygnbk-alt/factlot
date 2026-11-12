@@ -28,6 +28,8 @@ the key is replaced, and is listed with **Disconnect** at factlot.com/account
 (`DELETE /v1/account/connections/{id}`). Tokens work only at `/mcp`; bare `/mcp` stays open on the
 free tier.
 
+**One page for every surface:** <https://factlot.com/connect/> lists the shortest working path for each client, with install links for Cursor and VS Code; <https://factlot.com/connect.json> is the same information as JSON, generated from [`site/_data/connect.json`](../site/_data/connect.json). The guides below hold the details.
+
 ## Three ways to connect
 
 | Surface                                               | What it is                                                                                                                                                                                                            | Use it from                                                                                                                                       |

@@ -9,8 +9,7 @@ endpoint serves.
 2. Enter the server URL `https://api.factlot.com/mcp`, a name ("FactLot"), and a description. Set
    authentication to **None**, or to **API key** (header `Authorization`, value `Bearer <key>`) if
    you set `FACTLOT_API_KEY`.
-3. Generative orchestration must be on for the agent. FactLot's 18 tools fit under Copilot Studio's
-   per-agent tool limit.
+3. Generative orchestration must be on for the agent. Check the number of tools against Copilot Studio's per-agent tool limit: the hosted server lists 59 (the earlier note that 18 fit was written before the catalog grew).
 4. Publish the agent to Microsoft 365 Copilot or Teams as needed.
 
 ## Power Platform custom connector

@@ -2,9 +2,9 @@
 
 ## Claude.ai, Claude Desktop, and mobile: custom connector (remote MCP)
 
-Custom connectors cannot send an API-key header, so a paid plan connects by signing in (OAuth 2.1):
+Sign in with OAuth 2.1 to connect a paid plan. (Claude's custom connector form also has a Request headers field for fixed credentials, per Claude's help center as read on 2026-11-12, so a key can instead go in `Authorization: Bearer <key>` on the plain `/mcp` URL; that path has not been tried.)
 
-1. In Claude, open **Settings → Connectors → Add custom connector**.
+1. In Claude, open **Customize → Connectors → + Add → Add custom connector** (older builds: **Settings → Connectors**).
 2. Name it FactLot and enter the URL `https://api.factlot.com/mcp/signin`. Leave the OAuth client ID
    and secret empty: Claude registers itself.
 3. Click **Connect**. A FactLot page opens and shows which app is asking and where access goes.
@@ -44,7 +44,7 @@ Download `factlot-X.Y.Z.mcpb` from the
 npm run build:mcpb    # → dist/factlot.mcpb
 ```
 
-Double-click the `.mcpb` file, or drag it into **Claude Desktop → Settings → Extensions**. The bundle
+In Claude Desktop open **Settings → Desktop app → Extensions → Advanced settings → Extension Developer → Install Extension** and choose the file (per Claude's help center as read on 2026-11-12; the older double-click or drag path was not re-checked). The bundle
 is a single self-contained file that is validated with Anthropic's `mcpb` CLI. It runs locally, with
 no account, no API key, and no network access.
 
