@@ -1,8 +1,8 @@
 """Amazon Bedrock Agents action-group Lambda for FactLot.
 
 Attach this Lambda as the executor of an action group whose API schema is FactLot's
-OpenAPI 3.0 document (https://api.factlot.com/openapi-3.0.json?operations=all for every tool, or
-the curated subset at /openapi-3.0.json, also packaged as factlot.openapi("3.0")).
+OpenAPI 3.0 document, the Bedrock profile (https://api.factlot.com/openapi-3.0.json?profile=bedrock,
+also packaged as factlot.openapi("3.0-bedrock"); add &operations=all for every tool).
 It runs the FactLot tools in-process; the Lambda makes no network calls.
 
 Bedrock sends each request-body property as {name, type, value} with `value` as a string;

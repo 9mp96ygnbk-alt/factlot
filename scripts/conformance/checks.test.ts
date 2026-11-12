@@ -69,10 +69,24 @@ test("search and fetch answers meet the ChatGPT contract", async () => {
 });
 
 test("the OpenAPI 3.0 documents meet the Custom GPT Actions and Bedrock Agents rules", () => {
-  // The default document is the GPT Actions import; ?operations=all is the Bedrock Agents one.
+  // The default document is the GPT Actions import; ?profile=bedrock is the Bedrock Agents one.
   assertPasses(checkGptActions(openApi30({ filter: () => true })));
   assertPasses(checkGptActions(openApi30()));
-  assertPasses(checkBedrockAgents(openApi30({ operations: "all" })));
+  assertPasses(
+    checkBedrockAgents(
+      openApi30({ profile: "bedrock", filter: () => true }),
+      11,
+    ),
+  );
+  assertPasses(
+    checkBedrockAgents(openApi30({ profile: "bedrock", operations: "all" })),
+  );
+  // The general document keeps its enums, so it is not a Bedrock document.
+  assert.ok(
+    checkBedrockAgents(openApi30({ operations: "all" })).some(
+      (f) => f.failures.length > 0,
+    ),
+  );
 });
 
 test("the checks catch what they are for", () => {

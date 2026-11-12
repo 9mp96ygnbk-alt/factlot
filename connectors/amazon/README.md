@@ -27,10 +27,16 @@ In TypeScript, use `bedrockConverseToolConfig()` from `@factlot/tools`.
 
 ## Bedrock Agents (action group)
 
-1. Create an action group whose API schema is FactLot's OpenAPI 3.0 document:
-   `https://api.factlot.com/openapi-3.0.json?operations=all` for every tool, or
-   `https://api.factlot.com/openapi-3.0.json` (also `factlot.openapi("3.0")`, which you can save to
-   S3) for the curated subset of at most 30 operations that Custom GPT Actions use.
+1. Create an action group whose API schema is FactLot's Bedrock profile of the OpenAPI 3.0
+   document: `https://api.factlot.com/openapi-3.0.json?profile=bedrock` (also
+   `factlot.openapi("3.0-bedrock")`, which you can save to S3). Bedrock does not support `enum`
+   ([AWS](https://docs.aws.amazon.com/bedrock/latest/userguide/agents-api-schema.html)), so this
+   document states each field's allowed values in its description ("One of: a, b, c.") and the
+   server still validates every request. It lists 11 operations, because Bedrock's default quota
+   is 11 APIs per agent
+   ([AWS quotas](https://docs.aws.amazon.com/general/latest/gr/bedrock.html), adjustable). If you
+   have raised the quota, `&operations=gpt_actions` lists 30 and `&operations=all` lists every tool.
+   Do not use the plain `/openapi-3.0.json`: it keeps `enum`.
 2. For the executor, deploy [`bedrock-agent-lambda/handler.py`](bedrock-agent-lambda/handler.py)
    with the `factlot` package installed beside it (`pip install factlot -t .`). The Lambda runs
    the tools in-process and makes no network calls.

@@ -4570,6 +4570,16 @@ describe("account, onboarding and OpenAPI: reports and the model-backed tools", 
     assert.equal(off["/v1/doc/extract_lease"], undefined);
     const all30 = await paths(env(MODEL), "/openapi-3.0.json?operations=all");
     assert.ok(all30["/v1/doc/extract_lease"] && all30["/v1/reports"]);
+    const bedrock = await paths(
+      env(MODEL),
+      "/openapi-3.0.json?profile=bedrock&operations=all",
+    );
+    assert.ok(bedrock["/v1/doc/extract_lease"] && bedrock["/v1/reports"]);
+    assert.ok(
+      !/"enum"/.test(JSON.stringify(bedrock)),
+      "the Bedrock profile has no enum in the Worker's own operations",
+    );
+    assert.match(JSON.stringify(all30), /"enum"/);
     const subset = await paths(env(MODEL), "/openapi-3.0.json");
     assert.deepEqual(
       Object.keys(subset),

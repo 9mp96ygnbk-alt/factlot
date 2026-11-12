@@ -1,10 +1,10 @@
 /**
  * Operations the Worker answers itself, added to the inner handler's OpenAPI documents
- * (/openapi.json and /openapi-3.0.json?operations=all) so they list every REST route that
+ * (/openapi.json and /openapi-3.0.json?operations=all, with or without profile=bedrock) so they list every REST route that
  * answers: report_create (POST /v1/reports, every caller) and its download, and, while the
  * server has a model, the model-backed tools (doc_extract_lease, report_narrative).
  */
-import { toOpenApi30Schema } from "@factlot/tools";
+import { toBedrockSchema, toOpenApi30Schema } from "@factlot/tools";
 
 import { EXTRACT_LEASE_TOOL } from "./ingest.ts";
 import { MODEL_PATHS } from "./model-tools.ts";
@@ -77,7 +77,7 @@ function operation(
 /** The document with the Worker's own operations added. Returns a fresh response. */
 export async function withHostedOperations(
   res: Response,
-  version: "3.1" | "3.0",
+  version: "3.1" | "3.0" | "bedrock",
   model: boolean,
 ): Promise<Response> {
   let doc: { paths?: Json };
@@ -87,7 +87,11 @@ export async function withHostedOperations(
     return res;
   }
   const convert = (s: unknown) =>
-    version === "3.0" ? toOpenApi30Schema(s) : (s as Json);
+    version === "3.0"
+      ? toOpenApi30Schema(s)
+      : version === "bedrock"
+        ? toBedrockSchema(s)
+        : (s as Json);
   doc.paths ??= {};
   doc.paths["/v1/reports"] = operation(
     REPORT_TOOL,

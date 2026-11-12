@@ -1587,7 +1587,11 @@ async function route(
   )
     res = await withHostedOperations(
       res,
-      path === "/openapi.json" ? "3.1" : "3.0",
+      path === "/openapi.json"
+        ? "3.1"
+        : url.searchParams.get("profile") === "bedrock"
+          ? "bedrock"
+          : "3.0",
       modelEnabled(env),
     );
   meterUsage(res.status);

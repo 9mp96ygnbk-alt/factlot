@@ -70,6 +70,7 @@ const DOCS = {
   openaiMcp: "https://developers.openai.com/api/docs/mcp",
   openaiApps: "https://developers.openai.com/apps-sdk/build/mcp-server",
   gptActions: "https://developers.openai.com/api/docs/actions/production",
+  bedrockQuotas: "https://docs.aws.amazon.com/general/latest/gr/bedrock.html",
   bedrockAgents:
     "https://docs.aws.amazon.com/bedrock/latest/userguide/agents-api-schema.html",
 };
@@ -295,9 +296,23 @@ export function checkGptActions(doc: Json): Finding[] {
 }
 
 /** The Bedrock Agents action-group rules for an OpenAPI 3.0 document. */
-export function checkBedrockAgents(doc: Json): Finding[] {
+export function checkBedrockAgents(
+  doc: Json,
+  /** The Agent's API quota to check the document against (AWS default 11, adjustable). */
+  limit?: number,
+): Finding[] {
   const ops = operations(doc);
   return [
+    ...(limit
+      ? [
+          {
+            client: "Amazon Bedrock Agents",
+            rule: `at most ${limit} operations (the default quota is 11 APIs per Agent)`,
+            failures: ops.length > limit ? [`${ops.length} operations`] : [],
+            doc: DOCS.bedrockQuotas,
+          },
+        ]
+      : []),
     {
       client: "Amazon Bedrock Agents",
       rule: 'openapi is exactly "3.0.0"',
@@ -319,12 +334,11 @@ export function checkBedrockAgents(doc: Json): Finding[] {
       client: "Amazon Bedrock Agents",
       rule: "no enum (not supported; the allowed values belong in the description)",
       failures: ops.flatMap(([w, op]) =>
-        [...nodes(op.requestBody)]
+        [...nodes(op)]
           .filter(([, n]) => Array.isArray(n.enum))
           .map(([path]) => `${w}${path}`),
       ),
       doc: DOCS.bedrockAgents,
-      warn: true,
     },
   ];
 }

@@ -1,0 +1,1991 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "FactLot",
+    "version": "0.5.0",
+    "description": "The open fact layer for commercial real estate AI agents: deterministic CRE calculators with audit trails, canonical FactLot IDs, and cited-fact validation. Call these operations instead of doing lease, CAM, rent, loan, or return math yourself. This document is the Amazon Bedrock Agents profile: 9 of the 46 operations (Bedrock allows 11 APIs per agent unless the quota is raised), with the allowed values of each field given in its description because Bedrock does not support enum; the server still validates every request. /openapi-3.0.json?profile=bedrock&operations=all is the complete document in this form."
+  },
+  "servers": [
+    {
+      "url": "https://YOUR-FACTLOT-SERVER"
+    }
+  ],
+  "paths": {
+    "/v1/calc/rent_schedule": {
+      "post": {
+        "operationId": "calc_rent_schedule",
+        "summary": "Lease rent schedule",
+        "description": "Build a base-rent schedule from commencement date, term, area, starting $/SF/yr, escalations (percent or fixed $/SF), and abated months. Lease months run from the commencement day-of-month with no calendar proration (warns when commencement is mid-month). Returns rent steps, totals, expiration date, and a calculation trace. Optional unit (kw, mw, unit, acre, key, room, space) relabels area and $/SF for data-center, ground, yard, residential, hotel, or parking leases without changing any number. Deterministic: use this instead of doing the math yourself; cite formula calc.rent_schedule@1 and the returned steps, and surface any warnings.",
+        "x-openai-isConsequential": false,
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "commencement_date": {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                    "description": "Rent commencement date, YYYY-MM-DD. Month n starts on this day-of-month (clamped to month end)."
+                  },
+                  "term_months": {
+                    "type": "integer",
+                    "exclusiveMinimum": true,
+                    "maximum": 1200,
+                    "description": "Lease term in months, e.g. 120 for ten years.",
+                    "minimum": 0
+                  },
+                  "area_sf": {
+                    "type": "number",
+                    "exclusiveMinimum": true,
+                    "description": "Rentable square feet, or the quantity leased in unit (kW, MW, units, acres, keys, rooms, spaces) when unit is set.",
+                    "minimum": 0
+                  },
+                  "starting_rent_psf_annual": {
+                    "type": "number",
+                    "minimum": 0,
+                    "description": "Year-one base rent in dollars per SF per year (annual, not monthly), e.g. 42.5; per unit per year when unit is set (a $/kW/month quote × 12)."
+                  },
+                  "escalation": {
+                    "default": {
+                      "type": "none"
+                    },
+                    "description": "How base rent escalates. Omit for flat rent.",
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "description": "One of: none."
+                          }
+                        },
+                        "required": ["type"],
+                        "description": "Flat rent for the whole term."
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "description": "One of: percent."
+                          },
+                          "rate": {
+                            "type": "number",
+                            "exclusiveMinimum": true,
+                            "exclusiveMaximum": true,
+                            "description": "Bump as a decimal, e.g. 0.03 for 3%. Bumps compound.",
+                            "minimum": -1,
+                            "maximum": 10
+                          },
+                          "every_months": {
+                            "default": 12,
+                            "description": "Months between bumps (12 = annual). The first bump takes effect in month every_months + 1.",
+                            "type": "integer",
+                            "exclusiveMinimum": true,
+                            "maximum": 9007199254740991,
+                            "minimum": 0
+                          }
+                        },
+                        "required": ["type", "rate"],
+                        "description": "Percentage bumps: rate_k = starting_rate × (1 + rate)^k."
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "description": "One of: fixed_psf."
+                          },
+                          "amount": {
+                            "type": "number",
+                            "description": "Dollars per SF per year (or per unit per year when unit is set) added at each bump, e.g. 0.50."
+                          },
+                          "every_months": {
+                            "default": 12,
+                            "description": "Months between bumps (12 = annual). The first bump takes effect in month every_months + 1.",
+                            "type": "integer",
+                            "exclusiveMinimum": true,
+                            "maximum": 9007199254740991,
+                            "minimum": 0
+                          }
+                        },
+                        "required": ["type", "amount"],
+                        "description": "Fixed $/SF bumps: rate_k = starting_rate + amount × k."
+                      }
+                    ]
+                  },
+                  "abated_months": {
+                    "default": [],
+                    "description": "Fully abated (free) months, 1-based from commencement (e.g. [1,2,3] for three months free up front). Each listed month's base rent is zero.",
+                    "maxItems": 1200,
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "exclusiveMinimum": true,
+                      "maximum": 9007199254740991,
+                      "minimum": 0
+                    }
+                  },
+                  "round_rate_to_cents": {
+                    "default": false,
+                    "description": "Round each step's $/SF/yr to cents, as many lease rent tables do.",
+                    "type": "boolean"
+                  },
+                  "include_monthly": {
+                    "default": false,
+                    "description": "Include a month-by-month table (can be long).",
+                    "type": "boolean"
+                  },
+                  "unit": {
+                    "description": "What area_sf and the per-SF fields measure: sf (default, square feet), kw or mw (data-center critical load), unit (apartment or other unit), acre (ground or yard lease), key or room (hotel), or space (parking). Every number is computed exactly as for square feet; the unit changes labels, steps, and warnings and adds unit and rate_unit to the result. Fields keep their _sf and _psf names: with unit kw, area_sf holds kW and starting_rent_psf_annual holds $/kW/yr. Omit for square feet. One of: sf, kw, mw, unit, acre, key, room, space.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "commencement_date",
+                  "term_months",
+                  "area_sf",
+                  "starting_rent_psf_annual"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Result: { value, formula, steps, warnings, provenance }.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input; read `issues`, fix the arguments, and retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "CalcInputError, FactLotIdError, InputError, or UnknownTool"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "issues": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "path": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error", "message"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/calc/net_effective_rent": {
+      "post": {
+        "operationId": "calc_net_effective_rent",
+        "summary": "Net effective rent (NER)",
+        "description": "Compute effective rent, straight-line net effective rent, and discounted net effective rent ($/SF/yr) after free rent, TI allowance, leasing commissions, and other landlord concessions. Rent is monthly in advance from the commencement day (no calendar proration), discounted at annual rate ÷ 12. schedule.unit (kw, mw, unit, acre, key, room, space) reports $/kW/yr, $/acre/yr and so on instead of $/SF/yr. Deterministic: use this instead of doing the math yourself; cite formula calc.net_effective_rent@1 and the returned steps, and surface any warnings.",
+        "x-openai-isConsequential": false,
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "schedule": {
+                    "type": "object",
+                    "properties": {
+                      "commencement_date": {
+                        "type": "string",
+                        "format": "date",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                        "description": "Rent commencement date, YYYY-MM-DD. Month n starts on this day-of-month (clamped to month end)."
+                      },
+                      "term_months": {
+                        "type": "integer",
+                        "exclusiveMinimum": true,
+                        "maximum": 1200,
+                        "description": "Lease term in months, e.g. 120 for ten years.",
+                        "minimum": 0
+                      },
+                      "area_sf": {
+                        "type": "number",
+                        "exclusiveMinimum": true,
+                        "description": "Rentable square feet, or the quantity leased in unit (kW, MW, units, acres, keys, rooms, spaces) when unit is set.",
+                        "minimum": 0
+                      },
+                      "starting_rent_psf_annual": {
+                        "type": "number",
+                        "minimum": 0,
+                        "description": "Year-one base rent in dollars per SF per year (annual, not monthly), e.g. 42.5; per unit per year when unit is set (a $/kW/month quote × 12)."
+                      },
+                      "escalation": {
+                        "default": {
+                          "type": "none"
+                        },
+                        "description": "How base rent escalates. Omit for flat rent.",
+                        "oneOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "description": "One of: none."
+                              }
+                            },
+                            "required": ["type"],
+                            "description": "Flat rent for the whole term."
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "description": "One of: percent."
+                              },
+                              "rate": {
+                                "type": "number",
+                                "exclusiveMinimum": true,
+                                "exclusiveMaximum": true,
+                                "description": "Bump as a decimal, e.g. 0.03 for 3%. Bumps compound.",
+                                "minimum": -1,
+                                "maximum": 10
+                              },
+                              "every_months": {
+                                "default": 12,
+                                "description": "Months between bumps (12 = annual). The first bump takes effect in month every_months + 1.",
+                                "type": "integer",
+                                "exclusiveMinimum": true,
+                                "maximum": 9007199254740991,
+                                "minimum": 0
+                              }
+                            },
+                            "required": ["type", "rate"],
+                            "description": "Percentage bumps: rate_k = starting_rate × (1 + rate)^k."
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "description": "One of: fixed_psf."
+                              },
+                              "amount": {
+                                "type": "number",
+                                "description": "Dollars per SF per year (or per unit per year when unit is set) added at each bump, e.g. 0.50."
+                              },
+                              "every_months": {
+                                "default": 12,
+                                "description": "Months between bumps (12 = annual). The first bump takes effect in month every_months + 1.",
+                                "type": "integer",
+                                "exclusiveMinimum": true,
+                                "maximum": 9007199254740991,
+                                "minimum": 0
+                              }
+                            },
+                            "required": ["type", "amount"],
+                            "description": "Fixed $/SF bumps: rate_k = starting_rate + amount × k."
+                          }
+                        ]
+                      },
+                      "abated_months": {
+                        "default": [],
+                        "description": "Fully abated (free) months, 1-based from commencement (e.g. [1,2,3] for three months free up front). Each listed month's base rent is zero.",
+                        "maxItems": 1200,
+                        "type": "array",
+                        "items": {
+                          "type": "integer",
+                          "exclusiveMinimum": true,
+                          "maximum": 9007199254740991,
+                          "minimum": 0
+                        }
+                      },
+                      "round_rate_to_cents": {
+                        "default": false,
+                        "description": "Round each step's $/SF/yr to cents, as many lease rent tables do.",
+                        "type": "boolean"
+                      },
+                      "include_monthly": {
+                        "default": false,
+                        "description": "Include a month-by-month table (can be long).",
+                        "type": "boolean"
+                      },
+                      "unit": {
+                        "description": "What area_sf and the per-SF fields measure: sf (default, square feet), kw or mw (data-center critical load), unit (apartment or other unit), acre (ground or yard lease), key or room (hotel), or space (parking). Every number is computed exactly as for square feet; the unit changes labels, steps, and warnings and adds unit and rate_unit to the result. Fields keep their _sf and _psf names: with unit kw, area_sf holds kW and starting_rent_psf_annual holds $/kW/yr. Omit for square feet. One of: sf, kw, mw, unit, acre, key, room, space.",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "commencement_date",
+                      "term_months",
+                      "area_sf",
+                      "starting_rent_psf_annual"
+                    ],
+                    "description": "The lease's base-rent terms (same input as calc_rent_schedule)."
+                  },
+                  "ti_allowance_psf": {
+                    "default": 0,
+                    "description": "Landlord-funded tenant improvement allowance, USD per SF (per schedule.unit when set), paid once at commencement (not per year).",
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "leasing_commissions": {
+                    "default": 0,
+                    "description": "Total leasing commissions paid by landlord, USD.",
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "other_concessions": {
+                    "default": 0,
+                    "description": "Any other landlord concessions paid at commencement (moving allowance, buyout), USD.",
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "discount_rate_annual": {
+                    "default": 0,
+                    "description": "Annual discount rate as a decimal, e.g. 0.08 (monthly rate = annual ÷ 12); 0 gives the undiscounted (straight-line) NER.",
+                    "type": "number",
+                    "minimum": 0,
+                    "exclusiveMaximum": true,
+                    "maximum": 1
+                  }
+                },
+                "required": ["schedule"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Result: { value, formula, steps, warnings, provenance }.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input; read `issues`, fix the arguments, and retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "CalcInputError, FactLotIdError, InputError, or UnknownTool"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "issues": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "path": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error", "message"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/calc/compare_proposals": {
+      "post": {
+        "operationId": "calc_compare_proposals",
+        "summary": "Compare lease proposals",
+        "description": "Rank 2–20 lease proposals with different terms, sizes, free rent, TI, concessions, and operating-expense structures (gross, NNN, base year, expense stop, with opex growth) on one discounted $/SF/yr basis, per rentable or usable SF (load factor): effective occupancy cost (tenant perspective) or discounted net effective rent after landlord-borne opex and optional pre-commencement downtime (landlord perspective). Cash flows monthly in advance at annual rate ÷ 12; warns when the usable-SF ranking differs and when terms differ. schedule.unit (kw, mw, unit, acre, key, room, space, the same for every proposal) ranks per kW, MW, unit, acre, key, room, or space instead of per SF. Deterministic: use this instead of doing the math yourself; cite formula calc.compare_proposals@2 and the returned steps, and surface any warnings.",
+        "x-openai-isConsequential": false,
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "perspective": {
+                    "default": "tenant",
+                    "description": "Whose economics to rank on: tenant (effective occupancy cost, lower is better) or landlord (discounted net effective rent, higher is better). One of: tenant, landlord.",
+                    "type": "string"
+                  },
+                  "discount_rate_annual": {
+                    "default": 0.08,
+                    "description": "Annual discount rate as a decimal, e.g. 0.08, applied to every proposal (monthly rate = annual ÷ 12, cash flows at the start of each month). Default 0.08, named in warnings when omitted: the ranking can change with the rate.",
+                    "type": "number",
+                    "minimum": 0,
+                    "exclusiveMaximum": true,
+                    "maximum": 1
+                  },
+                  "area_basis": {
+                    "default": "rentable",
+                    "description": "Area the $/SF/yr metric is divided by: rentable (schedule.area_sf, the default) or usable (each proposal's usable_sf, or area_sf ÷ load_factor). Rents and expenses stay quoted per rentable SF; use usable when proposals have different load factors and the tenant needs a fixed usable area. One of: rentable, usable.",
+                    "type": "string"
+                  },
+                  "proposals": {
+                    "minItems": 2,
+                    "maxItems": 20,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200,
+                          "description": "Unique label for the proposal, e.g. building name."
+                        },
+                        "schedule": {
+                          "type": "object",
+                          "properties": {
+                            "commencement_date": {
+                              "type": "string",
+                              "format": "date",
+                              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                              "description": "Rent commencement date, YYYY-MM-DD. Month n starts on this day-of-month (clamped to month end)."
+                            },
+                            "term_months": {
+                              "type": "integer",
+                              "exclusiveMinimum": true,
+                              "maximum": 1200,
+                              "description": "Lease term in months, e.g. 120 for ten years.",
+                              "minimum": 0
+                            },
+                            "area_sf": {
+                              "type": "number",
+                              "exclusiveMinimum": true,
+                              "description": "Rentable square feet, or the quantity leased in unit (kW, MW, units, acres, keys, rooms, spaces) when unit is set.",
+                              "minimum": 0
+                            },
+                            "starting_rent_psf_annual": {
+                              "type": "number",
+                              "minimum": 0,
+                              "description": "Year-one base rent in dollars per SF per year (annual, not monthly), e.g. 42.5; per unit per year when unit is set (a $/kW/month quote × 12)."
+                            },
+                            "escalation": {
+                              "default": {
+                                "type": "none"
+                              },
+                              "description": "How base rent escalates. Omit for flat rent.",
+                              "oneOf": [
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string",
+                                      "description": "One of: none."
+                                    }
+                                  },
+                                  "required": ["type"],
+                                  "description": "Flat rent for the whole term."
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string",
+                                      "description": "One of: percent."
+                                    },
+                                    "rate": {
+                                      "type": "number",
+                                      "exclusiveMinimum": true,
+                                      "exclusiveMaximum": true,
+                                      "description": "Bump as a decimal, e.g. 0.03 for 3%. Bumps compound.",
+                                      "minimum": -1,
+                                      "maximum": 10
+                                    },
+                                    "every_months": {
+                                      "default": 12,
+                                      "description": "Months between bumps (12 = annual). The first bump takes effect in month every_months + 1.",
+                                      "type": "integer",
+                                      "exclusiveMinimum": true,
+                                      "maximum": 9007199254740991,
+                                      "minimum": 0
+                                    }
+                                  },
+                                  "required": ["type", "rate"],
+                                  "description": "Percentage bumps: rate_k = starting_rate × (1 + rate)^k."
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string",
+                                      "description": "One of: fixed_psf."
+                                    },
+                                    "amount": {
+                                      "type": "number",
+                                      "description": "Dollars per SF per year (or per unit per year when unit is set) added at each bump, e.g. 0.50."
+                                    },
+                                    "every_months": {
+                                      "default": 12,
+                                      "description": "Months between bumps (12 = annual). The first bump takes effect in month every_months + 1.",
+                                      "type": "integer",
+                                      "exclusiveMinimum": true,
+                                      "maximum": 9007199254740991,
+                                      "minimum": 0
+                                    }
+                                  },
+                                  "required": ["type", "amount"],
+                                  "description": "Fixed $/SF bumps: rate_k = starting_rate + amount × k."
+                                }
+                              ]
+                            },
+                            "abated_months": {
+                              "default": [],
+                              "description": "Fully abated (free) months, 1-based from commencement (e.g. [1,2,3] for three months free up front). Each listed month's base rent is zero.",
+                              "maxItems": 1200,
+                              "type": "array",
+                              "items": {
+                                "type": "integer",
+                                "exclusiveMinimum": true,
+                                "maximum": 9007199254740991,
+                                "minimum": 0
+                              }
+                            },
+                            "round_rate_to_cents": {
+                              "default": false,
+                              "description": "Round each step's $/SF/yr to cents, as many lease rent tables do.",
+                              "type": "boolean"
+                            },
+                            "include_monthly": {
+                              "default": false,
+                              "description": "Include a month-by-month table (can be long).",
+                              "type": "boolean"
+                            },
+                            "unit": {
+                              "description": "What area_sf and the per-SF fields measure: sf (default, square feet), kw or mw (data-center critical load), unit (apartment or other unit), acre (ground or yard lease), key or room (hotel), or space (parking). Every number is computed exactly as for square feet; the unit changes labels, steps, and warnings and adds unit and rate_unit to the result. Fields keep their _sf and _psf names: with unit kw, area_sf holds kW and starting_rent_psf_annual holds $/kW/yr. Omit for square feet. One of: sf, kw, mw, unit, acre, key, room, space.",
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "commencement_date",
+                            "term_months",
+                            "area_sf",
+                            "starting_rent_psf_annual"
+                          ],
+                          "description": "Base-rent terms of this proposal (same input as calc_rent_schedule); schedule.area_sf is the rentable area. With schedule.unit (kw, mw, unit, acre, key, room, space), area_sf and every $/SF field of this proposal are per that unit; all proposals must use the same unit."
+                        },
+                        "usable_sf": {
+                          "description": "Usable square feet of this proposal (at most schedule.area_sf). Give this or load_factor, not both; required for area_basis usable.",
+                          "type": "number",
+                          "exclusiveMinimum": true,
+                          "minimum": 0
+                        },
+                        "load_factor": {
+                          "description": "Rentable ÷ usable area, e.g. 1.15 (usable_sf = area_sf ÷ load_factor). Give this or usable_sf, not both.",
+                          "type": "number",
+                          "minimum": 1,
+                          "maximum": 3
+                        },
+                        "ti_allowance_psf": {
+                          "default": 0,
+                          "description": "TI allowance paid by the landlord, USD per rentable SF, once at commencement (not per year).",
+                          "type": "number",
+                          "minimum": 0
+                        },
+                        "other_concessions": {
+                          "default": 0,
+                          "description": "Other cash concessions to the tenant at commencement (moving allowance, buyout), USD.",
+                          "type": "number",
+                          "minimum": 0
+                        },
+                        "leasing_commissions": {
+                          "default": 0,
+                          "description": "Leasing commissions paid by landlord at commencement, USD (landlord perspective only).",
+                          "type": "number",
+                          "minimum": 0
+                        },
+                        "operating_expenses": {
+                          "description": "Operating-expense structure of this proposal: gross, nnn, base_year, or expense_stop, with a lease-year-1 estimate and growth. Tenant perspective adds what the tenant pays; landlord perspective deducts what the landlord bears. Omit to price no operating expenses (as before).",
+                          "oneOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "description": "One of: gross."
+                                },
+                                "expense_psf_annual": {
+                                  "default": 0,
+                                  "description": "Estimated operating expenses the landlord pays, $/SF/yr in lease year 1 (used in the landlord perspective; the tenant pays none).",
+                                  "type": "number",
+                                  "minimum": 0
+                                },
+                                "growth_rate_annual": {
+                                  "default": 0,
+                                  "description": "Annual growth of operating expenses as a decimal, e.g. 0.03, compounding each lease year from commencement (lease year 1 is expense_psf_annual).",
+                                  "type": "number",
+                                  "exclusiveMinimum": true,
+                                  "exclusiveMaximum": true,
+                                  "minimum": -1,
+                                  "maximum": 10
+                                }
+                              },
+                              "required": ["type"],
+                              "description": "Full-service gross: the landlord pays all operating expenses; the tenant pays none beyond base rent."
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "description": "One of: nnn."
+                                },
+                                "expense_psf_annual": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "description": "Estimated operating expenses (CAM, taxes, insurance) for lease year 1, $/SF/yr on rentable area."
+                                },
+                                "growth_rate_annual": {
+                                  "default": 0,
+                                  "description": "Annual growth of operating expenses as a decimal, e.g. 0.03, compounding each lease year from commencement (lease year 1 is expense_psf_annual).",
+                                  "type": "number",
+                                  "exclusiveMinimum": true,
+                                  "exclusiveMaximum": true,
+                                  "minimum": -1,
+                                  "maximum": 10
+                                }
+                              },
+                              "required": ["type", "expense_psf_annual"],
+                              "description": "Net (NNN): the tenant pays all operating expenses, estimated at expense_psf_annual in lease year 1."
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "description": "One of: base_year."
+                                },
+                                "expense_psf_annual": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "description": "Estimated operating expenses (CAM, taxes, insurance) for lease year 1, $/SF/yr on rentable area."
+                                },
+                                "base_year_psf_annual": {
+                                  "description": "Base-year operating expenses, $/SF/yr. Defaults to expense_psf_annual (the base year is lease year 1).",
+                                  "type": "number",
+                                  "minimum": 0
+                                },
+                                "growth_rate_annual": {
+                                  "default": 0,
+                                  "description": "Annual growth of operating expenses as a decimal, e.g. 0.03, compounding each lease year from commencement (lease year 1 is expense_psf_annual).",
+                                  "type": "number",
+                                  "exclusiveMinimum": true,
+                                  "exclusiveMaximum": true,
+                                  "minimum": -1,
+                                  "maximum": 10
+                                }
+                              },
+                              "required": ["type", "expense_psf_annual"],
+                              "description": "Gross with a base year: the tenant pays operating expenses above the base-year amount."
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "description": "One of: expense_stop."
+                                },
+                                "expense_psf_annual": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "description": "Estimated operating expenses (CAM, taxes, insurance) for lease year 1, $/SF/yr on rentable area."
+                                },
+                                "stop_psf_annual": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "description": "Expense stop, $/SF/yr: the tenant pays operating expenses above this fixed amount."
+                                },
+                                "growth_rate_annual": {
+                                  "default": 0,
+                                  "description": "Annual growth of operating expenses as a decimal, e.g. 0.03, compounding each lease year from commencement (lease year 1 is expense_psf_annual).",
+                                  "type": "number",
+                                  "exclusiveMinimum": true,
+                                  "exclusiveMaximum": true,
+                                  "minimum": -1,
+                                  "maximum": 10
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "expense_psf_annual",
+                                "stop_psf_annual"
+                              ],
+                              "description": "Gross with an expense stop: the tenant pays operating expenses above a fixed $/SF/yr stop."
+                            }
+                          ]
+                        },
+                        "additional_costs_psf_annual": {
+                          "default": 0,
+                          "description": "Other costs the tenant pays on top of base rent, flat $/SF/yr on rentable area (tenant perspective only), e.g. parking. Prefer operating_expenses for opex pass-throughs, which can grow and follow a base year or stop.",
+                          "type": "number",
+                          "minimum": 0
+                        },
+                        "tenant_upfront_costs": {
+                          "default": 0,
+                          "description": "Tenant's own costs at commencement not covered by allowances (TI overage, moving), USD.",
+                          "type": "number",
+                          "minimum": 0
+                        },
+                        "downtime_months": {
+                          "default": 0,
+                          "description": "Landlord perspective: vacant months before this proposal commences (no rent; the landlord carries lease-year-1 operating expenses if operating_expenses is given). The metric is then the level monthly amount over downtime plus term. Ignored for the tenant.",
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 120
+                        }
+                      },
+                      "required": ["name", "schedule"]
+                    },
+                    "description": "2–20 proposals to compare."
+                  }
+                },
+                "required": ["proposals"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Result: { value, formula, steps, warnings, provenance }.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input; read `issues`, fix the arguments, and retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "CalcInputError, FactLotIdError, InputError, or UnknownTool"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "issues": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "path": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error", "message"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/calc/cam_reconciliation": {
+      "post": {
+        "operationId": "calc_cam_reconciliation",
+        "summary": "CAM / operating expense reconciliation",
+        "description": "Reconcile a tenant's annual CAM charge: exclusions, occupancy gross-up of variable expenses, pro rata share, controllable-expense caps (compounding_from_base, simple_from_base, year_over_year), an admin fee (before or after the cap, inside or outside it, with per-line exclusions), base year or expense stop, partial-year occupancy (move-in/move-out prorates share, cap, and base by days), and estimates paid. Returns balance due and a full trace with order-of-operations warnings. Deterministic: use this instead of doing the math yourself; cite formula calc.cam_reconciliation@2 and the returned steps, and surface any warnings.",
+        "x-openai-isConsequential": false,
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "year": {
+                    "type": "integer",
+                    "minimum": 1900,
+                    "maximum": 2200,
+                    "description": "Calendar or lease year being reconciled."
+                  },
+                  "pro_rata_share": {
+                    "type": "number",
+                    "exclusiveMinimum": true,
+                    "maximum": 1,
+                    "description": "Tenant's pro rata share, 0 < share ≤ 1 (e.g. 12,000 / 150,000 = 0.08).",
+                    "minimum": 0
+                  },
+                  "expenses": {
+                    "minItems": 1,
+                    "maxItems": 1000,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "category": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200,
+                          "description": "Expense line as named in the operating statement, e.g. \"janitorial\"."
+                        },
+                        "amount": {
+                          "type": "number",
+                          "minimum": 0,
+                          "description": "Building-level actual expense for the year, USD."
+                        },
+                        "controllable": {
+                          "default": true,
+                          "description": "Subject to the cap. Taxes, insurance, and utilities are typically uncontrollable. Default true; under a cap, lines left unset are named in warnings.",
+                          "type": "boolean"
+                        },
+                        "recoverable": {
+                          "default": true,
+                          "description": "Excluded expenses (capital items, landlord-only costs) are dropped entirely.",
+                          "type": "boolean"
+                        },
+                        "variable": {
+                          "default": false,
+                          "description": "Varies with occupancy, so eligible for gross-up (janitorial, utilities, management fee). Default false; with a gross-up, lines left unset are named in warnings.",
+                          "type": "boolean"
+                        },
+                        "admin_fee_applies": {
+                          "default": true,
+                          "description": "Included in the admin_fee base. Set false for lines the lease excludes from the fee (often taxes, insurance, utilities, or a management fee already charged).",
+                          "type": "boolean"
+                        }
+                      },
+                      "required": ["category", "amount"]
+                    },
+                    "description": "Building operating expense lines for the year."
+                  },
+                  "gross_up": {
+                    "description": "Gross up variable expenses to the target occupancy when actual occupancy is lower. Omit if the lease has no gross-up.",
+                    "type": "object",
+                    "properties": {
+                      "actual_occupancy": {
+                        "type": "number",
+                        "exclusiveMinimum": true,
+                        "maximum": 1,
+                        "description": "Average occupancy for the year, e.g. 0.82.",
+                        "minimum": 0
+                      },
+                      "target_occupancy": {
+                        "default": 0.95,
+                        "description": "Gross-up occupancy stated in the lease (commonly 0.95 or 1.0).",
+                        "type": "number",
+                        "exclusiveMinimum": true,
+                        "maximum": 1,
+                        "minimum": 0
+                      }
+                    },
+                    "required": ["actual_occupancy"]
+                  },
+                  "structure": {
+                    "default": {
+                      "type": "net"
+                    },
+                    "description": "Expense structure from the lease. Default: net.",
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "description": "One of: net."
+                          }
+                        },
+                        "required": ["type"],
+                        "description": "Tenant pays its full share of recoverable expenses (NNN / net)."
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "description": "One of: base_year."
+                          },
+                          "base_year_expenses": {
+                            "type": "number",
+                            "minimum": 0,
+                            "description": "Total building recoverable expenses in the base year, already grossed up, USD."
+                          }
+                        },
+                        "required": ["type", "base_year_expenses"],
+                        "description": "Tenant pays its share of the excess over base-year expenses."
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "description": "One of: expense_stop."
+                          },
+                          "stop_amount": {
+                            "type": "number",
+                            "minimum": 0,
+                            "description": "Building-level expense stop, USD per year."
+                          }
+                        },
+                        "required": ["type", "stop_amount"],
+                        "description": "Tenant pays its share of the excess over a fixed expense stop."
+                      }
+                    ]
+                  },
+                  "cap": {
+                    "description": "Cap on the tenant's share of controllable expenses. Omit if the lease has no cap.",
+                    "type": "object",
+                    "properties": {
+                      "method": {
+                        "type": "string",
+                        "description": "compounding_from_base: reference × (1+rate)^years (often called cumulative, compounding). simple_from_base: reference × (1 + rate × years) (cumulative, non-compounding). year_over_year: prior year's capped amount × (1+rate) (non-cumulative). Map the lease language to one of these explicitly. One of: compounding_from_base, simple_from_base, year_over_year."
+                      },
+                      "rate": {
+                        "type": "number",
+                        "exclusiveMinimum": true,
+                        "exclusiveMaximum": true,
+                        "description": "Annual cap as a decimal, e.g. 0.05.",
+                        "minimum": -1,
+                        "maximum": 10
+                      },
+                      "reference_amount": {
+                        "type": "number",
+                        "minimum": 0,
+                        "description": "Tenant's share of controllable expenses in the reference year: the base year for *_from_base, or the prior year's capped amount for year_over_year, USD."
+                      },
+                      "years_elapsed": {
+                        "description": "Years since the base year (required for `*_from_base`).",
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": ["method", "rate", "reference_amount"]
+                  },
+                  "admin_fee": {
+                    "description": "Administrative fee the lease adds to the tenant's share. Omit if the lease has none.",
+                    "type": "object",
+                    "properties": {
+                      "rate": {
+                        "type": "number",
+                        "exclusiveMinimum": true,
+                        "exclusiveMaximum": true,
+                        "description": "Administrative or management fee as a decimal of the fee base, e.g. 0.15 for 15%. The base is the tenant's share of recoverable lines with admin_fee_applies (after gross-up).",
+                        "minimum": -1,
+                        "maximum": 10
+                      },
+                      "applied": {
+                        "default": "after_cap",
+                        "description": "Fee on controllable lines computed on the tenant's share before the cap (before_cap) or on the capped amount (after_cap). Fees on uncontrollable lines are never capped. Irrelevant without a cap. One of: before_cap, after_cap.",
+                        "type": "string"
+                      },
+                      "capped": {
+                        "default": false,
+                        "description": "True when the fee on controllable lines counts toward the controllable cap (controllable share plus fee may not exceed the cap limit); false adds it outside the cap.",
+                        "type": "boolean"
+                      }
+                    },
+                    "required": ["rate"]
+                  },
+                  "occupancy": {
+                    "description": "Partial-year occupancy: the tenant's share, cap limit, and base-year or stop deduction are prorated by occupied days ÷ period days (both inclusive), so a full-year cap and base are not applied to a part year. Omit for a full year.",
+                    "type": "object",
+                    "properties": {
+                      "move_in_date": {
+                        "description": "Date the tenant's share starts within the reconciliation period, YYYY-MM-DD (inclusive). Defaults to period_start_date.",
+                        "type": "string",
+                        "format": "date",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                      },
+                      "move_out_date": {
+                        "description": "Last day of the tenant's share within the period, YYYY-MM-DD (inclusive). Defaults to period_end_date.",
+                        "type": "string",
+                        "format": "date",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                      },
+                      "period_start_date": {
+                        "description": "First day of the reconciliation period, YYYY-MM-DD. Defaults to January 1 of year; set it for a lease year.",
+                        "type": "string",
+                        "format": "date",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                      },
+                      "period_end_date": {
+                        "description": "Last day of the reconciliation period, YYYY-MM-DD (at most 366 days after the start). Defaults to December 31 of year.",
+                        "type": "string",
+                        "format": "date",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                      }
+                    }
+                  },
+                  "estimates_paid": {
+                    "default": 0,
+                    "description": "Estimated CAM payments the tenant made during the year, USD (total for the year, not monthly).",
+                    "type": "number",
+                    "minimum": 0
+                  }
+                },
+                "required": ["year", "pro_rata_share", "expenses"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Result: { value, formula, steps, warnings, provenance }.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input; read `issues`, fix the arguments, and retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "CalcInputError, FactLotIdError, InputError, or UnknownTool"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "issues": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "path": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error", "message"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/calc/debt_sizing": {
+      "post": {
+        "operationId": "calc_debt_sizing",
+        "summary": "Loan sizing (LTV / DSCR / debt yield)",
+        "description": "Size the maximum loan under any combination of max LTV, min DSCR, and min debt yield for a given NOI, rate, and amortization. Reports the binding constraint, debt service, and resulting metrics; optionally a stress table over NOI, rate, and value shocks (max loan, binding constraint, LTV, DSCR, debt yield per scenario) and the refinance shortfall against an existing loan balance. Deterministic: use this instead of doing the math yourself; cite formula calc.debt_sizing@3 and the returned steps, and surface any warnings.",
+        "x-openai-isConsequential": false,
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "noi": {
+                    "type": "number",
+                    "exclusiveMinimum": true,
+                    "description": "Underwritten net operating income, USD/yr.",
+                    "minimum": 0
+                  },
+                  "value": {
+                    "description": "Appraised or underwritten value, USD. Required when max_ltv is set.",
+                    "type": "number",
+                    "exclusiveMinimum": true,
+                    "minimum": 0
+                  },
+                  "rate_annual": {
+                    "type": "number",
+                    "minimum": 0,
+                    "exclusiveMaximum": true,
+                    "description": "Annual interest rate, e.g. 0.065.",
+                    "maximum": 1
+                  },
+                  "amortization_years": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 50,
+                    "description": "Amortization in years; 0 means interest-only."
+                  },
+                  "max_ltv": {
+                    "description": "Maximum loan-to-value, e.g. 0.65.",
+                    "type": "number",
+                    "exclusiveMinimum": true,
+                    "maximum": 1,
+                    "minimum": 0
+                  },
+                  "min_dscr": {
+                    "description": "Minimum debt service coverage ratio, e.g. 1.25.",
+                    "type": "number",
+                    "exclusiveMinimum": true,
+                    "minimum": 0
+                  },
+                  "min_debt_yield": {
+                    "description": "Minimum debt yield (NOI ÷ loan), e.g. 0.09.",
+                    "type": "number",
+                    "exclusiveMinimum": true,
+                    "exclusiveMaximum": true,
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "round_down_to": {
+                    "default": 1,
+                    "description": "Round the final loan amount down to this increment (lenders often use 1,000 or 10,000).",
+                    "type": "number",
+                    "exclusiveMinimum": true,
+                    "minimum": 0
+                  },
+                  "existing_loan_balance": {
+                    "description": "Balance of the loan being refinanced, USD. Adds a refinance result (shortfall or excess proceeds against the max loan) and a shortfall per stress scenario.",
+                    "type": "number",
+                    "exclusiveMinimum": true,
+                    "minimum": 0
+                  },
+                  "stress": {
+                    "description": "Stress table: every combination of the NOI, rate, and value shocks (up to 1,000 scenarios), each sized under the same constraints and rounding. The base result is unchanged.",
+                    "type": "object",
+                    "properties": {
+                      "noi_shocks": {
+                        "description": "Relative NOI changes as decimals, e.g. [-0.05, -0.1, -0.2] for NOI down 5%, 10%, 20%. Omit for no NOI shock.",
+                        "minItems": 1,
+                        "maxItems": 10,
+                        "type": "array",
+                        "items": {
+                          "type": "number",
+                          "exclusiveMinimum": true,
+                          "exclusiveMaximum": true,
+                          "minimum": -1,
+                          "maximum": 10
+                        }
+                      },
+                      "rate_shocks": {
+                        "description": "Absolute changes to rate_annual as decimals, e.g. [0.005, 0.01] for +50 and +100 bp. The stressed rate must stay at or above 0 and below 1. Omit for no rate shock.",
+                        "minItems": 1,
+                        "maxItems": 10,
+                        "type": "array",
+                        "items": {
+                          "type": "number",
+                          "exclusiveMinimum": true,
+                          "exclusiveMaximum": true,
+                          "minimum": -1,
+                          "maximum": 1
+                        }
+                      },
+                      "value_shocks": {
+                        "description": "Relative value changes as decimals, e.g. [-0.1, -0.2]; requires value. Omit for no value shock.",
+                        "minItems": 1,
+                        "maxItems": 10,
+                        "type": "array",
+                        "items": {
+                          "type": "number",
+                          "exclusiveMinimum": true,
+                          "exclusiveMaximum": true,
+                          "minimum": -1,
+                          "maximum": 10
+                        }
+                      },
+                      "value_moves_with_noi": {
+                        "default": false,
+                        "description": "Also scale value by each NOI shock (value × (1 + noi_shock), a constant cap rate), as a lender repricing value on stressed NOI would.",
+                        "type": "boolean"
+                      }
+                    }
+                  }
+                },
+                "required": ["noi", "rate_annual", "amortization_years"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Result: { value, formula, steps, warnings, provenance }.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input; read `issues`, fix the arguments, and retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "CalcInputError, FactLotIdError, InputError, or UnknownTool"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "issues": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "path": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error", "message"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/calc/irr": {
+      "post": {
+        "operationId": "calc_irr",
+        "summary": "Internal rate of return",
+        "description": "Periodic and annualized IRR of periodic cash flows, as decimals (0.085 = 8.5%), solved deterministically by scanning a 1-point grid of per-period rates and bisecting each sign change; reports every root it finds when cash flows have multiple IRRs (two roots within one grid step can be missed). Errors when the flows do not change sign or no root lies between -99.99% and 1000% per period. Deterministic: use this instead of doing the math yourself; cite formula calc.irr@2 and the returned steps, and surface any warnings.",
+        "x-openai-isConsequential": false,
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "cash_flows": {
+                    "minItems": 2,
+                    "maxItems": 1200,
+                    "type": "array",
+                    "items": {
+                      "type": "number"
+                    },
+                    "description": "Periodic cash flows at t = 0, 1, 2, …; negative for outflows (e.g. purchase price at t = 0). At most 1200."
+                  },
+                  "periods_per_year": {
+                    "default": 1,
+                    "description": "Cash-flow periods per year, used only to annualize the result: 1 for annual flows, 4 for quarterly, 12 for monthly.",
+                    "type": "integer",
+                    "exclusiveMinimum": true,
+                    "maximum": 9007199254740991,
+                    "minimum": 0
+                  }
+                },
+                "required": ["cash_flows"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Result: { value, formula, steps, warnings, provenance }.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input; read `issues`, fix the arguments, and retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "CalcInputError, FactLotIdError, InputError, or UnknownTool"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "issues": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "path": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error", "message"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/calc/dcf_pro_forma": {
+      "post": {
+        "operationId": "calc_dcf_pro_forma",
+        "summary": "Property DCF from a rent roll",
+        "description": "Property-level discounted cash flow from an in-place rent roll: each lease's rent, escalations, remaining term, and expense recovery (NNN, gross, base year), then at expiration one blended lease weighted by the renewal probability (renewal vs new-tenant rent, free rent, TI, leasing commissions, and new-tenant downtime, with fractional downtime and free rent kept as part months rather than rounded); market rent growth, general vacancy and credit loss, operating expenses, management fee, and capital reserves. Returns the annual cash-flow table (NOI and cash flow before debt) for the hold plus one year, the exit value at a cap rate on forward (or trailing) NOI less selling costs, the value (PV at the discount rate, end-of-year or mid-year), and with a purchase price the NPV, unlevered IRR, and equity multiple, with every lease event and convention stated. Deterministic: use this instead of doing the math yourself; cite formula calc.dcf_pro_forma@2 and the returned steps, and surface any warnings.",
+        "x-openai-isConsequential": false,
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hold_years": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 30,
+                    "description": "Holding period in years. The property is sold at the end of the last year; one more year is projected for the forward NOI."
+                  },
+                  "leases": {
+                    "minItems": 1,
+                    "maxItems": 200,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200,
+                          "description": "Suite or tenant label, e.g. \"Suite 200\"."
+                        },
+                        "area_sf": {
+                          "type": "number",
+                          "exclusiveMinimum": true,
+                          "description": "Leased area, SF.",
+                          "minimum": 0
+                        },
+                        "rent_psf_annual": {
+                          "type": "number",
+                          "minimum": 0,
+                          "description": "Current in-place base rent, USD/SF/yr (0 for space vacant at the start)."
+                        },
+                        "months_remaining": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 600,
+                          "description": "Months left on the lease from the analysis start: the lease runs through this month (1 = expires at the end of month 1). 0 means the space is vacant at the start and is leased to a new tenant after downtime_months."
+                        },
+                        "escalation_rate": {
+                          "default": 0,
+                          "description": "Annual bump in the in-place rent, e.g. 0.03, applied first in next_escalation_month and every 12 months after.",
+                          "type": "number",
+                          "minimum": 0,
+                          "exclusiveMaximum": true,
+                          "maximum": 1
+                        },
+                        "next_escalation_month": {
+                          "default": 13,
+                          "description": "Analysis month of the next in-place rent bump (default 13, the start of year 2). Use the lease's anniversary month.",
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 600
+                        },
+                        "free_rent_months_remaining": {
+                          "default": 0,
+                          "description": "Months of in-place free base rent still to run from the analysis start (months 1 to this are abated).",
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 600
+                        },
+                        "recovery": {
+                          "default": "nnn",
+                          "description": "In-place expense recovery: \"nnn\", \"gross\", or \"base_year\" (needs base_year_opex_psf_annual). One of: nnn, gross, base_year.",
+                          "type": "string"
+                        },
+                        "base_year_opex_psf_annual": {
+                          "description": "Operating expenses in the lease's base year, USD/SF/yr: the tenant pays the excess above it. Required when recovery is base_year.",
+                          "type": "number",
+                          "minimum": 0
+                        },
+                        "market_rent_psf_annual": {
+                          "type": "number",
+                          "minimum": 0,
+                          "description": "Market rent for this space today, USD/SF/yr. Grows at market_rent_growth_rate each analysis year."
+                        },
+                        "leasing": {
+                          "type": "object",
+                          "properties": {
+                            "renewal_probability": {
+                              "type": "number",
+                              "minimum": 0,
+                              "maximum": 1,
+                              "description": "Probability the tenant renews at expiration, 0 to 1 (e.g. 0.65). Blends the renewal and new-tenant assumptions below."
+                            },
+                            "lease_term_months": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 240,
+                              "description": "Term of each lease signed at rollover (renewal or new tenant), months."
+                            },
+                            "downtime_months": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 60,
+                              "description": "Months vacant before a new tenant starts paying (no downtime is assumed on renewal). Blended downtime = (1 − renewal_probability) × this, kept fractional, not rounded: the suite is vacant for the whole months and the rollover lease's first month collects 1 − the fraction of its rent and recoveries (0.45 months of downtime: the first month collects 55%)."
+                            },
+                            "renewal_rent_pct_of_market": {
+                              "type": "number",
+                              "exclusiveMinimum": true,
+                              "maximum": 2,
+                              "description": "Renewal rent as a share of market rent, e.g. 0.95 for a 5% renewal discount; new tenants pay market rent.",
+                              "minimum": 0
+                            },
+                            "rent_escalation_rate": {
+                              "type": "number",
+                              "minimum": 0,
+                              "exclusiveMaximum": true,
+                              "description": "Annual bump in a rollover lease's base rent, compounding every 12 months from its start, e.g. 0.03.",
+                              "maximum": 1
+                            },
+                            "free_rent_months_new": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 60,
+                              "description": "Months of free base rent for a new tenant at the start of its lease."
+                            },
+                            "free_rent_months_renewal": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 60,
+                              "description": "Months of free base rent on a renewal. Blended free rent = p × this + (1 − p) × free_rent_months_new, kept fractional: the whole months are fully abated and the next month by the fraction."
+                            },
+                            "ti_psf_new": {
+                              "type": "number",
+                              "minimum": 0,
+                              "description": "Tenant improvement allowance for a new tenant, USD/SF in today's dollars (grown at market_rent_growth_rate to the lease start)."
+                            },
+                            "ti_psf_renewal": {
+                              "type": "number",
+                              "minimum": 0,
+                              "description": "Tenant improvement allowance on a renewal, USD/SF in today's dollars."
+                            },
+                            "lc_rate_new": {
+                              "type": "number",
+                              "minimum": 0,
+                              "exclusiveMaximum": true,
+                              "description": "Leasing commission for a new tenant as a share of the base rent payable over the lease term after free rent, e.g. 0.06.",
+                              "maximum": 1
+                            },
+                            "lc_rate_renewal": {
+                              "type": "number",
+                              "minimum": 0,
+                              "exclusiveMaximum": true,
+                              "description": "Leasing commission on a renewal, same basis, e.g. 0.03.",
+                              "maximum": 1
+                            },
+                            "recovery": {
+                              "type": "string",
+                              "description": "Expense recovery on rollover leases: \"nnn\" (tenant pays its share of operating expenses), \"gross\" (none), or \"base_year\" (expenses above the lease's first-year level). One of: nnn, gross, base_year."
+                            }
+                          },
+                          "description": "Per-lease overrides of market_leasing (any subset of its fields)."
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "area_sf",
+                        "rent_psf_annual",
+                        "months_remaining",
+                        "market_rent_psf_annual"
+                      ]
+                    },
+                    "description": "Rent roll: one entry per lease or vacant suite (at most 200). The building area is the sum of their areas."
+                  },
+                  "market_leasing": {
+                    "type": "object",
+                    "properties": {
+                      "renewal_probability": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1,
+                        "description": "Probability the tenant renews at expiration, 0 to 1 (e.g. 0.65). Blends the renewal and new-tenant assumptions below."
+                      },
+                      "lease_term_months": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 240,
+                        "description": "Term of each lease signed at rollover (renewal or new tenant), months."
+                      },
+                      "downtime_months": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 60,
+                        "description": "Months vacant before a new tenant starts paying (no downtime is assumed on renewal). Blended downtime = (1 − renewal_probability) × this, kept fractional, not rounded: the suite is vacant for the whole months and the rollover lease's first month collects 1 − the fraction of its rent and recoveries (0.45 months of downtime: the first month collects 55%)."
+                      },
+                      "renewal_rent_pct_of_market": {
+                        "default": 1,
+                        "type": "number",
+                        "exclusiveMinimum": true,
+                        "maximum": 2,
+                        "description": "Renewal rent as a share of market rent, e.g. 0.95 for a 5% renewal discount; new tenants pay market rent.",
+                        "minimum": 0
+                      },
+                      "rent_escalation_rate": {
+                        "default": 0,
+                        "type": "number",
+                        "minimum": 0,
+                        "exclusiveMaximum": true,
+                        "description": "Annual bump in a rollover lease's base rent, compounding every 12 months from its start, e.g. 0.03.",
+                        "maximum": 1
+                      },
+                      "free_rent_months_new": {
+                        "default": 0,
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 60,
+                        "description": "Months of free base rent for a new tenant at the start of its lease."
+                      },
+                      "free_rent_months_renewal": {
+                        "default": 0,
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 60,
+                        "description": "Months of free base rent on a renewal. Blended free rent = p × this + (1 − p) × free_rent_months_new, kept fractional: the whole months are fully abated and the next month by the fraction."
+                      },
+                      "ti_psf_new": {
+                        "default": 0,
+                        "type": "number",
+                        "minimum": 0,
+                        "description": "Tenant improvement allowance for a new tenant, USD/SF in today's dollars (grown at market_rent_growth_rate to the lease start)."
+                      },
+                      "ti_psf_renewal": {
+                        "default": 0,
+                        "type": "number",
+                        "minimum": 0,
+                        "description": "Tenant improvement allowance on a renewal, USD/SF in today's dollars."
+                      },
+                      "lc_rate_new": {
+                        "default": 0,
+                        "type": "number",
+                        "minimum": 0,
+                        "exclusiveMaximum": true,
+                        "description": "Leasing commission for a new tenant as a share of the base rent payable over the lease term after free rent, e.g. 0.06.",
+                        "maximum": 1
+                      },
+                      "lc_rate_renewal": {
+                        "default": 0,
+                        "type": "number",
+                        "minimum": 0,
+                        "exclusiveMaximum": true,
+                        "description": "Leasing commission on a renewal, same basis, e.g. 0.03.",
+                        "maximum": 1
+                      },
+                      "recovery": {
+                        "default": "nnn",
+                        "type": "string",
+                        "description": "Expense recovery on rollover leases: \"nnn\" (tenant pays its share of operating expenses), \"gross\" (none), or \"base_year\" (expenses above the lease's first-year level). One of: nnn, gross, base_year."
+                      }
+                    },
+                    "required": [
+                      "renewal_probability",
+                      "lease_term_months",
+                      "downtime_months"
+                    ],
+                    "description": "Market leasing assumptions applied at every lease expiration (and to space vacant at the start). A lease's own `leasing` object overrides any of them."
+                  },
+                  "market_rent_growth_rate": {
+                    "default": 0,
+                    "description": "Annual market rent growth, e.g. 0.03. Market rent and TI in analysis year y = today's × (1 + g)^(y − 1).",
+                    "type": "number",
+                    "exclusiveMinimum": true,
+                    "exclusiveMaximum": true,
+                    "minimum": -1,
+                    "maximum": 1
+                  },
+                  "operating_expenses_psf_annual": {
+                    "default": 0,
+                    "description": "Year-1 recoverable operating expenses, USD/SF/yr over the whole building area.",
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "non_recoverable_expenses_annual": {
+                    "default": 0,
+                    "description": "Year-1 operating expenses no tenant reimburses, USD/yr.",
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "expense_growth_rate": {
+                    "default": 0,
+                    "description": "Annual growth of operating expenses and capital reserves, e.g. 0.03: year y = year 1 × (1 + g)^(y − 1).",
+                    "type": "number",
+                    "exclusiveMinimum": true,
+                    "exclusiveMaximum": true,
+                    "minimum": -1,
+                    "maximum": 1
+                  },
+                  "management_fee_rate": {
+                    "default": 0,
+                    "description": "Management fee as a share of effective gross revenue, e.g. 0.03; not recovered.",
+                    "type": "number",
+                    "minimum": 0,
+                    "exclusiveMaximum": true,
+                    "maximum": 1
+                  },
+                  "general_vacancy_rate": {
+                    "default": 0,
+                    "description": "General vacancy allowance as a share of gross revenue (base rent after free rent, plus recoveries), on top of the downtime modelled at rollover.",
+                    "type": "number",
+                    "minimum": 0,
+                    "exclusiveMaximum": true,
+                    "maximum": 1
+                  },
+                  "credit_loss_rate": {
+                    "default": 0,
+                    "description": "Credit loss as a share of gross revenue, on top of general vacancy.",
+                    "type": "number",
+                    "minimum": 0,
+                    "exclusiveMaximum": true,
+                    "maximum": 1
+                  },
+                  "capital_reserve_psf_annual": {
+                    "default": 0,
+                    "description": "Year-1 capital reserve, USD/SF/yr over the building area, below NOI. Grows with expense_growth_rate.",
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "exit_cap_rate": {
+                    "type": "number",
+                    "exclusiveMinimum": true,
+                    "exclusiveMaximum": true,
+                    "description": "Exit (terminal) cap rate applied to the exit NOI, e.g. 0.07.",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "exit_noi_basis": {
+                    "default": "forward",
+                    "description": "\"forward\": the NOI of the year after the hold (the usual convention); \"trailing\": the NOI of the final hold year. One of: forward, trailing.",
+                    "type": "string"
+                  },
+                  "selling_cost_rate": {
+                    "default": 0,
+                    "description": "Selling costs as a share of the gross sale price, e.g. 0.02.",
+                    "type": "number",
+                    "minimum": 0,
+                    "exclusiveMaximum": true,
+                    "maximum": 1
+                  },
+                  "discount_rate": {
+                    "type": "number",
+                    "minimum": 0,
+                    "exclusiveMaximum": true,
+                    "description": "Annual unlevered discount rate, e.g. 0.08. The present value at this rate is the value.",
+                    "maximum": 1
+                  },
+                  "timing": {
+                    "default": "end_of_year",
+                    "description": "\"end_of_year\": each year's cash flow is discounted (1 + r)^y (Excel NPV). \"mid_year\": operating cash flows at (1 + r)^(y − 0.5); the sale is always discounted at the end of the hold. One of: end_of_year, mid_year.",
+                    "type": "string"
+                  },
+                  "purchase_price": {
+                    "description": "Price paid at the start, USD. Adds the NPV (value − price), the unlevered IRR and the going-in cap rate on price.",
+                    "type": "number",
+                    "exclusiveMinimum": true,
+                    "minimum": 0
+                  }
+                },
+                "required": [
+                  "hold_years",
+                  "leases",
+                  "market_leasing",
+                  "exit_cap_rate",
+                  "discount_rate"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Result: { value, formula, steps, warnings, provenance }.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input; read `issues`, fix the arguments, and retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "CalcInputError, FactLotIdError, InputError, or UnknownTool"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "issues": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "path": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error", "message"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/rules/tx_property_tax_protest_deadline": {
+      "post": {
+        "operationId": "rules_tx_property_tax_protest_deadline",
+        "summary": "Texas property tax protest deadline",
+        "description": "Deadline to file a Texas property tax protest with the appraisal review board: the later of May 15 or 30 days after the notice of appraised value was delivered, rolled past weekends and Texas legal holidays, plus a conservative file-by date (the last business day on or before the unadjusted deadline). status says where as_of (default: today in US Central time; echoed in as_of) falls: not_yet_open before January 1 of the tax year, open from then through the deadline, passed after it; days_remaining counts the days to the deadline (null once passed), and once passed next_season gives the same rule for the next tax year (May 15 basis). notes says what the rule does not cover (late protests, other §41.44 deadlines, §25.25 corrections) and which sections to read. Returns the statute citations, the rule's verification status and a disclaimer. Information about a statutory deadline: not legal or tax advice and not a substitute for the advice of an attorney. Verification status: verified. Cite rule rules.tx.property_tax_protest_deadline@2 and its statutes.",
+        "x-openai-isConsequential": false,
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tax_year": {
+                    "type": "integer",
+                    "minimum": 2000,
+                    "maximum": 2100,
+                    "description": "Tax year being protested, e.g. 2026."
+                  },
+                  "notice_delivered_date": {
+                    "description": "Date the appraisal district's notice of appraised value was delivered (Tax Code §25.19), YYYY-MM-DD. A mailed notice is presumed delivered on the day it was deposited in the mail (§1.07(c)). Omit if unknown (May 15 is then the only basis).",
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                  },
+                  "as_of": {
+                    "description": "Date the status is measured from, YYYY-MM-DD. Default: the current date in US Central time (America/Chicago), when the call is answered; pass it to fix the date (for a report, or for El Paso and Hudspeth counties, which keep Mountain time).",
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                  }
+                },
+                "required": ["tax_year"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Result: { value, formula, steps, warnings, provenance }.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input; read `issues`, fix the arguments, and retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "CalcInputError, FactLotIdError, InputError, or UnknownTool"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "issues": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "path": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error", "message"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/id/parcel": {
+      "post": {
+        "operationId": "id_parcel",
+        "summary": "FactLot parcel ID",
+        "description": "Deterministic FactLot ID for a parcel from state FIPS, county FIPS, and the assessor's parcel number (APN). The same parcel always yields the same ID, offline. Use it as the join key across systems. APNs that differ only in where a separator falls (\"12-34\", \"1-234\") get different IDs; in a county with a documented fixed-width format the variants of one APN converge (NYC BBL \"3-1234-56\" = \"3012340056\").",
+        "x-openai-isConsequential": false,
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "state_fips": {
+                    "type": "string",
+                    "maxLength": 16,
+                    "description": "2-digit state FIPS code, e.g. \"06\" for California."
+                  },
+                  "county_fips": {
+                    "type": "string",
+                    "maxLength": 16,
+                    "description": "3-digit county FIPS code, e.g. \"037\" for Los Angeles County."
+                  },
+                  "apn": {
+                    "type": "string",
+                    "maxLength": 200,
+                    "description": "Assessor's parcel number exactly as the county prints it. Letter case and the separator characters are normalized; where a separator falls is kept, except in counties with a documented fixed-width format (NYC BBL, Los Angeles AIN, Cook County PIN, DC SSL)."
+                  }
+                },
+                "required": ["state_fips", "county_fips", "apn"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Result object.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input; read `issues`, fix the arguments, and retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "CalcInputError, FactLotIdError, InputError, or UnknownTool"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "issues": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "path": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error", "message"]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Only if the server sets FACTLOT_API_KEY."
+      }
+    }
+  }
+}

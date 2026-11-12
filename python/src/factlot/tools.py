@@ -264,10 +264,14 @@ def bedrock_tool_config() -> dict[str, Any]:
 def openapi(version: str = "3.1", server_url: str | None = None) -> dict[str, Any]:
     """OpenAPI document: "3.1" lists every tool; "3.0" is the Custom GPT Actions subset (at most 30 operations).
 
-    For every tool in OpenAPI 3.0 (Bedrock Agents, Microsoft plugins), fetch a server's
-    ``/openapi-3.0.json?operations=all``.
+    "3.0-bedrock" is the Amazon Bedrock Agents action-group document (no ``enum``, the 11 operations
+    Bedrock allows per agent). For every tool in OpenAPI 3.0 (Microsoft plugins), fetch a server's
+    ``/openapi-3.0.json?operations=all``, or ``?profile=bedrock&operations=all`` for Bedrock.
     """
-    doc = copy.deepcopy(_load("openapi-3.1.json" if version.startswith("3.1") else "openapi-3.0.json"))
+    name = "openapi-3.1.json" if version.startswith("3.1") else (
+        "openapi-3.0-bedrock.json" if version == "3.0-bedrock" else "openapi-3.0.json"
+    )
+    doc = copy.deepcopy(_load(name))
     if server_url:
         doc["servers"] = [{"url": server_url}]
     return doc

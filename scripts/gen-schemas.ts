@@ -5,6 +5,8 @@
 //   openapi-3.1.json           every tool: API gateways and HTTP clients
 //   openapi-3.0.json           the Custom GPT Actions subset (GPT_ACTIONS_TOOLS, at most 30
 //                              operations); openApi30({ operations: "all" }) gives every tool
+//   openapi-3.0-bedrock.json   the Amazon Bedrock Agents profile (no enum; BEDROCK_AGENT_TOOLS, at most
+//                              11 operations); openApi30({ profile: "bedrock", operations: "all" }) gives every tool
 //   vocabularies/<name>.json   use categories and the chart of accounts the document tools match on
 //   predicates.json            the lease predicate catalog doc_predicates serves (shapes, examples, checks)
 // Run: npm run schemas   (CI fails if the committed files are stale)
@@ -61,6 +63,7 @@ for (const [file, data] of Object.entries(vocabularyDocuments()))
 write("predicates.json", { generated_by, ...predicateCatalog() });
 write("openapi-3.1.json", openApi31());
 write("openapi-3.0.json", openApi30());
+write("openapi-3.0-bedrock.json", openApi30({ profile: "bedrock" }));
 console.log(
   `wrote ${tools.length} tools in 5 provider formats + OpenAPI 3.1/3.0`,
 );

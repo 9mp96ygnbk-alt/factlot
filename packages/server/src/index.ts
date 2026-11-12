@@ -26,6 +26,7 @@ import {
   inputJsonSchema,
   inputShapeIssue,
   openApi30,
+  openApiOperations,
   openApi31,
   runToolAsync,
   registryAvailable,
@@ -487,13 +488,16 @@ export function createHandler(opts: FactLotServerOptions = {}) {
       if (path === "/openapi.json" || path === "/openapi-3.0.json") {
         // Same tools as /v1/tools: registry operations only when a registry is loaded. The 3.0
         // document is the Custom GPT Actions subset (at most 30 operations) unless the caller
-        // asks for ?operations=all.
+        // asks for ?operations=all. ?profile=bedrock is the Amazon Bedrock Agents form (no enum,
+        // the 11 operations Bedrock allows per agent; &operations=gpt_actions or all widen it).
         const api = {
           serverUrl: baseUrl(req, opts),
           filter: (t: (typeof tools)[number]) =>
             t.requires !== "registry" || registryAvailable(),
-          ...(url.searchParams.get("operations") === "all"
-            ? { operations: "all" as const }
+          ...(openApiOperations(url.searchParams.get("operations")) ?? {}),
+          ...(path === "/openapi-3.0.json" &&
+          url.searchParams.get("profile") === "bedrock"
+            ? { profile: "bedrock" as const }
             : {}),
         };
         const doc = path === "/openapi.json" ? openApi31(api) : openApi30(api);

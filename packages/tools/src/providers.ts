@@ -185,6 +185,30 @@ export function toOpenApi30Schema(schema: unknown): Json {
   }) as Json;
 }
 
+/**
+ * OpenAPI 3.0 for Amazon Bedrock Agents action groups, which "do not support" `enum`
+ * (docs.aws.amazon.com/bedrock/latest/userguide/agents-api-schema.html): the allowed values move
+ * into the field's description ("One of: a, b, c."). `const` is an enum of one in 3.0 and is
+ * restated the same way. This only describes the field to the client; the server validates
+ * requests with the unchanged schema.
+ */
+export function toBedrockSchema(schema: unknown): Json {
+  return mapSchema(toOpenApi30Schema(schema), (n) => {
+    if (!Array.isArray(n.enum)) return n;
+    const out: Json = { ...n };
+    const values = (n.enum as unknown[])
+      .map((v) => (typeof v === "string" ? v : JSON.stringify(v)))
+      .join(", ");
+    const note = `One of: ${values}.`;
+    const d = typeof out.description === "string" ? out.description : "";
+    out.description = d.includes(note)
+      ? d
+      : [d, note].filter(Boolean).join(" ");
+    delete out.enum;
+    return out;
+  }) as Json;
+}
+
 const GEMINI_KEYS = new Set([
   "type",
   "format",
@@ -262,7 +286,22 @@ export interface OpenApiOptions {
    * Actions limit), still subject to `filter`. "all": every tool `filter` keeps.
    * Default: "gpt_actions" for openApi30, "all" for openApi31.
    */
-  operations?: "gpt_actions" | "all";
+  operations?: "gpt_actions" | "bedrock" | "all";
+  /**
+   * "bedrock" (OpenAPI 3.0 only): the document for Amazon Bedrock Agents action groups, with no
+   * `enum` anywhere (see toBedrockSchema). Its default operations are BEDROCK_AGENT_TOOLS;
+   * `operations: "gpt_actions"` or "all" widen it.
+   */
+  profile?: "bedrock";
+}
+
+/** The `operations` query parameter of the OpenAPI documents, as an option (undefined: not given or unknown). */
+export function openApiOperations(
+  value: string | null,
+): { operations: "gpt_actions" | "all" } | undefined {
+  return value === "all" || value === "gpt_actions"
+    ? { operations: value }
+    : undefined;
 }
 
 /** Custom GPT Actions accept at most this many operations in one OpenAPI document. */
@@ -334,6 +373,28 @@ export const GPT_ACTIONS_TOOLS: readonly string[] = [
   "registry_resolve_parcel",
 ];
 
+/**
+ * The default operations of the Bedrock Agents profile. Bedrock's documented quota is 11 APIs per
+ * Agent (adjustable; docs.aws.amazon.com/general/latest/gr/bedrock.html), so the default document
+ * stays within it; `operations=gpt_actions` (30) or `all` is for accounts that raised the quota.
+ */
+export const BEDROCK_AGENT_TOOLS: readonly string[] = [
+  "calc_rent_schedule",
+  "calc_net_effective_rent",
+  "calc_compare_proposals",
+  "calc_cam_reconciliation",
+  "calc_debt_sizing",
+  "calc_dcf_pro_forma",
+  "calc_irr",
+  "rules_tx_property_tax_protest_deadline",
+  "id_parcel",
+  "registry_search_address",
+  "registry_get",
+];
+
+/** Bedrock Agents' documented quota of APIs (operations) per Agent. */
+export const BEDROCK_AGENT_MAX_OPERATIONS = 11;
+
 const withoutRegistry = (t: ToolSpec): boolean => t.requires !== "registry";
 
 const ERROR_SCHEMA: Json = {
@@ -360,12 +421,23 @@ function openApi(
   opts: OpenApiOptions,
   defaultOperations: "gpt_actions" | "all",
 ): Json {
-  const convert = version === "3.0.0" ? toOpenApi30Schema : (s: Json) => s;
-  const subset = (opts.operations ?? defaultOperations) === "gpt_actions";
+  const bedrock = version === "3.0.0" && opts.profile === "bedrock";
+  const convert =
+    version === "3.0.0"
+      ? bedrock
+        ? toBedrockSchema
+        : toOpenApi30Schema
+      : (s: Json) => s;
+  const mode = opts.operations ?? (bedrock ? "bedrock" : defaultOperations);
+  const subset = mode === "gpt_actions";
+  const names =
+    mode === "gpt_actions"
+      ? GPT_ACTIONS_TOOLS
+      : mode === "bedrock"
+        ? BEDROCK_AGENT_TOOLS
+        : null;
   const filter = opts.filter ?? withoutRegistry;
-  const included = list(
-    (t) => filter(t) && (!subset || GPT_ACTIONS_TOOLS.includes(t.name)),
-  );
+  const included = list((t) => filter(t) && (!names || names.includes(t.name)));
   // The GPT Actions subset keeps each operation's description within the Actions limit; the
   // full text stays in the schema-free MCP and OpenAPI 3.1 listings.
   const describe = (text: string) =>
@@ -407,6 +479,11 @@ function openApi(
   const base = opts.serverUrl?.replace(/\/+$/, "") ?? "";
   const description = [
     "The open fact layer for commercial real estate AI agents: deterministic CRE calculators with audit trails, canonical FactLot IDs, and cited-fact validation. Call these operations instead of doing lease, CAM, rent, loan, or return math yourself.",
+    ...(mode === "bedrock"
+      ? [
+          `This document is the Amazon Bedrock Agents profile: ${included.length} of the ${list(filter).length} operations (Bedrock allows 11 APIs per agent unless the quota is raised), with the allowed values of each field given in its description because Bedrock does not support enum; the server still validates every request. ${base}/openapi-3.0.json?profile=bedrock&operations=all is the complete document in this form.`,
+        ]
+      : []),
     ...(subset
       ? [
           `This document is the curated Custom GPT Actions subset: ${included.length} of the ${list(filter).length} operations (Actions accept at most ${GPT_ACTIONS_MAX_OPERATIONS}). Every tool is in the OpenAPI 3.1 document (${base}/openapi.json) and over MCP (${base}/mcp); ${base}/openapi-3.0.json?operations=all is the complete OpenAPI 3.0 document.`,

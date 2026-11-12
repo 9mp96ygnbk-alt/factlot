@@ -443,8 +443,17 @@ async function openapi(): Promise<void> {
   const gpt = await http(`${API}/openapi-3.0.json`);
   const gptDoc = (await gpt.json()) as Record<string, unknown>;
   findings(checkGptActions(gptDoc));
-  const all = await http(`${API}/openapi-3.0.json?operations=all`);
-  findings(checkBedrockAgents((await all.json()) as Record<string, unknown>));
+  // Bedrock Agents has no enum and at most 11 APIs per agent, so it has its own profile.
+  const bedrock = await http(`${API}/openapi-3.0.json?profile=bedrock`);
+  findings(
+    checkBedrockAgents((await bedrock.json()) as Record<string, unknown>, 11),
+  );
+  const bedrockAll = await http(
+    `${API}/openapi-3.0.json?profile=bedrock&operations=all`,
+  );
+  findings(
+    checkBedrockAgents((await bedrockAll.json()) as Record<string, unknown>),
+  );
   const full = await http(`${API}/openapi.json`);
   const fullDoc = (await full.json()) as { openapi?: string };
   check(

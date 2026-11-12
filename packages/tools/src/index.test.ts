@@ -3,6 +3,8 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import {
+  BEDROCK_AGENT_MAX_OPERATIONS,
+  BEDROCK_AGENT_TOOLS,
   GPT_ACTIONS_MAX_OPERATIONS,
   GPT_ACTIONS_TOOLS,
   appliesUnitPolicy,
@@ -10,6 +12,7 @@ import {
   bedrockConverseToolConfig,
   geminiTools,
   openApi30,
+  toBedrockSchema,
   openApi31,
   openaiChatTools,
   openaiResponsesTools,
@@ -280,6 +283,43 @@ test("OpenAPI 3.0 is the curated Custom GPT Actions subset, at most 30 operation
       guide.includes(`\`${n}\``),
       `connectors/chatgpt/README.md lists ${n}`,
     );
+});
+
+test("the Bedrock Agents profile has no enum or const, restates them in descriptions, and stays within 11 operations", () => {
+  assert.ok(BEDROCK_AGENT_TOOLS.length <= BEDROCK_AGENT_MAX_OPERATIONS);
+  for (const n of BEDROCK_AGENT_TOOLS)
+    assert.ok(names.includes(n), `${n} is a tool`);
+  const doc = openApi30({ profile: "bedrock", filter: () => true });
+  assert.equal(doc.openapi, "3.0.0");
+  assert.deepEqual(
+    Object.values(
+      doc.paths as Record<string, { post: { operationId: string } }>,
+    )
+      .map((p) => p.post.operationId)
+      .sort(),
+    [...BEDROCK_AGENT_TOOLS].sort(),
+  );
+  const all = openApi30({ profile: "bedrock", operations: "all" });
+  const text = JSON.stringify(all);
+  assert.ok(!/"enum"|"const"/.test(text.replace(/"description":"[^"]*"/g, "")));
+  assert.equal(
+    Object.keys(all.paths as object).length,
+    Object.keys(openApi30({ operations: "all" }).paths as object).length,
+  );
+  // The general document still has them: validation is untouched.
+  const general = JSON.stringify(openApi30({ operations: "all" }));
+  assert.match(general, /"enum":/);
+  // A restated enum.
+  assert.deepEqual(
+    toBedrockSchema({ type: "string", enum: ["a", "b"], description: "Kind." }),
+    { type: "string", description: "Kind. One of: a, b." },
+  );
+  assert.deepEqual(toBedrockSchema({ const: "x", type: "string" }), {
+    type: "string",
+    description: "One of: x.",
+  });
+  // Other documents are unaffected by the profile.
+  assert.deepEqual(openApi30(), openApi30({ operations: undefined }));
 });
 
 test("a rate rejected as too big says rates are decimals", () => {

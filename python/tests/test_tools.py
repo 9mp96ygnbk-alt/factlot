@@ -23,6 +23,9 @@ class Definitions(unittest.TestCase):
         # registry_* operations need a registry; a server with one lists them itself.
         self.assertEqual(ops, sorted(n for n in names if not n.startswith("registry_")))
         self.assertEqual(factlot.openapi("3.0", "https://x.example")["servers"], [{"url": "https://x.example"}])
+        bedrock = factlot.openapi("3.0-bedrock")
+        self.assertLessEqual(len(bedrock["paths"]), 11)
+        self.assertNotIn('"enum"', json.dumps(bedrock))
 
     def test_packaged_schemas_match_spec(self):
         packaged = Path(factlot.__file__).parent / "schemas"
