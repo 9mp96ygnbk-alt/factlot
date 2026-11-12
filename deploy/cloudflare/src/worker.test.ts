@@ -5492,6 +5492,202 @@ describe("paid gating (GATING_ENABLED)", () => {
     }
   });
 
+  /** An owner's portfolio of `n` parcels: two buildings (the first holds parcels 1, 2 and 5), the rest stand alone. */
+  function portfolio(n: number) {
+    const results = Array.from({ length: n }, (_, i) => ({
+      urn: `fl:parcel:us-48201:${9000000 + i + 1}`,
+      label: `${100 + i} Example Way`,
+      confidence: 1,
+      as_of: "2026-01-01",
+      building:
+        i === 0 || i === 1 || i === 4
+          ? "fl:building:us-48201:b1"
+          : i === 2 || i === 3
+            ? "fl:building:us-48201:b2"
+            : null,
+    }));
+    const count = (b: string) => results.filter((r) => r.building === b).length;
+    const buildings = [
+      { urn: "fl:building:us-48201:b1", label: "Example Holdings LLC tower" },
+      { urn: "fl:building:us-48201:b2", label: "Example Plaza" },
+    ]
+      .map((b) => ({
+        ...b,
+        owned_parcels: count(b.urn),
+        parcel_count: 8,
+        unit_count: 6,
+      }))
+      .filter((b) => b.owned_parcels > 0);
+    return { results, buildings };
+  }
+  const OWNED = "registry_owned_by";
+  const OWNED_PATH = "/v1/registry/owned_by";
+
+  it("registry_owned_by: a free caller keeps the first three parcels, their buildings only, and a note (REST, MCP structuredContent and text)", async () => {
+    const big = portfolio(15);
+    const answers = await freeAnswers(big, OWNED, OWNED_PATH);
+    assert.equal(answers.length, 3);
+    for (const a of answers) {
+      assert.deepEqual(a.results, big.results.slice(0, 3));
+      assert.deepEqual(a.buildings, [
+        { ...big.buildings[0]!, owned_parcels: 2 },
+        { ...big.buildings[1]!, owned_parcels: 1 },
+      ]);
+      assert.deepEqual(a.portfolio_withheld, { count: 12, total: 15 });
+      assert.equal(
+        a.portfolio_note,
+        "12 more parcels of this owner are available with a Pro or Team key: https://factlot.com/pricing/",
+      );
+      assert.ok(!("history_withheld" in a) && !("history_available" in a));
+      const text = JSON.stringify(a);
+      for (const p of big.results.slice(3))
+        assert.ok(!text.includes(p.urn), `free answer leaks ${p.urn}`);
+    }
+    // MCP text and structuredContent agree.
+    assert.deepEqual(answers[1], answers[2]);
+    assert.deepEqual(answers[0], answers[1]);
+    // One parcel over: the note is singular.
+    const [rest] = await freeAnswers(portfolio(4), OWNED, OWNED_PATH);
+    assert.deepEqual(rest!.portfolio_withheld, { count: 1, total: 4 });
+    assert.equal(
+      rest!.portfolio_note,
+      "1 more parcel of this owner is available with a Pro or Team key: https://factlot.com/pricing/",
+    );
+  });
+
+  it("registry_owned_by: a portfolio of three parcels or fewer, or a miss, is unchanged with no note", async () => {
+    const miss = {
+      results: [],
+      buildings: [],
+      coverage: { jurisdiction: "us-tx", entity_known: false },
+    };
+    for (const answer of [portfolio(3), portfolio(1), miss])
+      for (const a of await freeAnswers(answer, OWNED, OWNED_PATH)) {
+        assert.deepEqual(a, answer);
+        assert.ok(!("portfolio_withheld" in a) && !("portfolio_note" in a));
+      }
+  });
+
+  it("registry_owned_by: a Pro key and gating off get the whole portfolio (REST and MCP)", async () => {
+    const big = portfolio(15);
+    const api = answerApi(big);
+    const e = on();
+    const { key } = await issue(e);
+    for (const [en, k] of [
+      [e, key],
+      [env(), undefined],
+      [env({ GATING_ENABLED: "yes" }), undefined],
+    ] as const) {
+      const rest = await (
+        await call(en, api, OWNED_PATH, {
+          ...(k ? { key: k } : {}),
+          body: { entity_urn: "fl:entity:us-tx:1" },
+        })
+      ).json();
+      assert.deepEqual(rest, big);
+      const mcp = (await (
+        await call(en, api, "/mcp", {
+          ...(k ? { key: k } : {}),
+          body: toolCall(OWNED, 1),
+        })
+      ).json()) as {
+        result: { content: { text: string }[]; structuredContent: unknown };
+      };
+      assert.deepEqual(mcp.result.structuredContent, big);
+      assert.deepEqual(JSON.parse(mcp.result.content[0]!.text), big);
+    }
+  });
+
+  it("registry_owned_by: paging arguments do not widen a free answer; the call is answered and cut, not refused", async () => {
+    const big = portfolio(15);
+    const seen: string[] = [];
+    const inner = answerApi(big);
+    const api = {
+      fetch: async (r: Request) => {
+        seen.push(new URL(r.url).pathname);
+        return inner.fetch(r);
+      },
+    };
+    const args = {
+      entity_urn: "fl:entity:us-tx:1",
+      limit: 50,
+      offset: 3,
+      cursor: "page-2",
+      page: 2,
+    };
+    const rest = await call(on(), api, OWNED_PATH, { body: args });
+    assert.equal(rest.status, 200);
+    const restBody = (await rest.json()) as Record<string, unknown>;
+    assert.deepEqual(restBody.results, big.results.slice(0, 3));
+    assert.deepEqual(restBody.portfolio_withheld, { count: 12, total: 15 });
+    const mcp = (await (
+      await call(on(), api, "/mcp", {
+        body: {
+          jsonrpc: "2.0",
+          id: 7,
+          method: "tools/call",
+          params: { name: OWNED, arguments: args },
+        },
+      })
+    ).json()) as {
+      result: {
+        content: { text: string }[];
+        structuredContent: Record<string, unknown>;
+      };
+    };
+    for (const a of [
+      mcp.result.structuredContent,
+      JSON.parse(mcp.result.content[0]!.text) as Record<string, unknown>,
+    ]) {
+      assert.deepEqual(a.results, big.results.slice(0, 3));
+      assert.deepEqual(a.portfolio_withheld, { count: 12, total: 15 });
+    }
+    assert.deepEqual(seen, [OWNED_PATH, "/mcp"]);
+  });
+
+  it("MCP batch: registry_owned_by and registry_get in one request each get their own cut", async () => {
+    const big = portfolio(15);
+    const j = (b: unknown) =>
+      new Response(JSON.stringify(b), {
+        headers: { "content-type": "application/json" },
+      });
+    const api = {
+      fetch: async (r: Request) => {
+        const items = JSON.parse(await r.text()) as {
+          id: number;
+          params: { name: string };
+        }[];
+        return j(
+          items.map((m) => {
+            const answer = m.params.name === OWNED ? big : record;
+            return {
+              jsonrpc: "2.0",
+              id: m.id,
+              result: {
+                content: [{ type: "text", text: JSON.stringify(answer) }],
+                structuredContent: answer,
+              },
+            };
+          }),
+        );
+      },
+    };
+    const res = (await (
+      await call(on(), api, "/mcp", {
+        body: [toolCall(OWNED, 1), toolCall("registry_get", 2)],
+      })
+    ).json()) as {
+      id: number;
+      result: { structuredContent: Record<string, unknown> };
+    }[];
+    const owned = res.find((m) => m.id === 1)!.result.structuredContent;
+    const got = res.find((m) => m.id === 2)!.result.structuredContent;
+    assert.deepEqual(owned.portfolio_withheld, { count: 12, total: 15 });
+    assert.ok(!("history_withheld" in owned));
+    assert.equal((got.value_history as unknown[]).length, 1);
+    assert.ok(!("portfolio_withheld" in got));
+  });
+
   it("REST: flag unset or not exactly true leaves the answer as it is", async () => {
     const { api } = historyApi();
     for (const e of [env(), env({ GATING_ENABLED: "yes" })])
@@ -5877,6 +6073,7 @@ describe("paid gating (GATING_ENABLED)", () => {
       gating?: {
         enabled: boolean;
         free_history: string;
+        free_portfolio: string;
         batch: string;
         dated_get: string;
         candidates_tax_year: string;
@@ -5895,6 +6092,7 @@ describe("paid gating (GATING_ENABLED)", () => {
     assert.deepEqual(enabled.gating, {
       enabled: true,
       free_history: "current roll year only",
+      free_portfolio: "first 3 parcels of an owner (registry_owned_by)",
       batch: "Pro and Team",
       dated_get: "Pro and Team",
       candidates_tax_year: "Pro and Team",
@@ -7173,7 +7371,7 @@ describe("free key by email", () => {
       assert.match(note, /no access to paid tools/);
       assert.match(
         note,
-        /earlier roll years in value history, registry batch tools or dated registry_get/,
+        /earlier roll years in value history, an owner's parcels beyond the first three, registry batch tools or dated registry_get/,
       );
       assert.equal(plans.plans.free.free_key.auth, "bearer");
     });

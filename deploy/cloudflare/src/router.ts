@@ -1622,14 +1622,16 @@ async function route(
         Math.min(hit.quota.limit, hit.quota.remaining + unanswered),
       );
   }
-  // Paid gating: a free caller sees the current roll year's values only.
+  // Paid gating: a free caller sees the current roll year's values only, and the first parcels
+  // of an owner's portfolio.
   if (gating && !paid && res.status === 200) {
     if (path === "/mcp") res = await limitMcpResponse(res, mcpBody);
     else if (
       path === "/v1/registry/get" ||
-      path === "/v1/registry/tx_equity_candidates"
+      path === "/v1/registry/tx_equity_candidates" ||
+      path === "/v1/registry/owned_by"
     )
-      res = await limitRestResponse(res);
+      res = await limitRestResponse(res, REGISTRY_TOOLS.get(path));
     await countHistoryWithheld(
       env,
       res,

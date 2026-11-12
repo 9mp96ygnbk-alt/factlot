@@ -19,6 +19,15 @@
  * - registry_get with as_of (the record as it stood on an earlier date) is history too, so it is
  *   for Pro and Team: a free caller gets PlanRequired, and the call is not metered. Without this
  *   a free caller could read the earlier roll years one date at a time.
+ * - An owner's portfolio (registry_owned_by) is for Pro and Team beyond its first
+ *   FREE_PORTFOLIO_PARCELS parcels: a free caller's answer keeps the first three `results` in the
+ *   registry's order, and `buildings` lists only the buildings of the parcels kept, with
+ *   `owned_parcels` counted over them. When parcels were removed, the answer adds
+ *   `portfolio_withheld` ({ count, total }: how many parcels were left out and how many the
+ *   owner has; never a URN, label or building) and a one-sentence `portfolio_note`. A portfolio
+ *   of three parcels or fewer is unchanged and gets neither. The tool takes no paging argument
+ *   (its input is entity_urn alone, and other arguments are dropped by its schema), so the cut is
+ *   applied to every answer and there is nothing to refuse.
  */
 import { GATING_PRICING_URL } from "./plans.ts";
 
@@ -27,7 +36,11 @@ type Json = Record<string, unknown>;
 export const HISTORY_TOOL = "registry_get";
 /** The candidates tool: its subject carries value_history, limited the same way. */
 export const CANDIDATES_TOOL = "registry_tx_equity_candidates";
-const LIMITED_TOOLS = new Set([HISTORY_TOOL, CANDIDATES_TOOL]);
+/** The portfolio tool: its results are cut to the first FREE_PORTFOLIO_PARCELS. */
+export const PORTFOLIO_TOOL = "registry_owned_by";
+/** Parcels of an owner's portfolio a free caller sees. */
+export const FREE_PORTFOLIO_PARCELS = 3;
+const LIMITED_TOOLS = new Set([HISTORY_TOOL, CANDIDATES_TOOL, PORTFOLIO_TOOL]);
 
 /** A registry batch tool: refused for free callers when gating is on. */
 export function isBatchRegistryTool(name: unknown): name is string {
@@ -230,19 +243,82 @@ export function limitHistory(answer: unknown): unknown {
   return out;
 }
 
-/** Apply limitHistory to one MCP tool result (text and structuredContent), when it is not an error. */
-function limitMcpResult(result: Json): Json {
+/** What a free caller's registry_owned_by answer had cut: parcels left out, and the portfolio's size. */
+export interface PortfolioWithheld {
+  count: number;
+  total: number;
+}
+
+/** The one-line note for the parcels withheld from a portfolio. */
+export function portfolioNote(w: PortfolioWithheld): string {
+  const one = w.count === 1;
+  return `${w.count} more ${one ? "parcel" : "parcels"} of this owner ${one ? "is" : "are"} available with a Pro or Team key: ${GATING_PRICING_URL}`;
+}
+
+/**
+ * A registry_owned_by answer for a free caller: the first FREE_PORTFOLIO_PARCELS parcels, and the
+ * buildings of those parcels only. Returns the answer unchanged when it holds that many or fewer.
+ */
+export function limitPortfolio(answer: unknown): unknown {
+  if (typeof answer !== "object" || answer === null || Array.isArray(answer))
+    return answer;
+  const a = answer as Json;
+  if (!Array.isArray(a.results)) return answer;
+  const all = a.results as unknown[];
+  if (all.length <= FREE_PORTFOLIO_PARCELS) return answer;
+  const kept = all.slice(0, FREE_PORTFOLIO_PARCELS);
+  const out: Json = { ...a, results: kept };
+  if (Array.isArray(a.buildings)) {
+    const owned = new Map<unknown, number>();
+    for (const p of kept) {
+      const b = (p as Json | null)?.building;
+      if (b != null) owned.set(b, (owned.get(b) ?? 0) + 1);
+    }
+    out.buildings = (a.buildings as unknown[])
+      .filter((b) => owned.has((b as Json | null)?.urn))
+      .map((b): Json => ({
+        ...(b as Json),
+        owned_parcels: owned.get((b as Json).urn) ?? 0,
+      }))
+      .sort(
+        (x, y) =>
+          (y.owned_parcels as number) - (x.owned_parcels as number) ||
+          (String(x.urn) < String(y.urn)
+            ? -1
+            : String(x.urn) > String(y.urn)
+              ? 1
+              : 0),
+      );
+  }
+  const withheld: PortfolioWithheld = {
+    count: all.length - kept.length,
+    total: all.length,
+  };
+  out.portfolio_withheld = withheld;
+  out.portfolio_note = portfolioNote(withheld);
+  return out;
+}
+
+/** A free caller's answer from `tool`: the portfolio cut for registry_owned_by, else the history cut. */
+export function limitFreeAnswer(tool: unknown, answer: unknown): unknown {
+  return tool === PORTFOLIO_TOOL
+    ? limitPortfolio(answer)
+    : limitHistory(answer);
+}
+
+/** Apply the free cut for `tool` to one MCP tool result (text and structuredContent), when it is not an error. */
+function limitMcpResult(tool: unknown, result: Json): Json {
   if (result.isError === true) return result;
   const out: Json = { ...result };
   if (result.structuredContent !== undefined)
-    out.structuredContent = limitHistory(result.structuredContent);
+    out.structuredContent = limitFreeAnswer(tool, result.structuredContent);
   const content = result.content;
   if (Array.isArray(content))
     out.content = content.map((c) => {
       const item = c as { type?: unknown; text?: unknown };
       if (item?.type !== "text" || typeof item.text !== "string") return c;
       try {
-        const limited = limitHistory(JSON.parse(item.text));
+        const limited = limitFreeAnswer(tool, JSON.parse(item.text));
         return { ...item, text: JSON.stringify(limited, null, 2) };
       } catch {
         return c;
@@ -261,8 +337,11 @@ function rewrite(res: Response, body: unknown): Response {
   });
 }
 
-/** A REST registry_get answer (200 JSON) for a free caller. */
-export async function limitRestResponse(res: Response): Promise<Response> {
+/** A REST answer (200 JSON) from `tool` for a free caller (registry_get, the candidates tool or registry_owned_by). */
+export async function limitRestResponse(
+  res: Response,
+  tool: string = HISTORY_TOOL,
+): Promise<Response> {
   if (
     res.status !== 200 ||
     !(res.headers.get("content-type") ?? "").includes("application/json")
@@ -270,18 +349,18 @@ export async function limitRestResponse(res: Response): Promise<Response> {
     return res;
   const text = await res.text();
   try {
-    return rewrite(res, limitHistory(JSON.parse(text)));
+    return rewrite(res, limitFreeAnswer(tool, JSON.parse(text)));
   } catch {
     return new Response(text, res);
   }
 }
 
-/** An MCP answer for a free caller: registry_get results, matched to their calls by id. */
+/** An MCP answer for a free caller: the limited tools' results, matched to their calls by id. */
 export async function limitMcpResponse(
   res: Response,
   body: unknown,
 ): Promise<Response> {
-  const ids = new Set<unknown>();
+  const ids = new Map<unknown, string>();
   for (const m of Array.isArray(body) ? body : [body]) {
     const c = m as {
       id?: unknown;
@@ -295,7 +374,7 @@ export async function limitMcpResponse(
       c.id !== undefined &&
       c.id !== null
     )
-      ids.add(c.id);
+      ids.set(c.id, c.params.name);
   }
   if (
     ids.size === 0 ||
@@ -309,7 +388,7 @@ export async function limitMcpResponse(
     const fix = (m: unknown) => {
       const r = m as { id?: unknown; result?: Json } | null;
       return r && ids.has(r.id) && r.result && typeof r.result === "object"
-        ? { ...r, result: limitMcpResult(r.result) }
+        ? { ...r, result: limitMcpResult(ids.get(r.id), r.result) }
         : m;
     };
     return rewrite(res, Array.isArray(parsed) ? parsed.map(fix) : fix(parsed));
