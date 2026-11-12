@@ -1024,5 +1024,82 @@
       "urn": "fl:parcel:us-48999:0003-000-0001",
       "include_history": true
     }
+  },
+  {
+    "tool": "registry_recorded_facts",
+    "arguments": {
+      "urn": "fl:parcel:us-48999:0003-000-0001",
+      "limit": 20
+    }
+  },
+  {
+    "tool": "registry_recorded_facts",
+    "arguments": {
+      "urn": "fl:parcel:us-48999:0003-000-0001",
+      "limit": 20,
+      "cursor": "0.6.13.1"
+    }
+  },
+  {
+    "tool": "registry_recorded_facts",
+    "arguments": {
+      "urn": "fl:parcel:us-48999:0003-000-0001",
+      "predicate": "transaction.deed",
+      "limit": 7
+    }
+  },
+  {
+    "tool": "registry_recorded_facts",
+    "arguments": {
+      "urn": "fl:parcel:us-48999:0003-000-0001",
+      "predicate": "transaction.deed",
+      "limit": 7,
+      "cursor": "0.14.0.0"
+    }
+  },
+  {
+    "tool": "registry_recorded_facts",
+    "arguments": {
+      "urn": "fl:parcel:us-48999:0003-000-0001",
+      "limit": 100
+    }
+  },
+  {
+    "tool": "registry_recorded_facts",
+    "arguments": {
+      "urn": "fl:parcel:us-48999:0001-000-0001"
+    }
+  },
+  {
+    "tool": "registry_recorded_facts",
+    "arguments": {
+      "urn": "fl:parcel:us-48999:0001-000-0004"
+    }
+  },
+  {
+    "tool": "registry_recorded_facts",
+    "arguments": {
+      "urn": "fl:entity:us-tx:0801111111"
+    }
+  },
+  {
+    "tool": "registry_recorded_facts",
+    "arguments": {
+      "urn": "fl:parcel:us-48999:0003-000-0001",
+      "cursor": "99.0.0.0"
+    }
+  },
+  {
+    "tool": "registry_recorded_facts",
+    "arguments": {
+      "urn": "fl:parcel:us-48999:0003-000-0001",
+      "cursor": "x"
+    }
+  },
+  {
+    "tool": "registry_recorded_facts",
+    "arguments": {
+      "urn": "fl:parcel:us-48999:404"
+    }
   }
 ]

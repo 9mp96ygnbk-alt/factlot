@@ -79,6 +79,8 @@ import {
   equityYearFacts,
   hostedWithheldCounties,
   mergeCoverage,
+  RECORDED_PREDICATES,
+  registryRecordedLists,
   runTool,
   situsZip5,
   type RegistryCoverage,
@@ -114,6 +116,7 @@ import {
   PACK_MAX_FILES,
   PACK_MAX_FILE_BYTES,
   PAGE_ROWS,
+  RECORDED_PAGE_ROWS,
   SHARD_TARGET_BYTES,
   ShardEncoder,
   SharedPages,
@@ -126,6 +129,7 @@ import {
   type GetEntry,
   type Manifest,
   type PackDb,
+  type PagedList,
 } from "../../deploy/registry/src/format.ts";
 import {
   nameGrams,
@@ -216,12 +220,20 @@ function subjectEntry(
   dbIndex: number,
   dates: string[],
   q?: EquitySubject,
+  recorded?: RecordedPages,
 ): { entry: GetEntry; expect: [boolean, string | undefined, string][] } {
   const base = ok("registry_get", { urn, include_history: true });
   const rec = withoutKeys(base, "history");
   const hist = base.history as unknown[];
   const entry: GetEntry = { k: dbIndex, r: rec, v: [] };
   if (q) entry.q = q;
+  // A capped record: its recorded facts in full, for registry_recorded_facts (the sample sizing shards passes none).
+  if (recorded && rec.recorded_facts_truncated !== undefined) {
+    const lists = registryRecordedLists(urn);
+    entry.f = {};
+    for (const p of RECORDED_PREDICATES)
+      if (lists[p]?.length) entry.f[p] = recorded.add(lists[p]);
+  }
   if (!same(hist, rec.facts)) entry.h = hist;
   const expect: [boolean, string | undefined, string][] = [
     [true, undefined, JSON.stringify(base)],
@@ -261,6 +273,82 @@ function checkEntry(
       throw new Error(
         `${urn}: the packed record differs from runTool (history ${history}, as_of ${asOf ?? "none"})`,
       );
+  }
+}
+
+/** The page lists of the capped parcels of the region being built (checkRecorded reads them back). */
+const recordedEntries = new Map<string, Record<string, PagedList>>();
+
+/**
+ * The pages of a region's recorded-fact lists (g/<k>/r/<page>.json, RECORDED_PAGE_ROWS rows each): lists are added
+ * one after another and each full page is written as soon as it fills, so a region never holds them all.
+ */
+class RecordedPages {
+  private rows: unknown[] = [];
+  private start = 0;
+  pages = 0;
+  private readonly w: Writer;
+  private readonly k: number;
+  constructor(w: Writer, k: number) {
+    this.w = w;
+    this.k = k;
+  }
+  add(list: unknown[]): PagedList {
+    const out = { n: list.length, s: this.start + this.rows.length };
+    for (const r of list) {
+      this.rows.push(r);
+      if (this.rows.length === RECORDED_PAGE_ROWS) this.flush();
+    }
+    return out;
+  }
+  private flush(): void {
+    this.w.write(`g/${this.k}/r/${this.pages}.json`, this.rows);
+    this.pages += 1;
+    this.start += this.rows.length;
+    this.rows = [];
+  }
+  /** Write the last, partial page; returns the number of pages. */
+  finish(): number {
+    if (this.rows.length) this.flush();
+    return this.pages;
+  }
+}
+
+/**
+ * Read the recorded-fact pages back for each capped parcel and compare them with the SDK's lists: the pages must
+ * give registry_recorded_facts exactly what runTool gives.
+ */
+function checkRecorded(dir: string, k: number, urns: string[]): void {
+  const pages = new Map<number, unknown[]>();
+  const page = (i: number): unknown[] => {
+    let rows = pages.get(i);
+    if (!rows) {
+      rows = JSON.parse(
+        readFileSync(join(dir, "g", String(k), "r", `${i}.json`), "utf8"),
+      ) as unknown[];
+      pages.set(i, rows);
+    }
+    return rows;
+  };
+  const read = (l: PagedList): unknown[] => {
+    const out: unknown[] = [];
+    for (let i = l.s; i < l.s + l.n; i++)
+      out.push(
+        page(Math.floor(i / RECORDED_PAGE_ROWS))[i % RECORDED_PAGE_ROWS],
+      );
+    return out;
+  };
+  for (const urn of urns) {
+    const lists = registryRecordedLists(urn);
+    const shard = recordedEntries.get(urn);
+    for (const p of RECORDED_PREDICATES) {
+      const want = lists[p] ?? [];
+      const l = shard?.[p];
+      if (!same(want, l ? read(l) : []))
+        throw new Error(
+          `${urn}: the recorded pages differ from runTool (${p})`,
+        );
+    }
   }
 }
 
@@ -1069,6 +1157,9 @@ function buildRegion(
       throw new Error(
         `${src.name}: ${shards} record shards would take the pack past ${maxFiles} files (${w.files} written so far); a Worker version cannot hold it`,
       );
+    const recorded = new RecordedPages(w, k);
+    const capped: string[] = [];
+    recordedEntries.clear();
     const groups: [string, string][][] = Array.from(
       { length: shards },
       () => [],
@@ -1089,7 +1180,12 @@ function buildRegion(
           k,
           dates,
           eq?.get(urn),
+          recorded,
         );
+        if (entry.f) {
+          capped.push(urn);
+          recordedEntries.set(urn, entry.f);
+        }
         enc.add(urn, entry);
         checks.push([urn, entry, expect]);
       }
@@ -1107,6 +1203,13 @@ function buildRegion(
           `  ${src.name}: ${g + 1}/${shards} record shards (${Math.round((Date.now() - started) / 1000)} s)`,
         );
     });
+    const recordedPages = recorded.finish();
+    if (capped.length) {
+      checkRecorded(w.dir, k, capped);
+      log(
+        `  ${src.name}: ${capped.length} capped records, their recorded facts in ${recordedPages} pages`,
+      );
+    }
     const crosswalk: [string, string][] = d
       .prepare("SELECT system, external_id, urn FROM crosswalk")
       .all()
@@ -1150,6 +1253,7 @@ function buildRegion(
         entities: kinds.entity ?? 0,
         buildings: kinds.building ?? 0,
         subjects: subjects.length,
+        ...(recordedPages ? { recorded_pages: recordedPages } : {}),
       },
       coverage: cov,
       name_key_version: nv,
@@ -1613,7 +1717,7 @@ function partStamp(job: PartJob, code: string, hashes: FileHashes): PartStamp {
   };
 }
 
-/** The pack paths a part's files take: g/<k>/0.json … and, for Texas, its pools under q/. */
+/** The pack paths a part's files take: g/<k>/0.json …, g/<k>/r/0.json … when a record was capped, and, for Texas, its pools under q/. */
 function checkPart(
   job: { name: string; k: number },
   r: PartResult,
@@ -1640,8 +1744,11 @@ function checkPart(
   for (let i = 0; i < part.db.shards; i++)
     if (!shards.delete(`g/${job.k}/${i}.json`))
       fail(`record shard ${i} missing`);
+  for (let i = 0; i < (part.db.recorded_pages ?? 0); i++)
+    if (!shards.delete(`g/${job.k}/r/${i}.json`))
+      fail(`recorded-fact page ${i} missing`);
   if (shards.size)
-    fail(`${shards.size} files under g/${job.k}/ beyond its shards`);
+    fail(`${shards.size} files under g/${job.k}/ beyond its shards and pages`);
   if (pools.size !== part.equity_pools)
     fail(`${pools.size} pools, the part says ${part.equity_pools}`);
   if (

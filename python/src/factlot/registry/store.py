@@ -470,6 +470,61 @@ def capped_recorded_facts(facts: list[dict[str, Any]], limit: int = RECORDED_FAC
                   "by_predicate": by_predicate, "rest": "registry_recorded_facts"}
 
 
+# registry_recorded_facts (RECORDED_PAGE_MAX and friends in TypeScript).
+RECORDED_PAGE_MAX = 100
+RECORDED_PAGE_DEFAULT = 50
+RECORDED_CURSOR_HELP = "expected the next_cursor of an earlier registry_recorded_facts answer for this parcel"
+_CURSOR = re.compile(r"\d{1,9}(\.\d{1,9}){3}")
+
+
+def parse_recorded_cursor(cursor: str | None, totals: dict[str, int]) -> list[int] | None:
+    """The offsets a cursor holds (one per RECORDED_PREDICATES entry), or ``None`` when it is not one for these totals."""
+    if cursor is None:
+        return [0] * len(RECORDED_PREDICATES)
+    if not _CURSOR.fullmatch(cursor):
+        return None
+    offsets = [int(x) for x in cursor.split(".")]
+    return offsets if all(o <= totals.get(p, 0) for o, p in zip(offsets, RECORDED_PREDICATES)) else None
+
+
+def _recorded_key(f: dict[str, Any]) -> tuple[str, float, str]:
+    v = f["value"] if isinstance(f["value"], dict) else {}
+    price = v.get("price_usd", v.get("current_balance_usd"))
+    return (str(v.get("date") or v.get("reporting_period_end") or ""),
+            float(price) if isinstance(price, (int, float)) and not isinstance(price, bool) else -1.0, f["id"])
+
+
+def recorded_page(urn: str, predicate: str | None, totals: dict[str, int], offsets: list[int],
+                  slices: dict[str, list[dict[str, Any]]], limit: int) -> dict[str, Any]:
+    """One page of registry_recorded_facts (``recordedPage`` in TypeScript): the slices from the cursor's offsets,
+    merged newest first."""
+    wanted = [predicate is None or p == predicate for p in RECORDED_PREDICATES]
+    at, used, facts = list(offsets), [0] * len(RECORDED_PREDICATES), []
+    while len(facts) < limit:
+        best = -1
+        for i, p in enumerate(RECORDED_PREDICATES):
+            lst = slices.get(p, [])
+            if not wanted[i] or used[i] >= len(lst):
+                continue
+            if best < 0 or _recorded_key(lst[used[i]]) > _recorded_key(
+                    slices[RECORDED_PREDICATES[best]][used[best]]):
+                best = i
+        if best < 0:
+            break
+        facts.append(slices[RECORDED_PREDICATES[best]][used[best]])
+        used[best] += 1
+        at[best] += 1
+    more = any(wanted[i] and at[i] < totals.get(p, 0) for i, p in enumerate(RECORDED_PREDICATES))
+    return {
+        "urn": urn,
+        "predicate": predicate,
+        "totals": {p: totals[p] for p in RECORDED_PREDICATES if totals.get(p)},
+        "total": sum(totals.get(p, 0) for i, p in enumerate(RECORDED_PREDICATES) if wanted[i]),
+        "facts": facts,
+        "next_cursor": ".".join(map(str, at)) if more else None,
+    }
+
+
 def _newest_first(facts: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Order the facts of a many-valued predicate (sales) newest first, in the slots they occupy."""
     slots = [i for i, f in enumerate(facts) if f["predicate"] in MULTI_VALUED_PREDICATES]
@@ -1512,6 +1567,14 @@ class Registry:
                 fact["provenance"]["confidence"] = f["confidence"]
             out.append(fact)
         return _newest_first(out)
+
+    def recorded_lists(self, urn: str) -> dict[str, list[dict[str, Any]]]:
+        """A parcel's current recorded facts by predicate, each newest first (``registryRecordedLists``)."""
+        out: dict[str, list[dict[str, Any]]] = {}
+        for f in self.facts(urn):
+            if f["predicate"] in RECORDED_PREDICATES:
+                out.setdefault(f["predicate"], []).append(f)
+        return out
 
     def get(self, urn: str, as_of: str | None = None) -> dict[str, Any] | None:
         """A record: current facts and links, or with ``as_of`` (YYYY-MM-DD) those current on that date.

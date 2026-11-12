@@ -708,6 +708,34 @@ def _tx_equity_candidates_batch(args: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _recorded_facts(args: dict[str, Any]) -> dict[str, Any]:
+    from .registry.store import (RECORDED_CURSOR_HELP, RECORDED_PAGE_DEFAULT, RECORDED_PAGE_MAX, RECORDED_PREDICATES,
+                                 parse_recorded_cursor, recorded_page)
+
+    urn = _str(args, "urn")
+    predicate = args.get("predicate")
+    if predicate is not None and predicate not in RECORDED_PREDICATES:
+        raise _InputError("predicate", "expected one of " + ", ".join(RECORDED_PREDICATES))
+    cursor = args.get("cursor")
+    if cursor is not None and not isinstance(cursor, str):
+        raise _InputError("cursor", "expected string")
+    limit = args.get("limit", RECORDED_PAGE_DEFAULT)
+    if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= RECORDED_PAGE_MAX:
+        raise _InputError("limit", f"expected integer 1–{RECORDED_PAGE_MAX}")
+    reg = _registry()
+    parse(urn)
+    if reg.db.execute("SELECT 1 FROM subjects WHERE urn = ?", (urn,)).fetchone() is None:
+        cov = _record_miss(reg, urn)
+        raise _NotFound(f"no registry record for {urn}: {cov['message']}", cov)
+    lists = reg.recorded_lists(urn)
+    totals = {p: len(v) for p, v in lists.items()}
+    offsets = parse_recorded_cursor(cursor, totals)
+    if offsets is None:
+        raise _InputError("cursor", RECORDED_CURSOR_HELP)
+    slices = {p: lists.get(p, [])[o:o + limit] for p, o in zip(RECORDED_PREDICATES, offsets)}
+    return recorded_page(urn, predicate, totals, offsets, slices, limit)
+
+
 _REGISTRY_TOOLS = {
     "registry_get": _registry_get,
     "registry_resolve_parcel": _resolve_parcel,
@@ -715,6 +743,7 @@ _REGISTRY_TOOLS = {
     "registry_search_address": _search("address"),
     "registry_search_entities": _search("entities"),
     "registry_owned_by": _owned_by,
+    "registry_recorded_facts": _recorded_facts,
     "registry_coverage": _registry_coverage,
     "registry_tx_equity_candidates": _tx_equity_candidates,
     "registry_tx_equity_candidates_batch": _tx_equity_candidates_batch,

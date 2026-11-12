@@ -37,6 +37,11 @@ export const NAME_PAGE_ROWS = 1600;
 export const NAME_INLINE_ROWS = 160;
 /** Target size of a name posting or exact-key bucket file. */
 export const NAME_BUCKET_BYTES = 128 * 1024;
+/**
+ * Facts per page of the recorded-fact lists (g/<db>/r/<page>.json): the recorded sales and documents of each parcel
+ * whose record keeps only the newest RECORDED_FACTS_LIMIT, one list per predicate, one list after another.
+ */
+export const RECORDED_PAGE_ROWS = 100;
 /** The largest `limit` a registry search accepts (the catalog's schema). */
 export const MAX_LIMIT = 100;
 
@@ -53,6 +58,8 @@ export interface PackDb {
   entities: number;
   buildings: number;
   subjects: number;
+  /** Pages of recorded-fact lists (g/<db>/r/); absent when no record of the file was capped. */
+  recorded_pages?: number;
 }
 
 export interface Manifest {
@@ -366,6 +373,11 @@ export interface GetEntry {
   o?: { results: unknown[]; buildings: unknown[] };
   /** A Texas parcel's registry_tx_equity_candidates data (equity.ts). */
   q?: EquitySubject;
+  /**
+   * A parcel whose record keeps only the newest recorded facts: each recorded predicate's full list (newest first,
+   * as registry_recorded_facts reads it) in the pages g/<k>/r/ (RECORDED_PAGE_ROWS rows each).
+   */
+  f?: Record<string, PagedList>;
 }
 
 /** Index into GetEntry.v for a dated lookup: the interval of `dates` that `asOf` falls in. */

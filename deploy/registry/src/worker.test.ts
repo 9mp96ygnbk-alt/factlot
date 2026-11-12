@@ -1835,3 +1835,128 @@ test("parts cache: the code version covers every file a part is made by", () => 
   }
   assert.equal(codeVersion(read, true).version, v.version, "stable");
 });
+
+test("recorded facts: a capped record's lists are paged files, and every page answers like runTool", async () => {
+  const pack = join(dir, "pack-recorded");
+  buildPack([{ name: "fixture", path: fixture }], pack);
+  const m = JSON.parse(
+    readFileSync(join(pack, "manifest.json"), "utf8"),
+  ) as Manifest;
+  // 70 recorded facts of one parcel: one page of RECORDED_PAGE_ROWS and a partial one.
+  assert.equal(m.dbs[0]!.recorded_pages, 1);
+  assert.ok(existsSync(join(pack, "g", "0", "r", "0.json")));
+  const heavy = "fl:parcel:us-48999:0003-000-0001";
+  const calls: Call[] = [];
+  configureRegistry(fixture);
+  try {
+    for (const predicate of [
+      undefined,
+      "transaction.sale",
+      "transaction.deed",
+      "debt.mortgage_recorded",
+      "debt.mortgage_satisfaction_recorded",
+    ])
+      for (const limit of [1, 7, 50, 100]) {
+        let cursor: string | undefined;
+        let pages = 0;
+        do {
+          const args = {
+            urn: heavy,
+            limit,
+            ...(predicate ? { predicate } : {}),
+            ...(cursor ? { cursor } : {}),
+          };
+          calls.push({ tool: "registry_recorded_facts", args });
+          const out = runTool("registry_recorded_facts", args);
+          assert.ok(out.ok);
+          const page = out.result as {
+            facts: unknown[];
+            next_cursor: string | null;
+          };
+          assert.ok(page.facts.length <= limit, "never more than a page");
+          cursor = page.next_cursor ?? undefined;
+          pages += 1;
+        } while (cursor && pages < 100);
+      }
+  } finally {
+    configureRegistry(undefined);
+  }
+  calls.push(
+    { tool: "registry_get", args: { urn: heavy } },
+    { tool: "registry_get", args: { urn: heavy, include_history: true } },
+    { tool: "registry_get", args: { urn: heavy, as_of: "2026-10-01" } },
+  );
+  const bad = await compare(pack, fixture, calls);
+  assert.ok(calls.length > 100, `${calls.length} calls`);
+  assert.deepEqual(
+    bad.slice(0, 5),
+    [],
+    `${bad.length} of ${calls.length} differ`,
+  );
+  const record = JSON.parse(
+    await worker(fileAssets(pack), "registry_get", { urn: heavy }),
+  ) as { result: { recorded_facts_truncated?: { total: number } } };
+  assert.equal(record.result.recorded_facts_truncated?.total, 70);
+});
+
+test("recorded facts: a region with no capped record writes no pages, no recorded_pages and no lists", async () => {
+  const copy = join(dir, "fixture-uncapped.db");
+  copyFileSync(fixture, copy);
+  const d = new DatabaseSync(copy);
+  d.exec(
+    "DELETE FROM facts WHERE subject = 'fl:parcel:us-48999:0003-000-0001' AND predicate IN ('transaction.deed', 'debt.mortgage_recorded')",
+  );
+  d.close();
+  const pack = join(dir, "pack-uncapped");
+  buildPack([{ name: "fixture", path: copy }], pack);
+  const m = JSON.parse(
+    readFileSync(join(pack, "manifest.json"), "utf8"),
+  ) as Manifest;
+  assert.ok(!("recorded_pages" in m.dbs[0]!));
+  assert.ok(!existsSync(join(pack, "g", "0", "r")));
+  for (const f of readdirSync(join(pack, "g", "0")))
+    assert.doesNotMatch(
+      readFileSync(join(pack, "g", "0", f), "utf8"),
+      /recorded_facts_truncated/,
+    );
+  // The paged tool still answers, from the record's facts.
+  const bad = await compare(pack, copy, [
+    {
+      tool: "registry_recorded_facts",
+      args: { urn: "fl:parcel:us-48999:0003-000-0001", limit: 5 },
+    },
+    {
+      tool: "registry_recorded_facts",
+      args: { urn: "fl:parcel:us-48999:0003-000-0001", cursor: "5.0.0.8" },
+    },
+  ]);
+  assert.deepEqual(bad, []);
+});
+
+test("check_pack: a pack with a capped record checks clean, its recorded-fact pages included", () => {
+  const pack = join(dir, "pack-recorded-check");
+  buildPack([{ name: "fixture", path: fixture }], pack);
+  const out = execFileSync(
+    process.execPath,
+    [
+      "--experimental-strip-types",
+      "--conditions=factlot-source",
+      "--no-warnings",
+      fileURLToPath(
+        new URL("../../../scripts/registry/check_pack.ts", import.meta.url),
+      ),
+      "--pack",
+      pack,
+      "--scratch",
+      join(dir, "check-recorded"),
+      "--samples",
+      "40",
+      "--equity",
+      "5",
+      `fixture=${fixture}`,
+    ],
+    { encoding: "utf8" },
+  );
+  assert.match(out, /^registry_recorded_facts\s+\d+\s+0\s/m);
+  assert.match(out, /total mismatches: 0\b/);
+});

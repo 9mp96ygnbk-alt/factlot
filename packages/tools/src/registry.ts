@@ -331,6 +331,136 @@ export function capRecordedFacts(
   };
 }
 
+// --- registry_recorded_facts: every recorded fact of a parcel, a page at a time ------------------
+
+/** The largest page registry_recorded_facts returns. */
+export const RECORDED_PAGE_MAX = 100;
+/** Its default page. */
+export const RECORDED_PAGE_DEFAULT = 50;
+export const RECORDED_CURSOR_HELP =
+  "expected the next_cursor of an earlier registry_recorded_facts answer for this parcel";
+
+/**
+ * A parcel's current recorded facts by predicate, each list newest first (the order registry_get gives them in;
+ * `registry_recorded_lists` in Python). Predicates without a fact are left out.
+ */
+export function registryRecordedLists(urn: string): Record<string, Row[]> {
+  const out: Record<string, Row[]> = {};
+  for (const f of registryFacts(urn)) {
+    const p = String(f.predicate);
+    if (RECORDED.has(p)) (out[p] ??= []).push(f);
+  }
+  return out;
+}
+
+/** The offsets a cursor holds (one per RECORDED_PREDICATES entry), or null when it is not a cursor for these totals. */
+export function parseRecordedCursor(
+  cursor: string | undefined,
+  totals: Record<string, number>,
+): number[] | null {
+  if (cursor === undefined) return RECORDED_PREDICATES.map(() => 0);
+  if (!/^\d{1,9}(\.\d{1,9}){3}$/.test(cursor)) return null;
+  const offsets = cursor.split(".").map(Number);
+  return offsets.every((o, i) => o <= (totals[RECORDED_PREDICATES[i]!] ?? 0))
+    ? offsets
+    : null;
+}
+
+/** registry_get's order of two recorded facts (newestFirst's key): date, then price, then fact ID, all descending. */
+function recordedNewer(a: Row, b: Row): boolean {
+  const key = (f: Row): [string, number, string] => {
+    const v = (f.value ?? {}) as Row;
+    const amount = v.price_usd ?? v.current_balance_usd;
+    const when = v.date ?? v.reporting_period_end;
+    return [
+      typeof when === "string" ? when : "",
+      typeof amount === "number" ? amount : -1,
+      String(f.id),
+    ];
+  };
+  const [da, pa, ia] = key(a);
+  const [db, pb, ib] = key(b);
+  if (da !== db) return da > db;
+  if (pa !== pb) return pa > pb;
+  return ia > ib;
+}
+
+/**
+ * One page of registry_recorded_facts (`recorded_page` in Python). `slices[p]` holds predicate p's facts from the
+ * cursor's offset on (at least `limit` of them, or all that are left); the page merges them newest first.
+ */
+export function recordedPage(
+  urn: string,
+  predicate: string | undefined,
+  totals: Record<string, number>,
+  offsets: number[],
+  slices: Record<string, Row[]>,
+  limit: number,
+): Row {
+  const wanted = RECORDED_PREDICATES.map(
+    (p) => predicate === undefined || p === predicate,
+  );
+  const at = [...offsets];
+  const used = RECORDED_PREDICATES.map(() => 0);
+  const facts: Row[] = [];
+  while (facts.length < limit) {
+    let best = -1;
+    RECORDED_PREDICATES.forEach((p, i) => {
+      if (!wanted[i]) return;
+      const f = slices[p]?.[used[i]!];
+      if (
+        f &&
+        (best < 0 ||
+          recordedNewer(f, slices[RECORDED_PREDICATES[best]!]![used[best]!]!))
+      )
+        best = i;
+    });
+    if (best < 0) break;
+    facts.push(slices[RECORDED_PREDICATES[best]!]![used[best]!]!);
+    used[best]! += 1;
+    at[best]! += 1;
+  }
+  const more = RECORDED_PREDICATES.some(
+    (p, i) => wanted[i] && at[i]! < (totals[p] ?? 0),
+  );
+  const shown: Record<string, number> = {};
+  for (const p of RECORDED_PREDICATES) if (totals[p]) shown[p] = totals[p];
+  return {
+    urn,
+    predicate: predicate ?? null,
+    totals: shown,
+    total: RECORDED_PREDICATES.reduce(
+      (n, p, i) => n + (wanted[i] ? (totals[p] ?? 0) : 0),
+      0,
+    ),
+    facts,
+    next_cursor: more ? at.join(".") : null,
+  };
+}
+
+/** registry_recorded_facts on a registry file; null when the registry has no record for `urn`. */
+export function registryRecordedFacts(
+  urn: string,
+  predicate: string | undefined,
+  cursor: string | undefined,
+  limit: number,
+): Row | null | "cursor" {
+  const d = open();
+  parse(urn);
+  if (!d.prepare("SELECT 1 AS x FROM subjects WHERE urn = ?").get(urn))
+    return null;
+  const lists = registryRecordedLists(urn);
+  const totals: Record<string, number> = {};
+  for (const [p, l] of Object.entries(lists)) totals[p] = l.length;
+  const offsets = parseRecordedCursor(cursor, totals);
+  if (!offsets) return "cursor";
+  const slices: Record<string, Row[]> = {};
+  RECORDED_PREDICATES.forEach((p, i) => {
+    slices[p] = (lists[p] ?? []).slice(offsets[i]!, offsets[i]! + limit);
+  });
+  return recordedPage(urn, predicate, totals, offsets, slices, limit);
+}
+
 /** Order the facts of a many-valued predicate (sales) newest first, in the slots they occupy. */
 function newestFirst(facts: Row[]): Row[] {
   const slots: number[] = [];

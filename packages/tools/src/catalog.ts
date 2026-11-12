@@ -42,8 +42,13 @@ import { UseConflictInput, checkUseConflict } from "./uses.ts";
 import {
   RegistryUnavailableError,
   registryCoverage,
+  RECORDED_CURSOR_HELP,
+  RECORDED_PAGE_DEFAULT,
+  RECORDED_PAGE_MAX,
+  RECORDED_PREDICATES,
   capRecordedFacts,
   registryFacts,
+  registryRecordedFacts,
   registryGet,
   registryOwnedByResult,
   registryPath,
@@ -648,7 +653,7 @@ const registryTools: ToolSpec[] = [
     name: "registry_get",
     title: "Get a registry record",
     description:
-      "Everything the FactLot Registry knows about a parcel, legal entity, or building: status, current cited facts (owner of record, situs address, property category, areas, values), ownership links, external IDs, and for a parcel the building it belongs to (condominium units roll up into one building). value_history (parcels) lists market and appraised value by tax year from every snapshot, newest first, each value cited; a tax year two snapshots value differently appears once per value. as_of gives the facts as they stood on a date. warnings flags area facts that look wrong (building area above 40 times the land area, a land area of 0); the facts themselves are as the source publishes them. A building record can carry debt.cmbs_loan facts (one per CMBS trust holding a note of its loan: balance, rate, maturity, payment status, servicer, special-servicing dates, NOI, DSCR) and an entity record can carry entity.parent facts (the SEC registrant that lists it as a subsidiary in Exhibit 21), each cited to its SEC filing. A miss says whether the county or entity registry is loaded. On the hosted API, a call without a Pro or Team key gets the current roll year only in value_history and history (the answer says so); a Pro or Team key gets every year." +
+      "Everything the FactLot Registry knows about a parcel, legal entity, or building: status, current cited facts (owner of record, situs address, property category, areas, values), ownership links, external IDs, and for a parcel the building it belongs to (condominium units roll up into one building). value_history (parcels) lists market and appraised value by tax year from every snapshot, newest first, each value cited; a tax year two snapshots value differently appears once per value. as_of gives the facts as they stood on a date. A parcel's recorded sales and documents (transaction.sale, transaction.deed, debt.mortgage_recorded, debt.mortgage_satisfaction_recorded; one fact each, newest first) are kept to the newest 50 in facts and in history; when there are more, recorded_facts_truncated gives what was kept and the totals by predicate with the years left out, and registry_recorded_facts reads them all. warnings flags area facts that look wrong (building area above 40 times the land area, a land area of 0); the facts themselves are as the source publishes them. A building record can carry debt.cmbs_loan facts (one per CMBS trust holding a note of its loan: balance, rate, maturity, payment status, servicer, special-servicing dates, NOI, DSCR) and an entity record can carry entity.parent facts (the SEC registrant that lists it as a subsidiary in Exhibit 21), each cited to its SEC filing. A miss says whether the county or entity registry is loaded. On the hosted API, a call without a Pro or Team key gets the current roll year only in value_history and history (the answer says so); a Pro or Team key gets every year." +
       REGISTRY_NOTE,
     input: z.object({
       urn: z
@@ -802,6 +807,60 @@ const registryTools: ToolSpec[] = [
     requires: "registry",
     run: (i: never) =>
       registryOwnedByResult((i as { entity_urn: string }).entity_urn),
+  },
+  {
+    name: "registry_recorded_facts",
+    title: "Recorded sales and documents of a parcel",
+    description:
+      "Every recorded sale and document of a parcel (transaction.sale, transaction.deed, debt.mortgage_recorded, debt.mortgage_satisfaction_recorded), newest first in registry_get's order, each a whole fact with its citation, a page at a time. registry_get keeps the newest 50 of them; when it holds more, its recorded_facts_truncated gives the totals, and this tool reads the rest. predicate limits the page to one of the four. Pass next_cursor back as cursor for the next page; next_cursor is null on the last. totals counts each predicate's facts. A price or amount is as recorded, zero or nominal included; the sources do not say whether a sale was at arm's length. Parties are organisations only. On the hosted API this tool needs a Pro or Team key." +
+      REGISTRY_NOTE,
+    input: z.object({
+      urn: z
+        .string()
+        .max(500)
+        .describe("FactLot parcel URN, e.g. fl:parcel:us-36061:1012920015."),
+      predicate: z
+        .enum(RECORDED_PREDICATES)
+        .optional()
+        .describe("Only this predicate's facts."),
+      cursor: z
+        .string()
+        .max(64)
+        .optional()
+        .describe(
+          "next_cursor from the previous page; omit for the first page.",
+        ),
+      limit: z
+        .number()
+        .int()
+        .min(1)
+        .max(RECORDED_PAGE_MAX)
+        .default(RECORDED_PAGE_DEFAULT)
+        .describe(`Facts per page (1 to ${RECORDED_PAGE_MAX}).`),
+    }),
+    path: "/v1/registry/recorded_facts",
+    requires: "registry",
+    run: (i: never) => {
+      const { urn, predicate, cursor, limit } = i as {
+        urn: string;
+        predicate?: string;
+        cursor?: string;
+        limit: number;
+      };
+      const page = registryRecordedFacts(urn, predicate, cursor, limit);
+      if (page === "cursor")
+        throw new ToolInputError([
+          { path: "cursor", message: RECORDED_CURSOR_HELP },
+        ]);
+      if (!page) {
+        const coverage = registryRecordMiss(urn);
+        throw new NotFoundError(
+          `no registry record for ${urn}: ${String(coverage.message)}`,
+          coverage,
+        );
+      }
+      return page;
+    },
   },
   {
     name: "registry_coverage",

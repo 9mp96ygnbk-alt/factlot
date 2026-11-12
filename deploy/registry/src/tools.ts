@@ -12,12 +12,24 @@ import {
   TX_EQUITY_WHICH_PARCEL,
   externalMiss,
   parcelUrnForRule,
+  parseRecordedCursor,
+  recordedPage,
+  RECORDED_CURSOR_HELP,
+  RECORDED_PAGE_DEFAULT,
+  RECORDED_PAGE_MAX,
+  RECORDED_PREDICATES,
   texasOnly,
   txEquityWithheld,
 } from "../../../packages/tools/src/registry.ts";
 
 import { equityFromPack } from "./equity.ts";
-import { MAX_LIMIT, getResult } from "./format.ts";
+import {
+  MAX_LIMIT,
+  RECORDED_PAGE_ROWS,
+  getResult,
+  listPages,
+  type PagedList,
+} from "./format.ts";
 import {
   hostedAddressMiss,
   hostedEntitiesMiss,
@@ -50,6 +62,7 @@ export const REGISTRY_TOOLS = [
   "registry_search_address",
   "registry_search_entities",
   "registry_owned_by",
+  "registry_recorded_facts",
   "registry_coverage",
   "registry_tx_equity_candidates",
   "registry_tx_equity_candidates_batch",
@@ -182,6 +195,8 @@ async function run(pack: Pack, tool: string, i: Input): Promise<unknown> {
         coverage: hostedEntityMiss(m, cov, parts[0] ?? "", entry !== undefined),
       };
     }
+    case "registry_recorded_facts":
+      return recordedFacts(pack, i);
     case "registry_coverage":
       return m.coverage_result;
     case "registry_tx_equity_candidates":
@@ -190,6 +205,72 @@ async function run(pack: Pack, tool: string, i: Input): Promise<unknown> {
       return txEquityBatch(pack, i);
   }
   throw new Error(`unhandled tool ${tool}`);
+}
+
+// registry_recorded_facts: a capped record's lists from its pages (g/<k>/r/), any other record's from its facts.
+async function recordedFacts(pack: Pack, i: Input): Promise<unknown> {
+  const urn = str(i, "urn");
+  const predicate = optStr(i, "predicate");
+  const cursor = optStr(i, "cursor");
+  const limit = i.limit ?? RECORDED_PAGE_DEFAULT;
+  if (
+    typeof limit !== "number" ||
+    !Number.isInteger(limit) ||
+    limit < 1 ||
+    limit > RECORDED_PAGE_MAX
+  )
+    throw new InputIssue([
+      {
+        path: "limit",
+        message: `expected an integer from 1 to ${RECORDED_PAGE_MAX}`,
+      },
+    ]);
+  parse(urn);
+  const entry = await pack.entry(urn);
+  if (!entry) return notFound(pack, urn);
+  const lists: Record<string, PagedList | unknown[]> = {};
+  const totals: Record<string, number> = {};
+  if (entry.f) {
+    for (const [p, l] of Object.entries(entry.f)) {
+      lists[p] = l;
+      totals[p] = l.n;
+    }
+  } else
+    for (const f of (entry.r.facts ?? []) as { predicate?: unknown }[]) {
+      const p = String(f.predicate);
+      if (!(RECORDED_PREDICATES as readonly string[]).includes(p)) continue;
+      ((lists[p] ??= []) as unknown[]).push(f);
+      totals[p] = (totals[p] ?? 0) + 1;
+    }
+  const offsets = parseRecordedCursor(cursor, totals);
+  if (!offsets)
+    throw new InputIssue([{ path: "cursor", message: RECORDED_CURSOR_HELP }]);
+  const prefix = `g/${entry.k}/r`;
+  const slices: Record<string, Record<string, unknown>[]> = {};
+  for (const [n, p] of RECORDED_PREDICATES.entries()) {
+    const l = lists[p];
+    if (!l || (predicate !== undefined && p !== predicate)) continue;
+    const from = offsets[n]!;
+    if (Array.isArray(l)) {
+      slices[p] = l.slice(from, from + limit) as Record<string, unknown>[];
+      continue;
+    }
+    const part: PagedList = {
+      n: Math.max(0, Math.min(limit, l.n - from)),
+      s: l.s + from,
+    };
+    const rows: Record<string, unknown>[] = [];
+    if (part.n > 0)
+      for await (const page of listPages<Record<string, unknown>>(
+        pack,
+        prefix,
+        RECORDED_PAGE_ROWS,
+        part,
+      ))
+        rows.push(...page);
+    slices[p] = rows;
+  }
+  return recordedPage(urn, predicate, totals, offsets, slices, limit);
 }
 
 // The catalog's registry_tx_equity_candidates checks, in its order; then the candidates from the pack (equity.ts), or
