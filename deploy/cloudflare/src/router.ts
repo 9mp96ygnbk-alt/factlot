@@ -1267,10 +1267,11 @@ async function route(
     if (mcpBody !== undefined) {
       accountCalls = items.filter(hosted);
       reportCalls = reportsEnabled(env) ? items.filter(isReportCall) : [];
+      // tools/list, and resources/read of the tool index, get the hosted tools added.
       listIds = items
         .filter(
           (m) =>
-            (m as { method?: unknown } | null)?.method === "tools/list" &&
+            (isToolList(m) || isToolIndexRead(m)) &&
             (m as { id?: unknown }).id !== undefined,
         )
         .map((m) => (m as { id: unknown }).id);
@@ -1943,6 +1944,53 @@ function isAccountCall(item: unknown): item is AccountCall {
   );
 }
 
+const TOOL_INDEX_URI = "factlot://schemas/tools";
+
+function isToolList(m: unknown): boolean {
+  return (m as { method?: unknown } | null)?.method === "tools/list";
+}
+
+function isToolIndexRead(m: unknown): boolean {
+  const { method, params } = (m ?? {}) as {
+    method?: unknown;
+    params?: { uri?: unknown } | null;
+  };
+  return method === "resources/read" && params?.uri === TOOL_INDEX_URI;
+}
+
+/**
+ * The factlot://schemas/tools index lists what tools/list shows: add the hosted tools this
+ * caller is listed, each with its input schema (no per-tool resource serves them).
+ */
+function withHostedIndexEntries(
+  content: { uri?: unknown; text?: unknown } | undefined,
+  listed: unknown[],
+): void {
+  if (content?.uri !== TOOL_INDEX_URI || typeof content.text !== "string")
+    return;
+  try {
+    const index = JSON.parse(content.text) as { tools?: unknown[] };
+    if (!Array.isArray(index.tools)) return;
+    for (const t of listed as {
+      name: string;
+      title?: string;
+      inputSchema?: unknown;
+    }[])
+      index.tools.push({
+        name: t.name,
+        title: t.title ?? t.name,
+        rest_path: null,
+        formula: null,
+        requires: null,
+        hosted_extra: true,
+        input_schema: t.inputSchema ?? null,
+      });
+    content.text = JSON.stringify(index, null, 2);
+  } catch {
+    // Not the index's JSON: leave the answer as the inner server gave it.
+  }
+}
+
 /**
  * Merge the hosted tools into an MCP answer: their calls' answers, and the definitions in
  * `listed` at the end of a tools/list result (the last page, when the list is paged).
@@ -1971,14 +2019,17 @@ async function withAccountTools(
   const inner = Array.isArray(parsed) ? parsed : [parsed];
   for (const m of inner as {
     id?: unknown;
-    result?: { tools?: unknown[]; nextCursor?: unknown };
-  }[])
-    if (
-      listIds.includes(m?.id) &&
-      Array.isArray(m.result?.tools) &&
-      !m.result.nextCursor
-    )
+    result?: {
+      tools?: unknown[];
+      nextCursor?: unknown;
+      contents?: { uri?: unknown; text?: unknown }[];
+    };
+  }[]) {
+    if (!listIds.includes(m?.id)) continue;
+    if (Array.isArray(m.result?.tools) && !m.result.nextCursor)
       m.result.tools.push(...listed);
+    else withHostedIndexEntries(m.result?.contents?.[0], listed);
+  }
   const all = [...inner, ...answers];
   return answer(batch ? all : all[0]);
 }
