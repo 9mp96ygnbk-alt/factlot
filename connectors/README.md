@@ -7,7 +7,7 @@ formula ID whether it was called from Claude, ChatGPT, Gemini, Copilot, Bedrock,
 **Hosted endpoint:** `https://api.factlot.com` serves the remote MCP server at `/mcp` and REST
 and OpenAPI at `/v1/…` and `/openapi.json`. The free tier needs no key and allows 60 requests a
 minute and 25 registry lookups a day per address; paid keys go in `Authorization: Bearer <key>` ([plans](https://factlot.com/pricing/)).
-Registry lookups are hosted for <!-- hosted:places -->Maryland (all 24 jurisdictions), the District of Columbia, Juab and Summit counties in Utah, and sixteen Texas counties (Harris, Dallas, Travis, Collin, Denton, Williamson, Cameron, Nueces, Galveston, Jefferson, Brazos, Midland, Ector, Grayson, Guadalupe and Kaufman)<!-- /hosted:places --> (`registry_coverage` lists exactly
+Registry lookups are hosted for <!-- hosted:places -->Maryland (all 24 jurisdictions), the District of Columbia, Juab and Summit counties in Utah, sixteen Texas counties (Harris, Dallas, Travis, Collin, Denton, Williamson, Cameron, Nueces, Galveston, Jefferson, Brazos, Midland, Ector, Grayson, Guadalupe and Kaufman), New York City (all five boroughs), Los Angeles County, San Francisco, the City of Boston, Denver, and Connecticut (statewide, by town)<!-- /hosted:places --> (`registry_coverage` lists exactly
 what is hosted). <!-- hosted:withheld -->Tarrant County is not served by the hosted registry while the publisher's terms for AI use are unclear.<!-- /hosted:withheld -->
 To self-host, run the Docker image or `@factlot/server` and use your own host in place of
 `api.factlot.com` in every guide below.

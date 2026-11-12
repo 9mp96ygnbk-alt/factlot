@@ -8,16 +8,16 @@
     "cited_load": "Whole-county load from a verified source with a per-county count and as-of date in the record; not yet covered by the quality audit. Built, not yet hosted (run it on a self-hosted FactLot)."
   },
   "counts": {
-    "audited_load": 11,
+    "audited_load": 3,
     "cited_load": 86,
-    "hosted": 43
+    "hosted": 59
   },
   "geography": "US Census 2020 county FIPS codes (spec/registry/county-names.tsv, 3,235 county equivalents incl. territories)",
   "counties": {
     "06037": {
       "name": "Los Angeles County",
       "state": "CA",
-      "class": "audited_load",
+      "class": "hosted",
       "source_id": "ca-los-angeles-assessor",
       "commercial_parcels": 203179,
       "organisation_owners_row": null,
@@ -25,7 +25,7 @@
       "entity_links": "none: no owner names, no California entity registry loaded",
       "owner_link_rate_audited": null,
       "data_as_of": "2026-10-14",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/README.md"
     },
     "06067": {
@@ -45,7 +45,7 @@
     "06075": {
       "name": "San Francisco County",
       "state": "CA",
-      "class": "audited_load",
+      "class": "hosted",
       "source_id": "ca-san-francisco-assessor",
       "commercial_parcels": 19048,
       "organisation_owners_row": null,
@@ -53,13 +53,13 @@
       "entity_links": "none: no owner names, no California entity registry loaded",
       "owner_link_rate_audited": null,
       "data_as_of": "2026-06-26",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/README.md"
     },
     "08031": {
       "name": "Denver County",
       "state": "CO",
-      "class": "audited_load",
+      "class": "hosted",
       "source_id": "co-denver-assessor",
       "commercial_parcels": 13539,
       "organisation_owners_row": 11112,
@@ -67,8 +67,120 @@
       "entity_links": "9,529 linked to the Colorado Secretary of State file",
       "owner_link_rate_audited": "85.75%",
       "data_as_of": "2026-10-29",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/co-denver-assessor.md"
+    },
+    "09001": {
+      "name": "Fairfield County",
+      "state": "CT",
+      "class": "hosted",
+      "source_id": "ct-parcel-cama-layer",
+      "commercial_parcels": 8602,
+      "organisation_owners_row": null,
+      "owner_names": "yes",
+      "entity_links": "Connecticut parcels link to the Connecticut entity file (see the Tier 2 expansion notes); other states: none (whole row)",
+      "owner_link_rate_audited": null,
+      "data_as_of": "2026-11-03",
+      "hosted": "hosted on api.factlot.com",
+      "evidence": "docs/registry/sources/ct-parcel-cama-layer.md"
+    },
+    "09003": {
+      "name": "Hartford County",
+      "state": "CT",
+      "class": "hosted",
+      "source_id": "ct-parcel-cama-layer",
+      "commercial_parcels": 11567,
+      "organisation_owners_row": null,
+      "owner_names": "yes",
+      "entity_links": "Connecticut parcels link to the Connecticut entity file (see the Tier 2 expansion notes); other states: none (whole row)",
+      "owner_link_rate_audited": null,
+      "data_as_of": "2026-11-03",
+      "hosted": "hosted on api.factlot.com",
+      "evidence": "docs/registry/sources/ct-parcel-cama-layer.md"
+    },
+    "09005": {
+      "name": "Litchfield County",
+      "state": "CT",
+      "class": "hosted",
+      "source_id": "ct-parcel-cama-layer",
+      "commercial_parcels": 3280,
+      "organisation_owners_row": null,
+      "owner_names": "yes",
+      "entity_links": "Connecticut parcels link to the Connecticut entity file (see the Tier 2 expansion notes); other states: none (whole row)",
+      "owner_link_rate_audited": null,
+      "data_as_of": "2026-11-03",
+      "hosted": "hosted on api.factlot.com",
+      "evidence": "docs/registry/sources/ct-parcel-cama-layer.md"
+    },
+    "09007": {
+      "name": "Middlesex County",
+      "state": "CT",
+      "class": "hosted",
+      "source_id": "ct-parcel-cama-layer",
+      "commercial_parcels": 2464,
+      "organisation_owners_row": null,
+      "owner_names": "yes",
+      "entity_links": "Connecticut parcels link to the Connecticut entity file (see the Tier 2 expansion notes); other states: none (whole row)",
+      "owner_link_rate_audited": null,
+      "data_as_of": "2026-11-03",
+      "hosted": "hosted on api.factlot.com",
+      "evidence": "docs/registry/sources/ct-parcel-cama-layer.md"
+    },
+    "09009": {
+      "name": "New Haven County",
+      "state": "CT",
+      "class": "hosted",
+      "source_id": "ct-parcel-cama-layer",
+      "commercial_parcels": 11282,
+      "organisation_owners_row": null,
+      "owner_names": "yes",
+      "entity_links": "Connecticut parcels link to the Connecticut entity file (see the Tier 2 expansion notes); other states: none (whole row)",
+      "owner_link_rate_audited": null,
+      "data_as_of": "2026-11-03",
+      "hosted": "hosted on api.factlot.com",
+      "evidence": "docs/registry/sources/ct-parcel-cama-layer.md"
+    },
+    "09011": {
+      "name": "New London County",
+      "state": "CT",
+      "class": "hosted",
+      "source_id": "ct-parcel-cama-layer",
+      "commercial_parcels": 2962,
+      "organisation_owners_row": null,
+      "owner_names": "yes",
+      "entity_links": "Connecticut parcels link to the Connecticut entity file (see the Tier 2 expansion notes); other states: none (whole row)",
+      "owner_link_rate_audited": null,
+      "data_as_of": "2026-11-03",
+      "hosted": "hosted on api.factlot.com",
+      "evidence": "docs/registry/sources/ct-parcel-cama-layer.md"
+    },
+    "09013": {
+      "name": "Tolland County",
+      "state": "CT",
+      "class": "hosted",
+      "source_id": "ct-parcel-cama-layer",
+      "commercial_parcels": 1451,
+      "organisation_owners_row": null,
+      "owner_names": "yes",
+      "entity_links": "Connecticut parcels link to the Connecticut entity file (see the Tier 2 expansion notes); other states: none (whole row)",
+      "owner_link_rate_audited": null,
+      "data_as_of": "2026-11-03",
+      "hosted": "hosted on api.factlot.com",
+      "evidence": "docs/registry/sources/ct-parcel-cama-layer.md"
+    },
+    "09015": {
+      "name": "Windham County",
+      "state": "CT",
+      "class": "hosted",
+      "source_id": "ct-parcel-cama-layer",
+      "commercial_parcels": 1782,
+      "organisation_owners_row": null,
+      "owner_names": "yes",
+      "entity_links": "Connecticut parcels link to the Connecticut entity file (see the Tier 2 expansion notes); other states: none (whole row)",
+      "owner_link_rate_audited": null,
+      "data_as_of": "2026-11-03",
+      "hosted": "hosted on api.factlot.com",
+      "evidence": "docs/registry/sources/ct-parcel-cama-layer.md"
     },
     "11001": {
       "name": "District of Columbia",
@@ -507,7 +619,7 @@
     "36005": {
       "name": "Bronx County",
       "state": "NY",
-      "class": "audited_load",
+      "class": "hosted",
       "source_id": "ny-nyc-dof",
       "commercial_parcels": 17331,
       "organisation_owners_row": null,
@@ -515,7 +627,7 @@
       "entity_links": "87,825 linked to the New York Department of State file (whole row)",
       "owner_link_rate_audited": "75.59%",
       "data_as_of": "2026-05-15",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/ny-nyc-dof.md"
     },
     "36007": {
@@ -801,7 +913,7 @@
     "36047": {
       "name": "Kings County",
       "state": "NY",
-      "class": "audited_load",
+      "class": "hosted",
       "source_id": "ny-nyc-dof",
       "commercial_parcels": 60100,
       "organisation_owners_row": null,
@@ -809,7 +921,7 @@
       "entity_links": "87,825 linked to the New York Department of State file (whole row)",
       "owner_link_rate_audited": "75.59%",
       "data_as_of": "2026-05-15",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/ny-nyc-dof.md"
     },
     "36049": {
@@ -899,7 +1011,7 @@
     "36061": {
       "name": "New York County",
       "state": "NY",
-      "class": "audited_load",
+      "class": "hosted",
       "source_id": "ny-nyc-dof",
       "commercial_parcels": 42087,
       "organisation_owners_row": null,
@@ -907,7 +1019,7 @@
       "entity_links": "87,825 linked to the New York Department of State file (whole row)",
       "owner_link_rate_audited": "75.59%",
       "data_as_of": "2026-05-15",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/ny-nyc-dof.md"
     },
     "36063": {
@@ -1039,7 +1151,7 @@
     "36081": {
       "name": "Queens County",
       "state": "NY",
-      "class": "audited_load",
+      "class": "hosted",
       "source_id": "ny-nyc-dof",
       "commercial_parcels": 40080,
       "organisation_owners_row": null,
@@ -1047,7 +1159,7 @@
       "entity_links": "87,825 linked to the New York Department of State file (whole row)",
       "owner_link_rate_audited": "75.59%",
       "data_as_of": "2026-05-15",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/ny-nyc-dof.md"
     },
     "36083": {
@@ -1067,7 +1179,7 @@
     "36085": {
       "name": "Richmond County",
       "state": "NY",
-      "class": "audited_load",
+      "class": "hosted",
       "source_id": "ny-nyc-dof",
       "commercial_parcels": 5035,
       "organisation_owners_row": null,
@@ -1075,7 +1187,7 @@
       "entity_links": "87,825 linked to the New York Department of State file (whole row)",
       "owner_link_rate_audited": "75.59%",
       "data_as_of": "2026-05-15",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/ny-nyc-dof.md"
     },
     "36087": {
@@ -1990,12 +2102,6 @@
       "reason": "sample only, not a whole-county load"
     },
     {
-      "area": "8 Connecticut former counties (169 towns)",
-      "state": "CT",
-      "source_id": "ct-parcel-cama-layer",
-      "reason": "statewide or multi-county aggregate: the record gives no per-county count"
-    },
-    {
       "area": "Union County (a sample of the statewide file)",
       "state": "FL",
       "source_id": "fl-dor-nal",
@@ -2650,6 +2756,15 @@
       "terms_url": "https://www.denvergov.org/Government/Agencies-Departments-Offices/Agencies-Departments-Offices-Directory/Technology-Services/Functions/GIS",
       "reviewed": "2026-11-02",
       "record": "docs/registry/sources/co-denver-assessor.md"
+    },
+    "ct-parcel-cama-layer": {
+      "publisher": "Connecticut Office of Policy and Management, GIS Office (data collected from the towns through the Councils of Governments)",
+      "license": "CC0 (licenseInfo of the ArcGIS item 'Connecticut CAMA and Parcel Layer', published by the Connecticut OPM GIS Office, owner ctgisoffice; the same licence is set on the office's 'Connecticut State Parcel Layer 2023', 'Connecticut Public Use Parcels', 'Connecticut Vacant Parcels' and 'Parcel Viewer' items). The Open Data CT (Socrata) copy of the same data carries no licence field, which is why ct-parcel-cama was gated; the publisher's own CC0 statement on the ArcGIS items resolves that. Underlying records are the towns' grand lists (C.G.S. 12-55, public)",
+      "redistribution": "Permitted (CC0 1.0 public-domain dedication). Attribution not required; credit the Connecticut Office of Policy and Management GIS Office and the towns",
+      "ai_use": "Not addressed by the publisher; CC0 does not restrict it",
+      "terms_url": "https://www.arcgis.com/home/item.html?id=82a733423a244c43a9d4bf552954cea9",
+      "reviewed": "2026-11-03",
+      "record": "docs/registry/sources/ct-parcel-cama-layer.md"
     },
     "dc-otr-real-property": {
       "publisher": "District of Columbia Office of Tax and Revenue (via Open Data DC)",
