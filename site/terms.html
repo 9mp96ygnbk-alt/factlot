@@ -27,7 +27,7 @@
         <div class="wrap">
           <h1>Terms of service</h1>
           <p class="small">
-            Effective 11 November 2026. The revision history is at the end.
+            Effective 12 November 2026. The revision history is at the end.
           </p>
           <p>
             These terms cover the hosted FactLot service. Headings are for
@@ -96,6 +96,24 @@
               organisation.
             </li>
             <li>
+              <strong>Free key.</strong> You may ask for an optional free key by
+              email, at factlot.com/account or with
+              <code>POST /v1/keys/free</code>. It is the Free plan, not a paid
+              plan: the same limits and rules as no key, counted per key instead
+              of per IP address, and none of the paid features. We send one link
+              to the address you give, which works once and expires after 30
+              minutes; you must be able to receive email at that address, and by
+              asking you accept these terms and the
+              <a href="https://factlot.com/privacy">privacy notice</a>. The key
+              is shown once. An address has one active free key: a new one
+              replaces the earlier one, which stops working. At most 3 free keys
+              are made a day from one IP address, and the free keys used from
+              one IP address share 100 registry lookups a day. We send no
+              marketing email. To delete a free key and the records kept for it,
+              email contact@factlot.com from the address it was issued to. We
+              may stop issuing free keys at any time.
+            </li>
+            <li>
               The email address you give Stripe at checkout is your account
               email. We send notices to it, so keep it current.
             </li>
@@ -130,7 +148,10 @@
               and document tool at 60 requests a minute per IP address, and 25
               registry lookups a day (UTC) per IP address. Registry value
               history is limited to the current roll year, and the registry
-              batch lookup is not included.
+              batch lookup is not included. A free key (section 3) has the same
+              limits, counted per key instead of per IP address, with the free
+              keys used from one IP address together capped at 100 registry
+              lookups a day.
             </li>
             <li>
               <strong>Pro, $49 a month, or $490 a year paid in advance:</strong>
@@ -317,8 +338,9 @@
               <code>report_create</code> is a file that contains the figures and
               any text you passed (a title, citations, adjustment reasons). We
               keep that file for 24 hours so you can download it, then delete
-              it. We also keep the monthly report counter, per subscription or
-              as a hash of the IP address. The
+              it. We also keep the monthly report counter, per subscription, as
+              a hash of the IP address, or, for a free key, as part of a hash of
+              the email address it was issued to. The
               <a href="#privacy">privacy section</a> says what we do record.
             </li>
             <li>
@@ -551,6 +573,11 @@
 
           <h2 id="history">Revision history</h2>
           <ul class="plain small">
+            <li>
+              12 November 2026: added the optional free API key by email (a free
+              key has the Free plan's limits and rules, and its limits and
+              deletion are stated in section 3).
+            </li>
             <li>
               11 November 2026: stated the Free plan's limits on registry value
               history and the registry batch lookup; added yearly billing for

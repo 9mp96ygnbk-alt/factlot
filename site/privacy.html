@@ -27,7 +27,7 @@
         <div class="wrap">
           <h1>Privacy</h1>
           <p class="small">
-            Effective 7 November 2026. The revision history is at the end.
+            Effective 12 November 2026. The revision history is at the end.
           </p>
           <p>
             FactLot collects as little as it can. This notice covers
@@ -52,24 +52,28 @@
           <h3>The website</h3>
           <p>
             factlot.com sets no cookies and uses no analytics, advertising or
-            tracking. Its only script is the one on the Try a lookup page
-            (/try/), which does nothing until you press the button, then sends
-            the address you typed to FactLot's hosted API (see below), and
-            stores nothing in your browser. Cloudflare, which hosts it,
-            processes your IP address, browser user agent and the page you ask
-            for, to deliver the page and protect the site from abuse. Cloudflare
-            may keep request logs under its own privacy policy; FactLot keeps no
-            access log of its own.
+            tracking. Its only scripts are two files under /try/. The first, on
+            the Try a lookup page (/try/), does nothing until you press the
+            button, then sends the address you typed to FactLot's hosted API
+            (see below), and stores nothing in your browser. The second, on the
+            pricing, Try a lookup and MCP server pages, asks the hosted API
+            whether the free key (see below) is offered and shows a link to it
+            if so; it sends nothing you typed and stores nothing in your
+            browser. Cloudflare, which hosts it, processes your IP address,
+            browser user agent and the page you ask for, to deliver the page and
+            protect the site from abuse. Cloudflare may keep request logs under
+            its own privacy policy; FactLot keeps no access log of its own.
           </p>
           <h3>The hosted API</h3>
           <ul class="plain">
             <li>
               <strong>Usage records.</strong> For each request we record the
               time, the API key ID (the first 16 characters of a SHA-256 hash of
-              the key, never the key itself, or "anonymous" when there is no
-              key), the plan tier, the path, the HTTP method and the response
-              status code. No IP address is recorded. These records are kept in
-              a Cloudflare Workers Analytics Engine dataset.
+              the key, never the key itself, "free-key" for a free key, or
+              "anonymous" when there is no key), the plan tier, the path, the
+              HTTP method and the response status code. No IP address is
+              recorded. These records are kept in a Cloudflare Workers Analytics
+              Engine dataset.
             </li>
             <li>
               <strong>Rate-limit counters.</strong> To enforce the per-minute
@@ -115,6 +119,50 @@
               payment dispute has put the key on hold, and the time a payment
               last failed (<code>payment_failed_at</code>).
             </li>
+            <li>
+              <strong>Free key by email (optional).</strong> The Free plan works
+              without a key. If you ask for a free key, at factlot.com/account
+              or with <code>POST /v1/keys/free</code>, you give your email
+              address and confirm that you accept the terms and this notice. We
+              send one email to that address: a link that works once and expires
+              after 30 minutes. It is a transactional message sent through
+              Cloudflare Email Sending, and it contains the link and no key. We
+              send no marketing email and nothing else to that address because
+              of this request. The address is used in memory to send the email
+              and to make a hash of it; it is not written to storage, usage
+              records or logs. What we store instead is a hash of the address:
+              SHA-256 of the lower-case address together with a secret that only
+              FactLot holds. We treat that hash as personal information, because
+              it is the same every time the same address is used. Opening the
+              link only shows a button; pressing it creates the key, which is
+              shown once. We then store a record of the key (a SHA-256 hash of
+              the key, the address hash, the date it was created and, once the
+              key is replaced, the time it was revoked) and, for each address
+              hash, which key is its current one. One address has one active
+              free key: a new key replaces the earlier one, which stops working.
+              A link that is never used creates nothing and expires. Between
+              asking and opening the link we keep a record of the link (a hash
+              of its random ID, the address hash and its expiry) for 30 minutes,
+              and a marker of the address hash for 5 minutes, so that one
+              address gets at most one link email every 5 minutes. A marker that
+              a link was used, held under a hash of its random ID and not linked
+              to the address, is kept for 13 months so that the link cannot be
+              used twice. The link is a web address that you open, so
+              Cloudflare's request logs may hold it; it cannot be used a second
+              time or after it expires.
+            </li>
+            <li>
+              <strong>Free key counters.</strong> A free key's requests are
+              counted per minute and its registry lookups per UTC day under the
+              key's ID. The free keys used from one IP address also count
+              together toward a shared minute limit and a shared daily lookup
+              cap, and the keys made from one IP address are counted per day (at
+              most 3), all keyed by a hash of the IP address as described for
+              lookup quota counters, never the address itself. Reports are
+              counted for the current UTC month under part of the address hash,
+              so that replacing a key does not restart the count. A counter is
+              deleted when its window ends.
+            </li>
           </ul>
           <h3>Billing</h3>
           <p>
@@ -130,8 +178,10 @@
           <p>
             If you write to contact@factlot.com, we receive your email address,
             your message and anything you attach. Cloudflare Email Routing
-            forwards it to the operator's mailbox. Please do not send
-            confidential leases or personal data by email.
+            forwards it to the operator's mailbox. If you reply to the free key
+            email, your reply comes to the same mailbox and is handled the same
+            way. Please do not send confidential leases or personal data by
+            email.
           </p>
           <h3>GitHub</h3>
           <p>
@@ -174,6 +224,11 @@
               <strong>To provide the service you asked for</strong>: answering
               requests, checking keys, applying your plan. This is needed to
               perform our agreement with you.
+            </li>
+            <li>
+              <strong>To send you the free key you asked for</strong>: the one
+              link email described above. This is needed to perform our
+              agreement with you. We do not use the address for anything else.
             </li>
             <li>
               <strong>To keep the service working and fair</strong>: rate
@@ -235,6 +290,24 @@
                 </td>
               </tr>
               <tr>
+                <th scope="row">Free key records and address hashes</th>
+                <td>
+                  Until you ask us to delete them. After a key is replaced, its
+                  record is kept for 12 months and then deleted
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Free key link records</th>
+                <td>
+                  30 minutes, then deleted. The marker that a link was used is
+                  kept 13 months
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Free key counters</th>
+                <td>Until the minute, day or month they count (UTC) ends</td>
+              </tr>
+              <tr>
                 <th scope="row">Key records</th>
                 <td>
                   While the subscription is active, then up to 12 months to
@@ -276,8 +349,9 @@
                 <th scope="row">Cloudflare</th>
                 <td>
                   Hosting factlot.com and api.factlot.com (Workers, KV, Durable
-                  Objects, Analytics Engine) and email routing for
-                  contact@factlot.com
+                  Objects, Analytics Engine), email routing for
+                  contact@factlot.com, and Email Sending for transactional email
+                  such as the free key link
                 </td>
                 <td>
                   United States; requests are served from its global network
@@ -378,7 +452,10 @@
             Email
             <a href="mailto:contact@factlot.com">contact@factlot.com</a> from
             the address on your account, or include your API key ID from a
-            response or your Stripe receipt. Never send us the key itself. We
+            response or your Stripe receipt. Never send us the key itself. For a
+            free key, write from the address you asked for it with: we find its
+            records by the hash of that address, and to have a free key deleted,
+            say so, and we delete the key record and the address hash. We
             confirm who you are by replying to that address, answer within 45
             days (once extendable by another 45 days if we tell you why), and
             charge nothing. An authorised agent may ask for you with your
@@ -437,6 +514,12 @@
 
           <h2 id="history">Revision history</h2>
           <ul class="plain small">
+            <li>
+              12 November 2026: described the optional free API key by email:
+              the one link email, the address hash, the key and link records,
+              the free key counters, how long each is kept, and how to have a
+              free key deleted.
+            </li>
             <li>
               7 November 2026 (update): added report files, kept 24 hours so you
               can download them, and the monthly report counters, for the hosted
