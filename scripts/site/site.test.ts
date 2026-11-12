@@ -655,7 +655,7 @@ describe("hosted registry figures (site/_data/hosted.json)", async () => {
       !data.counties.some((c) => data.withheld.some((w) => w.fips === c.fips)),
     );
   });
-  it("words new regions by place, and a county loaded in part by its part", () => {
+  it("words new regions by place, and a county loaded in part by its part", async () => {
     // A manifest with the regions FactLot builds next (invented counts).
     const county = (
       fips: string,
@@ -749,6 +749,67 @@ describe("hosted registry figures (site/_data/hosted.json)", async () => {
     assert.match(table, /\| The City of Boston \| The City of Boston only,/);
     assert.match(table, /\| Los Angeles County \| 100 commercial parcels/);
     assert.ok(table.startsWith("\n\n| Region | Hosted data |"));
+    // The market pages take their counts from the same data and say what the place lacks.
+    const markets = await import("./market-pages.mjs");
+    const examples = JSON.parse(read("site/_data/markets.json")) as {
+      markets: {
+        slug: string;
+        sources: { source_id: string }[];
+        holds: { owner_of_record: boolean };
+      }[];
+    };
+    const tpl = read("site/_content/market.html");
+    assert.deepEqual(
+      markets.hostedMarkets(d).map((m: { slug: string }) => m.slug),
+      markets.MARKETS.map((m: { slug: string }) => m.slug),
+    );
+    for (const m of markets.hostedMarkets(d)) {
+      const e = examples.markets.find((x) => x.slug === m.slug);
+      assert.ok(e, `${m.slug}: markets.json has no entry`);
+      assert.deepEqual(
+        e.sources.map((s) => s.source_id),
+        m.sources,
+        m.slug,
+      );
+      const html = markets.marketBody(m, e, d, tpl);
+      assert.ok(
+        !/\{\{[A-Z_]+\}\}/.test(html),
+        `${m.slug}: unfilled placeholder`,
+      );
+      const place = d.places.find((p) => p.key === m.place)!;
+      assert.ok(html.includes(place.parcels.toLocaleString("en-US")), m.slug);
+      assert.equal(
+        /no owner-of-record fact/.test(html),
+        !e.holds.owner_of_record,
+        `${m.slug}: owner statement`,
+      );
+    }
+    const html = (slug: string) => {
+      const m = markets.MARKETS.find((x: { slug: string }) => x.slug === slug)!;
+      return markets.marketBody(
+        m,
+        examples.markets.find((x) => x.slug === slug),
+        d,
+        tpl,
+      );
+    };
+    assert.match(html("los-angeles"), /no owner names/);
+    assert.match(html("san-francisco"), /no owner names/);
+    assert.match(html("boston"), /Chelsea, Revere and Winthrop/);
+    assert.match(html("boston"), /older than the other places/);
+    assert.match(html("denver"), /Creative Commons Attribution 3\.0/);
+    assert.ok(html("denver").includes(markets.CO_DISCLAIMER));
+    // The State of Colorado's disclaimer is the one its terms require (the review record quotes it whole).
+    assert.ok(
+      read("docs/registry/sources/co-sos-entities.md")
+        .replace(/\s+/g, " ")
+        .includes(markets.CO_DISCLAIMER),
+    );
+    const notices = markets.sourceNotices(d);
+    assert.ok(
+      notices.includes("THE STATE OF COLORADO MAKES NO REPRESENTATIONS"),
+    );
+    assert.match(markets.marketLinks(d), /href="\/new-york-city\/"/);
     assert.match(line, /: 419 parcels in 20 counties, on every plan/);
     assert.match(line, /Tarrant County is not served by the hosted registry/);
   });

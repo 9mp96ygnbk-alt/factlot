@@ -121,8 +121,11 @@ class CoverageMapGenerator(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         data = json.loads((ROOT / "docs" / "registry" / "coverage-counties.json").read_text(encoding="utf-8"))
         hosted = sorted(f for f, c in data["counties"].items() if c["class"] == "hosted")
-        # Maryland's 24 jurisdictions, DC, Juab and Summit counties in Utah, and sixteen Texas counties
-        self.assertEqual(len(hosted), 43)
+        # The map marks the hosted pack's counties (site/_data/hosted.json), except a county loaded only in part
+        # (Suffolk County: the City of Boston), which stays grey because the map shows whole counties.
+        pack = json.loads((ROOT / "site" / "_data" / "hosted.json").read_text(encoding="utf-8"))
+        partial = {p["fips"] for p in pack["partial"]}
+        self.assertEqual(hosted, sorted(c["fips"] for c in pack["counties"] if c["fips"] not in partial))
         self.assertIn("11001", hosted)
         self.assertEqual([f for f in hosted if f.startswith("49")], ["49023", "49043"])
         self.assertEqual(len([f for f in hosted if f.startswith("24")]), 24)

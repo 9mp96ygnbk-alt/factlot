@@ -33,7 +33,7 @@ Adapter: `python/src/factlot/registry/adapters/co_sos_entities.py`; tests:
   ("Applications using data supplied by this site must include the following disclaimers on their
   sites: 'The data made available here has been modified for use from its original source, which is
   the State of Colorado. THE STATE OF COLORADO MAKES NO REPRESENTATIONS OR WARRANTY AS TO THE
-  COMPLETENESS, ACCURACY, TIMELINESS, OR CONTENT OF ANY DATA MADE AVAILABLE THROUGH THIS SITE. …'"),
+  COMPLETENESS, ACCURACY, TIMELINESS, OR CONTENT OF ANY DATA MADE AVAILABLE THROUGH THIS SITE. THE STATE OF COLORADO EXPRESSLY DISCLAIMS ALL WARRANTIES, WHETHER EXPRESS OR IMPLIED, INCLUDING ANY IMPLIED WARRANTIES OF MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE. The data is subject to change as modifications and updates are complete. It is understood that the information contained in the Web feed is being used at one's own risk."),
   and a right to discontinue feeds and "to require the termination of any and all displaying,
   distributing or otherwise using any or all of the data for any reason". Nothing restricts
   copying, redistribution, commercial use or AI use. The registry must show the State's disclaimer

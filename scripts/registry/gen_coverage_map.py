@@ -60,6 +60,7 @@ AREA_SCOPE = {
     ("OR", "Clackamas County (Portland metro layer)"): ("whole", ["41005"], "docs/registry/sources/or-metro-rlis-taxlots.md"),
     ("OR", "Washington County (Portland metro layer)"): ("whole", ["41067"], "docs/registry/sources/or-metro-rlis-taxlots.md"),
     ("NY", "New York, Kings, Queens, Bronx and Richmond (New York City)"): ("split", None, "docs/registry/sources/ny-nyc-dof.md"),
+    ("CT", "8 Connecticut former counties (169 towns)"): ("split", None, "docs/registry/sources/ct-parcel-cama-layer.md"),
     ("MA", "Suffolk County (Boston only)"): ("partial", None, "the row covers the City of Boston only, not all of Suffolk County"),
 }
 AGGREGATE_HINT = re.compile(r"^(all \d+|\d+ (of \d+ )?|\d+ opt-in|\d+ Connecticut)|Counties$|, .* and ", re.I)
@@ -71,6 +72,12 @@ SPLITS = {
         "quote": "Manhattan 42,087; Brooklyn 60,100; Queens 40,080; Bronx 17,331; Staten Island 5,035",
         "parts": {"36061": 42087, "36047": 60100, "36081": 40080, "36005": 17331, "36085": 5035},
     },
+}
+
+SPLITS["ct-parcel-cama-layer"] = {
+    "doc": "docs/registry/sources/ct-parcel-cama-layer.md",
+    "quote": "Fairfield 001 1,111/6,420/1,073 (8,602); Hartford 003 1,547/7,203/2,817 (11,567); Litchfield 005 49/2,680/551 (3,280); Middlesex 007 177/1,790/498 (2,464); New Haven 009 1,035/8,660/1,589 (11,282); New London 011 426/2,309/227 (2,962); Tolland 013 168/1,077/206 (1,451); Windham 015 327/1,285/170 (1,782)",
+    "parts": {"09001": 8602, "09003": 11567, "09005": 3280, "09007": 2464, "09009": 11282, "09011": 2962, "09013": 1451, "09015": 1782},
 }
 
 # Counties whose record says the count is incomplete, quoted (the quote is checked against the document).

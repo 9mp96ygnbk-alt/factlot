@@ -58,7 +58,7 @@ import {
 } from "./limiter.ts";
 import { resetCoverageCache } from "./account-tools.ts";
 import { CLAIM_POLL_MS } from "./claim.ts";
-import { WHATS_NEW } from "./news.ts";
+import { HOSTING_NOTE, WHATS_NEW } from "./news.ts";
 import { EXTRACT_LEASE_STEP, REPORTS_STEP } from "./onboarding.ts";
 import { REPORT_RULE, escapeHtml, onboardingPage } from "./pages.ts";
 import { PLANS, REPORTS_PER_MONTH, planForLookupKey } from "./plans.ts";
@@ -4841,10 +4841,12 @@ describe("account usage, tools and page", () => {
       html,
       /<strong>MD<\/strong>: 2 counties, 3,534 parcels, as of 2026-11-05/,
     );
-    assert.match(
-      html,
-      /Texas is hosted: sixteen counties \(Harris, Dallas, Travis, Collin, Denton, Williamson, Cameron, Nueces, Galveston, Jefferson, Brazos, Midland, Ector, Grayson, Guadalupe and Kaufman\)\./,
+    // The "Hosted regions" note is generated from site/_data/hosted.json (scripts/site/gen-hosted.ts).
+    assert.ok(
+      html.includes(escapeHtml(HOSTING_NOTE)),
+      "the account page states the generated hosted note",
     );
+    assert.match(HOSTING_NOTE, /^Hosted regions: .*Texas counties \(Harris, /);
     assert.match(html, /What's new/);
     assert.match(html, /Get help/);
     assert.doesNotMatch(html, / style="/);
