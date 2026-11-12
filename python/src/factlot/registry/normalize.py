@@ -507,8 +507,10 @@ def _person_carrying(s: str) -> str | None:
         return "wrapper"
     if _PROBATE.search(s):
         return "estate"
-    if _PERSONAL_TRUST_MARK.search(s) and not _personal_trust_is_a_company_name(s):
-        return "personal_trust"
+    if (_PERSONAL_TRUST_MARK.search(s) and not _personal_trust_is_a_company_name(s)
+            and not (_SECURITIZATION.search(s) and {m.group() for m in _PERSONAL_TRUST_MARK.finditer(s)}
+                     <= {"GRANTOR TRUST", "GRANTOR TR"})):
+        return "personal_trust"  # a securitisation's "GRANTOR TRUST SERIES ..." is not a person's
     if _personal_instrument(s):
         return "personal_trust"
     if _trustee_company(s) and _organization_reading(s):
@@ -535,9 +537,17 @@ def _segment_names_no_person_after_trustees(s: str) -> bool:
         return False  # "TRUSTEE" alone names nobody, and nothing makes it an organisation
     if _personal_instrument(s):
         return False
-    lenient = bool(_FINANCIAL.search(s)) or bool(_BOARD_OF_TRUSTEES.search(s))
-    return all(_segment_names_no_person(side) or (lenient and _unnamed_side(side, bool(_BOARD_OF_TRUSTEES.search(s))))
-               for side in sides)
+    board = bool(_BOARD_OF_TRUSTEES.search(s))
+    lenient = bool(_FINANCIAL.search(s)) or board
+    if all(_segment_names_no_person(side) or (lenient and _unnamed_side(side, board)) for side in sides):
+        return True
+    # A company as trustee of a trust named for a number or an address ("ACME LLC TRUSTEE FOR 1234 MAIN ST TRUST").
+    if len(sides) == 2 and _segment_names_no_person(sides[0]) and _organization_reading(sides[0]):
+        other = [t for t in sides[1].split() if t not in _FILLER]
+        return (any(t[:1].isdigit() for t in other[:1]) and not any(t in _TRADE_NAME_GIVEN_NAMES or t in _FAMILY_WORDS
+                                                                   for t in other)
+                and not (_PERSONAL_TRUST_MARK.search(sides[1]) or _PROBATE.search(sides[1])))
+    return False
 
 
 def _unnamed_side(side: str, board: bool) -> bool:
