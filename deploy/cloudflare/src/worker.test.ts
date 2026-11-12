@@ -7825,3 +7825,137 @@ describe("free key by email", () => {
     );
   });
 });
+
+describe("MCP resources and prompts on the hosted /mcp", () => {
+  /** The real @factlot/server handler as worker.ts creates it (hosted), on a local port. */
+  async function hostedInnerApi() {
+    const handler = createHandler({
+      maxBodyBytes: 1024 * 1024,
+      trustProxy: true,
+      hosted: true,
+      logSink: () => {},
+    });
+    const server = createServer((req, res) => void handler(req, res));
+    await new Promise<void>((res) => server.listen(0, "127.0.0.1", res));
+    const { port } = server.address() as AddressInfo;
+    return {
+      close: () => server.close(),
+      api: {
+        fetch: async (r: Request) => {
+          const u = new URL(r.url);
+          const headers = new Headers(r.headers);
+          headers.delete("host");
+          headers.delete("content-length");
+          return fetch(`http://127.0.0.1:${port}${u.pathname}${u.search}`, {
+            method: r.method,
+            headers,
+            body: r.method === "GET" ? undefined : await r.text(),
+          });
+        },
+      },
+    };
+  }
+
+  const rpc = async (
+    e: ReturnType<typeof env>,
+    api: { fetch(r: Request): Promise<Response> },
+    method: string,
+    params: Record<string, unknown> = {},
+  ) => {
+    const res = await handle(
+      new Request("https://api.factlot.com/mcp", {
+        method: "POST",
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+        headers: {
+          "content-type": "application/json",
+          accept: "application/json, text/event-stream",
+          "cf-connecting-ip": IP,
+        },
+      }),
+      e,
+      api,
+      { now: () => e.clock.t },
+    );
+    assert.equal(res.status, 200, method);
+    return (await res.json()) as {
+      result?: Record<string, unknown>;
+      error?: { code: number; message: string };
+    };
+  };
+
+  it("keyless: declared in initialize, every resource reads, prompts validate, no lookup is used", async () => {
+    const inner = await hostedInnerApi();
+    try {
+      const e = env({ RL_ANON: new CountingLimit(1000) });
+      const init = await rpc(e, inner.api, "initialize", {
+        protocolVersion: "2025-06-18",
+        capabilities: {},
+        clientInfo: { name: "check", version: "1" },
+      });
+      const caps = init.result!.capabilities as Record<string, unknown>;
+      assert.ok(caps.resources && caps.prompts && caps.tools);
+      assert.match(String(init.result!.instructions), /factlot:\/\/coverage/);
+
+      const list = await rpc(e, inner.api, "resources/list");
+      const resources = list.result!.resources as { uri: string }[];
+      assert.ok(resources.length >= 7 && resources.length < 60);
+      for (const r of resources) {
+        const read = await rpc(e, inner.api, "resources/read", {
+          uri: r.uri,
+        });
+        const contents = read.result!.contents as { text: string }[];
+        assert.ok(contents[0]!.text.length > 0, r.uri);
+      }
+      const cov = JSON.parse(
+        (
+          (
+            await rpc(e, inner.api, "resources/read", {
+              uri: "factlot://coverage",
+            })
+          ).result!.contents as { text: string }[]
+        )[0]!.text,
+      ) as { this_server: string; totals: unknown };
+      const hosted = JSON.parse(
+        readFileSync(
+          fileURLToPath(
+            new URL("../../../site/_data/hosted.json", import.meta.url),
+          ),
+          "utf8",
+        ),
+      ) as { totals: unknown };
+      assert.equal(cov.this_server, "hosted");
+      assert.deepEqual(cov.totals, hosted.totals);
+      const missing = await rpc(e, inner.api, "resources/read", {
+        uri: "factlot://sources/no-such-source",
+      });
+      assert.equal(missing.error?.code, -32002);
+
+      const prompts = (await rpc(e, inner.api, "prompts/list")).result!
+        .prompts as { name: string }[];
+      assert.ok(prompts.some((p) => p.name === "property_owner"));
+      const got = await rpc(e, inner.api, "prompts/get", {
+        name: "parcel_value_history",
+        arguments: { parcel: "1000 Louisiana St, Houston" },
+      });
+      const msg = (got.result!.messages as { content: { text: string } }[])[0]!;
+      assert.match(msg.content.text, /registry_coverage/);
+      assert.doesNotMatch(msg.content.text, /has no registry loaded/);
+      const bad = await rpc(e, inner.api, "prompts/get", {
+        name: "parcel_value_history",
+        arguments: { parcel: "x", as_of: "yesterday" },
+      });
+      assert.equal(bad.error?.code, -32602);
+
+      // Nothing was metered: no lookup counter exists for this caller.
+      for (const [name, o] of e.limiter.objects)
+        if (name.startsWith("meter:"))
+          assert.equal(
+            [...o.store.counts.values()].reduce((a, n) => a + n, 0),
+            0,
+            name,
+          );
+    } finally {
+      inner.close();
+    }
+  });
+});
