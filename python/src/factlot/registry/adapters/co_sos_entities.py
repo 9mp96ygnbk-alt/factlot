@@ -42,6 +42,18 @@ from ..store import EntityRecord, IngestStats, Registry, Source
 
 JURISDICTION = "us-co"
 
+# The State of Colorado's disclaimer, word for word as data.colorado.gov/terms requires it of applications that
+# use its data. It travels in the source's attribution, so every answer that cites this source carries it. The
+# hosted site's copy is CO_DISCLAIMER in deploy/cloudflare/src/source-notices.ts; a test keeps the two equal.
+DISCLAIMER = (
+    "The data made available here has been modified for use from its original source, which is the State of "
+    "Colorado. THE STATE OF COLORADO MAKES NO REPRESENTATIONS OR WARRANTY AS TO THE COMPLETENESS, ACCURACY, "
+    "TIMELINESS, OR CONTENT OF ANY DATA MADE AVAILABLE THROUGH THIS SITE. THE STATE OF COLORADO EXPRESSLY "
+    "DISCLAIMS ALL WARRANTIES, WHETHER EXPRESS OR IMPLIED, INCLUDING ANY IMPLIED WARRANTIES OF MERCHANTABILITY, "
+    "OR FITNESS FOR A PARTICULAR PURPOSE. The data is subject to change as modifications and updates are "
+    "complete. It is understood that the information contained in the Web feed is being used at one's own risk."
+)
+
 SOURCE = Source(
     source_id="co-sos-entities",
     publisher="Colorado Department of State",
@@ -51,7 +63,7 @@ SOURCE = Source(
     license="Public domain (dataset license on data.colorado.gov); the portal's Terms of Service require the State of Colorado disclaimer where the data is used",
     ai_use="unknown",  # the publisher does not address AI use
     redistribution="attribution_required",
-    attribution="Colorado Department of State (CDOS), via the Colorado Information Marketplace",
+    attribution="Colorado Department of State (CDOS), via the Colorado Information Marketplace. " + DISCLAIMER,
     terms_reviewed="2026-11-02",
 )
 

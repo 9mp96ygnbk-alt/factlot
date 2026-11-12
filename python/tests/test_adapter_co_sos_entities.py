@@ -70,6 +70,23 @@ class Entities(unittest.TestCase):
         self.assertEqual((foods.state_of_formation, foods.status), ("CO", "some_new_status"))
         self.assertIsNone(nameless.registry_number)
 
+    def test_the_attribution_carries_the_state_disclaimer_word_for_word(self):
+        # data.colorado.gov/terms requires the disclaimer of applications using the data; the hosted site shows
+        # the same words from source-notices.ts, so the two copies must not drift apart.
+        attribution = co_sos_entities.SOURCE.attribution
+        self.assertTrue(attribution.startswith("Colorado Department of State (CDOS)"))
+        self.assertTrue(attribution.endswith(co_sos_entities.DISCLAIMER))
+        notices = Path(__file__).resolve().parents[2] / "deploy" / "cloudflare" / "src" / "source-notices.ts"
+        self.assertIn(co_sos_entities.DISCLAIMER, notices.read_text(encoding="utf-8"))
+        with tempfile.TemporaryDirectory() as tmp:
+            reg = Registry(Path(tmp) / "r.db")
+            reg.add_source(co_sos_entities.SOURCE)
+            stored = reg.db.execute(
+                "SELECT attribution FROM sources WHERE source_id = 'co-sos-entities'"
+            ).fetchone()[0]
+            reg.close()
+        self.assertEqual(stored, attribution)
+
     def test_helpers(self):
         self.assertEqual(co_sos_entities.state_of_formation(" de "), "DE")
         self.assertIsNone(co_sos_entities.state_of_formation("FC"))
