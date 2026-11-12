@@ -42,6 +42,7 @@ const HOSTED = JSON.parse(
 ) as {
   totals: { parcels: number; entities: number; counties: number };
   withheld: { fips: string }[];
+  partial: { fips: string; area: string }[];
 };
 // Real lookups in the hosted regions. Values come from the registry files the hosted pack is built
 // from; update them when the pack is rebuilt.
@@ -49,6 +50,11 @@ const HOSTED_REGISTRY_CASES: {
   tool: string;
   arguments: Record<string, unknown>;
   expect?: Record<string, unknown>;
+  /** Paths whose value must match the regular expression. */
+  expect_match?: Record<string, string>;
+  /** Fact predicates the answer's `facts` must carry, or must not carry. */
+  has_predicates?: string[];
+  no_predicates?: string[];
   expect_error?: string;
 }[] = [
   {
@@ -59,6 +65,13 @@ const HOSTED_REGISTRY_CASES: {
       "totals.entities": HOSTED.totals.entities,
       "totals.counties": HOSTED.totals.counties,
       "hosted.withheld_counties.0.region": `us-${HOSTED.withheld[0]!.fips}`,
+      // A county loaded in part (the City of Boston, in Suffolk County) is listed with its part.
+      ...(HOSTED.partial.length
+        ? {
+            "hosted.partial_counties.0.region": `us-${HOSTED.partial[0]!.fips}`,
+            "hosted.partial_counties.0.area": HOSTED.partial[0]!.area,
+          }
+        : {}),
     },
   },
   // Outside Texas the candidate tool is an input error (Texas-only), whatever regions are hosted.
@@ -249,6 +262,113 @@ const HOSTED_REGISTRY_CASES: {
     tool: "registry_tx_equity_candidates",
     arguments: { urn: "fl:parcel:us-48201:1" },
     expect_error: "NotFound",
+  },
+  // New York City, Los Angeles County, San Francisco, the City of Boston, Denver and Connecticut. Values
+  // from the registry files of release-2026-11-12 (national/ny.db, ca.db, ma.db, co.db, ct.db); the tools'
+  // own answers were read with runTool on read-only copies.
+  {
+    tool: "registry_resolve_parcel",
+    arguments: { state_fips: "36", county_fips: "061", apn: "1000020002" },
+    expect: { urn: "fl:parcel:us-36061:1000020002" },
+  },
+  {
+    tool: "registry_resolve_external",
+    arguments: { system: "nyc_bbl", external_id: "1009941201" },
+    expect: { urn: "fl:parcel:us-36061:1009941201" },
+  },
+  // A New York address with an ordinal: the file writes "214 WEST 42 STREET", the search matches "42nd".
+  {
+    tool: "registry_search_address",
+    arguments: { query: "214 W 42nd St", limit: 3 },
+    expect: { "results.0.urn": "fl:parcel:us-36061:1010130039" },
+  },
+  {
+    tool: "registry_get",
+    arguments: { urn: "fl:parcel:us-36061:1010130039" },
+    expect: {
+      status: "current",
+      kind: "parcel",
+      "value_history.0.tax_year": 2027,
+      "value_history.0.market_value": 30444000,
+    },
+    has_predicates: ["ownership.owner_of_record"],
+  },
+  // Los Angeles County and San Francisco: the public files carry no owner names, so no owner fact.
+  {
+    tool: "registry_resolve_external",
+    arguments: { system: "la_ain", external_id: "5151015013" },
+    expect: { urn: "fl:parcel:us-06037:5151015013" },
+  },
+  {
+    tool: "registry_get",
+    arguments: { urn: "fl:parcel:us-06037:5151015013" },
+    expect: {
+      status: "current",
+      kind: "parcel",
+      "value_history.0.tax_year": 2026,
+      "value_history.0.appraised_value": 509842812,
+    },
+    has_predicates: ["parcel.situs_address"],
+    no_predicates: ["ownership.owner_of_record"],
+  },
+  {
+    tool: "registry_get",
+    arguments: { urn: "fl:parcel:us-06075:0259026" },
+    expect: {
+      status: "current",
+      kind: "parcel",
+      "value_history.0.tax_year": 2025,
+      "value_history.0.appraised_value": 1159518020,
+    },
+    no_predicates: ["ownership.owner_of_record"],
+  },
+  // The City of Boston: a hit, and a Suffolk County miss that says only the City is loaded.
+  {
+    tool: "registry_get",
+    arguments: { urn: "fl:parcel:us-25025:0401037100" },
+    expect: {
+      status: "current",
+      kind: "parcel",
+      "value_history.0.tax_year": 2026,
+      "value_history.0.market_value": 564317600,
+    },
+  },
+  {
+    tool: "registry_resolve_parcel",
+    arguments: { state_fips: "25", county_fips: "025", apn: "0000000000" },
+    expect: { urn: null, "coverage.county_area": "the City of Boston" },
+    expect_match: { "coverage.message": "for the City of Boston only" },
+  },
+  {
+    tool: "registry_resolve_external",
+    arguments: { system: "denver_schednum", external_id: "0234513035000" },
+    expect: { urn: "fl:parcel:us-08031:0234513035000" },
+  },
+  {
+    tool: "registry_get",
+    arguments: { urn: "fl:parcel:us-08031:0234513035000" },
+    expect: {
+      status: "current",
+      kind: "parcel",
+      "value_history.0.market_value": 16827500,
+    },
+    has_predicates: ["ownership.owner_of_record", "zoning.district"],
+  },
+  {
+    tool: "registry_resolve_external",
+    arguments: { system: "ct_cama_link", external_id: "37070-204534125" },
+    expect: { urn: "fl:parcel:us-09003:37070-204534125" },
+  },
+  {
+    tool: "registry_get",
+    arguments: { urn: "fl:parcel:us-09003:37070-204534125" },
+    expect: {
+      status: "current",
+      kind: "parcel",
+      "value_history.0.tax_year": 2021,
+      "value_history.0.market_value": 107600,
+    },
+    has_predicates: ["ownership.owner_of_record"],
   },
 ];
 
@@ -635,6 +755,20 @@ async function main(): Promise<void> {
           same(at(json, k), v),
           `${label} ${k}: got ${JSON.stringify(at(json, k))}`,
         );
+      for (const [k, re] of Object.entries(c.expect_match ?? {}))
+        ok(
+          new RegExp(re).test(String(at(json, k))),
+          `${label} ${k}: got ${JSON.stringify(at(json, k))}`,
+        );
+      const predicates = new Set(
+        ((at(json, "facts") as { predicate?: string }[] | undefined) ?? []).map(
+          (f) => f.predicate,
+        ),
+      );
+      for (const p of c.has_predicates ?? [])
+        ok(predicates.has(p), `${label}: no ${p} fact`);
+      for (const p of c.no_predicates ?? [])
+        ok(!predicates.has(p), `${label}: has a ${p} fact`);
       if (status === 200 && !restResults.has(c.tool)) {
         restResults.set(c.tool, json);
         restArgs.set(c.tool, c.arguments);
