@@ -7,6 +7,7 @@ committed pages to be current (a new source config would make them stale); run
 """
 
 import importlib.util
+import re
 import unittest
 from pathlib import Path
 
@@ -35,25 +36,49 @@ class RegistryDocsGenerator(unittest.TestCase):
     def test_coverage_quotes_verify_and_only_the_hosted_regions_are_queryable(self):
         text = self.gen.gen_coverage(self.configs)  # raises SystemExit if a quote or number does not check out
         self.assertIn("run only on a self-hosted FactLot", text)
+        # What is hosted comes from site/_data/hosted.json (the hosted pack's manifest, via scripts/site/gen-hosted.ts).
+        hosted = self.gen.hosted_summary()
+        self.assertIn(hosted["places"], text)
+        self.assertIn(hosted["totals"], text)
+        hosted_ids = set(hosted["sources"])
         queryable_rows = [ln for ln in text.splitlines() if ln.startswith("| ") and "Yes: hosted on api.factlot.com" in ln]
         self.assertTrue(queryable_rows)
         for ln in queryable_rows:
-            self.assertTrue("dc-" in ln or "md-sdat-real-property" in ln or "ut-ugrc-lir" in ln or "`tx-" in ln, ln)
+            self.assertTrue(any(i in hosted_ids for i in re.findall(r"`([a-z0-9-]+)`", ln)), ln)
+        # A source hosted for some counties only lists those counties (Utah: Juab and Summit).
         utah = [ln for ln in queryable_rows if "ut-ugrc-lir" in ln]
-        self.assertEqual(len(utah), 2)  # Juab and Summit only
-        self.assertTrue(all("Juab" in ln or "Summit" in ln for ln in utah))
-        # Texas: the six counties in the hosted pack, and never Tarrant (withheld)
+        utah_hosted = [c["name"] for c in hosted["counties"] if c["fips"].startswith("49")]
+        self.assertEqual(len(utah), len(utah_hosted))
+        self.assertTrue(all(any(n in ln for n in utah_hosted) for ln in utah))
+        # Texas: the counties in the hosted pack, and never Tarrant (withheld)
         texas = sorted(ln.split("|")[1].strip() for ln in queryable_rows if "`tx-" in ln)
-        self.assertEqual(
-            texas,
-            sorted(f"{n} County" for n in [
-                "Harris", "Dallas", "Travis", "Collin", "Denton", "Williamson", "Cameron", "Nueces", "Galveston",
-                "Jefferson", "Brazos", "Midland", "Ector", "Grayson", "Guadalupe", "Kaufman",
-            ]),
-        )
+        self.assertEqual(texas, sorted(c["name"] for c in hosted["counties"] if c["fips"].startswith("48")))
         tarrant = [ln for ln in text.splitlines() if ln.startswith("| ") and "`tx-tarrant-ad`" in ln]
         self.assertTrue(tarrant)
         self.assertTrue(all("Yes: hosted" not in ln for ln in tarrant))
+
+    def test_every_hosted_county_has_a_queryable_source(self):
+        # coverage-data.json says which sources are hosted ("queryable", "hosted_areas"); a county the hosted pack
+        # serves must be among them, so a new hosted region cannot be missing from coverage.md and the map.
+        _cfg, data, _rows = self.gen.coverage_rows(self.configs)
+        areas = data.get("hosted_areas", {})
+        queryable = data.get("queryable", {})
+
+        def listed(source_id, fips):
+            parts = source_id.split("-")
+            for n in range(len(parts), 1, -1):  # a per-year or companion source ("tx-harris-cad-2022") counts as its base
+                sid = "-".join(parts[:n])
+                if sid in queryable:
+                    return True
+                h = areas.get(sid)
+                if h and (h["areas"] == "all" or fips in h["areas"]):
+                    return True
+            return False
+
+        for c in self.gen.hosted_summary()["counties"]:
+            self.assertTrue(any(listed(s, c["fips"]) for s in c["sources"]),
+                            f"{c['name']} ({c['fips']}) is hosted but none of {c['sources']} is in coverage-data.json "
+                            "hosted_areas or queryable")
 
     def test_an_unquoted_count_is_rejected(self):
         entry = {"source_id": "x", "parcels": 123456789, "cites": [{"doc": "docs/registry/sources/README.md", "quote": "87,717; 56,792"}]}

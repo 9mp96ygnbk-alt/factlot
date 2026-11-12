@@ -478,8 +478,21 @@ def coverage_rows(configs: list[dict]) -> tuple[dict, dict, dict[str, list[dict]
     return cfg, data, rows_by_state
 
 
+HOSTED_JSON = os.path.join(ROOT, "site", "_data", "hosted.json")
+
+
+def hosted_summary() -> dict:
+    """What the hosted registry serves, as site/_data/hosted.json words it (scripts/site/gen-hosted.ts writes it
+    from the hosted pack's manifest): its `text` (places, totals, withheld) and the hosted parcel source ids."""
+    with open(HOSTED_JSON, encoding="utf-8") as fh:
+        data = json.load(fh)
+    return {**data["text"], "sources": sorted({s for c in data["counties"] for s in c["sources"]}),
+            "counties": data["counties"]}
+
+
 def gen_coverage(configs: list[dict]) -> str:
     cfg, data, rows_by_state = coverage_rows(configs)
+    hosted = hosted_summary()
 
     loaded_sources = {r["source_id"] for rows in rows_by_state.values() for r in rows}
     for grp, members in GROUP_MEMBERS.items():
@@ -550,15 +563,13 @@ def gen_coverage(configs: list[dict]) -> str:
         "## Read this first",
         "",
         "- **Queryable today.** The hosted API at `https://api.factlot.com` answers registry lookups, on every plan, metered by plan,",
-        "  for **Maryland** (all 24 jurisdictions), the **District of Columbia**, **Juab and Summit counties in Utah** and **sixteen Texas",
-        "  counties** (Harris, Dallas, Travis, Collin, Denton, Williamson, Cameron, Nueces, Galveston, Jefferson, Brazos, Midland, Ector, Grayson,",
-        "  Guadalupe and Kaufman; Denton and Williamson from 2027 preliminary rolls; Midland without values, which its publisher's file lacks):",
-        "  434,538 parcels in 43 counties. Call `registry_coverage` first: it lists exactly what is hosted. The DC data is also the downloadable **DC sample**, a 23.5 MB",
-        "  database file (CC BY 4.0) you can run yourself (`FACTLOT_REGISTRY_DB`). Tarrant County is not served by the hosted registry while the",
-        "  publisher's terms for AI use are unclear. New York City and the rest run only on a self-hosted FactLot with a registry file, and more",
-        "  hosted regions open as their terms allow. Every row says which it is.",
+        f"  for {hosted['places']}: {hosted['totals']}.",
+        "  Call `registry_coverage` first: it lists exactly what is hosted. The DC data is also the downloadable **DC sample**, a 23.5 MB",
+        f"  database file (CC BY 4.0) you can run yourself (`FACTLOT_REGISTRY_DB`). {hosted['withheld']}",
+        "  Other regions run only on a self-hosted FactLot with a registry file, and more hosted regions open as their terms allow.",
+        "  Every row says which it is.",
         "  The counts below are what the project's own pipeline built into scratch registries from the publishers' files; the hosted counts and",
-        "  data dates for Maryland, Utah and Texas can differ slightly from the recorded loads.",
+        "  data dates can differ slightly from the recorded loads.",
         "- **Counts are as recorded.** Each number is quoted from a review record or the source catalog (see `coverage-data.json`, which the",
         "  generator checks against the documents) or read from a per-county table in a statewide record. They are **commercial** parcels",
         "  (state categories B, F1, F2: apartments and multifamily, commercial improved, industrial improved) in scope of FactLot's data policy,",
