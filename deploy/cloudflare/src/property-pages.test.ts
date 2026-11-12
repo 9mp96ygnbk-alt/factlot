@@ -27,6 +27,7 @@ import {
   PROPERTY_PAGES_PER_MINUTE,
   PROPERTY_PAGE_CSP,
   SITEMAP_INDEX_PATH,
+  ownerNamesAPerson,
   propertyPagesRoute,
   resetPropertyPagesState,
   type CacheLike,
@@ -768,6 +769,44 @@ describe("property pages: a permitted-source parcel", () => {
     assert.ok(!dc.includes("Denver Open Data Catalog"));
     assert.ok(!dc.includes("STATE OF COLORADO"));
   });
+});
+
+describe("property pages: an owner written like a person's estate or trust", () => {
+  // Invented names. The registry's rule reads these as organisations; a page must not show them.
+  const hidden = [
+    "ESTATE OF PAT EXAMPLE",
+    "Example Pat Est Of",
+    "PAT EXAMPLE LIFE ESTATE",
+    "HEIRS OF PAT EXAMPLE",
+    "PAT EXAMPLE LIVING TRUST",
+    "EXAMPLE PAT REVOCABLE TRUST",
+    "EXAMPLE PAT & LEE IRREV TR",
+    "THE EXAMPLE FAMILY TRUST",
+    "EXAMPLE HOLDINGS LLC PAT EXAMPLE REV LIV TR DTD 4-27-17",
+    "EXAMPLE TRUST DTD 1/2/2003",
+    "EXAMPLE TRUST U/A 5-5-99",
+    "PAT EXAMPLE TRUSTEE",
+    "EXAMPLE PAT TR",
+    "PAT EXAMPLE & LEE EXAMPLE TTEES",
+    "TRUSTEES FOR PAT EXAMPLE",
+    "EXAMPLE TRUST COMPANY CO-TRUSTEES OF PAT EXAMPLE",
+  ];
+  const shown = [
+    "EXAMPLE HOLDINGS LLC",
+    "EXAMPLE REAL ESTATE INVESTMENT TRUST",
+    "EXAMPLE REALTY TRUST INC",
+    "BOARD OF TRUSTEES OF EXAMPLE VILLAGE",
+    "TRUSTEES OF EXAMPLE UNIVERSITY",
+    "TRUSTEES OF THE EXAMPLE PENSION FUND",
+    "EXAMPLE ESTATES LLC",
+    "REAL ESTATE OF EXAMPLE STREET LP",
+    "EXAMPLE TRUCK CENTER INC",
+    "EXAMPLE BANK NA",
+  ];
+  for (const name of hidden)
+    it(`hides "${name}"`, () => assert.equal(ownerNamesAPerson(name), true));
+  for (const name of shown)
+    it(`shows "${name}"`, () => assert.equal(ownerNamesAPerson(name), false));
 });
 
 describe("property pages: which parcels get a page", () => {

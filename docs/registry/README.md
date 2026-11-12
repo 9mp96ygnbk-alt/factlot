@@ -388,6 +388,8 @@ wrote it, the parcel ID, county and state, property category codes, land and bui
 built, building class and neighbourhood code where present, the owner of record when the registry
 has one (always an organisation) with its linked registered entity and how many other hosted
 parcels that entity holds, and the publisher's current roll values with roll year and as-of date.
+An owner written as an estate, heirs, a living, revocable, irrevocable or family trust, or a named
+trustee is not shown, nor its entity, because such a name usually carries a person's name.
 Every fact cites its source document with the licence, attribution, redistribution and AI use
 recorded for the source, plus any notice the source's terms require. Earlier roll years are named
 by year and count only, never by value.

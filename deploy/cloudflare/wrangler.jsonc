@@ -51,6 +51,15 @@
   ],
   // USAGE_COUNTERS_ENABLED "true": the usage counters are on (src/usage.ts, README.md in this
   // folder); remove it to turn them off. The privacy notice describes them.
+  // PROPERTY_PAGES_ENABLED "true": the public property pages and their sitemaps are on
+  // (src/property-pages.ts). A parcel gets a page when every source behind a shown fact records
+  // redistribution as permitted or attribution_required, or is listed in
+  // PROPERTY_PAGES_EXTRA_SOURCES (comma-separated source ids). The Texas appraisal districts record
+  // "unknown" and are listed here by the operator's decision of 2026-11-12. Not listed: Tarrant
+  // (withheld from every hosted tool), Ector (its site footer reserves all rights), and Brazos,
+  // Galveston, Guadalupe, Jefferson, Kaufman and Nueces until their ownership links are rebuilt
+  // (prior roll years' links still read as current there). Remove a source id, or the variable, and redeploy to take its
+  // pages down; set PROPERTY_PAGES_ENABLED to anything else to turn every page off.
   "vars": {
     "SITE_URL": "https://factlot.com",
     "API_URL": "https://api.factlot.com",
@@ -58,6 +67,8 @@
     "USAGE_COUNTERS_ENABLED": "true",
     "GATING_ENABLED": "true",
     "FREE_KEY_ENABLED": "true",
+    "PROPERTY_PAGES_ENABLED": "true",
+    "PROPERTY_PAGES_EXTRA_SOURCES": "tx-harris-cad,tx-harris-cad-buildings,tx-dallas-cad,tx-travis-cad,tx-collin-cad,tx-denton-cad,tx-williamson-cad,tx-cameron-cad,tx-grayson-cad,tx-midland-cad",
   },
   // KEYS also holds the OAuth server's records (clients, grants, hashed tokens) under the `oauth:`
   // prefix (src/oauth.ts), so OAuth needs no binding of its own.
