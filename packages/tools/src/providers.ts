@@ -100,6 +100,51 @@ function mapSchema(s: unknown, fn: (node: Json) => Json): unknown {
   return fn(node);
 }
 
+/**
+ * The MCP tools/list form of an input schema: still JSON Schema, without the keywords that a
+ * major MCP client is documented to reject. Microsoft Copilot Studio fails with
+ * System.FormatException when `exclusiveMinimum` is a number rather than a boolean (its MCP
+ * troubleshooting page), and a number bound is the only form JSON Schema 2019-09 and later
+ * allow, so the bound is restated: on an integer as the equivalent inclusive bound (> 0 is >= 1),
+ * on a number as the inclusive bound plus a sentence saying it is exclusive. The server validates
+ * every call, so the exact rule still holds. Integer bounds of ±(2^53 - 1), which say nothing,
+ * are left out.
+ */
+export function portableInputSchema(schema: unknown): Json {
+  return mapSchema(schema, (n) => {
+    const out: Json = { ...n };
+    const notes: string[] = [];
+    const integer = out.type === "integer";
+    if (typeof out.exclusiveMinimum === "number") {
+      const bound = out.exclusiveMinimum;
+      delete out.exclusiveMinimum;
+      const min = integer ? Math.floor(bound) + 1 : bound;
+      if (typeof out.minimum !== "number" || out.minimum < min)
+        out.minimum = min;
+      if (!integer && out.minimum === bound)
+        notes.push(`Must be greater than ${bound}.`);
+    }
+    if (typeof out.exclusiveMaximum === "number") {
+      const bound = out.exclusiveMaximum;
+      delete out.exclusiveMaximum;
+      const max = integer ? Math.ceil(bound) - 1 : bound;
+      if (typeof out.maximum !== "number" || out.maximum > max)
+        out.maximum = max;
+      if (!integer && out.maximum === bound)
+        notes.push(`Must be less than ${bound}.`);
+    }
+    if (integer && out.maximum === Number.MAX_SAFE_INTEGER) delete out.maximum;
+    if (integer && out.minimum === Number.MIN_SAFE_INTEGER) delete out.minimum;
+    if (notes.length) {
+      const d = typeof out.description === "string" ? out.description : "";
+      const missing = notes.filter((s) => !d.includes(s));
+      if (missing.length)
+        out.description = [d, ...missing].filter(Boolean).join(" ");
+    }
+    return out;
+  }) as Json;
+}
+
 /** JSON Schema 2020-12 → OpenAPI 3.0 Schema Object. */
 export function toOpenApi30Schema(schema: unknown): Json {
   return mapSchema(schema, (n) => {

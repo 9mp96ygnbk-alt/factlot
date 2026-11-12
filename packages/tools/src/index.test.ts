@@ -13,6 +13,7 @@ import {
   openApi31,
   openaiChatTools,
   openaiResponsesTools,
+  portableInputSchema,
   runTool,
   toGeminiSchema,
   toOpenApi30Schema,
@@ -343,4 +344,42 @@ test("a share or ratio rejected as too big says to pass a decimal", () => {
       r.error.issues[0]!.message,
       /shares and ratios are decimals: pass 0\.75 for 75%/,
     );
+});
+
+test("portable MCP input schemas restate exclusive bounds", () => {
+  const s = portableInputSchema({
+    type: "object",
+    properties: {
+      n: {
+        type: "integer",
+        exclusiveMinimum: 0,
+        maximum: Number.MAX_SAFE_INTEGER,
+      },
+      m: { type: "integer", exclusiveMaximum: 10 },
+      r: { type: "number", exclusiveMinimum: 0, description: "Rate." },
+      q: { type: "number", minimum: 5, exclusiveMinimum: 0 },
+      a: { type: "array", items: { type: "number", exclusiveMaximum: 1 } },
+      o: { oneOf: [{ type: "integer", exclusiveMinimum: 2 }] },
+    },
+  });
+  const p = s.properties as Record<string, Record<string, unknown>>;
+  assert.deepEqual(p.n, { type: "integer", minimum: 1 });
+  assert.deepEqual(p.m, { type: "integer", maximum: 9 });
+  assert.deepEqual(p.r, {
+    type: "number",
+    minimum: 0,
+    description: "Rate. Must be greater than 0.",
+  });
+  assert.deepEqual(p.q, { type: "number", minimum: 5 });
+  assert.deepEqual(p.a!.items, {
+    type: "number",
+    maximum: 1,
+    description: "Must be less than 1.",
+  });
+  assert.deepEqual((p.o!.oneOf as object[])[0], {
+    type: "integer",
+    minimum: 3,
+  });
+  // Applying it twice changes nothing.
+  assert.deepEqual(portableInputSchema(s), s);
 });
