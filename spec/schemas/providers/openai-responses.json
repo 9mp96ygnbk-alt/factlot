@@ -6097,7 +6097,7 @@
           "urn": {
             "type": "string",
             "maxLength": 500,
-            "description": "FactLot URN of a parcel, entity, or building, e.g. fl:parcel:us-48201:0011440000001."
+            "description": "FactLot URN of a parcel, entity, or building, e.g. fl:parcel:us-48201:0011440000001 (Harris County, Texas) or fl:parcel:us-36061:1000020002 (Manhattan: a New York City borough-block-lot)."
           },
           "include_history": {
             "default": false,
@@ -6125,17 +6125,17 @@
           "state_fips": {
             "type": "string",
             "maxLength": 16,
-            "description": "2-digit state FIPS, e.g. \"48\" for Texas."
+            "description": "2-digit state FIPS, e.g. \"48\" for Texas, \"36\" for New York."
           },
           "county_fips": {
             "type": "string",
             "maxLength": 16,
-            "description": "3-digit county FIPS, e.g. \"201\" for Harris County."
+            "description": "3-digit county FIPS, e.g. \"201\" for Harris County, Texas, or \"061\" for New York County (Manhattan)."
           },
           "apn": {
             "type": "string",
             "maxLength": 200,
-            "description": "Parcel or account number as the county prints it."
+            "description": "Parcel or account number as the county prints it: an appraisal district account number in Texas, a borough-block-lot (e.g. 1000020002) in New York City, an AIN in Los Angeles County, a parcel number in San Francisco, a PID in Boston, a schedule number in Denver, the CAMA link in Connecticut."
           }
         },
         "required": ["state_fips", "county_fips", "apn"]
@@ -6145,14 +6145,14 @@
     {
       "type": "function",
       "name": "registry_resolve_external",
-      "description": "Find the FactLot URN for an ID from another system, e.g. system \"sdat_account\" (a Maryland SDAT account number) or, where Texas is hosted, \"hcad_account\" (a Harris CAD account number). Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
+      "description": "Find the FactLot URN for an ID from another system, e.g. system \"sdat_account\" (a Maryland SDAT account number), \"hcad_account\" (a Harris CAD account number), \"nyc_bbl\" (a New York City borough-block-lot), \"la_ain\" (a Los Angeles County Assessor ID number), \"sf_parcel\", \"boston_pid\", \"denver_schednum\" or \"ct_cama_link\". registry_coverage lists the systems a registry holds. Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
       "parameters": {
         "type": "object",
         "properties": {
           "system": {
             "type": "string",
             "maxLength": 100,
-            "description": "Crosswalk system name, e.g. \"sdat_account\" (Maryland), or \"hcad_account\" where Texas is hosted."
+            "description": "Crosswalk system name, e.g. \"sdat_account\" (Maryland), \"hcad_account\" (Harris County, Texas) or \"nyc_bbl\" (New York City)."
           },
           "external_id": {
             "type": "string",

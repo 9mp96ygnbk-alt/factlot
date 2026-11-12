@@ -654,7 +654,7 @@ const registryTools: ToolSpec[] = [
         .string()
         .max(500)
         .describe(
-          "FactLot URN of a parcel, entity, or building, e.g. fl:parcel:us-48201:0011440000001.",
+          "FactLot URN of a parcel, entity, or building, e.g. fl:parcel:us-48201:0011440000001 (Harris County, Texas) or fl:parcel:us-36061:1000020002 (Manhattan: a New York City borough-block-lot).",
         ),
       include_history: z
         .boolean()
@@ -697,15 +697,21 @@ const registryTools: ToolSpec[] = [
       state_fips: z
         .string()
         .max(16)
-        .describe('2-digit state FIPS, e.g. "48" for Texas.'),
+        .describe(
+          '2-digit state FIPS, e.g. "48" for Texas, "36" for New York.',
+        ),
       county_fips: z
         .string()
         .max(16)
-        .describe('3-digit county FIPS, e.g. "201" for Harris County.'),
+        .describe(
+          '3-digit county FIPS, e.g. "201" for Harris County, Texas, or "061" for New York County (Manhattan).',
+        ),
       apn: z
         .string()
         .max(200)
-        .describe("Parcel or account number as the county prints it."),
+        .describe(
+          "Parcel or account number as the county prints it: an appraisal district account number in Texas, a borough-block-lot (e.g. 1000020002) in New York City, an AIN in Los Angeles County, a parcel number in San Francisco, a PID in Boston, a schedule number in Denver, the CAMA link in Connecticut.",
+        ),
     }),
     path: "/v1/registry/resolve_parcel",
     requires: "registry",
@@ -718,14 +724,14 @@ const registryTools: ToolSpec[] = [
     name: "registry_resolve_external",
     title: "Resolve an external ID",
     description:
-      'Find the FactLot URN for an ID from another system, e.g. system "sdat_account" (a Maryland SDAT account number) or, where Texas is hosted, "hcad_account" (a Harris CAD account number).' +
+      'Find the FactLot URN for an ID from another system, e.g. system "sdat_account" (a Maryland SDAT account number), "hcad_account" (a Harris CAD account number), "nyc_bbl" (a New York City borough-block-lot), "la_ain" (a Los Angeles County Assessor ID number), "sf_parcel", "boston_pid", "denver_schednum" or "ct_cama_link". registry_coverage lists the systems a registry holds.' +
       REGISTRY_NOTE,
     input: z.object({
       system: z
         .string()
         .max(100)
         .describe(
-          'Crosswalk system name, e.g. "sdat_account" (Maryland), or "hcad_account" where Texas is hosted.',
+          'Crosswalk system name, e.g. "sdat_account" (Maryland), "hcad_account" (Harris County, Texas) or "nyc_bbl" (New York City).',
         ),
       external_id: z.string().max(200).describe("The ID in that system."),
     }),
