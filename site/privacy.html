@@ -127,29 +127,30 @@
               send one email to that address: a link that works once and expires
               after 30 minutes. It is a transactional message sent through
               Cloudflare Email Sending, and it contains the link and no key. We
-              send no marketing email and nothing else to that address because
-              of this request. The address is used in memory to send the email
-              and to make a hash of it; it is not written to storage, usage
-              records or logs. What we store instead is a hash of the address:
-              SHA-256 of the lower-case address together with a secret that only
-              FactLot holds. We treat that hash as personal information, because
-              it is the same every time the same address is used. Opening the
-              link only shows a button; pressing it creates the key, which is
-              shown once. We then store a record of the key (a SHA-256 hash of
-              the key, the address hash, the date it was created and, once the
-              key is replaced, the time it was revoked) and, for each address
-              hash, which key is its current one. One address has one active
-              free key: a new key replaces the earlier one, which stops working.
-              A link that is never used creates nothing and expires. Between
-              asking and opening the link we keep a record of the link (a hash
-              of its random ID, the address hash and its expiry) for 30 minutes,
-              and a marker of the address hash for 5 minutes, so that one
-              address gets at most one link email every 5 minutes. A marker that
-              a link was used, held under a hash of its random ID and not linked
-              to the address, is kept for 13 months so that the link cannot be
-              used twice. The link is a web address that you open, so
-              Cloudflare's request logs may hold it; it cannot be used a second
-              time or after it expires.
+              send no marketing email, and nothing else to that address because
+              of this request except the deletion email described below if you
+              ask for it. The address is used in memory to send the email and to
+              make a hash of it; it is not written to storage, usage records or
+              logs. What we store instead is a hash of the address: SHA-256 of
+              the lower-case address together with a secret that only FactLot
+              holds. We treat that hash as personal information, because it is
+              the same every time the same address is used. Opening the link
+              only shows a button; pressing it creates the key, which is shown
+              once. We then store a record of the key (a SHA-256 hash of the
+              key, the address hash, the date it was created and, once the key
+              is replaced, the time it was revoked) and, for each address hash,
+              which key is its current one. One address has one active free key:
+              a new key replaces the earlier one, which stops working. A link
+              that is never used creates nothing and expires. Between asking and
+              opening the link we keep a record of the link (a hash of its
+              random ID, the address hash and its expiry) for 30 minutes, and a
+              marker of the address hash for 5 minutes, so that one address gets
+              at most one link email every 5 minutes. A marker that a link was
+              used, held under a hash of its random ID and not linked to the
+              address, is kept for 13 months so that the link cannot be used
+              twice. The link is a web address that you open, so Cloudflare's
+              request logs may hold it; it cannot be used a second time or after
+              it expires.
             </li>
             <li>
               <strong>Free key counters.</strong> A free key's requests are
@@ -161,7 +162,59 @@
               lookup quota counters, never the address itself. Reports are
               counted for the current UTC month under part of the address hash,
               so that replacing a key does not restart the count. A counter is
-              deleted when its window ends.
+              deleted when its window ends, or when the free key is deleted (see
+              below), except the counters keyed by an IP address.
+            </li>
+            <li>
+              <strong>Deleting a free key.</strong> You can delete a free key
+              yourself in two ways. At factlot.com/account, or with
+              <code>POST /v1/keys/free/delete</code>, you give the address and
+              we send one transactional email through Cloudflare Email Sending:
+              a link that works once and expires after 30 minutes, with no key
+              in it. We send it only if that address has a free key, and the
+              answer is the same for every address, so nobody learns from it
+              whether an address has a key and nothing is sent to an address
+              that never asked for one. Opening the link only shows a button;
+              pressing it deletes. Or, with the key itself, send
+              <code>DELETE /v1/keys/free</code> with the key as the bearer
+              token: no email is sent. Either way we delete the key, every key
+              it replaced, the record of the address hash, the report counter
+              kept under the address hash and each key's counters. The deletion
+              email uses the same kind of records as the link email: a link
+              record for 30 minutes, a marker of the address hash for 5 minutes
+              (at most one deletion email every 5 minutes), and a marker that
+              the link was used, held under a hash of its random ID and not
+              linked to the address, for 13 months. These are not deleted by
+              deleting the key, and neither are: a link email you already
+              received, which stays valid until it expires; counters keyed by an
+              IP address; usage records, which hold "free-key" and no key ID or
+              address; report files, which are not linked to the address and are
+              deleted after 24 hours; and Cloudflare's own request logs. If you
+              cannot use either way, email contact@factlot.com from the address
+              the key was issued to and we do it for you.
+            </li>
+            <li>
+              <strong>Other transactional email.</strong> Paid plans send up to
+              three kinds of message through Cloudflare Email Sending, each only
+              because of something you did and none carrying an API key. A
+              welcome email, once, to the address you gave Stripe when a
+              checkout completes: it names the plan and price, says the
+              subscription renews monthly until cancelled, and gives setup steps
+              and links to the account page and the API. We do not store that
+              address. A sign-in link, when you enter an address under "Lost
+              your key?" at factlot.com/account and Stripe has a customer with
+              that address who has a FactLot subscription: it names each plan
+              and has a link per subscription that works once, expires after 15
+              minutes and lets you issue a new key. A connect link, when an app
+              connecting to the hosted MCP server asks for one for an address
+              with a subscription: it names the app and has a link per plan that
+              works once and expires after 10 minutes. Nothing is sent when no
+              subscription matches, and the page answers the same either way. We
+              look the address up in Stripe in memory, and keep a marker of a
+              SHA-256 hash of the lower-case address (no secret added) for 5
+              minutes for the sign-in link and 2 minutes for the connect link,
+              so that one address gets at most one such email in that time. We
+              send no marketing email.
             </li>
           </ul>
           <h3>Billing</h3>
@@ -292,8 +345,8 @@
               <tr>
                 <th scope="row">Free key records and address hashes</th>
                 <td>
-                  Until you ask us to delete them. After a key is replaced, its
-                  record is kept for 12 months and then deleted
+                  Until you delete them yourself or ask us to. After a key is
+                  replaced, its record is kept for 12 months and then deleted
                 </td>
               </tr>
               <tr>
@@ -305,7 +358,10 @@
               </tr>
               <tr>
                 <th scope="row">Free key counters</th>
-                <td>Until the minute, day or month they count (UTC) ends</td>
+                <td>
+                  Until the minute, day or month they count (UTC) ends, or until
+                  the free key is deleted
+                </td>
               </tr>
               <tr>
                 <th scope="row">Key records</th>
@@ -351,7 +407,8 @@
                   Hosting factlot.com and api.factlot.com (Workers, KV, Durable
                   Objects, Analytics Engine), email routing for
                   contact@factlot.com, and Email Sending for transactional email
-                  such as the free key link
+                  such as the free key link, its deletion link, the welcome
+                  email and sign-in links
                 </td>
                 <td>
                   United States; requests are served from its global network
@@ -452,14 +509,16 @@
             Email
             <a href="mailto:contact@factlot.com">contact@factlot.com</a> from
             the address on your account, or include your API key ID from a
-            response or your Stripe receipt. Never send us the key itself. For a
-            free key, write from the address you asked for it with: we find its
-            records by the hash of that address, and to have a free key deleted,
-            say so, and we delete the key record and the address hash. We
-            confirm who you are by replying to that address, answer within 45
-            days (once extendable by another 45 days if we tell you why), and
-            charge nothing. An authorised agent may ask for you with your
-            written permission.
+            response or your Stripe receipt. Never send us the key itself. A
+            free key you can delete yourself, without writing to us: at
+            factlot.com/account (we email a link to the address) or with
+            <code>DELETE /v1/keys/free</code> and the key. If you cannot, write
+            from the address you asked for it with and say so: we find its
+            records by the hash of that address and delete them. We confirm who
+            you are by replying to that address, answer within 45 days (once
+            extendable by another 45 days if we tell you why), and charge
+            nothing. An authorised agent may ask for you with your written
+            permission.
           </p>
 
           <h2 id="security">Security</h2>
@@ -514,6 +573,11 @@
 
           <h2 id="history">Revision history</h2>
           <ul class="plain small">
+            <li>
+              12 November 2026 (update): added self-service deletion of a free
+              key (by email link or with the key), what it removes and what it
+              does not; described the welcome, sign-in and connect emails.
+            </li>
             <li>
               12 November 2026: described the optional free API key by email:
               the one link email, the address hash, the key and link records,
