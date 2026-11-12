@@ -196,9 +196,13 @@
     "ownership.owner_of_record": "Owner of record",
   };
 
+  var YEAR_PREDICATES = ["parcel.year_built", "parcel.tax_year"];
+
   function formatValue(f) {
     var v = f.value;
     if (typeof v === "number") {
+      // A year is a label, not a quantity: 1983, never 1,983.
+      if (YEAR_PREDICATES.indexOf(f.predicate) !== -1) return String(v);
       var n = v.toLocaleString("en-US", { maximumFractionDigits: 6 });
       if (f.unit === "USD") return "$" + n;
       return f.unit ? n + " " + f.unit : n;

@@ -477,6 +477,16 @@ describe("/try/ page", () => {
       assert.ok(!js.toLowerCase().includes(bad.toLowerCase()), bad);
     assert.match(js, /credentials: "omit"/);
   });
+  it("prints a year without a thousands separator", () => {
+    assert.match(
+      js,
+      /YEAR_PREDICATES = \["parcel\.year_built", "parcel\.tax_year"\]/,
+    );
+    assert.match(
+      js,
+      /YEAR_PREDICATES\.indexOf\(f\.predicate\) !== -1\) return String\(v\);/,
+    );
+  });
   it("shows no calculator result for a real property", () => {
     for (const f of FORBIDDEN) {
       assert.ok(!html.includes(f), `try.html has ${f}`);
