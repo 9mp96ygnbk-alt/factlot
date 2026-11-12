@@ -9,7 +9,9 @@
  *   /robots.txt                                             the site's file plus a Sitemap line for the index
  *
  * A page shows what a keyless registry_get caller gets (value history cut to the current roll year, as
- * gating.ts's limitHistory does), the owner of record when the registry has one, the linked entity, and every
+ * gating.ts's limitHistory does, and of the recorded sales and documents the newest sale or deed only, as its
+ * limitSales does; that one is shown only when its own source allows republication, and is not part of the
+ * page rule), the owner of record when the registry has one, the linked entity, and every
  * fact's citation with its source's licence and attribution. Which parcels get a page is page-rules.ts (shared
  * with the registry's sitemap enumeration): every source behind a shown fact records `redistribution` as
  * `permitted` or `attribution_required`, or is listed in PROPERTY_PAGES_EXTRA_SOURCES. Withheld counties never
@@ -40,7 +42,13 @@ import {
 
 import { siteUrl } from "./billing.ts";
 import { CONTACT, REPO } from "./contact.ts";
-import { limitHistory, type HistoryWithheld } from "./gating.ts";
+import {
+  limitHistory,
+  limitSales,
+  recordsInWords,
+  type HistoryWithheld,
+  type RecordsWithheld,
+} from "./gating.ts";
 import { escapeHtml } from "./html.ts";
 import { addressSubject } from "./limiter.ts";
 import { REGISTRY_RUN_URL } from "./registry.ts";
@@ -58,7 +66,7 @@ export type PagesEnv = Env & {
 /** Pages and sitemaps per minute per address. A crawler fetching one page a second stays well inside it. */
 export const PROPERTY_PAGES_PER_MINUTE = 120;
 /** Bumped when the page's HTML changes, so cached pages are not served across a renderer change. */
-export const PAGE_RENDER_VERSION = "1";
+export const PAGE_RENDER_VERSION = "2";
 export const SITEMAP_INDEX_PATH = "/sitemaps/properties.xml";
 const SITEMAP_CHILD = /^\/sitemaps\/properties\/([a-z0-9]+)-(\d{1,6})\.xml$/;
 /** Pages carry no script and no inline style: only the site's stylesheet loads. */
@@ -424,7 +432,27 @@ export function ownerEntity(rec: PageRecord): string | null {
   return null;
 }
 
-type LimitedRecord = PageRecord & { history_withheld?: HistoryWithheld };
+type LimitedRecord = PageRecord & {
+  history_withheld?: HistoryWithheld;
+  sales_withheld?: RecordsWithheld;
+  documents_withheld?: RecordsWithheld;
+};
+
+/** The recorded transfer a free record keeps (limitSales leaves at most one): a sale or a deed. */
+const TRANSFER_PREDICATES = ["transaction.sale", "transaction.deed"] as const;
+
+/** The source documents behind one fact, as page-rules.ts reads them. */
+function factRefs(f: Fact, subject: string): SourceRef[] {
+  const sources = f.provenance?.sources ?? [];
+  if (sources.length === 0)
+    return [{ document_id: "", subject, as_of: f.as_of ?? "", rights: null }];
+  return sources.map((s) => ({
+    document_id: s.document_id,
+    subject,
+    as_of: f.as_of ?? "",
+    rights: f.rights ?? null,
+  }));
+}
 
 async function pageResponse(
   registry: Fetcher,
@@ -440,8 +468,10 @@ async function pageResponse(
     countyNames(registry, builtAt),
   ]);
   if (!got.ok) return notFoundPage(site);
-  const rec = limitHistory(got.result) as LimitedRecord;
+  const rec = limitSales(limitHistory(got.result)) as LimitedRecord;
   if (rec?.urn !== urn) return notFoundPage(site);
+  const sale = factsOf(rec, TRANSFER_PREDICATES)[0];
+  const saleRefs = sale ? factRefs(sale, urn) : [];
 
   // The owner's registered entity and its other parcels (only what a free caller could read).
   // None of it for an owner written like a person's estate or trust (ownerNamesAPerson).
@@ -490,6 +520,7 @@ async function pageResponse(
   const entityRefs = entity ? entityPageRefs(entity) : [];
   const sources = await sourceIds(registry, [
     ...refs,
+    ...saleRefs,
     ...entityRefs,
     ...others.flatMap((r) => parcelPageRefs(r)),
   ]);
@@ -513,6 +544,7 @@ async function pageResponse(
     otherCount: showEntity ? owned.length : null,
     links: showEntity ? links : [],
     sourceOf: (doc) => sources[doc] ?? null,
+    sale: sale && refsAllowed(saleRefs, sourceOf, extra) ? sale : null,
   });
   return htmlResponse(200, html);
 }
@@ -612,6 +644,8 @@ export interface RenderInput {
   otherCount: number | null;
   links: { path: string; label: string }[];
   sourceOf: (documentId: string) => string | null;
+  /** The newest recorded sale or deed of the free record, when its source allows republication. */
+  sale?: Fact | null;
 }
 
 /** The page's HTML (pure: tests call it directly). Every value from the registry is escaped. */
@@ -770,11 +804,74 @@ export function renderPropertyPage(input: RenderInput): string {
     }
   }
 
+  // The newest recorded sale or deed: date, price and document type as recorded, never interpreted.
+  const saleHtml: string[] = [];
+  const sale = input.sale;
+  if (sale && typeof sale.value === "object" && sale.value !== null) {
+    const v = sale.value as Record<string, unknown>;
+    const deed = sale.predicate === "transaction.deed";
+    const source = factCite(sale);
+    const saleRow = (label: string, value: string) =>
+      saleHtml.push(
+        `<tr><th scope="row">${e(label)}</th><td>${value}</td><td class="small">${source}</td></tr>`,
+      );
+    if (typeof v.date === "string")
+      saleRow(deed ? "Date recorded" : "Sale date", e(v.date));
+    const amount = deed ? v.amount_usd : v.price_usd;
+    saleRow(
+      "Price as recorded",
+      typeof amount === "number" ? e(usd.format(amount)) : "not recorded",
+    );
+    const docType = deed
+      ? [v.doc_type, v.doc_type_description]
+          .filter((x) => typeof x === "string" && x !== "")
+          .join(", ")
+      : "";
+    saleRow(
+      "Document type",
+      docType
+        ? e(docType)
+        : deed
+          ? "not recorded"
+          : "a sale record (the source names no document type)",
+    );
+    // Parties whose names the registry withholds, from the record's own `<role>_withheld` markers
+    // (a count and kinds, never a name). Party names themselves are not shown on the page.
+    const marks = Object.entries(v)
+      .filter(([k, m]) => k.endsWith("_withheld") && typeof m === "object" && m)
+      .flatMap(([k, m]) => {
+        const count = (m as { count?: unknown }).count;
+        if (typeof count !== "number" || count < 1) return [];
+        const kinds = (m as { kinds?: unknown }).kinds;
+        const kindText = Array.isArray(kinds)
+          ? kinds.filter((x) => typeof x === "string").join(", ")
+          : "";
+        return [
+          `${k.slice(0, -"_withheld".length).replace(/_/g, " ")}: ${count} withheld${kindText ? ` (${kindText})` : ""}`,
+        ];
+      });
+    if (marks.length) saleRow("Party names withheld", e(marks.join("; ")));
+  }
+
   const withheld = rec.history_withheld;
   const years = withheld?.tax_years ?? [];
-  const pro = years.length
+  const records = recordsInWords(rec.sales_withheld, rec.documents_withheld);
+  const proLines = [
+    ...(years.length
+      ? [
+          `<p>${e(yearsInWords(years))}: the publisher's roll values for each, with the same citations, through <code>registry_get</code> on the hosted API.</p>`,
+        ]
+      : []),
+    ...(records
+      ? [
+          `<p>${e(records)}: each with its date, amount and parties as recorded and its citation, through <code>registry_get</code> on the hosted API.</p>`,
+        ]
+      : []),
+  ];
+  const pro = proLines.length
     ? `<h2 id="pro">What a Pro or Team key adds for this parcel</h2>
-<p>${e(yearsInWords(years))}: the publisher's roll values for each, with the same citations, through <code>registry_get</code> on the hosted API. See <a href="/pricing/">pricing</a>.</p>`
+${proLines.join("\n")}
+<p>See <a href="/pricing/">pricing</a>.</p>`
     : "";
 
   const shownIds = new Set(
@@ -859,6 +956,7 @@ ${rows.join("\n")}
 </tbody></table>
 ${valueRows.length ? `<h2 id="values">Roll values</h2>\n<p class="small">The publisher's own roll figures for the current roll year, as released.</p>\n<table><tbody>\n${valueRows.join("\n")}\n</tbody></table>` : ""}
 ${ownerHtml.length ? `<h2 id="owner">Owner</h2>\n<table><tbody>\n${ownerHtml.join("\n")}\n</tbody></table>` : ""}
+${saleHtml.length ? `<h2 id="sale">Latest recorded sale</h2>\n<p class="small">The newest sale or deed the public record holds for this parcel, as recorded. The record does not say whether a sale was at arm's length, and a price is shown as recorded, zero included.</p>\n<table><tbody>\n${saleHtml.join("\n")}\n</tbody></table>` : ""}
 ${pro}
 <h2 id="sources">Sources</h2>
 <p class="small">Each fact above cites the file it was read from. Licence, attribution, redistribution and AI use are as recorded for that source.</p>

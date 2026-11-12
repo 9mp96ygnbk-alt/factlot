@@ -46,6 +46,7 @@ const DOC_TX = `fl:document:sha256-${"c".repeat(64)}`;
 const DOC_DEN = `fl:document:sha256-${"d".repeat(64)}`;
 const DOC_CO_ENT = `fl:document:sha256-${"e".repeat(64)}`;
 const DOC_TAR = `fl:document:sha256-${"f".repeat(64)}`;
+const DOC_ACRIS = `fl:document:sha256-${"1".repeat(64)}`;
 
 const RIGHTS: Record<string, Rec> = {
   [DOC_DC]: {
@@ -83,6 +84,12 @@ const RIGHTS: Record<string, Rec> = {
     redistribution: "permitted",
     license: "test",
   },
+  [DOC_ACRIS]: {
+    ai_use: "unknown",
+    redistribution: "permitted",
+    license: "NYC Open Data terms",
+    attribution: "New York City Department of Finance, ACRIS",
+  },
 };
 const TITLES: Record<string, string> = {
   [DOC_DC]:
@@ -93,6 +100,8 @@ const TITLES: Record<string, string> = {
   [DOC_DEN]: "City and County of Denver: Real property (parcels.csv)",
   [DOC_CO_ENT]: "Colorado Secretary of State: Business entities (entities.csv)",
   [DOC_TAR]: "Tarrant Appraisal District: roll (roll.txt)",
+  [DOC_ACRIS]:
+    "New York City Department of Finance: ACRIS Real Property Legals (acris-legals-2026.csv)",
 };
 
 let factN = 0;
@@ -137,6 +146,8 @@ interface ParcelSpec {
   owner?: string;
   entity?: string;
   values?: { year: number; market: number; appraised: number }[];
+  /** Recorded sales and documents: [predicate, value, document]. */
+  recorded?: [string, Rec, string][];
 }
 
 function parcel(p: ParcelSpec): Rec {
@@ -151,6 +162,8 @@ function parcel(p: ParcelSpec): Rec {
   add("parcel.state_property_category", "F1");
   if (p.address) add("parcel.situs_address", p.address);
   add("parcel.year_built", 1977);
+  for (const [pred, v, doc] of p.recorded ?? [])
+    facts.push(fact(p.urn, pred, v, doc, p.asOf));
   const values = p.values ?? [];
   const current = values[0];
   const valueFacts: Record<string, Rec> = {};
@@ -247,6 +260,39 @@ const W1 = "fl:parcel:us-48439:w1";
 const E1 = "fl:entity:us-dc:e1";
 const C1 = "fl:entity:us-co:c1";
 
+/** P2's recorded sales and documents: the 2026 deed is the newest; the rest are for Pro and Team. */
+const P2_RECORDED: [string, Rec, string][] = [
+  [
+    "transaction.deed",
+    {
+      date: "2026-03-10",
+      doc_type: "DEED",
+      doc_type_description: "DEED",
+      amount_usd: 3030303,
+      document_id: "2026031000777001",
+      grantors: ["SHOWN GRANTOR LLC"],
+      grantors_withheld: { count: 1, kinds: ["estate"] },
+      grantees: [],
+      grantees_withheld: { count: 2, kinds: ["personal trust"] },
+      organizations_only: true,
+    },
+    DOC_ACRIS,
+  ],
+  [
+    "debt.mortgage_recorded",
+    {
+      date: "2024-07-01",
+      doc_type: "MTGE",
+      amount_usd: 8181818,
+      document_id: "2024070100888002",
+      lenders: ["HIDDEN LENDER BANK"],
+      organizations_only: true,
+    },
+    DOC_ACRIS,
+  ],
+  ["transaction.sale", { date: "2015-05-05", price_usd: 8282828 }, DOC_ACRIS],
+];
+
 /** Values: the current year first. The earlier years' figures must never reach a page. */
 const P1_VALUES = [
   { year: 2026, market: 1010101, appraised: 1020202 },
@@ -283,6 +329,7 @@ function buildPack(builtAt = "2026-11-12T12:00:00.000Z"): string {
       asOf: "2026-11-02",
       address: "1 SECOND ST NW",
       values: [P1_VALUES[0]!],
+      recorded: P2_RECORDED,
     }),
   );
   put(
@@ -297,6 +344,14 @@ function buildPack(builtAt = "2026-11-12T12:00:00.000Z"): string {
       asOf: "2026-11-02",
       address: "4 PERSON OWNED AVE",
       values: [P1_VALUES[0]!],
+      // A roll's single latest sale, from a source not recorded as republishable: not shown.
+      recorded: [
+        [
+          "transaction.sale",
+          { date: "2020-02-02", price_usd: 5151515 },
+          DOC_TX,
+        ],
+      ],
     }),
   );
   put(
@@ -710,6 +765,48 @@ describe("property pages: a permitted-source parcel", () => {
     assert.ok(!html.includes("flf_old"), "no withheld citation ids");
     assert.match(html, /What a Pro or Team key adds for this parcel/);
     assert.ok(html.includes("2 earlier roll years, 2024 and 2025"));
+  });
+
+  it("shows the newest recorded sale or deed as recorded, the withheld-party counts from markers only, and counts of the rest", async () => {
+    const h = harness();
+    const html = await (await get(h, "/property/us-11001/p2")).text();
+    assert.match(html, /<h2 id="sale">Latest recorded sale<\/h2>/);
+    assert.ok(html.includes("Date recorded</th><td>2026-03-10</td>"));
+    assert.ok(html.includes("Price as recorded</th><td>$3,030,303</td>"));
+    assert.ok(html.includes("Document type</th><td>DEED, DEED</td>"));
+    assert.ok(
+      html.includes(
+        "Party names withheld</th><td>grantors: 1 withheld (estate); grantees: 2 withheld (personal trust)</td>",
+      ),
+    );
+    assert.ok(!html.includes("SHOWN GRANTOR"), "no party name on the page");
+    assert.ok(html.includes("New York City Department of Finance, ACRIS"));
+    assert.ok(
+      html.includes(
+        "1 more recorded sale, 2015, and 1 recorded mortgage, 2024: each with its date",
+      ),
+    );
+    for (const v of [
+      "8181818",
+      "8,181,818",
+      "8282828",
+      "8,282,828",
+      "HIDDEN LENDER",
+      "2024070100888002",
+      "2024-07-01",
+      "2015-05-05",
+    ])
+      assert.ok(!html.includes(v), `${v} absent`);
+    assert.doesNotMatch(html, /valuation|comparable/i);
+    assert.ok(!/<script/i.test(html), "no script at all");
+  });
+
+  it("shows no sale whose source is not recorded as republishable, and no note for a single sale", async () => {
+    const h = harness();
+    const html = await (await get(h, "/property/us-11001/p4")).text();
+    assert.ok(!html.includes('id="sale"'));
+    assert.ok(!html.includes("5151515") && !html.includes("5,151,515"));
+    assert.ok(!html.includes("recorded sale,"));
   });
 
   it("shows no owner section for a parcel with no owner fact (a person-owned parcel)", async () => {

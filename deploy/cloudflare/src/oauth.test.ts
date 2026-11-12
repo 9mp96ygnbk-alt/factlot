@@ -1121,6 +1121,61 @@ describe("free tier through OAuth", () => {
     assert.equal(batch.result.structuredContent.error, "PlanRequired");
   });
 
+  it("with gating on, a free connection gets the newest recorded sale only, with counts", async () => {
+    const e = env({ GATING_ENABLED: "true" });
+    const a = await connect(e, { decision: "free" });
+    const sale = (id: string, date: string, price: number) => ({
+      id,
+      predicate: "transaction.sale",
+      value: { date, price_usd: price },
+    });
+    const structured = {
+      urn: "fl:parcel:us-36061:1",
+      facts: [sale("n", "2026-02-01", 100), sale("o", "2011-03-04", 7654321)],
+    };
+    const inner: Fetcher = {
+      fetch: async (r: Request) => {
+        const m = JSON.parse(await r.text()) as { id: number };
+        return new Response(
+          JSON.stringify({
+            jsonrpc: "2.0",
+            id: m.id,
+            result: {
+              content: [{ type: "text", text: JSON.stringify(structured) }],
+              structuredContent: structured,
+            },
+          }),
+          { headers: { "content-type": "application/json" } },
+        );
+      },
+    };
+    const res = await handle(
+      new Request(`${API}/mcp`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          accept: "application/json",
+          authorization: `Bearer ${a.tokens.access_token}`,
+          "cf-connecting-ip": IP,
+        },
+        body: JSON.stringify(lookup(1)),
+      }),
+      e,
+      inner,
+    );
+    const text = await res.text();
+    assert.ok(!text.includes("7654321") && !text.includes("2011-03-04"));
+    const got = JSON.parse(text) as {
+      result: { structuredContent: Record<string, unknown> };
+    };
+    assert.deepEqual(got.result.structuredContent.facts, [structured.facts[0]]);
+    assert.deepEqual(got.result.structuredContent.sales_withheld, {
+      count: 1,
+      from_year: 2011,
+      to_year: 2011,
+    });
+  });
+
   it("gives free connections started from different addresses their own allowance", async () => {
     const e = env();
     const a = await connect(e, { decision: "free" });
