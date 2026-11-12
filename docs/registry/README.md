@@ -377,6 +377,29 @@ return.
   Texas entities). Tokens shared by more than 5,000 entities are ignored when building a pool, so
   an owner whose only distinctive token is that common ("HOUSTON LLC") gets no candidates.
 
+## Public property pages
+
+With the Worker variable `PROPERTY_PAGES_ENABLED` set to `true`, factlot.com serves one page per
+hosted parcel at `/property/<county region>/<parcel id>`, the parts of its URN
+(`fl:parcel:us-11001:03760068` is `/property/us-11001/03760068`), listed in sitemaps under
+`/sitemaps/properties.xml` (named in robots.txt). A page shows what a `registry_get` call without a
+key returns, with value history cut to the current roll year: the situs address as the publisher
+wrote it, the parcel ID, county and state, property category codes, land and building area, year
+built, building class and neighbourhood code where present, the owner of record when the registry
+has one (always an organisation) with its linked registered entity and how many other hosted
+parcels that entity holds, and the publisher's current roll values with roll year and as-of date.
+Every fact cites its source document with the licence, attribution, redistribution and AI use
+recorded for the source, plus any notice the source's terms require. Earlier roll years are named
+by year and count only, never by value.
+
+A parcel gets a page only when every source behind a fact the page shows records `redistribution`
+as `permitted` or `attribution_required`. A source recorded `unknown` (the Texas appraisal
+districts) gets none unless its source id is listed in the Worker variable
+`PROPERTY_PAGES_EXTRA_SOURCES`. Withheld counties never get a page. A parcel without a situs
+address has a page marked `noindex` and is not in the sitemaps. Page views do not count against
+the free daily registry lookups; each address may open 120 pages a minute. To have a record
+removed or corrected (for example one that names a person), email contact@factlot.com.
+
 ## Next
 
 1. **Texas adapters.** Harris, then Dallas, then the Comptroller entity data. Each adapter is

@@ -15,6 +15,7 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 
 ### Added
 
+- Public property pages on factlot.com, off unless the Worker variable `PROPERTY_PAGES_ENABLED` is `true`: `/property/<county region>/<parcel id>` for each hosted parcel whose sources record `redistribution` as `permitted` or `attribution_required` (or are listed in `PROPERTY_PAGES_EXTRA_SOURCES`), showing the free view of `registry_get` with every citation, and sitemaps under `/sitemaps/properties.xml`; withheld counties get no page, and page views use no registry lookups.
 - Texas registry: `tx_travis --history-only <year>` reads Travis CAD's EARS submissions (Comptroller form 96-1051, tax years 2022 to 2025) as market value history only, by the county's `AJR` records with an account's categories added up. Values are the roll as submitted; EARS carries no appraised value.
 - Hosted registry, ready for regions beyond Texas: a county whose parcels come only from a source covering part of it (Boston in Suffolk County) is recorded in the pack, and its misses and `registry_coverage` say which part is loaded. Entity registries other than Texas's are served in part the same way (the entities that own a hosted parcel).
 - Pack builder: `--jobs <n>` packs each registry file in its own process and gives the same pack; a pack that would exceed the Workers static-assets file limit stops while building.
