@@ -233,6 +233,22 @@
     <strong>Discovery</strong>: <code>search</code>, <code>fetch</code> and
     <code>schema_get</code> help an agent find the right tool.
   </li>
+  <li>
+    <strong>Resources</strong> (read-only, no key, no registry lookup):
+    <code>factlot://coverage</code> (what the hosted registry serves, by place),
+    <code>factlot://sources</code> (every reviewed source with its licence, AI
+    use, redistribution and attribution), <code>factlot://markets</code> (a
+    worked example per hosted market), <code>factlot://schemas/tools</code>,
+    <code>factlot://schemas/fact</code>, <code>factlot://spec/id</code> and
+    <code>factlot://plans</code>.
+  </li>
+  <li>
+    <strong>Prompts</strong>: <code>property_owner</code>,
+    <code>owner_portfolio</code>, <code>parcel_value_history</code>,
+    <code>tx_unequal_appraisal_candidates</code>,
+    <code>lease_abstract_check</code> and <code>deal_math</code>, each giving
+    the tools to call in order and asking for every fact to be cited.
+  </li>
 </ul>
 <p class="small">
   Full definitions with every input described:

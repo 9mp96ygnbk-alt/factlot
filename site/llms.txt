@@ -6,7 +6,7 @@ When reporting a number from a calculator, cite its formula ID (for example `cal
 
 ## Connect
 
-Add the remote MCP server https://api.factlot.com/mcp (Streamable HTTP, stateless, no key on the free tier); setup for each client, including the OAuth connector URL https://api.factlot.com/mcp/signin for Claude and ChatGPT custom connectors, is at https://factlot.com/connect/. Local stdio server: `npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.5.0/factlot-mcp-standalone-0.5.0.tgz` (Node.js 22.6 or newer, no network calls). Official MCP Registry name: `io.github.9mp96ygnbk-alt/factlot`.
+Add the remote MCP server https://api.factlot.com/mcp (Streamable HTTP, stateless, no key on the free tier); setup for each client, including the OAuth connector URL https://api.factlot.com/mcp/signin for Claude and ChatGPT custom connectors, is at https://factlot.com/connect/. Local stdio server: `npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.5.0/factlot-mcp-standalone-0.5.0.tgz` (Node.js 22.6 or newer, no network calls). Official MCP Registry name: `io.github.9mp96ygnbk-alt/factlot`. Besides tools, the MCP server (hosted and local) offers read-only resources that need no key and use no registry lookup (`factlot://coverage`, `factlot://sources`, `factlot://markets`, `factlot://schemas/tools`, `factlot://schemas/fact`, `factlot://spec/id`, `factlot://plans`) and prompts for common jobs (who owns a property, an owner's portfolio, value history, Texas unequal-appraisal candidates, a lease abstract check, deal maths).
 
 ## What it covers
 

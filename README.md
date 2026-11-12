@@ -229,6 +229,11 @@ The server provides these tools:
   `registry_resolve_external`, `registry_search_address`, `registry_search_entities`,
   `registry_owned_by`, `registry_coverage`, `registry_tx_equity_candidates`,
   `registry_tx_equity_candidates_batch`
+- **MCP resources and prompts** (no key, no registry lookup): `factlot://coverage`,
+  `factlot://sources`, `factlot://markets`, `factlot://schemas/tools`, `factlot://schemas/fact`,
+  `factlot://spec/id`, `factlot://plans`; prompts `property_owner`, `owner_portfolio`,
+  `parcel_value_history`, `tx_unequal_appraisal_candidates`, `lease_abstract_check`, `deal_math`
+  ([docs/agents.md](docs/agents.md#mcp-resources-and-prompts))
 
 ## Quick start: Python agents
 

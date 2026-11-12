@@ -95,6 +95,31 @@ and its values are fiscal-year 2026 values as of 2025-01-01. Connecticut parcels
 county in their FIPS code. Natural persons' names are never returned; a parcel whose owner is a person
 shows no owner.
 
+## MCP resources and prompts
+
+Both MCP servers (the hosted one at `https://api.factlot.com/mcp` and the local stdio server) offer
+read-only resources and prompts besides the tools. Reading them needs no key and uses no registry
+lookup.
+
+| Resource                                                    | What it holds                                                                                                                                                                    |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `factlot://coverage`, `factlot://coverage/{place}`          | What the hosted registry serves: places, counties, parcel and building counts, as-of dates, entity registries, withheld counties, and the roll years of each hosted Texas county |
+| `factlot://sources`, `factlot://sources/{source_id}`        | Every reviewed source: publisher, review status, licence, AI use, redistribution, attribution, terms URL and review date, as recorded in `registry/sources/`                     |
+| `factlot://markets`, `factlot://markets/{slug}`             | A worked example per hosted market: the calls, what they returned, the ID system, the sources' terms and what the place does not hold                                            |
+| `factlot://schemas/tools`, `factlot://schemas/tools/{tool}` | The tool list and each tool's input JSON Schema                                                                                                                                  |
+| `factlot://schemas/fact`, `factlot://spec/id`               | The fact model as JSON Schema and the FactLot ID specification                                                                                                                   |
+| `factlot://plans`                                           | The hosted plans' allowances and how registry lookups are counted                                                                                                                |
+
+The figures come from generated files (`site/_data/hosted.json` and the others named in
+`scripts/mcp/gen-resources.ts`), so they change with each data release. On the local server the
+coverage resources describe the hosted service, not the local one: call `registry_coverage` for the
+live answer.
+
+Prompts (`prompts/get`) give the tool order for common jobs and ask for every fact to be cited:
+`property_owner`, `owner_portfolio`, `parcel_value_history`, `tx_unequal_appraisal_candidates`
+(candidates under FactLot's default rule for a person to review, never a selection of comparables),
+`lease_abstract_check` and `deal_math`.
+
 ## Mapping lease language to inputs
 
 - **CAM caps.** Lease terms like "cumulative" and "non-cumulative" are used inconsistently, so
