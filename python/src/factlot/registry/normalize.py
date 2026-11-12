@@ -339,7 +339,9 @@ _PERSONAL_TRUST_MARK = re.compile(
 # Dated or "under agreement" forms: personal when the name also has a trust or trustee word.
 _TRUST_INSTRUMENT_MARK = re.compile(
     r"\b(?:DTD|U A|U T A|U D T|U A D|U W|UTA|UDT|UTD|UAD|UTAD|DATED|AGREEMENT DATED|DECLARATION OF TRUST)\b")
-_ANY_TRUST_WORD = re.compile(r"\b(?:TRUSTS?|TRST|TR|TRS|TRUSTEES?|TTEES?|TRSTEES?|TRUSTE|U T A|UTA|U D T|UDT|UTAD)\b")
+# Written run together, UTA and UDT are also words in companies' names ("<number> UTA LLC"), so only the spaced
+# "U/T/A" and "U/D/T" count as a trust on their own.
+_ANY_TRUST_WORD = re.compile(r"\b(?:TRUSTS?|TRST|TR|TRS|TRUSTEES?|TTEES?|TRSTEES?|TRUSTE|U T A|U D T)\b")
 # A trustee, written out or abbreviated, with its role words; "BOARD OF TRUSTEES" is a body, kept as one unit.
 _BOARD_OF_TRUSTEES = re.compile(r"\b(?:THE )?(?:BOARD|BD|BRD) OF (?:TRUSTEES|TRS|TTEES)\b(?: OF)?(?: THE)?")
 _TRUSTEE = re.compile(
