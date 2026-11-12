@@ -177,7 +177,7 @@ function cors(res: ServerResponse): void {
   res.setHeader("access-control-allow-methods", "GET, POST, DELETE, OPTIONS");
   res.setHeader(
     "access-control-allow-headers",
-    "content-type, authorization, mcp-session-id, mcp-protocol-version, last-event-id",
+    "content-type, authorization, accept, mcp-session-id, mcp-protocol-version, mcp-method, mcp-name, last-event-id",
   );
   res.setHeader(
     "access-control-expose-headers",
