@@ -32,8 +32,19 @@ const root = fileURLToPath(new URL("../..", import.meta.url));
 let passed = 0;
 const failures: string[] = [];
 const notes: string[] = [];
-// Real lookups in the hosted regions (DC, MD, UT). Values come from the registry files the hosted
-// pack is built from; update them when the pack is rebuilt.
+// What the hosted pack serves (site/_data/hosted.json, which scripts/site/gen-hosted.ts writes from the
+// pack's manifest).
+const HOSTED = JSON.parse(
+  readFileSync(
+    new URL("../../site/_data/hosted.json", import.meta.url),
+    "utf8",
+  ),
+) as {
+  totals: { parcels: number; entities: number; counties: number };
+  withheld: { fips: string }[];
+};
+// Real lookups in the hosted regions. Values come from the registry files the hosted pack is built
+// from; update them when the pack is rebuilt.
 const HOSTED_REGISTRY_CASES: {
   tool: string;
   arguments: Record<string, unknown>;
@@ -43,14 +54,18 @@ const HOSTED_REGISTRY_CASES: {
   {
     tool: "registry_coverage",
     arguments: {},
-    // Pack of 2026-11-10 (manifest coverage_result.totals): 128,854 MD, DC and UT parcels plus
-    // 305,684 Texas parcels in sixteen counties; 93,689 entities.
     expect: {
-      "totals.parcels": 434538,
-      "totals.entities": 93689,
-      "totals.counties": 43,
-      "hosted.withheld_counties.0.region": "us-48439",
+      "totals.parcels": HOSTED.totals.parcels,
+      "totals.entities": HOSTED.totals.entities,
+      "totals.counties": HOSTED.totals.counties,
+      "hosted.withheld_counties.0.region": `us-${HOSTED.withheld[0]!.fips}`,
     },
+  },
+  // Outside Texas the candidate tool is an input error (Texas-only), whatever regions are hosted.
+  {
+    tool: "registry_tx_equity_candidates",
+    arguments: { urn: "fl:parcel:us-36061:1000010001" },
+    expect_error: "InputError",
   },
   {
     tool: "registry_get",
