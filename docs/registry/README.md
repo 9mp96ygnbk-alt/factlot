@@ -322,7 +322,19 @@ and in `include_history`'s `history`; the others are left out, and the record ad
 and `documents_withheld` (the three document predicates, with `by_predicate` counts), each a `count` and the
 `from_year` and `to_year` of the dates left out (never a price, party, document number, citation or full date), a
 one-sentence `sales_note` and `history_available: "pro"`. A parcel with no such fact, or a single sale or deed (a roll's
-latest sale), is unchanged and gets none of them. A price is the price as recorded, zero or nominal included; the
+latest sale), is unchanged and gets none of them.
+
+A record keeps the newest 50 of these four predicates together (`RECORDED_FACTS_LIMIT`), in `facts` and in
+`include_history`'s `history`, so that no record is too large for the hosted Workers (one New York parcel holds
+19,583). When a parcel has more, the record adds `recorded_facts_truncated`: `limit`, `kept` and `total`, the
+`from_year` and `to_year` of the facts left out, `by_predicate` (each predicate's `kept` and `total`, and the years
+of its facts left out) and `rest: "registry_recorded_facts"`. `registry_recorded_facts` (`urn`, optional
+`predicate`, `cursor`, `limit` from 1 to 100, default 50) returns every recorded fact of a parcel newest first in
+the same order, a page at a time: `totals` by predicate, `total` for the page's predicate or all four, `facts`, and
+`next_cursor` (pass it back as `cursor`; null on the last page). The hosted pack keeps a capped parcel's lists in
+`g/<k>/r/` pages of 100 facts; a file with no capped parcel packs exactly as before. On the hosted API the tool needs
+a Pro or Team key, and a free caller's withheld counts come from `recorded_facts_truncated`, so they are the
+parcel's true totals. A price is the price as recorded, zero or nominal included; the
 sources do not say whether a sale was at arm's length, and the registry does not infer it. Source review records:
 [sources/README.md](sources/README.md#enrichment-sources-zoning-building-and-sale-facts); the predicates are in
 [../fact-model.md](../fact-model.md).

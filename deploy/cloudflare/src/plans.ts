@@ -186,6 +186,7 @@ export const GATING_INFO = {
   batch: "Pro and Team",
   dated_get: "Pro and Team",
   candidates_tax_year: "Pro and Team",
+  recorded_facts: "Pro and Team (registry_recorded_facts)",
   pricing: GATING_PRICING_URL,
 };
 

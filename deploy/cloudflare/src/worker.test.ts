@@ -7018,6 +7018,7 @@ describe("paid gating (GATING_ENABLED)", () => {
         batch: string;
         dated_get: string;
         candidates_tax_year: string;
+        recorded_facts: string;
         pricing: string;
       };
       plans: {
@@ -7039,6 +7040,7 @@ describe("paid gating (GATING_ENABLED)", () => {
       batch: "Pro and Team",
       dated_get: "Pro and Team",
       candidates_tax_year: "Pro and Team",
+      recorded_facts: "Pro and Team (registry_recorded_facts)",
       pricing: "https://factlot.com/pricing/",
     });
     assert.match(String(enabled.plans.free.note), /current roll year/);
