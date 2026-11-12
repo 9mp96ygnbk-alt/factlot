@@ -193,14 +193,7 @@ the ZIP code short and the parcel joined the one building at its street line who
 begins with the digits left. `registry_get` on a parcel returns its `building` (URN, label,
 parcel and unit counts, rule); on a building URN it returns the members; `registry_owned_by`
 gives each parcel its `building` and adds a `buildings` summary, so one owner's 25 parcels in one condominium
-building count as one building. On the hosted API, a call without a Pro or Team key gets the first three parcels of
-`results` in the registry's order and the `buildings` of those parcels only (`owned_parcels` counted over them), and,
-when parcels were actually removed, `portfolio_withheld` (`count`, the parcels left out, and `total`, the owner's
-parcels; never a URN, label or building) and a one-sentence `portfolio_note` saying the same in words. A portfolio of
-three parcels or fewer gets neither. The tool takes no paging argument, so the cut applies to every call. The
-entity's own `registry_get` record is limited the same way: its first three `owns` relationships to parcels, in the
-registry's order (newest link first, so not necessarily the three `registry_owned_by` keeps), with the same
-`portfolio_withheld` and `portfolio_note`; its other relationships are unchanged. On the published DC sample the roll-up makes 396 buildings from
+building count as one building. On the hosted API, a call without a Pro or Team key gets the first three distinct parcels of `results` in the registry's order, with every row of each (a parcel can have more than one row, one per linking document), and the `buildings` of those parcels only (`owned_parcels` counting distinct kept parcels), and, when parcels were actually removed, `portfolio_withheld` (`count`, the distinct parcels left out, and `total`, the owner's distinct parcels; never a URN, label or building) and a one-sentence `portfolio_note` saying the same in words. A portfolio of three distinct parcels or fewer gets neither, however many rows it has. The tool takes no paging argument, so the cut applies to every call. The entity's own `registry_get` record is limited the same way: its `owns` relationships to the first three distinct parcels, in the registry's order (newest link first, so not necessarily the three `registry_owned_by` keeps), with the same `portfolio_withheld` and `portfolio_note`; its other relationships are unchanged. On the published DC sample the roll-up makes 396 buildings from
 1,682 parcels (713 by DC condominium lot numbers).
 
 Limits: the roll-up is an inference from addresses, not a published building record. Two
