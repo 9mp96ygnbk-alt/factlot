@@ -193,6 +193,14 @@ class DallasHistoryOnly(unittest.TestCase):
         finally:
             reg.close()
 
+    def test_member_names_in_lower_case(self):
+        z = self.tmp / "DCAD2022_CERTIFIED.ZIP"  # DCAD's 2022 export names its members in lower case
+        with zipfile.ZipFile(z, "w") as zf:
+            for name, lines in DALLAS.items():
+                zf.writestr(name.lower(), "\r\n".join([*(ln.replace('"2026"', '"2022"') for ln in lines), ""]))
+        stats = tx_dallas.build_history(z, self.db, as_of="2022-07-25", tax_year=2022)
+        self.assertGreater(stats.kept, 0)
+
     def test_wrong_year_and_zero_values(self):
         stats = tx_dallas.build_history(dallas_zip(self.tmp, 2027, values=False), self.db, as_of="2026-11-02", tax_year=2025)
         self.assertEqual(stats.kept, 0, "a 2027 file is not tax year 2025, and its zero values are not values")

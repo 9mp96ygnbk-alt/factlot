@@ -73,8 +73,11 @@ def _rows(path: str | Path, name: str) -> Iterator[dict[str, str]]:
         with open(p / name, newline="", encoding="latin-1") as f:
             yield from csv.DictReader(f)
         return
-    with zipfile.ZipFile(p) as zf, zf.open(name) as raw:
-        yield from csv.DictReader(io.TextIOWrapper(raw, encoding="latin-1", newline=""))
+    with zipfile.ZipFile(p) as zf:
+        # The 2022 certified export names its members in lower case (account_apprl_year.csv); later years in upper case.
+        member = next((n for n in zf.namelist() if n.upper() == name.upper()), name)
+        with zf.open(member) as raw:
+            yield from csv.DictReader(io.TextIOWrapper(raw, encoding="latin-1", newline=""))
 
 
 def _num(s: str | None) -> float | None:
