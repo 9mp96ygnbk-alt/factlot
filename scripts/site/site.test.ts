@@ -562,3 +562,132 @@ describe("/try/ page", () => {
     },
   );
 });
+
+describe("hosted registry figures (site/_data/hosted.json)", async () => {
+  const hosted = await import("./hosted.mjs");
+  const { hostedData, hostedText } = await import("./gen-hosted.ts");
+  const data = JSON.parse(read("site/_data/hosted.json")) as ReturnType<
+    typeof hostedData
+  >;
+  it("every page, document and llms.txt states what hosted.json says", () => {
+    for (const file of hosted.HOSTED_FILES) {
+      const text = read(file);
+      const r = hosted.renderHosted(
+        text,
+        data,
+        ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY,
+      );
+      assert.ok(r.found > 0, `${file}: no hosted text marked`);
+      assert.deepEqual(
+        hosted.hostedDifferences(
+          text,
+          data,
+          ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY,
+        ),
+        [],
+        `${file} is out of date: run scripts/site/gen-hosted.ts --text`,
+      );
+    }
+  });
+  it("adds up: places partition the counties, and the totals are their sums", () => {
+    const fips = data.places.flatMap((p) => p.counties).sort();
+    assert.deepEqual(fips, data.counties.map((c) => c.fips).sort());
+    assert.equal(
+      data.places.reduce((a, p) => a + p.parcels, 0),
+      data.totals.parcels,
+    );
+    assert.equal(
+      data.counties.reduce((a, c) => a + c.parcels, 0),
+      data.totals.parcels,
+    );
+    assert.equal(data.counties.length, data.totals.counties);
+    assert.deepEqual(data.text, hostedText(data));
+    assert.ok(
+      !data.counties.some((c) => data.withheld.some((w) => w.fips === c.fips)),
+    );
+  });
+  it("words new regions by place, and a county loaded in part by its part", () => {
+    // A manifest with the regions FactLot builds next (invented counts).
+    const county = (
+      fips: string,
+      st: string,
+      parcels: number,
+      source: string,
+    ) => ({
+      region: `us-${fips}`,
+      state_fips: fips.slice(0, 2),
+      county_fips: fips.slice(2),
+      state: st,
+      parcels,
+      buildings: 0,
+      sources: [{ source_id: source, as_of: "2026-10-01" }],
+    });
+    const counties = [
+      county("06037", "CA", 100, "ca-los-angeles-assessor"),
+      county("06075", "CA", 10, "ca-san-francisco-assessor"),
+      county("08031", "CO", 20, "co-denver-assessor"),
+      ...["001", "003", "005", "007", "009", "011", "013", "015"].map((c) =>
+        county(`09${c}`, "CT", 5, "ct-parcel-cama-layer"),
+      ),
+      county("24005", "MD", 7, "md-sdat-real-property"),
+      county("25025", "MA", 30, "ma-boston-assessing"),
+      ...["36005", "36047", "36061", "36081", "36085"].map((f) =>
+        county(f, "NY", 40, "ny-nyc-dof"),
+      ),
+      county("48201", "TX", 9, "tx-harris-cad"),
+      county("51059", "VA", 3, "va-fairfax"),
+    ];
+    const parcels = counties.reduce((a, c) => a + c.parcels, 0);
+    const m = {
+      built_at: "2026-12-01T00:00:00Z",
+      coverage: {
+        counties,
+        entity_registries: [
+          { jurisdiction: "us-ny", entities: 1234, sources: [] },
+          { jurisdiction: "us-co", entities: 56, sources: [] },
+        ],
+        crosswalk_systems: [],
+        totals: {
+          parcels,
+          entities: 1290,
+          buildings: 0,
+          counties: counties.length,
+          states: ["CA", "CO", "CT", "MA", "MD", "NY", "TX", "VA"],
+        },
+      },
+      entity_scope: { "us-ny": { served: 1234, total: 3631216 } },
+      withheld: { "48439": "terms" },
+      partial_counties: {
+        "25025": { area: "the City of Boston", rest: "the rest" },
+      },
+    } as unknown as Parameters<typeof hostedData>[0];
+    const d = hostedData(m, ["Harris"]);
+    assert.equal(
+      hosted.placesText(d),
+      "Maryland (1 of its 24 jurisdictions), one Texas county (Harris), New York City (all five boroughs), Los Angeles County, San Francisco, Boston, Denver, Connecticut, and Fairfax County, VA",
+    );
+    const line = hosted.llmsHostedLine(d, 25);
+    assert.match(
+      line,
+      /New York City \(all five boroughs; 200 commercial parcels/,
+    );
+    assert.match(
+      line,
+      /the 1,234 New York Department of State entities that own a hosted parcel/,
+    );
+    assert.match(
+      line,
+      /Boston \(the City of Boston only, not the rest of Suffolk County;/,
+    );
+    assert.match(
+      line,
+      /Connecticut \(40 commercial parcels in eight former counties/,
+    );
+    assert.match(
+      line,
+      /Los Angeles County \(100 commercial parcels from the Assessor's roll as of 2026-10-01; no owner names/,
+    );
+    assert.match(line, /: 419 parcels in 20 counties, on every plan/);
+    assert.match(line, /Tarrant County is not served by the hosted registry/);
+  });
+});
