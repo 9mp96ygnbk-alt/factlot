@@ -66,6 +66,69 @@ test("MCP over Streamable HTTP: list and call tools", async () => {
   await close();
 });
 
+// MCP revision 2026-07-28 drops `initialize` and sessions and puts the version on every request.
+// This server speaks 2025-11-25 and earlier (the pinned @modelcontextprotocol/sdk 1.x has no
+// 2026-07-28 support). A dual-era client probes with a modern request and falls back to
+// `initialize` unless the 400 carries a recognized modern error: UnsupportedProtocolVersionError
+// (-32022, with data.supported) or HeaderMismatch (-32020). Answering with one of those would
+// make the client retry in the modern form, so the refusal must be neither.
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#backward-compatibility
+test("a 2026-07-28 request is refused so that a dual-era client falls back to initialize", async () => {
+  const { base, close } = await start();
+  const meta = { "io.modelcontextprotocol/protocolVersion": "2026-07-28" };
+  for (const [method, params] of [
+    ["server/discover", {}],
+    ["tools/list", {}],
+    ["tools/call", { name: "calc_npv", arguments: {} }],
+  ] as const) {
+    const res = await post(
+      `${base}/mcp`,
+      { jsonrpc: "2.0", id: 1, method, params: { ...params, _meta: meta } },
+      {
+        accept: "application/json, text/event-stream",
+        "mcp-protocol-version": "2026-07-28",
+        "mcp-method": method,
+      },
+    );
+    assert.equal(res.status, 400, method);
+    const body = (await res.json()) as {
+      error?: { code?: number; message?: string; data?: unknown };
+    };
+    assert.ok(body.error, `${method}: a JSON-RPC error body`);
+    assert.ok(
+      body.error.code !== -32022 &&
+        body.error.code !== -32020 &&
+        (body.error.data as { supported?: unknown } | undefined)?.supported ===
+          undefined,
+      `${method}: not a recognized modern error, so the client falls back`,
+    );
+    // Says which versions are spoken, for a person reading the error.
+    assert.match(body.error.message ?? "", /2025-11-25/);
+  }
+  // The fallback then works: the same endpoint answers initialize.
+  const init = await post(
+    `${base}/mcp`,
+    {
+      jsonrpc: "2.0",
+      id: 1,
+      method: "initialize",
+      params: {
+        protocolVersion: "2025-11-25",
+        capabilities: {},
+        clientInfo: { name: "fallback", version: "0.0.0" },
+      },
+    },
+    { accept: "application/json, text/event-stream" },
+  );
+  assert.equal(init.status, 200);
+  // The 2026-07-28 revision removed the GET stream; the legacy-compatible answer is 405.
+  const get = await fetch(`${base}/mcp`, {
+    headers: { accept: "text/event-stream" },
+  });
+  assert.equal(get.status, 405);
+  await close();
+});
+
 test("REST endpoints and errors", async () => {
   const { base, close } = await start();
   const ok = await post(`${base}/v1/calc/percentage_rent`, {
@@ -166,6 +229,17 @@ test("OpenAPI documents point at this server", async () => {
     Object.keys(all30.paths).length,
     Object.keys(doc31.paths).length,
   );
+  // ?profile=bedrock: Amazon Bedrock Agents does not support enum, so there is none.
+  const bedrock = (await (
+    await fetch(`${base}/openapi-3.0.json?profile=bedrock`)
+  ).json()) as { openapi: string; paths: object };
+  assert.equal(bedrock.openapi, "3.0.0");
+  assert.ok(Object.keys(bedrock.paths).length <= 11);
+  assert.ok(!JSON.stringify(bedrock).includes('"enum"'));
+  const bedrockAll = await (
+    await fetch(`${base}/openapi-3.0.json?profile=bedrock&operations=all`)
+  ).text();
+  assert.ok(!bedrockAll.includes('"enum"') && !bedrockAll.includes('"const"'));
   await close();
 });
 

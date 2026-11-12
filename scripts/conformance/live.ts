@@ -324,7 +324,7 @@ async function transport(): Promise<void> {
     () => short(unknown.text),
   );
   // A 2026-07-28 client probes first and falls back to initialize unless the 400 carries a
-  // recognised modern error (-32020 HeaderMismatch, UnsupportedProtocolVersion with `supported`).
+  // recognized modern error (-32020 HeaderMismatch, -32022 UnsupportedProtocolVersion with `supported`).
   const modern = await rpc(
     {
       jsonrpc: "2.0",
@@ -338,17 +338,22 @@ async function transport(): Promise<void> {
   );
   const err = modern.json?.error as
     { code?: number; data?: { supported?: unknown } } | undefined;
+  // A 400 with a recognized modern error says "I am a modern server": the client retries the
+  // modern form and never falls back. Only such an answer is wrong for a server without it.
   const modernAnswer =
-    modern.res.status === 200 ||
-    (modern.res.status === 400 &&
-      (err?.code === -32020 || Array.isArray(err?.data?.supported)));
+    modern.res.status === 400 &&
+    (err?.code === -32020 ||
+      err?.code === -32022 ||
+      Array.isArray(err?.data?.supported));
   report(
-    modern.res.status === 200 ? "PASS" : modernAnswer ? "FAIL" : "WARN",
+    modernAnswer ? "FAIL" : "PASS",
     "MCP 2026-07-28 clients (AgentCore Gateway, Inspector modern mode)",
     "a 2026-07-28 request is answered, or refused so the client falls back to initialize",
     modern.res.status === 200
       ? ""
-      : `status ${modern.res.status}: ${short(modern.text, 200)}; ${modernAnswer ? "a modern client will not fall back" : "the server speaks 2025-11-25 and earlier: clients fall back to initialize"}`,
+      : modernAnswer
+        ? `status ${modern.res.status}: ${short(modern.text, 200)}; a modern client will not fall back`
+        : `status ${modern.res.status} with no recognized modern error, as the spec says a legacy server answers (clients that speak both fall back to initialize; a 2026-07-28-only client cannot connect): ${short(modern.text, 160)}`,
   );
   const note = await rpc({
     jsonrpc: "2.0",
