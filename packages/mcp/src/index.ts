@@ -16,6 +16,7 @@ import {
 import { jsonSchemas } from "@factlot/schema";
 import {
   RegistryUnavailableError,
+  inputJsonSchema,
   portableInputSchema,
   registryAvailable,
   registrySnapshot,
@@ -27,7 +28,7 @@ import { z } from "zod";
 import { NO_MATCH_NOTE, fetchDoc, searchCorpus } from "./knowledge.ts";
 import { LOCAL_TOOL_SPECS } from "./local.ts";
 import { registerPrompts } from "./prompts.ts";
-import { registerResources } from "./resources.ts";
+import { type ListedTool, registerResources } from "./resources.ts";
 
 export { NO_MATCH_NOTE, corpus, fetchDoc, searchCorpus } from "./knowledge.ts";
 export { LOCAL_TOOLS } from "./local.ts";
@@ -163,6 +164,13 @@ function structured(data: Record<string, unknown>): CallToolResult {
   };
 }
 
+const SEARCH_DESCRIPTION =
+  "Search FactLot's knowledge base (tools, inputs, CRE predicates, ID and fact specifications). Returns matching document ids, titles, and URLs; call fetch for full text. A query on a subject the knowledge base does not cover returns no results and a note.";
+const FETCH_DESCRIPTION =
+  "Fetch the full text of a FactLot knowledge document by the id returned from search. With a registry loaded, a registry fact's source document_id (fl:document:sha256-…) returns that source snapshot: publisher, dataset, URL, retrieval date, as-of date, licence, AI-use and redistribution rights, file name and size.";
+const SCHEMA_GET_DESCRIPTION =
+  "Return the FactLot data model (Fact, Provenance, SourceRef, Rights, Relationship) as JSON Schema.";
+
 const DOCUMENT_ID = /^fl:document:sha256-[a-f0-9]{64}$/;
 
 /** `fetch` of a registry source snapshot: its source, URL, dates, licence and size. */
@@ -274,6 +282,8 @@ export function createServer(opts: CreateServerOptions = {}): McpServer {
   );
   // Every call goes through these, with the arguments as sent (see the tools/call handler below).
   const handlers = new Map<string, Handler>();
+  // What tools/list will show, for the factlot://schemas/tools index.
+  const listed: ListedTool[] = [];
 
   for (const tool of tools) {
     if (tool.requires === "registry" && !withRegistry) continue;
@@ -293,6 +303,21 @@ export function createServer(opts: CreateServerOptions = {}): McpServer {
       return outcome.ok ? json(outcome.result) : toolError(outcome.error);
     };
     handlers.set(tool.name, handler);
+    listed.push({
+      name: tool.name,
+      title: tool.title,
+      description: tool.description,
+      rest_path: tool.path,
+      formula: tool.formula
+        ? `${tool.formula.id}@${tool.formula.version}`
+        : null,
+      requires: tool.requires ?? null,
+      // The same portable form tools/list shows (inclusive numeric bounds).
+      inputSchema: () =>
+        portableInputSchema(inputJsonSchema(tool)) as ReturnType<
+          typeof inputJsonSchema
+        >,
+    });
     server.registerTool(
       tool.name,
       {
@@ -313,6 +338,16 @@ export function createServer(opts: CreateServerOptions = {}): McpServer {
         spec.run as (args: unknown) => Promise<CallToolResult>,
       );
       handlers.set(spec.name, handler);
+      listed.push({
+        name: spec.name,
+        title: spec.title,
+        description: spec.description,
+        rest_path: null,
+        formula: null,
+        requires: "local machine",
+        inputSchema: () =>
+          z.toJSONSchema(spec.input) as Record<string, unknown>,
+      });
       server.registerTool(
         spec.name,
         {
@@ -342,8 +377,7 @@ export function createServer(opts: CreateServerOptions = {}): McpServer {
     "search",
     {
       title: "Search FactLot knowledge",
-      description:
-        "Search FactLot's knowledge base (tools, inputs, CRE predicates, ID and fact specifications). Returns matching document ids, titles, and URLs; call fetch for full text. A query on a subject the knowledge base does not cover returns no results and a note.",
+      description: SEARCH_DESCRIPTION,
       inputSchema: SearchInput.shape,
       outputSchema: SearchOutput.shape,
       annotations: { ...READ_ONLY, title: "Search FactLot knowledge" },
@@ -367,8 +401,7 @@ export function createServer(opts: CreateServerOptions = {}): McpServer {
     "fetch",
     {
       title: "Fetch a FactLot knowledge document",
-      description:
-        "Fetch the full text of a FactLot knowledge document by the id returned from search. With a registry loaded, a registry fact's source document_id (fl:document:sha256-…) returns that source snapshot: publisher, dataset, URL, retrieval date, as-of date, licence, AI-use and redistribution rights, file name and size.",
+      description: FETCH_DESCRIPTION,
       inputSchema: FetchInput.shape,
       outputSchema: FetchOutput.shape,
       annotations: {
@@ -385,13 +418,37 @@ export function createServer(opts: CreateServerOptions = {}): McpServer {
     "schema_get",
     {
       title: "FactLot JSON Schemas",
-      description:
-        "Return the FactLot data model (Fact, Provenance, SourceRef, Rights, Relationship) as JSON Schema.",
+      description: SCHEMA_GET_DESCRIPTION,
       inputSchema: {},
       annotations: { ...READ_ONLY, title: "FactLot JSON Schemas" },
     },
     schemaGet,
   );
+
+  for (const [name, title, description, input] of [
+    ["search", "Search FactLot knowledge", SEARCH_DESCRIPTION, SearchInput],
+    [
+      "fetch",
+      "Fetch a FactLot knowledge document",
+      FETCH_DESCRIPTION,
+      FetchInput,
+    ],
+    [
+      "schema_get",
+      "FactLot JSON Schemas",
+      SCHEMA_GET_DESCRIPTION,
+      z.object({}),
+    ],
+  ] as const)
+    listed.push({
+      name,
+      title,
+      description,
+      rest_path: null,
+      formula: null,
+      requires: null,
+      inputSchema: () => z.toJSONSchema(input) as Record<string, unknown>,
+    });
 
   // Read-only resources and prompts: no key, no registry lookup, nothing beyond the site and repo.
   const context = {
@@ -399,7 +456,7 @@ export function createServer(opts: CreateServerOptions = {}): McpServer {
     registry: withRegistry,
     localFiles: opts.localFiles ?? false,
   };
-  registerResources(server, context);
+  registerResources(server, context, listed);
   registerPrompts(server, context);
 
   // tools/call: McpServer validates arguments against the zod schema before a handler runs and

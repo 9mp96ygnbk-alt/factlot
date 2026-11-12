@@ -18,7 +18,6 @@
  */
 import { ID_SPEC_VERSION } from "@factlot/id";
 import { jsonSchemas } from "@factlot/schema";
-import { inputJsonSchema, tools } from "@factlot/tools";
 import {
   type McpServer,
   ResourceTemplate,
@@ -27,9 +26,7 @@ import {
   McpError,
   type ReadResourceResult,
 } from "@modelcontextprotocol/sdk/types.js";
-import { z } from "zod";
 
-import { LOCAL_TOOL_SPECS } from "./local.ts";
 import { RESOURCE_DATA } from "./resource-data.ts";
 import { catalogSourceId } from "./source-ids.ts";
 
@@ -504,46 +501,59 @@ export function marketResource(data: ResourceData, slug: string) {
   };
 }
 
-interface ToolEntry {
+/** A tool as this server registers it, for the tool index (createServer builds the list). */
+export interface ListedTool {
   name: string;
   title: string;
   description: string;
   rest_path: string | null;
   formula: string | null;
   requires: "registry" | "local machine" | null;
+  /** The input JSON Schema, built on first read only. */
+  inputSchema: () => Record<string, unknown>;
+}
+
+interface ToolEntry extends Omit<ListedTool, "inputSchema"> {
   input_schema: Record<string, unknown>;
 }
 
-function toolEntries(ctx: ResourceContext): ToolEntry[] {
-  const out: ToolEntry[] = tools.map((t) => ({
-    name: t.name,
-    title: t.title,
-    description: t.description,
-    rest_path: t.path,
-    formula: t.formula ? `${t.formula.id}@${t.formula.version}` : null,
-    requires: t.requires ?? null,
-    input_schema: inputJsonSchema(t),
-  }));
-  if (ctx.localFiles)
-    for (const spec of LOCAL_TOOL_SPECS)
-      out.push({
-        name: spec.name,
-        title: spec.title,
-        description: spec.description,
-        rest_path: null,
-        formula: null,
-        requires: "local machine",
-        input_schema: z.toJSONSchema(spec.input) as Record<string, unknown>,
-      });
-  return out;
+/**
+ * The tool entries of one server configuration, built once per isolate: the hosted API builds a
+ * server per request, and turning every tool's input into JSON Schema on each read is costly.
+ */
+const toolEntryCache = new Map<string, ToolEntry[]>();
+
+const contextKey = (ctx: ResourceContext) =>
+  `${ctx.hosted}|${ctx.registry}|${ctx.localFiles}`;
+
+function toolEntries(
+  ctx: ResourceContext,
+  listed: readonly ListedTool[],
+): ToolEntry[] {
+  const key = contextKey(ctx);
+  let entries = toolEntryCache.get(key);
+  if (!entries) {
+    entries = listed.map(({ inputSchema, ...t }) => ({
+      ...t,
+      input_schema: inputSchema(),
+    }));
+    toolEntryCache.set(key, entries);
+  }
+  return entries;
 }
 
-export function toolsIndex(ctx: ResourceContext) {
+export function toolsIndex(
+  ctx: ResourceContext,
+  listed: readonly ListedTool[],
+) {
   return {
     uri: "factlot://schemas/tools",
-    about:
-      "Every tool of the FactLot catalog with its REST path and formula; factlot://schemas/tools/{tool} gives one tool's input JSON Schema as the server validates it. requires registry: listed only where a registry is loaded. The facts tools return are described by factlot://schemas/fact. The same definitions for every AI platform are in spec/schemas/tools.json.",
-    tools: toolEntries(ctx).map((t) => ({
+    about: `The tools this server lists in tools/list, with REST path and formula where they have one; factlot://schemas/tools/{tool} gives one tool's input JSON Schema as the server validates it. requires registry: the tool answers from a FactLot Registry, and is listed only on a server that has one.${
+      ctx.hosted
+        ? " The hosted service adds tools of its own to tools/list for some callers (report_create, the account tools with a key, the model-backed tools); their entries are marked hosted_extra and carry their input schema here."
+        : ""
+    } The facts tools return are described by factlot://schemas/fact.`,
+    tools: listed.map((t) => ({
       name: t.name,
       title: t.title,
       rest_path: t.rest_path,
@@ -554,8 +564,12 @@ export function toolsIndex(ctx: ResourceContext) {
   };
 }
 
-export function toolResource(ctx: ResourceContext, name: string) {
-  const t = toolEntries(ctx).find((x) => x.name === name);
+export function toolResource(
+  ctx: ResourceContext,
+  listed: readonly ListedTool[],
+  name: string,
+) {
+  const t = toolEntries(ctx, listed).find((x) => x.name === name);
   return t ? { uri: `factlot://schemas/tools/${t.name}`, ...t } : undefined;
 }
 
@@ -593,10 +607,13 @@ function jsonResult(uri: URL, body: unknown): ReadResourceResult {
 }
 
 function notFound(uri: URL, hint: string): McpError {
+  // A URI can be as long as the request allows: name at most its first 200 characters.
+  const shown =
+    uri.href.length > 200 ? `${uri.href.slice(0, 200)}...` : uri.href;
   return new McpError(
     RESOURCE_NOT_FOUND,
-    `Resource ${uri.href} not found: ${hint}`,
-    { uri: uri.href },
+    `Resource ${shown} not found: ${hint}`,
+    { uri: shown },
   );
 }
 
@@ -606,10 +623,25 @@ const one = (v: string | string[] | undefined) =>
 const prefixed = (values: string[], value: string) =>
   values.filter((v) => v.startsWith(value)).slice(0, 100);
 
+type Completer = (value: string) => string[];
+
+/**
+ * A template's completion callbacks with no prototype: the SDK looks a callback up by the
+ * argument name the client sends, so "toString" or "__proto__" must find nothing.
+ */
+function completers(
+  entries: Record<string, Completer>,
+): Record<string, Completer> {
+  const out = Object.create(null) as Record<string, Completer>;
+  for (const [k, f] of Object.entries(entries)) out[k] = f;
+  return out;
+}
+
 /** Register every factlot:// resource and resource template on `server`. */
 export function registerResources(
   server: McpServer,
   ctx: ResourceContext,
+  listed: readonly ListedTool[],
   data: ResourceData = RESOURCE_DATA,
 ): void {
   const json = (
@@ -644,13 +676,13 @@ export function registerResources(
           mimeType: "application/json",
         })),
       }),
-      complete: {
+      complete: completers({
         place: (v) =>
           prefixed(
             data.hosted.places.map((p) => p.key),
             v,
           ),
-      },
+      }),
     }),
     {
       title: "Hosted coverage of one place",
@@ -681,13 +713,13 @@ export function registerResources(
     new ResourceTemplate("factlot://sources/{source_id}", {
       // Listed in factlot://sources rather than in resources/list, which stays short.
       list: undefined,
-      complete: {
+      complete: completers({
         source_id: (v) =>
           prefixed(
             data.sources.map((s) => s.source_id),
             v,
           ),
-      },
+      }),
     }),
     {
       title: "One source and its recorded rights",
@@ -721,13 +753,13 @@ export function registerResources(
           mimeType: "application/json",
         })),
       }),
-      complete: {
+      complete: completers({
         slug: (v) =>
           prefixed(
             hostedMarkets(data).map((m) => m.slug),
             v,
           ),
-      },
+      }),
     }),
     {
       title: "Worked example for one market",
@@ -758,19 +790,19 @@ export function registerResources(
     "factlot://schemas/tools",
     "Tool list",
     "Every FactLot tool with its REST path and formula; factlot://schemas/tools/{tool} gives its input JSON Schema.",
-    () => toolsIndex(ctx),
+    () => toolsIndex(ctx, listed),
   );
   server.registerResource(
     "tool-schema",
     new ResourceTemplate("factlot://schemas/tools/{tool}", {
       list: undefined,
-      complete: {
+      complete: completers({
         tool: (v) =>
           prefixed(
-            toolEntries(ctx).map((t) => t.name),
+            listed.map((t) => t.name),
             v,
           ),
-      },
+      }),
     }),
     {
       title: "One tool's input schema",
@@ -779,7 +811,7 @@ export function registerResources(
       mimeType: "application/json",
     },
     (uri, vars) => {
-      const body = toolResource(ctx, one(vars.tool));
+      const body = toolResource(ctx, listed, one(vars.tool));
       if (!body)
         throw notFound(
           uri,
