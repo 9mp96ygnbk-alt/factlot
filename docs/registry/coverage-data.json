@@ -1283,7 +1283,10 @@
     "dc-otr-real-property": "Yes: hosted on api.factlot.com, and the same data as the downloadable DC registry sample",
     "dc-dcgis-zoning": "Yes: hosted on api.factlot.com, and in the DC registry sample",
     "dc-dlcp-entities": "Yes: hosted on api.factlot.com, and in the DC registry sample",
-    "tx-comptroller-franchise": "Partly: hosted on api.factlot.com for the entities that own a hosted Texas parcel"
+    "tx-comptroller-franchise": "Partly: hosted on api.factlot.com for the entities that own a hosted Texas parcel",
+    "ny-dos-entities": "Partly: hosted on api.factlot.com for the entities that own a hosted New York parcel",
+    "co-sos-entities": "Partly: hosted on api.factlot.com for the entities that own a hosted Colorado parcel",
+    "ct-sos-entities": "Partly: hosted on api.factlot.com for the entities that own a hosted Connecticut parcel"
   },
   "hosted_areas": {
     "md-sdat-real-property": {
@@ -1355,6 +1358,30 @@
       "text": "Yes: hosted on api.factlot.com"
     },
     "tx-kaufman-cad": {
+      "areas": "all",
+      "text": "Yes: hosted on api.factlot.com"
+    },
+    "ny-nyc-dof": {
+      "areas": "all",
+      "text": "Yes: hosted on api.factlot.com (all five boroughs)"
+    },
+    "ca-los-angeles-assessor": {
+      "areas": "all",
+      "text": "Yes: hosted on api.factlot.com (no owner names: the public file has none)"
+    },
+    "ca-san-francisco-assessor": {
+      "areas": "all",
+      "text": "Yes: hosted on api.factlot.com (no owner names: the public file has none)"
+    },
+    "ma-boston-assessing": {
+      "areas": "all",
+      "text": "Yes: hosted on api.factlot.com (the City of Boston only)"
+    },
+    "co-denver-assessor": {
+      "areas": "all",
+      "text": "Yes: hosted on api.factlot.com"
+    },
+    "ct-parcel-cama-layer": {
       "areas": "all",
       "text": "Yes: hosted on api.factlot.com"
     }

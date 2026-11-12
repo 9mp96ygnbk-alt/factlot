@@ -2,9 +2,13 @@
  * Short, true lines the account page shows under "What's new" and "Hosted regions". Each
  * WHATS_NEW entry names the CHANGELOG.md phrase it summarises; a test checks that the phrase is
  * in the changelog, so the page cannot announce something the changelog does not record.
+ *
+ * HOSTING_NOTE is generated from site/_data/hosted.json (scripts/site/gen-hosted.ts), so it names what the
+ * hosted pack serves.
  */
-export const HOSTING_NOTE =
-  "Texas is hosted: sixteen counties (Harris, Dallas, Travis, Collin, Denton, Williamson, Cameron, Nueces, Galveston, Jefferson, Brazos, Midland, Ector, Grayson, Guadalupe and Kaufman). Tarrant County is not served while the publisher's terms for AI use are unclear.";
+import { HOSTED_NOTE } from "./hosted_note.ts";
+
+export const HOSTING_NOTE = HOSTED_NOTE;
 
 export const WHATS_NEW: { text: string; changelog: string }[] = [
   {

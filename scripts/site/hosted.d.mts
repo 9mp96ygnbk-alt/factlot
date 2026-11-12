@@ -22,6 +22,7 @@ export function groupPlaces(
   as_of: string;
 }[];
 export function placesText(data: unknown): string;
+export function tableText(data: unknown): string;
 export function totalsText(data: unknown): string;
 export function withheldText(data: unknown): string;
 export function llmsHostedLine(

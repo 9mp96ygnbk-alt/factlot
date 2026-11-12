@@ -71,6 +71,30 @@ an identifier. This page covers which tool to call, when, and how to report the 
 | "Is this claim supported by the document?"                                               | `doc_verify_claim`                                  |
 | "Give me this as a workbook, a PDF or a calendar file" (hosted only)                     | `report_create`                                     |
 
+## Registry lookups (hosted regions)
+
+The `registry_*` tools answer from public records, with every fact cited to its source file and
+that source's licence or attribution. The hosted API serves
+<!-- hosted:places -->Maryland (all 24 jurisdictions), the District of Columbia, Juab and Summit counties in Utah, and sixteen Texas counties (Harris, Dallas, Travis, Collin, Denton, Williamson, Cameron, Nueces, Galveston, Jefferson, Brazos, Midland, Ector, Grayson, Guadalupe and Kaufman)<!-- /hosted:places -->. Call `registry_coverage` first: it lists the
+
+counties, entity registries and ID systems loaded, with as-of dates, and a lookup outside them is a
+coverage miss (not loaded, which is not the same as no such parcel).
+
+| The user has…                      | Call                                                                                                                                            |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| A street address                   | `registry_search_address` (`136 W 42nd St`; ordinals such as `42nd` match)                                                                      |
+| A county parcel number             | `registry_resolve_parcel` (state FIPS, county FIPS, the number as the county prints it)                                                         |
+| An ID from the county's own system | `registry_resolve_external` (`nyc_bbl`, `la_ain`, `sf_parcel`, `boston_pid`, `denver_schednum`, `ct_cama_link`, `sdat_account`, `hcad_account`) |
+| A FactLot URN                      | `registry_get` (facts, values by tax year, owner of record where the file has one)                                                              |
+| An owner's name (a company)        | `registry_search_entities`, then `registry_owned_by`                                                                                            |
+
+Places differ in what their public file holds. Los Angeles County and San Francisco have no owner
+names, so a parcel there has no `ownership.owner_of_record` fact; ask the county Assessor for the
+owner. The City of Boston is loaded without Chelsea, Revere or Winthrop, the rest of Suffolk County,
+and its values are fiscal-year 2026 values as of 2025-01-01. Connecticut parcels carry the former
+county in their FIPS code. Natural persons' names are never returned; a parcel whose owner is a person
+shows no owner.
+
 ## Mapping lease language to inputs
 
 - **CAM caps.** Lease terms like "cumulative" and "non-cumulative" are used inconsistently, so

@@ -261,6 +261,17 @@ export function llmsHostedLine(data, freeLookupsPerDay) {
   );
 }
 
+const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
+/** A markdown table of the hosted places: what each holds, from the same details the llms.txt paragraph uses. */
+export function tableText(data) {
+  const rows = data.places.map((p) => {
+    const c = config({ ...p, state: stateOf(data, p) });
+    return `| ${cap(c.label(p, data))} | ${cap(c.detail(p, data))} |`;
+  });
+  return `\n\n| Region | Hosted data |\n| --- | --- |\n${rows.join("\n")}\n\n`;
+}
+
 /** The text of each marked span: <!-- hosted:<id> -->text<!-- /hosted:<id> -->. */
 export function blockText(id, data) {
   switch (id) {
@@ -268,6 +279,8 @@ export function blockText(id, data) {
       return placesText(data);
     case "totals":
       return totalsText(data);
+    case "table":
+      return tableText(data);
     case "parcels":
       return N(data.totals.parcels);
     case "counties":
@@ -289,13 +302,15 @@ export const HOSTED_FILES = [
   "site/_content/mcp.html",
   "README.md",
   "docs/getting-started.md",
+  "docs/agents.md",
   "docs/registry/README.md",
   "connectors/README.md",
   "llms.txt",
   "site/llms.txt",
 ];
 
-const flat = (s) => s.replace(/\s+/g, " ").trim();
+// Whitespace and the dash runs of a markdown table's rule row (prettier pads them) are the formatter's.
+const flat = (s) => s.replace(/\s+/g, " ").replace(/-{3,}/g, "---").trim();
 
 const BLOCK = /<!-- hosted:([a-z-]+) -->([\s\S]*?)<!-- \/hosted:\1 -->/g;
 const LLMS = /^Hosted registry: .*$/m;

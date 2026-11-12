@@ -7,6 +7,7 @@ committed pages to be current (a new source config would make them stale); run
 """
 
 import importlib.util
+import json
 import re
 import unittest
 from pathlib import Path
@@ -79,6 +80,21 @@ class RegistryDocsGenerator(unittest.TestCase):
             self.assertTrue(any(listed(s, c["fips"]) for s in c["sources"]),
                             f"{c['name']} ({c['fips']}) is hosted but none of {c['sources']} is in coverage-data.json "
                             "hosted_areas or queryable")
+
+    def test_every_hosted_entity_registry_says_whether_it_is_served_in_part(self):
+        # An entity file served in part (the hosted pack's entity_scope, which gen-hosted.ts writes as `total`) is
+        # "Partly" in coverage-data.json's "queryable", one served whole is "Yes".
+        _cfg, data, _rows = self.gen.coverage_rows(self.configs)
+        with open(self.gen.HOSTED_JSON, encoding="utf-8") as fh:
+            hosted = json.load(fh)
+        by_state = {e["state"]: e["source_id"] for e in data["entity_registries"]}
+        for r in hosted["entity_registries"]:
+            state = r["jurisdiction"].split("-")[1].upper()
+            sid = by_state.get(state)
+            self.assertIsNotNone(sid, f"{r['jurisdiction']} is hosted but has no entity_registries entry")
+            text = data["queryable"].get(sid, "")
+            want = "Partly" if "total" in r else "Yes"
+            self.assertTrue(text.startswith(want), f"{sid}: {text!r} should start with {want!r} (hosted.json entity_registries)")
 
     def test_an_unquoted_count_is_rejected(self):
         entry = {"source_id": "x", "parcels": 123456789, "cites": [{"doc": "docs/registry/sources/README.md", "quote": "87,717; 56,792"}]}
