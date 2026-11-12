@@ -103,6 +103,11 @@ export interface FactLotServerOptions {
   maxMcpBatch?: number;
   /** Where unexpected errors are reported (default: one JSON line on stderr, error name only). */
   errorSink?: (line: string) => void;
+  /**
+   * This server is the hosted FactLot service: its MCP resources describe the hosted registry
+   * coverage as this server's own (default false: a self-hosted server points to the hosted one).
+   */
+  hosted?: boolean;
 }
 
 const toolsByPath = new Map(tools.map((t) => [t.path, t]));
@@ -318,9 +323,10 @@ async function handleMcp(
   req: IncomingMessage,
   res: ServerResponse,
   body: unknown,
+  hosted: boolean,
 ): Promise<void> {
   // Stateless mode: a fresh server + transport per request, so any instance can serve any call.
-  const server = createMcpServer();
+  const server = createMcpServer({ hosted });
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
     enableJsonResponse: true,
@@ -596,7 +602,7 @@ export function createHandler(opts: FactLotServerOptions = {}) {
           return;
         }
         ctx.calls = mcpCalls(body);
-        await handleMcp(req, res, body);
+        await handleMcp(req, res, body, opts.hosted ?? false);
         return;
       }
 

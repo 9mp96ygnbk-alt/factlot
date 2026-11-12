@@ -26,10 +26,22 @@ import { z } from "zod";
 
 import { NO_MATCH_NOTE, fetchDoc, searchCorpus } from "./knowledge.ts";
 import { LOCAL_TOOL_SPECS } from "./local.ts";
+import { registerPrompts } from "./prompts.ts";
+import { registerResources } from "./resources.ts";
 
 export { NO_MATCH_NOTE, corpus, fetchDoc, searchCorpus } from "./knowledge.ts";
 export { LOCAL_TOOLS } from "./local.ts";
 export type { KnowledgeDoc } from "./knowledge.ts";
+export { DEAL_CALCULATORS, PROMPT_ARGS, promptText } from "./prompts.ts";
+export type { PromptName } from "./prompts.ts";
+export {
+  HOSTED_MCP_URL,
+  RESOURCE_NOT_FOUND,
+  hostedMarkets,
+  registerResources,
+} from "./resources.ts";
+export type { ResourceContext, ResourceData } from "./resources.ts";
+export { RESOURCE_DATA } from "./resource-data.ts";
 
 export const SERVER_NAME = "factlot";
 export const SERVER_VERSION = "0.5.0";
@@ -50,10 +62,15 @@ export const TX_PACKET_INSTRUCTIONS = [
 export const GENERAL_INSTRUCTIONS =
   "Results are facts and arithmetic, not appraisal, legal or tax advice. Relay every warning and each source's rights (ai_use, redistribution) to the person. Registry lookups and reports are metered (account_usage shows use, with a key); input errors are free. On the hosted API, a call without a Pro or Team key gets the current roll year only in registry_get's value_history and history, and registry_tx_equity_candidates_batch needs such a key; the answer says so and links https://factlot.com/pricing/.";
 
+/** What the server offers besides tools. */
+export const RESOURCES_INSTRUCTIONS =
+  "Resources (resources/read, no key, no lookup used): factlot://coverage for what the hosted registry serves by place, factlot://sources for every reviewed source with its licence, AI use, redistribution and attribution, factlot://markets for a worked example per hosted market, factlot://schemas/tools and factlot://spec/id for the tool schemas and the ID specification, factlot://plans for plans and lookup counting. Prompts (prompts/get) give the tool order for common jobs: property_owner, owner_portfolio, parcel_value_history, tx_unequal_appraisal_candidates, lease_abstract_check and deal_math.";
+
 export const SERVER_INSTRUCTIONS = [
   "FactLot: commercial real estate (CRE) tools with deterministic, cited results. Covers net effective rent, rent schedules, CAM reconciliation, debt sizing (DSCR, LTV, debt yield), loan amortization, yield maintenance and defeasance, ASC 842 lease remeasurement, WALT, NPV, IRR, DCF pro forma, direct capitalization (cap rate), LP/GP equity waterfalls, 1031 exchange deadlines, hotel RevPAR and ADR, multifamily rent rolls, lease critical dates, lease abstract verification, GSA lease comps, Texas property tax protest deadlines, Texas unequal-appraisal arithmetic, and parcel and owner IDs. Use calc_* tools for this math instead of computing in context; cite the returned formula ID and steps, and surface every warning. To read a lease or other document, extract each value with its verbatim quote and page, then call doc_verify_facts (doc_abstract_lease for a lease and its amendments, doc_compare for an estoppel or rent roll, doc_verify_claim for one claim, doc_spread_statement for a T-12, doc_check_use_conflict for exclusives); FactLot checks each value against its quote and returns cited facts. Use id_* for canonical IDs of parcels, entities, buildings, spaces and documents, rules_* for statutory deadlines, lease_comp_search for comps, and fact_validate or fact_package_create before handing facts on. For a Texas unequal-appraisal comparison, registry_tx_equity_candidates lists candidate parcels from the subject's appraisal district roll (calc_args is that list in the calculator's input shape, for the person to review and edit), and calc_tx_unequal_appraisal does the arithmetic on the comparables and adjustments the person chose. registry_coverage lists the regions the hosted registry holds and is never metered: call it before a registry lookup. Use search and fetch to find the right tool.",
   TX_PACKET_INSTRUCTIONS,
   GENERAL_INSTRUCTIONS,
+  RESOURCES_INSTRUCTIONS,
 ].join("\n\n");
 
 function json(data: unknown): CallToolResult {
@@ -209,6 +226,12 @@ export interface CreateServerOptions {
    * local stdio server sets this; a remote server never reads its own files for a caller.
    */
   localFiles?: boolean;
+  /**
+   * This server is the hosted FactLot service (api.factlot.com): the factlot://coverage resources
+   * describe the hosted registry as this server's own. Otherwise they describe it as the hosted
+   * service's, and point to registry_coverage there for the live answer.
+   */
+  hosted?: boolean;
 }
 
 /**
@@ -369,6 +392,15 @@ export function createServer(opts: CreateServerOptions = {}): McpServer {
     },
     schemaGet,
   );
+
+  // Read-only resources and prompts: no key, no registry lookup, nothing beyond the site and repo.
+  const context = {
+    hosted: opts.hosted ?? false,
+    registry: withRegistry,
+    localFiles: opts.localFiles ?? false,
+  };
+  registerResources(server, context);
+  registerPrompts(server, context);
 
   // tools/call: McpServer validates arguments against the zod schema before a handler runs and
   // reports a failure as plain text ("MCP error -32602: Input validation error: ..."). FactLot

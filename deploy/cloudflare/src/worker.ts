@@ -21,7 +21,11 @@ import type { Env, Fetcher } from "./types.ts";
 export { RateLimiterObject } from "./limiter.ts";
 
 const PORT = 8787;
-const handler = createHandler({ maxBodyBytes: 1024 * 1024, trustProxy: true });
+const handler = createHandler({
+  maxBodyBytes: 1024 * 1024,
+  trustProxy: true,
+  hosted: true,
+});
 createServer((req, res) => void handler(req, res)).listen(PORT);
 const node = httpServerHandler({ port: PORT }) as {
   fetch(request: Request, env: unknown, ctx: unknown): Promise<Response>;

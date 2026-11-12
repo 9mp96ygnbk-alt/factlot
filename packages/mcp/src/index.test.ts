@@ -6,6 +6,7 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 
 import {
   GENERAL_INSTRUCTIONS,
+  PROMPT_ARGS,
   SERVER_INSTRUCTIONS,
   TX_PACKET_INSTRUCTIONS,
   createServer,
@@ -64,6 +65,8 @@ test("every tool the instructions name exists in the catalog or the hosted extra
   );
   for (const name of new Set(named ?? [])) {
     if (hostedOnly.has(name)) continue;
+    // The instructions also name the prompts (lease_abstract_check), which are not tools.
+    if (name in PROMPT_ARGS) continue;
     // registry tools are listed only when a registry is configured; the name must still exist.
     if (name.startsWith("registry_")) continue;
     assert.ok(listed.has(name), `${name} is not a listed tool`);
