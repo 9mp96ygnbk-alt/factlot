@@ -797,6 +797,25 @@ export function addressQuery(query: string): AddressQuery {
   return { mode, tokens };
 }
 
+const ORDINAL_WORD = /^([0-9]+)(?:ST|ND|RD|TH)$/;
+
+/**
+ * The words of a street line with the ordinal endings of its street numbers dropped ("W 42ND ST" → "W 42 ST"),
+ * or null when no word after the first has one (`address_words_without_ordinals` in Python). Some rolls write
+ * numbered streets bare ("136 WEST 42 STREET", "350 5 AVENUE"), so a query that found nothing is searched once
+ * more this way. The first word is left alone: there it is a house number or the query's leading word.
+ */
+export function addressWordsWithoutOrdinals(words: string[]): string[] | null {
+  let changed = false;
+  const out = words.map((w, i) => {
+    const m = i > 0 ? ORDINAL_WORD.exec(w) : null;
+    if (!m) return w;
+    changed = true;
+    return m[1]!;
+  });
+  return changed ? out : null;
+}
+
 export function registrySearchAddress(address: string, limit = 20): Row[] {
   const d = open();
   const { mode } = addressQuery(address);
@@ -804,6 +823,21 @@ export function registrySearchAddress(address: string, limit = 20): Row[] {
   const line = address.split(",")[0] ?? "";
   // Each key version the file may hold: the words of the street line under that version's rules.
   const runs = addressSearchKeys(d, line).map((k) => k.split(" "));
+  const found = searchAddressRuns(d, mode, runs, limit);
+  if (found.length) return found;
+  // Nothing matched: once more with ordinal endings dropped, for rolls that write numbered streets bare.
+  const bare = runs
+    .map(addressWordsWithoutOrdinals)
+    .filter((w): w is string[] => w !== null);
+  return bare.length ? searchAddressRuns(d, mode, bare, limit) : found;
+}
+
+function searchAddressRuns(
+  d: Database,
+  mode: "house_number" | "street",
+  runs: string[][],
+  limit: number,
+): Row[] {
   const where: string[] = [];
   const params: string[] = [];
   for (const words of runs) {

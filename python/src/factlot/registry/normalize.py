@@ -516,6 +516,20 @@ def address_query(query: str) -> dict:
     return {"mode": mode, "tokens": tokens}
 
 
+_ORDINAL_WORD = re.compile(r"^([0-9]+)(?:ST|ND|RD|TH)$")
+
+
+def address_words_without_ordinals(words: list[str]) -> list[str] | None:
+    """The words of a street line with the ordinal endings of its street numbers dropped ("W 42ND ST" → "W 42 ST"),
+    or None when no word after the first has one (``addressWordsWithoutOrdinals`` in packages/tools).
+
+    Some rolls write numbered streets bare ("136 WEST 42 STREET", "350 5 AVENUE"), so a query that found nothing is
+    searched once more this way. The first word is left alone: there it is a house number or the leading word.
+    """
+    out = [m.group(1) if i > 0 and (m := _ORDINAL_WORD.match(w)) else w for i, w in enumerate(words)]
+    return out if out != words else None
+
+
 # --- building roll-up: the street line and ZIP code of a situs address --------------------------
 
 # Street types that end a street name, for situs lines written without a comma before the city.

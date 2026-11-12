@@ -341,7 +341,7 @@ start with that number and contain every other word ("1200 Main" finds "1200 MAI
 query without one must name the street with its type, and its words must appear in a row ("Main
 St"). A city or state name, or part of a word, alone matches nothing ("Ontario" does not find
 "ONTARIO RD NW"), and the miss says what to send instead. `spec/registry/normalize.json`
-(`address_queries`) pins how a query is read in both languages.
+(`address_queries`) pins how a query is read in both languages. A query that finds nothing is searched once more with the ordinal endings of its street numbers dropped ("W 42nd St" as "W 42 St"), because some rolls write numbered streets bare; a match as written wins, and the first word of the query is left as it is.
 
 **Source snapshots over MCP.** Every registry fact cites a `document_id` (`fl:document:sha256-…`),
 the content hash of the source file. With a registry loaded, the MCP `fetch` tool returns that

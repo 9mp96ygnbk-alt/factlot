@@ -83,6 +83,7 @@ conservative_file_by, basis}` for the next tax year when the deadline has passed
 
 ### Changed
 
+- Registry address search (`registry_search_address`, SDK, Python and hosted): a query that finds nothing is searched once more with the ordinal endings of its street numbers dropped, so "136 W 42nd St" finds a parcel a roll writes as "136 WEST 42 STREET" (New York City, Travis County). A match as written still wins; the first word of the query is left as it is.
 - Hosted API, paid gating: `registry_get` with `as_of` (the record as it stood on an earlier date) is value history, so a call without a Pro or Team key now answers `PlanRequired` and is not metered; before, a free caller could read earlier roll years one date at a time. The same call without `as_of` is unchanged. `/v1/plans` lists the rule as `gating.dated_get`.
 - Hosted API: **reports are open.** `report_create` is listed over MCP, `POST /v1/reports` builds
   the document, and `/v1/plans` shows `reports.available: true` with the monthly allowance (3 free

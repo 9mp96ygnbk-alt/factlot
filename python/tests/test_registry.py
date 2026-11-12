@@ -11,7 +11,13 @@ from pathlib import Path
 
 import factlot
 from factlot.registry.county_names import county_name
-from factlot.registry.normalize import address_query, legacy_address_key, legacy_name_key, scrub_mailing_address
+from factlot.registry.normalize import (
+    address_query,
+    address_words_without_ordinals,
+    legacy_address_key,
+    legacy_name_key,
+    scrub_mailing_address,
+)
 from factlot.registry import (
     EntityRecord,
     ParcelRecord,
@@ -626,6 +632,23 @@ class RegistryCore(unittest.TestCase):
         self.assertEqual([h["urn"] for h in hits], [factlot.parcel_id("48", "999", "0001-000-0001").urn])
         self.assertEqual(len(self.reg.search_entities("twin name properties")), 2)
         self.assertEqual(self.reg.search_entities("John Example"), [], "people are not searchable")
+
+    def test_search_finds_a_numbered_street_the_roll_writes_bare(self):
+        # Some rolls write "136 WEST 42 STREET" and "350 5 AVENUE"; a query has the ordinal.
+        self.reg.ingest_parcels([
+            ParcelRecord("999", "0009-000-0001", "F1", situs_address="136 West 42 Street"),
+            ParcelRecord("999", "0009-000-0002", "F1", situs_address="9 5th Street"),
+            ParcelRecord("999", "0009-000-0003", "F1", situs_address="9 5 Street"),
+        ], self.snap25, state_fips="48")
+        urn = lambda apn: factlot.parcel_id("48", "999", apn).urn  # noqa: E731
+        found = lambda q: [h["urn"] for h in self.reg.search_address(q)]  # noqa: E731
+        self.assertEqual(found("136 W 42nd St"), [urn("0009-000-0001")])
+        self.assertEqual(found("W 42nd St"), [urn("0009-000-0001")])
+        self.assertEqual(found("9 Fifth St"), [urn("0009-000-0002")], "a match as written wins")
+        self.assertEqual(found("9 5 St"), [urn("0009-000-0003")])
+        self.assertEqual(found("136 W 43rd St"), [])
+        self.assertIsNone(address_words_without_ordinals(["42ND", "ST"]), "the first word is left alone")
+        self.assertEqual(address_words_without_ordinals(["W", "42ND", "ST"]), ["W", "42", "ST"])
 
     def test_entity_search_uses_the_name_keys_the_file_was_built_with(self):
         self.reg.ingest_entities(ENTITIES, self.ent)

@@ -28,6 +28,7 @@ from .normalize import (
     NAME_RATIO_WEIGHT,
     address_query,
     address_state,
+    address_words_without_ordinals,
     distinctive_tokens,
     scrub_mailing_address,
     entity_standing,
@@ -1489,11 +1490,21 @@ class Registry:
     def search_address(self, address: str, limit: int = 20) -> list[dict[str, Any]]:
         """Parcels whose situs address holds the query's words (``address_query``): with a house number, an
         address starting with it and holding every other word; otherwise the words in a row, including a
-        street type. A query with neither finds nothing."""
+        street type. A query with neither finds nothing. A query that found nothing is searched once more with
+        the ordinal endings of its street numbers dropped ("W 42nd St" as "W 42 St"), for rolls that write
+        numbered streets bare."""
         mode = address_query(address)["mode"]
         if mode is None:
             return []
         runs = [k.split(" ") for k in self._address_search_keys(address.split(",")[0])]
+        found = self._search_address_runs(mode, runs, limit)
+        if found:
+            return found
+        # Nothing matched: once more with ordinal endings dropped, for rolls that write numbered streets bare.
+        bare = [w for w in map(address_words_without_ordinals, runs) if w is not None]
+        return self._search_address_runs(mode, bare, limit) if bare else found
+
+    def _search_address_runs(self, mode: str, runs: list[list[str]], limit: int) -> list[dict[str, Any]]:
         where, params = [], []
         for words in runs:
             if mode == "street":

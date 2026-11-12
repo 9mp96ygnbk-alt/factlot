@@ -20,6 +20,7 @@ import {
   ADDRESS_STREET_TYPES,
   addressQuery,
   addressSearchKeysFor,
+  addressWordsWithoutOrdinals,
   nameSearchKeyFor,
 } from "../../../packages/tools/src/registry.ts";
 
@@ -101,8 +102,22 @@ export async function searchAddress(
   const keys = addressSearchKeysFor(m.versions.address_key_version, line);
   if (keys.length !== 1)
     throw new Error("the pack holds version 1 address keys");
-  const fullKey = keys[0]!;
-  const words = fullKey.split(" ");
+  const words = keys[0]!.split(" ");
+  const found = await searchAddressWords(pack, m, mode, words, limit);
+  if (found.length) return found;
+  // Nothing matched: once more with ordinal endings dropped (registrySearchAddress in the SDK).
+  const bare = addressWordsWithoutOrdinals(words);
+  return bare ? searchAddressWords(pack, m, mode, bare, limit) : found;
+}
+
+async function searchAddressWords(
+  pack: Pack,
+  m: Manifest,
+  mode: "house_number" | "street",
+  words: string[],
+  limit: number,
+): Promise<Match[]> {
+  const fullKey = words.join(" ");
   const listKey = addressListKey(mode, words);
   if (listKey === null) return [];
   const exact = (await dictionary<ExactList>(pack, m, `E:${fullKey}`)) ?? [];

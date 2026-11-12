@@ -727,6 +727,60 @@ test("long lists share pages and read back whole", async () => {
   }
 });
 
+test("numbered streets written without the ordinal are found by a query that has it, like runTool", async () => {
+  const x = join(dir, "numbered-streets.db");
+  copyFileSync(fixture, x);
+  const d = new DatabaseSync(x);
+  // A roll that writes "136 WEST 42 STREET" and "350 5 AVENUE" (bare numbers), and one "9 5TH ST" that
+  // keeps the ordinal next to a "9 5 ST".
+  d.exec(
+    "INSERT INTO address_index VALUES ('136 W 42 ST EXAMPLE CITY TX 77999', 'fl:parcel:us-48999:0004-000-0001'); " +
+      "INSERT INTO address_index VALUES ('350 5 AVE EXAMPLE CITY TX 77999', 'fl:parcel:us-48999:0004-000-0002'); " +
+      "INSERT INTO address_index VALUES ('9 5TH ST EXAMPLE CITY TX 77999', 'fl:parcel:us-48999:0003-000-0001'); " +
+      "INSERT INTO address_index VALUES ('9 5 ST EXAMPLE CITY TX 77999', 'fl:parcel:us-48999:0001-000-0002')",
+  );
+  d.close();
+  const pack = join(dir, "pack-numbered-streets");
+  buildPack([{ name: "x", path: x }], pack);
+  const queries = [
+    "136 W 42nd St",
+    "136 West 42nd Street, Example City, TX",
+    "136 W 42 St",
+    "W 42nd St",
+    "350 Fifth Avenue",
+    "350 5th Ave",
+    "5th Ave",
+    "9 5th St",
+    "9 Fifth Street",
+    "9 5 St",
+    "42nd St",
+    "136 W 43rd St",
+  ];
+  const list: Call[] = [];
+  for (const query of queries)
+    for (const limit of [1, 20])
+      list.push({ tool: "registry_search_address", args: { query, limit } });
+  assert.deepEqual(await compare(pack, x, list), []);
+  const found = async (query: string) =>
+    (
+      JSON.parse(
+        await worker(fileAssets(pack), "registry_search_address", { query }),
+      ) as { result: { results: { urn: string }[] } }
+    ).result.results.map((r) => r.urn);
+  const cafe = "fl:parcel:us-48999:0004-000-0001";
+  assert.deepEqual(await found("136 W 42nd St"), [cafe]);
+  assert.deepEqual(await found("W 42nd St"), [cafe]);
+  assert.deepEqual(await found("350 Fifth Avenue"), [
+    "fl:parcel:us-48999:0004-000-0002",
+  ]);
+  // A match as written wins: the bare form is searched only when nothing matched.
+  assert.deepEqual(await found("9 5th St"), [
+    "fl:parcel:us-48999:0003-000-0001",
+  ]);
+  assert.deepEqual(await found("9 5 St"), ["fl:parcel:us-48999:0001-000-0002"]);
+  assert.deepEqual(await found("136 W 43rd St"), []);
+});
+
 test("every pack withholds Tarrant, even when --exclude-county is left out", async () => {
   const x = join(dir, "tarrant-default.db");
   copyFileSync(fixture, x);

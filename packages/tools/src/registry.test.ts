@@ -15,6 +15,7 @@ import {
   TX_EQUITY_NOTICE,
   TX_EQUITY_WITHHELD_COUNTIES,
   addressQuery,
+  addressWordsWithoutOrdinals,
   configureRegistry,
   hostedWithheldCounties,
   legacyNormalizeAddress,
@@ -552,6 +553,43 @@ function fixtureDb(name: string): {
   const w = new DatabaseSync(path);
   return { path, exec: (sql) => w.exec(sql) };
 }
+
+test("address search: a query with an ordinal finds a street the roll writes bare, when nothing else matched", () => {
+  const db = fixtureDb("ordinals.db");
+  db.exec(
+    "INSERT INTO address_index VALUES ('136 W 42 ST EXAMPLE CITY TX 77999', 'fl:parcel:us-48999:0004-000-0001'); " +
+      "INSERT INTO address_index VALUES ('9 5TH ST EXAMPLE CITY TX 77999', 'fl:parcel:us-48999:0003-000-0001'); " +
+      "INSERT INTO address_index VALUES ('9 5 ST EXAMPLE CITY TX 77999', 'fl:parcel:us-48999:0001-000-0002')",
+  );
+  configureRegistry(db.path);
+  try {
+    const search = (query: string) => {
+      const r = runTool("registry_search_address", { query });
+      assert.ok(r.ok);
+      return (r.result as { results: { urn: string }[] }).results.map(
+        (x) => x.urn,
+      );
+    };
+    assert.deepEqual(search("136 West 42nd Street"), [
+      "fl:parcel:us-48999:0004-000-0001",
+    ]);
+    assert.deepEqual(search("W 42nd St"), ["fl:parcel:us-48999:0004-000-0001"]);
+    assert.deepEqual(search("9 Fifth St"), [
+      "fl:parcel:us-48999:0003-000-0001",
+    ]);
+    assert.deepEqual(search("9 5 St"), ["fl:parcel:us-48999:0001-000-0002"]);
+    assert.deepEqual(search("136 W 43rd St"), []);
+    assert.deepEqual(addressWordsWithoutOrdinals(["42ND", "ST"]), null);
+    assert.deepEqual(addressWordsWithoutOrdinals(["W", "42ND", "ST"]), [
+      "W",
+      "42",
+      "ST",
+    ]);
+    assert.deepEqual(addressWordsWithoutOrdinals(["100", "MAIN", "ST"]), null);
+  } finally {
+    configureRegistry(undefined);
+  }
+});
 
 test("address search uses the address keys the file was built with", () => {
   const db = fixtureDb("addresses.db");
