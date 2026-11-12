@@ -71,3 +71,30 @@ GROUP BY event, blob2, blob3, blob4 ORDER BY n DESC
 Not counted: addresses, emails, keys, key hashes, URLs, query strings, URNs, addresses of
 properties or document contents. A request's counters never leave the isolate except as the sums
 above.
+
+## Tokens in URL paths (what a request log can leak)
+
+Workers Logs keeps the request path (`redact_query_string` covers query strings only; see the
+comment in `wrangler.jsonc`), so a link whose secret is in the path is stored with it. What each
+secret can do if someone with log access reads it, from the code (checked 2026-11-12):
+
+| Path                                                   | What the token does                                                                                                                                      | Lifetime and use                                                                                                                                                                                            |
+| ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/v1/reports/d/<token>`                                | GET returns the report file (figures and any text the caller put in it). No key needed.                                                                  | 24 hours (`REPORT_TTL_SECONDS`), not single use: every GET and HEAD inside the day works. 256-bit random token; limited per address and per token.                                                          |
+| `/v1/billing/claim/<token>`                            | GET hands out the new paid API key, once. A reader who polls first after payment gets the key.                                                           | The claim lasts 1 hour (`CLAIM_TTL_SECONDS`); KV keeps it 15 minutes more so a payment finished at the last minute is still collected. Single use: after the key is handed out the URL answers 410 Claimed. |
+| `/account/recover/<id>.<sig>`                          | GET only shows a page; the POST issues or rotates a key for the subscription (shown once), so the reader needs the POST before the owner does.           | 15 minutes (`RECOVERY_TTL_SECONDS`), single use (decided by a Durable Object claim). Signed, purpose-bound.                                                                                                 |
+| `/account/free-key/<id>.<sig>`                         | POST creates the free key for that address (shown once) and replaces its earlier key.                                                                    | 30 minutes (`FREE_KEY_LINK_TTL_SECONDS`), single use. Signed, purpose-bound.                                                                                                                                |
+| `/account/free-key-delete/<id>.<sig>`                  | POST deletes that address's free key and its counters.                                                                                                   | 30 minutes, single use. Signed, purpose-bound.                                                                                                                                                              |
+| `/authorize/email/<id>.<sig>` (OAuth sign-in by email) | POST connects the waiting MCP client (the browser session that started the sign-in) to the subscription. The reader needs that sign-in page's state too. | 10 minutes (`CONSENT_TTL_SECONDS`), single use. Signed.                                                                                                                                                     |
+
+Reading the table: every link is dead once used, except the report download. A log reader gains
+something only by using a link before its owner does (claim, recovery, free-key and sign-in links)
+or within 24 hours (reports). Used links are worthless; unused links expire in 10 to 75 minutes.
+
+Not changed, on purpose. A report download token could be made single use, but the documented
+behaviour is "download_url works 24 hours" (the `report_create` tool description, the pricing and
+reports pages), and clients legitimately fetch it more than once (a HEAD first, a retry, a second
+agent). Shortening it would break that promise. Moving tokens out of paths (POST bodies, headers or
+URL fragments) is a URL redesign. If the exposure matters more than the request log, set
+`"invocation_logs": false` inside `observability.logs` (drops request URLs and the request log) or
+restrict Workers Logs access to the owner.
