@@ -104,7 +104,7 @@ address, link or coverage row, so an older roll can never change or outrank the 
 
 Travis prior years are EARS submissions (the Comptroller's form 96-1051 layout: one comma-delimited `AJR` record per
 account, taxing unit and category; TCAD zips the csv twice and adds PDF recaps). `python -m
-factlot.registry.adapters.tx_travis 227EARS090425.zip registry.db --as-of 2025-09-04 --history-only 2025` reads the
+factlot.registry.adapters.tx_travis 227EARS<mmddyy>.zip registry.db --as-of <that date> --history-only <year>` reads the
 county's records only, adds each account's categories up (totally exempt, land, improvement, mineral and personal
 property market value) and writes `parcel.tax_year` and `parcel.market_value`; EARS has no appraised value, and the
 file's addresses, legal descriptions and owner ID codes are never read. The short account number (AJR008) is TCAD's
