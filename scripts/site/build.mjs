@@ -23,6 +23,14 @@ import {
   hubRollSentence,
   hubCountyLinks,
 } from "./texas-pages.mjs";
+import {
+  hostedMarkets,
+  marketBody,
+  marketDescription,
+  marketLinks,
+  marketTitle,
+  sourceNotices,
+} from "./market-pages.mjs";
 
 const root = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -629,6 +637,44 @@ ${rows
   }
 }
 
+// --- Market pages: /new-york-city/, /los-angeles/, ... ------------------------------------------------
+// One page per hosted place beyond Texas. Counts and dates come from site/_data/hosted.json (the pack's
+// manifest), the sources' terms and the worked example from site/_data/markets.json (scripts/site/gen-markets.ts);
+// a place the hosted pack does not serve gets no page.
+
+const hostedJson = readJson("site/_data/hosted.json");
+{
+  const marketsRel = "site/_data/markets.json";
+  const byslug = new Map(readJson(marketsRel).markets.map((m) => [m.slug, m]));
+  const tpl = read("site/_content/market.html");
+  for (const m of hostedMarkets(hostedJson)) {
+    const d = byslug.get(m.slug);
+    if (!d)
+      throw new Error(
+        `${m.slug} is hosted but ${marketsRel} has no entry: run scripts/site/gen-markets.ts`,
+      );
+    addPage(
+      {
+        urlPath: `/${m.slug}/`,
+        title: marketTitle(m),
+        description: marketDescription(m, hostedJson),
+        h1: m.title.split(": ")[0],
+        crumbs: [
+          ["/coverage/", "Coverage"],
+          [`/${m.slug}/`, m.title.split(": ")[0]],
+        ],
+        body: marketBody(m, d, hostedJson, tpl),
+      },
+      [
+        "site/_content/market.html",
+        marketsRel,
+        "site/_data/hosted.json",
+        "scripts/site/market-pages.mjs",
+      ],
+    );
+  }
+}
+
 // --- County coverage map -------------------------------------------------------------------
 
 let coverageJson;
@@ -799,9 +845,17 @@ ${Object.keys(byState)
         COV_MAX_AGE: String(cov.max_age_days),
         COV_TABLE: table,
         COV_REPO: REPO,
+        COV_MARKETS: marketLinks(hostedJson),
+        COV_NOTICES: sourceNotices(hostedJson),
       }),
     },
-    ["site/_content/coverage.html", covRel, geoRel],
+    [
+      "site/_content/coverage.html",
+      covRel,
+      geoRel,
+      "site/_data/hosted.json",
+      "scripts/site/market-pages.mjs",
+    ],
   );
 }
 
