@@ -224,8 +224,9 @@ class _RedirectHandler(urllib.request.HTTPRedirectHandler):
 
 
 # A small JSON body that an export API returns while it is still preparing the file: not data.
-# ArcGIS Hub reports its export stages as "Pending", "ExportingData" and "PagingData", all with HTTP 200.
-_NOT_READY = re.compile(r'"status"\s*:\s*"(pending|processing|in_progress|queued|exportingdata|pagingdata)"', re.I)
+# ArcGIS Hub reports its export stages as "Pending", "InProgress", "ExportingData" and "PagingData", all with
+# HTTP 200.
+_NOT_READY = re.compile(r'"status"\s*:\s*"(pending|processing|in_?progress|queued|exportingdata|pagingdata)"', re.I)
 
 
 class PoliteFetcher:

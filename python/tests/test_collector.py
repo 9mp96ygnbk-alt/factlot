@@ -247,6 +247,12 @@ class Collector(unittest.TestCase):
         self.assertNotIn("resumed_from", rec)
         self.assertEqual((out / rec["path"]).read_bytes(), b"synthetic roll v1")
 
+    def test_an_export_status_is_not_data_however_it_is_spelled(self):
+        from factlot.collector.core import _NOT_READY
+        for status in ("Pending", "InProgress", "in_progress", "ExportingData", "PagingData", "queued"):
+            self.assertTrue(_NOT_READY.search('{"status":"%s","progress":40}' % status), status)
+        self.assertFalse(_NOT_READY.search('{"status":"Completed","resultUrl":"https://example.invalid/x.csv"}'))
+
     def test_snapshot_does_not_archive_a_hub_paging_status(self):
         out = Path(tempfile.mkdtemp())
         spec = SourceSpec("hub-cad", "Hub CAD", [f"{self.base}/"], ["127.0.0.1"], link_patterns=[r"paging"])
