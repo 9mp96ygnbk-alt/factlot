@@ -5841,6 +5841,112 @@ describe("paid gating (GATING_ENABLED)", () => {
     }
   });
 
+  /** Parcel numbers of `rows` link rows, one per roll-year document; the parcel of row i is parcelOf[i]. */
+  function repeated(parcelOf: number[]) {
+    return parcelOf.map((p, i) => ({
+      urn: `fl:parcel:us-48041:${7000000 + p}`,
+      as_of: `${2022 + (i % 5)}-01-01`,
+      document_id: `doc-roll-${2022 + (i % 5)}`,
+    }));
+  }
+  // 10 rows over 2 parcels; 12 rows over 5 parcels, first seen in the order 1, 2, 3, 4, 5.
+  const TEN_ON_TWO = [1, 1, 1, 1, 1, 2, 2, 2, 2, 2];
+  const TWELVE_ON_FIVE = [1, 2, 1, 3, 2, 4, 3, 1, 5, 4, 5, 3];
+
+  it("registry_owned_by with repeated rows: parcels are counted by distinct URN", async () => {
+    const owned = (parcelOf: number[]) => {
+      const results = repeated(parcelOf).map((r) => ({
+        ...r,
+        building:
+          r.urn.endsWith("7000001") || r.urn.endsWith("7000002")
+            ? "fl:building:us-48041:b1"
+            : null,
+      }));
+      return {
+        results,
+        buildings: [
+          {
+            urn: "fl:building:us-48041:b1",
+            label: "Example Plaza",
+            owned_parcels: results.filter((r) => r.building !== null).length,
+            parcel_count: 4,
+            unit_count: 2,
+          },
+        ],
+      };
+    };
+    const small = owned(TEN_ON_TWO);
+    for (const a of await freeAnswers(small, OWNED, OWNED_PATH)) {
+      assert.deepEqual(a, small);
+      assert.ok(!("portfolio_withheld" in a) && !("portfolio_note" in a));
+    }
+    const big = owned(TWELVE_ON_FIVE);
+    const keep = new Set(
+      [1, 2, 3].map((p) => `fl:parcel:us-48041:${7000000 + p}`),
+    );
+    for (const a of await freeAnswers(big, OWNED, OWNED_PATH)) {
+      assert.deepEqual(
+        a.results,
+        big.results.filter((r) => keep.has(r.urn)),
+      );
+      assert.equal((a.results as unknown[]).length, 8);
+      assert.deepEqual(a.buildings, [
+        { ...big.buildings[0]!, owned_parcels: 2 },
+      ]);
+      assert.deepEqual(a.portfolio_withheld, { count: 2, total: 5 });
+      assert.equal(
+        a.portfolio_note,
+        "2 more parcels of this owner are available with a Pro or Team key: https://factlot.com/pricing/",
+      );
+      const text = JSON.stringify(a);
+      for (const p of [7000004, 7000005])
+        assert.ok(!text.includes(String(p)), `free answer leaks ${p}`);
+    }
+  });
+
+  it("registry_get on an entity with repeated owns rows: parcels are counted by distinct to_urn", async () => {
+    const urn = "fl:entity:us-tx:0806666666";
+    const record = (parcelOf: number[]) => ({
+      urn,
+      kind: "entity",
+      label: "Example Holdings LLC",
+      relationships: [
+        ...repeated(parcelOf).map((r) => ({
+          from_urn: urn,
+          type: "owns",
+          to_urn: r.urn,
+          as_of: r.as_of,
+          document_id: r.document_id,
+        })),
+        {
+          from_urn: urn,
+          type: "successor_of",
+          to_urn: "fl:entity:us-tx:0805555555",
+          as_of: "2025-06-01",
+        },
+      ],
+    });
+    const small = record(TEN_ON_TWO);
+    for (const a of await freeAnswers(small)) {
+      assert.deepEqual(a, small);
+      assert.ok(!("portfolio_withheld" in a) && !("portfolio_note" in a));
+    }
+    const big = record(TWELVE_ON_FIVE);
+    const keep = new Set(
+      [1, 2, 3].map((p) => `fl:parcel:us-48041:${7000000 + p}`),
+    );
+    for (const a of await freeAnswers(big)) {
+      assert.deepEqual(
+        a.relationships,
+        big.relationships.filter(
+          (r) => r.type !== "owns" || keep.has(r.to_urn),
+        ),
+      );
+      assert.equal((a.relationships as unknown[]).length, 8 + 1);
+      assert.deepEqual(a.portfolio_withheld, { count: 2, total: 5 });
+    }
+  });
+
   it("REST: flag unset or not exactly true leaves the answer as it is", async () => {
     const { api } = historyApi();
     for (const e of [env(), env({ GATING_ENABLED: "yes" })])

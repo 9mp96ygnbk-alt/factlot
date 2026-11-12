@@ -20,23 +20,27 @@
  *   for Pro and Team: a free caller gets PlanRequired, and the call is not metered. Without this
  *   a free caller could read the earlier roll years one date at a time.
  * - An owner's portfolio (registry_owned_by) is for Pro and Team beyond its first
- *   FREE_PORTFOLIO_PARCELS parcels: a free caller's answer keeps the first three `results` in the
- *   registry's order, and `buildings` lists only the buildings of the parcels kept, with
- *   `owned_parcels` counted over them. When parcels were removed, the answer adds
- *   `portfolio_withheld` ({ count, total }: how many parcels were left out and how many the
+ *   FREE_PORTFOLIO_PARCELS parcels. Parcels are counted by distinct URN: the registry can return
+ *   several rows for one parcel (one link per roll-year document, or per source), so a free
+ *   caller's answer keeps every row of the first three distinct parcels in the registry's order and
+ *   drops the rows of the others. `buildings` lists only the buildings of the parcels kept, with
+ *   `owned_parcels` the distinct kept parcels in each. When parcels were removed, the answer adds
+ *   `portfolio_withheld` ({ count, total }: distinct parcels left out, and distinct parcels the
  *   owner has; never a URN, label or building) and a one-sentence `portfolio_note`. A portfolio
- *   of three parcels or fewer is unchanged and gets neither. The tool takes no paging argument
- *   (its input is entity_urn alone, and other arguments are dropped by its schema), so the cut is
- *   applied to every answer and there is nothing to refuse.
- * - The same portfolio is in registry_get on an entity URN: its `relationships` hold one "owns" row
- *   from the entity to each parcel it owns (current links only; include_history adds superseded
- *   facts, never ended links). A free caller's entity record keeps the first FREE_PORTFOLIO_PARCELS
- *   of those rows in the registry's order and drops the rest; every other relationship (other types,
- *   rows to the entity, rows to anything but a parcel) stays, and a parcel or building record is not
- *   touched. When rows were dropped the record gets the same `portfolio_withheld` and
- *   `portfolio_note`, beside any history cut. The three parcels kept here need not be the three
- *   registry_owned_by keeps: registry_get orders the rows by link date and registry_owned_by by
- *   parcel label, and this Worker does not see the labels, so it does not try to match them.
+ *   of three distinct parcels or fewer is unchanged, however many rows it has, and gets neither.
+ *   The tool takes no paging argument (its input is entity_urn alone, and other arguments are
+ *   dropped by its schema), so the cut is applied to every answer and there is nothing to refuse.
+ * - The same portfolio is in registry_get on an entity URN: its `relationships` hold the "owns"
+ *   rows from the entity to each parcel it owns (current links only, possibly several per parcel;
+ *   include_history adds superseded facts, never ended links). A free caller's entity record keeps
+ *   the owns rows of the first FREE_PORTFOLIO_PARCELS distinct parcels (by `to_urn`, in the
+ *   registry's order) and drops the owns rows of the others; every other relationship (other
+ *   types, rows to the entity, rows to anything but a parcel) stays, and a parcel or building
+ *   record is not touched. When rows were dropped the record gets the same `portfolio_withheld`
+ *   and `portfolio_note`, counted in distinct parcels, beside any history cut. The three parcels
+ *   kept here need not be the three registry_owned_by keeps: registry_get orders the rows by link
+ *   date and registry_owned_by by parcel label, and this Worker does not see the labels, so it
+ *   does not try to match them.
  */
 import { GATING_PRICING_URL } from "./plans.ts";
 
@@ -265,8 +269,25 @@ export function portfolioNote(w: PortfolioWithheld): string {
 }
 
 /**
- * A registry_owned_by answer for a free caller: the first FREE_PORTFOLIO_PARCELS parcels, and the
- * buildings of those parcels only. Returns the answer unchanged when it holds that many or fewer.
+ * The first FREE_PORTFOLIO_PARCELS distinct parcels of `parcels` (one entry per row, in the
+ * registry's order; a parcel can have several rows) and how many distinct parcels there are, or
+ * undefined when there are that many or fewer and nothing is cut.
+ */
+function firstParcels(
+  parcels: unknown[],
+): { kept: Set<unknown>; total: number } | undefined {
+  const distinct = [...new Set(parcels)];
+  if (distinct.length <= FREE_PORTFOLIO_PARCELS) return undefined;
+  return {
+    kept: new Set(distinct.slice(0, FREE_PORTFOLIO_PARCELS)),
+    total: distinct.length,
+  };
+}
+
+/**
+ * A registry_owned_by answer for a free caller: every row of the first FREE_PORTFOLIO_PARCELS
+ * distinct parcels, and the buildings of those parcels only. Returns the answer unchanged when it
+ * holds that many distinct parcels or fewer.
  */
 export function limitPortfolio(answer: unknown): unknown {
   if (typeof answer !== "object" || answer === null || Array.isArray(answer))
@@ -274,15 +295,20 @@ export function limitPortfolio(answer: unknown): unknown {
   const a = answer as Json;
   if (!Array.isArray(a.results)) return answer;
   const all = a.results as unknown[];
-  if (all.length <= FREE_PORTFOLIO_PARCELS) return answer;
-  const kept = all.slice(0, FREE_PORTFOLIO_PARCELS);
+  const parcelOf = (r: unknown) => (r as Json | null)?.urn ?? r;
+  const cut = firstParcels(all.map(parcelOf));
+  if (cut === undefined) return answer;
+  const kept = all.filter((r) => cut.kept.has(parcelOf(r)));
   const out: Json = { ...a, results: kept };
   if (Array.isArray(a.buildings)) {
-    const owned = new Map<unknown, number>();
+    // Distinct kept parcels per building: a parcel with several link rows counts once.
+    const parcels = new Map<unknown, Set<unknown>>();
     for (const p of kept) {
       const b = (p as Json | null)?.building;
-      if (b != null) owned.set(b, (owned.get(b) ?? 0) + 1);
+      if (b != null)
+        parcels.set(b, (parcels.get(b) ?? new Set()).add(parcelOf(p)));
     }
+    const owned = new Map([...parcels].map(([b, ps]) => [b, ps.size]));
     out.buildings = (a.buildings as unknown[])
       .filter((b) => owned.has((b as Json | null)?.urn))
       .map((b): Json => ({
@@ -300,8 +326,8 @@ export function limitPortfolio(answer: unknown): unknown {
       );
   }
   const withheld: PortfolioWithheld = {
-    count: all.length - kept.length,
-    total: all.length,
+    count: cut.total - cut.kept.size,
+    total: cut.total,
   };
   out.portfolio_withheld = withheld;
   out.portfolio_note = portfolioNote(withheld);
@@ -309,9 +335,10 @@ export function limitPortfolio(answer: unknown): unknown {
 }
 
 /**
- * A registry_get answer on an entity for a free caller: the first FREE_PORTFOLIO_PARCELS "owns"
- * relationships from the entity to a parcel, in the registry's order; every other row unchanged.
- * Returns the answer unchanged for any other record, or when it holds that many or fewer.
+ * A registry_get answer on an entity for a free caller: every "owns" relationship from the entity
+ * to the first FREE_PORTFOLIO_PARCELS distinct parcels, in the registry's order; the owns rows to
+ * other parcels are dropped and every other row is unchanged. Returns the answer unchanged for any
+ * other record, or when the entity owns that many distinct parcels or fewer.
  */
 export function limitEntityPortfolio(answer: unknown): unknown {
   if (typeof answer !== "object" || answer === null || Array.isArray(answer))
@@ -328,13 +355,13 @@ export function limitEntityPortfolio(answer: unknown): unknown {
     );
   };
   const rows = a.relationships as unknown[];
-  const total = rows.filter(owns).length;
-  if (total <= FREE_PORTFOLIO_PARCELS) return answer;
-  let seen = 0;
-  const kept = rows.filter((r) => !owns(r) || ++seen <= FREE_PORTFOLIO_PARCELS);
+  const parcelOf = (r: unknown) => (r as Json).to_urn;
+  const cut = firstParcels(rows.filter(owns).map(parcelOf));
+  if (cut === undefined) return answer;
+  const kept = rows.filter((r) => !owns(r) || cut.kept.has(parcelOf(r)));
   const withheld: PortfolioWithheld = {
-    count: total - FREE_PORTFOLIO_PARCELS,
-    total,
+    count: cut.total - cut.kept.size,
+    total: cut.total,
   };
   return {
     ...a,
