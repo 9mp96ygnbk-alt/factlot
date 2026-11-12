@@ -6089,6 +6089,417 @@ describe("paid gating (GATING_ENABLED)", () => {
     }
   });
 
+  // --- recorded sales and documents ------------------------------------------------------------------
+
+  /** One recorded-document fact, shaped as registry_get returns it (provenance cut down). */
+  function recorded(
+    id: string,
+    predicate: string,
+    value: Record<string, unknown>,
+  ) {
+    return {
+      id,
+      subject: "fl:parcel:us-36061:1012920015",
+      predicate,
+      value,
+      as_of: "2026-09-30",
+      provenance: {
+        method: "public_record",
+        sources: [
+          {
+            document_id: `doc-${id}`,
+            section: `row of ${String(value.document_id ?? id)}`,
+          },
+        ],
+      },
+    };
+  }
+  // The newest transfer is the deed of 2026-01-28 (kept); everything else is withheld. Every withheld
+  // price, party, document number, CRFN and full date below is a sentinel that must never reach a
+  // free answer.
+  const KEPT_DEED = recorded("s01", "transaction.deed", {
+    date: "2026-01-28",
+    document_date: "2026-01-20",
+    doc_type: "DEED",
+    doc_type_description: "DEED",
+    amount_usd: 4242424,
+    crfn: "2026000011111",
+    document_id: "2026012800111001",
+    grantors: ["KEPT GRANTOR LLC"],
+    grantees: ["KEPT GRANTEE LLC"],
+    organizations_only: true,
+  });
+  const SALES_FACTS = [
+    KEPT_DEED,
+    recorded("s02", "transaction.sale", {
+      date: "2026-01-15",
+      price_usd: 9111111,
+      building_class: "K4",
+    }),
+    recorded("s03", "debt.mortgage_recorded", {
+      date: "2025-03-03",
+      doc_type: "MTGE",
+      amount_usd: 9222222,
+      crfn: "2025000022222",
+      document_id: "2025030300222002",
+      borrowers: ["WITHHELD BORROWER LLC"],
+      lenders: ["WITHHELD LENDER BANK"],
+      organizations_only: true,
+    }),
+    recorded("s04", "debt.mortgage_satisfaction_recorded", {
+      date: "2024-08-08",
+      doc_type: "SAT",
+      crfn: "2024000033333",
+      document_id: "2024080800333003",
+      lenders: ["WITHHELD SATISFIED BANK"],
+      organizations_only: true,
+    }),
+    recorded("s05", "transaction.deed", {
+      date: "2019-12-19",
+      doc_type: "DEED",
+      amount_usd: 0,
+      crfn: "2019000044444",
+      document_id: "2019121900444004",
+      grantors: ["WITHHELD OLD GRANTOR LLC"],
+      grantees: [],
+      grantees_withheld: { count: 2, kinds: ["personal trust", "estate"] },
+      organizations_only: true,
+    }),
+    recorded("s06", "transaction.sale", {
+      date: "2019-12-05",
+      price_usd: 9333333,
+      nominal_consideration: false,
+    }),
+    recorded("s07", "transaction.sale", {
+      date: "2009-06-30",
+      price_usd: 0,
+      nominal_consideration: true,
+    }),
+    recorded("s08", "debt.mortgage_recorded", {
+      date: "2013-02-14",
+      doc_type: "MTGE",
+      amount_usd: 9444444,
+      crfn: "2013000055555",
+      document_id: "2013021400555005",
+      borrowers: ["WITHHELD BORROWER TWO LLC"],
+      lenders: ["WITHHELD LENDER TWO BANK"],
+      organizations_only: true,
+    }),
+  ];
+  const SALES_RECORD = {
+    urn: "fl:parcel:us-36061:1012920015",
+    kind: "parcel",
+    facts: [
+      { id: "p1", predicate: "parcel.apn", value: "1012920015" },
+      ...SALES_FACTS,
+      { id: "p2", predicate: "parcel.tax_year", value: 2026 },
+    ],
+    value_history: [{ tax_year: 2026, market_value: 200 }],
+    relationships: [],
+  };
+  const SALES_SENTINELS = [
+    "9111111",
+    "9222222",
+    "9333333",
+    "9444444",
+    "WITHHELD",
+    "2025000022222",
+    "2025030300222002",
+    "2024080800333003",
+    "2019121900444004",
+    "2013021400555005",
+    "doc-s02",
+    "doc-s03",
+    "doc-s05",
+    "s02",
+    "s08",
+    "2026-01-15",
+    "2025-03-03",
+    "2024-08-08",
+    "2019-12-19",
+    "2019-12-05",
+    "2009-06-30",
+    "2013-02-14",
+    "personal trust",
+  ];
+  function assertNoWithheldSales(answer: unknown) {
+    const text = JSON.stringify(answer);
+    for (const v of SALES_SENTINELS)
+      assert.ok(!text.includes(v), `free answer leaks ${v}`);
+  }
+  const SALES_NOTE =
+    "This answer keeps the newest recorded sale or deed only; 3 more recorded sales, 2009 to 2026, and 4 recorded documents (deeds, mortgages and mortgage satisfactions), 2013 to 2025, are available with a Pro or Team key: https://factlot.com/pricing/";
+
+  it("recorded sales: a free caller keeps the newest sale or deed whole and in place, with counts and years only (REST, MCP structuredContent and text)", async () => {
+    for (const a of await freeAnswers(SALES_RECORD)) {
+      assert.deepEqual(a.facts, [
+        SALES_RECORD.facts[0],
+        KEPT_DEED,
+        SALES_RECORD.facts.at(-1),
+      ]);
+      assert.deepEqual(a.sales_withheld, {
+        count: 3,
+        from_year: 2009,
+        to_year: 2026,
+      });
+      assert.deepEqual(a.documents_withheld, {
+        count: 4,
+        from_year: 2013,
+        to_year: 2025,
+        by_predicate: {
+          "transaction.deed": 1,
+          "debt.mortgage_recorded": 2,
+          "debt.mortgage_satisfaction_recorded": 1,
+        },
+      });
+      assert.equal(a.sales_note, SALES_NOTE);
+      assert.equal(a.history_available, "pro");
+      assert.ok(!("history_withheld" in a) && !("history_note" in a));
+      assertNoWithheldSales(a);
+      // No claim about the market: nothing says arm's length, valuation or comparable.
+      assert.doesNotMatch(
+        JSON.stringify(a),
+        /arm'?s.length|valuation|comparable/i,
+      );
+    }
+  });
+
+  it("recorded sales: a Pro key and gating off get every recorded fact unchanged (REST and MCP)", async () => {
+    const api = answerApi(SALES_RECORD);
+    const e = on();
+    const { key } = await issue(e);
+    assert.deepEqual(
+      await (
+        await call(e, api, "/v1/registry/get", { key, body: { urn: "x" } })
+      ).json(),
+      SALES_RECORD,
+    );
+    const mcp = (await (
+      await call(e, api, "/mcp", { key, body: toolCall("registry_get", 1) })
+    ).json()) as {
+      result: { content: { text: string }[]; structuredContent: unknown };
+    };
+    assert.deepEqual(mcp.result.structuredContent, SALES_RECORD);
+    assert.deepEqual(JSON.parse(mcp.result.content[0]!.text), SALES_RECORD);
+    for (const off of [env(), env({ GATING_ENABLED: "yes" })])
+      assert.deepEqual(
+        await (
+          await call(off, api, "/v1/registry/get", { body: { urn: "x" } })
+        ).json(),
+        SALES_RECORD,
+      );
+  });
+
+  it("recorded sales with include_history: history keeps the kept sale only; the history and sales notes each say their own part", async () => {
+    const superseded = {
+      id: "old1",
+      predicate: "parcel.market_value",
+      value: 1234567,
+    };
+    const withHistory = {
+      ...SALES_RECORD,
+      history: [...SALES_RECORD.facts, superseded],
+    };
+    for (const a of await freeAnswers(withHistory)) {
+      assert.deepEqual(
+        (a.history as { id: string }[]).map((f) => f.id),
+        ["p1", "s01", "p2"],
+      );
+      assert.deepEqual(a.history_withheld, { facts: 1 });
+      assert.equal(
+        a.history_note,
+        "1 earlier fact in history is available with a Pro or Team key: https://factlot.com/pricing/",
+      );
+      assert.equal(a.sales_note, SALES_NOTE);
+      assertNoWithheldSales(a);
+      assert.ok(!JSON.stringify(a).includes("1234567"));
+    }
+  });
+
+  it("recorded sales: no recorded fact, or a single sale (a roll's latest sale), is unchanged with no note", async () => {
+    const none = {
+      urn: "u",
+      facts: [{ id: "p1", predicate: "parcel.apn", value: "1" }],
+    };
+    const single = {
+      urn: "u",
+      facts: [
+        ...none.facts,
+        recorded("dc1", "transaction.sale", {
+          date: "2021-04-01",
+          price_usd: 0,
+          acceptance_code: "BUYER=SELLER",
+        }),
+      ],
+    };
+    for (const rec of [none, single])
+      for (const a of await freeAnswers(rec)) {
+        assert.deepEqual(a, rec);
+        for (const k of [
+          "sales_withheld",
+          "documents_withheld",
+          "sales_note",
+          "history_available",
+        ])
+          assert.ok(!(k in a), k);
+      }
+  });
+
+  it("recorded sales: mortgages only keep nothing and say so; the newest of a sale and a deed on one date is the higher amount", async () => {
+    const mortgages = {
+      urn: "u",
+      facts: [SALES_FACTS[2], SALES_FACTS[7]],
+    };
+    for (const a of await freeAnswers(mortgages)) {
+      assert.deepEqual(a.facts, []);
+      assert.deepEqual(a.documents_withheld, {
+        count: 2,
+        from_year: 2013,
+        to_year: 2025,
+        by_predicate: { "debt.mortgage_recorded": 2 },
+      });
+      assert.ok(!("sales_withheld" in a));
+      assert.equal(
+        a.sales_note,
+        "2 recorded mortgages, 2013 to 2025, are available with a Pro or Team key: https://factlot.com/pricing/",
+      );
+      assertNoWithheldSales(a);
+    }
+    const sameDay = {
+      urn: "u",
+      facts: [
+        recorded("d1", "transaction.deed", {
+          date: "2024-05-01",
+          amount_usd: 10,
+        }),
+        recorded("d2", "transaction.sale", {
+          date: "2024-05-01",
+          price_usd: 20,
+        }),
+      ],
+    };
+    const [rest] = await freeAnswers(sameDay);
+    assert.deepEqual(
+      (rest!.facts as { id: string }[]).map((f) => f.id),
+      ["d2"],
+    );
+    assert.deepEqual(rest!.documents_withheld, {
+      count: 1,
+      from_year: 2024,
+      to_year: 2024,
+      by_predicate: { "transaction.deed": 1 },
+    });
+    assert.equal(
+      rest!.sales_note,
+      "This answer keeps the newest recorded sale or deed only; 1 recorded deed, 2024, is available with a Pro or Team key: https://factlot.com/pricing/",
+    );
+  });
+
+  it("recorded sales: withheld-party markers pass through unchanged, free and Pro, when every party or some parties are withheld", async () => {
+    const allWithheld = recorded("w1", "transaction.deed", {
+      date: "2026-05-01",
+      doc_type: "DEED",
+      amount_usd: 10,
+      grantors: [],
+      grantors_withheld: { count: 1, kinds: ["estate"] },
+      grantees: [],
+      grantees_withheld: { count: 2, kinds: ["personal trust"] },
+      organizations_only: true,
+    });
+    const mixed = recorded("w2", "debt.mortgage_recorded", {
+      date: "2026-04-01",
+      doc_type: "MTGE",
+      amount_usd: 20,
+      borrowers: ["SOME BORROWER LLC"],
+      borrowers_withheld: { count: 1, kinds: ["individual"] },
+      lenders: ["SOME BANK"],
+      organizations_only: true,
+    });
+    const rec = { urn: "u", facts: [allWithheld, mixed] };
+    for (const a of await freeAnswers(rec)) {
+      assert.deepEqual(a.facts, [allWithheld]);
+      assert.deepEqual(a.documents_withheld, {
+        count: 1,
+        from_year: 2026,
+        to_year: 2026,
+        by_predicate: { "debt.mortgage_recorded": 1 },
+      });
+      assert.ok(!JSON.stringify(a).includes("SOME BORROWER"));
+    }
+    const e = on();
+    const { key } = await issue(e);
+    assert.deepEqual(
+      await (
+        await call(e, answerApi(rec), "/v1/registry/get", {
+          key,
+          body: { urn: "x" },
+        })
+      ).json(),
+      rec,
+    );
+  });
+
+  it("recorded sales: entity records, registry_owned_by and the candidates tool carry no recorded facts and are unchanged by the sales cut", async () => {
+    const ent = entityRecord(2);
+    for (const a of await freeAnswers(ent)) assert.deepEqual(a, ent);
+    const owned = portfolio(2);
+    for (const a of await freeAnswers(owned, OWNED, OWNED_PATH))
+      assert.deepEqual(a, owned);
+    const cand = {
+      subject: { urn: "s", value_history: [{ tax_year: 2026 }] },
+      candidates: [{ urn: "c1" }],
+    };
+    for (const a of await freeAnswers(
+      cand,
+      "registry_tx_equity_candidates",
+      "/v1/registry/tx_equity_candidates",
+    ))
+      assert.deepEqual(a, cand);
+  });
+
+  it("recorded sales: an MCP batch of two registry_get calls cuts each; a dated get is still refused", async () => {
+    const api = answerApi(SALES_RECORD);
+    const j = (b: unknown) =>
+      new Response(JSON.stringify(b), {
+        headers: { "content-type": "application/json" },
+      });
+    const batchApi = {
+      fetch: async (r: Request) => {
+        const items = JSON.parse(await r.text()) as { id: number }[];
+        return j(
+          items.map((m) => ({
+            jsonrpc: "2.0",
+            id: m.id,
+            result: {
+              content: [{ type: "text", text: JSON.stringify(SALES_RECORD) }],
+              structuredContent: SALES_RECORD,
+            },
+          })),
+        );
+      },
+    };
+    const res = (await (
+      await call(on(), batchApi, "/mcp", {
+        body: [toolCall("registry_get", 1), toolCall("registry_get", 2)],
+      })
+    ).json()) as {
+      result: { content: { text: string }[]; structuredContent: unknown };
+    }[];
+    assert.equal(res.length, 2);
+    for (const m of res) {
+      assert.equal(
+        (m.result.structuredContent as Record<string, unknown>).sales_note,
+        SALES_NOTE,
+      );
+      assertNoWithheldSales(m.result);
+    }
+    const dated = await call(on(), api, "/v1/registry/get", {
+      body: { urn: "x", as_of: "2020-01-01" },
+    });
+    assert.equal(dated.status, 403);
+    assertNoWithheldSales(await dated.json());
+  });
+
   it("REST: flag unset or not exactly true leaves the answer as it is", async () => {
     const { api } = historyApi();
     for (const e of [env(), env({ GATING_ENABLED: "yes" })])

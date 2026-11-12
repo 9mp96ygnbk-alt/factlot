@@ -41,6 +41,19 @@
  *   kept here need not be the three registry_owned_by keeps: registry_get orders the rows by link
  *   date and registry_owned_by by parcel label, and this Worker does not see the labels, so it
  *   does not try to match them.
+ * - Recorded sales and documents are for Pro and Team beyond the newest sale. A parcel's registry_get
+ *   facts hold one fact per recorded sale (transaction.sale), deed (transaction.deed), mortgage
+ *   (debt.mortgage_recorded) and mortgage satisfaction (debt.mortgage_satisfaction_recorded). A free
+ *   caller's record keeps, of these, only the newest sale or deed (by recorded date, then amount,
+ *   then fact id), whole and in its place, and drops the others from `facts` and from
+ *   include_history's `history`; every other fact is unchanged. When something was dropped the
+ *   record adds `sales_withheld` (transaction.sale) and `documents_withheld` (the three document
+ *   predicates, with a count per predicate), each a count and the first and last year of the
+ *   dropped facts' dates (never a price, party, document number, citation or full date), a
+ *   one-sentence `sales_note`, and `history_available: "pro"`. A parcel with no recorded fact, or
+ *   one sale or deed only (a roll's latest sale), is unchanged and gets none of them. The
+ *   registry does not say whether a sale was at arm's length, and neither does this cut: the fact
+ *   kept is the newest as recorded, at the price as recorded, zero or nominal included.
  */
 import { GATING_PRICING_URL } from "./plans.ts";
 
@@ -256,6 +269,192 @@ export function limitHistory(answer: unknown): unknown {
   return out;
 }
 
+/** A recorded sale (a publisher's sales file, or the latest sale on a roll). */
+export const SALE_PREDICATE = "transaction.sale";
+/** Recorded documents from a land-records index: deeds, mortgages and mortgage satisfactions. */
+export const DOCUMENT_PREDICATES = [
+  "transaction.deed",
+  "debt.mortgage_recorded",
+  "debt.mortgage_satisfaction_recorded",
+] as const;
+const RECORDED_PREDICATES: ReadonlySet<unknown> = new Set([
+  SALE_PREDICATE,
+  ...DOCUMENT_PREDICATES,
+]);
+/** The transfers a free caller keeps the newest of: a sale or a deed. */
+const TRANSFER_PREDICATES: ReadonlySet<unknown> = new Set([
+  SALE_PREDICATE,
+  "transaction.deed",
+]);
+
+/** What a free caller's answer had cut of the recorded sales or documents: a count and the years they span. Never a value. */
+export interface RecordsWithheld {
+  count: number;
+  from_year?: number;
+  to_year?: number;
+  /** documents_withheld only: the count per predicate. */
+  by_predicate?: Record<string, number>;
+}
+
+const DOCUMENT_NOUNS: Record<string, [string, string]> = {
+  "transaction.deed": ["deed", "deeds"],
+  "debt.mortgage_recorded": ["mortgage", "mortgages"],
+  "debt.mortgage_satisfaction_recorded": [
+    "mortgage satisfaction",
+    "mortgage satisfactions",
+  ],
+};
+
+function yearSpan(w: RecordsWithheld): string {
+  if (w.from_year === undefined || w.to_year === undefined) return "";
+  return w.from_year === w.to_year
+    ? `, ${w.from_year}`
+    : `, ${w.from_year} to ${w.to_year}`;
+}
+
+/** "3 more recorded sales, 2018 to 2024, and 7 recorded documents (deeds and mortgages), 2013 to 2026": counts and years only. */
+export function recordsInWords(
+  sales: RecordsWithheld | undefined,
+  documents: RecordsWithheld | undefined,
+): string {
+  const parts: string[] = [];
+  if (sales && sales.count > 0)
+    parts.push(
+      `${sales.count} more recorded ${sales.count === 1 ? "sale" : "sales"}${yearSpan(sales)}`,
+    );
+  if (documents && documents.count > 0) {
+    const kinds = DOCUMENT_PREDICATES.filter(
+      (p) => (documents.by_predicate?.[p] ?? 0) > 0,
+    );
+    const n = documents.count;
+    const what =
+      kinds.length === 1
+        ? DOCUMENT_NOUNS[kinds[0]!]![n === 1 ? 0 : 1]
+        : `documents (${kinds
+            .map((p) => DOCUMENT_NOUNS[p]![1])
+            .join(", ")
+            .replace(/, ([^,]*)$/, " and $1")})`;
+    parts.push(`${n} recorded ${what}${yearSpan(documents)}`);
+  }
+  return parts.join(", and ");
+}
+
+/** The one-sentence note for withheld sales and documents, saying only what was removed. */
+export function salesNote(
+  sales: RecordsWithheld | undefined,
+  documents: RecordsWithheld | undefined,
+  keptLatest: boolean,
+): string {
+  const single = (sales?.count ?? 0) + (documents?.count ?? 0) === 1;
+  const lead = keptLatest
+    ? "This answer keeps the newest recorded sale or deed only; "
+    : "";
+  // As history_note: a closing year span takes a comma before the verb.
+  const last = documents && documents.count > 0 ? documents : sales;
+  const comma = last && yearSpan(last) ? "," : "";
+  return `${lead}${recordsInWords(sales, documents)}${comma} ${single ? "is" : "are"} available with a Pro or Team key: ${GATING_PRICING_URL}`;
+}
+
+const dateOf = (f: Json): string => {
+  const d = (f.value as Json | null)?.date;
+  return typeof d === "string" ? d : "";
+};
+const amountOf = (f: Json): number => {
+  const v = (f.value ?? {}) as Json;
+  const a = v.price_usd ?? v.amount_usd;
+  return typeof a === "number" ? a : -1;
+};
+
+/** The newest of `facts` by recorded date, then amount, then fact id (the order registry_get lists them in). */
+function newestTransfer(facts: Json[]): Json | undefined {
+  let best: Json | undefined;
+  for (const f of facts) {
+    if (!TRANSFER_PREDICATES.has(f.predicate)) continue;
+    if (best === undefined) {
+      best = f;
+      continue;
+    }
+    const [da, db] = [dateOf(f), dateOf(best)];
+    if (da !== db) {
+      if (da > db) best = f;
+      continue;
+    }
+    const [pa, pb] = [amountOf(f), amountOf(best)];
+    if (pa !== pb) {
+      if (pa > pb) best = f;
+      continue;
+    }
+    if (String(f.id) > String(best.id)) best = f;
+  }
+  return best;
+}
+
+function withheldOf(facts: Json[], byPredicate: boolean): RecordsWithheld {
+  const years = facts
+    .map((f) => /^(\d{4})/.exec(dateOf(f))?.[1])
+    .filter((y): y is string => y !== undefined)
+    .map(Number);
+  const out: RecordsWithheld = { count: facts.length };
+  if (years.length > 0) {
+    out.from_year = Math.min(...years);
+    out.to_year = Math.max(...years);
+  }
+  if (byPredicate) {
+    const counts: Record<string, number> = {};
+    for (const p of DOCUMENT_PREDICATES) {
+      const n = facts.filter((f) => f.predicate === p).length;
+      if (n > 0) counts[p] = n;
+    }
+    out.by_predicate = counts;
+  }
+  return out;
+}
+
+/**
+ * A registry_get answer for a free caller: of its recorded sales and documents (SALE_PREDICATE and
+ * DOCUMENT_PREDICATES, one fact per event) the newest sale or deed only. Every other fact is kept, in
+ * place. `history` loses the same facts (run limitHistory first: it cuts history to the current
+ * facts). Returns the answer unchanged when it has no facts array, or at most one recorded fact and
+ * that one a sale or deed.
+ */
+export function limitSales(answer: unknown): unknown {
+  if (typeof answer !== "object" || answer === null || Array.isArray(answer))
+    return answer;
+  const a = answer as Json;
+  if (!Array.isArray(a.facts)) return answer;
+  const facts = a.facts as Json[];
+  const recorded = facts.filter((f) => RECORDED_PREDICATES.has(f?.predicate));
+  const kept = newestTransfer(recorded);
+  const removed = recorded.filter((f) => f !== kept);
+  if (removed.length === 0) return answer;
+  const out: Json = {
+    ...a,
+    facts: facts.filter(
+      (f) => !RECORDED_PREDICATES.has(f?.predicate) || f === kept,
+    ),
+  };
+  if (Array.isArray(a.history))
+    out.history = (a.history as Json[]).filter(
+      (f) =>
+        !RECORDED_PREDICATES.has(f?.predicate) ||
+        (kept?.id !== undefined && f?.id === kept.id),
+    );
+  const sales = removed.filter((f) => f.predicate === SALE_PREDICATE);
+  const documents = removed.filter((f) => f.predicate !== SALE_PREDICATE);
+  const salesWithheld = sales.length > 0 ? withheldOf(sales, false) : undefined;
+  const documentsWithheld =
+    documents.length > 0 ? withheldOf(documents, true) : undefined;
+  out.history_available = "pro";
+  if (salesWithheld) out.sales_withheld = salesWithheld;
+  if (documentsWithheld) out.documents_withheld = documentsWithheld;
+  out.sales_note = salesNote(
+    salesWithheld,
+    documentsWithheld,
+    kept !== undefined,
+  );
+  return out;
+}
+
 /** What a free caller's registry_owned_by answer had cut: parcels left out, and the portfolio's size. */
 export interface PortfolioWithheld {
   count: number;
@@ -373,11 +572,12 @@ export function limitEntityPortfolio(answer: unknown): unknown {
 
 /**
  * A free caller's answer from `tool`: the portfolio cut for registry_owned_by; for registry_get the
- * history cut and, on an entity, the portfolio cut; else the history cut.
+ * history cut, the sales cut and, on an entity, the portfolio cut; else the history cut.
  */
 export function limitFreeAnswer(tool: unknown, answer: unknown): unknown {
   if (tool === PORTFOLIO_TOOL) return limitPortfolio(answer);
-  if (tool === HISTORY_TOOL) return limitEntityPortfolio(limitHistory(answer));
+  if (tool === HISTORY_TOOL)
+    return limitEntityPortfolio(limitSales(limitHistory(answer)));
   return limitHistory(answer);
 }
 
