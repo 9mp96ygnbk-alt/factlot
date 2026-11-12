@@ -131,14 +131,45 @@ similar attestation.
 
 ## What has been verified
 
-| Check                                                                                                        | Status                                                                                                                                                                           |
-| ------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| MCP over Streamable HTTP with the official MCP SDK client (list, call, auth)                                 | Tested in CI (`packages/server`)                                                                                                                                                 |
-| Raw JSON-RPC over HTTP, as a remote platform sends it (`initialize`, `tools/list`, `tools/call`, `search`)   | Tested by hand against the built server                                                                                                                                          |
-| Docker image: full multi-stage build, non-root user, MCP over HTTP and stdio, REST, OpenAPI                  | `docker build` and the end-to-end test run by hand ([install verification](../docs/install-verification.md)) and on every release tag (`container.yml`)                          |
-| Docker runtime image (non-root user, auth, MCP, REST)                                                        | Built and run in the 2026-11-03 security review: uid 1000, `--read-only`, `--cap-drop ALL`, healthcheck healthy, open and keyed modes, 413 and input caps, rejected-token limit. |
-| Claude Desktop extension: `mcpb validate`, `mcpb pack`, and the end-to-end test on the unpacked bundle       | Tested in CI; `npm run build:mcpb` also starts the bundled server and checks `tools/list`                                                                                        |
-| Provider tool formats and the Gemini schema subset                                                           | Unit-tested (`packages/tools`, `python/tests`)                                                                                                                                   |
-| Each client's documented limits (tool names, schema keywords, annotations, `search`/`fetch`, OpenAPI limits) | Tested in CI against the local server and the generated documents (`scripts/conformance/checks.test.ts`)                                                                         |
-| The hosted service, keyless: OAuth discovery, 401 challenges, CORS, version negotiation, tools, OpenAPI      | `npm run test:connectors:live` (about 30 requests, no registry lookups); `FACTLOT_CONFORMANCE_URL` points it at another deployment                                               |
-| Live connection from the claude.ai, ChatGPT, Copilot Studio, Gemini, and Bedrock consoles                    | **Not yet.** This needs a public deployment and accounts on each platform. Steps follow each platform's documentation as of Nov 2026; confirm the menu paths when you connect.   |
+| Check                                                                                                        | Status                                                                                                                                                                                                                                 |
+| ------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| MCP over Streamable HTTP with the official MCP SDK client (list, call, auth)                                 | Tested in CI (`packages/server`)                                                                                                                                                                                                       |
+| Raw JSON-RPC over HTTP, as a remote platform sends it (`initialize`, `tools/list`, `tools/call`, `search`)   | Tested by hand against the built server                                                                                                                                                                                                |
+| Docker image: full multi-stage build, non-root user, MCP over HTTP and stdio, REST, OpenAPI                  | `docker build` and the end-to-end test run by hand ([install verification](../docs/install-verification.md)) and on every release tag (`container.yml`)                                                                                |
+| Docker runtime image (non-root user, auth, MCP, REST)                                                        | Built and run in the 2026-11-03 security review: uid 1000, `--read-only`, `--cap-drop ALL`, healthcheck healthy, open and keyed modes, 413 and input caps, rejected-token limit.                                                       |
+| Claude Desktop extension: `mcpb validate`, `mcpb pack`, and the end-to-end test on the unpacked bundle       | Tested in CI; `npm run build:mcpb` also starts the bundled server and checks `tools/list`                                                                                                                                              |
+| Provider tool formats and the Gemini schema subset                                                           | Unit-tested (`packages/tools`, `python/tests`)                                                                                                                                                                                         |
+| Each client's documented limits (tool names, schema keywords, annotations, `search`/`fetch`, OpenAPI limits) | Tested in CI against the local server and the generated documents (`scripts/conformance/checks.test.ts`)                                                                                                                               |
+| The hosted service, keyless: OAuth discovery, 401 challenges, CORS, version negotiation, tools, OpenAPI      | `npm run test:connectors:live` (about 30 requests, no registry lookups); `FACTLOT_CONFORMANCE_URL` points it at another deployment                                                                                                     |
+| Live connection from the claude.ai custom connector                                                          | **Done 2026-11-12.** Added by URL `https://api.factlot.com/mcp/signin`; sign-in and client identity were detected automatically; connected on the free tier; 58 read-only tools listed; one address search and record lookup answered. |
+| Live connection from the ChatGPT, Copilot Studio, Gemini, and Bedrock consoles (or any other vendor console) | **Not yet.** No other vendor console has been exercised. This needs accounts on each platform. Steps follow each platform's documentation as of Nov 2026; confirm the menu paths when you connect.                                     |
+
+## MCP protocol revisions
+
+| Revision                                       | Status                                                                                                        |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| 2025-11-25, 2025-06-18, 2025-03-26, 2024-11-05 | Supported: `initialize`, stateless Streamable HTTP (no session is issued), POST only (a GET answers 405).     |
+| 2026-07-28                                     | Not supported. The server refuses such a request and a client that also speaks `initialize` falls back to it. |
+
+The 2026-07-28 revision drops `initialize` and protocol-level sessions and carries the version on
+every request (`MCP-Protocol-Version`, `Mcp-Method`, `Mcp-Name`). A server that does not implement
+it is expected to answer a modern request with `400 Bad Request` whose body is not a recognized
+modern error (`-32022` UnsupportedProtocolVersion with `data.supported`, or `-32020`
+HeaderMismatch): the spec says a client then "fall[s] back to `initialize`"
+([Streamable HTTP, backward compatibility](https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#backward-compatibility),
+[versioning](https://modelcontextprotocol.io/specification/2026-07-28/basic/versioning)). FactLot
+answers `400` with a plain JSON-RPC error naming the versions it speaks, and a test pins that
+(`packages/server/src/index.test.ts`); answering `-32022` would tell the client this is a modern
+server and it would retry in the modern form, so the server must not. A client that speaks only
+2026-07-28 cannot connect yet (the spec's "Modern client, legacy server" case fails by design).
+
+Why not supported: `@modelcontextprotocol/sdk` 1.32.2, the latest 1.x and the version pinned here,
+implements 2025-11-25 only, and the spec requires `server/discover`, per-request metadata and
+header validation that the transport would have to provide. The 2026-07-28 revision is implemented
+by the SDK's 2.x line, which is a different package set (`@modelcontextprotocol/server`, `client`,
+`node`; 2.4.0 on 2026-10-23), a new server API (`registerTool`, Standard Schema, Zod 4), a renamed
+Streamable HTTP transport and a rewritten client auth API. That migration touches every file that
+imports the SDK (server, stdio, Worker tests, e2e, conformance), so it is its own piece of work,
+best done after the in-flight MCP resources and prompts changes land. When it is done, serve both
+eras (`createMcpHandler` plus the legacy path), keep `initialize` working for the clients listed
+above, and change `npm run test:connectors:live`'s 2026-07-28 rule to expect a 200.
