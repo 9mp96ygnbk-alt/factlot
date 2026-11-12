@@ -72,6 +72,11 @@ export function isFreeKeyToken(token: string): boolean {
   return token.startsWith(FREE_KEY_PREFIX);
 }
 
+/** The feature is dark unless the Worker variable FREE_KEY_ENABLED is exactly "true". */
+export function freeKeyEnabled(env: { FREE_KEY_ENABLED?: string }): boolean {
+  return env.FREE_KEY_ENABLED === "true";
+}
+
 export function freeKeyState(env: Env) {
   return recoveryState(env);
 }

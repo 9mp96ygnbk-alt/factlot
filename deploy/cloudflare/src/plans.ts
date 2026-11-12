@@ -117,7 +117,11 @@ export function priceText(plan: Plan): string {
 }
 
 /** Public plan list for agents and the site (no Stripe IDs). */
-export function publicPlans(checkoutBase: string, gating = false) {
+export function publicPlans(
+  checkoutBase: string,
+  gating = false,
+  freeKey = false,
+) {
   const plans = {
     free: {
       price: "$0",
@@ -125,11 +129,15 @@ export function publicPlans(checkoutBase: string, gating = false) {
       registry_lookups_per_day: ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY,
       auth: "none",
       note: `Every calculator, ID, fact, rules and document tool at ${ANONYMOUS_REQUESTS_PER_MINUTE} requests a minute per IP address, and ${ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY} registry lookups a day per IP address.`,
-      free_key: {
-        how: `${checkoutBase}/account#free-key, or POST /v1/keys/free {"email":"you@example.com","accept_terms":true}`,
-        note: `An optional free key (emailed link, shown once, one active key per address) gives the same free limits on your own meter instead of one shared per IP address: ${ANONYMOUS_REQUESTS_PER_MINUTE} requests a minute and ${ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY} registry lookups a day per key, ${reportLimits().per_month.free} reports a month. The free keys used from one IP address together share at most ${FREE_KEY_ADDRESS_LOOKUPS_PER_DAY} lookups a day. Free keys never reach paid tools.`,
-        auth: "bearer",
-      },
+      ...(freeKey
+        ? {
+            free_key: {
+              how: `${checkoutBase}/account#free-key, or POST /v1/keys/free {"email":"you@example.com","accept_terms":true}`,
+              note: `An optional free key (emailed link, shown once, one active key per address) gives the same free limits on your own meter instead of one shared per IP address: ${ANONYMOUS_REQUESTS_PER_MINUTE} requests a minute and ${ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY} registry lookups a day per key, ${reportLimits().per_month.free} reports a month. The free keys used from one IP address together share at most ${FREE_KEY_ADDRESS_LOOKUPS_PER_DAY} lookups a day. A free key is a free caller: it has no access to paid tools${gating ? ", the earlier roll years in value history, registry batch tools or dated registry_get" : ""}.`,
+              auth: "bearer",
+            },
+          }
+        : {}),
     },
     ...Object.fromEntries(
       Object.values(PLANS).map((p) => [

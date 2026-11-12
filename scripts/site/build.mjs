@@ -303,8 +303,9 @@ addPage(
     h1: "Commercial real estate MCP server",
     crumbs: [["/mcp-server/", "MCP server"]],
     body: fill(read("site/_content/mcp.html"), { VERSION }),
+    scripts: ["/try/freekey.js"],
   },
-  ["site/_content/mcp.html"],
+  ["site/_content/mcp.html", "site/try/freekey.js"],
 );
 
 // --- /try/ ----------------------------------------------------------------------------------------
@@ -321,9 +322,9 @@ addPage(
     h1: "Try a lookup",
     crumbs: [["/try/", "Try a lookup"]],
     body: read("site/_content/try.html"),
-    scripts: ["/try/try.js"],
+    scripts: ["/try/try.js", "/try/freekey.js"],
   },
-  ["site/_content/try.html", "site/try/try.js"],
+  ["site/_content/try.html", "site/try/try.js", "site/try/freekey.js"],
 );
 
 // --- /pricing/ ------------------------------------------------------------------------------------
@@ -339,8 +340,13 @@ addPage(
     h1: "Pricing",
     crumbs: [["/pricing/", "Pricing"]],
     body: fill(read("site/_content/pricing.html"), { REPO }),
+    scripts: ["/try/freekey.js"],
   },
-  ["site/_content/pricing.html", "deploy/cloudflare/src/plans.ts"],
+  [
+    "site/_content/pricing.html",
+    "deploy/cloudflare/src/plans.ts",
+    "site/try/freekey.js",
+  ],
 );
 
 // --- calculators ---------------------------------------------------------------------------

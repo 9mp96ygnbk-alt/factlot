@@ -114,6 +114,8 @@ export interface ReportCaller {
   tier: Tier;
   /** The meter subject: `sub:<subscription>` with a key, `ipm:<hash>` without. */
   subject: () => Promise<string>;
+  /** What the free allowance is counted per in the quota message (default "IP address"). */
+  per?: string;
 }
 
 export interface ReportOptions {
@@ -139,7 +141,12 @@ export function reportQuotaHeaders(q: QuotaState): Record<string, string> {
 }
 
 /** The ReportQuotaExceeded error object (REST body and MCP tool error alike). */
-export function reportQuotaError(q: QuotaState, tier: Tier, now: number) {
+export function reportQuotaError(
+  q: QuotaState,
+  tier: Tier,
+  now: number,
+  per = "IP address",
+) {
   const n = (x: number) => x.toLocaleString("en-US");
   const lift =
     tier === "anonymous"
@@ -149,7 +156,7 @@ export function reportQuotaError(q: QuotaState, tier: Tier, now: number) {
         : `Team is the largest plan; for more, email ${CONTACT}.`;
   const who =
     tier === "anonymous"
-      ? `The free reports for this month are used up: ${n(q.limit)} a month per IP address.`
+      ? `The free reports for this month are used up: ${n(q.limit)} a month per ${per}.`
       : `This subscription's ${n(q.limit)} reports for the month (${PLANS[tier].name}) are used up.`;
   return {
     error: "ReportQuotaExceeded",
@@ -343,7 +350,7 @@ async function buildAndStore(
     return {
       ok: false,
       status: 429,
-      body: reportQuotaError(before, caller.tier, o.now()),
+      body: reportQuotaError(before, caller.tier, o.now(), caller.per),
       quota: before,
     };
   let prepared: PreparedReport;
@@ -361,7 +368,12 @@ async function buildAndStore(
     return {
       ok: false,
       status: 429,
-      body: reportQuotaError(charged.quota ?? before, caller.tier, o.now()),
+      body: reportQuotaError(
+        charged.quota ?? before,
+        caller.tier,
+        o.now(),
+        caller.per,
+      ),
       ...(charged.quota ? { quota: charged.quota } : {}),
     };
   const quota = charged.quota;

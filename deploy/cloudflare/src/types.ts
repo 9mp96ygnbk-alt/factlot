@@ -182,4 +182,6 @@ export interface Env {
   GATING_ENABLED?: string;
   /** "true" turns the usage counters on (usage.ts). Unset or anything else: nothing is counted. */
   USAGE_COUNTERS_ENABLED?: string;
+  /** "true" opens the free API key by email (POST /v1/keys/free, /account/free-key). Anything else, or unset: off, the routes answer 404 and the form is not shown. */
+  FREE_KEY_ENABLED?: string;
 }

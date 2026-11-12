@@ -60,7 +60,7 @@ import { CLAIM_POLL_MS } from "./claim.ts";
 import { WHATS_NEW } from "./news.ts";
 import { EXTRACT_LEASE_STEP, REPORTS_STEP } from "./onboarding.ts";
 import { REPORT_RULE, escapeHtml, onboardingPage } from "./pages.ts";
-import { PLANS, planForLookupKey } from "./plans.ts";
+import { PLANS, REPORTS_PER_MONTH, planForLookupKey } from "./plans.ts";
 import { createRecoveryToken } from "./recovery.ts";
 import {
   BATCH_CONCURRENCY,
@@ -5982,6 +5982,7 @@ describe("free key by email", () => {
     const e = env({
       EMAIL: mail.binding,
       RECOVERY_SIGNING_SECRET: SECRET,
+      FREE_KEY_ENABLED: "true",
       ...over,
     });
     e.RL_ANON = new CountingLimit(1000);
@@ -6147,7 +6148,9 @@ describe("free key by email", () => {
     const { e, mail } = setup();
     await ask(e, "forge@example.com");
     const url = linkOf(mail.sent[0]!.text)!;
-    assert.equal((await open(e, `${url.slice(0, -1)}A`, "POST")).status, 404);
+    // Change the last character to a different one (a fixed "A" would sometimes be a no-op).
+    const forged = `${url.slice(0, -1)}${url.endsWith("A") ? "B" : "A"}`;
+    assert.equal((await open(e, forged, "POST")).status, 404);
     const rec = await createRecoveryToken(e, "sub_1", e.clock.t);
     assert.equal(
       (await open(e, `https://factlot.com/account/free-key/${rec}`, "POST"))
@@ -6300,6 +6303,12 @@ describe("free key by email", () => {
       await mint(e, mail, "secret.person@example.com");
     });
     assert.doesNotMatch(logs, /secret\.person|example\.com/i);
+    for (const name of e.limiter.objects.keys())
+      assert.doesNotMatch(
+        String(name),
+        /secret\.person|example\.com|@/i,
+        "no address in a counter name",
+      );
     const names = [...e.KEYS.data.keys()];
     assert.ok(names.some((k) => k.startsWith("freekey:")));
     assert.ok(names.some((k) => k.startsWith("freeemail:")));
@@ -6335,5 +6344,453 @@ describe("free key by email", () => {
       await run(off.e, new Request("https://factlot.com/account"))
     ).text();
     assert.doesNotMatch(html, /action="\/account\/free-key"/);
+  });
+
+  describe("with the variable off", () => {
+    const dark = [
+      {},
+      { FREE_KEY_ENABLED: undefined },
+      { FREE_KEY_ENABLED: "TRUE" },
+      { FREE_KEY_ENABLED: "yes" },
+      { FREE_KEY_ENABLED: "1" },
+      { FREE_KEY_ENABLED: "" },
+    ];
+    // What the real inner handler answers for a path it does not serve.
+    const notFoundApi = {
+      fetch: async () =>
+        new Response('{"error":"NotFound"}', {
+          status: 404,
+          headers: { "content-type": "application/json" },
+        }),
+    };
+    // setup() turns the feature on; these override it.
+    const darkSetup = (over: Partial<Env>) =>
+      setup({ ...over, FREE_KEY_ENABLED: over.FREE_KEY_ENABLED });
+
+    it("answers 404 on every endpoint, sends nothing and stores nothing", async () => {
+      for (const over of dark) {
+        const { e, mail } = darkSetup(
+          "FREE_KEY_ENABLED" in over ? over : { FREE_KEY_ENABLED: undefined },
+        );
+        const token = `${"A".repeat(43)}.${"B".repeat(43)}`;
+        const tries: [string, string][] = [
+          ["POST", "https://api.factlot.com/v1/keys/free"],
+          ["POST", "https://factlot.com/account/free-key"],
+          ["GET", "https://factlot.com/account/free-key"],
+          ["GET", `https://factlot.com/account/free-key/${token}`],
+          ["POST", `https://factlot.com/account/free-key/${token}`],
+        ];
+        for (const [method, url] of tries) {
+          const res = await handle(
+            new Request(url, {
+              method,
+              body:
+                method === "POST"
+                  ? JSON.stringify({
+                      email: "a@example.com",
+                      accept_terms: true,
+                    })
+                  : undefined,
+              headers: {
+                "content-type": "application/json",
+                "cf-connecting-ip": IP,
+              },
+            }),
+            e,
+            notFoundApi,
+            { now: () => e.clock.t },
+          );
+          assert.equal(
+            res.status,
+            404,
+            `${method} ${url} with ${JSON.stringify(over)}`,
+          );
+        }
+        assert.equal(mail.sent.length, 0);
+        assert.equal(e.KEYS.data.size, 0);
+      }
+    });
+
+    it("hides the form on /account and the option in /v1/plans", async () => {
+      for (const over of dark) {
+        const { e } = darkSetup(
+          "FREE_KEY_ENABLED" in over ? over : { FREE_KEY_ENABLED: undefined },
+        );
+        const html = await (
+          await run(e, new Request("https://factlot.com/account"))
+        ).text();
+        assert.doesNotMatch(html, /free-key|accept_terms|Get a free key/);
+        const plans = (await (
+          await call(e, innerApi().api, "/v1/plans", { method: "GET" })
+        ).json()) as { plans: { free: Record<string, unknown> } };
+        assert.equal("free_key" in plans.plans.free, false);
+      }
+      const { e } = setup();
+      const shown = (await (
+        await call(e, innerApi().api, "/v1/plans", { method: "GET" })
+      ).json()) as { plans: { free: { free_key?: { note: string } } } };
+      assert.ok(shown.plans.free.free_key);
+    });
+
+    it("is off in the shipped wrangler config", () => {
+      const text = readFileSync(
+        new URL("../wrangler.jsonc", import.meta.url),
+        "utf8",
+      );
+      assert.doesNotMatch(text, /^\s*"FREE_KEY_ENABLED"/m);
+    });
+
+    it("turning it off stops new keys; a key already issued keeps working", async () => {
+      const { e, mail, api } = setup();
+      const key = await mint(e, mail, "keep@example.com");
+      e.FREE_KEY_ENABLED = undefined;
+      assert.equal((await lookups(e, api, key)).status, 200);
+      const after = await handle(
+        new Request("https://api.factlot.com/v1/keys/free", {
+          method: "POST",
+          body: JSON.stringify({
+            email: "again@example.com",
+            accept_terms: true,
+          }),
+          headers: {
+            "content-type": "application/json",
+            "cf-connecting-ip": IP,
+          },
+        }),
+        e,
+        { fetch: async () => new Response("{}", { status: 404 }) },
+        { now: () => e.clock.t },
+      );
+      assert.equal(after.status, 404);
+      assert.equal(mail.sent.length, 1, "no second email");
+    });
+  });
+
+  describe("under paid gating", () => {
+    const record = {
+      urn: "fl:parcel:us-48201:1",
+      value_history: [
+        { tax_year: 2026, market_value: 200 },
+        { tax_year: 2025, market_value: 1234567 },
+      ],
+      history: [
+        { id: "f2", value: 200 },
+        { id: "f1", value: 1234567 },
+      ],
+    };
+    const j = (b: unknown) =>
+      new Response(JSON.stringify(b), {
+        headers: { "content-type": "application/json" },
+      });
+    const gatedApi = () => {
+      const seen: string[] = [];
+      return {
+        seen,
+        api: {
+          fetch: async (r: Request) => {
+            const body = await r.text();
+            const path = new URL(r.url).pathname;
+            seen.push(path);
+            if (path === "/mcp") {
+              const m = JSON.parse(body) as { id: number };
+              return j({
+                jsonrpc: "2.0",
+                id: m.id,
+                result: {
+                  content: [{ type: "text", text: JSON.stringify(record) }],
+                  structuredContent: record,
+                },
+              });
+            }
+            return j(
+              path.endsWith("/batch") ? { results: [{ id: "a" }] } : record,
+            );
+          },
+        },
+      };
+    };
+    const gated = () => setup({ GATING_ENABLED: "true" });
+    const mcp = (
+      e: ReturnType<typeof env>,
+      api: { fetch(r: Request): Promise<Response> },
+      name: string,
+      args: Record<string, unknown>,
+      key?: string,
+    ) =>
+      call(e, api, "/mcp", {
+        key,
+        body: {
+          jsonrpc: "2.0",
+          id: 1,
+          method: "tools/call",
+          params: { name, arguments: args },
+        },
+      });
+
+    it("REST registry_get: the same answer as no key, current roll year only, tier anonymous", async () => {
+      const { e, mail } = gated();
+      const { api } = gatedApi();
+      const key = await mint(e, mail, "gate@example.com");
+      const keyless = await call(e, api, "/v1/registry/get", {
+        ip: "198.51.100.50",
+        body: { urn: "x" },
+      });
+      const withKey = await call(e, api, "/v1/registry/get", {
+        key,
+        ip: "198.51.100.51",
+        body: { urn: "x" },
+      });
+      assert.equal(withKey.status, 200);
+      assert.equal(withKey.headers.get("x-factlot-tier"), "anonymous");
+      assert.equal(
+        withKey.headers.get("x-factlot-registry-quota-limit"),
+        keyless.headers.get("x-factlot-registry-quota-limit"),
+      );
+      const a = (await withKey.json()) as Record<string, unknown>;
+      assert.deepEqual(a, await keyless.json());
+      assert.equal((a.value_history as unknown[]).length, 1);
+      assert.equal(a.history_available, "pro");
+      assert.ok(a.history_note);
+      assert.ok(a.history_withheld);
+      assert.ok(!JSON.stringify(a).includes("1234567"));
+    });
+
+    it("REST: batch and dated registry_get are PlanRequired and not metered", async () => {
+      const { e, mail } = gated();
+      const { api, seen } = gatedApi();
+      const key = await mint(e, mail, "gate2@example.com");
+      const batch = await call(
+        e,
+        api,
+        "/v1/registry/tx_equity_candidates/batch",
+        {
+          key,
+          body: { subjects: [] },
+        },
+      );
+      assert.equal(batch.status, 403);
+      assert.equal(
+        ((await batch.json()) as { error: string }).error,
+        "PlanRequired",
+      );
+      const dated = await call(e, api, "/v1/registry/get", {
+        key,
+        body: { urn: "x", as_of: "2025-06-01" },
+      });
+      assert.equal(dated.status, 403);
+      assert.equal(
+        ((await dated.json()) as { error: string }).error,
+        "PlanRequired",
+      );
+      assert.deepEqual(seen, [], "never reached the registry");
+      const after = await call(e, api, "/v1/registry/get", {
+        key,
+        body: { urn: "x" },
+      });
+      assert.equal(
+        after.headers.get("x-factlot-registry-quota-remaining"),
+        "24",
+      );
+    });
+
+    it("MCP: batch, dated registry_get, model and account tools are not available; plain registry_get is cut", async () => {
+      const { e, mail } = gated();
+      const { api, seen } = gatedApi();
+      const key = await mint(e, mail, "gate3@example.com");
+      for (const [name, args] of [
+        ["registry_tx_equity_candidates_batch", {}],
+        ["registry_get", { urn: "x", as_of: "2025-06-01" }],
+      ] as const) {
+        const res = (await (await mcp(e, api, name, args, key)).json()) as {
+          result: { isError: boolean; structuredContent: { error: string } };
+        };
+        assert.equal(res.result.isError, true, name);
+        assert.equal(res.result.structuredContent.error, "PlanRequired", name);
+      }
+      const model = await (
+        await mcp(e, api, "doc_extract_lease", { text: "x" }, key)
+      ).text();
+      assert.match(model, /PlanRequired|ModelUnavailable/);
+      const acct = await (await mcp(e, api, "account_usage", {}, key)).text();
+      assert.doesNotMatch(acct, /"plan"\s*:\s*"(pro|team)"/);
+      assert.ok(!seen.includes("/mcp") || seen.length <= 1);
+      const list = (await (
+        await call(e, api, "/mcp", {
+          key,
+          body: { jsonrpc: "2.0", id: 2, method: "tools/list" },
+        })
+      ).json()) as { result?: { tools?: { name: string }[] } };
+      const names = (list.result?.tools ?? []).map((t) => t.name);
+      assert.ok(!names.includes("account_usage"));
+      assert.ok(!names.includes("account_rotate_key"));
+      const ok = (await (
+        await mcp(e, api, "registry_get", { urn: "x" }, key)
+      ).json()) as {
+        result: { structuredContent: Record<string, unknown> };
+      };
+      assert.equal(
+        ok.result.structuredContent.value_history instanceof Array,
+        true,
+      );
+      assert.equal(
+        (ok.result.structuredContent.value_history as unknown[]).length,
+        1,
+      );
+      assert.equal(ok.result.structuredContent.history_available, "pro");
+    });
+
+    it("has exactly a keyless caller's minute limit, daily lookups and report allowance", async () => {
+      const { e, mail } = gated();
+      const { api } = gatedApi();
+      const key = await mint(e, mail, "gate4@example.com");
+      const ip = "198.51.100.60";
+      const headers = async (k?: string, from = ip) => {
+        const r = await call(e, api, "/v1/registry/get", {
+          key: k,
+          ip: from,
+          body: { urn: "x" },
+        });
+        return [
+          r.headers.get("x-factlot-tier"),
+          r.headers.get("x-factlot-registry-quota-limit"),
+        ];
+      };
+      assert.deepEqual(
+        await headers(key),
+        await headers(undefined, "198.51.100.61"),
+      );
+      // Reports: the free allowance (3 a month), counted for the address behind the key, so a
+      // replaced key does not restart it.
+      const report = (k: string, from = ip) =>
+        call(e, api, "/v1/reports", {
+          key: k,
+          ip: from,
+          body: {
+            kind: "debt_sizing",
+            format: "pdf",
+            arguments: {
+              noi: 2_205_000,
+              value: 36_000_000,
+              rate_annual: 0.0625,
+              amortization_years: 30,
+              max_ltv: 0.7,
+              min_dscr: 1.25,
+              min_debt_yield: 0.085,
+              round_down_to: 1000,
+            },
+          },
+        });
+      for (let i = 0; i < 3; i++)
+        assert.equal((await report(key)).status, 201, `report ${i + 1}`);
+      const over = await report(key);
+      assert.equal(over.status, 429);
+      const err = (await over.json()) as {
+        code: string;
+        message: string;
+        limit: number;
+      };
+      assert.equal(err.code, "ReportQuotaExceeded");
+      assert.equal(err.limit, REPORTS_PER_MONTH.anonymous);
+      assert.match(
+        err.message,
+        /3 a month per email address behind a free key/,
+      );
+      assert.equal(over.headers.get("x-factlot-tier"), "anonymous");
+      // A new key for the same address does not restart the month.
+      waitPassed(e);
+      const again = await mint(e, mail, "gate4@example.com", "203.0.113.77");
+      assert.equal((await report(again, "198.51.100.62")).status, 429);
+      // A keyless caller from another address has its own allowance.
+      assert.equal(
+        (await report(undefined as unknown as string, "198.51.100.63")).status,
+        201,
+      );
+    });
+
+    it("/v1/plans names a free key a free caller under gating, and lists no paid feature for it", async () => {
+      const { e } = gated();
+      const plans = (await (
+        await call(e, innerApi().api, "/v1/plans", { method: "GET" })
+      ).json()) as {
+        plans: { free: { free_key: { note: string; auth: string } } };
+      };
+      const note = plans.plans.free.free_key.note;
+      assert.match(note, /free caller/);
+      assert.match(note, /no access to paid tools/);
+      assert.match(
+        note,
+        /earlier roll years in value history, registry batch tools or dated registry_get/,
+      );
+      assert.equal(plans.plans.free.free_key.auth, "bearer");
+    });
+
+    it("a free key is never a paid caller: no key sent to account routes, billing or OAuth sign-in works", async () => {
+      const { e, mail, api } = gated();
+      const key = await mint(e, mail, "gate5@example.com");
+      for (const [path, method] of [
+        ["/v1/account", "GET"],
+        ["/v1/account/usage", "GET"],
+        ["/v1/billing/portal", "POST"],
+        ["/v1/billing/rotate", "POST"],
+        ["/v1/billing/keys", "GET"],
+      ] as const)
+        assert.equal(
+          (await call(e, api, path, { key, method })).status,
+          401,
+          path,
+        );
+      const fake = fakeStripe({});
+      const res = await run(
+        e,
+        new Request("https://factlot.com/account", {
+          method: "POST",
+          body: new URLSearchParams({ key, action: "view" }).toString(),
+          headers: {
+            "content-type": "application/x-www-form-urlencoded",
+            origin: "https://factlot.com",
+            "cf-connecting-ip": IP,
+          },
+        }),
+        fake.fetchImpl,
+      );
+      assert.ok(
+        res.status >= 400,
+        "the account page does not open for a free key",
+      );
+      assert.equal(fake.calls.length, 0, "Stripe was never called");
+    });
+  });
+
+  it("two clicks on one link at the same time make one key", async () => {
+    const { e, mail } = setup();
+    await ask(e, "race@example.com");
+    const url = linkOf(mail.sent[0]!.text)!;
+    const [a, b] = await Promise.all([
+      open(e, url, "POST"),
+      open(e, url, "POST"),
+    ]);
+    assert.deepEqual([a.status, b.status].sort(), [200, 410]);
+    assert.equal(
+      [...e.KEYS.data.keys()].filter((k) => k.startsWith("freekey:")).length,
+      1,
+    );
+  });
+
+  it("an unused link creates no key and expires with its record", async () => {
+    const { e, mail } = setup();
+    await ask(e, "unused@example.com");
+    assert.equal(
+      [...e.KEYS.data.keys()].filter((k) => k.startsWith("freekey:")).length,
+      0,
+    );
+    assert.ok([...e.KEYS.data.keys()].some((k) => k.startsWith("freelink:")));
+    const url = linkOf(mail.sent[0]!.text)!;
+    e.clock.t += 31 * 60_000;
+    const gone = await open(e, url, "GET");
+    assert.equal(gone.status, 410);
+    assert.equal(
+      [...e.KEYS.data.keys()].filter((k) => k.startsWith("freekey:")).length,
+      0,
+    );
   });
 });

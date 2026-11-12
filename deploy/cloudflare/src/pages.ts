@@ -395,6 +395,7 @@ export function accountFormPage(
   status = 200,
   message?: string,
   recovery: RecoveryState = "no-email",
+  freeKeyOn = false,
 ): Response {
   return page(
     "Your FactLot account",
@@ -406,7 +407,7 @@ ${message ? notice(message, status >= 400) : ""}
 <input id="key" name="key" type="password" autocomplete="off" spellcheck="false" placeholder="fl_live_..." required>
 <div class="buttons"><button type="submit" class="button primary" name="action" value="view">Show my account</button></div>
 </form>
-${freeKeySection(recovery)}
+${freeKeyOn ? freeKeySection(recovery) : ""}
 ${recoverSection(recovery)}
 <p class="small">No plan yet? See <a href="https://factlot.com/pricing/">pricing</a>. Questions: <a href="mailto:${CONTACT}">${CONTACT}</a>.</p>`,
     { status, formAction: ACCOUNT_FORM_ACTION },

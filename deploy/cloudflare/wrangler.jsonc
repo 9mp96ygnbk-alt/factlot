@@ -19,6 +19,10 @@
 // current roll year's values only (value_history, history) and registry batch tools answer PlanRequired; Pro and Team keep everything, and
 // checkout accepts ?plan=pro&interval=year (price factlot_pro_yearly_v1). Any value other than
 // "true", or removing the variable, turns gating off again.
+// FREE_KEY_ENABLED (not set here; add it to `vars` as "true" to turn the free API key by email on).
+// Needs the EMAIL binding and RECOVERY_SIGNING_SECRET below. Unset or any other value: POST
+// /v1/keys/free and /account/free-key answer 404 and /account shows no form; keys already issued
+// keep working. Publish the privacy notice and terms that describe it before setting it.
 //
 // OAuth 2.1 for header-less MCP clients (src/oauth.ts) needs no new binding: its records live in
 // the KEYS namespace under the `oauth:` prefix. It does need `global_fetch_strictly_public`

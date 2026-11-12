@@ -91,6 +91,7 @@ import { KEY_PLACEHOLDER, guideMarkdown, setupGuide } from "./onboarding.ts";
 import { accountFormPage, accountPage, escapeHtml, page } from "./pages.ts";
 import {
   FREE_KEY_ADDRESS_LOOKUPS_PER_DAY,
+  freeKeyEnabled,
   freeKeyLinkRoute,
   freeKeyRequestRoute,
   isFreeKeyToken,
@@ -783,10 +784,12 @@ async function route(
     }
     return successRoute(env, url, opts.fetchImpl, deferWith(opts));
   }
+  // Dark unless FREE_KEY_ENABLED is exactly "true": the paths then fall through to 404.
   if (
-    path === "/v1/keys/free" ||
-    path === "/account/free-key" ||
-    path.startsWith("/account/free-key/")
+    freeKeyEnabled(env) &&
+    (path === "/v1/keys/free" ||
+      path === "/account/free-key" ||
+      path.startsWith("/account/free-key/"))
   )
     return freeKeyRoute(request, env, url, path, opts, await addressKey());
   if (path === "/account/recover" || path.startsWith("/account/recover/"))
@@ -834,7 +837,11 @@ async function route(
   // --- API ---------------------------------------------------------------------------------
   if (path === "/v1/plans" || (path === "/" && request.method === "GET")) {
     const gating = gatingEnabled(env);
-    const plans = publicPlans(apiBase.replace("://api.", "://"), gating);
+    const plans = publicPlans(
+      apiBase.replace("://api.", "://"),
+      gating,
+      freeKeyEnabled(env),
+    );
     const checkout_open = checkoutOpen(env);
     const checkout = checkoutInfo(apiBase);
     if (path === "/v1/plans")
@@ -1350,6 +1357,7 @@ async function route(
   // Reports: metered per month against reports_per_month (reports.ts).
   const reportCaller: ReportCaller = {
     tier,
+    per: freeKey ? "email address behind a free key" : undefined,
     subject: async () =>
       paid
         ? meterSubject(paid.record, paid.hash)
@@ -2048,7 +2056,7 @@ async function accountRoute(
 ): Promise<Response> {
   const now = opts.now ?? Date.now;
   const formPage = (status?: number, notice?: string) =>
-    accountFormPage(status, notice, recoveryState(env));
+    accountFormPage(status, notice, recoveryState(env), freeKeyEnabled(env));
   if (request.method === "GET" || request.method === "HEAD") return formPage();
   if (request.method !== "POST")
     return apiError(
@@ -2224,6 +2232,7 @@ async function recoverRoute(
         403,
         "This form only works on its own page.",
         recoveryState(env),
+        freeKeyEnabled(env),
       );
     const address = await addressSubject(
       clientAddress(request),
@@ -2237,10 +2246,16 @@ async function recoverRoute(
         429,
         "Too many tries from this address. Wait a minute.",
         recoveryState(env),
+        freeKeyEnabled(env),
       );
     body = await readBody(request, 4 * 1024);
     if (body === undefined)
-      return accountFormPage(413, "The form is too large.", recoveryState(env));
+      return accountFormPage(
+        413,
+        "The form is too large.",
+        recoveryState(env),
+        freeKeyEnabled(env),
+      );
   }
   if (token === undefined)
     return recoverRequestRoute(env, request, body ?? "", ropts);
@@ -2283,7 +2298,7 @@ async function freeKeyRoute(
     );
   }
   const formPage = (status: number, notice: string) =>
-    accountFormPage(status, notice, recoveryState(env));
+    accountFormPage(status, notice, recoveryState(env), freeKeyEnabled(env));
   if (request.method === "POST") {
     const origin = request.headers.get("origin");
     const jsonBody = (request.headers.get("content-type") ?? "").includes(

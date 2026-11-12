@@ -449,6 +449,46 @@ describe("pricing page alternatives", () => {
   });
 });
 
+describe("free key links", () => {
+  const js = read("site/try/freekey.js");
+  const pages = {
+    pricing: read("site/_content/pricing.html"),
+    try: read("site/_content/try.html"),
+    mcp: read("site/_content/mcp.html"),
+  };
+  it("are hidden in the page source, and only the script shows them", () => {
+    for (const [name, html] of Object.entries(pages)) {
+      const tags = [...html.matchAll(/<[a-z]+\b[^>]*data-free-key[^>]*>/g)];
+      assert.ok(tags.length > 0, `${name} has a free key link`);
+      for (const t of tags) assert.match(t[0], /\bhidden\b/, name);
+      assert.ok(
+        html.includes('href="https://factlot.com/account#free-key"'),
+        name,
+      );
+      assert.ok(!/<form\b/.test(html.match(/data-free-key[\s\S]{0,600}/)![0]));
+    }
+  });
+  it("reads only /v1/plans, with no key, storage, HTML injection or absolute URL", () => {
+    assert.deepEqual(
+      [...js.matchAll(/"(\/v1\/[^"]*)"/g)].map((m) => m[1]),
+      ["/v1/plans"],
+    );
+    assert.match(js, /plans\.free\.free_key|free\.free_key/);
+    assert.match(js, /credentials: "omit"/);
+    assert.ok(!/https?:\/\//.test(js));
+    for (const bad of [
+      "authorization",
+      "localStorage",
+      "sessionStorage",
+      "document.cookie",
+      "innerHTML",
+      "eval(",
+      "body:",
+    ])
+      assert.ok(!js.includes(bad), bad);
+  });
+});
+
 describe("/try/ page", () => {
   const FORBIDDEN = [
     "median_adjusted_value",
@@ -540,6 +580,7 @@ describe("/try/ page", () => {
       for (const tag of scripts)
         assert.ok(
           tag === '<script src="/try/try.js" defer>' ||
+            tag === '<script src="/try/freekey.js" defer>' ||
             tag === '<script type="application/ld+json">',
           tag,
         );
