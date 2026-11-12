@@ -69,7 +69,9 @@ import {
   listConnections,
   oauthRoute,
   resolveOAuthToken,
+  resourceMetadataUrl,
   signInChallenge,
+  signInResourceMetadataUrl,
   wwwAuthenticate,
   type OAuthCaller,
 } from "./oauth.ts";
@@ -217,12 +219,18 @@ const QUOTA_HEADERS = [
   "x-factlot-registry-quota-reset",
 ];
 
+/**
+ * Request headers a browser-based MCP client may send: the 2025 Streamable HTTP ones and the
+ * 2026-07-28 per-request ones (Mcp-Method, Mcp-Name), so a preflight never blocks a newer client.
+ */
+export const MCP_ALLOW_HEADERS =
+  "content-type, authorization, accept, mcp-session-id, mcp-protocol-version, mcp-method, mcp-name, last-event-id";
+
 function corsHeaders(): Record<string, string> {
   return {
     "access-control-allow-origin": "*",
     "access-control-allow-methods": "GET, POST, DELETE, OPTIONS",
-    "access-control-allow-headers":
-      "content-type, authorization, mcp-session-id, mcp-protocol-version, last-event-id",
+    "access-control-allow-headers": MCP_ALLOW_HEADERS,
     "access-control-expose-headers": [
       "mcp-session-id",
       "www-authenticate",
@@ -673,6 +681,31 @@ function mcpBrowserPage(siteBase: string, apiBase: string): Response {
   );
 }
 
+/**
+ * POST /mcp from a client whose Accept header does not list both JSON and SSE (only
+ * application/json, a wildcard, or none). The server always answers a POST with one JSON object,
+ * which such a client reads, so the request is passed on as if it had listed both instead of
+ * failing with 406. A client that lists both is unchanged.
+ */
+function acceptingJson(request: Request): Request {
+  const accept = (request.headers.get("accept") ?? "").toLowerCase();
+  if (
+    accept.includes("application/json") &&
+    accept.includes("text/event-stream")
+  )
+    return request;
+  if (
+    accept !== "" &&
+    !accept.includes("application/json") &&
+    !accept.includes("*/*") &&
+    !accept.includes("application/*")
+  )
+    return request;
+  const headers = new Headers(request.headers);
+  headers.set("accept", "application/json, text/event-stream");
+  return new Request(request, { headers });
+}
+
 export async function handle(
   request: Request,
   env: Env,
@@ -684,13 +717,16 @@ export async function handle(
   // /mcp/signin is /mcp for a header-less client that should sign in: without credentials it
   // gets the 401 challenge that starts OAuth (bare /mcp stays open for the free tier). Like
   // /mcp it answers on every host; the challenge names the API host's metadata.
-  if (path === MCP_SIGNIN_PATH) {
+  const signIn = path === MCP_SIGNIN_PATH;
+  if (signIn) {
     if (request.method === "OPTIONS")
       return new Response(null, { status: 204, headers: corsHeaders() });
     if (!request.headers.get("authorization")) return signInChallenge(env);
     request = new Request(`${url.origin}/mcp${url.search}`, request);
     path = "/mcp";
   }
+  if (path === "/mcp" && request.method === "POST")
+    request = acceptingJson(request);
   setUsageWaitUntil(opts.waitUntil);
   const seen = (status: number) =>
     recordRequest(env, { host: url.host, path: url.pathname, status });
@@ -708,6 +744,21 @@ export async function handle(
     }
     const res = await route(request, env, api, opts);
     seen(res.status);
+    // A rejected token at /mcp/signin points back at the sign-in URL's own metadata.
+    if (signIn && res.status === 401) {
+      const h = res.headers.get("www-authenticate");
+      if (h?.includes(resourceMetadataUrl(env) + '"')) {
+        const out = new Response(res.body, res);
+        out.headers.set(
+          "www-authenticate",
+          h.replace(
+            `"${resourceMetadataUrl(env)}"`,
+            `"${signInResourceMetadataUrl(env)}"`,
+          ),
+        );
+        return out;
+      }
+    }
     return res;
   } catch (err) {
     if (err instanceof MeterUnavailable) {

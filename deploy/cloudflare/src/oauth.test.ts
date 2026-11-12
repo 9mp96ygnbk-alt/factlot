@@ -461,6 +461,165 @@ describe("OAuth discovery", () => {
   });
 });
 
+describe("the sign-in URL as its own resource", () => {
+  it("its metadata names the URL the person entered, path included", async () => {
+    const res = await send(
+      env(),
+      "/.well-known/oauth-protected-resource/mcp/signin",
+    );
+    assert.equal(res.status, 200);
+    const body = (await res.json()) as Record<string, unknown>;
+    assert.equal(body.resource, `${API}/mcp/signin`);
+    assert.deepEqual(body.authorization_servers, [API]);
+  });
+
+  it("a token asked for /mcp/signin works on /mcp/signin and /mcp", async () => {
+    const e = env();
+    const { key } = await issue(e);
+    const { client_id } = await register(e);
+    const p = await pkce();
+    const c = await authorize(e, client_id, p.challenge, {
+      resource: `${API}/mcp/signin`,
+    });
+    assert.equal(c.res.status, 200, c.html.slice(0, 300));
+    const res = await decide(e, c, { decision: "key", key });
+    assert.equal(res.status, 302);
+    const code = new URL(res.headers.get("location")!).searchParams.get(
+      "code",
+    )!;
+    const ok = await token(e, {
+      grant_type: "authorization_code",
+      code,
+      redirect_uri: CLAUDE_REDIRECT,
+      client_id,
+      code_verifier: p.verifier,
+      resource: `${API}/mcp/signin`,
+    });
+    assert.equal(ok.res.status, 200, JSON.stringify(ok.body));
+    for (const path of ["/mcp/signin", "/mcp"]) {
+      const call = await mcp(e, ok.body.access_token, LIST, path);
+      assert.equal(call.status, 200, path);
+      assert.equal(call.headers.get("x-factlot-tier"), "pro");
+    }
+  });
+
+  it("an authorization request without resource is still accepted", async () => {
+    const e = env();
+    const { client_id } = await register(e);
+    const p = await pkce();
+    const q = new URLSearchParams({
+      response_type: "code",
+      client_id,
+      redirect_uri: CLAUDE_REDIRECT,
+      code_challenge: p.challenge,
+      code_challenge_method: "S256",
+      state: "s",
+      scope: "mcp",
+    });
+    const res = await send(e, `/authorize?${q}`);
+    assert.equal(res.status, 200);
+  });
+
+  it("a rejected token at /mcp/signin points at the sign-in metadata", async () => {
+    const res = await mcp(env(), generateKey(), LIST, "/mcp/signin");
+    assert.equal(res.status, 401);
+    const h = res.headers.get("www-authenticate") ?? "";
+    assert.match(h, /error="invalid_token"/);
+    assert.match(h, /oauth-protected-resource\/mcp\/signin"/);
+  });
+});
+
+describe("browser clients read every OAuth answer (CORS)", () => {
+  it("metadata, registration and token answers carry Access-Control-Allow-Origin", async () => {
+    const e = env();
+    const origin = { origin: "http://localhost:6274" };
+    const meta = await send(e, "/.well-known/oauth-authorization-server", {
+      headers: origin,
+    });
+    assert.ok(meta.headers.get("access-control-allow-origin"));
+    const reg = await send(e, "/register", {
+      method: "POST",
+      headers: { ...origin, "content-type": "application/json" },
+      body: "{}",
+    });
+    assert.equal(reg.status, 400);
+    assert.ok(reg.headers.get("access-control-allow-origin"));
+    const tok = await send(e, "/token", {
+      method: "POST",
+      headers: {
+        ...origin,
+        "content-type": "application/x-www-form-urlencoded",
+      },
+      body: "grant_type=authorization_code&code=x",
+    });
+    assert.ok(tok.status >= 400);
+    assert.ok(tok.headers.get("access-control-allow-origin"));
+    assert.match(
+      tok.headers.get("access-control-expose-headers") ?? "",
+      /www-authenticate/i,
+    );
+  });
+
+  it("the /mcp preflight allows the 2026-07-28 request headers", async () => {
+    const res = await send(env(), "/mcp", {
+      method: "OPTIONS",
+      headers: {
+        origin: "http://localhost:6274",
+        "access-control-request-method": "POST",
+        "access-control-request-headers": "mcp-method, mcp-name",
+      },
+    });
+    assert.equal(res.status, 204);
+    const allowed = res.headers.get("access-control-allow-headers") ?? "";
+    for (const h of ["mcp-method", "mcp-name", "mcp-protocol-version"])
+      assert.ok(allowed.includes(h), h);
+  });
+});
+
+describe("POST /mcp Accept header", () => {
+  async function forwarded(accept: string | undefined): Promise<string> {
+    let seen = "";
+    const capture: Fetcher = {
+      fetch: async (r: Request) => {
+        seen = r.headers.get("accept") ?? "";
+        return inner.fetch(r);
+      },
+    };
+    const headers: Record<string, string> = {
+      "content-type": "application/json",
+      "cf-connecting-ip": IP,
+    };
+    if (accept !== undefined) headers.accept = accept;
+    const res = await handle(
+      new Request(`${API}/mcp`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(LIST),
+      }),
+      env(),
+      capture,
+    );
+    assert.equal(res.status, 200);
+    return seen;
+  }
+
+  it("a client that accepts only JSON, anything, or says nothing still gets its JSON answer", async () => {
+    for (const accept of [undefined, "application/json", "*/*"])
+      assert.equal(
+        await forwarded(accept),
+        "application/json, text/event-stream",
+        String(accept),
+      );
+  });
+
+  it("a client that lists both is passed on unchanged", async () => {
+    assert.equal(
+      await forwarded("text/event-stream, application/json"),
+      "text/event-stream, application/json",
+    );
+  });
+});
+
 describe("the 401 challenge", () => {
   it("bare /mcp without credentials stays open on the free tier", async () => {
     const res = await mcp(env(), undefined, LIST);
@@ -475,7 +634,7 @@ describe("the 401 challenge", () => {
     assert.match(h, /^Bearer /);
     assert.match(
       h,
-      /resource_metadata="https:\/\/api\.factlot\.com\/\.well-known\/oauth-protected-resource\/mcp"/,
+      /resource_metadata="https:\/\/api\.factlot\.com\/\.well-known\/oauth-protected-resource\/mcp\/signin"/,
     );
     assert.match(h, /scope="mcp"/);
     assert.doesNotMatch(h, /error=/);

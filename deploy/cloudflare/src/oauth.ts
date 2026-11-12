@@ -122,16 +122,32 @@ export function resourceMetadataUrl(env: Env): string {
 }
 
 /**
+ * The sign-in URL as a protected resource of its own. A client that was given /mcp/signin reads
+ * metadata whose `resource` is exactly that URL (Claude requires `resource` to equal the URL the
+ * person entered, path included) and asks for a token for it; the token works on /mcp and
+ * /mcp/signin alike.
+ */
+export function signInResource(env: Env): string {
+  return `${apiBase(env)}${MCP_SIGNIN_PATH}`;
+}
+
+export function signInResourceMetadataUrl(env: Env): string {
+  return `${apiBase(env)}${PRM_PATH}${MCP_SIGNIN_PATH}`;
+}
+
+/**
  * The RFC 6750 / RFC 9728 challenge for a 401 from /mcp: where the resource's metadata is, the
  * scope to ask for, and (for a rejected token) why.
  */
 export function wwwAuthenticate(
   env: Env,
   error?: { code: "invalid_token"; description: string },
+  /** The challenge for /mcp/signin: its own metadata, whose resource is the sign-in URL. */
+  signIn = false,
 ): string {
   const parts = [
     'Bearer realm="factlot"',
-    `resource_metadata="${resourceMetadataUrl(env)}"`,
+    `resource_metadata="${signIn ? signInResourceMetadataUrl(env) : resourceMetadataUrl(env)}"`,
     `scope="${OAUTH_SCOPE}"`,
   ];
   if (error)
@@ -237,7 +253,9 @@ export function authorizationServer(
   if (!s) {
     s = new OAuthAuthorizationServer<OAuthEnv>({
       issuer,
-      resources: [`${issuer}/mcp`],
+      // /mcp, and /mcp/signin for clients that ask for a token for the URL they were given.
+      resources: [`${issuer}/mcp`, `${issuer}${MCP_SIGNIN_PATH}`],
+      defaultResource: `${issuer}/mcp`,
       authorizeEndpoint: "/authorize",
       tokenEndpoint: "/token",
       clientRegistrationEndpoint: "/register",
@@ -367,11 +385,12 @@ export async function resolveOAuthToken(
   opts: ResolveOptions = {},
 ): Promise<OAuthCaller | undefined> {
   if (!isOAuthToken(token)) return undefined;
-  const v = await authorizationServer(env).validateToken(
-    mcpResource(env),
-    token,
-    oauthEnv(env),
-  );
+  // Tokens are bound to /mcp, or to /mcp/signin when the client asked for the sign-in URL; both
+  // reach the same server.
+  const server = authorizationServer(env);
+  const v =
+    (await server.validateToken(mcpResource(env), token, oauthEnv(env))) ??
+    (await server.validateToken(signInResource(env), token, oauthEnv(env)));
   if (!v || !v.scope.includes(OAUTH_SCOPE)) return undefined;
   const grantId = token.split(":")[1]!;
   const props = v.props as OAuthProps | undefined;
@@ -515,11 +534,11 @@ function oauthError(
   );
 }
 
-/** RFC 9728 protected resource metadata for /mcp. */
-export function protectedResourceMetadata(env: Env) {
+/** RFC 9728 protected resource metadata for /mcp, or for /mcp/signin (`signIn`). */
+export function protectedResourceMetadata(env: Env, signIn = false) {
   const base = apiBase(env);
   return {
-    resource: `${base}/mcp`,
+    resource: signIn ? signInResource(env) : `${base}/mcp`,
     authorization_servers: [base],
     scopes_supported: [OAUTH_SCOPE],
     bearer_methods_supported: ["header"],
@@ -542,7 +561,7 @@ export function signInChallenge(env: Env): Response {
       id: null,
     },
     {
-      "www-authenticate": wwwAuthenticate(env),
+      "www-authenticate": wwwAuthenticate(env, undefined, true),
       "access-control-allow-origin": "*",
       "access-control-expose-headers": "www-authenticate",
     },
@@ -568,10 +587,14 @@ export async function oauthRoute(
   if (path.startsWith(PRM_PATH)) {
     if (request.method !== "GET" && request.method !== "HEAD")
       return json(405, { error: "MethodNotAllowed" }, { allow: "GET, HEAD" });
-    return json(200, protectedResourceMetadata(env), {
-      ...CORS,
-      "cache-control": "public, max-age=3600",
-    });
+    return json(
+      200,
+      protectedResourceMetadata(env, path === `${PRM_PATH}${MCP_SIGNIN_PATH}`),
+      {
+        ...CORS,
+        "cache-control": "public, max-age=3600",
+      },
+    );
   }
 
   if (path === "/token" || path === "/register") {
