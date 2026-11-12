@@ -15,6 +15,7 @@ step (`node scripts/release/changelog.mjs release <version>`) moves it under the
 
 ### Added
 
+- Texas registry: Harris and Dallas now carry value history for tax years 2022 to 2025 beside the 2026 roll (market and appraised value for Harris, market value for Dallas), loaded from each district's certified prior-year exports as value history only: no owner, address or coverage rows, so the current record is unchanged. County pages count these roll years.
 - Hosted plan copy and messages now describe paid gating: the pricing page lists Pro monthly and yearly with checkout links and a Free, Pro and Team comparison; the history note and the `registry_get` and `registry_tx_equity_candidates_batch` tool descriptions say what a free call leaves out; quota and plan messages link `https://factlot.com/pricing/`.
 - Texas registry: sixteen hosted counties. Cameron, Nueces, Galveston, Jefferson, Brazos, Midland, Ector, Grayson, Guadalupe and Kaufman join Harris, Dallas, Travis, Collin, Denton and Williamson on the hosted registry (305,684 Texas commercial parcels; 434,538 parcels in 43 counties with Maryland, DC and Utah; 88,176 Comptroller entities). Brazos holds roll years 2016 to 2026, Nueces 2021 to 2026, Galveston 2023 to 2026, Kaufman 2024 to 2026, Jefferson and Guadalupe 2025 to 2026. Midland has no values because its publisher's file has none. Tarrant County is still not served. The factlot.com Texas hub, county pages, README, llms.txt and coverage docs state the new figures.
 - Texas proof pages on factlot.com: `/texas/<county>/` for the six hosted counties (hosted parcels, roll year and as-of date, source and recorded terms, what the tools answer there), worked examples at `/texas/harris/example/` and `/texas/dallas/example/` (cited parcel facts, the first ten default-rule candidates, and the `calc_tx_unequal_appraisal` input an agent would pass after review, with no computed result for a real property), a status table of other Texas districts on the hub, and a "What you would otherwise use" comparison on the pricing page. Figures come from `site/_data/texas-counties.json` and `texas-examples.json`, written by `scripts/site/gen-texas-counties.ts` and `gen-texas-examples.ts` from a built registry file.
@@ -77,6 +78,7 @@ conservative_file_by, basis}` for the next tax year when the deadline has passed
 
 ### Changed
 
+- Hosted API, paid gating: `registry_get` with `as_of` (the record as it stood on an earlier date) is value history, so a call without a Pro or Team key now answers `PlanRequired` and is not metered; before, a free caller could read earlier roll years one date at a time. The same call without `as_of` is unchanged. `/v1/plans` lists the rule as `gating.dated_get`.
 - Hosted API: **reports are open.** `report_create` is listed over MCP, `POST /v1/reports` builds
   the document, and `/v1/plans` shows `reports.available: true` with the monthly allowance (3 free
   per IP address, 50 on Pro, 1,000 on Team). The 0.5.0 notes below describe the state at release,

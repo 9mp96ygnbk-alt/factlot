@@ -165,6 +165,7 @@ export const GATING_INFO = {
   enabled: true,
   free_history: "current roll year only",
   batch: "Pro and Team",
+  dated_get: "Pro and Team",
   pricing: GATING_PRICING_URL,
 };
 

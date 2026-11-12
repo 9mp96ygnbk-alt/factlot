@@ -5399,6 +5399,81 @@ describe("paid gating (GATING_ENABLED)", () => {
     assert.equal(only.headers.get("x-factlot-registry-quota-limit"), null);
   });
 
+  it("REST dated get: a free caller's registry_get with as_of gets 403 PlanRequired, unmetered and never forwarded; without as_of, with a key or with gating off it runs", async () => {
+    const { api, seen } = historyApi();
+    const e = on();
+    const res = await call(e, api, "/v1/registry/get", {
+      body: { urn: "x", as_of: "2025-12-31" },
+    });
+    assert.equal(res.status, 403);
+    const body = (await res.json()) as {
+      error: string;
+      upgrade: string;
+      message: string;
+      next: string;
+    };
+    assert.equal(body.error, "PlanRequired");
+    assert.equal(body.upgrade, "https://factlot.com/pricing/");
+    assert.match(body.message, /as_of/);
+    assert.match(body.message, /Nothing was counted/);
+    assert.match(body.next, /without as_of/);
+    assert.deepEqual(seen, []);
+    assert.equal(
+      (await e.METER.quota(await addressSubject(IP, T0), "day", 25)).used,
+      0,
+    );
+    // The current record stays free.
+    const current = await call(e, api, "/v1/registry/get", {
+      body: { urn: "x" },
+    });
+    assert.equal(current.status, 200);
+    // A Pro key gets the dated record, whole.
+    const { key } = await issue(e);
+    const pro = await call(e, api, "/v1/registry/get", {
+      key,
+      body: { urn: "x", as_of: "2025-12-31" },
+    });
+    assert.equal(pro.status, 200);
+    assert.deepEqual(await pro.json(), record);
+    // Flag off: the call runs as before.
+    const off = await call(env(), api, "/v1/registry/get", {
+      body: { urn: "x", as_of: "2025-12-31" },
+    });
+    assert.equal(off.status, 200);
+  });
+
+  it("MCP dated get: a free caller's registry_get with as_of answers PlanRequired as a tool error and costs no lookup; an undated one in the same request runs", async () => {
+    const { api, seen } = historyApi();
+    const res = await call(on(), api, "/mcp", {
+      body: [
+        {
+          jsonrpc: "2.0",
+          id: 1,
+          method: "tools/call",
+          params: {
+            name: "registry_get",
+            arguments: { urn: "x", as_of: "2025-12-31" },
+          },
+        },
+        toolCall("registry_get", 2),
+      ],
+    });
+    const answers = (await res.json()) as {
+      id: number;
+      result: {
+        isError?: boolean;
+        structuredContent: { error?: string; value_history?: unknown[] };
+      };
+    }[];
+    const refused = answers.find((a) => a.id === 1)!;
+    assert.equal(refused.result.isError, true);
+    assert.equal(refused.result.structuredContent.error, "PlanRequired");
+    const ran = answers.find((a) => a.id === 2)!;
+    assert.equal(ran.result.structuredContent.value_history?.length, 1);
+    assert.ok(!seen.join("").includes("2025-12-31"), "never forwarded");
+    assert.equal(res.headers.get("x-factlot-registry-quota-remaining"), "24");
+  });
+
   it("batch tools stay available to Pro with gating on", async () => {
     const { api, seen } = historyApi();
     const e = on();
@@ -5544,6 +5619,7 @@ describe("paid gating (GATING_ENABLED)", () => {
         enabled: boolean;
         free_history: string;
         batch: string;
+        dated_get: string;
         pricing: string;
       };
       plans: {
@@ -5560,6 +5636,7 @@ describe("paid gating (GATING_ENABLED)", () => {
       enabled: true,
       free_history: "current roll year only",
       batch: "Pro and Team",
+      dated_get: "Pro and Team",
       pricing: "https://factlot.com/pricing/",
     });
     assert.match(String(enabled.plans.free.note), /current roll year/);

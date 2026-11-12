@@ -9,6 +9,9 @@
  *   candidates themselves are not gated; only the subject's value_history is cut.
  * - Registry batch tools (names ending in _batch) are for Pro and Team: a free caller gets
  *   PlanRequired, and the call is not metered.
+ * - registry_get with as_of (the record as it stood on an earlier date) is history too, so it is
+ *   for Pro and Team: a free caller gets PlanRequired, and the call is not metered. Without this
+ *   a free caller could read the earlier roll years one date at a time.
  */
 import { GATING_PRICING_URL } from "./plans.ts";
 
@@ -28,7 +31,26 @@ export function isBatchRegistryTool(name: unknown): name is string {
   );
 }
 
-const HISTORY_NOTE = `This answer was shortened because the call has no Pro or Team key: value_history (and history, if asked for) keep the current roll year only, and earlier years were left out. A Pro or Team key returns every year: ${GATING_PRICING_URL}`;
+/** registry_get with as_of: the record on an earlier date. Refused for free callers when gating is on. */
+export function isDatedGet(name: unknown, args: unknown): boolean {
+  return (
+    name === HISTORY_TOOL &&
+    typeof args === "object" &&
+    args !== null &&
+    !Array.isArray(args) &&
+    (args as Json).as_of != null
+  );
+}
+
+/** A registry call a free caller is refused when gating is on: a batch tool, or a dated registry_get. */
+export function isPaidRegistryCall(
+  name: unknown,
+  args: unknown,
+): name is string {
+  return isBatchRegistryTool(name) || isDatedGet(name, args);
+}
+
+const HISTORY_NOTE = `This answer was shortened because the call has no Pro or Team key: value_history (and history, if asked for) keep the current roll year only, and any earlier years were left out. A Pro or Team key returns every year: ${GATING_PRICING_URL}`;
 
 /** PlanRequired for a batch tool, in the shape the model-backed tools use. */
 export function batchPlanRequired(tool: string): { status: 403; body: Json } {
@@ -42,6 +64,27 @@ export function batchPlanRequired(tool: string): { status: 403; body: Json } {
       upgrade: GATING_PRICING_URL,
     },
   };
+}
+
+/** PlanRequired for a dated registry_get (as_of), in the same shape. */
+export function datedPlanRequired(): { status: 403; body: Json } {
+  return {
+    status: 403,
+    body: {
+      error: "PlanRequired",
+      message: `${HISTORY_TOOL} with as_of returns the record as it stood on an earlier date, which is value history, so it is part of the paid plans: Pro and Team. Nothing was counted. Without as_of the same call returns the current record within the free daily lookups.`,
+      next: `send a Pro or Team key as Authorization: Bearer <key> (${GATING_PRICING_URL}), or call ${HISTORY_TOOL} again without as_of`,
+      upgrade: GATING_PRICING_URL,
+    },
+  };
+}
+
+/** PlanRequired for a call isPaidRegistryCall matched. */
+export function planRequired(
+  tool: string,
+  args: unknown,
+): { status: 403; body: Json } {
+  return isDatedGet(tool, args) ? datedPlanRequired() : batchPlanRequired(tool);
 }
 
 /**

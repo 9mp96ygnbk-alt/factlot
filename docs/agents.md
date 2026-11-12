@@ -490,7 +490,8 @@ lookup.
 - **Value history.** The subject carries `value_history`: market and appraised value by tax year
   from every snapshot, newest first, each value cited to the roll of that tax year. A tax year two
   snapshots value differently is listed once per value. Without a Pro or Team key the hosted API
-  returns the current roll year only (`history_available`, `history_note`).
+  returns the current roll year only (`history_available`, `history_note`), and `registry_get`
+  with `as_of` answers `PlanRequired` there (the dated record is history; nothing is counted).
 - **Boundaries.** The output is a list of candidates under FactLot's default rule, a design
   choice, not a legal standard; a person decides which to use and supplies any adjustments. The
   tool never returns owner names, mailing addresses, or ownership facts. Do not look up the owners
