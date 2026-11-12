@@ -8,10 +8,12 @@ inferred from that fact's document is current. The older years' links are owner 
 import sqlite3
 import tempfile
 import unittest
+from datetime import date
 from pathlib import Path
 
 import factlot
 from factlot.registry import EntityRecord, ParcelRecord, Registry, Source
+from factlot.registry import audit as audit_mod
 from factlot.tools import configure_registry
 
 DISTRICT = Source("test-cad-996", "Example Appraisal District (synthetic)", "Appraisal roll",
@@ -134,6 +136,30 @@ class OwnerLinkTests(unittest.TestCase):
                          [(OLD, "2026-07-25")])
         self.assertEqual([o["urn"] for o in reg.parcels_owned_by(OLD)], [parcel("2000001")])
         reg.close()
+
+
+class OwnerLinkAuditTests(unittest.TestCase):
+    TODAY = date(2026, 11, 12)
+
+    def setUp(self):
+        self.db = build(Path(tempfile.mkdtemp()))
+
+    def test_multi_year_links_are_clean_under_the_rule(self):
+        report = audit_mod.audit_db(self.db, today=self.TODAY)
+        self.assertEqual(report["current_owner_links"],
+                         {"parcels_with_several_owners": 0, "parcels_with_repeated_link": 0, "by_county": {}})
+        self.assertFalse(any("current ownership links" in v for v in report["violations"]))
+
+    def test_a_second_entity_linked_from_the_current_document_is_a_violation(self):
+        db = sqlite3.connect(self.db)
+        db.execute("INSERT INTO relationships SELECT ?, type, to_urn, as_of, method, confidence, document_id, basis "
+                   "FROM relationships WHERE to_urn = ? AND from_urn = ?", (OLD, parcel("2000001"), NEW))
+        db.commit()
+        db.close()
+        report = audit_mod.audit_db(self.db, today=self.TODAY)
+        self.assertEqual(report["current_owner_links"]["by_county"],
+                         {"us-48996": {"several_owners": 1, "repeated_link": 0}})
+        self.assertIn("us-48996: 1 parcels have current ownership links from more than one entity", report["violations"])
 
 
 if __name__ == "__main__":
